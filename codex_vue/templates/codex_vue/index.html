@@ -1,0 +1,39 @@
+{% load render_bundle from webpack_loader %}
+{% load webpack_static from webpack_loader %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Codex</title>
+    <link
+      rel="icon"
+      type="image/png"
+      href="{% webpack_static 'img/icons/favicon-32x32.png' %}"
+    />
+    <link
+      type="text/css"
+      rel="stylesheet"
+      href="{% webpack_static 'css/normalize.css' %}"
+    />
+    <link
+      type="text/css"
+      rel="stylesheet"
+      href="{% webpack_static 'css/global.css' %}"
+    />
+    {% render_bundle 'chunk-vendors' 'css' %}
+    {% render_bundle 'app' 'css' %}
+    {% render_bundle 'chunk-vendors' 'js' attrs='defer charset="utf-8"' %}
+    {% render_bundle 'app' 'js' attrs='defer charset="utf-8"' %}
+  </head>
+  <body>
+    <noscript>
+      <strong
+        >Sorry but Codex doesn't work properly without JavaScript enabled.
+        Please enable it to continue.</strong
+      >
+    </noscript>
+    <div id="App" />
+  </body>
+</html>

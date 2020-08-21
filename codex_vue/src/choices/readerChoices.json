@@ -1,0 +1,7 @@
+{
+  "fitToChoices": [
+    { "text": "Height", "value": "HEIGHT", "default": true },
+    { "text": "Width", "value": "WIDTH" },
+    { "text": "Original Size", "value": "ORIG" }
+  ]
+}

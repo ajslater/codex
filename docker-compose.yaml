@@ -1,8 +1,8 @@
 version: "3.7"
 services:
-    codex:
-        build: .
-        image: ajslater/codex
-        container_name: codex
-        ports:
-            - "8000:8000"
+  codex:
+    build: .
+    image: ajslater/codex
+    container_name: codex
+    ports:
+      - "8000:8000"

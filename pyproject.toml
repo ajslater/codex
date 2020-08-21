@@ -4,8 +4,8 @@ build-backend = ["poetry.masonry.api"]
 
 [tool.poetry]
 name = "codex"
-version = "0.0.0-rc0"
-description = "An API for reading comic archives"
+version = "0.3.0"
+description = "A comic archive web server."
 license = "GPL-2.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
 readme = "README.md"
@@ -13,13 +13,14 @@ homepage = "https://github.com/ajslater/codex"
 documentation = "https://github.com/ajslater/codex"
 keywords = ["comic", "cbz", "cbr", "cbt"]
 classifiers = [
-    "Development Status :: 1 - Planning",
-    "Environment :: CLI",
+    "Development Status :: 2 - Pre-Alpha",
+    "Environment :: Web Environment",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Framework :: Django :: 3.0",
-    "Intended Audience :: Developer",
+    "Framework :: Django :: 3.1",
+    "Intended Audience :: End Users/Desktop",
     "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Multimedia :: Graphics :: Viewers",
 ]
 packages = [
     { include = "codex" },
@@ -29,22 +30,29 @@ include = ["NEWS"]
 
 [tool.poetry.dependencies]
 python = "^3.7"
-watchdog = "^0.10"
-Pillow = "^7.0"
+django = "^3.1a1"
+djangorestframework = "^3.11"
+django-cors-headers = "^3.2"
+django-webpack-loader = "^0.7"
+daphne = "^2.5"
+bidict = "^0.19"
+fnvhash = "^0.1"
 pycountry = "^19.8"
-django-registration = "^3.1"
 regex = "^2020.4.4"
-daphne = "^2.5.0"
-whitenoise = {extras = ["brotli"], version = "^5.0.1"}
-django = {git = "https://github.com/django/django.git", rev = "master"}
-bidict = "^0.19.0"
+watchdog = "^0.10"
+whitenoise = {extras = ["brotli"], version = "^5.0"}
+Pillow = "^7.0"
 # comicbox
 simplejson = "^3.17"
 parse = "^1.15"
 rarfile = "^3.1"
-fnvhash = "^0.1.0"
+coloredlogs = "^14.0"
+stringcase = "^1.2.0"
+hypercorn = {extras = ["h3"], version = "^0.9.5"}
+websocket_client = "^0.57.0"
 
 [tool.poetry.dev-dependencies]
+django-livereload-server = "^0.3"
 flake8 = "^3.7"
 flake8-black = "^0.1"
 flake8-bugbear = "^20.1"

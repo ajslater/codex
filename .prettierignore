@@ -1,0 +1,9 @@
+.mypy_cache
+.pytest_cache
+__pycache__
+templates
+dist
+webpack-stats.json
+codex_vue/public/index.html
+/static
+/test-results

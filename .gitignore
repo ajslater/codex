@@ -128,12 +128,25 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
 # codex specific
 *~
 .DS_Store
-covers
+build
+config
+dist
 db.sqlite3
 monkeytype.sqlite3
+node_modules
 test-results
 ##############################
 # Until comicbox is released #

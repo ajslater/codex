@@ -1,0 +1,85 @@
+"""View for marking comics read and unread."""
+import logging
+
+from django.db.models import F
+from django.db.models import FilteredRelation
+from django.http import FileResponse
+from django.http import Http404
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from codex_api.models import Comic
+from codex_api.serializers.metadata import ComicSerializer
+from codex_api.serializers.metadata import UserBookmarkFinishedSerializer
+from codex_api.views.browser import BrowseView
+from codex_api.views.mixins import SessionMixin
+from codex_api.views.mixins import UserBookmarkMixin
+
+
+LOG = logging.getLogger(__name__)
+
+
+class ComicDownloadView(APIView):
+    """Return the comic archive file as an attachment."""
+
+    def get(self, request, *args, **kwargs):
+        """Download a comic archive."""
+        pk = kwargs.get("pk")
+        try:
+            comic_path = Comic.objects.get(pk=pk).path
+        except Comic.DoesNotExist:
+            raise Http404(f"Comic {pk} not not found.")
+
+        fd = open(comic_path, "rb")
+        return FileResponse(fd, as_attachment=True)
+
+
+class UserBookmarkFinishedView(APIView, SessionMixin, UserBookmarkMixin):
+    """Mark read or unread recursively."""
+
+    def patch(self, request, *args, **kwargs):
+        """Mark read or unread recursively."""
+        browse_type = self.kwargs.get("browse_type")
+        pk = self.kwargs.get("pk")
+
+        serializer = UserBookmarkFinishedSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        cls = BrowseView.GROUP_CLASS.get(browse_type)
+        comic_pks = cls.objects.get(pk=pk).comic.values_list("pk", flat=True)
+        updates = {"finished": serializer.validated_data.get("finished")}
+
+        for comic_pk in comic_pks:
+            # can't do this in bulk if using update_or_create
+            self.update_user_bookmark(updates, comic_pk)
+
+        return Response()
+
+
+class ComicMetadataView(APIView, SessionMixin, UserBookmarkMixin):
+    """Comic metadata."""
+
+    queryset = Comic.objects.all()
+
+    def get(self, request, *args, **kwargs):
+        """Get metadata for a single comic."""
+        # This filtered relation is simpler than filtering on every relation
+        comic = Comic.objects
+        ub_filter = self.get_userbookmark_filter(True)
+        comic = comic.annotate(
+            my_bookmark=FilteredRelation("userbookmark", condition=ub_filter)
+        )
+        comic = comic.annotate(
+            fit_to=F("my_bookmark__fit_to"),
+            two_pages=F("my_bookmark__two_pages"),
+            finished=F("my_bookmark__finished"),
+            bookmark=F("my_bookmark__bookmark"),
+        )
+
+        # Annotate progress
+        comic = self.annotate_progress(comic)
+
+        pk = kwargs.get("pk")
+        res = comic.select_related().get(pk=pk)
+        serializer = ComicSerializer(res)
+        return Response(serializer.data)

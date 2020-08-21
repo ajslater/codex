@@ -10,17 +10,18 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
+
+import logging
 import os
 
-from logging import DEBUG
-from logging import basicConfig
+from pathlib import Path
 
-
-basicConfig(level=DEBUG)
+import coloredlogs
 
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = Path(__file__).resolve().parent.parent
+# os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 # Quick-start development settings - unsuitable for production
@@ -29,8 +30,30 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = "h7+z7h!hp*zvsg@z*9momg85**ogmldelv6$w5&5@f4saj*$rc"
 
+DEV = os.environ.get("DEV")
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = DEV
+
+if DEBUG:
+    LOG_LEVEL = "DEBUG"
+else:
+    LOG_LEVEL = "INFO"
+
+logging.basicConfig(level=LOG_LEVEL)
+FMT = "%(asctime)s %(name)s[%(process)d] %(levelname)s %(message)s"
+# https://coloredlogs.readthedocs.io/en/latest/api.html#changing-the-colors-styles
+LEVEL_STYLES = {
+    "spam": {"color": "green", "faint": True},
+    "debug": {"color": "black", "bright": True},
+    "verbose": {"color": "blue"},
+    "info": {},
+    "notice": {"color": "magenta"},
+    "warning": {"color": "yellow"},
+    "success": {"color": "green", "bold": True},
+    "error": {"color": "red"},
+    "critical": {"color": "red", "bold": True},
+}
+coloredlogs.install(level=LOG_LEVEL, fmt=FMT, level_styles=LEVEL_STYLES)
 
 ALLOWED_HOSTS = ["*"]
 
@@ -45,10 +68,18 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "whitenoise.runserver_nostatic",
     "django.contrib.staticfiles",
-    "codex",
+    "rest_framework",
+    "corsheaders",
+    "webpack_loader",
+    "codex_api.apps.CodexAPIConfig",
+    "codex_vue",
 ]
 
+if DEV:
+    INSTALLED_APPS += ["livereload"]
+
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -58,13 +89,15 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+if DEV:
+    MIDDLEWARE += ["livereload.middleware.LiveReloadScript"]
 
 ROOT_URLCONF = "codex.urls"
 
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": ["codex/templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -86,7 +119,7 @@ WSGI_APPLICATION = "codex.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": os.path.join(BASE_DIR, "config", "db.sqlite3"),
+        "NAME": BASE_DIR / "config" / "db.sqlite3",
     },
 }
 
@@ -96,7 +129,8 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "NAME": "django.contrib.auth."
+        "password_validation.UserAttributeSimilarityValidator"
     },
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
@@ -121,23 +155,33 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
-
-def _add_script_prefix(value):
-    from django.urls import get_script_prefix
-
-    return "%s%s" % (get_script_prefix(), value)
-
-
 STATIC_ROOT = "static"
 STATIC_URL = "static/"
+STATICFILES_DIRS = (BASE_DIR / "config/static",)
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 60  # 60 days
-
-LOGIN_REDIRECT_URL = "/"
-LOGOUT_REDIRECT_URL = "/"
 
 # Setup support for proxy headers
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework.authentication.SessionAuthentication",
+    )
+}
+
+BUNDLE_DIR_NAME = Path("codex_vue") / "static" / "dist"
+
+if DEV:
+    CORS_ORIGIN_WHITELIST = ("http://localhost:8080",)
+CORS_ALLOW_CREDENTIALS = True
+
+WEBPACK_LOADER = {
+    "DEFAULT": {
+        "BUNDLE_DIR_NAME": BUNDLE_DIR_NAME,
+        "STATS_FILE": BASE_DIR / "codex_vue" / "webpack-stats.json",
+        "CACHE": not DEBUG,
+    }
+}

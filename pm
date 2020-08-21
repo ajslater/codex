@@ -1,3 +1,2 @@
-#!/bin/bash
-set -euo pipefail
+#!/bin/sh
 poetry run python3 manage.py "$@"

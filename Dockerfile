@@ -1,20 +1,18 @@
 FROM python:alpine
 
+# TODO audit these to see if we really need them all
 RUN \
 echo "**** install system packages ****" && \
  apk add --no-cache \
- build-base=0.5-r1 \
- libffi-dev=3.2.1-r6 \
- zlib-dev=1.2.11-r3 \
- jpeg-dev=8-r6 \
- git
-
-
-RUN apk add --no-cache \
-  openssl-dev
-
-RUN apk add --no-cache \
- yaml-dev
+   bsd-compat-headers \
+   build-base \
+   libffi-dev \
+   nodejs \
+   npm \
+   openssl-dev \
+   yaml-dev \
+   jpeg-dev \
+   zlib-dev
 
 RUN \
  echo "**** install poetry ****" && \
@@ -23,9 +21,21 @@ RUN \
 WORKDIR /app
 RUN echo "**** copying source ****"
 COPY . .
-RUN echo "**** install ****" && \
+RUN echo "**** install api ****" && \
  poetry install --no-dev
-# comic box deps
+
+WORKDIR /app/codex_vue
+RUN echo "**** install ui packages ***" && \
+  npm install && \
+  npm install --dev
+
+RUN echo "**** build vue ui ***" && \
+  npm run build
+
+WORKDIR /app
+
+# TODO copy installed app and install non-dev libs for multi-stage build
+
 VOLUME /comics
 VOLUME /config
 EXPOSE 8000
