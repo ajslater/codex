@@ -86,7 +86,6 @@ omit = ["frontend"]
 directory = "test-results/coverage"
 
 [tool.black]
-exclude = "/(comicbox|codex/migrations)/"
 
 [tool.pytest.ini_options]
 norecursedirs = ["frontend"]
