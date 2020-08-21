@@ -469,6 +469,8 @@ class BrowseView(APIView, SessionMixin, UserBookmarkMixin):
 
         efv_flag = AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_FOLDER_VIEW)
 
+        libraries_exist = Library.objects.exists()
+
         context = {
             "upRoute": up_route,
             "browseTitle": browse_title,
@@ -479,6 +481,7 @@ class BrowseView(APIView, SessionMixin, UserBookmarkMixin):
                 "characters": characters_filter_choices,
                 "enableFolderView": efv_flag.on,
             },
+            "librariesExist": libraries_exist,
         }
         return context
 
@@ -580,7 +583,6 @@ class BrowseView(APIView, SessionMixin, UserBookmarkMixin):
         context = self.get_queryset()
 
         filters = self.params["filters"]
-        libraries_exist = Library.objects.exists()
         data = {
             "settings": {
                 "filters": {
@@ -594,7 +596,6 @@ class BrowseView(APIView, SessionMixin, UserBookmarkMixin):
                 "show": self.params.get("show"),
             },
             "browseList": context,
-            "librariesExist": libraries_exist,
         }
 
         serializer = BrowserOpenedSerializer(data)

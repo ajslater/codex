@@ -87,9 +87,6 @@ const mutations = {
   setBrowseRoute(state, route) {
     state.routes.current = route;
   },
-  setLibrariesExist(state, value) {
-    state.librariesExist = value;
-  },
   setSettings(state, data) {
     for (let [key, value] of Object.entries(data)) {
       if (typeof state.settings[key] === "object") {
@@ -112,6 +109,7 @@ const mutations = {
     state.routes.up = Object.freeze(data.upRoute);
     state.containerList = Object.freeze(data.containerList);
     state.comicList = Object.freeze(data.comicList);
+    state.librariesExist = data.librariesExist;
   },
   setFilterMode(state, mode) {
     state.filterMode = mode;
@@ -240,11 +238,9 @@ const actions = {
     // Gets everything needed to open the component.
     document.title = "Codex Browser";
     commit("setBrowseRoute", route);
-    commit("setLibrariesExist", null);
     await API.getBrowseOpened(route)
       .then((response) => {
         const data = response.data;
-        commit("setLibrariesExist", data.librariesExist);
         commit("setSettings", data.settings);
         if (!validateState({ state, commit, dispatch })) {
           // will have dispatched to SetSetting if fails.
