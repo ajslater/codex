@@ -379,7 +379,7 @@ export default {
   padding: 20px;
   width: fit-content;
   /* Seems like I'm fixing a bug here */
-  background: #121212;
+  background-color: #121212;
 }
 /* Custom slider with a large control. */
 .v-input__slider .v-slider__thumb {

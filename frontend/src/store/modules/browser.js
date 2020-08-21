@@ -259,7 +259,6 @@ const actions = {
             pk: 0,
           };
           dispatch("browseOpened", params);
-          // TODO if i decouple getting opening stuff from browse data i can redirect easier?
         }
         return handleBrowseError({ state, commit }, error);
       });

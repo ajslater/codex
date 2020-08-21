@@ -162,6 +162,6 @@ export default {
 
 <style scoped lang="scss">
 #userMenu {
-  background-color: #121212; /* TODO map theme background */
+  background-color: #121212;
 }
 </style>

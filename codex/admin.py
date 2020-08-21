@@ -43,8 +43,9 @@ class AdminLibrary(ModelAdmin):
         "enable_scan_cron",
         "scan_frequency",
         "scan_in_progress",
-        # XXX can't submit anything if this doesn't have a value
-        #  I fix this on the front end with javascript. Ugly.
+        # XXX can't submit anything at all if this doesn't have a value.
+        #  I mark this disabled and readonly with javascript. Ugly.
+        #  This a django bug.
         "last_scan",
     )
     readonly_fields = ("last_scan",)
@@ -139,7 +140,7 @@ class AdminAdminFlag(ModelAdmin):
 
     def _on_change(self):
         """Signal UI that its out of date."""
-        # XXX too heavy handed.
+        # Heavy handed refresh everything, but simple.
         # Folder View could only change the group view and let the ui decide
         # Registration only needs to change the enable flag
         task = LibraryChangedTask()

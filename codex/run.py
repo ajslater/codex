@@ -29,12 +29,8 @@ RESET_ADMIN = bool(os.environ.get("CODEX_RESET_ADMIN"))
 
 def ensure_config():
     """Ensure that a valid config exists."""
-    try:
-        CONFIG_STATIC.mkdir(parents=True)
-        LOG.info(f"Created new directory {CONFIG_STATIC}")
-    except FileExistsError:
-        pass
-
+    # make the config dir and the static dir.
+    CONFIG_STATIC.mkdir(parents=True, exist_ok=True)
     if not CONFIG_TOML.exists():
         shutil.copy(CONFIG_DEFAULT_TOML, CONFIG_TOML)
         LOG.info(f"Copied default config to {CONFIG_TOML}")

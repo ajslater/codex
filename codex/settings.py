@@ -23,7 +23,7 @@ import coloredlogs
 BASE_DIR = Path(__file__).resolve().parent.parent
 CODEX_PATH = BASE_DIR / "codex"
 CONFIG_PATH = os.environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config")
-CONFIG_PATH.mkdir(exist_ok=True)
+CONFIG_PATH.mkdir(exist_ok=True, parents=True)
 
 
 # Quick-start development settings - unsuitable for production
@@ -180,6 +180,7 @@ USE_TZ = True
 STATIC_ROOT = CODEX_PATH / "static_root"
 STATIC_URL = "static/"
 CONFIG_STATIC = CONFIG_PATH / "static"
+CONFIG_STATIC.mkdir(exist_ok=True, parents=True)
 STATICFILES_DIRS = (
     CODEX_PATH / "static_src",
     CODEX_PATH / "static_build",
@@ -207,7 +208,7 @@ REST_FRAMEWORK = {
 CORS_ALLOW_CREDENTIALS = True
 
 CACHE_PATH = CONFIG_PATH / "cache"
-CACHE_PATH.mkdir(exist_ok=True)
+CACHE_PATH.mkdir(exist_ok=True, parents=True)
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",

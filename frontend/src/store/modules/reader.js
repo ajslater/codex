@@ -33,7 +33,6 @@ const getters = {
   computedSettings: (state) => {
     // Use the global settings keys as a default for local bookmark settings
     // Fall back to device size defaults.
-    // TODO make sure we save the computed settings
     const computedSettings = {};
     Object.keys(state.settings.globl).forEach(function (key) {
       if (state.settings.local[key] !== null) {

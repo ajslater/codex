@@ -56,9 +56,10 @@ BROADCAST_URL_TMPL = "ws://localhost:{port}/" + BROADCAST_PATH
 SHUTDOWN_MSG = "shutdown"
 MAX_WS_ATTEMPTS = 4
 librarian_proc = None
-# TODO Fix QUEUE sharing with default spawn start method?
-#   spawn method is also really really slow.
-#   https://bugs.python.org/issue40106
+# XXX Fixes QUEUE sharing with default spawn start method. The spawn
+# method is also very very slow. Use fork and the
+# OBJC_DISABLE_INITIALIZE_FORK_SAFETY environment variable for macOS.
+# https://bugs.python.org/issue40106
 set_start_method("fork", force=True)
 
 
