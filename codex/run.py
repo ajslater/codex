@@ -17,6 +17,7 @@ from codex.asgi import application
 from codex.librarian.librariand import PORT
 from codex.settings import CODEX_PATH
 from codex.settings import CONFIG_PATH
+from codex.settings import CONFIG_STATIC
 
 
 CONFIG_TOML = CONFIG_PATH / "hypercorn.toml"
@@ -30,8 +31,8 @@ RESET_ADMIN = bool(os.environ.get("CODEX_RESET_ADMIN"))
 def ensure_config():
     """Ensure that a valid config exists."""
     try:
-        CONFIG_PATH.mkdir()
-        LOG.info(f"Created new directory {CONFIG_PATH}")
+        CONFIG_STATIC.mkdir(parents=True)
+        LOG.info(f"Created new directory {CONFIG_STATIC}")
     except FileExistsError:
         pass
 
@@ -61,16 +62,17 @@ def ensure_superuser():
 
 
 def init_admin_flags():
-
+    """Ensure the initialize of the Admin flags."""
     AdminFlag = apps.get_model("codex", "AdminFlag")  # noqa N806
     AdminFlag.init_all_flags()
 
 
 def setup_db():
+    """Setup the database before we run."""
     django.setup()
     update_db()
     ensure_superuser()
-    init_admin_flags
+    init_admin_flags()
 
 
 def run():
