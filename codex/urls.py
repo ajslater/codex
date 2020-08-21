@@ -14,67 +14,34 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from django.urls import include
 from django.urls import path
-from django.views.generic.base import RedirectView
 
-from .views import admin_settings
-from .views.browse import BrowseView
-from .views.browse_base import ComicCoverView
-from .views.browse_base import ComicDownloadView
-from .views.folder import FolderView
-from .views.reader import ComicPageView
-from .views.reader import ComicReadPageView
-from .views.reader import ComicReadView
+from codex.auth import RegistrationView
+from codex.views.browse import BrowseView
+from codex.views.browse_base import ComicDownloadView
+from codex.views.browse_base import redirect_browse_root
+from codex.views.folder import FolderView
+from codex.views.mark_read import MarkRead
+from codex.views.reader import ComicPageView
+from codex.views.reader import ComicReadPageView
+from codex.views.reader import ComicReadView
+from codex.views.user_settings import UserSettingsView
 
 
 urlpatterns = [
-    path("admin/", admin.site.urls, name="admin"),
-    path(
-        "admin/settings/",
-        admin_settings.SettingsListView.as_view(),
-        name="admin_settings",
-    ),
-    path(
-        "root_path/create",
-        admin_settings.SettingsCreateView.as_view(),
-        name="root_path_create",
-    ),
-    path(
-        "root_path/<int:pk>/",
-        admin_settings.SettingsUpdateView.as_view(),
-        name="root_path_update",
-    ),
-    path(
-        "root_path/<int:pk>/delete",
-        admin_settings.SettingsDeleteView.as_view(),
-        name="root_path_delete",
-    ),
-    path(
-        "root_path/<pk>/scan/",
-        admin_settings.SettingsScanView.as_view(),
-        name="root_path_scan",
-    ),
-    path(
-        "root_path/scan_all/",
-        admin_settings.SettingsScanAllView.as_view(),
-        name="root_path_scan_all",
-    ),
-    # user views ####
-    path("", RedirectView.as_view(url="/browse/"), name="index"),
-    path("browse/", RedirectView.as_view(url="/browse/r/0/"), name="browse_root"),
+    path("", redirect_browse_root, name="index"),
+    path("browse/", redirect_browse_root, name="browse_root"),
+    path("browse/f/<int:pk>/", FolderView.as_view(), name="folder"),
     path("browse/<group>/<int:pk>/", BrowseView.as_view(), name="browse"),
-    path("folder/", RedirectView.as_view(url="/folder/0/"), name="folder_root"),
-    path("folder/<int:pk>/", FolderView.as_view(), name="folder_top"),
-    path("folder/<int:pk>/<path>/", FolderView.as_view(), name="folder"),
-    path("comic/<int:pk>/cover.jpg", ComicCoverView.as_view(), name="comic_cover",),
     path(
         "comic/<int:pk>/archive.cbz",
         ComicDownloadView.as_view(),
         name="comic_download",
     ),
-    path("comic/<int:pk>/read/", ComicReadView.as_view(), name="comic_read",),
+    path("comic/<int:pk>/", ComicReadView.as_view(), name="comic_read",),
     path(
-        "comic/<int:pk>/read/<int:page_num>/",
+        "comic/<int:pk>/<int:page_num>/",
         ComicReadPageView.as_view(),
         name="comic_read_page",
     ),
@@ -83,4 +50,15 @@ urlpatterns = [
         ComicPageView.as_view(),
         name="comic_page",
     ),
+    path("mark_read/<browse_type>/<pk>/", MarkRead.as_view(), name="mark_read",),
+    path("settings/", UserSettingsView.as_view(), name="user_settings"),
+    # Includes
+    path(
+        "accounts/register/",
+        RegistrationView.as_view(),
+        name="django_registration_register",
+    ),
+    path("accounts/", include("django_registration.backends.one_step.urls")),
+    path("accounts/", include("django.contrib.auth.urls")),
+    path("admin/", admin.site.urls, name="admin"),
 ]

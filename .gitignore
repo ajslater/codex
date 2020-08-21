@@ -135,3 +135,7 @@ covers
 db.sqlite3
 monkeytype.sqlite3
 test-results
+##############################
+# Until comicbox is released #
+##############################
+comicbox

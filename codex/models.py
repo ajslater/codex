@@ -1,8 +1,11 @@
 """Codex Django Models."""
-
 import datetime
 
-from django.db.models import PROTECT
+from enum import Enum
+
+from django.conf import settings
+from django.contrib.sessions.models import Session
+from django.db.models import CASCADE
 from django.db.models import SET
 from django.db.models import BooleanField
 from django.db.models import CharField
@@ -16,13 +19,13 @@ from django.db.models import Model
 from django.db.models import PositiveSmallIntegerField
 from django.db.models import TextField
 from django.db.models import URLField
-from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from .validators import validate_path_exists
+from codex.validators import validate_dir_exists
 
 
 DEFAULT_SCAN_FREQUENCY = datetime.timedelta(seconds=12 * 60 * 60)
+DEFAULT_COVER_PATH = "codex/default_cover.png"
 
 
 class BaseModel(Model):
@@ -30,11 +33,7 @@ class BaseModel(Model):
 
     created_at = DateTimeField(auto_now_add=True)
     updated_at = DateTimeField(auto_now=True)
-    deleted_at = DateTimeField(null=True)
-
-    def soft_delete(self):
-        """Mark deleted."""
-        self.deleted_at = timezone.now()
+    # deleted_at = DateTimeField(null=True)
 
     class Meta:
         """Without this a real table is created and joined to."""
@@ -42,8 +41,199 @@ class BaseModel(Model):
         abstract = True
 
 
+class ParentMixin:
+    """Default properties for catalogue classes with parents."""
+
+    PARENT_FIELD = None
+
+    @property
+    def parent(self):
+        """Get parent instance."""
+        if self.PARENT_FIELD is None:
+            return None
+        return getattr(self, self.PARENT_FIELD)
+
+    @classmethod
+    def grandparent_field(cls):
+        """Get the grandparent class."""
+        if cls.PARENT_FIELD is None:
+            return None
+        parent_class = cls._meta.get_field(cls.PARENT_FIELD).remote_field.model
+        return parent_class.PARENT_FIELD
+
+
+class BrowseContainerModel(BaseModel, ParentMixin):
+    """Models that need parents and default to an default parent."""
+
+    BROWSE_TYPE = "Browse"
+    CHILD_CLASS = None  # Override for each
+    is_default = BooleanField(default=False)
+    sort_name = CharField(max_length=32)
+
+    class Meta:
+        """Without this a real table is created and joined to."""
+
+        abstract = True
+
+    @property
+    def header_name(self):
+        """Most objects don't need a header name."""
+        return None
+
+    @property
+    def display_name(self):
+        """Most objects just display their name."""
+        return self.name
+
+
+class Publisher(BrowseContainerModel):
+    """The publisher of the comic."""
+
+    DEFAULTS = {"is_default": True}
+
+    name = CharField(max_length=32, default="No Publisher")
+
+    @classmethod
+    def get_default_publisher(cls):
+        """Get or create a default 'No Publisher' entry."""
+        publisher, _ = cls.objects.get_or_create(defaults=cls.DEFAULTS, **cls.DEFAULTS)
+        return publisher
+
+    def save(self, *args, **kwargs):
+        """Save the sort name as the name by default."""
+        self.sort_name = self.name
+        super().save(*args, **kwargs)
+
+    class Meta:
+        """Constraints."""
+
+        unique_together = ("name", "is_default")
+
+
+class Imprint(BrowseContainerModel):
+    """A Publishing imprint."""
+
+    PARENT_FIELD = "publisher"
+
+    name = CharField(max_length=32, default="Main Imprint")
+    publisher = ForeignKey(Publisher, on_delete=SET(Publisher.get_default_publisher))
+
+    class Meta:
+        """Contraints."""
+
+        unique_together = ("name", "publisher", "is_default")
+
+    def save(self, *args, **kwargs):
+        """Save the sort name."""
+        self.sort_name = f"{self.publisher.name} {self.name}"
+        super().save(*args, **kwargs)
+
+    @property
+    def header_name(self):
+        """Disambiguate with the parent name."""
+        return self.publisher.name
+
+
+Publisher.CHILD_CLASS = Imprint
+
+
+class Series(BrowseContainerModel):
+    """The series the comic belongs to."""
+
+    PARENT_FIELD = "imprint"
+    CHILD_CLASS = "Volume"
+
+    name = CharField(max_length=32, default="Default Series")
+    imprint = ForeignKey(Imprint, on_delete=CASCADE)
+    volume_count = PositiveSmallIntegerField(null=True)
+
+    def save(self, *args, **kwargs):
+        """Save the sort name as the name by default."""
+        self.sort_name = self.name
+        super().save(*args, **kwargs)
+
+    class Meta:
+        """Constraints."""
+
+        unique_together = ("name", "imprint", "is_default")
+
+
+Imprint.CHILD_CLASS = Series
+
+
+class Volume(BrowseContainerModel):
+    """The volume of the series the comic belongs to."""
+
+    PARENT_FIELD = "series"
+    CHILD_CLASS = "Comic"
+
+    name = CharField(max_length=32, default="")
+    series = ForeignKey(Series, on_delete=CASCADE)
+    issue_count = DecimalField(decimal_places=2, max_digits=6, null=True)
+
+    @property
+    def header_name(self):
+        """Disambiguate with the parent name."""
+        return self.series.name
+
+    def _display_name(self, long_name=True):
+        """Get a display volume name."""
+        name = str(self.name)
+        if len(name) == 4 and name.isdigit():
+            vol_name = f"({name})"
+        elif name:
+            if long_name:
+                vol_name = f"Volume {name}"
+            else:
+                vol_name = f"v{name}"
+        else:
+            vol_name = ""
+        volume_count = self.series.volume_count
+        if volume_count:
+            vol_name += f" of {volume_count}"
+        return vol_name
+
+    @property
+    def display_name(self):
+        """Regular display name."""
+        return self._display_name()
+
+    @property
+    def short_display_name(self):
+        """Short display name for comic issue display."""
+        return self._display_name(False)
+
+    def save(self, *args, **kwargs):
+        """Save the sort name."""
+        self.sort_name = f"{self.series.name} {self.name}"
+        super().save(*args, **kwargs)
+
+    class Meta:
+        """Constraints."""
+
+        unique_together = ("name", "series", "is_default")
+
+
+Series.CHILD_CLASS = Volume
+
+
+class RootPath(BaseModel):
+    """The root path the comic file live under."""
+
+    path = CharField(unique=True, max_length=128, validators=[validate_dir_exists])
+    enable_watch = BooleanField(default=True)
+    enable_scan_cron = BooleanField(default=True)
+    scan_frequency = DurationField(default=DEFAULT_SCAN_FREQUENCY)
+    last_scan = DateTimeField(null=True)
+    scan_in_progress = BooleanField(default=False)
+
+    def __str__(self):
+        """Return the path."""
+        return self.path
+
+
 class NamedModel(BaseModel):
-    """A base model with universal fields."""
+    """A for simple named tables."""
 
     name = CharField(max_length=32)
 
@@ -51,162 +241,42 @@ class NamedModel(BaseModel):
         """Defaults to uniquely named, must be overriden."""
 
         abstract = True
-        unique_together = ["name"]
+        unique_together = ("name",)
+
+    def __str__(self):
+        """Return the name."""
+        return self.name
 
 
-class DisplayNamedModel(NamedModel):
-    """Models that have special displayed names."""
+class Folder(NamedModel, ParentMixin):
+    """File system folder."""
 
-    display_name = CharField(max_length=32)
-
-    def _set_display_name(self):
-        """Use the short name for display."""
-        self.display_name = self.name
-
-    def save(self, *args, **kwargs):
-        """Save computed fields."""
-        self._set_display_name()
-        super().save(*args, **kwargs)
-
-    class Meta:
-        """Defaults to uniquely named, must be overriden."""
-
-        abstract = True
-        unique_together = ["name"]
-
-
-class ParentMixin:
-    """Default properties for catalogue classes with parents."""
-
-    PARENT_CLS = None
-    PARENT_FIELD = None
-
-    @property
-    def parent(self):
-        """Alias."""
-        return getattr(self, self.PARENT_FIELD)
-
-
-class CatalogueGroupModel(DisplayNamedModel, ParentMixin):
-    """Models that need parents and default to an default parent."""
-
-    BROWSE_TYPE = "Browse"
-    is_default = BooleanField(default=False)
-
-    class Meta:
-        """Without this a real table is created and joined to."""
-
-        abstract = True
-
-    def _set_display_name(self):
-        """Use the short name for display."""
-        self.display_name = self.name
+    BROWSE_TYPE = "Folder"
+    PARENT_FIELD = "folder"
+    root_path = ForeignKey(RootPath, on_delete=CASCADE)
+    path = CharField(max_length=128, validators=[validate_dir_exists])
+    parent_folder = ForeignKey("Folder", on_delete=CASCADE, null=True,)
+    sort_name = CharField(max_length=32)
 
     def save(self, *args, **kwargs):
-        """Save computed fields."""
-        self._set_display_name()
+        """Save the sort name as the name by default."""
+        self.sort_name = self.name
         super().save(*args, **kwargs)
-
-
-class Publisher(CatalogueGroupModel):
-    """The publisher of the comic."""
-
-    COMIC_RELATION = "imprint__series__volume__comic__"
-    DEFAULT_NAME = "No Publisher"
-    DEFAULTS = {"name": DEFAULT_NAME, "is_default": True}
-    parent = None
-    PLURAL = _("Publishers")
-
-    @classmethod
-    def get_default_publisher(cls):
-        """Get or create an 'no publisher' entry."""
-        publisher, _ = cls.objects.get_or_create(defaults=cls.DEFAULTS, **cls.DEFAULTS)
-        return publisher
 
     class Meta:
         """Constraints."""
 
-        unique_together = ["name", "is_default"]
+        unique_together = ("root_path", "path")
 
+    @property
+    def header_name(self):
+        """Most objects don't need a header."""
+        return None
 
-class Imprint(CatalogueGroupModel):
-    """A Publishing imprint."""
-
-    COMIC_RELATION = "series__volume__comic__"
-    PARENT_CLS = Publisher
-    PARENT_FIELD = PARENT_CLS.__name__.lower()
-    DEFAULT_NAME = "Main Imprint"
-    PLURAL = _("Imprints")
-
-    publisher = ForeignKey(Publisher, on_delete=SET(Publisher.get_default_publisher))
-
-    def _set_display_name(self):
-        """Set long display name for disambiguation."""
-        name = self.name if self.name else self.DEFAULT_NAME
-        self.display_name = " ".join((self.parent.name, name))
-
-    class Meta:
-        """Without this a real table is created and joined to."""
-
-        unique_together = ["name", "publisher", "is_default"]
-
-
-class Series(CatalogueGroupModel):
-    """The series the comic belongs to."""
-
-    COMIC_RELATION = "volume__comic__"
-    PARENT_CLS = Imprint
-    PARENT_FIELD = PARENT_CLS.__name__.lower()
-    DEFAULT_NAME = "Default Series"
-    PLURAL = _("Series")
-
-    imprint = ForeignKey(Imprint, on_delete=PROTECT)
-    volume_count = PositiveSmallIntegerField(null=True)
-
-    class Meta:
-        """Without this a real table is created and joined to."""
-
-        unique_together = ["name", "imprint", "is_default"]
-
-
-class Volume(CatalogueGroupModel):
-    """The volume of the series the comic belongs to."""
-
-    COMIC_RELATION = "comic__"
-    PARENT_CLS = Series
-    PARENT_FIELD = PARENT_CLS.__name__.lower()
-    DEFAULT_NAME = "0"
-    PLURAL = _("Volumes")
-
-    series = ForeignKey(Series, on_delete=PROTECT)
-    issue_count = DecimalField(decimal_places=2, max_digits=6, null=True)
-
-    def _set_display_name(self):
-        """Set long display name for disambiguation."""
-        name = self.name if self.name else self.DEFAULT_NAME
-        display_name = None
-        try:
-            if len(f"{name:d}") == 4:
-                display_name = f"({name})"
-        except ValueError:
-            pass
-        if display_name is None:
-            display_name = f"v{name}"
-
-        self.display_name = " ".join((self.parent.name, display_name))
-
-    class Meta:
-        """Without this a real table is created and joined to."""
-
-        unique_together = ["name", "series", "is_default"]
-
-
-class RootPath(BaseModel):
-    """The root path the comic file live under."""
-
-    path = CharField(unique=True, max_length=128, validators=[validate_path_exists])
-    scan_frequency = DurationField(default=DEFAULT_SCAN_FREQUENCY)
-    last_scan = DateTimeField(null=True)
+    @property
+    def display_name(self):
+        """Most objects just display their name."""
+        return self.name
 
 
 class SeriesGroup(NamedModel):
@@ -264,43 +334,34 @@ class CreditRole(NamedModel):
 class Credit(BaseModel):
     """A creator credit."""
 
-    person = ForeignKey(CreditPerson, on_delete=PROTECT)
-    role = ForeignKey(CreditRole, on_delete=PROTECT)
+    person = ForeignKey(CreditPerson, on_delete=CASCADE)
+    role = ForeignKey(CreditRole, on_delete=CASCADE)
 
     class Meta:
         """Constraints."""
 
-        unique_together = ["person", "role"]
+        unique_together = ("person", "role")
 
 
-class Comic(DisplayNamedModel, ParentMixin):
+class Comic(BaseModel, ParentMixin):
     """Comic metadata."""
 
-    COMIC_RELATION = ""
-    PARENT_CLS = Volume
-    PARENT_FIELD = PARENT_CLS.__name__.lower()
+    PARENT_FIELD = "volume"
     BROWSE_TYPE = "Comic"
-    RELATIONS = {
-        Publisher: "volume__series__imprint__publisher",
-        Imprint: "volume__series__imprint",
-        Series: "volume__series",
-        Volume: "volume",
-    }
-    DATE_ORDER = ("year", "month", "day")
-    ALPHA_ORDER = ("volume__series__name", "volume__name", "issue")
-    PLURAL = _("Issues")
 
-    path = CharField(max_length=128, null=True)
-    volume = ForeignKey(Volume, on_delete=PROTECT)
+    path = CharField(max_length=128)
+    volume = ForeignKey(Volume, on_delete=CASCADE)
+    series = ForeignKey(Series, on_delete=CASCADE)
+    imprint = ForeignKey(Imprint, on_delete=CASCADE)
+    publisher = ForeignKey(Publisher, on_delete=CASCADE)
     issue = DecimalField(decimal_places=2, max_digits=6, default=0.0)
-    alternate_issue = DecimalField(decimal_places=2, max_digits=6, null=True)
     title = CharField(max_length=64, null=True)
-    # date
+    # Date
     year = PositiveSmallIntegerField(null=True)
     month = PositiveSmallIntegerField(null=True)
     day = PositiveSmallIntegerField(null=True)
-    # Free text fields
-    comments = TextField(null=True)
+    # Summary
+    summary = TextField(null=True)
     notes = TextField(null=True)
     description = TextField(null=True)
     # Ratings
@@ -308,43 +369,54 @@ class Comic(DisplayNamedModel, ParentMixin):
     maturity_rating = CharField(max_length=32, null=True)
     user_rating = CharField(max_length=32, null=True)
     # alpha2 fields for countries
-    country = CharField(max_length=2, null=True)
-    language = CharField(max_length=2, null=True)
+    country = CharField(max_length=32, null=True)
+    language = CharField(max_length=16, null=True)
     # misc
-    web = URLField(null=True)
-    book_format = CharField(max_length=16, null=True)
-    read_ltr = BooleanField(default=True)
     page_count = PositiveSmallIntegerField(default=0)
     cover_image = CharField(max_length=64, null=True)
+    read_ltr = BooleanField(default=True)
+    web = URLField(null=True)
+    format = CharField(max_length=16, null=True)
     scan_info = CharField(max_length=32, null=True)
-    black_and_white = BooleanField(default=False)
-    identifier = CharField(max_length=64, null=True)
     # ManyToMany
     credits = ManyToManyField(Credit)
     tags = ManyToManyField(Tag)
     teams = ManyToManyField(Team)
     characters = ManyToManyField(Character)
     locations = ManyToManyField(Location)
-    alternate_volumes = ManyToManyField(Volume, related_name="alternate_volume")
     series_groups = ManyToManyField(SeriesGroup)
     story_arcs = ManyToManyField(StoryArc)
     genres = ManyToManyField(Genre)
     # Ignore these
+    # black_and_white = BooleanField(default=False)
     # price = DecimalField(decimal_places=2, max_digits=9, null=True)
-    # is_version_of = CharField(max_length=64, null=True)
     # rights = CharField(max_length=64, null=True)
     # manga = BooleanField(default=False)
     # last_mark = PositiveSmallIntegerField(null=True)
+    # These are potentially useful, but too much work right now
+    # is_version_of = CharField(max_length=64, null=True)
+    # alternate_issue = DecimalField(decimal_places=2, max_digits=6, null=True)
+    # alternate_volumes = ManyToManyField(Volume, related_name="alternate_volume")
+    # identifier = CharField(max_length=64, null=True)
 
     # codex only
-    root_path = ForeignKey(RootPath, on_delete=PROTECT)
+    root_path = ForeignKey(RootPath, on_delete=CASCADE)
+    sort_name = CharField(max_length=32)
     date = DateField(null=True)
+    decade = PositiveSmallIntegerField(null=True)
+    size = PositiveSmallIntegerField()
+    parent_folder = ForeignKey(
+        Folder, on_delete=CASCADE, null=True, related_name="comic_in"
+    )
+    folder = ManyToManyField(Folder)
+    cover_path = CharField(max_length=32, default=DEFAULT_COVER_PATH)
+    comic = ForeignKey("self", on_delete=CASCADE, related_name="self", null=True)
 
     class Meta:
         """Constraints."""
 
         # prevents None path comics from being duplicated
-        unique_together = ["path", "volume", "year", "issue"]
+        unique_together = ("path", "volume", "year", "issue")
 
     def _set_date(self):
         """Compute a date for the comic."""
@@ -353,36 +425,119 @@ class Comic(DisplayNamedModel, ParentMixin):
         day = self.day if self.day is not None else 1
         self.date = datetime.date(year, month, day)
 
+    def _set_decade(self):
+        """Compute a decade for the comic."""
+        if self.year is None:
+            self.decade = None
+        else:
+            self.decade = self.year - (self.year % 10)
+
     def _get_display_issue(self):
         """Get the issue number, even if its a half issue."""
         if self.issue % 1 == 0:
             issue_str = f"#{int(self.issue):0>3d}"
         else:
-            issue_str = f"#{self.issue:.1f0>2d}"
+            issue_str = f"#{self.issue:05.1f}"
         return issue_str
 
-    def _set_name(self):
+    @property
+    def header_name(self):
         """Set long name for disambiguation."""
-        name_list = []
-        if self.volume.name:
-            name_list.append(f"v{self.volume.name}")
-        name_list.append(f"{self.volume.series.name}")
-        name_list.append(self._get_display_issue())
-        if self.title:
-            name_list.append(self.title)
-        self.name = " ".join(name_list)
+        display_issue = self._get_display_issue()
+        header_name = (
+            f"{self.volume.series.display_name}"
+            f" {self.volume.short_display_name}"
+            f" {display_issue}"
+        )
+        issue_count = self.volume.issue_count
+        if issue_count:
+            header_name += f" of {issue_count}"
+        return header_name
 
-    def _set_display_name(self, short=False):
-        """Printable title for comics are usually short."""
-        if self.title:
-            name = self.title
-        else:
-            name = self.name
-        self.display_name = name
+    @property
+    def display_name(self):
+        """Return the title for display purposes."""
+        return self.title
 
     def save(self, *args, **kwargs):
         """Save computed fields."""
         self._set_date()
-        self._set_name()
-        # display_name set by super().save()
+        self._set_decade()
+        self.sort_name = self.header_name
         super().save(*args, **kwargs)
+
+
+Volume.CHILD_CLASS = Comic
+
+
+class AdminFlag(NamedModel):
+    """A whole column just for one admin flag."""
+
+    ENABLE_FOLDER_VIEW = "Enable Folder View"
+
+    on = BooleanField(default=True)
+
+
+class EnumChoice(Enum):
+    """A choice class for populating static forms."""
+
+    @classmethod
+    def get_choices(cls):
+        """Get static choices from enum."""
+        return ((tag.name.split(".")[-1], tag.value) for tag in cls)
+
+
+class FitToChoice(EnumChoice):
+    """Reader fit to choices."""
+
+    WIDTH = _("Width")
+    HEIGHT = _("Height")
+    ORIG = _("Original Size")
+
+
+def cascade_if_user_null(collector, field, sub_objs, using):
+    """
+    Cascade only if the user field is null.
+
+    Do this to keep delete ephemeral session data from UserBookmark table.
+    Adapted from:
+    https://github.com/django/django/blob/master/django/db/models/deletion.py#L23
+    """
+    null_user_sub_objs = []
+    for sub_obj in sub_objs:
+        # only cascade the ones with null user fields.
+        if sub_obj.user is None:
+            null_user_sub_objs.append(sub_obj)
+
+    if null_user_sub_objs:
+        collector.collect(
+            null_user_sub_objs,
+            source=field.remote_field.model,
+            source_attr=field.name,
+            nullable=field.null,
+            # fail_on_restricted=False,
+        )
+
+    # Set them all to null, tho
+    if field.null:
+        # and not connections[using].features.can_defer_constraint_checks:
+        collector.add_field_update(field, None, sub_objs)
+
+
+class UserBookmark(BaseModel):
+    """Persist user's bookmarks and finshed states."""
+
+    user = ForeignKey(settings.AUTH_USER_MODEL, on_delete=CASCADE, null=True)
+    session = ForeignKey(Session, on_delete=cascade_if_user_null, null=True)
+    comic = ForeignKey(Comic, on_delete=CASCADE)
+    bookmark = PositiveSmallIntegerField(null=True)
+    finished = BooleanField(default=False)
+    fit_to = CharField(
+        choices=FitToChoice.get_choices(), default=None, max_length=6, null=True,
+    )
+    two_pages = BooleanField(default=None, null=True)
+
+    class Meta:
+        """Constraints."""
+
+        unique_together = ("user", "session", "comic")
