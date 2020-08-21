@@ -1,0 +1,22 @@
+<form action="/admin/settings/" method="POST">
+  {{ create_form }}
+  <input type="submit" name="action" value="Add" />
+  {% csrf_token %}
+</form>
+{% if update_forms %}
+  {% for update_form, last_scan in update_forms %}
+      <form action="/admin/settings/" method="POST">
+        {{ update_form }}
+        <label>Last scan:</label>
+        <span name="last_scan">{{ last_scan }}</span>
+        <input type="submit" name="action" value="Scan" />
+        <input type="submit" name="action" value="Update" />
+        <input type="submit" name="action" value="Delete" />
+        {% csrf_token %}
+      </form>
+  {% endfor %}
+<form action="/admin/settings/" method="POST">
+   <input type="submit" name="action" value="Scan All Roots" />
+   {% csrf_token %}
+</form>
+{% endif %}
