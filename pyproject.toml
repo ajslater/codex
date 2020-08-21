@@ -1,0 +1,68 @@
+[build-system]
+requires = ["poetry>=1.0"]
+build-backend = ["poetry.masonry.api"]
+
+[tool.poetry]
+name = "codex"
+version = "0.0.0-rc0"
+description = "An API for reading comic archives"
+license = "GPL-2.0-only"
+authors = ["AJ Slater <aj@slater.net>"]
+readme = "README.md"
+homepage = "https://github.com/ajslater/codex"
+documentation = "https://github.com/ajslater/codex"
+keywords = ["comic", "cbz", "cbr", "cbt"]
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "Environment :: CLI",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Framework :: Django :: 3.0",
+    "Intended Audience :: Developer",
+    "Topic :: Internet :: WWW/HTTP",
+]
+packages = [
+    { include = "codex" },
+    { include = "tests", format = "sdist" },
+]
+include = ["NEWS"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+django = "^3.0.4"
+watchdog = "^0.10.2"
+
+[tool.poetry.dev-dependencies]
+flake8 = "^3.7"
+flake8-black = "^0.1"
+flake8-bugbear = "^20.1"
+coverage = {extras = ["toml"], version = "^5.0"}
+pep8-naming = "^0.9"
+pytest = "^5.3"
+pytest-black = "^0.3"
+pytest-cov = "^2.8"
+pytest-flake8 = "^1.0"
+pytest-isort = "^0.3"
+pytest-monkeytype = "^1.0"
+mypy = "^0.761"
+monkeytype = "^19.11"
+vulture = "^1.2"
+radon = "^4.1"
+simplejson = "^3.17"
+pycountry = "^19.8"
+parse = "^1.15"
+rarfile = "^3.1"
+
+[tool.poetry.scripts]
+codex = "codex.cli:main"
+
+[tool.coverage.run]
+source = ["codex"]
+branch = true
+concurrency = ["multiprocessing"]
+
+[tool.coverage.html]
+directory = "test-results/coverage"
+
+[tool.black]
+exclude = "comicbox"

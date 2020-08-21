@@ -1,0 +1,13 @@
+{% if comics %}
+<ul>
+  {% for comic in comics %}
+    <li>
+      <a href="/comic?{{comic.id}}">
+      {{comic.series}} v{{comic.volume}} #{{comic.issue}} ({{comic.year}}) {{comic.title}}
+      </a>
+    </li>
+  {% endfor %}
+</ul>
+{% else %}
+ <p>No comics available.</p>
+{% endif %}

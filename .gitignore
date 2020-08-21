@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# codex specific
+*~
+.DS_Store
+monkeytype.sqlite3
+test-results
