@@ -4,15 +4,20 @@ const registerEnabled = async () => {
   return await ajax("get", "/auth/register");
 };
 
+const get_tz = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 const register = async (credentials) => {
+  credentials.timezone = get_tz();
   return await ajax("post", "/auth/register", credentials);
 };
 const login = async (credentials) => {
+  credentials.timezone = get_tz();
   return await ajax("post", "/auth/login", credentials);
 };
 
 const me = async () => {
-  return await ajax("get", "/auth/me");
+  const data = { timezone: get_tz() };
+  return await ajax("post", "/auth/me", data);
 };
 
 const logout = async () => {

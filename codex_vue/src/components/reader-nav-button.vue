@@ -3,6 +3,7 @@
     :disabled="pageNumber === value"
     :to="{ name: 'reader', params: { pk, pageNumber: value } }"
     ripple
+    large
   >
     {{ value }}
   </v-btn>
@@ -12,6 +13,7 @@
 import { mapState } from "vuex";
 
 export default {
+  name: "ReaderNavButton",
   props: {
     value: {
       type: Number,

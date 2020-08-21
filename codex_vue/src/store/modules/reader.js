@@ -1,12 +1,19 @@
 import API from "@/api/reader";
+import FORM_CHOICES from "@/choices/readerChoices";
 
 const state = {
   // book
   title: "",
   maxPage: 0,
   settings: {
-    fitTo: "HEIGHT",
-    twoPages: false,
+    globl: {
+      fitTo: "WIDTH",
+      twoPages: false,
+    },
+    local: {
+      fitTo: null,
+      twoPages: null,
+    },
   },
   // routes
   routes: {
@@ -19,10 +26,29 @@ const state = {
     prevBook: undefined,
     nextBook: undefined,
   },
+  formChoices: {
+    fitTo: FORM_CHOICES.fitTo,
+  },
 };
 
 // actions
-const getters = {};
+const getters = {
+  computedSettings: (state) => {
+    // use the global settings keys as a default for local bookmark settings
+    const computedSettings = {};
+    Object.keys(state.settings.globl).forEach(function (key) {
+      if (
+        state.settings.local[key] !== null &&
+        state.settings.local[key] !== undefined
+      ) {
+        computedSettings[key] = state.settings.local[key];
+      } else {
+        computedSettings[key] = state.settings.globl[key];
+      }
+    });
+    return computedSettings;
+  },
+};
 
 const mutations = {
   setCurrentRoute(state, route) {
@@ -31,8 +57,11 @@ const mutations = {
   setReaderChoices(state, data) {
     state.fitToChoices = data.fitToChoices;
   },
-  setReaderSettings(state, data) {
-    state.settings = Object.assign(state.settings, data);
+  setSettingLocal(state, settings) {
+    state.settings.local = Object.assign(state.settings.local, settings);
+  },
+  setSettingGlobal(state, settings) {
+    state.settings.globl = Object.assign(state.settings.globl, settings);
   },
   setBookInfo(state, data) {
     state.title = data.title;
@@ -40,6 +69,7 @@ const mutations = {
     state.routes.current.pk = data.pk;
     state.routes.prevBook = data.prevComicPage;
     state.routes.nextBook = data.nextComicPage;
+    state.settings = data.settings;
     document.title = data.title;
   },
   setPrevNextPage(state, { pageNumber, previousPage, nextPage }) {
@@ -97,7 +127,6 @@ const alterPrefetch = (nextPage, state) => {
 const handleBookChangedResult = ({ dispatch, commit }, route, info) => {
   info.pk = +route.pk;
   commit("setBookInfo", info);
-  commit("setReaderSettings", info.settings);
   dispatch("pageChanged", route);
 };
 
@@ -126,12 +155,16 @@ const actions = {
     // Set the bookmark
     API.setComicBookmark(route);
   },
-  settingChanged({ commit, state }, settings) {
-    commit("setReaderSettings", settings);
-    API.setComicSettings({ pk: state.routes.current.pk, data: state.settings });
+  settingChangedLocal({ commit, state }, data) {
+    commit("setSettingLocal", data);
+    API.setComicSettings({
+      pk: state.routes.current.pk,
+      data: state.settings.local,
+    });
   },
-  defaultSettingsChanged({ state }) {
-    API.setComicDefaultSettings(state.settings);
+  settingChangedGlobal({ commit, state }, data) {
+    commit("setSettingGlobal", data);
+    API.setComicDefaultSettings(state.settings.global);
   },
 };
 

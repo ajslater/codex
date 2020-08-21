@@ -23,16 +23,18 @@ class SessionMixin:
 
     SESSION_DEFAULTS = {
         BROWSE_KEY: {
-            "bookmark_filter": DEFAULTS["bookmarkFilterChoices"],
-            "decade_filter": [],
-            "characters_filter": [],
-            "root_group": DEFAULTS["rootGroupChoices"],
-            "sort_by": DEFAULTS["sortChoices"],
+            "filters": {
+                "bookmark": DEFAULTS["bookmarkFilter"],
+                "decade": [],
+                "characters": [],
+            },
+            "root_group": DEFAULTS["rootGroup"],
+            "sort_by": DEFAULTS["sort"],
             "sort_reverse": False,
             "show": DEFAULTS["show"],
         },
         READER_KEY: {
-            "defaults": {"fit_to": DEFAULTS["fitToChoices"], "two_pages": False}
+            "defaults": {"fit_to": DEFAULTS["fitTo"], "two_pages": False}
         },
     }
 
@@ -45,8 +47,14 @@ class SessionMixin:
         # Set defaults for each key in case they don't exist.
         for key, value in self.SESSION_DEFAULTS[session_key].items():
             data[key] = self.request.session[session_key].setdefault(key, value)
-        for key, value in self.SESSION_DEFAULTS[session_key]["show"].items():
-            data[key] = self.request.session[session_key]["show"].setdefault(key, value)
+            if isinstance(value, dict):
+                # Just one level. No need for recursion.
+                for deep_key, deep_value in self.SESSION_DEFAULTS[session_key][
+                    key
+                ].items():
+                    data[key][deep_key] = self.request.session[session_key][
+                        key
+                    ].setdefault(deep_key, deep_value)
 
         return data
 
@@ -54,13 +62,16 @@ class SessionMixin:
 class UserBookmarkMixin:
     """Hold user setting for a comic."""
 
-    def _get_user_bookmark_search_kwargs(self, comic):
+    def _get_user_bookmark_search_kwargs(self, comic=None, comic_pk=None):
         """
         Get the search kwargs for a user's authentication state.
 
         Comic & Session must be instantiated for create.
         """
-        search_kwargs = {"comic": comic}
+        if comic:
+            search_kwargs = {"comic": comic}
+        else:
+            search_kwargs = {"comic__pk": comic_pk}
         if self.request.user.is_authenticated:
             search_kwargs["user"] = self.request.user
         else:
@@ -81,17 +92,17 @@ class UserBookmarkMixin:
 
     def get_user_bookmark(self, pk):
         """Get a user bookmark."""
-        comic = Comic.objects.get(pk=pk)
-        search_kwargs = self._get_user_bookmark_search_kwargs(comic)
+        search_kwargs = self._get_user_bookmark_search_kwargs(comic_pk=pk)
         try:
             ub = UserBookmark.objects.get(**search_kwargs)
         except UserBookmark.DoesNotExist:
             ub = None
         return ub
 
-    def update_user_bookmark(self, updates, pk):
+    def update_user_bookmark(self, updates, comic=None, pk=None):
         """Update a user bookmark."""
-        comic = Comic.objects.get(pk=pk)
+        if comic is None:
+            comic = Comic.objects.get(pk=pk)
         search_kwargs = self._get_user_bookmark_search_kwargs(comic)
         if updates.get("bookmark") == comic.max_page:
             # Auto finish on bookmark last page

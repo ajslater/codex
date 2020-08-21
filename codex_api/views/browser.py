@@ -15,7 +15,6 @@ from django.db.models import Value
 from django.db.models.functions import Cast
 from django.db.models.functions import Coalesce
 from django.db.models.functions import NullIf
-from django.urls import reverse_lazy
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
@@ -28,6 +27,7 @@ from codex_api.models import AdminFlag
 from codex_api.models import Comic
 from codex_api.models import Folder
 from codex_api.models import Imprint
+from codex_api.models import Library
 from codex_api.models import Publisher
 from codex_api.models import Series
 from codex_api.models import Volume
@@ -46,15 +46,17 @@ class BrowseView(APIView, SessionMixin, UserBookmarkMixin):
 
     FOLDER_GROUP = "f"
     COMIC_GROUP = "c"
-    GROUP_MODEL = bidict({
-        "r": None,
-        "p": Publisher,
-        "i": Imprint,
-        "s": Series,
-        "v": Volume,
-        COMIC_GROUP: Comic,
-        FOLDER_GROUP: Folder,
-    })
+    GROUP_MODEL = bidict(
+        {
+            "r": None,
+            "p": Publisher,
+            "i": Imprint,
+            "s": Series,
+            "v": Volume,
+            COMIC_GROUP: Comic,
+            FOLDER_GROUP: Folder,
+        }
+    )
     GROUP_SHOW_FLAGS = (
         "r",
         "p",
@@ -67,6 +69,7 @@ class BrowseView(APIView, SessionMixin, UserBookmarkMixin):
         "i": "imprint",
         "s": "series",
         "v": "volume",
+        "c": "comic",
     }
     FILTER_ATTRIBUTES = ("decade", "characters")
     SORT_AGGREGATE_FUNCS = {
@@ -95,8 +98,7 @@ class BrowseView(APIView, SessionMixin, UserBookmarkMixin):
 
     def filter_by_comic_many_attribute(self, attribute):
         """Filter by a comic any2many attribute."""
-        filter_param = f"{attribute}_filter"
-        filter_list = self.params.get(filter_param)
+        filter_list = self.params["filters"].get(attribute)
         filter_query = Q()
         if filter_list:
             # None values in a list don't work right so test for them
@@ -118,16 +120,16 @@ class BrowseView(APIView, SessionMixin, UserBookmarkMixin):
 
     def get_bookmark_filter(self):
         """Build bookmark query."""
-        bookmark_filter_choice = self.params.get("bookmark_filter", None)
+        choice = self.params["filters"].get("bookmark", "ALL")
 
         bookmark_filter = Q()
-        if bookmark_filter_choice in ("UNREAD", "IN_PROGRESS",):
+        if choice in ("UNREAD", "IN_PROGRESS",):
             bookmark_filter &= (
                 Q(comic__userbookmark__finished=False)
                 | Q(comic__userbookmark=None)
                 | Q(comic__userbookmark__finished=None)
             )
-            if bookmark_filter_choice == "IN_PROGRESS":
+            if choice == "IN_PROGRESS":
                 bookmark_filter &= Q(comic__userbookmark__bookmark__gt=0)
         return bookmark_filter
 
@@ -438,8 +440,8 @@ class BrowseView(APIView, SessionMixin, UserBookmarkMixin):
             "containerList": self.container_list,
             "comicList": self.comic_list,
             "formChoices": {
-                "decadeFilterChoices": decade_filter_choices,
-                "charactersFilterChoices": characters_filter_choices,
+                "decade": decade_filter_choices,
+                "characters": characters_filter_choices,
                 "enableFolderView": efv_flag.on,
             },
         }
@@ -482,7 +484,6 @@ class BrowseView(APIView, SessionMixin, UserBookmarkMixin):
 
     def validate_put(self, data):
         """Validate submitted settings."""
-        BrowserSettingsSerializer.fix_model_filters(data)
         serializer = BrowserSettingsSerializer(data=data)
         try:
             serializer.is_valid(raise_exception=True)
@@ -526,18 +527,22 @@ class BrowseView(APIView, SessionMixin, UserBookmarkMixin):
 
         context = self.get_queryset()
 
+        filters = self.params["filters"]
+        libraries_exist = Library.objects.all().exists()
         data = {
             "settings": {
-                "bookmarkFilter": self.params.get("bookmark_filter"),
-                "decadeFilter": self.params.get("decade_filter"),
-                "charactersFilter": self.params.get("characters_filter"),
+                "filters": {
+                    "bookmark": filters.get("bookmark"),
+                    "decade": filters.get("decade"),
+                    "characters": filters.get("characters"),
+                },
                 "rootGroup": self.params.get("root_group"),
                 "sortBy": self.params.get("sort_by"),
                 "sortReverse": self.params.get("sort_reverse"),
                 "show": self.params.get("show"),
             },
             "browseList": context,
-            "adminURL": reverse_lazy("admin:index"),
+            "librariesExist": libraries_exist,
         }
 
         serializer = BrowserOpenedSerializer(data)

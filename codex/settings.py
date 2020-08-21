@@ -88,6 +88,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "codex_api.middleware.TimezoneMiddleware",
 ]
 if DEV:
     MIDDLEWARE += ["livereload.middleware.LiveReloadScript"]
@@ -157,7 +158,7 @@ USE_TZ = True
 
 STATIC_ROOT = "static"
 STATIC_URL = "static/"
-STATICFILES_DIRS = (BASE_DIR / "config/static",)
+STATICFILES_DIRS = (BASE_DIR / "config/static", BASE_DIR / "codex/static")
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 60  # 60 days

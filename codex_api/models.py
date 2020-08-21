@@ -433,9 +433,9 @@ class Comic(BaseModel):
         """Set long name for disambiguation."""
         display_issue = self._get_display_issue()
         header_name = (
-            f"{self.volume.series.display_name}"
-            f" {self.volume.short_display_name}"
-            f" {display_issue}"
+            # f"{self.volume.series.display_name} "
+            # f"{self.volume.short_display_name} "
+            f"{display_issue}"
         )
         issue_count = self.volume.issue_count
         if issue_count:
@@ -516,7 +516,7 @@ def cascade_if_user_null(collector, field, sub_objs, using):
 
 def validate_fit_to_choice(choice):
     """Validate fit to choice."""
-    if choice is not None and choice not in CHOICES["fitToChoices"]:
+    if choice is not None and choice not in CHOICES["fitTo"]:
         raise ValidationError(_(f"{choice} is not one of $(FIT_TO_CHOICE_VALUES)"))
 
 

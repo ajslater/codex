@@ -1,21 +1,20 @@
 <template>
-  <v-container
-    id="readerContainer"
-    v-touch="{
-      left: () => routeToNext(),
-      right: () => routeToPrev(),
-    }"
-    fluid
-    style="margin: 0; padding: 0;"
-  >
+  <v-container id="readerContainer">
+    <v-main id="pagesContainer">
+      <div id="pages">
+        <ReaderComicPage :page="+0" />
+        <ReaderComicPage :page="+1" />
+      </div>
+    </v-main>
+
     <nav id="navOverlay">
       <div class="toolbarClick" @click="toggleToolbars()" />
       <div id="navColumns">
         <section id="leftColumn" class="navColumn">
           <router-link
             v-if="routes.prev"
-            :to="{ name: 'reader', params: routes.prev }"
             class="navLink"
+            :to="{ name: 'reader', params: routes.prev }"
           />
         </section>
         <section
@@ -26,60 +25,66 @@
         <section id="rightColumn" class="navColumn">
           <router-link
             v-if="routes.next"
-            :to="{ name: 'reader', params: routes.next }"
             class="navLink"
+            :to="{ name: 'reader', params: routes.next }"
           />
         </section>
       </div>
       <div class="toolbarClick" @click="toggleToolbars()" />
     </nav>
-
-    <main id="pagesContainer">
-      <transition appear :name="pageSlideDirection">
-        <div id="pages">
-          <ReaderComicPage :page="+0" />
-          <ReaderComicPage v-if="twoPages" :page="+1" />
-        </div>
-      </transition>
-    </main>
-
     <v-slide-y-transition>
-      <v-toolbar
-        v-show="showToolbars"
-        horizontal
-        dense
-        elevation="1"
-        width="100%"
-        style="position: fixed; top: 0px;"
-      >
-        <v-btn id="closeBook" :to="{ name: 'browser', params: browseRoute }"
+      <v-toolbar v-show="showToolbars" id="topToolbar" class="toolbar" dense>
+        <v-btn
+          id="closeBook"
+          :to="{ name: 'browser', params: browseRoute }"
+          large
+          ripple
           >close book</v-btn
         >
         <v-spacer />
         <v-toolbar-title>{{ title }}</v-toolbar-title>
         <v-spacer />
         <v-dialog
+          class="readerSettings"
           origin="center top"
           transition="slide-y-transition"
-          max-width="20em"
           overlay-opacity="0.5"
         >
-          <template v-slot:activator="{ on }">
+          <template #activator="{ on }">
             <v-btn icon v-on="on">
               <v-icon>{{ mdiCog }}</v-icon>
             </v-btn>
           </template>
-          <v-radio-group id="fitToSelect" v-model="fitTo" label="Shrink to">
+          <h2>Reader Settings</h2>
+          <v-radio-group
+            id="fitToSelect"
+            :value="settingsDialogFitTo"
+            label="Shrink to"
+            @change="settingDialogChanged({ fitTo: $event })"
+          >
             <v-radio
-              v-for="item in staticFormChoices.fitToChoices"
+              v-for="item in fitToChoices"
               :key="item.value"
               :label="item.text"
               :value="item.value"
             />
           </v-radio-group>
-          <label>Display</label>
-          <v-checkbox v-model="twoPages" label="Two pages" ripple />
-          <v-btn ripple @click="defaultSettingChanged()">make default</v-btn>
+          <v-checkbox
+            :value="settingsDialogTwoPages"
+            label="Display Two pages"
+            ripple
+            @change="settingDialogChanged({ twoPages: $event })"
+          />
+          <v-switch
+            v-model="isSettingsDialogGlobalMode"
+            :label="settingsDialogSwitchLabel"
+          />
+          <v-btn
+            :class="{ invisible: isSettingsDialogGlobalMode }"
+            title="Use the global settings for all comics for this comic"
+            @click="settingDialogClear()"
+            >Clear Settings</v-btn
+          >
         </v-dialog>
         <MetadataDialog ref="metadataDialog" :pk="pk" />
       </v-toolbar>
@@ -88,13 +93,10 @@
     <v-slide-y-reverse-transition>
       <v-toolbar
         v-show="showToolbars"
-        id="navFooter"
-        horizontal
+        id="bottomToolbar"
+        class="toolbar"
         dense
-        elevation="1"
-        width="100%"
         transform="center bottom"
-        style="position: fixed; bottom: 0px;"
       >
         <ReaderNavButton :value="0" />
         <v-slider
@@ -102,9 +104,8 @@
           :value="pageNumber"
           min.number="+0"
           :max="maxPage"
-          thumb-label="always"
-          ticks="always"
-          hide-detail
+          thumb-label
+          hide-details="auto"
           dense
           @change="routeTo({ pk, pageNumber: $event })"
         />
@@ -116,12 +117,12 @@
 
 <script>
 import { mdiCog } from "@mdi/js";
-import { mapState } from "vuex";
+import { mapGetters, mapState } from "vuex";
 
-import FORM_CHOICES from "@/choices/readerChoices.json";
 import MetadataDialog from "@/components/metadata-dialog.vue";
 import ReaderComicPage from "@/components/reader-comic-page.vue";
 import ReaderNavButton from "@/components/reader-nav-button.vue";
+const DEFAULT_ROUTE = { group: "p", pk: 0 };
 
 export default {
   name: "Reader",
@@ -134,8 +135,7 @@ export default {
     return {
       mdiCog,
       showToolbars: false,
-      pageSlideDirection: "slide-right",
-      staticFormChoices: FORM_CHOICES,
+      isSettingsDialogGlobalMode: false,
     };
   },
   computed: {
@@ -146,42 +146,37 @@ export default {
       settings: (state) => state.settings,
       pk: (state) => state.routes.current.pk,
       pageNumber: (state) => state.routes.current.pageNumber,
+      fitToChoices: (state) => state.formChoices.fitTo,
+      settingsScope: function (state) {
+        if (this.isSettingsDialogGlobalMode) {
+          return state.settings.globl;
+        }
+        return state.settings.local;
+      },
     }),
     ...mapState("browser", {
-      browseRoute: (state) => state.routes.current || { group: "p", pk: 0 },
+      browseRoute: (state) => state.routes.current || DEFAULT_ROUTE,
     }),
-    pageSlideKey: function () {
-      // TODO page left animations aren't good. probably a key issue.
-      return `${this.pk}:${this.pageNumber}`;
+    ...mapGetters("reader", ["computedSettings"]),
+    settingsDialogTwoPages: function () {
+      return this.settingsScope.twoPages;
     },
-    twoPages: {
-      get() {
-        return this.settings.twoPages;
-      },
-      set(value) {
-        this.settingChanged({ twoPages: value === true });
-      },
+    settingsDialogFitTo: function () {
+      return this.settingsScope.fitTo;
     },
-    fitTo: {
-      get() {
-        return this.settings.fitTo;
-      },
-      set(value) {
-        this.settingChanged({ fitTo: value });
-      },
+    settingsDialogSwitchLabel: function () {
+      let label = "For ";
+      if (this.isSettingsDialogGlobalMode) {
+        label += "All Comics";
+      } else {
+        label += "This Comic";
+      }
+      return label;
     },
   },
   watch: {
     $route(to, from) {
       let action = "reader/";
-      if (
-        to.params.pk < from.params.pk ||
-        to.params.pageNumber < from.params.pageNumber
-      ) {
-        this.pageSlideDirection = "slide-left";
-      } else {
-        this.pageSlideDirection = "slide-right";
-      }
       if (+to.params.pk !== +from.params.pk) {
         action += "bookChanged";
       } else {
@@ -218,13 +213,13 @@ export default {
           document.querySelector("#closeBook").click();
         }
       } else if (event.key === "w") {
-        this.settingChanged({ fitTo: "WIDTH" });
+        this.settingChangedLocal({ fitTo: "WIDTH" });
       } else if (event.key === "h") {
-        this.settingChanged({ fitTo: "HEIGHT" });
+        this.settingChangedLocal({ fitTo: "HEIGHT" });
       } else if (event.key === "o") {
-        this.settingChanged({ fitTo: "ORIG" });
+        this.settingChangedLocal({ fitTo: "ORIG" });
       } else if (event.key === "2") {
-        this.settingChanged({ twoPages: !this.twoPages });
+        this.settingChangedLocal({ twoPages: !this.twoPages });
       }
     };
     document.addEventListener("keyup", this._keyListener.bind(this));
@@ -263,11 +258,23 @@ export default {
     routeToNext: function () {
       this.routeTo(this.routes.next);
     },
-    settingChanged: function (data) {
-      this.$store.dispatch("reader/settingChanged", data);
+    settingChangedLocal: function (data) {
+      this.$store.dispatch("reader/settingChangedLocal", data);
     },
-    defaultSettingChanged: function () {
-      this.$store.dispatch("reader/defaultSettingsChanged");
+    settingDialogChanged: function (data) {
+      console.log("settingsDialogChanged", data);
+      if (this.isSettingsDialogGlobalMode) {
+        this.$store.dispatch("reader/settingChangedGlobal", data);
+      } else {
+        this.settingChangedLocal(data);
+      }
+    },
+    settingDialogClear: function () {
+      const data = {
+        fitTo: null,
+        twoPages: null,
+      };
+      this.settingChangedLocal(data);
     },
     createPrefetch(id) {
       const node = document.createElement("link");
@@ -291,9 +298,14 @@ export default {
 </script>
 
 <style scoped lang="scss">
+#readerContainer {
+  margin: 0px;
+  padding: 0px;
+}
 /* NAV COLUMNS */
 #navOverlay {
   position: fixed;
+  top: 0px;
   width: 100%;
   height: 100vh;
 }
@@ -319,7 +331,6 @@ export default {
 }
 
 /* PAGES */
-/* TODO RIGHT SCROLL */
 #pagesContainer {
   text-align: center;
 }
@@ -328,44 +339,46 @@ export default {
   white-space: nowrap;
 }
 
-.slide-right-enter,
-.slide-left-leave {
-  -webkit-transform: translateX(100vw);
-  -moz-transform: translateX(100vw);
-  -o-transform: translateX(100vw);
-  transition: translateX(100vw);
+.toolbar {
+  width: 100%;
+  position: fixed;
 }
-.slide-right-leave-active,
-.slide-left-enter-active {
-  -webkit-transform: translateX(-100vw);
-  -moz-transform: translateX(-100vw);
-  -o-transform: translateX(-100vw);
-  transition: translateX(-100vw);
+#topToolbar {
+  top: 0px;
 }
-.slide-left-enter-active,
-.slide-left-leave-active,
-.slide-right-enter-active,
-.slide-right-leave-active {
-  transition: all 0.1s ease-in;
+#bottomToolbar {
+  bottom: 0px;
+}
+.invisible {
+  visibility: hidden;
 }
 </style>
 
 <!-- eslint-disable-next-line vue-scoped-css/require-scoped -->
 <style lang="scss">
 /* TOOLBARS */
+.toolbar .v-toolbar__content {
+  padding: 0px;
+}
+#topToolbar > .v-toolbar__content {
+  padding-right: 16px;
+}
 .v-dialog {
+  padding: 20px;
+  width: fit-content;
   /* Seems like I'm fixing a bug here */
   background: #121212;
-  padding: 20px;
 }
 /* Custom slider with a large control. */
 .v-input__slider .v-slider__thumb {
-  height: 24px;
-  width: 24px;
-  left: -12px;
+  height: 48px;
+  width: 48px;
+  left: -24px;
 }
 .v-input__slider .v-slider__thumb::before {
-  left: -6px;
-  top: -6px;
+  left: -8px;
+  top: -8px;
+  height: 64px;
+  width: 64px;
 }
 </style>

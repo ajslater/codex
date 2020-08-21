@@ -19,9 +19,16 @@ class ComicReaderSettingsSerializer(Serializer):
     """Reader settings the user can change."""
 
     fitTo = ChoiceField(  # noqa: N815
-        choices=tuple(CHOICES["fitToChoices"].keys()), required=False,
+        choices=tuple(CHOICES["fitTo"].keys()), allow_null=True, required=False,
     )
-    twoPages = BooleanField(required=False)  # noqa: N815
+    twoPages = BooleanField(allow_null=True, required=False)  # noqa: N815
+
+
+class ComicReaderBothSettingsSerializer(Serializer):
+    """For both the default and local comic settings."""
+
+    globl = ComicReaderSettingsSerializer(read_only=True)
+    local = ComicReaderSettingsSerializer(read_only=True, allow_null=True)
 
 
 class ComicReaderInfoSerializer(Serializer):
@@ -29,7 +36,7 @@ class ComicReaderInfoSerializer(Serializer):
 
     title = CharField(read_only=True)  # noqa: N815
     maxPage = IntegerField(read_only=True)  # noqa: N815
-    settings = ComicReaderSettingsSerializer(read_only=True)
+    settings = ComicReaderBothSettingsSerializer(read_only=True)
     prevComicPage = ComicPageRouteSerializer(  # noqa: N815
         allow_null=True, read_only=True
     )

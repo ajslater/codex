@@ -18,14 +18,14 @@ def load_vue_choices():
             vue_choices = json.load(choices_file)
 
         # settingsGroupChoices is special
-        if "settingsGroupChoices" in vue_choices:
+        if "settingsGroup" in vue_choices:
             DEFAULTS["show"] = dict(
                 [
                     (choice["value"], choice.get("default", False))
-                    for choice in vue_choices["settingsGroupChoices"]
+                    for choice in vue_choices["settingsGroup"]
                 ]
             )
-            del vue_choices["settingsGroupChoices"]
+            del vue_choices["settingsGroup"]
 
         # do the rest
         for vue_key, vue_list in vue_choices.items():

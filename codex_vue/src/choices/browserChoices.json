@@ -1,28 +1,23 @@
 {
-  "bookmarkFilterChoices": [
+  "bookmarkFilter": [
     { "text": "All", "value": "ALL", "default": true },
     { "text": "Unread", "value": "UNREAD" },
     { "text": "In Progress", "value": "IN_PROGRESS" }
   ],
-  "fitToChoices": [
-    { "text": "Height", "value": "HEIGHT", "default": true },
-    { "text": "Width", "value": "WIDTH" },
-    { "text": "Original Size", "value": "ORIG" }
-  ],
-  "rootGroupChoices": [
+  "rootGroup": [
     { "text": "Publishers", "value": "r" },
     { "text": "Imprints", "value": "p", "default": true },
     { "text": "Series", "value": "i" },
     { "text": "Volumes", "value": "s" },
     { "text": "Folder View", "value": "f" }
   ],
-  "settingsGroupChoices": [
+  "settingsGroup": [
     { "text": "Publishers", "value": "p", "default": true},
     { "text": "Imprints", "value": "i"},
     { "text": "Series", "value": "s" },
     { "text": "Volumes", "value": "v", "default": true}
   ],
-  "sortChoices": [
+  "sort": [
     { "text": "Name", "value": "sort_name", "default": true },
     { "text": "Date Published", "value": "date" },
     { "text": "Date Added", "value": "created_at" },

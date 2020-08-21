@@ -1,6 +1,7 @@
 """Codex Auth Serializers."""
 
 from django.contrib.auth.models import User
+from django.urls import reverse_lazy
 from rest_framework.fields import BooleanField
 from rest_framework.fields import CharField
 from rest_framework.serializers import ModelSerializer
@@ -10,15 +11,23 @@ from rest_framework.serializers import Serializer
 class UserSerializer(ModelSerializer):
     """Serialize User model for UI."""
 
+    adminURL = CharField(default=reverse_lazy("admin:index"))  # noqa: N815
+
     class Meta:
         """Model spec."""
 
         model = User
-        fields = ("pk", "username", "is_staff")
+        fields = ("pk", "username", "is_staff", "adminURL")
         read_only_fields = fields
 
 
-class UserCreateSerializer(ModelSerializer):
+class TimezoneSerializer(Serializer):
+    """Serialize Timezone submission from front end."""
+
+    timezone = CharField(min_length=2)
+
+
+class UserCreateSerializer(ModelSerializer, TimezoneSerializer):
     """Serialize registration input for creating users."""
 
     class Meta:

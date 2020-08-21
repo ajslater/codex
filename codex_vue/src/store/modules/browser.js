@@ -3,6 +3,7 @@ import router from "@/router";
 
 const GROUPS = "rpisvf";
 const REVALIDATE_KEYS = ["rootGroup", "show"];
+const DYNAMIC_FILTERS = ["decade", "characters"];
 export const ROOT_GROUP_FLAGS = {
   r: ["settings", "p"],
   p: ["settings", "i"],
@@ -17,11 +18,11 @@ export const GROUP_FLAGS = {
   v: ["settings", "v"],
   f: ["formChoices", "enableFolderView"],
 };
-import { settingsGroupChoices } from "@/choices/browserChoices";
+import FORM_CHOICES from "@/choices/browserChoices";
 
-let show = {};
-for (let choice of settingsGroupChoices) {
-  show[choice.value] = show.default === true;
+let SETTINGS_SHOW_DEFAULTS = {};
+for (let choice of FORM_CHOICES.settingsGroup) {
+  SETTINGS_SHOW_DEFAULTS[choice.value] = choice.default === true;
 }
 const state = {
   routes: {
@@ -30,18 +31,23 @@ const state = {
   },
   settings: {
     // set by user
-    bookmarkFilter: undefined,
-    decadeFilter: undefined,
-    charactersFilter: undefined,
+    filters: {
+      bookmark: undefined,
+      decade: undefined,
+      characters: undefined,
+    },
     rootGroup: undefined,
     sortBy: undefined,
     sortReverse: undefined,
-    show,
+    show: SETTINGS_SHOW_DEFAULTS,
   },
   formChoices: {
     // determined by api
-    decadeFilterChoices: [],
-    charactersFilterChoices: [],
+    bookmark: FORM_CHOICES.bookmarkFilter,
+    decade: [],
+    characters: [],
+    sort: FORM_CHOICES.sort,
+    settingsGroup: FORM_CHOICES.settingsGroup,
     show: {
       enableFolderView: true,
     },
@@ -49,41 +55,67 @@ const state = {
   browseTitle: "",
   containerList: [],
   comicList: [],
-  adminURL: "",
+  filterMode: "base",
+  librariesExist: false,
 };
 
-const getters = {};
+const getters = {
+  rootGroupChoices: (state) => {
+    const choices = [];
+    for (let item of Object.values(FORM_CHOICES.rootGroup)) {
+      const [key, flag] = ROOT_GROUP_FLAGS[item.value];
+      const enable = state[key].show[flag];
+      if (enable) {
+        if (item.value === "f") {
+          choices.push({ divider: true });
+        }
+        choices.push(item);
+      }
+    }
+    return Object.values(choices);
+  },
+  filterNames: (state) => Object.keys(state.settings.filters).slice(1),
+};
 
 const mutations = {
-  setAdminURL(state, adminURL) {
-    state.adminURL = adminURL;
-  },
   setBrowseRoute(state, route) {
     state.routes.current = route;
   },
+  setLibrariesExist(state, value) {
+    state.librariesExist = value;
+  },
   setSettings(state, data) {
-    if (data.show) {
-      for (let [key, value] of Object.entries(data.show)) {
-        state.settings.show[key] = value;
-      }
-      delete data["show"];
-    }
     for (let [key, value] of Object.entries(data)) {
-      state.settings[key] = value;
+      if (typeof state.settings[key] === "object") {
+        for (let [sub_key, sub_value] of Object.entries(value)) {
+          state.settings[key][sub_key] = sub_value;
+        }
+      } else {
+        state.settings[key] = value;
+      }
     }
   },
   setBrowseData(state, data) {
-    const show = {
+    state.formChoices.show = {
       enableFolderView: data.formChoices.enableFolderView,
     };
-    delete data.formChoices["enableFolderView"];
-    state.formChoices = data.formChoices;
-    state.formChoices.show = show;
-
+    for (let key of DYNAMIC_FILTERS) {
+      state.formChoices[key] = data.formChoices[key];
+    }
     state.browseTitle = data.browseTitle;
     state.routes.up = data.upRoute;
     state.containerList = data.containerList;
     state.comicList = data.comicList;
+  },
+  setFilterMode(state, mode) {
+    state.filterMode = mode;
+  },
+  clearFilters(state, filterNames) {
+    state.filterMode = "base";
+    state.settings.filters.bookmark = "ALL";
+    for (let filterName of filterNames) {
+      state.settings.filters[filterName] = [];
+    }
   },
 };
 
@@ -152,7 +184,6 @@ const validateRoute = ({ state, commit }, route) => {
     rootGroup !== group && [rootGroup, group].includes("f");
   const isGroupChildOfRootGroup =
     GROUPS.indexOf(group) >= GROUPS.indexOf(rootGroup);
-  console.log("isGroupChildOfRootGroup", isGroupChildOfRootGroup);
   if (
     !doPushToRootGroup &&
     isGroupChildOfRootGroup &&
@@ -192,7 +223,7 @@ const actions = {
     await API.getBrowseOpened(route)
       .then((response) => {
         const data = response.data;
-        commit("setAdminURL", data.adminURL);
+        commit("setLibrariesExist", data.librariesExist);
         commit("setSettings", data.settings);
         if (!validateState({ state, commit, dispatch })) {
           // will have dispatched to SetSetting if fails.
@@ -237,12 +268,16 @@ const actions = {
         return handleBrowseError({ state, commit }, error);
       });
   },
-  async markRead({ dispatch, state }, data) {
+  async markRead({ dispatch }, data) {
     await API.setMarkRead(data);
-    if (state.settings.bookmarkFilter !== "ALL") {
-      // Reget the objects if we're filtering on this change.
-      dispatch("getBrowseObjects");
-    }
+    dispatch("getBrowseObjects");
+  },
+  setFilterMode({ commit }, mode) {
+    commit("setFilterMode", mode);
+  },
+  clearFilters({ commit, dispatch, getters }) {
+    commit("clearFilters", getters.filterNames);
+    dispatch("getBrowseObjects");
   },
 };
 

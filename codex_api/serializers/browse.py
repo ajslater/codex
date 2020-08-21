@@ -13,6 +13,8 @@ from rest_framework.serializers import Serializer
 from codex_api.choices.static import CHOICES
 from codex_api.serializers.vuetify import VueIntChoiceSerializer
 
+VUE_MODEL_NULL_CODES = (-1, 0)
+
 
 def validate_decades(decades):
     """Validate decades."""
@@ -29,6 +31,14 @@ def validate_decades(decades):
         raise ValidationError(_(f"Invalid decade in: {decades}"))
 
 
+def validate_null_filter(values):
+    """Fix special codes for html/vue/js not being able to handle null."""
+    for index, value in enumerate(values):
+        if value in VUE_MODEL_NULL_CODES:
+            values[index] = None
+    return values
+
+
 class BrowserSettingsShowGroupFlagsSerializer(Serializer):
     """Show Group Flags."""
 
@@ -36,6 +46,22 @@ class BrowserSettingsShowGroupFlagsSerializer(Serializer):
     i = BooleanField()
     s = BooleanField()
     v = BooleanField()
+
+
+class BrowserSettingsFilterSerializer(Serializer):
+    """Filter values for settings."""
+
+    bookmark = ChoiceField(  # noqa: N815
+        choices=tuple(CHOICES["bookmarkFilter"].keys())
+    )
+    decade = ListField(  # noqa: N815
+        child=IntegerField(allow_null=True),
+        validators=(validate_null_filter, validate_decades),
+    )
+    characters = ListField(  # noqa: N815
+        child=IntegerField(allow_null=True),
+        validators=(validate_null_filter,),
+    )
 
 
 class BrowserSettingsSerializer(Serializer):
@@ -46,33 +72,13 @@ class BrowserSettingsSerializer(Serializer):
     It is also sent to the browser as part of BrowserOpenedSerializer.
     """
 
-    MODEL_FILTER_NONE_CODE = -1
-    MODEL_FILTER_KEYS = ("decadeFilter", "charactersFilter")
-
-    bookmarkFilter = ChoiceField(  # noqa: N815
-        choices=tuple(CHOICES["bookmarkFilterChoices"].keys())
+    filters = BrowserSettingsFilterSerializer()
+    rootGroup = ChoiceField(  # noqa: N815
+        choices=tuple(CHOICES["rootGroup"].keys())
     )
-    decadeFilter = ListField(  # noqa: N815
-        child=IntegerField(allow_null=True),
-        validators=[validate_decades],
-        allow_empty=True,
-    )
-    charactersFilter = ListField(  # noqa: N815
-        child=IntegerField(allow_null=True), allow_empty=True,
-    )
-    rootGroup = ChoiceField(choices=tuple(CHOICES["rootGroupChoices"].keys()))  # noqa: N815
-    sortBy = ChoiceField(choices=tuple(CHOICES["sortChoices"].keys()))  # noqa: N815
+    sortBy = ChoiceField(choices=tuple(CHOICES["sort"].keys()))  # noqa: N815
     sortReverse = BooleanField()  # noqa: N815
     show = BrowserSettingsShowGroupFlagsSerializer()
-
-    @classmethod
-    def fix_model_filters(cls, data):
-        """Fix UI not being able to submit null values."""
-        for key in cls.MODEL_FILTER_KEYS:
-            model_filter = data.get(key)
-            for index, value in enumerate(model_filter):
-                if value == cls.MODEL_FILTER_NONE_CODE:
-                    model_filter[index] = None
 
 
 class BrowseObjectSerializer(Serializer):
@@ -81,6 +87,7 @@ class BrowseObjectSerializer(Serializer):
     pk = IntegerField(read_only=True)
     group = CharField(read_only=True, max_length=1)
     cover_path = CharField(read_only=True)
+    header_name = CharField(read_only=True)
     display_name = CharField(read_only=True)
     progress = DecimalField(read_only=True, max_digits=5, decimal_places=2)
     finished = BooleanField(read_only=True, allow_null=True)
@@ -95,7 +102,6 @@ class BrowseContainerSerializer(BrowseObjectSerializer):
 class BrowseComicSerializer(BrowseObjectSerializer):
     """Browse comic."""
 
-    header_name = CharField(read_only=True)
     max_page = IntegerField(read_only=True)
     bookmark = IntegerField(read_only=True, allow_null=True)
 
@@ -110,12 +116,8 @@ class BrowseRouteSerializer(Serializer):
 class BrowserFormChoicesSerializer(Serializer):
     """These choices change with browse context."""
 
-    decadeFilterChoices = VueIntChoiceSerializer(  # noqa: N815
-        many=True, read_only=True
-    )
-    charactersFilterChoices = VueIntChoiceSerializer(  # noqa: N815
-        many=True, read_only=True
-    )
+    decade = VueIntChoiceSerializer(many=True, read_only=True)  # noqa: N815
+    characters = VueIntChoiceSerializer(many=True, read_only=True)  # noqa: N815
     enableFolderView = BooleanField(read_only=True)  # noqa: N815
 
 
@@ -140,4 +142,4 @@ class BrowserOpenedSerializer(Serializer):
 
     settings = BrowserSettingsSerializer(read_only=True)
     browseList = BrowseListSerializer(read_only=True)  # noqa: N815
-    adminURL = CharField(read_only=True)  # noqa: N815
+    librariesExist = BooleanField(read_only=True)  # noqa: N815

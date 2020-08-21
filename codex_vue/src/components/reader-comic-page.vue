@@ -9,11 +9,12 @@
 </template>
 
 <script>
-import { mapState } from "vuex";
+import { mapGetters, mapState } from "vuex";
 
 import { getComicPageSource } from "@/api/reader";
 
 export default {
+  name: "ReaderComicPage",
   props: {
     page: {
       type: Number,
@@ -26,14 +27,17 @@ export default {
       pk: (state) => state.routes.current.pk,
       basePageNumber: (state) => state.routes.current.pageNumber,
       maxPage: (state) => state.maxPage,
-      fitTo: (state) => state.settings.fitTo,
-      twoPages: (state) => state.settings.twoPages,
     }),
+    ...mapGetters("reader", ["computedSettings"]),
     pageNumber() {
       return this.basePageNumber + this.page;
     },
     displayPage() {
-      return this.pageNumber <= this.maxPage && this.pageNumber >= 0;
+      return (
+        this.pageNumber <= this.maxPage &&
+        this.pageNumber >= 0 &&
+        (this.page === 0 || this.computedSettings.twoPages)
+      );
     },
     src() {
       return getComicPageSource({
@@ -46,12 +50,12 @@ export default {
     },
     fitToClass() {
       let cls = "";
-      const fitTo = this.fitTo;
+      const fitTo = this.computedSettings.fitTo;
       if (fitTo) {
         cls = "fitTo";
         cls += fitTo.charAt(0).toUpperCase();
         cls += fitTo.slice(1).toLowerCase();
-        if (this.twoPages) {
+        if (this.computedSettings.twoPages) {
           cls += "Two";
         }
       }

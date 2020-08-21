@@ -26,24 +26,23 @@ class ComicOpenedView(APIView, SessionMixin, UserBookmarkMixin):
 
     def get_settings(self):
         """Get Settings."""
+        reader_session = None
+        settings = {"globl": {}, "local": {}}
+        reader_session = self.get_session(self.READER_KEY)
+        defaults = reader_session.get(
+            "defaults", self.SESSION_DEFAULTS[self.READER_KEY]["defaults"]
+        )
+        for key in self.SETTINGS_KEYS:
+            camel_key = camelcase(key)
+            settings["globl"][camel_key] = defaults.get(key)
+
         pk = self.kwargs.get("pk")
         ub = self.get_user_bookmark(pk)
-        reader_session = None
-        settings = {}
-        for key in self.SETTINGS_KEYS:
-            val = None
-            if ub:
-                val = getattr(ub, key)
-            if val is None:
-                if reader_session is None:
-                    reader_session = self.get_session(self.READER_KEY)
-                defaults = reader_session.get(
-                    "defaults", self.SESSION_DEFAULTS[self.READER_KEY]["defaults"]
-                )
-                val = defaults.get(key)
-
-            camel_key = camelcase(key)
-            settings[camel_key] = val
+        if ub:
+            settings["local"] = {}
+            for key in self.SETTINGS_KEYS:
+                camel_key = camelcase(key)
+                settings["local"][camel_key] = getattr(ub, key)
 
         return settings
 
@@ -74,8 +73,8 @@ class ComicOpenedView(APIView, SessionMixin, UserBookmarkMixin):
         routes = {"prevComicPage": prev_route, "nextComicPage": next_route}
         return current_comic, routes
 
-    def get_book_opened_info(self):
-        """Get the book opened info."""
+    def get(self, request, *args, **kwargs):
+        """Get method."""
         settings = self.get_settings()
 
         # Get the preve next links and the comic itself in the same go
@@ -88,11 +87,6 @@ class ComicOpenedView(APIView, SessionMixin, UserBookmarkMixin):
             "routes": routes,
         }
 
-        return data
-
-    def get(self, request, *args, **kwargs):
-        """Get method."""
-        data = self.get_book_opened_info()
         serializer = ComicReaderInfoSerializer(data)
         return Response(serializer.data)
 
@@ -129,7 +123,7 @@ class ComicBookmarkView(APIView, UserBookmarkMixin):
         pk = self.kwargs.get("pk")
         page_num = self.kwargs.get("page_num")
         updates = {"bookmark": page_num}
-        self.update_user_bookmark(updates, pk)
+        self.update_user_bookmark(updates, pk=pk)
         return Response()
 
 
@@ -149,14 +143,14 @@ class ComicSettingsView(APIView, SessionMixin, UserBookmarkMixin):
     def patch(self, request, *args, **kwargs):
         """Patch the bookmark settings for one comic."""
         serializer = ComicReaderSettingsSerializer(data=self.request.data)
-        snake_dict = self.validate(serializer)
+        updates = self.validate(serializer)
 
         pk = self.kwargs.get("pk")
-        self.update_user_bookmark(snake_dict, pk)
+        self.update_user_bookmark(updates, pk=pk)
         return Response()
 
     def put(self, request, *args, **kwargs):
-        """Patch the session settings for all comics."""
+        """Put the session settings for all comics."""
         serializer = ComicReaderSettingsSerializer(data=self.request.data)
         snake_dict = self.validate(serializer)
         # Default for all comics

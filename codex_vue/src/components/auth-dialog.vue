@@ -1,18 +1,16 @@
 <template>
-  <v-menu v-if="user" offset-y bottom>
-    <template #activator="{ on }">
-      <v-btn ripple v-on="on">
-        {{ user.username }}
-      </v-btn>
-    </template>
-    <v-list-item-group>
-      <v-list-item>
-        <v-list-item-content @click="logout">
-          <v-list-item-title>Logout</v-list-item-title>
-        </v-list-item-content>
-      </v-list-item>
-    </v-list-item-group>
-  </v-menu>
+  <div v-if="user" id="userMenu">
+    <v-list-item v-if="isAdmin" :href="adminURL">
+      <v-list-item-content>
+        <v-list-item-title>Admin Panel</v-list-item-title>
+      </v-list-item-content>
+    </v-list-item>
+    <v-list-item @click="logout">
+      <v-list-item-content>
+        <v-list-item-title> Logout {{ user.username }} </v-list-item-title>
+      </v-list-item-content>
+    </v-list-item>
+  </div>
   <v-dialog
     v-else
     v-model="showLoginDialog"
@@ -22,9 +20,13 @@
     overlay-opacity="0.5"
   >
     <template #activator="{ on }">
-      <v-btn ripple v-on="on" @click="loginDialogOpened">
-        Login
-      </v-btn>
+      <v-list-item v-on="on" @click="loginDialogOpened">
+        <v-list-item-content>
+          <v-list-item-title>
+            Login
+          </v-list-item-title>
+        </v-list-item-content>
+      </v-list-item>
     </template>
     <v-form ref="loginForm">
       <v-text-field
@@ -80,10 +82,11 @@
 </template>
 
 <script>
+//import { mdiAccount, mdiAccountOutline } from "@mdi/js";
 import { mapState } from "vuex";
 
 export default {
-  name: "AuthButton",
+  name: "AuthDialog",
   data() {
     return {
       usernameRules: [(v) => !!v || "Username is required"],
@@ -108,7 +111,17 @@ export default {
       usernameErrors: (state) => state.form.usernameErrors,
       passwordErrors: (state) => state.form.passwordErrors,
       enableRegistration: (state) => state.enableRegistration,
+      adminURL: (state) => state.adminURL,
     }),
+    /*
+    userIcon() {
+      if (this.user) {
+        return mdiAccount;
+      } else {
+        return mdiAccountOutline;
+      }
+    },
+*/
   },
   methods: {
     closeForm: function () {
@@ -166,4 +179,8 @@ export default {
 };
 </script>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+#userMenu {
+  background-color: #121212; /* TODO map theme background */
+}
+</style>

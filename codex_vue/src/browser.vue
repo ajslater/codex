@@ -1,220 +1,183 @@
 <template>
   <div>
-    <v-toolbar dense>
-      <v-menu :close-on-content-click="false" offset-y bottom>
-        <template v-slot:activator="{ on }">
-          <v-btn v-on="on">
-            Filter
-          </v-btn>
-        </template>
-        <v-list dense style="max-height: 90vh;" class="overflow-y-auto">
-          <v-list-item-group v-model="bookmarkFilter" mandatory>
-            <v-list-item
-              v-for="item of staticFormChoices.bookmarkFilterChoices"
-              :key="item.value"
-              :value="item.value"
-            >
-              <v-list-item-content>
-                <v-list-item-title v-text="item.text" />
-              </v-list-item-content>
-            </v-list-item>
-          </v-list-item-group>
-          <v-list-group sub-group>
-            <template v-slot:activator>
-              <v-list-item-title>Decade</v-list-item-title>
+    <header id="browseHeader">
+      <v-toolbar id="filterToolbar" class="toolbar" dense>
+        <v-toolbar-items id="filterToolbarItems">
+          <v-select
+            ref="filterSelect"
+            v-model="bookmarkFilter"
+            :items="formChoices.bookmark"
+            class="toolbarSelect filterSelect"
+            dense
+            hide-details="auto"
+            ripple
+            :menu-props="{
+              maxHeight: '90vh',
+              overflowY: false,
+              contentClass: filterMenuClass,
+            }"
+            :prepend-inner-icon="filterInnerIcon"
+            @clickHIDE:clear="clearFilters"
+            @click:prepend-inner="clearFilters"
+          >
+            <template #selection="{ item }">
+              {{ item.text }}
+              <span v-if="isOtherFiltersSelected" id="filterSuffix">
+                +
+              </span>
             </template>
-
-            <v-list-item-group v-model="decadeFilter" multiple dense>
-              <v-list-item
-                v-for="item of formChoices.decadeFilterChoices"
-                :key="item.value"
-                :value="item.value"
-              >
+            <template #item="data">
+              <v-slide-x-transition hide-on-leave>
                 <v-list-item-content>
-                  <v-list-item-title v-text="item.text" />
+                  <v-list-item-title>
+                    {{ data.item.text }}
+                  </v-list-item-title>
+                </v-list-item-content>
+              </v-slide-x-transition>
+            </template>
+            <template #append-item>
+              <v-slide-x-transition hide-on-leave>
+                <v-divider v-if="filterMode === 'base'" />
+              </v-slide-x-transition>
+              <FilterSubMenu
+                v-for="filterName of filterNames"
+                :key="filterName"
+                :name="filterName"
+                @subMenuClick="closeFilterSelect"
+              />
+            </template>
+          </v-select>
+          <v-select
+            v-model="rootGroup"
+            :items="rootGroupChoices"
+            class="toolbarSelect rootGroupSelect"
+            dense
+            hide-details="auto"
+            ripple
+          />
+          <v-select
+            v-model="sortBy"
+            class="toolbarSelect sortBySelect"
+            :items="formChoices.sort"
+            prefix="By "
+            dense
+            hide-details="auto"
+            ripple
+          >
+            <template #item="data">
+              <v-list-item v-bind="data.attrs" v-on="data.on">
+                <v-list-item-content>
+                  <v-list-item-title>
+                    {{ data.item.text }}
+                    <v-icon
+                      v-show="sortBy === data.item.value"
+                      class="sortArrow"
+                      :class="{ upsideDown: !settings.sortReverse }"
+                    >
+                      {{ mdiArrowUp }}
+                    </v-icon>
+                  </v-list-item-title>
                 </v-list-item-content>
               </v-list-item>
-            </v-list-item-group>
-          </v-list-group>
-          <v-list-group sub-group>
-            <template v-slot:activator>
-              <v-list-item-title>Character</v-list-item-title>
             </template>
-
-            <v-list-item-group v-model="charactersFilter" multiple dense>
-              <v-list-item
-                v-for="item of formChoices.charactersFilterChoices"
-                :key="item.value"
-                :value="item.value"
+          </v-select>
+        </v-toolbar-items>
+        <v-spacer />
+        <v-toolbar-items id="controls">
+          <v-menu offset-y>
+            <template #activator="{ on }">
+              <v-btn icon ripple title="Settings" v-on="on">
+                <v-icon>{{ mdiDotsVertical }}</v-icon>
+              </v-btn>
+            </template>
+            <v-list-item-group id="settingsMenu" ripple>
+              <v-dialog
+                origin="center-top"
+                transition="slide-y-transition"
+                max-width="20em"
+                overlay-opacity="0.5"
               >
-                <v-list-item-content>
-                  <v-list-item-title v-text="item.text" />
-                </v-list-item-content>
-              </v-list-item>
+                <template #activator="{ on }">
+                  <v-list-item v-on="on">
+                    <v-list-item-content>
+                      <v-list-item-title>
+                        Settings
+                      </v-list-item-title>
+                    </v-list-item-content>
+                  </v-list-item>
+                </template>
+                <h3>Browser Settings</h3>
+                <div id="settingsGroupCaption" class="text-caption">
+                  Show these groups when navigating the browse heirarchy.
+                </div>
+                <v-checkbox
+                  v-for="choice of formChoices.settingsGroup"
+                  :key="choice.value"
+                  :input-value="getShow(choice.value)"
+                  :label="`Show ${choice.text}`"
+                  dense
+                  @change="setShow(choice.value, $event)"
+                />
+              </v-dialog>
+              <AuthButton />
             </v-list-item-group>
-          </v-list-group>
-        </v-list>
-      </v-menu>
-      <v-flex shrink>
-        <v-select
-          id="rootGroupSelect"
-          v-model="rootGroup"
-          class="toolbarSelect"
-          label="Group"
-          :items="rootGroupChoices"
-          dense
-          mandatory
-          solo
-        />
-      </v-flex>
-      <v-flex shrink>
-        <v-select
-          id="sortBySelect"
-          v-model="sortBy"
-          class="toolbarSelect"
-          :items="staticFormChoices.sortChoices"
-          label="Sort"
-          mandatory
-          dense
-          solo
-        />
-      </v-flex>
-      <v-checkbox v-model="sortReverse" label="reverse" />
-      <v-spacer />
-      <v-dialog
-        origin="center-top"
-        transition="slide-y-transition"
-        max-width="20em"
-        overlay-opacity="0.5"
-      >
-        Settings
-        <template #activator="{ on }">
-          <v-btn icon v-on="on">
-            <v-icon>{{ mdiCog }}</v-icon>
+          </v-menu>
+        </v-toolbar-items>
+      </v-toolbar>
+      <v-toolbar id="titleToolbar" class="toolbar" dense>
+        <v-toolbar-items>
+          <v-btn :class="{ invisible: !showUpButton }" :to="upTo" icon ripple
+            ><v-icon>{{ mdiArrowUp }}</v-icon>
           </v-btn>
-        </template>
-        <v-checkbox
-          v-for="choice of staticFormChoices.settingsGroupChoices"
-          :key="choice.value"
-          :input-value="getShow(choice.value)"
-          :label="`Show ${choice.text}`"
-          dense
-          @change="setShow(choice.value, $event)"
-        />
-        <v-btn v-if="isAdmin" ripple href="/admin/">
-          Admin Panel
-        </v-btn>
-      </v-dialog>
-      <AuthButton />
-    </v-toolbar>
-    <header>
-      <section class="display-2 font-weight-bold text-center">
-        <span>{{ browseTitle }}</span>
-      </section>
-      <router-link
-        v-if="upRoute && upRoute.group"
-        :to="{ name: 'browser', params: upRoute }"
-        >Up</router-link
-      >
+        </v-toolbar-items>
+        <v-toolbar-title>
+          {{ browseTitle }}
+        </v-toolbar-title>
+      </v-toolbar>
     </header>
-    <main id="browsePane">
-      <v-lazy
-        v-for="item in containerList"
-        :key="item.pk"
-        class="browseCardWrapper"
-        transition="scale-transition"
-      >
-        <v-card
-          :to="{ name: 'browser', params: { group: item.group, pk: item.pk } }"
-          tile
-          ripple
-          class="browseTile"
-        >
-          <v-img
-            :src="'/static/' + item.cover_path"
-            lazy-src="/static/404.png"
-            contain
-            class="coverPage"
-          />
-          <v-progress-linear
-            :value="item.progress"
-            rounded
-            background-color="inherit"
-          />
-          <v-card-subtitle class="cardSubtitle">
-            {{ item.display_name }} ({{ item.child_count }})
-          </v-card-subtitle>
-          <v-checkbox
-            label="read"
-            :input-value="item.finished"
-            :indeterminate="item.finished === null"
-            class="readCheckbox"
-            @change="markRead(item.group, item.pk, $event === true)"
-          />
-        </v-card>
-      </v-lazy>
-      <v-lazy
-        v-for="item in comicList"
-        :key="item.pk"
-        class="browseCardWrapper"
-        transition="scale-transition"
-      >
-        <v-card tile ripple class="browseTile">
-          <router-link :to="getReaderRoute(item)">
-            <v-img
-              :src="'/static/' + item.cover_path"
-              lazy-src="/static/404.png"
-              contain
-              class="coverPage"
-            />
-            <v-progress-linear
-              :value="item.progress"
-              background-color="inherit"
-              rounded
-            />
-            <v-card-subtitle class="cardSubtitle">
-              {{ item.header_name }}<br />
-              {{ item.display_name }}
-            </v-card-subtitle>
-          </router-link>
-          <footer style="display: flex;">
-            <v-checkbox
-              :input-value="item.finished"
-              label="read"
-              class="readCheckbox"
-              @change="markRead(item.group, item.pk, $event)"
-            />
-            <MetadataButton :pk="item.pk" />
-          </footer>
-        </v-card>
-      </v-lazy>
-    </main>
+    <v-main v-if="librariesExist || !noLibrariesTimeout" id="browsePane">
+      <BrowseCard :item-list="containerList" />
+      <BrowseCard :item-list="comicList" />
+    </v-main>
+    <v-main v-else id="browsePane">
+      <div id="noLibraries">
+        <h1>No libraries have been added to Codex yet.</h1>
+        <h2 v-if="isAdmin">
+          Go to <a :href="adminURL">the admin panel</a> and add a comic library.
+        </h2>
+        <div v-else>
+          <h2>
+            An administrator must log in and add some libraries.
+          </h2>
+          <h3>You may log in or register with the top right menu.</h3>
+        </div>
+      </div>
+    </v-main>
   </div>
 </template>
 
 <script>
-import { mdiChevronRight, mdiCog } from "@mdi/js";
-import { mapState } from "vuex";
+import { mdiArrowUp, mdiCloseCircle, mdiDotsVertical } from "@mdi/js";
+import { mapGetters, mapState } from "vuex";
 
 import { getSocket } from "@/api/browser";
-import FORM_CHOICES from "@/choices/browserChoices.json";
 import AuthButton from "@/components/auth-dialog";
-import MetadataButton from "@/components/metadata-dialog";
-import { getReaderRoute } from "@/router/route";
-import { ROOT_GROUP_FLAGS } from "@/store/modules/browser";
+import BrowseCard from "@/components/browse-card";
+import FilterSubMenu from "@/components/filter-sub-menu";
 
 export default {
   name: "Browser",
   components: {
     AuthButton,
-    MetadataButton,
+    BrowseCard,
+    FilterSubMenu,
   },
   data() {
     return {
-      mdiCog,
-      mdiChevronRight,
-      staticFormChoices: FORM_CHOICES,
+      mdiArrowUp,
+      mdiDotsVertical,
       socket: undefined,
+      noLibrariesTimeout: false,
     };
   },
   computed: {
@@ -226,32 +189,80 @@ export default {
       upRoute: (state) => state.routes.up,
       containerList: (state) => state.containerList,
       comicList: (state) => state.comicList,
+      filterMode: (state) => state.filterMode,
+      librariesExist: (state) => state.librariesExist,
     }),
     ...mapState("auth", {
-      isAdmin: (state) => state.user && state.user.is_staff,
+      isAdmin: (state) =>
+        state.user && (state.user.is_staff || state.user.is_superuser),
+      adminURL: (state) => state.adminURL,
     }),
+    ...mapGetters("browser", ["rootGroupChoices", "filterNames"]),
+    upTo: function () {
+      if (this.showUpButton) {
+        return { name: "browser", params: this.upRoute };
+      }
+      return "";
+    },
+    filterInnerIcon: function () {
+      if (this.isFiltersClearable) {
+        return mdiCloseCircle;
+      }
+      return " ";
+    },
+    filterMenuClass: function () {
+      // Lets me hide bookmark menu items with css when the filterMode
+      //   changes.
+      let className = "filterMenu";
+      if (this.filterMode !== "base") {
+        className += "Hidden";
+      }
+      return className;
+    },
+    isOtherFiltersSelected: function () {
+      for (let filterName of this.filterNames) {
+        const filterArray = this.settings.filters[filterName];
+        if (filterArray && filterArray.length > 0) {
+          return true;
+        }
+      }
+      return false;
+    },
+    isFiltersClearable: function () {
+      if (this.bookmarkFilter !== "ALL") {
+        return true;
+      }
+      return this.isOtherFiltersSelected;
+    },
+    showUpButton: function () {
+      return this.upRoute && this.upRoute.group;
+    },
     bookmarkFilter: {
       get() {
-        return this.settings.bookmarkFilter;
+        return this.getFilter("bookmark");
       },
       set(value) {
-        this.settingChanged({ bookmarkFilter: value });
+        if (value === null || value === undefined) {
+          console.log(`bookmarkFilter was ${value}. Setting to 'ALL'`);
+          value = "ALL";
+        }
+        this.setFilter("bookmark", value);
       },
     },
     decadeFilter: {
       get() {
-        return this.settings.decadeFilter;
+        return this.getFilter("decade");
       },
       set(value) {
-        this.settingChanged({ decadeFilter: value });
+        this.setFilter("decade", value);
       },
     },
     charactersFilter: {
       get() {
-        return this.settings.charactersFilter;
+        return this.getFilter("characters");
       },
       set(value) {
-        this.settingChanged({ charactersFilter: value });
+        this.setFilter("characters", value);
       },
     },
     rootGroup: {
@@ -267,27 +278,15 @@ export default {
         return this.settings.sortBy;
       },
       set(value) {
-        this.settingChanged({ sortBy: value });
-      },
-    },
-    sortReverse: {
-      get() {
-        return this.settings.sortReverse;
-      },
-      set(value) {
-        this.settingChanged({ sortReverse: value === true });
-      },
-    },
-    rootGroupChoices: function () {
-      const choices = [];
-      for (let item of Object.values(FORM_CHOICES.rootGroupChoices)) {
-        const [key, flag] = ROOT_GROUP_FLAGS[item.value];
-        const enable = this[key].show[flag];
-        if (enable) {
-          choices.push(item);
+        let data = {};
+        if (value === this.settings.sortBy) {
+          data.sortReverse = !this.settings.sortReverse;
+        } else {
+          data.sortReverse = false;
+          data.sortBy = value;
         }
-      }
-      return Object.values(choices);
+        this.settingChanged(data);
+      },
     },
   },
   watch: {
@@ -295,7 +294,6 @@ export default {
       this.$store.dispatch("browser/routeChanged", to.params);
     },
   },
-  beforeCreate() {},
   created() {
     this.$store.dispatch("browser/browseOpened", this.$route.params);
     this.socket = getSocket();
@@ -304,6 +302,7 @@ export default {
         this.$store.dispatch("browser/browseOpened", this.$route.params);
       }
     });
+    setTimeout(() => (this.noLibrariesTimeout = true), 5000);
   },
   beforeDestroy() {
     if (this.socket) {
@@ -311,54 +310,158 @@ export default {
     }
   },
   methods: {
+    settingChanged: function (data) {
+      this.$store.dispatch("browser/settingChanged", data);
+    },
+    setSubSetting: function (key, subKey, value) {
+      const data = { [key]: { [subKey]: value } };
+      this.settingChanged(data);
+    },
     getShow: function (group) {
       return this.settings.show[group];
     },
     setShow: function (group, value) {
-      const data = { show: { [group]: value === true } };
-      this.$store.dispatch("browser/settingChanged", data);
+      this.setSubSetting("show", group, value === true);
     },
-    settingChanged: function (data) {
-      this.$store.dispatch("browser/settingChanged", data);
+    getFilter: function (filterName) {
+      return this.settings.filters[filterName];
     },
-    markRead: function (group, pk, finished) {
-      this.$store.dispatch("browser/markRead", { group, pk, finished });
+    setFilter: function (filterName, value) {
+      this.setSubSetting("filters", filterName, value);
     },
-    getReaderRoute,
+    clearFilters: function () {
+      console.log("CFS");
+      this.$store.dispatch("browser/clearFilters");
+    },
+    closeFilterSelect: function () {
+      // On click, reselect the current value to close the menu.
+      const item = this.$refs.filterSelect.selectedItems[0];
+      this.$refs.filterSelect.selectItem(item);
+      this.$store.dispatch("browser/setFilterMode", "base");
+    },
   },
 };
 </script>
 
 <style scoped lang="scss">
-#browsePane {
-  height: 100%;
-  width: 100%;
+#browseHeader {
+  position: fixed;
+  z-index: 10;
 }
-.coverPage {
-  height: 180px;
-  max-width: 180px;
+.toolbar {
+  width: 100vw;
 }
-.browseTile {
-  width: 200px;
-  height: 260px;
-  float: left;
-  padding: 15px;
+#filterToolbar {
 }
-.readCheckbox {
-  padding: 0px;
-  margin: 0px;
+#filterToolbarItems {
+  padding-top: 8px;
 }
-.cardSubtitle {
-  padding: 0px;
+#titleToolbar {
+}
+#titleToolbar .v-toolbar__title {
+  margin: auto;
 }
 .toolbarSelect {
-  width: 14em;
+}
+#browsePane {
+  margin-top: 96px;
+  margin-left: 15px;
+  overflow: auto;
+}
+.sortArrow {
+  width: 20px;
+  float: right;
+}
+.upsideDown {
+  transform: rotate(180deg);
+}
+.invisible {
+  visibility: hidden;
+}
+#filterSuffix {
+  margin-left: 0.25em;
+}
+#settingsGroupCaption {
+  color: gray;
 }
 </style>
 
 <!-- eslint-disable vue-scoped-css/require-scoped -->
 <style lang="scss">
-/* TODO SCOPE */
+@import "~vuetify/src/styles/styles.sass";
+
+#filterToolbar > .v-toolbar__content {
+  padding-right: 0px;
+}
+#filterToolbar .filterSelect .v-input__prepend-inner {
+  padding-right: 0px;
+}
+#filterToolbar .filterSelect .v-input__prepend-inner .v-input__icon > .v-icon {
+  margin-top: 1px;
+}
+#filterToolbar .filterSelect .v-input__icon--prepend-inner svg {
+  width: 16px;
+}
+.toolbarSelect {
+  padding-top: 3px;
+}
+.toolbarSelect .v-input__slot {
+  border: none;
+}
+.toolbarSelect .v-input__append-inner {
+  padding-left: 0px !important;
+}
+.toolbarSelect .v-input__control > .v-input__slot:before {
+  border: none;
+}
+/* ids aren't kept by vuetify for v-select. abuse classes */
+.filterSelect {
+  width: 144px;
+}
+.filterMenuHidden > .v-select-list > .v-list-item {
+  display: none !important;
+}
+.rootGroupSelect {
+  width: 118px;
+  margin-left: 8px;
+  margin-right: 8px;
+}
+.sortBySelect {
+  width: 168px;
+}
+#settingsMenu {
+  background-color: #121212;
+}
+#noLibraries {
+  text-align: center;
+}
+@media #{map-get($display-breakpoints, 'sm-and-down')} {
+  .toolbarSelect {
+    font-size: 12px;
+  }
+  /* ids aren't kept by vuetify for v-select. abuse classes */
+  .filterSelect {
+    width: 120px;
+  }
+  .filterSelect .v-input__icon--prepend-inner svg {
+    width: 13px;
+  }
+  .rootGroupSelect {
+    width: 95px;
+    margin-left: 4px;
+    margin-right: 4px;
+  }
+  .sortBySelect {
+    width: 133px;
+    margin-right: -19px;
+  }
+  #titleToolbar .v-toolbar__title {
+    font-size: 0.75rem;
+  }
+}
+#titleToolbar .v-toolbar__content {
+  padding: 0px;
+}
 .scale-transition-enter-active,
 .scale-transition-leave-active {
   transition: all 0.1s ease-out;

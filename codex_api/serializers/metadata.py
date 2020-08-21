@@ -47,6 +47,14 @@ class CreditSerializer(ModelSerializer):
 class ComicSerializer(ModelSerializer):
     """Serialize the comic model for browser metadata box."""
 
+    # Publish annotations
+    publisher_name = CharField()
+    imprint_name = CharField()
+    series_name = CharField()
+    volume_name = CharField()
+    volume_count = IntegerField()
+    issue_count = IntegerField()
+
     # UserBookmark annotations
     bookmark = IntegerField()
     finished = BooleanField()
@@ -88,8 +96,14 @@ class ComicSerializer(ModelSerializer):
         model = Comic
         fields = (
             "pk",
-            "header_name",
-            "display_name",
+            "publisher_name",
+            "imprint_name",
+            "series_name",
+            "volume_name",
+            "volume_count",
+            "issue",
+            "issue_count",
+            "title",
             "cover_path",
             "year",
             "month",

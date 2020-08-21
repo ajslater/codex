@@ -45,13 +45,13 @@ class UserBookmarkFinishedView(APIView, SessionMixin, UserBookmarkMixin):
         serializer = UserBookmarkFinishedSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        cls = BrowseView.GROUP_CLASS.get(browse_type)
-        comic_pks = cls.objects.get(pk=pk).comic.values_list("pk", flat=True)
+        relation = BrowseView.GROUP_RELATION.get(browse_type)
+        comics = Comic.objects.filter(**{relation: pk})
         updates = {"finished": serializer.validated_data.get("finished")}
 
-        for comic_pk in comic_pks:
+        for comic in comics:
             # can't do this in bulk if using update_or_create
-            self.update_user_bookmark(updates, comic_pk)
+            self.update_user_bookmark(updates, comic=comic)
 
         return Response()
 
@@ -67,13 +67,17 @@ class ComicMetadataView(APIView, SessionMixin, UserBookmarkMixin):
         comic = Comic.objects
         ub_filter = self.get_userbookmark_filter(True)
         comic = comic.annotate(
-            my_bookmark=FilteredRelation("userbookmark", condition=ub_filter)
-        )
-        comic = comic.annotate(
+            my_bookmark=FilteredRelation("userbookmark", condition=ub_filter),
             fit_to=F("my_bookmark__fit_to"),
             two_pages=F("my_bookmark__two_pages"),
             finished=F("my_bookmark__finished"),
             bookmark=F("my_bookmark__bookmark"),
+            publisher_name=F("publisher__name"),
+            imprint_name=F("imprint__name"),
+            series_name=F("series__name"),
+            volume_count=F("series__volume_count"),
+            volume_name=F("volume__name"),
+            issue_count=F("volume__issue_count"),
         )
 
         # Annotate progress

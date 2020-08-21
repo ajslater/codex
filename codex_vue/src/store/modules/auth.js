@@ -8,15 +8,19 @@ const state = {
     error: undefined,
   },
   enableRegistration: false,
+  adminURL: "",
 };
 
 const mutations = {
   setRegisterEnabled: (state, data) => {
     state.enableRegistration = data.enableRegistration;
   },
-  setUser: (state, user) => {
+  setLoginInfo: (state, user) => {
+    state.adminURL = user.adminURL;
+    if (user) {
+      delete user["adminURL"];
+    }
     state.user = user;
-    state.validationError = undefined;
   },
   setErrors: (state, data) => {
     state.form.usernameErrors = data.username;
@@ -39,7 +43,7 @@ const actions = {
   async register({ commit }, credentials) {
     await API.register(credentials)
       .then((response) => {
-        commit("setUser", response.data);
+        commit("setLoginInfo", response.data);
         return response;
       })
       .catch((error) => {
@@ -49,7 +53,7 @@ const actions = {
   async login({ commit }, credentials) {
     await API.login(credentials)
       .then((response) => {
-        commit("setUser", response.data);
+        commit("setLoginInfo", response.data);
         return response;
       })
       .catch((error) => {
@@ -59,18 +63,18 @@ const actions = {
   async me({ commit }) {
     await API.me()
       .then((response) => {
-        commit("setUser", response.data);
+        commit("setLoginInfo", response.data);
         return response;
       })
       .catch((error) => {
-        console.error(error.response.data);
+        console.log(error.response.data);
       });
   },
   logout({ commit }) {
     API.logout().catch((error) => {
       console.error(error);
     });
-    commit("setUser", undefined);
+    commit("setLoginInfo", undefined);
   },
 };
 

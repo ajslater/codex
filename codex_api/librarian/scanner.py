@@ -102,18 +102,22 @@ def scan_root(pk, force=False):
     LOG.info(f"Scanning {library.path}...")
     library.scan_in_progress = True
     library.save()
-    if Path(library.path).is_dir():
-        force = force or library.last_scan is None
-        scan_existing(library, Comic, force)
-        scan_existing(library, Folder)
-        scan_for_new(library)
-        if force or library.last_scan is None or library.schema_version is None:
-            library.schema_version = SCHEMA_VERSION
-        library.last_scan = timezone.now()
-    else:
-        LOG.warning(f"Could not find {library.path}. Not scanning.")
-    library.scan_in_progress = False
-    library.save()
+    try:
+        if Path(library.path).is_dir():
+            force = force or library.last_scan is None
+            scan_existing(library, Comic, force)
+            scan_existing(library, Folder)
+            scan_for_new(library)
+            if force or library.last_scan is None or library.schema_version is None:
+                library.schema_version = SCHEMA_VERSION
+            library.last_scan = timezone.now()
+        else:
+            LOG.warning(f"Could not find {library.path}. Not scanning.")
+    except Exception as exc:
+        LOG.exception(exc)
+    finally:
+        library.scan_in_progress = False
+        library.save()
     LOG.info(f"Scan for {library.path} finished.")
 
 

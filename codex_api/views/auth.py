@@ -1,6 +1,13 @@
 """Views for browsing comic books."""
 import logging
 
+from codex_api.models import AdminFlag
+from codex_api.models import UserBookmark
+from codex_api.serializers.auth import RegistrationEnabledSerializer
+from codex_api.serializers.auth import TimezoneSerializer
+from codex_api.serializers.auth import UserCreateSerializer
+from codex_api.serializers.auth import UserLoginSerializer
+from codex_api.serializers.auth import UserSerializer
 from django.contrib.auth import authenticate
 from django.contrib.auth import login
 from django.contrib.auth import logout
@@ -12,15 +19,14 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_201_CREATED
 from rest_framework.views import APIView
 
-from codex_api.models import AdminFlag
-from codex_api.models import UserBookmark
-from codex_api.serializers.auth import RegistrationEnabledSerializer
-from codex_api.serializers.auth import UserCreateSerializer
-from codex_api.serializers.auth import UserLoginSerializer
-from codex_api.serializers.auth import UserSerializer
-
 
 LOG = logging.getLogger(__name__)
+
+
+def set_timezone(request, serializer):
+    """Set the timezone in the session."""
+    request.session["django_timezone"] = serializer.validated_data["timezone"]
+    request.session.save()
 
 
 class RegisterView(APIView):
@@ -54,6 +60,7 @@ class RegisterView(APIView):
         user = self.create(
             serializer.validated_data["username"], serializer.validated_data["password"]
         )
+        set_timezone(request, serializer)
         user_serializer = UserSerializer(user)
         return Response(user_serializer.data, status=HTTP_201_CREATED)
 
@@ -89,6 +96,7 @@ class LoginView(APIView):
         if user is None:
             raise AuthenticationFailed(detail="Authentication Failed")
         login(request, user)
+        set_timezone(request, serializer)
         user_serializer = UserSerializer(user)
         return Response(user_serializer.data)
 
@@ -98,8 +106,11 @@ class UserView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         """Get the user info for the current user."""
+        serializer = TimezoneSerializer(data=self.request.data)
+        serializer.is_valid()
+        set_timezone(request, serializer)
         serializer = UserSerializer(self.request.user)
         return Response(serializer.data)
 
