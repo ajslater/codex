@@ -8,10 +8,8 @@ from codex.models import AdminFlag
 def init_admin_flags(apps, schema_editor):
     """Initalize the admin flag rows"""
     # AdminFlag = apps.get_model("codex", "AdminFlag")  # noqa N806
-    obj_list = []
     for name in AdminFlag.FLAG_NAMES:
-        obj_list.append(AdminFlag(name=name))
-    AdminFlag.objects.bulk_create(obj_list)
+        AdminFlag.objects.update_or_create(name=name)
 
 
 class Migration(migrations.Migration):
