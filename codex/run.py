@@ -7,7 +7,6 @@ from logging import getLogger
 
 import django
 
-from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from hypercorn.asyncio import serve
@@ -61,18 +60,11 @@ def ensure_superuser():
         LOG.info(f"{prefix}ated admin user.")
 
 
-def init_admin_flags():
-    """Ensure the initialize of the Admin flags."""
-    AdminFlag = apps.get_model("codex", "AdminFlag")  # noqa N806
-    AdminFlag.init_all_flags()
-
-
 def setup_db():
     """Setup the database before we run."""
     django.setup()
     update_db()
     ensure_superuser()
-    init_admin_flags()
 
 
 def run():

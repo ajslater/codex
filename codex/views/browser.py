@@ -467,13 +467,6 @@ class BrowseView(APIView, SessionMixin, UserBookmarkMixin):
             self.choices_comic_list
         )
 
-        admin_flags = AdminFlag.objects.filter(name__in=AdminFlag.FLAG_NAMES).values(
-            "name", "on"
-        )
-        admin = {}
-        for obj in admin_flags:
-            admin[obj.get("name")] = obj.get("on")
-
         efv_flag = AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_FOLDER_VIEW)
 
         context = {

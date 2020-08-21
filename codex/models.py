@@ -453,33 +453,13 @@ class Comic(BaseModel):
 
 
 class AdminFlag(NamedModel):
-    """A whole column just for one admin flag."""
+    """Flags set by administrators."""
 
     ENABLE_FOLDER_VIEW = "Enable Folder View"
     ENABLE_REGISTRATION = "Enable Registration"
     FLAG_NAMES = (ENABLE_FOLDER_VIEW, ENABLE_REGISTRATION)
 
     on = BooleanField(default=True)
-
-    @classmethod
-    def init_flag(cls, flag_name):
-        """Initialize a flag to its default value."""
-        from django.db import connection
-
-        table_names = connection.introspection.table_names()
-        if "codex_adminflag" not in table_names:
-            LOG.warn("Not intializing AdminFlags. They don't exist yet.")
-            return
-
-        flag, created = cls.objects.get_or_create(name=flag_name)
-        if created:
-            LOG.debug(f"Initialized {flag.name} to {flag.on}")
-
-    @classmethod
-    def init_all_flags(cls):
-        """Intialize all the flags."""
-        for flag_name in cls.FLAG_NAMES:
-            cls.init_flag(flag_name)
 
 
 def cascade_if_user_null(collector, field, sub_objs, using):
