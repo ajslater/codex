@@ -6,13 +6,16 @@ from watchdog.events import LoggingEventHandler
 from watchdog.observers import Observer
 
 
+LOG = logging.getLogger(__name__)
+
+
 def main(path):
     """Watch a path and log the events."""
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
+    # logging.basicConfig(
+    #    level=logging.INFO,
+    #    format="%(asctime)s - %(message)s",
+    #    datefmt="%Y-%m-%d %H:%M:%S",
+    # )
     event_handler = LoggingEventHandler()
     observer = Observer()
     observer.schedule(event_handler, path, recursive=True)

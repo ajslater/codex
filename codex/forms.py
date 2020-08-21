@@ -1,35 +1,77 @@
 """Codex django forms."""
-from django.forms import HiddenInput
-from django.forms import IntegerField
-from django.forms import ModelForm
+from enum import Enum
+
+from django import forms
+from django.utils.translation import gettext_lazy as _
 
 from .models import RootPath
 
 
-class RootPathForm(ModelForm):
-    """Form for adding and updating RootPath."""
+class FilterChoice(Enum):
+    """Valid choices for filtering the view."""
 
-    def __init__(self, *args, **kwargs):
-        """Disable or remove the last scan field."""
-        super(RootPathForm, self).__init__(*args, **kwargs)
-        instance = getattr(self, "instance", None)
-        if instance and instance.id:
-            self.fields["id"] = IntegerField()
-            self.fields["id"].initial = self.instance.id
-            self.fields["id"].widget = HiddenInput()
-            self.fields["id"].widget.attrs["readonly"] = "readonly"
+    UNREAD = _("Unread")
+    IN_PROGRESS = _("In Progress")
+    # YEAR = "Year"
+    # GENE = "Genre"
+    # WRITER = "Writer"
 
-    def clean_last_scan_field(self):
-        """Protect form ever setting the last scan time."""
-        # TODO Unsure if this works
-        instance = getattr(self, "instance", None)
-        if instance and instance.id:
-            return instance.last_scan
-        else:
-            return self.cleaned_data["last_scan"]
+
+class GroupChoice(Enum):
+    """Valid choices for grouping the view."""
+
+    r = _("Publisher")
+    p = _("Imprint")
+    i = _("Series")
+    s = _("Volume")
+    v = _("Issue")
+    f = _("Folder View")
+
+
+class SortChoice(Enum):
+    """Valid choices for sorting the view."""
+
+    ALPHANUM = _("Alphabetical")
+    DATE = _("Date")
+
+
+class BrowseForm(forms.Form):
+    """The big browser preferences form."""
+
+    filters = forms.MultipleChoiceField(
+        choices=[(tag.name, tag.value) for tag in FilterChoice],
+        widget=forms.CheckboxSelectMultiple(),
+        label="Filters",
+        required=False,
+    )
+    root_group = forms.ChoiceField(
+        choices=[(tag.name, tag.value) for tag in GroupChoice],
+        widget=forms.RadioSelect(),
+        label="Group",
+        required=False,
+    )
+    sort_by = forms.ChoiceField(
+        choices=[(tag.name, tag.value) for tag in SortChoice],
+        widget=forms.RadioSelect(),
+        label="Sort",
+        required=False,
+    )
+    sort_reverse = forms.BooleanField(label="Reverse", required=False)
+
+
+class ScanRootPathForm(forms.ModelForm):
+    """Scan a Single RootPath."""
+
+    force = forms.BooleanField(label="Force", required=False)
 
     class Meta:
-        """Define the model."""
+        """No fields, just the id."""
 
         model = RootPath
-        exclude = ["last_scan"]
+        fields = []
+
+
+class ScanAllForm(forms.Form):
+    """Scan All RootPaths."""
+
+    force = forms.BooleanField(label="Force", required=False)

@@ -1,0 +1,111 @@
+<style>
+ .obj { 
+   display: inline-block;
+   float: left;
+   width: 150px;
+   height: 250px;
+   margin: 20px;
+ }
+ .objAnchor{
+   display: block:
+   height: 250px;
+ }
+ .coverImage {
+    display: block;
+    box-shadow: 4px 4px 8px black;
+    margin-bottom: 10px;
+ }
+ .downloadAnchor > svg {
+   fill: blue;
+ }
+ form {
+   display: block;
+   width: 100%;
+ }
+ form > * {
+   display: inline-block;
+ }
+ .upLink {
+   display: block;
+ }
+ .date {
+   display: block;
+   font-size: smaller;
+ }
+ #settings, #login {
+   float: right;
+ }
+ #groupTitle {
+   font-size: larger;
+   font-weight: bold;
+   text-align: center;
+ }
+</style>
+<header id="pageHeader">
+{% if request.user.is_superuser %}
+<a id="settings" href="{% url 'admin_settings'%}">Settings</a>
+{% endif %}
+<span id="login">
+{% if request.user.is_authenticated %}
+Logout
+{% else %}
+<a href="/admin/login?next={{request.path}}" title="logging in preserves bookmarks across browsers">Login</a>
+{% endif %}
+</span>
+<form id="browseForm" action="" method="POST">
+{{  form }}
+<input type="submit" value="Filter" />
+ {% csrf_token %}
+</form>
+</header>
+<section id="pageContent">
+  <header id="pageContentHeader">
+    <section id="groupTitle">{{ browse_title }}</section>
+{% if browse_parent_id > -1  %}
+<a class="upLink" href="{% url 'browse' group=browse_parent_group pk=browse_parent_id %}">Up</a>
+{% elif folder_up_pk > -1 %}
+  {% if folder_up_path %}
+    <a class="upLink" href="{% url 'folder' pk=folder_up_pk path=folder_up_path %}">Up</a>
+    {% else %}
+    <a class="upLink" href="{% url 'folder_top' pk=0 %}">Up</a>
+  {%endif %}
+{% endif %}
+  </header>
+{% if object_list %}
+  {% for obj in object_list %}
+    <div class="obj">
+      <a class="objAnchor"
+      {% if obj.BROWSE_TYPE == "Comic" %}
+        href="{% url 'comic_read' pk=obj.pk %}"
+      {% elif obj.BROWSE_TYPE == "Browse" %}
+        href="{% url 'browse' group=child_group pk=obj.pk %}"
+      {% elif obj.BROWSE_TYPE == "Folder" %}
+        href="{% url 'folder' pk=obj.root_path_id path=obj.path %}"
+      {% endif %}
+        >
+        <img class="coverImage" src="{% url 'comic_cover' pk=obj.cover_id %}"/>
+        <span class="objTitle">
+          {% if obj.BROWSE_TYPE == "Comic" and root_group == 'v' %}
+            {{ obj.name }}
+          {% else %}
+          {{ obj.display_name }}
+          {% endif %}
+        </span>
+     </a>
+      {% if BROWSE_TYPE == "Comic" %}
+        <a class="downloadAnchor" href="{% url 'comic_download' pk=obj.pk %}">
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
+  <title>
+    download
+  </title>
+  <path d="M17 12v5H3v-5H1v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5z"/>
+  <path d="M10 15l5-6h-4V1H9v8H5l5 6z"/>
+</svg>
+        </a>
+        {% endif %}
+    </div>
+  {% endfor %}
+{% else %}
+ <p>No comics available.</p>
+{% endif %}
+</section>

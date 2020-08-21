@@ -30,7 +30,8 @@ include = ["NEWS"]
 [tool.poetry.dependencies]
 python = "^3.7"
 django = "^3.0.4"
-watchdog = "^0.10.2"
+watchdog = "^0.10"
+Pillow = "^7.0"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^3.7"
@@ -65,4 +66,4 @@ concurrency = ["multiprocessing"]
 directory = "test-results/coverage"
 
 [tool.black]
-exclude = "comicbox"
+exclude = "/(comicbox|codex/migrations)/"

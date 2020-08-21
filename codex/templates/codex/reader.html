@@ -1,0 +1,100 @@
+<style>
+body {
+  margin: auto;
+} 
+  nav {
+    width: 100%;
+  }
+  #closeNav:hover {
+    opacity: 0.3;
+  }
+  #pageNav {
+    height: 100%;
+  }
+  .col {
+    position: fixed;
+    width: 33.33%;
+    height: 100%;
+    float: left;
+    margin: auto;
+    display: inline-block;
+    bottom: 0;
+    text-align: center;
+    font-size: 30vw;
+  }
+  .col > a {
+    color: white;
+    opacity: 0.0;
+    height: 100%;
+    text-decoration: none;
+  }
+  #closeNav {
+    position: fixed;
+    width: auto%;
+    height: 5%;
+    text-align: center;
+    background-color: black;
+    font-size: 4vw;
+    font-family: sans-serif;
+    padding: 0.25em;
+    margin: 0;
+    left: 0;
+  }
+  .col > a:hover {
+    opacity: 0.33;
+  }
+
+  #leftColumn {
+    left: 0%;
+  }
+  #prev {
+    height: 95%;
+    bottom: 0;
+  }
+  #middleColumn {
+   left: 33.33%;
+  }
+  #rightColumn {
+    left: 66.66%;
+  }
+  #prev {
+    height: 90%;
+  }
+  img {
+    width: 100%;
+    display: block;
+    margin: auto;
+    z-index: -1;
+    object-fit: cover;
+    float: left;
+  }
+</style>
+<nav id="pageNav">
+  <div id="leftColumn" class="col">
+    <a id="closeNav"
+    {% if root_group == "f" %}
+       {% if view.root_path_id == 0 %}
+         href="{% url 'folder_top' pk=view.root_path_id %}"
+       {% else %}
+         href="{% url 'folder' pk=view.root_path_id path=view.folder %}"
+      {% endif %}
+    {% else %}
+      href="{% url 'browse' group=view.group pk=view.group_id %}"
+    {% endif %}
+      >close book</a>
+  {% if prev_comic_id == 0 %}
+  <a id="prev" href="">&#x21E6;</a>
+  {% else %}
+  <a id="prev" href="{% url 'comic_read_page' pk=prev_comic_id page_num=prev_page_num %}">&#x21E6;</a>
+  {% endif %}
+  </div>
+  <div id="middleColumn" class="col"></div>
+  <div id="rightColumn" class="col">
+  {% if next_comic_id == 0 %}
+    <a id="next" href="">&#x21E8;</a>
+  {% else %}
+  <a id="next" href="{% url 'comic_read_page' pk=next_comic_id page_num=next_page_num %}">&#x21E8;</a>
+    {% endif %}
+  </div>
+  <img id="page_{{page_num}}" src="{% url 'comic_page' pk=comic_id page_num=page_num %}" />
+</nav>

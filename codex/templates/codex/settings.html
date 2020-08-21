@@ -1,22 +1,37 @@
-<form action="/admin/settings/" method="POST">
-  {{ create_form }}
+<style>
+ form.root_path {
+   display: inline;
+ }
+ .row { display: block; }
+</style>
+<a href="/browse/">Browse Comics</a>
+<form action="{% url 'root_path_create' %}" method="POST">
+  {{ form }}
   <input type="submit" name="action" value="Add" />
   {% csrf_token %}
 </form>
-{% if update_forms %}
-  {% for update_form, last_scan in update_forms %}
-      <form action="/admin/settings/" method="POST">
-        {{ update_form }}
-        <label>Last scan:</label>
-        <span name="last_scan">{{ last_scan }}</span>
-        <input type="submit" name="action" value="Scan" />
+{% if formset %}
+  {% for form in formset %}
+  <section class="row">
+        <form class="root_path root_path_update" action="{% url 'root_path_update' pk=form.instance.id %}" method="POST">
+        {{form}}
         <input type="submit" name="action" value="Update" />
-        <input type="submit" name="action" value="Delete" />
         {% csrf_token %}
       </form>
+      <form class="root_path root_path_scan" action="{% url 'root_path_scan' pk=form.instance.id %}" method="POST">
+        <input type="submit" name="action" value="Scan" />
+        {{ scan_form }}
+        {% csrf_token %}
+      </form>
+      <form class="root_path root_path_delete" action="{% url 'root_path_delete' pk=form.instance.id %}" method="POST">
+          <input type="submit" name="action" value="Delete" />
+        {% csrf_token %}
+      </form>
+  </section>
   {% endfor %}
-<form action="/admin/settings/" method="POST">
+  <form action="{% url 'root_path_scan_all' %}" method="POST">
    <input type="submit" name="action" value="Scan All Roots" />
+   {{ scan_all_form }}
    {% csrf_token %}
-</form>
+  </form>
 {% endif %}

@@ -12,6 +12,12 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 
 import os
 
+from logging import DEBUG
+from logging import basicConfig
+
+
+basicConfig(level=DEBUG)
+
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -26,7 +32,7 @@ SECRET_KEY = "h7+z7h!hp*zvsg@z*9momg85**ogmldelv6$w5&5@f4saj*$rc"
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -113,4 +119,9 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
+STATIC_ROOT = "static/codex"
 STATIC_URL = "/static/"
+
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 365 * 10
+
+LOGIN_URL = "/admin/login"

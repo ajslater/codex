@@ -1,33 +1,4 @@
-##### Library & Admin
-Form for adding root paths
-Make scanner buttons work with comicbox and db model
-Watchdog scanner
-Add users
-
-### BROWSER
-Cover browser
-Series Tree
-Publisher > Series
-
-### READER
-get pages, hold them in browser memory, display one, flip back and forth.
-get one page. then get next pages, then get previous pages
-    smart algorithm get bookmark   +0,+1,-1,+2,-2,+3...
-    if we travel to -2, then get -2.. to beginning
-    cacheable page links
-    linkable pages.
-
-# 2
-AJAX
-Rescan scheduler
-Comic mass metadata editor
-  update
-  maybe not delete
-
-# Once we can edit medata then we can group by
-character, team, locations
-series goup, story arc
-
+Mark missing is unanswered question
 
 # Once comicbox is released
 depend on real comicbox
