@@ -4,7 +4,7 @@ build-backend = ["poetry.masonry.api"]
 
 [tool.poetry]
 name = "codex"
-version = "0.3.0"
+version = "0.5.0"
 description = "A comic archive web server."
 license = "GPL-2.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
@@ -13,69 +13,74 @@ homepage = "https://github.com/ajslater/codex"
 documentation = "https://github.com/ajslater/codex"
 keywords = ["comic", "cbz", "cbr", "cbt"]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
-    "Environment :: Web Environment",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Framework :: Django :: 3.1",
-    "Intended Audience :: End Users/Desktop",
-    "Topic :: Internet :: WWW/HTTP",
-    "Topic :: Multimedia :: Graphics :: Viewers",
+  "Development Status :: 3 - Alpha",
+  "Environment :: Web Environment",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Framework :: Django :: 3.1",
+  "Intended Audience :: End Users/Desktop",
+  "Topic :: Internet :: WWW/HTTP",
+  "Topic :: Multimedia :: Graphics :: Viewers",
 ]
-packages = [
-    { include = "codex" },
-    { include = "tests", format = "sdist" },
-]
-include = ["NEWS"]
+packages = [{ include = "codex" }, { include = "tests", format = "sdist" }]
+exclude = ["*/**/*~", "codex/static_src/*", "codex/static_build/*"]
 
+# include codex/static_root doesn't work due to gitignore. Hack around it
+#   in the Dockerfile
 [tool.poetry.dependencies]
 python = "^3.7"
-django = "^3.1b1"
+bidict = "^0.20.0"
+coloredlogs = "^14.0"
+django = "^3.1"
 djangorestframework = "^3.11"
 django-cors-headers = "^3.2"
-django-webpack-loader = "^0.7"
-daphne = "^2.5"
-bidict = "^0.19"
 fnvhash = "^0.1"
-pycountry = "^19.8"
+hypercorn = { extras = ["h3"], version = "^0.10.1" }
+Pillow = "^7.0"
+pycountry = "^20.7.3"
+simplejson = "^3.17"
+stringcase = "^1.2.0"
 regex = "^2020.4.4"
 watchdog = "^0.10"
-whitenoise = {extras = ["brotli"], version = "^5.0"}
-Pillow = "^7.0"
-# comicbox
-simplejson = "^3.17"
-parse = "^1.15"
-rarfile = "^3.1"
-coloredlogs = "^14.0"
-stringcase = "^1.2.0"
-hypercorn = {extras = ["h3"], version = "^0.9.5"}
+whitenoise = { extras = ["brotli"], version = "^5.0" }
 websocket_client = "^0.57.0"
+comicbox = "^0.1.0"
+pytest-django = "^3.9.0"
 
 [tool.poetry.dev-dependencies]
+black = "^19.10b0"
+coverage = { extras = ["toml"], version = "^5.0" }
 django-livereload-server = "^0.3"
+django-debug-toolbar = "^2.2"
 flake8 = "^3.7"
-flake8-black = "^0.1"
+flake8-black = "^0.2.0"
 flake8-bugbear = "^20.1"
-coverage = {extras = ["toml"], version = "^5.0"}
-pep8-naming = "^0.9"
-pytest = "^5.3"
-pytest-black = "^0.3"
+pep8-naming = "^0.11.1"
+pytest = "^6.0"
+pytest-black = "^0.3.10"
 pytest-cov = "^2.8"
 pytest-flake8 = "^1.0"
-pytest-isort = "^0.3"
-pytest-monkeytype = "^1.0"
-mypy = "^0.761"
-monkeytype = "^19.11"
-vulture = "^1.2"
+pytest-isort = "^1.1"
+pytest-monkeytype = { version = "^1.0", optional = true }
+mypy = { version = "^0.782", optional = true }
+monkeytype = { version = "^20", optional = true }
 radon = "^4.1"
+vulture = "^2.0"
+neovim = { version = "^0.3.1", optional = true }
+jedi = { version = "^0.17.1", optional = true }
+
+[tool.poetry.extras]
+neovim = ["neovim", "jedi"]
+mypy = ["mypy", "monkeytype", "pytest-monkeytype"]
 
 [tool.poetry.scripts]
-codex = "codex.cli:main"
+codex = "codex.run:main"
 
 [tool.coverage.run]
 source = ["codex"]
 branch = true
 concurrency = ["multiprocessing"]
+omit = ["frontend"]
 
 [tool.coverage.html]
 directory = "test-results/coverage"
@@ -84,7 +89,19 @@ directory = "test-results/coverage"
 exclude = "/(comicbox|codex/migrations)/"
 
 [tool.pytest.ini_options]
-norecursedirs = "comicbox"
+norecursedirs = ["frontend"]
 junit_family = "xunit2"
-addopts = "--junitxml=test-results/pytest/results.xml -ra --strict --black --cov --cov-append --cov-report=html --cov-report=term --flake8 --isort"
+DJANGO_SETTINGS_MODULE = "codex.settings"
+addopts = """
+    --junitxml=test-results/pytest/results.xml
+    -ra
+    --strict
+    --black
+    --cov
+    --cov-append
+    --cov-report=html
+    --cov-report=term
+    --flake8
+    --isort
+"""
 #    --mypy

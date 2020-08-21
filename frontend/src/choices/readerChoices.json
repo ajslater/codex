@@ -1,0 +1,7 @@
+{
+  "fitTo": [
+    { "text": "Height", "value": "HEIGHT" },
+    { "text": "Width", "value": "WIDTH", "default": true },
+    { "text": "Original Size", "value": "ORIG" }
+  ]
+}

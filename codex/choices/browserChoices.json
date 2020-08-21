@@ -1,0 +1,30 @@
+{
+  "bookmarkFilter": [
+    { "text": "All", "value": "ALL", "default": true },
+    { "text": "Unread", "value": "UNREAD" },
+    { "text": "In Progress", "value": "IN_PROGRESS" }
+  ],
+  "rootGroup": [
+    { "text": "Publishers", "value": "r" },
+    { "text": "Imprints", "value": "p", "default": true },
+    { "text": "Series", "value": "i" },
+    { "text": "Volumes", "value": "s" },
+    { "text": "Comics", "value": "v" },
+    { "text": "Folder View", "value": "f" }
+  ],
+  "settingsGroup": [
+    { "text": "Publishers", "value": "p", "default": true },
+    { "text": "Imprints", "value": "i" },
+    { "text": "Series", "value": "s" },
+    { "text": "Volumes", "value": "v", "default": true }
+  ],
+  "sort": [
+    { "text": "Name", "value": "sort_name", "default": true },
+    { "text": "Date Published", "value": "date" },
+    { "text": "Date Added", "value": "created_at" },
+    { "text": "Page Count", "value": "page_count" },
+    { "text": "File Size", "value": "size" },
+    { "text": "User Rating", "value": "user_rating" },
+    { "text": "Critical Rating", "value": "critical_rating" }
+  ]
+}

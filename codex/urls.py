@@ -13,16 +13,40 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.conf import settings
 from django.contrib import admin
+from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import include
 from django.urls import path
 from django.urls import re_path
+from django.views.generic.base import RedirectView
+
+from codex.views.frontend import app
+from codex.views.frontend import browserconfig
+from codex.views.frontend import webmanifest
 
 
 urlpatterns = [
-    path("", include("codex_vue.urls")),
-    path("api/", include("codex_api.urls")),
+    path(
+        "favicon.ico",
+        RedirectView.as_view(url=staticfiles_storage.url("img/favicon.ico")),
+        name="favicon",
+    ),
+    path(
+        "robots.txt",
+        RedirectView.as_view(url=staticfiles_storage.url("robots.txt")),
+        name="robots",
+    ),
+    path("browserconfig.xml", browserconfig, name="browserconfig"),
+    path("site.webmanifest", webmanifest, name="webmanifest"),
+    path("api/", include("codex.urls_api")),
     path("admin/", admin.site.urls, name="admin"),
-    # Catch all route sends routes to codev_vue
-    re_path(".*", include("codex_vue.urls")),
+    path("", app, name="app"),
+    re_path(".*", app, name="app"),
 ]
+
+
+if settings.DEBUG:
+    import debug_toolbar
+
+    urlpatterns = [path("__debug__/", include(debug_toolbar.urls))] + urlpatterns

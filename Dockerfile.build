@@ -1,0 +1,60 @@
+FROM ubuntu:focal
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN echo "*** install system build dependencies ***"
+WORKDIR /app
+RUN apt-get update && apt-get install -y \
+  gnupg2 \
+  ca-certificates
+COPY build/nodesource.list /etc/apt/sources.list.d/
+COPY build/nodesource.gpg.key build/
+RUN apt-key add build/nodesource.gpg.key
+RUN apt-get update && apt-get install -y \
+  build-essential \
+  nodejs \
+  libffi-dev \
+  libjpeg-dev \
+  libssl-dev \
+  libwebp-dev \
+  libyaml-dev \
+  python3-pip \
+  python3-venv \
+  zlib1g-dev
+
+RUN echo "*** install poetry ***" && \
+  pip3 install -U poetry
+
+RUN echo "**** copying source for dev build ****"
+COPY . .
+
+RUN echo "*** install API build dependencies ***" && \
+  poetry install --no-root --no-dev
+
+WORKDIR /app/frontend
+RUN echo "*** install frontend build dependencies ***" && \
+  npm install
+
+RUN echo "*** copy choices from frontend ***" && \
+  cp src/choices/* ../codex/choices/
+
+# WORKDIR /app
+# RUN echo "*** run tests ***"
+# RUN ./test.sh
+# WORKDIR /app/frontend
+
+RUN echo "*** build frontend ***" && \
+  rm -rf ../codex/static_build && \
+  npm run build
+
+WORKDIR /app
+RUN echo "*** collect static resources in one place ***" && \
+  ./collectstatic.sh
+
+# poetry auto-excludes anything in gitignore. Dirty hack around that.
+RUN echo "*** build and package application ***" && \
+  sed -i "s/.*static_root.*//"  .gitignore && \
+  poetry build
+
+VOLUME /dist
+CMD cp /app/dist/* /dist/

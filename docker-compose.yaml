@@ -5,4 +5,7 @@ services:
     image: ajslater/codex
     container_name: codex
     ports:
-      - "8000:8000"
+      - "9810:9810"
+    volumes:
+      - ./config:/config
+      - /Volumes/Media/Comics/:/comics

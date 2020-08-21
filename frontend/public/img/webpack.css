@@ -1,0 +1,25 @@
+/* This file only exists for webpack to copy these images */
+a {
+  background: url("android-chrome-192x192.png");
+}
+b {
+  background: url("android-chrome-512x512.png");
+}
+c {
+  background: url("apple-touch-icon.png");
+}
+d {
+  background: url("favicon-16x16.png");
+}
+e {
+  background: url("favicon-32x32.png");
+}
+f {
+  background: url("favicon.ico");
+}
+g {
+  background: url("mstile-150x150.png");
+}
+h {
+  background: url("safari-pinned-tab.svg");
+}

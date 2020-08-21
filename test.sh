@@ -1,8 +1,10 @@
 #!/bin/bash
+# Run all codex tests
 set -euxo pipefail
 mkdir -p test-results
 poetry run pytest
 # pytest-cov leaves .coverage.$HOST.$PID.$RAND files around while coverage itself doesn't
-poetry run coverage erase
-poetry run vulture .
-poetry run radon mi -nc .
+bash -c "cd frontend && npm run test:unit"
+poetry run coverage erase || true
+poetry run vulture --exclude frontend . || true
+poetry run radon mi -nc . || true

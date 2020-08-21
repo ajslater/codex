@@ -1,17 +1,15 @@
+v0.5.0
+* Productionized alpha release
+
 v0.4.0
 * Polished VueJS frontend
 
 v0.3.0
-* Single Page Frontend without much styling.
-
-v0.2.1
-* Progress bar for browse containers & folders
-* Cleanups and bugfixing
+* Single Page VueJS frontend PoC without much styling
 
 v0.2.0
-* Working application with all initial features. 
-* A page by page front end.
-* Zero styling. Looks like craiglist.
+* Working application with all initial features
+* Django frontend
 
 v0.1.0
 * Proof of concept.
