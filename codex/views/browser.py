@@ -339,12 +339,9 @@ class BrowseView(APIView, SessionMixin, UserBookmarkMixin):
         )
 
         # Create the main queries with filters
-        folder_list = Folder.objects.filter(object_filter).select_related(
-            "parent_folder"
-        )
-        comic_list = Comic.objects.filter(object_filter).select_related(
-            "myself", "volume", "series"
-        )
+        folder_list = Folder.objects.filter(object_filter)
+        comic_list = Comic.objects.filter(object_filter)
+
         # Create a query for comics used by the model filters
         self.set_choices_comic_list(aggregate_filter & self.get_folders_filter())
 
@@ -450,6 +447,9 @@ class BrowseView(APIView, SessionMixin, UserBookmarkMixin):
         if self.params.get("root_group") == self.FOLDER_GROUP:
             up_group, up_pk = self.get_folder_up_route()
             browse_title = self.get_folder_title()
+            self.comic_list = self.comic_list.select_related(
+                "myself", "volume", "series"
+            )
         else:
             self.set_group_instance()
             up_group, up_pk = self.get_browse_up_route()
