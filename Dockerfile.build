@@ -7,8 +7,8 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
   gnupg2 \
   ca-certificates
-COPY docker/nodesource.list /etc/apt/sources.list.d/
-COPY docker/nodesource.gpg.key .
+COPY docker/nodesource/nodesource.focal.list /etc/apt/sources.list.d/
+COPY docker/nodesource/nodesource.gpg.key .
 RUN apt-key add ./nodesource.gpg.key
 RUN apt-get update && apt-get install -y \
   build-essential \
