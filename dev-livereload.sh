@@ -7,5 +7,5 @@ until lsof -i -P -n | grep -q '9810.*LISTEN'; do
     sleep 1
     printf "."
 done
-printf "\n"
+printf "\\n"
 DEV=1 ./pm livereload

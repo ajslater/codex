@@ -1,0 +1,37 @@
+version: 2.1
+jobs:
+  setup-lint-test:
+    docker:
+      - image: circleci/python:latest
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - deps-{{ checksum "pyproject.toml"  }}
+      - run:
+          command: ./ci/setup.sh
+          name: Setup
+      - save_cache:
+          key: deps-{{ checksum "pyproject.toml"  }}
+          paths:
+            - /home/circleci/project/.poetry/virtualenvs
+      - run:
+          command: ./lint.sh
+          name: Lint
+      - run:
+          command: ./test.sh
+          name: Test
+      - store_test_results:
+          path: test-results
+
+workflows:
+  main:
+    jobs:
+      - setup-lint-test:
+        filters:
+          branches:
+            only:
+              - release
+              - develop
+              - circleci
+  version: 2

@@ -4,6 +4,7 @@ __pycache__
 codex/static_build
 codex/static_root
 frontend/dist
+frontend/public/css/normalize.css
 templates
 static_prod
 /test-results
