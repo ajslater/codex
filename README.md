@@ -6,7 +6,8 @@ Codex is a comic archive browser and reader.
 
 - A web server, not a desktop or mobile app.
 - Per user bookmarking.
-- Metadata filters and sorting.
+- Filter and sort on comic metadata and unread status per user.
+- Watches the filesystem and automatically imports new or changed comics.
 
 ## State of Development
 
