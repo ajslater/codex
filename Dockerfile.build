@@ -51,7 +51,7 @@ WORKDIR /app
 RUN echo "*** collect static resources in one place ***" && \
   ./collectstatic.sh
 
-# poetry auto-excludes anything in gitignore. Dirty hack around that.
+# XXX poetry auto-excludes anything in gitignore. Dirty hack around that.
 RUN echo "*** build and package application ***" && \
   sed -i "s/.*static_root.*//"  .gitignore && \
   poetry build
