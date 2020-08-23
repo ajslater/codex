@@ -3,7 +3,6 @@ import logging
 
 from django.contrib.admin import ModelAdmin
 from django.contrib.admin import register
-from django.core.cache import cache
 
 from codex.librarian.cover import purge_all_covers
 from codex.librarian.queue import QUEUE
@@ -86,7 +85,6 @@ class AdminLibrary(ModelAdmin):
         """Stop watching on delete."""
         purge_all_covers(obj)
         super().delete_model(request, obj)
-        cache.clear()
         QUEUE.put(WatcherCronTask(sleep=1))
         QUEUE.put(LibraryChangedTask())
 
@@ -95,7 +93,6 @@ class AdminLibrary(ModelAdmin):
         for obj in queryset:
             purge_all_covers(obj)
         super().delete_queryset(request, queryset)
-        cache.clear()
         QUEUE.put(WatcherCronTask(sleep=1))
         QUEUE.put(LibraryChangedTask())
 

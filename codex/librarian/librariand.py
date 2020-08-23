@@ -43,6 +43,7 @@ from codex.models import Comic
 from codex.models import Folder
 from codex.websocket_server import BROADCAST_MSG
 from codex.websocket_server import BROADCAST_SECRET
+from codex.websocket_server import LIBRARY_CHANGED_MSG
 from codex.websocket_server import UNSUBSCRIBE_MSG
 
 
@@ -133,7 +134,7 @@ def librarian():
             elif isinstance(task, FolderDeletedTask):
                 obj_deleted(task.src_path, Folder)
             elif isinstance(task, LibraryChangedTask):
-                ws = send_json(ws, BROADCAST_MSG, "libraryChanged")
+                ws = send_json(ws, BROADCAST_MSG, LIBRARY_CHANGED_MSG)
             elif isinstance(task, WatcherCronTask):
                 sleep(task.sleep)
                 watcher.set_all_library_watches()

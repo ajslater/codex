@@ -10,6 +10,7 @@ from threading import Thread
 import simplejson as json
 
 from asgiref.sync import async_to_sync
+from django.core.cache import cache
 from simplejson import JSONDecodeError
 
 
@@ -23,6 +24,7 @@ UNSUBSCRIBE_MSG = "unsubscribe"
 BROADCAST_MSG = "broadcast"
 # Shared memory broadcast security
 BROADCAST_SECRET = Value("i", random.randint(0, 100))
+LIBRARY_CHANGED_MSG = "libraryChanged"
 
 # Flood control
 MESSAGE_QUEUE = Queue()
@@ -84,6 +86,7 @@ def flood_control_worker():
         if MESSAGE_QUEUE.empty():
             wait_left = timestamp + FLOOD_DELAY - time.time()
             if wait_left <= 0:
+                cache.clear()
                 msg = {"text": message}
                 msg.update(WS_SEND_MSG)
                 for send in BROADCAST_CONNS:
