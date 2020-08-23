@@ -20,11 +20,11 @@ RUN pip3 wheel /tmp/*.whl --wheel-dir=/wheels
 FROM python:alpine
 
 RUN echo "*** UID/GID Init. TODO move to a base image ***"
-COPY docker/etc/cont-init.d /etc/
 RUN apk add --no-cache shadow
 RUN echo "*** create default user ***" && \
   adduser --uid 911 --home /config --shell /bin/false --disabled-password abc && \
   usermod -G users abc
+COPY docker/usr/local/sbin/*.sh /usr/local/sbin/
 
 RUN echo "*** install system runtime packages ***" && \
  apk add --no-cache \
@@ -44,5 +44,5 @@ RUN pip3 install --no-index --find-links=/wheels /wheels/codex*.whl
 VOLUME /comics
 VOLUME /config
 EXPOSE 9810
-USER abc
-CMD ["codex"]
+ENTRYPOINT ["/usr/local/sbin/entrypoint.sh"]
+CMD ["/usr/local/bin/codex"]
