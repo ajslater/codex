@@ -1,4 +1,8 @@
 #!/bin/sh
 set -eu
-/usr/local/sbin/moduser.sh
-su abc --shell /bin/sh --command "$@"
+if [ -n "${PUID:-}${PGID:-}"  ]; then
+    /usr/local/sbin/moduser.sh
+    su abc --shell /bin/sh --command "$@"
+else
+    exec "$@"
+fi
