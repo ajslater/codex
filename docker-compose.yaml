@@ -9,3 +9,5 @@ services:
     volumes:
       - ./config:/config
       - /Volumes/Media/Comics/:/comics
+    env_file:
+      - docker-env
