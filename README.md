@@ -228,9 +228,9 @@ Codex is a Django Python webserver with a VueJS front end. This is my first ever
 
 ### Links
 
-* [Docker Image](https://hub.docker.com/r/ajslater/codex)
-* [PyPi Package](https://pypi.org/project/codex/)
-* [GitHub Project](https://github.com/ajslater/codex/)
+- [Docker Image](https://hub.docker.com/r/ajslater/codex)
+- [PyPi Package](https://pypi.org/project/codex/)
+- [GitHub Project](https://github.com/ajslater/codex/)
 
 ## Special Thanks
 
