@@ -226,6 +226,12 @@ Codex is a Django Python webserver with a VueJS front end. This is my first ever
 
 `/codex/run.sh` runs the main Django server. Set the `DEV` environment variable to activea development and debug mode: `DEV=1 ./run.sh`. This also lets you run the server without collecting static files for production and with a hot reloading frontend.
 
+### Links
+
+* [Docker Image](https://hub.docker.com/r/ajslater/codex)
+* [PyPi Package](https://pypi.org/project/codex/)
+* [GitHub Project](https://github.com/ajslater/codex/)
+
 ## Enjoy!
 
 ![These simple people have managed to tap into the spiritual forces that mystics and yogis spend literal lifetimes seeking. I feel... ...I feel...](strange.jpg)
