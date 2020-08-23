@@ -232,6 +232,10 @@ Codex is a Django Python webserver with a VueJS front end. This is my first ever
 * [PyPi Package](https://pypi.org/project/codex/)
 * [GitHub Project](https://github.com/ajslater/codex/)
 
+## Special Thanks
+
+Thanks to [Aurélien Mazurie](https://pypi.org/user/ajmazurie/) for allowing me to use the PyPi name 'codex'.
+
 ## Enjoy!
 
 ![These simple people have managed to tap into the spiritual forces that mystics and yogis spend literal lifetimes seeking. I feel... ...I feel...](strange.jpg)
