@@ -14,6 +14,10 @@ Codex is a comic archive browser and reader.
 Codex is in alpha test. It has not received widespread testing.
 [Please file bug reports on GitHub.](https://github.com/ajslater/codex/issues)
 
+## Demonstration
+
+You may browse a [live demo server](https://codex.sl8r.net/) on a very small VPS, with no CDN. Caching is likely unsufficient for heavy load at this time. It would probably crash if it got swarmed right now.
+
 ## Install Codex
 
 ### Docker
