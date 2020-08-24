@@ -56,7 +56,7 @@ workflows:
                         only:
                             - release
                             - circleci
-                    require:
-                        - build
+                requires:
+                    - build
     version: 2.1
 
