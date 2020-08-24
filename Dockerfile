@@ -1,4 +1,5 @@
-FROM python:alpine AS codex-install
+ARG BASE_VERSION
+FROM ajslater/python-alpine:$BASE_VERSION AS codex-install
 
 RUN echo "**** install system wheel building packages ****" && \
  apk add --no-cache \
@@ -17,14 +18,8 @@ RUN pip3 install wheel
 COPY dist/*.whl /tmp/
 RUN pip3 wheel /tmp/*.whl --wheel-dir=/wheels
 
-FROM python:alpine
-
-RUN echo "*** UID/GID Init. TODO move to a base image ***"
-RUN apk add --no-cache shadow
-RUN echo "*** create default user ***" && \
-  adduser --uid 911 --home /config --shell /bin/false --disabled-password abc && \
-  usermod -G users abc
-COPY docker/usr/local/sbin/*.sh /usr/local/sbin/
+FROM ajslater/python-alpine:$BASE_VERSION
+LABEL version python${BASE_VERSION}_codex-${PKG_VERSION}
 
 RUN echo "*** install system runtime packages ***" && \
  apk add --no-cache \
@@ -44,5 +39,4 @@ RUN pip3 install --no-index --find-links=/wheels /wheels/codex*.whl
 VOLUME /comics
 VOLUME /config
 EXPOSE 9810
-ENTRYPOINT ["/usr/local/sbin/entrypoint.sh"]
 CMD ["/usr/local/bin/codex"]

@@ -1,2 +1,5 @@
+IMAGE=ajslater/codex
+BASE_VERSION=latest
+PKG_VERSION=v0.5.0
 PUID=501
 PGID=20

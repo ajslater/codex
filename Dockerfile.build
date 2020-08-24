@@ -2,6 +2,9 @@ FROM ubuntu:focal
 
 ARG DEBIAN_FRONTEND=noninteractive
 
+################
+# SYSTEM SETUP #
+################
 RUN echo "*** install system build dependencies ***"
 WORKDIR /app
 RUN apt-get update && apt-get install -y \
@@ -25,6 +28,12 @@ RUN apt-get update && apt-get install -y \
 RUN echo "*** install poetry ***" && \
   pip3 install -U poetry
 
+# Could make this an image up to here to speed up CI
+
+#############
+# APP SETUP #
+#############
+
 RUN echo "**** copying source for dev build ****"
 COPY . .
 
@@ -38,10 +47,25 @@ RUN echo "*** install frontend build dependencies ***" && \
 RUN echo "*** copy choices from frontend ***" && \
   cp src/choices/* ../codex/choices/
 
-# WORKDIR /app
-# RUN echo "*** run tests ***"
-# RUN ./test.sh
-# WORKDIR /app/frontend
+########
+# TEST #
+########
+
+WORKDIR /app
+RUN echo "*** run lint ***"
+RUN ./lint.sh
+
+RUN echo "*** run tests ***"
+RUN ./test.sh
+
+VOLUME /test-results
+RUN cp test-results/* /test-results
+
+#########
+# BUILD #
+#########
+
+WORKDIR /app/frontend
 
 RUN echo "*** build frontend ***" && \
   rm -rf ../codex/static_build && \
