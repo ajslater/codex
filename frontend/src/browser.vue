@@ -22,9 +22,7 @@
           >
             <template #selection="{ item }">
               {{ item.text }}
-              <span v-if="isOtherFiltersSelected" id="filterSuffix">
-                +
-              </span>
+              <span v-if="isOtherFiltersSelected" id="filterSuffix"> + </span>
             </template>
             <template #item="data">
               <v-slide-x-transition hide-on-leave>
@@ -100,9 +98,7 @@
                 <template #activator="{ on }">
                   <v-list-item v-on="on">
                     <v-list-item-content>
-                      <v-list-item-title>
-                        Settings
-                      </v-list-item-title>
+                      <v-list-item-title> Settings </v-list-item-title>
                     </v-list-item-content>
                   </v-list-item>
                 </template>
@@ -146,9 +142,7 @@
           Go to <a :href="adminURL">the admin panel</a> and add a comic library.
         </h2>
         <div v-else>
-          <h2>
-            An administrator must log in and add some libraries.
-          </h2>
+          <h2>An administrator must log in and add some libraries.</h2>
           <h3>You may log in or register with the top right menu.</h3>
         </div>
       </div>

@@ -12,7 +12,7 @@ Codex is a comic archive browser and reader.
 ## State of Development
 
 Codex is in alpha test. It has not received widespread testing.
-[Please file bug reports on GitHub.](https://github.com/ajslater/codex/issues)
+[Please file bug reports on GitHub.](https://github.com/ajslater/codex/issues) It is still possible that the data model might change enough that subsequent versions might require a database reset.
 
 ## Demonstration
 
@@ -173,6 +173,7 @@ Specify a reverse proxy sub path (if you have one) in the config/hypercorn.toml
 
 ```toml
 root_path = "/codex"
+
 ```
 
 #### Nginx Reverse Proxy 502 when container is refreshed.

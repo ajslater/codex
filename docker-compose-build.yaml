@@ -9,3 +9,4 @@ services:
     container_name: codex-builder
     volumes:
       - ./dist/:/dist/
+      - ./test-results/:/app/test-results/
