@@ -1,34 +1,6 @@
-FROM ubuntu:focal
+FROM ajslater/codex-builder:focal_1.0.0-db5d3fe
 
 ARG DEBIAN_FRONTEND=noninteractive
-
-################
-# SYSTEM SETUP #
-################
-RUN echo "*** install system build dependencies ***"
-WORKDIR /app
-RUN apt-get update && apt-get install -y \
-  gnupg2 \
-  ca-certificates
-COPY docker/nodesource/nodesource.focal.list /etc/apt/sources.list.d/
-COPY docker/nodesource/nodesource.gpg.key .
-RUN apt-key add ./nodesource.gpg.key
-RUN apt-get update && apt-get install -y \
-  build-essential \
-  nodejs \
-  libffi-dev \
-  libjpeg-dev \
-  libssl-dev \
-  libwebp-dev \
-  libyaml-dev \
-  python3-pip \
-  python3-venv \
-  zlib1g-dev
-
-RUN echo "*** install poetry ***" && \
-  pip3 install -U poetry
-
-# Could make this an image up to here to speed up CI
 
 #############
 # APP SETUP #
@@ -37,15 +9,7 @@ RUN echo "*** install poetry ***" && \
 RUN echo "**** copying source for dev build ****"
 COPY . .
 
-RUN echo "*** install API build dependencies ***" && \
-  poetry install --no-root --no-dev
-
-WORKDIR /app/frontend
-RUN echo "*** install frontend build dependencies ***" && \
-  npm install
-
-RUN echo "*** copy choices from frontend ***" && \
-  cp src/choices/* ../codex/choices/
+RUN ./setup-dev.sh
 
 ########
 # TEST #
@@ -59,7 +23,7 @@ RUN echo "*** run tests ***"
 RUN ./test.sh
 
 VOLUME /test-results
-RUN cp test-results/* /test-results
+RUN cp -a test-results/* /test-results
 
 #########
 # BUILD #

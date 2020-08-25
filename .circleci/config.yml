@@ -7,12 +7,12 @@ jobs:
         steps:
             - checkout
             - run:
-                command: ./build-wheel.sh
+                command: ./build-dist-wheel.sh
                 name: Build Python Wheel
             - store_test_results:
                 path: test-results
             - run:
-                command: ./build-docker-image.sh
+                command: ./build-runnable-image.sh
                 name: Build Runnable Docker Image
             - run:
                 command: ./ci/archive-image.sh ./<< pipeline.parameters.image_archive >>
