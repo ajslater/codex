@@ -1,3 +1,4 @@
+REPO=ajslater/codex
 IMAGE=ajslater/codex
 BASE_VERSION=latest
 PKG_VERSION=v0.5.0
