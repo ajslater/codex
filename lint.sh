@@ -1,6 +1,8 @@
 #!/bin/bash
-set -euo pipefail
-poetry run isort -rc --check-only .
+# Lint checks
+set -eux
+poetry run isort --check-only --color .
 poetry run black --check .
 prettier --check .
-hadolint Dockerfile
+# hadolint Dockerfile*
+shellcheck -x ./*.sh

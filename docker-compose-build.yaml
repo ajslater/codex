@@ -1,0 +1,12 @@
+version: "3"
+
+services:
+  codex-builder:
+    build:
+      context: .
+      dockerfile: Dockerfile.build
+    image: codex-builder
+    container_name: codex-builder
+    volumes:
+      - ./dist/:/dist/
+      - ./test-results/:/test-results/

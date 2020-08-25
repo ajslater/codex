@@ -1,0 +1,4 @@
+public/index.html
+dist
+node_modules
+webpack-stats.json
