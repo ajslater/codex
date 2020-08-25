@@ -11,7 +11,7 @@ jobs:
                 name: Build Python Wheel
             - store_test_results:
                 path: test-results/pytest
-             - store_artifacts:
+            - store_artifacts:
                 path: test-results/coverage
             - run:
                 command: ./build-runnable-image.sh
