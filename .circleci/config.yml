@@ -52,6 +52,7 @@ workflows:
                             - release
                             - develop
                             - circleci
+                            - /.*-ci/
             - deploy:
                 filters:
                     branches:
