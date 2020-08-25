@@ -10,7 +10,9 @@ jobs:
                 command: ./build-dist-wheel.sh
                 name: Build Python Wheel
             - store_test_results:
-                path: test-results
+                path: test-results/pytest
+             - store_artifacts:
+                path: test-results/coverage
             - run:
                 command: ./build-runnable-image.sh
                 name: Build Runnable Docker Image
