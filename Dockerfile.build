@@ -22,9 +22,6 @@ RUN ./lint.sh
 RUN echo "*** run tests ***"
 RUN ./test.sh
 
-VOLUME /test-results
-RUN cp -a test-results/* /test-results
-
 #########
 # BUILD #
 #########
@@ -44,5 +41,6 @@ RUN echo "*** build and package application ***" && \
   sed -i "s/.*static_root.*//"  .gitignore && \
   poetry build
 
+VOLUME /test-results
 VOLUME /dist
-CMD cp /app/dist/* /dist/
+CMD ["./build-copy-artifacts.sh"]
