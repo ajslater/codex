@@ -22,9 +22,7 @@
     <template #activator="{ on }">
       <v-list-item v-on="on" @click="loginDialogOpened">
         <v-list-item-content>
-          <v-list-item-title>
-            Login
-          </v-list-item-title>
+          <v-list-item-title> Login </v-list-item-title>
         </v-list-item-content>
       </v-list-item>
     </template>
@@ -54,12 +52,8 @@
           type="password"
         />
       </v-expand-transition>
-      <v-btn v-if="!registerMode" ripple @click="login">
-        Login
-      </v-btn>
-      <v-btn v-else ripple @click="register">
-        Register
-      </v-btn>
+      <v-btn v-if="!registerMode" ripple @click="login"> Login </v-btn>
+      <v-btn v-else ripple @click="register"> Register </v-btn>
       <v-switch
         v-if="enableRegistration"
         v-model="registerMode"
@@ -69,7 +63,7 @@
         Register
       </v-switch>
       <footer>
-        <small v-if="authFormError" style="color: red;">
+        <small v-if="authFormError" style="color: red">
           {{ authFormError }}
         </small>
         <small v-else-if="enableRegistration"

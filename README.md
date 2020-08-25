@@ -173,6 +173,7 @@ Specify a reverse proxy sub path (if you have one) in the config/hypercorn.toml
 
 ```toml
 root_path = "/codex"
+
 ```
 
 #### Nginx Reverse Proxy 502 when container is refreshed.
