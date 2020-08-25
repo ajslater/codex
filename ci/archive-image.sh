@@ -1,4 +1,4 @@
 #!/bin/bash
 set -euo pipefail
-source ./env
+source ./docker-env
 docker save -o "$1" "$IMAGE"
