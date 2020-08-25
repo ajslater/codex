@@ -41,6 +41,6 @@ RUN echo "*** build and package application ***" && \
   sed -i "s/.*static_root.*//"  .gitignore && \
   poetry build
 
-VOLUME /test-results
 VOLUME /dist
+VOLUME /test-results
 CMD ["./build-copy-artifacts.sh"]

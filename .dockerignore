@@ -14,7 +14,6 @@ Dockerfile*
 MANIFEST
 NEWS
 __pycache__
-build*.sh
 docker-compose*
 monkeytype.sqlite3
 test-results
