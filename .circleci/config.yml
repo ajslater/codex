@@ -1,0 +1,65 @@
+executors:
+    docker-publisher:
+        machine: true
+jobs:
+    build:
+        executor: docker-publisher
+        steps:
+            - checkout
+            - run:
+                command: ./build-dist-wheel.sh
+                name: Build Python Wheel
+            - store_test_results:
+                path: test-results/pytest
+            - store_artifacts:
+                path: test-results/coverage
+            - run:
+                command: ./build-runnable-image.sh
+                name: Build Runnable Docker Image
+            - run:
+                command: ./ci/archive-image.sh ./<< pipeline.parameters.image_archive >>
+                name: Archive Docker image
+            - persist_to_workspace:
+                paths:
+                    - ./<< pipeline.parameters.image_archive >>
+                    - ./dist
+                    - ./docker-env
+                    - ./ci/tag-and-push.sh
+                root: .
+    deploy:
+        executor: docker-publisher
+        steps:
+            - attach_workspace:
+                at: .
+            - run:
+                command: docker load -i "./<< pipeline.parameters.image_archive >>"
+                name: Load archive Docker image
+            - run:
+                command: ./ci/tag-and-push.sh
+                name: Publish Docker Image to Docker Hub
+parameters:
+    image_archive:
+        default: image.tar
+        type: string
+version: 2.1
+workflows:
+    main:
+        jobs:
+            - build:
+                filters:
+                    branches:
+                        only:
+                            - release
+                            - develop
+                            - circleci
+                            - /.*-ci/
+            - deploy:
+                filters:
+                    branches:
+                        only:
+                            - release
+                            - circleci
+                requires:
+                    - build
+    version: 2.1
+

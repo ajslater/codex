@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+{% load static %}
+<browserconfig>
+    <msapplication>
+        <tile>
+          <square150x150logo src="{% static 'img/mstile-150x150.png' %}"/>
+            <TileColor>#000000</TileColor>
+        </tile>
+    </msapplication>
+</browserconfig>

@@ -1,42 +1,42 @@
-FROM python:alpine
+ARG BASE_VERSION
+FROM ajslater/python-alpine:$BASE_VERSION AS codex-install
 
-# TODO audit these to see if we really need them all
-RUN \
-echo "**** install system packages ****" && \
+RUN echo "**** install system wheel building packages ****" && \
  apk add --no-cache \
    bsd-compat-headers \
    build-base \
    libffi-dev \
-   nodejs \
-   npm \
+   libwebp-dev \
    openssl-dev \
    yaml-dev \
    jpeg-dev \
    zlib-dev
 
-RUN \
- echo "**** install poetry ****" && \
- pip3 install --no-cache-dir -U poetry
+RUN pip3 install wheel
+# TODO replace with:
+# RUN pip3 install codex
+COPY dist/*.whl /tmp/
+RUN pip3 wheel /tmp/*.whl --wheel-dir=/wheels
 
-WORKDIR /app
-RUN echo "**** copying source ****"
-COPY . .
-RUN echo "**** install api ****" && \
- poetry install --no-dev
+FROM ajslater/python-alpine:$BASE_VERSION
+LABEL version python${BASE_VERSION}_codex-${PKG_VERSION}
 
-WORKDIR /app/codex_vue
-RUN echo "**** install ui packages ***" && \
-  npm install && \
-  npm install --dev
+RUN echo "*** install system runtime packages ***" && \
+ apk add --no-cache \
+   libffi \
+   libwebp \
+   openssl \
+   yaml \
+   jpeg \
+   zlib \
+   unrar
 
-RUN echo "**** build vue ui ***" && \
-  npm run build
+RUN echo "*** install python wheels ***"
+COPY --from=codex-install /wheels /wheels
 
-WORKDIR /app
-
-# TODO copy installed app and install non-dev libs for multi-stage build
+RUN pip3 install --no-index --find-links=/wheels /wheels/codex*.whl
 
 VOLUME /comics
 VOLUME /config
-EXPOSE 8000
-CMD ["./docker-run.sh"]
+EXPOSE 9810
+CMD ["/usr/local/bin/codex"]

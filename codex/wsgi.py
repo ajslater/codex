@@ -1,5 +1,5 @@
 """
-WSGI config for codex project.
+WSGI config for codex project. Unused. For testing only.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 
@@ -19,7 +19,7 @@ application = get_wsgi_application()
 
 def start_daemons():
     """Delay import until settings environment set."""
-    from codex_api.library.daemon import start_daemons
+    from codex.librarian.daemon import start_daemons
 
     start_daemons()
 

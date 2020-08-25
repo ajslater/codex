@@ -1,0 +1,46 @@
+FROM ajslater/codex-builder:focal_1.0.0-db5d3fe
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+#############
+# APP SETUP #
+#############
+
+RUN echo "**** copying source for dev build ****"
+COPY . .
+
+RUN ./setup-dev.sh
+
+########
+# TEST #
+########
+
+WORKDIR /app
+RUN echo "*** run lint ***"
+RUN ./lint.sh
+
+RUN echo "*** run tests ***"
+RUN ./test.sh
+
+#########
+# BUILD #
+#########
+
+WORKDIR /app/frontend
+
+RUN echo "*** build frontend ***" && \
+  rm -rf ../codex/static_build && \
+  npm run build
+
+WORKDIR /app
+RUN echo "*** collect static resources in one place ***" && \
+  ./collectstatic.sh
+
+# XXX poetry auto-excludes anything in gitignore. Dirty hack around that.
+RUN echo "*** build and package application ***" && \
+  sed -i "s/.*static_root.*//"  .gitignore && \
+  poetry build
+
+VOLUME /dist
+VOLUME /test-results
+CMD ["./build-copy-artifacts.sh"]
