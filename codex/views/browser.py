@@ -30,7 +30,6 @@ from codex.models import AdminFlag
 from codex.models import Comic
 from codex.models import Folder
 from codex.models import Imprint
-from codex.models import Library
 from codex.models import Publisher
 from codex.models import Series
 from codex.models import Volume
