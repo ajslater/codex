@@ -18,7 +18,7 @@
     "vue": "^2.6.11",
     "vue-router": "^3.4.3",
     "vue2-filters": "^0.11.0",
-    "vuetify": "^2.3.9",
+    "vuetify": "^2.3.10",
     "vuex": "^3.5.1"
   },
   "devDependencies": {
@@ -60,7 +60,7 @@
     "eslint-plugin-unicorn": "^21.0.0",
     "eslint-plugin-vue": "^7.0.0-beta.2",
     "eslint-plugin-vue-scoped-css": "^1.0.0",
-    "prettier": "^2.0.5",
+    "prettier": "^2.1.1",
     "prettier-plugin-package": "^1.0.0",
     "sass": "^1.26.10",
     "sass-loader": "^9.0.3",

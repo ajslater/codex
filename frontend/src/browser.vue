@@ -116,6 +116,11 @@
                 />
               </v-dialog>
               <AuthButton />
+              <v-list-item @click="reload">
+                <v-list-item-content>
+                  <v-list-item-title> Reload Libraries</v-list-item-title>
+                </v-list-item-content>
+              </v-list-item>
             </v-list-item-group>
           </v-menu>
         </v-toolbar-items>
@@ -131,24 +136,31 @@
         </v-toolbar-title>
       </v-toolbar>
     </header>
-    <v-main v-if="librariesExist" id="browsePane">
+    <v-main v-if="!browseLoaded" id="browsePane">
+      <PlaceholderLoading />
+    </v-main>
+    <v-main v-else-if="itemsExist" id="browsePane">
       <BrowseCard :item-list="containerList" />
       <BrowseCard :item-list="comicList" />
     </v-main>
-    <v-main v-else-if="librariesExist === false" id="browsePane">
+    <v-main v-else id="browsePane">
       <div id="noLibraries">
-        <h1>No libraries have been added to Codex yet.</h1>
+        <h1>No libraries with comics in them have been added to Codex yet.</h1>
         <h2 v-if="isAdmin">
           Go to <a :href="adminURL">the admin panel</a> and add a comic library.
         </h2>
         <div v-else>
-          <h2>An administrator must log in and add some libraries.</h2>
-          <h3>You may log in or register with the top right menu.</h3>
+          <h2>
+            An administrator must login to add some libraries that contain
+            comics.
+          </h2>
+          <h3>
+            You may log in or register with the top right
+            <v-icon>{{ mdiDotsVertical }}</v-icon
+            >menu.
+          </h3>
         </div>
       </div>
-    </v-main>
-    <v-main v-else id="browsePane">
-      <PlaceholderLoading />
     </v-main>
   </div>
 </template>
@@ -162,7 +174,7 @@ import { getSocket } from "@/api/browser";
 import AuthButton from "@/components/auth-dialog";
 import BrowseCard from "@/components/browse-card";
 import FilterSubMenu from "@/components/filter-sub-menu";
-import PlaceholderLoading from "@/components/placeholder-loading";
+import PlaceholderLoading from "@/components/placeholder-loading.vue";
 
 export default {
   name: "Browser",
@@ -190,7 +202,9 @@ export default {
       containerList: (state) => state.containerList,
       comicList: (state) => state.comicList,
       filterMode: (state) => state.filterMode,
-      librariesExist: (state) => state.librariesExist,
+      browseLoaded: (state) => state.browseLoaded,
+      itemsExist: (state) =>
+        state.containerList.length + state.comicList.length > 0,
     }),
     ...mapState("auth", {
       isAdmin: (state) =>
@@ -298,7 +312,8 @@ export default {
     this.socket = getSocket();
     this.socket.addEventListener("message", (event) => {
       if (event.data === "libraryChanged") {
-        this.$store.dispatch("browser/browseOpened", this.$route.params);
+        console.log("libraryChanged");
+        this.$store.dispatch("browser/getBrowseObjects");
       }
     });
   },
@@ -335,6 +350,9 @@ export default {
       const item = this.$refs.filterSelect.selectedItems[0];
       this.$refs.filterSelect.selectItem(item);
       this.$store.dispatch("browser/setFilterMode", "base");
+    },
+    reload: function () {
+      this.$store.dispatch("browser/browseOpened", this.$route.params);
     },
   },
 };

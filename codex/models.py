@@ -215,6 +215,9 @@ class Library(BaseModel):
         """Return the path."""
         return self.path
 
+    class Meta:
+        verbose_name_plural = "libraries"
+
 
 class NamedModel(BaseModel):
     """A for simple named tables."""
