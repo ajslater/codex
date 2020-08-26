@@ -199,7 +199,8 @@ You will have to contact your administrator to reset your password if you forget
 
 - Edit & write metadata for one comic at a time.
 - Add more Filters & Sort options (e.g. filter by story_arc, location)
-- Fix Admin Pages Styling to match the rest of Codex.
+- [OPDS](https://en.wikipedia.org/wiki/Open_Publication_Distribution_System)
+- Dark Admin Panel Styling.
 - Upgrade Vue to version 3
 
 ## Out of Scope
