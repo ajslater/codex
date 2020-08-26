@@ -56,7 +56,7 @@ const state = {
   containerList: [],
   comicList: [],
   filterMode: "base",
-  librariesExist: null,
+  browseLoaded: false,
 };
 
 const isRootGroupEnabled = (state, rootGroup) => {
@@ -84,6 +84,9 @@ const getters = {
 };
 
 const mutations = {
+  setBrowseLoaded(state, value) {
+    state.browseLoaded = value;
+  },
   setBrowseRoute(state, route) {
     state.routes.current = route;
   },
@@ -109,7 +112,6 @@ const mutations = {
     state.routes.up = Object.freeze(data.upRoute);
     state.containerList = Object.freeze(data.containerList);
     state.comicList = Object.freeze(data.comicList);
-    state.librariesExist = data.librariesExist;
   },
   setFilterMode(state, mode) {
     state.filterMode = mode;
@@ -237,6 +239,7 @@ const actions = {
   async browseOpened({ state, commit, dispatch }, route) {
     // Gets everything needed to open the component.
     document.title = "Codex Browser";
+    commit("setBrowseLoaded", false);
     commit("setBrowseRoute", route);
     await API.getBrowseOpened(route)
       .then((response) => {
@@ -246,6 +249,7 @@ const actions = {
           // will have dispatched to SetSetting if fails.
           return;
         }
+        commit("setBrowseLoaded", true);
         return commit("setBrowseData", data.browseList);
       })
       .catch((error) => {

@@ -70,7 +70,11 @@ class AdminLibrary(ModelAdmin):
     force_scan.short_description = "Rescan all comics"
 
     def _on_change(self, obj, created=False):
+        """Events for when the library has changed."""
+        # XXX These sleep values are for waiting for db consistency
+        #     between processes.
         if created:
+            QUEUE.put(LibraryChangedTask())
             QUEUE.put(ScannerCronTask(sleep=1))
         QUEUE.put(WatcherCronTask(sleep=1))
 

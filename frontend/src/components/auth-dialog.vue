@@ -26,13 +26,14 @@
         </v-list-item-content>
       </v-list-item>
     </template>
-    <v-form ref="loginForm">
+    <v-form ref="loginForm" @submit="processLogin">
       <v-text-field
         v-model="credentials.username"
         :error-messages="usernameErrors"
         label="Username"
         :rules="usernameRules"
         clearable
+        autofocus
       />
       <v-text-field
         v-model="credentials.password"
@@ -52,8 +53,9 @@
           type="password"
         />
       </v-expand-transition>
-      <v-btn v-if="!registerMode" ripple @click="login"> Login </v-btn>
-      <v-btn v-else ripple @click="register"> Register </v-btn>
+      <v-btn ripple type="submit" @click="processLogin">
+        {{ loginButtonLabel }}
+      </v-btn>
       <v-switch
         v-if="enableRegistration"
         v-model="registerMode"
@@ -108,6 +110,13 @@ export default {
       passwordErrors: (state) => state.form.passwordErrors,
       enableRegistration: (state) => state.enableRegistration,
     }),
+    loginButtonLabel: function () {
+      if (this.registerMode) {
+        return "Register";
+      } else {
+        return "Login";
+      }
+    },
   },
   methods: {
     closeForm: function () {
@@ -131,18 +140,18 @@ export default {
           console.error(error);
         });
     },
-    processLogin: function (mode) {
+    processLogin: function () {
+      let mode;
+      if (this.registerMode) {
+        mode = "register";
+      } else {
+        mode = "login";
+      }
       const form = this.$refs.loginForm;
       if (!form.validate()) {
         return;
       }
       this.processAuth(mode);
-    },
-    login: function () {
-      this.processLogin("login");
-    },
-    register: function () {
-      this.processLogin("register");
     },
     logout: function () {
       this.processAuth("logout");
