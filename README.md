@@ -86,37 +86,23 @@ and then navigate to [http://localhost:9810/](http://localhost:9810/)
 
 #### Change the Admin password
 
-The first thing you need to do is to log in as an Administrator.
+The first thing you need to do is to log in as an Administrator and change the admin password.
 
-- Log in with the three dots menu in the upper right of the browse view. The default administator username/password is admin/admin.
+- Log in with the **&vellip;** menu in the upper right of the browse view. The default administator username/password is admin/admin.
 - Navigate to the Admin Panel by selecting it from under the three dots menu after you have logged in.
 - Navigate to the Users panel.
 - Select the `admin` user.
 - Change the admin password using the tiny "this form" link in the password section.
 - You may also change the admin user's name or anything else.
 
-#### Adding Libraries
+#### Adding Comic Libraries
 
-The first thing you need to do is to log in as an Administrator and add one or more comic libraries.
+The second thing you should do is log in as an Administrator and add one or more comic libraries.
 
-- Log in with any superuser (such as the default adimin account) using the three dots menu in the upper right of the browse view.
+- Log in with any superuser (such as the default adimin account) using the **&vellip;** menu in the upper right of the browse view.
 - Navigate to the Admin Panel by selecting it from under the three dots menu after you have logged in.
 - Navigate to the Codex API Librarys (sic) on the Admin Panel
 - Add a Library with the "ADD LIBRARY +" button in the upper right.
-  -- A Library is just a path where Codex can recursively search for comic archives.
-  -- Codex will try to import comics from a Library immediately.
-- Navigate back to the browse view by clicking the "view site" link in the upper right of the Admin Panel.
-- Wait for comics to appear. It may take some time to import large comic libraries and Codex will only issue a browser refresh websocket notification when the entire library has loaded. Check the console if you want to be assured its doing something.
-
-#### Admin Flags
-
-##### Disable Registration
-
-By default users bookmarks and preferenrces are saved in an anonymous brower session. But users can create a username & password to save their bookmarks in between browsers. You may disable this ability in the Admin Flags section of the Admin Panel.
-
-##### Disable Folder View
-
-By default, codex provides a "Folder View" which mimics the directory heirarchy of the libraries that you've added to Codex. If you wish to disable this view for all users, you may do so in the Admin Flags. The database style browser view is always available.
 
 ##### Reset the admin password.
 
@@ -126,10 +112,10 @@ If you forget all your superuser passwords, you may restore the original default
 CODEX_RESET_ADMIN=1 codex
 ```
 
-or if using docker:
+or, if using Docker:
 
 ```sh
-docker run -e CODEX_RESET_ADMIN=1 codex
+docker run -e CODEX_RESET_ADMIN=1 -v <host path to config>/config:/config ajslater/codex
 ```
 
 ## Configure Codex

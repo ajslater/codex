@@ -1,0 +1,26 @@
+{% extends "admin/change_list.html" %}
+
+{% block footer %}
+<div id="footer">
+<h2>Libraries</h2>
+<p>
+A Library is a path where Codex can recursively search for comic archives. Codex will try to import comics from a Library immediately.
+</p><p>
+You may navigate back to the browse view by clicking the "view site" link in the upper right of this Admin Panel.
+</p><p>
+Wait for comics to appear. It may take some time to import large comic libraries and Codex will only issue a browser refresh websocket notification when the entire library has loaded. Check the console if you want to be assured its doing something.
+</p>
+<h3>Actions</h3>
+You may manually scan a library for changes. Forcibly re-import everything in a library or delete a library.
+<h3>Enable Watch</h3>
+Codex watches the filesystem for changes to the libaray and imports new comics, re-imports changed comics and deletes missing comics. You may disable this feature for each Library.
+<h3>Enable Scan Cron</h3>
+Codex periodically scans each library for new, changed or missing comics. You may disable this feature for each Library.
+<h3>Scan Frequency</h3>
+This field controls how long Codex waits between automatic scans.
+<h3>Last Scan</h3>
+A timestamp telling you when the last time this library was scanned.
+<h3>Scan In Progress</h3>
+This is checked by Codex when a scan is run to prevent multiple scans running on a Library at the same time. In unusual circumstances it can be left checked even though no scan is running. You can see scans running on the console output. You may manually uncheck this to unblock scanning if it was left checked improperly.
+</div>
+{% endblock %}
