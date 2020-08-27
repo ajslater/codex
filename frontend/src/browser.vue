@@ -144,23 +144,24 @@
       <BrowseCard :item-list="comicList" />
     </v-main>
     <v-main v-else-if="librariesExist" id="browsePane">
-      <h1>No comics found for these filters.</h1>
+      <div id="noComicsFound">No comics found for these filters</div>
     </v-main>
     <v-main v-else id="browsePane">
       <div id="noLibraries">
-        <h1>No libraries have been added to Codex yet.</h1>
+        <h1>No libraries have been added to Codex yet</h1>
         <h2 v-if="isAdmin">
-          Go to <a :href="adminURL">the admin panel</a> and add a comic library.
+          Use the top right <v-icon>{{ mdiDotsVertical }}</v-icon> menu to
+          navigate to the admin panel and add a comic library
         </h2>
         <div v-else>
           <h2>
             An administrator must login to add some libraries that contain
-            comics.
+            comics
           </h2>
           <h3>
             You may log in or register with the top right
             <v-icon>{{ mdiDotsVertical }}</v-icon
-            >menu.
+            >menu
           </h3>
         </div>
       </div>
@@ -404,12 +405,22 @@ export default {
 #settingsGroupCaption {
   color: gray;
 }
+#noComicsFound {
+  color: gray;
+  font-size: x-large;
+  padding: 1em;
+}
+
+@import "~vuetify/src/styles/styles.sass";
+@media #{map-get($display-breakpoints, 'sm-and-down')} {
+  #noComicsFound {
+    font-size: large;
+  }
+}
 </style>
 
 <!-- eslint-disable vue-scoped-css/require-scoped -->
 <style lang="scss">
-@import "~vuetify/src/styles/styles.sass";
-
 #filterToolbar > .v-toolbar__content {
   padding-right: 0px;
 }
@@ -458,6 +469,8 @@ export default {
 #noLibraries {
   text-align: center;
 }
+
+@import "~vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   .toolbarSelect {
     font-size: 12px;
