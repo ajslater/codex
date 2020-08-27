@@ -1,3 +1,8 @@
+v0.5.2
+* Lazy load filter choices when the menu opens
+* Fix multiprocessing for Windows
+* Documentation moved into admin panel
+
 v0.5.1
 * Minor bugfixes. Rebuild for pypi
 
