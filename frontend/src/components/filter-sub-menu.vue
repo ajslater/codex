@@ -115,7 +115,11 @@ export default {
   },
   methods: {
     setFilterMode(mode) {
-      this.$store.dispatch("browser/setFilterMode", mode);
+      this.$store.dispatch("browser/setFilterMode", {
+        group: this.$route.params.group,
+        pk: this.$route.params.pk,
+        mode,
+      });
       this.query = "";
     },
   },

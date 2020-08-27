@@ -19,34 +19,31 @@ from django.db.models.functions import NullIf
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
-from rest_framework.views import APIView
 from stringcase import snakecase
 
-from codex.choices.model import CharactersFilterChoice
-from codex.choices.model import DecadeFilterChoice
 from codex.librarian.queue import QUEUE
 from codex.librarian.queue import ComicCoverCreateTask
 from codex.models import AdminFlag
 from codex.models import Comic
 from codex.models import Folder
 from codex.models import Imprint
+from codex.models import Library
 from codex.models import Publisher
 from codex.models import Series
 from codex.models import Volume
 from codex.serializers.browse import BrowseListSerializer
 from codex.serializers.browse import BrowserOpenedSerializer
 from codex.serializers.browse import BrowserSettingsSerializer
-from codex.views.mixins import SessionMixin
+from codex.views.browse_base import BrowseBaseView
 from codex.views.mixins import UserBookmarkMixin
 
 
 LOG = logging.getLogger(__name__)
 
 
-class BrowseView(APIView, SessionMixin, UserBookmarkMixin):
+class BrowseView(BrowseBaseView, UserBookmarkMixin):
     """Browse comics with a variety of filters and sorts."""
 
-    FOLDER_GROUP = "f"
     COMIC_GROUP = "c"
     GROUP_MODEL = bidict(
         {
@@ -56,7 +53,7 @@ class BrowseView(APIView, SessionMixin, UserBookmarkMixin):
             "s": Series,
             "v": Volume,
             COMIC_GROUP: Comic,
-            FOLDER_GROUP: Folder,
+            BrowseBaseView.FOLDER_GROUP: Folder,
         }
     )
     GROUP_SHOW_FLAGS = {
@@ -67,14 +64,6 @@ class BrowseView(APIView, SessionMixin, UserBookmarkMixin):
         "s": "v",
         "v": "c",
     }
-    GROUP_RELATION = {
-        "p": "publisher",
-        "i": "imprint",
-        "s": "series",
-        "v": "volume",
-        "c": "comic",
-    }
-    FILTER_ATTRIBUTES = ("decade", "characters")
     SORT_AGGREGATE_FUNCS = {
         "user_rating": Avg,
         "critical_rating": Avg,
@@ -135,43 +124,6 @@ class BrowseView(APIView, SessionMixin, UserBookmarkMixin):
                 below_nav_group = True
 
         return self.COMIC_GROUP
-
-    def filter_by_comic_many_attribute(self, attribute):
-        """Filter by a comic any2many attribute."""
-        filter_list = self.params["filters"].get(attribute)
-        filter_query = Q()
-        if filter_list:
-            # None values in a list don't work right so test for them
-            #   seperately
-            for index, val in enumerate(filter_list):
-                if val is None:
-                    del filter_list[index]
-                    filter_query |= Q(**{f"comic__{attribute}": None})
-            if filter_list:
-                filter_query |= Q(**{f"comic__{attribute}__in": filter_list})
-        return filter_query
-
-    def get_comic_attribute_filter(self):
-        """Filter the comics based on the form filters."""
-        comic_attribute_filter = Q()
-        for attribute in self.FILTER_ATTRIBUTES:
-            comic_attribute_filter &= self.filter_by_comic_many_attribute(attribute)
-        return comic_attribute_filter
-
-    def get_bookmark_filter(self):
-        """Build bookmark query."""
-        choice = self.params["filters"].get("bookmark", "ALL")
-
-        bookmark_filter = Q()
-        if choice in ("UNREAD", "IN_PROGRESS",):
-            bookmark_filter &= (
-                Q(comic__userbookmark__finished=False)
-                | Q(comic__userbookmark=None)
-                | Q(comic__userbookmark__finished=None)
-            )
-            if choice == "IN_PROGRESS":
-                bookmark_filter &= Q(comic__userbookmark__bookmark__gt=0)
-        return bookmark_filter
 
     def get_order_by(self, order_key, model=None):
         """
@@ -238,7 +190,7 @@ class BrowseView(APIView, SessionMixin, UserBookmarkMixin):
         pages_read = Sum("comic__userbookmark__bookmark", filter=ub_filter)
         obj_list = obj_list.annotate(bookmark=pages_read)
         # Annote progress
-        obj_list = UserBookmarkMixin.annotate_progress(obj_list)
+        obj_list = self.annotate_progress(obj_list)
 
         # Select comics for the children by an outer ref for annotation
         # Order the decendent comics by the sort argumentst
@@ -273,26 +225,6 @@ class BrowseView(APIView, SessionMixin, UserBookmarkMixin):
         obj_list = obj_list.order_by(*order_by)
         return obj_list
 
-    def get_parent_folder_filter(self):
-        """Create the folder and comic object lists."""
-        pk = self.kwargs.get("pk")
-        if pk:
-            self.host_folder = Folder.objects.select_related("parent_folder").get(pk=pk)
-        else:
-            self.host_folder = None
-
-        return Q(parent_folder=self.host_folder)
-
-    def get_folders_filter(self):
-        """Create the folder and comic object lists."""
-        pk = self.kwargs.get("pk")
-        if pk:
-            folders_filter = Q(folder__in=[pk])
-        else:
-            folders_filter = Q()
-
-        return folders_filter
-
     def set_browse_model(self):
         """Set the model for the browse list."""
         group = self.kwargs.get("group")
@@ -301,48 +233,13 @@ class BrowseView(APIView, SessionMixin, UserBookmarkMixin):
         model_group = self.get_model_group()
         self.model = self.GROUP_MODEL[model_group]
 
-    def get_browse_container_filter(self):
-        """Get the objects we'll be displaying."""
-        # Get the instances that are children of the group_instance
-        # And the filtered comics that are children of the group_instance
-        pk = self.kwargs.get("pk")
-        if pk > 0:
-            group = self.kwargs.get("group")
-            group_relation = self.GROUP_RELATION[group]
-            container_filter = Q(**{group_relation: pk})
-        else:
-            container_filter = Q()
-
-        return container_filter
-
-    def get_query_filters(self, container_filter):
-        """Return the main object filter and the one for aggregates."""
-        bookmark_filter_join = self.get_bookmark_filter()
-        comic_attribute_filter = self.get_comic_attribute_filter()
-        aggregate_filter = bookmark_filter_join & comic_attribute_filter
-        object_filter = container_filter & aggregate_filter
-        return object_filter, aggregate_filter
-
-    def set_choices_comic_list(self, filters):
-        """Set the choices comic list for getting choices later."""
-        self.choices_comic_list = (
-            Comic.objects.filter(filters)
-            .only(*self.CHOICES_RELATIONS)
-            .prefetch_related(*self.CHOICES_RELATIONS)
-        )
-
     def get_folder_queryset(self):
         """Create folder queryset."""
-        object_filter, aggregate_filter = self.get_query_filters(
-            self.get_parent_folder_filter()
-        )
+        object_filter, aggregate_filter = self.get_query_filters()
 
         # Create the main queries with filters
         folder_list = Folder.objects.filter(object_filter)
         comic_list = Comic.objects.filter(object_filter)
-
-        # Create a query for comics used by the model filters
-        self.set_choices_comic_list(aggregate_filter & self.get_folders_filter())
 
         # add annotations for display and sorting
         # and the comic_cover which uses a sort
@@ -356,12 +253,8 @@ class BrowseView(APIView, SessionMixin, UserBookmarkMixin):
         self.set_browse_model()
 
         # Create the main query with the filters
-        object_filter, aggregate_filter = self.get_query_filters(
-            self.get_browse_container_filter()
-        )
+        object_filter, aggregate_filter = self.get_query_filters()
         obj_list = self.model.objects.filter(object_filter)
-        # for the model filter choices that don't need annotations
-        self.set_choices_comic_list(object_filter)
         # obj_list filtering done
 
         # Add annotations for display and sorting
@@ -459,25 +352,18 @@ class BrowseView(APIView, SessionMixin, UserBookmarkMixin):
         else:
             up_route = {}
 
-        decade_filter_choices = DecadeFilterChoice.get_vue_choices(
-            self.choices_comic_list
-        )
-        characters_filter_choices = CharactersFilterChoice.get_vue_choices(
-            self.choices_comic_list
-        )
-
         efv_flag = AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_FOLDER_VIEW)
+
+        libraries_exist = Library.objects.exists()
+        print(f"{libraries_exist=}")
 
         context = {
             "upRoute": up_route,
             "browseTitle": browse_title,
             "containerList": self.container_list,
             "comicList": self.comic_list,
-            "formChoices": {
-                "decade": decade_filter_choices,
-                "characters": characters_filter_choices,
-                "enableFolderView": efv_flag.on,
-            },
+            "formChoices": {"enableFolderView": efv_flag.on},
+            "librariesExist": libraries_exist,
         }
         return context
 

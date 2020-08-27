@@ -1,5 +1,6 @@
 """Library process worker for background tasks."""
 import logging
+import platform
 import time
 
 from multiprocessing import Pool
@@ -57,11 +58,12 @@ BROADCAST_URL_TMPL = "ws://localhost:{port}/" + BROADCAST_PATH
 SHUTDOWN_MSG = "shutdown"
 MAX_WS_ATTEMPTS = 4
 librarian_proc = None
-# XXX Fixes QUEUE sharing with default spawn start method. The spawn
-# method is also very very slow. Use fork and the
-# OBJC_DISABLE_INITIALIZE_FORK_SAFETY environment variable for macOS.
-# https://bugs.python.org/issue40106
-set_start_method("fork", force=True)
+if platform.system() == "Darwin":
+    # XXX Fixes QUEUE sharing with default spawn start method. The spawn
+    # method is also very very slow. Use fork and the
+    # OBJC_DISABLE_INITIALIZE_FORK_SAFETY environment variable for macOS.
+    # https://bugs.python.org/issue40106
+    set_start_method("fork", force=True)
 
 
 def get_websocket():

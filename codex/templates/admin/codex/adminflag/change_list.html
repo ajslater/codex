@@ -1,0 +1,13 @@
+{% extends "admin/change_list.html" %}
+
+{% block footer %}
+<div id="footer">
+<h2>Admin Flags</h2>
+Administration Flags that effect the operation of the entire site.
+<h3>Enable Registration</h3>
+By default users bookmarks and preferenrces are saved in an anonymous browser session. But users can create a username and password to save their bookmarks in between browsers. You may disable this feature.
+
+<h3>Enable Folder View</h3>
+By default, codex provides a "Folder View" which mimics the directory heirarchy of the libraries that you've added to Codex. You may disable this feature. The database style browser view is always available.
+</div>
+{% endblock %}

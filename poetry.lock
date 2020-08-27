@@ -31,7 +31,7 @@ version = "3.2.10"
 tests = ["pytest", "pytest-asyncio"]
 
 [[package]]
-category = "main"
+category = "dev"
 description = "Atomic file writes."
 marker = "sys_platform == \"win32\""
 name = "atomicwrites"
@@ -40,7 +40,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "1.4.0"
 
 [[package]]
-category = "main"
+category = "dev"
 description = "Classes Without Boilerplate"
 name = "attrs"
 optional = false
@@ -142,7 +142,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 version = "7.1.2"
 
 [[package]]
-category = "main"
+category = "dev"
 description = "Cross-platform colored terminal text."
 marker = "sys_platform == \"win32\" or python_version > \"3.4\""
 name = "colorama"
@@ -351,7 +351,7 @@ version = "0.18.2"
 category = "dev"
 description = "Lightweight in-process concurrent programming"
 name = "greenlet"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.4.16"
 
@@ -429,7 +429,7 @@ python-versions = "*"
 version = "5.2.0"
 
 [[package]]
-category = "main"
+category = "dev"
 description = "Read metadata from Python packages"
 marker = "python_version < \"3.8\""
 name = "importlib-metadata"
@@ -445,7 +445,7 @@ docs = ["sphinx", "rst.linker"]
 testing = ["packaging", "pep517", "importlib-resources (>=1.3)"]
 
 [[package]]
-category = "main"
+category = "dev"
 description = "iniconfig: brain-dead simple config-ini parsing"
 name = "iniconfig"
 optional = false
@@ -469,7 +469,7 @@ requirements_deprecated_finder = ["pipreqs", "pip-api"]
 category = "dev"
 description = "An autocompletion tool for Python that can be used for text editors."
 name = "jedi"
-optional = true
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 version = "0.17.2"
 
@@ -484,7 +484,7 @@ testing = ["Django (<3.1)", "colorama", "docopt", "pytest (>=3.9.0,<5.0.0)"]
 category = "dev"
 description = "A concrete syntax tree with AST-like properties for Python 3.5, 3.6, 3.7 and 3.8 programs."
 name = "libcst"
-optional = true
+optional = false
 python-versions = ">=3.6"
 version = "0.3.10"
 
@@ -522,7 +522,7 @@ version = "0.6.1"
 category = "dev"
 description = "Generating type annotations from sampled production types"
 name = "monkeytype"
-optional = true
+optional = false
 python-versions = ">=3.6"
 version = "20.5.0"
 
@@ -531,7 +531,7 @@ libcst = ">=0.3.5"
 mypy-extensions = "*"
 
 [[package]]
-category = "main"
+category = "dev"
 description = "More routines for operating on iterables, beyond itertools"
 name = "more-itertools"
 optional = false
@@ -542,7 +542,7 @@ version = "8.4.0"
 category = "dev"
 description = "MessagePack (de)serializer."
 name = "msgpack"
-optional = true
+optional = false
 python-versions = "*"
 version = "1.0.0"
 
@@ -550,7 +550,7 @@ version = "1.0.0"
 category = "dev"
 description = "Optional static typing for Python"
 name = "mypy"
-optional = true
+optional = false
 python-versions = ">=3.5"
 version = "0.782"
 
@@ -566,7 +566,7 @@ dmypy = ["psutil (>=4.0)"]
 category = "dev"
 description = "Experimental type system extensions for programs checked with the mypy typechecker."
 name = "mypy-extensions"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.4.3"
 
@@ -574,7 +574,7 @@ version = "0.4.3"
 category = "dev"
 description = "Transition packgage for pynvim"
 name = "neovim"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.3.1"
 
@@ -582,7 +582,7 @@ version = "0.3.1"
 pynvim = ">=0.3.1"
 
 [[package]]
-category = "main"
+category = "dev"
 description = "Core utilities for Python packages"
 name = "packaging"
 optional = false
@@ -605,7 +605,7 @@ version = "1.16.0"
 category = "dev"
 description = "A Python Parser"
 name = "parso"
-optional = true
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "0.7.1"
 
@@ -648,7 +648,7 @@ python-versions = ">=3.5"
 version = "7.2.0"
 
 [[package]]
-category = "main"
+category = "dev"
 description = "plugin and hook calling mechanisms for python"
 name = "pluggy"
 optional = false
@@ -672,7 +672,7 @@ python-versions = "*"
 version = "1.3.0"
 
 [[package]]
-category = "main"
+category = "dev"
 description = "library with cross-python path, ini-parsing, io, code, log facilities"
 name = "py"
 optional = false
@@ -723,7 +723,7 @@ version = "0.3.10"
 category = "dev"
 description = "Python client to neovim"
 name = "pynvim"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.4.1"
 
@@ -736,7 +736,7 @@ pyuv = ["pyuv (>=1.0.0)"]
 test = ["pytest (>=3.4.0)"]
 
 [[package]]
-category = "main"
+category = "dev"
 description = "Python parsing module"
 name = "pyparsing"
 optional = false
@@ -753,7 +753,7 @@ python-versions = "*"
 version = "2.1"
 
 [[package]]
-category = "main"
+category = "dev"
 description = "pytest: simple powerful testing with Python"
 name = "pytest"
 optional = false
@@ -811,7 +811,7 @@ pytest = ">=4.6"
 testing = ["fields", "hunter", "process-tests (2.0.2)", "six", "pytest-xdist", "virtualenv"]
 
 [[package]]
-category = "main"
+category = "dev"
 description = "A Django plugin for pytest."
 name = "pytest-django"
 optional = false
@@ -856,7 +856,7 @@ dev = ["mock"]
 category = "dev"
 description = "pytest-monkeytype: Generate Monkeytype annotations from your pytest tests."
 name = "pytest-monkeytype"
-optional = true
+optional = false
 python-versions = ">=3.6"
 version = "1.1.0"
 
@@ -876,7 +876,7 @@ version = "2020.1"
 category = "dev"
 description = "YAML parser and emitter for Python"
 name = "pyyaml"
-optional = true
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 version = "5.3.1"
 
@@ -989,7 +989,7 @@ version = "3.7.4.3"
 category = "dev"
 description = "Runtime inspection utilities for typing module."
 name = "typing-inspect"
-optional = true
+optional = false
 python-versions = "*"
 version = "0.6.0"
 
@@ -1061,7 +1061,7 @@ version = "0.15.0"
 h11 = ">=0.8.1"
 
 [[package]]
-category = "main"
+category = "dev"
 description = "Backport of pathlib-compatible object wrapper for zip files"
 marker = "python_version < \"3.8\""
 name = "zipp"
@@ -1073,12 +1073,8 @@ version = "3.1.0"
 docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools", "func-timeout"]
 
-[extras]
-mypy = []
-neovim = []
-
 [metadata]
-content-hash = "f3647e3e05bf115f671638277f058e46a680b69a23f0589f640868f3590511f9"
+content-hash = "460cbb7a2e1554d2be091162147e66c7c2232d8d92afe490b669e705b6139760"
 lock-version = "1.0"
 python-versions = "^3.7"
 
