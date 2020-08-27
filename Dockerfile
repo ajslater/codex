@@ -1,5 +1,7 @@
 ARG BASE_VERSION
 FROM ajslater/python-alpine:$BASE_VERSION AS codex-install
+ARG PKG_VERSION
+LABEL version python${BASE_VERSION}_codex-${PKG_VERSION}
 
 RUN echo "**** install system wheel building packages ****" && \
  apk add --no-cache \
