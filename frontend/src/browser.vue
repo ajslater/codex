@@ -143,9 +143,12 @@
       <BrowseCard :item-list="containerList" />
       <BrowseCard :item-list="comicList" />
     </v-main>
+    <v-main v-else-if="librariesExist" id="browsePane">
+      <h1>No comics found for these filters.</h1>
+    </v-main>
     <v-main v-else id="browsePane">
       <div id="noLibraries">
-        <h1>No libraries with comics in them have been added to Codex yet.</h1>
+        <h1>No libraries have been added to Codex yet.</h1>
         <h2 v-if="isAdmin">
           Go to <a :href="adminURL">the admin panel</a> and add a comic library.
         </h2>
@@ -203,6 +206,7 @@ export default {
       comicList: (state) => state.comicList,
       filterMode: (state) => state.filterMode,
       browseLoaded: (state) => state.browseLoaded,
+      librariesExist: (state) => state.librariesExist,
       itemsExist: (state) =>
         state.containerList.length + state.comicList.length > 0,
     }),

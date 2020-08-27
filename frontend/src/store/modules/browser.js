@@ -57,6 +57,7 @@ const state = {
   comicList: [],
   filterMode: "base",
   browseLoaded: false,
+  librariesExist: null,
 };
 
 const isRootGroupEnabled = (state, rootGroup) => {
@@ -113,6 +114,7 @@ const mutations = {
     state.routes.up = Object.freeze(data.upRoute);
     state.containerList = Object.freeze(data.containerList);
     state.comicList = Object.freeze(data.comicList);
+    state.librariesExist = data.librariesExist;
   },
   setBrowseChoice(state, data) {
     const key = data.key;

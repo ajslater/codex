@@ -130,6 +130,7 @@ class BrowseListSerializer(Serializer):
         child=BrowseComicSerializer(read_only=True), allow_empty=True, read_only=True,
     )
     formChoices = BrowserFormChoicesSerializer(read_only=True)  # noqa: N815
+    librariesExist = BooleanField(read_only=True)  # noqa: N815
 
 
 class BrowserOpenedSerializer(Serializer):

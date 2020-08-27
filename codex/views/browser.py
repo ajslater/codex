@@ -27,6 +27,7 @@ from codex.models import AdminFlag
 from codex.models import Comic
 from codex.models import Folder
 from codex.models import Imprint
+from codex.models import Library
 from codex.models import Publisher
 from codex.models import Series
 from codex.models import Volume
@@ -353,12 +354,16 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
 
         efv_flag = AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_FOLDER_VIEW)
 
+        libraries_exist = Library.objects.exists()
+        print(f"{libraries_exist=}")
+
         context = {
             "upRoute": up_route,
             "browseTitle": browse_title,
             "containerList": self.container_list,
             "comicList": self.comic_list,
             "formChoices": {"enableFolderView": efv_flag.on},
+            "librariesExist": libraries_exist,
         }
         return context
 
