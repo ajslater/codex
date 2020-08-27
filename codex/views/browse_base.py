@@ -99,7 +99,9 @@ class BrowseBaseView(APIView, SessionMixin):
 
     def get_query_filters(self, choices=False):
         """Return the main object filter and the one for aggregates."""
-        if self.kwargs.get("group") == self.FOLDER_GROUP:
+        # XXX This logic is complicated and confusing
+        is_folder_view = self.kwargs.get("group") == self.FOLDER_GROUP
+        if is_folder_view:
             if choices:
                 object_filter = self.get_folders_filter()
             else:
@@ -107,9 +109,13 @@ class BrowseBaseView(APIView, SessionMixin):
         else:
             object_filter = self.get_browse_container_filter()
 
-        bookmark_filter_join = self.get_bookmark_filter()
-        comic_attribute_filter = self.get_comic_attribute_filter()
-        aggregate_filter = bookmark_filter_join & comic_attribute_filter
-        object_filter &= aggregate_filter
+        if is_folder_view or not choices:
+            bookmark_filter_join = self.get_bookmark_filter()
+            comic_attribute_filter = self.get_comic_attribute_filter()
+            aggregate_filter = bookmark_filter_join & comic_attribute_filter
+        else:
+            aggregate_filter = None
+        if is_folder_view:
+            object_filter &= aggregate_filter
 
         return object_filter, aggregate_filter
