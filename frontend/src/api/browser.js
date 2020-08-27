@@ -15,6 +15,10 @@ const getBrowseObjects = ({ group, pk, settings }) => {
   return ajax("put", `${BROWSE_BASE}/${group}/${pk}`, settings);
 };
 
+const getBrowseChoices = ({ group, pk, choice_type }) => {
+  return ajax("get", `${BROWSE_BASE}/${group}/${pk}/choices/${choice_type}`);
+};
+
 const setMarkRead = ({ group, pk, finished }) => {
   return ajax("patch", `${BROWSE_BASE}/${group}/${pk}/mark_read`, {
     finished,
@@ -52,6 +56,7 @@ export const getCoverSrc = (coverPath) =>
 export default {
   getBrowseOpened,
   getBrowseObjects,
+  getBrowseChoices,
   setMarkRead,
   getSocket,
 };

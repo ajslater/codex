@@ -11,7 +11,6 @@ from rest_framework.serializers import ListField
 from rest_framework.serializers import Serializer
 
 from codex.choices.static import CHOICES
-from codex.serializers.vuetify import VueIntChoiceSerializer
 
 
 VUE_MODEL_NULL_CODES = (-1, 0)
@@ -114,8 +113,6 @@ class BrowseRouteSerializer(Serializer):
 class BrowserFormChoicesSerializer(Serializer):
     """These choices change with browse context."""
 
-    decade = VueIntChoiceSerializer(many=True, read_only=True)  # noqa: N815
-    characters = VueIntChoiceSerializer(many=True, read_only=True)  # noqa: N815
     enableFolderView = BooleanField(read_only=True)  # noqa: N815
 
 
@@ -133,6 +130,7 @@ class BrowseListSerializer(Serializer):
         child=BrowseComicSerializer(read_only=True), allow_empty=True, read_only=True,
     )
     formChoices = BrowserFormChoicesSerializer(read_only=True)  # noqa: N815
+    librariesExist = BooleanField(read_only=True)  # noqa: N815
 
 
 class BrowserOpenedSerializer(Serializer):

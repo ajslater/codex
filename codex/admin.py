@@ -61,13 +61,13 @@ class AdminLibrary(ModelAdmin):
         """Scan for new comics."""
         self._scan(request, queryset, False)
 
-    scan.short_description = "Scan for new comics since last scan"
+    scan.short_description = "Scan for changes"
 
     def force_scan(self, request, queryset):
         """Scan all comics."""
         self._scan(request, queryset, True)
 
-    force_scan.short_description = "Rescan all comics"
+    force_scan.short_description = "Re-import all comics"
 
     def _on_change(self, obj, created=False):
         """Events for when the library has changed."""
