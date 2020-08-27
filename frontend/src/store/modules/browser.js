@@ -44,8 +44,8 @@ const state = {
   formChoices: {
     // determined by api
     bookmark: FORM_CHOICES.bookmarkFilter,
-    decade: [],
-    characters: [],
+    decade: null,
+    characters: null,
     sort: FORM_CHOICES.sort,
     settingsGroup: FORM_CHOICES.settingsGroup,
     show: {
@@ -106,12 +106,18 @@ const mutations = {
       enableFolderView: data.formChoices.enableFolderView,
     };
     for (let key of DYNAMIC_FILTERS) {
-      state.formChoices[key] = Object.freeze(data.formChoices[key]);
+      // Reset this every browse so the lazy loader knows to refresh it.
+      state.formChoices[key] = null;
     }
     state.browseTitle = data.browseTitle;
     state.routes.up = Object.freeze(data.upRoute);
     state.containerList = Object.freeze(data.containerList);
     state.comicList = Object.freeze(data.comicList);
+  },
+  setBrowseChoice(state, data) {
+    const key = data.key;
+    delete data.key;
+    state.formChoices[key] = Object.freeze(data);
   },
   setFilterMode(state, mode) {
     state.filterMode = mode;
@@ -305,7 +311,19 @@ const actions = {
     await API.setMarkRead(data);
     dispatch("getBrowseObjects");
   },
-  setFilterMode({ commit }, mode) {
+  async setFilterMode({ commit, state }, { group, pk, mode }) {
+    if (mode && mode !== "base" && state.formChoices[mode] == null) {
+      await API.getBrowseChoices({ group, pk, choice_type: mode })
+        .then((response) => {
+          response.data.key = mode;
+          return commit("setBrowseChoice", response.data);
+        })
+        .catch((error) => {
+          console.error("ERROR", error);
+          console.error("ERROR.RESPONSE", error.response);
+          console.error("couldn't get choices for", mode);
+        });
+    }
     commit("setFilterMode", mode);
   },
   clearFilters({ commit, dispatch, getters }) {

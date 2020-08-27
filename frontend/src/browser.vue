@@ -349,7 +349,7 @@ export default {
       // On click, reselect the current value to close the menu.
       const item = this.$refs.filterSelect.selectedItems[0];
       this.$refs.filterSelect.selectItem(item);
-      this.$store.dispatch("browser/setFilterMode", "base");
+      this.$store.dispatch("browser/setFilterMode", { mode: "base" });
     },
     reload: function () {
       this.$store.dispatch("browser/browseOpened", this.$route.params);
