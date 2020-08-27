@@ -1,3 +1,6 @@
+v0.5.3
+* Versioned API
+
 v0.5.2
 * Lazy load filter choices when the menu opens
 * Fix multiprocessing for Windows
