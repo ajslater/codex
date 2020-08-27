@@ -166,6 +166,11 @@
         </div>
       </div>
     </v-main>
+    <footer id="browserFooter">
+      <a href="https://github.com/ajslater/codex">codex</a> v{{
+        packageVersion
+      }}
+    </footer>
   </div>
 </template>
 
@@ -210,6 +215,7 @@ export default {
       librariesExist: (state) => state.librariesExist,
       itemsExist: (state) =>
         state.containerList.length + state.comicList.length > 0,
+      packageVersion: (state) => state.packageVersion,
     }),
     ...mapState("auth", {
       isAdmin: (state) =>
@@ -364,6 +370,11 @@ export default {
 </script>
 
 <style scoped lang="scss">
+#browser {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
 #browseHeader {
   position: fixed;
   z-index: 10;
@@ -406,9 +417,19 @@ export default {
   color: gray;
 }
 #noComicsFound {
-  color: gray;
   font-size: x-large;
   padding: 1em;
+  color: gray;
+}
+#browserFooter {
+  width: 100vw;
+  padding: 0.5em;
+  text-align: center;
+  font-size: small;
+  color: gray;
+}
+#browserFooter > a {
+  color: gray;
 }
 
 @import "~vuetify/src/styles/styles.sass";

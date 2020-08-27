@@ -58,6 +58,7 @@ const state = {
   filterMode: "base",
   browseLoaded: false,
   librariesExist: null,
+  packageVersion: process.env.VUE_APP_PACKAGE_VERSION,
 };
 
 const isRootGroupEnabled = (state, rootGroup) => {
