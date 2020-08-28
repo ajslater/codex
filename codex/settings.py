@@ -179,11 +179,15 @@ USE_TZ = True
 
 STATIC_ROOT = CODEX_PATH / "static_root"
 STATIC_URL = "static/"
+STATIC_SRC = CODEX_PATH / "static_src"
+STATIC_SRC.mkdir(exist_ok=True, parents=True)
+STATIC_BUILD = CODEX_PATH / "static_build"
+STATIC_BUILD.mkdir(exist_ok=True, parents=True)
 CONFIG_STATIC = CONFIG_PATH / "static"
 CONFIG_STATIC.mkdir(exist_ok=True, parents=True)
 STATICFILES_DIRS = (
-    CODEX_PATH / "static_src",
-    CODEX_PATH / "static_build",
+    STATIC_SRC,
+    STATIC_BUILD,
     CONFIG_STATIC,
 )
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
