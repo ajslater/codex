@@ -194,6 +194,8 @@ if DEV:
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 WHITENOISE_USE_FINDERS = True  # Because we don't collect covers
 WHITENOISE_KEEP_ONLY_HASHED_FILES = True
+WHITENOISE_AUTOREFRESH = True  # BUG that fails to prefix static otherwise
+# BUG Report: https://github.com/evansd/whitenoise/issues/258
 
 
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 60  # 60 days
