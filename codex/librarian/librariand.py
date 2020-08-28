@@ -42,9 +42,11 @@ from codex.librarian.scanner import scan_root
 from codex.librarian.watcherd import Uatu
 from codex.models import Comic
 from codex.models import Folder
+from codex.websocket_server import WS_API_PATH
 from codex.websocket_server import BROADCAST_MSG
 from codex.websocket_server import BROADCAST_SECRET
 from codex.websocket_server import LIBRARY_CHANGED_MSG
+from codex.websocket_server import SCAN_ROOT_MSG
 from codex.websocket_server import UNSUBSCRIBE_MSG
 
 
@@ -53,8 +55,7 @@ from codex.websocket_server import UNSUBSCRIBE_MSG
 
 LOG = logging.getLogger(__name__)
 PORT = Value("i", 9810)  # Shared memory overwritten in run.py
-BROADCAST_PATH = "broadcast"
-BROADCAST_URL_TMPL = "ws://localhost:{port}/" + BROADCAST_PATH
+BROADCAST_URL_TMPL = "ws://localhost:{port}/" + WS_API_PATH
 SHUTDOWN_MSG = "shutdown"
 MAX_WS_ATTEMPTS = 4
 librarian_proc = None
@@ -68,6 +69,8 @@ if platform.system() == "Darwin":
 
 def get_websocket():
     """Connect to the websocket broadcast url."""
+    # XXX Its just easy to do this with the same ws server event loop
+    #     instead of shared memory.
     ws = None
     attempts = 0
     while ws is None or not ws.connected and attempts <= MAX_WS_ATTEMPTS:
@@ -119,6 +122,7 @@ def librarian():
         task = QUEUE.get()
         try:
             if isinstance(task, ScanRootTask):
+                ws = send_json(ws, BROADCAST_MSG, SCAN_ROOT_MSG)
                 scan_root(task.library_id, task.force)
             elif isinstance(task, ComicModifiedTask):
                 import_comic(task.library_id, task.src_path)
