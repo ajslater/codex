@@ -38,7 +38,11 @@ app_name = "api"
 urlpatterns = [
     #
     # Browser
-    path("browse/<str:group>/<int:pk>", BrowseView.as_view(), name="browse_objects",),
+    path(
+        "browse/<str:group>/<int:pk>",
+        BrowseView.as_view(),
+        name="browse_objects",
+    ),
     path(
         "browse/<str:group>/<int:pk>/choices/<str:choice_type>",
         BrowseChoiceView.as_view(),
@@ -69,9 +73,15 @@ urlpatterns = [
         name="comic_bookmark",
     ),
     path(
-        "comic/<int:pk>/settings", ComicSettingsView.as_view(), name="comic_settings",
+        "comic/<int:pk>/settings",
+        ComicSettingsView.as_view(),
+        name="comic_settings",
     ),
-    path("comic/settings", ComicSettingsView.as_view(), name="comic_settings",),
+    path(
+        "comic/settings",
+        ComicSettingsView.as_view(),
+        name="comic_settings",
+    ),
     path("comic/<int:pk>/metadata", ComicMetadataView.as_view(), name="comic_metadata"),
     #
     # Auth

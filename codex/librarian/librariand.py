@@ -129,7 +129,8 @@ def librarian():
             elif isinstance(task, ComicCoverCreateTask):
                 # Cover creation is cpu bound, farm it out.
                 pool.apply_async(
-                    create_comic_cover, args=(task.src_path, task.db_cover_path),
+                    create_comic_cover,
+                    args=(task.src_path, task.db_cover_path),
                 )
             elif isinstance(task, FolderMovedTask):
                 obj_moved(task.src_path, task.dest_path, Folder)

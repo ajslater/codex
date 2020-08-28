@@ -48,7 +48,8 @@ def ensure_superuser():
 
     if RESET_ADMIN or not User.objects.filter(is_superuser=True).exists():
         admin_user, created = User.objects.update_or_create(
-            username="admin", defaults={"is_staff": True, "is_superuser": True},
+            username="admin",
+            defaults={"is_staff": True, "is_superuser": True},
         )
         admin_user.set_password("admin")
         admin_user.save()
