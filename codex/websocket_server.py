@@ -42,14 +42,18 @@ def get_send_msg(message):
     return msg
 
 
-async def websocket_application(scope, receive, send):
-    """Set up broadcasts."""
+def is_ws_api_path(scope):
+    """is this request on the url path we accept?"""
     path = scope.get("path")
     root_path = scope.get("root_path")
     short_path = path.lstrip(root_path)
-    if short_path != WS_API_PATH:
-        LOG.warn(f"Denied websocket connection attempt from: {short_path}")
-        return
+    return short_path != WS_API_PATH and short_path != "/" + WS_API_PATH
+
+
+async def websocket_application(scope, receive, send):
+    """Set up broadcasts."""
+    # if not is_ws_api_path(scope):
+    #    return
 
     while True:
         event = await receive()
