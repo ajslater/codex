@@ -24,6 +24,12 @@ const mutations = {
   },
 };
 
+const getters = {
+  isAdmin: (state) => {
+    return state.user && (state.user.is_staff || state.user.is_superuser);
+  },
+};
+
 const actions = {
   async loginDialogOpened({ commit }) {
     await API.registerEnabled()
@@ -77,5 +83,6 @@ export default {
   namespaced: true,
   state,
   mutations,
+  getters,
   actions,
 };

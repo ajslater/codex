@@ -1,11 +1,12 @@
 import ReconnectingWebSocket from "reconnecting-websocket";
 
-import { ajax, ROOT_PATH } from "./base";
+import { ajax, API_PREFIX, ROOT_PATH } from "./base";
 
 const BROWSE_BASE = "/browse";
-const BASE_URL = `${location.host}${ROOT_PATH}`;
 
 const debug = process.env.NODE_ENV !== "production";
+
+// REST ENDPOINTS
 
 const getBrowseOpened = ({ group, pk }) => {
   return ajax("get", `${BROWSE_BASE}/${group}/${pk}`);
@@ -25,6 +26,18 @@ const setMarkRead = ({ group, pk, finished }) => {
   });
 };
 
+const getScanInProgress = () => {
+  return ajax("get", `${BROWSE_BASE}/scan_notify/`);
+};
+
+// STATIC PATHS
+
+export const getCoverSrc = (coverPath) =>
+  `${ROOT_PATH}static/covers/${coverPath}`;
+
+// WEBSOCKETS
+
+const WS_URL = `${location.host}${API_PREFIX}/ws`;
 const WS_TIMEOUT = 19000;
 
 const keepAlive = (ws) => {
@@ -42,7 +55,7 @@ export const getSocket = () => {
     // this should never happen. use a webserver to terminate ssl.t s
     socketProto += "s";
   }
-  const socketURI = `${socketProto}://${BASE_URL}`;
+  const socketURI = `${socketProto}://${WS_URL}`;
   const ws = new ReconnectingWebSocket(socketURI, undefined, {
     debug,
   });
@@ -50,13 +63,11 @@ export const getSocket = () => {
   return ws;
 };
 
-export const getCoverSrc = (coverPath) =>
-  `${ROOT_PATH}static/covers/${coverPath}`;
-
 export default {
   getBrowseOpened,
   getBrowseObjects,
   getBrowseChoices,
+  getScanInProgress,
   setMarkRead,
   getSocket,
 };

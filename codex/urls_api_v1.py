@@ -28,6 +28,7 @@ from codex.views.reader import ComicBookmarkView
 from codex.views.reader import ComicOpenedView
 from codex.views.reader import ComicPageView
 from codex.views.reader import ComicSettingsView
+from codex.views.scan_notify import ScanNotifyView
 
 
 # from django.urls import include
@@ -48,6 +49,7 @@ urlpatterns = [
         UserBookmarkFinishedView.as_view(),
         name="mark_read",
     ),
+    path("browse/scan_notify", ScanNotifyView.as_view(), name="scan_notify"),
     path(
         "comic/<int:pk>/archive.cbz",
         ComicDownloadView.as_view(),

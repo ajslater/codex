@@ -23,7 +23,7 @@ class BrowseChoiceView(BrowseBaseView):
 
         self.params = self.get_session(self.BROWSE_KEY)
 
-        filters, _ = self.get_query_filters(choices=True)
+        filters, _ = self.get_query_filters(True)
 
         choices_comic_list = (
             Comic.objects.filter(filters)
