@@ -21,7 +21,6 @@ from codex.views.auth import RegisterView
 from codex.views.auth import UserView
 from codex.views.browse_choices import BrowseChoiceView
 from codex.views.browser import BrowseView
-from codex.views.scan_notify import ScanNotifyView
 from codex.views.metadata import ComicDownloadView
 from codex.views.metadata import ComicMetadataView
 from codex.views.metadata import UserBookmarkFinishedView
@@ -29,6 +28,7 @@ from codex.views.reader import ComicBookmarkView
 from codex.views.reader import ComicOpenedView
 from codex.views.reader import ComicPageView
 from codex.views.reader import ComicSettingsView
+from codex.views.scan_notify import ScanNotifyView
 
 
 # from django.urls import include

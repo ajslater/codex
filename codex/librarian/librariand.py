@@ -42,12 +42,12 @@ from codex.librarian.scanner import scan_root
 from codex.librarian.watcherd import Uatu
 from codex.models import Comic
 from codex.models import Folder
-from codex.websocket_server import WS_API_PATH
 from codex.websocket_server import BROADCAST_MSG
 from codex.websocket_server import BROADCAST_SECRET
 from codex.websocket_server import LIBRARY_CHANGED_MSG
 from codex.websocket_server import SCAN_ROOT_MSG
 from codex.websocket_server import UNSUBSCRIBE_MSG
+from codex.websocket_server import WS_API_PATH
 
 
 # from django.utils.autoreload import file_changed
