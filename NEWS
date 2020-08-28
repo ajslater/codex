@@ -1,3 +1,6 @@
+v0.5.4
+* Fix crash on start if all static dirs do not exist.
+
 v0.5.3
 * Fixed login bug introduces in v0.5.3 (thanks hubcaps)
 * Fixed filtering bug introduced in v0.5.2
