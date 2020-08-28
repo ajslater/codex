@@ -12,17 +12,17 @@
               :cover-path="item.cover_path"
               :progress="+item.progress"
             />
+            <div
+              v-if="!item.finished"
+              class="unreadFlag"
+              :class="{ mixedreadFlag: item.finished === null }"
+            />
             <div class="coverOverlay">
               <router-link class="browseLink" :to="getToRoute(item)">
                 <div class="coverOverlayTopRow">
                   <span v-if="item.child_count" class="childCount">
                     {{ item.child_count }}
                   </span>
-                  <div
-                    v-if="!item.finished"
-                    class="unreadFlag"
-                    :class="{ mixedreadFlag: item.finished === null }"
-                  />
                 </div>
                 <div class="coverOverlayMiddleRow">
                   <v-icon v-if="item.group === 'c'">{{ mdiEye }}</v-icon>
@@ -128,9 +128,11 @@ export default {
   width: 100%;
   text-align: center;
   border-radius: 5px;
+  border: solid thin transparent;
 }
 .coverWrapper:hover > .coverOverlay {
   background-color: rgba(0, 0, 0, 0.5);
+  border: solid thin #cc7b19;
 }
 .coverOverlay > * {
   width: 100%;
