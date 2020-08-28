@@ -1,6 +1,6 @@
 import axios from "axios";
 export const ROOT_PATH = `${window.rootPath}`;
-export const API_PREFIX = `${ROOT_PATH}api`;
+export const API_PREFIX = `${ROOT_PATH}api/v1`;
 const CONFIG = {
   baseURL: API_PREFIX,
   withCredentials: true,

@@ -144,27 +144,45 @@
       <BrowseCard :item-list="comicList" />
     </v-main>
     <v-main v-else-if="librariesExist" id="browsePane">
-      <h1>No comics found for these filters.</h1>
+      <div id="noComicsFound">No comics found for these filters</div>
     </v-main>
     <v-main v-else id="browsePane">
       <div id="noLibraries">
-        <h1>No libraries have been added to Codex yet.</h1>
+        <h1>No libraries have been added to Codex yet</h1>
         <h2 v-if="isAdmin">
-          Go to <a :href="adminURL">the admin panel</a> and add a comic library.
+          Use the top right <v-icon>{{ mdiDotsVertical }}</v-icon> menu to
+          navigate to the admin panel and add a comic library
         </h2>
         <div v-else>
           <h2>
             An administrator must login to add some libraries that contain
-            comics.
+            comics
           </h2>
           <h3>
             You may log in or register with the top right
             <v-icon>{{ mdiDotsVertical }}</v-icon
-            >menu.
+            >menu
           </h3>
         </div>
       </div>
     </v-main>
+    <footer id="browserFooter">
+      <a href="https://github.com/ajslater/codex">codex</a> v{{
+        packageVersion
+      }}
+    </footer>
+    <v-snackbar
+      id="scanNotify"
+      :value="scanNotify"
+      bottom
+      right
+      rounded
+      width="183"
+      timeout="1100"
+    >
+      Scanning Libraries
+      <v-progress-circular size="18" indeterminate color="#cc7b19" />
+    </v-snackbar>
   </div>
 </template>
 
@@ -209,11 +227,10 @@ export default {
       librariesExist: (state) => state.librariesExist,
       itemsExist: (state) =>
         state.containerList.length + state.comicList.length > 0,
+      packageVersion: (state) => state.packageVersion,
+      scanNotify: (state) => state.scanNotify,
     }),
-    ...mapState("auth", {
-      isAdmin: (state) =>
-        state.user && (state.user.is_staff || state.user.is_superuser),
-    }),
+    ...mapGetters("auth", ["isAdmin"]),
     ...mapGetters("browser", ["rootGroupChoices", "filterNames"]),
     upTo: function () {
       if (this.showUpButton) {
@@ -314,12 +331,7 @@ export default {
   created() {
     this.$store.dispatch("browser/browseOpened", this.$route.params);
     this.socket = getSocket();
-    this.socket.addEventListener("message", (event) => {
-      if (event.data === "libraryChanged") {
-        console.log("libraryChanged");
-        this.$store.dispatch("browser/getBrowseObjects");
-      }
-    });
+    this.socket.addEventListener("message", this.websocketListener);
   },
   beforeDestroy() {
     if (this.socket) {
@@ -327,6 +339,14 @@ export default {
     }
   },
   methods: {
+    websocketListener: function (event) {
+      console.log("websocket push:", event.data);
+      if (event.data === "libraryChanged") {
+        this.$store.dispatch("browser/getBrowseObjects");
+      } else if (this.isAdmin && event.data === "scanLibrary") {
+        this.$store.dispatch("browser/scanNotify", true);
+      }
+    },
     settingChanged: function (data) {
       this.$store.dispatch("browser/settingChanged", data);
     },
@@ -363,6 +383,11 @@ export default {
 </script>
 
 <style scoped lang="scss">
+#browser {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
 #browseHeader {
   position: fixed;
   z-index: 10;
@@ -404,12 +429,32 @@ export default {
 #settingsGroupCaption {
   color: gray;
 }
+#noComicsFound {
+  font-size: x-large;
+  padding: 1em;
+  color: gray;
+}
+#browserFooter {
+  width: 100vw;
+  padding: 0.5em;
+  text-align: center;
+  font-size: small;
+  color: gray;
+}
+#browserFooter > a {
+  color: gray;
+}
+
+@import "~vuetify/src/styles/styles.sass";
+@media #{map-get($display-breakpoints, 'sm-and-down')} {
+  #noComicsFound {
+    font-size: large;
+  }
+}
 </style>
 
 <!-- eslint-disable vue-scoped-css/require-scoped -->
 <style lang="scss">
-@import "~vuetify/src/styles/styles.sass";
-
 #filterToolbar > .v-toolbar__content {
   padding-right: 0px;
 }
@@ -458,6 +503,11 @@ export default {
 #noLibraries {
   text-align: center;
 }
+#scanNotify > .v-snack__wrapper {
+  min-width: 183px;
+}
+
+@import "~vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   .toolbarSelect {
     font-size: 12px;

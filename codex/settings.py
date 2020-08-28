@@ -188,8 +188,6 @@ STATICFILES_DIRS = (
 )
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 WHITENOISE_USE_FINDERS = True  # Because we don't collect covers
-WHITENOISE_AUTOREFRESH = True  # BUG that fails to prefix static otherwise
-# BUG Report: https://github.com/evansd/whitenoise/issues/258
 WHITENOISE_KEEP_ONLY_HASHED_FILES = True
 
 
