@@ -128,9 +128,11 @@ export default {
   width: 100%;
   text-align: center;
   border-radius: 5px;
+  border: solid thin transparent;
 }
 .coverWrapper:hover > .coverOverlay {
   background-color: rgba(0, 0, 0, 0.5);
+  border: solid thin #cc7b19;
 }
 .coverOverlay > * {
   width: 100%;
