@@ -1,3 +1,6 @@
+v0.5.5
+* Revert to whitenoise 5.1.0 which works with subpaths
+
 v0.5.4
 * Fix crash on start if all static dirs do not exist.
 
