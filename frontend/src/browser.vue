@@ -230,10 +230,7 @@ export default {
       packageVersion: (state) => state.packageVersion,
       scanNotify: (state) => state.scanNotify,
     }),
-    ...mapState("auth", {
-      isAdmin: (state) =>
-        state.user && (state.user.is_staff || state.user.is_superuser),
-    }),
+    ...mapGetters("auth", ["isAdmin"]),
     ...mapGetters("browser", ["rootGroupChoices", "filterNames"]),
     upTo: function () {
       if (this.showUpButton) {
