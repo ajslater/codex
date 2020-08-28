@@ -241,7 +241,11 @@ class Folder(NamedModel):
     PARENT_FIELD = "folder"
     library = ForeignKey(Library, on_delete=CASCADE)
     path = CharField(max_length=128, db_index=True, validators=[validate_dir_exists])
-    parent_folder = ForeignKey("Folder", on_delete=CASCADE, null=True,)
+    parent_folder = ForeignKey(
+        "Folder",
+        on_delete=CASCADE,
+        null=True,
+    )
     sort_name = CharField(max_length=32)
 
     def save(self, *args, **kwargs):

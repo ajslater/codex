@@ -59,7 +59,8 @@ class BrowserSettingsFilterSerializer(Serializer):
         validators=(validate_null_filter, validate_decades),
     )
     characters = ListField(  # noqa: N815
-        child=IntegerField(allow_null=True), validators=(validate_null_filter,),
+        child=IntegerField(allow_null=True),
+        validators=(validate_null_filter,),
     )
 
 
@@ -127,7 +128,9 @@ class BrowseListSerializer(Serializer):
         read_only=True,
     )
     comicList = ListField(  # noqa: N815
-        child=BrowseComicSerializer(read_only=True), allow_empty=True, read_only=True,
+        child=BrowseComicSerializer(read_only=True),
+        allow_empty=True,
+        read_only=True,
     )
     formChoices = BrowserFormChoicesSerializer(read_only=True)  # noqa: N815
     librariesExist = BooleanField(read_only=True)  # noqa: N815

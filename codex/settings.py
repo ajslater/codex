@@ -181,11 +181,16 @@ STATIC_ROOT = CODEX_PATH / "static_root"
 STATIC_URL = "static/"
 CONFIG_STATIC = CONFIG_PATH / "static"
 CONFIG_STATIC.mkdir(exist_ok=True, parents=True)
-STATICFILES_DIRS = (
-    CODEX_PATH / "static_src",
-    CODEX_PATH / "static_build",
-    CONFIG_STATIC,
-)
+STATICFILES_DIRS = [CONFIG_STATIC]
+if DEV:
+    STATIC_SRC = CODEX_PATH / "static_src"
+    STATIC_SRC.mkdir(exist_ok=True, parents=True)
+    STATIC_BUILD = CODEX_PATH / "static_build"
+    STATIC_BUILD.mkdir(exist_ok=True, parents=True)
+    STATICFILES_DIRS += [
+        STATIC_SRC,
+        STATIC_BUILD,
+    ]
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 WHITENOISE_USE_FINDERS = True  # Because we don't collect covers
 WHITENOISE_KEEP_ONLY_HASHED_FILES = True

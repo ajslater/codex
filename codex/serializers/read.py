@@ -19,7 +19,9 @@ class ComicReaderSettingsSerializer(Serializer):
     """Reader settings the user can change."""
 
     fitTo = ChoiceField(  # noqa: N815
-        choices=tuple(CHOICES["fitTo"].keys()), allow_null=True, required=False,
+        choices=tuple(CHOICES["fitTo"].keys()),
+        allow_null=True,
+        required=False,
     )
     twoPages = BooleanField(allow_null=True, required=False)  # noqa: N815
 

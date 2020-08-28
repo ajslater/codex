@@ -53,7 +53,10 @@ class BrowseBaseView(APIView, SessionMixin):
         choice = self.params["filters"].get("bookmark", "ALL")
 
         bookmark_filter = Q()
-        if choice in ("UNREAD", "IN_PROGRESS",):
+        if choice in (
+            "UNREAD",
+            "IN_PROGRESS",
+        ):
             bookmark_filter &= (
                 Q(comic__userbookmark__finished=False)
                 | Q(comic__userbookmark=None)
