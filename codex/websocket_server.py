@@ -81,7 +81,6 @@ async def websocket_application(scope, receive, send):
                         for send in BROADCAST_CONNS:
                             # XXX can't tell who's an admin so send to
                             # everyone
-                            print(f"DIRECT BROADCAST {message}")
                             send_msg = {"text": message}
                             send_msg.update(WS_SEND_MSG)
                             await send(send_msg)

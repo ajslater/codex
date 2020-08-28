@@ -21,6 +21,7 @@ from codex.views.auth import RegisterView
 from codex.views.auth import UserView
 from codex.views.browse_choices import BrowseChoiceView
 from codex.views.browser import BrowseView
+from codex.views.scan_notify import ScanNotifyView
 from codex.views.metadata import ComicDownloadView
 from codex.views.metadata import ComicMetadataView
 from codex.views.metadata import UserBookmarkFinishedView
@@ -48,6 +49,7 @@ urlpatterns = [
         UserBookmarkFinishedView.as_view(),
         name="mark_read",
     ),
+    path("browse/scan_notify", ScanNotifyView.as_view(), name="scan_notify"),
     path(
         "comic/<int:pk>/archive.cbz",
         ComicDownloadView.as_view(),

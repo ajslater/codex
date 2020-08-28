@@ -138,3 +138,9 @@ class BrowserOpenedSerializer(Serializer):
 
     settings = BrowserSettingsSerializer(read_only=True)
     browseList = BrowseListSerializer(read_only=True)  # noqa: N815
+
+
+class ScanNotifySerializer(Serializer):
+    """Scan notify flag."""
+
+    scanInProgress = BooleanField(read_only=True)  # noqa: N815
