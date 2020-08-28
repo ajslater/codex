@@ -1,7 +1,7 @@
 #!/bin/bash
 # Run all codex tests
 set -euxo pipefail
-mkdir -p test-results
+mkdir -p test-results codex/static_build
 poetry run pytest
 # pytest-cov leaves .coverage.$HOST.$PID.$RAND files around while coverage itself doesn't
 bash -c "cd frontend && npm run test:unit"

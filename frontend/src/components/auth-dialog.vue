@@ -26,7 +26,7 @@
         </v-list-item-content>
       </v-list-item>
     </template>
-    <v-form ref="loginForm" @submit="processLogin">
+    <v-form ref="loginForm">
       <v-text-field
         v-model="credentials.username"
         :error-messages="usernameErrors"
@@ -34,26 +34,37 @@
         :rules="usernameRules"
         clearable
         autofocus
+        @keydown.enter="$refs.password.focus()"
       />
       <v-text-field
+        ref="password"
         v-model="credentials.password"
         :error-messages="passwordErrors"
         label="Password"
         :rules="passwordRules"
         clearable
         type="password"
+        @keydown.enter="
+          if (registerMode) {
+            $refs.confirmPassword.focus();
+          } else {
+            processLogin();
+          }
+        "
       />
       <v-expand-transition>
         <v-text-field
           v-if="registerMode"
+          ref="confirmPassword"
           v-model="confirmPassword"
           label="Confirm Password"
           :rules="confirmPasswordRules"
           clearable
           type="password"
+          @keydown.enter="processLogin"
         />
       </v-expand-transition>
-      <v-btn ripple type="submit" @click="processLogin">
+      <v-btn ripple @click="processLogin">
         {{ loginButtonLabel }}
       </v-btn>
       <v-switch

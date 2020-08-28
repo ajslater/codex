@@ -39,7 +39,7 @@ urlpatterns = [
     ),
     path("browserconfig.xml", browserconfig, name="browserconfig"),
     path("site.webmanifest", webmanifest, name="webmanifest"),
-    path("api/", include("codex.urls_api")),
+    path("api/v1/", include("codex.urls_api_v1")),
     path("admin/", admin.site.urls, name="admin"),
     path("", app, name="app"),
     re_path(".*", app, name="app"),

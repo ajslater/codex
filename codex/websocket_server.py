@@ -25,11 +25,14 @@ BROADCAST_MSG = "broadcast"
 # Shared memory broadcast security
 BROADCAST_SECRET = Value("i", random.randint(0, 100))
 LIBRARY_CHANGED_MSG = "libraryChanged"
+SCAN_ROOT_MSG = "scanLibrary"
+WS_API_PATH = "api/v1/ws"
 
 # Flood control
 MESSAGE_QUEUE = Queue()
 SHUTDOWN_MSG = "shutdown"
 FLOOD_DELAY = 2  # wait seconds before broadcasting
+MAX_FLOOD_WAIT_TIME = 20
 
 
 def get_send_msg(message):
@@ -41,6 +44,13 @@ def get_send_msg(message):
 
 async def websocket_application(scope, receive, send):
     """Set up broadcasts."""
+    path = scope.get("path")
+    root_path = scope.get("root_path")
+    short_path = path.lstrip(root_path)
+    if short_path != WS_API_PATH:
+        LOG.warn("Denied websocket connection attempt from: {short_path}")
+        return
+
     while True:
         event = await receive()
 
@@ -55,22 +65,32 @@ async def websocket_application(scope, receive, send):
             try:
                 msg = json.loads(event["text"])
                 msg_type = msg.get("type")
+                message = msg.get("message")
                 if msg_type == UNSUBSCRIBE_MSG:
                     BROADCAST_CONNS.remove(send)
+
                 elif (
                     msg_type == BROADCAST_MSG
                     and msg.get("secret") == BROADCAST_SECRET.value
                 ):
-                    message = msg.get("message")
-                    if message:
+                    if message != SCAN_ROOT_MSG:
+                        # flood control library changed messages
                         MESSAGE_QUEUE.put((message, time.time()))
+                    else:
+                        # don't flood control
+                        for send in BROADCAST_CONNS:
+                            # XXX can't tell who's an admin so send to
+                            # everyone
+                            send_msg = {"text": message}
+                            send_msg.update(WS_SEND_MSG)
+                            await send(send_msg)
             except JSONDecodeError as exc:
                 LOG.error(exc)
 
 
 def flood_control_worker():
     """
-    Delay all broadcast messages for flood control.
+    Delay some broadcast messages for flood control.
 
     This thread runs in the main ASGI process to access the websockets.
     This lets other workers flood us with as many messages as they
@@ -80,12 +100,14 @@ def flood_control_worker():
     """
     LOG.info("Broadcast flood control worker started.")
     while True:
+        waiting_since = time.time()
         message, timestamp = MESSAGE_QUEUE.get()
         if message == SHUTDOWN_MSG:
             break
-        if MESSAGE_QUEUE.empty():
+        wait_break = time.time() - waiting_since > MAX_FLOOD_WAIT_TIME
+        if MESSAGE_QUEUE.empty() or wait_break:
             wait_left = timestamp + FLOOD_DELAY - time.time()
-            if wait_left <= 0:
+            if wait_left <= 0 or wait_break:
                 cache.clear()
                 msg = {"text": message}
                 msg.update(WS_SEND_MSG)

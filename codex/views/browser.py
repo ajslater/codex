@@ -355,7 +355,6 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
         efv_flag = AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_FOLDER_VIEW)
 
         libraries_exist = Library.objects.exists()
-        print(f"{libraries_exist=}")
 
         context = {
             "upRoute": up_route,
