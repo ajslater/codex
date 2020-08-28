@@ -1,6 +1,6 @@
 REPO=ajslater/codex
 IMAGE=ajslater/codex
 BASE_VERSION=latest
-PKG_VERSION=v0.5.5
+PKG_VERSION=v0.5.6
 PUID=501
 PGID=20
