@@ -19,6 +19,8 @@ export const GROUP_FLAGS = {
   f: ["formChoices", "enableFolderView"],
 };
 import FORM_CHOICES from "@/choices/browserChoices";
+const MIN_SCAN_WAIT = 5000;
+const MAX_SCAN_WAIT = 10000;
 
 let SETTINGS_SHOW_DEFAULTS = {};
 for (let choice of FORM_CHOICES.settingsGroup) {
@@ -59,6 +61,7 @@ const state = {
   browseLoaded: false,
   librariesExist: null,
   packageVersion: process.env.VUE_APP_PACKAGE_VERSION,
+  scanNotify: false,
 };
 
 const isRootGroupEnabled = (state, rootGroup) => {
@@ -131,6 +134,9 @@ const mutations = {
     for (let filterName of filterNames) {
       state.settings.filters[filterName] = [];
     }
+  },
+  setScanNotify(state, data) {
+    state.scanNotify = data.scanInProgress;
   },
 };
 
@@ -244,6 +250,28 @@ const isNeedValidate = (changedData) => {
   return Boolean(intersection.length);
 };
 
+const scanNotifyCheck = (commit, state) => {
+  // thundering herd control
+  const wait = Math.floor(
+    Math.random() * (MAX_SCAN_WAIT - MIN_SCAN_WAIT) + MIN_SCAN_WAIT
+  );
+  setTimeout(async () => {
+    await API.getScanInProgress()
+      .then((response) => {
+        const data = response.data;
+        commit("setScanNotify", data);
+        if (state.scanNotify) {
+          return scanNotifyCheck(commit, state);
+        }
+        return null;
+      })
+      .catch((error) => {
+        console.log("ERROR", error);
+        console.log("scanNotifyCheck Response", error.response);
+      });
+  }, wait);
+};
+
 const actions = {
   async browseOpened({ state, commit, dispatch }, route) {
     // Gets everything needed to open the component.
@@ -332,6 +360,10 @@ const actions = {
   clearFilters({ commit, dispatch, getters }) {
     commit("clearFilters", getters.filterNames);
     dispatch("getBrowseObjects");
+  },
+  scanNotify({ commit, state }, value) {
+    commit("setScanNotify", { scanInProgress: value });
+    scanNotifyCheck(commit, state);
   },
 };
 

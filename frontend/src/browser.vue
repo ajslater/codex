@@ -171,6 +171,18 @@
         packageVersion
       }}
     </footer>
+    <v-snackbar
+      id="scanNotify"
+      :value="scanNotify"
+      bottom
+      right
+      rounded
+      width="183"
+      timeout="1100"
+    >
+      Scanning Libraries
+      <v-progress-circular size="18" indeterminate color="#cc7b19" />
+    </v-snackbar>
   </div>
 </template>
 
@@ -216,6 +228,7 @@ export default {
       itemsExist: (state) =>
         state.containerList.length + state.comicList.length > 0,
       packageVersion: (state) => state.packageVersion,
+      scanNotify: (state) => state.scanNotify,
     }),
     ...mapState("auth", {
       isAdmin: (state) =>
@@ -321,12 +334,7 @@ export default {
   created() {
     this.$store.dispatch("browser/browseOpened", this.$route.params);
     this.socket = getSocket();
-    this.socket.addEventListener("message", (event) => {
-      if (event.data === "libraryChanged") {
-        console.log("libraryChanged");
-        this.$store.dispatch("browser/getBrowseObjects");
-      }
-    });
+    this.socket.addEventListener("message", this.websocketListener);
   },
   beforeDestroy() {
     if (this.socket) {
@@ -334,6 +342,14 @@ export default {
     }
   },
   methods: {
+    websocketListener: function (event) {
+      console.log("websocket push:", event.data);
+      if (event.data === "libraryChanged") {
+        this.$store.dispatch("browser/getBrowseObjects");
+      } else if (this.isAdmin && event.data === "scanLibrary") {
+        this.$store.dispatch("browser/scanNotify", true);
+      }
+    },
     settingChanged: function (data) {
       this.$store.dispatch("browser/settingChanged", data);
     },
@@ -489,6 +505,9 @@ export default {
 }
 #noLibraries {
   text-align: center;
+}
+#scanNotify > .v-snack__wrapper {
+  min-width: 183px;
 }
 
 @import "~vuetify/src/styles/styles.sass";

@@ -1,5 +1,8 @@
 v0.5.3
+* Fixed filtering bug introduced in v0.5.2
 * Versioned API
+* Toast popup for admins indicating libraries being scanned.
+* Codex version displayed in browser footer
 
 v0.5.2
 * Lazy load filter choices when the menu opens

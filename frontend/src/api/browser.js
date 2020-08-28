@@ -26,6 +26,10 @@ const setMarkRead = ({ group, pk, finished }) => {
   });
 };
 
+const getScanInProgress = () => {
+  return ajax("get", `${BROWSE_BASE}/scan_notify/`);
+};
+
 // STATIC PATHS
 
 export const getCoverSrc = (coverPath) =>
@@ -63,6 +67,7 @@ export default {
   getBrowseOpened,
   getBrowseObjects,
   getBrowseChoices,
+  getScanInProgress,
   setMarkRead,
   getSocket,
 };
