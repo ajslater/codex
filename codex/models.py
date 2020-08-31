@@ -328,7 +328,7 @@ class Credit(BaseModel):
     """A creator credit."""
 
     person = ForeignKey(CreditPerson, on_delete=CASCADE)
-    role = ForeignKey(CreditRole, on_delete=CASCADE)
+    role = ForeignKey(CreditRole, on_delete=CASCADE, null=True)
 
     class Meta:
         """Constraints."""
