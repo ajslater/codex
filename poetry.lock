@@ -168,7 +168,7 @@ description = "An API for reading comic archives"
 name = "comicbox"
 optional = false
 python-versions = ">=3.7,<4.0"
-version = "0.1.0"
+version = "0.1.3"
 
 [package.dependencies]
 parse = ">=1.15,<2.0"
@@ -596,7 +596,7 @@ description = "parse() is the opposite of format()"
 name = "parse"
 optional = false
 python-versions = "*"
-version = "1.16.0"
+version = "1.17.0"
 
 [[package]]
 category = "dev"
@@ -1071,7 +1071,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools", "func-timeout"]
 
 [metadata]
-content-hash = "eff834c47d8100ee007c3baa6d988ffce9d7588630988a0efce0359963b044e5"
+content-hash = "55ffbcd5d76b1d9830f578a4c3bc83727c23a833894d53f855e31297e03a8b62"
 lock-version = "1.0"
 python-versions = "^3.7"
 
@@ -1202,8 +1202,8 @@ coloredlogs = [
     {file = "coloredlogs-14.0.tar.gz", hash = "sha256:a1fab193d2053aa6c0a97608c4342d031f1f93a3d1218432c59322441d31a505"},
 ]
 comicbox = [
-    {file = "comicbox-0.1.0-py3-none-any.whl", hash = "sha256:6a5cd668f2529c5fdcb8e7819f7db7b23c215e6cd68b276d0c3fa4f1eefa3883"},
-    {file = "comicbox-0.1.0.tar.gz", hash = "sha256:a0de647a3737e40aa03d712417572ea55ffde1b875e3362d5b062c83fb3c418f"},
+    {file = "comicbox-0.1.3-py3-none-any.whl", hash = "sha256:56820370ecc05ef7505b8a1a8d0e019c665eebf0824330a14c99f340829dc263"},
+    {file = "comicbox-0.1.3.tar.gz", hash = "sha256:c48d30d807d183b9d108ae2e76a8d5113f91d1844bc71e0b9b7d43acaaa276cc"},
 ]
 coverage = [
     {file = "coverage-5.2.1-cp27-cp27m-macosx_10_13_intel.whl", hash = "sha256:40f70f81be4d34f8d491e55936904db5c527b0711b2a46513641a5729783c2e4"},
@@ -1432,7 +1432,7 @@ packaging = [
     {file = "packaging-20.4.tar.gz", hash = "sha256:4357f74f47b9c12db93624a82154e9b120fa8293699949152b22065d556079f8"},
 ]
 parse = [
-    {file = "parse-1.16.0.tar.gz", hash = "sha256:cd89e57aed38dcf3e0ff8253f53121a3b23e6181758993323658bffc048a5c19"},
+    {file = "parse-1.17.0.tar.gz", hash = "sha256:c7806139a481ec8c8336a54418894c8b201314f8ecc63e55f438f4b72bdc4485"},
 ]
 parso = [
     {file = "parso-0.7.1-py2.py3-none-any.whl", hash = "sha256:97218d9159b2520ff45eb78028ba8b50d2bc61dcc062a9682666f2dc4bd331ea"},
