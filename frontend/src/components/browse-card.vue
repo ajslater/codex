@@ -175,7 +175,6 @@ export default {
   border-radius: 50%;
   background-color: black;
   color: white;
-  opacity: 0.75;
 }
 .unreadFlag {
   position: absolute;
