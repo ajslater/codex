@@ -82,7 +82,7 @@ omit = ["frontend"]
 directory = "test-results/coverage"
 
 [tool.black]
-exclude = "/(.git|__pycache__|.pytest_cache|frontend|codex/migrations)/"
+exclude = "/(.git|__pycache__|.pytest_cache|frontend)/"
 
 [tool.pytest.ini_options]
 norecursedirs = ["frontend"]
