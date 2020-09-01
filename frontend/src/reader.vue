@@ -313,8 +313,8 @@ export default {
 
 <style scoped lang="scss">
 #readerContainer {
-  margin: 0px;
   padding: 0px;
+  max-width: 100%;
 }
 /* NAV COLUMNS */
 #navOverlay {
@@ -344,13 +344,10 @@ export default {
 
 /* PAGES */
 #pagesContainer {
-  text-align: center;
 }
 #pages {
-  margin: auto;
-  white-space: nowrap;
+  text-align: center;
 }
-
 .toolbar {
   width: 100%;
   position: fixed;
