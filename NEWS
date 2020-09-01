@@ -4,6 +4,7 @@ v0.5.7
 * center comic pages better
 * add download link to browser menu
 * log to files as well as console.
+* remove scan locks on startup
 
 v0.5.6
 * websocket path security was handling leading slashes badly. just skip it.

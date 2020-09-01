@@ -47,7 +47,7 @@ class AdminLibrary(ModelAdmin):
         #  This a django bug.
         "last_scan",
     )
-    readonly_fields = ("last_scan",)
+    # readonly_fields = ("last_scan",)
     sortable_by = list_display
 
     def _scan(self, request, queryset, force):

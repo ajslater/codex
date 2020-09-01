@@ -17,6 +17,7 @@ from codex.librarian.librariand import PORT
 from codex.settings import CODEX_PATH
 from codex.settings import CONFIG_PATH
 from codex.settings import CONFIG_STATIC
+from codex.models import Library
 
 
 CONFIG_TOML = CONFIG_PATH / "hypercorn.toml"
@@ -57,11 +58,22 @@ def ensure_superuser():
         LOG.info(f"{prefix}ated admin user.")
 
 
+def unset_scan_in_progress():
+    stuck_libraries = Library.objects.filter(scan_in_progress=True).only(
+        "scan_in_progress", "path"
+    )
+    for library in stuck_libraries:
+        library.scan_in_progress = False
+        LOG.info(f"Removing scan lock from {library.path}")
+    Library.objects.bulk_update(stuck_libraries, ["scan_in_progress"])
+
+
 def setup_db():
     """Setup the database before we run."""
     django.setup()
     update_db()
     ensure_superuser()
+    unset_scan_in_progress()
 
 
 def run():
