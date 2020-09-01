@@ -183,6 +183,7 @@ export default {
         pk: +to.params.pk,
         pageNumber: +to.params.pageNumber,
       });
+      window.scrollTo(0, 0);
     },
   },
   beforeCreate() {
