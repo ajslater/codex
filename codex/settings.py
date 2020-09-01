@@ -44,12 +44,18 @@ DEV = bool(os.environ.get("DEV", False))
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = DEV or bool(os.environ.get("DEBUG", False))
 
+LOG_DIR = CONFIG_PATH / "logs"
+LOG_DIR.mkdir(exist_ok=True, parents=True)
+LOG_FILENAME = LOG_DIR / "codex.log"
 if DEBUG:
     LOG_LEVEL = "DEBUG"
 else:
     LOG_LEVEL = "INFO"
 
 logging.basicConfig(level=LOG_LEVEL)
+LOG_FILE_HANDLER = logging.handlers.TimedRotatingFileHandler(
+    LOG_FILENAME, when="D", backupCount=30
+)
 FMT = "%(asctime)s %(name)s[%(process)d] %(levelname)s %(message)s"
 # https://coloredlogs.readthedocs.io/en/latest/api.html#changing-the-colors-styles
 LEVEL_STYLES = {
@@ -64,6 +70,8 @@ LEVEL_STYLES = {
     "critical": {"color": "red", "bold": True},
 }
 coloredlogs.install(level=LOG_LEVEL, fmt=FMT, level_styles=LEVEL_STYLES)
+LOG_FILE_HANDLER.setFormatter(logging.Formatter(FMT))
+logging.getLogger("").addHandler(LOG_FILE_HANDLER)
 
 ALLOWED_HOSTS = ["*"]
 
