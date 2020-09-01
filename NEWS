@@ -1,6 +1,9 @@
 v0.5.7
 * update comicbox to v1.3 should fix many import crashes
 * allow credits with an empty role
+* center comic pages better
+* add download link to browser menu
+* log to files as well as console.
 
 v0.5.6
 * websocket path security was handling leading slashes badly. just skip it.
