@@ -57,16 +57,6 @@ class BrowseContainerModel(BaseModel):
 
         abstract = True
 
-    @property
-    def header_name(self):
-        """Most objects don't need a header name."""
-        return None
-
-    @property
-    def display_name(self):
-        """Most objects just display their name."""
-        return self.name
-
 
 class Publisher(BrowseContainerModel):
     """The publisher of the comic."""
@@ -111,11 +101,6 @@ class Imprint(BrowseContainerModel):
         self.sort_name = f"{self.publisher.name} {self.name}"
         super().save(*args, **kwargs)
 
-    @property
-    def header_name(self):
-        """Disambiguate with the parent name."""
-        return self.publisher.name
-
 
 class Series(BrowseContainerModel):
     """The series the comic belongs to."""
@@ -148,38 +133,6 @@ class Volume(BrowseContainerModel):
     imprint = ForeignKey(Imprint, on_delete=CASCADE)
     series = ForeignKey(Series, on_delete=CASCADE)
     issue_count = DecimalField(decimal_places=2, max_digits=6, null=True)
-
-    @property
-    def header_name(self):
-        """Disambiguate with the parent name."""
-        return self.series.name
-
-    def _display_name(self, long_name=True):
-        """Get a display volume name."""
-        name = str(self.name)
-        if len(name) == 4 and name.isdigit():
-            vol_name = f"({name})"
-        elif name:
-            if long_name:
-                vol_name = f"Volume {name}"
-            else:
-                vol_name = f"v{name}"
-        else:
-            vol_name = ""
-        volume_count = self.series.volume_count
-        if volume_count:
-            vol_name += f" of {volume_count}"
-        return vol_name
-
-    @property
-    def display_name(self):
-        """Regular display name."""
-        return self._display_name()
-
-    @property
-    def short_display_name(self):
-        """Short display name for comic issue display."""
-        return self._display_name(False)
 
     def save(self, *args, **kwargs):
         """Save the sort name."""
@@ -239,8 +192,8 @@ class Folder(NamedModel):
     """File system folder."""
 
     PARENT_FIELD = "folder"
-    library = ForeignKey(Library, on_delete=CASCADE)
     path = CharField(max_length=128, db_index=True, validators=[validate_dir_exists])
+    library = ForeignKey(Library, on_delete=CASCADE)
     parent_folder = ForeignKey(
         "Folder",
         on_delete=CASCADE,
@@ -257,16 +210,6 @@ class Folder(NamedModel):
         """Constraints."""
 
         unique_together = ("library", "path")
-
-    @property
-    def header_name(self):
-        """Most objects don't need a header."""
-        return None
-
-    @property
-    def display_name(self):
-        """Most objects just display their name."""
-        return self.name
 
 
 Folder.CHILD_CLASS = Folder
@@ -435,21 +378,6 @@ class Comic(BaseModel):
         else:
             issue_str = f"#{self.issue:05.1f}"
         return issue_str
-
-    @property
-    def header_name(self):
-        """Set long name for disambiguation."""
-        header_name = self.volume.sort_name + " "
-        header_name += self._get_display_issue()
-        issue_count = self.volume.issue_count
-        if issue_count:
-            header_name += f" of {issue_count}"
-        return header_name
-
-    @property
-    def display_name(self):
-        """Return the title for display purposes."""
-        return self.title
 
     def save(self, *args, **kwargs):
         """Save computed fields."""

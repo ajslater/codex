@@ -10,7 +10,7 @@ Vue.use(VueRouter);
 
 const DEFAULT_ROUTE = {
   name: "browser",
-  params: { group: "r", pk: 0 },
+  params: { group: "r", pk: 0, page: 1 },
 };
 
 const routes = [
@@ -22,7 +22,7 @@ const routes = [
   },
   {
     name: "browser",
-    path: "/browse/:group/:pk",
+    path: "/browse/:group/:pk/:page",
     component: Browser,
     props: true,
   },

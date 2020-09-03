@@ -2,6 +2,7 @@
 from rest_framework.serializers import BooleanField
 from rest_framework.serializers import CharField
 from rest_framework.serializers import ChoiceField
+from rest_framework.serializers import DecimalField
 from rest_framework.serializers import IntegerField
 from rest_framework.serializers import Serializer
 
@@ -40,10 +41,19 @@ class ComicReaderRoutesSerializer(Serializer):
     nextBook = ComicPageRouteSerializer(allow_null=True, read_only=True)  # noqa: N815
 
 
+class ComicReaderTitleSerializer(Serializer):
+    """Components for constructing the title."""
+
+    seriesName = CharField(read_only=True)  # noqa: N815
+    volumeName = CharField(read_only=True)  # noqa: N815
+    issue = DecimalField(max_digits=5, decimal_places=1, read_only=True)
+    issueCount = IntegerField(read_only=True)  # noqa: N815
+
+
 class ComicReaderInfoSerializer(Serializer):
     """Information when opening a new book."""
 
-    title = CharField(read_only=True)  # noqa: N815
+    title = ComicReaderTitleSerializer(read_only=True)
     maxPage = IntegerField(read_only=True)  # noqa: N815
     settings = ComicReaderBothSettingsSerializer(read_only=True)
     routes = ComicReaderRoutesSerializer(read_only=True)

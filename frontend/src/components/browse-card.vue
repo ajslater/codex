@@ -2,14 +2,14 @@
   <div class="browsePaneWrapper">
     <v-lazy
       v-for="item in itemList"
-      :key="item.pk"
+      :key="`${item.group}${item.pk}`"
       transition="scale-transition"
     >
       <div class="browseTile">
         <div class="browseTileContent">
           <div class="coverWrapper">
             <BookCover
-              :cover-path="item.cover_path"
+              :cover-path="item.x_cover_path"
               :progress="+item.progress"
             />
             <div
@@ -47,10 +47,10 @@
             :to="getToRoute(item)"
           >
             <div class="headerName">
-              {{ item.header_name }}
+              {{ getHeaderName(item) }}
             </div>
             <div class="displayName">
-              {{ item.display_name }}
+              {{ getDisplayName(item) }}
             </div>
           </router-link>
         </div>
@@ -64,6 +64,7 @@
 import { mdiDotsVertical, mdiEye } from "@mdi/js";
 import { mapState } from "vuex";
 
+import { getFullComicName, getVolumeName } from "@/comic-name";
 import BookCover from "@/components/book-cover";
 import BrowseContainerMenu from "@/components/browse-container-menu";
 import MetadataButton from "@/components/metadata-dialog";
@@ -92,15 +93,40 @@ export default {
     ...mapState("browser", {}),
   },
   methods: {
-    getToRoute(item) {
+    getToRoute: function (item) {
       if (item.group === "c") {
         return getReaderRoute(item);
       } else {
-        return { name: "browser", params: { group: item.group, pk: item.pk } };
+        return {
+          name: "browser",
+          params: { group: item.group, pk: item.pk, page: 1 },
+        };
       }
     },
     markRead: function (group, pk, finished) {
       this.$store.dispatch("browser/markRead", { group, pk, finished });
+    },
+    getHeaderName: function (item) {
+      let headerName;
+      if (item.group === "c") {
+        return getFullComicName(
+          item.series_name,
+          item.volume_name,
+          +item.x_issue
+        );
+      } else {
+        headerName = item.header_name;
+      }
+      return headerName;
+    },
+    getDisplayName: function (item) {
+      let displayName;
+      if (item.group === "v") {
+        displayName = getVolumeName(item.display_name);
+      } else {
+        displayName = item.display_name;
+      }
+      return displayName;
     },
   },
 };

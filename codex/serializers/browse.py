@@ -9,8 +9,11 @@ from rest_framework.serializers import DecimalField
 from rest_framework.serializers import IntegerField
 from rest_framework.serializers import ListField
 from rest_framework.serializers import Serializer
+from rest_framework.serializers import SerializerMethodField
 
 from codex.choices.static import CHOICES
+from codex.librarian.queue import QUEUE
+from codex.librarian.queue import ComicCoverCreateTask
 
 
 VUE_MODEL_NULL_CODES = (-1, 0)
@@ -82,25 +85,23 @@ class BrowserSettingsSerializer(Serializer):
 class BrowseObjectSerializer(Serializer):
     """Generic browse object."""
 
+    def get_x_cover_path(self, obj):
+        """Ensure comic cover exists for any cover_path we send."""
+        task = ComicCoverCreateTask(obj.get("x_path"), obj.get("x_cover_path"))
+        QUEUE.put(task)
+        return obj.get("x_cover_path")
+
     pk = IntegerField(read_only=True)
     group = CharField(read_only=True, max_length=1)
-    cover_path = CharField(read_only=True)
+    child_count = IntegerField(read_only=True, allow_null=True)
+    x_cover_path = SerializerMethodField()
     header_name = CharField(read_only=True)
+    series_name = CharField(read_only=True)
+    volume_name = CharField(read_only=True)
+    x_issue = DecimalField(max_digits=5, decimal_places=1, read_only=True)
     display_name = CharField(read_only=True)
     progress = DecimalField(read_only=True, max_digits=5, decimal_places=2)
     finished = BooleanField(read_only=True, allow_null=True)
-
-
-class BrowseContainerSerializer(BrowseObjectSerializer):
-    """Browse container."""
-
-    child_count = IntegerField(read_only=True, allow_null=True)
-
-
-class BrowseComicSerializer(BrowseObjectSerializer):
-    """Browse comic."""
-
-    max_page = IntegerField(read_only=True)
     bookmark = IntegerField(read_only=True, allow_null=True)
 
 
@@ -109,6 +110,7 @@ class BrowseRouteSerializer(Serializer):
 
     group = CharField(read_only=True)
     pk = IntegerField(read_only=True)
+    page = IntegerField(read_only=True)
 
 
 class BrowserFormChoicesSerializer(Serializer):
@@ -122,16 +124,12 @@ class BrowseListSerializer(Serializer):
 
     browseTitle = CharField(read_only=True)  # noqa: N815
     upRoute = BrowseRouteSerializer(allow_null=True)  # noqa: N815
-    containerList = ListField(  # noqa: N815
-        child=BrowseContainerSerializer(read_only=True),
+    objList = ListField(  # noqa: N815
+        child=BrowseObjectSerializer(read_only=True),
         allow_empty=True,
         read_only=True,
     )
-    comicList = ListField(  # noqa: N815
-        child=BrowseComicSerializer(read_only=True),
-        allow_empty=True,
-        read_only=True,
-    )
+    numPages = IntegerField(read_only=True)  # noqa: N815
     formChoices = BrowserFormChoicesSerializer(read_only=True)  # noqa: N815
     librariesExist = BooleanField(read_only=True)  # noqa: N815
 

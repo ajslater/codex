@@ -82,7 +82,12 @@ class ComicOpenedView(APIView, SessionMixin, UserBookmarkMixin):
         comic, routes = self.get_prev_next_comics()
 
         data = {
-            "title": comic.header_name,
+            "title": {
+                "seriesName": comic.series.name,
+                "volumeName": comic.volume.name,
+                "issue": comic.issue,
+                "issueCount": comic.volume.issue_count,
+            },
             "maxPage": comic.max_page,
             "settings": settings,
             "routes": routes,

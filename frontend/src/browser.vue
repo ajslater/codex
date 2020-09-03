@@ -140,8 +140,7 @@
       <PlaceholderLoading />
     </v-main>
     <v-main v-else-if="itemsExist" id="browsePane">
-      <BrowseCard :item-list="containerList" />
-      <BrowseCard :item-list="comicList" />
+      <BrowseCard :item-list="objList" />
     </v-main>
     <v-main v-else-if="librariesExist" id="browsePane">
       <div id="noComicsFound">No comics found for these filters</div>
@@ -166,11 +165,18 @@
         </div>
       </div>
     </v-main>
-    <footer id="browserFooter">
-      <a href="https://github.com/ajslater/codex">codex</a> v{{
-        packageVersion
-      }}
-    </footer>
+    <v-footer id="browseFooter">
+      <v-pagination
+        v-if="numPages > 1"
+        :value="+$route.params.page"
+        :length="numPages"
+        circle
+        @input="routeToPage($event)"
+      />
+      <a id="versionFooter" href="https://github.com/ajslater/codex"
+        >codex v{{ packageVersion }}</a
+      >
+    </v-footer>
     <v-snackbar
       id="scanNotify"
       :value="scanNotify"
@@ -220,15 +226,14 @@ export default {
       formChoices: (state) => state.formChoices,
       settings: (state) => state.settings,
       upRoute: (state) => state.routes.up,
-      containerList: (state) => state.containerList,
-      comicList: (state) => state.comicList,
+      objList: (state) => state.objList,
       filterMode: (state) => state.filterMode,
       browseLoaded: (state) => state.browseLoaded,
       librariesExist: (state) => state.librariesExist,
-      itemsExist: (state) =>
-        state.containerList.length + state.comicList.length > 0,
+      itemsExist: (state) => state.objList && state.objList.length > 0,
       packageVersion: (state) => state.packageVersion,
       scanNotify: (state) => state.scanNotify,
+      numPages: (state) => state.numPages,
     }),
     ...mapGetters("auth", ["isAdmin"]),
     ...mapGetters("browser", ["rootGroupChoices", "filterNames"]),
@@ -340,7 +345,7 @@ export default {
   },
   methods: {
     websocketListener: function (event) {
-      console.log("websocket push:", event.data);
+      console.debug("websocket push:", event.data);
       if (event.data === "libraryChanged") {
         this.$store.dispatch("browser/getBrowseObjects");
       } else if (this.isAdmin && event.data === "scanLibrary") {
@@ -377,6 +382,14 @@ export default {
     },
     reload: function () {
       this.$store.dispatch("browser/browseOpened", this.$route.params);
+    },
+    routeToPage: function (page) {
+      const route = {
+        name: this.$route.name,
+        params: { ...this.$route.params },
+      };
+      route.params.page = page;
+      this.$router.push(route);
     },
   },
 };
@@ -434,14 +447,13 @@ export default {
   padding: 1em;
   color: gray;
 }
-#browserFooter {
+#browseFooter {
+  justify-content: center;
+}
+#versionFooter {
   width: 100vw;
-  padding: 0.5em;
   text-align: center;
   font-size: small;
-  color: gray;
-}
-#browserFooter > a {
   color: gray;
 }
 

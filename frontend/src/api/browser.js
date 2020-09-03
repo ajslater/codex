@@ -8,12 +8,12 @@ const debug = process.env.NODE_ENV !== "production";
 
 // REST ENDPOINTS
 
-const getBrowseOpened = ({ group, pk }) => {
-  return ajax("get", `${BROWSE_BASE}/${group}/${pk}`);
+const getBrowseOpened = ({ group, pk, page }) => {
+  return ajax("get", `${BROWSE_BASE}/${group}/${pk}/${page}`);
 };
 
-const getBrowseObjects = ({ group, pk, settings }) => {
-  return ajax("put", `${BROWSE_BASE}/${group}/${pk}`, settings);
+const getBrowseObjects = ({ group, pk, page, settings }) => {
+  return ajax("put", `${BROWSE_BASE}/${group}/${pk}/${page}`, settings);
 };
 
 const getBrowseChoices = ({ group, pk, choice_type }) => {

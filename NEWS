@@ -1,9 +1,10 @@
 v0.5.7
 * update comicbox to v1.3 should fix many import crashes
 * allow credits with an empty role
+* pagination of large browse results
 * center comic pages better
 * add download link to browser menu
-* log to files as well as console.
+* log to files as well as console
 * remove scan locks on startup
 
 v0.5.6

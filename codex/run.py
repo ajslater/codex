@@ -8,16 +8,17 @@ from logging import getLogger
 import django
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.management import call_command
 from hypercorn.asyncio import serve
 from hypercorn.config import Config
 
 from codex.asgi import application
 from codex.librarian.librariand import PORT
+from codex.models import Library
 from codex.settings import CODEX_PATH
 from codex.settings import CONFIG_PATH
 from codex.settings import CONFIG_STATIC
-from codex.models import Library
 
 
 CONFIG_TOML = CONFIG_PATH / "hypercorn.toml"
@@ -96,6 +97,7 @@ def main():
         LOG.setLevel("DEBUG")
     ensure_config()
     setup_db()
+    cache.clear()
     run()
 
 
