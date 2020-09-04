@@ -9,7 +9,7 @@
       <header id="metadataHeader">
         <BookCover
           id="bookCover"
-          :cover-path="comic.x_cover_path"
+          :cover-path="comic.cover_path"
           :progress="+comic.progress"
         />
         <v-btn
