@@ -1,12 +1,12 @@
 version: "3"
 
 services:
-  codex-builder:
+  codex-dist-wheel-builder:
     build:
       context: .
       dockerfile: Dockerfile.build
-    image: codex-builder
-    container_name: codex-builder
+    image: codex-dist-wheel-builder
+    container_name: codex-dist-wheel-builder
     volumes:
       - ./dist/:/dist/
       - ./test-results/:/test-results/

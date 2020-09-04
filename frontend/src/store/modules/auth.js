@@ -69,6 +69,9 @@ const actions = {
       })
       .catch((error) => {
         console.debug(error.response.data);
+        if (error.response.status === 403) {
+          console.log("That 403 error is expected if you're not logged in.");
+        }
       });
   },
   logout({ commit }) {

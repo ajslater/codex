@@ -6,12 +6,12 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('codex', '0001_init'),
+        ("codex", "0001_init"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='library',
-            options={'verbose_name_plural': 'libraries'},
+            name="library",
+            options={"verbose_name_plural": "libraries"},
         ),
     ]

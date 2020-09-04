@@ -38,7 +38,7 @@
           >close book</v-btn
         >
         <v-spacer />
-        <v-toolbar-title>{{ title }}</v-toolbar-title>
+        <v-toolbar-title id="toolbarTitle">{{ title }}</v-toolbar-title>
         <v-spacer />
         <v-dialog
           class="readerSettings"
@@ -116,6 +116,7 @@
 import { mdiCog } from "@mdi/js";
 import { mapGetters, mapState } from "vuex";
 
+import { getFullComicName } from "@/comic-name";
 import MetadataDialog from "@/components/metadata-dialog.vue";
 import ReaderComicPage from "@/components/reader-comic-page.vue";
 import ReaderNavButton from "@/components/reader-nav-button.vue";
@@ -137,7 +138,14 @@ export default {
   },
   computed: {
     ...mapState("reader", {
-      title: (state) => state.title,
+      title: function (state) {
+        return getFullComicName(
+          state.title.seriesName,
+          state.title.volumeName,
+          state.title.issue,
+          state.title.issueCount
+        );
+      },
       maxPage: (state) => state.maxPage,
       routes: (state) => state.routes,
       settings: (state) => state.settings,
@@ -183,6 +191,7 @@ export default {
         pk: +to.params.pk,
         pageNumber: +to.params.pageNumber,
       });
+      window.scrollTo(0, 0);
     },
   },
   beforeCreate() {
@@ -313,8 +322,8 @@ export default {
 
 <style scoped lang="scss">
 #readerContainer {
-  margin: 0px;
   padding: 0px;
+  max-width: 100%;
 }
 /* NAV COLUMNS */
 #navOverlay {
@@ -344,19 +353,20 @@ export default {
 
 /* PAGES */
 #pagesContainer {
-  text-align: center;
 }
 #pages {
-  margin: auto;
-  white-space: nowrap;
+  text-align: center;
 }
-
 .toolbar {
   width: 100%;
   position: fixed;
 }
 #topToolbar {
   top: 0px;
+}
+#toolbarTitle {
+  overflow: auto;
+  text-overflow: unset;
 }
 #bottomToolbar {
   bottom: 0px;

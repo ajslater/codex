@@ -39,7 +39,7 @@ urlpatterns = [
     #
     # Browser
     path(
-        "browse/<str:group>/<int:pk>",
+        "browse/<str:group>/<int:pk>/<int:page>",
         BrowseView.as_view(),
         name="browse_objects",
     ),

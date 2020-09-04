@@ -2,11 +2,15 @@
 import logging
 
 from bidict import bidict
+from django.core.paginator import EmptyPage
+from django.core.paginator import Paginator
 from django.db.models import Avg
 from django.db.models import BooleanField
 from django.db.models import CharField
 from django.db.models import Count
 from django.db.models import DecimalField
+from django.db.models import F
+from django.db.models import IntegerField
 from django.db.models import Max
 from django.db.models import OuterRef
 from django.db.models import Q
@@ -21,8 +25,6 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from stringcase import snakecase
 
-from codex.librarian.queue import QUEUE
-from codex.librarian.queue import ComicCoverCreateTask
 from codex.models import AdminFlag
 from codex.models import Comic
 from codex.models import Folder
@@ -73,6 +75,24 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
     }
     DEFAULT_ORDER_KEY = "sort_name"
     CHOICES_RELATIONS = ("decade", "characters")
+    MAX_OBJ_PER_PAGE = 100
+    ORPHANS = MAX_OBJ_PER_PAGE / 20
+    COMMON_BROWSE_FIELDS = [
+        "bookmark",
+        "child_count",
+        "display_name",
+        "finished",
+        "group",
+        "header_name",
+        "library",
+        "pk",
+        "progress",
+        "series_name",
+        "volume_name",
+        "x_cover_path",
+        "x_issue",
+        "x_path",
+    ]
 
     def get_valid_root_groups(self):
         """
@@ -115,6 +135,10 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
         in browser settings.
         """
         nav_group = self.kwargs["group"]
+
+        if nav_group == self.FOLDER_GROUP:
+            return nav_group
+
         below_nav_group = False
 
         for group_key in self.valid_nav_groups:
@@ -142,31 +166,41 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
             order_by += ["library"]
         return order_by
 
-    def annotate_and_sort(self, obj_list, model, aggregate_filter):
+    def add_annotations(self, obj_list, model, aggregate_filter):
         """
         Annotations for display and sorting.
 
         model is neccissary because this gets called twice by folder
         view. once for folders, once for the comics.
         """
+        ##################
+        # Annotate Group #
+        ##################
         self.model_group = self.GROUP_MODEL.inverse[model]
         obj_list = obj_list.annotate(
             group=Value(self.model_group, CharField(max_length=1))
         )
 
-        if model != Comic:
-            # Count children - Display only
+        ###########################
+        # Annotate children count #
+        ###########################
+        if model == Comic:
+            obj_list = obj_list.annotate(
+                child_count=Value(None, IntegerField()),
+            )
+        else:
             child_count = Count("comic__pk", distinct=True, filter=aggregate_filter)
             obj_list = obj_list.annotate(child_count=child_count).filter(
                 child_count__gt=0
             )
-
             # Hoist up total page_count of children
             # Used for sorting and progress
             page_count = Sum("comic__page_count", filter=aggregate_filter)
             obj_list = obj_list.annotate(page_count=page_count)
 
-        # Annotate progress
+        ################################
+        # Annotate finished & progress #
+        ################################
         ub_filter = self.get_userbookmark_filter()
         # Hoist up: are the children finished or unfinished?
         finished = Cast(
@@ -187,28 +221,28 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
         obj_list = obj_list.annotate(finished=finished)
 
         # Hoist up the bookmark
-        pages_read = Sum("comic__userbookmark__bookmark", filter=ub_filter)
-        obj_list = obj_list.annotate(bookmark=pages_read)
-        # Annote progress
+        bookmark_sum = Sum("comic__userbookmark__bookmark", filter=ub_filter)
+        obj_list = obj_list.annotate(bookmark=bookmark_sum)
+        # Annotate progress
         obj_list = self.annotate_progress(obj_list)
 
-        # Select comics for the children by an outer ref for annotation
-        # Order the decendent comics by the sort argumentst
+        #######################
+        # Annotate Library Id #
+        #######################
+        if model not in (Folder, Comic):
+            # For folder view stability sorting compatibilty
+            obj_list = obj_list.annotate(library=Value(0, IntegerField()))
+
         order_key = self.params.get("sort_by", self.DEFAULT_ORDER_KEY)
 
-        if model != Comic:
-            # Cover Path from sorted children.
-            # XXX Don't know how to make this a join
-            #   because it selects by order_by but wants the cover_path
-            model_container_filter = Q(**{model.__name__.lower(): OuterRef("pk")})
-            comics = Comic.objects.all()
-            comics = comics.filter(model_container_filter)
-            comics = comics.filter(aggregate_filter)
-            order_by = self.get_order_by(order_key)
-            cover_comic_path = comics.order_by(*order_by).values("cover_path")
-            cover_path_subquery = Subquery(cover_comic_path[:1])
-            obj_list = obj_list.annotate(cover_path=cover_path_subquery)
-
+        #######################
+        # Annotate Cover Path #
+        #######################
+        # Select comics for the children by an outer ref for annotation
+        # Order the decendent comics by the sort argumentst
+        if model == Comic:
+            obj_list = obj_list.annotate(x_cover_path=F("cover_path"))
+        else:
             # Sortable aggregates
             agg_func = self.SORT_AGGREGATE_FUNCS.get(order_key)
             if agg_func:
@@ -219,10 +253,50 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
                     **{order_key: agg_func(agg_relation, filter=aggregate_filter)}
                 )
 
-        # order the containers by the sort arguments
-        order_by = self.get_order_by(order_key, model)
+            # Cover Path from sorted children.
+            # XXX Don't know how to make this a join
+            #   because it selects by order_by but wants the cover_path
+            model_container_filter = Q(**{model.__name__.lower(): OuterRef("pk")})
+            comics = Comic.objects.all()
+            comics = comics.filter(model_container_filter)
+            comics = comics.filter(aggregate_filter)
+            order_by = self.get_order_by(order_key)
+            cover_comic_path = comics.order_by(*order_by).values("cover_path")
+            cover_path_subquery = Subquery(cover_comic_path[:1])
+            obj_list = obj_list.annotate(x_cover_path=cover_path_subquery)
 
-        obj_list = obj_list.order_by(*order_by)
+        #######################
+        # Annotate name fields #
+        #######################
+        # XXX header_name & display_name might be better done on import.
+        if model in (Publisher, Series, Folder, Comic):
+            obj_list = obj_list.annotate(header_name=Value(None, CharField()))
+        elif model == Imprint:
+            obj_list = obj_list.annotate(header_name=F("publisher__name"))
+        elif model == Volume:
+            obj_list = obj_list.annotate(header_name=F("series__name"))
+
+        if model == Comic:
+            obj_list = obj_list.annotate(
+                series_name=F("series__name"),
+                volume_name=F("volume__name"),
+                x_issue=F("issue"),
+                x_path=F("path"),
+            )
+        else:
+            obj_list = obj_list.annotate(
+                series_name=Value(None, CharField()),
+                volume_name=Value(None, CharField()),
+                x_issue=Value(None, CharField()),
+                x_path=Value(None, CharField()),
+            )
+
+        # XXX should container use title or comics use name?
+        if model in (Publisher, Imprint, Series, Volume, Folder):
+            obj_list = obj_list.annotate(display_name=F("name"))
+        elif model == Comic:
+            obj_list = obj_list.annotate(display_name=F("title"))
+
         return obj_list
 
     def set_browse_model(self):
@@ -233,39 +307,44 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
         model_group = self.get_model_group()
         self.model = self.GROUP_MODEL[model_group]
 
-    def get_folder_queryset(self):
-        """Create folder queryset."""
-        object_filter, aggregate_filter = self.get_query_filters()
+    def get_value_fields(self):
+        """Get the only fields we care about for this object."""
+        order_key = self.params.get("sort_by", self.DEFAULT_ORDER_KEY)
+        fields = self.COMMON_BROWSE_FIELDS + [order_key]
+        return fields
 
+    def get_folder_queryset(self, object_filter, aggregate_filter):
+        """Create folder queryset."""
         # Create the main queries with filters
         folder_list = Folder.objects.filter(object_filter)
         comic_list = Comic.objects.filter(object_filter)
 
         # add annotations for display and sorting
         # and the comic_cover which uses a sort
-        folder_list = self.annotate_and_sort(folder_list, Folder, aggregate_filter)
-        comic_list = self.annotate_and_sort(comic_list, Comic, aggregate_filter)
+        folder_list = self.add_annotations(folder_list, Folder, aggregate_filter)
+        comic_list = self.add_annotations(comic_list, Comic, aggregate_filter)
 
-        return folder_list, comic_list
+        # Reduce to values for concatenation
+        fields = self.get_value_fields()
+        folder_list = folder_list.values(*fields)
+        comic_list = comic_list.values(*fields)
+        obj_list = folder_list.union(comic_list)
 
-    def get_browse_queryset(self):
+        return obj_list
+
+    def get_browse_queryset(self, object_filter, aggregate_filter):
         """Create and browse queryset."""
-        self.set_browse_model()
-
-        # Create the main query with the filters
-        object_filter, aggregate_filter = self.get_query_filters()
         obj_list = self.model.objects.filter(object_filter)
         # obj_list filtering done
 
         # Add annotations for display and sorting
-        obj_list = self.annotate_and_sort(obj_list, self.model, aggregate_filter)
-        if self.model == Comic:
-            container_list = Volume.objects.none()
-            comic_list = obj_list
-        else:
-            container_list = obj_list
-            comic_list = Comic.objects.none()
-        return container_list, comic_list
+        obj_list = self.add_annotations(obj_list, self.model, aggregate_filter)
+
+        # Convert to a dict to be compatible with Folder View concatenate
+        fields = self.get_value_fields()
+        obj_list = obj_list.values(*fields)
+
+        return obj_list
 
     def get_folder_up_route(self):
         """Get out parent's pk."""
@@ -328,43 +407,38 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
             browse_title = self.model.PLURAL
         else:
             browse_title = ""
-            header = self.group_instance.header_name
+            # XXX this duplicates the logic that annotates the header_name
+            #     for the obj_list
+            #     should probably move this all to the front end
+            if self.group_class == Imprint:
+                header = self.group_instance.publisher.name
+            elif self.group_class == Volume:
+                header = self.group_instance.series.name
+            else:
+                header = ""
+
             if header:
                 browse_title += header + " "
-            browse_title += self.group_instance.display_name
+
+            if self.group_class == Volume:
+                volume_name = self.group_instance.name
+                if volume_name:
+                    if len(volume_name) == 4 and volume_name.isdigit():
+                        volume_name = f"({volume_name})"
+                    else:
+                        volume_name = f"v{volume_name}"
+
+                    browse_title += volume_name
+
+                    volume_count = self.group_instance.series.volume_count
+                    if volume_count:
+                        header += f" of {volume_count}"
+                else:
+                    browse_title += "v0"
+            else:
+                browse_title += self.group_instance.name
+
         return browse_title
-
-    def get_context(self):
-        """Get result data."""
-        if self.params.get("root_group") == self.FOLDER_GROUP:
-            up_group, up_pk = self.get_folder_up_route()
-            browse_title = self.get_folder_title()
-            self.comic_list = self.comic_list.select_related(
-                "myself", "volume", "series"
-            )
-        else:
-            self.set_group_instance()
-            up_group, up_pk = self.get_browse_up_route()
-            browse_title = self.get_browse_title()
-
-        if up_group is not None and up_pk is not None:
-            up_route = {"group": up_group, "pk": up_pk}
-        else:
-            up_route = {}
-
-        efv_flag = AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_FOLDER_VIEW)
-
-        libraries_exist = Library.objects.exists()
-
-        context = {
-            "upRoute": up_route,
-            "browseTitle": browse_title,
-            "containerList": self.container_list,
-            "comicList": self.comic_list,
-            "formChoices": {"enableFolderView": efv_flag.on},
-            "librariesExist": libraries_exist,
-        }
-        return context
 
     def raise_valid_route(self, message):
         """403 should redirect to the valid group on the client side."""
@@ -414,54 +488,85 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
             snake_key = snakecase(key)
             self.params[snake_key] = value
 
-    @staticmethod
-    def ensure_covers(container_list, comic_list):
-        """Generate cover thumbs if they dont' exist."""
-        # XXX This hits the db a second time for all containers & comics
-        #     Might be better to use the same query we send to for
-        #     serialization
-        for obj in container_list:
-            LOG.debug(f"ensure container cover {obj.cover_path}")
-            task = ComicCoverCreateTask(None, obj.cover_path)
-            QUEUE.put(task)
+    def get_browse_list(self):
+        """Validate settings and get the querysets."""
 
-        comic_list = comic_list.only("path", "cover_path")
-        for obj in comic_list:
-            LOG.debug(f"ensure comic cover {obj.path} {obj.cover_path}")
-            task = ComicCoverCreateTask(obj.path, obj.cover_path)
-            QUEUE.put(task)
-
-    def get_queryset(self):
-        """Validate settings and get the queryset."""
         if self.kwargs.get("group") == self.FOLDER_GROUP:
             self.validate_folder_settings()
-            self.container_list, self.comic_list = self.get_folder_queryset()
         else:
             self.validate_browse_settings()
-            self.container_list, self.comic_list = self.get_browse_queryset()
 
-        # kick off cover ensure as soon as we have the final lists.
-        self.ensure_covers(self.container_list, self.comic_list)
+        self.set_browse_model()
+        # Create the main query with the filters
+        object_filter, aggregate_filter = self.get_query_filters()
+
+        if self.kwargs.get("group") == self.FOLDER_GROUP:
+            obj_list = self.get_folder_queryset(object_filter, aggregate_filter)
+        else:
+            obj_list = self.get_browse_queryset(object_filter, aggregate_filter)
+
+        # Order
+        order_key = self.params.get("sort_by", self.DEFAULT_ORDER_KEY)
+        order_by = self.get_order_by(order_key, self.model)
+        obj_list = obj_list.order_by(*order_by)
+
+        # Pagination
+        paginator = Paginator(obj_list, self.MAX_OBJ_PER_PAGE, orphans=self.ORPHANS)
+        page = self.kwargs.get("page")
+        if page < 1:
+            page = 1
+        try:
+            obj_list = paginator.page(page).object_list
+        except EmptyPage:
+            LOG.warn("No items on page {page}")
+            obj_list = paginator.page(1).object_list
 
         self.request.session[self.BROWSE_KEY] = self.params
         self.request.session.save()
 
-        return self.get_context()
+        # get additional context
+        if self.kwargs.get("group") == self.FOLDER_GROUP:
+            up_group, up_pk = self.get_folder_up_route()
+            browse_title = self.get_folder_title()
+        else:
+            self.set_group_instance()
+            up_group, up_pk = self.get_browse_up_route()
+            browse_title = self.get_browse_title()
+
+        if up_group is not None and up_pk is not None:
+            up_route = {"group": up_group, "pk": up_pk, "page": 1}
+        else:
+            up_route = {}
+
+        efv_flag = AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_FOLDER_VIEW)
+
+        libraries_exist = Library.objects.exists()
+
+        # construct final data structure
+        browse_list = {
+            "upRoute": up_route,
+            "browseTitle": browse_title,
+            "objList": obj_list,
+            "numPages": paginator.num_pages,
+            "formChoices": {"enableFolderView": efv_flag.on},
+            "librariesExist": libraries_exist,
+        }
+        return browse_list
 
     def put(self, request, *args, **kwargs):
         """Create the view."""
         self.validate_put(request.data)
 
-        context = self.get_queryset()
+        browse_list = self.get_browse_list()
 
-        serializer = BrowseListSerializer(context)
+        serializer = BrowseListSerializer(browse_list)
         return Response(serializer.data)
 
     def get(self, request, *args, **kwargs):
         """Get browser settings."""
         self.params = self.get_session(self.BROWSE_KEY)
 
-        context = self.get_queryset()
+        browse_list = self.get_browse_list()
 
         filters = self.params["filters"]
         data = {
@@ -476,7 +581,7 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
                 "sortReverse": self.params.get("sort_reverse"),
                 "show": self.params.get("show"),
             },
-            "browseList": context,
+            "browseList": browse_list,
         }
 
         serializer = BrowserOpenedSerializer(data)

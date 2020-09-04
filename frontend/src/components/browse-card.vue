@@ -1,61 +1,57 @@
 <template>
-  <div class="browsePaneWrapper">
-    <v-lazy
-      v-for="item in itemList"
-      :key="item.pk"
-      transition="scale-transition"
-    >
-      <div class="browseTile">
-        <div class="browseTileContent">
-          <div class="coverWrapper">
-            <BookCover
-              :cover-path="item.cover_path"
-              :progress="+item.progress"
-            />
-            <div
-              v-if="!item.finished"
-              class="unreadFlag"
-              :class="{ mixedreadFlag: item.finished === null }"
-            />
-            <div class="coverOverlay">
-              <router-link class="browseLink" :to="getToRoute(item)">
-                <div class="coverOverlayTopRow">
-                  <span v-if="item.child_count" class="childCount">
-                    {{ item.child_count }}
-                  </span>
-                </div>
-                <div class="coverOverlayMiddleRow">
-                  <v-icon v-if="item.group === 'c'">{{ mdiEye }}</v-icon>
-                </div>
-              </router-link>
-              <div class="coverOverlayBottomRow">
-                <MetadataButton
-                  v-if="item.group === 'c'"
-                  class="metadataButton"
-                  :pk="item.pk"
-                />
-                <BrowseContainerMenu
-                  :group="item.group"
-                  :pk="item.pk"
-                  :finished="item.finished"
-                />
-              </div>
+  <div class="browseTile">
+    <div class="browseTileContent">
+      <div class="coverWrapper">
+        <BookCover :cover-path="item.x_cover_path" :progress="+item.progress" />
+        <div
+          v-if="!item.finished"
+          class="unreadFlag"
+          :class="{ mixedreadFlag: item.finished === null }"
+        />
+        <div class="coverOverlay">
+          <router-link class="browseLink" :to="getToRoute()">
+            <div class="coverOverlayTopRow">
+              <span v-if="item.child_count" class="childCount">
+                {{ item.child_count }}
+              </span>
             </div>
-          </div>
-          <router-link
-            class="browseLink cardSubtitle text-caption"
-            :to="getToRoute(item)"
-          >
-            <div class="headerName">
-              {{ item.header_name }}
-            </div>
-            <div class="displayName">
-              {{ item.display_name }}
+            <div class="coverOverlayMiddleRow">
+              <v-icon v-if="item.group === 'c'">{{ mdiEye }}</v-icon>
             </div>
           </router-link>
+          <div class="coverOverlayBottomRow">
+            <MetadataButton
+              v-if="item.group === 'c'"
+              class="metadataButton"
+              :pk="item.pk"
+            />
+            <BrowseContainerMenu
+              :group="item.group"
+              :pk="item.pk"
+              :finished="item.finished"
+            />
+          </div>
         </div>
       </div>
-    </v-lazy>
+      <v-progress-linear
+        class="bookCoverProgress"
+        :value="item.progress"
+        rounded
+        background-color="inherit"
+        height="2"
+      />
+      <router-link
+        class="browseLink cardSubtitle text-caption"
+        :to="getToRoute()"
+      >
+        <div class="headerName">
+          {{ getHeaderName() }}
+        </div>
+        <div class="displayName">
+          {{ getDisplayName() }}
+        </div>
+      </router-link>
+    </div>
   </div>
 </template>
 
@@ -64,6 +60,7 @@
 import { mdiDotsVertical, mdiEye } from "@mdi/js";
 import { mapState } from "vuex";
 
+import { getFullComicName, getVolumeName } from "@/comic-name";
 import BookCover from "@/components/book-cover";
 import BrowseContainerMenu from "@/components/browse-container-menu";
 import MetadataButton from "@/components/metadata-dialog";
@@ -77,8 +74,8 @@ export default {
     MetadataButton,
   },
   props: {
-    itemList: {
-      type: Array,
+    item: {
+      type: Object,
       required: true,
     },
   },
@@ -92,15 +89,40 @@ export default {
     ...mapState("browser", {}),
   },
   methods: {
-    getToRoute(item) {
-      if (item.group === "c") {
-        return getReaderRoute(item);
+    getToRoute: function () {
+      if (this.item.group === "c") {
+        return getReaderRoute(this.item);
       } else {
-        return { name: "browser", params: { group: item.group, pk: item.pk } };
+        return {
+          name: "browser",
+          params: { group: this.item.group, pk: this.item.pk, page: 1 },
+        };
       }
     },
     markRead: function (group, pk, finished) {
       this.$store.dispatch("browser/markRead", { group, pk, finished });
+    },
+    getHeaderName: function () {
+      let headerName;
+      if (this.item.group === "c") {
+        return getFullComicName(
+          this.item.series_name,
+          this.item.volume_name,
+          +this.item.x_issue
+        );
+      } else {
+        headerName = this.item.header_name;
+      }
+      return headerName;
+    },
+    getDisplayName: function () {
+      let displayName;
+      if (this.item.group === "v") {
+        displayName = getVolumeName(this.item.display_name);
+      } else {
+        displayName = this.item.display_name;
+      }
+      return displayName;
     },
   },
 };
@@ -175,7 +197,6 @@ export default {
   border-radius: 50%;
   background-color: black;
   color: white;
-  opacity: 0.75;
 }
 .unreadFlag {
   position: absolute;
@@ -214,6 +235,9 @@ export default {
 .browseLink {
   text-decoration: none;
   color: inherit;
+}
+.bookCoverProgress {
+  margin-top: 1px;
 }
 .cardSubtitle {
   margin-top: 7px;

@@ -12,12 +12,6 @@
         </template>
       </v-img>
     </div>
-    <v-progress-linear
-      :value="progress"
-      rounded
-      background-color="inherit"
-      height="2"
-    />
   </div>
 </template>
 
@@ -31,10 +25,6 @@ export default {
       type: String,
       required: true,
       default: "",
-    },
-    progress: {
-      type: Number,
-      default: 0,
     },
   },
   data() {
@@ -54,7 +44,7 @@ export default {
     delayPlaceholder: function () {
       setTimeout(() => {
         this.showPlaceholder = true;
-      }, 1000);
+      }, 2000);
     },
   },
 };
