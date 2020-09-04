@@ -140,7 +140,15 @@
       <PlaceholderLoading />
     </v-main>
     <v-main v-else-if="itemsExist" id="browsePane">
-      <BrowseCard :item-list="objList" />
+      <div class="browsePaneWrapper">
+        <v-lazy
+          v-for="item in objList"
+          :key="`${item.group}${item.pk}`"
+          transition="scale-transition"
+        >
+          <BrowseCard :item="item" />
+        </v-lazy>
+      </div>
     </v-main>
     <v-main v-else-if="librariesExist" id="browsePane">
       <div id="noComicsFound">No comics found for these filters</div>

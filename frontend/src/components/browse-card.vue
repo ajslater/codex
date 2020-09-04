@@ -1,61 +1,50 @@
 <template>
-  <div class="browsePaneWrapper">
-    <v-lazy
-      v-for="item in itemList"
-      :key="`${item.group}${item.pk}`"
-      transition="scale-transition"
-    >
-      <div class="browseTile">
-        <div class="browseTileContent">
-          <div class="coverWrapper">
-            <BookCover
-              :cover-path="item.x_cover_path"
-              :progress="+item.progress"
-            />
-            <div
-              v-if="!item.finished"
-              class="unreadFlag"
-              :class="{ mixedreadFlag: item.finished === null }"
-            />
-            <div class="coverOverlay">
-              <router-link class="browseLink" :to="getToRoute(item)">
-                <div class="coverOverlayTopRow">
-                  <span v-if="item.child_count" class="childCount">
-                    {{ item.child_count }}
-                  </span>
-                </div>
-                <div class="coverOverlayMiddleRow">
-                  <v-icon v-if="item.group === 'c'">{{ mdiEye }}</v-icon>
-                </div>
-              </router-link>
-              <div class="coverOverlayBottomRow">
-                <MetadataButton
-                  v-if="item.group === 'c'"
-                  class="metadataButton"
-                  :pk="item.pk"
-                />
-                <BrowseContainerMenu
-                  :group="item.group"
-                  :pk="item.pk"
-                  :finished="item.finished"
-                />
-              </div>
+  <div class="browseTile">
+    <div class="browseTileContent">
+      <div class="coverWrapper">
+        <BookCover :cover-path="item.x_cover_path" :progress="+item.progress" />
+        <div
+          v-if="!item.finished"
+          class="unreadFlag"
+          :class="{ mixedreadFlag: item.finished === null }"
+        />
+        <div class="coverOverlay">
+          <router-link class="browseLink" :to="getToRoute()">
+            <div class="coverOverlayTopRow">
+              <span v-if="item.child_count" class="childCount">
+                {{ item.child_count }}
+              </span>
             </div>
-          </div>
-          <router-link
-            class="browseLink cardSubtitle text-caption"
-            :to="getToRoute(item)"
-          >
-            <div class="headerName">
-              {{ getHeaderName(item) }}
-            </div>
-            <div class="displayName">
-              {{ getDisplayName(item) }}
+            <div class="coverOverlayMiddleRow">
+              <v-icon v-if="item.group === 'c'">{{ mdiEye }}</v-icon>
             </div>
           </router-link>
+          <div class="coverOverlayBottomRow">
+            <MetadataButton
+              v-if="item.group === 'c'"
+              class="metadataButton"
+              :pk="item.pk"
+            />
+            <BrowseContainerMenu
+              :group="item.group"
+              :pk="item.pk"
+              :finished="item.finished"
+            />
+          </div>
         </div>
       </div>
-    </v-lazy>
+      <router-link
+        class="browseLink cardSubtitle text-caption"
+        :to="getToRoute()"
+      >
+        <div class="headerName">
+          {{ getHeaderName() }}
+        </div>
+        <div class="displayName">
+          {{ getDisplayName() }}
+        </div>
+      </router-link>
+    </div>
   </div>
 </template>
 
@@ -78,8 +67,8 @@ export default {
     MetadataButton,
   },
   props: {
-    itemList: {
-      type: Array,
+    item: {
+      type: Object,
       required: true,
     },
   },
@@ -93,38 +82,38 @@ export default {
     ...mapState("browser", {}),
   },
   methods: {
-    getToRoute: function (item) {
-      if (item.group === "c") {
-        return getReaderRoute(item);
+    getToRoute: function () {
+      if (this.item.group === "c") {
+        return getReaderRoute(this.item);
       } else {
         return {
           name: "browser",
-          params: { group: item.group, pk: item.pk, page: 1 },
+          params: { group: this.item.group, pk: this.item.pk, page: 1 },
         };
       }
     },
     markRead: function (group, pk, finished) {
       this.$store.dispatch("browser/markRead", { group, pk, finished });
     },
-    getHeaderName: function (item) {
+    getHeaderName: function () {
       let headerName;
-      if (item.group === "c") {
+      if (this.item.group === "c") {
         return getFullComicName(
-          item.series_name,
-          item.volume_name,
-          +item.x_issue
+          this.item.series_name,
+          this.item.volume_name,
+          +this.item.x_issue
         );
       } else {
-        headerName = item.header_name;
+        headerName = this.item.header_name;
       }
       return headerName;
     },
-    getDisplayName: function (item) {
+    getDisplayName: function () {
       let displayName;
-      if (item.group === "v") {
-        displayName = getVolumeName(item.display_name);
+      if (this.item.group === "v") {
+        displayName = getVolumeName(this.item.display_name);
       } else {
-        displayName = item.display_name;
+        displayName = this.item.display_name;
       }
       return displayName;
     },
