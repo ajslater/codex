@@ -33,6 +33,13 @@
           </div>
         </div>
       </div>
+      <v-progress-linear
+        class="bookCoverProgress"
+        :value="item.progress"
+        rounded
+        background-color="inherit"
+        height="2"
+      />
       <router-link
         class="browseLink cardSubtitle text-caption"
         :to="getToRoute()"
@@ -228,6 +235,9 @@ export default {
 .browseLink {
   text-decoration: none;
   color: inherit;
+}
+.bookCoverProgress {
+  margin-top: 1px;
 }
 .cardSubtitle {
   margin-top: 7px;
