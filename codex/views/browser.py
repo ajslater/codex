@@ -78,20 +78,20 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
     MAX_OBJ_PER_PAGE = 100
     ORPHANS = MAX_OBJ_PER_PAGE / 20
     COMMON_BROWSE_FIELDS = [
-        "pk",
+        "bookmark",
+        "child_count",
+        "display_name",
         "finished",
         "group",
-        "library",
-        "progress",
-        "x_cover_path",
         "header_name",
-        "display_name",
+        "library",
+        "pk",
+        "progress",
         "series_name",
         "volume_name",
+        "x_cover_path",
         "x_issue",
         "x_path",
-        "child_count",
-        "bookmark",
     ]
 
     def get_valid_root_groups(self):
@@ -221,9 +221,9 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
         obj_list = obj_list.annotate(finished=finished)
 
         # Hoist up the bookmark
-        pages_read = Sum("comic__userbookmark__bookmark", filter=ub_filter)
-        obj_list = obj_list.annotate(bookmark=pages_read)
-        # Annote progress
+        bookmark_sum = Sum("comic__userbookmark__bookmark", filter=ub_filter)
+        obj_list = obj_list.annotate(bookmark=bookmark_sum)
+        # Annotate progress
         obj_list = self.annotate_progress(obj_list)
 
         #######################
@@ -291,10 +291,10 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
                 x_path=Value(None, CharField()),
             )
 
+        # XXX should container use title or comics use name?
         if model in (Publisher, Imprint, Series, Volume, Folder):
             obj_list = obj_list.annotate(display_name=F("name"))
         elif model == Comic:
-            # XXX should probably change title to name in comic model
             obj_list = obj_list.annotate(display_name=F("title"))
 
         return obj_list
