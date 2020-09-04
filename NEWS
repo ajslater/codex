@@ -1,3 +1,6 @@
+v0.5.8
+* Upload mistake with 0.5.7. This is just a version bump.
+
 v0.5.7
 * update comicbox to v1.3 should fix many import crashes
 * allow credits with an empty role
