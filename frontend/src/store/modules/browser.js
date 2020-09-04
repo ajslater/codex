@@ -97,7 +97,7 @@ const mutations = {
   },
   setSettings(state, data) {
     if (!data) {
-      console.warn("no settings data!.");
+      console.warn("no settings data! ${data}");
       return;
     }
     for (let [key, value] of Object.entries(data)) {
@@ -176,13 +176,17 @@ const getValidRootGroup = (state, fromTop = false) => {
   return "v";
 };
 
+const topGroupRoute = (group) => {
+  return {
+    name: "browser",
+    params: { group, pk: 0, page: 1 },
+  };
+};
+
 const pushToRootGroupTop = ({ state, commit }) => {
   // Push to the top of a root group
   const group = getValidRootGroup(state, true);
-  const route = {
-    name: "browser",
-    params: { group, pk: 0 },
-  };
+  const route = topGroupRoute(group);
   commit("setSettings", { rootGroup: group });
   console.debug("push to", route);
   return router.push(route);
@@ -295,15 +299,14 @@ const actions = {
       .catch((error) => {
         console.log(error);
         console.log("ERROR.RESPONSE", error.response);
-        const data = error.response.data;
-        if (data) {
-          console.log(data.message);
-          console.log("Valid group is", data.group);
-          const params = {
-            group: data.group,
-            pk: 0,
-          };
-          dispatch("browseOpened", params);
+        if (error.response) {
+          const data = error.response.data;
+          if (data) {
+            console.log(data.message);
+            console.log("Valid group is", data.group);
+            const route = topGroupRoute(data.group);
+            dispatch("browseOpened", route.params);
+          }
         }
         return handleBrowseError({ state, commit }, error);
       });

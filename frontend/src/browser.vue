@@ -115,7 +115,7 @@
                   @change="setShow(choice.value, $event)"
                 />
               </v-dialog>
-              <AuthButton />
+              <AuthDialog />
               <v-list-item @click="reload">
                 <v-list-item-content>
                   <v-list-item-title> Reload Libraries</v-list-item-title>
@@ -198,7 +198,7 @@ import { mapGetters, mapState } from "vuex";
 
 import { ADMIN_URL } from "@/api/auth";
 import { getSocket } from "@/api/browser";
-import AuthButton from "@/components/auth-dialog";
+import AuthDialog from "@/components/auth-dialog";
 import BrowseCard from "@/components/browse-card";
 import FilterSubMenu from "@/components/filter-sub-menu";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
@@ -206,7 +206,7 @@ import PlaceholderLoading from "@/components/placeholder-loading.vue";
 export default {
   name: "Browser",
   components: {
-    AuthButton,
+    AuthDialog,
     BrowseCard,
     FilterSubMenu,
     PlaceholderLoading,
@@ -234,6 +234,9 @@ export default {
       packageVersion: (state) => state.packageVersion,
       scanNotify: (state) => state.scanNotify,
       numPages: (state) => state.numPages,
+    }),
+    ...mapState("auth", {
+      user: (state) => state.user,
     }),
     ...mapGetters("auth", ["isAdmin"]),
     ...mapGetters("browser", ["rootGroupChoices", "filterNames"]),
@@ -329,8 +332,11 @@ export default {
     },
   },
   watch: {
-    $route(to) {
-      this.$store.dispatch("browser/routeChanged", to.params);
+    $route(newRoute) {
+      this.$store.dispatch("browser/routeChanged", newRoute.params);
+    },
+    user() {
+      this.$store.dispatch("browser/browseOpened", this.$route.params);
     },
   },
   created() {
@@ -381,7 +387,7 @@ export default {
       this.$store.dispatch("browser/setFilterMode", { mode: "base" });
     },
     reload: function () {
-      this.$store.dispatch("browser/browseOpened", this.$route.params);
+      // this.$store.dispatch("browser/browseOpened", this.$route.params);
     },
     routeToPage: function (page) {
       const route = {
