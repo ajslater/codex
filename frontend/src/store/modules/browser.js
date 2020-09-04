@@ -274,8 +274,8 @@ const scanNotifyCheck = (commit, state) => {
         return null;
       })
       .catch((error) => {
-        console.log("ERROR", error);
-        console.log("scanNotifyCheck Response", error.response);
+        console.error(error);
+        console.log("scanNotifyCheck() Response", error.response);
       });
   }, wait);
 };
@@ -297,16 +297,19 @@ const actions = {
         return commit("setBrowseData", data.browseList);
       })
       .catch((error) => {
-        console.log(error);
-        console.log("ERROR.RESPONSE", error.response);
-        if (error.response) {
+        if (
+          error.response &&
+          error.response.data &&
+          error.response.data.group
+        ) {
           const data = error.response.data;
-          if (data) {
-            console.log(data.message);
-            console.log("Valid group is", data.group);
-            const route = topGroupRoute(data.group);
-            dispatch("browseOpened", route.params);
-          }
+          console.log(data.message);
+          console.log("Valid group is", data.group);
+          const route = topGroupRoute(data.group);
+          dispatch("browseOpened", route.params);
+        } else {
+          console.error(error);
+          console.log("browseOpened response:", error.response);
         }
         return handleBrowseError({ state, commit }, error);
       });
@@ -325,7 +328,7 @@ const actions = {
   routeChanged({ state, commit, dispatch }, route) {
     // When the route changes, reget the objects for that route.
     if (!validateRoute({ state, commit }, route)) {
-      console.log("invalid route!");
+      console.warn("invalid route!", route);
       return;
     }
     commit("setBrowseRoute", route);
