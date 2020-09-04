@@ -76,7 +76,6 @@ def scan_existing(library, cls, force=False):
             task = ComicDeletedTask(obj.path)
         if task:
             num_removed += 1
-            LOG.debug(f"Queued to remove: {obj.display_name}")
         elif cls == Comic and (force or is_obj_outdated(obj)):
             task = ComicModifiedTask(obj.path, library.id)
             num_updated += 1

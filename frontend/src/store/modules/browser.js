@@ -55,13 +55,13 @@ const state = {
     },
   },
   browseTitle: "",
-  containerList: [],
-  comicList: [],
+  objList: [],
   filterMode: "base",
   browseLoaded: false,
   librariesExist: null,
   packageVersion: process.env.VUE_APP_PACKAGE_VERSION,
   scanNotify: false,
+  numPages: 1,
 };
 
 const isRootGroupEnabled = (state, rootGroup) => {
@@ -96,6 +96,10 @@ const mutations = {
     state.routes.current = route;
   },
   setSettings(state, data) {
+    if (!data) {
+      console.warn("no settings data! ${data}");
+      return;
+    }
     for (let [key, value] of Object.entries(data)) {
       if (typeof state.settings[key] === "object") {
         for (let [sub_key, sub_value] of Object.entries(value)) {
@@ -116,8 +120,8 @@ const mutations = {
     }
     state.browseTitle = data.browseTitle;
     state.routes.up = Object.freeze(data.upRoute);
-    state.containerList = Object.freeze(data.containerList);
-    state.comicList = Object.freeze(data.comicList);
+    state.objList = Object.freeze(data.objList);
+    state.numPages = data.numPages;
     state.librariesExist = data.librariesExist;
   },
   setBrowseChoice(state, data) {
@@ -172,13 +176,17 @@ const getValidRootGroup = (state, fromTop = false) => {
   return "v";
 };
 
+const topGroupRoute = (group) => {
+  return {
+    name: "browser",
+    params: { group, pk: 0, page: 1 },
+  };
+};
+
 const pushToRootGroupTop = ({ state, commit }) => {
   // Push to the top of a root group
   const group = getValidRootGroup(state, true);
-  const route = {
-    name: "browser",
-    params: { group, pk: 0 },
-  };
+  const route = topGroupRoute(group);
   commit("setSettings", { rootGroup: group });
   console.debug("push to", route);
   return router.push(route);
@@ -266,8 +274,8 @@ const scanNotifyCheck = (commit, state) => {
         return null;
       })
       .catch((error) => {
-        console.log("ERROR", error);
-        console.log("scanNotifyCheck Response", error.response);
+        console.error(error);
+        console.log("scanNotifyCheck() Response", error.response);
       });
   }, wait);
 };
@@ -275,7 +283,6 @@ const scanNotifyCheck = (commit, state) => {
 const actions = {
   async browseOpened({ state, commit, dispatch }, route) {
     // Gets everything needed to open the component.
-    document.title = "Codex Browser";
     commit("setBrowseLoaded", false);
     commit("setBrowseRoute", route);
     await API.getBrowseOpened(route)
@@ -290,16 +297,19 @@ const actions = {
         return commit("setBrowseData", data.browseList);
       })
       .catch((error) => {
-        console.log("ERROR.RESPONSE", error.response);
-        const data = error.response.data;
-        if (data) {
+        if (
+          error.response &&
+          error.response.data &&
+          error.response.data.group
+        ) {
+          const data = error.response.data;
           console.log(data.message);
           console.log("Valid group is", data.group);
-          const params = {
-            group: data.group,
-            pk: 0,
-          };
-          dispatch("browseOpened", params);
+          const route = topGroupRoute(data.group);
+          dispatch("browseOpened", route.params);
+        } else {
+          console.error(error);
+          console.log("browseOpened response:", error.response);
         }
         return handleBrowseError({ state, commit }, error);
       });
@@ -318,7 +328,7 @@ const actions = {
   routeChanged({ state, commit, dispatch }, route) {
     // When the route changes, reget the objects for that route.
     if (!validateRoute({ state, commit }, route)) {
-      console.log("invalid route!");
+      console.warn("invalid route!", route);
       return;
     }
     commit("setBrowseRoute", route);
@@ -329,6 +339,7 @@ const actions = {
     await API.getBrowseObjects({
       group: state.routes.current.group,
       pk: state.routes.current.pk,
+      page: state.routes.current.page,
       settings: state.settings,
     })
       .then((response) => {

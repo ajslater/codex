@@ -2,7 +2,12 @@ import API from "@/api/reader";
 import FORM_CHOICES from "@/choices/readerChoices";
 
 const state = {
-  title: "",
+  title: {
+    seriesName: "",
+    volumeName: "",
+    issue: 0,
+    issueCount: undefined,
+  },
   maxPage: 0,
   settings: {
     globl: {
@@ -70,13 +75,15 @@ const mutations = {
     state.settings.globl = Object.assign(state.settings.globl, settings);
   },
   setBookInfo(state, data) {
-    state.title = data.title;
+    state.title.seriesName = data.title.seriesName;
+    state.title.volumeName = data.title.volumeName;
+    state.title.issue = parseFloat(data.title.issue);
+    state.title.issueCount = data.title.issueCount;
     state.maxPage = data.maxPage;
     state.settings = data.settings;
     state.routes.prevBook = data.routes.prevBook;
     state.routes.nextBook = data.routes.nextBook;
     state.routes.current.pk = data.pk;
-    document.title = data.title;
   },
   setCurrentPrevPage(state, { pageNumber, previousPage }) {
     state.routes.current.pageNumber = pageNumber;

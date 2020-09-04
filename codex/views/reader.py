@@ -66,9 +66,9 @@ class ComicOpenedView(APIView, SessionMixin, UserBookmarkMixin):
             if current_comic is not None:
                 next_route = {"pk": comic.pk, "pageNumber": 0}
                 break
-            if comic.pk == pk:
+            elif comic.pk == pk:
                 current_comic = comic
-            elif prev_route is None:
+            else:
                 # Haven't matched yet, so set the previous comic
                 prev_route = {"pk": comic.pk, "pageNumber": comic.max_page}
         routes = {"prevBook": prev_route, "nextBook": next_route}
@@ -82,7 +82,12 @@ class ComicOpenedView(APIView, SessionMixin, UserBookmarkMixin):
         comic, routes = self.get_prev_next_comics()
 
         data = {
-            "title": comic.header_name,
+            "title": {
+                "seriesName": comic.series.name,
+                "volumeName": comic.volume.name,
+                "issue": comic.issue,
+                "issueCount": comic.volume.issue_count,
+            },
             "maxPage": comic.max_page,
             "settings": settings,
             "routes": routes,

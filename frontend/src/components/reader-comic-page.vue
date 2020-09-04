@@ -76,9 +76,7 @@ export default {
 
 <style scoped lang="scss">
 .page {
-  display: inline-block;
-  min-height: 50vh;
-  min-width: 50vw;
+  display: inline-flex;
 }
 .fitToHeight,
 .fitToHeightTwo {
@@ -87,18 +85,14 @@ export default {
 .fitToWidth {
   max-width: 100vw;
 }
+
+.fitToHeightTwo,
 .fitToWidthTwo {
   max-width: 50vw;
 }
+/*
 .fitToOriginal,
 .fitToOriginalTwo {
 }
+*/
 </style>
-
-<!-- eslint-disable vue-scoped-css/require-scoped -->
-<style lang="scss">
-.fitToHeightTwo > .v-responsive__content {
-  width: auto !important;
-}
-</style>
-<!-- eslint-enable vue-scoped-css/require-scoped -->

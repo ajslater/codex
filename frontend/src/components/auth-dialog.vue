@@ -29,6 +29,7 @@
     <v-form ref="loginForm">
       <v-text-field
         v-model="credentials.username"
+        autocomplete="username"
         :error-messages="usernameErrors"
         label="Username"
         :rules="usernameRules"
@@ -39,6 +40,7 @@
       <v-text-field
         ref="password"
         v-model="credentials.password"
+        :autocomplete="registerMode ? 'new-password' : 'current-password'"
         :error-messages="passwordErrors"
         label="Password"
         :rules="passwordRules"
@@ -138,18 +140,11 @@ export default {
       }
     },
     processAuth: function (mode) {
-      const oldUser = this.user;
-      this.$store
-        .dispatch(`auth/${mode}`, this.credentials)
-        .then(() => {
-          if (oldUser != this.user) {
-            this.$store.dispatch("browser/browseOpened", this.$route.params);
-          }
-          return this.closeForm;
-        })
-        .catch((error) => {
-          console.error(error);
-        });
+      // const oldUser = this.user;
+      this.$store.dispatch(`auth/${mode}`, this.credentials).catch((error) => {
+        console.error(error);
+      });
+      return this.closeForm;
     },
     processLogin: function () {
       let mode;

@@ -44,7 +44,10 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("name", models.CharField(db_index=True, max_length=32)),
             ],
-            options={"abstract": False, "unique_together": {("name",)},},
+            options={
+                "abstract": False,
+                "unique_together": {("name",)},
+            },
         ),
         migrations.CreateModel(
             name="Imprint",
@@ -98,7 +101,9 @@ class Migration(migrations.Migration):
                 ("scan_in_progress", models.BooleanField(default=False)),
                 ("schema_version", models.PositiveSmallIntegerField(default=0)),
             ],
-            options={"abstract": False,},
+            options={
+                "abstract": False,
+            },
         ),
         migrations.CreateModel(
             name="Publisher",
@@ -118,7 +123,9 @@ class Migration(migrations.Migration):
                 ("sort_name", models.CharField(db_index=True, max_length=32)),
                 ("name", models.CharField(default="No Publisher", max_length=32)),
             ],
-            options={"unique_together": {("name", "is_default")},},
+            options={
+                "unique_together": {("name", "is_default")},
+            },
         ),
         migrations.CreateModel(
             name="Series",
@@ -152,7 +159,9 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"unique_together": {("name", "imprint", "is_default")},},
+            options={
+                "unique_together": {("name", "imprint", "is_default")},
+            },
         ),
         migrations.CreateModel(
             name="Volume",
@@ -195,7 +204,9 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"unique_together": {("name", "series", "is_default")},},
+            options={
+                "unique_together": {("name", "series", "is_default")},
+            },
         ),
         migrations.CreateModel(
             name="Team",
@@ -213,7 +224,10 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("name", models.CharField(db_index=True, max_length=32)),
             ],
-            options={"abstract": False, "unique_together": {("name",)},},
+            options={
+                "abstract": False,
+                "unique_together": {("name",)},
+            },
         ),
         migrations.CreateModel(
             name="Tag",
@@ -231,7 +245,10 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("name", models.CharField(db_index=True, max_length=32)),
             ],
-            options={"abstract": False, "unique_together": {("name",)},},
+            options={
+                "abstract": False,
+                "unique_together": {("name",)},
+            },
         ),
         migrations.CreateModel(
             name="StoryArc",
@@ -249,7 +266,10 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("name", models.CharField(db_index=True, max_length=32)),
             ],
-            options={"abstract": False, "unique_together": {("name",)},},
+            options={
+                "abstract": False,
+                "unique_together": {("name",)},
+            },
         ),
         migrations.CreateModel(
             name="SeriesGroup",
@@ -267,7 +287,10 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("name", models.CharField(db_index=True, max_length=32)),
             ],
-            options={"abstract": False, "unique_together": {("name",)},},
+            options={
+                "abstract": False,
+                "unique_together": {("name",)},
+            },
         ),
         migrations.CreateModel(
             name="Location",
@@ -285,7 +308,10 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("name", models.CharField(db_index=True, max_length=32)),
             ],
-            options={"abstract": False, "unique_together": {("name",)},},
+            options={
+                "abstract": False,
+                "unique_together": {("name",)},
+            },
         ),
         migrations.AddField(
             model_name="imprint",
@@ -311,7 +337,10 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("name", models.CharField(db_index=True, max_length=32)),
             ],
-            options={"abstract": False, "unique_together": {("name",)},},
+            options={
+                "abstract": False,
+                "unique_together": {("name",)},
+            },
         ),
         migrations.CreateModel(
             name="Folder",
@@ -352,7 +381,9 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"unique_together": {("library", "path")},},
+            options={
+                "unique_together": {("library", "path")},
+            },
         ),
         migrations.CreateModel(
             name="CreditRole",
@@ -370,7 +401,10 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("name", models.CharField(db_index=True, max_length=32)),
             ],
-            options={"abstract": False, "unique_together": {("name",)},},
+            options={
+                "abstract": False,
+                "unique_together": {("name",)},
+            },
         ),
         migrations.CreateModel(
             name="CreditPerson",
@@ -388,7 +422,10 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("name", models.CharField(db_index=True, max_length=32)),
             ],
-            options={"abstract": False, "unique_together": {("name",)},},
+            options={
+                "abstract": False,
+                "unique_together": {("name",)},
+            },
         ),
         migrations.CreateModel(
             name="Credit",
@@ -419,7 +456,9 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"unique_together": {("person", "role")},},
+            options={
+                "unique_together": {("person", "role")},
+            },
         ),
         migrations.CreateModel(
             name="Comic",
@@ -537,10 +576,13 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"unique_together": {("path", "volume", "year", "issue")},},
+            options={
+                "unique_together": {("path", "volume", "year", "issue")},
+            },
         ),
         migrations.AlterUniqueTogether(
-            name="imprint", unique_together={("name", "publisher", "is_default")},
+            name="imprint",
+            unique_together={("name", "publisher", "is_default")},
         ),
         migrations.CreateModel(
             name="AdminFlag",
@@ -559,7 +601,10 @@ class Migration(migrations.Migration):
                 ("name", models.CharField(db_index=True, max_length=32)),
                 ("on", models.BooleanField(default=True)),
             ],
-            options={"abstract": False, "unique_together": {("name",)},},
+            options={
+                "abstract": False,
+                "unique_together": {("name",)},
+            },
         ),
         migrations.AlterField(
             model_name="imprint",
@@ -618,7 +663,11 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-            options={"unique_together": {("user", "session", "comic")},},
+            options={
+                "unique_together": {("user", "session", "comic")},
+            },
         ),
-        migrations.RunPython(code=init_admin_flags,),
+        migrations.RunPython(
+            code=init_admin_flags,
+        ),
     ]

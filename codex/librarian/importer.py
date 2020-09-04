@@ -189,7 +189,8 @@ class Importer:
         for credit_md in credits_md:
             if not credit_md:
                 continue
-            search = {}
+            # Default to people credited without roles being ok.
+            search = {"role": None}
             for field in Credit._meta.get_fields():
                 if not isinstance(field, ForeignKey):
                     continue
@@ -198,6 +199,9 @@ class Importer:
                     inst = self.get_or_create_simple_model(name, field.related_model)
                     if inst:
                         search[field.name] = inst
+            if len(search) != 2:
+                LOG.warn(f"Invalid credit not creating: {credits_md}")
+                continue
             defaults = {}
             defaults.update(search)
             credit, created = Credit.objects.get_or_create(defaults=defaults, **search)

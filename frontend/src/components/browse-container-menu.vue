@@ -3,17 +3,12 @@
     <template #activator="{ on }">
       <v-icon class="actionMenu" v-on="on">{{ mdiDotsVertical }}</v-icon>
     </template>
-    <v-list>
-      <v-list-item>
-        <v-checkbox
-          label="read"
-          :input-value="finished"
-          :indeterminate="finished === null"
-          class="readCheckbox"
-          dense
-          hide-details
-          @change="markRead(group, pk, $event === true)"
-        />
+    <v-list nav>
+      <v-list-item v-if="group === 'c'" :href="downloadURL">
+        <v-list-item-content> Download Comic </v-list-item-content>
+      </v-list-item>
+      <v-list-item @click="toggleRead">
+        <v-list-item-content> {{ markReadText }}</v-list-item-content>
       </v-list-item>
     </v-list>
   </v-menu>
@@ -21,7 +16,16 @@
 
 <script>
 import { mdiDotsVertical } from "@mdi/js";
-import { mapState } from "vuex";
+
+import { getDownloadURL } from "@/api/metadata";
+
+const containerNames = {
+  p: "Publisher",
+  i: "Imprint",
+  s: "Series",
+  v: "Volume",
+  c: "Issue",
+};
 
 export default {
   name: "BrowseContainerMenu",
@@ -41,14 +45,34 @@ export default {
   data() {
     return {
       mdiDotsVertical,
+      downloadURL: getDownloadURL(this.pk),
+      markReadText: this.getMarkReadText(),
     };
-  },
-  computed: {
-    ...mapState("reader", {}),
   },
   methods: {
     markRead: function (group, pk, finished) {
       this.$store.dispatch("browser/markRead", { group, pk, finished });
+    },
+    toggleRead: function () {
+      this.$store.dispatch("browser/markRead", {
+        group: this.group,
+        pk: this.pk,
+        finished: !this.finished,
+      });
+    },
+    getMarkReadText: function () {
+      let text = "Mark ";
+      if (this.group != "c") {
+        text += "Entire ";
+      }
+      text += containerNames[this.group] + " ";
+
+      if (this.finished) {
+        text += "Unread";
+      } else {
+        text += "Read";
+      }
+      return text;
     },
   },
 };
@@ -59,9 +83,5 @@ export default {
   position: absolute;
   bottom: 3px;
   right: 3px;
-}
-.readCheckbox {
-  padding: 0px;
-  margin: 0px;
 }
 </style>

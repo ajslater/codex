@@ -2,20 +2,25 @@ FROM ajslater/codex-builder:focal_1.0.0-db5d3fe
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-#############
-# APP SETUP #
-#############
+####################
+# APP DEPENDENCIES #
+####################
 
-RUN echo "**** copying source for dev build ****"
-COPY . .
-
-RUN ./setup-dev.sh
+WORKDIR /app
+COPY setup-dev.sh pyproject.toml poetry.lock /app/
+RUN poetry install --no-root
+COPY frontend/package.json frontend/package-lock.json /app/frontend/
+WORKDIR /app/frontend
+RUN npm install
 
 ########
 # TEST #
 ########
 
 WORKDIR /app
+RUN echo "**** copying source for dev build ****"
+COPY . .
+RUN cp frontend/src/choices/* codex/choices/
 RUN echo "*** run lint ***"
 RUN ./lint.sh
 
@@ -27,7 +32,6 @@ RUN ./test.sh
 #########
 
 WORKDIR /app/frontend
-
 RUN echo "*** build frontend ***" && \
   rm -rf ../codex/static_build && \
   npm run build
