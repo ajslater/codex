@@ -50,6 +50,9 @@
         <div class="displayName">
           {{ getDisplayName() }}
         </div>
+        <div class="orderValue">
+          {{ getOrderValue() }}
+        </div>
       </router-link>
     </div>
   </div>
@@ -58,6 +61,7 @@
 <script>
 // import { mdiChevronLeft } from "@mdi/js";
 import { mdiDotsVertical, mdiEye } from "@mdi/js";
+import filesize from "filesize";
 import { mapState } from "vuex";
 
 import { getFullComicName, getVolumeName } from "@/comic-name";
@@ -86,7 +90,9 @@ export default {
     };
   },
   computed: {
-    ...mapState("browser", {}),
+    ...mapState("browser", {
+      sortBy: (state) => state.settings.sortBy,
+    }),
   },
   methods: {
     getToRoute: function () {
@@ -123,6 +129,33 @@ export default {
         displayName = this.item.display_name;
       }
       return displayName;
+    },
+    getOrderValue: function () {
+      let ov = this.item.order_value;
+      if (this.sortBy == "sort_name" || !ov) {
+        return "";
+      } else if (this.sortBy == "page_count") {
+        const human = filesize(parseInt(ov), {
+          base: 10,
+          round: 1,
+          fullform: true,
+          fullforms: [" ", "K", "M", "G", "T", "P", "E", "Z", "Y"],
+          spacer: "",
+        });
+        return `${human} pages`;
+      } else if (this.sortBy == "size") {
+        return filesize(parseInt(ov), { round: 1 });
+      } else if (["user_rating", "critical_rating"].includes(this.sortBy)) {
+        return `${ov} stars`;
+      } else if (["created_at"].includes(this.sortBy)) {
+        const date = new Date(ov);
+        const year = `${date.getFullYear()}`.padStart(4, "0");
+        const month = `${date.getMonth() + 1}`.padStart(2, "0");
+        const day = `${date.getDate()}`.padStart(2, "0");
+        return [year, month, day].join("-");
+      } else {
+        return ov;
+      }
     },
   },
 };
@@ -245,6 +278,9 @@ export default {
 }
 .headerName {
   padding-top: 5px;
+  color: gray;
+}
+.orderValue {
   color: gray;
 }
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
