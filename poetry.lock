@@ -169,7 +169,7 @@ description = "An API for reading comic archives"
 name = "comicbox"
 optional = false
 python-versions = ">=3.7,<4.0"
-version = "0.1.3"
+version = "0.1.4"
 
 [package.dependencies]
 parse = ">=1.15,<2.0"
@@ -1202,8 +1202,8 @@ coloredlogs = [
     {file = "coloredlogs-14.0.tar.gz", hash = "sha256:a1fab193d2053aa6c0a97608c4342d031f1f93a3d1218432c59322441d31a505"},
 ]
 comicbox = [
-    {file = "comicbox-0.1.3-py3-none-any.whl", hash = "sha256:56820370ecc05ef7505b8a1a8d0e019c665eebf0824330a14c99f340829dc263"},
-    {file = "comicbox-0.1.3.tar.gz", hash = "sha256:c48d30d807d183b9d108ae2e76a8d5113f91d1844bc71e0b9b7d43acaaa276cc"},
+    {file = "comicbox-0.1.4-py3-none-any.whl", hash = "sha256:eb01053b7005e57af3c1d144ac9fa9b09049d8db1b641245046f7251d3963ff3"},
+    {file = "comicbox-0.1.4.tar.gz", hash = "sha256:12fb5ce7e202a03687cda0d854496d6170d0cfd50cc195dbfb04db935ada6742"},
 ]
 coverage = [
     {file = "coverage-5.2.1-cp27-cp27m-macosx_10_13_intel.whl", hash = "sha256:40f70f81be4d34f8d491e55936904db5c527b0711b2a46513641a5729783c2e4"},
