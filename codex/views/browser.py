@@ -67,11 +67,12 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
         "v": "c",
     }
     SORT_AGGREGATE_FUNCS = {
-        "user_rating": Avg,
+        "created_at": Max,
         "critical_rating": Avg,
-        "size": Sum,
         "date": Max,
-        "updated_at": Max,
+        "page_count": Sum,
+        "size": Sum,
+        "user_rating": Avg,
     }
     DEFAULT_ORDER_KEY = "sort_name"
     CHOICES_RELATIONS = ("decade", "characters")
@@ -85,6 +86,7 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
         "group",
         "header_name",
         "library",
+        "order_value",
         "pk",
         "progress",
         "series_name",
@@ -149,7 +151,7 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
 
         return self.COMIC_GROUP
 
-    def get_order_by(self, order_key, model=None):
+    def get_order_by(self, order_key, model, use_order_value):
         """
         Create the order_by list.
 
@@ -160,6 +162,8 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
             order_prefix = "-"
         else:
             order_prefix = ""
+        if use_order_value:
+            order_key = "order_value"
         order_by = [order_prefix + order_key, order_prefix + "pk"]
         if model in (Comic, Folder):
             # This keeps position stability for duplicate comics & folders
@@ -173,6 +177,24 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
         model is neccissary because this gets called twice by folder
         view. once for folders, once for the comics.
         """
+        ##########################################
+        # Annotate children count and page count #
+        ##########################################
+        if model == Comic:
+            child_count_sum = Value(1, IntegerField())
+            page_count_sum = F("page_count")
+        else:
+            child_count_sum = Count("comic__pk", distinct=True, filter=aggregate_filter)
+            # Hoist up total page_count of children
+            # Used for sorting and progress
+            page_count_sum = Sum("comic__page_count", filter=aggregate_filter)
+
+        # EXTRA FILTER for empty containers
+        obj_list = obj_list.annotate(child_count=child_count_sum).filter(
+            child_count__gt=0
+        )
+        obj_list = obj_list.annotate(x_page_count=page_count_sum)
+
         ##################
         # Annotate Group #
         ##################
@@ -181,29 +203,12 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
             group=Value(self.model_group, CharField(max_length=1))
         )
 
-        ###########################
-        # Annotate children count #
-        ###########################
-        if model == Comic:
-            obj_list = obj_list.annotate(
-                child_count=Value(None, IntegerField()),
-            )
-        else:
-            child_count = Count("comic__pk", distinct=True, filter=aggregate_filter)
-            obj_list = obj_list.annotate(child_count=child_count).filter(
-                child_count__gt=0
-            )
-            # Hoist up total page_count of children
-            # Used for sorting and progress
-            page_count = Sum("comic__page_count", filter=aggregate_filter)
-            obj_list = obj_list.annotate(page_count=page_count)
-
         ################################
         # Annotate finished & progress #
         ################################
         ub_filter = self.get_userbookmark_filter()
         # Hoist up: are the children finished or unfinished?
-        finished = Cast(
+        finished_aggregate = Cast(
             NullIf(
                 Coalesce(
                     Avg(  # distinct average of user's finished values
@@ -218,11 +223,10 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
             ),
             BooleanField(),  # Finally ends up as a ternary boolean
         )
-        obj_list = obj_list.annotate(finished=finished)
 
         # Hoist up the bookmark
         bookmark_sum = Sum("comic__userbookmark__bookmark", filter=ub_filter)
-        obj_list = obj_list.annotate(bookmark=bookmark_sum)
+        obj_list = obj_list.annotate(finished=finished_aggregate, bookmark=bookmark_sum)
         # Annotate progress
         obj_list = self.annotate_progress(obj_list)
 
@@ -233,7 +237,16 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
             # For folder view stability sorting compatibilty
             obj_list = obj_list.annotate(library=Value(0, IntegerField()))
 
+        #######################
+        # Sortable aggregates #
+        #######################
         order_key = self.params.get("sort_by", self.DEFAULT_ORDER_KEY)
+        agg_func = self.SORT_AGGREGATE_FUNCS.get(order_key)
+        if model == Comic or agg_func is None:
+            order_func = F(order_key)
+        else:
+            order_func = agg_func(f"comic__{order_key}", filter=aggregate_filter)
+        obj_list = obj_list.annotate(order_value=order_func)
 
         #######################
         # Annotate Cover Path #
@@ -241,18 +254,8 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
         # Select comics for the children by an outer ref for annotation
         # Order the decendent comics by the sort argumentst
         if model == Comic:
-            obj_list = obj_list.annotate(x_cover_path=F("cover_path"))
+            cover_path_subquery = F("cover_path")
         else:
-            # Sortable aggregates
-            agg_func = self.SORT_AGGREGATE_FUNCS.get(order_key)
-            if agg_func:
-                agg_relation = "comic__" + order_key
-                if order_key in ("updated_at",):
-                    order_key = "child_" + order_key
-                obj_list = obj_list.annotate(
-                    **{order_key: agg_func(agg_relation, filter=aggregate_filter)}
-                )
-
             # Cover Path from sorted children.
             # XXX Don't know how to make this a join
             #   because it selects by order_by but wants the cover_path
@@ -260,42 +263,47 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
             comics = Comic.objects.all()
             comics = comics.filter(model_container_filter)
             comics = comics.filter(aggregate_filter)
-            order_by = self.get_order_by(order_key)
+            order_by = self.get_order_by(order_key, Comic, False)
             cover_comic_path = comics.order_by(*order_by).values("cover_path")
             cover_path_subquery = Subquery(cover_comic_path[:1])
-            obj_list = obj_list.annotate(x_cover_path=cover_path_subquery)
+        obj_list = obj_list.annotate(x_cover_path=cover_path_subquery)
 
         #######################
         # Annotate name fields #
         #######################
-        # XXX header_name & display_name might be better done on import.
+        # XXX header_name & display_name could be done on import.
         if model in (Publisher, Series, Folder, Comic):
-            obj_list = obj_list.annotate(header_name=Value(None, CharField()))
+            header_name = Value(None, CharField())
         elif model == Imprint:
-            obj_list = obj_list.annotate(header_name=F("publisher__name"))
+            header_name = F("publisher__name")
         elif model == Volume:
-            obj_list = obj_list.annotate(header_name=F("series__name"))
+            header_name = F("series__name")
 
         if model == Comic:
-            obj_list = obj_list.annotate(
-                series_name=F("series__name"),
-                volume_name=F("volume__name"),
-                x_issue=F("issue"),
-                x_path=F("path"),
-            )
+            series_name = F("series__name")
+            volume_name = F("volume__name")
+            x_issue = F("issue")
+            x_path = F("path")
         else:
-            obj_list = obj_list.annotate(
-                series_name=Value(None, CharField()),
-                volume_name=Value(None, CharField()),
-                x_issue=Value(None, CharField()),
-                x_path=Value(None, CharField()),
-            )
+            series_name = Value(None, CharField())
+            volume_name = Value(None, CharField())
+            x_issue = Value(None, CharField())
+            x_path = Value(None, CharField())
 
         # XXX should container use title or comics use name?
         if model in (Publisher, Imprint, Series, Volume, Folder):
-            obj_list = obj_list.annotate(display_name=F("name"))
+            display_name = F("name")
         elif model == Comic:
-            obj_list = obj_list.annotate(display_name=F("title"))
+            display_name = F("title")
+
+        obj_list = obj_list.annotate(
+            header_name=header_name,
+            series_name=series_name,
+            volume_name=volume_name,
+            x_issue=x_issue,
+            x_path=x_path,
+            display_name=display_name,
+        )
 
         return obj_list
 
@@ -306,12 +314,6 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
 
         model_group = self.get_model_group()
         self.model = self.GROUP_MODEL[model_group]
-
-    def get_value_fields(self):
-        """Get the only fields we care about for this object."""
-        order_key = self.params.get("sort_by", self.DEFAULT_ORDER_KEY)
-        fields = self.COMMON_BROWSE_FIELDS + [order_key]
-        return fields
 
     def get_folder_queryset(self, object_filter, aggregate_filter):
         """Create folder queryset."""
@@ -325,9 +327,8 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
         comic_list = self.add_annotations(comic_list, Comic, aggregate_filter)
 
         # Reduce to values for concatenation
-        fields = self.get_value_fields()
-        folder_list = folder_list.values(*fields)
-        comic_list = comic_list.values(*fields)
+        folder_list = folder_list.values(*self.COMMON_BROWSE_FIELDS)
+        comic_list = comic_list.values(*self.COMMON_BROWSE_FIELDS)
         obj_list = folder_list.union(comic_list)
 
         return obj_list
@@ -341,8 +342,7 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
         obj_list = self.add_annotations(obj_list, self.model, aggregate_filter)
 
         # Convert to a dict to be compatible with Folder View concatenate
-        fields = self.get_value_fields()
-        obj_list = obj_list.values(*fields)
+        obj_list = obj_list.values(*self.COMMON_BROWSE_FIELDS)
 
         return obj_list
 
@@ -507,7 +507,7 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
 
         # Order
         order_key = self.params.get("sort_by", self.DEFAULT_ORDER_KEY)
-        order_by = self.get_order_by(order_key, self.model)
+        order_by = self.get_order_by(order_key, self.model, True)
         obj_list = obj_list.order_by(*order_by)
 
         # Pagination

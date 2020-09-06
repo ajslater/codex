@@ -10,12 +10,16 @@ from codex.librarian.queue import QUEUE
 from codex.librarian.queue import LibraryChangedTask
 from codex.models import Comic
 from codex.settings import CONFIG_STATIC
+from codex.settings import STATIC_ROOT
 
 
 THUMBNAIL_SIZE = (120, 180)
 
 
 COVER_ROOT = Path(f"{CONFIG_STATIC}/covers")
+MISSING_COVER_FN = "missing_cover.png"
+MISSING_COVER_SRC = STATIC_ROOT / "img" / MISSING_COVER_FN
+MISSING_COVER_FS_PATH = COVER_ROOT / MISSING_COVER_FN
 LOG = logging.getLogger(__name__)
 
 
@@ -51,7 +55,11 @@ def purge_all_covers(library):
 
 def create_comic_cover(comic_path, db_cover_path, force=False):
     """Create a comic cover thumnail and save it to disk."""
+    comic = None
     try:
+        if not force and db_cover_path == MISSING_COVER_FN:
+            LOG.debug(f"Cover for {comic_path} missing")
+            return
         fs_cover_path = COVER_ROOT / db_cover_path
         if fs_cover_path.exists() and not force:
             LOG.debug(f"Cover already exists {comic_path} {db_cover_path}")
@@ -59,7 +67,8 @@ def create_comic_cover(comic_path, db_cover_path, force=False):
         fs_cover_path.parent.mkdir(exist_ok=True, parents=True)
 
         if comic_path is None:
-            comic_path = Comic.objects.only("path").get(cover_path=db_cover_path).path
+            comic = Comic.objects.only("path").get(cover_path=db_cover_path)
+            comic_path = comic.path
 
         # Reopens the car, so slightly inefficient.
         car = ComicArchive(comic_path)
@@ -69,5 +78,9 @@ def create_comic_cover(comic_path, db_cover_path, force=False):
         LOG.info(f"Created cover thumbnail for: {comic_path}")
         QUEUE.put(LibraryChangedTask())
     except Exception as exc:
-        LOG.exception(exc)
         LOG.error(f"Failed to create cover thumb for {comic_path}")
+        LOG.exception(exc)
+        Comic.objects.filter(cover_path=db_cover_path).update(
+            cover_path=MISSING_COVER_FN
+        )
+        LOG.warn(f"Marked cover for {comic_path} missing.")

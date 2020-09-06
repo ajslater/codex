@@ -125,10 +125,10 @@ class UserBookmarkMixin:
     def annotate_progress(queryset):
         """Compute progress for each member of a queryset."""
         # Requires bookmark and annotation hoisted from userbookmarks.
-        # Requires page_count native to comic or aggregated
+        # Requires x_page_count native to comic or aggregated
         queryset = queryset.annotate(
             progress=Coalesce(
-                F("bookmark") * Decimal("1.0") / F("page_count") * 100,
+                F("bookmark") * Decimal("1.0") / F("x_page_count") * 100,
                 Value(0.00),
                 output_field=DecimalField(),
             )
