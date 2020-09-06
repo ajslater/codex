@@ -78,6 +78,7 @@ class ComicMetadataView(APIView, SessionMixin, UserBookmarkMixin):
             volume_count=F("series__volume_count"),
             volume_name=F("volume__name"),
             issue_count=F("volume__issue_count"),
+            x_page_count=F("page_count"),
         )
 
         # Annotate progress

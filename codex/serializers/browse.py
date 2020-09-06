@@ -103,6 +103,7 @@ class BrowseObjectSerializer(Serializer):
     progress = DecimalField(read_only=True, max_digits=5, decimal_places=2)
     finished = BooleanField(read_only=True, allow_null=True)
     bookmark = IntegerField(read_only=True, allow_null=True)
+    order_value = CharField(read_only=True)
 
 
 class BrowseRouteSerializer(Serializer):
