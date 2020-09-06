@@ -2,7 +2,6 @@ import logging
 
 from io import BytesIO
 from pathlib import Path
-from shutil import copyfile
 
 from comicbox.comic_archive import ComicArchive
 from PIL import Image
