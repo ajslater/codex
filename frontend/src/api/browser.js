@@ -32,8 +32,13 @@ const getScanInProgress = () => {
 
 // STATIC PATHS
 
-export const getCoverSrc = (coverPath) =>
-  `${ROOT_PATH}static/covers/${coverPath}`;
+const MISSING_COVER_PATH = `${ROOT_PATH}static/img/missing_cover.png`;
+export const getCoverSrc = (coverPath) => {
+  if (coverPath == "missing_cover.png") {
+    return MISSING_COVER_PATH;
+  }
+  return `${ROOT_PATH}static/covers/${coverPath}`;
+};
 
 // WEBSOCKETS
 

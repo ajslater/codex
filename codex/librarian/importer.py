@@ -207,7 +207,11 @@ class Importer:
             credit, created = Credit.objects.get_or_create(defaults=defaults, **search)
             credits.append(credit)
             if created:
-                LOG.info(f"Created credit {credit.role.name}: {credit.person.name}")
+                if credit.role:
+                    credit_name = credit.role.name
+                else:
+                    credit_name = None
+                LOG.info(f"Created credit {credit_name}: {credit.person.name}")
         del self.md["credits"]
         return credits
 
