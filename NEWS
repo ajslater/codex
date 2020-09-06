@@ -1,3 +1,9 @@
+v0.5.9
+* fix sorting for folder view
+* display sort key value in browse tile
+* display standard image for missing covers
+* slightly more helpful 404 page
+
 v0.5.8
 * Upload mistake with 0.5.7. This is just a version bump.
 
