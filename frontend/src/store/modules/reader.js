@@ -1,5 +1,24 @@
 import API from "@/api/reader";
 import FORM_CHOICES from "@/choices/readerChoices";
+const NULL_READER_SETTINGS = {
+  fitTo: null,
+  twoPages: null,
+};
+
+const getGlobalFitToDefault = () => {
+  // Default to different settings for different screen sizes;
+  const vw = Math.max(
+    document.documentElement.clientWidth || 0,
+    window.innerWidth || 0
+  );
+  let fitTo;
+  if (vw > 600) {
+    fitTo = "HEIGHT";
+  } else {
+    fitTo = "WIDTH";
+  }
+  return fitTo;
+};
 
 const state = {
   title: {
@@ -11,7 +30,7 @@ const state = {
   maxPage: 0,
   settings: {
     globl: {
-      fitTo: "WIDTH",
+      fitTo: getGlobalFitToDefault(),
       twoPages: false,
     },
     local: {
@@ -42,17 +61,6 @@ const getters = {
     Object.keys(state.settings.globl).forEach(function (key) {
       if (state.settings.local[key] !== null) {
         computedSettings[key] = state.settings.local[key];
-      } else if (key === "fitTo") {
-        // Default to different settings for different screen sizes;
-        const vw = Math.max(
-          document.documentElement.clientWidth || 0,
-          window.innerWidth || 0
-        );
-        if (vw > 600) {
-          computedSettings[key] = "HEIGHT";
-        } else {
-          computedSettings[key] = "WIDTH";
-        }
       } else {
         computedSettings[key] = state.settings.globl[key];
       }
@@ -175,21 +183,25 @@ const actions = {
     // Set the bookmark
     API.setComicBookmark(route);
   },
-  settingChangedLocal({ commit, state, dispatch }, { data, route }) {
+  settingChangedLocal({ commit, state, dispatch }, data) {
     commit("setSettingLocal", data);
     API.setComicSettings({
       pk: state.routes.current.pk,
       data: state.settings.local,
     });
     if (Object.prototype.hasOwnProperty.call(data, "twoPages")) {
-      dispatch("nextPageChanged", route);
+      dispatch("nextPageChanged", state.routes.current);
     }
   },
-  settingChangedGlobal({ commit, state, dispatch }, { data, route }) {
+  settingChangedGlobal({ commit, state, dispatch }, data) {
     commit("setSettingGlobal", data);
-    API.setComicDefaultSettings(state.settings.global);
+    commit("setSettingLocal", NULL_READER_SETTINGS);
+    API.setComicDefaultSettings({
+      pk: state.routes.current.pk,
+      data: state.settings.global,
+    });
     if (Object.prototype.hasOwnProperty.call(data, "twoPages")) {
-      dispatch("nextPageChanged", route);
+      dispatch("nextPageChanged", state.routes.current);
     }
   },
 };

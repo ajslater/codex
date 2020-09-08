@@ -120,7 +120,7 @@ import { getFullComicName } from "@/comic-name";
 import MetadataDialog from "@/components/metadata-dialog.vue";
 import ReaderComicPage from "@/components/reader-comic-page.vue";
 import ReaderNavButton from "@/components/reader-nav-button.vue";
-const DEFAULT_ROUTE = { group: "p", pk: 0 };
+const DEFAULT_ROUTE = { group: "p", pk: 0, page: 1 };
 
 export default {
   name: "Reader",
@@ -267,23 +267,11 @@ export default {
     routeToNext: function () {
       this.routeTo(this.routes.next);
     },
-    getCurrentRoute: function (data) {
-      let route = null;
-      if (Object.prototype.hasOwnProperty.call(data, "twoPages")) {
-        route = {
-          pk: +this.$route.params.pk,
-          pageNumber: +this.$route.params.pageNumber,
-        };
-      }
-      return route;
-    },
     settingChangedLocal: function (data) {
-      let route = this.getCurrentRoute(data);
-      this.$store.dispatch("reader/settingChangedLocal", { data, route });
+      this.$store.dispatch("reader/settingChangedLocal", data);
     },
-    settingChangeGlobal: function (data) {
-      let route = this.getCurrentRoute(data);
-      this.$store.dispatch("reader/settingChangedGlobal", { data, route });
+    settingChangedGlobal: function (data) {
+      this.$store.dispatch("reader/settingChangedGlobal", data);
     },
     settingDialogChanged: function (data) {
       if (this.isSettingsDialogGlobalMode) {

@@ -17,6 +17,10 @@ from codex.views.mixins import UserBookmarkMixin
 
 
 LOG = logging.getLogger(__name__)
+NULL_READER_SETTINGS = {
+    "fitTo": None,
+    "twoPages": None,
+}
 
 
 class ComicOpenedView(APIView, SessionMixin, UserBookmarkMixin):
@@ -156,4 +160,8 @@ class ComicSettingsView(APIView, SessionMixin, UserBookmarkMixin):
         reader_session = self.get_session(self.READER_KEY)
         reader_session["defaults"] = snake_dict
         self.request.session.save()
+
+        # Null out this comic's settings so it uses all comic defaults
+        pk = self.kwargs.get("pk")
+        self.update_user_bookmark(NULL_READER_SETTINGS, pk=pk)
         return Response()
