@@ -39,18 +39,19 @@ class UserBookmarkFinishedView(APIView, SessionMixin, UserBookmarkMixin):
 
     def patch(self, request, *args, **kwargs):
         """Mark read or unread recursively."""
-        browse_type = self.kwargs.get("browse_type")
-        pk = self.kwargs.get("pk")
-
         serializer = UserBookmarkFinishedSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        browse_type = self.kwargs.get("browse_type")
         relation = BrowseView.GROUP_RELATION.get(browse_type)
-        comics = Comic.objects.filter(**{relation: pk}).only("pk")
+        pk = self.kwargs.get("pk")
+        # Optimizing this call with only seems to fail the subsequent updates
+        comics = Comic.objects.filter(**{relation: pk})
         updates = {"finished": serializer.validated_data.get("finished")}
 
         for comic in comics:
-            # can't do this in bulk if using update_or_create
+            # can't do this in bulk if using update_or_create withtout a
+            # third party packages.
             self.update_user_bookmark(updates, comic=comic)
 
         return Response()
