@@ -204,9 +204,10 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
         )
 
         ################################
-        # Annotate finished & progress #
+        # Annotate userbookmark hoists #
         ################################
         ub_filter = self.get_userbookmark_filter()
+
         # Hoist up: are the children finished or unfinished?
         finished_aggregate = Cast(
             NullIf(
@@ -226,8 +227,12 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
 
         # Hoist up the bookmark
         bookmark_sum = Sum("comic__userbookmark__bookmark", filter=ub_filter)
+
         obj_list = obj_list.annotate(finished=finished_aggregate, bookmark=bookmark_sum)
-        # Annotate progress
+
+        #####################
+        # Annotate progress #
+        #####################
         obj_list = self.annotate_progress(obj_list)
 
         #######################
