@@ -1,3 +1,7 @@
+v0.5.10
+* fix filtering bugs
+* fix mark read/unread bugs
+
 v0.5.9
 * fix sorting for folder view
 * display sort key value in browse tile
