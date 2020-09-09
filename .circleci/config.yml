@@ -35,6 +35,9 @@ jobs:
                 command: docker load -i "./<< pipeline.parameters.image_archive >>"
                 name: Load archive Docker image
             - run:
+                command: ./ci/publish-pypi.sh
+                name: Publish Package to PyPi
+            - run:
                 command: ./ci/tag-and-push.sh
                 name: Publish Docker Image to Docker Hub
 parameters:
