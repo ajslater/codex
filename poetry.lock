@@ -74,7 +74,7 @@ description = "The bidirectional mapping library for Python."
 name = "bidict"
 optional = false
 python-versions = ">=3.6"
-version = "0.21.0"
+version = "0.21.2"
 
 [package.extras]
 coverage = ["coverage (<6)", "pytest-cov (<3)"]
@@ -1119,8 +1119,8 @@ beautifulsoup4 = [
     {file = "beautifulsoup4-4.9.1.tar.gz", hash = "sha256:73cc4d115b96f79c7d77c1c7f7a0a8d4c57860d1041df407dd1aae7f07a77fd7"},
 ]
 bidict = [
-    {file = "bidict-0.21.0-py2.py3-none-any.whl", hash = "sha256:2ad89fc808433eee99039c15ec426651bef6fcf06cbf6f1ef1f38bc6eb13e6da"},
-    {file = "bidict-0.21.0.tar.gz", hash = "sha256:935bf93eda866d4f85fd796405e4e1e9b20274ce56c3ed65b7ce879935f757ad"},
+    {file = "bidict-0.21.2-py2.py3-none-any.whl", hash = "sha256:929d056e8d0d9b17ceda20ba5b24ac388e2a4d39802b87f9f4d3f45ecba070bf"},
+    {file = "bidict-0.21.2.tar.gz", hash = "sha256:4fa46f7ff96dc244abfc437383d987404ae861df797e2fd5b190e233c302be09"},
 ]
 black = [
     {file = "black-20.8b1-py3-none-any.whl", hash = "sha256:70b62ef1527c950db59062cda342ea224d772abdf6adc58b86a45421bab20a6b"},
