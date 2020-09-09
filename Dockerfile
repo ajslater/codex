@@ -9,7 +9,7 @@ RUN pip3 wheel /tmp/*.whl --wheel-dir=/wheels
 
 FROM ajslater/codex-base:${RUNNABLE_BASE_VERSION}
 ARG PKG_VERSION
-LABEL version python${RUNNABLE_BASE_VERSION}_codex-${PKG_VERSION}
+LABEL version ${PKG_VERSION}
 
 RUN echo "*** install python wheels ***"
  COPY --from=codex-install /wheels /wheels
