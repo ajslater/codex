@@ -14,8 +14,8 @@ const setComicSettings = ({ pk, data }) => {
   return ajax("patch", `${COMIC_BASE}/${pk}/settings`, data);
 };
 
-const setComicDefaultSettings = (data) => {
-  return ajax("put", `${COMIC_BASE}/settings`, data);
+const setComicDefaultSettings = ({ pk, data }) => {
+  return ajax("put", `${COMIC_BASE}/${pk}/settings`, data);
 };
 
 export const getComicPageSource = ({ pk, pageNumber }) => {
