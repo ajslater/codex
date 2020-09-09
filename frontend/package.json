@@ -39,7 +39,7 @@
     "eslint-config-prettier": "^6.11.0",
     "eslint-plugin-array-func": "^3.1.7",
     "eslint-plugin-eslint-comments": "^3.2.0",
-    "eslint-plugin-html": "^6.0.3",
+    "eslint-plugin-html": "^6.1.0",
     "eslint-plugin-jest": "^23.20.0",
     "eslint-plugin-jest-async": "^1.0.3",
     "eslint-plugin-json": "^2.1.2",
