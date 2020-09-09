@@ -1,12 +1,9 @@
 <template>
-  <v-container id="readerContainer">
-    <v-main id="pagesContainer">
-      <div id="pages">
-        <ReaderComicPage :page="+0" />
-        <ReaderComicPage :page="+1" />
-      </div>
-    </v-main>
-
+  <div id="readerContainer">
+    <div id="pagesContainer">
+      <ReaderComicPage :page="+0" />
+      <ReaderComicPage :page="+1" />
+    </div>
     <nav id="navOverlay">
       <div id="navColumns" @click="toggleToolbars()">
         <section id="leftColumn" class="navColumn">
@@ -109,7 +106,7 @@
         <ReaderNavButton :value="maxPage" />
       </v-toolbar>
     </v-slide-y-reverse-transition>
-  </v-container>
+  </div>
 </template>
 
 <script>
@@ -309,6 +306,12 @@ export default {
 </script>
 
 <style scoped lang="scss">
+#pagesContainer {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  overflow-x: auto;
+}
 #readerContainer {
   padding: 0px;
   max-width: 100%;
@@ -340,11 +343,6 @@ export default {
 }
 
 /* PAGES */
-#pagesContainer {
-}
-#pages {
-  text-align: center;
-}
 .toolbar {
   width: 100%;
   position: fixed;

@@ -1,29 +1,20 @@
 <template>
-  <v-img
+  <img
     v-if="displayPage"
     class="page"
     :class="fitToClass"
     :src="src"
     :alt="alt"
-    contain
-  >
-    <template #placeholder>
-      <PlaceholderLoading />
-    </template>
-  </v-img>
+  />
 </template>
 
 <script>
 import { mapGetters, mapState } from "vuex";
 
 import { getComicPageSource } from "@/api/reader";
-import PlaceholderLoading from "@/components/placeholder-loading";
 
 export default {
   name: "ReaderComicPage",
-  components: {
-    PlaceholderLoading,
-  },
   props: {
     page: {
       type: Number,
@@ -76,7 +67,7 @@ export default {
 
 <style scoped lang="scss">
 .page {
-  display: inline-flex;
+  flex: 0 0 auto;
 }
 .fitToHeight,
 .fitToHeightTwo {
@@ -85,14 +76,7 @@ export default {
 .fitToWidth {
   max-width: 100vw;
 }
-
-.fitToHeightTwo,
 .fitToWidthTwo {
   max-width: 50vw;
 }
-/*
-.fitToOriginal,
-.fitToOriginalTwo {
-}
-*/
 </style>
