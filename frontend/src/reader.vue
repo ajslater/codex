@@ -1,12 +1,9 @@
 <template>
-  <v-container id="readerContainer">
-    <v-main id="pagesContainer">
-      <div id="pages">
-        <ReaderComicPage :page="+0" />
-        <ReaderComicPage :page="+1" />
-      </div>
-    </v-main>
-
+  <div id="readerContainer">
+    <div id="pagesContainer">
+      <ReaderComicPage :page="+0" />
+      <ReaderComicPage :page="+1" />
+    </div>
     <nav id="navOverlay">
       <div id="navColumns" @click="toggleToolbars()">
         <section id="leftColumn" class="navColumn">
@@ -109,7 +106,7 @@
         <ReaderNavButton :value="maxPage" />
       </v-toolbar>
     </v-slide-y-reverse-transition>
-  </v-container>
+  </div>
 </template>
 
 <script>
@@ -120,7 +117,7 @@ import { getFullComicName } from "@/comic-name";
 import MetadataDialog from "@/components/metadata-dialog.vue";
 import ReaderComicPage from "@/components/reader-comic-page.vue";
 import ReaderNavButton from "@/components/reader-nav-button.vue";
-const DEFAULT_ROUTE = { group: "p", pk: 0 };
+const DEFAULT_ROUTE = { group: "r", pk: 0, page: 1 };
 
 export default {
   name: "Reader",
@@ -267,23 +264,11 @@ export default {
     routeToNext: function () {
       this.routeTo(this.routes.next);
     },
-    getCurrentRoute: function (data) {
-      let route = null;
-      if (Object.prototype.hasOwnProperty.call(data, "twoPages")) {
-        route = {
-          pk: +this.$route.params.pk,
-          pageNumber: +this.$route.params.pageNumber,
-        };
-      }
-      return route;
-    },
     settingChangedLocal: function (data) {
-      let route = this.getCurrentRoute(data);
-      this.$store.dispatch("reader/settingChangedLocal", { data, route });
+      this.$store.dispatch("reader/settingChangedLocal", data);
     },
-    settingChangeGlobal: function (data) {
-      let route = this.getCurrentRoute(data);
-      this.$store.dispatch("reader/settingChangedGlobal", { data, route });
+    settingChangedGlobal: function (data) {
+      this.$store.dispatch("reader/settingChangedGlobal", data);
     },
     settingDialogChanged: function (data) {
       if (this.isSettingsDialogGlobalMode) {
@@ -321,6 +306,12 @@ export default {
 </script>
 
 <style scoped lang="scss">
+#pagesContainer {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  overflow-x: auto;
+}
 #readerContainer {
   padding: 0px;
   max-width: 100%;
@@ -352,11 +343,6 @@ export default {
 }
 
 /* PAGES */
-#pagesContainer {
-}
-#pages {
-  text-align: center;
-}
 .toolbar {
   width: 100%;
   position: fixed;

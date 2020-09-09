@@ -12,7 +12,8 @@ const getBrowseOpened = ({ group, pk, page }) => {
   return ajax("get", `${BROWSE_BASE}/${group}/${pk}/${page}`);
 };
 
-const getBrowseObjects = ({ group, pk, page, settings }) => {
+const getBrowseObjects = ({ route, settings }) => {
+  const { group, pk, page } = route;
   return ajax("put", `${BROWSE_BASE}/${group}/${pk}/${page}`, settings);
 };
 

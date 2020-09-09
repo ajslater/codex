@@ -100,8 +100,8 @@ class UserBookmarkMixin:
     def update_user_bookmark(self, updates, comic=None, pk=None):
         """Update a user bookmark."""
         if comic is None:
-            comic = Comic.objects.only("pk").get(pk=pk)
-        search_kwargs = self._get_user_bookmark_search_kwargs(comic)
+            comic = Comic.objects.only("pk", "max_page").get(pk=pk)
+        search_kwargs = self._get_user_bookmark_search_kwargs(comic=comic, comic_pk=pk)
         if updates.get("bookmark") == comic.max_page:
             # Auto finish on bookmark last page
             updates["finished"] = True
