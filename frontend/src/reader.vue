@@ -117,7 +117,7 @@ import { getFullComicName } from "@/comic-name";
 import MetadataDialog from "@/components/metadata-dialog.vue";
 import ReaderComicPage from "@/components/reader-comic-page.vue";
 import ReaderNavButton from "@/components/reader-nav-button.vue";
-const DEFAULT_ROUTE = { group: "p", pk: 0, page: 1 };
+const DEFAULT_ROUTE = { group: "r", pk: 0, page: 1 };
 
 export default {
   name: "Reader",

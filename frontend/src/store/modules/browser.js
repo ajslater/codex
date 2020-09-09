@@ -334,12 +334,13 @@ const actions = {
     commit("setBrowseRoute", route);
     dispatch("getBrowseObjects");
   },
-  async getBrowseObjects({ commit, state }) {
+  async getBrowseObjects({ commit, dispatch, state }) {
     // Get objects for the current route and setttings.
+    if (!state.browseLoaded) {
+      return dispatch("browseOpened", state.routes.current);
+    }
     await API.getBrowseObjects({
-      group: state.routes.current.group,
-      pk: state.routes.current.pk,
-      page: state.routes.current.page,
+      route: state.routes.current,
       settings: state.settings,
     })
       .then((response) => {
