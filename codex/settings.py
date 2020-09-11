@@ -18,12 +18,13 @@ import os
 from pathlib import Path
 
 import coloredlogs
+import toml
 
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = Path(__file__).resolve().parent.parent
 CODEX_PATH = BASE_DIR / "codex"
-CONFIG_PATH = os.environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config")
+CONFIG_PATH = Path(os.environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
 CONFIG_PATH.mkdir(exist_ok=True, parents=True)
 
 
@@ -73,6 +74,7 @@ LEVEL_STYLES = {
 coloredlogs.install(level=LOG_LEVEL, fmt=FMT, level_styles=LEVEL_STYLES)
 LOG_FILE_HANDLER.setFormatter(logging.Formatter(FMT))
 logging.getLogger("").addHandler(LOG_FILE_HANDLER)
+LOG = logging.getLogger(__name__)
 
 ALLOWED_HOSTS = ["*"]
 
@@ -184,11 +186,23 @@ USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/3.0/howto/static-files/
-
+# https://docs.djangoproject.com/en/3.1/howto/static-files/
+if DEBUG:
+    # Whitenoise adds the root_path itself in DEBUG mode
+    ROOT_PATH = ""
+else:
+    HYPERCORN_CONF_PATH = CONFIG_PATH / "hypercorn.toml"
+    try:
+        hypercorn_conf = toml.load(HYPERCORN_CONF_PATH)
+        # Get root path. Iff it exists ensure a trailing slash.
+        ROOT_PATH = os.path.join(hypercorn_conf.get("root_path", "").lstrip("/"), "")
+    except Exception:
+        LOG.warn("Couldn't find hypercorn config to check static root path.")
+        ROOT_PATH = ""
 STATIC_ROOT = CODEX_PATH / "static_root"
-STATIC_URL = "static/"
-CONFIG_STATIC = CONFIG_PATH / "static"
+WHITENOISE_STATIC_PREFIX = "static/"
+STATIC_URL = ROOT_PATH + WHITENOISE_STATIC_PREFIX
+CONFIG_STATIC = CONFIG_PATH / "static"  # XXX A little dangerous
 CONFIG_STATIC.mkdir(exist_ok=True, parents=True)
 STATICFILES_DIRS = [CONFIG_STATIC]
 if DEV:
@@ -201,11 +215,10 @@ if DEV:
         STATIC_BUILD,
     ]
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-WHITENOISE_USE_FINDERS = True  # Because we don't collect covers
 WHITENOISE_KEEP_ONLY_HASHED_FILES = True
-WHITENOISE_AUTOREFRESH = True  # BUG that fails to prefix static otherwise
+WHITENOISE_USE_FINDERS = True  # Because we don't collect covers XXX security risk.
+# WHITENOISE_AUTOREFRESH = True  # BUG that fails to prefix static otherwise
 # BUG Report: https://github.com/evansd/whitenoise/issues/258
-
 
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 60  # 60 days
 
