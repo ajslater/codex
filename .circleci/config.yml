@@ -28,7 +28,7 @@ jobs:
             - attach_workspace:
                 at: .
             - run:
-                command: pip3 install poetry
+                command: pip install poetry
             - run:
                 command: ./build-runnable-image.sh
                 name: Build Runnable Docker Image
