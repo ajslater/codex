@@ -198,7 +198,7 @@ const actions = {
     commit("setSettingLocal", NULL_READER_SETTINGS);
     API.setComicDefaultSettings({
       pk: state.routes.current.pk,
-      data: state.settings.global,
+      data: state.settings.globl,
     });
     if (Object.prototype.hasOwnProperty.call(data, "twoPages")) {
       dispatch("nextPageChanged", state.routes.current);

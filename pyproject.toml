@@ -4,7 +4,7 @@ build-backend = ["poetry.masonry.api"]
 
 [tool.poetry]
 name = "codex"
-version = "0.5.10"
+version = "0.5.11"
 description = "A comic archive web server."
 license = "GPL-2.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
@@ -43,8 +43,8 @@ simplejson = "^3.17"
 stringcase = "^1.2.0"
 regex = "^2020.4.4"
 watchdog = "^0.10"
-whitenoise = { extras = ["brotli"], version = "5.1.0" }
 websocket_client = "^0.57.0"
+whitenoise = { extras = ["brotli"], version = "^5.2.0" }
 
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"

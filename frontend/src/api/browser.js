@@ -38,7 +38,7 @@ export const getCoverSrc = (coverPath) => {
   if (coverPath == "missing_cover.png") {
     return MISSING_COVER_PATH;
   }
-  return `${ROOT_PATH}static/covers/${coverPath}`;
+  return `${ROOT_PATH}covers/${coverPath}`;
 };
 
 // WEBSOCKETS

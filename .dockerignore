@@ -16,4 +16,5 @@ NEWS
 __pycache__
 docker-compose*
 monkeytype.sqlite3
+node_modules
 test-results

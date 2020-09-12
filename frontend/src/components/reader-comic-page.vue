@@ -68,6 +68,8 @@ export default {
 <style scoped lang="scss">
 .page {
   flex: 0 0 auto;
+  /* align-self fixes mobile safari stretching the image weirdly */
+  align-self: flex-start;
 }
 .fitToHeight,
 .fitToHeightTwo {

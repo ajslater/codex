@@ -310,7 +310,6 @@ export default {
   display: flex;
   flex-wrap: nowrap;
   justify-content: center;
-  overflow-x: auto;
 }
 #readerContainer {
   padding: 0px;

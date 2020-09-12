@@ -1,6 +1,6 @@
 <template>
-  <div class="browseTile">
-    <div class="browseTileContent">
+  <v-lazy transition="scale-transition" class="browseTile">
+    <div class="browseTileLazyWrapper">
       <div class="coverWrapper">
         <BookCover :cover-path="item.x_cover_path" :progress="+item.progress" />
         <div
@@ -55,7 +55,7 @@
         </div>
       </router-link>
     </div>
-  </div>
+  </v-lazy>
 </template>
 
 <script>
@@ -164,14 +164,11 @@ export default {
 <style scoped lang="scss">
 @import "~vuetify/src/styles/styles.sass";
 .browseTile {
-  float: left;
-  padding: 16px;
-  text-decoration: none;
-  text-align: center;
-}
-.browseTileContent {
-  height: 250px;
+  display: inline-flex;
+  flex: 1;
+  margin: 16px;
   width: 120px;
+  text-align: center;
 }
 .coverWrapper {
   position: relative;
@@ -285,10 +282,17 @@ export default {
 }
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   .browseTile {
-    padding: 8px;
-  }
-  .browseTileContent {
+    margin: 8px;
     width: 100px;
   }
 }
 </style>
+
+<!-- eslint-disable vue-scoped-css/require-scoped 
+<style lang="scss">
+.scale-transition-enter-active,
+.scale-transition-leave-active {
+  transition: all 0.1s ease-out;
+}
+</style>
+eslint-enable vue-scoped-css/require-scoped -->
