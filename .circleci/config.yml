@@ -24,7 +24,7 @@ jobs:
                 root: .
     deploy:
         docker:
-            - image: cimg/python
+            - image: circleci/python:3.8
         steps:
             - attach_workspace:
                 at: .
