@@ -1,9 +1,9 @@
 v0.5.11
-* browser fluid height rows adapt to browse tile size
-* serve static files faster
-* covers for containers now match data we're sorting by.
+* browser rows now adapt to browse tile size
+* browser covers for containers now match data we're sorting by
+* reader fix settings for all comics were not setting properly
 * fix bookmarks for sessions that aren't logged in
-* fix settings for all comics were not setting properly
+* serve static files faster
 
 v0.5.10
 * fix filtering bugs

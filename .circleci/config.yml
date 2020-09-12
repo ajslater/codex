@@ -13,27 +13,31 @@ jobs:
                 path: test-results/pytest
             - store_artifacts:
                 path: test-results/coverage
-            - run:
-                command: ./build-runnable-image.sh
-                name: Build Runnable Docker Image
-            - run:
-                command: ./ci/archive-image.sh ./<< pipeline.parameters.image_archive >>
-                name: Archive Docker image
             - persist_to_workspace:
                 paths:
-                    - ./<< pipeline.parameters.image_archive >>
+                    - ./Dockerfile
+                    - ./README.md
+                    - ./build-runnable-image.sh
+                    - ./ci
                     - ./dist
                     - ./docker-env
-                    - ./ci/tag-and-push.sh
+                    - ./pyproject.toml
                 root: .
     deploy:
-        executor: docker-publisher
+        docker:
+            - image: circleci/python:3.8
         steps:
             - attach_workspace:
                 at: .
             - run:
-                command: docker load -i "./<< pipeline.parameters.image_archive >>"
-                name: Load archive Docker image
+                command: pip install poetry
+            - setup_remote_docker
+            - run:
+                command: ./build-runnable-image.sh
+                name: Build Runnable Docker Image
+            - run:
+                command: ./ci/publish-pypi.sh
+                name: Publish Package to PyPi
             - run:
                 command: ./ci/publish-pypi.sh
                 name: Publish Package to PyPi
