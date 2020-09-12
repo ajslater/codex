@@ -23,7 +23,8 @@ jobs:
                     - ./pyproject.toml
                 root: .
     deploy:
-        executor: docker-publisher
+        docker:
+            - image: cimg/python
         steps:
             - attach_workspace:
                 at: .
