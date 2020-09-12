@@ -16,6 +16,7 @@ jobs:
             - persist_to_workspace:
                 paths:
                     - ./Dockerfile
+                    - ./README.md
                     - ./build-runnable-image.sh
                     - ./ci
                     - ./dist
