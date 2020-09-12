@@ -30,6 +30,7 @@ jobs:
                 at: .
             - run:
                 command: pip install poetry
+            - setup_remote_docker
             - run:
                 command: ./build-runnable-image.sh
                 name: Build Runnable Docker Image
