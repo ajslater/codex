@@ -2,6 +2,7 @@ v0.5.11
 * browser fluid height rows adapt to browse tile size
 * serve static files faster
 * fix bookmarks for sessions that aren't logged in
+* fix settings for all comics were not setting properly
 
 v0.5.10
 * fix filtering bugs
