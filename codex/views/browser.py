@@ -11,7 +11,7 @@ from django.db.models import Count
 from django.db.models import DecimalField
 from django.db.models import F
 from django.db.models import IntegerField
-from django.db.models import Max
+from django.db.models import Min
 from django.db.models import OuterRef
 from django.db.models import Q
 from django.db.models import Subquery
@@ -67,9 +67,9 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
         "v": "c",
     }
     SORT_AGGREGATE_FUNCS = {
-        "created_at": Max,
+        "created_at": Min,
         "critical_rating": Avg,
-        "date": Max,
+        "date": Min,
         "page_count": Sum,
         "size": Sum,
         "user_rating": Avg,
@@ -264,12 +264,12 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
             # Cover Path from sorted children.
             # XXX Don't know how to make this a join
             #   because it selects by order_by but wants the cover_path
-            model_container_filter = Q(**{model.__name__.lower(): OuterRef("pk")})
-            comics = Comic.objects.all()
-            comics = comics.filter(model_container_filter)
-            comics = comics.filter(aggregate_filter)
+            model_ref = model.__name__.lower()
+            model_container_filter = Q(**{model_ref: OuterRef("pk")})
+            comics = Comic.objects.filter(model_container_filter & aggregate_filter)
             order_by = self.get_order_by(order_key, Comic, False)
-            cover_comic_path = comics.order_by(*order_by).values("cover_path")
+            comics = comics.order_by(*order_by)
+            cover_comic_path = comics.values("cover_path")
             cover_path_subquery = Subquery(cover_comic_path[:1])
         obj_list = obj_list.annotate(x_cover_path=cover_path_subquery)
 

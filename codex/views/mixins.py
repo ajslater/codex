@@ -118,7 +118,9 @@ class UserBookmarkMixin:
         if self.request.user.is_authenticated:
             my_bookmarks_kwargs = {f"{rel_to_ub}__user": self.request.user}
         else:
-            my_bookmarks_kwargs = {f"{rel_to_ub}__session": self.request.session}
+            my_bookmarks_kwargs = {
+                f"{rel_to_ub}__session__session_key": self.request.session.session_key
+            }
         return Q(**my_bookmarks_kwargs)
 
     @staticmethod

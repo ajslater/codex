@@ -10,7 +10,7 @@ else
     sedi=('sed' '-i')
 fi
 
-"${sedi[@]}" "s/PKG_VERSION=.*/PKG_VERSION=v$VERSION/" docker-env
+"${sedi[@]}" "s/PKG_VERSION=.*/PKG_VERSION=$VERSION/" docker-env
 poetry version "$VERSION"
 cd frontend
 npm version --allow-same-version "$VERSION"
