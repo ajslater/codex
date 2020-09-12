@@ -1,6 +1,7 @@
 v0.5.11
-* fix bookmarks for sessions that aren't logged in
 * browser fluid height rows adapt to browse tile size
+* serve static files faster
+* fix bookmarks for sessions that aren't logged in
 
 v0.5.10
 * fix filtering bugs

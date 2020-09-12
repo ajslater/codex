@@ -199,26 +199,24 @@ else:
     except Exception:
         LOG.warn("Couldn't find hypercorn config to check static root path.")
         ROOT_PATH = ""
-STATIC_ROOT = CODEX_PATH / "static_root"
-WHITENOISE_STATIC_PREFIX = "static/"
-STATIC_URL = ROOT_PATH + WHITENOISE_STATIC_PREFIX
 CONFIG_STATIC = CONFIG_PATH / "static"  # XXX A little dangerous
 CONFIG_STATIC.mkdir(exist_ok=True, parents=True)
-STATICFILES_DIRS = [CONFIG_STATIC]
+# Abuse the Whitenoise ROOT feature to serve covers
+WHITENOISE_ROOT = CONFIG_STATIC
+WHITENOISE_KEEP_ONLY_HASHED_FILES = True
+WHITENOISE_STATIC_PREFIX = "static/"
+STATIC_ROOT = CODEX_PATH / "static_root"
+STATIC_URL = ROOT_PATH + WHITENOISE_STATIC_PREFIX
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 if DEV:
     STATIC_SRC = CODEX_PATH / "static_src"
     STATIC_SRC.mkdir(exist_ok=True, parents=True)
     STATIC_BUILD = CODEX_PATH / "static_build"
     STATIC_BUILD.mkdir(exist_ok=True, parents=True)
-    STATICFILES_DIRS += [
+    STATICFILES_DIRS = (
         STATIC_SRC,
         STATIC_BUILD,
-    ]
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-WHITENOISE_KEEP_ONLY_HASHED_FILES = True
-WHITENOISE_USE_FINDERS = True  # Because we don't collect covers XXX security risk.
-# WHITENOISE_AUTOREFRESH = True  # BUG that fails to prefix static otherwise
-# BUG Report: https://github.com/evansd/whitenoise/issues/258
+    )
 
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 60  # 60 days
 
