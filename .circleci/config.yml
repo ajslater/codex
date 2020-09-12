@@ -15,6 +15,7 @@ jobs:
                 path: test-results/coverage
             - persist_to_workspace:
                 paths:
+                    - ./Dockerfile
                     - ./build-runnable-image.sh
                     - ./ci
                     - ./dist
