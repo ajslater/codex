@@ -20,12 +20,15 @@ jobs:
                     - ./ci
                     - ./dist
                     - ./docker-env
+                    - ./pyproject.toml
                 root: .
     deploy:
         executor: docker-publisher
         steps:
             - attach_workspace:
                 at: .
+            - run:
+                command: pip3 install poetry
             - run:
                 command: ./build-runnable-image.sh
                 name: Build Runnable Docker Image
