@@ -140,15 +140,11 @@
       <PlaceholderLoading />
     </v-main>
     <v-main v-else-if="itemsExist" id="browsePane">
-      <div class="browsePaneWrapper">
-        <v-lazy
-          v-for="item in objList"
-          :key="`${item.group}${item.pk}`"
-          transition="scale-transition"
-        >
-          <BrowseCard :item="item" />
-        </v-lazy>
-      </div>
+      <BrowseCard
+        v-for="item in objList"
+        :key="`${item.group}${item.pk}`"
+        :item="item"
+      />
     </v-main>
     <v-main v-else-if="librariesExist" id="browsePane">
       <div id="noComicsFound">No comics found for these filters</div>
@@ -435,10 +431,10 @@ export default {
 .toolbarSelect {
 }
 #browsePane {
+  display: flex;
   margin-top: 96px;
   margin-left: 15px;
   overflow: auto;
-  text-align: center;
 }
 .sortArrow {
   width: 20px;
@@ -560,10 +556,6 @@ export default {
 }
 #titleToolbar .v-toolbar__content {
   padding: 0px;
-}
-.scale-transition-enter-active,
-.scale-transition-leave-active {
-  transition: all 0.1s ease-out;
 }
 </style>
 <!-- eslint-enable vue-scoped-css/require-scoped -->
