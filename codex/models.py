@@ -338,7 +338,7 @@ class Comic(BaseModel):
     # identifier = CharField(max_length=64, null=True)
 
     # codex only
-    library = ForeignKey(Library, on_delete=CASCADE)
+    library = ForeignKey(Library, on_delete=CASCADE, db_index=True)
     sort_name = CharField(db_index=True, max_length=32)
     date = DateField(db_index=True, null=True)
     decade = PositiveSmallIntegerField(db_index=True, null=True)
@@ -453,3 +453,30 @@ class UserBookmark(BaseModel):
         """Constraints."""
 
         unique_together = ("user", "session", "comic")
+
+
+class FailedImport(BaseModel):
+    """Failed Comic Imports. Displayed in Admin Panel."""
+
+    MAX_REASON_LEN = 64
+
+    library = ForeignKey(Library, db_index=True, on_delete=CASCADE)
+    path = CharField(db_index=True, max_length=128)
+    reason = CharField(max_length=MAX_REASON_LEN)
+
+    @classmethod
+    def get_reason(cls, exc, path):
+        """Can't do this in save() because it breaks update_or_create."""
+        reason = str(exc)
+        suffixes = (f": {path}", f": '{path}'")
+        for suffix in suffixes:
+            if reason.endswith(suffix):
+                reason = reason[: -len(suffix)]
+        reason = reason[: cls.MAX_REASON_LEN]
+        reason = reason.strip()
+        return reason
+
+    class Meta:
+        """Constraints."""
+
+        unique_together = ("library", "path")

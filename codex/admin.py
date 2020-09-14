@@ -3,6 +3,9 @@ import logging
 
 from django.contrib.admin import ModelAdmin
 from django.contrib.admin import register
+from django.contrib.admin.templatetags.admin_urls import admin_urlname
+from django.shortcuts import resolve_url
+from django.utils.html import format_html
 
 from codex.librarian.cover import purge_all_covers
 from codex.librarian.queue import QUEUE
@@ -11,6 +14,7 @@ from codex.librarian.queue import ScannerCronTask
 from codex.librarian.queue import ScanRootTask
 from codex.librarian.queue import WatcherCronTask
 from codex.models import AdminFlag
+from codex.models import FailedImport
 from codex.models import Library
 
 
@@ -108,15 +112,8 @@ class AdminLibrary(ModelAdmin):
                 self._on_change(form.instance)
 
 
-@register(AdminFlag)
-class AdminAdminFlag(ModelAdmin):
-    """Admin model for AdminFlags."""
-
-    fields = ("name", "on")
-    readonly_fields = ("name",)
-    list_display = fields
-    list_editable = ("on",)
-    sortable_by = fields
+class AdminNoAddDelete(ModelAdmin):
+    """An admin model that can't be added or deleted."""
 
     def has_add_permission(self, request, obj=None):
         """Can't Add these."""
@@ -125,6 +122,17 @@ class AdminAdminFlag(ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         """Can't Remove these."""
         return False
+
+
+@register(AdminFlag)
+class AdminAdminFlag(AdminNoAddDelete):
+    """Admin model for AdminFlags."""
+
+    fields = ("name", "on")
+    readonly_fields = ("name",)
+    list_display = fields
+    list_editable = ("on",)
+    sortable_by = fields
 
     def save_model(self, request, obj, form, change):
         """Trigger a change notification because options have changed."""
@@ -146,3 +154,26 @@ class AdminAdminFlag(ModelAdmin):
         # Registration only needs to change the enable flag
         task = LibraryChangedTask()
         QUEUE.put(task)
+
+
+@register(FailedImport)
+class AdminFailedImport(AdminNoAddDelete):
+    """Display failed imports."""
+
+    fields = ("path", "reason", "created_at", "updated_at", "library_link")
+    list_display = fields
+    readonly_fields = fields
+    sortable_by = fields
+
+    def has_change_permission(self, request, obj=None):
+        """Can't Change these."""
+        return False
+
+    def library_link(self, item):
+        """A special feild for linking to the library change page."""
+        url = resolve_url(admin_urlname(Library._meta, "change"), item.library.id)
+        return format_html(
+            '<a href="{url}">{name}</a>'.format(url=url, name=str(item.library))
+        )
+
+    library_link.short_description = "Library"

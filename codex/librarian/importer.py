@@ -22,12 +22,14 @@ from codex.librarian.queue import ComicCoverCreateTask
 from codex.librarian.queue import LibraryChangedTask
 from codex.models import Comic
 from codex.models import Credit
+from codex.models import FailedImport
 from codex.models import Folder
 from codex.models import Imprint
 from codex.models import Library
 from codex.models import Publisher
 from codex.models import Series
 from codex.models import Volume
+from codex.settings import DEBUG
 
 
 # actual filesystem route.
@@ -313,56 +315,71 @@ class Importer:
         """Import a comic into the db, from a path, using Comicbox."""
         # Buld the catalogue tree BEFORE we clean the metadata
         created = False
-        try:
-            (
-                self.md["publisher"],
-                self.md["imprint"],
-                self.md["series"],
-                self.md["volume"],
-            ) = self.get_browse_containers()
-            library = Library.objects.only("pk", "path").get(pk=self.library_id)
-            self.set_locales()
-            credits = self.get_credits()
-            m2m_fields = self.get_many_to_many_instances()
-            self.clean_metadata()  # the order of this is pretty important
-            foreign_keys = self.get_foreign_keys()
-            self.md.update(foreign_keys)
-            folders = self.get_folders(library, self.path)
-            if folders:
-                self.md["parent_folder"] = folders[-1]
-            self.md["library"] = library
-            self.md["path"] = self.path
-            self.md["size"] = Path(self.path).stat().st_size
-            self.md["max_page"] = max(self.md["page_count"] - 1, 0)
-            cover_path = self.get_cover_path()
-            if cover_path:
-                self.md["cover_path"] = cover_path
+        (
+            self.md["publisher"],
+            self.md["imprint"],
+            self.md["series"],
+            self.md["volume"],
+        ) = self.get_browse_containers()
+        # TODO Should this be just a library id?
+        library = Library.objects.only("pk", "path").get(pk=self.library_id)
+        self.set_locales()
+        credits = self.get_credits()
+        m2m_fields = self.get_many_to_many_instances()
+        self.clean_metadata()  # the order of this is pretty important
+        foreign_keys = self.get_foreign_keys()
+        self.md.update(foreign_keys)
+        folders = self.get_folders(library, self.path)
+        if folders:
+            self.md["parent_folder"] = folders[-1]
+        self.md["library"] = library
+        self.md["path"] = self.path
+        self.md["size"] = Path(self.path).stat().st_size
+        self.md["max_page"] = max(self.md["page_count"] - 1, 0)
+        cover_path = self.get_cover_path()
+        if cover_path:
+            self.md["cover_path"] = cover_path
 
-            if credits:
-                m2m_fields["credits"] = credits
-            m2m_fields["folder"] = folders
-            comic, created = Comic.objects.update_or_create(
-                defaults=self.md, path=self.path
-            )
-            comic.myself = comic
+        if credits:
+            m2m_fields["credits"] = credits
+        m2m_fields["folder"] = folders
+        comic, created = Comic.objects.update_or_create(
+            defaults=self.md, path=self.path
+        )
+        comic.myself = comic
 
-            # Add the m2m2 instances afterwards, can't initialize with them
-            for attr, instance_list in m2m_fields.items():
-                getattr(comic, attr).set(instance_list)
-            comic.save()
+        # Add the m2m2 instances afterwards, can't initialize with them
+        for attr, instance_list in m2m_fields.items():
+            getattr(comic, attr).set(instance_list)
+        comic.save()
 
-            if created:
-                verb = "Created"
-            else:
-                verb = "Updated"
-            LOG.info(f"{verb} comic {str(comic.volume.series.name)} #{comic.issue:03}")
-            QUEUE.put(LibraryChangedTask())
-        except Exception as exc:
-            LOG.exception(exc)
+        # If it works, clear the failed import
+        FailedImport.objects.filter(path=self.path).delete()
+
+        if created:
+            verb = "Created"
+        else:
+            verb = "Updated"
+        LOG.info(f"{verb} comic {str(comic.volume.series.name)} #{comic.issue:03}")
+        QUEUE.put(LibraryChangedTask())
         return created
 
 
 def import_comic(library_id, path):
     """Import a single comic."""
-    importer = Importer(library_id, path)
-    importer.import_metadata()
+    try:
+        importer = Importer(library_id, path)
+        importer.import_metadata()
+    except Exception as exc:
+        library = Library.objects.get(pk=library_id)
+        path_str = str(path)
+        search_kwargs = {"library": library, "path": path_str}
+        reason = FailedImport.get_reason(exc, path_str)
+        defaults = {"reason": reason}
+        defaults.update(search_kwargs)
+        fi, fi_created = FailedImport.objects.update_or_create(
+            defaults=defaults, **search_kwargs
+        )
+        LOG.warn(f"Import failed: {reason}")
+        if DEBUG:
+            LOG.exception(exc)
