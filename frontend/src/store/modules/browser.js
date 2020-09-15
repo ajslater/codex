@@ -264,7 +264,6 @@ const scanNotifyCheck = (commit, state) => {
     Math.random() * (MAX_SCAN_WAIT - MIN_SCAN_WAIT) + MIN_SCAN_WAIT
   );
   setTimeout(async () => {
-    console.log("checking scanNotify");
     if (state.scanNotify === null) {
       // null is a special value that means it was manually dismissed.
       // won't be reset until there's a true push from the server.
@@ -273,9 +272,7 @@ const scanNotifyCheck = (commit, state) => {
     await API.getScanInProgress()
       .then((response) => {
         const data = response.data;
-        console.log("got scanNotify", { data });
         commit("setScanNotify", data);
-        console.log("state.scanNotify", state.scanNotify);
         if (state.scanNotify) {
           return scanNotifyCheck(commit, state);
         }

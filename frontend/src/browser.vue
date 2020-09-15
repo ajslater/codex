@@ -197,7 +197,7 @@
         title="dismiss notification"
         x-small
         ripple
-        @click="dismissScanNotify"
+        @click="setScanNotify(null)"
         >x</v-btn
       >
     </v-snackbar>
@@ -350,7 +350,7 @@ export default {
     user() {
       this.$store.dispatch("browser/browseOpened", this.$route.params);
       if (this.isAdmin) {
-        this.$store.dispatch("browser/scanNotify", false);
+        this.setScanNotify(false);
       }
     },
   },
@@ -370,7 +370,7 @@ export default {
       if (event.data === "libraryChanged") {
         this.$store.dispatch("browser/getBrowseObjects");
       } else if (this.isAdmin && event.data === "scanLibrary") {
-        this.$store.dispatch("browser/scanNotify", true);
+        this.setScanNotify(true);
       }
     },
     settingChanged: function (data) {
@@ -412,8 +412,8 @@ export default {
       route.params.page = page;
       this.$router.push(route);
     },
-    dismissScanNotify: function () {
-      this.$store.dispatch("browser/scanNotify", null);
+    setScanNotify: function (value) {
+      this.$store.dispatch("browser/scanNotify", value);
     },
   },
 };

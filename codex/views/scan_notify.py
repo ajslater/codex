@@ -20,7 +20,6 @@ class ScanNotifyView(APIView):
     def get(self, request, *args, **kwargs):
         """Return if any libraries are scanning."""
         any_in_progress = Library.objects.filter(scan_in_progress=True).exists()
-        print(f"{any_in_progress=} QUEUE.empty():{QUEUE.empty()}")
         any_in_progress |= not QUEUE.empty()
         serializer = ScanNotifySerializer({"scanInProgress": any_in_progress})
         return Response(serializer.data)
