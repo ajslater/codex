@@ -135,11 +135,19 @@ class BrowseListSerializer(Serializer):
     librariesExist = BooleanField(read_only=True)  # noqa: N815
 
 
+class VersionsSerializer(Serializer):
+    """Codex version information."""
+
+    installed = CharField(read_only=True)
+    latest = CharField(read_only=True)
+
+
 class BrowserOpenedSerializer(Serializer):
     """Component open settings."""
 
     settings = BrowserSettingsSerializer(read_only=True)
     browseList = BrowseListSerializer(read_only=True)  # noqa: N815
+    versions = VersionsSerializer(read_only=True)
 
 
 class ScanNotifySerializer(Serializer):

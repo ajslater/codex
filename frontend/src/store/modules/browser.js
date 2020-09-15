@@ -59,9 +59,12 @@ const state = {
   filterMode: "base",
   browseLoaded: false,
   librariesExist: null,
-  packageVersion: process.env.VUE_APP_PACKAGE_VERSION,
   scanNotify: false,
   numPages: 1,
+  versions: {
+    installed: process.env.VUE_APP_PACKAGE_VERSION,
+    latest: undefined,
+  },
 };
 
 const isRootGroupEnabled = (state, rootGroup) => {
@@ -94,6 +97,9 @@ const mutations = {
   },
   setBrowseRoute(state, route) {
     state.routes.current = route;
+  },
+  setVersions(state, versions) {
+    state.versions = versions;
   },
   setSettings(state, data) {
     if (!data) {
@@ -293,6 +299,7 @@ const actions = {
     await API.getBrowseOpened(route)
       .then((response) => {
         const data = response.data;
+        commit("setVersions", data.versions);
         commit("setSettings", data.settings);
         if (!validateState({ state, commit, dispatch })) {
           // will have dispatched to SetSetting if fails.

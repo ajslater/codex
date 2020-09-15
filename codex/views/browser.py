@@ -25,6 +25,8 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from stringcase import snakecase
 
+from codex.latest_version import get_installed_version
+from codex.latest_version import get_latest_version
 from codex.models import AdminFlag
 from codex.models import Comic
 from codex.models import Folder
@@ -36,10 +38,12 @@ from codex.models import Volume
 from codex.serializers.browse import BrowseListSerializer
 from codex.serializers.browse import BrowserOpenedSerializer
 from codex.serializers.browse import BrowserSettingsSerializer
+from codex.settings import CACHE_PATH
 from codex.views.browse_base import BrowseBaseView
 from codex.views.mixins import UserBookmarkMixin
 
 
+PACKAGE_NAME = "codex"
 LOG = logging.getLogger(__name__)
 
 
@@ -574,6 +578,10 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
         browse_list = self.get_browse_list()
 
         filters = self.params["filters"]
+
+        installed_version = get_installed_version(PACKAGE_NAME)
+        latest_version = get_latest_version(PACKAGE_NAME, cache_root=CACHE_PATH)
+
         data = {
             "settings": {
                 "filters": {
@@ -587,6 +595,7 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
                 "show": self.params.get("show"),
             },
             "browseList": browse_list,
+            "versions": {"installed": installed_version, "latest": latest_version},
         }
 
         serializer = BrowserOpenedSerializer(data)

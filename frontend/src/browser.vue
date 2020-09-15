@@ -177,9 +177,13 @@
         circle
         @input="routeToPage($event)"
       />
-      <a id="versionFooter" href="https://github.com/ajslater/codex"
-        >codex v{{ packageVersion }}</a
-      >
+      <a
+        id="versionFooter"
+        href="https://github.com/ajslater/codex"
+        :title="versionTitle"
+        :class="outdatedClass"
+        >codex v{{ versions.installed }}
+      </a>
     </v-footer>
     <v-snackbar
       id="scanNotify"
@@ -243,7 +247,7 @@ export default {
       browseLoaded: (state) => state.browseLoaded,
       librariesExist: (state) => state.librariesExist,
       itemsExist: (state) => state.objList && state.objList.length > 0,
-      packageVersion: (state) => state.packageVersion,
+      versions: (state) => state.versions,
       scanNotify: (state) => state.scanNotify,
       numPages: (state) => state.numPages,
     }),
@@ -252,6 +256,27 @@ export default {
     }),
     ...mapGetters("auth", ["isAdmin"]),
     ...mapGetters("browser", ["rootGroupChoices", "filterNames"]),
+    outdated: function () {
+      return this.versions.latest > this.versions.installed;
+    },
+    outdatedClass: function () {
+      let cls;
+      if (this.outdated) {
+        cls = "outdated";
+      } else {
+        cls = "";
+      }
+      return cls;
+    },
+    versionTitle: function () {
+      let title;
+      if (this.outdated) {
+        title = `v${this.versions.latest} is availble`;
+      } else {
+        title = "up to date";
+      }
+      return title;
+    },
     upTo: function () {
       if (this.showUpButton) {
         return { name: "browser", params: this.upRoute };
@@ -544,6 +569,9 @@ export default {
 }
 #scanNotify > .v-snack__wrapper {
   min-width: 183px;
+}
+.outdated {
+  font-style: italic;
 }
 
 @import "~vuetify/src/styles/styles.sass";

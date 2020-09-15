@@ -45,6 +45,7 @@ regex = "^2020.4.4"
 watchdog = "^0.10"
 websocket_client = "^0.57.0"
 whitenoise = { extras = ["brotli"], version = "^5.2.0" }
+requests = "^2.24.0"
 
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"
