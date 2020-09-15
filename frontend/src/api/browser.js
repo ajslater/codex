@@ -28,7 +28,7 @@ const setMarkRead = ({ group, pk, finished }) => {
 };
 
 const getScanInProgress = () => {
-  return ajax("get", `${BROWSE_BASE}/scan_notify/`);
+  return ajax("get", `${BROWSE_BASE}/scan_notify`);
 };
 
 // STATIC PATHS

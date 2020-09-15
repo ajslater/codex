@@ -188,10 +188,18 @@
       right
       rounded
       width="183"
-      timeout="1100"
+      :timeout="-1"
     >
       Scanning Libraries
       <v-progress-circular size="18" indeterminate color="#cc7b19" />
+      <v-btn
+        id="dismissScanNotify"
+        title="dismiss notification"
+        x-small
+        ripple
+        @click="dismissScanNotify"
+        >x</v-btn
+      >
     </v-snackbar>
   </div>
 </template>
@@ -341,6 +349,9 @@ export default {
     },
     user() {
       this.$store.dispatch("browser/browseOpened", this.$route.params);
+      if (this.isAdmin) {
+        this.$store.dispatch("browser/scanNotify", false);
+      }
     },
   },
   created() {
@@ -400,6 +411,9 @@ export default {
       };
       route.params.page = page;
       this.$router.push(route);
+    },
+    dismissScanNotify: function () {
+      this.$store.dispatch("browser/scanNotify", null);
     },
   },
 };
@@ -465,6 +479,9 @@ export default {
   text-align: center;
   font-size: small;
   color: gray;
+}
+#dismissScanNotify {
+  margin-left: 5px;
 }
 
 @import "~vuetify/src/styles/styles.sass";

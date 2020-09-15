@@ -259,15 +259,23 @@ const isNeedValidate = (changedData) => {
 };
 
 const scanNotifyCheck = (commit, state) => {
-  // thundering herd control
+  // polite client thundering herd control
   const wait = Math.floor(
     Math.random() * (MAX_SCAN_WAIT - MIN_SCAN_WAIT) + MIN_SCAN_WAIT
   );
   setTimeout(async () => {
+    console.log("checking scanNotify");
+    if (state.scanNotify === null) {
+      // null is a special value that means it was manually dismissed.
+      // won't be reset until there's a true push from the server.
+      return;
+    }
     await API.getScanInProgress()
       .then((response) => {
         const data = response.data;
+        console.log("got scanNotify", { data });
         commit("setScanNotify", data);
+        console.log("state.scanNotify", state.scanNotify);
         if (state.scanNotify) {
           return scanNotifyCheck(commit, state);
         }
@@ -375,7 +383,9 @@ const actions = {
   },
   scanNotify({ commit, state }, value) {
     commit("setScanNotify", { scanInProgress: value });
-    scanNotifyCheck(commit, state);
+    if (value !== null) {
+      scanNotifyCheck(commit, state);
+    }
   },
 };
 
