@@ -1,3 +1,7 @@
+v0.5.12
+* admin page for failed imports
+* snackbar tells admins when scans are happening
+
 v0.5.11
 * browser rows now adapt to browse tile size
 * browser covers for containers now match data we're sorting by
