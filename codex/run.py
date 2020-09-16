@@ -15,6 +15,7 @@ from hypercorn.config import Config
 
 from codex.asgi import application
 from codex.librarian.librariand import PORT
+from codex.models import AdminFlag
 from codex.models import Library
 from codex.settings import CODEX_PATH
 from codex.settings import CONFIG_PATH
@@ -59,6 +60,13 @@ def ensure_superuser():
         LOG.info(f"{prefix}ated admin user.")
 
 
+def init_admin_flags():
+    """Initalize the admin flag rows"""
+    # AdminFlag = apps.get_model("codex", "AdminFlag")  # noqa N806
+    for name in AdminFlag.FLAG_NAMES:
+        AdminFlag.objects.get_or_create(name=name)
+
+
 def unset_scan_in_progress():
     stuck_libraries = Library.objects.filter(scan_in_progress=True).only(
         "scan_in_progress", "path"
@@ -74,6 +82,7 @@ def setup_db():
     django.setup()
     update_db()
     ensure_superuser()
+    init_admin_flags()
     unset_scan_in_progress()
 
 

@@ -22,6 +22,7 @@ from codex.serializers.auth import UserSerializer
 
 
 LOG = logging.getLogger(__name__)
+NULL_USER = {"pk": None, "username": None, "is_staff": False}
 
 
 def set_timezone(request, serializer):
@@ -30,8 +31,33 @@ def set_timezone(request, serializer):
     request.session.save()
 
 
+class IsAuthenticatedOrEnabledNonUsers(IsAuthenticated):
+    """Custom DRF Authentication class."""
+
+    def has_permission(self, request, view):
+        """True if ENABLE_NON_USERS is true or user is authenticated."""
+        enu_flag = AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_NON_USERS)
+        if enu_flag.on:
+            return True
+        return super().has_permission(request, view)
+
+
+class RegisterViewPermission(IsAuthenticatedOrEnabledNonUsers):
+    """Custom Authentictiaon that always allows GET."""
+
+    SAFE_METHODS = ("GET", "HEAD", "OPTIONS")
+
+    def has_permission(self, request, view):
+        """GET is always good."""
+        if request.method in self.SAFE_METHODS:
+            return True
+        return super().has_permission(request, view)
+
+
 class RegisterView(APIView):
     """Create a user."""
+
+    permission_classes = [RegisterViewPermission]
 
     def create(self, username, password):
         """Create the user and assign the session bookmarks to the user."""
@@ -109,14 +135,17 @@ class LoginView(APIView):
 class UserView(APIView):
     """User info."""
 
-    permission_classes = [IsAuthenticated]
-
     def post(self, request, *args, **kwargs):
         """Get the user info for the current user."""
         serializer = TimezoneSerializer(data=self.request.data)
         serializer.is_valid()
         set_timezone(request, serializer)
-        serializer = UserSerializer(self.request.user)
+
+        user = self.request.user
+        if not user:
+            user = NULL_USER
+
+        serializer = UserSerializer(user)
         return Response(serializer.data)
 
 

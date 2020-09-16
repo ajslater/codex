@@ -8,6 +8,7 @@ const state = {
     error: undefined,
   },
   enableRegistration: false,
+  enableNonUsers: undefined,
 };
 
 const mutations = {
@@ -15,6 +16,15 @@ const mutations = {
     state.enableRegistration = data.enableRegistration;
   },
   setUser: (state, user) => {
+    // XXX awkward piggyback of enableNonUsers on user object
+    if (user) {
+      state.enableNonUsers = user.enableNonUsers;
+      if (!user.pk) {
+        user = null;
+      } else {
+        delete user.enableNonUsers;
+      }
+    }
     state.user = user;
   },
   setErrors: (state, data) => {
@@ -27,6 +37,9 @@ const mutations = {
 const getters = {
   isAdmin: (state) => {
     return state.user && (state.user.is_staff || state.user.is_superuser);
+  },
+  isOpenToSee: (state) => {
+    return Boolean(state.user || state.enableNonUsers);
   },
 };
 
@@ -69,9 +82,6 @@ const actions = {
       })
       .catch((error) => {
         console.debug(error.response.data);
-        if (error.response.status === 403) {
-          console.log("That 403 error is expected if you're not logged in.");
-        }
       });
   },
   logout({ commit }) {

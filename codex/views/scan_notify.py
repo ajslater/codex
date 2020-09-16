@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from codex.librarian.queue import QUEUE
 from codex.models import Library
 from codex.serializers.browse import ScanNotifySerializer
+from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 
 
 LOG = logging.getLogger(__name__)
@@ -15,6 +16,8 @@ MIN_SCAN_WAIT = 5
 
 class ScanNotifyView(APIView):
     """API endpoint for the scan notifier."""
+
+    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
 
     @cache_control(max_age=MIN_SCAN_WAIT)
     def get(self, request, *args, **kwargs):

@@ -5,16 +5,27 @@ from rest_framework.fields import BooleanField
 from rest_framework.fields import CharField
 from rest_framework.serializers import ModelSerializer
 from rest_framework.serializers import Serializer
+from rest_framework.serializers import SerializerMethodField
+
+from codex.models import AdminFlag
 
 
 class UserSerializer(ModelSerializer):
     """Serialize User model for UI."""
 
+    enableNonUsers = SerializerMethodField()  # noqa: N815
+
+    def get_enableNonUsers(self, obj):  # noqa: N802
+        """Piggyback on user objects."""
+        # XXX  Maybe should be its own view.
+        enu_flag = AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_NON_USERS)
+        return enu_flag.on
+
     class Meta:
         """Model spec."""
 
         model = User
-        fields = ("pk", "username", "is_staff")
+        fields = ("pk", "username", "is_staff", "enableNonUsers")
         read_only_fields = fields
 
 

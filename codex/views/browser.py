@@ -39,6 +39,7 @@ from codex.serializers.browse import BrowseListSerializer
 from codex.serializers.browse import BrowserOpenedSerializer
 from codex.serializers.browse import BrowserSettingsSerializer
 from codex.settings import CACHE_PATH
+from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browse_base import BrowseBaseView
 from codex.views.mixins import UserBookmarkMixin
 
@@ -49,6 +50,8 @@ LOG = logging.getLogger(__name__)
 
 class BrowseView(BrowseBaseView, UserBookmarkMixin):
     """Browse comics with a variety of filters and sorts."""
+
+    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
 
     COMIC_GROUP = "c"
     GROUP_MODEL = bidict(
@@ -456,7 +459,10 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
 
     def validate_folder_settings(self):
         """Check that all the view variables for folder mode are set right."""
-        if not AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_FOLDER_VIEW).on:
+        enable_folder_view = (
+            AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_FOLDER_VIEW).on
+        )
+        if not enable_folder_view:
             self.valid_nav_groups = self.get_valid_nav_groups()
             raise self.raise_valid_route("folder view disabled")
 

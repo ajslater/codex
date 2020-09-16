@@ -11,13 +11,6 @@ from django.db import models
 import codex.models
 
 
-def init_admin_flags(apps, schema_editor):
-    """Initalize the admin flag rows"""
-    # AdminFlag = apps.get_model("codex", "AdminFlag")  # noqa N806
-    for name in codex.models.AdminFlag.FLAG_NAMES:
-        codex.models.AdminFlag.objects.update_or_create(name=name)
-
-
 class Migration(migrations.Migration):
 
     initial = True
@@ -666,8 +659,5 @@ class Migration(migrations.Migration):
             options={
                 "unique_together": {("user", "session", "comic")},
             },
-        ),
-        migrations.RunPython(
-            code=init_admin_flags,
         ),
     ]

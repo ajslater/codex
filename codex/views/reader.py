@@ -12,6 +12,7 @@ from stringcase import snakecase
 from codex.models import Comic
 from codex.serializers.read import ComicReaderInfoSerializer
 from codex.serializers.read import ComicReaderSettingsSerializer
+from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.mixins import SessionMixin
 from codex.views.mixins import UserBookmarkMixin
 
@@ -26,6 +27,7 @@ NULL_READER_SETTINGS = {
 class ComicOpenedView(APIView, SessionMixin, UserBookmarkMixin):
     """Get info for displaying comic pages."""
 
+    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
     SETTINGS_KEYS = ("fit_to", "two_pages")
 
     def get_settings(self):

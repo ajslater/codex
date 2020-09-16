@@ -2,7 +2,7 @@
   <div id="browser">
     <header id="browseHeader">
       <v-toolbar id="filterToolbar" class="toolbar" dense>
-        <v-toolbar-items id="filterToolbarItems">
+        <v-toolbar-items v-if="isOpenToSee" id="filterToolbarItems">
           <v-select
             ref="filterSelect"
             v-model="bookmarkFilter"
@@ -96,7 +96,7 @@
                 overlay-opacity="0.5"
               >
                 <template #activator="{ on }">
-                  <v-list-item v-on="on">
+                  <v-list-item v-if="isOpenToSee" v-on="on">
                     <v-list-item-content>
                       <v-list-item-title> Settings </v-list-item-title>
                     </v-list-item-content>
@@ -116,7 +116,7 @@
                 />
               </v-dialog>
               <AuthDialog />
-              <v-list-item @click="reload">
+              <v-list-item v-if="isOpenToSee" @click="reload">
                 <v-list-item-content>
                   <v-list-item-title> Reload Libraries</v-list-item-title>
                 </v-list-item-content>
@@ -136,8 +136,19 @@
         </v-toolbar-title>
       </v-toolbar>
     </header>
-    <v-main v-if="!browseLoaded" id="browsePane">
-      <PlaceholderLoading />
+    <v-main v-if="showPlaceHolder" id="browsePane">
+      <div id="announce">
+        <PlaceholderLoading />
+      </div>
+    </v-main>
+    <v-main v-else-if="!isOpenToSee" id="browsePane">
+      <div id="announce">
+        <h1>
+          You may log in or register with the top right
+          <v-icon>{{ mdiDotsVertical }}</v-icon
+          >menu
+        </h1>
+      </div>
     </v-main>
     <v-main v-else-if="itemsExist" id="browsePane">
       <BrowseCard
@@ -147,10 +158,12 @@
       />
     </v-main>
     <v-main v-else-if="librariesExist" id="browsePane">
-      <div id="noComicsFound">No comics found for these filters</div>
+      <div id="announce">
+        <div id="noComicsFound">No comics found for these filters</div>
+      </div>
     </v-main>
     <v-main v-else id="browsePane">
-      <div id="noLibraries">
+      <div id="announce">
         <h1>No libraries have been added to Codex yet</h1>
         <h2 v-if="isAdmin">
           Use the top right <v-icon>{{ mdiDotsVertical }}</v-icon> menu to
@@ -253,9 +266,16 @@ export default {
     }),
     ...mapState("auth", {
       user: (state) => state.user,
+      enableNonUsers: (state) => state.enableNonUsers,
     }),
-    ...mapGetters("auth", ["isAdmin"]),
+    ...mapGetters("auth", ["isAdmin", "isOpenToSee"]),
     ...mapGetters("browser", ["rootGroupChoices", "filterNames"]),
+    showPlaceHolder: function () {
+      return (
+        this.enableNonUsers === undefined ||
+        (!this.browseLoaded && this.isOpenToSee)
+      );
+    },
     outdated: function () {
       return this.versions.latest > this.versions.installed;
     },
@@ -373,16 +393,14 @@ export default {
       this.$store.dispatch("browser/routeChanged", newRoute.params);
     },
     user() {
-      this.$store.dispatch("browser/browseOpened", this.$route.params);
+      this.connectToServer();
       if (this.isAdmin) {
         this.setScanNotify(false);
       }
     },
   },
   created() {
-    this.$store.dispatch("browser/browseOpened", this.$route.params);
-    this.socket = getSocket();
-    this.socket.addEventListener("message", this.websocketListener);
+    this.connectToServer();
   },
   beforeDestroy() {
     if (this.socket) {
@@ -390,6 +408,14 @@ export default {
     }
   },
   methods: {
+    connectToServer: function () {
+      if (!this.isOpenToSee) {
+        return;
+      }
+      this.$store.dispatch("browser/browseOpened", this.$route.params);
+      this.socket = getSocket();
+      this.socket.addEventListener("message", this.websocketListener);
+    },
     websocketListener: function (event) {
       console.debug("websocket push:", event.data);
       if (event.data === "libraryChanged") {
@@ -508,6 +534,18 @@ export default {
 #dismissScanNotify {
   margin-left: 5px;
 }
+#settingsMenu {
+  background-color: #121212;
+}
+#progressBar {
+  margin-top: 40px;
+}
+#announce {
+  text-align: center;
+}
+.outdated {
+  font-style: italic;
+}
 
 @import "~vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
@@ -558,22 +596,9 @@ export default {
 .sortBySelect {
   width: 168px;
 }
-#settingsMenu {
-  background-color: #121212;
-}
-#progressBar {
-  margin-top: 40px;
-}
-#noLibraries {
-  text-align: center;
-}
 #scanNotify > .v-snack__wrapper {
   min-width: 183px;
 }
-.outdated {
-  font-style: italic;
-}
-
 @import "~vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   .toolbarSelect {

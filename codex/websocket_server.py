@@ -59,6 +59,7 @@ async def websocket_application(scope, receive, send):
         event = await receive()
 
         if event["type"] == "websocket.connect":
+            # XXX could do an auth here and figure out who's an admin.
             BROADCAST_CONNS.add(send)
             await send(WS_ACCEPT_MSG)
 

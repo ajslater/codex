@@ -321,7 +321,6 @@ class Importer:
             self.md["series"],
             self.md["volume"],
         ) = self.get_browse_containers()
-        # TODO Should this be just a library id?
         library = Library.objects.only("pk", "path").get(pk=self.library_id)
         self.set_locales()
         credits = self.get_credits()

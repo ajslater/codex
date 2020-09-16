@@ -14,6 +14,7 @@ from rest_framework.views import APIView
 from codex.models import Comic
 from codex.serializers.metadata import ComicSerializer
 from codex.serializers.metadata import UserBookmarkFinishedSerializer
+from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser import BrowseView
 from codex.views.mixins import SessionMixin
 from codex.views.mixins import UserBookmarkMixin
@@ -24,6 +25,8 @@ LOG = logging.getLogger(__name__)
 
 class ComicDownloadView(APIView):
     """Return the comic archive file as an attachment."""
+
+    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
 
     def get(self, request, *args, **kwargs):
         """Download a comic archive."""
@@ -39,6 +42,8 @@ class ComicDownloadView(APIView):
 
 class UserBookmarkFinishedView(APIView, SessionMixin, UserBookmarkMixin):
     """Mark read or unread recursively."""
+
+    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
 
     def patch(self, request, *args, **kwargs):
         """Mark read or unread recursively."""
@@ -63,6 +68,7 @@ class UserBookmarkFinishedView(APIView, SessionMixin, UserBookmarkMixin):
 class ComicMetadataView(APIView, SessionMixin, UserBookmarkMixin):
     """Comic metadata."""
 
+    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
     queryset = Comic.objects.all()
 
     def get(self, request, *args, **kwargs):

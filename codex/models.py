@@ -392,7 +392,8 @@ class AdminFlag(NamedModel):
 
     ENABLE_FOLDER_VIEW = "Enable Folder View"
     ENABLE_REGISTRATION = "Enable Registration"
-    FLAG_NAMES = (ENABLE_FOLDER_VIEW, ENABLE_REGISTRATION)
+    ENABLE_NON_USERS = "Enable Non Users"
+    FLAG_NAMES = (ENABLE_FOLDER_VIEW, ENABLE_REGISTRATION, ENABLE_NON_USERS)
 
     on = BooleanField(default=True)
 
