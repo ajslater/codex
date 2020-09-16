@@ -199,9 +199,11 @@ else:
     except Exception:
         LOG.warn("Couldn't find hypercorn config to check static root path.")
         ROOT_PATH = ""
-CONFIG_STATIC = CONFIG_PATH / "static"  # XXX A little dangerous
+CONFIG_STATIC = CONFIG_PATH / "static"
 CONFIG_STATIC.mkdir(exist_ok=True, parents=True)
-# Abuse the Whitenoise ROOT feature to serve covers
+# XXX Abuse the Whitenoise ROOT feature to serve covers
+# A little dangerous because whitenoise will serve anything from that
+# static directory. But it sure is fast.
 WHITENOISE_ROOT = CONFIG_STATIC
 WHITENOISE_KEEP_ONLY_HASHED_FILES = True
 WHITENOISE_STATIC_PREFIX = "static/"

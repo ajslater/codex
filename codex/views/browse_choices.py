@@ -8,6 +8,7 @@ import codex.choices.model
 
 from codex.models import Comic
 from codex.serializers.vuetify import VueIntChoiceSerializer
+from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browse_base import BrowseBaseView
 
 
@@ -16,6 +17,8 @@ LOG = logging.getLogger(__name__)
 
 class BrowseChoiceView(BrowseBaseView):
     """Get choices for filter dialog."""
+
+    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
 
     def get(self, request, *args, **kwargs):
         """Get choices for filter dialog."""

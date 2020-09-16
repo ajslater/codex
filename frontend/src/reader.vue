@@ -1,111 +1,118 @@
 <template>
-  <div id="readerContainer">
-    <div id="pagesContainer">
-      <ReaderComicPage :page="+0" />
-      <ReaderComicPage :page="+1" />
-    </div>
-    <nav id="navOverlay">
-      <div id="navColumns" @click="toggleToolbars()">
-        <section id="leftColumn" class="navColumn">
-          <router-link
-            v-if="routes.prev"
-            class="navLink"
-            :to="{ name: 'reader', params: routes.prev }"
-            @click.native.stop=""
-          />
-        </section>
-        <section id="middleColumn" class="navColumn" />
-        <section id="rightColumn" class="navColumn">
-          <router-link
-            v-if="routes.next"
-            class="navLink"
-            :to="{ name: 'reader', params: routes.next }"
-            @click.native.stop=""
-          />
-        </section>
+  <div id="readerWrapper">
+    <div v-if="isOpenToSee" id="readerContainer">
+      <div id="pagesContainer">
+        <ReaderComicPage :page="+0" />
+        <ReaderComicPage :page="+1" />
       </div>
-    </nav>
-    <v-slide-y-transition>
-      <v-toolbar v-show="showToolbars" id="topToolbar" class="toolbar" dense>
-        <v-btn
-          id="closeBook"
-          :to="{ name: 'browser', params: browseRoute }"
-          large
-          ripple
-          >close book</v-btn
-        >
-        <v-spacer />
-        <v-toolbar-title id="toolbarTitle">{{ title }}</v-toolbar-title>
-        <v-spacer />
-        <v-dialog
-          class="readerSettings"
-          origin="center top"
-          transition="slide-y-transition"
-          overlay-opacity="0.5"
-        >
-          <template #activator="{ on }">
-            <v-btn icon v-on="on">
-              <v-icon>{{ mdiCog }}</v-icon>
-            </v-btn>
-          </template>
-          <h2>Reader Settings</h2>
-          <v-radio-group
-            id="fitToSelect"
-            :value="settingsDialogFitTo"
-            label="Shrink to"
-            @change="settingDialogChanged({ fitTo: $event })"
-          >
-            <v-radio
-              v-for="item in fitToChoices"
-              :key="item.value"
-              :label="item.text"
-              :value="item.value"
+      <nav id="navOverlay">
+        <div id="navColumns" @click="toggleToolbars()">
+          <section id="leftColumn" class="navColumn">
+            <router-link
+              v-if="routes.prev"
+              class="navLink"
+              :to="{ name: 'reader', params: routes.prev }"
+              @click.native.stop=""
             />
-          </v-radio-group>
-          <v-checkbox
-            :value="settingsDialogTwoPages"
-            label="Display Two pages"
-            :indeterminate="settingsDialogTwoPages == null"
-            ripple
-            @change="settingDialogChanged({ twoPages: $event === true })"
-          />
-          <v-switch
-            v-model="isSettingsDialogGlobalMode"
-            :label="settingsDialogSwitchLabel"
-          />
+          </section>
+          <section id="middleColumn" class="navColumn" />
+          <section id="rightColumn" class="navColumn">
+            <router-link
+              v-if="routes.next"
+              class="navLink"
+              :to="{ name: 'reader', params: routes.next }"
+              @click.native.stop=""
+            />
+          </section>
+        </div>
+      </nav>
+      <v-slide-y-transition>
+        <v-toolbar v-show="showToolbars" id="topToolbar" class="toolbar" dense>
           <v-btn
-            :class="{ invisible: isSettingsDialogGlobalMode }"
-            title="Use the global settings for all comics for this comic"
-            @click="settingDialogClear()"
-            >Clear Settings</v-btn
+            id="closeBook"
+            :to="{ name: 'browser', params: browseRoute }"
+            large
+            ripple
+            >close book</v-btn
           >
-        </v-dialog>
-        <MetadataDialog ref="metadataDialog" :pk="pk" />
-      </v-toolbar>
-    </v-slide-y-transition>
+          <v-spacer />
+          <v-toolbar-title id="toolbarTitle">{{ title }}</v-toolbar-title>
+          <v-spacer />
+          <v-dialog
+            class="readerSettings"
+            origin="center top"
+            transition="slide-y-transition"
+            overlay-opacity="0.5"
+          >
+            <template #activator="{ on }">
+              <v-btn icon v-on="on">
+                <v-icon>{{ mdiCog }}</v-icon>
+              </v-btn>
+            </template>
+            <h2>Reader Settings</h2>
+            <v-radio-group
+              id="fitToSelect"
+              :value="settingsDialogFitTo"
+              label="Shrink to"
+              @change="settingDialogChanged({ fitTo: $event })"
+            >
+              <v-radio
+                v-for="item in fitToChoices"
+                :key="item.value"
+                :label="item.text"
+                :value="item.value"
+              />
+            </v-radio-group>
+            <v-checkbox
+              :value="settingsDialogTwoPages"
+              label="Display Two pages"
+              :indeterminate="settingsDialogTwoPages == null"
+              ripple
+              @change="settingDialogChanged({ twoPages: $event === true })"
+            />
+            <v-switch
+              v-model="isSettingsDialogGlobalMode"
+              :label="settingsDialogSwitchLabel"
+            />
+            <v-btn
+              :class="{ invisible: isSettingsDialogGlobalMode }"
+              title="Use the global settings for all comics for this comic"
+              @click="settingDialogClear()"
+              >Clear Settings</v-btn
+            >
+          </v-dialog>
+          <MetadataDialog ref="metadataDialog" :pk="pk" />
+        </v-toolbar>
+      </v-slide-y-transition>
 
-    <v-slide-y-reverse-transition>
-      <v-toolbar
-        v-show="showToolbars"
-        id="bottomToolbar"
-        class="toolbar"
-        dense
-        transform="center bottom"
-      >
-        <ReaderNavButton :value="0" />
-        <v-slider
-          id="slider"
-          :value="pageNumber"
-          min.number="+0"
-          :max="maxPage"
-          thumb-label
-          hide-details="auto"
+      <v-slide-y-reverse-transition>
+        <v-toolbar
+          v-show="showToolbars"
+          id="bottomToolbar"
+          class="toolbar"
           dense
-          @change="routeTo({ pk, pageNumber: $event })"
-        />
-        <ReaderNavButton :value="maxPage" />
-      </v-toolbar>
-    </v-slide-y-reverse-transition>
+          transform="center bottom"
+        >
+          <ReaderNavButton :value="0" />
+          <v-slider
+            id="slider"
+            :value="pageNumber"
+            min.number="+0"
+            :max="maxPage"
+            thumb-label
+            hide-details="auto"
+            dense
+            @change="routeTo({ pk, pageNumber: $event })"
+          />
+          <ReaderNavButton :value="maxPage" />
+        </v-toolbar>
+      </v-slide-y-reverse-transition>
+    </div>
+    <div v-else id="announcement">
+      <h1>
+        <router-link :to="{ name: 'home' }">Log in</router-link> to read comics
+      </h1>
+    </div>
   </div>
 </template>
 
@@ -160,6 +167,7 @@ export default {
       browseRoute: (state) => state.routes.current || DEFAULT_ROUTE,
     }),
     ...mapGetters("reader", ["computedSettings"]),
+    ...mapGetters("auth", ["isOpenToSee"]),
     settingsDialogTwoPages: function () {
       return this.settingsScope.twoPages;
     },
@@ -191,14 +199,12 @@ export default {
       window.scrollTo(0, 0);
     },
   },
-  beforeCreate() {
+  created() {
     this.$store.dispatch("reader/readerOpened", {
       // Cast the route params as numbers
       pk: +this.$route.params.pk,
       pageNumber: +this.$route.params.pageNumber,
     });
-  },
-  created() {
     this.createPrefetches();
   },
   mounted() {
@@ -314,6 +320,9 @@ export default {
 #readerContainer {
   padding: 0px;
   max-width: 100%;
+}
+#announcement {
+  text-align: center;
 }
 /* NAV COLUMNS */
 #navOverlay {

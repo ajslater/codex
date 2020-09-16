@@ -5,6 +5,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 
+from django.db.models import F
 from django.utils import timezone
 
 from codex.librarian.importer import COMIC_MATCHER
@@ -15,6 +16,7 @@ from codex.librarian.queue import FolderDeletedTask
 from codex.librarian.queue import ScanRootTask
 from codex.models import SCHEMA_VERSION
 from codex.models import Comic
+from codex.models import FailedImport
 from codex.models import Folder
 from codex.models import Library
 
@@ -92,6 +94,24 @@ def scan_existing(library, cls, force=False):
     LOG.debug(f"Ignored {num_passed} {cls_name}s that are up to date.")
 
 
+def cleanup_failed_imports(library):
+    """Tidy up  the failed imports table."""
+
+    # Cleanup FailedImports that were actually successful
+    #  Should never trigger because of the per import cleanup in imports
+    FailedImport.objects.filter(
+        library=library, path=F("library__comic__path")
+    ).delete()
+
+    # Cleanup FailedImports that aren't on the filesystem anymore.
+    failed_imports = FailedImport.objects.only("library", "path").filter(
+        library=library
+    )
+    for failed_import in failed_imports:
+        if not Path(failed_import.path).exists():
+            failed_import.delete()
+
+
 def scan_root(pk, force=False):
     """Scan a library."""
     library = Library.objects.only("scan_in_progress", "last_scan", "path").get(pk=pk)
@@ -107,6 +127,7 @@ def scan_root(pk, force=False):
             scan_existing(library, Comic, force)
             scan_existing(library, Folder)
             scan_for_new(library)
+            cleanup_failed_imports(library)
             if force or library.last_scan is None or library.schema_version is None:
                 library.schema_version = SCHEMA_VERSION
             library.last_scan = timezone.now()

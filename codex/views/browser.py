@@ -25,6 +25,8 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from stringcase import snakecase
 
+from codex.latest_version import get_installed_version
+from codex.latest_version import get_latest_version
 from codex.models import AdminFlag
 from codex.models import Comic
 from codex.models import Folder
@@ -36,15 +38,20 @@ from codex.models import Volume
 from codex.serializers.browse import BrowseListSerializer
 from codex.serializers.browse import BrowserOpenedSerializer
 from codex.serializers.browse import BrowserSettingsSerializer
+from codex.settings import CACHE_PATH
+from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browse_base import BrowseBaseView
 from codex.views.mixins import UserBookmarkMixin
 
 
+PACKAGE_NAME = "codex"
 LOG = logging.getLogger(__name__)
 
 
 class BrowseView(BrowseBaseView, UserBookmarkMixin):
     """Browse comics with a variety of filters and sorts."""
+
+    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
 
     COMIC_GROUP = "c"
     GROUP_MODEL = bidict(
@@ -452,7 +459,10 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
 
     def validate_folder_settings(self):
         """Check that all the view variables for folder mode are set right."""
-        if not AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_FOLDER_VIEW).on:
+        enable_folder_view = (
+            AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_FOLDER_VIEW).on
+        )
+        if not enable_folder_view:
             self.valid_nav_groups = self.get_valid_nav_groups()
             raise self.raise_valid_route("folder view disabled")
 
@@ -574,6 +584,10 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
         browse_list = self.get_browse_list()
 
         filters = self.params["filters"]
+
+        installed_version = get_installed_version(PACKAGE_NAME)
+        latest_version = get_latest_version(PACKAGE_NAME, cache_root=CACHE_PATH)
+
         data = {
             "settings": {
                 "filters": {
@@ -587,6 +601,7 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
                 "show": self.params.get("show"),
             },
             "browseList": browse_list,
+            "versions": {"installed": installed_version, "latest": latest_version},
         }
 
         serializer = BrowserOpenedSerializer(data)

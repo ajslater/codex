@@ -1,3 +1,9 @@
+v0.5.12
+* admin page for failed imports
+* snackbar tells admins when scans are happening
+* report the latest version available in the browser footer tooltip
+* admin flag for disabling codex for non-users
+
 v0.5.11
 * browser rows now adapt to browse tile size
 * browser covers for containers now match data we're sorting by

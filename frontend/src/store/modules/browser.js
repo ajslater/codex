@@ -59,9 +59,12 @@ const state = {
   filterMode: "base",
   browseLoaded: false,
   librariesExist: null,
-  packageVersion: process.env.VUE_APP_PACKAGE_VERSION,
   scanNotify: false,
   numPages: 1,
+  versions: {
+    installed: process.env.VUE_APP_PACKAGE_VERSION,
+    latest: undefined,
+  },
 };
 
 const isRootGroupEnabled = (state, rootGroup) => {
@@ -94,6 +97,9 @@ const mutations = {
   },
   setBrowseRoute(state, route) {
     state.routes.current = route;
+  },
+  setVersions(state, versions) {
+    state.versions = versions;
   },
   setSettings(state, data) {
     if (!data) {
@@ -259,11 +265,16 @@ const isNeedValidate = (changedData) => {
 };
 
 const scanNotifyCheck = (commit, state) => {
-  // thundering herd control
+  // polite client thundering herd control
   const wait = Math.floor(
     Math.random() * (MAX_SCAN_WAIT - MIN_SCAN_WAIT) + MIN_SCAN_WAIT
   );
   setTimeout(async () => {
+    if (state.scanNotify === null) {
+      // null is a special value that means it was manually dismissed.
+      // won't be reset until there's a true push from the server.
+      return;
+    }
     await API.getScanInProgress()
       .then((response) => {
         const data = response.data;
@@ -288,6 +299,7 @@ const actions = {
     await API.getBrowseOpened(route)
       .then((response) => {
         const data = response.data;
+        commit("setVersions", data.versions);
         commit("setSettings", data.settings);
         if (!validateState({ state, commit, dispatch })) {
           // will have dispatched to SetSetting if fails.
@@ -375,7 +387,9 @@ const actions = {
   },
   scanNotify({ commit, state }, value) {
     commit("setScanNotify", { scanInProgress: value });
-    scanNotifyCheck(commit, state);
+    if (value !== null) {
+      scanNotifyCheck(commit, state);
+    }
   },
 };
 

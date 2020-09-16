@@ -2,11 +2,11 @@ ARG INSTALL_BASE_VERSION
 ARG RUNNABLE_BASE_VERSION
 FROM ajslater/codex-install-base:${INSTALL_BASE_VERSION} AS codex-install
 
-COPY dist/*.whl /tmp/
+ARG PKG_VERSION
+COPY dist/codex-${PKG_VERSION}*.whl /tmp/
 RUN pip3 wheel /tmp/*.whl --wheel-dir=/wheels
 
 FROM ajslater/codex-base:${RUNNABLE_BASE_VERSION}
-ARG PKG_VERSION
 LABEL version v${PKG_VERSION}
 
 RUN echo "*** install python wheels ***"
