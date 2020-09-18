@@ -13,7 +13,7 @@ from pkg_resources import parse_version
 DEFAULT_CACHE_ROOT = "/tmp/"
 
 PYPI_URL_TEMPLATE = "https://pypi.python.org/pypi/%s/json"
-CACHE_TIMEDELTA = timedelta(days=1)
+CACHE_EXPIRY = timedelta(days=1)
 TIMESTAMP_KEY = "timestamp"
 LATEST_VERSION_KEY = "latestVersion"
 REPO_TIMEOUT = 5
@@ -32,7 +32,8 @@ def get_latest_version_from_cache(version_cache_fn):
         cache_datetime = datetime.fromtimestamp(timestamp)
 
         # only use if unexpired
-        if datetime.now() - cache_datetime > CACHE_TIMEDELTA:
+        cache_timedelta = datetime.now() - cache_datetime
+        if cache_timedelta < CACHE_EXPIRY:
             latest_version = latest[LATEST_VERSION_KEY]
     except Exception as exc:
         LOG.debug(f"Couldn't get latest version from {version_cache_fn}")
@@ -56,7 +57,10 @@ def set_latest_version_to_cache(version_cache_fn, latest_version):
 
 
 def get_latest_version(
-    package_name, cache_root=DEFAULT_CACHE_ROOT, repo_url_template=PYPI_URL_TEMPLATE
+    package_name,
+    cache_root=DEFAULT_CACHE_ROOT,
+    repo_url_template=PYPI_URL_TEMPLATE,
+    parse=False,
 ):
     """Get the latest version from a remote repo using a cache."""
     version_cache_fn = Path(cache_root) / f"{package_name}-latest-version.json"
@@ -71,13 +75,19 @@ def get_latest_version(
 
     set_latest_version_to_cache(version_cache_fn, latest_version)
 
+    if parse:
+        latest_version = parse_version(latest_version)
+
     return latest_version
 
 
-def get_installed_version(package_name):
+def get_installed_version(package_name, parse=False):
     """Get the installed version of a package."""
     distribution = get_distribution(package_name)
-    return distribution.version
+    installed_version = distribution.version
+    if parse:
+        installed_version = parse_version(installed_version)
+    return installed_version
 
 
 def is_outdated(
@@ -85,16 +95,13 @@ def is_outdated(
     cache_root=DEFAULT_CACHE_ROOT,
     repo_url_template=PYPI_URL_TEMPLATE,
 ):
-    # Installed Version
-    installed_version = get_installed_version(package_name)
-    parsed_installed_version = parse_version(installed_version)
+    installed_version = get_installed_version(package_name, parse=True)
+    latest_version = get_latest_version(
+        package_name, cache_root, repo_url_template, parse=True
+    )
 
-    # Latest Version
-    latest_version = get_latest_version(package_name, cache_root, repo_url_template)
-    parsed_latest_version = parse_version(latest_version)
-
-    result = parsed_latest_version > parsed_installed_version
-    LOG.debug(f"{parsed_latest_version} > {parsed_installed_version} = {result}")
+    result = latest_version > installed_version
+    LOG.debug(f"{latest_version} > {installed_version} = {result}")
 
 
 if __name__ == "__main__":

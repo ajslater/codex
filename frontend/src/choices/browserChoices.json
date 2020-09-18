@@ -9,7 +9,7 @@
     { "text": "Imprints", "value": "p", "default": true },
     { "text": "Series", "value": "i" },
     { "text": "Volumes", "value": "s" },
-    { "text": "Comics", "value": "v" },
+    { "text": "Issues", "value": "v" },
     { "text": "Folder View", "value": "f" }
   ],
   "settingsGroup": [

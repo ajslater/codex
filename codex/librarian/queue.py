@@ -88,4 +88,18 @@ class ScannerCronTask(SleepTask):
     pass
 
 
+@dataclass
+class UpdateCronTask(SleepTask):
+    """Cron for updater."""
+
+    force: bool
+
+
+@dataclass
+class ScanDoneTask(SleepTask):
+    """Notifications for finished scans."""
+
+    failed_imports: bool
+
+
 QUEUE = Queue()

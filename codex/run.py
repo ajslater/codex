@@ -2,6 +2,7 @@
 import asyncio
 import os
 import shutil
+import signal
 
 from logging import getLogger
 
@@ -28,6 +29,7 @@ CONFIG_DEFAULT_TOML = CODEX_PATH / "hypercorn.toml.default"
 LOG = getLogger(__name__)
 DEV = bool(os.environ.get("DEV"))
 RESET_ADMIN = bool(os.environ.get("CODEX_RESET_ADMIN"))
+SIGNAL_NAMES = {"SIGINT", "SIGTERM", "SIGBREAK"}
 
 
 def ensure_config():
@@ -64,7 +66,15 @@ def init_admin_flags():
     """Initalize the admin flag rows"""
     # AdminFlag = apps.get_model("codex", "AdminFlag")  # noqa N806
     for name in AdminFlag.FLAG_NAMES:
-        AdminFlag.objects.get_or_create(name=name)
+        if name in AdminFlag.DEFAULT_FALSE:
+            defaults = {"on": False}
+            flag, created = AdminFlag.objects.get_or_create(
+                defaults=defaults, name=name
+            )
+        else:
+            flag, created = AdminFlag.objects.get_or_create(name=name)
+        if created:
+            LOG.info(f"Created AdminFlag: {flag.name} = {flag.on}")
 
 
 def unset_scan_in_progress():
@@ -77,6 +87,38 @@ def unset_scan_in_progress():
     Library.objects.bulk_update(stuck_libraries, ["scan_in_progress"])
 
 
+RESTART_EVENT = asyncio.Event()
+SHUTDOWN_EVENT = asyncio.Event()
+
+
+def bind_signals():
+    main_pid = os.getpid()
+
+    def _handle_shutdown_signal(signum, frame):
+        if os.getpid() != main_pid:
+            return
+        LOG.info("Asking hypercorn to shut down gracefully. Could take 20 seconds...")
+        SHUTDOWN_EVENT.set()
+
+    def _handle_restart_signal(signum, frame):
+        if os.getpid() != main_pid:
+            return
+        LOG.info("Restart signal received.")
+        RESTART_EVENT.set()
+        _handle_shutdown_signal(signum, frame)
+
+    for signal_name in SIGNAL_NAMES:
+        # because SIGBREAK only exists on windows
+        try:
+            sig = getattr(signal, signal_name)
+            signal.signal(sig, _handle_shutdown_signal)
+        except AttributeError:
+            pass
+
+    # SIGUSR1 only exists on unix :/
+    signal.signal(signal.SIGUSR1, _handle_restart_signal)
+
+
 def setup_db():
     """Setup the database before we run."""
     django.setup()
@@ -87,6 +129,8 @@ def setup_db():
 
 
 def run():
+    """Run Codex"""
+
     config = Config.from_toml(CONFIG_TOML)
     LOG.info(f"Loaded config from {CONFIG_TOML}")
     if DEV:
@@ -98,7 +142,16 @@ def run():
     # This papers over a macos crash that i think only happens on
     #   development server rapid restarts
     os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
-    asyncio.run(serve(application, config))
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(
+        serve(application, config, shutdown_trigger=SHUTDOWN_EVENT.wait)
+    )
+    if RESTART_EVENT.is_set():
+        import sys
+
+        LOG.info("Restarting. Hold on to your butts.")
+        os.execv(__file__, sys.argv)
+    LOG.info("Goodbye.")
 
 
 def main():
@@ -107,6 +160,7 @@ def main():
     ensure_config()
     setup_db()
     cache.clear()
+    bind_signals()
     run()
 
 

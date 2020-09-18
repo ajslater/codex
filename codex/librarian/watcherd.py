@@ -136,14 +136,14 @@ class Uatu(Observer):
         watch = self._pk_watches.pop(pk, None)
         if watch:
             self.unschedule(watch)
-            LOG.info(f"Watcher stopped watching library {pk}")
+            LOG.info(f"Stopped watching library {pk}")
         else:
-            LOG.debug(f"library {pk} not being watched")
+            LOG.debug(f"Library {pk} not being watched")
 
     def watch_library(self, pk):
         """Start a library watching process."""
         if pk in self._pk_watches:
-            LOG.debug(f"library {pk} already being watched.")
+            LOG.debug(f"Library {pk} already being watched.")
             return
         try:
             library = Library.objects.get(pk=pk, enable_watch=True)
@@ -156,7 +156,7 @@ class Uatu(Observer):
         try:
             watch = self.schedule(handler, path, recursive=True)
             self._pk_watches[pk] = watch
-            LOG.info(f"Watcher started watching {path}")
+            LOG.info(f"Started watching {path}")
         except FileNotFoundError:
             LOG.warn(f"Could not find {path} to watch. May be unmounted.")
             return
@@ -182,3 +182,8 @@ class Uatu(Observer):
         missing_watch_pks = set(self._pk_watches.keys()) - active_watch_pks
         for pk in missing_watch_pks:
             self.unwatch_library(pk)
+
+    def unschedule_all(self):
+        super().unschedule_all()
+        self._pk_watches = {}
+        LOG.info("Stopped watching all libraries")

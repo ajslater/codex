@@ -62,7 +62,6 @@ class Publisher(BrowseContainerModel):
     """The publisher of the comic."""
 
     DEFAULTS = {"is_default": True}
-    PLURAL = "Publishers"
 
     name = CharField(max_length=32, default="No Publisher")
 
@@ -86,8 +85,6 @@ class Publisher(BrowseContainerModel):
 class Imprint(BrowseContainerModel):
     """A Publishing imprint."""
 
-    PLURAL = "Imprints"
-
     name = CharField(max_length=32, default="Main Imprint")
     publisher = ForeignKey(Publisher, on_delete=SET(Publisher.get_default_publisher))
 
@@ -105,8 +102,6 @@ class Imprint(BrowseContainerModel):
 class Series(BrowseContainerModel):
     """The series the comic belongs to."""
 
-    PLURAL = "Series"
-
     name = CharField(max_length=32, default="Default Series")
     publisher = ForeignKey(Publisher, on_delete=Publisher.get_default_publisher)
     imprint = ForeignKey(Imprint, on_delete=CASCADE)
@@ -121,12 +116,11 @@ class Series(BrowseContainerModel):
         """Constraints."""
 
         unique_together = ("name", "imprint", "is_default")
+        verbose_name_plural = "Series"
 
 
 class Volume(BrowseContainerModel):
     """The volume of the series the comic belongs to."""
-
-    PLURAL = "Volumes"
 
     name = CharField(max_length=32, default="")
     publisher = ForeignKey(Publisher, on_delete=Publisher.get_default_publisher)
@@ -282,8 +276,6 @@ class Credit(BaseModel):
 class Comic(BaseModel):
     """Comic metadata."""
 
-    PLURAL = "Issues"
-
     path = CharField(db_index=True, max_length=128)
     volume = ForeignKey(Volume, db_index=True, on_delete=CASCADE)
     series = ForeignKey(Series, db_index=True, on_delete=CASCADE)
@@ -356,6 +348,7 @@ class Comic(BaseModel):
 
         # prevents None path comics from being duplicated
         unique_together = ("path", "volume", "year", "issue")
+        verbose_name = "Issue"
 
     def _set_date(self):
         """Compute a date for the comic."""
@@ -393,7 +386,14 @@ class AdminFlag(NamedModel):
     ENABLE_FOLDER_VIEW = "Enable Folder View"
     ENABLE_REGISTRATION = "Enable Registration"
     ENABLE_NON_USERS = "Enable Non Users"
-    FLAG_NAMES = (ENABLE_FOLDER_VIEW, ENABLE_REGISTRATION, ENABLE_NON_USERS)
+    ENABLE_AUTO_UPDATE = "Enable Auto Update"
+    FLAG_NAMES = (
+        ENABLE_FOLDER_VIEW,
+        ENABLE_REGISTRATION,
+        ENABLE_NON_USERS,
+        ENABLE_AUTO_UPDATE,
+    )
+    DEFAULT_FALSE = (ENABLE_AUTO_UPDATE,)
 
     on = BooleanField(default=True)
 

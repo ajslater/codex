@@ -25,8 +25,8 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from stringcase import snakecase
 
-from codex.latest_version import get_installed_version
-from codex.latest_version import get_latest_version
+from codex.librarian.latest_version import get_installed_version
+from codex.librarian.latest_version import get_latest_version
 from codex.models import AdminFlag
 from codex.models import Comic
 from codex.models import Folder
@@ -360,6 +360,7 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
 
     def get_folder_up_route(self):
         """Get out parent's pk."""
+        up_group = self.FOLDER_GROUP
         up_pk = None
 
         # Recall root id & relative path from way back in
@@ -370,23 +371,18 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
             else:
                 up_pk = 0
 
-        return self.FOLDER_GROUP, up_pk
-
-    def get_folder_title(self):
-        """Get the title for folder view."""
-        if self.host_folder:
-            browse_title = self.host_folder.name
-        else:
-            browse_title = "Root"
-        return browse_title
+        return up_group, up_pk
 
     def set_group_instance(self):
         """Create group_class instance."""
         pk = self.kwargs.get("pk")
-        if pk > 0:
-            self.group_instance = self.group_class.objects.select_related().get(pk=pk)
-        else:
+        group = self.kwargs.get("group")
+        if pk == 0:
             self.group_instance = None
+        elif group == self.FOLDER_GROUP:
+            self.group_instance = self.host_folder
+        else:
+            self.group_instance = self.group_class.objects.select_related().get(pk=pk)
 
     def get_browse_up_route(self):
         """Get the up route from the first valid ancestor."""
@@ -399,56 +395,43 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
                 break
             ancestor_group = group_key
 
-        # Ancestor pk
-        if ancestor_group is None:
-            ancestor_pk = None
-        elif ancestor_group == self.params["root_group"] or self.kwargs.get("pk") == 0:
-            ancestor_pk = 0
-        else:
-            # get the ancestor pk from the current group
-            ancestor_relation = self.GROUP_RELATION[ancestor_group]
-            ancestor_pk = getattr(self.group_instance, ancestor_relation).pk
+        up_group = ancestor_group
+        up_pk = None
 
-        return ancestor_group, ancestor_pk
+        # Ancestor pk
+        # pk == 0 for special instances where we're displaying 0 but there
+        #  is still a parent who should also be 0
+        pk = self.kwargs.get("pk")
+        if up_group == self.params["root_group"] or pk == 0:
+            up_pk = 0
+        elif up_group is not None:
+            # get the ancestor pk from the current group
+            up_relation = self.GROUP_RELATION[up_group]
+            up_pk = getattr(self.group_instance, up_relation).pk
+
+        return up_group, up_pk
 
     def get_browse_title(self):
         """Get the proper title for this browse level."""
         pk = self.kwargs.get("pk")
-        group = self.kwargs.get("group")
-        if group == self.params["root_group"] or pk == 0:
-            browse_title = self.model.PLURAL
+        parent_name = None
+        group_count = 0
+        if pk == 0:
+            group_name = self.model._meta.verbose_name_plural.capitalize()
         else:
-            browse_title = ""
-            # XXX this duplicates the logic that annotates the header_name
-            #     for the obj_list
-            #     should probably move this all to the front end
             if self.group_class == Imprint:
-                header = self.group_instance.publisher.name
+                parent_name = self.group_instance.publisher.name
             elif self.group_class == Volume:
-                header = self.group_instance.series.name
-            else:
-                header = ""
+                parent_name = self.group_instance.series.name
+                group_count = self.group_instance.series.volume_count
 
-            if header:
-                browse_title += header + " "
+            group_name = self.group_instance.name
 
-            if self.group_class == Volume:
-                volume_name = self.group_instance.name
-                if volume_name:
-                    if len(volume_name) == 4 and volume_name.isdigit():
-                        volume_name = f"({volume_name})"
-                    else:
-                        volume_name = f"v{volume_name}"
-
-                    browse_title += volume_name
-
-                    volume_count = self.group_instance.series.volume_count
-                    if volume_count:
-                        header += f" of {volume_count}"
-                else:
-                    browse_title += "v0"
-            else:
-                browse_title += self.group_instance.name
+        browse_title = {
+            "parentName": parent_name,
+            "groupName": group_name,
+            "groupCount": group_count,
+        }
 
         return browse_title
 
@@ -540,13 +523,12 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
         self.request.session.save()
 
         # get additional context
+        self.set_group_instance()
         if self.kwargs.get("group") == self.FOLDER_GROUP:
             up_group, up_pk = self.get_folder_up_route()
-            browse_title = self.get_folder_title()
         else:
-            self.set_group_instance()
             up_group, up_pk = self.get_browse_up_route()
-            browse_title = self.get_browse_title()
+        browse_title = self.get_browse_title()
 
         if up_group is not None and up_pk is not None:
             up_route = {"group": up_group, "pk": up_pk, "page": 1}

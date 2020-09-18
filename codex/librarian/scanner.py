@@ -13,6 +13,7 @@ from codex.librarian.queue import QUEUE
 from codex.librarian.queue import ComicDeletedTask
 from codex.librarian.queue import ComicModifiedTask
 from codex.librarian.queue import FolderDeletedTask
+from codex.librarian.queue import ScanDoneTask
 from codex.librarian.queue import ScanRootTask
 from codex.models import SCHEMA_VERSION
 from codex.models import Comic
@@ -138,6 +139,8 @@ def scan_root(pk, force=False):
     finally:
         library.scan_in_progress = False
         library.save()
+    is_failed_imports = FailedImport.objects.exists()
+    QUEUE.put(ScanDoneTask(failed_imports=is_failed_imports, sleep=0))
     LOG.info(f"Scan for {library.path} finished.")
 
 

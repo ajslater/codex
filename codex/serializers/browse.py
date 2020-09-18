@@ -120,10 +120,18 @@ class BrowserFormChoicesSerializer(Serializer):
     enableFolderView = BooleanField(read_only=True)  # noqa: N815
 
 
+class BrowseTitleSerializer(Serializer):
+    """Elements for constructing the browse title."""
+
+    parentName = CharField(read_only=True, allow_null=True)  # noqa: N815
+    groupName = CharField(read_only=True)  # noqa: N815
+    groupCount = IntegerField(read_only=True, allow_null=True)  # noqa: N815
+
+
 class BrowseListSerializer(Serializer):
     """The main browse list."""
 
-    browseTitle = CharField(read_only=True)  # noqa: N815
+    browseTitle = BrowseTitleSerializer(read_only=True)  # noqa: N815
     upRoute = BrowseRouteSerializer(allow_null=True)  # noqa: N815
     objList = ListField(  # noqa: N815
         child=BrowseObjectSerializer(read_only=True),
