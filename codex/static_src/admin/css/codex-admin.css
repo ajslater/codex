@@ -10,3 +10,6 @@
 .field-last_scan .datetimeshortcuts {
   display: none;
 }
+#footer {
+  padding: 0px 40px;
+}

@@ -5,9 +5,19 @@
 <h2>Admin Flags</h2>
 Administration Flags that effect the operation of the entire site.
 <h3>Enable Registration</h3>
-By default users bookmarks and preferenrces are saved in an anonymous browser session. But users can create a username and password to save their bookmarks in between browsers. You may disable this feature.
+By default users bookmarks and preferences are saved in an anonymous browser session. Users can create a username and password to save their bookmarks in between browsers. You may disable this feature. Admins may still create users using this Admin Panel.
 
 <h3>Enable Folder View</h3>
 By default, codex provides a "Folder View" which mimics the directory heirarchy of the libraries that you've added to Codex. You may disable this feature. The database style browser view is always available.
+
+<h3>Enable Non Users</h3>
+By default all Codex features, including bookmarking, are available to users who are not logged in. You may disable this feature and Codex will hide its browser and reader and disable its API from anyone who is not logged in as a user.
+
+<h3>Enable Auto Updates</h3>
+If enabled, codex will attempt to update the codex python package once a day and restart the server if an update occured. <strong>Not advisable if running from Docker</strong> as running containers aren't meant to hold state and will be rebuilt if you update the image. Look into <a href="https://containrrr.dev/watchtower/">Watchtower</a> for automating Docker updates.
+
+<h2>Actions</h2>
+<h3>Update Codex Now</h3>
+Force an update of Codex. If Codex updates to a new version, it will restart.
 </div>
 {% endblock %}

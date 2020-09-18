@@ -3,6 +3,7 @@ import ReconnectingWebSocket from "reconnecting-websocket";
 import { ajax, API_PREFIX, ROOT_PATH } from "./base";
 
 const BROWSE_BASE = "/browse";
+const ADMIN_SUFFIX = "/a";
 
 const debug = process.env.NODE_ENV !== "production";
 
@@ -41,6 +42,8 @@ export const getCoverSrc = (coverPath) => {
   return `${ROOT_PATH}covers/${coverPath}`;
 };
 
+export const FAILED_IMPORT_URL = `${ROOT_PATH}admin/codex/failedimport/`;
+
 // WEBSOCKETS
 
 const WS_URL = `${location.host}${API_PREFIX}/ws`;
@@ -55,13 +58,17 @@ const keepAlive = (ws) => {
 };
 
 // websocket only used for the browser now.
-export const getSocket = () => {
+export const getSocket = (isAdmin) => {
   let socketProto = "ws";
   if (window.location.protocol === "https:") {
     // this should never happen. use a webserver to terminate ssl.t s
     socketProto += "s";
   }
-  const socketURI = `${socketProto}://${WS_URL}`;
+  let socketURI = `${socketProto}://${WS_URL}`;
+  if (isAdmin) {
+    socketURI += ADMIN_SUFFIX;
+  }
+
   const ws = new ReconnectingWebSocket(socketURI, undefined, {
     debug,
   });
@@ -76,4 +83,5 @@ export default {
   getScanInProgress,
   setMarkRead,
   getSocket,
+  FAILED_IMPORT_URL,
 };

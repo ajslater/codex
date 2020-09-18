@@ -6,6 +6,7 @@ from threading import Thread
 
 from codex.librarian.queue import QUEUE
 from codex.librarian.queue import ScannerCronTask
+from codex.librarian.queue import UpdateCronTask
 from codex.librarian.queue import WatcherCronTask
 
 
@@ -21,13 +22,14 @@ class Crond(Thread):
 
     def worker(self, cond):
         """Watch a path and log the events."""
-        LOG.info("Started scan cron")
+        LOG.info("Started cron")
         with cond:
             while self.run_thread:
                 QUEUE.put(ScannerCronTask(sleep=0))
                 QUEUE.put(WatcherCronTask(sleep=0))
+                QUEUE.put(UpdateCronTask(sleep=0, force=False))
                 cond.wait(timeout=self.WAIT_INTERVAL)
-        LOG.info("Stopped scan cron.")
+        LOG.info("Stopped cron.")
 
     def __init__(self):
         """Intialize this thread with the worker."""

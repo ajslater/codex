@@ -2,10 +2,10 @@
 
 Codex is a comic archive browser and reader.
 
-## Features
+## Notable Features
 
 - A web server, not a desktop or mobile app.
-- Per user bookmarking.
+- Per user bookmarking. Bookmarks even if you don't make an account.
 - Filter and sort on comic metadata and unread status per user.
 - Watches the filesystem and automatically imports new or changed comics.
 
@@ -177,17 +177,14 @@ You will have to contact your administrator to reset your password if you forget
 
 ## Codex Roadmap
 
-### Alpha Test
-
-- Fix bugs that I haven't found in my private testing
-
 ### Next Up
 
-- Edit & write metadata for one comic at a time.
-- Add more Filters & Sort options (e.g. filter by story_arc, location)
-- [OPDS](https://en.wikipedia.org/wiki/Open_Publication_Distribution_System)
-- Dark Admin Panel Styling.
-- Upgrade Vue to version 3
+1. Edit & write metadata for comics.
+2. Add more Filters & Sort options (e.g. filter by story_arc, location)
+3. Investigate the feasibility of full text search.
+4. [OPDS API](https://en.wikipedia.org/wiki/Open_Publication_Distribution_System)
+5. Dark Admin Panel Styling.
+6. Upgrade Vue to version 3
 
 ## Out of Scope
 

@@ -34,19 +34,25 @@ from codex.librarian.queue import ComicMovedTask
 from codex.librarian.queue import FolderDeletedTask
 from codex.librarian.queue import FolderMovedTask
 from codex.librarian.queue import LibraryChangedTask
+from codex.librarian.queue import ScanDoneTask
 from codex.librarian.queue import ScannerCronTask
 from codex.librarian.queue import ScanRootTask
+from codex.librarian.queue import UpdateCronTask
 from codex.librarian.queue import WatcherCronTask
 from codex.librarian.scanner import scan_cron
 from codex.librarian.scanner import scan_root
+from codex.librarian.update import update_codex
 from codex.librarian.watcherd import Uatu
 from codex.models import Comic
 from codex.models import Folder
 from codex.websocket_server import BROADCAST_MSG
 from codex.websocket_server import BROADCAST_SECRET
+from codex.websocket_server import FAILED_IMPORTS_MSG
+from codex.websocket_server import IPC_SUFFIX
 from codex.websocket_server import LIBRARY_CHANGED_MSG
+from codex.websocket_server import SCAN_DONE_MSG
 from codex.websocket_server import SCAN_ROOT_MSG
-from codex.websocket_server import UNSUBSCRIBE_MSG
+from codex.websocket_server import SHUTDOWN_MSG
 from codex.websocket_server import WS_API_PATH
 
 
@@ -55,8 +61,7 @@ from codex.websocket_server import WS_API_PATH
 
 LOG = logging.getLogger(__name__)
 PORT = Value("i", 9810)  # Shared memory overwritten in run.py
-BROADCAST_URL_TMPL = "ws://localhost:{port}/" + WS_API_PATH
-SHUTDOWN_MSG = "shutdown"
+BROADCAST_URL_TMPL = "ws://localhost:{port}/" + WS_API_PATH + IPC_SUFFIX
 MAX_WS_ATTEMPTS = 4
 librarian_proc = None
 if platform.system() == "Darwin":
@@ -81,7 +86,6 @@ def get_websocket():
         except ConnectionRefusedError:
             attempts += 1
     if ws and ws.connected:
-        send_json(ws, UNSUBSCRIBE_MSG)
         LOG.info("Librarian connected to websockets.")
     else:
         LOG.error("Librarian cannot connect to websockets.")
@@ -102,7 +106,7 @@ def send_json(ws, typ, message=None):
     return ws
 
 
-def librarian():
+def librarian(main_pid):
     """
     Triage and process tasks from the queue.
 
@@ -124,6 +128,12 @@ def librarian():
             if isinstance(task, ScanRootTask):
                 ws = send_json(ws, BROADCAST_MSG, SCAN_ROOT_MSG)
                 scan_root(task.library_id, task.force)
+            elif isinstance(task, ScanDoneTask):
+                if task.failed_imports:
+                    msg = FAILED_IMPORTS_MSG
+                else:
+                    msg = SCAN_DONE_MSG
+                ws = send_json(ws, BROADCAST_MSG, msg)
             elif isinstance(task, ComicModifiedTask):
                 import_comic(task.library_id, task.src_path)
             elif isinstance(task, ComicCoverCreateTask):
@@ -148,6 +158,9 @@ def librarian():
             elif isinstance(task, ScannerCronTask):
                 sleep(task.sleep)
                 scan_cron()
+            elif isinstance(task, UpdateCronTask):
+                sleep(task.sleep)
+                update_codex(main_pid, task.force)
             elif task == SHUTDOWN_MSG:
                 run = False
             else:
@@ -168,7 +181,12 @@ def librarian():
 def start_librarian():
     """Start the worker process."""
     global librarian_proc
-    librarian_proc = Process(target=librarian, name="codex-librarian", daemon=False)
+    import os
+
+    args = (os.getpid(),)
+    librarian_proc = Process(
+        target=librarian, name="codex-librarian", args=args, daemon=False
+    )
     librarian_proc.start()
     # this signal is thrown by runserver which i don't use anymore
     # file_changed.connect(stop_librarian)

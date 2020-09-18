@@ -54,7 +54,11 @@ const state = {
       enableFolderView: true,
     },
   },
-  browseTitle: "",
+  browseTitle: {
+    parentName: undefined,
+    groupName: undefined,
+    groupCount: undefined,
+  },
   objList: [],
   filterMode: "base",
   browseLoaded: false,

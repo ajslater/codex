@@ -132,7 +132,7 @@
           </v-btn>
         </v-toolbar-items>
         <v-toolbar-title>
-          {{ browseTitle }}
+          {{ longBrowseTitle }}
         </v-toolbar-title>
       </v-toolbar>
     </header>
@@ -218,6 +218,26 @@
         >x</v-btn
       >
     </v-snackbar>
+    <v-snackbar
+      id="failedImportsNotify"
+      :value="failedImportsNotify"
+      bottom
+      right
+      rounded
+      width="183"
+      :timeout="-1"
+    >
+      Review failed imports in the
+      <a :href="failedImportURL">Admin Panel</a>
+      <v-btn
+        id="dismissFailedImportsNotify"
+        title="dismiss notification"
+        x-small
+        ripple
+        @click="failedImportsNotify = false"
+        >x</v-btn
+      >
+    </v-snackbar>
   </div>
 </template>
 
@@ -226,11 +246,12 @@ import { mdiArrowUp, mdiCloseCircle, mdiDotsVertical } from "@mdi/js";
 import { mapGetters, mapState } from "vuex";
 
 import { ADMIN_URL } from "@/api/auth";
-import { getSocket } from "@/api/browser";
+import { FAILED_IMPORT_URL, getSocket } from "@/api/browser";
+import { getVolumeName } from "@/comic-name";
 import AuthDialog from "@/components/auth-dialog";
 import BrowseCard from "@/components/browse-card";
 import FilterSubMenu from "@/components/filter-sub-menu";
-import PlaceholderLoading from "@/components/placeholder-loading.vue";
+import PlaceholderLoading from "@/components/placeholder-loading";
 
 export default {
   name: "Browser",
@@ -246,6 +267,8 @@ export default {
       mdiDotsVertical,
       socket: undefined,
       adminURL: ADMIN_URL,
+      failedImportsNotify: false,
+      failedImportURL: FAILED_IMPORT_URL,
     };
   },
   computed: {
@@ -275,6 +298,27 @@ export default {
         this.enableNonUsers === undefined ||
         (!this.browseLoaded && this.isOpenToSee)
       );
+    },
+    longBrowseTitle: function () {
+      let browseTitle;
+      const group = this.$route.params.group;
+      if (+this.$route.params.pk === 0) {
+        browseTitle = this.browseTitle.groupName;
+      } else if (group === "v") {
+        const { parentName, groupName, groupCount } = this.browseTitle;
+        const volumeName = getVolumeName(groupName);
+        browseTitle = "";
+        if (parentName) {
+          browseTitle += `${parentName} `;
+        }
+        browseTitle += `${volumeName}`;
+        if (this.browseTitle.volumeCount) {
+          browseTitle += ` of ${groupCount}`;
+        }
+      } else {
+        browseTitle = this.browseTitle.groupName;
+      }
+      return browseTitle;
     },
     outdated: function () {
       return this.versions.latest > this.versions.installed;
@@ -410,18 +454,28 @@ export default {
   methods: {
     connectToServer: function () {
       if (!this.isOpenToSee) {
+        if (this.socket) {
+          this.socket.close();
+        }
         return;
       }
       this.$store.dispatch("browser/browseOpened", this.$route.params);
-      this.socket = getSocket();
+      this.socket = getSocket(this.isAdmin);
       this.socket.addEventListener("message", this.websocketListener);
     },
     websocketListener: function (event) {
       console.debug("websocket push:", event.data);
       if (event.data === "libraryChanged") {
         this.$store.dispatch("browser/getBrowseObjects");
-      } else if (this.isAdmin && event.data === "scanLibrary") {
-        this.setScanNotify(true);
+      } else if (this.isAdmin) {
+        if (event.data === "scanLibrary") {
+          this.setScanNotify(true);
+        } else if (["scanDone", "failedImports"].includes(event.data)) {
+          this.setScanNotify(false);
+          if (event.data === "failedImports") {
+            this.failedImportsNotify = true;
+          }
+        }
       }
     },
     settingChanged: function (data) {
@@ -545,6 +599,12 @@ export default {
 }
 .outdated {
   font-style: italic;
+}
+
+#failedImportsNotify {
+}
+#failedImportsNotify a {
+  padding-right: 0.5em;
 }
 
 @import "~vuetify/src/styles/styles.sass";

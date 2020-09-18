@@ -20,13 +20,20 @@ LOG = getLogger(__name__)
 WS_ACCEPT_MSG = {"type": "websocket.accept"}
 WS_SEND_MSG = {"type": "websocket.send"}
 BROADCAST_CONNS = set()
-UNSUBSCRIBE_MSG = "unsubscribe"
+ADMIN_CONNS = set()
 BROADCAST_MSG = "broadcast"
 # Shared memory broadcast security
 BROADCAST_SECRET = Value("i", random.randint(0, 100))
 LIBRARY_CHANGED_MSG = "libraryChanged"
 SCAN_ROOT_MSG = "scanLibrary"
+FAILED_IMPORTS_MSG = "failedImports"
+SCAN_DONE_MSG = "scanDone"
+ADMIN_MESSAGES = (SCAN_ROOT_MSG, FAILED_IMPORTS_MSG, SCAN_DONE_MSG)
+# XXX if messages gets too big export the consts into a json
+#     for the frontend
 WS_API_PATH = "api/v1/ws"
+ADMIN_SUFFIX = "/a"
+IPC_SUFFIX = "/ipc"
 
 # Flood control
 MESSAGE_QUEUE = Queue()
@@ -42,25 +49,20 @@ def get_send_msg(message):
     return msg
 
 
-def is_ws_api_path(scope):
-    """is this request on the url path we accept?"""
-    path = scope.get("path")
-    root_path = scope.get("root_path")
-    short_path = path.lstrip(root_path)
-    return short_path != WS_API_PATH and short_path != "/" + WS_API_PATH
-
-
 async def websocket_application(scope, receive, send):
     """Set up broadcasts."""
-    # if not is_ws_api_path(scope):
-    #    return
 
     while True:
         event = await receive()
 
         if event["type"] == "websocket.connect":
-            # XXX could do an auth here and figure out who's an admin.
-            BROADCAST_CONNS.add(send)
+            path = scope.get("path")
+            if not path.endswith(IPC_SUFFIX):
+                # The librarian doesn't care about broadcasts
+                BROADCAST_CONNS.add(send)
+            if path.endswith(ADMIN_SUFFIX):
+                # Only admins care about admin messages
+                ADMIN_CONNS.add(send)
             await send(WS_ACCEPT_MSG)
 
         if event["type"] == "websocket.disconnect":
@@ -71,24 +73,20 @@ async def websocket_application(scope, receive, send):
                 msg = json.loads(event["text"])
                 msg_type = msg.get("type")
                 message = msg.get("message")
-                if msg_type == UNSUBSCRIBE_MSG:
-                    BROADCAST_CONNS.remove(send)
-
-                elif (
+                if (
                     msg_type == BROADCAST_MSG
                     and msg.get("secret") == BROADCAST_SECRET.value
                 ):
-                    if message != SCAN_ROOT_MSG:
-                        # flood control library changed messages
-                        MESSAGE_QUEUE.put((message, time.time()))
-                    else:
+                    if message in ADMIN_MESSAGES:
                         # don't flood control
-                        for send in BROADCAST_CONNS:
-                            # XXX can't tell who's an admin so send to
-                            # everyone
+                        for send in ADMIN_CONNS:
                             send_msg = {"text": message}
                             send_msg.update(WS_SEND_MSG)
                             await send(send_msg)
+                    else:
+                        # flood control library changed messages
+                        MESSAGE_QUEUE.put((message, time.time()))
+
             except JSONDecodeError as exc:
                 LOG.error(exc)
 
@@ -103,7 +101,7 @@ def flood_control_worker():
 
     May need to recognize different message types in the future.
     """
-    LOG.info("Broadcast flood control worker started.")
+    LOG.info("Started Broadcast Flood Control Worker.")
     while True:
         waiting_since = time.time()
         message, timestamp = MESSAGE_QUEUE.get()
@@ -123,7 +121,7 @@ def flood_control_worker():
                 if MESSAGE_QUEUE.empty():
                     MESSAGE_QUEUE.put((message, timestamp))
                     time.sleep(wait_left)
-    LOG.info("Broadcast flood control worker stopped.")
+    LOG.info("Stopped Broadcast Flood Control Worker.")
 
 
 def start_flood_control_worker():
