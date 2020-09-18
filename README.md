@@ -190,7 +190,6 @@ You will have to contact your administrator to reset your password if you forget
 
 - No intention of making this an eBook reader like [Ubooquity](https://vaemendis.net/ubooquity/).
 - Not interested in this becoming a sophisticated comic manager like [Mylar](https://github.com/mylar3/mylar3)
-- Unsure if I want to implement a mass tag editor.
 
 ## Alternatives to Codex
 
