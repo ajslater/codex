@@ -1,4 +1,4 @@
-import API from "@/api/browser";
+import API from "@/api/v1/browser";
 import router from "@/router";
 
 const GROUPS = "rpisvf";

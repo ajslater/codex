@@ -1,9 +1,10 @@
 import { ajax, API_PREFIX } from "./base";
 
 const COMIC_BASE = "/comic";
+const METADATA_BASE = "/metadata";
 
-const getComicMetadata = (pk) => {
-  return ajax("get", `${COMIC_BASE}/${pk}/metadata`);
+const getComicMetadata = (group, pk) => {
+  return ajax("get", `${METADATA_BASE}/${group}/${pk}`);
 };
 
 export const getDownloadURL = (pk) => {

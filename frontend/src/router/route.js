@@ -1,15 +1,15 @@
-export const getReaderRoute = (comic) => {
+export const getReaderRoute = (pk, bookmark, readLTR, pageCount) => {
   // Get the route to a comic with the correct entry page.
   let pageNumber = 0;
-  if (comic.bookmark) {
-    pageNumber = comic.bookmark;
-  } else if (comic.read_ltr === false) {
+  if (bookmark) {
+    pageNumber = bookmark;
+  } else if (readLTR === false) {
     // Compute again because I assume it to be rare. Sorry manga nerds.
-    pageNumber = Math.max(comic.page_count - 1, 0);
+    pageNumber = Math.max(pageCount - 1, 0);
   }
   return {
     name: "reader",
-    params: { pk: comic.pk, pageNumber },
+    params: { pk, pageNumber },
   };
 };
 

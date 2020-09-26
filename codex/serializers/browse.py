@@ -87,9 +87,11 @@ class BrowseObjectSerializer(Serializer):
 
     def get_x_cover_path(self, obj):
         """Ensure comic cover exists for any cover_path we send."""
-        task = ComicCoverCreateTask(obj.get("x_path"), obj.get("x_cover_path"))
+        comic_path = obj.get("x_path")
+        cover_path = obj.get("x_cover_path")
+        task = ComicCoverCreateTask(comic_path, cover_path, False)
         QUEUE.put(task)
-        return obj.get("x_cover_path")
+        return cover_path
 
     pk = IntegerField(read_only=True)
     group = CharField(read_only=True, max_length=1)

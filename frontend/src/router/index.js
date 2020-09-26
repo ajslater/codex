@@ -1,7 +1,7 @@
 import Vue from "vue";
 import VueRouter from "vue-router";
 
-import { ROOT_PATH } from "@/api/base";
+import { ROOT_PATH } from "@/api/v1/base";
 import Browser from "@/browser.vue";
 import NotFound from "@/not-found.vue";
 import Reader from "@/reader.vue";

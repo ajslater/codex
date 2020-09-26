@@ -1,145 +1,102 @@
 """Codex Serializers for the metadata box."""
-import pycountry
-
 from rest_framework.serializers import BooleanField
 from rest_framework.serializers import CharField
 from rest_framework.serializers import DecimalField
 from rest_framework.serializers import IntegerField
+from rest_framework.serializers import ListField
 from rest_framework.serializers import ModelSerializer
 from rest_framework.serializers import Serializer
-from rest_framework.serializers import SerializerMethodField
+from rest_framework.serializers import URLField
 
-from codex.models import Comic
 from codex.models import Credit
 from codex.models import UserBookmark
-
-
-class NamedModelSerializer(Serializer):
-    """One serializer for all NamedModels."""
-
-    pk = IntegerField()
-    name = CharField(max_length=32)
-
-
-# Cannot use ModelSerializer with Abstract Models... for now.
-#    class Meta:
-#        """Model spec."""
-#
-#        model = NamedModel
-#        fields = ("pk", "name")
-#        read_only_fields = fields
+from codex.serializers.vuetify import VueCountryChoiceSerializer
+from codex.serializers.vuetify import VueIntChoiceSerializer
+from codex.serializers.vuetify import VueLanguageChoiceSerializer
 
 
 class CreditSerializer(ModelSerializer):
     """Credit model serializer."""
 
-    person = NamedModelSerializer(read_only=True)
-    role = NamedModelSerializer(read_only=True)
+    person = VueIntChoiceSerializer(read_only=True)
+    role = VueIntChoiceSerializer(read_only=True)
 
     class Meta:
         """Model spec."""
 
         model = Credit
-        fields = ("person", "role")
+        fields = ("pk", "person", "role")
         read_only_fields = fields
 
 
-class ComicSerializer(ModelSerializer):
+class MetadataSerializer(Serializer):
     """Serialize the comic model for browser metadata box."""
 
-    # Publish annotations
-    publisher_name = CharField()
-    imprint_name = CharField()
-    series_name = CharField()
-    volume_name = CharField()
-    volume_count = IntegerField()
-    issue_count = IntegerField()
+    # All the comic pks for a filtered aggregate group
+    pks = ListField(child=IntegerField())
+
+    # Aggregate Annotations
+    size = IntegerField()
+    coverPath = CharField()  # noqa: N815
 
     # UserBookmark annotations
+    # fit_to = CharField()
+    # two_pages = BooleanField()
     bookmark = IntegerField()
     finished = BooleanField()
-    fit_to = CharField()
-    two_pages = BooleanField()
+    pageCount = IntegerField()  # noqa: N815
     progress = DecimalField(max_digits=5, decimal_places=2)
 
-    # Pycountry
-    country = SerializerMethodField()
-    language = SerializerMethodField()
+    # Publish annotations
+    publisherChoices = VueIntChoiceSerializer(many=True, allow_null=True)  # noqa: N815
+    imprintChoices = VueIntChoiceSerializer(many=True, allow_null=True)  # noqa: N815
+    seriesChoices = VueIntChoiceSerializer(many=True, allow_null=True)  # noqa: N815
+    volumeChoices = VueIntChoiceSerializer(many=True, allow_null=True)  # noqa: N815
+    volumeCountChoices = VueIntChoiceSerializer(  # noqa: N815
+        many=True, allow_null=True
+    )
+    issueCountChoices = VueIntChoiceSerializer(many=True, allow_null=True)  # noqa: N815
 
-    # Many to many NamedModel
-    genres = NamedModelSerializer(many=True)
-    tags = NamedModelSerializer(many=True)
-    teams = NamedModelSerializer(many=True)
-    characters = NamedModelSerializer(many=True)
-    locations = NamedModelSerializer(many=True)
-    series_groups = NamedModelSerializer(many=True)
-    story_arcs = NamedModelSerializer(many=True)
-    credits = CreditSerializer(many=True)
+    # Value Choices
+    issueChoices = ListField(  # noqa: N815
+        child=DecimalField(max_digits=5, decimal_places=1), allow_null=True
+    )
+    titleChoices = ListField(child=CharField(), allow_null=True)  # noqa: N815
+    yearChoices = ListField(child=IntegerField(), allow_null=True)  # noqa: N815
+    monthChoices = ListField(child=IntegerField(), allow_null=True)  # noqa: N815
+    dayChoices = ListField(child=IntegerField(), allow_null=True)  # noqa: N815
+    formatChoices = ListField(child=CharField(), allow_null=True)  # noqa: N815
+    readLTRChoices = ListField(child=BooleanField(), allow_null=True)  # noqa: N815
+    webChoices = ListField(child=URLField(), allow_null=True)  # noqa: N815
+    userRatingChoices = ListField(child=CharField(), allow_null=True)  # noqa: N815
+    criticalRatingChoices = ListField(child=CharField(), allow_null=True)  # noqa: N815
+    maturityRatingChoices = ListField(child=CharField(), allow_null=True)  # noqa: N815
+    scanInfoChoices = ListField(child=CharField(), allow_null=True)  # noqa: N815
+    # Too big for choices and doesn't really make sense anyway
+    # summaryChoices = ListField(child=CharField(), allow_null=True)  # noqa: N815
+    # descriptionChoices = ListField(child=CharField(), allow_null=True)  # noqa: N815
+    # notesChoices = ListField(child=CharField(), allow_null=True)  # noqa: N815
+    summary = CharField(allow_null=True)
+    description = CharField(allow_null=True)
+    notes = CharField(allow_null=True)
+    countryChoices = VueCountryChoiceSerializer(  # noqa: N815
+        many=True, allow_null=True
+    )
+    languageChoices = VueLanguageChoiceSerializer(  # noqa: N815
+        many=True, allow_null=True
+    )
 
-    def get_country(self, obj):
-        """Long name from alpha2 country."""
-        if obj.country:
-            country = pycountry.countries.lookup(obj.country)
-            if country:
-                return country.name
-
-    def get_language(self, obj):
-        """Long name from alpha2 language."""
-        if obj.language:
-            language = pycountry.languages.lookup(obj.language)
-            if language:
-                return language.name
-
-    class Meta:
-        """Fields to serialize."""
-
-        model = Comic
-        fields = (
-            "pk",
-            "publisher_name",
-            "imprint_name",
-            "series_name",
-            "volume_name",
-            "volume_count",
-            "issue",
-            "issue_count",
-            "title",
-            "cover_path",
-            "year",
-            "month",
-            "day",
-            "format",
-            "read_ltr",
-            "size",
-            "web",
-            "user_rating",
-            "critical_rating",
-            "maturity_rating",
-            "summary",
-            "description",
-            "notes",
-            # Pycountry alpha2
-            "country",
-            "language",
-            # Many to many NamedModels
-            "genres",
-            "tags",
-            "teams",
-            "characters",
-            "locations",
-            "series_groups",
-            "story_arcs",
-            "scan_info",
-            "credits",
-            # UserBookmark annotations
-            "finished",
-            "fit_to",
-            "two_pages",
-            "bookmark",
-            "page_count",
-            "progress",
-        )
-        read_only_fields = fields
+    # Many to Many Choices
+    genresChoices = VueIntChoiceSerializer(many=True, allow_null=True)  # noqa: N815
+    tagsChoices = VueIntChoiceSerializer(many=True, allow_null=True)  # noqa: N815
+    teamsChoices = VueIntChoiceSerializer(many=True, allow_null=True)  # noqa: N815
+    charactersChoices = VueIntChoiceSerializer(many=True, allow_null=True)  # noqa: N815
+    locationsChoices = VueIntChoiceSerializer(many=True, allow_null=True)  # noqa: N815
+    seriesGroupsChoices = VueIntChoiceSerializer(  # noqa: N815
+        many=True, allow_null=True
+    )
+    storyArcsChoices = VueIntChoiceSerializer(many=True, allow_null=True)  # noqa: N815
+    creditsChoices = CreditSerializer(many=True, allow_null=True)  # noqa: N815
 
 
 class UserBookmarkFinishedSerializer(ModelSerializer):

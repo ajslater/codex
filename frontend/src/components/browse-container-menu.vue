@@ -17,7 +17,7 @@
 <script>
 import { mdiDotsVertical } from "@mdi/js";
 
-import { getDownloadURL } from "@/api/metadata";
+import { getDownloadURL } from "@/api/v1/metadata";
 
 const containerNames = {
   p: "Publisher",

@@ -13,6 +13,8 @@ from asgiref.sync import async_to_sync
 from django.core.cache import cache
 from simplejson import JSONDecodeError
 
+from codex.choices.websocket_messages import MESSAGES
+
 
 LOG = getLogger(__name__)
 
@@ -24,13 +26,6 @@ ADMIN_CONNS = set()
 BROADCAST_MSG = "broadcast"
 # Shared memory broadcast security
 BROADCAST_SECRET = Value("i", random.randint(0, 100))
-LIBRARY_CHANGED_MSG = "libraryChanged"
-SCAN_ROOT_MSG = "scanLibrary"
-FAILED_IMPORTS_MSG = "failedImports"
-SCAN_DONE_MSG = "scanDone"
-ADMIN_MESSAGES = (SCAN_ROOT_MSG, FAILED_IMPORTS_MSG, SCAN_DONE_MSG)
-# XXX if messages gets too big export the consts into a json
-#     for the frontend
 WS_API_PATH = "api/v1/ws"
 ADMIN_SUFFIX = "/a"
 IPC_SUFFIX = "/ipc"
@@ -77,7 +72,7 @@ async def websocket_application(scope, receive, send):
                     msg_type == BROADCAST_MSG
                     and msg.get("secret") == BROADCAST_SECRET.value
                 ):
-                    if message in ADMIN_MESSAGES:
+                    if message in MESSAGES["admin"]:
                         # don't flood control
                         for send in ADMIN_CONNS:
                             send_msg = {"text": message}

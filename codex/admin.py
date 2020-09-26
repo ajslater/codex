@@ -176,6 +176,10 @@ class AdminFailedImport(AdminNoAddDelete):
         """Can't Change these."""
         return False
 
+    def has_delete_permission(self, request, obj=None):
+        """Sure can delete them tho."""
+        return True
+
     def library_link(self, item):
         """A special feild for linking to the library change page."""
         url = resolve_url(admin_urlname(Library._meta, "change"), item.library.id)

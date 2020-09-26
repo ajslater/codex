@@ -1,0 +1,10 @@
+{
+  "user": {
+    "LIBRARY_CHANGED": "libraryChanged"
+  },
+  "admin": {
+    "SCAN_LIBRARY": "scanLibrary",
+    "FAILED_IMPORTS": "failedImports",
+    "SCAN_DONE": "scanDone"
+  }
+}

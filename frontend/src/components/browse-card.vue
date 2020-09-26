@@ -1,31 +1,28 @@
 <template>
   <v-lazy transition="scale-transition" class="browseTile">
     <div class="browseTileLazyWrapper">
-      <div class="coverWrapper">
-        <BookCover :cover-path="item.x_cover_path" :progress="+item.progress" />
-        <div
-          v-if="!item.finished"
-          class="unreadFlag"
-          :class="{ mixedreadFlag: item.finished === null }"
+      <div class="browseCardCoverWrapper">
+        <BookCover
+          :cover-path="item.x_cover_path"
+          :group="item.group"
+          :child-count="item.child_count"
+          :finished="item.finished"
         />
-        <div class="coverOverlay">
+        <div class="cardCoverOverlay">
           <router-link class="browseLink" :to="getToRoute()">
-            <div class="coverOverlayTopRow">
-              <span v-if="item.child_count" class="childCount">
-                {{ item.child_count }}
-              </span>
-            </div>
-            <div class="coverOverlayMiddleRow">
+            <div class="cardCoverOverlayTopMiddleRow">
               <v-icon v-if="item.group === 'c'">{{ mdiEye }}</v-icon>
             </div>
           </router-link>
-          <div class="coverOverlayBottomRow">
+          <div class="cardCoverOverlayBottomRow">
             <MetadataButton
-              v-if="item.group === 'c'"
               class="metadataButton"
+              :group="item.group"
               :pk="item.pk"
+              :children="item.child_count"
             />
             <BrowseContainerMenu
+              class="browseContainerMenu"
               :group="item.group"
               :pk="item.pk"
               :finished="item.finished"
@@ -64,9 +61,9 @@ import { mdiDotsVertical, mdiEye } from "@mdi/js";
 import filesize from "filesize";
 import { mapState } from "vuex";
 
-import { getFullComicName, getVolumeName } from "@/comic-name";
 import BookCover from "@/components/book-cover";
 import BrowseContainerMenu from "@/components/browse-container-menu";
+import { getFullComicName, getVolumeName } from "@/components/comic-name";
 import MetadataButton from "@/components/metadata-dialog";
 import { getReaderRoute } from "@/router/route";
 
@@ -97,7 +94,12 @@ export default {
   methods: {
     getToRoute: function () {
       if (this.item.group === "c") {
-        return getReaderRoute(this.item);
+        return getReaderRoute(
+          this.item.pk,
+          this.item.bookmark,
+          this.item.read_ltr,
+          this.item.page_count
+        );
       } else {
         return {
           name: "browser",
@@ -170,10 +172,10 @@ export default {
   width: 120px;
   text-align: center;
 }
-.coverWrapper {
+.browseCardCoverWrapper {
   position: relative;
 }
-.coverOverlay {
+.cardCoverOverlay {
   position: absolute;
   top: 0px;
   height: 100%;
@@ -182,85 +184,35 @@ export default {
   border-radius: 5px;
   border: solid thin transparent;
 }
-.coverWrapper:hover > .coverOverlay {
+.browseCardCoverWrapper:hover > .cardCoverOverlay {
   background-color: rgba(0, 0, 0, 0.5);
   border: solid thin #cc7b19;
 }
-.coverOverlay > * {
+.cardCoverOverlay > * {
   width: 100%;
 }
-.coverWrapper:hover > .coverOverlay * {
+.browseCardCoverWrapper:hover > .cardCoverOverlay * {
   /* optimize-css-assets-webpack-plugin / cssnano bug destroys % values. 
      use decimals instead.
      https://github.com/NMFR/optimize-css-assets-webpack-plugin/issues/118
   */
   opacity: 1;
 }
-.coverOverlayTopRow,
-.coverOverlayBottomRow {
-  height: 15%;
-}
-.coverOverlayTopRow {
-  display: flex;
-  opacity: 1;
-}
-.coverOverlayMiddleRow {
+.cardCoverOverlayTopMiddleRow {
   height: 70%;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.coverOverlayMiddleRow,
-.coverOverlayBottomRow {
+.cardCoverOverlayTopMiddleRow,
+.cardCoverOverlayBottomRow {
   opacity: 0;
 }
-.coverOverlayBottomRow {
+.cardCoverOverlayBottomRow {
+  height: 15%;
   display: flex;
-}
-.childCount {
   position: absolute;
-  top: 0;
-  left: 0;
-  display: inline;
-  min-width: 1.5rem;
-  padding: 0rem 0.25rem 0rem 0.25rem;
-  border-radius: 50%;
-  background-color: black;
-  color: white;
-}
-.unreadFlag {
-  position: absolute;
-  top: 0;
-  right: 0;
-  display: block;
-  width: 24px;
-  height: 24px;
-  background: linear-gradient(
-    45deg,
-    transparent 50%,
-    rgba(0, 0, 0, 0.5) 60%,
-    var(--v-primary-base) 60%
-  );
-  border-radius: 5px;
-}
-.mixedreadFlag {
-  background: linear-gradient(
-    45deg,
-    transparent 50%,
-    rgba(0, 0, 0, 0.5) 60%,
-    var(--v-primary-base) 60%,
-    var(--v-primary-base) 70%,
-    transparent 70%,
-    rgba(0, 0, 0, 0.5) 80%,
-    var(--v-primary-base) 80%,
-    var(--v-primary-base) 90%,
-    transparent 90%
-  );
-}
-.metadataButton {
-  position: absolute;
-  bottom: 3px;
-  left: 3px;
+  bottom: 0px;
 }
 .browseLink {
   text-decoration: none;
@@ -280,6 +232,12 @@ export default {
 .orderValue {
   color: gray;
 }
+.metadataButton {
+  position: absolute;
+  bottom: 5px;
+  left: 5px;
+}
+
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   .browseTile {
     margin: 8px;
@@ -287,12 +245,3 @@ export default {
   }
 }
 </style>
-
-<!-- eslint-disable vue-scoped-css/require-scoped 
-<style lang="scss">
-.scale-transition-enter-active,
-.scale-transition-leave-active {
-  transition: all 0.1s ease-out;
-}
-</style>
-eslint-enable vue-scoped-css/require-scoped -->

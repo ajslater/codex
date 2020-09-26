@@ -93,7 +93,7 @@
 <script>
 import { mapState } from "vuex";
 
-import { ADMIN_URL } from "@/api/auth";
+import { ADMIN_URL } from "@/api/v1/auth";
 
 export default {
   name: "AuthDialog",

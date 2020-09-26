@@ -81,7 +81,7 @@
               >Clear Settings</v-btn
             >
           </v-dialog>
-          <MetadataDialog ref="metadataDialog" :pk="pk" />
+          <MetadataDialog ref="metadataDialog" group="c" :pk="pk" />
         </v-toolbar>
       </v-slide-y-transition>
 
@@ -120,7 +120,7 @@
 import { mdiCog } from "@mdi/js";
 import { mapGetters, mapState } from "vuex";
 
-import { getFullComicName } from "@/comic-name";
+import { getFullComicName } from "@/components/comic-name";
 import MetadataDialog from "@/components/metadata-dialog.vue";
 import ReaderComicPage from "@/components/reader-comic-page.vue";
 import ReaderNavButton from "@/components/reader-nav-button.vue";

@@ -1,25 +1,12 @@
 """Views for browsing comic library."""
 import logging
 
-from bidict import bidict
 from django.core.paginator import EmptyPage
 from django.core.paginator import Paginator
-from django.db.models import Avg
-from django.db.models import BooleanField
 from django.db.models import CharField
-from django.db.models import Count
-from django.db.models import DecimalField
 from django.db.models import F
 from django.db.models import IntegerField
-from django.db.models import Min
-from django.db.models import OuterRef
-from django.db.models import Q
-from django.db.models import Subquery
-from django.db.models import Sum
 from django.db.models import Value
-from django.db.models.functions import Cast
-from django.db.models.functions import Coalesce
-from django.db.models.functions import NullIf
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
@@ -40,31 +27,18 @@ from codex.serializers.browse import BrowserOpenedSerializer
 from codex.serializers.browse import BrowserSettingsSerializer
 from codex.settings import CACHE_PATH
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
-from codex.views.browse_base import BrowseBaseView
-from codex.views.mixins import UserBookmarkMixin
+from codex.views.browse_metadata_base import BrowseMetadataBase
 
 
 PACKAGE_NAME = "codex"
 LOG = logging.getLogger(__name__)
 
 
-class BrowseView(BrowseBaseView, UserBookmarkMixin):
+class BrowseView(BrowseMetadataBase):
     """Browse comics with a variety of filters and sorts."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
 
-    COMIC_GROUP = "c"
-    GROUP_MODEL = bidict(
-        {
-            "r": None,
-            "p": Publisher,
-            "i": Imprint,
-            "s": Series,
-            "v": Volume,
-            COMIC_GROUP: Comic,
-            BrowseBaseView.FOLDER_GROUP: Folder,
-        }
-    )
     GROUP_SHOW_FLAGS = {
         # Show flags to root group equivalients
         "r": "p",
@@ -73,15 +47,6 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
         "s": "v",
         "v": "c",
     }
-    SORT_AGGREGATE_FUNCS = {
-        "created_at": Min,
-        "critical_rating": Avg,
-        "date": Min,
-        "page_count": Sum,
-        "size": Sum,
-        "user_rating": Avg,
-    }
-    DEFAULT_ORDER_KEY = "sort_name"
     CHOICES_RELATIONS = ("decade", "characters")
     MAX_OBJ_PER_PAGE = 100
     ORPHANS = MAX_OBJ_PER_PAGE / 20
@@ -158,25 +123,6 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
 
         return self.COMIC_GROUP
 
-    def get_order_by(self, order_key, model, use_order_value):
-        """
-        Create the order_by list.
-
-        Order on pk to give duplicates a consistant position.
-        """
-        sort_reverse = self.params.get("sort_reverse")
-        if sort_reverse:
-            order_prefix = "-"
-        else:
-            order_prefix = ""
-        if use_order_value:
-            order_key = "order_value"
-        order_by = [order_prefix + order_key, order_prefix + "pk"]
-        if model in (Comic, Folder):
-            # This keeps position stability for duplicate comics & folders
-            order_by += ["library"]
-        return order_by
-
     def add_annotations(self, obj_list, model, aggregate_filter):
         """
         Annotations for display and sorting.
@@ -187,20 +133,9 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
         ##########################################
         # Annotate children count and page count #
         ##########################################
-        if model == Comic:
-            child_count_sum = Value(1, IntegerField())
-            page_count_sum = F("page_count")
-        else:
-            child_count_sum = Count("comic__pk", distinct=True, filter=aggregate_filter)
-            # Hoist up total page_count of children
-            # Used for sorting and progress
-            page_count_sum = Sum("comic__page_count", filter=aggregate_filter)
-
+        obj_list = self.annotate_children_and_page_count(obj_list, aggregate_filter)
         # EXTRA FILTER for empty containers
-        obj_list = obj_list.annotate(child_count=child_count_sum).filter(
-            child_count__gt=0
-        )
-        obj_list = obj_list.annotate(x_page_count=page_count_sum)
+        obj_list = obj_list.filter(child_count__gt=0)
 
         ##################
         # Annotate Group #
@@ -213,29 +148,7 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
         ################################
         # Annotate userbookmark hoists #
         ################################
-        ub_filter = self.get_userbookmark_filter()
-
-        # Hoist up: are the children finished or unfinished?
-        finished_aggregate = Cast(
-            NullIf(
-                Coalesce(
-                    Avg(  # distinct average of user's finished values
-                        "comic__userbookmark__finished",
-                        filter=ub_filter,
-                        distinct=True,
-                        output_field=DecimalField(),
-                    ),
-                    False,  # Null db values counted as False
-                ),
-                Value(0.5),  # Null result if mixed true & false
-            ),
-            BooleanField(),  # Finally ends up as a ternary boolean
-        )
-
-        # Hoist up the bookmark
-        bookmark_sum = Sum("comic__userbookmark__bookmark", filter=ub_filter)
-
-        obj_list = obj_list.annotate(finished=finished_aggregate, bookmark=bookmark_sum)
+        obj_list = self.annotate_bookmarks(obj_list)
 
         #####################
         # Annotate progress #
@@ -253,32 +166,15 @@ class BrowseView(BrowseBaseView, UserBookmarkMixin):
         # Sortable aggregates #
         #######################
         order_key = self.params.get("sort_by", self.DEFAULT_ORDER_KEY)
-        agg_func = self.SORT_AGGREGATE_FUNCS.get(order_key)
-        if model == Comic or agg_func is None:
-            order_func = F(order_key)
-        else:
-            order_func = agg_func(f"comic__{order_key}", filter=aggregate_filter)
+        order_func = self.get_aggregate_func(order_key, model, aggregate_filter)
         obj_list = obj_list.annotate(order_value=order_func)
 
         #######################
         # Annotate Cover Path #
         #######################
-        # Select comics for the children by an outer ref for annotation
-        # Order the decendent comics by the sort argumentst
-        if model == Comic:
-            cover_path_subquery = F("cover_path")
-        else:
-            # Cover Path from sorted children.
-            # XXX Don't know how to make this a join
-            #   because it selects by order_by but wants the cover_path
-            model_ref = model.__name__.lower()
-            model_container_filter = Q(**{model_ref: OuterRef("pk")})
-            comics = Comic.objects.filter(model_container_filter & aggregate_filter)
-            order_by = self.get_order_by(order_key, Comic, False)
-            comics = comics.order_by(*order_by)
-            cover_comic_path = comics.values("cover_path")
-            cover_path_subquery = Subquery(cover_comic_path[:1])
-        obj_list = obj_list.annotate(x_cover_path=cover_path_subquery)
+        obj_list = self.annotate_cover_path(
+            obj_list, model, aggregate_filter, order_key
+        )
 
         #######################
         # Annotate name fields #

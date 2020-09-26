@@ -4,10 +4,10 @@
     :label="label"
     hide-details="auto"
     dense
+    ripple
     :readonly="readonly"
   />
 </template>
-
 <script>
 export default {
   name: "MetadataSwitch",

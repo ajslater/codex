@@ -245,13 +245,19 @@
 import { mdiArrowUp, mdiCloseCircle, mdiDotsVertical } from "@mdi/js";
 import { mapGetters, mapState } from "vuex";
 
-import { ADMIN_URL } from "@/api/auth";
-import { FAILED_IMPORT_URL, getSocket } from "@/api/browser";
-import { getVolumeName } from "@/comic-name";
+import { ADMIN_URL } from "@/api/v1/auth";
+import { FAILED_IMPORT_URL, getSocket } from "@/api/v1/browser";
+import WS_MESSAGES from "@/choices/websocketMessages.json";
 import AuthDialog from "@/components/auth-dialog";
 import BrowseCard from "@/components/browse-card";
+import { getVolumeName } from "@/components/comic-name";
 import FilterSubMenu from "@/components/filter-sub-menu";
 import PlaceholderLoading from "@/components/placeholder-loading";
+
+const SCAN_DONE_MSGS = new Set([
+  WS_MESSAGES.admin.SCAN_DONE,
+  WS_MESSAGES.admin.FAILED_IMPORTS,
+]);
 
 export default {
   name: "Browser",
@@ -465,14 +471,14 @@ export default {
     },
     websocketListener: function (event) {
       console.debug("websocket push:", event.data);
-      if (event.data === "libraryChanged") {
+      if (event.data === WS_MESSAGES.user.LIBRARY_CHANGED) {
         this.$store.dispatch("browser/getBrowseObjects");
       } else if (this.isAdmin) {
-        if (event.data === "scanLibrary") {
+        if (event.data === WS_MESSAGES.admin.SCAN_LIBRARY) {
           this.setScanNotify(true);
-        } else if (["scanDone", "failedImports"].includes(event.data)) {
+        } else if (SCAN_DONE_MSGS.has(event.data)) {
           this.setScanNotify(false);
-          if (event.data === "failedImports") {
+          if (event.data === WS_MESSAGES.admin.FAILED_IMPORTS) {
             this.failedImportsNotify = true;
           }
         }

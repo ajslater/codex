@@ -14,8 +14,8 @@ import regex
 from comicbox.comic_archive import ComicArchive
 from django.db.models import ForeignKey
 from django.db.models import ManyToManyField
-from fnvhash import fnv1a_32
 
+from codex.librarian.cover import get_cover_path
 from codex.librarian.cover import purge_cover
 from codex.librarian.queue import QUEUE
 from codex.librarian.queue import ComicCoverCreateTask
@@ -105,34 +105,12 @@ class Importer:
     EXCLUDED_MODEL_KEYS = ("id", "parent_folder")
     FIELD_PREFIX_LEN = len("codex.Comic.")
 
-    # Covers
-    HEX_FILL = 8
-    PATH_STEP = 2
-
     def __init__(self, library_id, path):
         """Set the state for this import."""
         self.library_id = library_id
         self.path = path
         self.car = ComicArchive(path)
         self.md = self.car.get_metadata()
-
-    def hex_path(self):
-        """Translate an integer into an efficient filesystem path."""
-        fnv = fnv1a_32(bytes(str(self.path), "utf-8"))
-        hex_str = "{0:0{1}x}".format(fnv, self.HEX_FILL)
-        parts = []
-        for i in range(0, len(hex_str), self.PATH_STEP):
-            parts.append(hex_str[i : i + self.PATH_STEP])
-        path = Path("/".join(parts))
-        return path
-
-    def get_cover_path(self):
-        """Get path to a cover image, creating the image if not found."""
-        hex_path = self.hex_path()
-        db_cover_path = hex_path.with_suffix(".jpg")
-        task = ComicCoverCreateTask(self.path, db_cover_path)
-        QUEUE.put(task)
-        return db_cover_path
 
     @staticmethod
     def get_or_create_simple_model(name, cls):
@@ -335,9 +313,8 @@ class Importer:
         self.md["path"] = self.path
         self.md["size"] = Path(self.path).stat().st_size
         self.md["max_page"] = max(self.md["page_count"] - 1, 0)
-        cover_path = self.get_cover_path()
-        if cover_path:
-            self.md["cover_path"] = cover_path
+        cover_path = get_cover_path(self.path)
+        self.md["cover_path"] = cover_path
 
         if credits:
             m2m_fields["credits"] = credits
@@ -351,6 +328,7 @@ class Importer:
         for attr, instance_list in m2m_fields.items():
             getattr(comic, attr).set(instance_list)
         comic.save()
+        QUEUE.put(ComicCoverCreateTask(self.path, cover_path, True))
 
         # If it works, clear the failed import
         FailedImport.objects.filter(path=self.path).delete()
