@@ -100,6 +100,13 @@ class BrowseBaseView(APIView, SessionMixin):
 
         return container_filter
 
+    def get_aggregate_filter(self):
+        """Return the filter for making aggregates."""
+        bookmark_filter_join = self.get_bookmark_filter()
+        comic_attribute_filter = self.get_comic_attribute_filter()
+        aggregate_filter = bookmark_filter_join & comic_attribute_filter
+        return aggregate_filter
+
     def get_query_filters(self, choices=False):
         """Return the main object filter and the one for aggregates."""
         # XXX This logic is complicated and confusing
@@ -116,9 +123,7 @@ class BrowseBaseView(APIView, SessionMixin):
         if choices:
             aggregate_filter = None
         else:
-            bookmark_filter_join = self.get_bookmark_filter()
-            comic_attribute_filter = self.get_comic_attribute_filter()
-            aggregate_filter = bookmark_filter_join & comic_attribute_filter
+            aggregate_filter = self.get_aggregate_filter()
             object_filter &= aggregate_filter
 
         return object_filter, aggregate_filter

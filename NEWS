@@ -1,3 +1,9 @@
+v0.5.14
+* Metadata view for browse containers. Also observes filters.
+* Fix scanning notification
+* Fix unable to delete libraries bug
+* Covers now regenerate on re-import.
+
 v0.5.13
 * Admin Flag for automatically updating codex
 * Force updates from the admin panel with an Admin Flag action

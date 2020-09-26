@@ -1,17 +1,33 @@
 <template>
-  <v-dialog v-model="dialog" fullscreen transition="dialog-bottom-transition">
+  <v-dialog
+    v-model="dialog"
+    fullscreen
+    transition="dialog-bottom-transition"
+    class="metadataDialog"
+  >
     <template #activator="{ on }">
-      <v-icon v-on="on" @click="metadataOpened(pk)">
-        {{ mdiBorderColor }}
+      <v-icon class="metadataButton" v-on="on" @click="metadataOpened()">
+        {{ mdiTagOutline }}
       </v-icon>
     </template>
     <div v-if="comic" id="metadataContainer">
       <header id="metadataHeader">
-        <BookCover
-          id="bookCover"
-          :cover-path="comic.cover_path"
-          :progress="+comic.progress"
-        />
+        <div id="metadataBookCoverWrapper">
+          <BookCover
+            id="bookCover"
+            :cover-path="comic.coverPath"
+            :group="group"
+            :child-count="comic.pks.length"
+            :finished="comic.finished"
+          />
+          <v-progress-linear
+            class="bookCoverProgress"
+            :value="comic.progress"
+            rounded
+            background-color="inherit"
+            height="2"
+          />
+        </div>
         <v-btn
           id="topCloseButton"
           title="Close Metadata (esc)"
@@ -21,53 +37,53 @@
         >
         <MetadataCombobox
           class="publisher"
-          :model="comic.publisher_name"
+          :items="comic.publisherChoices"
           label="Publisher"
-          :show="true"
+          :show="editMode"
         />
         <MetadataCombobox
           class="imprint"
-          :model="comic.imprint_name"
+          :items="comic.imprintChoices"
           label="Imprint"
-          :show="true"
+          :show="editMode"
         />
         <MetadataCombobox
-          :model="comic.series_name"
+          :items="comic.seriesChoices"
           label="Series"
-          :show="true"
+          :show="editMode"
         />
         <div class="publishRow">
           <MetadataCombobox
             id="volume"
             class="halfWidth"
-            :value="comic.volume"
+            :items="comic.volumeChoices"
             label="Volume"
-            :show="true"
+            :show="editMode"
           />
-          <MetadataTextField
+          <MetadataCombobox
             class="halfWidth"
-            :value="comic.volume_count"
+            :items="comic.volumeCountChoices"
             label="Volume Count"
             :show="editMode"
           />
         </div>
-        <div class="publishRow">
-          <MetadataTextField
+        <div id="issueRow" class="publishRow">
+          <MetadataCombobox
             id="issue"
             class="halfWidth"
-            :value="comic.issue"
+            :values="formattedIssueChoices"
             label="Issue"
-            :show="true"
+            :show="editMode"
           />
-          <MetadataTextField
+          <MetadataCombobox
             class="halfWidth"
-            :value="comic.issue_count"
+            :values="comic.issueCountChoices"
             label="Issue Count"
             :show="editMode"
           />
         </div>
-        <MetadataTextField
-          :value="comic.title"
+        <MetadataCombobox
+          :values="comic.titleChoices"
           label="Title"
           :show="editMode"
         />
@@ -75,25 +91,30 @@
 
       <div id="metadataTable">
         <span
-          v-if="editMode || comic.year || comic.month || comic.day"
+          v-if="
+            editMode ||
+            comic.yearChoices ||
+            comic.monthChoices ||
+            comic.dayChoices
+          "
           id="dateRow"
         >
-          <MetadataTextField
+          <MetadataAutocomplete
             :show="editMode"
-            :value="comic.year ? comic.year.toString() : undefined"
+            :values="comic.yearChoices"
             label="Year"
             class="datePicker"
             type="number"
           />
           <MetadataAutocomplete
             :show="editMode"
-            :model="comic.month ? comic.month.toString() : undefined"
+            :values="comic.monthChoices"
             label="Month"
             class="datePicker"
           />
           <MetadataAutocomplete
             :show="editMode"
-            :model="comic.day ? comic.day.toString() : undefined"
+            :values="comic.dayChoices"
             label="Day"
             class="datePicker"
           />
@@ -101,7 +122,7 @@
         <span id="uneditableMetadata">
           <span>
             <span v-if="comic.bookmark">Read {{ comic.bookmark }} of </span
-            >{{ comic.page_count }} Pages
+            >{{ comic.pageCount }} Pages
             <span v-if="comic.finished">, Finished</span>
           </span>
           <span id="size">
@@ -109,78 +130,94 @@
           </span>
         </span>
 
-        <MetadataTextField
+        <MetadataCombobox
           :show="editMode"
-          :value="comic.format"
+          :values="comic.formatChoices"
           label="Format"
         />
         <MetadataCombobox
           :show="editMode"
-          :model="comic.country"
+          :items="comic.countryChoices"
           label="Country"
         />
         <MetadataCombobox
           :show="editMode"
-          :model="comic.language"
+          :items="comic.languageChoices"
           label="Language"
         />
         <a
-          v-if="comic.web && !editMode"
+          v-if="comic.webChoices && comic.webChoices.length === 1 && !editMode"
           id="webLink"
-          :href="comic.web"
+          :href="comic.webChoices[0]"
           target="_blank"
         >
-          <MetadataTextField
+          <MetadataCombobox
             :show="editMode"
-            :value="comic.web"
+            :values="comic.webChoices"
             label="Web Link"
           />
         </a>
-        <MetadataTextField
+        <MetadataCombobox
           v-else-if="editMode"
           :show="editMode"
-          :value="comic.web"
+          :items="comic.webChoices"
           label="Web Link"
         />
-        <MetadataTextField
+        <MetadataAutocomplete
           :show="editMode"
-          :value="comic.user_rating"
+          :items="comic.userRatingChoices"
           label="User Rating"
         />
-        <MetadataTextField
+        <MetadataAutocomplete
           :show="editMode"
-          :value="comic.critical_rating"
+          :items="comic.criticalRatingChoices"
           label="Critical Rating"
         />
-        <MetadataTextField
+        <MetadataAutocomplete
           :show="editMode"
-          :value="comic.maturity_rating"
+          :items="comic.maturityRatingChoices"
           label="Maturity Rating"
         />
-        <MetadataTags :show="editMode" :tags="comic.genres" label="Genres" />
-        <MetadataTags :show="editMode" :tags="comic.tags" label="Tags" />
-        <MetadataTags :show="editMode" :tags="comic.teams" label="Teams" />
         <MetadataTags
           :show="editMode"
-          :tags="comic.characters"
+          :items="comic.genresChoices"
+          label="Genres"
+        />
+        <MetadataTags
+          :show="editMode"
+          :items="comic.tagsChoices"
+          label="Tags"
+        />
+        <MetadataTags
+          :show="editMode"
+          :items="comic.teamsChoices"
+          label="Teams"
+        />
+        <MetadataTags
+          :show="editMode"
+          :items="comic.charactersChoices"
           label="Characters"
         />
         <MetadataTags
           :show="editMode"
-          :tags="comic.locations"
+          :items="comic.locationsChoices"
           label="Locations"
         />
         <MetadataTags
           :show="editMode"
-          :tags="comic.story_arcs"
+          :items="comic.storyArcsChoices"
           label="Story Arcs"
         />
         <MetadataTags
           :show="editMode"
-          :tags="comic.series_groups"
+          :items="comic.seriesGroupsChoices"
           label="Series Groups"
         />
-        <MetadataTextField :show="editMode" :value="comic.scan" label="Scan" />
+        <MetadataCombobox
+          :show="editMode"
+          :items="comic.scanInfoChoices"
+          label="Scan"
+        />
         <MetadataTextArea
           :show="editMode"
           :value="comic.summary"
@@ -193,7 +230,7 @@
         />
         <MetadataTextArea :show="editMode" :value="comic.notes" label="Notes" />
         <table
-          v-if="comic.credits && comic.credits.length > 0"
+          v-if="comic.creditsChoices && comic.creditsChoices.length > 0"
           id="creditsTable"
         >
           <thead>
@@ -208,24 +245,26 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="credit in comic.credits" :key="credit.pk">
+            <tr v-for="credit in comic.creditsChoices" :key="credit.pk">
               <td>
-                <MetadataAutocomplete :model="credit.role.name" />
+                <MetadataAutocomplete :items="[credit.role]" />
               </td>
               <td>
-                <MetadataCombobox :model="credit.person.name" />
+                <MetadataCombobox :items="[credit.person]" />
               </td>
             </tr>
           </tbody>
         </table>
         <div>
-          <MetadataSwitch
-            class="ltrSwitch"
-            :value="comic.read_ltr"
-            :label="ltrLabel"
+          <MetadataCheckbox
+            :show="editMode"
+            class="ltrCheckbox"
+            :values="comic.readLTRChoices"
+            label="Read Left to Right"
             :readonly="true"
           />
           <MetadataSwitch
+            v-if="false && isAdmin"
             class="editModeSwitch"
             :value="editMode"
             label="Edit Mode"
@@ -234,90 +273,180 @@
         </div>
       </div>
       <footer id="footerLinks">
-        <v-btn id="downloadButton" :href="downloadURL" download title="Download"
-          ><v-icon>{{ mdiDownload }}</v-icon></v-btn
+        <v-btn
+          v-if="group === 'c'"
+          id="downloadButton"
+          :href="downloadURL"
+          download
+          title="Download Comic Archive"
+          ><v-icon v-if="group === 'c'">{{ mdiDownload }}</v-icon></v-btn
         >
-        <v-btn v-if="isBrowser" :to="readerRoute" title="Read">
+        <v-btn
+          v-if="isBrowser && group === 'c'"
+          :to="readerRoute"
+          title="Read Comic"
+        >
           <v-icon>{{ mdiEye }}</v-icon>
         </v-btn>
-        <v-btn
-          id="bottomCloseButton"
-          ripple
-          title="Close Metadata (esc)"
-          @click="dialog = false"
-          >x</v-btn
-        >
+
+        <span id="bottomRightButtons">
+          <v-btn v-if="editMode" id="saveButton" ripple title="Save Metadata">{{
+            saveButtonLabel
+          }}</v-btn>
+          <v-btn
+            id="bottomCloseButton"
+            ripple
+            title="Close Metadata (esc)"
+            @click="dialog = false"
+            >x</v-btn
+          >
+        </span>
       </footer>
+    </div>
+    <div v-else id="placeholderContainer">
+      <v-btn
+        id="topCloseButton"
+        title="Close Metadata (esc)"
+        ripple
+        @click="dialog = false"
+        >x</v-btn
+      >
+      <div id="placeholderTitle">Tags Loading</div>
+      <v-progress-circular
+        :value="progress"
+        :indeterminate="progress >= 100"
+        size="256"
+        color="#cc7b19"
+        class="placeholder"
+      />
     </div>
   </v-dialog>
 </template>
 <script>
-import { mdiBorderColor, mdiDownload, mdiEye } from "@mdi/js";
-import { mapState } from "vuex";
+import { mdiDownload, mdiEye, mdiTagOutline } from "@mdi/js";
+import { mapGetters, mapState } from "vuex";
 
-import { getDownloadURL } from "@/api/metadata";
+import { getDownloadURL } from "@/api/v1/metadata";
 import BookCover from "@/components/book-cover";
 import MetadataAutocomplete from "@/components/metadata-autocomplete";
+import MetadataCheckbox from "@/components/metadata-checkbox";
 import MetadataCombobox from "@/components/metadata-combobox";
 import MetadataSwitch from "@/components/metadata-switch";
 import MetadataTags from "@/components/metadata-tags";
-import MetadataTextField from "@/components/metadata-text-field";
+//import MetadataTextField from "@/components/metadata-text-field";
 import MetadataTextArea from "@/components/metadata-textarea";
+//import PlaceholderLoading from "@/components/placeholder-loading";
 import { getReaderRoute } from "@/router/route";
+
+const CHILDREN_PER_SECOND = 8;
+const UPDATE_INTERVAL = 250;
 
 export default {
   name: "MetadataButton",
   components: {
     BookCover,
     MetadataAutocomplete,
+    MetadataCheckbox,
     MetadataCombobox,
     MetadataSwitch,
     MetadataTags,
     MetadataTextArea,
-    MetadataTextField,
+    // PlaceholderLoading,
+    // MetadataTextField,
   },
   props: {
+    group: {
+      type: String,
+      required: true,
+    },
     pk: {
       type: Number,
       required: true,
-      default: 0,
+    },
+    children: {
+      type: Number,
+      default: 1,
     },
   },
   data() {
     return {
-      mdiBorderColor,
       mdiDownload,
       mdiEye,
+      mdiTagOutline,
       dialog: false,
       editMode: false,
+      progress: 0,
+      estimatedTime: 0,
+      startTime: 0,
     };
   },
   computed: {
     ...mapState("metadata", {
       comic: (state) => state.comic,
     }),
+    ...mapGetters("auth", ["isAdmin"]),
     isBrowser: function () {
       return this.$route.name === "browser";
+    },
+    formattedIssueChoices: function () {
+      const result = [];
+      if (!this.comic.issueChoices) {
+        return null;
+      }
+      this.comic.issueChoices.forEach(function (issue) {
+        let issueStr = Math.floor(issue).toString();
+        if (issue % 1 != 0) {
+          // XXX Janky only handles half issues.
+          issueStr += "½";
+        }
+        result.push(issueStr);
+      });
+      return result;
     },
     downloadURL: function () {
       return getDownloadURL(this.comic.pk);
     },
     readerRoute: function () {
-      return getReaderRoute(this.comic);
+      const pk = this.comic.pks[0];
+      const bookmark = this.comic.bookmark;
+      const readLTR = this.comic.readLTRChoices[0];
+      const pageCount = this.comic.pageCount;
+      return getReaderRoute(pk, bookmark, readLTR, pageCount);
     },
-    ltrLabel: function () {
-      let label = "Read ";
-      if (this.comic.read_ltr) {
-        label += "Left to Right";
+    saveButtonLabel: function () {
+      let label = "Save ";
+      if (this.group === "c" && this.comic.pks.length === 1) {
+        label += "Comic";
       } else {
-        label += "Right to Left";
+        const length = this.comic.pks.length;
+        label += `${length} Comic`;
+        if (length > 1) {
+          label += "s";
+        }
       }
       return label;
     },
   },
   methods: {
-    metadataOpened: function (pk) {
-      this.$store.dispatch("metadata/comicMetadataOpened", pk);
+    metadataOpened: function () {
+      this.$store.dispatch("metadata/comicMetadataOpened", {
+        group: this.group,
+        pk: this.pk,
+      });
+      this.startTime = Date.now();
+      this.estimatedTime = (this.children / CHILDREN_PER_SECOND) * 1000;
+      this.updateProgress();
+    },
+    updateProgress: function () {
+      const elapsed = Date.now() - this.startTime;
+      this.progress = (elapsed / this.estimatedTime) * 100;
+      if (this.progress >= 100 || this.comic) {
+        return;
+      }
+      const that = this;
+      setTimeout(function () {
+        that.updateProgress();
+      }, UPDATE_INTERVAL);
     },
   },
 };
@@ -325,17 +454,29 @@ export default {
 
 <style scoped lang="scss">
 @import "~vuetify/src/styles/styles.sass";
-/*
-#metadataContainer {
+#placeholderContainer {
+  min-height: 100%;
+  min-width: 100%;
+  text-align: center;
 }
-*/
+#placeholderTitle {
+  font-size: xx-large;
+  color: gray;
+}
 #topCloseButton {
   float: right;
 }
-#bookCover {
-  display: inline-block;
+#metadataBookCoverWrapper {
   float: left;
+  position: relative;
+  padding-top: 0px !important;
   margin-right: 15px;
+}
+#bookCover {
+  position: relative;
+}
+.bookCoverProgress {
+  margin-top: 1px;
 }
 #topCloseButton,
 #bookCover,
@@ -348,6 +489,9 @@ export default {
   width: 35%;
   display: inline-flex;
 }
+#issueRow {
+  margin-left: 135px;
+}
 #metadataTable {
   clear: both;
   padding-top: 15px;
@@ -359,19 +503,19 @@ export default {
 #webLink {
   display: block;
 }
-.ltrSwitch,
+.ltrCheckbox,
 .editModeSwitch {
   display: inline-block !important;
 }
 .editModeSwitch {
   float: right;
-  visibility: hidden;
+  /*visibility: hidden; */
 }
 #dateRow {
   margin-right: 1em;
 }
 .datePicker {
-  width: 80px;
+  width: 90px;
   display: inline-block;
 }
 #creditsTable {
@@ -383,14 +527,20 @@ export default {
 #downloadButton {
   margin-right: 10px;
 }
-#bottomCloseButton {
+#bottomRightButtons {
   float: right;
+}
+#saveButton {
+  margin-right: 10px;
 }
 .halfWidth {
   display: inline-block;
 }
 #size {
   padding-left: 1em;
+}
+.placeholder {
+  margin-top: 48px;
 }
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   #metadataContainer {
@@ -403,6 +553,9 @@ export default {
   }
   .halfWidth {
     width: 50%;
+  }
+  #issueRow {
+    margin-left: 0px;
   }
   #dateRow {
     margin-right: 0px;
@@ -426,14 +579,7 @@ export default {
 <style lang="scss">
 .v-dialog--fullscreen {
   width: 100% !important;
-}
-@import "~vuetify/src/styles/styles.sass";
-@media #{map-get($display-breakpoints, 'sm-and-down')} {
-  /*
-  .v-dialog--fullscreen {
-    padding: 15px !important;
-  }
-*/
+  opacity: 0.99;
 }
 </style>
 <!-- eslint-enable vue-scoped-css/require-scoped -->

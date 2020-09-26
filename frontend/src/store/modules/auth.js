@@ -1,4 +1,4 @@
-import API from "@/api/auth";
+import API from "@/api/v1/auth";
 
 const state = {
   user: undefined,

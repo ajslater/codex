@@ -1,12 +1,10 @@
 <template>
   <v-combobox
-    v-if="(tags && tags.length > 0) || show"
-    item-value="pk"
-    item-text="name"
-    :items="tags"
-    :value="tags"
-    multiple
+    v-if="(items && items.length > 0) || show"
+    v-model="model"
+    :items="items"
     :label="label"
+    multiple
     hide-details="auto"
     dense
     chips
@@ -25,16 +23,23 @@ export default {
       type: String,
       required: true,
     },
-    tags: {
+    items: {
       type: Array,
-      required: true,
+      default: new Array(),
     },
     show: {
       type: Boolean,
       default: false,
     },
   },
-  computed: {},
+  data() {
+    return {
+      model: null,
+    };
+  },
+  created: function () {
+    this.model = this.items;
+  },
 };
 </script>
 

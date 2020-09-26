@@ -1,8 +1,8 @@
 <template>
   <v-autocomplete
     v-if="model || show"
-    :value="model"
-    :items="[{ value: model, text: model }]"
+    v-model="model"
+    :items="computedItems"
     :label="label"
     hide-details="auto"
     dense
@@ -12,6 +12,11 @@
 </template>
 
 <script>
+import {
+  computedItems,
+  initialItem,
+} from "@/components/metadata-computed-items";
+
 export default {
   name: "MetadataAutocomplete",
   props: {
@@ -19,14 +24,33 @@ export default {
       type: String,
       default: undefined,
     },
-    model: {
-      type: String,
-      default: "",
-    },
     show: {
       type: Boolean,
       default: false,
     },
+    items: {
+      type: Array,
+      default: null,
+    },
+    values: {
+      type: Array,
+      default: null,
+    },
+  },
+  data() {
+    return {
+      model: null,
+    };
+  },
+  computed: {
+    // XXX Identical to Combobox
+    computedItems: function () {
+      return computedItems(this.items, this.values);
+    },
+  },
+  created: function () {
+    // XXX Identical to Combobox
+    this.model = initialItem(this.computedItems);
   },
 };
 </script>

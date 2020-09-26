@@ -21,6 +21,7 @@ if not apps.ready:
 
 from multiprocessing import Value
 
+from codex.choices.websocket_messages import MESSAGES
 from codex.librarian.cover import create_comic_cover
 from codex.librarian.crond import Crond
 from codex.librarian.importer import import_comic
@@ -47,12 +48,7 @@ from codex.models import Comic
 from codex.models import Folder
 from codex.websocket_server import BROADCAST_MSG
 from codex.websocket_server import BROADCAST_SECRET
-from codex.websocket_server import FAILED_IMPORTS_MSG
 from codex.websocket_server import IPC_SUFFIX
-from codex.websocket_server import LIBRARY_CHANGED_MSG
-from codex.websocket_server import SCAN_DONE_MSG
-from codex.websocket_server import SCAN_ROOT_MSG
-from codex.websocket_server import SHUTDOWN_MSG
 from codex.websocket_server import WS_API_PATH
 
 
@@ -63,6 +59,7 @@ LOG = logging.getLogger(__name__)
 PORT = Value("i", 9810)  # Shared memory overwritten in run.py
 BROADCAST_URL_TMPL = "ws://localhost:{port}/" + WS_API_PATH + IPC_SUFFIX
 MAX_WS_ATTEMPTS = 4
+SHUTDOWN_TASK = "shutdown"
 librarian_proc = None
 if platform.system() == "Darwin":
     # XXX Fixes QUEUE sharing with default spawn start method. The spawn
@@ -126,22 +123,21 @@ def librarian(main_pid):
         task = QUEUE.get()
         try:
             if isinstance(task, ScanRootTask):
-                ws = send_json(ws, BROADCAST_MSG, SCAN_ROOT_MSG)
+                msg = MESSAGES["admin"]["SCAN_LIBRARY"]
+                ws = send_json(ws, BROADCAST_MSG, msg)
                 scan_root(task.library_id, task.force)
             elif isinstance(task, ScanDoneTask):
                 if task.failed_imports:
-                    msg = FAILED_IMPORTS_MSG
+                    msg = MESSAGES["admin"]["FAILED_IMPORTS"]
                 else:
-                    msg = SCAN_DONE_MSG
+                    msg = MESSAGES["admin"]["SCAN_DONE"]
                 ws = send_json(ws, BROADCAST_MSG, msg)
             elif isinstance(task, ComicModifiedTask):
                 import_comic(task.library_id, task.src_path)
             elif isinstance(task, ComicCoverCreateTask):
                 # Cover creation is cpu bound, farm it out.
-                pool.apply_async(
-                    create_comic_cover,
-                    args=(task.src_path, task.db_cover_path),
-                )
+                args = (task.src_path, task.db_cover_path, task.force)
+                pool.apply_async(create_comic_cover, args=args)
             elif isinstance(task, FolderMovedTask):
                 obj_moved(task.src_path, task.dest_path, Folder)
             elif isinstance(task, ComicMovedTask):
@@ -151,7 +147,8 @@ def librarian(main_pid):
             elif isinstance(task, FolderDeletedTask):
                 obj_deleted(task.src_path, Folder)
             elif isinstance(task, LibraryChangedTask):
-                ws = send_json(ws, BROADCAST_MSG, LIBRARY_CHANGED_MSG)
+                msg = MESSAGES["user"]["LIBRARY_CHANGED"]
+                ws = send_json(ws, BROADCAST_MSG, msg)
             elif isinstance(task, WatcherCronTask):
                 sleep(task.sleep)
                 watcher.set_all_library_watches()
@@ -161,7 +158,7 @@ def librarian(main_pid):
             elif isinstance(task, UpdateCronTask):
                 sleep(task.sleep)
                 update_codex(main_pid, task.force)
-            elif task == SHUTDOWN_MSG:
+            elif task == SHUTDOWN_TASK:
                 run = False
             else:
                 LOG.warning(f"Unhandled task popped: {task}")
@@ -195,6 +192,6 @@ def start_librarian():
 def stop_librarian(*args, **kwargs):
     """Stop the librarian process."""
     global librarian_proc
-    QUEUE.put(SHUTDOWN_MSG)
+    QUEUE.put(SHUTDOWN_TASK)
     if librarian_proc:
         librarian_proc.join()

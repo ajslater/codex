@@ -22,16 +22,13 @@ from codex.views.auth import UserView
 from codex.views.browse_choices import BrowseChoiceView
 from codex.views.browser import BrowseView
 from codex.views.metadata import ComicDownloadView
-from codex.views.metadata import ComicMetadataView
+from codex.views.metadata import MetadataView
 from codex.views.metadata import UserBookmarkFinishedView
 from codex.views.reader import ComicBookmarkView
 from codex.views.reader import ComicOpenedView
 from codex.views.reader import ComicPageView
 from codex.views.reader import ComicSettingsView
 from codex.views.scan_notify import ScanNotifyView
-
-
-# from django.urls import include
 
 
 app_name = "api"
@@ -49,11 +46,10 @@ urlpatterns = [
         name="browse_choices",
     ),
     path(
-        "browse/<str:browse_type>/<int:pk>/mark_read",
+        "browse/<str:group>/<int:pk>/mark_read",
         UserBookmarkFinishedView.as_view(),
         name="mark_read",
     ),
-    path("browse/scan_notify", ScanNotifyView.as_view(), name="scan_notify"),
     path(
         "comic/<int:pk>/archive.cbz",
         ComicDownloadView.as_view(),
@@ -77,12 +73,16 @@ urlpatterns = [
         ComicSettingsView.as_view(),
         name="comic_settings",
     ),
+    #
+    # Metadata
     path(
-        "comic/settings",
-        ComicSettingsView.as_view(),
-        name="comic_settings",
+        "metadata/<str:group>/<int:pk>",
+        MetadataView.as_view(),
+        name="metadata",
     ),
-    path("comic/<int:pk>/metadata", ComicMetadataView.as_view(), name="comic_metadata"),
+    #
+    # Notify
+    path("browse/scan_notify", ScanNotifyView.as_view(), name="scan_notify"),
     #
     # Auth
     path("auth/register", RegisterView.as_view(), name="register"),

@@ -1,13 +1,7 @@
 """Manage user sessions with appropriate defaults."""
 from copy import copy
-from decimal import Decimal
 
 from django.contrib.sessions.models import Session
-from django.db.models import DecimalField
-from django.db.models import F
-from django.db.models import Q
-from django.db.models import Value
-from django.db.models.functions import Coalesce
 
 from codex.choices.static import DEFAULTS
 from codex.models import Comic
@@ -108,31 +102,3 @@ class UserBookmarkMixin:
         defaults = copy(search_kwargs)
         defaults.update(updates)
         UserBookmark.objects.update_or_create(defaults=defaults, **search_kwargs)
-
-    def get_userbookmark_filter(self, for_comic=False):
-        """Get a filter for my session or user defined bookmarks."""
-        rel_to_ub = "userbookmark"
-        if not for_comic:
-            rel_to_ub = "comic__userbookmark"
-
-        if self.request.user.is_authenticated:
-            my_bookmarks_kwargs = {f"{rel_to_ub}__user": self.request.user}
-        else:
-            my_bookmarks_kwargs = {
-                f"{rel_to_ub}__session__session_key": self.request.session.session_key
-            }
-        return Q(**my_bookmarks_kwargs)
-
-    @staticmethod
-    def annotate_progress(queryset):
-        """Compute progress for each member of a queryset."""
-        # Requires bookmark and annotation hoisted from userbookmarks.
-        # Requires x_page_count native to comic or aggregated
-        queryset = queryset.annotate(
-            progress=Coalesce(
-                F("bookmark") * Decimal("1.0") / F("x_page_count") * 100,
-                Value(0.00),
-                output_field=DecimalField(),
-            )
-        )
-        return queryset

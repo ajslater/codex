@@ -1,4 +1,4 @@
-import API from "@/api/reader";
+import API from "@/api/v1/reader";
 import FORM_CHOICES from "@/choices/readerChoices";
 const NULL_READER_SETTINGS = {
   fitTo: null,

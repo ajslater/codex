@@ -30,6 +30,7 @@ class ComicCoverCreateTask(ComicTask):
     """Create a comic cover."""
 
     db_cover_path: str
+    force: bool
 
 
 @dataclass

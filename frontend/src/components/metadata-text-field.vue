@@ -1,7 +1,7 @@
 <template>
   <v-text-field
     v-if="value || show"
-    :value="value"
+    v-model="model"
     :label="label"
     :type="type"
     hide-details="auto"
@@ -20,8 +20,8 @@ export default {
       required: true,
     },
     value: {
-      type: String,
-      default: "",
+      type: Array,
+      default: null,
     },
     type: {
       type: String,
@@ -31,6 +31,11 @@ export default {
       type: Boolean,
       default: false,
     },
+  },
+  data() {
+    return {
+      model: this.value,
+    };
   },
 };
 </script>

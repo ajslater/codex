@@ -1,40 +1,36 @@
 <template>
-  <v-combobox
+  <v-checkbox
     v-if="model || show"
     v-model="model"
-    :items="computedItems"
+    :indeterminate="indeterminate"
     :label="label"
     hide-details="auto"
     dense
-    readonly
-    filled
+    ripple
+    :readonly="readonly"
   />
 </template>
-
 <script>
-import {
-  computedItems,
-  initialItem,
-} from "@/components/metadata-computed-items";
+import { initialValue } from "@/components/metadata-computed-items";
 
 export default {
-  name: "MetadataCombobox",
+  name: "MetadataCheckbox",
   props: {
     label: {
       type: String,
-      default: undefined,
-    },
-    items: {
-      type: Array,
-      default: null,
-    },
-    show: {
-      type: Boolean,
-      default: false,
+      required: true,
     },
     values: {
       type: Array,
       default: null,
+    },
+    readonly: {
+      type: Boolean,
+      default: false,
+    },
+    show: {
+      type: Boolean,
+      defautl: false,
     },
   },
   data() {
@@ -43,12 +39,12 @@ export default {
     };
   },
   computed: {
-    computedItems: function () {
-      return computedItems(this.items, this.values);
+    indeterminate: function () {
+      return this.values && this.values.length > 1;
     },
   },
   created: function () {
-    this.model = initialItem(this.computedItems);
+    this.model = initialValue(this.values);
   },
 };
 </script>
