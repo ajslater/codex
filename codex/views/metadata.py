@@ -178,7 +178,7 @@ class MetadataView(BrowseMetadataBase, SessionMixin, UserBookmarkMixin):
         Aggregate comic data in python because sqllite doesn't have array
         fields.
         """
-        comics = Comic.objects.filter(pk__in=pks).prefetch_related()
+        comics = Comic.objects.filter(pk__in=pks).select_related()
         comic_summary = {"pks": set()}
         for comic in comics:
             comic_summary["pks"].add(comic.pk)

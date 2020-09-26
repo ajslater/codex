@@ -338,7 +338,7 @@ import MetadataTextArea from "@/components/metadata-textarea";
 //import PlaceholderLoading from "@/components/placeholder-loading";
 import { getReaderRoute } from "@/router/route";
 
-const CHILDREN_PER_SECOND = 8;
+const CHILDREN_PER_SECOND = 12;
 const UPDATE_INTERVAL = 250;
 
 export default {
