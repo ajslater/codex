@@ -3,6 +3,8 @@
     v-if="model || show"
     v-model="model"
     :items="computedItems"
+    item-value="pk"
+    item-text="name"
     :label="label"
     hide-details="auto"
     dense
@@ -14,7 +16,7 @@
 <script>
 import {
   computedItems,
-  initialItem,
+  toVuetifyItem,
 } from "@/components/metadata-computed-items";
 
 export default {
@@ -32,8 +34,8 @@ export default {
       type: Boolean,
       default: false,
     },
-    values: {
-      type: Array,
+    value: {
+      type: [Object, String, Number, Boolean],
       default: null,
     },
   },
@@ -44,11 +46,11 @@ export default {
   },
   computed: {
     computedItems: function () {
-      return computedItems(this.items, this.values);
+      return computedItems(this.value, this.items);
     },
   },
   created: function () {
-    this.model = initialItem(this.computedItems);
+    this.model = toVuetifyItem(this.value);
   },
 };
 </script>

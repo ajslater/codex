@@ -1,3 +1,6 @@
+v0.5.15
+* Reduced the big O complexity of metadata dialog. Now 1000x+ faster.
+
 v0.5.14
 * Metadata view for browse containers. Also observes filters.
 * Fix scanning notification

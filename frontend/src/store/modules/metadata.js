@@ -1,23 +1,26 @@
 import API from "@/api/v1/metadata";
 
 const state = {
-  comic: undefined,
+  md: undefined,
 };
 
 const getters = {};
 
 const mutations = {
-  setComicMetadata(state, md) {
-    state.comic = Object.freeze(md);
+  setMetadata(state, md) {
+    state.md = Object.seal(md);
   },
 };
 
 const actions = {
-  async comicMetadataOpened({ commit }, { group, pk }) {
+  async metadataOpened({ commit }, { group, pk }) {
     // Set the metadata store.
-    commit("setComicMetadata", null);
+    commit("setMetadata", null);
     const response = await API.getComicMetadata(group, pk);
-    commit("setComicMetadata", response.data);
+    commit("setMetadata", response.data);
+  },
+  metadataClosed({ commit }) {
+    commit("setMetadata", null);
   },
 };
 

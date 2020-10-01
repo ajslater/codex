@@ -11,8 +11,6 @@
   />
 </template>
 <script>
-import { initialValue } from "@/components/metadata-computed-items";
-
 export default {
   name: "MetadataCheckbox",
   props: {
@@ -20,8 +18,8 @@ export default {
       type: String,
       required: true,
     },
-    values: {
-      type: Array,
+    value: {
+      type: Boolean,
       default: null,
     },
     readonly: {
@@ -40,11 +38,11 @@ export default {
   },
   computed: {
     indeterminate: function () {
-      return this.values && this.values.length > 1;
+      return this.value == null;
     },
   },
   created: function () {
-    this.model = initialValue(this.values);
+    this.model = this.value;
   },
 };
 </script>

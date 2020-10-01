@@ -99,15 +99,11 @@ class BrowseMetadataBase(BrowseBaseView):
         obj_list = queryset.annotate(x_cover_path=cover_path_subquery)
         return obj_list
 
-    def annotate_children_and_page_count(self, obj_list, aggregate_filter):
-        child_count_sum = Count("comic__pk", distinct=True, filter=aggregate_filter)
-        # Hoist up total page_count of children
+    def annotate_page_count(self, obj_list, aggregate_filter):
+        """Hoist up total page_count of children."""
         # Used for sorting and progress
         page_count_sum = Sum("comic__page_count", filter=aggregate_filter)
-
-        obj_list = obj_list.annotate(
-            child_count=child_count_sum, x_page_count=page_count_sum
-        )
+        obj_list = obj_list.annotate(x_page_count=page_count_sum)
         return obj_list
 
     def get_userbookmark_filter(self, for_comic=False):

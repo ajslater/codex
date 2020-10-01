@@ -1,43 +1,41 @@
-// Shared function for most metadata components.
+// Shared functions for most metadata components.
 
-export const computedItems = function (items, values) {
-  // TODO should i use the composition api?
-  let computedItems;
-  if (items) {
-    computedItems = items;
-  } else if (values) {
-    computedItems = new Array();
-    values.forEach(function (value) {
-      if (value != null) {
-        const item = { value, text: value };
-        computedItems.push(item);
-      }
-    });
+export const toVuetifyItem = function (item) {
+  // Translates an raw value or an item item into a vuetify
+  // autocomplete/combobox item.
+  let vuetifyItem;
+  if (item == null || item instanceof Object) {
+    vuetifyItem = item;
   } else {
-    computedItems = new Array();
+    vuetifyItem = { pk: item, name: item };
+  }
+  return vuetifyItem;
+};
+
+export const computedItems = function (value, items) {
+  // Takes a value (can be a list) and a list of items and
+  // Returns a list of valid items with items arg having preference.
+  let computedItems = new Array();
+  let sourceItems;
+  if (items) {
+    sourceItems = items;
+  } else if (value) {
+    if (Array.isArray(value)) {
+      sourceItems = value;
+    } else {
+      sourceItems = [value];
+    }
+  } else {
+    sourceItems = new Array();
+  }
+  for (const item of sourceItems) {
+    const vuetifyItem = toVuetifyItem(item);
+    computedItems.push(vuetifyItem);
   }
   return computedItems;
 };
 
-export const initialItem = function (items) {
-  if (items && items.length === 1) {
-    const singleItem = items[0];
-    if (singleItem && singleItem.value != null) {
-      return singleItem;
-    }
-  }
-  return null;
-};
-
-export const initialValue = function (values) {
-  if (values && values.length === 1) {
-    return values[0];
-  }
-  return null;
-};
-
 export default {
   computedItems,
-  initialItem,
-  initialValue,
+  toVuetifyItem,
 };

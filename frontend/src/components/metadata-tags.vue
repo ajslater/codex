@@ -1,8 +1,10 @@
 <template>
   <v-combobox
-    v-if="(items && items.length > 0) || show"
+    v-if="(model && model.length > 0) || show"
     v-model="model"
-    :items="items"
+    :items="computedItems"
+    item-value="pk"
+    item-text="name"
     :label="label"
     multiple
     hide-details="auto"
@@ -16,6 +18,8 @@
 </template>
 
 <script>
+import { computedItems } from "@/components/metadata-computed-items";
+
 export default {
   name: "MetadataTags",
   props: {
@@ -25,7 +29,11 @@ export default {
     },
     items: {
       type: Array,
-      default: new Array(),
+      default: null,
+    },
+    values: {
+      type: Array,
+      default: null,
     },
     show: {
       type: Boolean,
@@ -37,8 +45,14 @@ export default {
       model: null,
     };
   },
+  computed: {
+    computedItems: function () {
+      return computedItems(this.values, this.items);
+    },
+  },
   created: function () {
-    this.model = this.items;
+    // Different than combobox, returns a list of items.
+    this.model = computedItems(null, this.values);
   },
 };
 </script>

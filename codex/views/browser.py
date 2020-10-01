@@ -4,6 +4,7 @@ import logging
 from django.core.paginator import EmptyPage
 from django.core.paginator import Paginator
 from django.db.models import CharField
+from django.db.models import Count
 from django.db.models import F
 from django.db.models import IntegerField
 from django.db.models import Value
@@ -133,9 +134,12 @@ class BrowseView(BrowseMetadataBase):
         ##########################################
         # Annotate children count and page count #
         ##########################################
-        obj_list = self.annotate_children_and_page_count(obj_list, aggregate_filter)
+        obj_list = self.annotate_page_count(obj_list, aggregate_filter)
         # EXTRA FILTER for empty containers
-        obj_list = obj_list.filter(child_count__gt=0)
+        child_count_sum = Count("comic__pk", distinct=True, filter=aggregate_filter)
+        obj_list = obj_list.annotate(child_count=child_count_sum).filter(
+            child_count__gt=0
+        )
 
         ##################
         # Annotate Group #
