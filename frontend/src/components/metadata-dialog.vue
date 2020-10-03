@@ -381,7 +381,7 @@ export default {
     formattedIssue: function () {
       const decimalIssue = this.md.comic.issue;
       if (decimalIssue == null) {
-        return null;
+        return;
       }
       let issueStr = Math.floor(decimalIssue).toString();
       if (decimalIssue % 1 != 0) {
@@ -418,6 +418,8 @@ export default {
     },
   },
   /*
+  // TODO ask large library person to time metadata and see if this is
+  //  useful
   watch: {
     md: function (newMD) {
       if (newMD == null) {

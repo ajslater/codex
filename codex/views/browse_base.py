@@ -1,10 +1,16 @@
 """Views for browsing comic library."""
 import logging
 
+from bidict import bidict
 from django.db.models import Q
 from rest_framework.views import APIView
 
+from codex.models import Comic
 from codex.models import Folder
+from codex.models import Imprint
+from codex.models import Publisher
+from codex.models import Series
+from codex.models import Volume
 from codex.views.mixins import SessionMixin
 
 
@@ -16,13 +22,26 @@ LOG = logging.getLogger(__name__)
 class BrowseBaseView(APIView, SessionMixin):
     """Browse comics with a variety of filters and sorts."""
 
+    COMIC_GROUP = "c"
     FOLDER_GROUP = "f"
+    GROUP_MODEL = bidict(
+        {
+            "r": None,
+            "p": Publisher,
+            "i": Imprint,
+            "s": Series,
+            "v": Volume,
+            COMIC_GROUP: Comic,
+            FOLDER_GROUP: Folder,
+        }
+    )
     GROUP_RELATION = {
         "p": "publisher",
         "i": "imprint",
         "s": "series",
         "v": "volume",
         "c": "comic",
+        "f": "folder",
     }
     FILTER_ATTRIBUTES = ("decade", "characters")
 

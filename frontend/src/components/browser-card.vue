@@ -21,7 +21,7 @@
               :pk="item.pk"
               :children="item.child_count"
             />
-            <BrowseContainerMenu
+            <BrowserContainerMenu
               class="browseContainerMenu"
               :group="item.group"
               :pk="item.pk"
@@ -62,16 +62,16 @@ import filesize from "filesize";
 import { mapState } from "vuex";
 
 import BookCover from "@/components/book-cover";
-import BrowseContainerMenu from "@/components/browse-container-menu";
+import BrowserContainerMenu from "@/components/browser-container-menu";
 import { getFullComicName, getVolumeName } from "@/components/comic-name";
 import MetadataButton from "@/components/metadata-dialog";
 import { getReaderRoute } from "@/router/route";
 
 export default {
-  name: "BrowseCard",
+  name: "BrowserCard",
   components: {
     BookCover,
-    BrowseContainerMenu,
+    BrowserContainerMenu,
     MetadataButton,
   },
   props: {

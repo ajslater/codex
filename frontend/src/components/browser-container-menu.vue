@@ -28,7 +28,7 @@ const containerNames = {
 };
 
 export default {
-  name: "BrowseContainerMenu",
+  name: "BrowserContainerMenu",
   props: {
     group: {
       type: String,

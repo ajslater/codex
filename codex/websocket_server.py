@@ -13,7 +13,7 @@ from asgiref.sync import async_to_sync
 from django.core.cache import cache
 from simplejson import JSONDecodeError
 
-from codex.choices.websocket_messages import MESSAGES
+from codex.serializers.webpack import WEBSOCKET_MESSAGES
 
 
 LOG = getLogger(__name__)
@@ -72,7 +72,7 @@ async def websocket_application(scope, receive, send):
                     msg_type == BROADCAST_MSG
                     and msg.get("secret") == BROADCAST_SECRET.value
                 ):
-                    if message in MESSAGES["admin"]:
+                    if message in WEBSOCKET_MESSAGES["admin"]:
                         # don't flood control
                         for send in ADMIN_CONNS:
                             send_msg = {"text": message}

@@ -1,10 +1,8 @@
 """Base view for metadata annotations."""
 from decimal import Decimal
 
-from bidict import bidict
 from django.db.models import Avg
 from django.db.models import BooleanField
-from django.db.models import Count
 from django.db.models import DecimalField
 from django.db.models import F
 from django.db.models import Min
@@ -19,28 +17,12 @@ from django.db.models.functions import NullIf
 
 from codex.models import Comic
 from codex.models import Folder
-from codex.models import Imprint
-from codex.models import Publisher
-from codex.models import Series
-from codex.models import Volume
 from codex.views.browse_base import BrowseBaseView
 
 
 class BrowseMetadataBase(BrowseBaseView):
     """Base class for views that need special metadata annotations."""
 
-    COMIC_GROUP = "c"
-    GROUP_MODEL = bidict(
-        {
-            "r": None,
-            "p": Publisher,
-            "i": Imprint,
-            "s": Series,
-            "v": Volume,
-            COMIC_GROUP: Comic,
-            BrowseBaseView.FOLDER_GROUP: Folder,
-        }
-    )
     SORT_AGGREGATE_FUNCS = {
         "created_at": Min,
         "critical_rating": Avg,

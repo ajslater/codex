@@ -36,7 +36,7 @@ django = "^3.1"
 djangorestframework = "^3.11"
 django-cors-headers = "^3.2"
 fnvhash = "^0.1"
-hypercorn = { extras = ["h3"], version = "^0.10.1" }
+hypercorn = { extras = ["h3"], version = "^0.11.0" }
 Pillow = "^7.0"
 pycountry = "^20.7.3"
 simplejson = "^3.17"

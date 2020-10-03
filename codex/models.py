@@ -23,7 +23,7 @@ from django.db.models import TextField
 from django.db.models import URLField
 from django.utils.translation import gettext_lazy as _
 
-from codex.choices.static import CHOICES
+from codex.serializers.webpack import CHOICES
 
 
 LOG = getLogger(__name__)

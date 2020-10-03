@@ -16,7 +16,6 @@ const mutations = {
     state.enableRegistration = data.enableRegistration;
   },
   setUser: (state, user) => {
-    // XXX awkward piggyback of enableNonUsers on user object
     if (user) {
       state.enableNonUsers = user.enableNonUsers;
       if (!user.pk) {

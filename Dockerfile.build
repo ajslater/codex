@@ -20,7 +20,6 @@ RUN npm install
 WORKDIR /app
 RUN echo "**** copying source for dev build ****"
 COPY . .
-RUN cp frontend/src/choices/* codex/choices/
 RUN echo "*** run lint ***"
 RUN ./lint.sh
 

@@ -11,12 +11,12 @@ from rest_framework.serializers import ListField
 from rest_framework.serializers import Serializer
 from rest_framework.serializers import SerializerMethodField
 
-from codex.choices.static import CHOICES
 from codex.librarian.queue import QUEUE
 from codex.librarian.queue import ComicCoverCreateTask
+from codex.serializers.webpack import CHOICES
 
 
-VUE_MODEL_NULL_CODES = (-1, 0)
+VUE_MODEL_NULL_CODE = -1
 
 
 def validate_decades(decades):
@@ -35,9 +35,13 @@ def validate_decades(decades):
 
 
 def validate_null_filter(values):
-    """Fix special codes for html/vue/js not being able to handle null."""
+    """
+    If a vuetify component has a null key it changes it to the index
+    So use a special code for null.
+    """
     for index, value in enumerate(values):
-        if value in VUE_MODEL_NULL_CODES:
+        if value == VUE_MODEL_NULL_CODE:
+            print(f"tranforming a null code: {value}")
             values[index] = None
     return values
 

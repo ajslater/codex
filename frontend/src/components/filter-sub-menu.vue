@@ -40,14 +40,14 @@
           multiple
         >
           <v-list-item
-            v-for="item of choices"
-            :key="name + ':' + item.value"
-            :value="item.value"
+            v-for="item of vuetifyItems"
+            :key="`${name}:${item.name}`"
+            :value="item.pk"
             dense
             ripple
           >
             <v-list-item-content>
-              <v-list-item-title>{{ item.text }}</v-list-item-title>
+              <v-list-item-title>{{ item.name }}</v-list-item-title>
             </v-list-item-content>
           </v-list-item>
         </v-list-item-group>
@@ -63,6 +63,8 @@ import {
   mdiChevronRightCircle,
 } from "@mdi/js";
 import { mapState } from "vuex";
+
+import { toVuetifyItems } from "@/api/v1/list-items";
 
 export default {
   name: "FilterSubMenu",
@@ -83,28 +85,22 @@ export default {
   },
   computed: {
     ...mapState("browser", {
-      choices: function (state) {
-        const unfilteredChoices = state.formChoices[this.name];
-        const filteredChoices = [];
-        for (let choice of unfilteredChoices) {
-          if (choice.text.includes(this.query)) {
-            filteredChoices.push(choice);
-          }
-        }
-        return filteredChoices;
+      formChoices: function (state) {
+        return state.formChoices[this.name];
       },
-      formChoices: (state) => state.formChoices,
-      filters: (state) => state.settings.filters,
+      filterSetting: function (state) {
+        return state.settings.filters[this.name];
+      },
       filterMode: (state) => state.filterMode,
     }),
+    vuetifyItems: function () {
+      return toVuetifyItems(null, this.formChoices, this.query);
+    },
     filter: {
       get() {
-        return this.filters[this.name];
+        return this.filterSetting;
       },
       set(value) {
-        if (value.includes(0)) {
-          console.error(this.name, "filter =", value);
-        }
         const data = {
           filters: { [this.name]: value },
         };

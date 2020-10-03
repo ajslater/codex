@@ -139,8 +139,8 @@ def run():
     # Store port number in shared memory for librariand websocket
     PORT.value = int(config.bind[0].split(":")[1])
 
-    # This papers over a macos crash that i think only happens on
-    #   development server rapid restarts
+    # This papers over a macos crash that can happen with
+    # multirocessing start_method: fork
     os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
     loop = asyncio.get_event_loop()
     loop.run_until_complete(

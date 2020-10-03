@@ -4,10 +4,9 @@ import logging
 from django.http import Http404
 from rest_framework.response import Response
 
-import codex.choices.model
+import codex.serializers.models
 
 from codex.models import Comic
-from codex.serializers.vuetify import VueIntChoiceSerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browse_base import BrowseBaseView
 
@@ -20,27 +19,36 @@ class BrowseChoiceView(BrowseBaseView):
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
 
+    @staticmethod
+    def get_remote_field_data(remote_field, comic_qs, field_name):
+        """Use a model serializer."""
+        model = remote_field.model
+        qs = model.objects.filter(comic__in=comic_qs).distinct().values("pk", "name")
+
+        try:
+            class_name = model.__name__ + "Serializer"
+            serializer_class = getattr(codex.serializers.models, class_name)
+        except AttributeError as exc:
+            LOG.error(exc)
+            raise Http404(f"Filter for {field_name} not found")
+        serializer = serializer_class(qs, many=True, read_only=True)
+        return serializer.data
+
     def get(self, request, *args, **kwargs):
         """Get choices for filter dialog."""
-        choice_type = self.kwargs.get("choice_type")
+        field_name = self.kwargs.get("field_name")
 
         self.params = self.get_session(self.BROWSE_KEY)
 
         filters, _ = self.get_query_filters(True)
+        comic_qs = Comic.objects.filter(filters)
 
-        choices_comic_list = (
-            Comic.objects.filter(filters)
-            .only(choice_type)
-            .prefetch_related(choice_type)
-        )
+        field = Comic._meta.get_field(field_name)
+        remote_field = getattr(field, "remote_field", None)
 
-        class_name = f"{choice_type.capitalize()}FilterChoice"
-        try:
-            choices_class = getattr(codex.choices.model, class_name)
-        except AttributeError as exc:
-            LOG.error(exc)
-            raise Http404(f"Filter for {choice_type} not found")
-        choices = choices_class.get_vue_choices(choices_comic_list)
+        if remote_field:
+            data = self.get_remote_field_data(remote_field, comic_qs, field_name)
+        else:
+            data = comic_qs.values_list(field_name, flat=True).distinct()
 
-        serializer = VueIntChoiceSerializer(choices, many=True, read_only=True)
-        return Response(serializer.data)
+        return Response(data)

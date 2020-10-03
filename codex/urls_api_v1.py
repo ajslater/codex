@@ -19,16 +19,16 @@ from codex.views.auth import LoginView
 from codex.views.auth import LogoutView
 from codex.views.auth import RegisterView
 from codex.views.auth import UserView
+from codex.views.bookmark import ComicBookmarkView
+from codex.views.bookmark import UserBookmarkFinishedView
 from codex.views.browse_choices import BrowseChoiceView
 from codex.views.browser import BrowseView
-from codex.views.metadata import ComicDownloadView
+from codex.views.download import ComicDownloadView
 from codex.views.metadata import MetadataView
-from codex.views.metadata import UserBookmarkFinishedView
-from codex.views.reader import ComicBookmarkView
+from codex.views.notify import ScanNotifyView
 from codex.views.reader import ComicOpenedView
 from codex.views.reader import ComicPageView
 from codex.views.reader import ComicSettingsView
-from codex.views.scan_notify import ScanNotifyView
 
 
 app_name = "api"
@@ -41,7 +41,7 @@ urlpatterns = [
         name="browse_objects",
     ),
     path(
-        "browse/<str:group>/<int:pk>/choices/<str:choice_type>",
+        "browse/<str:group>/<int:pk>/choices/<str:field_name>",
         BrowseChoiceView.as_view(),
         name="browse_choices",
     ),

@@ -44,50 +44,6 @@ class GroupConcat(Aggregate):
         )
 
 
-class ComicDownloadView(APIView):
-    """Return the comic archive file as an attachment."""
-
-    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
-
-    def get(self, request, *args, **kwargs):
-        """Download a comic archive."""
-        pk = kwargs.get("pk")
-        try:
-            comic_path = Comic.objects.only("path").get(pk=pk).path
-        except Comic.DoesNotExist:
-            raise Http404(f"Comic {pk} not not found.")
-
-        fd = open(comic_path, "rb")
-        return FileResponse(fd, as_attachment=True)
-
-
-class UserBookmarkFinishedView(APIView, SessionMixin, UserBookmarkMixin):
-    """Mark read or unread recursively."""
-
-    # TODO possibly combine with ComicBookmarkView
-
-    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
-
-    def patch(self, request, *args, **kwargs):
-        """Mark read or unread recursively."""
-        serializer = UserBookmarkFinishedSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        group = self.kwargs.get("group")
-        relation = BrowseMetadataBase.GROUP_RELATION.get(group)
-        pk = self.kwargs.get("pk")
-        # Optimizing this call with only seems to fail the subsequent updates
-        comics = Comic.objects.filter(**{relation: pk})
-        updates = {"finished": serializer.validated_data.get("finished")}
-
-        for comic in comics:
-            # can't do this in bulk if using update_or_create withtout a
-            # third party packages.
-            self.update_user_bookmark(updates, comic=comic)
-
-        return Response()
-
-
 class MetadataView(BrowseMetadataBase, SessionMixin, UserBookmarkMixin):
     """Comic metadata."""
 
@@ -273,19 +229,24 @@ class MetadataView(BrowseMetadataBase, SessionMixin, UserBookmarkMixin):
         # Get the pick set from aggregates.
         comic_pks, pick_sets = self.get_pick_sets(comic_qs)
 
+        # add the deep relation roots to the select_related
+        select_related = pick_sets["fk"]
+        for ann in pick_sets["related_value"]:
+            rel = self.COMIC_RELATED_VALUE_FIELD_MAP.inverse[ann]
+            rel = rel.split("__")[0]
+            select_related.add(rel)
+
         # Get one comic but only the common fields.
-        # TODO move only after annotations and see how that works.
-        comic_qs = (
-            Comic.objects.only(*pick_sets["only"])
-            .select_related(*pick_sets["fk"])
-            .prefetch_related(*pick_sets["m2m"])
+        comic_qs = Comic.objects.select_related(*select_related).prefetch_related(
+            *pick_sets["m2m"]
         )
 
         # Annotate the comic with the related values and adjust
         # the pick set to match.
         for annotation in pick_sets["related_value"]:
             relation = self.COMIC_RELATED_VALUE_FIELD_MAP[annotation]
-            comic_qs.annotate(**{annotation: relation})
+            comic_qs = comic_qs.annotate(**{annotation: relation})
+        comic_qs = comic_qs.only(*pick_sets["only"])
 
         # Just get one comic
         for _first_comic_pk in comic_pks:

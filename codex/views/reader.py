@@ -120,17 +120,6 @@ class ComicPageView(APIView):
             raise NotFound(detail="comic page not found")
 
 
-class ComicBookmarkView(APIView, UserBookmarkMixin):
-    """Bookmark updater."""
-
-    def patch(self, request, *args, **kwargs):
-        """Save a user bookmark after a page change."""
-        pk = self.kwargs.get("pk")
-        page_num = self.kwargs.get("page_num")
-        updates = {"bookmark": page_num}
-        self.update_user_bookmark(updates, pk=pk)
-        return Response()
-
 
 class ComicSettingsView(APIView, SessionMixin, UserBookmarkMixin):
     """Set Comic Settigns."""

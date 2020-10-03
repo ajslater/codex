@@ -2,7 +2,7 @@
   <v-combobox
     v-if="(model && model.length > 0) || show"
     v-model="model"
-    :items="computedItems"
+    :items="vuetifyItems"
     item-value="pk"
     item-text="name"
     :label="label"
@@ -18,7 +18,7 @@
 </template>
 
 <script>
-import { computedItems } from "@/components/metadata-computed-items";
+import { toVuetifyItems } from "@/api/v1/list-items";
 
 export default {
   name: "MetadataTags",
@@ -46,13 +46,13 @@ export default {
     };
   },
   computed: {
-    computedItems: function () {
-      return computedItems(this.values, this.items);
+    vuetifyItems: function () {
+      return toVuetifyItems(this.values, this.items);
     },
   },
   created: function () {
     // Different than combobox, returns a list of items.
-    this.model = computedItems(null, this.values);
+    this.model = toVuetifyItems(null, this.values);
   },
 };
 </script>

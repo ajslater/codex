@@ -21,7 +21,6 @@ if not apps.ready:
 
 from multiprocessing import Value
 
-from codex.choices.websocket_messages import MESSAGES
 from codex.librarian.cover import create_comic_cover
 from codex.librarian.crond import Crond
 from codex.librarian.importer import import_comic
@@ -46,6 +45,7 @@ from codex.librarian.update import update_codex
 from codex.librarian.watcherd import Uatu
 from codex.models import Comic
 from codex.models import Folder
+from codex.serializers.webpack import WEBSOCKET_MESSAGES as MESSAGES
 from codex.websocket_server import BROADCAST_MSG
 from codex.websocket_server import BROADCAST_SECRET
 from codex.websocket_server import IPC_SUFFIX

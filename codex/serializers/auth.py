@@ -16,8 +16,7 @@ class UserSerializer(ModelSerializer):
     enableNonUsers = SerializerMethodField()  # noqa: N815
 
     def get_enableNonUsers(self, obj):  # noqa: N802
-        """Piggyback on user objects."""
-        # XXX  Maybe should be its own view.
+        """Piggyback on user objects. A little awkward."""
         enu_flag = AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_NON_USERS)
         return enu_flag.on
 
