@@ -30,7 +30,7 @@
         <v-toolbar v-show="showToolbars" id="topToolbar" class="toolbar" dense>
           <v-btn
             id="closeBook"
-            :to="{ name: 'browser', params: browseRoute }"
+            :to="{ name: 'browser', params: browserRoute }"
             large
             ripple
             >close book</v-btn
@@ -164,7 +164,7 @@ export default {
       },
     }),
     ...mapState("browser", {
-      browseRoute: (state) => state.routes.current || DEFAULT_ROUTE,
+      browserRoute: (state) => state.routes.current || DEFAULT_ROUTE,
     }),
     ...mapGetters("reader", ["computedSettings"]),
     ...mapGetters("auth", ["isOpenToSee"]),

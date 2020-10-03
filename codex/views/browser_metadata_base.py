@@ -17,10 +17,10 @@ from django.db.models.functions import NullIf
 
 from codex.models import Comic
 from codex.models import Folder
-from codex.views.browse_base import BrowseBaseView
+from codex.views.browser_base import BrowserBaseView
 
 
-class BrowseMetadataBase(BrowseBaseView):
+class BrowserMetadataBase(BrowserBaseView):
     """Base class for views that need special metadata annotations."""
 
     SORT_AGGREGATE_FUNCS = {
@@ -72,8 +72,8 @@ class BrowseMetadataBase(BrowseBaseView):
             # XXX Don't know how to make this a join
             #   because it selects by order_by but wants the cover_path
             model_ref = model.__name__.lower()
-            model_container_filter = Q(**{model_ref: OuterRef("pk")})
-            comics = Comic.objects.filter(model_container_filter & aggregate_filter)
+            model_group_filter = Q(**{model_ref: OuterRef("pk")})
+            comics = Comic.objects.filter(model_group_filter & aggregate_filter)
             order_by = self.get_order_by(order_key, Comic, False)
             comics = comics.order_by(*order_by)
             cover_comic_path = comics.values("cover_path")

@@ -11,12 +11,12 @@ from codex.serializers.webpack import DEFAULTS
 class SessionMixin:
     """Generic Session Mixin."""
 
-    BROWSE_KEY = "browse"
+    BROWSER_KEY = "browser"
     READER_KEY = "reader"
-    KEYS = (BROWSE_KEY, READER_KEY)
+    KEYS = (BROWSER_KEY, READER_KEY)
 
     SESSION_DEFAULTS = {
-        BROWSE_KEY: {
+        BROWSER_KEY: {
             "filters": {
                 "bookmark": DEFAULTS["bookmarkFilter"],
                 "decade": [],

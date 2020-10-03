@@ -5,17 +5,12 @@ from bidict import bidict
 from django.db.models import Aggregate
 from django.db.models import CharField
 from django.db.models import Count
-from django.http import FileResponse
-from django.http import Http404
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from codex.models import Comic
 from codex.serializers.metadata import MetadataSerializer
-from codex.serializers.metadata import UserBookmarkFinishedSerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
-from codex.views.browse_metadata_base import BrowseMetadataBase
-from codex.views.mixins import SessionMixin
+from codex.views.browser_metadata_base import BrowserMetadataBase
 from codex.views.mixins import UserBookmarkMixin
 
 
@@ -44,12 +39,12 @@ class GroupConcat(Aggregate):
         )
 
 
-class MetadataView(BrowseMetadataBase, SessionMixin, UserBookmarkMixin):
+class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
     """Comic metadata."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
 
-    CONTAINER_AGG_FIELDS = set(
+    AGGREGATE_FIELDS = set(
         ("bookmark", "x_cover_path", "finished", "progress", "size", "x_page_count")
     )
     COMIC_VALUE_FIELDS = set(
@@ -105,8 +100,8 @@ class MetadataView(BrowseMetadataBase, SessionMixin, UserBookmarkMixin):
     COMIC_PK_LIST_KEY = "comic" + PK_LIST_SUFFIX
     COMIC_SIMPLE_AGGREGATE_FIELDS = COMIC_VALUE_FIELDS | COMIC_FK_FIELDS
 
-    def get_container(self, aggregate_filter):
-        """Return container aggregate data and comic pks."""
+    def get_aggregates(self, aggregate_filter):
+        """Return metadata aggregate data and comic pks."""
 
         # Create the aggregates like we do for the browser
         group = self.kwargs["group"]
@@ -124,7 +119,7 @@ class MetadataView(BrowseMetadataBase, SessionMixin, UserBookmarkMixin):
         obj = self.annotate_bookmarks(obj)
         obj = self.annotate_progress(obj)
 
-        obj = obj.values(*self.CONTAINER_AGG_FIELDS)
+        obj = obj.values(*self.AGGREGATE_FIELDS)
 
         return obj.first()
 
@@ -258,16 +253,16 @@ class MetadataView(BrowseMetadataBase, SessionMixin, UserBookmarkMixin):
     def get(self, request, *args, **kwargs):
         """Get metadata for a single comic."""
         # Init
-        self.params = self.get_session(self.BROWSE_KEY)
+        self.params = self.get_session(self.BROWSER_KEY)
         aggregate_filter = self.get_aggregate_filter()
 
         # The aggregates that share code with browser
-        container = self.get_container(aggregate_filter)
+        aggregates = self.get_aggregates(aggregate_filter)
 
         # Get the comic & final pick set for the serializer
         comic, comic_pks, comic_fields = self.get_comic(aggregate_filter)
 
-        data = {"pks": list(comic_pks), "container": container, "comic": comic}
+        data = {"pks": list(comic_pks), "aggregates": aggregates, "comic": comic}
         serializer = MetadataSerializer(data, comic_fields=comic_fields)
 
         return Response(serializer.data)

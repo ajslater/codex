@@ -12,7 +12,7 @@ from codex.models import UserBookmark
 from codex.serializers.models import ComicSerializer
 
 
-class MetadataContainerSerializer(Serializer):
+class MetadataAggregatesSerializer(Serializer):
     """Aggregate stats for the comics selected in the metadata dialog."""
 
     # Aggregate Annotations
@@ -40,7 +40,7 @@ class MetadataSerializer(Serializer):
     pks = ListField(child=IntegerField())
 
     # Aggregated stats for the group of comics selected.
-    container = MetadataContainerSerializer()
+    aggregates = MetadataAggregatesSerializer()
 
 
 class UserBookmarkFinishedSerializer(ModelSerializer):

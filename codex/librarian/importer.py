@@ -99,8 +99,8 @@ def obj_moved(src_path, dest_path, cls):
 class Importer:
     """import ComicBox metadata into Codex database."""
 
-    BROWSE_TREE = (Publisher, Imprint, Series, Volume)
-    BROWSE_TREE_COUNT_FIELDS = {Series: "volume_count", Volume: "issue_count"}
+    BROWSER_GROUP_TREE = (Publisher, Imprint, Series, Volume)
+    BROWSER_GROUP_TREE_COUNT_FIELDS = {Series: "volume_count", Volume: "issue_count"}
     SPECIAL_FKS = ("myself", "volume", "series", "imprint", "publisher", "library")
     EXCLUDED_MODEL_KEYS = ("id", "parent_folder")
     FIELD_PREFIX_LEN = len("codex.Comic.")
@@ -195,13 +195,13 @@ class Importer:
         del self.md["credits"]
         return credits
 
-    def get_or_create_browse_tree(self, cls, tree):
+    def get_or_create_browser_group_tree(self, cls, tree):
         """Get or create a single level of the comic's publish tree."""
         md_key = cls.__name__.lower()  # current level
         name = self.md.get(md_key)  # name of the current level
         defaults = {}
         if name:
-            for key, val in self.BROWSE_TREE_COUNT_FIELDS.items():
+            for key, val in self.BROWSER_GROUP_TREE_COUNT_FIELDS.items():
                 # set special total count fields for the level we're at
                 if isinstance(cls, key):
                     defaults[val] = self.md.get(val)
@@ -210,7 +210,7 @@ class Importer:
 
         # Set all the parents from the tree we've alredy created
         for index, inst in enumerate(tree):
-            field = self.BROWSE_TREE[index].__name__.lower()
+            field = self.BROWSER_GROUP_TREE[index].__name__.lower()
             search[field] = inst
 
         defaults.update(search)
@@ -228,11 +228,11 @@ class Importer:
             LOG.debug(f"Updated {log_str}")
         return inst
 
-    def get_browse_containers(self):
+    def get_browser_group_tree(self):
         """Create the browse tree from publisher down to volume."""
         tree = []
-        for cls in self.BROWSE_TREE:
-            inst = self.get_or_create_browse_tree(cls, tree)
+        for cls in self.BROWSER_GROUP_TREE:
+            inst = self.get_or_create_browser_group_tree(cls, tree)
             tree.append(inst)
         return tree
 
@@ -298,7 +298,7 @@ class Importer:
             self.md["imprint"],
             self.md["series"],
             self.md["volume"],
-        ) = self.get_browse_containers()
+        ) = self.get_browser_group_tree()
         library = Library.objects.only("pk", "path").get(pk=self.library_id)
         self.set_locales()
         credits = self.get_credits()

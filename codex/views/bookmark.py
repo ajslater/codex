@@ -6,12 +6,11 @@ from rest_framework.views import APIView
 from codex.models import Comic
 from codex.serializers.metadata import UserBookmarkFinishedSerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
-from codex.views.browse_metadata_base import BrowseMetadataBase
-from codex.views.mixins import SessionMixin
+from codex.views.browser_base import BrowserBaseView
 from codex.views.mixins import UserBookmarkMixin
 
 
-class UserBookmarkFinishedView(APIView, SessionMixin, UserBookmarkMixin):
+class UserBookmarkFinishedView(BrowserBaseView, UserBookmarkMixin):
     """Mark read or unread recursively."""
 
     # TODO possibly combine with ComicBookmarkView
@@ -24,7 +23,7 @@ class UserBookmarkFinishedView(APIView, SessionMixin, UserBookmarkMixin):
         serializer.is_valid(raise_exception=True)
 
         group = self.kwargs.get("group")
-        relation = BrowseMetadataBase.GROUP_RELATION.get(group)
+        relation = self.GROUP_RELATION.get(group)
         pk = self.kwargs.get("pk")
         # Optimizing this call with only seems to fail the subsequent updates
         comics = Comic.objects.filter(**{relation: pk})

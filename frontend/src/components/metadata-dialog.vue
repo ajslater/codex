@@ -15,14 +15,14 @@
         <div id="metadataBookCoverWrapper">
           <BookCover
             id="bookCover"
-            :cover-path="md.container.x_cover_path"
+            :cover-path="md.aggregates.x_cover_path"
             :group="group"
             :child-count="md.pks.length"
-            :finished="md.container.finished"
+            :finished="md.aggregates.finished"
           />
           <v-progress-linear
             class="bookCoverProgress"
-            :value="md.container.progress"
+            :value="md.aggregates.progress"
             rounded
             background-color="inherit"
             height="2"
@@ -116,13 +116,13 @@
         </span>
         <span id="uneditableMetadata">
           <span>
-            <span v-if="md.container.bookmark"
-              >Read {{ md.container.bookmark }} of </span
-            >{{ md.container.x_page_count }} Pages
+            <span v-if="md.aggregates.bookmark"
+              >Read {{ md.aggregates.bookmark }} of </span
+            >{{ md.aggregates.x_page_count }} Pages
             <span v-if="md.comic.finished">, Finished</span>
           </span>
           <span id="size">
-            {{ md.container.size | bytes }}
+            {{ md.aggregates.size | bytes }}
           </span>
         </span>
 
@@ -398,9 +398,9 @@ export default {
     },
     readerRoute: function () {
       const pk = this.singleComicPK;
-      const bookmark = this.md.container.bookmark;
+      const bookmark = this.md.aggregates.bookmark;
       const readLTR = this.md.comic.read_ltr;
-      const pageCount = this.md.container.x_page_count;
+      const pageCount = this.md.aggregates.x_page_count;
       return getReaderRoute(pk, bookmark, readLTR, pageCount);
     },
     saveButtonLabel: function () {

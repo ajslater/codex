@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 
 from codex.librarian.queue import QUEUE
 from codex.models import Library
-from codex.serializers.browse import ScanNotifySerializer
+from codex.serializers.notify import ScanNotifySerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 
 

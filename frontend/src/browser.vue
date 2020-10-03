@@ -1,6 +1,6 @@
 <template>
   <div id="browser">
-    <header id="browseHeader">
+    <header id="browserHeader">
       <v-toolbar id="filterToolbar" class="toolbar" dense>
         <v-toolbar-items v-if="isOpenToSee" id="filterToolbarItems">
           <BrowserFilterSelect />
@@ -170,48 +170,47 @@ export default {
   },
   computed: {
     ...mapState("browser", {
-      browseTitle: (state) => state.browseTitle,
+      browserTitle: (state) => state.browserTitle,
       currentRoute: (state) => state.routes.current,
       upRoute: (state) => state.routes.up,
       objList: (state) => state.objList,
-      browseLoaded: (state) => state.browseLoaded,
       librariesExist: (state) => state.librariesExist,
       itemsExist: (state) => state.objList && state.objList.length > 0,
       versions: (state) => state.versions,
       scanNotify: (state) => state.scanNotify,
       numPages: (state) => state.numPages,
+      showPlaceHolder: function (state) {
+        return (
+          this.enableNonUsers === undefined ||
+          (!state.browsePageLoaded && this.isOpenToSee)
+        );
+      },
     }),
     ...mapState("auth", {
       user: (state) => state.user,
       enableNonUsers: (state) => state.enableNonUsers,
     }),
     ...mapGetters("auth", ["isAdmin", "isOpenToSee"]),
-    showPlaceHolder: function () {
-      return (
-        this.enableNonUsers === undefined ||
-        (!this.browseLoaded && this.isOpenToSee)
-      );
-    },
     longBrowseTitle: function () {
-      let browseTitle;
+      let browserTitle;
       const group = this.$route.params.group;
       if (+this.$route.params.pk === 0) {
-        browseTitle = this.browseTitle.groupName;
+        browserTitle = this.browserTitle.groupName;
       } else if (group === "v") {
-        const { parentName, groupName, groupCount } = this.browseTitle;
+        const { parentName, groupName, groupCount } = this.browserTitle;
         const volumeName = getVolumeName(groupName);
-        browseTitle = "";
+        browserTitle = "";
         if (parentName) {
-          browseTitle += `${parentName} `;
+          browserTitle += `${parentName} `;
         }
-        browseTitle += `${volumeName}`;
-        if (this.browseTitle.volumeCount) {
-          browseTitle += ` of ${groupCount}`;
+        browserTitle += `${volumeName}`;
+        if (this.browserTitle.volumeCount) {
+          browserTitle += ` of ${groupCount}`;
         }
       } else {
-        browseTitle = this.browseTitle.groupName;
+        browserTitle = this.browserTitle.groupName;
       }
-      return browseTitle;
+      return browserTitle;
     },
     outdated: function () {
       return this.versions.latest > this.versions.installed;
@@ -271,14 +270,14 @@ export default {
         }
         return;
       }
-      this.$store.dispatch("browser/browseOpened", this.$route.params);
+      this.$store.dispatch("browser/browserOpened", this.$route.params);
       this.socket = getSocket(this.isAdmin);
       this.socket.addEventListener("message", this.websocketListener);
     },
     websocketListener: function (event) {
       console.debug("websocket push:", event.data);
       if (event.data === WS_MESSAGES.user.LIBRARY_CHANGED) {
-        this.$store.dispatch("browser/getBrowseObjects");
+        this.$store.dispatch("browser/getBrowserPage");
       } else if (this.isAdmin) {
         if (event.data === WS_MESSAGES.admin.SCAN_LIBRARY) {
           this.setScanNotify(true);
@@ -311,7 +310,7 @@ export default {
   flex-direction: column;
   min-height: 100vh;
 }
-#browseHeader {
+#browserHeader {
   position: fixed;
   z-index: 10;
 }

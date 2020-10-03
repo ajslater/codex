@@ -8,13 +8,13 @@ import codex.serializers.models
 
 from codex.models import Comic
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
-from codex.views.browse_base import BrowseBaseView
+from codex.views.browser_base import BrowserBaseView
 
 
 LOG = logging.getLogger(__name__)
 
 
-class BrowseChoiceView(BrowseBaseView):
+class BrowserChoiceView(BrowserBaseView):
     """Get choices for filter dialog."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
@@ -38,7 +38,7 @@ class BrowseChoiceView(BrowseBaseView):
         """Get choices for filter dialog."""
         field_name = self.kwargs.get("field_name")
 
-        self.params = self.get_session(self.BROWSE_KEY)
+        self.params = self.get_session(self.BROWSER_KEY)
 
         filters, _ = self.get_query_filters(True)
         comic_qs = Comic.objects.filter(filters)

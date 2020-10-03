@@ -2,7 +2,6 @@
 
 from django.http import FileResponse
 from django.http import Http404
-
 from rest_framework.views import APIView
 
 from codex.models import Comic

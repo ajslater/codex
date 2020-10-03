@@ -1,5 +1,3 @@
-"""Codex Browser Serializers."""
-
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from rest_framework.serializers import BooleanField
@@ -86,7 +84,7 @@ class BrowserSettingsSerializer(Serializer):
     show = BrowserSettingsShowGroupFlagsSerializer()
 
 
-class BrowseObjectSerializer(Serializer):
+class BrowserCardSerializer(Serializer):
     """Generic browse object."""
 
     def get_x_cover_path(self, obj):
@@ -112,7 +110,7 @@ class BrowseObjectSerializer(Serializer):
     order_value = CharField(read_only=True)
 
 
-class BrowseRouteSerializer(Serializer):
+class BrowserRouteSerializer(Serializer):
     """A vue route for the browser."""
 
     group = CharField(read_only=True)
@@ -126,7 +124,7 @@ class BrowserFormChoicesSerializer(Serializer):
     enableFolderView = BooleanField(read_only=True)  # noqa: N815
 
 
-class BrowseTitleSerializer(Serializer):
+class BrowserTitleSerializer(Serializer):
     """Elements for constructing the browse title."""
 
     parentName = CharField(read_only=True, allow_null=True)  # noqa: N815
@@ -134,13 +132,13 @@ class BrowseTitleSerializer(Serializer):
     groupCount = IntegerField(read_only=True, allow_null=True)  # noqa: N815
 
 
-class BrowseListSerializer(Serializer):
+class BrowserPageSerializer(Serializer):
     """The main browse list."""
 
-    browseTitle = BrowseTitleSerializer(read_only=True)  # noqa: N815
-    upRoute = BrowseRouteSerializer(allow_null=True)  # noqa: N815
+    browserTitle = BrowserTitleSerializer(read_only=True)  # noqa: N815
+    upRoute = BrowserRouteSerializer(allow_null=True)  # noqa: N815
     objList = ListField(  # noqa: N815
-        child=BrowseObjectSerializer(read_only=True),
+        child=BrowserCardSerializer(read_only=True),
         allow_empty=True,
         read_only=True,
     )
@@ -160,11 +158,5 @@ class BrowserOpenedSerializer(Serializer):
     """Component open settings."""
 
     settings = BrowserSettingsSerializer(read_only=True)
-    browseList = BrowseListSerializer(read_only=True)  # noqa: N815
+    browserPage = BrowserPageSerializer(read_only=True)  # noqa: N815
     versions = VersionsSerializer(read_only=True)
-
-
-class ScanNotifySerializer(Serializer):
-    """Scan notify flag."""
-
-    scanInProgress = BooleanField(read_only=True)  # noqa: N815

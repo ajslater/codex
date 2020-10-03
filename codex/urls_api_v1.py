@@ -21,8 +21,8 @@ from codex.views.auth import RegisterView
 from codex.views.auth import UserView
 from codex.views.bookmark import ComicBookmarkView
 from codex.views.bookmark import UserBookmarkFinishedView
-from codex.views.browse_choices import BrowseChoiceView
-from codex.views.browser import BrowseView
+from codex.views.browser import BrowserView
+from codex.views.browser_choices import BrowserChoiceView
 from codex.views.download import ComicDownloadView
 from codex.views.metadata import MetadataView
 from codex.views.notify import ScanNotifyView
@@ -37,13 +37,13 @@ urlpatterns = [
     # Browser
     path(
         "browse/<str:group>/<int:pk>/<int:page>",
-        BrowseView.as_view(),
-        name="browse_objects",
+        BrowserView.as_view(),
+        name="browser_page",
     ),
     path(
         "browse/<str:group>/<int:pk>/choices/<str:field_name>",
-        BrowseChoiceView.as_view(),
-        name="browse_choices",
+        BrowserChoiceView.as_view(),
+        name="browser_choices",
     ),
     path(
         "browse/<str:group>/<int:pk>/mark_read",

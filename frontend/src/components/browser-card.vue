@@ -1,7 +1,7 @@
 <template>
-  <v-lazy transition="scale-transition" class="browseTile">
-    <div class="browseTileLazyWrapper">
-      <div class="browseCardCoverWrapper">
+  <v-lazy transition="scale-transition" class="browserTile">
+    <div class="browserTileLazyWrapper">
+      <div class="browserCardCoverWrapper">
         <BookCover
           :cover-path="item.x_cover_path"
           :group="item.group"
@@ -9,7 +9,7 @@
           :finished="item.finished"
         />
         <div class="cardCoverOverlay">
-          <router-link class="browseLink" :to="getToRoute()">
+          <router-link class="browserLink" :to="getToRoute()">
             <div class="cardCoverOverlayTopMiddleRow">
               <v-icon v-if="item.group === 'c'">{{ mdiEye }}</v-icon>
             </div>
@@ -21,8 +21,8 @@
               :pk="item.pk"
               :children="item.child_count"
             />
-            <BrowserContainerMenu
-              class="browseContainerMenu"
+            <BrowserCardMenu
+              class="browserCardMenu"
               :group="item.group"
               :pk="item.pk"
               :finished="item.finished"
@@ -38,7 +38,7 @@
         height="2"
       />
       <router-link
-        class="browseLink cardSubtitle text-caption"
+        class="browserLink cardSubtitle text-caption"
         :to="getToRoute()"
       >
         <div class="headerName">
@@ -62,7 +62,7 @@ import filesize from "filesize";
 import { mapState } from "vuex";
 
 import BookCover from "@/components/book-cover";
-import BrowserContainerMenu from "@/components/browser-container-menu";
+import BrowserCardMenu from "@/components/browser-card-menu";
 import { getFullComicName, getVolumeName } from "@/components/comic-name";
 import MetadataButton from "@/components/metadata-dialog";
 import { getReaderRoute } from "@/router/route";
@@ -71,7 +71,7 @@ export default {
   name: "BrowserCard",
   components: {
     BookCover,
-    BrowserContainerMenu,
+    BrowserCardMenu,
     MetadataButton,
   },
   props: {
@@ -165,14 +165,14 @@ export default {
 
 <style scoped lang="scss">
 @import "~vuetify/src/styles/styles.sass";
-.browseTile {
+.browserTile {
   display: inline-flex;
   flex: 1;
   margin: 16px;
   width: 120px;
   text-align: center;
 }
-.browseCardCoverWrapper {
+.browserCardCoverWrapper {
   position: relative;
 }
 .cardCoverOverlay {
@@ -184,14 +184,14 @@ export default {
   border-radius: 5px;
   border: solid thin transparent;
 }
-.browseCardCoverWrapper:hover > .cardCoverOverlay {
+.browserCardCoverWrapper:hover > .cardCoverOverlay {
   background-color: rgba(0, 0, 0, 0.5);
   border: solid thin #cc7b19;
 }
 .cardCoverOverlay > * {
   width: 100%;
 }
-.browseCardCoverWrapper:hover > .cardCoverOverlay * {
+.browserCardCoverWrapper:hover > .cardCoverOverlay * {
   /* optimize-css-assets-webpack-plugin / cssnano bug destroys % values. 
      use decimals instead.
      https://github.com/NMFR/optimize-css-assets-webpack-plugin/issues/118
@@ -214,7 +214,7 @@ export default {
   position: absolute;
   bottom: 0px;
 }
-.browseLink {
+.browserLink {
   text-decoration: none;
   color: inherit;
 }
@@ -239,7 +239,7 @@ export default {
 }
 
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
-  .browseTile {
+  .browserTile {
     margin: 8px;
     width: 100px;
   }

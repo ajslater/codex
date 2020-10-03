@@ -90,7 +90,7 @@ def extract_json(js_root, webpack_module_js):
 
 def parse_wepack_module(webpack_module_glob):
     """Extract the JSON core from a webpack module and parse it."""
-    data_dict = None
+    data_dict = fn = None
     for js_root in JS_ROOTS:
         full_glob = str(js_root / webpack_module_glob)
         globs = glob(full_glob)
