@@ -1,3 +1,4 @@
+"""Functions for dealing with comic cover thumbnails."""
 import logging
 
 from io import BytesIO
@@ -28,7 +29,7 @@ LOG = logging.getLogger(__name__)
 
 
 def cleanup_cover_dirs(path):
-    """Recursively remove empty cover directories"""
+    """Recursively remove empty cover directories."""
     if COVER_ROOT not in path.parents:
         return
     try:

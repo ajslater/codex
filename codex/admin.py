@@ -137,6 +137,7 @@ class AdminAdminFlag(AdminNoAddDelete):
     actions = ("update_now",)
 
     def update_now(self, request, queryset):
+        """Trigger an update task immediately."""
         QUEUE.put(UpdateCronTask(sleep=0, force=True))
 
     update_now.short_description = "Update Codex Now"
@@ -181,7 +182,7 @@ class AdminFailedImport(AdminNoAddDelete):
         return True
 
     def library_link(self, item):
-        """A special feild for linking to the library change page."""
+        """Render a field for linking to the library change page."""
         url = resolve_url(admin_urlname(Library._meta, "change"), item.library.id)
         return format_html(
             '<a href="{url}">{name}</a>'.format(url=url, name=str(item.library))

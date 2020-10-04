@@ -71,6 +71,8 @@ class BrowserView(BrowserMetadataBase):
 
     def get_valid_root_groups(self):
         """
+        Get valid root groups for the current settings.
+
         Valid root groups are determined by the Browser Settings.
         And offset by one group *above* each show flag.
         The volumes root group is always enabled.
@@ -87,6 +89,8 @@ class BrowserView(BrowserMetadataBase):
 
     def get_valid_nav_groups(self):
         """
+        Get valid nav gorups for the current settings.
+
         Valid nav groups are the root group and below that are also
         enabled in browser settings.
         """
@@ -106,6 +110,8 @@ class BrowserView(BrowserMetadataBase):
 
     def get_model_group(self):
         """
+        Get the model group code for the current model.
+
         Valid model groups are below the nav group that are also enabled
         in browser settings.
         """
@@ -388,7 +394,6 @@ class BrowserView(BrowserMetadataBase):
 
     def get_browser_page(self):
         """Validate settings and get the querysets."""
-
         if self.kwargs.get("group") == self.FOLDER_GROUP:
             self.validate_folder_settings()
         else:

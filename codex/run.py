@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+"""The main runnable for codex. Sets up codex and runs hypercorn."""
 import asyncio
 import os
 import shutil
@@ -63,7 +64,7 @@ def ensure_superuser():
 
 
 def init_admin_flags():
-    """Initalize the admin flag rows"""
+    """Init admin flag rows."""
     # AdminFlag = apps.get_model("codex", "AdminFlag")  # noqa N806
     for name in AdminFlag.FLAG_NAMES:
         if name in AdminFlag.DEFAULT_FALSE:
@@ -78,6 +79,7 @@ def init_admin_flags():
 
 
 def unset_scan_in_progress():
+    """Unset the scan_in_progres flag for all libraries."""
     stuck_libraries = Library.objects.filter(scan_in_progress=True).only(
         "scan_in_progress", "path"
     )
@@ -92,6 +94,9 @@ SHUTDOWN_EVENT = asyncio.Event()
 
 
 def bind_signals():
+    """Bind system signals."""
+    # TODO investigate if hypercorn can handle asgi singals now."""
+
     main_pid = os.getpid()
 
     def _handle_shutdown_signal(signum, frame):
@@ -120,7 +125,7 @@ def bind_signals():
 
 
 def setup_db():
-    """Setup the database before we run."""
+    """Set up database before run."""
     django.setup()
     update_db()
     ensure_superuser()
@@ -129,8 +134,7 @@ def setup_db():
 
 
 def run():
-    """Run Codex"""
-
+    """Run Codex."""
     config = Config.from_toml(CONFIG_TOML)
     LOG.info(f"Loaded config from {CONFIG_TOML}")
     if DEV:
@@ -155,6 +159,7 @@ def run():
 
 
 def main():
+    """Set up and run Codex."""
     if DEV:
         LOG.setLevel("DEBUG")
     ensure_config()

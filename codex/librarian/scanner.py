@@ -97,7 +97,6 @@ def scan_existing(library, cls, force=False):
 
 def cleanup_failed_imports(library):
     """Tidy up  the failed imports table."""
-
     # Cleanup FailedImports that were actually successful
     #  Should never trigger because of the per import cleanup in imports
     FailedImport.objects.filter(

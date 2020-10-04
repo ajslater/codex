@@ -164,6 +164,8 @@ class Library(BaseModel):
         return self.path
 
     class Meta:
+        """Pluralize."""
+
         verbose_name_plural = "libraries"
 
 

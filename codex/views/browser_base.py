@@ -86,7 +86,7 @@ class BrowserBaseView(APIView, SessionMixin):
         return bookmark_filter
 
     def get_folders_filter(self):
-        """Filters for ALL parent folders not just immediate one."""
+        """Get a filter for ALL parent folders not just immediate one."""
         pk = self.kwargs.get("pk")
         if pk:
             folders_filter = Q(folder__in=[pk])

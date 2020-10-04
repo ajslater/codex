@@ -1,3 +1,4 @@
+"""Serializers for codex models."""
 import pycountry
 
 from rest_framework.serializers import IntegerField
@@ -24,6 +25,8 @@ from codex.models import Volume
 
 class PyCountrySerializer(Serializer):
     """
+    PyCountry tag serializer to include long names.
+
     Takes a single string value and serializes the value to
     a pk attribute and a pycountry long name lookup of that value to
     the name.
@@ -33,12 +36,16 @@ class PyCountrySerializer(Serializer):
     name = SerializerMethodField()
 
     class Meta:
+        """Abstract class."""
+
         abstract = True
 
     def get_pk(self, obj):
+        """Return submitted value as the key."""
         return obj
 
     def get_name(self, obj):
+        """Lookup the name with pycountry, just copy the key on fail."""
         value = obj
         if not value:
             return
@@ -83,30 +90,55 @@ class GroupModelMeta:
 
 
 class NamedModelSerializer(ModelSerializer):
+    """A common class for NamedModels."""
+
     class Meta:
+        """Abstract class."""
+
         abstract = True
 
 
-class PublisherSerializer(NamedModelSerializer):
+class GroupModelSerializer(NamedModelSerializer):
+    """A common class for BrowserGroupModels."""
+
+    class Meta:
+        """Abstract class."""
+
+        abstract = True
+
+
+class PublisherSerializer(GroupModelSerializer):
+    """Publisher Model."""
+
     class Meta(GroupModelMeta):
+        """Configure model."""
 
         model = Publisher
 
 
-class ImprintSerializer(NamedModelSerializer):
+class ImprintSerializer(GroupModelSerializer):
+    """Imprint Model."""
+
     class Meta(GroupModelMeta):
+        """Configure model."""
 
         model = Imprint
 
 
-class SeriesSerializer(NamedModelSerializer):
+class SeriesSerializer(GroupModelSerializer):
+    """Series Model."""
+
     class Meta(GroupModelMeta):
+        """Configure model."""
 
         model = Series
 
 
-class VolumeSerializer(NamedModelSerializer):
+class VolumeSerializer(GroupModelSerializer):
+    """Volume Model."""
+
     class Meta(GroupModelMeta):
+        """Configure model."""
 
         model = Volume
 
@@ -117,13 +149,19 @@ class VolumeSerializer(NamedModelSerializer):
 
 
 class CreditPersonSerializer(NamedModelSerializer):
+    """CreditPerson model."""
+
     class Meta(NamedModelMeta):
+        """Configure model."""
 
         model = CreditPerson
 
 
 class CreditRoleSerializer(NamedModelSerializer):
+    """CreditRole model."""
+
     class Meta(NamedModelMeta):
+        """Configure model."""
 
         model = CreditRole
 
@@ -143,43 +181,64 @@ class CreditSerializer(ModelSerializer):
 
 
 class CharacterSerializer(NamedModelSerializer):
+    """Character model."""
+
     class Meta(NamedModelMeta):
+        """Configure model."""
 
         model = Character
 
 
 class GenreSerializer(NamedModelSerializer):
+    """Genre model."""
+
     class Meta(NamedModelMeta):
+        """Configure model."""
 
         model = Genre
 
 
 class LocationSerializer(NamedModelSerializer):
+    """Location model."""
+
     class Meta(NamedModelMeta):
+        """Configure model."""
 
         model = Location
 
 
 class SeriesGroupSerializer(NamedModelSerializer):
+    """SeriesGroup model."""
+
     class Meta(NamedModelMeta):
+        """Configure model."""
 
         model = SeriesGroup
 
 
 class StoryArcSerializer(NamedModelSerializer):
+    """StoryArc model."""
+
     class Meta(NamedModelMeta):
+        """Configure model."""
 
         model = StoryArc
 
 
 class TagSerializer(NamedModelSerializer):
+    """Tag model."""
+
     class Meta(NamedModelMeta):
+        """Configure model."""
 
         model = Tag
 
 
 class TeamSerializer(NamedModelSerializer):
+    """Team model."""
+
     class Meta(NamedModelMeta):
+        """Configure model."""
 
         model = Team
 
@@ -188,7 +247,7 @@ class ComicSerializer(ModelSerializer):
     """Serialize a comic object for the metadata dialog."""
 
     def __init__(self, *args, **kwargs):
-        """Special init for dynamically whitelisting fields."""
+        """Dynamically whitelist fields."""
         fields = kwargs.pop("fields", None)
         # Use the fields argument to remove fields not in the list.
         if fields:
@@ -224,6 +283,8 @@ class ComicSerializer(ModelSerializer):
     credits = CreditSerializer(many=True, allow_null=True)
 
     class Meta:
+        """Configure the model."""
+
         model = Comic
         fields = "__all__"  # Overriden dynamically by constructor param
         depth = 1

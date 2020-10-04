@@ -330,6 +330,18 @@ flake8 = ">=3.0.0"
 
 [[package]]
 category = "dev"
+description = "Extension for flake8 which uses pydocstyle to check docstrings"
+name = "flake8-docstrings"
+optional = false
+python-versions = "*"
+version = "1.5.0"
+
+[package.dependencies]
+flake8 = ">=3"
+pydocstyle = ">=2.1"
+
+[[package]]
+category = "dev"
 description = "Polyfill package for Flake8 plugins"
 name = "flake8-polyfill"
 optional = false
@@ -716,6 +728,17 @@ version = "2.20"
 
 [[package]]
 category = "dev"
+description = "Python docstring style checker"
+name = "pydocstyle"
+optional = false
+python-versions = ">=3.5"
+version = "5.1.1"
+
+[package.dependencies]
+snowballstemmer = "*"
+
+[[package]]
+category = "dev"
 description = "passive checker of Python programs"
 name = "pyflakes"
 optional = false
@@ -960,6 +983,14 @@ version = "1.15.0"
 
 [[package]]
 category = "dev"
+description = "This package provides 26 stemmers for 25 languages generated from Snowball algorithms."
+name = "snowballstemmer"
+optional = false
+python-versions = "*"
+version = "2.0.0"
+
+[[package]]
+category = "dev"
 description = "A modern CSS selector implementation for Beautiful Soup."
 marker = "python_version >= \"3.0\""
 name = "soupsieve"
@@ -1117,7 +1148,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["pytest (>=3.5,<3.7.3 || >3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pytest-cov", "jaraco.test (>=3.2.0)", "jaraco.itertools", "func-timeout", "pytest-black (>=0.3.7)", "pytest-mypy"]
 
 [metadata]
-content-hash = "d4452cf35ece1850819ffe50a56c479bc6825d8482c2a2bcbe45844828d2221d"
+content-hash = "1d9260a1cab2bcc5fced05d07088db5793212a62319c66dbf131691f7d1f8c94"
 lock-version = "1.0"
 python-versions = "^3.7"
 
@@ -1353,6 +1384,10 @@ flake8-bugbear = [
     {file = "flake8-bugbear-20.1.4.tar.gz", hash = "sha256:bd02e4b009fb153fe6072c31c52aeab5b133d508095befb2ffcf3b41c4823162"},
     {file = "flake8_bugbear-20.1.4-py36.py37.py38-none-any.whl", hash = "sha256:a3ddc03ec28ba2296fc6f89444d1c946a6b76460f859795b35b77d4920a51b63"},
 ]
+flake8-docstrings = [
+    {file = "flake8-docstrings-1.5.0.tar.gz", hash = "sha256:3d5a31c7ec6b7367ea6506a87ec293b94a0a46c0bce2bb4975b7f1d09b6f3717"},
+    {file = "flake8_docstrings-1.5.0-py2.py3-none-any.whl", hash = "sha256:a256ba91bc52307bef1de59e2a009c3cf61c3d0952dbe035d6ff7208940c2edc"},
+]
 flake8-polyfill = [
     {file = "flake8-polyfill-1.0.2.tar.gz", hash = "sha256:e44b087597f6da52ec6393a709e7108b2905317d0c0b744cdca6208e670d8eda"},
     {file = "flake8_polyfill-1.0.2-py2.py3-none-any.whl", hash = "sha256:12be6a34ee3ab795b19ca73505e7b55826d5f6ad7230d31b18e106400169b9e9"},
@@ -1559,6 +1594,10 @@ pycparser = [
     {file = "pycparser-2.20-py2.py3-none-any.whl", hash = "sha256:7582ad22678f0fcd81102833f60ef8d0e57288b6b5fb00323d101be910e35705"},
     {file = "pycparser-2.20.tar.gz", hash = "sha256:2d475327684562c3a96cc71adf7dc8c4f0565175cf86b6d7a404ff4c771f15f0"},
 ]
+pydocstyle = [
+    {file = "pydocstyle-5.1.1-py3-none-any.whl", hash = "sha256:aca749e190a01726a4fb472dd4ef23b5c9da7b9205c0a7857c06533de13fd678"},
+    {file = "pydocstyle-5.1.1.tar.gz", hash = "sha256:19b86fa8617ed916776a11cd8bc0197e5b9856d5433b777f51a3defe13075325"},
+]
 pyflakes = [
     {file = "pyflakes-2.2.0-py2.py3-none-any.whl", hash = "sha256:0d94e0e05a19e57a99444b6ddcf9a6eb2e5c68d3ca1e98e90707af8152c90a92"},
     {file = "pyflakes-2.2.0.tar.gz", hash = "sha256:35b2d75ee967ea93b55750aa9edbbf72813e06a66ba54438df2cfac9e3c27fc8"},
@@ -1738,6 +1777,10 @@ simplejson = [
 six = [
     {file = "six-1.15.0-py2.py3-none-any.whl", hash = "sha256:8b74bedcbbbaca38ff6d7491d76f2b06b3592611af620f8426e82dddb04a5ced"},
     {file = "six-1.15.0.tar.gz", hash = "sha256:30639c035cdb23534cd4aa2dd52c3bf48f06e5f4a941509c8bafd8ce11080259"},
+]
+snowballstemmer = [
+    {file = "snowballstemmer-2.0.0-py2.py3-none-any.whl", hash = "sha256:209f257d7533fdb3cb73bdbd24f436239ca3b2fa67d56f6ff88e86be08cc5ef0"},
+    {file = "snowballstemmer-2.0.0.tar.gz", hash = "sha256:df3bac3df4c2c01363f3dd2cfa78cce2840a79b9f1c2d2de9ce8d31683992f52"},
 ]
 soupsieve = [
     {file = "soupsieve-2.0.1-py3-none-any.whl", hash = "sha256:1634eea42ab371d3d346309b93df7870a88610f0725d47528be902a0d95ecc55"},

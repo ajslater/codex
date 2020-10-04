@@ -1,4 +1,4 @@
-"""Websocket Consumers."""
+"""Websocket Server."""
 import random
 import time
 
@@ -46,7 +46,6 @@ def get_send_msg(message):
 
 async def websocket_application(scope, receive, send):
     """Set up broadcasts."""
-
     while True:
         event = await receive()
 

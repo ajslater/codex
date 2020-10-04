@@ -28,6 +28,7 @@ class GroupConcat(Aggregate):
     allow_distinct = True
 
     def __init__(self, expression, distinct=False, separator=None, **extra):
+        """Pass special arguments for the template."""
         # use x_distinct so as not to override django super.distinct
         super().__init__(
             expression,
@@ -102,7 +103,6 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
 
     def get_aggregates(self, aggregate_filter):
         """Return metadata aggregate data and comic pks."""
-
         # Create the aggregates like we do for the browser
         group = self.kwargs["group"]
         pk = self.kwargs["pk"]
@@ -124,7 +124,7 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
         return obj.first()
 
     def get_comic_queryset(self, aggregate_filter):
-        """The filtered comic query for the pick set & comic."""
+        """Get the comic query for getting the pick set & comic."""
         group = self.kwargs["group"]
         pk = self.kwargs["pk"]
         host_rel = self.GROUP_RELATION[group]
@@ -141,10 +141,7 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
             pick_sets[key].add(field)
 
     def get_pick_sets(self, comic_qs):
-        """
-        Count field aggregates and make a pick set out of the ones
-        that are common across all comics.
-        """
+        """Determine which fields are common across all comics."""
         agg_comics = (
             comic_qs.all()
             .select_related(*self.COMIC_FK_FIELDS)
@@ -216,8 +213,7 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
         return (comic_pks, pick_sets)
 
     def get_comic(self, aggregate_filter):
-        """Get the comic and the final pick set"""
-
+        """Get the comic and the final pick set."""
         # The filtered comic query for the pick set & comic
         comic_qs = self.get_comic_queryset(aggregate_filter)
 

@@ -1,4 +1,4 @@
-""""Download a comic archive."""
+"""Download a comic archive."""
 
 from django.http import FileResponse
 from django.http import Http404

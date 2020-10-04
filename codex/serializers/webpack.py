@@ -115,7 +115,7 @@ def parse_wepack_module(webpack_module_glob):
 
 
 def build_show_defaults(settings_group_list):
-    """settingsGroup is special."""
+    """Parse the show defaults."""
     show = {}
     for choice in settings_group_list:
         key = choice["value"]
@@ -124,8 +124,7 @@ def build_show_defaults(settings_group_list):
 
 
 def build_choices_and_defaults(data_dict):
-    """Transform the vuetify choice formatted data into key:value dicts"""
-
+    """Transform the vuetify choice formatted data to key:value dicts."""
     for vuetify_key, vuetify_list in data_dict.items():
         if vuetify_key == "settingsGroup":
             DEFAULTS["show"] = build_show_defaults(vuetify_list)

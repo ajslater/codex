@@ -1,3 +1,4 @@
+"""Determine the latest version of Codex."""
 from datetime import datetime
 from datetime import timedelta
 from logging import getLogger
@@ -95,6 +96,7 @@ def is_outdated(
     cache_root=DEFAULT_CACHE_ROOT,
     repo_url_template=PYPI_URL_TEMPLATE,
 ):
+    """Is codex outdated."""
     installed_version = get_installed_version(package_name, parse=True)
     latest_version = get_latest_version(
         package_name, cache_root, repo_url_template, parse=True

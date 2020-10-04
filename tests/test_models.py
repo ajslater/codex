@@ -1,3 +1,4 @@
+"""Test models."""
 import datetime
 
 from django.test import TestCase
@@ -11,6 +12,8 @@ from codex.models import Volume
 
 
 class ComicTestCase(TestCase):
+    """Test Comic model."""
+
     COMIC_PATH = "/comics/foo.cbz"
     TITLE = "foo"
     DECADE = 1970
@@ -20,6 +23,7 @@ class ComicTestCase(TestCase):
     DATE = datetime.date(YEAR, MONTH, DAY)
 
     def setUp(self):
+        """Set up for tests."""
         library = Library.objects.create(path="/comics")
         publisher = Publisher.objects.create(name="FooPub")
         imprint = Imprint.objects.create(name="BarComics", publisher=publisher)
@@ -45,6 +49,7 @@ class ComicTestCase(TestCase):
         )
 
     def test_comic_save(self):
+        """Test comic model save method."""
         comic = Comic.objects.get(path=self.COMIC_PATH)
         self.assertEqual(comic.title, self.TITLE)
         self.assertEqual(comic.decade, self.DECADE)

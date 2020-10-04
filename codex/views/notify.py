@@ -1,3 +1,4 @@
+"""Notify views."""
 import logging
 
 from django.views.decorators.cache import cache_control

@@ -1,3 +1,4 @@
+"""Serializers for the browser view."""
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from rest_framework.serializers import BooleanField
@@ -34,8 +35,10 @@ def validate_decades(decades):
 
 def validate_null_filter(values):
     """
-    If a vuetify component has a null key it changes it to the index
-    So use a special code for null.
+    Use a special code for null.
+
+    Because if a vuetify component has a null key it changes it to the
+    array index.
     """
     for index, value in enumerate(values):
         if value == VUE_MODEL_NULL_CODE:
