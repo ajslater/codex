@@ -31,9 +31,8 @@ CONFIG_PATH.mkdir(exist_ok=True, parents=True)
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = get_secret_key(CONFIG_PATH)
 
-DEV = bool(os.environ.get("DEV", False))
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = DEV or bool(os.environ.get("DEBUG", False))
+DEBUG = bool(os.environ.get("DEBUG", False))
 
 #
 # Logging
@@ -56,7 +55,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
 ]
 
-if DEV:
+if DEBUG:
     # comes before static apps
     INSTALLED_APPS += ["livereload", "debug_toolbar"]
 
@@ -82,7 +81,7 @@ MIDDLEWARE = [
     "codex.middleware.TimezoneMiddleware",
     "django.middleware.cache.FetchFromCacheMiddleware",
 ]
-if DEV:
+if DEBUG:
     MIDDLEWARE += [
         "livereload.middleware.LiveReloadScript",
         "debug_toolbar.middleware.DebugToolbarMiddleware",
@@ -178,7 +177,7 @@ WHITENOISE_STATIC_PREFIX = "static/"
 STATIC_ROOT = CODEX_PATH / "static_root"
 STATIC_URL = ROOT_PATH + WHITENOISE_STATIC_PREFIX
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-if DEV:
+if DEBUG:
     STATIC_SRC = CODEX_PATH / "static_src"
     STATIC_SRC.mkdir(exist_ok=True, parents=True)
     STATIC_BUILD = CODEX_PATH / "static_build"

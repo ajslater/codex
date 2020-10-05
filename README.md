@@ -209,7 +209,7 @@ Codex is a Django Python webserver with a VueJS front end. This is my first ever
 
 `/codex/dev-server-ttabs.sh` will run the three or four different servers reccomended for development in terminal tabs.
 
-`/codex/run.sh` runs the main Django server. Set the `DEV` environment variable to activea development and debug mode: `DEV=1 ./run.sh`. This also lets you run the server without collecting static files for production and with a hot reloading frontend.
+`/codex/run.sh` runs the main Django server. Set the `DEBUG` environment variable to activate development and debug mode: `DEBUG=1 ./run.sh`. This also lets you run the server without collecting static files for production and with a hot reloading frontend.
 
 ### Links
 
