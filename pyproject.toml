@@ -101,5 +101,6 @@ addopts = """
     --cov-report=term
     --flake8
     --isort
+    --ignore=codex/migrations/
 """
 #    --mypy
