@@ -1,111 +1,18 @@
 <template>
   <div id="readerWrapper">
     <div v-if="isOpenToSee" id="readerContainer">
-      <div id="pagesContainer">
+      <v-main id="pagesContainer">
         <ReaderComicPage :page="+0" />
         <ReaderComicPage :page="+1" />
-      </div>
-      <nav id="navOverlay">
-        <div id="navColumns" @click="toggleToolbars()">
-          <section id="leftColumn" class="navColumn">
-            <router-link
-              v-if="routes.prev"
-              class="navLink"
-              :to="{ name: 'reader', params: routes.prev }"
-              @click.native.stop=""
-            />
-          </section>
-          <section id="middleColumn" class="navColumn" />
-          <section id="rightColumn" class="navColumn">
-            <router-link
-              v-if="routes.next"
-              class="navLink"
-              :to="{ name: 'reader', params: routes.next }"
-              @click.native.stop=""
-            />
-          </section>
-        </div>
+      </v-main>
+      <nav id="navOverlay" @click="toggleToolbars()">
+        <ReaderNavOverlay />
       </nav>
       <v-slide-y-transition>
-        <v-toolbar v-show="showToolbars" id="topToolbar" class="toolbar" dense>
-          <v-btn
-            id="closeBook"
-            :to="{ name: 'browser', params: browserRoute }"
-            large
-            ripple
-            >close book</v-btn
-          >
-          <v-spacer />
-          <v-toolbar-title id="toolbarTitle">{{ title }}</v-toolbar-title>
-          <v-spacer />
-          <v-dialog
-            class="readerSettings"
-            origin="center top"
-            transition="slide-y-transition"
-            overlay-opacity="0.5"
-          >
-            <template #activator="{ on }">
-              <v-btn icon v-on="on">
-                <v-icon>{{ mdiCog }}</v-icon>
-              </v-btn>
-            </template>
-            <h2>Reader Settings</h2>
-            <v-radio-group
-              id="fitToSelect"
-              :value="settingsDialogFitTo"
-              label="Shrink to"
-              @change="settingDialogChanged({ fitTo: $event })"
-            >
-              <v-radio
-                v-for="item in fitToChoices"
-                :key="item.value"
-                :label="item.text"
-                :value="item.value"
-              />
-            </v-radio-group>
-            <v-checkbox
-              :value="settingsDialogTwoPages"
-              label="Display Two pages"
-              :indeterminate="settingsDialogTwoPages == null"
-              ripple
-              @change="settingDialogChanged({ twoPages: $event === true })"
-            />
-            <v-switch
-              v-model="isSettingsDialogGlobalMode"
-              :label="settingsDialogSwitchLabel"
-            />
-            <v-btn
-              :class="{ invisible: isSettingsDialogGlobalMode }"
-              title="Use the global settings for all comics for this comic"
-              @click="settingDialogClear()"
-              >Clear Settings</v-btn
-            >
-          </v-dialog>
-          <MetadataDialog ref="metadataDialog" group="c" :pk="pk" />
-        </v-toolbar>
+        <ReaderTopToolbar v-show="showToolbars" />
       </v-slide-y-transition>
-
       <v-slide-y-reverse-transition>
-        <v-toolbar
-          v-show="showToolbars"
-          id="bottomToolbar"
-          class="toolbar"
-          dense
-          transform="center bottom"
-        >
-          <ReaderNavButton :value="0" />
-          <v-slider
-            id="slider"
-            :value="pageNumber"
-            min.number="+0"
-            :max="maxPage"
-            thumb-label
-            hide-details="auto"
-            dense
-            @change="routeTo({ pk, pageNumber: $event })"
-          />
-          <ReaderNavButton :value="maxPage" />
-        </v-toolbar>
+        <ReaderBottomToolbar v-show="showToolbars" />
       </v-slide-y-reverse-transition>
     </div>
     <div v-else id="announcement">
@@ -117,72 +24,28 @@
 </template>
 
 <script>
-import { mdiCog } from "@mdi/js";
-import { mapGetters, mapState } from "vuex";
+import { mapGetters } from "vuex";
 
-import { getFullComicName } from "@/components/comic-name";
-import MetadataDialog from "@/components/metadata-dialog.vue";
-import ReaderComicPage from "@/components/reader-comic-page.vue";
-import ReaderNavButton from "@/components/reader-nav-button.vue";
-const DEFAULT_ROUTE = { group: "r", pk: 0, page: 1 };
+import ReaderBottomToolbar from "@/components/reader-bottom-toolbar";
+import ReaderComicPage from "@/components/reader-comic-page";
+import ReaderNavOverlay from "@/components/reader-nav-overlay";
+import ReaderTopToolbar from "@/components/reader-top-toolbar";
 
 export default {
   name: "Reader",
   components: {
+    ReaderBottomToolbar,
     ReaderComicPage,
-    ReaderNavButton,
-    MetadataDialog,
+    ReaderNavOverlay,
+    ReaderTopToolbar,
   },
   data() {
     return {
-      mdiCog,
       showToolbars: false,
-      isSettingsDialogGlobalMode: false,
     };
   },
   computed: {
-    ...mapState("reader", {
-      title: function (state) {
-        return getFullComicName(
-          state.title.seriesName,
-          state.title.volumeName,
-          state.title.issue,
-          state.title.issueCount
-        );
-      },
-      maxPage: (state) => state.maxPage,
-      routes: (state) => state.routes,
-      settings: (state) => state.settings,
-      pk: (state) => state.routes.current.pk,
-      pageNumber: (state) => state.routes.current.pageNumber,
-      fitToChoices: (state) => state.formChoices.fitTo,
-      settingsScope: function (state) {
-        if (this.isSettingsDialogGlobalMode) {
-          return state.settings.globl;
-        }
-        return state.settings.local;
-      },
-    }),
-    ...mapState("browser", {
-      browserRoute: (state) => state.routes.current || DEFAULT_ROUTE,
-    }),
-    ...mapGetters("reader", ["computedSettings"]),
     ...mapGetters("auth", ["isOpenToSee"]),
-    settingsDialogTwoPages: function () {
-      return this.settingsScope.twoPages;
-    },
-    settingsDialogFitTo: function () {
-      return this.settingsScope.fitTo;
-    },
-    settingsDialogSwitchLabel: function () {
-      let label = "For ";
-      if (this.isSettingsDialogGlobalMode) {
-        label += "All Comics";
-      } else {
-        label += "This Comic";
-      }
-      return label;
-    },
   },
   watch: {
     $route(to, from) {
@@ -207,89 +70,14 @@ export default {
     });
     this.createPrefetches();
   },
-  mounted() {
-    // Keyboard Shortcuts
-    document.addEventListener("keyup", this._keyListener);
-  },
   beforeDestroy: function () {
     this.destroyPrefetches();
-    document.removeEventListener("keyup", this._keyListener);
   },
   methods: {
-    _keyListener: function (event) {
-      // XXX Hack to get around too many listeners being added.
-      event.stopPropagation();
-
-      if (event.key === "ArrowLeft") {
-        this.routeToPrev();
-      } else if (event.key === "ArrowRight") {
-        this.routeToNext();
-      } else if (event.key === "Escape") {
-        const mdd = this.$refs.metadataDialog;
-        if (mdd.isOpen) {
-          mdd.isOpen = false;
-        } else {
-          document.querySelector("#closeBook").click();
-        }
-      } else if (event.key === "w") {
-        this.settingChangedLocal({ fitTo: "WIDTH" });
-      } else if (event.key === "h") {
-        this.settingChangedLocal({ fitTo: "HEIGHT" });
-      } else if (event.key === "o") {
-        this.settingChangedLocal({ fitTo: "ORIG" });
-      } else if (event.key === "2") {
-        this.settingChangedLocal({ twoPages: !this.twoPages });
-      }
-    },
-    routeTo: function (page) {
-      if (!page) {
-        return;
-      }
-      if (page.pk === this.pk) {
-        if (page.pageNumber === this.pageNumber) {
-          return;
-        }
-        if (page.pageNumber > this.maxPage) {
-          page.maxPage = this.maxPage;
-        }
-      }
-      if (page.pageNumber < 0) {
-        page.pageNumber = 0;
-      }
-      this.$router.push({
-        name: "reader",
-        params: page,
-      });
-    },
     toggleToolbars: function () {
       this.showToolbars = !this.showToolbars;
     },
-    routeToPrev: function () {
-      this.routeTo(this.routes.prev);
-    },
-    routeToNext: function () {
-      this.routeTo(this.routes.next);
-    },
-    settingChangedLocal: function (data) {
-      this.$store.dispatch("reader/settingChangedLocal", data);
-    },
-    settingChangedGlobal: function (data) {
-      this.$store.dispatch("reader/settingChangedGlobal", data);
-    },
-    settingDialogChanged: function (data) {
-      if (this.isSettingsDialogGlobalMode) {
-        this.settingChangedGlobal(data);
-      } else {
-        this.settingChangedLocal(data);
-      }
-    },
-    settingDialogClear: function () {
-      const data = {
-        fitTo: null,
-        twoPages: null,
-      };
-      this.settingChangedLocal(data);
-    },
+
     createPrefetch(id) {
       const node = document.createElement("link");
       node.id = id;
@@ -312,6 +100,12 @@ export default {
 </script>
 
 <style scoped lang="scss">
+#navOverlay {
+  position: fixed;
+  top: 0px;
+  width: 100%;
+  height: 100vh;
+}
 #pagesContainer {
   display: flex;
   flex-wrap: nowrap;
@@ -323,78 +117,5 @@ export default {
 }
 #announcement {
   text-align: center;
-}
-/* NAV COLUMNS */
-#navOverlay {
-  position: fixed;
-  top: 0px;
-  width: 100%;
-  height: 100vh;
-}
-#navColumns {
-  width: 100%;
-  height: 100%;
-  padding-top: 48px;
-  padding-bottom: 48px;
-}
-.navColumn {
-  float: left;
-  width: 25%;
-  height: 100%;
-}
-#middleColumn {
-  width: 50%;
-}
-.navLink {
-  display: block;
-  height: 100%;
-}
-
-/* PAGES */
-.toolbar {
-  width: 100%;
-  position: fixed;
-}
-#topToolbar {
-  top: 0px;
-}
-#toolbarTitle {
-  overflow: auto;
-  text-overflow: unset;
-}
-#bottomToolbar {
-  bottom: 0px;
-}
-.invisible {
-  visibility: hidden;
-}
-</style>
-
-<!-- eslint-disable-next-line vue-scoped-css/require-scoped -->
-<style lang="scss">
-/* TOOLBARS */
-.toolbar .v-toolbar__content {
-  padding: 0px;
-}
-#topToolbar > .v-toolbar__content {
-  padding-right: 16px;
-}
-.v-dialog {
-  padding: 20px;
-  width: fit-content;
-  /* Seems like I'm fixing a bug here */
-  background-color: #121212;
-}
-/* Custom slider with a large control. */
-.v-input__slider .v-slider__thumb {
-  height: 48px;
-  width: 48px;
-  left: -24px;
-}
-.v-input__slider .v-slider__thumb::before {
-  left: -8px;
-  top: -8px;
-  height: 64px;
-  width: 64px;
 }
 </style>
