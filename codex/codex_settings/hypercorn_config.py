@@ -1,7 +1,8 @@
 """Parse the hypercorn config for settings."""
+from logging import getLogger
+
 import toml
 
-from logging import getLogger
 
 LOG = getLogger(__name__)
 

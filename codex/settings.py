@@ -17,8 +17,8 @@ import os
 from pathlib import Path
 
 from codex.codex_settings.codex_logging import init_logging
-from codex.codex_settings.secret_key import get_secret_key
 from codex.codex_settings.hypercorn_config import get_root_path
+from codex.codex_settings.secret_key import get_secret_key
 
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
