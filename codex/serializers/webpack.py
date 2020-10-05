@@ -7,8 +7,7 @@ Which is a little bit of overengineering.
 """
 import logging
 import mmap
-
-from glob import glob
+import re
 
 import simplejson as json
 
@@ -30,13 +29,16 @@ if DEBUG:
 else:
     JS_ROOTS = (PROD_JS_ROOT,)
 
+WEBPACK_MODULE_RE_TEMPLATES = {
+    PROD_JS_ROOT: r"^{name}\." + 12 * "." + r"\.js$",
+}
+if DEBUG:
+    WEBPACK_MODULE_RE_TEMPLATES[SRC_JS_ROOT] = "^{name}.json$"
+    WEBPACK_MODULE_RE_TEMPLATES[DEV_JS_ROOT] = "^{name}.js$"
 
-WEBSOCKET_MESSAGES_GLOB = "websocketMessages*.js[on]?"
-WEBPACK_MODULE_GLOBS = (
-    "browserChoices*.js[on]?",
-    "readerChoices*.js[on]?",
-    WEBSOCKET_MESSAGES_GLOB,
-)
+
+WEBSOCKET_MODULE_NAME = "websocketMessages"
+WEBPACK_MODULE_NAMES = ("browserChoices", "readerChoices", WEBSOCKET_MODULE_NAME)
 
 # These magic pad number are to get around some escaped chars in the
 # dev build version of webpack modules.
@@ -76,6 +78,19 @@ DEFAULTS = {}
 WEBSOCKET_MESSAGES = {}
 
 
+def find_filename_regex(js_root, module_name):
+    """Find a filename in a dir that matches the regex."""
+    if not js_root.is_dir():
+        return
+    re_template = WEBPACK_MODULE_RE_TEMPLATES[js_root]
+    regex_str = re_template.format(name=module_name)
+    regex = re.compile(regex_str)
+    for fn in js_root.iterdir():
+        if regex.match(fn.name):
+            return fn
+    LOG.error(f"Could not find {js_root} {module_name}")
+
+
 def extract_json(js_root, webpack_module_js):
     """Use different args to extract the json depending on origin."""
     args = EXTRACT_JSON_ARGS[js_root]
@@ -87,28 +102,22 @@ def extract_json(js_root, webpack_module_js):
     return json_str
 
 
-def parse_wepack_module(webpack_module_glob):
+def parse_wepack_module(module_name):
     """Extract the JSON core from a webpack module and parse it."""
     data_dict = fn = None
     for js_root in JS_ROOTS:
-        full_glob = str(js_root / webpack_module_glob)
-        globs = glob(full_glob)
+        fn = find_filename_regex(js_root, module_name)
         try:
-            if len(globs) == 0:
-                raise FileNotFoundError()
-            fn = globs[0]
             with open(fn, "r") as webpack_module_file, mmap.mmap(
                 webpack_module_file.fileno(), 0, access=mmap.ACCESS_READ
             ) as webpack_module_js:
                 json_str = extract_json(js_root, webpack_module_js)
                 data_dict = json.loads(json_str)
                 break
-        except FileNotFoundError as exc:
-            LOG.debug(f"Could not find {full_glob}: {exc}")
         except Exception as exc:
             LOG.exception(exc)
     if not data_dict:
-        LOG.error(f"Could not extract values from {webpack_module_glob}")
+        LOG.error(f"Could not extract values from {module_name}")
 
     return data_dict, fn
 
@@ -140,16 +149,16 @@ def build_choices_and_defaults(data_dict):
 def load_from_webpack_modules():
     """Load values from the vuetify formatted json into python dicts."""
     global CHOICES, DEFAULTS, WEBSOCKET_MESSAGES
-    for webpack_module_glob in WEBPACK_MODULE_GLOBS:
-        data_dict, fn = parse_wepack_module(webpack_module_glob)
+    for re_template in WEBPACK_MODULE_NAMES:
+        data_dict, fn = parse_wepack_module(re_template)
         if not data_dict:
             return
 
-        if webpack_module_glob == WEBSOCKET_MESSAGES_GLOB:
+        if re_template == WEBSOCKET_MODULE_NAME:
             WEBSOCKET_MESSAGES = data_dict
         else:
             build_choices_and_defaults(data_dict)
-        LOG.debug(f"Parsed {fn}")
+        LOG.info(f"Parsed {fn}")
 
 
 load_from_webpack_modules()
