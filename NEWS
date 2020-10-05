@@ -1,7 +1,7 @@
 v0.5.15
-* Reduced the big O complexity of metadata dialog. Now 1000x+ faster.
-* Colored logging to the logfile
-* Removed numeric and common password validators and made the minimum length 4
+* Reduced the big O complexity of metadata popup. Now 1000x+ faster.
+* Metadata popup now shows created_at, updated_at and path (if admin).
+* Removed numeric and common password validators. Made the minimum length 4.
 
 v0.5.14
 * Metadata view for browse containers. Also observes filters.
