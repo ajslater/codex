@@ -13,8 +13,6 @@ from codex.views.mixins import UserBookmarkMixin
 class UserBookmarkFinishedView(BrowserBaseView, UserBookmarkMixin):
     """Mark read or unread recursively."""
 
-    # TODO possibly combine with ComicBookmarkView
-
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
 
     def patch(self, request, *args, **kwargs):
