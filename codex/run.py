@@ -99,7 +99,7 @@ def _shutdown_signal_handler():
     SHUTDOWN_EVENT.set()
 
 
-def _restart_signal_handler(main_pid):
+def _restart_signal_handler():
     global RESTART_EVENT
     if RESTART_EVENT.is_set():
         return

@@ -51,7 +51,6 @@ from codex.serializers.webpack import WEBSOCKET_MESSAGES as MESSAGES
 from codex.websocket_server import BROADCAST_MSG
 from codex.websocket_server import BROADCAST_SECRET
 from codex.websocket_server import IPC_SUFFIX
-from codex.websocket_server import SHUTDOWN_MSG
 from codex.websocket_server import WS_API_PATH
 
 
@@ -101,15 +100,10 @@ def send_json(ws, typ, message=None):
         obj["message"] = message
     msg = json.dumps(obj)
     if ws is None or not ws.connected:
+        print("get_websocket()")
         ws = get_websocket()
     ws.send(msg)
     return ws
-
-
-def shutdown_websocket_server(ws):
-    """Send a shutdown message and close the socket."""
-    ws = send_json(ws, BROADCAST_MSG, SHUTDOWN_MSG)
-    ws.close()
 
 
 def librarian(main_pid):
@@ -180,7 +174,8 @@ def librarian(main_pid):
         except Exception as exc:
             LOG.exception(exc)
 
-    shutdown_websocket_server(ws)
+    if ws:
+        ws.close()
     pool.close()
     crond.stop()
     watcher.stop()
