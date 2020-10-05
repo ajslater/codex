@@ -69,8 +69,8 @@ pytest-flake8 = "^1.0"
 pytest-isort = "^1.1"
 #pytest-monkeytype = "^1.0"
 radon = "^4.1"
-#vulture = "^2.1"
 
+#vulture = "^2.1"
 [tool.poetry.scripts]
 codex = "codex.run:main"
 

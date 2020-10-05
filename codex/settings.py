@@ -17,6 +17,7 @@ import os
 from pathlib import Path
 
 import toml
+
 from codex.log_handlers import init_logging
 from codex.secret_key import get_secret_key
 

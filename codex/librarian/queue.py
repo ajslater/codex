@@ -99,6 +99,7 @@ class UpdateCronTask(SleepTask):
 @dataclass
 class RestartTask(SleepTask):
     """for restart."""
+
     pass
 
 

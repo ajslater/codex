@@ -1,5 +1,6 @@
 """Logging classes."""
 import logging
+
 from logging.handlers import TimedRotatingFileHandler
 
 from colors import color

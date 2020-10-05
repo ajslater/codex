@@ -10,10 +10,10 @@ from django.utils.html import format_html
 from codex.librarian.cover import purge_all_covers
 from codex.librarian.queue import QUEUE
 from codex.librarian.queue import LibraryChangedTask
+from codex.librarian.queue import RestartTask
 from codex.librarian.queue import ScannerCronTask
 from codex.librarian.queue import ScanRootTask
 from codex.librarian.queue import UpdateCronTask
-from codex.librarian.queue import RestartTask
 from codex.librarian.queue import WatcherCronTask
 from codex.models import AdminFlag
 from codex.models import FailedImport
@@ -144,6 +144,7 @@ class AdminAdminFlag(AdminNoAddDelete):
     update_now.short_description = "Update Codex Now"
 
     def restart_now(self, request, queryset):
+        """Send a restart task immediately."""
         QUEUE.put(RestartTask(sleep=0))
 
     restart_now.short_description = "Restart Codex Now"

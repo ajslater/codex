@@ -34,14 +34,16 @@ from codex.librarian.queue import ComicMovedTask
 from codex.librarian.queue import FolderDeletedTask
 from codex.librarian.queue import FolderMovedTask
 from codex.librarian.queue import LibraryChangedTask
+from codex.librarian.queue import RestartTask
 from codex.librarian.queue import ScanDoneTask
 from codex.librarian.queue import ScannerCronTask
 from codex.librarian.queue import ScanRootTask
-from codex.librarian.queue import UpdateCronTask, RestartTask
+from codex.librarian.queue import UpdateCronTask
 from codex.librarian.queue import WatcherCronTask
 from codex.librarian.scanner import scan_cron
 from codex.librarian.scanner import scan_root
-from codex.librarian.update import update_codex, restart_codex
+from codex.librarian.update import restart_codex
+from codex.librarian.update import update_codex
 from codex.librarian.watcherd import Uatu
 from codex.models import Comic
 from codex.models import Folder

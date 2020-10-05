@@ -50,5 +50,6 @@ def update_codex(main_pid, force=False):
 
 
 def restart_codex(main_pid):
+    """Send a system SIGUSR1 signal as handled in run.py."""
     LOG.info("Sending restart signal.")
     os.kill(main_pid, signal.SIGUSR1)
