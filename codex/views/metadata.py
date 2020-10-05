@@ -48,9 +48,11 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
     AGGREGATE_FIELDS = set(
         ("bookmark", "x_cover_path", "finished", "progress", "size", "x_page_count")
     )
+    # DO NOT USE BY ITSELF. USE get_comic_value_fields() instead.
     COMIC_VALUE_FIELDS = set(
         (
             "country",
+            "created_at",
             "critical_rating",
             "day",
             "description",
@@ -60,15 +62,18 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
             "maturity_rating",
             "month",
             "notes",
+            "path",
             "read_ltr",
             "scan_info",
             "summary",
             "title",
+            "updated_at",
             "user_rating",
             "web",
             "year",
         )
     )
+    ADMIN_COMIC_VALUE_FIELDS = set(("path",))
     COMIC_RELATED_VALUE_FIELD_MAP = bidict(
         {
             "series__volume_count": "volume_count",
@@ -99,7 +104,18 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
     PK_LIST_SUFFIX = "_pk_list"
     COUNT_SUFFIX = "_count"
     COMIC_PK_LIST_KEY = "comic" + PK_LIST_SUFFIX
-    COMIC_SIMPLE_AGGREGATE_FIELDS = COMIC_VALUE_FIELDS | COMIC_FK_FIELDS
+
+    def get_comic_value_fields(self):
+        """Include the path field for staff."""
+        fields = self.COMIC_VALUE_FIELDS
+        if self.request.user and self.request.user.is_staff:
+            fields |= self.ADMIN_COMIC_VALUE_FIELDS
+        return fields
+
+    def get_comic_simple_aggregate_fields(self):
+        """Include the path field for staff."""
+        comic_value_fields = self.get_comic_value_fields()
+        return comic_value_fields | self.COMIC_FK_FIELDS
 
     def get_aggregates(self, aggregate_filter):
         """Return metadata aggregate data and comic pks."""
@@ -158,7 +174,7 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
 
         agg_dict = {self.COMIC_PK_LIST_KEY: GroupConcat("pk", distinct=True)}
 
-        for rel in self.COMIC_SIMPLE_AGGREGATE_FIELDS:
+        for rel in self.get_comic_simple_aggregate_fields():
             annotation_name = rel + self.COUNT_SUFFIX
             agg_func = Count(rel, distinct=True)
             agg_dict[annotation_name] = agg_func
@@ -182,7 +198,9 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
             "fk": set(),
             "m2m": set(),
         }
-        self.build_pick_set(self.COMIC_VALUE_FIELDS, count_dict, pick_sets, "value")
+        self.build_pick_set(
+            self.get_comic_value_fields(), count_dict, pick_sets, "value"
+        )
         self.build_pick_set(
             self.COMIC_RELATED_VALUE_ANNOTATIONS, count_dict, pick_sets, "related_value"
         )

@@ -37,7 +37,6 @@ export default {
     document.addEventListener("keyup", this._keyListener);
   },
   beforeDestroy: function () {
-    this.destroyPrefetches();
     document.removeEventListener("keyup", this._keyListener);
   },
 

@@ -115,15 +115,28 @@
           />
         </span>
         <span id="uneditableMetadata">
-          <span>
-            <span v-if="md.aggregates.bookmark"
-              >Read {{ md.aggregates.bookmark }} of </span
-            >{{ md.aggregates.x_page_count }} Pages
-            <span v-if="md.comic.finished">, Finished</span>
-          </span>
-          <span id="size">
-            {{ md.aggregates.size | bytes }}
-          </span>
+          <div>
+            <span>
+              <span v-if="md.aggregates.bookmark"
+                >Read {{ md.aggregates.bookmark }} of </span
+              >{{ md.aggregates.x_page_count }} Pages
+              <span v-if="md.comic.finished">, Finished</span>
+            </span>
+            <span id="size">
+              {{ md.aggregates.size | bytes }}
+            </span>
+          </div>
+          <table id="mtime">
+            <tr v-if="md.comic.created_at" id="created_at">
+              <td>Created at</td>
+              <td>{{ formatDatetime(md.comic.updated_at) }}</td>
+            </tr>
+            <tr v-if="md.comic.updated_at" id="updated_at">
+              <td>Updated at</td>
+              <td>{{ formatDatetime(md.comic.updated_at) }}</td>
+            </tr>
+          </table>
+          <span v-if="md.comic.path"> Path: {{ md.comic.path }} </span>
         </span>
 
         <MetadataCombobox
@@ -333,6 +346,15 @@ import { getReaderRoute } from "@/router/route";
 const CHILDREN_PER_SECOND = 9; // ~10 on my machine
 const UPDATE_INTERVAL = 250;
 
+const DATE_OPTIONS = {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+};
+
 export default {
   name: "MetadataButton",
   components: {
@@ -460,6 +482,10 @@ export default {
         that.updateProgress();
       }, UPDATE_INTERVAL);
     },
+    formatDatetime: function (ds) {
+      const dt = new Date(ds);
+      return new Intl.DateTimeFormat("en-US", DATE_OPTIONS).format(dt);
+    },
   },
 };
 </script>
@@ -548,8 +574,13 @@ export default {
 .halfWidth {
   display: inline-block;
 }
-#size {
-  padding-left: 1em;
+#mtime {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  border-collapse: collapse;
+}
+#mtime td {
+  padding-right: 0.25em;
 }
 .placeholder {
   margin-top: 48px;
