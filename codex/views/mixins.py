@@ -3,20 +3,20 @@ from copy import copy
 
 from django.contrib.sessions.models import Session
 
-from codex.choices.static import DEFAULTS
 from codex.models import Comic
 from codex.models import UserBookmark
+from codex.serializers.webpack import DEFAULTS
 
 
 class SessionMixin:
     """Generic Session Mixin."""
 
-    BROWSE_KEY = "browse"
+    BROWSER_KEY = "browser"
     READER_KEY = "reader"
-    KEYS = (BROWSE_KEY, READER_KEY)
+    KEYS = (BROWSER_KEY, READER_KEY)
 
     SESSION_DEFAULTS = {
-        BROWSE_KEY: {
+        BROWSER_KEY: {
             "filters": {
                 "bookmark": DEFAULTS["bookmarkFilter"],
                 "decade": [],

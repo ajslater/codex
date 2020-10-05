@@ -135,6 +135,7 @@ The config directory also holds the main sqlite database, a django cache and com
 Here's an example nginx config with a subpath named '/codex'.
 
 ```nginx
+    # HTTP
 proxy_set_header  Host              $http_host;
     proxy_set_header  X-Forwarded-For   $proxy_add_x_forwarded_for;
     proxy_set_header  X-Forwarded-Host  $server_name;
@@ -143,7 +144,7 @@ proxy_set_header  Host              $http_host;
     proxy_set_header  X-Real-IP         $remote_addr;
     proxy_set_header  X-Scheme          $scheme;
 
-    # WS
+    # Websockets
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection "Upgrade"
@@ -208,7 +209,7 @@ Codex is a Django Python webserver with a VueJS front end. This is my first ever
 
 `/codex/dev-server-ttabs.sh` will run the three or four different servers reccomended for development in terminal tabs.
 
-`/codex/run.sh` runs the main Django server. Set the `DEV` environment variable to activea development and debug mode: `DEV=1 ./run.sh`. This also lets you run the server without collecting static files for production and with a hot reloading frontend.
+`/codex/run.sh` runs the main Django server. Set the `DEBUG` environment variable to activate development and debug mode: `DEBUG=1 ./run.sh`. This also lets you run the server without collecting static files for production and with a hot reloading frontend.
 
 ### Links
 

@@ -2,7 +2,9 @@
   <v-combobox
     v-if="model || show"
     v-model="model"
-    :items="computedItems"
+    :items="vuetifyItems"
+    item-value="pk"
+    item-text="name"
     :label="label"
     hide-details="auto"
     dense
@@ -12,10 +14,7 @@
 </template>
 
 <script>
-import {
-  computedItems,
-  initialItem,
-} from "@/components/metadata-computed-items";
+import { toVuetifyItem, toVuetifyItems } from "@/api/v1/list-items";
 
 export default {
   name: "MetadataCombobox",
@@ -32,23 +31,23 @@ export default {
       type: Boolean,
       default: false,
     },
-    values: {
-      type: Array,
-      default: null,
+    value: {
+      type: [Object, String, Number, Boolean],
+      default: undefined,
     },
   },
   data() {
     return {
-      model: null,
+      model: undefined,
     };
   },
   computed: {
-    computedItems: function () {
-      return computedItems(this.items, this.values);
+    vuetifyItems: function () {
+      return toVuetifyItems(this.value, this.items);
     },
   },
   created: function () {
-    this.model = initialItem(this.computedItems);
+    this.model = toVuetifyItem(this.value);
   },
 };
 </script>

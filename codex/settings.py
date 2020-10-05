@@ -12,13 +12,13 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 
 
 import logging
-import logging.handlers
 import os
 
 from pathlib import Path
 
-import coloredlogs
-import toml
+from codex.codex_settings.codex_logging import init_logging
+from codex.codex_settings.hypercorn_config import get_root_path
+from codex.codex_settings.secret_key import get_secret_key
 
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -28,52 +28,18 @@ CONFIG_PATH = Path(os.environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
 CONFIG_PATH.mkdir(exist_ok=True, parents=True)
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
-
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY_PATH = CONFIG_PATH / "secret_key"
-if not SECRET_KEY_PATH.exists():
-    from django.core.management.utils import get_random_secret_key
+SECRET_KEY = get_secret_key(CONFIG_PATH)
 
-    with open(SECRET_KEY_PATH, "w") as scf:
-        scf.write(get_random_secret_key())
-
-with open(SECRET_KEY_PATH, "r") as scf:
-    SECRET_KEY = scf.read().strip()
-
-DEV = bool(os.environ.get("DEV", False))
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = DEV or bool(os.environ.get("DEBUG", False))
+DEBUG = bool(os.environ.get("DEBUG", False))
 
+#
+# Logging
+#
 LOG_DIR = CONFIG_PATH / "logs"
-LOG_DIR.mkdir(exist_ok=True, parents=True)
-LOG_FILENAME = LOG_DIR / "codex.log"
-if DEBUG:
-    LOG_LEVEL = "DEBUG"
-else:
-    LOG_LEVEL = "INFO"
+init_logging(LOG_DIR, DEBUG)
 
-logging.basicConfig(level=LOG_LEVEL)
-LOG_FILE_HANDLER = logging.handlers.TimedRotatingFileHandler(
-    LOG_FILENAME, when="D", backupCount=30
-)
-FMT = "%(asctime)s %(name)s[%(process)d] %(levelname)s %(message)s"
-# https://coloredlogs.readthedocs.io/en/latest/api.html#changing-the-colors-styles
-LEVEL_STYLES = {
-    "spam": {"color": "green", "faint": True},
-    "debug": {"color": "black", "bright": True},
-    "verbose": {"color": "blue"},
-    "info": {},
-    "notice": {"color": "magenta"},
-    "warning": {"color": "yellow"},
-    "success": {"color": "green", "bold": True},
-    "error": {"color": "red"},
-    "critical": {"color": "red", "bold": True},
-}
-coloredlogs.install(level=LOG_LEVEL, fmt=FMT, level_styles=LEVEL_STYLES)
-LOG_FILE_HANDLER.setFormatter(logging.Formatter(FMT))
-logging.getLogger("").addHandler(LOG_FILE_HANDLER)
 LOG = logging.getLogger(__name__)
 
 ALLOWED_HOSTS = ["*"]
@@ -89,7 +55,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
 ]
 
-if DEV:
+if DEBUG:
     # comes before static apps
     INSTALLED_APPS += ["livereload", "debug_toolbar"]
 
@@ -115,7 +81,7 @@ MIDDLEWARE = [
     "codex.middleware.TimezoneMiddleware",
     "django.middleware.cache.FetchFromCacheMiddleware",
 ]
-if DEV:
+if DEBUG:
     MIDDLEWARE += [
         "livereload.middleware.LiveReloadScript",
         "debug_toolbar.middleware.DebugToolbarMiddleware",
@@ -165,40 +131,26 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth."
         "password_validation.UserAttributeSimilarityValidator"
     },
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 4},
+    },
 ]
 
 
 # Internationalization
 # https://docs.djangoproject.com/en/3.0/topics/i18n/
-
 LANGUAGE_CODE = "en-us"
-
 TIME_ZONE = "UTC"
-
 USE_I18N = True
-
 USE_L10N = True
-
 USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
-if DEBUG:
-    # Whitenoise adds the root_path itself in DEBUG mode
-    ROOT_PATH = ""
-else:
-    HYPERCORN_CONF_PATH = CONFIG_PATH / "hypercorn.toml"
-    try:
-        hypercorn_conf = toml.load(HYPERCORN_CONF_PATH)
-        # Get root path. Iff it exists ensure a trailing slash.
-        ROOT_PATH = os.path.join(hypercorn_conf.get("root_path", "").lstrip("/"), "")
-    except Exception:
-        LOG.warn("Couldn't find hypercorn config to check static root path.")
-        ROOT_PATH = ""
+ROOT_PATH = get_root_path(CONFIG_PATH, DEBUG)
+
 CONFIG_STATIC = CONFIG_PATH / "static"
 CONFIG_STATIC.mkdir(exist_ok=True, parents=True)
 # XXX Abuse the Whitenoise ROOT feature to serve covers
@@ -210,7 +162,7 @@ WHITENOISE_STATIC_PREFIX = "static/"
 STATIC_ROOT = CODEX_PATH / "static_root"
 STATIC_URL = ROOT_PATH + WHITENOISE_STATIC_PREFIX
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-if DEV:
+if DEBUG:
     STATIC_SRC = CODEX_PATH / "static_src"
     STATIC_SRC.mkdir(exist_ok=True, parents=True)
     STATIC_BUILD = CODEX_PATH / "static_build"

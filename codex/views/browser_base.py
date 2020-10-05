@@ -1,10 +1,16 @@
 """Views for browsing comic library."""
 import logging
 
+from bidict import bidict
 from django.db.models import Q
 from rest_framework.views import APIView
 
+from codex.models import Comic
 from codex.models import Folder
+from codex.models import Imprint
+from codex.models import Publisher
+from codex.models import Series
+from codex.models import Volume
 from codex.views.mixins import SessionMixin
 
 
@@ -13,16 +19,29 @@ from codex.views.mixins import SessionMixin
 LOG = logging.getLogger(__name__)
 
 
-class BrowseBaseView(APIView, SessionMixin):
+class BrowserBaseView(APIView, SessionMixin):
     """Browse comics with a variety of filters and sorts."""
 
+    COMIC_GROUP = "c"
     FOLDER_GROUP = "f"
+    GROUP_MODEL = bidict(
+        {
+            "r": None,
+            "p": Publisher,
+            "i": Imprint,
+            "s": Series,
+            "v": Volume,
+            COMIC_GROUP: Comic,
+            FOLDER_GROUP: Folder,
+        }
+    )
     GROUP_RELATION = {
         "p": "publisher",
         "i": "imprint",
         "s": "series",
         "v": "volume",
         "c": "comic",
+        "f": "folder",
     }
     FILTER_ATTRIBUTES = ("decade", "characters")
 
@@ -67,7 +86,7 @@ class BrowseBaseView(APIView, SessionMixin):
         return bookmark_filter
 
     def get_folders_filter(self):
-        """Filters for ALL parent folders not just immediate one."""
+        """Get a filter for ALL parent folders not just immediate one."""
         pk = self.kwargs.get("pk")
         if pk:
             folders_filter = Q(folder__in=[pk])
@@ -86,19 +105,18 @@ class BrowseBaseView(APIView, SessionMixin):
 
         return Q(parent_folder=self.host_folder)
 
-    def get_browse_container_filter(self):
+    def get_browser_group_filter(self):
         """Get the objects we'll be displaying."""
         # Get the instances that are children of the group_instance
         # And the filtered comics that are children of the group_instance
+        group_filter = Q()
         pk = self.kwargs.get("pk")
         if pk:
             group = self.kwargs.get("group")
             group_relation = self.GROUP_RELATION[group]
-            container_filter = Q(**{group_relation: pk})
-        else:
-            container_filter = Q()
+            group_filter |= Q(**{group_relation: pk})
 
-        return container_filter
+        return group_filter
 
     def get_aggregate_filter(self):
         """Return the filter for making aggregates."""
@@ -118,7 +136,7 @@ class BrowseBaseView(APIView, SessionMixin):
             else:
                 object_filter = self.get_parent_folder_filter()
         else:
-            object_filter = self.get_browse_container_filter()
+            object_filter = self.get_browser_group_filter()
 
         if choices:
             aggregate_filter = None

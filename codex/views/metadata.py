@@ -1,339 +1,282 @@
 """View for marking comics read and unread."""
 import logging
-import time
 
-from django.db.models import FilteredRelation
-from django.http import FileResponse
-from django.http import Http404
+from bidict import bidict
+from django.db.models import Aggregate
+from django.db.models import CharField
+from django.db.models import Count
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from codex.models import Comic
 from codex.serializers.metadata import MetadataSerializer
-from codex.serializers.metadata import UserBookmarkFinishedSerializer
-from codex.settings import DEBUG
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
-from codex.views.browse_metadata_base import BrowseMetadataBase
-from codex.views.mixins import SessionMixin
+from codex.views.browser_metadata_base import BrowserMetadataBase
 from codex.views.mixins import UserBookmarkMixin
 
 
 LOG = logging.getLogger(__name__)
 
 
-class ComicDownloadView(APIView):
-    """Return the comic archive file as an attachment."""
+class GroupConcat(Aggregate):
+    """sqlite3 GROUP_CONCAT function."""
 
-    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
+    # https://stackoverrun.com/vi/q/2730644
 
-    def get(self, request, *args, **kwargs):
-        """Download a comic archive."""
-        pk = kwargs.get("pk")
-        try:
-            comic_path = Comic.objects.only("path").get(pk=pk).path
-        except Comic.DoesNotExist:
-            raise Http404(f"Comic {pk} not not found.")
+    # In Postgres we could use ArrayAgg
+    function = "GROUP_CONCAT"
+    template = "%(function)s(%(x_distinct)s%(expressions)s%(separator)s)"
+    allow_distinct = True
 
-        fd = open(comic_path, "rb")
-        return FileResponse(fd, as_attachment=True)
-
-
-class UserBookmarkFinishedView(APIView, SessionMixin, UserBookmarkMixin):
-    """Mark read or unread recursively."""
-
-    # TODO possibly combine with ComicBookmarkView
-
-    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
-
-    def patch(self, request, *args, **kwargs):
-        """Mark read or unread recursively."""
-        serializer = UserBookmarkFinishedSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        group = self.kwargs.get("group")
-        relation = BrowseMetadataBase.GROUP_RELATION.get(group)
-        pk = self.kwargs.get("pk")
-        # Optimizing this call with only seems to fail the subsequent updates
-        comics = Comic.objects.filter(**{relation: pk})
-        updates = {"finished": serializer.validated_data.get("finished")}
-
-        for comic in comics:
-            # can't do this in bulk if using update_or_create withtout a
-            # third party packages.
-            self.update_user_bookmark(updates, comic=comic)
-
-        return Response()
+    def __init__(self, expression, distinct=False, separator=None, **extra):
+        """Pass special arguments for the template."""
+        # use x_distinct so as not to override django super.distinct
+        super().__init__(
+            expression,
+            x_distinct="DISTINCT " if distinct else "",
+            distict=distinct,
+            separator=', "%s"' % separator if separator else "",
+            output_field=CharField(),
+            **extra,
+        )
 
 
-class MetadataView(BrowseMetadataBase, SessionMixin, UserBookmarkMixin):
+class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
     """Comic metadata."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
 
-    CONTAINER_AGG_SERIALIZER_MAP = {
-        "bookmark": "bookmark",
-        "child_count": "childCount",
-        "x_cover_path": "coverPath",
-        "finished": "finished",
-        "progress": "progress",
-        "size": "size",
-        "x_page_count": "pageCount",
-    }
-    CONTAINER_VALUES = tuple(
-        list(CONTAINER_AGG_SERIALIZER_MAP.keys()) + ["x_comic__pk"]
+    AGGREGATE_FIELDS = set(
+        ("bookmark", "x_cover_path", "finished", "progress", "size", "x_page_count")
     )
-    COMIC_FK_SERIALIZER_MAP = {
-        "imprint": "imprintChoices",
-        "publisher": "publisherChoices",
-        "series": "seriesChoices",
-        "volume": "volumeChoices",
-    }
-    COMIC_M2M_SERIALIZER_MAP = {
-        "characters": "charactersChoices",
-        "genres": "genresChoices",
-        "locations": "locationsChoices",
-        "series_groups": "seriesGroupsChoices",
-        "story_arcs": "storyArcsChoices",
-        "tags": "tagsChoices",
-        "teams": "teamsChoices",
-    }
-    # TODO do vue choice transforms on the client side
-    VUE_CHOICE_KEYS = tuple(
-        list(COMIC_FK_SERIALIZER_MAP.values()) + list(COMIC_M2M_SERIALIZER_MAP.values())
+    # DO NOT USE BY ITSELF. USE get_comic_value_fields() instead.
+    COMIC_VALUE_FIELDS = set(
+        (
+            "country",
+            "created_at",
+            "critical_rating",
+            "day",
+            "description",
+            "format",
+            "issue",
+            "language",
+            "maturity_rating",
+            "month",
+            "notes",
+            "path",
+            "read_ltr",
+            "scan_info",
+            "summary",
+            "title",
+            "updated_at",
+            "user_rating",
+            "web",
+            "year",
+        )
     )
+    ADMIN_COMIC_VALUE_FIELDS = set(("path",))
+    COMIC_RELATED_VALUE_FIELD_MAP = bidict(
+        {
+            "series__volume_count": "volume_count",
+            "volume__issue_count": "issue_count",
+        }
+    )
+    COMIC_RELATED_VALUE_ANNOTATIONS = set(COMIC_RELATED_VALUE_FIELD_MAP.values())
+    COMIC_RELATED_VALUE_FIELDS = set(COMIC_RELATED_VALUE_FIELD_MAP.keys())
+    COMIC_FK_FIELDS = set(
+        (
+            "imprint",
+            "publisher",
+            "series",
+            "volume",
+        )
+    )
+    COMIC_M2M_FIELDS = set(
+        (
+            "characters",
+            "genres",
+            "locations",
+            "series_groups",
+            "story_arcs",
+            "tags",
+            "teams",
+        )
+    )
+    PK_LIST_SUFFIX = "_pk_list"
+    COUNT_SUFFIX = "_count"
+    COMIC_PK_LIST_KEY = "comic" + PK_LIST_SUFFIX
 
-    COMIC_FIELD_SERIALIZER_MAP = {
-        "country": "countryChoices",
-        "critical_rating": "criticalRatingChoices",
-        "day": "dayChoices",
-        "description": "descriptionChoices",
-        "format": "formatChoices",
-        "issue": "issueChoices",
-        "language": "languageChoices",
-        "maturity_rating": "maturityRatingChoices",
-        "month": "monthChoices",
-        "notes": "notesChoices",
-        "read_ltr": "readLTRChoices",
-        "scan_info": "scanInfoChoices",
-        "summary": "summaryChoices",
-        "title": "titleChoices",
-        "user_rating": "userRatingChoices",
-        "web": "webChoices",
-        "year": "yearChoices",
-        "series.volume_count": "volumeCountChoices",
-        "volume.issue_count": "issueCountChoices",
-    }
+    def get_comic_value_fields(self):
+        """Include the path field for staff."""
+        fields = self.COMIC_VALUE_FIELDS
+        if self.request.user and self.request.user.is_staff:
+            fields |= self.ADMIN_COMIC_VALUE_FIELDS
+        return fields
 
-    TEXT_AREA_KEYS = set(("summary", "description", "notes"))
+    def get_comic_simple_aggregate_fields(self):
+        """Include the path field for staff."""
+        comic_value_fields = self.get_comic_value_fields()
+        return comic_value_fields | self.COMIC_FK_FIELDS
 
-    def query_container(self):
-        """Return container aggregate data and comic pks."""
-
+    def get_aggregates(self, aggregate_filter):
+        """Return metadata aggregate data and comic pks."""
         # Create the aggregates like we do for the browser
         group = self.kwargs["group"]
         pk = self.kwargs["pk"]
 
         model = self.GROUP_MODEL[group]
-        aggregate_filter = self.get_aggregate_filter()
 
         obj = model.objects.filter(pk=pk)
         if model != Comic:
-            agg_func = self.get_aggregate_func("size", model, aggregate_filter)
-            obj = obj.annotate(size=agg_func)
+            size_func = self.get_aggregate_func("size", model, aggregate_filter)
+            obj = obj.annotate(size=size_func)
         order_key = self.params.get("sort_by", self.DEFAULT_ORDER_KEY)
         obj = self.annotate_cover_path(obj, model, aggregate_filter, order_key)
-        obj = self.annotate_children_and_page_count(obj, aggregate_filter)
+        obj = self.annotate_page_count(obj, aggregate_filter)
         obj = self.annotate_bookmarks(obj)
         obj = self.annotate_progress(obj)
-        obj = obj.annotate(
-            x_comic=FilteredRelation("comic", condition=aggregate_filter)
+
+        obj = obj.values(*self.AGGREGATE_FIELDS)
+
+        return obj.first()
+
+    def get_comic_queryset(self, aggregate_filter):
+        """Get the comic query for getting the pick set & comic."""
+        group = self.kwargs["group"]
+        pk = self.kwargs["pk"]
+        host_rel = self.GROUP_RELATION[group]
+        comic_qs = Comic.objects.filter(**{host_rel: pk}).filter(aggregate_filter)
+        return comic_qs
+
+    @classmethod
+    def build_pick_set(cls, fields, count_dict, pick_sets, key, field_suffix=""):
+        """Build a pick set by checking the count_dict."""
+        for field in fields:
+            count_field = field + field_suffix + cls.COUNT_SUFFIX
+            if count_dict[count_field] != 1:
+                continue
+            pick_sets[key].add(field)
+
+    def get_pick_sets(self, comic_qs):
+        """Determine which fields are common across all comics."""
+        agg_comics = (
+            comic_qs.all()
+            .select_related(*self.COMIC_FK_FIELDS)
+            .prefetch_related(*self.COMIC_M2M_FIELDS)
         )
-        # Get the values as a dict
-        container_values = obj.values(*self.CONTAINER_VALUES)
 
-        # Copy the values into a dict with serializer names
-        comic_summary = {"pks": set()}
-        for obj in container_values:
-            comic_summary["pks"].add(obj.get("x_comic__pk"))
-        first_obj = container_values[0]
-        for (
-            query_key,
-            serializer_key,
-        ) in self.CONTAINER_AGG_SERIALIZER_MAP.items():
-            comic_summary[serializer_key] = first_obj.get(query_key)
+        m2m_annotations = {}
+        agg_comics = agg_comics.values("pk")  # group by
+        for rel in self.COMIC_M2M_FIELDS:
+            ann_name = rel + self.PK_LIST_SUFFIX
+            func = GroupConcat(f"{rel}__pk", distinct=True)
+            m2m_annotations[ann_name] = func
+        agg_comics = agg_comics.annotate(**m2m_annotations)
 
-        return comic_summary
+        agg_dict = {self.COMIC_PK_LIST_KEY: GroupConcat("pk", distinct=True)}
 
-    @staticmethod
-    def ensure_collection(comic_summary, serializer_key, comic_pk, collection_type):
-        """Ensure a set or dict exists to populate."""
-        if serializer_key not in comic_summary:
-            comic_summary[serializer_key] = dict()
+        for rel in self.get_comic_simple_aggregate_fields():
+            annotation_name = rel + self.COUNT_SUFFIX
+            agg_func = Count(rel, distinct=True)
+            agg_dict[annotation_name] = agg_func
+        for rel in self.COMIC_RELATED_VALUE_FIELDS:
+            rel_safe = self.COMIC_RELATED_VALUE_FIELD_MAP[rel]
+            annotation_name = rel_safe + self.COUNT_SUFFIX
+            agg_func = Count(rel, distinct=True)
+            agg_dict[annotation_name] = agg_func
+        for rel in self.COMIC_M2M_FIELDS:
+            annotation_name = rel + self.COUNT_SUFFIX
+            list_annotation = rel + self.PK_LIST_SUFFIX
+            agg_func = Count(list_annotation, distinct=True)
+            agg_dict[annotation_name] = agg_func
 
-        if comic_pk not in comic_summary[serializer_key]:
-            comic_summary[serializer_key][comic_pk] = collection_type()
+        count_dict = agg_comics.aggregate(**agg_dict)
 
-    def query_comics(self, pks):
-        """
-        Aggregate comic data in python because sqllite doesn't have array
-        fields.
-        """
-        comics = Comic.objects.filter(pk__in=pks).prefetch_related()
-        comic_summary = {"pks": set()}
-        for comic in comics:
-            comic_summary["pks"].add(comic.pk)
-            # FIELDS
-            for (
-                long_field,
-                serializer_key,
-            ) in self.COMIC_FIELD_SERIALIZER_MAP.items():
-                # Add the value to a set
-                self.ensure_collection(comic_summary, serializer_key, comic.pk, set)
-                fields = long_field.split(".")
-                relation = comic
-                for field in fields:
-                    # walk the relation chain
-                    value = getattr(relation, field, None)
-                    relation = value
-                comic_summary[serializer_key][comic.pk].add(value)
-            # FKS WITH NAMES
-            for (
-                relation,
-                serializer_key,
-            ) in self.COMIC_FK_SERIALIZER_MAP.items():
-                self.ensure_collection(comic_summary, serializer_key, comic.pk, dict)
-                obj = getattr(comic, relation)
-                value = obj.pk
-                text = obj.name
-                comic_summary[serializer_key][comic.pk][value] = text
-            # MANY TO MANY RELATIONS WITH PKS & NAMES
-            for (
-                relation,
-                serializer_key,
-            ) in self.COMIC_M2M_SERIALIZER_MAP.items():
-                self.ensure_collection(comic_summary, serializer_key, comic.pk, dict)
-                m2m = getattr(comic, relation)
-                for obj in m2m.all():
-                    value = obj.pk
-                    text = obj.name
-                    comic_summary[serializer_key][comic.pk][value] = text
-            # CREDITS ARE SPECIAL M2M RELATIONS
-            for credit in comic.credits.all():
-                self.ensure_collection(comic_summary, "credit_summary", comic.pk, dict)
-                # expand the credit object later if needed.
-                comic_summary["credit_summary"][comic.pk][credit.pk] = credit
-        return comic_summary
+        # Build pick sets
+        pick_sets = {
+            "value": set(),
+            "related_value": set(),
+            "fk": set(),
+            "m2m": set(),
+        }
+        self.build_pick_set(
+            self.get_comic_value_fields(), count_dict, pick_sets, "value"
+        )
+        self.build_pick_set(
+            self.COMIC_RELATED_VALUE_ANNOTATIONS, count_dict, pick_sets, "related_value"
+        )
+        self.build_pick_set(self.COMIC_FK_FIELDS, count_dict, pick_sets, "fk")
+        self.build_pick_set(self.COMIC_M2M_FIELDS, count_dict, pick_sets, "m2m")
 
-    @staticmethod
-    def dict_to_vue_choices(rel_dict):
-        """transform a pk -> value dict into a vue_choice."""
-        choices = []
-        if rel_dict:
-            for value, text in rel_dict.items():
-                vue_choice = {"value": value, "text": text}
-                choices.append(vue_choice)
-        if len(choices) == 0 or len(choices) == 1 and choices[0]["value"] is None:
-            choices = None
-        return choices
+        only_pick_set = set()
+        for pick_set in pick_sets.values():
+            only_pick_set |= pick_set
+        pick_sets["only"] = only_pick_set
 
-    @staticmethod
-    def credit_vue_choice(obj):
-        """Create a vue choice from a db object with a pk and name."""
-        return {"value": obj.pk, "text": obj.name}
+        annotation_pick_set = set()
+        for field in pick_sets["related_value"]:
+            annotation = self.COMIC_RELATED_VALUE_FIELD_MAP.inverse[field]
+            annotation_pick_set.add(annotation)
+        serialize_pick_set = (
+            only_pick_set - pick_sets["related_value"] | annotation_pick_set
+        )
+        pick_sets["serialize"] = serialize_pick_set
 
-    def pre_serialize(self, comic_summary):
-        """
-        If aggregated sets or dicts for all comics are identical return
-        only one of them. Otherwise return null.
-        """
-        # TODO: most of this will be rewritten in APIv2
+        # Parse comic pks
+        comic_pks = set()
+        pk_list = count_dict[self.COMIC_PK_LIST_KEY].split(",")
+        for pk in pk_list:
+            if pk:
+                comic_pks.add(int(pk))
 
-        # LISTS OF VALUES
-        for serializer_key in self.COMIC_FIELD_SERIALIZER_MAP.values():
-            last_set = None
-            for value_set in comic_summary[serializer_key].values():
-                if last_set is not None and value_set != last_set:
-                    last_set = None
-                    break
-                last_set = value_set
-            if last_set == set([None]):
-                last_set = None
-            comic_summary[serializer_key] = last_set
+        return (comic_pks, pick_sets)
 
-        # PK TO NAME DICTS TRANSFORM INTO VUE CHOICES
-        for serializer_key in self.VUE_CHOICE_KEYS:
-            last_dict = None
-            for value_dict in comic_summary[serializer_key].values():
-                if last_dict is not None and value_dict.keys() != last_dict.keys():
-                    last_dict = None
-                    break
-                last_dict = value_dict
-            comic_summary[serializer_key] = self.dict_to_vue_choices(last_dict)
+    def get_comic(self, aggregate_filter):
+        """Get the comic and the final pick set."""
+        # The filtered comic query for the pick set & comic
+        comic_qs = self.get_comic_queryset(aggregate_filter)
 
-        # CREDITS ARE SPECIAL VUE CHOICES
-        last_credit_dict = None
-        credit_summary = comic_summary.get("credit_summary")
-        if credit_summary:
-            for credit_dict in comic_summary["credit_summary"].values():
-                if (
-                    last_credit_dict is not None
-                    and credit_dict.keys() != last_credit_dict.keys()
-                ):
-                    last_credit_dict = None
-                    break
-                last_credit_dict = credit_dict
-            comic_summary["credit_summary"] = None
+        # Get the pick set from aggregates.
+        comic_pks, pick_sets = self.get_pick_sets(comic_qs)
 
-            # CREDIT TO VUE CHOICE TRANSFORM
-            if last_credit_dict:
-                credit_choices = []
-                for pk, credit in last_credit_dict.items():
-                    value = {
-                        "pk": pk,
-                        "person": self.credit_vue_choice(credit.person),
-                        "role": self.credit_vue_choice(credit.role),
-                    }
-                    credit_choices.append(value)
-            else:
-                credit_choices = None
+        # add the deep relation roots to the select_related
+        select_related = pick_sets["fk"]
+        for ann in pick_sets["related_value"]:
+            rel = self.COMIC_RELATED_VALUE_FIELD_MAP.inverse[ann]
+            rel = rel.split("__")[0]
+            select_related.add(rel)
 
-            comic_summary["creditsChoices"] = credit_choices
+        # Get one comic but only the common fields.
+        comic_qs = Comic.objects.select_related(*select_related).prefetch_related(
+            *pick_sets["m2m"]
+        )
 
-        # Text Areas can't select choices, and they're big so only pass
-        # them through if there's one of them.
-        for key in self.TEXT_AREA_KEYS:
-            choices_key = f"{key}Choices"
-            choices = comic_summary.get(choices_key)
-            if choices and len(choices) == 1:
-                comic_summary[key] = choices.pop()
-            else:
-                comic_summary[key] = None
+        # Annotate the comic with the related values and adjust
+        # the pick set to match.
+        for annotation in pick_sets["related_value"]:
+            relation = self.COMIC_RELATED_VALUE_FIELD_MAP[annotation]
+            comic_qs = comic_qs.annotate(**{annotation: relation})
+        comic_qs = comic_qs.only(*pick_sets["only"])
 
-        return comic_summary
+        # Just get one comic
+        for _first_comic_pk in comic_pks:
+            break
+        comic = comic_qs.get(pk=_first_comic_pk)
 
-    @staticmethod
-    def report_time(start_time, num_comics):
-        """
-        Calculate how long it takes per comic to aggregate metadata.
-        Used in the magic number for the progress circle.
-        """
-        elapsed = time.time() - start_time
-        cps = num_comics / elapsed
-        LOG.debug(f"{num_comics} comics / {elapsed:.2g} secs = {cps:.2g} CPS")
+        return comic, comic_pks, pick_sets["serialize"]
 
     def get(self, request, *args, **kwargs):
         """Get metadata for a single comic."""
-        start_time = time.time()
         # Init
-        self.params = self.get_session(self.BROWSE_KEY)
+        self.params = self.get_session(self.BROWSER_KEY)
+        aggregate_filter = self.get_aggregate_filter()
 
-        container = self.query_container()
-        comic_data = self.query_comics(container["pks"])
-        comic_summary = self.pre_serialize(comic_data)
-        comic_summary.update(container)
+        # The aggregates that share code with browser
+        aggregates = self.get_aggregates(aggregate_filter)
 
-        serializer = MetadataSerializer(comic_summary)
-        if DEBUG:
-            self.report_time(start_time, len(container["pks"]))
+        # Get the comic & final pick set for the serializer
+        comic, comic_pks, comic_fields = self.get_comic(aggregate_filter)
+
+        data = {"pks": list(comic_pks), "aggregates": aggregates, "comic": comic}
+        serializer = MetadataSerializer(data, comic_fields=comic_fields)
 
         return Response(serializer.data)

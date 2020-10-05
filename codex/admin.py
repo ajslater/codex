@@ -10,6 +10,7 @@ from django.utils.html import format_html
 from codex.librarian.cover import purge_all_covers
 from codex.librarian.queue import QUEUE
 from codex.librarian.queue import LibraryChangedTask
+from codex.librarian.queue import RestartTask
 from codex.librarian.queue import ScannerCronTask
 from codex.librarian.queue import ScanRootTask
 from codex.librarian.queue import UpdateCronTask
@@ -134,12 +135,19 @@ class AdminAdminFlag(AdminNoAddDelete):
     list_display = fields
     list_editable = ("on",)
     sortable_by = fields
-    actions = ("update_now",)
+    actions = ("update_now", "restart_now")
 
     def update_now(self, request, queryset):
+        """Trigger an update task immediately."""
         QUEUE.put(UpdateCronTask(sleep=0, force=True))
 
     update_now.short_description = "Update Codex Now"
+
+    def restart_now(self, request, queryset):
+        """Send a restart task immediately."""
+        QUEUE.put(RestartTask(sleep=0))
+
+    restart_now.short_description = "Restart Codex Now"
 
     def save_model(self, request, obj, form, change):
         """Trigger a change notification because options have changed."""
@@ -181,7 +189,7 @@ class AdminFailedImport(AdminNoAddDelete):
         return True
 
     def library_link(self, item):
-        """A special feild for linking to the library change page."""
+        """Render a field for linking to the library change page."""
         url = resolve_url(admin_urlname(Library._meta, "change"), item.library.id)
         return format_html(
             '<a href="{url}">{name}</a>'.format(url=url, name=str(item.library))

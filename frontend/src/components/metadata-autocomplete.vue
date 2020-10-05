@@ -2,7 +2,9 @@
   <v-autocomplete
     v-if="model || show"
     v-model="model"
-    :items="computedItems"
+    :items="vuetifyItems"
+    item-value="pk"
+    item-text="name"
     :label="label"
     hide-details="auto"
     dense
@@ -12,10 +14,7 @@
 </template>
 
 <script>
-import {
-  computedItems,
-  initialItem,
-} from "@/components/metadata-computed-items";
+import { toVuetifyItem, toVuetifyItems } from "@/api/v1/list-items";
 
 export default {
   name: "MetadataAutocomplete",
@@ -32,25 +31,25 @@ export default {
       type: Array,
       default: null,
     },
-    values: {
-      type: Array,
-      default: null,
+    value: {
+      type: [Object, String, Number, Boolean],
+      default: undefined,
     },
   },
   data() {
     return {
-      model: null,
+      model: undefined,
     };
   },
   computed: {
-    // XXX Identical to Combobox
-    computedItems: function () {
-      return computedItems(this.items, this.values);
+    // XXX Identical to Combobox use mixin?
+    vuetifyItems: function () {
+      return toVuetifyItems(this.value, this.items);
     },
   },
   created: function () {
     // XXX Identical to Combobox
-    this.model = initialItem(this.computedItems);
+    this.model = toVuetifyItem(this.value);
   },
 };
 </script>

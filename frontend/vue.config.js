@@ -18,6 +18,11 @@ module.exports = {
         },
       }),
     ],
+    entry: {
+      browserChoices: "./src/choices/browserChoices.json",
+      readerChoices: "./src/choices/readerChoices.json",
+      websocketMessages: "./src/choices/websocketMessages.json",
+    },
     devServer: {
       writeToDisk: true, // Write files to disk in dev mode, so Django can serve the assets
     },

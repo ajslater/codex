@@ -1,5 +1,4 @@
-"""Codex Browser Serializers."""
-
+"""Serializers for the browser view."""
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from rest_framework.serializers import BooleanField
@@ -11,12 +10,12 @@ from rest_framework.serializers import ListField
 from rest_framework.serializers import Serializer
 from rest_framework.serializers import SerializerMethodField
 
-from codex.choices.static import CHOICES
 from codex.librarian.queue import QUEUE
 from codex.librarian.queue import ComicCoverCreateTask
+from codex.serializers.webpack import CHOICES
 
 
-VUE_MODEL_NULL_CODES = (-1, 0)
+VUE_MODEL_NULL_CODE = -1
 
 
 def validate_decades(decades):
@@ -35,9 +34,14 @@ def validate_decades(decades):
 
 
 def validate_null_filter(values):
-    """Fix special codes for html/vue/js not being able to handle null."""
+    """
+    Use a special code for null.
+
+    Because if a vuetify component has a null key it changes it to the
+    array index.
+    """
     for index, value in enumerate(values):
-        if value in VUE_MODEL_NULL_CODES:
+        if value == VUE_MODEL_NULL_CODE:
             values[index] = None
     return values
 
@@ -82,7 +86,7 @@ class BrowserSettingsSerializer(Serializer):
     show = BrowserSettingsShowGroupFlagsSerializer()
 
 
-class BrowseObjectSerializer(Serializer):
+class BrowserCardSerializer(Serializer):
     """Generic browse object."""
 
     def get_x_cover_path(self, obj):
@@ -108,7 +112,7 @@ class BrowseObjectSerializer(Serializer):
     order_value = CharField(read_only=True)
 
 
-class BrowseRouteSerializer(Serializer):
+class BrowserRouteSerializer(Serializer):
     """A vue route for the browser."""
 
     group = CharField(read_only=True)
@@ -122,7 +126,7 @@ class BrowserFormChoicesSerializer(Serializer):
     enableFolderView = BooleanField(read_only=True)  # noqa: N815
 
 
-class BrowseTitleSerializer(Serializer):
+class BrowserTitleSerializer(Serializer):
     """Elements for constructing the browse title."""
 
     parentName = CharField(read_only=True, allow_null=True)  # noqa: N815
@@ -130,13 +134,13 @@ class BrowseTitleSerializer(Serializer):
     groupCount = IntegerField(read_only=True, allow_null=True)  # noqa: N815
 
 
-class BrowseListSerializer(Serializer):
+class BrowserPageSerializer(Serializer):
     """The main browse list."""
 
-    browseTitle = BrowseTitleSerializer(read_only=True)  # noqa: N815
-    upRoute = BrowseRouteSerializer(allow_null=True)  # noqa: N815
+    browserTitle = BrowserTitleSerializer(read_only=True)  # noqa: N815
+    upRoute = BrowserRouteSerializer(allow_null=True)  # noqa: N815
     objList = ListField(  # noqa: N815
-        child=BrowseObjectSerializer(read_only=True),
+        child=BrowserCardSerializer(read_only=True),
         allow_empty=True,
         read_only=True,
     )
@@ -156,11 +160,5 @@ class BrowserOpenedSerializer(Serializer):
     """Component open settings."""
 
     settings = BrowserSettingsSerializer(read_only=True)
-    browseList = BrowseListSerializer(read_only=True)  # noqa: N815
+    browserPage = BrowserPageSerializer(read_only=True)  # noqa: N815
     versions = VersionsSerializer(read_only=True)
-
-
-class ScanNotifySerializer(Serializer):
-    """Scan notify flag."""
-
-    scanInProgress = BooleanField(read_only=True)  # noqa: N815

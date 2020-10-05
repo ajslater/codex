@@ -1,4 +1,5 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+"""The main runnable for codex. Sets up codex and runs hypercorn."""
 import asyncio
 import os
 import shutil
@@ -21,15 +22,17 @@ from codex.models import Library
 from codex.settings import CODEX_PATH
 from codex.settings import CONFIG_PATH
 from codex.settings import CONFIG_STATIC
+from codex.settings import DEBUG
 
 
 CONFIG_TOML = CONFIG_PATH / "hypercorn.toml"
 CONFIG_DEFAULT_TOML = CODEX_PATH / "hypercorn.toml.default"
 
 LOG = getLogger(__name__)
-DEV = bool(os.environ.get("DEV"))
 RESET_ADMIN = bool(os.environ.get("CODEX_RESET_ADMIN"))
 SIGNAL_NAMES = {"SIGINT", "SIGTERM", "SIGBREAK"}
+RESTART_EVENT = asyncio.Event()
+SHUTDOWN_EVENT = asyncio.Event()
 
 
 def ensure_config():
@@ -63,7 +66,7 @@ def ensure_superuser():
 
 
 def init_admin_flags():
-    """Initalize the admin flag rows"""
+    """Init admin flag rows."""
     # AdminFlag = apps.get_model("codex", "AdminFlag")  # noqa N806
     for name in AdminFlag.FLAG_NAMES:
         if name in AdminFlag.DEFAULT_FALSE:
@@ -78,6 +81,7 @@ def init_admin_flags():
 
 
 def unset_scan_in_progress():
+    """Unset the scan_in_progres flag for all libraries."""
     stuck_libraries = Library.objects.filter(scan_in_progress=True).only(
         "scan_in_progress", "path"
     )
@@ -87,40 +91,25 @@ def unset_scan_in_progress():
     Library.objects.bulk_update(stuck_libraries, ["scan_in_progress"])
 
 
-RESTART_EVENT = asyncio.Event()
-SHUTDOWN_EVENT = asyncio.Event()
+def _shutdown_signal_handler():
+    global SHUTDOWN_EVENT
+    if SHUTDOWN_EVENT.is_set():
+        return
+    LOG.info("Asking hypercorn to shut down gracefully. Could take 5 seconds...")
+    SHUTDOWN_EVENT.set()
 
 
-def bind_signals():
-    main_pid = os.getpid()
-
-    def _handle_shutdown_signal(signum, frame):
-        if os.getpid() != main_pid:
-            return
-        LOG.info("Asking hypercorn to shut down gracefully. Could take 20 seconds...")
-        SHUTDOWN_EVENT.set()
-
-    def _handle_restart_signal(signum, frame):
-        if os.getpid() != main_pid:
-            return
-        LOG.info("Restart signal received.")
-        RESTART_EVENT.set()
-        _handle_shutdown_signal(signum, frame)
-
-    for signal_name in SIGNAL_NAMES:
-        # because SIGBREAK only exists on windows
-        try:
-            sig = getattr(signal, signal_name)
-            signal.signal(sig, _handle_shutdown_signal)
-        except AttributeError:
-            pass
-
-    # SIGUSR1 only exists on unix :/
-    signal.signal(signal.SIGUSR1, _handle_restart_signal)
+def _restart_signal_handler():
+    global RESTART_EVENT
+    if RESTART_EVENT.is_set():
+        return
+    LOG.info("Restart signal received.")
+    RESTART_EVENT.set()
+    _shutdown_signal_handler()
 
 
 def setup_db():
-    """Setup the database before we run."""
+    """Set up database before run."""
     django.setup()
     update_db()
     ensure_superuser()
@@ -128,21 +117,38 @@ def setup_db():
     unset_scan_in_progress()
 
 
-def run():
-    """Run Codex"""
-
+def get_hypercorn_config():
+    """Configure the hypercorn server."""
     config = Config.from_toml(CONFIG_TOML)
     LOG.info(f"Loaded config from {CONFIG_TOML}")
-    if DEV:
+    if DEBUG:
         config.use_reloader = True
         LOG.info("Reload hypercorn if files change")
-    # Store port number in shared memory for librariand websocket
-    PORT.value = int(config.bind[0].split(":")[1])
 
-    # This papers over a macos crash that i think only happens on
-    #   development server rapid restarts
-    os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
+    # Don't nuke existing loggers
+    config.logconfig_dict = {"disable_existing_loggers": False}
+    # Store port number in shared memory for librariand websocket server
+    PORT.value = int(config.bind[0].split(":")[1])
+    return config
+
+
+def bind_signals(loop):
+    """Binds signals to the handlers."""
+    for signal_name in SIGNAL_NAMES:
+        sig = getattr(signal, signal_name, None)
+        if sig:
+            loop.add_signal_handler(sig, _shutdown_signal_handler)
+    loop.add_signal_handler(signal.SIGUSR1, _restart_signal_handler)
+
+
+def run():
+    """Run Codex."""
+    config = get_hypercorn_config()
+
+    # configure the loop
     loop = asyncio.get_event_loop()
+    bind_signals(loop)
+    # run it and block
     loop.run_until_complete(
         serve(application, config, shutdown_trigger=SHUTDOWN_EVENT.wait)
     )
@@ -154,13 +160,22 @@ def run():
     LOG.info("Goodbye.")
 
 
-def main():
-    if DEV:
+def set_env():
+    """Set environment variables."""
+    # This papers over a macos crash that can happen with
+    # multirocessing start_method: fork
+    os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
+    if DEBUG:
+        os.environ["PYTHONDONTWRITEBYTECODE"] = "YES"
         LOG.setLevel("DEBUG")
+
+
+def main():
+    """Set up and run Codex."""
+    set_env()
     ensure_config()
     setup_db()
     cache.clear()
-    bind_signals()
     run()
 
 

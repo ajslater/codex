@@ -21,7 +21,6 @@ if not apps.ready:
 
 from multiprocessing import Value
 
-from codex.choices.websocket_messages import MESSAGES
 from codex.librarian.cover import create_comic_cover
 from codex.librarian.crond import Crond
 from codex.librarian.importer import import_comic
@@ -35,6 +34,7 @@ from codex.librarian.queue import ComicMovedTask
 from codex.librarian.queue import FolderDeletedTask
 from codex.librarian.queue import FolderMovedTask
 from codex.librarian.queue import LibraryChangedTask
+from codex.librarian.queue import RestartTask
 from codex.librarian.queue import ScanDoneTask
 from codex.librarian.queue import ScannerCronTask
 from codex.librarian.queue import ScanRootTask
@@ -42,10 +42,12 @@ from codex.librarian.queue import UpdateCronTask
 from codex.librarian.queue import WatcherCronTask
 from codex.librarian.scanner import scan_cron
 from codex.librarian.scanner import scan_root
+from codex.librarian.update import restart_codex
 from codex.librarian.update import update_codex
 from codex.librarian.watcherd import Uatu
 from codex.models import Comic
 from codex.models import Folder
+from codex.serializers.webpack import WEBSOCKET_MESSAGES as MESSAGES
 from codex.websocket_server import BROADCAST_MSG
 from codex.websocket_server import BROADCAST_SECRET
 from codex.websocket_server import IPC_SUFFIX
@@ -98,6 +100,7 @@ def send_json(ws, typ, message=None):
         obj["message"] = message
     msg = json.dumps(obj)
     if ws is None or not ws.connected:
+        print("get_websocket()")
         ws = get_websocket()
     ws.send(msg)
     return ws
@@ -158,7 +161,11 @@ def librarian(main_pid):
             elif isinstance(task, UpdateCronTask):
                 sleep(task.sleep)
                 update_codex(main_pid, task.force)
+            elif isinstance(task, RestartTask):
+                sleep(task.sleep)
+                restart_codex(main_pid)
             elif task == SHUTDOWN_TASK:
+                LOG.info("Shutting down Librarian...")
                 run = False
             else:
                 LOG.warning(f"Unhandled task popped: {task}")
@@ -166,6 +173,9 @@ def librarian(main_pid):
             LOG.warning(exc)
         except Exception as exc:
             LOG.exception(exc)
+
+    if ws:
+        ws.close()
     pool.close()
     crond.stop()
     watcher.stop()
@@ -182,7 +192,7 @@ def start_librarian():
 
     args = (os.getpid(),)
     librarian_proc = Process(
-        target=librarian, name="codex-librarian", args=args, daemon=False
+        target=librarian, name="librarian", args=args, daemon=False
     )
     librarian_proc.start()
     # this signal is thrown by runserver which i don't use anymore

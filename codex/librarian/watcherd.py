@@ -184,6 +184,7 @@ class Uatu(Observer):
             self.unwatch_library(pk)
 
     def unschedule_all(self):
+        """Unschedule all watches."""
         super().unschedule_all()
         self._pk_watches = {}
         LOG.info("Stopped watching all libraries")

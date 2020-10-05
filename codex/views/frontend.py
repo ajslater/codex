@@ -2,13 +2,15 @@
 from django.shortcuts import render
 from django.urls import get_script_prefix
 
-from codex.settings import DEV
+from codex.settings import DEBUG
 
 
 def app(request):
     """Serve the main application page."""
     return render(
-        request, "index.html", context={"root_path": get_script_prefix(), "DEV": DEV}
+        request,
+        "index.html",
+        context={"root_path": get_script_prefix(), "DEBUG": DEBUG},
     )
 
 

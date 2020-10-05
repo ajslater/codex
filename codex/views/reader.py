@@ -10,8 +10,8 @@ from stringcase import camelcase
 from stringcase import snakecase
 
 from codex.models import Comic
-from codex.serializers.read import ComicReaderInfoSerializer
-from codex.serializers.read import ComicReaderSettingsSerializer
+from codex.serializers.reader import ComicReaderInfoSerializer
+from codex.serializers.reader import ComicReaderSettingsSerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.mixins import SessionMixin
 from codex.views.mixins import UserBookmarkMixin
@@ -118,18 +118,6 @@ class ComicPageView(APIView):
         except Exception as exc:
             LOG.exception(exc)
             raise NotFound(detail="comic page not found")
-
-
-class ComicBookmarkView(APIView, UserBookmarkMixin):
-    """Bookmark updater."""
-
-    def patch(self, request, *args, **kwargs):
-        """Save a user bookmark after a page change."""
-        pk = self.kwargs.get("pk")
-        page_num = self.kwargs.get("page_num")
-        updates = {"bookmark": page_num}
-        self.update_user_bookmark(updates, pk=pk)
-        return Response()
 
 
 class ComicSettingsView(APIView, SessionMixin, UserBookmarkMixin):

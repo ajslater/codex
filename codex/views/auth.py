@@ -35,7 +35,7 @@ class IsAuthenticatedOrEnabledNonUsers(IsAuthenticated):
     """Custom DRF Authentication class."""
 
     def has_permission(self, request, view):
-        """True if ENABLE_NON_USERS is true or user is authenticated."""
+        """Return True if ENABLE_NON_USERS is true or user authenticated."""
         enu_flag = AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_NON_USERS)
         if enu_flag.on:
             return True

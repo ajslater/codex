@@ -6,4 +6,4 @@ STATIC_PROD=$(poetry run python -c 'from codex.settings import STATIC_ROOT; prin
 STATIC_CONFIG=$(poetry run python -c 'from codex.settings import CONFIG_STATIC; print(CONFIG_STATIC)')
 rm -rf "$STATIC_PROD"
 mkdir -p "$STATIC_PROD" "$STATIC_CONFIG"
-DEV=1 ./pm collectstatic --clear --ignore covers --no-input
+DEBUG=1 ./pm collectstatic --clear --ignore covers --no-input

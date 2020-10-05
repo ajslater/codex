@@ -1,8 +1,6 @@
-"""
-ASGI Lifespan protocol application.
+"""ASGI Lifespan protocol application."""
+# https://asgi.readthedocs.io/en/latest/specs/lifespan.html
 
-https://asgi.readthedocs.io/en/latest/specs/lifespan.html
-"""
 import logging
 
 from asgiref.sync import sync_to_async
@@ -22,14 +20,18 @@ async def lifespan_application(scope, receive, send):
             try:
                 await sync_to_async(start_daemons)()
                 await send({"type": "lifespan.startup.complete"})
+                LOG.debug("Lifespan startup complete.")
             except Exception as exc:
                 LOG.error(exc)
                 await send({"type": "lifespan.startup.failed"})
         elif message["type"] == "lifespan.shutdown":
+            LOG.debug("Lifespan shutdown started.")
             try:
                 await sync_to_async(stop_daemons)()
                 await send({"type": "lifespan.shutdown.complete"})
+                LOG.debug("Lifespan shutdown complete.")
             except Exception as exc:
-                LOG.error(exc)
                 await send({"type": "lifespan.startup.failed"})
+                LOG.error("Lifespan shutdown failed.")
+                LOG.error(exc)
             break

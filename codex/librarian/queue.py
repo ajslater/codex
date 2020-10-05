@@ -91,9 +91,16 @@ class ScannerCronTask(SleepTask):
 
 @dataclass
 class UpdateCronTask(SleepTask):
-    """Cron for updater."""
+    """Task for updater."""
 
     force: bool
+
+
+@dataclass
+class RestartTask(SleepTask):
+    """for restart."""
+
+    pass
 
 
 @dataclass

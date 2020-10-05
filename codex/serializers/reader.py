@@ -6,7 +6,10 @@ from rest_framework.serializers import DecimalField
 from rest_framework.serializers import IntegerField
 from rest_framework.serializers import Serializer
 
-from codex.choices.static import CHOICES
+from codex.serializers.webpack import CHOICES
+
+
+FIT_TO_CHOICES = tuple(CHOICES["fitTo"].keys())
 
 
 class ComicPageRouteSerializer(Serializer):
@@ -20,7 +23,7 @@ class ComicReaderSettingsSerializer(Serializer):
     """Reader settings the user can change."""
 
     fitTo = ChoiceField(  # noqa: N815
-        choices=tuple(CHOICES["fitTo"].keys()),
+        choices=FIT_TO_CHOICES,
         allow_null=True,
         required=False,
     )

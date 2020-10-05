@@ -34,7 +34,7 @@ class Crond(Thread):
     def __init__(self):
         """Intialize this thread with the worker."""
         super().__init__(
-            target=self.worker, name="codex-crond", args=(self.COND,), daemon=True
+            target=self.worker, name="crond", args=(self.COND,), daemon=True
         )
 
     def stop(self):

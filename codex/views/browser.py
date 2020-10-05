@@ -4,6 +4,7 @@ import logging
 from django.core.paginator import EmptyPage
 from django.core.paginator import Paginator
 from django.db.models import CharField
+from django.db.models import Count
 from django.db.models import F
 from django.db.models import IntegerField
 from django.db.models import Value
@@ -22,19 +23,19 @@ from codex.models import Library
 from codex.models import Publisher
 from codex.models import Series
 from codex.models import Volume
-from codex.serializers.browse import BrowseListSerializer
-from codex.serializers.browse import BrowserOpenedSerializer
-from codex.serializers.browse import BrowserSettingsSerializer
+from codex.serializers.browser import BrowserOpenedSerializer
+from codex.serializers.browser import BrowserPageSerializer
+from codex.serializers.browser import BrowserSettingsSerializer
 from codex.settings import CACHE_PATH
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
-from codex.views.browse_metadata_base import BrowseMetadataBase
+from codex.views.browser_metadata_base import BrowserMetadataBase
 
 
 PACKAGE_NAME = "codex"
 LOG = logging.getLogger(__name__)
 
 
-class BrowseView(BrowseMetadataBase):
+class BrowserView(BrowserMetadataBase):
     """Browse comics with a variety of filters and sorts."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
@@ -50,7 +51,7 @@ class BrowseView(BrowseMetadataBase):
     CHOICES_RELATIONS = ("decade", "characters")
     MAX_OBJ_PER_PAGE = 100
     ORPHANS = MAX_OBJ_PER_PAGE / 20
-    COMMON_BROWSE_FIELDS = [
+    BROWSER_CARD_FIELDS = [
         "bookmark",
         "child_count",
         "display_name",
@@ -70,6 +71,8 @@ class BrowseView(BrowseMetadataBase):
 
     def get_valid_root_groups(self):
         """
+        Get valid root groups for the current settings.
+
         Valid root groups are determined by the Browser Settings.
         And offset by one group *above* each show flag.
         The volumes root group is always enabled.
@@ -86,6 +89,8 @@ class BrowseView(BrowseMetadataBase):
 
     def get_valid_nav_groups(self):
         """
+        Get valid nav gorups for the current settings.
+
         Valid nav groups are the root group and below that are also
         enabled in browser settings.
         """
@@ -105,6 +110,8 @@ class BrowseView(BrowseMetadataBase):
 
     def get_model_group(self):
         """
+        Get the model group code for the current model.
+
         Valid model groups are below the nav group that are also enabled
         in browser settings.
         """
@@ -133,9 +140,12 @@ class BrowseView(BrowseMetadataBase):
         ##########################################
         # Annotate children count and page count #
         ##########################################
-        obj_list = self.annotate_children_and_page_count(obj_list, aggregate_filter)
-        # EXTRA FILTER for empty containers
-        obj_list = obj_list.filter(child_count__gt=0)
+        obj_list = self.annotate_page_count(obj_list, aggregate_filter)
+        # EXTRA FILTER for empty group
+        child_count_sum = Count("comic__pk", distinct=True, filter=aggregate_filter)
+        obj_list = obj_list.annotate(child_count=child_count_sum).filter(
+            child_count__gt=0
+        )
 
         ##################
         # Annotate Group #
@@ -198,7 +208,7 @@ class BrowseView(BrowseMetadataBase):
             x_issue = Value(None, CharField())
             x_path = Value(None, CharField())
 
-        # XXX should container use title or comics use name?
+        # XXX should group use title or comics use name?
         if model in (Publisher, Imprint, Series, Volume, Folder):
             display_name = F("name")
         elif model == Comic:
@@ -235,13 +245,13 @@ class BrowseView(BrowseMetadataBase):
         comic_list = self.add_annotations(comic_list, Comic, aggregate_filter)
 
         # Reduce to values for concatenation
-        folder_list = folder_list.values(*self.COMMON_BROWSE_FIELDS)
-        comic_list = comic_list.values(*self.COMMON_BROWSE_FIELDS)
+        folder_list = folder_list.values(*self.BROWSER_CARD_FIELDS)
+        comic_list = comic_list.values(*self.BROWSER_CARD_FIELDS)
         obj_list = folder_list.union(comic_list)
 
         return obj_list
 
-    def get_browse_queryset(self, object_filter, aggregate_filter):
+    def get_browser_group_queryset(self, object_filter, aggregate_filter):
         """Create and browse queryset."""
         obj_list = self.model.objects.filter(object_filter)
         # obj_list filtering done
@@ -250,7 +260,7 @@ class BrowseView(BrowseMetadataBase):
         obj_list = self.add_annotations(obj_list, self.model, aggregate_filter)
 
         # Convert to a dict to be compatible with Folder View concatenate
-        obj_list = obj_list.values(*self.COMMON_BROWSE_FIELDS)
+        obj_list = obj_list.values(*self.BROWSER_CARD_FIELDS)
 
         return obj_list
 
@@ -307,7 +317,7 @@ class BrowseView(BrowseMetadataBase):
 
         return up_group, up_pk
 
-    def get_browse_title(self):
+    def get_browser_page_title(self):
         """Get the proper title for this browse level."""
         pk = self.kwargs.get("pk")
         parent_name = None
@@ -323,13 +333,13 @@ class BrowseView(BrowseMetadataBase):
 
             group_name = self.group_instance.name
 
-        browse_title = {
+        browser_page_title = {
             "parentName": parent_name,
             "groupName": group_name,
             "groupCount": group_count,
         }
 
-        return browse_title
+        return browser_page_title
 
     def raise_valid_route(self, message):
         """403 should redirect to the valid group on the client side."""
@@ -345,7 +355,7 @@ class BrowseView(BrowseMetadataBase):
             self.valid_nav_groups = self.get_valid_nav_groups()
             raise self.raise_valid_route("folder view disabled")
 
-    def validate_browse_settings(self):
+    def validate_browser_group_settings(self):
         """Check that all the view variables for browser mode are set right."""
         # Validate Root Group
         group = self.kwargs["group"]
@@ -382,13 +392,12 @@ class BrowseView(BrowseMetadataBase):
             snake_key = snakecase(key)
             self.params[snake_key] = value
 
-    def get_browse_list(self):
+    def get_browser_page(self):
         """Validate settings and get the querysets."""
-
         if self.kwargs.get("group") == self.FOLDER_GROUP:
             self.validate_folder_settings()
         else:
-            self.validate_browse_settings()
+            self.validate_browser_group_settings()
 
         self.set_browse_model()
         # Create the main query with the filters
@@ -397,7 +406,7 @@ class BrowseView(BrowseMetadataBase):
         if self.kwargs.get("group") == self.FOLDER_GROUP:
             obj_list = self.get_folder_queryset(object_filter, aggregate_filter)
         else:
-            obj_list = self.get_browse_queryset(object_filter, aggregate_filter)
+            obj_list = self.get_browser_group_queryset(object_filter, aggregate_filter)
 
         # Order
         order_key = self.params.get("sort_by", self.DEFAULT_ORDER_KEY)
@@ -415,7 +424,7 @@ class BrowseView(BrowseMetadataBase):
             LOG.warn("No items on page {page}")
             obj_list = paginator.page(1).object_list
 
-        self.request.session[self.BROWSE_KEY] = self.params
+        self.request.session[self.BROWSER_KEY] = self.params
         self.request.session.save()
 
         # get additional context
@@ -424,7 +433,7 @@ class BrowseView(BrowseMetadataBase):
             up_group, up_pk = self.get_folder_up_route()
         else:
             up_group, up_pk = self.get_browse_up_route()
-        browse_title = self.get_browse_title()
+        browser_page_title = self.get_browser_page_title()
 
         if up_group is not None and up_pk is not None:
             up_route = {"group": up_group, "pk": up_pk, "page": 1}
@@ -436,30 +445,30 @@ class BrowseView(BrowseMetadataBase):
         libraries_exist = Library.objects.exists()
 
         # construct final data structure
-        browse_list = {
+        browser_page = {
             "upRoute": up_route,
-            "browseTitle": browse_title,
+            "browserTitle": browser_page_title,
             "objList": obj_list,
             "numPages": paginator.num_pages,
             "formChoices": {"enableFolderView": efv_flag.on},
             "librariesExist": libraries_exist,
         }
-        return browse_list
+        return browser_page
 
     def put(self, request, *args, **kwargs):
         """Create the view."""
         self.validate_put(request.data)
 
-        browse_list = self.get_browse_list()
+        browser_page = self.get_browser_page()
 
-        serializer = BrowseListSerializer(browse_list)
+        serializer = BrowserPageSerializer(browser_page)
         return Response(serializer.data)
 
     def get(self, request, *args, **kwargs):
         """Get browser settings."""
-        self.params = self.get_session(self.BROWSE_KEY)
+        self.params = self.get_session(self.BROWSER_KEY)
 
-        browse_list = self.get_browse_list()
+        browser_page = self.get_browser_page()
 
         filters = self.params["filters"]
 
@@ -478,7 +487,7 @@ class BrowseView(BrowseMetadataBase):
                 "sortReverse": self.params.get("sort_reverse"),
                 "show": self.params.get("show"),
             },
-            "browseList": browse_list,
+            "browserPage": browser_page,
             "versions": {"installed": installed_version, "latest": latest_version},
         }
 

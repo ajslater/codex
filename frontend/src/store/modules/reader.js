@@ -1,5 +1,7 @@
 import API from "@/api/v1/reader";
 import FORM_CHOICES from "@/choices/readerChoices";
+import router from "@/router";
+
 const NULL_READER_SETTINGS = {
   fitTo: null,
   twoPages: null,
@@ -203,6 +205,31 @@ const actions = {
     if (Object.prototype.hasOwnProperty.call(data, "twoPages")) {
       dispatch("nextPageChanged", state.routes.current);
     }
+  },
+  routeTo({ state }, page) {
+    if (page === "next") {
+      page = state.routes.next;
+    } else if (page === "prev") {
+      page = state.routes.prev;
+    }
+    if (!page) {
+      return;
+    }
+    if (page.pk === state.routes.current.pk) {
+      if (page.pageNumber === state.routes.current.pageNumber) {
+        return;
+      }
+      if (page.pageNumber > state.maxPage) {
+        page.maxPage = state.maxPage;
+      }
+    }
+    if (page.pageNumber < 0) {
+      page.pageNumber = 0;
+    }
+    router.push({
+      name: "reader",
+      params: page,
+    });
   },
 };
 

@@ -23,13 +23,12 @@ from django.db.models import TextField
 from django.db.models import URLField
 from django.utils.translation import gettext_lazy as _
 
-from codex.choices.static import CHOICES
+from codex.serializers.webpack import CHOICES
 
 
 LOG = getLogger(__name__)
 
 
-DEFAULT_SCAN_FREQUENCY = datetime.timedelta(seconds=12 * 60 * 60)
 SCHEMA_VERSION = 1
 
 
@@ -46,8 +45,8 @@ class BaseModel(Model):
         abstract = True
 
 
-class BrowseContainerModel(BaseModel):
-    """Models that need parents and default to an default parent."""
+class BrowserGroupModel(BaseModel):
+    """Browser groups."""
 
     is_default = BooleanField(default=False)
     sort_name = CharField(db_index=True, max_length=32)
@@ -58,7 +57,7 @@ class BrowseContainerModel(BaseModel):
         abstract = True
 
 
-class Publisher(BrowseContainerModel):
+class Publisher(BrowserGroupModel):
     """The publisher of the comic."""
 
     DEFAULTS = {"is_default": True}
@@ -82,7 +81,7 @@ class Publisher(BrowseContainerModel):
         unique_together = ("name", "is_default")
 
 
-class Imprint(BrowseContainerModel):
+class Imprint(BrowserGroupModel):
     """A Publishing imprint."""
 
     name = CharField(max_length=32, default="Main Imprint")
@@ -99,7 +98,7 @@ class Imprint(BrowseContainerModel):
         super().save(*args, **kwargs)
 
 
-class Series(BrowseContainerModel):
+class Series(BrowserGroupModel):
     """The series the comic belongs to."""
 
     name = CharField(max_length=32, default="Default Series")
@@ -119,7 +118,7 @@ class Series(BrowseContainerModel):
         verbose_name_plural = "Series"
 
 
-class Volume(BrowseContainerModel):
+class Volume(BrowserGroupModel):
     """The volume of the series the comic belongs to."""
 
     name = CharField(max_length=32, default="")
@@ -148,6 +147,8 @@ def validate_dir_exists(path):
 class Library(BaseModel):
     """The library comic file live under."""
 
+    DEFAULT_SCAN_FREQUENCY = datetime.timedelta(seconds=12 * 60 * 60)
+
     path = CharField(
         unique=True, db_index=True, max_length=128, validators=[validate_dir_exists]
     )
@@ -163,6 +164,8 @@ class Library(BaseModel):
         return self.path
 
     class Meta:
+        """Pluralize."""
+
         verbose_name_plural = "libraries"
 
 

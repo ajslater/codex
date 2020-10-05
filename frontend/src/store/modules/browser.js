@@ -54,14 +54,14 @@ const state = {
       enableFolderView: true,
     },
   },
-  browseTitle: {
+  browserTitle: {
     parentName: undefined,
     groupName: undefined,
     groupCount: undefined,
   },
   objList: [],
   filterMode: "base",
-  browseLoaded: false,
+  browsePageLoaded: false,
   librariesExist: null,
   scanNotify: false,
   numPages: 1,
@@ -96,10 +96,10 @@ const getters = {
 };
 
 const mutations = {
-  setBrowseLoaded(state, value) {
-    state.browseLoaded = value;
+  setBrowsePageLoaded(state, value) {
+    state.browsePageLoaded = value;
   },
-  setBrowseRoute(state, route) {
+  setBrowserRoute(state, route) {
     state.routes.current = route;
   },
   setVersions(state, versions) {
@@ -120,7 +120,7 @@ const mutations = {
       }
     }
   },
-  setBrowseData(state, data) {
+  setBrowserPage(state, data) {
     state.formChoices.show = {
       enableFolderView: data.formChoices.enableFolderView,
     };
@@ -128,7 +128,7 @@ const mutations = {
       // Reset this every browse so the lazy loader knows to refresh it.
       state.formChoices[key] = null;
     }
-    state.browseTitle = data.browseTitle;
+    state.browserTitle = Object.freeze(data.browserTitle);
     state.routes.up = Object.freeze(data.upRoute);
     state.objList = Object.freeze(data.objList);
     state.numPages = data.numPages;
@@ -296,10 +296,10 @@ const scanNotifyCheck = (commit, state) => {
 };
 
 const actions = {
-  async browseOpened({ state, commit, dispatch }, route) {
+  async browserOpened({ state, commit, dispatch }, route) {
     // Gets everything needed to open the component.
-    commit("setBrowseLoaded", false);
-    commit("setBrowseRoute", route);
+    commit("setBrowsePageLoaded", false);
+    commit("setBrowserRoute", route);
     await API.getBrowseOpened(route)
       .then((response) => {
         const data = response.data;
@@ -309,8 +309,8 @@ const actions = {
           // will have dispatched to SetSetting if fails.
           return;
         }
-        commit("setBrowseLoaded", true);
-        return commit("setBrowseData", data.browseList);
+        commit("setBrowsePageLoaded", true);
+        return commit("setBrowserPage", data.browserPage);
       })
       .catch((error) => {
         if (
@@ -322,10 +322,10 @@ const actions = {
           console.log(data.message);
           console.log("Valid group is", data.group);
           const route = topGroupRoute(data.group);
-          dispatch("browseOpened", route.params);
+          dispatch("browserOpened", route.params);
         } else {
           console.error(error);
-          console.log("browseOpened response:", error.response);
+          console.log("browserOpened response:", error.response);
         }
         return handleBrowseError({ state, commit }, error);
       });
@@ -339,7 +339,7 @@ const actions = {
     ) {
       return;
     }
-    dispatch("getBrowseObjects");
+    dispatch("getBrowserPage");
   },
   routeChanged({ state, commit, dispatch }, route) {
     // When the route changes, reget the objects for that route.
@@ -347,20 +347,20 @@ const actions = {
       console.warn("invalid route!", route);
       return;
     }
-    commit("setBrowseRoute", route);
-    dispatch("getBrowseObjects");
+    commit("setBrowserRoute", route);
+    dispatch("getBrowserPage");
   },
-  async getBrowseObjects({ commit, dispatch, state }) {
+  async getBrowserPage({ commit, dispatch, state }) {
     // Get objects for the current route and setttings.
     if (!state.browseLoaded) {
-      return dispatch("browseOpened", state.routes.current);
+      return dispatch("browserOpened", state.routes.current);
     }
-    await API.getBrowseObjects({
+    await API.getBrowserPage({
       route: state.routes.current,
       settings: state.settings,
     })
       .then((response) => {
-        return commit("setBrowseData", response.data);
+        return commit("setBrowserPage", response.data);
       })
       .catch((error) => {
         return handleBrowseError({ state, commit }, error);
@@ -368,7 +368,7 @@ const actions = {
   },
   async markRead({ dispatch }, data) {
     await API.setMarkRead(data);
-    dispatch("getBrowseObjects");
+    dispatch("getBrowserPage");
   },
   async setFilterMode({ commit, state }, { group, pk, mode }) {
     if (mode && mode !== "base" && state.formChoices[mode] == null) {
@@ -387,7 +387,7 @@ const actions = {
   },
   clearFilters({ commit, dispatch, getters }) {
     commit("clearFilters", getters.filterNames);
-    dispatch("getBrowseObjects");
+    dispatch("getBrowserPage");
   },
   scanNotify({ commit, state }, value) {
     commit("setScanNotify", { scanInProgress: value });

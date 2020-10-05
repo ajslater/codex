@@ -1,8 +1,8 @@
-"""Websocket Consumers."""
+"""Websocket Server."""
+import logging
 import random
 import time
 
-from logging import getLogger
 from multiprocessing import Value
 from queue import Queue
 from threading import Thread
@@ -13,10 +13,11 @@ from asgiref.sync import async_to_sync
 from django.core.cache import cache
 from simplejson import JSONDecodeError
 
-from codex.choices.websocket_messages import MESSAGES
+from codex.serializers.webpack import WEBSOCKET_MESSAGES
 
 
-LOG = getLogger(__name__)
+# TODO logging not configured for this app properly
+LOG = logging.getLogger(__name__)
 
 # Websocket Application
 WS_ACCEPT_MSG = {"type": "websocket.accept"}
@@ -45,8 +46,8 @@ def get_send_msg(message):
 
 
 async def websocket_application(scope, receive, send):
-    """Set up broadcasts."""
-
+    """Websocket application server."""
+    LOG.debug(f"Starting websocket connection. {scope}")
     while True:
         event = await receive()
 
@@ -72,7 +73,7 @@ async def websocket_application(scope, receive, send):
                     msg_type == BROADCAST_MSG
                     and msg.get("secret") == BROADCAST_SECRET.value
                 ):
-                    if message in MESSAGES["admin"]:
+                    if message in WEBSOCKET_MESSAGES["admin"]:
                         # don't flood control
                         for send in ADMIN_CONNS:
                             send_msg = {"text": message}
@@ -84,6 +85,7 @@ async def websocket_application(scope, receive, send):
 
             except JSONDecodeError as exc:
                 LOG.error(exc)
+    LOG.debug("Closing websocket connection.")
 
 
 def flood_control_worker():
@@ -123,7 +125,7 @@ def start_flood_control_worker():
     """Start the flood control worker."""
     thread = Thread(
         target=flood_control_worker,
-        name="websocket broadcast flood control worker",
+        name="flood-control",
         daemon=True,
     )
     thread.start()

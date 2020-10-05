@@ -1,3 +1,8 @@
+v0.5.15
+* Metadata popup is now 1000x+ faster.
+* Metadata popup now shows created_at, updated_at and path (if admin).
+* Removed numeric and common password validators. Made the minimum length 4.
+
 v0.5.14
 * Metadata view for browse containers. Also observes filters.
 * Fix scanning notification

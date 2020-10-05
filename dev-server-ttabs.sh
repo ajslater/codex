@@ -4,7 +4,7 @@
 CODEX_DIR="$(dirname "$0")"
 
 # The API server
-ttab -t "Codex Django" "DEV=1 $CODEX_DIR/run.sh"
+ttab -t "Codex Django" "DEBUG=1 $CODEX_DIR/run.sh"
 # Django livereload server for Django HMR
 ttab -t "Codex Django livereload" "$CODEX_DIR/dev-livereload.sh"
 # The Vue dev server
