@@ -362,7 +362,7 @@ python-versions = "*"
 
 [[package]]
 name = "h11"
-version = "0.10.0"
+version = "0.11.0"
 description = "A pure-Python, bring-your-own-I/O implementation of HTTP/1.1"
 category = "main"
 optional = false
@@ -723,7 +723,7 @@ testing = ["argcomplete", "hypothesis (>=3.56)", "mock", "nose", "requests", "xm
 
 [[package]]
 name = "pytest-black"
-version = "0.3.11"
+version = "0.3.12"
 description = "A pytest plugin to enable format checking with black"
 category = "dev"
 optional = false
@@ -1275,8 +1275,8 @@ greenlet = [
     {file = "greenlet-0.4.17.tar.gz", hash = "sha256:41d8835c69a78de718e466dd0e6bfd4b46125f21a67c3ff6d76d8d8059868d6b"},
 ]
 h11 = [
-    {file = "h11-0.10.0-py2.py3-none-any.whl", hash = "sha256:9eecfbafc980976dbff26a01dd3487644dd5d00f8038584451fc64a660f7c502"},
-    {file = "h11-0.10.0.tar.gz", hash = "sha256:311dc5478c2568cc07262e0381cdfc5b9c6ba19775905736c87e81ae6662b9fd"},
+    {file = "h11-0.11.0-py2.py3-none-any.whl", hash = "sha256:ab6c335e1b6ef34b205d5ca3e228c9299cc7218b049819ec84a388c2525e5d87"},
+    {file = "h11-0.11.0.tar.gz", hash = "sha256:3c6c61d69c6f13d41f1b80ab0322f1872702a3ba26e12aa864c928f6a43fbaab"},
 ]
 h2 = [
     {file = "h2-4.0.0-py3-none-any.whl", hash = "sha256:ac9e293a1990b339d5d71b19c5fe630e3dd4d768c620d1730d355485323f1b25"},
@@ -1477,7 +1477,7 @@ pytest = [
     {file = "pytest-6.1.1.tar.gz", hash = "sha256:8f593023c1a0f916110285b6efd7f99db07d59546e3d8c36fc60e2ab05d3be92"},
 ]
 pytest-black = [
-    {file = "pytest-black-0.3.11.tar.gz", hash = "sha256:595eb0e7908b8a858a8564a5c8f0eae853c3926a4ec7b2afdfcedfa6fec65dd6"},
+    {file = "pytest-black-0.3.12.tar.gz", hash = "sha256:1d339b004f764d6cd0f06e690f6dd748df3d62e6fe1a692d6a5500ac2c5b75a5"},
 ]
 pytest-cov = [
     {file = "pytest-cov-2.10.1.tar.gz", hash = "sha256:47bd0ce14056fdd79f93e1713f88fad7bdcc583dcd7783da86ef2f085a0bb88e"},
