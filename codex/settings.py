@@ -16,10 +16,9 @@ import os
 
 from pathlib import Path
 
-import toml
-
-from codex.log_handlers import init_logging
-from codex.secret_key import get_secret_key
+from codex.codex_settings.codex_logging import init_logging
+from codex.codex_settings.secret_key import get_secret_key
+from codex.codex_settings.hypercorn_config import get_root_path
 
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -141,32 +140,17 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 # https://docs.djangoproject.com/en/3.0/topics/i18n/
-
 LANGUAGE_CODE = "en-us"
-
 TIME_ZONE = "UTC"
-
 USE_I18N = True
-
 USE_L10N = True
-
 USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
-if DEBUG:
-    # Whitenoise adds the root_path itself in DEBUG mode
-    ROOT_PATH = ""
-else:
-    HYPERCORN_CONF_PATH = CONFIG_PATH / "hypercorn.toml"
-    try:
-        hypercorn_conf = toml.load(HYPERCORN_CONF_PATH)
-        # Get root path. Iff it exists ensure a trailing slash.
-        ROOT_PATH = os.path.join(hypercorn_conf.get("root_path", "").lstrip("/"), "")
-    except Exception:
-        LOG.warn("Couldn't find hypercorn config to check static root path.")
-        ROOT_PATH = ""
+ROOT_PATH = get_root_path(CONFIG_PATH, DEBUG)
+
 CONFIG_STATIC = CONFIG_PATH / "static"
 CONFIG_STATIC.mkdir(exist_ok=True, parents=True)
 # XXX Abuse the Whitenoise ROOT feature to serve covers

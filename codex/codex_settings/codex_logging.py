@@ -17,7 +17,7 @@ class ColorFormatter(logging.Formatter):
         "DEBUG": {"fg": "black", "style": "bold"},
         "NOTSET": {"fg": "blue"},
     }
-    FORMATS = {}
+    FORMATTERS = {}
 
     def __init__(self, format, *args, **kwargs):
         """Set up the FORMATS dict."""
@@ -25,12 +25,12 @@ class ColorFormatter(logging.Formatter):
         for level_name, args in self.FORMAT_COLORS.items():
             levelno = getattr(logging, level_name)
             template = color(format, **args)
-            self.FORMATS[levelno] = template
+            formatter = logging.Formatter(template)
+            self.FORMATTERS[levelno] = formatter
 
     def format(self, record):
         """Format each log message."""
-        log_fmt = self.FORMATS.get(record.levelno)
-        formatter = logging.Formatter(log_fmt)
+        formatter = self.FORMATTERS.get(record.levelno)
         return formatter.format(record)
 
 
@@ -45,10 +45,11 @@ LOG_CONSOLE_HANDLER.setFormatter(LOG_FORMATTER)
 def get_file_log_handler(log_dir):
     """Get the log handlers for initialization."""
     log_dir.mkdir(exist_ok=True, parents=True)
-    log_fn = log_dir / "codex.log"
-    log_file_handler = TimedRotatingFileHandler(log_fn, when="D", backupCount=30)
-    log_file_handler.setFormatter(LOG_FORMATTER)
-    return log_file_handler
+    fn = log_dir / "codex.log"
+    file_handler = TimedRotatingFileHandler(fn, when="D", backupCount=30)
+    formatter = logging.Formatter(LOG_FMT)
+    file_handler.setFormatter(formatter)
+    return file_handler
 
 
 def init_logging(log_dir, debug):
