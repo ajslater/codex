@@ -82,9 +82,6 @@ async def websocket_application(scope, receive, send):
                     else:
                         # flood control library changed messages
                         MESSAGE_QUEUE.put((message, time.time()))
-                        # XXX asgi takes care of killing this, don't do it ourselves
-                        #if message == SHUTDOWN_MSG:
-                        #    break
 
             except JSONDecodeError as exc:
                 LOG.error(exc)
