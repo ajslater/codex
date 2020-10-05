@@ -42,8 +42,13 @@ def update_codex(main_pid, force=False):
 
     restart = old_version != new_version
     if restart:
-        LOG.info("Codex was updated. Sending restart signal.")
+        LOG.info("Codex was updated.")
         # Just use the interrupts to send the signal
-        os.kill(main_pid, signal.SIGUSR1)
+        restart_codex(main_pid)
     else:
         LOG.warn("Codex updated to the same version that was previously installed.")
+
+
+def restart_codex(main_pid):
+    LOG.info("Sending restart signal.")
+    os.kill(main_pid, signal.SIGUSR1)

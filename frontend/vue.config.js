@@ -19,7 +19,6 @@ module.exports = {
       }),
     ],
     entry: {
-      //app: './src/main.js',
       browserChoices: "./src/choices/browserChoices.json",
       readerChoices: "./src/choices/readerChoices.json",
       websocketMessages: "./src/choices/websocketMessages.json",

@@ -12,13 +12,13 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 
 
 import logging
-import logging.handlers
 import os
 
 from pathlib import Path
 
-import coloredlogs
 import toml
+from codex.log_handlers import init_logging
+from codex.secret_key import get_secret_key
 
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -28,52 +28,19 @@ CONFIG_PATH = Path(os.environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
 CONFIG_PATH.mkdir(exist_ok=True, parents=True)
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
-
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY_PATH = CONFIG_PATH / "secret_key"
-if not SECRET_KEY_PATH.exists():
-    from django.core.management.utils import get_random_secret_key
-
-    with open(SECRET_KEY_PATH, "w") as scf:
-        scf.write(get_random_secret_key())
-
-with open(SECRET_KEY_PATH, "r") as scf:
-    SECRET_KEY = scf.read().strip()
+SECRET_KEY = get_secret_key(CONFIG_PATH)
 
 DEV = bool(os.environ.get("DEV", False))
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = DEV or bool(os.environ.get("DEBUG", False))
 
+#
+# Logging
+#
 LOG_DIR = CONFIG_PATH / "logs"
-LOG_DIR.mkdir(exist_ok=True, parents=True)
-LOG_FILENAME = LOG_DIR / "codex.log"
-if DEBUG:
-    LOG_LEVEL = "DEBUG"
-else:
-    LOG_LEVEL = "INFO"
+init_logging(LOG_DIR, DEBUG)
 
-logging.basicConfig(level=LOG_LEVEL)
-LOG_FILE_HANDLER = logging.handlers.TimedRotatingFileHandler(
-    LOG_FILENAME, when="D", backupCount=30
-)
-FMT = "%(asctime)s %(name)s[%(process)d] %(levelname)s %(message)s"
-# https://coloredlogs.readthedocs.io/en/latest/api.html#changing-the-colors-styles
-LEVEL_STYLES = {
-    "spam": {"color": "green", "faint": True},
-    "debug": {"color": "black", "bright": True},
-    "verbose": {"color": "blue"},
-    "info": {},
-    "notice": {"color": "magenta"},
-    "warning": {"color": "yellow"},
-    "success": {"color": "green", "bold": True},
-    "error": {"color": "red"},
-    "critical": {"color": "red", "bold": True},
-}
-coloredlogs.install(level=LOG_LEVEL, fmt=FMT, level_styles=LEVEL_STYLES)
-LOG_FILE_HANDLER.setFormatter(logging.Formatter(FMT))
-logging.getLogger("").addHandler(LOG_FILE_HANDLER)
 LOG = logging.getLogger(__name__)
 
 ALLOWED_HOSTS = ["*"]
@@ -165,9 +132,10 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth."
         "password_validation.UserAttributeSimilarityValidator"
     },
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 4},
+    },
 ]
 
 

@@ -89,7 +89,6 @@ def create_comic_cover(comic_path, db_cover_path, force=False):
         fs_cover_path.parent.mkdir(exist_ok=True, parents=True)
 
         if comic_path is None:
-            print(f"{db_cover_path=}")
             comic = Comic.objects.only("path").get(cover_path=db_cover_path)
             comic_path = comic.path
 

@@ -29,9 +29,9 @@ exclude = ["*/**/*~", "codex/static_src/*", "codex/static_build/*"]
 #   in the Dockerfile
 [tool.poetry.dependencies]
 python = "^3.7"
+ansicolors = "^1.1.8"
 bidict = "^0.21.0"
 comicbox = "^0.1.3"
-coloredlogs = "^14.0"
 django = "^3.1"
 djangorestframework = "^3.11"
 django-cors-headers = "^3.2"

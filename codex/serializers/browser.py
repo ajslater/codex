@@ -42,7 +42,6 @@ def validate_null_filter(values):
     """
     for index, value in enumerate(values):
         if value == VUE_MODEL_NULL_CODE:
-            print(f"tranforming a null code: {value}")
             values[index] = None
     return values
 

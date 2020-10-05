@@ -1,5 +1,7 @@
 v0.5.15
 * Reduced the big O complexity of metadata dialog. Now 1000x+ faster.
+* Colored logging to the logfile
+* Removed numeric and common password validators and made the minimum length 4
 
 v0.5.14
 * Metadata view for browse containers. Also observes filters.

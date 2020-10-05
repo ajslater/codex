@@ -13,6 +13,7 @@ from codex.librarian.queue import LibraryChangedTask
 from codex.librarian.queue import ScannerCronTask
 from codex.librarian.queue import ScanRootTask
 from codex.librarian.queue import UpdateCronTask
+from codex.librarian.queue import RestartTask
 from codex.librarian.queue import WatcherCronTask
 from codex.models import AdminFlag
 from codex.models import FailedImport
@@ -134,13 +135,18 @@ class AdminAdminFlag(AdminNoAddDelete):
     list_display = fields
     list_editable = ("on",)
     sortable_by = fields
-    actions = ("update_now",)
+    actions = ("update_now", "restart_now")
 
     def update_now(self, request, queryset):
         """Trigger an update task immediately."""
         QUEUE.put(UpdateCronTask(sleep=0, force=True))
 
     update_now.short_description = "Update Codex Now"
+
+    def restart_now(self, request, queryset):
+        QUEUE.put(RestartTask(sleep=0))
+
+    restart_now.short_description = "Restart Codex Now"
 
     def save_model(self, request, obj, form, change):
         """Trigger a change notification because options have changed."""

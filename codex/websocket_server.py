@@ -1,8 +1,8 @@
 """Websocket Server."""
+import logging
 import random
 import time
 
-from logging import getLogger
 from multiprocessing import Value
 from queue import Queue
 from threading import Thread
@@ -16,7 +16,8 @@ from simplejson import JSONDecodeError
 from codex.serializers.webpack import WEBSOCKET_MESSAGES
 
 
-LOG = getLogger(__name__)
+# TODO logging not configured for this app properly
+LOG = logging.getLogger(__name__)
 
 # Websocket Application
 WS_ACCEPT_MSG = {"type": "websocket.accept"}
@@ -45,7 +46,8 @@ def get_send_msg(message):
 
 
 async def websocket_application(scope, receive, send):
-    """Set up broadcasts."""
+    """Websocket application server."""
+    LOG.debug(f"Starting websocket connection. {scope}")
     while True:
         event = await receive()
 
@@ -80,9 +82,12 @@ async def websocket_application(scope, receive, send):
                     else:
                         # flood control library changed messages
                         MESSAGE_QUEUE.put((message, time.time()))
+                        if message == SHUTDOWN_MSG:
+                            break
 
             except JSONDecodeError as exc:
                 LOG.error(exc)
+    LOG.debug("Closing websocket connection.")
 
 
 def flood_control_worker():
@@ -122,7 +127,7 @@ def start_flood_control_worker():
     """Start the flood control worker."""
     thread = Thread(
         target=flood_control_worker,
-        name="websocket broadcast flood control worker",
+        name="flood-control",
         daemon=True,
     )
     thread.start()

@@ -5,7 +5,6 @@ Extract the same json the frontend uses for the values so they're always
 in sync.
 Which is a little bit of overengineering.
 """
-
 import logging
 import mmap
 
@@ -18,7 +17,7 @@ from codex.settings import DEBUG
 from codex.settings import STATIC_ROOT
 
 
-LOG = logging.getLogger(__file__)
+LOG = logging.getLogger(__name__)
 
 PROD_JS_ROOT = STATIC_ROOT / "js"
 if DEBUG:
