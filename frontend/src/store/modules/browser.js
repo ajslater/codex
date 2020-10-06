@@ -337,7 +337,7 @@ const actions = {
       isNeedValidate(changedData) &&
       !validateState({ state, commit, dispatch })
     ) {
-      console.warning("NOT VALIDATED");
+      console.warn("NOT VALIDATED");
       return;
     }
     dispatch("getBrowserPage");

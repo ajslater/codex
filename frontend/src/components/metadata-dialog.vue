@@ -309,7 +309,6 @@
       </footer>
     </div>
     <div v-else id="placeholderContainer">
-      <!-- TODO remove if fast metadata tests fast -->
       <v-btn
         id="topCloseButton"
         title="Close Metadata (esc)"
@@ -342,8 +341,9 @@ import MetadataTags from "@/components/metadata-tags";
 import MetadataTextArea from "@/components/metadata-textarea";
 import { getReaderRoute } from "@/router/route";
 
-// TODO remove if fast metadata tests fast
-const CHILDREN_PER_SECOND = 9; // ~10 on my machine
+// Progress circle
+const CHILDREN_PER_SECOND = 1160;
+const MIN_SECS = 0.05;
 const UPDATE_INTERVAL = 250;
 
 const DATE_OPTIONS = {
@@ -387,9 +387,7 @@ export default {
       mdiTagOutline,
       dialog: false,
       editMode: false,
-      progress: 0, // TODO remove if placeholder goes away
-      estimatedTime: 0,
-      startTime: 0,
+      progress: 0,
     };
   },
   computed: {
@@ -439,31 +437,19 @@ export default {
       return label;
     },
   },
-  /*
-  // TODO ask large library person to time metadata and see if this is
-  //  useful
-  watch: {
-    md: function (newMD) {
-      if (newMD == null) {
-        this.startTime = new Date().getTime();
-        return;
-      }
-      const endTime = new Date().getTime();
-      const elapsed = (endTime - this.startTime) / 1000;
-      const numChildren = newMD.pks.length;
-      const cps = numChildren / elapsed;
-      console.debug(`${numChildren} / ${elapsed} secs = ${cps} CPS`);
-    },
-  },
-  */
   methods: {
     dialogOpened: function () {
       this.$store.dispatch("metadata/metadataOpened", {
         group: this.group,
         pk: this.pk,
       });
+      this.startProgress();
+    },
+    startProgress: function () {
       this.startTime = Date.now();
-      this.estimatedTime = (this.children / CHILDREN_PER_SECOND) * 1000;
+      this.estimatedMS =
+        Math.max(MIN_SECS, this.children / CHILDREN_PER_SECOND) * 1000;
+      console.debug(this.estimatedMS);
       this.updateProgress();
     },
     dialogClosed: function () {
@@ -473,7 +459,7 @@ export default {
     updateProgress: function () {
       // TODO remove if fast metadata tests fast
       const elapsed = Date.now() - this.startTime;
-      this.progress = (elapsed / this.estimatedTime) * 100;
+      this.progress = (elapsed / this.estimatedMS) * 100;
       if (this.progress >= 100 || this.md) {
         return;
       }
