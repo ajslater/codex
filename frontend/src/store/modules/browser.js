@@ -61,7 +61,7 @@ const state = {
   },
   objList: [],
   filterMode: "base",
-  browsePageLoaded: false,
+  browserPageLoaded: false,
   librariesExist: null,
   scanNotify: false,
   numPages: 1,
@@ -97,7 +97,7 @@ const getters = {
 
 const mutations = {
   setBrowsePageLoaded(state, value) {
-    state.browsePageLoaded = value;
+    state.browserPageLoaded = value;
   },
   setBrowserRoute(state, route) {
     state.routes.current = route;
@@ -290,7 +290,7 @@ const scanNotifyCheck = (commit, state) => {
       })
       .catch((error) => {
         console.error(error);
-        console.log("scanNotifyCheck() Response", error.response);
+        console.warn("scanNotifyCheck() Response", error.response);
       });
   }, wait);
 };
@@ -300,7 +300,7 @@ const actions = {
     // Gets everything needed to open the component.
     commit("setBrowsePageLoaded", false);
     commit("setBrowserRoute", route);
-    await API.getBrowseOpened(route)
+    await API.getBrowserOpened(route)
       .then((response) => {
         const data = response.data;
         commit("setVersions", data.versions);
@@ -319,13 +319,13 @@ const actions = {
           error.response.data.group
         ) {
           const data = error.response.data;
-          console.log(data.message);
-          console.log("Valid group is", data.group);
+          console.warn(data.message);
+          console.warn("Valid group is", data.group);
           const route = topGroupRoute(data.group);
           dispatch("browserOpened", route.params);
         } else {
           console.error(error);
-          console.log("browserOpened response:", error.response);
+          console.warn("browserOpened response:", error.response);
         }
         return handleBrowseError({ state, commit }, error);
       });
@@ -337,6 +337,7 @@ const actions = {
       isNeedValidate(changedData) &&
       !validateState({ state, commit, dispatch })
     ) {
+      console.warning("NOT VALIDATED");
       return;
     }
     dispatch("getBrowserPage");
@@ -352,7 +353,7 @@ const actions = {
   },
   async getBrowserPage({ commit, dispatch, state }) {
     // Get objects for the current route and setttings.
-    if (!state.browseLoaded) {
+    if (!state.browserPageLoaded) {
       return dispatch("browserOpened", state.routes.current);
     }
     await API.getBrowserPage({
@@ -372,7 +373,7 @@ const actions = {
   },
   async setFilterMode({ commit, state }, { group, pk, mode }) {
     if (mode && mode !== "base" && state.formChoices[mode] == null) {
-      await API.getBrowseChoices({ group, pk, choice_type: mode })
+      await API.getBrowserChoices({ group, pk, choice_type: mode })
         .then((response) => {
           response.data.key = mode;
           return commit("setBrowseChoice", response.data);
