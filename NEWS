@@ -1,3 +1,6 @@
+v0.5.17
+* Fix root_path not parsing bug
+
 v0.5.16
 * Fix broken startup when parsing json shared between front and back end
 
