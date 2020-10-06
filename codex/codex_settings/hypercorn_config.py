@@ -19,7 +19,12 @@ def get_root_path(config_path, debug):
         # Get root path. Iff it exists ensure a trailing slash.
 
         conf_root_path = hypercorn_conf.get("root_path", "")
-        conf_root_path = conf_root_path.lstrip("/")
-    except Exception:
-        LOG.warn("Couldn't find hypercorn config to check static root path.")
+        root_path = conf_root_path.lstrip("/")
+        # Ensure trailing slash
+        if root_path and root_path[-1] != "/":
+            root_path += "/"
+
+    except Exception as exc:
+        LOG.warn(f"Error getting root_path from {hypercorn_conf_path}.")
+        LOG.exception(exc)
     return root_path
