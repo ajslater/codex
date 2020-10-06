@@ -73,7 +73,7 @@ export default {
       showPlaceHolder: function (state) {
         return (
           this.enableNonUsers === undefined ||
-          (!state.browsePageLoaded && this.isOpenToSee)
+          (!state.browserPageLoaded && this.isOpenToSee)
         );
       },
     }),

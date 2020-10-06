@@ -9,16 +9,16 @@ const debug = process.env.NODE_ENV !== "production";
 
 // REST ENDPOINTS
 
-const getBrowseOpened = ({ group, pk, page }) => {
+const getBrowserOpened = ({ group, pk, page }) => {
   return ajax("get", `${BROWSE_BASE}/${group}/${pk}/${page}`);
 };
 
-const getBrowseObjects = ({ route, settings }) => {
+const getBrowserPage = ({ route, settings }) => {
   const { group, pk, page } = route;
   return ajax("put", `${BROWSE_BASE}/${group}/${pk}/${page}`, settings);
 };
 
-const getBrowseChoices = ({ group, pk, choice_type }) => {
+const getBrowserChoices = ({ group, pk, choice_type }) => {
   return ajax("get", `${BROWSE_BASE}/${group}/${pk}/choices/${choice_type}`);
 };
 
@@ -77,9 +77,9 @@ export const getSocket = (isAdmin) => {
 };
 
 export default {
-  getBrowseOpened,
-  getBrowseObjects,
-  getBrowseChoices,
+  getBrowserOpened,
+  getBrowserPage,
+  getBrowserChoices,
   getScanInProgress,
   setMarkRead,
   getSocket,
