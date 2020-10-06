@@ -1,3 +1,6 @@
+v0.5.16
+* Fix broken startup when parsing json shared between front and back end
+
 v0.5.15
 * Metadata popup is now 1000x+ faster.
 * Metadata popup now shows created_at, updated_at and path (if admin).
