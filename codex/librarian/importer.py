@@ -357,6 +357,6 @@ def import_comic(library_id, path):
         fi, fi_created = FailedImport.objects.update_or_create(
             defaults=defaults, **search_kwargs
         )
-        LOG.warn(f"Import failed: {reason}")
+        LOG.warn(f"Import failed: {path_str} {reason}")
         if DEBUG:
             LOG.exception(exc)
