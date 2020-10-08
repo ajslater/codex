@@ -1,7 +1,7 @@
 import API from "@/api/v1/auth";
 
 const state = {
-  user: undefined,
+  user: null,
   form: {
     usernameErrors: undefined,
     passwordErrors: undefined,

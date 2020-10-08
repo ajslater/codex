@@ -38,6 +38,9 @@ export default {
     user: function () {
       this.opened();
     },
+    isOpenToSee: function () {
+      this.opened();
+    },
   },
   created() {
     this.opened();
@@ -47,6 +50,7 @@ export default {
       if (this.isOpenToSee) {
         this.$store.dispatch("browser/browserOpened", this.$route.params);
       }
+      // TODO could clear the browser here.
     },
   },
 };
