@@ -19,8 +19,6 @@ export const GROUP_FLAGS = {
   f: ["formChoices", "enableFolderView"],
 };
 import FORM_CHOICES from "@/choices/browserChoices";
-const MIN_SCAN_WAIT = 5000;
-const MAX_SCAN_WAIT = 10000;
 
 let SETTINGS_SHOW_DEFAULTS = {};
 for (let choice of FORM_CHOICES.settingsGroup) {
@@ -63,7 +61,6 @@ const state = {
   filterMode: "base",
   browserPageLoaded: false,
   librariesExist: null,
-  scanNotify: false,
   numPages: 1,
   versions: {
     installed: process.env.VUE_APP_PACKAGE_VERSION,
@@ -268,33 +265,6 @@ const isNeedValidate = (changedData) => {
   return Boolean(intersection.length);
 };
 
-const scanNotifyCheck = (commit, state) => {
-  // polite client thundering herd control
-  const wait = Math.floor(
-    Math.random() * (MAX_SCAN_WAIT - MIN_SCAN_WAIT) + MIN_SCAN_WAIT
-  );
-  setTimeout(async () => {
-    if (state.scanNotify === null) {
-      // null is a special value that means it was manually dismissed.
-      // won't be reset until there's a true push from the server.
-      return;
-    }
-    await API.getScanInProgress()
-      .then((response) => {
-        const data = response.data;
-        commit("setScanNotify", data);
-        if (state.scanNotify) {
-          return scanNotifyCheck(commit, state);
-        }
-        return null;
-      })
-      .catch((error) => {
-        console.error(error);
-        console.warn("scanNotifyCheck() Response", error.response);
-      });
-  }, wait);
-};
-
 const actions = {
   async browserOpened({ state, commit, dispatch }, route) {
     // Gets everything needed to open the component.
@@ -352,6 +322,7 @@ const actions = {
     dispatch("getBrowserPage");
   },
   async getBrowserPage({ commit, dispatch, state }) {
+    console.log("getBrowserPage");
     // Get objects for the current route and setttings.
     if (!state.browserPageLoaded) {
       return dispatch("browserOpened", state.routes.current);
@@ -389,12 +360,6 @@ const actions = {
   clearFilters({ commit, dispatch, getters }) {
     commit("clearFilters", getters.filterNames);
     dispatch("getBrowserPage");
-  },
-  scanNotify({ commit, state }, value) {
-    commit("setScanNotify", { scanInProgress: value });
-    if (value !== null) {
-      scanNotifyCheck(commit, state);
-    }
   },
 };
 

@@ -29,7 +29,7 @@
 </template>
 
 <script>
-import { getCoverSrc } from "@/api/v1/browser";
+import { getCoverSrc } from "@/api/v1/cover";
 
 export default {
   name: "BookCover",

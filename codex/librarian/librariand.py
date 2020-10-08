@@ -5,7 +5,6 @@ import time
 
 from multiprocessing import Pool
 from multiprocessing import Process
-from multiprocessing import set_start_method
 from time import sleep
 
 import simplejson as json
@@ -15,6 +14,7 @@ from websocket import create_connection
 
 
 if not apps.ready:
+    # TODO move to one module for setup
     import django
 
     django.setup()
@@ -47,12 +47,11 @@ from codex.librarian.update import update_codex
 from codex.librarian.watcherd import Uatu
 from codex.models import Comic
 from codex.models import Folder
-from codex.serializers.webpack import WEBSOCKET_MESSAGES as MESSAGES
-from codex.websocket_server import BROADCAST_MSG
 from codex.websocket_server import BROADCAST_SECRET
 from codex.websocket_server import IPC_SUFFIX
 from codex.websocket_server import WS_API_PATH
-
+from codex.serializers.webpack import WEBSOCKET_MESSAGES as WS_MSGS
+from codex.websocket_server import MessageType
 
 # from django.utils.autoreload import file_changed
 
@@ -68,13 +67,15 @@ if platform.system() == "Darwin":
     # method is also very very slow. Use fork and the
     # OBJC_DISABLE_INITIALIZE_FORK_SAFETY environment variable for macOS.
     # https://bugs.python.org/issue40106
+    from multiprocessing import set_start_method
+
     set_start_method("fork", force=True)
 
 
 def get_websocket():
     """Connect to the websocket broadcast url."""
-    # XXX Its just easy to do this with the same ws server event loop
-    #     instead of shared memory.
+    # Its easier to inject these into the ws server event loop
+    # by sending them instead of using shared memory.
     ws = None
     attempts = 0
     while ws is None or not ws.connected and attempts <= MAX_WS_ATTEMPTS:
@@ -91,16 +92,14 @@ def get_websocket():
     return ws
 
 
-def send_json(ws, typ, message=None):
+def send_json(ws, typ, message):
     """Send a JSON message."""
     obj = {"type": typ}
-    if typ == BROADCAST_MSG:
+    if typ in MessageType.SECRET_TYPES:
         obj["secret"] = BROADCAST_SECRET.value
-    if message:
-        obj["message"] = message
+    obj["message"] = message
     msg = json.dumps(obj)
     if ws is None or not ws.connected:
-        print("get_websocket()")
         ws = get_websocket()
     ws.send(msg)
     return ws
@@ -126,15 +125,16 @@ def librarian(main_pid):
         task = QUEUE.get()
         try:
             if isinstance(task, ScanRootTask):
-                msg = MESSAGES["admin"]["SCAN_LIBRARY"]
-                ws = send_json(ws, BROADCAST_MSG, msg)
+                msg = WS_MSGS["SCAN_LIBRARY"]
+                ws = send_json(ws, MessageType.ADMIN_BROADCAST, msg)
                 scan_root(task.library_id, task.force)
             elif isinstance(task, ScanDoneTask):
+                # TODO send two messages?
                 if task.failed_imports:
-                    msg = MESSAGES["admin"]["FAILED_IMPORTS"]
+                    msg = WS_MSGS["FAILED_IMPORTS"]
                 else:
-                    msg = MESSAGES["admin"]["SCAN_DONE"]
-                ws = send_json(ws, BROADCAST_MSG, msg)
+                    msg = WS_MSGS["SCAN_DONE"]
+                ws = send_json(ws, MessageType.ADMIN_BROADCAST, msg)
             elif isinstance(task, ComicModifiedTask):
                 import_comic(task.library_id, task.src_path)
             elif isinstance(task, ComicCoverCreateTask):
@@ -150,8 +150,8 @@ def librarian(main_pid):
             elif isinstance(task, FolderDeletedTask):
                 obj_deleted(task.src_path, Folder)
             elif isinstance(task, LibraryChangedTask):
-                msg = MESSAGES["user"]["LIBRARY_CHANGED"]
-                ws = send_json(ws, BROADCAST_MSG, msg)
+                msg = WS_MSGS["LIBRARY_CHANGED"]
+                ws = send_json(ws, MessageType.BROADCAST, msg)
             elif isinstance(task, WatcherCronTask):
                 sleep(task.sleep)
                 watcher.set_all_library_watches()

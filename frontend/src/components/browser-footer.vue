@@ -27,6 +27,9 @@ export default {
       numPages: (state) => state.numPages,
       versions: (state) => state.versions,
     }),
+    outdated: function () {
+      return this.versions.latest > this.versions.installed;
+    },
     outdatedClass: function () {
       let cls;
       if (this.outdated) {

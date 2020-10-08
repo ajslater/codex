@@ -37,8 +37,8 @@ if DEBUG:
     WEBPACK_MODULE_RE_TEMPLATES[DEV_JS_ROOT] = "^{name}.js$"
 
 
-WEBSOCKET_MODULE_NAME = "websocketMessages"
-WEBPACK_MODULE_NAMES = ("browserChoices", "readerChoices", WEBSOCKET_MODULE_NAME)
+WEBSOCKETS_MODULE_NAME = "websocketMessages"
+WEBPACK_MODULE_NAMES = ("browserChoices", "readerChoices", WEBSOCKETS_MODULE_NAME)
 
 # These magic pad number are to get around some escaped chars in the
 # dev build version of webpack modules.
@@ -149,12 +149,11 @@ def build_choices_and_defaults(data_dict):
 def load_from_webpack_modules():
     """Load values from the vuetify formatted json into python dicts."""
     global CHOICES, DEFAULTS, WEBSOCKET_MESSAGES
-    for re_template in WEBPACK_MODULE_NAMES:
-        data_dict, fn = parse_wepack_module(re_template)
+    for module_name in WEBPACK_MODULE_NAMES:
+        data_dict, fn = parse_wepack_module(module_name)
         if not data_dict:
             return
-
-        if re_template == WEBSOCKET_MODULE_NAME:
+        if module_name == WEBSOCKETS_MODULE_NAME:
             WEBSOCKET_MESSAGES = data_dict
         else:
             build_choices_and_defaults(data_dict)

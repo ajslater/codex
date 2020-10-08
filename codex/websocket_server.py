@@ -10,11 +10,20 @@ from threading import Thread
 import simplejson as json
 
 from asgiref.sync import async_to_sync
+from django.apps import apps
 from django.core.cache import cache
 from simplejson import JSONDecodeError
 
-from codex.serializers.webpack import WEBSOCKET_MESSAGES
 
+if not apps.ready:
+    # For logging
+    # TODO move to one method for setup
+    import os
+
+    import django
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "codex.settings")
+    django.setup()
 
 # TODO logging not configured for this app properly
 LOG = logging.getLogger(__name__)
@@ -38,11 +47,22 @@ FLOOD_DELAY = 2  # wait seconds before broadcasting
 MAX_FLOOD_WAIT_TIME = 20
 
 
-def get_send_msg(message):
-    """Create a websocket send message."""
-    msg = {"text": message}
-    msg.update(WS_SEND_MSG)
-    return msg
+class MessageType:
+    """Types of messages."""
+
+    SUBSCRIBE = "subscribe"
+    BROADCAST = "broadcast"
+    ADMIN_BROADCAST = "admin_broadcast"
+    SECRET_TYPES = set([BROADCAST, ADMIN_BROADCAST])
+
+
+async def send_msg(conns, text):
+    """Construct a ws send message and send to all connections."""
+    # text = WEBSOCKET_API[message]
+    send_msg = {"text": text}
+    send_msg.update(WS_SEND_MSG)
+    for send in conns:
+        await send(send_msg)
 
 
 async def websocket_application(scope, receive, send):
@@ -52,13 +72,6 @@ async def websocket_application(scope, receive, send):
         event = await receive()
 
         if event["type"] == "websocket.connect":
-            path = scope.get("path")
-            if not path.endswith(IPC_SUFFIX):
-                # The librarian doesn't care about broadcasts
-                BROADCAST_CONNS.add(send)
-            if path.endswith(ADMIN_SUFFIX):
-                # Only admins care about admin messages
-                ADMIN_CONNS.add(send)
             await send(WS_ACCEPT_MSG)
 
         if event["type"] == "websocket.disconnect":
@@ -68,20 +81,38 @@ async def websocket_application(scope, receive, send):
             try:
                 msg = json.loads(event["text"])
                 msg_type = msg.get("type")
-                message = msg.get("message")
-                if (
-                    msg_type == BROADCAST_MSG
+                # msg_message = msg.get("message")
+
+                if (msg_type) == MessageType.SUBSCRIBE:
+
+                    if msg.get("register"):
+                        # The librarian doesn't care about broadcasts
+                        BROADCAST_CONNS.add(send)
+                    else:
+                        BROADCAST_CONNS.discard(send)
+                        ADMIN_CONNS.discard(send)
+
+                    if msg.get("admin"):
+                        # Only admins care about admin messages
+                        ADMIN_CONNS.add(send)
+                    else:
+                        ADMIN_CONNS.discard(send)
+                elif (
+                    msg_type == MessageType.BROADCAST
                     and msg.get("secret") == BROADCAST_SECRET.value
                 ):
-                    if message in WEBSOCKET_MESSAGES["admin"]:
-                        # don't flood control
-                        for send in ADMIN_CONNS:
-                            send_msg = {"text": message}
-                            send_msg.update(WS_SEND_MSG)
-                            await send(send_msg)
-                    else:
-                        # flood control library changed messages
-                        MESSAGE_QUEUE.put((message, time.time()))
+                    message = msg.get("message")
+                    # flood control library changed messages
+                    MESSAGE_QUEUE.put((message, time.time()))
+                elif (
+                    msg_type == MessageType.ADMIN_BROADCAST
+                    and msg.get("secret") == BROADCAST_SECRET.value
+                ):
+                    message = msg.get("message")
+                    await send_msg(ADMIN_CONNS, message)
+                else:
+                    # Keepalive
+                    send(WS_SEND_MSG)
 
             except JSONDecodeError as exc:
                 LOG.error(exc)
@@ -109,10 +140,7 @@ def flood_control_worker():
             wait_left = timestamp + FLOOD_DELAY - time.time()
             if wait_left <= 0 or wait_break:
                 cache.clear()
-                msg = {"text": message}
-                msg.update(WS_SEND_MSG)
-                for send in BROADCAST_CONNS:
-                    async_to_sync(send)(msg)
+                async_to_sync(send_msg)(BROADCAST_CONNS, message)
             else:
                 # put it back and wait
                 if MESSAGE_QUEUE.empty():

@@ -17,9 +17,10 @@
     "normalize.css": "^8.0.1",
     "reconnecting-websocket": "^4.4.0",
     "vue": "^2.6.11",
+    "vue-native-websocket": "^2.0.14",
     "vue-router": "^3.4.5",
     "vue2-filters": "^0.11.0",
-    "vuetify": "^2.3.12",
+    "vuetify": "^2.3.13",
     "vuex": "^3.5.1"
   },
   "devDependencies": {
@@ -63,7 +64,7 @@
     "eslint-plugin-vue-scoped-css": "^1.0.0",
     "prettier": "^2.1.2",
     "prettier-plugin-package": "^1.1.0",
-    "sass": "^1.26.11",
+    "sass": "^1.26.12",
     "sass-loader": "^10.0.1",
     "typeface-roboto": "0.0.75",
     "vue-cli-plugin-vuetify": "^2.0.7",
