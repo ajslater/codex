@@ -67,6 +67,9 @@ import { getFullComicName, getVolumeName } from "@/components/comic-name";
 import MetadataButton from "@/components/metadata-dialog";
 import { getReaderRoute } from "@/router/route";
 
+const STAR_FIELDS = new Set(["user_rating", "critical_rating"]);
+const DATE_FIELDS = new Set(["created_at", "updated_at"]);
+
 export default {
   name: "BrowserCard",
   components: {
@@ -147,9 +150,9 @@ export default {
         return `${human} pages`;
       } else if (this.sortBy == "size") {
         return filesize(parseInt(ov), { round: 1 });
-      } else if (["user_rating", "critical_rating"].includes(this.sortBy)) {
+      } else if (STAR_FIELDS.has(this.sortBy)) {
         return `${ov} stars`;
-      } else if (["created_at"].includes(this.sortBy)) {
+      } else if (DATE_FIELDS.has(this.sortBy)) {
         const date = new Date(ov);
         const year = `${date.getFullYear()}`.padStart(4, "0");
         const month = `${date.getMonth() + 1}`.padStart(2, "0");
