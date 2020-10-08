@@ -9,6 +9,9 @@ jobs:
             - run:
                 command: ./build-dist-wheel.sh
                 name: Build Python Wheel
+            - run:
+                command: ./ci/publish-pypi.sh --dry-run
+                name: Check if Publish Package to PyPi will succeed
             - store_test_results:
                 path: test-results/pytest
             - store_artifacts:
@@ -23,6 +26,7 @@ jobs:
                     - ./docker-env
                     - ./pyproject.toml
                 root: .
+
     deploy:
         docker:
             - image: circleci/python:3.8
@@ -35,9 +39,6 @@ jobs:
             - run:
                 command: ./build-runnable-image.sh
                 name: Build Runnable Docker Image
-            - run:
-                command: ./ci/publish-pypi.sh
-                name: Publish Package to PyPi
             - run:
                 command: ./ci/publish-pypi.sh
                 name: Publish Package to PyPi
