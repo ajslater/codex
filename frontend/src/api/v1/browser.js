@@ -1,4 +1,4 @@
-import { ajax, API_PREFIX, ROOT_PATH } from "./base";
+import { ajax } from "./base";
 
 export const BROWSE_BASE = "/browse";
 
