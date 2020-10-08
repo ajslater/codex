@@ -1,6 +1,7 @@
 v0.5.19
 * Notifications now appear in reader as well as browser
 * Notifications appearing at wrong time bug squashed
+* On import failure, log the path as well as the reason.
 
 v0.5.18
 * Fix filters not changing display bug
