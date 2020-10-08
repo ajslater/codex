@@ -47,11 +47,12 @@ from codex.librarian.update import update_codex
 from codex.librarian.watcherd import Uatu
 from codex.models import Comic
 from codex.models import Folder
+from codex.serializers.webpack import WEBSOCKET_MESSAGES as WS_MSGS
 from codex.websocket_server import BROADCAST_SECRET
 from codex.websocket_server import IPC_SUFFIX
 from codex.websocket_server import WS_API_PATH
-from codex.serializers.webpack import WEBSOCKET_MESSAGES as WS_MSGS
 from codex.websocket_server import MessageType
+
 
 # from django.utils.autoreload import file_changed
 
