@@ -8,7 +8,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /app
 COPY setup-dev.sh pyproject.toml poetry.lock /app/
-RUN poetry install --no-root
+RUN poetry install --no-root --remove-untracked
 COPY frontend/package.json frontend/package-lock.json /app/frontend/
 WORKDIR /app/frontend
 RUN npm install
