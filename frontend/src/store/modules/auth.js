@@ -80,7 +80,7 @@ const actions = {
         return response;
       })
       .catch((error) => {
-        console.debug(error.response.data);
+        return console.debug(error.response.data);
       });
   },
   logout({ commit }) {
