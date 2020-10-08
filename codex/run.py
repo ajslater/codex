@@ -125,8 +125,6 @@ def get_hypercorn_config():
         config.use_reloader = True
         LOG.info("Reload hypercorn if files change")
 
-    # Don't nuke existing loggers
-    config.logconfig_dict = {"disable_existing_loggers": False}
     # Store port number in shared memory for librariand websocket server
     PORT.value = int(config.bind[0].split(":")[1])
     return config

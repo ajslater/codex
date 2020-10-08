@@ -1,3 +1,7 @@
+v0.5.19
+* Notifications now appear in reader as well as browser
+* Notifications appearing at wrong time bug squashed
+
 v0.5.18
 * Fix filters not changing display bug
 
