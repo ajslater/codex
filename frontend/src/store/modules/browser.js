@@ -289,6 +289,7 @@ const isNeedValidate = (changedData) => {
 const actions = {
   async browserOpened({ state, commit, dispatch }, route) {
     // Gets everything needed to open the component.
+    console.debug("browserOpened");
     commit("setBrowsePageLoaded", false);
     commit("setBrowserRoute", route);
     commit("clearAllFormChoicesExcept", null);
@@ -350,6 +351,7 @@ const actions = {
   },
   async getBrowserPage({ commit, dispatch, state }, { showProgress }) {
     // Get objects for the current route and setttings.
+    console.debug("getBrowserPage");
     if (!state.browserPageLoaded) {
       console.warn("not setup running open");
       return dispatch("browserOpened", state.routes.current);

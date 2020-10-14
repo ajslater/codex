@@ -33,11 +33,16 @@ export default {
   },
   methods: {
     routeToPage: function (page) {
+      if (page === this.$route.params.page) {
+        console.debug("Redundant navigation. Noop.");
+        return;
+      }
+      const params = { ...this.$route.params };
+      params.page = page;
       const route = {
         name: this.$route.name,
-        params: { ...this.$route.params },
+        params: params,
       };
-      route.params.page = page;
       this.$router.push(route);
     },
   },

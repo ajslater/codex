@@ -42,9 +42,6 @@ export default {
       this.opened();
     },
   },
-  created() {
-    this.opened();
-  },
   methods: {
     opened: function () {
       if (this.isOpenToSee) {
