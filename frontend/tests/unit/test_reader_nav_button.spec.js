@@ -18,13 +18,13 @@ describe("ReaderNavButton.vue", () => {
     },
   };
   const mutations = {
-    setPageNumber(state, pn) {
+    setPage(state, pn) {
       state.routes.current.pageNumber = pn;
     },
   };
   const actions = {
-    pageChanged({ commit }, pn) {
-      commit("setPageNumber", pn);
+    routeChanged({ commit }, pn) {
+      commit("setPage", pn);
     },
   };
   let wrapper;
@@ -62,7 +62,7 @@ describe("ReaderNavButton.vue", () => {
     expect(btn.exists()).toBe(true);
     expect(btn.classes("v-btn--disabled")).toBe(false);
 
-    return store.dispatch("reader/pageChanged", 30).then(() => {
+    return store.dispatch("reader/routeChanged", 30).then(() => {
       /*
       console.log(store.state.reader);
       console.log(btn.classes());

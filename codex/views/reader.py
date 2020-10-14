@@ -64,13 +64,13 @@ class ComicOpenedView(APIView, SessionMixin, UserBookmarkMixin):
         prev_route = next_route = None
         for comic in comics:
             if current_comic is not None:
-                next_route = {"pk": comic.pk, "pageNumber": 0}
+                next_route = {"pk": comic.pk, "page": 0}
                 break
             elif comic.pk == pk:
                 current_comic = comic
             else:
                 # Haven't matched yet, so set the previous comic
-                prev_route = {"pk": comic.pk, "pageNumber": comic.max_page}
+                prev_route = {"pk": comic.pk, "page": comic.max_page}
         routes = {"prevBook": prev_route, "nextBook": next_route}
         return current_comic, routes
 
@@ -106,8 +106,8 @@ class ComicPageView(APIView):
         comic = Comic.objects.only("path").get(pk=pk)
         try:
             car = ComicArchive(comic.path)
-            page_num = self.kwargs.get("page_num")
-            page_image = car.get_page_by_index(page_num)
+            page = self.kwargs.get("page")
+            page_image = car.get_page_by_index(page)
             return HttpResponse(page_image, content_type="image/jpeg")
         except Exception as exc:
             LOG.exception(exc)

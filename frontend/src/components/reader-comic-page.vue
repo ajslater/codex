@@ -16,7 +16,7 @@ import { getComicPageSource } from "@/api/v2/comic";
 export default {
   name: "ReaderComicPage",
   props: {
-    page: {
+    pageIncrement: {
       type: Number,
       required: true,
       default: 0,
@@ -25,28 +25,27 @@ export default {
   computed: {
     ...mapState("reader", {
       pk: (state) => state.routes.current.pk,
-      basePageNumber: (state) => state.routes.current.pageNumber,
+      page: function (state) {
+        return state.routes.current.page + this.pageIncrement;
+      },
       maxPage: (state) => state.maxPage,
     }),
     ...mapGetters("reader", ["computedSettings"]),
-    pageNumber() {
-      return this.basePageNumber + this.page;
-    },
     displayPage() {
       return (
-        this.pageNumber <= this.maxPage &&
-        this.pageNumber >= 0 &&
+        this.page <= this.maxPage &&
+        this.page >= 0 &&
         (this.page === 0 || this.computedSettings.twoPages)
       );
     },
     src() {
       return getComicPageSource({
         pk: this.pk,
-        pageNumber: this.pageNumber,
+        page: this.page,
       });
     },
     alt() {
-      return `Page ${this.pageNumber}`;
+      return `Page ${this.page}`;
     },
     fitToClass() {
       let cls = "";

@@ -3,14 +3,14 @@
     <ReaderNavButton :value="0" />
     <v-slider
       class="readerSlider"
-      :value="+$route.params.pageNumber"
+      :value="+$route.params.page"
       :min="+0"
       :max="maxPage"
       ticks="always"
       thumb-label="always"
       hide-details="auto"
       dense
-      @change="routeToPageNum($event)"
+      @change="routeToPage($event)"
     />
     <ReaderNavButton :value="maxPage" />
   </v-toolbar>
@@ -32,9 +32,9 @@ export default {
     }),
   },
   methods: {
-    routeToPageNum: function (pageNumber) {
-      const page = { pk: +this.$route.params.pk, pageNumber };
-      this.$store.dispatch("reader/routeTo", page);
+    routeToPage: function (page) {
+      const params = { pk: +this.$route.params.pk, page };
+      this.$store.dispatch("reader/routeTo", params);
     },
   },
 };

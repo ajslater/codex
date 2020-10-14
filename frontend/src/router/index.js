@@ -22,7 +22,7 @@ const routes = [
   },
   {
     name: "reader",
-    path: "/c/:pk/:pageNumber",
+    path: "/c/:pk/:page",
     component: Reader,
     props: true,
   },

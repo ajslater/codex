@@ -37,12 +37,12 @@ urlpatterns = [
     # Reader
     path("c/<int:pk>", ComicOpenedView.as_view(), name="comic_info"),
     path(
-        "c/<int:pk>/<int:page_num>/p.jpg",
+        "c/<int:pk>/<int:page>/p.jpg",
         ComicPageView.as_view(),
         name="comic_page",
     ),
     path(
-        "c/<int:pk>/<int:page_num>/bookmark",
+        "c/<int:pk>/<int:page>/bookmark",
         ComicBookmarkView.as_view(),
         name="comic_bookmark",
     ),

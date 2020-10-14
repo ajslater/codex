@@ -3,8 +3,8 @@
     <div v-if="isOpenToSee" id="readerContainer">
       <v-main>
         <div id="pagesContainer">
-          <ReaderComicPage :page="+0" />
-          <ReaderComicPage :page="+1" />
+          <ReaderComicPage :page-increment="+0" />
+          <ReaderComicPage :page-increment="+1" />
         </div>
       </v-main>
       <nav id="navOverlay" @click="toggleToolbars()">
@@ -55,21 +55,22 @@ export default {
       if (+to.params.pk !== +from.params.pk) {
         action += "bookChanged";
       } else {
-        action += "pageChanged";
+        action += "routeChanged";
       }
       this.$store.dispatch(action, {
         pk: +to.params.pk,
-        pageNumber: +to.params.pageNumber,
+        page: +to.params.page,
       });
       window.scrollTo(0, 0);
     },
   },
   created() {
-    this.$store.dispatch("reader/readerOpened", {
+    const params = {
       // Cast the route params as numbers
       pk: +this.$route.params.pk,
-      pageNumber: +this.$route.params.pageNumber,
-    });
+      page: +this.$route.params.page,
+    };
+    this.$store.dispatch("reader/readerOpened", params);
     this.createPrefetches();
   },
   beforeDestroy: function () {

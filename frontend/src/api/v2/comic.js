@@ -4,8 +4,8 @@ const getComicOpened = (pk) => {
   return ajax("get", `c/${pk}`);
 };
 
-const setComicBookmark = ({ pk, pageNumber }) => {
-  return ajax("patch", `c/${pk}/${pageNumber}/bookmark`);
+const setComicBookmark = ({ pk, page }) => {
+  return ajax("patch", `c/${pk}/${page}/bookmark`);
 };
 
 const setComicSettings = ({ pk, data }) => {
@@ -20,8 +20,8 @@ export const getDownloadURL = (pk) => {
   return `${API_PREFIX}/c/${pk}/archive.cbz`;
 };
 
-export const getComicPageSource = ({ pk, pageNumber }) => {
-  return `${API_PREFIX}/c/${pk}/${pageNumber}/p.jpg`;
+export const getComicPageSource = ({ pk, page }) => {
+  return `${API_PREFIX}/c/${pk}/${page}/p.jpg`;
 };
 
 export default {

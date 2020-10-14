@@ -51,8 +51,8 @@ class ComicBookmarkView(APIView, UserBookmarkMixin):
     def patch(self, request, *args, **kwargs):
         """Save a user bookmark after a page change."""
         pk = self.kwargs.get("pk")
-        page_num = self.kwargs.get("page_num")
-        updates = {"bookmark": page_num}
+        page = self.kwargs.get("page")
+        updates = {"bookmark": page}
         self.update_user_bookmark(updates, pk=pk)
         return Response()
 

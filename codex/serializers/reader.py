@@ -11,7 +11,7 @@ class ComicPageRouteSerializer(Serializer):
     """A comic page route."""
 
     pk = IntegerField(read_only=True)
-    pageNumber = IntegerField(read_only=True)  # noqa: N815
+    page = IntegerField(read_only=True)
 
 
 class ComicReaderBothSettingsSerializer(Serializer):
