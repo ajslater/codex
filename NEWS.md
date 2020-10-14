@@ -7,6 +7,7 @@
 - New frontend URL scheme
 - New API
 - Added time to the browse card when sorting by time fields
+- Fixed a bug importing Story Arc Series Groups and Genres. Requires re-import to correct.
 - Fixed a bug with sorting that grouped improperly and showed the wrong covers for reverse sorts.
 - Browser pagination footer now remains fixed on the page
 - Browser pagination footer is now a slider to handle larger collecions
