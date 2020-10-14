@@ -27,7 +27,7 @@
         </v-list-item-content>
       </v-list-item>
     </template>
-    <v-form ref="loginForm" id="authDialog">
+    <v-form id="authDialog" ref="loginForm">
       <v-text-field
         v-model="credentials.username"
         autocomplete="username"
