@@ -9,9 +9,6 @@ jobs:
             - run:
                 command: ./build-dist-wheel.sh
                 name: Build Python Wheel
-            - run:
-                command: ./ci/publish-pypi.sh --dry-run
-                name: Check if Publish Package to PyPi will succeed
             - store_test_results:
                 path: test-results/pytest
             - store_artifacts:
