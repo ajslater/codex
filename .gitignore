@@ -142,6 +142,7 @@ jspm_packages/
 *~
 .DS_Store
 build
+comics
 config
 codex/static_build/
 codex/static_root/
@@ -151,7 +152,3 @@ monkeytype.sqlite3
 node_modules
 test-results
 webpack-stats.json
-##############################
-# Until comicbox is released #
-##############################
-comicbox

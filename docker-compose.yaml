@@ -8,6 +8,6 @@ services:
       - "9810:9810"
     volumes:
       - ./config:/config
-      - /Volumes/Media/Comics/:/comics
+      - ./comics:/comics
     env_file:
       - docker-env
