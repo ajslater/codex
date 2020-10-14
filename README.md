@@ -182,8 +182,8 @@ You will have to contact your administrator to reset your password if you forget
 
 1. Edit & write metadata for comics
 2. Investigate the feasibility of full text search
-4. [OPDS API](https://en.wikipedia.org/wiki/Open_Publication_Distribution_System)
-5. Dark Admin Panel Styling
+3. [OPDS API](https://en.wikipedia.org/wiki/Open_Publication_Distribution_System)
+4. Dark Admin Panel Styling
 
 ## Out of Scope
 
