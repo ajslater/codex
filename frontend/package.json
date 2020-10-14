@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "0.5.18",
+  "version": "0.6.0",
   "private": true,
   "description": "ui for codex api",
   "scripts": {
@@ -20,7 +20,7 @@
     "vue-native-websocket": "^2.0.14",
     "vue-router": "^3.4.6",
     "vue2-filters": "^0.11.0",
-    "vuetify": "^2.3.13",
+    "vuetify": "^2.3.14",
     "vuex": "^3.5.1"
   },
   "devDependencies": {
@@ -35,7 +35,7 @@
     "@vue/eslint-config-prettier": "^6.0.0",
     "@vue/test-utils": "^1.1.0",
     "babel-eslint": "^10.1.0",
-    "eslint": "^7.10.0",
+    "eslint": "^7.11.0",
     "eslint-config-adjunct": "^4.8.7",
     "eslint-config-prettier": "^6.12.0",
     "eslint-plugin-array-func": "^3.1.7",
@@ -65,10 +65,10 @@
     "prettier": "^2.1.2",
     "prettier-plugin-package": "^1.2.0",
     "sass": "^1.27.0",
-    "sass-loader": "^10.0.1",
+    "sass-loader": "^10.0.3",
     "typeface-roboto": "1.1.13",
     "vue-cli-plugin-vuetify": "^2.0.7",
-    "vue-eslint-parser": "^7.1.0",
+    "vue-eslint-parser": "^7.1.1",
     "vue-template-compiler": "^2.6.12",
     "vuetify-loader": "^1.6.0",
     "webpack-bundle-tracker": "^0.4.3"

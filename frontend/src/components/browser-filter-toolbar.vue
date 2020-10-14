@@ -45,15 +45,12 @@ export default {
   width: 100vw;
 }
 #filterToolbarItems {
-  padding-top: 8px;
+  padding-top: 10px;
 }
 </style>
 
-<!-- eslint-disable vue-scoped-css/require-scoped -->
+<!-- eslint-disable-next-line vue-scoped-css/require-scoped -->
 <style lang="scss">
-#filterToolbar > .v-toolbar__content {
-  padding-right: 0px;
-}
 #filterToolbar .filterSelect .v-input__prepend-inner {
   padding-right: 0px;
 }
@@ -84,7 +81,12 @@ export default {
 }
 @import "~vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
-  .toolbarSelect {
+  #filterToolbar > .v-toolbar__content {
+    padding-right: 0px;
+    padding-left: 0px;
+  }
+  #filterToolbar .v-select__selection,
+  #filterToolbar .v-select__selections {
     font-size: 12px;
   }
   /* ids aren't kept by vuetify for v-select. abuse classes */
@@ -96,4 +98,3 @@ export default {
   }
 }
 </style>
-<!-- eslint-enable vue-scoped-css/require-scoped -->

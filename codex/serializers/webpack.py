@@ -11,16 +11,16 @@ import re
 
 import simplejson as json
 
-from codex.settings import BASE_DIR
-from codex.settings import DEBUG
-from codex.settings import STATIC_ROOT
+from codex.settings.settings import BASE_DIR
+from codex.settings.settings import DEBUG
+from codex.settings.settings import STATIC_ROOT
 
 
 LOG = logging.getLogger(__name__)
 
 PROD_JS_ROOT = STATIC_ROOT / "js"
 if DEBUG:
-    from codex.settings import STATIC_BUILD
+    from codex.settings.settings import STATIC_BUILD
 
     SRC_JS_ROOT = BASE_DIR / "frontend/src/choices"
     # not sure this ever gets used. in dev src is always present.
@@ -76,11 +76,13 @@ for args in EXTRACT_JSON_ARGS.values():
 CHOICES = {}
 DEFAULTS = {}
 WEBSOCKET_MESSAGES = {}
+VUETIFY_NULL_CODE = -1
 
 
 def find_filename_regex(js_root, module_name):
     """Find a filename in a dir that matches the regex."""
     if not js_root.is_dir():
+        LOG.warn(f"Not a directory: {js_root}")
         return
     re_template = WEBPACK_MODULE_RE_TEMPLATES[js_root]
     regex_str = re_template.format(name=module_name)
@@ -133,9 +135,13 @@ def build_show_defaults(settings_group_list):
 
 def build_choices_and_defaults(data_dict):
     """Transform the vuetify choice formatted data to key:value dicts."""
+    global DEFAULTS, VUETIFY_NULL_CODE, CHOICES
     for vuetify_key, vuetify_list in data_dict.items():
         if vuetify_key == "settingsGroup":
             DEFAULTS["show"] = build_show_defaults(vuetify_list)
+            continue
+        if vuetify_key == "vuetifyNullCode":
+            VUETIFY_NULL_CODE = vuetify_list
             continue
         choices = {}
         for item in vuetify_list:
@@ -148,7 +154,7 @@ def build_choices_and_defaults(data_dict):
 
 def load_from_webpack_modules():
     """Load values from the vuetify formatted json into python dicts."""
-    global CHOICES, DEFAULTS, WEBSOCKET_MESSAGES
+    global WEBPACK_MODULE_NAMES, WEBSOCKETS_MODULE_NAME, WEBSOCKET_MESSAGES
     for module_name in WEBPACK_MODULE_NAMES:
         data_dict, fn = parse_wepack_module(module_name)
         if not data_dict:

@@ -12,6 +12,7 @@ LABEL version v${PKG_VERSION}
 RUN echo "*** install python wheels ***"
  COPY --from=codex-install /wheels /wheels
 
+# hadolint ignore=DL3013
 RUN pip3 install --no-index --find-links=/wheels /wheels/codex*.whl
 
 VOLUME /comics

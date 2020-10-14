@@ -33,7 +33,7 @@ You'll need to install these system dependencies before installing codex.
 ##### MacOS
 
 ```sh
-brew install libffi jpeg openssl libyaml libzip python
+brew install jpeg libffi libyaml libzip openssl python
 ```
 
 ##### Linux
@@ -47,7 +47,7 @@ apt install build-essential libffi-dev libjpeg-dev libssl-dev libyaml-dev python
 ###### Alpine
 
 ```sh
-apk add bsd-compat-headers build-base libffi-dev openssl-dev yaml-dev jpeg-dev zlib-dev
+apk add bsd-compat-headers build-base jpeg-dev libffi-dev openssl-dev yaml-dev zlib-dev
 ```
 
 #### Install unrar Runtime Dependancy
@@ -180,12 +180,10 @@ You will have to contact your administrator to reset your password if you forget
 
 ### Next Up
 
-1. Edit & write metadata for comics.
-2. Add more Filters & Sort options (e.g. filter by story_arc, location)
-3. Investigate the feasibility of full text search.
+1. Edit & write metadata for comics
+2. Investigate the feasibility of full text search
 4. [OPDS API](https://en.wikipedia.org/wiki/Open_Publication_Distribution_System)
-5. Dark Admin Panel Styling.
-6. Upgrade Vue to version 3
+5. Dark Admin Panel Styling
 
 ## Out of Scope
 

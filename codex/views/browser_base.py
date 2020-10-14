@@ -43,11 +43,10 @@ class BrowserBaseView(APIView, SessionMixin):
         "c": "comic",
         "f": "folder",
     }
-    FILTER_ATTRIBUTES = ("decade", "characters")
 
-    def filter_by_comic_many_attribute(self, attribute):
+    def filter_by_comic_field(self, field):
         """Filter by a comic any2many attribute."""
-        filter_list = self.params["filters"].get(attribute)
+        filter_list = self.params["filters"].get(field)
         filter_query = Q()
         if filter_list:
             # None values in a list don't work right so test for them
@@ -55,17 +54,21 @@ class BrowserBaseView(APIView, SessionMixin):
             for index, val in enumerate(filter_list):
                 if val is None:
                     del filter_list[index]
-                    filter_query |= Q(**{f"comic__{attribute}": None})
+                    filter_query |= Q(**{f"comic__{field}__isnull": True})
             if filter_list:
-                filter_query |= Q(**{f"comic__{attribute}__in": filter_list})
+                if field == self.CREDIT_PERSON_UI_FIELD:
+                    rel = "comic__credits__person__in"
+                else:
+                    rel = f"comic__{field}__in"
+                filter_query |= Q(**{rel: filter_list})
         return filter_query
 
-    def get_comic_attribute_filter(self):
+    def get_comic_field_filter(self):
         """Filter the comics based on the form filters."""
-        comic_attribute_filter = Q()
+        comic_field_filter = Q()
         for attribute in self.FILTER_ATTRIBUTES:
-            comic_attribute_filter &= self.filter_by_comic_many_attribute(attribute)
-        return comic_attribute_filter
+            comic_field_filter &= self.filter_by_comic_field(attribute)
+        return comic_field_filter
 
     def get_bookmark_filter(self):
         """Build bookmark query."""
@@ -121,27 +124,26 @@ class BrowserBaseView(APIView, SessionMixin):
     def get_aggregate_filter(self):
         """Return the filter for making aggregates."""
         bookmark_filter_join = self.get_bookmark_filter()
-        comic_attribute_filter = self.get_comic_attribute_filter()
-        aggregate_filter = bookmark_filter_join & comic_attribute_filter
+        comic_field_filter = self.get_comic_field_filter()
+        aggregate_filter = bookmark_filter_join & comic_field_filter
         return aggregate_filter
 
     def get_query_filters(self, choices=False):
         """Return the main object filter and the one for aggregates."""
-        # XXX This logic is complicated and confusing
         is_folder_view = self.kwargs.get("group") == self.FOLDER_GROUP
         if is_folder_view:
             if choices:
-                # Choices needs to get all decendant comic attributes
+                # Choice view needs to get all decendant comic attributes
+                # So filter by all the folders
                 object_filter = self.get_folders_filter()
             else:
+                # Regular browsing just needs to filter by the parent
                 object_filter = self.get_parent_folder_filter()
         else:
+            # The browser filter is the same for all views
             object_filter = self.get_browser_group_filter()
 
-        if choices:
-            aggregate_filter = None
-        else:
-            aggregate_filter = self.get_aggregate_filter()
-            object_filter &= aggregate_filter
+        aggregate_filter = self.get_aggregate_filter()
+        object_filter &= aggregate_filter
 
         return object_filter, aggregate_filter

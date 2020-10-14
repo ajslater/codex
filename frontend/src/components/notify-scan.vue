@@ -30,7 +30,7 @@
 <script>
 import { mapGetters, mapState } from "vuex";
 
-import { FAILED_IMPORT_URL } from "@/api/v1/notify";
+import { FAILED_IMPORT_URL } from "@/api/v2/notify";
 import { NOTIFY_STATES } from "@/store/modules/notify";
 
 const SHOW_STATES = new Set([NOTIFY_STATES.SCANNING, NOTIFY_STATES.FAILED]);
@@ -62,7 +62,13 @@ export default {
   },
   methods: {
     dismiss: function () {
-      this.$store.dispatch("notify/setNotify", NOTIFY_STATES.DISMISSED);
+      let newState;
+      if (this.notify === NOTIFY_STATES.FAILED) {
+        newState = NOTIFY_STATES.OFF;
+      } else {
+        newState = NOTIFY_STATES.DISMISSED;
+      }
+      this.$store.dispatch("notify/setNotify", newState);
     },
   },
 };
@@ -74,11 +80,10 @@ export default {
 }
 </style>
 
-<!-- eslint-disable vue-scoped-css/require-scoped -->
+<!-- eslint-disable-next-line vue-scoped-css/require-scoped -->
 <style lang="scss">
 /* I have no idea why this is neccessary but it really is */
 #notifyScanning > .v-snack__wrapper {
   min-width: 183px;
 }
 </style>
-<!-- eslint-enable vue-scoped-css/require-scoped -->

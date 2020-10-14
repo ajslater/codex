@@ -1,30 +1,31 @@
 import { ajax, API_PREFIX } from "./base";
 
-const COMIC_BASE = "/comic";
-
 const getComicOpened = (pk) => {
-  return ajax("get", `${COMIC_BASE}/${pk}`);
+  return ajax("get", `c/${pk}`);
 };
 
 const setComicBookmark = ({ pk, pageNumber }) => {
-  return ajax("patch", `${COMIC_BASE}/${pk}/${pageNumber}/bookmark`);
+  return ajax("patch", `c/${pk}/${pageNumber}/bookmark`);
 };
 
 const setComicSettings = ({ pk, data }) => {
-  return ajax("patch", `${COMIC_BASE}/${pk}/settings`, data);
+  return ajax("patch", `c/${pk}/settings`, data);
 };
 
 const setComicDefaultSettings = ({ pk, data }) => {
-  return ajax("put", `${COMIC_BASE}/${pk}/settings`, data);
+  return ajax("put", `c/${pk}/settings`, data);
+};
+
+export const getDownloadURL = (pk) => {
+  return `${API_PREFIX}/c/${pk}/archive.cbz`;
 };
 
 export const getComicPageSource = ({ pk, pageNumber }) => {
-  return `${API_PREFIX}${COMIC_BASE}/${pk}/${pageNumber}/p.jpg`;
+  return `${API_PREFIX}/c/${pk}/${pageNumber}/p.jpg`;
 };
 
 export default {
   getComicOpened,
-  getComicPageSource,
   setComicBookmark,
   setComicSettings,
   setComicDefaultSettings,

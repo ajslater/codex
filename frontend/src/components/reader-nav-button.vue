@@ -1,5 +1,6 @@
 <template>
   <v-btn
+    class="readerNavButton"
     :disabled="pageNumber === value"
     :to="{ name: 'reader', params: { pk, pageNumber: value } }"
     ripple
@@ -30,4 +31,8 @@ export default {
 };
 </script>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+.readerNavButton {
+  z-index: -1;
+}
+</style>

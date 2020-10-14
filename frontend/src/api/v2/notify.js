@@ -1,10 +1,9 @@
 // Notifications and websockets
 import { ajax, API_PREFIX, ROOT_PATH } from "./base";
-import { BROWSE_BASE } from "./browser";
 
 export const FAILED_IMPORT_URL = `${ROOT_PATH}admin/codex/failedimport/`;
 const getScanInProgress = () => {
-  return ajax("get", `${BROWSE_BASE}/scan_notify`);
+  return ajax("get", `notify/scan`);
 };
 
 const getSocketURL = () => {

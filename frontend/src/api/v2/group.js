@@ -1,26 +1,28 @@
 import { ajax } from "./base";
 
-export const BROWSE_BASE = "/browse";
-
 // REST ENDPOINTS
 
 const getBrowserOpened = ({ group, pk, page }) => {
-  return ajax("get", `${BROWSE_BASE}/${group}/${pk}/${page}`);
+  return ajax("get", `/${group}/${pk}/${page}`);
 };
 
 const getBrowserPage = ({ route, settings }) => {
   const { group, pk, page } = route;
-  return ajax("put", `${BROWSE_BASE}/${group}/${pk}/${page}`, settings);
+  return ajax("put", `/${group}/${pk}/${page}`, settings);
 };
 
 const getBrowserChoices = ({ group, pk, choice_type }) => {
-  return ajax("get", `${BROWSE_BASE}/${group}/${pk}/choices/${choice_type}`);
+  return ajax("get", `/${group}/${pk}/choices/${choice_type}`);
 };
 
 const setMarkRead = ({ group, pk, finished }) => {
-  return ajax("patch", `${BROWSE_BASE}/${group}/${pk}/mark_read`, {
+  return ajax("patch", `/${group}/${pk}/mark_read`, {
     finished,
   });
+};
+
+const getMetadata = (group, pk) => {
+  return ajax("get", `/${group}/${pk}/metadata`);
 };
 
 export default {
@@ -28,4 +30,5 @@ export default {
   getBrowserPage,
   getBrowserChoices,
   setMarkRead,
+  getMetadata,
 };

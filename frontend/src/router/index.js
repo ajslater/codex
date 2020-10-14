@@ -1,7 +1,7 @@
 import Vue from "vue";
 import VueRouter from "vue-router";
 
-import { ROOT_PATH } from "@/api/v1/base";
+import { ROOT_PATH } from "@/api/v2/base";
 import Browser from "@/browser.vue";
 import NotFound from "@/not-found.vue";
 import Reader from "@/reader.vue";
@@ -21,15 +21,15 @@ const routes = [
     props: true,
   },
   {
-    name: "browser",
-    path: "/browse/:group/:pk/:page",
-    component: Browser,
+    name: "reader",
+    path: "/c/:pk/:pageNumber",
+    component: Reader,
     props: true,
   },
   {
-    name: "reader",
-    path: "/read/:pk/:pageNumber",
-    component: Reader,
+    name: "browser",
+    path: "/:group/:pk/:page",
+    component: Browser,
     props: true,
   },
   { path: "*", component: NotFound },

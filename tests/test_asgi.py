@@ -1,17 +1,20 @@
 """Test the asgi server."""
-import os
-
 from django.test import TestCase
 
-import codex.asgi  # noqa F401
+from codex.asgi import application
 
 
 class EnvironTestCase(TestCase):
     """Test environment variables."""
 
-    def test_env(self):
-        """Test env vars."""
-        assert os.environ.get("DJANGO_SETTINGS_MODULE") == "codex.settings"
+    def receive(self):
+        """Do nothing."""
+        pass
 
+    def send(self):
+        """Do nothing."""
+        pass
 
-# django-async-test could properly test application() but too much work
+    async def test_application(self):
+        """Don't even test application, yet."""
+        assert application

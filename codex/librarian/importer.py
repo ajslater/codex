@@ -29,7 +29,7 @@ from codex.models import Library
 from codex.models import Publisher
 from codex.models import Series
 from codex.models import Volume
-from codex.settings import DEBUG
+from codex.settings.settings import DEBUG
 
 
 # actual filesystem route.

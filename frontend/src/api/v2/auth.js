@@ -1,6 +1,4 @@
-import { ajax, ROOT_PATH } from "./base";
-
-export const ADMIN_URL = `${ROOT_PATH}admin/`;
+import { ajax } from "./base";
 
 const registerEnabled = async () => {
   return await ajax("get", "/auth/register");

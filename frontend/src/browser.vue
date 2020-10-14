@@ -5,7 +5,7 @@
       <BrowserTitleToolbar />
     </header>
     <BrowserMain />
-    <BrowserFooter />
+    <BrowserPaginationToolbar />
   </div>
 </template>
 
@@ -13,16 +13,16 @@
 import { mapGetters, mapState } from "vuex";
 
 import BrowserFilterToolbar from "@/components/browser-filter-toolbar";
-import BrowserFooter from "@/components/browser-footer";
 import BrowserMain from "@/components/browser-main";
+import BrowserPaginationToolbar from "@/components/browser-pagination-toolbar";
 import BrowserTitleToolbar from "@/components/browser-title-toolbar";
 
 export default {
   name: "Browser",
   components: {
     BrowserFilterToolbar,
-    BrowserFooter,
     BrowserMain,
+    BrowserPaginationToolbar,
     BrowserTitleToolbar,
   },
   computed: {
@@ -50,7 +50,6 @@ export default {
       if (this.isOpenToSee) {
         this.$store.dispatch("browser/browserOpened", this.$route.params);
       }
-      // TODO could clear the browser here.
     },
   },
 };

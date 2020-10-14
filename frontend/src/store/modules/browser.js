@@ -1,9 +1,27 @@
-import API from "@/api/v1/browser";
+import API from "@/api/v2/group";
 import router from "@/router";
 
 const GROUPS = "rpisvf";
 const REVALIDATE_KEYS = ["rootGroup", "show"];
-const DYNAMIC_FILTERS = ["decade", "characters"];
+const DYNAMIC_FILTERS = {
+  characters: undefined,
+  country: undefined,
+  critical_rating: undefined,
+  creators: undefined,
+  decade: undefined,
+  format: undefined,
+  genres: undefined,
+  language: undefined,
+  locations: undefined,
+  maturity_rating: undefined,
+  read_ltr: undefined,
+  series_groups: undefined,
+  story_arcs: undefined,
+  tags: undefined,
+  teams: undefined,
+  user_rating: undefined,
+  year: undefined,
+};
 export const ROOT_GROUP_FLAGS = {
   r: ["settings", "p"],
   p: ["settings", "i"],
@@ -33,8 +51,7 @@ const state = {
     // set by user
     filters: {
       bookmark: undefined,
-      decade: undefined,
-      characters: undefined,
+      ...DYNAMIC_FILTERS,
     },
     rootGroup: undefined,
     sortBy: undefined,
@@ -42,13 +59,13 @@ const state = {
     show: SETTINGS_SHOW_DEFAULTS,
   },
   formChoices: {
+    bookmark: FORM_CHOICES.bookmarkFilter, // static
     // determined by api
-    bookmark: FORM_CHOICES.bookmarkFilter,
-    decade: null,
-    characters: null,
-    sort: FORM_CHOICES.sort,
-    settingsGroup: FORM_CHOICES.settingsGroup,
+    ...DYNAMIC_FILTERS,
+    sort: FORM_CHOICES.sort, // static
+    settingsGroup: FORM_CHOICES.settingsGroup, // static
     show: {
+      // determined by api
       enableFolderView: true,
     },
   },
@@ -121,20 +138,16 @@ const mutations = {
     state.formChoices.show = {
       enableFolderView: data.formChoices.enableFolderView,
     };
-    for (let key of DYNAMIC_FILTERS) {
-      // Reset this every browse so the lazy loader knows to refresh it.
-      state.formChoices[key] = null;
-    }
+    // Reset formChoices every browse so the lazy loader knows to refresh it.
+    //state.formChoices = Object.assign(state.formChoices, DYNAMIC_FILTERS);
     state.browserTitle = Object.freeze(data.browserTitle);
     state.routes.up = Object.freeze(data.upRoute);
     state.objList = Object.freeze(data.objList);
     state.numPages = data.numPages;
     state.librariesExist = data.librariesExist;
   },
-  setBrowseChoice(state, data) {
-    const key = data.key;
-    delete data.key;
-    state.formChoices[key] = Object.freeze(data);
+  setBrowseChoice(state, { choiceName, choices }) {
+    state.formChoices[choiceName] = Object.freeze(choices);
   },
   setFilterMode(state, mode) {
     state.filterMode = mode;
@@ -144,6 +157,14 @@ const mutations = {
     state.settings.filters.bookmark = "ALL";
     for (let filterName of filterNames) {
       state.settings.filters[filterName] = [];
+    }
+  },
+  clearAllFormChoicesExcept(state, keepChoiceName) {
+    for (let choiceName of Object.keys(DYNAMIC_FILTERS)) {
+      if (choiceName === keepChoiceName) {
+        continue;
+      }
+      state.formChoices[choiceName] = null;
     }
   },
   setScanNotify(state, data) {
@@ -270,6 +291,7 @@ const actions = {
     // Gets everything needed to open the component.
     commit("setBrowsePageLoaded", false);
     commit("setBrowserRoute", route);
+    commit("clearAllFormChoicesExcept", null);
     await API.getBrowserOpened(route)
       .then((response) => {
         const data = response.data;
@@ -279,8 +301,8 @@ const actions = {
           // will have dispatched to SetSetting if fails.
           return;
         }
-        commit("setBrowsePageLoaded", true);
-        return commit("setBrowserPage", data.browserPage);
+        commit("setBrowserPage", data.browserPage);
+        return commit("setBrowsePageLoaded", true);
       })
       .catch((error) => {
         if (
@@ -303,14 +325,19 @@ const actions = {
   settingChanged({ state, commit, dispatch }, changedData) {
     // Save settings to state and re-get the objects.
     commit("setSettings", changedData);
+    if ("filters" in changedData) {
+      for (let filterName of Object.keys(changedData.filters)) {
+        commit("clearAllFormChoicesExcept", filterName);
+      }
+    }
     if (
       isNeedValidate(changedData) &&
       !validateState({ state, commit, dispatch })
     ) {
-      console.warn("NOT VALIDATED");
+      console.debug("setting changed not validated", changedData);
       return;
     }
-    dispatch("getBrowserPage");
+    dispatch("getBrowserPage", { showProgress: true });
   },
   routeChanged({ state, commit, dispatch }, route) {
     // When the route changes, reget the objects for that route.
@@ -319,35 +346,41 @@ const actions = {
       return;
     }
     commit("setBrowserRoute", route);
-    dispatch("getBrowserPage");
+    dispatch("getBrowserPage", { showProgress: true });
   },
-  async getBrowserPage({ commit, dispatch, state }) {
-    console.log("getBrowserPage");
+  async getBrowserPage({ commit, dispatch, state }, { showProgress }) {
     // Get objects for the current route and setttings.
     if (!state.browserPageLoaded) {
+      console.warn("not setup running open");
       return dispatch("browserOpened", state.routes.current);
+    }
+    if (showProgress) {
+      commit("setBrowsePageLoaded", false);
     }
     await API.getBrowserPage({
       route: state.routes.current,
       settings: state.settings,
     })
       .then((response) => {
-        return commit("setBrowserPage", response.data);
+        commit("setBrowserPage", response.data);
+        return commit("setBrowsePageLoaded", true);
       })
       .catch((error) => {
         return handleBrowseError({ state, commit }, error);
       });
   },
   async markRead({ dispatch }, data) {
+    console.log("markReadAPI ->");
     await API.setMarkRead(data);
-    dispatch("getBrowserPage");
+    dispatch("getBrowserPage", { showProgress: false });
   },
   async setFilterMode({ commit, state }, { group, pk, mode }) {
     if (mode && mode !== "base" && state.formChoices[mode] == null) {
       await API.getBrowserChoices({ group, pk, choice_type: mode })
         .then((response) => {
           response.data.key = mode;
-          return commit("setBrowseChoice", response.data);
+          const payload = { choiceName: mode, choices: response.data };
+          return commit("setBrowseChoice", payload);
         })
         .catch((error) => {
           console.error("ERROR", error);
@@ -359,7 +392,8 @@ const actions = {
   },
   clearFilters({ commit, dispatch, getters }) {
     commit("clearFilters", getters.filterNames);
-    dispatch("getBrowserPage");
+    commit("clearAllFormChoicesExcept", null);
+    dispatch("getBrowserPage", { showProgress: true });
   },
 };
 

@@ -1,9 +1,11 @@
 <template>
   <div id="readerWrapper">
     <div v-if="isOpenToSee" id="readerContainer">
-      <v-main id="pagesContainer">
-        <ReaderComicPage :page="+0" />
-        <ReaderComicPage :page="+1" />
+      <v-main>
+        <div id="pagesContainer">
+          <ReaderComicPage :page="+0" />
+          <ReaderComicPage :page="+1" />
+        </div>
       </v-main>
       <nav id="navOverlay" @click="toggleToolbars()">
         <ReaderNavOverlay />
@@ -12,7 +14,7 @@
         <ReaderTopToolbar v-show="showToolbars" />
       </v-slide-y-transition>
       <v-slide-y-reverse-transition>
-        <ReaderBottomToolbar v-show="showToolbars" />
+        <ReaderNavToolbar v-show="showToolbars" />
       </v-slide-y-reverse-transition>
     </div>
     <div v-else id="announcement">
@@ -26,17 +28,17 @@
 <script>
 import { mapGetters } from "vuex";
 
-import ReaderBottomToolbar from "@/components/reader-bottom-toolbar";
 import ReaderComicPage from "@/components/reader-comic-page";
 import ReaderNavOverlay from "@/components/reader-nav-overlay";
+import ReaderNavToolbar from "@/components/reader-nav-toolbar";
 import ReaderTopToolbar from "@/components/reader-top-toolbar";
 
 export default {
   name: "Reader",
   components: {
-    ReaderBottomToolbar,
     ReaderComicPage,
     ReaderNavOverlay,
+    ReaderNavToolbar,
     ReaderTopToolbar,
   },
   data() {
@@ -107,6 +109,7 @@ export default {
   height: 100vh;
 }
 #pagesContainer {
+  /* because its more difficult to center with v-main */
   display: flex;
   flex-wrap: nowrap;
   justify-content: center;

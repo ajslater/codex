@@ -18,9 +18,8 @@ from codex.websocket_server import websocket_application
 
 LOG = getLogger()
 
-# TODO possibly move this to run or a combined setup function
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "codex.settings")
-# os.environ['PYTHONASYNCIODEBUG'] = "1"
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "codex.settings.settings")
+# os.environ["PYTHONASYNCIODEBUG"] = "1"
 
 django_application = get_asgi_application()
 

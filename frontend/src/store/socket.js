@@ -58,7 +58,7 @@ const mutations = {
     const msg = event.data;
     console.debug(msg);
     if (msg == WS_MESSAGES.LIBRARY_CHANGED) {
-      this.dispatch("browser/getBrowserPage");
+      this.dispatch("browser/getBrowserPage", { showProgress: false });
     } else if (SCAN_MESSAGES.has(msg)) {
       const notify = NOTIFY_MAP[msg] || NOTIFY_STATES.OFF;
       this.dispatch("notify/setNotify", notify);

@@ -4,8 +4,8 @@
       <v-list-item v-if="filterMode === 'base'" @click="setFilterMode(name)">
         <v-list-item-content>
           <v-list-item-title class="filterMenu">
-            {{ capName }}
-            <v-icon v-if="filter.length > 0" class="nameChevron">{{
+            {{ title }}
+            <v-icon v-if="filter && filter.length > 0" class="nameChevron">{{
               mdiChevronRightCircle
             }}</v-icon>
             <v-icon v-else class="nameChevron">{{ mdiChevronRight }}</v-icon>
@@ -20,7 +20,7 @@
             <v-list-item-content>
               <v-list-item-title class="filterTitle"
                 ><v-icon>{{ mdiChevronLeft }}</v-icon
-                >{{ name }}
+                >{{ lowerTitle }}
               </v-list-item-title>
             </v-list-item-content>
           </v-list-item>
@@ -64,7 +64,7 @@ import {
 } from "@mdi/js";
 import { mapState } from "vuex";
 
-import { toVuetifyItems } from "@/api/v1/list-items";
+import { toVuetifyItems } from "@/api/v2/list-items";
 
 export default {
   name: "FilterSubMenu",
@@ -80,7 +80,6 @@ export default {
       mdiChevronRight,
       mdiChevronRightCircle,
       query: "",
-      capName: this.name.charAt(0).toUpperCase() + this.name.slice(1),
     };
   },
   computed: {
@@ -107,6 +106,29 @@ export default {
         this.$store.dispatch("browser/settingChanged", data);
         this.$emit("sub-menu-click");
       },
+    },
+    title: function () {
+      const words = this.name.split("_");
+      let title = "";
+      for (const index in words) {
+        // Capitalize words
+        const word = words[index];
+        let capWord;
+        if (word === "ltr") {
+          capWord = "LTR";
+        } else {
+          capWord = word.charAt(0).toUpperCase() + word.slice(1);
+        }
+        // Append to title
+        if (index) {
+          title += " ";
+        }
+        title += capWord;
+      }
+      return title;
+    },
+    lowerTitle: function () {
+      return this.name.replace("_", " ");
     },
   },
   methods: {

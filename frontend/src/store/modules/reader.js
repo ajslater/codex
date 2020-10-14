@@ -1,4 +1,5 @@
-import API from "@/api/v1/reader";
+import API from "@/api/v2/comic";
+import { getComicPageSource } from "@/api/v2/comic";
 import FORM_CHOICES from "@/choices/readerChoices";
 import router from "@/router";
 
@@ -136,14 +137,14 @@ const alterPrefetch = (nextPage, state) => {
   let nextPageHref = "";
   let next2PageHref = "";
   if (nextPage) {
-    nextPageHref = API.getComicPageSource(nextPage);
+    nextPageHref = getComicPageSource(nextPage);
 
     if (state.settings.twoPages && nextPage.pageNumber < state.maxPage) {
       const next2Page = {
         pk: nextPage.pk,
         pageNumber: nextPage.pageNumber + 1,
       };
-      next2PageHref = API.getComicPageSource(next2Page);
+      next2PageHref = getComicPageSource(next2Page);
     }
   }
   const nextPagePre = document.querySelector("#nextPage");
@@ -211,8 +212,8 @@ const actions = {
       page = state.routes.next;
     } else if (page === "prev") {
       page = state.routes.prev;
-    }
-    if (!page) {
+    } else if (!page || !page.pk || page.pageNumber == null) {
+      console.warn("Invalid page, not pushing:", page);
       return;
     }
     if (page.pk === state.routes.current.pk) {

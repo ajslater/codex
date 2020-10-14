@@ -29,7 +29,7 @@
 </template>
 
 <script>
-import { getCoverSrc } from "@/api/v1/cover";
+import { getCoverSrc } from "@/api/v2/cover";
 
 export default {
   name: "BookCover",
@@ -44,7 +44,7 @@ export default {
     },
     finished: {
       type: Boolean,
-      required: true,
+      default: null,
     },
     coverPath: {
       type: String,

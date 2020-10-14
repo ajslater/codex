@@ -1,4 +1,4 @@
-import API from "@/api/v1/notify";
+import API from "@/api/v2/notify";
 
 const MIN_SCAN_WAIT = 5 * 1000;
 const MAX_SCAN_WAIT = 10 * 1000;
@@ -29,7 +29,6 @@ const notifyCheck = (commit, state) => {
     // If we have a sticky notification keep it.
     return;
   }
-
   API.getScanInProgress()
     .then((response) => {
       const data = response.data;

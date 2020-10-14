@@ -5,21 +5,12 @@ import time
 
 from multiprocessing import Pool
 from multiprocessing import Process
+from multiprocessing import Value
 from time import sleep
 
 import simplejson as json
 
-from django.apps import apps
 from websocket import create_connection
-
-
-if not apps.ready:
-    # TODO move to one module for setup
-    import django
-
-    django.setup()
-
-from multiprocessing import Value
 
 from codex.librarian.cover import create_comic_cover
 from codex.librarian.crond import Crond
@@ -48,14 +39,14 @@ from codex.librarian.watcherd import Uatu
 from codex.models import Comic
 from codex.models import Folder
 from codex.serializers.webpack import WEBSOCKET_MESSAGES as WS_MSGS
+from codex.settings.django_setup import django_setup
 from codex.websocket_server import BROADCAST_SECRET
 from codex.websocket_server import IPC_SUFFIX
 from codex.websocket_server import WS_API_PATH
 from codex.websocket_server import MessageType
 
 
-# from django.utils.autoreload import file_changed
-
+django_setup()
 
 LOG = logging.getLogger(__name__)
 PORT = Value("i", 9810)  # Shared memory overwritten in run.py
@@ -130,7 +121,6 @@ def librarian(main_pid):
                 ws = send_json(ws, MessageType.ADMIN_BROADCAST, msg)
                 scan_root(task.library_id, task.force)
             elif isinstance(task, ScanDoneTask):
-                # TODO send two messages?
                 if task.failed_imports:
                     msg = WS_MSGS["FAILED_IMPORTS"]
                 else:

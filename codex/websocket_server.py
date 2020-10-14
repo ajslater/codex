@@ -10,22 +10,14 @@ from threading import Thread
 import simplejson as json
 
 from asgiref.sync import async_to_sync
-from django.apps import apps
 from django.core.cache import cache
 from simplejson import JSONDecodeError
 
+from codex.settings.django_setup import django_setup
 
-if not apps.ready:
-    # For logging
-    # TODO move to one method for setup
-    import os
 
-    import django
+django_setup()
 
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "codex.settings")
-    django.setup()
-
-# TODO logging not configured for this app properly
 LOG = logging.getLogger(__name__)
 
 # Websocket Application
@@ -111,8 +103,8 @@ async def websocket_application(scope, receive, send):
                     message = msg.get("message")
                     await send_msg(ADMIN_CONNS, message)
                 else:
-                    # Keepalive
-                    send(WS_SEND_MSG)
+                    # Keepalive?
+                    pass
 
             except JSONDecodeError as exc:
                 LOG.error(exc)

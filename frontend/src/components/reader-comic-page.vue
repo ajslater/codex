@@ -11,7 +11,7 @@
 <script>
 import { mapGetters, mapState } from "vuex";
 
-import { getComicPageSource } from "@/api/v1/reader";
+import { getComicPageSource } from "@/api/v2/comic";
 
 export default {
   name: "ReaderComicPage",

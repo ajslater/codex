@@ -48,10 +48,9 @@ export default {
 };
 </script>
 
-<!-- eslint-disable vue-scoped-css/require-scoped -->
+<!-- eslint-disable-next-line vue-scoped-css/require-scoped -->
 <style lang="scss">
 body {
   background-color: #121212;
 }
 </style>
-<!-- eslint-enable vue-scoped-css/require-scoped -->

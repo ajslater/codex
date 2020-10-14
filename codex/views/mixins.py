@@ -14,13 +14,33 @@ class SessionMixin:
     BROWSER_KEY = "browser"
     READER_KEY = "reader"
     KEYS = (BROWSER_KEY, READER_KEY)
+    CREDIT_PERSON_UI_FIELD = "creators"
 
+    DYNAMIC_FILTER_DEFAULTS = {
+        "characters": [],
+        "country": [],
+        CREDIT_PERSON_UI_FIELD: [],
+        "critical_rating": [],
+        "decade": [],
+        "format": [],
+        "genres": [],
+        "language": [],
+        "locations": [],
+        "maturity_rating": [],
+        "read_ltr": [],
+        "series_groups": [],
+        "story_arcs": [],
+        "tags": [],
+        "teams": [],
+        "user_rating": [],
+        "year": [],
+    }
+    FILTER_ATTRIBUTES = set(DYNAMIC_FILTER_DEFAULTS.keys())
     SESSION_DEFAULTS = {
         BROWSER_KEY: {
             "filters": {
                 "bookmark": DEFAULTS["bookmarkFilter"],
-                "decade": [],
-                "characters": [],
+                **DYNAMIC_FILTER_DEFAULTS,
             },
             "root_group": DEFAULTS["rootGroup"],
             "sort_by": DEFAULTS["sort"],
