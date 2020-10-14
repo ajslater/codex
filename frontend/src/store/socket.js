@@ -4,15 +4,16 @@ import WS_MESSAGES from "@/choices/websocketMessages";
 import { NOTIFY_STATES } from "./modules/notify";
 
 const WS_TIMEOUT = 19 * 1000;
-const NOTIFY_MAP = {
-  [WS_MESSAGES.SCAN_LIBRARY]: NOTIFY_STATES.SCANNING,
-  [WS_MESSAGES.FAILED_IMPORTS]: NOTIFY_STATES.FAILED,
-};
 const SCAN_MESSAGES = new Set([
   WS_MESSAGES.SCAN_LIBRARY,
   WS_MESSAGES.SCAN_DONE,
   WS_MESSAGES.FAILED_IMPORTS,
 ]);
+const NOTIFY_MAP = {
+  [WS_MESSAGES.SCAN_LIBRARY]: NOTIFY_STATES.SCANNING,
+  [WS_MESSAGES.SCAN_DONE]: NOTIFY_STATES.OFF,
+  [WS_MESSAGES.FAILED_IMPORTS]: NOTIFY_STATES.FAILED,
+};
 
 const wsKeepAlive = function (ws) {
   if (!ws || ws.readyState != 1) {
@@ -57,13 +58,15 @@ const mutations = {
     // 'this' context should be the store.
     const msg = event.data;
     console.debug(msg);
-    if (msg == WS_MESSAGES.LIBRARY_CHANGED) {
+    if (msg === WS_MESSAGES.LIBRARY_CHANGED) {
+      // browser
       this.dispatch("browser/getBrowserPage", { showProgress: false });
     } else if (SCAN_MESSAGES.has(msg)) {
-      const notify = NOTIFY_MAP[msg] || NOTIFY_STATES.OFF;
+      // notify
+      const notify = NOTIFY_MAP[msg]; // translate message to state.t s
       this.dispatch("notify/setNotify", notify);
     } else {
-      console.debug("Unhandled message:", msg);
+      console.debug("Unhandled websocket message:", msg);
     }
   },
   SOCKET_RECONNECT(state, count) {

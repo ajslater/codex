@@ -5,15 +5,15 @@ const MAX_SCAN_WAIT = 10 * 1000;
 const SCAN_WAIT_DELTA = MAX_SCAN_WAIT - MIN_SCAN_WAIT;
 
 export const NOTIFY_STATES = {
-  OFF: 0,
-  CHECK: 1,
-  SCANNING: 2,
-  FAILED: 3,
-  DISMISSED: 4,
+  OFF: 1,
+  CHECK: 2,
+  SCANNING: 3,
+  FAILED: 4,
+  DISMISSED: 5,
 };
 
 const state = {
-  notify: "OFF",
+  notify: NOTIFY_STATES.OFF,
 };
 
 const mutations = {
