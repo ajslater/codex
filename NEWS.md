@@ -1,6 +1,7 @@
 # Codex News
 
 ## v0.6.1
+
 - Fix librarian startup crash. Prevented admin actions from happening.
 
 ## v0.6.0
