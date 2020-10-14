@@ -104,76 +104,79 @@ def librarian(main_pid):
     This proces also runs the crond thread and the Watchdog Observer
     threads.
     """
-    LOG.info("Started Librarian.")
-    ws = None
-    run = True
-    watcher = Uatu()
-    crond = Crond()
-    watcher.start()
-    crond.start()
-    pool = Pool()
+    try:
+        LOG.info("Started Librarian.")
+        ws = None
+        run = True
+        watcher = Uatu()
+        crond = Crond()
+        watcher.start()
+        crond.start()
+        pool = Pool()
 
-    while run:
-        task = QUEUE.get()
-        try:
-            if isinstance(task, ScanRootTask):
-                msg = WS_MSGS["SCAN_LIBRARY"]
-                ws = send_json(ws, MessageType.ADMIN_BROADCAST, msg)
-                scan_root(task.library_id, task.force)
-            elif isinstance(task, ScanDoneTask):
-                if task.failed_imports:
-                    msg = WS_MSGS["FAILED_IMPORTS"]
+        while run:
+            task = QUEUE.get()
+            try:
+                if isinstance(task, ScanRootTask):
+                    msg = WS_MSGS["SCAN_LIBRARY"]
+                    ws = send_json(ws, MessageType.ADMIN_BROADCAST, msg)
+                    scan_root(task.library_id, task.force)
+                elif isinstance(task, ScanDoneTask):
+                    if task.failed_imports:
+                        msg = WS_MSGS["FAILED_IMPORTS"]
+                    else:
+                        msg = WS_MSGS["SCAN_DONE"]
+                    ws = send_json(ws, MessageType.ADMIN_BROADCAST, msg)
+                elif isinstance(task, ComicModifiedTask):
+                    import_comic(task.library_id, task.src_path)
+                elif isinstance(task, ComicCoverCreateTask):
+                    # Cover creation is cpu bound, farm it out.
+                    args = (task.src_path, task.db_cover_path, task.force)
+                    pool.apply_async(create_comic_cover, args=args)
+                elif isinstance(task, FolderMovedTask):
+                    obj_moved(task.src_path, task.dest_path, Folder)
+                elif isinstance(task, ComicMovedTask):
+                    obj_moved(task.src_path, task.dest_path, Comic)
+                elif isinstance(task, ComicDeletedTask):
+                    obj_deleted(task.src_path, Comic)
+                elif isinstance(task, FolderDeletedTask):
+                    obj_deleted(task.src_path, Folder)
+                elif isinstance(task, LibraryChangedTask):
+                    msg = WS_MSGS["LIBRARY_CHANGED"]
+                    ws = send_json(ws, MessageType.BROADCAST, msg)
+                elif isinstance(task, WatcherCronTask):
+                    sleep(task.sleep)
+                    watcher.set_all_library_watches()
+                elif isinstance(task, ScannerCronTask):
+                    sleep(task.sleep)
+                    scan_cron()
+                elif isinstance(task, UpdateCronTask):
+                    sleep(task.sleep)
+                    update_codex(main_pid, task.force)
+                elif isinstance(task, RestartTask):
+                    sleep(task.sleep)
+                    restart_codex(main_pid)
+                elif task == SHUTDOWN_TASK:
+                    LOG.info("Shutting down Librarian...")
+                    run = False
                 else:
-                    msg = WS_MSGS["SCAN_DONE"]
-                ws = send_json(ws, MessageType.ADMIN_BROADCAST, msg)
-            elif isinstance(task, ComicModifiedTask):
-                import_comic(task.library_id, task.src_path)
-            elif isinstance(task, ComicCoverCreateTask):
-                # Cover creation is cpu bound, farm it out.
-                args = (task.src_path, task.db_cover_path, task.force)
-                pool.apply_async(create_comic_cover, args=args)
-            elif isinstance(task, FolderMovedTask):
-                obj_moved(task.src_path, task.dest_path, Folder)
-            elif isinstance(task, ComicMovedTask):
-                obj_moved(task.src_path, task.dest_path, Comic)
-            elif isinstance(task, ComicDeletedTask):
-                obj_deleted(task.src_path, Comic)
-            elif isinstance(task, FolderDeletedTask):
-                obj_deleted(task.src_path, Folder)
-            elif isinstance(task, LibraryChangedTask):
-                msg = WS_MSGS["LIBRARY_CHANGED"]
-                ws = send_json(ws, MessageType.BROADCAST, msg)
-            elif isinstance(task, WatcherCronTask):
-                sleep(task.sleep)
-                watcher.set_all_library_watches()
-            elif isinstance(task, ScannerCronTask):
-                sleep(task.sleep)
-                scan_cron()
-            elif isinstance(task, UpdateCronTask):
-                sleep(task.sleep)
-                update_codex(main_pid, task.force)
-            elif isinstance(task, RestartTask):
-                sleep(task.sleep)
-                restart_codex(main_pid)
-            elif task == SHUTDOWN_TASK:
-                LOG.info("Shutting down Librarian...")
-                run = False
-            else:
-                LOG.warning(f"Unhandled task popped: {task}")
-        except (Comic.DoesNotExist, Folder.DoesNotExist) as exc:
-            LOG.warning(exc)
-        except Exception as exc:
-            LOG.exception(exc)
+                    LOG.warning(f"Unhandled task popped: {task}")
+            except (Comic.DoesNotExist, Folder.DoesNotExist) as exc:
+                LOG.warning(exc)
+            except Exception as exc:
+                LOG.exception(exc)
 
-    if ws:
-        ws.close()
-    pool.close()
-    crond.stop()
-    watcher.stop()
-    crond.join()
-    watcher.join()
-    pool.join()
-    LOG.info("Stopped Librarian.")
+        if ws:
+            ws.close()
+        pool.close()
+        crond.stop()
+        watcher.stop()
+        crond.join()
+        watcher.join()
+        pool.join()
+        LOG.info("Stopped Librarian.")
+    except Exception as exc:
+        LOG.exception(exc)
 
 
 def start_librarian():
