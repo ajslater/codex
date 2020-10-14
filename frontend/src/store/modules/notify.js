@@ -71,7 +71,7 @@ const SUBSCRIBE_MESSAGES = {
 };
 
 const actions = {
-  setNotify({ commit, state }, data) {
+  notifyChanged({ commit, state }, data) {
     commit("setNotify", data);
     notifyCheck(commit, state);
   },

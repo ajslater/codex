@@ -57,11 +57,8 @@ export default {
     };
   },
   methods: {
-    markRead: function (group, pk, finished) {
-      this.$store.dispatch("browser/markRead", { group, pk, finished });
-    },
     toggleRead: function () {
-      this.$store.dispatch("browser/markRead", {
+      this.$store.dispatch("browser/markedRead", {
         group: this.group,
         pk: this.pk,
         finished: !this.finished,

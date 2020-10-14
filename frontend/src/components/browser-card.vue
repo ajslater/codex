@@ -150,9 +150,6 @@ export default {
     },
   },
   methods: {
-    markRead: function (group, pk, finished) {
-      this.$store.dispatch("browser/markRead", { group, pk, finished });
-    },
     formatDate: function (ov, time) {
       const date = new Date(ov);
       const year = `${date.getFullYear()}`.padStart(4, "0");

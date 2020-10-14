@@ -133,7 +133,7 @@ export default {
   },
   methods: {
     setFilterMode(mode) {
-      this.$store.dispatch("browser/setFilterMode", {
+      this.$store.dispatch("browser/filterModeChanged", {
         group: this.$route.params.group,
         pk: this.$route.params.pk,
         mode,

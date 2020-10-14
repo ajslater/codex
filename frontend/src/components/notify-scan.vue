@@ -56,7 +56,7 @@ export default {
     isAdmin: function (to) {
       if (to) {
         // If we switch to an admin user, check notifications.
-        this.$store.dispatch("notify/setNotify", NOTIFY_STATES.CHECK);
+        this.$store.dispatch("notify/notifyChanged", NOTIFY_STATES.CHECK);
       }
     },
   },
@@ -68,7 +68,7 @@ export default {
       } else {
         newState = NOTIFY_STATES.DISMISSED;
       }
-      this.$store.dispatch("notify/setNotify", newState);
+      this.$store.dispatch("notify/notifyChanged", newState);
     },
   },
 };

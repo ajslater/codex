@@ -60,11 +60,11 @@ const mutations = {
     console.debug(msg);
     if (msg === WS_MESSAGES.LIBRARY_CHANGED) {
       // browser
-      this.dispatch("browser/getBrowserPage", { showProgress: false });
+      this.dispatch("browser/browserPageStale", { showProgress: false });
     } else if (SCAN_MESSAGES.has(msg)) {
       // notify
       const notify = NOTIFY_MAP[msg]; // translate message to state.t s
-      this.dispatch("notify/setNotify", notify);
+      this.dispatch("notify/notifyChanged", notify);
     } else {
       console.debug("Unhandled websocket message:", msg);
     }

@@ -114,12 +114,12 @@ export default {
   },
   methods: {
     clearFilters: function () {
-      this.$store.dispatch("browser/clearFilters");
+      this.$store.dispatch("browser/filtersCleared");
     },
     closeFilterSelect: function () {
       // On sub-menu click, close the menu and reset the filter mode.
       this.$refs.filterSelect.blur();
-      this.$store.commit("browser/setFilterMode", "base");
+      this.$store.commit("browser/filterModeChanged", "base");
     },
   },
 };

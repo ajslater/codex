@@ -338,7 +338,7 @@ const actions = {
       console.debug("setting changed not validated", changedData);
       return;
     }
-    dispatch("getBrowserPage", { showProgress: true });
+    dispatch("browserPageStale", { showProgress: true });
   },
   routeChanged({ state, commit, dispatch }, route) {
     // When the route changes, reget the objects for that route.
@@ -347,11 +347,11 @@ const actions = {
       return;
     }
     commit("setBrowserRoute", route);
-    dispatch("getBrowserPage", { showProgress: true });
+    dispatch("browserPageStale", { showProgress: true });
   },
-  async getBrowserPage({ commit, dispatch, state }, { showProgress }) {
+  async browserPageStale({ commit, dispatch, state }, { showProgress }) {
     // Get objects for the current route and setttings.
-    console.debug("getBrowserPage");
+    console.debug("browserPageStale");
     if (!state.browserPageLoaded) {
       console.warn("not setup running open");
       return dispatch("browserOpened", state.routes.current);
@@ -371,12 +371,11 @@ const actions = {
         return handleBrowseError({ state, commit }, error);
       });
   },
-  async markRead({ dispatch }, data) {
-    console.log("markReadAPI ->");
+  async markedRead({ dispatch }, data) {
     await API.setMarkRead(data);
-    dispatch("getBrowserPage", { showProgress: false });
+    dispatch("browserPageStale", { showProgress: false });
   },
-  async setFilterMode({ commit, state }, { group, pk, mode }) {
+  async filterModeChanged({ commit, state }, { group, pk, mode }) {
     if (mode && mode !== "base" && state.formChoices[mode] == null) {
       await API.getBrowserChoices({ group, pk, choice_type: mode })
         .then((response) => {
@@ -392,10 +391,10 @@ const actions = {
     }
     commit("setFilterMode", mode);
   },
-  clearFilters({ commit, dispatch, getters }) {
+  filtersCleared({ commit, dispatch, getters }) {
     commit("clearFilters", getters.filterNames);
     commit("clearAllFormChoicesExcept", null);
-    dispatch("getBrowserPage", { showProgress: true });
+    dispatch("browserPageStale", { showProgress: true });
   },
 };
 
