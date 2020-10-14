@@ -54,16 +54,16 @@ workflows:
                 filters:
                     branches:
                         only:
-                            - release
                             - develop
                             - circleci
+                            - release
                             - /.*-ci/
             - deploy:
                 filters:
                     branches:
                         only:
-                            - release
                             - circleci
+                            - release
                 requires:
                     - build
     version: 2.1
