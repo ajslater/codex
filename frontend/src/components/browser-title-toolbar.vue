@@ -36,7 +36,7 @@ export default {
       return "";
     },
     showUpButton: function () {
-      return this.upRoute && this.upRoute.group;
+      return this.upRoute && "group" in this.upRoute;
     },
     longBrowseTitle: function () {
       let browserTitle;
@@ -67,8 +67,11 @@ export default {
 #titleToolbar {
   width: 100vw;
 }
+.invisible {
+  visibility: hidden;
+}
 </style>
-<!-- eslint-disable vue-scoped-css/require-scoped -->
+<!-- eslint-disable-next-line vue-scoped-css/require-scoped -->
 <style lang="scss">
 #titleToolbar .v-toolbar__title {
   margin: auto;
@@ -83,4 +86,3 @@ export default {
   }
 }
 </style>
-<!-- eslint-enable vue-scoped-css/require-scoped -->

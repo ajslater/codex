@@ -10,3 +10,5 @@ services:
     volumes:
       - ./dist/:/dist/
       - ./test-results/:/test-results/
+    env_file:
+      - docker-env

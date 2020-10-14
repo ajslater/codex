@@ -12,14 +12,27 @@ export const getVolumeName = function (volume) {
   return volumeName;
 };
 
-export const getIssueName = function (issue, issueCount) {
-  let issueName = "#";
-  if (Number.isInteger(issue)) {
-    issueName += issue.toFixed().padStart(3, "0");
-  } else {
-    // TODO very janky only works with single decimal
-    issueName += issue.toString().padStart(5, "0");
+export const formattedIssue = function (decimalIssue) {
+  if (decimalIssue == null) {
+    return;
   }
+  const intIssue = Math.floor(decimalIssue);
+  let issueStr = intIssue.toString().padStart(3, "0");
+  if (decimalIssue - intIssue === 0.5) {
+    if (intIssue === 0) {
+      issueStr = "";
+    }
+    issueStr += "½";
+  } else if (decimalIssue !== intIssue) {
+    const remainder = decimalIssue - intIssue;
+    const decimalSuffix = remainder.toString().slice(1);
+    issueStr += decimalSuffix;
+  }
+  return issueStr;
+};
+
+export const getIssueName = function (issue, issueCount) {
+  let issueName = "#" + formattedIssue(issue);
   if (issueCount) {
     issueName += ` of ${issueCount}`;
   }

@@ -1,5 +1,5 @@
 <template>
-  <v-main id="browsePane">
+  <v-main id="browsePane" :class="{ padFooter: padFooter }">
     <div v-if="showBrowseItems">
       <BrowserCard
         v-for="item in objList"
@@ -62,6 +62,7 @@ export default {
     ...mapState("browser", {
       objList: (state) => state.objList,
       librariesExist: (state) => state.librariesExist,
+      padFooter: (state) => state.numPages > 1,
       showBrowseItems: function (state) {
         return (
           state.objList &&
@@ -102,6 +103,9 @@ export default {
   font-size: x-large;
   padding: 1em;
   color: gray;
+}
+.padFooter {
+  padding-bottom: 45px !important;
 }
 @import "~vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {

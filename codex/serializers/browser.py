@@ -13,9 +13,10 @@ from rest_framework.serializers import SerializerMethodField
 from codex.librarian.queue import QUEUE
 from codex.librarian.queue import ComicCoverCreateTask
 from codex.serializers.webpack import CHOICES
+from codex.serializers.webpack import VUETIFY_NULL_CODE
 
 
-VUE_MODEL_NULL_CODE = -1
+VUETIFY_NULL_CODE_STR = str(VUETIFY_NULL_CODE)
 
 
 def validate_decades(decades):
@@ -33,7 +34,7 @@ def validate_decades(decades):
         raise ValidationError(_(f"Invalid decade in: {decades}"))
 
 
-def validate_null_filter(values):
+def validate_int_null(values):
     """
     Use a special code for null.
 
@@ -41,7 +42,20 @@ def validate_null_filter(values):
     array index.
     """
     for index, value in enumerate(values):
-        if value == VUE_MODEL_NULL_CODE:
+        if value == VUETIFY_NULL_CODE:
+            values[index] = None
+    return values
+
+
+def validate_str_null(values):
+    """
+    Use a special code for null.
+
+    Because if a vuetify component has a null key it changes it to the
+    array index. This is the version for CharFields.
+    """
+    for index, value in enumerate(values):
+        if value == VUETIFY_NULL_CODE_STR:
             values[index] = None
     return values
 
@@ -55,20 +69,58 @@ class BrowserSettingsShowGroupFlagsSerializer(Serializer):
     v = BooleanField()
 
 
+class FilterListField(ListField):
+    """Filter List field with custom arguments."""
+
+    def __init__(self, *args, **kwargs):
+        """Apply the subclass's arguments."""
+        validators = self.VALIDATORS + kwargs.pop("validators", tuple())
+        super().__init__(
+            *args,
+            child=self.CHILD_CLASS(allow_null=True),
+            validators=validators,
+            **kwargs,
+        )
+
+
+class IntListField(FilterListField):
+    """Integer List Field with validation."""
+
+    CHILD_CLASS = IntegerField
+    VALIDATORS = (validate_int_null,)
+
+
+class CharListField(ListField):
+    """Char List Field with validation."""
+
+    CHILD_CLASS = CharField
+    VALIDATORS = (validate_str_null,)
+
+
 class BrowserSettingsFilterSerializer(Serializer):
     """Filter values for settings."""
 
     bookmark = ChoiceField(  # noqa: N815
         choices=tuple(CHOICES["bookmarkFilter"].keys())
     )
-    decade = ListField(  # noqa: N815
-        child=IntegerField(allow_null=True),
-        validators=(validate_null_filter, validate_decades),
-    )
-    characters = ListField(  # noqa: N815
-        child=IntegerField(allow_null=True),
-        validators=(validate_null_filter,),
-    )
+    # Dynamic filters
+    characters = IntListField()
+    country = CharListField()
+    creators = IntListField()
+    critical_rating = CharListField()
+    decade = IntListField(validators=(validate_decades,))
+    format = CharListField()
+    genres = IntListField()
+    language = CharListField()
+    locations = IntListField()
+    maturity_rating = CharListField()
+    read_ltr = ListField(child=BooleanField())
+    series_groups = IntListField()
+    story_arcs = IntListField()
+    tags = IntListField()
+    teams = IntListField()
+    user_rating = CharListField()
+    year = IntListField()
 
 
 class BrowserSettingsSerializer(Serializer):

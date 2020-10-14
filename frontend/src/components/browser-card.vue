@@ -9,7 +9,7 @@
           :finished="item.finished"
         />
         <div class="cardCoverOverlay">
-          <router-link class="browserLink" :to="getToRoute()">
+          <router-link class="browserLink" :to="toRoute">
             <div class="cardCoverOverlayTopMiddleRow">
               <v-icon v-if="item.group === 'c'">{{ mdiEye }}</v-icon>
             </div>
@@ -37,19 +37,11 @@
         background-color="inherit"
         height="2"
       />
-      <router-link
-        class="browserLink cardSubtitle text-caption"
-        :to="getToRoute()"
-      >
-        <div class="headerName">
-          {{ getHeaderName() }}
-        </div>
-        <div class="displayName">
-          {{ getDisplayName() }}
-        </div>
-        <div class="orderValue">
-          {{ getOrderValue() }}
-        </div>
+      <router-link class="browserLink cardSubtitle text-caption" :to="toRoute">
+        <div class="headerName">{{ headerName }}</div>
+        <div class="displayName">{{ displayName }}</div>
+        <!-- eslint-disable-next-line vue/no-v-html -->
+        <div class="orderValue" v-html="orderValue" />
       </router-link>
     </div>
   </v-lazy>
@@ -66,6 +58,10 @@ import BrowserCardMenu from "@/components/browser-card-menu";
 import { getFullComicName, getVolumeName } from "@/components/comic-name";
 import MetadataButton from "@/components/metadata-dialog";
 import { getReaderRoute } from "@/router/route";
+
+const STAR_SORT_BY = new Set(["user_rating", "critical_rating"]);
+const DATE_SORT_BY = new Set(["date"]);
+const TIME_SORT_BY = new Set(["created_at", "updated_at"]);
 
 export default {
   name: "BrowserCard",
@@ -90,27 +86,7 @@ export default {
     ...mapState("browser", {
       sortBy: (state) => state.settings.sortBy,
     }),
-  },
-  methods: {
-    getToRoute: function () {
-      if (this.item.group === "c") {
-        return getReaderRoute(
-          this.item.pk,
-          this.item.bookmark,
-          this.item.read_ltr,
-          this.item.page_count
-        );
-      } else {
-        return {
-          name: "browser",
-          params: { group: this.item.group, pk: this.item.pk, page: 1 },
-        };
-      }
-    },
-    markRead: function (group, pk, finished) {
-      this.$store.dispatch("browser/markRead", { group, pk, finished });
-    },
-    getHeaderName: function () {
+    headerName: function () {
       let headerName;
       if (this.item.group === "c") {
         return getFullComicName(
@@ -123,7 +99,7 @@ export default {
       }
       return headerName;
     },
-    getDisplayName: function () {
+    displayName: function () {
       let displayName;
       if (this.item.group === "v") {
         displayName = getVolumeName(this.item.display_name);
@@ -132,7 +108,7 @@ export default {
       }
       return displayName;
     },
-    getOrderValue: function () {
+    orderValue: function () {
       let ov = this.item.order_value;
       if (this.sortBy == "sort_name" || !ov) {
         return "";
@@ -147,17 +123,43 @@ export default {
         return `${human} pages`;
       } else if (this.sortBy == "size") {
         return filesize(parseInt(ov), { round: 1 });
-      } else if (["user_rating", "critical_rating"].includes(this.sortBy)) {
+      } else if (STAR_SORT_BY.has(this.sortBy)) {
         return `${ov} stars`;
-      } else if (["created_at"].includes(this.sortBy)) {
-        const date = new Date(ov);
-        const year = `${date.getFullYear()}`.padStart(4, "0");
-        const month = `${date.getMonth() + 1}`.padStart(2, "0");
-        const day = `${date.getDate()}`.padStart(2, "0");
-        return [year, month, day].join("-");
+      } else if (DATE_SORT_BY.has(this.sortBy)) {
+        return this.formatDate(ov, false);
+      } else if (TIME_SORT_BY.has(this.sortBy)) {
+        return this.formatDate(ov, true);
       } else {
         return ov;
       }
+    },
+    toRoute: function () {
+      if (this.item.group === "c") {
+        return getReaderRoute(
+          this.item.pk,
+          this.item.bookmark,
+          this.item.read_ltr,
+          this.item.page_count
+        );
+      } else {
+        return {
+          name: "browser",
+          params: { group: this.item.group, pk: this.item.pk, page: 1 },
+        };
+      }
+    },
+  },
+  methods: {
+    formatDate: function (ov, time) {
+      const date = new Date(ov);
+      const year = `${date.getFullYear()}`.padStart(4, "0");
+      const month = `${date.getMonth() + 1}`.padStart(2, "0");
+      const day = `${date.getDate()}`.padStart(2, "0");
+      let result = [year, month, day].join("-");
+      if (time) {
+        result += "<br />" + date.toLocaleTimeString("en-US");
+      }
+      return result;
     },
   },
 };

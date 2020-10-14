@@ -20,6 +20,7 @@ from codex.views.auth import LogoutView
 from codex.views.auth import RegisterView
 from codex.views.auth import UserView
 from codex.views.bookmark import ComicBookmarkView
+from codex.views.bookmark import ComicSettingsView
 from codex.views.bookmark import UserBookmarkFinishedView
 from codex.views.browser import BrowserView
 from codex.views.browser_choices import BrowserChoiceView
@@ -28,61 +29,60 @@ from codex.views.metadata import MetadataView
 from codex.views.notify import ScanNotifyView
 from codex.views.reader import ComicOpenedView
 from codex.views.reader import ComicPageView
-from codex.views.reader import ComicSettingsView
 
 
 app_name = "api"
 urlpatterns = [
     #
-    # Browser
-    path(
-        "browse/<str:group>/<int:pk>/<int:page>",
-        BrowserView.as_view(),
-        name="browser_page",
-    ),
-    path(
-        "browse/<str:group>/<int:pk>/choices/<str:field_name>",
-        BrowserChoiceView.as_view(),
-        name="browser_choices",
-    ),
-    path(
-        "browse/<str:group>/<int:pk>/mark_read",
-        UserBookmarkFinishedView.as_view(),
-        name="mark_read",
-    ),
-    path(
-        "comic/<int:pk>/archive.cbz",
-        ComicDownloadView.as_view(),
-        name="comic_download",
-    ),
-    #
     # Reader
-    path("comic/<int:pk>", ComicOpenedView.as_view(), name="comic_info"),
+    path("c/<int:pk>", ComicOpenedView.as_view(), name="comic_info"),
     path(
-        "comic/<int:pk>/<int:page_num>/p.jpg",
+        "c/<int:pk>/<int:page>/p.jpg",
         ComicPageView.as_view(),
         name="comic_page",
     ),
     path(
-        "comic/<int:pk>/<int:page_num>/bookmark",
+        "c/<int:pk>/<int:page>/bookmark",
         ComicBookmarkView.as_view(),
         name="comic_bookmark",
     ),
     path(
-        "comic/<int:pk>/settings",
+        "c/<int:pk>/settings",
         ComicSettingsView.as_view(),
         name="comic_settings",
     ),
-    #
-    # Metadata
     path(
-        "metadata/<str:group>/<int:pk>",
+        "c/<int:pk>/archive.cbz",
+        ComicDownloadView.as_view(),
+        name="comic_download",
+    ),
+    #
+    # Browser
+    path(
+        "<str:group>/<int:pk>/<int:page>",
+        BrowserView.as_view(),
+        name="browser_page",
+    ),
+    path(
+        "<str:group>/<int:pk>/metadata",
         MetadataView.as_view(),
         name="metadata",
     ),
+    path(
+        "<str:group>/<int:pk>/mark_read",
+        UserBookmarkFinishedView.as_view(),
+        name="mark_read",
+    ),
+    #
+    # Choices
+    path(
+        "<str:group>/<int:pk>/choices/<str:field_name>",
+        BrowserChoiceView.as_view(),
+        name="browser_choices",
+    ),
     #
     # Notify
-    path("browse/scan_notify", ScanNotifyView.as_view(), name="scan_notify"),
+    path("notify/scan", ScanNotifyView.as_view(), name="notify_scan"),
     #
     # Auth
     path("auth/register", RegisterView.as_view(), name="register"),

@@ -26,7 +26,7 @@ from codex.models import Volume
 from codex.serializers.browser import BrowserOpenedSerializer
 from codex.serializers.browser import BrowserPageSerializer
 from codex.serializers.browser import BrowserSettingsSerializer
-from codex.settings import CACHE_PATH
+from codex.settings.settings import CACHE_PATH
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser_metadata_base import BrowserMetadataBase
 
@@ -48,7 +48,6 @@ class BrowserView(BrowserMetadataBase):
         "s": "v",
         "v": "c",
     }
-    CHOICES_RELATIONS = ("decade", "characters")
     MAX_OBJ_PER_PAGE = 100
     ORPHANS = MAX_OBJ_PER_PAGE / 20
     BROWSER_CARD_FIELDS = [
@@ -175,15 +174,17 @@ class BrowserView(BrowserMetadataBase):
         #######################
         # Sortable aggregates #
         #######################
-        order_key = self.params.get("sort_by", self.DEFAULT_ORDER_KEY)
-        order_func = self.get_aggregate_func(order_key, model, aggregate_filter)
+        sort_by = self.params.get("sort_by", self.DEFAULT_ORDER_KEY)
+        order_func = self.get_aggregate_func(sort_by, model, aggregate_filter)
         obj_list = obj_list.annotate(order_value=order_func)
 
         #######################
         # Annotate Cover Path #
         #######################
         obj_list = self.annotate_cover_path(
-            obj_list, model, aggregate_filter, order_key
+            obj_list,
+            model,
+            aggregate_filter,
         )
 
         #######################
@@ -376,6 +377,8 @@ class BrowserView(BrowserMetadataBase):
         self.valid_nav_groups = self.get_valid_nav_groups()
         if group not in self.valid_nav_groups:
             self.raise_valid_route(f"Asked to show disabled group {group}")
+        if group == "r" and self.kwargs["pk"]:
+            self.raise_valid_route(f"Cannot show group {group} with pk other than 0.")
 
     def validate_put(self, data):
         """Validate submitted settings."""
@@ -409,8 +412,7 @@ class BrowserView(BrowserMetadataBase):
             obj_list = self.get_browser_group_queryset(object_filter, aggregate_filter)
 
         # Order
-        order_key = self.params.get("sort_by", self.DEFAULT_ORDER_KEY)
-        order_by = self.get_order_by(order_key, self.model, True)
+        order_by = self.get_order_by(self.model, True)
         obj_list = obj_list.order_by(*order_by)
 
         # Pagination
@@ -477,11 +479,7 @@ class BrowserView(BrowserMetadataBase):
 
         data = {
             "settings": {
-                "filters": {
-                    "bookmark": filters.get("bookmark"),
-                    "decade": filters.get("decade"),
-                    "characters": filters.get("characters"),
-                },
+                "filters": filters,
                 "rootGroup": self.params.get("root_group"),
                 "sortBy": self.params.get("sort_by"),
                 "sortReverse": self.params.get("sort_reverse"),

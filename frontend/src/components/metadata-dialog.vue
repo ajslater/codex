@@ -241,7 +241,7 @@
           <thead>
             <tr>
               <th id="creditsTitle" colspan="2">
-                <h2>Credits</h2>
+                <h2>Creators</h2>
               </th>
             </tr>
             <tr>
@@ -309,7 +309,6 @@
       </footer>
     </div>
     <div v-else id="placeholderContainer">
-      <!-- TODO remove if fast metadata tests fast -->
       <v-btn
         id="topCloseButton"
         title="Close Metadata (esc)"
@@ -332,8 +331,9 @@
 import { mdiDownload, mdiEye, mdiTagOutline } from "@mdi/js";
 import { mapGetters, mapState } from "vuex";
 
-import { getDownloadURL } from "@/api/v1/metadata";
+import { getDownloadURL } from "@/api/v2/comic";
 import BookCover from "@/components/book-cover";
+import { formattedIssue } from "@/components/comic-name.js";
 import MetadataAutocomplete from "@/components/metadata-autocomplete";
 import MetadataCheckbox from "@/components/metadata-checkbox";
 import MetadataCombobox from "@/components/metadata-combobox";
@@ -342,8 +342,10 @@ import MetadataTags from "@/components/metadata-tags";
 import MetadataTextArea from "@/components/metadata-textarea";
 import { getReaderRoute } from "@/router/route";
 
-// TODO remove if fast metadata tests fast
-const CHILDREN_PER_SECOND = 9; // ~10 on my machine
+// Progress circle
+// Can take 19 seconds for 22k children on huge collections
+const CHILDREN_PER_SECOND = 1160;
+const MIN_SECS = 0.05;
 const UPDATE_INTERVAL = 250;
 
 const DATE_OPTIONS = {
@@ -387,9 +389,7 @@ export default {
       mdiTagOutline,
       dialog: false,
       editMode: false,
-      progress: 0, // TODO remove if placeholder goes away
-      estimatedTime: 0,
-      startTime: 0,
+      progress: 0,
     };
   },
   computed: {
@@ -401,16 +401,7 @@ export default {
       return this.$route.name === "browser";
     },
     formattedIssue: function () {
-      const decimalIssue = this.md.comic.issue;
-      if (decimalIssue == null) {
-        return;
-      }
-      let issueStr = Math.floor(decimalIssue).toString();
-      if (decimalIssue % 1 != 0) {
-        // XXX Janky only handles half issues.
-        issueStr += "½";
-      }
-      return issueStr;
+      return formattedIssue(this.md.comic.issue);
     },
     singleComicPK: function () {
       return this.md.pks[0];
@@ -439,31 +430,19 @@ export default {
       return label;
     },
   },
-  /*
-  // TODO ask large library person to time metadata and see if this is
-  //  useful
-  watch: {
-    md: function (newMD) {
-      if (newMD == null) {
-        this.startTime = new Date().getTime();
-        return;
-      }
-      const endTime = new Date().getTime();
-      const elapsed = (endTime - this.startTime) / 1000;
-      const numChildren = newMD.pks.length;
-      const cps = numChildren / elapsed;
-      console.debug(`${numChildren} / ${elapsed} secs = ${cps} CPS`);
-    },
-  },
-  */
   methods: {
     dialogOpened: function () {
       this.$store.dispatch("metadata/metadataOpened", {
         group: this.group,
         pk: this.pk,
       });
+      this.startProgress();
+    },
+    startProgress: function () {
       this.startTime = Date.now();
-      this.estimatedTime = (this.children / CHILDREN_PER_SECOND) * 1000;
+      this.estimatedMS =
+        Math.max(MIN_SECS, this.children / CHILDREN_PER_SECOND) * 1000;
+      console.debug(this.estimatedMS);
       this.updateProgress();
     },
     dialogClosed: function () {
@@ -471,9 +450,8 @@ export default {
       this.$store.dispatch("metadata/metadataClosed");
     },
     updateProgress: function () {
-      // TODO remove if fast metadata tests fast
       const elapsed = Date.now() - this.startTime;
-      this.progress = (elapsed / this.estimatedTime) * 100;
+      this.progress = (elapsed / this.estimatedMS) * 100;
       if (this.progress >= 100 || this.md) {
         return;
       }
@@ -618,11 +596,14 @@ export default {
 }
 </style>
 
-<!-- eslint-disable vue-scoped-css/require-scoped -->
+<!-- eslint-disable-next-line vue-scoped-css/require-scoped -->
 <style lang="scss">
 .v-dialog--fullscreen {
   width: 100% !important;
   opacity: 0.99;
 }
+#metadataContainer,
+#placeholderContainer {
+  padding: 20px;
+}
 </style>
-<!-- eslint-enable vue-scoped-css/require-scoped -->

@@ -1,5 +1,5 @@
 """
-WSGI config for codex project. Unused. For testing only.
+WSGI config for codex project. UNUSED! For testing only.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 
@@ -12,7 +12,7 @@ import os
 from django.core.wsgi import get_wsgi_application
 
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "codex.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "codex.settings.settings")
 
 application = get_wsgi_application()
 

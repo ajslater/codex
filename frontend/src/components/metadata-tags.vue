@@ -18,7 +18,7 @@
 </template>
 
 <script>
-import { toVuetifyItems } from "@/api/v1/list-items";
+import { toVuetifyItems } from "@/api/v2/list-items";
 
 export default {
   name: "MetadataTags",

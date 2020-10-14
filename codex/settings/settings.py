@@ -16,17 +16,17 @@ import os
 
 from pathlib import Path
 
-from codex.codex_settings.codex_logging import init_logging
-from codex.codex_settings.hypercorn_config import get_root_path
-from codex.codex_settings.secret_key import get_secret_key
+from codex.settings.codex_logging import init_logging
+from codex.settings.hypercorn_config import get_root_path
+from codex.settings.secret_key import get_secret_key
 
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 CODEX_PATH = BASE_DIR / "codex"
 CONFIG_PATH = Path(os.environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
 CONFIG_PATH.mkdir(exist_ok=True, parents=True)
-
+HYPERCORN_CONFIG_TOML = CONFIG_PATH / "hypercorn.toml"
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = get_secret_key(CONFIG_PATH)
@@ -149,7 +149,7 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
-ROOT_PATH = get_root_path(CONFIG_PATH, DEBUG)
+ROOT_PATH = get_root_path(HYPERCORN_CONFIG_TOML, DEBUG)
 
 CONFIG_STATIC = CONFIG_PATH / "static"
 CONFIG_STATIC.mkdir(exist_ok=True, parents=True)
@@ -181,7 +181,7 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework.authentication.SessionAuthentication",
-    )
+    ),
 }
 
 CORS_ALLOW_CREDENTIALS = True

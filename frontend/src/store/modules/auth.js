@@ -1,7 +1,7 @@
-import API from "@/api/v1/auth";
+import API from "@/api/v2/auth";
 
 const state = {
-  user: undefined,
+  user: null,
   form: {
     usernameErrors: undefined,
     passwordErrors: undefined,
@@ -80,7 +80,7 @@ const actions = {
         return response;
       })
       .catch((error) => {
-        console.debug(error.response.data);
+        return console.debug(error.response.data);
       });
   },
   logout({ commit }) {

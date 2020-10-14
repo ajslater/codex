@@ -5,10 +5,16 @@
     </template>
     <v-list nav>
       <v-list-item v-if="group === 'c'" :href="downloadURL">
-        <v-list-item-content> Download Comic </v-list-item-content>
+        <v-list-item-content>
+          <v-list-item-title>Download Comic</v-list-item-title>
+        </v-list-item-content>
       </v-list-item>
       <v-list-item @click="toggleRead">
-        <v-list-item-content> {{ markReadText }}</v-list-item-content>
+        <v-list-item-content>
+          <v-list-item-title>
+            {{ markReadText }}
+          </v-list-item-title>
+        </v-list-item-content>
       </v-list-item>
     </v-list>
   </v-menu>
@@ -17,14 +23,15 @@
 <script>
 import { mdiDotsVertical } from "@mdi/js";
 
-import { getDownloadURL } from "@/api/v1/metadata";
+import { getDownloadURL } from "@/api/v2/comic";
 
-const containerNames = {
+const groupNames = {
   p: "Publisher",
   i: "Imprint",
   s: "Series",
   v: "Volume",
   c: "Issue",
+  f: "Folder",
 };
 
 export default {
@@ -50,29 +57,27 @@ export default {
     };
   },
   methods: {
-    markRead: function (group, pk, finished) {
-      this.$store.dispatch("browser/markRead", { group, pk, finished });
-    },
     toggleRead: function () {
-      this.$store.dispatch("browser/markRead", {
+      this.$store.dispatch("browser/markedRead", {
         group: this.group,
         pk: this.pk,
         finished: !this.finished,
       });
     },
     getMarkReadText: function () {
-      let text = "Mark ";
+      const words = ["Mark"];
       if (this.group != "c") {
-        text += "Entire ";
+        words.push("Entire");
       }
-      text += containerNames[this.group] + " ";
+      const groupName = groupNames[this.group];
+      words.push(groupName);
 
       if (this.finished) {
-        text += "Unread";
+        words.push("Unread");
       } else {
-        text += "Read";
+        words.push("Read");
       }
-      return text;
+      return words.join(" ");
     },
   },
 };

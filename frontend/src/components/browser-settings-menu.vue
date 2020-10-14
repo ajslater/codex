@@ -1,13 +1,13 @@
 <template>
-  <v-menu offset-y>
+  <v-menu ref="browserSettingsMenu" v-model="menuOpen" offset-y>
     <template #activator="{ on }">
       <v-btn icon ripple title="Settings" v-on="on">
         <v-icon>{{ mdiDotsVertical }}</v-icon>
       </v-btn>
     </template>
     <v-list-item-group id="settingsMenu" ripple>
-      <BrowserSettingsDialog />
-      <AuthDialog />
+      <BrowserSettingsDialog @sub-dialog-open="close" />
+      <AuthDialog @sub-dialog-open="close" />
       <v-list-item v-if="isOpenToSee" @click="reload">
         <v-list-item-content>
           <v-list-item-title> Reload Libraries</v-list-item-title>
@@ -33,6 +33,7 @@ export default {
   data() {
     return {
       mdiDotsVertical,
+      menuOpen: false,
     };
   },
   computed: {
@@ -40,7 +41,11 @@ export default {
   },
   methods: {
     reload: function () {
-      this.$store.dispatch("browser/browseOpened", this.$route.params);
+      this.$store.dispatch("browser/browserOpened", this.$route.params);
+    },
+    close: function () {
+      // workaround for menu not closing when sub dialogs open.
+      this.menuOpen = false;
     },
   },
 };

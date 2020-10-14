@@ -3,22 +3,25 @@
     v-model="sortBy"
     class="toolbarSelect sortBySelect"
     :items="sortChoices"
-    prefix="by "
     dense
+    :label="label"
     hide-details="auto"
     ripple
+    :menu-props="{
+      maxHeight: '90vh',
+      overflowY: false,
+    }"
+    :append-icon="getSortIcon(true)"
+    @focus="label = 'sort by'"
+    @blur="label = ''"
   >
     <template #item="data">
       <v-list-item v-bind="data.attrs" v-on="data.on">
         <v-list-item-content>
           <v-list-item-title>
             {{ data.item.text }}
-            <v-icon
-              v-show="sortBy === data.item.value"
-              class="sortArrow"
-              :class="{ upsideDown: !sortReverseSetting }"
-            >
-              {{ mdiArrowUp }}
+            <v-icon v-show="sortBy === data.item.value" class="sortArrow">
+              {{ getSortIcon(false) }}
             </v-icon>
           </v-list-item-title>
         </v-list-item-content>
@@ -28,15 +31,16 @@
 </template>
 
 <script>
-import { mdiArrowUp } from "@mdi/js";
+import { mdiSortReverseVariant, mdiSortVariant } from "@mdi/js";
 import { mapState } from "vuex";
 
 export default {
   name: "BrowseSortBySelect",
-  components: {},
   data() {
     return {
-      mdiArrowUp,
+      mdiSortReverseVariant,
+      mdiSortVariant,
+      label: "",
     };
   },
   computed: {
@@ -61,7 +65,20 @@ export default {
       },
     },
   },
-  methods: {},
+  methods: {
+    getSortIcon: function (flipIt) {
+      // I don't understand why, but the append-icon attribute flips the
+      // icon or doesn't update properly, so this is a hack around that.
+      let reverse = this.sortReverseSetting;
+      if (flipIt) {
+        reverse = !reverse;
+      }
+      if (reverse) {
+        return mdiSortReverseVariant;
+      }
+      return mdiSortVariant;
+    },
+  },
 };
 </script>
 
@@ -69,21 +86,22 @@ export default {
 .sortArrow {
   width: 20px;
   float: right;
+  transform: scale(1, -1);
 }
 .upsideDown {
   transform: rotate(180deg);
 }
 </style>
 
-<!-- eslint-disable vue-scoped-css/require-scoped -->
+<!-- eslint-disable-next-line vue-scoped-css/require-scoped -->
 <style lang="scss">
 .sortBySelect {
-  width: 168px;
+  width: 144px;
 }
 @import "~vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   .sortBySelect {
-    width: 133px;
+    width: 114px;
     margin-right: -19px;
   }
 }

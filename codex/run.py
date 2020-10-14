@@ -19,14 +19,13 @@ from codex.asgi import application
 from codex.librarian.librariand import PORT
 from codex.models import AdminFlag
 from codex.models import Library
-from codex.settings import CODEX_PATH
-from codex.settings import CONFIG_PATH
-from codex.settings import CONFIG_STATIC
-from codex.settings import DEBUG
+from codex.settings.settings import CODEX_PATH
+from codex.settings.settings import CONFIG_STATIC
+from codex.settings.settings import DEBUG
+from codex.settings.settings import HYPERCORN_CONFIG_TOML
 
 
-CONFIG_TOML = CONFIG_PATH / "hypercorn.toml"
-CONFIG_DEFAULT_TOML = CODEX_PATH / "hypercorn.toml.default"
+HYPERCORN_CONFIG_TOML_DEFAULT = CODEX_PATH / "settings/hypercorn.toml.default"
 
 LOG = getLogger(__name__)
 RESET_ADMIN = bool(os.environ.get("CODEX_RESET_ADMIN"))
@@ -39,9 +38,9 @@ def ensure_config():
     """Ensure that a valid config exists."""
     # make the config dir and the static dir.
     CONFIG_STATIC.mkdir(parents=True, exist_ok=True)
-    if not CONFIG_TOML.exists():
-        shutil.copy(CONFIG_DEFAULT_TOML, CONFIG_TOML)
-        LOG.info(f"Copied default config to {CONFIG_TOML}")
+    if not HYPERCORN_CONFIG_TOML.exists():
+        shutil.copy(HYPERCORN_CONFIG_TOML_DEFAULT, HYPERCORN_CONFIG_TOML)
+        LOG.info(f"Copied default config to {HYPERCORN_CONFIG_TOML}")
 
 
 def update_db():
@@ -119,14 +118,12 @@ def setup_db():
 
 def get_hypercorn_config():
     """Configure the hypercorn server."""
-    config = Config.from_toml(CONFIG_TOML)
-    LOG.info(f"Loaded config from {CONFIG_TOML}")
+    config = Config.from_toml(HYPERCORN_CONFIG_TOML)
+    LOG.info(f"Loaded config from {HYPERCORN_CONFIG_TOML}")
     if DEBUG:
         config.use_reloader = True
         LOG.info("Reload hypercorn if files change")
 
-    # Don't nuke existing loggers
-    config.logconfig_dict = {"disable_existing_loggers": False}
     # Store port number in shared memory for librariand websocket server
     PORT.value = int(config.bind[0].split(":")[1])
     return config

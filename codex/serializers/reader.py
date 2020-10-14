@@ -1,33 +1,17 @@
 """Codex Reader Serializers."""
-from rest_framework.serializers import BooleanField
 from rest_framework.serializers import CharField
-from rest_framework.serializers import ChoiceField
 from rest_framework.serializers import DecimalField
 from rest_framework.serializers import IntegerField
 from rest_framework.serializers import Serializer
 
-from codex.serializers.webpack import CHOICES
-
-
-FIT_TO_CHOICES = tuple(CHOICES["fitTo"].keys())
+from codex.serializers.bookmark import ComicReaderSettingsSerializer
 
 
 class ComicPageRouteSerializer(Serializer):
     """A comic page route."""
 
     pk = IntegerField(read_only=True)
-    pageNumber = IntegerField(read_only=True)  # noqa: N815
-
-
-class ComicReaderSettingsSerializer(Serializer):
-    """Reader settings the user can change."""
-
-    fitTo = ChoiceField(  # noqa: N815
-        choices=FIT_TO_CHOICES,
-        allow_null=True,
-        required=False,
-    )
-    twoPages = BooleanField(allow_null=True, required=False)  # noqa: N815
+    page = IntegerField(read_only=True)
 
 
 class ComicReaderBothSettingsSerializer(Serializer):

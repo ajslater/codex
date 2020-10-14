@@ -5,6 +5,7 @@ from django.db.models import Avg
 from django.db.models import BooleanField
 from django.db.models import DecimalField
 from django.db.models import F
+from django.db.models import Max
 from django.db.models import Min
 from django.db.models import OuterRef
 from django.db.models import Q
@@ -23,26 +24,33 @@ from codex.views.browser_base import BrowserBaseView
 class BrowserMetadataBase(BrowserBaseView):
     """Base class for views that need special metadata annotations."""
 
+    # options from frontend/src/choices/browserChoices.json
     SORT_AGGREGATE_FUNCS = {
         "created_at": Min,
         "critical_rating": Avg,
         "date": Min,
+        "maturity_rating": Avg,
         "page_count": Sum,
         "size": Sum,
+        "updated_at": Min,
         "user_rating": Avg,
     }
     DEFAULT_ORDER_KEY = "sort_name"
 
-    def get_aggregate_func(self, attr, model, aggregate_filter):
+    def get_aggregate_func(self, field, model, aggregate_filter):
         """Get a complete function for aggregating an attribute."""
-        agg_func = self.SORT_AGGREGATE_FUNCS.get(attr)
+        agg_func = self.SORT_AGGREGATE_FUNCS.get(field)
+        if agg_func == Min:
+            sort_reverse = self.params.get("sort_reverse")
+            if sort_reverse:
+                agg_func = Max
         if model == Comic or agg_func is None:
-            order_func = F(attr)
+            order_func = F(field)
         else:
-            order_func = agg_func(f"comic__{attr}", filter=aggregate_filter)
+            order_func = agg_func(f"comic__{field}", filter=aggregate_filter)
         return order_func
 
-    def get_order_by(self, order_key, model, use_order_value):
+    def get_order_by(self, model, use_order_value):
         """
         Create the order_by list.
 
@@ -55,13 +63,15 @@ class BrowserMetadataBase(BrowserBaseView):
             order_prefix = ""
         if use_order_value:
             order_key = "order_value"
+        else:
+            order_key = self.params.get("sort_by")
         order_by = [order_prefix + order_key, order_prefix + "pk"]
         if model in (Comic, Folder):
             # This keeps position stability for duplicate comics & folders
             order_by += ["library"]
         return order_by
 
-    def annotate_cover_path(self, queryset, model, aggregate_filter, order_key):
+    def annotate_cover_path(self, queryset, model, aggregate_filter):
         """Annotate the query set for the coverpath for the sort."""
         # Select comics for the children by an outer ref for annotation
         # Order the decendent comics by the sort argumentst
@@ -69,12 +79,12 @@ class BrowserMetadataBase(BrowserBaseView):
             cover_path_subquery = F("cover_path")
         else:
             # Cover Path from sorted children.
-            # XXX Don't know how to make this a join
-            #   because it selects by order_by but wants the cover_path
+            # Don't know how to make this a join because it selects by
+            #   order_by but wants the cover_path
             model_ref = model.__name__.lower()
             model_group_filter = Q(**{model_ref: OuterRef("pk")})
             comics = Comic.objects.filter(model_group_filter & aggregate_filter)
-            order_by = self.get_order_by(order_key, Comic, False)
+            order_by = self.get_order_by(Comic, False)
             comics = comics.order_by(*order_by)
             cover_comic_path = comics.values("cover_path")
             cover_path_subquery = Subquery(cover_comic_path[:1])

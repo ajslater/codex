@@ -4,6 +4,7 @@
     v-model="bookmarkFilter"
     :items="bookmarkChoices"
     class="toolbarSelect filterSelect"
+    :label="label"
     dense
     hide-details="auto"
     ripple
@@ -14,6 +15,8 @@
     }"
     :prepend-inner-icon="filterInnerIcon"
     @click:prepend-inner="clearFilters"
+    @focus="label = 'filter by'"
+    @blur="label = ''"
   >
     <template #selection="{ item }">
       {{ item.text }}
@@ -52,6 +55,11 @@ export default {
   name: "BrowserFilterSelect",
   components: {
     FilterSubMenu,
+  },
+  data() {
+    return {
+      label: "",
+    };
   },
   computed: {
     ...mapState("browser", {
@@ -106,13 +114,12 @@ export default {
   },
   methods: {
     clearFilters: function () {
-      this.$store.dispatch("browser/clearFilters");
+      this.$store.dispatch("browser/filtersCleared");
     },
     closeFilterSelect: function () {
-      // On click, reselect the current value to close the menu.
-      const item = this.$refs.filterSelect.selectedItems[0];
-      this.$refs.filterSelect.selectItem(item);
-      this.$store.dispatch("browser/setFilterMode", { mode: "base" });
+      // On sub-menu click, close the menu and reset the filter mode.
+      this.$refs.filterSelect.blur();
+      this.$store.commit("browser/filterModeChanged", "base");
     },
   },
 };

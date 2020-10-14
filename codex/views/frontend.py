@@ -2,7 +2,7 @@
 from django.shortcuts import render
 from django.urls import get_script_prefix
 
-from codex.settings import DEBUG
+from codex.settings.settings import DEBUG
 
 
 def app(request):

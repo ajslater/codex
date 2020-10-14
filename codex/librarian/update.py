@@ -8,7 +8,7 @@ import sys
 from codex.librarian.latest_version import get_installed_version
 from codex.librarian.latest_version import is_outdated
 from codex.models import AdminFlag
-from codex.settings import CACHE_PATH
+from codex.settings.settings import CACHE_PATH
 
 
 LOG = logging.getLogger(__name__)

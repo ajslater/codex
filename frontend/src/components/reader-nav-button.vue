@@ -1,7 +1,8 @@
 <template>
   <v-btn
-    :disabled="pageNumber === value"
-    :to="{ name: 'reader', params: { pk, pageNumber: value } }"
+    class="readerNavButton"
+    :disabled="$route.params.page === value"
+    :to="toRoute"
     ripple
     large
   >
@@ -10,24 +11,29 @@
 </template>
 
 <script>
-import { mapState } from "vuex";
-
 export default {
   name: "ReaderNavButton",
   props: {
     value: {
       type: Number,
       required: true,
-      default: 0,
     },
   },
   computed: {
-    ...mapState("reader", {
-      pk: (state) => state.routes.current.pk,
-      pageNumber: (state) => state.routes.current.pageNumber,
-    }),
+    toRoute: function () {
+      const params = { ...this.$route.params };
+      params.page = this.value;
+      return {
+        name: this.$route.name,
+        params: params,
+      };
+    },
   },
 };
 </script>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+.readerNavButton {
+  z-index: -1;
+}
+</style>

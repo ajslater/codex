@@ -23,6 +23,7 @@ jobs:
                     - ./docker-env
                     - ./pyproject.toml
                 root: .
+
     deploy:
         docker:
             - image: circleci/python:3.8
@@ -35,9 +36,6 @@ jobs:
             - run:
                 command: ./build-runnable-image.sh
                 name: Build Runnable Docker Image
-            - run:
-                command: ./ci/publish-pypi.sh
-                name: Publish Package to PyPi
             - run:
                 command: ./ci/publish-pypi.sh
                 name: Publish Package to PyPi

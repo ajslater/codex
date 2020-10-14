@@ -7,21 +7,15 @@ from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from stringcase import camelcase
-from stringcase import snakecase
 
 from codex.models import Comic
 from codex.serializers.reader import ComicReaderInfoSerializer
-from codex.serializers.reader import ComicReaderSettingsSerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.mixins import SessionMixin
 from codex.views.mixins import UserBookmarkMixin
 
 
 LOG = logging.getLogger(__name__)
-NULL_READER_SETTINGS = {
-    "fitTo": None,
-    "twoPages": None,
-}
 
 
 class ComicOpenedView(APIView, SessionMixin, UserBookmarkMixin):
@@ -70,13 +64,13 @@ class ComicOpenedView(APIView, SessionMixin, UserBookmarkMixin):
         prev_route = next_route = None
         for comic in comics:
             if current_comic is not None:
-                next_route = {"pk": comic.pk, "pageNumber": 0}
+                next_route = {"pk": comic.pk, "page": 0}
                 break
             elif comic.pk == pk:
                 current_comic = comic
             else:
                 # Haven't matched yet, so set the previous comic
-                prev_route = {"pk": comic.pk, "pageNumber": comic.max_page}
+                prev_route = {"pk": comic.pk, "page": comic.max_page}
         routes = {"prevBook": prev_route, "nextBook": next_route}
         return current_comic, routes
 
@@ -112,46 +106,9 @@ class ComicPageView(APIView):
         comic = Comic.objects.only("path").get(pk=pk)
         try:
             car = ComicArchive(comic.path)
-            page_num = self.kwargs.get("page_num")
-            page_image = car.get_page_by_index(page_num)
+            page = self.kwargs.get("page")
+            page_image = car.get_page_by_index(page)
             return HttpResponse(page_image, content_type="image/jpeg")
         except Exception as exc:
             LOG.exception(exc)
             raise NotFound(detail="comic page not found")
-
-
-class ComicSettingsView(APIView, SessionMixin, UserBookmarkMixin):
-    """Set Comic Settigns."""
-
-    def validate(self, serializer):
-        """Validate and translate the submitted data."""
-        serializer.is_valid(raise_exception=True)
-        # camel 2 snake
-        snake_dict = {}
-        for key, val in serializer.validated_data.items():
-            snake_key = snakecase(key)
-            snake_dict[snake_key] = val
-        return snake_dict
-
-    def patch(self, request, *args, **kwargs):
-        """Patch the bookmark settings for one comic."""
-        serializer = ComicReaderSettingsSerializer(data=self.request.data)
-        updates = self.validate(serializer)
-
-        pk = self.kwargs.get("pk")
-        self.update_user_bookmark(updates, pk=pk)
-        return Response()
-
-    def put(self, request, *args, **kwargs):
-        """Put the session settings for all comics."""
-        serializer = ComicReaderSettingsSerializer(data=self.request.data)
-        snake_dict = self.validate(serializer)
-        # Default for all comics
-        reader_session = self.get_session(self.READER_KEY)
-        reader_session["defaults"] = snake_dict
-        self.request.session.save()
-
-        # Null out this comic's settings so it uses all comic defaults
-        pk = self.kwargs.get("pk")
-        self.update_user_bookmark(NULL_READER_SETTINGS, pk=pk)
-        return Response()

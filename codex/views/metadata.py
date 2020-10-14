@@ -129,8 +129,7 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
         if model != Comic:
             size_func = self.get_aggregate_func("size", model, aggregate_filter)
             obj = obj.annotate(size=size_func)
-        order_key = self.params.get("sort_by", self.DEFAULT_ORDER_KEY)
-        obj = self.annotate_cover_path(obj, model, aggregate_filter, order_key)
+        obj = self.annotate_cover_path(obj, model, aggregate_filter)
         obj = self.annotate_page_count(obj, aggregate_filter)
         obj = self.annotate_bookmarks(obj)
         obj = self.annotate_progress(obj)

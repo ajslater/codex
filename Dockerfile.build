@@ -1,4 +1,5 @@
-FROM ajslater/codex-builder:focal_1.0.0-db5d3fe
+FROM ajslater/codex-builder:focal_1.3.0-17da081
+
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -7,8 +8,8 @@ ARG DEBIAN_FRONTEND=noninteractive
 ####################
 
 WORKDIR /app
-COPY setup-dev.sh pyproject.toml poetry.lock /app/
-RUN poetry install --no-root
+COPY pyproject.toml poetry.lock /app/
+RUN poetry install --no-root --remove-untracked
 COPY frontend/package.json frontend/package-lock.json /app/frontend/
 WORKDIR /app/frontend
 RUN npm install

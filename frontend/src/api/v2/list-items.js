@@ -1,16 +1,26 @@
 // Shared functions for most metadata components.
 
-// TODO sync with serializers in choices or whatever
-const VUETIFY_NULL_CODE = -1;
+import FORM_CHOICES from "@/choices/browserChoices";
+const VUETIFY_NULL_CODE = FORM_CHOICES["vuetifyNullCode"];
+const NULL_NAME = "None";
+const NULL_ITEM = { pk: VUETIFY_NULL_CODE, name: NULL_NAME };
 
 export const toVuetifyItem = function (item) {
   // Translates an raw value or an item item into a vuetify
   // autocomplete/combobox item.
   let vuetifyItem;
-  if (item === undefined || item instanceof Object) {
+  if (item === undefined) {
     vuetifyItem = item;
+  } else if (item instanceof Object) {
+    vuetifyItem = item;
+    if (vuetifyItem.pk == null) {
+      vuetifyItem.pk = VUETIFY_NULL_CODE;
+    }
+    if (vuetifyItem.name == null) {
+      vuetifyItem.name = NULL_NAME;
+    }
   } else if (item === null) {
-    vuetifyItem = { pk: VUETIFY_NULL_CODE, name: "None" };
+    vuetifyItem = NULL_ITEM;
   } else {
     vuetifyItem = { pk: item, name: item.toString() };
   }

@@ -5,10 +5,8 @@ from rest_framework.serializers import CharField
 from rest_framework.serializers import DecimalField
 from rest_framework.serializers import IntegerField
 from rest_framework.serializers import ListField
-from rest_framework.serializers import ModelSerializer
 from rest_framework.serializers import Serializer
 
-from codex.models import UserBookmark
 from codex.serializers.models import ComicSerializer
 
 
@@ -41,13 +39,3 @@ class MetadataSerializer(Serializer):
 
     # Aggregated stats for the group of comics selected.
     aggregates = MetadataAggregatesSerializer()
-
-
-class UserBookmarkFinishedSerializer(ModelSerializer):
-    """The finished field of the UserBookmark."""
-
-    class Meta:
-        """Model spec."""
-
-        model = UserBookmark
-        fields = ("finished",)

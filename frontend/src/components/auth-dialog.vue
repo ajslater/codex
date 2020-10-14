@@ -18,6 +18,7 @@
     transition="slide-y-transition"
     max-width="20em"
     overlay-opacity="0.5"
+    @focus="focus()"
   >
     <template #activator="{ on }">
       <v-list-item v-on="on" @click="loginDialogOpened">
@@ -26,7 +27,7 @@
         </v-list-item-content>
       </v-list-item>
     </template>
-    <v-form ref="loginForm">
+    <v-form id="authDialog" ref="loginForm">
       <v-text-field
         v-model="credentials.username"
         autocomplete="username"
@@ -93,7 +94,7 @@
 <script>
 import { mapState } from "vuex";
 
-import { ADMIN_URL } from "@/api/v1/auth";
+import { ADMIN_URL } from "@/api/v2/base";
 
 export default {
   name: "AuthDialog",
@@ -165,6 +166,9 @@ export default {
     loginDialogOpened: function () {
       this.$store.dispatch("auth/loginDialogOpened");
     },
+    focus: function () {
+      this.$emit("sub-dialog-open");
+    },
   },
 };
 </script>
@@ -172,5 +176,8 @@ export default {
 <style scoped lang="scss">
 #userMenu {
   background-color: #121212;
+}
+#authDialog {
+  padding: 20px;
 }
 </style>

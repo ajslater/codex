@@ -5,7 +5,7 @@ pip3 install -U poetry
 npm install -g prettier prettier-plugin-toml
 
 echo "*** install API build dependencies ***"
-poetry install --no-root
+poetry install --no-root --remove-untracked
 
 echo "*** install frontend build dependencies ***"
 bash -c "cd frontend && npm install"

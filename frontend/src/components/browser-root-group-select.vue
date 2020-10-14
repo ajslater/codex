@@ -3,9 +3,12 @@
     v-model="rootGroup"
     :items="rootGroupChoices"
     class="toolbarSelect rootGroupSelect"
+    :label="label"
     dense
     hide-details="auto"
     ripple
+    @focus="label = 'group by'"
+    @blur="label = ''"
   />
 </template>
 
@@ -13,6 +16,11 @@
 import { mapGetters, mapState } from "vuex";
 export default {
   name: "BrowserRootGroupSelect",
+  data() {
+    return {
+      label: "",
+    };
+  },
   computed: {
     ...mapState("browser", {
       rootGroupSetting: (state) => state.settings.rootGroup,

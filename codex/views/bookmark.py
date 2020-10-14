@@ -1,13 +1,23 @@
 """Bookmark views."""
 
+from django.core.cache import cache
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from stringcase import snakecase
 
 from codex.models import Comic
-from codex.serializers.metadata import UserBookmarkFinishedSerializer
+from codex.serializers.bookmark import ComicReaderSettingsSerializer
+from codex.serializers.bookmark import UserBookmarkFinishedSerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser_base import BrowserBaseView
+from codex.views.mixins import SessionMixin
 from codex.views.mixins import UserBookmarkMixin
+
+
+NULL_READER_SETTINGS = {
+    "fitTo": None,
+    "twoPages": None,
+}
 
 
 class UserBookmarkFinishedView(BrowserBaseView, UserBookmarkMixin):
@@ -41,7 +51,48 @@ class ComicBookmarkView(APIView, UserBookmarkMixin):
     def patch(self, request, *args, **kwargs):
         """Save a user bookmark after a page change."""
         pk = self.kwargs.get("pk")
-        page_num = self.kwargs.get("page_num")
-        updates = {"bookmark": page_num}
+        page = self.kwargs.get("page")
+        updates = {"bookmark": page}
         self.update_user_bookmark(updates, pk=pk)
+        return Response()
+
+
+class ComicSettingsView(APIView, SessionMixin, UserBookmarkMixin):
+    """Set Comic Settigns."""
+
+    def validate(self, serializer):
+        """Validate and translate the submitted data."""
+        serializer.is_valid(raise_exception=True)
+        # camel 2 snake
+        snake_dict = {}
+        for key, val in serializer.validated_data.items():
+            snake_key = snakecase(key)
+            snake_dict[snake_key] = val
+        return snake_dict
+
+    def patch(self, request, *args, **kwargs):
+        """Patch the bookmark settings for one comic."""
+        serializer = ComicReaderSettingsSerializer(data=self.request.data)
+        updates = self.validate(serializer)
+
+        pk = self.kwargs.get("pk")
+        self.update_user_bookmark(updates, pk=pk)
+        # XXX would be nice to clear fewer caches than all of them
+        cache.clear()
+        return Response()
+
+    def put(self, request, *args, **kwargs):
+        """Put the session settings for all comics."""
+        serializer = ComicReaderSettingsSerializer(data=self.request.data)
+        snake_dict = self.validate(serializer)
+        # Default for all comics
+        reader_session = self.get_session(self.READER_KEY)
+        reader_session["defaults"] = snake_dict
+        self.request.session.save()
+
+        # Null out this comic's settings so it uses all comic defaults
+        pk = self.kwargs.get("pk")
+        self.update_user_bookmark(NULL_READER_SETTINGS, pk=pk)
+        # XXX would be nice to clear fewer caches than all of them
+        cache.clear()
         return Response()
