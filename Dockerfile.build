@@ -1,4 +1,4 @@
-FROM ajslater/codex-builder:focal_1.3.0-17da081
+FROM ajslater/codex-builder:groovy_1.4.0-49c2f4b
 
 
 ARG DEBIAN_FRONTEND=noninteractive
