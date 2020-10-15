@@ -16,7 +16,8 @@ import os
 
 from pathlib import Path
 
-from codex.settings.hypercorn import get_django_root_path
+# TODO remove this if i never use it
+# from codex.settings.hypercorn import get_django_root_path
 from codex.settings.hypercorn import load_hypercorn_config
 from codex.settings.logging import init_logging
 from codex.settings.secret_key import get_secret_key
@@ -32,8 +33,7 @@ CONFIG_PATH.mkdir(exist_ok=True, parents=True)
 SECRET_KEY = get_secret_key(CONFIG_PATH)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEV = bool(os.environ.get("DEV", False))
-DEBUG = bool(os.environ.get("DEBUG", DEV))
+DEBUG = bool(os.environ.get("DEBUG", False))
 
 #
 # Logging
@@ -56,7 +56,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
 ]
 
-if DEV:
+if DEBUG:
     # comes before static apps
     INSTALLED_APPS += ["livereload", "debug_toolbar"]
 
@@ -82,7 +82,7 @@ MIDDLEWARE = [
     "codex.middleware.TimezoneMiddleware",
     "django.middleware.cache.FetchFromCacheMiddleware",
 ]
-if DEV:
+if DEBUG:
     MIDDLEWARE += [
         "livereload.middleware.LiveReloadScript",
         "debug_toolbar.middleware.DebugToolbarMiddleware",
@@ -147,33 +147,37 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/3.1/howto/static-files/
-
-CONFIG_STATIC = CONFIG_PATH / "static"
-CONFIG_STATIC.mkdir(exist_ok=True, parents=True)
-
 # Hypercorn
 HYPERCORN_CONFIG_TOML = CONFIG_PATH / "hypercorn.toml"
 HYPERCORN_CONFIG_TOML_DEFAULT = CODEX_PATH / "settings/hypercorn.toml.default"
-
 HYPERCORN_CONFIG = load_hypercorn_config(
-    HYPERCORN_CONFIG_TOML, HYPERCORN_CONFIG_TOML_DEFAULT, DEV
+    HYPERCORN_CONFIG_TOML, HYPERCORN_CONFIG_TOML_DEFAULT, DEBUG
 )
-ROOT_PATH = get_django_root_path(HYPERCORN_CONFIG)
+# if DEBUG:
+#    ROOT_PATH = get_django_root_path(HYPERCORN_CONFIG)
+# else:
+# TODO PROD & DEV works but not DEBUG
+ROOT_PATH = ""
 PORT = int(HYPERCORN_CONFIG.bind[0].split(":")[1])
 
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/3.1/howto/static-files/
+CONFIG_STATIC = CONFIG_PATH / "static"
+CONFIG_STATIC.mkdir(exist_ok=True, parents=True)
 # XXX Abuse the Whitenoise ROOT feature to serve covers
 # A little dangerous because whitenoise will serve anything from that
 # static directory. But it sure is fast.
 WHITENOISE_ROOT = CONFIG_STATIC
 WHITENOISE_KEEP_ONLY_HASHED_FILES = True
 WHITENOISE_STATIC_PREFIX = "static/"
+# XXX Attempt to fix new covers not displaying bug
+#     Bad for performance and security
+# http://whitenoise.evans.io/en/stable/django.html#WHITENOISE_AUTOREFRESH
+WHITENOISE_AUTOREFRESH = True
 STATIC_ROOT = CODEX_PATH / "static_root"
 STATIC_URL = ROOT_PATH + WHITENOISE_STATIC_PREFIX
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-if DEV:
+if DEBUG:
     STATIC_SRC = CODEX_PATH / "static_src"
     STATIC_SRC.mkdir(exist_ok=True, parents=True)
     STATIC_BUILD = CODEX_PATH / "static_build"

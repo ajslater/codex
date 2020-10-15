@@ -17,7 +17,7 @@ from hypercorn.asyncio import serve
 from codex.asgi import application
 from codex.models import AdminFlag
 from codex.models import Library
-from codex.settings.settings import DEV
+from codex.settings.settings import DEBUG
 from codex.settings.settings import HYPERCORN_CONFIG
 
 
@@ -132,7 +132,7 @@ def set_env():
     # This papers over a macos crash that can happen with
     # multirocessing start_method: fork
     os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
-    if DEV:
+    if DEBUG:
         os.environ["PYTHONDONTWRITEBYTECODE"] = "YES"
         LOG.setLevel("DEBUG")
 

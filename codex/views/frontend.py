@@ -2,7 +2,7 @@
 from django.shortcuts import render
 from django.urls import get_script_prefix
 
-from codex.settings.settings import DEV
+from codex.settings.settings import DEBUG
 
 
 def app(request):
@@ -10,7 +10,7 @@ def app(request):
     return render(
         request,
         "index.html",
-        context={"root_path": get_script_prefix(), "DEV": DEV},
+        context={"root_path": get_script_prefix(), "DEBUG": DEBUG},
     )
 
 
