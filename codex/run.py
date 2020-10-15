@@ -123,7 +123,7 @@ def get_hypercorn_config():
     if DEV:
         config.use_reloader = True
         LOG.info("Reload hypercorn if files change")
-
+    LOG.info(f"ASGI root_path: {config.root_path}")
     # Store port number in shared memory for librariand websocket server
     PORT.value = int(config.bind[0].split(":")[1])
     return config

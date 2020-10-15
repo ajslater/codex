@@ -163,7 +163,7 @@ def load_from_webpack_modules():
             WEBSOCKET_MESSAGES = data_dict
         else:
             build_choices_and_defaults(data_dict)
-        LOG.info(f"Parsed {fn}")
+        LOG.debug(f"Parsed {fn}")
 
 
 load_from_webpack_modules()
