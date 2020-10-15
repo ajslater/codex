@@ -4,6 +4,7 @@
 
 - Add LOGLEVEL environment variable. Set to DEBUG to see everything.
 - Removed DEV environment variable.
+- Possible fix for newly imported covers not displaying.
 
 ## v0.6.2
 
