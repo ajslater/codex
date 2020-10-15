@@ -21,7 +21,7 @@ from codex.models import AdminFlag
 from codex.models import Library
 from codex.settings.settings import CODEX_PATH
 from codex.settings.settings import CONFIG_STATIC
-from codex.settings.settings import DEBUG
+from codex.settings.settings import DEV
 from codex.settings.settings import HYPERCORN_CONFIG_TOML
 
 
@@ -120,7 +120,7 @@ def get_hypercorn_config():
     """Configure the hypercorn server."""
     config = Config.from_toml(HYPERCORN_CONFIG_TOML)
     LOG.info(f"Loaded config from {HYPERCORN_CONFIG_TOML}")
-    if DEBUG:
+    if DEV:
         config.use_reloader = True
         LOG.info("Reload hypercorn if files change")
 
@@ -162,7 +162,7 @@ def set_env():
     # This papers over a macos crash that can happen with
     # multirocessing start_method: fork
     os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
-    if DEBUG:
+    if DEV:
         os.environ["PYTHONDONTWRITEBYTECODE"] = "YES"
         LOG.setLevel("DEBUG")
 
