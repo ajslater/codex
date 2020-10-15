@@ -41,11 +41,11 @@ from codex.models import Comic
 from codex.models import Folder
 from codex.serializers.webpack import WEBSOCKET_MESSAGES as WS_MSGS
 from codex.settings.django_setup import django_setup
+from codex.settings.settings import PORT
 from codex.websocket_server import BROADCAST_SECRET
 from codex.websocket_server import IPC_SUFFIX
 from codex.websocket_server import WS_API_PATH
 from codex.websocket_server import MessageType
-from codex.settings.settings import PORT
 
 
 django_setup()

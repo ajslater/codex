@@ -16,8 +16,8 @@ import os
 
 from pathlib import Path
 
-from codex.settings.hypercorn import get_hypercorn_config
-from codex.settings.hypercorn import get_root_path
+from codex.settings.hypercorn import get_django_root_path
+from codex.settings.hypercorn import load_hypercorn_config
 from codex.settings.logging import init_logging
 from codex.settings.secret_key import get_secret_key
 
@@ -158,10 +158,10 @@ CONFIG_STATIC.mkdir(exist_ok=True, parents=True)
 HYPERCORN_CONFIG_TOML = CONFIG_PATH / "hypercorn.toml"
 HYPERCORN_CONFIG_TOML_DEFAULT = CODEX_PATH / "settings/hypercorn.toml.default"
 
-HYPERCORN_CONFIG = get_hypercorn_config(
+HYPERCORN_CONFIG = load_hypercorn_config(
     HYPERCORN_CONFIG_TOML, HYPERCORN_CONFIG_TOML_DEFAULT, DEV
 )
-ROOT_PATH = get_root_path(HYPERCORN_CONFIG)
+ROOT_PATH = get_django_root_path(HYPERCORN_CONFIG)
 PORT = int(HYPERCORN_CONFIG.bind[0].split(":")[1])
 
 # XXX Abuse the Whitenoise ROOT feature to serve covers
