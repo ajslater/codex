@@ -12,14 +12,14 @@ import re
 import simplejson as json
 
 from codex.settings.settings import BASE_DIR
-from codex.settings.settings import DEV
+from codex.settings.settings import DEBUG
 from codex.settings.settings import STATIC_ROOT
 
 
 LOG = logging.getLogger(__name__)
 
 PROD_JS_ROOT = STATIC_ROOT / "js"
-if DEV:
+if DEBUG:
     from codex.settings.settings import STATIC_BUILD
 
     SRC_JS_ROOT = BASE_DIR / "frontend/src/choices"
@@ -32,7 +32,7 @@ else:
 WEBPACK_MODULE_RE_TEMPLATES = {
     PROD_JS_ROOT: r"^{name}\." + 12 * "." + r"\.js$",
 }
-if DEV:
+if DEBUG:
     WEBPACK_MODULE_RE_TEMPLATES[SRC_JS_ROOT] = "^{name}.json$"
     WEBPACK_MODULE_RE_TEMPLATES[DEV_JS_ROOT] = "^{name}.js$"
 
@@ -51,7 +51,7 @@ EXTRACT_JSON_ARGS = {
         "remove": b"",
     },
 }
-if DEV:
+if DEBUG:
     EXTRACT_JSON_ARGS[DEV_JS_ROOT] = {
         "head": b"JSON.parse(",
         "head_pad": 2,
@@ -163,7 +163,7 @@ def load_from_webpack_modules():
             WEBSOCKET_MESSAGES = data_dict
         else:
             build_choices_and_defaults(data_dict)
-        LOG.info(f"Parsed {fn}")
+        LOG.debug(f"Parsed {fn}")
 
 
 load_from_webpack_modules()

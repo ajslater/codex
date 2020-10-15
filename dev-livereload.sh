@@ -8,4 +8,4 @@ until lsof -i -P -n | grep -q '9810.*LISTEN'; do
     printf "."
 done
 printf "\\n"
-DEV=1 ./pm livereload
+DEBUG=1 ./pm livereload

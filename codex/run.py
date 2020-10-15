@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """The main runnable for codex. Sets up codex and runs hypercorn."""
 import asyncio
+import faulthandler
 import os
-import shutil
 import signal
 
 from logging import getLogger
@@ -13,34 +13,19 @@ from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.core.management import call_command
 from hypercorn.asyncio import serve
-from hypercorn.config import Config
 
 from codex.asgi import application
-from codex.librarian.librariand import PORT
 from codex.models import AdminFlag
 from codex.models import Library
-from codex.settings.settings import CODEX_PATH
-from codex.settings.settings import CONFIG_STATIC
-from codex.settings.settings import DEV
-from codex.settings.settings import HYPERCORN_CONFIG_TOML
+from codex.settings.settings import DEBUG
+from codex.settings.settings import HYPERCORN_CONFIG
 
-
-HYPERCORN_CONFIG_TOML_DEFAULT = CODEX_PATH / "settings/hypercorn.toml.default"
 
 LOG = getLogger(__name__)
 RESET_ADMIN = bool(os.environ.get("CODEX_RESET_ADMIN"))
 SIGNAL_NAMES = {"SIGINT", "SIGTERM", "SIGBREAK"}
 RESTART_EVENT = asyncio.Event()
 SHUTDOWN_EVENT = asyncio.Event()
-
-
-def ensure_config():
-    """Ensure that a valid config exists."""
-    # make the config dir and the static dir.
-    CONFIG_STATIC.mkdir(parents=True, exist_ok=True)
-    if not HYPERCORN_CONFIG_TOML.exists():
-        shutil.copy(HYPERCORN_CONFIG_TOML_DEFAULT, HYPERCORN_CONFIG_TOML)
-        LOG.info(f"Copied default config to {HYPERCORN_CONFIG_TOML}")
 
 
 def update_db():
@@ -116,19 +101,6 @@ def setup_db():
     unset_scan_in_progress()
 
 
-def get_hypercorn_config():
-    """Configure the hypercorn server."""
-    config = Config.from_toml(HYPERCORN_CONFIG_TOML)
-    LOG.info(f"Loaded config from {HYPERCORN_CONFIG_TOML}")
-    if DEV:
-        config.use_reloader = True
-        LOG.info("Reload hypercorn if files change")
-
-    # Store port number in shared memory for librariand websocket server
-    PORT.value = int(config.bind[0].split(":")[1])
-    return config
-
-
 def bind_signals(loop):
     """Binds signals to the handlers."""
     for signal_name in SIGNAL_NAMES:
@@ -140,14 +112,12 @@ def bind_signals(loop):
 
 def run():
     """Run Codex."""
-    config = get_hypercorn_config()
-
     # configure the loop
     loop = asyncio.get_event_loop()
     bind_signals(loop)
     # run it and block
     loop.run_until_complete(
-        serve(application, config, shutdown_trigger=SHUTDOWN_EVENT.wait)
+        serve(application, HYPERCORN_CONFIG, shutdown_trigger=SHUTDOWN_EVENT.wait)
     )
     if RESTART_EVENT.is_set():
         import sys
@@ -162,15 +132,15 @@ def set_env():
     # This papers over a macos crash that can happen with
     # multirocessing start_method: fork
     os.environ["OBJC_DISABLE_INITIALIZE_FORK_SAFETY"] = "YES"
-    if DEV:
+    if DEBUG:
         os.environ["PYTHONDONTWRITEBYTECODE"] = "YES"
         LOG.setLevel("DEBUG")
 
 
 def main():
     """Set up and run Codex."""
+    faulthandler.enable()
     set_env()
-    ensure_config()
     setup_db()
     cache.clear()
     run()

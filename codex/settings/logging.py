@@ -1,5 +1,6 @@
 """Logging classes."""
 import logging
+import os
 
 from logging.handlers import TimedRotatingFileHandler
 
@@ -57,7 +58,7 @@ def init_logging(log_dir, debug):
     if debug:
         level = "DEBUG"
     else:
-        level = "INFO"
+        level = os.environ.get("LOGLEVEL", "INFO").upper()
     log_file_handler = get_file_log_handler(log_dir)
     handlers = (LOG_CONSOLE_HANDLER, log_file_handler)
     logging.basicConfig(level=level, handlers=handlers)

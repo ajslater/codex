@@ -11,3 +11,5 @@ services:
       - ./comics:/comics
     env_file:
       - docker-env
+    environment:
+      - LOGLEVEL=DEBUG
