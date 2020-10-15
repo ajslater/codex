@@ -40,7 +40,7 @@
     />
     <meta name="theme-color" content="#000000" />
     <link rel="stylesheet" href="{% static 'css/normalize.css' %}" />
-    {% if not DEBUG %}
+    {% if not DEV %}
     <link rel="stylesheet" href="{% static 'css/chunk-vendors.css' %}" />
     <link rel="stylesheet" href="{% static 'css/app.css' %}" />
     {% endif %}

@@ -16,8 +16,8 @@ import os
 
 from pathlib import Path
 
-from codex.settings.codex_logging import init_logging
 from codex.settings.hypercorn_config import get_root_path
+from codex.settings.logging import init_logging
 from codex.settings.secret_key import get_secret_key
 
 
@@ -32,7 +32,8 @@ HYPERCORN_CONFIG_TOML = CONFIG_PATH / "hypercorn.toml"
 SECRET_KEY = get_secret_key(CONFIG_PATH)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = bool(os.environ.get("DEBUG", False))
+DEV = bool(os.environ.get("DEV", False))
+DEBUG = bool(os.environ.get("DEBUG", DEV))
 
 #
 # Logging
@@ -55,7 +56,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
 ]
 
-if DEBUG:
+if DEV:
     # comes before static apps
     INSTALLED_APPS += ["livereload", "debug_toolbar"]
 
@@ -81,7 +82,7 @@ MIDDLEWARE = [
     "codex.middleware.TimezoneMiddleware",
     "django.middleware.cache.FetchFromCacheMiddleware",
 ]
-if DEBUG:
+if DEV:
     MIDDLEWARE += [
         "livereload.middleware.LiveReloadScript",
         "debug_toolbar.middleware.DebugToolbarMiddleware",
@@ -162,7 +163,7 @@ WHITENOISE_STATIC_PREFIX = "static/"
 STATIC_ROOT = CODEX_PATH / "static_root"
 STATIC_URL = ROOT_PATH + WHITENOISE_STATIC_PREFIX
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-if DEBUG:
+if DEV:
     STATIC_SRC = CODEX_PATH / "static_src"
     STATIC_SRC.mkdir(exist_ok=True, parents=True)
     STATIC_BUILD = CODEX_PATH / "static_build"

@@ -1,5 +1,11 @@
 # Codex News
 
+## v0.6.2
+
+- Librarian startup crash is intermittent and only in docker.
+- Fixed DEBUG environment variable to be able to run in production.
+- Added DEV environment variable for dev environment only.
+
 ## v0.6.1
 
 - Fix librarian startup crash. Prevented admin actions from happening.
