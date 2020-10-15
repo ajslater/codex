@@ -33,9 +33,9 @@ export default {
     ...mapGetters("reader", ["computedSettings"]),
     displayPage() {
       return (
+        (this.pageIncrement === 0 || this.computedSettings.twoPages) &&
         this.page <= this.maxPage &&
-        this.page >= 0 &&
-        (this.page === 0 || this.computedSettings.twoPages)
+        this.page >= 0
       );
     },
     src() {
