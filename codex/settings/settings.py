@@ -16,8 +16,6 @@ import os
 
 from pathlib import Path
 
-# TODO remove this if i never use it
-# from codex.settings.hypercorn import get_django_root_path
 from codex.settings.hypercorn import load_hypercorn_config
 from codex.settings.logging import init_logging
 from codex.settings.secret_key import get_secret_key
@@ -153,10 +151,6 @@ HYPERCORN_CONFIG_TOML_DEFAULT = CODEX_PATH / "settings/hypercorn.toml.default"
 HYPERCORN_CONFIG = load_hypercorn_config(
     HYPERCORN_CONFIG_TOML, HYPERCORN_CONFIG_TOML_DEFAULT, DEBUG
 )
-# if DEBUG:
-#    ROOT_PATH = get_django_root_path(HYPERCORN_CONFIG)
-# else:
-# TODO PROD & DEV works but not DEBUG
 ROOT_PATH = ""
 PORT = int(HYPERCORN_CONFIG.bind[0].split(":")[1])
 
