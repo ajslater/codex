@@ -7,7 +7,6 @@ import time
 
 from multiprocessing import Pool
 from multiprocessing import Process
-from multiprocessing import Value
 from time import sleep
 
 import simplejson as json
@@ -46,12 +45,12 @@ from codex.websocket_server import BROADCAST_SECRET
 from codex.websocket_server import IPC_SUFFIX
 from codex.websocket_server import WS_API_PATH
 from codex.websocket_server import MessageType
+from codex.settings.settings import PORT
 
 
 django_setup()
 
 LOG = logging.getLogger(__name__)
-PORT = Value("i", 9810)  # Shared memory overwritten in run.py
 BROADCAST_URL_TMPL = "ws://localhost:{port}/" + WS_API_PATH + IPC_SUFFIX
 MAX_WS_ATTEMPTS = 4
 SHUTDOWN_TASK = "shutdown"
@@ -91,7 +90,7 @@ class LibrarianDaemon:
         while self.ws is None or not self.ws.connected and attempts <= MAX_WS_ATTEMPTS:
             time.sleep(0.5)
             try:
-                broadcast_url = BROADCAST_URL_TMPL.format(port=PORT.value)
+                broadcast_url = BROADCAST_URL_TMPL.format(port=PORT)
                 self.ws = create_connection(broadcast_url)
             except ConnectionRefusedError:
                 attempts += 1

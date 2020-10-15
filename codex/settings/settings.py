@@ -16,7 +16,8 @@ import os
 
 from pathlib import Path
 
-from codex.settings.hypercorn_config import get_root_path
+from codex.settings.hypercorn import get_hypercorn_config
+from codex.settings.hypercorn import get_root_path
 from codex.settings.logging import init_logging
 from codex.settings.secret_key import get_secret_key
 
@@ -26,7 +27,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 CODEX_PATH = BASE_DIR / "codex"
 CONFIG_PATH = Path(os.environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
 CONFIG_PATH.mkdir(exist_ok=True, parents=True)
-HYPERCORN_CONFIG_TOML = CONFIG_PATH / "hypercorn.toml"
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = get_secret_key(CONFIG_PATH)
@@ -150,10 +150,20 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
-ROOT_PATH = get_root_path(HYPERCORN_CONFIG_TOML, DEBUG)
 
 CONFIG_STATIC = CONFIG_PATH / "static"
 CONFIG_STATIC.mkdir(exist_ok=True, parents=True)
+
+# Hypercorn
+HYPERCORN_CONFIG_TOML = CONFIG_PATH / "hypercorn.toml"
+HYPERCORN_CONFIG_TOML_DEFAULT = CODEX_PATH / "settings/hypercorn.toml.default"
+
+HYPERCORN_CONFIG = get_hypercorn_config(
+    HYPERCORN_CONFIG_TOML, HYPERCORN_CONFIG_TOML_DEFAULT, DEV
+)
+ROOT_PATH = get_root_path(HYPERCORN_CONFIG)
+PORT = int(HYPERCORN_CONFIG.bind[0].split(":")[1])
+
 # XXX Abuse the Whitenoise ROOT feature to serve covers
 # A little dangerous because whitenoise will serve anything from that
 # static directory. But it sure is fast.
