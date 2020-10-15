@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """The main runnable for codex. Sets up codex and runs hypercorn."""
 import asyncio
-import faulthandler
 import os
 import signal
 
@@ -139,7 +138,6 @@ def set_env():
 
 def main():
     """Set up and run Codex."""
-    faulthandler.enable()
     set_env()
     setup_db()
     cache.clear()

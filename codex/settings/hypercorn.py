@@ -27,6 +27,7 @@ def load_hypercorn_config(hypercorn_config_toml, hypercorn_config_toml_default, 
     return config
 
 
+# XXX unused
 def get_django_root_path(hypercorn_config):
     """Get the root path from hypercorn config if not in debug mode."""
     root_path = hypercorn_config.root_path

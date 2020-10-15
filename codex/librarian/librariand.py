@@ -1,5 +1,4 @@
 """Library process worker for background tasks."""
-import faulthandler
 import logging
 import os
 import platform
@@ -191,7 +190,6 @@ class LibrarianDaemon:
         threads.
         """
         try:
-            faulthandler.enable()
             LOG.info("Started Librarian.")
             self.start_threads()
             run = True

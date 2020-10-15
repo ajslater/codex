@@ -2,6 +2,6 @@ REPO=ajslater/codex
 IMAGE=ajslater/codex
 INSTALL_BASE_VERSION=python3.8.6-alpine3.12_0.3.0-ab5eb5b
 RUNNABLE_BASE_VERSION=python3.8.6-alpine3.12_0.2.0-2a1a694_0.1.2-4a165bd
-PKG_VERSION=0.6.3
+PKG_VERSION=0.6.4
 PUID=501
 PGID=20
