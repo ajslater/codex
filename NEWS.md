@@ -1,5 +1,9 @@
 # Codex News
 
+## v0.6.4
+
+- Fix reader bug that only displayed first page
+
 ## v0.6.3
 
 - Add LOGLEVEL environment variable. Set to DEBUG to see everything.
