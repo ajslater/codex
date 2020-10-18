@@ -1,5 +1,4 @@
 import API from "@/api/v2/comic";
-import { getComicPageSource } from "@/api/v2/comic";
 import FORM_CHOICES from "@/choices/readerChoices";
 import router from "@/router";
 
@@ -150,24 +149,6 @@ const getNextRouteParams = (routeParams, state) => {
   );
 };
 
-const alterPrefetch = (nextPage, state) => {
-  let nextPageHref = "";
-  let next2PageHref = "";
-  if (nextPage) {
-    nextPageHref = getComicPageSource(nextPage);
-
-    if (state.settings.twoPages && nextPage.page < state.maxPage) {
-      const next2Page = { ...nextPage };
-      next2Page.page += 1;
-      next2PageHref = getComicPageSource(next2Page);
-    }
-  }
-  const nextPagePre = document.querySelector("#nextPage");
-  nextPagePre["href"] = nextPageHref;
-  const next2PagePre = document.querySelector("#next2Page");
-  next2PagePre["href"] = next2PageHref;
-};
-
 const handleBookChangedResult = ({ dispatch, commit }, route, info) => {
   info.pk = +route.pk;
   commit("setBookInfo", info);
@@ -187,7 +168,6 @@ const actions = {
   nextRouteChanged({ commit, state }, route) {
     const nextPage = getNextRouteParams(route, state);
     commit("setNextPage", nextPage);
-    alterPrefetch(nextPage, state);
   },
   routeChanged({ commit, state, dispatch }, route) {
     // Commit prev & next Pages to state.

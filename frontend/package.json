@@ -17,6 +17,7 @@
     "normalize.css": "^8.0.1",
     "reconnecting-websocket": "^4.4.0",
     "vue": "^2.6.11",
+    "vue-meta": "^2.4.0",
     "vue-native-websocket": "^2.0.14",
     "vue-router": "^3.4.6",
     "vue2-filters": "^0.11.0",

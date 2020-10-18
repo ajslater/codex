@@ -71,32 +71,10 @@ export default {
       page: +this.$route.params.page,
     };
     this.$store.dispatch("reader/readerOpened", params);
-    this.createPrefetches();
-  },
-  beforeDestroy: function () {
-    this.destroyPrefetches();
   },
   methods: {
     toggleToolbars: function () {
       this.showToolbars = !this.showToolbars;
-    },
-
-    createPrefetch(id) {
-      const node = document.createElement("link");
-      node.id = id;
-      node.rel = "prefetch";
-      node.as = "image";
-      return node;
-    },
-    createPrefetches: function () {
-      const node1 = this.createPrefetch("nextPage");
-      const node2 = this.createPrefetch("next2Page");
-      document.head.append(node1, node2);
-    },
-    destroyPrefetches() {
-      for (const id of ["nextPage", "next2Page"]) {
-        document.querySelector(`#${id}`).remove();
-      }
     },
   },
 };
