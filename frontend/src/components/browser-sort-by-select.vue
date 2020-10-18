@@ -8,7 +8,7 @@
     hide-details="auto"
     ripple
     :menu-props="{
-      maxHeight: '90vh',
+      maxHeight: '80vh',
       overflowY: false,
     }"
     :append-icon="getSortIcon(true)"
