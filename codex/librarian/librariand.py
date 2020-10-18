@@ -1,6 +1,5 @@
 """Library process worker for background tasks."""
 import logging
-import os
 import platform
 import time
 
@@ -69,10 +68,9 @@ class LibrarianDaemon:
 
     proc = None
 
-    def __init__(self, main_pid):
+    def __init__(self):
         """Create threads and process pool."""
         LOG.debug("Librarian initializing...")
-        self.main_pid = main_pid
         self.watcher = Uatu()
         self.crond = Crond()
         self.pool = Pool()
@@ -147,10 +145,10 @@ class LibrarianDaemon:
                 scan_cron()
             elif isinstance(task, UpdateCronTask):
                 sleep(task.sleep)
-                update_codex(self.main_pid, task.force)
+                update_codex(task.force)
             elif isinstance(task, RestartTask):
                 sleep(task.sleep)
-                restart_codex(self.main_pid)
+                restart_codex()
             elif task == SHUTDOWN_TASK:
                 LOG.info("Shutting down Librarian...")
                 run = False
@@ -204,16 +202,15 @@ class LibrarianDaemon:
         LOG.info("Stopped Librarian.")
 
     @staticmethod
-    def worker(main_pid):
+    def worker():
         """Create a new librarian daemon and run it."""
-        daemon = LibrarianDaemon(main_pid)
+        daemon = LibrarianDaemon()
         daemon.loop()
 
     @classmethod
     def start(cls):
         """Start the worker process."""
-        args = (os.getpid(),)
-        cls.proc = Process(target=cls.worker, name="librarian", args=args, daemon=False)
+        cls.proc = Process(target=cls.worker, name="librarian", daemon=False)
         cls.proc.start()
 
     @classmethod
