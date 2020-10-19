@@ -62,25 +62,25 @@ def unset_scan_in_progress():
 
 def codex_startup():
     """Start the daemons. But don't import them until django is set up."""
-    from codex.librarian.librariand import startup
-    from codex.websocket_server import FloodControlThread
-
     django.setup()
     ensure_superuser()
     init_admin_flags()
     unset_scan_in_progress()
     cache.clear()
 
-    startup()
+    from codex.librarian.librariand import LibrarianDaemon
+    from codex.websocket_server import FloodControlThread
+
+    LibrarianDaemon.startup()
     FloodControlThread.startup()
 
 
 def codex_shutdown():
     """Stop the daemons. But don't import them until django is set up."""
-    from codex.librarian.librariand import shutdown
+    from codex.librarian.librariand import LibrarianDaemon
     from codex.websocket_server import FloodControlThread
 
-    shutdown()
+    LibrarianDaemon.shutdown()
     FloodControlThread.shutdown()
 
 

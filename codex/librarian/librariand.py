@@ -57,8 +57,6 @@ if platform.system() == "Darwin":
 
     set_start_method("fork", force=True)
 
-proc = None
-
 
 class LibrarianDaemon(Process):
     """Librarian Process."""
@@ -66,6 +64,7 @@ class LibrarianDaemon(Process):
     SHUTDOWN_TIMEOUT = 5
     MAX_WS_ATTEMPTS = 5
     SHUTDOWN_TASK = "shutdown"
+    proc = None
 
     def __init__(self):
         """Create threads and process pool."""
@@ -203,18 +202,17 @@ class LibrarianDaemon(Process):
             LOG.exception(exc)
         LOG.info("Stopped Librarian.")
 
+    @classmethod
+    def startup(cls):
+        """Create a new librarian daemon and run it."""
+        cls.proc = LibrarianDaemon()
+        cls.proc.start()
 
-def startup():
-    """Create a new librarian daemon and run it."""
-    global proc
-    proc = LibrarianDaemon()
-    proc.start()
-
-
-def shutdown():
-    """Stop the librarian process."""
-    global QUEUE, proc
-    QUEUE.put(LibrarianDaemon.SHUTDOWN_TASK)
-    if proc:
-        LOG.debug("Waiting to shut down...")
-        proc.join()
+    @classmethod
+    def shutdown(cls):
+        """Stop the librarian process."""
+        global QUEUE
+        QUEUE.put(LibrarianDaemon.SHUTDOWN_TASK)
+        if cls.proc:
+            LOG.debug("Waiting to shut down...")
+            cls.proc.join()
