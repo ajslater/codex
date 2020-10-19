@@ -126,8 +126,7 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
 class Uatu(Observer):
     """Watch over librarys from the blue area of the moon."""
 
-    thread = None
-    SHUTDOWN_TIEMETOUT = 5
+    SHUTDOWN_TIMEOUT = 5
 
     def __init__(self, *args, **kwargs):
         """Intialize pk to watches dict."""
@@ -189,10 +188,11 @@ class Uatu(Observer):
     def unschedule_all(self):
         """Unschedule all watches."""
         super().unschedule_all()
-        self._pk_watches = {}
+        self._pk_watches = dict()
         LOG.info("Stopped watching all libraries")
 
-    def shutdown(self):
-        """Shutdown the thread."""
-        self.unschedule_all()
-        self.join(self.SHUTDOWN_TIMEOUT)
+
+#    def shutdown(self):
+#        """Shutdown the thread."""
+#        self.stop()
+#        self.join()  # self.SHUTDOWN_TIMEOUT)

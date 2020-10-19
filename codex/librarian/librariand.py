@@ -57,22 +57,20 @@ if platform.system() == "Darwin":
 
     set_start_method("fork", force=True)
 
+proc = None
+
 
 class LibrarianDaemon(Process):
     """Librarian Process."""
 
-    proc = None
     SHUTDOWN_TIMEOUT = 5
-    MAX_WS_ATTEMPTS = 10
+    MAX_WS_ATTEMPTS = 5
     SHUTDOWN_TASK = "shutdown"
 
     def __init__(self):
         """Create threads and process pool."""
         LOG.debug("Librarian initializing...")
         super().__init__(name="librarian", daemon=False)
-        self.watcher = Uatu()
-        self.crond = Crond()
-        self.pool = Pool()
         self.ws = None
         self.ipc_url = IPC_URL_TMPL.format(port=PORT)
         LOG.debug("Librarian initialized.")
@@ -84,29 +82,24 @@ class LibrarianDaemon(Process):
         if self.ws and self.ws.connected:
             LOG.debug(f"websocket already connected: {self.ws.connected}")
             return
-        attempts = 0
-        while not self.ws or not self.ws.connected and attempts <= self.MAX_WS_ATTEMPTS:
-            time.sleep(0.5)
-            try:
-                self.ws = create_connection(self.ipc_url)
-                LOG.debug("connected to websocket server")
-            except ConnectionRefusedError:
-                LOG.debug("connection to websocket server refused.")
-                attempts += 1
-        if self.ws and self.ws.connected:
-            LOG.info("Librarian connected to websockets.")
-        else:
-            LOG.error("Librarian cannot connect to websockets.")
+        try:
+            self.ws = create_connection(self.ipc_url)
+            LOG.debug("connected to websocket server")
+        except ConnectionRefusedError:
+            LOG.debug("connection to websocket server refused.")
 
     def send_json(self, typ, message):
         """Send a JSON message."""
+        self.ensure_websocket()
+        if not self.ws or not self.ws.connected:
+            return False
         obj = {"type": typ}
         if typ in MessageType.SECRET_TYPES:
             obj["secret"] = BROADCAST_SECRET.value
         obj["message"] = message
         msg = json.dumps(obj)
-        self.ensure_websocket()
         self.ws.send(msg)
+        return True
 
     def process_task(self, task):
         """Process an individual task popped off the queue."""
@@ -115,13 +108,15 @@ class LibrarianDaemon(Process):
             if isinstance(task, ScanRootTask):
                 msg = WS_MSGS["SCAN_LIBRARY"]
                 self.send_json(MessageType.ADMIN_BROADCAST, msg)
+                # no retry
                 scan_root(task.library_id, task.force)
             elif isinstance(task, ScanDoneTask):
                 if task.failed_imports:
                     msg = WS_MSGS["FAILED_IMPORTS"]
                 else:
                     msg = WS_MSGS["SCAN_DONE"]
-                self.send_json(MessageType.ADMIN_BROADCAST, msg)
+                if not self.send_json(MessageType.ADMIN_BROADCAST, msg):
+                    QUEUE.put(task)
             elif isinstance(task, ComicModifiedTask):
                 import_comic(task.library_id, task.src_path)
             elif isinstance(task, ComicCoverCreateTask):
@@ -138,7 +133,8 @@ class LibrarianDaemon(Process):
                 obj_deleted(task.src_path, Folder)
             elif isinstance(task, LibraryChangedTask):
                 msg = WS_MSGS["LIBRARY_CHANGED"]
-                self.send_json(MessageType.BROADCAST, msg)
+                if not self.send_json(MessageType.BROADCAST, msg):
+                    QUEUE.put(task)
             elif isinstance(task, WatcherCronTask):
                 sleep(task.sleep)
                 self.watcher.set_all_library_watches()
@@ -164,21 +160,35 @@ class LibrarianDaemon(Process):
 
     def start_threads(self):
         """Start all librarian's threads."""
-        LOG.info("Starting Librarian Threads...")
+        LOG.debug("Creating Threads...")
+        self.watcher = Uatu()
+        self.crond = Crond()
+        self.pool = Pool()
+        LOG.debug("Starting Threads...")
         self.watcher.start()
-        LOG.debug("started Uatu")
         self.crond.start()
-        LOG.debug("started Cron")
+        LOG.info("Started Threads.")
 
     def stop_threads(self):
         """Stop all librarian's threads."""
-        LOG.debug("Stopping threads...")
-        self.pool.close()
+        LOG.debug("Stopping threads & pool...")
         if self.ws:
             self.ws.close()
-        self.watcher.shutdown()
-        self.crond.shutdown()
-        self.pool.join(self.SHUTDOWN_TIMEOUT)
+        self.crond.stop()
+        self.pool.close()
+        try:
+            self.watcher.stop()  # TODO crashes
+        except Exception as exc:
+            LOG.error(exc)
+            pass
+        LOG.debug("Joining threads & pool...")
+        self.crond.join()
+        self.watcher.join()
+        try:
+            self.pool.join()  # TODO crashes
+        except Exception as exc:
+            LOG.error(exc)
+        LOG.debug("Stopped threads & pool.")
 
     def run(self):
         """
@@ -201,15 +211,19 @@ class LibrarianDaemon(Process):
             LOG.exception(exc)
         LOG.info("Stopped Librarian.")
 
-    @classmethod
-    def startup(cls):
-        """Create a new librarian daemon and run it."""
-        cls.proc = LibrarianDaemon()
-        cls.proc.start()
 
-    @classmethod
-    def shutdown(cls):
-        """Stop the librarian process."""
-        QUEUE.put(cls.SHUTDOWN_TASK)
-        if cls.proc:
-            cls.proc.join(cls.SHUTDOWN_TIMEOUT)
+def startup():
+    """Create a new librarian daemon and run it."""
+    global proc
+    proc = LibrarianDaemon()
+    proc.start()
+
+
+def shutdown():
+    """Stop the librarian process."""
+    global QUEUE, proc
+    QUEUE.put(LibrarianDaemon.SHUTDOWN_TASK)
+    if proc:
+        LOG.debug("waiting to shut down...")
+        proc.join(LibrarianDaemon.SHUTDOWN_TIMEOUT)
+    LOG.debug("librarian all done.")

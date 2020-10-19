@@ -27,7 +27,8 @@ async def lifespan_application(scope, receive, send):
         elif message["type"] == "lifespan.shutdown":
             LOG.debug("Lifespan shutdown started.")
             try:
-                await sync_to_async(stop_daemons)()
+                # block on the join
+                stop_daemons()
                 await send({"type": "lifespan.shutdown.complete"})
                 LOG.debug("Lifespan shutdown complete.")
             except Exception as exc:
