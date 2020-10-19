@@ -63,14 +63,16 @@ if platform.system() == "Darwin":
 
 
 # XXX Should this inherit from Process?
-class LibrarianDaemon:
+class LibrarianDaemon(Process):
     """Librarian Process."""
 
     proc = None
+    SHUTDOWN_TIMEOUT = 5
 
     def __init__(self):
         """Create threads and process pool."""
         LOG.debug("Librarian initializing...")
+        super().__init__(name="librarian", daemon=False)
         self.watcher = Uatu()
         self.crond = Crond()
         self.pool = Pool()
@@ -171,16 +173,14 @@ class LibrarianDaemon:
     def stop_threads(self):
         """Stop all librarian's threads."""
         LOG.debug("Stopping threads...")
+        self.pool.close()
         if self.ws:
             self.ws.close()
-        self.pool.close()
-        self.crond.stop()
-        self.watcher.stop()
-        self.crond.join()
-        self.watcher.join()
-        self.pool.join()
+        self.watcher.shutdown()
+        self.crond.shutdown()
+        self.pool.join(self.SHUTDOWN_TIMEOUT)
 
-    def loop(self):
+    def run(self):
         """
         Process tasks from the queue.
 
@@ -201,21 +201,15 @@ class LibrarianDaemon:
             LOG.exception(exc)
         LOG.info("Stopped Librarian.")
 
-    @staticmethod
-    def worker():
-        """Create a new librarian daemon and run it."""
-        daemon = LibrarianDaemon()
-        daemon.loop()
-
     @classmethod
-    def start(cls):
-        """Start the worker process."""
-        cls.proc = Process(target=cls.worker, name="librarian", daemon=False)
+    def startup(cls):
+        """Create a new librarian daemon and run it."""
+        cls.proc = LibrarianDaemon()
         cls.proc.start()
 
     @classmethod
-    def stop(cls):
+    def shutdown(cls):
         """Stop the librarian process."""
         QUEUE.put(SHUTDOWN_TASK)
         if cls.proc:
-            cls.proc.join()
+            cls.proc.join(cls.SHUTDOWN_TIMEOUT)

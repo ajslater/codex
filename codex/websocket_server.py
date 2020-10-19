@@ -111,46 +111,53 @@ async def websocket_application(scope, receive, send):
     LOG.debug("Closing websocket connection.")
 
 
-def flood_control_worker():
-    """
-    Delay some broadcast messages for flood control.
+class FloodControlThread(Thread):
+    """Prevent floods of broadcast messages to clients."""
 
-    This thread runs in the main ASGI process to access the websockets.
-    This lets other workers flood us with as many messages as they
-    like and bottleneck them here in one spot before pinging the clients.
+    thread = None
+    SHUTDOWN_TIMEOUT = 5
 
-    May need to recognize different message types in the future.
-    """
-    LOG.info("Started Broadcast Flood Control Worker.")
-    while True:
-        waiting_since = time.time()
-        message, timestamp = MESSAGE_QUEUE.get()
-        if message == SHUTDOWN_MSG:
-            break
-        wait_break = time.time() - waiting_since > MAX_FLOOD_WAIT_TIME
-        if MESSAGE_QUEUE.empty() or wait_break:
-            wait_left = timestamp + FLOOD_DELAY - time.time()
-            if wait_left <= 0 or wait_break:
-                cache.clear()
-                async_to_sync(send_msg)(BROADCAST_CONNS, message)
-            else:
-                # put it back and wait
-                if MESSAGE_QUEUE.empty():
-                    MESSAGE_QUEUE.put((message, timestamp))
-                    time.sleep(wait_left)
-    LOG.info("Stopped Broadcast Flood Control Worker.")
+    def __init__(self):
+        """Init the thread."""
+        super().__init__(name="flood-control", daemon=True)
 
+    def run(self):
+        """
+        Delay some broadcast messages for flood control.
 
-def start_flood_control_worker():
-    """Start the flood control worker."""
-    thread = Thread(
-        target=flood_control_worker,
-        name="flood-control",
-        daemon=True,
-    )
-    thread.start()
+        This thread runs in the main ASGI process to access the websockets.
+        This lets other workers flood us with as many messages as they
+        like and bottleneck them here in one spot before pinging the clients.
 
+        May need to recognize different message types in the future.
+        """
+        LOG.info("Started Broadcast Flood Control Worker.")
+        while True:
+            waiting_since = time.time()
+            message, timestamp = MESSAGE_QUEUE.get()
+            if message == SHUTDOWN_MSG:
+                break
+            wait_break = time.time() - waiting_since > MAX_FLOOD_WAIT_TIME
+            if MESSAGE_QUEUE.empty() or wait_break:
+                wait_left = timestamp + FLOOD_DELAY - time.time()
+                if wait_left <= 0 or wait_break:
+                    cache.clear()
+                    async_to_sync(send_msg)(BROADCAST_CONNS, message)
+                else:
+                    # put it back and wait
+                    if MESSAGE_QUEUE.empty():
+                        MESSAGE_QUEUE.put((message, timestamp))
+                        time.sleep(wait_left)
+        LOG.info("Stopped Broadcast Flood Control Worker.")
 
-def stop_flood_control_worker():
-    """Make the thread end."""
-    MESSAGE_QUEUE.put((SHUTDOWN_MSG, 0))
+    @classmethod
+    def startup(cls):
+        """Start the flood control worker."""
+        cls.thread = FloodControlThread()
+        cls.thread.start()
+
+    @classmethod
+    def shutdown(cls):
+        """Make the thread end."""
+        MESSAGE_QUEUE.put((SHUTDOWN_MSG, 0))
+        cls.thread.join(cls.SHUTDOWN_TIMEOUT)
