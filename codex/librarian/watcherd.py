@@ -190,9 +190,3 @@ class Uatu(Observer):
         super().unschedule_all()
         self._pk_watches = dict()
         LOG.info("Stopped watching all libraries")
-
-
-#    def shutdown(self):
-#        """Shutdown the thread."""
-#        self.stop()
-#        self.join()  # self.SHUTDOWN_TIMEOUT)

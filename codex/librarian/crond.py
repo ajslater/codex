@@ -41,4 +41,3 @@ class Crond(Thread):
         self.run_thread = False
         with self.COND:
             self.COND.notify()
-        # self.join(self.SHUTDOWN_TIMEOUT)

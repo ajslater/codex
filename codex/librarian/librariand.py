@@ -160,14 +160,13 @@ class LibrarianDaemon(Process):
 
     def start_threads(self):
         """Start all librarian's threads."""
-        LOG.debug("Creating Threads...")
         self.watcher = Uatu()
         self.crond = Crond()
         self.pool = Pool()
-        LOG.debug("Starting Threads...")
+        LOG.debug("Created Threads.")
         self.watcher.start()
         self.crond.start()
-        LOG.info("Started Threads.")
+        LOG.debug("Started Threads.")
 
     def stop_threads(self):
         """Stop all librarian's threads."""
@@ -176,18 +175,11 @@ class LibrarianDaemon(Process):
             self.ws.close()
         self.crond.stop()
         self.pool.close()
-        try:
-            self.watcher.stop()  # TODO crashes
-        except Exception as exc:
-            LOG.error(exc)
-            pass
+        self.watcher.stop()
         LOG.debug("Joining threads & pool...")
         self.crond.join()
         self.watcher.join()
-        try:
-            self.pool.join()  # TODO crashes
-        except Exception as exc:
-            LOG.error(exc)
+        self.pool.join()
         LOG.debug("Stopped threads & pool.")
 
     def run(self):
@@ -198,7 +190,7 @@ class LibrarianDaemon(Process):
         threads.
         """
         try:
-            LOG.info("Started Librarian.")
+            LOG.debug("Started Librarian.")
             self.start_threads()
             run = True
             LOG.info("Librarian started threads and waiting for tasks.")
@@ -224,6 +216,5 @@ def shutdown():
     global QUEUE, proc
     QUEUE.put(LibrarianDaemon.SHUTDOWN_TASK)
     if proc:
-        LOG.debug("waiting to shut down...")
-        proc.join(LibrarianDaemon.SHUTDOWN_TIMEOUT)
-    LOG.debug("librarian all done.")
+        LOG.debug("Waiting to shut down...")
+        proc.join()
