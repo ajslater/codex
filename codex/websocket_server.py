@@ -31,6 +31,7 @@ BROADCAST_SECRET = Value("i", random.randint(0, 100))
 WS_API_PATH = "api/v1/ws"
 ADMIN_SUFFIX = "/a"
 IPC_SUFFIX = "/ipc"
+IPC_URL_TMPL = "ws://localhost:{port}/" + WS_API_PATH + IPC_SUFFIX
 
 # Flood control
 MESSAGE_QUEUE = Queue()

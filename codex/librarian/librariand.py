@@ -41,17 +41,13 @@ from codex.serializers.webpack import WEBSOCKET_MESSAGES as WS_MSGS
 from codex.settings.django_setup import django_setup
 from codex.settings.settings import PORT
 from codex.websocket_server import BROADCAST_SECRET
-from codex.websocket_server import IPC_SUFFIX
-from codex.websocket_server import WS_API_PATH
+from codex.websocket_server import IPC_URL_TMPL
 from codex.websocket_server import MessageType
 
 
 django_setup()
 
 LOG = logging.getLogger(__name__)
-BROADCAST_URL_TMPL = "ws://localhost:{port}/" + WS_API_PATH + IPC_SUFFIX
-MAX_WS_ATTEMPTS = 4
-SHUTDOWN_TASK = "shutdown"
 if platform.system() == "Darwin":
     # XXX Fixes QUEUE sharing with default spawn start method. The spawn
     # method is also very very slow. Use fork and the
@@ -62,12 +58,13 @@ if platform.system() == "Darwin":
     set_start_method("fork", force=True)
 
 
-# XXX Should this inherit from Process?
 class LibrarianDaemon(Process):
     """Librarian Process."""
 
     proc = None
     SHUTDOWN_TIMEOUT = 5
+    MAX_WS_ATTEMPTS = 10
+    SHUTDOWN_TASK = "shutdown"
 
     def __init__(self):
         """Create threads and process pool."""
@@ -77,21 +74,24 @@ class LibrarianDaemon(Process):
         self.crond = Crond()
         self.pool = Pool()
         self.ws = None
+        self.ipc_url = IPC_URL_TMPL.format(port=PORT)
         LOG.debug("Librarian initialized.")
 
     def ensure_websocket(self):
         """Connect to the websocket broadcast url."""
         # Its easier to inject these into the ws server event loop
         # by sending them instead of using shared memory.
-        if self.ws is not None and self.ws.connected:
+        if self.ws and self.ws.connected:
+            LOG.debug(f"websocket already connected: {self.ws.connected}")
             return
         attempts = 0
-        while self.ws is None or not self.ws.connected and attempts <= MAX_WS_ATTEMPTS:
+        while not self.ws or not self.ws.connected and attempts <= self.MAX_WS_ATTEMPTS:
             time.sleep(0.5)
             try:
-                broadcast_url = BROADCAST_URL_TMPL.format(port=PORT)
-                self.ws = create_connection(broadcast_url)
+                self.ws = create_connection(self.ipc_url)
+                LOG.debug("connected to websocket server")
             except ConnectionRefusedError:
+                LOG.debug("connection to websocket server refused.")
                 attempts += 1
         if self.ws and self.ws.connected:
             LOG.info("Librarian connected to websockets.")
@@ -151,7 +151,7 @@ class LibrarianDaemon(Process):
             elif isinstance(task, RestartTask):
                 sleep(task.sleep)
                 restart_codex()
-            elif task == SHUTDOWN_TASK:
+            elif task == self.SHUTDOWN_TASK:
                 LOG.info("Shutting down Librarian...")
                 run = False
             else:
@@ -210,6 +210,6 @@ class LibrarianDaemon(Process):
     @classmethod
     def shutdown(cls):
         """Stop the librarian process."""
-        QUEUE.put(SHUTDOWN_TASK)
+        QUEUE.put(cls.SHUTDOWN_TASK)
         if cls.proc:
             cls.proc.join(cls.SHUTDOWN_TIMEOUT)
