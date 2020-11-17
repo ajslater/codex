@@ -71,6 +71,7 @@ pytest-isort = "^1.1"
 radon = "^4.1"
 
 #vulture = "^2.1"
+pytest-asyncio = "^0.14.0"
 [tool.poetry.scripts]
 codex = "codex.run:main"
 
