@@ -1,7 +1,6 @@
 """Library process worker for background tasks."""
 import logging
 import platform
-import time
 
 from multiprocessing import Pool
 from multiprocessing import Process
