@@ -1,5 +1,9 @@
 # Codex News
 
+## v0.6.5
+
+- Build Docker images for amd64 & arm64
+
 ## v0.6.4
 
 - Fix reader bug that only displayed first page

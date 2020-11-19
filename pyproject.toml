@@ -4,7 +4,7 @@ build-backend = ["poetry.core.masonry.api"]
 
 [tool.poetry]
 name = "codex"
-version = "0.6.4"
+version = "0.6.5"
 description = "A comic archive web server."
 license = "GPL-2.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
@@ -69,8 +69,9 @@ pytest-flake8 = "^1.0"
 pytest-isort = "^1.1"
 #pytest-monkeytype = "^1.0"
 radon = "^4.1"
-
 #vulture = "^2.1"
+pytest-asyncio = "^0.14.0"
+
 [tool.poetry.scripts]
 codex = "codex.run:main"
 
@@ -84,7 +85,7 @@ omit = ["frontend"]
 directory = "test-results/coverage"
 
 [tool.black]
-exclude = "/(.git|__pycache__|.pytest_cache|frontend)/"
+exclude = "/(.git|__pycache__|.pytest_cache|frontend|.venv)/"
 
 [tool.pytest.ini_options]
 norecursedirs = ["frontend"]
@@ -101,6 +102,6 @@ addopts = """
     --cov-report=term
     --flake8
     --isort
-    --ignore=codex/migrations/
+    --ignore=codex/migrations/,.venv
 """
 #    --mypy

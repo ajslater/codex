@@ -14,11 +14,7 @@ const getGlobalFitToDefault = () => {
     window.innerWidth || 0
   );
   let fitTo;
-  if (vw > 600) {
-    fitTo = "HEIGHT";
-  } else {
-    fitTo = "WIDTH";
-  }
+  fitTo = vw > 600 ? "HEIGHT" : "WIDTH";
   return fitTo;
 };
 

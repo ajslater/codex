@@ -100,13 +100,9 @@ export default {
       return headerName;
     },
     displayName: function () {
-      let displayName;
-      if (this.item.group === "v") {
-        displayName = getVolumeName(this.item.display_name);
-      } else {
-        displayName = this.item.display_name;
-      }
-      return displayName;
+      return this.item.group === "v"
+        ? getVolumeName(this.item.display_name)
+        : this.item.display_name;
     },
     orderValue: function () {
       let ov = this.item.order_value;
@@ -134,19 +130,17 @@ export default {
       }
     },
     toRoute: function () {
-      if (this.item.group === "c") {
-        return getReaderRoute(
-          this.item.pk,
-          this.item.bookmark,
-          this.item.read_ltr,
-          this.item.page_count
-        );
-      } else {
-        return {
-          name: "browser",
-          params: { group: this.item.group, pk: this.item.pk, page: 1 },
-        };
-      }
+      return this.item.group === "c"
+        ? getReaderRoute(
+            this.item.pk,
+            this.item.bookmark,
+            this.item.read_ltr,
+            this.item.page_count
+          )
+        : {
+            name: "browser",
+            params: { group: this.item.group, pk: this.item.pk, page: 1 },
+          };
     },
   },
   methods: {

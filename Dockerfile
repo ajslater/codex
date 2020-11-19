@@ -1,16 +1,19 @@
-ARG INSTALL_BASE_VERSION
+ARG WHEEL_BUILDER_VERSION
 ARG RUNNABLE_BASE_VERSION
-FROM ajslater/codex-install-base:${INSTALL_BASE_VERSION} AS codex-install
+FROM ajslater/codex-wheel-builder:${WHEEL_BUILDER_VERSION} AS codex-wheels
+# build binary wheels in a dev environment for each arch
 
-ARG PKG_VERSION
-COPY dist/codex-${PKG_VERSION}*.whl /tmp/
-RUN pip3 wheel /tmp/*.whl --wheel-dir=/wheels
+COPY ./dist /dist
+
+RUN mkdir -p /wheels
+RUN pip3 wheel "/dist/codex-${PKG_VERSION}" --wheel-dir=/wheels
 
 FROM ajslater/codex-base:${RUNNABLE_BASE_VERSION}
+# The runnable enviroment built from a minimal base without dev deps
 LABEL version v${PKG_VERSION}
 
 RUN echo "*** install python wheels ***"
- COPY --from=codex-install /wheels /wheels
+COPY --from=codex-wheels /wheels /wheels
 
 # hadolint ignore=DL3013
 RUN pip3 install --no-index --find-links=/wheels /wheels/codex*.whl

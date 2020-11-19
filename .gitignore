@@ -152,3 +152,4 @@ monkeytype.sqlite3
 node_modules
 test-results
 webpack-stats.json
+.venv

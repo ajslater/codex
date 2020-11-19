@@ -6,6 +6,7 @@
 .mypy_cache
 .picopt_timestamp
 .ropeproject
+.venv
 /codex/static_build
 /codex/static_root
 /config
