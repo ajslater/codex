@@ -1,70 +1,73 @@
 executors:
-    docker-publisher:
-        machine: true
+  latest-image:
+    machine:
+      image: ubuntu-2004:202010-01
 jobs:
-    build:
-        executor: docker-publisher
-        steps:
-            - checkout
-            - run:
-                command: ./build-dist-wheel.sh
-                name: Build Python Wheel
-            - store_test_results:
-                path: test-results/pytest
-            - store_artifacts:
-                path: test-results/coverage
-            - persist_to_workspace:
-                paths:
-                    - ./Dockerfile
-                    - ./README.md
-                    - ./build-runnable-image.sh
-                    - ./ci
-                    - ./dist
-                    - ./docker-env
-                    - ./pyproject.toml
-                root: .
-
-    deploy:
-        docker:
-            - image: circleci/python:3.8
-        steps:
-            - attach_workspace:
-                at: .
-            - run:
-                command: pip install poetry
-            - setup_remote_docker
-            - run:
-                command: ./build-runnable-image.sh
-                name: Build Runnable Docker Image
-            - run:
-                command: ./ci/publish-pypi.sh
-                name: Publish Package to PyPi
-            - run:
-                command: ./ci/tag-and-push.sh
-                name: Publish Docker Image to Docker Hub
-parameters:
-    image_archive:
-        default: image.tar
-        type: string
+  build:
+    executor: latest-image
+    steps:
+      - checkout
+      - run:
+          command: ./build-builder.sh
+          name: Build Builder
+      - run:
+          command: ./ci/docker-compose-exit.sh codex-lint
+          name: Lint
+      - run:
+          command: ./ci/docker-compose-exit.sh codex-test
+          name: Test
+      - store_test_results:
+          path: test-results/pytest
+      - store_artifacts:
+          path: test-results/coverage
+      - run:
+          command: ./ci/docker-compose-exit.sh codex-dist
+          name: Build distribution
+      - persist_to_workspace:
+          paths:
+            - ./Dockerfile
+            - ./README.md
+            - ./build-multiarch.sh
+            - ./ci
+            - ./dist
+            - ./.env
+            - ./pyproject.toml
+          root: .
+  deploy:
+    environment:
+      PUSH: --push
+    executor: latest-image
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          command: pip3 install poetry
+          name: Install poetry
+      - run:
+          command: ./ci/install-binfmt-platforms.sh
+          name: Install binfmt platforms
+      - run:
+          command: ./build-multiarch.sh
+          name: Build & Push Docker Image
+      - run:
+          command: ./ci/publish-pypi.sh
+          name: Publish Package to PyPi
 version: 2.1
 workflows:
-    main:
-        jobs:
-            - build:
-                filters:
-                    branches:
-                        only:
-                            - develop
-                            - circleci
-                            - release
-                            - /.*-ci/
-            - deploy:
-                filters:
-                    branches:
-                        only:
-                            - circleci
-                            - release
-                requires:
-                    - build
-    version: 2.1
-
+  main:
+    jobs:
+      - build:
+          filters:
+            branches:
+              only:
+                - develop
+                - release
+                - /.*-ci/
+      - deploy:
+          filters:
+            branches:
+              only:
+                - release
+          requires:
+            - build
+  version: 2.1

@@ -55,20 +55,13 @@ export default {
       if (!this.page) {
         return null;
       }
-      let increment;
-      if (this.back) {
-        increment = -1;
-      } else {
-        increment = 1;
-      }
+      const increment = this.back ? -1 : 1;
       return +this.page + increment;
     },
     disabled: function () {
-      if (this.back) {
-        return this.page <= 0;
-      } else {
-        return !this.numPages && this.page >= +this.numPages;
-      }
+      return this.back
+        ? this.page <= 0
+        : !this.numPages && this.page >= +this.numPages;
     },
   },
 };

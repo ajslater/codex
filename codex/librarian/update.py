@@ -15,7 +15,7 @@ LOG = logging.getLogger(__name__)
 PACKAGE_NAME = "codex"
 
 
-def update_codex(main_pid, force=False):
+def update_codex(force=False):
     """Update the package and restart everything if the version changed."""
     if not force:
         eau = AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_AUTO_UPDATE)
@@ -44,12 +44,14 @@ def update_codex(main_pid, force=False):
     if restart:
         LOG.info("Codex was updated.")
         # Just use the interrupts to send the signal
+        main_pid = os.getppid()
         restart_codex(main_pid)
     else:
         LOG.warn("Codex updated to the same version that was previously installed.")
 
 
-def restart_codex(main_pid):
+def restart_codex():
     """Send a system SIGUSR1 signal as handled in run.py."""
     LOG.info("Sending restart signal.")
+    main_pid = os.getppid()
     os.kill(main_pid, signal.SIGUSR1)

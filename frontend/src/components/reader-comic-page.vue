@@ -19,16 +19,22 @@ export default {
     pageIncrement: {
       type: Number,
       required: true,
-      default: 0,
     },
+  },
+  head() {
+    if (!this.displayPage || !this.nextRoute) {
+      return;
+    }
+    return { link: [{ rel: "prefetch", as: "image", href: this.nextSrc }] };
   },
   computed: {
     ...mapState("reader", {
-      pk: (state) => state.routes.current.pk,
       page: function (state) {
         return state.routes.current.page + this.pageIncrement;
       },
       maxPage: (state) => state.maxPage,
+      currentRoute: (state) => state.routes.current,
+      nextRoute: (state) => state.routes.next,
     }),
     ...mapGetters("reader", ["computedSettings"]),
     displayPage() {
@@ -39,10 +45,14 @@ export default {
       );
     },
     src() {
-      return getComicPageSource({
-        pk: this.pk,
-        page: this.page,
-      });
+      const route = { ...this.currentRoute };
+      route.page = this.page;
+      return getComicPageSource(route);
+    },
+    nextSrc() {
+      const route = { ...this.nextRoute };
+      route.page = this.nextRoute.page + this.pageIncrement;
+      return getComicPageSource(route);
     },
     alt() {
       return `Page ${this.page}`;

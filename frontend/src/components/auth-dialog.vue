@@ -125,11 +125,7 @@ export default {
       enableRegistration: (state) => state.enableRegistration,
     }),
     loginButtonLabel: function () {
-      if (this.registerMode) {
-        return "Register";
-      } else {
-        return "Login";
-      }
+      return this.registerMode ? "Reigister" : "Login";
     },
   },
   methods: {
@@ -148,12 +144,7 @@ export default {
       return this.closeForm;
     },
     processLogin: function () {
-      let mode;
-      if (this.registerMode) {
-        mode = "register";
-      } else {
-        mode = "login";
-      }
+      const mode = this.registerMode ? "register" : "login";
       const form = this.$refs.loginForm;
       if (!form.validate()) {
         return;

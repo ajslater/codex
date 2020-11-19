@@ -1,0 +1,51 @@
+/* Codex Changes */
+#nav-sidebar .current-model {
+  background-color: #4d6673;
+}
+#nav-sidebar .current-model a {
+  color: #ffc;
+}
+
+.selector .selector-filter {
+  background-color: #4c4d4b !important;
+}
+
+.selector ul.selector-chooser {
+  background-color: #4c4d4b !important;
+}
+
+/* These are done by djanog-dark already but need !important */
+#changelist .paginator {
+  background-color: transparent !important;
+  border-bottom-color: transparent !important;
+}
+
+#changelist .actions {
+  background-color: transparent !important;
+}
+
+.submit-row {
+  background-color: transparent !important;
+}
+
+select {
+  background-color: #6b6b68 !important;
+  color: white !important;
+}
+
+label,
+.required lable,
+label.required {
+  color: #c1c1c0 !important;
+}
+
+#changelist-filter {
+  background: #333333 !important;
+}
+
+.module h2,
+.module caption,
+.inline-group h2 {
+  background-color: #33424a !important;
+  color: white !important;
+}

@@ -1,6 +1,36 @@
-version: "3.7"
+version: "3.8"
 services:
+  codex-build: &codex-build
+    env_file:
+      - .env
+    build:
+      context: .
+      dockerfile: build.Dockerfile
+      args:
+        BUILDER_VERSION: "$BUILDER_VERSION"
+    image: codex-build
+    container_name: codex-build
+  codex-lint:
+    <<: *codex-build
+    container_name: codex-lint
+    command: ./lint.sh
+  codex-test:
+    <<: *codex-build
+    container_name: codex-test
+    volumes:
+      - ./test-results/:/app/test-results/
+    command: ./test.sh
+  codex-dist:
+    <<: *codex-build
+    container_name: codex-dist
+    volumes:
+      - ./dist/:/app/dist/
+    command: ./build-dist.sh
   codex:
+    env_file:
+      - .env
+    environment:
+      - LOGLEVEL=DEBUG
     build: .
     image: ajslater/codex
     container_name: codex
@@ -9,7 +39,3 @@ services:
     volumes:
       - ./config:/config
       - ./comics:/comics
-    env_file:
-      - docker-env
-    environment:
-      - LOGLEVEL=DEBUG

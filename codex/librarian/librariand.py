@@ -1,8 +1,6 @@
 """Library process worker for background tasks."""
 import logging
-import os
 import platform
-import time
 
 from multiprocessing import Pool
 from multiprocessing import Process
@@ -42,17 +40,13 @@ from codex.serializers.webpack import WEBSOCKET_MESSAGES as WS_MSGS
 from codex.settings.django_setup import django_setup
 from codex.settings.settings import PORT
 from codex.websocket_server import BROADCAST_SECRET
-from codex.websocket_server import IPC_SUFFIX
-from codex.websocket_server import WS_API_PATH
+from codex.websocket_server import IPC_URL_TMPL
 from codex.websocket_server import MessageType
 
 
 django_setup()
 
 LOG = logging.getLogger(__name__)
-BROADCAST_URL_TMPL = "ws://localhost:{port}/" + WS_API_PATH + IPC_SUFFIX
-MAX_WS_ATTEMPTS = 4
-SHUTDOWN_TASK = "shutdown"
 if platform.system() == "Darwin":
     # XXX Fixes QUEUE sharing with default spawn start method. The spawn
     # method is also very very slow. Use fork and the
@@ -63,50 +57,47 @@ if platform.system() == "Darwin":
     set_start_method("fork", force=True)
 
 
-# XXX Should this inherit from Process?
-class LibrarianDaemon:
+class LibrarianDaemon(Process):
     """Librarian Process."""
 
+    SHUTDOWN_TIMEOUT = 5
+    MAX_WS_ATTEMPTS = 5
+    SHUTDOWN_TASK = "shutdown"
     proc = None
 
-    def __init__(self, main_pid):
+    def __init__(self):
         """Create threads and process pool."""
         LOG.debug("Librarian initializing...")
-        self.main_pid = main_pid
-        self.watcher = Uatu()
-        self.crond = Crond()
-        self.pool = Pool()
+        super().__init__(name="librarian", daemon=False)
         self.ws = None
+        self.ipc_url = IPC_URL_TMPL.format(port=PORT)
         LOG.debug("Librarian initialized.")
 
     def ensure_websocket(self):
         """Connect to the websocket broadcast url."""
         # Its easier to inject these into the ws server event loop
         # by sending them instead of using shared memory.
-        if self.ws is not None and self.ws.connected:
-            return
-        attempts = 0
-        while self.ws is None or not self.ws.connected and attempts <= MAX_WS_ATTEMPTS:
-            time.sleep(0.5)
-            try:
-                broadcast_url = BROADCAST_URL_TMPL.format(port=PORT)
-                self.ws = create_connection(broadcast_url)
-            except ConnectionRefusedError:
-                attempts += 1
         if self.ws and self.ws.connected:
-            LOG.info("Librarian connected to websockets.")
-        else:
-            LOG.error("Librarian cannot connect to websockets.")
+            LOG.debug(f"websocket already connected: {self.ws.connected}")
+            return
+        try:
+            self.ws = create_connection(self.ipc_url)
+            LOG.debug("connected to websocket server")
+        except ConnectionRefusedError:
+            LOG.debug("connection to websocket server refused.")
 
     def send_json(self, typ, message):
         """Send a JSON message."""
+        self.ensure_websocket()
+        if not self.ws or not self.ws.connected:
+            return False
         obj = {"type": typ}
         if typ in MessageType.SECRET_TYPES:
             obj["secret"] = BROADCAST_SECRET.value
         obj["message"] = message
         msg = json.dumps(obj)
-        self.ensure_websocket()
         self.ws.send(msg)
+        return True
 
     def process_task(self, task):
         """Process an individual task popped off the queue."""
@@ -115,13 +106,15 @@ class LibrarianDaemon:
             if isinstance(task, ScanRootTask):
                 msg = WS_MSGS["SCAN_LIBRARY"]
                 self.send_json(MessageType.ADMIN_BROADCAST, msg)
+                # no retry
                 scan_root(task.library_id, task.force)
             elif isinstance(task, ScanDoneTask):
                 if task.failed_imports:
                     msg = WS_MSGS["FAILED_IMPORTS"]
                 else:
                     msg = WS_MSGS["SCAN_DONE"]
-                self.send_json(MessageType.ADMIN_BROADCAST, msg)
+                if not self.send_json(MessageType.ADMIN_BROADCAST, msg):
+                    QUEUE.put(task)
             elif isinstance(task, ComicModifiedTask):
                 import_comic(task.library_id, task.src_path)
             elif isinstance(task, ComicCoverCreateTask):
@@ -138,7 +131,8 @@ class LibrarianDaemon:
                 obj_deleted(task.src_path, Folder)
             elif isinstance(task, LibraryChangedTask):
                 msg = WS_MSGS["LIBRARY_CHANGED"]
-                self.send_json(MessageType.BROADCAST, msg)
+                if not self.send_json(MessageType.BROADCAST, msg):
+                    QUEUE.put(task)
             elif isinstance(task, WatcherCronTask):
                 sleep(task.sleep)
                 self.watcher.set_all_library_watches()
@@ -147,11 +141,11 @@ class LibrarianDaemon:
                 scan_cron()
             elif isinstance(task, UpdateCronTask):
                 sleep(task.sleep)
-                update_codex(self.main_pid, task.force)
+                update_codex(task.force)
             elif isinstance(task, RestartTask):
                 sleep(task.sleep)
-                restart_codex(self.main_pid)
-            elif task == SHUTDOWN_TASK:
+                restart_codex()
+            elif task == self.SHUTDOWN_TASK:
                 LOG.info("Shutting down Librarian...")
                 run = False
             else:
@@ -164,25 +158,29 @@ class LibrarianDaemon:
 
     def start_threads(self):
         """Start all librarian's threads."""
-        LOG.info("Starting Librarian Threads...")
+        self.watcher = Uatu()
+        self.crond = Crond()
+        self.pool = Pool()
+        LOG.debug("Created Threads.")
         self.watcher.start()
-        LOG.debug("started Uatu")
         self.crond.start()
-        LOG.debug("started Cron")
+        LOG.debug("Started Threads.")
 
     def stop_threads(self):
         """Stop all librarian's threads."""
-        LOG.debug("Stopping threads...")
+        LOG.debug("Stopping threads & pool...")
         if self.ws:
             self.ws.close()
-        self.pool.close()
         self.crond.stop()
+        self.pool.close()
         self.watcher.stop()
+        LOG.debug("Joining threads & pool...")
         self.crond.join()
         self.watcher.join()
         self.pool.join()
+        LOG.debug("Stopped threads & pool.")
 
-    def loop(self):
+    def run(self):
         """
         Process tasks from the queue.
 
@@ -190,7 +188,7 @@ class LibrarianDaemon:
         threads.
         """
         try:
-            LOG.info("Started Librarian.")
+            LOG.debug("Started Librarian.")
             self.start_threads()
             run = True
             LOG.info("Librarian started threads and waiting for tasks.")
@@ -203,22 +201,17 @@ class LibrarianDaemon:
             LOG.exception(exc)
         LOG.info("Stopped Librarian.")
 
-    @staticmethod
-    def worker(main_pid):
-        """Create a new librarian daemon and run it."""
-        daemon = LibrarianDaemon(main_pid)
-        daemon.loop()
-
     @classmethod
-    def start(cls):
-        """Start the worker process."""
-        args = (os.getpid(),)
-        cls.proc = Process(target=cls.worker, name="librarian", args=args, daemon=False)
+    def startup(cls):
+        """Create a new librarian daemon and run it."""
+        cls.proc = LibrarianDaemon()
         cls.proc.start()
 
     @classmethod
-    def stop(cls):
+    def shutdown(cls):
         """Stop the librarian process."""
-        QUEUE.put(SHUTDOWN_TASK)
+        global QUEUE
+        QUEUE.put(LibrarianDaemon.SHUTDOWN_TASK)
         if cls.proc:
+            LOG.debug("Waiting to shut down...")
             cls.proc.join()

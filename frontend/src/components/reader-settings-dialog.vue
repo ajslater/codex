@@ -76,11 +76,7 @@ export default {
     },
     settingsDialogSwitchLabel: function () {
       let label = "For ";
-      if (this.isSettingsDialogGlobalMode) {
-        label += "All Comics";
-      } else {
-        label += "This Comic";
-      }
+      label += this.isSettingsDialogGlobalMode ? "All Comics" : "This Comic";
       return label;
     },
   },

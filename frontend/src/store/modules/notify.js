@@ -33,11 +33,7 @@ const notifyCheck = (commit, state) => {
     .then((response) => {
       const data = response.data;
       let notify;
-      if (data.scanInProgress) {
-        notify = NOTIFY_STATES.SCANNING;
-      } else {
-        notify = NOTIFY_STATES.OFF;
-      }
+      notify = data.scanInProgress ? NOTIFY_STATES.SCANNING : NOTIFY_STATES.OFF;
       if (STICKY_STATES.has(state.notify)) {
         // If we received a sticky notification in the mean time, keep it.
         return;
@@ -83,17 +79,20 @@ const actions = {
       return;
     }
     const isAdmin = rootGetters["auth/isAdmin"];
-    const isOpenToSee = rootGetters["auth/isOpenToSee"];
     if (isAdmin) {
       console.debug("subscribing to admin notifications.");
       ws.send(SUBSCRIBE_MESSAGES.admin);
-    } else if (isOpenToSee) {
+      return;
+    }
+    const isOpenToSee = rootGetters["auth/isOpenToSee"];
+    if (isOpenToSee) {
       console.debug("subscribing to notifications.");
       ws.send(SUBSCRIBE_MESSAGES.user);
-    } else {
-      console.debug("unsubscribing from notifications");
-      ws.send(SUBSCRIBE_MESSAGES.unsub);
+      return;
     }
+    // else
+    console.debug("unsubscribing from notifications");
+    ws.send(SUBSCRIBE_MESSAGES.unsub);
   },
 };
 

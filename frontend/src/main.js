@@ -2,6 +2,7 @@ import "vuetify/dist/vuetify.min.css"; // Ensure you are using css-loader
 import "@mdi/font/css/materialdesignicons.css";
 
 import Vue from "vue";
+import VueMeta from "vue-meta";
 import VueNativeSock from "vue-native-websocket";
 import Vue2Filters from "vue2-filters";
 
@@ -13,6 +14,9 @@ import router from "@/router";
 import store from "@/store";
 
 Vue.use(Vue2Filters);
+Vue.use(VueMeta, {
+  keyName: "head",
+});
 Vue.use(VueNativeSock, SOCKET_URL, SOCKET_OPTIONS);
 
 const debug = process.env.NODE_ENV !== "production";

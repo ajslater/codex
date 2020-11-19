@@ -176,6 +176,25 @@ Once your administrator has added some comic libraries, you may browse and read 
 To preserve these settings across browsers and after sessions expire, you may register an account with a username and password.
 You will have to contact your administrator to reset your password if you forget it.
 
+## Troubleshooting
+
+### Logs
+
+Codex collects its logs in the `config/logs` directory. Take a look to see what th e server is doing.
+
+### LOGLEVEL
+
+You can change how much codex logs by setting the LOGLEVEL environment variable. By default this level is "INFO". To see more, noisy messages run codex like:
+
+```bash
+LOGLEVEL=DEBUG codex
+```
+
+### Bug Reports & Feature Requests
+
+Issues are best filed [here on github](https://github.com/ajslater/codex/issues).
+However I and other brave Codex alpha testers may also be found on IRC in the [#mylar channel](irc://chat.freenode.net/mylar)
+
 ## Codex Roadmap
 
 ### Next Up

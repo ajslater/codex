@@ -113,12 +113,8 @@ export default {
       for (const index in words) {
         // Capitalize words
         const word = words[index];
-        let capWord;
-        if (word === "ltr") {
-          capWord = "LTR";
-        } else {
-          capWord = word.charAt(0).toUpperCase() + word.slice(1);
-        }
+        const capWord =
+          word === "ltr" ? "LTR" : word.charAt(0).toUpperCase() + word.slice(1);
         // Append to title
         if (index) {
           title += " ";
@@ -160,6 +156,6 @@ export default {
 .filterHeader {
 }
 .filterGroup {
-  max-height: 85vh; /* has to be less than the menu height */
+  max-height: 80vh; /* has to be less than the menu height */
 }
 </style>

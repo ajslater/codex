@@ -62,12 +62,10 @@ export default {
   },
   methods: {
     dismiss: function () {
-      let newState;
-      if (this.notify === NOTIFY_STATES.FAILED) {
-        newState = NOTIFY_STATES.OFF;
-      } else {
-        newState = NOTIFY_STATES.DISMISSED;
-      }
+      const newState =
+        this.notify === NOTIFY_STATES.FAILED
+          ? NOTIFY_STATES.OFF
+          : NOTIFY_STATES.DISMISSED;
       this.$store.dispatch("notify/notifyChanged", newState);
     },
   },
