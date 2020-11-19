@@ -52,11 +52,8 @@ export default {
   watch: {
     $route(to, from) {
       let action = "reader/";
-      if (+to.params.pk !== +from.params.pk) {
-        action += "bookChanged";
-      } else {
-        action += "routeChanged";
-      }
+      action +=
+        +to.params.pk !== +from.params.pk ? "bookChanged" : "routeChanged";
       this.$store.dispatch(action, {
         pk: +to.params.pk,
         page: +to.params.page,

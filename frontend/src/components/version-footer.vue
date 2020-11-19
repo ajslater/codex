@@ -26,13 +26,9 @@ export default {
       return this.isAdmin && this.versions.latest > this.versions.installed;
     },
     versionTitle: function () {
-      let title;
-      if (this.outdated) {
-        title = `v${this.versions.latest} is availble`;
-      } else {
-        title = "up to date";
-      }
-      return title;
+      return this.outdated
+        ? `v${this.versions.latest} is availble`
+        : "up to date";
     },
   },
 };
