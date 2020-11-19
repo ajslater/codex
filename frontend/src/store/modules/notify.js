@@ -79,17 +79,20 @@ const actions = {
       return;
     }
     const isAdmin = rootGetters["auth/isAdmin"];
-    const isOpenToSee = rootGetters["auth/isOpenToSee"];
     if (isAdmin) {
       console.debug("subscribing to admin notifications.");
       ws.send(SUBSCRIBE_MESSAGES.admin);
-    } else if (isOpenToSee) {
+      return;
+    }
+    const isOpenToSee = rootGetters["auth/isOpenToSee"];
+    if (isOpenToSee) {
       console.debug("subscribing to notifications.");
       ws.send(SUBSCRIBE_MESSAGES.user);
-    } else {
-      console.debug("unsubscribing from notifications");
-      ws.send(SUBSCRIBE_MESSAGES.unsub);
+      return;
     }
+    // else
+    console.debug("unsubscribing from notifications");
+    ws.send(SUBSCRIBE_MESSAGES.unsub);
   },
 };
 
