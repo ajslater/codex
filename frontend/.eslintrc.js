@@ -29,5 +29,5 @@ module.exports = {
     "prettier/prettier": "warn",
     "simple-import-sort/sort": "warn",
   },
-  ignorePatterns: ["static/dist", "__pycache__"],
+  ignorePatterns: ["public", "node_modules", "*~"],
 };
