@@ -1,15 +1,15 @@
 #!/bin/bash
 # Buld script for producind a codex python package
 set -euxo pipefail
-CODEX_DIR=$(dirname "$(readlink "$0")")
+cd "$(dirname "$(readlink "$0")")"
 
 echo "*** build frontend ***"
-rm -rf "$CODEX_DIR/static_build"
-cd "$CODEX_DIR/frontend"
+rm -rf "codex/static_build"
+cd frontend
 npm run build
 
 echo "*** collect static resources into static root ***"
-cd "$CODEX_DIR"
+cd ..
 ./collectstatic.sh
 
 
