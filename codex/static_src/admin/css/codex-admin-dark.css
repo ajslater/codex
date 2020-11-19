@@ -1,0 +1,17 @@
+/* Less glaring */
+#nav-sidebar .current-model {
+  background-color: #4d6673;
+}
+#nav-sidebar .current-model a {
+  color: #c4dce8;
+}
+
+/* These are done by dark already but need !important */
+#changelist .paginator {
+  background-color: transparent !important;
+  border-bottom-color: transparent !important;
+}
+
+#changelist .actions {
+  background-color: transparent !important;
+}

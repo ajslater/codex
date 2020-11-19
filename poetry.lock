@@ -239,6 +239,14 @@ python-versions = ">=3.5"
 Django = ">=2.2"
 
 [[package]]
+name = "django-dark"
+version = "0.1.9"
+description = "A Django app to provide dark mode static files for the Django Admin."
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "django-debug-toolbar"
 version = "3.1.1"
 description = "A configurable set of panels that display various debug information about the current request/response."
@@ -1020,7 +1028,7 @@ testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "081fed01cbaf5644b0768f43f343f6d960dbc82fc93d81380c0f3e516250809d"
+content-hash = "4c3782640ac9c4bb352f40705270fc511e124617025ce2bbecca05a522c51f2f"
 
 [metadata.files]
 aioquic = [
@@ -1238,6 +1246,9 @@ django = [
 django-cors-headers = [
     {file = "django-cors-headers-3.5.0.tar.gz", hash = "sha256:db82b2840f667d47872ae3e4a4e0a0d72fbecb42779b8aa233fa8bb965f7836a"},
     {file = "django_cors_headers-3.5.0-py3-none-any.whl", hash = "sha256:9322255c296d5f75089571f29e520c83ff9693df17aa3cf9f6a4bea7c6740169"},
+]
+django-dark = [
+    {file = "django-dark-0.1.9.tar.gz", hash = "sha256:e7209f3606c6df0338211f8d2a01b5858d6f9984795f63cbe38fc02bd959ed37"},
 ]
 django-debug-toolbar = [
     {file = "django-debug-toolbar-3.1.1.tar.gz", hash = "sha256:c97921a9cd421d392e7860dc4b464db8e06c8628df4dc58fedab012888c293c6"},
