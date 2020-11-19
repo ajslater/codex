@@ -1,4 +1,7 @@
-FROM ajslater/codex-wheel-builder:$WHEEL_BUILDER_BASE_VERSION AS codex-wheels
+ARG WHEEL_BUILDER_VERSION
+ARG RUNNABLE_BASE_VERSION
+FROM ajslater/codex-wheel-builder:${WHEEL_BUILDER_VERSION} AS codex-wheels
+# build binary wheels in a dev environment for each arch
 
 COPY ./dist /dist
 
@@ -6,6 +9,7 @@ RUN mkdir -p /wheels
 RUN pip3 wheel "/dist/codex-${PKG_VERSION}" --wheel-dir=/wheels
 
 FROM ajslater/codex-base:${RUNNABLE_BASE_VERSION}
+# The runnable enviroment built from a minimal base without dev deps
 LABEL version v${PKG_VERSION}
 
 RUN echo "*** install python wheels ***"
