@@ -3,5 +3,5 @@
 set -euxo pipefail
 poetry run isort --color .
 poetry run black .
-bash -c "cd frontend && eslint --fix ."
+bash -c "cd frontend && npx eslint --fix ."
 prettier --write .
