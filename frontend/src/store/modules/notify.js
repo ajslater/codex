@@ -33,11 +33,7 @@ const notifyCheck = (commit, state) => {
     .then((response) => {
       const data = response.data;
       let notify;
-      if (data.scanInProgress) {
-        notify = NOTIFY_STATES.SCANNING;
-      } else {
-        notify = NOTIFY_STATES.OFF;
-      }
+      notify = data.scanInProgress ? NOTIFY_STATES.SCANNING : NOTIFY_STATES.OFF;
       if (STICKY_STATES.has(state.notify)) {
         // If we received a sticky notification in the mean time, keep it.
         return;

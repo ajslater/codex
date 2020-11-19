@@ -41,11 +41,7 @@ export const toVuetifyItems = function (value, items, filter) {
   if (items) {
     sourceItems = items;
   } else if (value) {
-    if (Array.isArray(value)) {
-      sourceItems = value;
-    } else {
-      sourceItems = [value];
-    }
+    sourceItems = Array.isArray(value) ? value : [value];
   } else {
     sourceItems = new Array();
   }
