@@ -2,6 +2,7 @@ ARG WHEEL_BUILDER_VERSION
 ARG RUNNABLE_BASE_VERSION
 FROM ajslater/codex-wheel-builder:${WHEEL_BUILDER_VERSION} AS codex-wheels
 # build binary wheels in a dev environment for each arch
+ARG PKG_VERSION
 
 COPY ./dist /dist
 
