@@ -35,6 +35,7 @@ jobs:
           root: .
   deploy:
     environment:
+      BUILDX_NO_DEFAULT_LOAD: 1
       PUSH: --push
     executor: latest-image
     steps:
