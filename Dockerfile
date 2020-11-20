@@ -7,7 +7,7 @@ ARG PKG_VERSION
 COPY ./dist /dist
 
 RUN mkdir -p /wheels
-RUN pip3 wheel "/dist/codex-${PKG_VERSION}" --wheel-dir=/wheels
+RUN pip3 wheel "/dist/codex-${PKG_VERSION}-py3-none-any.whl" --wheel-dir=/wheels
 
 FROM ajslater/codex-base:${RUNNABLE_BASE_VERSION}
 # The runnable enviroment built from a minimal base without dev deps
