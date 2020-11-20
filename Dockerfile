@@ -10,6 +10,7 @@ RUN pip3 wheel "/dist/codex-${PKG_VERSION}" --wheel-dir=/wheels
 
 FROM ajslater/codex-base:${RUNNABLE_BASE_VERSION}
 # The runnable enviroment built from a minimal base without dev deps
+ARG PKG_VERSION
 LABEL version v${PKG_VERSION}
 
 RUN echo "*** install python wheels ***"
