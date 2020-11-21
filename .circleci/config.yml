@@ -34,9 +34,6 @@ jobs:
             - ./pyproject.toml
           root: .
   deploy:
-    environment:
-      BUILDX_NO_DEFAULT_LOAD: 1
-      PUSH: --push
     executor: latest-image
     steps:
       - attach_workspace:
@@ -48,8 +45,17 @@ jobs:
           command: ./ci/install-binfmt-platforms.sh
           name: Install binfmt platforms
       - run:
+          command: ./ci/buildx-create.sh
+          name: Create buildx builder
+      - run:
           command: ./build-multiarch.sh
-          name: Build & Push Docker Image
+          name: Build and cache images
+      - run:
+          command: ./ci/docker-login.sh
+          name: Login to Docker Hub
+      - run:
+          command: ./ci/push-multiarch.sh
+          name: Push images to Docker Hub
       - run:
           command: ./ci/publish-pypi.sh
           name: Publish Package to PyPi
