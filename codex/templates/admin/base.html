@@ -1,0 +1,9 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block extrastyle %}
+<link href="{% static 'admin/css/dark.css' %}" type="text/css" media="(prefers-color-scheme: dark)" rel="stylesheet">
+<link href="{% static 'admin/css/codex-admin-dark.css' %}" type="text/css" rel="stylesheet">
+<link href="{% static 'admin/css/codex-admin.css' %}" rel="stylesheet" type="text/css">
+<script defer src="{% static 'admin/js/codex-admin.js' %}"></script>
+{% endblock %}
