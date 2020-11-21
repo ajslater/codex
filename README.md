@@ -200,7 +200,7 @@ However I and other brave Codex alpha testers may also be found on IRC in the [#
 ### Next Up
 
 1. Edit & write metadata for comics
-2. Investigate the feasibility of full text search
+2. Full text search
 3. [OPDS API](https://en.wikipedia.org/wiki/Open_Publication_Distribution_System)
 
 ## Out of Scope
