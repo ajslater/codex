@@ -241,7 +241,7 @@ Codex is a Django Python webserver with a VueJS front end. This is my first ever
 ## <a name="Thanks">Special Thanks</a>
 
 - Thanks to [Aurélien Mazurie](https://pypi.org/user/ajmazurie/) for allowing me to use the PyPi name 'codex'.
-- Thanks to the brave alpha testers of [#mylar](irc://chat.freenode.net/mylar).
+- Thanks to the good people of [#mylar](irc://chat.freenode.net/mylar) for continuous feedback and comic ecosystem education.
 
 ## <a name="Enjoy">Enjoy!</a>
 
