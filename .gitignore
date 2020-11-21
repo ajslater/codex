@@ -140,8 +140,10 @@ jspm_packages/
 
 # codex specific
 *~
+.venv
 .DS_Store
 build
+cache
 comics
 config
 codex/static_build/
