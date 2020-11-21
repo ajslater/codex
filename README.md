@@ -2,35 +2,40 @@
 
 Codex is a comic archive browser and reader.
 
-## Notable Features
+## <a name="Features">Features</a>
 
 - A web server, not a desktop or mobile app.
 - Per user bookmarking. Bookmarks even if you don't make an account.
-- Filter and sort on comic metadata and unread status per user.
+- Filter and sort on all comic metadata and unread status per user.
+- Browse a tree of Publisher, Imprints, Series and Volumes, or your own folder hierarchy.
 - Watches the filesystem and automatically imports new or changed comics.
 
-## State of Development
+## <a name="State">State of Development</a>
 
 Codex is in alpha test. It has not received widespread testing.
 [Please file bug reports on GitHub.](https://github.com/ajslater/codex/issues) It is still possible that the data model might change enough that subsequent versions might require a database reset.
 
-## Demonstration
+## <a name="Demo">Demonstration</a>
 
-You may browse a [live demo server](https://codex.sl8r.net/) on a very small VPS, with no CDN. Caching is likely unsufficient for heavy load at this time. It would probably crash if it got swarmed right now.
+You may browse a [live demo server](https://codex.sl8r.net/) on a very small VPS, with no CDN.
 
-## Install Codex
+## <a name="Install">Install and Run Codex</a>
 
-### Docker
+### Install & Run with Docker
 
-All dependancies bundled in the official [Docker Image](https://hub.docker.com/r/ajslater/codex).
+All dependancies are bundled in the official [Docker Image](https://hub.docker.com/r/ajslater/codex). Instructions for running the docker image are on the Docker Hub README. This is the recommended way to run Codex.
 
-### Install with pip
+You'll then want to read the [Administration](#Administration) section of this document.
+
+### Install & Run as a Native Application
+
+You can also run Codex as a natively installed python application with pip.
 
 #### Wheel Build Dependencies
 
-You'll need to install these system dependencies before installing codex.
+You'll need to install these system dependencies before installing Codex.
 
-##### MacOS
+##### macOS
 
 ```sh
 brew install jpeg libffi libyaml libzip openssl python
@@ -58,7 +63,7 @@ Codex requires unrar to read cbr formatted comic archives.
 
 [How to install unrar in Linux](https://www.unixtutorial.org/how-to-install-unrar-in-linux/)
 
-##### MacOS
+##### macOS
 
 ```sh
 brew install unrar
@@ -66,13 +71,13 @@ brew install unrar
 
 #### Install Codex with pip
 
-Finally, you may install codex with pip
+Finally, you may install Codex with pip
 
 ```sh
 pip3 install codex
 ```
 
-## Run Codex
+#### Run Codex Natively
 
 pip should install the codex binary on your path. Run
 
@@ -82,9 +87,9 @@ codex
 
 and then navigate to [http://localhost:9810/](http://localhost:9810/)
 
-### Administration
+## <a name="Administration">Administration</a>
 
-#### Change the Admin password
+### Change the Admin password
 
 The first thing you need to do is to log in as an Administrator and change the admin password.
 
@@ -95,7 +100,7 @@ The first thing you need to do is to log in as an Administrator and change the a
 - Change the admin password using the tiny "this form" link in the password section.
 - You may also change the admin user's name or anything else.
 
-#### Adding Comic Libraries
+### Adding Comic Libraries
 
 The second thing you should do is log in as an Administrator and add one or more comic libraries.
 
@@ -104,7 +109,7 @@ The second thing you should do is log in as an Administrator and add one or more
 - Navigate to the Codex API Librarys (sic) on the Admin Panel
 - Add a Library with the "ADD LIBRARY +" button in the upper right.
 
-##### Reset the admin password.
+#### Reset the admin password.
 
 If you forget all your superuser passwords, you may restore the original default admin account by running codex with the `CODEX_RESET_ADMIN` environment variable set.
 
@@ -118,7 +123,7 @@ or, if using Docker:
 docker run -e CODEX_RESET_ADMIN=1 -v <host path to config>/config:/config ajslater/codex
 ```
 
-## Configure Codex
+## <a name="Configure">Configure Codex</a>
 
 ### Config Dir
 
@@ -168,7 +173,7 @@ root_path = "/codex"
 Nginx requires a special trick to refresh dns when linked Docker containers
 are recreated. See this [nginx with dynamix upstreams](https://tenzer.dk/nginx-with-dynamic-upstreams/) article.
 
-## Using Codex
+## <a name="Use">Using Codex</a>
 
 ### Sessions & Accounts
 
@@ -176,7 +181,7 @@ Once your administrator has added some comic libraries, you may browse and read 
 To preserve these settings across browsers and after sessions expire, you may register an account with a username and password.
 You will have to contact your administrator to reset your password if you forget it.
 
-## Troubleshooting
+## <a name="Troubleshooting">Troubleshooting</a>
 
 ### Logs
 
@@ -193,9 +198,9 @@ LOGLEVEL=DEBUG codex
 ### Bug Reports & Feature Requests
 
 Issues are best filed [here on github](https://github.com/ajslater/codex/issues).
-However I and other brave Codex alpha testers may also be found on IRC in the [#mylar channel](irc://chat.freenode.net/mylar)
+However I and other brave Codex alpha testers may also be found on IRC in the [#mylar](irc://chat.freenode.net/mylar) channel.
 
-## Codex Roadmap
+## <a name="Roadmap">Codex Roadmap</a>
 
 ### Next Up
 
@@ -203,17 +208,17 @@ However I and other brave Codex alpha testers may also be found on IRC in the [#
 2. Full text search
 3. [OPDS API](https://en.wikipedia.org/wiki/Open_Publication_Distribution_System)
 
-## Out of Scope
+## <a name="Scope">Out of Scope</a>
 
-- No intention of making this an eBook reader like [Ubooquity](https://vaemendis.net/ubooquity/).
-- Not interested in this becoming a sophisticated comic manager like [Mylar](https://github.com/mylar3/mylar3)
+- I have no intention of making this an eBook reader like [Ubooquity](https://vaemendis.net/ubooquity/).
+- I am not interested in this becoming a sophisticated comic manager like [Mylar](https://github.com/mylar3/mylar3)
 
-## Alternatives to Codex
+## <a name="Alternatives">Alternatives to Codex</a>
 
 - [Komga](https://komga.org/) has light metadata editing and full text search of metadata.
 - [Ubooquity](https://vaemendis.net/ubooquity/) is a good looking comic webserver. It also reads eBooks.
 
-## Develop Codex
+## <a name="Develop">Develop Codex</a>
 
 Codex is a Django Python webserver with a VueJS front end. This is my first ever Javascript frontend. In retrospect I wish I'd known about FastAPI when I started, that looks nice. But I'm pretty satisfied with VueJS.
 
@@ -233,10 +238,11 @@ Codex is a Django Python webserver with a VueJS front end. This is my first ever
 - [PyPi Package](https://pypi.org/project/codex/)
 - [GitHub Project](https://github.com/ajslater/codex/)
 
-## Special Thanks
+## <a name="Thanks">Special Thanks</a>
 
-Thanks to [Aurélien Mazurie](https://pypi.org/user/ajmazurie/) for allowing me to use the PyPi name 'codex'.
+- Thanks to [Aurélien Mazurie](https://pypi.org/user/ajmazurie/) for allowing me to use the PyPi name 'codex'.
+- Thanks to the brave alpha testers of [#mylar](irc://chat.freenode.net/mylar).
 
-## Enjoy!
+## <a name="Enjoy">Enjoy!</a>
 
 ![These simple people have managed to tap into the spiritual forces that mystics and yogis spend literal lifetimes seeking. I feel... ...I feel...](strange.jpg)
