@@ -15,6 +15,7 @@ Dockerfile*
 MANIFEST
 NEWS
 __pycache__
+cache
 comics
 docker-compose*
 monkeytype.sqlite3
