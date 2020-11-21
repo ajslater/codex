@@ -136,7 +136,7 @@ Here's an example nginx config with a subpath named '/codex'.
 
 ```nginx
     # HTTP
-proxy_set_header  Host              $http_host;
+    proxy_set_header  Host              $http_host;
     proxy_set_header  X-Forwarded-For   $proxy_add_x_forwarded_for;
     proxy_set_header  X-Forwarded-Host  $server_name;
     proxy_set_header  X-Forwarded-Port  $server_port;
@@ -202,7 +202,6 @@ However I and other brave Codex alpha testers may also be found on IRC in the [#
 1. Edit & write metadata for comics
 2. Investigate the feasibility of full text search
 3. [OPDS API](https://en.wikipedia.org/wiki/Open_Publication_Distribution_System)
-4. Dark Admin Panel Styling
 
 ## Out of Scope
 
