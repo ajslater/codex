@@ -1,7 +1,7 @@
 #!/bin/bash
 # Push precached images to hub
 set -xeuo pipefail
-# shellcheck source=../.env
+# shellcheck disable=SC1091
 source .env
 
 export DOCKER_CLI_EXPERIMENTAL=enabled
