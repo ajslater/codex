@@ -1,6 +1,7 @@
 #!/bin/bash
 # Push precached images to hub
 set -xeuo pipefail
+# shellcheck disable=SC1091
 source .env
 
 export DOCKER_CLI_EXPERIMENTAL=enabled
@@ -15,5 +16,5 @@ docker buildx build \
     --tag "$REPO:${PKG_VERSION}" \
     --tag "$REPO:latest" \
     --cache-from=type=local,src=cache \
-    --push
+    --push \
     .
