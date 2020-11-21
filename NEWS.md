@@ -1,5 +1,9 @@
 # Codex News
 
+## v0.6.6
+
+- Fix Dark admin pages
+
 ## v0.6.5
 
 - Build Docker images for amd64 & arm64
