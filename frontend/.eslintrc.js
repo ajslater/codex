@@ -27,7 +27,6 @@ module.exports = {
     "no-debugger": process.env.NODE_ENV === "production" ? "warn" : "off",
     "space-before-function-paren": "off",
     "prettier/prettier": "warn",
-    "simple-import-sort/sort": "warn",
   },
   ignorePatterns: ["public", "node_modules", "*~"],
 };
