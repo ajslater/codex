@@ -90,10 +90,11 @@ if DEBUG:
 
 ROOT_URLCONF = "codex.urls"
 
+CODEX_TEMPLATES = CODEX_PATH / "templates"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": ["codex/templates"],
+        "DIRS": [CODEX_TEMPLATES],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
