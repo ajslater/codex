@@ -1,13 +1,16 @@
 # Codex News
 
+## v0.6.7
+
+- Dark admin pages and fix template overrides.
+
 ## v0.6.6
 
-- Fix Dark admin pages
+- Automate multi-arch builds
 
 ## v0.6.5
 
-- Build Docker images for amd64 & arm64
-- Dark admin pages
+- Build Docker images for amd64 & arm64 manually.
 
 ## v0.6.4
 
