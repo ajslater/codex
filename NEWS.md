@@ -3,6 +3,7 @@
 ## v0.6.8
 
 - Update dependancies. No new features or explicit bugfixes, sorry.
+- Tentative linux/armhf support. No way for me to test this.
 
 ## v0.6.7
 
