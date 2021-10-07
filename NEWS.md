@@ -1,5 +1,9 @@
 # Codex News
 
+## v0.6.8
+
+- Update dependancies. No new features or explicit bugfixes, sorry.
+
 ## v0.6.7
 
 - Dark admin pages and fix template overrides.

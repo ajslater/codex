@@ -1,6 +1,5 @@
 """Notification serializers."""
-from rest_framework.serializers import BooleanField
-from rest_framework.serializers import Serializer
+from rest_framework.serializers import BooleanField, Serializer
 
 
 class ScanNotifySerializer(Serializer):

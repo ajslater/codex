@@ -6,12 +6,13 @@ from rest_framework.views import APIView
 from stringcase import snakecase
 
 from codex.models import Comic
-from codex.serializers.bookmark import ComicReaderSettingsSerializer
-from codex.serializers.bookmark import UserBookmarkFinishedSerializer
+from codex.serializers.bookmark import (
+    ComicReaderSettingsSerializer,
+    UserBookmarkFinishedSerializer,
+)
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser_base import BrowserBaseView
-from codex.views.mixins import SessionMixin
-from codex.views.mixins import UserBookmarkMixin
+from codex.views.mixins import SessionMixin, UserBookmarkMixin
 
 
 NULL_READER_SETTINGS = {

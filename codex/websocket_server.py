@@ -1,17 +1,16 @@
 """Websocket Server."""
+import json
 import logging
 import random
 import time
 
+from json import JSONDecodeError
 from multiprocessing import Value
 from queue import Queue
 from threading import Thread
 
-import simplejson as json
-
 from asgiref.sync import async_to_sync
 from django.core.cache import cache
-from simplejson import JSONDecodeError
 
 from codex.settings.django_setup import django_setup
 
@@ -52,10 +51,10 @@ class MessageType:
 async def send_msg(conns, text):
     """Construct a ws send message and send to all connections."""
     # text = WEBSOCKET_API[message]
-    send_msg = {"text": text}
-    send_msg.update(WS_SEND_MSG)
+    _send_msg = {"text": text}
+    _send_msg.update(WS_SEND_MSG)
     for send in conns:
-        await send(send_msg)
+        await send(_send_msg)
 
 
 async def websocket_application(scope, receive, send):

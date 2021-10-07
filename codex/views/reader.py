@@ -11,8 +11,7 @@ from stringcase import camelcase
 from codex.models import Comic
 from codex.serializers.reader import ComicReaderInfoSerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
-from codex.views.mixins import SessionMixin
-from codex.views.mixins import UserBookmarkMixin
+from codex.views.mixins import SessionMixin, UserBookmarkMixin
 
 
 LOG = logging.getLogger(__name__)
@@ -111,4 +110,4 @@ class ComicPageView(APIView):
             return HttpResponse(page_image, content_type="image/jpeg")
         except Exception as exc:
             LOG.exception(exc)
-            raise NotFound(detail="comic page not found")
+            raise NotFound(detail="comic page not found") from exc

@@ -1,11 +1,12 @@
 """Codex Auth Serializers."""
 
 from django.contrib.auth.models import User
-from rest_framework.fields import BooleanField
-from rest_framework.fields import CharField
-from rest_framework.serializers import ModelSerializer
-from rest_framework.serializers import Serializer
-from rest_framework.serializers import SerializerMethodField
+from rest_framework.fields import BooleanField, CharField
+from rest_framework.serializers import (
+    ModelSerializer,
+    Serializer,
+    SerializerMethodField,
+)
 
 from codex.models import AdminFlag
 

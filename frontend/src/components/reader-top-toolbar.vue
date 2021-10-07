@@ -58,21 +58,31 @@ export default {
       // XXX Hack to get around too many listeners being added.
       event.stopPropagation();
 
-      if (event.key === "Escape") {
-        const mdd = this.$refs.metadataDialog;
-        if (mdd.isOpen) {
-          mdd.isOpen = false;
-        } else {
-          document.querySelector("#closeBook").click();
-        }
-      } else if (event.key === "w") {
-        this.settingChangedLocal({ fitTo: "WIDTH" });
-      } else if (event.key === "h") {
-        this.settingChangedLocal({ fitTo: "HEIGHT" });
-      } else if (event.key === "o") {
-        this.settingChangedLocal({ fitTo: "ORIG" });
-      } else if (event.key === "2") {
-        this.settingChangedLocal({ twoPages: !this.twoPages });
+      switch (event.key) {
+        case "Escape":
+          if (this.$refs.metadataDialog.isOpen) {
+            this.$refs.metadataDialog.isOpen = false;
+          } else {
+            document.querySelector("#closeBook").click();
+          }
+          break;
+
+        case "w":
+          this.settingChangedLocal({ fitTo: "WIDTH" });
+          break;
+
+        case "h":
+          this.settingChangedLocal({ fitTo: "HEIGHT" });
+          break;
+
+        case "o":
+          this.settingChangedLocal({ fitTo: "ORIG" });
+          break;
+
+        case "2":
+          this.settingChangedLocal({ twoPages: !this.twoPages });
+          break;
+        // No default
       }
     },
     settingChangedLocal: function (data) {

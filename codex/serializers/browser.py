@@ -1,19 +1,19 @@
 """Serializers for the browser view."""
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
-from rest_framework.serializers import BooleanField
-from rest_framework.serializers import CharField
-from rest_framework.serializers import ChoiceField
-from rest_framework.serializers import DecimalField
-from rest_framework.serializers import IntegerField
-from rest_framework.serializers import ListField
-from rest_framework.serializers import Serializer
-from rest_framework.serializers import SerializerMethodField
+from rest_framework.serializers import (
+    BooleanField,
+    CharField,
+    ChoiceField,
+    DecimalField,
+    IntegerField,
+    ListField,
+    Serializer,
+    SerializerMethodField,
+)
 
-from codex.librarian.queue import QUEUE
-from codex.librarian.queue import ComicCoverCreateTask
-from codex.serializers.webpack import CHOICES
-from codex.serializers.webpack import VUETIFY_NULL_CODE
+from codex.librarian.queue import QUEUE, ComicCoverCreateTask
+from codex.serializers.webpack import CHOICES, VUETIFY_NULL_CODE
 
 
 VUETIFY_NULL_CODE_STR = str(VUETIFY_NULL_CODE)

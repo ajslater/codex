@@ -11,11 +11,8 @@ from django.core.management import call_command
 from hypercorn.asyncio import serve
 
 from codex.asgi import application
-from codex.settings.settings import DEBUG
-from codex.settings.settings import HYPERCORN_CONFIG
-from codex.signals import RESTART_EVENT
-from codex.signals import SHUTDOWN_EVENT
-from codex.signals import bind_signals
+from codex.settings.settings import DEBUG, HYPERCORN_CONFIG
+from codex.signals import RESTART_EVENT, SHUTDOWN_EVENT, bind_signals
 
 
 LOG = getLogger(__name__)

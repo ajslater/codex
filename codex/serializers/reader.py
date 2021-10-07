@@ -1,8 +1,5 @@
 """Codex Reader Serializers."""
-from rest_framework.serializers import CharField
-from rest_framework.serializers import DecimalField
-from rest_framework.serializers import IntegerField
-from rest_framework.serializers import Serializer
+from rest_framework.serializers import CharField, DecimalField, IntegerField, Serializer
 
 from codex.serializers.bookmark import ComicReaderSettingsSerializer
 

@@ -51,7 +51,7 @@ export default {
           browserTitle += `${parentName} `;
         }
         browserTitle += `${volumeName}`;
-        if (this.browserTitle.volumeCount) {
+        if (browserTitle.volumeCount) {
           browserTitle += ` of ${groupCount}`;
         }
       } else {

@@ -283,7 +283,7 @@ const isNeedValidate = (changedData) => {
   const intersection = REVALIDATE_KEYS.filter((key) =>
     Object.keys(changedData).includes(key)
   );
-  return Boolean(intersection.length);
+  return intersection.length > 0;
 };
 
 const actions = {

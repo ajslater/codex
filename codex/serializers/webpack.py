@@ -11,9 +11,7 @@ import re
 
 import simplejson as json
 
-from codex.settings.settings import BASE_DIR
-from codex.settings.settings import DEBUG
-from codex.settings.settings import STATIC_ROOT
+from codex.settings.settings import BASE_DIR, DEBUG, STATIC_ROOT
 
 
 LOG = logging.getLogger(__name__)

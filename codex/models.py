@@ -7,20 +7,22 @@ from pathlib import Path
 from django.conf import settings
 from django.contrib.sessions.models import Session
 from django.core.exceptions import ValidationError
-from django.db.models import CASCADE
-from django.db.models import SET
-from django.db.models import BooleanField
-from django.db.models import CharField
-from django.db.models import DateField
-from django.db.models import DateTimeField
-from django.db.models import DecimalField
-from django.db.models import DurationField
-from django.db.models import ForeignKey
-from django.db.models import ManyToManyField
-from django.db.models import Model
-from django.db.models import PositiveSmallIntegerField
-from django.db.models import TextField
-from django.db.models import URLField
+from django.db.models import (
+    CASCADE,
+    SET,
+    BooleanField,
+    CharField,
+    DateField,
+    DateTimeField,
+    DecimalField,
+    DurationField,
+    ForeignKey,
+    ManyToManyField,
+    Model,
+    PositiveSmallIntegerField,
+    TextField,
+    URLField,
+)
 from django.utils.translation import gettext_lazy as _
 
 from codex.serializers.webpack import CHOICES

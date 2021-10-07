@@ -2,9 +2,7 @@
 import logging
 
 from bidict import bidict
-from django.db.models import Aggregate
-from django.db.models import CharField
-from django.db.models import Count
+from django.db.models import Aggregate, CharField, Count
 from rest_framework.response import Response
 
 from codex.models import Comic

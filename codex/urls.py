@@ -16,14 +16,10 @@ Including another URLconf
 from django.conf import settings
 from django.contrib import admin
 from django.contrib.staticfiles.storage import staticfiles_storage
-from django.urls import include
-from django.urls import path
-from django.urls import re_path
+from django.urls import include, path, re_path
 from django.views.generic.base import RedirectView
 
-from codex.views.frontend import app
-from codex.views.frontend import browserconfig
-from codex.views.frontend import webmanifest
+from codex.views.frontend import app, browserconfig, webmanifest
 
 
 urlpatterns = [

@@ -1,9 +1,11 @@
 """Bookmark related Serializers."""
 
-from rest_framework.serializers import BooleanField
-from rest_framework.serializers import ChoiceField
-from rest_framework.serializers import ModelSerializer
-from rest_framework.serializers import Serializer
+from rest_framework.serializers import (
+    BooleanField,
+    ChoiceField,
+    ModelSerializer,
+    Serializer,
+)
 
 from codex.models import UserBookmark
 from codex.serializers.webpack import CHOICES

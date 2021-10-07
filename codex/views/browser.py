@@ -1,31 +1,28 @@
 """Views for browsing comic library."""
 import logging
 
-from django.core.paginator import EmptyPage
-from django.core.paginator import Paginator
-from django.db.models import CharField
-from django.db.models import Count
-from django.db.models import F
-from django.db.models import IntegerField
-from django.db.models import Value
-from rest_framework.exceptions import PermissionDenied
-from rest_framework.exceptions import ValidationError
+from django.core.paginator import EmptyPage, Paginator
+from django.db.models import CharField, Count, F, IntegerField, Value
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from stringcase import snakecase
 
-from codex.librarian.latest_version import get_installed_version
-from codex.librarian.latest_version import get_latest_version
-from codex.models import AdminFlag
-from codex.models import Comic
-from codex.models import Folder
-from codex.models import Imprint
-from codex.models import Library
-from codex.models import Publisher
-from codex.models import Series
-from codex.models import Volume
-from codex.serializers.browser import BrowserOpenedSerializer
-from codex.serializers.browser import BrowserPageSerializer
-from codex.serializers.browser import BrowserSettingsSerializer
+from codex.librarian.latest_version import get_installed_version, get_latest_version
+from codex.models import (
+    AdminFlag,
+    Comic,
+    Folder,
+    Imprint,
+    Library,
+    Publisher,
+    Series,
+    Volume,
+)
+from codex.serializers.browser import (
+    BrowserOpenedSerializer,
+    BrowserPageSerializer,
+    BrowserSettingsSerializer,
+)
 from codex.settings.settings import CACHE_PATH
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser_metadata_base import BrowserMetadataBase

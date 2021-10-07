@@ -6,8 +6,7 @@ from rest_framework.response import Response
 
 import codex.serializers.models
 
-from codex.models import Comic
-from codex.models import CreditPerson
+from codex.models import Comic, CreditPerson
 from codex.serializers.models import CreditPersonSerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser_base import BrowserBaseView
@@ -31,7 +30,7 @@ class BrowserChoiceView(BrowserBaseView):
             serializer_class = getattr(codex.serializers.models, class_name)
         except AttributeError as exc:
             LOG.error(exc)
-            raise Http404(f"Filter for {name} not found")
+            raise Http404(f"Filter for {name} not found") from exc
         serializer = serializer_class(qs, many=True, read_only=True)
         return serializer.data
 

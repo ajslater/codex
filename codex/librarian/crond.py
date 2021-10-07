@@ -1,13 +1,14 @@
 """Watch file trees for changes."""
 import logging
 
-from threading import Condition
-from threading import Thread
+from threading import Condition, Thread
 
-from codex.librarian.queue import QUEUE
-from codex.librarian.queue import ScannerCronTask
-from codex.librarian.queue import UpdateCronTask
-from codex.librarian.queue import WatcherCronTask
+from codex.librarian.queue import (
+    QUEUE,
+    ScannerCronTask,
+    UpdateCronTask,
+    WatcherCronTask,
+)
 
 
 LOG = logging.getLogger(__name__)

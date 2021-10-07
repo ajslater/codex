@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/prefer-module */
 const BundleTracker = require("webpack-bundle-tracker");
 const fs = require("fs");
 const path = require("path");
@@ -32,3 +33,4 @@ module.exports = {
   filenameHashing: false, // Let Django do it
   outputDir: path.resolve(__dirname, "../codex/static_build"),
 };
+/* eslint-enable unicorn/prefer-module */

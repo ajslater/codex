@@ -12,23 +12,21 @@ import pycountry
 import regex
 
 from comicbox.comic_archive import ComicArchive
-from django.db.models import ForeignKey
-from django.db.models import ManyToManyField
+from django.db.models import ForeignKey, ManyToManyField
 
-from codex.librarian.cover import get_cover_path
-from codex.librarian.cover import purge_cover
-from codex.librarian.queue import QUEUE
-from codex.librarian.queue import ComicCoverCreateTask
-from codex.librarian.queue import LibraryChangedTask
-from codex.models import Comic
-from codex.models import Credit
-from codex.models import FailedImport
-from codex.models import Folder
-from codex.models import Imprint
-from codex.models import Library
-from codex.models import Publisher
-from codex.models import Series
-from codex.models import Volume
+from codex.librarian.cover import get_cover_path, purge_cover
+from codex.librarian.queue import QUEUE, ComicCoverCreateTask, LibraryChangedTask
+from codex.models import (
+    Comic,
+    Credit,
+    FailedImport,
+    Folder,
+    Imprint,
+    Library,
+    Publisher,
+    Series,
+    Volume,
+)
 from codex.settings.settings import DEBUG
 
 

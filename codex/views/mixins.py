@@ -3,8 +3,7 @@ from copy import copy
 
 from django.contrib.sessions.models import Session
 
-from codex.models import Comic
-from codex.models import UserBookmark
+from codex.models import Comic, UserBookmark
 from codex.serializers.webpack import DEFAULTS
 
 
