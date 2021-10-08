@@ -42,9 +42,7 @@ def update_codex(force=False):
     restart = old_version != new_version
     if restart:
         LOG.info("Codex was updated.")
-        # Just use the interrupts to send the signal
-        main_pid = os.getppid()
-        restart_codex(main_pid)
+        restart_codex()
     else:
         LOG.warn("Codex updated to the same version that was previously installed.")
 

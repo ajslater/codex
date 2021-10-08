@@ -194,6 +194,8 @@ class BrowserView(BrowserMetadataBase):
             header_name = F("publisher__name")
         elif model == Volume:
             header_name = F("series__name")
+        else:
+            header_name = ""
 
         if model == Comic:
             series_name = F("series__name")
@@ -207,10 +209,12 @@ class BrowserView(BrowserMetadataBase):
             x_path = Value(None, CharField())
 
         # XXX should group use title or comics use name?
-        if model in (Publisher, Imprint, Series, Volume, Folder):
-            display_name = F("name")
-        elif model == Comic:
+        # if model in (Publisher, Imprint, Series, Volume, Folder):
+        #    display_name = F("name")
+        if model == Comic:
             display_name = F("title")
+        else:
+            display_name = F("name")
 
         obj_list = obj_list.annotate(
             header_name=header_name,
@@ -320,9 +324,10 @@ class BrowserView(BrowserMetadataBase):
         pk = self.kwargs.get("pk")
         parent_name = None
         group_count = 0
+        group_name = None
         if pk == 0:
             group_name = self.model._meta.verbose_name_plural.capitalize()
-        else:
+        elif self.group_instance:
             if self.group_class == Imprint:
                 parent_name = self.group_instance.publisher.name
             elif self.group_class == Volume:
@@ -351,7 +356,7 @@ class BrowserView(BrowserMetadataBase):
         )
         if not enable_folder_view:
             self.valid_nav_groups = self.get_valid_nav_groups()
-            raise self.raise_valid_route("folder view disabled")
+            self.raise_valid_route("folder view disabled")
 
     def validate_browser_group_settings(self):
         """Check that all the view variables for browser mode are set right."""

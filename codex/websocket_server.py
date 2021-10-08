@@ -160,4 +160,5 @@ class FloodControlThread(Thread):
     def shutdown(cls):
         """Make the thread end."""
         MESSAGE_QUEUE.put((SHUTDOWN_MSG, 0))
-        cls.thread.join(cls.SHUTDOWN_TIMEOUT)
+        if cls.thread:
+            cls.thread.join(cls.SHUTDOWN_TIMEOUT)

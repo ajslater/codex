@@ -255,6 +255,7 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
         comic_qs = comic_qs.only(*pick_sets["only"])
 
         # Just get one comic
+        _first_comic_pk = None
         for _first_comic_pk in comic_pks:
             break
         comic = comic_qs.get(pk=_first_comic_pk)

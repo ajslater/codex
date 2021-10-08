@@ -71,6 +71,10 @@ class ComicOpenedView(APIView, SessionMixin, UserBookmarkMixin):
                 # Haven't matched yet, so set the previous comic
                 prev_route = {"pk": comic.pk, "page": comic.max_page}
         routes = {"prevBook": prev_route, "nextBook": next_route}
+
+        if current_comic is None:
+            raise ValueError(f"Comic for {pk} not found.")
+
         return current_comic, routes
 
     def get(self, request, *args, **kwargs):
