@@ -1,9 +1,12 @@
 # Codex News
 
-## v0.6.8
+## v0.6.8rc0
 
-- Update dependancies. No new features or explicit bugfixes, sorry.
+- Update dependancies.
+- Fixes some import bugs with filename parsing when there are no tags.
 - Tentative linux/armhf support. No way for me to test this.
+- Vaccuum the sqllite database once a day to prevent runaway bloat.
+- Experimental database repair procedure. See README.md
 
 ## v0.6.7
 
