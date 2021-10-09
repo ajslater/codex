@@ -208,7 +208,7 @@ Shut down and restart Codex.
 
 The next time Codex starts it will back up the exisiting database and try to rebuild it.
 The database lives in the config directory as the file `config/db.sqlite3`.
-If procedure goes kablooey, you may recover the original database at `config/db.sqlite3.backup`.
+If this procedure goes kablooey, you may recover the original database at `config/db.sqlite3.backup`.
 
 ### Bug Reports & Feature Requests
 
