@@ -11,6 +11,7 @@ VACUUM_LOCK_PATH = CACHE_PATH / "db_vacuum.timestamp"
 CACHE_EXPIRY = timedelta(days=1)
 LOG = getLogger(__name__)
 
+
 def is_vacuum_time():
     """Check if it's vacuum time."""
     if not VACUUM_LOCK_PATH.exists():
