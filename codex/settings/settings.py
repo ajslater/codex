@@ -113,10 +113,12 @@ WSGI_APPLICATION = "codex.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 
+DB_PATH = CONFIG_PATH / "db.sqlite3"
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": CONFIG_PATH / "db.sqlite3",
+        "NAME": DB_PATH,
         "CONN_MAX_AGE": 600,
         "OPTIONS": {"timeout": 120},
     },

@@ -7,6 +7,7 @@ from codex.librarian.queue import (
     QUEUE,
     ScannerCronTask,
     UpdateCronTask,
+    VacuumCronTask,
     WatcherCronTask,
 )
 
@@ -30,6 +31,7 @@ class Crond(Thread):
                 QUEUE.put(ScannerCronTask(sleep=0))
                 QUEUE.put(WatcherCronTask(sleep=0))
                 QUEUE.put(UpdateCronTask(sleep=0, force=False))
+                QUEUE.put(VacuumCronTask())
                 self.COND.wait(timeout=self.WAIT_INTERVAL)
         LOG.info("Stopped cron.")
 
