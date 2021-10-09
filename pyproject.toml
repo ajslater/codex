@@ -75,6 +75,9 @@ radon = "^5.1"
 [tool.poetry.scripts]
 codex = "codex.run:main"
 
+[tool.black]
+exclude = "/(.git|__pycache__|.pytest_cache|frontend|.venv)/"
+
 [tool.coverage.run]
 source = ["codex"]
 branch = true
@@ -83,9 +86,8 @@ omit = ["frontend"]
 
 [tool.coverage.html]
 directory = "test-results/coverage"
-
-[tool.black]
-exclude = "/(.git|__pycache__|.pytest_cache|frontend|.venv)/"
+[tool.vulture]
+exclude = [".venv"]
 
 [tool.pytest.ini_options]
 norecursedirs = ["frontend"]
