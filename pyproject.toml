@@ -4,7 +4,7 @@ build-backend = ["poetry.core.masonry.api"]
 
 [tool.poetry]
 name = "codex"
-version = "0.6.8"
+version = "0.6.8rc0"
 description = "A comic archive web server."
 license = "GPL-2.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
@@ -42,7 +42,6 @@ Pillow = "^8.0"
 pycountry = "^20.7"
 simplejson = "^3.17"
 stringcase = "^1.2"
-regex = "^2021.3"
 requests = "^2.24"
 watchdog = "^2.0"
 websocket_client = "^1.2"
@@ -86,6 +85,7 @@ omit = ["frontend"]
 
 [tool.coverage.html]
 directory = "test-results/coverage"
+
 [tool.vulture]
 exclude = [".venv"]
 

@@ -5,11 +5,11 @@ Translates between the comicbox metadata and our database model.
 """
 import logging
 import os
+import re
 
 from pathlib import Path
 
 import pycountry
-import regex
 
 from comicbox.comic_archive import ComicArchive
 from django.db.models import ForeignKey, ManyToManyField
@@ -31,7 +31,7 @@ from codex.settings.settings import DEBUG
 
 
 # actual filesystem route.
-COMIC_MATCHER = regex.compile(r"\.cb[rz]$")
+COMIC_MATCHER = re.compile(r"\.cb[rz]$")
 LOG = logging.getLogger(__name__)
 
 
