@@ -173,7 +173,7 @@ class Uatu(Observer):
             self.unwatch_library(pk)
 
     def set_all_library_watches(self):
-        """Watch or unwatch all librareis according to the db."""
+        """Watch or unwatch all libraries according to the db."""
         rps = (
             Library.objects.all()
             .only("pk", "enable_watch")

@@ -26,10 +26,12 @@ from codex.librarian.queue import (
     ScannerCronTask,
     ScanRootTask,
     UpdateCronTask,
+    VacuumCronTask,
     WatcherCronTask,
 )
 from codex.librarian.scanner import scan_cron, scan_root
 from codex.librarian.update import restart_codex, update_codex
+from codex.librarian.vacuum import vacuum_db
 from codex.librarian.watcherd import Uatu
 from codex.models import Comic, Folder
 from codex.serializers.webpack import WEBSOCKET_MESSAGES as WS_MSGS
@@ -97,6 +99,8 @@ class LibrarianDaemon(Process):
         """Process an individual task popped off the queue."""
         run = True
         try:
+            if task and hasattr(task, "sleep"):
+                sleep(task.sleep)
             if isinstance(task, ScanRootTask):
                 msg = WS_MSGS["SCAN_LIBRARY"]
                 self.send_json(MessageType.ADMIN_BROADCAST, msg)
@@ -128,17 +132,15 @@ class LibrarianDaemon(Process):
                 if not self.send_json(MessageType.BROADCAST, msg):
                     QUEUE.put(task)
             elif isinstance(task, WatcherCronTask):
-                sleep(task.sleep)
                 self.watcher.set_all_library_watches()
             elif isinstance(task, ScannerCronTask):
-                sleep(task.sleep)
                 scan_cron()
             elif isinstance(task, UpdateCronTask):
-                sleep(task.sleep)
                 update_codex(task.force)
             elif isinstance(task, RestartTask):
-                sleep(task.sleep)
                 restart_codex()
+            elif isinstance(task, VacuumCronTask):
+                vacuum_db()
             elif task == self.SHUTDOWN_TASK:
                 LOG.info("Shutting down Librarian...")
                 run = False

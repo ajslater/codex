@@ -110,4 +110,11 @@ class ScanDoneTask(SleepTask):
     failed_imports: bool
 
 
+@dataclass
+class VacuumCronTask:
+    """Vaccum the database."""
+
+    pass
+
+
 QUEUE = Queue()
