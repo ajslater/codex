@@ -6,7 +6,7 @@
 - Fixes some import bugs with filename parsing when there are no tags.
 - Tentative linux/armhf support. No way for me to test this.
 - Vaccuum the sqllite database once a day to prevent runaway bloat.
-- Experimental database repair procedure. See README.md
+- Emergency database rebuild procedure. See README.md
 
 ## v0.6.7
 
