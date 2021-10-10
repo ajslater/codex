@@ -1,6 +1,6 @@
 """Library Queue and task definitions."""
 from dataclasses import dataclass
-from multiprocessing import Queue
+from multiprocessing import SimpleQueue
 
 
 @dataclass
@@ -117,4 +117,4 @@ class VacuumCronTask:
     pass
 
 
-QUEUE = Queue()
+QUEUE = SimpleQueue()

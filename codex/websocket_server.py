@@ -6,7 +6,7 @@ import time
 
 from json import JSONDecodeError
 from multiprocessing import Value
-from queue import Queue
+from queue import SimpleQueue
 from threading import Thread
 
 from asgiref.sync import async_to_sync
@@ -33,7 +33,7 @@ IPC_SUFFIX = "/ipc"
 IPC_URL_TMPL = "ws://localhost:{port}/" + WS_API_PATH + IPC_SUFFIX
 
 # Flood control
-MESSAGE_QUEUE = Queue()
+MESSAGE_QUEUE = SimpleQueue()
 SHUTDOWN_MSG = "shutdown"
 FLOOD_DELAY = 2  # wait seconds before broadcasting
 MAX_FLOOD_WAIT_TIME = 20
