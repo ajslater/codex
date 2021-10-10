@@ -30,7 +30,6 @@ def is_vacuum_time():
 
 def vacuum_db():
     """Vacuum the database every day."""
-
     if not is_vacuum_time():
         return
 
