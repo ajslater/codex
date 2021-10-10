@@ -13,10 +13,8 @@ module.exports = {
   configureWebpack: {
     plugins: [
       new BundleTracker(),
-      new webpack.DefinePlugin({
-        "process.env": {
-          VUE_APP_PACKAGE_VERSION: '"' + PACKAGE_VERSION + '"',
-        },
+      new webpack.EnvironmentPlugin({
+        VUE_APP_PACKAGE_VERSION: PACKAGE_VERSION
       }),
     ],
     entry: {
