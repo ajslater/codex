@@ -58,8 +58,10 @@ export default {
         browserTitle = groupName;
       }
 
-      const suffix = this.groupNames[this.modelGroup];
-      browserTitle += ` ${suffix}`;
+      if (group !== "f") {
+        const suffix = this.groupNames[this.modelGroup];
+        browserTitle += ` ${suffix}`;
+      }
 
       return browserTitle;
     },
