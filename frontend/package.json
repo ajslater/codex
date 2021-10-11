@@ -26,6 +26,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.12.9",
+    "@babel/eslint-parser": "^7.15",
     "@mdi/font": "^6.2.95",
     "@mdi/js": "^6.2.95",
     "@vue/cli-plugin-babel": "^4.5.9",
@@ -35,7 +36,6 @@
     "@vue/cli-service": "^4.5.9",
     "@vue/eslint-config-prettier": "^6.0.0",
     "@vue/test-utils": "^1.1.1",
-    "babel-eslint": "^10.1.0",
     "eslint": "^7.32",
     "eslint-config-adjunct": "^4.8.9",
     "eslint-config-prettier": "^8.1.0",
@@ -71,7 +71,7 @@
     "vue-eslint-parser": "^7.2.0",
     "vue-template-compiler": "^2.6.12",
     "vuetify-loader": "^1.6.0",
-    "webpack": "^4.46.0",
+    "webpack": "^5.58",
     "webpack-bundle-tracker": "^1.4.0"
   },
   "optionalDependencies": {

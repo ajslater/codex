@@ -15,7 +15,7 @@ module.exports = {
     "adjunct",
   ],
   parserOptions: {
-    parser: "babel-eslint",
+    parser: "@babel/eslint-parser",
     ecmaVersion: 2020,
     ecmaFeatures: {
       impliedStrict: true,

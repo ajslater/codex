@@ -5,17 +5,13 @@ const path = require("path");
 const webpack = require("webpack");
 
 const DEV = process.env.NODE_ENV === "development";
-const packageJson = fs.readFileSync("./package.json");
-const PACKAGE_VERSION = JSON.parse(packageJson).version || 0;
+process.env.VUE_APP_PACKAGE_VERSION = require("./package.json").version;
 
 module.exports = {
   productionSourceMap: DEV,
   configureWebpack: {
     plugins: [
       new BundleTracker(),
-      new webpack.EnvironmentPlugin({
-        VUE_APP_PACKAGE_VERSION: PACKAGE_VERSION
-      }),
     ],
     entry: {
       browserChoices: "./src/choices/browserChoices.json",
