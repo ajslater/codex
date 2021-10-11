@@ -4,7 +4,7 @@ build-backend = ["poetry.core.masonry.api"]
 
 [tool.poetry]
 name = "codex"
-version = "0.6.8rc1"
+version = "0.6.8rc2"
 description = "A comic archive web server."
 license = "GPL-2.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
@@ -52,7 +52,7 @@ black = "^21.9b0"
 coverage = { extras = ["toml"], version = "^6.0" }
 django-livereload-server = "^0.3"
 django-debug-toolbar = "^3.1"
-flake8 = "^3.7"
+flake8 = "^4.0"
 flake8-black = "^0.2"
 flake8-bugbear = "^21.3"
 flake8-docstrings = "^1.5"

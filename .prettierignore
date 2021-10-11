@@ -2,11 +2,12 @@
 .mypy_cache
 .pytest_cache
 .venv
+/config
 /test-results
 __pycache__
+cache
 codex/static_build
 codex/static_root
-/config
 frontend/dist
 frontend/public/css/normalize.css
 static_prod
