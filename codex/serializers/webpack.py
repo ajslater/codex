@@ -41,7 +41,12 @@ if DEBUG:
 
 
 WEBSOCKETS_MODULE_NAME = "websocketMessages"
-WEBPACK_MODULE_NAMES = ("browserChoices", "readerChoices", WEBSOCKETS_MODULE_NAME)
+BROWSER_CHOICES_MODULE_NAME = "browserChoices"
+WEBPACK_MODULE_NAMES = (
+    BROWSER_CHOICES_MODULE_NAME,
+    "readerChoices",
+    WEBSOCKETS_MODULE_NAME,
+)
 
 # These magic pad number are to get around some escaped chars in the
 # dev build version of webpack modules.
@@ -167,6 +172,8 @@ def load_from_webpack_modules():
         if module_name == WEBSOCKETS_MODULE_NAME:
             WEBSOCKET_MESSAGES = data_dict
         else:
+            if module_name == BROWSER_CHOICES_MODULE_NAME:
+                del data_dict["groupNames"]
             build_choices_and_defaults(data_dict)
         LOG.debug(f"Parsed {fn}")
 
