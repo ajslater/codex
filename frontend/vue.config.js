@@ -1,8 +1,6 @@
 /* eslint-disable unicorn/prefer-module */
 const BundleTracker = require("webpack-bundle-tracker");
-const fs = require("fs");
 const path = require("path");
-const webpack = require("webpack");
 
 const DEV = process.env.NODE_ENV === "development";
 process.env.VUE_APP_PACKAGE_VERSION = require("./package.json").version;
@@ -10,9 +8,7 @@ process.env.VUE_APP_PACKAGE_VERSION = require("./package.json").version;
 module.exports = {
   productionSourceMap: DEV,
   configureWebpack: {
-    plugins: [
-      new BundleTracker(),
-    ],
+    plugins: [new BundleTracker()],
     entry: {
       browserChoices: "./src/choices/browserChoices.json",
       readerChoices: "./src/choices/readerChoices.json",
