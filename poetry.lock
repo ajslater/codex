@@ -166,7 +166,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
 name = "comicbox"
-version = "0.1.6"
+version = "0.1.7"
 description = "An API for reading comic archives"
 category = "main"
 optional = false
@@ -1023,7 +1023,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "f99fc30ee5a6655a060412e38a9275ff740699854797c3a656f0a4ab2a66d2ce"
+content-hash = "adbc9824373eeb3efcbfebc0ab45d74742863a2939a03abba5ad1f4f6d08c4d5"
 
 [metadata.files]
 aioquic = [
@@ -1178,8 +1178,8 @@ colorama = [
     {file = "colorama-0.4.4-py2.py3-none-any.whl", hash = "sha256:9f47eda37229f68eee03b24b9748937c7dc3868f906e8ba69fbcbdd3bc5dc3e2"},
 ]
 comicbox = [
-    {file = "comicbox-0.1.6-py3-none-any.whl", hash = "sha256:c3ab916b4be56d7ee89f528908ee533761486d19b0f9f08261e5505feab5a2cd"},
-    {file = "comicbox-0.1.6.tar.gz", hash = "sha256:439f4b55e958460feb855b5017193c2fb8ff6c2d706808c94141746a7630ea38"},
+    {file = "comicbox-0.1.7-py3-none-any.whl", hash = "sha256:43e11539092d57aa8bd23c92d8c6bde5ab75e74b80586acf0dc2b7f0a80ec60d"},
+    {file = "comicbox-0.1.7.tar.gz", hash = "sha256:ea6f3ad65325f71b29c2083e4dcc9ea327900791dae7499ab5e3d465ef7c4df3"},
 ]
 coverage = [
     {file = "coverage-6.0.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:abe8207dfb8a61ded9cd830d26c1073c8218fc0ae17eb899cfe8ec0fafae6e22"},
