@@ -29,5 +29,12 @@
     { "text": "Critical Rating", "value": "critical_rating" },
     { "text": "Maturity Rating", "value": "maturity_rating" }
   ],
-  "vuetifyNullCode": -1
+  "vuetifyNullCode": -1,
+  "groupNames": {
+    "p": "Publishers",
+    "i": "Imprints",
+    "s": "Series",
+    "v": "Volumes",
+    "c": "Issues"
+  }
 }

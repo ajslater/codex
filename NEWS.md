@@ -2,11 +2,12 @@
 
 ## v0.6.8rc0
 
-- Update dependancies.
 - Fixes some import bugs with filename parsing when there are no tags.
+- More explicit browser titles tell you what items you're looking at
 - Tentative linux/armhf support. No way for me to test this.
 - Vaccuum the sqllite database once a day to prevent runaway bloat.
 - Emergency database rebuild procedure. See README.md
+- Update dependancies.
 
 ## v0.6.7
 

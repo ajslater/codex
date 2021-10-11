@@ -27,6 +27,8 @@ export default {
   computed: {
     ...mapState("browser", {
       browserTitle: (state) => state.browserTitle,
+      modelGroup: (state) => state.modelGroup,
+      groupNames: (state) => state.groupNames,
       upRoute: (state) => state.routes.up,
     }),
     upTo: function () {
@@ -41,22 +43,24 @@ export default {
     longBrowseTitle: function () {
       let browserTitle;
       const group = this.$route.params.group;
+      const { parentName, groupName, groupCount } = this.browserTitle;
       if (+this.$route.params.pk === 0) {
-        browserTitle = this.browserTitle.groupName;
+        browserTitle = "All";
+      } else if (group === "i") {
+        browserTitle = `${parentName} ${groupName}`;
       } else if (group === "v") {
-        const { parentName, groupName, groupCount } = this.browserTitle;
         const volumeName = getVolumeName(groupName);
-        browserTitle = "";
-        if (parentName) {
-          browserTitle += `${parentName} `;
-        }
-        browserTitle += `${volumeName}`;
+        browserTitle = `${parentName} ${volumeName}`;
         if (browserTitle.volumeCount) {
           browserTitle += ` of ${groupCount}`;
         }
       } else {
-        browserTitle = this.browserTitle.groupName;
+        browserTitle = groupName;
       }
+
+      const suffix = this.groupNames[this.modelGroup];
+      browserTitle += ` ${suffix}`;
+
       return browserTitle;
     },
   },

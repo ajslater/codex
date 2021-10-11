@@ -452,6 +452,7 @@ class BrowserView(BrowserMetadataBase):
         browser_page = {
             "upRoute": up_route,
             "browserTitle": browser_page_title,
+            "modelGroup": self.model_group,
             "objList": obj_list,
             "numPages": paginator.num_pages,
             "formChoices": {"enableFolderView": efv_flag.on},

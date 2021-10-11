@@ -190,6 +190,7 @@ class BrowserPageSerializer(Serializer):
     """The main browse list."""
 
     browserTitle = BrowserTitleSerializer(read_only=True)  # noqa: N815
+    modelGroup = CharField(read_only=True)  # noqa: N815
     upRoute = BrowserRouteSerializer(allow_null=True)  # noqa: N815
     objList = ListField(  # noqa: N815
         child=BrowserCardSerializer(read_only=True),

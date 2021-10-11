@@ -69,6 +69,8 @@ const state = {
       enableFolderView: true,
     },
   },
+  modelGroup: undefined,
+  groupNames: FORM_CHOICES.groupNames,
   browserTitle: {
     parentName: undefined,
     groupName: undefined,
@@ -141,6 +143,7 @@ const mutations = {
     // Reset formChoices every browse so the lazy loader knows to refresh it.
     //state.formChoices = Object.assign(state.formChoices, DYNAMIC_FILTERS);
     state.browserTitle = Object.freeze(data.browserTitle);
+    state.modelGroup = Object.freeze(data.modelGroup);
     state.routes.up = Object.freeze(data.upRoute);
     state.objList = Object.freeze(data.objList);
     state.numPages = data.numPages;
