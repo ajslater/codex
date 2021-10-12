@@ -1,12 +1,18 @@
 <template>
-  <v-toolbar id="titleToolbar" class="toolbar" dense>
+  <v-toolbar id="titleToolbar" class="toolbar">
     <v-toolbar-items>
       <v-btn :class="{ invisible: !showUpButton }" :to="upTo" icon ripple
         ><v-icon>{{ mdiArrowUp }}</v-icon>
       </v-btn>
     </v-toolbar-items>
     <v-toolbar-title>
-      {{ longBrowseTitle }}
+      <span id="titleToolbarPrefix">
+        {{ longBrowseTitle }}
+      </span>
+      <br />
+      <span id="titleToolbarSuffix">
+        {{ longBrowseTitleSuffix }}
+      </span>
     </v-toolbar-title>
   </v-toolbar>
 </template>
@@ -58,12 +64,14 @@ export default {
         browserTitle = groupName;
       }
 
-      if (group !== "f") {
-        const suffix = this.groupNames[this.modelGroup];
-        browserTitle += ` ${suffix}`;
-      }
-
       return browserTitle;
+    },
+    longBrowseTitleSuffix: function () {
+      const group = this.$route.params.group;
+      if (group === "f") {
+        return "";
+      }
+      return this.groupNames[this.modelGroup];
     },
   },
 };
@@ -81,14 +89,22 @@ export default {
 <style lang="scss">
 #titleToolbar .v-toolbar__title {
   margin: auto;
+  padding-right: 48px;
+  padding-top: 4px;
+  text-align: center;
+  line-height: 120%;
+  text-overflow: clip;
 }
-#titleToolbar .v-toolbar__content {
-  padding: 0px;
+
+#titleToolbar .v-toolbar__title #titleToolbarSuffix {
+  color: gray;
+  font-size: smaller;
 }
+
 @import "~vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   #titleToolbar .v-toolbar__title {
-    font-size: 0.75rem;
+    font-size: 1rem;
   }
 }
 </style>
