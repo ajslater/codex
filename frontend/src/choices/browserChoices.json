@@ -16,7 +16,7 @@
     { "text": "Publishers", "value": "p", "default": true },
     { "text": "Imprints", "value": "i" },
     { "text": "Series", "value": "s", "default": true },
-    { "text": "Volumes", "value": "v"}
+    { "text": "Volumes", "value": "v" }
   ],
   "sort": [
     { "text": "Name", "value": "sort_name", "default": true },
