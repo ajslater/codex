@@ -220,7 +220,9 @@ const pushToRootGroupTop = ({ state, commit }) => {
   const route = topGroupRoute(group);
   commit("setSettings", { rootGroup: group });
   console.debug("push to", route);
-  return router.push(route);
+  return router.push(route).catch((err) => {
+    console.warning(err);
+  });
 };
 
 const handleBrowseError = ({ state, commit }, error) => {
