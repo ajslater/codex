@@ -124,6 +124,7 @@ DATABASES = {
     },
 }
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # Password validation
