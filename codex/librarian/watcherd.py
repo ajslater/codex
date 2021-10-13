@@ -9,12 +9,14 @@ from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
 from codex.librarian.importer import COMIC_MATCHER
-from codex.librarian.queue import QUEUE
-from codex.librarian.queue import ComicDeletedTask
-from codex.librarian.queue import ComicModifiedTask
-from codex.librarian.queue import ComicMovedTask
-from codex.librarian.queue import FolderDeletedTask
-from codex.librarian.queue import FolderMovedTask
+from codex.librarian.queue import (
+    QUEUE,
+    ComicDeletedTask,
+    ComicModifiedTask,
+    ComicMovedTask,
+    FolderDeletedTask,
+    FolderMovedTask,
+)
 from codex.models import Library
 
 
@@ -171,7 +173,7 @@ class Uatu(Observer):
             self.unwatch_library(pk)
 
     def set_all_library_watches(self):
-        """Watch or unwatch all librareis according to the db."""
+        """Watch or unwatch all libraries according to the db."""
         rps = (
             Library.objects.all()
             .only("pk", "enable_watch")

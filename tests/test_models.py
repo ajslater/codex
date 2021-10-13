@@ -3,12 +3,7 @@ import datetime
 
 from django.test import TestCase
 
-from codex.models import Comic
-from codex.models import Imprint
-from codex.models import Library
-from codex.models import Publisher
-from codex.models import Series
-from codex.models import Volume
+from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
 
 
 class ComicTestCase(TestCase):

@@ -1,23 +1,22 @@
 """Base view for metadata annotations."""
 from decimal import Decimal
 
-from django.db.models import Avg
-from django.db.models import BooleanField
-from django.db.models import DecimalField
-from django.db.models import F
-from django.db.models import Max
-from django.db.models import Min
-from django.db.models import OuterRef
-from django.db.models import Q
-from django.db.models import Subquery
-from django.db.models import Sum
-from django.db.models import Value
-from django.db.models.functions import Cast
-from django.db.models.functions import Coalesce
-from django.db.models.functions import NullIf
+from django.db.models import (
+    Avg,
+    BooleanField,
+    DecimalField,
+    F,
+    Max,
+    Min,
+    OuterRef,
+    Q,
+    Subquery,
+    Sum,
+    Value,
+)
+from django.db.models.functions import Cast, Coalesce, NullIf
 
-from codex.models import Comic
-from codex.models import Folder
+from codex.models import Comic, Folder
 from codex.views.browser_base import BrowserBaseView
 
 

@@ -5,12 +5,7 @@ from bidict import bidict
 from django.db.models import Q
 from rest_framework.views import APIView
 
-from codex.models import Comic
-from codex.models import Folder
-from codex.models import Imprint
-from codex.models import Publisher
-from codex.models import Series
-from codex.models import Volume
+from codex.models import Comic, Folder, Imprint, Publisher, Series, Volume
 from codex.views.mixins import SessionMixin
 
 

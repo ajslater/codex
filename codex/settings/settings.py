@@ -113,15 +113,22 @@ WSGI_APPLICATION = "codex.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 
+DB_PATH = CONFIG_PATH / "db.sqlite3"
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": CONFIG_PATH / "db.sqlite3",
+        "NAME": DB_PATH,
         "CONN_MAX_AGE": 600,
         "OPTIONS": {"timeout": 120},
     },
 }
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+# The new DEFAULT_AUTO_FIELD in Django 3.2 is BigAutoField (64 bit),
+#   but it can't be auto migrated. Automigration has been punted to
+#   Django 4.0 at the earliest:
+#   https://code.djangoproject.com/ticket/32674
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 
 # Password validation

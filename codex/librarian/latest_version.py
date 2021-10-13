@@ -1,14 +1,12 @@
 """Determine the latest version of Codex."""
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from logging import getLogger
 from pathlib import Path
 
 import requests
 import simplejson as json
 
-from pkg_resources import get_distribution
-from pkg_resources import parse_version
+from pkg_resources import get_distribution, parse_version
 
 
 DEFAULT_CACHE_ROOT = "/tmp/"

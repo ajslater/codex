@@ -1,24 +1,22 @@
 """Views for browsing comic books."""
 import logging
 
-from django.contrib.auth import authenticate
-from django.contrib.auth import login
-from django.contrib.auth import logout
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
-from rest_framework.exceptions import AuthenticationFailed
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.status import HTTP_201_CREATED
 from rest_framework.views import APIView
 
-from codex.models import AdminFlag
-from codex.models import UserBookmark
-from codex.serializers.auth import RegistrationEnabledSerializer
-from codex.serializers.auth import TimezoneSerializer
-from codex.serializers.auth import UserCreateSerializer
-from codex.serializers.auth import UserLoginSerializer
-from codex.serializers.auth import UserSerializer
+from codex.models import AdminFlag, UserBookmark
+from codex.serializers.auth import (
+    RegistrationEnabledSerializer,
+    TimezoneSerializer,
+    UserCreateSerializer,
+    UserLoginSerializer,
+    UserSerializer,
+)
 
 
 LOG = logging.getLogger(__name__)

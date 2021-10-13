@@ -195,6 +195,21 @@ You can change how much codex logs by setting the LOGLEVEL environment variable.
 LOGLEVEL=DEBUG codex
 ```
 
+### Emergency Database Repair
+
+If the database becomes corrupt, Codex includes a facitlity to rebuild the database.
+Place a file named `rebuild_db` in your Codex config directory like so:
+
+```sh
+  $ touch config/rebuild_db
+```
+
+Shut down and restart Codex.
+
+The next time Codex starts it will back up the exisiting database and try to rebuild it.
+The database lives in the config directory as the file `config/db.sqlite3`.
+If this procedure goes kablooey, you may recover the original database at `config/db.sqlite3.backup`.
+
 ### Bug Reports & Feature Requests
 
 Issues are best filed [here on github](https://github.com/ajslater/codex/issues).

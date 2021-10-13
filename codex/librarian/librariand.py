@@ -2,8 +2,7 @@
 import logging
 import platform
 
-from multiprocessing import Pool
-from multiprocessing import Process
+from multiprocessing import Pool, Process
 from time import sleep
 
 import simplejson as json
@@ -12,36 +11,33 @@ from websocket import create_connection
 
 from codex.librarian.cover import create_comic_cover
 from codex.librarian.crond import Crond
-from codex.librarian.importer import import_comic
-from codex.librarian.importer import obj_deleted
-from codex.librarian.importer import obj_moved
-from codex.librarian.queue import QUEUE
-from codex.librarian.queue import ComicCoverCreateTask
-from codex.librarian.queue import ComicDeletedTask
-from codex.librarian.queue import ComicModifiedTask
-from codex.librarian.queue import ComicMovedTask
-from codex.librarian.queue import FolderDeletedTask
-from codex.librarian.queue import FolderMovedTask
-from codex.librarian.queue import LibraryChangedTask
-from codex.librarian.queue import RestartTask
-from codex.librarian.queue import ScanDoneTask
-from codex.librarian.queue import ScannerCronTask
-from codex.librarian.queue import ScanRootTask
-from codex.librarian.queue import UpdateCronTask
-from codex.librarian.queue import WatcherCronTask
-from codex.librarian.scanner import scan_cron
-from codex.librarian.scanner import scan_root
-from codex.librarian.update import restart_codex
-from codex.librarian.update import update_codex
+from codex.librarian.importer import import_comic, obj_deleted, obj_moved
+from codex.librarian.queue import (
+    QUEUE,
+    ComicCoverCreateTask,
+    ComicDeletedTask,
+    ComicModifiedTask,
+    ComicMovedTask,
+    FolderDeletedTask,
+    FolderMovedTask,
+    LibraryChangedTask,
+    RestartTask,
+    ScanDoneTask,
+    ScannerCronTask,
+    ScanRootTask,
+    UpdateCronTask,
+    VacuumCronTask,
+    WatcherCronTask,
+)
+from codex.librarian.scanner import scan_cron, scan_root
+from codex.librarian.update import restart_codex, update_codex
+from codex.librarian.vacuum import vacuum_db
 from codex.librarian.watcherd import Uatu
-from codex.models import Comic
-from codex.models import Folder
+from codex.models import Comic, Folder
 from codex.serializers.webpack import WEBSOCKET_MESSAGES as WS_MSGS
 from codex.settings.django_setup import django_setup
 from codex.settings.settings import PORT
-from codex.websocket_server import BROADCAST_SECRET
-from codex.websocket_server import IPC_URL_TMPL
-from codex.websocket_server import MessageType
+from codex.websocket_server import BROADCAST_SECRET, IPC_URL_TMPL, MessageType
 
 
 django_setup()
@@ -103,6 +99,8 @@ class LibrarianDaemon(Process):
         """Process an individual task popped off the queue."""
         run = True
         try:
+            if task and hasattr(task, "sleep"):
+                sleep(task.sleep)
             if isinstance(task, ScanRootTask):
                 msg = WS_MSGS["SCAN_LIBRARY"]
                 self.send_json(MessageType.ADMIN_BROADCAST, msg)
@@ -134,17 +132,15 @@ class LibrarianDaemon(Process):
                 if not self.send_json(MessageType.BROADCAST, msg):
                     QUEUE.put(task)
             elif isinstance(task, WatcherCronTask):
-                sleep(task.sleep)
                 self.watcher.set_all_library_watches()
             elif isinstance(task, ScannerCronTask):
-                sleep(task.sleep)
                 scan_cron()
             elif isinstance(task, UpdateCronTask):
-                sleep(task.sleep)
                 update_codex(task.force)
             elif isinstance(task, RestartTask):
-                sleep(task.sleep)
                 restart_codex()
+            elif isinstance(task, VacuumCronTask):
+                vacuum_db()
             elif task == self.SHUTDOWN_TASK:
                 LOG.info("Shutting down Librarian...")
                 run = False

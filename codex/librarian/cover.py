@@ -8,11 +8,9 @@ from comicbox.comic_archive import ComicArchive
 from fnvhash import fnv1a_32
 from PIL import Image
 
-from codex.librarian.queue import QUEUE
-from codex.librarian.queue import LibraryChangedTask
+from codex.librarian.queue import QUEUE, LibraryChangedTask
 from codex.models import Comic
-from codex.settings.settings import CONFIG_STATIC
-from codex.settings.settings import STATIC_ROOT
+from codex.settings.settings import CONFIG_STATIC, STATIC_ROOT
 
 
 THUMBNAIL_SIZE = (120, 180)

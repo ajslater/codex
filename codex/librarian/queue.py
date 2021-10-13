@@ -1,6 +1,6 @@
 """Library Queue and task definitions."""
 from dataclasses import dataclass
-from multiprocessing import Queue
+from multiprocessing import SimpleQueue
 
 
 @dataclass
@@ -110,4 +110,11 @@ class ScanDoneTask(SleepTask):
     failed_imports: bool
 
 
-QUEUE = Queue()
+@dataclass
+class VacuumCronTask:
+    """Vaccum the database."""
+
+    pass
+
+
+QUEUE = SimpleQueue()

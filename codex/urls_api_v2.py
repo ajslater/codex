@@ -15,20 +15,18 @@ Including another URLconf
 """
 from django.urls import path
 
-from codex.views.auth import LoginView
-from codex.views.auth import LogoutView
-from codex.views.auth import RegisterView
-from codex.views.auth import UserView
-from codex.views.bookmark import ComicBookmarkView
-from codex.views.bookmark import ComicSettingsView
-from codex.views.bookmark import UserBookmarkFinishedView
+from codex.views.auth import LoginView, LogoutView, RegisterView, UserView
+from codex.views.bookmark import (
+    ComicBookmarkView,
+    ComicSettingsView,
+    UserBookmarkFinishedView,
+)
 from codex.views.browser import BrowserView
 from codex.views.browser_choices import BrowserChoiceView
 from codex.views.download import ComicDownloadView
 from codex.views.metadata import MetadataView
 from codex.views.notify import ScanNotifyView
-from codex.views.reader import ComicOpenedView
-from codex.views.reader import ComicPageView
+from codex.views.reader import ComicOpenedView, ComicPageView
 
 
 app_name = "api"

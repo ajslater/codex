@@ -1,3 +1,4 @@
+// eslint-disable-next-line unicorn/prefer-module
 module.exports = {
   root: true,
   env: {
@@ -14,7 +15,7 @@ module.exports = {
     "adjunct",
   ],
   parserOptions: {
-    parser: "babel-eslint",
+    parser: "@babel/eslint-parser",
     ecmaVersion: 2020,
     ecmaFeatures: {
       impliedStrict: true,
@@ -27,7 +28,7 @@ module.exports = {
     "no-debugger": process.env.NODE_ENV === "production" ? "warn" : "off",
     "space-before-function-paren": "off",
     "prettier/prettier": "warn",
-    "simple-import-sort/sort": "warn",
+    "simple-import-sort/imports": "warn",
   },
   ignorePatterns: ["public", "node_modules", "*~"],
 };

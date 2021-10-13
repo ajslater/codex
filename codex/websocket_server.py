@@ -1,17 +1,16 @@
 """Websocket Server."""
+import json
 import logging
 import random
 import time
 
+from json import JSONDecodeError
 from multiprocessing import Value
-from queue import Queue
+from queue import SimpleQueue
 from threading import Thread
-
-import simplejson as json
 
 from asgiref.sync import async_to_sync
 from django.core.cache import cache
-from simplejson import JSONDecodeError
 
 from codex.settings.django_setup import django_setup
 
@@ -34,7 +33,7 @@ IPC_SUFFIX = "/ipc"
 IPC_URL_TMPL = "ws://localhost:{port}/" + WS_API_PATH + IPC_SUFFIX
 
 # Flood control
-MESSAGE_QUEUE = Queue()
+MESSAGE_QUEUE = SimpleQueue()
 SHUTDOWN_MSG = "shutdown"
 FLOOD_DELAY = 2  # wait seconds before broadcasting
 MAX_FLOOD_WAIT_TIME = 20
@@ -52,10 +51,10 @@ class MessageType:
 async def send_msg(conns, text):
     """Construct a ws send message and send to all connections."""
     # text = WEBSOCKET_API[message]
-    send_msg = {"text": text}
-    send_msg.update(WS_SEND_MSG)
+    _send_msg = {"text": text}
+    _send_msg.update(WS_SEND_MSG)
     for send in conns:
-        await send(send_msg)
+        await send(_send_msg)
 
 
 async def websocket_application(scope, receive, send):
@@ -161,4 +160,5 @@ class FloodControlThread(Thread):
     def shutdown(cls):
         """Make the thread end."""
         MESSAGE_QUEUE.put((SHUTDOWN_MSG, 0))
-        cls.thread.join(cls.SHUTDOWN_TIMEOUT)
+        if cls.thread:
+            cls.thread.join(cls.SHUTDOWN_TIMEOUT)

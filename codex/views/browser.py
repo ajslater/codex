@@ -1,31 +1,28 @@
 """Views for browsing comic library."""
 import logging
 
-from django.core.paginator import EmptyPage
-from django.core.paginator import Paginator
-from django.db.models import CharField
-from django.db.models import Count
-from django.db.models import F
-from django.db.models import IntegerField
-from django.db.models import Value
-from rest_framework.exceptions import PermissionDenied
-from rest_framework.exceptions import ValidationError
+from django.core.paginator import EmptyPage, Paginator
+from django.db.models import CharField, Count, F, IntegerField, Value
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from stringcase import snakecase
 
-from codex.librarian.latest_version import get_installed_version
-from codex.librarian.latest_version import get_latest_version
-from codex.models import AdminFlag
-from codex.models import Comic
-from codex.models import Folder
-from codex.models import Imprint
-from codex.models import Library
-from codex.models import Publisher
-from codex.models import Series
-from codex.models import Volume
-from codex.serializers.browser import BrowserOpenedSerializer
-from codex.serializers.browser import BrowserPageSerializer
-from codex.serializers.browser import BrowserSettingsSerializer
+from codex.librarian.latest_version import get_installed_version, get_latest_version
+from codex.models import (
+    AdminFlag,
+    Comic,
+    Folder,
+    Imprint,
+    Library,
+    Publisher,
+    Series,
+    Volume,
+)
+from codex.serializers.browser import (
+    BrowserOpenedSerializer,
+    BrowserPageSerializer,
+    BrowserSettingsSerializer,
+)
 from codex.settings.settings import CACHE_PATH
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser_metadata_base import BrowserMetadataBase
@@ -197,6 +194,8 @@ class BrowserView(BrowserMetadataBase):
             header_name = F("publisher__name")
         elif model == Volume:
             header_name = F("series__name")
+        else:
+            header_name = ""
 
         if model == Comic:
             series_name = F("series__name")
@@ -210,10 +209,12 @@ class BrowserView(BrowserMetadataBase):
             x_path = Value(None, CharField())
 
         # XXX should group use title or comics use name?
-        if model in (Publisher, Imprint, Series, Volume, Folder):
-            display_name = F("name")
-        elif model == Comic:
+        # if model in (Publisher, Imprint, Series, Volume, Folder):
+        #    display_name = F("name")
+        if model == Comic:
             display_name = F("title")
+        else:
+            display_name = F("name")
 
         obj_list = obj_list.annotate(
             header_name=header_name,
@@ -323,9 +324,10 @@ class BrowserView(BrowserMetadataBase):
         pk = self.kwargs.get("pk")
         parent_name = None
         group_count = 0
+        group_name = None
         if pk == 0:
             group_name = self.model._meta.verbose_name_plural.capitalize()
-        else:
+        elif self.group_instance:
             if self.group_class == Imprint:
                 parent_name = self.group_instance.publisher.name
             elif self.group_class == Volume:
@@ -354,7 +356,7 @@ class BrowserView(BrowserMetadataBase):
         )
         if not enable_folder_view:
             self.valid_nav_groups = self.get_valid_nav_groups()
-            raise self.raise_valid_route("folder view disabled")
+            self.raise_valid_route("folder view disabled")
 
     def validate_browser_group_settings(self):
         """Check that all the view variables for browser mode are set right."""
@@ -450,6 +452,7 @@ class BrowserView(BrowserMetadataBase):
         browser_page = {
             "upRoute": up_route,
             "browserTitle": browser_page_title,
+            "modelGroup": self.model_group,
             "objList": obj_list,
             "numPages": paginator.num_pages,
             "formChoices": {"enableFolderView": efv_flag.on},

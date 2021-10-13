@@ -9,11 +9,11 @@ import logging
 import mmap
 import re
 
+from pathlib import Path
+
 import simplejson as json
 
-from codex.settings.settings import BASE_DIR
-from codex.settings.settings import DEBUG
-from codex.settings.settings import STATIC_ROOT
+from codex.settings.settings import BASE_DIR, DEBUG, STATIC_ROOT
 
 
 LOG = logging.getLogger(__name__)
@@ -28,6 +28,9 @@ if DEBUG:
     JS_ROOTS = (SRC_JS_ROOT, DEV_JS_ROOT, PROD_JS_ROOT)
 else:
     JS_ROOTS = (PROD_JS_ROOT,)
+    # Dummy values for type checker. Never used if not DEBUG
+    SRC_JS_ROOT = Path()
+    DEV_JS_ROOT = Path()
 
 WEBPACK_MODULE_RE_TEMPLATES = {
     PROD_JS_ROOT: r"^{name}\." + 12 * "." + r"\.js$",
@@ -38,7 +41,12 @@ if DEBUG:
 
 
 WEBSOCKETS_MODULE_NAME = "websocketMessages"
-WEBPACK_MODULE_NAMES = ("browserChoices", "readerChoices", WEBSOCKETS_MODULE_NAME)
+BROWSER_CHOICES_MODULE_NAME = "browserChoices"
+WEBPACK_MODULE_NAMES = (
+    BROWSER_CHOICES_MODULE_NAME,
+    "readerChoices",
+    WEBSOCKETS_MODULE_NAME,
+)
 
 # These magic pad number are to get around some escaped chars in the
 # dev build version of webpack modules.
@@ -87,10 +95,11 @@ def find_filename_regex(js_root, module_name):
     re_template = WEBPACK_MODULE_RE_TEMPLATES[js_root]
     regex_str = re_template.format(name=module_name)
     regex = re.compile(regex_str)
-    for fn in js_root.iterdir():
-        if regex.match(fn.name):
-            return fn
-    LOG.error(f"Could not find {js_root} {module_name}")
+    path = None
+    for path in js_root.iterdir():
+        if regex.match(path.name):
+            return path
+    raise FileNotFoundError(f"Could not find {js_root} {module_name}")
 
 
 def extract_json(js_root, webpack_module_js):
@@ -108,14 +117,15 @@ def parse_wepack_module(module_name):
     """Extract the JSON core from a webpack module and parse it."""
     data_dict = fn = None
     for js_root in JS_ROOTS:
-        fn = find_filename_regex(js_root, module_name)
         try:
-            with open(fn, "r") as webpack_module_file, mmap.mmap(
-                webpack_module_file.fileno(), 0, access=mmap.ACCESS_READ
-            ) as webpack_module_js:
-                json_str = extract_json(js_root, webpack_module_js)
-                data_dict = json.loads(json_str)
-                break
+            path = find_filename_regex(js_root, module_name)
+            if path:
+                with path.open("r") as webpack_module_file, mmap.mmap(
+                    webpack_module_file.fileno(), 0, access=mmap.ACCESS_READ
+                ) as webpack_module_js:
+                    json_str = extract_json(js_root, webpack_module_js)
+                    data_dict = json.loads(json_str)
+                    break
         except Exception as exc:
             LOG.exception(exc)
     if not data_dict:
@@ -162,6 +172,8 @@ def load_from_webpack_modules():
         if module_name == WEBSOCKETS_MODULE_NAME:
             WEBSOCKET_MESSAGES = data_dict
         else:
+            if module_name == BROWSER_CHOICES_MODULE_NAME:
+                del data_dict["groupNames"]
             build_choices_and_defaults(data_dict)
         LOG.debug(f"Parsed {fn}")
 

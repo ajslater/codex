@@ -1,13 +1,15 @@
 """Watch file trees for changes."""
 import logging
 
-from threading import Condition
-from threading import Thread
+from threading import Condition, Thread
 
-from codex.librarian.queue import QUEUE
-from codex.librarian.queue import ScannerCronTask
-from codex.librarian.queue import UpdateCronTask
-from codex.librarian.queue import WatcherCronTask
+from codex.librarian.queue import (
+    QUEUE,
+    ScannerCronTask,
+    UpdateCronTask,
+    VacuumCronTask,
+    WatcherCronTask,
+)
 
 
 LOG = logging.getLogger(__name__)
@@ -29,6 +31,7 @@ class Crond(Thread):
                 QUEUE.put(ScannerCronTask(sleep=0))
                 QUEUE.put(WatcherCronTask(sleep=0))
                 QUEUE.put(UpdateCronTask(sleep=0, force=False))
+                QUEUE.put(VacuumCronTask())
                 self.COND.wait(timeout=self.WAIT_INTERVAL)
         LOG.info("Stopped cron.")
 

@@ -1,26 +1,30 @@
 """Serializers for codex models."""
 import pycountry
 
-from rest_framework.serializers import IntegerField
-from rest_framework.serializers import ModelSerializer
-from rest_framework.serializers import Serializer
-from rest_framework.serializers import SerializerMethodField
+from rest_framework.serializers import (
+    IntegerField,
+    ModelSerializer,
+    Serializer,
+    SerializerMethodField,
+)
 
-from codex.models import Character
-from codex.models import Comic
-from codex.models import Credit
-from codex.models import CreditPerson
-from codex.models import CreditRole
-from codex.models import Genre
-from codex.models import Imprint
-from codex.models import Location
-from codex.models import Publisher
-from codex.models import Series
-from codex.models import SeriesGroup
-from codex.models import StoryArc
-from codex.models import Tag
-from codex.models import Team
-from codex.models import Volume
+from codex.models import (
+    Character,
+    Comic,
+    Credit,
+    CreditPerson,
+    CreditRole,
+    Genre,
+    Imprint,
+    Location,
+    Publisher,
+    Series,
+    SeriesGroup,
+    StoryArc,
+    Tag,
+    Team,
+    Volume,
+)
 
 
 class PyCountrySerializer(Serializer):

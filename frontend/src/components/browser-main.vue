@@ -92,7 +92,7 @@ export default {
 <style scoped lang="scss">
 #browsePane {
   display: flex;
-  margin-top: 96px;
+  margin-top: 112px;
   margin-left: 15px;
   overflow: auto;
 }

@@ -31,7 +31,7 @@ class ColorFormatter(logging.Formatter):
 
     def format(self, record):
         """Format each log message."""
-        formatter = self.FORMATTERS.get(record.levelno)
+        formatter = self.FORMATTERS[record.levelno]
         return formatter.format(record)
 
 

@@ -1,23 +1,22 @@
 """Django views for Codex."""
 import logging
 
-from django.contrib.admin import ModelAdmin
-from django.contrib.admin import register
+from django.contrib.admin import ModelAdmin, register
 from django.contrib.admin.templatetags.admin_urls import admin_urlname
 from django.shortcuts import resolve_url
 from django.utils.html import format_html
 
 from codex.librarian.cover import purge_all_covers
-from codex.librarian.queue import QUEUE
-from codex.librarian.queue import LibraryChangedTask
-from codex.librarian.queue import RestartTask
-from codex.librarian.queue import ScannerCronTask
-from codex.librarian.queue import ScanRootTask
-from codex.librarian.queue import UpdateCronTask
-from codex.librarian.queue import WatcherCronTask
-from codex.models import AdminFlag
-from codex.models import FailedImport
-from codex.models import Library
+from codex.librarian.queue import (
+    QUEUE,
+    LibraryChangedTask,
+    RestartTask,
+    ScannerCronTask,
+    ScanRootTask,
+    UpdateCronTask,
+    WatcherCronTask,
+)
+from codex.models import AdminFlag, FailedImport, Library
 
 
 LOG = logging.getLogger(__name__)

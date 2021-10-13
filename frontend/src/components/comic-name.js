@@ -1,14 +1,10 @@
 export const getVolumeName = function (volume) {
   let volumeName;
-  if (volume) {
-    if (volume.length === 4 && !isNaN(volume)) {
-      volumeName = " (" + volume + ")";
-    } else if (volume) {
-      volumeName = " v" + volume;
-    }
-  } else {
-    volumeName = "";
+  if (volume == "" || volume == null) {
+    volume = 1;
   }
+  volumeName =
+    volume.length === 4 && !isNaN(volume) ? " (" + volume + ")" : " v" + volume;
   return volumeName;
 };
 

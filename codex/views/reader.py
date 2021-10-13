@@ -11,8 +11,7 @@ from stringcase import camelcase
 from codex.models import Comic
 from codex.serializers.reader import ComicReaderInfoSerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
-from codex.views.mixins import SessionMixin
-from codex.views.mixins import UserBookmarkMixin
+from codex.views.mixins import SessionMixin, UserBookmarkMixin
 
 
 LOG = logging.getLogger(__name__)
@@ -72,6 +71,10 @@ class ComicOpenedView(APIView, SessionMixin, UserBookmarkMixin):
                 # Haven't matched yet, so set the previous comic
                 prev_route = {"pk": comic.pk, "page": comic.max_page}
         routes = {"prevBook": prev_route, "nextBook": next_route}
+
+        if current_comic is None:
+            raise ValueError(f"Comic for {pk} not found.")
+
         return current_comic, routes
 
     def get(self, request, *args, **kwargs):
@@ -111,4 +114,4 @@ class ComicPageView(APIView):
             return HttpResponse(page_image, content_type="image/jpeg")
         except Exception as exc:
             LOG.exception(exc)
-            raise NotFound(detail="comic page not found")
+            raise NotFound(detail="comic page not found") from exc

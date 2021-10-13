@@ -69,6 +69,8 @@ const state = {
       enableFolderView: true,
     },
   },
+  modelGroup: undefined,
+  groupNames: FORM_CHOICES.groupNames,
   browserTitle: {
     parentName: undefined,
     groupName: undefined,
@@ -141,6 +143,7 @@ const mutations = {
     // Reset formChoices every browse so the lazy loader knows to refresh it.
     //state.formChoices = Object.assign(state.formChoices, DYNAMIC_FILTERS);
     state.browserTitle = Object.freeze(data.browserTitle);
+    state.modelGroup = Object.freeze(data.modelGroup);
     state.routes.up = Object.freeze(data.upRoute);
     state.objList = Object.freeze(data.objList);
     state.numPages = data.numPages;
@@ -217,7 +220,9 @@ const pushToRootGroupTop = ({ state, commit }) => {
   const route = topGroupRoute(group);
   commit("setSettings", { rootGroup: group });
   console.debug("push to", route);
-  return router.push(route);
+  return router.push(route).catch((error) => {
+    console.warning(error);
+  });
 };
 
 const handleBrowseError = ({ state, commit }, error) => {
@@ -283,7 +288,7 @@ const isNeedValidate = (changedData) => {
   const intersection = REVALIDATE_KEYS.filter((key) =>
     Object.keys(changedData).includes(key)
   );
-  return Boolean(intersection.length);
+  return intersection.length > 0;
 };
 
 const actions = {

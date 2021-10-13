@@ -9,17 +9,15 @@ from django.db.models import F
 from django.utils import timezone
 
 from codex.librarian.importer import COMIC_MATCHER
-from codex.librarian.queue import QUEUE
-from codex.librarian.queue import ComicDeletedTask
-from codex.librarian.queue import ComicModifiedTask
-from codex.librarian.queue import FolderDeletedTask
-from codex.librarian.queue import ScanDoneTask
-from codex.librarian.queue import ScanRootTask
-from codex.models import SCHEMA_VERSION
-from codex.models import Comic
-from codex.models import FailedImport
-from codex.models import Folder
-from codex.models import Library
+from codex.librarian.queue import (
+    QUEUE,
+    ComicDeletedTask,
+    ComicModifiedTask,
+    FolderDeletedTask,
+    ScanDoneTask,
+    ScanRootTask,
+)
+from codex.models import SCHEMA_VERSION, Comic, FailedImport, Folder, Library
 
 
 LOG = logging.getLogger(__name__)

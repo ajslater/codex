@@ -11,7 +11,7 @@ RUN echo "Stage 1: build wheels"
 COPY ./dist /dist
 
 RUN mkdir -p /wheels
-RUN pip3 wheel "/dist/codex-${PKG_VERSION}-py3-none-any.whl" --wheel-dir=/wheels
+RUN CRYPTOGRAPHY_DONT_BUILD_RUST=1 pip3 wheel "/dist/codex-${PKG_VERSION}-py3-none-any.whl" --wheel-dir=/wheels
 
 FROM ajslater/codex-base:${RUNNABLE_BASE_VERSION}
 # The runnable enviroment built from a minimal base without dev deps
@@ -26,7 +26,7 @@ RUN echo "*** install python wheels ***"
 COPY --from=codex-wheels /wheels /wheels
 
 # hadolint ignore=DL3013
-RUN pip3 install --no-index --find-links=/wheels /wheels/codex*.whl
+RUN pip3 install --no-cache-dir --no-index --find-links=/wheels /wheels/codex*.whl
 
 VOLUME /comics
 VOLUME /config

@@ -5,35 +5,33 @@ Translates between the comicbox metadata and our database model.
 """
 import logging
 import os
+import re
 
 from pathlib import Path
 
 import pycountry
-import regex
 
 from comicbox.comic_archive import ComicArchive
-from django.db.models import ForeignKey
-from django.db.models import ManyToManyField
+from django.db.models import ForeignKey, ManyToManyField
 
-from codex.librarian.cover import get_cover_path
-from codex.librarian.cover import purge_cover
-from codex.librarian.queue import QUEUE
-from codex.librarian.queue import ComicCoverCreateTask
-from codex.librarian.queue import LibraryChangedTask
-from codex.models import Comic
-from codex.models import Credit
-from codex.models import FailedImport
-from codex.models import Folder
-from codex.models import Imprint
-from codex.models import Library
-from codex.models import Publisher
-from codex.models import Series
-from codex.models import Volume
+from codex.librarian.cover import get_cover_path, purge_cover
+from codex.librarian.queue import QUEUE, ComicCoverCreateTask, LibraryChangedTask
+from codex.models import (
+    Comic,
+    Credit,
+    FailedImport,
+    Folder,
+    Imprint,
+    Library,
+    Publisher,
+    Series,
+    Volume,
+)
 from codex.settings.settings import DEBUG
 
 
 # actual filesystem route.
-COMIC_MATCHER = regex.compile(r"\.cb[rz]$")
+COMIC_MATCHER = re.compile(r"\.cb[rz]$")
 LOG = logging.getLogger(__name__)
 
 
@@ -328,7 +326,7 @@ class Importer:
         for attr, instance_list in m2m_fields.items():
             getattr(comic, attr).set(instance_list)
         comic.save()
-        QUEUE.put(ComicCoverCreateTask(self.path, cover_path, True))
+        QUEUE.put(ComicCoverCreateTask(self.path, str(cover_path), True))
 
         # If it works, clear the failed import
         FailedImport.objects.filter(path=self.path).delete()

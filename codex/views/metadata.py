@@ -2,9 +2,7 @@
 import logging
 
 from bidict import bidict
-from django.db.models import Aggregate
-from django.db.models import CharField
-from django.db.models import Count
+from django.db.models import Aggregate, CharField, Count
 from rest_framework.response import Response
 
 from codex.models import Comic
@@ -257,6 +255,7 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
         comic_qs = comic_qs.only(*pick_sets["only"])
 
         # Just get one comic
+        _first_comic_pk = None
         for _first_comic_pk in comic_pks:
             break
         comic = comic_qs.get(pk=_first_comic_pk)

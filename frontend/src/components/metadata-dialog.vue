@@ -455,9 +455,8 @@ export default {
       if (this.progress >= 100 || this.md) {
         return;
       }
-      const that = this;
       setTimeout(function () {
-        that.updateProgress();
+        this.updateProgress();
       }, UPDATE_INTERVAL);
     },
     formatDatetime: function (ds) {

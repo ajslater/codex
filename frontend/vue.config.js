@@ -1,23 +1,14 @@
+/* eslint-disable unicorn/prefer-module */
 const BundleTracker = require("webpack-bundle-tracker");
-const fs = require("fs");
 const path = require("path");
-const webpack = require("webpack");
 
 const DEV = process.env.NODE_ENV === "development";
-const packageJson = fs.readFileSync("./package.json");
-const PACKAGE_VERSION = JSON.parse(packageJson).version || 0;
+process.env.VUE_APP_PACKAGE_VERSION = require("./package.json").version;
 
 module.exports = {
   productionSourceMap: DEV,
   configureWebpack: {
-    plugins: [
-      new BundleTracker(),
-      new webpack.DefinePlugin({
-        "process.env": {
-          VUE_APP_PACKAGE_VERSION: '"' + PACKAGE_VERSION + '"',
-        },
-      }),
-    ],
+    plugins: [new BundleTracker()],
     entry: {
       browserChoices: "./src/choices/browserChoices.json",
       readerChoices: "./src/choices/readerChoices.json",
@@ -32,3 +23,4 @@ module.exports = {
   filenameHashing: false, // Let Django do it
   outputDir: path.resolve(__dirname, "../codex/static_build"),
 };
+/* eslint-enable unicorn/prefer-module */
