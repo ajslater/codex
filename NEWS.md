@@ -7,6 +7,7 @@
 - Tentative linux/armhf support. No way for me to test this.
 - Corrupt database rebuild procedure. See README.md
 - Vaccuum the sqllite database once a day to prevent runaway bloat.
+- Bring back swiping in the reader
 - Update dependancies.
 
 ## v0.6.7

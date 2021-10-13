@@ -7,7 +7,14 @@
           <ReaderComicPage :page-increment="+1" />
         </div>
       </v-main>
-      <nav id="navOverlay" @click="toggleToolbars()">
+      <nav
+        id="navOverlay"
+        v-touch="{
+          left: () => $store.dispatch('reader/routeTo', 'next'),
+          right: () => $store.dispatch('reader/routeTo', 'prev'),
+        }"
+        @click="toggleToolbars()"
+      >
         <ReaderNavOverlay />
       </nav>
       <v-slide-y-transition>
