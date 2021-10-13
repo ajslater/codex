@@ -8,6 +8,7 @@ __pycache__
 cache
 codex/static_build
 codex/static_root
+comics
 frontend/dist
 frontend/public/css/normalize.css
 static_prod

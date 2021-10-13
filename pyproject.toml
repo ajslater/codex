@@ -75,7 +75,7 @@ radon = "^5.1"
 codex = "codex.run:main"
 
 [tool.black]
-exclude = "/(.git|__pycache__|.pytest_cache|frontend|.venv)/"
+exclude = "/(.git|__pycache__|.pytest_cache|.venv|comics|frontend)/"
 
 [tool.coverage.run]
 source = ["codex"]
@@ -104,6 +104,6 @@ addopts = """
     --cov-report=term
     --flake8
     --isort
-    --ignore=codex/migrations/,.venv
+    --ignore=.git,__pycache__|.venv|codex/migrations/
 """
 #    --mypy
