@@ -10,16 +10,18 @@
     <v-spacer />
     <v-toolbar-title id="toolbarTitle">{{ title }}</v-toolbar-title>
     <v-spacer />
+    <ReaderKeyboardShortcutsDialog v-if="!isMobile()" />
     <ReaderSettingsDialog />
     <MetadataDialog ref="metadataDialog" group="c" :pk="pk" />
   </v-toolbar>
 </template>
 
 <script>
-import { mapState } from "vuex";
+import { mapGetters, mapState } from "vuex";
 
 import { getFullComicName } from "@/components/comic-name";
 import MetadataDialog from "@/components/metadata-dialog";
+import ReaderKeyboardShortcutsDialog from "@/components/reader-keyboard-shortcuts-dialog";
 import ReaderSettingsDialog from "@/components/reader-settings-dialog";
 
 const DEFAULT_ROUTE = { group: "r", pk: 0, page: 1 };
@@ -29,6 +31,7 @@ export default {
   components: {
     MetadataDialog,
     ReaderSettingsDialog,
+    ReaderKeyboardShortcutsDialog,
   },
   computed: {
     ...mapState("reader", {
@@ -42,6 +45,7 @@ export default {
       },
       pk: (state) => state.routes.current.pk,
     }),
+    ...mapGetters("reader", ["computedSettings"]),
     ...mapState("browser", {
       browserRoute: (state) => state.routes.current || DEFAULT_ROUTE,
     }),
@@ -80,13 +84,22 @@ export default {
           break;
 
         case "2":
-          this.settingChangedLocal({ twoPages: !this.twoPages });
+          this.settingChangedLocal({
+            twoPages: !this.computedSettings.twoPages,
+          });
           break;
         // No default
       }
     },
     settingChangedLocal: function (data) {
       this.$store.dispatch("reader/settingChangedLocal", data);
+    },
+    isMobile: function () {
+      // Probably janky mobile detection
+      return (
+        typeof window.orientation !== "undefined" ||
+        navigator.userAgent.includes("IEMobile")
+      );
     },
   },
 };

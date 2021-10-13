@@ -1,14 +1,18 @@
 # Codex News
 
-## v0.6.8rc3
+## v0.6.8rc4
 
-- Fixes some import bugs with filename parsing when there are no tags.
-- Browser now tells you what kind of items you're looking at.
-- Tentative linux/armhf support. No way for me to test this.
-- Corrupt database rebuild procedure. See README.md
-- Vaccuum the sqllite database once a day to prevent runaway bloat.
-- Bring back swiping in the reader
-- Update dependancies.
+- Fixes
+  - Fixes some import bugs with filename parsing when there are no tags
+  - Fixed two page view toggle hotkey
+- Features
+  - Browser now tells you what kind of items you're looking at.
+  - Reader swiping navigation
+  - Reader keyboard shortcut help dialog
+  - Tentative linux/armhf support. No way for me to test this
+  - Vacuum the sqllite database once a day to prevent bloat
+  - Corrupt database rebuild procedure. See README.
+- Updated many dependancies
 
 ## v0.6.7
 
