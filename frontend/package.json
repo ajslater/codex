@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "0.6.8-rc4",
+  "version": "0.6.8-rc5",
   "private": true,
   "description": "ui for codex api",
   "scripts": {
