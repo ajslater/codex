@@ -1,10 +1,9 @@
-version: "3.7"
 services:
   nginx:
     image: ajslater/nginx
     container_name: nginx
-    restart: always
+    restart: unless-stopped
     ports:
-      - "9811:9811"
+      - "80:9811"
     volumes:
       - /Users/aj/Code/codex/nginx/config/conf.d:/etc/nginx/conf.d:ro
