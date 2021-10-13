@@ -124,7 +124,11 @@ DATABASES = {
     },
 }
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+# The new DEFAULT_AUTO_FIELD in Django 3.2 is BigAutoField (64 bit),
+#   but it can't be auto migrated. Automigration has been punted to
+#   Django 4.0 at the earliest:
+#   https://code.djangoproject.com/ticket/32674
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 
 # Password validation
