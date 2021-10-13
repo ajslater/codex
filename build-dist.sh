@@ -14,12 +14,13 @@ cd ..
 
 echo "*** build and package application ***"
 # XXX poetry auto-excludes anything in gitignore. Dirty hack around that.
-# XXX also a dirty hack around macOS BSD sed
-SED="sed"
-GSED="$(which gsed)"
-if [ -n "$GSED" ]; then
-	SED="$GSED"
+# BSD sed behaves differently
+if [ "$(uname)" = "Darwin" ]; then
+    sedi=('/usr/bin/sed' '-i' '')
+else
+    sedi=('sed' '-i')
 fi
-"$SED" -i "s/.*static_root.*//" .gitignore
+
+"${sedi[@]}" "s/.*static_root.*//" .gitignore
 poetry build
 git checkout .gitignore # XXX so i can run this locally
