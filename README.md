@@ -219,9 +219,8 @@ However I and other brave Codex alpha testers may also be found on IRC in the [#
 
 ### Next Up
 
-1. Edit & write metadata for comics
-2. Full text search
-3. [OPDS API](https://en.wikipedia.org/wiki/Open_Publication_Distribution_System)
+1. Full text search
+2. [OPDS API](https://en.wikipedia.org/wiki/Open_Publication_Distribution_System)
 
 ## <a name="out-of-scope">Out of Scope</a>
 
