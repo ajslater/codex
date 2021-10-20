@@ -8,7 +8,7 @@ from comicbox.comic_archive import ComicArchive
 from fnvhash import fnv1a_32
 from PIL import Image
 
-from codex.librarian.queue import QUEUE, LibraryChangedTask
+from codex.librarian.queue_mp import QUEUE, LibraryChangedTask
 from codex.models import Comic
 from codex.settings.settings import CONFIG_STATIC, STATIC_ROOT
 

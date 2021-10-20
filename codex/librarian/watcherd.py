@@ -9,7 +9,7 @@ from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
 from codex.librarian.importer import COMIC_MATCHER
-from codex.librarian.queue import (
+from codex.librarian.queue_mp import (
     QUEUE,
     ComicDeletedTask,
     ComicModifiedTask,

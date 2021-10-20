@@ -12,7 +12,7 @@ from websocket import create_connection
 from codex.librarian.cover import create_comic_cover
 from codex.librarian.crond import Crond
 from codex.librarian.importer import import_comic, obj_deleted, obj_moved
-from codex.librarian.queue import (
+from codex.librarian.queue_mp import (
     QUEUE,
     ComicCoverCreateTask,
     ComicDeletedTask,
@@ -40,7 +40,7 @@ from codex.settings.settings import PORT
 from codex.websocket_server import BROADCAST_SECRET, IPC_URL_TMPL, MessageType
 
 
-django_setup()
+django_setup()  # XXX can I move this to run()?
 
 LOG = logging.getLogger(__name__)
 if platform.system() == "Darwin":

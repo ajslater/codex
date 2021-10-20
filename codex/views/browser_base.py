@@ -9,8 +9,6 @@ from codex.models import Comic, Folder, Imprint, Publisher, Series, Volume
 from codex.views.mixins import SessionMixin
 
 
-# from codex.views.mixins import UserBookmarkMixin
-
 LOG = logging.getLogger(__name__)
 
 

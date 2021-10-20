@@ -5,7 +5,7 @@ from django.views.decorators.cache import cache_control
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from codex.librarian.queue import QUEUE
+from codex.librarian.queue_mp import QUEUE
 from codex.models import Library
 from codex.serializers.notify import ScanNotifySerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers

@@ -12,7 +12,7 @@ from rest_framework.serializers import (
     SerializerMethodField,
 )
 
-from codex.librarian.queue import QUEUE, ComicCoverCreateTask
+from codex.librarian.queue_mp import QUEUE, ComicCoverCreateTask
 from codex.serializers.webpack import CHOICES, VUETIFY_NULL_CODE
 
 

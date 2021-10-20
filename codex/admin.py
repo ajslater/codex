@@ -7,7 +7,7 @@ from django.shortcuts import resolve_url
 from django.utils.html import format_html
 
 from codex.librarian.cover import purge_all_covers
-from codex.librarian.queue import (
+from codex.librarian.queue_mp import (
     QUEUE,
     LibraryChangedTask,
     RestartTask,

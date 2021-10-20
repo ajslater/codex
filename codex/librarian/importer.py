@@ -15,7 +15,7 @@ from comicbox.comic_archive import ComicArchive
 from django.db.models import ForeignKey, ManyToManyField
 
 from codex.librarian.cover import get_cover_path, purge_cover
-from codex.librarian.queue import QUEUE, ComicCoverCreateTask, LibraryChangedTask
+from codex.librarian.queue_mp import QUEUE, ComicCoverCreateTask, LibraryChangedTask
 from codex.models import (
     Comic,
     Credit,
@@ -30,6 +30,7 @@ from codex.models import (
 from codex.settings.settings import DEBUG
 
 
+CREATE_GROUPS = (Publisher, Imprint, Series, Volume, Folder)
 # actual filesystem route.
 COMIC_MATCHER = re.compile(r"\.cb[rz]$")
 LOG = logging.getLogger(__name__)
@@ -128,9 +129,7 @@ class Importer:
         """Set all the foreign keys in the comic model."""
         foreign_keys = {}
         for field in Comic._meta.get_fields():
-            if not isinstance(field, ForeignKey):
-                continue
-            if field.name in self.SPECIAL_FKS:
+            if not isinstance(field, ForeignKey) or field.name in self.SPECIAL_FKS:
                 continue
             name = self.md.get(field.name)
             inst = self.get_or_create_simple_model(name, field.related_model)
@@ -271,6 +270,7 @@ class Importer:
             key = str(field)[self.FIELD_PREFIX_LEN :]
             if key not in self.EXCLUDED_MODEL_KEYS and key in self.md.keys():
                 clean_md[key] = self.md[key]
+
         self.md = clean_md
 
     def set_locales(self):
@@ -352,9 +352,7 @@ def import_comic(library_id, path):
         reason = FailedImport.get_reason(exc, path_str)
         defaults = {"reason": reason}
         defaults.update(search_kwargs)
-        fi, fi_created = FailedImport.objects.update_or_create(
-            defaults=defaults, **search_kwargs
-        )
+        FailedImport.objects.update_or_create(defaults=defaults, **search_kwargs)
         LOG.warn(f"Import failed: {path_str} {reason}")
         if DEBUG:
             LOG.exception(exc)

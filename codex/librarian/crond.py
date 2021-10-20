@@ -3,7 +3,7 @@ import logging
 
 from threading import Condition, Thread
 
-from codex.librarian.queue import (
+from codex.librarian.queue_mp import (
     QUEUE,
     ScannerCronTask,
     UpdateCronTask,
