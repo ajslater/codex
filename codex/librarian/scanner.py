@@ -8,8 +8,9 @@ from pathlib import Path
 from django.db.models import F
 from django.utils import timezone
 
+from codex.librarian.bulk_import.main import bulk_import
 from codex.librarian.importer import COMIC_MATCHER
-from codex.librarian.queue import (
+from codex.librarian.queue_mp import (
     QUEUE,
     ComicDeletedTask,
     ComicModifiedTask,
@@ -21,6 +22,8 @@ from codex.models import SCHEMA_VERSION, Comic, FailedImport, Folder, Library
 
 
 LOG = logging.getLogger(__name__)
+
+# ================ OLD INDIVIDUAL SCANNING ============================================
 
 
 def scan_for_new(library):
@@ -48,6 +51,7 @@ def scan_for_new(library):
     LOG.info(f"Queued {num_new} comics for import.")
     LOG.debug(f"Skipped {num_skipped} non-comic files.")
     LOG.debug(f"Ignored {num_passed} comics already in the db.")
+    return num_new
 
 
 def is_obj_outdated(obj):
@@ -91,6 +95,7 @@ def scan_existing(library, cls, force=False):
     if cls == Comic:
         LOG.info(f"Queued {num_updated} {cls_name}s for re-import.")
     LOG.debug(f"Ignored {num_passed} {cls_name}s that are up to date.")
+    return num_updated
 
 
 def cleanup_failed_imports(library):
@@ -110,7 +115,66 @@ def cleanup_failed_imports(library):
             failed_import.delete()
 
 
-def scan_root(pk, force=False):
+def _scan_root_individual(library, force):
+    num_updated = scan_existing(library, Comic, force)
+    scan_existing(library, Folder)
+    num_new = scan_for_new(library)
+    cleanup_failed_imports(library)
+    return num_updated + num_new
+
+
+# ========== NEW BULK SCANNING ========================================================
+
+
+def _is_outdated(path, updated_at):
+    """Compare the db updated_at time to the filesystem time."""
+    mtime = datetime.fromtimestamp(path.stat().st_mtime)
+    mtime = timezone.make_aware(mtime, timezone.get_default_timezone())
+    return mtime > updated_at
+
+
+def _bulk_scan_existing(library_pk, force):
+    """Scan existing comics for updates"""
+    comics = Comic.objects.filter(library=library_pk).values_list(
+        "pk", "path", "cover_path", "updated_at"
+    )
+
+    delete_comics = {}
+    update_comic_paths = set()
+    for pk, path, cover_path, updated_at in comics:
+        path = Path(path)
+        if not path.is_file():
+            delete_comics[pk] = cover_path
+        elif force or _is_outdated(path, updated_at):
+            update_comic_paths.add(path)
+    return update_comic_paths, dict(delete_comics)
+
+
+def _bulk_scan_new(library):
+    """Add comics from a library that aren't in the db already."""
+    comic_paths = Comic.objects.filter(library=library).values_list("path", flat=True)
+    comic_paths = set(comic_paths)
+    create_comic_paths = set()
+    for root, _, filenames in os.walk(library.path):
+        walk_root = Path(root)
+        LOG.debug(f"Scanning {walk_root}")
+        for filename in filenames:
+            if COMIC_MATCHER.search(filename) is None:
+                continue
+            path = walk_root / filename
+            if str(path) not in comic_paths:
+                create_comic_paths.add(path)
+    return create_comic_paths
+
+
+def _bulk_scan_and_import(library, force):
+    update_paths, delete_comics = _bulk_scan_existing(library.pk, force)
+    create_paths = _bulk_scan_new(library)
+    bulk_import(library, update_paths, create_paths, delete_comics)
+    return len(update_paths) + len(create_paths)
+
+
+def scan_root(pk, force=False, bulk=False):
     """Scan a library."""
     library = Library.objects.only("scan_in_progress", "last_scan", "path").get(pk=pk)
     if library.scan_in_progress:
@@ -120,17 +184,26 @@ def scan_root(pk, force=False):
     library.scan_in_progress = True
     library.save()
     try:
-        if Path(library.path).is_dir():
-            force = force or library.last_scan is None
-            scan_existing(library, Comic, force)
-            scan_existing(library, Folder)
-            scan_for_new(library)
-            cleanup_failed_imports(library)
-            if force or library.last_scan is None or library.schema_version is None:
-                library.schema_version = SCHEMA_VERSION
-            library.last_scan = timezone.now()
-        else:
+        if not Path(library.path).is_dir():
             LOG.warning(f"Could not find {library.path}. Not scanning.")
+            raise ValueError("no library path")
+        force = force or library.last_scan is None
+        start_time = datetime.now()
+        if bulk:
+            count = _bulk_scan_and_import(library, force)
+        else:
+            count = _scan_root_individual(library, force)
+        elapsed_time = datetime.now() - start_time
+        if count:
+            log_suffix = f" {elapsed_time/count} s/comic."
+        else:
+            log_suffix = "."
+        LOG.info(
+            f"Scan and import {bulk=} {elapsed_time}s for {count} comics{log_suffix}"
+        )
+        if force or library.last_scan is None or library.schema_version is None:
+            library.schema_version = SCHEMA_VERSION
+        library.last_scan = timezone.now()
     except Exception as exc:
         LOG.exception(exc)
     finally:
@@ -139,15 +212,6 @@ def scan_root(pk, force=False):
     is_failed_imports = FailedImport.objects.exists()
     QUEUE.put(ScanDoneTask(failed_imports=is_failed_imports, sleep=0))
     LOG.info(f"Scan for {library.path} finished.")
-
-
-def scan_all_roots(force):
-    """Scan all the librarys."""
-    LOG.info("Scanning all librarys...")
-    rps = Library.objects.all().only("pk")
-    for library in rps:
-        task = ScanRootTask(library.pk, force)
-        QUEUE.put(task)
 
 
 def is_time_to_scan(library):
@@ -171,7 +235,7 @@ def scan_cron():
         force_import = library.schema_version < SCHEMA_VERSION
         if is_time_to_scan(library) or force_import:
             try:
-                task = ScanRootTask(library.pk, force_import)
+                task = ScanRootTask(library.pk, force_import, False)
                 QUEUE.put(task)
             except Exception as exc:
                 LOG.error(exc)

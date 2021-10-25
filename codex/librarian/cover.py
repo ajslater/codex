@@ -39,7 +39,23 @@ def cleanup_cover_dirs(path):
 
 def purge_cover(comic):
     """Remove one cover thumb from the filesystem."""
+    if not comic or comic.cover_path:
+        return
     cover_path = COVER_ROOT / comic.cover_path
+    try:
+        # XXX python 3.8 missing_ok=True
+        # Switch to python 3.8 requirement begginning of 2021
+        cover_path.unlink()
+    except FileNotFoundError:
+        pass
+    cleanup_cover_dirs(cover_path.parent)
+
+
+def purge_cover_path(comic_cover_path):
+    """Remove one cover thumb from the filesystem."""
+    if not comic_cover_path:
+        return
+    cover_path = COVER_ROOT / comic_cover_path
     try:
         # XXX python 3.8 missing_ok=True
         # Switch to python 3.8 requirement begginning of 2021
@@ -70,7 +86,7 @@ def hex_path(comic_path):
 def get_cover_path(comic_path):
     """Get path to a cover image, creating the image if not found."""
     cover_path = hex_path(comic_path)
-    return cover_path.with_suffix(".jpg")
+    return str(cover_path.with_suffix(".jpg"))
 
 
 def create_comic_cover(comic_path, db_cover_path, force=False):
@@ -91,8 +107,10 @@ def create_comic_cover(comic_path, db_cover_path, force=False):
             comic_path = comic.path
 
         # Reopens the car, so slightly inefficient.
-        car = ComicArchive(comic_path)
-        im = Image.open(BytesIO(car.get_cover_image()))
+        cover_image = ComicArchive(comic_path).get_cover_image()
+        if cover_image is None:
+            raise ValueError(f"No cover image found for {comic_path}")
+        im = Image.open(BytesIO(cover_image))
         im.thumbnail(THUMBNAIL_SIZE)
         im.save(fs_cover_path, im.format)
         LOG.info(f"Created cover thumbnail for: {comic_path}")

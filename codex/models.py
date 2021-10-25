@@ -63,8 +63,8 @@ class Publisher(BrowserGroupModel):
     """The publisher of the comic."""
 
     DEFAULTS = {"is_default": True}
-
-    name = CharField(max_length=32, default="No Publisher")
+    DEFAULT_NAME = "No Publisher"
+    name = CharField(max_length=32, default=DEFAULT_NAME)
 
     @classmethod
     def get_default_publisher(cls):
@@ -86,7 +86,8 @@ class Publisher(BrowserGroupModel):
 class Imprint(BrowserGroupModel):
     """A Publishing imprint."""
 
-    name = CharField(max_length=32, default="Main Imprint")
+    DEFAULT_NAME = "Main Imprint"
+    name = CharField(max_length=32, default=DEFAULT_NAME)
     publisher = ForeignKey(Publisher, on_delete=SET(Publisher.get_default_publisher))
 
     class Meta:
@@ -103,7 +104,8 @@ class Imprint(BrowserGroupModel):
 class Series(BrowserGroupModel):
     """The series the comic belongs to."""
 
-    name = CharField(max_length=32, default="Default Series")
+    DEFAULT_NAME = "Default Series"
+    name = CharField(max_length=32, default=DEFAULT_NAME)
     publisher = ForeignKey(Publisher, on_delete=Publisher.get_default_publisher)
     imprint = ForeignKey(Imprint, on_delete=CASCADE)
     volume_count = PositiveSmallIntegerField(null=True)
@@ -123,7 +125,8 @@ class Series(BrowserGroupModel):
 class Volume(BrowserGroupModel):
     """The volume of the series the comic belongs to."""
 
-    name = CharField(max_length=32, default="")
+    DEFAULT_NAME = ""
+    name = CharField(max_length=32, default=DEFAULT_NAME)
     publisher = ForeignKey(Publisher, on_delete=Publisher.get_default_publisher)
     imprint = ForeignKey(Imprint, on_delete=CASCADE)
     series = ForeignKey(Series, on_delete=CASCADE)
@@ -377,12 +380,19 @@ class Comic(BaseModel):
             issue_str = f"#{self.issue:05.1f}"
         return issue_str
 
-    def save(self, *args, **kwargs):
-        """Save computed fields."""
+    def presave(self):
         self._set_date()
         self._set_decade()
         self.sort_name = f"{self.volume.sort_name} {self.issue:06.1f}"
+
+    def save(self, *args, **kwargs):
+        """Save computed fields."""
+        self.presave()
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        """Most common text representation for logging."""
+        return "{str(self.volume.series.name)} #{self.issue:03}"
 
 
 class AdminFlag(NamedModel):

@@ -326,7 +326,7 @@ class Importer:
         for attr, instance_list in m2m_fields.items():
             getattr(comic, attr).set(instance_list)
         comic.save()
-        QUEUE.put(ComicCoverCreateTask(self.path, str(cover_path), True))
+        QUEUE.put(ComicCoverCreateTask(self.path, cover_path, True))
 
         # If it works, clear the failed import
         FailedImport.objects.filter(path=self.path).delete()

@@ -31,7 +31,7 @@ class AdminLibrary(ModelAdmin):
         ("Scans", {"fields": ("last_scan", "scan_in_progress")}),
         ("Scheduled Scans", {"fields": ("enable_scan_cron", "scan_frequency")}),
     )
-    actions = ("scan", "force_scan")
+    actions = ("scan", "force_scan", "bulk_scan")
     empty_value_display = "Never"
     list_display = (
         "path",
@@ -55,11 +55,11 @@ class AdminLibrary(ModelAdmin):
     readonly_fields = ("last_scan",)
     sortable_by = list_display
 
-    def _scan(self, request, queryset, force):
+    def _scan(self, request, queryset, force, bulk=False):
         """Queue a scan task for the library."""
         pks = queryset.values_list("pk", flat=True)
         for pk in pks:
-            task = ScanRootTask(pk, force)
+            task = ScanRootTask(pk, force, bulk)
             QUEUE.put(task)
 
     def scan(self, request, queryset):
@@ -73,6 +73,11 @@ class AdminLibrary(ModelAdmin):
         self._scan(request, queryset, True)
 
     force_scan.short_description = "Re-import all comics"
+
+    def bulk_scan(self, request, queryset):
+        self._scan(request, queryset, False, True)
+
+    bulk_scan.short_description = "Bulk scan comics for changes"
 
     def _on_change(self, obj, created=False):
         """Events for when the library has changed."""

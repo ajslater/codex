@@ -10,6 +10,7 @@ class ScanRootTask:
 
     library_id: int
     force: bool
+    bulk: bool
 
 
 @dataclass

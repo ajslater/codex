@@ -105,7 +105,7 @@ class LibrarianDaemon(Process):
                 msg = WS_MSGS["SCAN_LIBRARY"]
                 self.send_json(MessageType.ADMIN_BROADCAST, msg)
                 # no retry
-                scan_root(task.library_id, task.force)
+                scan_root(task.library_id, task.force, task.bulk)
             elif isinstance(task, ScanDoneTask):
                 if task.failed_imports:
                     msg = WS_MSGS["FAILED_IMPORTS"]
