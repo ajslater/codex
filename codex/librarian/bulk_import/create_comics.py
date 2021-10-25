@@ -100,8 +100,6 @@ def _link_folders(comic_path):
 
 
 def _link_credits(credits):
-    print("_link_credits: ", end="")
-    # pprint(credits)
     filter = Q()
     for credit in credits:
         filter_dict = {
@@ -110,14 +108,11 @@ def _link_credits(credits):
         }
         filter = filter | Q(**filter_dict)
     credit_pks = Credit.objects.filter(filter).values_list("pk", flat=True)
-    pprint(credit_pks)
     return set(credit_pks)
 
 
 def _link_named_m2ms(all_m2m_links, comic_pk, md):
     for field, names in md.items():
-        # print(f"{field}: ", end="")
-        # pprint(names)
         cls = Comic._meta.get_field(field).related_model
         if cls is None:
             LOG.error(f"No related class found for Comic.{field}")
@@ -125,7 +120,6 @@ def _link_named_m2ms(all_m2m_links, comic_pk, md):
         pks = cls.objects.filter(name__in=names).values_list("pk", flat=True)
         if field not in all_m2m_links:
             all_m2m_links[field] = {}
-        # pprint(pks)
         all_m2m_links[field][comic_pk] = set(pks)
 
 
@@ -133,8 +127,6 @@ def _link_comic_m2m_fields(m2m_mds):
     # https://stackoverflow.com/questions/6996176/how-to-create-an-object-for-a-django-model-with-a-many-to-many-field/10116452#10116452
     # BUG link folders is the only one that works
     all_m2m_links = {}
-    print("_link_comic_m2m2_fields()")
-    # pprint(m2m_mds)
     comics = Comic.objects.filter(path__in=m2m_mds.keys()).values_list("pk", "path")
     for comic_pk, comic_path in comics:
         md = m2m_mds[comic_path]
@@ -162,9 +154,6 @@ THROUGH_FIELDS = {
 
 
 def _recreate_comic_m2m_fields(all_m2m_links):
-    # Todo res
-    print("_recreate_comic_m2m2_fields()")
-    # pprint(all_m2m_links)
     for field_name, m2m_links in all_m2m_links.items():
         # field = Comic._meta.get_field(field_name)
         # field = getattr(Comic, field_name)
