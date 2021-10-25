@@ -61,7 +61,7 @@ flake8-docstrings = "^1.5"
 neovim = "^0.3"
 pep8-naming = "^0.12"
 pytest = "^6.0"
-pytest-asyncio = "^0.15"
+pytest-asyncio = "^0.16"
 pytest-black = "^0.3"
 pytest-cov = "^3.0"
 pytest-django = "^4.1"
@@ -69,6 +69,8 @@ pytest-flake8 = "^1.0"
 pytest-isort = "^2.0"
 #pytest-monkeytype = "^1.0"
 radon = "^5.1"
+django-stubs = "^1.9.0"
+pyright = "^0.0.10"
 
 #vulture = "^2.1"
 [tool.poetry.scripts]
@@ -106,4 +108,15 @@ addopts = """
     --isort
     --ignore=.git,__pycache__|.venv|codex/migrations/
 """
+
 #    --mypy
+[tool.pyright]
+exclude = [
+  ".git",
+  "**/__pycache__",
+  ".pytest_cache",
+  ".venv",
+  "comics",
+  "frontend"
+]
+useLibraryCodeForTypes = true
