@@ -107,14 +107,11 @@ def _create_missing_credits(create_credit_tuples):
         return
 
     create_credits = []
-    for credit_tuple in create_credit_tuples:
-        credit_dict = dict(credit_tuple)
-        role_name = credit_dict.get("role__name")
+    for role_name, person_name in create_credit_tuples:
         if role_name:
             role = CreditRole.objects.get(name=role_name)
         else:
             role = None
-        person_name = credit_dict.get("person__name")
         person = CreditPerson.objects.get(name=person_name)
         credit = Credit(role=role, person=person)
 

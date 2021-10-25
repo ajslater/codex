@@ -128,19 +128,23 @@ def query_missing_paths(library_path, comic_paths):
 
 
 def query_missing_credits(credits):
+    # BUG queryset is role, person tuple
     filter = Q()
     comparison_credits = set()
     for credit_tuple in credits:
         credit_dict = dict(credit_tuple)
+        role = credit_dict.get("role")
+        person = credit_dict["person"]
         filter_args = {
-            "person__name": credit_dict["person"],
-            "role__name": credit_dict.get("role"),
+            "person__name": person,
+            "role__name": role,
         }
         filter = filter | Q(**filter_args)
-        comparison_credits.add(tuple(sorted(filter_args.items())))
+        comparison_tuple = (role, person)
+        comparison_credits.add(comparison_tuple)
 
     existing_credits = Credit.objects.filter(filter).values_list(
-        "person__name", "role__name"
+        "role__name", "person__name"
     )
     create_credits = comparison_credits - set(existing_credits)
     return create_credits
