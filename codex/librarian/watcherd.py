@@ -25,6 +25,7 @@ LOG = logging.getLogger(__name__)
 
 class CodexLibraryEventHandler(FileSystemEventHandler):
     """Handle watchdog events for comics in a library."""
+    # TODO: batch up events to use bulk functions.
 
     EVENT_DELAY = 1
 
@@ -95,12 +96,7 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
         Put a comic moved task on the queue.
 
         Watchdog events can arrive in any order, but often file events
-        occur before folder events. This ends up leading us to create
-        new folders and delete old ones on move instead of moving the
-        folders. The solution is to implement lazydog in a cross platform
-        manner. Make a delay queue for all events and see if they can
-        be bundled as a single top-level folder move event.
-        For the future.
+        occur before folder events.
         """
         if self.is_ignored(event.is_directory, event.dest_path):
             return
