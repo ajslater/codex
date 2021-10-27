@@ -3,6 +3,8 @@ Create all missing comic foreign keys for an import.
 So we may safely create the comics next.
 """
 
+import logging
+
 from pathlib import Path
 
 from codex.librarian.bulk_import.query_fks import query_all_missing_fks
@@ -16,6 +18,9 @@ from codex.models import (
     Series,
     Volume,
 )
+
+
+LOG = logging.getLogger(__name__)
 
 
 def _create_group_obj(cls, group_param_tuple, count):
@@ -55,6 +60,7 @@ def _create_missing_groups(all_create_groups):
             obj = _create_group_obj(cls, group_param_tuple, count)
             create_groups.append(obj)
         cls.objects.bulk_create(create_groups)
+        LOG.info(f"Created {len(create_groups)} {cls.__name__}s.")
 
 
 def create_missing_folders(library, folder_paths):
@@ -70,7 +76,7 @@ def create_missing_folders(library, folder_paths):
 
     # create each depth level first to ensure we can assign parents
     for _, paths in sorted(folder_path_dict.items()):
-        folders = []
+        create_folders = []
         for path in paths:
             name = path.name
             parent_path = str(Path(path).parent)
@@ -85,19 +91,21 @@ def create_missing_folders(library, folder_paths):
                 sort_name=name,
                 parent_folder=parent,
             )
-            folders.append(folder)
-        Folder.objects.bulk_create(folders)
+            create_folders.append(folder)
+        Folder.objects.bulk_create(create_folders)
+        LOG.info(f"Created {len(create_folders)} Folders.")
 
 
 def _create_missing_named_models(cls, names):
     if not names:
         return
-    named_objs = []
+    create_named_objs = []
     for name in names:
         named_obj = cls(name=name)
-        named_objs.append(named_obj)
+        create_named_objs.append(named_obj)
 
-    cls.objects.bulk_create(named_objs)
+    cls.objects.bulk_create(create_named_objs)
+    LOG.info(f"Created {len(create_named_objs)} {cls.__name__}s.")
 
 
 def _create_missing_credits(create_credit_tuples):
@@ -116,6 +124,7 @@ def _create_missing_credits(create_credit_tuples):
         create_credits.append(credit)
 
     Credit.objects.bulk_create(create_credits)
+    LOG.info(f"Created {len(create_credits)} Credits.")
 
 
 def _create_all_missing_fks(

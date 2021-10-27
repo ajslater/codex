@@ -191,3 +191,7 @@ def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2
     _create_comics(library, create_paths, all_bulk_mds)
     all_m2m_links = _link_comic_m2m_fields(all_m2m_mds)
     _recreate_comic_m2m_fields(all_m2m_links)
+    if update_paths:
+        LOG.info("Updated {len(update_paths)} Comics.")
+    if create_paths:
+        LOG.info("Created {len(create_paths)} Comics.")
