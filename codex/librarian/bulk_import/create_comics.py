@@ -76,15 +76,15 @@ def _create_comics(library, comic_paths, mds):
         return
 
     # prepare create comics
-    comics = []
+    create_comics = []
     for path in comic_paths:
         md = mds.pop(path)
         _link_comic_fks(md, library, path)
         comic = Comic(**md)
         comic.presave()
-        comics.append(comic)
+        create_comics.append(comic)
 
-    Comic.objects.bulk_create(comics)
+    Comic.objects.bulk_create(create_comics)
 
     # update myself field with self reference
     created_comics = Comic.objects.filter(path__in=comic_paths).only("pk", "myself")
@@ -174,7 +174,7 @@ def bulk_create_m2m_field(field_name, m2m_links):
             tms.append(ThroughModel(**defaults))
 
     # It is simpler to just nuke and recreate all links than
-    #   detect, create & delete them  # BUG MAYBE I SHOULD NOT RECREATE THESE?
+    #   detect, create & delete them.
     ThroughModel.objects.filter(comic_id__in=m2m_links.keys()).delete()
     ThroughModel.objects.bulk_create(tms)
 
