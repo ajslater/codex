@@ -74,38 +74,12 @@ def query_missing_group_type(cls, groups):
     return create_groups
 
 
-def none_max(a, b):
-    if a is not None and b is not None:
-        return max(a, b)
-    if a is None:
-        return b
-    if b is None:
-        return a
-
-
 def query_missing_groups(group_trees_md):
     # XXX Missing a facility to update Series & Volume count fields on already
     #     created groups
 
-    # TODO move this loop into aggregate and modularize!!!
-    all_groups = {Publisher: {}, Imprint: {}, Series: {}, Volume: {}}
-    for group_tree, group_md in group_trees_md.items():
-        all_groups[Publisher][group_tree[0:1]] = None
-        all_groups[Imprint][group_tree[0:2]] = None
-
-        series_group_tree = group_tree[0:3]
-        volume_count = none_max(
-            all_groups[Series].get(series_group_tree), group_md.get("volume_count")
-        )
-        all_groups[Series][series_group_tree] = volume_count
-        volume_group_tree = group_tree[0:4]
-        issue_count = none_max(
-            all_groups[Volume].get(volume_group_tree), group_md.get("issue_count")
-        )
-        all_groups[Volume][volume_group_tree] = issue_count
-
     all_create_groups = {}
-    for cls, groups in all_groups.items():
+    for cls, groups in group_trees_md.items():
         create_groups = query_missing_group_type(cls, groups)
         all_create_groups[cls] = create_groups
     return all_create_groups

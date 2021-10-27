@@ -11,7 +11,7 @@ from comicbox.comic_archive import ComicArchive
 from codex.librarian.bulk_import import BROWSER_GROUPS
 from codex.librarian.cover import get_cover_path
 from codex.librarian.queue_mp import QUEUE, ComicCoverCreateTask
-from codex.models import Comic, FailedImport
+from codex.models import Comic, FailedImport, Imprint, Publisher, Series, Volume
 
 
 LOG = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ def _get_path_metadata(library_pk, path):
 
     try:
         md = ComicArchive(path).get_metadata()
-        md["path"] = str(path)
+        md["path"] = path
         md["size"] = Path(path).stat().st_size
         cover_path = get_cover_path(path)
         md["cover_path"] = cover_path
@@ -70,52 +70,58 @@ def _get_path_metadata(library_pk, path):
     return md, m2m_md, group_tree_md, failed_import
 
 
-def _aggregate_metadata(
-    all_mds,
-    all_m2m_mds,
-    all_fks,
-    all_failed_imports,
-    md,
-    m2m_md,
-    group_tree_md,
-    failed_import,
-):
-    path = md["path"]
-    if md:
-        all_mds[path] = md
+def _none_max(a, b):
+    if a is not None and b is not None:
+        return max(a, b)
+    if a is None:
+        return b
+    if b is None:
+        return a
 
-    if m2m_md:
-        # m2m fields and fks
-        all_m2m_mds[path] = m2m_md
-        # aggregate fks
-        for field, names in m2m_md.items():
-            if field == "credits":
-                if names and "credits" not in all_fks:
-                    all_fks["credits"] = set()
 
-                # for credits add the credit fks to fks
-                for credit_dict in names:
-                    for field, name in credit_dict.items():
-                        # These fields are ambigous because they're fks to Credit
-                        #   but aren't ever in Comic so query_fks.py can
-                        #   disambiguate with special code
-                        if field not in all_fks:
-                            all_fks[field] = set()
-                        all_fks[field].add(name)
-                    credit_tuple = tuple(sorted(credit_dict.items()))
-                    all_fks["credits"].add(credit_tuple)
-            else:
-                if field not in all_fks:
-                    all_fks[field] = set()
-                all_fks[field] |= set(names)
+def _aggregate_m2m_metadata(all_m2m_mds, m2m_md, all_fks, path):
+    # m2m fields and fks
+    all_m2m_mds[path] = m2m_md
+    # aggregate fks
+    for field, names in m2m_md.items():
+        if field == "credits":
+            if names and "credits" not in all_fks:
+                all_fks["credits"] = set()
 
-    # group hierarchy
-    if group_tree_md:
-        if "group_trees" not in all_fks:
-            all_fks["group_trees"] = {}
-        all_fks["group_trees"].update(group_tree_md)
+            # for credits add the credit fks to fks
+            for credit_dict in names:
+                for field, name in credit_dict.items():
+                    # These fields are ambigous because they're fks to Credit
+                    #   but aren't ever in Comic so query_fks.py can
+                    #   disambiguate with special code
+                    if field not in all_fks:
+                        all_fks[field] = set()
+                    all_fks[field].add(name)
+                credit_tuple = tuple(sorted(credit_dict.items()))
+                all_fks["credits"].add(credit_tuple)
+        else:
+            if field not in all_fks:
+                all_fks[field] = set()
+            all_fks[field] |= set(names)
 
-    all_failed_imports.update(failed_import)
+
+def _aggregate_group_tree_metadata(all_fks, group_tree_md):
+    for group_tree, group_md in group_tree_md.items():
+        all_fks["group_trees"][Publisher][group_tree[0:1]] = None
+        all_fks["group_trees"][Imprint][group_tree[0:2]] = None
+
+        series_group_tree = group_tree[0:3]
+        volume_count = _none_max(
+            all_fks["group_trees"][Series].get(series_group_tree),
+            group_md.get("volume_count"),
+        )
+        all_fks["group_trees"][Series][series_group_tree] = volume_count
+        volume_group_tree = group_tree[0:4]
+        issue_count = _none_max(
+            all_fks["group_trees"][Volume].get(volume_group_tree),
+            group_md.get("issue_count"),
+        )
+        all_fks["group_trees"][Volume][volume_group_tree] = issue_count
 
 
 def _bulk_update_failed_imports(library_pk, failed_imports):
@@ -142,21 +148,24 @@ def _bulk_update_failed_imports(library_pk, failed_imports):
 def get_metadata(library_pk, all_paths):
     all_mds = {}
     all_m2m_mds = {}
-    all_fks = {}
+    all_fks = {"group_trees": {Publisher: {}, Imprint: {}, Series: {}, Volume: {}}}
     all_failed_imports = {}
 
     for path in all_paths:
+        path = str(path)
         md, m2m_md, group_tree_md, failed_import = _get_path_metadata(library_pk, path)
-        _aggregate_metadata(
-            all_mds,
-            all_m2m_mds,
-            all_fks,
-            all_failed_imports,
-            md,
-            m2m_md,
-            group_tree_md,
-            failed_import,
-        )
+
+        if md:
+            all_mds[path] = md
+
+        if m2m_md:
+            _aggregate_m2m_metadata(all_m2m_mds, m2m_md, all_fks, path)
+
+        if group_tree_md:
+            _aggregate_group_tree_metadata(all_fks, group_tree_md)
+
+        if failed_import:
+            all_failed_imports.update(failed_import)
 
     all_fks["comic_paths"] = set(all_mds.keys())
 
