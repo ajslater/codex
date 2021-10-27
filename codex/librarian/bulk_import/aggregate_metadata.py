@@ -4,6 +4,8 @@ Aggregate metadata from comics to prepare for importing.
 
 import logging
 
+from pathlib import Path
+
 from comicbox.comic_archive import ComicArchive
 
 from codex.librarian.bulk_import import BROWSER_GROUPS
@@ -28,7 +30,7 @@ def _clean_md(md):
             del md[key]
 
 
-def _get_path_metadata(path):
+def _get_path_metadata(library_pk, path):
     md = {}
     m2m_md = {}
     group_tree_md = {}
@@ -36,11 +38,11 @@ def _get_path_metadata(path):
 
     try:
         md = ComicArchive(path).get_metadata()
-        md["size"] = path.stat().st_size
         md["path"] = str(path)
+        md["size"] = Path(path).stat().st_size
         cover_path = get_cover_path(path)
         md["cover_path"] = cover_path
-        QUEUE.put(ComicCoverCreateTask(path, cover_path, True))
+        QUEUE.put(ComicCoverCreateTask(library_pk, path, cover_path, True))
         _clean_md(md)
         group_tree = []
         for group_cls in BROWSER_GROUPS:
@@ -64,7 +66,7 @@ def _get_path_metadata(path):
             m2m_md[field] = md.pop(field)
     except Exception as exc:
         LOG.exception(exc)
-        failed_import = {str(path): exc}
+        failed_import = {path: exc}
     return md, m2m_md, group_tree_md, failed_import
 
 
@@ -144,7 +146,7 @@ def get_metadata(library_pk, all_paths):
     all_failed_imports = {}
 
     for path in all_paths:
-        md, m2m_md, group_tree_md, failed_import = _get_path_metadata(path)
+        md, m2m_md, group_tree_md, failed_import = _get_path_metadata(library_pk, path)
         _aggregate_metadata(
             all_mds,
             all_m2m_mds,

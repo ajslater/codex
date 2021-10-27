@@ -5,7 +5,6 @@ So we may safely create the comics next.
 
 from pathlib import Path
 
-from codex.librarian.bulk_import import BROWSER_GROUPS
 from codex.librarian.bulk_import.query_fks import query_all_missing_fks
 from codex.models import (
     Credit,
@@ -48,18 +47,17 @@ def _create_missing_groups(all_create_groups):
     if not all_create_groups:
         return
 
-    for cls in BROWSER_GROUPS:
-        group_param_tuples = all_create_groups.get(cls)
-        if not group_param_tuples:
-            return
+    for cls, group_tree_counts in all_create_groups.items():
+        if not group_tree_counts:
+            continue
         create_groups = []
-        for group_param_tuple, count in group_param_tuples.items():
+        for group_param_tuple, count in group_tree_counts.items():
             obj = _create_group_obj(cls, group_param_tuple, count)
             create_groups.append(obj)
         cls.objects.bulk_create(create_groups)
 
 
-def _create_missing_folders(library, folder_paths):
+def create_missing_folders(library, folder_paths):
     """Create folders breadth first."""
     # group folder paths by depth
     folder_path_dict = {}
@@ -126,7 +124,7 @@ def _create_all_missing_fks(
 
     _create_missing_groups(create_groups)
 
-    _create_missing_folders(library, create_paths)
+    create_missing_folders(library, create_paths)
 
     # XXX credit_fk_keys = set(create_fks.keys()) & set([CreditRole, CreditPerson])
     for cls, names in create_fks.items():

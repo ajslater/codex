@@ -5,6 +5,7 @@ from pathlib import Path
 from codex.librarian.cover import purge_cover_path
 from codex.models import (
     Character,
+    Library,
     Comic,
     Credit,
     CreditPerson,
@@ -43,13 +44,17 @@ DELETE_CREDIT_FKS = (CreditRole, CreditPerson)
 LOG = logging.getLogger(__name__)
 
 
-def _bulk_delete_comics(library, delete_comics):
-    if not delete_comics:
+def _bulk_delete_comics(library, delete_comic_paths=None):
+    if not delete_comic_paths:
         return
-    for cover_path in delete_comics.values():
+    query = Comic.objects.filter(library=library, path__in=delete_comic_paths)
+    delete_cover_paths = query.values_list("cover_path", flat=True)
+
+    for cover_path in delete_cover_paths:
         purge_cover_path(cover_path)
-    Comic.objects.filter(library=library, pk__in=delete_comics.keys()).delete()
-    LOG.info(f"Deleted {len(delete_comics)} comics from {library.path}")
+
+    query.delete()
+    LOG.info(f"Deleted {len(delete_cover_paths)} comics from {library.path}")
 
 
 def _bulk_cleanup_fks(classes, field_name):
@@ -90,8 +95,10 @@ def _bulk_cleanup_failed_imports(library):
     )
 
 
-def cleanup_database(library, delete_comic_pks):
-    _bulk_delete_comics(library, delete_comic_pks)
+def cleanup_database(library=None, delete_comic_paths=None, library_pk=None):
+    if not library:
+        library = Library.objects.get(pk=library_pk)
+    _bulk_delete_comics(library, delete_comic_paths)
     _bulk_cleanup_fks(DELETE_COMIC_FKS, "comic")
     _bulk_cleanup_fks(DELETE_CREDIT_FKS, "credit")
     _bulk_cleanup_failed_imports(library)

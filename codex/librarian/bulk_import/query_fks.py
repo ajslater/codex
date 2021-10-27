@@ -128,7 +128,6 @@ def query_missing_paths(library_path, comic_paths):
 
 
 def query_missing_credits(credits):
-    # BUG queryset is role, person tuple
     filter = Q()
     comparison_credits = set()
     for credit_tuple in credits:
@@ -152,14 +151,13 @@ def query_missing_credits(credits):
 
 def query_missing_named_models(cls, field, names):
     fk_cls = cls._meta.get_field(field).related_model
-    existing_names = fk_cls.objects.filter(name__in=names).values_list(
-        "name", flat=True
+    existing_names = set(
+        fk_cls.objects.filter(name__in=names).values_list("name", flat=True)
     )
-    create_names = names - set(existing_names)
+    create_names = names - existing_names
     return fk_cls, create_names
 
 
-# BUG? Possibly Credits not created
 def query_all_missing_fks(library_path, fks):
 
     create_credits = set()

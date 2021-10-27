@@ -10,13 +10,13 @@ class ScanRootTask:
 
     library_id: int
     force: bool
-    bulk: bool
 
 
 @dataclass
 class ComicTask:
     """Base class for comic tasks."""
 
+    library_id: int
     src_path: str
 
 
@@ -24,7 +24,14 @@ class ComicTask:
 class ComicModifiedTask(ComicTask):
     """Created and Modified comics share the same task."""
 
-    library_id: int
+    pass
+
+
+@dataclass
+class ComicCreatedTask(ComicTask):
+    """Created and Modified comics share the same task."""
+
+    pass
 
 
 @dataclass

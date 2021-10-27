@@ -1,7 +1,6 @@
 import logging
 
 from pathlib import Path
-from pprint import pprint
 
 from django.db.models import Q
 
@@ -60,14 +59,16 @@ def _update_comics(library, comic_paths, mds):
     )
 
     # set attributes for each comic
+    update_comics = []
     for comic in comics:
         md = mds.pop(comic.path)
         _link_comic_fks(md, library, comic.path)
         for field_name, value in md.items():
             setattr(comic, field_name, value)
         comic.presave()
+        update_comics.append(comic)
 
-    Comic.objects.bulk_update(comics, BULK_UPDATE_COMIC_FIELDS)
+    Comic.objects.bulk_update(update_comics, BULK_UPDATE_COMIC_FIELDS)
 
 
 def _create_comics(library, comic_paths, mds):
@@ -77,11 +78,12 @@ def _create_comics(library, comic_paths, mds):
     # prepare create comics
     comics = []
     for path in comic_paths:
-        md = mds.pop(str(path))
+        md = mds.pop(path)
         _link_comic_fks(md, library, path)
         comic = Comic(**md)
         comic.presave()
         comics.append(comic)
+
     Comic.objects.bulk_create(comics)
 
     # update myself field with self reference
@@ -124,10 +126,10 @@ def _link_named_m2ms(all_m2m_links, comic_pk, md):
 
 
 def _link_comic_m2m_fields(m2m_mds):
-    # https://stackoverflow.com/questions/6996176/how-to-create-an-object-for-a-django-model-with-a-many-to-many-field/10116452#10116452
-    # BUG link folders is the only one that works
     all_m2m_links = {}
-    comics = Comic.objects.filter(path__in=m2m_mds.keys()).values_list("pk", "path")
+    comic_paths = set(m2m_mds.keys())
+
+    comics = Comic.objects.filter(path__in=comic_paths).values_list("pk", "path")
     for comic_pk, comic_path in comics:
         md = m2m_mds[comic_path]
         if "folder" not in all_m2m_links:
@@ -153,28 +155,35 @@ THROUGH_FIELDS = {
 }
 
 
-def _recreate_comic_m2m_fields(all_m2m_links):
-    for field_name, m2m_links in all_m2m_links.items():
-        # field = Comic._meta.get_field(field_name)
-        # field = getattr(Comic, field_name)
-        # print(f"{field=}")
-        # if not isinstance(field, ManyToManyField):
-        #    raise ValueError("Wrong type of field")
-        # XXX This should be loopable idk why it isn't
-        ThroughModel = THROUGH_FIELDS[field_name]  # field.through
-        # https://docs.djangoproject.com/en/3.2/ref/models/fields/#django.db.models.ManyToManyField.through
-        tms = []
-        link_name = Comic._meta.get_field(field_name).related_model.__name__.lower()
-        through_field_id_name = f"{link_name}_id"
-        for comic_pk, pks in m2m_links.items():
-            for pk in pks:
-                defaults = {"comic_id": comic_pk, through_field_id_name: pk}
-                tms.append(ThroughModel(**defaults))
+def bulk_create_m2m_field(field_name, m2m_links):
+    # field = Comic._meta.get_field(field_name)
+    # field = getattr(Comic, field_name)
+    # if not isinstance(field, ManyToManyField):
+    #    raise ValueError("Wrong type of field")
+    # XXX This should be loopable idk why it isn't
+    ThroughModel = THROUGH_FIELDS[field_name]  # field.through
+    tms = []
+    model = Comic._meta.get_field(field_name).related_model
+    if model is None:
+        raise ValueError(f"Bad model from {field_name}")
+    link_name = model.__name__.lower()
+    through_field_id_name = f"{link_name}_id"
+    for comic_pk, pks in m2m_links.items():
+        for pk in pks:
+            defaults = {"comic_id": comic_pk, through_field_id_name: pk}
+            tms.append(ThroughModel(**defaults))
 
-        # It is simpler to just nuke and recreate all links than
-        #   detect, create & delete them
-        ThroughModel.objects.filter(comic_id__in=m2m_links.keys()).delete()
-        ThroughModel.objects.bulk_create(tms)
+    # It is simpler to just nuke and recreate all links than
+    #   detect, create & delete them  # BUG MAYBE I SHOULD NOT RECREATE THESE?
+    ThroughModel.objects.filter(comic_id__in=m2m_links.keys()).delete()
+    ThroughModel.objects.bulk_create(tms)
+
+
+def _recreate_comic_m2m_fields(all_m2m_links):
+    # https://stackoverflow.com/questions/6996176/how-to-create-an-object-for-a-django-model-with-a-many-to-many-field/10116452#10116452
+    # https://docs.djangoproject.com/en/3.2/ref/models/fields/#django.db.models.ManyToManyField.through
+    for field_name, m2m_links in all_m2m_links.items():
+        bulk_create_m2m_field(field_name, m2m_links)
 
 
 def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2m_mds):

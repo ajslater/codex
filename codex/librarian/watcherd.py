@@ -8,7 +8,7 @@ from pathlib import Path
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-from codex.librarian.importer import COMIC_MATCHER
+from codex.librarian.regex import COMIC_MATCHER
 from codex.librarian.queue_mp import (
     QUEUE,
     ComicDeletedTask,
@@ -30,7 +30,7 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
 
     def __init__(self, library_pk, *args, **kwargs):
         """Let us send along he library id."""
-        self.pk = library_pk
+        self.library_pk = library_pk
         super().__init__(*args, **kwargs)
 
     @staticmethod
@@ -83,7 +83,7 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
 
         src_path = Path(event.src_path)
         self._wait_for_copy(src_path, event.is_directory)
-        task = ComicModifiedTask(event.src_path, self.pk)
+        task = ComicModifiedTask(self.library_pk, event.src_path)
         QUEUE.put(task)
 
     def on_created(self, event):
@@ -107,9 +107,9 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
 
         self._wait_for_copy(event.dest_path, event.is_directory)
         if event.is_directory:
-            task = FolderMovedTask(event.src_path, event.dest_path)
+            task = FolderMovedTask(self.library_pk, event.src_path, event.dest_path)
         else:
-            task = ComicMovedTask(event.src_path, event.dest_path)
+            task = ComicMovedTask(self.library_pk, event.src_path, event.dest_path)
         QUEUE.put(task)
 
     def on_deleted(self, event):
@@ -119,9 +119,9 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
 
         self._wait_for_delete(event.src_path)
         if event.is_directory:
-            task = FolderDeletedTask(event.src_path)
+            task = FolderDeletedTask(self.library_pk, event.src_path)
         else:
-            task = ComicDeletedTask(event.src_path)
+            task = ComicDeletedTask(self.library_pk, event.src_path)
         QUEUE.put(task)
 
 

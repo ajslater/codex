@@ -5,6 +5,7 @@ from django.contrib.admin import ModelAdmin, register
 from django.contrib.admin.templatetags.admin_urls import admin_urlname
 from django.shortcuts import resolve_url
 from django.utils.html import format_html
+from django.utils.safestring import SafeText
 
 from codex.librarian.cover import purge_all_covers
 from codex.librarian.queue_mp import (
@@ -20,6 +21,7 @@ from codex.models import AdminFlag, FailedImport, Library
 
 
 LOG = logging.getLogger(__name__)
+SAFE_CHANGE = SafeText("change")
 
 
 @register(Library)
@@ -31,7 +33,7 @@ class AdminLibrary(ModelAdmin):
         ("Scans", {"fields": ("last_scan", "scan_in_progress")}),
         ("Scheduled Scans", {"fields": ("enable_scan_cron", "scan_frequency")}),
     )
-    actions = ("scan", "force_scan", "bulk_scan")
+    actions = ("scan", "force_scan")
     empty_value_display = "Never"
     list_display = (
         "path",
@@ -55,11 +57,11 @@ class AdminLibrary(ModelAdmin):
     readonly_fields = ("last_scan",)
     sortable_by = list_display
 
-    def _scan(self, request, queryset, force, bulk=False):
+    def _scan(self, _, queryset, force):
         """Queue a scan task for the library."""
         pks = queryset.values_list("pk", flat=True)
         for pk in pks:
-            task = ScanRootTask(pk, force, bulk)
+            task = ScanRootTask(pk, force)
             QUEUE.put(task)
 
     def scan(self, request, queryset):
@@ -74,12 +76,7 @@ class AdminLibrary(ModelAdmin):
 
     force_scan.short_description = "Re-import all comics"
 
-    def bulk_scan(self, request, queryset):
-        self._scan(request, queryset, False, True)
-
-    bulk_scan.short_description = "Bulk scan comics for changes"
-
-    def _on_change(self, obj, created=False):
+    def _on_change(self, _, created=False):
         """Events for when the library has changed."""
         # XXX These sleep values are for waiting for db consistency
         #     between processes. Klugey.
@@ -121,11 +118,11 @@ class AdminLibrary(ModelAdmin):
 class AdminNoAddDelete(ModelAdmin):
     """An admin model that can't be added or deleted."""
 
-    def has_add_permission(self, request, obj=None):
+    def has_add_permission(self, _, obj=None):
         """Can't Add these."""
         return False
 
-    def has_delete_permission(self, request, obj=None):
+    def has_delete_permission(self, _, obj=None):
         """Can't Remove these."""
         return False
 
@@ -194,7 +191,7 @@ class AdminFailedImport(AdminNoAddDelete):
 
     def library_link(self, item):
         """Render a field for linking to the library change page."""
-        url = resolve_url(admin_urlname(Library._meta, "change"), item.library.id)
+        url = resolve_url(admin_urlname(Library._meta, SAFE_CHANGE), item.library.id)
         return format_html(
             '<a href="{url}">{name}</a>'.format(url=url, name=str(item.library))
         )

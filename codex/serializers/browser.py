@@ -145,7 +145,7 @@ class BrowserCardSerializer(Serializer):
         """Ensure comic cover exists for any cover_path we send."""
         comic_path = obj.get("x_path")
         cover_path = obj.get("x_cover_path")
-        task = ComicCoverCreateTask(comic_path, cover_path, False)
+        task = ComicCoverCreateTask(0, comic_path, cover_path, False)
         QUEUE.put(task)
         return cover_path
 
