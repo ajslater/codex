@@ -135,7 +135,6 @@ def _create_all_missing_fks(
 
     create_missing_folders(library, create_paths)
 
-    # XXX credit_fk_keys = set(create_fks.keys()) & set([CreditRole, CreditPerson])
     for cls, names in create_fks.items():
         _create_missing_named_models(cls, names)
 
