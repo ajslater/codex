@@ -142,32 +142,16 @@ def _link_comic_m2m_fields(m2m_mds):
     return all_m2m_links
 
 
-THROUGH_FIELDS = {
-    "credits": Comic.credits.through,
-    "tags": Comic.tags.through,
-    "teams": Comic.teams.through,
-    "characters": Comic.characters.through,
-    "locations": Comic.locations.through,
-    "series_groups": Comic.series_groups.through,
-    "story_arcs": Comic.story_arcs.through,
-    "genres": Comic.genres.through,
-    "folder": Comic.folder.through,
-}
-
-
 def bulk_create_m2m_field(field_name, m2m_links):
-    # field = Comic._meta.get_field(field_name)
-    # field = getattr(Comic, field_name)
-    # if not isinstance(field, ManyToManyField):
-    #    raise ValueError("Wrong type of field")
-    # XXX This should be loopable idk why it isn't
-    ThroughModel = THROUGH_FIELDS[field_name]  # field.through
-    tms = []
+    # This returns a ManyToManyDescriptor which has the through attr
+    field = getattr(Comic, field_name)
+    ThroughModel = field.through
     model = Comic._meta.get_field(field_name).related_model
     if model is None:
         raise ValueError(f"Bad model from {field_name}")
     link_name = model.__name__.lower()
     through_field_id_name = f"{link_name}_id"
+    tms = []
     for comic_pk, pks in m2m_links.items():
         for pk in pks:
             defaults = {"comic_id": comic_pk, through_field_id_name: pk}
