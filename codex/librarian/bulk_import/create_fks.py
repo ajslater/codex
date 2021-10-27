@@ -43,7 +43,9 @@ def _create_group_obj(cls, group_param_tuple, count):
         defaults["issue_count"] = count
     if defaults["name"] == cls.DEFAULT_NAME:
         defaults["is_default"] = True
-    return cls(**defaults)
+    group_obj = cls(**defaults)
+    group_obj.presave()
+    return group_obj
 
 
 def _create_missing_groups(all_create_groups):
@@ -88,9 +90,9 @@ def create_missing_folders(library, folder_paths):
                 library=library,
                 path=str(path),
                 name=name,
-                sort_name=name,
                 parent_folder=parent,
             )
+            folder.presave()
             create_folders.append(folder)
         Folder.objects.bulk_create(create_folders)
         LOG.info(f"Created {len(create_folders)} Folders.")

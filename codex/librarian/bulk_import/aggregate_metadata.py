@@ -132,8 +132,8 @@ def _bulk_update_failed_imports(library_pk, failed_imports):
     update_failed_imports = []
     create_failed_imports = []
     for path, exc in failed_imports.items():
-        reason = FailedImport.get_reason(path, exc)
-        fi = FailedImport(library_id=library_pk, path=path, reason=reason)
+        fi = FailedImport(library_id=library_pk, path=path)
+        fi.set_reason(exc, path)
         if path in exisiting_fi_paths:
             update_failed_imports.append(fi)
         else:

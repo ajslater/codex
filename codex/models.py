@@ -53,6 +53,15 @@ class BrowserGroupModel(BaseModel):
     is_default = BooleanField(default=False)
     sort_name = CharField(db_index=True, max_length=32)
 
+    def presave(self):
+        """Save the sort name. Called by save()"""
+        self.sort_name = self.name
+
+    def save(self, *args, **kwargs):
+        """Save the sort name as the name by default."""
+        self.presave()
+        super().save(*args, **kwargs)
+
     class Meta:
         """Without this a real table is created and joined to."""
 
@@ -72,11 +81,6 @@ class Publisher(BrowserGroupModel):
         publisher, _ = cls.objects.get_or_create(defaults=cls.DEFAULTS, **cls.DEFAULTS)
         return publisher
 
-    def save(self, *args, **kwargs):
-        """Save the sort name as the name by default."""
-        self.sort_name = self.name
-        super().save(*args, **kwargs)
-
     class Meta:
         """Constraints."""
 
@@ -95,10 +99,9 @@ class Imprint(BrowserGroupModel):
 
         unique_together = ("name", "publisher", "is_default")
 
-    def save(self, *args, **kwargs):
-        """Save the sort name."""
+    def presave(self):
+        """Save the sort name. Called by save()"""
         self.sort_name = f"{self.publisher.name} {self.name}"
-        super().save(*args, **kwargs)
 
 
 class Series(BrowserGroupModel):
@@ -109,11 +112,6 @@ class Series(BrowserGroupModel):
     publisher = ForeignKey(Publisher, on_delete=Publisher.get_default_publisher)
     imprint = ForeignKey(Imprint, on_delete=CASCADE)
     volume_count = PositiveSmallIntegerField(null=True)
-
-    def save(self, *args, **kwargs):
-        """Save the sort name as the name by default."""
-        self.sort_name = self.name
-        super().save(*args, **kwargs)
 
     class Meta:
         """Constraints."""
@@ -132,10 +130,9 @@ class Volume(BrowserGroupModel):
     series = ForeignKey(Series, on_delete=CASCADE)
     issue_count = DecimalField(decimal_places=2, max_digits=6, null=True)
 
-    def save(self, *args, **kwargs):
-        """Save the sort name."""
+    def presave(self):
+        """Save the sort name. Called by save()"""
         self.sort_name = f"{self.series.name} {self.name}"
-        super().save(*args, **kwargs)
 
     class Meta:
         """Constraints."""
@@ -203,9 +200,13 @@ class Folder(NamedModel):
     )
     sort_name = CharField(max_length=32)
 
+    def presave(self):
+        """Save the sort name. Called by save()"""
+        self.sort_name = self.name
+
     def save(self, *args, **kwargs):
         """Save the sort name as the name by default."""
-        self.sort_name = self.name
+        self.presave()
         super().save(*args, **kwargs)
 
     class Meta:
@@ -480,17 +481,15 @@ class FailedImport(BaseModel):
     path = CharField(db_index=True, max_length=128)
     reason = CharField(max_length=MAX_REASON_LEN)
 
-    @classmethod
-    def get_reason(cls, exc, path):
+    def set_reason(self, exc, path):
         """Can't do this in save() because it breaks update_or_create."""
         reason = str(exc)
         suffixes = (f": {path}", f": '{path}'")
         for suffix in suffixes:
             if reason.endswith(suffix):
                 reason = reason[: -len(suffix)]
-        reason = reason[: cls.MAX_REASON_LEN]
-        reason = reason.strip()
-        return reason
+        reason = reason[: self.MAX_REASON_LEN]
+        self.reason = reason.strip()
 
     class Meta:
         """Constraints."""
