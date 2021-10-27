@@ -131,20 +131,15 @@ class LibrarianDaemon(Process):
                 args = (task.src_path, task.db_cover_path, task.force)
                 self.pool.apply_async(create_comic_cover, args=args)
             elif isinstance(task, FolderMovedTask):
-                print(f"{task}")
                 folders_moved = {task.src_path: task.dest_path}
-                print(folders_moved)
                 bulk_folders_moved(task.library_id, folders_moved)
             elif isinstance(task, ComicMovedTask):
-                print(f"{task}")
                 moved_paths = {task.src_path: task.dest_path}
                 bulk_comics_moved(task.library_id, moved_paths)
             elif isinstance(task, ComicDeletedTask):
-                print(f"{task}")
                 delete_paths = set([task.src_path])
                 bulk_import(task.library_id, delete_paths)
             elif isinstance(task, FolderDeletedTask):
-                print(f"{task}")
                 delete_folder_paths = set([task.src_path])
                 bulk_folders_deleted(task.library_id, delete_folder_paths)
             elif isinstance(task, LibraryChangedTask):
