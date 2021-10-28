@@ -24,6 +24,7 @@ from codex.models import Comic, Folder, Library
 LOG = logging.getLogger(__name__)
 MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder")
 MOVED_BULK_FOLDER_UPDATE_FIELDS = ("path", "parent_folder", "name", "sort_name")
+BATCH_SIZE = 200
 
 
 def _bulk_create_comic_relations(library, fks):
@@ -38,6 +39,25 @@ def _bulk_create_comic_relations(library, fks):
     bulk_create_all_fks(
         library, create_fks, create_groups, create_paths, create_credits
     )
+
+
+def _split_batch(paths, batch_size):
+    """Split paths into a batch with variable size."""
+    end = max(min(len(paths), batch_size), 0)
+    head = set(paths[:batch_size])
+    tail = paths[batch_size:]
+    return end, head, tail
+
+
+def _split_batches(update_paths, create_paths):
+    """Split both path lists into batches totalling BATCH_SIZE."""
+
+    update_end, update_head, update_tail = _split_batch(update_paths, BATCH_SIZE)
+
+    create_batch_size = BATCH_SIZE - update_end
+    _, create_head, create_tail = _split_batch(create_paths, create_batch_size)
+
+    return update_head, update_tail, create_head, create_tail
 
 
 def bulk_import(
@@ -58,17 +78,33 @@ def bulk_import(
             create_paths = set()
 
         LOG.debug(
-            f"Importing comcis: {len(create_paths)} new, {len(update_paths)} "
+            f"Importing comics: {len(create_paths)} new, {len(update_paths)} "
             f"outdated, {len(delete_paths)} deleted."
         )
 
-        mds, m2m_mds, fks = get_aggregate_metadata(
-            library.pk, update_paths | create_paths
-        )
+        update_paths_tail = sorted(update_paths)
+        create_paths_tail = sorted(create_paths)
+        while update_paths_tail or create_paths_tail:
+            (
+                update_paths_head,
+                update_paths_tail,
+                create_paths_head,
+                create_paths_tail,
+            ) = _split_batches(update_paths_tail, create_paths_tail)
 
-        _bulk_create_comic_relations(library, fks)
+            LOG.debug(
+                f"Batch update {len(update_paths_head)}, "
+                f"create {len(create_paths_head)}."
+            )
+            mds, m2m_mds, fks = get_aggregate_metadata(
+                library.pk, update_paths_head | create_paths_head
+            )
 
-        bulk_import_comics(library, create_paths, update_paths, mds, m2m_mds)
+            _bulk_create_comic_relations(library, fks)
+
+            bulk_import_comics(
+                library, create_paths_head, update_paths_head, mds, m2m_mds
+            )
 
     cleanup_database(library, delete_paths)
     total_imported = len(update_paths) + len(create_paths)
