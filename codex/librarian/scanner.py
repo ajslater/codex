@@ -58,7 +58,7 @@ def _bulk_scan_new(library_path, all_comic_paths):
             path = walk_root / filename
             if path not in all_comic_paths:
                 create_comic_paths.add(path)
-    LOG.debug("\tScanned {len(create_comic_paths)} new comics")
+    LOG.debug(f"\tScanned {len(create_comic_paths)} new comics")
     return create_comic_paths
 
 

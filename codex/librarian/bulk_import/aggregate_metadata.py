@@ -147,6 +147,9 @@ def _bulk_update_or_create_failed_imports(library_pk, failed_imports):
         FailedImport.objects.bulk_update(update_failed_imports, fields=("reason",))
     if create_failed_imports:
         FailedImport.objects.bulk_create(create_failed_imports)
+    num_failed_imports = len(failed_imports)
+    if num_failed_imports:
+        LOG.warn(f"Failed {num_failed_imports} comic imports.")
 
 
 def get_aggregate_metadata(library_pk, all_paths):
@@ -156,7 +159,8 @@ def get_aggregate_metadata(library_pk, all_paths):
     all_fks = {"group_trees": {Publisher: {}, Imprint: {}, Series: {}, Volume: {}}}
     all_failed_imports = {}
 
-    for path in all_paths:
+    for num, path in enumerate(all_paths):
+        LOG.debug(f"Aggregating metadata from {num} {path}")
         path = str(path)
         md, m2m_md, group_tree_md, failed_import = _get_path_metadata(library_pk, path)
 
@@ -176,4 +180,5 @@ def get_aggregate_metadata(library_pk, all_paths):
 
     _bulk_update_or_create_failed_imports(library_pk, all_failed_imports)
 
+    LOG.debug("Aggregated metadata from {len(all_mds)} comics.")
     return all_mds, all_m2m_mds, all_fks
