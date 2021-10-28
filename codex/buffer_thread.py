@@ -7,6 +7,7 @@ from threading import Thread
 
 class TimedMessage:
     """A message that timestamps its own creation."""
+
     def __init__(self, *args, **kwargs):
         self.time = time.time()
         super().__init__(*args, **kwargs)

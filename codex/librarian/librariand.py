@@ -9,10 +9,7 @@ import simplejson as json
 
 from websocket import create_connection
 
-from codex.librarian.bulk_import.main import (
-    bulk_comics_moved,
-    bulk_folders_moved,
-)
+from codex.librarian.bulk_import.main import bulk_comics_moved, bulk_folders_moved
 from codex.librarian.cover import create_comic_cover
 from codex.librarian.crond import Crond
 from codex.librarian.queue_mp import (

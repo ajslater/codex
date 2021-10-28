@@ -5,7 +5,6 @@ from pathlib import Path
 from codex.librarian.cover import purge_cover_path
 from codex.models import (
     Character,
-    Library,
     Comic,
     Credit,
     CreditPerson,
@@ -14,6 +13,7 @@ from codex.models import (
     Folder,
     Genre,
     Imprint,
+    Library,
     Location,
     Publisher,
     Series,

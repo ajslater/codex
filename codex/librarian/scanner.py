@@ -8,11 +8,7 @@ from pathlib import Path
 from django.utils import timezone
 
 from codex.librarian.bulk_import.main import bulk_import
-from codex.librarian.queue_mp import (
-    QUEUE,
-    ScanDoneTask,
-    ScanRootTask,
-)
+from codex.librarian.queue_mp import QUEUE, ScanDoneTask, ScanRootTask
 from codex.librarian.regex import COMIC_MATCHER
 from codex.models import SCHEMA_VERSION, Comic, FailedImport, Library
 
