@@ -8,7 +8,11 @@ from pathlib import Path
 from django.utils import timezone
 
 from codex.librarian.bulk_import.main import bulk_import
-from codex.librarian.queue_mp import QUEUE, ScanDoneTask, ScanRootTask
+from codex.librarian.queue_mp import (
+    QUEUE,
+    ScanDoneTask,
+    ScanRootTask,
+)
 from codex.librarian.regex import COMIC_MATCHER
 from codex.models import SCHEMA_VERSION, Comic, FailedImport, Library
 
@@ -58,8 +62,7 @@ def _bulk_scan_new(library_path, all_comic_paths):
 def _bulk_scan_and_import(library, force):
     all_paths, update_paths, delete_paths = _bulk_scan_existing(library, force)
     create_paths = _bulk_scan_new(library.path, all_paths)
-    total_imported = len(update_paths) + len(create_paths)
-    bulk_import(
+    total_imported = bulk_import(
         library=library,
         update_paths=update_paths,
         create_paths=create_paths,

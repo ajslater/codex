@@ -13,6 +13,7 @@ from codex.librarian.bulk_import.create_fks import (
     create_missing_folders,
 )
 from codex.librarian.bulk_import.query_fks import query_missing_paths
+from codex.librarian.queue_mp import QUEUE, LibraryChangedTask
 from codex.models import Comic, Folder, Library
 
 
@@ -48,6 +49,9 @@ def bulk_import(
             bulk_import_comics(library, create_paths, update_paths, mds, m2m_mds)
 
     cleanup_database(library, delete_paths)
+    total_imported = len(update_paths) + len(create_paths)
+    if total_imported or delete_paths:
+        QUEUE.put(LibraryChangedTask())
 
 
 def bulk_comics_moved(library_pk, moved_paths):
@@ -80,8 +84,9 @@ def bulk_comics_moved(library_pk, moved_paths):
     # Update m2m field
     bulk_create_m2m_field("folder", folder_m2m_links)
     LOG.info(f"Moved {len(moved_paths)} comics.")
-
     cleanup_database(library)
+    if moved_paths:
+        QUEUE.put(LibraryChangedTask())
 
 
 def _get_parent_folders(library, folders_moved):
@@ -131,3 +136,5 @@ def bulk_folders_moved(library_pk, folders_moved):
     dest_parent_folders = _get_parent_folders(library, folders_moved)
     _update_moved_folders(library, folders_moved, dest_parent_folders)
     cleanup_database(library)
+    if folders_moved:
+        QUEUE.put(LibraryChangedTask())
