@@ -131,12 +131,3 @@ def bulk_folders_moved(library_pk, folders_moved):
     dest_parent_folders = _get_parent_folders(library, folders_moved)
     _update_moved_folders(library, folders_moved, dest_parent_folders)
     cleanup_database(library)
-
-
-def bulk_folders_deleted(library_pk, delete_folder_paths):
-    """Bulk delete entire folders."""
-    Comic.objects.filter(
-        library=library_pk, folder__path__in=delete_folder_paths
-    ).delete()
-
-    cleanup_database(library_pk=library_pk)

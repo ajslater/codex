@@ -4,30 +4,55 @@ import os
 import time
 
 from pathlib import Path
+from queue import Empty, SimpleQueue
+from threading import Thread
 
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-from codex.librarian.regex import COMIC_MATCHER
 from codex.librarian.queue_mp import (
     QUEUE,
-    ComicDeletedTask,
-    ComicModifiedTask,
-    ComicMovedTask,
-    FolderDeletedTask,
-    FolderMovedTask,
+    BulkComicMovedTask,
+    BulkFolderMovedTask,
+    ScanRootTask,
 )
+from codex.librarian.regex import COMIC_MATCHER
 from codex.models import Library
 
 
 LOG = logging.getLogger(__name__)
 
 
+class LibraryMessage:
+    def __init__(self, library_id, *args, **kwargs):
+        self.library_id = library_id
+        self.time = time.time()
+        super().__init__(*args, **kwargs)
+
+
+class ScanRootMessage(LibraryMessage):
+    pass
+
+
+class MovedMessage(LibraryMessage):
+    def __init__(self, library_id, src_path, dest_path):
+        self.src_path = src_path
+        self.dest_path = dest_path
+        super().__init__(library_id)
+
+
+class FolderMovedMessage(MovedMessage):
+    pass
+
+
+class ComicMovedMessage(MovedMessage):
+    pass
+
+
 class CodexLibraryEventHandler(FileSystemEventHandler):
     """Handle watchdog events for comics in a library."""
-    # TODO: batch up events to use bulk functions.
 
-    EVENT_DELAY = 1
+    EVENT_DELAY = 0.05
 
     def __init__(self, library_pk, *args, **kwargs):
         """Let us send along he library id."""
@@ -64,10 +89,7 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
         copying.
         """
         old_size = -1
-        while True:
-            new_size = cls.get_size(path, is_dir)
-            if old_size == new_size:
-                break
+        while old_size != cls.get_size(path, is_dir):
             old_size = cls.get_size(path, is_dir)
             time.sleep(cls.EVENT_DELAY)
 
@@ -84,8 +106,8 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
 
         src_path = Path(event.src_path)
         self._wait_for_copy(src_path, event.is_directory)
-        task = ComicModifiedTask(self.library_pk, event.src_path)
-        QUEUE.put(task)
+        message = ScanRootMessage(self.library_pk)
+        EventBatchThread.MESSAGE_QUEUE.put(message)
 
     def on_created(self, event):
         """Do the same thing as for modified."""
@@ -103,10 +125,14 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
 
         self._wait_for_copy(event.dest_path, event.is_directory)
         if event.is_directory:
-            task = FolderMovedTask(self.library_pk, event.src_path, event.dest_path)
+            message = FolderMovedMessage(
+                self.library_pk, event.src_path, event.dest_path
+            )
         else:
-            task = ComicMovedTask(self.library_pk, event.src_path, event.dest_path)
-        QUEUE.put(task)
+            message = ComicMovedMessage(
+                self.library_pk, event.src_path, event.dest_path
+            )
+        EventBatchThread.MESSAGE_QUEUE.put(message)
 
     def on_deleted(self, event):
         """Put a comic deleted task on the queue."""
@@ -114,11 +140,87 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
             return
 
         self._wait_for_delete(event.src_path)
-        if event.is_directory:
-            task = FolderDeletedTask(self.library_pk, event.src_path)
-        else:
-            task = ComicDeletedTask(self.library_pk, event.src_path)
-        QUEUE.put(task)
+        message = ScanRootMessage(self.library_pk)
+        EventBatchThread.MESSAGE_QUEUE.put(message)
+
+
+class EventBatchThread(Thread):
+    """Batch watchdog events into bulk database tasks."""
+
+    thread = None
+    MESSAGE_QUEUE = SimpleQueue()
+    SHUTDOWN_MSG = "shutdown"
+    SHUTDOWN_TIMEOUT = 5
+    BATCH_DELAY = 2
+    MAX_BATCH_WAIT_TIME = 30
+    MESSAGE_TASK_MAP = {
+        FolderMovedMessage: BulkFolderMovedTask,
+        ComicMovedMessage: BulkComicMovedTask,
+        ScanRootMessage: ScanRootTask,
+    }
+    TASK_ORDER = (FolderMovedMessage, ComicMovedMessage, ScanRootMessage)
+
+    def __init__(self):
+        """Name the thread."""
+        self.events = {
+            FolderMovedMessage: {},
+            ComicMovedMessage: {},
+            ScanRootMessage: {},
+        }
+        super().__init__(name="watchdog-event-batcher", daemon=True)
+
+    def run(self):
+        LOG.info("Started watcher batch event worker.")
+        while True:
+            waiting_since = time.time()
+            try:
+                message = self.MESSAGE_QUEUE.get(timeout=self.BATCH_DELAY)
+                if message == self.SHUTDOWN_MSG:
+                    break
+                LOG.debug(f"Adding {message} to cache.")
+                # Aggregate event into bulk tasks
+                class_dict = self.events[message.__class__]
+                if message.library_id not in class_dict:
+                    class_dict[message.library_id] = {}
+                if isinstance(message, MovedMessage):
+                    class_dict[message.library_id][message.src_path] = message.dest_path
+
+                wait_left = message.time + self.BATCH_DELAY - time.time()
+            except Empty:
+                wait_left = 0
+            wait_break = time.time() - waiting_since > self.MAX_BATCH_WAIT_TIME
+            if self.MESSAGE_QUEUE.empty() and not wait_break and wait_left > 0:
+                continue
+            # Send all tasks
+            for message_cls in self.TASK_ORDER:
+                library_params = self.events[message_cls]
+                for library_id, moved_paths in library_params.items():
+                    params = {"library_id": library_id}
+                    if message_cls == ScanRootTask:
+                        params["force"] = False
+                    else:
+                        params["moved_paths"] = moved_paths
+                    task_cls = self.MESSAGE_TASK_MAP[message_cls]
+                    task = task_cls(**params)
+                    LOG.debug(f"Sending task: {task}")
+                    QUEUE.put(task)
+            # reset the event aggregates
+            for message_cls in self.events.keys():
+                self.events[message_cls] = {}
+        LOG.info("Stopped watcher batch event worker.")
+
+    @classmethod
+    def startup(cls):
+        """Start the thread."""
+        cls.thread = EventBatchThread()
+        cls.thread.start()
+
+    @classmethod
+    def shutdown(cls):
+        """End the thread."""
+        cls.MESSAGE_QUEUE.put(cls.SHUTDOWN_MSG)
+        if cls.thread:
+            cls.thread.join(cls.SHUTDOWN_TIMEOUT)
 
 
 class Uatu(Observer):
@@ -128,8 +230,13 @@ class Uatu(Observer):
 
     def __init__(self, *args, **kwargs):
         """Intialize pk to watches dict."""
+        EventBatchThread.startup()
         super().__init__(*args, **kwargs)
         self._pk_watches = dict()
+
+    def stop(self):
+        EventBatchThread.shutdown()
+        super().stop()
 
     def unwatch_library(self, pk):
         """Stop a watch process."""

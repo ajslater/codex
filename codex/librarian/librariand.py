@@ -11,21 +11,15 @@ from websocket import create_connection
 
 from codex.librarian.bulk_import.main import (
     bulk_comics_moved,
-    bulk_folders_deleted,
     bulk_folders_moved,
-    bulk_import,
 )
 from codex.librarian.cover import create_comic_cover
 from codex.librarian.crond import Crond
 from codex.librarian.queue_mp import (
     QUEUE,
+    BulkComicMovedTask,
+    BulkFolderMovedTask,
     ComicCoverCreateTask,
-    ComicCreatedTask,
-    ComicDeletedTask,
-    ComicModifiedTask,
-    ComicMovedTask,
-    FolderDeletedTask,
-    FolderMovedTask,
     LibraryChangedTask,
     RestartTask,
     ScanDoneTask,
@@ -119,29 +113,14 @@ class LibrarianDaemon(Process):
                     msg = WS_MSGS["SCAN_DONE"]
                 if not self.send_json(MessageType.ADMIN_BROADCAST, msg):
                     QUEUE.put(task)
-            elif isinstance(task, ComicCreatedTask):
-                bulk_import(
-                    create_paths=set([task.src_path]), library_pk=task.library_id
-                )
-            elif isinstance(task, ComicModifiedTask):
-                update_paths = set([task.src_path])
-                bulk_import(update_paths=update_paths, library_pk=task.library_id)
             elif isinstance(task, ComicCoverCreateTask):
                 # Cover creation is cpu bound, farm it out.
                 args = (task.src_path, task.db_cover_path, task.force)
                 self.pool.apply_async(create_comic_cover, args=args)
-            elif isinstance(task, FolderMovedTask):
-                folders_moved = {task.src_path: task.dest_path}
-                bulk_folders_moved(task.library_id, folders_moved)
-            elif isinstance(task, ComicMovedTask):
-                moved_paths = {task.src_path: task.dest_path}
-                bulk_comics_moved(task.library_id, moved_paths)
-            elif isinstance(task, ComicDeletedTask):
-                delete_paths = set([task.src_path])
-                bulk_import(task.library_id, delete_paths)
-            elif isinstance(task, FolderDeletedTask):
-                delete_folder_paths = set([task.src_path])
-                bulk_folders_deleted(task.library_id, delete_folder_paths)
+            elif isinstance(task, BulkFolderMovedTask):
+                bulk_folders_moved(task.library_id, task.moved_paths)
+            elif isinstance(task, BulkComicMovedTask):
+                bulk_comics_moved(task.library_id, task.moved_paths)
             elif isinstance(task, LibraryChangedTask):
                 msg = WS_MSGS["LIBRARY_CHANGED"]
                 if not self.send_json(MessageType.BROADCAST, msg):
