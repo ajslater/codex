@@ -130,6 +130,7 @@ class Uatu(Observer):
         self._pk_watches = dict()
 
     def stop(self):
+        """Stop the batcher thread."""
         EventBatchThread.shutdown()
         super().stop()
 
@@ -193,27 +194,39 @@ class Uatu(Observer):
 
 
 class LibraryMessage(TimedMessage):
+    """Set the library id."""
+
     def __init__(self, library_id, *args, **kwargs):
+        """Set the library id."""
         self.library_id = library_id
         super().__init__(*args, **kwargs)
 
 
 class ScanRootMessage(LibraryMessage):
+    """Scan Root."""
+
     pass
 
 
 class MovedMessage(LibraryMessage):
+    """Move folders or comics."""
+
     def __init__(self, library_id, src_path, dest_path):
+        """Set the src and dest paths for a moved object."""
         self.src_path = src_path
         self.dest_path = dest_path
         super().__init__(library_id)
 
 
 class FolderMovedMessage(MovedMessage):
+    """Move folders."""
+
     pass
 
 
 class ComicMovedMessage(MovedMessage):
+    """Move comics."""
+
     pass
 
 
@@ -240,6 +253,7 @@ class EventBatchThread(BufferThread):
         super().__init__()
 
     def run(self):
+        """Run the worker."""
         LOG.info("Started watcher batch event worker.")
         while True:
             waiting_since = time.time()

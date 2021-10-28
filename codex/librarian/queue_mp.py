@@ -29,16 +29,22 @@ class ComicCoverCreateTask(LibraryTask):
 
 @dataclass
 class BulkMovedTask(LibraryTask):
+    """Move Folders or Comics."""
+
     moved_paths: dict
 
 
 @dataclass
 class BulkFolderMovedTask(BulkMovedTask):
+    """Move Folders."""
+
     pass
 
 
 @dataclass
 class BulkComicMovedTask(BulkMovedTask):
+    """Move Comics."""
+
     pass
 
 

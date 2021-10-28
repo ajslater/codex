@@ -9,6 +9,7 @@ class TimedMessage:
     """A message that timestamps its own creation."""
 
     def __init__(self, *args, **kwargs):
+        """Set time of creation."""
         self.time = time.time()
         super().__init__(*args, **kwargs)
 

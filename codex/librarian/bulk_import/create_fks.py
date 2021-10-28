@@ -1,5 +1,6 @@
-""""
+"""
 Create all missing comic foreign keys for an import.
+
 So we may safely create the comics next.
 """
 
@@ -7,7 +8,6 @@ import logging
 
 from pathlib import Path
 
-from codex.librarian.bulk_import.query_fks import query_all_missing_fks
 from codex.models import (
     Credit,
     CreditPerson,
@@ -24,6 +24,7 @@ LOG = logging.getLogger(__name__)
 
 
 def _create_group_obj(cls, group_param_tuple, count):
+    """Create a set of browser group objects."""
     defaults = {"name": group_param_tuple[-1]}
     if cls in (Imprint, Series, Volume):
         defaults["publisher"] = Publisher.objects.get(name=group_param_tuple[0])
@@ -48,7 +49,7 @@ def _create_group_obj(cls, group_param_tuple, count):
     return group_obj
 
 
-def _create_missing_groups(all_create_groups):
+def _bulk_create_groups(all_create_groups):
     """Create missing groups breadth first."""
     # TODO special code for updating series and volume counts
     if not all_create_groups:
@@ -65,7 +66,7 @@ def _create_missing_groups(all_create_groups):
         LOG.info(f"Created {len(create_groups)} {cls.__name__}s.")
 
 
-def create_missing_folders(library, folder_paths):
+def bulk_create_folders(library, folder_paths):
     """Create folders breadth first."""
     # group folder paths by depth
     folder_path_dict = {}
@@ -98,7 +99,8 @@ def create_missing_folders(library, folder_paths):
         LOG.info(f"Created {len(create_folders)} Folders.")
 
 
-def _create_missing_named_models(cls, names):
+def _bulk_create_named_models(cls, names):
+    """Bulk create named models."""
     if not names:
         return
     create_named_objs = []
@@ -110,7 +112,8 @@ def _create_missing_named_models(cls, names):
     LOG.info(f"Created {len(create_named_objs)} {cls.__name__}s.")
 
 
-def _create_missing_credits(create_credit_tuples):
+def _bulk_create_credits(create_credit_tuples):
+    """Bulk create credits."""
     if not create_credit_tuples:
         return
 
@@ -129,26 +132,12 @@ def _create_missing_credits(create_credit_tuples):
     LOG.info(f"Created {len(create_credits)} Credits.")
 
 
-def _create_all_missing_fks(
+def bulk_create_all_fks(
     library, create_fks, create_groups, create_paths, create_credits
 ):
-
-    _create_missing_groups(create_groups)
-
-    create_missing_folders(library, create_paths)
-
+    """Bulk create all foreign keys."""
+    _bulk_create_groups(create_groups)
+    bulk_create_folders(library, create_paths)
     for cls, names in create_fks.items():
-        _create_missing_named_models(cls, names)
-
-    _create_missing_credits(create_credits)
-
-
-def bulk_create_comic_relations(library, fks):
-
-    create_fks, create_groups, create_paths, create_credits = query_all_missing_fks(
-        library.path, fks
-    )
-
-    _create_all_missing_fks(
-        library, create_fks, create_groups, create_paths, create_credits
-    )
+        _bulk_create_named_models(cls, names)
+    _bulk_create_credits(create_credits)

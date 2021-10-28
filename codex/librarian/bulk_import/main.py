@@ -1,18 +1,22 @@
+"""Bulk import and move comics and folders."""
 import logging
 
 from pathlib import Path
 
-from codex.librarian.bulk_import.aggregate_metadata import get_metadata
+from codex.librarian.bulk_import.aggregate_metadata import get_aggregate_metadata
 from codex.librarian.bulk_import.cleanup import cleanup_database
 from codex.librarian.bulk_import.create_comics import (
-    bulk_create_m2m_field,
     bulk_import_comics,
+    bulk_recreate_m2m_field,
 )
 from codex.librarian.bulk_import.create_fks import (
-    bulk_create_comic_relations,
-    create_missing_folders,
+    bulk_create_all_fks,
+    bulk_create_folders,
 )
-from codex.librarian.bulk_import.query_fks import query_missing_paths
+from codex.librarian.bulk_import.query_fks import (
+    query_all_missing_fks,
+    query_missing_folder_paths,
+)
 from codex.librarian.queue_mp import QUEUE, LibraryChangedTask
 from codex.models import Comic, Folder, Library
 
@@ -20,6 +24,20 @@ from codex.models import Comic, Folder, Library
 LOG = logging.getLogger(__name__)
 MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder")
 MOVED_BULK_FOLDER_UPDATE_FIELDS = ("path", "parent_folder", "name", "sort_name")
+
+
+def _bulk_create_comic_relations(library, fks):
+    """Query all foreign keys to determine what needs creating, then create them."""
+    if not fks:
+        return
+
+    create_fks, create_groups, create_paths, create_credits = query_all_missing_fks(
+        library.path, fks
+    )
+
+    bulk_create_all_fks(
+        library, create_fks, create_groups, create_paths, create_credits
+    )
 
 
 def bulk_import(
@@ -30,7 +48,6 @@ def bulk_import(
     library_pk=None,
 ):
     """Bulk import comics."""
-
     if not library:
         library = Library.objects.get(pk=library_pk)
 
@@ -40,13 +57,13 @@ def bulk_import(
         if not create_paths:
             create_paths = set()
 
-        mds, m2m_mds, fks = get_metadata(library.pk, update_paths | create_paths)
+        mds, m2m_mds, fks = get_aggregate_metadata(
+            library.pk, update_paths | create_paths
+        )
 
-        if fks:
-            bulk_create_comic_relations(library, fks)
+        _bulk_create_comic_relations(library, fks)
 
-        if create_paths or update_paths or mds or m2m_mds:
-            bulk_import_comics(library, create_paths, update_paths, mds, m2m_mds)
+        bulk_import_comics(library, create_paths, update_paths, mds, m2m_mds)
 
     cleanup_database(library, delete_paths)
     total_imported = len(update_paths) + len(create_paths)
@@ -60,8 +77,8 @@ def bulk_comics_moved(library_pk, moved_paths):
     library = Library.objects.get(pk=library_pk)
 
     # Prepare FKs
-    create_folder_paths = query_missing_paths(library.path, moved_paths.values())
-    create_missing_folders(library, create_folder_paths)
+    create_folder_paths = query_missing_folder_paths(library.path, moved_paths.values())
+    bulk_create_folders(library, create_folder_paths)
 
     # Update Comics
     comics = Comic.objects.filter(library=library, path__in=moved_paths.keys()).only(
@@ -82,7 +99,7 @@ def bulk_comics_moved(library_pk, moved_paths):
     Comic.objects.bulk_update(comics, MOVED_BULK_COMIC_UPDATE_FIELDS)
 
     # Update m2m field
-    bulk_create_m2m_field("folder", folder_m2m_links)
+    bulk_recreate_m2m_field("folder", folder_m2m_links)
     LOG.info(f"Moved {len(moved_paths)} comics.")
     cleanup_database(library)
     if moved_paths:

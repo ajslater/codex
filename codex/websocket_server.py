@@ -110,6 +110,7 @@ class FloodControlMessage(TimedMessage):
     """Timed message for flood control."""
 
     def __init__(self, message):
+        """Set the message content."""
         self.message = message
         super().__init__()
 

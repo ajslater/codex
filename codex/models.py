@@ -54,7 +54,7 @@ class BrowserGroupModel(BaseModel):
     sort_name = CharField(db_index=True, max_length=32)
 
     def presave(self):
-        """Save the sort name. Called by save()"""
+        """Save the sort name. Called by save()."""
         self.sort_name = self.name
 
     def save(self, *args, **kwargs):
@@ -100,7 +100,7 @@ class Imprint(BrowserGroupModel):
         unique_together = ("name", "publisher", "is_default")
 
     def presave(self):
-        """Save the sort name. Called by save()"""
+        """Save the sort name. Called by save()."""
         self.sort_name = f"{self.publisher.name} {self.name}"
 
 
@@ -131,7 +131,7 @@ class Volume(BrowserGroupModel):
     issue_count = DecimalField(decimal_places=2, max_digits=6, null=True)
 
     def presave(self):
-        """Save the sort name. Called by save()"""
+        """Save the sort name. Called by save()."""
         self.sort_name = f"{self.series.name} {self.name}"
 
     class Meta:
@@ -201,7 +201,7 @@ class Folder(NamedModel):
     sort_name = CharField(max_length=32)
 
     def presave(self):
-        """Save the sort name. Called by save()"""
+        """Save the sort name. Called by save()."""
         self.sort_name = self.name
 
     def save(self, *args, **kwargs):
@@ -382,6 +382,7 @@ class Comic(BaseModel):
         return issue_str
 
     def presave(self):
+        """Set computed values."""
         self._set_date()
         self._set_decade()
         self.sort_name = f"{self.volume.sort_name} {self.issue:06.1f}"

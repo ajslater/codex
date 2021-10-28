@@ -1,6 +1,4 @@
-"""
-Aggregate metadata from comics to prepare for importing.
-"""
+"""Aggregate metadata from comics to prepare for importing."""
 
 import logging
 
@@ -24,6 +22,7 @@ MD_UNUSED_KEYS = ("remainder", "ext", "pages", "cover_image")
 
 
 def _clean_md(md):
+    """Remove keys from the metadata Comic objects don't use."""
     # Maybe this should use a whitelist instead
     for key in MD_UNUSED_KEYS:
         if key in md:
@@ -31,6 +30,7 @@ def _clean_md(md):
 
 
 def _get_path_metadata(library_pk, path):
+    """Get the metatada from comicbox and munge it a little."""
     md = {}
     m2m_md = {}
     group_tree_md = {}
@@ -71,6 +71,7 @@ def _get_path_metadata(library_pk, path):
 
 
 def _none_max(a, b):
+    """math.max but None aware."""
     if a is not None and b is not None:
         return max(a, b)
     if a is None:
@@ -80,6 +81,7 @@ def _none_max(a, b):
 
 
 def _aggregate_m2m_metadata(all_m2m_mds, m2m_md, all_fks, path):
+    """Aggregate many to many metadata by ."""
     # m2m fields and fks
     all_m2m_mds[path] = m2m_md
     # aggregate fks
@@ -106,6 +108,7 @@ def _aggregate_m2m_metadata(all_m2m_mds, m2m_md, all_fks, path):
 
 
 def _aggregate_group_tree_metadata(all_fks, group_tree_md):
+    """Aggregate group tree data by class."""
     for group_tree, group_md in group_tree_md.items():
         all_fks["group_trees"][Publisher][group_tree[0:1]] = None
         all_fks["group_trees"][Imprint][group_tree[0:2]] = None
@@ -124,7 +127,8 @@ def _aggregate_group_tree_metadata(all_fks, group_tree_md):
         all_fks["group_trees"][Volume][volume_group_tree] = issue_count
 
 
-def _bulk_update_failed_imports(library_pk, failed_imports):
+def _bulk_update_or_create_failed_imports(library_pk, failed_imports):
+    """Bulk update or create failed imports."""
     existing_fi_paths = FailedImport.objects.filter(
         library=library_pk, path=failed_imports.keys()
     ).values_list("path", flat=True)
@@ -145,7 +149,8 @@ def _bulk_update_failed_imports(library_pk, failed_imports):
         FailedImport.objects.bulk_create(create_failed_imports)
 
 
-def get_metadata(library_pk, all_paths):
+def get_aggregate_metadata(library_pk, all_paths):
+    """Get aggregated metatada for the paths given."""
     all_mds = {}
     all_m2m_mds = {}
     all_fks = {"group_trees": {Publisher: {}, Imprint: {}, Series: {}, Volume: {}}}
@@ -169,6 +174,6 @@ def get_metadata(library_pk, all_paths):
 
     all_fks["comic_paths"] = set(all_mds.keys())
 
-    _bulk_update_failed_imports(library_pk, all_failed_imports)
+    _bulk_update_or_create_failed_imports(library_pk, all_failed_imports)
 
     return all_mds, all_m2m_mds, all_fks

@@ -1,3 +1,4 @@
+"""Clean up the database after moves or imports."""
 import logging
 
 from pathlib import Path
@@ -45,6 +46,7 @@ LOG = logging.getLogger(__name__)
 
 
 def _bulk_delete_comics(library, delete_comic_paths=None):
+    """Bulk delete comics found missing from the filesystem."""
     if not delete_comic_paths:
         return
     query = Comic.objects.filter(library=library, path__in=delete_comic_paths)
@@ -58,6 +60,7 @@ def _bulk_delete_comics(library, delete_comic_paths=None):
 
 
 def _bulk_cleanup_fks(classes, field_name):
+    """Remove foreign keys that aren't used anymore."""
     for cls in classes:
         filter_dict = {f"{field_name}__isnull": True}
         query = cls.objects.filter(**filter_dict)
@@ -68,7 +71,7 @@ def _bulk_cleanup_fks(classes, field_name):
 
 
 def _bulk_cleanup_failed_imports(library):
-
+    """Remove FailedImport objects that have since succeeded."""
     failed_import_paths = FailedImport.objects.filter(library=library).values_list(
         "path", flat=True
     )
@@ -96,6 +99,7 @@ def _bulk_cleanup_failed_imports(library):
 
 
 def cleanup_database(library=None, delete_comic_paths=None, library_pk=None):
+    """Run all the cleanup routines."""
     if not library:
         library = Library.objects.get(pk=library_pk)
     _bulk_delete_comics(library, delete_comic_paths)

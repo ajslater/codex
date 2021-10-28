@@ -10,7 +10,8 @@ from codex.models import Comic, Credit, Folder, Imprint, Publisher, Series, Volu
 CREDIT_FKS = ("role", "person")
 
 
-def add_group_key(group_name, field_name, cls, filter_args):
+def _add_parent_group_filter(group_name, field_name, cls, filter_args):
+    """Get the parent group filter by name."""
     if field_name:
         key = f"{field_name}__"
     else:
@@ -27,19 +28,19 @@ def add_group_key(group_name, field_name, cls, filter_args):
     filter_args[key] = val
 
 
-def query_missing_group_type(cls, groups):
-
+def _query_missing_group_type(cls, groups):
+    """Get missing groups from proposed groups to create."""
     filter = Q()
     candidates = {}
     for group_tree, count in groups.items():
         filter_args = {}
-        add_group_key(group_tree[-1], "", cls, filter_args)
+        _add_parent_group_filter(group_tree[-1], "", cls, filter_args)
         if cls in (Imprint, Series, Volume):
-            add_group_key(group_tree[0], "publisher", Publisher, filter_args)
+            _add_parent_group_filter(group_tree[0], "publisher", Publisher, filter_args)
         if cls in (Series, Volume):
-            add_group_key(group_tree[1], "imprint", Imprint, filter_args)
+            _add_parent_group_filter(group_tree[1], "imprint", Imprint, filter_args)
         if cls == Volume:
-            add_group_key(group_tree[2], "series", Series, filter_args)
+            _add_parent_group_filter(group_tree[2], "series", Series, filter_args)
 
         filter = filter | Q(**filter_args)
 
@@ -74,34 +75,20 @@ def query_missing_group_type(cls, groups):
     return create_groups
 
 
-def query_missing_groups(group_trees_md):
+def _query_missing_groups(group_trees_md):
+    """Get missing groups from proposed groups to create."""
     # XXX Missing a facility to update Series & Volume count fields on already
     #     created groups
 
     all_create_groups = {}
     for cls, groups in group_trees_md.items():
-        create_groups = query_missing_group_type(cls, groups)
+        create_groups = _query_missing_group_type(cls, groups)
         all_create_groups[cls] = create_groups
     return all_create_groups
 
 
-def query_missing_paths(library_path, comic_paths):
-    folder_paths = set()
-
-    library_path = Path(library_path)
-    for comic_path in comic_paths:
-        for path in Path(comic_path).parents:
-            if path.is_relative_to(library_path) and path != library_path:
-                folder_paths.add(str(path))
-
-    existing_folder_paths = Folder.objects.filter(path__in=folder_paths).values_list(
-        "path", flat=True
-    )
-    create_folder_paths = folder_paths - set(existing_folder_paths)
-    return create_folder_paths
-
-
-def query_missing_credits(credits):
+def _query_missing_credits(credits):
+    """Find missing credit objects."""
     filter = Q()
     comparison_credits = set()
     for credit_tuple in credits:
@@ -123,7 +110,8 @@ def query_missing_credits(credits):
     return create_credits
 
 
-def query_missing_named_models(cls, field, names):
+def _query_missing_named_models(cls, field, names):
+    """Find missing named models."""
     fk_cls = cls._meta.get_field(field).related_model
     existing_names = set(
         fk_cls.objects.filter(name__in=names).values_list("name", flat=True)
@@ -132,21 +120,38 @@ def query_missing_named_models(cls, field, names):
     return fk_cls, create_names
 
 
-def query_all_missing_fks(library_path, fks):
+def query_missing_folder_paths(library_path, comic_paths):
+    """Find missing folder paths."""
+    folder_paths = set()
 
+    library_path = Path(library_path)
+    for comic_path in comic_paths:
+        for path in Path(comic_path).parents:
+            if path.is_relative_to(library_path) and path != library_path:
+                folder_paths.add(str(path))
+
+    existing_folder_paths = Folder.objects.filter(path__in=folder_paths).values_list(
+        "path", flat=True
+    )
+    create_folder_paths = folder_paths - set(existing_folder_paths)
+    return create_folder_paths
+
+
+def query_all_missing_fks(library_path, fks):
+    """Get objects to create by querying existing objects for the proposed fks."""
     create_credits = set()
     if "credits" in fks:
         credits = fks.pop("credits")
-        create_credits |= query_missing_credits(credits)
+        create_credits |= _query_missing_credits(credits)
 
     create_groups = {}
     if "group_trees" in fks:
         group_trees = fks.pop("group_trees")
-        create_groups.update(query_missing_groups(group_trees))
+        create_groups.update(_query_missing_groups(group_trees))
 
     create_paths = set()
     if "comic_paths" in fks:
-        create_paths |= query_missing_paths(library_path, fks.pop("comic_paths"))
+        create_paths |= query_missing_folder_paths(library_path, fks.pop("comic_paths"))
 
     create_fks = {}
     for field in fks.keys():
@@ -155,7 +160,7 @@ def query_all_missing_fks(library_path, fks):
             base_cls = Credit
         else:
             base_cls = Comic
-        cls, names = query_missing_named_models(base_cls, field, names)
+        cls, names = _query_missing_named_models(base_cls, field, names)
         create_fks[cls] = names
 
     return create_fks, create_groups, create_paths, create_credits

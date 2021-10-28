@@ -24,7 +24,7 @@ def _is_outdated(path, updated_at):
 
 
 def _bulk_scan_existing(library, force):
-    """Scan existing comics for updates"""
+    """Scan existing comics for updates."""
     comics = Comic.objects.filter(library=library).values_list("path", "updated_at")
 
     delete_paths = set()

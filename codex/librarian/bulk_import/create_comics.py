@@ -1,3 +1,4 @@
+"""Bulk update and create comic objects and bulk update m2m fields."""
 import logging
 
 from pathlib import Path
@@ -26,6 +27,7 @@ for field in Comic._meta.get_fields():
 
 
 def _get_group_name(cls, md):
+    """Get the name of the browse group."""
     field_name = cls.__name__.lower()
     name = md[field_name]
     if name:
@@ -34,7 +36,7 @@ def _get_group_name(cls, md):
 
 
 def _link_comic_fks(md, library, path):
-    # Link all foreign keys
+    """Link all foreign keys."""
     publisher_name = _get_group_name(Publisher, md)
     imprint_name = _get_group_name(Imprint, md)
     series_name = _get_group_name(Series, md)
@@ -50,6 +52,7 @@ def _link_comic_fks(md, library, path):
 
 
 def _update_comics(library, comic_paths, mds):
+    """Bulk update comics."""
     if not comic_paths:
         return
 
@@ -72,6 +75,7 @@ def _update_comics(library, comic_paths, mds):
 
 
 def _create_comics(library, comic_paths, mds):
+    """Bulk create comics."""
     if not comic_paths:
         return
 
@@ -94,6 +98,7 @@ def _create_comics(library, comic_paths, mds):
 
 
 def _link_folders(comic_path):
+    """Get the ids of all folders to link."""
     folder_paths = Path(comic_path).parents
     folder_pks = Folder.objects.filter(path__in=folder_paths).values_list(
         "pk", flat=True
@@ -102,6 +107,7 @@ def _link_folders(comic_path):
 
 
 def _link_credits(credits):
+    """Get the ids of all credits to link."""
     filter = Q()
     for credit in credits:
         filter_dict = {
@@ -114,6 +120,7 @@ def _link_credits(credits):
 
 
 def _link_named_m2ms(all_m2m_links, comic_pk, md):
+    """Set the ids of all named m2m fields into the comic dict."""
     for field, names in md.items():
         cls = Comic._meta.get_field(field).related_model
         if cls is None:
@@ -126,6 +133,7 @@ def _link_named_m2ms(all_m2m_links, comic_pk, md):
 
 
 def _link_comic_m2m_fields(m2m_mds):
+    """Get the complete m2m field data to create."""
     all_m2m_links = {}
     comic_paths = set(m2m_mds.keys())
 
@@ -142,10 +150,16 @@ def _link_comic_m2m_fields(m2m_mds):
     return all_m2m_links
 
 
-def bulk_create_m2m_field(field_name, m2m_links):
-    # This returns a ManyToManyDescriptor which has the through attr
+def bulk_recreate_m2m_field(field_name, m2m_links):
+    """Recreate an m2m field for a set of comics.
+
+    Since we can't bulk_update or bulk_create m2m fields use a trick.
+    bulk_create() on the through table:
+    https://stackoverflow.com/questions/6996176/how-to-create-an-object-for-a-django-model-with-a-many-to-many-field/10116452#10116452 # noqa: B950,E501
+    https://docs.djangoproject.com/en/3.2/ref/models/fields/#django.db.models.ManyToManyField.through # noqa: B950,E501
+    """
     field = getattr(Comic, field_name)
-    ThroughModel = field.through
+    ThroughModel = field.through  # noqa: N806
     model = Comic._meta.get_field(field_name).related_model
     if model is None:
         raise ValueError(f"Bad model from {field_name}")
@@ -163,18 +177,16 @@ def bulk_create_m2m_field(field_name, m2m_links):
     ThroughModel.objects.bulk_create(tms)
 
 
-def _recreate_comic_m2m_fields(all_m2m_links):
-    # https://stackoverflow.com/questions/6996176/how-to-create-an-object-for-a-django-model-with-a-many-to-many-field/10116452#10116452
-    # https://docs.djangoproject.com/en/3.2/ref/models/fields/#django.db.models.ManyToManyField.through
-    for field_name, m2m_links in all_m2m_links.items():
-        bulk_create_m2m_field(field_name, m2m_links)
-
-
 def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2m_mds):
+    """Bulk import comics."""
+    if not (create_paths or update_paths or all_bulk_mds or all_m2m_mds):
+        return
+
     _update_comics(library, update_paths, all_bulk_mds)
     _create_comics(library, create_paths, all_bulk_mds)
     all_m2m_links = _link_comic_m2m_fields(all_m2m_mds)
-    _recreate_comic_m2m_fields(all_m2m_links)
+    for field_name, m2m_links in all_m2m_links.items():
+        bulk_recreate_m2m_field(field_name, m2m_links)
     if update_paths:
         LOG.info("Updated {len(update_paths)} Comics.")
     if create_paths:
