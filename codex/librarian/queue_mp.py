@@ -19,7 +19,7 @@ class ScanRootTask(LibraryTask):
 
 
 @dataclass
-class ComicCoverCreateTask:
+class ComicCoverCreateTask(LibraryTask):
     """Create a comic cover."""
 
     src_path: str
