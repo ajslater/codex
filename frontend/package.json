@@ -11,7 +11,7 @@
     "dev": "vue-cli-service build --watch"
   },
   "dependencies": {
-    "axios": "^0.23.0",
+    "axios": "^0.24.0",
     "core-js": "^3.18",
     "filesize": "^8.0.3",
     "normalize.css": "^8.0.1",
@@ -68,7 +68,7 @@
     "sass-loader": "^10.1",
     "typeface-roboto": "^1.1.13",
     "vue-cli-plugin-vuetify": "^2.0.8",
-    "vue-eslint-parser": "^7.2.0",
+    "vue-eslint-parser": "^8.0.0",
     "vue-template-compiler": "^2.6.12",
     "vuetify-loader": "^1.6.0",
     "webpack": "^5.58",
