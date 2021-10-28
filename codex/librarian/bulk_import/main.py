@@ -57,6 +57,11 @@ def bulk_import(
         if not create_paths:
             create_paths = set()
 
+        LOG.debug(
+            f"Importing comcis: {len(create_paths)} new, {len(update_paths)} "
+            f"outdated, {len(delete_paths)} deleted."
+        )
+
         mds, m2m_mds, fks = get_aggregate_metadata(
             library.pk, update_paths | create_paths
         )

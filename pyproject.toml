@@ -98,7 +98,7 @@ DJANGO_SETTINGS_MODULE = "codex.settings.settings"
 addopts = """
     --junitxml=test-results/pytest/results.xml
     -ra
-    --strict
+    --strict-markers
     --black
     --cov
     --cov-append

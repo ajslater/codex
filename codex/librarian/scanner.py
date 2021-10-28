@@ -25,6 +25,7 @@ def _is_outdated(path, updated_at):
 
 def _bulk_scan_existing(library, force):
     """Scan existing comics for updates."""
+    LOG.debug(f"Scanning for existing comics {force=}")
     comics = Comic.objects.filter(library=library).values_list("path", "updated_at")
 
     delete_paths = set()
@@ -37,11 +38,16 @@ def _bulk_scan_existing(library, force):
             delete_paths.add(path)
         elif force or _is_outdated(path, updated_at):
             update_comic_paths.add(path)
+    LOG.debug(
+        f"\tScanned {len(all_comic_paths)} comics, {len(update_comic_paths)} "
+        f"outdatd comics, {len(delete_paths)} missing comics."
+    )
     return all_comic_paths, update_comic_paths, delete_paths
 
 
 def _bulk_scan_new(library_path, all_comic_paths):
     """Add comics from a library that aren't in the db already."""
+    LOG.debug("Scanning for new comics")
     create_comic_paths = set()
     for root, _, filenames in os.walk(library_path):
         walk_root = Path(root)
@@ -52,6 +58,7 @@ def _bulk_scan_new(library_path, all_comic_paths):
             path = walk_root / filename
             if path not in all_comic_paths:
                 create_comic_paths.add(path)
+    LOG.debug("\tScanned {len(create_comic_paths)} new comics")
     return create_comic_paths
 
 
