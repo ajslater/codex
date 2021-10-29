@@ -81,7 +81,7 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
         src_path = Path(event.src_path)
         self._wait_for_copy(src_path, event.is_directory)
         message = ScanRootMessage(self.library_pk)
-        EventBatchThread.MESSAGE_QUEUE.put(message)
+        EventBatchThread.MESSAGE_QUEUE.put_nowait(message)
 
     def on_created(self, event):
         """Do the same thing as for modified."""
@@ -106,7 +106,7 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
             message = ComicMovedMessage(
                 self.library_pk, event.src_path, event.dest_path
             )
-        EventBatchThread.MESSAGE_QUEUE.put(message)
+        EventBatchThread.MESSAGE_QUEUE.put_nowait(message)
 
     def on_deleted(self, event):
         """Put a comic deleted task on the queue."""
@@ -115,7 +115,7 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
 
         self._wait_for_delete(event.src_path)
         message = ScanRootMessage(self.library_pk)
-        EventBatchThread.MESSAGE_QUEUE.put(message)
+        EventBatchThread.MESSAGE_QUEUE.put_nowait(message)
 
 
 class Uatu(Observer):
@@ -287,7 +287,7 @@ class EventBatchThread(BufferThread):
                     task_cls = self.MESSAGE_TASK_MAP[message_cls]
                     task = task_cls(**params)
                     LOG.debug(f"Sending task: {task}")
-                    QUEUE.put(task)
+                    QUEUE.put_nowait(task)
             # reset the event aggregates
             for message_cls in self.events.keys():
                 self.events[message_cls] = {}

@@ -80,10 +80,10 @@ class AdminLibrary(ModelAdmin):
         """Events for when the library has changed."""
         # XXX These sleep values are for waiting for db consistency
         #     between processes. Klugey.
+        QUEUE.put_nowait(WatcherCronTask(sleep=1))
         if created:
-            QUEUE.put(LibraryChangedTask())
+            QUEUE.put_nowait(LibraryChangedTask())
             QUEUE.put(ScannerCronTask(sleep=1))
-        QUEUE.put(WatcherCronTask(sleep=1))
 
     def save_model(self, request, obj, form, change):
         """Trigger watching and scanning on update or creation."""
@@ -96,16 +96,16 @@ class AdminLibrary(ModelAdmin):
         """Stop watching on delete."""
         purge_all_covers(obj)
         super().delete_model(request, obj)
-        QUEUE.put(WatcherCronTask(sleep=1))
-        QUEUE.put(LibraryChangedTask())
+        QUEUE.put_nowait(WatcherCronTask(sleep=1))
+        QUEUE.put_nowait(LibraryChangedTask())
 
     def delete_queryset(self, request, queryset):
         """Bulk delete."""
         for obj in queryset:
             purge_all_covers(obj)
         super().delete_queryset(request, queryset)
-        QUEUE.put(WatcherCronTask(sleep=1))
-        QUEUE.put(LibraryChangedTask())
+        QUEUE.put_nowait(WatcherCronTask(sleep=1))
+        QUEUE.put_nowait(LibraryChangedTask())
 
     def save_formset(self, request, form, formset, change):
         """Bulk update."""
@@ -169,7 +169,7 @@ class AdminAdminFlag(AdminNoAddDelete):
         # Folder View could only change the group view and let the ui decide
         # Registration only needs to change the enable flag
         task = LibraryChangedTask()
-        QUEUE.put(task)
+        QUEUE.put_nowait(task)
 
 
 @register(FailedImport)

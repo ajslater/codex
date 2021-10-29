@@ -1,7 +1,7 @@
 """Library Queue and task definitions."""
 # THIS file cannot be named queue or it causes weird type checker errors
 from dataclasses import dataclass
-from multiprocessing import SimpleQueue
+from multiprocessing import Queue
 
 
 @dataclass
@@ -104,4 +104,4 @@ class VacuumCronTask:
     pass
 
 
-QUEUE = SimpleQueue()
+QUEUE = Queue()

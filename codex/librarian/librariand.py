@@ -109,7 +109,7 @@ class LibrarianDaemon(Process):
                 else:
                     msg = WS_MSGS["SCAN_DONE"]
                 if not self.send_json(MessageType.ADMIN_BROADCAST, msg):
-                    QUEUE.put(task)
+                    QUEUE.put_nowait(task)
             elif isinstance(task, ComicCoverCreateTask):
                 # Cover creation is cpu bound, farm it out.
                 args = (task.src_path, task.db_cover_path, task.force)
@@ -121,7 +121,7 @@ class LibrarianDaemon(Process):
             elif isinstance(task, LibraryChangedTask):
                 msg = WS_MSGS["LIBRARY_CHANGED"]
                 if not self.send_json(MessageType.BROADCAST, msg):
-                    QUEUE.put(task)
+                    QUEUE.put_nowait(task)
             elif isinstance(task, WatcherCronTask):
                 self.watcher.set_all_library_watches()
             elif isinstance(task, ScannerCronTask):

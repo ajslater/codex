@@ -39,8 +39,8 @@ def _bulk_scan_existing(library, force):
         elif force or _is_outdated(path, updated_at):
             update_comic_paths.add(path)
     LOG.debug(
-        f"\tScanned {len(all_comic_paths)} comics, {len(update_comic_paths)} "
-        f"outdatd comics, {len(delete_paths)} missing comics."
+        f"Scanned {len(update_comic_paths)} outdated comics, "
+        f"{len(delete_paths)} missing comics."
     )
     return all_comic_paths, update_comic_paths, delete_paths
 
@@ -58,7 +58,7 @@ def _bulk_scan_new(library_path, all_comic_paths):
             path = walk_root / filename
             if path not in all_comic_paths:
                 create_comic_paths.add(path)
-    LOG.debug(f"\tScanned {len(create_comic_paths)} new comics")
+    LOG.debug(f"Scanned {len(create_comic_paths)} new comics")
     return create_comic_paths
 
 
@@ -105,7 +105,7 @@ def scan_root(pk, force=False):
         library.scan_in_progress = False
         library.save()
     is_failed_imports = FailedImport.objects.exists()
-    QUEUE.put(ScanDoneTask(failed_imports=is_failed_imports, sleep=0))
+    QUEUE.put_nowait(ScanDoneTask(failed_imports=is_failed_imports, sleep=0))
     LOG.info(f"Scan for {library.path} finished.")
 
 
@@ -131,6 +131,6 @@ def scan_cron():
         if is_time_to_scan(library) or force_import:
             try:
                 task = ScanRootTask(library.pk, force_import)
-                QUEUE.put(task)
+                QUEUE.put_nowait(task)
             except Exception as exc:
                 LOG.error(exc)
