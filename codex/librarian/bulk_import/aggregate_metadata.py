@@ -180,5 +180,5 @@ def get_aggregate_metadata(library_pk, all_paths):
 
     _bulk_update_or_create_failed_imports(library_pk, all_failed_imports)
 
-    LOG.debug("Aggregated metadata from {len(all_mds)} comics.")
+    LOG.debug(f"Aggregated metadata from {len(all_mds)} comics.")
     return all_mds, all_m2m_mds, all_fks
