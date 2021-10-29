@@ -280,11 +280,11 @@ class EventBatchThread(BufferThread):
                 library_params = self.events[message_cls]
                 for library_id, moved_paths in library_params.items():
                     params = {"library_id": library_id}
-                    if message_cls == ScanRootTask:
+                    task_cls = self.MESSAGE_TASK_MAP[message_cls]
+                    if task_cls == ScanRootTask:
                         params["force"] = False
                     else:
                         params["moved_paths"] = moved_paths
-                    task_cls = self.MESSAGE_TASK_MAP[message_cls]
                     task = task_cls(**params)
                     LOG.debug(f"Sending task: {task}")
                     QUEUE.put_nowait(task)
