@@ -28,10 +28,10 @@ class Crond(Thread):
         LOG.info("Started cron")
         with self.COND:
             while self.run_thread:
-                QUEUE.put_nowait(ScannerCronTask(sleep=0))
-                QUEUE.put_nowait(WatcherCronTask(sleep=0))
-                QUEUE.put_nowait(UpdateCronTask(sleep=0, force=False))
-                QUEUE.put_nowait(VacuumCronTask())
+                QUEUE.put(ScannerCronTask(sleep=0))
+                QUEUE.put(WatcherCronTask(sleep=0))
+                QUEUE.put(UpdateCronTask(sleep=0, force=False))
+                QUEUE.put(VacuumCronTask())
                 self.COND.wait(timeout=self.WAIT_INTERVAL)
         LOG.info("Stopped cron.")
 

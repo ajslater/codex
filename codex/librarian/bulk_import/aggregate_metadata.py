@@ -42,7 +42,7 @@ def _get_path_metadata(library_pk, path):
         md["size"] = Path(path).stat().st_size
         cover_path = get_cover_path(path)
         md["cover_path"] = cover_path
-        QUEUE.put_nowait(ComicCoverCreateTask(library_pk, path, cover_path, True))
+        QUEUE.put(ComicCoverCreateTask(library_pk, path, cover_path, True))
         _clean_md(md)
         group_tree = []
         for group_cls in BROWSER_GROUPS:

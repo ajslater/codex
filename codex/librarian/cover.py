@@ -114,7 +114,7 @@ def create_comic_cover(comic_path, db_cover_path, force=False):
         im.thumbnail(THUMBNAIL_SIZE)
         im.save(fs_cover_path, im.format)
         LOG.info(f"Created cover thumbnail for: {comic_path}")
-        QUEUE.put_nowait(LibraryChangedTask())
+        QUEUE.put(LibraryChangedTask())
     except Exception as exc:
         LOG.error(f"Failed to create cover thumb for {comic_path}")
         LOG.exception(exc)

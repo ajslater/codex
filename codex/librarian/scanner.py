@@ -106,7 +106,7 @@ def scan_root(pk, force=False):
         library.scan_in_progress = False
         library.save()
     is_failed_imports = FailedImport.objects.exists()
-    QUEUE.put_nowait(ScanDoneTask(failed_imports=is_failed_imports, sleep=0))
+    QUEUE.put(ScanDoneTask(failed_imports=is_failed_imports, sleep=0))
     LOG.info(f"Scan for {library.path} finished.")
 
 
@@ -132,6 +132,6 @@ def scan_cron():
         if is_time_to_scan(library) or force_import:
             try:
                 task = ScanRootTask(library.pk, force_import)
-                QUEUE.put_nowait(task)
+                QUEUE.put(task)
             except Exception as exc:
                 LOG.error(exc)

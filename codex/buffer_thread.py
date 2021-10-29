@@ -1,7 +1,7 @@
 """Abstract Thread worker for doing queued tasks."""
 import time
 
-from queue import Queue
+from queue import SimpleQueue
 from threading import Thread
 
 
@@ -18,7 +18,7 @@ class BufferThread(Thread):
     """Abstract Thread worker for doing queued tasks."""
 
     thread = None
-    MESSAGE_QUEUE = Queue()
+    MESSAGE_QUEUE = SimpleQueue()
     SHUTDOWN_MSG = "shutdown"
     SHUTDOWN_TIMEOUT = 5
     NAME = "abstract-buffer-worker"

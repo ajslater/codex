@@ -90,7 +90,7 @@ async def websocket_application(scope, receive, send):
                 ):
                     message = FloodControlMessage(msg.get("message"))
                     # flood control library changed messages
-                    FloodControlThread.MESSAGE_QUEUE.put_nowait(message)
+                    FloodControlThread.MESSAGE_QUEUE.put(message)
                 elif (
                     msg_type == MessageType.ADMIN_BROADCAST
                     and msg.get("secret") == BROADCAST_SECRET.value
@@ -149,6 +149,6 @@ class FloodControlThread(BufferThread):
                 async_to_sync(send_msg)(BROADCAST_CONNS, message.message)
             else:
                 # put it back and wait
-                self.MESSAGE_QUEUE.put_nowait(message)
+                self.MESSAGE_QUEUE.put(message)
                 time.sleep(wait_left)
         LOG.info("Stopped Broadcast Flood Control Worker.")

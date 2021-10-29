@@ -115,7 +115,7 @@ def bulk_import(
 
     cleanup_database(library, delete_paths)
     if total_imported or delete_paths:
-        QUEUE.put_nowait(LibraryChangedTask())
+        QUEUE.put(LibraryChangedTask())
     return total_imported
 
 
@@ -151,7 +151,7 @@ def bulk_comics_moved(library_pk, moved_paths):
     LOG.info(f"Moved {len(moved_paths)} comics.")
     cleanup_database(library)
     if moved_paths:
-        QUEUE.put_nowait(LibraryChangedTask())
+        QUEUE.put(LibraryChangedTask())
 
 
 def _get_parent_folders(library, folders_moved):
@@ -202,4 +202,4 @@ def bulk_folders_moved(library_pk, folders_moved):
     _update_moved_folders(library, folders_moved, dest_parent_folders)
     cleanup_database(library)
     if folders_moved:
-        QUEUE.put_nowait(LibraryChangedTask())
+        QUEUE.put(LibraryChangedTask())
