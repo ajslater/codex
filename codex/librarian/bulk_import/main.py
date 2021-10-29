@@ -24,7 +24,7 @@ from codex.models import Comic, Folder, Library
 LOG = logging.getLogger(__name__)
 MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder")
 MOVED_BULK_FOLDER_UPDATE_FIELDS = ("path", "parent_folder", "name", "sort_name")
-BATCH_SIZE = 200
+BATCH_SIZE = 500
 
 
 def _bulk_create_comic_relations(library, fks):
@@ -60,6 +60,26 @@ def _split_batches(update_paths, create_paths):
     return update_head, update_tail, create_head, create_tail
 
 
+def _batch_bulk_import(library, update_paths_tail, create_paths_tail):
+    """Perform one batch of imports."""
+    (
+        update_paths_head,
+        update_paths_tail,
+        create_paths_head,
+        create_paths_tail,
+    ) = _split_batches(update_paths_tail, create_paths_tail)
+
+    LOG.debug(f"Batch update {len(update_paths_head)} create {len(create_paths_head)}.")
+    mds, m2m_mds, fks = get_aggregate_metadata(
+        library, update_paths_head | create_paths_head
+    )
+
+    _bulk_create_comic_relations(library, fks)
+
+    bulk_import_comics(library, create_paths_head, update_paths_head, mds, m2m_mds)
+    return update_paths_tail, create_paths_tail
+
+
 def bulk_import(
     library=None,
     update_paths=None,
@@ -82,34 +102,17 @@ def bulk_import(
             f"outdated, {len(delete_paths)} deleted."
         )
 
-        update_paths_tail = sorted(update_paths)
-        create_paths_tail = sorted(create_paths)
+        update_paths_tail = sorted([str(path) for path in update_paths])
+        create_paths_tail = sorted([str(path) for path in create_paths])
         while update_paths_tail or create_paths_tail:
-            (
-                update_paths_head,
-                update_paths_tail,
-                create_paths_head,
-                create_paths_tail,
-            ) = _split_batches(update_paths_tail, create_paths_tail)
-
-            LOG.debug(
-                f"Batch update {len(update_paths_head)}, "
-                f"create {len(create_paths_head)}."
-            )
-            mds, m2m_mds, fks = get_aggregate_metadata(
-                library.pk, update_paths_head | create_paths_head
-            )
-
-            _bulk_create_comic_relations(library, fks)
-
-            bulk_import_comics(
-                library, create_paths_head, update_paths_head, mds, m2m_mds
+            update_paths_tail, create_paths_tail = _batch_bulk_import(
+                library, update_paths_tail, create_paths_tail
             )
 
     cleanup_database(library, delete_paths)
     total_imported = len(update_paths) + len(create_paths)
     if total_imported or delete_paths:
-        QUEUE.put(LibraryChangedTask())
+        QUEUE.put_nowait(LibraryChangedTask())
 
 
 def bulk_comics_moved(library_pk, moved_paths):
@@ -144,7 +147,7 @@ def bulk_comics_moved(library_pk, moved_paths):
     LOG.info(f"Moved {len(moved_paths)} comics.")
     cleanup_database(library)
     if moved_paths:
-        QUEUE.put(LibraryChangedTask())
+        QUEUE.put_nowait(LibraryChangedTask())
 
 
 def _get_parent_folders(library, folders_moved):
@@ -195,4 +198,4 @@ def bulk_folders_moved(library_pk, folders_moved):
     _update_moved_folders(library, folders_moved, dest_parent_folders)
     cleanup_database(library)
     if folders_moved:
-        QUEUE.put(LibraryChangedTask())
+        QUEUE.put_nowait(LibraryChangedTask())

@@ -46,8 +46,15 @@ def _link_comic_fks(md, library, path):
     md["imprint"] = Imprint.objects.get(
         publisher__name=publisher_name, name=imprint_name
     )
-    md["series"] = Series.objects.get(imprint__name=imprint_name, name=series_name)
-    md["volume"] = Volume.objects.get(series__name=series_name, name=volume_name)
+    md["series"] = Series.objects.get(
+        publisher__name=publisher_name, imprint__name=imprint_name, name=series_name
+    )
+    md["volume"] = Volume.objects.get(
+        publisher__name=publisher_name,
+        imprint__name=imprint_name,
+        series__name=series_name,
+        name=volume_name,
+    )
     md["parent_folder"] = Folder.objects.get(path=Path(path).parent)
 
 
@@ -108,6 +115,8 @@ def _link_folders(comic_path):
 
 def _link_credits(credits):
     """Get the ids of all credits to link."""
+    if not credits:
+        return set()
     filter = Q()
     for credit in credits:
         filter_dict = {
@@ -145,7 +154,11 @@ def _link_comic_m2m_fields(m2m_mds):
         all_m2m_links["folder"][comic_pk] = _link_folders(comic_path)
         if "credits" not in all_m2m_links:
             all_m2m_links["credits"] = {}
-        all_m2m_links["credits"][comic_pk] = _link_credits(md.pop("credits"))
+        try:
+            credits = md.pop("credits")
+        except KeyError:
+            credits = None
+        all_m2m_links["credits"][comic_pk] = _link_credits(credits)
         _link_named_m2ms(all_m2m_links, comic_pk, md)
     return all_m2m_links
 
@@ -188,6 +201,6 @@ def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2
     for field_name, m2m_links in all_m2m_links.items():
         bulk_recreate_m2m_field(field_name, m2m_links)
     if update_paths:
-        LOG.info("Updated {len(update_paths)} Comics.")
+        LOG.info(f"Updated {len(update_paths)} Comics.")
     if create_paths:
-        LOG.info("Created {len(create_paths)} Comics.")
+        LOG.info(f"Created {len(create_paths)} Comics.")

@@ -18,7 +18,7 @@ COMIC_M2M_FIELDS = set()
 for field in Comic._meta.get_fields():
     if field.many_to_many and field.name != "folder":
         COMIC_M2M_FIELDS.add(field.name)
-MD_UNUSED_KEYS = ("remainder", "ext", "pages", "cover_image")
+MD_UNUSED_KEYS = ("alternate_series", "remainder", "ext", "pages", "cover_image")
 
 
 def _clean_md(md):
@@ -42,7 +42,7 @@ def _get_path_metadata(library_pk, path):
         md["size"] = Path(path).stat().st_size
         cover_path = get_cover_path(path)
         md["cover_path"] = cover_path
-        QUEUE.put(ComicCoverCreateTask(library_pk, path, cover_path, True))
+        QUEUE.put_nowait(ComicCoverCreateTask(library_pk, path, cover_path, True))
         _clean_md(md)
         group_tree = []
         for group_cls in BROWSER_GROUPS:
@@ -152,17 +152,17 @@ def _bulk_update_or_create_failed_imports(library_pk, failed_imports):
         LOG.warn(f"Failed {num_failed_imports} comic imports.")
 
 
-def get_aggregate_metadata(library_pk, all_paths):
+def get_aggregate_metadata(library, all_paths):
     """Get aggregated metatada for the paths given."""
     all_mds = {}
     all_m2m_mds = {}
     all_fks = {"group_trees": {Publisher: {}, Imprint: {}, Series: {}, Volume: {}}}
     all_failed_imports = {}
 
+    LOG.debug(f"Aggregated metadata for {len(all_paths)} in {library.path}.")
     for num, path in enumerate(all_paths):
-        LOG.debug(f"Aggregating metadata from {num} {path}")
         path = str(path)
-        md, m2m_md, group_tree_md, failed_import = _get_path_metadata(library_pk, path)
+        md, m2m_md, group_tree_md, failed_import = _get_path_metadata(library.pk, path)
 
         if md:
             all_mds[path] = md
@@ -178,7 +178,7 @@ def get_aggregate_metadata(library_pk, all_paths):
 
     all_fks["comic_paths"] = set(all_mds.keys())
 
-    _bulk_update_or_create_failed_imports(library_pk, all_failed_imports)
+    _bulk_update_or_create_failed_imports(library.pk, all_failed_imports)
 
     LOG.debug(f"Aggregated metadata from {len(all_mds)} comics.")
     return all_mds, all_m2m_mds, all_fks
