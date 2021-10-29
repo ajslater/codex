@@ -104,15 +104,19 @@ def bulk_import(
 
         update_paths_tail = sorted([str(path) for path in update_paths])
         create_paths_tail = sorted([str(path) for path in create_paths])
+
         while update_paths_tail or create_paths_tail:
             update_paths_tail, create_paths_tail = _batch_bulk_import(
                 library, update_paths_tail, create_paths_tail
             )
+        total_imported = len(update_paths) + len(create_paths)
+    else:
+        total_imported = 0
 
     cleanup_database(library, delete_paths)
-    total_imported = len(update_paths) + len(create_paths)
     if total_imported or delete_paths:
         QUEUE.put_nowait(LibraryChangedTask())
+    return total_imported
 
 
 def bulk_comics_moved(library_pk, moved_paths):

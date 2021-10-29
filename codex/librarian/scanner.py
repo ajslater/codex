@@ -94,6 +94,7 @@ def scan_root(pk, force=False):
         if count:
             log_suffix = f" {elapsed_time/count} s/comic."
         else:
+            count = "no"
             log_suffix = "."
         LOG.info(f"Scan and import {elapsed_time}s for {count} comics{log_suffix}")
         if force or library.last_scan is None or library.schema_version is None:
