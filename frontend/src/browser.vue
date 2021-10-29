@@ -18,7 +18,7 @@ import BrowserPaginationToolbar from "@/components/browser-pagination-toolbar";
 import BrowserTitleToolbar from "@/components/browser-title-toolbar";
 
 export default {
-  name: "Browser",
+  name: "MainBrowser",
   components: {
     BrowserFilterToolbar,
     BrowserMain,

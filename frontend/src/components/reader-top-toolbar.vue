@@ -27,7 +27,7 @@ import ReaderSettingsDialog from "@/components/reader-settings-dialog";
 const DEFAULT_ROUTE = { group: "r", pk: 0, page: 1 };
 
 export default {
-  name: "Reader",
+  name: "ReaderTopToolbar",
   components: {
     MetadataDialog,
     ReaderSettingsDialog,
