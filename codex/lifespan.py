@@ -87,24 +87,27 @@ def codex_shutdown():
 async def lifespan_application(scope, receive, send):
     """Lifespan application."""
     while True:
-        message = await receive()
-        if message["type"] == "lifespan.startup":
-            try:
-                await sync_to_async(codex_startup)()
-                await send({"type": "lifespan.startup.complete"})
-                LOG.debug("Lifespan startup complete.")
-            except Exception as exc:
-                LOG.error(exc)
-                await send({"type": "lifespan.startup.failed"})
-        elif message["type"] == "lifespan.shutdown":
-            LOG.debug("Lifespan shutdown started.")
-            try:
-                # block on the join
-                codex_shutdown()
-                await send({"type": "lifespan.shutdown.complete"})
-                LOG.debug("Lifespan shutdown complete.")
-            except Exception as exc:
-                await send({"type": "lifespan.startup.failed"})
-                LOG.error("Lfespan shutdown failed.")
-                LOG.error(exc)
-            break
+        try:
+            message = await receive()
+            if message["type"] == "lifespan.startup":
+                try:
+                    await sync_to_async(codex_startup)()
+                    await send({"type": "lifespan.startup.complete"})
+                    LOG.debug("Lifespan startup complete.")
+                except Exception as exc:
+                    LOG.error(exc)
+                    await send({"type": "lifespan.startup.failed"})
+            elif message["type"] == "lifespan.shutdown":
+                LOG.debug("Lifespan shutdown started.")
+                try:
+                    # block on the join
+                    codex_shutdown()
+                    await send({"type": "lifespan.shutdown.complete"})
+                    LOG.debug("Lifespan shutdown complete.")
+                except Exception as exc:
+                    await send({"type": "lifespan.startup.failed"})
+                    LOG.error("Lfespan shutdown failed.")
+                    LOG.error(exc)
+                break
+        except Exception as exc:
+            LOG.exception(exc)
