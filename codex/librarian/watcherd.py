@@ -34,12 +34,12 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
         super().__init__(*args, **kwargs)
 
     @staticmethod
-    def is_ignored(is_dir, path):
+    def _is_ignored(is_dir, path):
         """Determine if we should ignore this event."""
         return not is_dir and COMIC_MATCHER.search(path) is None
 
-    @staticmethod
-    def get_size(path, is_dir):
+    @classmethod
+    def _get_size(cls, path, is_dir):
         """Get the size of a file or directory."""
         path = Path(path)
         if is_dir:
@@ -48,7 +48,7 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
                 rp = Path(root)
                 for fn in fns:
                     full_path = Path(rp / fn)
-                    size += CodexLibraryEventHandler.get_size(full_path, False)
+                    size += cls._get_size(full_path, False)
         else:
             size = path.stat().st_size
         return size
@@ -63,8 +63,8 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
         copying.
         """
         old_size = -1
-        while old_size != cls.get_size(path, is_dir):
-            old_size = cls.get_size(path, is_dir)
+        while old_size != cls._get_size(path, is_dir):
+            old_size = cls._get_size(path, is_dir)
             time.sleep(cls.EVENT_DELAY)
 
     @classmethod
@@ -75,7 +75,7 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
 
     def on_modified(self, event):
         """Put a comic modified task on the queue."""
-        if event.is_directory or self.is_ignored(event.is_directory, event.src_path):
+        if event.is_directory or self._is_ignored(event.is_directory, event.src_path):
             return
 
         src_path = Path(event.src_path)
@@ -134,7 +134,7 @@ class Uatu(Observer):
         EventBatchThread.shutdown()
         super().stop()
 
-    def unwatch_library(self, pk):
+    def _unwatch_library(self, pk):
         """Stop a watch process."""
         watch = self._pk_watches.pop(pk, None)
         if watch:
@@ -143,7 +143,7 @@ class Uatu(Observer):
         else:
             LOG.debug(f"Library {pk} not being watched")
 
-    def watch_library(self, pk):
+    def _watch_library(self, pk):
         """Start a library watching process."""
         if pk in self._pk_watches:
             LOG.debug(f"Library {pk} already being watched.")
@@ -164,27 +164,26 @@ class Uatu(Observer):
             LOG.warn(f"Could not find {path} to watch. May be unmounted.")
             return
 
-    def set_library_watch(self, pk, watch):
+    def _set_library_watch(self, pk, watch):
         """Watch or unwatch a library."""
         if watch:
-            self.watch_library(pk)
+            self._watch_library(pk)
         else:
-            self.unwatch_library(pk)
+            self._unwatch_library(pk)
 
     def set_all_library_watches(self):
         """Watch or unwatch all libraries according to the db."""
+        print("set_all_library_watches()")
         rps = (
-            Library.objects.all()
-            .only("pk", "enable_watch")
-            .values("pk", "enable_watch")
+            Library.objects.all().values("pk", "enable_watch")
         )
         active_watch_pks = set()
         for rp in rps:
-            self.set_library_watch(rp.get("pk"), rp.get("enable_watch"))
+            self._set_library_watch(rp.get("pk"), rp.get("enable_watch"))
             active_watch_pks.add(rp.get("pk"))
         missing_watch_pks = set(self._pk_watches.keys()) - active_watch_pks
         for pk in missing_watch_pks:
-            self.unwatch_library(pk)
+            self._unwatch_library(pk)
 
     def unschedule_all(self):
         """Unschedule all watches."""
@@ -256,39 +255,44 @@ class EventBatchThread(BufferThread):
         """Run the worker."""
         LOG.info("Started watcher batch event worker.")
         while True:
-            waiting_since = time.time()
             try:
-                message = self.MESSAGE_QUEUE.get(timeout=self.BATCH_DELAY)
-                if message == self.SHUTDOWN_MSG:
-                    break
-                LOG.debug(f"Adding {message} to cache.")
-                # Aggregate event into bulk tasks
-                class_dict = self.events[message.__class__]
-                if message.library_id not in class_dict:
-                    class_dict[message.library_id] = {}
-                if isinstance(message, MovedMessage):
-                    class_dict[message.library_id][message.src_path] = message.dest_path
+                waiting_since = time.time()
+                try:
+                    message = self.MESSAGE_QUEUE.get(timeout=self.BATCH_DELAY)
+                    if message == self.SHUTDOWN_MSG:
+                        break
+                    LOG.debug(f"Adding {message} to cache.")
+                    # Aggregate event into bulk tasks
+                    class_dict = self.events[message.__class__]
+                    if message.library_id not in class_dict:
+                        class_dict[message.library_id] = {}
+                    if isinstance(message, MovedMessage):
+                        class_dict[message.library_id][
+                            message.src_path
+                        ] = message.dest_path
 
-                wait_left = message.time + self.BATCH_DELAY - time.time()
-            except Empty:
-                wait_left = 0
-            wait_break = time.time() - waiting_since > self.MAX_BATCH_WAIT_TIME
-            if self.MESSAGE_QUEUE.empty() and not wait_break and wait_left > 0:
-                continue
-            # Send all tasks
-            for message_cls in self.TASK_ORDER:
-                library_params = self.events[message_cls]
-                for library_id, moved_paths in library_params.items():
-                    params = {"library_id": library_id}
-                    task_cls = self.MESSAGE_TASK_MAP[message_cls]
-                    if task_cls == ScanRootTask:
-                        params["force"] = False
-                    else:
-                        params["moved_paths"] = moved_paths
-                    task = task_cls(**params)
-                    LOG.debug(f"Sending task: {task}")
-                    QUEUE.put(task)
-            # reset the event aggregates
-            for message_cls in self.events.keys():
-                self.events[message_cls] = {}
+                    wait_left = message.time + self.BATCH_DELAY - time.time()
+                except Empty:
+                    wait_left = 0
+                wait_break = time.time() - waiting_since > self.MAX_BATCH_WAIT_TIME
+                if self.MESSAGE_QUEUE.empty() and not wait_break and wait_left > 0:
+                    continue
+                # Send all tasks
+                for message_cls in self.TASK_ORDER:
+                    library_params = self.events[message_cls]
+                    for library_id, moved_paths in library_params.items():
+                        params = {"library_id": library_id}
+                        task_cls = self.MESSAGE_TASK_MAP[message_cls]
+                        if task_cls == ScanRootTask:
+                            params["force"] = False
+                        else:
+                            params["moved_paths"] = moved_paths
+                        task = task_cls(**params)
+                        LOG.debug(f"Sending task: {task}")
+                        QUEUE.put(task)
+                # reset the event aggregates
+                for message_cls in self.events.keys():
+                    self.events[message_cls] = {}
+            except Exception as exc:
+                LOG.exception(exc)
         LOG.info("Stopped watcher batch event worker.")

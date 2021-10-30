@@ -4,11 +4,24 @@ import os
 
 from datetime import datetime
 from pathlib import Path
+from queue import SimpleQueue
+from threading import Thread
 
 from django.utils import timezone
 
-from codex.librarian.bulk_import.main import bulk_import
-from codex.librarian.queue_mp import QUEUE, ScanDoneTask, ScanRootTask
+from codex.librarian.bulk_import.main import (
+    bulk_comics_moved,
+    bulk_folders_moved,
+    bulk_import,
+)
+from codex.librarian.queue_mp import (
+    QUEUE,
+    BulkComicMovedTask,
+    BulkFolderMovedTask,
+    ScanDoneTask,
+    ScannerCronTask,
+    ScanRootTask,
+)
 from codex.librarian.regex import COMIC_MATCHER
 from codex.models import SCHEMA_VERSION, Comic, FailedImport, Library
 
@@ -74,7 +87,7 @@ def _bulk_scan_and_import(library, force):
     return total_imported
 
 
-def scan_root(pk, force=False):
+def _scan_root(pk, force=False):
     """Scan a library."""
     library = Library.objects.only("scan_in_progress", "last_scan", "path").get(pk=pk)
     if library.scan_in_progress:
@@ -110,7 +123,7 @@ def scan_root(pk, force=False):
     LOG.info(f"Scan for {library.path} finished.")
 
 
-def is_time_to_scan(library):
+def _is_time_to_scan(library):
     """Determine if its time to scan this library."""
     if library.last_scan is None:
         return True
@@ -122,16 +135,58 @@ def is_time_to_scan(library):
     return False
 
 
-def scan_cron():
+def _scan_cron():
     """Regular cron for scanning."""
     librarys = Library.objects.filter(enable_scan_cron=True).only(
         "pk", "schema_version", "last_scan"
     )
     for library in librarys:
         force_import = library.schema_version < SCHEMA_VERSION
-        if is_time_to_scan(library) or force_import:
+        if not _is_time_to_scan(library) or force_import:
+            continue
+        try:
+            task = ScanRootTask(library.pk, force=force_import)
+            QUEUE.put(task)
+        except Exception as exc:
+            LOG.error(exc)
+
+
+class Scanner(Thread):
+    """A worker to handle all scanning, importing and moving."""
+
+    NAME = "scanner"
+    SHUTDOWN_MSG = "shutdown"
+    SHUTDOWN_TIMEOUT = 5
+    queue = SimpleQueue()
+
+    def __init__(self):
+        """Inistalize with name and as a daemon."""
+        super().__init__(name=self.NAME, daemon=True)
+
+    def run(self):
+        """Run the scanner."""
+        LOG.info("Started the scanner worker." "")
+        while True:
             try:
-                task = ScanRootTask(library.pk, force_import)
-                QUEUE.put(task)
+                task = self.queue.get()
+                print(task)
+                if isinstance(task, ScannerCronTask):
+                    _scan_cron()
+                elif isinstance(task, ScanRootTask):
+                    _scan_root(task.library_id, task.force)
+                elif isinstance(task, BulkFolderMovedTask):
+                    bulk_folders_moved(task.library_id, task.moved_paths)
+                elif isinstance(task, BulkComicMovedTask):
+                    bulk_comics_moved(task.library_id, task.moved_paths)
+                elif task == self.SHUTDOWN_MSG:
+                    break
+                else:
+                    LOG.error(f"Bad task sent to scanner {task}")
             except Exception as exc:
-                LOG.error(exc)
+                LOG.exception(exc)
+
+        LOG.info("Stopped the scanner worker." "")
+
+    def stop(self):
+        self.queue.put(self.SHUTDOWN_MSG)
+        self.join(self.SHUTDOWN_TIMEOUT)

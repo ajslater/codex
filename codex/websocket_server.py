@@ -56,53 +56,56 @@ async def websocket_application(scope, receive, send):
     """Websocket application server."""
     LOG.debug(f"Starting websocket connection. {scope}")
     while True:
-        event = await receive()
+        try:
+            event = await receive()
 
-        if event["type"] == "websocket.connect":
-            await send(WS_ACCEPT_MSG)
+            if event["type"] == "websocket.connect":
+                await send(WS_ACCEPT_MSG)
 
-        if event["type"] == "websocket.disconnect":
-            break
+            if event["type"] == "websocket.disconnect":
+                break
 
-        if event["type"] == "websocket.receive":
-            try:
-                msg = json.loads(event["text"])
-                msg_type = msg.get("type")
-                # msg_message = msg.get("message")
+            if event["type"] == "websocket.receive":
+                try:
+                    msg = json.loads(event["text"])
+                    msg_type = msg.get("type")
+                    # msg_message = msg.get("message")
 
-                if (msg_type) == MessageType.SUBSCRIBE:
+                    if (msg_type) == MessageType.SUBSCRIBE:
 
-                    if msg.get("register"):
-                        # The librarian doesn't care about broadcasts
-                        BROADCAST_CONNS.add(send)
+                        if msg.get("register"):
+                            # The librarian doesn't care about broadcasts
+                            BROADCAST_CONNS.add(send)
+                        else:
+                            BROADCAST_CONNS.discard(send)
+                            ADMIN_CONNS.discard(send)
+
+                        if msg.get("admin"):
+                            # Only admins care about admin messages
+                            ADMIN_CONNS.add(send)
+                        else:
+                            ADMIN_CONNS.discard(send)
+                    elif (
+                        msg_type == MessageType.BROADCAST
+                        and msg.get("secret") == BROADCAST_SECRET.value
+                    ):
+                        message = FloodControlMessage(msg.get("message"))
+                        # flood control library changed messages
+                        FloodControlThread.MESSAGE_QUEUE.put(message)
+                    elif (
+                        msg_type == MessageType.ADMIN_BROADCAST
+                        and msg.get("secret") == BROADCAST_SECRET.value
+                    ):
+                        message = msg.get("message")
+                        await send_msg(ADMIN_CONNS, message)
                     else:
-                        BROADCAST_CONNS.discard(send)
-                        ADMIN_CONNS.discard(send)
+                        # Keepalive?
+                        pass
 
-                    if msg.get("admin"):
-                        # Only admins care about admin messages
-                        ADMIN_CONNS.add(send)
-                    else:
-                        ADMIN_CONNS.discard(send)
-                elif (
-                    msg_type == MessageType.BROADCAST
-                    and msg.get("secret") == BROADCAST_SECRET.value
-                ):
-                    message = FloodControlMessage(msg.get("message"))
-                    # flood control library changed messages
-                    FloodControlThread.MESSAGE_QUEUE.put(message)
-                elif (
-                    msg_type == MessageType.ADMIN_BROADCAST
-                    and msg.get("secret") == BROADCAST_SECRET.value
-                ):
-                    message = msg.get("message")
-                    await send_msg(ADMIN_CONNS, message)
-                else:
-                    # Keepalive?
-                    pass
-
-            except JSONDecodeError as exc:
-                LOG.error(exc)
+                except JSONDecodeError as exc:
+                    LOG.error(exc)
+        except Exception as exc:
+            LOG.exception(exc)
     LOG.debug("Closing websocket connection.")
 
 
@@ -134,21 +137,24 @@ class FloodControlThread(BufferThread):
         """
         LOG.info("Started Broadcast Flood Control Worker.")
         while True:
-            waiting_since = time.time()
-            message = self.MESSAGE_QUEUE.get()
-            if message == self.SHUTDOWN_MSG:
-                break
-            wait_break = time.time() - waiting_since > self.MAX_FLOOD_WAIT_TIME
-            if not self.MESSAGE_QUEUE.empty() and not wait_break:
-                # discard message
-                continue
-            wait_left = message.time + self.FLOOD_DELAY - time.time()
-            if wait_left <= 0 or wait_break:
-                # send it to the frontend
-                cache.clear()
-                async_to_sync(send_msg)(BROADCAST_CONNS, message.message)
-            else:
-                # put it back and wait
-                self.MESSAGE_QUEUE.put(message)
-                time.sleep(wait_left)
+            try:
+                waiting_since = time.time()
+                message = self.MESSAGE_QUEUE.get()
+                if message == self.SHUTDOWN_MSG:
+                    break
+                wait_break = time.time() - waiting_since > self.MAX_FLOOD_WAIT_TIME
+                if not self.MESSAGE_QUEUE.empty() and not wait_break:
+                    # discard message
+                    continue
+                wait_left = message.time + self.FLOOD_DELAY - time.time()
+                if wait_left <= 0 or wait_break:
+                    # send it to the frontend
+                    cache.clear()
+                    async_to_sync(send_msg)(BROADCAST_CONNS, message.message)
+                else:
+                    # put it back and wait
+                    self.MESSAGE_QUEUE.put(message)
+                    time.sleep(wait_left)
+            except Exception as exc:
+                LOG.exception(exc)
         LOG.info("Stopped Broadcast Flood Control Worker.")
