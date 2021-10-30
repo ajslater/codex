@@ -169,7 +169,6 @@ class Scanner(Thread):
         while True:
             try:
                 task = self.queue.get()
-                print(task)
                 if isinstance(task, ScannerCronTask):
                     _scan_cron()
                 elif isinstance(task, ScanRootTask):

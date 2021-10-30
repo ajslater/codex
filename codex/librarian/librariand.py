@@ -95,17 +95,10 @@ class LibrarianDaemon(Process):
         """Process an individual task popped off the queue."""
         run = True
         try:
-            print(task)
             if task and hasattr(task, "sleep"):
                 sleep(task.sleep)
-            elif isinstance(task, ScanDoneTask):
-                if task.failed_imports:
-                    msg = WS_MSGS["FAILED_IMPORTS"]
-                else:
-                    msg = WS_MSGS["SCAN_DONE"]
-                if not self.send_json(MessageType.ADMIN_BROADCAST, msg):
-                    QUEUE.put(task)
-            elif isinstance(task, ComicCoverCreateTask):
+
+            if isinstance(task, ComicCoverCreateTask):
                 # Cover creation is cpu bound, farm it out.
                 args = (task.src_path, task.db_cover_path, task.force)
                 self.pool.apply_async(create_comic_cover, args=args)
@@ -118,11 +111,17 @@ class LibrarianDaemon(Process):
                     ScannerCronTask,
                 ),
             ):
-                print(task)
                 if isinstance(task, ScanRootTask):
                     msg = WS_MSGS["SCAN_LIBRARY"]
                     self.send_json(MessageType.ADMIN_BROADCAST, msg)
                 self.scanner.queue.put(task)
+            elif isinstance(task, ScanDoneTask):
+                if task.failed_imports:
+                    msg = WS_MSGS["FAILED_IMPORTS"]
+                else:
+                    msg = WS_MSGS["SCAN_DONE"]
+                if not self.send_json(MessageType.ADMIN_BROADCAST, msg):
+                    QUEUE.put(task)
             elif isinstance(task, LibraryChangedTask):
                 msg = WS_MSGS["LIBRARY_CHANGED"]
                 if not self.send_json(MessageType.BROADCAST, msg):
