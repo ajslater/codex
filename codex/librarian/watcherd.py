@@ -125,14 +125,18 @@ class Uatu(Observer):
 
     def __init__(self, *args, **kwargs):
         """Intialize pk to watches dict."""
-        EventBatchThread.startup()
         super().__init__(*args, **kwargs)
         self._pk_watches = dict()
 
+    def start(self):
+        """Start the batcher thread."""
+        EventBatchThread.startup()
+        super().start()
+
     def stop(self):
         """Stop the batcher thread."""
-        EventBatchThread.shutdown()
         super().stop()
+        EventBatchThread.shutdown()
 
     def _unwatch_library(self, pk):
         """Stop a watch process."""
