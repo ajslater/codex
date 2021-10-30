@@ -110,7 +110,7 @@ def scan_root(pk, force=False):
     LOG.info(f"Scan for {library.path} finished.")
 
 
-def is_time_to_scan(library):
+def _is_time_to_scan(library):
     """Determine if its time to scan this library."""
     if library.last_scan is None:
         return True
@@ -129,9 +129,10 @@ def scan_cron():
     )
     for library in librarys:
         force_import = library.schema_version < SCHEMA_VERSION
-        if is_time_to_scan(library) or force_import:
-            try:
-                task = ScanRootTask(library.pk, force_import)
-                QUEUE.put(task)
-            except Exception as exc:
-                LOG.error(exc)
+        if not _is_time_to_scan(library) and not force_import:
+            continue
+        try:
+            task = ScanRootTask(library.pk, force_import)
+            QUEUE.put(task)
+        except Exception as exc:
+            LOG.error(exc)

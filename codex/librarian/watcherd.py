@@ -256,39 +256,44 @@ class EventBatchThread(BufferThread):
         """Run the worker."""
         LOG.info("Started watcher batch event worker.")
         while True:
-            waiting_since = time.time()
             try:
-                message = self.MESSAGE_QUEUE.get(timeout=self.BATCH_DELAY)
-                if message == self.SHUTDOWN_MSG:
-                    break
-                LOG.debug(f"Adding {message} to cache.")
-                # Aggregate event into bulk tasks
-                class_dict = self.events[message.__class__]
-                if message.library_id not in class_dict:
-                    class_dict[message.library_id] = {}
-                if isinstance(message, MovedMessage):
-                    class_dict[message.library_id][message.src_path] = message.dest_path
+                waiting_since = time.time()
+                try:
+                    message = self.MESSAGE_QUEUE.get(timeout=self.BATCH_DELAY)
+                    if message == self.SHUTDOWN_MSG:
+                        break
+                    LOG.debug(f"Adding {message} to cache.")
+                    # Aggregate event into bulk tasks
+                    class_dict = self.events[message.__class__]
+                    if message.library_id not in class_dict:
+                        class_dict[message.library_id] = {}
+                    if isinstance(message, MovedMessage):
+                        class_dict[message.library_id][
+                            message.src_path
+                        ] = message.dest_path
 
-                wait_left = message.time + self.BATCH_DELAY - time.time()
-            except Empty:
-                wait_left = 0
-            wait_break = time.time() - waiting_since > self.MAX_BATCH_WAIT_TIME
-            if self.MESSAGE_QUEUE.empty() and not wait_break and wait_left > 0:
-                continue
-            # Send all tasks
-            for message_cls in self.TASK_ORDER:
-                library_params = self.events[message_cls]
-                for library_id, moved_paths in library_params.items():
-                    params = {"library_id": library_id}
-                    task_cls = self.MESSAGE_TASK_MAP[message_cls]
-                    if task_cls == ScanRootTask:
-                        params["force"] = False
-                    else:
-                        params["moved_paths"] = moved_paths
-                    task = task_cls(**params)
-                    LOG.debug(f"Sending task: {task}")
-                    QUEUE.put(task)
-            # reset the event aggregates
-            for message_cls in self.events.keys():
-                self.events[message_cls] = {}
+                    wait_left = message.time + self.BATCH_DELAY - time.time()
+                except Empty:
+                    wait_left = 0
+                wait_break = time.time() - waiting_since > self.MAX_BATCH_WAIT_TIME
+                if self.MESSAGE_QUEUE.empty() and not wait_break and wait_left > 0:
+                    continue
+                # Send all tasks
+                for message_cls in self.TASK_ORDER:
+                    library_params = self.events[message_cls]
+                    for library_id, moved_paths in library_params.items():
+                        params = {"library_id": library_id}
+                        task_cls = self.MESSAGE_TASK_MAP[message_cls]
+                        if task_cls == ScanRootTask:
+                            params["force"] = False
+                        else:
+                            params["moved_paths"] = moved_paths
+                        task = task_cls(**params)
+                        LOG.debug(f"Sending task: {task}")
+                        QUEUE.put(task)
+                # reset the event aggregates
+                for message_cls in self.events.keys():
+                    self.events[message_cls] = {}
+            except Exception as exc:
+                LOG.exception(exc)
         LOG.info("Stopped watcher batch event worker.")
