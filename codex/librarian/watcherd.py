@@ -94,7 +94,7 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
         Watchdog events can arrive in any order, but often file events
         occur before folder events.
         """
-        if self.is_ignored(event.is_directory, event.dest_path):
+        if self._is_ignored(event.is_directory, event.dest_path):
             return
 
         self._wait_for_copy(event.dest_path, event.is_directory)

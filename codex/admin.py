@@ -80,10 +80,10 @@ class AdminLibrary(ModelAdmin):
         """Events for when the library has changed."""
         # XXX These sleep values are for waiting for db consistency
         #     between processes. Klugey.
+        QUEUE.put(WatcherCronTask(sleep=1))
         if created:
             QUEUE.put(LibraryChangedTask())
             QUEUE.put(ScannerCronTask(sleep=1))
-        QUEUE.put(WatcherCronTask(sleep=1))
 
     def save_model(self, request, obj, form, change):
         """Trigger watching and scanning on update or creation."""

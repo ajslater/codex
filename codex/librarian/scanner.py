@@ -142,10 +142,10 @@ def _scan_cron():
     )
     for library in librarys:
         force_import = library.schema_version < SCHEMA_VERSION
-        if not _is_time_to_scan(library) or force_import:
+        if not _is_time_to_scan(library) and not force_import:
             continue
         try:
-            task = ScanRootTask(library.pk, force=force_import)
+            task = ScanRootTask(library.pk, force_import)
             QUEUE.put(task)
         except Exception as exc:
             LOG.error(exc)
