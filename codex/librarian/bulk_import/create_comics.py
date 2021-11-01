@@ -8,9 +8,6 @@ from django.db.models import Q
 from codex.models import Comic, Credit, Folder, Imprint, Publisher, Series, Volume
 
 
-# from django.db.models.fields.related import ManyToManyField
-
-
 LOG = logging.getLogger(__name__)
 EXCLUDE_BULK_UPDATE_COMIC_FIELDS = (
     "id",

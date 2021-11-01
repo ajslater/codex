@@ -26,6 +26,7 @@ MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder")
 MOVED_BULK_FOLDER_UPDATE_FIELDS = ("path", "parent_folder", "name", "sort_name")
 # Batching entire imports doesn't really seem neccissary. This code is left here
 #   as a cautionary measure just in case.
+# Move folder and move comics are not yet batched
 BATCH_SIZE = 100000
 
 

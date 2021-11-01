@@ -141,4 +141,5 @@ def bulk_create_all_fks(
     bulk_create_folders(library, create_paths)
     for cls, names in create_fks.items():
         _bulk_create_named_models(cls, names)
+    # This must happen after credit_fks created by create_named_models
     _bulk_create_credits(create_credits)

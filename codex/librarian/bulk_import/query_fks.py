@@ -1,4 +1,6 @@
 """Query the missing foreign keys for comics and credits."""
+import logging
+
 from pathlib import Path
 
 from django.db.models import Q
@@ -25,19 +27,21 @@ NAMED_MODEL_QUERY_FIELDS = ("name",)
 # Filter arg count is a poor proxy for sql line length but it works
 #   1998 is too high for the Credit query, for instance.
 FILTER_ARG_MAX = 1950
+LOG = logging.getLogger(__name__)
 
 
 def _get_create_metadata(fk_cls, create_mds, filter_batches):
     """Get create metadata by comparing proposed meatada to existing rows."""
-    # XXX filter could be too long with thousands of credits or paths for the filter?
     fields = QUERY_FIELDS.get(fk_cls, NAMED_MODEL_QUERY_FIELDS)
     flat = len(fields) == 1 and fk_cls != Publisher
     # Do this in batches so as not to exceed the 1k line sqlite limit
-    for filter in filter_batches:
+    for num, filter in enumerate(filter_batches):
         existing_mds = set(
             fk_cls.objects.filter(filter).order_by("pk").values_list(*fields, flat=flat)
         )
         create_mds -= existing_mds
+        if num:
+            LOG.debug(f"Queried for existing {fk_cls}s batch {num}")
 
     return create_mds
 

@@ -1,6 +1,7 @@
 """Aggregate metadata from comics to prepare for importing."""
 
 import logging
+import time
 
 from pathlib import Path
 
@@ -19,6 +20,7 @@ for field in Comic._meta.get_fields():
     if field.many_to_many and field.name != "folder":
         COMIC_M2M_FIELDS.add(field.name)
 MD_UNUSED_KEYS = ("alternate_series", "remainder", "ext", "pages", "cover_image")
+LOG_EVERY = 15
 
 
 def _clean_md(md):
@@ -161,9 +163,11 @@ def get_aggregate_metadata(library, all_paths):
         "comic_paths": set(),
     }
     all_failed_imports = {}
+    total_paths = len(all_paths)
 
-    LOG.debug(f"Aggregated metadata for {len(all_paths)} in {library.path}.")
-    for path in all_paths:
+    LOG.debug(f"Aggregating metadata in {library.path}...")
+    last_log_time = time.time()
+    for num, path in enumerate(all_paths):
         path = str(path)
         md, m2m_md, group_tree_md, failed_import = _get_path_metadata(library.pk, path)
 
@@ -178,6 +182,11 @@ def get_aggregate_metadata(library, all_paths):
 
         if failed_import:
             all_failed_imports.update(failed_import)
+
+        now = time.time()
+        if now - last_log_time > LOG_EVERY:
+            LOG.debug(f"Aggregated {num}/{total_paths} comics")
+            last_log_time = now
 
     all_fks["comic_paths"] = set(all_mds.keys())
 
