@@ -156,11 +156,14 @@ def get_aggregate_metadata(library, all_paths):
     """Get aggregated metatada for the paths given."""
     all_mds = {}
     all_m2m_mds = {}
-    all_fks = {"group_trees": {Publisher: {}, Imprint: {}, Series: {}, Volume: {}}}
+    all_fks = {
+        "group_trees": {Publisher: {}, Imprint: {}, Series: {}, Volume: {}},
+        "comic_paths": set(),
+    }
     all_failed_imports = {}
 
     LOG.debug(f"Aggregated metadata for {len(all_paths)} in {library.path}.")
-    for num, path in enumerate(all_paths):
+    for path in all_paths:
         path = str(path)
         md, m2m_md, group_tree_md, failed_import = _get_path_metadata(library.pk, path)
 
