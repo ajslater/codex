@@ -157,10 +157,10 @@ class Scanner(Thread):
     NAME = "scanner"
     SHUTDOWN_MSG = "shutdown"
     SHUTDOWN_TIMEOUT = 5
-    queue = SimpleQueue()
 
     def __init__(self):
         """Inistalize with name and as a daemon."""
+        self.queue = SimpleQueue()
         super().__init__(name=self.NAME, daemon=True)
 
     def run(self):
