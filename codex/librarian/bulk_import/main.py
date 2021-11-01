@@ -24,7 +24,9 @@ from codex.models import Comic, Folder, Library
 LOG = logging.getLogger(__name__)
 MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder")
 MOVED_BULK_FOLDER_UPDATE_FIELDS = ("path", "parent_folder", "name", "sort_name")
-BATCH_SIZE = 500
+# Batching entire imports doesn't really seem neccissary. This code is left here
+#   as a cautionary measure just in case.
+BATCH_SIZE = 100000
 
 
 def _bulk_create_comic_relations(library, fks):

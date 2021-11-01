@@ -22,7 +22,9 @@ NAMED_MODEL_QUERY_FIELDS = ("name",)
 # sqlite parser breaks with more than 1000 lines in a query and django only fixes this
 # in the bulk_create & bulk_update functions. So for complicated queries I gotta batch
 # them myself
-FILTER_ARG_MAX = 900
+# Filter arg count is a poor proxy for sql line length but it works
+#   1998 is too high for the Credit query, for instance.
+FILTER_ARG_MAX = 1950
 
 
 def _get_create_metadata(fk_cls, create_mds, filter_batches):
@@ -32,7 +34,6 @@ def _get_create_metadata(fk_cls, create_mds, filter_batches):
     flat = len(fields) == 1 and fk_cls != Publisher
     # Do this in batches so as not to exceed the 1k line sqlite limit
     for filter in filter_batches:
-        print(f"{fk_cls} {len(filter)}")
         existing_mds = set(
             fk_cls.objects.filter(filter).order_by("pk").values_list(*fields, flat=flat)
         )
