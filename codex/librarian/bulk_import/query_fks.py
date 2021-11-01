@@ -9,6 +9,37 @@ from codex.models import Comic, Credit, Folder, Imprint, Publisher, Series, Volu
 
 CREDIT_FKS = ("role", "person")
 
+CREDIT_QUERY_FIELDS = ("role__name", "person__name")
+FOLDER_QUERY_FIELDS = ("path",)
+QUERY_FIELDS = {
+    Credit: ("role__name", "person__name"),
+    Folder: ("path",),
+    Imprint: ("publisher__name", "name"),
+    Series: ("publisher__name", "imprint__name", "name"),
+    Volume: ("publisher__name", "imprint__name", "series__name", "name"),
+}
+NAMED_MODEL_QUERY_FIELDS = ("name",)
+# sqlite parser breaks with more than 1000 lines in a query and django only fixes this
+# in the bulk_create & bulk_update functions. So for complicated queries I gotta batch
+# them myself
+FILTER_ARG_MAX = 900
+
+
+def _get_create_metadata(fk_cls, create_mds, filter_batches):
+    """Get create metadata by comparing proposed meatada to existing rows."""
+    # XXX filter could be too long with thousands of credits or paths for the filter?
+    fields = QUERY_FIELDS.get(fk_cls, NAMED_MODEL_QUERY_FIELDS)
+    flat = len(fields) == 1 and fk_cls != Publisher
+    # Do this in batches so as not to exceed the 1k line sqlite limit
+    for filter in filter_batches:
+        print(f"{fk_cls} {len(filter)}")
+        existing_mds = set(
+            fk_cls.objects.filter(filter).order_by("pk").values_list(*fields, flat=flat)
+        )
+        create_mds -= existing_mds
+
+    return create_mds
+
 
 def _add_parent_group_filter(group_name, field_name, cls, filter_args):
     """Get the parent group filter by name."""
@@ -30,8 +61,12 @@ def _add_parent_group_filter(group_name, field_name, cls, filter_args):
 
 def _query_missing_group_type(cls, groups):
     """Get missing groups from proposed groups to create."""
+
+    # create the filters
     filter = Q()
     candidates = {}
+    filter_batches = []
+    filter_arg_count = 0
     for group_tree, count in groups.items():
         filter_args = {}
         _add_parent_group_filter(group_tree[-1], "", cls, filter_args)
@@ -42,7 +77,14 @@ def _query_missing_group_type(cls, groups):
         if cls == Volume:
             _add_parent_group_filter(group_tree[2], "series", Series, filter_args)
 
+        num_filter_args = len(filter_args)
+        if filter_arg_count + num_filter_args > FILTER_ARG_MAX:
+            filter_batches.append(filter)
+            filter = Q()
+            filter_arg_count = 0
+
         filter = filter | Q(**filter_args)
+        filter_arg_count += num_filter_args
 
         # XXX ugly hack for DEFAULT_NAME issue in data model
         #  DEFAULT_NAME in general is a bad hack. DB name should be None or empty str
@@ -54,20 +96,13 @@ def _query_missing_group_type(cls, groups):
             else:
                 candidate_tree.append(group_cls.DEFAULT_NAME)
         candidates[tuple(candidate_tree)] = count
+    if filter != Q():
+        filter_batches.append(filter)
 
-    values_list = []  # The order of this is important for set comparisons afterwards
-    if cls in (Imprint, Series, Volume):
-        values_list += ["publisher__name"]
-    if cls in (Series, Volume):
-        values_list += ["imprint__name"]
-    if cls == Volume:
-        values_list += ["series__name"]
-    values_list += ["name"]
+    # get the create metadata
+    create_group_set = _get_create_metadata(cls, set(candidates.keys()), filter_batches)
 
-    candidates_set = set(candidates.keys())
-    existing_groups = set(cls.objects.filter(filter).values_list(*values_list))
-    create_group_set = candidates_set - existing_groups
-
+    # Append the count metadata to the create_groups
     create_groups = {}
     for group, count_dict in candidates.items():
         if group in create_group_set:
@@ -89,8 +124,12 @@ def _query_missing_groups(group_trees_md):
 
 def _query_missing_credits(credits):
     """Find missing credit objects."""
+
+    # create the filter
     filter = Q()
     comparison_credits = set()
+    filter_batches = []
+    filter_arg_count = 0
     for credit_tuple in credits:
         credit_dict = dict(credit_tuple)
         role = credit_dict.get("role")
@@ -99,29 +138,48 @@ def _query_missing_credits(credits):
             "person__name": person,
             "role__name": role,
         }
+
+        if filter_arg_count + 2 > FILTER_ARG_MAX:
+            filter_batches.append(filter)
+            filter = Q()
+            filter_arg_count = 0
+
         filter = filter | Q(**filter_args)
+        filter_arg_count += 2
+
         comparison_tuple = (role, person)
         comparison_credits.add(comparison_tuple)
+    if filter != Q():
+        filter_batches.append(filter)
 
-    existing_credits = Credit.objects.filter(filter).values_list(
-        "role__name", "person__name"
-    )
-    create_credits = comparison_credits - set(existing_credits)
+    # get the create metadata
+    create_credits = _get_create_metadata(Credit, comparison_credits, filter_batches)
+
     return create_credits
 
 
 def _query_missing_named_models(cls, field, names):
     """Find missing named models."""
     fk_cls = cls._meta.get_field(field).related_model
-    existing_names = set(
-        fk_cls.objects.filter(name__in=names).values_list("name", flat=True)
-    )
-    create_names = names - existing_names
+
+    filter_batches = []
+    offset = 0
+    proposed_names = list(names)
+    num_proposed_names = len(proposed_names)
+    while offset < num_proposed_names:
+        end = offset + FILTER_ARG_MAX
+        filter = Q(name__in=proposed_names[offset:end])
+        filter_batches.append(filter)
+        offset += FILTER_ARG_MAX
+
+    create_names = _get_create_metadata(fk_cls, names, filter_batches)
     return fk_cls, create_names
 
 
 def query_missing_folder_paths(library_path, comic_paths):
     """Find missing folder paths."""
+
+    # create the filter
     folder_paths = set()
 
     library_path = Path(library_path)
@@ -130,10 +188,19 @@ def query_missing_folder_paths(library_path, comic_paths):
             if path.is_relative_to(library_path) and path != library_path:
                 folder_paths.add(str(path))
 
-    existing_folder_paths = Folder.objects.filter(path__in=folder_paths).values_list(
-        "path", flat=True
-    )
-    create_folder_paths = folder_paths - set(existing_folder_paths)
+    proposed_folder_paths = list(folder_paths)
+    num_proposed_folder_paths = len(proposed_folder_paths)
+
+    filter_batches = []
+    offset = 0
+    while offset < num_proposed_folder_paths:
+        end = offset + FILTER_ARG_MAX
+        filter = Q(path__in=proposed_folder_paths[offset:end])
+        filter_batches.append(filter)
+        offset += FILTER_ARG_MAX
+
+    # get the create metadata
+    create_folder_paths = _get_create_metadata(Folder, folder_paths, filter_batches)
     return create_folder_paths
 
 
