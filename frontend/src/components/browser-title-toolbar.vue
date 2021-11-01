@@ -84,9 +84,7 @@ export default {
 .invisible {
   visibility: hidden;
 }
-</style>
-<!-- eslint-disable-next-line vue-scoped-css/require-scoped -->
-<style lang="scss">
+/* eslint-disable-next-line vue-scoped-css/no-unused-selector */
 #titleToolbar .v-toolbar__title {
   margin: auto;
   padding-right: 48px;
@@ -103,6 +101,7 @@ export default {
 
 @import "~vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
+  /* eslint-disable-next-line vue-scoped-css/no-unused-selector */
   #titleToolbar .v-toolbar__title {
     font-size: 1rem;
   }

@@ -593,10 +593,7 @@ export default {
     padding-left: 0px;
   }
 }
-</style>
-
-<!-- eslint-disable-next-line vue-scoped-css/require-scoped -->
-<style lang="scss">
+/* eslint-disable-next-line vue-scoped-css/no-unused-selector */
 .v-dialog--fullscreen {
   width: 100% !important;
   opacity: 0.99;

@@ -49,7 +49,7 @@ export default {
 }
 </style>
 
-<!-- eslint-disable-next-line vue-scoped-css/require-scoped -->
+<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
 #filterToolbar .filterSelect .v-input__prepend-inner {
   padding-right: 0px;
