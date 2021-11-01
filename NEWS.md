@@ -1,5 +1,10 @@
 # Codex News
 
+## v0.6.9rc0
+
+- Massive speedup for importing comics. Particularly for large libraries.
+- Speedup for creating comic covers on large imports.
+
 ## v0.6.8
 
 - Fixes
