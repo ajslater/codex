@@ -36,7 +36,7 @@ def _is_outdated(path, updated_at):
     return mtime > updated_at
 
 
-def _bulk_scan_existing(library, force):
+def _scan_existing(library, force):
     """Scan existing comics for updates."""
     LOG.debug(f"Scanning for existing comics {force=}")
     comics = Comic.objects.filter(library=library).values_list("path", "updated_at")
@@ -58,7 +58,7 @@ def _bulk_scan_existing(library, force):
     return all_comic_paths, update_comic_paths, delete_paths
 
 
-def _bulk_scan_new(library_path, all_comic_paths):
+def _scan_new(library_path, all_comic_paths):
     """Add comics from a library that aren't in the db already."""
     LOG.debug("Scanning for new comics")
     create_comic_paths = set()
@@ -75,9 +75,9 @@ def _bulk_scan_new(library_path, all_comic_paths):
     return create_comic_paths
 
 
-def _bulk_scan_and_import(library, force):
-    all_paths, update_paths, delete_paths = _bulk_scan_existing(library, force)
-    create_paths = _bulk_scan_new(library.path, all_paths)
+def _scan_and_import(library, force):
+    all_paths, update_paths, delete_paths = _scan_existing(library, force)
+    create_paths = _scan_new(library.path, all_paths)
     total_imported = bulk_import(
         library=library,
         update_paths=update_paths,
@@ -102,7 +102,7 @@ def _scan_root(pk, force=False):
             raise ValueError("no library path")
         force = force or library.last_scan is None
         start_time = datetime.now()
-        count = _bulk_scan_and_import(library, force)
+        count = _scan_and_import(library, force)
         elapsed_time = datetime.now() - start_time
         if count:
             log_suffix = f" {elapsed_time/count} s/comic."
