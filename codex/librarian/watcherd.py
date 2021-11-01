@@ -110,7 +110,7 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
 
     def on_deleted(self, event):
         """Put a comic deleted task on the queue."""
-        if self.is_ignored(event.is_directory, event.src_path):
+        if self._is_ignored(event.is_directory, event.src_path):
             return
 
         self._wait_for_delete(event.src_path)
