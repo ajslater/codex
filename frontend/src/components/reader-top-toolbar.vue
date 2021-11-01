@@ -27,7 +27,7 @@ import ReaderSettingsDialog from "@/components/reader-settings-dialog";
 const DEFAULT_ROUTE = { group: "r", pk: 0, page: 1 };
 
 export default {
-  name: "Reader",
+  name: "ReaderTopToolbar",
   components: {
     MetadataDialog,
     ReaderSettingsDialog,
@@ -117,7 +117,7 @@ export default {
 }
 </style>
 
-<!-- eslint-disable-next-line vue-scoped-css/require-scoped -->
+<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
 /* TOOLBARS */
 .readerTopToolbar .v-toolbar__content {

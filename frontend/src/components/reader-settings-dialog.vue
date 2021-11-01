@@ -108,7 +108,7 @@ export default {
 }
 </style>
 
-<!-- eslint-disable-next-line vue-scoped-css/require-scoped -->
+<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
 .v-dialog {
   /* Seems like I'm fixing a bug here */

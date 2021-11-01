@@ -11,15 +11,11 @@ from websocket import create_connection
 
 from codex.librarian.cover import create_comic_cover
 from codex.librarian.crond import Crond
-from codex.librarian.importer import import_comic, obj_deleted, obj_moved
-from codex.librarian.queue import (
+from codex.librarian.queue_mp import (
     QUEUE,
+    BulkComicMovedTask,
+    BulkFolderMovedTask,
     ComicCoverCreateTask,
-    ComicDeletedTask,
-    ComicModifiedTask,
-    ComicMovedTask,
-    FolderDeletedTask,
-    FolderMovedTask,
     LibraryChangedTask,
     RestartTask,
     ScanDoneTask,
@@ -29,7 +25,7 @@ from codex.librarian.queue import (
     VacuumCronTask,
     WatcherCronTask,
 )
-from codex.librarian.scanner import scan_cron, scan_root
+from codex.librarian.scanner import Scanner
 from codex.librarian.update import restart_codex, update_codex
 from codex.librarian.vacuum import vacuum_db
 from codex.librarian.watcherd import Uatu
@@ -40,7 +36,7 @@ from codex.settings.settings import PORT
 from codex.websocket_server import BROADCAST_SECRET, IPC_URL_TMPL, MessageType
 
 
-django_setup()
+django_setup()  # XXX can I move this to run()?
 
 LOG = logging.getLogger(__name__)
 if platform.system() == "Darwin":
@@ -101,11 +97,24 @@ class LibrarianDaemon(Process):
         try:
             if task and hasattr(task, "sleep"):
                 sleep(task.sleep)
-            if isinstance(task, ScanRootTask):
-                msg = WS_MSGS["SCAN_LIBRARY"]
-                self.send_json(MessageType.ADMIN_BROADCAST, msg)
-                # no retry
-                scan_root(task.library_id, task.force)
+
+            if isinstance(task, ComicCoverCreateTask):
+                # Cover creation is cpu bound, farm it out.
+                args = (task.src_path, task.db_cover_path, task.force)
+                self.pool.apply_async(create_comic_cover, args=args)
+            elif isinstance(
+                task,
+                (
+                    ScanRootTask,
+                    BulkFolderMovedTask,
+                    BulkComicMovedTask,
+                    ScannerCronTask,
+                ),
+            ):
+                if isinstance(task, ScanRootTask):
+                    msg = WS_MSGS["SCAN_LIBRARY"]
+                    self.send_json(MessageType.ADMIN_BROADCAST, msg)
+                self.scanner.queue.put(task)
             elif isinstance(task, ScanDoneTask):
                 if task.failed_imports:
                     msg = WS_MSGS["FAILED_IMPORTS"]
@@ -113,28 +122,12 @@ class LibrarianDaemon(Process):
                     msg = WS_MSGS["SCAN_DONE"]
                 if not self.send_json(MessageType.ADMIN_BROADCAST, msg):
                     QUEUE.put(task)
-            elif isinstance(task, ComicModifiedTask):
-                import_comic(task.library_id, task.src_path)
-            elif isinstance(task, ComicCoverCreateTask):
-                # Cover creation is cpu bound, farm it out.
-                args = (task.src_path, task.db_cover_path, task.force)
-                self.pool.apply_async(create_comic_cover, args=args)
-            elif isinstance(task, FolderMovedTask):
-                obj_moved(task.src_path, task.dest_path, Folder)
-            elif isinstance(task, ComicMovedTask):
-                obj_moved(task.src_path, task.dest_path, Comic)
-            elif isinstance(task, ComicDeletedTask):
-                obj_deleted(task.src_path, Comic)
-            elif isinstance(task, FolderDeletedTask):
-                obj_deleted(task.src_path, Folder)
             elif isinstance(task, LibraryChangedTask):
                 msg = WS_MSGS["LIBRARY_CHANGED"]
                 if not self.send_json(MessageType.BROADCAST, msg):
                     QUEUE.put(task)
             elif isinstance(task, WatcherCronTask):
                 self.watcher.set_all_library_watches()
-            elif isinstance(task, ScannerCronTask):
-                scan_cron()
             elif isinstance(task, UpdateCronTask):
                 update_codex(task.force)
             elif isinstance(task, RestartTask):
@@ -154,10 +147,12 @@ class LibrarianDaemon(Process):
 
     def start_threads(self):
         """Start all librarian's threads."""
+        self.scanner = Scanner()
         self.watcher = Uatu()
         self.crond = Crond()
         self.pool = Pool()
         LOG.debug("Created Threads.")
+        self.scanner.start()
         self.watcher.start()
         self.crond.start()
         LOG.debug("Started Threads.")
@@ -170,10 +165,12 @@ class LibrarianDaemon(Process):
         self.crond.stop()
         self.pool.close()
         self.watcher.stop()
+        self.scanner.stop()
         LOG.debug("Joining threads & pool...")
         self.crond.join()
         self.watcher.join()
         self.pool.join()
+        self.scanner.join()
         LOG.debug("Stopped threads & pool.")
 
     def run(self):

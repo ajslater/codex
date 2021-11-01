@@ -2,9 +2,9 @@ import Vue from "vue";
 import VueRouter from "vue-router";
 
 import { ROOT_PATH } from "@/api/v2/base";
-import Browser from "@/browser.vue";
+import MainBrowser from "@/browser.vue";
 import NotFound from "@/not-found.vue";
-import Reader from "@/reader.vue";
+import MainReader from "@/reader.vue";
 
 Vue.use(VueRouter);
 
@@ -23,13 +23,13 @@ const routes = [
   {
     name: "reader",
     path: "/c/:pk/:page",
-    component: Reader,
+    component: MainReader,
     props: true,
   },
   {
     name: "browser",
     path: "/:group/:pk/:page",
-    component: Browser,
+    component: MainBrowser,
     props: true,
   },
   { path: "*", component: NotFound },

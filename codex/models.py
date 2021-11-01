@@ -53,6 +53,15 @@ class BrowserGroupModel(BaseModel):
     is_default = BooleanField(default=False)
     sort_name = CharField(db_index=True, max_length=32)
 
+    def presave(self):
+        """Save the sort name. Called by save()."""
+        self.sort_name = self.name
+
+    def save(self, *args, **kwargs):
+        """Save the sort name as the name by default."""
+        self.presave()
+        super().save(*args, **kwargs)
+
     class Meta:
         """Without this a real table is created and joined to."""
 
@@ -63,19 +72,14 @@ class Publisher(BrowserGroupModel):
     """The publisher of the comic."""
 
     DEFAULTS = {"is_default": True}
-
-    name = CharField(max_length=32, default="No Publisher")
+    DEFAULT_NAME = "No Publisher"
+    name = CharField(max_length=32, default=DEFAULT_NAME)
 
     @classmethod
     def get_default_publisher(cls):
         """Get or create a default 'No Publisher' entry."""
         publisher, _ = cls.objects.get_or_create(defaults=cls.DEFAULTS, **cls.DEFAULTS)
         return publisher
-
-    def save(self, *args, **kwargs):
-        """Save the sort name as the name by default."""
-        self.sort_name = self.name
-        super().save(*args, **kwargs)
 
     class Meta:
         """Constraints."""
@@ -86,7 +90,8 @@ class Publisher(BrowserGroupModel):
 class Imprint(BrowserGroupModel):
     """A Publishing imprint."""
 
-    name = CharField(max_length=32, default="Main Imprint")
+    DEFAULT_NAME = "Main Imprint"
+    name = CharField(max_length=32, default=DEFAULT_NAME)
     publisher = ForeignKey(Publisher, on_delete=SET(Publisher.get_default_publisher))
 
     class Meta:
@@ -94,24 +99,19 @@ class Imprint(BrowserGroupModel):
 
         unique_together = ("name", "publisher", "is_default")
 
-    def save(self, *args, **kwargs):
-        """Save the sort name."""
+    def presave(self):
+        """Save the sort name. Called by save()."""
         self.sort_name = f"{self.publisher.name} {self.name}"
-        super().save(*args, **kwargs)
 
 
 class Series(BrowserGroupModel):
     """The series the comic belongs to."""
 
-    name = CharField(max_length=32, default="Default Series")
+    DEFAULT_NAME = "Default Series"
+    name = CharField(max_length=32, default=DEFAULT_NAME)
     publisher = ForeignKey(Publisher, on_delete=Publisher.get_default_publisher)
     imprint = ForeignKey(Imprint, on_delete=CASCADE)
     volume_count = PositiveSmallIntegerField(null=True)
-
-    def save(self, *args, **kwargs):
-        """Save the sort name as the name by default."""
-        self.sort_name = self.name
-        super().save(*args, **kwargs)
 
     class Meta:
         """Constraints."""
@@ -123,16 +123,16 @@ class Series(BrowserGroupModel):
 class Volume(BrowserGroupModel):
     """The volume of the series the comic belongs to."""
 
-    name = CharField(max_length=32, default="")
+    DEFAULT_NAME = ""
+    name = CharField(max_length=32, default=DEFAULT_NAME)
     publisher = ForeignKey(Publisher, on_delete=Publisher.get_default_publisher)
     imprint = ForeignKey(Imprint, on_delete=CASCADE)
     series = ForeignKey(Series, on_delete=CASCADE)
     issue_count = DecimalField(decimal_places=2, max_digits=6, null=True)
 
-    def save(self, *args, **kwargs):
-        """Save the sort name."""
+    def presave(self):
+        """Save the sort name. Called by save()."""
         self.sort_name = f"{self.series.name} {self.name}"
-        super().save(*args, **kwargs)
 
     class Meta:
         """Constraints."""
@@ -200,9 +200,13 @@ class Folder(NamedModel):
     )
     sort_name = CharField(max_length=32)
 
+    def presave(self):
+        """Save the sort name. Called by save()."""
+        self.sort_name = self.name
+
     def save(self, *args, **kwargs):
         """Save the sort name as the name by default."""
-        self.sort_name = self.name
+        self.presave()
         super().save(*args, **kwargs)
 
     class Meta:
@@ -377,12 +381,20 @@ class Comic(BaseModel):
             issue_str = f"#{self.issue:05.1f}"
         return issue_str
 
-    def save(self, *args, **kwargs):
-        """Save computed fields."""
+    def presave(self):
+        """Set computed values."""
         self._set_date()
         self._set_decade()
         self.sort_name = f"{self.volume.sort_name} {self.issue:06.1f}"
+
+    def save(self, *args, **kwargs):
+        """Save computed fields."""
+        self.presave()
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        """Most common text representation for logging."""
+        return "{str(self.volume.series.name)} #{self.issue:03}"
 
 
 class AdminFlag(NamedModel):
@@ -470,17 +482,15 @@ class FailedImport(BaseModel):
     path = CharField(db_index=True, max_length=128)
     reason = CharField(max_length=MAX_REASON_LEN)
 
-    @classmethod
-    def get_reason(cls, exc, path):
+    def set_reason(self, exc, path):
         """Can't do this in save() because it breaks update_or_create."""
         reason = str(exc)
         suffixes = (f": {path}", f": '{path}'")
         for suffix in suffixes:
             if reason.endswith(suffix):
                 reason = reason[: -len(suffix)]
-        reason = reason[: cls.MAX_REASON_LEN]
-        reason = reason.strip()
-        return reason
+        reason = reason[: self.MAX_REASON_LEN]
+        self.reason = reason.strip()
 
     class Meta:
         """Constraints."""

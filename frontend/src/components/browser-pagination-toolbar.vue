@@ -57,7 +57,7 @@ export default {
 }
 </style>
 
-<!-- eslint-disable-next-line vue-scoped-css/require-scoped -->
+<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
 .paginationToolbar > .v-toolbar__content {
   padding: 0px;

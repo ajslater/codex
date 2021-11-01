@@ -1,62 +1,49 @@
-"""Library Queue and task definitions."""
+"""Library SimpleQueue and task definitions."""
+# THIS file cannot be named queue or it causes weird type checker errors
 from dataclasses import dataclass
 from multiprocessing import SimpleQueue
 
 
 @dataclass
-class ScanRootTask:
-    """Scan a library."""
+class LibraryTask:
+    """Task for a particular library."""
 
     library_id: int
+
+
+@dataclass
+class ScanRootTask(LibraryTask):
+    """Scan a library."""
+
     force: bool
 
 
 @dataclass
-class ComicTask:
-    """Base class for comic tasks."""
-
-    src_path: str
-
-
-@dataclass
-class ComicModifiedTask(ComicTask):
-    """Created and Modified comics share the same task."""
-
-    library_id: int
-
-
-@dataclass
-class ComicCoverCreateTask(ComicTask):
+class ComicCoverCreateTask(LibraryTask):
     """Create a comic cover."""
 
+    src_path: str
     db_cover_path: str
     force: bool
 
 
 @dataclass
-class ComicMovedTask(ComicTask):
-    """Moved comic task."""
+class BulkMovedTask(LibraryTask):
+    """Move Folders or Comics."""
 
-    dest_path: str
+    moved_paths: dict
 
 
 @dataclass
-class ComicDeletedTask(ComicTask):
-    """Deleted comic."""
+class BulkFolderMovedTask(BulkMovedTask):
+    """Move Folders."""
 
     pass
 
 
 @dataclass
-class FolderMovedTask(ComicTask):
-    """Moved comic task."""
-
-    dest_path: str
-
-
-@dataclass
-class FolderDeletedTask(ComicTask):
-    """Deleted comic."""
+class BulkComicMovedTask(BulkMovedTask):
+    """Move Comics."""
 
     pass
 

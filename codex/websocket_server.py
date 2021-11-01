@@ -6,12 +6,11 @@ import time
 
 from json import JSONDecodeError
 from multiprocessing import Value
-from queue import SimpleQueue
-from threading import Thread
 
 from asgiref.sync import async_to_sync
 from django.core.cache import cache
 
+from codex.buffer_thread import BufferThread, TimedMessage
 from codex.settings.django_setup import django_setup
 
 
@@ -33,10 +32,6 @@ IPC_SUFFIX = "/ipc"
 IPC_URL_TMPL = "ws://localhost:{port}/" + WS_API_PATH + IPC_SUFFIX
 
 # Flood control
-MESSAGE_QUEUE = SimpleQueue()
-SHUTDOWN_MSG = "shutdown"
-FLOOD_DELAY = 2  # wait seconds before broadcasting
-MAX_FLOOD_WAIT_TIME = 20
 
 
 class MessageType:
@@ -61,65 +56,74 @@ async def websocket_application(scope, receive, send):
     """Websocket application server."""
     LOG.debug(f"Starting websocket connection. {scope}")
     while True:
-        event = await receive()
+        try:
+            event = await receive()
 
-        if event["type"] == "websocket.connect":
-            await send(WS_ACCEPT_MSG)
+            if event["type"] == "websocket.connect":
+                await send(WS_ACCEPT_MSG)
 
-        if event["type"] == "websocket.disconnect":
-            break
+            if event["type"] == "websocket.disconnect":
+                break
 
-        if event["type"] == "websocket.receive":
-            try:
-                msg = json.loads(event["text"])
-                msg_type = msg.get("type")
-                # msg_message = msg.get("message")
+            if event["type"] == "websocket.receive":
+                try:
+                    msg = json.loads(event["text"])
+                    msg_type = msg.get("type")
+                    # msg_message = msg.get("message")
 
-                if (msg_type) == MessageType.SUBSCRIBE:
+                    if (msg_type) == MessageType.SUBSCRIBE:
 
-                    if msg.get("register"):
-                        # The librarian doesn't care about broadcasts
-                        BROADCAST_CONNS.add(send)
+                        if msg.get("register"):
+                            # The librarian doesn't care about broadcasts
+                            BROADCAST_CONNS.add(send)
+                        else:
+                            BROADCAST_CONNS.discard(send)
+                            ADMIN_CONNS.discard(send)
+
+                        if msg.get("admin"):
+                            # Only admins care about admin messages
+                            ADMIN_CONNS.add(send)
+                        else:
+                            ADMIN_CONNS.discard(send)
+                    elif (
+                        msg_type == MessageType.BROADCAST
+                        and msg.get("secret") == BROADCAST_SECRET.value
+                    ):
+                        message = FloodControlMessage(msg.get("message"))
+                        # flood control library changed messages
+                        FloodControlThread.MESSAGE_QUEUE.put(message)
+                    elif (
+                        msg_type == MessageType.ADMIN_BROADCAST
+                        and msg.get("secret") == BROADCAST_SECRET.value
+                    ):
+                        message = msg.get("message")
+                        await send_msg(ADMIN_CONNS, message)
                     else:
-                        BROADCAST_CONNS.discard(send)
-                        ADMIN_CONNS.discard(send)
+                        # Keepalive?
+                        pass
 
-                    if msg.get("admin"):
-                        # Only admins care about admin messages
-                        ADMIN_CONNS.add(send)
-                    else:
-                        ADMIN_CONNS.discard(send)
-                elif (
-                    msg_type == MessageType.BROADCAST
-                    and msg.get("secret") == BROADCAST_SECRET.value
-                ):
-                    message = msg.get("message")
-                    # flood control library changed messages
-                    MESSAGE_QUEUE.put((message, time.time()))
-                elif (
-                    msg_type == MessageType.ADMIN_BROADCAST
-                    and msg.get("secret") == BROADCAST_SECRET.value
-                ):
-                    message = msg.get("message")
-                    await send_msg(ADMIN_CONNS, message)
-                else:
-                    # Keepalive?
-                    pass
-
-            except JSONDecodeError as exc:
-                LOG.error(exc)
+                except JSONDecodeError as exc:
+                    LOG.error(exc)
+        except Exception as exc:
+            LOG.exception(exc)
     LOG.debug("Closing websocket connection.")
 
 
-class FloodControlThread(Thread):
+class FloodControlMessage(TimedMessage):
+    """Timed message for flood control."""
+
+    def __init__(self, message):
+        """Set the message content."""
+        self.message = message
+        super().__init__()
+
+
+class FloodControlThread(BufferThread):
     """Prevent floods of broadcast messages to clients."""
 
-    thread = None
-    SHUTDOWN_TIMEOUT = 5
-
-    def __init__(self):
-        """Init the thread."""
-        super().__init__(name="flood-control", daemon=True)
+    NAME = "ui-notification-flood-control"
+    FLOOD_DELAY = 2  # wait seconds before broadcasting
+    MAX_FLOOD_WAIT_TIME = 20
 
     def run(self):
         """
@@ -133,32 +137,24 @@ class FloodControlThread(Thread):
         """
         LOG.info("Started Broadcast Flood Control Worker.")
         while True:
-            waiting_since = time.time()
-            message, timestamp = MESSAGE_QUEUE.get()
-            if message == SHUTDOWN_MSG:
-                break
-            wait_break = time.time() - waiting_since > MAX_FLOOD_WAIT_TIME
-            if MESSAGE_QUEUE.empty() or wait_break:
-                wait_left = timestamp + FLOOD_DELAY - time.time()
+            try:
+                waiting_since = time.time()
+                message = self.MESSAGE_QUEUE.get()
+                if message == self.SHUTDOWN_MSG:
+                    break
+                wait_break = time.time() - waiting_since > self.MAX_FLOOD_WAIT_TIME
+                if not self.MESSAGE_QUEUE.empty() and not wait_break:
+                    # discard message
+                    continue
+                wait_left = message.time + self.FLOOD_DELAY - time.time()
                 if wait_left <= 0 or wait_break:
+                    # send it to the frontend
                     cache.clear()
-                    async_to_sync(send_msg)(BROADCAST_CONNS, message)
+                    async_to_sync(send_msg)(BROADCAST_CONNS, message.message)
                 else:
                     # put it back and wait
-                    if MESSAGE_QUEUE.empty():
-                        MESSAGE_QUEUE.put((message, timestamp))
-                        time.sleep(wait_left)
+                    self.MESSAGE_QUEUE.put(message)
+                    time.sleep(wait_left)
+            except Exception as exc:
+                LOG.exception(exc)
         LOG.info("Stopped Broadcast Flood Control Worker.")
-
-    @classmethod
-    def startup(cls):
-        """Start the flood control worker."""
-        cls.thread = FloodControlThread()
-        cls.thread.start()
-
-    @classmethod
-    def shutdown(cls):
-        """Make the thread end."""
-        MESSAGE_QUEUE.put((SHUTDOWN_MSG, 0))
-        if cls.thread:
-            cls.thread.join(cls.SHUTDOWN_TIMEOUT)

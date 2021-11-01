@@ -3,7 +3,7 @@ import logging
 
 from threading import Condition, Thread
 
-from codex.librarian.queue import (
+from codex.librarian.queue_mp import (
     QUEUE,
     ScannerCronTask,
     UpdateCronTask,
@@ -28,11 +28,14 @@ class Crond(Thread):
         LOG.info("Started cron")
         with self.COND:
             while self.run_thread:
-                QUEUE.put(ScannerCronTask(sleep=0))
-                QUEUE.put(WatcherCronTask(sleep=0))
-                QUEUE.put(UpdateCronTask(sleep=0, force=False))
-                QUEUE.put(VacuumCronTask())
-                self.COND.wait(timeout=self.WAIT_INTERVAL)
+                try:
+                    QUEUE.put(ScannerCronTask(sleep=0))
+                    QUEUE.put(WatcherCronTask(sleep=0))
+                    QUEUE.put(UpdateCronTask(sleep=0, force=False))
+                    QUEUE.put(VacuumCronTask())
+                    self.COND.wait(timeout=self.WAIT_INTERVAL)
+                except Exception as exc:
+                    LOG.exception(exc)
         LOG.info("Stopped cron.")
 
     def __init__(self):

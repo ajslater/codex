@@ -91,10 +91,6 @@ export default {
 .upsideDown {
   transform: rotate(180deg);
 }
-</style>
-
-<!-- eslint-disable-next-line vue-scoped-css/require-scoped -->
-<style lang="scss">
 .sortBySelect {
   width: 144px;
 }

@@ -106,10 +106,7 @@ export default {
 #readerKeyboardShortcutsTable td:first-child {
   text-align: center;
 }
-</style>
-
-<!-- eslint-disable-next-line vue-scoped-css/require-scoped -->
-<style lang="scss">
+/* eslint-disable-next-line vue-scoped-css/no-unused-selector */
 .v-dialog {
   /* Seems like I'm fixing a bug here */
   background-color: #121212;
