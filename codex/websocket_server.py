@@ -6,6 +6,7 @@ import time
 
 from json import JSONDecodeError
 from multiprocessing import Value
+from queue import Empty
 
 from asgiref.sync import async_to_sync
 from django.core.cache import cache
@@ -31,8 +32,6 @@ ADMIN_SUFFIX = "/a"
 IPC_SUFFIX = "/ipc"
 IPC_URL_TMPL = "ws://localhost:{port}/" + WS_API_PATH + IPC_SUFFIX
 
-# Flood control
-
 
 class MessageType:
     """Types of messages."""
@@ -55,8 +54,9 @@ async def send_msg(conns, text):
 async def websocket_application(scope, receive, send):
     """Websocket application server."""
     LOG.debug(f"Starting websocket connection. {scope}")
-    flood_control = FloodControlWorker()
-    flood_control.start()
+    # TODO move this to global where librarian can hit it.
+    notifier = NotificiationWorker()
+    notifier.start()
     while True:
         try:
             event = await receive()
@@ -74,6 +74,7 @@ async def websocket_application(scope, receive, send):
                     # msg_message = msg.get("message")
 
                     if (msg_type) == MessageType.SUBSCRIBE:
+                        # FROM CLIENTS
 
                         if msg.get("register"):
                             # The librarian doesn't care about broadcasts
@@ -88,18 +89,13 @@ async def websocket_application(scope, receive, send):
                         else:
                             ADMIN_CONNS.discard(send)
                     elif (
-                        msg_type == MessageType.BROADCAST
+                        msg_type in (MessageType.BROADCAST, MessageType.ADMIN_BROADCAST)
                         and msg.get("secret") == BROADCAST_SECRET.value
                     ):
-                        message = FloodControlMessage(msg.get("message"))
-                        # flood control library changed messages
-                        flood_control.queue.put(message)
-                    elif (
-                        msg_type == MessageType.ADMIN_BROADCAST
-                        and msg.get("secret") == BROADCAST_SECRET.value
-                    ):
-                        message = msg.get("message")
-                        await send_msg(ADMIN_CONNS, message)
+                        # FROM Librarian
+                        # TODO Librarian hits the flood controller directly
+                        message = NotificationMessage(msg_type, msg.get("message"))
+                        notifier.queue.put(message)
                     else:
                         # Keepalive?
                         pass
@@ -108,25 +104,31 @@ async def websocket_application(scope, receive, send):
                     LOG.error(exc)
         except Exception as exc:
             LOG.exception(exc)
-    flood_control.join()
+    notifier.join()
     LOG.debug("Closing websocket connection.")
 
 
-class FloodControlMessage(TimedMessage):
+class NotificationMessage(TimedMessage):
     """Timed message for flood control."""
 
-    def __init__(self, message):
+    def __init__(self, type, message):
         """Set the message content."""
+        self.type = type
         self.message = message
         super().__init__()
 
 
-class FloodControlWorker(QueuedWorker):
+class NotificiationWorker(QueuedWorker):
     """Prevent floods of broadcast messages to clients."""
 
-    NAME = "ui-notification-flood-control"
+    NAME = "ui-notifier"
     FLOOD_DELAY = 2  # wait seconds before broadcasting
     MAX_FLOOD_WAIT_TIME = 20
+
+    def __init__(self, *args, **kwargs):
+        self.messages = {}
+
+        super().__init__(*args, **kwargs)
 
     def run(self):
         """
@@ -135,29 +137,33 @@ class FloodControlWorker(QueuedWorker):
         This thread runs in the main ASGI process to access the websockets.
         This lets other workers flood us with as many messages as they
         like and bottleneck them here in one spot before pinging the clients.
-
-        May need to recognize different message types in the future.
         """
-        LOG.info("Started Broadcast Flood Control Worker.")
+        LOG.info("Started Notification Worker.")
+        waiting_since = time.time()
         while True:
             try:
-                waiting_since = time.time()
-                message = self.queue.get()
-                if message == self.SHUTDOWN_MSG:
-                    break
-                wait_break = time.time() - waiting_since > self.MAX_FLOOD_WAIT_TIME
-                if not self.queue.empty() and not wait_break:
-                    # discard message
-                    continue
-                wait_left = message.time + self.FLOOD_DELAY - time.time()
-                if wait_left <= 0 or wait_break:
-                    # send it to the frontend
+                try:
+                    message = self.queue.get(timeout=self.FLOOD_DELAY)
+                    if message == self.SHUTDOWN_MSG:
+                        break
+                    self.messages[message.message] = message.type
+                    wait_break = time.time() - waiting_since > self.MAX_FLOOD_WAIT_TIME
+                    if not wait_break:
+                        continue
+                except Empty:
+                    pass
+                # send all stored messages to the frontend
+                if self.messages:
                     cache.clear()
-                    async_to_sync(send_msg)(BROADCAST_CONNS, message.message)
-                else:
-                    # put it back and wait
-                    self.queue.put(message)
-                    time.sleep(wait_left)
+                    for msg, type in self.messages.items():
+                        if type == MessageType.BROADCAST:
+                            async_to_sync(send_msg)(BROADCAST_CONNS, msg)
+                        elif type == MessageType.ADMIN_BROADCAST:
+                            async_to_sync(send_msg)(ADMIN_CONNS, msg)
+                        else:
+                            LOG.error(f"invalid message type {type} for message {msg}")
+                    self.messages = {}
+                waiting_since = time.time()
             except Exception as exc:
                 LOG.exception(exc)
-        LOG.info("Stopped Broadcast Flood Control Worker.")
+        LOG.info("Stopped Notification Worker.")
