@@ -9,7 +9,6 @@ from queue import Empty
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-from codex.buffer_thread import BufferThread, TimedMessage
 from codex.librarian.queue_mp import (
     QUEUE,
     BulkComicMovedTask,
@@ -18,6 +17,7 @@ from codex.librarian.queue_mp import (
 )
 from codex.librarian.regex import COMIC_MATCHER
 from codex.models import Library
+from codex.queued_worker import QueuedWorker, TimedMessage
 
 
 LOG = logging.getLogger(__name__)
@@ -155,7 +155,7 @@ class ComicMovedMessage(MovedMessage):
     pass
 
 
-class EventBatchThread(BufferThread):
+class EventBatcher(QueuedWorker):
     """Batch watchdog events into bulk database tasks."""
 
     NAME = "watchdog-event-batcher"
@@ -228,7 +228,7 @@ class Uatu(Observer):
     """Watch over librarys from the blue area of the moon."""
 
     SHUTDOWN_TIMEOUT = 5
-    EVENT_BATCHER = EventBatchThread()
+    EVENT_BATCHER = EventBatcher()
 
     def __init__(self, *args, **kwargs):
         """Intialize pk to watches dict."""

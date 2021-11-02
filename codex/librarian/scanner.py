@@ -7,7 +7,6 @@ from pathlib import Path
 
 from django.utils import timezone
 
-from codex.buffer_thread import BufferThread
 from codex.librarian.bulk_import.main import (
     bulk_comics_moved,
     bulk_folders_moved,
@@ -23,6 +22,7 @@ from codex.librarian.queue_mp import (
 )
 from codex.librarian.regex import COMIC_MATCHER
 from codex.models import SCHEMA_VERSION, Comic, FailedImport, Library
+from codex.queued_worker import QueuedWorker
 
 
 LOG = logging.getLogger(__name__)
@@ -150,7 +150,7 @@ def _scan_cron():
             LOG.error(exc)
 
 
-class Scanner(BufferThread):
+class Scanner(QueuedWorker):
     """A worker to handle all scanning, importing and moving."""
 
     NAME = "scanner"

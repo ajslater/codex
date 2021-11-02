@@ -10,7 +10,7 @@ from multiprocessing import Value
 from asgiref.sync import async_to_sync
 from django.core.cache import cache
 
-from codex.buffer_thread import BufferThread, TimedMessage
+from codex.queued_worker import QueuedWorker, TimedMessage
 from codex.settings.django_setup import django_setup
 
 
@@ -55,8 +55,8 @@ async def send_msg(conns, text):
 async def websocket_application(scope, receive, send):
     """Websocket application server."""
     LOG.debug(f"Starting websocket connection. {scope}")
-    flood_control_thread = FloodControlThread()
-    flood_control_thread.start()
+    flood_control = FloodControlWorker()
+    flood_control.start()
     while True:
         try:
             event = await receive()
@@ -93,7 +93,7 @@ async def websocket_application(scope, receive, send):
                     ):
                         message = FloodControlMessage(msg.get("message"))
                         # flood control library changed messages
-                        flood_control_thread.queue.put(message)
+                        flood_control.queue.put(message)
                     elif (
                         msg_type == MessageType.ADMIN_BROADCAST
                         and msg.get("secret") == BROADCAST_SECRET.value
@@ -108,7 +108,7 @@ async def websocket_application(scope, receive, send):
                     LOG.error(exc)
         except Exception as exc:
             LOG.exception(exc)
-    flood_control_thread.join()
+    flood_control.join()
     LOG.debug("Closing websocket connection.")
 
 
@@ -121,7 +121,7 @@ class FloodControlMessage(TimedMessage):
         super().__init__()
 
 
-class FloodControlThread(BufferThread):
+class FloodControlWorker(QueuedWorker):
     """Prevent floods of broadcast messages to clients."""
 
     NAME = "ui-notification-flood-control"

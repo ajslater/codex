@@ -14,7 +14,7 @@ class TimedMessage:
         super().__init__(*args, **kwargs)
 
 
-class BufferThread(Thread):
+class QueuedWorker(Thread):
     """Abstract Thread worker for doing queued tasks."""
 
     SHUTDOWN_MSG = "shutdown"
