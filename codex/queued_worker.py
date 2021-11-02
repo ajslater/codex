@@ -1,7 +1,7 @@
 """Abstract Thread worker for doing queued tasks."""
 import time
 
-from queue import SimpleQueue
+from multiprocessing import Queue
 from threading import Thread
 
 
@@ -23,7 +23,7 @@ class QueuedWorker(Thread):
 
     def __init__(self):
         """Initialize with overridden name and as a daemon thread."""
-        self.queue = SimpleQueue()
+        self.queue = Queue()
         super().__init__(name=self.NAME, daemon=True)
 
     def join(self):

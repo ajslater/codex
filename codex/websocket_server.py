@@ -1,11 +1,9 @@
 """Websocket Server."""
 import json
 import logging
-import random
 import time
 
 from json import JSONDecodeError
-from multiprocessing import Value
 from queue import Empty
 
 from asgiref.sync import async_to_sync
@@ -24,25 +22,9 @@ WS_ACCEPT_MSG = {"type": "websocket.accept"}
 WS_SEND_MSG = {"type": "websocket.send"}
 BROADCAST_CONNS = set()
 ADMIN_CONNS = set()
-BROADCAST_MSG = "broadcast"
-# Shared memory broadcast security
-BROADCAST_SECRET = Value("i", random.randint(0, 100))
-WS_API_PATH = "api/v1/ws"
-ADMIN_SUFFIX = "/a"
-IPC_SUFFIX = "/ipc"
-IPC_URL_TMPL = "ws://localhost:{port}/" + WS_API_PATH + IPC_SUFFIX
 
 
-class MessageType:
-    """Types of messages."""
-
-    SUBSCRIBE = "subscribe"
-    BROADCAST = "broadcast"
-    ADMIN_BROADCAST = "admin_broadcast"
-    SECRET_TYPES = set([BROADCAST, ADMIN_BROADCAST])
-
-
-async def send_msg(conns, text):
+async def _send_msg(conns, text):
     """Construct a ws send message and send to all connections."""
     # text = WEBSOCKET_API[message]
     _send_msg = {"text": text}
@@ -54,9 +36,7 @@ async def send_msg(conns, text):
 async def websocket_application(scope, receive, send):
     """Websocket application server."""
     LOG.debug(f"Starting websocket connection. {scope}")
-    # TODO move this to global where librarian can hit it.
-    notifier = NotificiationWorker()
-    notifier.start()
+    NOTIFIER.start()
     while True:
         try:
             event = await receive()
@@ -71,45 +51,35 @@ async def websocket_application(scope, receive, send):
                 try:
                     msg = json.loads(event["text"])
                     msg_type = msg.get("type")
-                    # msg_message = msg.get("message")
 
-                    if (msg_type) == MessageType.SUBSCRIBE:
-                        # FROM CLIENTS
-
+                    if (msg_type) == "subscribe":
                         if msg.get("register"):
                             # The librarian doesn't care about broadcasts
                             BROADCAST_CONNS.add(send)
                         else:
                             BROADCAST_CONNS.discard(send)
-                            ADMIN_CONNS.discard(send)
 
                         if msg.get("admin"):
                             # Only admins care about admin messages
                             ADMIN_CONNS.add(send)
                         else:
                             ADMIN_CONNS.discard(send)
-                    elif (
-                        msg_type in (MessageType.BROADCAST, MessageType.ADMIN_BROADCAST)
-                        and msg.get("secret") == BROADCAST_SECRET.value
-                    ):
-                        # FROM Librarian
-                        # TODO Librarian hits the flood controller directly
-                        message = NotificationMessage(msg_type, msg.get("message"))
-                        notifier.queue.put(message)
                     else:
-                        # Keepalive?
-                        pass
+                        LOG.warning(f"Bad message type to websockets: {msg_type}")
 
                 except JSONDecodeError as exc:
                     LOG.error(exc)
         except Exception as exc:
             LOG.exception(exc)
-    notifier.join()
+    NOTIFIER.join()
     LOG.debug("Closing websocket connection.")
 
 
-class NotificationMessage(TimedMessage):
+class NotifierMessage(TimedMessage):
     """Timed message for flood control."""
+
+    BROADCAST = 0
+    ADMIN_BROADCAST = 1
 
     def __init__(self, type, message):
         """Set the message content."""
@@ -127,7 +97,6 @@ class NotificiationWorker(QueuedWorker):
 
     def __init__(self, *args, **kwargs):
         self.messages = {}
-
         super().__init__(*args, **kwargs)
 
     def run(self):
@@ -156,10 +125,10 @@ class NotificiationWorker(QueuedWorker):
                 if self.messages:
                     cache.clear()
                     for msg, type in self.messages.items():
-                        if type == MessageType.BROADCAST:
-                            async_to_sync(send_msg)(BROADCAST_CONNS, msg)
-                        elif type == MessageType.ADMIN_BROADCAST:
-                            async_to_sync(send_msg)(ADMIN_CONNS, msg)
+                        if type == NotifierMessage.BROADCAST:
+                            async_to_sync(_send_msg)(BROADCAST_CONNS, msg)
+                        elif type == NotifierMessage.ADMIN_BROADCAST:
+                            async_to_sync(_send_msg)(ADMIN_CONNS, msg)
                         else:
                             LOG.error(f"invalid message type {type} for message {msg}")
                     self.messages = {}
@@ -167,3 +136,6 @@ class NotificiationWorker(QueuedWorker):
             except Exception as exc:
                 LOG.exception(exc)
         LOG.info("Stopped Notification Worker.")
+
+
+NOTIFIER = NotificiationWorker()

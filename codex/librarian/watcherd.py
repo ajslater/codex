@@ -168,13 +168,16 @@ class EventBatcher(QueuedWorker):
     }
     TASK_ORDER = (FolderMovedMessage, ComicMovedMessage, ScanRootMessage)
 
-    def __init__(self):
-        """Name the thread."""
+    def _reset_events(self):
         self.events = {
             FolderMovedMessage: {},
             ComicMovedMessage: {},
             ScanRootMessage: {},
         }
+
+    def __init__(self):
+        """Name the thread."""
+        self._reset_events()
         super().__init__()
 
     def run(self):
@@ -215,10 +218,10 @@ class EventBatcher(QueuedWorker):
                             params["moved_paths"] = moved_paths
                         task = task_cls(**params)
                         LOG.debug(f"Sending task: {task}")
+                        print("sending {task=}")
                         QUEUE.put(task)
                 # reset the event aggregates
-                for message_cls in self.events.keys():
-                    self.events[message_cls] = {}
+                self._reset_events()
             except Exception as exc:
                 LOG.exception(exc)
         LOG.info("Stopped watcher batch event worker.")

@@ -167,8 +167,10 @@ class Scanner(QueuedWorker):
                     _scan_root(task.library_id, task.force)
                 elif isinstance(task, BulkFolderMovedTask):
                     bulk_folders_moved(task.library_id, task.moved_paths)
+                    QUEUE.put(ScanDoneTask(failed_imports=False, sleep=0))
                 elif isinstance(task, BulkComicMovedTask):
                     bulk_comics_moved(task.library_id, task.moved_paths)
+                    QUEUE.put(ScanDoneTask(failed_imports=False, sleep=0))
                 elif task == self.SHUTDOWN_MSG:
                     break
                 else:
