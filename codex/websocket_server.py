@@ -55,6 +55,8 @@ async def send_msg(conns, text):
 async def websocket_application(scope, receive, send):
     """Websocket application server."""
     LOG.debug(f"Starting websocket connection. {scope}")
+    flood_control_thread = FloodControlThread()
+    flood_control_thread.start()
     while True:
         try:
             event = await receive()
@@ -91,7 +93,7 @@ async def websocket_application(scope, receive, send):
                     ):
                         message = FloodControlMessage(msg.get("message"))
                         # flood control library changed messages
-                        FloodControlThread.MESSAGE_QUEUE.put(message)
+                        flood_control_thread.queue.put(message)
                     elif (
                         msg_type == MessageType.ADMIN_BROADCAST
                         and msg.get("secret") == BROADCAST_SECRET.value
@@ -106,6 +108,7 @@ async def websocket_application(scope, receive, send):
                     LOG.error(exc)
         except Exception as exc:
             LOG.exception(exc)
+    flood_control_thread.join()
     LOG.debug("Closing websocket connection.")
 
 
@@ -139,11 +142,11 @@ class FloodControlThread(BufferThread):
         while True:
             try:
                 waiting_since = time.time()
-                message = self.MESSAGE_QUEUE.get()
+                message = self.queue.get()
                 if message == self.SHUTDOWN_MSG:
                     break
                 wait_break = time.time() - waiting_since > self.MAX_FLOOD_WAIT_TIME
-                if not self.MESSAGE_QUEUE.empty() and not wait_break:
+                if not self.queue.empty() and not wait_break:
                     # discard message
                     continue
                 wait_left = message.time + self.FLOOD_DELAY - time.time()
@@ -153,7 +156,7 @@ class FloodControlThread(BufferThread):
                     async_to_sync(send_msg)(BROADCAST_CONNS, message.message)
                 else:
                     # put it back and wait
-                    self.MESSAGE_QUEUE.put(message)
+                    self.queue.put(message)
                     time.sleep(wait_left)
             except Exception as exc:
                 LOG.exception(exc)

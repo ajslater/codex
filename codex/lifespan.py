@@ -69,19 +69,15 @@ def codex_startup():
     cache.clear()
 
     from codex.librarian.librariand import LibrarianDaemon
-    from codex.websocket_server import FloodControlThread
 
     LibrarianDaemon.startup()
-    FloodControlThread.startup()
 
 
 def codex_shutdown():
     """Stop the daemons. But don't import them until django is set up."""
     from codex.librarian.librariand import LibrarianDaemon
-    from codex.websocket_server import FloodControlThread
 
     LibrarianDaemon.shutdown()
-    FloodControlThread.shutdown()
 
 
 async def lifespan_application(scope, receive, send):

@@ -17,25 +17,16 @@ class TimedMessage:
 class BufferThread(Thread):
     """Abstract Thread worker for doing queued tasks."""
 
-    thread = None
-    MESSAGE_QUEUE = SimpleQueue()
     SHUTDOWN_MSG = "shutdown"
     SHUTDOWN_TIMEOUT = 5
     NAME = "abstract-buffer-worker"
 
     def __init__(self):
         """Initialize with overridden name and as a daemon thread."""
+        self.queue = SimpleQueue()
         super().__init__(name=self.NAME, daemon=True)
 
-    @classmethod
-    def startup(cls):
-        """Start the thread."""
-        cls.thread = cls()
-        cls.thread.start()
-
-    @classmethod
-    def shutdown(cls):
+    def join(self):
         """End the thread."""
-        cls.MESSAGE_QUEUE.put(cls.SHUTDOWN_MSG)
-        if cls.thread:
-            cls.thread.join(cls.SHUTDOWN_TIMEOUT)
+        self.queue.put(self.SHUTDOWN_MSG)
+        super().join(self.SHUTDOWN_TIMEOUT)

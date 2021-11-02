@@ -42,8 +42,9 @@ class Crond(Thread):
         """Intialize this thread with the worker."""
         super().__init__(name="crond", daemon=True)
 
-    def stop(self):
+    def join(self):
         """Stop the cron thread."""
         self.run_thread = False
         with self.COND:
             self.COND.notify()
+        super().join()

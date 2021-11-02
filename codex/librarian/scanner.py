@@ -4,11 +4,10 @@ import os
 
 from datetime import datetime
 from pathlib import Path
-from queue import SimpleQueue
-from threading import Thread
 
 from django.utils import timezone
 
+from codex.buffer_thread import BufferThread
 from codex.librarian.bulk_import.main import (
     bulk_comics_moved,
     bulk_folders_moved,
@@ -151,17 +150,10 @@ def _scan_cron():
             LOG.error(exc)
 
 
-class Scanner(Thread):
+class Scanner(BufferThread):
     """A worker to handle all scanning, importing and moving."""
 
     NAME = "scanner"
-    SHUTDOWN_MSG = "shutdown"
-    SHUTDOWN_TIMEOUT = 5
-
-    def __init__(self):
-        """Inistalize with name and as a daemon."""
-        self.queue = SimpleQueue()
-        super().__init__(name=self.NAME, daemon=True)
 
     def run(self):
         """Run the scanner."""
@@ -185,7 +177,3 @@ class Scanner(Thread):
                 LOG.exception(exc)
 
         LOG.info("Stopped the scanner worker." "")
-
-    def stop(self):
-        self.queue.put(self.SHUTDOWN_MSG)
-        self.join(self.SHUTDOWN_TIMEOUT)

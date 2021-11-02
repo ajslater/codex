@@ -81,7 +81,7 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
         src_path = Path(event.src_path)
         self._wait_for_copy(src_path, event.is_directory)
         message = ScanRootMessage(self.library_pk)
-        EventBatchThread.MESSAGE_QUEUE.put(message)
+        Uatu.EVENT_BATCHER.queue.put(message)
 
     def on_created(self, event):
         """Do the same thing as for modified."""
@@ -106,7 +106,7 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
             message = ComicMovedMessage(
                 self.library_pk, event.src_path, event.dest_path
             )
-        EventBatchThread.MESSAGE_QUEUE.put(message)
+        Uatu.EVENT_BATCHER.queue.put(message)
 
     def on_deleted(self, event):
         """Put a comic deleted task on the queue."""
@@ -115,82 +115,7 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
 
         self._wait_for_delete(event.src_path)
         message = ScanRootMessage(self.library_pk)
-        EventBatchThread.MESSAGE_QUEUE.put(message)
-
-
-class Uatu(Observer):
-    """Watch over librarys from the blue area of the moon."""
-
-    SHUTDOWN_TIMEOUT = 5
-
-    def __init__(self, *args, **kwargs):
-        """Intialize pk to watches dict."""
-        super().__init__(*args, **kwargs)
-        self._pk_watches = dict()
-
-    def start(self):
-        """Start the batcher thread."""
-        EventBatchThread.startup()
-        super().start()
-
-    def stop(self):
-        """Stop the batcher thread."""
-        super().stop()
-        EventBatchThread.shutdown()
-
-    def _unwatch_library(self, pk):
-        """Stop a watch process."""
-        watch = self._pk_watches.pop(pk, None)
-        if watch:
-            self.unschedule(watch)
-            LOG.info(f"Stopped watching library {pk}")
-        else:
-            LOG.debug(f"Library {pk} not being watched")
-
-    def _watch_library(self, pk):
-        """Start a library watching process."""
-        if pk in self._pk_watches:
-            LOG.debug(f"Library {pk} already being watched.")
-            return
-        try:
-            library = Library.objects.get(pk=pk, enable_watch=True)
-        except Library.DoesNotExist as exc:
-            LOG.exception(exc)
-            return
-        path = library.path
-        handler = CodexLibraryEventHandler(pk)
-
-        try:
-            watch = self.schedule(handler, path, recursive=True)
-            self._pk_watches[pk] = watch
-            LOG.info(f"Started watching {path}")
-        except FileNotFoundError:
-            LOG.warn(f"Could not find {path} to watch. May be unmounted.")
-            return
-
-    def _set_library_watch(self, pk, watch):
-        """Watch or unwatch a library."""
-        if watch:
-            self._watch_library(pk)
-        else:
-            self._unwatch_library(pk)
-
-    def set_all_library_watches(self):
-        """Watch or unwatch all libraries according to the db."""
-        rps = Library.objects.all().values("pk", "enable_watch")
-        active_watch_pks = set()
-        for rp in rps:
-            self._set_library_watch(rp.get("pk"), rp.get("enable_watch"))
-            active_watch_pks.add(rp.get("pk"))
-        missing_watch_pks = set(self._pk_watches.keys()) - active_watch_pks
-        for pk in missing_watch_pks:
-            self._unwatch_library(pk)
-
-    def unschedule_all(self):
-        """Unschedule all watches."""
-        super().unschedule_all()
-        self._pk_watches = dict()
-        LOG.info("Stopped watching all libraries")
+        Uatu.EVENT_BATCHER.queue.put(message)
 
 
 class LibraryMessage(TimedMessage):
@@ -259,7 +184,7 @@ class EventBatchThread(BufferThread):
             try:
                 waiting_since = time.time()
                 try:
-                    message = self.MESSAGE_QUEUE.get(timeout=self.BATCH_DELAY)
+                    message = self.queue.get(timeout=self.BATCH_DELAY)
                     if message == self.SHUTDOWN_MSG:
                         break
                     LOG.debug(f"Adding {message} to cache.")
@@ -276,7 +201,7 @@ class EventBatchThread(BufferThread):
                 except Empty:
                     wait_left = 0
                 wait_break = time.time() - waiting_since > self.MAX_BATCH_WAIT_TIME
-                if self.MESSAGE_QUEUE.empty() and not wait_break and wait_left > 0:
+                if self.queue.empty() and not wait_break and wait_left > 0:
                     continue
                 # Send all tasks
                 for message_cls in self.TASK_ORDER:
@@ -297,3 +222,75 @@ class EventBatchThread(BufferThread):
             except Exception as exc:
                 LOG.exception(exc)
         LOG.info("Stopped watcher batch event worker.")
+
+
+class Uatu(Observer):
+    """Watch over librarys from the blue area of the moon."""
+
+    SHUTDOWN_TIMEOUT = 5
+    EVENT_BATCHER = EventBatchThread()
+
+    def __init__(self, *args, **kwargs):
+        """Intialize pk to watches dict."""
+        self.EVENT_BATCHER.start()
+        super().__init__(*args, **kwargs)
+        self._pk_watches = dict()
+
+    def _unwatch_library(self, pk):
+        """Stop a watch process."""
+        watch = self._pk_watches.pop(pk, None)
+        if watch:
+            self.unschedule(watch)
+            LOG.info(f"Stopped watching library {pk}")
+        else:
+            LOG.debug(f"Library {pk} not being watched")
+
+    def _watch_library(self, pk):
+        """Start a library watching process."""
+        if pk in self._pk_watches:
+            LOG.debug(f"Library {pk} already being watched.")
+            return
+        try:
+            library = Library.objects.get(pk=pk, enable_watch=True)
+        except Library.DoesNotExist as exc:
+            LOG.exception(exc)
+            return
+        path = library.path
+        handler = CodexLibraryEventHandler(pk)
+
+        try:
+            watch = self.schedule(handler, path, recursive=True)
+            self._pk_watches[pk] = watch
+            LOG.info(f"Started watching {path}")
+        except FileNotFoundError:
+            LOG.warn(f"Could not find {path} to watch. May be unmounted.")
+            return
+
+    def _set_library_watch(self, pk, watch):
+        """Watch or unwatch a library."""
+        if watch:
+            self._watch_library(pk)
+        else:
+            self._unwatch_library(pk)
+
+    def set_all_library_watches(self):
+        """Watch or unwatch all libraries according to the db."""
+        rps = Library.objects.all().values("pk", "enable_watch")
+        active_watch_pks = set()
+        for rp in rps:
+            self._set_library_watch(rp.get("pk"), rp.get("enable_watch"))
+            active_watch_pks.add(rp.get("pk"))
+        missing_watch_pks = set(self._pk_watches.keys()) - active_watch_pks
+        for pk in missing_watch_pks:
+            self._unwatch_library(pk)
+
+    def unschedule_all(self):
+        """Unschedule all watches."""
+        super().unschedule_all()
+        self._pk_watches = dict()
+        LOG.info("Stopped watching all libraries")
+
+    def stop(self):
+        """Stop watching and jon the event batcher thread."""
+        super().stop()
+        self.EVENT_BATCHER.join()
