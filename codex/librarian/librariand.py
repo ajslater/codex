@@ -1,6 +1,5 @@
 """Library process worker for background tasks."""
 from logging import getLogger
-
 from multiprocessing import Pool, Process
 from time import sleep
 
@@ -25,10 +24,10 @@ from codex.librarian.update import restart_codex, update_codex
 from codex.librarian.vacuum import vacuum_db
 from codex.librarian.watcherd import Uatu
 from codex.models import Comic, Folder
+from codex.notifier import Notifier, NotifierMessage
 from codex.serializers.webpack import (
     WEBSOCKET_MESSAGES as WS_MSGS,  # TODO Replace with tasks
 )
-from codex.websocket_server import Notifier, NotifierMessage
 
 
 LOG = getLogger(__name__)
