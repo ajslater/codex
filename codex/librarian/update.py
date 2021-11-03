@@ -1,9 +1,10 @@
 """Update the codex python package."""
-from logging import getLogger
 import os
 import signal
 import subprocess
 import sys
+
+from logging import getLogger
 
 from codex.librarian.latest_version import get_installed_version, is_outdated
 from codex.models import AdminFlag

@@ -1,8 +1,8 @@
 """Aggregate metadata from comics to prepare for importing."""
 
-from logging import getLogger
 import time
 
+from logging import getLogger
 from pathlib import Path
 
 from comicbox.comic_archive import ComicArchive

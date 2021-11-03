@@ -1,6 +1,4 @@
-"""
-Sends notifications to connections, reading from a queue.
-"""
+"""Sends notifications to connections, reading from a queue."""
 from logging import getLogger
 
 from asgiref.sync import async_to_sync
@@ -72,10 +70,13 @@ class Notifier(AggregateMessageQueuedThread):
 
     @classmethod
     def startup(cls):
+        """Singleton thread create and start."""
         cls.thread = Notifier()
         cls.thread.start()
 
     @classmethod
     def shutdown(cls):
+        """Shut down the thread and discard the connections."""
         cls.thread.join()
-        cls.CONNS = {}
+        for type in cls.CONNS.keys():
+            cls.CONNS[type] = set()

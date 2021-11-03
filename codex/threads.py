@@ -64,7 +64,7 @@ class AggregateMessageQueuedThread(QueuedThread, ABC):
             del self.cache[key]
 
     def run(self):
-        """Run message getting, aggregating and sending loop"""
+        """Run message getting, aggregating and sending loop."""
         LOG.info(f"Started {self.NAME} thread")
         # last_send = time.time()
         while True:

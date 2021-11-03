@@ -1,6 +1,5 @@
 """Bulk update and create comic objects and bulk update m2m fields."""
 from logging import getLogger
-
 from pathlib import Path
 
 from django.db.models import Q

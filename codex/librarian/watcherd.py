@@ -1,10 +1,9 @@
 """Watch librarys recursively for changes."""
-from logging import getLogger
 import os
 import time
 
+from logging import getLogger
 from pathlib import Path
-from queue import Empty
 
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer

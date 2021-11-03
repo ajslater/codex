@@ -1,6 +1,5 @@
 """Clean up the database after moves or imports."""
 from logging import getLogger
-
 from pathlib import Path
 
 from codex.librarian.cover import purge_cover_path

@@ -18,8 +18,8 @@ from django.core.asgi import get_asgi_application
 # Must setup up the django environment before importing django models
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "codex.settings.settings")
 django.setup()
-from codex.lifespan import lifespan_application
-from codex.websocket_server import websocket_application
+from codex.lifespan import lifespan_application  # noqa: E402
+from codex.websocket_server import websocket_application  # noqa: E402
 
 
 LOG = getLogger(__name__)

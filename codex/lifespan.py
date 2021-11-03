@@ -51,7 +51,6 @@ def init_admin_flags():
 
 def unset_scan_in_progress():
     """Unset the scan_in_progres flag for all libraries."""
-
     stuck_libraries = Library.objects.filter(scan_in_progress=True).only(
         "scan_in_progress", "path"
     )

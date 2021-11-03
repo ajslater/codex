@@ -1,6 +1,5 @@
 """Query the missing foreign keys for comics and credits."""
 from logging import getLogger
-
 from pathlib import Path
 
 from django.db.models import Q
@@ -66,7 +65,6 @@ def _add_parent_group_filter(group_name, field_name, cls, filter_args):
 
 def _query_missing_group_type(cls, groups):
     """Get missing groups from proposed groups to create."""
-
     # create the filters
     filter = Q()
     candidates = {}
@@ -129,7 +127,6 @@ def _query_missing_groups(group_trees_md):
 
 def _query_missing_credits(credits):
     """Find missing credit objects."""
-
     # create the filter
     filter = Q()
     comparison_credits = set()
@@ -183,7 +180,6 @@ def _query_missing_named_models(cls, field, names):
 
 def query_missing_folder_paths(library_path, comic_paths):
     """Find missing folder paths."""
-
     # create the filter
     folder_paths = set()
 

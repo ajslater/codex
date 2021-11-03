@@ -1,7 +1,6 @@
 """Functions for dealing with comic cover thumbnails."""
-from logging import getLogger
-
 from io import BytesIO
+from logging import getLogger
 from pathlib import Path
 
 from comicbox.comic_archive import ComicArchive

@@ -5,7 +5,6 @@ So we may safely create the comics next.
 """
 
 from logging import getLogger
-
 from pathlib import Path
 
 from codex.models import (

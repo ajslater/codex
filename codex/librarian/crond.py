@@ -1,6 +1,5 @@
 """Watch file trees for changes."""
 from logging import getLogger
-
 from threading import Condition, Thread
 
 from codex.librarian.queue_mp import (

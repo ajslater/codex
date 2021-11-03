@@ -1,6 +1,5 @@
 """Bulk import and move comics and folders."""
 from logging import getLogger
-
 from pathlib import Path
 
 from codex.librarian.bulk_import.aggregate_metadata import get_aggregate_metadata
@@ -54,7 +53,6 @@ def _split_batch(paths, batch_size):
 
 def _split_batches(update_paths, create_paths):
     """Split both path lists into batches totalling BATCH_SIZE."""
-
     update_end, update_head, update_tail = _split_batch(update_paths, BATCH_SIZE)
 
     create_batch_size = BATCH_SIZE - update_end

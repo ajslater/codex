@@ -11,9 +11,9 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 
-from logging import getLogger
 import os
 
+from logging import getLogger
 from pathlib import Path
 
 from codex.settings.hypercorn import load_hypercorn_config

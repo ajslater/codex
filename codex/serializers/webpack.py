@@ -5,10 +5,10 @@ Extract the same json the frontend uses for the values so they're always
 in sync.
 Which is a little bit of overengineering.
 """
-from logging import getLogger
 import mmap
 import re
 
+from logging import getLogger
 from pathlib import Path
 
 import simplejson as json

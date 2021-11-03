@@ -1,8 +1,8 @@
 """Scan librarys for comics."""
-from logging import getLogger
 import os
 
 from datetime import datetime
+from logging import getLogger
 from pathlib import Path
 
 from django.utils import timezone

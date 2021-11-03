@@ -5,9 +5,9 @@ Places connections into the Notifier, which sends notifications reading
 from a queue.
 """
 import json
-from logging import getLogger
 
 from json import JSONDecodeError
+from logging import getLogger
 
 from codex.notifier import Notifier
 
