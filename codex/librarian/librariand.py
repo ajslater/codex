@@ -157,5 +157,5 @@ class LibrarianDaemon(Process):
         """Stop the librarian process."""
         LIBRARIAN_QUEUE.put(cls.SHUTDOWN_TASK)
         if cls.proc:
-            LOG.debug("Waiting to shut down...")
+            LOG.debug("Waiting to shut down librarian...")
             cls.proc.join()
