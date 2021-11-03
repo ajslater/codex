@@ -11,11 +11,12 @@ from PIL import Image
 
 from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
-    ComicCoverCreateTask,
+    BulkComicCoverCreateTask,
     LibraryChangedTask,
 )
 from codex.models import Comic
 from codex.settings.settings import CONFIG_STATIC, STATIC_ROOT
+from codex.threads import QueuedThread
 
 
 THUMBNAIL_SIZE = (120, 180)
@@ -95,9 +96,11 @@ def get_cover_path(comic_path):
     return str(cover_path.with_suffix(".jpg"))
 
 
-def create_comic_cover(comic_path, db_cover_path, force=False):
+def _create_comic_cover(comic, force=False):
     """Create a comic cover thumnail and save it to disk."""
+    comic_path = comic.get("path")
     try:
+        db_cover_path = comic.get("cover_path")
         if db_cover_path == MISSING_COVER_FN and not force:
             LOG.debug(f"Cover for {comic_path} missing.")
             return
@@ -128,23 +131,25 @@ def create_comic_cover(comic_path, db_cover_path, force=False):
         LOG.warn(f"Marked cover for {comic_path} missing.")
 
 
-def bulk_create_comic_covers(comic_and_cover_paths, force=False):
+def _bulk_create_comic_covers(comic_and_cover_paths, force=False):
     """Create bulk comic covers."""
-    last_log_time = time.time()
+    start_time = last_log_time = time.time()
     num_comics = len(comic_and_cover_paths)
     LOG.info(f"Creating {num_comics} comic covers...")
     comic_counter = 0
     for comic in comic_and_cover_paths:
-        create_comic_cover(comic.get("path"), comic.get("cover_path"), force)
+        _create_comic_cover(comic, force)
         comic_counter += 1
         now = time.time()
         if now - last_log_time > LOG_EVERY:
             LOG.info(f"Created {comic_counter}/{num_comics} comic covers")
             last_log_time = now
-    LOG.info(f"Created {comic_counter} comic covers.")
+    elapsed = time.time() - start_time
+    per = elapsed / comic_counter
+    LOG.info(f"Created {comic_counter} comic covers in {elapsed}s at {per}s per cover.")
 
 
-def regen_all_covers(library_pk, bulk=True):
+def regen_all_covers(library_pk):
     """Force regeneration of all covers."""
     LOG.info(f"Regnerating all comic covers for library {library_pk}")
     comics = (
@@ -152,11 +157,28 @@ def regen_all_covers(library_pk, bulk=True):
         .filter(library_id=library_pk)
         .values("path", "cover_path")
     )
-    if bulk:
-        bulk_create_comic_covers(comics, True)
-    else:
-        for comic in comics:
-            task = ComicCoverCreateTask(
-                library_pk, comic["path"], comic["cover_path"], True
-            )
-            LIBRARIAN_QUEUE.put(task)
+    task = BulkComicCoverCreateTask(tuple(comics), True)
+    LIBRARIAN_QUEUE.put(task)
+
+
+class CoverCreator(QueuedThread):
+    """Create comic covers in it's own thread."""
+
+    NAME = "CoverCreator"
+
+    def run(self):
+        """Run the creator."""
+        LOG.info(f"Started {self.NAME} thread.")
+        while True:
+            try:
+                task = self.queue.get()
+                if isinstance(task, BulkComicCoverCreateTask):
+                    _bulk_create_comic_covers(task.paths, task.force)
+                elif task == self.SHUTDOWN_MSG:
+                    break
+                else:
+                    LOG.error(f"Bad task sent to {self.NAME}: {task}")
+            except Exception as exc:
+                LOG.exception(exc)
+
+        LOG.info(f"Stopped {self.NAME} thread.")

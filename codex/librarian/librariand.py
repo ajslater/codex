@@ -3,13 +3,13 @@ from logging import getLogger
 from multiprocessing import Pool, Process
 from time import sleep
 
-from codex.librarian.cover import create_comic_cover
+from codex.librarian.cover import CoverCreator
 from codex.librarian.crond import Crond
 from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
+    BulkComicCoverCreateTask,
     BulkComicMovedTask,
     BulkFolderMovedTask,
-    ComicCoverCreateTask,
     LibraryChangedTask,
     RestartTask,
     ScanDoneTask,
@@ -59,10 +59,8 @@ class LibrarianDaemon(Process):
             if task and hasattr(task, "sleep"):
                 sleep(task.sleep)
 
-            if isinstance(task, ComicCoverCreateTask):
-                # Cover creation is cpu bound, farm it out.
-                args = (task.src_path, task.db_cover_path, task.force)
-                self.pool.apply_async(create_comic_cover, args=args)
+            if isinstance(task, BulkComicCoverCreateTask):
+                self.cover_creator.queue.put(task)
             elif isinstance(
                 task,
                 (
@@ -103,11 +101,13 @@ class LibrarianDaemon(Process):
 
     def start_threads(self):
         """Start all librarian's threads."""
+        self.cover_creator = CoverCreator()
         self.scanner = Scanner()
         self.watcher = Uatu()
         self.crond = Crond()
         self.pool = Pool()
         LOG.debug("Created Threads.")
+        self.cover_creator.start()
         self.scanner.start()
         self.watcher.start()
         self.crond.start()
@@ -122,6 +122,7 @@ class LibrarianDaemon(Process):
         self.crond.join()
         self.watcher.join()
         self.scanner.join()
+        self.cover_creator.join()
         self.pool.join()
         LOG.debug("Stopped threads & pool.")
 

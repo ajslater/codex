@@ -19,15 +19,6 @@ class ScanRootTask(LibraryTask):
 
 
 @dataclass
-class ComicCoverCreateTask(LibraryTask):
-    """Create a comic cover."""
-
-    src_path: str
-    db_cover_path: str
-    force: bool
-
-
-@dataclass
 class BulkMovedTask(LibraryTask):
     """Move Folders or Comics."""
 
@@ -46,6 +37,12 @@ class BulkComicMovedTask(BulkMovedTask):
     """Move Comics."""
 
     pass
+
+
+@dataclass
+class BulkComicCoverCreateTask:
+    paths: tuple
+    force: bool
 
 
 @dataclass

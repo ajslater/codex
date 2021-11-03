@@ -157,7 +157,7 @@ class Scanner(QueuedThread):
 
     def run(self):
         """Run the scanner."""
-        LOG.info(f"Started {self.NAME} thread." "")
+        LOG.info(f"Started {self.NAME} thread.")
         while True:
             try:
                 task = self.queue.get()
@@ -177,4 +177,4 @@ class Scanner(QueuedThread):
                     LOG.error(f"Bad task sent to scanner {task}")
             except Exception as exc:
                 LOG.exception(exc)
-        LOG.info(f"Stopped {self.NAME} thread." "")
+        LOG.info(f"Stopped {self.NAME} thread.")
