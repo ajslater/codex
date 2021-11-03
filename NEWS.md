@@ -4,6 +4,7 @@
 
 - Massive speedup for importing comics. Particularly for large libraries.
 - Speedup for creating comic covers on large imports.
+- Regenerate covers admin task.
 
 ## v0.6.8
 
