@@ -22,15 +22,6 @@ BROADCAST_CONNS = set()
 ADMIN_CONNS = set()
 
 
-async def _send_msg(conns, text):
-    """Construct a ws send message and send to all connections."""
-    # text = WEBSOCKET_API[message]
-    _send_msg = {"text": text}
-    _send_msg.update(WS_SEND_MSG)
-    for send in conns:
-        await send(_send_msg)
-
-
 async def websocket_application(scope, receive, send):
     """Websocket application server."""
     LOG.info(f"Starting websocket connection. {scope}")
@@ -86,6 +77,14 @@ class NotifierMessage:
         """Set the message content."""
         self.type = type
         self.message = message
+
+
+async def _send_msg(conns, text):
+    """Construct a ws send message and send to all connections."""
+    _send_msg = {"text": text}
+    _send_msg.update(WS_SEND_MSG)
+    for send in conns:
+        await send(_send_msg)
 
 
 class Notifier(AggregateMessageQueuedThread):
