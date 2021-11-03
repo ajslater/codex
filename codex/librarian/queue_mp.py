@@ -12,14 +12,19 @@ class LibraryTask:
 
 
 @dataclass
-class ScanRootTask(LibraryTask):
+class ScannerTask:
+    pass
+
+
+@dataclass
+class ScanRootTask(LibraryTask, ScannerTask):
     """Scan a library."""
 
     force: bool
 
 
 @dataclass
-class BulkMovedTask(LibraryTask):
+class BulkMovedTask(LibraryTask, ScannerTask):
     """Move Folders or Comics."""
 
     moved_paths: dict
@@ -62,7 +67,12 @@ class SleepTask:
 
 
 @dataclass
-class LibraryChangedTask:
+class NotifierTask:
+    pass
+
+
+@dataclass
+class LibraryChangedTask(NotifierTask):
     """Library Changed."""
 
     pass
@@ -76,7 +86,7 @@ class WatcherCronTask(SleepTask):
 
 
 @dataclass
-class ScannerCronTask(SleepTask):
+class ScannerCronTask(SleepTask, ScannerTask):
     """Cron for scanner."""
 
     pass
@@ -97,7 +107,7 @@ class RestartTask(SleepTask):
 
 
 @dataclass
-class ScanDoneTask(SleepTask):
+class ScanDoneTask(SleepTask, NotifierTask):
     """Notifications for finished scans."""
 
     failed_imports: bool

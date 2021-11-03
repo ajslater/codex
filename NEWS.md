@@ -3,8 +3,8 @@
 ## v0.7.0rc0
 
 - Massive speedup for importing comics. Particularly for large libraries.
-- Speedup for creating comic covers on large imports.
-- Regenerate covers admin task.
+- Speedup for creating comic covers. Particularly for large imports.
+- Regenerate comic covers admin task.
 
 ## v0.6.8
 
