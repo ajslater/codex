@@ -1,16 +1,14 @@
 """Websocket Server."""
 import json
 import logging
-import time
 
 from json import JSONDecodeError
-from queue import Empty
 
 from asgiref.sync import async_to_sync
 from django.core.cache import cache
 
-from codex.queued_worker import QueuedWorker, TimedMessage
 from codex.settings.django_setup import django_setup
+from codex.threads import AggregateMessageQueuedThread
 
 
 django_setup()
@@ -35,7 +33,7 @@ async def _send_msg(conns, text):
 
 async def websocket_application(scope, receive, send):
     """Websocket application server."""
-    LOG.debug(f"Starting websocket connection. {scope}")
+    LOG.info(f"Starting websocket connection. {scope}")
     NOTIFIER.start()
     while True:
         try:
@@ -64,6 +62,9 @@ async def websocket_application(scope, receive, send):
                             ADMIN_CONNS.add(send)
                         else:
                             ADMIN_CONNS.discard(send)
+                    elif msg_type is None:
+                        # keep-alive
+                        pass
                     else:
                         LOG.warning(f"Bad message type to websockets: {msg_type}")
 
@@ -72,10 +73,10 @@ async def websocket_application(scope, receive, send):
         except Exception as exc:
             LOG.exception(exc)
     NOTIFIER.join()
-    LOG.debug("Closing websocket connection.")
+    LOG.info("Closing websocket connection.")
 
 
-class NotifierMessage(TimedMessage):
+class NotifierMessage:
     """Timed message for flood control."""
 
     BROADCAST = 0
@@ -85,57 +86,38 @@ class NotifierMessage(TimedMessage):
         """Set the message content."""
         self.type = type
         self.message = message
-        super().__init__()
 
 
-class NotificiationWorker(QueuedWorker):
+class Notifier(AggregateMessageQueuedThread):
     """Prevent floods of broadcast messages to clients."""
 
-    NAME = "ui-notifier"
-    FLOOD_DELAY = 2  # wait seconds before broadcasting
-    MAX_FLOOD_WAIT_TIME = 20
+    NAME = "UI-Notifier"
 
-    def __init__(self, *args, **kwargs):
-        self.messages = {}
-        super().__init__(*args, **kwargs)
+    def _aggregate_items(self, message):
+        """Aggregate messages into cache."""
+        self.cache[message.message] = message.type
 
-    def run(self):
-        """
-        Delay some broadcast messages for flood control.
-
-        This thread runs in the main ASGI process to access the websockets.
-        This lets other workers flood us with as many messages as they
-        like and bottleneck them here in one spot before pinging the clients.
-        """
-        LOG.info("Started Notification Worker.")
-        waiting_since = time.time()
-        while True:
-            try:
-                try:
-                    message = self.queue.get(timeout=self.FLOOD_DELAY)
-                    if message == self.SHUTDOWN_MSG:
-                        break
-                    self.messages[message.message] = message.type
-                    wait_break = time.time() - waiting_since > self.MAX_FLOOD_WAIT_TIME
-                    if not wait_break:
-                        continue
-                except Empty:
-                    pass
-                # send all stored messages to the frontend
-                if self.messages:
-                    cache.clear()
-                    for msg, type in self.messages.items():
-                        if type == NotifierMessage.BROADCAST:
-                            async_to_sync(_send_msg)(BROADCAST_CONNS, msg)
-                        elif type == NotifierMessage.ADMIN_BROADCAST:
-                            async_to_sync(_send_msg)(ADMIN_CONNS, msg)
-                        else:
-                            LOG.error(f"invalid message type {type} for message {msg}")
-                    self.messages = {}
-                waiting_since = time.time()
-            except Exception as exc:
-                LOG.exception(exc)
-        LOG.info("Stopped Notification Worker.")
+    def _send_all_items(self):
+        """Send all messages waiting in the message cache to client."""
+        if not self.cache:
+            return
+        sent_keys = set()
+        cache.clear()
+        for msg, type in self.cache.items():
+            if not self._do_send_item(msg):
+                continue
+            if type == NotifierMessage.BROADCAST:
+                conns = BROADCAST_CONNS
+            elif type == NotifierMessage.ADMIN_BROADCAST:
+                conns = ADMIN_CONNS
+            else:
+                conns = None
+            if conns:
+                async_to_sync(_send_msg)(BROADCAST_CONNS, msg)
+                sent_keys.add(msg)
+            else:
+                LOG.error(f"invalid message type {type} for message {msg}")
+        self._cleanup_cache(sent_keys)
 
 
-NOTIFIER = NotificiationWorker()
+NOTIFIER = Notifier()

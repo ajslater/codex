@@ -69,7 +69,6 @@ class LibrarianDaemon(Process):
         """Process an individual task popped off the queue."""
         run = True
         try:
-            print(task)
             if task and hasattr(task, "sleep"):
                 sleep(task.sleep)
 

@@ -22,7 +22,7 @@ from codex.librarian.queue_mp import (
 )
 from codex.librarian.regex import COMIC_MATCHER
 from codex.models import SCHEMA_VERSION, Comic, FailedImport, Library
-from codex.queued_worker import QueuedWorker
+from codex.threads import QueuedThread
 
 
 LOG = logging.getLogger(__name__)
@@ -150,14 +150,14 @@ def _scan_cron():
             LOG.error(exc)
 
 
-class Scanner(QueuedWorker):
+class Scanner(QueuedThread):
     """A worker to handle all scanning, importing and moving."""
 
     NAME = "scanner"
 
     def run(self):
         """Run the scanner."""
-        LOG.info("Started the scanner worker." "")
+        LOG.info(f"Started {self.NAME} thread." "")
         while True:
             try:
                 task = self.queue.get()
@@ -178,4 +178,4 @@ class Scanner(QueuedWorker):
             except Exception as exc:
                 LOG.exception(exc)
 
-        LOG.info("Stopped the scanner worker." "")
+        LOG.info(f"Stopped {self.NAME} thread." "")
