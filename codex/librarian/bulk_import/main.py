@@ -17,7 +17,7 @@ from codex.librarian.bulk_import.query_fks import (
     query_all_missing_fks,
     query_missing_folder_paths,
 )
-from codex.librarian.queue_mp import QUEUE, LibraryChangedTask
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE, LibraryChangedTask
 from codex.models import Comic, Folder, Library
 
 
@@ -118,7 +118,7 @@ def bulk_import(
 
     cleanup_database(library, delete_paths)
     if total_imported or delete_paths:
-        QUEUE.put(LibraryChangedTask())
+        LIBRARIAN_QUEUE.put(LibraryChangedTask())
     return total_imported
 
 
@@ -154,7 +154,7 @@ def bulk_comics_moved(library_pk, moved_paths):
     LOG.info(f"Moved {len(moved_paths)} comics.")
     cleanup_database(library)
     if moved_paths:
-        QUEUE.put(LibraryChangedTask())
+        LIBRARIAN_QUEUE.put(LibraryChangedTask())
 
 
 def _get_parent_folders(library, folders_moved):
@@ -205,4 +205,4 @@ def bulk_folders_moved(library_pk, folders_moved):
     _update_moved_folders(library, folders_moved, dest_parent_folders)
     cleanup_database(library)
     if folders_moved:
-        QUEUE.put(LibraryChangedTask())
+        LIBRARIAN_QUEUE.put(LibraryChangedTask())

@@ -9,7 +9,7 @@ from django.utils.safestring import SafeText
 
 from codex.librarian.cover import purge_all_covers
 from codex.librarian.queue_mp import (
-    QUEUE,
+    LIBRARIAN_QUEUE,
     LibraryChangedTask,
     RestartTask,
     ScannerCronTask,
@@ -62,7 +62,7 @@ class AdminLibrary(ModelAdmin):
         pks = queryset.values_list("pk", flat=True)
         for pk in pks:
             task = ScanRootTask(pk, force)
-            QUEUE.put(task)
+            LIBRARIAN_QUEUE.put(task)
 
     def scan(self, request, queryset):
         """Scan for new comics."""
@@ -80,10 +80,10 @@ class AdminLibrary(ModelAdmin):
         """Events for when the library has changed."""
         # XXX These sleep values are for waiting for db consistency
         #     between processes. Klugey.
-        QUEUE.put(WatcherCronTask(sleep=1))
+        LIBRARIAN_QUEUE.put(WatcherCronTask(sleep=1))
         if created:
-            QUEUE.put(LibraryChangedTask())
-            QUEUE.put(ScannerCronTask(sleep=1))
+            LIBRARIAN_QUEUE.put(LibraryChangedTask())
+            LIBRARIAN_QUEUE.put(ScannerCronTask(sleep=1))
 
     def save_model(self, request, obj, form, change):
         """Trigger watching and scanning on update or creation."""
@@ -96,16 +96,16 @@ class AdminLibrary(ModelAdmin):
         """Stop watching on delete."""
         purge_all_covers(obj)
         super().delete_model(request, obj)
-        QUEUE.put(WatcherCronTask(sleep=1))
-        QUEUE.put(LibraryChangedTask())
+        LIBRARIAN_QUEUE.put(WatcherCronTask(sleep=1))
+        LIBRARIAN_QUEUE.put(LibraryChangedTask())
 
     def delete_queryset(self, request, queryset):
         """Bulk delete."""
         for obj in queryset:
             purge_all_covers(obj)
         super().delete_queryset(request, queryset)
-        QUEUE.put(WatcherCronTask(sleep=1))
-        QUEUE.put(LibraryChangedTask())
+        LIBRARIAN_QUEUE.put(WatcherCronTask(sleep=1))
+        LIBRARIAN_QUEUE.put(LibraryChangedTask())
 
     def save_formset(self, request, form, formset, change):
         """Bulk update."""
@@ -140,13 +140,13 @@ class AdminAdminFlag(AdminNoAddDelete):
 
     def update_now(self, request, queryset):
         """Trigger an update task immediately."""
-        QUEUE.put(UpdateCronTask(sleep=0, force=True))
+        LIBRARIAN_QUEUE.put(UpdateCronTask(sleep=0, force=True))
 
     update_now.short_description = "Update Codex Now"
 
     def restart_now(self, request, queryset):
         """Send a restart task immediately."""
-        QUEUE.put(RestartTask(sleep=0))
+        LIBRARIAN_QUEUE.put(RestartTask(sleep=0))
 
     restart_now.short_description = "Restart Codex Now"
 
@@ -169,7 +169,7 @@ class AdminAdminFlag(AdminNoAddDelete):
         # Folder View could only change the group view and let the ui decide
         # Registration only needs to change the enable flag
         task = LibraryChangedTask()
-        QUEUE.put(task)
+        LIBRARIAN_QUEUE.put(task)
 
 
 @register(FailedImport)

@@ -7,7 +7,7 @@ from time import sleep
 from codex.librarian.cover import create_comic_cover
 from codex.librarian.crond import Crond
 from codex.librarian.queue_mp import (
-    QUEUE,
+    LIBRARIAN_QUEUE,
     BulkComicMovedTask,
     BulkFolderMovedTask,
     ComicCoverCreateTask,
@@ -139,7 +139,7 @@ class LibrarianDaemon(Process):
             run = True
             LOG.info("Librarian started threads and waiting for tasks.")
             while run:
-                task = QUEUE.get()
+                task = LIBRARIAN_QUEUE.get()
                 run = self.process_task(task)
             self.stop_threads()
         except Exception as exc:
@@ -156,8 +156,7 @@ class LibrarianDaemon(Process):
     @classmethod
     def shutdown(cls):
         """Stop the librarian process."""
-        global QUEUE
-        QUEUE.put(LibrarianDaemon.SHUTDOWN_TASK)
+        LIBRARIAN_QUEUE.put(cls.SHUTDOWN_TASK)
         if cls.proc:
             LOG.debug("Waiting to shut down...")
             cls.proc.join()

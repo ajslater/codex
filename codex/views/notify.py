@@ -5,7 +5,7 @@ from django.views.decorators.cache import cache_control
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from codex.librarian.queue_mp import QUEUE
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.models import Library
 from codex.serializers.notify import ScanNotifySerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
@@ -24,7 +24,7 @@ class ScanNotifyView(APIView):
     def get(self, request, *args, **kwargs):
         """Return if any libraries are scanning."""
         any_in_progress = Library.objects.filter(scan_in_progress=True).exists()
-        any_in_progress |= not QUEUE.empty()
+        any_in_progress |= not LIBRARIAN_QUEUE.empty()
         data = {"scanInProgress": any_in_progress}
         serializer = ScanNotifySerializer(data)
         return Response(serializer.data)

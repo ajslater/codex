@@ -69,7 +69,7 @@ def codex_startup():
     cache.clear()
 
     if platform.system() == "Darwin":
-        # XXX Fixes QUEUE sharing with default spawn start method. The spawn
+        # XXX Fixes LIBRARIAN_QUEUE sharing with default spawn start method. The spawn
         # method is also very very slow. Use fork and the
         # OBJC_DISABLE_INITIALIZE_FORK_SAFETY environment variable for macOS.
         # https://bugs.python.org/issue40106

@@ -10,7 +10,7 @@ from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
 from codex.librarian.queue_mp import (
-    QUEUE,
+    LIBRARIAN_QUEUE,
     BulkComicMovedTask,
     BulkFolderMovedTask,
     ScanRootTask,
@@ -199,7 +199,7 @@ class EventBatcher(AggregateMessageQueuedThread):
                     task = self._create_task_from_param_data(
                         message_cls, library_id, moved_paths
                     )
-                    QUEUE.put(task)
+                    LIBRARIAN_QUEUE.put(task)
                     sent_keys.add(message_cls)
 
         # reset the event aggregates

@@ -8,7 +8,7 @@ from comicbox.comic_archive import ComicArchive
 from fnvhash import fnv1a_32
 from PIL import Image
 
-from codex.librarian.queue_mp import QUEUE, LibraryChangedTask
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE, LibraryChangedTask
 from codex.models import Comic
 from codex.settings.settings import CONFIG_STATIC, STATIC_ROOT
 
@@ -114,7 +114,7 @@ def create_comic_cover(comic_path, db_cover_path, force=False):
         im.thumbnail(THUMBNAIL_SIZE)
         im.save(fs_cover_path, im.format)
         LOG.info(f"Created cover thumbnail for: {comic_path}")
-        QUEUE.put(LibraryChangedTask())
+        LIBRARIAN_QUEUE.put(LibraryChangedTask())
     except Exception as exc:
         LOG.error(f"Failed to create cover thumb for {comic_path}")
         LOG.exception(exc)

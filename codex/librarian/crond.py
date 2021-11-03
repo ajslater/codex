@@ -4,7 +4,7 @@ import logging
 from threading import Condition, Thread
 
 from codex.librarian.queue_mp import (
-    QUEUE,
+    LIBRARIAN_QUEUE,
     ScannerCronTask,
     UpdateCronTask,
     VacuumCronTask,
@@ -29,10 +29,10 @@ class Crond(Thread):
         with self.COND:
             while self.run_thread:
                 try:
-                    QUEUE.put(ScannerCronTask(sleep=0))
-                    QUEUE.put(WatcherCronTask(sleep=0))
-                    QUEUE.put(UpdateCronTask(sleep=0, force=False))
-                    QUEUE.put(VacuumCronTask())
+                    LIBRARIAN_QUEUE.put(ScannerCronTask(sleep=0))
+                    LIBRARIAN_QUEUE.put(WatcherCronTask(sleep=0))
+                    LIBRARIAN_QUEUE.put(UpdateCronTask(sleep=0, force=False))
+                    LIBRARIAN_QUEUE.put(VacuumCronTask())
                     self.COND.wait(timeout=self.WAIT_INTERVAL)
                 except Exception as exc:
                     LOG.exception(exc)

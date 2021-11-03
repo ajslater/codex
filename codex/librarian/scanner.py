@@ -13,7 +13,7 @@ from codex.librarian.bulk_import.main import (
     bulk_import,
 )
 from codex.librarian.queue_mp import (
-    QUEUE,
+    LIBRARIAN_QUEUE,
     BulkComicMovedTask,
     BulkFolderMovedTask,
     ScanDoneTask,
@@ -118,7 +118,7 @@ def _scan_root(pk, force=False):
         library.scan_in_progress = False
         library.save()
     is_failed_imports = FailedImport.objects.exists()
-    QUEUE.put(ScanDoneTask(failed_imports=is_failed_imports, sleep=0))
+    LIBRARIAN_QUEUE.put(ScanDoneTask(failed_imports=is_failed_imports, sleep=0))
     LOG.info(f"Scan for {library.path} finished.")
 
 
@@ -145,7 +145,7 @@ def _scan_cron():
             continue
         try:
             task = ScanRootTask(library.pk, force_import)
-            QUEUE.put(task)
+            LIBRARIAN_QUEUE.put(task)
         except Exception as exc:
             LOG.error(exc)
 
@@ -167,10 +167,10 @@ class Scanner(QueuedThread):
                     _scan_root(task.library_id, task.force)
                 elif isinstance(task, BulkFolderMovedTask):
                     bulk_folders_moved(task.library_id, task.moved_paths)
-                    QUEUE.put(ScanDoneTask(failed_imports=False, sleep=0))
+                    LIBRARIAN_QUEUE.put(ScanDoneTask(failed_imports=False, sleep=0))
                 elif isinstance(task, BulkComicMovedTask):
                     bulk_comics_moved(task.library_id, task.moved_paths)
-                    QUEUE.put(ScanDoneTask(failed_imports=False, sleep=0))
+                    LIBRARIAN_QUEUE.put(ScanDoneTask(failed_imports=False, sleep=0))
                 elif task == self.SHUTDOWN_MSG:
                     break
                 else:

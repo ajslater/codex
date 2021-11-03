@@ -9,7 +9,7 @@ from comicbox.comic_archive import ComicArchive
 
 from codex.librarian.bulk_import import BROWSER_GROUPS
 from codex.librarian.cover import get_cover_path
-from codex.librarian.queue_mp import QUEUE, ComicCoverCreateTask
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE, ComicCoverCreateTask
 from codex.models import Comic, FailedImport, Imprint, Publisher, Series, Volume
 
 
@@ -44,7 +44,7 @@ def _get_path_metadata(library_pk, path):
         md["size"] = Path(path).stat().st_size
         cover_path = get_cover_path(path)
         md["cover_path"] = cover_path
-        QUEUE.put(ComicCoverCreateTask(library_pk, path, cover_path, True))
+        LIBRARIAN_QUEUE.put(ComicCoverCreateTask(library_pk, path, cover_path, True))
         _clean_md(md)
         group_tree = []
         for group_cls in BROWSER_GROUPS:
