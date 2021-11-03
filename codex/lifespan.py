@@ -68,16 +68,20 @@ def codex_startup():
     unset_scan_in_progress()
     cache.clear()
 
+    from codex.websocket_server import Notifier
     from codex.librarian.librariand import LibrarianDaemon
 
+    Notifier.startup()
     LibrarianDaemon.startup()
 
 
 def codex_shutdown():
     """Stop the daemons. But don't import them until django is set up."""
     from codex.librarian.librariand import LibrarianDaemon
+    from codex.websocket_server import Notifier
 
     LibrarianDaemon.shutdown()
+    Notifier.shutdown()
 
 
 async def lifespan_application(scope, receive, send):

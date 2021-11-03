@@ -17,8 +17,30 @@ LOG = logging.getLogger(__name__)
 
 # Websocket Application
 WS_ACCEPT_MSG = {"type": "websocket.accept"}
-BROADCAST_CONNS = set()
-ADMIN_CONNS = set()
+
+
+class NotifierMessage:
+    """Timed message for flood control."""
+
+    BROADCAST = 0
+    ADMIN_BROADCAST = 1
+
+    def __init__(self, type, message):
+        """Set the message content."""
+        self.type = type
+        self.message = message
+
+
+CONNS = {NotifierMessage.BROADCAST: set(), NotifierMessage.ADMIN_BROADCAST: set()}
+
+
+def _subscribe(type, key, msg, send):
+    """Subscribe or unsubscribe from a connection class."""
+    conns = CONNS[type]
+    if msg.get(key):
+        conns.add(send)
+    else:
+        conns.discard(send)
 
 
 async def websocket_application(scope, receive, send):
@@ -40,17 +62,8 @@ async def websocket_application(scope, receive, send):
                     msg_type = msg.get("type")
 
                     if (msg_type) == "subscribe":
-                        if msg.get("register"):
-                            # The librarian doesn't care about broadcasts
-                            BROADCAST_CONNS.add(send)
-                        else:
-                            BROADCAST_CONNS.discard(send)
-
-                        if msg.get("admin"):
-                            # Only admins care about admin messages
-                            ADMIN_CONNS.add(send)
-                        else:
-                            ADMIN_CONNS.discard(send)
+                        _subscribe(NotifierMessage.BROADCAST, "register", msg, send)
+                        _subscribe(NotifierMessage.ADMIN_BROADCAST, "admin", msg, send)
                     elif msg_type is None:
                         # keep-alive
                         pass
@@ -64,35 +77,21 @@ async def websocket_application(scope, receive, send):
     LOG.info("Closing websocket connection.")
 
 
-class NotifierMessage:
-    """Timed message for flood control."""
-
-    BROADCAST = 0
-    ADMIN_BROADCAST = 1
-
-    def __init__(self, type, message):
-        """Set the message content."""
-        self.type = type
-        self.message = message
-
-
 class Notifier(AggregateMessageQueuedThread):
     """Prevent floods of broadcast messages to clients."""
 
     NAME = "UI-Notifier"
     WS_SEND_MSG = {"type": "websocket.send"}
 
-    @classmethod
-    async def _send_msg(cls, conns, text):
-        """Construct a ws send message and send to all connections."""
-        send_msg = {"text": text}
-        send_msg.update(cls.WS_SEND_MSG)
+    @staticmethod
+    async def _send_msg(conns, send_msg):
+        """Send message to all connections."""
         for send in conns:
             await send(send_msg)
 
     def _aggregate_items(self, message):
         """Aggregate messages into cache."""
-        self.cache[message.message] = message.type
+        self.cache[message.message] = message
 
     def _send_all_items(self):
         """Send all messages waiting in the message cache to client."""
@@ -100,24 +99,20 @@ class Notifier(AggregateMessageQueuedThread):
             return
         sent_keys = set()
         cache.clear()
-        for msg, type in self.cache.items():
-            if not self._do_send_item(msg):
-                continue
-            if type == NotifierMessage.BROADCAST:
-                conns = BROADCAST_CONNS
-            elif type == NotifierMessage.ADMIN_BROADCAST:
-                conns = ADMIN_CONNS
-            else:
-                conns = None
-            if conns is not None:
-                async_to_sync(self._send_msg)(BROADCAST_CONNS, msg)
-            else:
-                LOG.error(f"Invalid message discarded {type=} {msg=}")
+        for msg, message in self.cache.items():
+            if self._do_send_item(msg):
+                send_msg = {"text": message.message}
+                send_msg.update(self.WS_SEND_MSG)
+                conns = CONNS[message.type]
+                async_to_sync(self._send_msg)(conns, send_msg)
             sent_keys.add(msg)
         self._cleanup_cache(sent_keys)
 
+    @classmethod
+    def startup(cls):
+        cls.thread = Notifier()
+        cls.thread.start()
 
-# TODO put this somwehere else
-NOTIFIER = Notifier()
-NOTIFIER.start()
-# NOTIFIER.join()
+    @classmethod
+    def shutdown(cls):
+        cls.thread.join()

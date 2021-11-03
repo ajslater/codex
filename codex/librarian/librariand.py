@@ -30,7 +30,7 @@ from codex.serializers.webpack import (
     WEBSOCKET_MESSAGES as WS_MSGS,  # TODO Replace with tasks
 )
 from codex.settings.django_setup import django_setup
-from codex.websocket_server import NOTIFIER, NotifierMessage
+from codex.websocket_server import Notifier, NotifierMessage
 
 
 django_setup()  # XXX can I move this to run()?
@@ -63,7 +63,7 @@ class LibrarianDaemon(Process):
     def _notify(type, msg):
         """Send the message to the notifier queue."""
         message = NotifierMessage(type, WS_MSGS[msg])
-        NOTIFIER.queue.put(message)
+        Notifier.thread.queue.put(message)
 
     def process_task(self, task):
         """Process an individual task popped off the queue."""
