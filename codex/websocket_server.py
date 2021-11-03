@@ -7,11 +7,8 @@ from json import JSONDecodeError
 from asgiref.sync import async_to_sync
 from django.core.cache import cache
 
-from codex.settings.django_setup import django_setup
 from codex.threads import AggregateMessageQueuedThread
 
-
-django_setup()
 
 LOG = logging.getLogger(__name__)
 WS_ACCEPT_MSG = {"type": "websocket.accept"}
