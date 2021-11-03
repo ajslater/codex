@@ -1,4 +1,9 @@
-"""Websocket Server."""
+"""
+Websocket Server.
+
+Places connections into the Notifier, which sends notifications reading
+from a queue.
+"""
 import json
 import logging
 
@@ -11,7 +16,46 @@ from codex.threads import AggregateMessageQueuedThread
 
 
 LOG = logging.getLogger(__name__)
-WS_ACCEPT_MSG = {"type": "websocket.accept"}
+
+
+def _handle_websocket_message(event, send):
+    """Process websocket messages from client."""
+    try:
+        text = json.loads(event["text"])
+        if not text:
+            # keep-alive messages are empty
+            return
+
+        type = text.get("type")
+        if type == "subscribe":
+            Notifier.subscribe(text, send)
+        else:
+            LOG.warning(f"Bad message type to websockets: {text}")
+    except JSONDecodeError as exc:
+        LOG.error(exc)
+
+
+async def websocket_application(scope, receive, send):
+    """Websocket application server."""
+    LOG.info("Starting websocket connection.")
+    LOG.debug(scope)
+    while True:
+        try:
+            event = await receive()
+
+            if event["type"] == "websocket.connect":
+                await send({"type": "websocket.accept"})
+
+            if event["type"] == "websocket.disconnect":
+                break
+
+            if event["type"] == "websocket.receive":
+                _handle_websocket_message(event, send)
+        except Exception as exc:
+            LOG.exception(exc)
+            # If a websocket truly breaks, let it die and restart
+            break
+    LOG.info("Closing websocket connection.")
 
 
 class NotifierMessage:
@@ -26,61 +70,26 @@ class NotifierMessage:
         self.message = message
 
 
-async def websocket_application(scope, receive, send):
-    """Websocket application server."""
-    LOG.info(f"Starting websocket connection. {scope}")
-    while True:
-        try:
-            event = await receive()
-
-            if event["type"] == "websocket.connect":
-                await send(WS_ACCEPT_MSG)
-
-            if event["type"] == "websocket.disconnect":
-                break
-
-            if event["type"] == "websocket.receive":
-                try:
-                    msg = json.loads(event["text"])
-                    msg_type = msg.get("type")
-
-                    if (msg_type) == "subscribe":
-                        Notifier.subscribe(
-                            NotifierMessage.BROADCAST, "register", msg, send
-                        )
-                        Notifier.subscribe(
-                            NotifierMessage.ADMIN_BROADCAST, "admin", msg, send
-                        )
-                    elif msg_type is None:
-                        # keep-alive
-                        pass
-                    else:
-                        LOG.warning(f"Bad message type to websockets: {msg_type}")
-
-                except JSONDecodeError as exc:
-                    LOG.error(exc)
-        except Exception as exc:
-            LOG.exception(exc)
-    LOG.info("Closing websocket connection.")
-
-
 class Notifier(AggregateMessageQueuedThread):
-    """Prevent floods of broadcast messages to clients."""
+    """Aggregates messages preventing floods and sends messages to clients."""
 
     NAME = "UI-Notifier"
     WS_SEND_MSG = {"type": "websocket.send"}
-    CONNS = {}
+    CONNS = {NotifierMessage.BROADCAST: set(), NotifierMessage.ADMIN_BROADCAST: set()}
+    SUBSCRIBE_TYPES = {
+        "register": NotifierMessage.BROADCAST,
+        "admin": NotifierMessage.ADMIN_BROADCAST,
+    }
 
     @classmethod
-    def subscribe(cls, type, key, msg, send):
+    def subscribe(cls, msg, send):
         """Subscribe or unsubscribe from a connection class."""
-        if type not in cls.CONNS:
-            cls.CONNS[type] = set()
-        conns = cls.CONNS[type]
-        if msg.get(key):
-            conns.add(send)
-        else:
-            conns.discard(send)
+        for key, type in cls.SUBSCRIBE_TYPES.items():
+            conns = cls.CONNS[type]
+            if msg.get(key):
+                conns.add(send)
+            else:
+                conns.discard(send)
 
     @staticmethod
     async def _send_msg(conns, send_msg):

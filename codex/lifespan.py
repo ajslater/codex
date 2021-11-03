@@ -7,6 +7,7 @@ import django
 
 from asgiref.sync import sync_to_async
 from django.core.cache import cache
+from codex.websocket_server import Notifier
 
 
 RESET_ADMIN = bool(os.environ.get("CODEX_RESET_ADMIN"))
@@ -68,7 +69,6 @@ def codex_startup():
     unset_scan_in_progress()
     cache.clear()
 
-    from codex.websocket_server import Notifier
     from codex.librarian.librariand import LibrarianDaemon
 
     Notifier.startup()
@@ -78,7 +78,6 @@ def codex_startup():
 def codex_shutdown():
     """Stop the daemons. But don't import them until django is set up."""
     from codex.librarian.librariand import LibrarianDaemon
-    from codex.websocket_server import Notifier
 
     LibrarianDaemon.shutdown()
     Notifier.shutdown()
