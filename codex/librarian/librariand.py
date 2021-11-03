@@ -118,6 +118,7 @@ class LibrarianDaemon(Process):
         LOG.debug("Stopping threads & pool...")
         self.pool.close()
         self.watcher.stop()
+        self.scanner.stop()
         LOG.debug("Joining threads & pool...")
         self.crond.join()
         self.watcher.join()

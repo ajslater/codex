@@ -4,6 +4,8 @@ import os
 from datetime import datetime
 from logging import getLogger
 from pathlib import Path
+from queue import SimpleQueue
+from threading import Thread
 
 from django.utils import timezone
 
@@ -177,5 +179,4 @@ class Scanner(QueuedThread):
                     LOG.error(f"Bad task sent to scanner {task}")
             except Exception as exc:
                 LOG.exception(exc)
-
         LOG.info(f"Stopped {self.NAME} thread." "")
