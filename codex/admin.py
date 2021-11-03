@@ -7,7 +7,7 @@ from django.shortcuts import resolve_url
 from django.utils.html import format_html
 from django.utils.safestring import SafeText
 
-from codex.librarian.cover import purge_all_covers
+from codex.librarian.cover import purge_all_covers, regen_all_covers
 from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
     LibraryChangedTask,
@@ -33,7 +33,7 @@ class AdminLibrary(ModelAdmin):
         ("Scans", {"fields": ("last_scan", "scan_in_progress")}),
         ("Scheduled Scans", {"fields": ("enable_scan_cron", "scan_frequency")}),
     )
-    actions = ("scan", "force_scan")
+    actions = ("scan", "force_scan", "regen_comic_covers")
     empty_value_display = "Never"
     list_display = (
         "path",
@@ -75,6 +75,14 @@ class AdminLibrary(ModelAdmin):
         self._scan(request, queryset, True)
 
     force_scan.short_description = "Re-import all comics"
+
+    def regen_comic_covers(self, _, queryset):
+        """Regenerate all covers."""
+        pks = queryset.values_list("pk", flat=True)
+        for pk in pks:
+            regen_all_covers(pk)
+
+    regen_comic_covers.short_description = "Re-create all comic covers"
 
     def _on_change(self, _, created=False):
         """Events for when the library has changed."""

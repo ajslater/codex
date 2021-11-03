@@ -1,7 +1,7 @@
 """Library SimpleQueue and task definitions."""
 # This file cannot be named queue or it causes weird type checker errors
 from dataclasses import dataclass
-from multiprocessing import SimpleQueue
+from multiprocessing import Queue
 
 
 @dataclass
@@ -12,23 +12,19 @@ class LibraryTask:
 
 
 @dataclass
-class ScanRootTask(LibraryTask):
+class ScannerTask:
+    pass
+
+
+@dataclass
+class ScanRootTask(LibraryTask, ScannerTask):
     """Scan a library."""
 
     force: bool
 
 
 @dataclass
-class ComicCoverCreateTask(LibraryTask):
-    """Create a comic cover."""
-
-    src_path: str
-    db_cover_path: str
-    force: bool
-
-
-@dataclass
-class BulkMovedTask(LibraryTask):
+class BulkMovedTask(LibraryTask, ScannerTask):
     """Move Folders or Comics."""
 
     moved_paths: dict
@@ -49,6 +45,21 @@ class BulkComicMovedTask(BulkMovedTask):
 
 
 @dataclass
+class ComicCoverCreateTask:
+    force: bool
+
+
+@dataclass
+class SingleComicCoverCreateTask(ComicCoverCreateTask):
+    comic: dict
+
+
+@dataclass
+class BulkComicCoverCreateTask(ComicCoverCreateTask):
+    comics: tuple
+
+
+@dataclass
 class SleepTask:
     """A task that must sleep a tiny bit for db consistency."""
 
@@ -56,7 +67,12 @@ class SleepTask:
 
 
 @dataclass
-class LibraryChangedTask:
+class NotifierTask:
+    pass
+
+
+@dataclass
+class LibraryChangedTask(NotifierTask):
     """Library Changed."""
 
     pass
@@ -70,7 +86,7 @@ class WatcherCronTask(SleepTask):
 
 
 @dataclass
-class ScannerCronTask(SleepTask):
+class ScannerCronTask(SleepTask, ScannerTask):
     """Cron for scanner."""
 
     pass
@@ -91,7 +107,7 @@ class RestartTask(SleepTask):
 
 
 @dataclass
-class ScanDoneTask(SleepTask):
+class ScanDoneTask(SleepTask, NotifierTask):
     """Notifications for finished scans."""
 
     failed_imports: bool
@@ -104,4 +120,4 @@ class VacuumCronTask:
     pass
 
 
-LIBRARIAN_QUEUE = SimpleQueue()
+LIBRARIAN_QUEUE = Queue()

@@ -12,7 +12,7 @@ from rest_framework.serializers import (
     SerializerMethodField,
 )
 
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE, ComicCoverCreateTask
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.serializers.webpack import CHOICES, VUETIFY_NULL_CODE
 
 
@@ -141,18 +141,10 @@ class BrowserSettingsSerializer(Serializer):
 class BrowserCardSerializer(Serializer):
     """Generic browse object."""
 
-    def get_x_cover_path(self, obj):
-        """Ensure comic cover exists for any cover_path we send."""
-        comic_path = obj.get("x_path")
-        cover_path = obj.get("x_cover_path")
-        task = ComicCoverCreateTask(0, comic_path, cover_path, False)
-        LIBRARIAN_QUEUE.put(task)
-        return cover_path
-
     pk = IntegerField(read_only=True)
     group = CharField(read_only=True, max_length=1)
     child_count = IntegerField(read_only=True, allow_null=True)
-    x_cover_path = SerializerMethodField()
+    x_cover_path = CharField(read_only=True)
     header_name = CharField(read_only=True)
     series_name = CharField(read_only=True)
     volume_name = CharField(read_only=True)

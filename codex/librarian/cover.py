@@ -1,4 +1,6 @@
 """Functions for dealing with comic cover thumbnails."""
+import time
+
 from io import BytesIO
 from logging import getLogger
 from pathlib import Path
@@ -7,9 +9,15 @@ from comicbox.comic_archive import ComicArchive
 from fnvhash import fnv1a_32
 from PIL import Image
 
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE, LibraryChangedTask
+from codex.librarian.queue_mp import (
+    LIBRARIAN_QUEUE,
+    BulkComicCoverCreateTask,
+    LibraryChangedTask,
+    SingleComicCoverCreateTask,
+)
 from codex.models import Comic
 from codex.settings.settings import CONFIG_STATIC, STATIC_ROOT
+from codex.threads import QueuedThread
 
 
 THUMBNAIL_SIZE = (120, 180)
@@ -23,15 +31,16 @@ MISSING_COVER_FS_PATH = COVER_ROOT / MISSING_COVER_FN
 HEX_FILL = 8
 PATH_STEP = 2
 LOG = getLogger(__name__)
+LOG_EVERY = 15
 
 
-def cleanup_cover_dirs(path):
+def _cleanup_cover_dirs(path):
     """Recursively remove empty cover directories."""
     if COVER_ROOT not in path.parents:
         return
     try:
         path.rmdir()
-        cleanup_cover_dirs(path.parent)
+        _cleanup_cover_dirs(path.parent)
     except OSError:
         pass
 
@@ -47,7 +56,7 @@ def purge_cover(comic):
         cover_path.unlink()
     except FileNotFoundError:
         pass
-    cleanup_cover_dirs(cover_path.parent)
+    _cleanup_cover_dirs(cover_path.parent)
 
 
 def purge_cover_path(comic_cover_path):
@@ -61,7 +70,7 @@ def purge_cover_path(comic_cover_path):
         cover_path.unlink()
     except FileNotFoundError:
         pass
-    cleanup_cover_dirs(cover_path.parent)
+    _cleanup_cover_dirs(cover_path.parent)
 
 
 def purge_all_covers(library):
@@ -71,7 +80,7 @@ def purge_all_covers(library):
         purge_cover(comic)
 
 
-def hex_path(comic_path):
+def _hex_path(comic_path):
     """Translate an integer into an efficient filesystem path."""
     fnv = fnv1a_32(bytes(str(comic_path), "utf-8"))
     hex_str = "{0:0{1}x}".format(fnv, HEX_FILL)
@@ -84,13 +93,16 @@ def hex_path(comic_path):
 
 def get_cover_path(comic_path):
     """Get path to a cover image, creating the image if not found."""
-    cover_path = hex_path(comic_path)
+    cover_path = _hex_path(comic_path)
     return str(cover_path.with_suffix(".jpg"))
 
 
-def create_comic_cover(comic_path, db_cover_path, force=False):
+def _create_comic_cover(comic, force=False):
     """Create a comic cover thumnail and save it to disk."""
+    # The browser sends x_path and x_comic_path, everything else sends no prefix
+    comic_path = comic.get("x_path", comic.get("path"))
     try:
+        db_cover_path = comic.get("x_cover_path", comic.get("cover_path"))
         if db_cover_path == MISSING_COVER_FN and not force:
             LOG.debug(f"Cover for {comic_path} missing.")
             return
@@ -112,10 +124,65 @@ def create_comic_cover(comic_path, db_cover_path, force=False):
         im = Image.open(BytesIO(cover_image))
         im.thumbnail(THUMBNAIL_SIZE)
         im.save(fs_cover_path, im.format)
-        LOG.info(f"Created cover thumbnail for: {comic_path}")
+        # LOG.debug(f"Created cover thumbnail for: {comic_path}")
         LIBRARIAN_QUEUE.put(LibraryChangedTask())
     except Exception as exc:
         LOG.error(f"Failed to create cover thumb for {comic_path}")
         LOG.exception(exc)
         Comic.objects.filter(comic_path=comic_path).update(cover_path=MISSING_COVER_FN)
         LOG.warn(f"Marked cover for {comic_path} missing.")
+
+
+def _bulk_create_comic_covers(comic_and_cover_paths, force=False):
+    """Create bulk comic covers."""
+    start_time = last_log_time = time.time()
+    num_comics = len(comic_and_cover_paths)
+    LOG.info(f"Creating {num_comics} comic covers...")
+    comic_counter = 0
+    for comic in comic_and_cover_paths:
+        _create_comic_cover(comic, force)
+        comic_counter += 1
+        now = time.time()
+        if now - last_log_time > LOG_EVERY:
+            LOG.info(f"Created {comic_counter}/{num_comics} comic covers")
+            last_log_time = now
+    elapsed = time.time() - start_time
+    per = elapsed / comic_counter
+    LOG.info(f"Created {comic_counter} comic covers in {elapsed}s at {per}s per cover.")
+
+
+def regen_all_covers(library_pk):
+    """Force regeneration of all covers."""
+    LOG.info(f"Regnerating all comic covers for library {library_pk}")
+    comics = (
+        Comic.objects.only("path", "library")
+        .filter(library_id=library_pk)
+        .values("path", "cover_path")
+    )
+    task = BulkComicCoverCreateTask(True, tuple(comics))
+    LIBRARIAN_QUEUE.put(task)
+
+
+class CoverCreator(QueuedThread):
+    """Create comic covers in it's own thread."""
+
+    NAME = "CoverCreator"
+
+    def run(self):
+        """Run the creator."""
+        LOG.info(f"Started {self.NAME} thread.")
+        while True:
+            try:
+                task = self.queue.get()
+                if isinstance(task, BulkComicCoverCreateTask):
+                    _bulk_create_comic_covers(task.comics, task.force)
+                elif isinstance(task, SingleComicCoverCreateTask):
+                    _create_comic_cover(task.comic, task.force)
+                elif task == self.SHUTDOWN_MSG:
+                    break
+                else:
+                    LOG.error(f"Bad task sent to {self.NAME}: {task}")
+            except Exception as exc:
+                LOG.exception(exc)
+
+        LOG.info(f"Stopped {self.NAME} thread.")
