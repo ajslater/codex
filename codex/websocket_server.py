@@ -17,7 +17,6 @@ LOG = logging.getLogger(__name__)
 
 # Websocket Application
 WS_ACCEPT_MSG = {"type": "websocket.accept"}
-WS_SEND_MSG = {"type": "websocket.send"}
 BROADCAST_CONNS = set()
 ADMIN_CONNS = set()
 
@@ -25,7 +24,6 @@ ADMIN_CONNS = set()
 async def websocket_application(scope, receive, send):
     """Websocket application server."""
     LOG.info(f"Starting websocket connection. {scope}")
-    NOTIFIER.start()
     while True:
         try:
             event = await receive()
@@ -63,7 +61,6 @@ async def websocket_application(scope, receive, send):
                     LOG.error(exc)
         except Exception as exc:
             LOG.exception(exc)
-    NOTIFIER.join()
     LOG.info("Closing websocket connection.")
 
 
@@ -79,18 +76,19 @@ class NotifierMessage:
         self.message = message
 
 
-async def _send_msg(conns, text):
-    """Construct a ws send message and send to all connections."""
-    _send_msg = {"text": text}
-    _send_msg.update(WS_SEND_MSG)
-    for send in conns:
-        await send(_send_msg)
-
-
 class Notifier(AggregateMessageQueuedThread):
     """Prevent floods of broadcast messages to clients."""
 
     NAME = "UI-Notifier"
+    WS_SEND_MSG = {"type": "websocket.send"}
+
+    @classmethod
+    async def _send_msg(cls, conns, text):
+        """Construct a ws send message and send to all connections."""
+        send_msg = {"text": text}
+        send_msg.update(cls.WS_SEND_MSG)
+        for send in conns:
+            await send(send_msg)
 
     def _aggregate_items(self, message):
         """Aggregate messages into cache."""
@@ -111,12 +109,15 @@ class Notifier(AggregateMessageQueuedThread):
                 conns = ADMIN_CONNS
             else:
                 conns = None
-            if conns:
-                async_to_sync(_send_msg)(BROADCAST_CONNS, msg)
-                sent_keys.add(msg)
+            if conns is not None:
+                async_to_sync(self._send_msg)(BROADCAST_CONNS, msg)
             else:
-                LOG.error(f"invalid message type {type} for message {msg}")
+                LOG.error(f"Invalid message discarded {type=} {msg=}")
+            sent_keys.add(msg)
         self._cleanup_cache(sent_keys)
 
 
+# TODO put this somwehere else
 NOTIFIER = Notifier()
+NOTIFIER.start()
+# NOTIFIER.join()
