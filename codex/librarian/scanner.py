@@ -4,8 +4,6 @@ import os
 from datetime import datetime
 from logging import getLogger
 from pathlib import Path
-from queue import SimpleQueue
-from threading import Thread
 
 from django.utils import timezone
 
