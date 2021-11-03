@@ -1,6 +1,5 @@
 """Library process worker for background tasks."""
-import logging
-import platform
+from logging import getLogger
 
 from multiprocessing import Pool, Process
 from time import sleep
@@ -29,21 +28,10 @@ from codex.models import Comic, Folder
 from codex.serializers.webpack import (
     WEBSOCKET_MESSAGES as WS_MSGS,  # TODO Replace with tasks
 )
-from codex.settings.django_setup import django_setup
 from codex.websocket_server import Notifier, NotifierMessage
 
 
-django_setup()  # XXX can I move this to run()?
-
-LOG = logging.getLogger(__name__)
-if platform.system() == "Darwin":
-    # XXX Fixes QUEUE sharing with default spawn start method. The spawn
-    # method is also very very slow. Use fork and the
-    # OBJC_DISABLE_INITIALIZE_FORK_SAFETY environment variable for macOS.
-    # https://bugs.python.org/issue40106
-    from multiprocessing import set_start_method
-
-    set_start_method("fork", force=True)
+LOG = getLogger(__name__)
 
 
 class LibrarianDaemon(Process):
