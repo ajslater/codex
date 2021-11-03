@@ -1,4 +1,6 @@
 """Functions for dealing with comic cover thumbnails."""
+import time
+
 from io import BytesIO
 from logging import getLogger
 from pathlib import Path
@@ -27,6 +29,7 @@ MISSING_COVER_FS_PATH = COVER_ROOT / MISSING_COVER_FN
 HEX_FILL = 8
 PATH_STEP = 2
 LOG = getLogger(__name__)
+LOG_EVERY = 15
 
 
 def _cleanup_cover_dirs(path):
@@ -116,7 +119,7 @@ def create_comic_cover(comic_path, db_cover_path, force=False):
         im = Image.open(BytesIO(cover_image))
         im.thumbnail(THUMBNAIL_SIZE)
         im.save(fs_cover_path, im.format)
-        LOG.info(f"Created cover thumbnail for: {comic_path}")
+        LOG.debug(f"Created cover thumbnail for: {comic_path}")
         LIBRARIAN_QUEUE.put(LibraryChangedTask())
     except Exception as exc:
         LOG.error(f"Failed to create cover thumb for {comic_path}")
@@ -125,7 +128,22 @@ def create_comic_cover(comic_path, db_cover_path, force=False):
         LOG.warn(f"Marked cover for {comic_path} missing.")
 
 
-def regen_all_covers(library_pk):
+def bulk_create_comic_covers(comic_and_cover_paths, force=False):
+    """Create bulk comic covers."""
+    last_log_time = time.time()
+    num_comics = len(comic_and_cover_paths)
+    LOG.info(f"Creating {num_comics} comic covers...")
+    comic_counter = 0
+    for comic in comic_and_cover_paths:
+        create_comic_cover(comic.get("path"), comic.get("cover_path"), force)
+        comic_counter += 1
+        now = time.time()
+        if now - last_log_time > LOG_EVERY:
+            LOG.info(f"Created {comic_counter}/{num_comics} comic covers")
+    LOG.info(f"Created {comic_counter} comic covers.")
+
+
+def regen_all_covers(library_pk, bulk=True):
     """Force regeneration of all covers."""
     LOG.info(f"Regnerating all comic covers for library {library_pk}")
     comics = (
@@ -133,8 +151,11 @@ def regen_all_covers(library_pk):
         .filter(library_id=library_pk)
         .values("path", "cover_path")
     )
-    for comic in comics:
-        task = ComicCoverCreateTask(
-            library_pk, comic["path"], comic["cover_path"], True
-        )
-        LIBRARIAN_QUEUE.put(task)
+    if bulk:
+        bulk_create_comic_covers(comics, True)
+    else:
+        for comic in comics:
+            task = ComicCoverCreateTask(
+                library_pk, comic["path"], comic["cover_path"], True
+            )
+            LIBRARIAN_QUEUE.put(task)
