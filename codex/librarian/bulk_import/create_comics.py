@@ -1,6 +1,5 @@
 """Bulk update and create comic objects and bulk update m2m fields."""
-import logging
-
+from logging import getLogger
 from pathlib import Path
 
 from django.db.models import Q
@@ -8,7 +7,7 @@ from django.db.models import Q
 from codex.models import Comic, Credit, Folder, Imprint, Publisher, Series, Volume
 
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 EXCLUDE_BULK_UPDATE_COMIC_FIELDS = (
     "id",
     "comic",

@@ -11,9 +11,9 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 
-import logging
 import os
 
+from logging import getLogger
 from pathlib import Path
 
 from codex.settings.hypercorn import load_hypercorn_config
@@ -39,7 +39,7 @@ DEBUG = bool(os.environ.get("DEBUG", False))
 LOG_DIR = CONFIG_PATH / "logs"
 init_logging(LOG_DIR, DEBUG)
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 
 ALLOWED_HOSTS = ["*"]
 

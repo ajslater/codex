@@ -1,7 +1,7 @@
 """Test websockets."""
 import pytest
 
-from codex.websocket_server import send_msg
+from codex.notifier import Notifier
 
 
 pytestmark = pytest.mark.asyncio
@@ -22,8 +22,7 @@ class Sender:
 class TestWebsockets:
     """Test websockets."""
 
-    HELLO_MSG = "{'text': 'hello', 'type': 'websocket.send'}"
-    COMPARE_KEYS = set([HELLO_MSG])
+    COMPARE_KEYS = set(["hello"])
 
     async def test_get_send_msg(self):
         """Test the get_send_msg method."""
@@ -31,5 +30,5 @@ class TestWebsockets:
         sender = Sender()
         conns = set([sender.send, sender.send])
         KEYS = set()
-        await send_msg(conns, "hello")
+        await Notifier._send_msg(conns, "hello")
         assert KEYS == self.COMPARE_KEYS

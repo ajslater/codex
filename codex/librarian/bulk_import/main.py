@@ -1,6 +1,5 @@
 """Bulk import and move comics and folders."""
-import logging
-
+from logging import getLogger
 from pathlib import Path
 
 from codex.librarian.bulk_import.aggregate_metadata import get_aggregate_metadata
@@ -17,11 +16,11 @@ from codex.librarian.bulk_import.query_fks import (
     query_all_missing_fks,
     query_missing_folder_paths,
 )
-from codex.librarian.queue_mp import QUEUE, LibraryChangedTask
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE, LibraryChangedTask
 from codex.models import Comic, Folder, Library
 
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder")
 MOVED_BULK_FOLDER_UPDATE_FIELDS = ("path", "parent_folder", "name", "sort_name")
 # Batching entire imports doesn't really seem neccissary. This code is left here
@@ -54,7 +53,6 @@ def _split_batch(paths, batch_size):
 
 def _split_batches(update_paths, create_paths):
     """Split both path lists into batches totalling BATCH_SIZE."""
-
     update_end, update_head, update_tail = _split_batch(update_paths, BATCH_SIZE)
 
     create_batch_size = BATCH_SIZE - update_end
@@ -118,7 +116,7 @@ def bulk_import(
 
     cleanup_database(library, delete_paths)
     if total_imported or delete_paths:
-        QUEUE.put(LibraryChangedTask())
+        LIBRARIAN_QUEUE.put(LibraryChangedTask())
     return total_imported
 
 
@@ -154,7 +152,7 @@ def bulk_comics_moved(library_pk, moved_paths):
     LOG.info(f"Moved {len(moved_paths)} comics.")
     cleanup_database(library)
     if moved_paths:
-        QUEUE.put(LibraryChangedTask())
+        LIBRARIAN_QUEUE.put(LibraryChangedTask())
 
 
 def _get_parent_folders(library, folders_moved):
@@ -205,4 +203,4 @@ def bulk_folders_moved(library_pk, folders_moved):
     _update_moved_folders(library, folders_moved, dest_parent_folders)
     cleanup_database(library)
     if folders_moved:
-        QUEUE.put(LibraryChangedTask())
+        LIBRARIAN_QUEUE.put(LibraryChangedTask())

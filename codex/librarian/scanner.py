@@ -1,11 +1,9 @@
 """Scan librarys for comics."""
-import logging
 import os
 
 from datetime import datetime
+from logging import getLogger
 from pathlib import Path
-from queue import SimpleQueue
-from threading import Thread
 
 from django.utils import timezone
 
@@ -15,7 +13,7 @@ from codex.librarian.bulk_import.main import (
     bulk_import,
 )
 from codex.librarian.queue_mp import (
-    QUEUE,
+    LIBRARIAN_QUEUE,
     BulkComicMovedTask,
     BulkFolderMovedTask,
     ScanDoneTask,
@@ -24,9 +22,10 @@ from codex.librarian.queue_mp import (
 )
 from codex.librarian.regex import COMIC_MATCHER
 from codex.models import SCHEMA_VERSION, Comic, FailedImport, Library
+from codex.threads import QueuedThread
 
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 
 
 def _is_outdated(path, updated_at):
@@ -119,7 +118,7 @@ def _scan_root(pk, force=False):
         library.scan_in_progress = False
         library.save()
     is_failed_imports = FailedImport.objects.exists()
-    QUEUE.put(ScanDoneTask(failed_imports=is_failed_imports, sleep=0))
+    LIBRARIAN_QUEUE.put(ScanDoneTask(failed_imports=is_failed_imports, sleep=0))
     LOG.info(f"Scan for {library.path} finished.")
 
 
@@ -146,26 +145,19 @@ def _scan_cron():
             continue
         try:
             task = ScanRootTask(library.pk, force_import)
-            QUEUE.put(task)
+            LIBRARIAN_QUEUE.put(task)
         except Exception as exc:
             LOG.error(exc)
 
 
-class Scanner(Thread):
+class Scanner(QueuedThread):
     """A worker to handle all scanning, importing and moving."""
 
     NAME = "scanner"
-    SHUTDOWN_MSG = "shutdown"
-    SHUTDOWN_TIMEOUT = 5
-
-    def __init__(self):
-        """Inistalize with name and as a daemon."""
-        self.queue = SimpleQueue()
-        super().__init__(name=self.NAME, daemon=True)
 
     def run(self):
         """Run the scanner."""
-        LOG.info("Started the scanner worker." "")
+        LOG.info(f"Started {self.NAME} thread." "")
         while True:
             try:
                 task = self.queue.get()
@@ -175,17 +167,14 @@ class Scanner(Thread):
                     _scan_root(task.library_id, task.force)
                 elif isinstance(task, BulkFolderMovedTask):
                     bulk_folders_moved(task.library_id, task.moved_paths)
+                    LIBRARIAN_QUEUE.put(ScanDoneTask(failed_imports=False, sleep=0))
                 elif isinstance(task, BulkComicMovedTask):
                     bulk_comics_moved(task.library_id, task.moved_paths)
+                    LIBRARIAN_QUEUE.put(ScanDoneTask(failed_imports=False, sleep=0))
                 elif task == self.SHUTDOWN_MSG:
                     break
                 else:
                     LOG.error(f"Bad task sent to scanner {task}")
             except Exception as exc:
                 LOG.exception(exc)
-
-        LOG.info("Stopped the scanner worker." "")
-
-    def stop(self):
-        self.queue.put(self.SHUTDOWN_MSG)
-        self.join(self.SHUTDOWN_TIMEOUT)
+        LOG.info(f"Stopped {self.NAME} thread." "")

@@ -1,10 +1,9 @@
 """Watch file trees for changes."""
-import logging
-
+from logging import getLogger
 from threading import Condition, Thread
 
 from codex.librarian.queue_mp import (
-    QUEUE,
+    LIBRARIAN_QUEUE,
     ScannerCronTask,
     UpdateCronTask,
     VacuumCronTask,
@@ -12,7 +11,7 @@ from codex.librarian.queue_mp import (
 )
 
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 
 
 class Crond(Thread):
@@ -29,10 +28,10 @@ class Crond(Thread):
         with self.COND:
             while self.run_thread:
                 try:
-                    QUEUE.put(ScannerCronTask(sleep=0))
-                    QUEUE.put(WatcherCronTask(sleep=0))
-                    QUEUE.put(UpdateCronTask(sleep=0, force=False))
-                    QUEUE.put(VacuumCronTask())
+                    LIBRARIAN_QUEUE.put(ScannerCronTask(sleep=0))
+                    LIBRARIAN_QUEUE.put(WatcherCronTask(sleep=0))
+                    LIBRARIAN_QUEUE.put(UpdateCronTask(sleep=0, force=False))
+                    LIBRARIAN_QUEUE.put(VacuumCronTask())
                     self.COND.wait(timeout=self.WAIT_INTERVAL)
                 except Exception as exc:
                     LOG.exception(exc)
@@ -42,8 +41,9 @@ class Crond(Thread):
         """Intialize this thread with the worker."""
         super().__init__(name="crond", daemon=True)
 
-    def stop(self):
+    def join(self):
         """Stop the cron thread."""
         self.run_thread = False
         with self.COND:
             self.COND.notify()
+        super().join()

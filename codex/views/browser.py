@@ -1,5 +1,5 @@
 """Views for browsing comic library."""
-import logging
+from logging import getLogger
 
 from django.core.paginator import EmptyPage, Paginator
 from django.db.models import CharField, Count, F, IntegerField, Value
@@ -29,7 +29,7 @@ from codex.views.browser_metadata_base import BrowserMetadataBase
 
 
 PACKAGE_NAME = "codex"
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 
 
 class BrowserView(BrowserMetadataBase):

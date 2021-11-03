@@ -1,5 +1,5 @@
 """Views for browsing comic books."""
-import logging
+from logging import getLogger
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
@@ -19,7 +19,7 @@ from codex.serializers.auth import (
 )
 
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 NULL_USER = {"pk": None, "username": None, "is_staff": False}
 
 

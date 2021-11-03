@@ -1,26 +1,25 @@
 """Watch librarys recursively for changes."""
-import logging
 import os
 import time
 
+from logging import getLogger
 from pathlib import Path
-from queue import Empty
 
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-from codex.buffer_thread import BufferThread, TimedMessage
 from codex.librarian.queue_mp import (
-    QUEUE,
+    LIBRARIAN_QUEUE,
     BulkComicMovedTask,
     BulkFolderMovedTask,
     ScanRootTask,
 )
 from codex.librarian.regex import COMIC_MATCHER
 from codex.models import Library
+from codex.threads import AggregateMessageQueuedThread
 
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 
 
 class CodexLibraryEventHandler(FileSystemEventHandler):
@@ -81,7 +80,7 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
         src_path = Path(event.src_path)
         self._wait_for_copy(src_path, event.is_directory)
         message = ScanRootMessage(self.library_pk)
-        EventBatchThread.MESSAGE_QUEUE.put(message)
+        Uatu.EVENT_BATCHER.queue.put(message)
 
     def on_created(self, event):
         """Do the same thing as for modified."""
@@ -106,7 +105,7 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
             message = ComicMovedMessage(
                 self.library_pk, event.src_path, event.dest_path
             )
-        EventBatchThread.MESSAGE_QUEUE.put(message)
+        Uatu.EVENT_BATCHER.queue.put(message)
 
     def on_deleted(self, event):
         """Put a comic deleted task on the queue."""
@@ -115,28 +114,108 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
 
         self._wait_for_delete(event.src_path)
         message = ScanRootMessage(self.library_pk)
-        EventBatchThread.MESSAGE_QUEUE.put(message)
+        Uatu.EVENT_BATCHER.queue.put(message)
+
+
+class LibraryMessage:
+    """Set the library id."""
+
+    def __init__(self, library_id):
+        """Set the library id."""
+        self.library_id = library_id
+
+
+class ScanRootMessage(LibraryMessage):
+    """Scan Root."""
+
+    pass
+
+
+class MovedMessage(LibraryMessage):
+    """Move folders or comics."""
+
+    def __init__(self, library_id, src_path, dest_path):
+        """Set the src and dest paths for a moved object."""
+        self.src_path = src_path
+        self.dest_path = dest_path
+        super().__init__(library_id)
+
+
+class FolderMovedMessage(MovedMessage):
+    """Move folders."""
+
+    pass
+
+
+class ComicMovedMessage(MovedMessage):
+    """Move comics."""
+
+    pass
+
+
+class EventBatcher(AggregateMessageQueuedThread):
+    """Batch watchdog events into bulk database tasks."""
+
+    NAME = "watchdog-event-batcher"
+    MESSAGE_TASK_MAP = {
+        FolderMovedMessage: BulkFolderMovedTask,
+        ComicMovedMessage: BulkComicMovedTask,
+        ScanRootMessage: ScanRootTask,
+    }
+    TASK_ORDER = (FolderMovedMessage, ComicMovedMessage, ScanRootMessage)
+
+    def _aggregate_items(self, message):
+        """Aggregate events into cache."""
+        LOG.debug(f"Adding {message} to cache.")
+        if message.__class__ not in self.cache:
+            self.cache[message.__class__] = {}
+        class_dict = self.cache[message.__class__]
+        if message.library_id not in class_dict:
+            class_dict[message.library_id] = {}
+        if isinstance(message, MovedMessage):
+            class_dict[message.library_id][message.src_path] = message.dest_path
+
+    def _create_task_from_param_data(self, message_cls, library_id, moved_paths):
+        """Create a task from cached aggregated message data."""
+        params = {"library_id": library_id}
+        task_cls = self.MESSAGE_TASK_MAP[message_cls]
+        if task_cls == ScanRootTask:
+            params["force"] = False
+        else:
+            params["moved_paths"] = moved_paths
+        # create task from params
+        return task_cls(**params)
+
+    def _send_all_items(self):
+        """Send all tasks to library queue and reset events cache."""
+        sent_keys = set()
+        for message_cls in self.TASK_ORDER:
+            if not self._do_send_item(message_cls):
+                continue
+            library_params = self.cache.get(message_cls)
+            if library_params:
+                for library_id, moved_paths in library_params.items():
+                    task = self._create_task_from_param_data(
+                        message_cls, library_id, moved_paths
+                    )
+                    LIBRARIAN_QUEUE.put(task)
+                    sent_keys.add(message_cls)
+
+        # reset the event aggregates
+        self._cleanup_cache(sent_keys)
 
 
 class Uatu(Observer):
     """Watch over librarys from the blue area of the moon."""
 
     SHUTDOWN_TIMEOUT = 5
+    EVENT_BATCHER = EventBatcher()
 
     def __init__(self, *args, **kwargs):
         """Intialize pk to watches dict."""
+        self.EVENT_BATCHER.start()
         super().__init__(*args, **kwargs)
         self._pk_watches = dict()
-
-    def start(self):
-        """Start the batcher thread."""
-        EventBatchThread.startup()
-        super().start()
-
-    def stop(self):
-        """Stop the batcher thread."""
-        super().stop()
-        EventBatchThread.shutdown()
 
     def _unwatch_library(self, pk):
         """Stop a watch process."""
@@ -192,108 +271,7 @@ class Uatu(Observer):
         self._pk_watches = dict()
         LOG.info("Stopped watching all libraries")
 
-
-class LibraryMessage(TimedMessage):
-    """Set the library id."""
-
-    def __init__(self, library_id, *args, **kwargs):
-        """Set the library id."""
-        self.library_id = library_id
-        super().__init__(*args, **kwargs)
-
-
-class ScanRootMessage(LibraryMessage):
-    """Scan Root."""
-
-    pass
-
-
-class MovedMessage(LibraryMessage):
-    """Move folders or comics."""
-
-    def __init__(self, library_id, src_path, dest_path):
-        """Set the src and dest paths for a moved object."""
-        self.src_path = src_path
-        self.dest_path = dest_path
-        super().__init__(library_id)
-
-
-class FolderMovedMessage(MovedMessage):
-    """Move folders."""
-
-    pass
-
-
-class ComicMovedMessage(MovedMessage):
-    """Move comics."""
-
-    pass
-
-
-class EventBatchThread(BufferThread):
-    """Batch watchdog events into bulk database tasks."""
-
-    NAME = "watchdog-event-batcher"
-    BATCH_DELAY = 2
-    MAX_BATCH_WAIT_TIME = 30
-    MESSAGE_TASK_MAP = {
-        FolderMovedMessage: BulkFolderMovedTask,
-        ComicMovedMessage: BulkComicMovedTask,
-        ScanRootMessage: ScanRootTask,
-    }
-    TASK_ORDER = (FolderMovedMessage, ComicMovedMessage, ScanRootMessage)
-
-    def __init__(self):
-        """Name the thread."""
-        self.events = {
-            FolderMovedMessage: {},
-            ComicMovedMessage: {},
-            ScanRootMessage: {},
-        }
-        super().__init__()
-
-    def run(self):
-        """Run the worker."""
-        LOG.info("Started watcher batch event worker.")
-        while True:
-            try:
-                waiting_since = time.time()
-                try:
-                    message = self.MESSAGE_QUEUE.get(timeout=self.BATCH_DELAY)
-                    if message == self.SHUTDOWN_MSG:
-                        break
-                    LOG.debug(f"Adding {message} to cache.")
-                    # Aggregate event into bulk tasks
-                    class_dict = self.events[message.__class__]
-                    if message.library_id not in class_dict:
-                        class_dict[message.library_id] = {}
-                    if isinstance(message, MovedMessage):
-                        class_dict[message.library_id][
-                            message.src_path
-                        ] = message.dest_path
-
-                    wait_left = message.time + self.BATCH_DELAY - time.time()
-                except Empty:
-                    wait_left = 0
-                wait_break = time.time() - waiting_since > self.MAX_BATCH_WAIT_TIME
-                if self.MESSAGE_QUEUE.empty() and not wait_break and wait_left > 0:
-                    continue
-                # Send all tasks
-                for message_cls in self.TASK_ORDER:
-                    library_params = self.events[message_cls]
-                    for library_id, moved_paths in library_params.items():
-                        params = {"library_id": library_id}
-                        task_cls = self.MESSAGE_TASK_MAP[message_cls]
-                        if task_cls == ScanRootTask:
-                            params["force"] = False
-                        else:
-                            params["moved_paths"] = moved_paths
-                        task = task_cls(**params)
-                        LOG.debug(f"Sending task: {task}")
-                        QUEUE.put(task)
-                # reset the event aggregates
-                for message_cls in self.events.keys():
-                    self.events[message_cls] = {}
-            except Exception as exc:
-                LOG.exception(exc)
-        LOG.info("Stopped watcher batch event worker.")
+    def stop(self):
+        """Stop watching and jon the event batcher thread."""
+        super().stop()
+        self.EVENT_BATCHER.join()

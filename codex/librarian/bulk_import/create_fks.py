@@ -4,8 +4,7 @@ Create all missing comic foreign keys for an import.
 So we may safely create the comics next.
 """
 
-import logging
-
+from logging import getLogger
 from pathlib import Path
 
 from codex.models import (
@@ -20,7 +19,7 @@ from codex.models import (
 )
 
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 
 
 def _create_group_obj(cls, group_param_tuple, count):

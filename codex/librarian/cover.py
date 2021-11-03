@@ -1,14 +1,13 @@
 """Functions for dealing with comic cover thumbnails."""
-import logging
-
 from io import BytesIO
+from logging import getLogger
 from pathlib import Path
 
 from comicbox.comic_archive import ComicArchive
 from fnvhash import fnv1a_32
 from PIL import Image
 
-from codex.librarian.queue_mp import QUEUE, LibraryChangedTask
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE, LibraryChangedTask
 from codex.models import Comic
 from codex.settings.settings import CONFIG_STATIC, STATIC_ROOT
 
@@ -23,7 +22,7 @@ MISSING_COVER_SRC = STATIC_ROOT / "img" / MISSING_COVER_FN
 MISSING_COVER_FS_PATH = COVER_ROOT / MISSING_COVER_FN
 HEX_FILL = 8
 PATH_STEP = 2
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 
 
 def cleanup_cover_dirs(path):
@@ -114,7 +113,7 @@ def create_comic_cover(comic_path, db_cover_path, force=False):
         im.thumbnail(THUMBNAIL_SIZE)
         im.save(fs_cover_path, im.format)
         LOG.info(f"Created cover thumbnail for: {comic_path}")
-        QUEUE.put(LibraryChangedTask())
+        LIBRARIAN_QUEUE.put(LibraryChangedTask())
     except Exception as exc:
         LOG.error(f"Failed to create cover thumb for {comic_path}")
         LOG.exception(exc)

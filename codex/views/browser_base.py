@@ -1,5 +1,5 @@
 """Views for browsing comic library."""
-import logging
+from logging import getLogger
 
 from bidict import bidict
 from django.db.models import Q
@@ -9,7 +9,7 @@ from codex.models import Comic, Folder, Imprint, Publisher, Series, Volume
 from codex.views.mixins import SessionMixin
 
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 
 
 class BrowserBaseView(APIView, SessionMixin):

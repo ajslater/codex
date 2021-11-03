@@ -1,12 +1,17 @@
 """Start and stop daemons."""
 import os
+import platform
 
 from logging import getLogger
-
-import django
+from multiprocessing import set_start_method
 
 from asgiref.sync import sync_to_async
+from django.contrib.auth import get_user_model
 from django.core.cache import cache
+
+from codex.librarian.librariand import LibrarianDaemon
+from codex.models import AdminFlag, Library
+from codex.websocket_server import Notifier
 
 
 RESET_ADMIN = bool(os.environ.get("CODEX_RESET_ADMIN"))
@@ -15,8 +20,6 @@ LOG = getLogger(__name__)
 
 def ensure_superuser():
     """Ensure there is a valid superuser."""
-    from django.contrib.auth import get_user_model
-
     User = get_user_model()  # noqa N806
 
     if RESET_ADMIN or not User.objects.filter(is_superuser=True).exists():
@@ -33,7 +36,6 @@ def ensure_superuser():
 def init_admin_flags():
     """Init admin flag rows."""
     # AdminFlag = apps.get_model("codex", "AdminFlag")  # noqa N806
-    from codex.models import AdminFlag
 
     for name in AdminFlag.FLAG_NAMES:
         if name in AdminFlag.DEFAULT_FALSE:
@@ -49,8 +51,6 @@ def init_admin_flags():
 
 def unset_scan_in_progress():
     """Unset the scan_in_progres flag for all libraries."""
-    from codex.models import Library
-
     stuck_libraries = Library.objects.filter(scan_in_progress=True).only(
         "scan_in_progress", "path"
     )
@@ -61,27 +61,29 @@ def unset_scan_in_progress():
 
 
 def codex_startup():
-    """Start the daemons. But don't import them until django is set up."""
-    django.setup()
+    """Initialize the database and start the daemons."""
     ensure_superuser()
     init_admin_flags()
     unset_scan_in_progress()
     cache.clear()
 
-    from codex.librarian.librariand import LibrarianDaemon
-    from codex.websocket_server import FloodControlThread
+    if platform.system() == "Darwin":
+        # XXX Fixes LIBRARIAN_QUEUE sharing with default spawn start method. The spawn
+        # method is also very very slow. Use fork and the
+        # OBJC_DISABLE_INITIALIZE_FORK_SAFETY environment variable for macOS.
+        # https://bugs.python.org/issue40106
+        #
+        # This must happen before we create the Librarian process
+        set_start_method("fork", force=True)
 
+    Notifier.startup()
     LibrarianDaemon.startup()
-    FloodControlThread.startup()
 
 
 def codex_shutdown():
-    """Stop the daemons. But don't import them until django is set up."""
-    from codex.librarian.librariand import LibrarianDaemon
-    from codex.websocket_server import FloodControlThread
-
+    """Stop the daemons."""
     LibrarianDaemon.shutdown()
-    FloodControlThread.shutdown()
+    Notifier.shutdown()
 
 
 async def lifespan_application(scope, receive, send):

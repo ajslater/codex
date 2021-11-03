@@ -1,16 +1,17 @@
 """Update the codex python package."""
-import logging
 import os
 import signal
 import subprocess
 import sys
+
+from logging import getLogger
 
 from codex.librarian.latest_version import get_installed_version, is_outdated
 from codex.models import AdminFlag
 from codex.settings.settings import CACHE_PATH
 
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 PACKAGE_NAME = "codex"
 
 
