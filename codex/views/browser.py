@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from stringcase import snakecase
 
 from codex.librarian.latest_version import get_installed_version, get_latest_version
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE, BulkComicCoverCreateTask
 from codex.models import (
     AdminFlag,
     Comic,
@@ -412,6 +413,10 @@ class BrowserView(BrowserMetadataBase):
             obj_list = self.get_folder_queryset(object_filter, aggregate_filter)
         else:
             obj_list = self.get_browser_group_queryset(object_filter, aggregate_filter)
+
+        # Ensure comic covers exist for all browser cards
+        task = BulkComicCoverCreateTask(obj_list, False)
+        LIBRARIAN_QUEUE.put(task)
 
         # Order
         order_by = self.get_order_by(self.model, True)

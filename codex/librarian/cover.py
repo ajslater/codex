@@ -98,9 +98,10 @@ def get_cover_path(comic_path):
 
 def _create_comic_cover(comic, force=False):
     """Create a comic cover thumnail and save it to disk."""
-    comic_path = comic.get("path")
+    # The browser sends x_path and x_comic_path, everything else sends no prefix
+    comic_path = comic.get("x_path", comic.get("path"))
     try:
-        db_cover_path = comic.get("cover_path")
+        db_cover_path = comic.get("x_cover_path", comic.get("cover_path"))
         if db_cover_path == MISSING_COVER_FN and not force:
             LOG.debug(f"Cover for {comic_path} missing.")
             return
