@@ -415,8 +415,8 @@ class BrowserView(BrowserMetadataBase):
             obj_list = self.get_browser_group_queryset(object_filter, aggregate_filter)
 
         # Ensure comic covers exist for all browser cards
-        task = BulkComicCoverCreateTask(obj_list, False)
-        LIBRARIAN_QUEUE.put(task)
+        task = BulkComicCoverCreateTask(False, obj_list)
+        LIBRARIAN_QUEUE.put_nowait(task)
 
         # Order
         order_by = self.get_order_by(self.model, True)

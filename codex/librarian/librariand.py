@@ -7,9 +7,9 @@ from codex.librarian.cover import CoverCreator
 from codex.librarian.crond import Crond
 from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
-    BulkComicCoverCreateTask,
     BulkComicMovedTask,
     BulkFolderMovedTask,
+    ComicCoverCreateTask,
     LibraryChangedTask,
     RestartTask,
     ScanDoneTask,
@@ -59,7 +59,7 @@ class LibrarianDaemon(Process):
             if task and hasattr(task, "sleep"):
                 sleep(task.sleep)
 
-            if isinstance(task, BulkComicCoverCreateTask):
+            if isinstance(task, ComicCoverCreateTask):
                 self.cover_creator.queue.put(task)
             elif isinstance(
                 task,

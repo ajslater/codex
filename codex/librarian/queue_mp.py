@@ -1,7 +1,7 @@
 """Library SimpleQueue and task definitions."""
 # This file cannot be named queue or it causes weird type checker errors
 from dataclasses import dataclass
-from multiprocessing import SimpleQueue
+from multiprocessing import Queue
 
 
 @dataclass
@@ -40,9 +40,18 @@ class BulkComicMovedTask(BulkMovedTask):
 
 
 @dataclass
-class BulkComicCoverCreateTask:
-    paths: tuple
+class ComicCoverCreateTask:
     force: bool
+
+
+@dataclass
+class SingleComicCoverCreateTask(ComicCoverCreateTask):
+    comic: dict
+
+
+@dataclass
+class BulkComicCoverCreateTask(ComicCoverCreateTask):
+    comics: tuple
 
 
 @dataclass
@@ -101,4 +110,4 @@ class VacuumCronTask:
     pass
 
 
-LIBRARIAN_QUEUE = SimpleQueue()
+LIBRARIAN_QUEUE = Queue()

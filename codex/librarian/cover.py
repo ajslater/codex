@@ -13,6 +13,7 @@ from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
     BulkComicCoverCreateTask,
     LibraryChangedTask,
+    SingleComicCoverCreateTask,
 )
 from codex.models import Comic
 from codex.settings.settings import CONFIG_STATIC, STATIC_ROOT
@@ -158,7 +159,7 @@ def regen_all_covers(library_pk):
         .filter(library_id=library_pk)
         .values("path", "cover_path")
     )
-    task = BulkComicCoverCreateTask(tuple(comics), True)
+    task = BulkComicCoverCreateTask(True, tuple(comics))
     LIBRARIAN_QUEUE.put(task)
 
 
@@ -174,7 +175,9 @@ class CoverCreator(QueuedThread):
             try:
                 task = self.queue.get()
                 if isinstance(task, BulkComicCoverCreateTask):
-                    _bulk_create_comic_covers(task.paths, task.force)
+                    _bulk_create_comic_covers(task.comics, task.force)
+                elif isinstance(task, SingleComicCoverCreateTask):
+                    _create_comic_cover(task.comic, task.force)
                 elif task == self.SHUTDOWN_MSG:
                     break
                 else:
