@@ -14,8 +14,6 @@ from codex.threads import AggregateMessageQueuedThread
 django_setup()
 
 LOG = logging.getLogger(__name__)
-
-# Websocket Application
 WS_ACCEPT_MSG = {"type": "websocket.accept"}
 
 
@@ -29,18 +27,6 @@ class NotifierMessage:
         """Set the message content."""
         self.type = type
         self.message = message
-
-
-CONNS = {NotifierMessage.BROADCAST: set(), NotifierMessage.ADMIN_BROADCAST: set()}
-
-
-def _subscribe(type, key, msg, send):
-    """Subscribe or unsubscribe from a connection class."""
-    conns = CONNS[type]
-    if msg.get(key):
-        conns.add(send)
-    else:
-        conns.discard(send)
 
 
 async def websocket_application(scope, receive, send):
@@ -62,8 +48,12 @@ async def websocket_application(scope, receive, send):
                     msg_type = msg.get("type")
 
                     if (msg_type) == "subscribe":
-                        _subscribe(NotifierMessage.BROADCAST, "register", msg, send)
-                        _subscribe(NotifierMessage.ADMIN_BROADCAST, "admin", msg, send)
+                        Notifier.subscribe(
+                            NotifierMessage.BROADCAST, "register", msg, send
+                        )
+                        Notifier.subscribe(
+                            NotifierMessage.ADMIN_BROADCAST, "admin", msg, send
+                        )
                     elif msg_type is None:
                         # keep-alive
                         pass
@@ -82,6 +72,18 @@ class Notifier(AggregateMessageQueuedThread):
 
     NAME = "UI-Notifier"
     WS_SEND_MSG = {"type": "websocket.send"}
+    CONNS = {}
+
+    @classmethod
+    def subscribe(cls, type, key, msg, send):
+        """Subscribe or unsubscribe from a connection class."""
+        if type not in cls.CONNS:
+            cls.CONNS[type] = set()
+        conns = cls.CONNS[type]
+        if msg.get(key):
+            conns.add(send)
+        else:
+            conns.discard(send)
 
     @staticmethod
     async def _send_msg(conns, send_msg):
@@ -103,7 +105,7 @@ class Notifier(AggregateMessageQueuedThread):
             if self._do_send_item(msg):
                 send_msg = {"text": message.message}
                 send_msg.update(self.WS_SEND_MSG)
-                conns = CONNS[message.type]
+                conns = self.CONNS[message.type]
                 async_to_sync(self._send_msg)(conns, send_msg)
             sent_keys.add(msg)
         self._cleanup_cache(sent_keys)
@@ -116,3 +118,4 @@ class Notifier(AggregateMessageQueuedThread):
     @classmethod
     def shutdown(cls):
         cls.thread.join()
+        cls.CONNS = {}
