@@ -7,7 +7,11 @@ from comicbox.comic_archive import ComicArchive
 from fnvhash import fnv1a_32
 from PIL import Image
 
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE, LibraryChangedTask
+from codex.librarian.queue_mp import (
+    LIBRARIAN_QUEUE,
+    ComicCoverCreateTask,
+    LibraryChangedTask,
+)
 from codex.models import Comic
 from codex.settings.settings import CONFIG_STATIC, STATIC_ROOT
 
@@ -119,3 +123,18 @@ def create_comic_cover(comic_path, db_cover_path, force=False):
         LOG.exception(exc)
         Comic.objects.filter(comic_path=comic_path).update(cover_path=MISSING_COVER_FN)
         LOG.warn(f"Marked cover for {comic_path} missing.")
+
+
+def regen_all_covers(library_pk):
+    """Force regeneration of all covers."""
+    LOG.info(f"Regnerating all comic covers for library {library_pk}")
+    comics = (
+        Comic.objects.only("path", "library")
+        .filter(library_id=library_pk)
+        .values("path", "cover_path")
+    )
+    for comic in comics:
+        task = ComicCoverCreateTask(
+            library_pk, comic["path"], comic["cover_path"], True
+        )
+        LIBRARIAN_QUEUE.put(task)
