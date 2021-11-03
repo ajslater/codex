@@ -1,5 +1,5 @@
 """Update the codex python package."""
-import logging
+from logging import getLogger
 import os
 import signal
 import subprocess
@@ -10,7 +10,7 @@ from codex.models import AdminFlag
 from codex.settings.settings import CACHE_PATH
 
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 PACKAGE_NAME = "codex"
 
 

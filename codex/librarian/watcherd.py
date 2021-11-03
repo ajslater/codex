@@ -1,5 +1,5 @@
 """Watch librarys recursively for changes."""
-import logging
+from logging import getLogger
 import os
 import time
 
@@ -20,7 +20,7 @@ from codex.models import Library
 from codex.threads import AggregateMessageQueuedThread
 
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 
 
 class CodexLibraryEventHandler(FileSystemEventHandler):

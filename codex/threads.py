@@ -1,14 +1,14 @@
 """Abstract Thread worker for doing queued tasks."""
-import logging
 import time
 
 from abc import ABC, abstractmethod
+from logging import getLogger
 from multiprocessing import Queue
 from queue import Empty
 from threading import Thread
 
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 
 
 class QueuedThread(Thread):

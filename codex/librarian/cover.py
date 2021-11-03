@@ -1,5 +1,5 @@
 """Functions for dealing with comic cover thumbnails."""
-import logging
+from logging import getLogger
 
 from io import BytesIO
 from pathlib import Path
@@ -23,7 +23,7 @@ MISSING_COVER_SRC = STATIC_ROOT / "img" / MISSING_COVER_FN
 MISSING_COVER_FS_PATH = COVER_ROOT / MISSING_COVER_FN
 HEX_FILL = 8
 PATH_STEP = 2
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 
 
 def cleanup_cover_dirs(path):

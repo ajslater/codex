@@ -1,5 +1,5 @@
 """Django views for Codex."""
-import logging
+from logging import getLogger
 
 from django.contrib.admin import ModelAdmin, register
 from django.contrib.admin.templatetags.admin_urls import admin_urlname
@@ -20,7 +20,7 @@ from codex.librarian.queue_mp import (
 from codex.models import AdminFlag, FailedImport, Library
 
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 SAFE_CHANGE = SafeText("change")
 
 

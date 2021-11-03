@@ -1,5 +1,5 @@
 """Notify views."""
-import logging
+from logging import getLogger
 
 from django.views.decorators.cache import cache_control
 from rest_framework.response import Response
@@ -11,7 +11,7 @@ from codex.serializers.notify import ScanNotifySerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 MIN_SCAN_WAIT = 5
 
 

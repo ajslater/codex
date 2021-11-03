@@ -1,5 +1,5 @@
 """Bulk import and move comics and folders."""
-import logging
+from logging import getLogger
 
 from pathlib import Path
 
@@ -21,7 +21,7 @@ from codex.librarian.queue_mp import LIBRARIAN_QUEUE, LibraryChangedTask
 from codex.models import Comic, Folder, Library
 
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder")
 MOVED_BULK_FOLDER_UPDATE_FIELDS = ("path", "parent_folder", "name", "sort_name")
 # Batching entire imports doesn't really seem neccissary. This code is left here

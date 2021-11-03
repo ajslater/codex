@@ -1,5 +1,5 @@
 """Views for reading comic books."""
-import logging
+from logging import getLogger
 
 from comicbox.comic_archive import ComicArchive
 from django.http import HttpResponse
@@ -14,7 +14,7 @@ from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.mixins import SessionMixin, UserBookmarkMixin
 
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 
 
 class ComicOpenedView(APIView, SessionMixin, UserBookmarkMixin):

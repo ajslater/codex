@@ -1,5 +1,5 @@
 """Clean up the database after moves or imports."""
-import logging
+from logging import getLogger
 
 from pathlib import Path
 
@@ -42,7 +42,7 @@ DELETE_COMIC_FKS = (
     Genre,
 )
 DELETE_CREDIT_FKS = (CreditRole, CreditPerson)
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 
 
 def _bulk_delete_comics(library, delete_comic_paths=None):

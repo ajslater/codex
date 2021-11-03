@@ -1,6 +1,6 @@
 """Aggregate metadata from comics to prepare for importing."""
 
-import logging
+from logging import getLogger
 import time
 
 from pathlib import Path
@@ -13,7 +13,7 @@ from codex.librarian.queue_mp import LIBRARIAN_QUEUE, ComicCoverCreateTask
 from codex.models import Comic, FailedImport, Imprint, Publisher, Series, Volume
 
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 BROWSER_GROUP_TREE_COUNT_FIELDS = set(["volume_count", "issue_count"])
 COMIC_M2M_FIELDS = set()
 for field in Comic._meta.get_fields():

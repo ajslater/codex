@@ -1,5 +1,5 @@
 """View for marking comics read and unread."""
-import logging
+from logging import getLogger
 
 from bidict import bidict
 from django.db.models import Aggregate, CharField, Count
@@ -12,7 +12,7 @@ from codex.views.browser_metadata_base import BrowserMetadataBase
 from codex.views.mixins import UserBookmarkMixin
 
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 
 
 class GroupConcat(Aggregate):

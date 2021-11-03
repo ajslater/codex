@@ -1,5 +1,5 @@
 """Query the missing foreign keys for comics and credits."""
-import logging
+from logging import getLogger
 
 from pathlib import Path
 
@@ -27,7 +27,7 @@ NAMED_MODEL_QUERY_FIELDS = ("name",)
 # Filter arg count is a poor proxy for sql line length but it works
 #   1998 is too high for the Credit query, for instance.
 FILTER_ARG_MAX = 1950
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 
 
 def _get_create_metadata(fk_cls, create_mds, filter_batches):

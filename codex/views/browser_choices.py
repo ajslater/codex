@@ -1,5 +1,5 @@
 """View for marking comics read and unread."""
-import logging
+from logging import getLogger
 
 from django.http import Http404
 from rest_framework.response import Response
@@ -12,7 +12,7 @@ from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser_base import BrowserBaseView
 
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 
 
 class BrowserChoiceView(BrowserBaseView):

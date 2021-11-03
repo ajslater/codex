@@ -1,5 +1,5 @@
 """Scan librarys for comics."""
-import logging
+from logging import getLogger
 import os
 
 from datetime import datetime
@@ -25,7 +25,7 @@ from codex.models import SCHEMA_VERSION, Comic, FailedImport, Library
 from codex.threads import QueuedThread
 
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 
 
 def _is_outdated(path, updated_at):

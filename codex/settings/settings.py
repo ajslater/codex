@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 
-import logging
+from logging import getLogger
 import os
 
 from pathlib import Path
@@ -39,7 +39,7 @@ DEBUG = bool(os.environ.get("DEBUG", False))
 LOG_DIR = CONFIG_PATH / "logs"
 init_logging(LOG_DIR, DEBUG)
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 
 ALLOWED_HOSTS = ["*"]
 

@@ -1,5 +1,5 @@
 """Watch file trees for changes."""
-import logging
+from logging import getLogger
 
 from threading import Condition, Thread
 
@@ -12,7 +12,7 @@ from codex.librarian.queue_mp import (
 )
 
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 
 
 class Crond(Thread):
