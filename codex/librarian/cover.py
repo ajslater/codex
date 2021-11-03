@@ -25,13 +25,13 @@ PATH_STEP = 2
 LOG = getLogger(__name__)
 
 
-def cleanup_cover_dirs(path):
+def _cleanup_cover_dirs(path):
     """Recursively remove empty cover directories."""
     if COVER_ROOT not in path.parents:
         return
     try:
         path.rmdir()
-        cleanup_cover_dirs(path.parent)
+        _cleanup_cover_dirs(path.parent)
     except OSError:
         pass
 
@@ -47,7 +47,7 @@ def purge_cover(comic):
         cover_path.unlink()
     except FileNotFoundError:
         pass
-    cleanup_cover_dirs(cover_path.parent)
+    _cleanup_cover_dirs(cover_path.parent)
 
 
 def purge_cover_path(comic_cover_path):
@@ -61,7 +61,7 @@ def purge_cover_path(comic_cover_path):
         cover_path.unlink()
     except FileNotFoundError:
         pass
-    cleanup_cover_dirs(cover_path.parent)
+    _cleanup_cover_dirs(cover_path.parent)
 
 
 def purge_all_covers(library):
@@ -71,7 +71,7 @@ def purge_all_covers(library):
         purge_cover(comic)
 
 
-def hex_path(comic_path):
+def _hex_path(comic_path):
     """Translate an integer into an efficient filesystem path."""
     fnv = fnv1a_32(bytes(str(comic_path), "utf-8"))
     hex_str = "{0:0{1}x}".format(fnv, HEX_FILL)
@@ -84,7 +84,7 @@ def hex_path(comic_path):
 
 def get_cover_path(comic_path):
     """Get path to a cover image, creating the image if not found."""
-    cover_path = hex_path(comic_path)
+    cover_path = _hex_path(comic_path)
     return str(cover_path.with_suffix(".jpg"))
 
 
