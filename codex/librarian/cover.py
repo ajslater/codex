@@ -119,7 +119,7 @@ def create_comic_cover(comic_path, db_cover_path, force=False):
         im = Image.open(BytesIO(cover_image))
         im.thumbnail(THUMBNAIL_SIZE)
         im.save(fs_cover_path, im.format)
-        LOG.debug(f"Created cover thumbnail for: {comic_path}")
+        # LOG.debug(f"Created cover thumbnail for: {comic_path}")
         LIBRARIAN_QUEUE.put(LibraryChangedTask())
     except Exception as exc:
         LOG.error(f"Failed to create cover thumb for {comic_path}")
@@ -140,6 +140,7 @@ def bulk_create_comic_covers(comic_and_cover_paths, force=False):
         now = time.time()
         if now - last_log_time > LOG_EVERY:
             LOG.info(f"Created {comic_counter}/{num_comics} comic covers")
+            last_log_time = now
     LOG.info(f"Created {comic_counter} comic covers.")
 
 
