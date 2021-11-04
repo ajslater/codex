@@ -92,7 +92,7 @@ class NamedModelMeta:
 class GroupModelMeta:
     """Meta class for group models."""
 
-    fields = NamedModelMeta.fields + ("is_default",)
+    fields = NamedModelMeta.fields
 
 
 class NamedModelSerializer(ModelSerializer):

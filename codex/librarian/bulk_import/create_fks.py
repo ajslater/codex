@@ -42,8 +42,6 @@ def _create_group_obj(cls, group_param_tuple, count):
         )
         defaults["issue_count"] = count
 
-    if defaults["name"] == cls.DEFAULT_NAME:
-        defaults["is_default"] = True
     group_obj = cls(**defaults)
     group_obj.presave()
     return group_obj

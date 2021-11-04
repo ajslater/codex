@@ -17,7 +17,7 @@ LOG = getLogger(__name__)
 BROWSER_GROUP_TREE_COUNT_FIELDS = set(["volume_count", "issue_count"])
 COMIC_M2M_FIELDS = set()
 for field in Comic._meta.get_fields():
-    if field.many_to_many and field.name != "folder":
+    if field.many_to_many and field.name != "folders":
         COMIC_M2M_FIELDS.add(field.name)
 MD_UNUSED_KEYS = ("alternate_series", "remainder", "ext", "pages", "cover_image")
 LOG_EVERY = 15
@@ -52,7 +52,7 @@ def _get_path_metadata(path):
         for group_cls in BROWSER_GROUPS:
             group_field = group_cls.__name__.lower()
             # some volumes are read by ComicArchive as ints, cast
-            group_name = str(md.get(group_field, ""))
+            group_name = str(md.get(group_field, Publisher.DEFAULT_NAME))
             # This fixes no imprint or whatever being in md
             md[group_field] = group_name
             group_tree.append(group_name)

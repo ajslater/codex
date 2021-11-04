@@ -50,7 +50,9 @@ class BaseModel(Model):
 class BrowserGroupModel(BaseModel):
     """Browser groups."""
 
-    is_default = BooleanField(default=False)
+    DEFAULT_NAME = ""
+
+    name = CharField(db_index=True, max_length=32, default=DEFAULT_NAME)
     sort_name = CharField(db_index=True, max_length=32)
 
     def presave(self):
@@ -71,33 +73,29 @@ class BrowserGroupModel(BaseModel):
 class Publisher(BrowserGroupModel):
     """The publisher of the comic."""
 
-    DEFAULTS = {"is_default": True}
-    DEFAULT_NAME = "No Publisher"
-    name = CharField(max_length=32, default=DEFAULT_NAME)
+    DEFAULTS = {"name": ""}
 
     @classmethod
     def get_default_publisher(cls):
-        """Get or create a default 'No Publisher' entry."""
+        """Get or create a default entry."""
         publisher, _ = cls.objects.get_or_create(defaults=cls.DEFAULTS, **cls.DEFAULTS)
         return publisher
 
     class Meta:
         """Constraints."""
 
-        unique_together = ("name", "is_default")
+        unique_together = ("name",)
 
 
 class Imprint(BrowserGroupModel):
     """A Publishing imprint."""
 
-    DEFAULT_NAME = "Main Imprint"
-    name = CharField(max_length=32, default=DEFAULT_NAME)
     publisher = ForeignKey(Publisher, on_delete=SET(Publisher.get_default_publisher))
 
     class Meta:
         """Contraints."""
 
-        unique_together = ("name", "publisher", "is_default")
+        unique_together = ("name", "publisher")
 
     def presave(self):
         """Save the sort name. Called by save()."""
@@ -107,8 +105,6 @@ class Imprint(BrowserGroupModel):
 class Series(BrowserGroupModel):
     """The series the comic belongs to."""
 
-    DEFAULT_NAME = "Default Series"
-    name = CharField(max_length=32, default=DEFAULT_NAME)
     publisher = ForeignKey(Publisher, on_delete=Publisher.get_default_publisher)
     imprint = ForeignKey(Imprint, on_delete=CASCADE)
     volume_count = PositiveSmallIntegerField(null=True)
@@ -116,15 +112,13 @@ class Series(BrowserGroupModel):
     class Meta:
         """Constraints."""
 
-        unique_together = ("name", "imprint", "is_default")
+        unique_together = ("name", "imprint")
         verbose_name_plural = "Series"
 
 
 class Volume(BrowserGroupModel):
     """The volume of the series the comic belongs to."""
 
-    DEFAULT_NAME = ""
-    name = CharField(max_length=32, default=DEFAULT_NAME)
     publisher = ForeignKey(Publisher, on_delete=Publisher.get_default_publisher)
     imprint = ForeignKey(Imprint, on_delete=CASCADE)
     series = ForeignKey(Series, on_delete=CASCADE)
@@ -137,7 +131,7 @@ class Volume(BrowserGroupModel):
     class Meta:
         """Constraints."""
 
-        unique_together = ("name", "series", "is_default")
+        unique_together = ("name", "series")
 
 
 def validate_dir_exists(path):
@@ -190,7 +184,6 @@ class NamedModel(BaseModel):
 class Folder(NamedModel):
     """File system folder."""
 
-    PARENT_FIELD = "folder"
     path = CharField(max_length=128, db_index=True, validators=[validate_dir_exists])
     library = ForeignKey(Library, on_delete=CASCADE)
     parent_folder = ForeignKey(
@@ -348,7 +341,7 @@ class Comic(BaseModel):
     parent_folder = ForeignKey(
         Folder, db_index=True, on_delete=CASCADE, null=True, related_name="comic_in"
     )
-    folder = ManyToManyField(Folder)
+    folders = ManyToManyField(Folder)
     cover_path = CharField(max_length=32)
     myself = ForeignKey("self", on_delete=CASCADE, null=True, related_name="comic")
 

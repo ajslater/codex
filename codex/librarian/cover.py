@@ -11,7 +11,6 @@ from PIL import Image
 
 from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
-    BroadcastNotifierTask,
     BulkComicCoverCreateTask,
     SingleComicCoverCreateTask,
 )
@@ -139,7 +138,7 @@ def _bulk_create_comic_covers(comic_and_cover_paths, force=False):
     """Create bulk comic covers."""
     start_time = last_log_time = time.time()
     num_comics = len(comic_and_cover_paths)
-    LOG.info(f"Checking {num_comics} comic covers...")
+    LOG.debug(f"Checking {num_comics} comic covers...")
     comic_counter = 0
     for comic in comic_and_cover_paths:
         comic_counter += _create_comic_cover(comic, force)
@@ -153,7 +152,11 @@ def _bulk_create_comic_covers(comic_and_cover_paths, force=False):
         suffix = f" at {per}s per cover"
     else:
         suffix = ""
-    LOG.info(f"Created {comic_counter} comic covers in {elapsed}s{suffix}.")
+    log_text = f"Created {comic_counter} comic covers in {elapsed}s{suffix}."
+    if comic_counter:
+        LOG.info(log_text)
+    else:
+        LOG.debug(log_text)
     return comic_counter
 
 
@@ -176,13 +179,9 @@ class CoverCreator(QueuedThread):
 
     def _process_item(self, task):
         """Run the creator."""
-        count = 0
         if isinstance(task, BulkComicCoverCreateTask):
-            count = _bulk_create_comic_covers(task.comics, task.force)
+            _bulk_create_comic_covers(task.comics, task.force)
         elif isinstance(task, SingleComicCoverCreateTask):
-            count = _create_comic_cover(task.comic, task.force)
+            _create_comic_cover(task.comic, task.force)
         else:
             LOG.error(f"Bad task sent to {self.NAME}: {task}")
-        if count and False:
-            # XXX disabled might lead to too many refreshes
-            LIBRARIAN_QUEUE.put(BroadcastNotifierTask("LIBRARY_CHANGED"))

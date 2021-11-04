@@ -25,10 +25,7 @@ for field in Comic._meta.get_fields():
 def _get_group_name(cls, md):
     """Get the name of the browse group."""
     field_name = cls.__name__.lower()
-    name = md[field_name]
-    if name:
-        return name
-    return cls.DEFAULT_NAME
+    return md.get(field_name, cls.DEFAULT_NAME)
 
 
 def _link_comic_fks(md, library, path):
@@ -145,9 +142,9 @@ def _link_comic_m2m_fields(m2m_mds):
     comics = Comic.objects.filter(path__in=comic_paths).values_list("pk", "path")
     for comic_pk, comic_path in comics:
         md = m2m_mds[comic_path]
-        if "folder" not in all_m2m_links:
-            all_m2m_links["folder"] = {}
-        all_m2m_links["folder"][comic_pk] = _link_folders(comic_path)
+        if "folders" not in all_m2m_links:
+            all_m2m_links["folders"] = {}
+        all_m2m_links["folders"][comic_pk] = _link_folders(comic_path)
         if "credits" not in all_m2m_links:
             all_m2m_links["credits"] = {}
         try:

@@ -85,7 +85,7 @@ class BrowserBaseView(APIView, SessionMixin):
         """Get a filter for ALL parent folders not just immediate one."""
         pk = self.kwargs.get("pk")
         if pk:
-            folders_filter = Q(folder__in=[pk])
+            folders_filter = Q(folders__in=[pk])
         else:
             folders_filter = Q()
 

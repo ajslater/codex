@@ -52,15 +52,9 @@ def _add_parent_group_filter(group_name, field_name, cls, filter_args):
     else:
         key = ""
 
-    if group_name:
-        key += "name"
-        val = group_name
-    else:
-        # key += "is_default"
-        # val = True
-        key += "name"
-        val = cls.DEFAULT_NAME
-    filter_args[key] = val
+    key += "name"
+
+    filter_args[key] = group_name
 
 
 def _query_missing_group_type(cls, groups):
@@ -89,16 +83,7 @@ def _query_missing_group_type(cls, groups):
         filter = filter | Q(**filter_args)
         filter_arg_count += num_filter_args
 
-        # XXX ugly hack for DEFAULT_NAME issue in data model
-        #  DEFAULT_NAME in general is a bad hack. DB name should be None or empty str
-        #  for these and adjusted for display.
-        candidate_tree = []
-        for group, group_cls in zip(group_tree, BROWSER_GROUPS):
-            if group:
-                candidate_tree.append(group)
-            else:
-                candidate_tree.append(group_cls.DEFAULT_NAME)
-        candidates[tuple(candidate_tree)] = count
+        candidates[group_tree] = count
     if filter != Q():
         filter_batches.append(filter)
 
