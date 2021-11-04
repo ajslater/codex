@@ -174,25 +174,15 @@ class CoverCreator(QueuedThread):
 
     NAME = "CoverCreator"
 
-    def run(self):
+    def _process_item(self, task):
         """Run the creator."""
-        LOG.info(f"Started {self.NAME} thread.")
-        while True:
-            try:
-                task = self.queue.get()
-                count = 0
-                if isinstance(task, BulkComicCoverCreateTask):
-                    count = _bulk_create_comic_covers(task.comics, task.force)
-                elif isinstance(task, SingleComicCoverCreateTask):
-                    count = _create_comic_cover(task.comic, task.force)
-                elif task == self.SHUTDOWN_MSG:
-                    break
-                else:
-                    LOG.error(f"Bad task sent to {self.NAME}: {task}")
-                if count and False:
-                    # XXX disabled might lead to too many refreshes
-                    LIBRARIAN_QUEUE.put(BroadcastNotifierTask("LIBRARY_CHANGED"))
-            except Exception as exc:
-                LOG.exception(exc)
-
-        LOG.info(f"Stopped {self.NAME} thread.")
+        count = 0
+        if isinstance(task, BulkComicCoverCreateTask):
+            count = _bulk_create_comic_covers(task.comics, task.force)
+        elif isinstance(task, SingleComicCoverCreateTask):
+            count = _create_comic_cover(task.comic, task.force)
+        else:
+            LOG.error(f"Bad task sent to {self.NAME}: {task}")
+        if count and False:
+            # XXX disabled might lead to too many refreshes
+            LIBRARIAN_QUEUE.put(BroadcastNotifierTask("LIBRARY_CHANGED"))

@@ -165,30 +165,21 @@ class Scanner(QueuedThread):
 
     NAME = "scanner"
 
-    def run(self):
+    def _process_item(self, task):
         """Run the scanner."""
-        LOG.info(f"Started {self.NAME} thread.")
-        while True:
-            try:
-                task = self.queue.get()
-                LIBRARIAN_QUEUE.put(AdminNotifierTask("SCAN_LIBRARY"))
-                text = "SCAN_DONE"
-                changed = True
-                if isinstance(task, ScannerCronTask):
-                    text, changed = _scan_cron()
-                elif isinstance(task, ScanRootTask):
-                    text, changed = _scan_root(task.library_id, task.force)
-                elif isinstance(task, BulkFolderMovedTask):
-                    bulk_folders_moved(task.library_id, task.moved_paths)
-                elif isinstance(task, BulkComicMovedTask):
-                    bulk_comics_moved(task.library_id, task.moved_paths)
-                elif task == self.SHUTDOWN_MSG:
-                    break
-                else:
-                    LOG.error(f"Bad task sent to scanner {task}")
-                LIBRARIAN_QUEUE.put(AdminNotifierTask(text))
-                if changed:
-                    LIBRARIAN_QUEUE.put(BroadcastNotifierTask("LIBRARY_CHANGED"))
-            except Exception as exc:
-                LOG.exception(exc)
-        LOG.info(f"Stopped {self.NAME} thread.")
+        LIBRARIAN_QUEUE.put(AdminNotifierTask("SCAN_LIBRARY"))
+        text = "SCAN_DONE"
+        changed = True
+        if isinstance(task, ScannerCronTask):
+            text, changed = _scan_cron()
+        elif isinstance(task, ScanRootTask):
+            text, changed = _scan_root(task.library_id, task.force)
+        elif isinstance(task, BulkFolderMovedTask):
+            bulk_folders_moved(task.library_id, task.moved_paths)
+        elif isinstance(task, BulkComicMovedTask):
+            bulk_comics_moved(task.library_id, task.moved_paths)
+        else:
+            LOG.error(f"Bad task sent to scanner {task}")
+        LIBRARIAN_QUEUE.put(AdminNotifierTask(text))
+        if changed:
+            LIBRARIAN_QUEUE.put(BroadcastNotifierTask("LIBRARY_CHANGED"))

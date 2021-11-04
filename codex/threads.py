@@ -11,7 +11,11 @@ from threading import Thread
 LOG = getLogger(__name__)
 
 
-class QueuedThread(Thread):
+class BreakLoopException(Exception):
+    pass
+
+
+class QueuedThread(Thread, ABC):
     """Abstract Thread worker for doing queued tasks."""
 
     SHUTDOWN_MSG = "shutdown"
@@ -23,6 +27,43 @@ class QueuedThread(Thread):
         """Initialize with overridden name and as a daemon thread."""
         self.queue = Queue()
         super().__init__(name=self.NAME, daemon=True)
+
+    @abstractmethod
+    def _process_item(self, item):
+        """Process one item from the queue."""
+        raise NotImplementedError()
+
+    def _get_timeout(self):
+        """QueuedThread doesn't timeout."""
+        return None
+
+    def _check_item(self):
+        """Get items, with timoeout. Check for shutdown and Empty."""
+        timeout = self._get_timeout()
+        try:
+            item = self.queue.get(timeout=timeout)
+            if item == self.SHUTDOWN_MSG:
+                raise BreakLoopException()
+            self._process_item(item)
+        except Empty:
+            pass
+
+    def _post_process_hook(self):
+        """Overidable post processing hook."""
+        pass
+
+    def run(self):
+        """Run thread loop."""
+        LOG.info(f"Started {self.NAME} thread")
+        while True:
+            try:
+                self._check_item()
+                self._post_process_hook()
+            except BreakLoopException:
+                break
+            except Exception as exc:
+                LOG.exception(exc)
+        LOG.info(f"Stopped {self.NAME} thread")
 
     def join(self):
         """End the thread."""
@@ -59,33 +100,21 @@ class AggregateMessageQueuedThread(QueuedThread, ABC):
         return self.queue.empty() or waited_enough
 
     def _cleanup_cache(self, keys):
+        """Remove sent messages from the cache and record send times."""
         for key in keys:
             self.send_times[key] = time.time()
             del self.cache[key]
 
-    def run(self):
-        """Run message getting, aggregating and sending loop."""
-        LOG.info(f"Started {self.NAME} thread")
-        # last_send = time.time()
-        while True:
-            try:
-                # last_block = time.time()
-                timeout = self.FLOOD_DELAY if self.cache else None
-                try:
-                    item = self.queue.get(timeout=timeout)
-                    if item == self.SHUTDOWN_MSG:
-                        break
-                    self._aggregate_items(item)
-                    if self.queue.empty():
-                        time.sleep(self.FLOOD_DELAY)
-                except Empty:
-                    pass
+    def _process_item(self, item):
+        """Aggregate items and sleep in case there are more."""
+        self._aggregate_items(item)
+        if self.queue.empty():
+            time.sleep(self.FLOOD_DELAY)
 
-                # waited_enough = time.time() - last_send > self.MAX_DELAY
-                # if not (self.queue.empty() or waited_enough):
-                #    continue
-                self._send_all_items()
-                # last_send = time.time()
-            except Exception as exc:
-                LOG.exception(exc)
-        LOG.info(f"Stopped {self.NAME} thread")
+    def _get_timeout(self):
+        """Aggregated queue has a conditional timeout."""
+        return self.FLOOD_DELAY if self.cache else None
+
+    def _post_process_hook(self):
+        """Top of loop processes items, then send items."""
+        self._send_all_items()
