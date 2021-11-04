@@ -10,7 +10,7 @@ from django.utils.safestring import SafeText
 from codex.librarian.cover import purge_all_covers, regen_all_covers
 from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
-    LibraryChangedTask,
+    BroadcastNotifierTask,
     RestartTask,
     ScannerCronTask,
     ScanRootTask,
@@ -89,8 +89,8 @@ class AdminLibrary(ModelAdmin):
         # XXX These sleep values are for waiting for db consistency
         #     between processes. Klugey.
         LIBRARIAN_QUEUE.put(WatcherCronTask(sleep=1))
+        LIBRARIAN_QUEUE.put(BroadcastNotifierTask("LIBRARY_CHANGED"))
         if created:
-            LIBRARIAN_QUEUE.put(LibraryChangedTask())
             LIBRARIAN_QUEUE.put(ScannerCronTask(sleep=1))
 
     def save_model(self, request, obj, form, change):
@@ -104,23 +104,21 @@ class AdminLibrary(ModelAdmin):
         """Stop watching on delete."""
         purge_all_covers(obj)
         super().delete_model(request, obj)
-        LIBRARIAN_QUEUE.put(WatcherCronTask(sleep=1))
-        LIBRARIAN_QUEUE.put(LibraryChangedTask())
+        self._on_change(None)
 
     def delete_queryset(self, request, queryset):
         """Bulk delete."""
         for obj in queryset:
             purge_all_covers(obj)
         super().delete_queryset(request, queryset)
-        LIBRARIAN_QUEUE.put(WatcherCronTask(sleep=1))
-        LIBRARIAN_QUEUE.put(LibraryChangedTask())
+        self._on_change(None)
 
     def save_formset(self, request, form, formset, change):
         """Bulk update."""
         super().save_formset(request, form, formset, change)
         if change:
-            for form in formset:
-                self._on_change(form.instance)
+            # for form in formset:
+            self._on_change(form.instance)
 
 
 class AdminNoAddDelete(ModelAdmin):
@@ -176,7 +174,7 @@ class AdminAdminFlag(AdminNoAddDelete):
         # Heavy handed refresh everything, but simple.
         # Folder View could only change the group view and let the ui decide
         # Registration only needs to change the enable flag
-        task = LibraryChangedTask()
+        task = BroadcastNotifierTask("LIBRARY_CHANGED")
         LIBRARIAN_QUEUE.put(task)
 
 

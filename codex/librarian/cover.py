@@ -11,8 +11,8 @@ from PIL import Image
 
 from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
+    BroadcastNotifierTask,
     BulkComicCoverCreateTask,
-    LibraryChangedTask,
     SingleComicCoverCreateTask,
 )
 from codex.models import Comic
@@ -100,17 +100,18 @@ def get_cover_path(comic_path):
 def _create_comic_cover(comic, force=False):
     """Create a comic cover thumnail and save it to disk."""
     # The browser sends x_path and x_comic_path, everything else sends no prefix
+    count = 0
     comic_path = comic.get("x_path", comic.get("path"))
     try:
         db_cover_path = comic.get("x_cover_path", comic.get("cover_path"))
         if db_cover_path == MISSING_COVER_FN and not force:
             LOG.debug(f"Cover for {comic_path} missing.")
-            return
+            return count
 
         fs_cover_path = COVER_ROOT / db_cover_path
         if fs_cover_path.exists() and not force:
             LOG.debug(f"Cover already exists {comic_path} {db_cover_path}")
-            return
+            return count
         fs_cover_path.parent.mkdir(exist_ok=True, parents=True)
 
         if comic_path is None:
@@ -124,31 +125,36 @@ def _create_comic_cover(comic, force=False):
         im = Image.open(BytesIO(cover_image))
         im.thumbnail(THUMBNAIL_SIZE)
         im.save(fs_cover_path, im.format)
+        count = 1
         # LOG.debug(f"Created cover thumbnail for: {comic_path}")
-        LIBRARIAN_QUEUE.put(LibraryChangedTask())
     except Exception as exc:
         LOG.error(f"Failed to create cover thumb for {comic_path}")
         LOG.exception(exc)
         Comic.objects.filter(comic_path=comic_path).update(cover_path=MISSING_COVER_FN)
         LOG.warn(f"Marked cover for {comic_path} missing.")
+    return count
 
 
 def _bulk_create_comic_covers(comic_and_cover_paths, force=False):
     """Create bulk comic covers."""
     start_time = last_log_time = time.time()
     num_comics = len(comic_and_cover_paths)
-    LOG.info(f"Creating {num_comics} comic covers...")
+    LOG.info(f"Checking {num_comics} comic covers...")
     comic_counter = 0
     for comic in comic_and_cover_paths:
-        _create_comic_cover(comic, force)
-        comic_counter += 1
+        comic_counter += _create_comic_cover(comic, force)
         now = time.time()
         if now - last_log_time > LOG_EVERY:
             LOG.info(f"Created {comic_counter}/{num_comics} comic covers")
             last_log_time = now
     elapsed = time.time() - start_time
-    per = elapsed / comic_counter
-    LOG.info(f"Created {comic_counter} comic covers in {elapsed}s at {per}s per cover.")
+    if comic_counter:
+        per = elapsed / comic_counter
+        suffix = f" at {per}s per cover"
+    else:
+        suffix = ""
+    LOG.info(f"Created {comic_counter} comic covers in {elapsed}s{suffix}.")
+    return comic_counter
 
 
 def regen_all_covers(library_pk):
@@ -174,14 +180,18 @@ class CoverCreator(QueuedThread):
         while True:
             try:
                 task = self.queue.get()
+                count = 0
                 if isinstance(task, BulkComicCoverCreateTask):
-                    _bulk_create_comic_covers(task.comics, task.force)
+                    count = _bulk_create_comic_covers(task.comics, task.force)
                 elif isinstance(task, SingleComicCoverCreateTask):
-                    _create_comic_cover(task.comic, task.force)
+                    count = _create_comic_cover(task.comic, task.force)
                 elif task == self.SHUTDOWN_MSG:
                     break
                 else:
                     LOG.error(f"Bad task sent to {self.NAME}: {task}")
+                if count and False:
+                    # XXX disabled might lead to too many refreshes
+                    LIBRARIAN_QUEUE.put(BroadcastNotifierTask("LIBRARY_CHANGED"))
             except Exception as exc:
                 LOG.exception(exc)
 

@@ -67,18 +67,6 @@ class SleepTask:
 
 
 @dataclass
-class NotifierTask:
-    pass
-
-
-@dataclass
-class LibraryChangedTask(NotifierTask):
-    """Library Changed."""
-
-    pass
-
-
-@dataclass
 class WatcherCronTask(SleepTask):
     """Cron for watcherd."""
 
@@ -107,10 +95,20 @@ class RestartTask(SleepTask):
 
 
 @dataclass
-class ScanDoneTask(SleepTask, NotifierTask):
+class NotifierTask:
+    text: str
+
+
+@dataclass
+class AdminNotifierTask(NotifierTask):
     """Notifications for finished scans."""
 
-    failed_imports: bool
+    pass
+
+
+@dataclass
+class BroadcastNotifierTask(NotifierTask):
+    pass
 
 
 @dataclass

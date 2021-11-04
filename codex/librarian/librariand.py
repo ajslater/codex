@@ -8,9 +8,8 @@ from codex.librarian.crond import Crond
 from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
     ComicCoverCreateTask,
-    LibraryChangedTask,
+    NotifierTask,
     RestartTask,
-    ScanDoneTask,
     ScannerTask,
     UpdateCronTask,
     VacuumCronTask,
@@ -21,10 +20,7 @@ from codex.librarian.update import restart_codex, update_codex
 from codex.librarian.vacuum import vacuum_db
 from codex.librarian.watcherd import Uatu
 from codex.models import Comic, Folder
-from codex.notifier import Notifier, NotifierMessage
-from codex.serializers.webpack import (
-    WEBSOCKET_MESSAGES as WS_MSGS,  # TODO Replace with tasks
-)
+from codex.notifier import Notifier
 
 
 LOG = getLogger(__name__)
@@ -43,12 +39,6 @@ class LibrarianDaemon(Process):
         super().__init__(name="librarian", daemon=False)
         LOG.debug("Librarian initialized.")
 
-    @staticmethod
-    def _notify(type, msg):
-        """Send the message to the notifier queue."""
-        message = NotifierMessage(type, WS_MSGS[msg])
-        Notifier.thread.queue.put(message)
-
     def process_task(self, task):
         """Process an individual task popped off the queue."""
         run = True
@@ -59,19 +49,9 @@ class LibrarianDaemon(Process):
             if isinstance(task, ComicCoverCreateTask):
                 self.cover_creator.queue.put(task)
             elif isinstance(task, ScannerTask):
-                self._notify(NotifierMessage.ADMIN_BROADCAST, "SCAN_LIBRARY")
                 self.scanner.queue.put(task)
-            elif isinstance(task, ScanDoneTask):
-                if task.failed_imports:
-                    msg = "FAILED_IMPORTS"
-                else:
-                    msg = "SCAN_DONE"
-                type = NotifierMessage.ADMIN_BROADCAST
-                self._notify(type, msg)
-            elif isinstance(task, LibraryChangedTask):
-                msg = "LIBRARY_CHANGED"
-                type = NotifierMessage.BROADCAST
-                self._notify(type, msg)
+            elif isinstance(task, NotifierTask):
+                Notifier.thread.queue.put(task)
             elif isinstance(task, WatcherCronTask):
                 self.watcher.set_all_library_watches()
             elif isinstance(task, UpdateCronTask):

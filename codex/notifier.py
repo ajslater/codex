@@ -4,22 +4,14 @@ from logging import getLogger
 from asgiref.sync import async_to_sync
 from django.core.cache import cache
 
+from codex.librarian.queue_mp import AdminNotifierTask, BroadcastNotifierTask
+from codex.serializers.webpack import (
+    WEBSOCKET_MESSAGES as WS_MSGS,  # XXX Replace with tasks?
+)
 from codex.threads import AggregateMessageQueuedThread
 
 
 LOG = getLogger(__name__)
-
-
-class NotifierMessage:
-    """Timed message for flood control."""
-
-    BROADCAST = 0
-    ADMIN_BROADCAST = 1
-
-    def __init__(self, type, message):
-        """Set the message content."""
-        self.type = type
-        self.message = message
 
 
 class Notifier(AggregateMessageQueuedThread):
@@ -27,10 +19,10 @@ class Notifier(AggregateMessageQueuedThread):
 
     NAME = "UI-Notifier"
     WS_SEND_MSG = {"type": "websocket.send"}
-    CONNS = {NotifierMessage.BROADCAST: set(), NotifierMessage.ADMIN_BROADCAST: set()}
+    CONNS = {AdminNotifierTask: set(), BroadcastNotifierTask: set()}
     SUBSCRIBE_TYPES = {
-        "register": NotifierMessage.BROADCAST,
-        "admin": NotifierMessage.ADMIN_BROADCAST,
+        "register": BroadcastNotifierTask,
+        "admin": AdminNotifierTask,
     }
 
     @classmethod
@@ -49,9 +41,9 @@ class Notifier(AggregateMessageQueuedThread):
         for send in conns:
             await send(send_msg)
 
-    def _aggregate_items(self, message):
+    def _aggregate_items(self, task):
         """Aggregate messages into cache."""
-        self.cache[message.message] = message
+        self.cache[task.text] = task
 
     def _send_all_items(self):
         """Send all messages waiting in the message cache to client."""
@@ -59,13 +51,14 @@ class Notifier(AggregateMessageQueuedThread):
             return
         sent_keys = set()
         cache.clear()
-        for msg, message in self.cache.items():
-            if self._do_send_item(msg):
-                send_msg = {"text": message.message}
+        for text, task in self.cache.items():
+            if self._do_send_item(text):
+                msg = WS_MSGS[text]
+                send_msg = {"text": msg}
                 send_msg.update(self.WS_SEND_MSG)
-                conns = self.CONNS[message.type]
+                conns = self.CONNS[task.__class__]
                 async_to_sync(self._send_msg)(conns, send_msg)
-            sent_keys.add(msg)
+            sent_keys.add(text)
         self._cleanup_cache(sent_keys)
 
     @classmethod

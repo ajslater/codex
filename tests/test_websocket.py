@@ -15,7 +15,6 @@ class Sender:
     async def send(self, msg):
         """Send dummy message."""
         global KEYS
-        print(msg)
         KEYS.add(str(msg))
 
 
