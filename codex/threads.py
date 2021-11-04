@@ -11,7 +11,9 @@ from threading import Thread
 LOG = getLogger(__name__)
 
 
-class BreakLoopException(Exception):
+class BreakLoopError(Exception):
+    """Simple way to break out of function nested loop."""
+
     pass
 
 
@@ -34,7 +36,7 @@ class QueuedThread(Thread, ABC):
         raise NotImplementedError()
 
     def _get_timeout(self):
-        """QueuedThread doesn't timeout."""
+        """Set no timeout by default."""
         return None
 
     def _check_item(self):
@@ -43,7 +45,7 @@ class QueuedThread(Thread, ABC):
         try:
             item = self.queue.get(timeout=timeout)
             if item == self.SHUTDOWN_MSG:
-                raise BreakLoopException()
+                raise BreakLoopError()
             self._process_item(item)
         except Empty:
             pass
@@ -59,7 +61,7 @@ class QueuedThread(Thread, ABC):
             try:
                 self._check_item()
                 self._post_process_hook()
-            except BreakLoopException:
+            except BreakLoopError:
                 break
             except Exception as exc:
                 LOG.exception(exc)
@@ -112,7 +114,7 @@ class AggregateMessageQueuedThread(QueuedThread, ABC):
             time.sleep(self.FLOOD_DELAY)
 
     def _get_timeout(self):
-        """Aggregated queue has a conditional timeout."""
+        """Aggregate queue has a conditional timeout."""
         return self.FLOOD_DELAY if self.cache else None
 
     def _post_process_hook(self):

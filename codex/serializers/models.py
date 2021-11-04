@@ -36,6 +36,8 @@ class PyCountrySerializer(Serializer):
     the name.
     """
 
+    LOOKUP_MODULE = pycountry.countries
+
     pk = SerializerMethodField()
     name = SerializerMethodField()
 
@@ -75,7 +77,7 @@ class LanguageSerializer(PyCountrySerializer):
 class CountrySerializer(PyCountrySerializer):
     """Pycountry serializer for country field."""
 
-    LOOKUP_MODULE = pycountry.countries
+    pass
 
 
 class NamedModelMeta:

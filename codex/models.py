@@ -9,7 +9,6 @@ from django.contrib.sessions.models import Session
 from django.core.exceptions import ValidationError
 from django.db.models import (
     CASCADE,
-    SET,
     BooleanField,
     CharField,
     DateField,
@@ -75,12 +74,6 @@ class Publisher(BrowserGroupModel):
 
     DEFAULTS = {"name": ""}
 
-    @classmethod
-    def get_default_publisher(cls):
-        """Get or create a default entry."""
-        publisher, _ = cls.objects.get_or_create(defaults=cls.DEFAULTS, **cls.DEFAULTS)
-        return publisher
-
     class Meta:
         """Constraints."""
 
@@ -90,7 +83,7 @@ class Publisher(BrowserGroupModel):
 class Imprint(BrowserGroupModel):
     """A Publishing imprint."""
 
-    publisher = ForeignKey(Publisher, on_delete=SET(Publisher.get_default_publisher))
+    publisher = ForeignKey(Publisher, on_delete=CASCADE)
 
     class Meta:
         """Contraints."""
@@ -105,7 +98,7 @@ class Imprint(BrowserGroupModel):
 class Series(BrowserGroupModel):
     """The series the comic belongs to."""
 
-    publisher = ForeignKey(Publisher, on_delete=Publisher.get_default_publisher)
+    publisher = ForeignKey(Publisher, on_delete=CASCADE)
     imprint = ForeignKey(Imprint, on_delete=CASCADE)
     volume_count = PositiveSmallIntegerField(null=True)
 
@@ -119,7 +112,7 @@ class Series(BrowserGroupModel):
 class Volume(BrowserGroupModel):
     """The volume of the series the comic belongs to."""
 
-    publisher = ForeignKey(Publisher, on_delete=Publisher.get_default_publisher)
+    publisher = ForeignKey(Publisher, on_delete=CASCADE)
     imprint = ForeignKey(Imprint, on_delete=CASCADE)
     series = ForeignKey(Series, on_delete=CASCADE)
     issue_count = DecimalField(decimal_places=2, max_digits=6, null=True)
@@ -206,9 +199,6 @@ class Folder(NamedModel):
         """Constraints."""
 
         unique_together = ("library", "path")
-
-
-Folder.CHILD_CLASS = Folder
 
 
 class SeriesGroup(NamedModel):
@@ -343,6 +333,8 @@ class Comic(BaseModel):
     )
     folders = ManyToManyField(Folder)
     cover_path = CharField(max_length=32)
+    # Useful for the related field 'comic' so comics appear to
+    # aggregators as a container of one.
     myself = ForeignKey("self", on_delete=CASCADE, null=True, related_name="comic")
 
     class Meta:
@@ -389,6 +381,12 @@ class Comic(BaseModel):
         """Most common text representation for logging."""
         return "{str(self.volume.series.name)} #{self.issue:03}"
 
+    @property
+    def name(self):
+        """Return the name for some functions."""
+        # Could be title?
+        return self.sort_name
+
 
 class AdminFlag(NamedModel):
     """Flags set by administrators."""
@@ -408,7 +406,7 @@ class AdminFlag(NamedModel):
     on = BooleanField(default=True)
 
 
-def cascade_if_user_null(collector, field, sub_objs, using):
+def cascade_if_user_null(collector, field, sub_objs, _):
     """
     Cascade only if the user field is null.
 

@@ -87,6 +87,12 @@ def _scan_and_import(library, force):
     return total_imported, num_deleted
 
 
+class NoLibraryPathError(Exception):
+    """Break out if no library found."""
+
+    pass
+
+
 def _scan_root(pk, force=False):
     """Scan a library."""
     library = Library.objects.only("scan_in_progress", "last_scan", "path").get(pk=pk)
@@ -100,8 +106,7 @@ def _scan_root(pk, force=False):
     count = num_deleted = 0
     try:
         if not Path(library.path).is_dir():
-            LOG.warning(f"Could not find {library.path}. Not scanning.")
-            raise ValueError("no library path")
+            raise NoLibraryPathError()
         force = force or library.last_scan is None
         start_time = datetime.now()
         count, num_deleted = _scan_and_import(library, force)
@@ -111,10 +116,15 @@ def _scan_root(pk, force=False):
         else:
             count = "no"
             log_suffix = "."
-        LOG.info(f"Scan and import {elapsed_time}s for {count} comics{log_suffix}")
+        LOG.info(
+            f"Scan and import {library.path} {elapsed_time}s "
+            f"for {count} comics{log_suffix}"
+        )
         if force or library.last_scan is None or library.schema_version is None:
             library.schema_version = SCHEMA_VERSION
         library.last_scan = timezone.now()
+    except NoLibraryPathError:
+        LOG.warning(f"Could not find library at {library.path}. Not scanning.")
     except Exception as exc:
         LOG.exception(exc)
     finally:
@@ -124,7 +134,7 @@ def _scan_root(pk, force=False):
     changed = bool(count or num_deleted)
     if is_failed_imports:
         notifier_text = "FAILED_IMPORTS"
-    LOG.info(f"Scan for {library.path} finished.")
+    LOG.info(f"Scan of {library.path} finished.")
     return notifier_text, changed
 
 

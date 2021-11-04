@@ -74,9 +74,12 @@ def run():
     loop = get_event_loop()
     bind_signals(loop)
     loop.run_until_complete(
-        serve(application, HYPERCORN_CONFIG, shutdown_trigger=SHUTDOWN_EVENT.wait)
+        serve(
+            application,
+            HYPERCORN_CONFIG,
+            shutdown_trigger=SHUTDOWN_EVENT.wait,  # type: ignore
+        )
     )
-    loop._run_once()
     if RESTART_EVENT.is_set():
         restart()
     LOG.info("Goodbye.")

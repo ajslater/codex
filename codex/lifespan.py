@@ -6,7 +6,7 @@ from logging import getLogger
 from multiprocessing import set_start_method
 
 from asgiref.sync import sync_to_async
-from django.contrib.auth import get_user_model
+from django.contrib.auth.models import User
 from django.core.cache import cache
 
 from codex.librarian.librariand import LibrarianDaemon
@@ -20,14 +20,12 @@ LOG = getLogger(__name__)
 
 def ensure_superuser():
     """Ensure there is a valid superuser."""
-    User = get_user_model()  # noqa N806
-
     if RESET_ADMIN or not User.objects.filter(is_superuser=True).exists():
         admin_user, created = User.objects.update_or_create(
             username="admin",
             defaults={"is_staff": True, "is_superuser": True},
         )
-        admin_user.set_password("admin")
+        admin_user.set_password("admin")  # type: ignore
         admin_user.save()
         prefix = "Cre" if created else "Upd"
         LOG.info(f"{prefix}ated admin user.")
@@ -35,8 +33,6 @@ def ensure_superuser():
 
 def init_admin_flags():
     """Init admin flag rows."""
-    # AdminFlag = apps.get_model("codex", "AdminFlag")  # noqa N806
-
     for name in AdminFlag.FLAG_NAMES:
         if name in AdminFlag.DEFAULT_FALSE:
             defaults = {"on": False}
@@ -86,7 +82,7 @@ def codex_shutdown():
     Notifier.shutdown()
 
 
-async def lifespan_application(scope, receive, send):
+async def lifespan_application(_scope, receive, send):
     """Lifespan application."""
     while True:
         try:

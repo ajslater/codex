@@ -47,7 +47,7 @@ class BrowserView(BrowserMetadataBase):
         "v": "c",
     }
     MAX_OBJ_PER_PAGE = 100
-    ORPHANS = MAX_OBJ_PER_PAGE / 20
+    ORPHANS = int(MAX_OBJ_PER_PAGE / 20)
     BROWSER_CARD_FIELDS = [
         "bookmark",
         "child_count",
@@ -256,6 +256,9 @@ class BrowserView(BrowserMetadataBase):
 
     def get_browser_group_queryset(self, object_filter, aggregate_filter):
         """Create and browse queryset."""
+        if not self.model:
+            raise ValueError("No model set in browser")
+
         obj_list = self.model.objects.filter(object_filter)
         # obj_list filtering done
 
@@ -291,6 +294,8 @@ class BrowserView(BrowserMetadataBase):
         elif group == self.FOLDER_GROUP:
             self.group_instance = self.host_folder
         else:
+            if not self.group_class:
+                raise ValueError("No group_class set in browser")
             self.group_instance = self.group_class.objects.select_related().get(pk=pk)
 
     def get_browse_up_route(self):
@@ -326,12 +331,18 @@ class BrowserView(BrowserMetadataBase):
         parent_name = None
         group_count = 0
         group_name = None
+
         if pk == 0:
-            group_name = self.model._meta.verbose_name_plural.capitalize()
+            if not self.model:
+                raise ValueError("No model set in browser")
+            plural = self.model._meta.verbose_name_plural
+            if not plural:
+                raise ValueError(f"No plural name for {self.model}")
+            group_name = plural.capitalize()
         elif self.group_instance:
-            if self.group_class == Imprint:
+            if isinstance(self.group_instance, Imprint):
                 parent_name = self.group_instance.publisher.name
-            elif self.group_class == Volume:
+            elif isinstance(self.group_instance, Volume):
                 parent_name = self.group_instance.series.name
                 group_count = self.group_instance.series.volume_count
 

@@ -17,7 +17,7 @@ from codex.views.mixins import SessionMixin, UserBookmarkMixin
 LOG = getLogger(__name__)
 
 
-class ComicOpenedView(APIView, SessionMixin, UserBookmarkMixin):
+class ComicOpenedView(SessionMixin, UserBookmarkMixin):
     """Get info for displaying comic pages."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]

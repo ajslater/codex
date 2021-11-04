@@ -2,7 +2,6 @@
 
 from django.core.cache import cache
 from rest_framework.response import Response
-from rest_framework.views import APIView
 from stringcase import snakecase
 
 from codex.models import Comic
@@ -32,7 +31,7 @@ class UserBookmarkFinishedView(BrowserBaseView, UserBookmarkMixin):
         serializer.is_valid(raise_exception=True)
 
         group = self.kwargs.get("group")
-        relation = self.GROUP_RELATION.get(group)
+        relation = str(self.GROUP_RELATION.get(group))
         pk = self.kwargs.get("pk")
         # Optimizing this call with only seems to fail the subsequent updates
         comics = Comic.objects.filter(**{relation: pk})
@@ -46,7 +45,7 @@ class UserBookmarkFinishedView(BrowserBaseView, UserBookmarkMixin):
         return Response()
 
 
-class ComicBookmarkView(APIView, UserBookmarkMixin):
+class ComicBookmarkView(UserBookmarkMixin):
     """Bookmark updater."""
 
     def patch(self, request, *args, **kwargs):
@@ -58,7 +57,7 @@ class ComicBookmarkView(APIView, UserBookmarkMixin):
         return Response()
 
 
-class ComicSettingsView(APIView, SessionMixin, UserBookmarkMixin):
+class ComicSettingsView(SessionMixin, UserBookmarkMixin):
     """Set Comic Settigns."""
 
     def validate(self, serializer):

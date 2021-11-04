@@ -63,7 +63,7 @@ class BrowserMetadataBase(BrowserBaseView):
         if use_order_value:
             order_key = "order_value"
         else:
-            order_key = self.params.get("sort_by")
+            order_key = self.params.get("sort_by", self.DEFAULT_ORDER_KEY)
         order_by = [order_prefix + order_key, order_prefix + "pk"]
         if model in (Comic, Folder):
             # This keeps position stability for duplicate comics & folders

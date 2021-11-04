@@ -146,7 +146,7 @@ class Migration(migrations.Migration):
                 (
                     "publisher",
                     models.ForeignKey(
-                        on_delete=codex.models.Publisher.get_default_publisher,
+                        on_delete=django.db.models.deletion.CASCADE,
                         to="codex.publisher",
                     ),
                 ),
@@ -185,7 +185,7 @@ class Migration(migrations.Migration):
                 (
                     "publisher",
                     models.ForeignKey(
-                        on_delete=codex.models.Publisher.get_default_publisher,
+                        on_delete=django.db.models.deletion.CASCADE,
                         to="codex.publisher",
                     ),
                 ),
@@ -309,7 +309,7 @@ class Migration(migrations.Migration):
             model_name="imprint",
             name="publisher",
             field=models.ForeignKey(
-                on_delete=models.SET(codex.models.Publisher.get_default_publisher),
+                on_delete=models.SET(django.db.models.deletion.CASCADE),
                 to="codex.publisher",
             ),
         ),

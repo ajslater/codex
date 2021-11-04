@@ -1,7 +1,8 @@
 """View for marking comics read and unread."""
 from logging import getLogger
 
-from bidict import bidict
+from bidict import bidict  # type: ignore
+from django.contrib.auth.models import User
 from django.db.models import Aggregate, CharField, Count
 from rest_framework.response import Response
 
@@ -106,7 +107,8 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
     def get_comic_value_fields(self):
         """Include the path field for staff."""
         fields = self.COMIC_VALUE_FIELDS
-        if self.request.user and self.request.user.is_staff:
+        user = self.request.user
+        if user and isinstance(user, User) and user.is_staff:
             fields |= self.ADMIN_COMIC_VALUE_FIELDS
         return fields
 
@@ -122,6 +124,8 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
         pk = self.kwargs["pk"]
 
         model = self.GROUP_MODEL[group]
+        if not model:
+            raise ValueError(f"No model found for {group=}")
 
         obj = model.objects.filter(pk=pk)
         if model != Comic:
@@ -169,7 +173,9 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
             m2m_annotations[ann_name] = func
         agg_comics = agg_comics.annotate(**m2m_annotations)
 
-        agg_dict = {self.COMIC_PK_LIST_KEY: GroupConcat("pk", distinct=True)}
+        agg_dict: dict[str, Aggregate] = {
+            self.COMIC_PK_LIST_KEY: GroupConcat("pk", distinct=True)
+        }
 
         for rel in self.get_comic_simple_aggregate_fields():
             annotation_name = rel + self.COUNT_SUFFIX
@@ -262,7 +268,7 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
 
         return comic, comic_pks, pick_sets["serialize"]
 
-    def get(self, request, *args, **kwargs):
+    def get(self, _request, *args, **kwargs):
         """Get metadata for a single comic."""
         # Init
         self.params = self.get_session(self.BROWSER_KEY)

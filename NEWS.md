@@ -3,8 +3,9 @@
 ## v0.7.0rc0
 
 - Massive speedup for importing comics. Particularly for large libraries.
-- Speedup for creating comic covers. Particularly for large imports.
-- Regenerate comic covers admin task.
+- ~15% speed improvement for creating comic covers. Particularly for large imports.
+- Regenerate comic covers from an admin task.
+- Comics with no specified Publishers, Imprints and Series no longer have induced default names for these but have no name like Volumes.
 
 ## v0.6.8
 

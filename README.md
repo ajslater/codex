@@ -2,24 +2,24 @@
 
 Codex is a comic archive browser and reader.
 
-## <a name="features">Features</a>
+## <a name="features">✨ Features</a>
 
-- A web server, not a desktop or mobile app.
-- Per user bookmarking. Bookmarks even if you don't make an account.
+- Codex is a web server, not a desktop or mobile app.
+- Per user bookmarking. You get per browser bookmarks even before you make an account.
 - Filter and sort on all comic metadata and unread status per user.
-- Browse a tree of Publisher, Imprints, Series and Volumes, or your own folder hierarchy.
+- Browse a tree of publishers, imprints, series, volumes, or your own folder hierarchy.
+- Read comics in a variety of aspect ratios that fit your screen.
 - Watches the filesystem and automatically imports new or changed comics.
 
-## <a name="state-of-development">State of Development</a>
+## <a name="demonstration">📖 Demonstration</a>
 
-Codex is in alpha test. It has not received widespread testing.
-[Please file bug reports on GitHub.](https://github.com/ajslater/codex/issues) It is still possible that the data model might change enough that subsequent versions might require a database reset.
+You may browse a [live demo server](https://codex.sl8r.net/) to get a feel for Codex.
 
-## <a name="demonstration">Demonstration</a>
+## <a name="news">📰 News</a>
 
-You may browse a [live demo server](https://codex.sl8r.net/) on a very small VPS, with no CDN.
+Codex has a <a href="NEWS.md">NEWS file</a> to summarize changes that affect users.
 
-## <a name="install-and-run-codex">Install and Run Codex</a>
+## <a name="installation">📦 Installation</a>
 
 ### Install & Run with Docker
 
@@ -87,7 +87,7 @@ codex
 
 and then navigate to [http://localhost:9810/](http://localhost:9810/)
 
-## <a name="administration">Administration</a>
+## <a name="administration">👑 Administration</a>
 
 ### Change the Admin password
 
@@ -123,7 +123,7 @@ or, if using Docker:
 docker run -e CODEX_RESET_ADMIN=1 -v <host path to config>/config:/config ajslater/codex
 ```
 
-## <a name="configure-codex">Configure Codex</a>
+## <a name="configuration">⚙️Configuration</a>
 
 ### Config Dir
 
@@ -173,7 +173,7 @@ root_path = "/codex"
 Nginx requires a special trick to refresh dns when linked Docker containers
 are recreated. See this [nginx with dynamix upstreams](https://tenzer.dk/nginx-with-dynamic-upstreams/) article.
 
-## <a name="using-codex">Using Codex</a>
+## <a name="usage">📖 Usage</a>
 
 ### Sessions & Accounts
 
@@ -181,7 +181,7 @@ Once your administrator has added some comic libraries, you may browse and read 
 To preserve these settings across browsers and after sessions expire, you may register an account with a username and password.
 You will have to contact your administrator to reset your password if you forget it.
 
-## <a name="troubleshooting">Troubleshooting</a>
+## <a name="troubleshooting">🩺 Troubleshooting</a>
 
 ### Logs
 
@@ -210,29 +210,31 @@ The next time Codex starts it will back up the exisiting database and try to reb
 The database lives in the config directory as the file `config/db.sqlite3`.
 If this procedure goes kablooey, you may recover the original database at `config/db.sqlite3.backup`.
 
-### Bug Reports & Feature Requests
+### Bug Reports
 
 Issues are best filed [here on github](https://github.com/ajslater/codex/issues).
-However I and other brave Codex alpha testers may also be found on IRC in the [#mylar](irc://chat.freenode.net/mylar) channel.
+However I and other brave Codex testers may also sometimes be found on IRC in the [Mylar support channels](https://github.com/mylar3/mylar3#live-support--conversation).
 
-## <a name="roadmap">Roadmap</a>
+## <a name="roadmap">🚀 Roadmap</a>
 
 ### Next Up
 
 1. Full text search
 2. [OPDS API](https://en.wikipedia.org/wiki/Open_Publication_Distribution_System)
 
-## <a name="out-of-scope">Out of Scope</a>
+### Out of Scope
 
 - I have no intention of making this an eBook reader like [Ubooquity](https://vaemendis.net/ubooquity/).
-- I am not interested in this becoming a sophisticated comic manager like [Mylar](https://github.com/mylar3/mylar3)
+- I am not interested in this becoming a sophisticated comic manager like [Mylar](https://github.com/mylar3/mylar3). I am also thinking more and more that metadata editing belongs in a manager and not in a reader like Codex.
 
-## <a name="alternatives-to-codex">Alternatives to Codex</a>
+## <a name="alternatives-to-codex">📚Alternatives</a>
 
 - [Komga](https://komga.org/) has light metadata editing and full text search of metadata.
 - [Ubooquity](https://vaemendis.net/ubooquity/) is a good looking comic webserver. It also reads eBooks.
+- [Mylar](https://github.com/mylar3/mylar3) is probably the best comic book manager and also has a built in reader.
+- [Comictagger](https://github.com/comictagger/comictagger) is not really a reader, but seems to be the best comic metadata editor. It comes with a powerful command line and useful desktop GUI.
 
-## <a name="develop-codex">Develop Codex</a>
+## <a name="develop-codex">🛠 Develop</a>
 
 Codex is a Django Python webserver with a VueJS front end. This is my first ever Javascript frontend. In retrospect I wish I'd known about FastAPI when I started, that looks nice. But I'm pretty satisfied with VueJS.
 
@@ -252,7 +254,7 @@ Codex is a Django Python webserver with a VueJS front end. This is my first ever
 - [PyPi Package](https://pypi.org/project/codex/)
 - [GitHub Project](https://github.com/ajslater/codex/)
 
-## <a name="special-thanks">Special Thanks</a>
+## <a name="special-thanks">🙏🏻 Special Thanks</a>
 
 - Thanks to [Aurélien Mazurie](https://pypi.org/user/ajmazurie/) for allowing me to use the PyPi name 'codex'.
 - Thanks to the good people of [#mylar](irc://chat.freenode.net/mylar) for continuous feedback and comic ecosystem education.

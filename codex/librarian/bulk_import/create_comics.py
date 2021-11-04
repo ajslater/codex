@@ -93,7 +93,7 @@ def _create_comics(library, comic_paths, mds):
     # update myself field with self reference
     created_comics = Comic.objects.filter(path__in=comic_paths).only("pk", "myself")
     for comic in created_comics:
-        comic.myself = comic
+        comic.myself = comic  # type: ignore
     Comic.objects.bulk_update(created_comics, ["myself"])
 
 

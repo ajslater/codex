@@ -7,13 +7,13 @@ from pathlib import Path
 
 from comicbox.comic_archive import ComicArchive
 
-from codex.librarian.bulk_import import BROWSER_GROUPS
 from codex.librarian.cover import get_cover_path
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, SingleComicCoverCreateTask
 from codex.models import Comic, FailedImport, Imprint, Publisher, Series, Volume
 
 
 LOG = getLogger(__name__)
+BROWSER_GROUPS = (Publisher, Imprint, Series, Volume)
 BROWSER_GROUP_TREE_COUNT_FIELDS = set(["volume_count", "issue_count"])
 COMIC_M2M_FIELDS = set()
 for field in Comic._meta.get_fields():

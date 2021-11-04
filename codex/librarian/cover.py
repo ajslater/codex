@@ -101,8 +101,8 @@ def _create_comic_cover(comic, force=False):
     # The browser sends x_path and x_comic_path, everything else sends no prefix
     count = 0
     comic_path = comic.get("x_path", comic.get("path"))
+    db_cover_path = comic.get("x_cover_path", comic.get("cover_path"))
     try:
-        db_cover_path = comic.get("x_cover_path", comic.get("cover_path"))
         if db_cover_path == MISSING_COVER_FN and not force:
             LOG.debug(f"Cover for {comic_path} missing.")
             return count
@@ -114,8 +114,7 @@ def _create_comic_cover(comic, force=False):
         fs_cover_path.parent.mkdir(exist_ok=True, parents=True)
 
         if comic_path is None:
-            comic = Comic.objects.only("path").get(cover_path=db_cover_path)
-            comic_path = comic.path
+            comic_path = Comic.objects.get(cover_path=db_cover_path).path
 
         # Reopens the car, so slightly inefficient.
         cover_image = ComicArchive(comic_path).get_cover_image()
@@ -125,7 +124,9 @@ def _create_comic_cover(comic, force=False):
         im.thumbnail(THUMBNAIL_SIZE)
         im.save(fs_cover_path, im.format)
         count = 1
-        # LOG.debug(f"Created cover thumbnail for: {comic_path}")
+        LOG.debug(f"Created cover thumbnail for: {comic_path}")
+    except Comic.DoesNotExist:
+        LOG.warning(f"Comic for {db_cover_path=} does not exist in the db.")
     except Exception as exc:
         LOG.error(f"Failed to create cover thumb for {comic_path}")
         LOG.exception(exc)

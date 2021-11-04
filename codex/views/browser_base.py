@@ -1,9 +1,8 @@
 """Views for browsing comic library."""
 from logging import getLogger
 
-from bidict import bidict
+from bidict import bidict  # type: ignore
 from django.db.models import Q
-from rest_framework.views import APIView
 
 from codex.models import Comic, Folder, Imprint, Publisher, Series, Volume
 from codex.views.mixins import SessionMixin
@@ -12,7 +11,7 @@ from codex.views.mixins import SessionMixin
 LOG = getLogger(__name__)
 
 
-class BrowserBaseView(APIView, SessionMixin):
+class BrowserBaseView(SessionMixin):
     """Browse comics with a variety of filters and sorts."""
 
     COMIC_GROUP = "c"
@@ -36,6 +35,11 @@ class BrowserBaseView(APIView, SessionMixin):
         "c": "comic",
         "f": "folder",
     }
+
+    def __init__(self, *args, **kwargs):
+        """Set params for the type checker."""
+        self.params = {}
+        super().__init__(*args, **kwargs)
 
     def filter_by_comic_field(self, field):
         """Filter by a comic any2many attribute."""

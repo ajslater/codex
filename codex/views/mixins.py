@@ -2,12 +2,13 @@
 from copy import copy
 
 from django.contrib.sessions.models import Session
+from rest_framework.views import APIView
 
 from codex.models import Comic, UserBookmark
 from codex.serializers.webpack import DEFAULTS
 
 
-class SessionMixin:
+class SessionMixin(APIView):
     """Generic Session Mixin."""
 
     BROWSER_KEY = "browser"
@@ -70,7 +71,7 @@ class SessionMixin:
         return data
 
 
-class UserBookmarkMixin:
+class UserBookmarkMixin(APIView):
     """Hold user setting for a comic."""
 
     def _get_user_bookmark_search_kwargs(self, comic=None, comic_pk=None):

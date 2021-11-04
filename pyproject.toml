@@ -50,16 +50,17 @@ whitenoise = { extras = ["brotli"], version = "^5.2" }
 [tool.poetry.dev-dependencies]
 black = "^21.9b0"
 coverage = { extras = ["toml"], version = "^6.0" }
-django-livereload-server = "^0.3"
 django-debug-toolbar = "^3.1"
+django-livereload-server = "^0.3"
+django-types = "^0.9.0"
+djangorestframework-types = "^0.6.0"
 flake8 = "^4.0"
 flake8-black = "^0.2"
 flake8-bugbear = "^21.3"
 flake8-docstrings = "^1.5"
-#monkeytype = "^20"
-#mypy = "^0.782"
 neovim = "^0.3"
 pep8-naming = "^0.12"
+pyright = "^0.0.11"
 pytest = "^6.0"
 pytest-asyncio = "^0.16"
 pytest-black = "^0.3"
@@ -67,17 +68,14 @@ pytest-cov = "^3.0"
 pytest-django = "^4.1"
 pytest-flake8 = "^1.0"
 pytest-isort = "^2.0"
-#pytest-monkeytype = "^1.0"
 radon = "^5.1"
-django-stubs = "^1.9.0"
-pyright = "^0.0.11"
+vulture = "^2.3"
 
-#vulture = "^2.1"
 [tool.poetry.scripts]
 codex = "codex.run:main"
 
 [tool.black]
-exclude = "/(.git|__pycache__|.pytest_cache|.venv|comics|frontend)/"
+exclude = "/(.git|__pycache__|.pytest_cache|.venv|comics|frontend|typings)/"
 
 [tool.coverage.run]
 source = ["codex"]
@@ -89,7 +87,9 @@ omit = ["frontend"]
 directory = "test-results/coverage"
 
 [tool.vulture]
-exclude = [".venv"]
+exclude = [".venv", "node_modules", "typings"]
+min_confidence = 61
+sort_by_size = true
 
 [tool.pytest.ini_options]
 norecursedirs = ["frontend"]
@@ -106,7 +106,7 @@ addopts = """
     --cov-report=term
     --flake8
     --isort
-    --ignore=.git,__pycache__|.venv|codex/migrations/
+    --ignore=.git,__pycache__|.venv|codex/migrations/|typings
 """
 
 #    --mypy
@@ -117,6 +117,7 @@ exclude = [
   ".pytest_cache",
   ".venv",
   "comics",
-  "frontend"
+  "frontend",
+  "typings"
 ]
 useLibraryCodeForTypes = true

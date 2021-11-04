@@ -13,6 +13,8 @@ class LibraryTask:
 
 @dataclass
 class ScannerTask:
+    """Handle with the Scanner."""
+
     pass
 
 
@@ -46,16 +48,22 @@ class BulkComicMovedTask(BulkMovedTask):
 
 @dataclass
 class ComicCoverCreateTask:
+    """Hanlde with the CoverCreator."""
+
     force: bool
 
 
 @dataclass
 class SingleComicCoverCreateTask(ComicCoverCreateTask):
+    """A single comic's src and dest paths."""
+
     comic: dict
 
 
 @dataclass
 class BulkComicCoverCreateTask(ComicCoverCreateTask):
+    """A list of comic src and dest paths."""
+
     comics: tuple
 
 
@@ -96,18 +104,22 @@ class RestartTask(SleepTask):
 
 @dataclass
 class NotifierTask:
+    """Handle with the Notifier."""
+
     text: str
 
 
 @dataclass
 class AdminNotifierTask(NotifierTask):
-    """Notifications for finished scans."""
+    """Notifications for admins only."""
 
     pass
 
 
 @dataclass
 class BroadcastNotifierTask(NotifierTask):
+    """Notifications for all users."""
+
     pass
 
 

@@ -1,4 +1,6 @@
 """Serializers for the browser view."""
+from abc import ABC
+
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from rest_framework.serializers import (
@@ -6,13 +8,12 @@ from rest_framework.serializers import (
     CharField,
     ChoiceField,
     DecimalField,
+    Field,
     IntegerField,
     ListField,
     Serializer,
-    SerializerMethodField,
 )
 
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.serializers.webpack import CHOICES, VUETIFY_NULL_CODE
 
 
@@ -69,12 +70,15 @@ class BrowserSettingsShowGroupFlagsSerializer(Serializer):
     v = BooleanField()
 
 
-class FilterListField(ListField):
+class FilterListField(ListField, ABC):
     """Filter List field with custom arguments."""
+
+    CHILD_CLASS = Field
+    VALIDATORS = tuple()
 
     def __init__(self, *args, **kwargs):
         """Apply the subclass's arguments."""
-        validators = self.VALIDATORS + kwargs.pop("validators", tuple())
+        validators = self.VALIDATORS + tuple(kwargs.pop("validators", tuple()))
         super().__init__(
             *args,
             child=self.CHILD_CLASS(allow_null=True),
@@ -90,7 +94,7 @@ class IntListField(FilterListField):
     VALIDATORS = (validate_int_null,)
 
 
-class CharListField(ListField):
+class CharListField(FilterListField):
     """Char List Field with validation."""
 
     CHILD_CLASS = CharField

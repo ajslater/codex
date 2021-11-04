@@ -4,7 +4,6 @@ from pathlib import Path
 
 from django.db.models import Q
 
-from codex.librarian.bulk_import import BROWSER_GROUPS
 from codex.models import Comic, Credit, Folder, Imprint, Publisher, Series, Volume
 
 
@@ -45,7 +44,7 @@ def _get_create_metadata(fk_cls, create_mds, filter_batches):
     return create_mds
 
 
-def _add_parent_group_filter(group_name, field_name, cls, filter_args):
+def _add_parent_group_filter(group_name, field_name, filter_args):
     """Get the parent group filter by name."""
     if field_name:
         key = f"{field_name}__"
@@ -66,13 +65,13 @@ def _query_missing_group_type(cls, groups):
     filter_arg_count = 0
     for group_tree, count in groups.items():
         filter_args = {}
-        _add_parent_group_filter(group_tree[-1], "", cls, filter_args)
+        _add_parent_group_filter(group_tree[-1], "", filter_args)
         if cls in (Imprint, Series, Volume):
-            _add_parent_group_filter(group_tree[0], "publisher", Publisher, filter_args)
+            _add_parent_group_filter(group_tree[0], "publisher", filter_args)
         if cls in (Series, Volume):
-            _add_parent_group_filter(group_tree[1], "imprint", Imprint, filter_args)
+            _add_parent_group_filter(group_tree[1], "imprint", filter_args)
         if cls == Volume:
-            _add_parent_group_filter(group_tree[2], "series", Series, filter_args)
+            _add_parent_group_filter(group_tree[2], "series", filter_args)
 
         num_filter_args = len(filter_args)
         if filter_arg_count + num_filter_args > FILTER_ARG_MAX:
