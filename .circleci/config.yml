@@ -1,7 +1,7 @@
 executors:
   latest-image:
     machine:
-      image: ubuntu-2004:202010-01
+      image: ubuntu-2004:202107-02
 jobs:
   build:
     executor: latest-image
