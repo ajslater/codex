@@ -61,6 +61,15 @@ class SingleComicCoverCreateTask(ComicCoverCreateTask):
 
 
 @dataclass
+class ImageComicCoverCreateTask(ComicCoverCreateTask):
+    """A comic cover with image data."""
+
+    comic_path: str
+    cover_path: str
+    image_data: bytes
+
+
+@dataclass
 class BulkComicCoverCreateTask(ComicCoverCreateTask):
     """A list of comic src and dest paths."""
 

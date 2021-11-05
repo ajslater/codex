@@ -8,7 +8,7 @@ from pathlib import Path
 from comicbox.comic_archive import ComicArchive
 
 from codex.librarian.cover import get_cover_path
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE, SingleComicCoverCreateTask
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE, ImageComicCoverCreateTask
 from codex.models import Comic, FailedImport, Imprint, Publisher, Series, Volume
 
 
@@ -39,13 +39,13 @@ def _get_path_metadata(path):
     failed_import = {}
 
     try:
-        md = ComicArchive(path).get_metadata()
+        car = ComicArchive(path, get_cover=True)
+        md = car.get_metadata()
         md["path"] = path
         md["size"] = Path(path).stat().st_size
         cover_path = get_cover_path(path)
         md["cover_path"] = cover_path
-        cover_create_paths = {"x_path": path, "x_cover_path": cover_path}
-        task = SingleComicCoverCreateTask(True, cover_create_paths)
+        task = ImageComicCoverCreateTask(True, path, cover_path, car.cover_image_data)
         LIBRARIAN_QUEUE.put_nowait(task)
         _clean_md(md)
         group_tree = []

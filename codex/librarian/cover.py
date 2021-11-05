@@ -13,6 +13,7 @@ from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
     BulkComicCoverCreateTask,
     SingleComicCoverCreateTask,
+    ImageComicCoverCreateTask
 )
 from codex.models import Comic
 from codex.settings.settings import CONFIG_STATIC, STATIC_ROOT
@@ -96,7 +97,24 @@ def get_cover_path(comic_path):
     return str(cover_path.with_suffix(".jpg"))
 
 
-def _create_comic_cover(comic, force=False):
+def _create_comic_cover(comic_path, cover_image, db_cover_path, force):
+    if cover_image is None:
+        raise ValueError(f"No cover image found for {comic_path}")
+
+    fs_cover_path = COVER_ROOT / db_cover_path
+    if fs_cover_path.exists() and not force:
+        LOG.debug(f"Cover already exists {comic_path} {db_cover_path}")
+        return 0
+    fs_cover_path.parent.mkdir(exist_ok=True, parents=True)
+
+    im = Image.open(BytesIO(cover_image))
+    im.thumbnail(THUMBNAIL_SIZE)
+    im.save(fs_cover_path, im.format)
+    LOG.debug(f"Created cover thumbnail for: {comic_path}")
+    return 1
+
+
+def _create_comic_cover_from_file(comic, force=False):
     """Create a comic cover thumnail and save it to disk."""
     # The browser sends x_path and x_comic_path, everything else sends no prefix
     count = 0
@@ -107,24 +125,12 @@ def _create_comic_cover(comic, force=False):
             LOG.debug(f"Cover for {comic_path} missing.")
             return count
 
-        fs_cover_path = COVER_ROOT / db_cover_path
-        if fs_cover_path.exists() and not force:
-            LOG.debug(f"Cover already exists {comic_path} {db_cover_path}")
-            return count
-        fs_cover_path.parent.mkdir(exist_ok=True, parents=True)
-
         if comic_path is None:
             comic_path = Comic.objects.get(cover_path=db_cover_path).path
 
         # Reopens the car, so slightly inefficient.
         cover_image = ComicArchive(comic_path).get_cover_image()
-        if cover_image is None:
-            raise ValueError(f"No cover image found for {comic_path}")
-        im = Image.open(BytesIO(cover_image))
-        im.thumbnail(THUMBNAIL_SIZE)
-        im.save(fs_cover_path, im.format)
-        count = 1
-        LOG.debug(f"Created cover thumbnail for: {comic_path}")
+        count = _create_comic_cover(comic_path, cover_image, db_cover_path, force)
     except Comic.DoesNotExist:
         LOG.warning(f"Comic for {db_cover_path=} does not exist in the db.")
     except Exception as exc:
@@ -142,7 +148,7 @@ def _bulk_create_comic_covers(comic_and_cover_paths, force=False):
     LOG.debug(f"Checking {num_comics} comic covers...")
     comic_counter = 0
     for comic in comic_and_cover_paths:
-        comic_counter += _create_comic_cover(comic, force)
+        comic_counter += _create_comic_cover_from_file(comic, force)
         now = time.time()
         if now - last_log_time > LOG_EVERY:
             LOG.info(f"Created {comic_counter}/{num_comics} comic covers")
@@ -183,6 +189,8 @@ class CoverCreator(QueuedThread):
         if isinstance(task, BulkComicCoverCreateTask):
             _bulk_create_comic_covers(task.comics, task.force)
         elif isinstance(task, SingleComicCoverCreateTask):
-            _create_comic_cover(task.comic, task.force)
+            _create_comic_cover_from_file(task.comic, task.force)
+        elif isinstance(task, ImageComicCoverCreateTask):
+            _create_comic_cover(task.comic_path, task.image_data, task.cover_path, True)
         else:
             LOG.error(f"Bad task sent to {self.NAME}: {task}")
