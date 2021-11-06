@@ -12,7 +12,6 @@ from PIL import Image
 from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
     BulkComicCoverCreateTask,
-    SingleComicCoverCreateTask,
     ImageComicCoverCreateTask
 )
 from codex.models import Comic
@@ -118,21 +117,21 @@ def _create_comic_cover_from_file(comic, force=False):
     """Create a comic cover thumnail and save it to disk."""
     # The browser sends x_path and x_comic_path, everything else sends no prefix
     count = 0
+    cover_path = comic.get("x_cover_path", comic.get("cover_path"))
     comic_path = comic.get("x_path", comic.get("path"))
-    db_cover_path = comic.get("x_cover_path", comic.get("cover_path"))
     try:
-        if db_cover_path == MISSING_COVER_FN and not force:
-            LOG.debug(f"Cover for {comic_path} missing.")
+        cover_path = Path(cover_path)
+        if (cover_path == MISSING_COVER_FN or cover_path.exists()) and not force:
             return count
 
         if comic_path is None:
-            comic_path = Comic.objects.get(cover_path=db_cover_path).path
+            comic_path = Comic.objects.get(cover_path=cover_path).path
 
         # Reopens the car, so slightly inefficient.
         cover_image = ComicArchive(comic_path).get_cover_image()
-        count = _create_comic_cover(comic_path, cover_image, db_cover_path, force)
+        count = _create_comic_cover(comic_path, cover_image, cover_path, force)
     except Comic.DoesNotExist:
-        LOG.warning(f"Comic for {db_cover_path=} does not exist in the db.")
+        LOG.warning(f"Comic for {cover_path=} does not exist in the db.")
     except Exception as exc:
         LOG.error(f"Failed to create cover thumb for {comic_path}")
         LOG.exception(exc)
@@ -146,6 +145,7 @@ def _bulk_create_comic_covers(comic_and_cover_paths, force=False):
     start_time = last_log_time = time.time()
     num_comics = len(comic_and_cover_paths)
     LOG.debug(f"Checking {num_comics} comic covers...")
+
     comic_counter = 0
     for comic in comic_and_cover_paths:
         comic_counter += _create_comic_cover_from_file(comic, force)
@@ -188,8 +188,6 @@ class CoverCreator(QueuedThread):
         """Run the creator."""
         if isinstance(task, BulkComicCoverCreateTask):
             _bulk_create_comic_covers(task.comics, task.force)
-        elif isinstance(task, SingleComicCoverCreateTask):
-            _create_comic_cover_from_file(task.comic, task.force)
         elif isinstance(task, ImageComicCoverCreateTask):
             _create_comic_cover(task.comic_path, task.image_data, task.cover_path, True)
         else:

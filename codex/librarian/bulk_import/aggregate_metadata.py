@@ -45,6 +45,10 @@ def _get_path_metadata(path):
         md["size"] = Path(path).stat().st_size
         cover_path = get_cover_path(path)
         md["cover_path"] = cover_path
+        # Getting the cover data while getting the metada is significantly
+        # faster than getting the cover later in another thread.
+        # Writing the image in another thread is faster than writing
+        # it here.
         task = ImageComicCoverCreateTask(True, path, cover_path, car.cover_image_data)
         LIBRARIAN_QUEUE.put_nowait(task)
         _clean_md(md)

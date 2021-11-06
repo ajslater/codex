@@ -54,13 +54,6 @@ class ComicCoverCreateTask:
 
 
 @dataclass
-class SingleComicCoverCreateTask(ComicCoverCreateTask):
-    """A single comic's src and dest paths."""
-
-    comic: dict
-
-
-@dataclass
 class ImageComicCoverCreateTask(ComicCoverCreateTask):
     """A comic cover with image data."""
 
