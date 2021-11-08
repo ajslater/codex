@@ -270,7 +270,8 @@ class Uatu(Observer):
             active_watch_pks.add(rp.get("pk"))
         missing_watch_pks = set(self._pk_watches.keys()) - active_watch_pks
         for pk in missing_watch_pks:
-            self._unwatch_library(pk)
+            library = Library.objects.only("path").get(pk)
+            self._unwatch_library(library)
 
     def unschedule_all(self):
         """Unschedule all watches."""
