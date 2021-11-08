@@ -217,14 +217,19 @@ class Uatu(Observer):
         super().__init__(*args, **kwargs)
         self._pk_watches = dict()
 
-    def _unwatch_library(self, library):
+    def _unwatch_library(self, library, pk=None):
         """Stop a watch process."""
-        watch = self._pk_watches.pop(library.pk, None)
+        if library:
+            pk = library.pk
+            path = library.path
+        else:
+            path = "(deleted)"
+        watch = self._pk_watches.pop(pk, None)
         if watch:
             self.unschedule(watch)
-            LOG.info(f"Stopped watching library {library.path}")
+            LOG.info(f"Stopped watching library {path}")
         else:
-            LOG.debug(f"Library {library.path} not being watched")
+            LOG.debug(f"Library {path} not being watched")
 
     def _watch_library(self, library):
         """Start a library watching process."""
@@ -270,8 +275,7 @@ class Uatu(Observer):
             active_watch_pks.add(rp.get("pk"))
         missing_watch_pks = set(self._pk_watches.keys()) - active_watch_pks
         for pk in missing_watch_pks:
-            library = Library.objects.only("path").get(pk)
-            self._unwatch_library(library)
+            self._unwatch_library(None, pk=pk)
 
     def unschedule_all(self):
         """Unschedule all watches."""
