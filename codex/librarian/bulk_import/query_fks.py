@@ -103,10 +103,13 @@ def _query_missing_groups(group_trees_md):
     #     created groups
 
     all_create_groups = {}
+    count = 0
     for cls, groups in group_trees_md.items():
         create_groups = _query_missing_group_type(cls, groups)
         all_create_groups[cls] = create_groups
-    return all_create_groups
+        if create_groups:
+            count += 1
+    return all_create_groups, count
 
 
 def _query_missing_credits(credits):
@@ -203,8 +206,8 @@ def query_all_missing_fks(library_path, fks):
     create_groups = {}
     if "group_trees" in fks:
         group_trees = fks.pop("group_trees")
-        create_groups.update(_query_missing_groups(group_trees))
-    LOG.verbose(f"Prepared {len(create_groups)} new groups.")  # type: ignore
+        create_groups, create_group_count = _query_missing_groups(group_trees)
+    LOG.verbose(f"Prepared {create_group_count} new groups.")  # type: ignore
 
     create_paths = set()
     if "comic_paths" in fks:
@@ -212,6 +215,7 @@ def query_all_missing_fks(library_path, fks):
     LOG.verbose(f"Prepared {len(create_paths)} new folders.")  # type: ignore
 
     create_fks = {}
+    total_create_fks = 0
     for field in fks.keys():
         names = fks.get(field)
         if field in CREDIT_FKS:
@@ -220,6 +224,7 @@ def query_all_missing_fks(library_path, fks):
             base_cls = Comic
         cls, names = _query_missing_named_models(base_cls, field, names)
         create_fks[cls] = names
-    LOG.verbose(f"Prepared {len(create_fks)} new named attributes.")  # type: ignore
+        total_create_fks += len(names)
+    LOG.verbose(f"Prepared {total_create_fks} new named attributes.")  # type: ignore
 
     return create_fks, create_groups, create_paths, create_credits
