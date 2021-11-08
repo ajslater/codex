@@ -379,7 +379,7 @@ class Comic(BaseModel):
 
     def __str__(self):
         """Most common text representation for logging."""
-        return "{str(self.volume.series.name)} #{self.issue:03}"
+        return f"{str(self.volume.series.name)} #{self.issue:03}"
 
     @property
     def name(self):
