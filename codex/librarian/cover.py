@@ -96,11 +96,10 @@ def get_cover_path(comic_path):
     return str(cover_path.with_suffix(".jpg"))
 
 
-def _create_comic_cover(comic_path, cover_image, db_cover_path):
+def _create_comic_cover(comic_path, cover_image, fs_cover_path):
     if cover_image is None:
         raise ValueError(f"No cover image found for {comic_path}")
 
-    fs_cover_path = COVER_ROOT / db_cover_path
     fs_cover_path.parent.mkdir(exist_ok=True, parents=True)
 
     im = Image.open(BytesIO(cover_image))
@@ -117,8 +116,8 @@ def _create_comic_cover_from_file(comic, force=False):
     cover_path = comic.get("x_cover_path", comic.get("cover_path"))
     comic_path = comic.get("x_path", comic.get("path"))
     try:
-        cover_path = Path(cover_path)
-        if (cover_path == MISSING_COVER_FN or cover_path.exists()) and not force:
+        fs_cover_path = COVER_ROOT / cover_path
+        if (cover_path == MISSING_COVER_FN or fs_cover_path.exists()) and not force:
             return count
 
         if comic_path is None:
@@ -126,7 +125,7 @@ def _create_comic_cover_from_file(comic, force=False):
 
         # Reopens the car, so slightly inefficient.
         cover_image = ComicArchive(comic_path).get_cover_image()
-        count = _create_comic_cover(comic_path, cover_image, cover_path)
+        count = _create_comic_cover(comic_path, cover_image, fs_cover_path)
     except Comic.DoesNotExist:
         LOG.warning(f"Comic for {cover_path=} does not exist in the db.")
     except Exception as exc:
@@ -139,17 +138,13 @@ def _create_comic_cover_from_file(comic, force=False):
 
 def _bulk_create_comic_covers(comic_and_cover_paths, force=False):
     """Create bulk comic covers."""
-    start_time = last_log_time = time.time()
     num_comics = len(comic_and_cover_paths)
-    LOG.verbose(f"Checking {num_comics} comic covers...")  # type: ignore
+    LOG.debug(f"Checking {num_comics} comic covers...")
+    start_time = time.time()
 
     comic_counter = 0
     for comic in comic_and_cover_paths:
         comic_counter += _create_comic_cover_from_file(comic, force)
-        now = time.time()
-        if now - last_log_time > LOG_EVERY:
-            LOG.info(f"Created {comic_counter}/{num_comics} comic covers")
-            last_log_time = now
     elapsed = time.time() - start_time
     if comic_counter:
         per = elapsed / comic_counter
@@ -188,6 +183,7 @@ class CoverCreator(QueuedThread):
         if isinstance(task, BulkComicCoverCreateTask):
             _bulk_create_comic_covers(task.comics, task.force)
         elif isinstance(task, ImageComicCoverCreateTask):
-            _create_comic_cover(task.comic_path, task.image_data, task.cover_path)
+            fs_cover_path = COVER_ROOT / task.cover_path
+            _create_comic_cover(task.comic_path, task.image_data, fs_cover_path)
         else:
             LOG.error(f"Bad task sent to {self.NAME}: {task}")
