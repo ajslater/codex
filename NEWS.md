@@ -6,6 +6,8 @@
 - Massive speed improvement for creating comic covers on large imports.
 - Regenerate all comic covers in a library from an admin task.
 - Comics with no specified Publishers, Imprints and Series no longer have induced default names for these but have no name like Volumes.
+- Added VERBOSE logging level to help screen out bulk DEBUG messages from dependancies.
+- Shortened logging message for easier reading.
 
 ## v0.6.8
 

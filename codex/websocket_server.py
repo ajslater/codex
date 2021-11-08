@@ -34,8 +34,7 @@ def _handle_websocket_message(event, send):
 
 async def websocket_application(scope, receive, send):
     """Websocket application server."""
-    LOG.info("Starting websocket connection.")
-    LOG.debug(scope)
+    LOG.debug("Starting websocket connection.")
     while True:
         try:
             event = await receive()
@@ -52,4 +51,4 @@ async def websocket_application(scope, receive, send):
             LOG.exception(exc)
             # If a websocket truly breaks, let it die and restart
             break
-    LOG.info("Closing websocket connection.")
+    LOG.debug("Closing websocket connection.")

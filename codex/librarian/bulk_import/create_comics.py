@@ -56,6 +56,8 @@ def _update_comics(library, comic_paths, mds):
     if not comic_paths:
         return
 
+    num_comics = len(comic_paths)
+    LOG.verbose(f"Peparing {num_comics} comics for update.")  # type: ignore
     # Get existing comics to update
     comics = Comic.objects.filter(library=library, path__in=comic_paths).only(
         "pk", *BULK_UPDATE_COMIC_FIELDS
@@ -71,6 +73,7 @@ def _update_comics(library, comic_paths, mds):
         comic.presave()
         update_comics.append(comic)
 
+    LOG.verbose(f"Bulk updating {num_comics} comics.")  # type: ignore
     Comic.objects.bulk_update(update_comics, BULK_UPDATE_COMIC_FIELDS)
 
 
@@ -79,6 +82,8 @@ def _create_comics(library, comic_paths, mds):
     if not comic_paths:
         return
 
+    num_comics = len(comic_paths)
+    LOG.verbose(f"Peparing {num_comics} comics for creation.")  # type: ignore
     # prepare create comics
     create_comics = []
     for path in comic_paths:
@@ -88,8 +93,12 @@ def _create_comics(library, comic_paths, mds):
         comic.presave()
         create_comics.append(comic)
 
+    LOG.verbose(f"Bulk creating{num_comics} comics.")  # type: ignore
     Comic.objects.bulk_create(create_comics)
 
+    LOG.verbose(  # type: ignore
+        f"Bulk updating new {num_comics} comic's " "self references."
+    )
     # update myself field with self reference
     created_comics = Comic.objects.filter(path__in=comic_paths).only("pk", "myself")
     for comic in created_comics:
@@ -164,6 +173,9 @@ def bulk_recreate_m2m_field(field_name, m2m_links):
     https://stackoverflow.com/questions/6996176/how-to-create-an-object-for-a-django-model-with-a-many-to-many-field/10116452#10116452 # noqa: B950,E501
     https://docs.djangoproject.com/en/3.2/ref/models/fields/#django.db.models.ManyToManyField.through # noqa: B950,E501
     """
+    LOG.verbose(  # type: ignore
+        f"Recreating {field_name} relations for altered comics."
+    )
     field = getattr(Comic, field_name)
     ThroughModel = field.through  # noqa: N806
     model = Comic._meta.get_field(field_name).related_model
@@ -190,6 +202,11 @@ def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2
 
     _update_comics(library, update_paths, all_bulk_mds)
     _create_comics(library, create_paths, all_bulk_mds)
+
+    if all_m2m_mds:
+        LOG.verbose(  # type: ignore
+            f"Preparing {len(all_m2m_mds)} comics for many to many relation recration."
+        )
     all_m2m_links = _link_comic_m2m_fields(all_m2m_mds)
     for field_name, m2m_links in all_m2m_links.items():
         bulk_recreate_m2m_field(field_name, m2m_links)

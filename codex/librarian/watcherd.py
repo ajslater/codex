@@ -156,7 +156,7 @@ class ComicMovedMessage(MovedMessage):
 class EventBatcher(AggregateMessageQueuedThread):
     """Batch watchdog events into bulk database tasks."""
 
-    NAME = "watchdog-event-batcher"
+    NAME = "WatchdogEventBatcher"
     MESSAGE_TASK_MAP = {
         FolderMovedMessage: BulkFolderMovedTask,
         ComicMovedMessage: BulkComicMovedTask,
@@ -217,42 +217,49 @@ class Uatu(Observer):
         super().__init__(*args, **kwargs)
         self._pk_watches = dict()
 
-    def _unwatch_library(self, pk):
+    def _unwatch_library(self, library):
         """Stop a watch process."""
-        watch = self._pk_watches.pop(pk, None)
+        watch = self._pk_watches.pop(library.pk, None)
         if watch:
             self.unschedule(watch)
-            LOG.info(f"Stopped watching library {pk}")
+            LOG.info(f"Stopped watching library {library.path}")
         else:
-            LOG.debug(f"Library {pk} not being watched")
+            LOG.debug(f"Library {library.path} not being watched")
 
-    def _watch_library(self, pk):
+    def _watch_library(self, library):
         """Start a library watching process."""
-        if pk in self._pk_watches:
-            LOG.debug(f"Library {pk} already being watched.")
+        if library.pk in self._pk_watches:
+            LOG.debug(f"Library {library.path} already being watched.")
             return
-        try:
-            library = Library.objects.get(pk=pk, enable_watch=True)
-        except Library.DoesNotExist as exc:
-            LOG.exception(exc)
+        if not library.enable_watch:
+            LOG.warning(
+                f"Tried to enable watch for library {library.path} "
+                f"{library.enable_watch=}."
+            )
             return
-        path = library.path
-        handler = CodexLibraryEventHandler(pk)
+        if not Path(library.path).is_dir():
+            LOG.warning(f"Library {library.path} does not exist. Not watching.")
+            return
+        handler = CodexLibraryEventHandler(library.pk)
 
         try:
-            watch = self.schedule(handler, path, recursive=True)
-            self._pk_watches[pk] = watch
-            LOG.info(f"Started watching {path}")
+            watch = self.schedule(handler, library.path, recursive=True)
+            self._pk_watches[library.pk] = watch
+            LOG.info(f"Started watching {library.path}")
         except FileNotFoundError:
-            LOG.warn(f"Could not find {path} to watch. May be unmounted.")
+            LOG.warning(f"Could not find {library.path} to watch. May be unmounted.")
             return
 
     def _set_library_watch(self, pk, watch):
         """Watch or unwatch a library."""
-        if watch:
-            self._watch_library(pk)
-        else:
-            self._unwatch_library(pk)
+        try:
+            library = Library.objects.only("path", "enable_watch").get(pk=pk)
+            if watch:
+                self._watch_library(library)
+            else:
+                self._unwatch_library(library)
+        except Library.DoesNotExist as exc:
+            LOG.exception(exc)
 
     def set_all_library_watches(self):
         """Watch or unwatch all libraries according to the db."""

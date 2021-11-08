@@ -191,19 +191,25 @@ def query_missing_folder_paths(library_path, comic_paths):
 
 def query_all_missing_fks(library_path, fks):
     """Get objects to create by querying existing objects for the proposed fks."""
+    LOG.verbose(  # type: ignore
+        f"Querying existing foreign keys for comics in {library_path}"
+    )
     create_credits = set()
     if "credits" in fks:
         credits = fks.pop("credits")
         create_credits |= _query_missing_credits(credits)
+    LOG.verbose(f"Prepared {len(create_credits)} new credits.")  # type: ignore
 
     create_groups = {}
     if "group_trees" in fks:
         group_trees = fks.pop("group_trees")
         create_groups.update(_query_missing_groups(group_trees))
+    LOG.verbose(f"Prepared {len(create_groups)} new groups.")  # type: ignore
 
     create_paths = set()
     if "comic_paths" in fks:
         create_paths |= query_missing_folder_paths(library_path, fks.pop("comic_paths"))
+    LOG.verbose(f"Prepared {len(create_paths)} new folders.")  # type: ignore
 
     create_fks = {}
     for field in fks.keys():
@@ -214,5 +220,6 @@ def query_all_missing_fks(library_path, fks):
             base_cls = Comic
         cls, names = _query_missing_named_models(base_cls, field, names)
         create_fks[cls] = names
+    LOG.verbose(f"Prepared {len(create_fks)} new named attributes.")  # type: ignore
 
     return create_fks, create_groups, create_paths, create_credits

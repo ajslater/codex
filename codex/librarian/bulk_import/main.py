@@ -69,7 +69,9 @@ def _batch_bulk_import(library, update_paths_tail, create_paths_tail):
         create_paths_tail,
     ) = _split_batches(update_paths_tail, create_paths_tail)
 
-    LOG.debug(f"Batch update {len(update_paths_head)} create {len(create_paths_head)}.")
+    LOG.verbose(  # type: ignore
+        f"Batch update {len(update_paths_head)} create {len(create_paths_head)}."
+    )
     mds, m2m_mds, fks = get_aggregate_metadata(
         library, update_paths_head | create_paths_head
     )
@@ -97,7 +99,7 @@ def bulk_import(
         if not create_paths:
             create_paths = set()
 
-        LOG.debug(
+        LOG.verbose(  # type: ignore
             f"Importing comics: {len(create_paths)} new, {len(update_paths)} "
             f"outdated, {len(delete_paths)} deleted."
         )
@@ -121,7 +123,6 @@ def bulk_import(
 
 def bulk_comics_moved(library_pk, moved_paths):
     """Abbreviated bulk_import_comics to just change path related fields."""
-    LOG.debug(f"{moved_paths=}")
     library = Library.objects.get(pk=library_pk)
 
     # Prepare FKs
@@ -132,7 +133,6 @@ def bulk_comics_moved(library_pk, moved_paths):
     comics = Comic.objects.filter(library=library, path__in=moved_paths.keys()).only(
         "pk", "path", "parent_folder", "folder"
     )
-    LOG.debug(f"{comics=}")
 
     folder_m2m_links = {}
     for comic in comics:
@@ -142,7 +142,6 @@ def bulk_comics_moved(library_pk, moved_paths):
         folder_m2m_links[comic.pk] = Folder.objects.filter(
             path__in=new_path.parents
         ).values_list("pk", flat=True)
-        LOG.debug(f"{new_path=}")
 
     Comic.objects.bulk_update(comics, MOVED_BULK_COMIC_UPDATE_FIELDS)
 

@@ -17,6 +17,7 @@ LOG = getLogger(__name__)
 class Crond(Thread):
     """Run a scheduled service for codex."""
 
+    NAME = "Cron"
     COND = Condition()
     run_thread = True
     WAIT_INTERVAL = 60 * 5  # Run cron every 5 minutes
@@ -24,7 +25,7 @@ class Crond(Thread):
 
     def run(self):
         """Watch a path and log the events."""
-        LOG.info("Started cron")
+        LOG.verbose(f"Started {self.NAME} thread.")  # type: ignore
         with self.COND:
             while self.run_thread:
                 try:
@@ -35,11 +36,11 @@ class Crond(Thread):
                     self.COND.wait(timeout=self.WAIT_INTERVAL)
                 except Exception as exc:
                     LOG.exception(exc)
-        LOG.info("Stopped cron.")
+        LOG.verbose(f"Stopped {self.NAME} thread.")  # type: ignore
 
     def __init__(self):
         """Intialize this thread with the worker."""
-        super().__init__(name="crond", daemon=True)
+        super().__init__(name=self.NAME, daemon=True)
 
     def join(self):
         """Stop the cron thread."""

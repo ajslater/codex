@@ -17,7 +17,7 @@ LOG = getLogger(__name__)
 class Notifier(AggregateMessageQueuedThread):
     """Aggregates messages preventing floods and sends messages to clients."""
 
-    NAME = "UI-Notifier"
+    NAME = "Notifier"
     WS_SEND_MSG = {"type": "websocket.send"}
     CONNS = {AdminNotifierTask: set(), BroadcastNotifierTask: set()}
     SUBSCRIBE_TYPES = {

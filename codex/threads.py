@@ -56,7 +56,7 @@ class QueuedThread(Thread, ABC):
 
     def run(self):
         """Run thread loop."""
-        LOG.info(f"Started {self.NAME} thread")
+        LOG.verbose(f"Started {self.NAME} thread")  # type: ignore
         while True:
             try:
                 self._check_item()
@@ -65,7 +65,7 @@ class QueuedThread(Thread, ABC):
                 break
             except Exception as exc:
                 LOG.exception(exc)
-        LOG.info(f"Stopped {self.NAME} thread")
+        LOG.verbose(f"Stopped {self.NAME} thread")  # type: ignore
 
     def join(self):
         """End the thread."""

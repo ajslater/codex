@@ -112,8 +112,8 @@ addopts = """
 #    --mypy
 [tool.pyright]
 exclude = [
-  ".git",
   "**/__pycache__",
+  ".git",
   ".pytest_cache",
   ".venv",
   "comics",
@@ -121,3 +121,5 @@ exclude = [
   "typings"
 ]
 useLibraryCodeForTypes = true
+reportMissingImports = true
+reportImportCycles = true

@@ -38,7 +38,7 @@ def _is_outdated(path, updated_at):
 
 def _scan_existing(library, force):
     """Scan existing comics for updates."""
-    LOG.debug(f"Scanning for existing comics {force=}")
+    LOG.verbose(f"Scanning for existing comics {force=}")  # type: ignore
     comics = Comic.objects.filter(library=library).values_list("path", "updated_at")
 
     delete_paths = set()
@@ -51,7 +51,7 @@ def _scan_existing(library, force):
             delete_paths.add(path)
         elif force or _is_outdated(path, updated_at):
             update_comic_paths.add(path)
-    LOG.debug(
+    LOG.verbose(  # type: ignore
         f"Scanned {len(update_comic_paths)} outdated comics, "
         f"{len(delete_paths)} missing comics."
     )
@@ -60,7 +60,7 @@ def _scan_existing(library, force):
 
 def _scan_new(library_path, all_comic_paths):
     """Add comics from a library that aren't in the db already."""
-    LOG.debug("Scanning for new comics")
+    LOG.verbose("Scanning for new comics...")  # type: ignore
     create_comic_paths = set()
     for root, _, filenames in os.walk(library_path):
         walk_root = Path(root)
@@ -71,7 +71,7 @@ def _scan_new(library_path, all_comic_paths):
             path = walk_root / filename
             if path not in all_comic_paths:
                 create_comic_paths.add(path)
-    LOG.debug(f"Scanned {len(create_comic_paths)} new comics")
+    LOG.verbose(f"Scanned {len(create_comic_paths)} new comics")  # type: ignore
     return create_comic_paths
 
 
@@ -100,13 +100,13 @@ def _scan_root(pk, force=False):
     if library.scan_in_progress:
         LOG.info(f"Scan in progress for {library.path}. Not rescanning")
         return notifier_text
-    LOG.info(f"Scanning {library.path}...")
-    library.scan_in_progress = True
-    library.save()
     count = num_deleted = 0
     try:
         if not Path(library.path).is_dir():
             raise NoLibraryPathError()
+        LOG.info(f"Scanning {library.path}...")
+        library.scan_in_progress = True
+        library.save()
         force = force or library.last_scan is None
         start_time = datetime.now()
         count, num_deleted = _scan_and_import(library, force)
@@ -123,6 +123,7 @@ def _scan_root(pk, force=False):
         if force or library.last_scan is None or library.schema_version is None:
             library.schema_version = SCHEMA_VERSION
         library.last_scan = timezone.now()
+        LOG.info(f"Scan of {library.path} finished.")
     except NoLibraryPathError:
         LOG.warning(f"Could not find library at {library.path}. Not scanning.")
     except Exception as exc:
@@ -134,7 +135,6 @@ def _scan_root(pk, force=False):
     changed = bool(count or num_deleted)
     if is_failed_imports:
         notifier_text = "FAILED_IMPORTS"
-    LOG.info(f"Scan of {library.path} finished.")
     return notifier_text, changed
 
 
@@ -173,7 +173,7 @@ def _scan_cron():
 class Scanner(QueuedThread):
     """A worker to handle all scanning, importing and moving."""
 
-    NAME = "scanner"
+    NAME = "Scanner"
 
     def _process_item(self, task):
         """Run the scanner."""

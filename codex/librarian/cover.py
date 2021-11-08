@@ -2,7 +2,7 @@
 import time
 
 from io import BytesIO
-from logging import getLogger
+from logging import INFO, getLogger
 from pathlib import Path
 
 from comicbox.comic_archive import ComicArchive
@@ -12,9 +12,9 @@ from PIL import Image
 from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
     BulkComicCoverCreateTask,
-    ImageComicCoverCreateTask
+    ImageComicCoverCreateTask,
 )
-from codex.models import Comic
+from codex.models import Comic, Library
 from codex.settings.settings import CONFIG_STATIC, STATIC_ROOT
 from codex.threads import QueuedThread
 
@@ -96,14 +96,11 @@ def get_cover_path(comic_path):
     return str(cover_path.with_suffix(".jpg"))
 
 
-def _create_comic_cover(comic_path, cover_image, db_cover_path, force):
+def _create_comic_cover(comic_path, cover_image, db_cover_path):
     if cover_image is None:
         raise ValueError(f"No cover image found for {comic_path}")
 
     fs_cover_path = COVER_ROOT / db_cover_path
-    if fs_cover_path.exists() and not force:
-        LOG.debug(f"Cover already exists {comic_path} {db_cover_path}")
-        return 0
     fs_cover_path.parent.mkdir(exist_ok=True, parents=True)
 
     im = Image.open(BytesIO(cover_image))
@@ -129,7 +126,7 @@ def _create_comic_cover_from_file(comic, force=False):
 
         # Reopens the car, so slightly inefficient.
         cover_image = ComicArchive(comic_path).get_cover_image()
-        count = _create_comic_cover(comic_path, cover_image, cover_path, force)
+        count = _create_comic_cover(comic_path, cover_image, cover_path)
     except Comic.DoesNotExist:
         LOG.warning(f"Comic for {cover_path=} does not exist in the db.")
     except Exception as exc:
@@ -144,7 +141,7 @@ def _bulk_create_comic_covers(comic_and_cover_paths, force=False):
     """Create bulk comic covers."""
     start_time = last_log_time = time.time()
     num_comics = len(comic_and_cover_paths)
-    LOG.debug(f"Checking {num_comics} comic covers...")
+    LOG.verbose(f"Checking {num_comics} comic covers...")  # type: ignore
 
     comic_counter = 0
     for comic in comic_and_cover_paths:
@@ -169,7 +166,9 @@ def _bulk_create_comic_covers(comic_and_cover_paths, force=False):
 
 def regen_all_covers(library_pk):
     """Force regeneration of all covers."""
-    LOG.info(f"Regnerating all comic covers for library {library_pk}")
+    if LOG.getEffectiveLevel() >= INFO:
+        path = Library.objects.get(library_pk).path
+        LOG.info(f"Recreating all comic covers for library {path}")
     comics = (
         Comic.objects.only("path", "library")
         .filter(library_id=library_pk)
@@ -189,6 +188,6 @@ class CoverCreator(QueuedThread):
         if isinstance(task, BulkComicCoverCreateTask):
             _bulk_create_comic_covers(task.comics, task.force)
         elif isinstance(task, ImageComicCoverCreateTask):
-            _create_comic_cover(task.comic_path, task.image_data, task.cover_path, True)
+            _create_comic_cover(task.comic_path, task.image_data, task.cover_path)
         else:
             LOG.error(f"Bad task sent to {self.NAME}: {task}")

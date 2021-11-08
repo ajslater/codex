@@ -37,7 +37,6 @@ class LibrarianDaemon(Process):
     def __init__(self):
         """Create threads and process pool."""
         super().__init__(name="librarian", daemon=False)
-        LOG.debug("Librarian initialized.")
 
     def process_task(self, task):
         """Process an individual task popped off the queue."""
@@ -102,7 +101,7 @@ class LibrarianDaemon(Process):
         threads.
         """
         try:
-            LOG.debug("Started Librarian.")
+            LOG.info("Started Librarian process.")
             self.start_threads()
             run = True
             LOG.info("Librarian started threads and waiting for tasks.")
@@ -113,7 +112,7 @@ class LibrarianDaemon(Process):
         except Exception as exc:
             LOG.error("Librarian crashed.")
             LOG.exception(exc)
-        LOG.info("Stopped Librarian.")
+        LOG.info("Stopped Librarian process.")
 
     @classmethod
     def startup(cls):
