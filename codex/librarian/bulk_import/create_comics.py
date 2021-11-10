@@ -95,11 +95,11 @@ def _create_comics(library, comic_paths, mds):
         comic.presave()
         create_comics.append(comic)
 
-    LOG.verbose(f"Bulk creating{num_comics} comics.")  # type: ignore
+    LOG.verbose(f"Bulk creating {num_comics} comics...")  # type: ignore
     Comic.objects.bulk_create(create_comics)
 
     LOG.verbose(  # type: ignore
-        f"Bulk updating new {num_comics} comic's " "self references."
+        f"Bulk updating {num_comics} new comic's " "self references...."
     )
     # update myself field with self reference
     created_comics = Comic.objects.filter(path__in=comic_paths).only("pk", "myself")
