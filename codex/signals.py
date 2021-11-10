@@ -40,7 +40,7 @@ def bind_signals(loop):
     loop.add_signal_handler(signal.SIGUSR1, _restart_signal_handler)
 
 
-def activate_wal_journal(_sender, connection, **_kwargs):
+def activate_wal_journal(sender, connection, **_kwargs):
     """Enable sqlite WAL journal."""
     if connection.vendor == "sqlite":
         cursor = connection.cursor()

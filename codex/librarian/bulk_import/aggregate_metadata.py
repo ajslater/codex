@@ -177,7 +177,7 @@ def get_aggregate_metadata(library, all_paths):
     all_failed_imports = {}
     total_paths = len(all_paths)
 
-    LOG.verbose(f"Aggregating metadata in {library.path}...")  # type: ignore
+    LOG.verbose(f"Scanning metadata in {library.path}...")  # type: ignore
     last_log_time = time.time()
     for num, path in enumerate(all_paths):
         path = str(path)
@@ -197,7 +197,7 @@ def get_aggregate_metadata(library, all_paths):
 
         now = time.time()
         if now - last_log_time > LOG_EVERY:
-            LOG.verbose(f"Aggregated {num}/{total_paths} comics")  # type: ignore
+            LOG.info(f"Scanned {num}/{total_paths} comics metadata")
             last_log_time = now
 
     all_fks["comic_paths"] = set(all_mds.keys())

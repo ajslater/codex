@@ -32,7 +32,7 @@ def _handle_websocket_message(event, send):
         LOG.error(exc)
 
 
-async def websocket_application(scope, receive, send):
+async def websocket_application(_scope, receive, send):
     """Websocket application server."""
     LOG.debug("Starting websocket connection.")
     while True:
