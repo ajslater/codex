@@ -48,7 +48,8 @@ def _link_comic_fks(md, library, path):
         series__name=series_name,
         name=volume_name,
     )
-    md["parent_folder"] = Folder.objects.get(path=Path(path).parent)
+    parent_path = Path(path).parent
+    md["parent_folder"] = Folder.objects.get(path=parent_path)
 
 
 def _update_comics(library, comic_paths, mds):
@@ -109,9 +110,10 @@ def _create_comics(library, comic_paths, mds):
     Comic.objects.bulk_update(created_comics, ["myself"])
 
 
-def _link_folders(comic_path):
+def _link_folders(folder_paths):
     """Get the ids of all folders to link."""
-    folder_paths = Path(comic_path).parents
+    if not folder_paths:
+        return set()
     folder_pks = Folder.objects.filter(path__in=folder_paths).values_list(
         "pk", flat=True
     )
@@ -156,7 +158,11 @@ def _link_comic_m2m_fields(m2m_mds):
         md = m2m_mds[comic_path]
         if "folders" not in all_m2m_links:
             all_m2m_links["folders"] = {}
-        all_m2m_links["folders"][comic_pk] = _link_folders(comic_path)
+        try:
+            folder_paths = md.pop("folders")
+        except KeyError:
+            folder_paths = []
+        all_m2m_links["folders"][comic_pk] = _link_folders(folder_paths)
         if "credits" not in all_m2m_links:
             all_m2m_links["credits"] = {}
         try:
@@ -190,7 +196,8 @@ def bulk_recreate_m2m_field(field_name, m2m_links):
     for comic_pk, pks in m2m_links.items():
         for pk in pks:
             defaults = {"comic_id": comic_pk, through_field_id_name: pk}
-            tms.append(ThroughModel(**defaults))
+            tm = ThroughModel(**defaults)
+            tms.append(tm)
 
     # It is simpler to just nuke and recreate all links than
     #   detect, create & delete them.

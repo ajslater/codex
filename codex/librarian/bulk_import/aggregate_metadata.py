@@ -76,6 +76,7 @@ def _get_path_metadata(path):
         md_m2m_fields = COMIC_M2M_FIELDS & md.keys()
         for field in md_m2m_fields:
             m2m_md[field] = md.pop(field)
+        m2m_md["folders"] = Path(path).parents
     except Exception as exc:
         LOG.exception(exc)
         failed_import = {path: exc}
@@ -113,7 +114,7 @@ def _aggregate_m2m_metadata(all_m2m_mds, m2m_md, all_fks, path):
                     all_fks[field].add(name)
                 credit_tuple = tuple(sorted(credit_dict.items()))
                 all_fks["credits"].add(credit_tuple)
-        else:
+        elif field != "folders":
             if field not in all_fks:
                 all_fks[field] = set()
             all_fks[field] |= set(names)
@@ -177,7 +178,7 @@ def get_aggregate_metadata(library, all_paths):
     all_failed_imports = {}
     total_paths = len(all_paths)
 
-    LOG.verbose(f"Scanning metadata in {library.path}...")  # type: ignore
+    LOG.verbose(f"Processing tags in {library.path}...")  # type: ignore
     last_log_time = time.time()
     for num, path in enumerate(all_paths):
         path = str(path)
@@ -197,12 +198,12 @@ def get_aggregate_metadata(library, all_paths):
 
         now = time.time()
         if now - last_log_time > LOG_EVERY:
-            LOG.info(f"Scanned {num}/{total_paths} comics metadata")
+            LOG.info(f"Processing {num}/{total_paths} comics tags")
             last_log_time = now
 
     all_fks["comic_paths"] = set(all_mds.keys())
 
     _bulk_update_or_create_failed_imports(library.pk, all_failed_imports)
 
-    LOG.verbose(f"Aggregated metadata from {len(all_mds)} comics.")  # type: ignore
+    LOG.verbose(f"Aggregated tags from {len(all_mds)} comics.")  # type: ignore
     return all_mds, all_m2m_mds, all_fks
