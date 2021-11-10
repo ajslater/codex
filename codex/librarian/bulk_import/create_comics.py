@@ -3,6 +3,7 @@ from logging import getLogger
 from pathlib import Path
 
 from django.db.models import Q
+from django.db.models.functions import Now
 
 from codex.models import Comic, Credit, Folder, Imprint, Publisher, Series, Volume
 
@@ -14,7 +15,6 @@ EXCLUDE_BULK_UPDATE_COMIC_FIELDS = (
     "myself",
     "userbookmark",
     "created_at",
-    "updated_at",
 )
 BULK_UPDATE_COMIC_FIELDS = []
 for field in Comic._meta.get_fields():
@@ -60,17 +60,19 @@ def _update_comics(library, comic_paths, mds):
     LOG.verbose(f"Peparing {num_comics} comics for update.")  # type: ignore
     # Get existing comics to update
     comics = Comic.objects.filter(library=library, path__in=comic_paths).only(
-        "pk", *BULK_UPDATE_COMIC_FIELDS
+        "pk", "path", *BULK_UPDATE_COMIC_FIELDS
     )
 
     # set attributes for each comic
     update_comics = []
+    now = Now()
     for comic in comics:
         md = mds.pop(comic.path)
         _link_comic_fks(md, library, comic.path)
         for field_name, value in md.items():
             setattr(comic, field_name, value)
         comic.presave()
+        comic.updated_at = now  # type: ignore
         update_comics.append(comic)
 
     LOG.verbose(f"Bulk updating {num_comics} comics.")  # type: ignore
@@ -103,6 +105,7 @@ def _create_comics(library, comic_paths, mds):
     created_comics = Comic.objects.filter(path__in=comic_paths).only("pk", "myself")
     for comic in created_comics:
         comic.myself = comic  # type: ignore
+        # Skipping updated_at update here to not be confusing
     Comic.objects.bulk_update(created_comics, ["myself"])
 
 
@@ -205,7 +208,7 @@ def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2
 
     if all_m2m_mds:
         LOG.verbose(  # type: ignore
-            f"Preparing {len(all_m2m_mds)} comics for many to many relation recration."
+            f"Preparing {len(all_m2m_mds)} comics for many to many relation recreation."
         )
     all_m2m_links = _link_comic_m2m_fields(all_m2m_mds)
     for field_name, m2m_links in all_m2m_links.items():

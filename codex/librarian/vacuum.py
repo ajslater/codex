@@ -1,36 +1,36 @@
 """Vacuum the database."""
-from datetime import datetime, timedelta
+from datetime import timedelta
 from logging import getLogger
 
 from django.db import connection
+from django.utils import timezone
 
-from codex.settings.settings import CACHE_PATH, DB_PATH
+from codex.models import AdminFlag
+from codex.settings.settings import DB_PATH
 
 
-VACUUM_LOCK_PATH = CACHE_PATH / "db_vacuum.timestamp"
-CACHE_EXPIRY = timedelta(days=1)
+VACUUM_FREQ = timedelta(days=1)
 LOG = getLogger(__name__)
 
 
-def is_vacuum_time():
+def _is_vacuum_time(vacuum_flag):
     """Check if it's vacuum time."""
-    if not VACUUM_LOCK_PATH.exists():
-        return True
+    if not vacuum_flag.on:
+        LOG.debug("Database vacuum disabled.")
+        return False
 
-    mtime = VACUUM_LOCK_PATH.stat().st_mtime
-    mtime = datetime.fromtimestamp(mtime)
-    expiry_time = mtime + CACHE_EXPIRY
+    elapsed = timezone.now() - vacuum_flag.updated_at
+    if elapsed < VACUUM_FREQ:
+        LOG.debug("Not time to vacuum the database yet.")
+        return False
 
-    if expiry_time < datetime.now():
-        return True
-
-    LOG.debug("Not time to vacuum yet")
-    return False
+    return True
 
 
 def vacuum_db():
     """Vacuum the database every day."""
-    if not is_vacuum_time():
+    vacuum_flag = AdminFlag.objects.get(name=AdminFlag.ENABLE_AUTO_VACUUM)
+    if not _is_vacuum_time(vacuum_flag):
         return
 
     old_size = DB_PATH.stat().st_size
@@ -38,5 +38,5 @@ def vacuum_db():
         cursor.execute("VACUUM")
     new_size = DB_PATH.stat().st_size
     saved = new_size - old_size
-    VACUUM_LOCK_PATH.touch()
-    LOG.info("Vacuumed database. Saved %s bytes", saved)
+    vacuum_flag.save()  # update updated_at
+    LOG.info(f"Vacuumed database. Saved {saved} bytes.")

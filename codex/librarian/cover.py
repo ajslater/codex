@@ -6,6 +6,7 @@ from logging import INFO, getLogger
 from pathlib import Path
 
 from comicbox.comic_archive import ComicArchive
+from django.db.models.functions import Now
 from fnvhash import fnv1a_32
 from PIL import Image
 
@@ -129,9 +130,14 @@ def _create_comic_cover_from_file(comic, force=False):
     except Comic.DoesNotExist:
         LOG.warning(f"Comic for {cover_path=} does not exist in the db.")
     except Exception as exc:
-        LOG.error(f"Failed to create cover thumb for {comic_path}")
-        LOG.exception(exc)
-        Comic.objects.filter(comic_path=comic_path).update(cover_path=MISSING_COVER_FN)
+        if isinstance(exc, FileNotFoundError):
+            LOG.warning(f"Comic at {comic_path} not found.")
+        else:
+            LOG.exception(exc)
+            LOG.error(f"Failed to create cover thumb for {comic_path}")
+        Comic.objects.filter(path=comic_path).update(
+            cover_path=MISSING_COVER_FN, updated_at=Now()
+        )
         LOG.warn(f"Marked cover for {comic_path} missing.")
     return count
 

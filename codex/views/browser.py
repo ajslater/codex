@@ -7,7 +7,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from stringcase import snakecase
 
-from codex.librarian.latest_version import get_installed_version, get_latest_version
+from codex.librarian.latest_version import get_latest_version
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, BulkComicCoverCreateTask
 from codex.models import (
     AdminFlag,
@@ -24,12 +24,11 @@ from codex.serializers.browser import (
     BrowserPageSerializer,
     BrowserSettingsSerializer,
 )
-from codex.settings.settings import CACHE_PATH
+from codex.version import PACKAGE_NAME, VERSION
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser_metadata_base import BrowserMetadataBase
 
 
-PACKAGE_NAME = "codex"
 LOG = getLogger(__name__)
 
 
@@ -296,7 +295,12 @@ class BrowserView(BrowserMetadataBase):
         else:
             if not self.group_class:
                 raise ValueError("No group_class set in browser")
-            self.group_instance = self.group_class.objects.select_related().get(pk=pk)
+            try:
+                self.group_instance = self.group_class.objects.select_related().get(
+                    pk=pk
+                )
+            except self.group_class.DoesNotExist:
+                self.raise_valid_route(f"{group}={pk} Does not exist!")
 
     def get_browse_up_route(self):
         """Get the up route from the first valid ancestor."""
@@ -493,8 +497,7 @@ class BrowserView(BrowserMetadataBase):
 
         filters = self.params["filters"]
 
-        installed_version = get_installed_version(PACKAGE_NAME)
-        latest_version = get_latest_version(PACKAGE_NAME, cache_root=CACHE_PATH)
+        latest_version = get_latest_version(PACKAGE_NAME)
 
         data = {
             "settings": {
@@ -505,7 +508,7 @@ class BrowserView(BrowserMetadataBase):
                 "show": self.params.get("show"),
             },
             "browserPage": browser_page,
-            "versions": {"installed": installed_version, "latest": latest_version},
+            "versions": {"installed": VERSION, "latest": latest_version},
         }
 
         serializer = BrowserOpenedSerializer(data)

@@ -6,6 +6,7 @@ from logging import getLogger
 from pathlib import Path
 
 from comicbox.comic_archive import ComicArchive
+from django.db.models.functions import Now
 
 from codex.librarian.cover import get_cover_path
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, ImageComicCoverCreateTask
@@ -150,7 +151,9 @@ def _bulk_update_or_create_failed_imports(library_pk, failed_imports):
         fi = FailedImport(library_id=library_pk, path=path)
         fi.set_reason(exc, path)
         if path in exisiting_fi_paths:
+            fi.updated_at = Now()  # type: ignore
             update_failed_imports.append(fi)
+
         else:
             create_failed_imports.append(fi)
 

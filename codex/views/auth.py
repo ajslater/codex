@@ -3,6 +3,7 @@ from logging import getLogger
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
+from django.db.models.functions import Now
 from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -67,7 +68,9 @@ class RegisterView(APIView):
         user.set_password(password)
         user.save()
         session_key = self.request.session.session_key
-        UserBookmark.objects.filter(session__session_key=session_key).update(user=user)
+        UserBookmark.objects.filter(session__session_key=session_key).update(
+            user=user, updated_at=Now()
+        )
         return user
 
     def validate(self):

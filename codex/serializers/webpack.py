@@ -5,13 +5,12 @@ Extract the same json the frontend uses for the values so they're always
 in sync.
 Which is a little bit of overengineering.
 """
+import json
 import mmap
 import re
 
 from logging import getLogger
 from pathlib import Path
-
-import simplejson as json
 
 from codex.settings.settings import BASE_DIR, DEBUG, STATIC_ROOT
 

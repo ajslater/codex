@@ -8,6 +8,7 @@ from multiprocessing import set_start_method
 from asgiref.sync import sync_to_async
 from django.contrib.auth.models import User
 from django.core.cache import cache
+from django.db.models.functions import Now
 
 from codex.librarian.librariand import LibrarianDaemon
 from codex.models import AdminFlag, Library
@@ -52,6 +53,7 @@ def unset_scan_in_progress():
     )
     for library in stuck_libraries:
         library.scan_in_progress = False
+        library.updated_at = Now()  # type: ignore
         LOG.info(f"Removing scan lock from {library.path}")
     Library.objects.bulk_update(stuck_libraries, ["scan_in_progress"])
 

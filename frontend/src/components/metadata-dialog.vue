@@ -129,7 +129,7 @@
           <table id="mtime">
             <tr v-if="md.comic.created_at" id="created_at">
               <td>Created at</td>
-              <td>{{ formatDatetime(md.comic.updated_at) }}</td>
+              <td>{{ formatDatetime(md.comic.created_at) }}</td>
             </tr>
             <tr v-if="md.comic.updated_at" id="updated_at">
               <td>Updated at</td>

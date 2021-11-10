@@ -5,6 +5,7 @@ from datetime import datetime
 from logging import getLogger
 from pathlib import Path
 
+from django.db.models.functions import Now
 from django.utils import timezone
 
 from codex.librarian.bulk_import.main import (
@@ -122,7 +123,7 @@ def _scan_root(pk, force=False):
         )
         if force or library.last_scan is None or library.schema_version is None:
             library.schema_version = SCHEMA_VERSION
-        library.last_scan = timezone.now()
+        library.last_scan = Now()  # type: ignore
         LOG.info(f"Scan of {library.path} finished.")
     except NoLibraryPathError:
         LOG.warning(f"Could not find library at {library.path}. Not scanning.")

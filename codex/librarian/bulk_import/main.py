@@ -2,6 +2,9 @@
 from logging import getLogger
 from pathlib import Path
 
+from django.core.cache import cache
+from django.db.models.functions import Now
+
 from codex.librarian.bulk_import.aggregate_metadata import get_aggregate_metadata
 from codex.librarian.bulk_import.cleanup import cleanup_database
 from codex.librarian.bulk_import.create_comics import (
@@ -131,7 +134,7 @@ def bulk_comics_moved(library_pk, moved_paths):
 
     # Update Comics
     comics = Comic.objects.filter(library=library, path__in=moved_paths.keys()).only(
-        "pk", "path", "parent_folder", "folder"
+        "pk", "path", "parent_folder", "folders"
     )
 
     folder_m2m_links = {}
@@ -139,6 +142,7 @@ def bulk_comics_moved(library_pk, moved_paths):
         comic.path = moved_paths[comic.path]
         new_path = Path(comic.path)
         comic.parent_folder = Folder.objects.get(path=new_path.parent)
+        comic.updated_at = Now()  # type: ignore
         folder_m2m_links[comic.pk] = Folder.objects.filter(
             path__in=new_path.parents
         ).values_list("pk", flat=True)
@@ -146,9 +150,10 @@ def bulk_comics_moved(library_pk, moved_paths):
     Comic.objects.bulk_update(comics, MOVED_BULK_COMIC_UPDATE_FIELDS)
 
     # Update m2m field
-    bulk_recreate_m2m_field("folder", folder_m2m_links)
+    bulk_recreate_m2m_field("folders", folder_m2m_links)
     LOG.info(f"Moved {len(moved_paths)} comics.")
     cleanup_database(library)
+    cache.clear()
     return bool(moved_paths)
 
 
@@ -185,6 +190,7 @@ def _update_moved_folders(library, folders_moved, dest_parent_folders):
         folder.path = new_path
         parent_path = str(Path(new_path).parent)
         folder.parent_folder = dest_parent_folders.get(parent_path)
+        folder.updated_at = Now()  # type: ignore
         update_folders.append(folder)
 
     update_folders = sorted(update_folders, key=lambda x: len(Path(x.path).parts))
@@ -199,3 +205,4 @@ def bulk_folders_moved(library_pk, folders_moved):
     dest_parent_folders = _get_parent_folders(library, folders_moved)
     _update_moved_folders(library, folders_moved, dest_parent_folders)
     cleanup_database(library)
+    cache.clear()

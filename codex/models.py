@@ -395,11 +395,13 @@ class AdminFlag(NamedModel):
     ENABLE_REGISTRATION = "Enable Registration"
     ENABLE_NON_USERS = "Enable Non Users"
     ENABLE_AUTO_UPDATE = "Enable Auto Update"
+    ENABLE_AUTO_VACUUM = "Enable Daily Database Vacuum"
     FLAG_NAMES = (
         ENABLE_FOLDER_VIEW,
         ENABLE_REGISTRATION,
         ENABLE_NON_USERS,
         ENABLE_AUTO_UPDATE,
+        ENABLE_AUTO_VACUUM,
     )
     DEFAULT_FALSE = (ENABLE_AUTO_UPDATE,)
 
@@ -487,3 +489,15 @@ class FailedImport(BaseModel):
         """Constraints."""
 
         unique_together = ("library", "path")
+
+
+class LatestVersion(BaseModel):
+    """Latest codex version."""
+
+    PK = 1
+    version = CharField(max_length=32)
+
+    @classmethod
+    def set_version(cls, version):
+        """Ensure a single database row."""
+        cls.objects.update_or_create(pk=LatestVersion.PK, version=version)
