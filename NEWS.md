@@ -7,8 +7,8 @@
 - Regenerate all comic covers in a library from an admin task.
 - Comics with no specified Publishers, Imprints and Series no longer have induced default names for these but have no name like Volumes.
 - Added VERBOSE logging level to help screen out bulk DEBUG messages from dependancies.
-- Shortened logging message for easier reading.
-- Fixed a metada display bug that was showing the updated_at time for created_at
+- Shortened logging messages for easier reading.
+- Now compatible with python 3.10
 
 ## v0.6.8
 
