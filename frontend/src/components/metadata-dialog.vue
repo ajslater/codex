@@ -252,10 +252,10 @@
           <tbody>
             <tr v-for="credit in md.comic.credits" :key="credit.pk">
               <td>
-                <MetadataAutocomplete :value="credit.role" />
+                <MetadataAutocomplete :value="credit.role.name" />
               </td>
               <td>
-                <MetadataCombobox :value="credit.person" />
+                <MetadataCombobox :value="credit.person.name" />
               </td>
             </tr>
           </tbody>
