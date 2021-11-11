@@ -269,20 +269,20 @@ class Comic(BaseModel):
     """Comic metadata."""
 
     path = CharField(db_index=True, max_length=128)
+    issue = DecimalField(db_index=True, decimal_places=2, max_digits=6, default=0.0)
+    title = CharField(db_index=True, max_length=64, null=True)
     volume = ForeignKey(Volume, db_index=True, on_delete=CASCADE)
     series = ForeignKey(Series, db_index=True, on_delete=CASCADE)
     imprint = ForeignKey(Imprint, db_index=True, on_delete=CASCADE)
     publisher = ForeignKey(Publisher, db_index=True, on_delete=CASCADE)
-    issue = DecimalField(db_index=True, decimal_places=2, max_digits=6, default=0.0)
-    title = CharField(db_index=True, max_length=64, null=True)
     # Date
     year = PositiveSmallIntegerField(null=True)
     month = PositiveSmallIntegerField(null=True)
     day = PositiveSmallIntegerField(null=True)
     # Summary
-    summary = TextField(null=True)
-    notes = TextField(null=True)
     description = TextField(null=True)
+    notes = TextField(null=True)
+    summary = TextField(null=True)
     # Ratings
     critical_rating = CharField(db_index=True, max_length=32, null=True)
     maturity_rating = CharField(db_index=True, max_length=32, null=True)
@@ -291,21 +291,21 @@ class Comic(BaseModel):
     country = CharField(db_index=True, max_length=32, null=True)
     language = CharField(db_index=True, max_length=16, null=True)
     # misc
-    page_count = PositiveSmallIntegerField(db_index=True, default=0)
     cover_image = CharField(max_length=64, null=True)
-    read_ltr = BooleanField(default=True)
-    web = URLField(null=True)
     format = CharField(max_length=16, null=True)
+    page_count = PositiveSmallIntegerField(db_index=True, default=0)
+    read_ltr = BooleanField(default=True)
     scan_info = CharField(max_length=32, null=True)
+    web = URLField(null=True)
     # ManyToMany
-    credits = ManyToManyField(Credit)
-    tags = ManyToManyField(Tag)
-    teams = ManyToManyField(Team)
     characters = ManyToManyField(Character)
+    credits = ManyToManyField(Credit)
+    genres = ManyToManyField(Genre)
     locations = ManyToManyField(Location)
     series_groups = ManyToManyField(SeriesGroup)
     story_arcs = ManyToManyField(StoryArc)
-    genres = ManyToManyField(Genre)
+    tags = ManyToManyField(Tag)
+    teams = ManyToManyField(Team)
     # Ignore these, they seem useless:
     #
     # black_and_white = BooleanField(default=False)
@@ -322,17 +322,17 @@ class Comic(BaseModel):
     # identifier = CharField(max_length=64, null=True)
 
     # codex only
-    library = ForeignKey(Library, on_delete=CASCADE, db_index=True)
-    sort_name = CharField(db_index=True, max_length=32)
+    cover_path = CharField(max_length=32)
     date = DateField(db_index=True, null=True)
     decade = PositiveSmallIntegerField(db_index=True, null=True)
-    size = PositiveSmallIntegerField(db_index=True)
+    folders = ManyToManyField(Folder)
+    library = ForeignKey(Library, on_delete=CASCADE, db_index=True)
     max_page = PositiveSmallIntegerField(default=0)
     parent_folder = ForeignKey(
         Folder, db_index=True, on_delete=CASCADE, null=True, related_name="comic_in"
     )
-    folders = ManyToManyField(Folder)
-    cover_path = CharField(max_length=32)
+    size = PositiveSmallIntegerField(db_index=True)
+    sort_name = CharField(db_index=True, max_length=32)
     # Useful for the related field 'comic' so comics appear to
     # aggregators as a container of one.
     myself = ForeignKey("self", on_delete=CASCADE, null=True, related_name="comic")

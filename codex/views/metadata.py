@@ -92,12 +92,19 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
     COMIC_M2M_FIELDS = set(
         (
             "characters",
+            "credits",
             "genres",
             "locations",
             "series_groups",
             "story_arcs",
             "tags",
             "teams",
+        )
+    )
+    CREDIT_FK_RELATIONS = set(
+        (
+            "credits__person",
+            "credits__role",
         )
     )
     PK_LIST_SUFFIX = "_pk_list"
@@ -153,9 +160,8 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
         """Build a pick set by checking the count_dict."""
         for field in fields:
             count_field = field + field_suffix + cls.COUNT_SUFFIX
-            if count_dict[count_field] != 1:
-                continue
-            pick_sets[key].add(field)
+            if key == "m2m" or count_dict[count_field] == 1:
+                pick_sets[key].add(field)
 
     def get_pick_sets(self, comic_qs):
         """Determine which fields are common across all comics."""
@@ -248,17 +254,21 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
             rel = rel.split("__")[0]
             select_related.add(rel)
 
+        m2m_pick_set = pick_sets["m2m"]
+        if "credits" in m2m_pick_set:
+            m2m_pick_set |= self.CREDIT_FK_RELATIONS
+
         # Get one comic but only the common fields.
-        comic_qs = Comic.objects.select_related(*select_related).prefetch_related(
-            *pick_sets["m2m"]
+        comic_qs = (
+            Comic.objects.only(*pick_sets["only"])
+            .select_related(*select_related)
+            .prefetch_related(*m2m_pick_set)
         )
 
         # Annotate the comic with the related values and adjust
-        # the pick set to match.
         for annotation in pick_sets["related_value"]:
             relation = self.COMIC_RELATED_VALUE_FIELD_MAP[annotation]
             comic_qs = comic_qs.annotate(**{annotation: relation})
-        comic_qs = comic_qs.only(*pick_sets["only"])
 
         # Just get one comic
         _first_comic_pk = None
@@ -279,7 +289,6 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
 
         # Get the comic & final pick set for the serializer
         comic, comic_pks, comic_fields = self.get_comic(aggregate_filter)
-
         data = {"pks": list(comic_pks), "aggregates": aggregates, "comic": comic}
         serializer = MetadataSerializer(data, comic_fields=comic_fields)
 
