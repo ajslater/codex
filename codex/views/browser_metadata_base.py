@@ -70,13 +70,6 @@ class BrowserMetadataBase(BrowserBaseView):
             order_by += ["library"]
         return order_by
 
-    @staticmethod
-    def _get_model_ref(model):
-        if model == Folder:
-            return "parent_folder"
-        else:
-            return model.__name__.lower()
-
     def annotate_cover_path(self, queryset, model, aggregate_filter):
         """Annotate the query set for the coverpath for the sort."""
         # Select comics for the children by an outer ref for annotation
@@ -87,7 +80,9 @@ class BrowserMetadataBase(BrowserBaseView):
             # Cover Path from sorted children.
             # Don't know how to make this a join because it selects by
             #   order_by but wants the cover_path
-            model_ref = self._get_model_ref(model)
+            model_ref = model.__name__.lower()
+            if model == Folder:
+                model_ref += "s"
             model_group_filter = Q(**{model_ref: OuterRef("pk")})
             comics = Comic.objects.filter(model_group_filter & aggregate_filter)
             order_by = self.get_order_by(Comic, False)
