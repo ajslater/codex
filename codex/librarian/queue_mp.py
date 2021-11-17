@@ -84,13 +84,6 @@ class PollLibrariesTask(LibrariesTask):
 
 
 @dataclass
-class SleepTask:
-    """A task that must sleep a tiny bit for db consistency."""
-
-    sleep: int
-
-
-@dataclass
 class WatchdogTask:
     """Sync watches with libraries."""
 
@@ -98,14 +91,14 @@ class WatchdogTask:
 
 
 @dataclass
-class UpdateCronTask(SleepTask):
+class UpdateCronTask:
     """Task for updater."""
 
     force: bool
 
 
 @dataclass
-class RestartTask(SleepTask):
+class RestartTask:
     """for restart."""
 
     pass

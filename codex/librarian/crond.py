@@ -33,7 +33,7 @@ class Crond(Thread):
                 LOG.verbose(f"Waiting {int(timeout)} seconds until next maintenence.")
                 self._cond.wait(timeout=timeout)
                 try:
-                    LIBRARIAN_QUEUE.put(UpdateCronTask(sleep=0, force=False))
+                    LIBRARIAN_QUEUE.put(UpdateCronTask(force=False))
                     LIBRARIAN_QUEUE.put(VacuumCronTask())
                 except Exception as exc:
                     LOG.exception(exc)

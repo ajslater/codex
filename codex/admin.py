@@ -140,13 +140,13 @@ class AdminAdminFlag(AdminNoAddDelete):
 
     def update_now(self, request, queryset):
         """Trigger an update task immediately."""
-        LIBRARIAN_QUEUE.put(UpdateCronTask(sleep=0, force=True))
+        LIBRARIAN_QUEUE.put(UpdateCronTask(force=True))
 
     update_now.short_description = "Update Codex Now"
 
     def restart_now(self, request, queryset):
         """Send a restart task immediately."""
-        LIBRARIAN_QUEUE.put(RestartTask(sleep=0))
+        LIBRARIAN_QUEUE.put(RestartTask())
 
     restart_now.short_description = "Restart Codex Now"
 
