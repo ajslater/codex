@@ -99,8 +99,6 @@ def _create_comic_cover_from_file(comic, force=False):
         LOG.warning("Not creating comic cover for empty object.")
         return count
     try:
-        print(f"{cover_path=} {comic_path=}")
-
         if not cover_path:
             cover_path = Comic.objects.get(path=path).cover_path
 

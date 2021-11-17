@@ -83,7 +83,7 @@ class AdminLibrary(ModelAdmin):
         """Events for when the library has changed."""
         # XXX These sleep values are for waiting for db consistency
         #     between processes. Klugey.
-        LIBRARIAN_QUEUE.put(WatchdogTask(sleep=1))
+        LIBRARIAN_QUEUE.put(WatchdogTask())
         LIBRARIAN_QUEUE.put(BroadcastNotifierTask("LIBRARY_CHANGED"))
 
     def save_model(self, request, obj, form, change):
