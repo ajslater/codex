@@ -27,22 +27,22 @@ class EventBatcher(AggregateMessageQueuedThread):
     """Batch watchdog events into bulk database tasks."""
 
     NAME = "WatchdogEventBatcher"
-    EVENT_FIELD_MAP = {
-        DirMovedEvent: "dirs_moved",
-        FileMovedEvent: "files_moved",
-        FileModifiedEvent: "files_modified",
-        FileCreatedEvent: "files_created",
-        DirDeletedEvent: "dirs_deleted",
-        FileDeletedEvent: "files_deleted",
-        DirModifiedEvent: "dirs_modified",
-    }
-    IGNORE_EVENTS = (DirCreatedEvent, DirModifiedEvent)
+    CLS_SUFFIX = -len("Event")
+
+    @classmethod
+    def _field_by_event(cls, event):
+        """Translate event class names into field names."""
+        if event.is_directory:
+            prefix = "dir"
+        else:
+            prefix = "file"
+        return f"{prefix}s_{event.event_type}"
 
     def _aggregate_items(self, message):
         """Aggregate events into cache."""
         library_pk, event = message
 
-        if event.__class__ in self.IGNORE_EVENTS:
+        if event.__class__ == DirCreatedEvent:
             return
 
         if library_pk not in self.cache:
@@ -62,7 +62,7 @@ class EventBatcher(AggregateMessageQueuedThread):
             "files_deleted": set(),
         }
         for event in events:
-            field = self.EVENT_FIELD_MAP[event.__class__]
+            field = self._field_by_event(event)
             if event.event_type == EVENT_TYPE_MOVED:
                 params[field][event.src_path] = event.dest_path
             else:

@@ -160,6 +160,7 @@ class DatabasePollingEmitter(EventEmitter):
             db_snapshot = self._take_db_snapshot()
             dir_snapshot = self._take_dir_snapshot()
             events = DirectorySnapshotDiff(db_snapshot, dir_snapshot)
+            LOG.debug(events)
 
             # Files.
             # Could remove non-comics here, but handled by the EventHandler
