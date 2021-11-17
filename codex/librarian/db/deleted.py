@@ -59,7 +59,7 @@ def bulk_comics_deleted(library, delete_comic_paths=None) -> bool:
     query = Comic.objects.filter(library=library, path__in=delete_comic_paths)
     delete_cover_paths = query.values_list("cover_path", flat=True)
 
-    LIBRARY_QUEUE.put(PurgeComicCoversTask(delete_cover_paths))
+    LIBRARIAN_QUEUE.put(PurgeComicCoversTask(delete_cover_paths))
 
     query.delete()
     num_delete_cover_paths = len(delete_cover_paths)

@@ -100,7 +100,7 @@ def _create_comic_cover_from_file(comic, force=False):
         return count
     try:
         if not cover_path:
-            cover_path = Comic.objects.get(path=path).cover_path
+            cover_path = Comic.objects.get(path=comic_path).cover_path
 
         fs_cover_path = COVER_ROOT / cover_path
         if (cover_path == MISSING_COVER_FN or fs_cover_path.exists()) and not force:

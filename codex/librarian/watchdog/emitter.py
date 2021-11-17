@@ -125,6 +125,7 @@ class DatabasePollingEmitter(EventEmitter):
 
     @property
     def timeout(self):
+        """Get the timeout for this emitter from its library."""
         library = Library.objects.get(path=self.watch.path)
         if not library.poll:
             LOG.warning(f"Library {self.watch.path} not poll enabled.")
