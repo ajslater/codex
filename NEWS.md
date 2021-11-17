@@ -11,6 +11,7 @@
 - Now compatible with python 3.10
 - Fixed credits displaying in metadata.
 - Fixed named tags displaying in metadata for aggregate groups of comics.
+- Admin Panel options for polling & watching events have changed names
 
 ## v0.6.8
 
