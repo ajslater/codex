@@ -254,7 +254,7 @@ class WatchedPath(BaseModel):
         on_delete=CASCADE,
         null=True,
     )
-    ZERO_STAT = [0] * 10
+    ZERO_STAT = [0, 0, 0, 0, 0, 0, 0, 0, 0.0, 0]
 
     def set_stat(self):
         """Set select stat params from the filesystem."""

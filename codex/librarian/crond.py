@@ -30,7 +30,9 @@ class Crond(Thread):
         with self._cond:
             while not self._stop_event.is_set():
                 timeout = self._until_midnight()
-                LOG.verbose(f"Waiting {int(timeout)} seconds until next maintenence.")
+                LOG.verbose(  # type: ignore
+                    f"Waiting {int(timeout)} seconds until next maintenence."
+                )
                 self._cond.wait(timeout=timeout)
                 try:
                     LIBRARIAN_QUEUE.put(UpdateCronTask(force=False))

@@ -52,11 +52,16 @@ class CodexDatabaseSnapshot(DirectorySnapshot):
             params = Comic.ZERO_STAT
         return params
 
+    def _set_lookups(self, path, st):
+        """Populate thte lookup dirs."""
+        self._stat_info[path] = st
+        i = (st.st_ino, st.st_dev)
+        self._inode_to_path[i] = path
+
     def __init__(
         self,
         path,
-        _recursive=True,
-        walker_callback=(lambda _p, _s: None),
+        _recursive=True,  # unused, always recursive
         stat=os.stat,
         listdir=os.listdir,
         force=False,
@@ -69,9 +74,7 @@ class CodexDatabaseSnapshot(DirectorySnapshot):
             return
 
         # Add the library root
-        st = stat(path)
-        self._stat_info[path] = st
-        self._inode_to_path[(st.st_ino, st.st_dev)] = path
+        self._set_lookups(path, stat(path))
 
         for queryset in self._walk(path):
             for wp in queryset:
@@ -80,10 +83,8 @@ class CodexDatabaseSnapshot(DirectorySnapshot):
                 if force:
                     # Fake mtime will trigger modified event
                     params[8] = 0
-                st = os.stat_result(params)
-                self._inode_to_path[st] = wp_path
-                self._stat_info[wp_path] = st
-                walker_callback(wp_path, st)
+                st = os.stat_result(tuple(params))
+                self._set_lookups(wp_path, st)
 
 
 class DatabasePollingEmitter(EventEmitter):
@@ -135,10 +136,14 @@ class DatabasePollingEmitter(EventEmitter):
             LOG.warning(f"Library {self.watch.path} not found.")
             return self.DIR_NOT_FOUND_TIMEOUT
 
-        since_last_poll = timezone.now() - library.last_poll
-        timeout = max(
-            0, library.poll_every.total_seconds() - since_last_poll.total_seconds()
-        )
+        if library.last_poll:
+            since_last_poll = timezone.now() - library.last_poll
+            timeout = max(
+                0, library.poll_every.total_seconds() - since_last_poll.total_seconds()
+            )
+
+        else:
+            timeout = 0
         return timeout
 
     def queue_events(self, timeout=None):
@@ -146,12 +151,14 @@ class DatabasePollingEmitter(EventEmitter):
         # We don't want to hit the disk continuously.
         # timeout behaves like an interval for polling emitters.
         with self._poll_cond:
-            LOG.verbose(f"Polling {self.watch.path} again in {int(timeout)} seconds.")
+            LOG.verbose(  # type: ignore
+                f"Polling {self.watch.path} again in {int(timeout)} seconds."
+            )
             self._poll_cond.wait(timeout)
             if not self.should_keep_running():
                 return
 
-            LOG.verbose(f"Polling {self.watch.path}...")
+            LOG.verbose(f"Polling {self.watch.path}...")  # type: ignore
             if not Path(self.watch.path).is_dir():
                 LOG.warning(f"{self.watch.path} not found. Not polling.")
                 return
@@ -190,7 +197,7 @@ class DatabasePollingEmitter(EventEmitter):
             Library.objects.filter(path=self.watch.path).update(
                 last_poll=Now(), updated_at=Now()
             )
-        LOG.verbose(f"Poll {self.watch.path} finished.")
+        LOG.verbose(f"Poll {self.watch.path} finished.")  # type: ignore
 
     def on_thread_stop(self):
         """Send the poller as well."""

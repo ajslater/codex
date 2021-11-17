@@ -61,7 +61,7 @@ def _bulk_folders_modified(library, paths):
         update_folders.append(folder)
     Folder.objects.bulk_update(update_folders, ["stat"])
     num_update_folders = len(update_folders)
-    LOG.verbose(f"Modified {num_update_folders} folders")
+    LOG.verbose(f"Modified {num_update_folders} folders")  # type: ignore
     return num_update_folders > 0
 
 
