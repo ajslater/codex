@@ -1,6 +1,7 @@
 """Clean up the database after moves or imports."""
 from logging import getLogger
 
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE, PurgeComicCoversTask
 from codex.models import (
     Character,
     Comic,
@@ -19,7 +20,6 @@ from codex.models import (
     Team,
     Volume,
 )
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE, PurgeComicCoversTask
 
 
 DELETE_COMIC_FKS = (

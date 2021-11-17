@@ -104,10 +104,10 @@ def _create_comic_cover_from_file(comic, force=False):
 
         fs_cover_path = COVER_ROOT / cover_path
         if (cover_path == MISSING_COVER_FN or fs_cover_path.exists()) and not force:
-           return count
- 
+            return count
+
         if comic_path is None:
-           comic_path = Comic.objects.get(cover_path=cover_path).path
+            comic_path = Comic.objects.get(cover_path=cover_path).path
 
         # Reopens the car, so slightly inefficient.
         cover_image = ComicArchive(comic_path).get_cover_image()

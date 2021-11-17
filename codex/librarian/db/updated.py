@@ -5,10 +5,7 @@ from codex.librarian.db.aggregate_metadata import get_aggregate_metadata
 from codex.librarian.db.cleanup import cleanup_database
 from codex.librarian.db.create_comics import bulk_import_comics
 from codex.librarian.db.create_fks import bulk_create_all_fks
-from codex.librarian.db.deleted import (
-    bulk_comics_deleted,
-    bulk_folders_deleted,
-)
+from codex.librarian.db.deleted import bulk_comics_deleted, bulk_folders_deleted
 from codex.librarian.db.moved import bulk_comics_moved, bulk_folders_moved
 from codex.librarian.db.query_fks import query_all_missing_fks
 from codex.librarian.queue_mp import (
