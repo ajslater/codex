@@ -1,25 +1,21 @@
 """Batch watchdog events into bulk database tasks."""
+import re
+
 from logging import getLogger
 
 from watchdog.events import (
     EVENT_TYPE_CREATED,
     EVENT_TYPE_MOVED,
-    DirCreatedEvent,
-    DirDeletedEvent,
-    DirModifiedEvent,
-    DirMovedEvent,
     FileCreatedEvent,
-    FileDeletedEvent,
-    FileModifiedEvent,
-    FileMovedEvent,
     FileSystemEventHandler,
 )
 
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DBDiffTask
-from codex.librarian.regex import COMIC_MATCHER
 from codex.threads import AggregateMessageQueuedThread
 
 
+COMIC_REGEX = r"\.cb[rz]$"
+COMIC_MATCHER = re.compile(COMIC_REGEX)
 LOG = getLogger(__name__)
 
 
@@ -42,7 +38,7 @@ class EventBatcher(AggregateMessageQueuedThread):
         """Aggregate events into cache."""
         library_pk, event = message
 
-        if event.__class__ == DirCreatedEvent:
+        if event.is_directory and event.event_type == EVENT_TYPE_CREATED:
             return
 
         if library_pk not in self.cache:

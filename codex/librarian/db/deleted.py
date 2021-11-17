@@ -1,7 +1,6 @@
 """Clean up the database after moves or imports."""
 from logging import getLogger
 
-from codex.librarian.cover import purge_cover_path
 from codex.models import (
     Character,
     Comic,
@@ -20,6 +19,7 @@ from codex.models import (
     Team,
     Volume,
 )
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE, PurgeComicCoversTask
 
 
 DELETE_COMIC_FKS = (
@@ -59,8 +59,7 @@ def bulk_comics_deleted(library, delete_comic_paths=None) -> bool:
     query = Comic.objects.filter(library=library, path__in=delete_comic_paths)
     delete_cover_paths = query.values_list("cover_path", flat=True)
 
-    for cover_path in delete_cover_paths:
-        purge_cover_path(cover_path)
+    LIBRARY_QUEUE.put(PurgeComicCoversTask(delete_cover_paths))
 
     query.delete()
     num_delete_cover_paths = len(delete_cover_paths)

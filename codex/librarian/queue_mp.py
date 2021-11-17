@@ -26,33 +26,60 @@ class DBDiffTask(LibraryTask):
 
 
 @dataclass
-class ComicCoverCreateTask:
+class ComicCoverTask:
     """Handle with the CoverCreator."""
-
-    force: bool
 
 
 @dataclass
-class ImageComicCoverCreateTask(ComicCoverCreateTask):
+class ImageComicCoverCreateTask(ComicCoverTask):
     """A comic cover with image data."""
 
+    force: bool
     comic_path: str
     cover_path: str
     image_data: bytes
 
 
 @dataclass
-class BulkComicCoverCreateTask(ComicCoverCreateTask):
+class BulkComicCoverCreateTask(ComicCoverTask):
     """A list of comic src and dest paths."""
 
+    force: bool
     comics: tuple
 
 
 @dataclass
-class PollLibrariesTask:
-    """Tell observer to poll these libraries now."""
+class LibrariesTask:
+    """Tasks over a set of libraries."""
 
     library_ids: set
+
+
+@dataclass
+class CreateComicCoversLibrariesTask(ComicCoverTask, LibrariesTask):
+    """Create Comic covers for a set of libraries."""
+
+    pass
+
+
+@dataclass
+class PurgeComicCoversLibrariesTask(ComicCoverTask, LibrariesTask):
+    """Purge all covers for a set of libraries."""
+
+    pass
+
+
+@dataclass
+class PurgeComicCoversTask(ComicCoverTask):
+    """Purge a set of comic cover_paths."""
+
+    cover_paths: set
+
+
+@dataclass
+class PollLibrariesTask(LibrariesTask):
+    """Tell observer to poll these libraries now."""
+
     force: bool
 
 

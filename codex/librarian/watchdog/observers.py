@@ -5,7 +5,7 @@ from watchdog.observers import Observer
 from watchdog.observers.api import BaseObserver
 
 from codex.librarian.watchdog.emitter import DatabasePollingEmitter
-from codex.librarian.watchdog.events import CodexLibraryEventHandler
+from codex.librarian.watchdog.eventsd import CodexLibraryEventHandler
 from codex.models import Library
 
 

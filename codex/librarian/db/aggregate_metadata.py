@@ -7,8 +7,8 @@ from pathlib import Path
 
 from comicbox.comic_archive import ComicArchive
 from django.db.models.functions import Now
+from fnvhash import fnv1a_32
 
-from codex.librarian.cover import get_cover_path
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, ImageComicCoverCreateTask
 from codex.models import Comic, FailedImport, Imprint, Publisher, Series, Volume
 
@@ -24,6 +24,25 @@ MD_UNUSED_KEYS = ("alternate_series", "remainder", "ext", "pages", "cover_image"
 LOG_EVERY = 15
 WRITE_WAIT_EXPIRY = LOG_EVERY
 WRITE_WAIT_DELAY = 0.01
+HEX_FILL = 8
+PATH_STEP = 2
+
+
+def _hex_path(comic_path):
+    """Translate an integer into an efficient filesystem path."""
+    fnv = fnv1a_32(bytes(str(comic_path), "utf-8"))
+    hex_str = "{0:0{1}x}".format(fnv, HEX_FILL)
+    parts = []
+    for i in range(0, len(hex_str), PATH_STEP):
+        parts.append(hex_str[i : i + PATH_STEP])
+    path = Path("/".join(parts))
+    return path
+
+
+def _get_cover_path(comic_path):
+    """Get path to a cover image, creating the image if not found."""
+    cover_path = _hex_path(comic_path)
+    return str(cover_path.with_suffix(".jpg"))
 
 
 def _clean_md(md):
@@ -65,7 +84,7 @@ def _get_path_metadata(path):
         md = car.get_metadata()
         md["path"] = path
         md["size"] = Path(path).stat().st_size
-        cover_path = get_cover_path(path)
+        cover_path = _get_cover_path(path)
         md["cover_path"] = cover_path
         # Getting the cover data while getting the metada is significantly
         # faster than getting the cover later in another thread.

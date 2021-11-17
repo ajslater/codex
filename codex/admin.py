@@ -7,11 +7,12 @@ from django.shortcuts import resolve_url
 from django.utils.html import format_html
 from django.utils.safestring import SafeText
 
-from codex.librarian.cover import purge_all_covers, regen_all_covers
 from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
     BroadcastNotifierTask,
+    CreateComicCoversLibrariesTask,
     PollLibrariesTask,
+    PurgeComicCoversLibrariesTask,
     RestartTask,
     UpdateCronTask,
     WatchdogTask,
@@ -74,8 +75,7 @@ class AdminLibrary(ModelAdmin):
     def regen_comic_covers(self, _, queryset):
         """Regenerate all covers."""
         pks = queryset.values_list("pk", flat=True)
-        for pk in pks:
-            regen_all_covers(pk)
+        LIBRARIAN_QUEUE.put(CreateComicCoversLibrariesTask(pks))
 
     regen_comic_covers.short_description = "Re-create all covers"
 
@@ -95,14 +95,15 @@ class AdminLibrary(ModelAdmin):
 
     def delete_model(self, request, obj):
         """Stop watching on delete."""
-        purge_all_covers(obj)
+        pks = set([obj.pk])
+        LIBRARIAN_QUEUE.put(PurgeComicCoversLibrariesTask(pks))
         super().delete_model(request, obj)
         self._on_change(None)
 
     def delete_queryset(self, request, queryset):
         """Bulk delete."""
-        for obj in queryset:
-            purge_all_covers(obj)
+        pks = set(queryset.values_list("pk", flat=True))
+        LIBRARIAN_QUEUE.put(PurgeComicCoversLibrariesTask(pks))
         super().delete_queryset(request, queryset)
         self._on_change(None)
 
