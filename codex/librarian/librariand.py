@@ -3,13 +3,13 @@ from logging import getLogger
 from multiprocessing import Process
 from time import sleep
 
-from codex.librarian.bulk_import.bulk_action import Updater
 from codex.librarian.cover import CoverCreator
 from codex.librarian.crond import Crond
+from codex.librarian.db.update import Updater
 from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
-    BulkActionTask,
     ComicCoverCreateTask,
+    DBDiffTask,
     NotifierTask,
     PollLibrariesTask,
     RestartTask,
@@ -52,7 +52,7 @@ class LibrarianDaemon(Process):
 
             if isinstance(task, ComicCoverCreateTask):
                 self.cover_creator.queue.put(task)
-            elif isinstance(task, BulkActionTask):
+            elif isinstance(task, DBDiffTask):
                 self.updater.queue.put(task)
             elif isinstance(task, NotifierTask):
                 Notifier.thread.queue.put(task)

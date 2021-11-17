@@ -4,9 +4,9 @@ from pathlib import Path
 
 from django.db.models.functions import Now
 
-from codex.librarian.bulk_import.create_comics import bulk_recreate_m2m_field
-from codex.librarian.bulk_import.create_fks import bulk_create_folders
-from codex.librarian.bulk_import.query_fks import query_missing_folder_paths
+from codex.librarian.db.create_comics import bulk_recreate_m2m_field
+from codex.librarian.db.create_fks import bulk_create_folders
+from codex.librarian.db.query_fks import query_missing_folder_paths
 from codex.models import Comic, Folder
 
 

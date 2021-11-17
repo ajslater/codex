@@ -12,8 +12,8 @@ class LibraryTask:
 
 
 @dataclass
-class BulkActionTask(LibraryTask):
-    """For sending to the importer."""
+class DBDiffTask(LibraryTask):
+    """For sending to the updater."""
 
     dirs_moved: dict
     files_moved: dict

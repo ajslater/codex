@@ -15,7 +15,7 @@ from watchdog.events import (
     FileSystemEventHandler,
 )
 
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE, BulkActionTask
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DBDiffTask
 from codex.librarian.regex import COMIC_MATCHER
 from codex.threads import AggregateMessageQueuedThread
 
@@ -68,7 +68,7 @@ class EventBatcher(AggregateMessageQueuedThread):
             else:
                 params[field].add(event.src_path)
 
-        return BulkActionTask(**params)
+        return DBDiffTask(**params)
 
     def _send_all_items(self):
         """Send all tasks to library queue and reset events cache."""

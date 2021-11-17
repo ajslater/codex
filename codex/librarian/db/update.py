@@ -1,21 +1,21 @@
 """Bulk import and move comics and folders."""
 from logging import getLogger
 
-from codex.librarian.bulk_import.aggregate_metadata import get_aggregate_metadata
-from codex.librarian.bulk_import.cleanup import cleanup_database
-from codex.librarian.bulk_import.create_comics import bulk_import_comics
-from codex.librarian.bulk_import.create_fks import bulk_create_all_fks
-from codex.librarian.bulk_import.deleted import (
+from codex.librarian.db.aggregate_metadata import get_aggregate_metadata
+from codex.librarian.db.cleanup import cleanup_database
+from codex.librarian.db.create_comics import bulk_import_comics
+from codex.librarian.db.create_fks import bulk_create_all_fks
+from codex.librarian.db.deleted import (
     bulk_comics_deleted,
     bulk_folders_deleted,
 )
-from codex.librarian.bulk_import.moved import bulk_comics_moved, bulk_folders_moved
-from codex.librarian.bulk_import.query_fks import query_all_missing_fks
+from codex.librarian.db.moved import bulk_comics_moved, bulk_folders_moved
+from codex.librarian.db.query_fks import query_all_missing_fks
 from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
     AdminNotifierTask,
     BroadcastNotifierTask,
-    BulkActionTask,
+    DBDiffTask,
 )
 from codex.models import FailedImport, Folder, Library
 from codex.threads import QueuedThread
@@ -68,10 +68,10 @@ def _bulk_folders_modified(library, paths):
     return num_update_folders > 0
 
 
-def bulk_action(task):
+def apply(task):
     """Bulk import comics."""
-    LOG.verbose(f"Updating Library {library.path}...")  # type: ignore
     library = Library.objects.get(pk=task.library_id)
+    LOG.verbose(f"Updating Library {library.path}...")  # type: ignore
     library.update_in_progress = True
     library.save()
     LIBRARIAN_QUEUE.put(AdminNotifierTask("SCAN_LIBRARY"))
@@ -105,7 +105,7 @@ class Updater(QueuedThread):
 
     def _process_item(self, task):
         """Run the updater."""
-        if isinstance(task, BulkActionTask):
-            bulk_action(task)
+        if isinstance(task, DBDiffTask):
+            apply(task)
         else:
             LOG.error(f"Bad task sent to library updater {task}")
