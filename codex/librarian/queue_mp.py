@@ -12,43 +12,22 @@ class LibraryTask:
 
 
 @dataclass
-class ScannerTask:
-    """Handle with the Scanner."""
+class BulkActionTask(LibraryTask):
+    """For sending to the importer."""
 
-    pass
-
-
-@dataclass
-class ScanRootTask(LibraryTask, ScannerTask):
-    """Scan a library."""
-
-    force: bool
-
-
-@dataclass
-class BulkMovedTask(LibraryTask, ScannerTask):
-    """Move Folders or Comics."""
-
-    moved_paths: dict
-
-
-@dataclass
-class BulkFolderMovedTask(BulkMovedTask):
-    """Move Folders."""
-
-    pass
-
-
-@dataclass
-class BulkComicMovedTask(BulkMovedTask):
-    """Move Comics."""
-
-    pass
+    dirs_moved: dict
+    files_moved: dict
+    dirs_modified: set
+    files_modified: set
+    # dirs_created: set
+    files_created: set
+    dirs_deleted: set
+    files_deleted: set
 
 
 @dataclass
 class ComicCoverCreateTask:
-    """Hanlde with the CoverCreator."""
+    """Handle with the CoverCreator."""
 
     force: bool
 
@@ -70,6 +49,14 @@ class BulkComicCoverCreateTask(ComicCoverCreateTask):
 
 
 @dataclass
+class PollLibrariesTask:
+    """Tell observer to poll these libraries now."""
+
+    library_ids: set
+    force: bool
+
+
+@dataclass
 class SleepTask:
     """A task that must sleep a tiny bit for db consistency."""
 
@@ -77,15 +64,8 @@ class SleepTask:
 
 
 @dataclass
-class WatcherCronTask(SleepTask):
-    """Cron for watcherd."""
-
-    pass
-
-
-@dataclass
-class ScannerCronTask(SleepTask, ScannerTask):
-    """Cron for scanner."""
+class WatchdogTask:
+    """Sync watches with libraries."""
 
     pass
 

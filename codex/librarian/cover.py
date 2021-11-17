@@ -117,6 +117,9 @@ def _create_comic_cover_from_file(comic, force=False):
     cover_path = comic.get("x_cover_path", comic.get("cover_path"))
     comic_path = comic.get("x_path", comic.get("path"))
     try:
+        if comic.get("group") == "f":
+            # XXX BUG Root folders not showing covers dunno why
+            print(f"{cover_path=} {comic_path=}")
         fs_cover_path = COVER_ROOT / cover_path
         if (cover_path == MISSING_COVER_FN or fs_cover_path.exists()) and not force:
             return count

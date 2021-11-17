@@ -46,23 +46,18 @@ def init_admin_flags():
             LOG.info(f"Created AdminFlag: {flag.name} = {flag.on}")
 
 
-def unset_scan_in_progress():
+def unset_update_in_progress():
     """Unset the scan_in_progres flag for all libraries."""
-    stuck_libraries = Library.objects.filter(scan_in_progress=True).only(
-        "scan_in_progress", "path"
+    Library.objects.filter(update_in_progress=True).update(
+        update_in_progress=False, updated_at=Now()
     )
-    for library in stuck_libraries:
-        library.scan_in_progress = False
-        library.updated_at = Now()  # type: ignore
-        LOG.info(f"Removing scan lock from {library.path}")
-    Library.objects.bulk_update(stuck_libraries, ["scan_in_progress"])
 
 
 def codex_startup():
     """Initialize the database and start the daemons."""
     ensure_superuser()
     init_admin_flags()
-    unset_scan_in_progress()
+    unset_update_in_progress()
     cache.clear()
 
     if platform.system() == "Darwin":

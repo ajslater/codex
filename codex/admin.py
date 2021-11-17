@@ -11,11 +11,10 @@ from codex.librarian.cover import purge_all_covers, regen_all_covers
 from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
     BroadcastNotifierTask,
+    PollLibrariesTask,
     RestartTask,
-    ScannerCronTask,
-    ScanRootTask,
     UpdateCronTask,
-    WatcherCronTask,
+    WatchdogTask,
 )
 from codex.models import AdminFlag, FailedImport, Library
 
@@ -29,52 +28,48 @@ class AdminLibrary(ModelAdmin):
     """Admin model for Library."""
 
     fieldsets = (
-        (None, {"fields": ("path", "enable_watch")}),
-        ("Scans", {"fields": ("last_scan", "scan_in_progress")}),
-        ("Scheduled Scans", {"fields": ("enable_scan_cron", "scan_frequency")}),
+        (None, {"fields": ("path",)}),
+        ("Watchdog", {"fields": ("events", "poll", "poll_every", "last_poll")}),
     )
-    actions = ("scan", "force_scan", "regen_comic_covers")
+    actions = ("poll", "force_poll", "regen_comic_covers")
     empty_value_display = "Never"
     list_display = (
         "path",
-        "enable_watch",
-        "enable_scan_cron",
-        "scan_frequency",
-        "last_scan",
-        "scan_in_progress",
+        "events",
+        "poll",
+        "poll_every",
+        "last_poll",
     )
     # Django admin will not display datetime fields if they're not editable
     list_editable = (
-        "enable_watch",
-        "enable_scan_cron",
-        "scan_frequency",
-        "scan_in_progress",
+        "events",
+        "poll",
+        "poll_every",
         # XXX can't submit anything at all if this doesn't have a value.
         #  I mark this disabled and readonly with javascript. Ugly.
         #  This a django bug.
-        "last_scan",
+        "last_poll",
     )
-    readonly_fields = ("last_scan",)
+    readonly_fields = ("last_poll",)
     sortable_by = list_display
 
-    def _scan(self, _, queryset, force):
+    def _poll(self, _, queryset, force):
         """Queue a scan task for the library."""
         pks = queryset.values_list("pk", flat=True)
-        for pk in pks:
-            task = ScanRootTask(pk, force)
-            LIBRARIAN_QUEUE.put(task)
+        task = PollLibrariesTask(pks, force)
+        LIBRARIAN_QUEUE.put(task)
 
-    def scan(self, request, queryset):
+    def poll(self, request, queryset):
         """Scan for new comics."""
-        self._scan(request, queryset, False)
+        self._poll(request, queryset, False)
 
-    scan.short_description = "Scan for changes"
+    poll.short_description = "Poll for changes"
 
-    def force_scan(self, request, queryset):
+    def force_poll(self, request, queryset):
         """Scan all comics."""
-        self._scan(request, queryset, True)
+        self._poll(request, queryset, True)
 
-    force_scan.short_description = "Re-import all comics"
+    force_poll.short_description = "Re-import all comics"
 
     def regen_comic_covers(self, _, queryset):
         """Regenerate all covers."""
@@ -82,16 +77,14 @@ class AdminLibrary(ModelAdmin):
         for pk in pks:
             regen_all_covers(pk)
 
-    regen_comic_covers.short_description = "Re-create all comic covers"
+    regen_comic_covers.short_description = "Re-create all covers"
 
     def _on_change(self, _, created=False):
         """Events for when the library has changed."""
         # XXX These sleep values are for waiting for db consistency
         #     between processes. Klugey.
-        LIBRARIAN_QUEUE.put(WatcherCronTask(sleep=1))
+        LIBRARIAN_QUEUE.put(WatchdogTask(sleep=1))
         LIBRARIAN_QUEUE.put(BroadcastNotifierTask("LIBRARY_CHANGED"))
-        if created:
-            LIBRARIAN_QUEUE.put(ScannerCronTask(sleep=1))
 
     def save_model(self, request, obj, form, change):
         """Trigger watching and scanning on update or creation."""

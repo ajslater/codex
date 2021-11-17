@@ -6,7 +6,7 @@ const disable = function (el) {
 
 document.addEventListener("DOMContentLoaded", function () {
   let els = document.querySelectorAll(
-    ".field-last_scan .vDateField, .field-last_scan .vTimeField"
+    ".field-last_poll .vDateField, .field-last_poll .vTimeField"
   );
   Array.from(els).forEach((el) => {
     disable(el);

@@ -1,15 +1,18 @@
 /* Dirty hack for django admin's refusal to display non-editable fields */
-.field-last_scan .vDateField,
-.field-last_scan .vTimeField {
+.field-last_poll .vDateField,
+.field-last_poll .vTimeField {
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
 }
 
-.field-last_scan .datetimeshortcuts {
+.field-last_poll .datetimeshortcuts {
   display: none;
 }
 #footer {
   padding: 0px 40px;
+}
+#adminActionsHeader {
+  padding-top: 1em;
 }

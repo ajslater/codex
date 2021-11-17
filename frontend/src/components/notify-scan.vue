@@ -9,7 +9,7 @@
     :timeout="-1"
   >
     <span v-if="notify === NOTIFY_STATES.SCANNING">
-      Scanning Libraries
+      Updating Libraries
       <v-progress-circular size="18" indeterminate color="#cc7b19" />
     </span>
     <span v-else-if="notify === NOTIFY_STATES.FAILED">

@@ -15,6 +15,7 @@ Including another URLconf
 """
 from django.urls import path
 
+from codex.views.admin import PollView
 from codex.views.auth import LoginView, LogoutView, RegisterView, UserView
 from codex.views.bookmark import (
     ComicBookmarkView,
@@ -87,4 +88,5 @@ urlpatterns = [
     path("auth/login", LoginView.as_view(), name="login"),
     path("auth/me", UserView.as_view(), name="user"),
     path("auth/logout", LogoutView.as_view(), name="user"),
+    path("poll", PollView.as_view(), name="poll"),
 ]

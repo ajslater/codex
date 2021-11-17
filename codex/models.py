@@ -1,5 +1,6 @@
 """Codex Django Models."""
 import datetime
+import os
 
 from logging import getLogger
 from pathlib import Path
@@ -16,8 +17,10 @@ from django.db.models import (
     DecimalField,
     DurationField,
     ForeignKey,
+    JSONField,
     ManyToManyField,
     Model,
+    PositiveIntegerField,
     PositiveSmallIntegerField,
     TextField,
     URLField,
@@ -136,16 +139,17 @@ def validate_dir_exists(path):
 class Library(BaseModel):
     """The library comic file live under."""
 
-    DEFAULT_SCAN_FREQUENCY = datetime.timedelta(seconds=12 * 60 * 60)
+    DEFAULT_POLL_EVERY_SECONDS = 60 * 60
+    DEFAULT_POLL_EVERY = datetime.timedelta(seconds=DEFAULT_POLL_EVERY_SECONDS)
 
     path = CharField(
         unique=True, db_index=True, max_length=128, validators=[validate_dir_exists]
     )
-    enable_watch = BooleanField(db_index=True, default=True)
-    enable_scan_cron = BooleanField(db_index=True, default=True)
-    scan_frequency = DurationField(default=DEFAULT_SCAN_FREQUENCY)
-    last_scan = DateTimeField(null=True)
-    scan_in_progress = BooleanField(default=False)
+    events = BooleanField(db_index=True, default=True)
+    poll = BooleanField(db_index=True, default=True)
+    poll_every = DurationField(default=DEFAULT_POLL_EVERY)
+    last_poll = DateTimeField(null=True)
+    update_in_progress = BooleanField(default=False)
     schema_version = PositiveSmallIntegerField(default=0)
 
     def __str__(self):
@@ -172,33 +176,6 @@ class NamedModel(BaseModel):
     def __str__(self):
         """Return the name."""
         return self.name
-
-
-class Folder(NamedModel):
-    """File system folder."""
-
-    path = CharField(max_length=128, db_index=True, validators=[validate_dir_exists])
-    library = ForeignKey(Library, on_delete=CASCADE)
-    parent_folder = ForeignKey(
-        "Folder",
-        on_delete=CASCADE,
-        null=True,
-    )
-    sort_name = CharField(max_length=32)
-
-    def presave(self):
-        """Save the sort name. Called by save()."""
-        self.sort_name = self.name
-
-    def save(self, *args, **kwargs):
-        """Save the sort name as the name by default."""
-        self.presave()
-        super().save(*args, **kwargs)
-
-    class Meta:
-        """Constraints."""
-
-        unique_together = ("library", "path")
 
 
 class SeriesGroup(NamedModel):
@@ -265,10 +242,67 @@ class Credit(BaseModel):
         unique_together = ("person", "role")
 
 
-class Comic(BaseModel):
+class WatchedPath(BaseModel):
+    """A filesystem path with data for Watchdog."""
+
+    library = ForeignKey(Library, on_delete=CASCADE, db_index=True)
+    path = CharField(max_length=128, db_index=True)
+    sort_name = CharField(db_index=True, max_length=32)
+    stat = JSONField(null=True)
+    parent_folder = ForeignKey(
+        "Folder",
+        on_delete=CASCADE,
+        null=True,
+    )
+    ZERO_STAT = [0] * 10
+
+    def set_stat(self):
+        """Set select stat params from the filesystem."""
+        st_record = os.stat(self.path)
+        # Converting os.stat directly to a list or tuple saves
+        # mtime as an int and causes problems.
+        st = self.ZERO_STAT.copy()
+        st[0] = st_record.st_mode
+        st[1] = st_record.st_ino
+        st[2] = st_record.st_dev
+        st[6] = st_record.st_size
+        st[8] = st_record.st_mtime
+        self.stat = st
+
+    def presave(self):
+        """Stub for overriding."""
+        pass
+
+    def save(self, *args, **kwargs):
+        """Save the sort name as the name by default."""
+        self.presave()
+        super().save(*args, **kwargs)
+
+    class Meta:
+        """Constraints."""
+
+        unique_together = ("library", "path")
+        abstract = True
+
+
+class Folder(WatchedPath):
+    """File system folder."""
+
+    name = CharField(db_index=True, max_length=32)
+
+    def presave(self):
+        """Save the sort name. Called by save()."""
+        pass
+        self.sort_name = self.name
+
+    def __str__(self):
+        """Return the full path of the folder."""
+        return self.path
+
+
+class Comic(WatchedPath):
     """Comic metadata."""
 
-    path = CharField(db_index=True, max_length=128)
     issue = DecimalField(db_index=True, decimal_places=2, max_digits=6, default=0.0)
     title = CharField(db_index=True, max_length=64, null=True)
     volume = ForeignKey(Volume, db_index=True, on_delete=CASCADE)
@@ -326,13 +360,11 @@ class Comic(BaseModel):
     date = DateField(db_index=True, null=True)
     decade = PositiveSmallIntegerField(db_index=True, null=True)
     folders = ManyToManyField(Folder)
-    library = ForeignKey(Library, on_delete=CASCADE, db_index=True)
     max_page = PositiveSmallIntegerField(default=0)
     parent_folder = ForeignKey(
         Folder, db_index=True, on_delete=CASCADE, null=True, related_name="comic_in"
     )
-    size = PositiveSmallIntegerField(db_index=True)
-    sort_name = CharField(db_index=True, max_length=32)
+    size = PositiveIntegerField(db_index=True)
     # Useful for the related field 'comic' so comics appear to
     # aggregators as a container of one.
     myself = ForeignKey("self", on_delete=CASCADE, null=True, related_name="comic")
@@ -370,7 +402,8 @@ class Comic(BaseModel):
         """Set computed values."""
         self._set_date()
         self._set_decade()
-        self.sort_name = f"{self.volume.sort_name} {self.issue:06.1f}"
+        sort_names = (self.volume.sort_name, f"{self.issue:06.1f}")
+        self.sort_name = " ".join(sort_names)
 
     def save(self, *args, **kwargs):
         """Save computed fields."""
@@ -379,13 +412,20 @@ class Comic(BaseModel):
 
     def __str__(self):
         """Most common text representation for logging."""
-        return f"{str(self.volume.series.name)} #{self.issue:03}"
+        names = []
+        if self.series.name:
+            names.append(self.series.name)
+        if self.volume.name:
+            names.append(self.volume.name)
+        names.append(self._get_display_issue())
+        if self.title:
+            names.append(self.title)
+        return " ".join(names)
 
     @property
     def name(self):
         """Return the name for some functions."""
-        # Could be title?
-        return self.sort_name
+        return self.__str__
 
 
 class AdminFlag(NamedModel):

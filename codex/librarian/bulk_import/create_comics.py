@@ -73,6 +73,7 @@ def _update_comics(library, comic_paths, mds):
         for field_name, value in md.items():
             setattr(comic, field_name, value)
         comic.presave()
+        comic.set_stat()
         comic.updated_at = now  # type: ignore
         update_comics.append(comic)
 
@@ -94,6 +95,7 @@ def _create_comics(library, comic_paths, mds):
         _link_comic_fks(md, library, path)
         comic = Comic(**md)
         comic.presave()
+        comic.set_stat()
         create_comics.append(comic)
 
     LOG.verbose(f"Bulk creating {num_comics} comics...")  # type: ignore
@@ -208,7 +210,7 @@ def bulk_recreate_m2m_field(field_name, m2m_links):
 def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2m_mds):
     """Bulk import comics."""
     if not (create_paths or update_paths or all_bulk_mds or all_m2m_mds):
-        return
+        return False
 
     _update_comics(library, update_paths, all_bulk_mds)
     _create_comics(library, create_paths, all_bulk_mds)
@@ -220,7 +222,12 @@ def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2
     all_m2m_links = _link_comic_m2m_fields(all_m2m_mds)
     for field_name, m2m_links in all_m2m_links.items():
         bulk_recreate_m2m_field(field_name, m2m_links)
-    if update_paths:
-        LOG.info(f"Updated {len(update_paths)} Comics.")
-    if create_paths:
-        LOG.info(f"Created {len(create_paths)} Comics.")
+
+    num_update_paths = len(update_paths)
+    if num_update_paths:
+        LOG.info(f"Updated {num_update_paths} Comics.")
+    num_create_paths = len(create_paths)
+    if num_create_paths:
+        LOG.info(f"Created {num_create_paths} Comics.")
+    total_paths = num_update_paths + num_create_paths
+    return total_paths > 0

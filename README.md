@@ -201,6 +201,10 @@ To see many noisy messages try:
 LOGLEVEL=DEBUG codex
 ```
 
+### Watching events using Docker
+
+Codex tries to watch for filesystem events to instantly update your Libraries when they are changed on disk. But these native filesystem events are not translated between macOS & Windows Docker hosts and the Docker Linux container. If you find that your installation is not updating to filesystem changes instantly, you might try enabling polling for the affected libraries and decreasing the `poll_every` value in the Admin console to a frequency that suits you.
+
 ### Emergency Database Repair
 
 If the database becomes corrupt, Codex includes a facitlity to rebuild the database.

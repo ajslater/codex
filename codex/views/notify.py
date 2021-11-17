@@ -23,7 +23,7 @@ class ScanNotifyView(APIView):
     @cache_control(max_age=MIN_SCAN_WAIT)
     def get(self, request, *args, **kwargs):
         """Return if any libraries are scanning."""
-        any_in_progress = Library.objects.filter(scan_in_progress=True).exists()
+        any_in_progress = Library.objects.filter(update_in_progress=True).exists()
         any_in_progress |= not LIBRARIAN_QUEUE.empty()
         data = {"scanInProgress": any_in_progress}
         serializer = ScanNotifySerializer(data)

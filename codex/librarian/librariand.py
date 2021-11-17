@@ -3,22 +3,27 @@ from logging import getLogger
 from multiprocessing import Process
 from time import sleep
 
+from codex.librarian.bulk_import.bulk_action import Updater
 from codex.librarian.cover import CoverCreator
 from codex.librarian.crond import Crond
 from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
+    BulkActionTask,
     ComicCoverCreateTask,
     NotifierTask,
+    PollLibrariesTask,
     RestartTask,
-    ScannerTask,
     UpdateCronTask,
     VacuumCronTask,
-    WatcherCronTask,
+    WatchdogTask,
 )
-from codex.librarian.scanner import Scanner
 from codex.librarian.update import restart_codex, update_codex
 from codex.librarian.vacuum import vacuum_db
-from codex.librarian.watcherd import Uatu
+from codex.librarian.watchdog.events import EventBatcher
+from codex.librarian.watchdog.observers import (
+    LibraryEventObserver,
+    LibraryPollingObserver,
+)
 from codex.models import Comic, Folder
 from codex.notifier import Notifier
 
@@ -47,14 +52,17 @@ class LibrarianDaemon(Process):
 
             if isinstance(task, ComicCoverCreateTask):
                 self.cover_creator.queue.put(task)
-            elif isinstance(task, ScannerTask):
-                self.scanner.queue.put(task)
+            elif isinstance(task, BulkActionTask):
+                self.updater.queue.put(task)
             elif isinstance(task, NotifierTask):
                 Notifier.thread.queue.put(task)
-            elif isinstance(task, WatcherCronTask):
-                self.watcher.set_all_library_watches()
+            elif isinstance(task, WatchdogTask):
+                self.file_system_event_observer.set_all_library_watches()
+                self.library_polling_observer.set_all_library_watches()
             elif isinstance(task, UpdateCronTask):
                 update_codex(task.force)
+            elif isinstance(task, PollLibrariesTask):
+                self.library_polling_observer.poll(task.library_ids, task.force)
             elif isinstance(task, RestartTask):
                 restart_codex()
             elif isinstance(task, VacuumCronTask):
@@ -73,25 +81,36 @@ class LibrarianDaemon(Process):
     def start_threads(self):
         """Start all librarian's threads."""
         self.cover_creator = CoverCreator()
-        self.scanner = Scanner()
-        self.watcher = Uatu()
+        self.updater = Updater()
+        self.file_system_event_observer = LibraryEventObserver()
+        self.library_polling_observer = LibraryPollingObserver()
         self.crond = Crond()
         LOG.debug("Created Threads.")
+        EventBatcher.startup()
         self.cover_creator.start()
-        self.scanner.start()
-        self.watcher.start()
+        self.updater.start()
+        self.file_system_event_observer.start()
+        self.library_polling_observer.start()
         self.crond.start()
         LOG.debug("Started Threads.")
 
     def stop_threads(self):
         """Stop all librarian's threads."""
-        LOG.debug("Joining threads...")
+        LOG.debug("Stopping threads...")
+        self.crond.stop()
+        self.file_system_event_observer.stop()
+        self.library_polling_observer.stop()
+        self.updater.stop()
+        EventBatcher.thread.stop()
+        self.cover_creator.stop()
+        LOG.debug("Stopped Librarian threads.")
         self.crond.join()
-        self.watcher.stop()
-        self.watcher.join()
-        self.scanner.join()
+        self.file_system_event_observer.join()
+        self.library_polling_observer.join()
+        self.updater.join()
+        EventBatcher.thread.join()
         self.cover_creator.join()
-        LOG.debug("Stopped threads.")
+        LOG.debug("Joined Librarian threads.")
 
     def run(self):
         """
@@ -119,6 +138,7 @@ class LibrarianDaemon(Process):
         """Create a new librarian daemon and run it."""
         cls.proc = LibrarianDaemon()
         cls.proc.start()
+        LIBRARIAN_QUEUE.put(WatchdogTask())
 
     @classmethod
     def shutdown(cls):

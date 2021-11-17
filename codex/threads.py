@@ -39,8 +39,12 @@ class QueuedThread(Thread, ABC):
         """Set no timeout by default."""
         return None
 
+    def _timed_out(self):
+        """Override to things on queue timeout."""
+        pass
+
     def _check_item(self):
-        """Get items, with timoeout. Check for shutdown and Empty."""
+        """Get items, with timeout. Check for shutdown and Empty."""
         timeout = self._get_timeout()
         try:
             item = self.queue.get(timeout=timeout)
@@ -48,7 +52,7 @@ class QueuedThread(Thread, ABC):
                 raise BreakLoopError()
             self._process_item(item)
         except Empty:
-            pass
+            self._timed_out()
 
     def _post_process_hook(self):
         """Overidable post processing hook."""
@@ -67,9 +71,12 @@ class QueuedThread(Thread, ABC):
                 LOG.exception(exc)
         LOG.verbose(f"Stopped {self.NAME} thread")  # type: ignore
 
+    def stop(self):
+        """Stop the thread."""
+        self.queue.put(self.SHUTDOWN_MSG)
+
     def join(self):
         """End the thread."""
-        self.queue.put(self.SHUTDOWN_MSG)
         super().join(self.SHUTDOWN_TIMEOUT)
 
 
@@ -77,13 +84,17 @@ class AggregateMessageQueuedThread(QueuedThread, ABC):
     """Abstract Thread worker for buffering and aggregating messages."""
 
     FLOOD_DELAY = 2
-    MAX_DELAY = 30
+    MAX_DELAY = 15
 
     def __init__(self, *args, **kwargs):
         """Initialize the cache."""
         self.cache = {}
-        self.send_times = {}
+        self._last_timed_out = time.time()
         super().__init__(*args, **kwargs)
+
+    def _get_timeout(self):
+        """Aggregate queue has a conditional timeout."""
+        return self.FLOOD_DELAY if self.cache else None
 
     @abstractmethod
     def _aggregate_items(self, item):
@@ -95,28 +106,25 @@ class AggregateMessageQueuedThread(QueuedThread, ABC):
         """Abstract method for sending all items."""
         raise NotImplementedError()
 
-    def _do_send_item(self, item):
-        """Return whether or not its time to send this item."""
-        last_send = self.send_times.get(item, 0)
-        waited_enough = time.time() - last_send > self.MAX_DELAY
-        return self.queue.empty() or waited_enough
-
     def _cleanup_cache(self, keys):
         """Remove sent messages from the cache and record send times."""
         for key in keys:
-            self.send_times[key] = time.time()
             del self.cache[key]
+        self._last_send = time.time()
 
     def _process_item(self, item):
         """Aggregate items and sleep in case there are more."""
         self._aggregate_items(item)
-        if self.queue.empty():
-            time.sleep(self.FLOOD_DELAY)
+        since_last_timed_out = time.time() - self._last_timed_out
+        waited_too_long = since_last_timed_out > self.MAX_DELAY
+        if waited_too_long:
+            self._timed_out()
 
-    def _get_timeout(self):
-        """Aggregate queue has a conditional timeout."""
-        return self.FLOOD_DELAY if self.cache else None
-
-    def _post_process_hook(self):
-        """Top of loop processes items, then send items."""
+    def _timed_out(self):
+        """Send the items and set when we did this."""
         self._send_all_items()
+        self._last_timed_out = time.time()
+
+    def _post_process_hook(self):  # TODO post_process_hook may be obsolete
+        """Top of loop processes items, then send items."""
+        pass

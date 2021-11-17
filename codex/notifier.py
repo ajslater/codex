@@ -52,12 +52,11 @@ class Notifier(AggregateMessageQueuedThread):
         sent_keys = set()
         cache.clear()
         for text, task in self.cache.items():
-            if self._do_send_item(text):
-                msg = WS_MSGS[text]
-                send_msg = {"text": msg}
-                send_msg.update(self.WS_SEND_MSG)
-                conns = self.CONNS[task.__class__]
-                async_to_sync(self._send_msg)(conns, send_msg)
+            msg = WS_MSGS[text]
+            send_msg = {"text": msg}
+            send_msg.update(self.WS_SEND_MSG)
+            conns = self.CONNS[task.__class__]
+            async_to_sync(self._send_msg)(conns, send_msg)
             sent_keys.add(text)
         self._cleanup_cache(sent_keys)
 

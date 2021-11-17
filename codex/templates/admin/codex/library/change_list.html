@@ -2,29 +2,29 @@
 
 {% block footer %}
 <div id="footer">
-<h2>Libraries</h2>
+<h1>Libraries</h1>
 <p>
 A Library is a path where Codex can recursively search for comic archives. Codex will try to import comics from a Library immediately.
 You may navigate back to the browser view by clicking the "<span style="font-variant-caps: small-caps">view site</span>" link in the upper right of this Admin Panel.
 </p><p>
 Wait for comics to appear. It may take some time to import large comic libraries and Codex will refresh the browser the library has finished loaded. A snackbar will notify admins that a scan is in progess, but check the logs in <code>config/logs/codex.log</code> if you want to follow the import in detail.
 </p>
-<h3>Enable Watch</h3>
-Codex watches the filesystem for changes to the libaray and imports new comics, re-imports changed comics and deletes missing comics. You may disable this feature for each Library.
-<h3>Enable Scan Cron</h3>
-Codex periodically scans each library for new, changed or missing comics. You may disable this feature for each Library.
-<h3>Scan Frequency</h3>
-This field controls how long Codex waits between automatic scans.
-<h3>Last Scan</h3>
-A timestamp telling you when the last time this library was scanned.
-<h3>Scan In Progress</h3>
-This is checked by Codex when a scan is run to prevent multiple scans running on a Library at the same time. In unusual circumstances it can be left checked even though no scan is running. You can see scans running on the console output. You may manually uncheck this to unblock scanning if it was left checked improperly.
-<h2>Actions</h2>
-<h3>Delete Selected Libraries</h3>
+<h3>events</h3>
+Watch the Library filesystem for events and update Codex instantly when the filesystem changes.
+<h3>poll</h3>
+Periodically poll the library for changes. Possibly CPU and disk intensive.
+<h3>poll every</h3>
+How long to wait between polling the filesystem
+<h3>last poll</h3>
+A timestamp telling you when the last time this library was polled.
+<h1 id="adminActionsHeader">Actions</h1>
+<h3>Delete selected libraries</h3>
 Will delete the selected libraries from the codex database. Will not delete your comic archives.
-<h3>Scan for Changes</h3>
-Scan a library for new comics and remove missing comics from the database.
-<h3>Re-Import All Comics</h3>
-Forcibly reimport all the comics for a library, overwrite the database and regenerate covers.
+<h3>Poll for changes</h3>
+Poll selected libraries right now for changes.
+<h3>Re-import all comics</h3>
+Forcibly update all the comics for a library, overwrite the database and regenerate covers.
+<h3>Re-create all covers</h3>
+Recreate all the comic covers for a library.
 </div>
 {% endblock %}

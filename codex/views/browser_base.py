@@ -32,8 +32,8 @@ class BrowserBaseView(SessionMixin):
         "i": "imprint",
         "s": "series",
         "v": "volume",
-        "c": "comic",
-        "f": "folder",
+        COMIC_GROUP: "comic",
+        FOLDER_GROUP: "parent_folder",
     }
 
     def __init__(self, *args, **kwargs):

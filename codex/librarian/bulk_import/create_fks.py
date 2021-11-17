@@ -51,8 +51,9 @@ def _bulk_create_groups(all_create_groups):
     """Create missing groups breadth first."""
     # TODO special code for updating series and volume counts
     if not all_create_groups:
-        return
+        return False
 
+    num_create_groups = 0
     for cls, group_tree_counts in all_create_groups.items():
         if not group_tree_counts:
             continue
@@ -61,11 +62,16 @@ def _bulk_create_groups(all_create_groups):
             obj = _create_group_obj(cls, group_param_tuple, count)
             create_groups.append(obj)
         cls.objects.bulk_create(create_groups)
-        LOG.info(f"Created {len(create_groups)} {cls.__name__}s.")
+        num_create_groups = len(create_groups)
+        LOG.info(f"Created {num_create_groups} {cls.__name__}s.")
+    return num_create_groups > 0
 
 
 def bulk_create_folders(library, folder_paths):
     """Create folders breadth first."""
+    if not folder_paths:
+        return False
+
     # group folder paths by depth
     folder_path_dict = {}
     for path_str in folder_paths:
@@ -76,6 +82,7 @@ def bulk_create_folders(library, folder_paths):
         folder_path_dict[path_length].append(path)
 
     # create each depth level first to ensure we can assign parents
+    num_create_folders = 0
     for _, paths in sorted(folder_path_dict.items()):
         create_folders = []
         for path in paths:
@@ -92,28 +99,33 @@ def bulk_create_folders(library, folder_paths):
                 parent_folder=parent,
             )
             folder.presave()
+            folder.set_stat()
             create_folders.append(folder)
         Folder.objects.bulk_create(create_folders)
-        LOG.info(f"Created {len(create_folders)} Folders.")
+        num_create_folders = len(create_folders)
+        LOG.info(f"Created {num_create_folders} Folders.")
+    return num_create_folders > 0
 
 
 def _bulk_create_named_models(cls, names):
     """Bulk create named models."""
     if not names:
-        return
+        return False
     create_named_objs = []
     for name in names:
         named_obj = cls(name=name)
         create_named_objs.append(named_obj)
 
     cls.objects.bulk_create(create_named_objs)
-    LOG.info(f"Created {len(create_named_objs)} {cls.__name__}s.")
+    num_create_named_objs = len(create_named_objs)
+    LOG.info(f"Created {num_create_named_objs} {cls.__name__}s.")
+    return num_create_named_objs > 0
 
 
 def _bulk_create_credits(create_credit_tuples):
     """Bulk create credits."""
     if not create_credit_tuples:
-        return
+        return False
 
     create_credits = []
     for role_name, person_name in create_credit_tuples:
@@ -127,16 +139,19 @@ def _bulk_create_credits(create_credit_tuples):
         create_credits.append(credit)
 
     Credit.objects.bulk_create(create_credits)
-    LOG.info(f"Created {len(create_credits)} Credits.")
+    num_create_credits = len(create_credits)
+    LOG.info(f"Created {num_create_credits} Credits.")
+    return num_create_credits > 0
 
 
 def bulk_create_all_fks(
     library, create_fks, create_groups, create_paths, create_credits
-):
+) -> bool:
     """Bulk create all foreign keys."""
-    _bulk_create_groups(create_groups)
-    bulk_create_folders(library, create_paths)
+    changed = _bulk_create_groups(create_groups)
+    changed |= bulk_create_folders(library, create_paths)
     for cls, names in create_fks.items():
-        _bulk_create_named_models(cls, names)
+        changed |= _bulk_create_named_models(cls, names)
     # This must happen after credit_fks created by create_named_models
-    _bulk_create_credits(create_credits)
+    changed |= _bulk_create_credits(create_credits)
+    return changed

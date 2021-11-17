@@ -22,6 +22,8 @@ for field in Comic._meta.get_fields():
         COMIC_M2M_FIELDS.add(field.name)
 MD_UNUSED_KEYS = ("alternate_series", "remainder", "ext", "pages", "cover_image")
 LOG_EVERY = 15
+WRITE_WAIT_EXPIRY = LOG_EVERY
+WRITE_WAIT_DELAY = 0.01
 
 
 def _clean_md(md):
@@ -32,6 +34,24 @@ def _clean_md(md):
             del md[key]
 
 
+def _wait_for_copy(path):
+    """
+    Wait for a file to stay the same size.
+
+    Watchdog events fire on the start of the copy. On slow or network
+    filesystems, this sends an event before the file is finished
+    copying.
+    """
+    started_waiting = time.time()
+    old_size = -1
+    path = Path(path)
+    while old_size != path.stat().st_size:
+        if time.time() - started_waiting > WRITE_WAIT_EXPIRY:
+            raise ValueError("waited for copy too long")
+        old_size = path.stat().st_size
+        time.sleep(WRITE_WAIT_DELAY)
+
+
 def _get_path_metadata(path):
     """Get the metatada from comicbox and munge it a little."""
     md = {}
@@ -40,6 +60,7 @@ def _get_path_metadata(path):
     failed_import = {}
 
     try:
+        _wait_for_copy(path)
         car = ComicArchive(path, get_cover=True)
         md = car.get_metadata()
         md["path"] = path
