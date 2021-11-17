@@ -59,7 +59,7 @@
     "eslint-plugin-simple-import-sort": "^7.0.0",
     "eslint-plugin-sonarjs": "^0.10.0",
     "eslint-plugin-switch-case": "^1.1.2",
-    "eslint-plugin-unicorn": "^37.0.0",
+    "eslint-plugin-unicorn": "^38.0.0",
     "eslint-plugin-vue": "^8.0.0",
     "eslint-plugin-vue-scoped-css": "^2.0.0",
     "prettier": "^2.2.1",
