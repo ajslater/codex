@@ -60,20 +60,22 @@ export default {
 }
 .v-select.toolbarSelect {
   white-space: nowrap;
-  margin-left: 4px;
-  margin-right: 4px;
+  margin-left: 2px;
+  margin-right: 2px;
 }
 .v-select.toolbarSelect .v-select__selection--comma {
   text-overflow: unset;
 }
 .v-select.filterSelect {
   width: 152px;
+  margin-left: 0px;
 }
 .v-select.rootGroupSelect {
   width: 122px;
 }
 .v-select.sortBySelect {
   width: 148px;
+  margin-right: 0px;
 }
 
 @import "~vuetify/src/styles/styles.sass";

@@ -131,3 +131,12 @@ export default {
 }
 // style is handled in browser-filter-toolbar.vue
 </style>
+
+<style lang="scss">
+.v-select.filterSelect .v-input__prepend-inner {
+  padding-right: 0px;
+}
+.v-select.filterSelect .v-input__icon--prepend-inner svg {
+  width: 16px;
+}
+</style>
