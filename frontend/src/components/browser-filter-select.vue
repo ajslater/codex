@@ -132,6 +132,7 @@ export default {
 // style is handled in browser-filter-toolbar.vue
 </style>
 
+<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
 .v-select.filterSelect .v-input__prepend-inner {
   padding-right: 0px;
