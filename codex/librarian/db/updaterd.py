@@ -4,7 +4,7 @@ from logging import getLogger
 from codex.librarian.db.aggregate_metadata import get_aggregate_metadata
 from codex.librarian.db.cleanup import cleanup_database
 from codex.librarian.db.create_comics import bulk_import_comics
-from codex.librarian.db.create_fks import bulk_create_all_fks
+from codex.librarian.db.create_fks import bulk_create_all_fks, bulk_folders_modified
 from codex.librarian.db.deleted import bulk_comics_deleted, bulk_folders_deleted
 from codex.librarian.db.moved import bulk_comics_moved, bulk_folders_moved
 from codex.librarian.db.query_fks import query_all_missing_fks
@@ -19,10 +19,6 @@ from codex.threads import QueuedThread
 
 
 LOG = getLogger(__name__)
-# Batching entire imports doesn't really seem neccissary. This code is left here
-#   as a cautionary measure just in case.
-# Move folder and move comics are not yet batched
-BATCH_SIZE = 100000
 
 
 def _bulk_create_comic_relations(library, fks) -> bool:
@@ -54,21 +50,6 @@ def _batch_modified_and_created(library, modified_paths, created_paths) -> bool:
     return changed
 
 
-def _bulk_folders_modified(library, paths):
-    """Update folders stat and nothing else."""
-    if not paths:
-        return False
-    folders = Folder.objects.filter(library=library, path__in=paths).only("stat")
-    update_folders = []
-    for folder in folders:
-        folder.set_stat()
-        update_folders.append(folder)
-    Folder.objects.bulk_update(update_folders, ["stat"])
-    num_update_folders = len(update_folders)
-    LOG.verbose(f"Modified {num_update_folders} folders")  # type: ignore
-    return num_update_folders > 0
-
-
 def apply(task):
     """Bulk import comics."""
     library = Library.objects.get(pk=task.library_id)
@@ -80,7 +61,7 @@ def apply(task):
     changed = False
     changed |= bulk_folders_moved(library, task.dirs_moved)
     changed |= bulk_comics_moved(library, task.files_moved)
-    changed |= _bulk_folders_modified(library, task.dirs_modified)
+    changed |= bulk_folders_modified(library, task.dirs_modified)
     changed |= _batch_modified_and_created(
         library, task.files_modified, task.files_created
     )

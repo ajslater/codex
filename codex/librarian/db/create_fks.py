@@ -7,6 +7,8 @@ So we may safely create the comics next.
 from logging import getLogger
 from pathlib import Path
 
+from django.db.models.functions import Now
+
 from codex.models import (
     Credit,
     CreditPerson,
@@ -19,6 +21,7 @@ from codex.models import (
 )
 
 
+BULK_UPDATE_FOLDER_MODIFIED_FIELDS = ("stat", "updated_at")
 LOG = getLogger(__name__)
 
 
@@ -65,6 +68,24 @@ def _bulk_create_groups(all_create_groups):
         num_create_groups = len(create_groups)
         LOG.info(f"Created {num_create_groups} {cls.__name__}s.")
     return num_create_groups > 0
+
+
+def bulk_folders_modified(library, paths):
+    """Update folders stat and nothing else."""
+    if not paths:
+        return False
+    folders = Folder.objects.filter(library=library, path__in=paths).only("stat")
+    update_folders = []
+    for folder in folders:
+        folder.set_stat()
+        folder.updated_at = Now()
+        update_folders.append(folder)
+    Folder.objects.bulk_update(
+        update_folders, fields=BULK_UPDATE_FOLDER_MODIFIED_FIELDS
+    )
+    num_update_folders = len(update_folders)
+    LOG.verbose(f"Modified {num_update_folders} folders")  # type: ignore
+    return num_update_folders > 0
 
 
 def bulk_create_folders(library, folder_paths):
