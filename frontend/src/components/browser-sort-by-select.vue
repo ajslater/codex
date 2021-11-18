@@ -91,14 +91,5 @@ export default {
 .upsideDown {
   transform: rotate(180deg);
 }
-.sortBySelect {
-  width: 144px;
-}
-@import "~vuetify/src/styles/styles.sass";
-@media #{map-get($display-breakpoints, 'sm-and-down')} {
-  .sortBySelect {
-    width: 114px;
-    margin-right: -19px;
-  }
-}
+// style is also handled in browser-filter-toolbar.vue
 </style>

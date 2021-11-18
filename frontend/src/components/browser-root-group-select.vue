@@ -39,18 +39,4 @@ export default {
 };
 </script>
 
-<style scoped lang="scss">
-.rootGroupSelect {
-  width: 118px;
-  margin-left: 8px;
-  margin-right: 8px;
-}
-@import "~vuetify/src/styles/styles.sass";
-@media #{map-get($display-breakpoints, 'sm-and-down')} {
-  .rootGroupSelect {
-    width: 95px;
-    margin-left: 4px;
-    margin-right: 4px;
-  }
-}
-</style>
+// style is handled in browser-filter-toolbar.vue

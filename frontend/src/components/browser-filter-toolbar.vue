@@ -51,34 +51,31 @@ export default {
 
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
-#filterToolbar .filterSelect .v-input__prepend-inner {
-  padding-right: 0px;
-}
-#filterToolbar .filterSelect .v-input__prepend-inner .v-input__icon > .v-icon {
-  margin-top: 1px;
-}
-#filterToolbar .filterSelect .v-input__icon--prepend-inner svg {
-  width: 16px;
-}
-.toolbarSelect {
-  padding-top: 3px;
-}
-.toolbarSelect .v-input__slot {
-  border: none;
-}
-.toolbarSelect .v-input__append-inner {
-  padding-left: 0px !important;
-}
 .toolbarSelect .v-input__control > .v-input__slot:before {
   border: none;
 }
 /* ids aren't kept by vuetify for v-select. abuse classes */
-.filterSelect {
-  width: 144px;
-}
 .filterMenuHidden > .v-select-list > .v-list-item {
   display: none !important;
 }
+.v-select.toolbarSelect {
+  white-space: nowrap;
+  margin-left: 4px;
+  margin-right: 4px;
+}
+.v-select.toolbarSelect .v-select__selection--comma {
+  text-overflow: unset;
+}
+.v-select.filterSelect {
+  width: 152px;
+}
+.v-select.rootGroupSelect {
+  width: 122px;
+}
+.v-select.sortBySelect {
+  width: 148px;
+}
+
 @import "~vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   #filterToolbar > .v-toolbar__content {
@@ -89,12 +86,19 @@ export default {
   #filterToolbar .v-select__selections {
     font-size: 12px;
   }
-  /* ids aren't kept by vuetify for v-select. abuse classes */
-  .filterSelect {
-    width: 120px;
+  .v-select.toolbarSelect {
+    margin-left: 0px;
+    margin-right: 0px;
   }
-  .filterSelect .v-input__icon--prepend-inner svg {
-    width: 13px;
+
+  .v-select.filterSelect {
+    width: 128px;
+  }
+  .v-select.rootGroupSelect {
+    width: 100px;
+  }
+  .v-select.sortBySelect {
+    width: 118px;
   }
 }
 </style>

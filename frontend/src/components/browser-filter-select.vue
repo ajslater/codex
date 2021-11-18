@@ -129,4 +129,5 @@ export default {
 .filterSuffix {
   margin-left: 0.25em;
 }
+// style is handled in browser-filter-toolbar.vue
 </style>
