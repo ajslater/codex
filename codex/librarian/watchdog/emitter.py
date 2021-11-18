@@ -1,6 +1,7 @@
 """A Codex database event emitter for use by the observer."""
 import os
 
+from itertools import chain
 from logging import getLogger
 from pathlib import Path
 from threading import Condition
@@ -76,15 +77,14 @@ class CodexDatabaseSnapshot(DirectorySnapshot):
         # Add the library root
         self._set_lookups(path, stat(path))
 
-        for queryset in self._walk(path):
-            for wp in queryset:
-                wp_path = wp["path"]
-                params = self._fix_bad_db_stat(wp_path, wp.get("stat"), stat)
-                if force:
-                    # Fake mtime will trigger modified event
-                    params[8] = 0
-                st = os.stat_result(tuple(params))
-                self._set_lookups(wp_path, st)
+        for wp in chain.from_iterable(self._walk(path)):
+            wp_path = wp["path"]
+            params = self._fix_bad_db_stat(wp_path, wp.get("stat"), stat)
+            if force:
+                # Fake mtime will trigger modified event
+                params[8] = 0
+            st = os.stat_result(tuple(params))
+            self._set_lookups(wp_path, st)
 
 
 class DatabasePollingEmitter(EventEmitter):
