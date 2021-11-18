@@ -119,7 +119,7 @@ export default {
     closeFilterSelect: function () {
       // On sub-menu click, close the menu and reset the filter mode.
       this.$refs.filterSelect.blur();
-      this.$store.commit("browser/filterModeChanged", "base");
+      this.$store.commit("browser/setFilterMode", "base");
     },
   },
 };
