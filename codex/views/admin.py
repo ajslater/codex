@@ -15,6 +15,6 @@ class PollView(APIView):
 
     def post(self, request, *args, **kwargs):
         """Download a comic archive."""
-        queryset = Library.objects.all().only("pk")
-        AdminLibrary.poll(request, queryset)
+        queryset = Library.objects.all()
+        AdminLibrary.queue_poll(queryset, False)
         return Response()
