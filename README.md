@@ -189,13 +189,13 @@ Codex collects its logs in the `config/logs` directory. Take a look to see what 
 
 ### LOGLEVEL
 
-You can change how much codex logs by setting the LOGLEVEL environment variable. By default this level is "INFO". To see more messages run codex like:
+You can change how much codex logs by setting the `LOGLEVEL` environment variable. By default this level is `INFO`. To see more messages run codex like:
 
 ```bash
 LOGLEVEL=VERBOSE codex
 ```
 
-To see many noisy messages try:
+To see (probably too many) noisy messages try:
 
 ```bash
 LOGLEVEL=DEBUG codex

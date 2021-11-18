@@ -68,10 +68,10 @@ class LibrarianDaemon(Process):
             elif isinstance(task, VacuumCronTask):
                 vacuum_db()
             elif task == self.SHUTDOWN_TASK:
-                LOG.info("Shutting down Librarian...")
+                LOG.verbose("Shutting down Librarian...")  # type: ignore
                 run = False
             else:
-                LOG.warning(f"Unhandled task popped: {task}")
+                LOG.warning(f"Unhandled Librarian task: {task}")
         except (Comic.DoesNotExist, Folder.DoesNotExist) as exc:
             LOG.warning(exc)
         except Exception as exc:
@@ -80,23 +80,25 @@ class LibrarianDaemon(Process):
 
     def start_threads(self):
         """Start all librarian's threads."""
+        LOG.debug("Creating Librarian threads...")
         self.cover_creator = CoverCreator()
         self.updater = Updater()
         self.file_system_event_observer = LibraryEventObserver()
         self.library_polling_observer = LibraryPollingObserver()
         self.crond = Crond()
-        LOG.debug("Created Threads.")
+        LOG.debug("Created Librarian threads.")
+        LOG.debug("Starting Librarian threads.")
         EventBatcher.startup()
         self.cover_creator.start()
         self.updater.start()
         self.file_system_event_observer.start()
         self.library_polling_observer.start()
         self.crond.start()
-        LOG.debug("Started Threads.")
+        LOG.debug("Started Librarian threads.")
 
     def stop_threads(self):
         """Stop all librarian's threads."""
-        LOG.debug("Stopping threads...")
+        LOG.debug("Stopping Librarain threads...")
         self.crond.stop()
         self.file_system_event_observer.stop()
         self.library_polling_observer.stop()
@@ -104,6 +106,7 @@ class LibrarianDaemon(Process):
         EventBatcher.thread.stop()
         self.cover_creator.stop()
         LOG.debug("Stopped Librarian threads.")
+        LOG.debug("Joining Librarian threads.")
         self.crond.join()
         self.file_system_event_observer.join()
         self.library_polling_observer.join()
@@ -120,10 +123,12 @@ class LibrarianDaemon(Process):
         threads.
         """
         try:
-            LOG.info("Started Librarian process.")
+            LOG.verbose("Started Librarian process.")  # type: ignore
             self.start_threads()
             run = True
-            LOG.info("Librarian started threads and waiting for tasks.")
+            LOG.verbose(  # type: ignore
+                "Librarian started threads and waiting for tasks."
+            )
             while run:
                 task = LIBRARIAN_QUEUE.get()
                 run = self.process_task(task)
@@ -131,7 +136,7 @@ class LibrarianDaemon(Process):
         except Exception as exc:
             LOG.error("Librarian crashed.")
             LOG.exception(exc)
-        LOG.info("Stopped Librarian process.")
+        LOG.verbose("Stopped Librarian process.")  # type: ignore
 
     @classmethod
     def startup(cls):

@@ -75,6 +75,7 @@ def codex_startup():
 
 def codex_shutdown():
     """Stop the daemons."""
+    LOG.info("Shutting down Codex...")
     LibrarianDaemon.shutdown()
     Notifier.shutdown()
 

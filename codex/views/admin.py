@@ -1,7 +1,7 @@
 """Poll all libraries."""
 
-from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from codex.admin import AdminLibrary
 from codex.models import Library

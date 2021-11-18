@@ -18,7 +18,7 @@ def _shutdown_signal_handler():
     global SHUTDOWN_EVENT
     if SHUTDOWN_EVENT.is_set():
         return
-    LOG.info("Asking hypercorn to shut down gracefully. Could take 5 seconds...")
+    LOG.info("Asking hypercorn to shut down gracefully. Could take 10 seconds...")
     SHUTDOWN_EVENT.set()
 
 

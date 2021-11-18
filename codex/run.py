@@ -28,6 +28,7 @@ def set_env():
     """Set environment variables."""
     if DEBUG:
         os.environ["PYTHONDONTWRITEBYTECODE"] = "YES"
+        # Overwritten when we import settings in django.setup()
         LOG.setLevel("DEBUG")
 
 
@@ -64,7 +65,7 @@ def restart():
     """Restart this process."""
     import sys
 
-    LOG.info("Restarting. Hold on to your butts.")
+    LOG.info("Restarting Codex. Hold on to your butts...")
     os.execv(__file__, sys.argv)
 
 

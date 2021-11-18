@@ -70,7 +70,7 @@ def _get_log_level(debug):
     if environ_loglevel:
         level = environ_loglevel
     elif debug:
-        level = logging.VERBOSE  # type: ignore
+        level = logging.DEBUG
     else:
         level = logging.INFO
     return level
