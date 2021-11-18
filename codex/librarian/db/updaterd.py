@@ -42,11 +42,15 @@ def _bulk_create_comic_relations(library, fks) -> bool:
 
 def _batch_modified_and_created(library, modified_paths, created_paths) -> bool:
     """Perform one batch of imports."""
-    mds, m2m_mds, fks = get_aggregate_metadata(library, modified_paths | created_paths)
+    mds, m2m_mds, fks, fis = get_aggregate_metadata(
+        library, modified_paths | created_paths
+    )
 
     changed = _bulk_create_comic_relations(library, fks)
 
-    changed |= bulk_import_comics(library, created_paths, modified_paths, mds, m2m_mds)
+    changed |= bulk_import_comics(
+        library, created_paths, modified_paths, mds, m2m_mds, fis
+    )
     return changed
 
 

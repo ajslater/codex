@@ -5,7 +5,7 @@ from time import sleep
 
 from codex.librarian.coverd import CoverCreator
 from codex.librarian.crond import Crond
-from codex.librarian.db.updated import Updater
+from codex.librarian.db.updaterd import Updater
 from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
     ComicCoverTask,

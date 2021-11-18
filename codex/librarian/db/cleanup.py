@@ -70,7 +70,8 @@ def _bulk_cleanup_failed_imports(library):
     delete_failed_imports = succeeded_imports
 
     # Cleanup FailedImports that aren't on the filesystem anymore.
-    for path in failed_import_paths - succeeded_imports:
+    didnt_succeed_paths = failed_import_paths - succeeded_imports
+    for path in didnt_succeed_paths:
         if not Path(path).exists():
             delete_failed_imports.add(path)
 

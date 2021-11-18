@@ -6,11 +6,10 @@ from logging import getLogger
 from pathlib import Path
 
 from comicbox.comic_archive import ComicArchive
-from django.db.models.functions import Now
 from fnvhash import fnv1a_32
 
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, ImageComicCoverCreateTask
-from codex.models import Comic, FailedImport, Imprint, Publisher, Series, Volume
+from codex.models import Comic, Imprint, Publisher, Series, Volume
 
 
 LOG = getLogger(__name__)
@@ -180,33 +179,6 @@ def _aggregate_group_tree_metadata(all_fks, group_tree_md):
         all_fks["group_trees"][Volume][volume_group_tree] = issue_count
 
 
-def _bulk_update_or_create_failed_imports(library_pk, failed_imports):
-    """Bulk update or create failed imports."""
-    existing_fi_paths = FailedImport.objects.filter(
-        library=library_pk, path=failed_imports.keys()
-    ).values_list("path", flat=True)
-    exisiting_fi_paths = set(existing_fi_paths)
-    update_failed_imports = []
-    create_failed_imports = []
-    for path, exc in failed_imports.items():
-        fi = FailedImport(library_id=library_pk, path=path)
-        fi.set_reason(exc, path)
-        if path in exisiting_fi_paths:
-            fi.updated_at = Now()  # type: ignore
-            update_failed_imports.append(fi)
-
-        else:
-            create_failed_imports.append(fi)
-
-    if update_failed_imports:
-        FailedImport.objects.bulk_update(update_failed_imports, fields=("reason",))
-    if create_failed_imports:
-        FailedImport.objects.bulk_create(create_failed_imports)
-    num_failed_imports = len(failed_imports)
-    if num_failed_imports:
-        LOG.warn(f"Failed {num_failed_imports} comic imports.")
-
-
 def get_aggregate_metadata(library, all_paths):
     """Get aggregated metatada for the paths given."""
     all_mds = {}
@@ -224,17 +196,17 @@ def get_aggregate_metadata(library, all_paths):
         path = str(path)
         md, m2m_md, group_tree_md, failed_import = _get_path_metadata(path)
 
-        if md:
-            all_mds[path] = md
-
-        if m2m_md:
-            _aggregate_m2m_metadata(all_m2m_mds, m2m_md, all_fks, path)
-
-        if group_tree_md:
-            _aggregate_group_tree_metadata(all_fks, group_tree_md)
-
         if failed_import:
             all_failed_imports.update(failed_import)
+        else:
+            if md:
+                all_mds[path] = md
+
+            if m2m_md:
+                _aggregate_m2m_metadata(all_m2m_mds, m2m_md, all_fks, path)
+
+            if group_tree_md:
+                _aggregate_group_tree_metadata(all_fks, group_tree_md)
 
         now = time.time()
         if now - last_log_time > LOG_EVERY:
@@ -243,7 +215,5 @@ def get_aggregate_metadata(library, all_paths):
 
     all_fks["comic_paths"] = set(all_mds.keys())
 
-    _bulk_update_or_create_failed_imports(library.pk, all_failed_imports)
-
     LOG.verbose(f"Aggregated tags from {len(all_mds)} comics.")  # type: ignore
-    return all_mds, all_m2m_mds, all_fks
+    return all_mds, all_m2m_mds, all_fks, all_failed_imports

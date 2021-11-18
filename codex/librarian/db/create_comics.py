@@ -5,7 +5,16 @@ from pathlib import Path
 from django.db.models import Q
 from django.db.models.functions import Now
 
-from codex.models import Comic, Credit, Folder, Imprint, Publisher, Series, Volume
+from codex.models import (
+    Comic,
+    Credit,
+    FailedImport,
+    Folder,
+    Imprint,
+    Publisher,
+    Series,
+    Volume,
+)
 
 
 LOG = getLogger(__name__)
@@ -20,6 +29,7 @@ BULK_UPDATE_COMIC_FIELDS = []
 for field in Comic._meta.get_fields():
     if not field.many_to_many and field.name not in EXCLUDE_BULK_UPDATE_COMIC_FIELDS:
         BULK_UPDATE_COMIC_FIELDS.append(field.name)
+BULK_UPDATE_FAILED_IMPORT_FIELDS = ("reason", "updated_at")
 
 
 def _get_group_name(cls, md):
@@ -207,9 +217,47 @@ def bulk_recreate_m2m_field(field_name, m2m_links):
     ThroughModel.objects.bulk_create(tms)
 
 
-def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2m_mds):
+def _bulk_update_and_create_failed_imports(library, failed_imports):
+    """Bulk update or create failed imports."""
+    existing_fi_paths = set(
+        FailedImport.objects.filter(
+            library=library, path__in=failed_imports.keys()
+        ).values_list("path", flat=True)
+    )
+
+    update_failed_imports = []
+    create_failed_imports = []
+    for path, exc in failed_imports.items():
+        fi = FailedImport(library=library, path=path)
+        fi.set_reason(exc, path)
+        if path in existing_fi_paths:
+            fi.updated_at = Now()  # type: ignore
+            update_failed_imports.append(fi)
+
+        else:
+            create_failed_imports.append(fi)
+
+    if update_failed_imports:
+        FailedImport.objects.bulk_update(
+            update_failed_imports, fields=BULK_UPDATE_FAILED_IMPORT_FIELDS
+        )
+    if create_failed_imports:
+        FailedImport.objects.bulk_create(create_failed_imports)
+    num_failed_imports = len(failed_imports)
+    if num_failed_imports:
+        LOG.warn(f"Failed {num_failed_imports} comic imports.")
+
+
+def bulk_import_comics(
+    library, create_paths, update_paths, all_bulk_mds, all_m2m_mds, failed_imports
+):
     """Bulk import comics."""
-    if not (create_paths or update_paths or all_bulk_mds or all_m2m_mds):
+    update_paths -= failed_imports.keys()
+    create_paths -= failed_imports.keys()
+
+    if not (
+        create_paths or update_paths or all_bulk_mds or all_m2m_mds or failed_imports
+    ):
         return False
 
     _update_comics(library, update_paths, all_bulk_mds)
@@ -229,5 +277,8 @@ def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2
     num_create_paths = len(create_paths)
     if num_create_paths:
         LOG.info(f"Created {num_create_paths} Comics.")
+
+    _bulk_update_and_create_failed_imports(library, failed_imports)
+
     total_paths = num_update_paths + num_create_paths
     return total_paths > 0
