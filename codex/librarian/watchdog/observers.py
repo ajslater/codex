@@ -40,7 +40,7 @@ class UatuMixin(BaseObserver):
             return
 
         # Set up the watch
-        handler = CodexLibraryEventHandler(library.pk)
+        handler = CodexLibraryEventHandler(library)
         watch = self.schedule(handler, library.path, recursive=True)
         LOG.info(f"Started {watching_log}")
 

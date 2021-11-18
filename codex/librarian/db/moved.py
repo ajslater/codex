@@ -33,7 +33,10 @@ def bulk_comics_moved(library, moved_paths):
     for comic in comics:
         comic.path = moved_paths[comic.path]
         new_path = Path(comic.path)
-        comic.parent_folder = Folder.objects.get(path=new_path.parent)
+        if new_path.parent == Path(library.path):
+            comic.parent_folder = None
+        else:
+            comic.parent_folder = Folder.objects.get(path=new_path.parent)
         comic.updated_at = Now()  # type: ignore
         comic.set_stat()
         folder_m2m_links[comic.pk] = Folder.objects.filter(
@@ -86,7 +89,10 @@ def _update_moved_folders(library, folders_moved, dest_parent_folders):
         folder.sort_name = folder.name
         folder.path = new_path
         parent_path = str(Path(new_path).parent)
-        folder.parent_folder = dest_parent_folders.get(parent_path)
+        if parent_path == library.path:
+            folder.parent_folder = None
+        else:
+            folder.parent_folder = dest_parent_folders.get(parent_path)
         folder.set_stat()
         folder.updated_at = Now()  # type: ignore
         update_folders.append(folder)

@@ -87,9 +87,9 @@ class EventBatcher(AggregateMessageQueuedThread):
 class CodexLibraryEventHandler(FileSystemEventHandler):
     """Handle watchdog events for comics in a library."""
 
-    def __init__(self, library_pk, *args, **kwargs):
+    def __init__(self, library, *args, **kwargs):
         """Let us send along he library id."""
-        self.library_pk = library_pk
+        self.library_pk = library.pk
         super().__init__(*args, **kwargs)
 
     def dispatch(self, event):
@@ -107,12 +107,13 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
                     # Moved from an ignored file extension into a comic type,
                     # so create a new comic.
                     event = FileCreatedEvent(event.dest_path)
-                # Keep badly renamed comics in the database
+                # However, keep badly renamed comics in the database, let them move
                 # elif COMIC_MATCHER.search(event.src_path) is not None
                 #      and COMIC_MATCHER.search(event.dest_path) is None:
                 #    # moved into something that's not a comic name so delete
                 #    event = FileDeletedEvent(event.src_path)
-            elif COMIC_MATCHER.search(event.src_path) is None:
+
+            if COMIC_MATCHER.search(event.src_path) is None:
                 # Don't process non comic files at all
                 return
 

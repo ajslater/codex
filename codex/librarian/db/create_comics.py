@@ -59,7 +59,11 @@ def _link_comic_fks(md, library, path):
         name=volume_name,
     )
     parent_path = Path(path).parent
-    md["parent_folder"] = Folder.objects.get(path=parent_path)
+    if parent_path == Path(library.path):
+        parent_folder = None
+    else:
+        parent_folder = Folder.objects.get(path=parent_path)
+    md["parent_folder"] = parent_folder
 
 
 def _update_comics(library, comic_paths, mds):
