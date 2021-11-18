@@ -1,5 +1,7 @@
 """Django views for Codex."""
 from logging import getLogger
+from threading import Thread
+from time import sleep
 
 from django.contrib.admin import ModelAdmin, register
 from django.contrib.admin.templatetags.admin_urls import admin_urlname
@@ -22,6 +24,20 @@ from codex.models import AdminFlag, FailedImport, Library
 
 LOG = getLogger(__name__)
 SAFE_CHANGE = SafeText("change")
+
+
+class LibraryChangeThread(Thread):
+    """
+    Kludgy thread to wait for the database to sync between procs.
+
+    Needed because these tasks fail if they're sent right after creation.
+    """
+
+    def run(self):
+        """Sleep and then put things on the queue."""
+        sleep(2)
+        LIBRARIAN_QUEUE.put(BroadcastNotifierTask("LIBRARY_CHANGED"))
+        LIBRARIAN_QUEUE.put(WatchdogTask())
 
 
 @register(Library)
@@ -55,7 +71,7 @@ class AdminLibrary(ModelAdmin):
     sortable_by = list_display
 
     @staticmethod
-    def _poll(queryset, force):
+    def queue_poll(queryset, force):
         """Queue a scan task for the library."""
         pks = queryset.values_list("pk", flat=True)
         task = PollLibrariesTask(pks, force)
@@ -63,13 +79,13 @@ class AdminLibrary(ModelAdmin):
 
     def poll(self, request, queryset):
         """Scan for new comics."""
-        self._poll(queryset, False)
+        self.queue_poll(queryset, False)
 
     poll.short_description = "Poll for changes"
 
     def force_poll(self, request, queryset):
         """Scan all comics."""
-        self._poll(queryset, True)
+        self.queue_poll(queryset, True)
 
     force_poll.short_description = "Re-import all comics"
 
@@ -82,10 +98,7 @@ class AdminLibrary(ModelAdmin):
 
     def _on_change(self, _, created=False):
         """Events for when the library has changed."""
-        # XXX These sleep values are for waiting for db consistency
-        #     between processes. Klugey.
-        LIBRARIAN_QUEUE.put(WatchdogTask())
-        LIBRARIAN_QUEUE.put(BroadcastNotifierTask("LIBRARY_CHANGED"))
+        LibraryChangeThread().start()
 
     def save_model(self, request, obj, form, change):
         """Trigger watching and scanning on update or creation."""
