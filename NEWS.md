@@ -4,14 +4,15 @@
 
 - Massive speedup for importing comics. Particularly for large libraries.
 - Massive speed improvement for creating comic covers on large imports.
-- Regenerate all comic covers in a library from an admin task.
-- Comics with no specified Publishers, Imprints and Series no longer have induced default names for these but have no name like Volumes.
-- Added VERBOSE logging level to help screen out bulk DEBUG messages from dependancies.
+- Admin Panel options for polling & watching events have changed names.
+- Admin Panel task added to regenerate all comic covers.
+- Admin Menu option added for polling all Libraries on demand.
+- VERBOSE logging level to help screen out bulk DEBUG messages from dependancies.
 - Shortened logging messages for easier reading.
-- Now compatible with python 3.10
+- Comics with no specified Publishers, Imprints and Series no longer have induced default names for these but have no name like Volumes.
 - Fixed credits displaying in metadata.
 - Fixed named tags displaying in metadata for aggregate groups of comics.
-- Admin Panel options for polling & watching events have changed names
+- Now compatible with python 3.10.
 
 ## v0.6.8
 
