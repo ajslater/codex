@@ -54,15 +54,17 @@ class AdminLibrary(ModelAdmin):
     readonly_fields = ("last_poll",)
     sortable_by = list_display
 
-    def _poll(self, _, queryset, force):
+    @staticmethod
+    def _poll(_, queryset, force):
         """Queue a scan task for the library."""
         pks = queryset.values_list("pk", flat=True)
         task = PollLibrariesTask(pks, force)
         LIBRARIAN_QUEUE.put(task)
 
-    def poll(self, request, queryset):
+    @classmethod
+    def poll(cls, request, queryset):
         """Scan for new comics."""
-        self._poll(request, queryset, False)
+        cls._poll(request, queryset, False)
 
     poll.short_description = "Poll for changes"
 

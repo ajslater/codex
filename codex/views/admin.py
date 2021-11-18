@@ -1,6 +1,7 @@
 """Poll all libraries."""
 
 from rest_framework.views import APIView
+from rest_framework.response import Response
 
 from codex.admin import AdminLibrary
 from codex.models import Library
@@ -14,5 +15,6 @@ class PollView(APIView):
 
     def post(self, request, *args, **kwargs):
         """Download a comic archive."""
-        queryset = Library.objects.all()
+        queryset = Library.objects.all().only("pk")
         AdminLibrary.poll(request, queryset)
+        return Response()
