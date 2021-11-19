@@ -18,7 +18,7 @@ from codex.librarian.queue_mp import (
     PurgeComicCoversTask,
 )
 from codex.models import Comic, Library
-from codex.settings.settings import CONFIG_STATIC, STATIC_ROOT
+from codex.settings.settings import CONFIG_STATIC
 from codex.threads import QueuedThread
 
 
@@ -27,11 +27,7 @@ THUMBNAIL_SIZE = (120, 180)
 
 COVER_ROOT = Path(f"{CONFIG_STATIC}/covers")
 MISSING_COVER_FN = "missing_cover.png"
-BUILDING_COVER_FN = "building_cover.png"
-MISSING_COVER_SRC = STATIC_ROOT / "img" / MISSING_COVER_FN
-MISSING_COVER_FS_PATH = COVER_ROOT / MISSING_COVER_FN
 LOG = getLogger(__name__)
-LOG_EVERY = 15
 
 
 def _cleanup_cover_dirs(path):
