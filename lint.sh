@@ -1,7 +1,7 @@
 #!/bin/bash
 # Lint checks
 set -euxo pipefail
-if [ "$1" = "-f" ]; then
+if [ "${1:-}" = "-f" ]; then
     # Fix before check
     ./fix-lint.sh
 fi
