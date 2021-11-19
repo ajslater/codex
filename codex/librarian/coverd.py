@@ -93,18 +93,19 @@ def _create_comic_cover_from_file(comic, force=False):
     """Create a comic cover thumnail and save it to disk."""
     # The browser sends x_path and x_comic_path, everything else sends no prefix
     count = 0
+    missing = None
     cover_path = comic.get("x_cover_path", comic.get("cover_path"))
     comic_path = comic.get("x_path", comic.get("path"))
     if not comic_path and not cover_path:
         LOG.warning("Not creating comic cover for empty object.")
-        return count
+        return count, missing
     try:
         if not cover_path:
             cover_path = Comic.objects.get(path=comic_path).cover_path
 
         fs_cover_path = COVER_ROOT / cover_path
         if (cover_path == MISSING_COVER_FN or fs_cover_path.exists()) and not force:
-            return count
+            return count, missing
 
         if comic_path is None:
             comic_path = Comic.objects.get(cover_path=cover_path).path
@@ -120,11 +121,8 @@ def _create_comic_cover_from_file(comic, force=False):
         else:
             LOG.exception(exc)
             LOG.error(f"Failed to create cover thumb for {comic_path}")
-        Comic.objects.filter(path=comic_path).update(
-            cover_path=MISSING_COVER_FN, updated_at=Now()
-        )
-        LOG.warn(f"Marked cover for {comic_path} missing.")
-    return count
+        missing = comic_path
+    return count, missing
 
 
 def _bulk_create_comic_covers(comic_and_cover_paths, force=False):
@@ -133,9 +131,22 @@ def _bulk_create_comic_covers(comic_and_cover_paths, force=False):
     LOG.debug(f"Checking {num_comics} comic covers...")
     start_time = time.time()
 
+    # Create comics
     comic_counter = 0
+    missing_cover_comic_paths = set()
     for comic in comic_and_cover_paths:
-        comic_counter += _create_comic_cover_from_file(comic, force)
+        count, missing = _create_comic_cover_from_file(comic, force)
+        comic_counter += count
+        if missing:
+            missing_cover_comic_paths.add(missing)
+
+    # Mark missing
+    if missing_cover_comic_paths:
+        count = Comic.objects.filter(path__in=missing_cover_comic_paths).update(
+            cover_path=MISSING_COVER_FN, updated_at=Now()
+        )
+        LOG.warn(f"Marked covers for {count} comics missing.")
+
     elapsed = time.time() - start_time
     if comic_counter:
         per = elapsed / comic_counter
