@@ -23,7 +23,7 @@ class UatuMixin(BaseObserver):
             if watch.path == path:
                 return watch
 
-    def _set_library_watch(self, library):
+    def _sync_library_watch(self, library):
         """Start a library watching process."""
         watch = self._get_watch(library.path)
         is_enabled = getattr(library, self.ENABLE_FIELD)
@@ -41,10 +41,10 @@ class UatuMixin(BaseObserver):
 
         # Set up the watch
         handler = CodexLibraryEventHandler(library)
-        watch = self.schedule(handler, library.path, recursive=True)
+        self.schedule(handler, library.path, recursive=True)
         LOG.info(f"Started {watching_log}")
 
-    def _cleanup_orphan_watches(self, paths):
+    def _unschedule_orphan_watches(self, paths):
         """Unschedule lost watches."""
         orphan_watches = set()
         for watch in self._watches:
@@ -52,22 +52,26 @@ class UatuMixin(BaseObserver):
                 orphan_watches.add(watch)
         for watch in orphan_watches:
             self.unschedule(watch)
+            LOG.info(
+                f"Stopped watching orphaned library {watch.path} "
+                f"with {self.ENABLE_FIELD}"
+            )
 
-    def set_all_library_watches(self):
+    def sync_library_watches(self):
         """Watch or unwatch all libraries according to the db."""
         libraries = Library.objects.all().only("pk", "path", self.ENABLE_FIELD)
         library_paths = set()
         for library in libraries:
             try:
                 library_paths.add(library.path)
-                self._set_library_watch(library)
+                self._sync_library_watch(library)
             except FileNotFoundError:
                 LOG.warning(
                     f"Could not find {library.path} to watch. May be unmounted."
                 )
             except Exception as exc:
                 LOG.exception(exc)
-        self._cleanup_orphan_watches(library_paths)
+        self._unschedule_orphan_watches(library_paths)
 
 
 # It would be best for Codex to have one observer with multiple emitters, but the
@@ -104,8 +108,9 @@ class LibraryPollingObserver(UatuMixin):
 
     def on_thread_stop(self):
         """Put a dummy event on the queue that blocks forever."""
-        # The global timeout is None becaue the emitters have their own
-        # per watch timeout. So this makes self.dispatch_events() block
-        # forever on the queue.
+        # The global timeout is None because the emitters have their own
+        # per watch timeout. This makes self.dispatch_events() block
+        # forever on the queue. Sending it an event lets it check the
+        # shutdown event next.
         self.event_queue.put(self.SHUTDOWN_EVENT)
         super().on_thread_stop()

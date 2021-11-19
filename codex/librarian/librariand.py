@@ -57,8 +57,8 @@ class LibrarianDaemon(Process):
             elif isinstance(task, NotifierTask):
                 Notifier.thread.queue.put(task)
             elif isinstance(task, WatchdogTask):
-                self.file_system_event_observer.set_all_library_watches()
-                self.library_polling_observer.set_all_library_watches()
+                self.file_system_event_observer.sync_library_watches()
+                self.library_polling_observer.sync_library_watches()
             elif isinstance(task, UpdateCronTask):
                 update_codex(task.force)
             elif isinstance(task, PollLibrariesTask):
