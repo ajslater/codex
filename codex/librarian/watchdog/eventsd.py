@@ -1,4 +1,11 @@
-"""Batch watchdog events into bulk database tasks."""
+"""
+Batch watchdog events into bulk database tasks.
+
+Watchdog actually starts events as bulk events with the DirSnapshotDiff
+but the built-in filesystem event emitters serialize them, so the most
+consistent thing is for the DBEmitter to serialize them in the same way
+and then re-serialize everything in this batcher and the event Handler
+"""
 import re
 
 from logging import getLogger
@@ -24,53 +31,89 @@ class EventBatcher(AggregateMessageQueuedThread):
 
     NAME = "WatchdogEventBatcher"
     CLS_SUFFIX = -len("Event")
+    DBDIFF_TASK_PARAMS = {
+        "library_id": None,
+        "dirs_moved": {},
+        "files_moved": {},
+        "files_modified": set(),
+        "files_created": set(),
+        "dirs_deleted": set(),
+        "dirs_modified": set(),
+        "files_deleted": set(),
+    }
 
-    @classmethod
-    def _field_by_event(cls, event):
+    def _ensure_library_args(self, library_id):
+        if library_id in self.cache:
+            return
+        args = self.DBDIFF_TASK_PARAMS.copy()
+        args["library_id"] = library_id
+        self.cache[library_id] = args
+
+    def _args_field_by_event(self, library_id, event):
         """Translate event class names into field names."""
+        self._ensure_library_args(library_id)
+
         if event.is_directory:
             prefix = "dir"
         else:
             prefix = "file"
-        return f"{prefix}s_{event.event_type}"
+        field = f"{prefix}s_{event.event_type}"
+
+        args_field = self.cache[library_id].get(field)
+        return args_field
 
     def _aggregate_items(self, message):
-        """Aggregate events into cache."""
-        library_pk, event = message
+        """Aggregate events into cache by library."""
+        library_id, event = message
 
-        if event.is_directory and event.event_type == EVENT_TYPE_CREATED:
+        args_field = self._args_field_by_event(library_id, event)
+
+        if args_field is None:
+            LOG.debug(f"Unhandled event, not batching: {event}")
             return
 
-        if library_pk not in self.cache:
-            self.cache[library_pk] = set()
-        self.cache[library_pk].add(event)
+        if event.event_type == EVENT_TYPE_MOVED:
+            args_field[event.src_path] = event.dest_path
+        else:
+            args_field.add(event.src_path)
 
-    def _create_task_from_events(self, library_id, events):
+    def _deduplicate_events(self, library_id):
+        """Prune different event types on the same paths."""
+        args = self.cache[library_id]
+
+        # deleted
+        for src_path in args["dirs_deleted"]:
+            try:
+                del args["dirs_moved"][src_path]
+            except KeyError:
+                pass
+        for src_path in args["files_deleted"]:
+            try:
+                del args["files_moved"][src_path]
+            except KeyError:
+                pass
+        # created
+        args["files_created"] -= args["files_deleted"]
+        files_dest_paths = set(args["files_moved"].values())
+        args["files_created"] -= files_dest_paths
+        # modified
+        args["dirs_modified"] -= args["dirs_deleted"]
+        args["dirs_modified"] -= set(args["dirs_moved"].values())
+        args["files_modified"] -= args["files_created"]
+        args["files_modified"] -= args["files_deleted"]
+        args["files_modified"] -= files_dest_paths
+
+    def _create_task(self, library_id):
         """Create a task from cached aggregated message data."""
-        params = {
-            "library_id": library_id,
-            "dirs_moved": {},
-            "files_moved": {},
-            "files_modified": set(),
-            "files_created": set(),
-            "dirs_deleted": set(),
-            "dirs_modified": set(),
-            "files_deleted": set(),
-        }
-        for event in events:
-            field = self._field_by_event(event)
-            if event.event_type == EVENT_TYPE_MOVED:
-                params[field][event.src_path] = event.dest_path
-            else:
-                params[field].add(event.src_path)
-
-        return DBDiffTask(**params)
+        self._deduplicate_events(library_id)
+        args = self.cache[library_id]
+        return DBDiffTask(**args)
 
     def _send_all_items(self):
         """Send all tasks to library queue and reset events cache."""
         library_ids = set()
-        for library_id, events in self.cache.items():
-            task = self._create_task_from_events(library_id, events)
+        for library_id in self.cache.keys():
+            task = self._create_task(library_id)
             LIBRARIAN_QUEUE.put(task)
             library_ids.add(library_id)
 
