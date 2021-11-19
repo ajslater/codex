@@ -86,9 +86,10 @@ def bulk_folders_modified(library, paths):
     update_folders = []
     now = Now()
     for folder in folders:
-        folder.set_stat()
-        folder.updated_at = now  # type: ignore
-        update_folders.append(folder)
+        if Path(folder.path).exists():
+            folder.set_stat()
+            folder.updated_at = now  # type: ignore
+            update_folders.append(folder)
     Folder.objects.bulk_update(
         update_folders, fields=BULK_UPDATE_FOLDER_MODIFIED_FIELDS
     )
