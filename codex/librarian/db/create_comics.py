@@ -126,7 +126,7 @@ def _create_comics(library, comic_paths, mds):
     Comic.objects.bulk_create(create_comics)
 
     LOG.verbose(  # type: ignore
-        f"Bulk updating {num_comics} new comic's " "self references...."
+        f"Bulk updating {num_comics} created comics' " "self references...."
     )
     # update myself field with self reference
     created_comics = Comic.objects.filter(path__in=comic_paths).only("pk", "myself")
@@ -284,7 +284,7 @@ def bulk_import_comics(
     if not (
         create_paths or update_paths or all_bulk_mds or all_m2m_mds or failed_imports
     ):
-        return False
+        return 0
 
     _update_comics(library, update_paths, all_bulk_mds)
     _create_comics(library, create_paths, all_bulk_mds)
@@ -317,4 +317,4 @@ def bulk_import_comics(
     _bulk_update_and_create_failed_imports(library, failed_imports)
 
     total_count = update_count + create_count
-    return total_count > 0
+    return total_count
