@@ -72,7 +72,7 @@ def _update_comics(library, comic_paths, mds):
         return
 
     num_comics = len(comic_paths)
-    LOG.verbose(f"Peparing {num_comics} comics for update.")  # type: ignore
+    LOG.verbose(f"Preparing {num_comics} comics for update.")  # type: ignore
     # Get existing comics to update
     comics = Comic.objects.filter(library=library, path__in=comic_paths).only(
         "pk", "path", *BULK_UPDATE_COMIC_FIELDS
@@ -116,6 +116,8 @@ def _create_comics(library, comic_paths, mds):
             comic.presave()
             comic.set_stat()
             create_comics.append(comic)
+        except KeyError:
+            LOG.warning(f"No comic metadata for {path}")
         except Exception as exc:
             LOG.error(f"Error preparing {path} for create.")
             LOG.exception(exc)

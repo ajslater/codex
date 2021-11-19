@@ -15,9 +15,6 @@ MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder")
 MOVED_BULK_FOLDER_UPDATE_FIELDS = ("path", "parent_folder", "name", "sort_name")
 
 
-# TODO optimize just name changes
-
-
 def bulk_comics_moved(library, moved_paths):
     """Abbreviated bulk_import_comics to just change path related fields."""
     # Prepare FKs
@@ -47,7 +44,8 @@ def bulk_comics_moved(library, moved_paths):
     Comic.objects.bulk_update(comics, MOVED_BULK_COMIC_UPDATE_FIELDS)
 
     # Update m2m field
-    bulk_recreate_m2m_field("folders", folder_m2m_links)
+    if folder_m2m_links:
+        bulk_recreate_m2m_field("folders", folder_m2m_links)
     count = len(comics)
     log = f"Moved {count} comics."
     if count:
