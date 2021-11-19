@@ -10,6 +10,7 @@ from colors import color
 # "{asctime} {processName} {threadName} {name} {levelname} {message}"
 LOG_FMT = "{asctime} {levelname:8} {message}"
 VERBOSE = int((logging.INFO + logging.DEBUG) / 2)
+LOG_EVERY = 15
 
 
 def _verbose(self, message, *args, **kwargs):
