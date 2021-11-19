@@ -68,9 +68,12 @@ class RegisterView(APIView):
         user.set_password(password)
         user.save()
         session_key = self.request.session.session_key
-        UserBookmark.objects.filter(session__session_key=session_key).update(
+        count = UserBookmark.objects.filter(session__session_key=session_key).update(
             user=user, updated_at=Now()
         )
+        LOG.verbose(f"Created user {username}")  # type: ignore
+        if count:
+            LOG.debug("Linked user to existing session bookmarks")
         return user
 
     def validate(self):

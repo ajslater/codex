@@ -1,6 +1,10 @@
 #!/bin/bash
 # Lint checks
 set -euxo pipefail
+if [ "$1" = "-f" ]; then
+    # Fix before check
+    ./fix-lint.sh
+fi
 poetry run flake8 .
 poetry run isort --check-only .
 poetry run black --check .

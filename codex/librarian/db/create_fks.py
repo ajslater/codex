@@ -65,8 +65,14 @@ def _bulk_create_groups(all_create_groups):
             obj = _create_group_obj(cls, group_param_tuple, count)
             create_groups.append(obj)
         cls.objects.bulk_create(create_groups)
-        num_create_groups = len(create_groups)
-        LOG.info(f"Created {num_create_groups} {cls.__name__}s.")
+        count = len(create_groups)
+        num_create_groups += count
+        log = f"Created {count} {cls.__name__}s."
+        if count:
+            LOG.info(log)
+        else:
+            LOG.verbose(log)  # type: ignore
+
     return num_create_groups > 0
 
 
@@ -74,18 +80,26 @@ def bulk_folders_modified(library, paths):
     """Update folders stat and nothing else."""
     if not paths:
         return False
-    folders = Folder.objects.filter(library=library, path__in=paths).only("stat")
+    folders = Folder.objects.filter(library=library, path__in=paths).only(
+        "stat", "updated_at"
+    )
     update_folders = []
+    now = Now()
     for folder in folders:
         folder.set_stat()
-        folder.updated_at = Now()
+        folder.updated_at = now  # type: ignore
         update_folders.append(folder)
     Folder.objects.bulk_update(
         update_folders, fields=BULK_UPDATE_FOLDER_MODIFIED_FIELDS
     )
-    num_update_folders = len(update_folders)
-    LOG.verbose(f"Modified {num_update_folders} folders")  # type: ignore
-    return num_update_folders > 0
+    count = len(update_folders)
+    log = f"Modified {count} folders"
+    if count:
+        LOG.info(log)
+    else:
+        LOG.verbose(log)  # type: ignore
+
+    return count > 0
 
 
 def bulk_create_folders(library, folder_paths):
@@ -103,7 +117,7 @@ def bulk_create_folders(library, folder_paths):
         folder_path_dict[path_length].append(path)
 
     # create each depth level first to ensure we can assign parents
-    num_create_folders = 0
+    total_count = 0
     for _, paths in sorted(folder_path_dict.items()):
         create_folders = []
         for path in paths:
@@ -123,9 +137,15 @@ def bulk_create_folders(library, folder_paths):
             folder.set_stat()
             create_folders.append(folder)
         Folder.objects.bulk_create(create_folders)
-        num_create_folders = len(create_folders)
-        LOG.info(f"Created {num_create_folders} Folders.")
-    return num_create_folders > 0
+        count = len(create_folders)
+        log = f"Created {count} Folders."
+        if count:
+            LOG.info(log)
+        else:
+            LOG.verbose(log)  # type: ignore
+        if count:
+            total_count += count
+    return total_count > 0
 
 
 def _bulk_create_named_models(cls, names):
@@ -138,9 +158,13 @@ def _bulk_create_named_models(cls, names):
         create_named_objs.append(named_obj)
 
     cls.objects.bulk_create(create_named_objs)
-    num_create_named_objs = len(create_named_objs)
-    LOG.info(f"Created {num_create_named_objs} {cls.__name__}s.")
-    return num_create_named_objs > 0
+    count = len(names)
+    log = f"Created {count} {cls.__name__}s."
+    if count:
+        LOG.info(log)
+    else:
+        LOG.verbose(log)  # type: ignore
+    return count > 0
 
 
 def _bulk_create_credits(create_credit_tuples):
@@ -160,9 +184,14 @@ def _bulk_create_credits(create_credit_tuples):
         create_credits.append(credit)
 
     Credit.objects.bulk_create(create_credits)
-    num_create_credits = len(create_credits)
-    LOG.info(f"Created {num_create_credits} Credits.")
-    return num_create_credits > 0
+    count = len(create_credits)
+    log = f"Created {count} Credits."
+    if count:
+        LOG.info(log)
+    else:
+        LOG.verbose(log)  # type: ignore
+
+    return count > 0
 
 
 def bulk_create_all_fks(

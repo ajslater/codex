@@ -14,7 +14,7 @@ from codex.librarian.queue_mp import (
     BroadcastNotifierTask,
     DBDiffTask,
 )
-from codex.models import FailedImport, Folder, Library
+from codex.models import FailedImport, Library
 from codex.threads import QueuedThread
 
 

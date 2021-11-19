@@ -30,6 +30,7 @@ def bulk_comics_moved(library, moved_paths):
     )
 
     folder_m2m_links = {}
+    now = Now()
     for comic in comics:
         comic.path = moved_paths[comic.path]
         new_path = Path(comic.path)
@@ -37,7 +38,7 @@ def bulk_comics_moved(library, moved_paths):
             comic.parent_folder = None
         else:
             comic.parent_folder = Folder.objects.get(path=new_path.parent)
-        comic.updated_at = Now()  # type: ignore
+        comic.updated_at = now  # type: ignore
         comic.set_stat()
         folder_m2m_links[comic.pk] = Folder.objects.filter(
             path__in=new_path.parents
@@ -47,14 +48,14 @@ def bulk_comics_moved(library, moved_paths):
 
     # Update m2m field
     bulk_recreate_m2m_field("folders", folder_m2m_links)
-    num_updated_comics = len(comics)
-    log = f"Moved {num_updated_comics} comics."
-    if num_updated_comics:
+    count = len(comics)
+    log = f"Moved {count} comics."
+    if count:
         LOG.info(log)
     else:
         LOG.verbose(log)  # type: ignore
 
-    return num_updated_comics > 0
+    return count > 0
 
 
 def _get_parent_folders(library, folders_moved):
@@ -83,6 +84,7 @@ def _update_moved_folders(library, folders_moved, dest_parent_folders):
     folders = Folder.objects.filter(library=library, path__in=src_folder_paths)
 
     update_folders = []
+    now = Now()
     for folder in folders:
         new_path = folders_moved[folder.path]
         folder.name = Path(new_path).name
@@ -94,19 +96,19 @@ def _update_moved_folders(library, folders_moved, dest_parent_folders):
         else:
             folder.parent_folder = dest_parent_folders.get(parent_path)
         folder.set_stat()
-        folder.updated_at = Now()  # type: ignore
+        folder.updated_at = now  # type: ignore
         update_folders.append(folder)
 
     update_folders = sorted(update_folders, key=lambda x: len(Path(x.path).parts))
 
     Folder.objects.bulk_update(update_folders, MOVED_BULK_FOLDER_UPDATE_FIELDS)
-    num_updated_folders = len(update_folders)
-    log = f"Moved {num_updated_folders} folders."
-    if num_updated_folders:
+    count = len(update_folders)
+    log = f"Moved {count} folders."
+    if count:
         LOG.info(log)
     else:
         LOG.verbose(log)  # type: ignore
-    return num_updated_folders > 0
+    return count > 0
 
 
 def bulk_folders_moved(library, folders_moved):

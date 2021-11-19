@@ -47,10 +47,11 @@ def init_admin_flags():
 
 
 def unset_update_in_progress():
-    """Unset the scan_in_progres flag for all libraries."""
-    Library.objects.filter(update_in_progress=True).update(
+    """Unset the scan_in_progress flag for all libraries."""
+    count = Library.objects.filter(update_in_progress=True).update(
         update_in_progress=False, updated_at=Now()
     )
+    LOG.debug(f"Reset {count} Library's update_in_progress flag")
 
 
 def codex_startup():

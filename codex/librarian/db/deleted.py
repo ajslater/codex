@@ -46,10 +46,14 @@ def bulk_folders_deleted(library, delete_folder_paths=None) -> bool:
     if not delete_folder_paths:
         return False
     query = Folder.objects.filter(library=library, path__in=delete_folder_paths)
+    count = query.count()
     query.delete()
-    num_delete_folder_paths = len(delete_folder_paths)
-    LOG.info(f"Deleted {num_delete_folder_paths} comics from {library.path}")
-    return num_delete_folder_paths > 0
+    log = f"Deleted {count} comics from {library.path}"
+    if count:
+        LOG.info(log)
+    else:
+        LOG.verbose(log)  # type: ignore
+    return count > 0
 
 
 def bulk_comics_deleted(library, delete_comic_paths=None) -> bool:
@@ -61,7 +65,11 @@ def bulk_comics_deleted(library, delete_comic_paths=None) -> bool:
 
     LIBRARIAN_QUEUE.put(PurgeComicCoversTask(delete_cover_paths))
 
+    count = len(delete_cover_paths)
     query.delete()
-    num_delete_cover_paths = len(delete_cover_paths)
-    LOG.info(f"Deleted {num_delete_cover_paths} comics from {library.path}")
-    return num_delete_cover_paths > 0
+    log = f"Deleted {count} comics from {library.path}"
+    if count:
+        LOG.info(log)
+    else:
+        LOG.verbose(log)  # type: ignore
+    return count > 0

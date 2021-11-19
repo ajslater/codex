@@ -48,7 +48,9 @@ def _bulk_cleanup_fks(classes, field_name):
     changed = False
     for cls in classes:
         filter_dict = {f"{field_name}__isnull": True}
-        count, _ = cls.objects.filter(**filter_dict).delete()
+        query = cls.objects.filter(**filter_dict)
+        count = query.count()
+        query.delete()
         if count:
             LOG.info(f"Deleted {count} orphan {cls.__name__}s")
             changed = True
@@ -78,12 +80,11 @@ def _bulk_cleanup_failed_imports(library):
     if not delete_failed_imports:
         return
 
-    FailedImport.objects.filter(
+    count, _ = FailedImport.objects.filter(
         library=library.pk, path__in=delete_failed_imports
     ).delete()
-    LOG.info(
-        f"Cleaned up {len(delete_failed_imports)} failed imports from {library.path}"
-    )
+    if count:
+        LOG.info(f"Cleaned up {count} failed imports from {library.path}")
 
 
 def cleanup_database(library=None, delete_comic_paths=None, library_pk=None):

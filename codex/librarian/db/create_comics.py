@@ -82,14 +82,18 @@ def _update_comics(library, comic_paths, mds):
     update_comics = []
     now = Now()
     for comic in comics:
-        md = mds.pop(comic.path)
-        _link_comic_fks(md, library, comic.path)
-        for field_name, value in md.items():
-            setattr(comic, field_name, value)
-        comic.presave()
-        comic.set_stat()
-        comic.updated_at = now  # type: ignore
-        update_comics.append(comic)
+        try:
+            md = mds.pop(comic.path)
+            _link_comic_fks(md, library, comic.path)
+            for field_name, value in md.items():
+                setattr(comic, field_name, value)
+            comic.presave()
+            comic.set_stat()
+            comic.updated_at = now  # type: ignore
+            update_comics.append(comic)
+        except Exception as exc:
+            LOG.error(f"Error preparing {comic} for update.")
+            LOG.exception(exc)
 
     LOG.verbose(f"Bulk updating {num_comics} comics.")  # type: ignore
     Comic.objects.bulk_update(update_comics, BULK_UPDATE_COMIC_FIELDS)
@@ -105,12 +109,16 @@ def _create_comics(library, comic_paths, mds):
     # prepare create comics
     create_comics = []
     for path in comic_paths:
-        md = mds.pop(path)
-        _link_comic_fks(md, library, path)
-        comic = Comic(**md)
-        comic.presave()
-        comic.set_stat()
-        create_comics.append(comic)
+        try:
+            md = mds.pop(path)
+            _link_comic_fks(md, library, path)
+            comic = Comic(**md)
+            comic.presave()
+            comic.set_stat()
+            create_comics.append(comic)
+        except Exception as exc:
+            LOG.error(f"Error preparing {path} for create.")
+            LOG.exception(exc)
 
     LOG.verbose(f"Bulk creating {num_comics} comics...")  # type: ignore
     Comic.objects.bulk_create(create_comics)
@@ -219,27 +227,34 @@ def bulk_recreate_m2m_field(field_name, m2m_links):
     #   detect, create & delete them.
     ThroughModel.objects.filter(comic_id__in=m2m_links.keys()).delete()
     ThroughModel.objects.bulk_create(tms)
+    return len(tms)
 
 
 def _bulk_update_and_create_failed_imports(library, failed_imports):
     """Bulk update or create failed imports."""
-    existing_fi_paths = set(
-        FailedImport.objects.filter(
-            library=library, path__in=failed_imports.keys()
-        ).values_list("path", flat=True)
+    update_failed_imports = FailedImport.objects.filter(
+        library=library, path__in=failed_imports.keys()
     )
 
-    update_failed_imports = []
+    now = Now()
+    for failed_import in update_failed_imports:
+        try:
+            exc = failed_imports.pop(failed_import.path)
+            failed_import.set_reason(exc, failed_import.path)
+            failed_import.updated_at = now  # type: ignore
+        except Exception as exc:
+            LOG.error(f"Error preparing failed import update for {failed_import.path}")
+            LOG.exception(exc)
+
     create_failed_imports = []
     for path, exc in failed_imports.items():
-        fi = FailedImport(library=library, path=path)
-        fi.set_reason(exc, path)
-        if path in existing_fi_paths:
-            fi.updated_at = Now()  # type: ignore
-            update_failed_imports.append(fi)
-
-        else:
+        try:
+            fi = FailedImport(library=library, path=path)
+            fi.set_reason(exc, path)
             create_failed_imports.append(fi)
+        except Exception as exc:
+            LOG.error(f"Error preparing failed import create for {path}")
+            LOG.exception(exc)
 
     if update_failed_imports:
         FailedImport.objects.bulk_update(
@@ -247,9 +262,14 @@ def _bulk_update_and_create_failed_imports(library, failed_imports):
         )
     if create_failed_imports:
         FailedImport.objects.bulk_create(create_failed_imports)
-    num_failed_imports = len(failed_imports)
-    if num_failed_imports:
-        LOG.warn(f"Failed {num_failed_imports} comic imports.")
+    update_count = len(update_failed_imports)
+    create_count = len(create_failed_imports)
+    log = f"Failed {create_count} new, {update_count} old comic imports."
+    total_count = update_count + create_count
+    if total_count:
+        LOG.warn(log)
+    else:
+        LOG.verbose(log)  # type: ignore
 
 
 def bulk_import_comics(
@@ -273,16 +293,26 @@ def bulk_import_comics(
         )
     all_m2m_links = _link_comic_m2m_fields(all_m2m_mds)
     for field_name, m2m_links in all_m2m_links.items():
-        bulk_recreate_m2m_field(field_name, m2m_links)
+        try:
+            bulk_recreate_m2m_field(field_name, m2m_links)
+        except Exception as exc:
+            LOG.error(f"Error recreating m2m field: {field_name}")
+            LOG.exception(exc)
 
-    num_update_paths = len(update_paths)
-    if num_update_paths:
-        LOG.info(f"Updated {num_update_paths} Comics.")
-    num_create_paths = len(create_paths)
-    if num_create_paths:
-        LOG.info(f"Created {num_create_paths} Comics.")
+    update_count = len(update_paths)
+    update_log = f"Updated {update_count} Comics."
+    if update_count:
+        LOG.info(update_log)
+    else:
+        LOG.verbose(update_log)  # type: ignore
+    create_count = len(create_paths)
+    create_log = f"Created {create_count} Comics."
+    if create_count:
+        LOG.info(create_log)
+    else:
+        LOG.verbose(create_log)  # type: ignore
 
     _bulk_update_and_create_failed_imports(library, failed_imports)
 
-    total_paths = num_update_paths + num_create_paths
-    return total_paths > 0
+    total_count = update_count + create_count
+    return total_count > 0
