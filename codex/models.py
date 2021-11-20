@@ -372,8 +372,7 @@ class Comic(WatchedPath):
     class Meta:
         """Constraints."""
 
-        # prevents None path comics from being duplicated
-        unique_together = ("path", "volume", "year", "issue")
+        unique_together = ("library", "path")
         verbose_name = "Issue"
 
     def _set_date(self):
