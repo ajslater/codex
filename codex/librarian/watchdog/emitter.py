@@ -197,7 +197,7 @@ class DatabasePollingEmitter(EventEmitter):
             Library.objects.filter(path=self.watch.path).update(
                 last_poll=Now(), updated_at=Now()
             )
-        LOG.verbose(f"Poll {self.watch.path} finished.")  # type: ignore
+        LOG.verbose(f"Polling {self.watch.path} finished.")  # type: ignore
 
     def on_thread_stop(self):
         """Send the poller as well."""

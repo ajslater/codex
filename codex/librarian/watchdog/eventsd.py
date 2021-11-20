@@ -18,6 +18,7 @@ from watchdog.events import (
 )
 
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DBDiffTask
+from codex.settings.settings import MAX_DB_OPS
 from codex.threads import AggregateMessageQueuedThread
 
 
@@ -41,6 +42,10 @@ class EventBatcher(AggregateMessageQueuedThread):
         "dirs_modified": set(),
         "files_deleted": set(),
     }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._total_items = 0
 
     def _ensure_library_args(self, library_id):
         if library_id in self.cache:
@@ -76,6 +81,11 @@ class EventBatcher(AggregateMessageQueuedThread):
             args_field[event.src_path] = event.dest_path
         else:
             args_field.add(event.src_path)
+        self._total_items += 1
+        if self._total_items > MAX_DB_OPS:
+            LOG.info("Event batcher hit max_db_ops limit.")
+            # Sends all items
+            self._timed_out()
 
     def _deduplicate_events(self, library_id):
         """Prune different event types on the same paths."""
@@ -119,6 +129,7 @@ class EventBatcher(AggregateMessageQueuedThread):
 
         # reset the event aggregates
         self._cleanup_cache(library_ids)
+        self._total_items = 0
 
     @classmethod
     def startup(cls):
