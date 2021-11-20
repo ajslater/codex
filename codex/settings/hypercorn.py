@@ -24,4 +24,6 @@ def load_hypercorn_config(hypercorn_config_toml, hypercorn_config_toml_default, 
     if debug:
         config.use_reloader = True
         LOG.info("Will reload hypercorn if files change")
+    if not hasattr(config, "max_db_ops"):
+        config.max_db_ops = 100000
     return config
