@@ -10,6 +10,7 @@ from fnvhash import fnv1a_32
 
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, ImageComicCoverCreateTask
 from codex.models import Comic, Imprint, Publisher, Series, Volume
+from codex.settings.logging import LOG_EVERY
 
 
 LOG = getLogger(__name__)
@@ -20,7 +21,6 @@ for field in Comic._meta.get_fields():
     if field.many_to_many and field.name != "folders":
         COMIC_M2M_FIELDS.add(field.name)
 MD_UNUSED_KEYS = ("alternate_series", "remainder", "ext", "pages", "cover_image")
-LOG_EVERY = 15
 WRITE_WAIT_EXPIRY = LOG_EVERY
 WRITE_WAIT_DELAY = 0.01
 HEX_FILL = 8
@@ -190,7 +190,7 @@ def get_aggregate_metadata(library, all_paths):
     all_failed_imports = {}
     total_paths = len(all_paths)
 
-    LOG.verbose(f"Processing tags in {library.path}...")  # type: ignore
+    LOG.info(f"Reading tags from {total_paths} comics in {library.path}...")  # type: ignore
     last_log_time = time.time()
     for num, path in enumerate(all_paths):
         path = str(path)
@@ -210,7 +210,7 @@ def get_aggregate_metadata(library, all_paths):
 
         now = time.time()
         if now - last_log_time > LOG_EVERY:
-            LOG.info(f"Processing {num}/{total_paths} comics tags")
+            LOG.info(f"Read tags from {num}/{total_paths} comics")
             last_log_time = now
 
     all_fks["comic_paths"] = set(all_mds.keys())

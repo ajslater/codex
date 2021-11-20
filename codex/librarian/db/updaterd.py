@@ -40,7 +40,9 @@ def _bulk_create_comic_relations(library, fks) -> bool:
     return changed
 
 
-def _batch_modified_and_created(library, modified_paths, created_paths) -> bool:
+def _batch_modified_and_created(
+    library, modified_paths, created_paths
+) -> tuple[bool, int]:
     """Perform one batch of imports."""
     mds, m2m_mds, fks, fis = get_aggregate_metadata(
         library, modified_paths | created_paths
@@ -88,11 +90,12 @@ def apply(task):
     if changed:
         LIBRARIAN_QUEUE.put(BroadcastNotifierTask("LIBRARY_CHANGED"))
         elapsed_time = time.time() - start_time
-        LOG.info(f"Updated database in {int(elapsed_time)} seconds.")
-        LOG.verbose(f"Imported {imported_count} comics.")
+        LOG.info(f"Updated libary {library.path} in {int(elapsed_time)} seconds.")
+        suffix = ""
         if imported_count:
             cps = int(imported_count / elapsed_time)
-            LOG.verbose(f"Took {cps} comics per second.")
+            suffix = f" at {cps} comics per second."
+        LOG.verbose(f"Imported {imported_count} comics{suffix}.")  # type: ignore
 
 
 class Updater(QueuedThread):

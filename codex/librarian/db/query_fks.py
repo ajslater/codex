@@ -1,10 +1,13 @@
 """Query the missing foreign keys for comics and credits."""
+import time
+
 from logging import getLogger
 from pathlib import Path
 
 from django.db.models import Q
 
 from codex.models import Comic, Credit, Folder, Imprint, Publisher, Series, Volume
+from codex.settings.logging import LOG_EVERY
 
 
 CREDIT_FKS = ("role", "person")
@@ -19,12 +22,10 @@ QUERY_FIELDS = {
     Volume: ("publisher__name", "imprint__name", "series__name", "name"),
 }
 NAMED_MODEL_QUERY_FIELDS = ("name",)
-# sqlite parser breaks with more than 1000 lines in a query and django only fixes this
-# in the bulk_create & bulk_update functions. So for complicated queries I gotta batch
-# them myself
-# Filter arg count is a poor proxy for sql line length and variables but it works
-#   1998 is too high for the Credit query, for instance.
-FILTER_ARG_MAX = 1950
+# sqlite parser breaks with more than 1000 variables in a query and django only
+# fixes this in the bulk_create & bulk_update functions. So for complicated
+# queries I gotta batch them myself. Filter arg count is a proxy, but it works.
+FILTER_ARG_MAX = 990
 LOG = getLogger(__name__)
 
 
@@ -45,18 +46,22 @@ def _query_create_metadata(fk_cls, create_mds, all_filter_args):
     filter = Q()
     filter_arg_count = 0
     all_filter_args = tuple(all_filter_args)
-    num = 0
+    last_log = time.time()
 
-    for filter_args in all_filter_args:
+    for num, filter_args in enumerate(all_filter_args):
         filter = filter | Q(**dict(filter_args))
         filter_arg_count += len(filter_args)
         if filter_arg_count >= FILTER_ARG_MAX or filter_args == all_filter_args[-1]:
             # If too many filter args in the query or we're on the last one.
             create_mds -= _query_existing_mds(fk_cls, filter)
 
-            # Log
-            num += 1
-            LOG.debug(f"Queried for existing {fk_cls.__name__}s, batch {num}")
+            log = f"Queried for existing {fk_cls.__name__}s, batch {num}"
+            now = time.time()
+            if now - last_log > LOG_EVERY:
+                LOG.verbose(log)  # type: ignore
+                last_log = now
+            else:
+                LOG.debug(log)
 
             # Reset the filter
             filter = Q()
@@ -117,8 +122,7 @@ def _query_missing_groups(group_trees_md):
     for cls, groups in group_trees_md.items():
         create_groups = _query_missing_group_type(cls, groups)
         all_create_groups[cls] = create_groups
-        if create_groups:
-            count += 1
+        count += len(create_groups)
     return all_create_groups, count
 
 
@@ -156,13 +160,20 @@ def _query_missing_simple_models(base_cls, field, fk_field, names):
     create_names = set(names)
     num_proposed_names = len(proposed_names)
     num = 0
+    last_log = time.time()
     while offset < num_proposed_names:
         end = offset + FILTER_ARG_MAX
         filter_args = {f"{fk_field}__in": proposed_names[offset:end]}
         filter = Q(**filter_args)
         create_names -= _query_existing_mds(fk_cls, filter)
         num += 1
-        LOG.debug(f"Queried for existing {fk_cls.__name__}s, batch {num}")
+        log = f"Queried for existing {fk_cls.__name__}s, batch {num}"
+        now = time.time()
+        if now - last_log > LOG_EVERY:
+            LOG.verbose(log)  # type: ignore
+            last_log = now
+        else:
+            LOG.debug(log)
         offset += FILTER_ARG_MAX
 
     return fk_cls, create_names

@@ -12,7 +12,6 @@ from codex.models import (
     Folder,
     Genre,
     Imprint,
-    Library,
     Location,
     Publisher,
     Series,
@@ -87,12 +86,10 @@ def _bulk_cleanup_failed_imports(library):
         LOG.info(f"Cleaned up {count} failed imports from {library.path}")
 
 
-def cleanup_database(library=None, delete_comic_paths=None, library_pk=None):
+def cleanup_database(library):
     """Run all the cleanup routines."""
-    if not library:
-        library = Library.objects.get(pk=library_pk)
-    changed = False
-    changed |= _bulk_cleanup_fks(DELETE_COMIC_FKS, "comic")
+    LOG.verbose(f"Cleaning up library {library.path}...")  # type: ignore
+    changed = _bulk_cleanup_fks(DELETE_COMIC_FKS, "comic")
     changed |= _bulk_cleanup_fks(DELETE_CREDIT_FKS, "credit")
     _bulk_cleanup_failed_imports(library)
     return changed

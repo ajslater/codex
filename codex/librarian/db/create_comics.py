@@ -72,7 +72,9 @@ def _update_comics(library, comic_paths, mds):
         return
 
     num_comics = len(comic_paths)
-    LOG.verbose(f"Preparing {num_comics} comics for update.")  # type: ignore
+    LOG.verbose(  # type: ignore
+        f"Preparing {num_comics} comics for update in library {library.path}."
+    )
     # Get existing comics to update
     comics = Comic.objects.filter(library=library, path__in=comic_paths).only(
         "pk", "path", *BULK_UPDATE_COMIC_FIELDS
@@ -105,7 +107,9 @@ def _create_comics(library, comic_paths, mds):
         return
 
     num_comics = len(comic_paths)
-    LOG.verbose(f"Peparing {num_comics} comics for creation.")  # type: ignore
+    LOG.verbose(  # type: ignore
+        f"Preparing {num_comics} comics for creation in library {library.path}."
+    )
     # prepare create comics
     create_comics = []
     for path in comic_paths:
@@ -178,6 +182,9 @@ def _link_comic_m2m_fields(m2m_mds):
     """Get the complete m2m field data to create."""
     all_m2m_links = {}
     comic_paths = set(m2m_mds.keys())
+    LOG.verbose(  # type: ignore
+        f"Preparing {len(comic_paths)} comics for many to many relation recreation."
+    )
 
     comics = Comic.objects.filter(path__in=comic_paths).values_list("pk", "path")
     for comic_pk, comic_path in comics:
@@ -286,13 +293,21 @@ def bulk_import_comics(
     ):
         return 0
 
+    already_created = set(
+        Comic.objects.filter(library=library, path__in=create_paths).values_list(
+            "path", flat=True
+        )
+    )
+    if already_created:
+        LOG.warning(
+            f"Detected {len(already_created)} already created comics, updating them instead."
+        )
+        create_paths -= already_created
+        update_paths |= already_created
+
     _update_comics(library, update_paths, all_bulk_mds)
     _create_comics(library, create_paths, all_bulk_mds)
 
-    if all_m2m_mds:
-        LOG.verbose(  # type: ignore
-            f"Preparing {len(all_m2m_mds)} comics for many to many relation recreation."
-        )
     all_m2m_links = _link_comic_m2m_fields(all_m2m_mds)
     for field_name, m2m_links in all_m2m_links.items():
         try:
