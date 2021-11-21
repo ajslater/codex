@@ -8,6 +8,7 @@ and then re-serialize everything in this batcher and the event Handler
 """
 import re
 
+from copy import deepcopy
 from logging import getLogger
 
 from watchdog.events import (
@@ -44,13 +45,14 @@ class EventBatcher(AggregateMessageQueuedThread):
     }
 
     def __init__(self, *args, **kwargs):
+        """Set the total items for limiting db ops per batch."""
         super().__init__(*args, **kwargs)
         self._total_items = 0
 
     def _ensure_library_args(self, library_id):
         if library_id in self.cache:
             return
-        args = self.DBDIFF_TASK_PARAMS.copy()
+        args = deepcopy(self.DBDIFF_TASK_PARAMS)
         args["library_id"] = library_id
         self.cache[library_id] = args
 
@@ -70,9 +72,7 @@ class EventBatcher(AggregateMessageQueuedThread):
     def _aggregate_items(self, message):
         """Aggregate events into cache by library."""
         library_id, event = message
-
         args_field = self._args_field_by_event(library_id, event)
-
         if args_field is None:
             LOG.debug(f"Unhandled event, not batching: {event}")
             return

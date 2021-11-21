@@ -1,5 +1,5 @@
 """Manage user sessions with appropriate defaults."""
-from copy import copy
+from copy import deepcopy
 
 from django.contrib.sessions.models import Session
 from rest_framework.views import APIView
@@ -119,6 +119,6 @@ class UserBookmarkMixin(APIView):
         if updates.get("bookmark") == comic.max_page:
             # Auto finish on bookmark last page
             updates["finished"] = True
-        defaults = copy(search_kwargs)
+        defaults = deepcopy(search_kwargs)
         defaults.update(updates)
         UserBookmark.objects.update_or_create(defaults=defaults, **search_kwargs)

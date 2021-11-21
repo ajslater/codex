@@ -105,7 +105,7 @@ def bulk_folders_modified(library, paths):
     return count > 0
 
 
-def bulk_create_folders(library, folder_paths):
+def bulk_folders_create(library, folder_paths):
     """Create folders breadth first."""
     if not folder_paths:
         return False
@@ -202,13 +202,34 @@ def _bulk_create_credits(create_credit_tuples):
     return count > 0
 
 
+def _extra_check_modified(library, create_folder_paths):
+    """Extra last minute protection for pre-existing folders."""
+    modified_folder_paths = set(
+        Folder.objects.filter(
+            library=library, path__in=create_folder_paths
+        ).values_list("path", flat=True)
+    )
+    create_folder_paths -= modified_folder_paths
+    if len(modified_folder_paths):
+        LOG.warning(
+            f"Detected {len(modified_folder_paths)} already created"
+            " folders, updating instead."
+        )
+    changed = bulk_folders_modified(library, modified_folder_paths)
+    return changed, create_folder_paths
+
+
 def bulk_create_all_fks(
-    library, create_fks, create_groups, create_paths, create_credits
+    library, create_fks, create_groups, create_folder_paths, create_credits
 ) -> bool:
     """Bulk create all foreign keys."""
     LOG.verbose(f"Creating comic foreign keys for {library.path}...")  # type: ignore
     changed = _bulk_create_groups(create_groups)
-    changed |= bulk_create_folders(library, create_paths)
+    mod_changed, create_folder_paths = _extra_check_modified(
+        library, create_folder_paths
+    )
+    changed |= mod_changed
+    changed |= bulk_folders_create(library, create_folder_paths)
     for cls, names in create_fks.items():
         changed |= _bulk_create_named_models(cls, names)
     # This must happen after credit_fks created by create_named_models

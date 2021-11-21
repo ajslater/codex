@@ -5,7 +5,7 @@ from pathlib import Path
 from django.db.models.functions import Now
 
 from codex.librarian.db.create_comics import bulk_recreate_m2m_field
-from codex.librarian.db.create_fks import bulk_create_folders
+from codex.librarian.db.create_fks import bulk_folders_create
 from codex.librarian.db.query_fks import query_missing_folder_paths
 from codex.models import Comic, Folder
 
@@ -19,7 +19,7 @@ def bulk_comics_moved(library, moved_paths):
     """Abbreviated bulk_import_comics to just change path related fields."""
     # Prepare FKs
     create_folder_paths = query_missing_folder_paths(library.path, moved_paths.values())
-    bulk_create_folders(library, create_folder_paths)
+    bulk_folders_create(library, create_folder_paths)
 
     # Update Comics
     comics = Comic.objects.filter(library=library, path__in=moved_paths.keys()).only(
