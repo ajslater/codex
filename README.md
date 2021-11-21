@@ -129,7 +129,16 @@ docker run -e CODEX_RESET_ADMIN=1 -v <host path to config>/config:/config ajslat
 
 The default config directory is named `config/` directly under the working directory you run codex from. You may specificy an alternate config directory with the environment variable `CODEX_CONFIG_DIR`.
 
-The config directory contains a hypercorn config `hypercorn.toml` where you can specify ports and bind addresses. If no `hypercorn.toml` is present a default one is copied to that directory on startup. The default port is 9810.
+The config directory contains a hypercorn config `hypercorn.toml` where you can specify ports and bind addresses. If no `hypercorn.toml` is present a default one is copied to that directory on startup.
+
+The default values for the config options are:
+
+```toml
+bind = ["0.0.0.0:9810"]
+quick_bind = ["0.0.0.0:9810"]
+root_path = "/codex"
+max_db_ops = 100000
+```
 
 The config directory also holds the main sqlite database, a django cache and comic book cover thumbnails generated when comics are imported. Reimport a comic or an entire library to regenereate these cover thumbnails.
 
@@ -187,8 +196,6 @@ You will have to contact your administrator to reset your password if you forget
 
 Codex collects its logs in the `config/logs` directory. Take a look to see what th e server is doing.
 
-### LOGLEVEL
-
 You can change how much codex logs by setting the `LOGLEVEL` environment variable. By default this level is `INFO`. To see more messages run codex like:
 
 ```bash
@@ -201,7 +208,7 @@ To see (probably too many) noisy messages try:
 LOGLEVEL=DEBUG codex
 ```
 
-### Watching events using Docker
+### Watching Filesystem Events with Docker
 
 Codex tries to watch for filesystem events to instantly update your Libraries when they are changed on disk. But these native filesystem events are not translated between macOS & Windows Docker hosts and the Docker Linux container. If you find that your installation is not updating to filesystem changes instantly, you might try enabling polling for the affected libraries and decreasing the `poll_every` value in the Admin console to a frequency that suits you.
 
@@ -219,6 +226,10 @@ Shut down and restart Codex.
 The next time Codex starts it will back up the exisiting database and try to rebuild it.
 The database lives in the config directory as the file `config/db.sqlite3`.
 If this procedure goes kablooey, you may recover the original database at `config/db.sqlite3.backup`.
+
+### Bulk Database Updates Fail
+
+Codex's bulk database updater has been tested to usually work batching 100,000 filesystem events at a time. With enough RAM Codex could probably batch much more. But if you find that updating large batches of comics are failing, consider setting a the `max_db_ops` value in `hypercorn.toml` to a lower value. 1000 will probably still be pretty fast, for instance.
 
 ### Bug Reports
 
@@ -267,7 +278,7 @@ Codex is a Django Python webserver with a VueJS front end. This is my first ever
 ## <a name="special-thanks">🙏🏻 Special Thanks</a>
 
 - Thanks to [Aurélien Mazurie](https://pypi.org/user/ajmazurie/) for allowing me to use the PyPi name 'codex'.
-- Thanks to the good people of [#mylar](irc://chat.freenode.net/mylar) for continuous feedback and comic ecosystem education.
+- Thanks to the good people of [#mylar](https://github.com/mylar3/mylar3#live-support--conversation) for continuous feedback and comic ecosystem education.
 
 ## <a name="enjoy">Enjoy!</a>
 

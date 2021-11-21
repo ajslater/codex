@@ -26,4 +26,6 @@ def load_hypercorn_config(hypercorn_config_toml, hypercorn_config_toml_default, 
         LOG.info("Will reload hypercorn if files change")
     if not hasattr(config, "max_db_ops"):
         config.max_db_ops = 100000
+    config.max_db_ops = max(1, config.max_db_ops)
+    LOG.verbose(f"max_db_ops limit is {config.max_db_ops}")  # type: ignore
     return config
