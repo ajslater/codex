@@ -3,8 +3,6 @@ from datetime import datetime, time, timedelta
 from logging import getLogger
 from threading import Condition, Event, Thread
 
-from django.utils import timezone
-
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, UpdateCronTask, VacuumCronTask
 
 
@@ -19,9 +17,10 @@ class Crond(Thread):
     @staticmethod
     def _until_midnight():
         """Get seconds until midnight."""
-        now = timezone.now()
-        tomorrow = now + timedelta(days=1)
-        delta = timezone.make_aware(datetime.combine(tomorrow, time.min)) - now
+        now = datetime.now().astimezone()
+        tomorrow = (now + timedelta(days=1)).astimezone()
+        next_midnight = datetime.combine(tomorrow, time.min).astimezone()
+        delta = next_midnight - now
         return max(0, delta.total_seconds())
 
     def run(self):
