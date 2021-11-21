@@ -146,10 +146,10 @@ def _bulk_create_comic_covers(comic_and_cover_paths, force=False):
     elapsed = time.time() - start_time
     if comic_counter:
         per = elapsed / comic_counter
-        suffix = f" at {per}s per cover"
+        suffix = f" at {per:.3f}s per cover"
     else:
         suffix = ""
-    log_text = f"Created {comic_counter} comic covers in {elapsed}s{suffix}."
+    log_text = f"Created {comic_counter} comic covers in {elapsed:.1f}s{suffix}."
     if comic_counter:
         LOG.info(log_text)
     else:
