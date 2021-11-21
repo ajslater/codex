@@ -48,6 +48,7 @@ def _query_create_metadata(fk_cls, create_mds, all_filter_args):
     all_filter_args = tuple(all_filter_args)
     last_log = time.time()
 
+    num_filter_args_batches = len(all_filter_args)
     for num, filter_args in enumerate(all_filter_args):
         filter = filter | Q(**dict(filter_args))
         filter_arg_count += len(filter_args)
@@ -55,13 +56,11 @@ def _query_create_metadata(fk_cls, create_mds, all_filter_args):
             # If too many filter args in the query or we're on the last one.
             create_mds -= _query_existing_mds(fk_cls, filter)
 
-            log = f"Queried for existing {fk_cls.__name__}s, batch {num}"
             now = time.time()
             if now - last_log > LOG_EVERY:
+                log = f"Queried for existing {fk_cls.__name__}s, batch {num}/{num_filter_arg_batches}"
                 LOG.verbose(log)  # type: ignore
                 last_log = now
-            else:
-                LOG.debug(log)
 
             # Reset the filter
             filter = Q()
@@ -167,13 +166,11 @@ def _query_missing_simple_models(base_cls, field, fk_field, names):
         filter = Q(**filter_args)
         create_names -= _query_existing_mds(fk_cls, filter)
         num += 1
-        log = f"Queried for existing {fk_cls.__name__}s, batch {num}"
         now = time.time()
         if now - last_log > LOG_EVERY:
+            log = f"Queried for existing {fk_cls.__name__}s, batch {num}/{num_proposed_names}"
             LOG.verbose(log)  # type: ignore
             last_log = now
-        else:
-            LOG.debug(log)
         offset += FILTER_ARG_MAX
 
     return fk_cls, create_names
