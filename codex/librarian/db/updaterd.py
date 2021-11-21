@@ -57,12 +57,34 @@ def _batch_modified_and_created(
     return changed, imported_count
 
 
+def _log_task(library, task):
+    """Log what we're doing next."""
+    LOG.info(f"Updating Library {library.path}...")  # type: ignore
+    logs = []
+    if task.dirs_moved:
+        logs += [f"{len(task.dirs_moved)} folders to move"]
+    if task.files_moved:
+        logs += [f"{len(task.files_moved)} comics to move"]
+    if task.dirs_modified:
+        logs += [f"{len(task.dirs_modified)} folders to update"]
+    if task.files_modified:
+        logs += [f"{len(task.files_modified)} comics to update"]
+    if task.files_created:
+        logs += [f"{len(task.files_created)} comics to create"]
+    if task.dirs_deleted:
+        logs += [f"{len(task.dirs_deleted)} folders to delete"]
+    if task.files_deleted:
+        logs += [f"{len(task.files_deleted)} comics to delete"]
+
+    for log in logs:
+        LOG.verbose(f"  {log}.")  # type: ignore
+
+
 def apply(task):
     """Bulk import comics."""
     start_time = time.time()
     library = Library.objects.get(pk=task.library_id)
-    LOG.verbose(f"Updating Library {library.path}...")  # type: ignore
-    library = Library.objects.get(pk=task.library_id)
+    _log_task(library, task)
     library.update_in_progress = True
     library.save()
     LIBRARIAN_QUEUE.put(AdminNotifierTask("SCAN_LIBRARY"))
