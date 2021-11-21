@@ -225,10 +225,10 @@ def bulk_create_all_fks(
     """Bulk create all foreign keys."""
     LOG.verbose(f"Creating comic foreign keys for {library.path}...")  # type: ignore
     changed = _bulk_create_groups(create_groups)
-    mod_changed, create_folder_paths = _extra_check_modified(
-        library, create_folder_paths
-    )
-    changed |= mod_changed
+    # mod_changed, create_folder_paths = _extra_check_modified(
+    #    library, create_folder_paths
+    # )
+    # changed |= mod_changed
     changed |= bulk_folders_create(library, create_folder_paths)
     for cls, names in create_fks.items():
         changed |= _bulk_create_named_models(cls, names)

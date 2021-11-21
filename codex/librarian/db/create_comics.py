@@ -311,9 +311,9 @@ def bulk_import_comics(
     ):
         return 0
 
-    create_paths, update_paths = _extra_check_modified(
-        library, create_paths, update_paths
-    )
+    # create_paths, update_paths = _extra_check_modified(
+    #    library, create_paths, update_paths
+    # )
 
     _update_comics(library, update_paths, all_bulk_mds)
     _create_comics(library, create_paths, all_bulk_mds)
