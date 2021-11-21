@@ -43,6 +43,7 @@ class EventBatcher(AggregateMessageQueuedThread):
         "dirs_modified": set(),
         "files_deleted": set(),
     }
+    MAX_DELAY = 60
 
     def __init__(self, *args, **kwargs):
         """Set the total items for limiting db ops per batch."""
