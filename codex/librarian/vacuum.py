@@ -36,6 +36,7 @@ def vacuum_db():
     old_size = DB_PATH.stat().st_size
     with connection.cursor() as cursor:
         cursor.execute("VACUUM")
+        cursor.execute("PRAGMA wal_checkpoint(TRUNCATE)")
     new_size = DB_PATH.stat().st_size
     saved = old_size - new_size
     vacuum_flag.save()  # update updated_at
