@@ -1,7 +1,6 @@
 """Library process worker for background tasks."""
 from logging import getLogger
 from multiprocessing import Process
-from time import sleep
 
 from codex.librarian.coverd import CoverCreator
 from codex.librarian.crond import Crond
@@ -47,9 +46,6 @@ class LibrarianDaemon(Process):
         """Process an individual task popped off the queue."""
         run = True
         try:
-            if task and hasattr(task, "sleep"):
-                sleep(task.sleep)
-
             if isinstance(task, ComicCoverTask):
                 self.cover_creator.queue.put(task)
             elif isinstance(task, DBDiffTask):
