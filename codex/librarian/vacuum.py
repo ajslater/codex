@@ -37,6 +37,6 @@ def vacuum_db():
     with connection.cursor() as cursor:
         cursor.execute("VACUUM")
     new_size = DB_PATH.stat().st_size
-    saved = new_size - old_size
+    saved = old_size - new_size
     vacuum_flag.save()  # update updated_at
-    LOG.info(f"Vacuumed database. Saved {saved} bytes.")
+    LOG.verbose(f"Vacuumed database. Saved {saved} bytes.")

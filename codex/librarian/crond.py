@@ -34,8 +34,8 @@ class Crond(Thread):
                 )
                 self._cond.wait(timeout=timeout)
                 try:
-                    LIBRARIAN_QUEUE.put(UpdateCronTask(force=False))
                     LIBRARIAN_QUEUE.put(VacuumCronTask())
+                    LIBRARIAN_QUEUE.put(UpdateCronTask(force=False))
                 except Exception as exc:
                     LOG.exception(exc)
         LOG.verbose(f"Stopped {self.NAME} thread.")  # type: ignore
