@@ -10,6 +10,7 @@
   - Browser Admin Menu option added for polling all Libraries on demand.
   - Comics with no specified Publishers, Imprints and Series no longer have induced default names for these but have no name like Volumes.
   - Codex repairs database integrity on startup.
+  - Codex backs up the database every night.
   - Added `VERBOSE` logging level to help screen out bulk `DEBUG` messages from dependancies.
   - Truncated logging messages for easier reading.
 - Fixes
