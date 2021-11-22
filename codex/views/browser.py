@@ -7,7 +7,6 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from stringcase import snakecase
 
-from codex.librarian.latest_version import get_latest_version
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, BulkComicCoverCreateTask
 from codex.models import (
     AdminFlag,
@@ -24,7 +23,7 @@ from codex.serializers.browser import (
     BrowserPageSerializer,
     BrowserSettingsSerializer,
 )
-from codex.version import PACKAGE_NAME, VERSION
+from codex.version import PACKAGE_NAME, VERSION, get_latest_version
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser_metadata_base import BrowserMetadataBase
 

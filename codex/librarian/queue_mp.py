@@ -132,4 +132,11 @@ class VacuumCronTask:
     pass
 
 
+@dataclass
+class BackupCronTask:
+    """Backup the database."""
+
+    pass
+
+
 LIBRARIAN_QUEUE = Queue()

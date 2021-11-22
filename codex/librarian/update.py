@@ -6,9 +6,8 @@ import sys
 
 from logging import getLogger
 
-from codex.librarian.latest_version import is_outdated
 from codex.models import AdminFlag
-from codex.version import PACKAGE_NAME, VERSION, get_version
+from codex.version import PACKAGE_NAME, VERSION, get_version, is_outdated
 
 
 LOG = getLogger(__name__)

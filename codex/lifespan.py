@@ -8,6 +8,7 @@ from multiprocessing import set_start_method
 from asgiref.sync import sync_to_async
 from django.contrib.auth.models import User
 from django.core.cache import cache
+from django.db.models import Q
 from django.db.models.functions import Now
 
 from codex.librarian.librariand import LibrarianDaemon
@@ -44,6 +45,11 @@ def init_admin_flags():
             flag, created = AdminFlag.objects.get_or_create(name=name)
         if created:
             LOG.info(f"Created AdminFlag: {flag.name} = {flag.on}")
+    query = AdminFlag.objects.filter(~Q(name__in=AdminFlag.FLAG_NAMES))
+    count = query.count()
+    if count:
+        query.delete()
+        LOG.info(f"Deleted {count} orphan AdminFlags.")
 
 
 def unset_update_in_progress():

@@ -7,6 +7,7 @@ from codex.librarian.crond import Crond
 from codex.librarian.db.updaterd import Updater
 from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
+    BackupCronTask,
     ComicCoverTask,
     DBDiffTask,
     NotifierTask,
@@ -17,7 +18,7 @@ from codex.librarian.queue_mp import (
     WatchdogTask,
 )
 from codex.librarian.update import restart_codex, update_codex
-from codex.librarian.vacuum import vacuum_db
+from codex.librarian.vacuum import backup_db, vacuum_db
 from codex.librarian.watchdog.eventsd import EventBatcher
 from codex.librarian.watchdog.observers import (
     LibraryEventObserver,
@@ -63,6 +64,8 @@ class LibrarianDaemon(Process):
                 restart_codex()
             elif isinstance(task, VacuumCronTask):
                 vacuum_db()
+            elif isinstance(task, BackupCronTask):
+                backup_db()
             elif task == self.SHUTDOWN_TASK:
                 LOG.verbose("Shutting down Librarian...")  # type: ignore
                 run = False
@@ -125,6 +128,7 @@ class LibrarianDaemon(Process):
             LOG.verbose(  # type: ignore
                 "Librarian started threads and waiting for tasks."
             )
+            backup_db()
             while run:
                 task = LIBRARIAN_QUEUE.get()
                 run = self.process_task(task)

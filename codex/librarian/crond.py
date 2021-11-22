@@ -3,7 +3,12 @@ from datetime import datetime, time, timedelta
 from logging import getLogger
 from threading import Condition, Event, Thread
 
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE, UpdateCronTask, VacuumCronTask
+from codex.librarian.queue_mp import (
+    LIBRARIAN_QUEUE,
+    BackupCronTask,
+    UpdateCronTask,
+    VacuumCronTask,
+)
 
 
 LOG = getLogger(__name__)
@@ -35,6 +40,7 @@ class Crond(Thread):
                 self._cond.wait(timeout=timeout)
                 try:
                     LIBRARIAN_QUEUE.put(VacuumCronTask())
+                    LIBRARIAN_QUEUE.put(BackupCronTask())
                     LIBRARIAN_QUEUE.put(UpdateCronTask(force=False))
                 except Exception as exc:
                     LOG.exception(exc)

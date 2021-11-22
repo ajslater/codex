@@ -114,6 +114,7 @@ WSGI_APPLICATION = "codex.wsgi.application"
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 
 DB_PATH = CONFIG_PATH / "db.sqlite3"
+BACKUP_DB_PATH = DB_PATH.with_suffix(DB_PATH.suffix + ".bak")
 
 DATABASES = {
     "default": {
