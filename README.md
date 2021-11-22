@@ -138,6 +138,7 @@ bind = ["0.0.0.0:9810"]
 quick_bind = ["0.0.0.0:9810"]
 root_path = "/codex"
 max_db_ops = 100000
+
 ```
 
 The config directory also holds the main sqlite database, a django cache and comic book cover thumbnails generated when comics are imported. Reimport a comic or an entire library to regenereate these cover thumbnails.

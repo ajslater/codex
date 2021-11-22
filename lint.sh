@@ -11,7 +11,11 @@ poetry run black --check .
 poetry run pyright
 poetry run vulture .
 bash -c "cd frontend && npx eslint --ext .js,.vue '**'"
+prettier -v
+cat ./.prettierrc.json
+prettier README.md > README.md.new
+diff README.md README.md.new
 prettier --check .
 # hadolint Dockerfile*
 shellcheck -x ./*.sh ./**/*.sh
-shfmt -d -i 4 ./*.sh ./**/*.sh
+# shfmt -d -i 4 ./*.sh ./**/*.sh
