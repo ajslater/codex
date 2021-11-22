@@ -153,7 +153,7 @@ def _fix_comic_myself_integrity_errors(apps):
     bad_comics = _find_fk_integrity_errors(apps, "Comic", "Comic", "myself")
     update_comics = []
     now = Now()
-    for comic in bad_comics:
+    for comic in bad_comics.only("myself", "updated_at"):
         comic.myself = comic
         if comic.updated_at:
             # Only if it hasn't been marked for update
