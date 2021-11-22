@@ -379,17 +379,15 @@ class BrowserView(BrowserMetadataBase):
         # Validate Root Group
         group = self.kwargs["group"]
         root_group = self.params.get("root_group")
-        if root_group == self.FOLDER_GROUP:
-            self.params["root_group"] = root_group = group
-            LOG.warn(f"Switched root group from {self.FOLDER_GROUP} to {group}")
-        else:
-            valid_root_groups = self.get_valid_root_groups()
-            if root_group not in valid_root_groups:
-                if group in valid_root_groups:
-                    self.params["root_group"] = root_group = group
-                else:
-                    self.params["root_group"] = valid_root_groups[0]
-                LOG.warn(f"Reset root group to {self.params['root_group']}")
+        valid_root_groups = self.get_valid_root_groups()
+        if root_group not in valid_root_groups:
+            if group in valid_root_groups:
+                self.params["root_group"] = group
+            else:
+                self.params["root_group"] = valid_root_groups[0]
+            LOG.verbose(  # type: ignore
+                f"Reset root group from {root_group} to {self.params['root_group']}"
+            )
 
         # Validate Group
         self.valid_nav_groups = self.get_valid_nav_groups()
@@ -445,7 +443,7 @@ class BrowserView(BrowserMetadataBase):
         try:
             obj_list = paginator.page(page).object_list
         except EmptyPage:
-            LOG.warn("No items on page {page}")
+            LOG.warning("No items on page {page}")
             obj_list = paginator.page(1).object_list
 
         self.request.session[self.BROWSER_KEY] = self.params
