@@ -35,16 +35,12 @@ class CodexDatabaseSnapshot(DirectorySnapshot):
     def _walk(cls, root):
         """Populate the DirectorySnapshot structures from the database."""
         for model in cls.MODELS:
-            yield model.objects.filter(library__path=root).values(
-                "path", "stat", "updated_at"
-            )
+            yield model.objects.filter(library__path=root).values("path", "stat")
 
-    def _fix_bad_db_stat(self, wp_path, params, stat, updated_at):
+    def _fix_bad_db_stat(self, wp_path, params, stat):
         """Handle null or zeroed out database stat entries."""
-        if params and len(params) == 10 and params[1] and updated_at:
+        if params and len(params) == 10 and params[1]:
             # params[1] is st_inode, if it's okay most everything else works
-            # a zero updated_at from the integrity checker indicates that we
-            # should force an update.
             return params
         if Path(wp_path).exists():
             LOG.debug(f"Force modify path with bad db record: {wp_path}")
@@ -83,9 +79,7 @@ class CodexDatabaseSnapshot(DirectorySnapshot):
 
         for wp in chain.from_iterable(self._walk(path)):
             wp_path = wp["path"]
-            params = self._fix_bad_db_stat(
-                wp_path, wp.get("stat"), stat, wp.get("updated_at")
-            )
+            params = self._fix_bad_db_stat(wp_path, wp.get("stat"), stat)
             if force:
                 # Fake mtime will trigger modified event
                 params[8] = 0

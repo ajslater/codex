@@ -57,33 +57,54 @@ def _delete_invalid_m2m_rels(comic_model, m2m_model, field_name, invalid_m2m_ids
     link_name = m2m_model.__name__.lower()
     filter_args = {f"{link_name}_id__in": invalid_m2m_ids}
     query = ThroughModel.objects.filter(**filter_args)
+    bad_comic_ids = set(query.values_list("comic_id", flat=True))
     count = query.count()
     query.delete()
-    LOG.info(f"Deleted {count} relations from comics to missing {field_name}.")
-
-
-def _mark_comics_with_bad_m2m_rels_for_update(comic_model, field_name, invalid_m2m_ids):
-    """Mark affected comics for update."""
-    bad_comics = comic_model.objects.filter(
-        **{f"{field_name}__id__in": invalid_m2m_ids}
+    LOG.info(
+        f"Deleted {count} relations from {len(bad_comic_ids)} "
+        f"comics to missing {field_name}."
     )
+    return bad_comic_ids
+
+
+def _mark_comics_with_bad_m2m_rels_for_update(
+    comic_model, field_name, invalid_m2m_ids, bad_comic_ids
+):
+    """Mark affected comics for update."""
+    filter = Q(**{f"{field_name}__id__in": invalid_m2m_ids}) | Q(pk__in=bad_comic_ids)
+    bad_comics = comic_model.objects.filter(filter)
     num_bad_comics = bad_comics.count()
     if not num_bad_comics:
-        LOG.verbose(f"No Comics with bad {field_name}.")  # type: ignore
         return
-    LOG.verbose(f"Found {num_bad_comics} with bad {field_name}.")  # type: ignore
+    LOG.verbose(f"Found {num_bad_comics} comics with bad {field_name}.")  # type: ignore
 
     update_comics = []
 
-    for comic in bad_comics.only("pk", "updated_at"):
-        comic.updated_at = 0
-        update_comics.append(comic)
+    try:
+        for comic in bad_comics.only("pk", "stat"):
+            stat_list = comic.stat
+            if not stat_list:
+                continue
+            stat_list[8] = 0.0
+            comic.stat = stat_list
+            update_comics.append(comic)
+    except OperationalError as exc:
+        if "no such column: codex_comic.stat" in exc.args:
+            LOG.verbose(  # type: ignore
+                f"Can't mark {num_bad_comics} comics for update, "
+                "but if this happens right before migration 0010, "
+                "they'll be updated anway."
+            )
+            return
+        else:
+            LOG.exception(exc)
+            return
 
     num_update_comics = len(update_comics)
     if not num_update_comics:
         return
 
-    comic_model.objects.bulk_update(update_comics, fields=["updated_at"])
+    comic_model.objects.bulk_update(update_comics, fields=["stat"])
     LOG.info(
         f"Marked {num_update_comics} with missing {field_name} for update by poller."
     )
@@ -100,9 +121,13 @@ def _fix_comic_m2m_integrity_errors(apps, m2m_model_name, field_name):
     if not num_invalid_m2m_ids:
         return
 
-    _delete_invalid_m2m_rels(comic_model, m2m_model, field_name, invalid_m2m_ids)
+    bad_comic_ids = _delete_invalid_m2m_rels(
+        comic_model, m2m_model, field_name, invalid_m2m_ids
+    )
 
-    _mark_comics_with_bad_m2m_rels_for_update(comic_model, field_name, invalid_m2m_ids)
+    _mark_comics_with_bad_m2m_rels_for_update(
+        comic_model, field_name, invalid_m2m_ids, bad_comic_ids
+    )
 
 
 def _find_fk_integrity_errors_with_models(
@@ -225,15 +250,12 @@ def _fix_db_integrity():
         try:
             _fix_comic_m2m_integrity_errors(apps, m2m2_model_name, field_name)
         except OperationalError as exc:
-            known_issue = False
-            for arg in exc.args:
-                if arg == "no such table: codex_comic_folders":
-                    LOG.verbose(  # type: ignore
-                        "Couldn't query for comics with folder integrity problems "
-                        "before the migrations. We'll get them on the next restart."
-                    )
-                    known_issue = True
-            if not known_issue:
+            if "no such table: codex_comic_folders" in exc.args:
+                LOG.verbose(  # type: ignore
+                    "Couldn't look for comics with folder integrity problems before "
+                    "migration 0008. We'll get them on the next restart."
+                )
+            else:
                 LOG.exception(exc)
 
     _fix_comic_myself_integrity_errors(apps)
