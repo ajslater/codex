@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
 from django.db.models import Q
 from django.db.models.functions import Now
+from django.db.utils import OperationalError
 
 
 M2M_NAMES = {
@@ -34,9 +35,6 @@ LOG = getLogger(__name__)
 
 def _get_invalid_m2m_ids(comic_model, m2m_model, field_name):
     """Query for invalid_m2m_ids."""
-    # Special fix for old schema.
-    if field_name == "folders" and not getattr(comic_model, field_name):
-        field_name = "folder"
     comic_m2m_ids = set(
         comic_model.objects.all().values_list(f"{field_name}__id", flat=True)
     )
@@ -207,7 +205,20 @@ def _fix_db_integrity():
 
     # REPAIR the objects that are left
     for m2m2_model_name, field_name in M2M_NAMES.items():
-        _fix_comic_m2m_integrity_errors(apps, m2m2_model_name, field_name)
+        try:
+            _fix_comic_m2m_integrity_errors(apps, m2m2_model_name, field_name)
+        except OperationalError as exc:
+            known_issue = False
+            for arg in exc.args:
+                if arg == "no such table: codex_comic_folders":
+                    LOG.warning(
+                        "Couldn't query for comics with folder integrity problems "
+                        "before the migrations. We'll get them on the next restart."
+                    )
+                    known_issue = True
+            if not known_issue:
+                LOG.exception(exc)
+
     _fix_comic_myself_integrity_errors(apps)
     LOG.verbose("Done with database integrity check.")  # type: ignore
 
