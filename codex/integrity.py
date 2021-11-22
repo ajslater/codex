@@ -180,7 +180,9 @@ def _null_missing_fk(host_model, fk_model, fk_field_name):
     if count:
         update_dict = {fk_field_name: None, "updated_at": Now()}
         query_missing_fks.only("fk_field_name", "updated_at").update(**update_dict)
-        LOG.verbose(f"Fixed {host_model.__name__} with missing {fk_field_name}")
+        LOG.verbose(  # type: ignore
+            f"Fixed {host_model.__name__} with missing {fk_field_name}"
+        )
 
 
 def _delete_userbookmark_integrity_errors(apps):
