@@ -15,7 +15,8 @@ from codex.librarian.queue_mp import (
     RestartTask,
     UpdateCronTask,
     VacuumCronTask,
-    WatchdogTask,
+    WatchdogEventTask,
+    WatchdogSyncTask,
 )
 from codex.librarian.update import restart_codex, update_codex
 from codex.librarian.vacuum import backup_db, vacuum_db
@@ -43,19 +44,21 @@ class LibrarianDaemon(Process):
         """Create threads and process pool."""
         super().__init__(name="librarian", daemon=False)
 
-    def process_task(self, task):
+    def _process_task(self, task):
         """Process an individual task popped off the queue."""
         run = True
         try:
-            if isinstance(task, ComicCoverTask):
+            if isinstance(task, WatchdogEventTask):
+                self.event_batcher.queue.put(task)
+            elif isinstance(task, ComicCoverTask):
                 self.cover_creator.queue.put(task)
             elif isinstance(task, DBDiffTask):
                 self.updater.queue.put(task)
             elif isinstance(task, NotifierTask):
                 Notifier.thread.queue.put(task)
-            elif isinstance(task, WatchdogTask):
-                self.file_system_event_observer.sync_library_watches()
-                self.library_polling_observer.sync_library_watches()
+            elif isinstance(task, WatchdogSyncTask):
+                for observer in self._observers:
+                    observer.sync_library_watches()
             elif isinstance(task, PollLibrariesTask):
                 self.library_polling_observer.poll(task.library_ids, task.force)
             elif isinstance(task, VacuumCronTask):
@@ -77,41 +80,43 @@ class LibrarianDaemon(Process):
             LOG.exception(exc)
         return run
 
-    def start_threads(self):
-        """Start all librarian's threads."""
-        LOG.debug("Creating Librarian threads...")
+    def _create_threads(self):
+        """Create all the threads."""
         self.cover_creator = CoverCreator()
         self.updater = Updater()
+        self.event_batcher = EventBatcher()
         self.file_system_event_observer = LibraryEventObserver()
         self.library_polling_observer = LibraryPollingObserver()
         self.crond = Crond()
-        LOG.debug("Created Librarian threads.")
+        self._threads = (
+            self.cover_creator,
+            self.updater,
+            self.event_batcher,
+            self.file_system_event_observer,
+            self.library_polling_observer,
+            self.crond,
+        )
+        self._observers = (
+            self.file_system_event_observer,
+            self.library_polling_observer,
+        )
+
+    def _start_threads(self):
+        """Start all librarian's threads."""
         LOG.debug("Starting Librarian threads.")
-        EventBatcher.startup()
-        self.cover_creator.start()
-        self.updater.start()
-        self.file_system_event_observer.start()
-        self.library_polling_observer.start()
-        self.crond.start()
+        for thread in self._threads:
+            thread.start()
         LOG.debug("Started Librarian threads.")
 
-    def stop_threads(self):
+    def _stop_threads(self):
         """Stop all librarian's threads."""
         LOG.debug("Stopping Librarain threads...")
-        self.crond.stop()
-        self.file_system_event_observer.stop()
-        self.library_polling_observer.stop()
-        self.updater.stop()
-        EventBatcher.thread.stop()
-        self.cover_creator.stop()
+        for thread in reversed(self._threads):
+            thread.stop()
         LOG.debug("Stopped Librarian threads.")
         LOG.debug("Joining Librarian threads.")
-        self.crond.join()
-        self.file_system_event_observer.join()
-        self.library_polling_observer.join()
-        self.updater.join()
-        EventBatcher.thread.join()
-        self.cover_creator.join()
+        for thread in reversed(self._threads):
+            thread.join()
         LOG.debug("Joined Librarian threads.")
 
     def run(self):
@@ -123,16 +128,16 @@ class LibrarianDaemon(Process):
         """
         try:
             LOG.verbose("Started Librarian process.")  # type: ignore
-            self.start_threads()
+            self._create_threads()
+            self._start_threads()
             run = True
             LOG.verbose(  # type: ignore
                 "Librarian started threads and waiting for tasks."
             )
-            backup_db()
             while run:
                 task = LIBRARIAN_QUEUE.get()
-                run = self.process_task(task)
-            self.stop_threads()
+                run = self._process_task(task)
+            self._stop_threads()
         except Exception as exc:
             LOG.error("Librarian crashed.")
             LOG.exception(exc)
@@ -143,7 +148,7 @@ class LibrarianDaemon(Process):
         """Create a new librarian daemon and run it."""
         cls.proc = LibrarianDaemon()
         cls.proc.start()
-        LIBRARIAN_QUEUE.put(WatchdogTask())
+        LIBRARIAN_QUEUE.put(WatchdogSyncTask())
 
     @classmethod
     def shutdown(cls):

@@ -18,7 +18,7 @@ from watchdog.events import (
     FileSystemEventHandler,
 )
 
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DBDiffTask
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DBDiffTask, WatchdogEventTask
 from codex.settings.settings import MAX_DB_OPS
 from codex.threads import AggregateMessageQueuedThread
 
@@ -70,10 +70,10 @@ class EventBatcher(AggregateMessageQueuedThread):
         args_field = self.cache[library_id].get(field)
         return args_field
 
-    def _aggregate_items(self, message):
+    def _aggregate_items(self, task):
         """Aggregate events into cache by library."""
-        library_id, event = message
-        args_field = self._args_field_by_event(library_id, event)
+        event = task.event
+        args_field = self._args_field_by_event(task.library_id, event)
         if args_field is None:
             LOG.debug(f"Unhandled event, not batching: {event}")
             return
@@ -132,12 +132,6 @@ class EventBatcher(AggregateMessageQueuedThread):
         self._cleanup_cache(library_ids)
         self._total_items = 0
 
-    @classmethod
-    def startup(cls):
-        """Start the event batcher."""
-        cls.thread = EventBatcher()
-        cls.thread.start()
-
 
 class CodexLibraryEventHandler(FileSystemEventHandler):
     """Handle watchdog events for comics in a library."""
@@ -172,5 +166,6 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
                 # Don't process non comic files at all
                 return
 
-        EventBatcher.thread.queue.put((self.library_pk, event))
+        task = WatchdogEventTask(self.library_pk, event)
+        LIBRARIAN_QUEUE.put(task)
         super().dispatch(event)

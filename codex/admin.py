@@ -17,7 +17,7 @@ from codex.librarian.queue_mp import (
     PurgeComicCoversLibrariesTask,
     RestartTask,
     UpdateCronTask,
-    WatchdogTask,
+    WatchdogSyncTask,
 )
 from codex.models import AdminFlag, FailedImport, Library
 
@@ -37,7 +37,7 @@ class LibraryChangeThread(Thread):
         """Sleep and then put things on the queue."""
         sleep(2)
         LIBRARIAN_QUEUE.put(BroadcastNotifierTask("LIBRARY_CHANGED"))
-        LIBRARIAN_QUEUE.put(WatchdogTask())
+        LIBRARIAN_QUEUE.put(WatchdogSyncTask())
 
 
 @register(Library)

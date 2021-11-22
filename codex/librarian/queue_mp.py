@@ -3,12 +3,21 @@
 from dataclasses import dataclass
 from multiprocessing import Queue
 
+from watchdog.events import FileSystemEvent
+
 
 @dataclass
 class LibraryTask:
     """Task for a particular library."""
 
     library_id: int
+
+
+@dataclass
+class WatchdogEventTask(LibraryTask):
+    """Task for filesystem events."""
+
+    event: FileSystemEvent
 
 
 @dataclass
@@ -84,7 +93,7 @@ class PollLibrariesTask(LibrariesTask):
 
 
 @dataclass
-class WatchdogTask:
+class WatchdogSyncTask:
     """Sync watches with libraries."""
 
     pass
