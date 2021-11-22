@@ -58,7 +58,10 @@ def _query_create_metadata(fk_cls, create_mds, all_filter_args):
 
             now = time.time()
             if now - last_log > LOG_EVERY:
-                log = f"Queried for existing {fk_cls.__name__}s, batch {num}/{num_filter_arg_batches}"
+                log = (
+                    f"Queried for existing {fk_cls.__name__}s, batch "
+                    + f"{num}/{num_filter_args_batches}"
+                )
                 LOG.verbose(log)  # type: ignore
                 last_log = now
 
@@ -168,7 +171,10 @@ def _query_missing_simple_models(base_cls, field, fk_field, names):
         num += 1
         now = time.time()
         if now - last_log > LOG_EVERY:
-            log = f"Queried for existing {fk_cls.__name__}s, batch {num}/{num_proposed_names}"
+            log = (
+                f"Queried for existing {fk_cls.__name__}s, "
+                + f"batch {num}/{num_proposed_names}"
+            )
             LOG.verbose(log)  # type: ignore
             last_log = now
         offset += FILTER_ARG_MAX

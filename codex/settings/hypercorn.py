@@ -6,6 +6,7 @@ from logging import getLogger
 from hypercorn.config import Config
 
 
+MAX_DB_OPS_DEFAULT = 100000
 LOG = getLogger(__name__)
 
 
@@ -24,8 +25,8 @@ def load_hypercorn_config(hypercorn_config_toml, hypercorn_config_toml_default, 
     if debug:
         config.use_reloader = True
         LOG.info("Will reload hypercorn if files change")
-    if not hasattr(config, "max_db_ops"):
-        config.max_db_ops = 100000
-    config.max_db_ops = max(1, config.max_db_ops)
+    config.max_db_ops = max(  # type: ignore
+        1, int(getattr(config, "max_db_ops", MAX_DB_OPS_DEFAULT))
+    )
     LOG.verbose(f"max_db_ops limit is {config.max_db_ops}")  # type: ignore
     return config

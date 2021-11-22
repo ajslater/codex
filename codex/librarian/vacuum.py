@@ -40,4 +40,5 @@ def vacuum_db():
     new_size = DB_PATH.stat().st_size
     saved = old_size - new_size
     vacuum_flag.save()  # update updated_at
-    LOG.verbose(f"Vacuumed database. Saved {saved} bytes.")
+
+    LOG.verbose(f"Vacuumed database. Saved {saved} bytes.")  # type: ignore

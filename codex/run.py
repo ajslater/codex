@@ -13,6 +13,7 @@ from django.core.management import call_command
 from hypercorn.asyncio import serve
 
 from codex.asgi import application
+from codex.integrity import repair_db
 from codex.settings.settings import CONFIG_PATH, DB_PATH, DEBUG, HYPERCORN_CONFIG
 from codex.signals import RESTART_EVENT, SHUTDOWN_EVENT, bind_signals
 
@@ -90,6 +91,7 @@ def main():
     """Set up and run Codex."""
     set_env()
     rebuild_db()
+    repair_db()
     update_db()
     run()
 

@@ -190,7 +190,7 @@ def get_aggregate_metadata(library, all_paths):
     all_failed_imports = {}
     total_paths = len(all_paths)
 
-    LOG.info(f"Reading tags from {total_paths} comics in {library.path}...")  # type: ignore
+    LOG.info(f"Reading tags from {total_paths} comics in {library.path}...")
     last_log_time = time.time()
     for num, path in enumerate(all_paths):
         path = str(path)

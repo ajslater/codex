@@ -3,12 +3,13 @@
 ## v0.7.0alpha0
 
 - Features
-  - Speed up importing comics to ~3000 comics per minute. Tested with a library of 100k dummy comics.
+  - Speed up importing comics up to 3000 comics per minute. Tested with a library of 100k dummy comics.
   - Speed up creating comic covers on large imports.
   - Admin Panel options for polling (formerly "scanning") and watching events have changed names.
   - Admin Panel task added to regenerate all comic covers.
   - Browser Admin Menu option added for polling all Libraries on demand.
   - Comics with no specified Publishers, Imprints and Series no longer have induced default names for these but have no name like Volumes.
+  - Codex repairs database integrity on startup.
   - Added `VERBOSE` logging level to help screen out bulk `DEBUG` messages from dependancies.
   - Truncated logging messages for easier reading.
 - Fixes

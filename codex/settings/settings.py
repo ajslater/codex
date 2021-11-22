@@ -161,7 +161,7 @@ HYPERCORN_CONFIG = load_hypercorn_config(
 )
 ROOT_PATH = ""
 PORT = int(HYPERCORN_CONFIG.bind[0].split(":")[1])
-MAX_DB_OPS = int(HYPERCORN_CONFIG.max_db_ops)
+MAX_DB_OPS = HYPERCORN_CONFIG.max_db_ops  # type: ignore
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
