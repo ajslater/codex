@@ -5,8 +5,8 @@ import time
 from logging import getLogger
 from pathlib import Path
 
-from comicbox.exceptions import UnsupportedArchiveTypeError
 from comicbox.comic_archive import ComicArchive
+from comicbox.exceptions import UnsupportedArchiveTypeError
 from fnvhash import fnv1a_32
 
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, ImageComicCoverCreateTask
