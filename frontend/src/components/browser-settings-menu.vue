@@ -7,17 +7,12 @@
     </template>
     <v-list-item-group id="settingsMenu" ripple>
       <BrowserSettingsDialog @sub-dialog-open="close" />
-      <AuthDialog @sub-dialog-open="close" />
       <v-list-item v-if="isOpenToSee" @click="reload">
         <v-list-item-content>
           <v-list-item-title>Refresh Browser</v-list-item-title>
         </v-list-item-content>
       </v-list-item>
-      <v-list-item v-if="isOpenToSee" @click="poll">
-        <v-list-item-content>
-          <v-list-item-title>Poll Filesystem</v-list-item-title>
-        </v-list-item-content>
-      </v-list-item>
+      <AuthDialog @sub-dialog-open="close" />
     </v-list-item-group>
   </v-menu>
 </template>
@@ -26,7 +21,6 @@
 import { mdiDotsVertical } from "@mdi/js";
 import { mapGetters } from "vuex";
 
-import API from "@/api/v2/admin";
 import AuthDialog from "@/components/auth-dialog";
 import BrowserSettingsDialog from "@/components/browser-settings-dialog";
 
@@ -48,9 +42,6 @@ export default {
   methods: {
     reload: function () {
       this.$store.dispatch("browser/browserOpened", this.$route.params);
-    },
-    poll: function () {
-      API.poll();
     },
     close: function () {
       // workaround for menu not closing when sub dialogs open.

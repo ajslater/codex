@@ -1,15 +1,22 @@
 <template>
   <div v-if="user" id="userMenu">
-    <v-list-item v-if="isAdmin" :href="adminURL">
-      <v-list-item-content>
-        <v-list-item-title>Admin Panel</v-list-item-title>
-      </v-list-item-content>
-    </v-list-item>
-    <v-list-item @click="logout">
-      <v-list-item-content>
-        <v-list-item-title> Logout {{ user.username }} </v-list-item-title>
-      </v-list-item-content>
-    </v-list-item>
+    <v-list-item-group v-if="isAdmin">
+      <v-list-item :href="adminURL">
+        <v-list-item-content>
+          <v-list-item-title>Admin Panel</v-list-item-title>
+        </v-list-item-content>
+      </v-list-item>
+      <v-list-item @click="poll">
+        <v-list-item-content>
+          <v-list-item-title>Poll All Libraries</v-list-item-title>
+        </v-list-item-content>
+      </v-list-item>
+      <v-list-item @click="logout">
+        <v-list-item-content>
+          <v-list-item-title> Logout {{ user.username }} </v-list-item-title>
+        </v-list-item-content>
+      </v-list-item>
+    </v-list-item-group>
   </div>
   <v-dialog
     v-else
@@ -94,7 +101,7 @@
 <script>
 import { mapState } from "vuex";
 
-import { ADMIN_URL } from "@/api/v2/base";
+import API from "@/api/v2/admin";
 
 export default {
   name: "AuthDialog",
@@ -112,7 +119,7 @@ export default {
       confirmPassword: "",
       showLoginDialog: false,
       registerMode: false,
-      adminURL: ADMIN_URL,
+      adminURL: API.ADMIN_URL,
     };
   },
   computed: {
@@ -159,6 +166,9 @@ export default {
     },
     focus: function () {
       this.$emit("sub-dialog-open");
+    },
+    poll: function () {
+      API.poll();
     },
   },
 };
