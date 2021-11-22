@@ -5,6 +5,7 @@ import time
 from logging import getLogger
 from pathlib import Path
 
+from comicbox.exceptions import UnsupportedArchiveTypeError
 from comicbox.comic_archive import ComicArchive
 from fnvhash import fnv1a_32
 
@@ -116,6 +117,9 @@ def _get_path_metadata(path):
         for field in md_m2m_fields:
             m2m_md[field] = md.pop(field)
         m2m_md["folders"] = Path(path).parents
+    except UnsupportedArchiveTypeError as exc:
+        LOG.warning(exc)
+        failed_import = {path: exc}
     except Exception as exc:
         LOG.exception(exc)
         failed_import = {path: exc}
