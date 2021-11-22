@@ -31,5 +31,4 @@ RUN pip3 install --no-cache-dir --no-index --find-links=/wheels /wheels/codex*.w
 VOLUME /comics
 VOLUME /config
 EXPOSE 9810
-ENV AM_I_IN_A_DOCKER_CONTAINER Yes
 CMD ["/usr/local/bin/codex"]
