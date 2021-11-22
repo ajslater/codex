@@ -105,7 +105,9 @@ def _fix_comic_m2m_integrity_errors(apps, m2m_model_name, field_name):
     _mark_comics_with_bad_m2m_rels_for_update(comic_model, field_name, invalid_m2m_ids)
 
 
-def __find_fk_integrity_errors_with_models(host_model, fk_model, fk_field_name):
+def _find_fk_integrity_errors_with_models(
+    host_model, fk_model, fk_field_name, log=True
+):
     """Find foreign key integrity errors with specified models."""
     valid_fk_ids = set(fk_model.objects.values_list("pk", flat=True))
     filter = ~Q(**{f"{fk_field_name}__in": valid_fk_ids})
@@ -118,7 +120,7 @@ def __find_fk_integrity_errors_with_models(host_model, fk_model, fk_field_name):
 
     invalid_host_objs = host_model.objects.filter(filter)
     count = invalid_host_objs.count()
-    if count:
+    if count and log:
         LOG.verbose(  # type: ignore
             f"Found {host_model.__name__}s with bad {fk_field_name}: {count}"
         )
@@ -129,7 +131,7 @@ def _find_fk_integrity_errors(apps, host_model_name, fk_model_name, fk_field_nam
     """Find foreign key integrity errors."""
     host_model = apps.get_model("codex", host_model_name)
     fk_model = apps.get_model("codex", fk_model_name)
-    return __find_fk_integrity_errors_with_models(host_model, fk_model, fk_field_name)
+    return _find_fk_integrity_errors_with_models(host_model, fk_model, fk_field_name)
 
 
 def _delete_query(query, host_model_name, fk_model_name):
@@ -167,18 +169,31 @@ def _fix_comic_myself_integrity_errors(apps):
     LOG.info(f"Repaired {num_update_comics} Comics' self references.")
 
 
+def _null_missing_fk(host_model, fk_model, fk_field_name):
+    """Set missing fks to null."""
+    query_missing_fks = _find_fk_integrity_errors_with_models(
+        host_model, fk_model, fk_field_name, log=False
+    )
+    not_null_filter = {f"{fk_field_name}__isnull": False}
+    query_missing_fks = query_missing_fks.filter(**not_null_filter)
+    count = query_missing_fks.count()
+    if count:
+        update_dict = {fk_field_name: None, "updated_at": Now()}
+        query_missing_fks.only("fk_field_name", "updated_at").update(**update_dict)
+        LOG.verbose(f"Fixed {host_model.__name__} with missing {fk_field_name}")
+
+
 def _delete_userbookmark_integrity_errors(apps):
     """Fix UserBookmarks with non codex model fields."""
+    # UserBookmarks that don't refernce a valid comic are useless.
     _delete_fk_integrity_errors(apps, "UserBookmark", "Comic", "comic")
+
+    # UserBookmarks that aren't linked to a valid session or a user are orphans
     ubm_model = apps.get_model("codex", "UserBookmark")
-    ubs_bad_sessions = __find_fk_integrity_errors_with_models(
-        ubm_model, Session, "session"
-    )
-    _delete_query(ubs_bad_sessions, "UserBookmark", "session")
-    ubs_bad_users = __find_fk_integrity_errors_with_models(
-        ubm_model, get_user_model(), "user"
-    )
-    _delete_query(ubs_bad_users, "UserBookmark", "user")
+    _null_missing_fk(ubm_model, Session, "session")
+    _null_missing_fk(ubm_model, get_user_model(), "user")
+    orphan_ubms = ubm_model.objects.filter(session=None, user=None)
+    _delete_query(orphan_ubms, "UserBookmark", "session or user")
 
 
 def _fix_db_integrity():
