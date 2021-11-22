@@ -400,10 +400,10 @@ class BrowserView(BrowserMetadataBase):
         serializer = BrowserSettingsSerializer(data=data)
         try:
             serializer.is_valid(raise_exception=True)
-        except ValidationError as ex:
+        except ValidationError as exc:
             LOG.error(serializer.errors)
-            LOG.exception(ex)
-            raise ex
+            LOG.exception(exc)
+            raise exc
 
         self.params = {}
         for key, value in serializer.validated_data.items():

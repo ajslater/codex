@@ -89,6 +89,7 @@ def codex_shutdown():
 
 async def lifespan_application(_scope, receive, send):
     """Lifespan application."""
+    LOG.debug("Lifespan application started.")
     while True:
         try:
             message = await receive()
@@ -98,8 +99,9 @@ async def lifespan_application(_scope, receive, send):
                     await send({"type": "lifespan.startup.complete"})
                     LOG.debug("Lifespan startup complete.")
                 except Exception as exc:
-                    LOG.error(exc)
                     await send({"type": "lifespan.startup.failed"})
+                    LOG.error("Lfespan startup failed.")
+                    raise exc
             elif message["type"] == "lifespan.shutdown":
                 LOG.debug("Lifespan shutdown started.")
                 try:
@@ -109,8 +111,9 @@ async def lifespan_application(_scope, receive, send):
                     LOG.debug("Lifespan shutdown complete.")
                 except Exception as exc:
                     await send({"type": "lifespan.startup.failed"})
-                    LOG.error("Lfespan shutdown failed.")
-                    LOG.error(exc)
+                    LOG.error("Lifespan shutdown failed.")
+                    raise exc
                 break
         except Exception as exc:
             LOG.exception(exc)
+    LOG.debug("Lifespan application stopped.")

@@ -20,7 +20,7 @@ def update_codex(force=False):
     else:
         eau = AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_AUTO_UPDATE)
         if not eau.on or not is_outdated(PACKAGE_NAME):
-            return False
+            return
 
         LOG.info("Codex seems outdated. Trying to update.")
 
@@ -30,7 +30,7 @@ def update_codex(force=False):
         )
     except Exception as exc:
         LOG.error(exc)
-        return False
+        return
 
     new_version = get_version()
     restart = VERSION != new_version

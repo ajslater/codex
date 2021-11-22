@@ -130,4 +130,4 @@ class Updater(QueuedThread):
         if isinstance(task, DBDiffTask):
             apply(task)
         else:
-            LOG.error(f"Bad task sent to library updater {task}")
+            LOG.warning(f"Bad task sent to library updater {task}")

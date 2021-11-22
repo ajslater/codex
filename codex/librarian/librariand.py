@@ -56,16 +56,16 @@ class LibrarianDaemon(Process):
             elif isinstance(task, WatchdogTask):
                 self.file_system_event_observer.sync_library_watches()
                 self.library_polling_observer.sync_library_watches()
-            elif isinstance(task, UpdateCronTask):
-                update_codex(task.force)
             elif isinstance(task, PollLibrariesTask):
                 self.library_polling_observer.poll(task.library_ids, task.force)
-            elif isinstance(task, RestartTask):
-                restart_codex()
             elif isinstance(task, VacuumCronTask):
                 vacuum_db()
             elif isinstance(task, BackupCronTask):
                 backup_db()
+            elif isinstance(task, UpdateCronTask):
+                update_codex(task.force)
+            elif isinstance(task, RestartTask):
+                restart_codex()
             elif task == self.SHUTDOWN_TASK:
                 LOG.verbose("Shutting down Librarian...")  # type: ignore
                 run = False

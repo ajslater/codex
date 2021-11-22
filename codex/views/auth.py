@@ -73,7 +73,9 @@ class RegisterView(APIView):
         )
         LOG.verbose(f"Created user {username}")  # type: ignore
         if count:
-            LOG.debug("Linked user to existing session bookmarks")
+            LOG.verbose( # type: ignore
+                "Linked user to existing session bookmarks"
+            )
         return user
 
     def validate(self):

@@ -29,9 +29,6 @@ DJANGO_APPLICATION = get_asgi_application()
 
 async def application(scope, receive, send):
     """Provide different application for different protocols."""
-    LOG.debug(
-        f"{scope.get('client', [None])[0]} {scope.get('type')} {scope.get('path')}"
-    )
     if scope["type"] == "http":
         await DJANGO_APPLICATION(scope, receive, send)
     elif scope["type"] == "websocket":

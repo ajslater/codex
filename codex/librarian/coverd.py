@@ -111,12 +111,12 @@ def _create_comic_cover_from_file(comic, force=False):
         count = _create_comic_cover(comic_path, cover_image, fs_cover_path)
     except Comic.DoesNotExist:
         LOG.warning(f"Comic for {cover_path=} does not exist in the db.")
+    except FileNotFoundError:
+        LOG.warning(f"Comic at {comic_path} not found.")
+        missing = comic_path
     except Exception as exc:
-        if isinstance(exc, FileNotFoundError):
-            LOG.warning(f"Comic at {comic_path} not found.")
-        else:
-            LOG.exception(exc)
-            LOG.error(f"Failed to create cover thumb for {comic_path}")
+        LOG.exception(exc)
+        LOG.error(f"Failed to create cover thumb for {comic_path}")
         missing = comic_path
     return count, missing
 

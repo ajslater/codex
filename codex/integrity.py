@@ -71,7 +71,7 @@ def _mark_comics_with_bad_m2m_rels_for_update(comic_model, field_name, invalid_m
     if not num_bad_comics:
         LOG.verbose(f"No Comics with bad {field_name}.")  # type: ignore
         return
-    LOG.info(f"Found {num_bad_comics} with bad {field_name}.")
+    LOG.verbose(f"Found {num_bad_comics} with bad {field_name}.")  # type: ignore
 
     update_comics = []
 
@@ -181,7 +181,7 @@ def _null_missing_fk(host_model, fk_model, fk_field_name):
         update_dict = {fk_field_name: None, "updated_at": Now()}
         query_missing_fks.only("fk_field_name", "updated_at").update(**update_dict)
         LOG.verbose(  # type: ignore
-            f"Fixed {host_model.__name__} with missing {fk_field_name}"
+            f"Fixed {count} {host_model.__name__}s with missing {fk_field_name}"
         )
 
 
@@ -228,7 +228,7 @@ def _fix_db_integrity():
             known_issue = False
             for arg in exc.args:
                 if arg == "no such table: codex_comic_folders":
-                    LOG.warning(
+                    LOG.verbose(  # type: ignore
                         "Couldn't query for comics with folder integrity problems "
                         "before the migrations. We'll get them on the next restart."
                     )

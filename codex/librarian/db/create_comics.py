@@ -168,11 +168,11 @@ def _link_credits(credits):
 def _link_named_m2ms(all_m2m_links, comic_pk, md):
     """Set the ids of all named m2m fields into the comic dict."""
     for field, names in md.items():
-        cls = Comic._meta.get_field(field).related_model
-        if cls is None:
+        related_model = Comic._meta.get_field(field).related_model
+        if related_model is None:
             LOG.error(f"No related class found for Comic.{field}")
             continue
-        pks = cls.objects.filter(name__in=names).values_list("pk", flat=True)
+        pks = related_model.objects.filter(name__in=names).values_list("pk", flat=True)
         if field not in all_m2m_links:
             all_m2m_links[field] = {}
         all_m2m_links[field][comic_pk] = set(pks)
