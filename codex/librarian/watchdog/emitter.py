@@ -8,6 +8,7 @@ from threading import Condition
 
 from django.db.models.functions import Now
 from django.utils import timezone
+from humanize import precisedelta
 from watchdog.events import (
     DirDeletedEvent,
     DirModifiedEvent,
@@ -152,7 +153,7 @@ class DatabasePollingEmitter(EventEmitter):
         # timeout behaves like an interval for polling emitters.
         with self._poll_cond:
             LOG.verbose(  # type: ignore
-                f"Polling {self.watch.path} again in {int(timeout)} seconds."
+                f"Polling {self.watch.path} again in {precisedelta(timeout)}."
             )
             self._poll_cond.wait(timeout)
             if not self.should_keep_running():

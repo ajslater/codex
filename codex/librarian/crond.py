@@ -3,6 +3,8 @@ from datetime import datetime, time, timedelta
 from logging import getLogger
 from threading import Condition, Event, Thread
 
+from humanize import precisedelta
+
 from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
     BackupCronTask,
@@ -35,7 +37,7 @@ class Crond(Thread):
             while not self._stop_event.is_set():
                 timeout = self._until_midnight()
                 LOG.verbose(  # type: ignore
-                    f"Waiting {int(timeout)} seconds until next maintenence."
+                    f"Waiting {precisedelta(timeout)} until next maintenence."
                 )
                 self._cond.wait(timeout=timeout)
                 try:

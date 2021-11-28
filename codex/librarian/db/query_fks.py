@@ -209,21 +209,20 @@ def query_all_missing_fks(library_path, fks):
     if "credits" in fks:
         credits = fks.pop("credits")
         create_credits |= _query_missing_credits(credits)
-    LOG.verbose(f"Prepared {len(create_credits)} new credits.")  # type: ignore
+        LOG.verbose(f"Prepared {len(create_credits)} new credits.")  # type: ignore
 
     create_groups = {}
     if "group_trees" in fks:
         group_trees = fks.pop("group_trees")
         create_groups, create_group_count = _query_missing_groups(group_trees)
-    LOG.verbose(f"Prepared {create_group_count} new groups.")  # type: ignore
+        LOG.verbose(f"Prepared {create_group_count} new groups.")  # type: ignore
 
     create_paths = set()
     if "comic_paths" in fks:
         create_paths |= query_missing_folder_paths(library_path, fks.pop("comic_paths"))
-    LOG.verbose(f"Prepared {len(create_paths)} new folders.")  # type: ignore
+        LOG.verbose(f"Prepared {len(create_paths)} new folders.")  # type: ignore
 
     create_fks = {}
-    total_create_fks = 0
     for field in fks.keys():
         names = fks.get(field)
         if field in CREDIT_FKS:
@@ -232,7 +231,8 @@ def query_all_missing_fks(library_path, fks):
             base_cls = Comic
         cls, names = _query_missing_simple_models(base_cls, field, "name", names)
         create_fks[cls] = names
-        total_create_fks += len(names)
-    LOG.verbose(f"Prepared {total_create_fks} new named attributes.")  # type: ignore
+        num_names = len(names)
+        if num_names:
+            LOG.verbose(f"Prepared {num_names} new {field}.")  # type: ignore
 
     return create_fks, create_groups, create_paths, create_credits
