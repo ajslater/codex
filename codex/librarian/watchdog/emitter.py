@@ -25,6 +25,7 @@ from codex.models import Comic, Folder, Library
 
 
 LOG = getLogger(__name__)
+DOCKER_UNMOUNTED_FN = "DOCKER_UNMOUNTED_VOLUME"
 
 
 class CodexDatabaseSnapshot(DirectorySnapshot):
@@ -65,7 +66,7 @@ class CodexDatabaseSnapshot(DirectorySnapshot):
         path,
         _recursive=True,  # unused, always recursive
         stat=os.stat,
-        listdir=os.listdir,
+        _listdir=os.listdir,  # unused for database
         force=False,
     ):
         """Initialize like DirectorySnapshot but use a database walk."""
@@ -97,13 +98,15 @@ class DatabasePollingEmitter(EventEmitter):
         self,
         event_queue,
         watch,
-        timeout=None,
+        timeout=None,  # unused, timeout is set dynamically internally
         stat=os.stat,
         listdir=os.listdir,
     ):
         """Initialize snapshot methods."""
         self._poll_cond = Condition()
         self._force = False
+        self._watch_path = Path(watch.path)
+        self._watch_path_unmounted = self._watch_path / DOCKER_UNMOUNTED_FN
         super().__init__(event_queue, watch)
 
         self._take_dir_snapshot = lambda: DirectorySnapshot(
@@ -125,17 +128,33 @@ class DatabasePollingEmitter(EventEmitter):
         self._force = False
         return db_snapshot
 
+    def _is_watch_path_ok(self, library):
+        """Return a special timeout value if there's a problem with the watch dir."""
+        if not library.poll:
+            LOG.warning(f"Library {self._watch_path} not poll enabled.")
+            self._stopped_event.set()
+            return False, 0
+        if not self._watch_path.is_dir():
+            LOG.warning(f"Library {self._watch_path} not found.")
+            return False, self.DIR_NOT_FOUND_TIMEOUT
+        if self._watch_path_unmounted.exists():
+            LOG.warning(
+                f"Library {self._watch_path} looks like an unmounted docker volume."
+            )
+            return False, self.DIR_NOT_FOUND_TIMEOUT
+        if not tuple(self._watch_path.iterdir()):
+            LOG.warning(f"{self._watch_path} is empty. Suspect it may be unmounted.")
+            return False, self.DIR_NOT_FOUND_TIMEOUT
+
+        return True, None
+
     @property
     def timeout(self):
         """Get the timeout for this emitter from its library."""
         library = Library.objects.get(path=self.watch.path)
-        if not library.poll:
-            LOG.warning(f"Library {self.watch.path} not poll enabled.")
-            self._stopped_event.set()
-            return 0
-        if not Path(self.watch.path).is_dir():
-            LOG.warning(f"Library {self.watch.path} not found.")
-            return self.DIR_NOT_FOUND_TIMEOUT
+        ok, timeout = self._is_watch_path_ok(library)
+        if not ok:
+            return timeout
 
         if library.last_poll:
             since_last_poll = timezone.now() - library.last_poll
@@ -159,15 +178,23 @@ class DatabasePollingEmitter(EventEmitter):
             if not self.should_keep_running():
                 return
 
-            LOG.verbose(f"Polling {self.watch.path}...")  # type: ignore
-            if not Path(self.watch.path).is_dir():
-                LOG.warning(f"{self.watch.path} not found. Not polling.")
+            library = Library.objects.get(path=self.watch.path)
+            ok, _ = self._is_watch_path_ok(library)
+            if not ok:
+                LOG.warning("Not Polling.")
                 return
+            LOG.verbose(f"Polling {self.watch.path}...")  # type: ignore
 
             # Get event diff between database snapshot and directory snapshot.
             # Update snapshot.
             db_snapshot = self._take_db_snapshot()
             dir_snapshot = self._take_dir_snapshot()
+
+            if len(dir_snapshot.paths) <= 1:
+                LOG.warning(f"{self._watch_path} dir snapshot is empty. Not polling")
+                LOG.verbose(f"{dir_snapshot.paths=}")  # type: ignore
+                return
+
             events = DirectorySnapshotDiff(db_snapshot, dir_snapshot)
             LOG.debug(events)
 

@@ -28,6 +28,8 @@ COPY --from=codex-wheels /wheels /wheels
 # hadolint ignore=DL3013
 RUN pip3 install --no-cache-dir --no-index --find-links=/wheels /wheels/codex*.whl
 
+RUN mkdir -p /comics && touch /comics/DOCKER_UNMOUNTED_VOLUME
+
 VOLUME /comics
 VOLUME /config
 EXPOSE 9810
