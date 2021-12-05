@@ -188,13 +188,19 @@ const getValidRootGroup = (state, fromTop = false) => {
   ) {
     return "f";
   }
+  if (state.settings.rootGroup === undefined) {
+    return "r";
+  }
   // Look for the first valid root group starting from the top
   let atTop = false;
   for (let group of GROUPS) {
+    console.debug("getValidRootGroup", group);
     if (fromTop) {
+      console.debug(group, "===", state.settings.rootGroup);
       if (group === state.settings.rootGroup) {
         atTop = true;
       }
+      console.debug("atTop:", atTop);
       if (!atTop) {
         continue;
       }
@@ -221,13 +227,13 @@ const pushToRootGroupTop = ({ state, commit }) => {
   commit("setSettings", { rootGroup: group });
   console.debug("push to", route);
   return router.push(route).catch((error) => {
-    console.warning(error);
+    console.warn(error);
   });
 };
 
 const handleBrowseError = ({ state, commit }, error) => {
-  console.error("Browse", error);
-  if (error.response.status == 403) {
+  console.warn("Browse", error);
+  if ([403, 404].includes(error.response.status)) {
     return pushToRootGroupTop({ state, commit });
   }
   console.error("Unhandled Browse error");
@@ -355,7 +361,7 @@ const actions = {
     dispatch("browserPageStale", { showProgress: true });
   },
   async browserPageStale({ commit, dispatch, state }, { showProgress }) {
-    // Get objects for the current route and setttings.
+    // Get objects for the current route and settings.
     console.debug("browserPageStale");
     if (!state.browserPageLoaded) {
       console.warn("not setup running open");

@@ -3,7 +3,7 @@ from logging import getLogger
 
 from django.core.paginator import EmptyPage, Paginator
 from django.db.models import CharField, Count, F, IntegerField, Value
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.response import Response
 from stringcase import snakecase
 
@@ -164,7 +164,7 @@ class BrowserView(BrowserMetadataBase):
         # Annotate Library Id #
         #######################
         if model not in (Folder, Comic):
-            # For folder view stability sorting compatibilty
+            # For folder view stability sorting compatibility
             obj_list = obj_list.annotate(library=Value(0, IntegerField()))
 
         #######################
@@ -299,7 +299,7 @@ class BrowserView(BrowserMetadataBase):
                     pk=pk
                 )
             except self.group_class.DoesNotExist:
-                self.raise_valid_route(f"{group}={pk} Does not exist!")
+                self.raise_valid_route(f"{group}={pk} Does not exist!", False)
 
     def get_browse_up_route(self):
         """Get the up route from the first valid ancestor."""
@@ -359,10 +359,14 @@ class BrowserView(BrowserMetadataBase):
 
         return browser_page_title
 
-    def raise_valid_route(self, message):
+    def raise_valid_route(self, message, permission_denied=True):
         """403 should redirect to the valid group on the client side."""
         valid_group = self.valid_nav_groups[0]
-        raise PermissionDenied({"group": valid_group, "message": message})
+        detail = {"group": valid_group, "message": message}
+        if permission_denied:
+            raise PermissionDenied(detail)
+        else:
+            raise NotFound(detail)
 
     def validate_folder_settings(self):
         """Check that all the view variables for folder mode are set right."""
