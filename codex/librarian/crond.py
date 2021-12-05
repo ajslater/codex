@@ -2,6 +2,7 @@
 from datetime import datetime, time, timedelta
 from logging import getLogger
 from threading import Condition, Event, Thread
+from time import sleep
 
 from humanize import precisedelta
 
@@ -14,6 +15,7 @@ from codex.librarian.queue_mp import (
 
 
 LOG = getLogger(__name__)
+DEBOUNCE = 5
 
 
 class Crond(Thread):
@@ -37,7 +39,7 @@ class Crond(Thread):
             while not self._stop_event.is_set():
                 timeout = self._until_midnight()
                 LOG.verbose(  # type: ignore
-                    f"Waiting {precisedelta(timeout)} until next maintenence."
+                    f"Waiting {precisedelta(timeout)} until next maintenance."
                 )
                 self._cond.wait(timeout=timeout)
                 try:
@@ -46,10 +48,12 @@ class Crond(Thread):
                     LIBRARIAN_QUEUE.put(UpdateCronTask(force=False))
                 except Exception as exc:
                     LOG.exception(exc)
+                # Queing takes less than a second and can run three times.
+                sleep(DEBOUNCE)
         LOG.verbose(f"Stopped {self.NAME} thread.")  # type: ignore
 
     def __init__(self):
-        """Intialize this thread with the worker."""
+        """Initialize this thread with the worker."""
         self._stop_event = Event()
         self._cond = Condition()
         super().__init__(name=self.NAME, daemon=True)
