@@ -1,4 +1,3 @@
-#version: "3.8"
 services:
   codex-build: &codex-build
     env_file:
@@ -38,4 +37,4 @@ services:
       - "9810:9810"
     volumes:
       - ./config:/config
-      - ./comics:/comics
+      - ./comics:/comics:ro
