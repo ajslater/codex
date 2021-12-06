@@ -69,6 +69,6 @@ class Notifier(AggregateMessageQueuedThread):
     @classmethod
     def shutdown(cls):
         """Shut down the thread and discard the connections."""
-        cls.thread.join()
+        cls.thread.stop()
         for type in cls.CONNS.keys():
             cls.CONNS[type] = set()

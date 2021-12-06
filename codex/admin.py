@@ -17,7 +17,7 @@ from codex.librarian.queue_mp import (
     PollLibrariesTask,
     PurgeComicCoversLibrariesTask,
     RestartTask,
-    UpdateCronTask,
+    UpdateTask,
     WatchdogSyncTask,
 )
 from codex.models import AdminFlag, FailedImport, Library
@@ -157,7 +157,7 @@ class AdminAdminFlag(AdminNoAddDelete):
 
     def update_now(self, request, queryset):
         """Trigger an update task immediately."""
-        LIBRARIAN_QUEUE.put(UpdateCronTask(force=True))
+        LIBRARIAN_QUEUE.put(UpdateTask(force=True))
 
     update_now.short_description = "Update Codex Now"
 

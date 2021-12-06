@@ -2,30 +2,24 @@
 from logging import getLogger
 from multiprocessing import Process
 
-from codex.librarian.coverd import CoverCreator
-from codex.librarian.crond import Crond
+from codex.librarian.covers.coverd import CoverCreator
 from codex.librarian.db.updaterd import Updater
+from codex.librarian.janitor.crond import Crond, janitor
 from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
-    BackupCronTask,
     ComicCoverTask,
+    JanitorTask,
     NotifierTask,
     PollLibrariesTask,
-    RestartTask,
-    UpdateCronTask,
     UpdaterTask,
-    VacuumCronTask,
     WatchdogEventTask,
     WatchdogSyncTask,
 )
-from codex.librarian.update import restart_codex, update_codex
-from codex.librarian.vacuum import backup_db, vacuum_db
 from codex.librarian.watchdog.eventsd import EventBatcher
 from codex.librarian.watchdog.observers import (
     LibraryEventObserver,
     LibraryPollingObserver,
 )
-from codex.models import Comic, Folder
 from codex.notifier import Notifier
 
 
@@ -48,10 +42,10 @@ class LibrarianDaemon(Process):
         """Process an individual task popped off the queue."""
         run = True
         try:
-            if isinstance(task, WatchdogEventTask):
-                self.event_batcher.queue.put(task)
-            elif isinstance(task, ComicCoverTask):
+            if isinstance(task, ComicCoverTask):
                 self.cover_creator.queue.put(task)
+            elif isinstance(task, WatchdogEventTask):
+                self.event_batcher.queue.put(task)
             elif isinstance(task, UpdaterTask):
                 self.updater.queue.put(task)
             elif isinstance(task, NotifierTask):
@@ -61,21 +55,13 @@ class LibrarianDaemon(Process):
                     observer.sync_library_watches()
             elif isinstance(task, PollLibrariesTask):
                 self.library_polling_observer.poll(task.library_ids, task.force)
-            elif isinstance(task, VacuumCronTask):
-                vacuum_db()
-            elif isinstance(task, BackupCronTask):
-                backup_db()
-            elif isinstance(task, UpdateCronTask):
-                update_codex(task.force)
-            elif isinstance(task, RestartTask):
-                restart_codex()
+            elif isinstance(task, JanitorTask):
+                janitor(task)
             elif task == self.SHUTDOWN_TASK:
                 LOG.verbose("Shutting down Librarian...")  # type: ignore
                 run = False
             else:
                 LOG.warning(f"Unhandled Librarian task: {task}")
-        except (Comic.DoesNotExist, Folder.DoesNotExist) as exc:
-            LOG.warning(exc)
         except Exception as exc:
             LOG.exception(exc)
         return run
@@ -114,10 +100,6 @@ class LibrarianDaemon(Process):
         for thread in reversed(self._threads):
             thread.stop()
         LOG.debug("Stopped Librarian threads.")
-        LOG.debug("Joining Librarian threads.")
-        for thread in reversed(self._threads):
-            thread.join()
-        LOG.debug("Joined Librarian threads.")
 
     def run(self):
         """

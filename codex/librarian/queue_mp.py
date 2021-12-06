@@ -113,20 +113,6 @@ class WatchdogSyncTask:
 
 
 @dataclass
-class UpdateCronTask:
-    """Task for updater."""
-
-    force: bool
-
-
-@dataclass
-class RestartTask:
-    """for restart."""
-
-    pass
-
-
-@dataclass
 class NotifierTask:
     """Handle with the Notifier."""
 
@@ -148,15 +134,36 @@ class BroadcastNotifierTask(NotifierTask):
 
 
 @dataclass
-class VacuumCronTask:
-    """Vacuum the database."""
+class JanitorTask:
+    """Tasks for the janitor."""
 
     pass
 
 
 @dataclass
-class BackupCronTask:
+class BackupTask(JanitorTask):
     """Backup the database."""
+
+    pass
+
+
+@dataclass
+class RestartTask:
+    """for restart."""
+
+    pass
+
+
+@dataclass
+class UpdateTask(JanitorTask):
+    """Task for updater."""
+
+    force: bool
+
+
+@dataclass
+class VacuumTask(JanitorTask):
+    """Vacuum the database."""
 
     pass
 
