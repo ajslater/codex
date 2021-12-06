@@ -84,6 +84,7 @@ def _get_path_metadata(path):
         md = car.get_metadata()
         md["path"] = path
         md["size"] = Path(path).stat().st_size
+        md["max_page"] = max(md["page_count"] - 1, 0)
         cover_path = _get_cover_path(path)
         md["cover_path"] = cover_path
         # Getting the cover data while getting the metada is significantly
@@ -112,7 +113,7 @@ def _get_path_metadata(path):
 
         group_tree_md[tuple(group_tree)] = groups_md
 
-        # many_to_many fields get moved into a seperate dict
+        # many_to_many fields get moved into a separate dict
         md_m2m_fields = COMIC_M2M_FIELDS & md.keys()
         for field in md_m2m_fields:
             m2m_md[field] = md.pop(field)
@@ -149,7 +150,7 @@ def _aggregate_m2m_metadata(all_m2m_mds, m2m_md, all_fks, path):
             # for credits add the credit fks to fks
             for credit_dict in names:
                 for field, name in credit_dict.items():
-                    # These fields are ambigous because they're fks to Credit
+                    # These fields are ambiguous because they're fks to Credit
                     #   but aren't ever in Comic so query_fks.py can
                     #   disambiguate with special code
                     if field not in all_fks:
