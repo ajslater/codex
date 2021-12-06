@@ -92,7 +92,7 @@ def _mark_comics_with_bad_m2m_rels_for_update(
         if "no such column: codex_comic.stat" in exc.args:
             LOG.verbose(  # type: ignore
                 f"Can't mark {num_bad_comics} comics for update, "
-                "but if this happens right before migration 0010, "
+                "but if this happens right before migration 0007, "
                 "they'll be updated anway."
             )
             return
@@ -253,7 +253,7 @@ def _fix_db_integrity():
             if "no such table: codex_comic_folders" in exc.args:
                 LOG.verbose(  # type: ignore
                     "Couldn't look for comics with folder integrity problems before "
-                    "migration 0008. We'll get them on the next restart."
+                    "migration 0007. We'll get them on the next restart."
                 )
             else:
                 LOG.exception(exc)
