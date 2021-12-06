@@ -15,4 +15,5 @@ prettier --check .
 # hadolint Dockerfile*
 shellcheck -x ./*.sh ./**/*.sh
 # shfmt -d -i 4 ./*.sh ./**/*.sh
-codespell ./*
+# shellcheck disable=2035
+poetry run codespell *
