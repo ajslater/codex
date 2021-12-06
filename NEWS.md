@@ -1,6 +1,6 @@
 # Codex News
 
-## v0.7.0rc8
+## v0.7.0rc9
 
 - Features
   - Speed up importing comics up to 3000 comics per minute. Tested with a library of 100k dummy comics.

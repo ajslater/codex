@@ -2,7 +2,8 @@
 
 # eslint > 7.x
 
-- blocked by eslint-plugin-promise@5.1.1
+- blocked by eslint-plugin-promise@5.2
+  - https://github.com/xjamundx/eslint-plugin-promise/issues/218
 
 # sass > 10.2
 
