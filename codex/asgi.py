@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/3.2/howto/deployment/asgi/
 import os
 
 import django
+
 from django.core.asgi import get_asgi_application
 
 
@@ -19,6 +20,7 @@ django.setup()
 
 from codex.lifespan import lifespan_application  # noqa: E402
 from codex.websocket_server import websocket_application  # noqa: E402
+
 
 DJANGO_APPLICATION = get_asgi_application()
 
