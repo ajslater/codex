@@ -16,7 +16,7 @@ import os
 from logging import getLogger
 from pathlib import Path
 
-from tzlocal import get_localzone_name
+from tzlocal import get_localzone_name  # type: ignore
 
 from codex.settings.hypercorn import load_hypercorn_config
 from codex.settings.logging import init_logging
