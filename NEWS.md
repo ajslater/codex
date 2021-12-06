@@ -1,6 +1,6 @@
 # Codex News
 
-## v0.7.0rc3
+## v0.7.0rc6
 
 - Features
   - Speed up importing comics up to 3000 comics per minute. Tested with a library of 100k dummy comics.
@@ -15,7 +15,7 @@
   - Truncated logging messages for easier reading.
 - Fixes
   - Fixed credits displaying in metadata.
-  - Fixed named tags displaying in metadata for aggregate groups of comics.
+  - Fixed named tags displaying in metadata for groups of comics.
   - Now compatible with python 3.10.
 
 ## v0.6.8
@@ -30,7 +30,7 @@
   - Tentative linux/armhf support. No way for me to test this
   - Vacuum the sqllite database once a day to prevent bloat
   - Corrupt database rebuild procedure. See README.
-- Updated many dependencies
+- Updated dependencies
 
 ## v0.6.7
 
@@ -56,9 +56,9 @@
 
 ## v0.6.2
 
-- Librarian startup crash is intermittent and only in docker.
+- Fixed intermittent Librarian startup crash in docker.
 - Fixed DEBUG environment variable to be able to run in production.
-- Added DEV environment variable for dev environment only.
+- Added DEV environment variable for dev environment.
 
 ## v0.6.1
 
@@ -66,7 +66,7 @@
 
 ## v0.6.0
 
-- Many new Filters
+- New Filters
 - New sort options: Updated Time and Maturity Rating
 - New frontend URL scheme
 - New API
@@ -141,7 +141,7 @@
 - display sort key value in browse tile
 - display standard image for missing covers
 - slightly more helpful 404 page
-- comicbox 0.1.4 fixes several import bugs
+- comicbox 0.1.4 fixes import bugs
 
 ## v0.5.8
 
@@ -149,7 +149,7 @@
 
 ## v0.5.7
 
-- update comicbox to v1.3 should fix many import crashes
+- update comicbox to v1.3 should fix import crashes
 - allow credits with an empty role
 - pagination of large browse results
 - center comic pages better
@@ -159,7 +159,7 @@
 
 ## v0.5.6
 
-- websocket path security was handling leading slashes badly. just skip it.
+- websocket path security wasn't handling leading slashes well. Skip it.
 
 ## v0.5.5
 
@@ -174,7 +174,7 @@
 - Fixed login bug introduces in v0.5.3 (thanks hubcaps)
 - Fixed filtering bug introduced in v0.5.2
 - Versioned API
-- Toast popup for admins indicating libraries being scanned.
+- Toast popup for admins indicating libraries are scanning.
 - Periodic frontend refresh during long scans.
 - Codex version displayed in browser footer
 
