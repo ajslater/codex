@@ -44,6 +44,7 @@ pycountry = "^20.7"
 simplejson = "^3.17"
 stringcase = "^1.2"
 requests = "^2.24"
+tzlocal = "^4.1"
 watchdog = "^2.0"
 websocket_client = "^1.2"
 whitenoise = { extras = ["brotli"], version = "^5.2" }

@@ -9,6 +9,7 @@ from colors import color
 
 # "{asctime} {processName} {threadName} {name} {levelname} {message}"
 LOG_FMT = "{asctime} {levelname:8} {message}"
+DATEFMT = "%Y-%m-%d %H:%M:%S %Z"
 VERBOSE = int((logging.INFO + logging.DEBUG) / 2)
 LOG_EVERY = 15
 
@@ -60,7 +61,7 @@ def _get_file_log_handler(log_dir):
     log_dir.mkdir(exist_ok=True, parents=True)
     fn = log_dir / "codex.log"
     file_handler = TimedRotatingFileHandler(fn, when="D", backupCount=30)
-    formatter = logging.Formatter(LOG_FMT, style="{")
+    formatter = logging.Formatter(LOG_FMT, style="{", datefmt=DATEFMT)
     file_handler.setFormatter(formatter)
     return file_handler
 
@@ -81,7 +82,7 @@ def _get_log_handlers(log_dir):
     """Get handlers."""
     log_file_handler = _get_file_log_handler(log_dir)
     log_console_handler = logging.StreamHandler()
-    log_formatter = ColorFormatter(LOG_FMT, style="{")
+    log_formatter = ColorFormatter(LOG_FMT, style="{", datefmt=DATEFMT)
     log_console_handler.setFormatter(log_formatter)
     return (log_console_handler, log_file_handler)
 

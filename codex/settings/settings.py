@@ -16,6 +16,8 @@ import os
 from logging import getLogger
 from pathlib import Path
 
+from tzlocal import get_localzone_name
+
 from codex.settings.hypercorn import load_hypercorn_config
 from codex.settings.logging import init_logging
 from codex.settings.secret_key import get_secret_key
@@ -153,6 +155,11 @@ LANGUAGE_CODE = "en-us"
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
+TZ = os.environ.get("TIMEZONE", os.environ.get("TZ"))
+if TZ and not TZ.startswith(":") and "etc/localtime" not in TZ and "/" in TZ:
+    TIME_ZONE = TZ
+else:
+    TIME_ZONE = get_localzone_name()
 
 # Hypercorn
 HYPERCORN_CONFIG_TOML = CONFIG_PATH / "hypercorn.toml"
