@@ -136,7 +136,7 @@ class BroadcastNotifierTask(NotifierTask):
 
 @dataclass
 class VacuumCronTask:
-    """Vaccum the database."""
+    """Vacuum the database."""
 
     pass
 

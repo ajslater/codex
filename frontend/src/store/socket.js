@@ -1,4 +1,4 @@
-// Socket psuedo module for vue-native-sockets
+// Socket pseudo module for vue-native-sockets
 import WS_MESSAGES from "@/choices/websocketMessages";
 
 import { NOTIFY_STATES } from "./modules/notify";
@@ -17,7 +17,7 @@ const NOTIFY_MAP = {
 
 const wsKeepAlive = function (ws) {
   if (!ws || ws.readyState != 1) {
-    console.debug("socket not ready, not sending keep-alives.");
+    console.debug("socket not ready, not sending keep-alive.");
     return;
   }
   console.debug("socket keep-alive");

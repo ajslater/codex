@@ -53,7 +53,7 @@ class BrowserMetadataBase(BrowserBaseView):
         """
         Create the order_by list.
 
-        Order on pk to give duplicates a consistant position.
+        Order on pk to give duplicates a consistent position.
         """
         sort_reverse = self.params.get("sort_reverse")
         if sort_reverse:
@@ -73,7 +73,7 @@ class BrowserMetadataBase(BrowserBaseView):
     def annotate_cover_path(self, queryset, model, aggregate_filter):
         """Annotate the query set for the coverpath for the sort."""
         # Select comics for the children by an outer ref for annotation
-        # Order the decendent comics by the sort argumentst
+        # Order the descendant comics by the sort argumentst
         if model == Comic:
             cover_path_subquery = F("cover_path")
         else:

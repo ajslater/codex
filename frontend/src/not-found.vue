@@ -1,7 +1,7 @@
 <template>
   <main id="main">
-    <div id="fofWrapper">
-      <h1 id="fof">404</h1>
+    <div id="fourOhFourWrapper">
+      <h1 id="fourOhFour">404</h1>
     </div>
     <div id="foreground">
       <h1 id="notFound">Page Not Found</h1>
@@ -25,7 +25,7 @@ export default {
 
 <style scoped lang="scss">
 #main,
-#fofWrapper {
+#fourOhFourWrapper {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -33,11 +33,11 @@ export default {
   height: 100vh;
 }
 
-#fofWrapper {
+#fourOhFourWrapper {
   position: fixed;
 }
 
-#fof {
+#fourOhFour {
   color: gray;
   stroke: gray;
   fill: gray;

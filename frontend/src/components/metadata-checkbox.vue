@@ -28,7 +28,7 @@ export default {
     },
     show: {
       type: Boolean,
-      defautl: false,
+      default: false,
     },
   },
   data() {

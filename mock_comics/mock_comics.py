@@ -31,7 +31,7 @@ CREDIT_TAGS = (
 
 
 def rand_string(length):
-    """Return a random string of arbitray length."""
+    """Return a random string of arbitrary length."""
     return "".join(choices(CHOICES_STR, k=length))
 
 

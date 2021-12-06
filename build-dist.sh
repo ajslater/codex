@@ -1,5 +1,5 @@
 #!/bin/bash
-# Buld script for producing a codex python package
+# Build script for producing a codex python package
 set -euxo pipefail
 cd "$(dirname "$(readlink "$0")")"
 

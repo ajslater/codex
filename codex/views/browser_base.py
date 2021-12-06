@@ -47,7 +47,7 @@ class BrowserBaseView(SessionMixin):
         filter_query = Q()
         if filter_list:
             # None values in a list don't work right so test for them
-            #   seperately
+            #   separately
             for index, val in enumerate(filter_list):
                 if val is None:
                     del filter_list[index]
@@ -130,7 +130,7 @@ class BrowserBaseView(SessionMixin):
         is_folder_view = self.kwargs.get("group") == self.FOLDER_GROUP
         if is_folder_view:
             if choices:
-                # Choice view needs to get all decendant comic attributes
+                # Choice view needs to get all descendant comic attributes
                 # So filter by all the folders
                 object_filter = self.get_folders_filter()
             else:

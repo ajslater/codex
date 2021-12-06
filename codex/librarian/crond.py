@@ -48,7 +48,7 @@ class Crond(Thread):
                     LIBRARIAN_QUEUE.put(UpdateCronTask(force=False))
                 except Exception as exc:
                     LOG.exception(exc)
-                # Queing takes less than a second and can run three times.
+                # Queueing takes less than a second and can run three times.
                 sleep(DEBOUNCE)
         LOG.verbose(f"Stopped {self.NAME} thread.")  # type: ignore
 

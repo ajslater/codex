@@ -93,7 +93,7 @@ def _mark_comics_with_bad_m2m_rels_for_update(
             LOG.verbose(  # type: ignore
                 f"Can't mark {num_bad_comics} comics for update, "
                 "but if this happens right before migration 0007, "
-                "they'll be updated anway."
+                "they'll be updated anyway."
             )
             return
         else:
@@ -212,7 +212,7 @@ def _null_missing_fk(host_model, fk_model, fk_field_name):
 
 def _delete_userbookmark_integrity_errors(apps):
     """Fix UserBookmarks with non codex model fields."""
-    # UserBookmarks that don't refernce a valid comic are useless.
+    # UserBookmarks that don't reference a valid comic are useless.
     _delete_fk_integrity_errors(apps, "UserBookmark", "Comic", "comic")
 
     # UserBookmarks that aren't linked to a valid session or a user are orphans

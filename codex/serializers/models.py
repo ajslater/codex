@@ -69,7 +69,7 @@ class PyCountrySerializer(Serializer):
 
 
 class LanguageSerializer(PyCountrySerializer):
-    """Pycountry serializer for langauge field."""
+    """Pycountry serializer for language field."""
 
     LOOKUP_MODULE = pycountry.languages
 
@@ -294,5 +294,5 @@ class ComicSerializer(ModelSerializer):
         """Configure the model."""
 
         model = Comic
-        fields = "__all__"  # Overriden dynamically by constructor param
+        fields = "__all__"  # Overridden dynamically by constructor param
         depth = 1

@@ -23,7 +23,7 @@ Codex has a <a href="NEWS.md">NEWS file</a> to summarize changes that affect use
 
 ### Install & Run with Docker
 
-All dependancies are bundled in the official [Docker Image](https://hub.docker.com/r/ajslater/codex). Instructions for running the docker image are on the Docker Hub README. This is the recommended way to run Codex.
+All dependencies are bundled in the official [Docker Image](https://hub.docker.com/r/ajslater/codex). Instructions for running the docker image are on the Docker Hub README. This is the recommended way to run Codex.
 
 You'll then want to read the [Administration](#administration) section of this document.
 
@@ -55,7 +55,7 @@ apt install build-essential libffi-dev libjpeg-dev libssl-dev libyaml-dev python
 apk add bsd-compat-headers build-base jpeg-dev libffi-dev openssl-dev yaml-dev zlib-dev
 ```
 
-#### Install unrar Runtime Dependancy
+#### Install unrar Runtime Dependency
 
 Codex requires unrar to read cbr formatted comic archives.
 
@@ -127,7 +127,7 @@ docker run -e CODEX_RESET_ADMIN=1 -v <host path to config>/config:/config ajslat
 
 ### Config Dir
 
-The default config directory is named `config/` directly under the working directory you run codex from. You may specificy an alternate config directory with the environment variable `CODEX_CONFIG_DIR`.
+The default config directory is named `config/` directly under the working directory you run codex from. You may specify an alternate config directory with the environment variable `CODEX_CONFIG_DIR`.
 
 The config directory contains a hypercorn config `hypercorn.toml` where you can specify ports and bind addresses. If no `hypercorn.toml` is present a default one is copied to that directory on startup.
 
@@ -224,7 +224,7 @@ Place a file named `rebuild_db` in your Codex config directory like so:
 
 Shut down and restart Codex.
 
-The next time Codex starts it will back up the exisiting database and try to rebuild it.
+The next time Codex starts it will back up the existing database and try to rebuild it.
 The database lives in the config directory as the file `config/db.sqlite3`.
 If this procedure goes kablooey, you may recover the original database at `config/db.sqlite3.backup`.
 
@@ -264,9 +264,9 @@ Codex is a Django Python webserver with a VueJS front end. This is my first ever
 
 `/codex/frontend/` is where the vuejs frontend lives.
 
-`/codex/setup-dev.sh` will install development dependancies.
+`/codex/setup-dev.sh` will install development dependencies.
 
-`/codex/dev-server-ttabs.sh` will run the three or four different servers reccomended for development in terminal tabs.
+`/codex/dev-server-ttabs.sh` will run the three or four different servers recommended for development in terminal tabs.
 
 `/codex/run.sh` runs the main Django server. Set the `DEBUG` environment variable to activate debug mode: `DEBUG=1 ./run.sh`. This also lets you run the server without collecting static files for production and with a hot reloading frontend.
 

@@ -449,7 +449,7 @@ def cascade_if_user_null(collector, field, sub_objs, _):
             # fail_on_restricted=False,
         )
 
-    # Set them all to null, tho
+    # Set them all to null
     if field.null:
         # and not connections[using].features.can_defer_constraint_checks:
         collector.add_field_update(field, None, sub_objs)

@@ -37,6 +37,7 @@ djangorestframework = "^3.11"
 django-cors-headers = "^3.2"
 django-dark = "^0.1"
 fnvhash = "^0.1"
+humanize = "^3.12.0"
 hypercorn = { extras = ["h3"], version = "^0.12.0" }
 Pillow = "^8.0"
 pycountry = "^20.7"
@@ -46,10 +47,10 @@ requests = "^2.24"
 watchdog = "^2.0"
 websocket_client = "^1.2"
 whitenoise = { extras = ["brotli"], version = "^5.2" }
-humanize = "^3.12.0"
 
 [tool.poetry.dev-dependencies]
 black = "^21.9b0"
+codespell = "^2.1.0"
 coverage = { extras = ["toml"], version = "^6.0" }
 django-debug-toolbar = "^3.1"
 django-livereload-server = "^0.3"

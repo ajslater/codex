@@ -1,4 +1,4 @@
-"""Set up Django for independant processes."""
+"""Set up Django for independent processes."""
 import os
 
 import django

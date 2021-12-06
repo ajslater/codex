@@ -1,4 +1,4 @@
-# Outdated Dependancies
+# Outdated Dependencies
 
 # eslint > 7.x
 

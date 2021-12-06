@@ -1,7 +1,7 @@
 <template>
   <v-toolbar id="titleToolbar" class="toolbar">
     <v-toolbar-items>
-      <v-btn :class="{ invisible: !showUpButton }" :to="upTo" icon ripple
+      <v-btn :class="{ invisible: !showUpButton }" :to="upRoute" icon ripple
         ><v-icon>{{ mdiArrowUp }}</v-icon>
       </v-btn>
     </v-toolbar-items>
@@ -37,7 +37,7 @@ export default {
       groupNames: (state) => state.groupNames,
       upRoute: (state) => state.routes.up,
     }),
-    upTo: function () {
+    upRoute: function () {
       if (this.showUpButton) {
         return { name: "browser", params: this.upRoute };
       }

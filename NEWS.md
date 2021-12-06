@@ -11,7 +11,7 @@
   - Comics with no specified Publishers, Imprints and Series no longer have induced default names for these but have no name like Volumes.
   - Codex repairs database integrity on startup.
   - Codex backs up the database every night.
-  - Added `VERBOSE` logging level to help screen out bulk `DEBUG` messages from dependancies.
+  - Added `VERBOSE` logging level to help screen out bulk `DEBUG` messages from dependencies.
   - Truncated logging messages for easier reading.
 - Fixes
   - Fixed credits displaying in metadata.
@@ -30,7 +30,7 @@
   - Tentative linux/armhf support. No way for me to test this
   - Vacuum the sqllite database once a day to prevent bloat
   - Corrupt database rebuild procedure. See README.
-- Updated many dependancies
+- Updated many dependencies
 
 ## v0.6.7
 
@@ -74,9 +74,9 @@
 - Fixed a bug importing Story Arc Series Groups and Genres. Requires re-import to correct.
 - Fixed a bug with sorting that grouped improperly and showed the wrong covers for reverse sorts.
 - Browser pagination footer now remains fixed on the page
-- Browser pagination footer is now a slider to handle larger collecions
+- Browser pagination footer is now a slider to handle larger collections
 - Notifications now appear in reader as well as browser
-- Scanning notifications on login not dissapearing bug squashed
+- Scanning notifications on login not disappearing bug squashed
 - On comic import failure, log the path as well as the reason
 - Fixed a bug where the browser settings menu wouldn't close when opening a dialog
 - Codex version information moved to Browser > Settings
@@ -133,7 +133,7 @@
 - fix mark read/unread bugs
 - fix reader settings not setting properly
 - fix reader images positioning
-- fix minor crash closing books with unitialized browser app
+- fix minor crash closing books with uninitialized browser app
 
 ## v0.5.9
 

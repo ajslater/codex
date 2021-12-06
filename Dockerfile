@@ -14,7 +14,7 @@ RUN mkdir -p /wheels && \
     CRYPTOGRAPHY_DONT_BUILD_RUST=1 pip3 wheel "/dist/codex-${PKG_VERSION}-py3-none-any.whl" --wheel-dir=/wheels
 
 FROM ajslater/codex-base:${RUNNABLE_BASE_VERSION}
-# The runnable enviroment built from a minimal base without dev deps
+# The runnable environment built from a minimal base without dev deps
 ARG PKG_VERSION
 LABEL version v${PKG_VERSION}
 ARG BUILDPLATFORM

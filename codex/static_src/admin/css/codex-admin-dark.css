@@ -34,7 +34,7 @@ select {
 }
 
 label,
-.required lable,
+.required label,
 label.required {
   color: #c1c1c0 !important;
 }

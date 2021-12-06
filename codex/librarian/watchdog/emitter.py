@@ -56,7 +56,7 @@ class CodexDatabaseSnapshot(DirectorySnapshot):
         return params
 
     def _set_lookups(self, path, st):
-        """Populate thte lookup dirs."""
+        """Populate the lookup dirs."""
         self._stat_info[path] = st
         i = (st.st_ino, st.st_dev)
         self._inode_to_path[i] = path

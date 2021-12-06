@@ -48,7 +48,7 @@ def _purge_cover_path(comic_cover_path):
     cover_path = COVER_ROOT / comic_cover_path
     try:
         # XXX python 3.8 missing_ok=True
-        # Switch to python 3.8 requirement begginning of 2021
+        # Switch to python 3.8 requirement beginning of 2021
         cover_path.unlink()
     except FileNotFoundError:
         pass

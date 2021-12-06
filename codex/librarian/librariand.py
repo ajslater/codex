@@ -123,7 +123,7 @@ class LibrarianDaemon(Process):
         """
         Process tasks from the queue.
 
-        This proces also runs the crond thread and the Watchdog Observer
+        This process also runs the crond thread and the Watchdog Observer
         threads.
         """
         try:

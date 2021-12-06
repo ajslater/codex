@@ -17,7 +17,7 @@
     <div id="browserSettingsDialog">
       <h3>Browser Settings</h3>
       <div class="settingsGroupCaption text-caption">
-        Show these groups when navigating the browse heirarchy.
+        Show these groups when navigating the browse hierarchy.
       </div>
       <v-checkbox
         v-for="choice of groupChoices"

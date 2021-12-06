@@ -200,7 +200,7 @@ class AdminFailedImport(AdminNoAddDelete):
         return False
 
     def has_delete_permission(self, request, obj=None):
-        """Sure can delete them tho."""
+        """Sure can delete them, though."""
         return True
 
     def library_link(self, item):

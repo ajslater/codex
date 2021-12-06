@@ -6,3 +6,4 @@ poetry run black .
 bash -c "cd frontend && npx eslint --ext .js,.vue --fix '**'"
 prettier --write .
 shfmt -s -w -i 4 ./*.sh ./**/*.sh
+# codespell --write-changes
