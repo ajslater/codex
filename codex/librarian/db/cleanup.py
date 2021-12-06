@@ -88,7 +88,7 @@ def _bulk_cleanup_failed_imports(library):
 
 def cleanup_database(library=None):
     """Run all the cleanup routines."""
-    LOG.verbose(f"Cleaning up database...")  # type: ignore
+    LOG.verbose("Cleaning up database...")  # type: ignore
     changed = _bulk_cleanup_fks(DELETE_COMIC_FKS, "comic")
     changed |= _bulk_cleanup_fks(DELETE_CREDIT_FKS, "credit")
     if library:
