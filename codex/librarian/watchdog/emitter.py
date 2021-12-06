@@ -21,7 +21,7 @@ from watchdog.events import (
 from watchdog.observers.api import EventEmitter
 from watchdog.utils.dirsnapshot import DirectorySnapshot, DirectorySnapshotDiff
 
-from codex.models import Comic, Folder, Library
+from codex.models import Comic, FailedImport, Folder, Library
 
 
 LOG = getLogger(__name__)
@@ -31,7 +31,7 @@ DOCKER_UNMOUNTED_FN = "DOCKER_UNMOUNTED_VOLUME"
 class CodexDatabaseSnapshot(DirectorySnapshot):
     """Take snapshots from the Codex database."""
 
-    MODELS = (Folder, Comic)
+    MODELS = (Folder, Comic, FailedImport)
 
     @classmethod
     def _walk(cls, root):

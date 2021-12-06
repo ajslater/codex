@@ -29,7 +29,7 @@ BULK_UPDATE_COMIC_FIELDS = []
 for field in Comic._meta.get_fields():
     if not field.many_to_many and field.name not in EXCLUDE_BULK_UPDATE_COMIC_FIELDS:
         BULK_UPDATE_COMIC_FIELDS.append(field.name)
-BULK_UPDATE_FAILED_IMPORT_FIELDS = ("reason", "updated_at")
+BULK_UPDATE_FAILED_IMPORT_FIELDS = ("name", "stat", "updated_at")
 
 
 def _get_group_name(cls, md):
@@ -246,20 +246,22 @@ def _bulk_update_and_create_failed_imports(library, failed_imports):
     )
 
     now = Now()
-    for failed_import in update_failed_imports:
+    for fi in update_failed_imports:
         try:
-            exc = failed_imports.pop(failed_import.path)
-            failed_import.set_reason(exc, failed_import.path)
-            failed_import.updated_at = now  # type: ignore
+            exc = failed_imports.pop(fi.path)
+            fi.set_reason(exc)
+            fi.set_stat()
+            fi.updated_at = now  # type: ignore
         except Exception as exc:
-            LOG.error(f"Error preparing failed import update for {failed_import.path}")
+            LOG.error(f"Error preparing failed import update for {fi.path}")
             LOG.exception(exc)
 
     create_failed_imports = []
     for path, exc in failed_imports.items():
         try:
-            fi = FailedImport(library=library, path=path)
-            fi.set_reason(exc, path)
+            fi = FailedImport(library=library, path=path, parent_folder=None)
+            fi.set_reason(exc)
+            fi.set_stat()
             create_failed_imports.append(fi)
         except Exception as exc:
             LOG.error(f"Error preparing failed import create for {path}")

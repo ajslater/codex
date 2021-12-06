@@ -55,7 +55,7 @@ class BrowserGroupModel(BaseModel):
     DEFAULT_NAME = ""
 
     name = CharField(db_index=True, max_length=32, default=DEFAULT_NAME)
-    sort_name = CharField(db_index=True, max_length=32)
+    sort_name = CharField(db_index=True, max_length=32, default=DEFAULT_NAME)
 
     def presave(self):
         """Save the sort name. Called by save()."""
@@ -75,8 +75,6 @@ class BrowserGroupModel(BaseModel):
 class Publisher(BrowserGroupModel):
     """The publisher of the comic."""
 
-    DEFAULTS = {"name": ""}
-
     class Meta:
         """Constraints."""
 
@@ -89,7 +87,7 @@ class Imprint(BrowserGroupModel):
     publisher = ForeignKey(Publisher, on_delete=CASCADE)
 
     class Meta:
-        """Contraints."""
+        """Constraints."""
 
         unique_together = ("name", "publisher")
 
@@ -168,7 +166,7 @@ class NamedModel(BaseModel):
     name = CharField(db_index=True, max_length=32)
 
     class Meta:
-        """Defaults to uniquely named, must be overriden."""
+        """Defaults to uniquely named, must be overridden."""
 
         abstract = True
         unique_together = ("name",)
@@ -242,12 +240,11 @@ class Credit(BaseModel):
         unique_together = ("person", "role")
 
 
-class WatchedPath(BaseModel):
+class WatchedPath(BrowserGroupModel):
     """A filesystem path with data for Watchdog."""
 
     library = ForeignKey(Library, on_delete=CASCADE, db_index=True)
     path = CharField(max_length=128, db_index=True)
-    sort_name = CharField(db_index=True, max_length=32)
     stat = JSONField(null=True)
     parent_folder = ForeignKey(
         "Folder",
@@ -269,14 +266,9 @@ class WatchedPath(BaseModel):
         st[8] = st_record.st_mtime
         self.stat = st
 
-    def presave(self):
-        """Stub for overriding."""
-        pass
-
-    def save(self, *args, **kwargs):
-        """Save the sort name as the name by default."""
-        self.presave()
-        super().save(*args, **kwargs)
+    def __str__(self):
+        """Return the full path."""
+        return self.path
 
     class Meta:
         """Constraints."""
@@ -287,17 +279,6 @@ class WatchedPath(BaseModel):
 
 class Folder(WatchedPath):
     """File system folder."""
-
-    name = CharField(db_index=True, max_length=32)
-
-    def presave(self):
-        """Save the sort name. Called by save()."""
-        pass
-        self.sort_name = self.name
-
-    def __str__(self):
-        """Return the full path of the folder."""
-        return self.path
 
 
 class Comic(WatchedPath):
@@ -449,7 +430,7 @@ def cascade_if_user_null(collector, field, sub_objs, _):
     """
     Cascade only if the user field is null.
 
-    Do this to keep deleteing ephemeral session data from UserBookmark table.
+    Do this to keep deleting ephemeral session data from UserBookmark table.
     Adapted from:
     https://github.com/django/django/blob/master/django/db/models/deletion.py#L23
     """
@@ -503,24 +484,20 @@ class UserBookmark(BaseModel):
         unique_together = ("user", "session", "comic")
 
 
-class FailedImport(BaseModel):
+class FailedImport(WatchedPath):
     """Failed Comic Imports. Displayed in Admin Panel."""
 
-    MAX_REASON_LEN = 64
+    MAX_REASON_LEN = 32
 
-    library = ForeignKey(Library, db_index=True, on_delete=CASCADE)
-    path = CharField(db_index=True, max_length=128)
-    reason = CharField(max_length=MAX_REASON_LEN)
-
-    def set_reason(self, exc, path):
+    def set_reason(self, exc):
         """Can't do this in save() because it breaks update_or_create."""
         reason = str(exc)
-        suffixes = (f": {path}", f": '{path}'")
+        suffixes = (f": {self.path}", f": '{self.path}'")
         for suffix in suffixes:
             if reason.endswith(suffix):
                 reason = reason[: -len(suffix)]
         reason = reason[: self.MAX_REASON_LEN]
-        self.reason = reason.strip()
+        self.name = reason.strip()
 
     class Meta:
         """Constraints."""

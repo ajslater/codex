@@ -190,7 +190,7 @@ class AdminAdminFlag(AdminNoAddDelete):
 class AdminFailedImport(AdminNoAddDelete):
     """Display failed imports."""
 
-    fields = ("path", "reason", "created_at", "updated_at", "library_link")
+    fields = ("path", "name", "created_at", "updated_at", "library_link")
     list_display = fields
     readonly_fields = fields
     sortable_by = fields
