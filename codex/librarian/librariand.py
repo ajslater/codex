@@ -9,11 +9,11 @@ from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
     BackupCronTask,
     ComicCoverTask,
-    DBDiffTask,
     NotifierTask,
     PollLibrariesTask,
     RestartTask,
     UpdateCronTask,
+    UpdaterTask,
     VacuumCronTask,
     WatchdogEventTask,
     WatchdogSyncTask,
@@ -52,7 +52,7 @@ class LibrarianDaemon(Process):
                 self.event_batcher.queue.put(task)
             elif isinstance(task, ComicCoverTask):
                 self.cover_creator.queue.put(task)
-            elif isinstance(task, DBDiffTask):
+            elif isinstance(task, UpdaterTask):
                 self.updater.queue.put(task)
             elif isinstance(task, NotifierTask):
                 Notifier.thread.queue.put(task)

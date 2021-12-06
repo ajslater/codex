@@ -17,6 +17,7 @@ from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
     AdminNotifierTask,
     BroadcastNotifierTask,
+    CleanupDatabaseTask,
     DBDiffTask,
 )
 from codex.models import FailedImport, Library
@@ -130,5 +131,7 @@ class Updater(QueuedThread):
         """Run the updater."""
         if isinstance(task, DBDiffTask):
             apply(task)
+        elif isinstance(task, CleanupDatabaseTask):
+            cleanup_database()
         else:
             LOG.warning(f"Bad task sent to library updater {task}")

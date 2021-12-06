@@ -21,7 +21,14 @@ class WatchdogEventTask(LibraryTask):
 
 
 @dataclass
-class DBDiffTask(LibraryTask):
+class UpdaterTask:
+    """Tasks for the updater."""
+
+    pass
+
+
+@dataclass
+class DBDiffTask(UpdaterTask, LibraryTask):
     """For sending to the updater."""
 
     dirs_moved: dict
@@ -32,6 +39,12 @@ class DBDiffTask(LibraryTask):
     files_created: set
     dirs_deleted: set
     files_deleted: set
+
+
+class CleanupDatabaseTask(UpdaterTask):
+    """Clean up these libraries."""
+
+    pass
 
 
 @dataclass
