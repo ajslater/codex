@@ -4,26 +4,22 @@ ASGI config for codex project.
 It exposes the ASGI callable as a module-level variable named ``application``.
 
 For more information on this file, see
-https://docs.djangoproject.com/en/3.0/howto/deployment/asgi/
+https://docs.djangoproject.com/en/3.2/howto/deployment/asgi/
 """
 import os
 
-from logging import getLogger
-
 import django
-
 from django.core.asgi import get_asgi_application
 
 
 # Must setup up the django environment before importing django models
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "codex.settings.settings")
+# os.environ["PYTHONASYNCIODEBUG"] = "1"
 django.setup()
+
 from codex.lifespan import lifespan_application  # noqa: E402
 from codex.websocket_server import websocket_application  # noqa: E402
 
-
-LOG = getLogger(__name__)
-# os.environ["PYTHONASYNCIODEBUG"] = "1"
 DJANGO_APPLICATION = get_asgi_application()
 
 
