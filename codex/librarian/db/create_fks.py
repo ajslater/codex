@@ -61,6 +61,9 @@ def _bulk_create_groups(all_create_groups):
     for cls, group_tree_counts in all_create_groups.items():
         if not group_tree_counts:
             continue
+        LOG.verbose(  # type: ignore
+            f"Preparing {len(group_tree_counts)} {cls.__name__}s for creation..."
+        )
         create_groups = []
         for group_param_tuple, count in group_tree_counts.items():
             obj = _create_group_obj(cls, group_param_tuple, count)
@@ -110,7 +113,8 @@ def bulk_folders_create(library, folder_paths):
     if not folder_paths:
         return False
 
-    LOG.verbose(f"Preparing {len(folder_paths)} folders for creation.")  # type: ignore
+    num_folder_paths = len(folder_paths)
+    LOG.verbose(f"Preparing {num_folder_paths} folders for creation.")  # type: ignore
     # group folder paths by depth
     folder_path_dict = {}
     for path_str in folder_paths:
@@ -142,13 +146,12 @@ def bulk_folders_create(library, folder_paths):
             create_folders.append(folder)
         Folder.objects.bulk_create(create_folders)
         count = len(create_folders)
-        log = f"Created {count} Folders."
+        total_count += count
+        log = f"Created {total_count}/{num_folder_paths} Folders."
         if count:
             LOG.info(log)
         else:
             LOG.verbose(log)  # type: ignore
-        if count:
-            total_count += count
     return total_count > 0
 
 
