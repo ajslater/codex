@@ -82,6 +82,6 @@ export default {
 <style lang="scss">
 /* I have no idea why this is necessary but it really is */
 #notifyScanning > .v-sheet.v-snack__wrapper {
-  min-width: 220px;
+  min-width: 222px;
 }
 </style>
