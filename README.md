@@ -143,6 +143,13 @@ max_db_ops = 100000
 
 The config directory also holds the main sqlite database, a django cache and comic book cover thumbnails generated when comics are imported. Reimport a comic or an entire library to regenereate these cover thumbnails.
 
+### Environment Variables
+
+- `LOGLEVEL` will change how verbose codex's logging is. Valid values are `ERROR`, `WARNING`, `INFO`, `VERBOSE`, `DEBUG`. The default is `INFO`.
+- `TIMEZONE` or `TZ` will explicitly the timezone in long format (e.g. `"America/Los Angeles"`). This is mostly useful inside Docker because codex cannot automatically detect the host machine's timezone.
+- `CODEX_CONFIG_DIR` will set the path to codex config directory. Defaults to `$CWD/config`
+- `CODEX_RESET_ADMIN=1` will reset the admin user and its password to defaults when codex starts.
+
 ### Reverse Proxy
 
 [nginx](https://nginx.org/) is often used as a TLS terminator and subpath proxy.

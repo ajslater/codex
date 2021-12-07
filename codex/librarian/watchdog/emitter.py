@@ -39,21 +39,30 @@ class CodexDatabaseSnapshot(DirectorySnapshot):
         for model in cls.MODELS:
             yield model.objects.filter(library__path=root).values("path", "stat")
 
-    def _fix_bad_db_stat(self, wp_path, params, stat):
+    @staticmethod
+    def _create_stat_from_db_stat(wp_path, params, stat, root_st_dev, force):
         """Handle null or zeroed out database stat entries."""
-        if params and len(params) == 10 and params[1]:
-            # params[1] is st_inode, if it's okay most everything else works
-            return params
-        if Path(wp_path).exists():
-            LOG.debug(f"Force modify path with bad db record: {wp_path}")
-            params = list(stat(wp_path))
-            # Fake mtime will trigger a modified event
+        if not params or len(params) != 10 or not params[1]:
+            # Ensure valid params
+            if Path(wp_path).exists():
+                LOG.debug(f"Force modify path with bad db record: {wp_path}")
+                params = list(stat(wp_path))
+                # Fake mtime will trigger a modified event
+                params[8] = 0.0
+            else:
+                LOG.debug(f"Force delete path with bad db record: {wp_path}")
+                # This will trigger a deleted event
+                params = Comic.ZERO_STAT
+
+        # Use the library's sampled st_dev. It changes every
+        # time with docker so storing it in the db would cause
+        # mass deletes.
+        params[2] = root_st_dev
+        if force:
+            # Fake mtime will trigger modified event
             params[8] = 0.0
-        else:
-            LOG.debug(f"Force delete path with bad db record: {wp_path}")
-            # This will trigger a deleted event
-            params = Comic.ZERO_STAT
-        return params
+        st = os.stat_result(tuple(params))
+        return st
 
     def _set_lookups(self, path, st):
         """Populate the lookup dirs."""
@@ -77,15 +86,15 @@ class CodexDatabaseSnapshot(DirectorySnapshot):
             return
 
         # Add the library root
-        self._set_lookups(path, stat(path))
+        root_stat = stat(path)
+        self._set_lookups(path, root_stat)
+        root_st_dev = root_stat.st_dev
 
         for wp in chain.from_iterable(self._walk(path)):
             wp_path = wp["path"]
-            params = self._fix_bad_db_stat(wp_path, wp.get("stat"), stat)
-            if force:
-                # Fake mtime will trigger modified event
-                params[8] = 0
-            st = os.stat_result(tuple(params))
+            st = self._create_stat_from_db_stat(
+                wp_path, wp.get("stat"), stat, root_st_dev, force
+            )
             self._set_lookups(wp_path, st)
 
 
@@ -138,11 +147,13 @@ class DatabasePollingEmitter(EventEmitter):
             LOG.warning(f"Library {self._watch_path} not found.")
             return False, self.DIR_NOT_FOUND_TIMEOUT
         if self._watch_path_unmounted.exists():
+            # Maybe overkill of caution here
             LOG.warning(
                 f"Library {self._watch_path} looks like an unmounted docker volume."
             )
             return False, self.DIR_NOT_FOUND_TIMEOUT
         if not tuple(self._watch_path.iterdir()):
+            # Maybe overkill of caution here too
             LOG.warning(f"{self._watch_path} is empty. Suspect it may be unmounted.")
             return False, self.DIR_NOT_FOUND_TIMEOUT
 
@@ -191,12 +202,12 @@ class DatabasePollingEmitter(EventEmitter):
             dir_snapshot = self._take_dir_snapshot()
 
             if len(dir_snapshot.paths) <= 1:
+                # Maybe overkill of caution here also
                 LOG.warning(f"{self._watch_path} dir snapshot is empty. Not polling")
                 LOG.verbose(f"{dir_snapshot.paths=}")  # type: ignore
                 return
 
             events = DirectorySnapshotDiff(db_snapshot, dir_snapshot)
-            LOG.debug(events)
 
             # Files.
             # Could remove non-comics here, but handled by the EventHandler

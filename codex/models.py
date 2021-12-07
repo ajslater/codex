@@ -261,7 +261,8 @@ class WatchedPath(BrowserGroupModel):
         st = self.ZERO_STAT.copy()
         st[0] = st_record.st_mode
         st[1] = st_record.st_ino
-        st[2] = st_record.st_dev
+        # st_dev changes every time with docker
+        # st[2] = st_record.st_dev
         st[6] = st_record.st_size
         st[8] = st_record.st_mtime
         self.stat = st

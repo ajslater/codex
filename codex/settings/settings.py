@@ -158,8 +158,10 @@ USE_TZ = True
 TZ = os.environ.get("TIMEZONE", os.environ.get("TZ"))
 if TZ and not TZ.startswith(":") and "etc/localtime" not in TZ and "/" in TZ:
     TIME_ZONE = TZ
-else:
+elif get_localzone_name():
     TIME_ZONE = get_localzone_name()
+else:
+    TIME_ZONE = "Etc/UTC"
 
 # Hypercorn
 HYPERCORN_CONFIG_TOML = CONFIG_PATH / "hypercorn.toml"

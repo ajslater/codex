@@ -1,9 +1,9 @@
 # Codex News
 
-## v0.7.0rc9
+## v0.7.0rc10
 
 - Features
-  - Speed up importing comics up to 3000 comics per minute. Tested with a library of 100k dummy comics.
+  - Big speed up to importing comics for large imports.
   - Speed up creating comic covers on large imports.
   - Admin Panel options for polling (formerly "scanning") and watching events have changed names.
   - Admin Panel task added to regenerate all comic covers.
