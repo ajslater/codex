@@ -11,6 +11,8 @@
   - Comics with no specified Publishers, Imprints and Series no longer have induced default names for these but have no name like Volumes.
   - Codex repairs database integrity on startup.
   - Codex backs up the database every night.
+  - Autodetect server timezone (for logging).
+  - Use TZ and TIMEZONE environment variables to explicitly set server timezone.
   - Added `VERBOSE` logging level to help screen out bulk `DEBUG` messages from dependencies.
   - Truncated logging messages for easier reading.
 - Fixes
