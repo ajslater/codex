@@ -5,9 +5,7 @@ from asgiref.sync import async_to_sync
 from django.core.cache import cache
 
 from codex.librarian.queue_mp import AdminNotifierTask, BroadcastNotifierTask
-from codex.serializers.webpack import (
-    WEBSOCKET_MESSAGES as WS_MSGS,
-)
+from codex.serializers.webpack import WEBSOCKET_MESSAGES as WS_MSGS
 from codex.threads import AggregateMessageQueuedThread
 
 
