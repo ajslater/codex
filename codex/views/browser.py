@@ -126,9 +126,12 @@ class BrowserView(BrowserMetadataBase):
         ##########################################
         # Annotate children count and page count #
         ##########################################
-        if model != Comic:
+        if model == Comic:
             child_count_sum = Count("comic__pk", distinct=True, filter=aggregate_filter)
-            obj_list = obj_list.annotate(child_count=child_count_sum)
+        else:
+            child_count_sum = Value(1, IntegerField())
+        obj_list = obj_list.annotate(child_count=child_count_sum)
+        if model != Comic:
             # EXTRA FILTER for empty group
             obj_list = obj_list.filter(child_count__gt=0)
 
