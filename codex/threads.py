@@ -54,17 +54,12 @@ class QueuedThread(Thread, ABC):
         except Empty:
             self._timed_out()
 
-    def _post_process_hook(self):
-        """Overidable post processing hook."""
-        pass
-
     def run(self):
         """Run thread loop."""
         LOG.verbose(f"Started {self.NAME} thread")  # type: ignore
         while True:
             try:
                 self._check_item()
-                self._post_process_hook()
             except BreakLoopError:
                 break
             except Exception as exc:
@@ -124,7 +119,3 @@ class AggregateMessageQueuedThread(QueuedThread, ABC):
         """Send the items and set when we did this."""
         self._send_all_items()
         self._last_timed_out = time.time()
-
-    def _post_process_hook(self):  # TODO post_process_hook may be obsolete
-        """Top of loop processes items, then send items."""
-        pass
