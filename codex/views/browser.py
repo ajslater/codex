@@ -126,15 +126,11 @@ class BrowserView(BrowserMetadataBase):
         ##########################################
         # Annotate children count and page count #
         ##########################################
-        if model == Comic:
-            obj_list = obj_list.annotate(child_count=Value(1, IntegerField()))
-        else:
-            obj_list = self.annotate_page_count(obj_list, aggregate_filter)
+        if model != Comic:
             child_count_sum = Count("comic__pk", distinct=True, filter=aggregate_filter)
+            obj_list = obj_list.annotate(child_count=child_count_sum)
             # EXTRA FILTER for empty group
-            obj_list = obj_list.annotate(child_count=child_count_sum).filter(
-                child_count__gt=0
-            )
+            obj_list = obj_list.filter(child_count__gt=0)
 
         ##################
         # Annotate Group #
@@ -152,6 +148,8 @@ class BrowserView(BrowserMetadataBase):
         #####################
         # Annotate progress #
         #####################
+        if model != Comic:
+            obj_list = self.annotate_page_count(obj_list, aggregate_filter)
         obj_list = self.annotate_progress(obj_list)
 
         #######################
@@ -178,9 +176,9 @@ class BrowserView(BrowserMetadataBase):
                 aggregate_filter,
             )
 
-        #######################
+        ########################
         # Annotate name fields #
-        #######################
+        ########################
         publisher_name = Value(None, CharField())
         series_name = Value(None, CharField())
         volume_name = Value(None, CharField())
