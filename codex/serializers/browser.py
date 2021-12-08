@@ -153,7 +153,7 @@ class BrowserCardSerializer(Serializer):
     series_name = CharField(read_only=True)
     volume_name = CharField(read_only=True)
     x_issue = DecimalField(max_digits=5, decimal_places=1, read_only=True)
-    display_name = CharField(read_only=True)
+    name = CharField(read_only=True)
     progress = DecimalField(read_only=True, max_digits=5, decimal_places=2)
     finished = BooleanField(read_only=True, allow_null=True)
     bookmark = IntegerField(read_only=True, allow_null=True)

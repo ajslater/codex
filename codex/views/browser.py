@@ -49,11 +49,11 @@ class BrowserView(BrowserMetadataBase):
     BROWSER_CARD_FIELDS = [
         "bookmark",
         "child_count",
-        "display_name",
         "finished",
         "group",
         "header_name",
         "library",
+        "name",
         "order_value",
         "pk",
         "progress",
@@ -186,7 +186,7 @@ class BrowserView(BrowserMetadataBase):
         #######################
         # Annotate name fields #
         #######################
-        # XXX header_name & display_name could be done on import.
+        # XXX header_name could be done on import or frontend?
         if model in (Publisher, Series, Folder, Comic):
             header_name = Value(None, CharField())
         elif model == Imprint:
@@ -196,6 +196,9 @@ class BrowserView(BrowserMetadataBase):
         else:
             header_name = ""
 
+        # XXX This part is just making parts for header_name
+        #   in src/components/browser-card.vue
+        # Decide whether front or back end is doing this!
         if model == Comic:
             series_name = F("series__name")
             volume_name = F("volume__name")
@@ -207,21 +210,12 @@ class BrowserView(BrowserMetadataBase):
             x_issue = Value(None, CharField())
             x_path = Value(None, CharField())
 
-        # XXX should group use title or comics use name?
-        # if model in (Publisher, Imprint, Series, Volume, Folder):
-        #    display_name = F("name")
-        if model == Comic:
-            display_name = F("title")
-        else:
-            display_name = F("name")
-
         obj_list = obj_list.annotate(
             header_name=header_name,
             series_name=series_name,
             volume_name=volume_name,
             x_issue=x_issue,
             x_path=x_path,
-            display_name=display_name,
         )
 
         return obj_list

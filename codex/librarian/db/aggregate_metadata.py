@@ -21,7 +21,14 @@ COMIC_M2M_FIELDS = set()
 for field in Comic._meta.get_fields():
     if field.many_to_many and field.name != "folders":
         COMIC_M2M_FIELDS.add(field.name)
-MD_UNUSED_KEYS = ("alternate_series", "remainder", "ext", "pages", "cover_image")
+MD_UNUSED_KEYS = (
+    "alternate_series",
+    "ext",
+    "cover_image",
+    "pages",
+    "remainder",
+    "title",  # gets converted to name
+)
 WRITE_WAIT_EXPIRY = LOG_EVERY
 WRITE_WAIT_DELAY = 0.01
 HEX_FILL = 8
@@ -84,6 +91,9 @@ def _get_path_metadata(path):
         md = car.get_metadata()
         md["path"] = path
         md["size"] = Path(path).stat().st_size
+        title = md.get("title")
+        if title:
+            md["name"] = title[:31]
         md["max_page"] = max(md["page_count"] - 1, 0)
         cover_path = _get_cover_path(path)
         md["cover_path"] = cover_path

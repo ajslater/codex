@@ -83,7 +83,7 @@
           />
         </div>
         <MetadataCombobox
-          :value="md.comic.title"
+          :value="md.comic.name"
           label="Title"
           :show="editMode"
         />

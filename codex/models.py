@@ -286,7 +286,6 @@ class Comic(WatchedPath):
     """Comic metadata."""
 
     issue = DecimalField(db_index=True, decimal_places=2, max_digits=6, default=0.0)
-    title = CharField(db_index=True, max_length=64, null=True)
     volume = ForeignKey(Volume, db_index=True, on_delete=CASCADE)
     series = ForeignKey(Series, db_index=True, on_delete=CASCADE)
     imprint = ForeignKey(Imprint, db_index=True, on_delete=CASCADE)
@@ -399,14 +398,9 @@ class Comic(WatchedPath):
         if self.volume.name:
             names.append(self.volume.name)
         names.append(self._get_display_issue())
-        if self.title:
-            names.append(self.title)
+        if self.name:
+            names.append(self.name)
         return " ".join(names)
-
-    @property
-    def name(self):
-        """Return the name for some functions."""
-        return self.__str__
 
 
 class AdminFlag(NamedModel):

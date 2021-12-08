@@ -101,8 +101,8 @@ export default {
     },
     displayName: function () {
       return this.item.group === "v"
-        ? getVolumeName(this.item.display_name)
-        : this.item.display_name;
+        ? getVolumeName(this.item.name)
+        : this.item.name;
     },
     orderValue: function () {
       let ov = this.item.order_value;

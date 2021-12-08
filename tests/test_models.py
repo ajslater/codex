@@ -10,7 +10,7 @@ class ComicTestCase(TestCase):
     """Test Comic model."""
 
     COMIC_PATH = "/comics/foo.cbz"
-    TITLE = "foo"
+    NAME = "foo"
     DECADE = 1970
     YEAR = 1975
     MONTH = 4
@@ -32,7 +32,7 @@ class ComicTestCase(TestCase):
             library=library,
             path=self.COMIC_PATH,
             issue=1,
-            title=ComicTestCase.TITLE,
+            name=ComicTestCase.NAME,
             publisher=publisher,
             imprint=imprint,
             series=series,
@@ -46,6 +46,6 @@ class ComicTestCase(TestCase):
     def test_comic_save(self):
         """Test comic model save method."""
         comic = Comic.objects.get(path=self.COMIC_PATH)
-        self.assertEqual(comic.title, self.TITLE)
+        self.assertEqual(comic.name, self.NAME)
         self.assertEqual(comic.decade, self.DECADE)
         self.assertEqual(comic.date, self.DATE)
