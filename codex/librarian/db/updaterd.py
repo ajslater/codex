@@ -4,7 +4,7 @@ import time
 from logging import getLogger
 
 from django.db.models.functions import Now
-from humanize import naturaldelta
+from humanize import precisedelta
 
 from codex.librarian.db.aggregate_metadata import get_aggregate_metadata
 from codex.librarian.db.cleanup import cleanup_database
@@ -114,7 +114,7 @@ def apply(task):
     if changed:
         LIBRARIAN_QUEUE.put(BroadcastNotifierTask("LIBRARY_CHANGED"))
         elapsed_time = time.time() - start_time
-        LOG.info(f"Updated library {library.path} in {naturaldelta(elapsed_time)}.")
+        LOG.info(f"Updated library {library.path} in {precisedelta(elapsed_time)}.")
         suffix = ""
         if imported_count:
             cps = int(imported_count / elapsed_time)

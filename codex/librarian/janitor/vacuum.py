@@ -2,6 +2,7 @@
 from logging import getLogger
 
 from django.db import connection
+from humanize import naturalsize
 
 from codex.settings.settings import BACKUP_DB_PATH, DB_PATH
 
@@ -16,7 +17,7 @@ def vacuum_db():
         cursor.execute("VACUUM")
         cursor.execute("PRAGMA wal_checkpoint(TRUNCATE)")
     new_size = DB_PATH.stat().st_size
-    saved = old_size - new_size
+    saved = naturalsize(old_size - new_size)
 
     LOG.verbose(f"Vacuumed database. Saved {saved} bytes.")  # type: ignore
 

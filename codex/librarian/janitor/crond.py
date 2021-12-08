@@ -4,7 +4,7 @@ from logging import getLogger
 from threading import Condition, Event, Thread
 
 from django.utils import timezone
-from humanize import naturaldelta
+from humanize import precisedelta
 
 from codex.librarian.janitor.update import restart_codex, update_codex
 from codex.librarian.janitor.vacuum import backup_db, vacuum_db
@@ -57,7 +57,7 @@ class Crond(Thread):
             while not self._stop_event.is_set():
                 timeout = self._get_timeout()
                 LOG.verbose(  # type: ignore
-                    f"Waiting {naturaldelta(timeout)} until next maintenance."
+                    f"Waiting {precisedelta(timeout)} until next maintenance."
                 )
                 self._cond.wait(timeout=timeout)
                 if self._stop_event.is_set():
