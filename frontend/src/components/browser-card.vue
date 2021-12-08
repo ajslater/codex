@@ -3,7 +3,7 @@
     <div class="browserTileLazyWrapper">
       <div class="browserCardCoverWrapper">
         <BookCover
-          :cover-path="item.x_cover_path"
+          :cover-path="item.cover_path"
           :group="item.group"
           :child-count="item.child_count"
           :finished="item.finished"
@@ -88,14 +88,25 @@ export default {
     }),
     headerName: function () {
       let headerName;
-      if (this.item.group === "c") {
-        return getFullComicName(
-          this.item.series_name,
-          this.item.volume_name,
-          +this.item.x_issue
-        );
-      } else {
-        headerName = this.item.header_name;
+      switch (this.item.group) {
+        case "c":
+          headerName = getFullComicName(
+            this.item.series_name,
+            this.item.volume_name,
+            +this.item.issue
+          );
+          break;
+
+        case "i":
+          headerName = this.item.publisher_name;
+          break;
+
+        case "v":
+          headerName = this.item.series_name;
+          break;
+
+        default:
+          headerName = "";
       }
       return headerName;
     },

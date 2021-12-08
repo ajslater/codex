@@ -15,7 +15,7 @@
         <div id="metadataBookCoverWrapper">
           <BookCover
             id="bookCover"
-            :cover-path="md.aggregates.x_cover_path"
+            :cover-path="md.aggregates.cover_path"
             :group="group"
             :child-count="md.pks.length"
             :finished="md.aggregates.finished"
@@ -119,7 +119,7 @@
             <span>
               <span v-if="md.aggregates.bookmark"
                 >Read {{ md.aggregates.bookmark }} of </span
-              >{{ md.aggregates.x_page_count }} Pages
+              >{{ md.aggregates.page_count }} Pages
               <span v-if="md.comic.finished">, Finished</span>
             </span>
             <span id="size">
@@ -413,7 +413,7 @@ export default {
       const pk = this.singleComicPK;
       const bookmark = this.md.aggregates.bookmark;
       const readLTR = this.md.comic.read_ltr;
-      const pageCount = this.md.aggregates.x_page_count;
+      const pageCount = this.md.aggregates.page_count;
       return getReaderRoute(pk, bookmark, readLTR, pageCount);
     },
     saveButtonLabel: function () {

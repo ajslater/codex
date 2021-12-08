@@ -8,16 +8,7 @@ from rest_framework.response import Response
 from stringcase import snakecase
 
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, BulkComicCoverCreateTask
-from codex.models import (
-    AdminFlag,
-    Comic,
-    Folder,
-    Imprint,
-    Library,
-    Publisher,
-    Series,
-    Volume,
-)
+from codex.models import AdminFlag, Comic, Folder, Imprint, Library, Volume
 from codex.serializers.browser import (
     BrowserOpenedSerializer,
     BrowserPageSerializer,
@@ -49,19 +40,19 @@ class BrowserView(BrowserMetadataBase):
     BROWSER_CARD_FIELDS = [
         "bookmark",
         "child_count",
+        "cover_path",
         "finished",
         "group",
-        "header_name",
+        "issue",
         "library",
         "name",
         "order_value",
+        "path",
         "pk",
         "progress",
+        "publisher_name",
         "series_name",
         "volume_name",
-        "x_cover_path",
-        "x_issue",
-        "x_path",
     ]
 
     def get_valid_root_groups(self):
@@ -135,12 +126,15 @@ class BrowserView(BrowserMetadataBase):
         ##########################################
         # Annotate children count and page count #
         ##########################################
-        obj_list = self.annotate_page_count(obj_list, aggregate_filter)
-        # EXTRA FILTER for empty group
-        child_count_sum = Count("comic__pk", distinct=True, filter=aggregate_filter)
-        obj_list = obj_list.annotate(child_count=child_count_sum).filter(
-            child_count__gt=0
-        )
+        if model == Comic:
+            obj_list = obj_list.annotate(child_count=Value(1, IntegerField()))
+        else:
+            obj_list = self.annotate_page_count(obj_list, aggregate_filter)
+            child_count_sum = Count("comic__pk", distinct=True, filter=aggregate_filter)
+            # EXTRA FILTER for empty group
+            obj_list = obj_list.annotate(child_count=child_count_sum).filter(
+                child_count__gt=0
+            )
 
         ##################
         # Annotate Group #
@@ -177,46 +171,40 @@ class BrowserView(BrowserMetadataBase):
         #######################
         # Annotate Cover Path #
         #######################
-        obj_list = self.annotate_cover_path(
-            obj_list,
-            model,
-            aggregate_filter,
-        )
+        if model != Comic:
+            obj_list = self.annotate_cover_path(
+                obj_list,
+                model,
+                aggregate_filter,
+            )
 
         #######################
         # Annotate name fields #
         #######################
         # XXX header_name could be done on import or frontend?
-        if model in (Publisher, Series, Folder, Comic):
-            header_name = Value(None, CharField())
-        elif model == Imprint:
-            header_name = F("publisher__name")
-        elif model == Volume:
-            header_name = F("series__name")
-        else:
-            header_name = ""
+        publisher_name = Value(None, CharField())
+        series_name = Value(None, CharField())
+        volume_name = Value(None, CharField())
 
-        # XXX This part is just making parts for header_name
-        #   in src/components/browser-card.vue
-        # Decide whether front or back end is doing this!
         if model == Comic:
             series_name = F("series__name")
             volume_name = F("volume__name")
-            x_issue = F("issue")
-            x_path = F("path")
-        else:
-            series_name = Value(None, CharField())
-            volume_name = Value(None, CharField())
-            x_issue = Value(None, CharField())
-            x_path = Value(None, CharField())
+        elif model == Imprint:
+            publisher_name = F("publisher__name")
+        elif model == Volume:
+            series_name = F("series__name")
 
         obj_list = obj_list.annotate(
-            header_name=header_name,
+            publisher_name=publisher_name,
             series_name=series_name,
             volume_name=volume_name,
-            x_issue=x_issue,
-            x_path=x_path,
         )
+        if model != Comic:
+            issue = path = Value(None, CharField())
+            obj_list = obj_list.annotate(
+                issue=issue,
+                path=path,
+            )
 
         return obj_list
 

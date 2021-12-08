@@ -17,8 +17,8 @@ class MetadataAggregatesSerializer(Serializer):
 
     # Aggregate Annotations
     size = IntegerField(read_only=True)
-    x_cover_path = CharField(read_only=True)
-    x_page_count = IntegerField(read_only=True)
+    cover_path = CharField(read_only=True)
+    page_count = IntegerField(read_only=True)
 
     # UserBookmark annotations
     bookmark = IntegerField(read_only=True)

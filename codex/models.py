@@ -370,14 +370,6 @@ class Comic(WatchedPath):
         else:
             self.decade = self.year - (self.year % 10)
 
-    def _get_display_issue(self):
-        """Get the issue number, even if its a half issue."""
-        if self.issue % 1 == 0:
-            issue_str = f"#{int(self.issue):0>3d}"
-        else:
-            issue_str = f"#{self.issue:05.1f}"
-        return issue_str
-
     def presave(self):
         """Set computed values."""
         self._set_date()
@@ -389,6 +381,14 @@ class Comic(WatchedPath):
         """Save computed fields."""
         self.presave()
         super().save(*args, **kwargs)
+
+    def _get_display_issue(self):
+        """Get the issue number, even if its a half issue."""
+        if self.issue % 1 == 0:
+            issue_str = f"#{int(self.issue):0>3d}"
+        else:
+            issue_str = f"#{self.issue:05.1f}"
+        return issue_str
 
     def __str__(self):
         """Most common text representation for logging."""

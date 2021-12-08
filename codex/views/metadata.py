@@ -45,7 +45,7 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
 
     AGGREGATE_FIELDS = set(
-        ("bookmark", "x_cover_path", "finished", "progress", "size", "x_page_count")
+        ("bookmark", "cover_path", "finished", "page_count", "progress", "size")
     )
     # DO NOT USE BY ITSELF. USE get_comic_value_fields() instead.
     COMIC_VALUE_FIELDS = set(
@@ -138,8 +138,8 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
         if model != Comic:
             size_func = self.get_aggregate_func("size", model, aggregate_filter)
             obj = obj.annotate(size=size_func)
+            obj = self.annotate_page_count(obj, aggregate_filter)
         obj = self.annotate_cover_path(obj, model, aggregate_filter)
-        obj = self.annotate_page_count(obj, aggregate_filter)
         obj = self.annotate_bookmarks(obj)
         obj = self.annotate_progress(obj)
 

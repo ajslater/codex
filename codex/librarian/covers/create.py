@@ -76,8 +76,8 @@ def _ensure_comic_and_cover_paths(comic_and_cover_paths):
     comic_paths_only = set()
     cover_paths_only = set()
     for comic_dict in comic_and_cover_paths:
-        cover_path = comic_dict.get("x_cover_path", comic_dict.get("cover_path"))
-        comic_path = comic_dict.get("x_path", comic_dict.get("path"))
+        cover_path = comic_dict.get("cover_path")
+        comic_path = comic_dict.get("path")
 
         if comic_path and cover_path:
             complete_comic_tuples.add((comic_path, cover_path))
