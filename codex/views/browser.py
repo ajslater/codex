@@ -181,7 +181,6 @@ class BrowserView(BrowserMetadataBase):
         #######################
         # Annotate name fields #
         #######################
-        # XXX header_name could be done on import or frontend?
         publisher_name = Value(None, CharField())
         series_name = Value(None, CharField())
         volume_name = Value(None, CharField())
