@@ -209,6 +209,16 @@ class DatabasePollingEmitter(EventEmitter):
 
             events = DirectorySnapshotDiff(db_snapshot, dir_snapshot)
 
+            LOG.verbose(  # type: ignore
+                f"Poller sending unfiltered files: {len(events.files_deleted)} deleted,"
+                f" {len(events.files_modified)} modified, "
+                f"{len(events.files_created)} created, {len(events.files_moved)} moved."
+            )
+            LOG.verbose(  # type: ignore
+                f"Poller sending comic folders: {len(events.dirs_deleted)} deleted,"
+                f" {len(events.dirs_modified)} modified,"
+                f"{len(events.dirs_moved)} moved."
+            )
             # Files.
             # Could remove non-comics here, but handled by the EventHandler
             for src_path in events.files_deleted:
@@ -236,6 +246,7 @@ class DatabasePollingEmitter(EventEmitter):
             Library.objects.filter(path=self.watch.path).update(
                 last_poll=Now(), updated_at=Now()
             )
+
         LOG.verbose(f"Polling {self.watch.path} finished.")  # type: ignore
 
     def on_thread_stop(self):
