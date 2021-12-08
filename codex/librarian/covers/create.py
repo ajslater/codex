@@ -35,7 +35,6 @@ def create_comic_cover(comic_path, cover_image, cover_path):
 
 def _create_comic_cover_from_file(comic_path, cover_path, force=False):
     """Create a comic cover thumnail and save it to disk."""
-    # The browser sends x_path and x_comic_path, everything else sends no prefix
     count = 0
     missing = None
 
