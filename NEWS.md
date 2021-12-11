@@ -16,8 +16,7 @@
   - Added `VERBOSE` logging level to help screen out bulk `DEBUG` messages from dependencies.
   - Truncated logging messages for easier reading.
 - Fixes
-  - Fixed credits displaying in metadata.
-  - Fixed named tags displaying in metadata for groups of comics.
+  - Fixed metadata screen displaying incorrect information.
   - Now compatible with python 3.10.
 
 ## v0.6.8
