@@ -36,56 +36,57 @@ class BrowserMetadataBase(BrowserBaseView):
     }
     DEFAULT_ORDER_KEY = "sort_name"
 
-    def get_aggregate_func(self, field, model, aggregate_filter):
+    def get_aggregate_func(self, field, is_comic_model, aggregate_filter):
         """Get a complete function for aggregating an attribute."""
         agg_func = self.SORT_AGGREGATE_FUNCS.get(field)
         if agg_func == Min:
             sort_reverse = self.params.get("sort_reverse")
             if sort_reverse:
                 agg_func = Max
-        if model == Comic or agg_func is None:
+        if is_comic_model or agg_func is None:
             order_func = F(field)
         else:
             order_func = agg_func(f"comic__{field}", filter=aggregate_filter)
         return order_func
 
-    def get_order_by(self, model, use_order_value):
+    def get_order_by(self, model, use_order_value, for_cover_path=False):
         """
         Create the order_by list.
 
         Order on pk to give duplicates a consistent position.
         """
+        # order_prefix
         sort_reverse = self.params.get("sort_reverse")
         if sort_reverse:
             order_prefix = "-"
         else:
             order_prefix = ""
+
+        if for_cover_path:
+            order_prefix += "comic__"
+
+        # order_key
         if use_order_value:
             order_key = "order_value"
         else:
             order_key = self.params.get("sort_by", self.DEFAULT_ORDER_KEY)
+
         order_by = [order_prefix + order_key, order_prefix + "pk"]
         if model in (Comic, Folder):
             # This keeps position stability for duplicate comics & folders
             order_by += ["library"]
         return order_by
 
-    def annotate_cover_path(self, queryset, model, aggregate_filter):
+    def annotate_cover_path(self, queryset, model):
         """Annotate the query set for the coverpath for the sort."""
         # Select comics for the children by an outer ref for annotation
         # Order the descendant comics by the sort argumentst
-        # Cover Path from sorted children.
-        # Don't know how to make this a join because it selects by
-        #   order_by but wants the cover_path
-        model_ref = model.__name__.lower()
-        if model == Folder:
-            model_ref += "s"
-        model_group_filter = Q(**{model_ref: OuterRef("pk")})
-        comics = Comic.objects.filter(model_group_filter & aggregate_filter)
-        order_by = self.get_order_by(Comic, False)
-        comics = comics.order_by(*order_by)
-        cover_comic_path = comics.values("cover_path")
-        cover_path_subquery = Subquery(cover_comic_path[:1])
+        order_by = self.get_order_by(model, False, True)
+        cover_path_subquery = Subquery(
+            queryset.filter(pk=OuterRef("pk"))
+            .order_by(*order_by)
+            .values("comic__cover_path")[:1]
+        )
         obj_list = queryset.annotate(cover_path=cover_path_subquery)
         return obj_list
 
@@ -96,30 +97,30 @@ class BrowserMetadataBase(BrowserBaseView):
         obj_list = obj_list.annotate(page_count=page_count_sum)
         return obj_list
 
-    def get_userbookmark_filter(self, for_comic=False):
+    def get_userbookmark_filter(self, is_model_comic):
         """Get a filter for my session or user defined bookmarks."""
-        rel_to_ub = "userbookmark"
-        if not for_comic:
-            rel_to_ub = "comic__userbookmark"
+        ubm_rel = self.get_ubm_rel(is_model_comic)
 
         if self.request.user.is_authenticated:
-            my_bookmarks_kwargs = {f"{rel_to_ub}__user": self.request.user}
+            my_bookmarks_kwargs = {f"{ubm_rel}__user": self.request.user}
         else:
             my_bookmarks_kwargs = {
-                f"{rel_to_ub}__session__session_key": self.request.session.session_key
+                f"{ubm_rel}__session__session_key": self.request.session.session_key
             }
         return Q(**my_bookmarks_kwargs)
 
-    def annotate_bookmarks(self, obj_list):
+    def annotate_bookmarks(self, obj_list, is_model_comic):
         """Hoist up bookmark annoations."""
-        ub_filter = self.get_userbookmark_filter()
+        ub_filter = self.get_userbookmark_filter(is_model_comic)
+
+        ubm_rel = self.get_ubm_rel(is_model_comic)
 
         # Hoist up: are the children finished or unfinished?
         finished_aggregate = Cast(
             NullIf(
                 Coalesce(
                     Avg(  # distinct average of user's finished values
-                        "comic__userbookmark__finished",
+                        f"{ubm_rel}__finished",
                         filter=ub_filter,
                         distinct=True,
                         output_field=DecimalField(),
@@ -132,7 +133,7 @@ class BrowserMetadataBase(BrowserBaseView):
         )
 
         # Hoist up the bookmark
-        bookmark_sum = Sum("comic__userbookmark__bookmark", filter=ub_filter)
+        bookmark_sum = Sum(f"{ubm_rel}__bookmark", filter=ub_filter)
 
         obj_list = obj_list.annotate(finished=finished_aggregate, bookmark=bookmark_sum)
 

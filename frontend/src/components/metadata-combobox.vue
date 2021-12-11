@@ -47,7 +47,10 @@ export default {
     },
   },
   created: function () {
-    this.model = toVuetifyItem(this.value);
+    this.model =
+      this.value == null || this.value.name == null
+        ? null
+        : toVuetifyItem(this.value);
   },
 };
 </script>

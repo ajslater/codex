@@ -202,25 +202,6 @@ def _delete_fk_integrity_errors(apps, host_model_name, fk_model_name, fk_field_n
     _delete_query(bad_host_objs, host_model_name, fk_model_name)
 
 
-def _fix_comic_myself_integrity_errors(apps):
-    """Fix Comics' self reference."""
-    bad_comics = _find_fk_integrity_errors(apps, "Comic", "Comic", "myself")
-    update_comics = []
-    now = Now()
-    for comic in bad_comics.only("myself", "updated_at"):
-        comic.myself = comic
-        if comic.updated_at:
-            # Only if it hasn't been marked for update
-            comic.updated_at = now
-        update_comics.append(comic)
-    num_update_comics = len(update_comics)
-    if not num_update_comics:
-        return
-    comic_model = apps.get_model("codex", "Comic")
-    comic_model.objects.bulk_update(update_comics, fields=["myself", "updated_at"])
-    LOG.info(f"Repaired {num_update_comics} Comics' self references.")
-
-
 def _null_missing_fk(host_model, fk_model, fk_field_name):
     """Set missing fks to null."""
     query_missing_fks = _find_fk_integrity_errors_with_models(
@@ -285,7 +266,6 @@ def _fix_db_integrity():
             else:
                 LOG.exception(exc)
 
-    _fix_comic_myself_integrity_errors(apps)
     LOG.verbose("Done with database integrity check.")  # type: ignore
 
 

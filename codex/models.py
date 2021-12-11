@@ -346,9 +346,6 @@ class Comic(WatchedPath):
         Folder, db_index=True, on_delete=CASCADE, null=True, related_name="comic_in"
     )
     size = PositiveIntegerField(db_index=True)
-    # Useful for the related field 'comic' so comics appear to
-    # aggregators as a container of one.
-    myself = ForeignKey("self", on_delete=CASCADE, null=True, related_name="comic")
 
     class Meta:
         """Constraints."""

@@ -21,7 +21,6 @@ LOG = getLogger(__name__)
 EXCLUDE_BULK_UPDATE_COMIC_FIELDS = (
     "id",
     "comic",
-    "myself",
     "userbookmark",
     "created_at",
 )
@@ -132,12 +131,6 @@ def _create_comics(library, comic_paths, mds):
     LOG.verbose(  # type: ignore
         f"Bulk updating {num_comics} created comics' " "self references...."
     )
-    # update myself field with self reference
-    created_comics = Comic.objects.filter(path__in=comic_paths).only("pk", "myself")
-    for comic in created_comics:
-        comic.myself = comic  # type: ignore
-        # Skipping updated_at update here to not be confusing
-    Comic.objects.bulk_update(created_comics, ["myself"])
 
 
 def _link_folders(folder_paths):

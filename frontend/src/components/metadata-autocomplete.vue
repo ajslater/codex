@@ -49,7 +49,10 @@ export default {
   },
   created: function () {
     // XXX Identical to Combobox
-    this.model = toVuetifyItem(this.value);
+    this.model =
+      this.value == null || this.value.name == null
+        ? null
+        : toVuetifyItem(this.value);
   },
 };
 </script>

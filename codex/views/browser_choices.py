@@ -57,7 +57,7 @@ class BrowserChoiceView(BrowserBaseView):
         """Get choices for filter dialog."""
         self.params = self.get_session(self.BROWSER_KEY)
 
-        object_filter, _ = self.get_query_filters(True)
+        object_filter, _ = self.get_query_filters(True, True)
         comic_qs = Comic.objects.filter(object_filter)
 
         field_name = self.kwargs.get("field_name")

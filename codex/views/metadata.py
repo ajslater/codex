@@ -1,9 +1,10 @@
 """View for marking comics read and unread."""
 from logging import getLogger
 
-from bidict import bidict  # type: ignore
 from django.contrib.auth.models import User
-from django.db.models import Aggregate, CharField, Count
+from django.db.models import Count
+from django.db.models import IntegerField
+from django.db.models import Case, Value, When, F
 from rest_framework.response import Response
 
 from codex.models import Comic
@@ -16,42 +17,15 @@ from codex.views.mixins import UserBookmarkMixin
 LOG = getLogger(__name__)
 
 
-class GroupConcat(Aggregate):
-    """sqlite3 GROUP_CONCAT function."""
-
-    # https://stackoverrun.com/vi/q/2730644
-
-    # In Postgres we could use ArrayAgg
-    function = "GROUP_CONCAT"
-    template = "%(function)s(%(x_distinct)s%(expressions)s%(separator)s)"
-    allow_distinct = True
-
-    def __init__(self, expression, distinct=False, separator=None, **extra):
-        """Pass special arguments for the template."""
-        # use x_distinct so as not to override django super.distinct
-        super().__init__(
-            expression,
-            x_distinct="DISTINCT " if distinct else "",
-            distict=distinct,
-            separator=', "%s"' % separator if separator else "",
-            output_field=CharField(),
-            **extra,
-        )
-
-
 class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
     """Comic metadata."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
 
-    AGGREGATE_FIELDS = set(
-        ("bookmark", "cover_path", "finished", "page_count", "progress", "size")
-    )
     # DO NOT USE BY ITSELF. USE get_comic_value_fields() instead.
     COMIC_VALUE_FIELDS = set(
         (
             "country",
-            "created_at",
             "critical_rating",
             "day",
             "description",
@@ -60,27 +34,24 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
             "language",
             "maturity_rating",
             "month",
-            "name",
             "notes",
-            "path",
             "read_ltr",
             "scan_info",
             "summary",
-            "updated_at",
             "user_rating",
             "web",
             "year",
         )
     )
     ADMIN_COMIC_VALUE_FIELDS = set(("path",))
-    COMIC_RELATED_VALUE_FIELD_MAP = bidict(
-        {
-            "series__volume_count": "volume_count",
-            "volume__issue_count": "issue_count",
-        }
+    COMIC_VALUE_FIELDS_CONFLICTING = set(
+        (
+            "name",
+            "updated_at",
+            "created_at",
+        )
     )
-    COMIC_RELATED_VALUE_ANNOTATIONS = set(COMIC_RELATED_VALUE_FIELD_MAP.values())
-    COMIC_RELATED_VALUE_FIELDS = set(COMIC_RELATED_VALUE_FIELD_MAP.keys())
+    COMIC_VALUE_FIELDS_CONFLICTING_PREFIX = "conflict_"
     COMIC_FK_FIELDS = set(
         (
             "imprint",
@@ -89,6 +60,19 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
             "volume",
         )
     )
+    COMIC_FK_FIELDS_MAP = {
+        "f": COMIC_FK_FIELDS,
+        "p": ("imprint", "series", "volume"),
+        "i": ("series", "volume"),
+        "s": ("volume",),
+        "v": tuple(),
+    }
+    COMIC_FK_ANNOTATION_PREFIX = "fk_"
+    COMIC_RELATED_VALUE_FIELDS = set(("series__volume_count", "volume__issue_count"))
+    COUNT_FIELD_MAP = {
+        "imprint": ("volume_count", "fk_series_volume_count"),
+        "series": ("issue_count", "fk_volume_issue_count"),
+    }
     COMIC_M2M_FIELDS = set(
         (
             "characters",
@@ -101,195 +85,229 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
             "teams",
         )
     )
-    CREDIT_FK_RELATIONS = set(
-        (
-            "credits__person",
-            "credits__role",
-        )
-    )
-    PK_LIST_SUFFIX = "_pk_list"
-    COUNT_SUFFIX = "_count"
-    COMIC_PK_LIST_KEY = "comic" + PK_LIST_SUFFIX
 
-    def get_comic_value_fields(self):
+    def is_admin(self):
+        """Is the current user an admin."""
+        user = self.request.user
+        return user and isinstance(user, User) and user.is_staff
+
+    def get_comic_value_fields(self, group):
         """Include the path field for staff."""
         fields = self.COMIC_VALUE_FIELDS
-        user = self.request.user
-        if user and isinstance(user, User) and user.is_staff:
+        if self.is_admin() and group != "f":
             fields |= self.ADMIN_COMIC_VALUE_FIELDS
         return fields
 
-    def get_comic_simple_aggregate_fields(self):
-        """Include the path field for staff."""
-        comic_value_fields = self.get_comic_value_fields()
-        return comic_value_fields | self.COMIC_FK_FIELDS
+    def _intersection_annotate(
+        self, simple_qs, qs, fields, related_suffix="", annotation_prefix=""
+    ):
+        """Annotate the intersection of value and fk fields."""
+        for field in fields:
+            comic_rel_field = f"comic__{field}"
 
-    def get_aggregates(self, aggregate_filter):
-        """Return metadata aggregate data and comic pks."""
-        # Create the aggregates like we do for the browser
+            # Annotate groups and counts
+            csq = simple_qs.values(comic_rel_field).distinct()
+            # print(field + ": ", end="")
+            # pprint(csq)
+            count_field = f"count_{field}".replace("__", "_")
+            # XXX This conversion to a value instead of a subquery could be better
+            qs = qs.annotate(**{count_field: Value(csq.count(), IntegerField())})
+
+            # Annotate insersection relation values
+            ann_field = (annotation_prefix + field).replace("__", "_")
+            query_is_intersection = {count_field: 1}
+            lookup = f"{comic_rel_field}{related_suffix}"
+            qs = qs.annotate(
+                **{
+                    ann_field: Case(
+                        When(
+                            **query_is_intersection,
+                            then=F(lookup),
+                        ),
+                        default=None,
+                    )
+                }
+            )
+        return qs
+
+    @classmethod
+    def _field_copy_fk_count(cls, field_name, obj, val):
+        """Copy those pesky fk count fields from annotations."""
+        op_field_names = cls.COUNT_FIELD_MAP.get(field_name)
+        if not op_field_names:
+            return
+        count_field, count_src_field_name = op_field_names
+        val[count_field] = getattr(obj, count_src_field_name)
+
+    @classmethod
+    def _field_copy(cls, obj, fields, prefix, fk_field=None):
+        """Copy annotation fields into comic type fields."""
+        for field_name in fields:
+            src_field_name = f"{prefix}{field_name}"
+            val = getattr(obj, src_field_name)
+            if fk_field:
+                val = {fk_field: val}
+                # Add special count fields
+                cls._field_copy_fk_count(field_name, obj, val)
+            setattr(obj, field_name, val)
+
+    def annotate_aggregates(self, qs, aggregate_filter, model, is_model_comic):
+        """Annotate aggregate values."""
+        if not is_model_comic:
+            # TODO see if i can do the size and page_count aggregation with joins
+            size_func = self.get_aggregate_func(
+                "size", is_model_comic, aggregate_filter
+            )
+            qs = qs.annotate(size=size_func)
+            qs = self.annotate_page_count(qs, aggregate_filter)
+            qs = self.annotate_cover_path(qs, model)
+            child_count_sum = Count("comic__pk", distinct=True, filter=aggregate_filter)
+        else:
+            child_count_sum = Value(1, IntegerField())
+        # TODO abstract to a base class with browser.py:128
+        qs = qs.annotate(child_count=child_count_sum)
+        qs = self.annotate_bookmarks(qs, is_model_comic)
+        qs = self.annotate_progress(qs)
+        return qs
+
+    def annotate_values_and_fks(self, qs, simple_qs, group):
+        """Annotate comic values and comic foreign key values."""
+        # Simple Values
+        comic_value_fields = self.get_comic_value_fields(group)
+        qs = self._intersection_annotate(simple_qs, qs, comic_value_fields)
+
+        # Conflicting Simple Values
+        qs = self._intersection_annotate(
+            simple_qs,
+            qs,
+            self.COMIC_VALUE_FIELDS_CONFLICTING,
+            annotation_prefix=self.COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
+        )
+
+        # Foreign Keys
+        fk_fields = self.COMIC_FK_FIELDS_MAP[group]
+        # qs = self._annotate_group_name(model, qs)
+        qs = self._intersection_annotate(
+            simple_qs,
+            qs,
+            fk_fields,
+            related_suffix="__name",
+            annotation_prefix=self.COMIC_FK_ANNOTATION_PREFIX,
+        )
+
+        # Foreign Keys with special count values
+        qs = self._intersection_annotate(
+            simple_qs,
+            qs,
+            self.COMIC_RELATED_VALUE_FIELDS,
+            annotation_prefix=self.COMIC_FK_ANNOTATION_PREFIX,
+        )
+        return qs
+
+    def query_m2m_intersections(self, simple_qs):
+        """Query the through models to figure out m2m intersections."""
+        # Speed ok, but still does a query per m2m model
+        # XXX Could annotate count all the tags and only select those that
+        # have num_child counts
+        m2m_intersections = {}
+        comic_pks = simple_qs.values_list("comic__pk", flat=True)
+        for field_name in self.COMIC_M2M_FIELDS:
+            ThroughModel = getattr(Comic, field_name).through  # noqa: N806
+            if field_name == "credits":
+                role_column_name = field_name[:-1].replace("_", "") + "__role__name"
+                person_column_name = field_name[:-1].replace("_", "") + "__person__name"
+                table = ThroughModel.objects.filter(comic_id__in=comic_pks).values_list(
+                    "comic_id", role_column_name, person_column_name
+                )
+            else:
+                column_name = field_name[:-1].replace("_", "") + "__name"
+                table = ThroughModel.objects.filter(comic_id__in=comic_pks).values_list(
+                    "comic_id", column_name
+                )
+            pk_sets = {}
+            for row in table:
+                comic_id = row[0]
+                if field_name == "credits":
+                    field_id = (row[1], row[2])
+                else:
+                    field_id = row[1]
+                if comic_id not in pk_sets:
+                    pk_sets[comic_id] = set()
+                pk_sets[comic_id].add(field_id)
+            if not pk_sets:
+                continue
+            m2m_intersections[field_name] = set.intersection(*pk_sets.values())
+        return m2m_intersections
+
+    def copy_annotations_into_comic_fields(self, obj, model, group, m2m_intersections):
+        """Copy a bunch of values that i couldn't fit cleanly in the main queryset."""
+        group_field = model.__name__.lower()
+        setattr(obj, group_field, {"name": obj.name})
+        self._field_copy(
+            obj,
+            self.COMIC_FK_FIELDS_MAP[group],
+            self.COMIC_FK_ANNOTATION_PREFIX,
+            "name",
+        )
+
+        # this comes after fk_fields copy because of name
+        self._field_copy(
+            obj,
+            self.COMIC_VALUE_FIELDS_CONFLICTING,
+            self.COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
+        )
+
+        for field_name, values in m2m_intersections.items():
+            m2m_dicts = []
+            if field_name == "credits":
+                for role, person in values:
+                    m2m_dicts += [{"role": {"name": role}, "person": {"name": person}}]
+            else:
+                for name in values:
+                    m2m_dicts += [{"name": name}]
+            setattr(obj, field_name, m2m_dicts)
+        return obj
+
+    def get_metadata_object(self):
+        """Create a comic-like object from the current browser group."""
         group = self.kwargs["group"]
-        pk = self.kwargs["pk"]
-
         model = self.GROUP_MODEL[group]
         if not model:
             raise ValueError(f"No model found for {group=}")
-
-        obj = model.objects.filter(pk=pk)
-        if model != Comic:
-            size_func = self.get_aggregate_func("size", model, aggregate_filter)
-            obj = obj.annotate(size=size_func)
-            obj = self.annotate_page_count(obj, aggregate_filter)
-        obj = self.annotate_cover_path(obj, model, aggregate_filter)
-        obj = self.annotate_bookmarks(obj)
-        obj = self.annotate_progress(obj)
-
-        obj = obj.values(*self.AGGREGATE_FIELDS)
-
-        return obj.first()
-
-    def get_comic_queryset(self, aggregate_filter):
-        """Get the comic query for getting the pick set & comic."""
-        group = self.kwargs["group"]
+        is_model_comic = model == Comic
         pk = self.kwargs["pk"]
-        host_rel = self.GROUP_RELATION[group]
-        comic_qs = Comic.objects.filter(**{host_rel: pk}).filter(aggregate_filter)
-        return comic_qs
 
-    @classmethod
-    def build_pick_set(cls, fields, count_dict, pick_sets, key, field_suffix=""):
-        """Build a pick set by checking the count_dict."""
-        for field in fields:
-            count_field = field + field_suffix + cls.COUNT_SUFFIX
-            if key == "m2m" or count_dict[count_field] == 1:
-                pick_sets[key].add(field)
+        qs = model.objects.filter(pk=pk)
 
-    def get_pick_sets(self, comic_qs):
-        """Determine which fields are common across all comics."""
-        agg_comics = (
-            comic_qs.all()
-            .select_related(*self.COMIC_FK_FIELDS)
-            .prefetch_related(*self.COMIC_M2M_FIELDS)
+        aggregate_filter = self.get_aggregate_filter(is_model_comic)
+        qs = self.annotate_aggregates(qs, aggregate_filter, model, is_model_comic)
+
+        if is_model_comic:
+            # if the model is a comic, return it.
+            obj = qs[0]
+            if not self.is_admin():
+                obj.path = None  # type: ignore
+            return obj
+
+        # XXX Could select related (fks) & prefetch related (m2m) here.
+        # Add each progressively?
+
+        simple_qs = qs.filter(aggregate_filter)
+        qs = self.annotate_values_and_fks(qs, simple_qs, group)
+        m2m_intersections = self.query_m2m_intersections(simple_qs)
+        # XXX do select & prefetch for all queries in this file
+        obj = qs[0]
+        obj = self.copy_annotations_into_comic_fields(
+            obj, model, group, m2m_intersections
         )
-
-        m2m_annotations = {}
-        agg_comics = agg_comics.values("pk")  # group by
-        for rel in self.COMIC_M2M_FIELDS:
-            ann_name = rel + self.PK_LIST_SUFFIX
-            func = GroupConcat(f"{rel}__pk", distinct=True)
-            m2m_annotations[ann_name] = func
-        agg_comics = agg_comics.annotate(**m2m_annotations)
-
-        agg_dict: dict[str, Aggregate] = {
-            self.COMIC_PK_LIST_KEY: GroupConcat("pk", distinct=True)
-        }
-
-        for rel in self.get_comic_simple_aggregate_fields():
-            annotation_name = rel + self.COUNT_SUFFIX
-            agg_func = Count(rel, distinct=True)
-            agg_dict[annotation_name] = agg_func
-        for rel in self.COMIC_RELATED_VALUE_FIELDS:
-            rel_safe = self.COMIC_RELATED_VALUE_FIELD_MAP[rel]
-            annotation_name = rel_safe + self.COUNT_SUFFIX
-            agg_func = Count(rel, distinct=True)
-            agg_dict[annotation_name] = agg_func
-        for rel in self.COMIC_M2M_FIELDS:
-            annotation_name = rel + self.COUNT_SUFFIX
-            list_annotation = rel + self.PK_LIST_SUFFIX
-            agg_func = Count(list_annotation, distinct=True)
-            agg_dict[annotation_name] = agg_func
-
-        count_dict = agg_comics.aggregate(**agg_dict)
-
-        # Build pick sets
-        pick_sets = {
-            "value": set(),
-            "related_value": set(),
-            "fk": set(),
-            "m2m": set(),
-        }
-        self.build_pick_set(
-            self.get_comic_value_fields(), count_dict, pick_sets, "value"
-        )
-        self.build_pick_set(
-            self.COMIC_RELATED_VALUE_ANNOTATIONS, count_dict, pick_sets, "related_value"
-        )
-        self.build_pick_set(self.COMIC_FK_FIELDS, count_dict, pick_sets, "fk")
-        self.build_pick_set(self.COMIC_M2M_FIELDS, count_dict, pick_sets, "m2m")
-
-        only_pick_set = set()
-        for pick_set in pick_sets.values():
-            only_pick_set |= pick_set
-        pick_sets["only"] = only_pick_set
-
-        annotation_pick_set = set()
-        for field in pick_sets["related_value"]:
-            annotation = self.COMIC_RELATED_VALUE_FIELD_MAP.inverse[field]
-            annotation_pick_set.add(annotation)
-        serialize_pick_set = (
-            only_pick_set - pick_sets["related_value"] | annotation_pick_set
-        )
-        pick_sets["serialize"] = serialize_pick_set
-
-        # Parse comic pks
-        comic_pks = set()
-        pk_list = count_dict[self.COMIC_PK_LIST_KEY].split(",")
-        for pk in pk_list:
-            if pk:
-                comic_pks.add(int(pk))
-
-        return (comic_pks, pick_sets)
-
-    def get_comic(self, aggregate_filter):
-        """Get the comic and the final pick set."""
-        # The filtered comic query for the pick set & comic
-        comic_qs = self.get_comic_queryset(aggregate_filter)
-
-        # Get the pick set from aggregates.
-        comic_pks, pick_sets = self.get_pick_sets(comic_qs)
-
-        # add the deep relation roots to the select_related
-        select_related = pick_sets["fk"]
-        for ann in pick_sets["related_value"]:
-            rel = self.COMIC_RELATED_VALUE_FIELD_MAP.inverse[ann]
-            rel = rel.split("__")[0]
-            select_related.add(rel)
-
-        m2m_pick_set = pick_sets["m2m"]
-        if "credits" in m2m_pick_set:
-            m2m_pick_set |= self.CREDIT_FK_RELATIONS
-
-        # Get one comic but only the common fields.
-        comic_qs = (
-            Comic.objects.only(*pick_sets["only"])
-            .select_related(*select_related)
-            .prefetch_related(*m2m_pick_set)
-        )
-
-        # Annotate the comic with the related values and adjust
-        for annotation in pick_sets["related_value"]:
-            relation = self.COMIC_RELATED_VALUE_FIELD_MAP[annotation]
-            comic_qs = comic_qs.annotate(**{annotation: relation})
-
-        # Just get one comic
-        _first_comic_pk = None
-        for _first_comic_pk in comic_pks:
-            break
-        comic = comic_qs.get(pk=_first_comic_pk)
-
-        return comic, comic_pks, pick_sets["serialize"]
+        return obj
 
     def get(self, _request, *args, **kwargs):
-        """Get metadata for a single comic."""
+        """Get metadata for a filtered browse group."""
         # Init
         self.params = self.get_session(self.BROWSER_KEY)
-        aggregate_filter = self.get_aggregate_filter()
 
-        # The aggregates that share code with browser
-        aggregates = self.get_aggregates(aggregate_filter)
+        obj = self.get_metadata_object()
 
-        # Get the comic & final pick set for the serializer
-        comic, comic_pks, comic_fields = self.get_comic(aggregate_filter)
-        data = {"pks": list(comic_pks), "aggregates": aggregates, "comic": comic}
-        serializer = MetadataSerializer(data, comic_fields=comic_fields)
-
+        serializer = MetadataSerializer(obj)
         return Response(serializer.data)

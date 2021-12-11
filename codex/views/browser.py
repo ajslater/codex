@@ -123,15 +123,16 @@ class BrowserView(BrowserMetadataBase):
         model is neccissary because this gets called twice by folder
         view. once for folders, once for the comics.
         """
+        is_model_comic = model == Comic
         ##########################################
         # Annotate children count and page count #
         ##########################################
-        if model == Comic:
-            child_count_sum = Count("comic__pk", distinct=True, filter=aggregate_filter)
-        else:
+        if is_model_comic:
             child_count_sum = Value(1, IntegerField())
+        else:
+            child_count_sum = Count("comic__pk", distinct=True, filter=aggregate_filter)
         obj_list = obj_list.annotate(child_count=child_count_sum)
-        if model != Comic:
+        if not is_model_comic:
             # EXTRA FILTER for empty group
             obj_list = obj_list.filter(child_count__gt=0)
 
@@ -146,12 +147,12 @@ class BrowserView(BrowserMetadataBase):
         ################################
         # Annotate userbookmark hoists #
         ################################
-        obj_list = self.annotate_bookmarks(obj_list)
+        obj_list = self.annotate_bookmarks(obj_list, is_model_comic)
 
         #####################
         # Annotate progress #
         #####################
-        if model != Comic:
+        if not is_model_comic:
             obj_list = self.annotate_page_count(obj_list, aggregate_filter)
         obj_list = self.annotate_progress(obj_list)
 
@@ -166,18 +167,14 @@ class BrowserView(BrowserMetadataBase):
         # Sortable aggregates #
         #######################
         sort_by = self.params.get("sort_by", self.DEFAULT_ORDER_KEY)
-        order_func = self.get_aggregate_func(sort_by, model, aggregate_filter)
+        order_func = self.get_aggregate_func(sort_by, is_model_comic, aggregate_filter)
         obj_list = obj_list.annotate(order_value=order_func)
 
         #######################
         # Annotate Cover Path #
         #######################
-        if model != Comic:
-            obj_list = self.annotate_cover_path(
-                obj_list,
-                model,
-                aggregate_filter,
-            )
+        if not is_model_comic:
+            obj_list = self.annotate_cover_path(obj_list, model)
 
         ########################
         # Annotate name fields #
@@ -186,7 +183,7 @@ class BrowserView(BrowserMetadataBase):
         series_name = Value(None, CharField())
         volume_name = Value(None, CharField())
 
-        if model == Comic:
+        if is_model_comic:
             series_name = F("series__name")
             volume_name = F("volume__name")
         elif model == Imprint:
@@ -199,10 +196,14 @@ class BrowserView(BrowserMetadataBase):
             series_name=series_name,
             volume_name=volume_name,
         )
-        if model != Comic:
-            issue = path = Value(None, CharField())
+        if not is_model_comic:
+            issue = Value(None, CharField())
             obj_list = obj_list.annotate(
                 issue=issue,
+            )
+        if model not in (Folder, Comic):
+            path = Value(None, CharField())
+            obj_list = obj_list.annotate(
                 path=path,
             )
 
@@ -405,7 +406,9 @@ class BrowserView(BrowserMetadataBase):
 
         self.set_browse_model()
         # Create the main query with the filters
-        object_filter, aggregate_filter = self.get_query_filters()
+        object_filter, aggregate_filter = self.get_query_filters(
+            self.model == Comic, False
+        )
 
         if self.kwargs.get("group") == self.FOLDER_GROUP:
             obj_list = self.get_folder_queryset(object_filter, aggregate_filter)
