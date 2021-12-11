@@ -124,14 +124,7 @@ class BrowserView(BrowserMetadataBase):
         view. once for folders, once for the comics.
         """
         is_model_comic = model == Comic
-        ##########################################
-        # Annotate children count and page count #
-        ##########################################
-        if is_model_comic:
-            child_count_sum = Value(1, IntegerField())
-        else:
-            child_count_sum = Count("comic__pk", distinct=True, filter=aggregate_filter)
-        obj_list = obj_list.annotate(child_count=child_count_sum)
+        obj_list = self.annotate_common_aggregates(obj_list, model, aggregate_filter)
         if not is_model_comic:
             # EXTRA FILTER for empty group
             obj_list = obj_list.filter(child_count__gt=0)
@@ -143,18 +136,6 @@ class BrowserView(BrowserMetadataBase):
         obj_list = obj_list.annotate(
             group=Value(self.model_group, CharField(max_length=1))
         )
-
-        ################################
-        # Annotate userbookmark hoists #
-        ################################
-        obj_list = self.annotate_bookmarks(obj_list, is_model_comic)
-
-        #####################
-        # Annotate progress #
-        #####################
-        if not is_model_comic:
-            obj_list = self.annotate_page_count(obj_list, aggregate_filter)
-        obj_list = self.annotate_progress(obj_list)
 
         #######################
         # Annotate Library Id #
@@ -169,12 +150,6 @@ class BrowserView(BrowserMetadataBase):
         sort_by = self.params.get("sort_by", self.DEFAULT_ORDER_KEY)
         order_func = self.get_aggregate_func(sort_by, is_model_comic, aggregate_filter)
         obj_list = obj_list.annotate(order_value=order_func)
-
-        #######################
-        # Annotate Cover Path #
-        #######################
-        if not is_model_comic:
-            obj_list = self.annotate_cover_path(obj_list, model)
 
         ########################
         # Annotate name fields #

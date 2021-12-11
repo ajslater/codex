@@ -159,15 +159,7 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
                 "size", is_model_comic, aggregate_filter
             )
             qs = qs.annotate(size=size_func)
-            qs = self.annotate_page_count(qs, aggregate_filter)
-            qs = self.annotate_cover_path(qs, model)
-            child_count_sum = Count("comic__pk", distinct=True, filter=aggregate_filter)
-        else:
-            child_count_sum = Value(1, IntegerField())
-        # TODO abstract to a base class with browser.py:128
-        qs = qs.annotate(child_count=child_count_sum)
-        qs = self.annotate_bookmarks(qs, is_model_comic)
-        qs = self.annotate_progress(qs)
+        qs = self.annotate_common_aggregates(qs, model, aggregate_filter)
         return qs
 
     def annotate_values_and_fks(self, qs, simple_qs, group):
@@ -287,6 +279,7 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
             obj = qs[0]
             if not self.is_admin():
                 obj.path = None  # type: ignore
+            obj.folders = None
             return obj
 
         # XXX Could select related (fks) & prefetch related (m2m) here.

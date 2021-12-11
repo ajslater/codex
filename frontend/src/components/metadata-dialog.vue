@@ -217,10 +217,10 @@
           <tbody>
             <tr v-for="credit in md.credits" :key="credit.pk">
               <td>
-                <MetadataAutocomplete :value="credit.role.name" />
+                <MetadataAutocomplete :value="credit.role" />
               </td>
               <td>
-                <MetadataCombobox :value="credit.person.name" />
+                <MetadataCombobox :value="credit.person" />
               </td>
             </tr>
           </tbody>
@@ -260,9 +260,6 @@
         </v-btn>
 
         <span id="bottomRightButtons">
-          <v-btn v-if="editMode" id="saveButton" ripple title="Save Metadata">{{
-            saveButtonLabel
-          }}</v-btn>
           <v-btn
             id="bottomCloseButton"
             ripple
@@ -368,31 +365,15 @@ export default {
     formattedIssue: function () {
       return formattedIssue(this.md.issue);
     },
-    singleComicPK: function () {
-      return this.md.pks[0];
-    },
     downloadURL: function () {
-      return getDownloadURL(this.singleComicPK);
+      return getDownloadURL(this.md.id);
     },
     readerRoute: function () {
-      const pk = this.singleComicPK;
+      const pk = this.md.id;
       const bookmark = this.md.bookmark;
       const readLTR = this.md.read_ltr;
       const pageCount = this.md.page_count;
       return getReaderRoute(pk, bookmark, readLTR, pageCount);
-    },
-    saveButtonLabel: function () {
-      let label = "Save ";
-      if (this.group === "c" && this.pks.length === 1) {
-        label += "Comic";
-      } else {
-        const length = this.md.pks.length;
-        label += `${length} Comic`;
-        if (length > 1) {
-          label += "s";
-        }
-      }
-      return label;
     },
   },
   methods: {
@@ -508,9 +489,6 @@ export default {
 }
 #bottomRightButtons {
   float: right;
-}
-#saveButton {
-  margin-right: 10px;
 }
 .halfWidth {
   display: inline-block;

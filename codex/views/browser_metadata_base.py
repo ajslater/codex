@@ -13,6 +13,8 @@ from django.db.models import (
     Subquery,
     Sum,
     Value,
+    IntegerField,
+    Count,
 )
 from django.db.models.functions import Cast, Coalesce, NullIf
 
@@ -152,3 +154,16 @@ class BrowserMetadataBase(BrowserBaseView):
             )
         )
         return queryset
+
+    def annotate_common_aggregates(self, qs, model, aggregate_filter):
+        is_model_comic = model == Comic
+        if not is_model_comic:
+            qs = self.annotate_page_count(qs, aggregate_filter)
+            qs = self.annotate_cover_path(qs, model)
+            child_count_sum = Count("comic__pk", distinct=True, filter=aggregate_filter)
+        else:
+            child_count_sum = Value(1, IntegerField())
+        qs = qs.annotate(child_count=child_count_sum)
+        qs = self.annotate_bookmarks(qs, is_model_comic)
+        qs = self.annotate_progress(qs)
+        return qs
