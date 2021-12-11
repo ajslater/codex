@@ -22,6 +22,7 @@ from codex.librarian.queue_mp import (
 )
 from codex.models import FailedImport, Library
 from codex.threads import QueuedThread
+from codex.settings.logging import VERBOSE
 
 
 LOG = getLogger(__name__)
@@ -59,34 +60,42 @@ def _batch_modified_and_created(
     return changed, imported_count
 
 
-def _log_task(library, task):
-    """Log what we're doing next."""
-    LOG.info(f"Updating Library {library.path}...")  # type: ignore
-    logs = []
+def _log_task(path, task):
+    if LOG.getEffectiveLevel() < VERBOSE:
+        return
+    LOG.verbose(f"Updating library {path}...")  # type: ignore
+    dirs_log = []
     if task.dirs_moved:
-        logs += [f"{len(task.dirs_moved)} folders to move"]
-    if task.files_moved:
-        logs += [f"{len(task.files_moved)} comics to move"]
+        dirs_log += [f"{len(task.dirs_moved)} moved"]
     if task.dirs_modified:
-        logs += [f"{len(task.dirs_modified)} folders to update"]
-    if task.files_modified:
-        logs += [f"{len(task.files_modified)} comics to update"]
-    if task.files_created:
-        logs += [f"{len(task.files_created)} comics to create"]
+        dirs_log += [f"{len(task.dirs_modified)} modified"]
     if task.dirs_deleted:
-        logs += [f"{len(task.dirs_deleted)} folders to delete"]
+        dirs_log += [f"{len(task.dirs_deleted)} deleted"]
+    comics_log = []
+    if task.files_moved:
+        comics_log += [f"{len(task.files_moved)} moved"]
+    if task.files_modified:
+        comics_log += [f"{len(task.files_modified)} modified"]
+    if task.files_created:
+        comics_log += [f"{len(task.files_created)} created"]
     if task.files_deleted:
-        logs += [f"{len(task.files_deleted)} comics to delete"]
+        comics_log += [f"{len(task.files_deleted)} deleted"]
 
-    for log in logs:
-        LOG.verbose(f"  {log}.")  # type: ignore
+    if comics_log:
+        log = "Comics: "
+        log += ", ".join(comics_log)
+        LOG.verbose("  " + log)  # type: ignore
+    if dirs_log:
+        log = "Folders: "
+        log += ", ".join(dirs_log)
+        LOG.verbose("\t" + log)  # type: ignore
 
 
 def apply(task):
     """Bulk import comics."""
     start_time = time.time()
     library = Library.objects.get(pk=task.library_id)
-    _log_task(library, task)
+    _log_task(library.path, task)
     library.update_in_progress = True
     library.save()
     LIBRARIAN_QUEUE.put(AdminNotifierTask("SCAN_LIBRARY"))
