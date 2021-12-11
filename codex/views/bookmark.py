@@ -1,6 +1,5 @@
 """Bookmark views."""
 
-from django.core.cache import cache
 from rest_framework.response import Response
 from stringcase import snakecase
 
@@ -78,7 +77,6 @@ class ComicSettingsView(SessionMixin, UserBookmarkMixin):
         pk = self.kwargs.get("pk")
         self.update_user_bookmark(updates, pk=pk)
         # XXX would be nice to clear fewer caches than all of them
-        cache.clear()
         return Response()
 
     def put(self, request, *args, **kwargs):
@@ -94,5 +92,4 @@ class ComicSettingsView(SessionMixin, UserBookmarkMixin):
         pk = self.kwargs.get("pk")
         self.update_user_bookmark(NULL_READER_SETTINGS, pk=pk)
         # XXX would be nice to clear fewer caches than all of them
-        cache.clear()
         return Response()

@@ -13,7 +13,10 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.views.decorators.vary import vary_on_cookie
+from django.views.decorators.cache import cache_page
 from django.urls import path
+
 
 from codex.views.admin import PollView
 from codex.views.auth import LoginView, LogoutView, RegisterView, UserView
@@ -29,6 +32,7 @@ from codex.views.metadata import MetadataView
 from codex.views.notify import ScanNotifyView
 from codex.views.reader import ComicOpenedView, ComicPageView
 
+CACHE_TIME = 60 * 15
 
 app_name = "api"
 urlpatterns = [
@@ -37,7 +41,7 @@ urlpatterns = [
     path("c/<int:pk>", ComicOpenedView.as_view(), name="comic_info"),
     path(
         "c/<int:pk>/<int:page>/p.jpg",
-        ComicPageView.as_view(),
+        cache_page(CACHE_TIME)(ComicPageView.as_view()),
         name="comic_page",
     ),
     path(
@@ -59,12 +63,12 @@ urlpatterns = [
     # Browser
     path(
         "<str:group>/<int:pk>/<int:page>",
-        BrowserView.as_view(),
+        vary_on_cookie(cache_page(CACHE_TIME)(BrowserView.as_view())),
         name="browser_page",
     ),
     path(
         "<str:group>/<int:pk>/metadata",
-        MetadataView.as_view(),
+        vary_on_cookie(cache_page(CACHE_TIME)(MetadataView.as_view())),
         name="metadata",
     ),
     path(
@@ -76,7 +80,7 @@ urlpatterns = [
     # Choices
     path(
         "<str:group>/<int:pk>/choices/<str:field_name>",
-        BrowserChoiceView.as_view(),
+        cache_page(CACHE_TIME)(BrowserChoiceView.as_view()),
         name="browser_choices",
     ),
     #

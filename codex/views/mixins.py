@@ -2,6 +2,8 @@
 from copy import deepcopy
 
 from django.contrib.sessions.models import Session
+from django.core.cache import cache
+from django.utils.cache import get_cache_key
 from rest_framework.views import APIView
 
 from codex.models import Comic, UserBookmark
@@ -122,3 +124,6 @@ class UserBookmarkMixin(APIView):
         defaults = deepcopy(search_kwargs)
         defaults.update(updates)
         UserBookmark.objects.update_or_create(defaults=defaults, **search_kwargs)
+        ck = get_cache_key(self.request)
+        if ck:
+            cache.delete(ck)

@@ -2,7 +2,8 @@
 from logging import getLogger
 
 from django.core.paginator import EmptyPage, Paginator
-from django.db.models import CharField, Count, F, IntegerField, Value
+from django.db.models import CharField, F, IntegerField, Value
+
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.response import Response
 from stringcase import snakecase
