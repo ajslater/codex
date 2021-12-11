@@ -70,6 +70,7 @@ class Crond(Thread):
                 except Exception as exc:
                     LOG.exception(exc)
                 CRON_TIMESTAMP.touch(exist_ok=True)
+                time.sleep(2)
         LOG.verbose(f"Stopped {self.NAME} thread.")  # type: ignore
 
     def __init__(self):
