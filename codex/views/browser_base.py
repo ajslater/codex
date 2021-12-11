@@ -156,5 +156,4 @@ class BrowserBaseView(SessionMixin):
 
         aggregate_filter = self.get_aggregate_filter(is_model_comic)
         object_filter &= aggregate_filter
-
-        return object_filter, aggregate_filter
+        return object_filter

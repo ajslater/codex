@@ -2,9 +2,7 @@
 from logging import getLogger
 
 from django.contrib.auth.models import User
-from django.db.models import Count
-from django.db.models import IntegerField
-from django.db.models import Case, Value, When, F
+from django.db.models import Case, F, IntegerField, Value, When
 from rest_framework.response import Response
 
 from codex.models import Comic
@@ -115,6 +113,7 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
 
             # Annotate insersection relation values
             ann_field = (annotation_prefix + field).replace("__", "_")
+            # TODO Just do this outside of the db with a null charfield for everything
             query_is_intersection = {count_field: 1}
             lookup = f"{comic_rel_field}{related_suffix}"
             qs = qs.annotate(
@@ -151,15 +150,12 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
                 cls._field_copy_fk_count(field_name, obj, val)
             setattr(obj, field_name, val)
 
-    def annotate_aggregates(self, qs, aggregate_filter, model, is_model_comic):
+    def annotate_aggregates(self, qs, model, is_model_comic):
         """Annotate aggregate values."""
         if not is_model_comic:
-            # TODO see if i can do the size and page_count aggregation with joins
-            size_func = self.get_aggregate_func(
-                "size", is_model_comic, aggregate_filter
-            )
+            size_func = self.get_aggregate_func("size", is_model_comic)
             qs = qs.annotate(size=size_func)
-        qs = self.annotate_common_aggregates(qs, model, aggregate_filter)
+        qs = self.annotate_common_aggregates(qs, model)
         return qs
 
     def annotate_values_and_fks(self, qs, simple_qs, group):
@@ -205,24 +201,26 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
         comic_pks = simple_qs.values_list("comic__pk", flat=True)
         for field_name in self.COMIC_M2M_FIELDS:
             ThroughModel = getattr(Comic, field_name).through  # noqa: N806
+            rel_table_name = field_name[:-1].replace("_", "")
+            column_id = rel_table_name + "_id"
             if field_name == "credits":
-                role_column_name = field_name[:-1].replace("_", "") + "__role__name"
-                person_column_name = field_name[:-1].replace("_", "") + "__person__name"
+                role_column_name = rel_table_name + "__role__name"
+                person_column_name = rel_table_name + "__person__name"
                 table = ThroughModel.objects.filter(comic_id__in=comic_pks).values_list(
-                    "comic_id", role_column_name, person_column_name
+                    "comic_id", column_id, role_column_name, person_column_name
                 )
             else:
-                column_name = field_name[:-1].replace("_", "") + "__name"
+                column_name = rel_table_name + "__name"
                 table = ThroughModel.objects.filter(comic_id__in=comic_pks).values_list(
-                    "comic_id", column_name
+                    "comic_id", column_id, column_name
                 )
             pk_sets = {}
             for row in table:
                 comic_id = row[0]
                 if field_name == "credits":
-                    field_id = (row[1], row[2])
+                    field_id = row[1:4]
                 else:
-                    field_id = row[1]
+                    field_id = row[1:3]
                 if comic_id not in pk_sets:
                     pk_sets[comic_id] = set()
                 pk_sets[comic_id].add(field_id)
@@ -252,11 +250,13 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
         for field_name, values in m2m_intersections.items():
             m2m_dicts = []
             if field_name == "credits":
-                for role, person in values:
-                    m2m_dicts += [{"role": {"name": role}, "person": {"name": person}}]
+                for pk, role, person in values:
+                    m2m_dicts += [
+                        {"pk": pk, "role": {"name": role}, "person": {"name": person}}
+                    ]
             else:
-                for name in values:
-                    m2m_dicts += [{"name": name}]
+                for pk, name in values:
+                    m2m_dicts += [{"pk": pk, "name": name}]
             setattr(obj, field_name, m2m_dicts)
         return obj
 
@@ -269,23 +269,23 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
         is_model_comic = model == Comic
         pk = self.kwargs["pk"]
 
-        qs = model.objects.filter(pk=pk)
-
         aggregate_filter = self.get_aggregate_filter(is_model_comic)
-        qs = self.annotate_aggregates(qs, aggregate_filter, model, is_model_comic)
+        qs = model.objects.filter(pk=pk).filter(aggregate_filter)
+
+        qs = self.annotate_aggregates(qs, model, is_model_comic)
 
         if is_model_comic:
             # if the model is a comic, return it.
             obj = qs[0]
             if not self.is_admin():
                 obj.path = None  # type: ignore
-            obj.folders = None
+            obj.folders.set([])
             return obj
 
         # XXX Could select related (fks) & prefetch related (m2m) here.
         # Add each progressively?
 
-        simple_qs = qs.filter(aggregate_filter)
+        simple_qs = qs
         qs = self.annotate_values_and_fks(qs, simple_qs, group)
         m2m_intersections = self.query_m2m_intersections(simple_qs)
         # XXX do select & prefetch for all queries in this file

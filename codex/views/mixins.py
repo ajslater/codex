@@ -124,6 +124,8 @@ class UserBookmarkMixin(APIView):
         defaults = deepcopy(search_kwargs)
         defaults.update(updates)
         UserBookmark.objects.update_or_create(defaults=defaults, **search_kwargs)
-        ck = get_cache_key(self.request)
+        # DRF Request decends from django.http.HttpRequest so it works with duck typing
+        #  despite get_cache_key typing specifying WSGIRequest
+        ck = get_cache_key(self.request)  # type: ignore
         if ck:
             cache.delete(ck)

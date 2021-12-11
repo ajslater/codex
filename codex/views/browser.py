@@ -3,7 +3,6 @@ from logging import getLogger
 
 from django.core.paginator import EmptyPage, Paginator
 from django.db.models import CharField, F, IntegerField, Value
-
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.response import Response
 from stringcase import snakecase
@@ -117,7 +116,7 @@ class BrowserView(BrowserMetadataBase):
 
         return self.COMIC_GROUP
 
-    def add_annotations(self, obj_list, model, aggregate_filter):
+    def add_annotations(self, obj_list, model):
         """
         Annotations for display and sorting.
 
@@ -125,7 +124,10 @@ class BrowserView(BrowserMetadataBase):
         view. once for folders, once for the comics.
         """
         is_model_comic = model == Comic
-        obj_list = self.annotate_common_aggregates(obj_list, model, aggregate_filter)
+        ##############################
+        # Annotate Common Aggregates #
+        ##############################
+        obj_list = self.annotate_common_aggregates(obj_list, model)
         if not is_model_comic:
             # EXTRA FILTER for empty group
             obj_list = obj_list.filter(child_count__gt=0)
@@ -149,7 +151,7 @@ class BrowserView(BrowserMetadataBase):
         # Sortable aggregates #
         #######################
         sort_by = self.params.get("sort_by", self.DEFAULT_ORDER_KEY)
-        order_func = self.get_aggregate_func(sort_by, is_model_comic, aggregate_filter)
+        order_func = self.get_aggregate_func(sort_by, is_model_comic)
         obj_list = obj_list.annotate(order_value=order_func)
 
         ########################
@@ -173,7 +175,7 @@ class BrowserView(BrowserMetadataBase):
             volume_name=volume_name,
         )
         if not is_model_comic:
-            issue = Value(None, CharField())
+            issue = Value(None, IntegerField())
             obj_list = obj_list.annotate(
                 issue=issue,
             )
@@ -193,7 +195,7 @@ class BrowserView(BrowserMetadataBase):
         model_group = self.get_model_group()
         self.model = self.GROUP_MODEL[model_group]
 
-    def get_folder_queryset(self, object_filter, aggregate_filter):
+    def get_folder_queryset(self, object_filter):
         """Create folder queryset."""
         # Create the main queries with filters
         folder_list = Folder.objects.filter(object_filter)
@@ -201,8 +203,8 @@ class BrowserView(BrowserMetadataBase):
 
         # add annotations for display and sorting
         # and the comic_cover which uses a sort
-        folder_list = self.add_annotations(folder_list, Folder, aggregate_filter)
-        comic_list = self.add_annotations(comic_list, Comic, aggregate_filter)
+        folder_list = self.add_annotations(folder_list, Folder)
+        comic_list = self.add_annotations(comic_list, Comic)
 
         # Reduce to values for concatenation
         folder_list = folder_list.values(*self.BROWSER_CARD_FIELDS)
@@ -211,7 +213,7 @@ class BrowserView(BrowserMetadataBase):
 
         return obj_list
 
-    def get_browser_group_queryset(self, object_filter, aggregate_filter):
+    def get_browser_group_queryset(self, object_filter):
         """Create and browse queryset."""
         if not self.model:
             raise ValueError("No model set in browser")
@@ -220,7 +222,7 @@ class BrowserView(BrowserMetadataBase):
         # obj_list filtering done
 
         # Add annotations for display and sorting
-        obj_list = self.add_annotations(obj_list, self.model, aggregate_filter)
+        obj_list = self.add_annotations(obj_list, self.model)
 
         # Convert to a dict to be compatible with Folder View concatenate
         obj_list = obj_list.values(*self.BROWSER_CARD_FIELDS)
@@ -382,14 +384,12 @@ class BrowserView(BrowserMetadataBase):
 
         self.set_browse_model()
         # Create the main query with the filters
-        object_filter, aggregate_filter = self.get_query_filters(
-            self.model == Comic, False
-        )
+        object_filter = self.get_query_filters(self.model == Comic, False)
 
         if self.kwargs.get("group") == self.FOLDER_GROUP:
-            obj_list = self.get_folder_queryset(object_filter, aggregate_filter)
+            obj_list = self.get_folder_queryset(object_filter)
         else:
-            obj_list = self.get_browser_group_queryset(object_filter, aggregate_filter)
+            obj_list = self.get_browser_group_queryset(object_filter)
 
         # Ensure comic covers exist for all browser cards
         task = BulkComicCoverCreateTask(False, obj_list)

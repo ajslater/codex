@@ -13,10 +13,9 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.views.decorators.vary import vary_on_cookie
-from django.views.decorators.cache import cache_page
 from django.urls import path
-
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_cookie
 
 from codex.views.admin import PollView
 from codex.views.auth import LoginView, LogoutView, RegisterView, UserView
@@ -31,6 +30,7 @@ from codex.views.download import ComicDownloadView
 from codex.views.metadata import MetadataView
 from codex.views.notify import ScanNotifyView
 from codex.views.reader import ComicOpenedView, ComicPageView
+
 
 CACHE_TIME = 60 * 15
 

@@ -1,10 +1,6 @@
 """Codex Serializers for the metadata box."""
 
-from rest_framework.serializers import (
-    BooleanField,
-    DecimalField,
-    IntegerField,
-)
+from rest_framework.serializers import BooleanField, DecimalField, IntegerField
 
 from codex.serializers.models import ComicSerializer
 

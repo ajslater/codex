@@ -105,10 +105,12 @@
         </span>
         <span id="uneditableMetadata">
           <div>
-            <span>
+            <span id="pagesProgress">
               <span v-if="md.bookmark">Read {{ md.bookmark }} of </span
-              >{{ md.page_count }} Pages
-              <span v-if="md.finished">, Finished</span>
+              >{{ md.page_count }} pages<span v-if="md.progress > 0">
+                ({{ Math.round(md.progress) }}%)</span
+              >
+              <span v-if="md.finished"> Finished</span>,
             </span>
             <span id="size">
               {{ md.size | bytes }}

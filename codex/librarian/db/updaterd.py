@@ -21,8 +21,8 @@ from codex.librarian.queue_mp import (
     DBDiffTask,
 )
 from codex.models import FailedImport, Library
-from codex.threads import QueuedThread
 from codex.settings.logging import VERBOSE
+from codex.threads import QueuedThread
 
 
 LOG = getLogger(__name__)

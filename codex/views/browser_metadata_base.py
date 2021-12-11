@@ -4,8 +4,10 @@ from decimal import Decimal
 from django.db.models import (
     Avg,
     BooleanField,
+    Count,
     DecimalField,
     F,
+    IntegerField,
     Max,
     Min,
     OuterRef,
@@ -13,8 +15,6 @@ from django.db.models import (
     Subquery,
     Sum,
     Value,
-    IntegerField,
-    Count,
 )
 from django.db.models.functions import Cast, Coalesce, NullIf
 
@@ -38,7 +38,7 @@ class BrowserMetadataBase(BrowserBaseView):
     }
     DEFAULT_ORDER_KEY = "sort_name"
 
-    def get_aggregate_func(self, field, is_comic_model, aggregate_filter):
+    def get_aggregate_func(self, field, is_comic_model):
         """Get a complete function for aggregating an attribute."""
         agg_func = self.SORT_AGGREGATE_FUNCS.get(field)
         if agg_func == Min:
@@ -48,7 +48,7 @@ class BrowserMetadataBase(BrowserBaseView):
         if is_comic_model or agg_func is None:
             order_func = F(field)
         else:
-            order_func = agg_func(f"comic__{field}", filter=aggregate_filter)
+            order_func = agg_func(f"comic__{field}")
         return order_func
 
     def get_order_by(self, model, use_order_value, for_cover_path=False):
@@ -92,10 +92,10 @@ class BrowserMetadataBase(BrowserBaseView):
         obj_list = queryset.annotate(cover_path=cover_path_subquery)
         return obj_list
 
-    def annotate_page_count(self, obj_list, aggregate_filter):
+    def annotate_page_count(self, obj_list):
         """Hoist up total page_count of children."""
         # Used for sorting and progress
-        page_count_sum = Sum("comic__page_count", filter=aggregate_filter)
+        page_count_sum = Sum("comic__page_count")
         obj_list = obj_list.annotate(page_count=page_count_sum)
         return obj_list
 
@@ -155,12 +155,15 @@ class BrowserMetadataBase(BrowserBaseView):
         )
         return queryset
 
-    def annotate_common_aggregates(self, qs, model, aggregate_filter):
+    def annotate_common_aggregates(self, qs, model):
+        """Annotate common aggregates between browser and metadata."""
         is_model_comic = model == Comic
         if not is_model_comic:
-            qs = self.annotate_page_count(qs, aggregate_filter)
+            qs = self.annotate_page_count(qs)
             qs = self.annotate_cover_path(qs, model)
-            child_count_sum = Count("comic__pk", distinct=True, filter=aggregate_filter)
+            child_count_sum = Count(
+                "comic__pk", distinct=True
+            )  # , filter=aggregate_filter)
         else:
             child_count_sum = Value(1, IntegerField())
         qs = qs.annotate(child_count=child_count_sum)
