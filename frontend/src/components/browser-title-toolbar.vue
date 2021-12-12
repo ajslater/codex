@@ -6,11 +6,15 @@
       </v-btn>
     </v-toolbar-items>
     <v-toolbar-title>
-      <span id="titleToolbarPrefix">
-        {{ longBrowseTitle }}
+      <span v-if="longBrowserTitlePrefix" id="titleToolbarPrefix">
+        {{ longBrowserTitlePrefix }}
+        <br />
       </span>
-      <br />
-      <span id="titleToolbarSuffix">
+      <span id="titleToolbarMain">
+        {{ longBrowseTitleMain }}
+      </span>
+      <span v-if="longBrowseTitleSuffix" id="titleToolbarSuffix">
+        <br />
         {{ longBrowseTitleSuffix }}
       </span>
     </v-toolbar-title>
@@ -46,7 +50,14 @@ export default {
     showUpButton: function () {
       return this.upRoute && "group" in this.upRoute;
     },
-    longBrowseTitle: function () {
+    longBrowserTitlePrefix: function () {
+      const group = this.$route.params.group;
+      if (group !== "f") {
+        return null;
+      }
+      return this.browserTitle.parentName;
+    },
+    longBrowseTitleMain: function () {
       let browserTitle;
       const group = this.$route.params.group;
       const { parentName, groupName, groupCount } = this.browserTitle;
@@ -92,6 +103,11 @@ export default {
   text-align: center;
   line-height: 120%;
   text-overflow: clip;
+}
+
+#titleToolbar .v-toolbar__title #titleToolbarPrefix {
+  color: gray;
+  font-size: smaller;
 }
 
 #titleToolbar .v-toolbar__title #titleToolbarSuffix {

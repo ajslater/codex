@@ -314,6 +314,16 @@ class BrowserView(BrowserMetadataBase):
             elif isinstance(self.group_instance, Volume):
                 parent_name = self.group_instance.series.name
                 group_count = self.group_instance.series.volume_count
+            elif isinstance(self.group_instance, Comic):
+                group_count = self.group_instance.volume.issue_count
+            elif isinstance(self.group_instance, Folder):
+                parent_folder = self.group_instance.parent_folder
+                if parent_folder:
+                    library_path = parent_folder.library.path
+                    parent_name = parent_folder.path.removeprefix(
+                        library_path
+                    ).removeprefix("/")
+                    print(f"{parent_name=}")
 
             group_name = self.group_instance.name
 
