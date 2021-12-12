@@ -28,7 +28,7 @@ exclude = ["*/**/*~", "codex/static_src/*", "codex/static_build/*"]
 # include codex/static_root doesn't work due to gitignore. Hack around it
 #   in the Dockerfile
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.9"
 ansicolors = "^1.1"
 bidict = "^0.21"
 comicbox = "^0.2.1"
