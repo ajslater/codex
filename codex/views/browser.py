@@ -10,6 +10,7 @@ from stringcase import snakecase
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, BulkComicCoverCreateTask
 from codex.models import AdminFlag, Comic, Folder, Imprint, Library, Volume
 from codex.serializers.browser import (
+    UNIONFIX_PREFIX,
     BrowserOpenedSerializer,
     BrowserPageSerializer,
     BrowserSettingsSerializer,
@@ -40,10 +41,10 @@ class BrowserView(BrowserMetadataBase):
     BROWSER_CARD_FIELDS = [
         "bookmark",
         "child_count",
-        "cover_path",
+        f"{UNIONFIX_PREFIX}cover_path",
         "finished",
         "group",
-        "issue",
+        f"{UNIONFIX_PREFIX}issue",
         "library",
         "name",
         "order_value",
@@ -174,11 +175,13 @@ class BrowserView(BrowserMetadataBase):
             series_name=series_name,
             volume_name=volume_name,
         )
-        if not is_model_comic:
+        if is_model_comic:
+            issue = F("issue")
+        else:
             issue = Value(None, IntegerField())
-            obj_list = obj_list.annotate(
-                issue=issue,
-            )
+        obj_list = obj_list.annotate(
+            **{f"{UNIONFIX_PREFIX}issue": issue},
+        )
         if model not in (Folder, Comic):
             path = Value(None, CharField())
             obj_list = obj_list.annotate(
@@ -199,18 +202,19 @@ class BrowserView(BrowserMetadataBase):
         """Create folder queryset."""
         # Create the main queries with filters
         folder_list = Folder.objects.filter(object_filter)
-        comic_list = Comic.objects.filter(object_filter)
+        comic_object_filter = self.get_query_filters(True, False)
+        comic_list = Comic.objects.filter(comic_object_filter)
 
         # add annotations for display and sorting
         # and the comic_cover which uses a sort
         folder_list = self.add_annotations(folder_list, Folder)
         comic_list = self.add_annotations(comic_list, Comic)
 
-        # Reduce to values for concatenation
+        # Reduce to values to make union align columns correctly
         folder_list = folder_list.values(*self.BROWSER_CARD_FIELDS)
         comic_list = comic_list.values(*self.BROWSER_CARD_FIELDS)
-        obj_list = folder_list.union(comic_list)
 
+        obj_list = folder_list.union(comic_list)
         return obj_list
 
     def get_browser_group_queryset(self, object_filter):
@@ -224,7 +228,8 @@ class BrowserView(BrowserMetadataBase):
         # Add annotations for display and sorting
         obj_list = self.add_annotations(obj_list, self.model)
 
-        # Convert to a dict to be compatible with Folder View concatenate
+        # Convert to a dict because otherwise the folder/comic union blowsy
+        # up the paginator
         obj_list = obj_list.values(*self.BROWSER_CARD_FIELDS)
 
         return obj_list
@@ -385,15 +390,12 @@ class BrowserView(BrowserMetadataBase):
         self.set_browse_model()
         # Create the main query with the filters
         object_filter = self.get_query_filters(self.model == Comic, False)
+        group = self.kwargs.get("group")
 
-        if self.kwargs.get("group") == self.FOLDER_GROUP:
+        if group == self.FOLDER_GROUP:
             obj_list = self.get_folder_queryset(object_filter)
         else:
             obj_list = self.get_browser_group_queryset(object_filter)
-
-        # Ensure comic covers exist for all browser cards
-        task = BulkComicCoverCreateTask(False, obj_list)
-        LIBRARIAN_QUEUE.put_nowait(task)
 
         # Order
         order_by = self.get_order_by(self.model, True)
@@ -401,15 +403,25 @@ class BrowserView(BrowserMetadataBase):
 
         # Pagination
         paginator = Paginator(obj_list, self.MAX_OBJ_PER_PAGE, orphans=self.ORPHANS)
-        page = self.kwargs.get("page")
-        if page < 1:
-            page = 1
+        page = min(self.kwargs.get("page", 1), 1)
         try:
             obj_list = paginator.page(page).object_list
         except EmptyPage:
-            LOG.warning("No items on page {page}")
+            LOG.warning(f"No items on page {page}")
             obj_list = paginator.page(1).object_list
 
+        # Ensure comic covers exist for all browser cards
+        if group == self.FOLDER_GROUP:
+            # trimming the union query further breaks alignment
+            comic_cover_tuple = obj_list
+        else:
+            comic_cover_tuple = obj_list.values(
+                "path", f"{UNIONFIX_PREFIX}cover_path", *order_by
+            )
+        task = BulkComicCoverCreateTask(False, comic_cover_tuple)  # type: ignore
+        LIBRARIAN_QUEUE.put_nowait(task)
+
+        # Save the session
         self.request.session[self.BROWSER_KEY] = self.params
         self.request.session.save()
 
@@ -472,6 +484,5 @@ class BrowserView(BrowserMetadataBase):
             "browserPage": browser_page,
             "versions": {"installed": VERSION, "latest": latest_version},
         }
-
         serializer = BrowserOpenedSerializer(data)
         return Response(serializer.data)

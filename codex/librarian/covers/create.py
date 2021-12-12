@@ -11,6 +11,7 @@ from PIL import Image
 from codex.librarian.covers import COVER_ROOT
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, BulkComicCoverCreateTask
 from codex.models import Comic, Library
+from codex.serializers.browser import UNIONFIX_PREFIX
 
 
 THUMBNAIL_SIZE = (120, 180)
@@ -75,7 +76,9 @@ def _ensure_comic_and_cover_paths(comic_and_cover_paths):
     comic_paths_only = set()
     cover_paths_only = set()
     for comic_dict in comic_and_cover_paths:
-        cover_path = comic_dict.get("cover_path")
+        cover_path = comic_dict.get(
+            f"{UNIONFIX_PREFIX}cover_path", comic_dict.get("cover_path")
+        )
         comic_path = comic_dict.get("path")
 
         if comic_path and cover_path:

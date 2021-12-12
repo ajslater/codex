@@ -19,6 +19,7 @@ from django.db.models import (
 from django.db.models.functions import Cast, Coalesce, NullIf
 
 from codex.models import Comic, Folder
+from codex.serializers.browser import UNIONFIX_PREFIX
 from codex.views.browser_base import BrowserBaseView
 
 
@@ -83,13 +84,16 @@ class BrowserMetadataBase(BrowserBaseView):
         """Annotate the query set for the coverpath for the sort."""
         # Select comics for the children by an outer ref for annotation
         # Order the descendant comics by the sort argumentst
-        order_by = self.get_order_by(model, False, True)
-        cover_path_subquery = Subquery(
-            queryset.filter(pk=OuterRef("pk"))
-            .order_by(*order_by)
-            .values("comic__cover_path")[:1]
-        )
-        obj_list = queryset.annotate(cover_path=cover_path_subquery)
+        if model == Comic:
+            cover_path = F("cover_path")
+        else:
+            order_by = self.get_order_by(model, False, True)
+            cover_path = Subquery(
+                queryset.filter(pk=OuterRef("pk"))
+                .order_by(*order_by)
+                .values("comic__cover_path")[:1]
+            )
+        obj_list = queryset.annotate(**{f"{UNIONFIX_PREFIX}cover_path": cover_path})
         return obj_list
 
     def annotate_page_count(self, obj_list):
@@ -158,9 +162,9 @@ class BrowserMetadataBase(BrowserBaseView):
     def annotate_common_aggregates(self, qs, model):
         """Annotate common aggregates between browser and metadata."""
         is_model_comic = model == Comic
+        qs = self.annotate_cover_path(qs, model)
         if not is_model_comic:
             qs = self.annotate_page_count(qs)
-            qs = self.annotate_cover_path(qs, model)
             child_count_sum = Count(
                 "comic__pk", distinct=True
             )  # , filter=aggregate_filter)
