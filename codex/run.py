@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """The main runnable for codex. Sets up codex and runs hypercorn."""
 import os
-import re
-import sqlite3
 
 from asyncio import get_event_loop
 from logging import getLogger
@@ -13,15 +11,11 @@ from django.core.management import call_command
 from hypercorn.asyncio import serve
 
 from codex.asgi import application
-from codex.integrity import repair_db
-from codex.settings.settings import CONFIG_PATH, DB_PATH, DEBUG, HYPERCORN_CONFIG
+from codex.integrity import rebuild_db, repair_db
+from codex.settings.settings import DEBUG, HYPERCORN_CONFIG
 from codex.signals import RESTART_EVENT, SHUTDOWN_EVENT, bind_signals
 
 
-REPAIR_FLAG_PATH = CONFIG_PATH / "rebuild_db"
-DUMP_LINE_MATCHER = re.compile("TRANSACTION|ROLLBACK|COMMIT")
-REBUILT_DB_PATH = DB_PATH.parent / (DB_PATH.name + ".rebuilt")
-BACKUP_DB_PATH = DB_PATH.parent / (DB_PATH.name + ".backup")
 LOG = getLogger(__name__)
 
 
@@ -31,28 +25,6 @@ def set_env():
         os.environ["PYTHONDONTWRITEBYTECODE"] = "YES"
         # Overwritten when we import settings in django.setup()
         LOG.setLevel("DEBUG")
-
-
-def rebuild_db():
-    """Dump and rebuild the database."""
-    # Drastic
-    if not REPAIR_FLAG_PATH.exists():
-        return
-
-    LOG.warning("REBUILDING DATABASE!!")
-    with sqlite3.connect(REBUILT_DB_PATH) as new_db_conn:
-        new_db_cur = new_db_conn.cursor()
-        with sqlite3.connect(DB_PATH) as old_db_conn:
-            for line in old_db_conn.iterdump():
-                if DUMP_LINE_MATCHER.search(line):
-                    continue
-                new_db_cur.execute(line)
-
-    DB_PATH.rename(BACKUP_DB_PATH)
-    LOG.info("Backed up old db to %s", BACKUP_DB_PATH)
-    REBUILT_DB_PATH.replace(DB_PATH)
-    REPAIR_FLAG_PATH.unlink(missing_ok=True)
-    LOG.info("Rebuilt database.")
 
 
 def update_db():

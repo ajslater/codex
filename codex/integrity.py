@@ -1,17 +1,29 @@
 """Repair Database Integrity Errors."""
+import re
+import sqlite3
+
 from itertools import chain
 from logging import getLogger
 
 from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
+from django.db.migrations.recorder import MigrationRecorder
 from django.db.models import Q
 from django.db.models.functions import Now
 from django.db.utils import OperationalError
 
 from codex.librarian.db.query_fks import FILTER_ARG_MAX
+from codex.settings.settings import CONFIG_PATH, DB_PATH
 
 
+NO_0005_ARG = "no_0005"
+OK_EXC_ARGS = (NO_0005_ARG, "no such table: django_migrations")
+REPAIR_FLAG_PATH = CONFIG_PATH / "rebuild_db"
+DUMP_LINE_MATCHER = re.compile("TRANSACTION|ROLLBACK|COMMIT")
+REBUILT_DB_PATH = DB_PATH.parent / (DB_PATH.name + ".rebuilt")
+BACKUP_DB_PATH = DB_PATH.parent / (DB_PATH.name + ".backup")
+MIGRATION_0005 = "0005_auto_20200918_0146"
 M2M_NAMES = {
     "Character": "characters",
     "Credit": "credits",
@@ -272,6 +284,45 @@ def _fix_db_integrity():
 def repair_db():
     """Fix the db but trap errors if it goes wrong."""
     try:
+        ready = MigrationRecorder.Migration.objects.filter(
+            app="codex", name=MIGRATION_0005
+        ).exists()
+        if not ready:
+            raise OperationalError(NO_0005_ARG)
         _fix_db_integrity()
+    except OperationalError as exc:
+        ok = False
+        for arg in exc.args:
+            if arg in OK_EXC_ARGS:
+                ok = True
+                LOG.verbose(  # type: ignore
+                    f"Not running integrity checks until migration {MIGRATION_0005}"
+                    " has been applied."
+                )
+                break
+        if not ok:
+            raise exc
     except Exception as exc:
         LOG.exception(exc)
+
+
+def rebuild_db():
+    """Dump and rebuild the database."""
+    # Drastic
+    if not REPAIR_FLAG_PATH.exists():
+        return
+
+    LOG.warning("REBUILDING DATABASE!!")
+    with sqlite3.connect(REBUILT_DB_PATH) as new_db_conn:
+        new_db_cur = new_db_conn.cursor()
+        with sqlite3.connect(DB_PATH) as old_db_conn:
+            for line in old_db_conn.iterdump():
+                if DUMP_LINE_MATCHER.search(line):
+                    continue
+                new_db_cur.execute(line)
+
+    DB_PATH.rename(BACKUP_DB_PATH)
+    LOG.info("Backed up old db to %s", BACKUP_DB_PATH)
+    REBUILT_DB_PATH.replace(DB_PATH)
+    REPAIR_FLAG_PATH.unlink(missing_ok=True)
+    LOG.info("Rebuilt database.")
