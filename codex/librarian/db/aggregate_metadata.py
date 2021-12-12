@@ -139,6 +139,7 @@ def _get_path_metadata(path):
 
 def _none_max(a, b):
     """math.max but None aware."""
+    # XXX for determining groups counts. might be better to do most-common
     if a is not None and b is not None:
         return max(a, b)
     if a is None:

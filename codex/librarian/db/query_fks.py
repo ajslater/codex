@@ -72,7 +72,7 @@ def _query_create_metadata(fk_cls, create_mds, all_filter_args):
     return create_mds
 
 
-def _add_parent_group_filter(group_name, field_name, filter_args):
+def _add_parent_group_filter(filter_args, group_name, field_name):
     """Get the parent group filter by name."""
     if field_name:
         key = f"{field_name}__"
@@ -91,13 +91,13 @@ def _query_missing_group_type(fk_cls, groups):
     all_filter_args = set()
     for group_tree, count in groups.items():
         filter_args = {}
-        _add_parent_group_filter(group_tree[-1], "", filter_args)
+        _add_parent_group_filter(filter_args, group_tree[-1], "")
         if fk_cls in (Imprint, Series, Volume):
-            _add_parent_group_filter(group_tree[0], "publisher", filter_args)
+            _add_parent_group_filter(filter_args, group_tree[0], "publisher")
         if fk_cls in (Series, Volume):
-            _add_parent_group_filter(group_tree[1], "imprint", filter_args)
+            _add_parent_group_filter(filter_args, group_tree[1], "imprint")
         if fk_cls == Volume:
-            _add_parent_group_filter(group_tree[2], "series", filter_args)
+            _add_parent_group_filter(filter_args, group_tree[2], "series")
 
         all_filter_args.add(tuple(sorted(filter_args.items())))
         candidates[group_tree] = count
@@ -108,21 +108,28 @@ def _query_missing_group_type(fk_cls, groups):
 
     # Append the count metadata to the create_groups
     create_groups = {}
-    for group, count_dict in candidates.items():
-        if group in create_group_set:
-            create_groups[group] = count_dict
-    return create_groups
+    update_groups = {}
+    for group_tree, count_dict in candidates.items():
+        if group_tree in create_group_set:
+            create_groups[group_tree] = count_dict
+        elif fk_cls in (Series, Volume):
+            # If Series or Volume in group tree
+            update_groups[group_tree] = count_dict
+    return create_groups, update_groups
 
 
 def _query_missing_groups(group_trees_md):
     """Get missing groups from proposed groups to create."""
     all_create_groups = {}
+    all_update_groups = {}
     count = 0
     for cls, groups in group_trees_md.items():
-        create_groups = _query_missing_group_type(cls, groups)
+        create_groups, update_groups = _query_missing_group_type(cls, groups)
         all_create_groups[cls] = create_groups
+        if update_groups:
+            all_update_groups[cls] = update_groups
         count += len(create_groups)
-    return all_create_groups, count
+    return all_create_groups, all_update_groups, count
 
 
 def _query_missing_credits(credits):
@@ -208,11 +215,15 @@ def query_all_missing_fks(library_path, fks):
         create_credits |= _query_missing_credits(credits)
         LOG.verbose(f"Prepared {len(create_credits)} new credits.")  # type: ignore
 
-    create_groups = {}
     if "group_trees" in fks:
         group_trees = fks.pop("group_trees")
-        create_groups, create_group_count = _query_missing_groups(group_trees)
+        create_groups, update_groups, create_group_count = _query_missing_groups(
+            group_trees
+        )
         LOG.verbose(f"Prepared {create_group_count} new groups.")  # type: ignore
+    else:
+        create_groups = {}
+        update_groups = {}
 
     create_paths = set()
     if "comic_paths" in fks:
@@ -232,4 +243,4 @@ def query_all_missing_fks(library_path, fks):
         if num_names:
             LOG.verbose(f"Prepared {num_names} new {field}.")  # type: ignore
 
-    return create_fks, create_groups, create_paths, create_credits
+    return create_fks, create_groups, update_groups, create_paths, create_credits

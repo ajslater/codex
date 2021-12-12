@@ -33,12 +33,16 @@ def _bulk_create_comic_relations(library, fks) -> bool:
     if not fks:
         return False
 
-    create_fks, create_groups, create_paths, create_credits = query_all_missing_fks(
-        library.path, fks
-    )
+    (
+        create_fks,
+        create_groups,
+        update_groups,
+        create_paths,
+        create_credits,
+    ) = query_all_missing_fks(library.path, fks)
 
     changed = bulk_create_all_fks(
-        library, create_fks, create_groups, create_paths, create_credits
+        library, create_fks, create_groups, update_groups, create_paths, create_credits
     )
     return changed
 

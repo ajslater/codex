@@ -276,24 +276,6 @@ def _bulk_update_and_create_failed_imports(library, failed_imports):
         LOG.verbose(log)  # type: ignore
 
 
-def _extra_check_modified(library, create_paths, update_paths):
-    """Extra last minute protection for pre-existing comics."""
-    already_created = set(
-        Comic.objects.filter(library=library, path__in=create_paths).values_list(
-            "path", flat=True
-        )
-    )
-    if already_created:
-        LOG.warning(
-            f"Detected {len(already_created)} already created comics,"
-            " updating them instead."
-        )
-        create_paths -= already_created
-        update_paths |= already_created
-
-    return create_paths, update_paths
-
-
 def bulk_import_comics(
     library, create_paths, update_paths, all_bulk_mds, all_m2m_mds, failed_imports
 ):
@@ -305,10 +287,6 @@ def bulk_import_comics(
         create_paths or update_paths or all_bulk_mds or all_m2m_mds or failed_imports
     ):
         return 0
-
-    # create_paths, update_paths = _extra_check_modified(
-    #    library, create_paths, update_paths
-    # )
 
     _update_comics(library, update_paths, all_bulk_mds)
     _create_comics(library, create_paths, all_bulk_mds)
