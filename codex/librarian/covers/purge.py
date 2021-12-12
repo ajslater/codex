@@ -20,12 +20,7 @@ def _purge_cover_path(comic_cover_path):
     if not comic_cover_path:
         return
     cover_path = COVER_ROOT / comic_cover_path
-    try:
-        # XXX python 3.8 missing_ok=True
-        # Switch to python 3.8 requirement beginning of 2021
-        cover_path.unlink()
-    except FileNotFoundError:
-        pass
+    cover_path.unlink(missing_ok=True)
     return cover_path.parent
 
 
