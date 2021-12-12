@@ -116,9 +116,6 @@ def _query_missing_group_type(fk_cls, groups):
 
 def _query_missing_groups(group_trees_md):
     """Get missing groups from proposed groups to create."""
-    # XXX Missing a facility to update Series & Volume count fields on already
-    #     created groups
-
     all_create_groups = {}
     count = 0
     for cls, groups in group_trees_md.items():

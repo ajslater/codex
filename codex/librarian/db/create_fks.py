@@ -52,7 +52,6 @@ def _create_group_obj(cls, group_param_tuple, count):
 
 def _bulk_create_groups(all_create_groups):
     """Create missing groups breadth first."""
-    # TODO special code for updating series and volume counts
     if not all_create_groups:
         return False
     LOG.verbose("Preparing groups for creation...")  # type: ignore
