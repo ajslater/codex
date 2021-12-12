@@ -319,10 +319,10 @@ class BrowserView(BrowserMetadataBase):
             elif isinstance(self.group_instance, Folder):
                 parent_folder = self.group_instance.parent_folder
                 if parent_folder:
-                    library_path = parent_folder.library.path
-                    parent_name = parent_folder.path.removeprefix(
-                        library_path
-                    ).removeprefix("/")
+                    prefix = parent_folder.library.path
+                    if prefix[-1] != "/":
+                        prefix += "/"
+                    parent_name = parent_folder.path.removeprefix(prefix)
                     print(f"{parent_name=}")
 
             group_name = self.group_instance.name
