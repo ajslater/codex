@@ -323,7 +323,6 @@ class BrowserView(BrowserMetadataBase):
                     if prefix[-1] != "/":
                         prefix += "/"
                     parent_name = parent_folder.path.removeprefix(prefix)
-                    print(f"{parent_name=}")
 
             group_name = self.group_instance.name
 
