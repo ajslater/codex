@@ -2,6 +2,8 @@
 
 ## v0.7.0rc11
 
+- Database Migration
+  - v0.7.0 changes the database schema. Databases run with v0.7.0+ will not run on previous versions of codex.
 - Features
   - Big speed up to importing comics for large imports.
   - Speed up creating comic covers on large imports.

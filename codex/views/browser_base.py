@@ -32,7 +32,7 @@ class BrowserBaseView(SessionMixin):
         "i": "imprint",
         "s": "series",
         "v": "volume",
-        COMIC_GROUP: "comic",
+        COMIC_GROUP: "pk",
         FOLDER_GROUP: "parent_folder",
     }
 
