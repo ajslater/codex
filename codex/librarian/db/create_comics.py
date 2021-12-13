@@ -271,7 +271,7 @@ def _bulk_update_and_create_failed_imports(library, failed_imports):
     log = f"Failed {create_count} new, {update_count} old comic imports."
     total_count = update_count + create_count
     if total_count:
-        LOG.warn(log)
+        LOG.warning(log)
     else:
         LOG.verbose(log)  # type: ignore
 
