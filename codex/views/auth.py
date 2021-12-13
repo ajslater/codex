@@ -87,7 +87,7 @@ class RegisterView(APIView):
         try:
             serializer.is_valid(raise_exception=True)
         except Exception as ex:
-            LOG.warn(serializer.errors)
+            LOG.warning(serializer.errors)
             raise ex
         return serializer
 
@@ -127,7 +127,7 @@ class LoginView(APIView):
         try:
             serializer.is_valid(raise_exception=True)
         except Exception as ex:
-            LOG.warn(serializer.errors)
+            LOG.warning(serializer.errors)
             raise ex
         return serializer
 

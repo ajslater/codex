@@ -118,7 +118,7 @@ def bulk_create_comic_covers(comic_and_cover_paths, force=False):
         count = Comic.objects.filter(path__in=missing_cover_comic_paths).update(
             cover_path=MISSING_COVER_FN, updated_at=Now()
         )
-        LOG.warn(f"Marked covers for {count} comics missing.")
+        LOG.warning(f"Marked covers for {count} comics missing.")
 
     elapsed = time.time() - start_time
     if comic_counter:

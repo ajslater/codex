@@ -39,7 +39,7 @@ def update_codex(force=False):
         LOG.info(f"Codex was updated from {VERSION} to {new_version}.")
         restart_codex()
     else:
-        LOG.warn(
+        LOG.warning(
             "Codex updated to the same version that was previously"
             f" installed: {VERSION}."
         )

@@ -89,7 +89,7 @@ VUETIFY_NULL_CODE = -1
 def _find_filename_regex(js_root, module_name):
     """Find a filename in a dir that matches the regex."""
     if not js_root.is_dir():
-        LOG.warn(f"Not a directory: {js_root}")
+        LOG.warning(f"Not a directory: {js_root}")
         return
     re_template = WEBPACK_MODULE_RE_TEMPLATES[js_root]
     regex_str = re_template.format(name=module_name)
