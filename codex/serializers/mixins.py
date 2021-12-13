@@ -18,7 +18,6 @@ class UnionFixSerializerMixin(metaclass=SerializerMetaclass):
         fields are annotated in the exact same order.
         """
         if instance:
-            # XXX Browser gives dict here, but metadata gives object with attrrs
             for key in self.UNIONFIX_KEYS:
                 unionfix_key = f"{UNIONFIX_PREFIX}{key}"
                 if unionfix_key in instance:

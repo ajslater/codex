@@ -139,7 +139,10 @@ def _get_path_metadata(path):
 
 def _none_max(a, b):
     """math.max but None aware."""
-    # XXX for determining groups counts. might be better to do most-common
+    # For determining groups counts.
+    # might be better to do most-common number, not max
+    # but would need access to all counts every import but
+    # I don't store them in the comic table
     if a is not None and b is not None:
         return max(a, b)
     if a is None:
