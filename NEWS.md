@@ -1,6 +1,6 @@
 # Codex News
 
-## v0.7.0rc11
+## v0.7.0rc12
 
 - Database Migration
   - v0.7.0 changes the database schema. Databases run with v0.7.0+ will not run on previous versions of codex.
