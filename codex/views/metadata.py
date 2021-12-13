@@ -2,7 +2,7 @@
 from logging import getLogger
 
 from django.contrib.auth.models import User
-from django.db.models import Case, F, IntegerField, Value, When
+from django.db.models import F, CharField, Value
 from rest_framework.response import Response
 
 from codex.models import Comic
@@ -115,26 +115,19 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
 
             # Annotate groups and counts
             csq = simple_qs.values(comic_rel_field).distinct()
-            count_field = f"count_{field}".replace("__", "_")
-            # XXX This conversion to a value instead of a subquery could be better
-            qs = qs.annotate(**{count_field: Value(csq.count(), IntegerField())})
-
-            # Annotate insersection relation values
+            count = csq.count()
             ann_field = (annotation_prefix + field).replace("__", "_")
-            # TODO Just do this outside of the db with a null charfield for everything
-            query_is_intersection = {count_field: 1}
-            lookup = f"{comic_rel_field}{related_suffix}"
-            qs = qs.annotate(
-                **{
-                    ann_field: Case(
-                        When(
-                            **query_is_intersection,
-                            then=F(lookup),
-                        ),
-                        default=None,
-                    )
-                }
-            )
+            if count == 1:
+                lookup = F(f"{comic_rel_field}{related_suffix}")
+            else:
+                # None charfield works for all types
+                lookup = Value(None, CharField())
+
+            # XXX It might be faster if I could drop the csq query into
+            #  the annotation as a subquery with a Case When, but I
+            #  can't figure out how to to get the count to work in a
+            #  subquery.
+            qs = qs.annotate(**{ann_field: lookup})
         return qs
 
     @classmethod
@@ -290,7 +283,7 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
         """Create a comic-like object from the current browser group."""
         # Comic model goes through the same code path as groups because
         # values dicts don't copy relations to the serializer. The values
-        # dict is neccessary because of the folders view union in browser.py.
+        # dict is necessary because of the folders view union in browser.py.
         group = self.kwargs["group"]
         model = self.GROUP_MODEL[group]
         if not model:
