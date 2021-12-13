@@ -2,6 +2,7 @@
 
 from rest_framework.serializers import SerializerMetaclass
 
+
 UNIONFIX_PREFIX = "unionfix_"
 
 

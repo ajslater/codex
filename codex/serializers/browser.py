@@ -14,8 +14,8 @@ from rest_framework.serializers import (
     Serializer,
 )
 
-from codex.serializers.webpack import CHOICES, VUETIFY_NULL_CODE
 from codex.serializers.mixins import UnionFixSerializerMixin
+from codex.serializers.webpack import CHOICES, VUETIFY_NULL_CODE
 
 
 VUETIFY_NULL_CODE_STR = str(VUETIFY_NULL_CODE)

@@ -2,7 +2,7 @@
 from logging import getLogger
 
 from django.contrib.auth.models import User
-from django.db.models import F, CharField, Value
+from django.db.models import CharField, F, Value
 from rest_framework.response import Response
 
 from codex.models import Comic

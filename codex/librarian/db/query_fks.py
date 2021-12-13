@@ -239,7 +239,7 @@ def query_all_missing_fks(library_path, fks):
             base_cls = Comic
         cls, names = _query_missing_simple_models(base_cls, field, "name", names)
         create_fks[cls] = names
-        if (num_names := len(names)):
+        if num_names := len(names):
             LOG.verbose(f"Prepared {num_names} new {field}.")  # type: ignore
 
     return create_fks, create_groups, update_groups, create_paths, create_credits
