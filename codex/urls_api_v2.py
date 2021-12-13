@@ -14,7 +14,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.urls import path
-from django.views.decorators.cache import cache_page
+from django.views.decorators.cache import cache_control, cache_page
 from django.views.decorators.vary import vary_on_cookie
 
 from codex.views.admin import PollView
@@ -85,7 +85,11 @@ urlpatterns = [
     ),
     #
     # Notify
-    path("notify/scan", ScanNotifyView.as_view(), name="notify_scan"),
+    path(
+        "notify/scan",
+        cache_control(max_age=5)(ScanNotifyView.as_view()),
+        name="notify_scan",
+    ),
     #
     # Auth
     path("auth/register", RegisterView.as_view(), name="register"),

@@ -2,6 +2,8 @@
 
 import datetime
 
+from decimal import Decimal
+
 import django.db.models.deletion
 
 from django.conf import settings
@@ -310,7 +312,7 @@ class Migration(migrations.Migration):
             model_name="imprint",
             name="publisher",
             field=models.ForeignKey(
-                on_delete=models.SET(django.db.models.deletion.CASCADE),
+                on_delete=django.db.models.deletion.CASCADE,
                 to="codex.publisher",
             ),
         ),
@@ -471,7 +473,10 @@ class Migration(migrations.Migration):
                 (
                     "issue",
                     models.DecimalField(
-                        db_index=True, decimal_places=2, default=0.0, max_digits=6
+                        db_index=True,
+                        decimal_places=2,
+                        default=Decimal(0.0),
+                        max_digits=6,
                     ),
                 ),
                 ("title", models.CharField(db_index=True, max_length=64, null=True)),

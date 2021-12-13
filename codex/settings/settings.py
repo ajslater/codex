@@ -153,7 +153,6 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/dev/topics/i18n/
 LANGUAGE_CODE = "en-us"
 USE_I18N = True
-USE_L10N = True
 USE_TZ = True
 TZ = os.environ.get("TIMEZONE", os.environ.get("TZ"))
 if TZ and not TZ.startswith(":") and "etc/localtime" not in TZ and "/" in TZ:

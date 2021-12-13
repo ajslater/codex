@@ -1,7 +1,6 @@
 """Notify views."""
 from logging import getLogger
 
-from django.views.decorators.cache import cache_control
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -20,7 +19,6 @@ class ScanNotifyView(APIView):
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
 
-    @cache_control(max_age=MIN_SCAN_WAIT)
     def get(self, request, *args, **kwargs):
         """Return if any libraries are scanning."""
         any_in_progress = Library.objects.filter(update_in_progress=True).exists()

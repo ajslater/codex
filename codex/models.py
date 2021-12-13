@@ -2,6 +2,7 @@
 import datetime
 import os
 
+from decimal import Decimal
 from logging import getLogger
 from pathlib import Path
 
@@ -285,7 +286,9 @@ class Folder(WatchedPath):
 class Comic(WatchedPath):
     """Comic metadata."""
 
-    issue = DecimalField(db_index=True, decimal_places=2, max_digits=6, default=0.0)
+    issue = DecimalField(
+        db_index=True, decimal_places=2, max_digits=6, default=Decimal(0.0)
+    )
     volume = ForeignKey(Volume, db_index=True, on_delete=CASCADE)
     series = ForeignKey(Series, db_index=True, on_delete=CASCADE)
     imprint = ForeignKey(Imprint, db_index=True, on_delete=CASCADE)
@@ -418,7 +421,7 @@ class AdminFlag(NamedModel):
     on = BooleanField(default=True)
 
 
-def cascade_if_user_null(collector, field, sub_objs, _):
+def cascade_if_user_null(collector, field, sub_objs, _using):
     """
     Cascade only if the user field is null.
 

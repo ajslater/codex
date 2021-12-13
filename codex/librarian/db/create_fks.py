@@ -73,22 +73,25 @@ def _update_group_obj(cls, group_param_tuple, count, count_field):
     return obj
 
 
-def _bulk_group_creator(create_groups, group_tree_counts, cls):
+def _bulk_group_creator(group_tree_counts, cls):
     """Bulk creates groups."""
+    create_groups = []
     for group_param_tuple, count in group_tree_counts.items():
         obj = _create_group_obj(cls, group_param_tuple, count)
         create_groups.append(obj)
     cls.objects.bulk_create(create_groups)
+    return len(create_groups)
 
 
-def _bulk_group_updater(update_groups, group_tree_counts, cls):
+def _bulk_group_updater(group_tree_counts, cls):
     """Bulk update groups."""
+    update_groups = []
     count_field = COUNT_FIELDS[cls]
     for group_param_tuple, count in group_tree_counts.items():
         obj = _update_group_obj(cls, group_param_tuple, count, count_field)
         if obj:
             update_groups.append(obj)
-    cls.objects.bulk_update(update_groups, fields=[count_field])
+    return cls.objects.bulk_update(update_groups, fields=[count_field])
 
 
 def _bulk_create_or_update_groups(all_operation_groups, func, log_tion, log_verb):
@@ -103,11 +106,8 @@ def _bulk_create_or_update_groups(all_operation_groups, func, log_tion, log_verb
         LOG.verbose(  # type: ignore
             f"Preparing {len(group_tree_counts)} {cls.__name__}s for {log_tion}..."
         )
-        operation_groups = []
+        count = func(group_tree_counts, cls)
 
-        func(operation_groups, group_tree_counts, cls)
-
-        count = len(operation_groups)
         num_operation_groups += count
         log = f"{log_verb} {count} {cls.__name__}s."
         if count:
@@ -133,17 +133,16 @@ def bulk_folders_modified(library, paths):
             folder.set_stat()
             folder.updated_at = now  # type: ignore
             update_folders.append(folder)
-    Folder.objects.bulk_update(
+    count = Folder.objects.bulk_update(
         update_folders, fields=BULK_UPDATE_FOLDER_MODIFIED_FIELDS
     )
-    count = len(update_folders)
     log = f"Modified {count} folders"
     if count:
         LOG.info(log)
     else:
         LOG.verbose(log)  # type: ignore
 
-    return count > 0
+    return bool(count)
 
 
 def bulk_folders_create(library, folder_paths):

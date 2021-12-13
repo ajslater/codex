@@ -129,7 +129,7 @@ class BrowserMetadataBase(BrowserBaseView):
                         f"{ubm_rel}__finished",
                         filter=ub_filter,
                         distinct=True,
-                        output_field=DecimalField(),
+                        output_field=DecimalField(max_digits=2, decimal_places=2),
                     ),
                     False,  # Null db values counted as False
                 ),
@@ -154,7 +154,7 @@ class BrowserMetadataBase(BrowserBaseView):
             progress=Coalesce(
                 F("bookmark") * Decimal("1.0") / F("page_count") * 100,
                 Value(0.00),
-                output_field=DecimalField(),
+                output_field=DecimalField(max_digits=5, decimal_places=2),
             )
         )
         return queryset

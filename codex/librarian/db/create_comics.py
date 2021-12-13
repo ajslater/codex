@@ -68,7 +68,7 @@ def _link_comic_fks(md, library, path):
 def _update_comics(library, comic_paths, mds):
     """Bulk update comics."""
     if not comic_paths:
-        return
+        return 0
 
     num_comics = len(comic_paths)
     LOG.verbose(  # type: ignore
@@ -97,13 +97,13 @@ def _update_comics(library, comic_paths, mds):
             LOG.exception(exc)
 
     LOG.verbose(f"Bulk updating {num_comics} comics.")  # type: ignore
-    Comic.objects.bulk_update(update_comics, BULK_UPDATE_COMIC_FIELDS)
+    return Comic.objects.bulk_update(update_comics, BULK_UPDATE_COMIC_FIELDS)
 
 
 def _create_comics(library, comic_paths, mds):
     """Bulk create comics."""
     if not comic_paths:
-        return
+        return 0
 
     num_comics = len(comic_paths)
     LOG.verbose(  # type: ignore
@@ -125,12 +125,10 @@ def _create_comics(library, comic_paths, mds):
             LOG.error(f"Error preparing {path} for create.")
             LOG.exception(exc)
 
+    num_comics = len(create_comics)
     LOG.verbose(f"Bulk creating {num_comics} comics...")  # type: ignore
     Comic.objects.bulk_create(create_comics)
-
-    LOG.verbose(  # type: ignore
-        f"Bulk updating {num_comics} created comics' " "self references...."
-    )
+    return num_comics
 
 
 def _link_folders(folder_paths):
@@ -261,12 +259,15 @@ def _bulk_update_and_create_failed_imports(library, failed_imports):
             LOG.exception(exc)
 
     if update_failed_imports:
-        FailedImport.objects.bulk_update(
+        update_count = FailedImport.objects.bulk_update(
             update_failed_imports, fields=BULK_UPDATE_FAILED_IMPORT_FIELDS
         )
+        if update_count is None:
+            update_count = 0
+    else:
+        update_count = 0
     if create_failed_imports:
         FailedImport.objects.bulk_create(create_failed_imports)
-    update_count = len(update_failed_imports)
     create_count = len(create_failed_imports)
     log = f"Failed {create_count} new, {update_count} old comic imports."
     total_count = update_count + create_count
@@ -288,8 +289,8 @@ def bulk_import_comics(
     ):
         return 0
 
-    _update_comics(library, update_paths, all_bulk_mds)
-    _create_comics(library, create_paths, all_bulk_mds)
+    update_count = _update_comics(library, update_paths, all_bulk_mds)
+    create_count = _create_comics(library, create_paths, all_bulk_mds)
 
     all_m2m_links = _link_comic_m2m_fields(all_m2m_mds)
     for field_name, m2m_links in all_m2m_links.items():
@@ -299,13 +300,11 @@ def bulk_import_comics(
             LOG.error(f"Error recreating m2m field: {field_name}")
             LOG.exception(exc)
 
-    update_count = len(update_paths)
     update_log = f"Updated {update_count} Comics."
     if update_count:
         LOG.info(update_log)
     else:
         LOG.verbose(update_log)  # type: ignore
-    create_count = len(create_paths)
     create_log = f"Created {create_count} Comics."
     if create_count:
         LOG.info(create_log)

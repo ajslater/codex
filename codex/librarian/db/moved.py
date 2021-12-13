@@ -41,19 +41,18 @@ def bulk_comics_moved(library, moved_paths):
             path__in=new_path.parents
         ).values_list("pk", flat=True)
 
-    Comic.objects.bulk_update(comics, MOVED_BULK_COMIC_UPDATE_FIELDS)
+    count = Comic.objects.bulk_update(comics, MOVED_BULK_COMIC_UPDATE_FIELDS)
 
     # Update m2m field
     if folder_m2m_links:
         bulk_recreate_m2m_field("folders", folder_m2m_links)
-    count = len(comics)
     log = f"Moved {count} comics."
     if count:
         LOG.info(log)
     else:
         LOG.verbose(log)  # type: ignore
 
-    return count > 0
+    return bool(count)
 
 
 def _get_parent_folders(library, folders_moved):
@@ -99,14 +98,13 @@ def _update_moved_folders(library, folders_moved, dest_parent_folders):
 
     update_folders = sorted(update_folders, key=lambda x: len(Path(x.path).parts))
 
-    Folder.objects.bulk_update(update_folders, MOVED_BULK_FOLDER_UPDATE_FIELDS)
-    count = len(update_folders)
+    count = Folder.objects.bulk_update(update_folders, MOVED_BULK_FOLDER_UPDATE_FIELDS)
     log = f"Moved {count} folders."
     if count:
         LOG.info(log)
     else:
         LOG.verbose(log)  # type: ignore
-    return count > 0
+    return bool(count)
 
 
 def bulk_folders_moved(library, folders_moved):

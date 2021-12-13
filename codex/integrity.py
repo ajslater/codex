@@ -128,14 +128,11 @@ def _mark_comics_with_bad_m2m_rels_for_update(comic_model, field_name, bad_comic
             comic.stat = stat_list
             update_comics.append(comic)
 
-        if not (num_update_comics := len(update_comics)):
+        if not update_comics:
             return
 
-        comic_model.objects.bulk_update(update_comics, fields=["stat"])
-        LOG.info(
-            f"Marked {num_update_comics} with missing {field_name} "
-            "for update by poller."
-        )
+        count = comic_model.objects.bulk_update(update_comics, fields=["stat"])
+        LOG.info(f"Marked {count} with missing {field_name} for update by poller.")
     except (OperationalError, AttributeError) as exc:
         if (
             "no such column: codex_comic.stat" in exc.args
