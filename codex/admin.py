@@ -65,7 +65,7 @@ class AdminLibrary(ModelAdmin):
         "poll_every",
         # XXX can't submit anything at all if this doesn't have a value.
         #  I mark this disabled and readonly with javascript. Ugly.
-        #  This a django bug.
+        #  This a django bug. Fix on 4.0 or file?
         "last_poll",
     )
     readonly_fields = ("last_poll",)

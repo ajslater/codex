@@ -123,7 +123,7 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
                 # None charfield works for all types
                 lookup = Value(None, CharField())
 
-            # XXX It might be faster if I could drop the csq query into
+            # SPEED It might be faster if I could drop the csq query into
             #  the annotation as a subquery with a Case When, but I
             #  can't figure out how to to get the count to work in a
             #  subquery.
@@ -202,7 +202,7 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
     def query_m2m_intersections(self, simple_qs, is_model_comic):
         """Query the through models to figure out m2m intersections."""
         # Speed ok, but still does a query per m2m model
-        # XXX Could annotate count all the tags and only select those that
+        # SPEED Could annotate count all the tags and only select those that
         # have num_child counts
         m2m_intersections = {}
         if is_model_comic:
