@@ -120,7 +120,6 @@ def _bulk_update_groups(all_update_groups):
         count_field = COUNT_FIELDS[cls]
         update_groups = []
         for group_param_tuple, count in group_tree_counts.items():
-            # TODO Find groups of class to update
             obj = _update_group_obj(cls, group_param_tuple, count, count_field)
             if obj:
                 update_groups.append(obj)
