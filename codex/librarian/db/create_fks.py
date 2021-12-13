@@ -37,7 +37,6 @@ def _create_group_obj(cls, group_param_tuple, count):
             name=group_param_tuple[1],
         )
 
-    # XXX Set the xxx_count fields on create but never update them.
     if cls is Series:
         defaults["volume_count"] = count
     elif cls is Volume:
@@ -53,35 +52,6 @@ def _create_group_obj(cls, group_param_tuple, count):
     return group_obj
 
 
-def _bulk_create_groups(all_create_groups):
-    """Create missing groups breadth first."""
-    if not all_create_groups:
-        return False
-    LOG.verbose("Preparing groups for creation...")  # type: ignore
-
-    num_create_groups = 0
-    for cls, group_tree_counts in all_create_groups.items():
-        if not group_tree_counts:
-            continue
-        LOG.verbose(  # type: ignore
-            f"Preparing {len(group_tree_counts)} {cls.__name__}s for creation..."
-        )
-        create_groups = []
-        for group_param_tuple, count in group_tree_counts.items():
-            obj = _create_group_obj(cls, group_param_tuple, count)
-            create_groups.append(obj)
-        cls.objects.bulk_create(create_groups)
-        count = len(create_groups)
-        num_create_groups += count
-        log = f"Created {count} {cls.__name__}s."
-        if count:
-            LOG.info(log)
-        else:
-            LOG.verbose(log)  # type: ignore
-
-    return num_create_groups > 0
-
-
 def _update_group_obj(cls, group_param_tuple, count, count_field):
     """Update group counts for a Series or Volume."""
     if count is None:
@@ -94,7 +64,6 @@ def _update_group_obj(cls, group_param_tuple, count, count_field):
     if cls == Volume:
         search_kwargs["series__name"] = group_param_tuple[2]
 
-    # XXX should i move this query to the query_fk side and just pass the objs?
     obj = cls.objects.get(**search_kwargs)
     obj_count = getattr(obj, count_field)
     if obj_count is None or obj_count < count:
@@ -104,35 +73,49 @@ def _update_group_obj(cls, group_param_tuple, count, count_field):
     return obj
 
 
-def _bulk_update_groups(all_update_groups):
-    """Update group counts for all specified Series and Volumes."""
-    # XXX very similar to _bulk_create_groups
-    if not all_update_groups:
+def _bulk_group_creator(create_groups, group_tree_counts, cls):
+    """Bulk creates groups."""
+    for group_param_tuple, count in group_tree_counts.items():
+        obj = _create_group_obj(cls, group_param_tuple, count)
+        create_groups.append(obj)
+    cls.objects.bulk_create(create_groups)
+
+
+def _bulk_group_updater(update_groups, group_tree_counts, cls):
+    """Bulk update groups."""
+    count_field = COUNT_FIELDS[cls]
+    for group_param_tuple, count in group_tree_counts.items():
+        obj = _update_group_obj(cls, group_param_tuple, count, count_field)
+        if obj:
+            update_groups.append(obj)
+    cls.objects.bulk_update(update_groups, fields=[count_field])
+
+
+def _bulk_create_or_update_groups(all_operation_groups, func, log_tion, log_verb):
+    """Create missing groups breadth first."""
+    if not all_operation_groups:
         return False
 
-    num_update_groups = 0
-    for cls, group_tree_counts in all_update_groups.items():
+    num_operation_groups = 0
+    for cls, group_tree_counts in all_operation_groups.items():
         if not group_tree_counts:
             continue
         LOG.verbose(  # type: ignore
-            f"Preparing {len(group_tree_counts)} {cls.__name__}s for count updates..."
+            f"Preparing {len(group_tree_counts)} {cls.__name__}s for {log_tion}..."
         )
-        count_field = COUNT_FIELDS[cls]
-        update_groups = []
-        for group_param_tuple, count in group_tree_counts.items():
-            obj = _update_group_obj(cls, group_param_tuple, count, count_field)
-            if obj:
-                update_groups.append(obj)
-        cls.objects.bulk_update(update_groups, fields=[count_field])
-        count = len(update_groups)
-        num_update_groups += count
-        log = f"Updated {count} {cls.__name__}.{count_field}s"
+        operation_groups = []
+
+        func(operation_groups, group_tree_counts, cls)
+
+        count = len(operation_groups)
+        num_operation_groups += count
+        log = f"{log_verb} {count} {cls.__name__}s."
         if count:
             LOG.info(log)
         else:
             LOG.verbose(log)  # type: ignore
 
-    return num_update_groups > 0
+    return num_operation_groups > 0
 
 
 def bulk_folders_modified(library, paths):
@@ -270,8 +253,12 @@ def bulk_create_all_fks(
 ) -> bool:
     """Bulk create all foreign keys."""
     LOG.verbose(f"Creating comic foreign keys for {library.path}...")  # type: ignore
-    changed = _bulk_create_groups(create_groups)
-    changed |= _bulk_update_groups(update_groups)
+    changed = _bulk_create_or_update_groups(
+        create_groups, _bulk_group_creator, "creation", "Created"
+    )
+    changed |= _bulk_create_or_update_groups(
+        update_groups, _bulk_group_updater, "update", "Updated"
+    )
 
     changed |= bulk_folders_create(library, create_folder_paths)
     for cls, names in create_fks.items():
