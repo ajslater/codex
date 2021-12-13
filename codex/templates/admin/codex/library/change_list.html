@@ -9,23 +9,23 @@ You may navigate back to the browser view by clicking the "<span style="font-var
 </p><p>
 Wait for comics to appear. It may take some time to import large comic libraries and Codex will refresh the browser the library has finished loaded. A snackbar will notify admins that a scan is in progress, but check the logs in <code>config/logs/codex.log</code> if you want to follow the import in detail.
 </p>
-<h3>events</h3>
+<h2>events</h2>
 Watch the Library filesystem for events and update Codex instantly when the filesystem changes.
-<h3>poll</h3>
+<h2>poll</h2>
 Periodically poll the library for changes. Possibly CPU and disk intensive.
-<h3>poll every</h3>
+<h2>poll every</h2>
 How long to wait between polling the filesystem
-<h3>last poll</h3>
+<h2>last poll</h2>
 A timestamp telling you when the last time this library was polled.
-<h1 id="adminActionsHeader">Actions</h1>
-<h3>Delete selected libraries</h3>
+<h1>Actions</h1>
+<h2>Delete selected libraries</h2>
 Will delete the selected libraries from the codex database. Will not delete your comic archives on disk.
 Deleting large libraries may take a long time to create the confirmation screen.
-<h3>Poll for changes</h3>
+<h2>Poll for changes</h2>
 Poll selected libraries right now for changes.
-<h3>Re-import all comics</h3>
+<h2>Re-import all comics</h2>
 Forcibly update all the comics for a library, overwrite the database and regenerate covers.
-<h3>Re-create all covers</h3>
+<h2>Re-create all covers</h2>
 Recreate all the comic covers for a library.
 </div>
 {% endblock %}

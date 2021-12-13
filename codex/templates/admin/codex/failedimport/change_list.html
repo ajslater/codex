@@ -2,9 +2,17 @@
 
 {% block footer %}
 <div id="footer">
-<h2>Failed Imports</h2>
-Comic archives that have failed to import.<br />
-This list is updated every library scan.<br />
-You should probably review these files and fix or remove them. If the comic looks good to you, it might be Codex's fault for not importing it correctly and you should file an <a href="https://github.com/ajslater/codex/issues">Issue Report</a>. Please include the stack trace from the logs at <code>config/logs/codex.log</code> if you can.
+<h1>Failed Imports</h1>
+<p>
+Comic archives that have failed to import.
+This list is updated every time the library updates. 
+</p>
+<p>
+You should probably review these files and fix or remove them. 
+If you've removed or fixed the unimportable comics in your library you can try polling the library to clear these.
+</p>
+</p>
+If the comic looks good to you, but still shows up as a failed import, it might be Codex's fault for not importing it correctly and you should file an <a href="https://github.com/ajslater/codex/issues">Issue Report</a>. Please include the stack trace from the logs at <code>config/logs/codex.log</code> if you can.
+</p>
 </div>
 {% endblock %}
