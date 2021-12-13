@@ -47,7 +47,12 @@
           label="Imprint"
           :show="editMode"
         />
-        <MetadataCombobox :value="md.series" label="Series" :show="editMode" />
+        <MetadataCombobox
+          class="series"
+          :value="md.series"
+          label="Series"
+          :show="editMode"
+        />
         <div class="publishRow">
           <MetadataCombobox
             id="volume"
@@ -511,7 +516,8 @@ export default {
     font-size: 12px;
   }
   .publisher,
-  .imprint {
+  .imprint,
+  .series {
     padding-top: 15px !important;
     width: 100%;
   }
