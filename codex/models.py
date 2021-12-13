@@ -486,8 +486,7 @@ class FailedImport(WatchedPath):
         reason = str(exc)
         suffixes = (f": {self.path}", f": '{self.path}'")
         for suffix in suffixes:
-            if reason.endswith(suffix):
-                reason = reason[: -len(suffix)]
+            reason = reason.removesuffix(suffix)
         reason = reason[: self.MAX_REASON_LEN]
         self.name = reason.strip()
 
