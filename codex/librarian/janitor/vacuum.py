@@ -24,11 +24,7 @@ def vacuum_db():
 
 def backup_db():
     """Backup the database."""
-    try:
-        # python 3.8 missingok=True
-        BACKUP_DB_PATH.unlink()
-    except FileNotFoundError:
-        pass
+    BACKUP_DB_PATH.unlink(missing_ok=True)
     with connection.cursor() as cursor:
         cursor.execute(f"VACUUM INTO '{BACKUP_DB_PATH}'")
     LOG.verbose("Backed up database.")  # type: ignore
