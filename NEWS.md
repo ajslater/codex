@@ -1,6 +1,6 @@
 # Codex News
 
-## v0.7.0rc10
+## v0.7.0rc11
 
 - Features
   - Big speed up to importing comics for large imports.
