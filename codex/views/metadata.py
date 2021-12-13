@@ -64,6 +64,7 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
         "i": ("series", "volume"),
         "s": ("volume",),
         "v": tuple(),
+        "c": COMIC_FK_FIELDS,
     }
     COMIC_FK_ANNOTATION_PREFIX = "fk_"
     COMIC_RELATED_VALUE_FIELDS = set(("series__volume_count", "volume__issue_count"))
@@ -92,21 +93,28 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
     def get_comic_value_fields(self, group):
         """Include the path field for staff."""
         fields = self.COMIC_VALUE_FIELDS
-        if self.is_admin() and group != "f":
+        if self.is_admin() and group not in ("c", "f"):
             fields |= self.ADMIN_COMIC_VALUE_FIELDS
         return fields
 
     def _intersection_annotate(
-        self, simple_qs, qs, fields, related_suffix="", annotation_prefix=""
+        self,
+        simple_qs,
+        qs,
+        fields,
+        is_model_comic,
+        related_suffix="",
+        annotation_prefix="",
     ):
         """Annotate the intersection of value and fk fields."""
         for field in fields:
-            comic_rel_field = f"comic__{field}"
+            if is_model_comic:
+                comic_rel_field = field
+            else:
+                comic_rel_field = f"comic__{field}"
 
             # Annotate groups and counts
             csq = simple_qs.values(comic_rel_field).distinct()
-            # print(field + ": ", end="")
-            # pprint(csq)
             count_field = f"count_{field}".replace("__", "_")
             # XXX This conversion to a value instead of a subquery could be better
             qs = qs.annotate(**{count_field: Value(csq.count(), IntegerField())})
@@ -160,25 +168,30 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
 
     def annotate_values_and_fks(self, qs, simple_qs, group):
         """Annotate comic values and comic foreign key values."""
+        is_model_comic = group == "c"
         # Simple Values
         comic_value_fields = self.get_comic_value_fields(group)
-        qs = self._intersection_annotate(simple_qs, qs, comic_value_fields)
+        if not is_model_comic:
+            qs = self._intersection_annotate(
+                simple_qs, qs, comic_value_fields, is_model_comic
+            )
 
-        # Conflicting Simple Values
-        qs = self._intersection_annotate(
-            simple_qs,
-            qs,
-            self.COMIC_VALUE_FIELDS_CONFLICTING,
-            annotation_prefix=self.COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
-        )
+            # Conflicting Simple Values
+            qs = self._intersection_annotate(
+                simple_qs,
+                qs,
+                self.COMIC_VALUE_FIELDS_CONFLICTING,
+                is_model_comic,
+                annotation_prefix=self.COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
+            )
 
         # Foreign Keys
         fk_fields = self.COMIC_FK_FIELDS_MAP[group]
-        # qs = self._annotate_group_name(model, qs)
         qs = self._intersection_annotate(
             simple_qs,
             qs,
             fk_fields,
+            is_model_comic,
             related_suffix="__name",
             annotation_prefix=self.COMIC_FK_ANNOTATION_PREFIX,
         )
@@ -188,17 +201,22 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
             simple_qs,
             qs,
             self.COMIC_RELATED_VALUE_FIELDS,
+            is_model_comic,
             annotation_prefix=self.COMIC_FK_ANNOTATION_PREFIX,
         )
         return qs
 
-    def query_m2m_intersections(self, simple_qs):
+    def query_m2m_intersections(self, simple_qs, is_model_comic):
         """Query the through models to figure out m2m intersections."""
         # Speed ok, but still does a query per m2m model
         # XXX Could annotate count all the tags and only select those that
         # have num_child counts
         m2m_intersections = {}
-        comic_pks = simple_qs.values_list("comic__pk", flat=True)
+        if is_model_comic:
+            pk_field = "pk"
+        else:
+            pk_field = "comic__pk"
+        comic_pks = simple_qs.values_list(pk_field, flat=True)
         for field_name in self.COMIC_M2M_FIELDS:
             ThroughModel = getattr(Comic, field_name).through  # noqa: N806
             rel_table_name = field_name[:-1].replace("_", "")
@@ -240,12 +258,15 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
             "name",
         )
 
-        # this comes after fk_fields copy because of name
-        self._field_copy(
-            obj,
-            self.COMIC_VALUE_FIELDS_CONFLICTING,
-            self.COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
-        )
+        is_model_comic = group == "c"
+        if not is_model_comic:
+            # this must come after fk_fields copy because of name
+            # for fk models
+            self._field_copy(
+                obj,
+                self.COMIC_VALUE_FIELDS_CONFLICTING,
+                self.COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
+            )
 
         for field_name, values in m2m_intersections.items():
             m2m_dicts = []
@@ -258,38 +279,33 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
                 for pk, name in values:
                     m2m_dicts += [{"pk": pk, "name": name}]
             obj[field_name] = m2m_dicts
+
+        # Don't expose the filesystem
+        obj["folders"] = None
+        if not self.is_admin():
+            obj["path"] = None
         return obj
 
     def get_metadata_object(self):
         """Create a comic-like object from the current browser group."""
+        # Comic model goes through the same code path as groups because
+        # values dicts don't copy relations to the serializer. The values
+        # dict is neccessary because of the folders view union in browser.py.
         group = self.kwargs["group"]
         model = self.GROUP_MODEL[group]
         if not model:
             raise ValueError(f"No model found for {group=}")
         is_model_comic = model == Comic
-        pk = self.kwargs["pk"]
 
         aggregate_filter = self.get_aggregate_filter(is_model_comic)
+        pk = self.kwargs["pk"]
         qs = model.objects.filter(pk=pk).filter(aggregate_filter)
 
         qs = self.annotate_aggregates(qs, model, is_model_comic)
-
-        if is_model_comic:
-            # if the model is a comic, return it.
-            obj = qs.values()[0]
-            # XXX do select & prefetch for all queries in this file
-            if not self.is_admin():
-                obj["path"] = None  # type: ignore
-            obj["folders"] = None
-            return obj
-
-        # XXX Could select related (fks) & prefetch related (m2m) here.
-        # Add each progressively?
-
         simple_qs = qs
+
         qs = self.annotate_values_and_fks(qs, simple_qs, group)
-        m2m_intersections = self.query_m2m_intersections(simple_qs)
-        # XXX do select & prefetch for all queries in this file
+        m2m_intersections = self.query_m2m_intersections(simple_qs, is_model_comic)
         obj = qs.values()[0]
         obj = self.copy_annotations_into_comic_fields(
             obj, model, group, m2m_intersections
