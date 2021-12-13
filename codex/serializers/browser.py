@@ -15,10 +15,10 @@ from rest_framework.serializers import (
 )
 
 from codex.serializers.webpack import CHOICES, VUETIFY_NULL_CODE
+from codex.serializers.mixins import UnionFixSerializerMixin
 
 
 VUETIFY_NULL_CODE_STR = str(VUETIFY_NULL_CODE)
-UNIONFIX_PREFIX = "unionfix_"
 
 
 def validate_decades(decades):
@@ -143,10 +143,8 @@ class BrowserSettingsSerializer(Serializer):
     show = BrowserSettingsShowGroupFlagsSerializer()
 
 
-class BrowserCardSerializer(Serializer):
+class BrowserCardSerializer(UnionFixSerializerMixin, Serializer):
     """Generic browse object."""
-
-    UNIONFIX_KEYS = ("cover_path", "issue")
 
     pk = IntegerField(read_only=True)
     group = CharField(read_only=True, max_length=1)
@@ -161,19 +159,6 @@ class BrowserCardSerializer(Serializer):
     finished = BooleanField(read_only=True, allow_null=True)
     bookmark = IntegerField(read_only=True, allow_null=True)
     order_value = CharField(read_only=True)
-
-    def to_representation(self, instance):
-        """
-        Copy prefixed input annotations back to regular field names.
-
-        This jankyness because folder/comic unions fail unless
-        fields are annotated in the exact same order.
-        """
-        if instance:
-            for key in self.UNIONFIX_KEYS:
-                instance[key] = instance.get(f"{UNIONFIX_PREFIX}{key}")
-
-        return super().to_representation(instance)
 
 
 class BrowserRouteSerializer(Serializer):

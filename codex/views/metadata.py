@@ -136,19 +136,19 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
         if not op_field_names:
             return
         count_field, count_src_field_name = op_field_names
-        val[count_field] = getattr(obj, count_src_field_name)
+        val[count_field] = obj[count_src_field_name]
 
     @classmethod
     def _field_copy(cls, obj, fields, prefix, fk_field=None):
         """Copy annotation fields into comic type fields."""
         for field_name in fields:
             src_field_name = f"{prefix}{field_name}"
-            val = getattr(obj, src_field_name)
+            val = obj[src_field_name]
             if fk_field:
                 val = {fk_field: val}
                 # Add special count fields
                 cls._field_copy_fk_count(field_name, obj, val)
-            setattr(obj, field_name, val)
+            obj[field_name] = val
 
     def annotate_aggregates(self, qs, model, is_model_comic):
         """Annotate aggregate values."""
@@ -232,7 +232,7 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
     def copy_annotations_into_comic_fields(self, obj, model, group, m2m_intersections):
         """Copy a bunch of values that i couldn't fit cleanly in the main queryset."""
         group_field = model.__name__.lower()
-        setattr(obj, group_field, {"name": obj.name})
+        obj[group_field] = {"name": obj["name"]}
         self._field_copy(
             obj,
             self.COMIC_FK_FIELDS_MAP[group],
@@ -257,7 +257,7 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
             else:
                 for pk, name in values:
                     m2m_dicts += [{"pk": pk, "name": name}]
-            setattr(obj, field_name, m2m_dicts)
+            obj[field_name] = m2m_dicts
         return obj
 
     def get_metadata_object(self):
@@ -276,10 +276,11 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
 
         if is_model_comic:
             # if the model is a comic, return it.
-            obj = qs[0]
+            obj = qs.values()[0]
+            # XXX do select & prefetch for all queries in this file
             if not self.is_admin():
-                obj.path = None  # type: ignore
-            obj.folders.set([])
+                obj["path"] = None  # type: ignore
+            obj["folders"] = None
             return obj
 
         # XXX Could select related (fks) & prefetch related (m2m) here.
@@ -289,7 +290,7 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
         qs = self.annotate_values_and_fks(qs, simple_qs, group)
         m2m_intersections = self.query_m2m_intersections(simple_qs)
         # XXX do select & prefetch for all queries in this file
-        obj = qs[0]
+        obj = qs.values()[0]
         obj = self.copy_annotations_into_comic_fields(
             obj, model, group, m2m_intersections
         )

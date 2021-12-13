@@ -10,11 +10,11 @@ from stringcase import snakecase
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, BulkComicCoverCreateTask
 from codex.models import AdminFlag, Comic, Folder, Imprint, Library, Volume
 from codex.serializers.browser import (
-    UNIONFIX_PREFIX,
     BrowserOpenedSerializer,
     BrowserPageSerializer,
     BrowserSettingsSerializer,
 )
+from codex.serializers.mixins import UNIONFIX_PREFIX
 from codex.version import PACKAGE_NAME, VERSION, get_latest_version
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser_metadata_base import BrowserMetadataBase

@@ -2,10 +2,11 @@
 
 from rest_framework.serializers import BooleanField, DecimalField, IntegerField
 
+from codex.serializers.mixins import UnionFixSerializerMixin
 from codex.serializers.models import ComicSerializer
 
 
-class MetadataSerializer(ComicSerializer):
+class MetadataSerializer(UnionFixSerializerMixin, ComicSerializer):
     """Aggregate stats for the comics selected in the metadata dialog."""
 
     # Aggregate Annotations

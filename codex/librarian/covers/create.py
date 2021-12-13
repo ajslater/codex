@@ -11,7 +11,7 @@ from PIL import Image
 from codex.librarian.covers import COVER_ROOT
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, BulkComicCoverCreateTask
 from codex.models import Comic, Library
-from codex.serializers.browser import UNIONFIX_PREFIX
+from codex.serializers.mixins import UNIONFIX_PREFIX
 
 
 THUMBNAIL_SIZE = (120, 180)

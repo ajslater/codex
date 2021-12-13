@@ -19,7 +19,7 @@ from django.db.models import (
 from django.db.models.functions import Cast, Coalesce, NullIf
 
 from codex.models import Comic, Folder
-from codex.serializers.browser import UNIONFIX_PREFIX
+from codex.serializers.mixins import UNIONFIX_PREFIX
 from codex.views.browser_base import BrowserBaseView
 
 
