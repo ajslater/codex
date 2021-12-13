@@ -55,8 +55,7 @@ def _get_invalid_m2m_ids(comic_model, m2m_model, field_name):
     )
     valid_m2m_ids = set(m2m_model.objects.all().values_list("pk", flat=True))
     invalid_m2m_ids = comic_m2m_ids - valid_m2m_ids - set([None])
-    num_invalid_m2m_ids = len(invalid_m2m_ids)
-    if num_invalid_m2m_ids:
+    if (num_invalid_m2m_ids := len(invalid_m2m_ids)):
         LOG.verbose(  # type: ignore
             f"Comic.{field_name} - valid: {len(valid_m2m_ids)},"
             f" invalid: {num_invalid_m2m_ids}"
@@ -129,8 +128,7 @@ def _mark_comics_with_bad_m2m_rels_for_update(comic_model, field_name, bad_comic
             comic.stat = stat_list
             update_comics.append(comic)
 
-        num_update_comics = len(update_comics)
-        if not num_update_comics:
+        if not (num_update_comics := len(update_comics)):
             return
 
         comic_model.objects.bulk_update(update_comics, fields=["stat"])
@@ -200,8 +198,7 @@ def _find_fk_integrity_errors(apps, host_model_name, fk_model_name, fk_field_nam
 
 def _delete_query(query, host_model_name, fk_model_name):
     """Execute the delete on the query."""
-    num_bad = query.count()
-    if num_bad:
+    if (num_bad := query.count()):
         query.delete()
         LOG.info(f"Deleted {num_bad} {host_model_name}s in nonextant {fk_model_name}s.")
 
