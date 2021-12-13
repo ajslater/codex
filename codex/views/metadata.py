@@ -52,18 +52,18 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
     COMIC_VALUE_FIELDS_CONFLICTING_PREFIX = "conflict_"
     COMIC_FK_FIELDS = set(
         (
-            "imprint",
             "publisher",
+            "imprint",
             "series",
             "volume",
         )
     )
     COMIC_FK_FIELDS_MAP = {
         "f": COMIC_FK_FIELDS,
-        "p": ("imprint", "series", "volume"),
-        "i": ("series", "volume"),
-        "s": ("volume",),
-        "v": tuple(),
+        "p": COMIC_FK_FIELDS - set(["publisher"]),
+        "i": COMIC_FK_FIELDS - set(["imprint"]),
+        "s": COMIC_FK_FIELDS - set(["series"]),
+        "v": COMIC_FK_FIELDS - set(["volume"]),
         "c": COMIC_FK_FIELDS,
     }
     COMIC_FK_ANNOTATION_PREFIX = "fk_"
