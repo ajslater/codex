@@ -1,6 +1,7 @@
 # Codex News
 
-## v0.7.0rc16 - "Feels Snappier"
+## v0.7.0rc17
+###### Feels Snappier
 
 - Database Migration
   - v0.7.0 changes the database schema. Databases run with v0.7.0+ will not run on previous versions of codex.
@@ -33,7 +34,6 @@
   - Tentative linux/armhf support. No way for me to test this
   - Vacuum the sqllite database once a day to prevent bloat
   - Corrupt database rebuild procedure. See README.
-- Updated dependencies
 
 ## v0.6.7
 
@@ -53,7 +53,8 @@
 
 ## v0.6.3
 
-- Add LOGLEVEL environment variable. Set to DEBUG to see everything.
+- Add LOGLEVEL environment variable. 
+	- Set to DEBUG to see everything.
 - Removed DEV environment variable.
 - Possible fix for newly imported covers not displaying.
 
@@ -67,7 +68,8 @@
 
 - Fix librarian startup crash. Prevented admin actions from happening.
 
-## v0.6.0 - "Better Filtering and Sorting"
+## v0.6.0
+###### Better Filtering and Sorting
 
 - New Filters
 - New sort options: Updated Time and Maturity Rating
@@ -98,7 +100,7 @@
 
 ## v0.5.15
 
-- Metadata popup is now 1000x+ faster.
+- Metadata popup is now faster.
 - Metadata popup now shows created_at, updated_at and path (if admin).
 - Removed numeric and common password validators. Made the minimum length 4.
 
@@ -144,7 +146,7 @@
 - display sort key value in browse tile
 - display standard image for missing covers
 - slightly more helpful 404 page
-- comicbox 0.1.4 fixes import bugs
+- fix import bugs
 
 ## v0.5.8
 
@@ -152,7 +154,7 @@
 
 ## v0.5.7
 
-- update comicbox to v1.3 should fix import crashes
+- fix import crashes
 - allow credits with an empty role
 - pagination of large browse results
 - center comic pages better
@@ -191,23 +193,28 @@
 
 - Minor bugfixes. Rebuild for pypi
 
-## v0.5.0 - "First useful working version"
+## v0.5.0
+###### First useful working version
 
 - Productionized alpha release
 
-## v0.4.0 - "Polished UI"
+## v0.4.0
+###### Polished UI
 
 - Polished VueJS frontend
 
-## v0.3.0 - "I'm a frontend developer"
+## v0.3.0
+###### I'm a frontend developer
 
 - Single Page VueJS frontend PoC without much styling
 
-## v0.2.0 - "It's alive"
+## v0.2.0
+###### It's alive
 
 - Working application with all initial features
 - Django frontend
 
-## v0.1.0 - "Hello world"
+## v0.1.0
+###### Hello world
 
 - Proof of concept.

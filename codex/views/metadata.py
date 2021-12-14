@@ -1,4 +1,5 @@
 """View for marking comics read and unread."""
+from copy import copy
 from logging import getLogger
 
 from django.contrib.auth.models import User
@@ -93,9 +94,9 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
 
     def get_comic_value_fields(self):
         """Include the path field for staff."""
-        fields = self.COMIC_VALUE_FIELDS
-        is_path_group = self.group in self.PATH_GROUPS
-        if self.is_admin and not is_path_group:
+        fields = copy(self.COMIC_VALUE_FIELDS)
+        is_not_path_group = self.group not in self.PATH_GROUPS
+        if self.is_admin and is_not_path_group:
             fields |= self.ADMIN_COMIC_VALUE_FIELDS
         return fields
 
@@ -163,8 +164,8 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
     def annotate_values_and_fks(self, qs, simple_qs):
         """Annotate comic values and comic foreign key values."""
         # Simple Values
-        comic_value_fields = self.get_comic_value_fields()
         if not self.is_model_comic:
+            comic_value_fields = self.get_comic_value_fields()
             qs = self._intersection_annotate(simple_qs, qs, comic_value_fields)
 
             # Conflicting Simple Values
@@ -176,7 +177,7 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
             )
 
         # Foreign Keys
-        fk_fields = self.COMIC_FK_FIELDS_MAP[self.group]
+        fk_fields = copy(self.COMIC_FK_FIELDS_MAP[self.group])
         qs = self._intersection_annotate(
             simple_qs,
             qs,
@@ -241,7 +242,7 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
             raise ValueError(f"Cannot get metadata for {self.group=}")
         group_field = self.model.__name__.lower()
         obj[group_field] = {"name": obj["name"]}
-        comic_fk_fields = self.COMIC_FK_FIELDS_MAP[self.group]
+        comic_fk_fields = copy(self.COMIC_FK_FIELDS_MAP[self.group])
         self._field_copy(
             obj,
             comic_fk_fields,
