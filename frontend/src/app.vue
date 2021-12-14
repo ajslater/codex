@@ -1,19 +1,19 @@
 <template>
   <v-app>
     <router-view />
-    <NotifyScan />
+    <NotifySnackBar />
   </v-app>
 </template>
 
 <script>
 import { mapState } from "vuex";
 
-import NotifyScan from "@/components/notify-scan";
+import NotifySnackBar from "@/components/notify";
 
 export default {
   name: "App",
   components: {
-    NotifyScan,
+    NotifySnackBar,
   },
   computed: {
     ...mapState("auth", {

@@ -4,14 +4,14 @@ import WS_MESSAGES from "@/choices/websocketMessages";
 import { NOTIFY_STATES } from "./modules/notify";
 
 const WS_TIMEOUT = 19 * 1000;
-const SCAN_MESSAGES = new Set([
-  WS_MESSAGES.SCAN_LIBRARY,
-  WS_MESSAGES.SCAN_DONE,
+const NOTIFY_MESSAGES = new Set([
+  WS_MESSAGES.LIBRARY_UPDATE_IN_PROGRESS,
+  WS_MESSAGES.LIBRARY_UPDATE_DONE,
   WS_MESSAGES.FAILED_IMPORTS,
 ]);
 const NOTIFY_MAP = {
-  [WS_MESSAGES.SCAN_LIBRARY]: NOTIFY_STATES.SCANNING,
-  [WS_MESSAGES.SCAN_DONE]: NOTIFY_STATES.OFF,
+  [WS_MESSAGES.LIBRARY_UPDATE_IN_PROGRESS]: NOTIFY_STATES.LIBRARY_UPDATING,
+  [WS_MESSAGES.LIBRARY_UPDATE_DONE]: NOTIFY_STATES.OFF,
   [WS_MESSAGES.FAILED_IMPORTS]: NOTIFY_STATES.FAILED,
 };
 
@@ -61,7 +61,7 @@ const mutations = {
     if (msg === WS_MESSAGES.LIBRARY_CHANGED) {
       // browser
       this.dispatch("browser/browserPageStale", { showProgress: false });
-    } else if (SCAN_MESSAGES.has(msg)) {
+    } else if (NOTIFY_MESSAGES.has(msg)) {
       // notify
       const notify = NOTIFY_MAP[msg]; // translate message to state.t s
       this.dispatch("notify/notifyChanged", notify);

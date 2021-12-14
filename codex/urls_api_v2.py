@@ -28,7 +28,7 @@ from codex.views.browser import BrowserView
 from codex.views.browser_choices import BrowserChoiceView
 from codex.views.download import ComicDownloadView
 from codex.views.metadata import MetadataView
-from codex.views.notify import ScanNotifyView
+from codex.views.notify import NotifyView
 from codex.views.reader import ComicOpenedView, ComicPageView
 
 
@@ -86,9 +86,9 @@ urlpatterns = [
     #
     # Notify
     path(
-        "notify/scan",
-        cache_control(max_age=5)(ScanNotifyView.as_view()),
-        name="notify_scan",
+        "notify",
+        cache_control(max_age=5)(NotifyView.as_view()),
+        name="notify",
     ),
     #
     # Auth

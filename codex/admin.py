@@ -73,19 +73,19 @@ class AdminLibrary(ModelAdmin):
 
     @staticmethod
     def queue_poll(queryset, force):
-        """Queue a scan task for the library."""
+        """Queue a poll task for the library."""
         pks = queryset.values_list("pk", flat=True)
         task = PollLibrariesTask(pks, force)
         LIBRARIAN_QUEUE.put(task)
 
     def poll(self, request, queryset):
-        """Scan for new comics."""
+        """Poll for new comics."""
         self.queue_poll(queryset, False)
 
     poll.short_description = "Poll for changes"
 
     def force_poll(self, request, queryset):
-        """Scan all comics."""
+        """Poll all comics."""
         self.queue_poll(queryset, True)
 
     force_poll.short_description = "Re-import all comics"
@@ -102,7 +102,7 @@ class AdminLibrary(ModelAdmin):
         LibraryChangeThread().start()
 
     def save_model(self, request, obj, form, change):
-        """Trigger watching and scanning on update or creation."""
+        """Trigger watching and polling on update or creation."""
         created = obj.pk is None
         super().save_model(request, obj, form, change)
         if change or created:

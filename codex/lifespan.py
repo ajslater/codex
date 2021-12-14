@@ -53,7 +53,7 @@ def init_admin_flags():
 
 
 def unset_update_in_progress():
-    """Unset the scan_in_progress flag for all libraries."""
+    """Unset the update_in_progress flag for all libraries."""
     count = Library.objects.filter(update_in_progress=True).update(
         update_in_progress=False, updated_at=Now()
     )

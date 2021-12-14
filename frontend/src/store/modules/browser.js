@@ -170,8 +170,8 @@ const mutations = {
       state.formChoices[choiceName] = null;
     }
   },
-  setScanNotify(state, data) {
-    state.scanNotify = data.scanInProgress;
+  setUpdateNotify(state, data) {
+    state.updateNotify = data.updateInProgress;
   },
 };
 

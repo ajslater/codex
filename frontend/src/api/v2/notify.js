@@ -2,8 +2,8 @@
 import { ajax, API_PREFIX, ROOT_PATH } from "./base";
 
 export const FAILED_IMPORT_URL = `${ROOT_PATH}admin/codex/failedimport/`;
-const getScanInProgress = () => {
-  return ajax("get", `notify/scan`);
+const getUpdateInProgress = () => {
+  return ajax("get", `notify`);
 };
 
 const getSocketURL = () => {
@@ -16,5 +16,5 @@ const getSocketURL = () => {
 export const SOCKET_URL = getSocketURL();
 
 export default {
-  getScanInProgress,
+  getUpdateInProgress,
 };

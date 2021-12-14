@@ -9,7 +9,7 @@
     hide-details="auto"
     ripple
     :menu-props="{
-      maxHeight: '80vh',
+      maxHeight: '90vh',
       overflowY: false,
       contentClass: filterMenuClass,
     }"

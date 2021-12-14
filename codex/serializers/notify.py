@@ -2,7 +2,7 @@
 from rest_framework.serializers import BooleanField, Serializer
 
 
-class ScanNotifySerializer(Serializer):
-    """Scan notify flag."""
+class NotifySerializer(Serializer):
+    """Update notify flag."""
 
-    scanInProgress = BooleanField(read_only=True)  # noqa: N815
+    updateInProgress = BooleanField(read_only=True)  # noqa: N815

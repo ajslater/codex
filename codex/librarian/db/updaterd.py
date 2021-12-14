@@ -102,7 +102,7 @@ def apply(task):
     _log_task(library.path, task)
     library.update_in_progress = True
     library.save()
-    LIBRARIAN_QUEUE.put(AdminNotifierTask("SCAN_LIBRARY"))
+    LIBRARIAN_QUEUE.put(AdminNotifierTask("LIBRARY_UPDATE_IN_PROGRESS"))
 
     changed = False
     changed |= bulk_folders_moved(library, task.dirs_moved)
@@ -122,7 +122,7 @@ def apply(task):
     if FailedImport.objects.all().exists():
         text = "FAILED_IMPORTS"
     else:
-        text = "SCAN_DONE"
+        text = "LIBRARY_UPDATE_DONE"
     LIBRARIAN_QUEUE.put(AdminNotifierTask(text))
     if changed:
         LIBRARIAN_QUEUE.put(BroadcastNotifierTask("LIBRARY_CHANGED"))
