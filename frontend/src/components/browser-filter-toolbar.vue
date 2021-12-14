@@ -42,6 +42,7 @@ export default {
 
 <style scoped lang="scss">
 #filterToolbar {
+  padding-top: 6px; /* for filter labels */
   width: 100vw;
 }
 #filterToolbarItems {

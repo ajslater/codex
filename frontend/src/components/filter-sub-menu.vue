@@ -156,6 +156,6 @@ export default {
 .filterHeader {
 }
 .filterGroup {
-  max-height: 80vh; /* has to be less than the menu height */
+  max-height: 90vh; /* has to be less than the menu height */
 }
 </style>
