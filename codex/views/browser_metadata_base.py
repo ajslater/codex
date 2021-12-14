@@ -63,20 +63,22 @@ class BrowserMetadataBase(BrowserBaseView):
         else:
             order_prefix = ""
 
+        order_key = ""
         if for_cover_path:
-            order_prefix += "comic__"
+            order_key += "comic__"
 
         # order_key
         if use_order_value:
-            order_key = "order_value"
+            order_key += "order_value"
         else:
-            order_key = self.params.get("sort_by", self.DEFAULT_ORDER_KEY)
+            order_key += self.params.get("sort_by", self.DEFAULT_ORDER_KEY)
 
+        order_keys = [order_key, "pk"]
         order_by = [order_prefix + order_key, order_prefix + "pk"]
         if model in (Comic, Folder):
             # This keeps position stability for duplicate comics & folders
             order_by += ["library"]
-        return order_by
+        return order_by, order_keys
 
     def annotate_cover_path(self, queryset, model):
         """Annotate the query set for the coverpath for the sort."""
@@ -85,7 +87,7 @@ class BrowserMetadataBase(BrowserBaseView):
         if model == Comic:
             cover_path = F("cover_path")
         else:
-            order_by = self.get_order_by(model, False, True)
+            order_by, _ = self.get_order_by(model, False, True)
             cover_path = Subquery(
                 queryset.filter(pk=OuterRef("pk"))
                 .order_by(*order_by)

@@ -407,7 +407,7 @@ class BrowserView(BrowserMetadataBase):
             obj_list = self.get_browser_group_queryset(object_filter)
 
         # Order
-        order_by = self.get_order_by(self.model, True)
+        order_by, order_keys = self.get_order_by(self.model, True)
         obj_list = obj_list.order_by(*order_by)
 
         # Pagination
@@ -425,7 +425,7 @@ class BrowserView(BrowserMetadataBase):
             comic_cover_tuple = obj_list
         else:
             comic_cover_tuple = obj_list.values(
-                "path", f"{UNIONFIX_PREFIX}cover_path", *order_by
+                "path", f"{UNIONFIX_PREFIX}cover_path", *order_keys
             )
         task = BulkComicCoverCreateTask(False, comic_cover_tuple)  # type: ignore
         LIBRARIAN_QUEUE.put_nowait(task)
