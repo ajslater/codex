@@ -1,6 +1,6 @@
-# Codex News
+# 📰 Codex News
 
-## v0.7.0rc17
+## v0.7.0
 
 ###### Feels Snappier
 
