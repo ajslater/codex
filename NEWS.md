@@ -1,6 +1,6 @@
 # Codex News
 
-## v0.7.0rc15 - "Feels Snappier"
+## v0.7.0rc16 - "Feels Snappier"
 
 - Database Migration
   - v0.7.0 changes the database schema. Databases run with v0.7.0+ will not run on previous versions of codex.

@@ -4,7 +4,7 @@ build-backend = ["poetry.core.masonry.api"]
 
 [tool.poetry]
 name = "codex"
-version = "0.7.0rc15"
+version = "0.7.0rc16"
 description = "A comic archive web server."
 license = "GPL-2.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
@@ -38,7 +38,7 @@ django-cors-headers = "^3.2"
 django-dark = "^0.1"
 fnvhash = "^0.1"
 humanize = "^3.12.0"
-hypercorn = { extras = ["h3"], version = "^0.12.0" }
+hypercorn = { extras = ["h3"], version = "^0.13.0" }
 Pillow = "^8.0"
 pycountry = "^20.7"
 simplejson = "^3.17"
@@ -54,7 +54,7 @@ black = "^21.9b0"
 codespell = "^2.1.0"
 coverage = { extras = ["toml"], version = "^6.0" }
 django-debug-toolbar = "^3.1"
-django-livereload-server = "^0.3"
+django-livereload-server = "^0.4"
 django-types = "^0.11.0"
 djangorestframework-types = "^0.6.0"
 flake8 = "^4.0"
@@ -78,7 +78,7 @@ vulture = "^2.3"
 codex = "codex.run:main"
 
 [tool.black]
-exclude = "/(.git|__pycache__|.pytest_cache|.venv|comics|frontend|typings)/"
+exclude = "/(.git|.mypy_cache|.pytest_cache|.venv|__pycache__|cache|codex/static_build|codex/static_root|comics|frontend|typings)/"
 
 [tool.coverage.run]
 source = ["codex"]
@@ -109,7 +109,7 @@ addopts = """
     --cov-report=term
     --flake8
     --isort
-    --ignore=.git,__pycache__|.venv|codex/migrations/|typings
+    --ignore=.git,.mypy_cache,.pytest_cache,.venv,__pycache__,cache,codex/static_build,codex/static_root,comics,config,typings
 """
 
 #    --mypy
@@ -117,9 +117,14 @@ addopts = """
 exclude = [
   "**/__pycache__",
   ".git",
+  ".mypy_cache",
   ".pytest_cache",
   ".venv",
+  "cache",
+  "codex/static_build",
+  "codex/static_root",
   "comics",
+  "config",
   "frontend",
   "typings"
 ]
