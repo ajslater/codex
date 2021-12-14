@@ -1,6 +1,7 @@
 # Codex News
 
 ## v0.7.0rc17
+
 ###### Feels Snappier
 
 - Database Migration
@@ -53,8 +54,8 @@
 
 ## v0.6.3
 
-- Add LOGLEVEL environment variable. 
-	- Set to DEBUG to see everything.
+- Add LOGLEVEL environment variable.
+  - Set to DEBUG to see everything.
 - Removed DEV environment variable.
 - Possible fix for newly imported covers not displaying.
 
@@ -69,6 +70,7 @@
 - Fix librarian startup crash. Prevented admin actions from happening.
 
 ## v0.6.0
+
 ###### Better Filtering and Sorting
 
 - New Filters
@@ -194,27 +196,32 @@
 - Minor bugfixes. Rebuild for pypi
 
 ## v0.5.0
+
 ###### First useful working version
 
 - Productionized alpha release
 
 ## v0.4.0
+
 ###### Polished UI
 
 - Polished VueJS frontend
 
 ## v0.3.0
+
 ###### I'm a frontend developer
 
 - Single Page VueJS frontend PoC without much styling
 
 ## v0.2.0
+
 ###### It's alive
 
 - Working application with all initial features
 - Django frontend
 
 ## v0.1.0
+
 ###### Hello world
 
 - Proof of concept.
