@@ -1,7 +1,11 @@
 """Serializer mixins."""
 
-from rest_framework.serializers import SerializerMetaclass
-from rest_framework.serializers import IntegerField, BooleanField, DecimalField
+from rest_framework.serializers import (
+    BooleanField,
+    DecimalField,
+    IntegerField,
+    SerializerMetaclass,
+)
 
 
 UNIONFIX_PREFIX = "unionfix_"
