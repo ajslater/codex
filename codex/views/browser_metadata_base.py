@@ -1,6 +1,4 @@
 """Base view for metadata annotations."""
-from decimal import Decimal
-
 from django.db.models import (
     Avg,
     BooleanField,
@@ -151,11 +149,7 @@ class BrowserMetadataBase(BrowserBaseView):
         # Requires bookmark and annotation hoisted from userbookmarks.
         # Requires page_count native to comic or aggregated
         queryset = queryset.annotate(
-            progress=Coalesce(
-                F("bookmark") * Decimal("1.0") / F("page_count") * 100,
-                Value(0.00),
-                output_field=DecimalField(max_digits=5, decimal_places=2),
-            )
+            progress=Coalesce(F("bookmark") * 100.0 / F("page_count"), 0.0)
         )
         return queryset
 
@@ -165,9 +159,7 @@ class BrowserMetadataBase(BrowserBaseView):
         qs = self.annotate_cover_path(qs, model)
         if not is_model_comic:
             qs = self.annotate_page_count(qs)
-            child_count_sum = Count(
-                "comic__pk", distinct=True
-            )  # , filter=aggregate_filter)
+            child_count_sum = Count("comic__pk", distinct=True)
         else:
             child_count_sum = Value(1, IntegerField())
         qs = qs.annotate(child_count=child_count_sum)
