@@ -84,16 +84,18 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
             "teams",
         )
     )
+    PATH_GROUPS = ("c", "f")
 
-    def is_admin(self):
+    def get_is_admin(self):
         """Is the current user an admin."""
         user = self.request.user
         return user and isinstance(user, User) and user.is_staff
 
-    def get_comic_value_fields(self, group):
+    def get_comic_value_fields(self):
         """Include the path field for staff."""
         fields = self.COMIC_VALUE_FIELDS
-        if self.is_admin() and group not in ("c", "f"):
+        is_path_group = self.group in self.PATH_GROUPS
+        if self.is_admin and not is_path_group:
             fields |= self.ADMIN_COMIC_VALUE_FIELDS
         return fields
 
@@ -102,13 +104,12 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
         simple_qs,
         qs,
         fields,
-        is_model_comic,
         related_suffix="",
         annotation_prefix="",
     ):
         """Annotate the intersection of value and fk fields."""
         for field in fields:
-            if is_model_comic:
+            if self.is_model_comic:
                 comic_rel_field = field
             else:
                 comic_rel_field = f"comic__{field}"
@@ -151,40 +152,35 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
                 cls._field_copy_fk_count(field_name, obj, val)
             obj[field_name] = val
 
-    def annotate_aggregates(self, qs, model, is_model_comic):
+    def annotate_aggregates(self, qs):
         """Annotate aggregate values."""
-        if not is_model_comic:
-            size_func = self.get_aggregate_func("size", is_model_comic)
+        if not self.is_model_comic:
+            size_func = self.get_aggregate_func("size", self.is_model_comic)
             qs = qs.annotate(size=size_func)
-        qs = self.annotate_common_aggregates(qs, model)
+        qs = self.annotate_common_aggregates(qs, self.model)
         return qs
 
-    def annotate_values_and_fks(self, qs, simple_qs, group):
+    def annotate_values_and_fks(self, qs, simple_qs):
         """Annotate comic values and comic foreign key values."""
-        is_model_comic = group == "c"
         # Simple Values
-        comic_value_fields = self.get_comic_value_fields(group)
-        if not is_model_comic:
-            qs = self._intersection_annotate(
-                simple_qs, qs, comic_value_fields, is_model_comic
-            )
+        comic_value_fields = self.get_comic_value_fields()
+        if not self.is_model_comic:
+            qs = self._intersection_annotate(simple_qs, qs, comic_value_fields)
 
             # Conflicting Simple Values
             qs = self._intersection_annotate(
                 simple_qs,
                 qs,
                 self.COMIC_VALUE_FIELDS_CONFLICTING,
-                is_model_comic,
                 annotation_prefix=self.COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
             )
 
         # Foreign Keys
-        fk_fields = self.COMIC_FK_FIELDS_MAP[group]
+        fk_fields = self.COMIC_FK_FIELDS_MAP[self.group]
         qs = self._intersection_annotate(
             simple_qs,
             qs,
             fk_fields,
-            is_model_comic,
             related_suffix="__name",
             annotation_prefix=self.COMIC_FK_ANNOTATION_PREFIX,
         )
@@ -194,18 +190,17 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
             simple_qs,
             qs,
             self.COMIC_RELATED_VALUE_FIELDS,
-            is_model_comic,
             annotation_prefix=self.COMIC_FK_ANNOTATION_PREFIX,
         )
         return qs
 
-    def query_m2m_intersections(self, simple_qs, is_model_comic):
+    def query_m2m_intersections(self, simple_qs):
         """Query the through models to figure out m2m intersections."""
         # Speed ok, but still does a query per m2m model
         # SPEED Could annotate count all the tags and only select those that
         # have num_child counts
         m2m_intersections = {}
-        if is_model_comic:
+        if self.is_model_comic:
             pk_field = "pk"
         else:
             pk_field = "comic__pk"
@@ -240,19 +235,21 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
             m2m_intersections[field_name] = set.intersection(*pk_sets.values())
         return m2m_intersections
 
-    def copy_annotations_into_comic_fields(self, obj, model, group, m2m_intersections):
+    def copy_annotations_into_comic_fields(self, obj, m2m_intersections):
         """Copy a bunch of values that i couldn't fit cleanly in the main queryset."""
-        group_field = model.__name__.lower()
+        if self.model is None:
+            raise ValueError(f"Cannot get metadata for {self.group=}")
+        group_field = self.model.__name__.lower()
         obj[group_field] = {"name": obj["name"]}
+        comic_fk_fields = self.COMIC_FK_FIELDS_MAP[self.group]
         self._field_copy(
             obj,
-            self.COMIC_FK_FIELDS_MAP[group],
+            comic_fk_fields,
             self.COMIC_FK_ANNOTATION_PREFIX,
             "name",
         )
 
-        is_model_comic = group == "c"
-        if not is_model_comic:
+        if not self.is_model_comic:
             # this must come after fk_fields copy because of name
             # for fk models
             self._field_copy(
@@ -275,7 +272,8 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
 
         # Don't expose the filesystem
         obj["folders"] = None
-        if not self.is_admin():
+        obj["parent_folder"] = None
+        if not self.is_admin:
             obj["path"] = None
         return obj
 
@@ -284,31 +282,31 @@ class MetadataView(BrowserMetadataBase, UserBookmarkMixin):
         # Comic model goes through the same code path as groups because
         # values dicts don't copy relations to the serializer. The values
         # dict is necessary because of the folders view union in browser.py.
-        group = self.kwargs["group"]
-        model = self.GROUP_MODEL[group]
-        if not model:
-            raise ValueError(f"No model found for {group=}")
-        is_model_comic = model == Comic
-
-        aggregate_filter = self.get_aggregate_filter(is_model_comic)
+        aggregate_filter = self.get_aggregate_filter(self.is_model_comic)
         pk = self.kwargs["pk"]
-        qs = model.objects.filter(pk=pk).filter(aggregate_filter)
+        if self.model is None:
+            raise ValueError(f"Cannot get metadata for {self.group=}")
+        qs = self.model.objects.filter(pk=pk).filter(aggregate_filter)
 
-        qs = self.annotate_aggregates(qs, model, is_model_comic)
+        qs = self.annotate_aggregates(qs)
         simple_qs = qs
 
-        qs = self.annotate_values_and_fks(qs, simple_qs, group)
-        m2m_intersections = self.query_m2m_intersections(simple_qs, is_model_comic)
+        qs = self.annotate_values_and_fks(qs, simple_qs)
+        m2m_intersections = self.query_m2m_intersections(simple_qs)
         obj = qs.values()[0]
-        obj = self.copy_annotations_into_comic_fields(
-            obj, model, group, m2m_intersections
-        )
+        obj = self.copy_annotations_into_comic_fields(obj, m2m_intersections)
         return obj
 
     def get(self, _request, *args, **kwargs):
         """Get metadata for a filtered browse group."""
         # Init
         self.params = self.get_session(self.BROWSER_KEY)
+        self.is_admin = self.get_is_admin()
+        self.group = self.kwargs["group"]
+        self.model = self.GROUP_MODEL[self.group]
+        if self.model is None:
+            raise ValueError(f"Cannot get metadata for {self.group=}")
+        self.is_model_comic = self.group == "c"
 
         obj = self.get_metadata_object()
 
