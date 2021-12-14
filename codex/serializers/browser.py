@@ -14,7 +14,7 @@ from rest_framework.serializers import (
     Serializer,
 )
 
-from codex.serializers.mixins import UnionFixSerializerMixin
+from codex.serializers.mixins import BrowserAggregateSerializerMixin
 from codex.serializers.webpack import CHOICES, VUETIFY_NULL_CODE
 
 
@@ -143,21 +143,17 @@ class BrowserSettingsSerializer(Serializer):
     show = BrowserSettingsShowGroupFlagsSerializer()
 
 
-class BrowserCardSerializer(UnionFixSerializerMixin, Serializer):
-    """Generic browse object."""
+class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
+    """Browse card displayed in the browser."""
 
     pk = IntegerField(read_only=True)
     group = CharField(read_only=True, max_length=1)
-    child_count = IntegerField(read_only=True, allow_null=True)
     cover_path = CharField(read_only=True)
     publisher_name = CharField(read_only=True)
     series_name = CharField(read_only=True)
     volume_name = CharField(read_only=True)
     name = CharField(read_only=True)
     issue = DecimalField(max_digits=5, decimal_places=1, read_only=True)
-    progress = DecimalField(read_only=True, max_digits=5, decimal_places=2)
-    finished = BooleanField(read_only=True, allow_null=True)
-    bookmark = IntegerField(read_only=True, allow_null=True)
     order_value = CharField(read_only=True)
 
 

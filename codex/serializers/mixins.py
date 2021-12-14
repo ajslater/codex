@@ -1,15 +1,24 @@
 """Serializer mixins."""
 
 from rest_framework.serializers import SerializerMetaclass
+from rest_framework.serializers import IntegerField, BooleanField, DecimalField
 
 
 UNIONFIX_PREFIX = "unionfix_"
 
 
-class UnionFixSerializerMixin(metaclass=SerializerMetaclass):
+class BrowserAggregateSerializerMixin(metaclass=SerializerMetaclass):
     """Mixin for browser & metadata serializers."""
 
     UNIONFIX_KEYS = ("cover_path", "issue")
+
+    # Aggregate Annotations
+    child_count = IntegerField(read_only=True)
+
+    # UserBookmark annotations
+    bookmark = IntegerField(read_only=True)
+    finished = BooleanField(read_only=True)
+    progress = DecimalField(max_digits=5, decimal_places=2, read_only=True)
 
     def to_representation(self, instance):
         """
