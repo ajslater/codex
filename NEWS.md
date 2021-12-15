@@ -1,5 +1,9 @@
 # 📰 Codex News
 
+## v0.7.2
+
+- Fix another integrity check bug
+
 ## v0.7.1
 
 - Fix and integrity check crash that happened with an older databases.

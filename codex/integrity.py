@@ -174,9 +174,7 @@ def _find_fk_integrity_errors_with_models(
     inner_qs = fk_model.objects.all()
     exclude_filter = {f"{fk_field_name}__in": inner_qs}
     invalid_host_objs = host_model.objects.exclude(**exclude_filter)
-    if (
-        host_model.__name__ == "Folder" and fk_field_name == "parent_folder"
-    ) or fk_field_name == "role":
+    if fk_field_name in ("parent_folder", "role"):
         # Special fields can be null
         # THIS IS VERY IMPORTANT TO AVOID DELETING ALL TOP LEVEL FOLDERS
         not_null_filter = {f"{fk_field_name}__isnull": False}

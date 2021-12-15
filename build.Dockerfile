@@ -13,6 +13,7 @@ WORKDIR /app
 COPY pyproject.toml poetry.lock /app/
 RUN poetry install --no-root --remove-untracked
 
+# hadolint ignore=DL3059
 RUN echo "**** install npm app dependencies ****"
 COPY frontend/package.json frontend/package-lock.json /app/frontend/
 WORKDIR /app/frontend
