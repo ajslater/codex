@@ -48,6 +48,7 @@ jobs:
           command: ./ci/buildx-create.sh
           name: Create buildx builder
       - run:
+          no_output_timeout: 120m
           command: ./build-multiarch.sh
           name: Build and cache images
       - run:
