@@ -1,5 +1,10 @@
 # 📰 Codex News
 
+## v0.7.1
+
+- Fix and integrity check crash that happened with an older databases.
+- Added `CODEX_SKIP_INTEGRITY_CHECK` env var.
+
 ## v0.7.0
 
 ###### Feels Snappier
