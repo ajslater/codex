@@ -1,4 +1,5 @@
 """Repair Database Integrity Errors."""
+import os
 import re
 import sqlite3
 
@@ -81,13 +82,16 @@ def _delete_invalid_m2m_rels(comic_model, m2m_model, field_name, invalid_m2m_ids
     batch_count = 0
     num_invalid_m2m_ids = len(invalid_m2m_ids)
     for invalid_m2m_ids_batch in _batch_filter_args(invalid_m2m_ids):
-        batch_count += len(invalid_m2m_ids_batch)
-        filter_args = {f"{link_name}_id__in": invalid_m2m_ids_batch}
-        query = ThroughModel.objects.filter(**filter_args)
-        bad_comic_ids |= set(query.values_list("comic_id", flat=True))
-        total_count += query.count()
-        query.delete()
-        LOG.debug(f"deleted {field_name} batch {batch_count}/{num_invalid_m2m_ids}")
+        try:
+            batch_count += len(invalid_m2m_ids_batch)
+            filter_args = {f"{link_name}_id__in": invalid_m2m_ids_batch}
+            query = ThroughModel.objects.filter(**filter_args)
+            bad_comic_ids |= set(query.values_list("comic_id", flat=True))
+            total_count += query.count()
+            query.delete()
+            LOG.debug(f"deleted {field_name} batch {batch_count}/{num_invalid_m2m_ids}")
+        except Exception as exc:
+            LOG.warning(exc)
     LOG.info(
         f"Deleted {total_count} relations from {len(bad_comic_ids)} "
         f"comics to missing {field_name}."
@@ -202,10 +206,13 @@ def _delete_query(query, host_model_name, fk_model_name):
 
 def _delete_fk_integrity_errors(apps, host_model_name, fk_model_name, fk_field_name):
     """Delete objects with bad integrity."""
-    bad_host_objs = _find_fk_integrity_errors(
-        apps, host_model_name, fk_model_name, fk_field_name
-    )
-    _delete_query(bad_host_objs, host_model_name, fk_model_name)
+    try:
+        bad_host_objs = _find_fk_integrity_errors(
+            apps, host_model_name, fk_model_name, fk_field_name
+        )
+        _delete_query(bad_host_objs, host_model_name, fk_model_name)
+    except Exception as exc:
+        LOG.warning(exc)
 
 
 def _null_missing_fk(host_model, fk_model, fk_field_name):
@@ -271,6 +278,7 @@ def _fix_db_integrity():
                 )
             else:
                 LOG.exception(exc)
+            LOG.warning(exc)
 
     LOG.verbose("Done with database integrity check.")  # type: ignore
 
@@ -278,6 +286,9 @@ def _fix_db_integrity():
 def repair_db():
     """Fix the db but trap errors if it goes wrong."""
     try:
+        if os.environ.get("CODEX_SKIP_INTEGRITY_CHECK"):
+            LOG.info("Skipping integrity check")
+            return
         ready = MigrationRecorder.Migration.objects.filter(
             app="codex", name=MIGRATION_0005
         ).exists()
@@ -295,7 +306,7 @@ def repair_db():
                 )
                 break
         if not ok:
-            raise exc
+            LOG.exception(exc)
     except Exception as exc:
         LOG.exception(exc)
 

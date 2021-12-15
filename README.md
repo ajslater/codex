@@ -149,6 +149,7 @@ The config directory also holds the main sqlite database, a django cache and com
 - `TIMEZONE` or `TZ` will explicitly the timezone in long format (e.g. `"America/Los Angeles"`). This is mostly useful inside Docker because codex cannot automatically detect the host machine's timezone.
 - `CODEX_CONFIG_DIR` will set the path to codex config directory. Defaults to `$CWD/config`
 - `CODEX_RESET_ADMIN=1` will reset the admin user and its password to defaults when codex starts.
+- `CODEX_SKIP_INTEGRITY_CHECK` will skip the database integrity repair that runs when codex starts.
 
 ### Reverse Proxy
 
