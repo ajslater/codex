@@ -4,7 +4,7 @@ build-backend = ["poetry.core.masonry.api"]
 
 [tool.poetry]
 name = "codex"
-version = "0.6.8"
+version = "0.7.0"
 description = "A comic archive web server."
 license = "GPL-2.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
@@ -28,54 +28,57 @@ exclude = ["*/**/*~", "codex/static_src/*", "codex/static_build/*"]
 # include codex/static_root doesn't work due to gitignore. Hack around it
 #   in the Dockerfile
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.9"
 ansicolors = "^1.1"
 bidict = "^0.21"
-comicbox = "^0.1.7"
-django = "^3.1"
+comicbox = "^0.2.1"
+django = "^4.0"
 djangorestframework = "^3.11"
 django-cors-headers = "^3.2"
 django-dark = "^0.1"
 fnvhash = "^0.1"
-hypercorn = { extras = ["h3"], version = "^0.11.0" }
+humanize = "^3.12.0"
+hypercorn = { extras = ["h3"], version = "^0.13.0" }
 Pillow = "^8.0"
 pycountry = "^20.7"
 simplejson = "^3.17"
 stringcase = "^1.2"
 requests = "^2.24"
+tzlocal = "^4.1"
 watchdog = "^2.0"
 websocket_client = "^1.2"
 whitenoise = { extras = ["brotli"], version = "^5.2" }
 
 [tool.poetry.dev-dependencies]
 black = "^21.9b0"
+codespell = "^2.1.0"
 coverage = { extras = ["toml"], version = "^6.0" }
-django-livereload-server = "^0.3"
 django-debug-toolbar = "^3.1"
+django-livereload-server = "^0.4"
+django-types = "^0.11.0"
+djangorestframework-types = "^0.6.0"
 flake8 = "^4.0"
 flake8-black = "^0.2"
 flake8-bugbear = "^21.3"
 flake8-docstrings = "^1.5"
-#monkeytype = "^20"
-#mypy = "^0.782"
 neovim = "^0.3"
 pep8-naming = "^0.12"
+pyright = "^0.0.13"
 pytest = "^6.0"
-pytest-asyncio = "^0.15"
+pytest-asyncio = "^0.16"
 pytest-black = "^0.3"
 pytest-cov = "^3.0"
 pytest-django = "^4.1"
 pytest-flake8 = "^1.0"
 pytest-isort = "^2.0"
-#pytest-monkeytype = "^1.0"
 radon = "^5.1"
+vulture = "^2.3"
 
-#vulture = "^2.1"
 [tool.poetry.scripts]
 codex = "codex.run:main"
 
 [tool.black]
-exclude = "/(.git|__pycache__|.pytest_cache|.venv|comics|frontend)/"
+exclude = "/(.git|.mypy_cache|.pytest_cache|.venv|__pycache__|cache|codex/static_build|codex/static_root|comics|frontend|typings)/"
 
 [tool.coverage.run]
 source = ["codex"]
@@ -87,7 +90,9 @@ omit = ["frontend"]
 directory = "test-results/coverage"
 
 [tool.vulture]
-exclude = [".venv"]
+exclude = [".venv", "node_modules", "typings"]
+min_confidence = 61
+sort_by_size = true
 
 [tool.pytest.ini_options]
 norecursedirs = ["frontend"]
@@ -96,7 +101,7 @@ DJANGO_SETTINGS_MODULE = "codex.settings.settings"
 addopts = """
     --junitxml=test-results/pytest/results.xml
     -ra
-    --strict
+    --strict-markers
     --black
     --cov
     --cov-append
@@ -104,6 +109,25 @@ addopts = """
     --cov-report=term
     --flake8
     --isort
-    --ignore=.git,__pycache__|.venv|codex/migrations/
+    --ignore=.git,.mypy_cache,.pytest_cache,.venv,__pycache__,cache,codex/static_build,codex/static_root,comics,config,typings
 """
+
 #    --mypy
+[tool.pyright]
+exclude = [
+  "**/__pycache__",
+  ".git",
+  ".mypy_cache",
+  ".pytest_cache",
+  ".venv",
+  "cache",
+  "codex/static_build",
+  "codex/static_root",
+  "comics",
+  "config",
+  "frontend",
+  "typings"
+]
+useLibraryCodeForTypes = true
+reportMissingImports = true
+reportImportCycles = true

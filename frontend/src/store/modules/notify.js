@@ -1,13 +1,13 @@
 import API from "@/api/v2/notify";
 
-const MIN_SCAN_WAIT = 5 * 1000;
-const MAX_SCAN_WAIT = 10 * 1000;
-const SCAN_WAIT_DELTA = MAX_SCAN_WAIT - MIN_SCAN_WAIT;
+const MIN_NOTIFY_CHECK_WAIT = 5 * 1000;
+const MAX_NOTIFY_CHECK_WAIT = 10 * 1000;
+const NOTIFY_CHECK_WAIT_DELTA = MAX_NOTIFY_CHECK_WAIT - MIN_NOTIFY_CHECK_WAIT;
 
 export const NOTIFY_STATES = {
   OFF: 1,
   CHECK: 2,
-  SCANNING: 3,
+  LIBRARY_UPDATING: 3,
   FAILED: 4,
   DISMISSED: 5,
 };
@@ -29,23 +29,27 @@ const notifyCheck = (commit, state) => {
     // If we have a sticky notification keep it.
     return;
   }
-  API.getScanInProgress()
+  API.getUpdateInProgress()
     .then((response) => {
       const data = response.data;
       let notify;
-      notify = data.scanInProgress ? NOTIFY_STATES.SCANNING : NOTIFY_STATES.OFF;
+      notify = data.updateInProgress
+        ? NOTIFY_STATES.LIBRARY_UPDATING
+        : NOTIFY_STATES.OFF;
       if (STICKY_STATES.has(state.notify)) {
         // If we received a sticky notification in the mean time, keep it.
         return;
       }
       commit("setNotify", notify);
-      if (state.notify != NOTIFY_STATES.SCANNING) {
-        // If we're not scanning don't keep checking.
+      if (state.notify != NOTIFY_STATES.LIBRARY_UPDATING) {
+        // If we're not updating don't keep checking.
         return;
       }
 
       // polite client thundering herd control
-      const wait = Math.floor(Math.random() * SCAN_WAIT_DELTA + MIN_SCAN_WAIT);
+      const wait = Math.floor(
+        Math.random() * NOTIFY_CHECK_WAIT_DELTA + MIN_NOTIFY_CHECK_WAIT
+      );
       return setTimeout(async () => {
         return notifyCheck(commit, state);
       }, wait);

@@ -15,14 +15,14 @@
         <div id="metadataBookCoverWrapper">
           <BookCover
             id="bookCover"
-            :cover-path="md.aggregates.x_cover_path"
+            :cover-path="md.cover_path"
             :group="group"
-            :child-count="md.pks.length"
-            :finished="md.aggregates.finished"
+            :child-count="md.child_count"
+            :finished="md.finished"
           />
           <v-progress-linear
             class="bookCoverProgress"
-            :value="md.aggregates.progress"
+            :value="md.progress"
             rounded
             background-color="inherit"
             height="2"
@@ -37,18 +37,19 @@
         >
         <MetadataCombobox
           class="publisher"
-          :value="md.comic.publisher"
+          :value="md.publisher"
           label="Publisher"
           :show="editMode"
         />
         <MetadataCombobox
           class="imprint"
-          :value="md.comic.imprint"
+          :value="md.imprint"
           label="Imprint"
           :show="editMode"
         />
         <MetadataCombobox
-          :value="md.comic.series"
+          class="series"
+          :value="md.series"
           label="Series"
           :show="editMode"
         />
@@ -56,13 +57,13 @@
           <MetadataCombobox
             id="volume"
             class="halfWidth"
-            :value="md.comic.volume"
+            :value="md.volume"
             label="Volume"
             :show="editMode"
           />
           <MetadataCombobox
             class="halfWidth"
-            :value="md.comic.volume_count"
+            :value="md.volume_count"
             label="Volume Count"
             :show="editMode"
           />
@@ -77,167 +78,138 @@
           />
           <MetadataCombobox
             class="halfWidth"
-            :value="md.comic.issue_count"
+            :value="md.issue_count"
             label="Issue Count"
             :show="editMode"
           />
         </div>
-        <MetadataCombobox
-          :value="md.comic.title"
-          label="Title"
-          :show="editMode"
-        />
+        <MetadataCombobox :value="md.name" label="Title" :show="editMode" />
       </header>
 
       <div id="metadataTable">
-        <span
-          v-if="editMode || md.comic.year || md.comic.month || md.comic.day"
-          id="dateRow"
-        >
+        <span v-if="editMode || md.year || md.month || md.day" id="dateRow">
           <MetadataAutocomplete
             :show="editMode"
-            :value="md.comic.year"
+            :value="md.year"
             label="Year"
             class="datePicker"
             type="number"
           />
           <MetadataAutocomplete
             :show="editMode"
-            :value="md.comic.month"
+            :value="md.month"
             label="Month"
             class="datePicker"
           />
           <MetadataAutocomplete
             :show="editMode"
-            :value="md.comic.day"
+            :value="md.day"
             label="Day"
             class="datePicker"
           />
         </span>
         <span id="uneditableMetadata">
           <div>
-            <span>
-              <span v-if="md.aggregates.bookmark"
-                >Read {{ md.aggregates.bookmark }} of </span
-              >{{ md.aggregates.x_page_count }} Pages
-              <span v-if="md.comic.finished">, Finished</span>
+            <span id="pagesProgress">
+              <span v-if="md.bookmark">Read {{ md.bookmark }} of </span
+              >{{ md.page_count }} pages<span v-if="md.progress > 0">
+                ({{ Math.round(md.progress) }}%)</span
+              >
+              <span v-if="md.finished"> Finished</span>,
             </span>
             <span id="size">
-              {{ md.aggregates.size | bytes }}
+              {{ md.size | bytes }}
             </span>
           </div>
           <table id="mtime">
-            <tr v-if="md.comic.created_at" id="created_at">
+            <tr v-if="md.created_at" id="created_at">
               <td>Created at</td>
-              <td>{{ formatDatetime(md.comic.updated_at) }}</td>
+              <td>{{ formatDatetime(md.created_at) }}</td>
             </tr>
-            <tr v-if="md.comic.updated_at" id="updated_at">
+            <tr v-if="md.updated_at" id="updated_at">
               <td>Updated at</td>
-              <td>{{ formatDatetime(md.comic.updated_at) }}</td>
+              <td>{{ formatDatetime(md.updated_at) }}</td>
             </tr>
           </table>
-          <span v-if="md.comic.path"> Path: {{ md.comic.path }} </span>
+          <span v-if="md.path"> Path: {{ md.path }} </span>
         </span>
 
+        <MetadataCombobox :show="editMode" :value="md.format" label="Format" />
         <MetadataCombobox
           :show="editMode"
-          :value="md.comic.format"
-          label="Format"
-        />
-        <MetadataCombobox
-          :show="editMode"
-          :value="md.comic.country"
+          :value="md.country"
           label="Country"
         />
         <MetadataCombobox
           :show="editMode"
-          :value="md.comic.language"
+          :value="md.language"
           label="Language"
         />
         <a
-          v-if="md.comic.web && !editMode"
+          v-if="md.web && !editMode"
           id="webLink"
-          :href="md.comic.web"
+          :href="md.web"
           target="_blank"
         >
-          <MetadataCombobox
-            :show="editMode"
-            :value="md.comic.web"
-            label="Web Link"
-          />
+          <MetadataCombobox :show="editMode" :value="md.web" label="Web Link" />
         </a>
         <MetadataCombobox
           v-else-if="editMode"
           :show="editMode"
-          :value="md.comic.web"
+          :value="md.web"
           label="Web Link"
         />
         <MetadataAutocomplete
           :show="editMode"
-          :value="md.comic.user_rating"
+          :value="md.user_rating"
           label="User Rating"
         />
         <MetadataAutocomplete
           :show="editMode"
-          :value="md.comic.critical_rating"
+          :value="md.critical_rating"
           label="Critical Rating"
         />
         <MetadataAutocomplete
           :show="editMode"
-          :value="md.comic.maturity_rating"
+          :value="md.maturity_rating"
           label="Maturity Rating"
         />
+        <MetadataTags :show="editMode" :values="md.genres" label="Genres" />
+        <MetadataTags :show="editMode" :values="md.tags" label="Tags" />
+        <MetadataTags :show="editMode" :values="md.teams" label="Teams" />
         <MetadataTags
           :show="editMode"
-          :values="md.comic.genres"
-          label="Genres"
-        />
-        <MetadataTags :show="editMode" :values="md.comic.tags" label="Tags" />
-        <MetadataTags :show="editMode" :values="md.comic.teams" label="Teams" />
-        <MetadataTags
-          :show="editMode"
-          :values="md.comic.characters"
+          :values="md.characters"
           label="Characters"
         />
         <MetadataTags
           :show="editMode"
-          :values="md.comic.locations"
+          :values="md.locations"
           label="Locations"
         />
         <MetadataTags
           :show="editMode"
-          :values="md.comic.story_arcs"
+          :values="md.story_arcs"
           label="Story Arcs"
         />
         <MetadataTags
           :show="editMode"
-          :values="md.comic.series_groups"
+          :values="md.series_groups"
           label="Series Groups"
         />
-        <MetadataCombobox
-          :show="editMode"
-          :value="md.comic.scan_info"
-          label="Scan"
-        />
+        <MetadataCombobox :show="editMode" :value="md.scan_info" label="Scan" />
         <MetadataTextArea
           :show="editMode"
-          :value="md.comic.summary"
+          :value="md.summary"
           label="Summary"
         />
         <MetadataTextArea
           :show="editMode"
-          :value="md.comic.description"
+          :value="md.description"
           label="Description"
         />
-        <MetadataTextArea
-          :show="editMode"
-          :value="md.comic.notes"
-          label="Notes"
-        />
-        <table
-          v-if="md.comic.credits && md.comic.credits.length > 0"
-          id="creditsTable"
-        >
+        <MetadataTextArea :show="editMode" :value="md.notes" label="Notes" />
+        <table v-if="md.credits && md.credits.length > 0" id="creditsTable">
           <thead>
             <tr>
               <th id="creditsTitle" colspan="2">
@@ -250,7 +222,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="credit in md.comic.credits" :key="credit.pk">
+            <tr v-for="credit in md.credits" :key="credit.pk">
               <td>
                 <MetadataAutocomplete :value="credit.role" />
               </td>
@@ -264,7 +236,7 @@
           <MetadataCheckbox
             :show="editMode"
             class="ltrCheckbox"
-            :value="md.comic.read_ltr"
+            :value="md.read_ltr"
             label="Read Left to Right"
             :readonly="true"
           />
@@ -295,9 +267,6 @@
         </v-btn>
 
         <span id="bottomRightButtons">
-          <v-btn v-if="editMode" id="saveButton" ripple title="Save Metadata">{{
-            saveButtonLabel
-          }}</v-btn>
           <v-btn
             id="bottomCloseButton"
             ripple
@@ -401,33 +370,17 @@ export default {
       return this.$route.name === "browser";
     },
     formattedIssue: function () {
-      return formattedIssue(this.md.comic.issue);
-    },
-    singleComicPK: function () {
-      return this.md.pks[0];
+      return formattedIssue(this.md.issue);
     },
     downloadURL: function () {
-      return getDownloadURL(this.singleComicPK);
+      return getDownloadURL(this.md.id);
     },
     readerRoute: function () {
-      const pk = this.singleComicPK;
-      const bookmark = this.md.aggregates.bookmark;
-      const readLTR = this.md.comic.read_ltr;
-      const pageCount = this.md.aggregates.x_page_count;
+      const pk = this.md.id;
+      const bookmark = this.md.bookmark;
+      const readLTR = this.md.read_ltr;
+      const pageCount = this.md.page_count;
       return getReaderRoute(pk, bookmark, readLTR, pageCount);
-    },
-    saveButtonLabel: function () {
-      let label = "Save ";
-      if (this.group === "c" && this.pks.length === 1) {
-        label += "Comic";
-      } else {
-        const length = this.md.pks.length;
-        label += `${length} Comic`;
-        if (length > 1) {
-          label += "s";
-        }
-      }
-      return label;
     },
   },
   methods: {
@@ -442,7 +395,6 @@ export default {
       this.startTime = Date.now();
       this.estimatedMS =
         Math.max(MIN_SECS, this.children / CHILDREN_PER_SECOND) * 1000;
-      console.debug(this.estimatedMS);
       this.updateProgress();
     },
     dialogClosed: function () {
@@ -455,7 +407,7 @@ export default {
       if (this.progress >= 100 || this.md) {
         return;
       }
-      setTimeout(function () {
+      setTimeout(() => {
         this.updateProgress();
       }, UPDATE_INTERVAL);
     },
@@ -545,9 +497,6 @@ export default {
 #bottomRightButtons {
   float: right;
 }
-#saveButton {
-  margin-right: 10px;
-}
 .halfWidth {
   display: inline-block;
 }
@@ -567,7 +516,8 @@ export default {
     font-size: 12px;
   }
   .publisher,
-  .imprint {
+  .imprint,
+  .series {
     padding-top: 15px !important;
     width: 100%;
   }
@@ -593,10 +543,7 @@ export default {
     padding-left: 0px;
   }
 }
-</style>
-
-<!-- eslint-disable-next-line vue-scoped-css/require-scoped -->
-<style lang="scss">
+/* eslint-disable-next-line vue-scoped-css/no-unused-selector */
 .v-dialog--fullscreen {
   width: 100% !important;
   opacity: 0.99;

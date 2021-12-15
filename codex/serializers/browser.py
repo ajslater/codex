@@ -1,4 +1,6 @@
 """Serializers for the browser view."""
+from abc import ABC
+
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from rest_framework.serializers import (
@@ -6,13 +8,13 @@ from rest_framework.serializers import (
     CharField,
     ChoiceField,
     DecimalField,
+    Field,
     IntegerField,
     ListField,
     Serializer,
-    SerializerMethodField,
 )
 
-from codex.librarian.queue import QUEUE, ComicCoverCreateTask
+from codex.serializers.mixins import BrowserAggregateSerializerMixin
 from codex.serializers.webpack import CHOICES, VUETIFY_NULL_CODE
 
 
@@ -69,12 +71,15 @@ class BrowserSettingsShowGroupFlagsSerializer(Serializer):
     v = BooleanField()
 
 
-class FilterListField(ListField):
+class FilterListField(ListField, ABC):
     """Filter List field with custom arguments."""
+
+    CHILD_CLASS = Field
+    VALIDATORS = tuple()
 
     def __init__(self, *args, **kwargs):
         """Apply the subclass's arguments."""
-        validators = self.VALIDATORS + kwargs.pop("validators", tuple())
+        validators = self.VALIDATORS + tuple(kwargs.pop("validators", tuple()))
         super().__init__(
             *args,
             child=self.CHILD_CLASS(allow_null=True),
@@ -90,7 +95,7 @@ class IntListField(FilterListField):
     VALIDATORS = (validate_int_null,)
 
 
-class CharListField(ListField):
+class CharListField(FilterListField):
     """Char List Field with validation."""
 
     CHILD_CLASS = CharField
@@ -138,29 +143,17 @@ class BrowserSettingsSerializer(Serializer):
     show = BrowserSettingsShowGroupFlagsSerializer()
 
 
-class BrowserCardSerializer(Serializer):
-    """Generic browse object."""
-
-    def get_x_cover_path(self, obj):
-        """Ensure comic cover exists for any cover_path we send."""
-        comic_path = obj.get("x_path")
-        cover_path = obj.get("x_cover_path")
-        task = ComicCoverCreateTask(comic_path, cover_path, False)
-        QUEUE.put(task)
-        return cover_path
+class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
+    """Browse card displayed in the browser."""
 
     pk = IntegerField(read_only=True)
     group = CharField(read_only=True, max_length=1)
-    child_count = IntegerField(read_only=True, allow_null=True)
-    x_cover_path = SerializerMethodField()
-    header_name = CharField(read_only=True)
+    cover_path = CharField(read_only=True)
+    publisher_name = CharField(read_only=True)
     series_name = CharField(read_only=True)
     volume_name = CharField(read_only=True)
-    x_issue = DecimalField(max_digits=5, decimal_places=1, read_only=True)
-    display_name = CharField(read_only=True)
-    progress = DecimalField(read_only=True, max_digits=5, decimal_places=2)
-    finished = BooleanField(read_only=True, allow_null=True)
-    bookmark = IntegerField(read_only=True, allow_null=True)
+    name = CharField(read_only=True)
+    issue = DecimalField(max_digits=5, decimal_places=1, read_only=True)
     order_value = CharField(read_only=True)
 
 

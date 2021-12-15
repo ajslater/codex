@@ -7,12 +7,12 @@
     </template>
     <v-list-item-group id="settingsMenu" ripple>
       <BrowserSettingsDialog @sub-dialog-open="close" />
-      <AuthDialog @sub-dialog-open="close" />
       <v-list-item v-if="isOpenToSee" @click="reload">
         <v-list-item-content>
-          <v-list-item-title> Reload Libraries</v-list-item-title>
+          <v-list-item-title>Refresh Browser</v-list-item-title>
         </v-list-item-content>
       </v-list-item>
+      <AuthDialog @sub-dialog-open="close" />
     </v-list-item-group>
   </v-menu>
 </template>

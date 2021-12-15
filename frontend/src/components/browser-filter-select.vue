@@ -9,7 +9,7 @@
     hide-details="auto"
     ripple
     :menu-props="{
-      maxHeight: '80vh',
+      maxHeight: '90vh',
       overflowY: false,
       contentClass: filterMenuClass,
     }"
@@ -119,7 +119,7 @@ export default {
     closeFilterSelect: function () {
       // On sub-menu click, close the menu and reset the filter mode.
       this.$refs.filterSelect.blur();
-      this.$store.commit("browser/filterModeChanged", "base");
+      this.$store.commit("browser/setFilterMode", "base");
     },
   },
 };
@@ -128,5 +128,16 @@ export default {
 <style scoped lang="scss">
 .filterSuffix {
   margin-left: 0.25em;
+}
+// style is handled in browser-filter-toolbar.vue
+</style>
+
+<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
+<style lang="scss">
+.v-select.filterSelect .v-input__prepend-inner {
+  padding-right: 0px;
+}
+.v-select.filterSelect .v-input__icon--prepend-inner svg {
+  width: 16px;
 }
 </style>

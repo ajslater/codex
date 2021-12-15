@@ -1,12 +1,13 @@
 #!/bin/bash
-# Buld script for producing a codex python package
+# Build script for producing a codex python package
 set -euxo pipefail
 cd "$(dirname "$(readlink "$0")")"
 
 echo "*** build frontend ***"
 rm -rf "codex/static_build"
 cd frontend
-npm run build
+# XXX https://stackoverflow.com/questions/69394632/webpack-build-failing-with-err-ossl-evp-unsupported
+NODE_OPTIONS='--openssl-legacy-provider' npm run build
 
 echo "*** collect static resources into static root ***"
 cd ..

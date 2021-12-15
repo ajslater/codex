@@ -36,6 +36,8 @@ class PyCountrySerializer(Serializer):
     the name.
     """
 
+    LOOKUP_MODULE = pycountry.countries
+
     pk = SerializerMethodField()
     name = SerializerMethodField()
 
@@ -67,7 +69,7 @@ class PyCountrySerializer(Serializer):
 
 
 class LanguageSerializer(PyCountrySerializer):
-    """Pycountry serializer for langauge field."""
+    """Pycountry serializer for language field."""
 
     LOOKUP_MODULE = pycountry.languages
 
@@ -75,7 +77,7 @@ class LanguageSerializer(PyCountrySerializer):
 class CountrySerializer(PyCountrySerializer):
     """Pycountry serializer for country field."""
 
-    LOOKUP_MODULE = pycountry.countries
+    pass
 
 
 class NamedModelMeta:
@@ -92,7 +94,7 @@ class NamedModelMeta:
 class GroupModelMeta:
     """Meta class for group models."""
 
-    fields = NamedModelMeta.fields + ("is_default",)
+    fields = NamedModelMeta.fields
 
 
 class NamedModelSerializer(ModelSerializer):
@@ -292,5 +294,5 @@ class ComicSerializer(ModelSerializer):
         """Configure the model."""
 
         model = Comic
-        fields = "__all__"  # Overriden dynamically by constructor param
+        fields = "__all__"  # Overridden dynamically by constructor param
         depth = 1

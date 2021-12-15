@@ -2,28 +2,28 @@
 
 Codex is a comic archive browser and reader.
 
-## <a name="features">Features</a>
+## <a name="features">✨ Features</a>
 
-- A web server, not a desktop or mobile app.
-- Per user bookmarking. Bookmarks even if you don't make an account.
+- Codex is a web server, not a desktop or mobile app.
+- Per user bookmarking. You get per browser bookmarks even before you make an account.
 - Filter and sort on all comic metadata and unread status per user.
-- Browse a tree of Publisher, Imprints, Series and Volumes, or your own folder hierarchy.
+- Browse a tree of publishers, imprints, series, volumes, or your own folder hierarchy.
+- Read comics in a variety of aspect ratios that fit your screen.
 - Watches the filesystem and automatically imports new or changed comics.
 
-## <a name="state-of-development">State of Development</a>
+## <a name="demonstration">📖 Demonstration</a>
 
-Codex is in alpha test. It has not received widespread testing.
-[Please file bug reports on GitHub.](https://github.com/ajslater/codex/issues) It is still possible that the data model might change enough that subsequent versions might require a database reset.
+You may browse a [live demo server](https://codex.sl8r.net/) to get a feel for Codex.
 
-## <a name="demonstration">Demonstration</a>
+## <a name="news">📰 News</a>
 
-You may browse a [live demo server](https://codex.sl8r.net/) on a very small VPS, with no CDN.
+Codex has a <a href="NEWS.md">NEWS file</a> to summarize changes that affect users.
 
-## <a name="install-and-run-codex">Install and Run Codex</a>
+## <a name="installation">📦 Installation</a>
 
 ### Install & Run with Docker
 
-All dependancies are bundled in the official [Docker Image](https://hub.docker.com/r/ajslater/codex). Instructions for running the docker image are on the Docker Hub README. This is the recommended way to run Codex.
+All dependencies are bundled in the official [Docker Image](https://hub.docker.com/r/ajslater/codex). Instructions for running the docker image are on the Docker Hub README. This is the recommended way to run Codex.
 
 You'll then want to read the [Administration](#administration) section of this document.
 
@@ -55,7 +55,7 @@ apt install build-essential libffi-dev libjpeg-dev libssl-dev libyaml-dev python
 apk add bsd-compat-headers build-base jpeg-dev libffi-dev openssl-dev yaml-dev zlib-dev
 ```
 
-#### Install unrar Runtime Dependancy
+#### Install unrar Runtime Dependency
 
 Codex requires unrar to read cbr formatted comic archives.
 
@@ -87,7 +87,7 @@ codex
 
 and then navigate to [http://localhost:9810/](http://localhost:9810/)
 
-## <a name="administration">Administration</a>
+## <a name="administration">👑 Administration</a>
 
 ### Change the Admin password
 
@@ -123,15 +123,32 @@ or, if using Docker:
 docker run -e CODEX_RESET_ADMIN=1 -v <host path to config>/config:/config ajslater/codex
 ```
 
-## <a name="configure-codex">Configure Codex</a>
+## <a name="configuration">⚙️Configuration</a>
 
 ### Config Dir
 
-The default config directory is named `config/` directly under the working directory you run codex from. You may specificy an alternate config directory with the environment variable `CODEX_CONFIG_DIR`.
+The default config directory is named `config/` directly under the working directory you run codex from. You may specify an alternate config directory with the environment variable `CODEX_CONFIG_DIR`.
 
-The config directory contains a hypercorn config `hypercorn.toml` where you can specify ports and bind addresses. If no `hypercorn.toml` is present a default one is copied to that directory on startup. The default port is 9810.
+The config directory contains a hypercorn config `hypercorn.toml` where you can specify ports and bind addresses. If no `hypercorn.toml` is present a default one is copied to that directory on startup.
+
+The default values for the config options are:
+
+```toml
+bind = ["0.0.0.0:9810"]
+quick_bind = ["0.0.0.0:9810"]
+root_path = "/codex"
+max_db_ops = 100000
+
+```
 
 The config directory also holds the main sqlite database, a django cache and comic book cover thumbnails generated when comics are imported. Reimport a comic or an entire library to regenereate these cover thumbnails.
+
+### Environment Variables
+
+- `LOGLEVEL` will change how verbose codex's logging is. Valid values are `ERROR`, `WARNING`, `INFO`, `VERBOSE`, `DEBUG`. The default is `INFO`.
+- `TIMEZONE` or `TZ` will explicitly the timezone in long format (e.g. `"America/Los Angeles"`). This is mostly useful inside Docker because codex cannot automatically detect the host machine's timezone.
+- `CODEX_CONFIG_DIR` will set the path to codex config directory. Defaults to `$CWD/config`
+- `CODEX_RESET_ADMIN=1` will reset the admin user and its password to defaults when codex starts.
 
 ### Reverse Proxy
 
@@ -173,7 +190,7 @@ root_path = "/codex"
 Nginx requires a special trick to refresh dns when linked Docker containers
 are recreated. See this [nginx with dynamix upstreams](https://tenzer.dk/nginx-with-dynamic-upstreams/) article.
 
-## <a name="using-codex">Using Codex</a>
+## <a name="usage">📖 Usage</a>
 
 ### Sessions & Accounts
 
@@ -181,19 +198,27 @@ Once your administrator has added some comic libraries, you may browse and read 
 To preserve these settings across browsers and after sessions expire, you may register an account with a username and password.
 You will have to contact your administrator to reset your password if you forget it.
 
-## <a name="troubleshooting">Troubleshooting</a>
+## <a name="troubleshooting">🩺 Troubleshooting</a>
 
 ### Logs
 
 Codex collects its logs in the `config/logs` directory. Take a look to see what th e server is doing.
 
-### LOGLEVEL
+You can change how much codex logs by setting the `LOGLEVEL` environment variable. By default this level is `INFO`. To see more messages run codex like:
 
-You can change how much codex logs by setting the LOGLEVEL environment variable. By default this level is "INFO". To see more, noisy messages run codex like:
+```bash
+LOGLEVEL=VERBOSE codex
+```
+
+To see (probably too many) noisy messages try:
 
 ```bash
 LOGLEVEL=DEBUG codex
 ```
+
+### Watching Filesystem Events with Docker
+
+Codex tries to watch for filesystem events to instantly update your Libraries when they are changed on disk. But these native filesystem events are not translated between macOS & Windows Docker hosts and the Docker Linux container. If you find that your installation is not updating to filesystem changes instantly, you might try enabling polling for the affected libraries and decreasing the `poll_every` value in the Admin console to a frequency that suits you.
 
 ### Emergency Database Repair
 
@@ -206,34 +231,39 @@ Place a file named `rebuild_db` in your Codex config directory like so:
 
 Shut down and restart Codex.
 
-The next time Codex starts it will back up the exisiting database and try to rebuild it.
+The next time Codex starts it will back up the existing database and try to rebuild it.
 The database lives in the config directory as the file `config/db.sqlite3`.
 If this procedure goes kablooey, you may recover the original database at `config/db.sqlite3.backup`.
 
-### Bug Reports & Feature Requests
+### Bulk Database Updates Fail
+
+Codex's bulk database updater has been tested to usually work batching 100,000 filesystem events at a time. With enough RAM Codex could probably batch much more. But if you find that updating large batches of comics are failing, consider setting a the `max_db_ops` value in `hypercorn.toml` to a lower value. 1000 will probably still be pretty fast, for instance.
+
+### Bug Reports
 
 Issues are best filed [here on github](https://github.com/ajslater/codex/issues).
-However I and other brave Codex alpha testers may also be found on IRC in the [#mylar](irc://chat.freenode.net/mylar) channel.
+However I and other brave Codex testers may also sometimes be found on IRC in the [Mylar support channels](https://github.com/mylar3/mylar3#live-support--conversation).
 
-## <a name="roadmap">Roadmap</a>
+## <a name="roadmap">🚀 Roadmap</a>
 
 ### Next Up
 
-1. Edit & write metadata for comics
-2. Full text search
-3. [OPDS API](https://en.wikipedia.org/wiki/Open_Publication_Distribution_System)
+1. Full text search
+2. [OPDS API](https://en.wikipedia.org/wiki/Open_Publication_Distribution_System)
 
-## <a name="out-of-scope">Out of Scope</a>
+### Out of Scope
 
 - I have no intention of making this an eBook reader like [Ubooquity](https://vaemendis.net/ubooquity/).
-- I am not interested in this becoming a sophisticated comic manager like [Mylar](https://github.com/mylar3/mylar3)
+- I am not interested in this becoming a sophisticated comic manager like [Mylar](https://github.com/mylar3/mylar3). I am also thinking more and more that metadata editing belongs in a manager and not in a reader like Codex.
 
-## <a name="alternatives-to-codex">Alternatives to Codex</a>
+## <a name="alternatives-to-codex">📚Alternatives</a>
 
 - [Komga](https://komga.org/) has light metadata editing and full text search of metadata.
 - [Ubooquity](https://vaemendis.net/ubooquity/) is a good looking comic webserver. It also reads eBooks.
+- [Mylar](https://github.com/mylar3/mylar3) is probably the best comic book manager and also has a built in reader.
+- [Comictagger](https://github.com/comictagger/comictagger) is not really a reader, but seems to be the best comic metadata editor. It comes with a powerful command line and useful desktop GUI.
 
-## <a name="develop-codex">Develop Codex</a>
+## <a name="develop-codex">🛠 Develop</a>
 
 Codex is a Django Python webserver with a VueJS front end. This is my first ever Javascript frontend. In retrospect I wish I'd known about FastAPI when I started, that looks nice. But I'm pretty satisfied with VueJS.
 
@@ -241,9 +271,9 @@ Codex is a Django Python webserver with a VueJS front end. This is my first ever
 
 `/codex/frontend/` is where the vuejs frontend lives.
 
-`/codex/setup-dev.sh` will install development dependancies.
+`/codex/setup-dev.sh` will install development dependencies.
 
-`/codex/dev-server-ttabs.sh` will run the three or four different servers reccomended for development in terminal tabs.
+`/codex/dev-server-ttabs.sh` will run the three or four different servers recommended for development in terminal tabs.
 
 `/codex/run.sh` runs the main Django server. Set the `DEBUG` environment variable to activate debug mode: `DEBUG=1 ./run.sh`. This also lets you run the server without collecting static files for production and with a hot reloading frontend.
 
@@ -253,10 +283,10 @@ Codex is a Django Python webserver with a VueJS front end. This is my first ever
 - [PyPi Package](https://pypi.org/project/codex/)
 - [GitHub Project](https://github.com/ajslater/codex/)
 
-## <a name="special-thanks">Special Thanks</a>
+## <a name="special-thanks">🙏🏻 Special Thanks</a>
 
 - Thanks to [Aurélien Mazurie](https://pypi.org/user/ajmazurie/) for allowing me to use the PyPi name 'codex'.
-- Thanks to the good people of [#mylar](irc://chat.freenode.net/mylar) for continuous feedback and comic ecosystem education.
+- Thanks to the good people of [#mylar](https://github.com/mylar3/mylar3#live-support--conversation) for continuous feedback and comic ecosystem education.
 
 ## <a name="enjoy">Enjoy!</a>
 

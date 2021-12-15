@@ -17,7 +17,7 @@ export DOCKER_CLI_EXPERIMENTAL=enabled
 export DOCKER_BUILDKIT=1
 
 # Different behavior for multiple vs single PLATFORMS
-if [[ "$PLATFORMS" =~ "," ]]; then
+if [[ $PLATFORMS =~ "," ]]; then
     # more than one platform
     export BUILDX_NO_DEFAULT_LOAD=1
 else

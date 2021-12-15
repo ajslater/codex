@@ -1,50 +1,48 @@
 """Update the codex python package."""
-import logging
 import os
 import signal
 import subprocess
 import sys
 
-from codex.librarian.latest_version import get_installed_version, is_outdated
+from logging import getLogger
+
 from codex.models import AdminFlag
-from codex.settings.settings import CACHE_PATH
+from codex.version import PACKAGE_NAME, VERSION, get_version, is_outdated
 
 
-LOG = logging.getLogger(__name__)
-PACKAGE_NAME = "codex"
+LOG = getLogger(__name__)
 
 
 def update_codex(force=False):
     """Update the package and restart everything if the version changed."""
-    if not force:
+    if force:
+        LOG.info("Forcing update of Codex.")
+    else:
         eau = AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_AUTO_UPDATE)
-        if not eau.on:
-            return False
-
-        if not is_outdated(PACKAGE_NAME, cache_root=CACHE_PATH):
-            return False
+        if not eau.on or not is_outdated(PACKAGE_NAME):
+            return
 
         LOG.info("Codex seems outdated. Trying to update.")
-    else:
-        LOG.info("Forcing update of Codex.")
 
-    old_version = get_installed_version(PACKAGE_NAME, parse=True)
     try:
         subprocess.check_call(
             (sys.executable, "-m", "pip", "install", "--upgrade", "codex")
         )
     except Exception as exc:
         LOG.error(exc)
-        return False
+        return
 
-    new_version = get_installed_version(PACKAGE_NAME, parse=True)
+    new_version = get_version()
+    restart = VERSION != new_version
 
-    restart = old_version != new_version
     if restart:
-        LOG.info("Codex was updated.")
+        LOG.info(f"Codex was updated from {VERSION} to {new_version}.")
         restart_codex()
     else:
-        LOG.warn("Codex updated to the same version that was previously installed.")
+        LOG.warning(
+            "Codex updated to the same version that was previously"
+            f" installed: {VERSION}."
+        )
 
 
 def restart_codex():

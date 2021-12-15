@@ -6,35 +6,27 @@ from logging import getLogger
 from hypercorn.config import Config
 
 
+MAX_DB_OPS_DEFAULT = 100000
 LOG = getLogger(__name__)
 
 
-def ensure_config(hypercon_config_toml, hypercorn_config_toml_default):
+def _ensure_config(hypercon_config_toml, hypercorn_config_toml_default):
     """Ensure that a valid config exists."""
     if not hypercon_config_toml.exists():
         shutil.copy(hypercorn_config_toml_default, hypercon_config_toml)
-        LOG.info(f"Copied default config to {hypercon_config_toml}")
+        LOG.warning(f"Copied default config to {hypercon_config_toml}")
 
 
-def load_hypercorn_config(hypercorn_config_toml, hypercorn_config_toml_default, dev):
+def load_hypercorn_config(hypercorn_config_toml, hypercorn_config_toml_default, debug):
     """Load the hypercorn config."""
-    ensure_config(hypercorn_config_toml, hypercorn_config_toml_default)
+    _ensure_config(hypercorn_config_toml, hypercorn_config_toml_default)
     config = Config.from_toml(hypercorn_config_toml)
     LOG.info(f"Loaded config from {hypercorn_config_toml}")
-    if dev:
+    if debug:
         config.use_reloader = True
-        LOG.info("Reload hypercorn if files change")
+        LOG.info("Will reload hypercorn if files change")
+    config.max_db_ops = max(  # type: ignore
+        1, int(getattr(config, "max_db_ops", MAX_DB_OPS_DEFAULT))
+    )
+    LOG.verbose(f"max_db_ops limit is {config.max_db_ops}")  # type: ignore
     return config
-
-
-# XXX unused
-def get_django_root_path(hypercorn_config):
-    """Get the root path from hypercorn config if not in debug mode."""
-    root_path = hypercorn_config.root_path
-    # Remove forward slash
-    root_path = root_path.lstrip("/")
-    # Ensure trailing slash
-    if root_path and root_path[-1] != "/":
-        root_path += "/"
-    LOG.info(f"ASGI root_path: '{root_path}'")
-    return root_path

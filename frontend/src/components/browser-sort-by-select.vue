@@ -8,20 +8,21 @@
     hide-details="auto"
     ripple
     :menu-props="{
-      maxHeight: '80vh',
+      maxHeight: '90vh',
       overflowY: false,
     }"
-    :append-icon="getSortIcon(true)"
+    :append-icon="sortIcon"
     @focus="label = 'sort by'"
     @blur="label = ''"
+    @click:append="toggleSortReverse"
   >
     <template #item="data">
       <v-list-item v-bind="data.attrs" v-on="data.on">
         <v-list-item-content>
           <v-list-item-title>
             {{ data.item.text }}
-            <v-icon v-show="sortBy === data.item.value" class="sortArrow">
-              {{ getSortIcon(false) }}
+            <v-icon v-show="sortBy === data.item.value" class="sortIcon">
+              {{ sortIcon }}
             </v-icon>
           </v-list-item-title>
         </v-list-item-content>
@@ -38,7 +39,6 @@ export default {
   name: "BrowseSortBySelect",
   data() {
     return {
-      mdiSortReverseVariant,
       mdiSortVariant,
       label: "",
     };
@@ -48,61 +48,31 @@ export default {
       sortChoices: (state) => state.formChoices.sort,
       sortReverseSetting: (state) => state.settings.sortReverse,
       sortBySetting: (state) => state.settings.sortBy,
+      sortIcon: (state) =>
+        state.settings.sortReverse ? mdiSortVariant : mdiSortReverseVariant,
     }),
     sortBy: {
       get() {
         return this.sortBySetting;
       },
       set(value) {
-        let data = {};
-        if (value === this.sortBySetting) {
-          data.sortReverse = !this.sortReverseSetting;
-        } else {
-          data.sortReverse = false;
-          data.sortBy = value;
-        }
+        const data = { sortBy: value };
         this.$store.dispatch("browser/settingChanged", data);
       },
     },
   },
   methods: {
-    getSortIcon: function (flipIt) {
-      // I don't understand why, but the append-icon attribute flips the
-      // icon or doesn't update properly, so this is a hack around that.
-      let reverse = this.sortReverseSetting;
-      if (flipIt) {
-        reverse = !reverse;
-      }
-      if (reverse) {
-        return mdiSortReverseVariant;
-      }
-      return mdiSortVariant;
+    toggleSortReverse: function () {
+      const data = { sortReverse: !this.sortReverseSetting };
+      this.$store.dispatch("browser/settingChanged", data);
     },
   },
 };
 </script>
 
 <style scoped lang="scss">
-.sortArrow {
-  width: 20px;
+.sortIcon {
   float: right;
-  transform: scale(1, -1);
 }
-.upsideDown {
-  transform: rotate(180deg);
-}
-</style>
-
-<!-- eslint-disable-next-line vue-scoped-css/require-scoped -->
-<style lang="scss">
-.sortBySelect {
-  width: 144px;
-}
-@import "~vuetify/src/styles/styles.sass";
-@media #{map-get($display-breakpoints, 'sm-and-down')} {
-  .sortBySelect {
-    width: 114px;
-    margin-right: -19px;
-  }
-}
+/* style is also handled in browser-filter-toolbar.vue */
 </style>

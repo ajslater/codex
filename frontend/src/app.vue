@@ -1,19 +1,19 @@
 <template>
   <v-app>
     <router-view />
-    <NotifyScan />
+    <NotifySnackBar />
   </v-app>
 </template>
 
 <script>
 import { mapState } from "vuex";
 
-import NotifyScan from "@/components/notify-scan";
+import NotifySnackBar from "@/components/notify";
 
 export default {
   name: "App",
   components: {
-    NotifyScan,
+    NotifySnackBar,
   },
   computed: {
     ...mapState("auth", {
@@ -33,7 +33,7 @@ export default {
       }
     },
   },
-  beforeCreate() {
+  async beforeCreate() {
     // First thing we do is see if we're logged in
     return this.$store.dispatch("auth/me").then(() => {
       console.debug("socket connecting...");
@@ -48,7 +48,7 @@ export default {
 };
 </script>
 
-<!-- eslint-disable-next-line vue-scoped-css/require-scoped -->
+<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
 body {
   background-color: #121212;

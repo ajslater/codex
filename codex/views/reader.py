@@ -1,5 +1,5 @@
 """Views for reading comic books."""
-import logging
+from logging import getLogger
 
 from comicbox.comic_archive import ComicArchive
 from django.http import HttpResponse
@@ -14,10 +14,10 @@ from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.mixins import SessionMixin, UserBookmarkMixin
 
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 
 
-class ComicOpenedView(APIView, SessionMixin, UserBookmarkMixin):
+class ComicOpenedView(SessionMixin, UserBookmarkMixin):
     """Get info for displaying comic pages."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
@@ -106,12 +106,21 @@ class ComicPageView(APIView):
     def get(self, request, *args, **kwargs):
         """Get the comic page from the archive."""
         pk = self.kwargs.get("pk")
-        comic = Comic.objects.only("path").get(pk=pk)
+        comic = None
         try:
+            comic = Comic.objects.only("path").get(pk=pk)
             car = ComicArchive(comic.path)
             page = self.kwargs.get("page")
             page_image = car.get_page_by_index(page)
             return HttpResponse(page_image, content_type="image/jpeg")
+        except Comic.DoesNotExist as exc:
+            raise NotFound(detail=f"comic {pk} not found in db.") from exc
+        except FileNotFoundError as exc:
+            if comic:
+                path = comic.path
+            else:
+                path = f"path for {pk}"
+            raise NotFound(detail=f"comic {path} not found.") from exc
         except Exception as exc:
             LOG.exception(exc)
             raise NotFound(detail="comic page not found") from exc

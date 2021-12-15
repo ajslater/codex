@@ -1,5 +1,5 @@
 """View for marking comics read and unread."""
-import logging
+from logging import getLogger
 
 from django.http import Http404
 from rest_framework.response import Response
@@ -12,7 +12,7 @@ from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser_base import BrowserBaseView
 
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 
 
 class BrowserChoiceView(BrowserBaseView):
@@ -57,7 +57,7 @@ class BrowserChoiceView(BrowserBaseView):
         """Get choices for filter dialog."""
         self.params = self.get_session(self.BROWSER_KEY)
 
-        object_filter, _ = self.get_query_filters(True)
+        object_filter = self.get_query_filters(True, True)
         comic_qs = Comic.objects.filter(object_filter)
 
         field_name = self.kwargs.get("field_name")

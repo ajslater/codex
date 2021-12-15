@@ -1,16 +1,20 @@
 <template>
   <v-toolbar id="titleToolbar" class="toolbar">
     <v-toolbar-items>
-      <v-btn :class="{ invisible: !showUpButton }" :to="upTo" icon ripple
+      <v-btn :class="{ invisible: !showUpButton }" :to="toUpRoute" icon ripple
         ><v-icon>{{ mdiArrowUp }}</v-icon>
       </v-btn>
     </v-toolbar-items>
     <v-toolbar-title>
-      <span id="titleToolbarPrefix">
-        {{ longBrowseTitle }}
+      <span v-if="longBrowserTitlePrefix" id="titleToolbarPrefix">
+        {{ longBrowserTitlePrefix }}
+        <br />
       </span>
-      <br />
-      <span id="titleToolbarSuffix">
+      <span id="titleToolbarMain">
+        {{ longBrowseTitleMain }}
+      </span>
+      <span v-if="longBrowseTitleSuffix" id="titleToolbarSuffix">
+        <br />
         {{ longBrowseTitleSuffix }}
       </span>
     </v-toolbar-title>
@@ -37,7 +41,7 @@ export default {
       groupNames: (state) => state.groupNames,
       upRoute: (state) => state.routes.up,
     }),
-    upTo: function () {
+    toUpRoute: function () {
       if (this.showUpButton) {
         return { name: "browser", params: this.upRoute };
       }
@@ -46,7 +50,14 @@ export default {
     showUpButton: function () {
       return this.upRoute && "group" in this.upRoute;
     },
-    longBrowseTitle: function () {
+    longBrowserTitlePrefix: function () {
+      const group = this.$route.params.group;
+      if (group !== "f") {
+        return null;
+      }
+      return this.browserTitle.parentName;
+    },
+    longBrowseTitleMain: function () {
       let browserTitle;
       const group = this.$route.params.group;
       const { parentName, groupName, groupCount } = this.browserTitle;
@@ -84,9 +95,7 @@ export default {
 .invisible {
   visibility: hidden;
 }
-</style>
-<!-- eslint-disable-next-line vue-scoped-css/require-scoped -->
-<style lang="scss">
+/* eslint-disable-next-line vue-scoped-css/no-unused-selector */
 #titleToolbar .v-toolbar__title {
   margin: auto;
   padding-right: 48px;
@@ -96,6 +105,11 @@ export default {
   text-overflow: clip;
 }
 
+#titleToolbar .v-toolbar__title #titleToolbarPrefix {
+  color: gray;
+  font-size: smaller;
+}
+
 #titleToolbar .v-toolbar__title #titleToolbarSuffix {
   color: gray;
   font-size: smaller;
@@ -103,6 +117,7 @@ export default {
 
 @import "~vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
+  /* eslint-disable-next-line vue-scoped-css/no-unused-selector */
   #titleToolbar .v-toolbar__title {
     font-size: 1rem;
   }

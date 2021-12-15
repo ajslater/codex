@@ -1,13 +1,16 @@
 """Manage user sessions with appropriate defaults."""
-from copy import copy
+from copy import deepcopy
 
 from django.contrib.sessions.models import Session
+from django.core.cache import cache
+from django.utils.cache import get_cache_key
+from rest_framework.views import APIView
 
 from codex.models import Comic, UserBookmark
 from codex.serializers.webpack import DEFAULTS
 
 
-class SessionMixin:
+class SessionMixin(APIView):
     """Generic Session Mixin."""
 
     BROWSER_KEY = "browser"
@@ -70,7 +73,7 @@ class SessionMixin:
         return data
 
 
-class UserBookmarkMixin:
+class UserBookmarkMixin(APIView):
     """Hold user setting for a comic."""
 
     def _get_user_bookmark_search_kwargs(self, comic=None, comic_pk=None):
@@ -118,6 +121,11 @@ class UserBookmarkMixin:
         if updates.get("bookmark") == comic.max_page:
             # Auto finish on bookmark last page
             updates["finished"] = True
-        defaults = copy(search_kwargs)
+        defaults = deepcopy(search_kwargs)
         defaults.update(updates)
         UserBookmark.objects.update_or_create(defaults=defaults, **search_kwargs)
+        # DRF Request decends from django.http.HttpRequest so it works with duck typing
+        #  despite get_cache_key typing specifying WSGIRequest
+        ck = get_cache_key(self.request)  # type: ignore
+        if ck:
+            cache.delete(ck)

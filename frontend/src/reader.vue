@@ -41,7 +41,7 @@ import ReaderNavToolbar from "@/components/reader-nav-toolbar";
 import ReaderTopToolbar from "@/components/reader-top-toolbar";
 
 export default {
-  name: "Reader",
+  name: "MainReader",
   components: {
     ReaderComicPage,
     ReaderNavOverlay,

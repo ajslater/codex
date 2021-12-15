@@ -1,6 +1,6 @@
 <template>
   <v-snackbar
-    id="notifyScanning"
+    id="notifySnackBar"
     :value="show"
     bottom
     right
@@ -8,8 +8,8 @@
     width="183"
     :timeout="-1"
   >
-    <span v-if="notify === NOTIFY_STATES.SCANNING">
-      Scanning Libraries
+    <span v-if="notify === NOTIFY_STATES.LIBRARY_UPDATING">
+      Updating Libraries
       <v-progress-circular size="18" indeterminate color="#cc7b19" />
     </span>
     <span v-else-if="notify === NOTIFY_STATES.FAILED">
@@ -17,7 +17,7 @@
       <a :href="FAILED_IMPORT_URL">Admin Panel</a>
     </span>
     <v-btn
-      id="dismissNotifyScanning"
+      id="dismissNotifySnackBar"
       title="dismiss notification"
       x-small
       ripple
@@ -33,10 +33,13 @@ import { mapGetters, mapState } from "vuex";
 import { FAILED_IMPORT_URL } from "@/api/v2/notify";
 import { NOTIFY_STATES } from "@/store/modules/notify";
 
-const SHOW_STATES = new Set([NOTIFY_STATES.SCANNING, NOTIFY_STATES.FAILED]);
+const SHOW_STATES = new Set([
+  NOTIFY_STATES.LIBRARY_UPDATING,
+  NOTIFY_STATES.FAILED,
+]);
 
 export default {
-  name: "NotifyScan",
+  name: "NotifySnackBar",
   data() {
     return {
       FAILED_IMPORT_URL,
@@ -73,15 +76,15 @@ export default {
 </script>
 
 <style scoped lang="scss">
-#dismissNotifyScanning {
+#dismissNotifySnackBar {
   margin-left: 5px;
 }
 </style>
 
-<!-- eslint-disable-next-line vue-scoped-css/require-scoped -->
+<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
-/* I have no idea why this is neccessary but it really is */
-#notifyScanning > .v-snack__wrapper {
-  min-width: 183px;
+/* I have no idea why this is necessary but it really is */
+#notifySnackBar > .v-sheet.v-snack__wrapper {
+  min-width: 222px;
 }
 </style>

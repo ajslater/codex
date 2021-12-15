@@ -1,12 +1,17 @@
 """Views for browsing comic books."""
-import logging
+from logging import getLogger
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
+from django.db.models.functions import Now
 from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.status import HTTP_201_CREATED
+from rest_framework.status import (
+    HTTP_201_CREATED,
+    HTTP_202_ACCEPTED,
+    HTTP_400_BAD_REQUEST,
+)
 from rest_framework.views import APIView
 
 from codex.models import AdminFlag, UserBookmark
@@ -19,7 +24,7 @@ from codex.serializers.auth import (
 )
 
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 NULL_USER = {"pk": None, "username": None, "is_staff": False}
 
 
@@ -63,7 +68,12 @@ class RegisterView(APIView):
         user.set_password(password)
         user.save()
         session_key = self.request.session.session_key
-        UserBookmark.objects.filter(session__session_key=session_key).update(user=user)
+        count = UserBookmark.objects.filter(session__session_key=session_key).update(
+            user=user, updated_at=Now()
+        )
+        LOG.verbose(f"Created user {username}")  # type: ignore
+        if count:
+            LOG.verbose("Linked user to existing session bookmarks")  # type: ignore
         return user
 
     def validate(self):
@@ -77,7 +87,7 @@ class RegisterView(APIView):
         try:
             serializer.is_valid(raise_exception=True)
         except Exception as ex:
-            LOG.warn(serializer.errors)
+            LOG.warning(serializer.errors)
             raise ex
         return serializer
 
@@ -85,11 +95,18 @@ class RegisterView(APIView):
         """Register a new user."""
         serializer = self.validate()
         set_timezone(request, serializer)
-        user = self.create(
-            serializer.validated_data["username"], serializer.validated_data["password"]
-        )
-        user_serializer = UserSerializer(user)
-        return Response(user_serializer.data, status=HTTP_201_CREATED)
+        if serializer.validated_data:
+            user = self.create(
+                serializer.validated_data["username"],
+                serializer.validated_data["password"],
+            )
+            user_serializer = UserSerializer(user)
+            data = user_serializer.data
+            status = HTTP_201_CREATED
+        else:
+            data = None
+            status = HTTP_400_BAD_REQUEST
+        return Response(data, status=status)
 
     def get(self, request, *args, **kwargs):
         """Just return registration enabled."""
@@ -110,24 +127,31 @@ class LoginView(APIView):
         try:
             serializer.is_valid(raise_exception=True)
         except Exception as ex:
-            LOG.warn(serializer.errors)
+            LOG.warning(serializer.errors)
             raise ex
         return serializer
 
     def post(self, request, *args, **kwargs):
         """Authenticate and login."""
         serializer = self.validate()
-        user = authenticate(
-            request,
-            username=serializer.validated_data["username"],
-            password=serializer.validated_data["password"],
-        )
-        if user is None:
-            raise AuthenticationFailed(detail="Authentication Failed")
-        login(request, user)
-        set_timezone(request, serializer)
-        user_serializer = UserSerializer(user)
-        return Response(user_serializer.data)
+        if serializer.validated_data:
+            user = authenticate(
+                request,
+                username=serializer.validated_data["username"],
+                password=serializer.validated_data["password"],
+            )
+            if user is None:
+                raise AuthenticationFailed(detail="Authentication Failed")
+            login(request, user)
+            set_timezone(request, serializer)
+            user_serializer = UserSerializer(user)
+            data = user_serializer.data
+            status = HTTP_202_ACCEPTED
+        else:
+            data = None
+            status = HTTP_400_BAD_REQUEST
+
+        return Response(data, status=status)
 
 
 class UserView(APIView):

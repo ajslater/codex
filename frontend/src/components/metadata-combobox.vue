@@ -47,7 +47,11 @@ export default {
     },
   },
   created: function () {
-    this.model = toVuetifyItem(this.value);
+    this.model =
+      this.value != null ||
+      (this.value instanceof Object && this.value.name != null)
+        ? toVuetifyItem(this.value)
+        : null;
   },
 };
 </script>

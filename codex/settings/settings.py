@@ -11,10 +11,12 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 
-import logging
 import os
 
+from logging import getLogger
 from pathlib import Path
+
+from tzlocal import get_localzone_name  # type: ignore
 
 from codex.settings.hypercorn import load_hypercorn_config
 from codex.settings.logging import init_logging
@@ -39,7 +41,7 @@ DEBUG = bool(os.environ.get("DEBUG", False))
 LOG_DIR = CONFIG_PATH / "logs"
 init_logging(LOG_DIR, DEBUG)
 
-LOG = logging.getLogger(__name__)
+LOG = getLogger(__name__)
 
 ALLOWED_HOSTS = ["*"]
 
@@ -114,6 +116,7 @@ WSGI_APPLICATION = "codex.wsgi.application"
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 
 DB_PATH = CONFIG_PATH / "db.sqlite3"
+BACKUP_DB_PATH = DB_PATH.with_suffix(DB_PATH.suffix + ".bak")
 
 DATABASES = {
     "default": {
@@ -147,12 +150,17 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 # Internationalization
-# https://docs.djangoproject.com/en/3.0/topics/i18n/
+# https://docs.djangoproject.com/en/dev/topics/i18n/
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"
 USE_I18N = True
-USE_L10N = True
 USE_TZ = True
+TZ = os.environ.get("TIMEZONE", os.environ.get("TZ"))
+if TZ and not TZ.startswith(":") and "etc/localtime" not in TZ and "/" in TZ:
+    TIME_ZONE = TZ
+elif get_localzone_name():
+    TIME_ZONE = get_localzone_name()
+else:
+    TIME_ZONE = "Etc/UTC"
 
 # Hypercorn
 HYPERCORN_CONFIG_TOML = CONFIG_PATH / "hypercorn.toml"
@@ -162,6 +170,7 @@ HYPERCORN_CONFIG = load_hypercorn_config(
 )
 ROOT_PATH = ""
 PORT = int(HYPERCORN_CONFIG.bind[0].split(":")[1])
+MAX_DB_OPS = HYPERCORN_CONFIG.max_db_ops  # type: ignore
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/

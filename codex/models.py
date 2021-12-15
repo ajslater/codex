@@ -1,6 +1,8 @@
 """Codex Django Models."""
 import datetime
+import os
 
+from decimal import Decimal
 from logging import getLogger
 from pathlib import Path
 
@@ -9,7 +11,6 @@ from django.contrib.sessions.models import Session
 from django.core.exceptions import ValidationError
 from django.db.models import (
     CASCADE,
-    SET,
     BooleanField,
     CharField,
     DateField,
@@ -17,8 +18,10 @@ from django.db.models import (
     DecimalField,
     DurationField,
     ForeignKey,
+    JSONField,
     ManyToManyField,
     Model,
+    PositiveIntegerField,
     PositiveSmallIntegerField,
     TextField,
     URLField,
@@ -50,8 +53,19 @@ class BaseModel(Model):
 class BrowserGroupModel(BaseModel):
     """Browser groups."""
 
-    is_default = BooleanField(default=False)
-    sort_name = CharField(db_index=True, max_length=32)
+    DEFAULT_NAME = ""
+
+    name = CharField(db_index=True, max_length=32, default=DEFAULT_NAME)
+    sort_name = CharField(db_index=True, max_length=32, default=DEFAULT_NAME)
+
+    def presave(self):
+        """Save the sort name. Called by save()."""
+        self.sort_name = self.name
+
+    def save(self, *args, **kwargs):
+        """Save the sort name as the name by default."""
+        self.presave()
+        super().save(*args, **kwargs)
 
     class Meta:
         """Without this a real table is created and joined to."""
@@ -62,82 +76,57 @@ class BrowserGroupModel(BaseModel):
 class Publisher(BrowserGroupModel):
     """The publisher of the comic."""
 
-    DEFAULTS = {"is_default": True}
-
-    name = CharField(max_length=32, default="No Publisher")
-
-    @classmethod
-    def get_default_publisher(cls):
-        """Get or create a default 'No Publisher' entry."""
-        publisher, _ = cls.objects.get_or_create(defaults=cls.DEFAULTS, **cls.DEFAULTS)
-        return publisher
-
-    def save(self, *args, **kwargs):
-        """Save the sort name as the name by default."""
-        self.sort_name = self.name
-        super().save(*args, **kwargs)
-
     class Meta:
         """Constraints."""
 
-        unique_together = ("name", "is_default")
+        unique_together = ("name",)
 
 
 class Imprint(BrowserGroupModel):
     """A Publishing imprint."""
 
-    name = CharField(max_length=32, default="Main Imprint")
-    publisher = ForeignKey(Publisher, on_delete=SET(Publisher.get_default_publisher))
+    publisher = ForeignKey(Publisher, on_delete=CASCADE)
 
     class Meta:
-        """Contraints."""
+        """Constraints."""
 
-        unique_together = ("name", "publisher", "is_default")
+        unique_together = ("name", "publisher")
 
-    def save(self, *args, **kwargs):
-        """Save the sort name."""
+    def presave(self):
+        """Save the sort name. Called by save()."""
         self.sort_name = f"{self.publisher.name} {self.name}"
-        super().save(*args, **kwargs)
 
 
 class Series(BrowserGroupModel):
     """The series the comic belongs to."""
 
-    name = CharField(max_length=32, default="Default Series")
-    publisher = ForeignKey(Publisher, on_delete=Publisher.get_default_publisher)
+    publisher = ForeignKey(Publisher, on_delete=CASCADE)
     imprint = ForeignKey(Imprint, on_delete=CASCADE)
     volume_count = PositiveSmallIntegerField(null=True)
-
-    def save(self, *args, **kwargs):
-        """Save the sort name as the name by default."""
-        self.sort_name = self.name
-        super().save(*args, **kwargs)
 
     class Meta:
         """Constraints."""
 
-        unique_together = ("name", "imprint", "is_default")
+        unique_together = ("name", "imprint")
         verbose_name_plural = "Series"
 
 
 class Volume(BrowserGroupModel):
     """The volume of the series the comic belongs to."""
 
-    name = CharField(max_length=32, default="")
-    publisher = ForeignKey(Publisher, on_delete=Publisher.get_default_publisher)
+    publisher = ForeignKey(Publisher, on_delete=CASCADE)
     imprint = ForeignKey(Imprint, on_delete=CASCADE)
     series = ForeignKey(Series, on_delete=CASCADE)
     issue_count = DecimalField(decimal_places=2, max_digits=6, null=True)
 
-    def save(self, *args, **kwargs):
-        """Save the sort name."""
+    def presave(self):
+        """Save the sort name. Called by save()."""
         self.sort_name = f"{self.series.name} {self.name}"
-        super().save(*args, **kwargs)
 
     class Meta:
         """Constraints."""
 
-        unique_together = ("name", "series", "is_default")
+        unique_together = ("name", "series")
 
 
 def validate_dir_exists(path):
@@ -149,16 +138,17 @@ def validate_dir_exists(path):
 class Library(BaseModel):
     """The library comic file live under."""
 
-    DEFAULT_SCAN_FREQUENCY = datetime.timedelta(seconds=12 * 60 * 60)
+    DEFAULT_POLL_EVERY_SECONDS = 60 * 60
+    DEFAULT_POLL_EVERY = datetime.timedelta(seconds=DEFAULT_POLL_EVERY_SECONDS)
 
     path = CharField(
         unique=True, db_index=True, max_length=128, validators=[validate_dir_exists]
     )
-    enable_watch = BooleanField(db_index=True, default=True)
-    enable_scan_cron = BooleanField(db_index=True, default=True)
-    scan_frequency = DurationField(default=DEFAULT_SCAN_FREQUENCY)
-    last_scan = DateTimeField(null=True)
-    scan_in_progress = BooleanField(default=False)
+    events = BooleanField(db_index=True, default=True)
+    poll = BooleanField(db_index=True, default=True)
+    poll_every = DurationField(default=DEFAULT_POLL_EVERY)
+    last_poll = DateTimeField(null=True)
+    update_in_progress = BooleanField(default=False)
     schema_version = PositiveSmallIntegerField(default=0)
 
     def __str__(self):
@@ -177,7 +167,7 @@ class NamedModel(BaseModel):
     name = CharField(db_index=True, max_length=32)
 
     class Meta:
-        """Defaults to uniquely named, must be overriden."""
+        """Defaults to uniquely named, must be overridden."""
 
         abstract = True
         unique_together = ("name",)
@@ -185,33 +175,6 @@ class NamedModel(BaseModel):
     def __str__(self):
         """Return the name."""
         return self.name
-
-
-class Folder(NamedModel):
-    """File system folder."""
-
-    PARENT_FIELD = "folder"
-    path = CharField(max_length=128, db_index=True, validators=[validate_dir_exists])
-    library = ForeignKey(Library, on_delete=CASCADE)
-    parent_folder = ForeignKey(
-        "Folder",
-        on_delete=CASCADE,
-        null=True,
-    )
-    sort_name = CharField(max_length=32)
-
-    def save(self, *args, **kwargs):
-        """Save the sort name as the name by default."""
-        self.sort_name = self.name
-        super().save(*args, **kwargs)
-
-    class Meta:
-        """Constraints."""
-
-        unique_together = ("library", "path")
-
-
-Folder.CHILD_CLASS = Folder
 
 
 class SeriesGroup(NamedModel):
@@ -278,24 +241,66 @@ class Credit(BaseModel):
         unique_together = ("person", "role")
 
 
-class Comic(BaseModel):
+class WatchedPath(BrowserGroupModel):
+    """A filesystem path with data for Watchdog."""
+
+    library = ForeignKey(Library, on_delete=CASCADE, db_index=True)
+    path = CharField(max_length=128, db_index=True)
+    stat = JSONField(null=True)
+    parent_folder = ForeignKey(
+        "Folder",
+        on_delete=CASCADE,
+        null=True,
+    )
+    ZERO_STAT = [0, 0, 0, 0, 0, 0, 0, 0, 0.0, 0]
+
+    def set_stat(self):
+        """Set select stat params from the filesystem."""
+        st_record = os.stat(self.path)
+        # Converting os.stat directly to a list or tuple saves
+        # mtime as an int and causes problems.
+        st = self.ZERO_STAT.copy()
+        st[0] = st_record.st_mode
+        st[1] = st_record.st_ino
+        # st_dev changes every time with docker
+        # st[2] = st_record.st_dev
+        st[6] = st_record.st_size
+        st[8] = st_record.st_mtime
+        self.stat = st
+
+    def __str__(self):
+        """Return the full path."""
+        return self.path
+
+    class Meta:
+        """Constraints."""
+
+        unique_together = ("library", "path")
+        abstract = True
+
+
+class Folder(WatchedPath):
+    """File system folder."""
+
+
+class Comic(WatchedPath):
     """Comic metadata."""
 
-    path = CharField(db_index=True, max_length=128)
+    issue = DecimalField(
+        db_index=True, decimal_places=2, max_digits=6, default=Decimal(0.0)
+    )
     volume = ForeignKey(Volume, db_index=True, on_delete=CASCADE)
     series = ForeignKey(Series, db_index=True, on_delete=CASCADE)
     imprint = ForeignKey(Imprint, db_index=True, on_delete=CASCADE)
     publisher = ForeignKey(Publisher, db_index=True, on_delete=CASCADE)
-    issue = DecimalField(db_index=True, decimal_places=2, max_digits=6, default=0.0)
-    title = CharField(db_index=True, max_length=64, null=True)
     # Date
     year = PositiveSmallIntegerField(null=True)
     month = PositiveSmallIntegerField(null=True)
     day = PositiveSmallIntegerField(null=True)
     # Summary
-    summary = TextField(null=True)
-    notes = TextField(null=True)
     description = TextField(null=True)
+    notes = TextField(null=True)
+    summary = TextField(null=True)
     # Ratings
     critical_rating = CharField(db_index=True, max_length=32, null=True)
     maturity_rating = CharField(db_index=True, max_length=32, null=True)
@@ -304,21 +309,21 @@ class Comic(BaseModel):
     country = CharField(db_index=True, max_length=32, null=True)
     language = CharField(db_index=True, max_length=16, null=True)
     # misc
-    page_count = PositiveSmallIntegerField(db_index=True, default=0)
     cover_image = CharField(max_length=64, null=True)
-    read_ltr = BooleanField(default=True)
-    web = URLField(null=True)
     format = CharField(max_length=16, null=True)
+    page_count = PositiveSmallIntegerField(db_index=True, default=0)
+    read_ltr = BooleanField(default=True)
     scan_info = CharField(max_length=32, null=True)
+    web = URLField(null=True)
     # ManyToMany
-    credits = ManyToManyField(Credit)
-    tags = ManyToManyField(Tag)
-    teams = ManyToManyField(Team)
     characters = ManyToManyField(Character)
+    credits = ManyToManyField(Credit)
+    genres = ManyToManyField(Genre)
     locations = ManyToManyField(Location)
     series_groups = ManyToManyField(SeriesGroup)
     story_arcs = ManyToManyField(StoryArc)
-    genres = ManyToManyField(Genre)
+    tags = ManyToManyField(Tag)
+    teams = ManyToManyField(Team)
     # Ignore these, they seem useless:
     #
     # black_and_white = BooleanField(default=False)
@@ -335,24 +340,20 @@ class Comic(BaseModel):
     # identifier = CharField(max_length=64, null=True)
 
     # codex only
-    library = ForeignKey(Library, on_delete=CASCADE, db_index=True)
-    sort_name = CharField(db_index=True, max_length=32)
+    cover_path = CharField(max_length=32)
     date = DateField(db_index=True, null=True)
     decade = PositiveSmallIntegerField(db_index=True, null=True)
-    size = PositiveSmallIntegerField(db_index=True)
+    folders = ManyToManyField(Folder)
     max_page = PositiveSmallIntegerField(default=0)
     parent_folder = ForeignKey(
         Folder, db_index=True, on_delete=CASCADE, null=True, related_name="comic_in"
     )
-    folder = ManyToManyField(Folder)
-    cover_path = CharField(max_length=32)
-    myself = ForeignKey("self", on_delete=CASCADE, null=True, related_name="comic")
+    size = PositiveIntegerField(db_index=True)
 
     class Meta:
         """Constraints."""
 
-        # prevents None path comics from being duplicated
-        unique_together = ("path", "volume", "year", "issue")
+        unique_together = ("library", "path")
         verbose_name = "Issue"
 
     def _set_date(self):
@@ -369,6 +370,18 @@ class Comic(BaseModel):
         else:
             self.decade = self.year - (self.year % 10)
 
+    def presave(self):
+        """Set computed values."""
+        self._set_date()
+        self._set_decade()
+        sort_names = (self.volume.sort_name, f"{self.issue:06.1f}")
+        self.sort_name = " ".join(sort_names)
+
+    def save(self, *args, **kwargs):
+        """Save computed fields."""
+        self.presave()
+        super().save(*args, **kwargs)
+
     def _get_display_issue(self):
         """Get the issue number, even if its a half issue."""
         if self.issue % 1 == 0:
@@ -377,12 +390,17 @@ class Comic(BaseModel):
             issue_str = f"#{self.issue:05.1f}"
         return issue_str
 
-    def save(self, *args, **kwargs):
-        """Save computed fields."""
-        self._set_date()
-        self._set_decade()
-        self.sort_name = f"{self.volume.sort_name} {self.issue:06.1f}"
-        super().save(*args, **kwargs)
+    def __str__(self):
+        """Most common text representation for logging."""
+        names = []
+        if self.series.name:
+            names.append(self.series.name)
+        if self.volume.name:
+            names.append(self.volume.name)
+        names.append(self._get_display_issue())
+        if self.name:
+            names.append(self.name)
+        return " ".join(names)
 
 
 class AdminFlag(NamedModel):
@@ -403,11 +421,11 @@ class AdminFlag(NamedModel):
     on = BooleanField(default=True)
 
 
-def cascade_if_user_null(collector, field, sub_objs, using):
+def cascade_if_user_null(collector, field, sub_objs, _using):
     """
     Cascade only if the user field is null.
 
-    Do this to keep deleteing ephemeral session data from UserBookmark table.
+    Do this to keep deleting ephemeral session data from UserBookmark table.
     Adapted from:
     https://github.com/django/django/blob/master/django/db/models/deletion.py#L23
     """
@@ -426,7 +444,7 @@ def cascade_if_user_null(collector, field, sub_objs, using):
             # fail_on_restricted=False,
         )
 
-    # Set them all to null, tho
+    # Set them all to null
     if field.null:
         # and not connections[using].features.can_defer_constraint_checks:
         collector.add_field_update(field, None, sub_objs)
@@ -461,28 +479,33 @@ class UserBookmark(BaseModel):
         unique_together = ("user", "session", "comic")
 
 
-class FailedImport(BaseModel):
+class FailedImport(WatchedPath):
     """Failed Comic Imports. Displayed in Admin Panel."""
 
-    MAX_REASON_LEN = 64
+    MAX_REASON_LEN = 32
 
-    library = ForeignKey(Library, db_index=True, on_delete=CASCADE)
-    path = CharField(db_index=True, max_length=128)
-    reason = CharField(max_length=MAX_REASON_LEN)
-
-    @classmethod
-    def get_reason(cls, exc, path):
+    def set_reason(self, exc):
         """Can't do this in save() because it breaks update_or_create."""
         reason = str(exc)
-        suffixes = (f": {path}", f": '{path}'")
+        suffixes = (f": {self.path}", f": '{self.path}'")
         for suffix in suffixes:
-            if reason.endswith(suffix):
-                reason = reason[: -len(suffix)]
-        reason = reason[: cls.MAX_REASON_LEN]
-        reason = reason.strip()
-        return reason
+            reason = reason.removesuffix(suffix)
+        reason = reason[: self.MAX_REASON_LEN]
+        self.name = reason.strip()
 
     class Meta:
         """Constraints."""
 
         unique_together = ("library", "path")
+
+
+class LatestVersion(BaseModel):
+    """Latest codex version."""
+
+    PK = 1
+    version = CharField(max_length=32)
+
+    @classmethod
+    def set_version(cls, version):
+        """Ensure a single database row."""
+        cls.objects.update_or_create(pk=LatestVersion.PK, version=version)

@@ -1,4 +1,27 @@
-# Codex News
+# 📰 Codex News
+
+## v0.7.0
+
+###### Feels Snappier
+
+- Database Migration
+  - v0.7.0 changes the database schema. Databases run with v0.7.0+ will not run on previous versions of codex.
+- Features
+  - Big speed up to importing comics for large imports.
+  - Speed up creating comic covers on large imports.
+  - Admin Panel options for polling (formerly "scanning") and watching events have changed names.
+  - Admin Panel task added to regenerate all comic covers.
+  - Browser Admin Menu option added for polling all Libraries on demand.
+  - Comics with no specified Publishers, Imprints and Series no longer have induced default names for these but have no name like Volumes.
+  - Codex repairs database integrity on startup.
+  - Codex backs up the database every night.
+  - Autodetect server timezone (for logging).
+  - Use TZ and TIMEZONE environment variables to explicitly set server timezone.
+  - Added `VERBOSE` logging level to help screen out bulk `DEBUG` messages from dependencies.
+  - Truncated logging messages for easier reading.
+- Fixes
+  - Fixed metadata screen displaying incorrect information.
+  - Now compatible with python 3.10.
 
 ## v0.6.8
 
@@ -12,7 +35,6 @@
   - Tentative linux/armhf support. No way for me to test this
   - Vacuum the sqllite database once a day to prevent bloat
   - Corrupt database rebuild procedure. See README.
-- Updated many dependancies
 
 ## v0.6.7
 
@@ -32,15 +54,16 @@
 
 ## v0.6.3
 
-- Add LOGLEVEL environment variable. Set to DEBUG to see everything.
+- Add LOGLEVEL environment variable.
+  - Set to DEBUG to see everything.
 - Removed DEV environment variable.
 - Possible fix for newly imported covers not displaying.
 
 ## v0.6.2
 
-- Librarian startup crash is intermittent and only in docker.
+- Fixed intermittent Librarian startup crash in docker.
 - Fixed DEBUG environment variable to be able to run in production.
-- Added DEV environment variable for dev environment only.
+- Added DEV environment variable for dev environment.
 
 ## v0.6.1
 
@@ -48,7 +71,9 @@
 
 ## v0.6.0
 
-- Many new Filters
+###### Better Filtering and Sorting
+
+- New Filters
 - New sort options: Updated Time and Maturity Rating
 - New frontend URL scheme
 - New API
@@ -56,9 +81,9 @@
 - Fixed a bug importing Story Arc Series Groups and Genres. Requires re-import to correct.
 - Fixed a bug with sorting that grouped improperly and showed the wrong covers for reverse sorts.
 - Browser pagination footer now remains fixed on the page
-- Browser pagination footer is now a slider to handle larger collecions
+- Browser pagination footer is now a slider to handle larger collections
 - Notifications now appear in reader as well as browser
-- Scanning notifications on login not dissapearing bug squashed
+- Scanning notifications on login not disappearing bug squashed
 - On comic import failure, log the path as well as the reason
 - Fixed a bug where the browser settings menu wouldn't close when opening a dialog
 - Codex version information moved to Browser > Settings
@@ -77,7 +102,7 @@
 
 ## v0.5.15
 
-- Metadata popup is now 1000x+ faster.
+- Metadata popup is now faster.
 - Metadata popup now shows created_at, updated_at and path (if admin).
 - Removed numeric and common password validators. Made the minimum length 4.
 
@@ -115,7 +140,7 @@
 - fix mark read/unread bugs
 - fix reader settings not setting properly
 - fix reader images positioning
-- fix minor crash closing books with unitialized browser app
+- fix minor crash closing books with uninitialized browser app
 
 ## v0.5.9
 
@@ -123,7 +148,7 @@
 - display sort key value in browse tile
 - display standard image for missing covers
 - slightly more helpful 404 page
-- comicbox 0.1.4 fixes several import bugs
+- fix import bugs
 
 ## v0.5.8
 
@@ -131,7 +156,7 @@
 
 ## v0.5.7
 
-- update comicbox to v1.3 should fix many import crashes
+- fix import crashes
 - allow credits with an empty role
 - pagination of large browse results
 - center comic pages better
@@ -141,7 +166,7 @@
 
 ## v0.5.6
 
-- websocket path security was handling leading slashes badly. just skip it.
+- websocket path security wasn't handling leading slashes well. Skip it.
 
 ## v0.5.5
 
@@ -156,7 +181,7 @@
 - Fixed login bug introduces in v0.5.3 (thanks hubcaps)
 - Fixed filtering bug introduced in v0.5.2
 - Versioned API
-- Toast popup for admins indicating libraries being scanned.
+- Toast popup for admins indicating libraries are scanning.
 - Periodic frontend refresh during long scans.
 - Codex version displayed in browser footer
 
@@ -172,21 +197,31 @@
 
 ## v0.5.0
 
+###### First useful working version
+
 - Productionized alpha release
 
 ## v0.4.0
+
+###### Polished UI
 
 - Polished VueJS frontend
 
 ## v0.3.0
 
+###### I'm a frontend developer
+
 - Single Page VueJS frontend PoC without much styling
 
 ## v0.2.0
+
+###### It's alive
 
 - Working application with all initial features
 - Django frontend
 
 ## v0.1.0
+
+###### Hello world
 
 - Proof of concept.
