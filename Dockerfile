@@ -1,32 +1,14 @@
-ARG WHEEL_BUILDER_VERSION
+ARG WHEELS_VERSION
 ARG RUNNABLE_BASE_VERSION
-FROM ajslater/codex-wheel-builder:${WHEEL_BUILDER_VERSION} AS codex-wheels
-# build binary wheels in a dev environment for each arch
-ARG PKG_VERSION
-ARG BUILDPLATFORM
-ARG TARGETPLATFORM
-RUN echo "Running on $BUILDPLATFORM, building for $TARGETPLATFORM" && \
-    echo "Stage 1: build wheels"
-
-COPY ./dist /dist
-
-RUN mkdir -p /wheels && \
-    CRYPTOGRAPHY_DONT_BUILD_RUST=1 pip3 wheel "/dist/codex-${PKG_VERSION}-py3-none-any.whl" --wheel-dir=/wheels
-
-FROM ajslater/codex-base:${RUNNABLE_BASE_VERSION}
+FROM ajslater/codex-wheels:$WHEELS_VERSION AS codex-wheels
 # The runnable environment built from a minimal base without dev deps
-ARG PKG_VERSION
-LABEL version v${PKG_VERSION}
-ARG BUILDPLATFORM
-ARG TARGETPLATFORM
-RUN echo "Running on $BUILDPLATFORM, building for $TARGETPLATFORM" && \
-    echo "Stage 2: install wheels" && \
-
-    echo "*** install python wheels ***"
+FROM ajslater/codex-base:$RUNNABLE_BASE_VERSION
+ARG CODEX_WHEEL
 COPY --from=codex-wheels /wheels /wheels
+COPY ./dist/$CODEX_WHEEL /wheels/
 
 # hadolint ignore=DL3013
-RUN pip3 install --no-cache-dir --no-index --find-links=/wheels /wheels/codex*.whl
+RUN pip3 install --no-cache-dir --no-index --find-links=/wheels "/wheels/$CODEX_WHEEL"
 
 RUN mkdir -p /comics && touch /comics/DOCKER_UNMOUNTED_VOLUME
 

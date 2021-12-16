@@ -25,14 +25,32 @@ services:
     volumes:
       - ./dist/:/app/dist/
     command: ./build-dist.sh
+  codex-wheels:
+    env_file:
+      - .env
+    platform: $PLATFORMS
+    build:
+      context: .
+      dockerfile: wheels.Dockerfile
+      args:
+        WHEEL_BUILDER_VERSION: "$WHEEL_BUILDER_VERSION"
+        WHEELS_VERSION: "$WHEELS_VERSION"
+    image: docker.io/ajslater/codex-wheels:$WHEELS_VERSION
+    container_name: codex-wheels
   codex:
     env_file:
       - .env
+    platform: $PLATFORMS
+    build:
+      context: .
+      args:
+        CODEX_WHEEL: "$CODEX_WHEEL"
+        RUNNABLE_BASE_VERSION: "$RUNNABLE_BASE_VERSION"
+        WHEELS_VERSION: "$WHEELS_VERSION"
+    image: docker.io/ajslater/codex:${PKG_VERSION:-latest}
+    container_name: codex
     environment:
       - LOGLEVEL=DEBUG
-    build: .
-    image: ajslater/codex
-    container_name: codex
     ports:
       - "9810:9810"
     volumes:

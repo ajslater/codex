@@ -8,6 +8,9 @@ jobs:
     steps:
       - checkout
       - run:
+          command: ./ci/docker-login.sh
+          name: Login to Docker Hub
+      - run:
           command: ./build-builder.sh
           name: Build Builder
       - run:
@@ -28,10 +31,12 @@ jobs:
             - ./Dockerfile
             - ./README.md
             - ./build-multiarch.sh
+            - ./build-wheels.sh
             - ./ci
             - ./dist
             - ./.env
             - ./pyproject.toml
+            - ./poetry.lock
           root: .
   deploy:
     executor: latest-image
@@ -42,6 +47,9 @@ jobs:
           command: pip3 install poetry
           name: Install poetry
       - run:
+          command: ./ci/docker-login.sh
+          name: Login to Docker Hub
+      - run:
           command: ./ci/install-binfmt-platforms.sh
           name: Install binfmt platforms
       - run:
@@ -49,14 +57,11 @@ jobs:
           name: Create buildx builder
       - run:
           no_output_timeout: 90m
-          command: ./build-multiarch.sh
-          name: Build and cache images
+          command: ./build-wheels.sh
+          name: Get or Build Python wheels
       - run:
-          command: ./ci/docker-login.sh
-          name: Login to Docker Hub
-      - run:
-          command: ./ci/push-multiarch.sh
-          name: Push images to Docker Hub
+          command: ./build-codex.sh
+          name: Build & Push Codex runnable image
       - run:
           command: ./ci/publish-pypi.sh
           name: Publish Package to PyPi

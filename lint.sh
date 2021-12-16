@@ -12,7 +12,9 @@ poetry run pyright
 poetry run vulture .
 bash -c "cd frontend && npx eslint --ext .js,.vue '**'"
 prettier --check .
-# hadolint Dockerfile*
+if [ "$(uname)" = "Darwin" ]; then
+    hadolint "*.Dockerfile"
+fi
 shellcheck -x ./*.sh ./**/*.sh
 # shfmt -d -i 4 ./*.sh ./**/*.sh
 # shellcheck disable=2035
