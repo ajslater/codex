@@ -11,9 +11,6 @@ if [ "${1:-}" != "-f" ]; then
     fi
 fi
 
-REQ_FN=requirements.txt
-poetry export --without-hashes --extras wheel --output "$REQ_FN"
-
 source .env
 if [[ -z $PLATFORMS ]]; then
     source .env.platforms
@@ -35,4 +32,3 @@ export WHEELS_VERSION
 export PLATFORMS
 docker buildx bake codex-wheels --set "*.platform=$PLATFORMS" \
     ${LOAD_OR_PUSH:-}
-rm -f "$REQ_FN"

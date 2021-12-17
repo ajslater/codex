@@ -78,7 +78,7 @@ vulture = "^2.3"
 codex = "codex.run:main"
 
 [tool.black]
-exclude = "/(.git|.mypy_cache|.pytest_cache|.venv|__pycache__|cache|codex/static_build|codex/static_root|comics|frontend|typings)/"
+exclude = "/(.git|.mypy_cache|.pytest_cache|.venv|__pycache__|cache|codex/static_build|codex/static_root|comics|dist|frontend|test-results|typings)/"
 
 [tool.coverage.run]
 source = ["codex"]
@@ -90,7 +90,21 @@ omit = ["frontend"]
 directory = "test-results/coverage"
 
 [tool.vulture]
-exclude = [".venv", "node_modules", "typings"]
+exclude = [
+  ".git",
+  ".mypy_cache",
+  ".pytest_cache",
+  ".venv",
+  "__pycache__",
+  "cache",
+  "codex/static_build",
+  "codex/static_root",
+  "comics",
+  "dist",
+  "node_modules",
+  "test_results",
+  "typings"
+]
 min_confidence = 61
 sort_by_size = true
 
@@ -109,7 +123,7 @@ addopts = """
     --cov-report=term
     --flake8
     --isort
-    --ignore=.git,.mypy_cache,.pytest_cache,.venv,__pycache__,cache,codex/static_build,codex/static_root,comics,config,typings
+    --ignore=.git,.mypy_cache,.pytest_cache,.venv,__pycache__,cache,codex/static_build,codex/static_root,comics,config,dist,typings
 """
 
 #    --mypy
@@ -125,7 +139,9 @@ exclude = [
   "codex/static_root",
   "comics",
   "config",
+  "dist",
   "frontend",
+  "test-results",
   "typings"
 ]
 useLibraryCodeForTypes = true

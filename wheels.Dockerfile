@@ -4,12 +4,14 @@ FROM ajslater/codex-wheel-builder:${WHEEL_BUILDER_VERSION}
 ARG WHEELS_VERSION
 ARG BUILDPLATFORM
 ARG TARGETPLATFORM
+ARG REQ_FN /app/requirements.txt
 LABEL version $WHEELS_VERSION
 RUN echo "Running on $BUILDPLATFORM, building for $TARGETPLATFORM" && \
     echo "Stage 1: build wheels"
 
-WORKDIR /wheels
-COPY ./requirements.txt ./
+WORKDIR /app
+COPY ./poetry.lock ./
+RUN poetry export --without-hashes --extras wheel --output "$REQ_FN"
 
-RUN mkdir -p /wheels && \
-    CRYPTOGRAPHY_DONT_BUILD_RUST=1 pip3 wheel -r ./requirements.txt --wheel-dir=/wheels
+WORKDIR /wheels
+RUN CRYPTOGRAPHY_DONT_BUILD_RUST=1 pip3 wheel -r "$REQ_FN"

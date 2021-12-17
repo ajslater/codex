@@ -31,8 +31,6 @@ export WHEELS_VERSION
 # Build and cache
 docker buildx bake codex \
     --set "codex.platform=$PLATFORMS" \
-    ${LOAD_OR_PUSH:-}
-unset PKG_VERSION
-docker buildx bake codex \
-    --set "*.platform=$PLATFORMS" \
+    --set "codex.tags=$REPO:${PKG_VERSION}" \
+    --set "codex.tags=$REPO:latest" \
     ${LOAD_OR_PUSH:-}

@@ -3,84 +3,109 @@ executors:
     machine:
       image: ubuntu-2004:202111-01
 jobs:
-  build:
+  test-and-build-dist:
     executor: latest-image
     steps:
       - checkout
       - run:
-          command: ./ci/docker-login.sh
+          command: ./docker/docker-login.sh
           name: Login to Docker Hub
+      - run:
+          command: ./docker/docker-install-binfmt-platforms.sh
+          name: Install binfmt platforms
+      - run:
+          command: ./docker/docker-buildx-create.sh
+          name: Create buildx builder
       - run:
           command: ./build-builder.sh
           name: Build Builder
       - run:
-          command: ./ci/docker-compose-exit.sh codex-lint
+          command: ./docker/docker-compose-exit.sh codex-lint
           name: Lint
       - run:
-          command: ./ci/docker-compose-exit.sh codex-test
+          command: ./docker/docker-compose-exit.sh codex-test
           name: Test
       - store_test_results:
           path: test-results/pytest
       - store_artifacts:
           path: test-results/coverage
       - run:
-          command: ./ci/docker-compose-exit.sh codex-dist
+          command: ./docker/docker-compose-exit.sh codex-dist
           name: Build distribution
       - persist_to_workspace:
           paths:
+            - ./.env
+            - ./.env.platforms
             - ./Dockerfile
             - ./README.md
-            - ./build-multiarch.sh
+            - ./build-codex.sh
             - ./build-wheels.sh
-            - ./ci
             - ./dist
-            - ./.env
+            - ./docker
             - ./pyproject.toml
             - ./poetry.lock
           root: .
+  build-wheels:
+    executor: latest-image
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          command: ./docker/docker-login.sh
+          name: Login to Docker Hub
+      - run:
+          command: ./docker/docker-install-binfmt-platforms.sh
+          name: Install binfmt platforms
+      - run:
+          command: ./docker/docker-buildx-create.sh
+          name: Create buildx builder
+      - run:
+          no_output_timeout: 90m
+          command: ./build-wheels.sh
+          name: Get or Build Python wheels
   deploy:
     executor: latest-image
     steps:
       - attach_workspace:
           at: .
       - run:
-          command: pip3 install poetry
-          name: Install poetry
-      - run:
-          command: ./ci/docker-login.sh
+          command: ./docker/docker-login.sh
           name: Login to Docker Hub
       - run:
-          command: ./ci/install-binfmt-platforms.sh
+          command: ./docker/docker-install-binfmt-platforms.sh
           name: Install binfmt platforms
       - run:
-          command: ./ci/buildx-create.sh
+          command: ./docker/docker-buildx-create.sh
           name: Create buildx builder
-      - run:
-          no_output_timeout: 90m
-          command: ./build-wheels.sh
-          name: Get or Build Python wheels
       - run:
           command: ./build-codex.sh
           name: Build & Push Codex runnable image
       - run:
-          command: ./ci/publish-pypi.sh
+          command: ./deploy-pypi.sh
           name: Publish Package to PyPi
 version: 2.1
 workflows:
   main:
     jobs:
-      - build:
+      - test-and-build-dist:
           filters:
             branches:
               only:
                 - develop
                 - release
                 - /.*-ci/
+      - build-wheels:
+          filters:
+            branches:
+              only:
+                - release
+          requires:
+            - test-and-build-dist
       - deploy:
           filters:
             branches:
               only:
                 - release
           requires:
-            - build
+            - build-wheels
   version: 2.1
