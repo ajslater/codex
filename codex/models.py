@@ -286,6 +286,11 @@ class Folder(WatchedPath):
 class Comic(WatchedPath):
     """Comic metadata."""
 
+    # From BaseModel, but Comics are sorted by these so index them
+    created_at = DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = DateTimeField(auto_now=True, db_index=True)
+
+    # Unique comic fields
     issue = DecimalField(
         db_index=True, decimal_places=2, max_digits=6, default=Decimal(0.0)
     )
@@ -294,7 +299,7 @@ class Comic(WatchedPath):
     imprint = ForeignKey(Imprint, db_index=True, on_delete=CASCADE)
     publisher = ForeignKey(Publisher, db_index=True, on_delete=CASCADE)
     # Date
-    year = PositiveSmallIntegerField(null=True)
+    year = PositiveSmallIntegerField(db_index=True, null=True)
     month = PositiveSmallIntegerField(null=True)
     day = PositiveSmallIntegerField(null=True)
     # Summary
@@ -310,9 +315,9 @@ class Comic(WatchedPath):
     language = CharField(db_index=True, max_length=16, null=True)
     # misc
     cover_image = CharField(max_length=64, null=True)
-    format = CharField(max_length=16, null=True)
+    format = CharField(db_index=True, max_length=16, null=True)
     page_count = PositiveSmallIntegerField(db_index=True, default=0)
-    read_ltr = BooleanField(default=True)
+    read_ltr = BooleanField(db_index=True, default=True)
     scan_info = CharField(max_length=32, null=True)
     web = URLField(null=True)
     # ManyToMany
@@ -345,9 +350,6 @@ class Comic(WatchedPath):
     decade = PositiveSmallIntegerField(db_index=True, null=True)
     folders = ManyToManyField(Folder)
     max_page = PositiveSmallIntegerField(default=0)
-    parent_folder = ForeignKey(
-        Folder, db_index=True, on_delete=CASCADE, null=True, related_name="comic_in"
-    )
     size = PositiveIntegerField(db_index=True)
 
     class Meta:
@@ -508,4 +510,5 @@ class LatestVersion(BaseModel):
     @classmethod
     def set_version(cls, version):
         """Ensure a single database row."""
-        cls.objects.update_or_create(pk=LatestVersion.PK, version=version)
+        defaults = {"version": version}
+        cls.objects.update_or_create(defaults=defaults, pk=cls.PK)

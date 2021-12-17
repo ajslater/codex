@@ -4,7 +4,7 @@ build-backend = ["poetry.core.masonry.api"]
 
 [tool.poetry]
 name = "codex"
-version = "0.7.2"
+version = "0.7.3"
 description = "A comic archive web server."
 license = "GPL-2.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
@@ -32,6 +32,7 @@ python = "^3.9"
 ansicolors = "^1.1"
 bidict = "^0.21"
 comicbox = "^0.2.1"
+cryptography = "^36.0.1" # Dep only.
 django = "^4.0"
 djangorestframework = "^3.11"
 django-cors-headers = "^3.2"
@@ -55,7 +56,7 @@ codespell = "^2.1.0"
 coverage = { extras = ["toml"], version = "^6.0" }
 django-debug-toolbar = "^3.1"
 django-livereload-server = "^0.4"
-django-types = "^0.11.0"
+django-types = "^0.12.0"
 djangorestframework-types = "^0.6.0"
 flake8 = "^4.0"
 flake8-black = "^0.2"
@@ -78,7 +79,7 @@ vulture = "^2.3"
 codex = "codex.run:main"
 
 [tool.black]
-exclude = "/(.git|.mypy_cache|.pytest_cache|.venv|__pycache__|cache|codex/static_build|codex/static_root|comics|frontend|typings)/"
+exclude = "/(.git|.mypy_cache|.pytest_cache|.venv|__pycache__|cache|codex/static_build|codex/static_root|comics|dist|frontend|test-results|typings)/"
 
 [tool.coverage.run]
 source = ["codex"]
@@ -90,7 +91,21 @@ omit = ["frontend"]
 directory = "test-results/coverage"
 
 [tool.vulture]
-exclude = [".venv", "node_modules", "typings"]
+exclude = [
+  ".git",
+  ".mypy_cache",
+  ".pytest_cache",
+  ".venv",
+  "__pycache__",
+  "cache",
+  "codex/static_build",
+  "codex/static_root",
+  "comics",
+  "dist",
+  "node_modules",
+  "test_results",
+  "typings"
+]
 min_confidence = 61
 sort_by_size = true
 
@@ -109,7 +124,7 @@ addopts = """
     --cov-report=term
     --flake8
     --isort
-    --ignore=.git,.mypy_cache,.pytest_cache,.venv,__pycache__,cache,codex/static_build,codex/static_root,comics,config,typings
+    --ignore=.git,.mypy_cache,.pytest_cache,.venv,__pycache__,cache,codex/static_build,codex/static_root,comics,config,dist,typings
 """
 
 #    --mypy
@@ -125,7 +140,9 @@ exclude = [
   "codex/static_root",
   "comics",
   "config",
+  "dist",
   "frontend",
+  "test-results",
   "typings"
 ]
 useLibraryCodeForTypes = true

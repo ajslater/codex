@@ -336,7 +336,11 @@ class BrowserView(BrowserMetadataBase):
 
     def raise_valid_route(self, message, permission_denied=True):
         """403 should redirect to the valid group on the client side."""
-        valid_group = self.valid_nav_groups[0]
+        group = self.kwargs["group"]
+        if group == "f":
+            valid_group = group
+        else:
+            valid_group = self.valid_nav_groups[0]
         detail = {"group": valid_group, "message": message}
         if permission_denied:
             raise PermissionDenied(detail)
@@ -398,7 +402,11 @@ class BrowserView(BrowserMetadataBase):
 
         self.set_browse_model()
         # Create the main query with the filters
-        object_filter = self.get_query_filters(self.model == Comic, False)
+        try:
+            object_filter = self.get_query_filters(self.model == Comic, False)
+        except Folder.DoesNotExist:
+            pk = self.kwargs.get("pk")
+            self.raise_valid_route(f"f={pk} Does not exist!", False)
         group = self.kwargs.get("group")
 
         if group == self.FOLDER_GROUP:

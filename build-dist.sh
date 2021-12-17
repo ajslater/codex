@@ -7,7 +7,10 @@ echo "*** build frontend ***"
 rm -rf "codex/static_build"
 cd frontend
 # XXX https://stackoverflow.com/questions/69394632/webpack-build-failing-with-err-ossl-evp-unsupported
-NODE_OPTIONS='--openssl-legacy-provider' npm run build
+if [ "$(uname)" != "Darwin" ]; then
+    export NODE_OPTIONS='--openssl-legacy-provider'
+fi
+npm run build
 
 echo "*** collect static resources into static root ***"
 cd ..
