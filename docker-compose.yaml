@@ -35,7 +35,7 @@ services:
       args:
         WHEEL_BUILDER_VERSION: "$WHEEL_BUILDER_VERSION"
         WHEELS_VERSION: "$WHEELS_VERSION"
-    image: docker.io/ajslater/codex-wheels:$WHEELS_VERSION
+    image: docker.io/ajslater/codex-wheels
     container_name: codex-wheels
   codex:
     env_file:
@@ -47,7 +47,7 @@ services:
         CODEX_WHEEL: "$CODEX_WHEEL"
         RUNNABLE_BASE_VERSION: "$RUNNABLE_BASE_VERSION"
         WHEELS_VERSION: "$WHEELS_VERSION"
-    image: docker.io/ajslater/codex:${PKG_VERSION:-latest}
+    image: docker.io/ajslater/codex
     container_name: codex
     environment:
       - LOGLEVEL=DEBUG

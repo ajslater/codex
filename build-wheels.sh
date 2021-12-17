@@ -30,5 +30,8 @@ export DOCKER_BUILDKIT=1
 export WHEEL_BUILDER_VERSION=$WHEEL_BUILDER_VERSION
 export WHEELS_VERSION
 export PLATFORMS
+export REPO=docker.io/ajslater/codex-wheels
 docker buildx bake codex-wheels --set "*.platform=$PLATFORMS" \
+    --set "codex.tags=${REPO}:${WHEELS_VERSION}" \
+    --set "codex.tags=${REPO}:latest" \
     ${LOAD_OR_PUSH:-}
