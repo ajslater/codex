@@ -6,5 +6,6 @@ source .env
 export DOCKER_CLI_EXPERIMENTAL=enabled
 export DOCKER_BUILDKIT=1
 export BUILDER_VERSION=$BUILDER_VERSION
-docker buildx bake codex-build \
-    --load
+docker buildx bake \
+    --load \
+    codex-build

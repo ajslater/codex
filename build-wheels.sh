@@ -41,7 +41,8 @@ else
     PLATFORM_ARG=()
 fi
 # shellcheck disable=2068
-docker buildx bake codex-wheels \
+docker buildx bake \
     ${PLATFORM_ARG[@]:-} \
     --set "*.tags=${IMAGE}" \
-    ${CMD:-}
+    ${CMD:-} \
+    codex-wheels

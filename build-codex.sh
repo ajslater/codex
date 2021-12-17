@@ -34,8 +34,9 @@ else
 fi
 # Build and cache
 # shellcheck disable=2068
-docker buildx bake codex \
+docker buildx bake \
     ${PLATFORM_ARG[@]:-} \
     --set "*.tags=$REPO:${PKG_VERSION}" \
     --set "*.tags=$REPO:latest" \
-    ${CMD:-}
+    ${CMD:-} \
+    codex
