@@ -3,7 +3,7 @@ executors:
     machine:
       image: ubuntu-2004:202111-01
 jobs:
-  test-and-build-dist:
+  lint-test-and-build-dist:
     executor: latest-image
     steps:
       - checkout

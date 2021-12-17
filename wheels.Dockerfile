@@ -4,13 +4,13 @@ FROM ajslater/codex-wheel-builder:${WHEEL_BUILDER_VERSION}
 ARG WHEELS_VERSION
 ARG BUILDPLATFORM
 ARG TARGETPLATFORM
-ARG REQ_FN /app/requirements.txt
+ENV REQ_FN /app/requirements.txt
 LABEL version $WHEELS_VERSION
 RUN echo "Running on $BUILDPLATFORM, building for $TARGETPLATFORM" && \
     echo "Stage 1: build wheels"
 
 WORKDIR /app
-COPY ./poetry.lock ./
+COPY ./poetry.lock ./pyproject.toml ./
 RUN poetry export --without-hashes --extras wheel --output "$REQ_FN"
 
 WORKDIR /wheels

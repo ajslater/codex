@@ -12,12 +12,12 @@ if [ "${1:-}" != "-f" ]; then
 fi
 
 source .env
-if [[ -z $PLATFORMS ]]; then
+if [[ -z ${PLATFORMS:-} ]]; then
     source .env.platforms
 fi
 
 # Different behavior for multiple vs single PLATFORMS
-if [[ $PLATFORMS =~ "," ]]; then
+if [[ ${PLATFORMS:-} =~ "," ]]; then
     # more than one platform
     LOAD_OR_PUSH="--push"
 else
