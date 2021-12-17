@@ -1,9 +1,11 @@
 #!/bin/bash
 # get or build and push codex-wheels multiarch image
-set -euo pipefail
+set -eux
 
+source .env
 WHEELS_VERSION=$(md5sum poetry.lock | awk '{print $1}')
-IMAGE="ajslater/codex-wheels:${WHEELS_VERSION}"
+REPO=docker.io/ajslater/codex-wheels
+IMAGE="${REPO}:${WHEELS_VERSION}"
 if [ "${1:-}" != "-f" ]; then
     docker pull "${IMAGE}" || true
     if docker inspect "${IMAGE}" --format="codex wheels image up to date"; then
@@ -11,18 +13,21 @@ if [ "${1:-}" != "-f" ]; then
     fi
 fi
 
-source .env
 if [[ -z ${PLATFORMS:-} ]]; then
     source .env.platforms
 fi
 
-# Different behavior for multiple vs single PLATFORMS
-if [[ ${PLATFORMS:-} =~ "," ]]; then
-    # more than one platform
-    LOAD_OR_PUSH="--push"
+if [ -n "${1:-}" ]; then
+    CMD=$1
 else
-    # only one platform loading into docker works
-    LOAD_OR_PUSH="--load"
+    # Different behavior for multiple vs single PLATFORMS
+    if [[ ${PLATFORMS:-} =~ "," ]]; then
+        # more than one platform
+        CMD="--push"
+    else
+        # only one platform loading into docker works
+        CMD="--load"
+    fi
 fi
 
 export DOCKER_CLI_EXPERIMENTAL=enabled
@@ -30,8 +35,13 @@ export DOCKER_BUILDKIT=1
 export WHEEL_BUILDER_VERSION=$WHEEL_BUILDER_VERSION
 export WHEELS_VERSION
 export PLATFORMS
-export REPO=docker.io/ajslater/codex-wheels
-docker buildx bake codex-wheels --set "*.platform=$PLATFORMS" \
-    --set "codex.tags=${REPO}:${WHEELS_VERSION}" \
-    --set "codex.tags=${REPO}:latest" \
-    ${LOAD_OR_PUSH:-}
+if [ -n "${PLATFORMS:-}" ]; then
+    PLATFORM_ARG=(--set "*.platform=$PLATFORMS")
+else
+    PLATFORM_ARG=()
+fi
+# shellcheck disable=2068
+docker buildx bake codex-wheels \
+    ${PLATFORM_ARG[@]:-} \
+    --set "*.tags=${IMAGE}" \
+    ${CMD:-}
