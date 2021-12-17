@@ -40,8 +40,10 @@ jobs:
             - ./README.md
             - ./build-codex.sh
             - ./build-wheels.sh
+            - ./deploy-pypi.sh
             - ./dist
             - ./docker
+            - ./docker-compose.yaml
             - ./pyproject.toml
             - ./poetry.lock
           root: .

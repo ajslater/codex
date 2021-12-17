@@ -22,11 +22,9 @@ else
 fi
 
 WHEELS_VERSION=$(md5sum poetry.lock | awk '{print $1}')
-CODEX_WHEEL=codex-${PKG_VERSION}-py3-none-any.whl
 export DOCKER_CLI_EXPERIMENTAL=enabled
 export DOCKER_BUILDKIT=1
-export CODEX_WHEEL
-export PLATFORMS
+export CODEX_WHEEL=codex-${PKG_VERSION}-py3-none-any.whl
 export RUNNABLE_BASE_VERSION
 export WHEELS_VERSION
 if [ -n "${PLATFORMS:-}" ]; then
@@ -36,8 +34,9 @@ else
 fi
 # Build and cache
 # shellcheck disable=2068
-docker buildx bake codex \
+docker buildx bake \
     ${PLATFORM_ARG[@]:-} \
     --set "*.tags=$REPO:${PKG_VERSION}" \
     --set "*.tags=$REPO:latest" \
-    ${CMD:-}
+    ${CMD:-} \
+    codex
