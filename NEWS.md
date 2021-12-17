@@ -1,5 +1,9 @@
 # 📰 Codex News
 
+## v0.7.4.dev0
+
+- Fix last filter, group, sort not loading properly for some new views.
+
 ## v0.7.3
 
 - Fix crash updating latest version.
