@@ -92,7 +92,7 @@ def _log_task(path, task):
     if dirs_log:
         log = "Folders: "
         log += ", ".join(dirs_log)
-        LOG.verbose("\t" + log)  # type: ignore
+        LOG.verbose("  " + log)  # type: ignore
 
 
 def apply(task):
