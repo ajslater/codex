@@ -255,7 +255,7 @@ python-versions = "*"
 
 [[package]]
 name = "django-debug-toolbar"
-version = "3.2.3"
+version = "3.2.4"
 description = "A configurable set of panels that display various debug information about the current request/response."
 category = "dev"
 optional = false
@@ -281,7 +281,7 @@ tornado = "*"
 
 [[package]]
 name = "django-types"
-version = "0.11.0"
+version = "0.12.0"
 description = "Type stubs for Django"
 category = "dev"
 optional = false
@@ -289,7 +289,7 @@ python-versions = ">=3.6.2,<4.0.0"
 
 [[package]]
 name = "djangorestframework"
-version = "3.13.0"
+version = "3.13.1"
 description = "Web APIs for Django, made easy."
 category = "main"
 optional = false
@@ -439,7 +439,7 @@ tests = ["freezegun", "pytest", "pytest-cov"]
 
 [[package]]
 name = "hypercorn"
-version = "0.13.0"
+version = "0.13.1"
 description = "A ASGI Server based on Hyper libraries and inspired by Gunicorn"
 category = "main"
 optional = false
@@ -1078,7 +1078,7 @@ h11 = ">=0.9.0,<1"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "7b797b7a104dfc8d3cbbd32c2fc5cc19ccc5634d3f5b5c5301ec969a5e7354b3"
+content-hash = "f44c3bd6603fded6fbe85dbf357e036a4e088749fdd99e151636c7edc23f3d6d"
 
 [metadata.files]
 aioquic = [
@@ -1348,20 +1348,20 @@ django-dark = [
     {file = "django-dark-0.1.9.tar.gz", hash = "sha256:e7209f3606c6df0338211f8d2a01b5858d6f9984795f63cbe38fc02bd959ed37"},
 ]
 django-debug-toolbar = [
-    {file = "django-debug-toolbar-3.2.3.tar.gz", hash = "sha256:95880677ea846ba1077d02305fd5e2b25e1da096e1d4a735b665e3340fa2ae79"},
-    {file = "django_debug_toolbar-3.2.3-py3-none-any.whl", hash = "sha256:516702e1d71302bbc06059fa3c41efd1a3bd9cbb5580fc793343118d95b309e0"},
+    {file = "django-debug-toolbar-3.2.4.tar.gz", hash = "sha256:644bbd5c428d3283aa9115722471769cac1bec189edf3a0c855fd8ff870375a9"},
+    {file = "django_debug_toolbar-3.2.4-py3-none-any.whl", hash = "sha256:6b633b6cfee24f232d73569870f19aa86c819d750e7f3e833f2344a9eb4b4409"},
 ]
 django-livereload-server = [
     {file = "django-livereload-server-0.4.tar.gz", hash = "sha256:60ed030085ca53671d25704b10ec7aa3cc94a16da437b727a8dcce42471b4c65"},
     {file = "django_livereload_server-0.4-py2.py3-none-any.whl", hash = "sha256:136c231e7ad3ba7a4db65426632dfa9b964ac04e8fa5f3808166447f016a4a91"},
 ]
 django-types = [
-    {file = "django-types-0.11.0.tar.gz", hash = "sha256:6ae1d182c4342d1e4d3358ac04b6f5c9229f7cf848011d5a4be26b2ce092459d"},
-    {file = "django_types-0.11.0-py3-none-any.whl", hash = "sha256:ab0da9b86ba2bd7a5a6109ca8941397eaf4f8a12fd92c993db78de0b5fcae1b2"},
+    {file = "django-types-0.12.0.tar.gz", hash = "sha256:6fa3e3ee091d006e90008f700f9cf4546603d8953922f7480b4a2ac307425e70"},
+    {file = "django_types-0.12.0-py3-none-any.whl", hash = "sha256:89ddaed10ae4445e9c27005af38a4eaa24931d3b89592f6bbafb6dc169947dd2"},
 ]
 djangorestframework = [
-    {file = "djangorestframework-3.13.0-py3-none-any.whl", hash = "sha256:48e64f08244fa0df9e2b8fbd405edec263d8e1251112a06d0073b546b7c86b9c"},
-    {file = "djangorestframework-3.13.0.tar.gz", hash = "sha256:8b987d5683f5b3553dd946d4972048d3117fc526cb0bc01a3f021e81af53f39e"},
+    {file = "djangorestframework-3.13.1-py3-none-any.whl", hash = "sha256:24c4bf58ed7e85d1fe4ba250ab2da926d263cd57d64b03e8dcef0ac683f8b1aa"},
+    {file = "djangorestframework-3.13.1.tar.gz", hash = "sha256:0c33407ce23acc68eca2a6e46424b008c9c02eceb8cf18581921d0092bc1f2ee"},
 ]
 djangorestframework-types = [
     {file = "djangorestframework-types-0.6.0.tar.gz", hash = "sha256:60e3a9170af6550ca79c1da83c4db434d8c035ab9a0c5032783fddc27f56f3ac"},
@@ -1462,8 +1462,8 @@ humanize = [
     {file = "humanize-3.13.1.tar.gz", hash = "sha256:12f113f2e369dac7f35d3823f49262934f4a22a53a6d3d4c86b736f50db88c7b"},
 ]
 hypercorn = [
-    {file = "Hypercorn-0.13.0-py3-none-any.whl", hash = "sha256:eafbed8b1cb9827552c0066386d3e693c16d3977dd60896bfa07dca4c9d92a20"},
-    {file = "Hypercorn-0.13.0.tar.gz", hash = "sha256:229d1e8684919c455281526d7c19e3568d51e4e5657a0051a4625d00902a1122"},
+    {file = "Hypercorn-0.13.1-py3-none-any.whl", hash = "sha256:fcbfd5b691176cfcbf558cfa536909b2ef249af5528c99fcf941405c1c9aba74"},
+    {file = "Hypercorn-0.13.1.tar.gz", hash = "sha256:3f55c7d0a51a93601d24fb773b88b1cd05c8ccb33e19294d1215bc0e19a6939c"},
 ]
 hyperframe = [
     {file = "hyperframe-6.0.1-py3-none-any.whl", hash = "sha256:0ec6bafd80d8ad2195c4f03aacba3a8265e57bc4cff261e802bf39970ed02a15"},
