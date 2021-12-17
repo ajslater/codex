@@ -1,5 +1,11 @@
 # 📰 Codex News
 
+## v0.7.3
+
+- Fix crash updating latest version.
+- Fix a folder not found crash in folder view.
+- Database indexing speedups.
+
 ## v0.7.2
 
 - Fix another integrity check bug
