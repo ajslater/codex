@@ -28,7 +28,6 @@ services:
   codex-wheels:
     env_file:
       - .env
-    platform: $PLATFORMS
     build:
       context: .
       dockerfile: wheels.Dockerfile
@@ -40,7 +39,6 @@ services:
   codex:
     env_file:
       - .env
-    platform: $PLATFORMS
     build:
       context: .
       args:
