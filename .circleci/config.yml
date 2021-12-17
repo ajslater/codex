@@ -42,6 +42,7 @@ jobs:
             - ./build-wheels.sh
             - ./dist
             - ./docker
+            - ./docker-compose.yaml
             - ./pyproject.toml
             - ./poetry.lock
           root: .
