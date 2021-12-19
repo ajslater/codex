@@ -74,6 +74,8 @@ pytest-flake8 = "^1.0"
 pytest-isort = "^2.0"
 radon = "^5.1"
 vulture = "^2.3"
+pytest-gitignore = "^1.3"
+pytest-bandit = "^0.6.1"
 
 [tool.poetry.scripts]
 codex = "codex.run:main"
@@ -117,6 +119,7 @@ addopts = """
     --junitxml=test-results/pytest/results.xml
     -ra
     --strict-markers
+    --bandit
     --black
     --cov
     --cov-append
