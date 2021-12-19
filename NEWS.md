@@ -1,7 +1,8 @@
 # 📰 Codex News
 
-## v0.7.4.dev0
+## v0.7.4
 
+- Fix integrity cleanup check for more types of integrity errors that may have prevented clean db migrations.
 - Fix last filter, group, sort not loading properly for some new views.
 
 ## v0.7.3
