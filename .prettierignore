@@ -1,4 +1,5 @@
 .circleci
+.git
 .mypy_cache
 .pytest_cache
 .venv
@@ -10,7 +11,7 @@ codex/static_build
 codex/static_root
 comics
 frontend/dist
+frontend/node_modules
 frontend/public/css/normalize.css
-static_prod
 templates
 webpack-stats.json
