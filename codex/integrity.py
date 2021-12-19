@@ -3,18 +3,15 @@ import os
 import re
 import sqlite3
 
-from itertools import chain
 from logging import getLogger
 
 from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
 from django.db.migrations.recorder import MigrationRecorder
-from django.db.models import Q
 from django.db.models.functions import Now
 from django.db.utils import OperationalError
 
-from codex.librarian.db.query_fks import FILTER_ARG_MAX
 from codex.settings.settings import CONFIG_PATH, DB_PATH
 
 
@@ -46,85 +43,47 @@ GROUP_HOSTS = {
 }
 WATCHED_PATHS = ("Comic", "Folder")
 CREDIT_FIELDS = {"CreditRole": "role", "CreditPerson": "person"}
+OPERATIONAL_ERRORS_BEFORE_MIGRATIONS = (
+    "no such column: codex_comic.name",
+    "no such column: codex_comic.stat",
+    "no such column: codex_folder.stat",
+    "no such table: codex_comic_folders",
+    "'QuerySet' object has no attribute 'stat'",
+)
 LOG = getLogger(__name__)
 
 
-def _get_invalid_m2m_ids(comic_model, m2m_model, field_name):
-    """Query for invalid_m2m_ids."""
-    comic_m2m_ids = set(
-        comic_model.objects.all().values_list(f"{field_name}__id", flat=True)
-    )
-    valid_m2m_ids = set(m2m_model.objects.all().values_list("pk", flat=True))
-    invalid_m2m_ids = comic_m2m_ids - valid_m2m_ids - set([None])
-    if num_invalid_m2m_ids := len(invalid_m2m_ids):
-        LOG.verbose(  # type: ignore
-            f"Comic.{field_name} - valid: {len(valid_m2m_ids)},"
-            f" invalid: {num_invalid_m2m_ids}"
-        )
-    return invalid_m2m_ids
-
-
-def _batch_filter_args(iterable):
-    """Generate batches of filter args to not break sqlite."""
-    len_iterable = len(iterable)
-    for index in range(0, len_iterable, FILTER_ARG_MAX):
-        yield list(iterable)[index : min(index + FILTER_ARG_MAX, len_iterable)]
-
-
-def _delete_invalid_m2m_rels(comic_model, m2m_model, field_name, invalid_m2m_ids):
-    """Delete the bad m2m relations."""
+def _fix_comic_m2m_integrity_errors(apps, comic_model, m2m_model_name, field_name):
+    """Fix Comic ManyToMany integrity errors."""
+    """Delete relations to comics that don't exist and m2ms that don't exist."""
+    m2m_model = apps.get_model("codex", m2m_model_name)
     field = getattr(comic_model, field_name)
-    ThroughModel = field.through  # noqa: N806
+    through_model = field.through  # noqa: N806
+    link_col = field_name[:-1].replace("_", "") + "_id"
 
-    link_name = m2m_model.__name__.lower()
-    bad_comic_ids = set()
-    total_count = 0
-    batch_count = 0
-    num_invalid_m2m_ids = len(invalid_m2m_ids)
-    for invalid_m2m_ids_batch in _batch_filter_args(invalid_m2m_ids):
-        try:
-            batch_count += len(invalid_m2m_ids_batch)
-            filter_args = {f"{link_name}_id__in": invalid_m2m_ids_batch}
-            query = ThroughModel.objects.filter(**filter_args)
-            bad_comic_ids |= set(query.values_list("comic_id", flat=True))
-            total_count += query.count()
-            query.delete()
-            LOG.debug(f"deleted {field_name} batch {batch_count}/{num_invalid_m2m_ids}")
-        except Exception as exc:
-            LOG.warning(exc)
-    LOG.info(
-        f"Deleted {total_count} relations from {len(bad_comic_ids)} "
-        f"comics to missing {field_name}."
+    m2m_rels_with_bad_comic_ids = through_model.objects.exclude(
+        comic_id__in=comic_model.objects.all()
     )
-    return bad_comic_ids
+    count_comic, _ = m2m_rels_with_bad_comic_ids.delete()
+    m2m_rels_with_bad_m2m_ids = through_model.objects.exclude(
+        **{f"{link_col}__in": m2m_model.objects.all()}
+    )
+    bad_comics = comic_model.objects.filter(
+        pk__in=m2m_rels_with_bad_m2m_ids.values_list("comic_id", flat=True)
+    )
+    count_m2m, _ = m2m_rels_with_bad_m2m_ids.delete()
+    count = count_comic + count_m2m
+    if count:
+        LOG.verbose(f"Deleted {count} orphan relations to {field_name}")  # type: ignore
+    return bad_comics
 
 
-def _mark_comics_with_bad_m2m_rels_for_update(comic_model, field_name, bad_comic_ids):
+def _mark_comics_with_bad_m2m_rels_for_update(comic_model, bad_comics):
     """Mark affected comics for update."""
-    all_bad_comics = []
-    num_all_bad_comics = 0
     try:
-        batch_count = 0
-        num_bad_comic_ids = len(bad_comic_ids)
-        for bad_comic_ids_batch in _batch_filter_args(bad_comic_ids):
-            filter = Q(pk__in=bad_comic_ids_batch)
-            bad_comics = comic_model.objects.filter(filter).only("pk", "stat")
-            all_bad_comics.append(bad_comics)
-            num_all_bad_comics += bad_comics.count()
-            LOG.debug(
-                f"found bad comics batch {batch_count}/{num_bad_comic_ids} "
-                f"with bad {field_name}"
-            )
-
-        if not num_all_bad_comics:
-            return
-        LOG.verbose(  # type: ignore
-            f"Found {num_all_bad_comics} comics with bad {field_name}."
-        )
-
         update_comics = []
 
-        for comic in chain(all_bad_comics):
+        for comic in bad_comics.values("pk", "stat"):
             stat_list = comic.stat
             if not stat_list:
                 continue
@@ -136,35 +95,19 @@ def _mark_comics_with_bad_m2m_rels_for_update(comic_model, field_name, bad_comic
             return
 
         count = comic_model.objects.bulk_update(update_comics, fields=["stat"])
-        LOG.info(f"Marked {count} with missing {field_name} for update by poller.")
+        LOG.info(f"Marked {count} comics with bad m2m relations for update by poller.")
     except (OperationalError, AttributeError) as exc:
-        if (
-            "no such column: codex_comic.stat" in exc.args
-            or "'QuerySet' object has no attribute 'stat'" in exc.args
-        ):
-            LOG.debug(
-                "Can't mark modified comics for update, "
-                "but if this happens right before migration 0007, "
-                "they'll be updated anyway."
-            )
-        else:
+        ok = False
+        for arg in exc.args:
+            if arg in OPERATIONAL_ERRORS_BEFORE_MIGRATIONS:
+                LOG.debug(
+                    "Can't mark modified comics for update, "
+                    "but if this happens right before migration 0007, "
+                    "they'll be updated anyway."
+                )
+                ok = True
+        if not ok:
             LOG.exception(exc)
-
-
-def _fix_comic_m2m_integrity_errors(apps, m2m_model_name, field_name):
-    """Fix Comic ManyToMany integrity errors."""
-    comic_model = apps.get_model("codex", "Comic")
-    m2m_model = apps.get_model("codex", m2m_model_name)
-
-    invalid_m2m_ids = _get_invalid_m2m_ids(comic_model, m2m_model, field_name)
-    if not len(invalid_m2m_ids):
-        return
-
-    bad_comic_ids = _delete_invalid_m2m_rels(
-        comic_model, m2m_model, field_name, invalid_m2m_ids
-    )
-
-    _mark_comics_with_bad_m2m_rels_for_update(comic_model, field_name, bad_comic_ids)
 
 
 def _find_fk_integrity_errors_with_models(
@@ -197,9 +140,9 @@ def _find_fk_integrity_errors(apps, host_model_name, fk_model_name, fk_field_nam
 
 def _delete_query(query, host_model_name, fk_model_name):
     """Execute the delete on the query."""
-    if num_bad := query.count():
-        query.delete()
-        LOG.info(f"Deleted {num_bad} {host_model_name}s in nonextant {fk_model_name}s.")
+    count, _ = query.delete()
+    if count:
+        LOG.info(f"Deleted {count} {host_model_name}s in nonextant {fk_model_name}s.")
 
 
 def _delete_fk_integrity_errors(apps, host_model_name, fk_model_name, fk_field_name):
@@ -209,8 +152,15 @@ def _delete_fk_integrity_errors(apps, host_model_name, fk_model_name, fk_field_n
             apps, host_model_name, fk_model_name, fk_field_name
         )
         _delete_query(bad_host_objs, host_model_name, fk_model_name)
+    except OperationalError as exc:
+        ok = False
+        for arg in exc.args:
+            if arg in OPERATIONAL_ERRORS_BEFORE_MIGRATIONS:
+                ok = True
+        if not ok:
+            LOG.exception(exc)
     except Exception as exc:
-        LOG.warning(exc)
+        LOG.exception(exc)
 
 
 def _null_missing_fk(host_model, fk_model, fk_field_name):
@@ -265,18 +215,26 @@ def _fix_db_integrity():
     _delete_userbookmark_integrity_errors(apps)
 
     # REPAIR the objects that are left
+    comic_model = apps.get_model("codex", "Comic")
+    bad_comic_ids = comic_model.objects.none()  # type: ignore
     for m2m2_model_name, field_name in M2M_NAMES.items():
         try:
-            _fix_comic_m2m_integrity_errors(apps, m2m2_model_name, field_name)
+            bad_comic_ids |= _fix_comic_m2m_integrity_errors(
+                apps, comic_model, m2m2_model_name, field_name
+            )
         except OperationalError as exc:
-            if "no such table: codex_comic_folders" in exc.args:
-                LOG.debug(
+            ok = False
+            for arg in exc.args:
+                if arg in OPERATIONAL_ERRORS_BEFORE_MIGRATIONS:
+                    ok = True
+            if ok:
+                LOG.verbose(  # type: ignore
                     "Couldn't look for comics with folder integrity problems before "
                     "migration 0007. We'll get them on the next restart."
                 )
             else:
                 LOG.exception(exc)
-            LOG.warning(exc)
+    _mark_comics_with_bad_m2m_rels_for_update(comic_model, bad_comic_ids)
 
     LOG.verbose("Done with database integrity check.")  # type: ignore
 

@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "private": true,
   "description": "ui for codex api",
   "scripts": {
@@ -40,7 +40,7 @@
     "@vue/cli-service": "^4.5.15",
     "@vue/eslint-config-prettier": "^6.0.0",
     "@vue/test-utils": "^1.1.1",
-    "eslint": "^7.32.0",
+    "eslint": "^8.5.0",
     "eslint-config-adjunct": "^4.8.9",
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-array-func": "^3.1.7",
@@ -57,7 +57,7 @@
     "eslint-plugin-no-use-extend-native": "^0.5.0",
     "eslint-plugin-only-warn": "^1.0.2",
     "eslint-plugin-optimize-regex": "^1.2.0",
-    "eslint-plugin-promise": "^5.1.1",
+    "eslint-plugin-promise": "^6.0.0",
     "eslint-plugin-scanjs-rules": "^0.2.1",
     "eslint-plugin-security": "^1.4.0",
     "eslint-plugin-simple-import-sort": "^7.0.0",

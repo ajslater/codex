@@ -72,10 +72,10 @@ class ComicSettingsView(SessionMixin, UserBookmarkMixin):
     def patch(self, request, *args, **kwargs):
         """Patch the bookmark settings for one comic."""
         serializer = ComicReaderSettingsSerializer(data=self.request.data)
-        updates = self.validate(serializer)
+        snake_dict = self.validate(serializer)
 
         pk = self.kwargs.get("pk")
-        self.update_user_bookmark(updates, pk=pk)
+        self.update_user_bookmark(snake_dict, pk=pk)
         return Response()
 
     def put(self, request, *args, **kwargs):

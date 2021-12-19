@@ -47,4 +47,4 @@ if [ "$(uname)" = "Darwin" ]; then
 fi
 shellcheck -x ./*.sh ./**/*.sh
 # shellcheck disable=2035
-poetry run codespell *
+poetry run codespell .

@@ -378,7 +378,7 @@ class BrowserView(BrowserMetadataBase):
         if group == "r" and self.kwargs["pk"]:
             self.raise_valid_route(f"Cannot show group {group} with pk other than 0.")
 
-    def validate_put(self, data):
+    def apply_put(self, data):
         """Validate submitted settings."""
         serializer = BrowserSettingsSerializer(data=data)
         try:
@@ -388,7 +388,6 @@ class BrowserView(BrowserMetadataBase):
             LOG.exception(exc)
             raise exc
 
-        self.params = {}
         for key, value in serializer.validated_data.items():
             snake_key = snakecase(key)
             self.params[snake_key] = value
@@ -473,7 +472,8 @@ class BrowserView(BrowserMetadataBase):
 
     def put(self, request, *args, **kwargs):
         """Create the view."""
-        self.validate_put(request.data)
+        self.params = self.get_session(self.BROWSER_KEY)
+        self.apply_put(request.data)
 
         browser_page = self.get_browser_page()
 
@@ -487,7 +487,6 @@ class BrowserView(BrowserMetadataBase):
         browser_page = self.get_browser_page()
 
         filters = self.params["filters"]
-
         latest_version = get_latest_version(PACKAGE_NAME)
 
         data = {
