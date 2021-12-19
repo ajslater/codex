@@ -21,7 +21,7 @@ else
     fi
 fi
 
-WHEELS_VERSION=$(md5sum poetry.lock | awk '{print $1}')
+WHEELS_VERSION=$(./wheels-version.sh)
 export DOCKER_CLI_EXPERIMENTAL=enabled
 export DOCKER_BUILDKIT=1
 export CODEX_WHEEL=codex-${PKG_VERSION}-py3-none-any.whl

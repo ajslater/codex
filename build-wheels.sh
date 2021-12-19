@@ -3,7 +3,7 @@
 set -eux
 
 source .env
-WHEELS_VERSION=$(md5sum poetry.lock | awk '{print $1}')
+WHEELS_VERSION=$(./wheels-version.sh)
 REPO=docker.io/ajslater/codex-wheels
 IMAGE="${REPO}:${WHEELS_VERSION}"
 if [ "${1:-}" != "-f" ]; then
