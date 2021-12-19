@@ -290,6 +290,11 @@ class Comic(WatchedPath):
     created_at = DateTimeField(auto_now_add=True, db_index=True)
     updated_at = DateTimeField(auto_now=True, db_index=True)
 
+    # From WatchedPath, but interferes with related_name from folders m2m field
+    parent_folder = ForeignKey(
+        "Folder", on_delete=CASCADE, null=True, related_name="comic_in"
+    )
+
     # Unique comic fields
     issue = DecimalField(
         db_index=True, decimal_places=2, max_digits=6, default=Decimal(0.0)
