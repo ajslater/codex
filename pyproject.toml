@@ -32,7 +32,6 @@ python = "^3.9"
 ansicolors = "^1.1"
 bidict = "^0.21"
 comicbox = "^0.2.1"
-cryptography = "^36.0.1" # Dep only.
 django = "^4.0"
 djangorestframework = "^3.11"
 django-cors-headers = "^3.2"
