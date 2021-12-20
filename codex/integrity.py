@@ -22,6 +22,7 @@ DUMP_LINE_MATCHER = re.compile("TRANSACTION|ROLLBACK|COMMIT")
 REBUILT_DB_PATH = DB_PATH.parent / (DB_PATH.name + ".rebuilt")
 BACKUP_DB_PATH = DB_PATH.parent / (DB_PATH.name + ".backup")
 MIGRATION_0005 = "0005_auto_20200918_0146"
+MIGRATION_0007 = "0007_auto_20211210_1710"
 M2M_NAMES = {
     "Character": "characters",
     "Credit": "credits",
@@ -50,7 +51,36 @@ OPERATIONAL_ERRORS_BEFORE_MIGRATIONS = (
     "no such table: codex_comic_folders",
     "'QuerySet' object has no attribute 'stat'",
 )
+DELETE_BAD_COMIC_FOLDER_RELATIONS_SQL = (
+    'DELETE FROM "codex_comic_folder" '
+    'WHERE (NOT ("codex_comic_folder"."comic_id" '
+    'IN (SELECT "codex_comic"."id" FROM "codex_comic")) '
+    'OR NOT ("codex_comic_folder"."folder_id" '
+    'IN (SELECT "codex_folder"."id" FROM "codex_folder")))'
+)
 LOG = getLogger(__name__)
+
+
+def has_applied_migration(migration_name):
+    """Check if a specific migration has been applied."""
+    return MigrationRecorder.Migration.objects.filter(
+        app="codex", name=migration_name
+    ).exists()
+
+
+def _repair_old_comic_folder_fks():
+    if has_applied_migration(MIGRATION_0007):
+        return
+    from django.db import connection
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(DELETE_BAD_COMIC_FOLDER_RELATIONS_SQL)
+        LOG.verbose(  # type: ignore
+            "Deleted old comic_folder relations with bad integrity."
+        )
+    except Exception as exc:
+        LOG.exception(exc)
 
 
 def _fix_comic_m2m_integrity_errors(apps, comic_model, m2m_model_name, field_name):
@@ -214,6 +244,8 @@ def _fix_db_integrity():
 
     _delete_userbookmark_integrity_errors(apps)
 
+    _repair_old_comic_folder_fks()
+
     # REPAIR the objects that are left
     comic_model = apps.get_model("codex", "Comic")
     bad_comic_ids = comic_model.objects.none()  # type: ignore
@@ -245,10 +277,8 @@ def repair_db():
         if os.environ.get("CODEX_SKIP_INTEGRITY_CHECK"):
             LOG.info("Skipping integrity check")
             return
-        ready = MigrationRecorder.Migration.objects.filter(
-            app="codex", name=MIGRATION_0005
-        ).exists()
-        if not ready:
+
+        if not has_applied_migration(MIGRATION_0005):
             raise OperationalError(NO_0005_ARG)
         _fix_db_integrity()
     except OperationalError as exc:
