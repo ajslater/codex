@@ -46,6 +46,7 @@ jobs:
             - ./docker-compose.yaml
             - ./pyproject.toml
             - ./poetry.lock
+            - ./wheels-version.sh
           root: .
   build-wheels:
     executor: latest-image
