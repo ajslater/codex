@@ -1,5 +1,9 @@
 # 📰 Codex News
 
+## v0.7.5
+
+- Fix integrity cleanup check for old comic_folder relations that prevented migrations.
+
 ## v0.7.4
 
 - Fix integrity cleanup check for more types of integrity errors that may have prevented clean db migrations.

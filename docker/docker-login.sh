@@ -1,4 +1,4 @@
 #!/bin/bash
-set -euxo pipefail
+set -euo pipefail
 # login to docker using environment variables
-docker login --username="$DOCKER_USER" --password="$DOCKER_PASS"
+echo "$DOCKER_PASS" | docker login --username="$DOCKER_USER" --password-stdin
