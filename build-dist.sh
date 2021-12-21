@@ -15,7 +15,7 @@ npm run build
 echo "*** collect static resources into static root ***"
 cd ..
 ./collectstatic.sh
-
+./pm check
 echo "*** build and package application ***"
 # XXX poetry auto-excludes anything in gitignore. Dirty hack around that.
 # BSD sed behaves differently
