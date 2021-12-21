@@ -39,6 +39,7 @@ jobs:
             - ./Dockerfile
             - ./README.md
             - ./build-codex.sh
+            - ./build-install-poetry.sh
             - ./build-wheels.sh
             - ./deploy-pypi.sh
             - ./dist
@@ -53,6 +54,10 @@ jobs:
     steps:
       - attach_workspace:
           at: .
+          command: 
+      - run:
+          command: ./build-install-poetry.sh
+          name: Install poetry
       - run:
           command: ./docker/docker-login.sh
           name: Login to Docker Hub
@@ -71,6 +76,9 @@ jobs:
     steps:
       - attach_workspace:
           at: .
+      - run:
+          command: ./build-install-poetry.sh
+          name: Install poetry
       - run:
           command: ./docker/docker-login.sh
           name: Login to Docker Hub
