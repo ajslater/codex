@@ -158,24 +158,25 @@ def bulk_folders_create(library, folder_paths):
         path = Path(path_str)
         path_length = len(path.parts)
         if path_length not in folder_path_dict:
-            folder_path_dict[path_length] = []
-        folder_path_dict[path_length].append(path)
+            folder_path_dict[path_length] = set()
+        folder_path_dict[path_length].add(path)
 
     # create each depth level first to ensure we can assign parents
     total_count = 0
     for _, paths in sorted(folder_path_dict.items()):
         create_folders = []
-        for path in paths:
-            name = path.name
-            parent_path = str(Path(path).parent)
-            if parent_path == library.path:
-                parent = None
-            else:
+        for path in sorted(paths):
+            parent_path = str(path.parent)
+            parent = None
+            try:
                 parent = Folder.objects.get(path=parent_path)
+            except Folder.DoesNotExist:
+                if parent_path != library.path:
+                    LOG.error(f"Can't find parent folder {parent_path} for {path}")
             folder = Folder(
                 library=library,
                 path=str(path),
-                name=name,
+                name=path.name,
                 parent_folder=parent,
             )
             folder.presave()

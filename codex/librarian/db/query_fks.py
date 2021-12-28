@@ -47,6 +47,7 @@ def _query_create_metadata(fk_cls, create_mds, all_filter_args):
     filter_arg_count = 0
     all_filter_args = tuple(all_filter_args)
     last_log = time.time()
+    logged = False
 
     num_filter_args_batches = len(all_filter_args)
     for num, filter_args in enumerate(all_filter_args):
@@ -57,13 +58,16 @@ def _query_create_metadata(fk_cls, create_mds, all_filter_args):
             create_mds -= _query_existing_mds(fk_cls, filter)
 
             now = time.time()
-            if now - last_log > LOG_EVERY:
+            if now - last_log > LOG_EVERY or (
+                logged and num >= num_filter_args_batches
+            ):
                 log = (
                     f"Queried for existing {fk_cls.__name__}s, batch "
                     + f"{num}/{num_filter_args_batches}"
                 )
                 LOG.verbose(log)  # type: ignore
                 last_log = now
+                logged = True
 
             # Reset the filter
             filter = Q()
@@ -166,21 +170,24 @@ def _query_missing_simple_models(base_cls, field, fk_field, names):
     create_names = set(names)
     num_proposed_names = len(proposed_names)
     num = 0
+    logged = False
     last_log = time.time()
     while offset < num_proposed_names:
         end = offset + FILTER_ARG_MAX
-        filter_args = {f"{fk_field}__in": proposed_names[offset:end]}
+        batch_proposed_names = proposed_names[offset:end]
+        filter_args = {f"{fk_field}__in": batch_proposed_names}
         filter = Q(**filter_args)
         create_names -= _query_existing_mds(fk_cls, filter)
-        num += 1
+        num += len(batch_proposed_names)
         now = time.time()
-        if now - last_log > LOG_EVERY:
+        if now - last_log > LOG_EVERY or (logged and num >= num_proposed_names):
             log = (
                 f"Queried for existing {fk_cls.__name__}s, "
                 + f"batch {num}/{num_proposed_names}"
             )
             LOG.verbose(log)  # type: ignore
             last_log = now
+            logged = True
         offset += FILTER_ARG_MAX
 
     return fk_cls, create_names
@@ -225,10 +232,12 @@ def query_all_missing_fks(library_path, fks):
         create_groups = {}
         update_groups = {}
 
-    create_paths = set()
+    create_folder_paths = set()
     if "comic_paths" in fks:
-        create_paths |= query_missing_folder_paths(library_path, fks.pop("comic_paths"))
-        LOG.verbose(f"Prepared {len(create_paths)} new folders.")  # type: ignore
+        create_folder_paths |= query_missing_folder_paths(
+            library_path, fks.pop("comic_paths")
+        )
+        LOG.verbose(f"Prepared {len(create_folder_paths)} new folders.")  # type: ignore
 
     create_fks = {}
     for field in fks.keys():
@@ -242,4 +251,4 @@ def query_all_missing_fks(library_path, fks):
         if num_names := len(names):
             LOG.verbose(f"Prepared {num_names} new {field}.")  # type: ignore
 
-    return create_fks, create_groups, update_groups, create_paths, create_credits
+    return create_fks, create_groups, update_groups, create_folder_paths, create_credits
