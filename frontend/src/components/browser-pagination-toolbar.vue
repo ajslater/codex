@@ -28,22 +28,12 @@ export default {
   },
   computed: {
     ...mapState("browser", {
-      numPages: (state) => +state.numPages,
+      numPages: (state) => Number(state.numPages),
     }),
   },
   methods: {
     routeToPage: function (page) {
-      if (page === this.$route.params.page) {
-        console.debug("Redundant navigation. Noop.");
-        return;
-      }
-      const params = { ...this.$route.params };
-      params.page = page;
-      const route = {
-        name: this.$route.name,
-        params: params,
-      };
-      this.$router.push(route);
+      this.$store.dispatch("browser/routeToPage", page);
     },
   },
 };

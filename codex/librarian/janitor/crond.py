@@ -7,11 +7,13 @@ from time import sleep
 from django.utils import timezone
 from humanize import precisedelta
 
+from codex.librarian.janitor.search import clean_old_queries
 from codex.librarian.janitor.update import restart_codex, update_codex
 from codex.librarian.janitor.vacuum import backup_db, vacuum_db
 from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
     BackupTask,
+    CleanSearchTask,
     RestartTask,
     UpdateTask,
     VacuumTask,
@@ -65,6 +67,7 @@ class Crond(Thread):
                     break
 
                 try:
+                    LIBRARIAN_QUEUE.put(CleanSearchTask())
                     LIBRARIAN_QUEUE.put(VacuumTask())
                     LIBRARIAN_QUEUE.put(BackupTask())
                     LIBRARIAN_QUEUE.put(UpdateTask(force=False))
@@ -97,5 +100,7 @@ def janitor(task):
         update_codex()
     elif isinstance(task, RestartTask):
         restart_codex()
+    elif isinstance(task, CleanSearchTask):
+        clean_old_queries()
     else:
         LOG.warning(f"Janitor received unknown task {task}")

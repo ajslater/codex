@@ -1,11 +1,11 @@
 import { ajax, ROOT_PATH } from "./base";
 const ADMIN_URL = `${ROOT_PATH}admin/`;
 
-const poll = () => {
-  return ajax("post", `/poll`);
+const queueJob = async (task) => {
+  return await ajax("post", "/admin/queue_job", { task });
 };
 
 export default {
   ADMIN_URL,
-  poll,
+  queueJob,
 };

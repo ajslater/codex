@@ -10,8 +10,7 @@ poetry run black .
 ########################
 ###### Javascript ######
 ########################
-bash -c "cd frontend && npx eslint --ext .js,.vue --fix '**'"
-prettier --write .
+./fix-lint-js.sh
 
 ###################
 ###### Shell ######

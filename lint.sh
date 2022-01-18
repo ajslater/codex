@@ -19,8 +19,7 @@ fi
 ########################
 ###### Javascript ######
 ########################
-bash -c "cd frontend && npx eslint --ext .js,.vue '**'"
-prettier --check .
+./lint-js.sh
 
 ################################
 ###### Docker, Shell, Etc ######

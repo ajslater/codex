@@ -26,7 +26,7 @@
       sizes="16x16"
       href="{% static 'img/favicon-16x16.png' %}"
     />
-    <link rel="manifest" href="{{ root_path }}site.webmanifest" crossorigin="use-credentials" />
+    <link rel="manifest" href="{{ script_prefix }}site.webmanifest" crossorigin="use-credentials" />
     <link
       rel="mask-icon"
       color="#5bbad5"
@@ -36,7 +36,7 @@
     <meta name="msapplication-TileColor" content="#000000" />
     <meta
       name="msapplication-config"
-      content="{{ root_path }}browserconfig.xml"
+      content="{{ script_prefix }}browserconfig.xml"
     />
     <meta name="theme-color" content="#000000" />
     <link rel="stylesheet" href="{% static 'css/normalize.css' %}" />
@@ -46,7 +46,8 @@
     {% endif %}
     <title>Codex</title>
     <script>
-        var rootPath = "{{ root_path }}";
+      var rootPath = "{{ script_prefix }}";
+      var lastRoute = {{ last_route | safe }};
     </script>
     <script src="{% static 'js/chunk-vendors.js' %}" defer></script>
     <script src="{% static 'js/app.js' %}" defer></script>

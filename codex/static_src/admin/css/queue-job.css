@@ -1,0 +1,9 @@
+#queueJobForm input[type="radio"] {
+  margin-right: 0.5em;
+  margin-bottom: 10px;
+  height: 15px;
+  width: 15px;
+}
+#queueJobButton {
+  margin-top: 10px;
+}

@@ -1,48 +1,50 @@
 <template>
-  <v-select
-    ref="filterSelect"
-    v-model="bookmarkFilter"
-    :items="bookmarkChoices"
-    class="toolbarSelect filterSelect"
-    :label="label"
-    dense
-    hide-details="auto"
-    ripple
-    :menu-props="{
-      maxHeight: '90vh',
-      overflowY: false,
-      contentClass: filterMenuClass,
-    }"
-    :prepend-inner-icon="filterInnerIcon"
-    @click:prepend-inner="clearFilters"
-    @focus="label = 'filter by'"
-    @blur="label = ''"
-  >
-    <template #selection="{ item }">
-      {{ item.text }}
-      <span v-if="isOtherFiltersSelected" class="filterSuffix"> + </span>
-    </template>
-    <template #item="data">
-      <v-slide-x-transition hide-on-leave>
-        <v-list-item-content>
-          <v-list-item-title>
-            {{ data.item.text }}
-          </v-list-item-title>
-        </v-list-item-content>
-      </v-slide-x-transition>
-    </template>
-    <template #append-item>
-      <v-slide-x-transition hide-on-leave>
-        <v-divider v-if="filterMode === 'base'" />
-      </v-slide-x-transition>
-      <FilterSubMenu
-        v-for="filterName of filterNames"
-        :key="filterName"
-        :name="filterName"
-        @sub-menu-click="closeFilterSelect"
-      />
-    </template>
-  </v-select>
+  <v-hover v-slot="{ hover }">
+    <v-select
+      ref="filterSelect"
+      v-model="bookmarkFilter"
+      class="toolbarSelect"
+      dense
+      :items="bookmarkChoices"
+      hide-details="auto"
+      :label="focused || hover ? label : undefined"
+      :menu-props="{
+        maxHeight: '80vh',
+        overflowY: false,
+        contentClass: filterMenuClass,
+      }"
+      :prepend-inner-icon="filterInnerIcon"
+      ripple
+      @click:prepend-inner="clearFilters"
+      @focus="focused = true"
+      @blur="focused = false"
+    >
+      <template #selection="{ item }">
+        {{ item.text }}
+        <span v-if="isOtherFiltersSelected" class="filterSuffix"> + </span>
+      </template>
+      <template #item="data">
+        <v-slide-x-transition hide-on-leave>
+          <v-list-item-content>
+            <v-list-item-title>
+              {{ data.item.text }}
+            </v-list-item-title>
+          </v-list-item-content>
+        </v-slide-x-transition>
+      </template>
+      <template #append-item>
+        <v-slide-x-transition hide-on-leave>
+          <v-divider v-if="filterMode === 'base'" />
+        </v-slide-x-transition>
+        <FilterSubMenu
+          v-for="filterName of filterNames"
+          :key="filterName"
+          :name="filterName"
+          @sub-menu-click="closeFilterSelect"
+        />
+      </template>
+    </v-select>
+  </v-hover>
 </template>
 
 <script>
@@ -58,7 +60,8 @@ export default {
   },
   data() {
     return {
-      label: "",
+      focused: false,
+      label: "filter by",
     };
   },
   computed: {
@@ -71,14 +74,14 @@ export default {
     filterMenuClass: function () {
       // Lets me hide bookmark menu items with css when the filterMode
       //   changes.
-      let className = "filterMenu";
+      let clsName = "filterMenu";
       if (this.filterMode !== "base") {
-        className += "Hidden";
+        clsName += "Hidden";
       }
-      return className;
+      return clsName;
     },
     isOtherFiltersSelected: function () {
-      for (let filterName of this.filterNames) {
+      for (const filterName of this.filterNames) {
         const filterArray = this.filters[filterName];
         if (filterArray && filterArray.length > 0) {
           return true;
@@ -103,11 +106,12 @@ export default {
         return this.filters.bookmark;
       },
       set(value) {
-        if (value === null || value === undefined) {
-          console.warn(`bookmarkFilter was ${value}. Setting to 'ALL'`);
-          value = "ALL";
+        let bookmark = value;
+        if (bookmark === null || bookmark === undefined) {
+          bookmark = "ALL";
+          console.warn(`bookmarkFilter was ${value}. Set to 'ALL'`);
         }
-        const data = { filters: { bookmark: value } };
+        const data = { filters: { bookmark } };
         this.$store.dispatch("browser/settingChanged", data);
       },
     },
@@ -129,15 +133,5 @@ export default {
 .filterSuffix {
   margin-left: 0.25em;
 }
-// style is handled in browser-filter-toolbar.vue
-</style>
-
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-.v-select.filterSelect .v-input__prepend-inner {
-  padding-right: 0px;
-}
-.v-select.filterSelect .v-input__icon--prepend-inner svg {
-  width: 16px;
-}
+// #filterSelect style is handled in browser-filter-toolbar.vue
 </style>

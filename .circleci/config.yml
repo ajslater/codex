@@ -1,7 +1,7 @@
 executors:
   latest-image:
     machine:
-      image: ubuntu-2004:202111-01
+      image: ubuntu-2004:202111-02
 jobs:
   test-and-build-dist:
     executor: latest-image
@@ -29,6 +29,8 @@ jobs:
           path: test-results/pytest
       - store_artifacts:
           path: test-results/coverage
+      - store_artifacts:
+          path: frontend/coverage
       - run:
           command: ./docker/docker-compose-exit.sh codex-dist
           name: Build distribution

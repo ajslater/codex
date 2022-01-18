@@ -10,7 +10,7 @@ RUN echo "Running on $BUILDPLATFORM, building for $TARGETPLATFORM" && \
     echo "Stage 1: build wheels"
 
 WORKDIR /app
-COPY ./poetry.lock ./pyproject.toml ./
+COPY poetry.lock pyproject.toml ./
 RUN poetry export --without-hashes --extras wheel --output "$REQ_FN"
 
 WORKDIR /wheels

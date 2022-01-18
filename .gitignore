@@ -150,6 +150,7 @@ codex/static_build/
 codex/static_root/
 dist
 db.sqlite3
+frontend/coverage
 monkeytype.sqlite3
 node_modules
 requirements.txt

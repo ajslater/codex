@@ -32,8 +32,8 @@ export default {
     ...mapGetters("auth", ["isOpenToSee"]),
   },
   watch: {
-    $route: function (to) {
-      this.$store.dispatch("browser/routeChanged", to.params);
+    $route: function () {
+      this.$store.dispatch("browser/browserPageStale");
     },
     user: function () {
       this.opened();
@@ -48,7 +48,7 @@ export default {
   methods: {
     opened: function () {
       if (this.isOpenToSee) {
-        this.$store.dispatch("browser/browserOpened", this.$route.params);
+        this.$store.dispatch("browser/browserOpened");
       }
     },
   },

@@ -32,21 +32,25 @@ export default {
   },
   mounted() {
     // Keyboard Shortcuts
-    document.addEventListener("keyup", this._keyListener);
+    window.addEventListener("keyup", this._keyListener);
   },
-  beforeDestroy: function () {
-    document.removeEventListener("keyup", this._keyListener);
+  beforeUnmount: function () {
+    window.removeEventListener("keyup", this._keyListener);
   },
 
   methods: {
     _keyListener: function (event) {
-      // XXX Hack to get around too many listeners being added.
-      event.stopPropagation();
+      switch (event.key) {
+        case "j":
+        case "ArrowRight":
+          this.$store.dispatch("reader/routeTo", "next");
+          break;
 
-      if (event.key === "ArrowLeft") {
-        this.$store.dispatch("reader/routeTo", "prev");
-      } else if (event.key === "ArrowRight") {
-        this.$store.dispatch("reader/routeTo", "next");
+        case "k":
+        case "ArrowLeft":
+          this.$store.dispatch("reader/routeTo", "prev");
+          break;
+        // No default
       }
     },
   },

@@ -4,6 +4,7 @@ FROM ajslater/codex-wheels:$WHEELS_VERSION AS codex-wheels
 # The runnable environment built from a minimal base without dev deps
 FROM ajslater/codex-base:$RUNNABLE_BASE_VERSION
 ARG CODEX_WHEEL
+WORKDIR /
 COPY --from=codex-wheels /wheels /wheels
 COPY ./dist/$CODEX_WHEEL /wheels/
 

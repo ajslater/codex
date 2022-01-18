@@ -19,14 +19,16 @@ from codex.models import (
 
 LOG = getLogger(__name__)
 EXCLUDE_BULK_UPDATE_COMIC_FIELDS = (
-    "id",
-    "comic",
-    "userbookmark",
     "created_at",
+    "searchresult",
+    "id",
+    "userbookmark",
 )
 BULK_UPDATE_COMIC_FIELDS = []
 for field in Comic._meta.get_fields():
-    if not field.many_to_many and field.name not in EXCLUDE_BULK_UPDATE_COMIC_FIELDS:
+    if (not field.many_to_many) and (
+        field.name not in EXCLUDE_BULK_UPDATE_COMIC_FIELDS
+    ):
         BULK_UPDATE_COMIC_FIELDS.append(field.name)
 BULK_UPDATE_FAILED_IMPORT_FIELDS = ("name", "stat", "updated_at")
 

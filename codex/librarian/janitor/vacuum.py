@@ -19,7 +19,7 @@ def vacuum_db():
     new_size = DB_PATH.stat().st_size
     saved = naturalsize(old_size - new_size)
 
-    LOG.verbose(f"Vacuumed database. Saved {saved} bytes.")  # type: ignore
+    LOG.verbose(f"Vacuumed database. Saved {saved}.")  # type: ignore
 
 
 def backup_db():

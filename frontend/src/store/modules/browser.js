@@ -1,8 +1,7 @@
 import API from "@/api/v2/group";
+import CHOICES from "@/choices";
 import router from "@/router";
 
-const GROUPS = "rpisvf";
-const REVALIDATE_KEYS = ["rootGroup", "show"];
 const DYNAMIC_FILTERS = {
   characters: undefined,
   country: undefined,
@@ -22,26 +21,19 @@ const DYNAMIC_FILTERS = {
   user_rating: undefined,
   year: undefined,
 };
-export const ROOT_GROUP_FLAGS = {
-  r: ["settings", "p"],
-  p: ["settings", "i"],
-  i: ["settings", "s"],
-  s: ["settings", "v"],
-  f: ["formChoices", "enableFolderView"],
-};
-export const GROUP_FLAGS = {
+const GROUP_FLAGS = {
   p: ["settings", "p"],
   i: ["settings", "i"],
   s: ["settings", "s"],
   v: ["settings", "v"],
   f: ["formChoices", "enableFolderView"],
 };
-import FORM_CHOICES from "@/choices/browserChoices";
 
-let SETTINGS_SHOW_DEFAULTS = {};
-for (let choice of FORM_CHOICES.settingsGroup) {
+const SETTINGS_SHOW_DEFAULTS = {};
+for (let choice of CHOICES.browser.settingsGroup) {
   SETTINGS_SHOW_DEFAULTS[choice.value] = choice.default === true;
 }
+
 const state = {
   routes: {
     current: undefined,
@@ -53,24 +45,25 @@ const state = {
       bookmark: undefined,
       ...DYNAMIC_FILTERS,
     },
-    rootGroup: undefined,
-    sortBy: undefined,
-    sortReverse: undefined,
+    autoquery: "",
+    topGroup: undefined,
+    orderBy: undefined,
+    orderReverse: undefined,
     show: SETTINGS_SHOW_DEFAULTS,
   },
   formChoices: {
-    bookmark: FORM_CHOICES.bookmarkFilter, // static
+    bookmark: CHOICES.browser.bookmarkFilter, // static
     // determined by api
     ...DYNAMIC_FILTERS,
-    sort: FORM_CHOICES.sort, // static
-    settingsGroup: FORM_CHOICES.settingsGroup, // static
+    orderBy: CHOICES.browser.orderBy, // static
+    settingsGroup: CHOICES.browser.settingsGroup, // static
     show: {
       // determined by api
       enableFolderView: true,
     },
   },
   modelGroup: undefined,
-  groupNames: FORM_CHOICES.groupNames,
+  groupNames: CHOICES.browser.groupNames,
   browserTitle: {
     parentName: undefined,
     groupName: undefined,
@@ -79,26 +72,27 @@ const state = {
   objList: [],
   filterMode: "base",
   browserPageLoaded: false,
-  librariesExist: null,
+  librariesExist: undefined,
   numPages: 1,
   versions: {
     installed: process.env.VUE_APP_PACKAGE_VERSION,
     latest: undefined,
   },
+  queries: [],
 };
 
-const isRootGroupEnabled = (state, rootGroup) => {
-  if (rootGroup === "v") {
+const isRootGroupEnabled = (state, topGroup) => {
+  if (topGroup === "c") {
     return true;
   }
-  const [key, flag] = ROOT_GROUP_FLAGS[rootGroup];
+  const [key, flag] = GROUP_FLAGS[topGroup];
   return state[key].show[flag];
 };
 
 const getters = {
-  rootGroupChoices: (state) => {
+  topGroupChoices: (state) => {
     const choices = [];
-    for (let item of Object.values(FORM_CHOICES.rootGroup)) {
+    for (const item of Object.values(CHOICES.browser.topGroup)) {
       if (isRootGroupEnabled(state, item.value)) {
         if (item.value === "f") {
           choices.push({ divider: true });
@@ -115,15 +109,12 @@ const mutations = {
   setBrowsePageLoaded(state, value) {
     state.browserPageLoaded = value;
   },
-  setBrowserRoute(state, route) {
-    state.routes.current = route;
-  },
   setVersions(state, versions) {
     state.versions = versions;
   },
   setSettings(state, data) {
     if (!data) {
-      console.warn("no settings data! ${data}");
+      console.warn("no settings data!");
       return;
     }
     for (let [key, value] of Object.entries(data)) {
@@ -140,14 +131,13 @@ const mutations = {
     state.formChoices.show = {
       enableFolderView: data.formChoices.enableFolderView,
     };
-    // Reset formChoices every browse so the lazy loader knows to refresh it.
-    //state.formChoices = Object.assign(state.formChoices, DYNAMIC_FILTERS);
     state.browserTitle = Object.freeze(data.browserTitle);
     state.modelGroup = Object.freeze(data.modelGroup);
     state.routes.up = Object.freeze(data.upRoute);
     state.objList = Object.freeze(data.objList);
     state.numPages = data.numPages;
     state.librariesExist = data.librariesExist;
+    state.queries = data.queries;
   },
   setBrowseChoice(state, { choiceName, choices }) {
     state.formChoices[choiceName] = Object.freeze(choices);
@@ -167,7 +157,7 @@ const mutations = {
       if (choiceName === keepChoiceName) {
         continue;
       }
-      state.formChoices[choiceName] = null;
+      state.formChoices[choiceName] = undefined;
     }
   },
   setUpdateNotify(state, data) {
@@ -175,219 +165,83 @@ const mutations = {
   },
 };
 
-const getValidRootGroup = (state, fromTop = false) => {
-  /* Get a valid root group when we don't know what root group to get.
-   * if fromTop is true, start looking from the currentRootGroup down.
-   */
-
-  // Check folder first because of its bottom position.
-  // Only return it if its been explicitly selected.
-  if (
-    state.settings.rootGroup === "f" &&
-    state.formChoices.show.enableFolderView
-  ) {
-    return "f";
-  }
-  if (state.settings.rootGroup === undefined) {
-    return "r";
-  }
-  // Look for the first valid root group starting from the top
-  let atTop = false;
-  for (let group of GROUPS) {
-    console.debug("getValidRootGroup", group);
-    if (fromTop) {
-      console.debug(group, "===", state.settings.rootGroup);
-      if (group === state.settings.rootGroup) {
-        atTop = true;
-      }
-      console.debug("atTop:", atTop);
-      if (!atTop) {
-        continue;
-      }
+const handlePageError = (dispatch) => {
+  return (error) => {
+    if (error.response.status == 303) {
+      const data = error.response.data;
+      return dispatch("redirectRoute", data);
+    } else {
+      return console.error(error);
     }
-    if (isRootGroupEnabled(state, group)) {
-      return group;
-    }
-  }
-  // Volumes is the root group of last resort.
-  return "v";
-};
-
-const topGroupRoute = (group) => {
-  return {
-    name: "browser",
-    params: { group, pk: 0, page: 1 },
   };
 };
 
-const pushToRootGroupTop = ({ state, commit }) => {
-  // Push to the top of a root group
-  const group = getValidRootGroup(state, true);
-  const route = topGroupRoute(group);
-  commit("setSettings", { rootGroup: group });
-  console.debug("push to", route);
-  return router.push(route).catch((error) => {
-    console.warn(error);
-  });
-};
-
-const handleBrowseError = ({ state, commit }, error) => {
-  console.warn("Browse", error);
-  if ([403, 404].includes(error.response.status)) {
-    return pushToRootGroupTop({ state, commit });
-  }
-  console.error("Unhandled Browse error");
-};
-const validateRootGroup = (state) => {
-  // Some root groups aren't allowed by the settings.
-  let rootGroup = state.settings.rootGroup;
-  if (!isRootGroupEnabled(state, rootGroup)) {
-    rootGroup = getValidRootGroup(state, false);
-    console.debug("new root group set to", rootGroup);
-  }
-  return rootGroup;
-};
-
-const isGroupEnabled = (state, group) => {
-  // Are we allowed to view this group per the settings?
-  if (group === state.settings.rootGroup) {
-    return true;
-  }
-  const [key, flag] = GROUP_FLAGS[group];
-  return state[key].show[flag];
-};
-
-const validateRoute = ({ state, commit }, route) => {
-  // validate the route and push away if its bad.
-  const group = route.group;
-  const rootGroup = state.settings.rootGroup;
-
-  const doPushToRootGroup =
-    rootGroup !== group && [rootGroup, group].includes("f");
-  const isGroupChildOfRootGroup =
-    GROUPS.indexOf(group) >= GROUPS.indexOf(rootGroup);
-  if (
-    !doPushToRootGroup &&
-    isGroupChildOfRootGroup &&
-    isGroupEnabled(state, group)
-  ) {
-    return true;
-  }
-  console.debug("Route invalid. Fixing");
-  pushToRootGroupTop({ state, commit });
-  return false;
-};
-
-const validateState = ({ state, commit, dispatch }) => {
-  const rootGroup = validateRootGroup(state);
-  if (rootGroup !== state.settings.rootGroup) {
-    dispatch("settingChanged", { rootGroup: rootGroup });
-    return false;
-  }
-  if (validateRoute({ state, commit }, state.routes.current)) {
-    return true;
-  }
-  return false;
-};
-
-const isNeedValidate = (changedData) => {
-  const intersection = REVALIDATE_KEYS.filter((key) =>
-    Object.keys(changedData).includes(key)
-  );
-  return intersection.length > 0;
-};
-
 const actions = {
-  async browserOpened({ state, commit, dispatch }, route) {
+  redirectRoute({ commit, dispatch }, data) {
+    commit("setSettings", data.settings);
+    if (data.route) {
+      router.push(data.route).catch((error) => {
+        console.debug(error);
+        dispatch("settingChanged", data);
+      });
+    }
+  },
+  routeToPage(_, page) {
+    const route = {
+      name: router.currentRoute.name,
+      params: { ...router.currentRoute.params },
+    };
+    route.params.page = page;
+    router.push(route).catch((error) => {
+      console.debug(error);
+    });
+  },
+  async browserOpened({ commit, dispatch }) {
     // Gets everything needed to open the component.
-    console.debug("browserOpened");
     commit("setBrowsePageLoaded", false);
-    commit("setBrowserRoute", route);
-    commit("clearAllFormChoicesExcept", null);
-    await API.getBrowserOpened(route)
+    commit("clearAllFormChoicesExcept");
+    await API.getBrowserOpened(router.currentRoute.params)
       .then((response) => {
         const data = response.data;
-        commit("setVersions", data.versions);
         commit("setSettings", data.settings);
-        if (!validateState({ state, commit, dispatch })) {
-          // will have dispatched to SetSetting if fails.
-          return;
-        }
+        commit("setVersions", data.versions);
         commit("setBrowserPage", data.browserPage);
         return commit("setBrowsePageLoaded", true);
       })
-      .catch((error) => {
-        if (
-          error.response &&
-          error.response.data &&
-          error.response.data.group
-        ) {
-          const data = error.response.data;
-          console.warn(data.message);
-          console.warn("Valid group is", data.group);
-          const route = topGroupRoute(data.group);
-          dispatch("browserOpened", route.params);
-        } else {
-          console.error(error);
-          console.warn("browserOpened response:", error.response);
-        }
-        return handleBrowseError({ state, commit }, error);
-      });
+      .catch(handlePageError(dispatch));
   },
-  settingChanged({ state, commit, dispatch }, changedData) {
+  settingChanged({ commit, dispatch }, data) {
     // Save settings to state and re-get the objects.
-    commit("setSettings", changedData);
-    if ("filters" in changedData) {
-      for (let filterName of Object.keys(changedData.filters)) {
+    commit("setSettings", data);
+    if ("filters" in data) {
+      for (let filterName of Object.keys(data.filters)) {
         commit("clearAllFormChoicesExcept", filterName);
       }
     }
-    if (
-      isNeedValidate(changedData) &&
-      !validateState({ state, commit, dispatch })
-    ) {
-      console.debug("setting changed not validated", changedData);
-      return;
-    }
-    dispatch("browserPageStale", { showProgress: true });
+    dispatch("browserPageStale");
   },
-  routeChanged({ state, commit, dispatch }, route) {
-    // When the route changes, reget the objects for that route.
-    if (!validateRoute({ state, commit }, route)) {
-      console.warn("invalid route!", route);
-      return;
-    }
-    commit("setBrowserRoute", route);
-    dispatch("browserPageStale", { showProgress: true });
-  },
-  async browserPageStale({ commit, dispatch, state }, { showProgress }) {
+  async browserPageStale({ commit, dispatch, state }) {
     // Get objects for the current route and settings.
-    console.debug("browserPageStale");
     if (!state.browserPageLoaded) {
-      console.warn("not setup running open");
-      return dispatch("browserOpened", state.routes.current);
-    }
-    if (showProgress) {
-      commit("setBrowsePageLoaded", false);
+      console.debug("Browser not setup running open");
+      return dispatch("browserOpened");
     }
     await API.getBrowserPage({
-      route: state.routes.current,
+      route: router.currentRoute.params,
       settings: state.settings,
     })
       .then((response) => {
-        commit("setBrowserPage", response.data);
-        return commit("setBrowsePageLoaded", true);
+        const data = response.data;
+        return commit("setBrowserPage", data);
       })
-      .catch((error) => {
-        return handleBrowseError({ state, commit }, error);
-      });
+      .catch(handlePageError(dispatch));
   },
   async markedRead({ dispatch }, data) {
     await API.setMarkRead(data);
-    dispatch("browserPageStale", { showProgress: false });
+    dispatch("browserPageStale");
   },
   async filterModeChanged({ commit, state }, { group, pk, mode }) {
-    if (mode && mode !== "base" && state.formChoices[mode] == null) {
+    if (mode && mode !== "base" && state.formChoices[mode] == undefined) {
       await API.getBrowserChoices({ group, pk, choice_type: mode })
         .then((response) => {
           response.data.key = mode;
@@ -395,17 +249,15 @@ const actions = {
           return commit("setBrowseChoice", payload);
         })
         .catch((error) => {
-          console.error("ERROR", error);
-          console.error("ERROR.RESPONSE", error.response);
-          console.error("couldn't get choices for", mode);
+          console.error(error);
         });
     }
     commit("setFilterMode", mode);
   },
   filtersCleared({ commit, dispatch, getters }) {
     commit("clearFilters", getters.filterNames);
-    commit("clearAllFormChoicesExcept", null);
-    dispatch("browserPageStale", { showProgress: true });
+    commit("clearAllFormChoicesExcept");
+    dispatch("browserPageStale");
   },
 };
 

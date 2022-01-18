@@ -6,7 +6,9 @@ source .env
 WHEELS_VERSION=$(./wheels-version.sh)
 REPO=docker.io/ajslater/codex-wheels
 IMAGE="${REPO}:${WHEELS_VERSION}"
-if [ "${1:-}" != "-f" ]; then
+if [ "${1:-}" == "-f" ]; then
+  shift
+else
     docker pull "${IMAGE}" || true
     if docker inspect "${IMAGE}" --format="codex wheels image up to date"; then
         exit 0

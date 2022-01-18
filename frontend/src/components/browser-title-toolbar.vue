@@ -51,17 +51,16 @@ export default {
       return this.upRoute && "group" in this.upRoute;
     },
     longBrowserTitlePrefix: function () {
-      const group = this.$route.params.group;
-      if (group !== "f") {
-        return null;
+      if (this.$route.params.group === "f") {
+        return this.browserTitle.parentName;
       }
-      return this.browserTitle.parentName;
+      return "";
     },
     longBrowseTitleMain: function () {
       let browserTitle;
       const group = this.$route.params.group;
       const { parentName, groupName, groupCount } = this.browserTitle;
-      if (+this.$route.params.pk === 0) {
+      if (Number(this.$route.params.pk) === 0) {
         browserTitle = "All";
       } else if (group === "i") {
         browserTitle = `${parentName} ${groupName}`;

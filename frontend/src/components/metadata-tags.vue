@@ -1,20 +1,12 @@
 <template>
-  <v-combobox
-    v-if="(model && model.length > 0) || show"
-    v-model="model"
-    :items="vuetifyItems"
-    item-value="pk"
-    item-text="name"
-    :label="label"
-    multiple
-    hide-details="auto"
-    dense
-    chips
-    small-chips
-    deletable-chips
-    readonly
-    filled
-  />
+  <div v-if="model && model.length > 0" class="tags">
+    <div class="tagLabel">{{ label }}</div>
+    <v-chip-group class="tagChipGroup" multiple column>
+      <v-chip v-for="item in vuetifyItems" :key="item.pk">{{
+        item.name
+      }}</v-chip>
+    </v-chip-group>
+  </div>
 </template>
 
 <script>
@@ -29,20 +21,20 @@ export default {
     },
     items: {
       type: Array,
-      default: null,
+      default() {
+        return [];
+      },
     },
     values: {
       type: Array,
-      default: null,
-    },
-    show: {
-      type: Boolean,
-      default: false,
+      default() {
+        return [];
+      },
     },
   },
   data() {
     return {
-      model: null,
+      model: undefined,
     };
   },
   computed: {
@@ -52,9 +44,24 @@ export default {
   },
   created: function () {
     // Different than combobox, returns a list of items.
-    this.model = toVuetifyItems(null, this.values);
+    this.model = toVuetifyItems(undefined, this.values);
   },
 };
 </script>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+.tags {
+  background-color: #282828;
+  border-bottom: solid thin;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-top: 10px;
+}
+.tagLabel {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+.tagChipGroup {
+  display: block;
+}
+</style>

@@ -1,9 +1,7 @@
 """Start and stop daemons."""
 import os
-import platform
 
 from logging import getLogger
-from multiprocessing import set_start_method
 
 from asgiref.sync import sync_to_async
 from django.contrib.auth.models import User
@@ -11,6 +9,7 @@ from django.core.cache import cache
 from django.db.models import Q
 from django.db.models.functions import Now
 
+from codex.darwin_mp import force_darwin_multiprocessing_fork
 from codex.librarian.librariand import LibrarianDaemon
 from codex.models import AdminFlag, Library
 from codex.websocket_server import Notifier
@@ -66,15 +65,7 @@ def codex_startup():
     init_admin_flags()
     unset_update_in_progress()
     cache.clear()
-
-    if platform.system() == "Darwin":
-        # Fixes LIBRARIAN_QUEUE sharing with default spawn start method. The spawn
-        # method is also very very slow. Use fork and the
-        # OBJC_DISABLE_INITIALIZE_FORK_SAFETY environment variable for macOS.
-        # XXX https://bugs.python.org/issue40106
-        #
-        # This must happen before we create the Librarian process
-        set_start_method("fork", force=True)
+    force_darwin_multiprocessing_fork()
 
     Notifier.startup()
     LibrarianDaemon.startup()

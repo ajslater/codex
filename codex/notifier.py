@@ -2,10 +2,9 @@
 from logging import getLogger
 
 from asgiref.sync import async_to_sync
-from django.core.cache import cache
 
 from codex.librarian.queue_mp import AdminNotifierTask, BroadcastNotifierTask
-from codex.serializers.webpack import WEBSOCKET_MESSAGES as WS_MSGS
+from codex.serializers.choices import WEBSOCKET_MESSAGES as WS_MSGS
 from codex.threads import AggregateMessageQueuedThread
 
 
@@ -48,7 +47,6 @@ class Notifier(AggregateMessageQueuedThread):
         if not self.cache:
             return
         sent_keys = set()
-        cache.clear()
         for text, task in self.cache.items():
             msg = WS_MSGS[text]
             send_msg = {"text": msg}

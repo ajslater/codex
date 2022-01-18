@@ -10,7 +10,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 RUN echo "**** install python app dependencies ****"
 WORKDIR /app
-COPY pyproject.toml poetry.lock /app/
+COPY pyproject.toml poetry.lock ./
 RUN poetry install --no-root --remove-untracked
 
 # hadolint ignore=DL3059

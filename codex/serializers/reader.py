@@ -1,7 +1,11 @@
 """Codex Reader Serializers."""
-from rest_framework.serializers import CharField, DecimalField, IntegerField, Serializer
-
-from codex.serializers.bookmark import ComicReaderSettingsSerializer
+from rest_framework.serializers import (
+    CharField,
+    DecimalField,
+    IntegerField,
+    JSONField,
+    Serializer,
+)
 
 
 class ComicPageRouteSerializer(Serializer):
@@ -9,13 +13,6 @@ class ComicPageRouteSerializer(Serializer):
 
     pk = IntegerField(read_only=True)
     page = IntegerField(read_only=True)
-
-
-class ComicReaderBothSettingsSerializer(Serializer):
-    """For both the default and local comic settings."""
-
-    globl = ComicReaderSettingsSerializer(read_only=True)
-    local = ComicReaderSettingsSerializer(read_only=True)
 
 
 class ComicReaderRoutesSerializer(Serializer):
@@ -39,5 +36,5 @@ class ComicReaderInfoSerializer(Serializer):
 
     title = ComicReaderTitleSerializer(read_only=True)
     maxPage = IntegerField(read_only=True)  # noqa: N815
-    settings = ComicReaderBothSettingsSerializer(read_only=True)
     routes = ComicReaderRoutesSerializer(read_only=True)
+    browserRoute = JSONField(read_only=True)  # noqa: N815

@@ -2,6 +2,8 @@
 from logging import getLogger
 from pathlib import Path
 
+from django.core.cache import cache
+
 from codex.models import (
     Character,
     Comic,
@@ -93,4 +95,5 @@ def cleanup_database(library=None):
     changed |= _bulk_cleanup_fks(DELETE_CREDIT_FKS, "credit")
     if library:
         _bulk_cleanup_failed_imports(library)
+    cache.clear()
     return changed

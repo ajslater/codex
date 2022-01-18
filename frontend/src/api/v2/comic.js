@@ -8,6 +8,10 @@ const setComicBookmark = ({ pk, page }) => {
   return ajax("patch", `c/${pk}/${page}/bookmark`);
 };
 
+const getComicSettings = (pk) => {
+  return ajax("get", `c/${pk}/settings`);
+};
+
 const setComicSettings = ({ pk, data }) => {
   return ajax("patch", `c/${pk}/settings`, data);
 };
@@ -27,6 +31,7 @@ export const getComicPageSource = ({ pk, page }) => {
 export default {
   getComicOpened,
   setComicBookmark,
+  getComicSettings,
   setComicSettings,
   setComicDefaultSettings,
 };

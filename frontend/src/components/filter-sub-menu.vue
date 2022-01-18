@@ -74,6 +74,7 @@ export default {
       required: true,
     },
   },
+  emits: ["sub-menu-click"],
   data() {
     return {
       mdiChevronLeft,
@@ -93,7 +94,7 @@ export default {
       filterMode: (state) => state.filterMode,
     }),
     vuetifyItems: function () {
-      return toVuetifyItems(null, this.formChoices, this.query);
+      return toVuetifyItems(undefined, this.formChoices, this.query);
     },
     filter: {
       get() {
@@ -111,15 +112,19 @@ export default {
       const words = this.name.split("_");
       let title = "";
       for (const index in words) {
-        // Capitalize words
-        const word = words[index];
-        const capWord =
-          word === "ltr" ? "LTR" : word.charAt(0).toUpperCase() + word.slice(1);
-        // Append to title
-        if (index) {
-          title += " ";
+        if (Object.prototype.hasOwnProperty.call(words, index)) {
+          // Capitalize words
+          const word = words[index];
+          const capWord =
+            word === "ltr"
+              ? "LTR"
+              : word.charAt(0).toUpperCase() + word.slice(1);
+          // Append to title
+          if (index) {
+            title += " ";
+          }
+          title += capWord;
         }
-        title += capWord;
       }
       return title;
     },
@@ -156,6 +161,6 @@ export default {
 .filterHeader {
 }
 .filterGroup {
-  max-height: 90vh; /* has to be less than the menu height */
+  max-height: 80vh; /* has to be less than the menu height */
 }
 </style>

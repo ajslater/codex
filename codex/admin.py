@@ -5,7 +5,9 @@ from time import sleep
 
 from django.contrib.admin import ModelAdmin, register
 from django.contrib.admin.templatetags.admin_urls import admin_urlname
+from django.db.models import Model
 from django.shortcuts import resolve_url
+from django.urls import get_script_prefix
 from django.utils.html import format_html
 from django.utils.safestring import SafeText
 
@@ -16,8 +18,6 @@ from codex.librarian.queue_mp import (
     CreateComicCoversLibrariesTask,
     PollLibrariesTask,
     PurgeComicCoversLibrariesTask,
-    RestartTask,
-    UpdateTask,
     WatchdogSyncTask,
 )
 from codex.models import AdminFlag, FailedImport, Library
@@ -25,6 +25,47 @@ from codex.models import AdminFlag, FailedImport, Library
 
 LOG = getLogger(__name__)
 SAFE_CHANGE = SafeText("change")
+
+
+class QueueJob(Model):
+    """Fake Model for AdminQueueJob."""
+
+    class Meta:
+        """Don't add this to the schema."""
+
+        db_tablespace = "temp"
+        managed = False
+
+
+class AdminNoAddDelete(ModelAdmin):
+    """An admin model that can't be added or deleted."""
+
+    def has_add_permission(self, _, obj=None):
+        """Can't Add these."""
+        return False
+
+    def has_delete_permission(self, _, obj=None):
+        """Can't Remove these."""
+        return False
+
+
+@register(QueueJob)
+class AdminQueueJob(AdminNoAddDelete):
+    """Fake ModelAdmin to display the queue job page."""
+
+    def has_change_permission(self, request, obj=None):
+        """Can't Change these."""
+        return False
+
+    def get_queryset(self, request):
+        """Don't hit the database at all."""
+        return QueueJob.objects.none()
+
+    def changelist_view(self, request, extra_context=None):
+        """Add script prefix to context."""
+        extra_context = extra_context or {}
+        extra_context["script_prefix"] = get_script_prefix()
+        return super().changelist_view(request, extra_context=extra_context)
 
 
 class LibraryChangeThread(Thread):
@@ -58,15 +99,10 @@ class AdminLibrary(ModelAdmin):
         "poll_every",
         "last_poll",
     )
-    # Django admin will not display datetime fields if they're not editable
     list_editable = (
         "events",
         "poll",
         "poll_every",
-        # XXX can't submit anything at all if this doesn't have a value.
-        #  I mark this disabled and readonly with javascript. Ugly.
-        #  This a django bug. Fix on 4.0 or file?
-        "last_poll",
     )
     readonly_fields = ("last_poll",)
     sortable_by = list_display
@@ -82,20 +118,21 @@ class AdminLibrary(ModelAdmin):
         """Poll for new comics."""
         self.queue_poll(queryset, False)
 
-    poll.short_description = "Poll for changes"
+    poll.short_description = "Poll selected libraries for changes"
 
     def force_poll(self, request, queryset):
         """Poll all comics."""
         self.queue_poll(queryset, True)
 
-    force_poll.short_description = "Re-import all comics"
+    force_poll.short_description = "Update all comics in selected libraries"
 
     def regen_comic_covers(self, _, queryset):
         """Regenerate all covers."""
+        # TODO remove
         pks = queryset.values_list("pk", flat=True)
         LIBRARIAN_QUEUE.put(CreateComicCoversLibrariesTask(pks))
 
-    regen_comic_covers.short_description = "Re-create all covers"
+    regen_comic_covers.short_description = "Recreate comic covers in selected libraries"
 
     def _on_change(self, _, created=False):
         """Events for when the library has changed."""
@@ -132,18 +169,6 @@ class AdminLibrary(ModelAdmin):
             self._on_change(form.instance)
 
 
-class AdminNoAddDelete(ModelAdmin):
-    """An admin model that can't be added or deleted."""
-
-    def has_add_permission(self, _, obj=None):
-        """Can't Add these."""
-        return False
-
-    def has_delete_permission(self, _, obj=None):
-        """Can't Remove these."""
-        return False
-
-
 @register(AdminFlag)
 class AdminAdminFlag(AdminNoAddDelete):
     """Admin model for AdminFlags."""
@@ -153,19 +178,6 @@ class AdminAdminFlag(AdminNoAddDelete):
     list_display = fields
     list_editable = ("on",)
     sortable_by = fields
-    actions = ("update_now", "restart_now")
-
-    def update_now(self, request, queryset):
-        """Trigger an update task immediately."""
-        LIBRARIAN_QUEUE.put(UpdateTask(force=True))
-
-    update_now.short_description = "Update Codex Now"
-
-    def restart_now(self, request, queryset):
-        """Send a restart task immediately."""
-        LIBRARIAN_QUEUE.put(RestartTask())
-
-    restart_now.short_description = "Restart Codex Now"
 
     def save_model(self, request, obj, form, change):
         """Trigger a change notification because options have changed."""
@@ -209,8 +221,10 @@ class AdminFailedImport(AdminNoAddDelete):
     def library_link(self, item):
         """Render a field for linking to the library change page."""
         url = resolve_url(admin_urlname(Library._meta, SAFE_CHANGE), item.library.id)
-        return format_html(
-            '<a href="{url}">{name}</a>'.format(url=url, name=str(item.library))
-        )
+        return format_html(f'<a href="{url}">{item.library.path}</a>')
+
+    def get_queryset(self, request):
+        """Select related."""
+        return super().get_queryset(request).select_related("library")
 
     library_link.short_description = "Library"

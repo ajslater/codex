@@ -5,10 +5,11 @@ Codex is a comic archive browser and reader.
 ## <a name="features">✨ Features</a>
 
 - Codex is a web server, not a desktop or mobile app.
-- Per user bookmarking. You get per browser bookmarks even before you make an account.
+- Full text search of metadata and bookmarks.
 - Filter and sort on all comic metadata and unread status per user.
 - Browse a tree of publishers, imprints, series, volumes, or your own folder hierarchy.
 - Read comics in a variety of aspect ratios that fit your screen.
+- Per user bookmarking. You get per browser bookmarks even before you make an account.
 - Watches the filesystem and automatically imports new or changed comics.
 
 ## <a name="demonstration">📖 Demonstration</a>
@@ -23,7 +24,7 @@ Codex has a <a href="NEWS.md">NEWS file</a> to summarize changes that affect use
 
 ### Install & Run with Docker
 
-All dependencies are bundled in the official [Docker Image](https://hub.docker.com/r/ajslater/codex). Instructions for running the docker image are on the Docker Hub README. This is the recommended way to run Codex.
+Run the official [Docker Image](https://hub.docker.com/r/ajslater/codex). Instructions for running the docker image are on the Docker Hub README. This is the recommended way to run Codex.
 
 You'll then want to read the [Administration](#administration) section of this document.
 
@@ -38,7 +39,7 @@ You'll need to install these system dependencies before installing Codex.
 ##### macOS
 
 ```sh
-brew install jpeg libffi libyaml libzip openssl python
+brew install jpeg libffi libyaml libzip openssl python unrar xapian
 ```
 
 ##### Linux
@@ -46,28 +47,18 @@ brew install jpeg libffi libyaml libzip openssl python
 ###### Debian based (e.g. Ubuntu)
 
 ```sh
-apt install build-essential libffi-dev libjpeg-dev libssl-dev libyaml-dev python3-pip zlib1g-dev
+apt install build-essential libffi-dev libjpeg-dev libssl-dev libxapian30 libyaml-dev python3-pip python3-xapian zlib1g-dev
 ```
 
 ###### Alpine
 
 ```sh
-apk add bsd-compat-headers build-base jpeg-dev libffi-dev openssl-dev yaml-dev zlib-dev
+apk add bsd-compat-headers build-base jpeg-dev libffi-dev openssl-dev xapian-bindings-python3 xapian-core yaml-dev zlib-dev
 ```
 
-#### Install unrar Runtime Dependency
+##### Install unrar Runtime Dependency on Linux
 
-Codex requires unrar to read cbr formatted comic archives.
-
-##### Linux
-
-[How to install unrar in Linux](https://www.unixtutorial.org/how-to-install-unrar-in-linux/)
-
-##### macOS
-
-```sh
-brew install unrar
-```
+Codex requires unrar to read cbr formatted comic archives. Unrar is rarely packaged for Linux, but here are some instructions: [How to install unrar in Linux](https://www.unixtutorial.org/how-to-install-unrar-in-linux/)
 
 #### Install Codex with pip
 
@@ -91,25 +82,32 @@ and then navigate to [http://localhost:9810/](http://localhost:9810/)
 
 ### Change the Admin password
 
-The first thing you need to do is to log in as an Administrator and change the admin password.
+The first thing you should do is log in as the admin user and change the admin password.
 
-- Log in with the **&vellip;** menu in the upper right of the browse view. The default administator username/password is admin/admin.
-- Navigate to the Admin Panel by selecting it from under the three dots menu after you have logged in.
-- Navigate to the Users panel.
+#### Navigate to the Admin Panel
+
+- Click the hamburger menu ☰ to open the browser settings drawer.
+- Log in as the 'admin' user. The default administator password is also 'admin'.
+- Navigate to the Admin Panel by clicking on its link in the browser settings drawer after you have logged in.
+
+##### In the Admin Panel, Change the Password
+
+- Navigate to the AUTHENTICATION AND AUTHORIZATION Users panel.
 - Select the `admin` user.
 - Change the admin password using the tiny "this form" link in the password section.
 - You may also change the admin user's name or anything else.
+- You may grant other users admin privileges by making them staff.
 
 ### Adding Comic Libraries
 
-The second thing you should do is log in as an Administrator and add one or more comic libraries.
+The second thing you will want to do is log in as an Administrator and add one or more comic libraries.
 
-- Log in with any superuser (such as the default adimin account) using the **&vellip;** menu in the upper right of the browse view.
-- Navigate to the Admin Panel by selecting it from under the three dots menu after you have logged in.
-- Navigate to the Codex API Librarys (sic) on the Admin Panel
+#### From the Admin Panel, Add Comic Libraries
+
+- Navigate to the CODEX Libraries Panel in the Admin Panel
 - Add a Library with the "ADD LIBRARY +" button in the upper right.
 
-#### Reset the admin password.
+### Reset the admin password.
 
 If you forget all your superuser passwords, you may restore the original default admin account by running codex with the `CODEX_RESET_ADMIN` environment variable set.
 
@@ -129,7 +127,7 @@ docker run -e CODEX_RESET_ADMIN=1 -v <host path to config>/config:/config ajslat
 
 The default config directory is named `config/` directly under the working directory you run codex from. You may specify an alternate config directory with the environment variable `CODEX_CONFIG_DIR`.
 
-The config directory contains a hypercorn config `hypercorn.toml` where you can specify ports and bind addresses. If no `hypercorn.toml` is present a default one is copied to that directory on startup.
+The config directory contains a file named `hypercorn.toml` where you can specify ports and bind addresses. If no `hypercorn.toml` is present a default one is copied to that directory on startup.
 
 The default values for the config options are:
 
@@ -141,7 +139,7 @@ max_db_ops = 100000
 
 ```
 
-The config directory also holds the main sqlite database, a django cache and comic book cover thumbnails generated when comics are imported. Reimport a comic or an entire library to regenereate these cover thumbnails.
+The config directory also holds the main sqlite database, the Xapian search index, a Django cache and comic book cover thumbnails generated when comics are imported.
 
 ### Environment Variables
 
@@ -179,7 +177,7 @@ Here's an example nginx config with a subpath named '/codex'.
     }
 ```
 
-Specify a reverse proxy sub path (if you have one) in the config/hypercorn.toml
+Specify a reverse proxy sub path (if you have one) in `config/hypercorn.toml`
 
 ```toml
 root_path = "/codex"
@@ -198,6 +196,11 @@ are recreated. See this [nginx with dynamix upstreams](https://tenzer.dk/nginx-w
 Once your administrator has added some comic libraries, you may browse and read comics. Codex will remember your preferences, bookmarks and progress in the browser session. Sessions last 60 days at which point they are destroyed.
 To preserve these settings across browsers and after sessions expire, you may register an account with a username and password.
 You will have to contact your administrator to reset your password if you forget it.
+
+### 🔎 Search Help
+
+[Codex's metadata search engine has it's own help page.
+](https://github.com/ajslater/codex/blob/release/SEARCH.md)
 
 ## <a name="troubleshooting">🩺 Troubleshooting</a>
 
@@ -219,7 +222,7 @@ LOGLEVEL=DEBUG codex
 
 ### Watching Filesystem Events with Docker
 
-Codex tries to watch for filesystem events to instantly update your Libraries when they are changed on disk. But these native filesystem events are not translated between macOS & Windows Docker hosts and the Docker Linux container. If you find that your installation is not updating to filesystem changes instantly, you might try enabling polling for the affected libraries and decreasing the `poll_every` value in the Admin console to a frequency that suits you.
+Codex tries to watch for filesystem events to instantly update your comic libraries when they are changed on disk. But these native filesystem events are not translated between macOS & Windows Docker hosts and the Docker Linux container. If you find that your installation is not updating to filesystem changes instantly, you might try enabling polling for the affected libraries and decreasing the `poll_every` value in the Admin console to a frequency that suits you.
 
 ### Emergency Database Repair
 
@@ -243,30 +246,24 @@ Codex's bulk database updater has been tested to usually work batching 100,000 f
 ### Bug Reports
 
 Issues are best filed [here on github](https://github.com/ajslater/codex/issues).
-However I and other brave Codex testers may also sometimes be found on IRC in the [Mylar support channels](https://github.com/mylar3/mylar3#live-support--conversation).
+However I and other brave Codex testers may also sometimes be found on the [Mylar support channels](https://github.com/mylar3/mylar3#live-support--conversation). It would be polite to use the `#anything-other-than-mylar` Discord channel to ask for help with Codex.
 
-## <a name="roadmap">🚀 Roadmap</a>
-
-### Next Up
-
-1. Full text search
-2. [OPDS API](https://en.wikipedia.org/wiki/Open_Publication_Distribution_System)
-
-### Out of Scope
+## <a name="out-of-scope">🚫 Out of Scope</a>
 
 - I have no intention of making this an eBook reader like [Ubooquity](https://vaemendis.net/ubooquity/).
-- I am not interested in this becoming a sophisticated comic manager like [Mylar](https://github.com/mylar3/mylar3). I am also thinking more and more that metadata editing belongs in a manager and not in a reader like Codex.
+- I am not interested in this becoming a sophisticated comic manager like [Mylar](https://github.com/mylar3/mylar3). I have also come to the conclusion that metadata editing belongs in a manager and not in a reader like Codex.
 
 ## <a name="alternatives-to-codex">📚Alternatives</a>
 
-- [Komga](https://komga.org/) has light metadata editing and full text search of metadata.
+- [Komga](https://komga.org/) has light metadata editing.
+- [Kavita](https://www.kavitareader.com/) has light metadata filtering/editing and supports comics and eBooks.
 - [Ubooquity](https://vaemendis.net/ubooquity/) is a good looking comic webserver. It also reads eBooks.
-- [Mylar](https://github.com/mylar3/mylar3) is probably the best comic book manager and also has a built in reader.
-- [Comictagger](https://github.com/comictagger/comictagger) is not really a reader, but seems to be the best comic metadata editor. It comes with a powerful command line and useful desktop GUI.
+- [Mylar](https://github.com/mylar3/mylar3) is the best comic book manager which also has a built in reader.
+- [Comictagger](https://github.com/comictagger/comictagger) seems to be the best comic metadata editor. It comes with a powerful command line and useful desktop GUI.
 
 ## <a name="develop-codex">🛠 Develop</a>
 
-Codex is a Django Python webserver with a VueJS front end. This is my first ever Javascript frontend. In retrospect I wish I'd known about FastAPI when I started, that looks nice. But I'm pretty satisfied with VueJS.
+Codex is a Django Python webserver with a VueJS front end.
 
 `/codex/codex/` is the main django app which provides the webserver and database.
 
@@ -274,9 +271,9 @@ Codex is a Django Python webserver with a VueJS front end. This is my first ever
 
 `/codex/setup-dev.sh` will install development dependencies.
 
-`/codex/dev-server-ttabs.sh` will run the three or four different servers recommended for development in terminal tabs.
+`/codex/dev-ttabs.sh` will run the three or four different servers recommended for development in terminal tabs.
 
-`/codex/run.sh` runs the main Django server. Set the `DEBUG` environment variable to activate debug mode: `DEBUG=1 ./run.sh`. This also lets you run the server without collecting static files for production and with a hot reloading frontend.
+`/codex/dev-codex.sh` runs the main Django server. Set the `DEBUG` environment variable to activate debug mode: `DEBUG=1 ./run.sh`. This also lets you run the server without collecting static files for production and with a hot reloading frontend. I recommend setting `LOGLEVEL=VERBOSE` for development as well.
 
 ### Links
 

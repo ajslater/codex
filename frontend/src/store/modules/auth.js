@@ -1,7 +1,7 @@
 import API from "@/api/v2/auth";
 
 const state = {
-  user: null,
+  user: undefined,
   form: {
     usernameErrors: undefined,
     passwordErrors: undefined,
@@ -15,11 +15,12 @@ const mutations = {
   setRegisterEnabled: (state, data) => {
     state.enableRegistration = data.enableRegistration;
   },
-  setUser: (state, user) => {
+  setUser: (state, value) => {
+    let user = value;
     if (user) {
       state.enableNonUsers = user.enableNonUsers;
       if (!user.pk) {
-        user = null;
+        user = undefined;
       } else {
         delete user.enableNonUsers;
       }
@@ -39,6 +40,9 @@ const getters = {
   },
   isOpenToSee: (state) => {
     return Boolean(state.user || state.enableNonUsers);
+  },
+  isLoggedIn: (state) => {
+    return Boolean(state.user);
   },
 };
 
@@ -87,7 +91,7 @@ const actions = {
     API.logout().catch((error) => {
       console.error(error);
     });
-    commit("setUser", null);
+    commit("setUser");
   },
 };
 

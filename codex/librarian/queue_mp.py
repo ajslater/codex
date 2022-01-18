@@ -1,5 +1,6 @@
 """Library SimpleQueue and task definitions."""
 # This file cannot be named queue or it causes weird type checker errors
+from abc import ABC
 from dataclasses import dataclass
 from multiprocessing import Queue
 
@@ -7,7 +8,7 @@ from watchdog.events import FileSystemEvent
 
 
 @dataclass
-class LibraryTask:
+class LibraryTask(ABC):
     """Task for a particular library."""
 
     library_id: int
@@ -21,7 +22,7 @@ class WatchdogEventTask(LibraryTask):
 
 
 @dataclass
-class UpdaterTask:
+class UpdaterTask(ABC):
     """Tasks for the updater."""
 
     pass
@@ -48,7 +49,7 @@ class CleanupDatabaseTask(UpdaterTask):
 
 
 @dataclass
-class ComicCoverTask:
+class ComicCoverTask(ABC):
     """Handle with the CoverCreator."""
 
 
@@ -71,7 +72,7 @@ class BulkComicCoverCreateTask(ComicCoverTask):
 
 
 @dataclass
-class LibrariesTask:
+class LibrariesTask(ABC):
     """Tasks over a set of libraries."""
 
     library_ids: set
@@ -113,7 +114,7 @@ class WatchdogSyncTask:
 
 
 @dataclass
-class NotifierTask:
+class NotifierTask(ABC):
     """Handle with the Notifier."""
 
     text: str
@@ -134,7 +135,7 @@ class BroadcastNotifierTask(NotifierTask):
 
 
 @dataclass
-class JanitorTask:
+class JanitorTask(ABC):
     """Tasks for the janitor."""
 
     pass
@@ -164,6 +165,27 @@ class UpdateTask(JanitorTask):
 @dataclass
 class VacuumTask(JanitorTask):
     """Vacuum the database."""
+
+    pass
+
+
+@dataclass
+class CleanSearchTask(JanitorTask):
+    """Clean the search db."""
+
+    pass
+
+
+@dataclass
+class UpdateSearchIndexTask(UpdaterTask):
+    """Update the search index."""
+
+    rebuild: bool
+
+
+@dataclass
+class RebuildSearchIndexIfDBChangedTask(UpdaterTask):
+    """Rebuild the search index if the database changed."""
 
     pass
 

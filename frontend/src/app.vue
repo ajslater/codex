@@ -1,6 +1,7 @@
 <template>
   <v-app>
     <router-view />
+    <SettingsDrawer />
     <NotifySnackBar />
   </v-app>
 </template>
@@ -9,18 +10,20 @@
 import { mapState } from "vuex";
 
 import NotifySnackBar from "@/components/notify";
+import SettingsDrawer from "@/components/settings-drawer";
 
 export default {
   name: "App",
   components: {
+    SettingsDrawer,
     NotifySnackBar,
   },
   computed: {
-    ...mapState("auth", {
-      user: (state) => state.user,
-    }),
     ...mapState({
       isConnected: (state) => state.socket.isConnected,
+    }),
+    ...mapState("auth", {
+      user: (state) => state.user,
     }),
   },
   watch: {
@@ -36,7 +39,6 @@ export default {
   async beforeCreate() {
     // First thing we do is see if we're logged in
     return this.$store.dispatch("auth/me").then(() => {
-      console.debug("socket connecting...");
       return this.$connect();
     });
   },

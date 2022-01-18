@@ -38,10 +38,10 @@
         height="2"
       />
       <router-link class="browserLink cardSubtitle text-caption" :to="toRoute">
-        <div class="headerName">{{ headerName }}</div>
+        <div v-if="headerName" class="headerName">{{ headerName }}</div>
         <div class="displayName">{{ displayName }}</div>
         <!-- eslint-disable-next-line vue/no-v-html -->
-        <div class="orderValue" v-html="orderValue" />
+        <div v-if="orderValue" class="orderValue" v-html="orderValue" />
       </router-link>
     </div>
   </v-lazy>
@@ -49,13 +49,17 @@
 
 <script>
 // import { mdiChevronLeft } from "@mdi/js";
-import { mdiDotsVertical, mdiEye } from "@mdi/js";
+import { mdiEye } from "@mdi/js";
 import filesize from "filesize";
 import { mapState } from "vuex";
 
 import BookCover from "@/components/book-cover";
 import BrowserCardMenu from "@/components/browser-card-menu";
-import { getFullComicName, getVolumeName } from "@/components/comic-name";
+import {
+  getFullComicName,
+  getIssueName,
+  getVolumeName,
+} from "@/components/comic-name";
 import MetadataButton from "@/components/metadata-dialog";
 import { getReaderRoute } from "@/router/route";
 
@@ -78,23 +82,27 @@ export default {
   },
   data() {
     return {
-      mdiDotsVertical,
       mdiEye,
     };
   },
+  // Stored here instead of data to be non-reactive
+  orderByCache: "sort_name",
   computed: {
     ...mapState("browser", {
-      sortBy: (state) => state.settings.sortBy,
+      orderBy: (state) => state.settings.orderBy,
     }),
     headerName: function () {
       let headerName;
       switch (this.item.group) {
         case "c":
-          headerName = getFullComicName(
-            this.item.series_name,
-            this.item.volume_name,
-            +this.item.issue
-          );
+          headerName =
+            !Number(this.$route.params.pk) || this.$route.params.group === "f"
+              ? (headerName = getFullComicName(
+                  this.item.series_name,
+                  this.item.volume_name,
+                  Number(this.item.issue)
+                ))
+              : (headerName = getIssueName(this.item.issue));
           break;
 
         case "i":
@@ -117,28 +125,33 @@ export default {
     },
     orderValue: function () {
       let ov = this.item.order_value;
-      if (this.sortBy == "sort_name" || !ov) {
-        return "";
-      } else if (this.sortBy == "page_count") {
-        const human = filesize(parseInt(ov), {
+      if (
+        this.orderByCache === "sort_name" ||
+        this.orderByCache === null ||
+        this.orderByCache === undefined ||
+        ov === null ||
+        ov === undefined
+      ) {
+        ov = "";
+      } else if (this.orderByCache == "page_count") {
+        const human = filesize(Number.parseInt(ov, 10), {
           base: 10,
           round: 1,
           fullform: true,
           fullforms: [" ", "K", "M", "G", "T", "P", "E", "Z", "Y"],
           spacer: "",
         });
-        return `${human} pages`;
-      } else if (this.sortBy == "size") {
-        return filesize(parseInt(ov), { round: 1 });
-      } else if (STAR_SORT_BY.has(this.sortBy)) {
-        return `${ov} stars`;
-      } else if (DATE_SORT_BY.has(this.sortBy)) {
-        return this.formatDate(ov, false);
-      } else if (TIME_SORT_BY.has(this.sortBy)) {
-        return this.formatDate(ov, true);
-      } else {
-        return ov;
+        ov = `${human} pages`;
+      } else if (this.orderByCache == "size") {
+        ov = filesize(Number.parseInt(ov, 10), { round: 1 });
+      } else if (STAR_SORT_BY.has(this.orderByCache)) {
+        ov = `${ov} stars`;
+      } else if (DATE_SORT_BY.has(this.orderByCache)) {
+        ov = this.formatDate(ov, false);
+      } else if (TIME_SORT_BY.has(this.orderByCache)) {
+        ov = this.formatDate(ov, true);
       }
+      return ov;
     },
     toRoute: function () {
       return this.item.group === "c"
@@ -152,6 +165,11 @@ export default {
             name: "browser",
             params: { group: this.item.group, pk: this.item.pk, page: 1 },
           };
+    },
+  },
+  watch: {
+    orderBy: function (to) {
+      this.orderByCache = to;
     },
   },
   methods: {

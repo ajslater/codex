@@ -14,10 +14,9 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.urls import path
-from django.views.decorators.cache import cache_control, cache_page
-from django.views.decorators.vary import vary_on_cookie
+from django.views.decorators.cache import cache_control, cache_page, never_cache
 
-from codex.views.admin import PollView
+from codex.views.admin import QueueLibrarianJobs
 from codex.views.auth import LoginView, LogoutView, RegisterView, UserView
 from codex.views.bookmark import (
     ComicBookmarkView,
@@ -33,9 +32,24 @@ from codex.views.reader import ComicOpenedView, ComicPageView
 
 
 CACHE_TIME = 60 * 15
+NOTIFY_MAX_AGE = 3
 
 app_name = "api"
 urlpatterns = [
+    #
+    # Browser
+    path("<str:group>/<int:pk>/<int:page>", BrowserView.as_view(), name="browser_page"),
+    path("<str:group>/<int:pk>/metadata", MetadataView.as_view(), name="metadata"),
+    path(
+        "<str:group>/<int:pk>/mark_read",
+        UserBookmarkFinishedView.as_view(),
+        name="mark_read",
+    ),
+    path(
+        "<str:group>/<int:pk>/choices/<str:field_name>",
+        BrowserChoiceView.as_view(),
+        name="browser_choices",
+    ),
     #
     # Reader
     path("c/<int:pk>", ComicOpenedView.as_view(), name="comic_info"),
@@ -51,50 +65,22 @@ urlpatterns = [
     ),
     path(
         "c/<int:pk>/settings",
-        ComicSettingsView.as_view(),
+        never_cache(ComicSettingsView.as_view()),
         name="comic_settings",
     ),
-    path(
-        "c/<int:pk>/archive.cbz",
-        ComicDownloadView.as_view(),
-        name="comic_download",
-    ),
-    #
-    # Browser
-    path(
-        "<str:group>/<int:pk>/<int:page>",
-        vary_on_cookie(cache_page(CACHE_TIME)(BrowserView.as_view())),
-        name="browser_page",
-    ),
-    path(
-        "<str:group>/<int:pk>/metadata",
-        vary_on_cookie(cache_page(CACHE_TIME)(MetadataView.as_view())),
-        name="metadata",
-    ),
-    path(
-        "<str:group>/<int:pk>/mark_read",
-        UserBookmarkFinishedView.as_view(),
-        name="mark_read",
-    ),
-    #
-    # Choices
-    path(
-        "<str:group>/<int:pk>/choices/<str:field_name>",
-        cache_page(CACHE_TIME)(BrowserChoiceView.as_view()),
-        name="browser_choices",
-    ),
+    path("c/<int:pk>/archive.cbz", ComicDownloadView.as_view(), name="comic_download"),
     #
     # Notify
     path(
         "notify",
-        cache_control(max_age=5)(NotifyView.as_view()),
+        cache_control(max_age=NOTIFY_MAX_AGE)(NotifyView.as_view()),
         name="notify",
     ),
     #
     # Auth
     path("auth/register", RegisterView.as_view(), name="register"),
     path("auth/login", LoginView.as_view(), name="login"),
-    path("auth/me", UserView.as_view(), name="user"),
-    path("auth/logout", LogoutView.as_view(), name="user"),
-    path("poll", PollView.as_view(), name="poll"),
+    path("auth/me", UserView.as_view(), name="me"),
+    path("auth/logout", LogoutView.as_view(), name="logout"),
+    path("admin/queue_job", QueueLibrarianJobs.as_view(), name="queue_job"),
 ]

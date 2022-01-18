@@ -1,7 +1,7 @@
 <template>
   <v-btn
     class="readerNavButton"
-    :disabled="$route.params.page === value"
+    :disabled="disabled"
     :to="toRoute"
     ripple
     large
@@ -27,6 +27,9 @@ export default {
         name: this.$route.name,
         params: params,
       };
+    },
+    disabled: function () {
+      return this.$route.params.page === this.value;
     },
   },
 };

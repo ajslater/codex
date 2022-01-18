@@ -1,22 +1,20 @@
 // Shared functions for most metadata components.
-
-import FORM_CHOICES from "@/choices/browserChoices";
-const VUETIFY_NULL_CODE = FORM_CHOICES["vuetifyNullCode"];
+import CHOICES from "@/choices";
+const VUETIFY_NULL_CODE = CHOICES.browser.vuetifyNullCode;
 const NULL_NAME = "None";
 const NULL_ITEM = { pk: VUETIFY_NULL_CODE, name: NULL_NAME };
 
 export const toVuetifyItem = function (item) {
-  // Translates an raw value or an item item into a vuetify
-  // autocomplete/combobox item.
+  // Translates an raw value or an item item into a vuetify item.
   let vuetifyItem;
   if (item === undefined) {
     vuetifyItem = item;
   } else if (item instanceof Object) {
     vuetifyItem = item;
-    if (vuetifyItem.pk == null) {
+    if (vuetifyItem.pk === null || vuetifyItem.pk === undefined) {
       vuetifyItem.pk = VUETIFY_NULL_CODE;
     }
-    if (vuetifyItem.name == null) {
+    if (vuetifyItem.name === null || vuetifyItem.pk === undefined) {
       vuetifyItem.name = NULL_NAME;
     }
   } else if (item === null) {
@@ -36,24 +34,23 @@ const vuetifyItemCompare = function (itemA, itemB) {
 export const toVuetifyItems = function (value, items, filter) {
   // Takes a value (can be a list) and a list of items and
   // Returns a list of valid items with items arg having preference.
-  let computedItems = new Array();
+  let computedItems = [];
   let sourceItems;
   if (items) {
     sourceItems = items;
   } else if (value) {
     sourceItems = Array.isArray(value) ? value : [value];
   } else {
-    sourceItems = new Array();
+    sourceItems = [];
   }
-  if (filter) {
-    // Case insensitive search
-    filter = filter.toLowerCase();
-  }
+  // Case insensitive search
+  const finalFilter = filter ? filter.toLowerCase() : filter;
+
   for (const item of sourceItems) {
     const vuetifyItem = toVuetifyItem(item);
     if (
       vuetifyItem &&
-      (!filter || vuetifyItem.name.toLowerCase().includes(filter))
+      (!finalFilter || vuetifyItem.name.toLowerCase().includes(finalFilter))
     ) {
       computedItems.push(vuetifyItem);
     }

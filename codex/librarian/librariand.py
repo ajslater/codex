@@ -11,6 +11,7 @@ from codex.librarian.queue_mp import (
     JanitorTask,
     NotifierTask,
     PollLibrariesTask,
+    RebuildSearchIndexIfDBChangedTask,
     UpdaterTask,
     WatchdogEventTask,
     WatchdogSyncTask,
@@ -112,6 +113,8 @@ class LibrarianDaemon(Process):
             LOG.verbose("Started Librarian process.")  # type: ignore
             self._create_threads()
             self._start_threads()
+            task = RebuildSearchIndexIfDBChangedTask()
+            LIBRARIAN_QUEUE.put(task)
             run = True
             LOG.verbose(  # type: ignore
                 "Librarian started threads and waiting for tasks."

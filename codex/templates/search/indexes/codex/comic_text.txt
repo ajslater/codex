@@ -1,0 +1,34 @@
+{{ object.publisher.name }}
+{{ object.imprint.name }}
+{{ object.series.name }} {{ object.series.name }}
+{{ object.volume.name }}
+{{ object.name }} {{ object.name }}
+{{ object.country }}
+{{ object.description }}
+{{ object.format }}
+{{ object.language }}
+{{ object.notes }}
+{{ object.scan_info }}
+{{ object.summary }}
+{{ object.web }}
+{% for character in object.characters.all %}
+  {{ character.name }}
+{% endfor %}
+{% for credit in object.credits.all %}
+  {{ credit.person.name }}
+{% endfor %}
+{% for location in object.locations.all %}
+  {{ location.name }}
+{% endfor %}
+{% for series_group in object.series_groups.all %}
+  {{ series_group.name }}
+{% endfor %}
+{% for story_arc in object.story_arcs.all %}
+  {{ story_arc.name }}
+{% endfor %}
+{% for tag in object.tags.all %}
+  {{ tag.name }}
+{% endfor %}
+{% for team in object.teams.all %}
+  {{ team.name }}
+{% endfor %}
