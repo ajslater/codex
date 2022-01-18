@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "0.8.0-a1",
+  "version": "0.8.0-a2",
   "private": true,
   "description": "ui for codex api",
   "scripts": {
@@ -99,6 +99,7 @@
       "**/*.{js,vue}",
       "!**/node_modules/**"
     ],
+    "coverageDirectory": "<rootDir>/../test-results/jest/coverage",
     "moduleFileExtensions": [
       "js",
       "json",

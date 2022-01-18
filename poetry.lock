@@ -295,7 +295,7 @@ elasticsearch = ["elasticsearch (>=5,<6)"]
 
 [package.source]
 type = "url"
-url = "https://raw.githubusercontent.com/ajslater/codex/search/vendor/django_haystack-3.1.2.dev32+gb6dd72e.d20220115-py3-none-any.whl"
+url = "https://raw.githubusercontent.com/ajslater/codex/develop/vendor/django_haystack-3.1.2.dev32+gb6dd72e.d20220115-py3-none-any.whl"
 [[package]]
 name = "django-livereload-server"
 version = "0.4"
@@ -1240,7 +1240,7 @@ django-haystack = ">=2.8.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "fb265bc354b6e3c57a4c9bc68d2d3156724104e57ff8b46d54e774f6c3c9e520"
+content-hash = "d3b73febb008d71652aafec2fa474d91f765fca4ddd9f03c4b54fb9ed50d6d20"
 
 [metadata.files]
 aioquic = [
