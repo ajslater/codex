@@ -11,6 +11,7 @@
   - Reader's "close book" button now does a better job returning you to your last browser view.
   - Changed some keyboard shortcuts in reader.
   - "group by" renamed to "top group"
+  - Admin panel gained a Queue Jobs page.
 - Fixes
   - Metadata panel cleanup and fix some missing fields.
 - New Dependencies

@@ -136,7 +136,7 @@ def bulk_create_comic_covers(comic_and_cover_paths, force=False):
 
 def create_comic_cover_for_libraries(library_pks):
     """Force regeneration of all covers."""
-    if LOG.getEffectiveLevel() >= INFO:
+    if LOG.getEffectiveLevel() <= INFO:
         paths = Library.objects.filter(pk__in=library_pks).values_list(
             "path", flat=True
         )
