@@ -4,6 +4,7 @@ from logging import getLogger
 from codex.librarian.covers import COVER_ROOT
 from codex.models import Comic
 
+
 LOG = getLogger(__name__)
 
 
