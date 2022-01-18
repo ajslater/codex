@@ -3,6 +3,7 @@
 set -euxo pipefail
 ./alpha-test-build-dist.sh
 # XXX PLATFORMS declaration current broken for wheels because build-codex bake does not see local wheel image
-./build-wheels.sh
+# https://github.com/docker/cli/issues/3286
 export PLATFORMS="linux/amd64"
+./build-wheels.sh
 ./build-codex.sh

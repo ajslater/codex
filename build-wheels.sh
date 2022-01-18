@@ -7,7 +7,7 @@ WHEELS_VERSION=$(./wheels-version.sh)
 REPO=docker.io/ajslater/codex-wheels
 IMAGE="${REPO}:${WHEELS_VERSION}"
 if [ "${1:-}" == "-f" ]; then
-  shift
+    shift
 else
     docker pull "${IMAGE}" || true
     if docker inspect "${IMAGE}" --format="codex wheels image up to date"; then
@@ -23,13 +23,16 @@ if [ -n "${1:-}" ]; then
     CMD=$1
 else
     # Different behavior for multiple vs single PLATFORMS
-    if [[ ${PLATFORMS:-} =~ "," ]]; then
-        # more than one platform
-        CMD="--push"
-    else
-        # only one platform loading into docker works
-        CMD="--load"
-    fi
+    # XXX --load behavior breaks build-codex.sh because it always
+    #     tries to resolve wheels from docker.io
+    # https://github.com/docker/cli/issues/3286
+    # if [[ ${PLATFORMS:-} =~ "," ]]; then
+    # more than one platform
+    CMD="--push"
+    #else
+    #    # only one platform loading into docker works
+    #    CMD="--load"
+    #fi
 fi
 
 export DOCKER_CLI_EXPERIMENTAL=enabled

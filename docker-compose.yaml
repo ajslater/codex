@@ -9,20 +9,39 @@ services:
         BUILDER_VERSION: "$BUILDER_VERSION"
     image: codex-build
     container_name: codex-build
-  codex-lint:
+  codex-frontend-lint:
     <<: *codex-build
-    container_name: codex-lint
-    command: ./lint.sh
-  codex-test:
+    container_name: codex-frontent-lint
+    command: ./lint-frontend.sh
+  codex-frontend-test:
     <<: *codex-build
-    container_name: codex-test
+    container_name: codex-frontend-test
+    command: ./test-frontend.sh
     volumes:
       - ./test-results/:/app/test-results/
-    command: ./test.sh
-  codex-dist:
+  codex-frontend-build:
     <<: *codex-build
-    container_name: codex-dist
+    container_name: codex-frontend-build
     volumes:
+      - ./codex/static_build:/app/codex/static_build
+    command: ./build-frontend.sh
+  codex-backend-test:
+    <<: *codex-build
+    container_name: codex-backend-test
+    volumes:
+      - ./codex/static_build:/app/codex/static_build
+      - ./codex/static_root:/app/codex/static_root
+      - ./test-results/:/app/test-results/
+    command: ./test-backend.sh
+  codex-backend-lint:
+    <<: *codex-build
+    container_name: codex-backend-lint
+    command: ./lint-backend.sh
+  codex-build-dist:
+    <<: *codex-build
+    container_name: codex-build-dist
+    volumes:
+      - ./codex/static_root:/app/codex/static_root
       - ./dist/:/app/dist/
     command: ./build-dist.sh
   codex-wheels:

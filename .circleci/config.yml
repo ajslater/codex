@@ -20,11 +20,22 @@ jobs:
           command: ./build-builder.sh
           name: Build Builder
       - run:
-          command: ./docker/docker-compose-exit.sh codex-lint
-          name: Lint
+          command: ./docker/docker-compose-exit.sh codex-frontend-lint
+          name: "Frontend: Lint"
       - run:
-          command: ./docker/docker-compose-exit.sh codex-test
-          name: Test
+          command: ./docker/docker-compose-exit.sh codex-frontend-test
+          name: "Frontend: Test"
+      - store_test_results:
+          path: test-results/jest
+      - run:
+          command: ./docker/docker-compose-exit.sh codex-frontend-build
+          name: "Frontend: Build"
+      - run:
+          command: ./docker/docker-compose-exit.sh codex-backend-test
+          name: "Backend: Lint & Test"
+      - run:
+          command: ./docker/docker-compose-exit.sh codex-backend-lint
+          name: "Backend: More Linters"
       - store_test_results:
           path: test-results/pytest
       - store_artifacts:
@@ -32,8 +43,8 @@ jobs:
       - store_artifacts:
           path: frontend/coverage
       - run:
-          command: ./docker/docker-compose-exit.sh codex-dist
-          name: Build distribution
+          command: ./docker/docker-compose-exit.sh codex-build-dist
+          name: Build Distribution
       - persist_to_workspace:
           paths:
             - ./.env
@@ -56,7 +67,7 @@ jobs:
     steps:
       - attach_workspace:
           at: .
-          command: 
+          command:
       - run:
           command: ./build-install-poetry.sh
           name: Install poetry
