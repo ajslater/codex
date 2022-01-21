@@ -1,9 +1,10 @@
-const CONFIRM_TASKS = [
+const CONFIRM_TASKS = new Set([
   "poll_force",
   "rebuild_index",
   "codex_update",
   "codex_restart",
-];
+]);
+// eslint-disable-next-line no-undef
 django.jQuery(function ($) {
   const radios = $("input[name=task]");
 
@@ -24,10 +25,11 @@ django.jQuery(function ($) {
     const task = data.task;
 
     // Confirm
-    if (CONFIRM_TASKS.includes(task)) {
-      if (!confirm("This could take a while. Are you sure?")) {
-        return;
-      }
+    if (
+      CONFIRM_TASKS.has(task) &&
+      !confirm("This could take a while. Are you sure?")
+    ) {
+      return;
     }
 
     // Do the call

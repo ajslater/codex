@@ -68,7 +68,7 @@ export default {
     // Keyboard Shortcuts
     window.addEventListener("keyup", this._keyListener);
   },
-  beforeUnmount: function () {
+  beforeDestroy: function () {
     window.removeEventListener("keyup", this._keyListener);
   },
   methods: {

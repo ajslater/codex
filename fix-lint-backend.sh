@@ -7,6 +7,12 @@ set -euxo pipefail
 poetry run isort --color .
 poetry run black .
 
+############################################
+##### Javascript, JSON, Markdown, YAML #####
+############################################
+npx eslint . --ext .cjs,.mjs,.js,.json,.md,.yaml --fix
+prettier --write .
+
 ###################
 ###### Shell ######
 ###################
