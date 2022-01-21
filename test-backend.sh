@@ -3,7 +3,7 @@
 set -euxo pipefail
 source circleci-build-skip.sh
 
-cd "$(dirname "$(readlink "$0")")"
+cd "$(dirname "$0")"
 
 ./collectstatic.sh
 poetry run pytest

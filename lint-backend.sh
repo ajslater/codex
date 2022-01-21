@@ -1,7 +1,7 @@
 #!/bin/bash
 # Lint checks
 set -euxo pipefail
-cd "$(dirname "$(readlink "$0")")"
+cd "$(dirname "$0")"
 source circleci-build-skip.sh
 
 ####################
