@@ -1,6 +1,7 @@
 #!/bin/bash
 # Build the wheels builder image
 set -xeuo pipefail
+source circleci-build-skip.sh
 source .env
 
 export DOCKER_CLI_EXPERIMENTAL=enabled

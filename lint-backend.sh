@@ -2,6 +2,7 @@
 # Lint checks
 set -euxo pipefail
 cd "$(dirname "$(readlink "$0")")"
+source circleci-build-skip.sh
 
 ####################
 ###### Python ######
@@ -18,7 +19,7 @@ fi
 ##### Javascript, JSON, Markdown, YAML #####
 ############################################
 npx eslint . --ext .cjs,.mjs,.js,.json,.md,.yaml
-prettier --check .
+npx prettier --check .
 
 ################################
 ###### Docker, Shell, Etc ######

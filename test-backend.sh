@@ -1,6 +1,8 @@
 #!/bin/bash
 # Run all codex tests
 set -euxo pipefail
+source circleci-build-skip.sh
+
 cd "$(dirname "$(readlink "$0")")"
 
 ./collectstatic.sh
