@@ -31,9 +31,10 @@ RUN apk add --no-cache \
 
 WORKDIR /app
 COPY vendor/shellcheck ./vendor/shellcheck/
-RUN ./vendor/shellcheck/install-shellcheck.sh
+RUN vendor/shellcheck/install-shellcheck.sh
 
 # *** install python build dependency packages ***
+# use latest before we build a possible new wheels in the following script
 # hadolint ignore=DL3022
 COPY --from=ajslater/codex-wheels:latest /cache/wheels $CODEX_WHEELS
 # hadolint ignore=DL3042,DL3013
