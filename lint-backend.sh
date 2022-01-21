@@ -14,6 +14,12 @@ if [ "$(uname)" = "Darwin" ]; then
     poetry run radon mi --min B .
 fi
 
+############################################
+##### Javascript, JSON, Markdown, YAML #####
+############################################
+npx eslint . --ext .cjs,.mjs,.js,.json,.md,.yaml
+prettier --check .
+
 ################################
 ###### Docker, Shell, Etc ######
 ################################
@@ -22,7 +28,9 @@ if [ "$(uname)" = "Darwin" ]; then
     # shellcheck disable=2035
     hadolint *.Dockerfile
     shfmt -d -i 4 ./*.sh ./**/*.sh
+    # subdirs aren't copied into docker builder
+    shellcheck --external-sources ./**/*.sh
+    circleci config check .circleci/config.yml
 fi
-shellcheck -x ./*.sh ./**/*.sh
-# shellcheck disable=2035
+shellcheck --external-sources ./*.sh
 poetry run codespell .

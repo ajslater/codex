@@ -3,7 +3,7 @@ executors:
     machine:
       image: ubuntu-2004:202111-02
 jobs:
-  test-and-build-dist:
+  build:
     executor: latest-image
     steps:
       - checkout
@@ -17,8 +17,17 @@ jobs:
           command: ./docker/docker-buildx-create.sh
           name: Create buildx builder
       - run:
-          command: ./build-builder.sh
+          command: ./docker-build-codex-base.sh
+          name: Build Base
+      - run:
+          command: ./docker-build-codex-builder.sh
           name: Build Builder
+      - run:
+          command: ./docker-build-codex-wheels.sh
+          name: Build Wheels
+      - run:
+          command: ./docker-build-codex-dist-builder.sh
+          name: Build Tester & Dist Builder
       - run:
           command: ./docker/docker-compose-exit.sh codex-frontend-lint
           name: "Frontend: Lint"
@@ -35,7 +44,7 @@ jobs:
           name: "Backend: Lint & Test"
       - run:
           command: ./docker/docker-compose-exit.sh codex-backend-lint
-          name: "Backend: More Linters"
+          name: "Backend: Extra Linters"
       - store_test_results:
           path: test-results/pytest
       - store_artifacts:
@@ -50,40 +59,11 @@ jobs:
             - ./.env
             - ./.env.platforms
             - ./Dockerfile
-            - ./README.md
             - ./build-codex.sh
-            - ./build-install-poetry.sh
-            - ./build-wheels.sh
             - ./deploy-pypi.sh
             - ./dist
             - ./docker
-            - ./docker-compose.yaml
-            - ./pyproject.toml
-            - ./poetry.lock
-            - ./wheels-version.sh
           root: .
-  build-wheels:
-    executor: latest-image
-    steps:
-      - attach_workspace:
-          at: .
-          command:
-      - run:
-          command: ./build-install-poetry.sh
-          name: Install poetry
-      - run:
-          command: ./docker/docker-login.sh
-          name: Login to Docker Hub
-      - run:
-          command: ./docker/docker-install-binfmt-platforms.sh
-          name: Install binfmt platforms
-      - run:
-          command: ./docker/docker-buildx-create.sh
-          name: Create buildx builder
-      - run:
-          no_output_timeout: 90m
-          command: ./build-wheels.sh
-          name: Get or Build Python wheels
   deploy:
     executor: latest-image
     steps:
@@ -102,34 +82,27 @@ jobs:
           command: ./docker/docker-buildx-create.sh
           name: Create buildx builder
       - run:
-          command: ./build-codex.sh
+          command: ./docker-build-codex.sh
           name: Build & Push Codex runnable image
       - run:
-          command: ./deploy-pypi.sh
+          command: ./pypi-deploy.sh
           name: Publish Package to PyPi
 version: 2.1
 workflows:
   main:
     jobs:
-      - test-and-build-dist:
+      - build:
           filters:
             branches:
               only:
                 - develop
                 - release
                 - /.*-ci/
-      - build-wheels:
-          filters:
-            branches:
-              only:
-                - release
-          requires:
-            - test-and-build-dist
       - deploy:
           filters:
             branches:
               only:
                 - release
           requires:
-            - build-wheels
+            - build
   version: 2.1
