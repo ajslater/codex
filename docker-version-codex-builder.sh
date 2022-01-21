@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 CODEX_BASE_VERSION=$(./docker-version-codex-base.sh)
-SHELLCHECK_MD5=$(find vendor/shellcheck -type f -exec md5sum {} + |
+SHELLCHECK_MD5=$(find vendor/shellcheck -type f \( ! -name "*~" \) -exec md5sum {} + |
     LC_ALL=C sort |
     md5sum |
     awk '{print $1}')
