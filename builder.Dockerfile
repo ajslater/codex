@@ -47,5 +47,5 @@ COPY builder-requirements.txt ./
 RUN pip3 install --find-links=$CODEX_WHEELS --requirement builder-requirements.txt
 
 # *** install node build dependency packages ***
-COPY package.json package-lock.json
+COPY package.json package-lock.json ./
 RUN npm install
