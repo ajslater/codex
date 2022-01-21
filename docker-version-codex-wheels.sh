@@ -1,6 +1,6 @@
 #!/bin/bash
 set -euo pipefail
-pip3 --quiet install poetry >& /dev/null
+pip3 --quiet install --requirement builder-requirements.txt >& /dev/null
 poetry export --dev --without-hashes |
     cat - \
         .dockerignore \
