@@ -1,6 +1,6 @@
 #!/bin/bash
 set -euo pipefail
-cd "$(dirname "$(readlink "$0")")"
+cd "$(dirname "$0")"
 # shellcheck source=/dev/null
 source .env.pushover
 export PUSHOVER_API_TOKEN
