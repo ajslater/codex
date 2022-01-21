@@ -7,7 +7,7 @@ jobs:
     executor: latest-image
     steps:
       - checkout
-      - restore-cache:
+      - restore_cache:
           key: v1-{{ .Revision .}}
       - run:
           command: ./docker/docker-login.sh
