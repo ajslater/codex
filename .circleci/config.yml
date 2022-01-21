@@ -56,7 +56,7 @@ jobs:
       - run:
           command: ./docker/docker-compose-exit.sh codex-build-dist
           name: Build Distribution
-      - save-cache:
+      - save_cache:
           key: v1-{{ .Revision }}
           paths:
             - dist
