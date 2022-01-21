@@ -30,7 +30,7 @@ RUN apk add --no-cache \
    zlib-dev
 
 WORKDIR /app
-COPY vendor/shellcheck vendor/shellcheck/
+COPY vendor/shellcheck ./vendor/shellcheck/
 RUN ./vendor/shellcheck/install-shellcheck.sh
 
 # *** install python build dependency packages ***
