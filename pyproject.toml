@@ -34,7 +34,7 @@ django = "^4.0"
 djangorestframework = "^3.11"
 django-cors-headers = "^3.2"
 django-dark = "^0.1"
-django-haystack = { url = "https://raw.githubusercontent.com/ajslater/codex/new-build-order/vendor/django_haystack-3.1.2.dev34+g70449ff-py3-none-any.whl" }
+django-haystack = { url = "https://raw.githubusercontent.com/ajslater/codex/develop/vendor/django_haystack-3.1.2.dev34+g70449ff-py3-none-any.whl" }
 fnvhash = "^0.1"
 humanfriendly = "^10.0"
 humanize = "^3.12.0"
