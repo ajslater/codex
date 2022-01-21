@@ -7,6 +7,8 @@ jobs:
     executor: latest-image
     steps:
       - checkout
+      - restore-cache:
+          key: v1-{{ .Revision .}}
       - run:
           command: ./docker/docker-login.sh
           name: Login to Docker Hub
@@ -54,15 +56,19 @@ jobs:
       - run:
           command: ./docker/docker-compose-exit.sh codex-build-dist
           name: Build Distribution
+      - save-cache:
+          key: v1-{{ .Revision }}
+          paths:
+            - dist
       - persist_to_workspace:
           paths:
             - ./.env
             - ./.env.platforms
             - ./Dockerfile
-            - ./build-codex.sh
-            - ./deploy-pypi.sh
             - ./dist
             - ./docker
+            - ./docker-build-codex.sh
+            - ./pypi-deploy.sh
           root: .
   deploy:
     executor: latest-image

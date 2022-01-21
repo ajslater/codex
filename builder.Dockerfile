@@ -47,6 +47,5 @@ COPY builder-requirements.txt ./
 RUN pip3 install --find-links=$CODEX_WHEELS --requirement builder-requirements.txt
 
 # *** install node build dependency packages ***
-# TODO these should probably be local too
-# hadolint ignore=DL3059,DL3016
-RUN npm install --global prettier prettier-plugin-toml
+COPY package.json package-lock.json
+RUN npm install
