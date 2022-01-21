@@ -10,9 +10,6 @@ cache
 codex/static_build
 codex/static_root
 comics
-frontend/coverage
-frontend/dist
-frontend/node_modules
-frontend/public/css/normalize.css
+/node_modules
 templates
 webpack-stats.json

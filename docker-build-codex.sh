@@ -21,22 +21,28 @@ else
     fi
 fi
 
-WHEELS_VERSION=$(./wheels-version.sh)
+CODEX_WHEELS_VERSION=$(./docker-version-codex-wheels.sh)
 export DOCKER_CLI_EXPERIMENTAL=enabled
 export DOCKER_BUILDKIT=1
+CODEX_BASE_VERSION=$(./docker-version-codex-base.sh)
+export CODEX_BASE_VERSION
 export CODEX_WHEEL=codex-${PKG_VERSION}-py3-none-any.whl
-export RUNNABLE_BASE_VERSION
-export WHEELS_VERSION
+export CODEX_WHEELS_VERSION
 if [ -n "${PLATFORMS:-}" ]; then
     PLATFORM_ARG=(--set "*.platform=$PLATFORMS")
 else
     PLATFORM_ARG=()
+fi
+if echo "$PKG_VERSION" | grep '^\d+\.\d+\.\d+$'; then
+    LATEST_TAG=(--set "*.tags=$REPO:latest")
+else
+    LATEST_TAG=()
 fi
 # Build and cache
 # shellcheck disable=2068
 docker buildx bake \
     ${PLATFORM_ARG[@]:-} \
     --set "*.tags=$REPO:${PKG_VERSION}" \
-    --set "*.tags=$REPO:latest" \
+    ${LATEST_TAG[@]:-} \
     ${CMD:-} \
     codex

@@ -1,17 +1,22 @@
-ARG WHEEL_BUILDER_VERSION
-FROM ajslater/codex-wheel-builder:${WHEEL_BUILDER_VERSION}
+ARG CODEX_BUILDER_VERSION
+FROM ajslater/codex-builder:${CODEX_BUILDER_VERSION} as wheels-builder
 # build binary wheels in a dev environment for each arch
-ARG WHEELS_VERSION
 ARG BUILDPLATFORM
 ARG TARGETPLATFORM
+ENV PIP_CACHE_WHEELS /root/.cache/pip/wheels
 ENV REQ_FN /app/requirements.txt
-LABEL version $WHEELS_VERSION
+ENV WHEELS /wheels
 RUN echo "Running on $BUILDPLATFORM, building for $TARGETPLATFORM" && \
     echo "Stage 1: build wheels"
 
 WORKDIR /app
-COPY poetry.lock pyproject.toml ./
-RUN poetry export --without-hashes --extras wheel --output "$REQ_FN"
+COPY poetry.lock pyproject.toml /app/
+RUN poetry install --no-root --remove-untracked
+COPY ./harvest_wheels.py /app/
+RUN ./harvest_wheels.py /cache
 
-WORKDIR /wheels
-RUN CRYPTOGRAPHY_DONT_BUILD_RUST=1 pip3 wheel -r "$REQ_FN"
+# hadolint ignore=DL3007
+FROM tianon/true:latest
+ARG WHEELS_VERSION
+LABEL version $WHEELS_VERSION
+COPY --from=wheels-builder /cache /cache

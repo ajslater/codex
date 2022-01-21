@@ -3,9 +3,9 @@
 set -eux
 
 source .env
-WHEELS_VERSION=$(./wheels-version.sh)
+CODEX_WHEELS_VERSION=$(./docker-version-codex-wheels.sh)
 REPO=docker.io/ajslater/codex-wheels
-IMAGE="${REPO}:${WHEELS_VERSION}"
+IMAGE="${REPO}:${CODEX_WHEELS_VERSION}"
 if [ "${1:-}" == "-f" ]; then
     shift
 else
@@ -37,17 +37,24 @@ fi
 
 export DOCKER_CLI_EXPERIMENTAL=enabled
 export DOCKER_BUILDKIT=1
-export WHEEL_BUILDER_VERSION=$WHEEL_BUILDER_VERSION
-export WHEELS_VERSION
+CODEX_BUILDER_VERSION=$(./docker-version-codex-builder.sh)
+export CODEX_BUILDER_VERSION
+export CODEX_WHEELS_VERSION
 export PLATFORMS
 if [ -n "${PLATFORMS:-}" ]; then
     PLATFORM_ARG=(--set "*.platform=$PLATFORMS")
 else
     PLATFORM_ARG=()
 fi
+if [[ ${PLATFORMS:-} =~ "," ]]; then
+    LATEST_TAG=(--set "*.tags=$REPO:latest")
+else
+    LATEST_TAG=()
+fi
 # shellcheck disable=2068
 docker buildx bake \
     ${PLATFORM_ARG[@]:-} \
     --set "*.tags=${IMAGE}" \
+    ${LATEST_TAG[@]:-} \
     ${CMD:-} \
     codex-wheels

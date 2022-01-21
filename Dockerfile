@@ -1,17 +1,18 @@
-ARG WHEELS_VERSION
-ARG RUNNABLE_BASE_VERSION
-FROM ajslater/codex-wheels:$WHEELS_VERSION as codex-wheels
-# The runnable environment built from a minimal base without dev deps
-FROM ajslater/codex-base:$RUNNABLE_BASE_VERSION as base-installer
+ARG CODEX_WHEELS_VERSION
+ARG CODEX_BASE_VERSION
+FROM ajslater/codex-wheels:${CODEX_WHEELS_VERSION} as wheels
+FROM ajslater/codex-base:${CODEX_BASE_VERSION} as base-installer
 ARG CODEX_WHEEL
+ENV CODEX_WHEELS=/wheels
 WORKDIR /
-COPY --from=codex-wheels /wheels /wheels
-COPY ./dist/$CODEX_WHEEL /wheels/
+COPY --from=wheels /cache/wheels/* /wheels/
+COPY ./dist/$CODEX_WHEEL $CODEX_WHEELS/
 
-# hadolint ignore=DL3013
-RUN pip3 install --no-cache-dir --no-index --find-links=/wheels "/wheels/$CODEX_WHEEL"
+RUN pip3 install --no-cache-dir --upgrade --find-links=$CODEX_WHEELS pip
+RUN pip3 install --no-cache-dir --find-links=$CODEX_WHEELS $CODEX_WHEELS/$CODEX_WHEEL
 
-FROM ajslater/codex-base:$RUNNABLE_BASE_VERSION
+FROM ajslater/codex-base:${CODEX_BASE_VERSION}
+# The final image is the mininimal base with /usr/local copied.
 COPY --from=base-installer /usr/local /usr/local
 
 RUN mkdir -p /comics && touch /comics/DOCKER_UNMOUNTED_VOLUME

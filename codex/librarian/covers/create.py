@@ -140,7 +140,8 @@ def create_comic_cover_for_libraries(library_pks):
         paths = Library.objects.filter(pk__in=library_pks).values_list(
             "path", flat=True
         )
-        LOG.info(f"Recreating all comic covers for libraries: {paths}")
+        paths_str = ",".join(paths)
+        LOG.info(f"Recreating all comic covers for libraries: {paths_str}")
     comics = (
         Comic.objects.only("path", "library")
         .filter(library_id__in=library_pks)
