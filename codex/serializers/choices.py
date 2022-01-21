@@ -12,7 +12,7 @@ import re
 from logging import getLogger
 from pathlib import Path
 
-from codex.settings.settings import DEBUG, STATIC_ROOT
+from codex.settings.settings import BUILD, DEBUG, STATIC_ROOT
 
 
 LOG = getLogger(__name__)
@@ -133,4 +133,6 @@ def _load_json():
         LOG.debug(f"Parsed {key} choices")
 
 
-_load_json()
+if not BUILD:
+    # Run if not running collectstatic
+    _load_json()
