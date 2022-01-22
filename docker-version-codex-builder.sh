@@ -12,7 +12,7 @@ DEPS=(
     "${SHELLCHECK_DEPS[@]}"
 )
 DEPS_MD5S=$(md5sum "${DEPS[@]}")
-echo -e "$CODEX_BASE_VERSION  codex-base-version\n$DEPS_MD5S" \
-    | LC_ALL=C sort \
-    | md5sum \
-    | awk '{print $1}'
+echo -e "$CODEX_BASE_VERSION  codex-base-version\n$DEPS_MD5S" |
+    LC_ALL=C sort |
+    md5sum |
+    awk '{print $1}'
