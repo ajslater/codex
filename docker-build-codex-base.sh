@@ -1,6 +1,7 @@
 #!/bin/bash
 # Build the wheels builder image
 set -xeuo pipefail
+# shellcheck disable=SC1091
 source .env
 REPO=docker.io/ajslater/codex-base
 CODEX_BASE_VERSION=$(./docker-version-codex-base.sh)
@@ -15,6 +16,7 @@ else
 fi
 
 if [[ -z ${PLATFORMS:-} ]]; then
+    # shellcheck disable=SC1091
     source .env.platforms
 fi
 
