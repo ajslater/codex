@@ -12,7 +12,7 @@ DEPS=(
     wheels.Dockerfile
 )
 DEPS_MD5S=$(md5sum "${DEPS[@]}")
-echo -e "$POETRY_EXPORT_MD5  poetry-export\n$DEPS_MD5S" \
-    | LC_ALL=C sort \
-    | md5sum \
-    | awk '{print $1}'
+echo -e "$POETRY_EXPORT_MD5  poetry-export\n$DEPS_MD5S" |
+    LC_ALL=C sort |
+    md5sum |
+    awk '{print $1}'
