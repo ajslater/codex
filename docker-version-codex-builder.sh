@@ -1,15 +1,18 @@
 #!/bin/bash
+# Compute the version tag for ajslater/codex-builder
 set -euo pipefail
 CODEX_BASE_VERSION=$(./docker-version-codex-base.sh)
-SHELLCHECK_MD5=$(find vendor/shellcheck -type f \( ! -name "*~" \) -exec md5sum {} + |
-    LC_ALL=C sort |
-    md5sum |
-    awk '{print $1}')
-echo "$CODEX_BASE_VERSION" "$SHELLCHECK_MD5" |
-    cat - \
-        .dockerignore \
-        docker-build-codex-builder.sh \
-        builder.Dockerfile \
-        builder-requirements.txt |
-    md5sum |
-    awk '{print $1}'
+IFS=" " read -r -a SHELLCHECK_DEPS <<<"$(find vendor/shellcheck -type f \( ! -name "*~" \))"
+DEPS=(
+    "$0"
+    .dockerignore
+    builder.Dockerfile
+    builder-requirements.txt
+    docker-build-codex-builder.sh
+    "${SHELLCHECK_DEPS[@]}"
+)
+DEPS_MD5S=$(md5sum "${DEPS[@]}")
+echo -e "$CODEX_BASE_VERSION  codex-base-version\n$DEPS_MD5S" \
+    | LC_ALL=C sort \
+    | md5sum \
+    | awk '{print $1}'
