@@ -3,8 +3,10 @@
 set -euxo pipefail
 
 # Load .env variables but with a mechanism to override PLATFORMS
+# shellcheck disable=SC1091
 source .env
 if [ -z "${PLATFORMS:-}" ]; then
+    # shellcheck disable=SC1091
     source .env.platforms
 fi
 

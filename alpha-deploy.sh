@@ -1,9 +1,11 @@
 #!/bin/bash
 # Run alpha, test, build and deploy  for a local release on one arch
 set -euxo pipefail
+# shellcheck disable=SC1091
 source .env.pushover
 export PUSHOVER_API_TOKEN
 export PUSHOVER_USER_ID
+# shellcheck disable=SC1091
 source .env
 catch() {
     poetry run pushover -s1 "$PKG_VERSION failed"

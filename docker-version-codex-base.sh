@@ -1,6 +1,7 @@
 #!/bin/bash
 # Compute the version tag for ajslater/codex-base
 set -euo pipefail
+# shellcheck disable=SC1091
 source .env
 DEPS=(
     "$0"

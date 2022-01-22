@@ -2,6 +2,7 @@
 # get or build and push codex-wheels multiarch image
 set -eux
 
+# shellcheck disable=SC1091
 source .env
 CODEX_WHEELS_VERSION=$(./docker-version-codex-wheels.sh)
 REPO=docker.io/ajslater/codex-wheels
@@ -16,6 +17,7 @@ else
 fi
 
 if [[ -z ${PLATFORMS:-} ]]; then
+    # shellcheck disable=SC1091
     source .env.platforms
 fi
 

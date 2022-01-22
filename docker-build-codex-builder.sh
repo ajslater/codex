@@ -2,6 +2,7 @@
 # Build the wheels builder image
 set -xeuo pipefail
 source circleci-build-skip.sh
+# shellcheck disable=SC1091
 source .env
 REPO=docker.io/ajslater/codex-builder
 CODEX_BUILDER_VERSION=$(./docker-version-codex-builder.sh)
@@ -16,6 +17,7 @@ else
 fi
 
 if [[ -z ${PLATFORMS:-} ]]; then
+    # shellcheck disable=SC1091
     source .env.platforms
 fi
 
