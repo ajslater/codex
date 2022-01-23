@@ -26,13 +26,11 @@ jobs:
           command: ./docker-build-codex-builder.sh
           name: Build Builder
       - run:
-          command: ./docker-build-codex-wheels.sh
-          name: Build Wheels
-          no_output_timeout: 90m
-      - run:
           command: ./docker-build-codex-dist-builder.sh
           name: Build Tester & Dist Builder
-          no_output_timeout: 90m
+      - run:
+          command: ./docker-build-codex-wheels.sh
+          name: Build Wheels
       - run:
           command: ./docker/docker-compose-exit.sh codex-frontend-lint
           name: "Frontend: Lint"
