@@ -6,6 +6,7 @@
 .circleci
 .coverage*
 .env*
+.git
 .mypy_cache
 .picopt_timestamp
 .pytest_cache
