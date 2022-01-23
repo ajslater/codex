@@ -9,6 +9,8 @@ jobs:
       - checkout
       - restore_cache:
           key: v1-{{ .Revision }}
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           command: ./docker/docker-login.sh
           name: Login to Docker Hub
@@ -67,6 +69,7 @@ jobs:
             - ./.env
             - ./.env.platforms
             - ./Dockerfile
+            - ./builder-requirements.txt
             - ./dist
             - ./docker
             - ./docker-build-codex.sh
@@ -77,9 +80,10 @@ jobs:
     steps:
       - attach_workspace:
           at: .
-      - run:
-          command: ./build-install-poetry.sh
-          name: Install poetry
+      - restore_cache:
+          key: v1-{{ .Revision }}
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           command: ./docker/docker-login.sh
           name: Login to Docker Hub

@@ -23,18 +23,20 @@ else
     fi
 fi
 
-CODEX_WHEELS_VERSION=$(./docker-version-codex-wheels.sh)
 export DOCKER_CLI_EXPERIMENTAL=enabled
 export DOCKER_BUILDKIT=1
 CODEX_BASE_VERSION=$(./docker-version-codex-base.sh)
+CODEX_WHEELS_VERSION=$(./docker-version-codex-wheels.sh)
 export CODEX_BASE_VERSION
 export CODEX_WHEEL=codex-${PKG_VERSION}-py3-none-any.whl
 export CODEX_WHEELS_VERSION
+export PKG_VERSION
 if [ -n "${PLATFORMS:-}" ]; then
     PLATFORM_ARG=(--set "*.platform=$PLATFORMS")
 else
     PLATFORM_ARG=()
 fi
+REPO=docker.io/ajslater/codex-base
 if echo "$PKG_VERSION" | grep '^\d+\.\d+\.\d+$'; then
     LATEST_TAG=(--set "*.tags=$REPO:latest")
 else

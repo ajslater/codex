@@ -8,10 +8,13 @@ WORKDIR /
 COPY --from=wheels /cache/wheels/* /wheels/
 COPY ./dist/$CODEX_WHEEL $CODEX_WHEELS/
 
-RUN pip3 install --no-cache-dir --upgrade --find-links=$CODEX_WHEELS pip
-RUN pip3 install --no-cache-dir --find-links=$CODEX_WHEELS $CODEX_WHEELS/$CODEX_WHEEL
+RUN pip3 install --no-cache-dir --upgrade --find-links=$CODEX_WHEELS pip && \
+  pip3 install --no-cache-dir --find-links=$CODEX_WHEELS $CODEX_WHEELS/$CODEX_WHEEL
 
 FROM ajslater/codex-base:${CODEX_BASE_VERSION}
+ARG PKG_VERSION
+LABEL maintainer="AJ Slater <aj@slater.net>"
+LABEL version=$PKG_VERSION
 # The final image is the mininimal base with /usr/local copied.
 COPY --from=base-installer /usr/local /usr/local
 
