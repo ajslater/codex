@@ -7,7 +7,7 @@ read -ra SOURCE_DEPS <<<$(find codex frontend -type f \( ! -path "*node_modules*
 DEPS=(
     "$0"
     .dockerignore
-    dist-builder.Dockerfile
+    builder.Dockerfile
     pyproject.toml
     poetry.lock
     "${SOURCE_DEPS[@]}"

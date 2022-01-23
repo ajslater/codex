@@ -11,7 +11,7 @@ if [ "${1:-}" == "-f" ]; then
     shift
 else
     docker pull "${IMAGE}" || true
-    if docker inspect "${IMAGE}" --format="codex builder image up to date"; then
+    if docker inspect "${IMAGE}" --format="codex builder base image up to date"; then
         exit 0
     fi
 fi
@@ -44,4 +44,4 @@ docker buildx bake \
     --set "*.tags=$REPO:${CODEX_BUILDER_BASE_VERSION}" \
     ${LATEST_TAG[@]:-} \
     --push \
-    codex-builder
+    codex-builder-base

@@ -1,5 +1,5 @@
-ARG CODEX_DIST_BUILDER_VERSION
-FROM ajslater/codex-dist-builder:$CODEX_DIST_BUILDER_VERSION as wheels-builder
+ARG CODEX_BUILDER_VERSION
+FROM ajslater/codex-builder:$CODEX_BUILDER_VERSION as wheels-builder
 # build binary wheels in a dev environment for each arch
 
 WORKDIR /app

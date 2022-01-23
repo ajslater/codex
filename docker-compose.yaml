@@ -19,20 +19,20 @@ services:
         CODEX_BASE_VERSION: "$CODEX_BASE_VERSION"
         CODEX_BUILDER_BASE_VERSION: "$CODEX_BUILDER_BASE_VERSION"
     image: docker.io/ajslater/codex-builder-base
-  codex-dist-builder: &codex-dist-builder
+  codex-builder: &codex-builder
     env_file:
       - .env
     build:
       context: .
-      dockerfile: dist-builder.Dockerfile
+      dockerfile: builder.Dockerfile
       args:
         CODEX_BUILDER_BASE_VERSION: "$CODEX_BUILDER_BASE_VERSION"
-        CODEX_DIST_BUILDER_VERSION: "$CODEX_DIST_BUILDER_VERSION"
+        CODEX_BUILDER_VERSION: "$CODEX_BUILDER_VERSION"
     environment:
       - PUID=
       - PGID=
-    image: docker.io/ajslater/codex-dist-builder
-    container_name: codex-dist-builder
+    image: docker.io/ajslater/codex-builder
+    container_name: codex-builder
   codex-wheels:
     env_file:
       - .env
@@ -40,28 +40,28 @@ services:
       context: .
       dockerfile: wheels.Dockerfile
       args:
-        CODEX_DIST_BUILDER_VERSION: "$CODEX_DIST_BUILDER_VERSION"
+        CODEX_BUILDER_VERSION: "$CODEX_BUILDER_VERSION"
         CODEX_WHEELS_VERSION: "$CODEX_WHEELS_VERSION"
     image: docker.io/ajslater/codex-wheels
     container_name: codex-wheels
   codex-frontend-lint:
-    <<: *codex-dist-builder
+    <<: *codex-builder
     container_name: codex-frontent-lint
     command: ./lint-frontend.sh
   codex-frontend-test:
-    <<: *codex-dist-builder
+    <<: *codex-builder
     container_name: codex-frontend-test
     command: ./test-frontend.sh
     volumes:
       - ./test-results/:/app/test-results/
   codex-frontend-build:
-    <<: *codex-dist-builder
+    <<: *codex-builder
     container_name: codex-frontend-build
     volumes:
       - ./codex/static_build:/app/codex/static_build
     command: ./build-frontend.sh
   codex-backend-test:
-    <<: *codex-dist-builder
+    <<: *codex-builder
     container_name: codex-backend-test
     volumes:
       - ./codex/static_build:/app/codex/static_build
@@ -69,11 +69,11 @@ services:
       - ./test-results/:/app/test-results/
     command: ./test-backend.sh
   codex-backend-lint:
-    <<: *codex-dist-builder
+    <<: *codex-builder
     container_name: codex-backend-lint
     command: ./lint-backend.sh
   codex-build-dist:
-    <<: *codex-dist-builder
+    <<: *codex-builder
     container_name: codex-build-dist
     volumes:
       - ./codex/static_root:/app/codex/static_root

@@ -21,16 +21,16 @@ jobs:
           name: Create buildx builder
       - run:
           command: ./docker-build-codex-base.sh
-          name: Build Base
+          name: Build Base Image
       - run:
           command: ./docker-build-codex-builder-base.sh
-          name: Build Builder Base
+          name: Build Builder Base Image
       - run:
-          command: ./docker-build-codex-dist-builder.sh
-          name: Build Tester & Dist Builder
+          command: ./docker-build-codex-builder.sh
+          name: Build Builder Image
       - run:
           command: ./docker-build-codex-wheels.sh
-          name: Build Wheels
+          name: Build Wheels Cache Image
       - run:
           command: ./docker/docker-compose-exit.sh codex-frontend-lint
           name: "Frontend: Lint"
@@ -90,10 +90,10 @@ jobs:
           name: Create buildx builder
       - run:
           command: ./docker-build-codex.sh
-          name: Build & Push Codex runnable image
+          name: Build & Push Codex Runnable Image
       - run:
           command: ./pypi-deploy.sh
-          name: Publish Package to PyPi
+          name: Publish Codex Package to PyPi
 version: 2.1
 workflows:
   main:
