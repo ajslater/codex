@@ -1,7 +1,7 @@
 ARG PYTHON_ALPINE_VERSION
 FROM ajslater/python-alpine:${PYTHON_ALPINE_VERSION}
-LABEL maintainer="AJ Slater <aj@slater.net>"
 ARG CODEX_BASE_VERSION
+LABEL maintainer="AJ Slater <aj@slater.net>"
 LABEL version=$CODEX_BASE_VERSION
 
 # hadolint ignore=DL3018
