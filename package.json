@@ -1,5 +1,8 @@
 {
   "description": "linting for top level codex project & django.",
+  "dependencies": {
+    "@prettier/plugin-xml": "^1.2.0"
+  },
   "devDependencies": {
     "@fsouza/prettierd": "^0.18.1",
     "eslint": "^8.5.0",
