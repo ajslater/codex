@@ -2,6 +2,7 @@ executors:
   latest-image:
     machine:
       image: ubuntu-2004:202111-02
+      docker_layer_caching: true
 jobs:
   build:
     executor: latest-image
@@ -9,8 +10,6 @@ jobs:
       - checkout
       - restore_cache:
           key: v1-{{ .Revision }}
-      - setup_remote_docker:
-          docker_layer_caching: true
       - run:
           command: ./docker/docker-login.sh
           name: Login to Docker Hub
@@ -82,8 +81,6 @@ jobs:
           at: .
       - restore_cache:
           key: v1-{{ .Revision }}
-      - setup_remote_docker:
-          docker_layer_caching: true
       - run:
           command: ./docker/docker-login.sh
           name: Login to Docker Hub
