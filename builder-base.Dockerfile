@@ -1,11 +1,11 @@
 ARG CODEX_BASE_VERSION
 # hadolint ignore=DL3007
 FROM ajslater/codex-base:${CODEX_BASE_VERSION}
-ARG CODEX_BUILDER_VERSION
+ARG CODEX_BUILDER_BASE_VERSION
 ARG TARGETPLATFORM
 ENV CODEX_WHEELS /wheels
 LABEL maintainer="AJ Slater <aj@slater.net>"
-LABEL version=${CODEX_BUILDER_VERSION}
+LABEL version=${CODEX_BUILDER_BASE_VERSION}
 
 WORKDIR /
 # **** install codex system build dependency packages ****"

@@ -12,7 +12,7 @@ catch() {
 }
 trap 'catch' ERR
 ./docker-build-codex-base.sh
-./docker-build-codex-builder.sh
+./docker-build-codex-builder-base.sh
 ./alpha-test-build-dist.sh
 # XXX PLATFORMS declaration current broken for wheels because build-codex bake does not see local wheel image
 # https://github.com/docker/cli/issues/3286

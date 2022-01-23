@@ -5,8 +5,8 @@ source circleci-build-skip.sh
 # shellcheck disable=SC1091
 source .env
 REPO=docker.io/ajslater/codex-builder
-CODEX_BUILDER_VERSION=$(./docker-version-codex-builder.sh)
-IMAGE="${REPO}:${CODEX_BUILDER_VERSION}"
+CODEX_BUILDER_BASE_VERSION=$(./docker-version-codex-builder-base.sh)
+IMAGE="${REPO}:${CODEX_BUILDER_BASE_VERSION}"
 if [ "${1:-}" == "-f" ]; then
     shift
 else
@@ -26,7 +26,7 @@ export DOCKER_BUILDKIT=1
 export PLATFORMS
 CODEX_BASE_VERSION=$(./docker-version-codex-base.sh)
 export CODEX_BASE_VERSION
-export CODEX_BUILDER_VERSION
+export CODEX_BUILDER_BASE_VERSION
 if [ -n "${PLATFORMS:-}" ]; then
     PLATFORM_ARG=(--set "*.platform=$PLATFORMS")
 else
@@ -41,7 +41,7 @@ fi
 # shellcheck disable=2068
 docker buildx bake \
     ${PLATFORM_ARG[@]:-} \
-    --set "*.tags=$REPO:${CODEX_BUILDER_VERSION}" \
+    --set "*.tags=$REPO:${CODEX_BUILDER_BASE_VERSION}" \
     ${LATEST_TAG[@]:-} \
     --push \
     codex-builder

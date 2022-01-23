@@ -1,7 +1,7 @@
 #!/bin/bash
 # Compute the version tag for ajslater/codex-wheels
 set -euo pipefail
-CODEX_BUILDER_VERSION=$(./docker-version-codex-builder.sh)
+CODEX_BUILDER_BASE_VERSION=$(./docker-version-codex-builder-base.sh)
 pip3 --quiet install --requirement builder-requirements.txt >&/dev/null
 POETRY_EXPORT_MD5=$(poetry export --dev --without-hashes | md5sum)
 DEPS=(
@@ -12,7 +12,7 @@ DEPS=(
     wheels.Dockerfile
 )
 DEPS_MD5S=$(md5sum "${DEPS[@]}")
-echo -e "$CODEX_BUILDER_VERSION  codex-builder-version\n$POETRY_EXPORT_MD5  poetry-export\n$DEPS_MD5S" |
+echo -e "$CODEX_BUILDER_BASE_VERSION  codex-builder-base-version\n$POETRY_EXPORT_MD5  poetry-export\n$DEPS_MD5S" |
     LC_ALL=C sort |
     md5sum |
     awk '{print $1}'

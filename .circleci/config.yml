@@ -23,8 +23,8 @@ jobs:
           command: ./docker-build-codex-base.sh
           name: Build Base
       - run:
-          command: ./docker-build-codex-builder.sh
-          name: Build Builder
+          command: ./docker-build-codex-builder-base.sh
+          name: Build Builder Base
       - run:
           command: ./docker-build-codex-dist-builder.sh
           name: Build Tester & Dist Builder
