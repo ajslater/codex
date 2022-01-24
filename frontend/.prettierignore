@@ -1,5 +1,6 @@
 coverage
 dist
 public/index.html
+public/normalize.css
 node_modules
 webpack-stats.json
