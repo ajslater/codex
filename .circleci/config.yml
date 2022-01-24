@@ -76,8 +76,8 @@ jobs:
           command: ./docker-build-codex-builder.sh
           name: Build Builder Image
       - run:
-          command: export CODEX_BUILDER_VERSION=$(./docker-version-codex-builder.sh)
-          name: Export Builder Version
+          command: docker pull ajslater/codex-builder:$(./docker-version-codex-builder.sh)
+          name: Pull Builder image 
       - run:
           command: ./docker/docker-compose-exit.sh codex-save-cache
           name: Save python caches to host
