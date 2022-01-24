@@ -1,9 +1,8 @@
-ARG CODEX_WHEELS_VERSION
 ARG CODEX_BASE_VERSION
-FROM ajslater/codex-wheels:${CODEX_WHEELS_VERSION} as wheels
 FROM ajslater/codex-base:${CODEX_BASE_VERSION} as base-installer
-ENV WHEELS=./cache/wheels
+ARG HOST_CACHE_DIR
 ARG CODEX_WHEEL
+ENV WHEELS=./cache/wheels
 WORKDIR /
 # Copy in caches and codex wheel
 #COPY --from=wheels /cache/wheels/* /wheels/
