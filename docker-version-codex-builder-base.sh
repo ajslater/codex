@@ -10,6 +10,8 @@ DEPS=(
     builder.Dockerfile
     builder-requirements.txt
     docker-build-codex-builder.sh
+    link_wheels_from_caches.py
+    save_py_caches.py
     "${SHELLCHECK_DEPS[@]}"
 )
 DEPS_MD5S=$(md5sum "${DEPS[@]}")
