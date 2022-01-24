@@ -95,3 +95,4 @@ services:
     volumes:
       - ./config:/config
       - ./comics:/comics:ro
+version: "3.8"

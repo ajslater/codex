@@ -6,7 +6,7 @@ REPO=docker.io/ajslater/$IMAGE
 source .env
 docker manifest create \
     $REPO:$PKG_VERSION \
-    --amend $IMAGE-amd64:${PKG_VERSION} \
-    --amend $IMAGE-arm64:${PKG_VERSION}
+    --amend $IMAGE-x86_64:${PKG_VERSION} \
+    --amend $IMAGE-aarch64:${PKG_VERSION}
 
 docker manifest push $REPO:$PKG_VERSION
