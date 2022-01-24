@@ -32,6 +32,7 @@ export CODEX_WHEEL=codex-${PKG_VERSION}-py3-none-any.whl
 export CODEX_WHEELS_VERSION
 export PKG_VERSION
 HOST_CACHE_DIR="./cache/$ARCH"
+mkdir -p "$HOST_CACHE_DIR"
 export HOST_CACHE_DIR
 if [ -n "${PLATFORMS:-}" ]; then
     PLATFORM_ARG=(--set "*.platform=$PLATFORMS")
