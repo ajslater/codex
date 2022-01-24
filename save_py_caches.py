@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prune artifacts from the poetry cache that are not installed."""
+"""Copy pip & poetry user caches to a volume saved location."""
 import os
 import subprocess
 

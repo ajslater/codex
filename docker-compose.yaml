@@ -36,10 +36,10 @@ services:
     container_name: codex-builder
   codex-save-cache:
     <<: *codex-builder
-    container_name: codex-save-caches
+    container_name: codex-save-cache
     volumes:
-      - ./cache:/app/cache
-    command: ./copy_py_caches.py
+      - ./cache/packages:/app/cache/packages
+    command: ./save_py_caches.py
   codex-frontend-lint:
     <<: *codex-builder
     container_name: codex-frontent-lint

@@ -2,8 +2,13 @@
 # Run CI test & build for a local alpha release
 set -euxo pipefail
 ./docker-build-codex-builder.sh
+CODEX_BASE_VERSION=$(./docker-version-codex-base.sh)
+export CODEX_BASE_VERSION
+CODEX_BUILDER_BASE_VERSION=$(./docker-version-codex-builder.sh)
+export CODEX_BUILDER_BASE_VERSION
 CODEX_BUILDER_VERSION=$(./docker-version-codex-builder.sh)
 export CODEX_BUILDER_VERSION
+./docker/docker-compose-exit.sh codex-save-cache
 ./docker/docker-compose-exit.sh codex-frontend-lint
 ./docker/docker-compose-exit.sh codex-frontend-test
 ./docker/docker-compose-exit.sh codex-frontend-build
