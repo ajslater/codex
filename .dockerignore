@@ -22,6 +22,7 @@ TODO.md
 __pycache__
 alpha*
 cache
+!cache/packages
 comics
 config
 deploy-pypi.sh

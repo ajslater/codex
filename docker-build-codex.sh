@@ -26,12 +26,11 @@ fi
 export DOCKER_CLI_EXPERIMENTAL=enabled
 export DOCKER_BUILDKIT=1
 CODEX_BASE_VERSION=$(./docker-version-codex-base.sh)
-CODEX_WHEELS_VERSION=$(./docker-version-codex-wheels.sh)
 export CODEX_BASE_VERSION
-export CODEX_WHEEL=codex-${PKG_VERSION}-py3-none-any.whl
-export CODEX_WHEELS_VERSION
 export PKG_VERSION
-HOST_CACHE_DIR="./cache/$ARCH"
+export CODEX_WHEEL=codex-${PKG_VERSION}-py3-none-any.whl
+ARCH=$(uname -m)
+HOST_CACHE_DIR="./cache/packages/$ARCH"
 mkdir -p "$HOST_CACHE_DIR/pypoetry" "$HOST_CACHE_DIR/pip"
 export HOST_CACHE_DIR
 if [ -n "${PLATFORMS:-}" ]; then
@@ -40,7 +39,6 @@ else
     PLATFORM_ARG=()
 fi
 if [ "${CIRCLECI:-}" ]; then
-    ARCH=$(uname -m)
     REPO=codex-${ARCH}
 else
     REPO=docker.io/ajslater/codex

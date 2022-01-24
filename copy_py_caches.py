@@ -7,7 +7,7 @@ from pathlib import Path
 from shutil import copytree
 
 
-CACHE_PATH = Path("./cache")
+CACHE_PATH = Path("./cache/packages")
 KEEP_PHRASES = ("cryptography",)
 
 

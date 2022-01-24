@@ -1,35 +1,43 @@
 #!/usr/bin/env python3
 """Harvest wheels from pip & poetry caches and create a repo from them."""
 import os
-import subprocess
+import platform
 
 from pathlib import Path
 
 
-CACHE_WHEELS_PATH = Path("./cache/wheels")
+CACHE_WHEELS_PATH = Path("./cache/packages/wheels")
+LINUX_CACHE_PATH = ".cache"
+MACOS_CACHE_PATH = "Library/Caches"
 
 
-def run(args):
-    """Run process and return lines array."""
-    proc = subprocess.run(args, capture_output=True, check=True, text=True)
-    return proc.stdout.split("\n")
+def get_cache_path():
+    """Get the system cache path."""
+    path = Path.home()
+    system = platform.system()
+    if system == "Darwin":
+        path = path / MACOS_CACHE_PATH
+    else:  # system == "Linux":
+        path = path / LINUX_CACHE_PATH
+    return path
 
 
 def get_poetry_artifacts_path():
     """Get the poetry cache artifacts path."""
-    cache_dirname = run(("poetry", "config", "cache-dir"))[0]
-    return Path(cache_dirname) / "artifacts"
+    cache_path = get_cache_path()
+    return cache_path / "pypoetry/artifacts"
 
 
 def get_pip_wheels_path():
-    """Get the poetry cache artifacts path."""
-    cache_dirname = run(("pip3", "cache", "dir"))[0]
-    return Path(cache_dirname) / "wheels"
+    """Get the pip cache wheels path."""
+    cache_path = get_cache_path()
+    return cache_path / "pip/wheels"
 
 
 def link_artifact(cached_artifact_path):
     """Link an artifact in the cache tree into the wheels directory."""
     link_path = CACHE_WHEELS_PATH / cached_artifact_path.name
+    link_path.unlink(missing_ok=False)
     link_path.symlink_to(cached_artifact_path)
     print(".", end="")
 
@@ -48,7 +56,7 @@ def link_cached_dir(dir_name):
 
 def link_cached_artifacts():
     """Link all the cached poetry artifacts into the wheels dir."""
-    print("Linking cached artifacts from", end="")
+    print("Linking cached artifacts from ", end="")
     CACHE_WHEELS_PATH.mkdir(parents=True, exist_ok=True)
     print("poetry", end="")
     poetry_artifacts_path = get_poetry_artifacts_path()

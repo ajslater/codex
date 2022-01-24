@@ -32,7 +32,7 @@ services:
     environment:
       - PUID=
       - PGID=
-    image: docker.io/ajslater/codex-builder
+    image: docker.io/ajslater/codex-builder:$CODEX_BUILDER_VERSION
     container_name: codex-builder
   codex-save-cache:
     <<: *codex-builder

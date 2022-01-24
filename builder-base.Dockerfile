@@ -4,7 +4,7 @@ FROM ajslater/codex-base:${CODEX_BASE_VERSION}
 ARG CODEX_BUILDER_BASE_VERSION
 ARG TARGETPLATFORM
 ARG HOST_CACHE_DIR
-ENV WHEELS ./cache/wheels
+ENV WHEELS ./cache/packages/wheels
 LABEL maintainer="AJ Slater <aj@slater.net>"
 LABEL version=${CODEX_BUILDER_BASE_VERSION}
 
@@ -41,6 +41,7 @@ RUN vendor/shellcheck/install-shellcheck.sh
 # COPY --from=ajslater/codex-wheels:latest /cache/wheels $CODEX_WHEELS
 COPY $HOST_CACHE_DIR/pip /root/.cache/pip
 COPY $HOST_CACHE_DIR/pypoetry /root/.cache/pypoetry
+COPY ./link_wheels_from_caches.py .
 RUN ./link_wheels_from_caches.py
 # hadolint ignore=DL3042,DL3059
 RUN pip3 install --find-links=$WHEELS--upgrade pip

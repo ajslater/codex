@@ -4,7 +4,7 @@ set -xeuo pipefail
 source circleci-build-skip.sh
 # shellcheck disable=SC1091
 source .env
-REPO=docker.io/ajslater/codex-builder
+REPO=docker.io/ajslater/codex-builder-base
 CODEX_BUILDER_BASE_VERSION=$(./docker-version-codex-builder-base.sh)
 IMAGE="${REPO}:${CODEX_BUILDER_BASE_VERSION}"
 if [ "${1:-}" == "-f" ]; then
@@ -28,7 +28,7 @@ CODEX_BASE_VERSION=$(./docker-version-codex-base.sh)
 export CODEX_BASE_VERSION
 export CODEX_BUILDER_BASE_VERSION
 ARCH=$(uname -m)
-HOST_CACHE_DIR="./cache/$ARCH"
+HOST_CACHE_DIR="./cache/packages/$ARCH"
 mkdir -p "$HOST_CACHE_DIR/pypoetry" "$HOST_CACHE_DIR/pip"
 export HOST_CACHE_DIR
 if [ -n "${PLATFORMS:-}" ]; then

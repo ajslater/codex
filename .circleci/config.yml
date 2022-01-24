@@ -76,12 +76,15 @@ jobs:
           command: ./docker-build-codex-builder.sh
           name: Build Builder Image
       - run:
+          command: export CODEX_BUILDER_VERSION=$(./docker-version-codex-builder.sh)
+          name: Export Builder Version
+      - run:
           command: ./docker/docker-compose-exit.sh codex-save-cache
           name: Save python caches to host
       - save_cache:
           key: wheels-v1-{{ arch }}
           paths:
-            - ./cache
+            - ./cache/packages
       - run:
           command: ./docker/docker-compose-exit.sh codex-frontend-lint
           name: "Frontend: Lint"
@@ -185,9 +188,7 @@ workflows:
           filters:
             branches:
               only:
-                - develop
                 - release
-                - /.*-ci/
       - build-dist:
           filters:
             branches:
