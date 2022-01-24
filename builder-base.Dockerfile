@@ -40,7 +40,7 @@ RUN vendor/shellcheck/install-shellcheck.sh
 # hadolint ignore=DL3022
 # COPY --from=ajslater/codex-wheels:latest /cache/wheels $CODEX_WHEELS
 COPY $HOST_CACHE_DIR/pip /root/.cache/pip
-COPY $HOST_CACHE_DIR/poetry /root/.cache/pypoetry
+COPY $HOST_CACHE_DIR/pypoetry /root/.cache/pypoetry
 RUN ./link_wheels_from_caches.py
 # hadolint ignore=DL3042,DL3059
 RUN pip3 install --find-links=$WHEELS--upgrade pip

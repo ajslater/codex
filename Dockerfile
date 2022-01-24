@@ -7,7 +7,7 @@ WORKDIR /
 # Copy in caches and codex wheel
 #COPY --from=wheels /cache/wheels/* /wheels/
 COPY $HOST_CACHE_DIR/pip /root/.cache/pip
-COPY $HOST_CACHE_DIR/poetry /root/.cache/pypoetry
+COPY $HOST_CACHE_DIR/pypoetry /root/.cache/pypoetry
 COPY ./link_wheels_from_caches.py .
 RUN ./link_wheels_from_caches.py
 COPY ./dist/$CODEX_WHEEL ./cache/wheels
