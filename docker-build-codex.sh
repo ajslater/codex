@@ -27,6 +27,8 @@ export DOCKER_CLI_EXPERIMENTAL=enabled
 export DOCKER_BUILDKIT=1
 CODEX_BASE_VERSION=$(./docker-version-codex-base.sh)
 export CODEX_BASE_VERSION
+CODEX_BUILDER_VERSION=$(./docker-version-codex-builder.sh)
+export CODEX_BUILDER_VERSION
 export PKG_VERSION
 export CODEX_WHEEL=codex-${PKG_VERSION}-py3-none-any.whl
 ARCH=$(uname -m)

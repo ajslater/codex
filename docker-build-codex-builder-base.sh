@@ -25,6 +25,8 @@ export DOCKER_CLI_EXPERIMENTAL=enabled
 export DOCKER_BUILDKIT=1
 export PLATFORMS
 CODEX_BASE_VERSION=$(./docker-version-codex-base.sh)
+CODEX_BUILDER_VERSION=$(./docker-version-codex-builder.sh)
+export CODEX_BUILDER_VERSION
 export CODEX_BASE_VERSION
 export CODEX_BUILDER_BASE_VERSION
 ARCH=$(uname -m)
