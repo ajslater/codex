@@ -3,7 +3,7 @@ ARG CODEX_BASE_VERSION
 FROM ajslater/codex-base:${CODEX_BASE_VERSION}
 ARG CODEX_BUILDER_BASE_VERSION
 ARG TARGETPLATFORM
-ENV CODEX_WHEELS /wheels
+ENV WHEELS ./cache/wheels
 LABEL maintainer="AJ Slater <aj@slater.net>"
 LABEL version=${CODEX_BUILDER_BASE_VERSION}
 
@@ -34,18 +34,22 @@ COPY vendor/shellcheck ./vendor/shellcheck/
 RUN vendor/shellcheck/install-shellcheck.sh
 
 # *** install python build dependency packages ***
+# Restore caches from host
 # use latest before we build a possible new wheels in the following script
 # hadolint ignore=DL3022
-COPY --from=ajslater/codex-wheels:latest /cache/wheels $CODEX_WHEELS
-# hadolint ignore=DL3042,DL3013
-RUN pip3 install --find-links=$CODEX_WHEELS --upgrade pip
+# COPY --from=ajslater/codex-wheels:latest /cache/wheels $CODEX_WHEELS
+COPY $HOST_CACHE_DIR/pip /root/.cache/pip
+COPY $HOST_CACHE_DIR/poetry /root/.cache/pypoetry
+RUN ./link_wheels_from_caches.py
+# hadolint ignore=DL3042,DL3059
+RUN pip3 install --find-links=$WHEELS--upgrade pip
 # https://github.com/pyca/cryptography/issues/6673#issuecomment-985943023
 # old hash on this index was 1285ae84e5963aae
 # hadolint ignore=DL3059
 RUN git clone --bare --depth 1 https://github.com/rust-lang/crates.io-index.git /root/.cargo/registry/index/github.com-1ecc6299db9ec823
 COPY builder-requirements.txt ./
 # hadolint ignore=DL3042
-RUN pip3 install --find-links=$CODEX_WHEELS --requirement builder-requirements.txt
+RUN pip3 install --find-links=$WHEELS --requirement builder-requirements.txt
 
 # *** install node build dependency packages ***
 COPY package.json package-lock.json ./

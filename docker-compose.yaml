@@ -18,6 +18,7 @@ services:
       args:
         CODEX_BASE_VERSION: "$CODEX_BASE_VERSION"
         CODEX_BUILDER_BASE_VERSION: "$CODEX_BUILDER_BASE_VERSION"
+        HOST_CACHE_DIR: $HOST_CACHE_DIR
     image: docker.io/ajslater/codex-builder-base
   codex-builder: &codex-builder
     env_file:
@@ -33,6 +34,12 @@ services:
       - PGID=
     image: docker.io/ajslater/codex-builder
     container_name: codex-builder
+  codex-save-cache:
+    <<: *codex-builder
+    container-name: save-caches
+    volumes:
+      - ./cache:/app/cache
+    command: ./copy_py_caches.py
   codex-wheels:
     env_file:
       - .env
@@ -44,6 +51,10 @@ services:
         CODEX_WHEELS_VERSION: "$CODEX_WHEELS_VERSION"
     image: docker.io/ajslater/codex-wheels
     container_name: codex-wheels
+    volumes:
+      - $PIP_CACHE:/root/.cache/pip
+      - $POETRY_CACHE:/root/.cache/pypoetry
+      - ./wheels:/app/wheels
   codex-frontend-lint:
     <<: *codex-builder
     container_name: codex-frontent-lint
@@ -85,6 +96,7 @@ services:
     build:
       context: .
       args:
+        HOST_CACHE_DIR: $HOST_CACHE_DIR
         CODEX_BASE_VERSION: "$CODEX_BASE_VERSION"
         CODEX_WHEEL: "$CODEX_WHEEL"
         CODEX_WHEELS_VERSION: "$CODEX_WHEELS_VERSION"

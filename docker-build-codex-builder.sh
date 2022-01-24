@@ -22,7 +22,7 @@ CODEX_BUILDER_BASE_VERSION=$(./docker-version-codex-builder-base.sh)
 export CODEX_BUILDER_BASE_VERSION
 export CODEX_BUILDER_VERSION
 
-if [[ -z ${PLATFORMS:-} ]]; then
+if [[ -z ${CIRCLECI:-} && -z ${PLATFORMS:-} ]]; then
     # shellcheck disable=SC1091
     source .env.platforms
 fi
@@ -31,16 +31,10 @@ if [ -n "${PLATFORMS:-}" ]; then
 else
     PLATFORM_ARG=()
 fi
-if [[ ${PLATFORMS:-} =~ "," ]]; then
-    LATEST_TAG=(--set "*.tags=$REPO:latest")
-else
-    LATEST_TAG=()
-fi
 
 # shellcheck disable=2068
 docker buildx bake \
     ${PLATFORM_ARG[@]:-} \
     --set "*.tags=$REPO:${CODEX_BUILDER_VERSION}" \
-    ${LATEST_TAG[@]:-} \
     --push \
     codex-builder

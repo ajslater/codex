@@ -13,7 +13,11 @@ DEPS=(
     "${SHELLCHECK_DEPS[@]}"
 )
 DEPS_MD5S=$(md5sum "${DEPS[@]}")
-echo -e "$CODEX_BASE_VERSION  codex-base-version\n$DEPS_MD5S" |
+VERSION=$(echo -e "$CODEX_BASE_VERSION  codex-base-version\n$DEPS_MD5S" |
     LC_ALL=C sort |
     md5sum |
-    awk '{print $1}'
+    awk '{print $1}')
+if [[ ${CIRCLECI:-} ]]; then
+    VERSION="${VERSION}-$(uname -m)"
+fi
+echo "$VERSION"

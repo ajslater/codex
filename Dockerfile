@@ -2,14 +2,20 @@ ARG CODEX_WHEELS_VERSION
 ARG CODEX_BASE_VERSION
 FROM ajslater/codex-wheels:${CODEX_WHEELS_VERSION} as wheels
 FROM ajslater/codex-base:${CODEX_BASE_VERSION} as base-installer
+ENV WHEELS=./cache/wheels
 ARG CODEX_WHEEL
-ENV CODEX_WHEELS=/wheels
 WORKDIR /
-COPY --from=wheels /cache/wheels/* /wheels/
-COPY ./dist/$CODEX_WHEEL $CODEX_WHEELS/
+# Copy in caches and codex wheel
+#COPY --from=wheels /cache/wheels/* /wheels/
+COPY $HOST_CACHE_DIR/pip /root/.cache/pip
+COPY $HOST_CACHE_DIR/poetry /root/.cache/pypoetry
+COPY ./link_wheels_from_caches.py .
+RUN ./link_wheels_from_caches.py
+COPY ./dist/$CODEX_WHEEL ./cache/wheels
 
-RUN pip3 install --no-cache-dir --upgrade --find-links=$CODEX_WHEELS pip && \
-  pip3 install --no-cache-dir --find-links=$CODEX_WHEELS $CODEX_WHEELS/$CODEX_WHEEL
+# Install codex
+RUN pip3 install --no-cache-dir --upgrade --find-links=$WHEELS pip && \
+  pip3 install --no-cache-dir --find-links=$WHEELS $WHEELS/$CODEX_WHEEL
 
 FROM ajslater/codex-base:${CODEX_BASE_VERSION}
 ARG PKG_VERSION

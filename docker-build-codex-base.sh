@@ -15,7 +15,7 @@ else
     fi
 fi
 
-if [[ -z ${PLATFORMS:-} ]]; then
+if [[ -z ${CIRCLECI:-} && -z ${PLATFORMS:-} ]]; then
     # shellcheck disable=SC1091
     source .env.platforms
 fi
@@ -30,16 +30,10 @@ if [ -n "${PLATFORMS:-}" ]; then
 else
     PLATFORM_ARG=()
 fi
-if [[ ${PLATFORMS:-} =~ "," ]]; then
-    LATEST_TAG=(--set "*.tags=$REPO:latest")
-else
-    LATEST_TAG=()
-fi
 
 # shellcheck disable=2068
 docker buildx bake \
     ${PLATFORM_ARG[@]:-} \
     --set "*.tags=$REPO:${CODEX_BASE_VERSION}" \
-    ${LATEST_TAG[@]:-} \
     --push \
     codex-base

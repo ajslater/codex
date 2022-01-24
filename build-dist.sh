@@ -7,4 +7,6 @@ source circleci-build-skip.sh
 export LOGLEVEL=VERBOSE
 ./pm check
 echo "*** build and package application ***"
+PIP_CACHE_DIR=$(pip3 cache dir)
+export PIP_CACHE_DIR
 poetry build

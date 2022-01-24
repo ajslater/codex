@@ -16,25 +16,9 @@ else
     fi
 fi
 
-if [[ -z ${PLATFORMS:-} ]]; then
+if [[ -z ${CIRCLECI:-} && -z ${PLATFORMS:-} ]]; then
     # shellcheck disable=SC1091
     source .env.platforms
-fi
-
-if [ -n "${1:-}" ]; then
-    CMD=$1
-else
-    # Different behavior for multiple vs single PLATFORMS
-    # XXX --load behavior breaks build-codex.sh because it always
-    #     tries to resolve wheels from docker.io
-    # https://github.com/docker/cli/issues/3286
-    # if [[ ${PLATFORMS:-} =~ "," ]]; then
-    # more than one platform
-    CMD="--push"
-    #else
-    #    # only one platform loading into docker works
-    #    CMD="--load"
-    #fi
 fi
 
 export DOCKER_CLI_EXPERIMENTAL=enabled
@@ -48,15 +32,10 @@ if [ -n "${PLATFORMS:-}" ]; then
 else
     PLATFORM_ARG=()
 fi
-if [[ ${PLATFORMS:-} =~ "," ]]; then
-    LATEST_TAG=(--set "*.tags=$REPO:latest")
-else
-    LATEST_TAG=()
-fi
+
 # shellcheck disable=2068
 docker buildx bake \
     ${PLATFORM_ARG[@]:-} \
     --set "*.tags=${IMAGE}" \
-    ${LATEST_TAG[@]:-} \
-    ${CMD:-} \
+    --push \
     codex-wheels

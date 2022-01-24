@@ -10,10 +10,9 @@ LABEL version $CODEX_BUILDER_VERSION
 
 # **** install python app dependencies ****
 # hadolint ignore=DL3022
-COPY --from=ajslater/codex-wheels:latest /cache/artifacts /root/.cache/pypoetry/artifacts
 WORKDIR /app
 COPY pyproject.toml poetry.lock ./
-RUN poetry install --no-root --remove-untracked 
+RUN PIP_CACHE_DIR=$(pip3 cache dir) poetry install --no-root --remove-untracked 
 
 # **** install npm app dependencies ****
 COPY frontend/package.json frontend/package-lock.json /app/frontend/

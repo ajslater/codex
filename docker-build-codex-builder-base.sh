@@ -16,7 +16,7 @@ else
     fi
 fi
 
-if [[ -z ${PLATFORMS:-} ]]; then
+if [[ -z ${CIRCLECI:-} && -z ${PLATFORMS:-} ]]; then
     # shellcheck disable=SC1091
     source .env.platforms
 fi
@@ -27,21 +27,18 @@ export PLATFORMS
 CODEX_BASE_VERSION=$(./docker-version-codex-base.sh)
 export CODEX_BASE_VERSION
 export CODEX_BUILDER_BASE_VERSION
+ARCH=$(uname -m)
+HOST_CACHE_DIR="./cache/$ARCH"
+export HOST_CACHE_DIR
 if [ -n "${PLATFORMS:-}" ]; then
     PLATFORM_ARG=(--set "*.platform=$PLATFORMS")
 else
     PLATFORM_ARG=()
-fi
-if [[ ${PLATFORMS:-} =~ "," ]]; then
-    LATEST_TAG=(--set "*.tags=$REPO:latest")
-else
-    LATEST_TAG=()
 fi
 
 # shellcheck disable=2068
 docker buildx bake \
     ${PLATFORM_ARG[@]:-} \
     --set "*.tags=$REPO:${CODEX_BUILDER_BASE_VERSION}" \
-    ${LATEST_TAG[@]:-} \
     --push \
     codex-builder-base
