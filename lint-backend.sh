@@ -18,8 +18,8 @@ fi
 ############################################
 ##### Javascript, JSON, Markdown, YAML #####
 ############################################
-npx eslint . --ext .cjs,.mjs,.js,.json,.md,.yaml
-npx prettier --check .
+npm run lint
+npm run check
 
 ################################
 ###### Docker, Shell, Etc ######

@@ -6,8 +6,8 @@
   "scripts": {
     "build": "vue-cli-service build --modern",
     "dev": "vue-cli-service build --watch",
-    "fix": "vue-cli-service lint --fix --ext .cjs,.mjs,.js,.json,.md,.vue,.yaml",
-    "lint": "vue-cli-service lint --ext .cjs,.mjs,.js,.json,.md,.vue,.yaml",
+    "fix": "vue-cli-service lint --cache --fix --ext .cjs,.mjs,.js,.json,.md,.vue,.yaml",
+    "lint": "vue-cli-service lint --cache --ext .cjs,.mjs,.js,.json,.md,.vue,.yaml",
     "serve": "vue-cli-service serve",
     "test:unit": "vue-cli-service test:unit"
   },
