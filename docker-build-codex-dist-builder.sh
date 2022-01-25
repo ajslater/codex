@@ -19,7 +19,6 @@ fi
 export DOCKER_CLI_EXPERIMENTAL=enabled
 export DOCKER_BUILDKIT=1
 CODEX_BUILDER_BASE_VERSION=$(./docker-version-codex-builder-base.sh)
-export PKG_VERSION
 CODEX_BUILDER_FINAL_VERSION=$(./docker-version-codex-builder-final.sh)
 export CODEX_BUILDER_BASE_VERSION
 export CODEX_DIST_BUILDER_VERSION
