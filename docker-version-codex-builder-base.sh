@@ -20,10 +20,10 @@ DEPS=(
 )
 DEPS_MD5S=$(md5sum "${DEPS[@]}")
 md5sum "${DEPS[@]}"
-VERSION=$(echo -e "$CODEX_BASE_VERSION  codex-base-version\n$DEPS_MD5S" \
-    | LC_ALL=C sort \
-    | md5sum \
-    | awk '{print $1}')
+VERSION=$(echo -e "$CODEX_BASE_VERSION  codex-base-version\n$DEPS_MD5S" |
+    LC_ALL=C sort |
+    md5sum |
+    awk '{print $1}')
 if [[ ${CIRCLECI:-} ]]; then
     ARCH=$(uname -m)
     VERSION="${VERSION}-$ARCH"
