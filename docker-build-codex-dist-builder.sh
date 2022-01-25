@@ -39,4 +39,4 @@ docker buildx bake \
     ${PLATFORM_ARG[@]:-} \
     --set "*.tags=$REPO:${CODEX_DIST_BUILDER_VERSION}" \
     --push \
-    codex-builder
+    codex-dist-builder

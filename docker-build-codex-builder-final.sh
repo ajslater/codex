@@ -56,4 +56,4 @@ docker buildx bake \
     ${PLATFORM_ARG[@]:-} \
     --set "*.tags=$REPO:${PKG_VERSION}" \
     ${CMD:-} \
-    codex
+    codex-builder-final
