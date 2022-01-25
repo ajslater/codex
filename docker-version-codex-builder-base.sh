@@ -1,5 +1,5 @@
 #!/bin/bash
-# Compute the version tag for ajslater/codex-builder
+# Compute the version tag for ajslater/codex-builder-base
 set -euo pipefail
 CODEX_BASE_VERSION=$(./docker-version-codex-base.sh)
 # shellcheck disable=SC2046

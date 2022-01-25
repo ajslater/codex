@@ -4,7 +4,7 @@ set -xeuo pipefail
 source circleci-build-skip.sh
 # shellcheck disable=SC1091
 source .env
-REPO=docker.io/ajslater/codex-builder
+REPO=docker.io/ajslater/codex-dist-builder
 CODEX_DIST_BUILDER_VERSION=$(./docker-version-codex-dist-builder.sh)
 IMAGE="${REPO}:${CODEX_DIST_BUILDER_VERSION}"
 if [ "${1:-}" == "-f" ]; then
