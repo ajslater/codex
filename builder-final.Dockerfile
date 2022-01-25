@@ -1,5 +1,5 @@
-ARG CODEX_BASE_VERSION
-FROM ajslater/codex-base:${CODEX_BUILDER_BASE_VERSION} as codex-base-installer
+ARG CODEX_BUILDER_BASE_VERSION
+FROM ajslater/codex-builder-base:${CODEX_BUILDER_BASE_VERSION}
 ARG HOST_CACHE_DIR
 ARG CODEX_WHEEL
 ARG WHEELS ./cache/packages/wheels
@@ -9,8 +9,6 @@ WORKDIR /
 # Copy in caches and codex wheel
 COPY $HOST_CACHE_DIR/pip /root/.cache/pip
 COPY $HOST_CACHE_DIR/pypoetry /root/.cache/pypoetry
-COPY ./link_wheels_from_caches.py save_py_caches.py ./
-RUN ./link_wheels_from_caches.py
 COPY ./dist/$CODEX_WHEEL $WHEELS/$CODEX_WHEEL
 
 # Install codex
