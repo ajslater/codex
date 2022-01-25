@@ -52,7 +52,7 @@
     "eslint-plugin-array-func": "^3.1.7",
     "eslint-plugin-eslint-comments": "^3.2.0",
     "eslint-plugin-import": "^2.25.4",
-    "eslint-plugin-jest": "^25.2.2",
+    "eslint-plugin-jest": "^26.0.0",
     "eslint-plugin-jest-async": "^1.0.3",
     "eslint-plugin-json": "^3.1.0",
     "eslint-plugin-markdown": "^2.0.0",
