@@ -4,7 +4,7 @@ FROM ajslater/codex-base:${CODEX_BASE_VERSION}
 ARG CODEX_BUILDER_BASE_VERSION
 ARG TARGETPLATFORM
 ARG HOST_CACHE_DIR
-ENV WHEELS ./cache/packages/wheels
+ARG WHEELS ./cache/packages/wheels
 LABEL maintainer="AJ Slater <aj@slater.net>"
 LABEL version=${CODEX_BUILDER_BASE_VERSION}
 

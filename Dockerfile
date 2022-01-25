@@ -2,7 +2,7 @@ ARG CODEX_BASE_VERSION
 FROM ajslater/codex-base:${CODEX_BASE_VERSION} as base-installer
 ARG HOST_CACHE_DIR
 ARG CODEX_WHEEL
-ENV WHEELS=./cache/packages/wheels
+ARG WHEELS ./cache/packages/wheels
 WORKDIR /
 # Copy in caches and codex wheel
 COPY $HOST_CACHE_DIR/pip /root/.cache/pip
