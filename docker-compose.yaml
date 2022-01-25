@@ -25,7 +25,7 @@ services:
       - .env
     build:
       context: .
-      dockerfile: builder.Dockerfile
+      dockerfile: dist-builder.Dockerfile
       args:
         CODEX_BUILDER_BASE_VERSION: "$CODEX_BUILDER_BASE_VERSION"
         CODEX_DIST_BUILDER_VERSION: "$CODEX_DIST_BUILDER_VERSION"
