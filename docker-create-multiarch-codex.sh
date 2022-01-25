@@ -3,11 +3,11 @@
 set -euo pipefail
 IMAGE=codex
 REPO=docker.io/ajslater/$IMAGE
-if [[ "$PKG_VERSION" =~ [a-z] ]]; then
-  echo "Not a public release"
-  LATEST_TAG=()
+if [[ $PKG_VERSION =~ [a-z] ]]; then
+    echo "Not a public release"
+    LATEST_TAG=()
 else
-  LATEST_TAG=("$REPO:latest")
+    LATEST_TAG=("$REPO:latest")
 fi
 source .env
 # shellcheck disable=2068
