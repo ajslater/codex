@@ -3,9 +3,17 @@
 set -euo pipefail
 IMAGE=codex
 REPO=docker.io/ajslater/$IMAGE
+if [[ "$PKG_VERSION" =~ [a-z] ]]; then
+  echo "Not a public release"
+  LATEST_TAG=()
+else
+  LATEST_TAG=("$REPO:latest")
+fi
 source .env
+# shellcheck disable=2068
 docker manifest create \
-    $REPO:$PKG_VERSION \
+    "$REPO:$PKG_VERSION" \
+    ${LATEST_TAG[@]:-} \
     --amend $IMAGE-x86_64:${PKG_VERSION} \
     --amend $IMAGE-aarch64:${PKG_VERSION}
 
