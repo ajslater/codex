@@ -190,6 +190,7 @@ workflows:
           filters:
             branches:
               only:
+                - release-candidate
                 - release
           requires:
             - build-dist
@@ -198,6 +199,7 @@ workflows:
           filters:
             branches:
               only:
+                - release-candidate
                 - release
           requires:
             - build-dist
@@ -206,6 +208,7 @@ workflows:
           filters:
             branches:
               only:
+                - release-candidate
                 - release
           requires:
             - build-amd64
