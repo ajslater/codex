@@ -41,6 +41,9 @@ jobs:
           command: ./docker/docker-login.sh
           name: Login to Docker Hub
       - run:
+          command: ./docker/docker-install-binfmt-platforms.sh
+          name: Install binfmt platforms
+      - run:
           command: ./docker/docker-buildx-create.sh
           name: Create buildx builder
       - run:
@@ -141,6 +144,9 @@ jobs:
       - run:
           command: ./docker/docker-login.sh
           name: Login to Docker Hub
+      - run:
+          command: ./docker/docker-install-binfmt-platforms.sh
+          name: Install binfmt platforms
       - run:
           command: ./docker/docker-buildx-create.sh
           name: Create buildx builder
