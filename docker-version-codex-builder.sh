@@ -7,7 +7,7 @@ read -ra SOURCE_DEPS <<<$(find codex frontend -type f \( -name ".*" ! -path "*no
 DEPS=(
     "$0"
     .dockerignore
-    .eslintcache
+    .eslintrc.cjs
     .prettierignore
     .remarkignore
     .shellcheckrc
