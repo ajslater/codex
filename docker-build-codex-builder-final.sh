@@ -54,3 +54,5 @@ docker buildx bake \
     --set "*.tags=$REPO:$VERSION" \
     ${CMD:-} \
     codex-builder-final
+
+docker-compose pull codex-builder-final
