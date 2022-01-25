@@ -102,7 +102,6 @@ services:
         HOST_CACHE_DIR: $HOST_CACHE_DIR
         CODEX_BASE_VERSION: "$CODEX_BASE_VERSION"
         CODEX_WHEEL: "$CODEX_WHEEL"
-        CODEX_WHEELS_VERSION: "$CODEX_WHEELS_VERSION"
         PKG_VERSION: "$PKG_VERSION"
     image: docker.io/ajslater/codex
     container_name: codex
