@@ -33,9 +33,8 @@ export CODEX_BUILDER_BASE_VERSION
 export CODEX_DIST_BUILDER_VERSION
 export CODEX_BUILDER_FINAL_VERSION
 ARCH=$(uname -m)
-HOST_CACHE_DIR="./cache/packages/$ARCH"
+export HOST_CACHE_DIR="./cache/packages/$ARCH"
 mkdir -p "$HOST_CACHE_DIR/pypoetry" "$HOST_CACHE_DIR/pip"
-export HOST_CACHE_DIR
 if [ -n "${PLATFORMS:-}" ]; then
     PLATFORM_ARG=(--set "*.platform=$PLATFORMS")
 else

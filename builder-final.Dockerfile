@@ -4,7 +4,7 @@ ARG HOST_CACHE_DIR
 ARG CODEX_WHEEL
 ARG WHEELS ./cache/packages/wheels
 LABEL maintainer="AJ Slater <aj@slater.net>"
-LABEL version=$CODEX_BUILDER_FINAL
+LABEL version=$CODEX_BUILDER_FINAL_VERSION
 WORKDIR /
 # Copy in caches and codex wheel
 COPY $HOST_CACHE_DIR/pip /root/.cache/pip

@@ -36,9 +36,8 @@ CODEX_BUILDER_FINAL_VERSION=$(./docker-version-codex-builder-final.sh)
 export CODEX_BUILDER_FINAL_VERSION
 export CODEX_WHEEL=codex-${PKG_VERSION}-py3-none-any.whl
 ARCH=$(uname -m)
-HOST_CACHE_DIR="./cache/packages/$ARCH"
+export HOST_CACHE_DIR="./cache/packages/$ARCH"
 mkdir -p "$HOST_CACHE_DIR/pypoetry" "$HOST_CACHE_DIR/pip"
-export HOST_CACHE_DIR
 if [ -n "${PLATFORMS:-}" ]; then
     PLATFORM_ARG=(--set "*.platform=$PLATFORMS")
 else
