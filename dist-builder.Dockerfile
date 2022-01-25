@@ -14,6 +14,10 @@ WORKDIR /app
 COPY pyproject.toml poetry.lock ./
 RUN PIP_CACHE_DIR=$(pip3 cache dir) poetry install --no-root --remove-untracked 
 
+# *** install node lint & test dependency packages ***
+COPY package.json package-lock.json ./
+RUN npm install
+
 # **** install npm app dependencies ****
 COPY frontend/package.json frontend/package-lock.json /app/frontend/
 WORKDIR /app/frontend

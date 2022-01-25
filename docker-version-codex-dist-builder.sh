@@ -29,6 +29,8 @@ DEPS=(
     lint-frontend.sh
     manage.py
     pm
+    package.json
+    package-lock.json
     pyproject.toml
     poetry.lock
     setup.cfg

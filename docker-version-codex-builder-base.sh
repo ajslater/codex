@@ -12,8 +12,6 @@ DEPS=(
     docker-build-codex-builder-base.sh
     link_wheels_from_caches.py
     save_py_caches.py
-    package.json
-    package-lock.json
     "${SHELLCHECK_DEPS[@]}"
 )
 DEPS_MD5S=$(md5sum "${DEPS[@]}")

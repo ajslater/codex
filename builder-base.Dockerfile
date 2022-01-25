@@ -52,6 +52,3 @@ COPY builder-requirements.txt ./
 # hadolint ignore=DL3042
 RUN pip3 install --find-links=$WHEELS --requirement builder-requirements.txt
 
-# *** install node build dependency packages ***
-COPY package.json package-lock.json ./
-RUN npm install
