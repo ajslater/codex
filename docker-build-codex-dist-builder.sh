@@ -23,6 +23,7 @@ CODEX_BUILDER_FINAL_VERSION=$(./docker-version-codex-builder-final.sh)
 export CODEX_BUILDER_BASE_VERSION
 export CODEX_DIST_BUILDER_VERSION
 export CODEX_BUILDER_FINAL_VERSION
+export PKG_VERSION
 if [[ -z ${CIRCLECI:-} && -z ${PLATFORMS:-} ]]; then
     # shellcheck disable=SC1091
     source .env.platforms
