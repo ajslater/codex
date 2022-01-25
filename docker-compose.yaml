@@ -86,7 +86,7 @@ services:
         CODEX_BUILDER_FINAL_VERSION: $CODEX_BUILDER_FINAL_VERSION
         HOST_CACHE_DIR: $HOST_CACHE_DIR
         CODEX_WHEEL: $CODEX_WHEEL
-    image: codex-builder-final:$CODEX_BUILDER_FINAL_VERSION
+    image: docker.io/ajslater/codex-builder-final:$CODEX_BUILDER_FINAL_VERSION
   codex-save-final-cache:
     <<: *codex-builder-final
     container_name: codex-save-final-cache
