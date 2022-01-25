@@ -1,5 +1,7 @@
 #!/bin/bash
 set -euo pipefail
-cd "$(dirname "$(readlink "$0")")"/frontend
+source circleci-build-skip.sh
+
+cd "$(dirname "$0")"/frontend
 npm run lint
-prettier --check .
+npx prettier --check .

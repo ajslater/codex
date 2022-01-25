@@ -1,7 +1,8 @@
 #!/bin/bash
 # Lint checks
 set -euxo pipefail
-cd "$(dirname "$(readlink "$0")")"
+cd "$(dirname "$0")"
+source circleci-build-skip.sh
 
 ####################
 ###### Python ######
@@ -17,8 +18,8 @@ fi
 ############################################
 ##### Javascript, JSON, Markdown, YAML #####
 ############################################
-npx eslint . --ext .cjs,.mjs,.js,.json,.md,.yaml
-prettier --check .
+npm run lint
+npm run check
 
 ################################
 ###### Docker, Shell, Etc ######
@@ -29,7 +30,8 @@ if [ "$(uname)" = "Darwin" ]; then
     hadolint *.Dockerfile
     shfmt -d -i 4 ./*.sh ./**/*.sh
     # subdirs aren't copied into docker builder
-    shellcheck --external-sources ./**/*.sh
+    # .env files aren't copied into docker
+    shellcheck --external-sources ./**/*.sh .env .env.platforms .env.pushover
     circleci config check .circleci/config.yml
 fi
 shellcheck --external-sources ./*.sh

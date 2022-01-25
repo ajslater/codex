@@ -4,13 +4,11 @@
 .pytest_cache
 .venv
 /config
+/node_modules
 /test-results
 __pycache__
 cache
 codex/static_build
 codex/static_root
 comics
-frontend
-/node_modules
 templates
-webpack-stats.json

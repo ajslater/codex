@@ -3,8 +3,8 @@
 ## Xapian QueryParser
 
 Codex uses the Xapian search backend to execute your text search queries.
-Xapian operates much like other familiar search engines. As such, only
-some special features are documented on this page. I encourage users looking to
+Xapian operates much like other familiar search engines. As such, I document only
+some special features on this page. I encourage users looking to
 understand its full power to read the
 **[Xapian Query Parser Syntax documentation](https://xapian.org/docs/queryparser.html)**.
 
@@ -104,4 +104,4 @@ selections after your you make your first search.
 
 Codex applies _both_ the Filter selection menu filters _and_ the
 search query field filters to the search. Be sure to clear the filter
-selector or the searcher field if you prefer to apply only one of them.
+selector or the search field if you prefer to apply only one of them.

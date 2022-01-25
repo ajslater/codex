@@ -7,7 +7,8 @@ Codex is a comic archive browser and reader.
 - Codex is a web server, not a desktop or mobile app.
 - Full text search of metadata and bookmarks.
 - Filter and sort on all comic metadata and unread status per user.
-- Browse a tree of publishers, imprints, series, volumes, or your own folder hierarchy.
+- Browse a tree of publishers, imprints, series, volumes, or your
+  own folder hierarchy.
 - Read comics in a variety of aspect ratios that fit your screen.
 - Per user bookmarking. You get per browser bookmarks even before you make an account.
 - Watches the filesystem and automatically imports new or changed comics.
@@ -62,7 +63,7 @@ Codex requires unrar to read cbr formatted comic archives. Unrar is rarely packa
 
 #### Install Codex with pip
 
-Finally, you may install Codex with pip
+You may now install Codex with pip
 
 ```sh
 pip3 install codex
@@ -76,7 +77,7 @@ pip should install the codex binary on your path. Run
 codex
 ```
 
-and then navigate to [http://localhost:9810/](http://localhost:9810/)
+and then navigate to <http://localhost:9810/>
 
 ## <a name="administration">👑 Administration</a>
 
@@ -94,7 +95,7 @@ The first thing you should do is log in as the admin user and change the admin p
 
 - Navigate to the AUTHENTICATION AND AUTHORIZATION Users panel.
 - Select the `admin` user.
-- Change the admin password using the tiny "this form" link in the password section.
+- Change the admin password using the small "this form" link in the password section.
 - You may also change the admin user's name or anything else.
 - You may grant other users admin privileges by making them staff.
 
@@ -107,7 +108,7 @@ The second thing you will want to do is log in as an Administrator and add one o
 - Navigate to the CODEX Libraries Panel in the Admin Panel
 - Add a Library with the "ADD LIBRARY +" button in the upper right.
 
-### Reset the admin password.
+### Reset the admin password
 
 If you forget all your superuser passwords, you may restore the original default admin account by running codex with the `CODEX_RESET_ADMIN` environment variable set.
 
@@ -184,10 +185,10 @@ root_path = "/codex"
 
 ```
 
-#### Nginx Reverse Proxy 502 when container is refreshed.
+#### Nginx Reverse Proxy 502 when container refreshes
 
 Nginx requires a special trick to refresh dns when linked Docker containers
-are recreated. See this [nginx with dynamix upstreams](https://tenzer.dk/nginx-with-dynamic-upstreams/) article.
+recreate. See this [nginx with dynamix upstreams](https://tenzer.dk/nginx-with-dynamic-upstreams/) article.
 
 ## <a name="usage">📖 Usage</a>
 
@@ -214,7 +215,7 @@ You can change how much codex logs by setting the `LOGLEVEL` environment variabl
 LOGLEVEL=VERBOSE codex
 ```
 
-To see (probably too many) noisy messages try:
+To see a great deal of noisy messages from dependencies try:
 
 ```bash
 LOGLEVEL=DEBUG codex
@@ -230,7 +231,7 @@ If the database becomes corrupt, Codex includes a facitlity to rebuild the datab
 Place a file named `rebuild_db` in your Codex config directory like so:
 
 ```sh
-  $ touch config/rebuild_db
+  touch config/rebuild_db
 ```
 
 Shut down and restart Codex.

@@ -1,7 +1,9 @@
 #!/bin/bash
 # Run all codex tests
 set -euxo pipefail
-cd "$(dirname "$(readlink "$0")")"
+source circleci-build-skip.sh
+
+cd "$(dirname "$0")"
 
 ./collectstatic.sh
 poetry run pytest

@@ -3,8 +3,10 @@
 set -euxo pipefail
 
 # Load .env variables but with a mechanism to override PLATFORMS
+# shellcheck disable=SC1091
 source .env
-if [ -z "${PLATFORMS:-}" ]; then
+if [[ -z ${CIRCLECI:-} && -z ${PLATFORMS:-} ]]; then
+    # shellcheck disable=SC1091
     source .env.platforms
 fi
 
@@ -21,28 +23,37 @@ else
     fi
 fi
 
-CODEX_WHEELS_VERSION=$(./docker-version-codex-wheels.sh)
 export DOCKER_CLI_EXPERIMENTAL=enabled
 export DOCKER_BUILDKIT=1
 CODEX_BASE_VERSION=$(./docker-version-codex-base.sh)
 export CODEX_BASE_VERSION
+CODEX_BUILDER_VERSION=$(./docker-version-codex-builder.sh)
+export CODEX_BUILDER_VERSION
+export PKG_VERSION
 export CODEX_WHEEL=codex-${PKG_VERSION}-py3-none-any.whl
-export CODEX_WHEELS_VERSION
+ARCH=$(uname -m)
+HOST_CACHE_DIR="./cache/packages/$ARCH"
+mkdir -p "$HOST_CACHE_DIR/pypoetry" "$HOST_CACHE_DIR/pip"
+export HOST_CACHE_DIR
 if [ -n "${PLATFORMS:-}" ]; then
     PLATFORM_ARG=(--set "*.platform=$PLATFORMS")
 else
     PLATFORM_ARG=()
 fi
-if echo "$PKG_VERSION" | grep '^\d+\.\d+\.\d+$'; then
-    LATEST_TAG=(--set "*.tags=$REPO:latest")
+if [ "${CIRCLECI:-}" ]; then
+    REPO=codex-${ARCH}
 else
-    LATEST_TAG=()
+    REPO=docker.io/ajslater/codex
 fi
+# if echo "$PKG_VERSION" | grep '^\d+\.\d+\.\d+$'; then
+#    LATEST_TAG=(--set "*.tags=$REPO:latest")
+# else
+#    LATEST_TAG=()
+# fi
 # Build and cache
 # shellcheck disable=2068
 docker buildx bake \
     ${PLATFORM_ARG[@]:-} \
     --set "*.tags=$REPO:${PKG_VERSION}" \
-    ${LATEST_TAG[@]:-} \
     ${CMD:-} \
     codex

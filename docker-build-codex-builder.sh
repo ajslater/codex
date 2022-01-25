@@ -1,6 +1,8 @@
 #!/bin/bash
 # Build the wheels builder image
 set -xeuo pipefail
+source circleci-build-skip.sh
+# shellcheck disable=SC1091
 source .env
 REPO=docker.io/ajslater/codex-builder
 CODEX_BUILDER_VERSION=$(./docker-version-codex-builder.sh)
@@ -14,31 +16,25 @@ else
     fi
 fi
 
-if [[ -z ${PLATFORMS:-} ]]; then
-    source .env.platforms
-fi
-
 export DOCKER_CLI_EXPERIMENTAL=enabled
 export DOCKER_BUILDKIT=1
-export PLATFORMS
-CODEX_BASE_VERSION=$(./docker-version-codex-base.sh)
-export CODEX_BASE_VERSION
+CODEX_BUILDER_BASE_VERSION=$(./docker-version-codex-builder-base.sh)
+export CODEX_BUILDER_BASE_VERSION
 export CODEX_BUILDER_VERSION
+
+if [[ -z ${CIRCLECI:-} && -z ${PLATFORMS:-} ]]; then
+    # shellcheck disable=SC1091
+    source .env.platforms
+fi
 if [ -n "${PLATFORMS:-}" ]; then
     PLATFORM_ARG=(--set "*.platform=$PLATFORMS")
 else
     PLATFORM_ARG=()
-fi
-if [[ ${PLATFORMS:-} =~ "," ]]; then
-    LATEST_TAG=(--set "*.tags=$REPO:latest")
-else
-    LATEST_TAG=()
 fi
 
 # shellcheck disable=2068
 docker buildx bake \
     ${PLATFORM_ARG[@]:-} \
     --set "*.tags=$REPO:${CODEX_BUILDER_VERSION}" \
-    ${LATEST_TAG[@]:-} \
     --push \
     codex-builder

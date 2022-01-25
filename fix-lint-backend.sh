@@ -10,8 +10,7 @@ poetry run black .
 ############################################
 ##### Javascript, JSON, Markdown, YAML #####
 ############################################
-npx eslint . --ext .cjs,.mjs,.js,.json,.md,.yaml --fix
-prettier --write .
+npm run fix
 
 ###################
 ###### Shell ######
