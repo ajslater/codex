@@ -41,20 +41,14 @@ if [ -n "${PLATFORMS:-}" ]; then
 else
     PLATFORM_ARG=()
 fi
+REPO=docker.io/ajslater/codex
 if [ "${CIRCLECI:-}" ]; then
-    REPO=codex-${ARCH}
-else
-    REPO=docker.io/ajslater/codex
+    VERSION=${PKG_VERSION}-${ARCH}
 fi
-# if echo "$PKG_VERSION" | grep '^\d+\.\d+\.\d+$'; then
-#    LATEST_TAG=(--set "*.tags=$REPO:latest")
-# else
-#    LATEST_TAG=()
-# fi
 # Build and cache
 # shellcheck disable=2068
 docker buildx bake \
     ${PLATFORM_ARG[@]:-} \
-    --set "*.tags=$REPO:${PKG_VERSION}" \
+    --set "*.tags=$REPO:${VERSION}" \
     ${CMD:-} \
     codex

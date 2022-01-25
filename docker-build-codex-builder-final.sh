@@ -14,11 +14,11 @@ fi
 if [ -n "${1:-}" ]; then
     CMD=$1
 else
-#    if [[ -z ${CIRCLECI:-} && ${PLATFORMS:-} =~ "," ]]; then
-        # more than one platform
-        CMD="--push"
-#    else
-        # only one platform loading into docker works
+    #    if [[ -z ${CIRCLECI:-} && ${PLATFORMS:-} =~ "," ]]; then
+    # more than one platform
+    CMD="--push"
+    #    else
+    # only one platform loading into docker works
 #        CMD="--load"
 #    fi
 fi
@@ -42,16 +42,15 @@ if [ -n "${PLATFORMS:-}" ]; then
 else
     PLATFORM_ARG=()
 fi
+REPO=docker.io/ajslater/codex-builder-final
 if [ "${CIRCLECI:-}" ]; then
-    REPO=codex-builder-final-${ARCH}
-else
-    REPO=docker.io/ajslater/codex-builder-final
+    VERSION=${PKG_VERSION}-${ARCH}
 fi
 
 # Build and cache
 # shellcheck disable=2068
 docker buildx bake \
     ${PLATFORM_ARG[@]:-} \
-    --set "*.tags=$REPO:${PKG_VERSION}" \
+    --set "*.tags=$REPO:$VERSION" \
     ${CMD:-} \
     codex-builder-final

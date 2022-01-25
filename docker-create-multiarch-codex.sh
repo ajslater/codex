@@ -1,19 +1,24 @@
 #!/bin/bash
 # Combine arch specific images into a multiarch image
 set -euo pipefail
-IMAGE=codex
-REPO=docker.io/ajslater/$IMAGE
-if [[ $PKG_VERSION =~ [a-z] ]]; then
-    LATEST_TAG=()
-else
-    LATEST_TAG=("$REPO:latest")
-fi
 source .env
+REPO=docker.io/ajslater/codex
+ARCHES=(x86_64 aarch64)
+
+OUTPUT_TAGS=("$REPO:$PKG_VERSION")
+if [[ $PKG_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]$ ]]; then
+    OUTPUT_TAGS+=("$REPO:latest")
+fi
+
+AMEND_TAGS=()
+for arch in "${ARCHES[@]}"; do
+    AMEND_TAGS+=("--amend $REPO:${PKG_VERSION}-${arch}")
+done
+
 # shellcheck disable=2068
 docker manifest create \
-    "$REPO:$PKG_VERSION" \
-    ${LATEST_TAG[@]:-} \
-    --amend $IMAGE-x86_64:${PKG_VERSION} \
-    --amend $IMAGE-aarch64:${PKG_VERSION}
+    ${OUTPUT_TAGS[@]} \
+    ${AMEND_TAGS[@]}
 
-docker manifest push $REPO:$PKG_VERSION
+# shellcheck disable=SC2068
+docker manifest push ${OUTPUT_TAGS[@]}

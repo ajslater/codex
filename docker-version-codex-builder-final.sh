@@ -15,6 +15,8 @@ VERSION=$(echo -e "$CODEX_BUILDER_BASE_VERSION  codex-builder-base-version\n$PKG
     md5sum |
     awk '{print $1}')
 if [[ ${CIRCLECI:-} ]]; then
-    VERSION="${VERSION}-$(uname -m)"
+    ARCH=$(uname -m)
+    VERSION="${VERSION}-${ARCH}"
 fi
+
 echo "$VERSION"

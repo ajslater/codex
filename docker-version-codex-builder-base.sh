@@ -22,6 +22,7 @@ VERSION=$(echo -e "$CODEX_BASE_VERSION  codex-base-version\n$DEPS_MD5S" |
     md5sum |
     awk '{print $1}')
 if [[ ${CIRCLECI:-} ]]; then
-    VERSION="${VERSION}-$(uname -m)"
+    ARCH=$(uname -m)
+    VERSION="${VERSION}-$ARCH"
 fi
 echo "$VERSION"
