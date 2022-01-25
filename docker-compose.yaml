@@ -85,7 +85,7 @@ services:
         CODEX_BUILDER_BASE_VERSION: $CODEX_BUILDER_BASE_VERSION
         CODEX_BUILDER_FINAL_VERSION: $CODEX_BUILDER_FINAL_VERSION
         HOST_CACHE_DIR: $HOST_CACHE_DIR
-      image: codex-builder-final:$CODEX_FILE_BUILDER_VERSION
+      image: codex-builder-final:$CODEX_BUILDER_FINAL_VERSION
   codex-save-final-cache:
     <<: *codex-builder-final
     container_name: codex-save-final-cache

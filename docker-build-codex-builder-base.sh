@@ -26,9 +26,11 @@ export DOCKER_BUILDKIT=1
 export PLATFORMS
 CODEX_BASE_VERSION=$(./docker-version-codex-base.sh)
 CODEX_DIST_BUILDER_VERSION=$(./docker-version-codex-dist-builder.sh)
+CODEX_BUILDER_FINAL_VERSION=$(./docker-version-codex-builder-final.sh)
 export CODEX_BASE_VERSION
 export CODEX_BUILDER_BASE_VERSION
 export CODEX_DIST_BUILDER_VERSION
+export CODEX_BUILDER_FINAL_VERSION
 ARCH=$(uname -m)
 HOST_CACHE_DIR="./cache/packages/$ARCH"
 mkdir -p "$HOST_CACHE_DIR/pypoetry" "$HOST_CACHE_DIR/pip"
