@@ -14,13 +14,13 @@ fi
 if [ -n "${1:-}" ]; then
     CMD=$1
 else
-    if [[ -z ${CIRCLECI:-} && ${PLATFORMS:-} =~ "," ]]; then
+#    if [[ -z ${CIRCLECI:-} && ${PLATFORMS:-} =~ "," ]]; then
         # more than one platform
         CMD="--push"
-    else
+#    else
         # only one platform loading into docker works
-        CMD="--load"
-    fi
+#        CMD="--load"
+#    fi
 fi
 
 export DOCKER_CLI_EXPERIMENTAL=enabled
