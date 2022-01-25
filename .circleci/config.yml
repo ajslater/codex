@@ -119,6 +119,7 @@ jobs:
           name: Build Codex Runnable Image
   build-arm64:
     <<: *build
+    executor: arm64-medium-executor
   deploy:
     executor: amd64-small-executor
     steps:
