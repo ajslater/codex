@@ -7,11 +7,13 @@ read -ra SHELLCHECK_DEPS <<<$(find vendor/shellcheck -type f \( ! -name "*~" \))
 DEPS=(
     "$0"
     .dockerignore
-    builder.Dockerfile
+    builder-base.Dockerfile
     builder-requirements.txt
     docker-build-codex-builder.sh
     link_wheels_from_caches.py
     save_py_caches.py
+    package.json
+    package-lock.json
     "${SHELLCHECK_DEPS[@]}"
 )
 DEPS_MD5S=$(md5sum "${DEPS[@]}")

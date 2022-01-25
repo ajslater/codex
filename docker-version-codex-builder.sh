@@ -3,7 +3,16 @@
 set -euo pipefail
 CODEX_BUILDER_BASE_VERSION=$(./docker-version-codex-builder-base.sh)
 # shellcheck disable=SC2046
-read -ra SOURCE_DEPS <<<$(find codex frontend -type f \( -name ".*" ! -path "*node_modules*" ! -path "*codex/static_build*" ! -path "*codex/static_root*" ! -name "*~" ! -name "*.pyc" \))
+read -ra SOURCE_DEPS <<<$(find codex frontend -type f \( \
+    ! -path "*node_modules*" \
+    ! -path "*codex/static_build*" \
+    ! -path "*codex/static_root*" \
+    ! -name "*~" \
+    ! -name "*.pyc" \
+    ! -name ".eslintcache" \
+    ! -name ".DS_Store" \
+    ! -name "webpack-stats.json" \
+    \))
 DEPS=(
     "$0"
     .dockerignore
@@ -19,8 +28,6 @@ DEPS=(
     lint-backend.sh
     lint-frontend.sh
     manage.py
-    package.json
-    package-lock.json
     pm
     pyproject.toml
     poetry.lock
