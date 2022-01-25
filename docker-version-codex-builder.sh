@@ -3,13 +3,30 @@
 set -euo pipefail
 CODEX_BUILDER_BASE_VERSION=$(./docker-version-codex-builder-base.sh)
 # shellcheck disable=SC2046
-read -ra SOURCE_DEPS <<<$(find codex frontend -type f \( ! -path "*node_modules*" ! -path "*codex/static_build*" ! -path "*codex/static_root*" ! -name "*~" ! -name "*.pyc" \))
+read -ra SOURCE_DEPS <<<$(find codex frontend -type f \( -name ".*" ! -path "*node_modules*" ! -path "*codex/static_build*" ! -path "*codex/static_root*" ! -name "*~" ! -name "*.pyc" \))
 DEPS=(
     "$0"
     .dockerignore
+    .eslintcache
+    .prettierignore
+    .remarkignore
+    .shellcheckrc
     builder.Dockerfile
+    build-dist.sh
+    build-frontend.sh
+    collectstatic.sh
+    lint.sh
+    lint-backend.sh
+    lint-frontend.sh
+    manage.py
+    package.json
+    package-lock.json
+    pm
     pyproject.toml
     poetry.lock
+    setup.cfg
+    test-backend.sh
+    test-frontend.sh
     "${SOURCE_DEPS[@]}"
 )
 DEPS_MD5S=$(md5sum "${DEPS[@]}")
