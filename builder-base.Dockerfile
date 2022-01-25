@@ -40,7 +40,7 @@ RUN vendor/shellcheck/install-shellcheck.sh
 # hadolint ignore=DL3022
 COPY $HOST_CACHE_DIR/pip /root/.cache/pip
 COPY $HOST_CACHE_DIR/pypoetry /root/.cache/pypoetry
-COPY ./link_wheels_from_caches.py ./save_py_caches.py ./
+COPY ./cache_paths.py ./link_wheels_from_caches.py ./save_py_caches.py ./
 RUN ./link_wheels_from_caches.py
 # hadolint ignore=DL3042,DL3059
 RUN pip3 install --find-links=$WHEELS--upgrade pip
