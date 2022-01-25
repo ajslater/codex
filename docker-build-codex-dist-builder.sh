@@ -40,3 +40,4 @@ docker buildx bake \
     --set "*.tags=$REPO:${CODEX_DIST_BUILDER_VERSION}" \
     --push \
     codex-dist-builder
+docker-compose pull codex-dist-builder
