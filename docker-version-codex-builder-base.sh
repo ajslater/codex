@@ -15,11 +15,10 @@ DEPS=(
     builder-base.Dockerfile
     builder-requirements.txt
     docker-build-codex-builder-base.sh
-    "${PYTHON_CACHER_DEPS[@]}"
     "${SHELLCHECK_DEPS[@]}"
+    "${PYTHON_CACHER_DEPS[@]}"
 )
 DEPS_MD5S=$(md5sum "${DEPS[@]}")
-md5sum "${DEPS[@]}"
 VERSION=$(echo -e "$CODEX_BASE_VERSION  codex-base-version\n$DEPS_MD5S" |
     LC_ALL=C sort |
     md5sum |
