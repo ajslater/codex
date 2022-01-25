@@ -51,9 +51,6 @@ jobs:
           command: ./docker-build-codex-dist-builder.sh
           name: Build Distribution Builder Image
       - run:
-          command: docker pull ajslater/codex-dist-builder:$(./docker-version-codex-dist-builder.sh)
-          name: Pull Builder image 
-      - run:
           command: ./docker/docker-compose-exit.sh codex-save-cache
           name: Save python caches to host
       - save_cache:
