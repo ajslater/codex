@@ -51,4 +51,3 @@ RUN git clone --bare --depth 1 https://github.com/rust-lang/crates.io-index.git 
 COPY builder-requirements.txt ./
 # hadolint ignore=DL3042
 RUN pip3 install --find-links=$WHEELS --requirement builder-requirements.txt
-

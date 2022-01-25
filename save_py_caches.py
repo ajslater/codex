@@ -6,8 +6,11 @@ import subprocess
 from pathlib import Path
 from shutil import copytree
 
+from cache_paths import PIP_CACHE_PATH, POETRY_ARTIFACTS_PATH, POETRY_CACHE_PATH
+
 
 CACHE_PATH = Path("./cache/packages")
+
 KEEP_PHRASES = ("cryptography",)
 
 
@@ -43,12 +46,13 @@ def remove_poetry_artifact(full_path, artifacts_path):
 
 def prune_dir(artifacts_path, dir_path, installed_artifacts):
     """Recursively prune a poetry artifact subdirectory."""
+    count = 0
     for root_dirname, _, filenames in os.walk(dir_path):
         root_path = Path(root_dirname)
         for filename in filenames:
             full_path = root_path / filename
             if full_path.is_dir():
-                prune_dir(artifacts_path, full_path, installed_artifacts)
+                count += prune_dir(artifacts_path, full_path, installed_artifacts)
                 continue
             full_path_str = str(full_path)
             if full_path_str in installed_artifacts:
@@ -58,33 +62,36 @@ def prune_dir(artifacts_path, dir_path, installed_artifacts):
                     print(f"Not pruning package with phrase: {phrase}")
                     continue
             remove_poetry_artifact(full_path, artifacts_path)
-
-
-def get_poetry_artifacts_path():
-    """Get the poetry cache artifacts path."""
-    cache_dirname = run(("poetry", "config", "cache-dir"))[0]
-    return Path(cache_dirname) / "artifacts"
+            count += 1
+    return count
 
 
 def prune_poetry_artifacts():
     """Prune all not installed poetry cache artifacts."""
-    artifacts_path = get_poetry_artifacts_path()
     installed_artifacts = get_installed_artifacts()
-    prune_dir(artifacts_path, artifacts_path, installed_artifacts)
+    count = prune_dir(POETRY_ARTIFACTS_PATH, POETRY_ARTIFACTS_PATH, installed_artifacts)
+    print(f"Pruned {count} poetry artifacts.")
+
+
+def save_cache(native_cache_path, arch_cache_path):
+    """Save a python cache to the architecture specific cache path."""
+    dest = arch_cache_path / native_cache_path.name
+    copytree(
+        native_cache_path,
+        dest,
+        dirs_exist_ok=True,
+    )
+    print(f"Copied {native_cache_path} to {dest}")
 
 
 def main():
     """Prune the poetry cache and then copy poetry & pip cache."""
-    poetry_cache_path = Path(run(("poetry", "config", "cache-dir"))[0])
-    prune_poetry_artifacts()
-    pip_cache_path = Path(run(("pip3", "cache", "dir"))[0])
     arch = run(("uname", "-m"))[0]
     arch_cache_path = CACHE_PATH / arch
     arch_cache_path.mkdir(parents=True, exist_ok=True)
-    copytree(
-        poetry_cache_path, arch_cache_path / poetry_cache_path.name, dirs_exist_ok=True
-    )
-    copytree(pip_cache_path, arch_cache_path / pip_cache_path.name, dirs_exist_ok=True)
+    prune_poetry_artifacts()
+    save_cache(POETRY_CACHE_PATH, arch_cache_path)
+    save_cache(PIP_CACHE_PATH, arch_cache_path)
 
 
 if __name__ == "__main__":
