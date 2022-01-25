@@ -37,7 +37,7 @@ def get_pip_wheels_path():
 def link_artifact(cached_artifact_path):
     """Link an artifact in the cache tree into the wheels directory."""
     link_path = CACHE_WHEELS_PATH / cached_artifact_path.name
-    link_path.unlink(missing_ok=False)
+    link_path.unlink(missing_ok=True)
     link_path.symlink_to(cached_artifact_path)
     print(".", end="")
 
