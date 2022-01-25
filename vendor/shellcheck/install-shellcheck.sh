@@ -8,10 +8,14 @@ if [ "$TARGETPLATFORM" = "linux/amd64" ]; then
 fi
 
 cd "$(dirname "$0")"
-DEST=/usr/local/bin
+DEST=/usr/local/bin/
 if [ "$TARGETPLATFORM" = "linux/arm64" ]; then
-    ls *
     cp arm64/shellcheck $DEST
+    PLATFORM=arm64
 elif [ "$TARGETPLATFORM" = "linux/armv7" ]; then
-    cp armv7/shellcheck $DEST
+    PLATFORM=armv7
+else
+  echo "Unhandled platform: $TARGETPLATFORM"
+  exit 1
 fi
+cp $PLATFORM/shellcheck $DEST
