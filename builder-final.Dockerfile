@@ -9,7 +9,7 @@ WORKDIR /app
 # Copy in caches and codex wheel
 COPY $HOST_CACHE_DIR/pip /root/.cache/pip
 COPY $HOST_CACHE_DIR/pypoetry /root/.cache/pypoetry
-RUN ./link_wheels_from_caches.py
+RUN ./python-cacher/link_wheels_from_caches.py
 
 # Install codex
 RUN pip3 install --no-cache-dir --upgrade --find-links=$WHEELS pip

@@ -2,6 +2,7 @@
 """Copy pip & poetry user caches to a volume saved location."""
 import os
 import subprocess
+import sys
 
 from pathlib import Path
 from shutil import copytree
@@ -84,15 +85,16 @@ def save_cache(native_cache_path, arch_cache_path):
     print(f"Copied {native_cache_path} to {dest}")
 
 
-def main():
+def main(args):
     """Prune the poetry cache and then copy poetry & pip cache."""
     arch = run(("uname", "-m"))[0]
     arch_cache_path = CACHE_PATH / arch
     arch_cache_path.mkdir(parents=True, exist_ok=True)
-    prune_poetry_artifacts()
+    if "prune" in args:
+        prune_poetry_artifacts()
     save_cache(POETRY_CACHE_PATH, arch_cache_path)
     save_cache(PIP_CACHE_PATH, arch_cache_path)
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
