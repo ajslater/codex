@@ -28,9 +28,6 @@ jobs:
           command: ./docker/docker-login.sh
           name: Login to Docker Hub
       - run:
-          command: ./docker/docker-install-binfmt-platforms.sh
-          name: Install binfmt platforms
-      - run:
           command: ./docker/docker-buildx-create.sh
           name: Create buildx builder
       - run:
@@ -43,9 +40,6 @@ jobs:
       - run:
           command: ./docker/docker-login.sh
           name: Login to Docker Hub
-      - run:
-          command: ./docker/docker-install-binfmt-platforms.sh
-          name: Install binfmt platforms
       - run:
           command: ./docker/docker-buildx-create.sh
           name: Create buildx builder
@@ -63,9 +57,6 @@ jobs:
       - run:
           command: ./docker/docker-login.sh
           name: Login to Docker Hub
-      - run:
-          command: ./docker/docker-install-binfmt-platforms.sh
-          name: Install binfmt platforms
       - run:
           command: ./docker/docker-buildx-create.sh
           name: Create buildx builder
@@ -133,9 +124,6 @@ jobs:
           command: ./docker/docker-login.sh
           name: Login to Docker Hub
       - run:
-          command: ./docker/docker-install-binfmt-platforms.sh
-          name: Install binfmt platforms
-      - run:
           command: ./docker/docker-buildx-create.sh
           name: Create buildx builder
       - run:
@@ -154,9 +142,6 @@ jobs:
           command: ./docker/docker-login.sh
           name: Login to Docker Hub
       - run:
-          command: ./docker/docker-install-binfmt-platforms.sh
-          name: Install binfmt platforms
-      - run:
           command: ./docker/docker-buildx-create.sh
           name: Create buildx builder
       - run:
@@ -167,6 +152,9 @@ jobs:
     steps:
       - attach_workspace:
           at: .
+      - run:
+          command: ./docker/docker-login.sh
+          name: Login to Docker Hub
       - run:
           command: ./docker-create-multiarch-codex.sh
           name: Create multi-arch images
