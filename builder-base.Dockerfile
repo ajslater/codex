@@ -38,7 +38,6 @@ RUN vendor/shellcheck/install-shellcheck.sh
 # Restore caches from host
 # use latest before we build a possible new wheels in the following script
 # hadolint ignore=DL3022
-# COPY --from=ajslater/codex-wheels:latest /cache/wheels $CODEX_WHEELS
 COPY $HOST_CACHE_DIR/pip /root/.cache/pip
 COPY $HOST_CACHE_DIR/pypoetry /root/.cache/pypoetry
 COPY ./link_wheels_from_caches.py ./save_py_caches.py ./
