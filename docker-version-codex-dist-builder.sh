@@ -20,7 +20,7 @@ DEPS=(
     .prettierignore
     .remarkignore
     .shellcheckrc
-    builder.Dockerfile
+    dist-builder.Dockerfile
     build-dist.sh
     build-frontend.sh
     collectstatic.sh

@@ -14,7 +14,7 @@ fi
 if [ -n "${1:-}" ]; then
     CMD=$1
 else
-    if [[ ${PLATFORMS:-} =~ "," ]]; then
+    if [[ -z ${CIRCLECI:-} && ${PLATFORMS:-} =~ "," ]]; then
         # more than one platform
         CMD="--push"
     else
@@ -27,8 +27,8 @@ export DOCKER_CLI_EXPERIMENTAL=enabled
 export DOCKER_BUILDKIT=1
 CODEX_BASE_VERSION=$(./docker-version-codex-base.sh)
 export CODEX_BASE_VERSION
-CODEX_DIST_BUILDER_VERSION=$(./docker-version-codex-dist-builder.sh)
-export CODEX_DIST_BUILDER_VERSION
+CODEX_BUILDER_FINAL_VERSION=$(./docker-version-codex-builder-final.sh)
+export CODEX_BUILDER_FINAL_VERSION
 export PKG_VERSION
 export CODEX_WHEEL=codex-${PKG_VERSION}-py3-none-any.whl
 ARCH=$(uname -m)
@@ -41,15 +41,11 @@ else
     PLATFORM_ARG=()
 fi
 if [ "${CIRCLECI:-}" ]; then
-    REPO=codex-${ARCH}
+    REPO=codex-builder-final-${ARCH}
 else
-    REPO=docker.io/ajslater/codex
+    REPO=docker.io/ajslater/codex-builder-final
 fi
-# if echo "$PKG_VERSION" | grep '^\d+\.\d+\.\d+$'; then
-#    LATEST_TAG=(--set "*.tags=$REPO:latest")
-# else
-#    LATEST_TAG=()
-# fi
+
 # Build and cache
 # shellcheck disable=2068
 docker buildx bake \

@@ -9,7 +9,7 @@ DEPS=(
     .dockerignore
     builder-base.Dockerfile
     builder-requirements.txt
-    docker-build-codex-builder.sh
+    docker-build-codex-builder-base.sh
     link_wheels_from_caches.py
     save_py_caches.py
     package.json
