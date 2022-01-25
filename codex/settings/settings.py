@@ -194,10 +194,10 @@ CONFIG_STATIC.mkdir(exist_ok=True, parents=True)
 WHITENOISE_ROOT = CONFIG_STATIC
 WHITENOISE_KEEP_ONLY_HASHED_FILES = True
 WHITENOISE_STATIC_PREFIX = "static/"
-# Restore this to prod if new covers don't display
 # Bad for performance and security
+# But new covers don't display without it
 # http://whitenoise.evans.io/en/stable/django.html#WHITENOISE_AUTOREFRESH
-# WHITENOISE_AUTOREFRESH = True
+WHITENOISE_AUTOREFRESH = True
 STATIC_ROOT = CODEX_PATH / "static_root"
 STATIC_URL = ROOT_PATH + WHITENOISE_STATIC_PREFIX
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"

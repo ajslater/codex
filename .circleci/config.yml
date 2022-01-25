@@ -1,33 +1,81 @@
 executors:
-  latest-image:
+  amd64-large-executor:
     machine:
       image: ubuntu-2004:202111-02
+      docker_layer_caching: true
+      resource_class: large
+  amd64-medium-executor:
+    machine:
+      image: ubuntu-2004:202111-02
+      docker_layer_caching: true
+      resource_class: medium
+  amd64-small-executor:
+    machine:
+      image: ubuntu-2004:202111-02
+      docker_layer_caching: true
+      resource_class: small
+  arm64-medium-executor:
+    machine:
+      image: ubuntu-2004:202101-01
+      docker_layer_caching: true
+      resource_class: arm.medium
 jobs:
-  build:
-    executor: latest-image
+  build-base-amd64:
+    executor: amd64-medium-executor
     steps:
       - checkout
       - run:
           command: ./docker/docker-login.sh
           name: Login to Docker Hub
       - run:
-          command: ./docker/docker-install-binfmt-platforms.sh
-          name: Install binfmt platforms
+          command: ./docker/docker-buildx-create.sh
+          name: Create buildx builder
+      - run:
+          command: ./docker-build-codex-base.sh
+          name: Build Base Image
+  build-base-arm64:
+    executor: arm64-medium-executor
+    steps:
+      - checkout
+      - run:
+          command: ./docker/docker-login.sh
+          name: Login to Docker Hub
       - run:
           command: ./docker/docker-buildx-create.sh
           name: Create buildx builder
       - run:
           command: ./docker-build-codex-base.sh
-          name: Build Base
+          name: Build Base Image
+  build-dist:
+    executor: amd64-large-executor
+    steps:
+      - checkout
+      - restore_cache:
+          key: wheels-v1-{{ arch }}
+      - restore_cache:
+          key: dist-v1-{{ .Revision }}
+      - run:
+          command: ./docker/docker-login.sh
+          name: Login to Docker Hub
+      - run:
+          command: ./docker/docker-buildx-create.sh
+          name: Create buildx builder
+      - run:
+          command: ./docker-build-codex-builder-base.sh
+          name: Build Builder Base Image
       - run:
           command: ./docker-build-codex-builder.sh
-          name: Build Builder
+          name: Build Builder Image
       - run:
-          command: ./docker-build-codex-wheels.sh
-          name: Build Wheels
+          command: docker pull ajslater/codex-builder:$(./docker-version-codex-builder.sh)
+          name: Pull Builder image 
       - run:
-          command: ./docker-build-codex-dist-builder.sh
-          name: Build Tester & Dist Builder
+          command: ./docker/docker-compose-exit.sh codex-save-cache
+          name: Save python caches to host
+      - save_cache:
+          key: wheels-v1-{{ arch }}
+          paths:
+            - ./cache/packages
       - run:
           command: ./docker/docker-compose-exit.sh codex-frontend-lint
           name: "Frontend: Lint"
@@ -54,55 +102,115 @@ jobs:
       - run:
           command: ./docker/docker-compose-exit.sh codex-build-dist
           name: Build Distribution
+      - save_cache:
+          key: dist-cache-v1-{{ .Revision }}
+          paths:
+            - dist
       - persist_to_workspace:
           paths:
-            - ./.env
-            - ./.env.platforms
-            - ./Dockerfile
-            - ./build-codex.sh
-            - ./deploy-pypi.sh
             - ./dist
-            - ./docker
           root: .
-  deploy:
-    executor: latest-image
+  build-amd64:
+    executor: amd64-medium-executor
     steps:
+      - checkout
       - attach_workspace:
           at: .
-      - run:
-          command: ./build-install-poetry.sh
-          name: Install poetry
+      - restore_cache:
+          key: dist-cache-v1-{{ .Revision }}
+      - restore_cache:
+          key: wheels-cache-v1-{{ arch }}
       - run:
           command: ./docker/docker-login.sh
           name: Login to Docker Hub
-      - run:
-          command: ./docker/docker-install-binfmt-platforms.sh
-          name: Install binfmt platforms
       - run:
           command: ./docker/docker-buildx-create.sh
           name: Create buildx builder
       - run:
           command: ./docker-build-codex.sh
-          name: Build & Push Codex runnable image
+          name: Build Codex Runnable Image
+  build-arm64:
+    executor: arm64-medium-executor
+    steps:
+      - attach_workspace:
+          at: .
+      - restore_cache:
+          key: dist-cache-v1-{{ .Revision }}
+      - restore_cache:
+          key: wheels-cache-v1-{{ arch }}
+      - run:
+          command: ./docker/docker-login.sh
+          name: Login to Docker Hub
+      - run:
+          command: ./docker/docker-buildx-create.sh
+          name: Create buildx builder
+      - run:
+          command: ./docker-build-codex.sh
+          name: Build Codex Runnable Image
+  deploy:
+    executor: amd64-small-executor
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          command: ./docker/docker-login.sh
+          name: Login to Docker Hub
+      - run:
+          command: ./docker-create-multiarch-codex.sh
+          name: Create multi-arch images
       - run:
           command: ./pypi-deploy.sh
-          name: Publish Package to PyPi
+          name: Publish Codex Package to PyPi
 version: 2.1
 workflows:
   main:
     jobs:
-      - build:
+      - build-base-amd64:
           filters:
             branches:
               only:
                 - develop
                 - release
                 - /.*-ci/
-      - deploy:
+      - build-base-arm64:
           filters:
             branches:
               only:
                 - release
+      - build-dist:
+          filters:
+            branches:
+              only:
+                - develop
+                - release
+                - /.*-ci/
           requires:
-            - build
+            - build-base-amd64
+      - build-amd64:
+          filters:
+            branches:
+              only:
+                - release-candidate
+                - release
+          requires:
+            - build-dist
+            - build-base-amd64
+      - build-arm64:
+          filters:
+            branches:
+              only:
+                - release-candidate
+                - release
+          requires:
+            - build-dist
+            - build-base-arm64
+      - deploy:
+          filters:
+            branches:
+              only:
+                - release-candidate
+                - release
+          requires:
+            - build-amd64
+            - build-arm64
   version: 2.1

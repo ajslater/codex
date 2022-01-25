@@ -2,9 +2,9 @@ module.exports = {
   root: true,
   extends: [
     "../.eslintrc.cjs",
+    // VUE
     "plugin:vue/recommended",
     "plugin:vue-scoped-css/recommended",
-    // PRETTIER
     "@vue/eslint-config-prettier",
   ],
   parser: "vue-eslint-parser",

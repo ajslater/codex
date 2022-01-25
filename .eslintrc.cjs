@@ -13,6 +13,7 @@ module.exports = {
     // LANGS
     "plugin:json/recommended",
     "plugin:markdown/recommended",
+    //"plugin:md/recommended",
     "plugin:yaml/recommended",
     // PRACTICES
     "plugin:array-func/recommended",
@@ -34,12 +35,30 @@ module.exports = {
     },
     ecmaVersion: 2022,
   },
+  overrides: [
+    {
+      files: ["*.md"],
+      parser: "markdown-eslint-parser",
+      rules: {
+        "prettier/prettier": ["error", { parser: "markdown" }],
+      },
+    },
+    {
+      files: ["*.md.js"], // Will match js code inside *.md files
+      rules: {
+        // disable 2 core eslint rules 'no-unused-vars' and 'no-undef'
+        "no-unused-vars": "off",
+        "no-undef": "off",
+      },
+    },
+  ],
   plugins: [
     "array-func",
     "eslint-comments",
     "json",
     "import",
     "markdown",
+    //"md",
     "no-constructor-bind",
     "no-secrets",
     "no-unsanitized",
@@ -62,6 +81,21 @@ module.exports = {
       },
     ],
     "max-params": ["warn", 4],
+    /*
+     md/remark plugins can't be read by eslint
+     https://github.com/standard-things/esm/issues/855
+    "md/remark": [ "error",
+      {
+        plugins: [
+          "gfm",
+          "preset-lint-consistent",
+          "preset-lint-markdown-style-guide",
+          "preset-lint-recommended",
+          "preset-prettier"
+        ],
+      }
+    ],
+    */
     "no-console": process.env.NODE_ENV === "production" ? "warn" : "off",
     "no-debugger": process.env.NODE_ENV === "production" ? "warn" : "off",
     "no-constructor-bind/no-constructor-bind": "error",
@@ -74,6 +108,10 @@ module.exports = {
     "space-before-function-paren": "off",
     "switch-case/newline-between-switch-case": "off", // Malfunctioning
     "unicorn/prevent-abbreviations": "off",
+    "unicorn/filename-case": [
+      "error",
+      { case: "kebabCase", ignore: [".*.md"] },
+    ],
   },
   ignorePatterns: [
     "*~",
@@ -82,7 +120,10 @@ module.exports = {
     ".mypy_cache",
     ".pytest_cache",
     ".venv",
-    "cache",
+    "cache/*",
+    "!cache/packages",
+    "cache/packages/*",
+    "!cache/packages/README.md",
     "codex/static_build",
     "codex/static_root",
     "comics",

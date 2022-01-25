@@ -9,59 +9,55 @@ services:
         PYTHON_ALPINE_VERSION: "$PYTHON_ALPINE_VERSION"
         CODEX_BASE_VERSION: "$CODEX_BASE_VERSION"
     image: docker.io/ajslater/codex-base
-  codex-builder:
+  codex-builder-base:
+    env_file:
+      - .env
+    build:
+      context: .
+      dockerfile: builder-base.Dockerfile
+      args:
+        CODEX_BASE_VERSION: "$CODEX_BASE_VERSION"
+        CODEX_BUILDER_BASE_VERSION: "$CODEX_BUILDER_BASE_VERSION"
+        HOST_CACHE_DIR: $HOST_CACHE_DIR
+    image: docker.io/ajslater/codex-builder-base
+  codex-builder: &codex-builder
     env_file:
       - .env
     build:
       context: .
       dockerfile: builder.Dockerfile
       args:
-        CODEX_BASE_VERSION: "$CODEX_BASE_VERSION"
-        CODEX_BUILDER_VERSION: "$CODEX_BUILDER_VERSION"
-    image: docker.io/ajslater/codex-builder
-  codex-wheels:
-    env_file:
-      - .env
-    build:
-      context: .
-      dockerfile: wheels.Dockerfile
-      args:
-        CODEX_BUILDER_VERSION: "$CODEX_BUILDER_VERSION"
-        CODEX_WHEELS_VERSION: "$CODEX_WHEELS_VERSION"
-    image: docker.io/ajslater/codex-wheels
-    container_name: codex-wheels
-  codex-dist-builder: &codex-dist-builder
-    env_file:
-      - .env
-    build:
-      context: .
-      dockerfile: dist-builder.Dockerfile
-      args:
-        CODEX_WHEELS_VERSION: $CODEX_WHEELS_VERSION
+        CODEX_BUILDER_BASE_VERSION: "$CODEX_BUILDER_BASE_VERSION"
         CODEX_BUILDER_VERSION: "$CODEX_BUILDER_VERSION"
     environment:
       - PUID=
       - PGID=
-    image: codex-dist-builder
-    container_name: codex-dist-builder
+    image: docker.io/ajslater/codex-builder:$CODEX_BUILDER_VERSION
+    container_name: codex-builder
+  codex-save-cache:
+    <<: *codex-builder
+    container_name: codex-save-cache
+    volumes:
+      - ./cache/packages:/app/cache/packages
+    command: ./save_py_caches.py
   codex-frontend-lint:
-    <<: *codex-dist-builder
+    <<: *codex-builder
     container_name: codex-frontent-lint
     command: ./lint-frontend.sh
   codex-frontend-test:
-    <<: *codex-dist-builder
+    <<: *codex-builder
     container_name: codex-frontend-test
     command: ./test-frontend.sh
     volumes:
       - ./test-results/:/app/test-results/
   codex-frontend-build:
-    <<: *codex-dist-builder
+    <<: *codex-builder
     container_name: codex-frontend-build
     volumes:
       - ./codex/static_build:/app/codex/static_build
     command: ./build-frontend.sh
   codex-backend-test:
-    <<: *codex-dist-builder
+    <<: *codex-builder
     container_name: codex-backend-test
     volumes:
       - ./codex/static_build:/app/codex/static_build
@@ -69,11 +65,11 @@ services:
       - ./test-results/:/app/test-results/
     command: ./test-backend.sh
   codex-backend-lint:
-    <<: *codex-dist-builder
+    <<: *codex-builder
     container_name: codex-backend-lint
     command: ./lint-backend.sh
   codex-build-dist:
-    <<: *codex-dist-builder
+    <<: *codex-builder
     container_name: codex-build-dist
     volumes:
       - ./codex/static_root:/app/codex/static_root
@@ -85,9 +81,11 @@ services:
     build:
       context: .
       args:
+        HOST_CACHE_DIR: $HOST_CACHE_DIR
         CODEX_BASE_VERSION: "$CODEX_BASE_VERSION"
         CODEX_WHEEL: "$CODEX_WHEEL"
         CODEX_WHEELS_VERSION: "$CODEX_WHEELS_VERSION"
+        PKG_VERSION: "$PKG_VERSION"
     image: docker.io/ajslater/codex
     container_name: codex
     environment:
@@ -97,3 +95,4 @@ services:
     volumes:
       - ./config:/config
       - ./comics:/comics:ro
+version: "3.8"
