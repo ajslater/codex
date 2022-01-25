@@ -43,15 +43,12 @@ else
     PLATFORM_ARG=()
 fi
 REPO=docker.io/ajslater/codex-builder-final
-if [ "${CIRCLECI:-}" ]; then
-    VERSION=${PKG_VERSION}-${ARCH}
-fi
 
 # Build and cache
 # shellcheck disable=2068
 docker buildx bake \
     ${PLATFORM_ARG[@]:-} \
-    --set "*.tags=$REPO:$VERSION" \
+    --set "*.tags=$REPO:$CODEX_BUILDER_FINAL_VERSION" \
     ${CMD:-} \
     codex-builder-final
 
