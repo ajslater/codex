@@ -170,18 +170,21 @@ workflows:
             branches:
               only:
                 - develop
+                - release-candidate
                 - release
                 - /.*-ci/
       - build-base-arm64:
           filters:
             branches:
               only:
+                - release-candidate
                 - release
       - build-dist:
           filters:
             branches:
               only:
                 - develop
+                - release-candidate
                 - release
                 - /.*-ci/
           requires:
