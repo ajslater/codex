@@ -14,13 +14,13 @@ fi
 if [ -n "${1:-}" ]; then
     CMD=$1
 else
-    if [[ ${PLATFORMS:-} =~ "," ]]; then
-        # more than one platform
-        CMD="--push"
-    else
-        # only one platform loading into docker works
-        CMD="--load"
-    fi
+    #    if [[ ${PLATFORMS:-} =~ "," ]]; then
+    # more than one platform
+    CMD="--push"
+    #    else
+    # only one platform loading into docker works
+#        CMD="--load"
+#    fi
 fi
 
 export DOCKER_CLI_EXPERIMENTAL=enabled
@@ -41,7 +41,7 @@ if [ -n "${PLATFORMS:-}" ]; then
 else
     PLATFORM_ARG=()
 fi
-REPO=docker.io/ajslater/codex
+REPO=docker.io/ajslater/codex-arch
 if [ "${CIRCLECI:-}" ]; then
     VERSION=${PKG_VERSION}-${ARCH}
 fi

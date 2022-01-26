@@ -3,6 +3,7 @@
 set -euo pipefail
 source .env
 REPO=docker.io/ajslater/codex
+ARCH_REPO=docker.io/ajslater/codex-arch
 ARCHES=(x86_64 aarch64)
 
 OUTPUT_TAGS=("$REPO:$PKG_VERSION")
@@ -12,7 +13,7 @@ fi
 
 AMEND_TAGS=()
 for arch in "${ARCHES[@]}"; do
-    AMEND_TAGS+=("--amend $REPO:${PKG_VERSION}-${arch}")
+    AMEND_TAGS+=("--amend $ARCH_REPO:${PKG_VERSION}-${arch}")
 done
 
 # shellcheck disable=2068
