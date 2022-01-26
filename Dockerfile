@@ -1,6 +1,6 @@
 ARG CODEX_BUILDER_FINAL_VERSION
 ARG CODEX_BASE_VERSION
-FROM codex-builder-final:${CODEX_BUILDER_FINAL_VERSION} as codex-built
+FROM ajslater/codex-builder-final:${CODEX_BUILDER_FINAL_VERSION} as codex-built
 FROM ajslater/codex-base:${CODEX_BASE_VERSION}
 ARG PKG_VERSION
 LABEL maintainer="AJ Slater <aj@slater.net>"
