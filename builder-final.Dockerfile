@@ -12,6 +12,7 @@ COPY $HOST_CACHE_DIR/pypoetry /root/.cache/pypoetry
 RUN ./python_cacher/link_wheels_from_caches.py
 
 # Install codex
+# hadolint ignore=DL3059
 RUN pip3 install --no-cache-dir --upgrade --find-links=$WHEELS pip
 COPY ./dist/$CODEX_WHEEL $WHEELS/$CODEX_WHEEL
 # hadolint ignore=DL3059
