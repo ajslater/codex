@@ -47,7 +47,9 @@ RUN pip3 install --find-links=$WHEELS--upgrade pip
 # https://github.com/pyca/cryptography/issues/6673#issuecomment-985943023
 # old hash on this index was 1285ae84e5963aae
 # hadolint ignore=DL3059
-RUN git clone --bare --depth 1 https://github.com/rust-lang/crates.io-index.git /root/.cargo/registry/index/github.com-1ecc6299db9ec823
+RUN git clone --bare --depth 1 \
+  https://github.com/rust-lang/crates.io-index.git \
+  /root/.cargo/registry/index/github.com-1ecc6299db9ec823
 COPY builder-requirements.txt ./
 # hadolint ignore=DL3042
 RUN pip3 install --find-links=$WHEELS --requirement builder-requirements.txt
