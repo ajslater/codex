@@ -56,7 +56,7 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
-    "haystack",
+    "codex._vendor.haystack",
 ]
 
 if DEBUG:

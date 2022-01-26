@@ -13,18 +13,20 @@ homepage = "https://github.com/ajslater/codex"
 documentation = "https://github.com/ajslater/codex"
 keywords = ["comic", "cbz", "cbr", "cbt"]
 classifiers = [
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 4 - Beta",
   "Environment :: Web Environment",
   "Operating System :: OS Independent",
-  "Programming Language :: Python :: 3",
-  "Framework :: Django :: 3.1",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: JavaScript",
+  "Framework :: Django :: 4.0",
   "Intended Audience :: End Users/Desktop",
   "Topic :: Internet :: WWW/HTTP",
   "Topic :: Multimedia :: Graphics :: Viewers",
+  "Natural Language :: English",
 ]
 packages = [{ include = "codex" }, { include = "tests", format = "sdist" }]
 exclude = ["*/**/*~", "codex/static_src/*", "codex/static_build/*"]
-include = ["codex/static_root/**/*"]
+include = ["codex/static_root/**/*", "vendor/django_haystack"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
@@ -34,7 +36,6 @@ django = "^4.0"
 djangorestframework = "^3.11"
 django-cors-headers = "^3.2"
 django-dark = "^0.1"
-django-haystack = { url = "https://raw.githubusercontent.com/ajslater/codex/develop/vendor/django_haystack-3.1.2.dev34+g70449ff-py3-none-any.whl" }
 fnvhash = "^0.1"
 humanfriendly = "^10.0"
 humanize = "^3.12.0"
@@ -51,7 +52,6 @@ websocket_client = "^1.2"
 whitenoise = { extras = ["brotli"], version = "^5.2" }
 xapian-bindings = "^0.1.0"
 xapian-haystack = "^3.0.1"
-pytest-xdist = {extras = ["psutil"], version = "^2.5.0"}
 
 [tool.poetry.dev-dependencies]
 codespell = "^2.1.0"
@@ -78,6 +78,7 @@ pytest-gitignore = "^1.3"
 pytest-bandit = "^0.6.1"
 nplusone = "^1.0.0"
 pushover-simple-cli = "^1.1.2"
+vendorize = "^0.2.2"
 
 [tool.poetry.scripts]
 codex = "codex.run:main"
@@ -88,33 +89,50 @@ codex = "codex.run:main"
 "Issues" = "https://github.com/ajslater/codex/issues"
 
 [tool.black]
-exclude = "/(.git|.mypy_cache|.pytest_cache|.venv|__pycache__|cache|codex/static_build|codex/static_root|comics|dist|frontend|node_modules|test-results|typings)/"
+exclude = "/(.git|.mypy_cache|.pytest_cache|.venv|__pycache__|cache|codex/_vendor/haystack|codex/static_build|codex/static_root|comics|dist|frontend|node_modules|test-results|typings)/"
 
 [tool.coverage.run]
 source = ["codex"]
 branch = true
 concurrency = ["multiprocessing"]
-omit = ["frontend"]
+omit = [
+  ".git/*",
+  ".mypy_cache/*",
+  ".pytest_cache/*",
+  ".venv/*",
+  "*__pycache__*",
+  "cache/*",
+  "codex/_vendor/haystack/*",
+  "codex/static_build/*",
+  "codex/static_root/*",
+  "comics/*",
+  "dist/*",
+  "frontend/*",
+  "node_modules/*",
+  "test-results/*",
+  "typings/*"
+]
 
 [tool.coverage.html]
 directory = "test-results/coverage"
 
 [tool.vulture]
 exclude = [
-  ".git",
-  ".mypy_cache",
-  ".pytest_cache",
-  ".venv",
-  "__pycache__",
-  "cache",
-  "codex/static_build",
-  "codex/static_root",
-  "frontend",
-  "comics",
-  "dist",
-  "node_modules",
-  "test_results",
-  "typings"
+  ".git/",
+  ".mypy_cache/",
+  ".pytest_cache/",
+  ".venv/",
+  "*__pycache__*",
+  "cache/",
+  "codex/_vendor/haystack/",
+  "codex/static_build/",
+  "codex/static_root/",
+  "frontend/",
+  "comics/",
+  "dist/",
+  "node_modules/",
+  "test_results/",
+  "typings/",
 ]
 min_confidence = 61
 sort_by_size = true
@@ -135,19 +153,35 @@ addopts = """
     --cov-report=term
     --flake8
     --isort
-    --ignore=.git,.mypy_cache,.pytest_cache,.venv,cache,codex/static_build,codex/static_root,comics,config,dist,frontend,node_modules,typings
-    --numprocesses=auto
+    --ignore=.git
+    --ignore=.mypy_cache
+    --ignore=.pytest_cache
+    --ignore=.venv
+    --ignore=cache
+    --ignore=codex/_vendor/haystack
+    --ignore=codex/static_build
+    --ignore=codex/static_root
+    --ignore=comics
+    --ignore=config
+    --ignore=dist
+    --ignore=frontend
+    --ignore=node_modules
+    --ignore=test-results
+    --ignore=typings
+    --ignore-glob=*__pycache__*
 """
 
 #    --mypy
 [tool.pyright]
 exclude = [
   "**/__pycache__",
+  "**/node_modules",
   ".git",
   ".mypy_cache",
   ".pytest_cache",
   ".venv",
   "cache",
+  "codex/_vendor/haystack",
   "codex/static_build",
   "codex/static_root",
   "comics",
@@ -156,9 +190,8 @@ exclude = [
   "frontend",
   "package-lock.json",
   "poetry.lock",
-  "node_modules",
   "test-results",
-  "typings"
+  "typings",
 ]
 useLibraryCodeForTypes = true
 reportMissingImports = true

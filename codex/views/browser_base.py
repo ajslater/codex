@@ -5,10 +5,10 @@ from logging import getLogger
 from dateutil.parser import parse as du_parse
 from django.db.models import F, Q
 from django.db.models.functions import Now
-from haystack.query import SearchQuerySet
 from humanfriendly import parse_size
 from xapian_backend import DATETIME_FORMAT
 
+from codex._vendor.haystack.query import SearchQuerySet
 from codex.models import Folder, SearchQuery, SearchResult
 from codex.views.session import SessionView
 

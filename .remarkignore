@@ -8,6 +8,7 @@
 /test-results
 __pycache__
 cache
+codex/_vendor/haystack
 codex/static_build
 codex/static_root
 comics

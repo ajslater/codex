@@ -8,7 +8,7 @@ ARG WHEELS ./cache/packages/wheels
 LABEL maintainer="AJ Slater <aj@slater.net>"
 LABEL version=${CODEX_BUILDER_BASE_VERSION}
 
-WORKDIR /
+WORKDIR /app
 # **** install codex system build dependency packages ****"
 # hadolint ignore=DL3018
 RUN apk add --no-cache \
@@ -29,10 +29,6 @@ RUN apk add --no-cache \
    xapian-core-dev \
    yaml-dev \
    zlib-dev
-
-WORKDIR /app
-COPY vendor/shellcheck ./vendor/shellcheck/
-RUN vendor/shellcheck/install-shellcheck.sh
 
 # *** install python build dependency packages ***
 # Restore caches from host
