@@ -51,6 +51,7 @@ websocket_client = "^1.2"
 whitenoise = { extras = ["brotli"], version = "^5.2" }
 xapian-bindings = "^0.1.0"
 xapian-haystack = "^3.0.1"
+pytest-xdist = {extras = ["psutil"], version = "^2.5.0"}
 
 [tool.poetry.dev-dependencies]
 codespell = "^2.1.0"
@@ -135,6 +136,7 @@ addopts = """
     --flake8
     --isort
     --ignore=.git,.mypy_cache,.pytest_cache,.venv,cache,codex/static_build,codex/static_root,comics,config,dist,frontend,node_modules,typings
+    --numprocesses=auto
 """
 
 #    --mypy
