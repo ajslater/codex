@@ -90,10 +90,12 @@ def main(args):
     arch = run(("uname", "-m"))[0]
     arch_cache_path = CACHE_PATH / arch
     arch_cache_path.mkdir(parents=True, exist_ok=True)
-    if "prune" in args:
-        prune_poetry_artifacts()
-    save_cache(POETRY_CACHE_PATH, arch_cache_path)
-    save_cache(PIP_CACHE_PATH, arch_cache_path)
+    if "poetry" in args:
+        if "prune" in args:
+            prune_poetry_artifacts()
+        save_cache(POETRY_CACHE_PATH, arch_cache_path)
+    if "pip" in args:
+        save_cache(PIP_CACHE_PATH, arch_cache_path)
 
 
 if __name__ == "__main__":

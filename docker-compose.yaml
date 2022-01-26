@@ -39,7 +39,7 @@ services:
     container_name: codex-save-cache
     volumes:
       - ./cache/packages:/app/cache/packages
-    command: ./python_cacher/save_py_caches.py prune
+    command: ./python_cacher/save_py_caches.py pip poetry prune
   codex-frontend-lint:
     <<: *codex-dist-builder
     container_name: codex-frontent-lint
@@ -92,7 +92,7 @@ services:
     container_name: codex-save-final-cache
     volumes:
       - ./cache/packages:/app/cache/packages
-    command: ./python_cacher/save_py_caches.py
+    command: ./python_cacher/save_py_caches.py pip
   codex:
     env_file:
       - .env
