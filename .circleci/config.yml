@@ -1,3 +1,7 @@
+parameters:
+  dist-cache-key:
+    type: string
+    default: "./cache/dist-cache-key"
 executors:
   amd64-large-executor:
     machine:
@@ -42,8 +46,11 @@ jobs:
       - checkout
       - restore_cache:
           key: wheels-v1-{{ arch }}
+      - run:
+          command: ./set-dist-cache-key-if-last-commit-equal.sh << pipeline.parameters.dist-cache-key >>
+          name: Set the cache key to the last commit if the last commit is equal to this commit.
       - restore_cache:
-          key: dist-v1-{{ .Revision }}
+          key: dist-v1-{{ checksum << pipeline.parameters.dist-cache-key>> }}
       - run:
           command: ./docker/docker-init.sh
           name: Login to Docker Hub, Install binfmt platform & Create the buildx Builder
@@ -83,13 +90,17 @@ jobs:
       - run:
           command: ./docker/docker-compose-exit.sh codex-build-dist
           name: Build Distribution
+      - run:
+          name: Set the cache key to the current commit.
+          command: ./set-dist-cache-key-if-last-commit-equal.sh
       - save_cache:
-          key: dist-cache-v1-{{ .Revision }}
+          key: dist-v1-{{ checksum << pipeline.parameters.dist-cache-key >> }}
           paths:
             - dist
       - persist_to_workspace:
           paths:
             - ./dist
+            - << pipeline.parameters.dist-cache-key >>
           root: .
   build-amd64: &build
     executor: amd64-medium-executor
@@ -98,7 +109,7 @@ jobs:
       - attach_workspace:
           at: .
       - restore_cache:
-          key: dist-v1-{{ .Revision }}
+          key: dist-v1-{{ checksum << pipeline.parameters.dist-cache-key >> }}
       - restore_cache:
           key: wheels-v1-{{ arch }}
       - run:
@@ -140,7 +151,7 @@ workflows:
   main:
     jobs:
       - build-base-amd64: &filters-all
-          filters: 
+          filters:
             branches:
               only:
                 - develop
@@ -148,7 +159,7 @@ workflows:
                 - release
                 - /.*-ci/
       - build-base-arm64: &filters-release
-          filters: 
+          filters:
             branches:
               only:
                 - release-candidate
