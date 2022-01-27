@@ -48,37 +48,48 @@ class SessionView(APIView):
         READER_KEY: {"defaults": {"fit_to": DEFAULTS["fitTo"], "two_pages": False}},
     }
 
-    def get_session(self, session_key=None):
-        """Create or get the view session."""
+    def _get_defaults(self, session_key):
+        """Get the session dict by key."""
         if session_key is None:
             session_key = self.SESSION_KEY
-        defaults = self.SESSION_DEFAULTS[session_key]
-        data = self.request.session.setdefault(session_key, defaults)
-        key_session = self.request.session[session_key]
+        return self.SESSION_DEFAULTS[session_key]
 
-        # Set defaults for each key in case they don't exist.
-        for key, value in defaults.items():
-            data[key] = key_session.setdefault(key, value)
-            if isinstance(value, dict):
-                # Just one level. No need for recursion.
-                for deep_key, deep_value in defaults[key].items():
-                    data[key][deep_key] = key_session[key].setdefault(
-                        deep_key, deep_value
-                    )
+    def _get_defaults_and_session(self, session_key):
+        """Get the session defaults and the session."""
+        defaults = self._get_defaults(session_key)
+        session = self.request.session.get(session_key, defaults)
+        return defaults, session
 
-        return data
+    @classmethod
+    def _get_source_values_or_set_defaults(cls, defaults_dict, source_dict, data):
+        """Recursively copy source_dict values into data or use defaults."""
+        for key, default_value in defaults_dict.items():
+            data[key] = source_dict.get(key, default_value)
+            if data[key] is None:
+                # extra check for migrated or corrupt data
+                data[key] = default_value
+            if isinstance(default_value, dict):
+                cls._get_source_values_or_set_defaults(
+                    default_value, source_dict[key], data[key]
+                )
 
-    def save_session(self, params):
-        """Save the session, with defaults if necessary."""
+    def load_params_from_session(self, session_key=None):
+        """Set the params from view session, creating missing values from defaults."""
+        defaults, session = self._get_defaults_and_session(session_key)
         data = {}
-        for key, value in self.SESSION_DEFAULTS[self.SESSION_KEY].items():
-            if isinstance(value, dict):
-                # Just one level. No need for recursion.
-                data[key] = {}
-                for deep_key, deep_value in value.items():
-                    data[key][deep_key] = params[key].get(deep_key, deep_value)
-            else:
-                data[key] = params.get(key, value)
 
-        self.request.session[self.SESSION_KEY] = data
+        self._get_source_values_or_set_defaults(defaults, session, data)
+        self.params = data
+
+    def get_from_session(self, key, session_key=None):
+        """Get one key from the session or its default."""
+        defaults, session = self._get_defaults_and_session(session_key)
+        return session.get(key, defaults[key])
+
+    def save_params_to_session(self, session_key=None):
+        """Save the session from params with defaults for missing values."""
+        defaults = self._get_defaults(session_key)
+        data = {}
+        self._get_source_values_or_set_defaults(defaults, self.params, data)
+        self.request.session[session_key] = data
         self.request.session.save()

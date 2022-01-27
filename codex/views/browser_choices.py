@@ -55,7 +55,7 @@ class BrowserChoiceView(BrowserBaseView):
 
     def get(self, request, *args, **kwargs):
         """Get choices for filter dialog."""
-        self.params = self.get_session()
+        self.load_params_from_session()
 
         object_filter, _ = self.get_query_filters(True, True)
         comic_qs = Comic.objects.filter(object_filter)
