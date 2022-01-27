@@ -43,7 +43,7 @@ jobs:
       - PLATFORMS=linux/armhf
   build-base-arm32-amd64:
     <<: *build-base
-    executor: amd64-medium-executor
+    executor: amd64-large-executor
     environment:
       - PLATFORMS=linux/armhf
   build-dist:
