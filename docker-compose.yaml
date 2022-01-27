@@ -76,6 +76,14 @@ services:
         HOST_CACHE_DIR: $HOST_CACHE_DIR
         CODEX_WHEEL: $CODEX_WHEEL
     image: docker.io/ajslater/codex-builder-final:$CODEX_BUILDER_FINAL_VERSION
+  codex-wheels:
+    build:
+      context: .
+      dockerfile: wheels.Dockerfile
+      args:
+        CODEX_BUILDER_FINAL_VERSION: $CODEX_BUILDER_FINAL_VERSION
+        CODEX_WHEELS_VERSION: $CODEX_WHEELS_VERSION
+    image: docker.io/ajslater/codex-wheels
   codex-save-final-cache:
     <<: *codex-builder-final
     container_name: codex-save-final-cache

@@ -7,6 +7,7 @@ LABEL maintainer="AJ Slater <aj@slater.net>"
 LABEL version=$CODEX_BUILDER_FINAL_VERSION
 WORKDIR /app
 # Copy in caches and link wheels
+COPY $HOST_CACHE_DIR/wheels $WHEELS
 COPY $HOST_CACHE_DIR/pip /root/.cache/pip
 COPY $HOST_CACHE_DIR/pypoetry /root/.cache/pypoetry
 RUN ./python_cacher/link_wheels_from_caches.py
