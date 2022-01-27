@@ -23,7 +23,12 @@ _Search_
   - Codex now requires the Xapian library to run as a native application
 
 - Drop Support
+
   - The linux/armhf platform is no longer published for Docker.
+
+- License
+
+  - Codex is GPLv3
 
 ## v0.7.5
 
