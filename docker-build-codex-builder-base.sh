@@ -31,7 +31,7 @@ export CODEX_BASE_VERSION
 export CODEX_BUILDER_BASE_VERSION
 export CODEX_DIST_BUILDER_VERSION
 export CODEX_BUILDER_FINAL_VERSION
-ARCH=$(uname -m)
+ARCH=$(./docker-arch.sh)
 export HOST_CACHE_DIR="./cache/packages/$ARCH"
 mkdir -p "$HOST_CACHE_DIR/pypoetry" "$HOST_CACHE_DIR/pip"
 if [ -n "${PLATFORMS:-}" ]; then

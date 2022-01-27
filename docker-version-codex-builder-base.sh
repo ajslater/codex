@@ -3,8 +3,6 @@
 set -euo pipefail
 CODEX_BASE_VERSION=$(./docker-version-codex-base.sh)
 # shellcheck disable=SC2046
-read -ra SHELLCHECK_DEPS <<<$(find vendor/shellcheck -type f \( ! -name "*~" \))
-# shellcheck disable=SC2046
 read -ra PYTHON_CACHER_DEPS <<<$(find python_cacher -type f \( \
     ! -path "*__pycache__*" \
     ! -name "*~" \
@@ -15,7 +13,6 @@ DEPS=(
     builder-base.Dockerfile
     builder-requirements.txt
     docker-build-codex-builder-base.sh
-    "${SHELLCHECK_DEPS[@]}"
     "${PYTHON_CACHER_DEPS[@]}"
 )
 DEPS_MD5S=$(md5sum "${DEPS[@]}")
@@ -24,7 +21,7 @@ VERSION=$(echo -e "$CODEX_BASE_VERSION  codex-base-version\n$DEPS_MD5S" |
     md5sum |
     awk '{print $1}')
 if [[ ${CIRCLECI:-} ]]; then
-    ARCH=$(uname -m)
+    ARCH=$(./docker-arch.sh)
     VERSION="${VERSION}-$ARCH"
 fi
 echo "$VERSION"

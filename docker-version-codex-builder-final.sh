@@ -15,7 +15,7 @@ VERSION=$(echo -e "$CODEX_BUILDER_BASE_VERSION  codex-builder-base-version\n$PKG
     md5sum |
     awk '{print $1}')
 if [[ ${CIRCLECI:-} ]]; then
-    ARCH=$(uname -m)
+    ARCH=$(./docker-arch.sh)
     VERSION="${VERSION}-${ARCH}"
 fi
 
