@@ -4,10 +4,8 @@ export DOCKER_CLI_EXPERIMENTAL=enabled
 export DOCKER_BUILDKIT=1
 # login to docker using environment variables
 echo "$DOCKER_PASS" | docker login --username="$DOCKER_USER" --password-stdin
-# shellcheck disable=SC1091
-source .env.platforms
 if [[ $PLATFORMS == linux/armhf ]]; then
-    PLATFORMS=all # figure this out later
+    PLATFORMS=arm
 elif [[ $(uname -m) == "x86_64" ]]; then
     PLATFORMS=
 elif [[ $(uname -m) == "aarch64" ]]; then
