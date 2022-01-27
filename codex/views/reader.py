@@ -21,6 +21,7 @@ class ComicOpenedView(SessionView):
     """Get info for displaying comic pages."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
+    SESSION_KEY = SessionView.READER_KEY
 
     def _get_prev_next_comics(self):
         """
@@ -85,6 +86,7 @@ class ComicPageView(APIView):
     """Display a comic page from the archive itself."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
+    SESSION_KEY = SessionView.READER_KEY
 
     def get(self, request, *args, **kwargs):
         """Get the comic page from the archive."""
