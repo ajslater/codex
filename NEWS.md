@@ -18,8 +18,12 @@ _Search_
 
   - Metadata panel cleanup and fix some missing fields.
 
-- New Dependencies
+- New Binary Dependencies
+
   - Codex now requires the Xapian library to run as a native application
+
+- No longer published
+  - The linux/armhf platform is no longer published for Docker.
 
 ## v0.7.5
 
