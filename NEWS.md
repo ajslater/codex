@@ -1,6 +1,6 @@
 # 📰 Codex News
 
-## v0.8.0rc2
+## v0.8.0rc3
 
 _Search_
 
@@ -22,8 +22,13 @@ _Search_
 
   - Codex now requires the Xapian library to run as a native application
 
-- No longer published
+- Drop Support
+
   - The linux/armhf platform is no longer published for Docker.
+
+- License
+
+  - Codex is GPLv3
 
 ## v0.7.5
 

@@ -38,7 +38,7 @@ COPY $HOST_CACHE_DIR/pip /root/.cache/pip
 COPY $HOST_CACHE_DIR/pypoetry /root/.cache/pypoetry
 COPY ./python_cacher ./python_cacher
 RUN ./python_cacher/link_wheels_from_caches.py
-# hadolint ignore=DL3042,DL3059
+# hadolint ignore=DL3013,DL3042,DL3059
 RUN pip3 install --find-links=$WHEELS --upgrade pip
 # https://github.com/pyca/cryptography/issues/6673#issuecomment-985943023
 # old hash on this index was 1285ae84e5963aae

@@ -387,7 +387,7 @@ class BrowserView(BrowserMetadataBaseView):
         if not enable_folder_view:
             new_top_group = "r"
             self.params["top_group"] = new_top_group
-            self.save_session(self.params)
+            self.save_params_to_session()
             reason = "folder view disabled"
             route_changes = {"group": new_top_group}
             self._raise_redirect(route_changes, reason)
@@ -426,7 +426,7 @@ class BrowserView(BrowserMetadataBaseView):
         # Redirect if nav group is wrong
         self._set_valid_nav_groups(valid_top_groups)
         if self.valid_nav_group_index is None:
-            self.save_session(self.params)
+            self.save_params_to_session()
             new_nav_group = self.valid_nav_groups[0]
             route_changes = {"group": new_nav_group}
             reason = f"Nav group {nav_group} unavailable, redirect to {new_nav_group}"
@@ -448,7 +448,7 @@ class BrowserView(BrowserMetadataBaseView):
                 reason = "first autoquery: show issues view"
             else:
                 reason = f"changed top group so group {lowest_group} shows issues now"
-            self.save_session(self.params)
+            self.save_params_to_session()
             self._raise_redirect(route_changes, reason)
 
     def _validate_settings(self):
@@ -466,7 +466,7 @@ class BrowserView(BrowserMetadataBaseView):
         self.params["route"] = {"group": group, "pk": pk, "page": page}
 
     def _apply_put_settings(self, data):
-        """Validate submitted settings."""
+        """Validate submitted settings and apply them over the session settings."""
         serializer = BrowserSettingsSerializer(data=data)
         try:
             serializer.is_valid(raise_exception=True)
@@ -475,7 +475,6 @@ class BrowserView(BrowserMetadataBaseView):
             LOG.exception(exc)
             raise exc
 
-        self.params = self.get_session()
         for key, value in serializer.validated_data.items():
             snake_key = self._BROWSER_SETTINGS_KEYS_CAMEL_SNAKE_MAP[key]
             if snake_key == "autoquery" and not self.params.get(snake_key) and value:
@@ -555,7 +554,7 @@ class BrowserView(BrowserMetadataBaseView):
         LIBRARIAN_QUEUE.put_nowait(task)
 
         # Save the session
-        self.save_session(self.params)
+        self.save_params_to_session()
 
         # get additional context
         self._set_group_instance()
@@ -595,10 +594,9 @@ class BrowserView(BrowserMetadataBaseView):
         """Load self.params from the session, update with request."""
         self.top_group_changed = False
         self.autoquery_first = False
+        self.load_params_from_session()
         if from_request:
             self._apply_put_settings(self.request.data)
-        else:
-            self.params = self.get_session()
 
     def put(self, request, *args, **kwargs):
         """Create the view."""

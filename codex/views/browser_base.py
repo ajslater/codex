@@ -54,7 +54,6 @@ class BrowserBaseView(SessionView):
 
     def __init__(self, *args, **kwargs):
         """Set params for the type checker."""
-        self.params = {}
         super().__init__(*args, **kwargs)
 
     def _filter_by_comic_field(self, field, is_model_comic):

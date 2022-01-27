@@ -17,7 +17,7 @@ class IndexView(SessionView, TemplateView):
     def get_context_data(self, **kwargs):
         """Add extra context to the template."""
         context = super().get_context_data(**kwargs)
-        context["last_route"] = self.get_session().get("route")
+        context["last_route"] = self.get_from_session("route")
         context["script_prefix"] = get_script_prefix()
         context["DEBUG"] = DEBUG
         return context

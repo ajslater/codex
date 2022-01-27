@@ -35,7 +35,7 @@ class UserBookmarkUpdateMixin(APIView):
         if self.request.user.is_authenticated:
             search_kwargs["user"] = self.request.user
         else:
-            if not self.request.session or self.request.session.session_key:
+            if not self.request.session or not self.request.session.session_key:
                 LOG.verbose("no session, make one")  # type: ignore
                 self.request.session.save()
             search_kwargs["session_id"] = self.request.session.session_key
@@ -172,8 +172,9 @@ class ComicSettingsView(SessionView, UserBookmarkUpdateMixin):
         serializer = ComicReaderSettingsSerializer(data=self.request.data)
         snake_dict = self._validate(serializer)
         # Default for all comics
-        params = {"defaults": snake_dict}
-        self.save_session(params)
+        self.load_params_from_session()
+        self.params["defaults"] = snake_dict
+        self.save_params_to_session()
 
         # Null out this comic's settings so it uses all comic defaults
         return self.update_one_user_bookmark(self._NULL_READER_SETTINGS)
@@ -191,7 +192,7 @@ class ComicSettingsView(SessionView, UserBookmarkUpdateMixin):
 
     def get(self, request, *args, **kwargs):
         """Get comic settings."""
-        defaults = self.get_session()["defaults"]
+        defaults = self.get_from_session("defaults")
         ub = self._get_user_bookmark()
 
         # Load settings into global and local parts

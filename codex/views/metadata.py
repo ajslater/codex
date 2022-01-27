@@ -304,7 +304,7 @@ class MetadataView(BrowserMetadataBaseView):
     def get(self, _request, *args, **kwargs):
         """Get metadata for a filtered browse group."""
         # Init
-        self.params = self.get_session()
+        self.load_params_from_session()
         self.is_admin = self._get_is_admin()
         self.group = self.kwargs["group"]
         self.model = self.GROUP_MODEL_MAP[self.group]
