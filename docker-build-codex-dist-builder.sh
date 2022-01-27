@@ -4,9 +4,9 @@ set -xeuo pipefail
 source circleci-build-skip.sh
 # shellcheck disable=SC1091
 source .env
-REPO=docker.io/ajslater/codex-builder
-CODEX_BUILDER_VERSION=$(./docker-version-codex-builder.sh)
-IMAGE="${REPO}:${CODEX_BUILDER_VERSION}"
+REPO=docker.io/ajslater/codex-dist-builder
+CODEX_DIST_BUILDER_VERSION=$(./docker-version-codex-dist-builder.sh)
+IMAGE="${REPO}:${CODEX_DIST_BUILDER_VERSION}"
 if [ "${1:-}" == "-f" ]; then
     shift
 else
@@ -19,9 +19,10 @@ fi
 export DOCKER_CLI_EXPERIMENTAL=enabled
 export DOCKER_BUILDKIT=1
 CODEX_BUILDER_BASE_VERSION=$(./docker-version-codex-builder-base.sh)
+CODEX_BUILDER_FINAL_VERSION=$(./docker-version-codex-builder-final.sh)
 export CODEX_BUILDER_BASE_VERSION
-export CODEX_BUILDER_VERSION
-
+export CODEX_DIST_BUILDER_VERSION
+export CODEX_BUILDER_FINAL_VERSION
 if [[ -z ${CIRCLECI:-} && -z ${PLATFORMS:-} ]]; then
     # shellcheck disable=SC1091
     source .env.platforms
@@ -35,6 +36,7 @@ fi
 # shellcheck disable=2068
 docker buildx bake \
     ${PLATFORM_ARG[@]:-} \
-    --set "*.tags=$REPO:${CODEX_BUILDER_VERSION}" \
+    --set "*.tags=$REPO:${CODEX_DIST_BUILDER_VERSION}" \
     --push \
-    codex-builder
+    codex-dist-builder
+docker-compose pull codex-dist-builder

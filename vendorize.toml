@@ -1,0 +1,2 @@
+target = "codex/_vendor2"
+packages = [ "django-haystack==3.1.1" ]

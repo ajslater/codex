@@ -25,8 +25,10 @@ export DOCKER_BUILDKIT=1
 export PLATFORMS
 export PYTHON_ALPINE_VERSION
 export CODEX_BASE_VERSION
-CODEX_BUILDER_VERSION=$(./docker-version-codex-base.sh)
-export CODEX_BUILDER_VERSION
+CODEX_DIST_BUILDER_VERSION=$(./docker-version-codex-dist-builder.sh)
+export CODEX_DIST_BUILDER_VERSION
+CODEX_BUILDER_FINAL_VERSION=$(./docker-version-codex-builder-final.sh)
+export CODEX_BUILDER_FINAL_VERSION
 if [ -n "${PLATFORMS:-}" ]; then
     PLATFORM_ARG=(--set "*.platform=$PLATFORMS")
 else

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Compute the version tag for ajslater/codex-builder
+# Compute the version tag for ajslater/codex-dist-builder
 set -euo pipefail
 CODEX_BUILDER_BASE_VERSION=$(./docker-version-codex-builder-base.sh)
 # shellcheck disable=SC2046
@@ -20,7 +20,7 @@ DEPS=(
     .prettierignore
     .remarkignore
     .shellcheckrc
-    builder.Dockerfile
+    dist-builder.Dockerfile
     build-dist.sh
     build-frontend.sh
     collectstatic.sh
@@ -29,6 +29,8 @@ DEPS=(
     lint-frontend.sh
     manage.py
     pm
+    package.json
+    package-lock.json
     pyproject.toml
     poetry.lock
     setup.cfg
@@ -42,6 +44,7 @@ VERSION=$(echo -e "$CODEX_BUILDER_BASE_VERSION  codex-builder-base-version\n$DEP
     md5sum |
     awk '{print $1}')
 if [[ ${CIRCLECI:-} ]]; then
-    VERSION="${VERSION}-$(uname -m)"
+    ARCH=$(./docker-arch.sh)
+    VERSION="${VERSION}-${ARCH}"
 fi
 echo "$VERSION"

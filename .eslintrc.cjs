@@ -124,6 +124,7 @@ module.exports = {
     "!cache/packages",
     "cache/packages/*",
     "!cache/packages/README.md",
+    "codex/_vendor/haystack",
     "codex/static_build",
     "codex/static_root",
     "comics",

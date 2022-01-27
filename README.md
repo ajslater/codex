@@ -13,7 +13,7 @@ Codex is a comic archive browser and reader.
 - Per user bookmarking. You get per browser bookmarks even before you make an account.
 - Watches the filesystem and automatically imports new or changed comics.
 
-## <a name="demonstration">📖 Demonstration</a>
+## <a name="demonstration">👀 Demonstration</a>
 
 You may browse a [live demo server](https://codex.sl8r.net/) to get a feel for Codex.
 
@@ -122,7 +122,7 @@ or, if using Docker:
 docker run -e CODEX_RESET_ADMIN=1 -v <host path to config>/config:/config ajslater/codex
 ```
 
-## <a name="configuration">⚙️Configuration</a>
+## <a name="configuration">⚙️ Configuration</a>
 
 ### Config Dir
 
@@ -251,14 +251,14 @@ However I and other brave Codex testers may also sometimes be found on the [Myla
 
 ## <a name="out-of-scope">🚫 Out of Scope</a>
 
-- I have no intention of making this an eBook reader like [Ubooquity](https://vaemendis.net/ubooquity/).
-- I am not interested in this becoming a sophisticated comic manager like [Mylar](https://github.com/mylar3/mylar3). I have also come to the conclusion that metadata editing belongs in a manager and not in a reader like Codex.
+- I have no intention of making this an eBook reader.
+- I think metadata editing would be better placed in a comic manager than a reader.
 
 ## <a name="alternatives-to-codex">📚Alternatives</a>
 
 - [Komga](https://komga.org/) has light metadata editing.
 - [Kavita](https://www.kavitareader.com/) has light metadata filtering/editing and supports comics and eBooks.
-- [Ubooquity](https://vaemendis.net/ubooquity/) is a good looking comic webserver. It also reads eBooks.
+- [Ubooquity](https://vaemendis.net/ubooquity/) reads both comics and eBooks.
 - [Mylar](https://github.com/mylar3/mylar3) is the best comic book manager which also has a built in reader.
 - [Comictagger](https://github.com/comictagger/comictagger) seems to be the best comic metadata editor. It comes with a powerful command line and useful desktop GUI.
 
@@ -270,7 +270,7 @@ Codex is a Django Python webserver with a VueJS front end.
 
 `/codex/frontend/` is where the vuejs frontend lives.
 
-`/codex/setup-dev.sh` will install development dependencies.
+`/codex/dev-env-setup.sh` will install development dependencies.
 
 `/codex/dev-ttabs.sh` will run the three or four different servers recommended for development in terminal tabs.
 
@@ -287,6 +287,6 @@ Codex is a Django Python webserver with a VueJS front end.
 - Thanks to [Aurélien Mazurie](https://pypi.org/user/ajmazurie/) for allowing me to use the PyPi name 'codex'.
 - Thanks to the good people of [#mylar](https://github.com/mylar3/mylar3#live-support--conversation) for continuous feedback and comic ecosystem education.
 
-## <a name="enjoy">Enjoy!</a>
+## <a name="enjoy">😊 Enjoy</a>
 
 ![These simple people have managed to tap into the spiritual forces that mystics and yogis spend literal lifetimes seeking. I feel... ...I feel...](strange.jpg)

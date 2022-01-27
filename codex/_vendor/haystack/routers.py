@@ -1,0 +1,14 @@
+from codex._vendor.haystack.constants import DEFAULT_ALIAS
+
+
+class BaseRouter:
+    # Reserved for future extension.
+    pass
+
+
+class DefaultRouter(BaseRouter):
+    def for_read(self, **hints):
+        return DEFAULT_ALIAS
+
+    def for_write(self, **hints):
+        return DEFAULT_ALIAS
