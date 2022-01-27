@@ -15,14 +15,15 @@ keywords = ["comic", "cbz", "cbr", "cbt"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Environment :: Web Environment",
-  "Operating System :: OS Independent",
-  "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: JavaScript",
   "Framework :: Django :: 4.0",
   "Intended Audience :: End Users/Desktop",
+  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+  "Natural Language :: English",
+  "Operating System :: OS Independent",
+  "Programming Language :: JavaScript",
+  "Programming Language :: Python :: 3 :: Only",
   "Topic :: Internet :: WWW/HTTP",
   "Topic :: Multimedia :: Graphics :: Viewers",
-  "Natural Language :: English",
 ]
 packages = [{ include = "codex" }, { include = "tests", format = "sdist" }]
 exclude = ["*/**/*~", "codex/static_src/*", "codex/static_build/*"]
