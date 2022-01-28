@@ -2,7 +2,6 @@
 # Lint checks
 set -euxo pipefail
 cd "$(dirname "$0")"
-source circleci-build-skip.sh
 
 ####################
 ###### Python ######

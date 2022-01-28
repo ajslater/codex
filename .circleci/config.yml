@@ -2,6 +2,9 @@ parameters:
   dist-cache-key:
     type: string
     default: "./cache/dist-cache-key"
+  skip-dist-build:
+    type: env_var_name
+    default: SKIP_DIST_BUILD
 executors:
   amd64-large-executor:
     machine:
@@ -44,13 +47,16 @@ jobs:
     executor: amd64-large-executor
     steps:
       - checkout
-      - restore_cache:
-          key: wheels-v1-{{ arch }}
       - run:
-          command: ./set-dist-cache-key-if-last-commit-equal.sh << pipeline.parameters.dist-cache-key >>
+          command: ./circleci-set-dist-cache-key-if-last-commit-equal.sh << pipeline.parameters.dist-cache-key >>
           name: Set the cache key to the last commit if the last commit is equal to this commit.
       - restore_cache:
           key: dist-v1-{{ checksum "<< pipeline.parameters.dist-cache-key>>" }}
+      - run:
+          command: ./circleci-set-skip-dist-build.sh
+          name: Set the skip job flag
+      - restore_cache:
+          key: wheels-v1-{{ arch }}
       - run:
           command: ./docker/docker-init.sh
           name: Login to Docker Hub, Install binfmt platform & Create the buildx Builder
@@ -92,7 +98,7 @@ jobs:
           name: Build Distribution
       - run:
           name: Set the cache key to the current commit.
-          command: ./set-dist-cache-key-to-current-commit.sh << pipeline.parameters.dist-cache-key >>
+          command: ./circleci-set-dist-cache-key-to-current-commit.sh << pipeline.parameters.dist-cache-key >>
       - save_cache:
           key: dist-v1-{{ checksum "<< pipeline.parameters.dist-cache-key >>" }}
           paths:
