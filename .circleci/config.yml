@@ -2,9 +2,6 @@ parameters:
   dist-cache-key:
     type: string
     default: "./cache/dist-cache-key"
-  skip-dist-build:
-    type: env_var_name
-    default: SKIP_DIST_BUILD
 executors:
   amd64-large-executor:
     machine:
