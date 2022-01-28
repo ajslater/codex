@@ -23,6 +23,7 @@ __pycache__
 alpha*
 cache
 !cache/packages
+circleci*
 comics
 config
 deploy-pypi.sh
