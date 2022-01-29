@@ -1,5 +1,7 @@
 #!/bin/bash
+# Run a docker compose service and return its exit code
 set -euo pipefail
+./circleci-step-halt.sh
 export DOCKER_CLI_EXPERIMENTAL=enabled
 export DOCKER_BUILDKIT=1
 CODEX_BASE_VERSION=$(./docker-version-codex-base.sh)

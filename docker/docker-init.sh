@@ -1,5 +1,6 @@
 #!/bin/bash
 set -euo pipefail
+./circleci-step-halt.sh
 export DOCKER_CLI_EXPERIMENTAL=enabled
 export DOCKER_BUILDKIT=1
 # login to docker using environment variables

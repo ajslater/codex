@@ -6,7 +6,6 @@ from logging import getLogger
 from django.db.models.functions import Now
 from humanize import precisedelta
 
-from codex.darwin_mp import force_darwin_multiprocessing_fork
 from codex.librarian.db.aggregate_metadata import get_aggregate_metadata
 from codex.librarian.db.cleanup import cleanup_database
 from codex.librarian.db.create_comics import bulk_import_comics
@@ -14,18 +13,13 @@ from codex.librarian.db.create_fks import bulk_create_all_fks, bulk_folders_modi
 from codex.librarian.db.deleted import bulk_comics_deleted, bulk_folders_deleted
 from codex.librarian.db.moved import bulk_comics_moved, bulk_folders_moved
 from codex.librarian.db.query_fks import query_all_missing_fks
-from codex.librarian.db.search import (
-    rebuild_search_index_if_db_changed,
-    update_search_index,
-)
 from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
     AdminNotifierTask,
     BroadcastNotifierTask,
     CleanupDatabaseTask,
     DBDiffTask,
-    RebuildSearchIndexIfDBChangedTask,
-    UpdateSearchIndexTask,
+    SearchIndexUpdateTask,
 )
 from codex.models import FailedImport, Library
 from codex.settings.logging import VERBOSE
@@ -121,7 +115,8 @@ def apply(task):
     changed |= changed_comics
     changed |= bulk_folders_deleted(library, task.dirs_deleted)
     changed |= bulk_comics_deleted(library, task.files_deleted)
-    update_search_index(False)
+    search_task = SearchIndexUpdateTask(False)
+    LIBRARIAN_QUEUE.put(search_task)
     changed |= cleanup_database(library)
 
     Library.objects.filter(pk=task.library_id).update(
@@ -154,14 +149,5 @@ class Updater(QueuedThread):
             apply(task)
         elif isinstance(task, CleanupDatabaseTask):
             cleanup_database()
-        elif isinstance(task, UpdateSearchIndexTask):
-            update_search_index(task.rebuild)
-        elif isinstance(task, RebuildSearchIndexIfDBChangedTask):
-            rebuild_search_index_if_db_changed()
         else:
             LOG.warning(f"Bad task sent to library updater {task}")
-
-    def run(self):
-        """Run the multiprocessing start method change for haystack update_index."""
-        force_darwin_multiprocessing_fork()
-        super().run()

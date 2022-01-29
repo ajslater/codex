@@ -9,7 +9,6 @@ from rest_framework.response import Response
 from stringcase import camelcase
 
 from codex.exceptions import SeeOtherRedirectError
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE, BulkComicCoverCreateTask
 from codex.models import (
     AdminFlag,
     Comic,
@@ -505,14 +504,12 @@ class BrowserView(BrowserMetadataBaseView):
         page = self.kwargs.get("page", 1)
         try:
             obj_list = paginator.page(page).object_list
-            covers = True
         except EmptyPage:
             if page < 1 or page > paginator.num_pages:
                 self._page_out_out_bounds(page, paginator.num_pages)
             LOG.warning(f"No items on page {page}")
             obj_list = self.model.objects.filter(pk=-1)  # paginator.page(1).object_list
-            covers = False
-        return obj_list, paginator.num_pages, covers
+        return obj_list, paginator.num_pages
 
     def _get_browser_page(self):
         """Validate settings and get the querysets."""
@@ -536,22 +533,11 @@ class BrowserView(BrowserMetadataBaseView):
             queryset = self._get_browser_group_queryset(object_filter, autoquery_pk)
 
         # Order
-        order_by, order_keys = self.get_order_by(self.model)
+        order_by = self.get_order_by(self.model)
         queryset = queryset.order_by(*order_by)
 
-        # Pagination
-        obj_list, num_pages, covers = self._paginate(queryset)
-
-        # Ensure comic covers exist for all browser cards
-        if group == self.FOLDER_GROUP or not covers:
-            # trimming the union query further breaks alignment
-            comic_cover_tuple = obj_list
-        else:
-            comic_cover_tuple = obj_list.values(
-                "path", f"{UNIONFIX_PREFIX}cover_path", *order_keys
-            )
-        task = BulkComicCoverCreateTask(False, comic_cover_tuple)  # type: ignore
-        LIBRARIAN_QUEUE.put_nowait(task)
+        # Paginate
+        obj_list, num_pages = self._paginate(queryset)
 
         # Save the session
         self.save_params_to_session()

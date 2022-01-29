@@ -5,6 +5,7 @@ from pathlib import Path
 from django.db.models import Q
 from django.db.models.functions import Now
 
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE, BulkComicCoverCreateTask
 from codex.models import (
     Comic,
     Credit,
@@ -84,6 +85,7 @@ def _update_comics(library, comic_paths, mds):
     # set attributes for each comic
     update_comics = []
     now = Now()
+    comic_pks = []
     for comic in comics:
         try:
             md = mds.pop(comic.path)
@@ -94,12 +96,16 @@ def _update_comics(library, comic_paths, mds):
             comic.set_stat()
             comic.updated_at = now  # type: ignore
             update_comics.append(comic)
+            comic_pks.append(comic.pk)
         except Exception as exc:
             LOG.error(f"Error preparing {comic} for update.")
             LOG.exception(exc)
 
     LOG.verbose(f"Bulk updating {num_comics} comics.")  # type: ignore
-    return Comic.objects.bulk_update(update_comics, BULK_UPDATE_COMIC_FIELDS)
+    count = Comic.objects.bulk_update(update_comics, BULK_UPDATE_COMIC_FIELDS)
+    task = BulkComicCoverCreateTask(True, tuple(comic_pks))
+    LIBRARIAN_QUEUE.put(task)
+    return count
 
 
 def _create_comics(library, comic_paths, mds):
@@ -129,7 +135,13 @@ def _create_comics(library, comic_paths, mds):
 
     num_comics = len(create_comics)
     LOG.verbose(f"Bulk creating {num_comics} comics...")  # type: ignore
-    Comic.objects.bulk_create(create_comics)
+    created_comics = Comic.objects.bulk_create(create_comics)
+    # Start the covers task.
+    comic_pks = []
+    for comic in created_comics:
+        comic_pks.append(comic.pk)
+    task = BulkComicCoverCreateTask(True, tuple(comic_pks))
+    LIBRARIAN_QUEUE.put(task)
     return num_comics
 
 

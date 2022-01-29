@@ -1,7 +1,6 @@
 #!/bin/bash
 # Build the wheels builder image
 set -xeuo pipefail
-source circleci-build-skip.sh
 # shellcheck disable=SC1091
 source .env
 REPO=docker.io/ajslater/codex-builder-base

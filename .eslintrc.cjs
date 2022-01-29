@@ -117,6 +117,7 @@ module.exports = {
     "*~",
     "**/__pycache__",
     ".git",
+    "!.circleci",
     ".mypy_cache",
     ".pytest_cache",
     ".venv",

@@ -1,6 +1,6 @@
 # 📰 Codex News
 
-## v0.8.0rc3
+## v0.8.0rc5
 
 _Search_
 

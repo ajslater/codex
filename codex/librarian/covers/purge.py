@@ -10,7 +10,7 @@ LOG = getLogger(__name__)
 
 def _cleanup_cover_dirs(path):
     """Recursively remove empty cover directories."""
-    if COVER_ROOT not in path.parents:
+    if not path or COVER_ROOT not in path.parents:
         return
     try:
         path.rmdir()

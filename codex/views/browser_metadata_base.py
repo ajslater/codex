@@ -55,7 +55,7 @@ class BrowserMetadataBaseView(BrowserBaseView):
         if model == Comic:
             cover_path = F("cover_path")
         else:
-            order_by, _ = self.get_order_by(model, for_cover_path=True)
+            order_by = self.get_order_by(model, for_cover_path=True)
             cover_path = Subquery(
                 queryset.filter(pk=OuterRef("pk"))
                 .order_by(*order_by)
@@ -177,8 +177,6 @@ class BrowserMetadataBaseView(BrowserBaseView):
         else:
             order_key += "order_value"
 
-        order_keys = [order_key, "sort_name", "pk"]
-
         # order_prefix
         order_reverse_prefix = "-" if self.params.get("order_reverse") else ""
 
@@ -191,4 +189,4 @@ class BrowserMetadataBaseView(BrowserBaseView):
             # This keeps position stability for duplicate comics & folders
             order_by += ["library"]
 
-        return order_by, order_keys
+        return order_by

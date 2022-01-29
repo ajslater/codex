@@ -21,6 +21,7 @@ class ComicOpenedView(SessionView):
     """Get info for displaying comic pages."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
+    SESSION_KEY = SessionView.READER_KEY
 
     def _get_prev_next_comics(self):
         """
@@ -56,7 +57,9 @@ class ComicOpenedView(SessionView):
         """Get method."""
         # Get the preve next links and the comic itself in the same go
         comic, routes = self._get_prev_next_comics()
-        browser_route = self.get_from_session("route")
+        browser_route = self.get_from_session(
+            "route", session_key=SessionView.BROWSER_KEY
+        )
 
         if not comic:
             pk = self.kwargs.get("pk")
@@ -85,6 +88,7 @@ class ComicPageView(APIView):
     """Display a comic page from the archive itself."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
+    SESSION_KEY = SessionView.READER_KEY
 
     def get(self, request, *args, **kwargs):
         """Get the comic page from the archive."""

@@ -11,11 +11,13 @@ from codex.librarian.queue_mp import (
     JanitorTask,
     NotifierTask,
     PollLibrariesTask,
-    RebuildSearchIndexIfDBChangedTask,
+    SearchIndexerTask,
+    SearchIndexRebuildIfDBChangedTask,
     UpdaterTask,
     WatchdogEventTask,
     WatchdogSyncTask,
 )
+from codex.librarian.searchd import SearchIndexer
 from codex.librarian.watchdog.eventsd import EventBatcher
 from codex.librarian.watchdog.observers import (
     LibraryEventObserver,
@@ -56,6 +58,8 @@ class LibrarianDaemon(Process):
                     observer.sync_library_watches()
             elif isinstance(task, PollLibrariesTask):
                 self.library_polling_observer.poll(task.library_ids, task.force)
+            elif isinstance(task, SearchIndexerTask):
+                self.search_indexer.queue.put(task)
             elif isinstance(task, JanitorTask):
                 janitor(task)
             elif task == self.SHUTDOWN_TASK:
@@ -70,6 +74,7 @@ class LibrarianDaemon(Process):
     def _create_threads(self):
         """Create all the threads."""
         self.cover_creator = CoverCreator()
+        self.search_indexer = SearchIndexer()
         self.updater = Updater()
         self.event_batcher = EventBatcher()
         self.file_system_event_observer = LibraryEventObserver()
@@ -77,6 +82,7 @@ class LibrarianDaemon(Process):
         self.crond = Crond()
         self._threads = (
             self.cover_creator,
+            self.search_indexer,
             self.updater,
             self.event_batcher,
             self.file_system_event_observer,
@@ -113,7 +119,7 @@ class LibrarianDaemon(Process):
             LOG.verbose("Started Librarian process.")  # type: ignore
             self._create_threads()
             self._start_threads()
-            task = RebuildSearchIndexIfDBChangedTask()
+            task = SearchIndexRebuildIfDBChangedTask()
             LIBRARIAN_QUEUE.put(task)
             run = True
             LOG.verbose(  # type: ignore

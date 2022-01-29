@@ -128,7 +128,6 @@ class AdminLibrary(ModelAdmin):
 
     def regen_comic_covers(self, _, queryset):
         """Regenerate all covers."""
-        # TODO remove
         pks = queryset.values_list("pk", flat=True)
         LIBRARIAN_QUEUE.put(CreateComicCoversLibrariesTask(pks))
 
