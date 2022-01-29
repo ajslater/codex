@@ -9,7 +9,8 @@ from humanfriendly import parse_size
 from xapian_backend import DATETIME_FORMAT
 
 from codex._vendor.haystack.query import SearchQuerySet
-from codex.models import Folder, SearchQuery, SearchResult
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE, SearchIndexUpdateTask
+from codex.models import Comic, Folder, SearchQuery, SearchResult
 from codex.views.session import SessionView
 
 
@@ -274,13 +275,29 @@ class BrowserBaseView(SessionView):
             sqs = SearchQuerySet().auto_query(query_obj.text)
             comic_scores = sqs.values("pk", "score")
             search_results = []
+            # Detect out of date search engine
+            sqs_pks = set()
             for comic_score in comic_scores:
+                sqs_pks.add(comic_score["pk"])
+            valid_pks = Comic.objects.filter(pk__in=sqs_pks).values_list(
+                "pk", flat=True
+            )
+            search_engine_out_of_date = False
+            for comic_score in comic_scores:
+                if comic_score["pk"] not in valid_pks:
+                    search_engine_out_of_date = True
+                    continue
                 sr = SearchResult(
                     query_id=query_obj.pk,
                     comic_id=comic_score["pk"],
                     score=comic_score["score"],
                 )
                 search_results.append(sr)
+            if search_engine_out_of_date:
+                # XXX This should not happen. Need to sync search engine better.
+                LOG.warning("Search index out of date. Scoring non-existent comics.")
+                task = SearchIndexUpdateTask(False)
+                LIBRARIAN_QUEUE.put(task)
             SearchResult.objects.bulk_create(search_results)
         except Exception as exc:
             # Don't save queries with errors

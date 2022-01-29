@@ -23,6 +23,7 @@ REBUILT_DB_PATH = DB_PATH.parent / (DB_PATH.name + ".rebuilt")
 BACKUP_DB_PATH = DB_PATH.parent / (DB_PATH.name + ".backup")
 MIGRATION_0005 = "0005_auto_20200918_0146"
 MIGRATION_0007 = "0007_auto_20211210_1710"
+MIGRATION_0010 = "0010_haystack"
 M2M_NAMES = {
     "Character": "characters",
     "Credit": "credits",
@@ -222,6 +223,22 @@ def _delete_userbookmark_integrity_errors(apps):
     _delete_query(orphan_ubms, "UserBookmark", "session or user")
 
 
+def _delete_search_result_fk_errors(apps):
+    """Fix SearcResults with non valid fields."""
+    if not has_applied_migration(MIGRATION_0010):
+        return
+    comic_model = apps.get_model("codex", "comic")
+    search_query_model = apps.get_model("codex", "searchquery")
+    valid_comics = comic_model.objects.all()
+    valid_queries = search_query_model.objects.all()
+    search_result_model = apps.get_model("codex", "searchresult")
+    orphan_srs = search_result_model.objects.exclude(
+        query__in=valid_queries, comic__in=valid_comics
+    )
+    count, _ = orphan_srs.delete()
+    LOG.verbose(f"Deleted {count} orphan SearchResults")  # type: ignore
+
+
 def _fix_db_integrity():
     """Fix most of the Codex model integrity errors we can."""
     LOG.verbose("Reparing database integrity...")  # type: ignore
@@ -267,6 +284,8 @@ def _fix_db_integrity():
             else:
                 LOG.exception(exc)
     _mark_comics_with_bad_m2m_rels_for_update(comic_model, bad_comic_ids)
+
+    _delete_search_result_fk_errors(apps)
 
     LOG.verbose("Done with database integrity check.")  # type: ignore
 

@@ -243,6 +243,7 @@ INTERNAL_IPS = [
 XAPIAN_INDEX_PATH = CONFIG_PATH / "xapian_index"
 XAPIAN_INDEX_PATH.mkdir(exist_ok=True, parents=True)
 XAPIAN_INDEX_UUID_PATH = XAPIAN_INDEX_PATH / "codex_db.uuid"
+CODEX_XAPIAN_LOCKFILE = XAPIAN_INDEX_PATH / "codex_xapian.lock"
 _XAPIAN_FLAGS = (
     QueryParser.FLAG_BOOLEAN
     | QueryParser.FLAG_BOOLEAN_ANY_CASE
@@ -253,7 +254,7 @@ _XAPIAN_FLAGS = (
 )
 HAYSTACK_CONNECTIONS = {
     "default": {
-        "ENGINE": "xapian_backend.XapianEngine",
+        "ENGINE": "codex.search_engine.CodexXapianSearchEngine",
         "PATH": str(XAPIAN_INDEX_PATH),
         "HAYSTACK_XAPIAN_FLAGS": _XAPIAN_FLAGS,
     },

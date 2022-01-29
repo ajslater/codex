@@ -14,9 +14,9 @@ from codex.librarian.queue_mp import (
     CleanupDatabaseTask,
     CreateComicCoversLibrariesTask,
     PollLibrariesTask,
-    RebuildSearchIndexIfDBChangedTask,
     RestartTask,
-    UpdateSearchIndexTask,
+    SearchIndexRebuildIfDBChangedTask,
+    SearchIndexUpdateTask,
     UpdateTask,
     VacuumTask,
     WatchdogSyncTask,
@@ -65,9 +65,9 @@ class QueueLibrarianJobs(APIView):
         elif task_name == "create_comic_covers":
             task = self._regen_all_comic_covers()
         elif task_name == "update_index":
-            task = UpdateSearchIndexTask(False)
+            task = SearchIndexUpdateTask(False)
         elif task_name == "rebuild_index":
-            task = UpdateSearchIndexTask(True)
+            task = SearchIndexUpdateTask(True)
         elif task_name == "db_cleanup":
             task = CleanupDatabaseTask()
         elif task_name == "db_vacuum":
@@ -75,7 +75,7 @@ class QueueLibrarianJobs(APIView):
         elif task_name == "db_backup":
             task = BackupTask()
         elif task_name == "db_search_sync":
-            task = RebuildSearchIndexIfDBChangedTask()
+            task = SearchIndexRebuildIfDBChangedTask()
         elif task_name == "watchdog_sync":
             task = WatchdogSyncTask()
         elif task_name == "codex_update":

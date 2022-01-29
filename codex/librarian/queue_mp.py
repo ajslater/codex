@@ -59,7 +59,6 @@ class ImageComicCoverCreateTask(ComicCoverTask):
 
     force: bool
     comic_path: str
-    cover_path: str
     image_data: bytes
 
 
@@ -177,17 +176,24 @@ class CleanSearchTask(JanitorTask):
 
 
 @dataclass
-class UpdateSearchIndexTask(UpdaterTask):
-    """Update the search index."""
+class SearchIndexerTask(ABC):
+    """Tasks for the search indexer."""
 
-    rebuild: bool
+    pass
 
 
 @dataclass
-class RebuildSearchIndexIfDBChangedTask(UpdaterTask):
-    """Rebuild the search index if the database changed."""
+class SearchIndexRebuildIfDBChangedTask(SearchIndexerTask):
+    """Task to check if the db is changed and schedule an update task."""
 
     pass
+
+
+@dataclass
+class SearchIndexUpdateTask(SearchIndexerTask):
+    """Update the search index."""
+
+    rebuild: bool
 
 
 LIBRARIAN_QUEUE = Queue()
