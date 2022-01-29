@@ -13,11 +13,6 @@ executors:
       image: ubuntu-2004:202111-02
       docker_layer_caching: true
       resource_class: medium
-  amd64-small-executor:
-    machine:
-      image: ubuntu-2004:202111-02
-      docker_layer_caching: true
-      resource_class: small
   arm64-medium-executor:
     machine:
       image: ubuntu-2004:202101-01
@@ -135,7 +130,7 @@ jobs:
     <<: *build
     executor: arm64-medium-executor
   deploy:
-    executor: amd64-small-executor
+    executor: amd64-medium-executor
     steps:
       - checkout
       - attach_workspace:
