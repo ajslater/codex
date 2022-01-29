@@ -125,6 +125,8 @@ export default {
     },
     orderValue: function () {
       let ov = this.item.order_value;
+      console.log({ ov });
+      console.log(this.orderByCache);
       if (
         this.orderByCache === "sort_name" ||
         this.orderByCache === null ||
@@ -171,6 +173,10 @@ export default {
     orderBy: function (to) {
       this.orderByCache = to;
     },
+  },
+  beforeCreate: function () {
+    // Fixes empty order cache on first load
+    this.orderByCache = this.$store.state.browser.settings.orderBy;
   },
   methods: {
     formatDate: function (ov, time) {
