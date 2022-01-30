@@ -1,6 +1,6 @@
 # 📰 Codex News
 
-## v0.8.0rc5
+## v0.8.0
 
 _Search_
 
@@ -18,7 +18,7 @@ _Search_
 
   - Metadata panel cleanup and fix some missing fields.
 
-- New Binary Dependencies
+- Binary Dependencies
 
   - Codex now requires the Xapian library to run as a native application
 
