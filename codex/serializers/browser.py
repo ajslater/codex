@@ -14,8 +14,8 @@ from rest_framework.serializers import (
     Serializer,
 )
 
+from codex.serializers.choices import CHOICES, VUETIFY_NULL_CODE
 from codex.serializers.mixins import BrowserAggregateSerializerMixin
-from codex.serializers.webpack import CHOICES, VUETIFY_NULL_CODE
 
 
 VUETIFY_NULL_CODE_STR = str(VUETIFY_NULL_CODE)
@@ -79,11 +79,10 @@ class FilterListField(ListField, ABC):
 
     def __init__(self, *args, **kwargs):
         """Apply the subclass's arguments."""
-        validators = self.VALIDATORS + tuple(kwargs.pop("validators", tuple()))
         super().__init__(
             *args,
             child=self.CHILD_CLASS(allow_null=True),
-            validators=validators,
+            validators=self.VALIDATORS,
             **kwargs,
         )
 
@@ -93,6 +92,12 @@ class IntListField(FilterListField):
 
     CHILD_CLASS = IntegerField
     VALIDATORS = (validate_int_null,)
+
+
+class DecadeListField(IntListField):
+    """Integer List Field with validation for decades."""
+
+    VALIDATORS = (validate_int_null, validate_decades)
 
 
 class CharListField(FilterListField):
@@ -113,7 +118,7 @@ class BrowserSettingsFilterSerializer(Serializer):
     country = CharListField()
     creators = IntListField()
     critical_rating = CharListField()
-    decade = IntListField(validators=(validate_decades,))
+    decade = DecadeListField()
     format = CharListField()
     genres = IntListField()
     language = CharListField()
@@ -137,9 +142,10 @@ class BrowserSettingsSerializer(Serializer):
     """
 
     filters = BrowserSettingsFilterSerializer()
-    rootGroup = ChoiceField(choices=tuple(CHOICES["rootGroup"].keys()))  # noqa: N815
-    sortBy = ChoiceField(choices=tuple(CHOICES["sort"].keys()))  # noqa: N815
-    sortReverse = BooleanField()  # noqa: N815
+    autoquery = CharField(allow_blank=True)
+    topGroup = ChoiceField(choices=tuple(CHOICES["topGroup"].keys()))  # noqa: N815
+    orderBy = ChoiceField(choices=tuple(CHOICES["orderBy"].keys()))  # noqa: N815
+    orderReverse = BooleanField()  # noqa: N815
     show = BrowserSettingsShowGroupFlagsSerializer()
 
 
@@ -182,6 +188,8 @@ class BrowserTitleSerializer(Serializer):
 class BrowserPageSerializer(Serializer):
     """The main browse list."""
 
+    NUM_AUTOCOMPLETE_QUERIES = 10
+
     browserTitle = BrowserTitleSerializer(read_only=True)  # noqa: N815
     modelGroup = CharField(read_only=True)  # noqa: N815
     upRoute = BrowserRouteSerializer(allow_null=True)  # noqa: N815
@@ -193,6 +201,9 @@ class BrowserPageSerializer(Serializer):
     numPages = IntegerField(read_only=True)  # noqa: N815
     formChoices = BrowserFormChoicesSerializer(read_only=True)  # noqa: N815
     librariesExist = BooleanField(read_only=True)  # noqa: N815
+    queries = ListField(
+        child=CharField(read_only=True), allow_empty=True, read_only=True
+    )
 
 
 class VersionsSerializer(Serializer):

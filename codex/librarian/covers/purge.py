@@ -1,12 +1,16 @@
 """Purge comic covers."""
+from logging import getLogger
 
 from codex.librarian.covers import COVER_ROOT
 from codex.models import Comic
 
 
+LOG = getLogger(__name__)
+
+
 def _cleanup_cover_dirs(path):
     """Recursively remove empty cover directories."""
-    if COVER_ROOT not in path.parents:
+    if not path or COVER_ROOT not in path.parents:
         return
     try:
         path.rmdir()
@@ -36,6 +40,7 @@ def purge_cover_paths(cover_paths):
 
 def purge_library_covers(library_pks):
     """Remove all cover thumbs for a library."""
+    LOG.verbose(f"Removing comic covers from libraries: {library_pks}")  # type: ignore
     cover_paths = Comic.objects.filter(library_id__in=library_pks).values_list(
         "cover_path", flat=True
     )

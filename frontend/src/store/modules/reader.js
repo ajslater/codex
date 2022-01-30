@@ -1,10 +1,10 @@
 import API from "@/api/v2/comic";
-import FORM_CHOICES from "@/choices/readerChoices";
+import CHOICES from "@/choices";
 import router from "@/router";
 
 const NULL_READER_SETTINGS = {
-  fitTo: null,
-  twoPages: null,
+  fitTo: undefined,
+  twoPages: undefined,
 };
 
 const getGlobalFitToDefault = () => {
@@ -31,24 +31,18 @@ const state = {
       fitTo: getGlobalFitToDefault(),
       twoPages: false,
     },
-    local: {
-      fitTo: null,
-      twoPages: null,
-    },
+    local: JSON.parse(JSON.stringify(NULL_READER_SETTINGS)),
   },
   routes: {
-    current: {
-      pk: undefined,
-      page: undefined,
-    },
     prev: undefined,
     next: undefined,
     prevBook: undefined,
     nextBook: undefined,
   },
   formChoices: {
-    fitTo: FORM_CHOICES.fitTo,
+    fitTo: CHOICES.reader.fitTo,
   },
+  browserRoute: CHOICES.browser.route,
 };
 
 const getters = {
@@ -56,21 +50,21 @@ const getters = {
     // Use the global settings keys as a default for local bookmark settings
     // Fall back to device size defaults.
     const computedSettings = {};
-    Object.keys(state.settings.globl).forEach(function (key) {
-      if (state.settings.local[key] !== null) {
+    for (const key in state.settings.globl) {
+      if (
+        state.settings.local[key] !== null &&
+        state.settings.local[key] !== undefined
+      ) {
         computedSettings[key] = state.settings.local[key];
       } else {
         computedSettings[key] = state.settings.globl[key];
       }
-    });
+    }
     return computedSettings;
   },
 };
 
 const mutations = {
-  setCurrentRoute(state, route) {
-    state.routes.current = route;
-  },
   setReaderChoices(state, data) {
     state.fitToChoices = data.fitToChoices;
   },
@@ -83,16 +77,20 @@ const mutations = {
   setBookInfo(state, data) {
     state.title.seriesName = data.title.seriesName;
     state.title.volumeName = data.title.volumeName;
-    state.title.issue = parseFloat(data.title.issue);
+    state.title.issue = Number.parseFloat(data.title.issue);
     state.title.issueCount = data.title.issueCount;
     state.maxPage = data.maxPage;
-    state.settings = data.settings;
     state.routes.prevBook = data.routes.prevBook;
     state.routes.nextBook = data.routes.nextBook;
-    state.routes.current.pk = data.pk;
+    state.browserRoute = data.browserRoute;
   },
-  setCurrentPrevRoute(state, { page, previousPage }) {
-    state.routes.current.page = page;
+  setBrowserRoute(state, value) {
+    state.browserRoute = value;
+  },
+  setSettings(state, data) {
+    state.settings = data;
+  },
+  setPrevRoute(state, { previousPage }) {
     state.routes.prev = previousPage;
   },
   setNextPage(state, nextPage) {
@@ -106,24 +104,23 @@ const getRouteParams = (
   condition,
   routeParams,
   increment,
-  newComicRouteParams
+  comicRouteParams
 ) => {
-  let newParams;
+  let params;
   if (condition) {
-    newParams = {
-      pk: routeParams.pk,
-      page: routeParams.page + increment,
+    params = {
+      pk: Number(routeParams.pk),
+      page: Number(routeParams.page) + increment,
     };
-  } else if (newComicRouteParams) {
-    newParams = newComicRouteParams;
-  } else {
-    newParams = null;
+  } else if (comicRouteParams) {
+    params = comicRouteParams;
   }
-  return newParams;
+  return params;
 };
 
-const getPreviousRouteParams = (routeParams, state) => {
-  const condition = routeParams.page > 0;
+const getPreviousRouteParams = (state) => {
+  const routeParams = router.currentRoute.params;
+  const condition = Number(routeParams.page) > 0;
   const increment = -1;
   return getRouteParams(
     condition,
@@ -133,10 +130,11 @@ const getPreviousRouteParams = (routeParams, state) => {
   );
 };
 
-const getNextRouteParams = (routeParams, state) => {
+const getNextRouteParams = (state) => {
   const twoPages = getters.computedSettings(state).twoPages;
   const increment = twoPages ? 2 : 1;
-  const condition = routeParams.page + increment <= state.maxPage;
+  const routeParams = router.currentRoute.params;
+  const condition = Number(routeParams.page) + increment <= state.maxPage;
   return getRouteParams(
     condition,
     routeParams,
@@ -145,83 +143,101 @@ const getNextRouteParams = (routeParams, state) => {
   );
 };
 
-const handleBookChangedResult = ({ dispatch, commit }, route, info) => {
-  info.pk = +route.pk;
-  commit("setBookInfo", info);
-  dispatch("routeChanged", route);
-};
-
 const actions = {
-  async readerOpened({ dispatch, commit }, route) {
-    commit("setCurrentRoute", route);
-    const response = await API.getComicOpened(route.pk);
-    handleBookChangedResult({ dispatch, commit }, route, response.data);
+  routerPush(_, route) {
+    router.push(route).catch((error) => {
+      console.debug(error);
+    });
   },
-  async bookChanged({ dispatch, commit }, route) {
-    const response = await API.getComicOpened(route.pk);
-    handleBookChangedResult({ dispatch, commit }, route, response.data);
+  async fetchComicSettings({ commit, dispatch }, info) {
+    return API.getComicSettings(router.currentRoute.params.pk)
+      .then((response) => {
+        const data = response.data;
+        commit("setBookInfo", info);
+        commit("setSettings", data);
+        return dispatch("routeChanged");
+      })
+      .catch((error) => {
+        return console.error(error);
+      });
   },
-  nextRouteChanged({ commit, state }, route) {
-    const nextPage = getNextRouteParams(route, state);
+  async bookChanged({ dispatch }) {
+    await API.getComicOpened(router.currentRoute.params.pk)
+      .then((response) => {
+        const info = response.data;
+        return dispatch("fetchComicSettings", info);
+      })
+      .catch((error) => {
+        if ([303, 404].includes(error.response.status)) {
+          const data = error.response.data;
+          console.debug(`redirect: ${data.reason}`);
+          const route = { name: "browser", params: data.route };
+          return dispatch("routerPush", route);
+        } else {
+          console.error(error);
+        }
+      });
+  },
+  nextRouteChanged({ commit, state }) {
+    const nextPage = getNextRouteParams(state);
     commit("setNextPage", nextPage);
   },
-  routeChanged({ commit, state, dispatch }, route) {
+  routeChanged({ commit, state, dispatch }) {
     // Commit prev & next Pages to state.
-    const previousPage = getPreviousRouteParams(route, state);
-    commit("setCurrentPrevRoute", {
-      page: route.page,
-      previousPage,
-    });
-    dispatch("nextRouteChanged", route);
+    const previousPage = getPreviousRouteParams(state);
+    commit("setPrevRoute", { previousPage });
+    dispatch("nextRouteChanged");
 
     // Set the bookmark
-    API.setComicBookmark(route);
+    API.setComicBookmark(router.currentRoute.params);
   },
   settingChangedLocal({ commit, state, dispatch }, data) {
     commit("setSettingLocal", data);
     API.setComicSettings({
-      pk: state.routes.current.pk,
+      pk: router.currentRoute.params.pk,
       data: state.settings.local,
     });
     if (Object.prototype.hasOwnProperty.call(data, "twoPages")) {
-      dispatch("nextRouteChanged", state.routes.current);
+      dispatch("nextRouteChanged");
     }
+  },
+  settingsDialogClear({ dispatch }) {
+    dispatch("reader/settingChangedLocal", NULL_READER_SETTINGS);
   },
   settingChangedGlobal({ commit, state, dispatch }, data) {
     commit("setSettingGlobal", data);
     commit("setSettingLocal", NULL_READER_SETTINGS);
     API.setComicDefaultSettings({
-      pk: state.routes.current.pk,
+      pk: router.currentRoute.params.pk,
       data: state.settings.globl,
     });
     if (Object.prototype.hasOwnProperty.call(data, "twoPages")) {
-      dispatch("nextRouteChanged", state.routes.current);
+      dispatch("nextRouteChanged");
     }
   },
-  routeTo({ state }, routeParams) {
+  routeTo({ dispatch, state }, routeParams) {
+    // Construct route
+    let finalRouteParams;
     if (routeParams === "next") {
-      routeParams = state.routes.next;
+      finalRouteParams = state.routes.next;
     } else if (routeParams === "prev") {
-      routeParams = state.routes.prev;
-    } else if (!routeParams || !routeParams.pk || routeParams.page == null) {
-      console.warn("Invalid route, not pushing:", routeParams);
-      return;
+      finalRouteParams = state.routes.prev;
+    } else {
+      finalRouteParams = routeParams;
     }
-    if (routeParams.pk === state.routes.current.pk) {
-      if (routeParams.page === state.routes.current.routeParams) {
-        return;
+
+    // Validate route
+    if (finalRouteParams.pk === router.currentRoute.params.pk) {
+      if (finalRouteParams.page > state.maxPage) {
+        finalRouteParams.page = state.maxPage;
+        console.warn("Tried to navigate past the end of the book.");
+      } else if (finalRouteParams.page < 0) {
+        finalRouteParams.page = 0;
+        console.warn("Tried to navigate before the beginning of the book.");
       }
-      if (routeParams.page > state.maxPage) {
-        routeParams.maxPage = state.maxPage;
-      }
     }
-    if (routeParams.page < 0) {
-      routeParams.page = 0;
-    }
-    router.push({
-      name: "reader",
-      params: routeParams,
-    });
+    const route = { name: "reader", params: finalRouteParams };
+    return dispatch("routerPush", route);
   },
 };
 

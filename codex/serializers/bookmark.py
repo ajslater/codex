@@ -8,7 +8,7 @@ from rest_framework.serializers import (
 )
 
 from codex.models import UserBookmark
-from codex.serializers.webpack import CHOICES
+from codex.serializers.choices import CHOICES
 
 
 FIT_TO_CHOICES = tuple(CHOICES["fitTo"].keys())
@@ -33,3 +33,10 @@ class ComicReaderSettingsSerializer(Serializer):
         required=False,
     )
     twoPages = BooleanField(allow_null=True, required=False)  # noqa: N815
+
+
+class ComicReaderBothSettingsSerializer(Serializer):
+    """For both the default and local comic settings."""
+
+    globl = ComicReaderSettingsSerializer(read_only=True)
+    local = ComicReaderSettingsSerializer(read_only=True)

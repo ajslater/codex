@@ -1,6 +1,6 @@
 # Codex Frontend
 
-The codex frontend is built with [VueJS](https://vuejs.org/) and [Vuetify](https://vuetifyjs.com).
+The codex frontend runs on [VueJS](https://vuejs.org/) and [Vuetify](https://vuetifyjs.com).
 
 ## Development
 
@@ -8,4 +8,4 @@ See the package.json file for common development scripts. Running the live reloa
 
 ## Production
 
-After being built, the javascript & css assets are collected by the django collectstatic script and packaged with the main server app.
+The Django collectstatic script packages the webpacked modules from `codex/static_build/` and packages them with the main server app in `codex/static_root/`.

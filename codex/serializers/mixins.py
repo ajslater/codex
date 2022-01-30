@@ -1,5 +1,4 @@
 """Serializer mixins."""
-
 from rest_framework.serializers import (
     BooleanField,
     DecimalField,
@@ -33,7 +32,7 @@ class BrowserAggregateSerializerMixin(metaclass=SerializerMetaclass):
         """
         if instance:
             for key in self.UNIONFIX_KEYS:
-                unionfix_key = f"{UNIONFIX_PREFIX}{key}"
+                unionfix_key = UNIONFIX_PREFIX + key
                 if unionfix_key in instance:
                     instance[key] = instance[unionfix_key]
 

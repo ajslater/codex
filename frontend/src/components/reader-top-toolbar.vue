@@ -1,37 +1,40 @@
 <template>
   <v-toolbar class="readerTopToolbar" dense>
-    <v-btn
-      id="closeBook"
-      :to="{ name: 'browser', params: browserRoute }"
-      large
-      ripple
-      >close book</v-btn
-    >
+    <v-toolbar-items>
+      <v-btn id="closeBook" ref="closeBook" :to="closeBookRoute" large ripple
+        ><span v-if="$vuetify.breakpoint.mdAndUp">close book</span
+        ><span v-else>x</span></v-btn
+      >
+    </v-toolbar-items>
     <v-spacer />
     <v-toolbar-title id="toolbarTitle">{{ title }}</v-toolbar-title>
     <v-spacer />
-    <ReaderKeyboardShortcutsDialog v-if="!isMobile()" />
-    <ReaderSettingsDialog />
-    <MetadataDialog ref="metadataDialog" group="c" :pk="pk" />
+    <v-toolbar-items>
+      <v-btn id="tagButton" @click.stop="openMetadata">
+        <MetadataDialog
+          ref="metadataDialog"
+          group="c"
+          :pk="Number($router.currentRoute.params.pk)"
+        />
+      </v-btn>
+      <SettingsDrawerButton id="settingsButton" />
+    </v-toolbar-items>
   </v-toolbar>
 </template>
 
 <script>
 import { mapGetters, mapState } from "vuex";
 
+import CHOICES from "@/choices";
 import { getFullComicName } from "@/components/comic-name";
 import MetadataDialog from "@/components/metadata-dialog";
-import ReaderKeyboardShortcutsDialog from "@/components/reader-keyboard-shortcuts-dialog";
-import ReaderSettingsDialog from "@/components/reader-settings-dialog";
-
-const DEFAULT_ROUTE = { group: "r", pk: 0, page: 1 };
+import SettingsDrawerButton from "@/components/settings-drawer-button";
 
 export default {
   name: "ReaderTopToolbar",
   components: {
     MetadataDialog,
-    ReaderSettingsDialog,
-    ReaderKeyboardShortcutsDialog,
+    SettingsDrawerButton,
   },
   computed: {
     ...mapState("reader", {
@@ -43,32 +46,37 @@ export default {
           state.title.issueCount
         );
       },
-      pk: (state) => state.routes.current.pk,
     }),
     ...mapGetters("reader", ["computedSettings"]),
-    ...mapState("browser", {
-      browserRoute: (state) => state.routes.current || DEFAULT_ROUTE,
+    ...mapState("reader", {
+      readerBrowserRoute: (state) => state.browserRoute,
     }),
+    ...mapState("browser", {
+      browserRoute: (state) => state.routes.current,
+    }),
+    closeBookRoute: function () {
+      // Choose the best route
+      const params =
+        this.browserRoute ||
+        this.readerBrowserRoute ||
+        window.lastRoute ||
+        CHOICES.browser.route;
+      return { name: "browser", params };
+    },
   },
   mounted() {
     // Keyboard Shortcuts
-    document.addEventListener("keyup", this._keyListener);
+    window.addEventListener("keyup", this._keyListener);
   },
   beforeDestroy: function () {
-    document.removeEventListener("keyup", this._keyListener);
+    window.removeEventListener("keyup", this._keyListener);
   },
   methods: {
     _keyListener: function (event) {
-      // XXX Hack to get around too many listeners being added.
       event.stopPropagation();
-
       switch (event.key) {
-        case "Escape":
-          if (this.$refs.metadataDialog.isOpen) {
-            this.$refs.metadataDialog.isOpen = false;
-          } else {
-            document.querySelector("#closeBook").click();
-          }
+        case "c":
+          this.$refs.closeBook.$el.click();
           break;
 
         case "w":
@@ -94,12 +102,8 @@ export default {
     settingChangedLocal: function (data) {
       this.$store.dispatch("reader/settingChangedLocal", data);
     },
-    isMobile: function () {
-      // Probably janky mobile detection
-      return (
-        typeof window.orientation !== "undefined" ||
-        navigator.userAgent.includes("IEMobile")
-      );
+    openMetadata: function () {
+      this.$refs.metadataDialog.dialog = true;
     },
   },
 };
@@ -112,8 +116,24 @@ export default {
   top: 0px;
 }
 #toolbarTitle {
-  overflow: auto;
-  text-overflow: unset;
+  overflow-y: auto;
+  text-overflow: clip;
+}
+@import "~vuetify/src/styles/styles.sass";
+@media #{map-get($display-breakpoints, 'sm-and-down')} {
+  #closeBook {
+    min-width: 32px;
+  }
+  #tagButton {
+    padding-left: 8px;
+    padding-right: 0px;
+    min-width: 16px;
+  }
+  #settingsButton {
+    padding-left: 10px;
+    padding-right: 0px;
+    width: 16px;
+  }
 }
 </style>
 

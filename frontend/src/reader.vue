@@ -13,7 +13,7 @@
           left: () => $store.dispatch('reader/routeTo', 'next'),
           right: () => $store.dispatch('reader/routeTo', 'prev'),
         }"
-        @click="toggleToolbars()"
+        @click="toggleToolbars"
       >
         <ReaderNavOverlay />
       </nav>
@@ -58,23 +58,22 @@ export default {
   },
   watch: {
     $route(to, from) {
+      const routeParams = {
+        pk: Number(to.params.pk),
+        page: Number(to.params.page),
+      };
       let action = "reader/";
       action +=
-        +to.params.pk !== +from.params.pk ? "bookChanged" : "routeChanged";
-      this.$store.dispatch(action, {
-        pk: +to.params.pk,
-        page: +to.params.page,
-      });
+        !from.params || routeParams.pk !== Number(from.params.pk)
+          ? "book"
+          : "route";
+      action += "Changed";
+      this.$store.dispatch(action, routeParams);
       window.scrollTo(0, 0);
     },
   },
   created() {
-    const params = {
-      // Cast the route params as numbers
-      pk: +this.$route.params.pk,
-      page: +this.$route.params.page,
-    };
-    this.$store.dispatch("reader/readerOpened", params);
+    this.$store.dispatch("reader/bookChanged");
   },
   methods: {
     toggleToolbars: function () {

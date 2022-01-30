@@ -1,13 +1,11 @@
 <template>
   <v-checkbox
-    v-if="model || show"
-    v-model="model"
+    :value="value"
     :indeterminate="indeterminate"
     :label="label"
     hide-details="auto"
     dense
-    ripple
-    :readonly="readonly"
+    readonly
   />
 </template>
 <script>
@@ -20,31 +18,12 @@ export default {
     },
     value: {
       type: Boolean,
-      default: null,
     },
-    readonly: {
-      type: Boolean,
-      default: false,
-    },
-    show: {
-      type: Boolean,
-      default: false,
-    },
-  },
-  data() {
-    return {
-      model: null,
-    };
   },
   computed: {
     indeterminate: function () {
-      return this.value == null;
+      return this.value == undefined;
     },
-  },
-  created: function () {
-    this.model = this.value;
   },
 };
 </script>
-
-<style scoped lang="scss"></style>

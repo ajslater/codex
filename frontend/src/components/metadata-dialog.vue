@@ -6,7 +6,7 @@
     class="metadataDialog"
   >
     <template #activator="{ on }">
-      <v-icon class="metadataButton" v-on="on" @click="dialogOpened()">
+      <v-icon class="metadataButton" v-on="on">
         {{ mdiTagOutline }}
       </v-icon>
     </template>
@@ -32,222 +32,129 @@
           id="topCloseButton"
           title="Close Metadata (esc)"
           ripple
-          @click="dialogClosed()"
+          @click="dialog = false"
           >x</v-btn
         >
-        <MetadataCombobox
-          class="publisher"
-          :value="md.publisher"
-          label="Publisher"
-          :show="editMode"
-        />
-        <MetadataCombobox
-          class="imprint"
-          :value="md.imprint"
-          label="Imprint"
-          :show="editMode"
-        />
-        <MetadataCombobox
-          class="series"
-          :value="md.series"
-          label="Series"
-          :show="editMode"
-        />
-        <div class="publishRow">
-          <MetadataCombobox
+        <MetadataText id="publisher" :value="md.publisher" label="Publisher" />
+        <MetadataText id="imprint" :value="md.imprint" label="Imprint" />
+        <MetadataText id="series" :value="md.series" label="Series" />
+        <div class="inlineRow">
+          <MetadataText
             id="volume"
             class="halfWidth"
             :value="md.volume"
             label="Volume"
-            :show="editMode"
           />
-          <MetadataCombobox
+          <MetadataText
             class="halfWidth"
             :value="md.volume_count"
             label="Volume Count"
-            :show="editMode"
           />
         </div>
-        <div id="issueRow" class="publishRow">
-          <MetadataCombobox
+        <div class="inlineRow">
+          <MetadataText
             id="issue"
             class="halfWidth"
             :value="formattedIssue"
             label="Issue"
-            :show="editMode"
           />
-          <MetadataCombobox
+          <MetadataText
             class="halfWidth"
             :value="md.issue_count"
             label="Issue Count"
-            :show="editMode"
           />
         </div>
-        <MetadataCombobox :value="md.name" label="Title" :show="editMode" />
-      </header>
-
-      <div id="metadataTable">
-        <span v-if="editMode || md.year || md.month || md.day" id="dateRow">
-          <MetadataAutocomplete
-            :show="editMode"
+        <MetadataText :value="md.name" label="Title" />
+        <span v-if="md.year || md.month || md.day" class="inlineRow">
+          <MetadataText
             :value="md.year"
             label="Year"
             class="datePicker"
             type="number"
           />
-          <MetadataAutocomplete
-            :show="editMode"
-            :value="md.month"
-            label="Month"
-            class="datePicker"
-          />
-          <MetadataAutocomplete
-            :show="editMode"
-            :value="md.day"
-            label="Day"
-            class="datePicker"
-          />
+          <MetadataText :value="md.month" label="Month" class="datePicker" />
+          <MetadataText :value="md.day" label="Day" class="datePicker" />
         </span>
-        <span id="uneditableMetadata">
-          <div>
-            <span id="pagesProgress">
-              <span v-if="md.bookmark">Read {{ md.bookmark }} of </span
-              >{{ md.page_count }} pages<span v-if="md.progress > 0">
-                ({{ Math.round(md.progress) }}%)</span
-              >
-              <span v-if="md.finished"> Finished</span>,
-            </span>
-            <span id="size">
-              {{ md.size | bytes }}
-            </span>
+        <MetadataText :value="md.format" label="Format" />
+      </header>
+      <div id="metadataBody">
+        <section class="mdSection">
+          <div class="inlineRow">
+            <MetadataText id="pages" :value="pages" label="Pages" />
+            <MetadataCheckbox
+              id="finished"
+              :value="md.finished"
+              label="Finished"
+            />
+            <MetadataText :value="ltrText" label="Reading Direction" />
           </div>
-          <table id="mtime">
-            <tr v-if="md.created_at" id="created_at">
-              <td>Created at</td>
-              <td>{{ formatDatetime(md.created_at) }}</td>
-            </tr>
-            <tr v-if="md.updated_at" id="updated_at">
-              <td>Updated at</td>
-              <td>{{ formatDatetime(md.updated_at) }}</td>
-            </tr>
-          </table>
-          <span v-if="md.path"> Path: {{ md.path }} </span>
-        </span>
-
-        <MetadataCombobox :show="editMode" :value="md.format" label="Format" />
-        <MetadataCombobox
-          :show="editMode"
-          :value="md.country"
-          label="Country"
-        />
-        <MetadataCombobox
-          :show="editMode"
-          :value="md.language"
-          label="Language"
-        />
-        <a
-          v-if="md.web && !editMode"
-          id="webLink"
-          :href="md.web"
-          target="_blank"
-        >
-          <MetadataCombobox :show="editMode" :value="md.web" label="Web Link" />
-        </a>
-        <MetadataCombobox
-          v-else-if="editMode"
-          :show="editMode"
-          :value="md.web"
-          label="Web Link"
-        />
-        <MetadataAutocomplete
-          :show="editMode"
-          :value="md.user_rating"
-          label="User Rating"
-        />
-        <MetadataAutocomplete
-          :show="editMode"
-          :value="md.critical_rating"
-          label="Critical Rating"
-        />
-        <MetadataAutocomplete
-          :show="editMode"
-          :value="md.maturity_rating"
-          label="Maturity Rating"
-        />
-        <MetadataTags :show="editMode" :values="md.genres" label="Genres" />
-        <MetadataTags :show="editMode" :values="md.tags" label="Tags" />
-        <MetadataTags :show="editMode" :values="md.teams" label="Teams" />
-        <MetadataTags
-          :show="editMode"
-          :values="md.characters"
-          label="Characters"
-        />
-        <MetadataTags
-          :show="editMode"
-          :values="md.locations"
-          label="Locations"
-        />
-        <MetadataTags
-          :show="editMode"
-          :values="md.story_arcs"
-          label="Story Arcs"
-        />
-        <MetadataTags
-          :show="editMode"
-          :values="md.series_groups"
-          label="Series Groups"
-        />
-        <MetadataCombobox :show="editMode" :value="md.scan_info" label="Scan" />
-        <MetadataTextArea
-          :show="editMode"
-          :value="md.summary"
-          label="Summary"
-        />
-        <MetadataTextArea
-          :show="editMode"
-          :value="md.description"
-          label="Description"
-        />
-        <MetadataTextArea :show="editMode" :value="md.notes" label="Notes" />
-        <table v-if="md.credits && md.credits.length > 0" id="creditsTable">
-          <thead>
-            <tr>
-              <th id="creditsTitle" colspan="2">
-                <h2>Creators</h2>
-              </th>
-            </tr>
-            <tr>
-              <th>Role</th>
-              <th>Person</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="credit in md.credits" :key="credit.pk">
-              <td>
-                <MetadataAutocomplete :value="credit.role" />
-              </td>
-              <td>
-                <MetadataCombobox :value="credit.person" />
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <div>
-          <MetadataCheckbox
-            :show="editMode"
-            class="ltrCheckbox"
-            :value="md.read_ltr"
-            label="Read Left to Right"
-            :readonly="true"
-          />
-          <MetadataSwitch
-            v-if="false && isAdmin"
-            class="editModeSwitch"
-            :value="editMode"
-            label="Edit Mode"
-            @input="editMode = $event"
-          />
-        </div>
+        </section>
+        <section class="mdSection">
+          <div class="inlineRow">
+            <MetadataText
+              :value="formatDateTime(md.created_at)"
+              label="Created at"
+              class="mtime"
+            />
+            <MetadataText
+              :value="formatDateTime(md.updated_at)"
+              label="Updated at"
+              class="mtime"
+            />
+          </div>
+          <MetadataText :value="md.path" label="Path" />
+          <MetadataText :value="md.size | bytes" label="Size" />
+        </section>
+        <section class="inlineRow section">
+          <MetadataText :value="md.country" label="Country" />
+          <MetadataText :value="md.language" label="Language" />
+        </section>
+        <section class="mdSection">
+          <MetadataText :value="md.user_rating" label="User Rating" />
+          <MetadataText :value="md.critical_rating" label="Critical Rating" />
+          <MetadataText :value="md.maturity_rating" label="Maturity Rating" />
+        </section>
+        <section class="mdSection">
+          <MetadataTags :values="md.genres" label="Genres" />
+          <MetadataTags :values="md.tags" label="Tags" />
+          <MetadataTags :values="md.teams" label="Teams" />
+          <MetadataTags :values="md.characters" label="Characters" />
+          <MetadataTags :values="md.locations" label="Locations" />
+          <MetadataTags :values="md.story_arcs" label="Story Arcs" />
+          <MetadataTags :values="md.series_groups" label="Series Groups" />
+        </section>
+        <section class="mdSection">
+          <MetadataText :value="md.web" label="Web Link" :link="true" />
+          <MetadataText :value="md.summary" label="Summary" />
+          <MetadataText :value="md.description" label="Description" />
+          <MetadataText :value="md.notes" label="Notes" />
+          <MetadataText :value="md.scan_info" label="Scan" />
+        </section>
+        <section class="mdSection">
+          <v-simple-table v-if="md.credits && md.credits.length > 0">
+            <template #default>
+              <h2>Creators</h2>
+              <table id="creditsTable">
+                <thead>
+                  <tr>
+                    <th class="text-left">Role</th>
+                    <th class="text-left">Creator</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="credit in md.credits" :key="credit.pk">
+                    <td>
+                      {{ credit.role.name }}
+                    </td>
+                    <td>
+                      {{ credit.person.name }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </template>
+          </v-simple-table>
+        </section>
       </div>
       <footer id="footerLinks">
         <v-btn
@@ -271,7 +178,7 @@
             id="bottomCloseButton"
             ripple
             title="Close Metadata (esc)"
-            @click="dialogClosed()"
+            @click="dialog = false"
             >x</v-btn
           >
         </span>
@@ -302,13 +209,10 @@ import { mapGetters, mapState } from "vuex";
 
 import { getDownloadURL } from "@/api/v2/comic";
 import BookCover from "@/components/book-cover";
-import { formattedIssue } from "@/components/comic-name.js";
-import MetadataAutocomplete from "@/components/metadata-autocomplete";
+import { formattedIssue } from "@/components/comic-name";
 import MetadataCheckbox from "@/components/metadata-checkbox";
-import MetadataCombobox from "@/components/metadata-combobox";
-import MetadataSwitch from "@/components/metadata-switch";
 import MetadataTags from "@/components/metadata-tags";
-import MetadataTextArea from "@/components/metadata-textarea";
+import MetadataText from "@/components/metadata-text";
 import { getReaderRoute } from "@/router/route";
 
 // Progress circle
@@ -330,12 +234,9 @@ export default {
   name: "MetadataButton",
   components: {
     BookCover,
-    MetadataAutocomplete,
     MetadataCheckbox,
-    MetadataCombobox,
-    MetadataSwitch,
     MetadataTags,
-    MetadataTextArea,
+    MetadataText,
   },
   props: {
     group: {
@@ -357,7 +258,6 @@ export default {
       mdiEye,
       mdiTagOutline,
       dialog: false,
-      editMode: false,
       progress: 0,
     };
   },
@@ -382,6 +282,29 @@ export default {
       const pageCount = this.md.page_count;
       return getReaderRoute(pk, bookmark, readLTR, pageCount);
     },
+    ltrText: function () {
+      return this.md.read_ltr ? "Left to Right" : "Right to Left";
+    },
+    pages: function () {
+      let pages = "";
+      if (this.md.bookmark) {
+        pages += `Read ${this.md.bookmark} of `;
+      }
+      pages += `${this.md.page_count} pages`;
+      if (this.md.progress > 0) {
+        pages += ` (${Math.round(this.md.progress)}%)`;
+      }
+      return pages;
+    },
+  },
+  watch: {
+    dialog: function (to) {
+      if (to) {
+        this.dialogOpened();
+      } else {
+        this.dialogClosed();
+      }
+    },
   },
   methods: {
     dialogOpened: function () {
@@ -398,7 +321,6 @@ export default {
       this.updateProgress();
     },
     dialogClosed: function () {
-      this.dialog = false;
       this.$store.dispatch("metadata/metadataClosed");
     },
     updateProgress: function () {
@@ -411,7 +333,7 @@ export default {
         this.updateProgress();
       }, UPDATE_INTERVAL);
     },
-    formatDatetime: function (ds) {
+    formatDateTime: function (ds) {
       const dt = new Date(ds);
       return new Intl.DateTimeFormat("en-US", DATE_OPTIONS).format(dt);
     },
@@ -421,6 +343,17 @@ export default {
 
 <style scoped lang="scss">
 @import "~vuetify/src/styles/styles.sass";
+#metadataContainer {
+  display: flex;
+  flex-direction: column;
+  max-width: 100vw;
+}
+#metadataHeader {
+  height: fit-content;
+  max-width: 100vw;
+}
+#metadataBody {
+}
 #placeholderContainer {
   min-height: 100%;
   min-width: 100%;
@@ -447,46 +380,37 @@ export default {
 }
 #topCloseButton,
 #bookCover,
-.publisher,
-.imprint {
+#publisher,
+#imprint {
   padding-top: 0px !important;
 }
-.publisher,
-.imprint {
-  width: 35%;
+.inlineRow > * {
   display: inline-flex;
 }
-#issueRow {
-  margin-left: 135px;
+#publisher,
+#imprint {
+  width: 35%;
 }
-#metadataTable {
-  clear: both;
-  padding-top: 15px;
+.mdSection {
+  margin-top: 25px;
 }
-#metadataHeader > *,
-#metadataTable > * {
-  padding-top: 15px;
+#pages {
+  width: 225px;
 }
-#webLink {
-  display: block;
-}
-.ltrCheckbox,
-.editModeSwitch {
-  display: inline-block !important;
-}
-.editModeSwitch {
-  float: right;
-  /*visibility: hidden; */
-}
-#dateRow {
-  margin-right: 1em;
+#finished {
+  margin-left: 10px;
+  margin-right: 10px;
 }
 .datePicker {
   width: 90px;
   display: inline-block;
 }
-#creditsTable {
-  width: 100%;
+#creditsTable th,
+#creditsTable td {
+  padding: 10px;
+}
+#creditsTable tr:nth-child(even) {
+  background-color: #282828;
 }
 #footerLinks {
   margin-top: 20px;
@@ -500,13 +424,8 @@ export default {
 .halfWidth {
   display: inline-block;
 }
-#mtime {
-  margin-top: 0.5em;
-  margin-bottom: 0.5em;
-  border-collapse: collapse;
-}
-#mtime td {
-  padding-right: 0.25em;
+.mtime {
+  width: 210px;
 }
 .placeholder {
   margin-top: 48px;
@@ -515,32 +434,18 @@ export default {
   #metadataContainer {
     font-size: 12px;
   }
-  .publisher,
-  .imprint,
-  .series {
+  #publisher,
+  #imprint,
+  #series {
     padding-top: 15px !important;
     width: 100%;
   }
   .halfWidth {
     width: 50%;
   }
-  #issueRow {
-    margin-left: 0px;
-  }
-  #dateRow {
-    margin-right: 0px;
-  }
   .datePicker {
     min-width: 65px;
     width: 33%;
-  }
-  #metadataTable {
-    padding-top: 0px;
-  }
-  #uneditableMetadata {
-    display: block;
-    padding-top: 15px;
-    padding-left: 0px;
   }
 }
 /* eslint-disable-next-line vue-scoped-css/no-unused-selector */
@@ -551,5 +456,13 @@ export default {
 #metadataContainer,
 #placeholderContainer {
   padding: 20px;
+}
+</style>
+
+<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
+<style lang="scss">
+.v-dialog {
+  /* Seems like I'm fixing a bug here */
+  background-color: #121212;
 }
 </style>

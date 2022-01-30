@@ -13,7 +13,7 @@
     <div v-else-if="!isOpenToSee" id="announce">
       <h1>
         You may log in or register with the top right
-        <v-icon>{{ mdiDotsVertical }}</v-icon
+        <v-icon>{{ mdiMenu }}</v-icon
         >menu
       </h1>
     </div>
@@ -23,8 +23,8 @@
     <div v-else id="announce">
       <h1>No libraries have been added to Codex yet</h1>
       <h2 v-if="isAdmin">
-        Use the top right <v-icon>{{ mdiDotsVertical }}</v-icon> menu to
-        navigate to the admin panel and add a comic library
+        Use the top right <v-icon>{{ mdiMenu }}</v-icon> menu to navigate to the
+        admin panel and add a comic library.
       </h2>
       <div v-else>
         <h2>
@@ -32,16 +32,22 @@
         </h2>
         <h3>
           You may log in or register with the top right
-          <v-icon>{{ mdiDotsVertical }}</v-icon
+          <v-icon>{{ mdiMenu }}</v-icon
           >menu
         </h3>
       </div>
+      <a
+        href="https://github.com/ajslater/codex#-administration"
+        target="_blank"
+        >See the README</a
+      >
+      for detailed instructions.
     </div>
   </v-main>
 </template>
 
 <script>
-import { mdiDotsVertical } from "@mdi/js";
+import { mdiMenu } from "@mdi/js";
 import { mapGetters, mapState } from "vuex";
 
 import BrowserCard from "@/components/browser-card";
@@ -55,7 +61,7 @@ export default {
   },
   data() {
     return {
-      mdiDotsVertical,
+      mdiMenu,
     };
   },
   computed: {
@@ -92,7 +98,7 @@ export default {
 <style scoped lang="scss">
 #browsePane {
   display: flex;
-  margin-top: 112px;
+  margin-top: 160px;
   margin-left: 15px;
   overflow: auto;
 }

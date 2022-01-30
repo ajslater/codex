@@ -1,15 +1,18 @@
 export const getVolumeName = function (volume) {
   let volumeName;
-  if (volume == "" || volume == null) {
-    volume = 1;
+  if (!volume) {
+    volumeName = "";
+  } else {
+    volumeName =
+      volume.length === 4 && !Number.isNaN(volume)
+        ? " (" + volume + ")"
+        : " v" + volume;
   }
-  volumeName =
-    volume.length === 4 && !isNaN(volume) ? " (" + volume + ")" : " v" + volume;
   return volumeName;
 };
 
 export const formattedIssue = function (decimalIssue) {
-  if (decimalIssue == null) {
+  if (decimalIssue === undefined || decimalIssue === null) {
     return;
   }
   const intIssue = Math.floor(decimalIssue);

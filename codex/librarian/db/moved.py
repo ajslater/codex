@@ -7,6 +7,7 @@ from django.db.models.functions import Now
 from codex.librarian.db.create_comics import bulk_recreate_m2m_field
 from codex.librarian.db.create_fks import bulk_folders_create
 from codex.librarian.db.query_fks import query_missing_folder_paths
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE, BulkComicCoverCreateTask
 from codex.models import Comic, Folder
 
 
@@ -28,6 +29,7 @@ def bulk_comics_moved(library, moved_paths):
 
     folder_m2m_links = {}
     now = Now()
+    comic_pks = []
     for comic in comics:
         comic.path = moved_paths[comic.path]
         new_path = Path(comic.path)
@@ -42,6 +44,7 @@ def bulk_comics_moved(library, moved_paths):
         folder_m2m_links[comic.pk] = Folder.objects.filter(
             path__in=new_path.parents
         ).values_list("pk", flat=True)
+        comic_pks.append(comic.pk)
 
     count = Comic.objects.bulk_update(comics, MOVED_BULK_COMIC_UPDATE_FIELDS)
 
@@ -49,6 +52,8 @@ def bulk_comics_moved(library, moved_paths):
     if folder_m2m_links:
         bulk_recreate_m2m_field("folders", folder_m2m_links)
     log = f"Moved {count} comics."
+    task = BulkComicCoverCreateTask(True, tuple(comic_pks))
+    LIBRARIAN_QUEUE.put(task)
     if count:
         LOG.info(log)
     else:

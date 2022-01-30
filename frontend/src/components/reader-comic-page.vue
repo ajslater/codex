@@ -1,11 +1,5 @@
 <template>
-  <img
-    v-if="displayPage"
-    class="page"
-    :class="fitToClass"
-    :src="src"
-    :alt="alt"
-  />
+  <img v-if="displayPage" :class="fitToClass" :src="src" :alt="alt" />
 </template>
 
 <script>
@@ -21,19 +15,19 @@ export default {
       required: true,
     },
   },
+  data() {
+    return {
+      page: 0,
+    };
+  },
   head() {
-    if (!this.displayPage || !this.nextRoute) {
-      return;
+    if (this.displayPage && this.nextRoute) {
+      return { link: [{ rel: "prefetch", as: "image", href: this.nextSrc }] };
     }
-    return { link: [{ rel: "prefetch", as: "image", href: this.nextSrc }] };
   },
   computed: {
     ...mapState("reader", {
-      page: function (state) {
-        return state.routes.current.page + this.pageIncrement;
-      },
       maxPage: (state) => state.maxPage,
-      currentRoute: (state) => state.routes.current,
       nextRoute: (state) => state.routes.next,
     }),
     ...mapGetters("reader", ["computedSettings"]),
@@ -45,9 +39,9 @@ export default {
       );
     },
     src() {
-      const route = { ...this.currentRoute };
-      route.page = this.page;
-      return getComicPageSource(route);
+      const routeParams = { ...this.$router.currentRoute.params };
+      routeParams.page = this.page;
+      return getComicPageSource(routeParams);
     },
     nextSrc() {
       const route = { ...this.nextRoute };
@@ -58,17 +52,33 @@ export default {
       return `Page ${this.page}`;
     },
     fitToClass() {
-      let cls = "";
+      let classes = { page: true };
       const fitTo = this.computedSettings.fitTo;
       if (fitTo) {
-        cls = "fitTo";
-        cls += fitTo.charAt(0).toUpperCase();
-        cls += fitTo.slice(1).toLowerCase();
+        let fitToClass = "fitTo";
+        fitToClass += fitTo.charAt(0).toUpperCase();
+        fitToClass += fitTo.slice(1).toLowerCase();
         if (this.computedSettings.twoPages) {
-          cls += "Two";
+          fitToClass += "Two";
         }
+        classes[fitToClass] = true;
       }
-      return cls;
+      return classes;
+    },
+  },
+  watch: {
+    $route: function () {
+      this.setPage();
+    },
+  },
+  created: function () {
+    this.setPage();
+  },
+  methods: {
+    setPage: function () {
+      // This can't be computed because router params aren't reactive.
+      this.page =
+        Number(this.$router.currentRoute.params.page) + this.pageIncrement;
     },
   },
 };

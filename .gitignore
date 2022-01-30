@@ -140,16 +140,22 @@ jspm_packages/
 
 # codex specific
 *~
+.env.pushover
 .venv
 .DS_Store
 build
-cache
+# only include the cache/packages/README.md file
+cache/*
+!cache/packages
+cache/packages/*
+!cache/packages/README.md
 comics
 config
 codex/static_build/
 codex/static_root/
 dist
 db.sqlite3
+frontend/coverage
 monkeytype.sqlite3
 node_modules
 requirements.txt

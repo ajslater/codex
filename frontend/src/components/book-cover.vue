@@ -16,8 +16,7 @@
       <div class="bookCoverOverlayTopRow">
         <div
           v-if="finished !== true"
-          class="unreadFlag"
-          :class="{ mixedreadFlag: finished === null }"
+          :class="{ unreadFlag: true, mixedreadFlag: finished === null }"
         />
 
         <span v-if="group !== 'c'" class="childCount">
@@ -29,7 +28,7 @@
 </template>
 
 <script>
-import { getCoverSrc } from "@/api/v2/cover";
+import { getCoverSource } from "@/api/v2/cover";
 
 export default {
   name: "BookCover",
@@ -40,11 +39,10 @@ export default {
     },
     childCount: {
       type: Number,
-      default: null,
+      default: 1,
     },
     finished: {
       type: Boolean,
-      default: null,
     },
     coverPath: {
       type: String,
@@ -58,7 +56,7 @@ export default {
   },
   computed: {
     coverSrc: function () {
-      return getCoverSrc(this.coverPath);
+      return getCoverSource(this.coverPath);
     },
   },
   mounted: function () {

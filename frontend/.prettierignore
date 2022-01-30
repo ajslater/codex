@@ -1,4 +1,5 @@
-public/index.html
+coverage
 dist
+public
 node_modules
 webpack-stats.json

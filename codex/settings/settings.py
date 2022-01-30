@@ -17,6 +17,7 @@ from logging import getLogger
 from pathlib import Path
 
 from tzlocal import get_localzone_name  # type: ignore
+from xapian import QueryParser
 
 from codex.settings.hypercorn import load_hypercorn_config
 from codex.settings.logging import init_logging
@@ -34,6 +35,7 @@ SECRET_KEY = get_secret_key(CONFIG_PATH)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(os.environ.get("DEBUG", False))
+DEBUG_TOOLBAR = bool(os.environ.get("DEBUG_TOOLBAR", False))
 
 #
 # Logging
@@ -54,11 +56,15 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    "codex._vendor.haystack",
 ]
 
 if DEBUG:
     # comes before static apps
-    INSTALLED_APPS += ["livereload", "debug_toolbar"]
+    INSTALLED_APPS += ["livereload"]
+    INSTALLED_APPS += ["nplusone.ext.django"]
+    if DEBUG_TOOLBAR:
+        INSTALLED_APPS += ["debug_toolbar"]
 
 INSTALLED_APPS += [
     "whitenoise.runserver_nostatic",
@@ -86,8 +92,16 @@ MIDDLEWARE = [
 if DEBUG:
     MIDDLEWARE += [
         "livereload.middleware.LiveReloadScript",
-        "debug_toolbar.middleware.DebugToolbarMiddleware",
     ]
+    if DEBUG_TOOLBAR:
+        MIDDLEWARE += [
+            "debug_toolbar.middleware.DebugToolbarMiddleware",
+        ]
+    MIDDLEWARE += ["nplusone.ext.django.NPlusOneMiddleware"]
+    NPLUSONE_LOGGER = getLogger("nplusone")
+    from logging import WARN
+
+    NPLUSONE_LOG_LEVEL = WARN
 
 
 ROOT_URLCONF = "codex.urls"
@@ -176,28 +190,28 @@ MAX_DB_OPS = HYPERCORN_CONFIG.max_db_ops  # type: ignore
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 CONFIG_STATIC = CONFIG_PATH / "static"
 CONFIG_STATIC.mkdir(exist_ok=True, parents=True)
-# XXX Abuse the Whitenoise ROOT feature to serve covers
-# A little dangerous because whitenoise will serve anything from that
-# static directory. But it sure is fast.
+# Use the Whitenoise ROOT feature to serve covers
 WHITENOISE_ROOT = CONFIG_STATIC
 WHITENOISE_KEEP_ONLY_HASHED_FILES = True
 WHITENOISE_STATIC_PREFIX = "static/"
-# XXX Attempt to fix new covers not displaying bug
-#     Bad for performance and security
+# Bad for performance and security
+# But new covers don't display without it
 # http://whitenoise.evans.io/en/stable/django.html#WHITENOISE_AUTOREFRESH
 WHITENOISE_AUTOREFRESH = True
 STATIC_ROOT = CODEX_PATH / "static_root"
 STATIC_URL = ROOT_PATH + WHITENOISE_STATIC_PREFIX
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-if DEBUG:
+STATICFILES_DIRS = [CONFIG_STATIC]
+BUILD = os.environ.get("BUILD", False)
+if DEBUG or BUILD:
     STATIC_SRC = CODEX_PATH / "static_src"
     STATIC_SRC.mkdir(exist_ok=True, parents=True)
     STATIC_BUILD = CODEX_PATH / "static_build"
     STATIC_BUILD.mkdir(exist_ok=True, parents=True)
-    STATICFILES_DIRS = (
+    STATICFILES_DIRS += [
         STATIC_SRC,
         STATIC_BUILD,
-    )
+    ]
 
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 60  # 60 days
 
@@ -225,3 +239,23 @@ CACHES = {
 INTERNAL_IPS = [
     "127.0.0.1",
 ]
+
+XAPIAN_INDEX_PATH = CONFIG_PATH / "xapian_index"
+XAPIAN_INDEX_PATH.mkdir(exist_ok=True, parents=True)
+XAPIAN_INDEX_UUID_PATH = XAPIAN_INDEX_PATH / "codex_db.uuid"
+CODEX_XAPIAN_LOCKFILE = XAPIAN_INDEX_PATH / "codex_xapian.lock"
+_XAPIAN_FLAGS = (
+    QueryParser.FLAG_BOOLEAN
+    | QueryParser.FLAG_BOOLEAN_ANY_CASE
+    | QueryParser.FLAG_PHRASE
+    | QueryParser.FLAG_LOVEHATE
+    | QueryParser.FLAG_WILDCARD
+    | QueryParser.FLAG_PURE_NOT
+)
+HAYSTACK_CONNECTIONS = {
+    "default": {
+        "ENGINE": "codex.search_engine.CodexXapianSearchEngine",
+        "PATH": str(XAPIAN_INDEX_PATH),
+        "HAYSTACK_XAPIAN_FLAGS": _XAPIAN_FLAGS,
+    },
+}

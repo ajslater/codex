@@ -15,15 +15,20 @@ const debug = process.env.NODE_ENV !== "production";
 // vue-native-websockets doesn't put socket stuff in its own module :/
 const state = {
   socket: socket.state,
+  isSettingsDrawerOpen: false,
 };
 
 const mutations = {
   ...socket.mutations,
+  setIsSettingsDrawerOpen(state, value) {
+    state.isSettingsDrawerOpen = value;
+  },
 };
 
 const actions = {};
 const modules = { auth, browser, metadata, notify, reader };
 
+// eslint-disable-next-line import/no-named-as-default-member
 export default new Vuex.Store({
   state,
   mutations,

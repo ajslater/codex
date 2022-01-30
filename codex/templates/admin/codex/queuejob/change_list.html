@@ -1,0 +1,71 @@
+{% extends "admin/change_list.html" %}
+{% load static %}
+{% block extrapagestyle %}
+<script defer src="{% static "admin/js/queue-job.js" type="text/javascript" %}"></script>
+<link href="{% static "admin/css/queue-job.css" %}" rel="stylesheet" type="text/css">
+<script>
+  var csrfToken = "{{ csrf_token }}";
+  var rootPath = "{{ script_prefix }}";
+</script>
+{% endblock %}
+
+{% block content_title %}<h1>Queue Librarian Jobs</h1>{% endblock %}
+
+{% block content %}
+<form id="queueJobForm">
+<h2>Database</h2>
+<input type="radio" name="task" value="poll"><label>Poll All Libraries For Changes</label><br/>
+<input type="radio" name="task" value="poll_force"><label>Update All Comics</label><br/>
+<input type="radio" name="task" value="db_cleanup"><label>Clean Up Database</label><br/>
+<input type="radio" name="task" value="create_comic_covers"><label>Recreate All Comic Covers</label><br/>
+<input type="radio" name="task" value="watchdog_sync"><label>Sync Watchdog with Database</label><br/>
+<input type="radio" name="task" value="db_vacuum"><label>Compact Database</label><br/>
+<input type="radio" name="task" value="db_backup"><label>Backup Database</label><br/>
+<h2>Search Index</h2>
+<input type="radio" name="task" value="update_index"><label>Update Search Index</label><br/>
+<input type="radio" name="task" value="rebuild_index"><label>Rebuild Search Index</label><br/>
+<input type="radio" name="task" value="clean_queries"><label>Clean Up Search Cache</label><br/>
+<input type="radio" name="task" value="db_search_sync"><label>Check Search Index / Database Match</label><br/>
+<h2>Codex Server</h2>
+<input type="radio" name="task" value="codex_update"><label>Check for Codex Software Update</label><br/>
+<input type="radio" name="task" value="codex_restart"><label>Restart Codex Server</label><br/>
+<h2>Notify All Users</h2>
+<input type="radio" name="task" value="notify_all"><label>Library Changed</label><br/>
+<button id="queueJobButton" type="button" disabled>Queue</button>
+</form>
+{% endblock %}
+
+{% block footer %}
+<div id="footer">
+<h2>Database</h2>
+<h3>Poll All Libraries for Changes</h3>
+Poll all libraries for changes. Update the library if changes are detected.
+<h3>Update All Comics</h3>
+Forcibly update all the comics in all libraries, overwrite the database and regenerate covers.
+<h3>Recreate All Comic Covers</h3>
+Recreate all the comic covers in every library.
+<h3>Sync Watchdog with Database</h3>
+Ensure the Watchdog file watcher is enabled per database preferences for each library.
+<h3>Compact Database</h3>
+Run the sqlite3 vacuum pragma. Runs nightly.
+<h3>Backup Database</h3>
+Backup the database. Runs nightly.
+<h2>Search Index</h2>
+<h3>Update Search Index</h3>
+Update the search index with recently changed comics.
+<h3>Rebuild Search Index</h3>
+Delete and rebuild the search index from scratch.
+<h3>Clean Up Search Index</h3>
+Remove old cached search queries.
+<h3>Check Search Index / Database Match</h3>
+Check to see if this database matches the current search index. If there is a mismatch, rebuild the search index.
+<h2>Codex Server</h2>
+<h3>Check for Codex Software update</h3>
+Force an update of the Codex software. If Codex updates to a new version, it will restart.
+<h3>Restart Codex Now</h3>
+Restart the Codex server.
+<h2>Notify All Users</h2>
+<h3>Library Changed</h3>
+Signal all clients that the library has changed and the browser should fetch new data.
+</div>
+{% endblock %}

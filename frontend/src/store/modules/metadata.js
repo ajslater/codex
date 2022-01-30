@@ -15,12 +15,17 @@ const mutations = {
 const actions = {
   async metadataOpened({ commit }, { group, pk }) {
     // Set the metadata store.
-    commit("setMetadata", null);
-    const response = await API.getMetadata(group, pk);
-    commit("setMetadata", response.data);
+    await API.getMetadata(group, pk)
+      .then((response) => {
+        return commit("setMetadata", response.data);
+      })
+      .catch((error) => {
+        console.error(error);
+        commit("setMetadata");
+      });
   },
   metadataClosed({ commit }) {
-    commit("setMetadata", null);
+    commit("setMetadata");
   },
 };
 

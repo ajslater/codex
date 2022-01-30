@@ -33,7 +33,7 @@ VERSION = get_version()
 
 def _get_version_from_db():
     try:
-        lv = LatestVersion.objects.get(pk=LatestVersion.PK)
+        lv = LatestVersion.objects.get(pk=LatestVersion.CODEX_VERSION_PK)
         expired = timezone.now() - lv.updated_at > CACHE_EXPIRY
         if expired:
             raise LatestVersion.DoesNotExist()
@@ -59,7 +59,7 @@ def get_latest_version(
     latest_version = _get_version_from_db()
     if latest_version is None:
         latest_version = _fetch_latest_version(package_name, repo_url_template)
-        LatestVersion.set_version(latest_version)
+        LatestVersion.set_codex_version(latest_version)
     return latest_version
 
 

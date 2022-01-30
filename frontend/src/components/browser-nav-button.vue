@@ -2,10 +2,10 @@
   <v-btn
     class="browserNavButton"
     :disabled="disabled"
-    :to="toRoute"
-    :title="nextPage"
+    :title="toPage"
     large
     ripple
+    @click="routeToPage"
   >
     <v-icon :class="{ flipHoriz: !back }">{{ mdiChevronLeft }}</v-icon>
   </v-btn>
@@ -26,42 +26,39 @@ export default {
   data() {
     return {
       mdiChevronLeft,
+      page: 1,
+      increment: this.back ? -1 : 1,
     };
   },
   computed: {
     ...mapState("browser", {
-      page: function (state) {
-        if (!state.routes.current) {
-          return null;
-        }
-        return state.routes.current.page;
-      },
-      numPages: (state) => state.numPages,
-      toRoute: function (state) {
-        if (!state.routes.current || !this.nextPage) {
-          return "";
-        }
-        return {
-          name: "browser",
-          params: {
-            pk: +state.routes.current.pk,
-            group: state.routes.current.group,
-            page: this.nextPage,
-          },
-        };
-      },
+      numPages: (state) => Number(state.numPages),
     }),
-    nextPage: function () {
-      if (!this.page) {
-        return null;
-      }
-      const increment = this.back ? -1 : 1;
-      return +this.page + increment;
+    toPage: function () {
+      return this.page + this.increment;
     },
     disabled: function () {
-      return this.back
-        ? this.page <= 0
-        : !this.numPages && this.page >= +this.numPages;
+      return (
+        (this.back && this.page <= 1) ||
+        (!this.back && this.page >= this.numPages)
+      );
+    },
+  },
+  watch: {
+    $route: function () {
+      this.setPage();
+    },
+  },
+  created: function () {
+    this.setPage();
+  },
+  methods: {
+    setPage: function () {
+      // This cannot be computed because router params are not reactive.
+      this.page = Number(this.$router.currentRoute.params.page);
+    },
+    routeToPage: function () {
+      this.$store.dispatch("browser/routeToPage", this.toPage);
     },
   },
 };

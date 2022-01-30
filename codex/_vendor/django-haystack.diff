@@ -1,0 +1,524 @@
+# Non automated/import patches to django-haystack
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/__init__.py ../codex/_vendor/haystack/__init__.py
+5,6c5,6
+< from ..haystack.constants import DEFAULT_ALIAS
+< from ..haystack.utils import loading
+---
+> from codex._vendor.haystack.constants import DEFAULT_ALIAS
+> from codex._vendor.haystack.utils import loading
+10,16c10,18
+< try:
+<     pkg_distribution = get_distribution("django-haystack")
+<     __version__ = pkg_distribution.version
+<     version_info = pkg_distribution.parsed_version
+< except DistributionNotFound:
+<     __version__ = "0.0.dev0"
+<     version_info = parse_version(__version__)
+---
+> # try:
+> #    pkg_distribution = get_distribution("django-haystack")
+> #    __version__ = pkg_distribution.version
+> #    version_info = pkg_distribution.parsed_version
+> # except DistributionNotFound:
+> #    __version__ = "0.0.dev0"
+> #    version_info = parse_version(__version__)
+> __version__ = "3.1.1+codex.0"
+> version_info = parse_version(__version__)
+18c20
+< default_app_config = "haystack.apps.HaystackConfig"
+---
+> # default_app_config = "codex._vendor.haystack.apps.HaystackConfig"
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/admin.py ../codex/_vendor/haystack/admin.py
+7c7
+< from django.utils.translation import ungettext
+---
+> from django.utils.translation import ngettext
+9,12c9,12
+< from ..haystack import connections
+< from ..haystack.constants import DEFAULT_ALIAS
+< from ..haystack.query import SearchQuerySet
+< from ..haystack.utils import get_model_ct_tuple
+---
+> from codex._vendor.haystack import connections
+> from codex._vendor.haystack.constants import DEFAULT_ALIAS
+> from codex._vendor.haystack.query import SearchQuerySet
+> from codex._vendor.haystack.utils import get_model_ct_tuple
+119c119
+<         selection_note = ungettext(
+---
+>         selection_note = ngettext(
+124c124
+<         selection_note_all = ungettext(
+---
+>         selection_note_all = ngettext(
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/apps.py ../codex/_vendor/haystack/apps.py
+6,7c6,7
+< from ..haystack import connection_router, connections
+< from ..haystack.utils import loading
+---
+> from codex._vendor.haystack import connection_router, connections
+> from codex._vendor.haystack.utils import loading
+11c11
+<     name = "haystack"
+---
+>     name = "codex._vendor.haystack"
+27c27
+<                 "haystack.signals.BaseSignalProcessor",
+---
+>                 "codex._vendor.haystack.signals.BaseSignalProcessor",
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/backends/__init__.py ../codex/_vendor/haystack/backends/__init__.py
+11,15c11,15
+< from ...haystack.constants import DEFAULT_ALIAS, FILTER_SEPARATOR, VALID_FILTERS
+< from ...haystack.exceptions import FacetingError, MoreLikeThisError
+< from ...haystack.models import SearchResult
+< from ...haystack.utils import get_model_ct
+< from ...haystack.utils.loading import UnifiedIndex
+---
+> from codex._vendor.haystack.constants import DEFAULT_ALIAS, FILTER_SEPARATOR, VALID_FILTERS
+> from codex._vendor.haystack.exceptions import FacetingError, MoreLikeThisError
+> from codex._vendor.haystack.models import SearchResult
+> from codex._vendor.haystack.utils import get_model_ct
+> from codex._vendor.haystack.utils.loading import UnifiedIndex
+37c37
+<                 from ...haystack import connections
+---
+>                 from codex._vendor.haystack import connections
+215c215
+<         from ...haystack import connections
+---
+>         from codex._vendor.haystack import connections
+507c507
+<         from ...haystack import connections
+---
+>         from codex._vendor.haystack import connections
+523c523
+<         from ...haystack import connections
+---
+>         from codex._vendor.haystack import connections
+909c909
+<         from ...haystack.utils.geo import ensure_point
+---
+>         from codex._vendor.haystack.utils.geo import ensure_point
+919c919
+<         from ...haystack.utils.geo import ensure_distance, ensure_point
+---
+>         from codex._vendor.haystack.utils.geo import ensure_distance, ensure_point
+932c932
+<         from ...haystack.utils.geo import ensure_point
+---
+>         from codex._vendor.haystack.utils.geo import ensure_point
+938c938
+<         from ...haystack import connections
+---
+>         from codex._vendor.haystack import connections
+947c947
+<         from ...haystack import connections
+---
+>         from codex._vendor.haystack import connections
+967c967
+<         from ...haystack import connections
+---
+>         from codex._vendor.haystack import connections
+998c998
+<         from ...haystack import connections
+---
+>         from codex._vendor.haystack import connections
+1042c1042
+<             from ...haystack import connections
+---
+>             from codex._vendor.haystack import connections
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/backends/elasticsearch2_backend.py ../codex/_vendor/haystack/backends/elasticsearch2_backend.py
+6,7c6,7
+< from ...haystack.backends import BaseEngine
+< from ...haystack.backends.elasticsearch_backend import (
+---
+> from codex._vendor.haystack.backends import BaseEngine
+> from codex._vendor.haystack.backends.elasticsearch_backend import (
+11,13c11,13
+< from ...haystack.constants import DJANGO_CT
+< from ...haystack.exceptions import MissingDependency
+< from ...haystack.utils import get_identifier, get_model_ct
+---
+> from codex._vendor.haystack.constants import DJANGO_CT
+> from codex._vendor.haystack.exceptions import MissingDependency
+> from codex._vendor.haystack.utils import get_identifier, get_model_ct
+244c244
+<         from ...haystack import connections
+---
+>         from codex._vendor.haystack import connections
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/backends/elasticsearch5_backend.py ../codex/_vendor/haystack/backends/elasticsearch5_backend.py
+6,8c6,8
+< from ... import haystack
+< from ...haystack.backends import BaseEngine
+< from ...haystack.backends.elasticsearch_backend import (
+---
+> from codex._vendor. import haystack
+> from codex._vendor.haystack.backends import BaseEngine
+> from codex._vendor.haystack.backends.elasticsearch_backend import (
+12,14c12,14
+< from ...haystack.constants import ALL_FIELD, DEFAULT_OPERATOR, DJANGO_CT, FUZZINESS
+< from ...haystack.exceptions import MissingDependency
+< from ...haystack.utils import get_identifier, get_model_ct
+---
+> from codex._vendor.haystack.constants import ALL_FIELD, DEFAULT_OPERATOR, DJANGO_CT, FUZZINESS
+> from codex._vendor.haystack.exceptions import MissingDependency
+> from codex._vendor.haystack.utils import get_identifier, get_model_ct
+311c311
+<         from ...haystack.utils.geo import generate_bounding_box
+---
+>         from codex._vendor.haystack.utils.geo import generate_bounding_box
+336c336
+<         from ...haystack import connections
+---
+>         from codex._vendor.haystack import connections
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/backends/elasticsearch7_backend.py ../codex/_vendor/haystack/backends/elasticsearch7_backend.py
+6,8c6,8
+< from ... import haystack
+< from ...haystack.backends import BaseEngine
+< from ...haystack.backends.elasticsearch_backend import (
+---
+> from codex._vendor. import haystack
+> from codex._vendor.haystack.backends import BaseEngine
+> from codex._vendor.haystack.backends.elasticsearch_backend import (
+12,14c12,14
+< from ...haystack.constants import DEFAULT_OPERATOR, DJANGO_CT, DJANGO_ID, FUZZINESS
+< from ...haystack.exceptions import MissingDependency
+< from ...haystack.utils import get_identifier, get_model_ct
+---
+> from codex._vendor.haystack.constants import DEFAULT_OPERATOR, DJANGO_CT, DJANGO_ID, FUZZINESS
+> from codex._vendor.haystack.exceptions import MissingDependency
+> from codex._vendor.haystack.utils import get_identifier, get_model_ct
+378c378
+<         from ...haystack.utils.geo import generate_bounding_box
+---
+>         from codex._vendor.haystack.utils.geo import generate_bounding_box
+403c403
+<         from ...haystack import connections
+---
+>         from codex._vendor.haystack import connections
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/backends/elasticsearch_backend.py ../codex/_vendor/haystack/backends/elasticsearch_backend.py
+8,10c8,10
+< from ... import haystack
+< from ...haystack.backends import BaseEngine, BaseSearchBackend, BaseSearchQuery, log_query
+< from ...haystack.constants import (
+---
+> from codex._vendor. import haystack
+> from codex._vendor.haystack.backends import BaseEngine, BaseSearchBackend, BaseSearchQuery, log_query
+> from codex._vendor.haystack.constants import (
+19,24c19,24
+< from ...haystack.exceptions import MissingDependency, MoreLikeThisError, SkipDocument
+< from ...haystack.inputs import Clean, Exact, PythonData, Raw
+< from ...haystack.models import SearchResult
+< from ...haystack.utils import get_identifier, get_model_ct
+< from ...haystack.utils import log as logging
+< from ...haystack.utils.app_loading import haystack_get_model
+---
+> from codex._vendor.haystack.exceptions import MissingDependency, MoreLikeThisError, SkipDocument
+> from codex._vendor.haystack.inputs import Clean, Exact, PythonData, Raw
+> from codex._vendor.haystack.models import SearchResult
+> from codex._vendor.haystack.utils import get_identifier, get_model_ct
+> from codex._vendor.haystack.utils import log as logging
+> from codex._vendor.haystack.utils.app_loading import haystack_get_model
+512c512
+<             from ...haystack.utils.geo import generate_bounding_box
+---
+>             from codex._vendor.haystack.utils.geo import generate_bounding_box
+622c622
+<         from ...haystack import connections
+---
+>         from codex._vendor.haystack import connections
+680c680
+<         from ...haystack import connections
+---
+>         from codex._vendor.haystack import connections
+917c917
+<         from ...haystack import connections
+---
+>         from codex._vendor.haystack import connections
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/backends/simple_backend.py ../codex/_vendor/haystack/backends/simple_backend.py
+9,10c9,10
+< from ...haystack import connections
+< from ...haystack.backends import (
+---
+> from codex._vendor.haystack import connections
+> from codex._vendor.haystack.backends import (
+17,19c17,19
+< from ...haystack.inputs import PythonData
+< from ...haystack.models import SearchResult
+< from ...haystack.utils import get_model_ct_tuple
+---
+> from codex._vendor.haystack.inputs import PythonData
+> from codex._vendor.haystack.models import SearchResult
+> from codex._vendor.haystack.utils import get_model_ct_tuple
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/backends/solr_backend.py ../codex/_vendor/haystack/backends/solr_backend.py
+6,7c6,7
+< from ... import haystack
+< from ...haystack.backends import (
+---
+> from codex._vendor. import haystack
+> from codex._vendor.haystack.backends import (
+14,20c14,20
+< from ...haystack.constants import DJANGO_CT, DJANGO_ID, ID
+< from ...haystack.exceptions import MissingDependency, MoreLikeThisError, SkipDocument
+< from ...haystack.inputs import Clean, Exact, PythonData, Raw
+< from ...haystack.models import SearchResult
+< from ...haystack.utils import get_identifier, get_model_ct
+< from ...haystack.utils import log as logging
+< from ...haystack.utils.app_loading import haystack_get_model
+---
+> from codex._vendor.haystack.constants import DJANGO_CT, DJANGO_ID, ID
+> from codex._vendor.haystack.exceptions import MissingDependency, MoreLikeThisError, SkipDocument
+> from codex._vendor.haystack.inputs import Clean, Exact, PythonData, Raw
+> from codex._vendor.haystack.models import SearchResult
+> from codex._vendor.haystack.utils import get_identifier, get_model_ct
+> from codex._vendor.haystack.utils import log as logging
+> from codex._vendor.haystack.utils.app_loading import haystack_get_model
+341c341
+<             from ...haystack.utils.geo import generate_bounding_box
+---
+>             from codex._vendor.haystack.utils.geo import generate_bounding_box
+396c396
+<         from ...haystack import connections
+---
+>         from codex._vendor.haystack import connections
+465c465
+<         from ...haystack import connections
+---
+>         from codex._vendor.haystack import connections
+748c748
+<         from ...haystack import connections
+---
+>         from codex._vendor.haystack import connections
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/backends/whoosh_backend.py ../codex/_vendor/haystack/backends/whoosh_backend.py
+13c13
+< from ...haystack.backends import (
+---
+> from codex._vendor.haystack.backends import (
+20c20
+< from ...haystack.constants import (
+---
+> from codex._vendor.haystack.constants import (
+27,32c27,32
+< from ...haystack.exceptions import MissingDependency, SearchBackendError, SkipDocument
+< from ...haystack.inputs import Clean, Exact, PythonData, Raw
+< from ...haystack.models import SearchResult
+< from ...haystack.utils import get_identifier, get_model_ct
+< from ...haystack.utils import log as logging
+< from ...haystack.utils.app_loading import haystack_get_model
+---
+> from codex._vendor.haystack.exceptions import MissingDependency, SearchBackendError, SkipDocument
+> from codex._vendor.haystack.inputs import Clean, Exact, PythonData, Raw
+> from codex._vendor.haystack.models import SearchResult
+> from codex._vendor.haystack.utils import get_identifier, get_model_ct
+> from codex._vendor.haystack.utils import log as logging
+> from codex._vendor.haystack.utils.app_loading import haystack_get_model
+127c127
+<         from ...haystack import connections
+---
+>         from codex._vendor.haystack import connections
+714c714
+<         from ...haystack import connections
+---
+>         from codex._vendor.haystack import connections
+961c961
+<         from ...haystack import connections
+---
+>         from codex._vendor.haystack import connections
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/fields.py ../codex/_vendor/haystack/fields.py
+5c5
+< from django.utils import datetime_safe
+---
+> import datetime
+7,8c7,8
+< from ..haystack.exceptions import SearchFieldError
+< from ..haystack.utils import get_model_ct_tuple
+---
+> from codex._vendor.haystack.exceptions import SearchFieldError
+> from codex._vendor.haystack.utils import get_model_ct_tuple
+249c249
+<         from ..haystack.utils.geo import ensure_point
+---
+>         from codex._vendor.haystack.utils.geo import ensure_point
+263c263
+<         from ..haystack.utils.geo import ensure_point
+---
+>         from codex._vendor.haystack.utils.geo import ensure_point
+398c398
+<                 return datetime_safe.date(
+---
+>                 return datetime.date(
+431c431
+<                 return datetime_safe.datetime(
+---
+>                 return datetime.datetime(
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/forms.py ../codex/_vendor/haystack/forms.py
+6,10c6,10
+< from ..haystack import connections
+< from ..haystack.constants import DEFAULT_ALIAS
+< from ..haystack.query import EmptySearchQuerySet, SearchQuerySet
+< from ..haystack.utils import get_model_ct
+< from ..haystack.utils.app_loading import haystack_get_model
+---
+> from codex._vendor.haystack import connections
+> from codex._vendor.haystack.constants import DEFAULT_ALIAS
+> from codex._vendor.haystack.query import EmptySearchQuerySet, SearchQuerySet
+> from codex._vendor.haystack.utils import get_model_ct
+> from codex._vendor.haystack.utils.app_loading import haystack_get_model
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/indexes.py ../codex/_vendor/haystack/indexes.py
+8,11c8,11
+< from ..haystack import connection_router, connections
+< from ..haystack.constants import Indexable  # NOQA — exposed as a public export
+< from ..haystack.constants import DEFAULT_ALIAS, DJANGO_CT, DJANGO_ID, ID
+< from ..haystack.fields import (  # NOQA — exposed as a public export
+---
+> from codex._vendor.haystack import connection_router, connections
+> from codex._vendor.haystack.constants import Indexable  # NOQA — exposed as a public export
+> from codex._vendor.haystack.constants import DEFAULT_ALIAS, DJANGO_CT, DJANGO_ID, ID
+> from codex._vendor.haystack.fields import (  # NOQA — exposed as a public export
+30,31c30,31
+< from ..haystack.manager import SearchIndexManager
+< from ..haystack.utils import get_facet_field_name, get_identifier, get_model_ct
+---
+> from codex._vendor.haystack.manager import SearchIndexManager
+> from codex._vendor.haystack.utils import get_facet_field_name, get_identifier, get_model_ct
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/management/commands/build_solr_schema.py ../codex/_vendor/haystack/management/commands/build_solr_schema.py
+9,10c9,10
+< from ....haystack import connections, constants
+< from ....haystack.backends.solr_backend import SolrSearchBackend
+---
+> from codex._vendor.haystack import connections, constants
+> from codex._vendor.haystack.backends.solr_backend import SolrSearchBackend
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/management/commands/clear_index.py ../codex/_vendor/haystack/management/commands/clear_index.py
+3c3
+< from ....haystack import connections
+---
+> from codex._vendor.haystack import connections
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/management/commands/haystack_info.py ../codex/_vendor/haystack/management/commands/haystack_info.py
+3,4c3,4
+< from ....haystack import connections
+< from ....haystack.constants import DEFAULT_ALIAS
+---
+> from codex._vendor.haystack import connections
+> from codex._vendor.haystack.constants import DEFAULT_ALIAS
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/management/commands/update_index.py ../codex/_vendor/haystack/management/commands/update_index.py
+12,15c12,15
+< from ....haystack import connections as haystack_connections
+< from ....haystack.exceptions import NotHandled
+< from ....haystack.query import SearchQuerySet
+< from ....haystack.utils.app_loading import haystack_get_models, haystack_load_apps
+---
+> from codex._vendor.haystack import connections as haystack_connections
+> from codex._vendor.haystack.exceptions import NotHandled
+> from codex._vendor.haystack.query import SearchQuerySet
+> from codex._vendor.haystack.utils.app_loading import haystack_get_models, haystack_load_apps
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/manager.py ../codex/_vendor/haystack/manager.py
+1c1
+< from ..haystack.query import EmptySearchQuerySet, SearchQuerySet
+---
+> from codex._vendor.haystack.query import EmptySearchQuerySet, SearchQuerySet
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/models.py ../codex/_vendor/haystack/models.py
+6,9c6,9
+< from ..haystack.constants import DEFAULT_ALIAS
+< from ..haystack.exceptions import NotHandled, SpatialError
+< from ..haystack.utils import log as logging
+< from ..haystack.utils.app_loading import haystack_get_model
+---
+> from codex._vendor.haystack.constants import DEFAULT_ALIAS
+> from codex._vendor.haystack.exceptions import NotHandled, SpatialError
+> from codex._vendor.haystack.utils import log as logging
+> from codex._vendor.haystack.utils.app_loading import haystack_get_model
+67c67
+<         from ..haystack import connections
+---
+>         from codex._vendor.haystack import connections
+211c211
+<             from ..haystack import connections
+---
+>             from codex._vendor.haystack import connections
+251c251
+<     from ..haystack import connections
+---
+>     from codex._vendor.haystack import connections
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/panels.py ../codex/_vendor/haystack/panels.py
+5c5
+< from ..haystack import connections
+---
+> from codex._vendor.haystack import connections
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/query.py ../codex/_vendor/haystack/query.py
+5,10c5,10
+< from ..haystack import connection_router, connections
+< from ..haystack.backends import SQ
+< from ..haystack.constants import DEFAULT_OPERATOR, ITERATOR_LOAD_PER_QUERY
+< from ..haystack.exceptions import NotHandled
+< from ..haystack.inputs import AutoQuery, Raw
+< from ..haystack.utils import log as logging
+---
+> from codex._vendor.haystack import connection_router, connections
+> from codex._vendor.haystack.backends import SQ
+> from codex._vendor.haystack.constants import DEFAULT_OPERATOR, ITERATOR_LOAD_PER_QUERY
+> from codex._vendor.haystack.exceptions import NotHandled
+> from codex._vendor.haystack.inputs import AutoQuery, Raw
+> from codex._vendor.haystack.utils import log as logging
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/routers.py ../codex/_vendor/haystack/routers.py
+1c1
+< from ..haystack.constants import DEFAULT_ALIAS
+---
+> from codex._vendor.haystack.constants import DEFAULT_ALIAS
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/signals.py ../codex/_vendor/haystack/signals.py
+3c3
+< from ..haystack.exceptions import NotHandled
+---
+> from codex._vendor.haystack.exceptions import NotHandled
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/templatetags/highlight.py ../codex/_vendor/haystack/templatetags/highlight.py
+5c5
+< from ...haystack.utils import importlib
+---
+> from codex._vendor.haystack.utils import importlib
+63c63
+<             from ...haystack.utils.highlighting import Highlighter
+---
+>             from codex._vendor.haystack.utils.highlighting import Highlighter
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/templatetags/more_like_this.py ../codex/_vendor/haystack/templatetags/more_like_this.py
+5,6c5,6
+< from ...haystack.query import SearchQuerySet
+< from ...haystack.utils.app_loading import haystack_get_model
+---
+> from codex._vendor.haystack.query import SearchQuerySet
+> from codex._vendor.haystack.utils.app_loading import haystack_get_model
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/urls.py ../codex/_vendor/haystack/urls.py
+3c3
+< from ..haystack.views import SearchView
+---
+> from codex._vendor.haystack.views import SearchView
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/utils/__init__.py ../codex/_vendor/haystack/utils/__init__.py
+6,7c6,7
+< from ...haystack.constants import DJANGO_CT, DJANGO_ID, ID
+< from ...haystack.utils.highlighting import Highlighter # noqa=F401
+---
+> from codex._vendor.haystack.constants import DJANGO_CT, DJANGO_ID, ID
+> from codex._vendor.haystack.utils.highlighting import Highlighter # noqa=F401
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/utils/geo.py ../codex/_vendor/haystack/utils/geo.py
+1,2c1,2
+< from ...haystack.constants import WGS_84_SRID
+< from ...haystack.exceptions import SpatialError
+---
+> from codex._vendor.haystack.constants import WGS_84_SRID
+> from codex._vendor.haystack.exceptions import SpatialError
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/utils/loading.py ../codex/_vendor/haystack/utils/loading.py
+11,14c11,14
+< from ...haystack import constants
+< from ...haystack.exceptions import NotHandled, SearchFieldError
+< from ...haystack.utils import importlib
+< from ...haystack.utils.app_loading import haystack_get_app_modules
+---
+> from codex._vendor.haystack import constants
+> from codex._vendor.haystack.exceptions import NotHandled, SearchFieldError
+> from codex._vendor.haystack.utils import importlib
+> from codex._vendor.haystack.utils.app_loading import haystack_get_app_modules
+diff --minimal --recursive --suppress-common-lines -x '*~' -x '*.pyc' -x '*__pycache__*' /tmp/_vendor_orig/haystack/views.py ../codex/_vendor/haystack/views.py
+6,7c6,7
+< from ..haystack.forms import FacetedSearchForm, ModelSearchForm
+< from ..haystack.query import EmptySearchQuerySet
+---
+> from codex._vendor.haystack.forms import FacetedSearchForm, ModelSearchForm
+> from codex._vendor.haystack.query import EmptySearchQuerySet

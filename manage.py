@@ -3,6 +3,11 @@
 import os
 import sys
 
+import codex._vendor.haystack  # noqa: F401
+
+
+sys.modules["haystack"] = sys.modules["codex._vendor.haystack"]
+
 
 def main():
     """Run the server."""

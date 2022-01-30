@@ -1,0 +1,146 @@
+{
+  "browser": {
+    "autoquery": "",
+    "bookmarkFilter": [
+      {
+        "text": "All",
+        "value": "ALL",
+        "default": true
+      },
+      {
+        "text": "Unread",
+        "value": "UNREAD"
+      },
+      {
+        "text": "In Progress",
+        "value": "IN_PROGRESS"
+      }
+    ],
+    "topGroup": [
+      {
+        "text": "Publishers",
+        "value": "p",
+        "default": true
+      },
+      {
+        "text": "Imprints",
+        "value": "i"
+      },
+      {
+        "text": "Series",
+        "value": "s"
+      },
+      {
+        "text": "Volumes",
+        "value": "v"
+      },
+      {
+        "text": "Issues",
+        "value": "c"
+      },
+      {
+        "text": "Folder View",
+        "value": "f"
+      }
+    ],
+    "settingsGroup": [
+      {
+        "text": "Publishers",
+        "value": "p",
+        "default": true
+      },
+      {
+        "text": "Imprints",
+        "value": "i"
+      },
+      {
+        "text": "Series",
+        "value": "s",
+        "default": true
+      },
+      {
+        "text": "Volumes",
+        "value": "v"
+      }
+    ],
+    "orderBy": [
+      {
+        "text": "Name",
+        "value": "sort_name",
+        "default": true
+      },
+      {
+        "text": "Publish Date",
+        "value": "date"
+      },
+      {
+        "text": "Added Time",
+        "value": "created_at"
+      },
+      {
+        "text": "Updated Time",
+        "value": "updated_at"
+      },
+      {
+        "text": "Page Count",
+        "value": "page_count"
+      },
+      {
+        "text": "File Size",
+        "value": "size"
+      },
+      {
+        "text": "User Rating",
+        "value": "user_rating"
+      },
+      {
+        "text": "Critical Rating",
+        "value": "critical_rating"
+      },
+      {
+        "text": "Maturity Rating",
+        "value": "maturity_rating"
+      },
+      {
+        "text": "Search Score",
+        "value": "search_score"
+      }
+    ],
+    "vuetifyNullCode": -1,
+    "groupNames": {
+      "p": "Publishers",
+      "i": "Imprints",
+      "s": "Series",
+      "v": "Volumes",
+      "c": "Issues"
+    },
+    "route": {
+      "group": "r",
+      "pk": 0,
+      "page": 1
+    }
+  },
+  "reader": {
+    "fitTo": [
+      {
+        "text": "Height",
+        "value": "HEIGHT"
+      },
+      {
+        "text": "Width",
+        "value": "WIDTH",
+        "default": true
+      },
+      {
+        "text": "Original Size",
+        "value": "ORIG"
+      }
+    ]
+  },
+  "websockets": {
+    "LIBRARY_CHANGED": "LIBRARY_CHANGED",
+    "LIBRARY_UPDATE_IN_PROGRESS": "LIBRARY_UPDATE_IN_PROGRESS",
+    "LIBRARY_UPDATE_DONE": "LIBRARY_UPDATE_DONE",
+    "FAILED_IMPORTS": "FAILED_IMPORTS"
+  }
+}

@@ -1,50 +1,96 @@
 services:
-  codex-build: &codex-build
-    env_file:
-      - .env
+  codex-base:
     build:
       context: .
-      dockerfile: build.Dockerfile
+      dockerfile: base.Dockerfile
       args:
-        BUILDER_VERSION: "$BUILDER_VERSION"
-    image: codex-build
-    container_name: codex-build
-  codex-lint:
-    <<: *codex-build
-    container_name: codex-lint
-    command: ./lint.sh
-  codex-test:
-    <<: *codex-build
-    container_name: codex-test
+        PYTHON_ALPINE_VERSION: "$PYTHON_ALPINE_VERSION"
+        CODEX_BASE_VERSION: "$CODEX_BASE_VERSION"
+    image: docker.io/ajslater/codex-base
+  codex-builder-base:
+    build:
+      context: .
+      dockerfile: builder-base.Dockerfile
+      args:
+        CODEX_BASE_VERSION: "$CODEX_BASE_VERSION"
+        CODEX_BUILDER_BASE_VERSION: "$CODEX_BUILDER_BASE_VERSION"
+        HOST_CACHE_DIR: $HOST_CACHE_DIR
+    image: docker.io/ajslater/codex-builder-base
+  codex-dist-builder: &codex-dist-builder
+    build:
+      context: .
+      dockerfile: dist-builder.Dockerfile
+      args:
+        CODEX_BUILDER_BASE_VERSION: "$CODEX_BUILDER_BASE_VERSION"
+        CODEX_DIST_BUILDER_VERSION: "$CODEX_DIST_BUILDER_VERSION"
+    image: docker.io/ajslater/codex-dist-builder:$CODEX_DIST_BUILDER_VERSION
+    container_name: codex-dist-builder
+  codex-save-cache:
+    <<: *codex-dist-builder
+    container_name: codex-save-cache
+    volumes:
+      - ./cache/packages:/app/cache/packages
+    command: ./python_cacher/save_py_caches.py pip poetry prune
+  codex-frontend-lint:
+    <<: *codex-dist-builder
+    container_name: codex-frontent-lint
+    command: ./lint-frontend.sh
+  codex-frontend-test:
+    <<: *codex-dist-builder
+    container_name: codex-frontend-test
+    command: ./test-frontend.sh
     volumes:
       - ./test-results/:/app/test-results/
-    command: ./test.sh
-  codex-dist:
-    <<: *codex-build
-    container_name: codex-dist
+  codex-frontend-build:
+    <<: *codex-dist-builder
+    container_name: codex-frontend-build
     volumes:
+      - ./codex/static_build:/app/codex/static_build
+    command: ./build-frontend.sh
+  codex-backend-test:
+    <<: *codex-dist-builder
+    container_name: codex-backend-test
+    volumes:
+      - ./codex/static_build:/app/codex/static_build:ro
+      - ./codex/static_root:/app/codex/static_root
+      - ./test-results/:/app/test-results/
+    command: ./test-backend.sh
+  codex-backend-lint:
+    <<: *codex-dist-builder
+    container_name: codex-backend-lint
+    command: ./lint-backend.sh
+  codex-build-dist:
+    <<: *codex-dist-builder
+    container_name: codex-build-dist
+    volumes:
+      - ./codex/static_root:/app/codex/static_root:ro
       - ./dist/:/app/dist/
     command: ./build-dist.sh
-  codex-wheels:
-    env_file:
-      - .env
+  codex-builder-final: &codex-builder-final
     build:
       context: .
-      dockerfile: wheels.Dockerfile
+      dockerfile: builder-final.Dockerfile
       args:
-        WHEEL_BUILDER_VERSION: "$WHEEL_BUILDER_VERSION"
-        WHEELS_VERSION: "$WHEELS_VERSION"
-    image: docker.io/ajslater/codex-wheels
-    container_name: codex-wheels
+        CODEX_BUILDER_BASE_VERSION: $CODEX_BUILDER_BASE_VERSION
+        CODEX_BUILDER_FINAL_VERSION: $CODEX_BUILDER_FINAL_VERSION
+        HOST_CACHE_DIR: $HOST_CACHE_DIR
+        CODEX_WHEEL: $CODEX_WHEEL
+    image: docker.io/ajslater/codex-builder-final:$CODEX_BUILDER_FINAL_VERSION
+  codex-save-final-cache:
+    <<: *codex-builder-final
+    container_name: codex-save-final-cache
+    volumes:
+      - ./cache/packages:/app/cache/packages
+    command: ./python_cacher/save_py_caches.py pip
   codex:
-    env_file:
-      - .env
     build:
       context: .
       args:
+        HOST_CACHE_DIR: $HOST_CACHE_DIR
+        CODEX_BASE_VERSION: "$CODEX_BASE_VERSION"
+        CODEX_BUILDER_FINAL_VERSION: $CODEX_BUILDER_FINAL_VERSION
         CODEX_WHEEL: "$CODEX_WHEEL"
-        RUNNABLE_BASE_VERSION: "$RUNNABLE_BASE_VERSION"
-        WHEELS_VERSION: "$WHEELS_VERSION"
+        PKG_VERSION: "$PKG_VERSION"
     image: docker.io/ajslater/codex
     container_name: codex
     environment:
@@ -54,3 +100,4 @@ services:
     volumes:
       - ./config:/config
       - ./comics:/comics:ro
+version: "3.8"

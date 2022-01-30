@@ -1,5 +1,35 @@
 # 📰 Codex News
 
+## v0.8.0
+
+_Search_
+
+- Features
+
+  - Metadata search field in browser
+  - Settings dialogs replaced with side drawers
+  - Browser does a better job of remembering your last browser view on first load.
+  - Reader's "close book" button now does a better job returning you to your last browser view.
+  - Changed some keyboard shortcuts in reader.
+  - "group by" renamed to "top group".
+  - Admin panel gained a Queue Jobs page.
+
+- Fixes
+
+  - Metadata panel cleanup and fix some missing fields.
+
+- Binary Dependencies
+
+  - Codex now requires the Xapian library to run as a native application
+
+- Drop Support
+
+  - The linux/armhf platform is no longer published for Docker.
+
+- License
+
+  - Codex is GPLv3
+
 ## v0.7.5
 
 - Fix integrity cleanup check for old comic_folder relations that prevented migrations.
@@ -26,11 +56,14 @@
 
 ## v0.7.0
 
-###### Feels Snappier
+_Feels Snappier_
 
 - Database Migration
+
   - v0.7.0 changes the database schema. Databases run with v0.7.0+ will not run on previous versions of codex.
+
 - Features
+
   - Big speed up to importing comics for large imports.
   - Speed up creating comic covers on large imports.
   - Admin Panel options for polling (formerly "scanning") and watching events have changed names.
@@ -43,6 +76,7 @@
   - Use TZ and TIMEZONE environment variables to explicitly set server timezone.
   - Added `VERBOSE` logging level to help screen out bulk `DEBUG` messages from dependencies.
   - Truncated logging messages for easier reading.
+
 - Fixes
   - Fixed metadata screen displaying incorrect information.
   - Now compatible with python 3.10.
@@ -95,7 +129,7 @@
 
 ## v0.6.0
 
-###### Better Filtering and Sorting
+_Better Filtering and Sorting_
 
 - New Filters
 - New sort options: Updated Time and Maturity Rating
@@ -221,31 +255,31 @@
 
 ## v0.5.0
 
-###### First useful working version
+_First useful working version_
 
 - Productionized alpha release
 
 ## v0.4.0
 
-###### Polished UI
+_Polished UI_
 
 - Polished VueJS frontend
 
 ## v0.3.0
 
-###### I'm a frontend developer
+_I'm a frontend developer_
 
 - Single Page VueJS frontend PoC without much styling
 
 ## v0.2.0
 
-###### It's alive
+_It's alive_
 
 - Working application with all initial features
 - Django frontend
 
 ## v0.1.0
 
-###### Hello world
+_Hello world_
 
 - Proof of concept.

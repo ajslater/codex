@@ -1,18 +1,19 @@
 // Socket pseudo module for vue-native-sockets
-import WS_MESSAGES from "@/choices/websocketMessages";
+import CHOICES from "@/choices";
 
 import { NOTIFY_STATES } from "./modules/notify";
 
 const WS_TIMEOUT = 19 * 1000;
 const NOTIFY_MESSAGES = new Set([
-  WS_MESSAGES.LIBRARY_UPDATE_IN_PROGRESS,
-  WS_MESSAGES.LIBRARY_UPDATE_DONE,
-  WS_MESSAGES.FAILED_IMPORTS,
+  CHOICES.websockets.LIBRARY_UPDATE_IN_PROGRESS,
+  CHOICES.websockets.LIBRARY_UPDATE_DONE,
+  CHOICES.websockets.FAILED_IMPORTS,
 ]);
 const NOTIFY_MAP = {
-  [WS_MESSAGES.LIBRARY_UPDATE_IN_PROGRESS]: NOTIFY_STATES.LIBRARY_UPDATING,
-  [WS_MESSAGES.LIBRARY_UPDATE_DONE]: NOTIFY_STATES.OFF,
-  [WS_MESSAGES.FAILED_IMPORTS]: NOTIFY_STATES.FAILED,
+  [CHOICES.websockets.LIBRARY_UPDATE_IN_PROGRESS]:
+    NOTIFY_STATES.LIBRARY_UPDATING,
+  [CHOICES.websockets.LIBRARY_UPDATE_DONE]: NOTIFY_STATES.OFF,
+  [CHOICES.websockets.FAILED_IMPORTS]: NOTIFY_STATES.FAILED,
 };
 
 const wsKeepAlive = function (ws) {
@@ -20,7 +21,6 @@ const wsKeepAlive = function (ws) {
     console.debug("socket not ready, not sending keep-alive.");
     return;
   }
-  console.debug("socket keep-alive");
   ws.send("{}");
   setTimeout(() => wsKeepAlive(ws), WS_TIMEOUT);
 };
@@ -33,7 +33,6 @@ const state = {
 
 const mutations = {
   SOCKET_ONOPEN(state, event) {
-    console.debug("socket opened");
     state.socket.isConnected = true;
     state.socket.isError = false;
     try {
@@ -44,7 +43,6 @@ const mutations = {
     }
   },
   SOCKET_ONCLOSE(state) {
-    console.debug("socket closed");
     state.socket.isConnected = false;
   },
   SOCKET_ONERROR(state, event) {
@@ -56,17 +54,17 @@ const mutations = {
     // The main message dispatcher.
     // Would be nicer if components could add their own listeners.
     // 'this' context should be the store.
-    const msg = event.data;
-    console.debug(msg);
-    if (msg === WS_MESSAGES.LIBRARY_CHANGED) {
+    const message = event.data;
+    console.debug(message);
+    if (message === CHOICES.websockets.LIBRARY_CHANGED) {
       // browser
       this.dispatch("browser/browserPageStale", { showProgress: false });
-    } else if (NOTIFY_MESSAGES.has(msg)) {
+    } else if (NOTIFY_MESSAGES.has(message)) {
       // notify
-      const notify = NOTIFY_MAP[msg]; // translate message to state.t s
+      const notify = NOTIFY_MAP[message]; // translate message to state.t s
       this.dispatch("notify/notifyChanged", notify);
     } else {
-      console.debug("Unhandled websocket message:", msg);
+      console.debug("Unhandled websocket message:", message);
     }
   },
   SOCKET_RECONNECT(state, count) {

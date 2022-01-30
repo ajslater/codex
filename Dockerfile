@@ -1,14 +1,13 @@
-ARG WHEELS_VERSION
-ARG RUNNABLE_BASE_VERSION
-FROM ajslater/codex-wheels:$WHEELS_VERSION AS codex-wheels
-# The runnable environment built from a minimal base without dev deps
-FROM ajslater/codex-base:$RUNNABLE_BASE_VERSION
-ARG CODEX_WHEEL
-COPY --from=codex-wheels /wheels /wheels
-COPY ./dist/$CODEX_WHEEL /wheels/
-
-# hadolint ignore=DL3013
-RUN pip3 install --no-cache-dir --no-index --find-links=/wheels "/wheels/$CODEX_WHEEL"
+ARG CODEX_BUILDER_FINAL_VERSION
+ARG CODEX_BASE_VERSION
+FROM ajslater/codex-builder-final:${CODEX_BUILDER_FINAL_VERSION} as codex-built
+FROM ajslater/codex-base:${CODEX_BASE_VERSION}
+ARG PKG_VERSION
+LABEL maintainer="AJ Slater <aj@slater.net>"
+LABEL version=$PKG_VERSION
+# The final image is the mininimal base with /usr/local copied.
+# Possibly could optimize this further to only get python and bin
+COPY --from=codex-built /usr/local /usr/local
 
 RUN mkdir -p /comics && touch /comics/DOCKER_UNMOUNTED_VOLUME
 

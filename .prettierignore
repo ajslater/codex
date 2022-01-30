@@ -7,11 +7,11 @@
 /test-results
 __pycache__
 cache
+codex/_vendor/haystack
 codex/static_build
 codex/static_root
 comics
-frontend/dist
-frontend/node_modules
-frontend/public/css/normalize.css
+frontend
+/node_modules
 templates
 webpack-stats.json

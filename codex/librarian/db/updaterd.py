@@ -19,6 +19,7 @@ from codex.librarian.queue_mp import (
     BroadcastNotifierTask,
     CleanupDatabaseTask,
     DBDiffTask,
+    SearchIndexUpdateTask,
 )
 from codex.models import FailedImport, Library
 from codex.settings.logging import VERBOSE
@@ -114,6 +115,8 @@ def apply(task):
     changed |= changed_comics
     changed |= bulk_folders_deleted(library, task.dirs_deleted)
     changed |= bulk_comics_deleted(library, task.files_deleted)
+    search_task = SearchIndexUpdateTask(False)
+    LIBRARIAN_QUEUE.put(search_task)
     changed |= cleanup_database(library)
 
     Library.objects.filter(pk=task.library_id).update(

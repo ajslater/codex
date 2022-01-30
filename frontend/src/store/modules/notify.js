@@ -55,8 +55,7 @@ const notifyCheck = (commit, state) => {
       }, wait);
     })
     .catch((error) => {
-      console.error(error);
-      return console.warn("notifyCheck() Response", error.response);
+      return console.warn(error);
     });
 };
 
@@ -76,7 +75,6 @@ const actions = {
     notifyCheck(commit, state);
   },
   subscribe({ rootGetters }) {
-    // This is sort of irregular but works
     const ws = this._vm.$socket;
     if (!ws || ws.readyState != 1) {
       console.debug("No ready socket. Not subscribing to notifications.");
@@ -84,18 +82,15 @@ const actions = {
     }
     const isAdmin = rootGetters["auth/isAdmin"];
     if (isAdmin) {
-      console.debug("subscribing to admin notifications.");
       ws.send(SUBSCRIBE_MESSAGES.admin);
       return;
     }
     const isOpenToSee = rootGetters["auth/isOpenToSee"];
     if (isOpenToSee) {
-      console.debug("subscribing to notifications.");
       ws.send(SUBSCRIBE_MESSAGES.user);
       return;
     }
     // else
-    console.debug("unsubscribing from notifications");
     ws.send(SUBSCRIBE_MESSAGES.unsub);
   },
 };

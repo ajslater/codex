@@ -14,14 +14,14 @@
     </span>
     <span v-else-if="notify === NOTIFY_STATES.FAILED">
       Review failed imports in the
-      <a :href="FAILED_IMPORT_URL">Admin Panel</a>
+      <a :href="FAILED_IMPORT_URL" target="_blank">Admin Panel</a>
     </span>
     <v-btn
       id="dismissNotifySnackBar"
       title="dismiss notification"
       x-small
       ripple
-      @click="dismiss()"
+      @click="dismiss"
       >x</v-btn
     >
   </v-snackbar>
@@ -65,11 +65,11 @@ export default {
   },
   methods: {
     dismiss: function () {
-      const newState =
+      const state =
         this.notify === NOTIFY_STATES.FAILED
           ? NOTIFY_STATES.OFF
           : NOTIFY_STATES.DISMISSED;
-      this.$store.dispatch("notify/notifyChanged", newState);
+      this.$store.dispatch("notify/notifyChanged", state);
     },
   },
 };

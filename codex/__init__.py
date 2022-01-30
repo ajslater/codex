@@ -1,1 +1,1 @@
-import codex.signals  # noqa F401
+"""Init codex package."""

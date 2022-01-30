@@ -1,5 +1,10 @@
 <template>
-  <v-toolbar class="readerNavToolbar" dense transform="center bottom">
+  <v-toolbar
+    v-if="maxPage"
+    class="readerNavToolbar"
+    dense
+    transform="center bottom"
+  >
     <ReaderNavButton :value="0" />
     <v-slider
       class="readerSlider"
@@ -28,12 +33,12 @@ export default {
   },
   computed: {
     ...mapState("reader", {
-      maxPage: (state) => +state.maxPage,
+      maxPage: (state) => Number(state.maxPage),
     }),
   },
   methods: {
     routeToPage: function (page) {
-      const params = { pk: +this.$route.params.pk, page };
+      const params = { pk: Number(this.$route.params.pk), page };
       this.$store.dispatch("reader/routeTo", params);
     },
   },

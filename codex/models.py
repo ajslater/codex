@@ -5,10 +5,12 @@ import os
 from decimal import Decimal
 from logging import getLogger
 from pathlib import Path
+from uuid import uuid4
 
 from django.conf import settings
 from django.contrib.sessions.models import Session
 from django.core.exceptions import ValidationError
+from django.db import connection
 from django.db.models import (
     CASCADE,
     BooleanField,
@@ -18,6 +20,7 @@ from django.db.models import (
     DecimalField,
     DurationField,
     ForeignKey,
+    Index,
     JSONField,
     ManyToManyField,
     Model,
@@ -28,7 +31,8 @@ from django.db.models import (
 )
 from django.utils.translation import gettext_lazy as _
 
-from codex.serializers.webpack import CHOICES
+from codex.serializers.choices import CHOICES
+from codex.settings.settings import XAPIAN_INDEX_PATH, XAPIAN_INDEX_UUID_PATH
 
 
 LOG = getLogger(__name__)
@@ -48,6 +52,7 @@ class BaseModel(Model):
         """Without this a real table is created and joined to."""
 
         abstract = True
+        get_latest_by = "updated_at"
 
 
 class BrowserGroupModel(BaseModel):
@@ -71,6 +76,7 @@ class BrowserGroupModel(BaseModel):
         """Without this a real table is created and joined to."""
 
         abstract = True
+        ordering = ["sort_name"]
 
 
 class Publisher(BrowserGroupModel):
@@ -509,11 +515,73 @@ class FailedImport(WatchedPath):
 class LatestVersion(BaseModel):
     """Latest codex version."""
 
-    PK = 1
+    CODEX_VERSION_PK = 1
+    XAPIAN_INDEX_VERSION_PK = 2
     version = CharField(max_length=32)
 
     @classmethod
-    def set_version(cls, version):
-        """Ensure a single database row."""
+    def _update_or_create(cls, pk, version):
+        search_kwargs = {"pk": pk}
         defaults = {"version": version}
-        cls.objects.update_or_create(defaults=defaults, pk=cls.PK)
+        cls.objects.update_or_create(defaults=defaults, **search_kwargs)
+
+    @classmethod
+    def set_codex_version(cls, version):
+        """Ensure a single database row."""
+        cls._update_or_create(cls.CODEX_VERSION_PK, version)
+
+    @classmethod
+    def set_xapian_index_version(cls):
+        """Set the codex db to xapian matching id."""
+        version = str(uuid4())
+        cls._update_or_create(cls.XAPIAN_INDEX_VERSION_PK, version)
+        XAPIAN_INDEX_PATH.mkdir(parents=True, exist_ok=True)
+        with XAPIAN_INDEX_UUID_PATH.open("w") as uuid_file:
+            uuid_file.write(version)
+
+    @classmethod
+    def is_xapian_uuid_match(cls):
+        """Is this xapian index for this database."""
+        result = False
+        try:
+            with XAPIAN_INDEX_UUID_PATH.open("r") as uuid_file:
+                version = uuid_file.read()
+            lv = cls.objects.only("pk").get(
+                pk=cls.XAPIAN_INDEX_VERSION_PK, version=version
+            )
+            result = lv.pk == cls.XAPIAN_INDEX_VERSION_PK
+        except (FileNotFoundError, cls.DoesNotExist):
+            pass
+        except Exception as exc:
+            LOG.exception(exc)
+        return result
+
+
+class SearchQuery(Model):
+    """Search queries."""
+
+    text = CharField(db_index=True, unique=True, max_length=256)
+    used_at = DateTimeField(auto_now_add=True, db_index=True)
+
+
+class SearchResult(Model):
+    """results model."""
+
+    query = ForeignKey(SearchQuery, on_delete=CASCADE)
+    comic = ForeignKey(Comic, on_delete=CASCADE)
+    score = PositiveSmallIntegerField()
+
+    @classmethod
+    def truncate_and_reset(cls):
+        """Nuke this table and reset the autoincrementer."""
+        cls.objects.all().delete()
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "UPDATE sqlite_sequence SET seq=1 WHERE name=%s", [cls._meta.db_table]
+            )
+
+    class Meta:
+        """These are usually looked up by comic & autoquery hash."""
+
+        unique_together = ("query", "comic")
+        indexes = [Index(fields=["comic", "query"])]

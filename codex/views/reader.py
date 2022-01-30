@@ -6,45 +6,24 @@ from django.http import HttpResponse
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from stringcase import camelcase
 
 from codex.models import Comic
 from codex.serializers.reader import ComicReaderInfoSerializer
+from codex.serializers.redirect import ReaderRedirectSerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
-from codex.views.mixins import SessionMixin, UserBookmarkMixin
+from codex.views.session import SessionView
 
 
 LOG = getLogger(__name__)
 
 
-class ComicOpenedView(SessionMixin, UserBookmarkMixin):
+class ComicOpenedView(SessionView):
     """Get info for displaying comic pages."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
-    SETTINGS_KEYS = ("fit_to", "two_pages")
+    SESSION_KEY = SessionView.READER_KEY
 
-    def get_settings(self):
-        """Get Settings."""
-        reader_session = None
-        settings = {"globl": {}, "local": {}}
-        reader_session = self.get_session(self.READER_KEY)
-        defaults = reader_session.get(
-            "defaults", self.SESSION_DEFAULTS[self.READER_KEY]["defaults"]
-        )
-        pk = self.kwargs.get("pk")
-        ub = self.get_user_bookmark(pk)
-        for key in self.SETTINGS_KEYS:
-            camel_key = camelcase(key)
-            settings["globl"][camel_key] = defaults.get(key)
-            if ub:
-                val = getattr(ub, key)
-            else:
-                val = None
-            settings["local"][camel_key] = val
-
-        return settings
-
-    def get_prev_next_comics(self):
+    def _get_prev_next_comics(self):
         """
         Get the previous and next comics in a series.
 
@@ -72,18 +51,24 @@ class ComicOpenedView(SessionMixin, UserBookmarkMixin):
                 prev_route = {"pk": comic.pk, "page": comic.max_page}
         routes = {"prevBook": prev_route, "nextBook": next_route}
 
-        if current_comic is None:
-            raise ValueError(f"Comic for {pk} not found.")
-
         return current_comic, routes
 
     def get(self, request, *args, **kwargs):
         """Get method."""
-        settings = self.get_settings()
-
         # Get the preve next links and the comic itself in the same go
-        comic, routes = self.get_prev_next_comics()
+        comic, routes = self._get_prev_next_comics()
+        browser_route = self.get_from_session(
+            "route", session_key=SessionView.BROWSER_KEY
+        )
 
+        if not comic:
+            pk = self.kwargs.get("pk")
+            detail = {
+                "route": browser_route,
+                "reason": f"comic {pk} not found",
+                "serializer": ReaderRedirectSerializer,  # type: ignore
+            }
+            raise NotFound(detail=detail)
         data = {
             "title": {
                 "seriesName": comic.series.name,
@@ -92,16 +77,18 @@ class ComicOpenedView(SessionMixin, UserBookmarkMixin):
                 "issueCount": comic.volume.issue_count,
             },
             "maxPage": comic.max_page,
-            "settings": settings,
             "routes": routes,
+            "browserRoute": browser_route,
         }
-
         serializer = ComicReaderInfoSerializer(data)
         return Response(serializer.data)
 
 
 class ComicPageView(APIView):
     """Display a comic page from the archive itself."""
+
+    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
+    SESSION_KEY = SessionView.READER_KEY
 
     def get(self, request, *args, **kwargs):
         """Get the comic page from the archive."""
@@ -122,5 +109,5 @@ class ComicPageView(APIView):
                 path = f"path for {pk}"
             raise NotFound(detail=f"comic {path} not found.") from exc
         except Exception as exc:
-            LOG.exception(exc)
+            LOG.warning(exc)
             raise NotFound(detail="comic page not found") from exc

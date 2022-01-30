@@ -30,7 +30,7 @@ class CoverCreator(QueuedThread):
         if isinstance(task, BulkComicCoverCreateTask):
             bulk_create_comic_covers(task.comics, task.force)
         elif isinstance(task, ImageComicCoverCreateTask):
-            create_comic_cover(task.comic_path, task.image_data, task.cover_path)
+            create_comic_cover(task.comic_path, task.image_data)
         elif isinstance(task, CreateComicCoversLibrariesTask):
             create_comic_cover_for_libraries(task.library_ids)
         elif isinstance(task, PurgeComicCoversLibrariesTask):

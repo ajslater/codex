@@ -1,17 +1,13 @@
-"""Views for browsing comic books."""
+"""Views authorization."""
 from logging import getLogger
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.db.models.functions import Now
 from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.status import (
-    HTTP_201_CREATED,
-    HTTP_202_ACCEPTED,
-    HTTP_400_BAD_REQUEST,
-)
+from rest_framework.status import HTTP_200_OK, HTTP_201_CREATED, HTTP_400_BAD_REQUEST
 from rest_framework.views import APIView
 
 from codex.models import AdminFlag, UserBookmark
@@ -45,16 +41,17 @@ class IsAuthenticatedOrEnabledNonUsers(IsAuthenticated):
         return super().has_permission(request, view)
 
 
-class RegisterViewPermission(IsAuthenticatedOrEnabledNonUsers):
+class RegisterViewPermission(AllowAny):
     """Custom Authentictiaon that always allows GET."""
 
     SAFE_METHODS = ("GET", "HEAD", "OPTIONS")
 
     def has_permission(self, request, view):
         """GET is always good."""
-        if request.method in self.SAFE_METHODS:
-            return True
-        return super().has_permission(request, view)
+        enable_reg = AdminFlag.objects.only("on").get(
+            name=AdminFlag.ENABLE_REGISTRATION
+        )
+        return request.method in self.SAFE_METHODS or enable_reg.on
 
 
 class RegisterView(APIView):
@@ -100,6 +97,7 @@ class RegisterView(APIView):
                 serializer.validated_data["username"],
                 serializer.validated_data["password"],
             )
+            login(request, user)
             user_serializer = UserSerializer(user)
             data = user_serializer.data
             status = HTTP_201_CREATED
@@ -146,7 +144,7 @@ class LoginView(APIView):
             set_timezone(request, serializer)
             user_serializer = UserSerializer(user)
             data = user_serializer.data
-            status = HTTP_202_ACCEPTED
+            status = HTTP_200_OK
         else:
             data = None
             status = HTTP_400_BAD_REQUEST
