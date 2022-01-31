@@ -1,9 +1,10 @@
 #!/bin/bash
 # Generic image builder script
 set -xeuo pipefail
-REPO=$1        # the image to build
-VERSION_VAR=$2 # the version variable to use
-SERVICE=$3     # the docker compose service to build
+SERVICE=$1                  # the docker compose service to build
+REPO=docker.io/ajslater/$SERVICE
+VERSION_VAR=${SERVICE^^}
+VERSION_VAR=${VERSION_VAR//-/_}_VERSION
 
 # shellcheck disable=SC1091
 source .env
