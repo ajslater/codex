@@ -1,14 +1,18 @@
 #!/bin/bash
 # Compute the version tag for codex-builder-final
 set -euo pipefail
-CODEX_BUILDER_BASE_VERSION=$(./docker-version-codex-builder-base.sh)
+
+source .env
+source .env.versions
+EXTRA_MD5S=(
+    "$CODEX_BUILDER_BASE_VERSION  codex-builder-base-version"
+    "$PKG_VERSION  codex-package-version")
+
 # shellcheck disable=SC2046
 DEPS=(
     "$0"
     builder-final.Dockerfile
-    docker-build-codex-builder-final.sh
+    docker/docker-build-codex-builder-final.sh
 )
-DEPS_MD5S=$(md5sum "${DEPS[@]}")
-source .env
-echo -e "$CODEX_BUILDER_BASE_VERSION  codex-builder-base-version\n$PKG_VERSION  codex-package-version$DEPS_MD5S" |
-    ./docker-version-sum.sh
+
+source ./docker/docker-version-sum.sh

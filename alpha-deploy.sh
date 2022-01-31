@@ -11,6 +11,7 @@ catch() {
     poetry run pushover -s1 "$PKG_VERSION failed"
 }
 trap 'catch' ERR
+./docker/docker-env.sh
 ./docker/docker-build-codex-base.sh
 ./docker/docker-build-codex-builder-base.sh
 ./alpha-test-build-dist.sh
