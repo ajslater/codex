@@ -8,14 +8,14 @@ _Search_
 
   - Metadata search field in browser
   - Settings dialogs replaced with side drawers
-  - Browser does a better job of remembering your last browser view on first load.
-  - Reader's "close book" button now does a better job returning you to your last browser view.
   - Changed some keyboard shortcuts in reader.
   - "group by" renamed to "top group".
   - Admin panel gained a Queue Jobs page.
 
 - Fixes
 
+  - Browser does a better job of remembering your last browser view on first load.
+  - Reader's "close book" button now does a better job returning you to your last browser view.
   - Metadata panel cleanup and fix some missing fields.
 
 - Binary Dependencies
