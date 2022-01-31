@@ -1,13 +1,14 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Generic image builder script
 set -xeuo pipefail
 SERVICE=$1 # the docker compose service to build
-REPO=docker.io/ajslater/$SERVICE
+REPO=docker.io/ajslater/${SERVICE}
 VERSION_VAR=${SERVICE^^}
 VERSION_VAR=${VERSION_VAR//-/_}_VERSION
 
 # shellcheck disable=SC1091
 source .env
+# shellcheck disable=SC1091
 source .env.versions
 IMAGE="${REPO}:${!VERSION_VAR}"
 if [ "${1:-}" == "-f" ]; then
