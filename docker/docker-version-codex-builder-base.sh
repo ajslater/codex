@@ -1,7 +1,7 @@
 #!/bin/bash
 # Compute the version tag for ajslater/codex-builder-base
 set -euo pipefail
-CODEX_BASE_VERSION=$(./docker-version-codex-base.sh)
+CODEX_BASE_VERSION=$(./docker/docker-version-codex-base.sh)
 # shellcheck disable=SC2046
 read -ra PYTHON_CACHER_DEPS <<<$(find python_cacher -type f \( \
     ! -path "*__pycache__*" \
@@ -12,7 +12,7 @@ DEPS=(
     .dockerignore
     builder-base.Dockerfile
     builder-requirements.txt
-    docker-build-codex-builder-base.sh
+    docker/docker-build-codex-builder-base.sh
     "${PYTHON_CACHER_DEPS[@]}"
 )
 DEPS_MD5S=$(md5sum "${DEPS[@]}")
@@ -21,7 +21,7 @@ VERSION=$(echo -e "$CODEX_BASE_VERSION  codex-base-version\n$DEPS_MD5S" |
     md5sum |
     awk '{print $1}')
 if [[ ${CIRCLECI:-} ]]; then
-    ARCH=$(./docker-arch.sh)
+    ARCH=$(./docker/docker-arch.sh)
     VERSION="${VERSION}-$ARCH"
 fi
 echo "$VERSION"

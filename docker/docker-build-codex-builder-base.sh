@@ -4,7 +4,7 @@ set -xeuo pipefail
 # shellcheck disable=SC1091
 source .env
 REPO=docker.io/ajslater/codex-builder-base
-CODEX_BUILDER_BASE_VERSION=$(./docker-version-codex-builder-base.sh)
+CODEX_BUILDER_BASE_VERSION=$(./docker/docker-version-codex-builder-base.sh)
 IMAGE="${REPO}:${CODEX_BUILDER_BASE_VERSION}"
 if [ "${1:-}" == "-f" ]; then
     shift
@@ -23,14 +23,14 @@ fi
 export DOCKER_CLI_EXPERIMENTAL=enabled
 export DOCKER_BUILDKIT=1
 export PLATFORMS
-CODEX_BASE_VERSION=$(./docker-version-codex-base.sh)
-CODEX_DIST_BUILDER_VERSION=$(./docker-version-codex-dist-builder.sh)
-CODEX_BUILDER_FINAL_VERSION=$(./docker-version-codex-builder-final.sh)
+CODEX_BASE_VERSION=$(./docker/docker-version-codex-base.sh)
+CODEX_DIST_BUILDER_VERSION=$(./docker/docker-version-codex-dist-builder.sh)
+CODEX_BUILDER_FINAL_VERSION=$(./docker/docker-version-codex-builder-final.sh)
 export CODEX_BASE_VERSION
 export CODEX_BUILDER_BASE_VERSION
 export CODEX_DIST_BUILDER_VERSION
 export CODEX_BUILDER_FINAL_VERSION
-ARCH=$(./docker-arch.sh)
+ARCH=$(./docker/docker-arch.sh)
 export HOST_CACHE_DIR="./cache/packages/$ARCH"
 mkdir -p "$HOST_CACHE_DIR/pypoetry" "$HOST_CACHE_DIR/pip"
 if [ -n "${PLATFORMS:-}" ]; then

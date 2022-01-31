@@ -1,11 +1,11 @@
 #!/bin/bash
 # Build the wheels builder image
 set -xeuo pipefail
-./circleci-step-halt.sh
+./circleci/circleci-step-halt.sh
 # shellcheck disable=SC1091
 source .env
 REPO=docker.io/ajslater/codex-dist-builder
-CODEX_DIST_BUILDER_VERSION=$(./docker-version-codex-dist-builder.sh)
+CODEX_DIST_BUILDER_VERSION=$(./docker/docker-version-codex-dist-builder.sh)
 IMAGE="${REPO}:${CODEX_DIST_BUILDER_VERSION}"
 if [ "${1:-}" == "-f" ]; then
     shift
@@ -18,8 +18,8 @@ fi
 
 export DOCKER_CLI_EXPERIMENTAL=enabled
 export DOCKER_BUILDKIT=1
-CODEX_BUILDER_BASE_VERSION=$(./docker-version-codex-builder-base.sh)
-CODEX_BUILDER_FINAL_VERSION=$(./docker-version-codex-builder-final.sh)
+CODEX_BUILDER_BASE_VERSION=$(./docker/docker-version-codex-builder-base.sh)
+CODEX_BUILDER_FINAL_VERSION=$(./docker/docker-version-codex-builder-final.sh)
 export CODEX_BUILDER_BASE_VERSION
 export CODEX_DIST_BUILDER_VERSION
 export CODEX_BUILDER_FINAL_VERSION

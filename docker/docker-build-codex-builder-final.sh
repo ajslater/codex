@@ -25,16 +25,16 @@ fi
 
 export DOCKER_CLI_EXPERIMENTAL=enabled
 export DOCKER_BUILDKIT=1
-CODEX_BASE_VERSION=$(./docker-version-codex-base.sh)
+CODEX_BASE_VERSION=$(./docker/docker-version-codex-base.sh)
 export CODEX_BASE_VERSION
-CODEX_BUILDER_BASE_VERSION=$(./docker-version-codex-builder-base.sh)
+CODEX_BUILDER_BASE_VERSION=$(./docker/docker-version-codex-builder-base.sh)
 export CODEX_BUILDER_BASE_VERSION
-CODEX_DIST_BUILDER_VERSION=$(./docker-version-codex-dist-builder.sh)
+CODEX_DIST_BUILDER_VERSION=$(./docker/docker-version-codex-dist-builder.sh)
 export CODEX_DIST_BUILDER_VERSION
-CODEX_BUILDER_FINAL_VERSION=$(./docker-version-codex-builder-final.sh)
+CODEX_BUILDER_FINAL_VERSION=$(./docker/docker-version-codex-builder-final.sh)
 export CODEX_BUILDER_FINAL_VERSION
 export CODEX_WHEEL=codex-${PKG_VERSION}-py3-none-any.whl
-ARCH=$(./docker-arch.sh)
+ARCH=$(./docker/docker-arch.sh)
 export HOST_CACHE_DIR="./cache/packages/$ARCH"
 mkdir -p "$HOST_CACHE_DIR/pypoetry" "$HOST_CACHE_DIR/pip" "$HOST_CACHE_DIR/wheels"
 if [ -n "${PLATFORMS:-}" ]; then

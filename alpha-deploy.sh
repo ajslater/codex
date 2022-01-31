@@ -11,11 +11,11 @@ catch() {
     poetry run pushover -s1 "$PKG_VERSION failed"
 }
 trap 'catch' ERR
-./docker-build-codex-base.sh
-./docker-build-codex-builder-base.sh
+./docker/docker-build-codex-base.sh
+./docker/docker-build-codex-builder-base.sh
 ./alpha-test-build-dist.sh
 # XXX PLATFORMS declaration current broken for wheels because build-codex bake does not see local wheel image
 # https://github.com/docker/cli/issues/3286
 export PLATFORMS="linux/amd64"
-./docker-build-codex.sh
+./docker/docker-build-codex.sh
 poetry run pushover -s$? "$PKG_VERSION success"

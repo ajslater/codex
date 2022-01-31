@@ -27,10 +27,10 @@ jobs:
           command: ./docker/docker-init.sh
           name: Login to Docker Hub, Install binfmt Platform, Create the buildx Builder
       - run:
-          command: ./docker-build-codex-base.sh
+          command: ./docker/docker-build-codex-base.sh
           name: Build Base Image
       - run:
-          command: ./docker-build-codex-builder-base.sh
+          command: ./docker/docker-build-codex-builder-base.sh
           name: Build Builder Base Image
   build-base-arm64:
     <<: *build-base
@@ -40,12 +40,12 @@ jobs:
     steps:
       - checkout
       - run:
-          command: ./circleci-set-dist-cache-key-if-last-commit-equal.sh << pipeline.parameters.dist-cache-key >>
+          command: ./circleci/circleci-setset-dist-cache-key-if-last-commit-equal.sh << pipeline.parameters.dist-cache-key >>
           name: Set the cache key to the last commit if the last commit is equal to this commit.
       - restore_cache:
           key: dist-v1-{{ checksum "<< pipeline.parameters.dist-cache-key>>" }}
       - run:
-          command: ./circleci-set-skip-dist-build.sh
+          command: ./circleci/circleci-setset-skip-dist-build.sh
           name: Set the skip job flag
       - restore_cache:
           key: wheels-v1-{{ arch }}
@@ -53,7 +53,7 @@ jobs:
           command: ./docker/docker-init.sh
           name: Login to Docker Hub, Install binfmt platform & Create the buildx Builder
       - run:
-          command: ./docker-build-codex-dist-builder.sh
+          command: ./docker/docker-build-codex-dist-builder.sh
           name: Build Distribution Builder Image
       - run:
           command: ./docker/docker-compose-exit.sh codex-save-cache
@@ -90,7 +90,7 @@ jobs:
           name: Build Distribution
       - run:
           name: Set the cache key to the current commit.
-          command: ./circleci-set-dist-cache-key-to-current-commit.sh << pipeline.parameters.dist-cache-key >>
+          command: ./circleci/circleci-setset-dist-cache-key-to-current-commit.sh << pipeline.parameters.dist-cache-key >>
       - save_cache:
           key: dist-v1-{{ checksum "<< pipeline.parameters.dist-cache-key >>" }}
           paths:
@@ -114,7 +114,7 @@ jobs:
           command: ./docker/docker-init.sh
           name: Login to Docker Hub, Install binfmt platform & Create the buildx Builder
       - run:
-          command: ./docker-build-codex-builder-final.sh
+          command: ./docker/docker-build-codex-builder-final.sh
           name: Build Codex Builder Final
       - run:
           command: ./docker/docker-compose-exit.sh codex-save-final-cache
@@ -124,7 +124,7 @@ jobs:
           paths:
             - ./cache/packages
       - run:
-          command: ./docker-build-codex.sh
+          command: ./docker/docker-build-codex.sh
           name: Build Codex Runnable Image
   build-arm64:
     <<: *build

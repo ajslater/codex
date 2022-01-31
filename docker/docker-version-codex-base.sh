@@ -7,7 +7,7 @@ DEPS=(
     "$0"
     .dockerignore
     base.Dockerfile
-    docker-build-codex-base.sh
+    docker/docker-build-codex-base.sh
 )
 DEPS_MD5S=$(md5sum "${DEPS[@]}")
 VERSION=$(echo -e "$PYTHON_ALPINE_VERSION  python-alpine-version\n$DEPS_MD5S" |
@@ -15,7 +15,7 @@ VERSION=$(echo -e "$PYTHON_ALPINE_VERSION  python-alpine-version\n$DEPS_MD5S" |
     md5sum |
     awk '{print $1}')
 if [[ ${CIRCLECI:-} ]]; then
-    ARCH=$(./docker-arch.sh)
+    ARCH=$(./docker/docker-arch.sh)
     VERSION="${VERSION}-$ARCH"
 fi
 echo "$VERSION"
