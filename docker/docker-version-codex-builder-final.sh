@@ -12,7 +12,6 @@ EXTRA_MD5S=(
 DEPS=(
     "$0"
     builder-final.Dockerfile
-    docker/docker-build-codex-builder-final.sh
 )
 
 source ./docker/docker-version-checksum.sh

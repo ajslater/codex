@@ -15,7 +15,6 @@ DEPS=(
     .dockerignore
     builder-base.Dockerfile
     builder-requirements.txt
-    docker/docker-build-codex-builder-base.sh
     "${PYTHON_CACHER_DEPS[@]}"
 )
 
