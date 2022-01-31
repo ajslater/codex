@@ -6,7 +6,7 @@ source .env.pushover
 export PUSHOVER_API_TOKEN
 export PUSHOVER_USER_ID
 # shellcheck disable=SC1091
-source .env
+source .env.build
 catch() {
     poetry run pushover -s1 "$PKG_VERSION failed"
 }

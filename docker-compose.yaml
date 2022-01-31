@@ -1,7 +1,7 @@
 services:
   codex-base:
     env_file:
-      - .env
+      - .env.build
       - .env.versions
     build:
       context: .
@@ -9,7 +9,7 @@ services:
     image: docker.io/ajslater/codex-base
   codex-builder-base:
     env_file:
-      - .env
+      - .env.build
       - .env.versions
     build:
       context: .
@@ -17,7 +17,7 @@ services:
     image: docker.io/ajslater/codex-builder-base
   codex-dist-builder: &codex-dist-builder
     env_file:
-      - .env
+      - .env.build
       - .env.versions
     build:
       context: .
@@ -67,7 +67,7 @@ services:
     command: ./build-dist.sh
   codex-builder-final: &codex-builder-final
     env_file:
-      - .env
+      - .env.build
       - .env.versions
     build:
       context: .
@@ -81,8 +81,9 @@ services:
     command: ./python_cacher/save_py_caches.py pip
   codex:
     env_file:
-      - .env
+      - .env.build
       - .env.versions
+      - .env
     build:
       context: .
     image: docker.io/ajslater/codex

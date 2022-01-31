@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-source .env
+source .env.build
 ARCH=$(./docker/docker-arch.sh)
 rm -f .env.versions
 cat <<EOF >>.env.versions

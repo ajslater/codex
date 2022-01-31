@@ -1,7 +1,7 @@
 #!/bin/bash
 # Get the final runnable codex image version
 set -euo pipefail
-source .env
+source .env.build
 VERSION=${PKG_VERSION}
 if [ "${CIRCLECI:-}" ]; then
     ARCH=$(./docker/docker-arch.sh)

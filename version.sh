@@ -10,7 +10,7 @@ else
     sedi=('sed' '-i')
 fi
 
-"${sedi[@]}" "s/PKG_VERSION=.*/PKG_VERSION=$VERSION/" .env
+"${sedi[@]}" "s/PKG_VERSION=.*/PKG_VERSION=$VERSION/" .env.build
 poetry version "$VERSION"
 cd frontend
 npm version --allow-same-version "$VERSION"

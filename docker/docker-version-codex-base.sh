@@ -2,7 +2,7 @@
 # Compute the version tag for ajslater/codex-base
 set -euo pipefail
 # shellcheck disable=SC1091
-source .env
+source .env.build
 EXTRA_MD5S=("$PYTHON_ALPINE_VERSION  python-alpine-version")
 
 DEPS=(
