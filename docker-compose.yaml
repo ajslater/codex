@@ -2,7 +2,7 @@ services:
   codex-base:
     env_file:
       - .env
-      - .env_versions
+      - .env.versions
     build:
       context: .
       dockerfile: base.Dockerfile
@@ -10,7 +10,7 @@ services:
   codex-builder-base:
     env_file:
       - .env
-      - .env_versions
+      - .env.versions
     build:
       context: .
       dockerfile: builder-base.Dockerfile
@@ -18,7 +18,7 @@ services:
   codex-dist-builder: &codex-dist-builder
     env_file:
       - .env
-      - .env_versions
+      - .env.versions
     build:
       context: .
       dockerfile: dist-builder.Dockerfile
@@ -68,7 +68,7 @@ services:
   codex-builder-final: &codex-builder-final
     env_file:
       - .env
-      - .env_versions
+      - .env.versions
     build:
       context: .
       dockerfile: builder-final.Dockerfile
@@ -82,7 +82,7 @@ services:
   codex:
     env_file:
       - .env
-      - .env_versions
+      - .env.versions
     build:
       context: .
     image: docker.io/ajslater/codex
