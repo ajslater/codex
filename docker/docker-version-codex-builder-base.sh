@@ -16,12 +16,5 @@ DEPS=(
     "${PYTHON_CACHER_DEPS[@]}"
 )
 DEPS_MD5S=$(md5sum "${DEPS[@]}")
-VERSION=$(echo -e "$CODEX_BASE_VERSION  codex-base-version\n$DEPS_MD5S" |
-    LC_ALL=C sort |
-    md5sum |
-    awk '{print $1}')
-if [[ ${CIRCLECI:-} ]]; then
-    ARCH=$(./docker/docker-arch.sh)
-    VERSION="${VERSION}-$ARCH"
-fi
-echo "$VERSION"
+echo -e "$CODEX_BASE_VERSION  codex-base-version\n$DEPS_MD5S" \
+    | ./docker-version-sum.sh
