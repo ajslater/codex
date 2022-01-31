@@ -1,27 +1,29 @@
 services:
   codex-base:
-    env_file:
-      - .env.build
-      - .env.versions
     build:
       context: .
       dockerfile: base.Dockerfile
+      args:
+        PYTHON_ALPINE_VERSION:
+        CODEX_BASE_VERSION:
     image: docker.io/ajslater/codex-base
   codex-builder-base:
-    env_file:
-      - .env.build
-      - .env.versions
     build:
       context: .
       dockerfile: builder-base.Dockerfile
+      args:
+        CODEX_BASE_VERSION:
+        CODEX_BUILDER_BASE_VERSION:
+        HOST_CACHE_DIR:
+        WHEELS:
     image: docker.io/ajslater/codex-builder-base
   codex-dist-builder: &codex-dist-builder
-    env_file:
-      - .env.build
-      - .env.versions
     build:
       context: .
       dockerfile: dist-builder.Dockerfile
+      args:
+        CODEX_BUILDER_BASE_VERSION:
+        CODEX_DIST_BUILDER_VERSION:
     image: docker.io/ajslater/codex-dist-builder:$CODEX_DIST_BUILDER_VERSION
     container_name: codex-dist-builder
   codex-save-cache:
@@ -66,12 +68,14 @@ services:
       - ./dist/:/app/dist/
     command: ./build-dist.sh
   codex-builder-final: &codex-builder-final
-    env_file:
-      - .env.build
-      - .env.versions
     build:
       context: .
       dockerfile: builder-final.Dockerfile
+      args:
+        CODEX_BUILDER_BASE_VERSION:
+        CODEX_WHEEL:
+        HOST_CACHE_DIR:
+        WHEELS:
     image: docker.io/ajslater/codex-builder-final:$CODEX_BUILDER_FINAL_VERSION
   codex-save-final-cache:
     <<: *codex-builder-final
@@ -80,12 +84,12 @@ services:
       - ./cache/packages:/app/cache/packages
     command: ./python_cacher/save_py_caches.py pip
   codex:
-    env_file:
-      - .env.build
-      - .env.versions
-      - .env
     build:
       context: .
+      args:
+        CODEX_BASE_VERSION:
+        CODEX_BUILDER_FINAL_VERSION:
+        PKG_VERSION:
     image: docker.io/ajslater/codex
     container_name: codex
     environment:

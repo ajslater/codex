@@ -2,7 +2,7 @@
 # Compute the version tag for ajslater/codex-builder-base
 set -euo pipefail
 
-source .env.versions
+source .env
 EXTRA_MD5S=("$CODEX_BASE_VERSION  codex-base-version")
 
 # shellcheck disable=SC2046

@@ -142,7 +142,6 @@ jspm_packages/
 *~
 .env
 .env.pushover
-.env.versions
 .venv
 .DS_Store
 build

@@ -2,7 +2,7 @@ ARG CODEX_BUILDER_BASE_VERSION
 FROM ajslater/codex-builder-base:${CODEX_BUILDER_BASE_VERSION}
 ARG HOST_CACHE_DIR
 ARG CODEX_WHEEL
-ARG WHEELS ./cache/packages/wheels
+ARG WHEELS
 LABEL maintainer="AJ Slater <aj@slater.net>"
 LABEL version=$CODEX_BUILDER_FINAL_VERSION
 WORKDIR /app

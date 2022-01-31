@@ -7,9 +7,7 @@ VERSION_VAR=${SERVICE^^}
 VERSION_VAR=${VERSION_VAR//-/_}_VERSION
 
 # shellcheck disable=SC1091
-source .env.build
-# shellcheck disable=SC1091
-source .env.versions
+source .env
 IMAGE="${REPO}:${!VERSION_VAR}"
 if [ "${1:-}" == "-f" ]; then
     shift
@@ -35,15 +33,15 @@ fi
 
 export DOCKER_CLI_EXPERIMENTAL=enabled
 export DOCKER_BUILDKIT=1
-export PYTHON_ALPINE_VERSION
 export CODEX_BASE_VERSION
 export CODEX_BUILDER_BASE_VERSION
-export CODEX_DIST_BUILDER_VERSION
 export CODEX_BUILDER_FINAL_VERSION
-export CODEX_VERSION
+export CODEX_DIST_BUILDER_VERSION
+export CODEX_WHEEL
 export HOST_CACHE_DIR
 export PKG_VERSION
-export CODEX_WHEEL
+export PYTHON_ALPINE_VERSION
+export WHEELS
 # shellcheck disable=2068
 docker buildx bake \
     ${PLATFORM_ARG[@]:-} \
