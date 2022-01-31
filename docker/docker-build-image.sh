@@ -1,7 +1,7 @@
 #!/bin/bash
 # Generic image builder script
 set -xeuo pipefail
-SERVICE=$1                  # the docker compose service to build
+SERVICE=$1 # the docker compose service to build
 REPO=docker.io/ajslater/$SERVICE
 VERSION_VAR=${SERVICE^^}
 VERSION_VAR=${VERSION_VAR//-/_}_VERSION
