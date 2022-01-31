@@ -34,6 +34,13 @@ fi
 
 export DOCKER_CLI_EXPERIMENTAL=enabled
 export DOCKER_BUILDKIT=1
+export CODEX_BASE_VERSION
+export CODEX_BUILDER_BASE_VERSION
+export CODEX_DIST_BUILDER_VERSION
+export CODEX_BUILDER_FINAL_VERSION
+export CODEX_VERSION
+export HOST_CACHE_DIR
+export CODEX_WHEEL
 # shellcheck disable=2068
 docker buildx bake \
     ${PLATFORM_ARG[@]:-} \
