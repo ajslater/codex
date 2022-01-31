@@ -19,4 +19,4 @@ DEPS=(
     "${PYTHON_CACHER_DEPS[@]}"
 )
 
-source ./docker/docker-version-sum.sh
+source ./docker/docker-version-checksum.sh

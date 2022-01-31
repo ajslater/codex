@@ -12,4 +12,4 @@ DEPS=(
     docker/docker-build-codex-base.sh
 )
 
-source ./docker/docker-version-sum.sh
+source ./docker/docker-version-checksum.sh

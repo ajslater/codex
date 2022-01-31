@@ -30,10 +30,10 @@ jobs:
           command: ./docker/docker-env.sh
           name: Generate image versions
       - run:
-          command: ./docker/docker-build-codex-base.sh
+          command: ./docker/docker-build-image.sh codex-base
           name: Build Base Image
       - run:
-          command: ./docker/docker-build-codex-builder-base.sh
+          command: ./docker/docker-build-image.sh codex-builder-base
           name: Build Builder Base Image
       - persist_to_workspace:
           paths:
@@ -62,7 +62,7 @@ jobs:
           command: ./docker/docker-init.sh
           name: Login to Docker Hub, Install binfmt platform & Create the buildx Builder
       - run:
-          command: ./docker/docker-build-codex-dist-builder.sh
+          command: ./docker/docker-build-image.sh codex-dist-builder
           name: Build Distribution Builder Image
       - run:
           command: ./docker/docker-compose-exit.sh codex-save-cache
@@ -124,7 +124,7 @@ jobs:
           command: ./docker/docker-init.sh
           name: Login to Docker Hub, Install binfmt platform & Create the buildx Builder
       - run:
-          command: ./docker/docker-build-codex-builder-final.sh
+          command: ./docker/docker-build-image.sh codex-builder-final
           name: Build Codex Builder Final
       - run:
           command: ./docker/docker-compose-exit.sh codex-save-final-cache
@@ -134,7 +134,7 @@ jobs:
           paths:
             - ./cache/packages
       - run:
-          command: ./docker/docker-build-codex.sh
+          command: ./docker/docker-build-image.sh codex
           name: Build Codex Runnable Image
   build-arm64:
     <<: *build
