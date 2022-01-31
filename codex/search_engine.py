@@ -2,11 +2,11 @@
 # Without this locking xapian throws xapian.DatabaseLockError when
 # multiple workers contend for the database.
 from fcntl import LOCK_EX, LOCK_UN, flock
+from pathlib import Path
 
 from xapian_backend import XapianSearchBackend, XapianSearchQuery
 
 from codex._vendor.haystack.backends import BaseEngine
-from codex.settings.settings import CODEX_XAPIAN_LOCKFILE
 
 
 class FileLock(object):
@@ -31,14 +31,19 @@ class FileLock(object):
 class CodexXapianSearchBackend(XapianSearchBackend):
     """Override methods to use locks."""
 
+    def __init__(self, *args, **kwargs):
+        """Set the lockfile."""
+        super().__init__(*args, **kwargs)
+        self.lockfile = Path(self.path) / "lockfile"  # type: ignore
+
     def update(self, index, iterable, commit=True):
         """Use lock with update."""
-        with FileLock(path=CODEX_XAPIAN_LOCKFILE):
+        with FileLock(path=self.lockfile):
             super().update(index=index, iterable=iterable, commit=commit)
 
     def remove(self, obj, commit=True):
         """Use lock with remove."""
-        with FileLock(path=CODEX_XAPIAN_LOCKFILE):
+        with FileLock(path=self.lockfile):
             return super().remove(obj=obj, commit=commit)
 
 
