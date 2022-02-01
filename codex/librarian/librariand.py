@@ -1,6 +1,8 @@
 """Library process worker for background tasks."""
 from logging import getLogger
 from multiprocessing import Process
+from threading import Thread
+from time import sleep
 
 from codex.librarian.covers.coverd import CoverCreator
 from codex.librarian.db.updaterd import Updater
@@ -8,6 +10,7 @@ from codex.librarian.janitor.crond import Crond, janitor
 from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
     ComicCoverTask,
+    DelayedTasks,
     JanitorTask,
     NotifierTask,
     PollLibrariesTask,
@@ -27,6 +30,18 @@ from codex.notifier import Notifier
 
 
 LOG = getLogger(__name__)
+
+
+class DelayedTasksThread(Thread):
+    def __init__(self, delay, tasks, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.delay = delay
+        self.tasks = tasks
+
+    def run(self):
+        sleep(self.delay)
+        for task in self.tasks:
+            LIBRARIAN_QUEUE.put(task)
 
 
 class LibrarianDaemon(Process):
@@ -62,6 +77,8 @@ class LibrarianDaemon(Process):
                 self.search_indexer.queue.put(task)
             elif isinstance(task, JanitorTask):
                 janitor(task)
+            elif isinstance(task, DelayedTasks):
+                DelayedTasksThread(task.delay, task.tasks).start()
             elif task == self.SHUTDOWN_TASK:
                 LOG.verbose("Shutting down Librarian...")  # type: ignore
                 run = False

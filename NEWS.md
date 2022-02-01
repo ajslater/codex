@@ -1,5 +1,13 @@
 # 📰 Codex News
 
+## v0.9.0a0
+
+_Private Libraries_
+
+- Features
+
+  - Libraries may now have access restricted to certain user groups.
+
 ## v0.8.0
 
 _Search_

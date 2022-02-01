@@ -1,10 +1,12 @@
 """Django views for Codex."""
 from logging import getLogger
-from threading import Thread
-from time import sleep
 
 from django.contrib.admin import ModelAdmin, register
+from django.contrib.admin.sites import site
 from django.contrib.admin.templatetags.admin_urls import admin_urlname
+from django.contrib.auth.admin import GroupAdmin, UserAdmin
+from django.contrib.auth.models import Group, User
+from django.core.cache import cache
 from django.db.models import Model
 from django.shortcuts import resolve_url
 from django.urls import get_script_prefix
@@ -16,6 +18,7 @@ from codex.librarian.queue_mp import (
     BroadcastNotifierTask,
     CleanupDatabaseTask,
     CreateComicCoversLibrariesTask,
+    DelayedTasks,
     PollLibrariesTask,
     PurgeComicCoversLibrariesTask,
     WatchdogSyncTask,
@@ -68,20 +71,6 @@ class AdminQueueJob(AdminNoAddDelete):
         return super().changelist_view(request, extra_context=extra_context)
 
 
-class LibraryChangeThread(Thread):
-    """
-    Kludgy thread to wait for the database to sync between procs.
-
-    Needed because these tasks fail if they're sent right after creation.
-    """
-
-    def run(self):
-        """Sleep and then put things on the queue."""
-        sleep(2)
-        LIBRARIAN_QUEUE.put(BroadcastNotifierTask("LIBRARY_CHANGED"))
-        LIBRARIAN_QUEUE.put(WatchdogSyncTask())
-
-
 @register(Library)
 class AdminLibrary(ModelAdmin):
     """Admin model for Library."""
@@ -89,6 +78,7 @@ class AdminLibrary(ModelAdmin):
     fieldsets = (
         (None, {"fields": ("path",)}),
         ("Watchdog", {"fields": ("events", "poll", "poll_every", "last_poll")}),
+        ("Auth", {"fields": ("groups",)}),
     )
     actions = ("poll", "force_poll", "regen_comic_covers")
     empty_value_display = "Never"
@@ -98,14 +88,20 @@ class AdminLibrary(ModelAdmin):
         "poll",
         "poll_every",
         "last_poll",
+        "groups",
     )
     list_editable = (
         "events",
         "poll",
         "poll_every",
+        "groups",
     )
     readonly_fields = ("last_poll",)
     sortable_by = list_display
+
+    def get_queryset(self, request):
+        """Prefetch groups."""
+        return super().get_queryset(request).prefetch_related("groups")
 
     @staticmethod
     def queue_poll(queryset, force):
@@ -135,7 +131,10 @@ class AdminLibrary(ModelAdmin):
 
     def _on_change(self, _, created=False):
         """Events for when the library has changed."""
-        LibraryChangeThread().start()
+        cache.clear()
+        tasks = (BroadcastNotifierTask("LIBRARY_CHANGED"), WatchdogSyncTask())
+        task = DelayedTasks(2, tasks)
+        LIBRARIAN_QUEUE.put(task)
 
     def save_model(self, request, obj, form, change):
         """Trigger watching and polling on update or creation."""
@@ -227,3 +226,32 @@ class AdminFailedImport(AdminNoAddDelete):
         return super().get_queryset(request).select_related("library")
 
     library_link.short_description = "Library"
+
+
+site.unregister(Group)
+site.unregister(User)
+
+
+@register(Group)
+class CodexGroupAdmin(GroupAdmin):
+    """Remove user_permissions to avoid confusion."""
+
+    fields = ("name",)
+
+
+@register(User)
+class CodexUserAdmin(UserAdmin):
+    """Remove user_permissions to avoid confusion."""
+
+    fieldsets = (
+        (None, {"fields": ("username", "password")}),
+        (("Personal info"), {"fields": ("first_name", "last_name", "email")}),
+        (
+            ("Permissions"),
+            {
+                "fields": ("is_active", "is_staff", "is_superuser", "groups"),
+            },
+        ),
+        (("Important dates"), {"fields": ("last_login", "date_joined")}),
+    )
+    filter_horizontal = ("groups",)

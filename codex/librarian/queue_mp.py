@@ -196,4 +196,12 @@ class SearchIndexUpdateTask(SearchIndexerTask):
     rebuild: bool
 
 
+@dataclass
+class DelayedTasks:
+    """A list of tasks to start on a delay."""
+
+    delay: int
+    tasks: tuple
+
+
 LIBRARIAN_QUEUE = Queue()

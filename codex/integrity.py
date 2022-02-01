@@ -7,6 +7,7 @@ from logging import getLogger
 
 from django.apps import apps
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.contrib.sessions.models import Session
 from django.db.migrations.recorder import MigrationRecorder
 from django.db.models.functions import Now
@@ -24,6 +25,7 @@ BACKUP_DB_PATH = DB_PATH.parent / (DB_PATH.name + ".backup")
 MIGRATION_0005 = "0005_auto_20200918_0146"
 MIGRATION_0007 = "0007_auto_20211210_1710"
 MIGRATION_0010 = "0010_haystack"
+MIGRATION_0011 = "0010_library_groups"
 M2M_NAMES = {
     "Character": "characters",
     "Credit": "credits",
@@ -239,6 +241,17 @@ def _delete_search_result_fk_errors(apps):
     LOG.verbose(f"Deleted {count} orphan SearchResults")  # type: ignore
 
 
+def _repair_library_groups(apps):
+    """Remove non-extant groups from libraries."""
+    if not has_applied_migration(MIGRATION_0010):
+        return
+    library_model = apps.get_model("codex", "library")
+    through_model = library_model.groups.through
+    valid_groups = Group.objects.all()
+    bad_relations = through_model.objects.exclude(group_id__in=valid_groups)
+    bad_relations.delete()
+
+
 def _fix_db_integrity():
     """Fix most of the Codex model integrity errors we can."""
     LOG.verbose("Reparing database integrity...")  # type: ignore
@@ -286,6 +299,8 @@ def _fix_db_integrity():
     _mark_comics_with_bad_m2m_rels_for_update(comic_model, bad_comic_ids)
 
     _delete_search_result_fk_errors(apps)
+
+    _repair_library_groups(apps)
 
     LOG.verbose("Done with database integrity check.")  # type: ignore
 

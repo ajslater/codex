@@ -8,6 +8,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from django.conf import settings
+from django.contrib.auth.models import Group
 from django.contrib.sessions.models import Session
 from django.core.exceptions import ValidationError
 from django.db import connection
@@ -156,6 +157,7 @@ class Library(BaseModel):
     last_poll = DateTimeField(null=True)
     update_in_progress = BooleanField(default=False)
     schema_version = PositiveSmallIntegerField(default=0)
+    groups = ManyToManyField(Group, blank=True)
 
     def __str__(self):
         """Return the path."""
