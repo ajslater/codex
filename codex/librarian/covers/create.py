@@ -172,3 +172,16 @@ def create_comic_cover_for_libraries(library_pks):
     )
     task = BulkComicCoverCreateTask(True, tuple(comic_pks))
     LIBRARIAN_QUEUE.put(task)
+
+
+def create_missing_covers():
+    """Generate covers for comics missing covers."""
+    no_cover_comic_pks = Comic.objects.filter(cover_path="").values_list(
+        "pk", flat=True
+    )
+    no_cover_comic_pks = tuple(no_cover_comic_pks)
+    LOG.verbose(  # type: ignore
+        f"Generating covers for {len(no_cover_comic_pks)} comics missing them."
+    )
+    task = BulkComicCoverCreateTask(False, no_cover_comic_pks)
+    LIBRARIAN_QUEUE.put(task)

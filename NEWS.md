@@ -6,7 +6,11 @@ _Private Libraries_
 
 - Features
 
-  - Libraries may now have access restricted to certain user groups.
+  - Libraries may optionally have access restricted to certain user groups.
+  - The "Critical Rating" tag is now a decimal value.
+  - The "Community Rating" tag replaced "User Rating" tag, a decimal value.
+  - Cover Credits role replaced by "Cover Artist".
+  - Admin Queue Job for creating missing comic covers.
 
 ## v0.8.0
 

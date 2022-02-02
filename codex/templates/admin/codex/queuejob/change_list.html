@@ -17,6 +17,7 @@
 <input type="radio" name="task" value="poll"><label>Poll All Libraries For Changes</label><br/>
 <input type="radio" name="task" value="poll_force"><label>Update All Comics</label><br/>
 <input type="radio" name="task" value="db_cleanup"><label>Clean Up Database</label><br/>
+<input type="radio" name="task" value="create_missing_covers"><label>Create Missing Comic Covers</label><br/>
 <input type="radio" name="task" value="create_comic_covers"><label>Recreate All Comic Covers</label><br/>
 <input type="radio" name="task" value="watchdog_sync"><label>Sync Watchdog with Database</label><br/>
 <input type="radio" name="task" value="db_vacuum"><label>Compact Database</label><br/>
@@ -42,6 +43,8 @@
 Poll all libraries for changes. Update the library if changes are detected.
 <h3>Update All Comics</h3>
 Forcibly update all the comics in all libraries, overwrite the database and regenerate covers.
+<h3>Create Missing Comic Covers</h3>
+Create comic covers only for comics that are missing them.
 <h3>Recreate All Comic Covers</h3>
 Recreate all the comic covers in every library.
 <h3>Sync Watchdog with Database</h3>
