@@ -75,6 +75,10 @@ def _get_path_metadata(path):
         if title:
             md["name"] = title[:31]
         md["max_page"] = max(md["page_count"] - 1, 0)
+        if credits := md.get("credits"):
+            for credit in credits:
+                if credit.get("role") == "CoverArtist":
+                    credit["role"] = "Cover Artist"
         # Getting the cover data while getting the metada and handing to the
         # other thread is significantly faster than doing it later.
         # Updated the dabbase with cover_path

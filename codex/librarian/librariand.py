@@ -33,12 +33,16 @@ LOG = getLogger(__name__)
 
 
 class DelayedTasksThread(Thread):
+    """Wait for the DB to sync before running tasks."""
+
     def __init__(self, delay, tasks, *args, **kwargs):
+        """Init params."""
         super().__init__(*args, **kwargs)
         self.delay = delay
         self.tasks = tasks
 
     def run(self):
+        """Sleep and then put tasks on the queue."""
         sleep(self.delay)
         for task in self.tasks:
             LIBRARIAN_QUEUE.put(task)

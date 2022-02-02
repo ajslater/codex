@@ -65,7 +65,7 @@ export default {
 }
 #orderBySelect {
   margin-left: 16px;
-  width: 180px;
+  width: 188px;
   margin-right: 0px;
 }
 #filterSelect {
@@ -110,6 +110,19 @@ export default {
 }
 .toolbarSelect .v-input__control > .v-input__slot:before {
   border: none;
+}
+#orderBySelect .v-select__selection--comma {
+  margin-right: 0px;
+  max-width: 100%;
+}
+#orderBySelect .v-select__selections input {
+  display: none;
+}
+#orderBySelect .v-select.v-input--dense .v-select__selection--comma {
+  margin-right: 0px;
+}
+#orderBySelect .v-input__append-inner {
+  padding: 0px !important;
 }
 #filterSelect .v-input__prepend-inner {
   padding-right: 0px;

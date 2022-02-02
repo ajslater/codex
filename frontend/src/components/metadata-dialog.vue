@@ -110,9 +110,9 @@
           <MetadataText :value="md.language" label="Language" />
         </section>
         <section class="mdSection">
-          <MetadataText :value="md.user_rating" label="User Rating" />
+          <MetadataText :value="md.community_rating" label="Community Rating" />
           <MetadataText :value="md.critical_rating" label="Critical Rating" />
-          <MetadataText :value="md.maturity_rating" label="Maturity Rating" />
+          <MetadataText :value="md.age_rating" label="Age Rating" />
         </section>
         <section class="mdSection">
           <MetadataTags :values="md.genres" label="Genres" />

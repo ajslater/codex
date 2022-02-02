@@ -2,6 +2,7 @@
 # Run a docker compose service and return its exit code
 set -euo pipefail
 ./circleci/circleci-step-halt.sh
+# shellcheck disable=SC1091
 source .env
 export DOCKER_CLI_EXPERIMENTAL=enabled
 export DOCKER_BUILDKIT=1

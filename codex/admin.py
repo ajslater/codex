@@ -2,6 +2,7 @@
 from logging import getLogger
 
 from django.contrib.admin import ModelAdmin, register
+from django.contrib.admin.checks import ModelAdminChecks
 from django.contrib.admin.sites import site
 from django.contrib.admin.templatetags.admin_urls import admin_urlname
 from django.contrib.auth.admin import GroupAdmin, UserAdmin
@@ -74,6 +75,20 @@ class AdminQueueJob(AdminNoAddDelete):
 @register(Library)
 class AdminLibrary(ModelAdmin):
     """Admin model for Library."""
+
+    class M2MModelAdminChecks(ModelAdminChecks):
+        """
+        Short circuit the no m2m check.
+
+        Optimized get_queryset prevents this from being a problem.
+        """
+
+        def _check_list_display_item(self, obj, item, label):
+            if item == "groups":
+                return []
+            return super()._check_list_display_item(obj, item, label)  # type: ignore
+
+    checks_class = M2MModelAdminChecks
 
     fieldsets = (
         (None, {"fields": ("path",)}),

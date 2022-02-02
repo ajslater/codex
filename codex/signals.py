@@ -48,14 +48,14 @@ def bind_signals(loop):
     loop.add_signal_handler(signal.SIGUSR1, _restart_signal_handler)
 
 
-def _activate_wal_journal(sender, connection, **kwargs):
+def _activate_wal_journal(sender, connection, **kwargs):  # noqa: F841
     """Enable sqlite WAL journal."""
     with connection.cursor() as cursor:
         cursor.execute("PRAGMA journal_mode=wal;")
         LOG.debug("sqlite journal_mode=wal")
 
 
-def _user_group_change(action, instance, pk_set, model, **kwargs):
+def _user_group_change(action, instance, pk_set, model, **kwargs):  # noqa: F841
     """Clear cache and send update signals when groups change."""
     if model.__name__ == "Group" and action in (
         "post_add",

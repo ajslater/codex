@@ -280,7 +280,7 @@ class BrowserBaseView(SessionView, GroupACLMixin):
             sqs_pks = set()
             for comic_score in comic_scores:
                 sqs_pks.add(comic_score["pk"])
-            # No acl filter. I don't think this is a leak beacuse its only as a filter
+            # No acl filter. I don't think this is a leak because its only as a filter
             # with other filters.
             valid_pks = Comic.objects.filter(pk__in=sqs_pks).values_list(
                 "pk", flat=True

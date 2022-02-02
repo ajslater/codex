@@ -320,9 +320,13 @@ class Comic(WatchedPath):
     notes = TextField(null=True)
     summary = TextField(null=True)
     # Ratings
-    critical_rating = CharField(db_index=True, max_length=32, null=True)
-    maturity_rating = CharField(db_index=True, max_length=32, null=True)
-    user_rating = CharField(db_index=True, max_length=32, null=True)
+    community_rating = DecimalField(
+        db_index=True, decimal_places=2, max_digits=4, default=None, null=True
+    )
+    critical_rating = DecimalField(
+        db_index=True, decimal_places=2, max_digits=4, default=None, null=True
+    )
+    age_rating = CharField(db_index=True, max_length=32, null=True)
     # alpha2 fields for countries
     country = CharField(db_index=True, max_length=32, null=True)
     language = CharField(db_index=True, max_length=16, null=True)

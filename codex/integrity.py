@@ -25,7 +25,7 @@ BACKUP_DB_PATH = DB_PATH.parent / (DB_PATH.name + ".backup")
 MIGRATION_0005 = "0005_auto_20200918_0146"
 MIGRATION_0007 = "0007_auto_20211210_1710"
 MIGRATION_0010 = "0010_haystack"
-MIGRATION_0011 = "0010_library_groups"
+MIGRATION_0011 = "0010_library_groups_and_metadata_changes"
 M2M_NAMES = {
     "Character": "characters",
     "Credit": "credits",
@@ -149,7 +149,7 @@ def _find_fk_integrity_errors_with_models(
     """Find foreign key integrity errors with specified models."""
     inner_qs = fk_model.objects.all()
     exclude_filter = {f"{fk_field_name}__in": inner_qs}
-    invalid_host_objs = host_model.objects.exclude(**exclude_filter)
+    invalid_host_objs = host_model.objects.exclude(**exclude_filter).only(fk_field_name)
     if fk_field_name in ("parent_folder", "role"):
         # Special fields can be null
         # THIS IS VERY IMPORTANT TO AVOID DELETING ALL TOP LEVEL FOLDERS

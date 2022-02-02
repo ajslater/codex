@@ -12,6 +12,7 @@ Codex is a comic archive browser and reader.
 - Read comics in a variety of aspect ratios that fit your screen.
 - Per user bookmarking. You get per browser bookmarks even before you make an account.
 - Watches the filesystem and automatically imports new or changed comics.
+- Private Libraries accessible only to certain groups of users.
 
 ## <a name="demonstration">👀 Demonstration</a>
 
@@ -126,7 +127,7 @@ docker run -e CODEX_RESET_ADMIN=1 -v <host path to config>/config:/config ajslat
 
 In the Admin Panel you may configure private libraries that are only accessible to the users you designate.
 
-A library with _no_ groups is accesible to every user and non-users if those are enabled.
+A library with _no_ groups is accessible to every user and non-users if those are enabled.
 
 A library with _any_ groups is accessible only to users who are in those groups.
 

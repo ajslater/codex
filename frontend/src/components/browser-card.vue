@@ -63,7 +63,7 @@ import {
 import MetadataButton from "@/components/metadata-dialog";
 import { getReaderRoute } from "@/router/route";
 
-const STAR_SORT_BY = new Set(["user_rating", "critical_rating"]);
+const STAR_SORT_BY = new Set(["community_rating", "critical_rating"]);
 const DATE_SORT_BY = new Set(["date"]);
 const TIME_SORT_BY = new Set(["created_at", "updated_at"]);
 

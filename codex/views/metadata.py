@@ -24,6 +24,8 @@ class MetadataView(BrowserMetadataBaseView):
     # DO NOT USE BY ITSELF. USE _get_comic_value_fields() instead.
     _COMIC_VALUE_FIELDS = set(
         (
+            "age_rating",
+            "community_rating",
             "country",
             "critical_rating",
             "day",
@@ -31,13 +33,11 @@ class MetadataView(BrowserMetadataBaseView):
             "format",
             "issue",
             "language",
-            "maturity_rating",
             "month",
             "notes",
             "read_ltr",
             "scan_info",
             "summary",
-            "user_rating",
             "web",
             "year",
         )
