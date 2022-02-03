@@ -41,7 +41,6 @@ fnvhash = "^0.1"
 humanfriendly = "^10.0"
 humanize = "^3.12.0"
 hypercorn = { extras = ["h3"], version = "^0.13.0" }
-Pillow = "^9.0"
 pycountry = "^22.1"
 python-dateutil = "^2.8.2"
 simplejson = "^3.17"
@@ -53,6 +52,7 @@ websocket_client = "^1.2"
 whitenoise = { extras = ["brotli"], version = "^5.2" }
 xapian-bindings = "^0.1.0"
 xapian-haystack = "^3.0.1"
+Pillow = "9.0.0"
 
 [tool.poetry.dev-dependencies]
 codespell = "^2.1.0"
