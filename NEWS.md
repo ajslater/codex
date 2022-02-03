@@ -11,6 +11,7 @@ _Private Libraries_
   - The "Community Rating" tag replaced "User Rating" tag, a decimal value.
   - Cover Credits role replaced by "Cover Artist".
   - Metadata dialog highlights filtered items.
+  - Metadata dialog is faster.
   - Admin Queue Job for creating missing comic covers.
 
 ## v0.8.0
