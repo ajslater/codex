@@ -50,7 +50,7 @@
 <script>
 // import { mdiChevronLeft } from "@mdi/js";
 import { mdiEye } from "@mdi/js";
-import filesize from "filesize";
+import humanize from "humanize";
 import { mapState } from "vuex";
 
 import BookCover from "@/components/book-cover";
@@ -125,8 +125,6 @@ export default {
     },
     orderValue: function () {
       let ov = this.item.order_value;
-      console.log({ ov });
-      console.log(this.orderByCache);
       if (
         this.orderByCache === "sort_name" ||
         this.orderByCache === null ||
@@ -136,16 +134,10 @@ export default {
       ) {
         ov = "";
       } else if (this.orderByCache == "page_count") {
-        const human = filesize(Number.parseInt(ov, 10), {
-          base: 10,
-          round: 1,
-          fullform: true,
-          fullforms: [" ", "K", "M", "G", "T", "P", "E", "Z", "Y"],
-          spacer: "",
-        });
+        const human = humanize.numberFormat(Number.parseInt(ov, 10));
         ov = `${human} pages`;
       } else if (this.orderByCache == "size") {
-        ov = filesize(Number.parseInt(ov, 10), { round: 1 });
+        ov = humanize.filesize(Number.parseInt(ov, 10), { round: 1 });
       } else if (STAR_SORT_BY.has(this.orderByCache)) {
         ov = `${ov} stars`;
       } else if (DATE_SORT_BY.has(this.orderByCache)) {

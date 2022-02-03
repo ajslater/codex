@@ -3,7 +3,7 @@
     v-model="dialog"
     fullscreen
     transition="dialog-bottom-transition"
-    class="metadataDialog"
+    content-class="metadataDialog"
   >
     <template #activator="{ on }">
       <v-icon class="metadataButton" v-on="on">
@@ -12,6 +12,20 @@
     </template>
     <div v-if="md" id="metadataContainer">
       <header id="metadataHeader">
+        <v-btn
+          id="topCloseButton"
+          title="Close Metadata (esc)"
+          ripple
+          @click="dialog = false"
+          >x</v-btn
+        >
+        <MetadataText
+          v-if="autoquery"
+          id="search"
+          :value="autoquery"
+          label="Search Query"
+          :highlight="true"
+        />
         <div id="metadataBookCoverWrapper">
           <BookCover
             id="bookCover"
@@ -28,84 +42,84 @@
             height="2"
           />
         </div>
-        <v-btn
-          id="topCloseButton"
-          title="Close Metadata (esc)"
-          ripple
-          @click="dialog = false"
-          >x</v-btn
-        >
-        <MetadataText id="publisher" :value="md.publisher" label="Publisher" />
-        <MetadataText id="imprint" :value="md.imprint" label="Imprint" />
-        <MetadataText id="series" :value="md.series" label="Series" />
-        <div class="inlineRow">
+        <div class="headerHalfRow">
+          <MetadataText
+            id="publisher"
+            :value="md.publisher"
+            label="Publisher"
+            :highlight="'p' === md.group"
+          />
+          <MetadataText
+            id="imprint"
+            :value="md.imprint"
+            label="Imprint"
+            :highlight="'i' === md.group"
+          />
+        </div>
+        <MetadataText
+          id="series"
+          :value="md.series"
+          label="Series"
+          :highlight="'s' === md.group"
+        />
+        <div class="headerQuarterRow">
           <MetadataText
             id="volume"
-            class="halfWidth"
             :value="md.volume"
             label="Volume"
+            :highlight="'v' === md.group"
           />
-          <MetadataText
-            class="halfWidth"
-            :value="md.volume_count"
-            label="Volume Count"
-          />
-        </div>
-        <div class="inlineRow">
+          <MetadataText :value="md.volume_count" label="Volume Count" />
           <MetadataText
             id="issue"
-            class="halfWidth"
             :value="formattedIssue"
             label="Issue"
+            :highlight="'c' === md.group"
           />
-          <MetadataText
-            class="halfWidth"
-            :value="md.issue_count"
-            label="Issue Count"
-          />
+          <MetadataText :value="md.issue_count" label="Issue Count" />
         </div>
-        <MetadataText :value="md.name" label="Title" />
-        <span v-if="md.year || md.month || md.day" class="inlineRow">
-          <MetadataText
-            :value="md.year"
-            label="Year"
-            class="datePicker"
-            type="number"
-          />
-          <MetadataText :value="md.month" label="Month" class="datePicker" />
-          <MetadataText :value="md.day" label="Day" class="datePicker" />
-        </span>
-        <MetadataText :value="md.format" label="Format" />
+        <section class="mdSection">
+          <MetadataText :value="md.name" label="Title" />
+          <div v-if="md.year || md.month || md.day" class="inlineRow">
+            <MetadataText
+              :value="md.year"
+              label="Year"
+              class="datePicker"
+              type="number"
+            />
+            <MetadataText :value="md.month" label="Month" class="datePicker" />
+            <MetadataText :value="md.day" label="Day" class="datePicker" />
+          </div>
+          <MetadataText :value="md.format" label="Format" />
+        </section>
       </header>
       <div id="metadataBody">
         <section class="mdSection">
-          <div class="inlineRow">
-            <MetadataText id="pages" :value="pages" label="Pages" />
-            <MetadataCheckbox
-              id="finished"
-              :value="md.finished"
-              label="Finished"
-            />
+          <div class="thirdRow">
+            <MetadataText :value="pages" label="Pages" />
+            <MetadataText :value="md.finished" label="Finished" />
             <MetadataText :value="ltrText" label="Reading Direction" />
           </div>
         </section>
         <section class="mdSection">
-          <div class="inlineRow">
+          <div class="thirdRow">
             <MetadataText
+              v-if="md.created_at"
               :value="formatDateTime(md.created_at)"
               label="Created at"
               class="mtime"
             />
             <MetadataText
+              v-if="md.updated_at"
               :value="formatDateTime(md.updated_at)"
               label="Updated at"
               class="mtime"
             />
+            <MetadataText :value="size" label="Size" />
           </div>
           <MetadataText :value="md.path" label="Path" />
-          <MetadataText :value="md.size | bytes" label="Size" />
         </section>
-        <section class="inlineRow section">
+        <section class="halfRow mdSection">
           <MetadataText :value="md.country" label="Country" />
           <MetadataText :value="md.language" label="Language" />
         </section>
@@ -131,10 +145,13 @@
           <MetadataText :value="md.scan_info" label="Scan" />
         </section>
         <section class="mdSection">
-          <v-simple-table v-if="md.credits && md.credits.length > 0">
+          <v-simple-table
+            v-if="md.credits && md.credits.length > 0"
+            id="creditsTable"
+          >
             <template #default>
-              <h2>Creators</h2>
-              <table id="creditsTable">
+              <h2>Credits</h2>
+              <table>
                 <thead>
                   <tr>
                     <th class="text-left">Role</th>
@@ -205,12 +222,12 @@
 </template>
 <script>
 import { mdiDownload, mdiEye, mdiTagOutline } from "@mdi/js";
+import humanize from "humanize";
 import { mapGetters, mapState } from "vuex";
 
 import { getDownloadURL } from "@/api/v2/comic";
 import BookCover from "@/components/book-cover";
-import { formattedIssue } from "@/components/comic-name";
-import MetadataCheckbox from "@/components/metadata-checkbox";
+import { formattedIssue } from "@/components/comic-name.js";
 import MetadataTags from "@/components/metadata-tags";
 import MetadataText from "@/components/metadata-text";
 import { getReaderRoute } from "@/router/route";
@@ -234,7 +251,6 @@ export default {
   name: "MetadataButton",
   components: {
     BookCover,
-    MetadataCheckbox,
     MetadataTags,
     MetadataText,
   },
@@ -265,6 +281,9 @@ export default {
     ...mapState("metadata", {
       md: (state) => state.md,
     }),
+    ...mapState("browser", {
+      autoquery: (state) => state.settings.autoquery,
+    }),
     ...mapGetters("auth", ["isAdmin"]),
     isBrowser: function () {
       return this.$route.name === "browser";
@@ -288,13 +307,18 @@ export default {
     pages: function () {
       let pages = "";
       if (this.md.bookmark) {
-        pages += `Read ${this.md.bookmark} of `;
+        const humanBookmark = humanize.numberFormat(this.md.bookmark, 0);
+        pages += `Read ${humanBookmark} of `;
       }
-      pages += `${this.md.page_count} pages`;
+      const humanPages = humanize.numberFormat(this.md.page_count, 0);
+      pages += `${humanPages} pages`;
       if (this.md.progress > 0) {
         pages += ` (${Math.round(this.md.progress)}%)`;
       }
       return pages;
+    },
+    size: function () {
+      return humanize.filesize(this.md.size);
     },
   },
   watch: {
@@ -335,7 +359,7 @@ export default {
     },
     formatDateTime: function (ds) {
       const dt = new Date(ds);
-      return new Intl.DateTimeFormat("en-US", DATE_OPTIONS).format(dt);
+      return new Intl.DateTimeFormat("sv-SE", DATE_OPTIONS).format(dt);
     },
   },
 };
@@ -347,6 +371,10 @@ export default {
   display: flex;
   flex-direction: column;
   max-width: 100vw;
+  background-color: #121212;
+}
+#search {
+  margin-bottom: 10px;
 }
 #metadataHeader {
   height: fit-content;
@@ -365,6 +393,7 @@ export default {
 }
 #topCloseButton {
   float: right;
+  margin-left: 5px;
 }
 #metadataBookCoverWrapper {
   float: left;
@@ -379,36 +408,26 @@ export default {
   margin-top: 1px;
 }
 #topCloseButton,
-#bookCover,
-#publisher,
-#imprint {
+#bookCover {
   padding-top: 0px !important;
 }
 .inlineRow > * {
   display: inline-flex;
 }
-#publisher,
-#imprint {
-  width: 35%;
-}
 .mdSection {
   margin-top: 25px;
 }
-#pages {
-  width: 225px;
+#creditsTable {
+  padding: 10px;
 }
-#finished {
-  margin-left: 10px;
-  margin-right: 10px;
-}
-.datePicker {
-  width: 90px;
-  display: inline-block;
+#creditsTable table {
+  width: 100%;
 }
 #creditsTable th,
 #creditsTable td {
   padding: 10px;
 }
+#creditsTable thead tr,
 #creditsTable tr:nth-child(even) {
   background-color: #282828;
 }
@@ -421,41 +440,35 @@ export default {
 #bottomRightButtons {
   float: right;
 }
-.halfWidth {
-  display: inline-block;
-}
-.mtime {
-  width: 210px;
-}
 .placeholder {
   margin-top: 48px;
-}
-@media #{map-get($display-breakpoints, 'sm-and-down')} {
-  #metadataContainer {
-    font-size: 12px;
-  }
-  #publisher,
-  #imprint,
-  #series {
-    padding-top: 15px !important;
-    width: 100%;
-  }
-  .halfWidth {
-    width: 50%;
-  }
-  .datePicker {
-    min-width: 65px;
-    width: 33%;
-  }
-}
-/* eslint-disable-next-line vue-scoped-css/no-unused-selector */
-.v-dialog--fullscreen {
-  width: 100% !important;
-  opacity: 0.99;
 }
 #metadataContainer,
 #placeholderContainer {
   padding: 20px;
+}
+.headerHalfRow > * {
+  width: calc((100vw - 175px) / 2);
+  display: inline-flex;
+}
+.headerQuarterRow > * {
+  width: calc((100vw - 175px) / 4);
+  display: inline-flex;
+}
+
+.halfRow > * {
+  width: 50%;
+  display: inline-flex;
+}
+.thirdRow > * {
+  width: 33.333%;
+  display: inline-flex;
+}
+
+@media #{map-get($display-breakpoints, 'sm-and-down')} {
+  #metadataContainer {
+    font-size: 12px;
+  }
 }
 </style>
 
@@ -465,4 +478,11 @@ export default {
   /* Seems like I'm fixing a bug here */
   background-color: #121212;
 }
+/* Show filter toolbar with dialog
+.v-dialog__content--active {
+  margin-top: 160px;
+  max-height: calc(100vh - 160px);
+  backdrop-filter: blur(2px) opacity(50%);
+}
+*/
 </style>
