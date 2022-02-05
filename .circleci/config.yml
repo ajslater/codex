@@ -108,6 +108,7 @@ jobs:
           paths:
             - ./dist
             - ./.env
+            - << pipeline.parameters.dist-cache-key >>
           root: .
   build-amd64: &build
     executor: amd64-medium-executor
