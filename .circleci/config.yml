@@ -37,7 +37,7 @@ jobs:
           name: Build Builder Base Image
       - persist_to_workspace:
           paths:
-            - ./.env
+            - ./.env-*
           root: .
   build-base-arm64:
     <<: *build-base
@@ -107,7 +107,6 @@ jobs:
       - persist_to_workspace:
           paths:
             - ./dist
-            - ./.env
             - << pipeline.parameters.dist-cache-key >>
           root: .
   build-amd64: &build

@@ -141,6 +141,7 @@ jspm_packages/
 # codex specific
 *~
 .env
+.env-*
 .env.pushover
 .venv
 .DS_Store
