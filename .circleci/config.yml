@@ -116,8 +116,6 @@ jobs:
       - attach_workspace:
           at: .
       - restore_cache:
-          key: dist-v1-{{ checksum "<< pipeline.parameters.dist-cache-key >>" }}
-      - restore_cache:
           key: wheels-v1-{{ arch }}
       - run:
           command: ./docker/docker-init.sh
@@ -178,13 +176,13 @@ workflows:
       - build-amd64:
           <<: *filters-release
           requires:
-            - build-dist
             - build-base-amd64
+            - build-dist
       - build-arm64:
           <<: *filters-release
           requires:
-            - build-dist
             - build-base-arm64
+            - build-dist
       - deploy:
           <<: *filters-release
           requires:
