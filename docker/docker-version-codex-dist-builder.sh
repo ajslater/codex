@@ -1,7 +1,11 @@
 #!/bin/bash
 # Compute the version tag for ajslater/codex-dist-builder
 set -euo pipefail
-CODEX_BUILDER_BASE_VERSION=$(./docker-version-codex-builder-base.sh)
+
+# shellcheck disable=SC1091
+source .env
+EXTRA_MD5S=("$CODEX_BUILDER_BASE_VERSION  codex-builder-base-version")
+
 # shellcheck disable=SC2046
 read -ra SOURCE_DEPS <<<$(find codex frontend -type f \( \
     ! -path "*node_modules*" \
@@ -38,13 +42,5 @@ DEPS=(
     test-frontend.sh
     "${SOURCE_DEPS[@]}"
 )
-DEPS_MD5S=$(md5sum "${DEPS[@]}")
-VERSION=$(echo -e "$CODEX_BUILDER_BASE_VERSION  codex-builder-base-version\n$DEPS_MD5S" |
-    LC_ALL=C sort |
-    md5sum |
-    awk '{print $1}')
-if [[ ${CIRCLECI:-} ]]; then
-    ARCH=$(./docker-arch.sh)
-    VERSION="${VERSION}-${ARCH}"
-fi
-echo "$VERSION"
+
+source ./docker/docker-version-checksum.sh

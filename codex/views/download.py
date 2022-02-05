@@ -5,9 +5,10 @@ from rest_framework.views import APIView
 
 from codex.models import Comic
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
+from codex.views.group_filter import GroupACLMixin
 
 
-class ComicDownloadView(APIView):
+class ComicDownloadView(APIView, GroupACLMixin):
     """Return the comic archive file as an attachment."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
@@ -16,7 +17,10 @@ class ComicDownloadView(APIView):
         """Download a comic archive."""
         pk = kwargs.get("pk")
         try:
-            comic_path = Comic.objects.only("path").get(pk=pk).path
+            group_acl_filter = self.get_group_acl_filter(True)
+            comic_path = (
+                Comic.objects.filter(group_acl_filter).only("path").get(pk=pk).path
+            )
         except Comic.DoesNotExist as err:
             raise Http404(f"Comic {pk} not not found.") from err
 

@@ -1,6 +1,20 @@
 # 📰 Codex News
 
-## v0.8.0rc5
+## v0.9.0rc0
+
+_Private Libraries_
+
+- Features
+
+  - Libraries may have access restricted to certain user groups.
+  - The "Critical Rating" tag is now a decimal value.
+  - The "Community Rating" tag replaced "User Rating" tag, a decimal value.
+  - Cover Credits role replaced by "Cover Artist".
+  - Metadata dialog highlights filtered items.
+  - Metadata dialog is faster.
+  - Admin Queue Job for creating missing comic covers.
+
+## v0.8.0
 
 _Search_
 
@@ -8,17 +22,17 @@ _Search_
 
   - Metadata search field in browser
   - Settings dialogs replaced with side drawers
-  - Browser does a better job of remembering your last browser view on first load.
-  - Reader's "close book" button now does a better job returning you to your last browser view.
   - Changed some keyboard shortcuts in reader.
   - "group by" renamed to "top group".
   - Admin panel gained a Queue Jobs page.
 
 - Fixes
 
+  - Browser does a better job of remembering your last browser view on first load.
+  - Reader's "close book" button now does a better job returning you to your last browser view.
   - Metadata panel cleanup and fix some missing fields.
 
-- New Binary Dependencies
+- Binary Dependencies
 
   - Codex now requires the Xapian library to run as a native application
 

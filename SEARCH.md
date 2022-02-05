@@ -15,45 +15,45 @@ individual comic metadata fields. using a search token like `field:value`
 
 Valid fields are:
 
-| Field           | Type     | Aliases        |
-| --------------- | -------- | -------------- |
-| characters      | CSV      | character      |
-| country         | String   |                |
-| created_at      | DateTime | created        |
-| creators        | CSV      | creator        |
-| critical_rating | String   |                |
-| day             | Integer  |                |
-| date            | Date     |                |
-| decade          | Integer  |                |
-| description     | String   |                |
-| format          | String   |                |
-| genres          | CSV      | genre          |
-| imprint         | String   |                |
-| in_progress     | Boolean  | reading        |
-| issue           | Decimal  |                |
-| language        | String   |                |
-| locations       | CSV      | location       |
-| maturity_rating | String   |                |
-| month           | Integer  |                |
-| read_ltr        | Boolean  | ltr            |
-| name            | String   | title          |
-| notes           | String   |                |
-| page_count      | Integer  |                |
-| publisher       | String   |                |
-| scan_info       | String   | scan           |
-| series          | String   |                |
-| series_groups   | CSV      | series_group   |
-| size            | Integer  |                |
-| story_arcs      | CSV      | story_arc      |
-| summary         | String   |                |
-| tags            | CSV      | tag            |
-| teams           | CSV      | team           |
-| updated_at      | Date     | updated        |
-| unread          | Boolean  | finished, read |
-| user_rating     | String   |                |
-| volume          | String   |                |
-| web             | String   |                |
-| year            | Integer  |                |
+| Field            | Type     | Aliases        |
+| ---------------- | -------- | -------------- |
+| community_rating | Decimal  |                |
+| characters       | CSV      | character      |
+| country          | String   |                |
+| created_at       | DateTime | created        |
+| creators         | CSV      | creator        |
+| critical_rating  | Decimal  |                |
+| day              | Integer  |                |
+| date             | Date     |                |
+| decade           | Integer  |                |
+| description      | String   |                |
+| format           | String   |                |
+| genres           | CSV      | genre          |
+| imprint          | String   |                |
+| in_progress      | Boolean  | reading        |
+| issue            | Decimal  |                |
+| language         | String   |                |
+| locations        | CSV      | location       |
+| maturity_rating  | String   |                |
+| month            | Integer  |                |
+| read_ltr         | Boolean  | ltr            |
+| name             | String   | title          |
+| notes            | String   |                |
+| page_count       | Integer  |                |
+| publisher        | String   |                |
+| scan_info        | String   | scan           |
+| series           | String   |                |
+| series_groups    | CSV      | series_group   |
+| size             | Integer  |                |
+| story_arcs       | CSV      | story_arc      |
+| summary          | String   |                |
+| tags             | CSV      | tag            |
+| teams            | CSV      | team           |
+| updated_at       | Date     | updated        |
+| unread           | Boolean  | finished, read |
+| volume           | String   |                |
+| web              | String   |                |
+| year             | Integer  |                |
 
 ### Dates and DateTimes
 

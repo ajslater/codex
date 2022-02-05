@@ -1,5 +1,5 @@
 <template>
-  <div v-if="computedValue" class="text">
+  <div v-if="computedValue" class="text" :class="{ highlight }">
     <div class="textLabel">{{ label }}</div>
     <a v-if="link" class="textLink" href="computedValue">
       {{ computedValue }}
@@ -26,6 +26,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    highlight: {
+      type: Boolean,
+      default: false,
+    },
   },
   computed: {
     computedValue: function () {
@@ -41,12 +45,10 @@ export default {
 .text {
   display: flex;
   flex-direction: column;
-  padding-left: 10px;
-  padding-right: 10px;
-  padding-top: 10px;
+  padding: 10px;
   background-color: #282828;
-  border-bottom: solid thin;
-  border-color: rgba(255, 255, 255, 0.7);
+  border-radius: 3px;
+  max-width: 100%;
 }
 .textLabel {
   font-size: 12px;
@@ -68,5 +70,10 @@ export default {
 }
 .textLink:active {
   color: rgba(204, 123, 25, 1);
+}
+.highlight .textContent {
+  background-color: rgba(204, 123, 25, 0.75);
+  padding: 0px 8px 0px 8px;
+  border-radius: 12px;
 }
 </style>

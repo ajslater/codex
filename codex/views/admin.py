@@ -13,6 +13,7 @@ from codex.librarian.queue_mp import (
     CleanSearchTask,
     CleanupDatabaseTask,
     CreateComicCoversLibrariesTask,
+    CreateMissingCoversTask,
     PollLibrariesTask,
     RestartTask,
     SearchIndexRebuildIfDBChangedTask,
@@ -62,6 +63,8 @@ class QueueLibrarianJobs(APIView):
             task = self._poll_all_libraries(True)
         elif task_name == "clean_queries":
             task = CleanSearchTask()
+        elif task_name == "create_missing_covers":
+            task = CreateMissingCoversTask()
         elif task_name == "create_comic_covers":
             task = self._regen_all_comic_covers()
         elif task_name == "update_index":

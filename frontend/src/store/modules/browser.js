@@ -3,6 +3,8 @@ import CHOICES from "@/choices";
 import router from "@/router";
 
 const DYNAMIC_FILTERS = {
+  age_rating: undefined,
+  community_rating: undefined,
   characters: undefined,
   country: undefined,
   critical_rating: undefined,
@@ -12,13 +14,11 @@ const DYNAMIC_FILTERS = {
   genres: undefined,
   language: undefined,
   locations: undefined,
-  maturity_rating: undefined,
   read_ltr: undefined,
   series_groups: undefined,
   story_arcs: undefined,
   tags: undefined,
   teams: undefined,
-  user_rating: undefined,
   year: undefined,
 };
 const GROUP_FLAGS = {

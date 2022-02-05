@@ -26,14 +26,14 @@ class BrowserMetadataBaseView(BrowserBaseView):
 
     _ORDER_BY_FIELD_ALIASES = {"search_score": "searchresult__score"}
     _ORDER_AGGREGATE_FUNCS = {
+        "age_rating": Avg,
+        "community_rating": Avg,
         "created_at": Min,
         "critical_rating": Avg,
         "date": Min,
-        "maturity_rating": Avg,
         "page_count": Sum,
         "size": Sum,
         "updated_at": Min,
-        "user_rating": Avg,
         "searchresult__score": Min,
     }
     _NO_SEARCH_SCORE = Value(None, IntegerField())

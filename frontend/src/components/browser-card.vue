@@ -50,7 +50,7 @@
 <script>
 // import { mdiChevronLeft } from "@mdi/js";
 import { mdiEye } from "@mdi/js";
-import filesize from "filesize";
+import humanize from "humanize";
 import { mapState } from "vuex";
 
 import BookCover from "@/components/book-cover";
@@ -63,7 +63,7 @@ import {
 import MetadataButton from "@/components/metadata-dialog";
 import { getReaderRoute } from "@/router/route";
 
-const STAR_SORT_BY = new Set(["user_rating", "critical_rating"]);
+const STAR_SORT_BY = new Set(["community_rating", "critical_rating"]);
 const DATE_SORT_BY = new Set(["date"]);
 const TIME_SORT_BY = new Set(["created_at", "updated_at"]);
 
@@ -134,16 +134,10 @@ export default {
       ) {
         ov = "";
       } else if (this.orderByCache == "page_count") {
-        const human = filesize(Number.parseInt(ov, 10), {
-          base: 10,
-          round: 1,
-          fullform: true,
-          fullforms: [" ", "K", "M", "G", "T", "P", "E", "Z", "Y"],
-          spacer: "",
-        });
+        const human = humanize.numberFormat(Number.parseInt(ov, 10));
         ov = `${human} pages`;
       } else if (this.orderByCache == "size") {
-        ov = filesize(Number.parseInt(ov, 10), { round: 1 });
+        ov = humanize.filesize(Number.parseInt(ov, 10), { round: 1 });
       } else if (STAR_SORT_BY.has(this.orderByCache)) {
         ov = `${ov} stars`;
       } else if (DATE_SORT_BY.has(this.orderByCache)) {
@@ -171,6 +165,10 @@ export default {
     orderBy: function (to) {
       this.orderByCache = to;
     },
+  },
+  beforeCreate: function () {
+    // Fixes empty order cache on first load
+    this.orderByCache = this.$store.state.browser.settings.orderBy;
   },
   methods: {
     formatDate: function (ov, time) {

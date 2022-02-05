@@ -90,16 +90,16 @@
         "value": "size"
       },
       {
-        "text": "User Rating",
-        "value": "user_rating"
-      },
-      {
         "text": "Critical Rating",
         "value": "critical_rating"
       },
       {
-        "text": "Maturity Rating",
-        "value": "maturity_rating"
+        "text": "Community Rating",
+        "value": "community_rating"
+      },
+      {
+        "text": "Age Rating",
+        "value": "age_rating"
       },
       {
         "text": "Search Score",

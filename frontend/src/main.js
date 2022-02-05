@@ -4,7 +4,6 @@ import "@mdi/font/css/materialdesignicons.css";
 import Vue from "vue";
 import VueMeta from "vue-meta";
 import VueNativeSock from "vue-native-websocket";
-import Vue2Filters from "vue2-filters";
 
 import { SOCKET_URL } from "@/api/v2/notify";
 import App from "@/app.vue";
@@ -13,7 +12,6 @@ import vuetify from "@/plugins/vuetify";
 import router from "@/router";
 import store from "@/store";
 
-Vue.use(Vue2Filters);
 Vue.use(VueMeta, {
   keyName: "head",
 });
@@ -28,6 +26,5 @@ new Vue({
   router,
   vuetify,
   el: "#App",
-  mixins: [Vue2Filters.mixin],
   render: (h) => h(App),
 });

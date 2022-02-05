@@ -1,6 +1,6 @@
 # Codex
 
-Codex is a comic archive browser and reader.
+A comic archive browser and reader.
 
 ## <a name="features">✨ Features</a>
 
@@ -12,6 +12,7 @@ Codex is a comic archive browser and reader.
 - Read comics in a variety of aspect ratios that fit your screen.
 - Per user bookmarking. You get per browser bookmarks even before you make an account.
 - Watches the filesystem and automatically imports new or changed comics.
+- Private Libraries accessible only to certain groups of users.
 
 ## <a name="demonstration">👀 Demonstration</a>
 
@@ -59,7 +60,7 @@ apk add bsd-compat-headers build-base jpeg-dev libffi-dev openssl-dev xapian-bin
 
 ##### Install unrar Runtime Dependency on Linux
 
-Codex requires unrar to read cbr formatted comic archives. Unrar is rarely packaged for Linux, but here are some instructions: [How to install unrar in Linux](https://www.unixtutorial.org/how-to-install-unrar-in-linux/)
+Codex requires unrar to read cbr formatted comic archives. Unrar is often not packaged for Linux, but here are some instructions: [How to install unrar in Linux](https://www.unixtutorial.org/how-to-install-unrar-in-linux/)
 
 #### Install Codex with pip
 
@@ -122,13 +123,23 @@ or, if using Docker:
 docker run -e CODEX_RESET_ADMIN=1 -v <host path to config>/config:/config ajslater/codex
 ```
 
+### Private Libraries
+
+In the Admin Panel you may configure private libraries that are only accessible to specific groups.
+
+A library with _no_ groups is accessible to every user including anonymous users.
+
+A library with _any_ groups is accessible only to users who are in those groups.
+
+Use the Groups admin panel to create groups and the Users admin panel to add and remove users to groups.
+
 ## <a name="configuration">⚙️ Configuration</a>
 
 ### Config Dir
 
-The default config directory is named `config/` directly under the working directory you run codex from. You may specify an alternate config directory with the environment variable `CODEX_CONFIG_DIR`.
+The default config directory is `config/` directly under the working directory you run codex from. You may specify an alternate config directory with the environment variable `CODEX_CONFIG_DIR`.
 
-The config directory contains a file named `hypercorn.toml` where you can specify ports and bind addresses. If no `hypercorn.toml` is present a default one is copied to that directory on startup.
+The config directory contains a file named `hypercorn.toml` where you can specify ports and bind addresses. If no `hypercorn.toml` is present Codex copies a default one to that directory on startup.
 
 The default values for the config options are:
 
@@ -140,12 +151,12 @@ max_db_ops = 100000
 
 ```
 
-The config directory also holds the main sqlite database, the Xapian search index, a Django cache and comic book cover thumbnails generated when comics are imported.
+The config directory also holds the main sqlite database, the Xapian search index, a Django cache and comic book cover thumbnails.
 
 ### Environment Variables
 
 - `LOGLEVEL` will change how verbose codex's logging is. Valid values are `ERROR`, `WARNING`, `INFO`, `VERBOSE`, `DEBUG`. The default is `INFO`.
-- `TIMEZONE` or `TZ` will explicitly the timezone in long format (e.g. `"America/Los Angeles"`). This is mostly useful inside Docker because codex cannot automatically detect the host machine's timezone.
+- `TIMEZONE` or `TZ` will explicitly the timezone in long format (e.g. `"America/Los Angeles"`). This is useful inside Docker because codex cannot automatically detect the host machine's timezone.
 - `CODEX_CONFIG_DIR` will set the path to codex config directory. Defaults to `$CWD/config`
 - `CODEX_RESET_ADMIN=1` will reset the admin user and its password to defaults when codex starts.
 - `CODEX_SKIP_INTEGRITY_CHECK` will skip the database integrity repair that runs when codex starts.
@@ -194,7 +205,7 @@ recreate. See this [nginx with dynamix upstreams](https://tenzer.dk/nginx-with-d
 
 ### Sessions & Accounts
 
-Once your administrator has added some comic libraries, you may browse and read comics. Codex will remember your preferences, bookmarks and progress in the browser session. Sessions last 60 days at which point they are destroyed.
+Once your administrator has added some comic libraries, you may browse and read comics. Codex will remember your preferences, bookmarks and progress in the browser session. Codex destroys anonymous sessions and bookmarks after 60 days.
 To preserve these settings across browsers and after sessions expire, you may register an account with a username and password.
 You will have to contact your administrator to reset your password if you forget it.
 
@@ -223,7 +234,7 @@ LOGLEVEL=DEBUG codex
 
 ### Watching Filesystem Events with Docker
 
-Codex tries to watch for filesystem events to instantly update your comic libraries when they are changed on disk. But these native filesystem events are not translated between macOS & Windows Docker hosts and the Docker Linux container. If you find that your installation is not updating to filesystem changes instantly, you might try enabling polling for the affected libraries and decreasing the `poll_every` value in the Admin console to a frequency that suits you.
+Codex tries to watch for filesystem events to instantly update your comic libraries when they change on disk. But these native filesystem events are not translated between macOS & Windows Docker hosts and the Docker Linux container. If you find that your installation is not updating to filesystem changes instantly, you might try enabling polling for the affected libraries and decreasing the `poll_every` value in the Admin console to a frequency that suits you.
 
 ### Emergency Database Repair
 
@@ -242,12 +253,12 @@ If this procedure goes kablooey, you may recover the original database at `confi
 
 ### Bulk Database Updates Fail
 
-Codex's bulk database updater has been tested to usually work batching 100,000 filesystem events at a time. With enough RAM Codex could probably batch much more. But if you find that updating large batches of comics are failing, consider setting a the `max_db_ops` value in `hypercorn.toml` to a lower value. 1000 will probably still be pretty fast, for instance.
+I've tested Codex's bulk database updater to batch 100,000 filesystem events at a time. With enough RAM Codex could probably batch much more. But if you find that updating large batches of comics are failing, consider setting a the `max_db_ops` value in `hypercorn.toml` to a lower value. 1000 will probably still be pretty fast, for instance.
 
 ### Bug Reports
 
 Issues are best filed [here on github](https://github.com/ajslater/codex/issues).
-However I and other brave Codex testers may also sometimes be found on the [Mylar support channels](https://github.com/mylar3/mylar3#live-support--conversation). It would be polite to use the `#anything-other-than-mylar` Discord channel to ask for help with Codex.
+I and other Codex users often lurk on the [Mylar support channels](https://github.com/mylar3/mylar3#live-support--conversation). It would be polite to use the `#anything-other-than-mylar` Discord channel to ask for help with Codex.
 
 ## <a name="out-of-scope">🚫 Out of Scope</a>
 

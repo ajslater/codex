@@ -4,7 +4,7 @@ build-backend = ["poetry.core.masonry.api"]
 
 [tool.poetry]
 name = "codex"
-version = "0.8.0rc5"
+version = "0.9.0rc0"
 description = "A comic archive web server."
 license = "GPL-2.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
@@ -32,16 +32,16 @@ include = ["codex/static_root/**/*", "vendor/django_haystack"]
 [tool.poetry.dependencies]
 python = "^3.9"
 ansicolors = "^1.1"
-comicbox = "^0.2.2"
+comicbox = "^0.3.0"
 django = "^4.0"
 djangorestframework = "^3.11"
 django-cors-headers = "^3.2"
 django-dark = "^0.1"
+filelock = "^3.4.2"
 fnvhash = "^0.1"
 humanfriendly = "^10.0"
 humanize = "^3.12.0"
 hypercorn = { extras = ["h3"], version = "^0.13.0" }
-Pillow = "^9.0"
 pycountry = "^22.1"
 python-dateutil = "^2.8.2"
 simplejson = "^3.17"
@@ -53,13 +53,15 @@ websocket_client = "^1.2"
 whitenoise = { extras = ["brotli"], version = "^5.2" }
 xapian-bindings = "^0.1.0"
 xapian-haystack = "^3.0.1"
+Pillow = "^9.0.1"
+
 
 [tool.poetry.dev-dependencies]
 codespell = "^2.1.0"
 coverage = { extras = ["toml"], version = "^6.0" }
 django-debug-toolbar = "^3.1"
 django-livereload-server = "^0.4"
-django-types = "^0.12.0"
+django-types = "^0.13.0"
 djangorestframework-types = "^0.6.0"
 flake8-black = "^0.2"
 flake8-bugbear = "^22.1"

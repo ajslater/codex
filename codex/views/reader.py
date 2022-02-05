@@ -11,13 +11,14 @@ from codex.models import Comic
 from codex.serializers.reader import ComicReaderInfoSerializer
 from codex.serializers.redirect import ReaderRedirectSerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
+from codex.views.group_filter import GroupACLMixin
 from codex.views.session import SessionView
 
 
 LOG = getLogger(__name__)
 
 
-class ComicOpenedView(SessionView):
+class ComicOpenedView(SessionView, GroupACLMixin):
     """Get info for displaying comic pages."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
@@ -32,8 +33,10 @@ class ComicOpenedView(SessionView):
         might be even more expensive.
         """
         pk = self.kwargs.get("pk")
+        group_acl_filter = self.get_group_acl_filter(True)
         comics = (
-            Comic.objects.filter(series__comic=pk)
+            Comic.objects.filter(group_acl_filter)
+            .filter(series__comic=pk)
             .order_by("series__name", "volume__name", "issue")
             .only("pk", "max_page")
         )
@@ -84,7 +87,7 @@ class ComicOpenedView(SessionView):
         return Response(serializer.data)
 
 
-class ComicPageView(APIView):
+class ComicPageView(APIView, GroupACLMixin):
     """Display a comic page from the archive itself."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
@@ -95,7 +98,8 @@ class ComicPageView(APIView):
         pk = self.kwargs.get("pk")
         comic = None
         try:
-            comic = Comic.objects.only("path").get(pk=pk)
+            group_acl_filter = self.get_group_acl_filter(True)
+            comic = Comic.objects.filter(group_acl_filter).only("path").get(pk=pk)
             car = ComicArchive(comic.path)
             page = self.kwargs.get("page")
             page_image = car.get_page_by_index(page)
