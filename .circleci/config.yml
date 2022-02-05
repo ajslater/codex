@@ -103,12 +103,11 @@ jobs:
       - save_cache:
           key: dist-v1-{{ checksum "<< pipeline.parameters.dist-cache-key >>" }}
           paths:
-            - dist
+            - ./dist
       - persist_to_workspace:
           paths:
             - ./dist
             - ./.env
-            - << pipeline.parameters.dist-cache-key >>
           root: .
   build-amd64: &build
     executor: amd64-medium-executor
