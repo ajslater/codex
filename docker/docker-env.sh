@@ -16,4 +16,5 @@ echo "CODEX_BUILDER_FINAL_VERSION=$(./docker/docker-version-codex-builder-final.
 cat <<EOF >>.env
 CODEX_VERSION=$(./docker/docker-version-codex.sh)
 CODEX_WHEEL=codex-${PKG_VERSION}-py3-none-any.whl
+WHEELS=/wheels
 EOF
