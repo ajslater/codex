@@ -109,9 +109,6 @@ jobs:
             - ./dist
             - << pipeline.parameters.dist-cache-key >>
           root: .
-      - run:
-          name: List dist
-          command: ls -la ./dist/
   build-amd64: &build
     executor: amd64-medium-executor
     steps:
