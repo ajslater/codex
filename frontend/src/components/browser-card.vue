@@ -60,6 +60,7 @@ import {
   getIssueName,
   getVolumeName,
 } from "@/components/comic-name";
+import { DATE_FORMAT, DATETIME_FORMAT } from "@/components/datetime";
 import MetadataButton from "@/components/metadata-dialog";
 import { getReaderRoute } from "@/router/route";
 
@@ -134,16 +135,18 @@ export default {
       ) {
         ov = "";
       } else if (this.orderByCache == "page_count") {
-        const human = humanize.numberFormat(Number.parseInt(ov, 10));
+        const human = humanize.numberFormat(Number.parseInt(ov, 10), 0);
         ov = `${human} pages`;
       } else if (this.orderByCache == "size") {
-        ov = humanize.filesize(Number.parseInt(ov, 10), { round: 1 });
+        ov = humanize.filesize(Number.parseInt(ov, 10), 1024, 1);
       } else if (STAR_SORT_BY.has(this.orderByCache)) {
         ov = `${ov} stars`;
       } else if (DATE_SORT_BY.has(this.orderByCache)) {
-        ov = this.formatDate(ov, false);
+        const date = new Date(ov);
+        ov = DATE_FORMAT.format(date);
       } else if (TIME_SORT_BY.has(this.orderByCache)) {
-        ov = this.formatDate(ov, true);
+        const date = new Date(ov);
+        ov = DATETIME_FORMAT.format(date).replace(",", "<br/>");
       }
       return ov;
     },
@@ -169,19 +172,6 @@ export default {
   beforeCreate: function () {
     // Fixes empty order cache on first load
     this.orderByCache = this.$store.state.browser.settings.orderBy;
-  },
-  methods: {
-    formatDate: function (ov, time) {
-      const date = new Date(ov);
-      const year = `${date.getFullYear()}`.padStart(4, "0");
-      const month = `${date.getMonth() + 1}`.padStart(2, "0");
-      const day = `${date.getDate()}`.padStart(2, "0");
-      let result = [year, month, day].join("-");
-      if (time) {
-        result += "<br />" + date.toLocaleTimeString("en-US");
-      }
-      return result;
-    },
   },
 };
 </script>
