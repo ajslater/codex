@@ -146,7 +146,7 @@ jobs:
           command: ./docker/docker-login.sh
           name: Login to Docker Hub
       - run:
-          command: ./docker-create-multiarch-codex.sh
+          command: ./docker/docker-create-multiarch-codex.sh
           name: Create multi-arch images
       - run:
           command: ./pypi-deploy.sh
