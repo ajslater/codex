@@ -19,7 +19,7 @@ else
     fi
 fi
 
-mkdir -p "$HOST_CACHE_DIR/pypoetry" "$HOST_CACHE_DIR/pip"
+mkdir -p "$HOST_CACHE_DIR/pypoetry" "$HOST_CACHE_DIR/pip" "$HOST_CACHE_DIR/wheels"
 
 # Platform args
 if [[ -z ${CIRCLECI:-} && -z ${PLATFORMS:-} ]]; then
