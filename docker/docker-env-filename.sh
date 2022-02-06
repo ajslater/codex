@@ -3,7 +3,7 @@
 set -euo pipefail
 ENV_FN=./.env
 if [ -n "${CIRCLECI:-}" ]; then
-  ARCH=$(./docker/docker-arch.sh)
-  ENV_FN=${ENV_FN}-${ARCH}
+    ARCH=$(./docker/docker-arch.sh)
+    ENV_FN=${ENV_FN}-${ARCH}
 fi
 echo "$ENV_FN"

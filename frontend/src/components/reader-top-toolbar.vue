@@ -17,14 +17,21 @@
           :pk="Number($router.currentRoute.params.pk)"
         />
       </v-btn>
+      <a :href="pageSrc" title="download page" download>
+        <v-btn id="downloadPageButton">
+          <v-icon>{{ mdiDownload }}</v-icon>
+        </v-btn>
+      </a>
       <SettingsDrawerButton id="settingsButton" />
     </v-toolbar-items>
   </v-toolbar>
 </template>
 
 <script>
+import { mdiDownload } from "@mdi/js";
 import { mapGetters, mapState } from "vuex";
 
+import { getComicPageSource } from "@/api/v2/comic";
 import CHOICES from "@/choices";
 import { getFullComicName } from "@/components/comic-name";
 import MetadataDialog from "@/components/metadata-dialog";
@@ -35,6 +42,11 @@ export default {
   components: {
     MetadataDialog,
     SettingsDrawerButton,
+  },
+  data() {
+    return {
+      mdiDownload,
+    };
   },
   computed: {
     ...mapState("reader", {
@@ -62,6 +74,10 @@ export default {
         window.lastRoute ||
         CHOICES.browser.route;
       return { name: "browser", params };
+    },
+    pageSrc() {
+      const routeParams = { ...this.$router.currentRoute.params };
+      return getComicPageSource(routeParams);
     },
   },
   mounted() {
@@ -118,6 +134,9 @@ export default {
 #toolbarTitle {
   overflow-y: auto;
   text-overflow: clip;
+}
+#downloadPageButton {
+  height: 100%;
 }
 @import "~vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
