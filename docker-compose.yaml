@@ -4,7 +4,6 @@ services:
       context: .
       dockerfile: base.Dockerfile
       args:
-        PYTHON_ALPINE_VERSION:
         CODEX_BASE_VERSION:
     image: docker.io/ajslater/codex-base
   codex-builder-base:

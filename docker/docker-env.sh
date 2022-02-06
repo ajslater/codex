@@ -6,7 +6,6 @@ ENV_FN=$(./docker/docker-env-filename.sh)
 rm -f "$ENV_FN"
 # shellcheck disable=SC1091,SC2129
 cat <<EOF >>"$ENV_FN"
-PYTHON_ALPINE_VERSION=$PYTHON_ALPINE_VERSION
 PKG_VERSION=${PKG_VERSION}
 HOST_CACHE_DIR=./cache/packages/$(./docker/docker-arch.sh)
 CODEX_BASE_VERSION=$(./docker/docker-version-codex-base.sh)

@@ -41,7 +41,6 @@ export CODEX_DIST_BUILDER_VERSION
 export CODEX_WHEEL
 export HOST_CACHE_DIR
 export PKG_VERSION
-export PYTHON_ALPINE_VERSION
 export WHEELS
 # shellcheck disable=2068
 docker buildx bake \

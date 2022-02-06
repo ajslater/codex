@@ -3,11 +3,12 @@
 set -euo pipefail
 # shellcheck disable=SC1091
 source .env.build
-EXTRA_MD5S=("$PYTHON_ALPINE_VERSION  python-alpine-version")
+EXTRA_MD5S=()
 
 DEPS=(
     "$0"
     .dockerignore
+    .env.build
     base.Dockerfile
     docker/docker-arch.sh
     docker/docker-build-image.sh
