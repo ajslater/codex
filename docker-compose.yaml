@@ -82,13 +82,16 @@ services:
     volumes:
       - ./cache/packages:/app/cache/packages
     command: ./python_cacher/save_py_caches.py pip
-  codex:
+  codex-arch:
     build:
       context: .
       args:
         CODEX_BASE_VERSION:
         CODEX_BUILDER_FINAL_VERSION:
         PKG_VERSION:
+    image: docker.io/ajslater/codex-arch
+    container_name: codex-arch
+  codex:
     image: docker.io/ajslater/codex
     container_name: codex
     ports:

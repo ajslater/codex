@@ -131,7 +131,7 @@ jobs:
           paths:
             - ./cache/packages
       - run:
-          command: ./docker/docker-build-image.sh codex
+          command: ./docker/docker-build-image.sh codex-arch
           name: Build Codex Runnable Image
   build-arm64:
     <<: *build
