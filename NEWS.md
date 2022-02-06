@@ -1,6 +1,6 @@
 # 📰 Codex News
 
-## v0.9.0rc0
+## v0.9.0rc1
 
 _Private Libraries_
 
