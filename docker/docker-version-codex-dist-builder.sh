@@ -5,7 +5,7 @@ set -euo pipefail
 ENV_FN=$(./docker/docker-env-filename.sh)
 # shellcheck disable=SC1090
 source "$ENV_FN"
-EXTRA_MD5S=("$CODEX_BUILDER_BASE_VERSION  codex-builder-base-version" "$PKG_VERSION  codex-version")
+EXTRA_MD5S=("$CODEX_BUILDER_BASE_VERSION  codex-builder-base-version")
 
 # shellcheck disable=SC2046
 read -ra SOURCE_DEPS <<<$(find codex frontend -type f \( \
@@ -21,6 +21,7 @@ read -ra SOURCE_DEPS <<<$(find codex frontend -type f \( \
 DEPS=(
     "$0"
     .dockerignore
+    .env.build
     .eslintrc.cjs
     .prettierignore
     .remarkignore
