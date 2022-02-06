@@ -16,7 +16,7 @@ DEPS=(
     docker/docker-env-filename.sh
     docker/docker-init.sh
     docker/docker-version-checksum.sh
-    docker/docker-version-codex.sh
+    docker/docker-version-codex-arch.sh
     docker-compose.yaml
 )
 

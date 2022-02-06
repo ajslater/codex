@@ -14,8 +14,7 @@ echo "CODEX_BUILDER_BASE_VERSION=$(./docker/docker-version-codex-builder-base.sh
 echo "CODEX_DIST_BUILDER_VERSION=$(./docker/docker-version-codex-dist-builder.sh)" >>"$ENV_FN"
 echo "CODEX_BUILDER_FINAL_VERSION=$(./docker/docker-version-codex-builder-final.sh)" >>"$ENV_FN"
 cat <<EOF >>"$ENV_FN"
-CODEX_ARCH_VERSION=$(./docker/docker-version-codex.sh)
-CODEX_VERSION=$(./docker/docker-version-codex.sh)
+CODEX_ARCH_VERSION=$(./docker/docker-version-codex-arch.sh)
 CODEX_WHEEL=codex-${PKG_VERSION}-py3-none-any.whl
 WHEELS=/app/cache/packages/wheels
 EOF
