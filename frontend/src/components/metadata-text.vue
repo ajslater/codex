@@ -19,7 +19,7 @@ export default {
       required: true,
     },
     value: {
-      type: [Object, String, Number],
+      type: [Object, String, Number, Boolean],
       default: undefined,
     },
     link: {
