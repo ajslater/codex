@@ -9,9 +9,14 @@ DEPS=(
     "$0"
     .dockerignore
     base.Dockerfile
-    docker/build-image.sh
+    docker/docker-arch.sh
+    docker/docker-build-image.sh
     docker/docker-env.sh
+    docker/docker-env-filename.sh
+    docker/docker-init.sh
     docker/docker-version-checksum.sh
+    docker/docker-version-codex.sh
+    docker-compose.yaml
 )
 
 source ./docker/docker-version-checksum.sh
