@@ -17,7 +17,7 @@
           :pk="Number($router.currentRoute.params.pk)"
         />
       </v-btn>
-      <a :href="pageSrc" title="download page" download>
+      <a :href="pageSrc" title="Download Page" :download="pageName">
         <v-btn id="downloadPageButton">
           <v-icon>{{ mdiDownload }}</v-icon>
         </v-btn>
@@ -75,9 +75,13 @@ export default {
         CHOICES.browser.route;
       return { name: "browser", params };
     },
-    pageSrc() {
+    pageSrc: function () {
       const routeParams = { ...this.$router.currentRoute.params };
       return getComicPageSource(routeParams);
+    },
+    pageName: function () {
+      const page = this.$router.currentRoute.params.page;
+      return `${this.title} - page ${page}.jpg`;
     },
   },
   mounted() {
