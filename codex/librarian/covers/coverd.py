@@ -5,11 +5,13 @@ from codex.librarian.covers.create import (
     bulk_create_comic_covers,
     create_comic_cover,
     create_comic_cover_for_libraries,
+    create_missing_covers,
 )
 from codex.librarian.covers.purge import purge_cover_paths, purge_library_covers
 from codex.librarian.queue_mp import (
     BulkComicCoverCreateTask,
     CreateComicCoversLibrariesTask,
+    CreateMissingCoversTask,
     ImageComicCoverCreateTask,
     PurgeComicCoversLibrariesTask,
     PurgeComicCoversTask,
@@ -37,5 +39,7 @@ class CoverCreator(QueuedThread):
             purge_library_covers(task.library_ids)
         elif isinstance(task, PurgeComicCoversTask):
             purge_cover_paths(task.cover_paths)
+        elif isinstance(task, CreateMissingCoversTask):
+            create_missing_covers()
         else:
             LOG.error(f"Bad task sent to {self.NAME}: {task}")

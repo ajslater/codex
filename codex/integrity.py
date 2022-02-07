@@ -7,6 +7,7 @@ from logging import getLogger
 
 from django.apps import apps
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.contrib.sessions.models import Session
 from django.db.migrations.recorder import MigrationRecorder
 from django.db.models.functions import Now
@@ -24,6 +25,7 @@ BACKUP_DB_PATH = DB_PATH.parent / (DB_PATH.name + ".backup")
 MIGRATION_0005 = "0005_auto_20200918_0146"
 MIGRATION_0007 = "0007_auto_20211210_1710"
 MIGRATION_0010 = "0010_haystack"
+MIGRATION_0011 = "0010_library_groups_and_metadata_changes"
 M2M_NAMES = {
     "Character": "characters",
     "Credit": "credits",
@@ -147,7 +149,7 @@ def _find_fk_integrity_errors_with_models(
     """Find foreign key integrity errors with specified models."""
     inner_qs = fk_model.objects.all()
     exclude_filter = {f"{fk_field_name}__in": inner_qs}
-    invalid_host_objs = host_model.objects.exclude(**exclude_filter)
+    invalid_host_objs = host_model.objects.exclude(**exclude_filter).only(fk_field_name)
     if fk_field_name in ("parent_folder", "role"):
         # Special fields can be null
         # THIS IS VERY IMPORTANT TO AVOID DELETING ALL TOP LEVEL FOLDERS
@@ -236,7 +238,19 @@ def _delete_search_result_fk_errors(apps):
         query__in=valid_queries, comic__in=valid_comics
     )
     count, _ = orphan_srs.delete()
-    LOG.verbose(f"Deleted {count} orphan SearchResults")  # type: ignore
+    if count:
+        LOG.verbose(f"Deleted {count} orphan SearchResults")  # type: ignore
+
+
+def _repair_library_groups(apps):
+    """Remove non-extant groups from libraries."""
+    if not has_applied_migration(MIGRATION_0010):
+        return
+    library_model = apps.get_model("codex", "library")
+    through_model = library_model.groups.through
+    valid_groups = Group.objects.all()
+    bad_relations = through_model.objects.exclude(group_id__in=valid_groups)
+    bad_relations.delete()
 
 
 def _fix_db_integrity():
@@ -286,6 +300,8 @@ def _fix_db_integrity():
     _mark_comics_with_bad_m2m_rels_for_update(comic_model, bad_comic_ids)
 
     _delete_search_result_fk_errors(apps)
+
+    _repair_library_groups(apps)
 
     LOG.verbose("Done with database integrity check.")  # type: ignore
 

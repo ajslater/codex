@@ -8,6 +8,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from django.conf import settings
+from django.contrib.auth.models import Group
 from django.contrib.sessions.models import Session
 from django.core.exceptions import ValidationError
 from django.db import connection
@@ -156,6 +157,7 @@ class Library(BaseModel):
     last_poll = DateTimeField(null=True)
     update_in_progress = BooleanField(default=False)
     schema_version = PositiveSmallIntegerField(default=0)
+    groups = ManyToManyField(Group, blank=True)
 
     def __str__(self):
         """Return the path."""
@@ -318,9 +320,13 @@ class Comic(WatchedPath):
     notes = TextField(null=True)
     summary = TextField(null=True)
     # Ratings
-    critical_rating = CharField(db_index=True, max_length=32, null=True)
-    maturity_rating = CharField(db_index=True, max_length=32, null=True)
-    user_rating = CharField(db_index=True, max_length=32, null=True)
+    community_rating = DecimalField(
+        db_index=True, decimal_places=2, max_digits=4, default=None, null=True
+    )
+    critical_rating = DecimalField(
+        db_index=True, decimal_places=2, max_digits=4, default=None, null=True
+    )
+    age_rating = CharField(db_index=True, max_length=32, null=True)
     # alpha2 fields for countries
     country = CharField(db_index=True, max_length=32, null=True)
     language = CharField(db_index=True, max_length=16, null=True)

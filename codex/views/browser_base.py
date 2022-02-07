@@ -11,6 +11,7 @@ from xapian_backend import DATETIME_FORMAT
 from codex._vendor.haystack.query import SearchQuerySet
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, SearchIndexUpdateTask
 from codex.models import Comic, Folder, SearchQuery, SearchResult
+from codex.views.group_filter import GroupACLMixin
 from codex.views.session import SessionView
 
 
@@ -20,7 +21,7 @@ RANGE_DELIMITER = ".."
 XAPIAN_UPPERCASE_OPERATORS = set(["AND", "OR", "XOR", "NEAR", "ADJ"])
 
 
-class BrowserBaseView(SessionView):
+class BrowserBaseView(SessionView, GroupACLMixin):
     """Browse comics with a variety of filters and sorts."""
 
     _SEARCH_FIELD_ALIASES = {
@@ -279,6 +280,8 @@ class BrowserBaseView(SessionView):
             sqs_pks = set()
             for comic_score in comic_scores:
                 sqs_pks.add(comic_score["pk"])
+            # No acl filter. I don't think this is a leak because its only as a filter
+            # with other filters.
             valid_pks = Comic.objects.filter(pk__in=sqs_pks).values_list(
                 "pk", flat=True
             )
@@ -399,6 +402,8 @@ class BrowserBaseView(SessionView):
     def get_query_filters(self, is_model_comic, choices=False):
         """Return the main object filter and the one for aggregates."""
         object_filter = Q()
+
+        object_filter &= self.get_group_acl_filter(is_model_comic)
 
         object_filter &= self._get_group_filter(choices)
 

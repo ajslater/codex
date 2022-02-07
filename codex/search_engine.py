@@ -1,45 +1,46 @@
 """Locking Xapian Backend."""
 # Without this locking xapian throws xapian.DatabaseLockError when
 # multiple workers contend for the database.
-from fcntl import LOCK_EX, LOCK_UN, flock
+from pathlib import Path
 
+from filelock import FileLock
 from xapian_backend import XapianSearchBackend, XapianSearchQuery
 
 from codex._vendor.haystack.backends import BaseEngine
-from codex.settings.settings import CODEX_XAPIAN_LOCKFILE
 
 
-class FileLock(object):
-    """A basic flock file lock."""
+def filelocked(func):
+    """Decorate filelocked methods."""
 
-    def __init__(self, path):
-        """Store the path."""
-        self.path = path
+    def wrapper(self, *args, **kwargs):
+        self.lockfile.parent.mkdir(parents=True, exist_ok=True)
+        self.lockfile.touch()
+        with self.filelock:
+            func(self, *args, **kwargs)
 
-    def __enter__(self):
-        """Enter the lock."""
-        self.path.touch()
-        self.file = self.path.open("r")
-        flock(self.file, LOCK_EX)
-
-    def __exit__(self, _exc_type, _exc_value, _traceback):
-        """Exit the lock."""
-        flock(self.file, LOCK_UN)
-        self.file.close()
+    return wrapper
 
 
 class CodexXapianSearchBackend(XapianSearchBackend):
     """Override methods to use locks."""
 
+    def __init__(self, *args, **kwargs):
+        """Set the lockfile."""
+        super().__init__(*args, **kwargs)
+        if not self.path:
+            raise ValueError("Haystack PATH not set in settings.")
+        self.lockfile = Path(self.path) / "lockfile"
+        self.filelock = FileLock(self.lockfile)
+
+    @filelocked
     def update(self, index, iterable, commit=True):
         """Use lock with update."""
-        with FileLock(path=CODEX_XAPIAN_LOCKFILE):
-            super().update(index=index, iterable=iterable, commit=commit)
+        return super().update(index, iterable, commit=commit)
 
+    @filelocked
     def remove(self, obj, commit=True):
         """Use lock with remove."""
-        with FileLock(path=CODEX_XAPIAN_LOCKFILE):
-            return super().remove(obj=obj, commit=commit)
+        return super().remove(obj, commit=commit)
 
 
 class CodexXapianSearchEngine(BaseEngine):

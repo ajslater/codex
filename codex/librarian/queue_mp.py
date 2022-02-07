@@ -71,6 +71,13 @@ class BulkComicCoverCreateTask(ComicCoverTask):
 
 
 @dataclass
+class CreateMissingCoversTask(ComicCoverTask):
+    """Create covers for comics without them."""
+
+    pass
+
+
+@dataclass
 class LibrariesTask(ABC):
     """Tasks over a set of libraries."""
 
@@ -194,6 +201,14 @@ class SearchIndexUpdateTask(SearchIndexerTask):
     """Update the search index."""
 
     rebuild: bool
+
+
+@dataclass
+class DelayedTasks:
+    """A list of tasks to start on a delay."""
+
+    delay: int
+    tasks: tuple
 
 
 LIBRARIAN_QUEUE = Queue()

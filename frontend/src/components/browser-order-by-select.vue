@@ -73,9 +73,11 @@ export default {
 };
 </script>
 
-<style scoped lang="scss">
+<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
+<style lang="scss">
 .orderIcon {
   float: right;
+  margin-left: 5px;
 }
 /* #orderSelect style is handled in browser-filter-toolbar.vue */
 </style>

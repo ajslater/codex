@@ -1,15 +1,23 @@
 <template>
-  <div v-if="model && model.length > 0" class="tags">
-    <div class="tagLabel">{{ label }}</div>
-    <v-chip-group class="tagChipGroup" multiple column>
-      <v-chip v-for="item in vuetifyItems" :key="item.pk">{{
-        item.name
-      }}</v-chip>
-    </v-chip-group>
-  </div>
+  <v-item-group
+    v-if="model && model.length > 0"
+    v-model="model"
+    multiple
+    class="tags"
+  >
+    <v-subheader class="subheader">{{ label }}</v-subheader>
+    <v-item v-for="item in model" :key="item.name">
+      <v-chip small :color="chipColor(item.pk)">
+        {{ item.name }}
+      </v-chip>
+    </v-item>
+  </v-item-group>
 </template>
 
 <script>
+import { mdiFilter } from "@mdi/js";
+import { mapState } from "vuex";
+
 import { toVuetifyItems } from "@/api/v2/list-items";
 
 export default {
@@ -34,10 +42,16 @@ export default {
   },
   data() {
     return {
+      mdiFilter,
       model: undefined,
     };
   },
   computed: {
+    ...mapState("browser", {
+      filterValues: function (state) {
+        return state.settings.filters[this.label.toLowerCase()];
+      },
+    }),
     vuetifyItems: function () {
       return toVuetifyItems(this.values, this.items);
     },
@@ -45,23 +59,27 @@ export default {
   created: function () {
     // Different than combobox, returns a list of items.
     this.model = toVuetifyItems(undefined, this.values);
+    console.log(this.model);
+  },
+  methods: {
+    chipColor: function (pk) {
+      return this.filterValues && this.filterValues.includes(pk)
+        ? "rgba(204, 123, 25, 0.75)"
+        : "#212121";
+    },
   },
 };
 </script>
 
 <style scoped lang="scss">
+.subheader {
+  padding-left: 8px;
+  padding-top: 0px;
+  height: 32px;
+}
 .tags {
   background-color: #282828;
-  border-bottom: solid thin;
-  padding-left: 10px;
-  padding-right: 10px;
-  padding-top: 10px;
-}
-.tagLabel {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
-}
-.tagChipGroup {
-  display: block;
+  border-radius: 3px;
+  padding: 10px;
 }
 </style>

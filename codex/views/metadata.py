@@ -3,7 +3,7 @@ from copy import copy
 from logging import getLogger
 
 from django.contrib.auth.models import User
-from django.db.models import CharField, F, Value
+from django.db.models import Case, Count, Subquery, Value, When
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
@@ -24,6 +24,8 @@ class MetadataView(BrowserMetadataBaseView):
     # DO NOT USE BY ITSELF. USE _get_comic_value_fields() instead.
     _COMIC_VALUE_FIELDS = set(
         (
+            "age_rating",
+            "community_rating",
             "country",
             "critical_rating",
             "day",
@@ -31,13 +33,11 @@ class MetadataView(BrowserMetadataBaseView):
             "format",
             "issue",
             "language",
-            "maturity_rating",
             "month",
             "notes",
             "read_ltr",
             "scan_info",
             "summary",
-            "user_rating",
             "web",
             "year",
         )
@@ -86,6 +86,7 @@ class MetadataView(BrowserMetadataBaseView):
         )
     )
     _PATH_GROUPS = ("c", "f")
+    _CREDIT_RELATIONS = ("role", "person")
 
     def _get_is_admin(self):
         """Is the current user an admin."""
@@ -115,21 +116,28 @@ class MetadataView(BrowserMetadataBaseView):
             else:
                 comic_rel_field = f"comic__{field}"
 
-            # Annotate groups and counts
-            csq = simple_qs.values(comic_rel_field).distinct()
-            count = csq.count()
-            ann_field = (annotation_prefix + field).replace("__", "_")
-            if count == 1:
-                lookup = F(f"{comic_rel_field}{related_suffix}")
-            else:
-                # None charfield works for all types
-                lookup = Value(None, CharField())
+            # Annotate variant counts
+            # Have to use simple_qs because every annotation in the loop
+            # corrupts the the main qs
+            val = Subquery(
+                simple_qs.values("id")
+                .order_by()  # magic order_by saves the day again
+                .annotate(count=Count(comic_rel_field, distinct=True))
+                .values("count")
+            )
+            field_variants = field.replace("__", "_") + "_variants"
+            then = comic_rel_field + related_suffix
+            qs = qs.annotate(**{field_variants: val})
 
-            # SPEED It might be faster if I could drop the csq query into
-            #  the annotation as a subquery with a Case When, but I
-            #  can't figure out how to to get the count to work in a
-            #  subquery.
+            # If 1 variant, annotate value, otherwise None
+            ann_field = (annotation_prefix + field).replace("__", "_")
+            condition = {field_variants: 1}
+            lookup = Case(
+                When(**condition, then=then),
+                default=Value(None),
+            )
             qs = qs.annotate(**{ann_field: lookup})
+
         return qs
 
     @classmethod
@@ -198,8 +206,6 @@ class MetadataView(BrowserMetadataBaseView):
     def _query_m2m_intersections(self, simple_qs):
         """Query the through models to figure out m2m intersections."""
         # Speed ok, but still does a query per m2m model
-        # SPEED Could annotate count all the tags and only select those that
-        # have num_child counts
         m2m_intersections = {}
         if self.is_model_comic:
             pk_field = "pk"
@@ -207,33 +213,27 @@ class MetadataView(BrowserMetadataBaseView):
             pk_field = "comic__pk"
         comic_pks = simple_qs.values_list(pk_field, flat=True)
         for field_name in self._COMIC_M2M_FIELDS:
-            ThroughModel = getattr(Comic, field_name).through  # noqa: N806
-            rel_table_name = field_name[:-1].replace("_", "")
-            column_id = rel_table_name + "_id"
+            model = Comic._meta.get_field(field_name).related_model
+            if not model:
+                raise ValueError(f"No model found for comic field: {field_name}")
+
+            intersection_qs = model.objects.filter(comic__pk__in=comic_pks)
             if field_name == "credits":
-                role_column_name = rel_table_name + "__role__name"
-                person_column_name = rel_table_name + "__person__name"
-                table = ThroughModel.objects.filter(comic_id__in=comic_pks).values_list(
-                    "comic_id", column_id, role_column_name, person_column_name
+                intersection_qs = intersection_qs.select_related(
+                    *self._CREDIT_RELATIONS
                 )
+                values = self._CREDIT_RELATIONS
             else:
-                column_name = rel_table_name + "__name"
-                table = ThroughModel.objects.filter(comic_id__in=comic_pks).values_list(
-                    "comic_id", column_id, column_name
-                )
-            pk_sets = {}
-            for row in table:
-                comic_id = row[0]
-                if field_name == "credits":
-                    field_id = row[1:4]
-                else:
-                    field_id = row[1:3]
-                if comic_id not in pk_sets:
-                    pk_sets[comic_id] = set()
-                pk_sets[comic_id].add(field_id)
-            if not pk_sets:
-                continue
-            m2m_intersections[field_name] = set.intersection(*pk_sets.values())
+                values = ("name",)
+
+            # order_by() is very important for grouping
+            intersection_qs = (
+                intersection_qs.only(*values)
+                .annotate(count=Count("comic"))
+                .order_by()
+                .filter(count=comic_pks.count())
+            )
+            m2m_intersections[field_name] = intersection_qs
         return m2m_intersections
 
     def _copy_annotations_into_comic_fields(self, obj, m2m_intersections):
@@ -259,23 +259,17 @@ class MetadataView(BrowserMetadataBaseView):
                 self._COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
             )
 
-        for field_name, values in m2m_intersections.items():
-            m2m_dicts = []
-            if field_name == "credits":
-                for pk, role, person in values:
-                    m2m_dicts += [
-                        {"pk": pk, "role": {"name": role}, "person": {"name": person}}
-                    ]
-            else:
-                for pk, name in values:
-                    m2m_dicts += [{"pk": pk, "name": name}]
-            obj[field_name] = m2m_dicts
+        obj.update(m2m_intersections)
 
         # Don't expose the filesystem
         obj["folders"] = None
         obj["parent_folder"] = None
         if not self.is_admin:
             obj["path"] = None
+
+        # For highlighting the current group
+        obj["group"] = self.group
+
         return obj
 
     def _get_metadata_object(self):
@@ -283,11 +277,16 @@ class MetadataView(BrowserMetadataBaseView):
         # Comic model goes through the same code path as groups because
         # values dicts don't copy relations to the serializer. The values
         # dict is necessary because of the folders view union in browser.py.
+        group_acl_filter = self.get_group_acl_filter(self.is_model_comic)
         aggregate_filter = self.get_aggregate_filter(self.is_model_comic)
         pk = self.kwargs["pk"]
         if self.model is None:
             raise NotFound(detail=f"Cannot get metadata for {self.group=}")
-        qs = self.model.objects.filter(pk=pk).filter(aggregate_filter)
+        qs = (
+            self.model.objects.filter(pk=pk)
+            .filter(group_acl_filter)
+            .filter(aggregate_filter)
+        )
 
         qs = self._annotate_aggregates(qs)
         simple_qs = qs

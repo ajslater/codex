@@ -81,10 +81,16 @@ class FilterListField(ListField, ABC):
         """Apply the subclass's arguments."""
         super().__init__(
             *args,
-            child=self.CHILD_CLASS(allow_null=True),
+            child=self.CHILD_CLASS(allow_null=True, **kwargs),
             validators=self.VALIDATORS,
-            **kwargs,
         )
+
+
+class DecimalListField(FilterListField):
+    """Decimal List Field with validation."""
+
+    CHILD_CLASS = DecimalField
+    VALIDATORS = (validate_int_null,)
 
 
 class IntListField(FilterListField):
@@ -114,22 +120,22 @@ class BrowserSettingsFilterSerializer(Serializer):
         choices=tuple(CHOICES["bookmarkFilter"].keys())
     )
     # Dynamic filters
+    community_rating = DecimalListField(max_digits=4, decimal_places=2)
     characters = IntListField()
     country = CharListField()
     creators = IntListField()
-    critical_rating = CharListField()
+    critical_rating = DecimalListField(max_digits=4, decimal_places=2)
     decade = DecadeListField()
     format = CharListField()
     genres = IntListField()
     language = CharListField()
     locations = IntListField()
-    maturity_rating = CharListField()
+    age_rating = CharListField()
     read_ltr = ListField(child=BooleanField())
     series_groups = IntListField()
     story_arcs = IntListField()
     tags = IntListField()
     teams = IntListField()
-    user_rating = CharListField()
     year = IntListField()
 
 

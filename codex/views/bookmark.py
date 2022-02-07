@@ -13,13 +13,14 @@ from codex.serializers.bookmark import (
 )
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser_base import BrowserBaseView
+from codex.views.group_filter import GroupACLMixin
 from codex.views.session import SessionView
 
 
 LOG = getLogger(__name__)
 
 
-class UserBookmarkUpdateMixin(APIView):
+class UserBookmarkUpdateMixin(APIView, GroupACLMixin):
     """UserBookmark Updater."""
 
     _USERBOOKMARK_UPDATE_FIELDS = ["bookmark", "finished", "fit_to", "two_pages"]
@@ -65,16 +66,17 @@ class UserBookmarkUpdateMixin(APIView):
         )
         return existing_comic_pks
 
-    @classmethod
     def _create_user_bookmarks(
-        cls, existing_comic_pks, comic_filter, search_kwargs, updates
+        self, existing_comic_pks, comic_filter, search_kwargs, updates
     ):
         """Create new bookmarks for comics that don't exist yet."""
         create_bookmarks = []
+        group_acl_filter = self.get_group_acl_filter(True)
         create_bookmark_comics = (
-            Comic.objects.filter(**comic_filter)
+            Comic.objects.filter(group_acl_filter)
+            .filter(**comic_filter)
             .exclude(pk__in=existing_comic_pks)
-            .only(*cls._COMIC_ONLY_FIELDS)
+            .only(*self._COMIC_ONLY_FIELDS)
         )
         for comic in create_bookmark_comics:
             defaults = {"comic": comic}

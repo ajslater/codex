@@ -3,7 +3,6 @@
 set -euxo pipefail
 cd "$(dirname "$0")"
 
-export LOGLEVEL=VERBOSE
 ./pm check
 echo "*** build and package application ***"
 PIP_CACHE_DIR=$(pip3 cache dir)

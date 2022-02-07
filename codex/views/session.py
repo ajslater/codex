@@ -9,23 +9,23 @@ class SessionView(APIView):
 
     CREDIT_PERSON_UI_FIELD = "creators"
     _DYNAMIC_FILTER_DEFAULTS = {
+        "age_rating": [],
         "autoquery": "",
         "characters": [],
         "country": [],
         CREDIT_PERSON_UI_FIELD: [],
+        "community_rating": [],
         "critical_rating": [],
         "decade": [],
         "format": [],
         "genres": [],
         "language": [],
         "locations": [],
-        "maturity_rating": [],
         "read_ltr": [],
         "series_groups": [],
         "story_arcs": [],
         "tags": [],
         "teams": [],
-        "user_rating": [],
         "year": [],
     }
     FILTER_ATTRIBUTES = set(_DYNAMIC_FILTER_DEFAULTS.keys())
