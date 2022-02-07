@@ -19,7 +19,7 @@ else
     fi
 fi
 
-mkdir -p "$HOST_CACHE_DIR/pypoetry" "$HOST_CACHE_DIR/pip" "$HOST_CACHE_DIR/wheels"
+# mkdir -p "$HOST_CACHE_DIR/pypoetry" "$HOST_CACHE_DIR/pip" "$HOST_CACHE_DIR/wheels"
 
 # Platform args
 if [[ -z ${CIRCLECI:-} && -z ${PLATFORMS:-} ]]; then
@@ -39,9 +39,9 @@ export CODEX_BUILDER_BASE_VERSION
 export CODEX_BUILDER_FINAL_VERSION
 export CODEX_DIST_BUILDER_VERSION
 export CODEX_WHEEL
-export HOST_CACHE_DIR
+# export HOST_CACHE_DIR
 export PKG_VERSION
-export WHEELS
+# export WHEELS
 # shellcheck disable=2068
 docker buildx bake \
     ${PLATFORM_ARG[@]:-} \

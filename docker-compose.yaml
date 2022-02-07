@@ -13,8 +13,6 @@ services:
       args:
         CODEX_BASE_VERSION:
         CODEX_BUILDER_BASE_VERSION:
-        HOST_CACHE_DIR:
-        WHEELS:
     image: docker.io/ajslater/codex-builder-base
   codex-dist-builder: &codex-dist-builder
     build:
@@ -72,9 +70,6 @@ services:
       dockerfile: builder-final.Dockerfile
       args:
         CODEX_BUILDER_BASE_VERSION:
-        CODEX_WHEEL:
-        HOST_CACHE_DIR:
-        WHEELS:
     image: docker.io/ajslater/codex-builder-final:$CODEX_BUILDER_FINAL_VERSION
   codex-save-final-cache:
     <<: *codex-builder-final

@@ -1,7 +1,3 @@
-parameters:
-  dist-cache-key:
-    type: string
-    default: "./cache/dist-cache-key"
 executors:
   amd64-large-executor:
     machine:
@@ -23,8 +19,6 @@ jobs:
     executor: amd64-medium-executor
     steps:
       - checkout
-      - restore_cache:
-          key: cache-packages-v0-{{ arch }}-{{ checksum "poetry.lock" }}
       - run:
           command: ./docker/docker-init.sh
           name: Login to Docker Hub, Install binfmt Platform, Create the buildx Builder
@@ -51,28 +45,11 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          command: ./circleci/circleci-set-dist-cache-key-if-last-commit-equal.sh << pipeline.parameters.dist-cache-key >>
-          name: Set the cache key to the last commit if the last commit is equal to this commit.
-      - restore_cache:
-          key: dist-v1-{{ checksum "<< pipeline.parameters.dist-cache-key>>" }}
-      - run:
-          command: ./circleci/circleci-set-skip-dist-build.sh
-          name: Set the skip job flag
-      - restore_cache:
-          key: cache-packages-v0-{{ arch }}-{{ checksum "poetry.lock" }}
-      - run:
           command: ./docker/docker-init.sh
           name: Login to Docker Hub, Install binfmt platform & Create the buildx Builder
       - run:
           command: ./docker/docker-build-image.sh codex-dist-builder
           name: Build Distribution Builder Image
-      - run:
-          command: ./docker/docker-compose-exit.sh codex-save-cache
-          name: Save python caches to host
-      - save_cache:
-          key: cache-packages-v0-{{ arch }}-{{ checksum "poetry.lock" }}
-          paths:
-            - ./cache/packages
       - run:
           command: ./docker/docker-compose-exit.sh codex-frontend-lint
           name: "Frontend: Lint"
@@ -99,17 +76,9 @@ jobs:
       - run:
           command: ./docker/docker-compose-exit.sh codex-build-dist
           name: Build Distribution
-      - run:
-          name: Set the cache key to the current commit.
-          command: ./circleci/circleci-set-dist-cache-key-to-current-commit.sh << pipeline.parameters.dist-cache-key >>
-      - save_cache:
-          key: dist-v1-{{ checksum "<< pipeline.parameters.dist-cache-key >>" }}
-          paths:
-            - ./dist
       - persist_to_workspace:
           paths:
             - ./dist
-            - << pipeline.parameters.dist-cache-key >>
           root: .
   build-amd64: &build
     executor: amd64-medium-executor
@@ -117,21 +86,12 @@ jobs:
       - checkout
       - attach_workspace:
           at: .
-      - restore_cache:
-          key: cache-packages-v0-{{ arch }}-{{ checksum "poetry.lock" }}
       - run:
           command: ./docker/docker-init.sh
           name: Login to Docker Hub, Install binfmt platform & Create the buildx Builder
       - run:
           command: ./docker/docker-build-image.sh codex-builder-final
           name: Build Codex Builder Final
-      - run:
-          command: ./docker/docker-compose-exit.sh codex-save-final-cache
-          name: Save the final pip cache
-      - save_cache:
-          key: cache-packages-v0-{{ arch }}-{{ checksum "poetry.lock" }}
-          paths:
-            - ./cache/packages
       - run:
           command: ./docker/docker-build-image.sh codex-arch
           name: Build Codex Runnable Image
