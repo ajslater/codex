@@ -1,16 +1,11 @@
 #!/bin/bash
-# Set version in all three places: Frontend, API, & Docker Env.
+# Get version or set version in Frontend & API.
 set -euo pipefail
-VERSION="$1"
-
-# BSD sed behaves differently
-if [ "$(uname)" = "Darwin" ]; then
-    sedi=('/usr/bin/sed' '-i' '')
+VERSION="${1:-}"
+if [ -z "$VERSION" ]; then
+    poetry version | awk '{print $2};'
 else
-    sedi=('sed' '-i')
+    poetry version "$VERSION"
+    cd frontend
+    npm version --allow-same-version "$VERSION"
 fi
-
-"${sedi[@]}" "s/PKG_VERSION=.*/PKG_VERSION=$VERSION/" .env.build
-poetry version "$VERSION"
-cd frontend
-npm version --allow-same-version "$VERSION"

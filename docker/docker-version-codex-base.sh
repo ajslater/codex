@@ -1,14 +1,11 @@
 #!/bin/bash
 # Compute the version tag for ajslater/codex-base
 set -euo pipefail
-# shellcheck disable=SC1091
-source .env.build
 EXTRA_MD5S=()
 
 DEPS=(
     "$0"
     .dockerignore
-    .env.build
     base.Dockerfile
     docker/docker-arch.sh
     docker/docker-build-image.sh

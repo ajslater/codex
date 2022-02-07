@@ -5,7 +5,7 @@ REPO=docker.io/ajslater/codex
 ARCH_REPO=docker.io/ajslater/codex-arch
 ARCHES=(x86_64 aarch64) # aarch32)
 
-source .env.build
+PKG_VERSION=$(./version.sh)
 VERSION_TAG=$REPO:$PKG_VERSION
 echo "Creating $VERSION_TAG"
 AMEND_TAGS=()

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-source .env.build
+PKG_VERSION=$(./version.sh)
 ENV_FN=$(./docker/docker-env-filename.sh)
 rm -f "$ENV_FN"
 # shellcheck disable=SC1091,SC2129

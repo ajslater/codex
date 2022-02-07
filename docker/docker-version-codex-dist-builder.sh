@@ -21,7 +21,6 @@ read -ra SOURCE_DEPS <<<$(find codex frontend -type f \( \
 DEPS=(
     "$0"
     .dockerignore
-    .env.build
     .eslintrc.cjs
     .prettierignore
     .remarkignore
