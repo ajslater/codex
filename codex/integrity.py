@@ -244,7 +244,7 @@ def _delete_search_result_fk_errors(apps):
 
 def _repair_library_groups(apps):
     """Remove non-extant groups from libraries."""
-    if not has_applied_migration(MIGRATION_0010):
+    if not has_applied_migration(MIGRATION_0011):
         return
     library_model = apps.get_model("codex", "library")
     through_model = library_model.groups.through

@@ -5,11 +5,6 @@ pip3 install --upgrade pip
 pip3 install --requirement builder-requirements.txt
 PKG_VERSION=$(./version.sh)
 ENV_FN=$(./docker/docker-env-filename.sh)
-# export WHEELS=/app/cache/packages/wheels
-# HOST_CACHE_DIR=./cache/packages/$(./docker/docker-arch.sh)
-# mkdir -p "$HOST_CACHE_DIR"
-# touch "$HOST_CACHE_DIR/x"
-# export HOST_CACHE_DIR
 rm -f "$ENV_FN"
 # shellcheck disable=SC1091,SC2129
 cat <<EOF >>"$ENV_FN"
