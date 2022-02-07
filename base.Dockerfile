@@ -1,5 +1,4 @@
-ARG PYTHON_ALPINE_VERSION
-FROM ajslater/python-alpine:${PYTHON_ALPINE_VERSION}
+FROM ajslater/python-alpine:3.10.2-alpine3.15_0
 ARG CODEX_BASE_VERSION
 LABEL maintainer="AJ Slater <aj@slater.net>"
 LABEL version=$CODEX_BASE_VERSION

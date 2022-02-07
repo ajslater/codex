@@ -4,7 +4,6 @@ services:
       context: .
       dockerfile: base.Dockerfile
       args:
-        PYTHON_ALPINE_VERSION:
         CODEX_BASE_VERSION:
     image: docker.io/ajslater/codex-base
   codex-builder-base:
@@ -14,8 +13,6 @@ services:
       args:
         CODEX_BASE_VERSION:
         CODEX_BUILDER_BASE_VERSION:
-        HOST_CACHE_DIR:
-        WHEELS:
     image: docker.io/ajslater/codex-builder-base
   codex-dist-builder: &codex-dist-builder
     build:
@@ -74,8 +71,6 @@ services:
       args:
         CODEX_BUILDER_BASE_VERSION:
         CODEX_WHEEL:
-        HOST_CACHE_DIR:
-        WHEELS:
     image: docker.io/ajslater/codex-builder-final:$CODEX_BUILDER_FINAL_VERSION
   codex-save-final-cache:
     <<: *codex-builder-final
@@ -83,17 +78,18 @@ services:
     volumes:
       - ./cache/packages:/app/cache/packages
     command: ./python_cacher/save_py_caches.py pip
-  codex:
+  codex-arch:
     build:
       context: .
       args:
         CODEX_BASE_VERSION:
         CODEX_BUILDER_FINAL_VERSION:
         PKG_VERSION:
+    image: docker.io/ajslater/codex-arch
+    container_name: codex-arch
+  codex:
     image: docker.io/ajslater/codex
     container_name: codex
-    environment:
-      - LOGLEVEL=DEBUG
     ports:
       - "9810:9810"
     volumes:

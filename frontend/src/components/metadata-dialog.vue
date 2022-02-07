@@ -228,6 +228,7 @@ import { mapGetters, mapState } from "vuex";
 import { getDownloadURL } from "@/api/v2/comic";
 import BookCover from "@/components/book-cover";
 import { formattedIssue } from "@/components/comic-name.js";
+import { DATETIME_FORMAT } from "@/components/datetime";
 import MetadataTags from "@/components/metadata-tags";
 import MetadataText from "@/components/metadata-text";
 import { getReaderRoute } from "@/router/route";
@@ -237,15 +238,6 @@ import { getReaderRoute } from "@/router/route";
 const CHILDREN_PER_SECOND = 1160;
 const MIN_SECS = 0.05;
 const UPDATE_INTERVAL = 250;
-
-const DATE_OPTIONS = {
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
-  second: "2-digit",
-};
 
 export default {
   name: "MetadataButton",
@@ -359,7 +351,7 @@ export default {
     },
     formatDateTime: function (ds) {
       const dt = new Date(ds);
-      return new Intl.DateTimeFormat("sv-SE", DATE_OPTIONS).format(dt);
+      return DATETIME_FORMAT.format(dt);
     },
   },
 };

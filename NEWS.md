@@ -1,6 +1,6 @@
 # 📰 Codex News
 
-## v0.9.0rc0
+## v0.9.0rc3
 
 _Private Libraries_
 
@@ -10,6 +10,7 @@ _Private Libraries_
   - The "Critical Rating" tag is now a decimal value.
   - The "Community Rating" tag replaced "User Rating" tag, a decimal value.
   - Cover Credits role replaced by "Cover Artist".
+  - Reader has a "Download Page" button.
   - Metadata dialog highlights filtered items.
   - Metadata dialog is faster.
   - Admin Queue Job for creating missing comic covers.

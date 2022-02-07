@@ -1,7 +1,3 @@
-parameters:
-  dist-cache-key:
-    type: string
-    default: "./cache/dist-cache-key"
 executors:
   amd64-large-executor:
     machine:
@@ -37,7 +33,7 @@ jobs:
           name: Build Builder Base Image
       - persist_to_workspace:
           paths:
-            - ./.env
+            - ./.env-*
           root: .
   build-base-arm64:
     <<: *build-base
@@ -49,28 +45,11 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          command: ./circleci/circleci-set-dist-cache-key-if-last-commit-equal.sh << pipeline.parameters.dist-cache-key >>
-          name: Set the cache key to the last commit if the last commit is equal to this commit.
-      - restore_cache:
-          key: dist-v1-{{ checksum "<< pipeline.parameters.dist-cache-key>>" }}
-      - run:
-          command: ./circleci/circleci-set-skip-dist-build.sh
-          name: Set the skip job flag
-      - restore_cache:
-          key: wheels-v1-{{ arch }}
-      - run:
           command: ./docker/docker-init.sh
           name: Login to Docker Hub, Install binfmt platform & Create the buildx Builder
       - run:
           command: ./docker/docker-build-image.sh codex-dist-builder
           name: Build Distribution Builder Image
-      - run:
-          command: ./docker/docker-compose-exit.sh codex-save-cache
-          name: Save python caches to host
-      - save_cache:
-          key: wheels-v1-{{ arch }}
-          paths:
-            - ./cache/packages
       - run:
           command: ./docker/docker-compose-exit.sh codex-frontend-lint
           name: "Frontend: Lint"
@@ -97,18 +76,9 @@ jobs:
       - run:
           command: ./docker/docker-compose-exit.sh codex-build-dist
           name: Build Distribution
-      - run:
-          name: Set the cache key to the current commit.
-          command: ./circleci/circleci-set-dist-cache-key-to-current-commit.sh << pipeline.parameters.dist-cache-key >>
-      - save_cache:
-          key: dist-v1-{{ checksum "<< pipeline.parameters.dist-cache-key >>" }}
-          paths:
-            - dist
       - persist_to_workspace:
           paths:
             - ./dist
-            - ./.env
-            - << pipeline.parameters.dist-cache-key >>
           root: .
   build-amd64: &build
     executor: amd64-medium-executor
@@ -116,10 +86,6 @@ jobs:
       - checkout
       - attach_workspace:
           at: .
-      - restore_cache:
-          key: dist-v1-{{ checksum "<< pipeline.parameters.dist-cache-key >>" }}
-      - restore_cache:
-          key: wheels-v1-{{ arch }}
       - run:
           command: ./docker/docker-init.sh
           name: Login to Docker Hub, Install binfmt platform & Create the buildx Builder
@@ -127,14 +93,7 @@ jobs:
           command: ./docker/docker-build-image.sh codex-builder-final
           name: Build Codex Builder Final
       - run:
-          command: ./docker/docker-compose-exit.sh codex-save-final-cache
-          name: Save the final pip cache
-      - save_cache:
-          key: wheels-v1-{{ arch }}
-          paths:
-            - ./cache/packages
-      - run:
-          command: ./docker/docker-build-image.sh codex
+          command: ./docker/docker-build-image.sh codex-arch
           name: Build Codex Runnable Image
   build-arm64:
     <<: *build
@@ -149,7 +108,7 @@ jobs:
           command: ./docker/docker-login.sh
           name: Login to Docker Hub
       - run:
-          command: ./docker-create-multiarch-codex.sh
+          command: ./docker/docker-create-multiarch-codex.sh
           name: Create multi-arch images
       - run:
           command: ./pypi-deploy.sh
@@ -179,13 +138,13 @@ workflows:
       - build-amd64:
           <<: *filters-release
           requires:
-            - build-dist
             - build-base-amd64
+            - build-dist
       - build-arm64:
           <<: *filters-release
           requires:
-            - build-dist
             - build-base-arm64
+            - build-dist
       - deploy:
           <<: *filters-release
           requires:

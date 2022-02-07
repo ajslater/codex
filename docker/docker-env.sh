@@ -1,20 +1,25 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-source .env.build
-rm -f .env
+pip3 install --upgrade pip
+pip3 install --requirement builder-requirements.txt
+PKG_VERSION=$(./version.sh)
+ENV_FN=$(./docker/docker-env-filename.sh)
+# export WHEELS=/app/cache/packages/wheels
+# HOST_CACHE_DIR=./cache/packages/$(./docker/docker-arch.sh)
+# mkdir -p "$HOST_CACHE_DIR"
+# touch "$HOST_CACHE_DIR/x"
+# export HOST_CACHE_DIR
+rm -f "$ENV_FN"
 # shellcheck disable=SC1091,SC2129
-cat <<EOF >>.env
-PYTHON_ALPINE_VERSION=$PYTHON_ALPINE_VERSION
+cat <<EOF >>"$ENV_FN"
 PKG_VERSION=${PKG_VERSION}
-HOST_CACHE_DIR="./cache/packages/$(./docker/docker-arch.sh)"
 CODEX_BASE_VERSION=$(./docker/docker-version-codex-base.sh)
 EOF
-echo "CODEX_BUILDER_BASE_VERSION=$(./docker/docker-version-codex-builder-base.sh)" >>.env
-echo "CODEX_DIST_BUILDER_VERSION=$(./docker/docker-version-codex-dist-builder.sh)" >>.env
-echo "CODEX_BUILDER_FINAL_VERSION=$(./docker/docker-version-codex-builder-final.sh)" >>.env
-cat <<EOF >>.env
-CODEX_VERSION=$(./docker/docker-version-codex.sh)
+echo "CODEX_BUILDER_BASE_VERSION=$(./docker/docker-version-codex-builder-base.sh)" >>"$ENV_FN"
+echo "CODEX_DIST_BUILDER_VERSION=$(./docker/docker-version-codex-dist-builder.sh)" >>"$ENV_FN"
+echo "CODEX_BUILDER_FINAL_VERSION=$(./docker/docker-version-codex-builder-final.sh)" >>"$ENV_FN"
+cat <<EOF >>"$ENV_FN"
+CODEX_ARCH_VERSION=$(./docker/docker-version-codex-arch.sh)
 CODEX_WHEEL=codex-${PKG_VERSION}-py3-none-any.whl
-WHEELS=/wheels
 EOF

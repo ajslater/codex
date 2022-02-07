@@ -6,8 +6,9 @@ REPO=docker.io/ajslater/${SERVICE}
 VERSION_VAR=${SERVICE^^}
 VERSION_VAR=${VERSION_VAR//-/_}_VERSION
 
-# shellcheck disable=SC1091
-source .env
+ENV_FN=$(./docker/docker-env-filename.sh)
+# shellcheck disable=SC1090
+source "$ENV_FN"
 IMAGE="${REPO}:${!VERSION_VAR}"
 if [ "${1:-}" == "-f" ]; then
     shift
@@ -18,7 +19,7 @@ else
     fi
 fi
 
-mkdir -p "$HOST_CACHE_DIR/pypoetry" "$HOST_CACHE_DIR/pip"
+# mkdir -p "$HOST_CACHE_DIR/pypoetry" "$HOST_CACHE_DIR/pip" "$HOST_CACHE_DIR/wheels"
 
 # Platform args
 if [[ -z ${CIRCLECI:-} && -z ${PLATFORMS:-} ]]; then
@@ -38,13 +39,22 @@ export CODEX_BUILDER_BASE_VERSION
 export CODEX_BUILDER_FINAL_VERSION
 export CODEX_DIST_BUILDER_VERSION
 export CODEX_WHEEL
-export HOST_CACHE_DIR
+# export HOST_CACHE_DIR
 export PKG_VERSION
-export PYTHON_ALPINE_VERSION
-export WHEELS
+# export WHEELS
+# shellcheck disable=2068
+docker buildx bake \
+    ${PLATFORM_ARG[@]:-} \
+    --set "*.tags=${IMAGE}" \
+    --load \
+    "${SERVICE}"
+# Keep the above if it caches
 # shellcheck disable=2068
 docker buildx bake \
     ${PLATFORM_ARG[@]:-} \
     --set "*.tags=${IMAGE}" \
     --push \
     "${SERVICE}"
+# It'd be faster if i could bake --load and then bake push instead
+# Try it
+# docker pull "$IMAGE"
