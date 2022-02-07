@@ -1,5 +1,11 @@
 # 📰 Codex News
 
+## v0.9.1
+
+- Fixes
+
+  - Fix to library group integrity checker
+
 ## v0.9.0
 
 _Private Libraries_
