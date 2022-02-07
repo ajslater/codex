@@ -23,6 +23,8 @@ jobs:
     executor: amd64-medium-executor
     steps:
       - checkout
+      - restore_cache:
+          key: cache-packages-v0-{{ arch }}-{{ checksum "poetry.lock" }}
       - run:
           command: ./docker/docker-init.sh
           name: Login to Docker Hub, Install binfmt Platform, Create the buildx Builder
@@ -57,7 +59,7 @@ jobs:
           command: ./circleci/circleci-set-skip-dist-build.sh
           name: Set the skip job flag
       - restore_cache:
-          key: wheels-v1-{{ arch }}
+          key: cache-packages-v0-{{ arch }}-{{ checksum "poetry.lock" }}
       - run:
           command: ./docker/docker-init.sh
           name: Login to Docker Hub, Install binfmt platform & Create the buildx Builder
@@ -68,7 +70,7 @@ jobs:
           command: ./docker/docker-compose-exit.sh codex-save-cache
           name: Save python caches to host
       - save_cache:
-          key: wheels-v1-{{ arch }}
+          key: cache-packages-v0-{{ arch }}-{{ checksum "poetry.lock" }}
           paths:
             - ./cache/packages
       - run:
@@ -116,7 +118,7 @@ jobs:
       - attach_workspace:
           at: .
       - restore_cache:
-          key: wheels-v1-{{ arch }}
+          key: cache-packages-v0-{{ arch }}-{{ checksum "poetry.lock" }}
       - run:
           command: ./docker/docker-init.sh
           name: Login to Docker Hub, Install binfmt platform & Create the buildx Builder
@@ -127,7 +129,7 @@ jobs:
           command: ./docker/docker-compose-exit.sh codex-save-final-cache
           name: Save the final pip cache
       - save_cache:
-          key: wheels-v1-{{ arch }}
+          key: cache-packages-v0-{{ arch }}-{{ checksum "poetry.lock" }}
           paths:
             - ./cache/packages
       - run:
