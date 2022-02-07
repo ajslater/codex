@@ -34,5 +34,6 @@ COPY builder-requirements.txt ./
 #RUN git clone --bare --depth 1 \
 #  https://github.com/rust-lang/crates.io-index.git \
 #  /root/.cargo/registry/index/github.com-1ecc6299db9ec823 && \
+# hadolint ignore=DL3013,DL3042
 RUN pip3 install --no-cache --upgrade pip && \
   pip3 install --no-cache --requirement builder-requirements.txt
