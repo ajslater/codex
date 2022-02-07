@@ -6,13 +6,6 @@ ENV_FN=$(./docker/docker-env-filename.sh)
 # shellcheck disable=SC1090
 source "$ENV_FN"
 EXTRA_MD5S=("$CODEX_BASE_VERSION  codex-base-version")
-
-# shellcheck disable=SC2046
-#read -ra PYTHON_CACHER_DEPS <<<$(find python_cacher -type f \( \
-#    ! -path "*__pycache__*" \
-#    ! -name "*~" \
-#   \))
-#    "${PYTHON_CACHER_DEPS[@]}"
 DEPS=(
     "$0"
     .dockerignore
