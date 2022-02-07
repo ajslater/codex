@@ -46,5 +46,15 @@ export PKG_VERSION
 docker buildx bake \
     ${PLATFORM_ARG[@]:-} \
     --set "*.tags=${IMAGE}" \
+    --load \
+    "${SERVICE}"
+# Keep the above if it caches
+# shellcheck disable=2068
+docker buildx bake \
+    ${PLATFORM_ARG[@]:-} \
+    --set "*.tags=${IMAGE}" \
     --push \
     "${SERVICE}"
+# It'd be faster if i could bake --load and then bake push instead
+# Try it
+# docker pull "$IMAGE"
