@@ -1,4 +1,5 @@
 ARG CODEX_BUILDER_BASE_VERSION
+ARG CODEX_BASE_VERSION
 FROM ajslater/codex-builder-base:${CODEX_BUILDER_BASE_VERSION} as codex-built
 ARG CODEX_WHEEL
 LABEL maintainer="AJ Slater <aj@slater.net>"
