@@ -70,6 +70,7 @@ services:
       dockerfile: builder-final.Dockerfile
       args:
         CODEX_BUILDER_BASE_VERSION:
+        CODEX_WHEEL:
     image: docker.io/ajslater/codex-builder-final:$CODEX_BUILDER_FINAL_VERSION
   codex-save-final-cache:
     <<: *codex-builder-final
