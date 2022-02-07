@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
+pip3 install --upgrade pip
+pip3 install --requirement builder-requirements.txt
 PKG_VERSION=$(./version.sh)
 ENV_FN=$(./docker/docker-env-filename.sh)
 rm -f "$ENV_FN"
