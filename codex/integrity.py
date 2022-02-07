@@ -238,7 +238,8 @@ def _delete_search_result_fk_errors(apps):
         query__in=valid_queries, comic__in=valid_comics
     )
     count, _ = orphan_srs.delete()
-    LOG.verbose(f"Deleted {count} orphan SearchResults")  # type: ignore
+    if count:
+        LOG.verbose(f"Deleted {count} orphan SearchResults")  # type: ignore
 
 
 def _repair_library_groups(apps):
