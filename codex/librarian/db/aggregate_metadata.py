@@ -109,7 +109,7 @@ def _get_path_metadata(path):
         for field in md_m2m_fields:
             m2m_md[field] = md.pop(field)
         m2m_md["folders"] = Path(path).parents
-    except (UnsupportedArchiveTypeError, BadRarFile, BadZipFile) as exc:
+    except (UnsupportedArchiveTypeError, BadRarFile, BadZipFile, OSError) as exc:
         LOG.warning(exc)
         failed_import = {path: exc}
     except Exception as exc:
