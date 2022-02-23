@@ -4,9 +4,6 @@ from decimal import Decimal
 from django.db import migrations, models
 
 
-OLD_COVER_ARTIST_ROLES = ("Cover", "CoverArtist")
-
-
 def critical_rating_to_decimal(apps, _schema_editor):
     """Migrate comics with charfield ratings to decimal if possible."""
     comic_model = apps.get_model("codex", "comic")
@@ -21,17 +18,6 @@ def critical_rating_to_decimal(apps, _schema_editor):
         except Exception:
             pass
     comic_model.objects.bulk_update(update_comics, ("critical_rating_decimal",))
-
-
-def cover_to_cover_artist(apps, _schema_editor):
-    """Change all roles named Cover to Cover Artist."""
-    credit_role_model = apps.get_model("codex", "creditrole")
-    cover_roles = credit_role_model.objects.filter(name__in=OLD_COVER_ARTIST_ROLES)
-    update_roles = []
-    for role in cover_roles:
-        role.name = "Cover Artist"
-        update_roles.append(role)
-    credit_role_model.objects.bulk_update(update_roles, ("name",))
 
 
 class Migration(migrations.Migration):
@@ -78,5 +64,4 @@ class Migration(migrations.Migration):
             model_name="comic",
             name="user_rating",
         ),
-        migrations.RunPython(cover_to_cover_artist),
     ]
