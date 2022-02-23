@@ -1,5 +1,12 @@
 # 📰 Codex News
 
+## v0.9.3
+
+- Fixed
+
+  - Import credits data for CBI and CIX tagged comics.
+  - More liberal metadata decimal parsing.
+
 ## v0.9.2
 
 - Fixed

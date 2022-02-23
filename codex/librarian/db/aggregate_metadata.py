@@ -4,9 +4,11 @@ import time
 
 from logging import getLogger
 from pathlib import Path
+from zipfile import BadZipFile
 
 from comicbox.comic_archive import ComicArchive
 from comicbox.exceptions import UnsupportedArchiveTypeError
+from rarfile import BadRarFile
 
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, ImageComicCoverCreateTask
 from codex.models import Comic, Imprint, Publisher, Series, Volume
@@ -107,7 +109,7 @@ def _get_path_metadata(path):
         for field in md_m2m_fields:
             m2m_md[field] = md.pop(field)
         m2m_md["folders"] = Path(path).parents
-    except UnsupportedArchiveTypeError as exc:
+    except (UnsupportedArchiveTypeError, BadRarFile, BadZipFile, OSError) as exc:
         LOG.warning(exc)
         failed_import = {path: exc}
     except Exception as exc:

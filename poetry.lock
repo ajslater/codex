@@ -188,7 +188,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
 name = "comicbox"
-version = "0.3.0"
+version = "0.3.1"
 description = "An API for reading comic archives"
 category = "main"
 optional = false
@@ -1284,7 +1284,7 @@ django-haystack = ">=2.8.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "0def6e04bf57efddd8973721d6670973f8fa6fc1ec2f7b8c6f7a07a55ed2412b"
+content-hash = "aa7138941f78a992c6a295b59dd9fb76cfb84c53f8066b7bcfa8ea1aad04297f"
 
 [metadata.files]
 aioquic = [
@@ -1510,8 +1510,8 @@ colorama = [
     {file = "colorama-0.4.4.tar.gz", hash = "sha256:5941b2b48a20143d2267e95b1c2a7603ce057ee39fd88e7329b0c292aa16869b"},
 ]
 comicbox = [
-    {file = "comicbox-0.3.0-py3-none-any.whl", hash = "sha256:dfccc94e58bb65293935c28aab1ff16a4f0e5a4215870bf64c5e9e3bb6ce5b35"},
-    {file = "comicbox-0.3.0.tar.gz", hash = "sha256:38cb01ac46a030e5801e1153c50611f7d96e2fd723a14f653bd6b7d156368c34"},
+    {file = "comicbox-0.3.1-py3-none-any.whl", hash = "sha256:9d42ee7d66c42070e26bd41aeb1a6ff7f5846e4c0de50a025c83e81dcc6c28cf"},
+    {file = "comicbox-0.3.1.tar.gz", hash = "sha256:18f5f68fd45eab132f4602a171a9e81992f912b60a3f3a2c14c1849c5986467b"},
 ]
 coverage = [
     {file = "coverage-6.3.2-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:9b27d894748475fa858f9597c0ee1d4829f44683f3813633aaf94b19cb5453cf"},
