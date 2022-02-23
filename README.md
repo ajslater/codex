@@ -58,6 +58,12 @@ apt install build-essential libffi-dev libjpeg-dev libssl-dev libxapian30 libyam
 apk add bsd-compat-headers build-base jpeg-dev libffi-dev openssl-dev xapian-bindings-python3 xapian-core yaml-dev zlib-dev
 ```
 
+##### Install unrar Runtime Dependency on Linux
+
+Codex requires unrar to read cbr formatted comic archives. Unrar is often not packaged for Linux, but here are some instructions: [How to install unrar in Linux](https://www.unixtutorial.org/how-to-install-unrar-in-linux/)
+
+Unrar as packaged for Alpine Linux v3.14 seems to work on Alpine v3.15
+
 #### Windows
 
 Codex should work on Windows, but I do not understand the binary requirements. I suggest using the
@@ -65,10 +71,6 @@ other operating system package lists as a guide. If you get it working, please
 [help me](https://github.com/ajslater/codex/issues) replace this section with something useful.
 
 In the mean time, Windows users will have the easiest experience relying on Docker.
-
-##### Install unrar Runtime Dependency on Linux
-
-Codex requires unrar to read cbr formatted comic archives. Unrar is often not packaged for Linux, but here are some instructions: [How to install unrar in Linux](https://www.unixtutorial.org/how-to-install-unrar-in-linux/)
 
 #### Install Codex with pip
 
