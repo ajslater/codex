@@ -62,7 +62,7 @@ apk add bsd-compat-headers build-base jpeg-dev libffi-dev openssl-dev xapian-bin
 
 Codex should work on Windows, but I do not understand the binary requirements. I suggest using the
 other operating system package lists as a guide. If you get it working, please
-[help me](https://github.com/ajslater/codex/issues) replace this section with something informative.
+[help me](https://github.com/ajslater/codex/issues) replace this section with something useful.
 
 In the mean time, Windows users will have the easiest experience relying on Docker.
 
