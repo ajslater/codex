@@ -1,5 +1,11 @@
 # 📰 Codex News
 
+## v0.9.2
+
+- Fixed
+
+  - Fix rare migration bug for Cover Artist role.
+
 ## v0.9.1
 
 - Fixes
