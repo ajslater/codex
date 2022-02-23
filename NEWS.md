@@ -4,7 +4,7 @@
 
 - Fixed
 
-  - Import comic bug syntheszing credit data for CBI and CIX tagged comics.
+  - Import credits data for CBI and CIX tagged comics.
   - More liberal metadata decimal parsing.
 
 ## v0.9.2
