@@ -29,6 +29,8 @@ MD_UNUSED_KEYS = (
     "pages",
     "remainder",
     "title",  # gets converted to name
+    # "description", # move to summary
+    "comments",  # TODO: doesn't exist yet.
 )
 WRITE_WAIT_EXPIRY = LOG_EVERY
 WRITE_WAIT_DELAY = 0.01
