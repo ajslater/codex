@@ -48,19 +48,25 @@ def _get_cover_path(comic_path):
 
 def create_comic_cover(comic_path, cover_image, cover_path=None):
     """Create a comic cover from an image."""
-    if cover_image is None:
-        raise ValueError(f"No cover image found for {comic_path}")
+    try:
+        if cover_image is None:
+            raise ValueError(f"No cover image found for {comic_path}")
 
-    if not cover_path:
-        cover_path = _get_cover_path(comic_path)
+        if not cover_path:
+            cover_path = _get_cover_path(comic_path)
 
-    fs_cover_path = COVER_ROOT / cover_path
-    fs_cover_path.parent.mkdir(exist_ok=True, parents=True)
+        fs_cover_path = COVER_ROOT / cover_path
+        fs_cover_path.parent.mkdir(exist_ok=True, parents=True)
 
-    im = Image.open(BytesIO(cover_image))
-    im.thumbnail(THUMBNAIL_SIZE)
-    im.save(fs_cover_path, im.format)
-    LOG.debug(f"Created cover thumbnail for: {comic_path}")
+        im = Image.open(BytesIO(cover_image))
+        im.thumbnail(THUMBNAIL_SIZE)
+        im.save(fs_cover_path, im.format)
+        LOG.debug(f"Created cover thumbnail for: {comic_path}")
+        update_cover_path = cover_path
+    except Exception as exc:
+        LOG.warning(f"Failed to create cover thumb for {comic_path}: {exc}")
+        update_cover_path = MISSING_COVER_FN
+    return update_cover_path
 
 
 def _create_comic_cover_from_file(comic, force=False):
@@ -75,16 +81,15 @@ def _create_comic_cover_from_file(comic, force=False):
                 update_cover_path = correct_cover_path
         else:
             cover_image = ComicArchive(comic.path).get_cover_image()
-            create_comic_cover(comic.path, cover_image, correct_cover_path)
-            update_cover_path = correct_cover_path
-    except Comic.DoesNotExist:
-        LOG.warning(f"Comic for {comic.path=} does not exist in the db.")
-    except FileNotFoundError:
-        LOG.warning(f"Comic at {comic.path} not found.")
+            update_cover_path = create_comic_cover(
+                comic.path, cover_image, correct_cover_path
+            )
+    except OSError as exc:
+        LOG.warning(f"Failed to create cover thumb for {comic.path}: {exc}")
         update_cover_path = MISSING_COVER_FN
     except Exception as exc:
-        LOG.exception(exc)
         LOG.error(f"Failed to create cover thumb for {comic.path}")
+        LOG.exception(exc)
         update_cover_path = MISSING_COVER_FN
     return update_cover_path
 

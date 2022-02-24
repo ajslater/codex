@@ -2,7 +2,7 @@
 import logging
 import os
 
-from logging.handlers import TimedRotatingFileHandler
+from logging.handlers import RotatingFileHandler
 
 from colors import color
 
@@ -12,6 +12,7 @@ LOG_FMT = "{asctime} {levelname:8} {message}"
 DATEFMT = "%Y-%m-%d %H:%M:%S %Z"
 VERBOSE = int((logging.INFO + logging.DEBUG) / 2)
 LOG_EVERY = 15
+LOG_MAX_BYTES = 10 * 1024 * 1024
 
 
 def _verbose(self, message, *args, **kwargs):
@@ -60,7 +61,7 @@ def _get_file_log_handler(log_dir):
     """Get the log handlers for initialization."""
     log_dir.mkdir(exist_ok=True, parents=True)
     fn = log_dir / "codex.log"
-    file_handler = TimedRotatingFileHandler(fn, when="D", backupCount=30)
+    file_handler = RotatingFileHandler(fn, maxBytes=LOG_MAX_BYTES, backupCount=30)
     formatter = logging.Formatter(LOG_FMT, style="{", datefmt=DATEFMT)
     file_handler.setFormatter(formatter)
     return file_handler

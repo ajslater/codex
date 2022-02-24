@@ -1,5 +1,6 @@
 // Socket pseudo module for vue-native-sockets
 import CHOICES from "@/choices";
+import router from "@/router";
 
 import { NOTIFY_STATES } from "./modules/notify";
 
@@ -57,8 +58,9 @@ const mutations = {
     const message = event.data;
     console.debug(message);
     if (message === CHOICES.websockets.LIBRARY_CHANGED) {
-      // browser
-      this.dispatch("browser/browserPageStale", { showProgress: false });
+      if (router.currentRoute.name === "browser") {
+        this.dispatch("browser/browserPageStale", { showProgress: false });
+      }
     } else if (NOTIFY_MESSAGES.has(message)) {
       // notify
       const notify = NOTIFY_MAP[message]; // translate message to state.t s

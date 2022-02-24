@@ -25,7 +25,7 @@ for field in Comic._meta.get_fields():
         COMIC_M2M_FIELDS.add(field.name)
 WRITE_WAIT_EXPIRY = LOG_EVERY
 WRITE_WAIT_DELAY = 0.01
-_MD_VALID_KEYS = set([field.name for field in Comic._meta.get_fields()]) - set(
+_MD_INVALID_KEYS = set(
     [
         "created_at",
         "id",
@@ -36,6 +36,9 @@ _MD_VALID_KEYS = set([field.name for field in Comic._meta.get_fields()]) - set(
         "title",
         "updated_at",
     ]
+)
+_MD_VALID_KEYS = (
+    set([field.name for field in Comic._meta.get_fields()]) - _MD_INVALID_KEYS
 )
 _MD_DECIMAL_KEYS = set(("issue", "issue_count", "community_rating", "critical_rating"))
 
@@ -92,6 +95,9 @@ def _get_path_metadata(path):
         title = md.get("title")
         if title:
             md["name"] = title[:31]
+        if not md.get("summary") and md.get("description"):
+            # CoMet to cix copy
+            md["summary"] = md.pop("description")
         md["max_page"] = max(md["page_count"] - 1, 0)
         if credits := md.get("credits"):
             for credit in credits:
@@ -126,9 +132,10 @@ def _get_path_metadata(path):
             m2m_md[field] = md.pop(field)
         m2m_md["folders"] = Path(path).parents
     except (UnsupportedArchiveTypeError, BadRarFile, BadZipFile, OSError) as exc:
-        LOG.warning(exc)
+        LOG.warning(f"Failed to import {path}: {exc}")
         failed_import = {path: exc}
     except Exception as exc:
+        LOG.warning(f"Failed to import: {path}")
         LOG.exception(exc)
         failed_import = {path: exc}
     return md, m2m_md, group_tree_md, failed_import

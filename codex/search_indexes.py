@@ -35,6 +35,7 @@ class ComicIndex(ModelSearchIndex, Indexable):
         model = Comic
         fields = (
             "age_rating",
+            "comments",
             "community_rating",
             "country",
             "created_at",
@@ -42,7 +43,6 @@ class ComicIndex(ModelSearchIndex, Indexable):
             "day",
             "date",
             "decade",
-            "description",
             "format",
             "issue",
             "language",
