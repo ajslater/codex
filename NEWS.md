@@ -1,5 +1,11 @@
 # 📰 Codex News
 
+## v0.9.6
+
+- Features
+
+  - Log files now rotate by size instead of daily.
+
 ## v0.9.5
 
 - Fixed
