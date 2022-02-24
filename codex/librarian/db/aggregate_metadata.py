@@ -126,9 +126,10 @@ def _get_path_metadata(path):
             m2m_md[field] = md.pop(field)
         m2m_md["folders"] = Path(path).parents
     except (UnsupportedArchiveTypeError, BadRarFile, BadZipFile, OSError) as exc:
-        LOG.warning(exc)
+        LOG.warning(f"Failed to import {path}: {exc}")
         failed_import = {path: exc}
     except Exception as exc:
+        LOG.warning(f"Failed to import: {path}")
         LOG.exception(exc)
         failed_import = {path: exc}
     return md, m2m_md, group_tree_md, failed_import
