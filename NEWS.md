@@ -4,7 +4,8 @@
 
 - Fixed
 
-  - More helpful logging for failed imports.
+  - Crash when creating illegal dates on import.
+  - More helpful logging for failed imports & cover creation.
 
 - Features
 

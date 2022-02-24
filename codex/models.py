@@ -1,4 +1,5 @@
 """Codex Django Models."""
+import calendar
 import datetime
 import os
 
@@ -377,9 +378,21 @@ class Comic(WatchedPath):
 
     def _set_date(self):
         """Compute a date for the comic."""
-        year = self.year if self.year is not None else datetime.MINYEAR
-        month = self.month if self.month is not None else 1
-        day = self.day if self.day is not None else 1
+        if self.year is None:
+            year = datetime.MINYEAR
+        else:
+            year = min(max(self.year, datetime.MINYEAR), datetime.MAXYEAR)
+        if self.month is None:
+            month = 1
+        else:
+            month = min(max(self.month, 1), 12)
+
+        if self.day is None:
+            day = 1
+        else:
+            last_day_of_month = calendar.monthrange(year, month)[1]
+            day = min(max(self.day, 1), last_day_of_month)
+
         self.date = datetime.date(year, month, day)
 
     def _set_decade(self):
