@@ -2,6 +2,7 @@
 
 import time
 
+from decimal import Decimal
 from logging import getLogger
 from pathlib import Path
 from zipfile import BadZipFile
@@ -22,26 +23,39 @@ COMIC_M2M_FIELDS = set()
 for field in Comic._meta.get_fields():
     if field.many_to_many and field.name != "folders":
         COMIC_M2M_FIELDS.add(field.name)
-MD_UNUSED_KEYS = (
-    "alternate_series",
-    "ext",
-    "cover_image",
-    "pages",
-    "remainder",
-    "title",  # gets converted to name
-    # "description", # move to summary
-    "comments",  # TODO: doesn't exist yet.
-)
 WRITE_WAIT_EXPIRY = LOG_EVERY
 WRITE_WAIT_DELAY = 0.01
+_MD_VALID_KEYS = set([field.name for field in Comic._meta.get_fields()]) - set(
+    [
+        "created_at",
+        "id",
+        "library",
+        "parent_folder",
+        "pk",
+        "stat",
+        "title",
+        "updated_at",
+    ]
+)
+_MD_DECIMAL_KEYS = set(("issue", "issue_count", "community_rating", "critical_rating"))
 
 
 def _clean_md(md):
     """Remove keys from the metadata Comic objects don't use."""
     # Maybe this should use a whitelist instead
-    for key in MD_UNUSED_KEYS:
-        if key in md:
-            del md[key]
+    md_keys = set(md.keys())
+    unused_keys = md_keys - _MD_VALID_KEYS
+    for key in unused_keys:
+        del md[key]
+    md_keys = set(md.keys())
+
+    # XXX This may be overkill.
+    decimal_keys = md_keys & _MD_DECIMAL_KEYS
+    for key in decimal_keys:
+        try:
+            md[key] = Decimal(md[key])
+        except Exception:
+            md[key] = Decimal(0.0)
 
 
 def _wait_for_copy(path):
