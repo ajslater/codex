@@ -1,5 +1,11 @@
 # 📰 Codex News
 
+## v0.9.5
+
+- Fixed
+
+  - Use an allow list for importing metadata to prevent crashes.
+
 ## v0.9.4
 
 - Fixed
