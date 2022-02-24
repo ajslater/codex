@@ -4,14 +4,14 @@
 
 - Fixed
 
-  - Don't refresh to browser when a library changes if reading a comic.
-  - Crash when creating illegal dates on import.
-  - More helpful logging for failed imports & cover creation.
+  - Don't open browser when a library changes when reading a comic.
+  - Fixed crash creating illegal dates on import.
 
 - Features
 
-  - Log files now rotate by size instead of daily.
   - Replace description field with more common ComicInfo comments field.
+  - Log files now rotate by size instead of daily.
+  - Log path for failed imports and cover creation.
 
 ## v0.9.5
 
