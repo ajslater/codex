@@ -4,6 +4,7 @@
 
 - Fixed
 
+  - Don't refresh to browser when a library changes if reading a comic.
   - Crash when creating illegal dates on import.
   - More helpful logging for failed imports & cover creation.
 
