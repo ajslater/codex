@@ -25,11 +25,11 @@ class MetadataView(BrowserMetadataBaseView):
     _COMIC_VALUE_FIELDS = set(
         (
             "age_rating",
+            "comments",
             "community_rating",
             "country",
             "critical_rating",
             "day",
-            "description",
             "format",
             "issue",
             "language",

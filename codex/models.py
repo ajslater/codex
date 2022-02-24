@@ -317,7 +317,7 @@ class Comic(WatchedPath):
     month = PositiveSmallIntegerField(null=True)
     day = PositiveSmallIntegerField(null=True)
     # Summary
-    description = TextField(null=True)
+    comments = TextField(null=True)
     notes = TextField(null=True)
     summary = TextField(null=True)
     # Ratings

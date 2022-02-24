@@ -1,6 +1,6 @@
 // Socket pseudo module for vue-native-sockets
-import router from "@/router";
 import CHOICES from "@/choices";
+import router from "@/router";
 
 import { NOTIFY_STATES } from "./modules/notify";
 

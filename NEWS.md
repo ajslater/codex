@@ -11,6 +11,7 @@
 - Features
 
   - Log files now rotate by size instead of daily.
+  - Replace description field with more common ComicInfo comments field.
 
 ## v0.9.5
 
