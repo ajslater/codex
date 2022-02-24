@@ -4,7 +4,7 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-    """Rename comic.description to comic.comments."""
+    """Rename comic description to comic comments."""
 
     dependencies = [
         ("codex", "0011_library_groups_and_metadata_changes"),
