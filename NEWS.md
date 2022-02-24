@@ -2,6 +2,10 @@
 
 ## v0.9.6
 
+- Fixed
+
+  - More helpful logging for failed imports.
+
 - Features
 
   - Log files now rotate by size instead of daily.
