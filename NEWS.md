@@ -1,5 +1,11 @@
 # 📰 Codex News
 
+## v0.9.7
+
+- Fixed
+
+  - Coerce decimal values into valid ranges and precision before importing.
+
 ## v0.9.6
 
 - Fixed
