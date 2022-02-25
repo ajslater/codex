@@ -2,8 +2,6 @@
 from logging import getLogger
 from pathlib import Path
 
-from django.core.cache import cache
-
 from codex.models import (
     Character,
     Comic,
@@ -58,8 +56,9 @@ def _bulk_cleanup_fks(classes, field_name):
     return changed
 
 
-def _bulk_cleanup_failed_imports(library):
+def bulk_cleanup_failed_imports(library):
     """Remove FailedImport objects that have since succeeded."""
+    LOG.verbose("Cleaning up failed imports...")  # type: ignore
     failed_import_paths = set(
         FailedImport.objects.filter(library=library).values_list("path", flat=True)
     )
@@ -86,14 +85,14 @@ def _bulk_cleanup_failed_imports(library):
     ).delete()
     if count:
         LOG.info(f"Cleaned up {count} failed imports from {library.path}")
+    else:
+        LOG.info("No failed imports to clean up.")
 
 
-def cleanup_database(library=None):
-    """Run all the cleanup routines."""
-    LOG.verbose("Cleaning up database...")  # type: ignore
-    changed = _bulk_cleanup_fks(DELETE_COMIC_FKS, "comic")
-    changed |= _bulk_cleanup_fks(DELETE_CREDIT_FKS, "credit")
-    if library:
-        _bulk_cleanup_failed_imports(library)
-    cache.clear()
-    return changed
+def cleanup_fks():
+    """Clean up unused foreign keys."""
+    # TODO move all this to janitor?
+    LOG.verbose("Cleaning up unused foreign keys...")  # type: ignore
+    _bulk_cleanup_fks(DELETE_COMIC_FKS, "comic")
+    _bulk_cleanup_fks(DELETE_CREDIT_FKS, "credit")
+    LOG.verbose("Done cleaning up unused foreign keys.")  # type: ignore

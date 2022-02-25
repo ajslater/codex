@@ -42,15 +42,11 @@ class DBDiffTask(UpdaterTask, LibraryTask):
     files_deleted: set
 
 
-class CleanupDatabaseTask(UpdaterTask):
-    """Clean up these libraries."""
-
-    pass
-
-
 @dataclass
 class ComicCoverTask(ABC):
     """Handle with the CoverCreator."""
+
+    pass
 
 
 @dataclass
@@ -178,6 +174,13 @@ class VacuumTask(JanitorTask):
 @dataclass
 class CleanSearchTask(JanitorTask):
     """Clean the search db."""
+
+    pass
+
+
+@dataclass
+class CleanFKsTask(JanitorTask):
+    """Clean unused foreign keys."""
 
     pass
 
