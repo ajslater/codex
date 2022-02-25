@@ -17,7 +17,6 @@ from django.utils.safestring import SafeText
 from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
     BroadcastNotifierTask,
-    CleanupDatabaseTask,
     CreateComicCoversLibrariesTask,
     DelayedTasks,
     PollLibrariesTask,
@@ -163,7 +162,7 @@ class AdminLibrary(ModelAdmin):
         pks = set([obj.pk])
         LIBRARIAN_QUEUE.put(PurgeComicCoversLibrariesTask(pks))
         super().delete_model(request, obj)
-        LIBRARIAN_QUEUE.put(CleanupDatabaseTask())
+        cache.clear()
         self._on_change(None)
 
     def delete_queryset(self, request, queryset):
@@ -171,7 +170,7 @@ class AdminLibrary(ModelAdmin):
         pks = set(queryset.values_list("pk", flat=True))
         LIBRARIAN_QUEUE.put(PurgeComicCoversLibrariesTask(pks))
         super().delete_queryset(request, queryset)
-        LIBRARIAN_QUEUE.put(CleanupDatabaseTask())
+        cache.clear()
         self._on_change(None)
 
     def save_formset(self, request, form, formset, change):

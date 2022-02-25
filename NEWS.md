@@ -1,5 +1,16 @@
 # 📰 Codex News
 
+## v0.9.7
+
+- Fixed
+
+  - Coerce decimal values into valid ranges and precision before importing.
+
+- Features
+
+  - Clean up unused foreign keys once a day instead of after every import.
+  - Clean up unused foreign keys librarian job available in admin panel.
+
 ## v0.9.6
 
 - Fixed

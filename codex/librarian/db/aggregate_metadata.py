@@ -1,8 +1,8 @@
 """Aggregate metadata from comics to prepare for importing."""
 
+import decimal
 import time
 
-from decimal import Decimal
 from logging import getLogger
 from pathlib import Path
 from zipfile import BadZipFile
@@ -41,24 +41,31 @@ _MD_VALID_KEYS = (
     set([field.name for field in Comic._meta.get_fields()]) - _MD_INVALID_KEYS
 )
 _MD_DECIMAL_KEYS = set(("issue", "issue_count", "community_rating", "critical_rating"))
+_DECIMAL_MAX = decimal.Decimal(99.99)
+_DECIMAL_MIN = decimal.Decimal(0.0)
+_TWO_PLACES = decimal.Decimal("0.01")
 
 
 def _clean_md(md):
-    """Remove keys from the metadata Comic objects don't use."""
-    # Maybe this should use a whitelist instead
+    """Clean metadata before importing."""
+    # remove unused keys.
     md_keys = set(md.keys())
     unused_keys = md_keys - _MD_VALID_KEYS
     for key in unused_keys:
         del md[key]
     md_keys = set(md.keys())
 
-    # XXX This may be overkill.
+    # fix ranges of decimals
     decimal_keys = md_keys & _MD_DECIMAL_KEYS
     for key in decimal_keys:
+        val = md[key]
         try:
-            md[key] = Decimal(md[key])
+            val = max(min(val, _DECIMAL_MAX), _DECIMAL_MIN)
+            val = val.quantize(_TWO_PLACES)
+            md[key] = val
         except Exception:
-            md[key] = Decimal(0.0)
+            LOG.warning(f"Failed cleaning metadata {key} = {val}")
+            del md[key]
 
 
 def _wait_for_copy(path):
