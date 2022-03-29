@@ -2,17 +2,14 @@ executors:
   amd64-large-executor:
     machine:
       image: current
-      docker_layer_caching: true
       resource_class: large
   amd64-medium-executor:
     machine:
       image: current
-      docker_layer_caching: true
       resource_class: medium
   arm64-medium-executor:
     machine:
       image: current
-      docker_layer_caching: true
       resource_class: arm.medium
 jobs:
   build-base-amd64: &build-base
