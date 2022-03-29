@@ -9,13 +9,13 @@ import json
 import mmap
 import re
 
-from logging import getLogger
 from pathlib import Path
 
+from codex.settings.logging import get_logger
 from codex.settings.settings import BUILD, DEBUG, STATIC_ROOT
 
 
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 
 _PROD_JS_ROOT = STATIC_ROOT / "js"
 if DEBUG:
@@ -70,7 +70,7 @@ def _parse_choices():
                 ) as choices_mmap_file:
                     json_str = choices_mmap_file.read()
                     data_dict = json.loads(json_str)
-                    LOG.verbose(f"Loaded json choices from {js_root}")  # type: ignore
+                    LOG.verbose(f"Loaded json choices from {js_root}")
                     break
         except Exception as exc:
             LOG.exception(exc)
@@ -120,7 +120,7 @@ def _load_json():
     """Load values from the vuetify formatted json into python dicts."""
     global WEBSOCKET_MESSAGES
     if DEFAULTS and VUETIFY_NULL_CODE and CHOICES and WEBSOCKET_MESSAGES:
-        LOG.verbose("choices already loaded")  # type: ignore
+        LOG.verbose("choices already loaded")
         return
     data_dict = _parse_choices()
     for key, value in data_dict.items():

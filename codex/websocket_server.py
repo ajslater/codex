@@ -7,12 +7,12 @@ from a queue.
 import json
 
 from json import JSONDecodeError
-from logging import getLogger
 
 from codex.notifier import Notifier
+from codex.settings.logging import get_logger
 
 
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 
 
 def _handle_websocket_message(event, send):

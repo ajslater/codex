@@ -91,5 +91,5 @@ class SessionView(APIView):
         defaults = self._get_defaults(session_key)
         data = {}
         self._get_source_values_or_set_defaults(defaults, self.params, data)
-        self.request.session[session_key] = data  # type: ignore
+        self.request.session[session_key] = data
         self.request.session.save()

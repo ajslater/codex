@@ -3,7 +3,6 @@
 import signal
 
 from asyncio import Event
-from logging import getLogger
 
 from django.core.cache import cache
 from django.db.backends.signals import connection_created
@@ -14,9 +13,10 @@ from codex.librarian.queue_mp import (
     BroadcastNotifierTask,
     DelayedTasks,
 )
+from codex.settings.logging import get_logger
 
 
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 SIGNAL_NAMES = {"SIGINT", "SIGTERM", "SIGBREAK"}
 RESTART_EVENT = Event()
 SHUTDOWN_EVENT = Event()

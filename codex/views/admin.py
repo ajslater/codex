@@ -1,6 +1,4 @@
 """Queue Libraian Jobs."""
-from logging import getLogger
-
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
@@ -24,9 +22,10 @@ from codex.librarian.queue_mp import (
 )
 from codex.models import Library
 from codex.serializers.admin import QueueJobSerializer
+from codex.settings.logging import get_logger
 
 
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 
 
 class QueueLibrarianJobs(APIView):

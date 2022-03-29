@@ -1,13 +1,12 @@
 """Clean up the search tables."""
-from logging import getLogger
-
 from codex.models import SearchQuery
 from codex.serializers.browser import BrowserPageSerializer
+from codex.settings.logging import get_logger
 
 
 # Keep the last thousand
 LIMIT = BrowserPageSerializer.NUM_AUTOCOMPLETE_QUERIES * 100
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 
 
 def clean_old_queries():
@@ -17,4 +16,4 @@ def clean_old_queries():
     )
     delete_sqs = SearchQuery.objects.filter(pk__in=delete_pks)
     count, _ = delete_sqs.delete()
-    LOG.verbose(f"Deleted {count} old search queries.")  # type: ignore
+    LOG.verbose(f"Deleted {count} old search queries.")

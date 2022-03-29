@@ -1,5 +1,4 @@
 """Bulk import and move comics and folders."""
-from logging import getLogger
 from pathlib import Path
 
 from django.db.models.functions import Now
@@ -9,9 +8,10 @@ from codex.librarian.db.create_fks import bulk_folders_create
 from codex.librarian.db.query_fks import query_missing_folder_paths
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, BulkComicCoverCreateTask
 from codex.models import Comic, Folder
+from codex.settings.logging import get_logger
 
 
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder")
 MOVED_BULK_FOLDER_UPDATE_FIELDS = ("path", "parent_folder", "name", "sort_name")
 
@@ -31,20 +31,23 @@ def bulk_comics_moved(library, moved_paths):
     now = Now()
     comic_pks = []
     for comic in comics:
-        comic.path = moved_paths[comic.path]
-        new_path = Path(comic.path)
-        if new_path.parent == Path(library.path):
-            comic.parent_folder = None
-        else:
-            comic.parent_folder = Folder.objects.get(  # type: ignore
-                path=new_path.parent
-            )
-        comic.updated_at = now  # type: ignore
-        comic.set_stat()
-        folder_m2m_links[comic.pk] = Folder.objects.filter(
-            path__in=new_path.parents
-        ).values_list("pk", flat=True)
-        comic_pks.append(comic.pk)
+        try:
+            comic.path = moved_paths[comic.path]
+            new_path = Path(comic.path)
+            if new_path.parent == Path(library.path):
+                comic.parent_folder = None
+            else:
+                comic.parent_folder = Folder.objects.get(  # type: ignore
+                    path=new_path.parent
+                )
+            comic.updated_at = now
+            comic.set_stat()
+            folder_m2m_links[comic.pk] = Folder.objects.filter(
+                path__in=new_path.parents
+            ).values_list("pk", flat=True)
+            comic_pks.append(comic.pk)
+        except Exception as exc:
+            LOG.error(f"moving {comic.path}: {exc}")
 
     count = Comic.objects.bulk_update(comics, MOVED_BULK_COMIC_UPDATE_FIELDS)
 

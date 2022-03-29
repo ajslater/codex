@@ -145,32 +145,7 @@
           <MetadataText :value="md.scan_info" label="Scan" />
         </section>
         <section class="mdSection">
-          <v-simple-table
-            v-if="md.credits && md.credits.length > 0"
-            id="creditsTable"
-          >
-            <template #default>
-              <h2>Credits</h2>
-              <table>
-                <thead>
-                  <tr>
-                    <th class="text-left">Role</th>
-                    <th class="text-left">Creator</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="credit in md.credits" :key="credit.pk">
-                    <td>
-                      {{ credit.role.name }}
-                    </td>
-                    <td>
-                      {{ credit.person.name }}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </template>
-          </v-simple-table>
+          <MetadataCreditsTable :value="md.credits" />
         </section>
       </div>
       <footer id="footerLinks">
@@ -229,6 +204,7 @@ import { getDownloadURL } from "@/api/v2/comic";
 import BookCover from "@/components/book-cover";
 import { formattedIssue } from "@/components/comic-name.js";
 import { DATETIME_FORMAT } from "@/components/datetime";
+import MetadataCreditsTable from "@/components/metadata-credits-table";
 import MetadataTags from "@/components/metadata-tags";
 import MetadataText from "@/components/metadata-text";
 import { getReaderRoute } from "@/router/route";
@@ -243,6 +219,7 @@ export default {
   name: "MetadataButton",
   components: {
     BookCover,
+    MetadataCreditsTable,
     MetadataTags,
     MetadataText,
   },
@@ -408,20 +385,6 @@ export default {
 }
 .mdSection {
   margin-top: 25px;
-}
-#creditsTable {
-  padding: 10px;
-}
-#creditsTable table {
-  width: 100%;
-}
-#creditsTable th,
-#creditsTable td {
-  padding: 10px;
-}
-#creditsTable thead tr,
-#creditsTable tr:nth-child(even) {
-  background-color: #282828;
 }
 #footerLinks {
   margin-top: 20px;

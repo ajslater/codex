@@ -1,13 +1,12 @@
 """Query the missing foreign keys for comics and credits."""
 import time
 
-from logging import getLogger
 from pathlib import Path
 
 from django.db.models import Q
 
 from codex.models import Comic, Credit, Folder, Imprint, Publisher, Series, Volume
-from codex.settings.logging import LOG_EVERY
+from codex.settings.logging import LOG_EVERY, get_logger
 
 
 CREDIT_FKS = ("role", "person")
@@ -26,7 +25,7 @@ NAMED_MODEL_QUERY_FIELDS = ("name",)
 # fixes this in the bulk_create & bulk_update functions. So for complicated
 # queries I gotta batch them myself. Filter arg count is a proxy, but it works.
 FILTER_ARG_MAX = 990
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 
 
 def _query_existing_mds(fk_cls, filter):
@@ -65,7 +64,7 @@ def _query_create_metadata(fk_cls, create_mds, all_filter_args):
                     f"Queried for existing {fk_cls.__name__}s, batch "
                     + f"{num}/{num_filter_args_batches}"
                 )
-                LOG.verbose(log)  # type: ignore
+                LOG.verbose(log)
                 last_log = now
                 logged = True
 
@@ -185,7 +184,7 @@ def _query_missing_simple_models(base_cls, field, fk_field, names):
                 f"Queried for existing {fk_cls.__name__}s, "
                 + f"batch {num}/{num_proposed_names}"
             )
-            LOG.verbose(log)  # type: ignore
+            LOG.verbose(log)
             last_log = now
             logged = True
         offset += FILTER_ARG_MAX
@@ -213,21 +212,19 @@ def query_missing_folder_paths(library_path, comic_paths):
 
 def query_all_missing_fks(library_path, fks):
     """Get objects to create by querying existing objects for the proposed fks."""
-    LOG.verbose(  # type: ignore
-        f"Querying existing foreign keys for comics in {library_path}"
-    )
+    LOG.verbose(f"Querying existing foreign keys for comics in {library_path}")
     create_credits = set()
     if "credits" in fks:
         credits = fks.pop("credits")
         create_credits |= _query_missing_credits(credits)
-        LOG.verbose(f"Prepared {len(create_credits)} new credits.")  # type: ignore
+        LOG.verbose(f"Prepared {len(create_credits)} new credits.")
 
     if "group_trees" in fks:
         group_trees = fks.pop("group_trees")
         create_groups, update_groups, create_group_count = _query_missing_groups(
             group_trees
         )
-        LOG.verbose(f"Prepared {create_group_count} new groups.")  # type: ignore
+        LOG.verbose(f"Prepared {create_group_count} new groups.")
     else:
         create_groups = {}
         update_groups = {}
@@ -237,7 +234,7 @@ def query_all_missing_fks(library_path, fks):
         create_folder_paths |= query_missing_folder_paths(
             library_path, fks.pop("comic_paths")
         )
-        LOG.verbose(f"Prepared {len(create_folder_paths)} new folders.")  # type: ignore
+        LOG.verbose(f"Prepared {len(create_folder_paths)} new folders.")
 
     create_fks = {}
     for field in fks.keys():
@@ -249,6 +246,6 @@ def query_all_missing_fks(library_path, fks):
         cls, names = _query_missing_simple_models(base_cls, field, "name", names)
         create_fks[cls] = names
         if num_names := len(names):
-            LOG.verbose(f"Prepared {num_names} new {field}.")  # type: ignore
+            LOG.verbose(f"Prepared {num_names} new {field}.")
 
     return create_fks, create_groups, update_groups, create_folder_paths, create_credits

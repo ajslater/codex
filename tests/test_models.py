@@ -1,15 +1,21 @@
 """Test models."""
 import datetime
+import shutil
+
+from pathlib import Path
 
 from django.test import TestCase
 
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
 
 
+TMP_DIR = Path("/tmp/codex.tests")
+
+
 class ComicTestCase(TestCase):
     """Test Comic model."""
 
-    COMIC_PATH = "/comics/foo.cbz"
+    COMIC_PATH = TMP_DIR / "foo.cbz"
     NAME = "foo"
     DECADE = 1970
     YEAR = 1975
@@ -19,7 +25,9 @@ class ComicTestCase(TestCase):
 
     def setUp(self):
         """Set up for tests."""
-        library = Library.objects.create(path="/comics")
+        TMP_DIR.mkdir(exist_ok=True, parents=True)
+        self.COMIC_PATH.touch()
+        library = Library.objects.create(path=str(self.COMIC_PATH))
         publisher = Publisher.objects.create(name="FooPub")
         imprint = Imprint.objects.create(name="BarComics", publisher=publisher)
         series = Series.objects.create(
@@ -42,6 +50,10 @@ class ComicTestCase(TestCase):
             month=self.MONTH,
             day=self.DAY,
         )
+
+    def tearDown(self):
+        """Tear down tests."""
+        shutil.rmtree(TMP_DIR)
 
     def test_comic_save(self):
         """Test comic model save method."""

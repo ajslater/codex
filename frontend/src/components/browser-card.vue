@@ -182,8 +182,10 @@ export default {
   display: inline-flex;
   flex: 1;
   margin: 16px;
-  width: 120px;
   text-align: center;
+}
+.browserTileLazyWrapper {
+  width: 120px;
 }
 .browserCardCoverWrapper {
   position: relative;
@@ -241,6 +243,13 @@ export default {
 .headerName {
   padding-top: 5px;
   color: gray;
+}
+.headerName,
+.displayName {
+  overflow-wrap: break-word;
+}
+.displayName {
+  min-height: 1em;
 }
 .orderValue {
   color: gray;

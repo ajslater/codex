@@ -3,20 +3,20 @@ import json
 
 from datetime import timedelta
 from importlib.metadata import PackageNotFoundError, version
-from logging import getLogger
 
 import requests
 
 from django.utils import timezone
 
 from codex.models import LatestVersion
+from codex.settings.logging import get_logger
 
 
 PACKAGE_NAME = "codex"
 PYPI_URL_TEMPLATE = "https://pypi.python.org/pypi/%s/json"
 CACHE_EXPIRY = timedelta(days=1)
 REPO_TIMEOUT = 5
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 
 
 def get_version():
@@ -73,6 +73,6 @@ def is_outdated(
     result = latest_version > VERSION
     log_str = f"{latest_version=} > {VERSION=} = {result}"
     if result:
-        LOG.verbose(log_str)  # type: ignore
+        LOG.verbose(log_str)
     else:
         LOG.debug(log_str)

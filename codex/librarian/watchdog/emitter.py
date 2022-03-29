@@ -2,7 +2,6 @@
 import os
 
 from itertools import chain
-from logging import getLogger
 from pathlib import Path
 from threading import Condition
 
@@ -22,9 +21,10 @@ from watchdog.observers.api import EventEmitter
 from watchdog.utils.dirsnapshot import DirectorySnapshot, DirectorySnapshotDiff
 
 from codex.models import Comic, FailedImport, Folder, Library
+from codex.settings.logging import get_logger
 
 
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 DOCKER_UNMOUNTED_FN = "DOCKER_UNMOUNTED_VOLUME"
 
 
@@ -181,73 +181,80 @@ class DatabasePollingEmitter(EventEmitter):
         """Queue events like PollingEmitter but always use a fresh db snapshot."""
         # We don't want to hit the disk continuously.
         # timeout behaves like an interval for polling emitters.
-        with self._poll_cond:
-            LOG.verbose(  # type: ignore
-                f"Polling {self.watch.path} again in {precisedelta(timeout)}."
-            )
-            self._poll_cond.wait(timeout)
-            if not self.should_keep_running():
-                return
+        try:
+            with self._poll_cond:
+                LOG.verbose(
+                    f"Polling {self.watch.path} again in {precisedelta(timeout)}."
+                )
+                self._poll_cond.wait(timeout)
+                if not self.should_keep_running():
+                    return
 
-            library = Library.objects.get(path=self.watch.path)
-            ok, _ = self._is_watch_path_ok(library)
-            if not ok:
-                LOG.warning("Not Polling.")
-                return
-            LOG.verbose(f"Polling {self.watch.path}...")  # type: ignore
+                library = Library.objects.get(path=self.watch.path)
+                ok, _ = self._is_watch_path_ok(library)
+                if not ok:
+                    LOG.warning("Not Polling.")
+                    return
+                LOG.verbose(f"Polling {self.watch.path}...")
 
-            # Get event diff between database snapshot and directory snapshot.
-            # Update snapshot.
-            db_snapshot = self._take_db_snapshot()
-            dir_snapshot = self._take_dir_snapshot()
+                # Get event diff between database snapshot and directory snapshot.
+                # Update snapshot.
+                db_snapshot = self._take_db_snapshot()
+                dir_snapshot = self._take_dir_snapshot()
 
-            if len(dir_snapshot.paths) <= 1:
-                # Maybe overkill of caution here also
-                LOG.warning(f"{self._watch_path} dir snapshot is empty. Not polling")
-                LOG.verbose(f"{dir_snapshot.paths=}")  # type: ignore
-                return
+                if len(dir_snapshot.paths) <= 1:
+                    # Maybe overkill of caution here also
+                    LOG.warning(
+                        f"{self._watch_path} dir snapshot is empty. Not polling"
+                    )
+                    LOG.verbose(f"{dir_snapshot.paths=}")
+                    return
 
-            events = DirectorySnapshotDiff(db_snapshot, dir_snapshot)
+                events = DirectorySnapshotDiff(db_snapshot, dir_snapshot)
 
-            LOG.verbose(  # type: ignore
-                f"Poller sending unfiltered files: {len(events.files_deleted)} deleted,"
-                f" {len(events.files_modified)} modified, "
-                f"{len(events.files_created)} created, {len(events.files_moved)} moved."
-            )
-            LOG.verbose(  # type: ignore
-                f"Poller sending comic folders: {len(events.dirs_deleted)} deleted,"
-                f" {len(events.dirs_modified)} modified,"
-                f"{len(events.dirs_moved)} moved."
-            )
-            # Files.
-            # Could remove non-comics here, but handled by the EventHandler
-            for src_path in events.files_deleted:
-                self.queue_event(FileDeletedEvent(src_path))
-            for src_path in events.files_modified:
-                self.queue_event(FileModifiedEvent(src_path))
-            for src_path in events.files_created:
-                self.queue_event(FileCreatedEvent(src_path))
-            for src_path, dest_path in events.files_moved:
-                self.queue_event(FileMovedEvent(src_path, dest_path))
+                LOG.verbose(
+                    f"Poller sending unfiltered files: {len(events.files_deleted)} "
+                    f"deleted, {len(events.files_modified)} modified, "
+                    f"{len(events.files_created)} created, "
+                    f"{len(events.files_moved)} moved."
+                )
+                LOG.verbose(
+                    f"Poller sending comic folders: {len(events.dirs_deleted)} deleted,"
+                    f" {len(events.dirs_modified)} modified,"
+                    f" {len(events.dirs_moved)} moved."
+                )
+                # Files.
+                # Could remove non-comics here, but handled by the EventHandler
+                for src_path in events.files_deleted:
+                    self.queue_event(FileDeletedEvent(src_path))
+                for src_path in events.files_modified:
+                    self.queue_event(FileModifiedEvent(src_path))
+                for src_path in events.files_created:
+                    self.queue_event(FileCreatedEvent(src_path))
+                for src_path, dest_path in events.files_moved:
+                    self.queue_event(FileMovedEvent(src_path, dest_path))
 
-            # Directories.
-            for src_path in events.dirs_deleted:
-                self.queue_event(DirDeletedEvent(src_path))
-            for src_path in events.dirs_modified:
-                self.queue_event(DirModifiedEvent(src_path))
-            # Folders are only created by comics themselves
-            # The event handler excludes these but skip it here too.
-            # for src_path in events.dirs_created:
-            #    self.queue_event(DirCreatedEvent(src_path))
-            #
-            for src_path, dest_path in events.dirs_moved:
-                self.queue_event(DirMovedEvent(src_path, dest_path))
+                # Directories.
+                for src_path in events.dirs_deleted:
+                    self.queue_event(DirDeletedEvent(src_path))
+                for src_path in events.dirs_modified:
+                    self.queue_event(DirModifiedEvent(src_path))
+                # Folders are only created by comics themselves
+                # The event handler excludes these but skip it here too.
+                # for src_path in events.dirs_created:
+                #    self.queue_event(DirCreatedEvent(src_path))
+                #
+                for src_path, dest_path in events.dirs_moved:
+                    self.queue_event(DirMovedEvent(src_path, dest_path))
 
-            Library.objects.filter(path=self.watch.path).update(
-                last_poll=Now(), updated_at=Now()
-            )
+                Library.objects.filter(path=self.watch.path).update(
+                    last_poll=Now(), updated_at=Now()
+                )
 
-        LOG.verbose(f"Polling {self.watch.path} finished.")  # type: ignore
+            LOG.verbose(f"Polling {self.watch.path} finished.")
+        except Exception as exc:
+            LOG.exception(exc)
+            raise exc
 
     def on_thread_stop(self):
         """Send the poller as well."""

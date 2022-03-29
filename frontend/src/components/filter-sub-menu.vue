@@ -73,6 +73,10 @@ export default {
       type: String,
       required: true,
     },
+    isNumeric: {
+      type: Boolean,
+      default: false,
+    },
   },
   emits: ["sub-menu-click"],
   data() {
@@ -94,7 +98,12 @@ export default {
       filterMode: (state) => state.filterMode,
     }),
     vuetifyItems: function () {
-      return toVuetifyItems(undefined, this.formChoices, this.query);
+      return toVuetifyItems(
+        undefined,
+        this.formChoices,
+        this.query,
+        this.isNumeric
+      );
     },
     filter: {
       get() {

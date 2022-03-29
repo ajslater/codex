@@ -1,6 +1,4 @@
 """Views authorization."""
-from logging import getLogger
-
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.db.models.functions import Now
@@ -18,9 +16,10 @@ from codex.serializers.auth import (
     UserLoginSerializer,
     UserSerializer,
 )
+from codex.settings.logging import get_logger
 
 
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 NULL_USER = {"pk": None, "username": None, "is_staff": False}
 
 
@@ -68,9 +67,9 @@ class RegisterView(APIView):
         count = UserBookmark.objects.filter(session__session_key=session_key).update(
             user=user, updated_at=Now()
         )
-        LOG.verbose(f"Created user {username}")  # type: ignore
+        LOG.verbose(f"Created user {username}")
         if count:
-            LOG.verbose("Linked user to existing session bookmarks")  # type: ignore
+            LOG.verbose("Linked user to existing session bookmarks")
         return user
 
     def validate(self):

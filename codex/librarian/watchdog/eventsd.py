@@ -9,7 +9,6 @@ and then re-serialize everything in this batcher and the event Handler
 import re
 
 from copy import deepcopy
-from logging import getLogger
 
 from watchdog.events import (
     EVENT_TYPE_CREATED,
@@ -19,13 +18,14 @@ from watchdog.events import (
 )
 
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DBDiffTask, WatchdogEventTask
+from codex.settings.logging import get_logger
 from codex.settings.settings import MAX_DB_OPS
 from codex.threads import AggregateMessageQueuedThread
 
 
 COMIC_REGEX = r"\.cb[rz]$"
 COMIC_MATCHER = re.compile(COMIC_REGEX)
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 
 
 class EventBatcher(AggregateMessageQueuedThread):
@@ -70,7 +70,7 @@ class EventBatcher(AggregateMessageQueuedThread):
         args_field = self.cache[library_id].get(field)
         return args_field
 
-    def _aggregate_items(self, task):
+    def aggregate_items(self, task):
         """Aggregate events into cache by library."""
         event = task.event
         args_field = self._args_field_by_event(task.library_id, event)
@@ -86,7 +86,7 @@ class EventBatcher(AggregateMessageQueuedThread):
         if self._total_items > MAX_DB_OPS:
             LOG.info("Event batcher hit max_db_ops limit.")
             # Sends all items
-            self._timed_out()
+            self.timed_out()
 
     def _deduplicate_events(self, library_id):
         """Prune different event types on the same paths."""
@@ -120,7 +120,7 @@ class EventBatcher(AggregateMessageQueuedThread):
         args = self.cache[library_id]
         return DBDiffTask(**args)
 
-    def _send_all_items(self):
+    def send_all_items(self):
         """Send all tasks to library queue and reset events cache."""
         library_ids = set()
         for library_id in self.cache.keys():
@@ -129,7 +129,7 @@ class EventBatcher(AggregateMessageQueuedThread):
             library_ids.add(library_id)
 
         # reset the event aggregates
-        self._cleanup_cache(library_ids)
+        self.cleanup_cache(library_ids)
         self._total_items = 0
 
 
@@ -138,34 +138,38 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
 
     def __init__(self, library, *args, **kwargs):
         """Let us send along he library id."""
-        self.library_pk = library.pk
         super().__init__(*args, **kwargs)
+        self.library_pk = library.pk
 
     def dispatch(self, event):
         """Send only valid codex events to the EventBatcher."""
-        if event.is_directory:
-            if event.event_type == EVENT_TYPE_CREATED:
-                # Directories are only created by comics
-                return
-        else:
-            if event.event_type == EVENT_TYPE_MOVED:
-                if (
-                    COMIC_MATCHER.search(event.src_path) is None
-                    and COMIC_MATCHER.search(event.dest_path) is not None
-                ):
-                    # Moved from an ignored file extension into a comic type,
-                    # so create a new comic.
-                    event = FileCreatedEvent(event.dest_path)
-                # However, keep badly renamed comics in the database, let them move
-                # elif COMIC_MATCHER.search(event.src_path) is not None
-                #      and COMIC_MATCHER.search(event.dest_path) is None:
-                #    # moved into something that's not a comic name so delete
-                #    event = FileDeletedEvent(event.src_path)
+        try:
+            if event.is_directory:
+                if event.event_type == EVENT_TYPE_CREATED:
+                    # Directories are only created by comics
+                    return
+            else:
+                if event.event_type == EVENT_TYPE_MOVED:
+                    if (
+                        COMIC_MATCHER.search(event.src_path) is None
+                        and COMIC_MATCHER.search(event.dest_path) is not None
+                    ):
+                        # Moved from an ignored file extension into a comic type,
+                        # so create a new comic.
+                        event = FileCreatedEvent(event.dest_path)
+                    # However, keep badly renamed comics in the database, let them move
+                    # elif COMIC_MATCHER.search(event.src_path) is not None
+                    #      and COMIC_MATCHER.search(event.dest_path) is None:
+                    #    # moved into something that's not a comic name so delete
+                    #    event = FileDeletedEvent(event.src_path)
 
-            if COMIC_MATCHER.search(event.src_path) is None:
-                # Don't process non comic files at all
-                return
+                if COMIC_MATCHER.search(event.src_path) is None:
+                    # Don't process non comic files at all
+                    return
 
-        task = WatchdogEventTask(self.library_pk, event)
-        LIBRARIAN_QUEUE.put(task)
-        super().dispatch(event)
+            task = WatchdogEventTask(self.library_pk, event)
+            LIBRARIAN_QUEUE.put(task)
+            super().dispatch(event)
+        except Exception as exc:
+            LOG.error(f"Error in {self.__class__.__name__}")
+            LOG.exception(exc)

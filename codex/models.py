@@ -4,7 +4,6 @@ import datetime
 import os
 
 from decimal import Decimal
-from logging import getLogger
 from pathlib import Path
 from uuid import uuid4
 
@@ -34,10 +33,11 @@ from django.db.models import (
 from django.utils.translation import gettext_lazy as _
 
 from codex.serializers.choices import CHOICES
+from codex.settings.logging import get_logger
 from codex.settings.settings import XAPIAN_INDEX_PATH, XAPIAN_INDEX_UUID_PATH
 
 
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 
 
 SCHEMA_VERSION = 1
@@ -62,8 +62,8 @@ class BrowserGroupModel(BaseModel):
 
     DEFAULT_NAME = ""
 
-    name = CharField(db_index=True, max_length=32, default=DEFAULT_NAME)
-    sort_name = CharField(db_index=True, max_length=32, default=DEFAULT_NAME)
+    name = CharField(db_index=True, max_length=64, default=DEFAULT_NAME)
+    sort_name = CharField(db_index=True, max_length=130, default=DEFAULT_NAME)
 
     def presave(self):
         """Save the sort name. Called by save()."""
@@ -125,7 +125,7 @@ class Volume(BrowserGroupModel):
     publisher = ForeignKey(Publisher, on_delete=CASCADE)
     imprint = ForeignKey(Imprint, on_delete=CASCADE)
     series = ForeignKey(Series, on_delete=CASCADE)
-    issue_count = DecimalField(decimal_places=2, max_digits=6, null=True)
+    issue_count = PositiveSmallIntegerField(null=True)
 
     def presave(self):
         """Save the sort name. Called by save()."""
@@ -173,7 +173,7 @@ class Library(BaseModel):
 class NamedModel(BaseModel):
     """A for simple named tables."""
 
-    name = CharField(db_index=True, max_length=32)
+    name = CharField(db_index=True, max_length=64)
 
     class Meta:
         """Defaults to uniquely named, must be overridden."""
@@ -254,7 +254,7 @@ class WatchedPath(BrowserGroupModel):
     """A filesystem path with data for Watchdog."""
 
     library = ForeignKey(Library, on_delete=CASCADE, db_index=True)
-    path = CharField(max_length=128, db_index=True)
+    path = CharField(max_length=4095, db_index=True)
     stat = JSONField(null=True)
     parent_folder = ForeignKey(
         "Folder",
@@ -306,7 +306,7 @@ class Comic(WatchedPath):
 
     # Unique comic fields
     issue = DecimalField(
-        db_index=True, decimal_places=2, max_digits=6, default=Decimal(0.0)
+        db_index=True, decimal_places=2, max_digits=10, default=Decimal(0.0)
     )
     volume = ForeignKey(Volume, db_index=True, on_delete=CASCADE)
     series = ForeignKey(Series, db_index=True, on_delete=CASCADE)
@@ -322,21 +322,21 @@ class Comic(WatchedPath):
     summary = TextField(null=True)
     # Ratings
     community_rating = DecimalField(
-        db_index=True, decimal_places=2, max_digits=4, default=None, null=True
+        db_index=True, decimal_places=2, max_digits=5, default=None, null=True
     )
     critical_rating = DecimalField(
-        db_index=True, decimal_places=2, max_digits=4, default=None, null=True
+        db_index=True, decimal_places=2, max_digits=5, default=None, null=True
     )
     age_rating = CharField(db_index=True, max_length=32, null=True)
     # alpha2 fields for countries
     country = CharField(db_index=True, max_length=32, null=True)
-    language = CharField(db_index=True, max_length=16, null=True)
+    language = CharField(db_index=True, max_length=32, null=True)
     # misc
-    cover_image = CharField(max_length=64, null=True)
+    cover_image = CharField(max_length=256, null=True)
     format = CharField(db_index=True, max_length=16, null=True)
     page_count = PositiveSmallIntegerField(db_index=True, default=0)
     read_ltr = BooleanField(db_index=True, default=True)
-    scan_info = CharField(max_length=32, null=True)
+    scan_info = CharField(max_length=128, null=True)
     web = URLField(null=True)
     # ManyToMany
     characters = ManyToManyField(Character)
@@ -363,7 +363,7 @@ class Comic(WatchedPath):
     # identifier = CharField(max_length=64, null=True)
 
     # codex only
-    cover_path = CharField(max_length=32)
+    cover_path = CharField(max_length=4095)
     date = DateField(db_index=True, null=True)
     decade = PositiveSmallIntegerField(db_index=True, null=True)
     folders = ManyToManyField(Folder)
@@ -406,6 +406,8 @@ class Comic(WatchedPath):
         """Set computed values."""
         self._set_date()
         self._set_decade()
+        self.max_page = max(self.page_count - 1, 0)
+        self.size = Path(self.path).stat().st_size
         sort_names = (self.volume.sort_name, f"{self.issue:06.1f}")
         self.sort_name = " ".join(sort_names)
 

@@ -1,6 +1,4 @@
 """View for marking comics read and unread."""
-from logging import getLogger
-
 from django.http import Http404
 from rest_framework.response import Response
 
@@ -8,11 +6,12 @@ import codex.serializers.models
 
 from codex.models import Comic, CreditPerson
 from codex.serializers.models import CreditPersonSerializer
+from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser_base import BrowserBaseView
 
 
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 
 
 class BrowserChoiceView(BrowserBaseView):

@@ -1,6 +1,4 @@
 """Views for reading comic books."""
-from logging import getLogger
-
 from comicbox.comic_archive import ComicArchive
 from django.http import HttpResponse
 from rest_framework.exceptions import NotFound
@@ -10,12 +8,13 @@ from rest_framework.views import APIView
 from codex.models import Comic
 from codex.serializers.reader import ComicReaderInfoSerializer
 from codex.serializers.redirect import ReaderRedirectSerializer
+from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.group_filter import GroupACLMixin
 from codex.views.session import SessionView
 
 
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 
 
 class ComicOpenedView(SessionView, GroupACLMixin):
@@ -69,7 +68,7 @@ class ComicOpenedView(SessionView, GroupACLMixin):
             detail = {
                 "route": browser_route,
                 "reason": f"comic {pk} not found",
-                "serializer": ReaderRedirectSerializer,  # type: ignore
+                "serializer": ReaderRedirectSerializer,
             }
             raise NotFound(detail=detail)
         data = {

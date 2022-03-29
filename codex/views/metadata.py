@@ -1,6 +1,5 @@
 """View for marking comics read and unread."""
 from copy import copy
-from logging import getLogger
 
 from django.contrib.auth.models import User
 from django.db.models import Case, Count, Subquery, Value, When
@@ -9,11 +8,12 @@ from rest_framework.response import Response
 
 from codex.models import Comic
 from codex.serializers.metadata import MetadataSerializer
+from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser_metadata_base import BrowserMetadataBaseView
 
 
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 
 
 class MetadataView(BrowserMetadataBaseView):
