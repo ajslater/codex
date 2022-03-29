@@ -90,9 +90,6 @@ jobs:
           command: ./docker/docker-init.sh
           name: Login to Docker Hub, Install binfmt platform & Create the buildx Builder
       - run:
-          command: ./docker/docker-build-image.sh codex-builder-final
-          name: Build Codex Builder Final
-      - run:
           command: ./docker/docker-build-image.sh codex-arch
           name: Build Codex Runnable Image
   build-arm64:

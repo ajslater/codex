@@ -140,7 +140,7 @@
         <section class="mdSection">
           <MetadataText :value="md.web" label="Web Link" :link="true" />
           <MetadataText :value="md.summary" label="Summary" />
-          <MetadataText :value="md.description" label="Description" />
+          <MetadataText :value="md.comments" label="Comments" />
           <MetadataText :value="md.notes" label="Notes" />
           <MetadataText :value="md.scan_info" label="Scan" />
         </section>

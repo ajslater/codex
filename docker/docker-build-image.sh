@@ -19,8 +19,6 @@ else
     fi
 fi
 
-# mkdir -p "$HOST_CACHE_DIR/pypoetry" "$HOST_CACHE_DIR/pip" "$HOST_CACHE_DIR/wheels"
-
 # Platform args
 if [[ -z ${CIRCLECI:-} && -z ${PLATFORMS:-} ]]; then
     # shellcheck disable=SC1091
@@ -36,12 +34,9 @@ export DOCKER_CLI_EXPERIMENTAL=enabled
 export DOCKER_BUILDKIT=1
 export CODEX_BASE_VERSION
 export CODEX_BUILDER_BASE_VERSION
-export CODEX_BUILDER_FINAL_VERSION
 export CODEX_DIST_BUILDER_VERSION
 export CODEX_WHEEL
-# export HOST_CACHE_DIR
 export PKG_VERSION
-# export WHEELS
 # shellcheck disable=2068
 docker buildx bake \
     ${PLATFORM_ARG[@]:-} \

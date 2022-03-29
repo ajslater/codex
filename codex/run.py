@@ -14,6 +14,7 @@ from codex.asgi import application
 from codex.integrity import rebuild_db, repair_db
 from codex.settings.settings import DEBUG, HYPERCORN_CONFIG
 from codex.signals import RESTART_EVENT, SHUTDOWN_EVENT, bind_signals, connect_signals
+from codex.version import VERSION
 
 
 LOG = getLogger(__name__)
@@ -62,6 +63,7 @@ def run():
 
 def main():
     """Set up and run Codex."""
+    LOG.info(f"Running Codex v{VERSION}")
     set_env()
     rebuild_db()
     repair_db()

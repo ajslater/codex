@@ -5,9 +5,8 @@ set -euo pipefail
 # Params:
 #   EXTRA_MD5S  double space separated array of md5s and labels
 #   DEPS        array of dependencies
-DEPS_MD5=(md5sum "${DEPS[@]}")
+DEPS_MD5=$(md5sum "${DEPS[@]}")
 ALL_MD5S=("${EXTRA_MD5S[@]}" "${DEPS_MD5[@]}")
-
 VERSION=$(
     echo "${ALL_MD5S[@]}" |
         LC_ALL=C sort |

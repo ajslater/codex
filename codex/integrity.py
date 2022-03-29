@@ -238,7 +238,19 @@ def _delete_search_result_fk_errors(apps):
         query__in=valid_queries, comic__in=valid_comics
     )
     count, _ = orphan_srs.delete()
-    LOG.verbose(f"Deleted {count} orphan SearchResults")  # type: ignore
+    if count:
+        LOG.verbose(f"Deleted {count} orphan SearchResults")  # type: ignore
+
+
+def _repair_library_groups(apps):
+    """Remove non-extant groups from libraries."""
+    if not has_applied_migration(MIGRATION_0011):
+        return
+    library_model = apps.get_model("codex", "library")
+    through_model = library_model.groups.through
+    valid_groups = Group.objects.all()
+    bad_relations = through_model.objects.exclude(group_id__in=valid_groups)
+    bad_relations.delete()
 
 
 def _repair_library_groups(apps):

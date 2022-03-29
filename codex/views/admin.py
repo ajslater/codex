@@ -10,8 +10,8 @@ from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
     BackupTask,
     BroadcastNotifierTask,
+    CleanFKsTask,
     CleanSearchTask,
-    CleanupDatabaseTask,
     CreateComicCoversLibrariesTask,
     CreateMissingCoversTask,
     PollLibrariesTask,
@@ -71,8 +71,6 @@ class QueueLibrarianJobs(APIView):
             task = SearchIndexUpdateTask(False)
         elif task_name == "rebuild_index":
             task = SearchIndexUpdateTask(True)
-        elif task_name == "db_cleanup":
-            task = CleanupDatabaseTask()
         elif task_name == "db_vacuum":
             task = VacuumTask()
         elif task_name == "db_backup":
@@ -87,6 +85,8 @@ class QueueLibrarianJobs(APIView):
             task = RestartTask()
         elif task_name == "notify_all":
             task = BroadcastNotifierTask("LIBRARY_CHANGED")
+        elif task_name == "cleanup_fks":
+            task = CleanFKsTask()
 
         if task:
             LIBRARIAN_QUEUE.put(task)

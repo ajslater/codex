@@ -1,12 +1,15 @@
 """Aggregate metadata from comics to prepare for importing."""
 
+import decimal
 import time
 
 from logging import getLogger
 from pathlib import Path
+from zipfile import BadZipFile
 
 from comicbox.comic_archive import ComicArchive
 from comicbox.exceptions import UnsupportedArchiveTypeError
+from rarfile import BadRarFile
 
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, ImageComicCoverCreateTask
 from codex.models import Comic, Imprint, Publisher, Series, Volume
@@ -20,23 +23,48 @@ COMIC_M2M_FIELDS = set()
 for field in Comic._meta.get_fields():
     if field.many_to_many and field.name != "folders":
         COMIC_M2M_FIELDS.add(field.name)
-MD_UNUSED_KEYS = (
-    "alternate_series",
-    "ext",
-    "cover_image",
-    "pages",
-    "remainder",
-    "title",  # gets converted to name
-)
 WRITE_WAIT_EXPIRY = LOG_EVERY
 WRITE_WAIT_DELAY = 0.01
+_MD_INVALID_KEYS = set(
+    [
+        "created_at",
+        "id",
+        "library",
+        "parent_folder",
+        "pk",
+        "stat",
+        "title",
+        "updated_at",
+    ]
+)
+_MD_VALID_KEYS = (
+    set([field.name for field in Comic._meta.get_fields()]) - _MD_INVALID_KEYS
+)
+_MD_DECIMAL_KEYS = set(("issue", "issue_count", "community_rating", "critical_rating"))
+_DECIMAL_MAX = decimal.Decimal(99.99)
+_DECIMAL_MIN = decimal.Decimal(0.0)
+_TWO_PLACES = decimal.Decimal("0.01")
 
 
 def _clean_md(md):
-    """Remove keys from the metadata Comic objects don't use."""
-    # Maybe this should use a whitelist instead
-    for key in MD_UNUSED_KEYS:
-        if key in md:
+    """Clean metadata before importing."""
+    # remove unused keys.
+    md_keys = set(md.keys())
+    unused_keys = md_keys - _MD_VALID_KEYS
+    for key in unused_keys:
+        del md[key]
+    md_keys = set(md.keys())
+
+    # fix ranges of decimals
+    decimal_keys = md_keys & _MD_DECIMAL_KEYS
+    for key in decimal_keys:
+        val = md[key]
+        try:
+            val = max(min(val, _DECIMAL_MAX), _DECIMAL_MIN)
+            val = val.quantize(_TWO_PLACES)
+            md[key] = val
+        except Exception:
+            LOG.warning(f"Failed cleaning metadata {key} = {val}")
             del md[key]
 
 
@@ -74,6 +102,9 @@ def _get_path_metadata(path):
         title = md.get("title")
         if title:
             md["name"] = title[:31]
+        if not md.get("summary") and md.get("description"):
+            # CoMet to cix copy
+            md["summary"] = md.pop("description")
         md["max_page"] = max(md["page_count"] - 1, 0)
         if credits := md.get("credits"):
             for credit in credits:
@@ -107,10 +138,11 @@ def _get_path_metadata(path):
         for field in md_m2m_fields:
             m2m_md[field] = md.pop(field)
         m2m_md["folders"] = Path(path).parents
-    except UnsupportedArchiveTypeError as exc:
-        LOG.warning(exc)
+    except (UnsupportedArchiveTypeError, BadRarFile, BadZipFile, OSError) as exc:
+        LOG.warning(f"Failed to import {path}: {exc}")
         failed_import = {path: exc}
     except Exception as exc:
+        LOG.warning(f"Failed to import: {path}")
         LOG.exception(exc)
         failed_import = {path: exc}
     return md, m2m_md, group_tree_md, failed_import

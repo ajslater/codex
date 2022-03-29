@@ -3,11 +3,12 @@ import time
 
 from logging import getLogger
 
+from django.core.cache import cache
 from django.db.models.functions import Now
 from humanize import precisedelta
 
 from codex.librarian.db.aggregate_metadata import get_aggregate_metadata
-from codex.librarian.db.cleanup import cleanup_database
+from codex.librarian.db.cleanup import bulk_cleanup_failed_imports
 from codex.librarian.db.create_comics import bulk_import_comics
 from codex.librarian.db.create_fks import bulk_create_all_fks, bulk_folders_modified
 from codex.librarian.db.deleted import bulk_comics_deleted, bulk_folders_deleted
@@ -17,7 +18,6 @@ from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
     AdminNotifierTask,
     BroadcastNotifierTask,
-    CleanupDatabaseTask,
     DBDiffTask,
     SearchIndexUpdateTask,
 )
@@ -117,7 +117,8 @@ def apply(task):
     changed |= bulk_comics_deleted(library, task.files_deleted)
     search_task = SearchIndexUpdateTask(False)
     LIBRARIAN_QUEUE.put(search_task)
-    changed |= cleanup_database(library)
+    bulk_cleanup_failed_imports(library)
+    cache.clear()
 
     Library.objects.filter(pk=task.library_id).update(
         update_in_progress=False, updated_at=Now()
@@ -147,7 +148,5 @@ class Updater(QueuedThread):
         """Run the updater."""
         if isinstance(task, DBDiffTask):
             apply(task)
-        elif isinstance(task, CleanupDatabaseTask):
-            cleanup_database()
         else:
             LOG.warning(f"Bad task sent to library updater {task}")

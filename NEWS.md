@@ -1,6 +1,61 @@
 # 📰 Codex News
 
-## v0.9.0rc3
+## v0.9.7
+
+- Fixed
+
+  - Coerce decimal values into valid ranges and precision before importing.
+
+- Features
+
+  - Clean up unused foreign keys once a day instead of after every import.
+  - Clean up unused foreign keys librarian job available in admin panel.
+
+## v0.9.6
+
+- Fixed
+
+  - Don't open browser when a library changes when reading a comic.
+  - Fixed crash creating illegal dates on import.
+
+- Features
+
+  - Replace description field with more common ComicInfo comments field.
+  - Log files now rotate by size instead of daily.
+  - Log path for failed imports and cover creation.
+
+## v0.9.5
+
+- Fixed
+
+  - Use an allow list for importing metadata to prevent crashes.
+
+## v0.9.4
+
+- Fixed
+
+  - Fixed crash when importing comments metadata.
+
+## v0.9.3
+
+- Fixed
+
+  - Import credits data for CBI and CIX tagged comics.
+  - More liberal metadata decimal parsing.
+
+## v0.9.2
+
+- Fixed
+
+  - Fix rare migration bug for Cover Artist role.
+
+## v0.9.1
+
+- Fixes
+
+  - Fix to library group integrity checker
+
+## v0.9.0
 
 _Private Libraries_
 

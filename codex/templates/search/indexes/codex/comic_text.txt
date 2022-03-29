@@ -3,8 +3,8 @@
 {{ object.series.name }} {{ object.series.name }}
 {{ object.volume.name }}
 {{ object.name }} {{ object.name }}
+{{ object.comments }}
 {{ object.country }}
-{{ object.description }}
 {{ object.format }}
 {{ object.language }}
 {{ object.notes }}
