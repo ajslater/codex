@@ -1,6 +1,4 @@
 """Bookmark views."""
-from logging import getLogger
-
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from stringcase import camelcase, snakecase
@@ -11,13 +9,14 @@ from codex.serializers.bookmark import (
     ComicReaderSettingsSerializer,
     UserBookmarkFinishedSerializer,
 )
+from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser_base import BrowserBaseView
 from codex.views.group_filter import GroupACLMixin
 from codex.views.session import SessionView
 
 
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 
 
 class UserBookmarkUpdateMixin(APIView, GroupACLMixin):
@@ -37,7 +36,7 @@ class UserBookmarkUpdateMixin(APIView, GroupACLMixin):
             search_kwargs["user"] = self.request.user
         else:
             if not self.request.session or not self.request.session.session_key:
-                LOG.verbose("no session, make one")  # type: ignore
+                LOG.verbose("no session, make one")
                 self.request.session.save()
             search_kwargs["session_id"] = self.request.session.session_key
         return search_kwargs

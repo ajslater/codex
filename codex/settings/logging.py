@@ -10,22 +10,21 @@ from colors import color
 # "{asctime} {processName} {threadName} {name} {levelname} {message}"
 LOG_FMT = "{asctime} {levelname:8} {message}"
 DATEFMT = "%Y-%m-%d %H:%M:%S %Z"
-VERBOSE = int((logging.INFO + logging.DEBUG) / 2)
 LOG_EVERY = 15
 LOG_MAX_BYTES = 10 * 1024 * 1024
+VERBOSE: int = int((logging.INFO + logging.DEBUG) / 2)
 
 
-def _verbose(self, message, *args, **kwargs):
-    """Verbose logging level function."""
-    if self.isEnabledFor(logging.VERBOSE):  # type: ignore
-        self._log(logging.VERBOSE, message, args, **kwargs)  # type: ignore
+class CodexLogger(logging.Logger):
+    """Custom logger."""
+
+    def verbose(self, message, *args, **kwargs) -> None:
+        """Verbose logging level function."""
+        if self.isEnabledFor(VERBOSE):
+            self._log(VERBOSE, message, args, **kwargs)
 
 
-def _add_verbose_logging_level():
-    """Add the verbose logging level to the main Logger."""
-    logging.VERBOSE = VERBOSE  # type: ignore
-    logging.addLevelName(logging.VERBOSE, "VERBOSE")  # type: ignore
-    logging.Logger.verbose = _verbose  # type: ignore
+logging.setLoggerClass(CodexLogger)
 
 
 class ColorFormatter(logging.Formatter):
@@ -90,7 +89,13 @@ def _get_log_handlers(log_dir):
 
 def init_logging(log_dir, debug):
     """Initialize logging."""
-    _add_verbose_logging_level()
-    level = _get_log_level(debug)
+    logging.addLevelName(VERBOSE, "VERBOSE")
+    logging.VERBOSE = VERBOSE  # type: ignore
     handlers = _get_log_handlers(log_dir)
+    level = _get_log_level(debug)
     logging.basicConfig(level=level, handlers=handlers)
+
+
+def get_logger(*args, **kwargs) -> CodexLogger:
+    """Pacify pyright."""
+    return logging.getLogger(*args, **kwargs)  # type: ignore

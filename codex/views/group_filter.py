@@ -15,12 +15,12 @@ class GroupACLMixin:
         groups_rel = f"{prefix}library__groups"
 
         # Libraries with no groups are always visible
-        ungrouped_query = Q(**{groups_rel: None})
+        query = Q(**{groups_rel: None})
 
-        # If the user is logged in, they can see groupsed libraries
+        # If the user is logged in, they can see grouped libraries
         # for the groups they're in.
-        user_query = Q(
-            **{f"{groups_rel}__in": self.request.user.groups.all()}  # type: ignore
-        )
+        user = self.request.user  # type: ignore
+        if user:
+            query |= Q(**{f"{groups_rel}__in": user.groups.all()})
 
-        return ungrouped_query | user_query
+        return query

@@ -7,6 +7,7 @@ import zipfile
 from io import BytesIO
 from pathlib import Path
 from random import choices, randint, random
+from xml.etree.ElementTree import Element, SubElement, tostringlist
 
 from comicbox.metadata.comicinfoxml import ComicInfoXml
 from fnvhash import fnv1a_32
@@ -18,6 +19,7 @@ M2MS = ("characters", "genres", "locations", "tags", "teams")
 HEX_FILL = 8
 PATH_STEP = 2
 CHANCE_OF_NULL = 0.1
+CHANCE_OF_BAD_TYPE = 0.2
 CHOICES_STR = string.ascii_uppercase + string.digits
 CREDIT_TAGS = (
     "Colorist",
@@ -28,6 +30,48 @@ CREDIT_TAGS = (
     "Penciller",
     "Writer",
 )
+FIELDS = {
+    "TEXT": ("Summary", "Notes", "ScanInformation"),
+    "INTS": {
+        "Number": 1000,
+        "Count": 1000,
+        "Year": 2030,
+        "Month": 12,
+        "Day": 31,
+        "Volume": 2030,
+    },
+    "VARCHARS": {
+        "Web": 200,
+        "LanguageISO": 2,
+        "Format": 10,
+        "Publisher": 64,
+        "Imprint": 64,
+        "Series": 64,
+        "AgeRating": 18,
+    },
+    "DECIMALS": {"CommunityRating": 100.0},
+    "NAME_LISTS": (
+        "Genres",
+        "Characters",
+        "Teams",
+        "Locations",
+        "StoryArc",
+        "SeriesGroup",
+    ),
+    "CREDITS": ("Colorist", "CoverArtist", "Editor", "Letterer", "Inker"),
+}
+BOOL_VALUES = ("yes", "no")
+MANGA_VALUES = (*BOOL_VALUES, "yesandrighttoleft", "yesrtl")
+
+
+def is_valid():
+    """Determine if to make the tag null or the wrong type."""
+    n = random()
+    if n < CHANCE_OF_NULL:
+        return None
+    if n < CHANCE_OF_BAD_TYPE:
+        return False
+    return True
 
 
 def rand_string(length):
@@ -35,71 +79,115 @@ def rand_string(length):
     return "".join(choices(CHOICES_STR, k=length))
 
 
-def create_str(md, key, num):
-    """Add random string to the metadata."""
-    if random() < CHANCE_OF_NULL:
-        return
-    md[key] = rand_string(num)
-
-
-def create_m2m(md, key, count, length):
-    """Add m2m field the metadata."""
-    if random() < CHANCE_OF_NULL:
-        return
-    m2m = set()
-    for _ in range(randint(0, count)):
-        name = rand_string(length)
-        m2m.add(name)
-    md[key] = m2m
-
-
-def create_credits(md, num):
-    """Add credits to the metadata."""
-    credits = []
-    if random() > CHANCE_OF_NULL:
-        for _ in range(0, randint(0, num)):
-            role = choices(CREDIT_TAGS, k=1)[0]
-            credit = {"person": rand_string(10), "role": role}
-            credits.append(credit)
-    md["credits"] = credits
-
-
-def create_int(md, key, max):
+def create_int(md, key, limit):
     """Add an int to the metadata."""
-    if random() < CHANCE_OF_NULL:
+    v = is_valid()
+    if v is None:
         return
-    md[key] = randint(0, max)
+    elif not v:
+        value = rand_string(5)
+    else:
+        limit = round(limit * 1.2)
+        value = randint(0, limit)
+    md[key] = value
 
 
-def create_float(md, key, max):
+def create_float(md, key, limit):
     """Add a float to the metadata."""
-    if random() < CHANCE_OF_NULL:
+    v = is_valid()
+    if v is None:
         return
-    md[key] = random() * max
+    elif not v:
+        value = rand_string(5)
+    else:
+        value = random() * limit * 1.1
+    md[key] = value
+
+
+def create_str(md, key, limit):
+    """Add random string to the metadata."""
+    if is_valid() is None:
+        return
+    length = randint(0, round(limit * 1.2))
+    md[key] = rand_string(length)
+
+
+def create_name_list(md, key):
+    """Add m2m field the metadata."""
+    if is_valid() is None:
+        return
+    m2m = []
+    for _ in range(randint(0, 10)):
+        name = rand_string(64)
+        m2m.append(name)
+    md[key] = ",".join(m2m)
+
+
+def create_bool(md, key):
+    """Create a boolean tag."""
+    v = is_valid()
+    if v is None:
+        return
+    elif not v:
+        value = rand_string(5)
+    else:
+        value = BOOL_VALUES[randint(0, 1)]
+    md[key] = value
+
+
+def create_manga(md):
+    """Create a manga tag."""
+    v = is_valid()
+    if v is None:
+        return
+    elif not v:
+        value = rand_string(5)
+    else:
+        value = MANGA_VALUES[randint(0, 3)]
+    md["Manga"] = value
+
+
+def create_credits(md):
+    """Add credits to the metadata."""
+    v = is_valid()
+    if v is None:
+        return
+    for _ in range(0, randint(0, 7)):
+        role = choices(CREDIT_TAGS, k=1)[0]
+        person = rand_string(round(64 * 1.1))
+        md[role] = person
 
 
 def create_metadata():
     """Create ranomized metadata."""
     md = {}
 
-    for group in GROUPS:
-        create_str(md, group, 10)
+    for key, limit in FIELDS["INTS"].items():
+        create_int(md, key, limit)
 
-    create_int(md, "volume", 2055)
-    create_int(md, "volume_count", 10)
-    create_int(md, "issue", 1000)
-    create_int(md, "issue_count", 1000)
-    create_int(md, "year", 2021)
-    create_int(md, "month", 12)
-    create_int(md, "day", 28)
-    md["web"] = rand_string(40)
-    for key in M2MS:
-        create_m2m(md, key, 5, 20)
-    create_credits(md, 15)
+    for key in FIELDS["TEXT"]:
+        create_str(md, key, 100)
 
-    parser = ComicInfoXml(metadata=md)
-    md_str = parser.to_string()
-    return md_str
+    for key, limit in FIELDS["VARCHARS"].items():
+        create_str(md, key, limit)
+
+    for key, limit in FIELDS["DECIMALS"].items():
+        create_float(md, key, limit)
+
+    for key in FIELDS["NAME_LISTS"]:
+        create_name_list(md, key)
+
+    create_bool(md, "BlackAndWhite")
+    create_manga(md)
+    create_credits(md)
+
+    root = Element(ComicInfoXml.ROOT_TAG)
+    root.attrib["xmlns:xsi"] = "http://www.w3.org/2001/XMLSchema-instance"
+    root.attrib["xmlns:xsd"] = "http://www.w3.org/2001/XMLSchema"
+
+    for key, val in md.items():
+        SubElement(root, key).text = str(val)
+    return b"\n".join(tostringlist(root, encoding="utf-8"))
 
 
 def create_cover_page():
@@ -149,12 +237,14 @@ def main(args):
     num_comics = int(args[2])
 
     since = time.time()
+    index = 0
     for index in range(num_comics):
         create_file(root, index)
         now = time.time()
         if now - since > 10:
-            print(f"{index}/{num_comics}")
+            print(f"{index+1}/{num_comics}")
             since = now
+    print(f"{index+1}/{num_comics}")
 
 
 if __name__ == "__main__":

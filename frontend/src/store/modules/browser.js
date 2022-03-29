@@ -21,6 +21,13 @@ const DYNAMIC_FILTERS = {
   teams: undefined,
   year: undefined,
 };
+export const NUMERIC_FILTERS = [
+  "community_rating",
+  "critical_rating",
+  "decade",
+  "year",
+];
+
 const GROUP_FLAGS = {
   p: ["settings", "p"],
   i: ["settings", "i"],
@@ -267,4 +274,5 @@ export default {
   getters,
   actions,
   mutations,
+  NUMERIC_FILTERS,
 };

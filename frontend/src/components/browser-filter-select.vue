@@ -7,7 +7,7 @@
       dense
       :items="bookmarkChoices"
       hide-details="auto"
-      :label="focused || hover ? label : undefined"
+      :label="focused || hover ? LABEL : undefined"
       :menu-props="{
         maxHeight: '80vh',
         overflowY: false,
@@ -40,6 +40,7 @@
           v-for="filterName of filterNames"
           :key="filterName"
           :name="filterName"
+          :is-numeric="NUMERIC_FILTERS.includes(filterName)"
           @sub-menu-click="closeFilterSelect"
         />
       </template>
@@ -52,6 +53,7 @@ import { mdiCloseCircle } from "@mdi/js";
 import { mapGetters, mapState } from "vuex";
 
 import FilterSubMenu from "@/components/filter-sub-menu";
+import { NUMERIC_FILTERS } from "@/store/modules/browser";
 
 export default {
   name: "BrowserFilterSelect",
@@ -61,7 +63,8 @@ export default {
   data() {
     return {
       focused: false,
-      label: "filter by",
+      LABEL: "filter by",
+      NUMERIC_FILTERS: NUMERIC_FILTERS,
     };
   },
   computed: {

@@ -4,7 +4,6 @@ Create all missing comic foreign keys for an import.
 So we may safely create the comics next.
 """
 
-from logging import getLogger
 from pathlib import Path
 
 from django.db.models.functions import Now
@@ -19,11 +18,12 @@ from codex.models import (
     Series,
     Volume,
 )
+from codex.settings.logging import get_logger
 
 
 BULK_UPDATE_FOLDER_MODIFIED_FIELDS = ("stat", "updated_at")
 COUNT_FIELDS = {Series: "volume_count", Volume: "issue_count"}
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 
 
 def _create_group_obj(cls, group_param_tuple, count):
@@ -103,7 +103,7 @@ def _bulk_create_or_update_groups(all_operation_groups, func, log_tion, log_verb
     for cls, group_tree_counts in all_operation_groups.items():
         if not group_tree_counts:
             continue
-        LOG.verbose(  # type: ignore
+        LOG.verbose(
             f"Preparing {len(group_tree_counts)} {cls.__name__}s for {log_tion}..."
         )
         count = func(group_tree_counts, cls)
@@ -113,7 +113,7 @@ def _bulk_create_or_update_groups(all_operation_groups, func, log_tion, log_verb
         if count:
             LOG.info(log)
         else:
-            LOG.verbose(log)  # type: ignore
+            LOG.verbose(log)
 
     return num_operation_groups > 0
 
@@ -122,7 +122,7 @@ def bulk_folders_modified(library, paths):
     """Update folders stat and nothing else."""
     if not paths:
         return False
-    LOG.verbose(f"Preparing {len(paths)} folders for modification...")  # type: ignore
+    LOG.verbose(f"Preparing {len(paths)} folders for modification...")
     folders = Folder.objects.filter(library=library, path__in=paths).only(
         "stat", "updated_at"
     )
@@ -131,7 +131,7 @@ def bulk_folders_modified(library, paths):
     for folder in folders:
         if Path(folder.path).exists():
             folder.set_stat()
-            folder.updated_at = now  # type: ignore
+            folder.updated_at = now
             update_folders.append(folder)
     count = Folder.objects.bulk_update(
         update_folders, fields=BULK_UPDATE_FOLDER_MODIFIED_FIELDS
@@ -140,7 +140,7 @@ def bulk_folders_modified(library, paths):
     if count:
         LOG.info(log)
     else:
-        LOG.verbose(log)  # type: ignore
+        LOG.verbose(log)
 
     return bool(count)
 
@@ -151,7 +151,7 @@ def bulk_folders_create(library, folder_paths):
         return False
 
     num_folder_paths = len(folder_paths)
-    LOG.verbose(f"Preparing {num_folder_paths} folders for creation.")  # type: ignore
+    LOG.verbose(f"Preparing {num_folder_paths} folders for creation.")
     # group folder paths by depth
     folder_path_dict = {}
     for path_str in folder_paths:
@@ -189,7 +189,7 @@ def bulk_folders_create(library, folder_paths):
         if count:
             LOG.info(log)
         else:
-            LOG.verbose(log)  # type: ignore
+            LOG.verbose(log)
     return total_count > 0
 
 
@@ -198,7 +198,7 @@ def _bulk_create_named_models(cls, names):
     if not names:
         return False
     count = len(names)
-    LOG.verbose(f"Preparing {count} {cls.__name__}s for creation...")  # type: ignore
+    LOG.verbose(f"Preparing {count} {cls.__name__}s for creation...")
     create_named_objs = []
     for name in names:
         named_obj = cls(name=name)
@@ -209,7 +209,7 @@ def _bulk_create_named_models(cls, names):
     if count:
         LOG.info(log)
     else:
-        LOG.verbose(log)  # type: ignore
+        LOG.verbose(log)
     return count > 0
 
 
@@ -218,9 +218,7 @@ def _bulk_create_credits(create_credit_tuples):
     if not create_credit_tuples:
         return False
 
-    LOG.verbose(  # type: ignore
-        f"Preparing {len(create_credit_tuples)} credits for creation..."
-    )
+    LOG.verbose(f"Preparing {len(create_credit_tuples)} credits for creation...")
     create_credits = []
     for role_name, person_name in create_credit_tuples:
         if role_name:
@@ -238,7 +236,7 @@ def _bulk_create_credits(create_credit_tuples):
     if count:
         LOG.info(log)
     else:
-        LOG.verbose(log)  # type: ignore
+        LOG.verbose(log)
 
     return count > 0
 
@@ -252,7 +250,7 @@ def bulk_create_all_fks(
     create_credits,
 ) -> bool:
     """Bulk create all foreign keys."""
-    LOG.verbose(f"Creating comic foreign keys for {library.path}...")  # type: ignore
+    LOG.verbose(f"Creating comic foreign keys for {library.path}...")
     changed = _bulk_create_or_update_groups(
         create_groups, _bulk_group_creator, "creation", "Created"
     )

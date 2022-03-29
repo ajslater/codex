@@ -31,7 +31,11 @@ const vuetifyItemCompare = function (itemA, itemB) {
   return 0;
 };
 
-export const toVuetifyItems = function (value, items, filter) {
+const vuetifyItemCompareNumeric = function (itemA, itemB) {
+  return Number.parseFloat(itemA.name) - Number.parseFloat(itemB.name);
+};
+
+export const toVuetifyItems = function (value, items, filter, numeric = false) {
   // Takes a value (can be a list) and a list of items and
   // Returns a list of valid items with items arg having preference.
   let computedItems = [];
@@ -55,7 +59,8 @@ export const toVuetifyItems = function (value, items, filter) {
       computedItems.push(vuetifyItem);
     }
   }
-  return computedItems.sort(vuetifyItemCompare);
+  const sortFunc = numeric ? vuetifyItemCompareNumeric : vuetifyItemCompare;
+  return computedItems.sort(sortFunc);
 };
 
 export default {

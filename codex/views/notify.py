@@ -1,16 +1,15 @@
 """Notify views."""
-from logging import getLogger
-
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.models import Library
 from codex.serializers.notify import NotifySerializer
+from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 
 
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 
 
 class NotifyView(APIView):

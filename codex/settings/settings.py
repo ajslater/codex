@@ -13,14 +13,13 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 
 import os
 
-from logging import getLogger
 from pathlib import Path
 
-from tzlocal import get_localzone_name  # type: ignore
+from tzlocal import get_localzone_name
 from xapian import QueryParser
 
 from codex.settings.hypercorn import load_hypercorn_config
-from codex.settings.logging import init_logging
+from codex.settings.logging import get_logger, init_logging
 from codex.settings.secret_key import get_secret_key
 
 
@@ -43,7 +42,7 @@ DEBUG_TOOLBAR = bool(os.environ.get("DEBUG_TOOLBAR", False))
 LOG_DIR = CONFIG_PATH / "logs"
 init_logging(LOG_DIR, DEBUG)
 
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 
 ALLOWED_HOSTS = ["*"]
 
@@ -98,7 +97,7 @@ if DEBUG:
             "debug_toolbar.middleware.DebugToolbarMiddleware",
         ]
     MIDDLEWARE += ["nplusone.ext.django.NPlusOneMiddleware"]
-    NPLUSONE_LOGGER = getLogger("nplusone")
+    NPLUSONE_LOGGER = get_logger("nplusone")
     from logging import WARN
 
     NPLUSONE_LOG_LEVEL = WARN
@@ -179,12 +178,11 @@ else:
 # Hypercorn
 HYPERCORN_CONFIG_TOML = CONFIG_PATH / "hypercorn.toml"
 HYPERCORN_CONFIG_TOML_DEFAULT = CODEX_PATH / "settings/hypercorn.toml.default"
-HYPERCORN_CONFIG = load_hypercorn_config(
+HYPERCORN_CONFIG, MAX_DB_OPS = load_hypercorn_config(
     HYPERCORN_CONFIG_TOML, HYPERCORN_CONFIG_TOML_DEFAULT, DEBUG
 )
 ROOT_PATH = ""
 PORT = int(HYPERCORN_CONFIG.bind[0].split(":")[1])
-MAX_DB_OPS = HYPERCORN_CONFIG.max_db_ops  # type: ignore
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/

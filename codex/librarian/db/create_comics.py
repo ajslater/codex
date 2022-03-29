@@ -1,24 +1,15 @@
 """Bulk update and create comic objects and bulk update m2m fields."""
-from logging import getLogger
 from pathlib import Path
 
 from django.db.models import Q
 from django.db.models.functions import Now
 
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, BulkComicCoverCreateTask
-from codex.models import (
-    Comic,
-    Credit,
-    FailedImport,
-    Folder,
-    Imprint,
-    Publisher,
-    Series,
-    Volume,
-)
+from codex.models import Comic, Credit, Folder, Imprint, Publisher, Series, Volume
+from codex.settings.logging import get_logger
 
 
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 EXCLUDE_BULK_UPDATE_COMIC_FIELDS = (
     "created_at",
     "searchresult",
@@ -31,7 +22,6 @@ for field in Comic._meta.get_fields():
         field.name not in EXCLUDE_BULK_UPDATE_COMIC_FIELDS
     ):
         BULK_UPDATE_COMIC_FIELDS.append(field.name)
-BULK_UPDATE_FAILED_IMPORT_FIELDS = ("name", "stat", "updated_at")
 
 
 def _get_group_name(cls, md):
@@ -74,9 +64,7 @@ def _update_comics(library, comic_paths, mds):
         return 0
 
     num_comics = len(comic_paths)
-    LOG.verbose(  # type: ignore
-        f"Preparing {num_comics} comics for update in library {library.path}."
-    )
+    LOG.verbose(f"Preparing {num_comics} comics for update in library {library.path}.")
     # Get existing comics to update
     comics = Comic.objects.filter(library=library, path__in=comic_paths).only(
         "pk", "path", *BULK_UPDATE_COMIC_FIELDS
@@ -94,14 +82,14 @@ def _update_comics(library, comic_paths, mds):
                 setattr(comic, field_name, value)
             comic.presave()
             comic.set_stat()
-            comic.updated_at = now  # type: ignore
+            comic.updated_at = now
             update_comics.append(comic)
             comic_pks.append(comic.pk)
         except Exception as exc:
             LOG.error(f"Error preparing {comic} for update.")
             LOG.exception(exc)
 
-    LOG.verbose(f"Bulk updating {num_comics} comics.")  # type: ignore
+    LOG.verbose(f"Bulk updating {num_comics} comics.")
     count = Comic.objects.bulk_update(update_comics, BULK_UPDATE_COMIC_FIELDS)
     task = BulkComicCoverCreateTask(True, tuple(comic_pks))
     LIBRARIAN_QUEUE.put(task)
@@ -114,7 +102,7 @@ def _create_comics(library, comic_paths, mds):
         return 0
 
     num_comics = len(comic_paths)
-    LOG.verbose(  # type: ignore
+    LOG.verbose(
         f"Preparing {num_comics} comics for creation in library {library.path}."
     )
     # prepare create comics
@@ -134,7 +122,7 @@ def _create_comics(library, comic_paths, mds):
             LOG.exception(exc)
 
     num_comics = len(create_comics)
-    LOG.verbose(f"Bulk creating {num_comics} comics...")  # type: ignore
+    LOG.verbose(f"Bulk creating {num_comics} comics...")
     created_comics = Comic.objects.bulk_create(create_comics)
     # Start the covers task.
     comic_pks = []
@@ -187,7 +175,7 @@ def _link_comic_m2m_fields(m2m_mds):
     """Get the complete m2m field data to create."""
     all_m2m_links = {}
     comic_paths = set(m2m_mds.keys())
-    LOG.verbose(  # type: ignore
+    LOG.verbose(
         f"Preparing {len(comic_paths)} comics for many to many relation recreation."
     )
 
@@ -220,9 +208,7 @@ def bulk_recreate_m2m_field(field_name, m2m_links):
     https://stackoverflow.com/questions/6996176/how-to-create-an-object-for-a-django-model-with-a-many-to-many-field/10116452#10116452 # noqa: B950,E501
     https://docs.djangoproject.com/en/3.2/ref/models/fields/#django.db.models.ManyToManyField.through # noqa: B950,E501
     """
-    LOG.verbose(  # type: ignore
-        f"Recreating {field_name} relations for altered comics."
-    )
+    LOG.verbose(f"Recreating {field_name} relations for altered comics.")
     field = getattr(Comic, field_name)
     ThroughModel = field.through  # noqa: N806
     model = Comic._meta.get_field(field_name).related_model
@@ -244,63 +230,9 @@ def bulk_recreate_m2m_field(field_name, m2m_links):
     return len(tms)
 
 
-def _bulk_update_and_create_failed_imports(library, failed_imports):
-    """Bulk update or create failed imports."""
-    update_failed_imports = FailedImport.objects.filter(
-        library=library, path__in=failed_imports.keys()
-    )
-
-    now = Now()
-    for fi in update_failed_imports:
-        try:
-            exc = failed_imports.pop(fi.path)
-            fi.set_reason(exc)
-            fi.set_stat()
-            fi.updated_at = now  # type: ignore
-        except Exception as exc:
-            LOG.error(f"Error preparing failed import update for {fi.path}")
-            LOG.exception(exc)
-
-    create_failed_imports = []
-    for path, exc in failed_imports.items():
-        try:
-            fi = FailedImport(library=library, path=path, parent_folder=None)
-            fi.set_reason(exc)
-            fi.set_stat()
-            create_failed_imports.append(fi)
-        except Exception as exc:
-            LOG.error(f"Error preparing failed import create for {path}")
-            LOG.exception(exc)
-
-    if update_failed_imports:
-        update_count = FailedImport.objects.bulk_update(
-            update_failed_imports, fields=BULK_UPDATE_FAILED_IMPORT_FIELDS
-        )
-        if update_count is None:
-            update_count = 0
-    else:
-        update_count = 0
-    if create_failed_imports:
-        FailedImport.objects.bulk_create(create_failed_imports)
-    create_count = len(create_failed_imports)
-    log = f"Failed {create_count} new, {update_count} old comic imports."
-    total_count = update_count + create_count
-    if total_count:
-        LOG.warning(log)
-    else:
-        LOG.verbose(log)  # type: ignore
-
-
-def bulk_import_comics(
-    library, create_paths, update_paths, all_bulk_mds, all_m2m_mds, failed_imports
-):
+def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2m_mds):
     """Bulk import comics."""
-    update_paths -= failed_imports.keys()
-    create_paths -= failed_imports.keys()
-
-    if not (
-        create_paths or update_paths or all_bulk_mds or all_m2m_mds or failed_imports
-    ):
+    if not (create_paths or update_paths or all_bulk_mds or all_m2m_mds):
         return 0
 
     update_count = _update_comics(library, update_paths, all_bulk_mds)
@@ -318,14 +250,12 @@ def bulk_import_comics(
     if update_count:
         LOG.info(update_log)
     else:
-        LOG.verbose(update_log)  # type: ignore
+        LOG.verbose(update_log)
     create_log = f"Created {create_count} Comics."
     if create_count:
         LOG.info(create_log)
     else:
-        LOG.verbose(create_log)  # type: ignore
-
-    _bulk_update_and_create_failed_imports(library, failed_imports)
+        LOG.verbose(create_log)
 
     total_count = update_count + create_count
     return total_count

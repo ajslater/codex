@@ -1,6 +1,6 @@
 """Views for browsing comic library."""
 from copy import deepcopy
-from logging import getLogger
+from typing import Optional, Union
 
 from django.core.paginator import EmptyPage, Paginator
 from django.db.models import CharField, F, IntegerField, Value
@@ -26,12 +26,13 @@ from codex.serializers.browser import (
     BrowserSettingsSerializer,
 )
 from codex.serializers.mixins import UNIONFIX_PREFIX
+from codex.settings.logging import get_logger
 from codex.version import PACKAGE_NAME, VERSION, get_latest_version
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser_metadata_base import BrowserMetadataBaseView
 
 
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 
 
 class BrowserView(BrowserMetadataBaseView):
@@ -241,6 +242,7 @@ class BrowserView(BrowserMetadataBaseView):
         """Create group_class instance."""
         pk = self.kwargs.get("pk")
         group = self.kwargs.get("group")
+        self.group_instance: Optional[Union[Folder, Publisher, Imprint, Series, Volume]]
         if pk == 0:
             self.group_instance = None
         elif group == self.FOLDER_GROUP:
@@ -291,24 +293,22 @@ class BrowserView(BrowserMetadataBaseView):
                 raise ValueError(f"No plural name for {self.model}")
             group_name = plural.capitalize()
         elif self.group_instance:
-            if self.group_class == Imprint:
-                parent_name = self.group_instance.publisher.name  # type: ignore
-            elif self.group_class == Volume:
-                parent_name = self.group_instance.series.name  # type: ignore
-                group_count = self.group_instance.series.volume_count  # type: ignore
-            elif self.group_class == Comic:
-                group_count = self.group_instance.volume.issue_count  # type: ignore
-            elif self.group_class == Folder:
+            if isinstance(self.group_instance, Imprint):
+                parent_name = self.group_instance.publisher.name
+            elif isinstance(self.group_instance, Volume):
+                parent_name = self.group_instance.series.name
+                group_count = self.group_instance.series.volume_count
+            elif isinstance(self.group_instance, Comic):
+                group_count = self.group_instance.volume.issue_count
+            elif isinstance(self.group_instance, Folder):
                 folder_path = self.group_instance.path
                 if folder_path:
                     parent_name = folder_path
                     prefix = self.group_instance.library.path
                     if prefix[-1] != "/":
                         prefix += "/"
-                    if (
-                        not self.request.user
-                        or not self.request.user.is_staff  # type: ignore
-                    ):
+                    user = self.request.user
+                    if not user or not getattr(user, "is_staff"):  # noqa: B009
                         # remove library path for not admins
                         parent_name = parent_name.removeprefix(prefix)
                     suffix = "/" + self.group_instance.name
@@ -418,7 +418,7 @@ class BrowserView(BrowserMetadataBaseView):
                 valid_top_group = valid_top_groups[0]
                 reason += f"to first valid top group {valid_top_groups[0]}"
             self.params["top_group"] = valid_top_group
-            LOG.verbose(reason)  # type: ignore
+            LOG.verbose(reason)
             self.top_group_changed = True
 
         # Validate Browser Nav Group
@@ -495,7 +495,7 @@ class BrowserView(BrowserMetadataBaseView):
             route["page"] = 1
         elif page > num_pages:
             route["page"] = num_pages
-        LOG.verbose(f"{reason} redirect to {route}.")  # type: ignore
+        LOG.verbose(f"{reason} redirect to {route}.")
         self._raise_redirect(route, reason)
 
     def _paginate(self, queryset):

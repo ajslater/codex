@@ -1,5 +1,22 @@
 # 📰 Codex News
 
+## v0.9.8rc0
+
+- Fixed
+
+  - Fixed search index update crash while database is still updating.
+  - Fixed issues larger than 99 bug.
+  - Fixed issue not imported due to metadata cleaning bug.
+  - Thread error trapping and diagnostics to root out zombie process issue.
+  - Sort numeric terms in filter menus numerically not alphabetically.
+  - Fixed comic name display wrapping in browser.
+
+- Features
+
+  - More comprehensive metadata sanitizing before import.
+  - Reduced time checking to see if files have finished writing before import.
+  - Uniform format for metadata parsing logging.
+
 ## v0.9.7
 
 - Fixed

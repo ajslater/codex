@@ -2,13 +2,15 @@
 import time
 
 from abc import ABC, abstractmethod
-from logging import getLogger
 from multiprocessing import Queue
 from queue import Empty
 from threading import Thread
 
+from codex.darwin_mp import force_darwin_multiprocessing_fork
+from codex.settings.logging import get_logger
 
-LOG = getLogger(__name__)
+
+LOG = get_logger(__name__)
 
 
 class BreakLoopError(Exception):
@@ -31,40 +33,42 @@ class QueuedThread(Thread, ABC):
         super().__init__(name=self.NAME, daemon=True)
 
     @abstractmethod
-    def _process_item(self, item):
+    def process_item(self, item):
         """Process one item from the queue."""
         raise NotImplementedError()
 
-    def _get_timeout(self):
+    def get_timeout(self):
         """Set no timeout by default."""
         return None
 
-    def _timed_out(self):
+    def timed_out(self):
         """Override to things on queue timeout."""
         pass
 
     def _check_item(self):
         """Get items, with timeout. Check for shutdown and Empty."""
-        timeout = self._get_timeout()
+        timeout = self.get_timeout()
         try:
             item = self.queue.get(timeout=timeout)
             if item == self.SHUTDOWN_MSG:
                 raise BreakLoopError()
-            self._process_item(item)
+            self.process_item(item)
         except Empty:
-            self._timed_out()
+            self.timed_out()
 
     def run(self):
         """Run thread loop."""
-        LOG.verbose(f"Started {self.NAME} thread")  # type: ignore
+        force_darwin_multiprocessing_fork()
+        LOG.verbose(f"Started {self.NAME} thread")
         while True:
             try:
                 self._check_item()
             except BreakLoopError:
                 break
             except Exception as exc:
+                LOG.error(f"Error in {self.NAME}:")
                 LOG.exception(exc)
-        LOG.verbose(f"Stopped {self.NAME} thread")  # type: ignore
+        LOG.verbose(f"Stopped {self.NAME} thread")
 
     def stop(self):
         """Stop the thread."""
@@ -87,35 +91,35 @@ class AggregateMessageQueuedThread(QueuedThread, ABC):
         self._last_timed_out = time.time()
         super().__init__(*args, **kwargs)
 
-    def _get_timeout(self):
+    def get_timeout(self):
         """Aggregate queue has a conditional timeout."""
         return self.FLOOD_DELAY if self.cache else None
 
     @abstractmethod
-    def _aggregate_items(self, item):
+    def aggregate_items(self, item):
         """Abstract method for aggregating items."""
         raise NotImplementedError()
 
     @abstractmethod
-    def _send_all_items(self):
+    def send_all_items(self):
         """Abstract method for sending all items."""
         raise NotImplementedError()
 
-    def _cleanup_cache(self, keys):
+    def cleanup_cache(self, keys):
         """Remove sent messages from the cache and record send times."""
         for key in keys:
             del self.cache[key]
         self._last_send = time.time()
 
-    def _process_item(self, item):
+    def process_item(self, item):
         """Aggregate items and sleep in case there are more."""
-        self._aggregate_items(item)
+        self.aggregate_items(item)
         since_last_timed_out = time.time() - self._last_timed_out
         waited_too_long = since_last_timed_out > self.MAX_DELAY
         if waited_too_long:
-            self._timed_out()
+            self.timed_out()
 
-    def _timed_out(self):
+    def timed_out(self):
         """Send the items and set when we did this."""
-        self._send_all_items()
+        self.send_all_items()
         self._last_timed_out = time.time()

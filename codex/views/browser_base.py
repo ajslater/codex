@@ -1,6 +1,5 @@
 """Views for browsing comic library."""
 from distutils.util import strtobool
-from logging import getLogger
 
 from dateutil.parser import parse as du_parse
 from django.db.models import F, Q
@@ -11,11 +10,12 @@ from xapian_backend import DATETIME_FORMAT
 from codex._vendor.haystack.query import SearchQuerySet
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, SearchIndexUpdateTask
 from codex.models import Comic, Folder, SearchQuery, SearchResult
+from codex.settings.logging import get_logger
 from codex.views.group_filter import GroupACLMixin
 from codex.views.session import SessionView
 
 
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 DATE_FORMAT = DATETIME_FORMAT.removesuffix("%H%M%S")
 RANGE_DELIMITER = ".."
 XAPIAN_UPPERCASE_OPERATORS = set(["AND", "OR", "XOR", "NEAR", "ADJ"])

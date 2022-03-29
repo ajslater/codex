@@ -2,7 +2,7 @@
 import time
 
 from io import BytesIO
-from logging import INFO, getLogger
+from logging import INFO
 from pathlib import Path
 
 from comicbox.comic_archive import ComicArchive
@@ -18,6 +18,7 @@ from codex.librarian.queue_mp import (
     BulkComicCoverCreateTask,
 )
 from codex.models import Comic, Library
+from codex.settings.logging import get_logger
 
 
 THUMBNAIL_SIZE = (120, 180)
@@ -26,7 +27,7 @@ BULK_UPDATE_COMIC_COVER_FIELDS = ("cover_path", "updated_at")
 COVER_DB_UPDATE_INTERVAL = 10
 HEX_FILL = 8
 PATH_STEP = 2
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 
 
 def _hex_path(comic_path):
@@ -185,8 +186,6 @@ def create_missing_covers():
         "pk", flat=True
     )
     no_cover_comic_pks = tuple(no_cover_comic_pks)
-    LOG.verbose(  # type: ignore
-        f"Generating covers for {len(no_cover_comic_pks)} comics missing them."
-    )
+    LOG.verbose(f"Generating covers for {len(no_cover_comic_pks)} comics missing them.")
     task = BulkComicCoverCreateTask(False, no_cover_comic_pks)
     LIBRARIAN_QUEUE.put(task)
