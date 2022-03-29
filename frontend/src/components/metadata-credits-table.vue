@@ -63,9 +63,7 @@ export default {
       }
       sortArray.push(credit.role.name);
 
-      let res = sortArray.join(" ");
-      console.log(res);
-      return res;
+      return sortArray.join(" ");
     },
     creditsCompare: function (creditA, creditB) {
       const creditSortableA = this.creditSortable(creditA);
