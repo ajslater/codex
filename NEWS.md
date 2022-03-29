@@ -16,6 +16,7 @@
   - More comprehensive metadata sanitizing before import.
   - Reduced time checking to see if files have finished writing before import.
   - Uniform format for metadata parsing logging.
+  - Credits sorted by last name.
 
 ## v0.9.7
 
