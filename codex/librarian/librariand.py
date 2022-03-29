@@ -1,7 +1,5 @@
 """Library process worker for background tasks."""
-from logging import getLogger
 from multiprocessing import Process
-from threading import Thread
 from time import sleep
 
 from codex.librarian.covers.coverd import CoverCreator
@@ -27,73 +25,70 @@ from codex.librarian.watchdog.observers import (
     LibraryPollingObserver,
 )
 from codex.notifier import Notifier
+from codex.settings.logging import get_logger
+from codex.threads import QueuedThread
 
 
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 
 
-class DelayedTasksThread(Thread):
+class DelayedTasksThread(QueuedThread):
     """Wait for the DB to sync before running tasks."""
 
-    def __init__(self, delay, tasks, *args, **kwargs):
-        """Init params."""
-        super().__init__(*args, **kwargs)
-        self.delay = delay
-        self.tasks = tasks
+    NAME = "DelayedTask"
 
-    def run(self):
+    def process_item(self, item):
         """Sleep and then put tasks on the queue."""
-        sleep(self.delay)
-        for task in self.tasks:
+        sleep(item.delay)
+        for task in item.tasks:
             LIBRARIAN_QUEUE.put(task)
 
 
 class LibrarianDaemon(Process):
     """Librarian Process."""
 
+    NAME = "Librarian"
     SHUTDOWN_TIMEOUT = 5
     MAX_WS_ATTEMPTS = 5
     SHUTDOWN_TASK = "shutdown"
     proc = None
 
     def __init__(self):
-        """Create threads and process pool."""
-        super().__init__(name="librarian", daemon=False)
+        """Create threads and thread pool."""
+        super().__init__(name=self.NAME, daemon=False)
 
     def _process_task(self, task):
         """Process an individual task popped off the queue."""
         run = True
-        try:
-            if isinstance(task, ComicCoverTask):
-                self.cover_creator.queue.put(task)
-            elif isinstance(task, WatchdogEventTask):
-                self.event_batcher.queue.put(task)
-            elif isinstance(task, UpdaterTask):
-                self.updater.queue.put(task)
-            elif isinstance(task, NotifierTask):
-                Notifier.thread.queue.put(task)
-            elif isinstance(task, WatchdogSyncTask):
-                for observer in self._observers:
-                    observer.sync_library_watches()
-            elif isinstance(task, PollLibrariesTask):
-                self.library_polling_observer.poll(task.library_ids, task.force)
-            elif isinstance(task, SearchIndexerTask):
-                self.search_indexer.queue.put(task)
-            elif isinstance(task, JanitorTask):
-                janitor(task)
-            elif isinstance(task, DelayedTasks):
-                DelayedTasksThread(task.delay, task.tasks).start()
-            elif task == self.SHUTDOWN_TASK:
-                LOG.verbose("Shutting down Librarian...")  # type: ignore
-                run = False
-            else:
-                LOG.warning(f"Unhandled Librarian task: {task}")
-        except Exception as exc:
-            LOG.exception(exc)
+        if isinstance(task, ComicCoverTask):
+            self.cover_creator.queue.put(task)
+        elif isinstance(task, WatchdogEventTask):
+            self.event_batcher.queue.put(task)
+        elif isinstance(task, UpdaterTask):
+            self.updater.queue.put(task)
+        elif isinstance(task, NotifierTask):
+            Notifier.thread.queue.put(task)
+        elif isinstance(task, WatchdogSyncTask):
+            for observer in self._observers:
+                observer.sync_library_watches()
+        elif isinstance(task, PollLibrariesTask):
+            self.library_polling_observer.poll(task.library_ids, task.force)
+        elif isinstance(task, SearchIndexerTask):
+            self.search_indexer.queue.put(task)
+        elif isinstance(task, JanitorTask):
+            janitor(task)
+        elif isinstance(task, DelayedTasks):
+            self.delayed_tasks.queue.put(task)
+        elif task == self.SHUTDOWN_TASK:
+            LOG.verbose("Shutting down Librarian...")
+            run = False
+        else:
+            LOG.warning(f"Unhandled Librarian task: {task}")
         return run
 
     def _create_threads(self):
         """Create all the threads."""
+        self.delayed_tasks = DelayedTasksThread()
         self.cover_creator = CoverCreator()
         self.search_indexer = SearchIndexer()
         self.updater = Updater()
@@ -102,6 +97,7 @@ class LibrarianDaemon(Process):
         self.library_polling_observer = LibraryPollingObserver()
         self.crond = Crond()
         self._threads = (
+            self.delayed_tasks,
             self.cover_creator,
             self.search_indexer,
             self.updater,
@@ -137,23 +133,25 @@ class LibrarianDaemon(Process):
         threads.
         """
         try:
-            LOG.verbose("Started Librarian process.")  # type: ignore
+            LOG.verbose("Started Librarian process.")
             self._create_threads()
             self._start_threads()
             task = SearchIndexRebuildIfDBChangedTask()
             LIBRARIAN_QUEUE.put(task)
             run = True
-            LOG.verbose(  # type: ignore
-                "Librarian started threads and waiting for tasks."
-            )
+            LOG.verbose("Librarian started threads and waiting for tasks.")
             while run:
-                task = LIBRARIAN_QUEUE.get()
-                run = self._process_task(task)
+                try:
+                    task = LIBRARIAN_QUEUE.get()
+                    run = self._process_task(task)
+                except Exception as exc:
+                    LOG.error(f"Error in {self.NAME}")
+                    LOG.exception(exc)
             self._stop_threads()
         except Exception as exc:
             LOG.error("Librarian crashed.")
             LOG.exception(exc)
-        LOG.verbose("Stopped Librarian process.")  # type: ignore
+        LOG.verbose("Stopped Librarian process.")
 
     @classmethod
     def startup(cls):

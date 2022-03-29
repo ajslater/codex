@@ -1,15 +1,14 @@
 """The Codex Library Watchdog Observer threads."""
-from logging import getLogger
-
 from watchdog.observers import Observer
 from watchdog.observers.api import BaseObserver
 
 from codex.librarian.watchdog.emitter import DatabasePollingEmitter
 from codex.librarian.watchdog.eventsd import CodexLibraryEventHandler
 from codex.models import Library
+from codex.settings.logging import get_logger
 
 
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 
 
 class UatuMixin(BaseObserver):
@@ -59,19 +58,23 @@ class UatuMixin(BaseObserver):
 
     def sync_library_watches(self):
         """Watch or unwatch all libraries according to the db."""
-        libraries = Library.objects.all().only("pk", "path", self.ENABLE_FIELD)
-        library_paths = set()
-        for library in libraries:
-            try:
-                library_paths.add(library.path)
-                self._sync_library_watch(library)
-            except FileNotFoundError:
-                LOG.warning(
-                    f"Could not find {library.path} to watch. May be unmounted."
-                )
-            except Exception as exc:
-                LOG.exception(exc)
-        self._unschedule_orphan_watches(library_paths)
+        try:
+            libraries = Library.objects.all().only("pk", "path", self.ENABLE_FIELD)
+            library_paths = set()
+            for library in libraries:
+                try:
+                    library_paths.add(library.path)
+                    self._sync_library_watch(library)
+                except FileNotFoundError:
+                    LOG.warning(
+                        f"Could not find {library.path} to watch. May be unmounted."
+                    )
+                except Exception as exc:
+                    LOG.exception(exc)
+            self._unschedule_orphan_watches(library_paths)
+        except Exception as exc:
+            LOG.error(f"Error in {self.__class__.__name__}")
+            LOG.exception(exc)
 
 
 # It would be best for Codex to have one observer with multiple emitters, but the
@@ -90,7 +93,7 @@ class LibraryPollingObserver(UatuMixin):
     """An Observer that polls using the DatabasePollingEmitter."""
 
     ENABLE_FIELD = "poll"
-    SHUTDOWN_EVENT = (None, None)
+    _SHUTDOWN_EVENT = (None, None)
 
     def __init__(self):
         """Use the DatabasePollingEmitter."""
@@ -98,13 +101,19 @@ class LibraryPollingObserver(UatuMixin):
 
     def poll(self, library_pks, force=False):
         """Poll each requested emitter."""
-        paths = Library.objects.filter(pk__in=library_pks).values_list(
-            "path", flat=True
-        )
+        try:
+            paths = Library.objects.filter(pk__in=library_pks).values_list(
+                "path", flat=True
+            )
 
-        for emitter in self.emitters:
-            if emitter.watch.path in paths:
-                emitter.poll(force)
+            for emitter in self.emitters:
+                if emitter.watch.path in paths:
+                    emitter.poll(force)
+        except Exception as exc:
+            LOG.error(
+                f"Error in {self.__class__.__name__}.poll({library_pks}, {force})"
+            )
+            LOG.exception(exc)
 
     def on_thread_stop(self):
         """Put a dummy event on the queue that blocks forever."""
@@ -112,5 +121,5 @@ class LibraryPollingObserver(UatuMixin):
         # per watch timeout. This makes self.dispatch_events() block
         # forever on the queue. Sending it an event lets it check the
         # shutdown event next.
-        self.event_queue.put(self.SHUTDOWN_EVENT)
+        self.event_queue.put(self._SHUTDOWN_EVENT)
         super().on_thread_stop()

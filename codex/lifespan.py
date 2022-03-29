@@ -1,8 +1,6 @@
 """Start and stop daemons."""
 import os
 
-from logging import getLogger
-
 from asgiref.sync import sync_to_async
 from django.contrib.auth.models import User
 from django.core.cache import cache
@@ -12,11 +10,12 @@ from django.db.models.functions import Now
 from codex.darwin_mp import force_darwin_multiprocessing_fork
 from codex.librarian.librariand import LibrarianDaemon
 from codex.models import AdminFlag, Library
+from codex.settings.logging import get_logger
 from codex.websocket_server import Notifier
 
 
 RESET_ADMIN = bool(os.environ.get("CODEX_RESET_ADMIN"))
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 
 
 def ensure_superuser():
@@ -26,7 +25,7 @@ def ensure_superuser():
             username="admin",
             defaults={"is_staff": True, "is_superuser": True},
         )
-        admin_user.set_password("admin")  # type: ignore
+        admin_user.set_password("admin")
         admin_user.save()
         prefix = "Cre" if created else "Upd"
         LOG.info(f"{prefix}ated admin user.")

@@ -1,17 +1,17 @@
 """Bulk import and move comics and folders."""
 import time
 
-from logging import getLogger
+from pathlib import Path
 
 from django.core.cache import cache
 from django.db.models.functions import Now
 from humanize import precisedelta
 
 from codex.librarian.db.aggregate_metadata import get_aggregate_metadata
-from codex.librarian.db.cleanup import bulk_cleanup_failed_imports
 from codex.librarian.db.create_comics import bulk_import_comics
 from codex.librarian.db.create_fks import bulk_create_all_fks, bulk_folders_modified
 from codex.librarian.db.deleted import bulk_comics_deleted, bulk_folders_deleted
+from codex.librarian.db.failed_imports import bulk_fail_imports
 from codex.librarian.db.moved import bulk_comics_moved, bulk_folders_moved
 from codex.librarian.db.query_fks import query_all_missing_fks
 from codex.librarian.queue_mp import (
@@ -19,14 +19,54 @@ from codex.librarian.queue_mp import (
     AdminNotifierTask,
     BroadcastNotifierTask,
     DBDiffTask,
+    DelayedTasks,
     SearchIndexUpdateTask,
 )
 from codex.models import FailedImport, Library
-from codex.settings.logging import VERBOSE
+from codex.settings.logging import LOG_EVERY, VERBOSE, get_logger
 from codex.threads import QueuedThread
 
 
-LOG = getLogger(__name__)
+WRITE_WAIT_EXPIRY = LOG_EVERY
+LOG = get_logger(__name__)
+
+
+def _wait_for_filesystem_ops_to_finish(task: DBDiffTask) -> bool:
+    """Watchdog sends events before filesystem events finish, so wait for them."""
+    started_checking = time.time()
+
+    # Don't wait for deletes to complete.
+    # Do wait for move, modified, create files before import.
+    all_modified_paths = (
+        frozenset(task.dirs_moved.values())
+        | frozenset(task.files_moved.values())
+        | task.dirs_modified
+        | task.files_modified
+        | task.files_created
+    )
+
+    old_total_size = -1
+    total_size = 0
+    wait_time = 2
+    while old_total_size != total_size:
+        if old_total_size > 0:
+            # second time around or more
+            time.sleep(wait_time)
+            wait_time = wait_time**2
+            LOG.verbose(
+                f"Waiting for files to copy before import: "
+                f"{old_total_size} != {total_size}"
+            )
+        if time.time() - started_checking > WRITE_WAIT_EXPIRY:
+            return True
+
+        old_total_size = total_size
+        total_size = 0
+        for path_str in all_modified_paths:
+            path = Path(path_str)
+            if path.exists():
+                total_size += Path(path).stat().st_size
+    return False
 
 
 def _bulk_create_comic_relations(library, fks) -> bool:
@@ -55,12 +95,15 @@ def _batch_modified_and_created(
     mds, m2m_mds, fks, fis = get_aggregate_metadata(
         library, modified_paths | created_paths
     )
+    modified_paths -= fis.keys()
+    created_paths -= fis.keys()
 
     changed = _bulk_create_comic_relations(library, fks)
 
     imported_count = bulk_import_comics(
-        library, created_paths, modified_paths, mds, m2m_mds, fis
+        library, created_paths, modified_paths, mds, m2m_mds
     )
+    bulk_fail_imports(library, fis)
     changed |= imported_count > 0
     return changed, imported_count
 
@@ -68,7 +111,7 @@ def _batch_modified_and_created(
 def _log_task(path, task):
     if LOG.getEffectiveLevel() < VERBOSE:
         return
-    LOG.verbose(f"Updating library {path}...")  # type: ignore
+    LOG.verbose(f"Updating library {path}...")
     dirs_log = []
     if task.dirs_moved:
         dirs_log += [f"{len(task.dirs_moved)} moved"]
@@ -89,14 +132,14 @@ def _log_task(path, task):
     if comics_log:
         log = "Comics: "
         log += ", ".join(comics_log)
-        LOG.verbose("  " + log)  # type: ignore
+        LOG.verbose("  " + log)
     if dirs_log:
         log = "Folders: "
         log += ", ".join(dirs_log)
-        LOG.verbose("  " + log)  # type: ignore
+        LOG.verbose("  " + log)
 
 
-def apply(task):
+def _apply(task):
     """Bulk import comics."""
     start_time = time.time()
     library = Library.objects.get(pk=task.library_id)
@@ -104,6 +147,13 @@ def apply(task):
     library.update_in_progress = True
     library.save()
     LIBRARIAN_QUEUE.put(AdminNotifierTask("LIBRARY_UPDATE_IN_PROGRESS"))
+
+    too_long = _wait_for_filesystem_ops_to_finish(task)
+    if too_long:
+        LOG.warning(
+            "Import apply waited for the filesystem to stop changing too long. "
+            "Try polling again once files have finished copying."
+        )
 
     changed = False
     changed |= bulk_folders_moved(library, task.dirs_moved)
@@ -115,14 +165,15 @@ def apply(task):
     changed |= changed_comics
     changed |= bulk_folders_deleted(library, task.dirs_deleted)
     changed |= bulk_comics_deleted(library, task.files_deleted)
-    search_task = SearchIndexUpdateTask(False)
-    LIBRARIAN_QUEUE.put(search_task)
-    bulk_cleanup_failed_imports(library)
     cache.clear()
 
     Library.objects.filter(pk=task.library_id).update(
         update_in_progress=False, updated_at=Now()
     )
+    # Wait to start the search index update in case more updates are incoming.
+    delayed_search_task = DelayedTasks(2, (SearchIndexUpdateTask(False),))
+    LIBRARIAN_QUEUE.put(delayed_search_task)
+
     if FailedImport.objects.all().exists():
         text = "FAILED_IMPORTS"
     else:
@@ -136,7 +187,7 @@ def apply(task):
         if imported_count:
             cps = int(imported_count / elapsed_time)
             suffix = f" at {cps} comics per second."
-        LOG.verbose(f"Imported {imported_count} comics{suffix}.")  # type: ignore
+        LOG.verbose(f"Imported {imported_count} comics{suffix}.")
 
 
 class Updater(QueuedThread):
@@ -144,9 +195,9 @@ class Updater(QueuedThread):
 
     NAME = "Updater"
 
-    def _process_item(self, task):
+    def process_item(self, task):
         """Run the updater."""
         if isinstance(task, DBDiffTask):
-            apply(task)
+            _apply(task)
         else:
             LOG.warning(f"Bad task sent to library updater {task}")

@@ -36,4 +36,4 @@ class BrowserAggregateSerializerMixin(metaclass=SerializerMetaclass):
                 if unionfix_key in instance:
                     instance[key] = instance[unionfix_key]
 
-        return super().to_representation(instance)  # type: ignore
+        return super().to_representation(instance)  # type:ignore

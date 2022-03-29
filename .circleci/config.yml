@@ -1,18 +1,15 @@
 executors:
   amd64-large-executor:
     machine:
-      image: ubuntu-2004:202111-02
-      docker_layer_caching: true
+      image: ubuntu-2004:current
       resource_class: large
   amd64-medium-executor:
     machine:
-      image: ubuntu-2004:202111-02
-      docker_layer_caching: true
+      image: ubuntu-2004:current
       resource_class: medium
   arm64-medium-executor:
     machine:
-      image: ubuntu-2004:202101-01
-      docker_layer_caching: true
+      image: ubuntu-2004:current
       resource_class: arm.medium
 jobs:
   build-base-amd64: &build-base

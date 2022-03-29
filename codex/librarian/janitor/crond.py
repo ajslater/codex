@@ -1,13 +1,12 @@
 """Perform maintence tasks."""
 from datetime import datetime, time, timedelta
-from logging import getLogger
 from threading import Condition, Event, Thread
 from time import sleep
 
 from django.utils import timezone
 from humanize import precisedelta
 
-from codex.librarian.db.cleanup import cleanup_fks
+from codex.librarian.janitor.cleanup import cleanup_fks
 from codex.librarian.janitor.search import clean_old_queries
 from codex.librarian.janitor.update import restart_codex, update_codex
 from codex.librarian.janitor.vacuum import backup_db, vacuum_db
@@ -20,10 +19,11 @@ from codex.librarian.queue_mp import (
     UpdateTask,
     VacuumTask,
 )
+from codex.settings.logging import get_logger
 from codex.settings.settings import CACHE_PATH
 
 
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 DEBOUNCE = 5
 CRON_TIMESTAMP = CACHE_PATH / "crond_timestamp"
 ONE_DAY = timedelta(days=1)
@@ -57,28 +57,37 @@ class Crond(Thread):
 
     def run(self):
         """Watch a path and log the events."""
-        LOG.verbose(f"Started {self.NAME} thread.")  # type: ignore
-        with self._cond:
-            while not self._stop_event.is_set():
-                timeout = self._get_timeout()
-                LOG.verbose(  # type: ignore
-                    f"Waiting {precisedelta(timeout)} until next maintenance."
-                )
-                self._cond.wait(timeout=timeout)
-                if self._stop_event.is_set():
-                    break
+        LOG.verbose(f"Started {self.NAME} thread.")
+        try:
+            with self._cond:
+                while not self._stop_event.is_set():
+                    timeout = self._get_timeout()
+                    LOG.verbose(
+                        f"Waiting {precisedelta(timeout)} until next maintenance."
+                    )
+                    self._cond.wait(timeout=timeout)
+                    if self._stop_event.is_set():
+                        break
 
-                try:
-                    LIBRARIAN_QUEUE.put(CleanFKsTask())
-                    LIBRARIAN_QUEUE.put(CleanSearchTask())
-                    LIBRARIAN_QUEUE.put(VacuumTask())
-                    LIBRARIAN_QUEUE.put(BackupTask())
-                    LIBRARIAN_QUEUE.put(UpdateTask(force=False))
-                except Exception as exc:
-                    LOG.exception(exc)
-                CRON_TIMESTAMP.touch(exist_ok=True)
-                sleep(2)
-        LOG.verbose(f"Stopped {self.NAME} thread.")  # type: ignore
+                    try:
+                        tasks = [
+                            CleanFKsTask(),
+                            CleanSearchTask(),
+                            VacuumTask(),
+                            BackupTask(),
+                            UpdateTask(force=False),
+                        ]
+                        for task in tasks:
+                            LIBRARIAN_QUEUE.put(task)
+                    except Exception as exc:
+                        LOG.error(f"Error in {self.NAME}")
+                        LOG.exception(exc)
+                    CRON_TIMESTAMP.touch(exist_ok=True)
+                    sleep(2)
+        except Exception as exc:
+            LOG.error(f"Error in {self.NAME}")
+            LOG.exception(exc)
+        LOG.verbose(f"Stopped {self.NAME} thread.")
 
     def __init__(self):
         """Initialize this thread with the worker."""

@@ -1,6 +1,4 @@
 """Functions for dealing with comic cover thumbnails."""
-from logging import getLogger
-
 from codex.librarian.covers.create import (
     bulk_create_comic_covers,
     create_comic_cover,
@@ -16,10 +14,11 @@ from codex.librarian.queue_mp import (
     PurgeComicCoversLibrariesTask,
     PurgeComicCoversTask,
 )
+from codex.settings.logging import get_logger
 from codex.threads import QueuedThread
 
 
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 
 
 class CoverCreator(QueuedThread):
@@ -27,7 +26,7 @@ class CoverCreator(QueuedThread):
 
     NAME = "CoverCreator"
 
-    def _process_item(self, task):
+    def process_item(self, task):
         """Run the creator."""
         if isinstance(task, BulkComicCoverCreateTask):
             bulk_create_comic_covers(task.comics, task.force)

@@ -1,6 +1,4 @@
 """Django views for Codex."""
-from logging import getLogger
-
 from django.contrib.admin import ModelAdmin, register
 from django.contrib.admin.checks import ModelAdminChecks
 from django.contrib.admin.sites import site
@@ -24,9 +22,10 @@ from codex.librarian.queue_mp import (
     WatchdogSyncTask,
 )
 from codex.models import AdminFlag, FailedImport, Library
+from codex.settings.logging import get_logger
 
 
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 SAFE_CHANGE = SafeText("change")
 
 

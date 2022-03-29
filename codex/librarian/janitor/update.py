@@ -4,13 +4,12 @@ import signal
 import subprocess
 import sys
 
-from logging import getLogger
-
 from codex.models import AdminFlag
+from codex.settings.logging import get_logger
 from codex.version import PACKAGE_NAME, VERSION, get_version, is_outdated
 
 
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 
 
 def update_codex(force=False):
@@ -20,7 +19,7 @@ def update_codex(force=False):
     else:
         eau = AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_AUTO_UPDATE)
         if not eau.on or not is_outdated(PACKAGE_NAME):
-            LOG.verbose("Codex is up to date.")  # type: ignore
+            LOG.verbose("Codex is up to date.")
             return
 
         LOG.info("Codex seems outdated. Trying to update.")

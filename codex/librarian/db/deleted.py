@@ -1,6 +1,4 @@
 """Clean up the database after moves or imports."""
-from logging import getLogger
-
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, PurgeComicCoversTask
 from codex.models import (
     Character,
@@ -20,6 +18,7 @@ from codex.models import (
     Team,
     Volume,
 )
+from codex.settings.logging import get_logger
 
 
 DELETE_COMIC_FKS = (
@@ -38,7 +37,7 @@ DELETE_COMIC_FKS = (
     Genre,
 )
 DELETE_CREDIT_FKS = (CreditRole, CreditPerson)
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 
 
 def bulk_folders_deleted(library, delete_folder_paths=None) -> bool:
@@ -52,7 +51,7 @@ def bulk_folders_deleted(library, delete_folder_paths=None) -> bool:
     if count:
         LOG.info(log)
     else:
-        LOG.verbose(log)  # type: ignore
+        LOG.verbose(log)
     return count > 0
 
 
@@ -71,5 +70,5 @@ def bulk_comics_deleted(library, delete_comic_paths=None) -> bool:
     if count:
         LOG.info(log)
     else:
-        LOG.verbose(log)  # type: ignore
+        LOG.verbose(log)
     return count > 0

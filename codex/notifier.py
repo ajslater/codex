@@ -1,14 +1,13 @@
 """Sends notifications to connections, reading from a queue."""
-from logging import getLogger
-
 from asgiref.sync import async_to_sync
 
 from codex.librarian.queue_mp import AdminNotifierTask, BroadcastNotifierTask
 from codex.serializers.choices import WEBSOCKET_MESSAGES as WS_MSGS
+from codex.settings.logging import get_logger
 from codex.threads import AggregateMessageQueuedThread
 
 
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 
 
 class Notifier(AggregateMessageQueuedThread):
@@ -35,14 +34,18 @@ class Notifier(AggregateMessageQueuedThread):
     @staticmethod
     async def _send_msg(conns, send_msg):
         """Send message to all connections."""
-        for send in conns:
-            await send(send_msg)
+        try:
+            for send in conns:
+                await send(send_msg)
+        except Exception as exc:
+            LOG.error(f"Error in {Notifier.NAME}._send_msg {send_msg}")
+            LOG.exception(exc)
 
-    def _aggregate_items(self, task):
+    def aggregate_items(self, task):
         """Aggregate messages into cache."""
         self.cache[task.text] = task
 
-    def _send_all_items(self):
+    def send_all_items(self):
         """Send all messages waiting in the message cache to client."""
         if not self.cache:
             return
@@ -54,7 +57,7 @@ class Notifier(AggregateMessageQueuedThread):
             conns = self.CONNS[task.__class__]
             async_to_sync(self._send_msg)(conns, send_msg)
             sent_keys.add(text)
-        self._cleanup_cache(sent_keys)
+        self.cleanup_cache(sent_keys)
 
     @classmethod
     def startup(cls):

@@ -1,13 +1,13 @@
 """Parse the hypercorn config for settings."""
 import shutil
 
-from logging import getLogger
-
 from hypercorn.config import Config
+
+from codex.settings.logging import get_logger
 
 
 MAX_DB_OPS_DEFAULT = 100000
-LOG = getLogger(__name__)
+LOG = get_logger(__name__)
 
 
 def _ensure_config(hypercon_config_toml, hypercorn_config_toml_default):
@@ -25,8 +25,6 @@ def load_hypercorn_config(hypercorn_config_toml, hypercorn_config_toml_default, 
     if debug:
         config.use_reloader = True
         LOG.info("Will reload hypercorn if files change")
-    config.max_db_ops = max(  # type: ignore
-        1, int(getattr(config, "max_db_ops", MAX_DB_OPS_DEFAULT))
-    )
-    LOG.verbose(f"max_db_ops limit is {config.max_db_ops}")  # type: ignore
-    return config
+    max_db_ops = max(1, int(getattr(config, "max_db_ops", MAX_DB_OPS_DEFAULT)))
+    LOG.verbose(f"max_db_ops limit is {max_db_ops}")
+    return config, max_db_ops
