@@ -59,7 +59,6 @@ export default {
   created: function () {
     // Different than combobox, returns a list of items.
     this.model = toVuetifyItems(undefined, this.values);
-    console.log(this.model);
   },
   methods: {
     chipColor: function (pk) {
