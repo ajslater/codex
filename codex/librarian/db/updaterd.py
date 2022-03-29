@@ -36,7 +36,6 @@ def _wait_for_filesystem_ops_to_finish(task: DBDiffTask) -> bool:
     started_checking = time.time()
 
     # Don't wait for deletes to complete.
-
     # Do wait for move, modified, create files before import.
     all_modified_paths = (
         frozenset(task.dirs_moved.values())
@@ -63,8 +62,10 @@ def _wait_for_filesystem_ops_to_finish(task: DBDiffTask) -> bool:
 
         old_total_size = total_size
         total_size = 0
-        for path in all_modified_paths:
-            total_size += Path(path).stat().st_size
+        for path_str in all_modified_paths:
+            path = Path(path_str)
+            if path.exists():
+                total_size += Path(path).stat().st_size
     return False
 
 
