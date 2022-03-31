@@ -18,6 +18,7 @@
   - Fixed search index update crash while database is still updating.
   - Fixed issues larger than 99 bug.
   - Fixed issue not imported due to metadata cleaning bug.
+  - Fixed crash updating search index while library was still updating.
   - Thread error trapping and diagnostics to root out zombie process issue.
   - Sort numeric terms in filter menus numerically not alphabetically.
   - Fixed comic name display wrapping in browser.
