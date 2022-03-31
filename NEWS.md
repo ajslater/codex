@@ -1,5 +1,16 @@
 # 📰 Codex News
 
+## v0.9.9a0
+
+- Fixed
+
+  - Fixed combining CBI credits with other format credits
+  - Failed imports notification appears only for new failed imports.
+
+- Features
+
+  - Update search index daily.
+
 ## v0.9.8
 
 - Fixed
