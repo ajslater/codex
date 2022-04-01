@@ -1,4 +1,6 @@
 """Sends notifications to connections, reading from a queue."""
+import asyncio
+
 from asgiref.sync import async_to_sync
 
 from codex.librarian.queue_mp import AdminNotifierTask, BroadcastNotifierTask
@@ -34,12 +36,12 @@ class Notifier(AggregateMessageQueuedThread):
     @staticmethod
     async def _send_msg(conns, send_msg):
         """Send message to all connections."""
-        try:
-            for send in conns:
+        for send in conns:
+            try:
                 await send(send_msg)
-        except Exception as exc:
-            LOG.error(f"Error in {Notifier.NAME}._send_msg {send_msg}")
-            LOG.exception(exc)
+                await asyncio.sleep(0)
+            except Exception as exc:
+                LOG.warning(f"Error in {Notifier.NAME}._send_msg {send_msg} {exc}")
 
     def aggregate_items(self, task):
         """Aggregate messages into cache."""

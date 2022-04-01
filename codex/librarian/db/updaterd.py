@@ -22,7 +22,7 @@ from codex.librarian.queue_mp import (
     DelayedTasks,
     SearchIndexUpdateTask,
 )
-from codex.models import FailedImport, Library
+from codex.models import Library
 from codex.settings.logging import LOG_EVERY, VERBOSE, get_logger
 from codex.threads import QueuedThread
 
@@ -90,7 +90,7 @@ def _bulk_create_comic_relations(library, fks) -> bool:
 
 def _batch_modified_and_created(
     library, modified_paths, created_paths
-) -> tuple[bool, int]:
+) -> tuple[bool, int, bool]:
     """Perform one batch of imports."""
     mds, m2m_mds, fks, fis = get_aggregate_metadata(
         library, modified_paths | created_paths
@@ -103,9 +103,9 @@ def _batch_modified_and_created(
     imported_count = bulk_import_comics(
         library, created_paths, modified_paths, mds, m2m_mds
     )
-    bulk_fail_imports(library, fis)
+    new_failed_imports = bulk_fail_imports(library, fis)
     changed |= imported_count > 0
-    return changed, imported_count
+    return changed, imported_count, new_failed_imports
 
 
 def _log_task(path, task):
@@ -159,7 +159,7 @@ def _apply(task):
     changed |= bulk_folders_moved(library, task.dirs_moved)
     changed |= bulk_comics_moved(library, task.files_moved)
     changed |= bulk_folders_modified(library, task.dirs_modified)
-    changed_comics, imported_count = _batch_modified_and_created(
+    changed_comics, imported_count, new_failed_imports = _batch_modified_and_created(
         library, task.files_modified, task.files_created
     )
     changed |= changed_comics
@@ -174,7 +174,7 @@ def _apply(task):
     delayed_search_task = DelayedTasks(2, (SearchIndexUpdateTask(False),))
     LIBRARIAN_QUEUE.put(delayed_search_task)
 
-    if FailedImport.objects.all().exists():
+    if new_failed_imports:
         text = "FAILED_IMPORTS"
     else:
         text = "LIBRARY_UPDATE_DONE"
