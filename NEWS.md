@@ -1,12 +1,24 @@
 # 📰 Codex News
 
-## v0.9.8rc0
+## v0.9.9
+
+- Fixed
+
+  - Fixed combining CBI credits with other format credits
+  - Failed imports notification appears only for new failed imports.
+
+- Features
+
+  - Update search index daily.
+
+## v0.9.8
 
 - Fixed
 
   - Fixed search index update crash while database is still updating.
   - Fixed issues larger than 99 bug.
   - Fixed issue not imported due to metadata cleaning bug.
+  - Fixed crash updating search index while library was still updating.
   - Thread error trapping and diagnostics to root out zombie process issue.
   - Sort numeric terms in filter menus numerically not alphabetically.
   - Fixed comic name display wrapping in browser.

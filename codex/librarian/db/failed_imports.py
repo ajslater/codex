@@ -45,10 +45,10 @@ def _bulk_update_failed_imports(library, failed_imports):
         LOG.verbose(log)
 
 
-def _bulk_create_failed_imports(library, failed_imports):
+def _bulk_create_failed_imports(library, failed_imports) -> bool:
     """Bulk create failed imports."""
     if not failed_imports:
-        return
+        return False
     create_failed_imports = []
     for path, exc in failed_imports.items():
         try:
@@ -67,6 +67,7 @@ def _bulk_create_failed_imports(library, failed_imports):
         LOG.warning(log)
     else:
         LOG.verbose(log)
+    return bool(count)
 
 
 def _bulk_cleanup_failed_imports(library):
@@ -103,11 +104,13 @@ def _bulk_cleanup_failed_imports(library):
         LOG.verbose("No failed imports to clean up.")
 
 
-def bulk_fail_imports(library, failed_imports):
+def bulk_fail_imports(library, failed_imports) -> bool:
     """Handle failed imports."""
+    new_failed_imports = False
     try:
         _bulk_update_failed_imports(library, failed_imports)
-        _bulk_create_failed_imports(library, failed_imports)
+        new_failed_imports = _bulk_create_failed_imports(library, failed_imports)
         _bulk_cleanup_failed_imports(library)
     except Exception as exc:
         LOG.exception(exc)
+    return new_failed_imports

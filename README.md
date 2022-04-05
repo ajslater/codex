@@ -281,7 +281,7 @@ I and other Codex users often lurk on the [Mylar support channels](https://githu
 - [Kavita](https://www.kavitareader.com/) has light metadata filtering/editing and supports comics and eBooks.
 - [Ubooquity](https://vaemendis.net/ubooquity/) reads both comics and eBooks.
 - [Mylar](https://github.com/mylar3/mylar3) is the best comic book manager which also has a built in reader.
-- [Comictagger](https://github.com/comictagger/comictagger) seems to be the best comic metadata editor. It comes with a powerful command line and useful desktop GUI.
+- [Comictagger](https://github.com/comictagger/comictagger) is a comic metadata editor. It comes with a powerful command line and desktop GUI.
 
 ## <a name="develop-codex">🛠 Develop</a>
 

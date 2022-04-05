@@ -4,6 +4,7 @@ Websocket Server.
 Places connections into the Notifier, which sends notifications reading
 from a queue.
 """
+import asyncio
 import json
 
 from json import JSONDecodeError
@@ -41,6 +42,7 @@ async def websocket_application(_scope, receive, send):
 
             if event["type"] == "websocket.connect":
                 await send({"type": "websocket.accept"})
+                await asyncio.sleep(0)
 
             if event["type"] == "websocket.disconnect":
                 break

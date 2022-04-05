@@ -71,7 +71,7 @@ def update_search_index(rebuild=False):
 
         # Nuke the Search Result table as it's now out of date.
         SearchResult.truncate_and_reset()
-        LOG.verbose("Updated search index.")
+        LOG.verbose("Finished updating search index.")
     except Exception as exc:
         LOG.error(f"Update search index: {exc}")
 
