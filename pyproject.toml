@@ -4,7 +4,7 @@ build-backend = ["poetry.core.masonry.api"]
 
 [tool.poetry]
 name = "codex"
-version = "0.9.9"
+version = "0.9.10a0"
 description = "A comic archive web server."
 license = "GPL-2.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
@@ -54,6 +54,7 @@ whitenoise = { extras = ["brotli"], version = "^6.0" }
 xapian-bindings = "^0.1.0"
 xapian-haystack = "^3.0.1"
 Pillow = "^9.0.1"
+setproctitle = "^1.2.2"
 
 [tool.poetry.dev-dependencies]
 codespell = "^2.1.0"
