@@ -22,6 +22,8 @@ class BreakLoopError(Exception):
 
 
 class NamedThread(Thread, ABC):
+    """A thread that sets its name for ps."""
+
     NAME = "abstract-named-thread"
 
     def run_start(self):

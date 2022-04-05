@@ -88,8 +88,10 @@ class LibraryEventObserver(UatuMixin, Observer):
 
     ENABLE_FIELD = "events"
 
-    def on_thread_start(self):
-        setproctitle(f"{PACKAGE_NAME}-observer-event")
+    def run(self, *args, **kwargs):
+        """Set thread name on thread start."""
+        setproctitle(f"{PACKAGE_NAME}-observer-{self.ENABLE_FIELD}")
+        super().run(*args, **kwargs)
 
 
 class LibraryPollingObserver(UatuMixin):
@@ -118,8 +120,10 @@ class LibraryPollingObserver(UatuMixin):
             )
             LOG.exception(exc)
 
-    def on_thread_start(self):
-        setproctitle(f"{PACKAGE_NAME}-observer-polling")
+    def run(self, *args, **kwargs):
+        """Set thread name on thread start."""
+        setproctitle(f"{PACKAGE_NAME}-observer-{self.ENABLE_FIELD}")
+        super().run(*args, **kwargs)
 
     def on_thread_stop(self):
         """Put a dummy event on the queue that blocks forever."""
