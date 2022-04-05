@@ -58,7 +58,7 @@ class LibrarianDaemon(Process):
     proc = None
 
     def __init__(self):
-        """Create threads and thread pool."""
+        """Init process."""
         super().__init__(name=self.NAME, daemon=False)
 
     def _process_task(self, task):

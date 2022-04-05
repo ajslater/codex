@@ -1,4 +1,5 @@
 """Abstract Thread worker for doing queued tasks."""
+import platform
 import time
 
 from abc import ABC, abstractmethod
@@ -28,7 +29,8 @@ class NamedThread(Thread, ABC):
 
     def run_start(self):
         """First thing to do when running a new thread."""
-        setproctitle(f"{PACKAGE_NAME}-{self.NAME}")
+        if platform.system() != "Darwin":
+            setproctitle(f"{PACKAGE_NAME}-{self.NAME}")
         LOG.verbose(f"Started {self.NAME} thread")
 
 

@@ -1,4 +1,6 @@
 """The Codex Library Watchdog Observer threads."""
+import platform
+
 from setproctitle import setproctitle
 from watchdog.observers import Observer
 from watchdog.observers.api import BaseObserver
@@ -7,7 +9,6 @@ from codex.librarian.watchdog.emitter import DatabasePollingEmitter
 from codex.librarian.watchdog.eventsd import CodexLibraryEventHandler
 from codex.models import Library
 from codex.settings.logging import get_logger
-from codex.version import PACKAGE_NAME
 
 
 LOG = get_logger(__name__)
@@ -78,6 +79,12 @@ class UatuMixin(BaseObserver):
             LOG.error(f"Error in {self.__class__.__name__}")
             LOG.exception(exc)
 
+    def run(self, *args, **kwargs):
+        """Set thread name on thread start."""
+        if platform.system() != "Darwin":
+            setproctitle(f"WO-{self.ENABLE_FIELD}")
+        super().run(*args, **kwargs)
+
 
 # It would be best for Codex to have one observer with multiple emitters, but the
 #     watchdog class structure doesn't work that way.
@@ -87,11 +94,6 @@ class LibraryEventObserver(UatuMixin, Observer):
     """Regular observer."""
 
     ENABLE_FIELD = "events"
-
-    def run(self, *args, **kwargs):
-        """Set thread name on thread start."""
-        setproctitle(f"{PACKAGE_NAME}-observer-{self.ENABLE_FIELD}")
-        super().run(*args, **kwargs)
 
 
 class LibraryPollingObserver(UatuMixin):
@@ -119,11 +121,6 @@ class LibraryPollingObserver(UatuMixin):
                 f"Error in {self.__class__.__name__}.poll({library_pks}, {force})"
             )
             LOG.exception(exc)
-
-    def run(self, *args, **kwargs):
-        """Set thread name on thread start."""
-        setproctitle(f"{PACKAGE_NAME}-observer-{self.ENABLE_FIELD}")
-        super().run(*args, **kwargs)
 
     def on_thread_stop(self):
         """Put a dummy event on the queue that blocks forever."""
