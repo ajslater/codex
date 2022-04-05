@@ -6,8 +6,10 @@ from multiprocessing import Queue
 from queue import Empty
 from threading import Thread
 
-from codex.darwin_mp import force_darwin_multiprocessing_fork
+from setproctitle import setproctitle
+
 from codex.settings.logging import get_logger
+from codex.version import PACKAGE_NAME
 
 
 LOG = get_logger(__name__)
@@ -19,7 +21,16 @@ class BreakLoopError(Exception):
     pass
 
 
-class QueuedThread(Thread, ABC):
+class NamedThread(Thread, ABC):
+    NAME = "abstract-named-thread"
+
+    def run_start(self):
+        """First thing to do when running a new thread."""
+        setproctitle(f"{PACKAGE_NAME}-{self.NAME}")
+        LOG.verbose(f"Started {self.NAME} thread")
+
+
+class QueuedThread(NamedThread, ABC):
     """Abstract Thread worker for doing queued tasks."""
 
     SHUTDOWN_MSG = "shutdown"
@@ -58,8 +69,7 @@ class QueuedThread(Thread, ABC):
 
     def run(self):
         """Run thread loop."""
-        force_darwin_multiprocessing_fork()
-        LOG.verbose(f"Started {self.NAME} thread")
+        self.run_start()
         while True:
             try:
                 self._check_item()

@@ -1,6 +1,6 @@
 """Perform maintence tasks."""
 from datetime import datetime, time, timedelta
-from threading import Condition, Event, Thread
+from threading import Condition, Event
 from time import sleep
 
 from django.utils import timezone
@@ -22,6 +22,7 @@ from codex.librarian.queue_mp import (
 )
 from codex.settings.logging import get_logger
 from codex.settings.settings import CACHE_PATH
+from codex.threads import NamedThread
 
 
 LOG = get_logger(__name__)
@@ -30,7 +31,7 @@ CRON_TIMESTAMP = CACHE_PATH / "crond_timestamp"
 ONE_DAY = timedelta(days=1)
 
 
-class Crond(Thread):
+class Crond(NamedThread):
     """Run a scheduled service for codex."""
 
     NAME = "Cron"
@@ -58,8 +59,8 @@ class Crond(Thread):
 
     def run(self):
         """Watch a path and log the events."""
-        LOG.verbose(f"Started {self.NAME} thread.")
         try:
+            self.run_start()
             with self._cond:
                 while not self._stop_event.is_set():
                     timeout = self._get_timeout()

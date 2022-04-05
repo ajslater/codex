@@ -1,4 +1,5 @@
 """The Codex Library Watchdog Observer threads."""
+from setproctitle import setproctitle
 from watchdog.observers import Observer
 from watchdog.observers.api import BaseObserver
 
@@ -6,6 +7,7 @@ from codex.librarian.watchdog.emitter import DatabasePollingEmitter
 from codex.librarian.watchdog.eventsd import CodexLibraryEventHandler
 from codex.models import Library
 from codex.settings.logging import get_logger
+from codex.version import PACKAGE_NAME
 
 
 LOG = get_logger(__name__)
@@ -86,7 +88,8 @@ class LibraryEventObserver(UatuMixin, Observer):
 
     ENABLE_FIELD = "events"
 
-    pass
+    def on_thread_start(self):
+        setproctitle(f"{PACKAGE_NAME}-observer-event")
 
 
 class LibraryPollingObserver(UatuMixin):
@@ -114,6 +117,9 @@ class LibraryPollingObserver(UatuMixin):
                 f"Error in {self.__class__.__name__}.poll({library_pks}, {force})"
             )
             LOG.exception(exc)
+
+    def on_thread_start(self):
+        setproctitle(f"{PACKAGE_NAME}-observer-polling")
 
     def on_thread_stop(self):
         """Put a dummy event on the queue that blocks forever."""

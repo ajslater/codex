@@ -91,6 +91,7 @@ def _update_comics(library, comic_paths, mds):
 
     LOG.verbose(f"Bulk updating {num_comics} comics.")
     count = Comic.objects.bulk_update(update_comics, BULK_UPDATE_COMIC_FIELDS)
+    LOG.verbose(f"Queueing cover regeneration for {len(comic_pks)} updated comics.")
     task = BulkComicCoverCreateTask(True, tuple(comic_pks))
     LIBRARIAN_QUEUE.put(task)
     return count
@@ -128,7 +129,8 @@ def _create_comics(library, comic_paths, mds):
     comic_pks = []
     for comic in created_comics:
         comic_pks.append(comic.pk)
-    task = BulkComicCoverCreateTask(True, tuple(comic_pks))
+    LOG.verbose(f"Queueing cover generation for {len(comic_pks)} created comics.")
+    task = BulkComicCoverCreateTask(False, tuple(comic_pks))
     LIBRARIAN_QUEUE.put(task)
     return num_comics
 
