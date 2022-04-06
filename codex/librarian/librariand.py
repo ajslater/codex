@@ -2,6 +2,9 @@
 from multiprocessing import Process
 from time import sleep
 
+from setproctitle import setproctitle
+
+from codex.darwin_mp import force_darwin_multiprocessing_fork
 from codex.librarian.covers.coverd import CoverCreator
 from codex.librarian.db.updaterd import Updater
 from codex.librarian.janitor.crond import Crond, janitor
@@ -27,6 +30,7 @@ from codex.librarian.watchdog.observers import (
 from codex.notifier import Notifier
 from codex.settings.logging import get_logger
 from codex.threads import QueuedThread
+from codex.version import PACKAGE_NAME
 
 
 LOG = get_logger(__name__)
@@ -54,7 +58,7 @@ class LibrarianDaemon(Process):
     proc = None
 
     def __init__(self):
-        """Create threads and thread pool."""
+        """Init process."""
         super().__init__(name=self.NAME, daemon=False)
 
     def _process_task(self, task):
@@ -88,6 +92,7 @@ class LibrarianDaemon(Process):
 
     def _create_threads(self):
         """Create all the threads."""
+        force_darwin_multiprocessing_fork()
         self.delayed_tasks = DelayedTasksThread()
         self.cover_creator = CoverCreator()
         self.search_indexer = SearchIndexer()
@@ -133,6 +138,7 @@ class LibrarianDaemon(Process):
         threads.
         """
         try:
+            setproctitle(f"{PACKAGE_NAME}-{self.NAME}")
             LOG.verbose("Started Librarian process.")
             self._create_threads()
             self._start_threads()

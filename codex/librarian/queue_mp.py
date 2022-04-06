@@ -74,6 +74,13 @@ class CreateMissingCoversTask(ComicCoverTask):
 
 
 @dataclass
+class CleanupMissingComicCovers(ComicCoverTask):
+    """Clean up covers from missing comics."""
+
+    pass
+
+
+@dataclass
 class LibrariesTask(ABC):
     """Tasks over a set of libraries."""
 

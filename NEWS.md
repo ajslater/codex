@@ -1,5 +1,13 @@
 # 📰 Codex News
 
+## v0.9.10a2
+
+- Fixed
+
+- Features
+
+  - Codex processes show names in ps
+
 ## v0.9.9
 
 - Fixed
@@ -10,6 +18,7 @@
 - Features
 
   - Update search index daily.
+  - Clean up orphan comic covers every night.
 
 ## v0.9.8
 
