@@ -13,6 +13,7 @@
 
   - Codex processes show names in ps and thread names on Linux.
   - Add Poll libraries action to FailedImports Admin Panel.
+  - Space and shift-space previous and next reader shortcuts.
 
 ## v0.9.9
 
