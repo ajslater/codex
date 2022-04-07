@@ -1,5 +1,11 @@
 # 📰 Codex News
 
+## v0.9.11a0
+
+- Fixed
+ 
+  - Rare crash when setting codex latest software version.
+
 ## v0.9.10
 
 - Fixed
