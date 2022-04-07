@@ -95,6 +95,7 @@ class LibraryEventObserver(UatuMixin, Observer):
 
     ENABLE_FIELD = "events"
 
+
 class LibraryPollingObserver(UatuMixin):
     """An Observer that polls using the DatabasePollingEmitter."""
 

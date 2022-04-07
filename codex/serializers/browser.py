@@ -1,5 +1,6 @@
 """Serializers for the browser view."""
 from abc import ABC
+from datetime import datetime
 
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
@@ -19,6 +20,14 @@ from codex.serializers.mixins import BrowserAggregateSerializerMixin
 
 
 VUETIFY_NULL_CODE_STR = str(VUETIFY_NULL_CODE)
+
+
+class TimestampField(Field):
+    """Datetime Field represented as an integer."""
+
+    def to_representation(self, value: datetime):
+        """Return integer timestamp from datetime."""
+        return value.timestamp()
 
 
 def validate_decades(decades):
@@ -161,6 +170,7 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
     pk = IntegerField(read_only=True)
     group = CharField(read_only=True, max_length=1)
     cover_path = CharField(read_only=True)
+    cover_updated_at = TimestampField(read_only=True)
     publisher_name = CharField(read_only=True)
     series_name = CharField(read_only=True)
     volume_name = CharField(read_only=True)

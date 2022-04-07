@@ -4,6 +4,7 @@
       <div class="browserCardCoverWrapper">
         <BookCover
           :cover-path="item.cover_path"
+          :updated-at="item.cover_updated_at"
           :group="item.group"
           :child-count="item.child_count"
           :finished="item.finished"

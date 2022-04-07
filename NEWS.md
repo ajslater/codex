@@ -4,9 +4,13 @@
 
 - Fixed
 
+  - Fixed covers not creating on import.
+  - Covers update in browser when updated on disk.
+  - Create missing covers on startup.
+
 - Features
 
-  - Codex processes show names in ps
+  - Codex processes show names in ps, even moreso on Linux.
 
 ## v0.9.9
 

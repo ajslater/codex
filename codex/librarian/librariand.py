@@ -11,6 +11,7 @@ from codex.librarian.janitor.crond import Crond, janitor
 from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
     ComicCoverTask,
+    CreateMissingCoversTask,
     DelayedTasks,
     JanitorTask,
     NotifierTask,
@@ -165,6 +166,7 @@ class LibrarianDaemon(Process):
         cls.proc = LibrarianDaemon()
         cls.proc.start()
         LIBRARIAN_QUEUE.put(WatchdogSyncTask())
+        LIBRARIAN_QUEUE.put(CreateMissingCoversTask())
 
     @classmethod
     def shutdown(cls):
