@@ -12,6 +12,7 @@
 - Features
 
   - Codex processes show names in ps and thread names on Linux.
+  - Add Poll libraries action to FailedImports Admin Panel.
 
 ## v0.9.9
 
