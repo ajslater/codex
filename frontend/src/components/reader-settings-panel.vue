@@ -32,7 +32,7 @@
     </div>
     <v-list-item :class="{ invisible: isSettingsDialogGlobalMode }"
       ><v-btn
-        title="Use the global settings for all comics for this comic"
+        title="Use the default settings for all comics for this comic"
         @click="settingsDialogClear"
         >Clear Comic Settings</v-btn
       ></v-list-item
