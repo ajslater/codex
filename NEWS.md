@@ -7,10 +7,11 @@
   - Fixed covers not creating on import.
   - Covers update in browser when updated on disk.
   - Create missing covers on startup.
+  - Bust browser cache when library updates.
 
 - Features
 
-  - Codex processes show names in ps, even moreso on Linux.
+  - Codex processes show names in ps and thread names on Linux.
 
 ## v0.9.9
 

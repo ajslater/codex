@@ -60,7 +60,7 @@ export default {
   },
   computed: {
     coverSrc: function () {
-      return getCoverSource(this.coverPath) + "?" + this.updatedAt;
+      return getCoverSource(this.coverPath, this.updatedAt);
     },
   },
   mounted: function () {
