@@ -2,11 +2,15 @@
   <div>
     <div id="readerSettings">
       <h3>Reader Settings</h3>
+      <v-radio-group v-model="isSettingsDialogGlobalMode" label="Scope">
+        <v-radio label="Only this comic" :value="false" />
+        <v-radio label="Default for all comics" :value="true" />
+      </v-radio-group>
       <v-radio-group
         id="fitToSelect"
         :value="settingsDialogFitTo"
         label="Shrink to"
-        @change="settingDialogChanged({ fitTo: $event })"
+        @change="settingsDialogChanged({ fitTo: $event })"
       >
         <v-radio
           v-for="item in fitToChoices"
@@ -23,18 +27,15 @@
           settingsDialogTwoPages === undefined
         "
         ripple
-        @change="settingDialogChanged({ twoPages: $event === true })"
-      />
-      <v-switch
-        v-model="isSettingsDialogGlobalMode"
-        :label="settingsDialogSwitchLabel"
+        @change="settingsDialogChanged({ twoPages: $event === true })"
       />
     </div>
-    <v-list-item
-      :class="{ invisible: isSettingsDialogGlobalMode }"
-      title="Use the global settings for all comics for this comic"
-      @click="settingDialogClear"
-      >Use Global Settings</v-list-item
+    <v-list-item :class="{ invisible: isSettingsDialogGlobalMode }"
+      ><v-btn
+        title="Use the default settings for all comics for this comic"
+        @click="settingsDialogClear"
+        >Clear Comic Settings</v-btn
+      ></v-list-item
     >
     <v-divider />
     <ReaderKeyboardShortcutsPanel />
@@ -80,15 +81,15 @@ export default {
     },
   },
   methods: {
-    settingDialogChanged: function (data) {
+    settingsDialogChanged: function (data) {
       if (this.isSettingsDialogGlobalMode) {
-        this.$store.dispatch("reader/settingChangedGlobal", data);
+        this.$store.dispatch("reader/settingsChangedGlobal", data);
       } else {
-        this.$store.dispatch("reader/settingChangedLocal", data);
+        this.$store.dispatch("reader/settingsChangedLocal", data);
       }
     },
-    settingDialogClear: function () {
-      this.$store.dispatch("reader/settingDialogClear");
+    settingsDialogClear: function () {
+      this.$store.dispatch("reader/settingsDialogClear");
     },
   },
 };

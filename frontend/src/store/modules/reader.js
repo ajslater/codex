@@ -191,7 +191,7 @@ const actions = {
     // Set the bookmark
     API.setComicBookmark(router.currentRoute.params);
   },
-  settingChangedLocal({ commit, state, dispatch }, data) {
+  settingsChangedLocal({ commit, state, dispatch }, data) {
     commit("setSettingLocal", data);
     API.setComicSettings({
       pk: router.currentRoute.params.pk,
@@ -202,9 +202,9 @@ const actions = {
     }
   },
   settingsDialogClear({ dispatch }) {
-    dispatch("reader/settingChangedLocal", NULL_READER_SETTINGS);
+    dispatch("settingsChangedLocal", NULL_READER_SETTINGS);
   },
-  settingChangedGlobal({ commit, state, dispatch }, data) {
+  settingsChangedGlobal({ commit, state, dispatch }, data) {
     commit("setSettingGlobal", data);
     commit("setSettingLocal", NULL_READER_SETTINGS);
     API.setComicDefaultSettings({

@@ -4,7 +4,11 @@ from pathlib import Path
 from django.db.models import Q
 from django.db.models.functions import Now
 
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE, BulkComicCoverCreateTask
+from codex.librarian.queue_mp import (
+    LIBRARIAN_QUEUE,
+    BulkComicCoverCreateTask,
+    CreateMissingCoversTask,
+)
 from codex.models import Comic, Credit, Folder, Imprint, Publisher, Series, Volume
 from codex.settings.logging import get_logger
 
@@ -239,6 +243,8 @@ def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2
 
     update_count = _update_comics(library, update_paths, all_bulk_mds)
     create_count = _create_comics(library, create_paths, all_bulk_mds)
+    # Just to be sure.
+    LIBRARIAN_QUEUE.put(CreateMissingCoversTask())
 
     all_m2m_links = _link_comic_m2m_fields(all_m2m_mds)
     for field_name, m2m_links in all_m2m_links.items():

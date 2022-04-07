@@ -48,6 +48,10 @@ export default {
       type: String,
       required: true,
     },
+    updatedAt: {
+      type: Number,
+      default: 0,
+    },
   },
   data() {
     return {
@@ -56,7 +60,7 @@ export default {
   },
   computed: {
     coverSrc: function () {
-      return getCoverSource(this.coverPath);
+      return getCoverSource(this.coverPath, this.updatedAt);
     },
   },
   mounted: function () {

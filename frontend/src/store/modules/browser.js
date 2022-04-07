@@ -42,6 +42,7 @@ for (let choice of CHOICES.browser.settingsGroup) {
 }
 
 const state = {
+  timestamp: Date.now(),
   routes: {
     current: undefined,
     up: undefined,
@@ -170,6 +171,9 @@ const mutations = {
   setUpdateNotify(state, data) {
     state.updateNotify = data.updateInProgress;
   },
+  setTimestamp(state) {
+    state.timestamp = Date.now();
+  },
 };
 
 const handlePageError = (dispatch) => {
@@ -203,11 +207,11 @@ const actions = {
       console.debug(error);
     });
   },
-  async browserOpened({ commit, dispatch }) {
+  async browserOpened({ commit, dispatch, state }) {
     // Gets everything needed to open the component.
     commit("setBrowsePageLoaded", false);
     commit("clearAllFormChoicesExcept");
-    await API.getBrowserOpened(router.currentRoute.params)
+    await API.getBrowserOpened(router.currentRoute.params, state.timestamp)
       .then((response) => {
         const data = response.data;
         commit("setSettings", data.settings);
@@ -229,6 +233,7 @@ const actions = {
   },
   async browserPageStale({ commit, dispatch, state }) {
     // Get objects for the current route and settings.
+    commit("setTimestamp");
     if (!state.browserPageLoaded) {
       console.debug("Browser not setup running open");
       return dispatch("browserOpened");
@@ -236,6 +241,7 @@ const actions = {
     await API.getBrowserPage({
       route: router.currentRoute.params,
       settings: state.settings,
+      ts: state.timestamp,
     })
       .then((response) => {
         const data = response.data;
@@ -249,7 +255,12 @@ const actions = {
   },
   async filterModeChanged({ commit, state }, { group, pk, mode }) {
     if (mode && mode !== "base" && state.formChoices[mode] == undefined) {
-      await API.getBrowserChoices({ group, pk, choice_type: mode })
+      await API.getBrowserChoices({
+        group,
+        pk,
+        choice_type: mode,
+        ts: state.timestamp,
+      })
         .then((response) => {
           response.data.key = mode;
           const payload = { choiceName: mode, choices: response.data };

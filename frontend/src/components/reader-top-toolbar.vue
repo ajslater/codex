@@ -100,27 +100,27 @@ export default {
           break;
 
         case "w":
-          this.settingChangedLocal({ fitTo: "WIDTH" });
+          this.settingsChangedLocal({ fitTo: "WIDTH" });
           break;
 
         case "h":
-          this.settingChangedLocal({ fitTo: "HEIGHT" });
+          this.settingsChangedLocal({ fitTo: "HEIGHT" });
           break;
 
         case "o":
-          this.settingChangedLocal({ fitTo: "ORIG" });
+          this.settingsChangedLocal({ fitTo: "ORIG" });
           break;
 
         case "2":
-          this.settingChangedLocal({
+          this.settingsChangedLocal({
             twoPages: !this.computedSettings.twoPages,
           });
           break;
         // No default
       }
     },
-    settingChangedLocal: function (data) {
-      this.$store.dispatch("reader/settingChangedLocal", data);
+    settingsChangedLocal: function (data) {
+      this.$store.dispatch("reader/settingsChangedLocal", data);
     },
     openMetadata: function () {
       this.$refs.metadataDialog.dialog = true;

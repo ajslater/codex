@@ -46,10 +46,11 @@ class BrowserView(BrowserMetadataBaseView):
     _NAV_GROUPS = "rpisv"
     _MAX_OBJ_PER_PAGE = 100
     _ORPHANS = int(_MAX_OBJ_PER_PAGE / 20)
-    _BROWSER_CARD_FIELDS = [
+    _BROWSER_CARD_FIELDS = (
         "bookmark",
         "child_count",
         f"{UNIONFIX_PREFIX}cover_path",
+        f"{UNIONFIX_PREFIX}cover_updated_at",
         "finished",
         "group",
         f"{UNIONFIX_PREFIX}issue",
@@ -63,7 +64,7 @@ class BrowserView(BrowserMetadataBaseView):
         "series_name",
         "sort_name",
         "volume_name",
-    ]
+    )
     _BROWSER_SETTINGS_KEYS_SNAKE_CAMEL_MAP = {
         snake_key: camelcase(snake_key)
         for snake_key in BrowserMetadataBaseView.SESSION_DEFAULTS[

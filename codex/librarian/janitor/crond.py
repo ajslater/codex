@@ -15,6 +15,7 @@ from codex.librarian.queue_mp import (
     BackupTask,
     CleanFKsTask,
     CleanSearchTask,
+    CleanupMissingComicCovers,
     RestartTask,
     SearchIndexUpdateTask,
     UpdateTask,
@@ -79,6 +80,7 @@ class Crond(NamedThread):
                             BackupTask(),
                             UpdateTask(force=False),
                             SearchIndexUpdateTask(False),
+                            CleanupMissingComicCovers(),
                         ]
                         for task in tasks:
                             LIBRARIAN_QUEUE.put(task)

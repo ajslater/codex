@@ -13,7 +13,7 @@ UNIONFIX_PREFIX = "unionfix_"
 class BrowserAggregateSerializerMixin(metaclass=SerializerMetaclass):
     """Mixin for browser & metadata serializers."""
 
-    UNIONFIX_KEYS = ("cover_path", "issue")
+    UNIONFIX_KEYS = ("cover_path", "cover_updated_at", "issue")
 
     # Aggregate Annotations
     child_count = IntegerField(read_only=True)

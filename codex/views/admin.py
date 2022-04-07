@@ -10,6 +10,7 @@ from codex.librarian.queue_mp import (
     BroadcastNotifierTask,
     CleanFKsTask,
     CleanSearchTask,
+    CleanupMissingComicCovers,
     CreateComicCoversLibrariesTask,
     CreateMissingCoversTask,
     PollLibrariesTask,
@@ -86,6 +87,8 @@ class QueueLibrarianJobs(APIView):
             task = BroadcastNotifierTask("LIBRARY_CHANGED")
         elif task_name == "cleanup_fks":
             task = CleanFKsTask()
+        elif task_name == "cleanup_covers":
+            task = CleanupMissingComicCovers()
 
         if task:
             LIBRARIAN_QUEUE.put(task)
