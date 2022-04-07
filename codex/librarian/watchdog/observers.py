@@ -1,4 +1,7 @@
 """The Codex Library Watchdog Observer threads."""
+import platform
+
+from setproctitle import setproctitle
 from watchdog.observers import Observer
 from watchdog.observers.api import BaseObserver
 
@@ -76,6 +79,12 @@ class UatuMixin(BaseObserver):
             LOG.error(f"Error in {self.__class__.__name__}")
             LOG.exception(exc)
 
+    def run(self, *args, **kwargs):
+        """Set thread name on thread start."""
+        if platform.system() != "Darwin":
+            setproctitle(f"WO-{self.ENABLE_FIELD}")
+        super().run(*args, **kwargs)
+
 
 # It would be best for Codex to have one observer with multiple emitters, but the
 #     watchdog class structure doesn't work that way.
@@ -85,8 +94,6 @@ class LibraryEventObserver(UatuMixin, Observer):
     """Regular observer."""
 
     ENABLE_FIELD = "events"
-
-    pass
 
 
 class LibraryPollingObserver(UatuMixin):

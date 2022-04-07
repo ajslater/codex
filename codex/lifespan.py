@@ -6,11 +6,13 @@ from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.db.models import Q
 from django.db.models.functions import Now
+from setproctitle import setproctitle
 
 from codex.darwin_mp import force_darwin_multiprocessing_fork
 from codex.librarian.librariand import LibrarianDaemon
 from codex.models import AdminFlag, Library
 from codex.settings.logging import get_logger
+from codex.version import PACKAGE_NAME
 from codex.websocket_server import Notifier
 
 
@@ -60,6 +62,7 @@ def unset_update_in_progress():
 
 def codex_startup():
     """Initialize the database and start the daemons."""
+    setproctitle(PACKAGE_NAME)
     ensure_superuser()
     init_admin_flags()
     unset_update_in_progress()

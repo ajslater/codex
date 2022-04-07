@@ -41,7 +41,7 @@ def _get_path_metadata(path):
         # other thread is significantly faster than doing it later.
         # do this as soon as we have a path
         if car.cover_image_data:
-            task = ImageComicCoverCreateTask(True, path, car.cover_image_data)
+            task = ImageComicCoverCreateTask(False, path, car.cover_image_data)
             try:
                 LIBRARIAN_QUEUE.put_nowait(task)
             except Full:

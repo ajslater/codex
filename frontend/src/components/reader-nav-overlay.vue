@@ -22,6 +22,7 @@
 
 <script>
 import { mapState } from "vuex";
+const READER_ROUTE_TO = "reader/routeTo";
 
 export default {
   name: "ReaderNavOverlay",
@@ -41,14 +42,31 @@ export default {
   methods: {
     _keyListener: function (event) {
       switch (event.key) {
+        case " ":
+          if (
+            !event.shiftKey &&
+            window.innerHeight + window.scrollY >= document.body.scrollHeight &&
+            this.routes.next
+          ) {
+            // Spacebar goes next only at the bottom of page
+            this.$store.dispatch(READER_ROUTE_TO, "next");
+          } else if (
+            // Shift + Spacebar goes back only at the top of page
+            !!event.shiftKey &&
+            window.scrollY === 0 &&
+            this.routes.prev
+          ) {
+            this.$store.dispatch(READER_ROUTE_TO, "prev");
+          }
+          break;
         case "j":
         case "ArrowRight":
-          this.$store.dispatch("reader/routeTo", "next");
+          this.$store.dispatch(READER_ROUTE_TO, "next");
           break;
 
         case "k":
         case "ArrowLeft":
-          this.$store.dispatch("reader/routeTo", "prev");
+          this.$store.dispatch(READER_ROUTE_TO, "prev");
           break;
         // No default
       }

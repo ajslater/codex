@@ -1,5 +1,22 @@
 # 📰 Codex News
 
+## v0.9.10
+
+- Fixed
+
+  - Fixed covers not creating on import.
+  - Covers update in browser when updated on disk.
+  - Create missing covers on startup.
+  - Bust browser cache when library updates.
+  - Reader settings were not applying in some cases.
+
+- Features
+
+  - Codex processes show names in ps and thread names on Linux.
+  - Add Poll libraries action to FailedImports Admin Panel.
+  - Space and shift-space previous and next reader shortcuts.
+  - Reader settings UI redesigned to be clearer.
+
 ## v0.9.9
 
 - Fixed
@@ -10,6 +27,7 @@
 - Features
 
   - Update search index daily.
+  - Clean up orphan comic covers every night.
 
 ## v0.9.8
 

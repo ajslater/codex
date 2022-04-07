@@ -182,10 +182,13 @@ def create_comic_cover_for_libraries(library_pks):
 
 def create_missing_covers():
     """Generate covers for comics missing covers."""
-    no_cover_comic_pks = Comic.objects.filter(cover_path="").values_list(
-        "pk", flat=True
-    )
+    comics_with_covers = Comic.objects.all().only("cover_path")
+    no_cover_comic_pks = set()
+    for comic in comics_with_covers:
+        if not comic.cover_path or Path(comic.cover_path).exists():
+            no_cover_comic_pks.add(comic.pk)
+
     no_cover_comic_pks = tuple(no_cover_comic_pks)
     LOG.verbose(f"Generating covers for {len(no_cover_comic_pks)} comics missing them.")
-    task = BulkComicCoverCreateTask(False, no_cover_comic_pks)
+    task = BulkComicCoverCreateTask(True, no_cover_comic_pks)
     LIBRARIAN_QUEUE.put(task)

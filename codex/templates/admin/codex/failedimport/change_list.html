@@ -20,7 +20,12 @@ to fix comics. I've found that even if the fixed comic looks exactly the same as
 If you've removed or fixed the unimportable comics in your library you can try polling the library again.<br/>
 You may also try <code>zip -FF</code> to fix comics which uses a different (not necissarily better) algorithm to fix archives.
 </p>
-<h2>Reporting Issues</h2>
+<h1>Actions</h1>
+<h2>Delete selected failed imports</h2>
+Deletes the failed imports entry from the database. May reappear after the next poll if Codex fails to import it again.
+<h2>Poll selected failed imports' libraries for changes.</h2>
+Poll the libraries the selected failed imports come from for changes, possibly clearing some failed imports if the comic archives were fixed or removed.
+<h1>Reporting Issues</h1>
 </p>
 If the comic looks good to you, but still shows up as a failed import, it might be Codex's fault for not importing it correctly. Please file an <a href="https://github.com/ajslater/codex/issues">Issue Report</a> and include the stack trace from the logs at <code>config/logs/codex.log</code> if you can.
 </p>

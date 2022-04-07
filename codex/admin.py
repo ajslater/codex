@@ -220,6 +220,7 @@ class AdminFailedImport(AdminNoAddDelete):
     list_display = fields
     readonly_fields = fields
     sortable_by = fields
+    actions = ("poll",)
 
     def has_change_permission(self, request, obj=None):
         """Can't Change these."""
@@ -234,11 +235,19 @@ class AdminFailedImport(AdminNoAddDelete):
         url = resolve_url(admin_urlname(Library._meta, SAFE_CHANGE), item.library.id)
         return format_html(f'<a href="{url}">{item.library.path}</a>')
 
+    library_link.short_description = "Library"
+
     def get_queryset(self, request):
         """Select related."""
         return super().get_queryset(request).select_related("library")
 
-    library_link.short_description = "Library"
+    def poll(self, request, queryset):
+        """Poll for new comics."""
+        pks = queryset.values_list("library__pk", flat=True)
+        task = PollLibrariesTask(set(pks), False)
+        LIBRARIAN_QUEUE.put(task)
+
+    poll.short_description = "Poll selected failed imports' libraries for changes"
 
 
 site.unregister(Group)

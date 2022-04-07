@@ -5,15 +5,17 @@
       <tbody>
         <tr>
           <td>
-            <v-icon>{{ mdiMenuLeft }}</v-icon
-            >j
+            <v-icon color="grey">{{ mdiMenuLeft }}</v-icon> j<br />
+            <v-icon color="grey" dense>{{ mdiAppleKeyboardShift }}</v-icon>
+            <v-icon color="grey" dense>{{ mdiKeyboardSpace }}</v-icon>
           </td>
           <td>Previous page</td>
         </tr>
         <tr>
           <td>
-            <v-icon>{{ mdiMenuRight }}</v-icon
-            >k
+            <v-icon color="grey">{{ mdiMenuRight }}</v-icon
+            >k<br />
+            <v-icon color="grey" dense>{{ mdiKeyboardSpace }}</v-icon>
           </td>
           <td>Next page</td>
         </tr>
@@ -47,13 +49,20 @@
 </template>
 
 <script>
-import { mdiMenuLeft, mdiMenuRight } from "@mdi/js";
+import {
+  mdiAppleKeyboardShift,
+  mdiKeyboardSpace,
+  mdiMenuLeft,
+  mdiMenuRight,
+} from "@mdi/js";
 
 export default {
   data() {
     return {
       mdiMenuLeft,
       mdiMenuRight,
+      mdiKeyboardSpace,
+      mdiAppleKeyboardShift,
     };
   },
   methods: {
@@ -79,7 +88,7 @@ export default {
   color: gray;
 }
 #readerKeyboardShortcutsTable td {
-  min-width: 42px;
+  min-width: 60px;
 }
 #readerKeyboardShortcutsTable tr:nth-child(odd) {
   background-color: #222;

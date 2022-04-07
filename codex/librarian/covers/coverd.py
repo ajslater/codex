@@ -1,4 +1,5 @@
 """Functions for dealing with comic cover thumbnails."""
+from codex.librarian.covers.cleanup import cleanup_orphan_covers
 from codex.librarian.covers.create import (
     bulk_create_comic_covers,
     create_comic_cover,
@@ -8,6 +9,7 @@ from codex.librarian.covers.create import (
 from codex.librarian.covers.purge import purge_cover_paths, purge_library_covers
 from codex.librarian.queue_mp import (
     BulkComicCoverCreateTask,
+    CleanupMissingComicCovers,
     CreateComicCoversLibrariesTask,
     CreateMissingCoversTask,
     ImageComicCoverCreateTask,
@@ -40,5 +42,7 @@ class CoverCreator(QueuedThread):
             purge_cover_paths(task.cover_paths)
         elif isinstance(task, CreateMissingCoversTask):
             create_missing_covers()
+        elif isinstance(task, CleanupMissingComicCovers):
+            cleanup_orphan_covers()
         else:
             LOG.error(f"Bad task sent to {self.NAME}: {task}")

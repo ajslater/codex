@@ -19,6 +19,7 @@
 <input type="radio" name="task" value="cleanup_fks"><label>Clean Up Unused Foreign Keys</label><br/>
 <input type="radio" name="task" value="create_missing_covers"><label>Create Missing Comic Covers</label><br/>
 <input type="radio" name="task" value="create_comic_covers"><label>Recreate All Comic Covers</label><br/>
+<input type="radio" name="task" value="cleanup_covers"><label>Cleanup Comic Covers</label><br/>
 <input type="radio" name="task" value="watchdog_sync"><label>Sync Watchdog with Database</label><br/>
 <input type="radio" name="task" value="db_vacuum"><label>Compact Database</label><br/>
 <input type="radio" name="task" value="db_backup"><label>Backup Database</label><br/>
@@ -47,6 +48,8 @@ Forcibly update all the comics in all libraries, overwrite the database and rege
 Create comic covers only for comics that are missing them.
 <h3>Recreate All Comic Covers</h3>
 Recreate all the comic covers in every library.
+<h3>Cleanup Comic Covers</h3>
+Cleanup covers from comics that are in no libraries.
 <h3>Sync Watchdog with Database</h3>
 Ensure the Watchdog file watcher is enabled per database preferences for each library.
 <h3>Compact Database</h3>

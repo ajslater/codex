@@ -54,6 +54,7 @@ class BrowserMetadataBaseView(BrowserBaseView):
         # Order the descendant comics by the sort argumentst
         if model == Comic:
             cover_path = F("cover_path")
+            cover_updated_at = F("updated_at")
         else:
             order_by = self.get_order_by(model, for_cover_path=True)
             cover_path = Subquery(
@@ -61,7 +62,16 @@ class BrowserMetadataBaseView(BrowserBaseView):
                 .order_by(*order_by)
                 .values("comic__cover_path")[:1]
             )
-        obj_list = queryset.annotate(**{f"{UNIONFIX_PREFIX}cover_path": cover_path})
+            cover_updated_at = Subquery(
+                queryset.filter(pk=OuterRef("pk"))
+                .order_by(*order_by)
+                .values("comic__updated_at")[:1]
+            )
+
+        obj_list = queryset.annotate(
+            **{f"{UNIONFIX_PREFIX}cover_path": cover_path},
+            **{f"{UNIONFIX_PREFIX}cover_updated_at": cover_updated_at},
+        )
         return obj_list
 
     def _annotate_page_count(self, obj_list):

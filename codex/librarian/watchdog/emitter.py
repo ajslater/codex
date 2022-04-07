@@ -8,6 +8,7 @@ from threading import Condition
 from django.db.models.functions import Now
 from django.utils import timezone
 from humanize import precisedelta
+from setproctitle import setproctitle
 from watchdog.events import (
     DirDeletedEvent,
     DirModifiedEvent,
@@ -255,6 +256,11 @@ class DatabasePollingEmitter(EventEmitter):
         except Exception as exc:
             LOG.exception(exc)
             raise exc
+
+    def run(self, *args, **kwargs):
+        """Identify the thread."""
+        setproctitle(f"WE{self._watch_path}")
+        super().run(*args, **kwargs)
 
     def on_thread_stop(self):
         """Send the poller as well."""
