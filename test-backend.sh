@@ -4,6 +4,7 @@ set -euxo pipefail
 
 cd "$(dirname "$0")"
 
+poetry show django-dark
 ./collectstatic.sh
 ls codex/static_root/admin/css/dark*
 poetry run pytest
