@@ -58,8 +58,11 @@ def get_latest_version(
     """Get the latest version from a remote repo using a cache."""
     latest_version = _get_version_from_db()
     if latest_version is None:
-        latest_version = _fetch_latest_version(package_name, repo_url_template)
-        LatestVersion.set_codex_version(latest_version)
+        try:
+            latest_version = _fetch_latest_version(package_name, repo_url_template)
+            LatestVersion.set_codex_version(latest_version)
+        except Exception as exc:
+            LOG.error(f"Setting latest codex version in db {exc}")
     return latest_version
 
 
@@ -70,7 +73,7 @@ def is_outdated(
     """Is codex outdated."""
     latest_version = get_latest_version(package_name, repo_url_template)
 
-    result = latest_version > VERSION
+    result = latest_version is not None and latest_version > VERSION
     log_str = f"{latest_version=} > {VERSION=} = {result}"
     if result:
         LOG.verbose(log_str)

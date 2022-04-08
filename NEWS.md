@@ -1,12 +1,6 @@
 # 📰 Codex News
 
-## v0.9.11a0
-
-- Fixed
- 
-  - Rare crash when setting codex latest software version.
-
-## v0.9.10
+## v0.9.11
 
 - Fixed
 
@@ -15,6 +9,8 @@
   - Create missing covers on startup.
   - Bust browser cache when library updates.
   - Reader settings were not applying in some cases.
+  - Fixed crash updating latest codex software version from the internet.
+  - Fixed crash loading admin page.
 
 - Features
 
@@ -22,6 +18,10 @@
   - Add Poll libraries action to FailedImports Admin Panel.
   - Space and shift-space previous and next reader shortcuts.
   - Reader settings UI redesigned to be clearer.
+
+## v0.9.10
+
+Yanked. Crash loading admin page.
 
 ## v0.9.9
 

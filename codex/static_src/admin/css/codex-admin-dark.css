@@ -14,7 +14,7 @@
   background-color: #4c4d4b !important;
 }
 
-/* These are done by djanog-dark already but need !important */
+/* These are done by django-dark already but need !important */
 #changelist .paginator {
   background-color: transparent !important;
   border-bottom-color: transparent !important;
