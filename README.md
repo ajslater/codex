@@ -14,6 +14,12 @@ A comic archive browser and reader.
 - Watches the filesystem and automatically imports new or changed comics.
 - Private Libraries accessible only to certain groups of users.
 
+### Examples
+
+- _Filter by_ Story Arc and Unread, _Order by_ Publish Date to create an event reading list.
+- _Filter by_ Unread and _Order by_ Added Time to see your latest unread comics.
+- _Search by_ your favorite character to find their appearances across different comics.
+
 ## <a name="demonstration">👀 Demonstration</a>
 
 You may browse a [live demo server](https://codex.sl8r.net/) to get a feel for Codex.
