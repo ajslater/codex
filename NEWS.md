@@ -10,6 +10,7 @@
   - Bust browser cache when library updates.
   - Reader settings were not applying in some cases.
   - Fixed crash updating latest codex software version from the internet.
+  - Fixed crash loading admin page.
 
 - Features
 
@@ -20,7 +21,7 @@
 
 ## v0.9.10
 
-Yanked. Bad Release.
+Yanked. Crash loading admin page.
 
 ## v0.9.9
 
