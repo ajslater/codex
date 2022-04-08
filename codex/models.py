@@ -555,10 +555,13 @@ class LatestVersion(BaseModel):
     def set_xapian_index_version(cls):
         """Set the codex db to xapian matching id."""
         version = str(uuid4())
-        cls._update_or_create(cls.XAPIAN_INDEX_VERSION_PK, version)
-        XAPIAN_INDEX_PATH.mkdir(parents=True, exist_ok=True)
-        with XAPIAN_INDEX_UUID_PATH.open("w") as uuid_file:
-            uuid_file.write(version)
+        try:
+            cls._update_or_create(cls.XAPIAN_INDEX_VERSION_PK, version)
+            XAPIAN_INDEX_PATH.mkdir(parents=True, exist_ok=True)
+            with XAPIAN_INDEX_UUID_PATH.open("w") as uuid_file:
+                uuid_file.write(version)
+        except Exception as exc:
+            LOG.error(f"Setting search index to db synchronization token: {exc}")
 
     @classmethod
     def is_xapian_uuid_match(cls):
