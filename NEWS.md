@@ -1,6 +1,6 @@
 # 📰 Codex News
 
-## v0.9.11a3
+## v0.9.11
 
 - Fixed
 
@@ -18,7 +18,9 @@
   - Space and shift-space previous and next reader shortcuts.
   - Reader settings UI redesigned to be clearer.
 
-## v0.9.10 - BAD RELEASE
+## v0.9.10
+
+Yanked. Bad Release.
 
 ## v0.9.9
 
