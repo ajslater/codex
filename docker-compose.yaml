@@ -71,8 +71,6 @@ services:
     container_name: codex-arch
   codex:
     image: docker.io/ajslater/codex
-    environment:
-      - LOGLEVEL=DEBUG
     container_name: codex
     ports:
       - "9810:9810"
