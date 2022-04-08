@@ -561,7 +561,7 @@ class LatestVersion(BaseModel):
             with XAPIAN_INDEX_UUID_PATH.open("w") as uuid_file:
                 uuid_file.write(version)
         except Exception as exc:
-            LOG.error(f"Setting search index to db syncronization token: {exc}")
+            LOG.error(f"Setting search index to db synchronization token: {exc}")
 
     @classmethod
     def is_xapian_uuid_match(cls):
