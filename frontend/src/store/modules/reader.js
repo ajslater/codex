@@ -225,6 +225,9 @@ const actions = {
     } else {
       finalRouteParams = routeParams;
     }
+    if (!finalRouteParams) {
+      return;
+    }
 
     // Validate route
     if (finalRouteParams.pk === router.currentRoute.params.pk) {

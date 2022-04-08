@@ -1,5 +1,11 @@
 # 📰 Codex News
 
+## v0.9.12a0
+
+- Features
+
+  - Disable reader prev/next touch swiping for phone sized browsers.
+
 ## v0.9.11
 
 - Fixed

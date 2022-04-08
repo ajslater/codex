@@ -10,8 +10,8 @@
       <nav
         id="navOverlay"
         v-touch="{
-          left: () => $store.dispatch('reader/routeTo', 'next'),
-          right: () => $store.dispatch('reader/routeTo', 'prev'),
+          left: () => swipeTo('next'),
+          right: () => swipeTo('prev'),
         }"
         @click="toggleToolbars"
       >
@@ -39,6 +39,8 @@ import ReaderComicPage from "@/components/reader-comic-page";
 import ReaderNavOverlay from "@/components/reader-nav-overlay";
 import ReaderNavToolbar from "@/components/reader-nav-toolbar";
 import ReaderTopToolbar from "@/components/reader-top-toolbar";
+
+const MIN_VIEWPORT_WIDTH_SWIPE_ENABLED = 768;
 
 export default {
   name: "MainReader",
@@ -78,6 +80,17 @@ export default {
   methods: {
     toggleToolbars: function () {
       this.showToolbars = !this.showToolbars;
+    },
+    swipeTo: function (dir) {
+      const vw = Math.max(
+        document.documentElement.clientWidth || 0,
+        window.innerWidth || 0
+      );
+      if (vw >= MIN_VIEWPORT_WIDTH_SWIPE_ENABLED) {
+        // Only swipe for tablet sized viewports and above.
+        // Swipe interferes with scan and pan needed for phones.
+        this.$store.dispatch("reader/routeTo", dir);
+      }
     },
   },
 };
