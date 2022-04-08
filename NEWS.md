@@ -1,6 +1,6 @@
 # 📰 Codex News
 
-## v0.9.11a2
+## v0.9.11a3
 
 - Fixed
 
