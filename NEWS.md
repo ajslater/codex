@@ -2,6 +2,10 @@
 
 ## v0.9.12a0
 
+- Fixes
+
+  - Reader titles smaller and wrap on mobile.
+
 - Features
 
   - Disable reader prev/next touch swiping for phone sized browsers.

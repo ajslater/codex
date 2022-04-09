@@ -138,6 +138,7 @@ export default {
 #toolbarTitle {
   overflow-y: auto;
   text-overflow: clip;
+  white-space: normal;
 }
 #downloadPageButton {
   height: 100%;
@@ -156,6 +157,9 @@ export default {
     padding-left: 10px;
     padding-right: 0px;
     width: 16px;
+  }
+  #toolbarTitle {
+    font-size: x-small;
   }
 }
 </style>
