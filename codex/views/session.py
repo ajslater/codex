@@ -78,7 +78,6 @@ class SessionView(APIView):
 
     def get_from_session(self, key, session_key=None):
         """Get one key from the session or its default."""
-        print(f"get_from_session({key}, {session_key})")
         if session_key is None:
             session_key = self.SESSION_KEY
         defaults, session = self._get_defaults_and_session(session_key)
