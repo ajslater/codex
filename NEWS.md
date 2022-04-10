@@ -4,6 +4,7 @@
 
 - Fixes
 
+  - Fix setting global reader settings.
   - Reader titles smaller and wrap on mobile.
 
 - Features
