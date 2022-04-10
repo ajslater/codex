@@ -63,7 +63,6 @@ class SessionView(APIView):
                 # extra check for migrated or corrupt data
                 data[key] = default_value
             if isinstance(default_value, dict):
-                print(f"{key=} {source_dict=} {data=}")
                 cls._get_source_values_or_set_defaults(
                     default_value, source_dict.get(key, {}), data[key]
                 )
