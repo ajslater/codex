@@ -7,14 +7,7 @@
           <ReaderComicPage :page-increment="+1" />
         </div>
       </v-main>
-      <nav
-        id="navOverlay"
-        v-touch="{
-          left: () => swipeTo('next'),
-          right: () => swipeTo('prev'),
-        }"
-        @click="toggleToolbars"
-      >
+      <nav id="navOverlay" :v-touch="touchMap" @click="toggleToolbars">
         <ReaderNavOverlay />
       </nav>
       <v-slide-y-transition>
@@ -81,16 +74,17 @@ export default {
     toggleToolbars: function () {
       this.showToolbars = !this.showToolbars;
     },
-    swipeTo: function (dir) {
+    touchMap: function () {
       const vw = Math.max(
         document.documentElement.clientWidth || 0,
         window.innerWidth || 0
       );
-      if (vw >= MIN_VIEWPORT_WIDTH_SWIPE_ENABLED) {
-        // Only swipe for tablet sized viewports and above.
-        // Swipe interferes with scan and pan needed for phones.
-        this.$store.dispatch("reader/routeTo", dir);
-      }
+      return vw >= MIN_VIEWPORT_WIDTH_SWIPE_ENABLED
+        ? {
+            left: () => this.$store.dispatch("reader/routeTo", "next"),
+            right: () => this.$store.dispatch("reader/routeTo", "prev"),
+          }
+        : {};
     },
   },
 };
