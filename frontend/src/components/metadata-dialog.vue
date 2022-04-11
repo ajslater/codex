@@ -249,6 +249,9 @@ export default {
   computed: {
     ...mapState("metadata", {
       md: (state) => state.md,
+      downloadURL: function (state) {
+        return getDownloadURL(this.md.id, state.timestamp);
+      },
     }),
     ...mapState("browser", {
       autoquery: (state) => state.settings.autoquery,
@@ -259,9 +262,6 @@ export default {
     },
     formattedIssue: function () {
       return formattedIssue(this.md.issue);
-    },
-    downloadURL: function () {
-      return getDownloadURL(this.md.id);
     },
     readerRoute: function () {
       const pk = this.md.id;

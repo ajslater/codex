@@ -26,12 +26,14 @@ const state = {
     issueCount: undefined,
   },
   maxPage: 0,
+  timestamp: Date.now(),
   settings: {
     globl: {
       fitTo: getGlobalFitToDefault(),
       twoPages: false,
     },
     local: JSON.parse(JSON.stringify(NULL_READER_SETTINGS)),
+    timestamp: Date.now(),
   },
   routes: {
     prev: undefined,
@@ -83,6 +85,7 @@ const mutations = {
     state.routes.prevBook = data.routes.prevBook;
     state.routes.nextBook = data.routes.nextBook;
     state.browserRoute = data.browserRoute;
+    state.updatedAt = data.updatedAt;
   },
   setBrowserRoute(state, value) {
     state.browserRoute = value;
@@ -95,6 +98,9 @@ const mutations = {
   },
   setNextPage(state, nextPage) {
     state.routes.next = nextPage;
+  },
+  setTimestamp(state) {
+    state.timestamp = Date.now();
   },
 };
 
@@ -149,8 +155,11 @@ const actions = {
       console.debug(error);
     });
   },
-  async fetchComicSettings({ commit, dispatch }, info) {
-    return API.getComicSettings(router.currentRoute.params.pk)
+  async fetchComicSettings({ commit, dispatch, state }, info) {
+    return API.getComicSettings(
+      router.currentRoute.params.pk,
+      state.settings.timestamp
+    )
       .then((response) => {
         const data = response.data;
         commit("setBookInfo", info);
@@ -161,8 +170,8 @@ const actions = {
         return console.error(error);
       });
   },
-  async bookChanged({ dispatch }) {
-    await API.getComicOpened(router.currentRoute.params.pk)
+  async bookChanged({ dispatch, state }) {
+    await API.getComicOpened(router.currentRoute.params.pk, state.timestamp)
       .then((response) => {
         const info = response.data;
         return dispatch("fetchComicSettings", info);
@@ -224,6 +233,9 @@ const actions = {
       finalRouteParams = state.routes.prev;
     } else {
       finalRouteParams = routeParams;
+    }
+    if (!finalRouteParams) {
+      return;
     }
 
     // Validate route

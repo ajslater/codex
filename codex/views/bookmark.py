@@ -174,7 +174,7 @@ class ComicSettingsView(SessionView, UserBookmarkUpdateMixin):
         snake_dict = self._validate(serializer)
         # Default for all comics
         self.load_params_from_session()
-        self.params["defaults"] = snake_dict
+        self.params["display"] = snake_dict
         self.save_params_to_session()
 
         # Null out this comic's settings so it uses all comic defaults
@@ -193,7 +193,7 @@ class ComicSettingsView(SessionView, UserBookmarkUpdateMixin):
 
     def get(self, request, *args, **kwargs):
         """Get comic settings."""
-        defaults = self.get_from_session("defaults")
+        defaults = self.get_from_session("display")
         ub = self._get_user_bookmark()
 
         # Load settings into global and local parts
@@ -208,5 +208,4 @@ class ComicSettingsView(SessionView, UserBookmarkUpdateMixin):
             data["local"][camel_key] = val
 
         serializer = ComicReaderBothSettingsSerializer(data)
-
         return Response(serializer.data)

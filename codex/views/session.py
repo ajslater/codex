@@ -45,18 +45,12 @@ class SessionView(APIView):
             "show": DEFAULTS["show"],
             "route": DEFAULTS["route"],
         },
-        READER_KEY: {"defaults": {"fit_to": DEFAULTS["fitTo"], "two_pages": False}},
+        READER_KEY: {"display": {"fit_to": DEFAULTS["fitTo"], "two_pages": False}},
     }
 
-    def _get_defaults(self, session_key):
-        """Get the session dict by key."""
-        if session_key is None:
-            session_key = self.SESSION_KEY
-        return self.SESSION_DEFAULTS[session_key]
-
-    def _get_defaults_and_session(self, session_key):
+    def _get_defaults_and_session(self, session_key: str):
         """Get the session defaults and the session."""
-        defaults = self._get_defaults(session_key)
+        defaults = self.SESSION_DEFAULTS[session_key]
         session = self.request.session.get(session_key, defaults)
         return defaults, session
 
@@ -70,12 +64,12 @@ class SessionView(APIView):
                 data[key] = default_value
             if isinstance(default_value, dict):
                 cls._get_source_values_or_set_defaults(
-                    default_value, source_dict[key], data[key]
+                    default_value, source_dict.get(key, {}), data[key]
                 )
 
-    def load_params_from_session(self, session_key=None):
+    def load_params_from_session(self):
         """Set the params from view session, creating missing values from defaults."""
-        defaults, session = self._get_defaults_and_session(session_key)
+        defaults, session = self._get_defaults_and_session(self.SESSION_KEY)
         data = {}
 
         self._get_source_values_or_set_defaults(defaults, session, data)
@@ -83,13 +77,16 @@ class SessionView(APIView):
 
     def get_from_session(self, key, session_key=None):
         """Get one key from the session or its default."""
+        if session_key is None:
+            session_key = self.SESSION_KEY
         defaults, session = self._get_defaults_and_session(session_key)
-        return session.get(key, defaults[key])
+        value = session.get(key, defaults[key])
+        return value
 
-    def save_params_to_session(self, session_key=None):
+    def save_params_to_session(self):
         """Save the session from params with defaults for missing values."""
-        defaults = self._get_defaults(session_key)
+        defaults = self.SESSION_DEFAULTS[self.SESSION_KEY]
         data = {}
         self._get_source_values_or_set_defaults(defaults, self.params, data)
-        self.request.session[session_key] = data
+        self.request.session[self.SESSION_KEY] = data
         self.request.session.save()

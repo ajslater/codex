@@ -58,6 +58,7 @@ export default {
           state.title.issueCount
         );
       },
+      timestamp: (state) => state.timestamp,
     }),
     ...mapGetters("reader", ["computedSettings"]),
     ...mapState("reader", {
@@ -77,7 +78,7 @@ export default {
     },
     pageSrc: function () {
       const routeParams = { ...this.$router.currentRoute.params };
-      return getComicPageSource(routeParams);
+      return getComicPageSource(routeParams, this.timestamp);
     },
     pageName: function () {
       const page = this.$router.currentRoute.params.page;
@@ -138,6 +139,7 @@ export default {
 #toolbarTitle {
   overflow-y: auto;
   text-overflow: clip;
+  white-space: normal;
 }
 #downloadPageButton {
   height: 100%;
@@ -156,6 +158,9 @@ export default {
     padding-left: 10px;
     padding-right: 0px;
     width: 16px;
+  }
+  #toolbarTitle {
+    font-size: x-small;
   }
 }
 </style>

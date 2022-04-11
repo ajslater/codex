@@ -7,14 +7,7 @@
           <ReaderComicPage :page-increment="+1" />
         </div>
       </v-main>
-      <nav
-        id="navOverlay"
-        v-touch="{
-          left: () => $store.dispatch('reader/routeTo', 'next'),
-          right: () => $store.dispatch('reader/routeTo', 'prev'),
-        }"
-        @click="toggleToolbars"
-      >
+      <nav id="navOverlay" :v-touch="touchMap" @click="toggleToolbars">
         <ReaderNavOverlay />
       </nav>
       <v-slide-y-transition>
@@ -39,6 +32,8 @@ import ReaderComicPage from "@/components/reader-comic-page";
 import ReaderNavOverlay from "@/components/reader-nav-overlay";
 import ReaderNavToolbar from "@/components/reader-nav-toolbar";
 import ReaderTopToolbar from "@/components/reader-top-toolbar";
+
+const MIN_VIEWPORT_WIDTH_SWIPE_ENABLED = 768;
 
 export default {
   name: "MainReader",
@@ -78,6 +73,18 @@ export default {
   methods: {
     toggleToolbars: function () {
       this.showToolbars = !this.showToolbars;
+    },
+    touchMap: function () {
+      const vw = Math.max(
+        document.documentElement.clientWidth || 0,
+        window.innerWidth || 0
+      );
+      return vw >= MIN_VIEWPORT_WIDTH_SWIPE_ENABLED
+        ? {
+            left: () => this.$store.dispatch("reader/routeTo", "next"),
+            right: () => this.$store.dispatch("reader/routeTo", "prev"),
+          }
+        : {};
     },
   },
 };

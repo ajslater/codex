@@ -1,5 +1,19 @@
 # 📰 Codex News
 
+## v0.9.12
+
+- Fixes
+
+  - Fix setting global reader settings.
+  - Fixed reader settings not applying due to caching.
+  - Bust reader caches when library updates.
+  - Reader titles smaller and wrap on mobile.
+  - Fixed deep linking into reader.
+
+- Features
+
+  - Disable reader prev/next touch swiping for phone sized browsers.
+
 ## v0.9.11
 
 - Fixed

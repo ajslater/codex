@@ -61,6 +61,8 @@ const mutations = {
       if (router.currentRoute.name === "browser") {
         this.dispatch("browser/browserPageStale", { showProgress: false });
       }
+      this.commit("reader/setTimestamp");
+      this.commit("metadata/setTimestamp");
     } else if (NOTIFY_MESSAGES.has(message)) {
       // notify
       const notify = NOTIFY_MAP[message]; // translate message to state.t s

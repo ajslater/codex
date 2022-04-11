@@ -1,15 +1,15 @@
 import { ajax, API_PREFIX } from "./base";
 
-const getComicOpened = (pk) => {
-  return ajax("get", `c/${pk}`);
+const getComicOpened = (pk, timestamp) => {
+  return ajax("get", `c/${pk}?ts=${timestamp}`);
 };
 
 const setComicBookmark = ({ pk, page }) => {
   return ajax("patch", `c/${pk}/${page}/bookmark`);
 };
 
-const getComicSettings = (pk) => {
-  return ajax("get", `c/${pk}/settings`);
+const getComicSettings = (pk, timestamp) => {
+  return ajax("get", `c/${pk}/settings?ts=${timestamp}`);
 };
 
 const setComicSettings = ({ pk, data }) => {
@@ -20,12 +20,12 @@ const setComicDefaultSettings = ({ pk, data }) => {
   return ajax("put", `c/${pk}/settings`, data);
 };
 
-export const getDownloadURL = (pk) => {
-  return `${API_PREFIX}/c/${pk}/archive.cbz`;
+export const getDownloadURL = (pk, timestamp) => {
+  return `${API_PREFIX}/c/${pk}/comic.cbz?ts=${timestamp}`;
 };
 
-export const getComicPageSource = ({ pk, page }) => {
-  return `${API_PREFIX}/c/${pk}/${page}/p.jpg`;
+export const getComicPageSource = ({ pk, page }, timestamp) => {
+  return `${API_PREFIX}/c/${pk}/${page}/p.jpg?ts=${timestamp}`;
 };
 
 export default {

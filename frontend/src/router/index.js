@@ -22,18 +22,19 @@ const routes = [
     props: true,
   },
   {
-    name: "browser",
-    path: "/:group/:pk/:page",
-    component: MainBrowser,
-    props: true,
-  },
-  {
+    // if this isn't first it breaks deep linking into reader
     name: "reader",
     path: "/c/:pk/:page",
     component: MainReader,
     props: true,
   },
-  { path: "*", component: NotFound },
+  {
+    name: "browser",
+    path: "/:group/:pk/:page",
+    component: MainBrowser,
+    props: true,
+  },
+  { name: "notfound", path: "*", component: NotFound, props: false },
 ];
 
 export default new VueRouter({

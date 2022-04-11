@@ -29,6 +29,7 @@ export default {
     ...mapState("reader", {
       maxPage: (state) => state.maxPage,
       nextRoute: (state) => state.routes.next,
+      timestamp: (state) => state.timestamp,
     }),
     ...mapGetters("reader", ["computedSettings"]),
     displayPage() {
@@ -41,12 +42,12 @@ export default {
     src() {
       const routeParams = { ...this.$router.currentRoute.params };
       routeParams.page = this.page;
-      return getComicPageSource(routeParams);
+      return getComicPageSource(routeParams, this.timestamp);
     },
     nextSrc() {
       const route = { ...this.nextRoute };
       route.page = this.nextRoute.page + this.pageIncrement;
-      return getComicPageSource(route);
+      return getComicPageSource(route, this.timestamp);
     },
     alt() {
       return `Page ${this.page}`;
