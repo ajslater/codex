@@ -58,6 +58,7 @@ export default {
           state.title.issueCount
         );
       },
+      timestamp: (state) => state.timestamp,
     }),
     ...mapGetters("reader", ["computedSettings"]),
     ...mapState("reader", {
@@ -77,7 +78,7 @@ export default {
     },
     pageSrc: function () {
       const routeParams = { ...this.$router.currentRoute.params };
-      return getComicPageSource(routeParams);
+      return getComicPageSource(routeParams, this.timestamp);
     },
     pageName: function () {
       const page = this.$router.currentRoute.params.page;

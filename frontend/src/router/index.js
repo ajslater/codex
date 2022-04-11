@@ -21,7 +21,8 @@ const routes = [
     redirect: LAST_ROUTE,
     props: true,
   },
-  { // if this isn't first it breaks deep linking into reader
+  {
+    // if this isn't first it breaks deep linking into reader
     name: "reader",
     path: "/c/:pk/:page",
     component: MainReader,

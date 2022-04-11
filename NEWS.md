@@ -5,6 +5,8 @@
 - Fixes
 
   - Fix setting global reader settings.
+  - Fixed reader settings not applying due to caching.
+  - Bust reader caches when library updates.
   - Reader titles smaller and wrap on mobile.
   - Fixed deep linking into reader.
 
