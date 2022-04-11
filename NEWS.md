@@ -6,6 +6,7 @@
 
   - Fix setting global reader settings.
   - Reader titles smaller and wrap on mobile.
+  - Fixed deep linking into reader.
 
 - Features
 

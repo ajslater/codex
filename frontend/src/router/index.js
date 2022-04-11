@@ -21,19 +21,19 @@ const routes = [
     redirect: LAST_ROUTE,
     props: true,
   },
+  { // if this isn't first it breaks deep linking into reader
+    name: "reader",
+    path: "/c/:pk/:page",
+    component: MainReader,
+    props: true,
+  },
   {
     name: "browser",
     path: "/:group/:pk/:page",
     component: MainBrowser,
     props: true,
   },
-  {
-    name: "reader",
-    path: "/c/:pk/:page",
-    component: MainReader,
-    props: true,
-  },
-  { path: "*", component: NotFound },
+  { name: "notfound", path: "*", component: NotFound, props: false },
 ];
 
 export default new VueRouter({
