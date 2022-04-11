@@ -68,7 +68,7 @@ urlpatterns = [
         never_cache(ComicSettingsView.as_view()),
         name="comic_settings",
     ),
-    path("c/<int:pk>/archive.cbz", ComicDownloadView.as_view(), name="comic_download"),
+    path("c/<int:pk>/comic.cbz", ComicDownloadView.as_view(), name="comic_download"),
     #
     # Notify
     path(
