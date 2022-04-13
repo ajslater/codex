@@ -1,5 +1,12 @@
 # 📰 Codex News
 
+## v0.9.13a0
+
+- Fixes
+
+  - Parse new filename patterns for metadata.
+  - Slightly faster comic cover generation.
+
 ## v0.9.12
 
 - Fixes

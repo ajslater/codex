@@ -6,6 +6,7 @@ from logging import INFO
 from pathlib import Path
 
 from comicbox.comic_archive import ComicArchive
+from comicbox.config import get_config
 from django.db.models.functions import Now
 from fnvhash import fnv1a_32
 from PIL import Image
@@ -28,6 +29,8 @@ COVER_DB_UPDATE_INTERVAL = 10
 HEX_FILL = 8
 PATH_STEP = 2
 LOG = get_logger(__name__)
+COMICBOX_CONFIG = get_config()
+COMICBOX_CONFIG.metadata = False
 
 
 def _hex_path(comic_path):
