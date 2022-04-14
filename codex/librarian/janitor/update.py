@@ -25,8 +25,8 @@ def update_codex(force=False):
         LOG.info("Codex seems outdated. Trying to update.")
 
     try:
-        subprocess.check_call(
-            (sys.executable, "-m", "pip", "install", "--upgrade", "codex")
+        subprocess.run(
+            (sys.executable, "-m", "pip", "install", "--upgrade", "codex"), check=True
         )
     except Exception as exc:
         LOG.error(exc)
