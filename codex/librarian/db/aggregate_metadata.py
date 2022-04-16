@@ -1,13 +1,12 @@
 """Aggregate metadata from comics to prepare for importing."""
-
 import time
 
+from copy import deepcopy
 from pathlib import Path
 from queue import Full
 from zipfile import BadZipFile
 
 from comicbox.comic_archive import ComicArchive
-from comicbox.config import get_config
 from comicbox.exceptions import UnsupportedArchiveTypeError
 from rarfile import BadRarFile
 
@@ -15,6 +14,7 @@ from codex.librarian.db.clean_metadata import clean_md
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, ImageComicCoverCreateTask
 from codex.models import Comic, Imprint, Publisher, Series, Volume
 from codex.settings.logging import LOG_EVERY, get_logger
+from codex.version import COMICBOX_CONFIG
 
 
 LOG = get_logger(__name__)
@@ -24,8 +24,9 @@ COMIC_M2M_FIELDS = set()
 for field in Comic._meta.get_fields():
     if field.many_to_many and field.name != "folders":
         COMIC_M2M_FIELDS.add(field.name)
-COMICBOX_CONFIG = get_config()
-COMICBOX_CONFIG.cover = True
+COMICBOX_CONFIG_AGGREGATE = deepcopy(COMICBOX_CONFIG)
+COMICBOX_CONFIG_AGGREGATE.cover = True
+COMICBOX_CONFIG_AGGREGATE.metadata = True
 
 
 def _get_path_metadata(path):
@@ -35,7 +36,7 @@ def _get_path_metadata(path):
     group_tree_md = {}
     failed_import = {}
     try:
-        car = ComicArchive(path, config=COMICBOX_CONFIG)
+        car = ComicArchive(path, config=COMICBOX_CONFIG_AGGREGATE)
         md = car.get_metadata()
         md["path"] = path
         clean_md(md)

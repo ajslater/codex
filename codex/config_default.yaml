@@ -1,0 +1,13 @@
+comicbox:
+  comet: True
+  comicbookinfo: True
+  comicinfoxml: True
+  cover: False
+  delete_rar: False
+  delete_tags: False
+  dest_path: .
+  dry_run: False
+  filename: True
+  metadata: False
+  raw: False
+  recurse: False

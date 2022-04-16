@@ -188,7 +188,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
 name = "comicbox"
-version = "0.4.0"
+version = "0.4.1"
 description = "An API for reading comic archives"
 category = "main"
 optional = false
@@ -862,7 +862,7 @@ python-versions = "*"
 
 [[package]]
 name = "pyright"
-version = "1.1.237"
+version = "1.1.238"
 description = "Command line wrapper for pyright"
 category = "dev"
 optional = false
@@ -1315,7 +1315,7 @@ django-haystack = ">=2.8.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "76b45d0fb8a93a43c961c9cd6190265a9b0245e5518dee466833fec53f737493"
+content-hash = "d70f6169eb2aba63c6fbab73b3f2a613bdd867f1e216c6f6ea3b60df6350ba17"
 
 [metadata.files]
 aioquic = [
@@ -1541,8 +1541,8 @@ colorama = [
     {file = "colorama-0.4.4.tar.gz", hash = "sha256:5941b2b48a20143d2267e95b1c2a7603ce057ee39fd88e7329b0c292aa16869b"},
 ]
 comicbox = [
-    {file = "comicbox-0.4.0-py3-none-any.whl", hash = "sha256:7a15af942a56b677658fb8d810a51eca3e51281380d9e5d1b2c7bc7eb0afac06"},
-    {file = "comicbox-0.4.0.tar.gz", hash = "sha256:c547a657e7b1c05a0f10c4ffb34ad39c6e592abca455c5fe8a9e8f008d06b4fe"},
+    {file = "comicbox-0.4.1-py3-none-any.whl", hash = "sha256:9d02ad1f6f766bb544307fd8acc4e5a332bdcb8f15d5ae6811010783ecbd4fa8"},
+    {file = "comicbox-0.4.1.tar.gz", hash = "sha256:3d0ed535cbc20538a3bd98ecba28d1eab9142c87c88e20a245f0a45823351549"},
 ]
 confuse = [
     {file = "confuse-1.7.0-py2.py3-none-any.whl", hash = "sha256:f002a733b3a4c16f73a094fcca3c80715b66e0ec08000983dc755267e2bd069f"},
@@ -1993,8 +1993,8 @@ pyreadline3 = [
     {file = "pyreadline3-3.4.1.tar.gz", hash = "sha256:6f3d1f7b8a31ba32b73917cefc1f28cc660562f39aea8646d30bd6eff21f7bae"},
 ]
 pyright = [
-    {file = "pyright-1.1.237-py3-none-any.whl", hash = "sha256:4e9ec6b21308925aadb01187f1f6c68cc27f9733365b7d0246ff53bda90d10cf"},
-    {file = "pyright-1.1.237.tar.gz", hash = "sha256:b18e11cdc2620f48ad34817c93060243b81095ce5b17cdddb8d9e2ee6ad4d002"},
+    {file = "pyright-1.1.238-py3-none-any.whl", hash = "sha256:0c8b8be229f56de98622257acb87d2de641e670ba60e79173ecd04a51bf2fb82"},
+    {file = "pyright-1.1.238.tar.gz", hash = "sha256:28871ac1734c813102734eb84504d5fc68db9dfbbbc4d472d3f1f359e7fb5861"},
 ]
 pytest = [
     {file = "pytest-7.1.1-py3-none-any.whl", hash = "sha256:92f723789a8fdd7180b6b06483874feca4c48a5c76968e03bb3e7f806a1869ea"},

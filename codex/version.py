@@ -6,6 +6,7 @@ from importlib.metadata import PackageNotFoundError, version
 
 import requests
 
+from comicbox.config import get_config
 from django.utils import timezone
 
 from codex.models import LatestVersion
@@ -17,6 +18,7 @@ PYPI_URL_TEMPLATE = "https://pypi.python.org/pypi/%s/json"
 CACHE_EXPIRY = timedelta(days=1)
 REPO_TIMEOUT = 5
 LOG = get_logger(__name__)
+COMICBOX_CONFIG = get_config(modname=PACKAGE_NAME)
 
 
 def get_version():

@@ -1,5 +1,11 @@
 # 📰 Codex News
 
+## v0.9.14a0
+
+- Fixes
+  - Fix comicbox config crash.
+  - Use codex config namespace (~/.config/codex) for codex to not interfere with standalone comicbox.
+
 ## v0.9.13
 
 - Fixes
