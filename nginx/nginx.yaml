@@ -6,4 +6,4 @@ services:
     ports:
       - "80:9811"
     volumes:
-      - /Users/aj/Code/codex/nginx/config/conf.d:/etc/nginx/conf.d:ro
+      - /Users/aj/Code/codex/nginx/http.d/codex:/etc/nginx/http.d/codex:ro
