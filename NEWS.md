@@ -4,9 +4,9 @@
 
 - Fixes
 
+  - Fix root_path configuration for running codex in url sub-paths
   - Parse new filename patterns for metadata.
   - Slightly faster comic cover generation.
-  - Fix root_path configuration for running codex in url sub-paths
 
 ## v0.9.12
 
