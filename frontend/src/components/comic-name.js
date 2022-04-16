@@ -12,21 +12,22 @@ export const getVolumeName = function (volume) {
 };
 
 export const formattedIssue = function (decimalIssue) {
-  if (decimalIssue === undefined || decimalIssue === null) {
-    return;
+  try {
+    decimalIssue = parseFloat(decimalIssue);
+  } catch (error) {
+    return "";
   }
   const intIssue = Math.floor(decimalIssue);
-  let issueStr = intIssue.toString().padStart(3, "0");
-  if (decimalIssue - intIssue === 0.5) {
-    if (intIssue === 0) {
-      issueStr = "";
-    }
-    issueStr += "½";
-  } else if (decimalIssue !== intIssue) {
-    const remainder = decimalIssue - intIssue;
-    const decimalSuffix = remainder.toString().slice(1);
-    issueStr += decimalSuffix;
+  let issueStr;
+  let pad;
+  if (decimalIssue === intIssue) {
+    issueStr = intIssue.toString();
+    pad = 4;
+  } else {
+    issueStr = parseFloat(decimalIssue).toFixed(1);
+    pad = 6;
   }
+  issueStr = issueStr.padStart(pad, "0")
   return issueStr;
 };
 
