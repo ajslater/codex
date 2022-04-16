@@ -7,6 +7,7 @@ from queue import Full
 from zipfile import BadZipFile
 
 from comicbox.comic_archive import ComicArchive
+from comicbox.config import get_config
 from comicbox.exceptions import UnsupportedArchiveTypeError
 from rarfile import BadRarFile
 
@@ -23,6 +24,8 @@ COMIC_M2M_FIELDS = set()
 for field in Comic._meta.get_fields():
     if field.many_to_many and field.name != "folders":
         COMIC_M2M_FIELDS.add(field.name)
+COMICBOX_CONFIG = get_config()
+COMICBOX_CONFIG.cover = True
 
 
 def _get_path_metadata(path):
@@ -32,7 +35,7 @@ def _get_path_metadata(path):
     group_tree_md = {}
     failed_import = {}
     try:
-        car = ComicArchive(path, get_cover=True)
+        car = ComicArchive(path, config=COMICBOX_CONFIG)
         md = car.get_metadata()
         md["path"] = path
         clean_md(md)
@@ -41,7 +44,7 @@ def _get_path_metadata(path):
         # other thread is significantly faster than doing it later.
         # do this as soon as we have a path
         if car.cover_image_data:
-            task = ImageComicCoverCreateTask(False, path, car.cover_image_data)
+            task = ImageComicCoverCreateTask(False, path, car.get_cover_image())
             try:
                 LIBRARIAN_QUEUE.put_nowait(task)
             except Full:

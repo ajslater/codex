@@ -7,7 +7,7 @@
     "lint": "eslint --cache --ext .cjs,.mjs.js,.json,.yaml,.md . && prettier --check ."
   },
   "devDependencies": {
-    "@fsouza/prettierd": "^0.19.1",
+    "@fsouza/prettierd": "^0.20.0",
     "@prettier/plugin-xml": "^2.0.1",
     "eslint": "^8.5.0",
     "eslint-config-prettier": "^8.3.0",

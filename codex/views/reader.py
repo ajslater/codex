@@ -1,5 +1,6 @@
 """Views for reading comic books."""
 from comicbox.comic_archive import ComicArchive
+from comicbox.config import get_config
 from django.http import HttpResponse
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
@@ -15,6 +16,8 @@ from codex.views.session import SessionView
 
 
 LOG = get_logger(__name__)
+COMICBOX_CONFIG = get_config
+COMICBOX_CONFIG.metadata = False
 
 
 class ComicOpenedView(SessionView, GroupACLMixin):
@@ -99,8 +102,9 @@ class ComicPageView(APIView, GroupACLMixin):
         try:
             group_acl_filter = self.get_group_acl_filter(True)
             comic = Comic.objects.filter(group_acl_filter).only("path").get(pk=pk)
-            car = ComicArchive(comic.path)
             page = self.kwargs.get("page")
+            # XXX This would be much faster if the CAR could be cached or exploded.
+            car = ComicArchive(comic.path)
             page_image = car.get_page_by_index(page)
             return HttpResponse(page_image, content_type="image/jpeg")
         except Comic.DoesNotExist as exc:
