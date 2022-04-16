@@ -1,11 +1,12 @@
 # 📰 Codex News
 
-## v0.9.13a0
+## v0.9.13
 
 - Fixes
 
   - Parse new filename patterns for metadata.
   - Slightly faster comic cover generation.
+  - Fix root_path configuration for running codex in url sub-paths
 
 ## v0.9.12
 
