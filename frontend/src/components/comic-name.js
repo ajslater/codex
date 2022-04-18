@@ -22,10 +22,10 @@ export const formattedIssue = function (decimalIssue) {
   let pad;
   if (decimalIssue === intIssue) {
     issueStr = intIssue.toString();
-    pad = 4;
+    pad = 3;
   } else {
     issueStr = Number.parseFloat(decimalIssue).toFixed(1);
-    pad = 6;
+    pad = 5;
   }
   issueStr = issueStr.padStart(pad, "0");
   return issueStr;
