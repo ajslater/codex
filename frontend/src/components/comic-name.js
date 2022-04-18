@@ -13,8 +13,8 @@ export const getVolumeName = function (volume) {
 
 export const formattedIssue = function (decimalIssue) {
   try {
-    decimalIssue = parseFloat(decimalIssue);
-  } catch (error) {
+    decimalIssue = Number.parseFloat(decimalIssue);
+  } catch {
     return "";
   }
   const intIssue = Math.floor(decimalIssue);
@@ -24,10 +24,10 @@ export const formattedIssue = function (decimalIssue) {
     issueStr = intIssue.toString();
     pad = 4;
   } else {
-    issueStr = parseFloat(decimalIssue).toFixed(1);
+    issueStr = Number.parseFloat(decimalIssue).toFixed(1);
     pad = 6;
   }
-  issueStr = issueStr.padStart(pad, "0")
+  issueStr = issueStr.padStart(pad, "0");
   return issueStr;
 };
 

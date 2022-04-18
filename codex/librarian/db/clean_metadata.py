@@ -2,6 +2,7 @@
 from decimal import Decimal
 from typing import Any, Optional
 
+from comicbox.metadata.comic_base import ComicBaseMetadata
 from django.db.models.fields import CharField, DecimalField, PositiveSmallIntegerField
 
 from codex.models import BrowserGroupModel, Comic, NamedModel
@@ -69,6 +70,8 @@ def _clean_comic_decimals(md: dict[str, Any], md_keys: frozenset[str]) -> None:
         field: DecimalField = Comic._meta.get_field(key)  # type:ignore
         try:
             value = md[key]
+            # Comicbox now gives issues as strings, convert them to decimal here.
+            value = ComicBaseMetadata.parse_decimal(value)
             value = value.quantize(_TWO_PLACES)
             value = value.max(_DECIMAL_ZERO)
             decimal_max = Decimal(10 ** (field.max_digits - 2) - 1)
