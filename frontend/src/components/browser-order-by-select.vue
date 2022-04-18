@@ -6,7 +6,7 @@
       :append-outer-icon="orderIcon"
       dense
       hide-details="auto"
-      :items="orderChoices"
+      :items="orderByChoices"
       :label="focused || hover ? label : undefined"
       :menu-props="{
         maxHeight: '80vh',
@@ -35,7 +35,7 @@
 
 <script>
 import { mdiSortReverseVariant, mdiSortVariant } from "@mdi/js";
-import { mapState } from "vuex";
+import { mapGetters, mapState } from "vuex";
 
 export default {
   name: "BrowseSortBySelect",
@@ -47,8 +47,8 @@ export default {
     };
   },
   computed: {
+    ...mapGetters("browser", ["orderByChoices"]),
     ...mapState("browser", {
-      orderChoices: (state) => state.formChoices.orderBy,
       orderReverseSetting: (state) => state.settings.orderReverse,
       orderBySetting: (state) => state.settings.orderBy,
       orderIcon: (state) =>

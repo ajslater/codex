@@ -63,7 +63,6 @@ const state = {
     bookmark: CHOICES.browser.bookmarkFilter, // static
     // determined by api
     ...DYNAMIC_FILTERS,
-    orderBy: CHOICES.browser.orderBy, // static
     settingsGroup: CHOICES.browser.settingsGroup, // static
     show: {
       // determined by api
@@ -111,6 +110,19 @@ const getters = {
     return Object.values(choices);
   },
   filterNames: (state) => Object.keys(state.settings.filters).slice(1),
+  orderByChoices: (state) => {
+    const choices = [];
+    for (const item of Object.values(CHOICES.browser.orderBy)) {
+      if (item.value === "path") {
+        if (state.formChoices.show.enableFolderView) {
+          choices.push(item);
+        }
+      } else {
+        choices.push(item);
+      }
+    }
+    return Object.values(choices);
+  },
 };
 
 const mutations = {
