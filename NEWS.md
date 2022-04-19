@@ -1,11 +1,12 @@
 # 📰 Codex News
 
-## v0.9.14a0
+## v0.9.14
 
 - Fixes
+
   - Fix comicbox config crash.
-  - Use codex config namespace (\~/.config/codex) for codex to not interfere with standalone comicbox.
-  - Comic issue names display to one decimal point instead of coerced into ½ glyph. A more comprehensive solution will come later.
+  - Use codex config namespace (~/.config/codex) so codex doesn't interfere with standalone comicbox configs.
+  - Comic issue names display to one decimal point instead of ½ glyph.
 
 - Features
 
