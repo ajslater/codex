@@ -125,7 +125,7 @@ class BrowserView(BrowserMetadataBaseView):
         # Sortable aggregates #
         #######################
         order_by = self.params.get("order_by", self.DEFAULT_ORDER_KEY)
-        order_func = self.get_aggregate_func(order_by, is_model_comic, autoquery_pk)
+        order_func = self.get_aggregate_func(order_by, model, autoquery_pk)
         queryset = queryset.annotate(order_value=order_func)
 
         ########################
@@ -376,14 +376,9 @@ class BrowserView(BrowserMetadataBaseView):
         detail = {"route": route, "settings": settings, "reason": reason}
         raise SeeOtherRedirectError(detail=detail)
 
-    def _validate_folder_settings(self):
+    def _validate_folder_settings(self, enable_folder_view):
         """Check that all the view variables for folder mode are set right."""
         # Check folder view admin flag
-        try:
-            flag = AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_FOLDER_VIEW)
-            enable_folder_view = flag.on
-        except AdminFlag.DoesNotExist:
-            enable_folder_view = False
         if not enable_folder_view:
             new_top_group = "r"
             self.params["top_group"] = new_top_group
@@ -455,10 +450,27 @@ class BrowserView(BrowserMetadataBaseView):
         """Validate group and top group settings."""
         group = self.kwargs.get("group")
         top_group = self.params.get("top_group")
+        order_by = self.params.get("order_by")
+        enable_folder_view = False
+        if top_group == self.FOLDER_GROUP or order_by == "path":
+            try:
+                enable_folder_view = (
+                    AdminFlag.objects.only("on")
+                    .get(name=AdminFlag.ENABLE_FOLDER_VIEW)
+                    .on
+                )
+            except Exception:
+                pass
+
         if top_group == self.FOLDER_GROUP:
-            self._validate_folder_settings()
+            self._validate_folder_settings(enable_folder_view)
         else:
             self._validate_browser_group_settings()
+
+        if order_by == "path" and not enable_folder_view:
+            self.params["order_by"] = self.DEFAULT_ORDER_KEY
+            LOG.warning("order by path not allowed by admin flag.")
+
         # save route once validated.
         pk = self.kwargs.get("pk")
         page = self.kwargs.get("page")

@@ -90,6 +90,10 @@
         "value": "size"
       },
       {
+        "text": "Filename",
+        "value": "path"
+      },
+      {
         "text": "Critical Rating",
         "value": "critical_rating"
       },

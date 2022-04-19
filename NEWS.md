@@ -1,5 +1,17 @@
 # 📰 Codex News
 
+## v0.9.14
+
+- Fixes
+
+  - Fix comicbox config crash.
+  - Use codex config namespace (~/.config/codex) so codex doesn't interfere with standalone comicbox configs.
+  - Comic issue names display to one decimal point instead of ½ glyph.
+
+- Features
+
+  - Filename order by option. Disabled if the "Enable Folder View" Admin Flag is off.
+
 ## v0.9.13
 
 - Fixes

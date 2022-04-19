@@ -4,7 +4,7 @@ build-backend = ["poetry.core.masonry.api"]
 
 [tool.poetry]
 name = "codex"
-version = "0.9.13"
+version = "0.9.14"
 description = "A comic archive web server."
 license = "GPL-2.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
@@ -32,7 +32,7 @@ include = ["codex/static_root/**/*", "vendor/django_haystack"]
 [tool.poetry.dependencies]
 python = "^3.9"
 ansicolors = "^1.1"
-comicbox = "^0.4.0"
+comicbox = "^0.5.0"
 django = "^4.0"
 djangorestframework = "^3.11"
 django-cors-headers = "^3.2"

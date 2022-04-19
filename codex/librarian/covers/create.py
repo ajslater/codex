@@ -6,7 +6,6 @@ from logging import INFO
 from pathlib import Path
 
 from comicbox.comic_archive import ComicArchive
-from comicbox.config import get_config
 from django.db.models.functions import Now
 from fnvhash import fnv1a_32
 from PIL import Image
@@ -20,6 +19,7 @@ from codex.librarian.queue_mp import (
 )
 from codex.models import Comic, Library
 from codex.settings.logging import get_logger
+from codex.version import COMICBOX_CONFIG
 
 
 THUMBNAIL_SIZE = (120, 180)
@@ -29,8 +29,6 @@ COVER_DB_UPDATE_INTERVAL = 10
 HEX_FILL = 8
 PATH_STEP = 2
 LOG = get_logger(__name__)
-COMICBOX_CONFIG = get_config()
-COMICBOX_CONFIG.metadata = False
 
 
 def _hex_path(comic_path):
@@ -84,7 +82,9 @@ def _create_comic_cover_from_file(comic, force=False):
             if correct_cover_path != comic.cover_path:
                 update_cover_path = correct_cover_path
         else:
-            cover_image = ComicArchive(comic.path).get_cover_image()
+            cover_image = ComicArchive(
+                comic.path, config=COMICBOX_CONFIG
+            ).get_cover_image()
             update_cover_path = create_comic_cover(
                 comic.path, cover_image, correct_cover_path
             )

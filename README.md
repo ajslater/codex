@@ -271,10 +271,12 @@ If this procedure goes kablooey, you may recover the original database at `confi
 
 I've tested Codex's bulk database updater to batch 100,000 filesystem events at a time. With enough RAM Codex could probably batch much more. But if you find that updating large batches of comics are failing, consider setting a the `max_db_ops` value in `hypercorn.toml` to a lower value. 1000 will probably still be pretty fast, for instance.
 
-### Bug Reports
+### 🐛 Bug Reports
 
-Issues are best filed [here on github](https://github.com/ajslater/codex/issues).
-I and other Codex users often lurk on the [Mylar support channels](https://github.com/mylar3/mylar3#live-support--conversation). It would be polite to use the `#anything-other-than-mylar` Discord channel to ask for help with Codex.
+Issues and feature requests are best filed on the [Github issue tracker](https://github.com/ajslater/codex/issues).
+
+By the generosity of the good people of [Mylar](https://github.com/mylar3/mylar3), I and other Codex users may be found answering questions on the [Mylar Discord](https://discord.gg/6UG94R7E8T).
+Please use the `#codex-support` channel to ask for help with Codex.
 
 ## <a name="out-of-scope">🚫 Out of Scope</a>
 
