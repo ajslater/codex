@@ -13,6 +13,7 @@ from rarfile import BadRarFile
 from codex.librarian.db.clean_metadata import clean_md
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, ImageComicCoverCreateTask
 from codex.models import Comic, Imprint, Publisher, Series, Volume
+from codex.pdf import PDF
 from codex.settings.logging import LOG_EVERY, get_logger
 from codex.version import COMICBOX_CONFIG
 
@@ -36,7 +37,10 @@ def _get_path_metadata(path):
     group_tree_md = {}
     failed_import = {}
     try:
-        car = ComicArchive(path, config=COMICBOX_CONFIG_AGGREGATE)
+        if path.lower().endswith(".pdf"):
+            car = PDF(path)
+        else:
+            car = ComicArchive(path, config=COMICBOX_CONFIG_AGGREGATE)
         md = car.get_metadata()
         md["path"] = path
         clean_md(md)
@@ -44,12 +48,14 @@ def _get_path_metadata(path):
         # Getting the cover data while getting the metada and handing to the
         # other thread is significantly faster than doing it later.
         # do this as soon as we have a path
-        if car.cover_image_data:
-            task = ImageComicCoverCreateTask(False, path, car.get_cover_image())
+        if not path.lower().endswith(".pdf"):
             try:
+                task = ImageComicCoverCreateTask(False, path, car.get_cover_image())
                 LIBRARIAN_QUEUE.put_nowait(task)
             except Full:
                 LOG.debug(f"Queue full. Not pre-creating cover for {path}")
+            except Exception as exc:
+                LOG.warning(f"Failed to pre-create cover for {path} {exc}")
 
         # Create group tree
         group_tree = []

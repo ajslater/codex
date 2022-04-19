@@ -55,6 +55,8 @@ whitenoise = { extras = ["brotli"], version = "^6.0" }
 xapian-bindings = "^0.1.0"
 xapian-haystack = "^3.0.1"
 Pillow = "^9.0.1"
+pdfrw = "^0.4"
+pdf2image = "^1.16.0"
 
 [tool.poetry.dev-dependencies]
 codespell = "^2.1.0"

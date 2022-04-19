@@ -1,14 +1,25 @@
 <template>
-  <img v-if="displayPage" :class="fitToClass" :src="src" :alt="alt" />
+  <div v-if="displayPage" :id="page">
+    <vue-pdf-embed
+      v-if="isPDF"
+      :source="src"
+      :page="1"
+      :width="pdfWidth"
+      :height="pdfHeight"
+    />
+    <img v-else :class="fitToClass" :src="src" :alt="alt" />
+  </div>
 </template>
 
 <script>
+import VuePdfEmbed from "vue-pdf-embed/dist/vue2-pdf-embed";
 import { mapGetters, mapState } from "vuex";
 
 import { getComicPageSource } from "@/api/v2/comic";
 
 export default {
   name: "ReaderComicPage",
+  components: { VuePdfEmbed },
   props: {
     pageIncrement: {
       type: Number,
@@ -30,6 +41,7 @@ export default {
       maxPage: (state) => state.maxPage,
       nextRoute: (state) => state.routes.next,
       timestamp: (state) => state.timestamp,
+      isPDF: () => true,
     }),
     ...mapGetters("reader", ["computedSettings"]),
     displayPage() {
@@ -65,6 +77,26 @@ export default {
         classes[fitToClass] = true;
       }
       return classes;
+    },
+    pdfWidth() {
+      const fitTo = this.computedSettings.fitTo;
+      console.log(fitTo);
+      let width = 0;
+      if (fitTo === "WIDTH") {
+        width = window.innerWidth;
+      }
+      if (width && this.computedSettings.twoPages) {
+        width = width / 2;
+      }
+      return width;
+    },
+    pdfHeight() {
+      const fitTo = this.computedSettings.fitTo;
+      console.log(fitTo);
+      if (fitTo == "HEIGHT") {
+        return window.innerHeight;
+      }
+      return 0;
     },
   },
   watch: {

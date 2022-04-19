@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from codex.models import Comic
+from codex.pdf import PDF
 from codex.serializers.reader import ComicReaderInfoSerializer
 from codex.serializers.redirect import ReaderRedirectSerializer
 from codex.settings.logging import get_logger
@@ -102,9 +103,14 @@ class ComicPageView(APIView, GroupACLMixin):
             comic = Comic.objects.filter(group_acl_filter).only("path").get(pk=pk)
             page = self.kwargs.get("page")
             # XXX This would be much faster if the CAR could be cached or exploded.
-            car = ComicArchive(comic.path, config=COMICBOX_CONFIG)
+            if comic.path.lower().endswith(".pdf"):
+                car = PDF(comic.path)
+                content_type = "application/pdf"
+            else:
+                car = ComicArchive(comic.path, config=COMICBOX_CONFIG)
+                content_type = "image/jpeg"
             page_image = car.get_page_by_index(page)
-            return HttpResponse(page_image, content_type="image/jpeg")
+            return HttpResponse(page_image, content_type=content_type)
         except Comic.DoesNotExist as exc:
             raise NotFound(detail=f"comic {pk} not found in db.") from exc
         except FileNotFoundError as exc:
