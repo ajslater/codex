@@ -32,6 +32,7 @@ class BrowserMetadataBaseView(BrowserBaseView):
         "critical_rating": Avg,
         "date": Min,
         "page_count": Sum,
+        "path": Min,
         "size": Sum,
         "updated_at": Min,
         "searchresult__score": Min,
@@ -133,7 +134,7 @@ class BrowserMetadataBaseView(BrowserBaseView):
         )
         return queryset
 
-    def get_aggregate_func(self, field, is_comic_model, autoquery_pk=None):
+    def get_aggregate_func(self, field, model, autoquery_pk=None):
         """Get a complete function for aggregating an attribute."""
         if field == "search_score":
             if not autoquery_pk:
@@ -146,12 +147,12 @@ class BrowserMetadataBaseView(BrowserBaseView):
             agg_func = Max
 
         # Determine order func
-        if is_comic_model or agg_func is None:
+        if model == Comic or agg_func is None or (field == "path" and model == Folder):
             # agg_none uses group fields not comic fields.
             func = F(field)
         else:
             prefix = ""
-            if not is_comic_model:
+            if model != Comic:
                 prefix += "comic__"
             filters = Q(**{f"{prefix}searchresult__query": autoquery_pk})
             func = agg_func(prefix + field, filters=filters)

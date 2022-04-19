@@ -125,7 +125,7 @@ class BrowserView(BrowserMetadataBaseView):
         # Sortable aggregates #
         #######################
         order_by = self.params.get("order_by", self.DEFAULT_ORDER_KEY)
-        order_func = self.get_aggregate_func(order_by, is_model_comic, autoquery_pk)
+        order_func = self.get_aggregate_func(order_by, model, autoquery_pk)
         queryset = queryset.annotate(order_value=order_func)
 
         ########################
