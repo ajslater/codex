@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Optional, Union
 
 from comicbox.metadata.filename import FilenameMetadata
+from filetype import guess
 from pdf2image import convert_from_path
 from pdfrw import PdfReader, PdfWriter
 
@@ -17,6 +18,7 @@ class PDF:
     """PDF class."""
 
     COVER_PAGE_INDEX = 1
+    MIME_TYPE = "application/pdf"
 
     def __init__(self, path: Union[Path, str]):
         """Initialize."""
@@ -24,6 +26,11 @@ class PDF:
         self._reader: Optional[PdfReader] = None
         self._metadata: dict = {}
         self._cover_image_data: Optional[bytes] = None
+
+    def is_pdf(self):
+        """Is the path a pdf."""
+        kind = guess(self._path)
+        return kind and kind.mime == self.MIME_TYPE
 
     def _get_reader(self) -> PdfReader:
         """Lazily get the pdfrw reader."""

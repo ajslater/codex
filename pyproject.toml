@@ -57,6 +57,7 @@ xapian-haystack = "^3.0.1"
 Pillow = "^9.0.1"
 pdfrw = "^0.4"
 pdf2image = "^1.16.0"
+filetype = "^1.0.12"
 
 [tool.poetry.dev-dependencies]
 codespell = "^2.1.0"

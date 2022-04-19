@@ -102,13 +102,13 @@ class ComicPageView(APIView, GroupACLMixin):
             group_acl_filter = self.get_group_acl_filter(True)
             comic = Comic.objects.filter(group_acl_filter).only("path").get(pk=pk)
             page = self.kwargs.get("page")
-            # XXX This would be much faster if the CAR could be cached or exploded.
-            if comic.path.lower().endswith(".pdf"):
-                car = PDF(comic.path)
-                content_type = "application/pdf"
+            pdf = PDF(comic.path)
+            if pdf.is_pdf():
+                car = pdf
+                content_type = PDF.MIME_TYPE
             else:
                 car = ComicArchive(comic.path, config=COMICBOX_CONFIG)
-                content_type = "image/jpeg"
+                content_type = "image"
             page_image = car.get_page_by_index(page)
             return HttpResponse(page_image, content_type=content_type)
         except Comic.DoesNotExist as exc:

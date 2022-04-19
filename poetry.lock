@@ -366,6 +366,14 @@ docs = ["furo (>=2021.8.17b43)", "sphinx (>=4.1)", "sphinx-autodoc-typehints (>=
 testing = ["covdefaults (>=1.2.0)", "coverage (>=4)", "pytest (>=4)", "pytest-cov", "pytest-timeout (>=1.4.2)"]
 
 [[package]]
+name = "filetype"
+version = "1.0.12"
+description = "Infer file type and MIME type of any file/buffer. No external dependencies."
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "flake8"
 version = "4.0.1"
 description = "the modular source code checker: pep8 pyflakes and co"
@@ -1334,7 +1342,7 @@ django-haystack = ">=2.8.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "0b168cb9b40839bc8d21a3d7096efa3f4594682e6b6828835e46e29f8f4ad12f"
+content-hash = "5f5016c9e33f1410f3c0a11ce7ca7ec737d924c7e47ef7e7c54b1d0fbd497e45"
 
 [metadata.files]
 aioquic = [
@@ -1670,6 +1678,10 @@ djangorestframework-types = [
 filelock = [
     {file = "filelock-3.6.0-py3-none-any.whl", hash = "sha256:f8314284bfffbdcfa0ff3d7992b023d4c628ced6feb957351d4c48d059f56bc0"},
     {file = "filelock-3.6.0.tar.gz", hash = "sha256:9cd540a9352e432c7246a48fe4e8712b10acb1df2ad1f30e8c070b82ae1fed85"},
+]
+filetype = [
+    {file = "filetype-1.0.12-py2.py3-none-any.whl", hash = "sha256:1e109789256786ebc878f189f31dd0b32ecbb192508cc6f376d8607e5f61ea1c"},
+    {file = "filetype-1.0.12.tar.gz", hash = "sha256:7ffc103209608903ac432f214ce7d60235b1cbee2bd9a7ddd7a9cdce80567c20"},
 ]
 flake8 = [
     {file = "flake8-4.0.1-py2.py3-none-any.whl", hash = "sha256:479b1304f72536a55948cb40a32dce8bb0ffe3501e26eaf292c7e60eb5e0428d"},

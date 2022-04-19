@@ -83,8 +83,9 @@ def _create_comic_cover_from_file(comic, force=False):
             if correct_cover_path != comic.cover_path:
                 update_cover_path = correct_cover_path
         else:
-            if comic.path.lower().endswith(".pdf"):
-                car = PDF(comic.path)
+            pdf = PDF(comic.path)
+            if pdf.is_pdf():
+                car = pdf
             else:
                 car = ComicArchive(comic.path, config=COMICBOX_CONFIG)
             cover_image = car.get_cover_image()

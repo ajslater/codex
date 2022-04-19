@@ -37,8 +37,9 @@ def _get_path_metadata(path):
     group_tree_md = {}
     failed_import = {}
     try:
-        if path.lower().endswith(".pdf"):
-            car = PDF(path)
+        pdf = PDF(path)
+        if pdf.is_pdf():
+            car = pdf
         else:
             car = ComicArchive(path, config=COMICBOX_CONFIG_AGGREGATE)
         md = car.get_metadata()
