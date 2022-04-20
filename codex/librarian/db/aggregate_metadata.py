@@ -30,6 +30,27 @@ COMICBOX_CONFIG_AGGREGATE.cover = True
 COMICBOX_CONFIG_AGGREGATE.metadata = True
 
 
+def _pregen_cover(path, car=None, pdf=None):
+    """Pregenerate the cover."""
+    # Getting the cover data while getting the metada and handing to the
+    # other thread is significantly faster than doing it later.
+    # Do this as soon as we have a path
+
+    try:
+        if car:
+            image = PDF._to_pil_image(car.get_cover_image())
+        elif pdf:
+            image = pdf.get_cover_pil_image()
+        else:
+            raise ValueError("not a comic or pdf.")
+        task = ImageComicCoverCreateTask(False, path, image)
+        LIBRARIAN_QUEUE.put_nowait(task)
+    except Full:
+        LOG.debug(f"Queue full. Not pre-creating cover for {path}")
+    except Exception as exc:
+        LOG.warning(f"Failed to pre-create cover for {path} {exc}")
+
+
 def _get_path_metadata(path):
     """Get the metatada from comicbox and munge it a little."""
     md = {}
@@ -38,30 +59,19 @@ def _get_path_metadata(path):
     failed_import = {}
     try:
         pdf = PDF(path)
+        car = None
         if pdf.is_pdf():
-            car = pdf
             file_format = Comic.FileFormats.PDF
+            md = pdf.get_metadata()
         else:
-            car = ComicArchive(path, config=COMICBOX_CONFIG_AGGREGATE)
             file_format = Comic.FileFormats.COMIC
-        md = car.get_metadata()
+            car = ComicArchive(path, config=COMICBOX_CONFIG_AGGREGATE)
+            md = car.get_metadata()
+        _pregen_cover(path, car, pdf)
+
         md["path"] = path
         md["file_format"] = file_format
         clean_md(md)
-
-        # Getting the cover data while getting the metada and handing to the
-        # other thread is significantly faster than doing it later.
-        # do this as soon as we have a path
-        if not pdf.is_pdf():
-            try:
-                task = ImageComicCoverCreateTask(
-                    False, path, PDF._to_pil_image(car.get_cover_image())
-                )
-                LIBRARIAN_QUEUE.put_nowait(task)
-            except Full:
-                LOG.debug(f"Queue full. Not pre-creating cover for {path}")
-            except Exception as exc:
-                LOG.warning(f"Failed to pre-create cover for {path} {exc}")
 
         # Create group tree
         group_tree = []
