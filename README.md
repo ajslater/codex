@@ -149,6 +149,13 @@ A library with _any_ groups is accessible only to users who are in those groups.
 
 Use the Groups admin panel to create groups and the Users admin panel to add and remove users to groups.
 
+### PDFs
+
+Codex only reads PDF metadata from the filename. If you decide to include PDFs in your comic library, I reccomend taking time to rename your files so Codex can find some metadata.
+Codex recognizes several file naming schemes, but this one probaly has the best results:
+
+`{series} v{volume} #{issue} {title} ({year}) {ignored}.pdf`
+
 ## <a name="configuration">⚙️ Configuration</a>
 
 ### Config Dir
