@@ -38,10 +38,13 @@ djangorestframework = "^3.11"
 django-cors-headers = "^3.2"
 django-dark = "^0.1"
 filelock = "^3.4.2"
+filetype = "^1.0.12"
 fnvhash = "^0.1"
 humanfriendly = "^10.0"
 humanize = "^4.0.0"
 hypercorn = { extras = ["h3"], version = "^0.13.0" }
+pdfrw = "^0.4"
+pdf2image = "^1.16.0"
 pycountry = "^22.1"
 python-dateutil = "^2.8.2"
 setproctitle = "^1.2.2"
@@ -55,9 +58,6 @@ whitenoise = { extras = ["brotli"], version = "^6.0" }
 xapian-bindings = "^0.1.0"
 xapian-haystack = "^3.0.1"
 Pillow = "^9.0.1"
-pdfrw = "^0.4"
-pdf2image = "^1.16.0"
-filetype = "^1.0.12"
 
 [tool.poetry.dev-dependencies]
 codespell = "^2.1.0"
