@@ -6,7 +6,7 @@ _PDF_
 
 - Features
 
-  - PDF support.
+  - PDF support. Optional poppler binary needed to generate PDF cover thumbnails.
 
 - Fixes
 
