@@ -1,5 +1,6 @@
 """Mimic comicbox.ComicArchive functions for PDFs."""
 from io import BytesIO
+from logging import CRITICAL
 from pathlib import Path
 from typing import Optional, Union
 
@@ -7,6 +8,7 @@ from comicbox.metadata.filename import FilenameMetadata
 from filetype import guess
 from pdf2image import convert_from_path
 from pdfrw import PdfReader, PdfWriter
+from pdfrw.errors import log as pdfrw_log
 from PIL import Image
 from PIL.Image import Image as ImageType
 
@@ -37,7 +39,11 @@ class PDF:
     def _get_reader(self) -> PdfReader:
         """Lazily get the pdfrw reader."""
         if not self._reader:
+            # Turn off error logging for pdfrw
+            loglevel = pdfrw_log.getEffectiveLevel()
+            pdfrw_log.setLevel(CRITICAL)
             self._reader = PdfReader(self._path)
+            pdfrw_log.setLevel(loglevel)
         return self._reader
 
     def get_metadata(self) -> dict:
@@ -54,6 +60,7 @@ class PDF:
                 self._metadata["page_count"] = root.Pages.Count  # type: ignore
             except Exception as exc:
                 LOG.warning(f"Error reading number of pages for {self._path}: {exc}")
+                self._metadata["page_count"] = 100
 
         return self._metadata
 
@@ -78,7 +85,6 @@ class PDF:
                 use_pdftocairo=True,
             )
             self._cover_pil_image = pil_images[0]
-            print(self._cover_pil_image.format)
         return self._cover_pil_image
 
     @staticmethod
