@@ -37,6 +37,7 @@ _MD_CHAR_KEYS = frozenset(
         "age_rating",
         "country",
         "cover_path",
+        "file_format",
         "format",
         "language",
         "name",

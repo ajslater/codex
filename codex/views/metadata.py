@@ -30,6 +30,7 @@ class MetadataView(BrowserMetadataBaseView):
             "country",
             "critical_rating",
             "day",
+            "file_format",
             "format",
             "issue",
             "language",

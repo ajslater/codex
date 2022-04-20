@@ -295,6 +295,12 @@ class Folder(WatchedPath):
 class Comic(WatchedPath):
     """Comic metadata."""
 
+    class FileFormats:
+        """Identifiers for file formats."""
+
+        COMIC = "comic"
+        PDF = "pdf"
+
     # From BaseModel, but Comics are sorted by these so index them
     created_at = DateTimeField(auto_now_add=True, db_index=True)
     updated_at = DateTimeField(auto_now=True, db_index=True)
@@ -369,6 +375,7 @@ class Comic(WatchedPath):
     folders = ManyToManyField(Folder)
     max_page = PositiveSmallIntegerField(default=0)
     size = PositiveIntegerField(db_index=True)
+    file_format = CharField(max_length=5, default="comic")
 
     class Meta:
         """Constraints."""

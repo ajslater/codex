@@ -40,10 +40,13 @@ def _get_path_metadata(path):
         pdf = PDF(path)
         if pdf.is_pdf():
             car = pdf
+            file_format = Comic.FileFormats.PDF
         else:
             car = ComicArchive(path, config=COMICBOX_CONFIG_AGGREGATE)
+            file_format = Comic.FileFormats.COMIC
         md = car.get_metadata()
         md["path"] = path
+        md["file_format"] = file_format
         clean_md(md)
 
         # Getting the cover data while getting the metada and handing to the

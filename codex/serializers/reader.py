@@ -38,3 +38,4 @@ class ComicReaderInfoSerializer(Serializer):
     maxPage = IntegerField(read_only=True)  # noqa: N815
     routes = ComicReaderRoutesSerializer(read_only=True)
     browserRoute = JSONField(read_only=True)  # noqa: N815
+    fileFormat = CharField(read_only=True)  # noqa N815

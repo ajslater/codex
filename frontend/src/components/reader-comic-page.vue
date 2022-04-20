@@ -41,7 +41,7 @@ export default {
       maxPage: (state) => state.maxPage,
       nextRoute: (state) => state.routes.next,
       timestamp: (state) => state.timestamp,
-      isPDF: () => true,
+      isPDF: (state) => state.fileFormat === "pdf",
     }),
     ...mapGetters("reader", ["computedSettings"]),
     displayPage() {

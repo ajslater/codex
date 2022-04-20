@@ -80,10 +80,12 @@ class ComicOpenedView(SessionView, GroupACLMixin):
                 "issue": comic.issue,
                 "issueCount": comic.volume.issue_count,
             },
+            "fileFormat": comic.file_format,
             "maxPage": comic.max_page,
             "routes": routes,
             "browserRoute": browser_route,
         }
+        print(f"{comic.file_format=}")
         serializer = ComicReaderInfoSerializer(data)
         return Response(serializer.data)
 
@@ -102,9 +104,8 @@ class ComicPageView(APIView, GroupACLMixin):
             group_acl_filter = self.get_group_acl_filter(True)
             comic = Comic.objects.filter(group_acl_filter).only("path").get(pk=pk)
             page = self.kwargs.get("page")
-            pdf = PDF(comic.path)
-            if pdf.is_pdf():
-                car = pdf
+            if comic.file_format == Comic.FileFormats.PDF:
+                car = PDF(comic.path)
                 content_type = PDF.MIME_TYPE
             else:
                 car = ComicArchive(comic.path, config=COMICBOX_CONFIG)
