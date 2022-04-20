@@ -47,7 +47,7 @@ You'll need to install these system dependencies before installing Codex.
 ##### macOS
 
 ```sh
-brew install jpeg libffi libyaml libzip openssl python unrar xapian
+brew install jpeg libffi libyaml libzip openssl poppler python unrar xapian
 ```
 
 ##### Linux
@@ -55,13 +55,13 @@ brew install jpeg libffi libyaml libzip openssl python unrar xapian
 ###### Debian based (e.g. Ubuntu)
 
 ```sh
-apt install build-essential libffi-dev libjpeg-dev libssl-dev libxapian30 libyaml-dev python3-pip python3-xapian zlib1g-dev
+apt install build-essential libffi-dev libjpeg-dev libssl-dev libxapian30 libyaml-dev poppler python3-pip python3-xapian zlib1g-dev
 ```
 
 ###### Alpine
 
 ```sh
-apk add bsd-compat-headers build-base jpeg-dev libffi-dev openssl-dev xapian-bindings-python3 xapian-core yaml-dev zlib-dev
+apk add bsd-compat-headers build-base jpeg-dev libffi-dev openssl-dev poppler xapian-bindings-python3 xapian-core yaml-dev zlib-dev
 ```
 
 ##### Install unrar Runtime Dependency on Linux

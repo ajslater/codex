@@ -6,13 +6,13 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('codex', '0013_int_issue_count_longer_charfields'),
+        ("codex", "0013_int_issue_count_longer_charfields"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='comic',
-            name='file_format',
-            field=models.CharField(default='comic', max_length=5),
+            model_name="comic",
+            name="file_format",
+            field=models.CharField(default="comic", max_length=5),
         ),
     ]
