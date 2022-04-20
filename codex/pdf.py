@@ -7,6 +7,8 @@ from comicbox.metadata.filename import FilenameMetadata
 from filetype import guess
 from pdf2image import convert_from_path
 from pdfrw import PdfReader, PdfWriter
+from PIL import Image
+from PIL.Image import Image as ImageType
 
 from codex.settings.logging import get_logger
 
@@ -25,7 +27,7 @@ class PDF:
         self._path: Path = Path(path)
         self._reader: Optional[PdfReader] = None
         self._metadata: dict = {}
-        self._cover_image_data: Optional[bytes] = None
+        self._cover_pil_image: Optional[ImageType] = None
 
     def is_pdf(self):
         """Is the path a pdf."""
@@ -64,20 +66,21 @@ class PDF:
         writer.write(buffer)
         return buffer.getvalue()
 
-    def get_cover_image(self) -> bytes:
+    def get_cover_pil_image(self) -> ImageType:
         """Get the first page as a image data."""
-        if not self._cover_image_data:
+        if not self._cover_pil_image:
             pil_images = convert_from_path(
                 self._path,
                 first_page=self.COVER_PAGE_INDEX,
                 last_page=self.COVER_PAGE_INDEX,
                 thread_count=4,
-                fmt="jpeg",  # TODO experiment with types
+                fmt="tiff",  # tiff fastest, maybe lossless.
                 use_pdftocairo=True,
             )
-            image = pil_images[0]
-            print(f"{type(image)}")
-            buffer = BytesIO()
-            image.save(buffer, "JPEG")
-            self._cover_image_data = buffer.getvalue()
-        return self._cover_image_data
+            self._cover_pil_image = pil_images[0]
+            print(self._cover_pil_image.format)
+        return self._cover_pil_image
+
+    @staticmethod
+    def _to_pil_image(data: bytes) -> ImageType:
+        return Image.open(BytesIO(data))

@@ -52,9 +52,11 @@ def _get_path_metadata(path):
         # Getting the cover data while getting the metada and handing to the
         # other thread is significantly faster than doing it later.
         # do this as soon as we have a path
-        if not path.lower().endswith(".pdf"):
+        if not pdf.is_pdf():
             try:
-                task = ImageComicCoverCreateTask(False, path, car.get_cover_image())
+                task = ImageComicCoverCreateTask(
+                    False, path, PDF._to_pil_image(car.get_cover_image())
+                )
                 LIBRARIAN_QUEUE.put_nowait(task)
             except Full:
                 LOG.debug(f"Queue full. Not pre-creating cover for {path}")
