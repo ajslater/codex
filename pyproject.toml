@@ -11,7 +11,7 @@ authors = ["AJ Slater <aj@slater.net>"]
 readme = "README.md"
 homepage = "https://github.com/ajslater/codex"
 documentation = "https://github.com/ajslater/codex"
-keywords = ["comic", "cbz", "cbr", "cbt"]
+keywords = ["comic", "cbz", "cbr", "cbt", "pdf"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Environment :: Web Environment",
@@ -32,7 +32,7 @@ include = ["codex/static_root/**/*", "vendor/django_haystack"]
 [tool.poetry.dependencies]
 python = "^3.9"
 ansicolors = "^1.1"
-comicbox = "^0.5.1a0"
+comicbox = "^0.5.1a1"
 django = "^4.0"
 djangorestframework = "^3.11"
 django-cors-headers = "^3.2"

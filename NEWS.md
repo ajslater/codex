@@ -7,6 +7,7 @@ _PDF_
 - Features
 
   - PDF support. Optional poppler binary needed to generate PDF cover thumbnails.
+  - CBT support. Tarball comic archives.
 
 - Fixes
 

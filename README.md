@@ -13,6 +13,7 @@ A comic archive browser and reader.
 - Per user bookmarking. You get per browser bookmarks even before you make an account.
 - Watches the filesystem and automatically imports new or changed comics.
 - Private Libraries accessible only to certain groups of users.
+- Reads CBZ, CBR, CBT, and PDF formatted comics.
 
 ### Examples
 

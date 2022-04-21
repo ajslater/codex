@@ -14,6 +14,7 @@ from watchdog.events import (
     EVENT_TYPE_CREATED,
     EVENT_TYPE_MOVED,
     FileCreatedEvent,
+    FileDeletedEvent,
     FileSystemEventHandler,
 )
 
@@ -23,8 +24,8 @@ from codex.settings.settings import MAX_DB_OPS
 from codex.threads import AggregateMessageQueuedThread
 
 
-COMIC_REGEX = r"\.cb[rz]$|\.pdf$"
-COMIC_MATCHER = re.compile(COMIC_REGEX, re.IGNORECASE)
+_COMIC_REGEX = r"\.(cb[zrt]|pdf)$"
+COMIC_MATCHER = re.compile(_COMIC_REGEX, re.IGNORECASE)
 LOG = get_logger(__name__)
 
 
@@ -149,22 +150,20 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
                     # Directories are only created by comics
                     return
             else:
+                source_match = COMIC_MATCHER.search(event.src_path)
                 if event.event_type == EVENT_TYPE_MOVED:
-                    if (
-                        COMIC_MATCHER.search(event.src_path) is None
-                        and COMIC_MATCHER.search(event.dest_path) is not None
-                    ):
+                    # Some types of file moves need to be cast as other events.
+
+                    dest_match = COMIC_MATCHER.search(event.dest_path)
+                    if source_match is None and dest_match is not None:
                         # Moved from an ignored file extension into a comic type,
                         # so create a new comic.
                         event = FileCreatedEvent(event.dest_path)
-                    # However, keep badly renamed comics in the database, let them move
-                    # elif COMIC_MATCHER.search(event.src_path) is not None
-                    #      and COMIC_MATCHER.search(event.dest_path) is None:
-                    #    # moved into something that's not a comic name so delete
-                    #    event = FileDeletedEvent(event.src_path)
-
-                if COMIC_MATCHER.search(event.src_path) is None:
-                    # Don't process non comic files at all
+                    elif source_match is not None and dest_match is None:
+                        # moved into something that's not a comic name so delete
+                        event = FileDeletedEvent(event.src_path)
+                elif source_match is None:
+                    # Don't process non-moved, non-comic files at all
                     return
 
             task = WatchdogEventTask(self.library_pk, event)
