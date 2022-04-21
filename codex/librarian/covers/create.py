@@ -22,7 +22,7 @@ from codex.version import COMICBOX_CONFIG
 
 
 THUMBNAIL_SIZE = (120, 180)
-MISSING_COVER_FN = "missing_cover.png"
+MISSING_COVER_FN = "missing_cover.webp"
 BULK_UPDATE_COMIC_COVER_FIELDS = ("cover_path", "updated_at")
 COVER_DB_UPDATE_INTERVAL = 10
 HEX_FILL = 8
@@ -44,7 +44,7 @@ def _hex_path(comic_path):
 def _get_cover_path(comic_path):
     """Get path to a cover image, creating the image if not found."""
     cover_path = _hex_path(comic_path)
-    return str(cover_path.with_suffix(".jpg"))
+    return str(cover_path.with_suffix(".webp"))
 
 
 def create_comic_cover(comic_path, cover_image, cover_path=None):

@@ -1,6 +1,6 @@
 import { ROOT_PATH } from "./base";
 
-const MISSING_COVER_PATH = `${ROOT_PATH}static/img/missing_cover.png`;
+const MISSING_COVER_PATH = `${ROOT_PATH}static/img/missing_cover.webp`;
 
 export const getCoverSource = (coverPath, updatedAt) => {
   if (coverPath == "missing_cover.png") {
