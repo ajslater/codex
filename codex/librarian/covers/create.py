@@ -47,10 +47,10 @@ def _get_cover_path(comic_path):
     return str(cover_path.with_suffix(".jpg"))
 
 
-def create_comic_cover(comic_path, cover_pil_image, cover_path=None):
+def create_comic_cover(comic_path, cover_image, cover_path=None):
     """Create a comic cover from an image."""
     try:
-        if cover_pil_image is None:
+        if cover_image is None:
             raise ValueError(f"No cover image found for {comic_path}")
 
         if not cover_path:
@@ -59,9 +59,8 @@ def create_comic_cover(comic_path, cover_pil_image, cover_path=None):
         fs_cover_path = COVER_ROOT / cover_path
         fs_cover_path.parent.mkdir(exist_ok=True, parents=True)
 
-        im = cover_pil_image
-        im.thumbnail(THUMBNAIL_SIZE)
-        im.save(fs_cover_path, "WEBP", lossless=False, quality=100, method=6)
+        cover_image.thumbnail(THUMBNAIL_SIZE)
+        cover_image.save(fs_cover_path, "WEBP", lossless=False, quality=100, method=6)
         LOG.debug(f"Created cover thumbnail for: {comic_path}")
         update_cover_path = cover_path
     except Exception as exc:
@@ -82,13 +81,12 @@ def _create_comic_cover_from_file(comic, force=False):
                 update_cover_path = correct_cover_path
         else:
             if comic.file_format == Comic.FileFormats.PDF:
-                pdf = PDF(comic.path)
-                cover_pil_image = pdf.get_cover_pil_image()
+                car = PDF(comic.path)
             else:
                 car = ComicArchive(comic.path, config=COMICBOX_CONFIG)
-                cover_pil_image = PDF._to_pil_image(car.get_cover_image())
+            cover_image = car.get_cover_image_as_pil()
             update_cover_path = create_comic_cover(
-                comic.path, cover_pil_image, correct_cover_path
+                comic.path, cover_image, correct_cover_path
             )
     except OSError as exc:
         LOG.warning(f"Failed to create cover thumb for {comic.path}: {exc}")

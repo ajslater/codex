@@ -9,7 +9,6 @@ from filetype import guess
 from pdf2image import convert_from_path
 from pdfrw import PdfReader, PdfWriter
 from pdfrw.errors import log as pdfrw_log
-from PIL import Image
 from PIL.Image import Image as ImageType
 
 from codex.settings.logging import get_logger
@@ -29,7 +28,6 @@ class PDF:
         self._path: Path = Path(path)
         self._reader: Optional[PdfReader] = None
         self._metadata: dict = {}
-        self._cover_pil_image: Optional[ImageType] = None
 
     def is_pdf(self):
         """Is the path a pdf."""
@@ -73,20 +71,18 @@ class PDF:
         writer.write(buffer)
         return buffer.getvalue()
 
-    def get_cover_pil_image(self) -> ImageType:
+    def get_cover_image_as_pil(self) -> ImageType:
         """Get the first page as a image data."""
-        if not self._cover_pil_image:
-            pil_images = convert_from_path(
-                self._path,
-                first_page=self.COVER_PAGE_INDEX,
-                last_page=self.COVER_PAGE_INDEX,
-                thread_count=4,
-                fmt="tiff",  # tiff fastest, maybe lossless.
-                use_pdftocairo=True,
-            )
-            self._cover_pil_image = pil_images[0]
-        return self._cover_pil_image
+        images = convert_from_path(
+            self._path,
+            first_page=self.COVER_PAGE_INDEX,
+            last_page=self.COVER_PAGE_INDEX,
+            thread_count=4,
+            fmt="tiff",  # tiff fastest, maybe lossless.
+            use_pdftocairo=True,
+        )
+        return images[0]
 
-    @staticmethod
-    def _to_pil_image(data: bytes) -> ImageType:
-        return Image.open(BytesIO(data))
+    def close(self):
+        """Get rid of the reader."""
+        self._reader = None

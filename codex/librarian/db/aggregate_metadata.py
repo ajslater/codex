@@ -1,7 +1,6 @@
 """Aggregate metadata from comics to prepare for importing."""
 import time
 
-from copy import deepcopy
 from pathlib import Path
 from queue import Full
 from zipfile import BadZipFile
@@ -25,24 +24,17 @@ COMIC_M2M_FIELDS = set()
 for field in Comic._meta.get_fields():
     if field.many_to_many and field.name != "folders":
         COMIC_M2M_FIELDS.add(field.name)
-COMICBOX_CONFIG_AGGREGATE = deepcopy(COMICBOX_CONFIG)
-COMICBOX_CONFIG_AGGREGATE.cover = True
-COMICBOX_CONFIG_AGGREGATE.metadata = True
 
 
-def _pregen_cover(path, car=None, pdf=None):
+def _pregen_cover(path, car):
     """Pregenerate the cover."""
     # Getting the cover data while getting the metada and handing to the
     # other thread is significantly faster than doing it later.
     # Do this as soon as we have a path
 
     try:
-        if car:
-            image = PDF._to_pil_image(car.get_cover_image())
-        elif pdf:
-            image = pdf.get_cover_pil_image()
-        else:
-            raise ValueError("not a comic or pdf.")
+        image = car.get_cover_image_as_pil()
+        car.close()
         task = ImageComicCoverCreateTask(False, path, image)
         LIBRARIAN_QUEUE.put_nowait(task)
     except Full:
@@ -59,15 +51,14 @@ def _get_path_metadata(path):
     failed_import = {}
     try:
         pdf = PDF(path)
-        car = None
         if pdf.is_pdf():
             file_format = Comic.FileFormats.PDF
-            md = pdf.get_metadata()
+            car = pdf
         else:
             file_format = Comic.FileFormats.COMIC
-            car = ComicArchive(path, config=COMICBOX_CONFIG_AGGREGATE)
-            md = car.get_metadata()
-        _pregen_cover(path, car, pdf)
+            car = ComicArchive(path, config=COMICBOX_CONFIG, closefd=False)
+        md = car.get_metadata()
+        _pregen_cover(path, car)
 
         md["path"] = path
         md["file_format"] = file_format
