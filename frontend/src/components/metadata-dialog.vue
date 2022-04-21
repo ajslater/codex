@@ -102,7 +102,7 @@
           </div>
         </section>
         <section class="mdSection">
-          <div class="thirdRow">
+          <div class="quarterRow">
             <MetadataText
               v-if="md.created_at"
               :value="formatDateTime(md.created_at)"
@@ -116,8 +116,11 @@
               class="mtime"
             />
             <MetadataText :value="size" label="Size" />
+            <MetadataText :value="fileFormat" label="File Type" />
           </div>
-          <MetadataText :value="md.path" label="Path" />
+          <div class="lastSmallRow">
+            <MetadataText :value="md.path" label="Path" />
+          </div>
         </section>
         <section class="halfRow mdSection">
           <MetadataText :value="md.country" label="Country" />
@@ -214,6 +217,10 @@ import { getReaderRoute } from "@/router/route";
 const CHILDREN_PER_SECOND = 1160;
 const MIN_SECS = 0.05;
 const UPDATE_INTERVAL = 250;
+const FILE_FORMATS = {
+  comic: "Comic Archive",
+  pdf: "PDF",
+};
 
 export default {
   name: "MetadataButton",
@@ -288,6 +295,9 @@ export default {
     },
     size: function () {
       return humanize.filesize(this.md.size);
+    },
+    fileFormat: function () {
+      return FILE_FORMATS[this.md.file_format] || this.md.file_format;
     },
   },
   watch: {
@@ -417,6 +427,10 @@ export default {
 }
 .thirdRow > * {
   width: 33.333%;
+  display: inline-flex;
+}
+.quarterRow > * {
+  width: 25%;
   display: inline-flex;
 }
 

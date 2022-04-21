@@ -23,8 +23,8 @@ from codex.settings.settings import MAX_DB_OPS
 from codex.threads import AggregateMessageQueuedThread
 
 
-COMIC_REGEX = r"\.cb[rz]$"
-COMIC_MATCHER = re.compile(COMIC_REGEX)
+COMIC_REGEX = r"\.cb[rz]$|\.pdf$"
+COMIC_MATCHER = re.compile(COMIC_REGEX, re.IGNORECASE)
 LOG = get_logger(__name__)
 
 

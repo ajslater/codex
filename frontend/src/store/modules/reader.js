@@ -25,6 +25,7 @@ const state = {
     issue: 0,
     issueCount: undefined,
   },
+  fileFormat: undefined,
   maxPage: 0,
   timestamp: Date.now(),
   settings: {
@@ -86,6 +87,7 @@ const mutations = {
     state.routes.nextBook = data.routes.nextBook;
     state.browserRoute = data.browserRoute;
     state.updatedAt = data.updatedAt;
+    state.fileFormat = data.fileFormat;
   },
   setBrowserRoute(state, value) {
     state.browserRoute = value;

@@ -47,7 +47,7 @@ You'll need to install these system dependencies before installing Codex.
 ##### macOS
 
 ```sh
-brew install jpeg libffi libyaml libzip openssl python unrar xapian
+brew install jpeg libffi libyaml libzip openssl poppler python unrar xapian
 ```
 
 ##### Linux
@@ -55,13 +55,13 @@ brew install jpeg libffi libyaml libzip openssl python unrar xapian
 ###### Debian based (e.g. Ubuntu)
 
 ```sh
-apt install build-essential libffi-dev libjpeg-dev libssl-dev libxapian30 libyaml-dev python3-pip python3-xapian zlib1g-dev
+apt install build-essential libffi-dev libjpeg-dev libssl-dev libxapian30 libyaml-dev poppler python3-pip python3-xapian zlib1g-dev
 ```
 
 ###### Alpine
 
 ```sh
-apk add bsd-compat-headers build-base jpeg-dev libffi-dev openssl-dev xapian-bindings-python3 xapian-core yaml-dev zlib-dev
+apk add bsd-compat-headers build-base jpeg-dev libffi-dev openssl-dev poppler xapian-bindings-python3 xapian-core yaml-dev zlib-dev
 ```
 
 ##### Install unrar Runtime Dependency on Linux
@@ -148,6 +148,13 @@ A library with _no_ groups is accessible to every user including anonymous users
 A library with _any_ groups is accessible only to users who are in those groups.
 
 Use the Groups admin panel to create groups and the Users admin panel to add and remove users to groups.
+
+### PDFs
+
+Codex only reads PDF metadata from the filename. If you decide to include PDFs in your comic library, I recommend taking time to rename your files so Codex can find some metadata.
+Codex recognizes several file naming schemes. This one has good results:
+
+`{series} v{volume} #{issue} {title} ({year}) {ignored}.pdf`
 
 ## <a name="configuration">⚙️ Configuration</a>
 

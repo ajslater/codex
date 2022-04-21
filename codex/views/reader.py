@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from codex.models import Comic
+from codex.pdf import PDF
 from codex.serializers.reader import ComicReaderInfoSerializer
 from codex.serializers.redirect import ReaderRedirectSerializer
 from codex.settings.logging import get_logger
@@ -79,6 +80,7 @@ class ComicOpenedView(SessionView, GroupACLMixin):
                 "issue": comic.issue,
                 "issueCount": comic.volume.issue_count,
             },
+            "fileFormat": comic.file_format,
             "maxPage": comic.max_page,
             "routes": routes,
             "browserRoute": browser_route,
@@ -101,10 +103,14 @@ class ComicPageView(APIView, GroupACLMixin):
             group_acl_filter = self.get_group_acl_filter(True)
             comic = Comic.objects.filter(group_acl_filter).only("path").get(pk=pk)
             page = self.kwargs.get("page")
-            # XXX This would be much faster if the CAR could be cached or exploded.
-            car = ComicArchive(comic.path, config=COMICBOX_CONFIG)
+            if comic.file_format == Comic.FileFormats.PDF:
+                car = PDF(comic.path)
+                content_type = PDF.MIME_TYPE
+            else:
+                car = ComicArchive(comic.path, config=COMICBOX_CONFIG)
+                content_type = "image"
             page_image = car.get_page_by_index(page)
-            return HttpResponse(page_image, content_type="image/jpeg")
+            return HttpResponse(page_image, content_type=content_type)
         except Comic.DoesNotExist as exc:
             raise NotFound(detail=f"comic {pk} not found in db.") from exc
         except FileNotFoundError as exc:

@@ -4,7 +4,7 @@ build-backend = ["poetry.core.masonry.api"]
 
 [tool.poetry]
 name = "codex"
-version = "0.9.14"
+version = "0.10.0a0"
 description = "A comic archive web server."
 license = "GPL-2.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
@@ -32,16 +32,19 @@ include = ["codex/static_root/**/*", "vendor/django_haystack"]
 [tool.poetry.dependencies]
 python = "^3.9"
 ansicolors = "^1.1"
-comicbox = "^0.5.0"
+comicbox = "^0.5.1a0"
 django = "^4.0"
 djangorestframework = "^3.11"
 django-cors-headers = "^3.2"
 django-dark = "^0.1"
 filelock = "^3.4.2"
+filetype = "^1.0.12"
 fnvhash = "^0.1"
 humanfriendly = "^10.0"
 humanize = "^4.0.0"
 hypercorn = { extras = ["h3"], version = "^0.13.0" }
+pdfrw = "^0.4"
+pdf2image = "^1.16.0"
 pycountry = "^22.1"
 python-dateutil = "^2.8.2"
 setproctitle = "^1.2.2"

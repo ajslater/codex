@@ -1,5 +1,17 @@
 # 📰 Codex News
 
+## v0.10.0
+
+_PDF_
+
+- Features
+
+  - PDF support. Optional poppler binary needed to generate PDF cover thumbnails.
+
+- Fixes
+
+  - File suffixes in poller & watcher now matched case insensitively.
+
 ## v0.9.14
 
 - Fixes
