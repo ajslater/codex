@@ -297,10 +297,7 @@ export default {
       return humanize.filesize(this.md.size);
     },
     fileFormat: function () {
-      console.log(this.md.file_format);
-      const val = FILE_FORMATS[this.md.file_format] || this.md.file_format;
-      console.log(val);
-      return val;
+      return FILE_FORMATS[this.md.file_format] || this.md.file_format;
     },
   },
   watch: {

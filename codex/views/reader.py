@@ -85,7 +85,6 @@ class ComicOpenedView(SessionView, GroupACLMixin):
             "routes": routes,
             "browserRoute": browser_route,
         }
-        print(f"{comic.file_format=}")
         serializer = ComicReaderInfoSerializer(data)
         return Response(serializer.data)
 
