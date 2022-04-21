@@ -308,8 +308,7 @@ class BrowserView(BrowserMetadataBaseView):
                     prefix = self.group_instance.library.path
                     if prefix[-1] != "/":
                         prefix += "/"
-                    user = self.request.user
-                    if not user or not getattr(user, "is_staff"):  # noqa: B009
+                    if not self.is_admin():
                         # remove library path for not admins
                         parent_name = parent_name.removeprefix(prefix)
                     suffix = "/" + self.group_instance.name

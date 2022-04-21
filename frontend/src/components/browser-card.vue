@@ -140,8 +140,6 @@ export default {
         ov = `${human} pages`;
       } else if (this.orderByCache == "size") {
         ov = humanize.filesize(Number.parseInt(ov, 10), 1024, 1);
-      } else if (this.orderByCache == "path") {
-        ov = `${ov.split("/").at(-1).split("\\").at(-1)}`;
       } else if (STAR_SORT_BY.has(this.orderByCache)) {
         ov = `${ov} stars`;
       } else if (DATE_SORT_BY.has(this.orderByCache)) {

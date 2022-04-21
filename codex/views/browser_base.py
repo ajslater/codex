@@ -2,6 +2,7 @@
 from distutils.util import strtobool
 
 from dateutil.parser import parse as du_parse
+from django.contrib.auth.models import User
 from django.db.models import F, Q
 from django.db.models.functions import Now
 from humanfriendly import parse_size
@@ -57,6 +58,7 @@ class BrowserBaseView(SessionView, GroupACLMixin):
     def __init__(self, *args, **kwargs):
         """Set params for the type checker."""
         super().__init__(*args, **kwargs)
+        self._is_admin = None
 
     def _filter_by_comic_field(self, field, is_model_comic):
         """Filter by a comic any2many attribute."""
@@ -391,6 +393,13 @@ class BrowserBaseView(SessionView, GroupACLMixin):
             # The browser filter is the same for all views
             group_filter = self._get_browser_group_filter()
         return group_filter
+
+    def is_admin(self):
+        """Is the current user an admin."""
+        if self._is_admin is None:
+            user = self.request.user
+            self._is_admin = user and isinstance(user, User) and user.is_staff
+        return self._is_admin
 
     def get_aggregate_filter(self, is_model_comic):
         """Return the filter for making aggregates."""

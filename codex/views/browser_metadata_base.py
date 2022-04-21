@@ -1,4 +1,6 @@
 """Base view for metadata annotations."""
+from os import sep
+
 from django.db.models import (
     Avg,
     BooleanField,
@@ -14,7 +16,7 @@ from django.db.models import (
     Sum,
     Value,
 )
-from django.db.models.functions import Cast, Coalesce, NullIf
+from django.db.models.functions import Cast, Coalesce, NullIf, Reverse, Right, StrIndex
 
 from codex.models import Comic, Folder, Imprint, Publisher, Series, Volume
 from codex.serializers.mixins import UNIONFIX_PREFIX
@@ -134,6 +136,11 @@ class BrowserMetadataBaseView(BrowserBaseView):
         )
         return queryset
 
+    @staticmethod
+    def _get_path_query_func(field):
+        """Use the db to get only the filename."""
+        return Right(field, StrIndex(Reverse(field), Value(sep)) - 1)  # type: ignore
+
     def get_aggregate_func(self, field, model, autoquery_pk=None):
         """Get a complete function for aggregating an attribute."""
         if field == "search_score":
@@ -147,15 +154,18 @@ class BrowserMetadataBaseView(BrowserBaseView):
             agg_func = Max
 
         # Determine order func
-        if model == Comic or agg_func is None or (field == "path" and model == Folder):
+        if field == "path" and model in (Comic, Folder):
+            func = self._get_path_query_func(field)
+        elif model == Comic or agg_func is None:
             # agg_none uses group fields not comic fields.
             func = F(field)
         else:
-            prefix = ""
-            if model != Comic:
-                prefix += "comic__"
+            prefix = "comic__"
             filters = Q(**{f"{prefix}searchresult__query": autoquery_pk})
-            func = agg_func(prefix + field, filters=filters)
+            full_field = prefix + field
+            if field == "path":
+                full_field = self._get_path_query_func(full_field)
+            func = agg_func(full_field, filters=filters)
         return func
 
     def annotate_common_aggregates(self, qs, model):

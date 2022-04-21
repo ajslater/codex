@@ -1,12 +1,11 @@
 """View for marking comics read and unread."""
 from copy import copy
 
-from django.contrib.auth.models import User
-from django.db.models import Case, Count, Subquery, Value, When
+from django.db.models import Case, Count, F, Subquery, Value, When
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
-from codex.models import Comic
+from codex.models import AdminFlag, Comic
 from codex.serializers.metadata import MetadataSerializer
 from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
@@ -43,7 +42,7 @@ class MetadataView(BrowserMetadataBaseView):
             "year",
         )
     )
-    _ADMIN_COMIC_VALUE_FIELDS = set(("path",))
+    _ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS = set(("path",))
     _COMIC_VALUE_FIELDS_CONFLICTING = set(
         (
             "name",
@@ -89,17 +88,12 @@ class MetadataView(BrowserMetadataBaseView):
     _PATH_GROUPS = ("c", "f")
     _CREDIT_RELATIONS = ("role", "person")
 
-    def _get_is_admin(self):
-        """Is the current user an admin."""
-        user = self.request.user
-        return user and isinstance(user, User) and user.is_staff
-
     def _get_comic_value_fields(self):
         """Include the path field for staff."""
         fields = copy(self._COMIC_VALUE_FIELDS)
         is_not_path_group = self.group not in self._PATH_GROUPS
-        if self.is_admin and is_not_path_group:
-            fields |= self._ADMIN_COMIC_VALUE_FIELDS
+        if (self._is_enabled_folder_view() or self.is_admin()) and is_not_path_group:
+            fields |= self._ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS
         return fields
 
     def _intersection_annotate(
@@ -184,6 +178,8 @@ class MetadataView(BrowserMetadataBaseView):
                 self._COMIC_VALUE_FIELDS_CONFLICTING,
                 annotation_prefix=self._COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
             )
+        elif self.is_admin() or self._is_enabled_folder_view():
+            qs = qs.annotate(library_path=F("library__path"))
 
         # Foreign Keys
         fk_fields = copy(self._COMIC_FK_FIELDS_MAP[self.group])
@@ -265,8 +261,15 @@ class MetadataView(BrowserMetadataBaseView):
         # Don't expose the filesystem
         obj["folders"] = None
         obj["parent_folder"] = None
-        if not self.is_admin:
-            obj["path"] = None
+        if not self.is_admin() and obj["path"]:
+            if self._is_enabled_folder_view():
+                library_path = obj.get("library_path")
+                if library_path:
+                    obj["path"] = obj["path"].removeprefix(library_path)
+                else:
+                    obj["path"] = None
+            else:
+                obj["path"] = None
 
         # For highlighting the current group
         obj["group"] = self.group
@@ -301,11 +304,18 @@ class MetadataView(BrowserMetadataBaseView):
         obj = self._copy_annotations_into_comic_fields(obj, m2m_intersections)
         return obj
 
+    def _is_enabled_folder_view(self):
+        if self._efv_flag is None:
+            self._efv_flag = (
+                AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_FOLDER_VIEW).on
+            )
+        return self._efv_flag
+
     def get(self, _request, *args, **kwargs):
         """Get metadata for a filtered browse group."""
         # Init
+        self._efv_flag = None
         self.load_params_from_session()
-        self.is_admin = self._get_is_admin()
         self.group = self.kwargs["group"]
         self.model = self.GROUP_MODEL_MAP[self.group]
         if self.model is None:
