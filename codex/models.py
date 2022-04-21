@@ -292,6 +292,13 @@ class Folder(WatchedPath):
     """File system folder."""
 
 
+def validate_file_format_choice(choice):
+    """Validate file format."""
+    values = Comic.FileFormats.CHOICES
+    if choice not in values:
+        raise ValidationError(_(f"{choice} is not one of {values}"))
+
+
 class Comic(WatchedPath):
     """Comic metadata."""
 
@@ -300,6 +307,7 @@ class Comic(WatchedPath):
 
         COMIC = "comic"
         PDF = "pdf"
+        CHOICES = set((COMIC, PDF))
 
     # From BaseModel, but Comics are sorted by these so index them
     created_at = DateTimeField(auto_now_add=True, db_index=True)
@@ -375,7 +383,9 @@ class Comic(WatchedPath):
     folders = ManyToManyField(Folder)
     max_page = PositiveSmallIntegerField(default=0)
     size = PositiveIntegerField(db_index=True)
-    file_format = CharField(max_length=5, default="comic")
+    file_format = CharField(
+        validators=[validate_file_format_choice], max_length=5, default="comic"
+    )
 
     class Meta:
         """Constraints."""
@@ -493,8 +503,9 @@ def cascade_if_user_null(collector, field, sub_objs, _using):
 
 def validate_fit_to_choice(choice):
     """Validate fit to choice."""
-    if choice is not None and choice not in CHOICES["fitTo"]:
-        raise ValidationError(_(f"{choice} is not one of $(FIT_TO_CHOICE_VALUES)"))
+    values = CHOICES["fitTo"]
+    if choice is not None and choice not in values:
+        raise ValidationError(_(f"{choice} is not one of {values}"))
 
 
 class UserBookmark(BaseModel):
