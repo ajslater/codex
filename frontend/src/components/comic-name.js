@@ -12,6 +12,7 @@ export const getVolumeName = function (volume) {
 };
 
 export const formattedIssue = function (decimalIssue) {
+  if (decimalIssue == null) { return null;}
   try {
     decimalIssue = Number.parseFloat(decimalIssue);
   } catch {
@@ -32,6 +33,7 @@ export const formattedIssue = function (decimalIssue) {
 };
 
 export const getIssueName = function (issue, issueCount) {
+  if (issue == null) { return "";}
   let issueName = "#" + formattedIssue(issue);
   if (issueCount) {
     issueName += ` of ${issueCount}`;
