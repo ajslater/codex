@@ -62,22 +62,12 @@ class BrowserGroupModel(BaseModel):
     DEFAULT_NAME = ""
 
     name = CharField(db_index=True, max_length=64, default=DEFAULT_NAME)
-    sort_name = CharField(db_index=True, max_length=130, default=DEFAULT_NAME)
-
-    def presave(self):
-        """Save the sort name. Called by save()."""
-        self.sort_name = self.name
-
-    def save(self, *args, **kwargs):
-        """Save the sort name as the name by default."""
-        self.presave()
-        super().save(*args, **kwargs)
 
     class Meta:
         """Without this a real table is created and joined to."""
 
         abstract = True
-        ordering = ["sort_name"]
+        ordering = ("name",)
 
 
 class Publisher(BrowserGroupModel):
@@ -87,6 +77,7 @@ class Publisher(BrowserGroupModel):
         """Constraints."""
 
         unique_together = ("name",)
+        ordering = ("name",)
 
 
 class Imprint(BrowserGroupModel):
@@ -98,15 +89,7 @@ class Imprint(BrowserGroupModel):
         """Constraints."""
 
         unique_together = ("name", "publisher")
-
-    def presave(self):
-        """Save the sort name. Called by save()."""
-        names = []
-        if self.publisher.name:
-            names.append(self.publisher.name)
-        if self.name:
-            names.append(self.name)
-        self.sort_name = " ".join(names).strip()
+        ordering = ("publisher__name", "name")
 
 
 class Series(BrowserGroupModel):
@@ -121,6 +104,7 @@ class Series(BrowserGroupModel):
 
         unique_together = ("name", "imprint")
         verbose_name_plural = "Series"
+        ordering = ("name",)
 
 
 class Volume(BrowserGroupModel):
@@ -131,19 +115,11 @@ class Volume(BrowserGroupModel):
     series = ForeignKey(Series, on_delete=CASCADE)
     issue_count = PositiveSmallIntegerField(null=True)
 
-    def presave(self):
-        """Save the sort name. Called by save()."""
-        names = []
-        if self.series.name:
-            names.append(self.series.name)
-        if self.name:
-            names.append(self.name)
-        self.sort_name = " ".join(names).strip()
-
     class Meta:
         """Constraints."""
 
         unique_together = ("name", "series")
+        ordering = ("series__name", "name")
 
 
 def validate_dir_exists(path):
@@ -295,6 +271,7 @@ class WatchedPath(BrowserGroupModel):
 
         unique_together = ("library", "path")
         abstract = True
+        ordering = ("name",)
 
 
 class Folder(WatchedPath):
@@ -400,6 +377,7 @@ class Comic(WatchedPath):
 
         unique_together = ("library", "path")
         verbose_name = "Issue"
+        ordering = ("volume__name", "issue", "issue_suffix")
 
     def _set_date(self):
         """Compute a date for the comic."""
@@ -433,12 +411,6 @@ class Comic(WatchedPath):
         self._set_decade()
         self.max_page = max(self.page_count - 1, 0)
         self.size = Path(self.path).stat().st_size
-        sort_names = [self.volume.sort_name]
-        if self.issue is not None:
-            sort_names += [f"{self.issue:016.3f}"]
-        if self.issue_suffix:
-            sort_names += [self.issue_suffix]
-        self.sort_name = " ".join(sort_names).strip()
 
     def save(self, *args, **kwargs):
         """Save computed fields."""

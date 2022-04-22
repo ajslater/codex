@@ -4,6 +4,7 @@ from os import sep
 from django.db.models import (
     Avg,
     BooleanField,
+    CharField,
     Count,
     DecimalField,
     F,
@@ -154,7 +155,10 @@ class BrowserMetadataBaseView(BrowserBaseView):
             agg_func = Max
 
         # Determine order func
-        if field == "path" and model in (Comic, Folder):
+        if field == "sort_name":
+            # use default sorting.
+            func = Value(None, output_field=CharField())
+        elif field == "path" and model in (Comic, Folder):
             func = self._get_path_query_func(field)
         elif model == Comic or agg_func is None:
             # agg_none uses group fields not comic fields.
@@ -188,26 +192,37 @@ class BrowserMetadataBaseView(BrowserBaseView):
 
         Order on pk to give duplicates a consistent position.
         """
-        # order_keys
-        order_key = ""
-        if for_cover_path:
-            order_key += "comic__"
-            ok = self.params.get("order_by", self.DEFAULT_ORDER_KEY)
-            ok = self._ORDER_BY_FIELD_ALIASES.get(ok, ok)
-            order_key += ok
-        else:
-            order_key += "order_value"
-
         # order_prefix
-        order_reverse_prefix = "-" if self.params.get("order_reverse") else ""
+        reverse = self.params.get("order_reverse")
+        order_reverse_prefix = "-" if reverse else ""
+
+        # cover prefix
+        if for_cover_path:
+            for_cover_prefix = "comic__"
+        else:
+            for_cover_prefix = ""
+
+        prefixes = order_reverse_prefix + for_cover_prefix
+
+        # order_fields
+        ob_param = self.params.get("order_by", self.DEFAULT_ORDER_KEY)
+        if ob_param == "sort_name":
+            # Use default sort
+            order_fields = list(model._meta.ordering)
+        elif for_cover_path:
+            # Use comic fields directly.
+            order_key = self._ORDER_BY_FIELD_ALIASES.get(ob_param, ob_param)
+            order_fields = [order_key]
+        else:
+            # Use annotated order_value
+            order_fields = ["order_value"]
+
+        order_fields += ["pk"]
 
         # order_by
-        # add prefix to all order_by fields
-        order_by = [
-            order_reverse_prefix + field for field in (order_key, "sort_name", "pk")
-        ]
+        # add prefixes to all order_by fields
+        order_by = [prefixes + field for field in order_fields]
         if model in (Comic, Folder):
-            # This keeps position stability for duplicate comics & folders
-            order_by += ["library"]
-
+            # Keep position stability for duplicate comics & folders
+            order_by += [order_reverse_prefix + "library"]
         return order_by

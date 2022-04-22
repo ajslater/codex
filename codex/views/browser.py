@@ -63,7 +63,6 @@ class BrowserView(BrowserMetadataBaseView):
         "progress",
         "publisher_name",
         "series_name",
-        "sort_name",
         "volume_name",
     )
     _BROWSER_SETTINGS_KEYS_SNAKE_CAMEL_MAP = {
