@@ -21,7 +21,7 @@ const getGlobalFitToDefault = () => {
 const state = {
   comic: {
     fileFormat: undefined,
-    issue: 0,
+    issue: undefined,
     issueSuffix: "",
     issueCount: undefined,
     maxPage: 0,
@@ -80,7 +80,6 @@ const mutations = {
   },
   setBookInfo(state, data) {
     state.comic = data.comic;
-    state.comic.issue = Number.parseFloat(data.comic.issue);
     state.comic.maxPage = Number(data.comic.maxPage);
     state.routes = data.routes;
     state.browserRoute = data.browserRoute;

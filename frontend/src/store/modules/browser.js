@@ -130,7 +130,7 @@ const computeZeroPad = (issueMax) => {
   if (!issueMax || issueMax < 1) {
     return 1;
   }
-  return Math.log10(Math.floor(issueMax)) + 1;
+  return Math.floor(Math.log10(issueMax)) + 1;
 };
 
 const mutations = {
@@ -164,7 +164,7 @@ const mutations = {
     state.routes.up = Object.freeze(data.upRoute);
     state.objList = Object.freeze(data.objList);
     state.zeroPad = computeZeroPad(data.issueMax);
-    state.numPages = Number(data.numPages);
+    state.numPages = data.numPages;
     state.librariesExist = data.librariesExist;
     state.queries = data.queries;
   },

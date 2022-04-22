@@ -21,7 +21,9 @@ class BrowserAggregateSerializerMixin(metaclass=SerializerMetaclass):
     # UserBookmark annotations
     bookmark = IntegerField(read_only=True)
     finished = BooleanField(read_only=True)
-    progress = DecimalField(max_digits=5, decimal_places=2, read_only=True)
+    progress = DecimalField(
+        max_digits=5, decimal_places=2, read_only=True, coerce_to_string=False
+    )
 
     def to_representation(self, instance):
         """

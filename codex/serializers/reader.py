@@ -30,7 +30,9 @@ class ComicReaderComicSerializer(Serializer):
     """Components for constructing the title."""
 
     fileFormat = CharField(read_only=True, source="file_format")  # noqa N815
-    issue = DecimalField(max_digits=16, decimal_places=2, read_only=True)
+    issue = DecimalField(
+        max_digits=None, decimal_places=3, read_only=True, coerce_to_string=False
+    )
     issueSuffix = CharField(read_only=True, source="issue_suffix")  # noqa: N815
     issueCount = IntegerField(read_only=True, source="issue_count")  # noqa: N815
     maxPage = IntegerField(read_only=True, source="max_page")  # noqa: N815

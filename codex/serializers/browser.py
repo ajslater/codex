@@ -129,11 +129,15 @@ class BrowserSettingsFilterSerializer(Serializer):
         choices=tuple(CHOICES["bookmarkFilter"].keys())
     )
     # Dynamic filters
-    community_rating = DecimalListField(max_digits=4, decimal_places=2)
+    community_rating = DecimalListField(
+        max_digits=5, decimal_places=2, coerce_to_string=False
+    )
     characters = IntListField()
     country = CharListField()
     creators = IntListField()
-    critical_rating = DecimalListField(max_digits=4, decimal_places=2)
+    critical_rating = DecimalListField(
+        max_digits=5, decimal_places=2, coerce_to_string=False
+    )
     decade = DecadeListField()
     format = CharListField()
     genres = IntListField()
@@ -177,7 +181,9 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
     seriesName = CharField(read_only=True, source="series_name")  # noqa: N815
     volumeName = CharField(read_only=True, source="volume_name")  # noqa: N815
     name = CharField(read_only=True)
-    issue = DecimalField(max_digits=16, decimal_places=2, read_only=True)
+    issue = DecimalField(
+        max_digits=16, decimal_places=3, read_only=True, coerce_to_string=False
+    )
     issueSuffix = CharField(read_only=True, source="issue_suffix")  # noqa: N815
     orderValue = CharField(read_only=True, source="order_value")  # noqa: N815
 
@@ -221,7 +227,11 @@ class BrowserPageSerializer(Serializer):
         source="obj_list",
     )
     issueMax = DecimalField(  # noqa: N815
-        max_digits=16, decimal_places=2, read_only=True, source="issue_max"
+        max_digits=16,
+        decimal_places=3,
+        read_only=True,
+        coerce_to_string=False,
+        source="issue_max",
     )
     numPages = IntegerField(read_only=True, source="num_pages")  # noqa: N815
     formChoices = BrowserFormChoicesSerializer(  # noqa: N815
