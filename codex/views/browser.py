@@ -532,9 +532,10 @@ class BrowserView(BrowserMetadataBaseView):
         self._validate_settings()
         self._set_browse_model()
         # Create the main query with the filters
+        is_model_comic = self.model == Comic
         try:
             object_filter, autoquery_pk = self.get_query_filters(
-                self.model == Comic, False
+                is_model_comic, False
             )
         except Folder.DoesNotExist:
             pk = self.kwargs.get("pk")
@@ -579,7 +580,7 @@ class BrowserView(BrowserMetadataBaseView):
             "text", flat=True
         )[: BrowserPageSerializer.NUM_AUTOCOMPLETE_QUERIES]
 
-        if self.model == Comic:
+        if is_model_comic:
             # XXX runs obj list query twice
             issue_max = obj_list.aggregate(Max("issue"))["issue__max"]
         else:
