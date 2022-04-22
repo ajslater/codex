@@ -54,6 +54,7 @@ class BrowserView(BrowserMetadataBaseView):
         "finished",
         "group",
         f"{UNIONFIX_PREFIX}issue",
+        f"{UNIONFIX_PREFIX}issue_suffix",
         "library",
         "name",
         "order_value",
@@ -151,10 +152,14 @@ class BrowserView(BrowserMetadataBaseView):
         )
         if is_model_comic:
             issue = F("issue")
+            issue_suffix = F("issue_suffix")
         else:
             issue = Value(None, IntegerField())
+            issue_suffix = Value("", CharField())
+
         queryset = queryset.annotate(
             **{f"{UNIONFIX_PREFIX}issue": issue},
+            **{f"{UNIONFIX_PREFIX}issue_suffix": issue_suffix},
         )
         if model not in (Folder, Comic):
             path = self._NONE_CHARFIELD

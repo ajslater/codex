@@ -25,7 +25,7 @@
 import { mdiArrowUp } from "@mdi/js";
 import { mapState } from "vuex";
 
-import { getVolumeName } from "@/components/comic-name";
+import { formattedVolumeName } from "@/components/comic-name";
 
 export default {
   name: "BrowserHeader",
@@ -65,7 +65,7 @@ export default {
       } else if (group === "i") {
         browserTitle = `${parentName} ${groupName}`;
       } else if (group === "v") {
-        const volumeName = getVolumeName(groupName);
+        const volumeName = formattedVolumeName(groupName);
         browserTitle = `${parentName} ${volumeName}`;
         if (browserTitle.volumeCount) {
           browserTitle += ` of ${groupCount}`;

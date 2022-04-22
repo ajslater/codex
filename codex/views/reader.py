@@ -1,5 +1,6 @@
 """Views for reading comic books."""
 from comicbox.comic_archive import ComicArchive
+from django.db.models import F
 from django.http import HttpResponse
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
@@ -38,22 +39,36 @@ class ComicOpenedView(SessionView, GroupACLMixin):
         comics = (
             Comic.objects.filter(group_acl_filter)
             .filter(series__comic=pk)
-            .order_by("series__name", "volume__name", "issue")
-            .only("pk", "max_page")
+            .annotate(
+                series_name=F("series__name"),
+                volume_name=F("volume__name"),
+                issue_count=F("volume__issue_count"),
+            )
+            .order_by("series_name", "volume_name", "issue", "issue_suffix")
+            .values(
+                "pk",
+                "file_format",
+                "issue",
+                "issue_count",
+                "issue_suffix",
+                "max_page",
+                "series_name",
+                "volume_name",
+            )
         )
 
         current_comic = None
         prev_route = next_route = None
         for comic in comics:
             if current_comic is not None:
-                next_route = {"pk": comic.pk, "page": 0}
+                next_route = {"pk": comic["pk"], "page": 0}
                 break
-            elif comic.pk == pk:
+            elif comic["pk"] == pk:
                 current_comic = comic
             else:
                 # Haven't matched yet, so set the previous comic
-                prev_route = {"pk": comic.pk, "page": comic.max_page}
-        routes = {"prevBook": prev_route, "nextBook": next_route}
+                prev_route = {"pk": comic["pk"], "page": comic["max_page"]}
+        routes = {"prev_book": prev_route, "next_book": next_route}
 
         return current_comic, routes
 
@@ -74,16 +89,9 @@ class ComicOpenedView(SessionView, GroupACLMixin):
             }
             raise NotFound(detail=detail)
         data = {
-            "title": {
-                "seriesName": comic.series.name,
-                "volumeName": comic.volume.name,
-                "issue": comic.issue,
-                "issueCount": comic.volume.issue_count,
-            },
-            "fileFormat": comic.file_format,
-            "maxPage": comic.max_page,
+            "comic": comic,
             "routes": routes,
-            "browserRoute": browser_route,
+            "browser_route": browser_route,
         }
         serializer = ComicReaderInfoSerializer(data)
         return Response(serializer.data)

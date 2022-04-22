@@ -19,14 +19,15 @@ const getGlobalFitToDefault = () => {
 };
 
 const state = {
-  title: {
+  comic: {
+    fileFormat: undefined,
+    issue: 0,
+    issueSuffix: "",
+    issueCount: undefined,
+    maxPage: 0,
     seriesName: "",
     volumeName: "",
-    issue: 0,
-    issueCount: undefined,
   },
-  fileFormat: undefined,
-  maxPage: 0,
   timestamp: Date.now(),
   settings: {
     globl: {
@@ -78,16 +79,11 @@ const mutations = {
     state.settings.globl = Object.assign(state.settings.globl, settings);
   },
   setBookInfo(state, data) {
-    state.title.seriesName = data.title.seriesName;
-    state.title.volumeName = data.title.volumeName;
-    state.title.issue = Number.parseFloat(data.title.issue);
-    state.title.issueCount = data.title.issueCount;
-    state.maxPage = data.maxPage;
-    state.routes.prevBook = data.routes.prevBook;
-    state.routes.nextBook = data.routes.nextBook;
+    state.comic = data.comic;
+    state.comic.issue = Number.parseFloat(data.comic.issue);
+    state.routes = data.routes;
     state.browserRoute = data.browserRoute;
     state.updatedAt = data.updatedAt;
-    state.fileFormat = data.fileFormat;
   },
   setBrowserRoute(state, value) {
     state.browserRoute = value;

@@ -51,12 +51,7 @@ export default {
   computed: {
     ...mapState("reader", {
       title: function (state) {
-        return getFullComicName(
-          state.title.seriesName,
-          state.title.volumeName,
-          state.title.issue,
-          state.title.issueCount
-        );
+        return getFullComicName(state.comic);
       },
       timestamp: (state) => state.timestamp,
     }),

@@ -268,7 +268,7 @@ export default {
       return this.$route.name === "browser";
     },
     formattedIssue: function () {
-      return formattedIssue(this.md.issue);
+      return formattedIssue(this.md.issue, this.md.issue_suffix);
     },
     readerRoute: function () {
       const pk = this.md.id;
