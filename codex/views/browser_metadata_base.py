@@ -208,7 +208,11 @@ class BrowserMetadataBaseView(BrowserBaseView):
         ob_param = self.params.get("order_by", self.DEFAULT_ORDER_KEY)
         if ob_param == "sort_name":
             # Use default sort
-            order_fields = list(model._meta.ordering)
+            if for_cover_path:
+                order_model = Comic
+            else:
+                order_model = model
+            order_fields = list(order_model._meta.ordering)
         elif for_cover_path:
             # Use comic fields directly.
             order_key = self._ORDER_BY_FIELD_ALIASES.get(ob_param, ob_param)

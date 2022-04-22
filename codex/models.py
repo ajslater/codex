@@ -377,7 +377,7 @@ class Comic(WatchedPath):
 
         unique_together = ("library", "path")
         verbose_name = "Issue"
-        ordering = ("volume__name", "issue", "issue_suffix")
+        ordering = ("series__name", "volume__name", "issue", "issue_suffix")
 
     def _set_date(self):
         """Compute a date for the comic."""
