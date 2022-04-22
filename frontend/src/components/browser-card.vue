@@ -92,6 +92,7 @@ export default {
   computed: {
     ...mapState("browser", {
       orderBy: (state) => state.settings.orderBy,
+      zeroPad: (state) => Math.log10(Math.floor(state.issueMax)) + 1,
     }),
     headerName: function () {
       let headerName;
@@ -99,11 +100,8 @@ export default {
         case "c":
           headerName =
             !Number(this.$route.params.pk) || this.$route.params.group === "f"
-              ? (headerName = getFullComicName(this.item))
-              : (headerName = getIssueName(
-                  this.item.issue,
-                  this.item.issueSuffix
-                ));
+              ? (headerName = getFullComicName(this.item, this.zeroPad))
+              : (headerName = getIssueName(this.item, this.zeroPad));
           break;
 
         case "i":

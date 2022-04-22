@@ -209,17 +209,27 @@ class BrowserPageSerializer(Serializer):
 
     NUM_AUTOCOMPLETE_QUERIES = 10
 
-    browserTitle = BrowserTitleSerializer(read_only=True)  # noqa: N815
-    modelGroup = CharField(read_only=True)  # noqa: N815
-    upRoute = BrowserRouteSerializer(allow_null=True)  # noqa: N815
+    browserTitle = BrowserTitleSerializer(  # noqa: N815
+        read_only=True, source="browser_title"
+    )
+    modelGroup = CharField(read_only=True, source="model_group")  # noqa: N815
+    upRoute = BrowserRouteSerializer(allow_null=True, source="up_route")  # noqa: N815
     objList = ListField(  # noqa: N815
         child=BrowserCardSerializer(read_only=True),
         allow_empty=True,
         read_only=True,
+        source="obj_list",
     )
-    numPages = IntegerField(read_only=True)  # noqa: N815
-    formChoices = BrowserFormChoicesSerializer(read_only=True)  # noqa: N815
-    librariesExist = BooleanField(read_only=True)  # noqa: N815
+    issueMax = DecimalField(  # noqa: N815
+        max_digits=16, decimal_places=2, read_only=True, source="issue_max"
+    )
+    numPages = IntegerField(read_only=True, source="num_pages")  # noqa: N815
+    formChoices = BrowserFormChoicesSerializer(  # noqa: N815
+        read_only=True, source="form_choices"
+    )
+    librariesExist = BooleanField(  # noqa: N815
+        read_only=True, source="libraries_exist"
+    )
     queries = ListField(
         child=CharField(read_only=True), allow_empty=True, read_only=True
     )

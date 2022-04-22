@@ -11,50 +11,53 @@ export const formattedVolumeName = function (volume) {
   return volumeName;
 };
 
-export const formattedIssue = function (decimalIssue, issueSuffix) {
-  if (decimalIssue == undefined) {
+export const formattedIssue = function ({ issue, issueSuffix }, zeroPad) {
+  if (issue == undefined) {
     return;
   }
-  try {
-    decimalIssue = Number.parseFloat(decimalIssue);
-  } catch {
-    return "";
-  }
-  const intIssue = Math.floor(decimalIssue);
   let issueStr;
-  let pad;
-  if (decimalIssue === intIssue) {
-    issueStr = intIssue.toString();
-    pad = 3;
-  } else {
-    issueStr = Number.parseFloat(decimalIssue).toFixed(1);
-    pad = 5;
+  try {
+    const floatIssue = Number.parseFloat(issue);
+    const intIssue = Math.floor(floatIssue);
+    if (zeroPad === undefined) {
+      zeroPad = 0;
+    }
+    // TODO move out to browser Page only.
+    if (floatIssue === intIssue) {
+      issueStr = intIssue.toString();
+    } else {
+      issueStr = floatIssue.toString();
+      zeroPad += issueStr.split(".")[1].length + 1;
+    }
+    issueStr = issueStr.padStart(zeroPad, "0") + issueSuffix;
+  } catch {
+    issueStr = "";
   }
-  issueStr = issueStr.padStart(pad, "0") + issueSuffix;
+
   return issueStr;
 };
 
-export const getIssueName = function (issue, issueSuffix, issueCount) {
+export const getIssueName = function (
+  { issue, issueSuffix, issueCount },
+  zeroPad
+) {
   if (issue == undefined) {
     return "";
   }
-  let issueName = "#" + formattedIssue(issue, issueSuffix);
+  let issueName = "#" + formattedIssue({ issue, issueSuffix }, zeroPad);
   if (issueCount) {
     issueName += ` of ${issueCount}`;
   }
   return issueName;
 };
 
-export const getFullComicName = function ({
-  seriesName,
-  volumeName,
-  issue,
-  issueSuffix,
-  issueCount,
-}) {
+export const getFullComicName = function (
+  { seriesName, volumeName, issue, issueSuffix, issueCount },
+  zeroPad
+) {
   // Format a full comic name from the series on down.
   const fvn = formattedVolumeName(volumeName);
-  const issueName = getIssueName(issue, issueSuffix, issueCount);
+  const issueName = getIssueName({ issue, issueSuffix, issueCount }, zeroPad);
   return [seriesName, fvn, issueName].join(" ");
 };
 

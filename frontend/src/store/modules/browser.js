@@ -77,6 +77,7 @@ const state = {
     groupCount: undefined,
   },
   objList: [],
+  issueMax: 0,
   filterMode: "base",
   browserPageLoaded: false,
   librariesExist: undefined,
@@ -155,6 +156,7 @@ const mutations = {
     state.modelGroup = Object.freeze(data.modelGroup);
     state.routes.up = Object.freeze(data.upRoute);
     state.objList = Object.freeze(data.objList);
+    state.issueMax = data.issueMax;
     state.numPages = data.numPages;
     state.librariesExist = data.librariesExist;
     state.queries = data.queries;
