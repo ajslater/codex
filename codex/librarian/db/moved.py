@@ -13,7 +13,7 @@ from codex.settings.logging import get_logger
 
 LOG = get_logger(__name__)
 MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder")
-MOVED_BULK_FOLDER_UPDATE_FIELDS = ("path", "parent_folder", "name", "sort_name")
+MOVED_BULK_FOLDER_UPDATE_FIELDS = ("path", "parent_folder", "name")
 
 
 def bulk_comics_moved(library, moved_paths):
@@ -95,7 +95,6 @@ def _update_moved_folders(library, folders_moved, dest_parent_folders):
     for folder in folders:
         new_path = folders_moved[folder.path]
         folder.name = Path(new_path).name
-        folder.sort_name = folder.name
         folder.path = new_path
         parent_path = str(Path(new_path).parent)
         if parent_path == library.path:

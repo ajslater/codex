@@ -48,7 +48,6 @@ def _create_group_obj(cls, group_param_tuple, count):
         defaults["issue_count"] = count
 
     group_obj = cls(**defaults)
-    group_obj.presave()
     return group_obj
 
 
@@ -179,7 +178,6 @@ def bulk_folders_create(library, folder_paths):
                 name=path.name,
                 parent_folder=parent,
             )
-            folder.presave()
             folder.set_stat()
             create_folders.append(folder)
         Folder.objects.bulk_create(create_folders)
