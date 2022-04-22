@@ -92,7 +92,7 @@ export default {
   computed: {
     ...mapState("browser", {
       orderBy: (state) => state.settings.orderBy,
-      zeroPad: (state) => Math.log10(Math.floor(state.issueMax)) + 1,
+      zeroPad: (state) => state.zeroPad,
     }),
     headerName: function () {
       let headerName;

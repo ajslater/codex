@@ -77,7 +77,7 @@ const state = {
     groupCount: undefined,
   },
   objList: [],
-  issueMax: 0,
+  zeroPad: 0,
   filterMode: "base",
   browserPageLoaded: false,
   librariesExist: undefined,
@@ -126,6 +126,13 @@ const getters = {
   },
 };
 
+const computeZeroPad = (issueMax) => {
+  if (!issueMax) {
+    return 0;
+  }
+  return Math.log10(Math.floor(issueMax)) + 1;
+};
+
 const mutations = {
   setBrowsePageLoaded(state, value) {
     state.browserPageLoaded = value;
@@ -156,7 +163,7 @@ const mutations = {
     state.modelGroup = Object.freeze(data.modelGroup);
     state.routes.up = Object.freeze(data.upRoute);
     state.objList = Object.freeze(data.objList);
-    state.issueMax = data.issueMax;
+    state.zeroPad = computeZeroPad(data.issueMax);
     state.numPages = data.numPages;
     state.librariesExist = data.librariesExist;
     state.queries = data.queries;

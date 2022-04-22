@@ -12,27 +12,28 @@ export const formattedVolumeName = function (volume) {
 };
 
 export const formattedIssue = function ({ issue, issueSuffix }, zeroPad) {
-  if (issue == undefined) {
-    return;
-  }
   let issueStr;
   try {
+    if (issue == undefined && !issueSuffix) {
+      // Null issue defaults to display #0
+      issue = 0;
+    }
     const floatIssue = Number.parseFloat(issue);
     const intIssue = Math.floor(floatIssue);
     if (zeroPad === undefined) {
       zeroPad = 0;
     }
-    // TODO move out to browser Page only.
     if (floatIssue === intIssue) {
       issueStr = intIssue.toString();
     } else {
       issueStr = floatIssue.toString();
       zeroPad += issueStr.split(".")[1].length + 1;
     }
-    issueStr = issueStr.padStart(zeroPad, "0") + issueSuffix;
+    issueStr = issueStr.padStart(zeroPad, "0");
   } catch {
     issueStr = "";
   }
+  issueStr += issueSuffix;
 
   return issueStr;
 };
@@ -41,9 +42,6 @@ export const getIssueName = function (
   { issue, issueSuffix, issueCount },
   zeroPad
 ) {
-  if (issue == undefined) {
-    return "";
-  }
   let issueName = "#" + formattedIssue({ issue, issueSuffix }, zeroPad);
   if (issueCount) {
     issueName += ` of ${issueCount}`;
