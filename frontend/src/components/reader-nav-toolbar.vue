@@ -33,7 +33,7 @@ export default {
   },
   computed: {
     ...mapState("reader", {
-      maxPage: (state) => Number(state.comic.maxPage),
+      maxPage: (state) => state.comic.maxPage,
     }),
   },
   methods: {

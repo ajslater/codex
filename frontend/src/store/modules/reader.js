@@ -81,6 +81,7 @@ const mutations = {
   setBookInfo(state, data) {
     state.comic = data.comic;
     state.comic.issue = Number.parseFloat(data.comic.issue);
+    state.comic.maxPage = Number(data.comic.maxPage);
     state.routes = data.routes;
     state.browserRoute = data.browserRoute;
     state.updatedAt = data.updatedAt;

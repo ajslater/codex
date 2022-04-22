@@ -164,7 +164,7 @@ const mutations = {
     state.routes.up = Object.freeze(data.upRoute);
     state.objList = Object.freeze(data.objList);
     state.zeroPad = computeZeroPad(data.issueMax);
-    state.numPages = data.numPages;
+    state.numPages = Number(data.numPages);
     state.librariesExist = data.librariesExist;
     state.queries = data.queries;
   },

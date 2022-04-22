@@ -38,7 +38,7 @@ export default {
   },
   computed: {
     ...mapState("reader", {
-      maxPage: (state) => Number(state.comic.maxPage),
+      maxPage: (state) => state.comic.maxPage,
       nextRoute: (state) => state.routes.next,
       timestamp: (state) => state.timestamp,
       isPDF: (state) => state.comic.fileFormat === "pdf",

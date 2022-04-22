@@ -28,7 +28,7 @@ export default {
   },
   computed: {
     ...mapState("browser", {
-      numPages: (state) => Number(state.numPages),
+      numPages: (state) => state.numPages,
     }),
   },
   methods: {
