@@ -13,10 +13,10 @@ UNIONFIX_PREFIX = "unionfix_"
 class BrowserAggregateSerializerMixin(metaclass=SerializerMetaclass):
     """Mixin for browser & metadata serializers."""
 
-    UNIONFIX_KEYS = ("cover_path", "cover_updated_at", "issue")
+    UNIONFIX_KEYS = ("cover_path", "cover_updated_at", "issue", "issue_suffix")
 
     # Aggregate Annotations
-    child_count = IntegerField(read_only=True)
+    childCount = IntegerField(read_only=True, source="child_count")  # noqa: N815
 
     # UserBookmark annotations
     bookmark = IntegerField(read_only=True)

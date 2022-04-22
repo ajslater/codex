@@ -3,7 +3,7 @@ from copy import deepcopy
 from typing import Optional, Union
 
 from django.core.paginator import EmptyPage, Paginator
-from django.db.models import CharField, F, IntegerField, Value
+from django.db.models import CharField, F, IntegerField, Max, Value
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from stringcase import camelcase
@@ -54,6 +54,7 @@ class BrowserView(BrowserMetadataBaseView):
         "finished",
         "group",
         f"{UNIONFIX_PREFIX}issue",
+        f"{UNIONFIX_PREFIX}issue_suffix",
         "library",
         "name",
         "order_value",
@@ -151,10 +152,14 @@ class BrowserView(BrowserMetadataBaseView):
         )
         if is_model_comic:
             issue = F("issue")
+            issue_suffix = F("issue_suffix")
         else:
             issue = Value(None, IntegerField())
+            issue_suffix = Value("", CharField())
+
         queryset = queryset.annotate(
             **{f"{UNIONFIX_PREFIX}issue": issue},
+            **{f"{UNIONFIX_PREFIX}issue_suffix": issue_suffix},
         )
         if model not in (Folder, Comic):
             path = self._NONE_CHARFIELD
@@ -575,15 +580,22 @@ class BrowserView(BrowserMetadataBaseView):
             "text", flat=True
         )[: BrowserPageSerializer.NUM_AUTOCOMPLETE_QUERIES]
 
+        if self.model == Comic:
+            # XXX runs obj list query twice
+            issue_max = obj_list.aggregate(Max("issue"))["issue__max"]
+        else:
+            issue_max = 0
+
         # construct final data structure
         browser_page = {
-            "upRoute": up_route,
-            "browserTitle": browser_page_title,
-            "modelGroup": self.model_group,
-            "objList": obj_list,
-            "numPages": num_pages,
-            "formChoices": {"enableFolderView": efv_flag.on},
-            "librariesExist": libraries_exist,
+            "up_route": up_route,
+            "browser_title": browser_page_title,
+            "model_group": self.model_group,
+            "obj_list": obj_list,
+            "issue_max": issue_max,
+            "num_pages": num_pages,
+            "form_choices": {"enableFolderView": efv_flag.on},
+            "libraries_exist": libraries_exist,
             "queries": queries,
         }
         return browser_page

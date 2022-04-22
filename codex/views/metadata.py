@@ -32,6 +32,7 @@ class MetadataView(BrowserMetadataBaseView):
             "file_format",
             "format",
             "issue",
+            "issue_suffix",
             "language",
             "month",
             "notes",

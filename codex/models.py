@@ -3,7 +3,6 @@ import calendar
 import datetime
 import os
 
-from decimal import Decimal
 from pathlib import Path
 from uuid import uuid4
 
@@ -102,7 +101,12 @@ class Imprint(BrowserGroupModel):
 
     def presave(self):
         """Save the sort name. Called by save()."""
-        self.sort_name = f"{self.publisher.name} {self.name}"
+        names = []
+        if self.publisher.name:
+            names.append(self.publisher.name)
+        if self.name:
+            names.append(self.name)
+        self.sort_name = " ".join(names).strip()
 
 
 class Series(BrowserGroupModel):
@@ -129,7 +133,12 @@ class Volume(BrowserGroupModel):
 
     def presave(self):
         """Save the sort name. Called by save()."""
-        self.sort_name = f"{self.series.name} {self.name}"
+        names = []
+        if self.series.name:
+            names.append(self.series.name)
+        if self.name:
+            names.append(self.name)
+        self.sort_name = " ".join(names).strip()
 
     class Meta:
         """Constraints."""
@@ -319,9 +328,8 @@ class Comic(WatchedPath):
     )
 
     # Unique comic fields
-    issue = DecimalField(
-        db_index=True, decimal_places=2, max_digits=10, default=Decimal(0.0)
-    )
+    issue = DecimalField(db_index=True, decimal_places=2, max_digits=10, null=True)
+    issue_suffix = CharField(db_index=True, max_length=16, default="")
     volume = ForeignKey(Volume, db_index=True, on_delete=CASCADE)
     series = ForeignKey(Series, db_index=True, on_delete=CASCADE)
     imprint = ForeignKey(Imprint, db_index=True, on_delete=CASCADE)
@@ -425,21 +433,17 @@ class Comic(WatchedPath):
         self._set_decade()
         self.max_page = max(self.page_count - 1, 0)
         self.size = Path(self.path).stat().st_size
-        sort_names = (self.volume.sort_name, f"{self.issue:06.1f}")
-        self.sort_name = " ".join(sort_names)
+        sort_names = [self.volume.sort_name]
+        if self.issue is not None:
+            sort_names += [f"{self.issue:016.3f}"]
+        if self.issue_suffix:
+            sort_names += [self.issue_suffix]
+        self.sort_name = " ".join(sort_names).strip()
 
     def save(self, *args, **kwargs):
         """Save computed fields."""
         self.presave()
         super().save(*args, **kwargs)
-
-    def _get_display_issue(self):
-        """Get the issue number, even if its a half issue."""
-        if self.issue % 1 == 0:
-            issue_str = f"#{int(self.issue):0>3d}"
-        else:
-            issue_str = f"#{self.issue:05.1f}"
-        return issue_str
 
     def __str__(self):
         """Most common text representation for logging."""
@@ -448,10 +452,13 @@ class Comic(WatchedPath):
             names.append(self.series.name)
         if self.volume.name:
             names.append(self.volume.name)
-        names.append(self._get_display_issue())
+        if self.issue is not None:
+            names.append(f"#{self.issue:06.1f}")
+        if self.issue_suffix:
+            names.append(self.issue_suffix)
         if self.name:
             names.append(self.name)
-        return " ".join(names)
+        return " ".join(names).strip()
 
 
 class AdminFlag(NamedModel):

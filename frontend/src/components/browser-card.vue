@@ -3,10 +3,10 @@
     <div class="browserTileLazyWrapper">
       <div class="browserCardCoverWrapper">
         <BookCover
-          :cover-path="item.cover_path"
-          :updated-at="item.cover_updated_at"
+          :cover-path="item.coverPath"
+          :updated-at="item.coverUpdatedAt"
           :group="item.group"
-          :child-count="item.child_count"
+          :child-count="item.childCount"
           :finished="item.finished"
         />
         <div class="cardCoverOverlay">
@@ -20,7 +20,7 @@
               class="metadataButton"
               :group="item.group"
               :pk="item.pk"
-              :children="item.child_count"
+              :children="item.childCount"
             />
             <BrowserCardMenu
               class="browserCardMenu"
@@ -57,9 +57,9 @@ import { mapState } from "vuex";
 import BookCover from "@/components/book-cover";
 import BrowserCardMenu from "@/components/browser-card-menu";
 import {
+  formattedVolumeName,
   getFullComicName,
   getIssueName,
-  getVolumeName,
 } from "@/components/comic-name";
 import { DATE_FORMAT, DATETIME_FORMAT } from "@/components/datetime";
 import MetadataButton from "@/components/metadata-dialog";
@@ -92,6 +92,7 @@ export default {
   computed: {
     ...mapState("browser", {
       orderBy: (state) => state.settings.orderBy,
+      zeroPad: (state) => state.zeroPad,
     }),
     headerName: function () {
       let headerName;
@@ -99,20 +100,16 @@ export default {
         case "c":
           headerName =
             !Number(this.$route.params.pk) || this.$route.params.group === "f"
-              ? (headerName = getFullComicName(
-                  this.item.series_name,
-                  this.item.volume_name,
-                  Number(this.item.issue)
-                ))
-              : (headerName = getIssueName(this.item.issue));
+              ? (headerName = getFullComicName(this.item, this.zeroPad))
+              : (headerName = getIssueName(this.item, this.zeroPad));
           break;
 
         case "i":
-          headerName = this.item.publisher_name;
+          headerName = this.item.publisherName;
           break;
 
         case "v":
-          headerName = this.item.series_name;
+          headerName = this.item.seriesName;
           break;
 
         default:
@@ -122,11 +119,11 @@ export default {
     },
     displayName: function () {
       return this.item.group === "v"
-        ? getVolumeName(this.item.name)
+        ? formattedVolumeName(this.item.name)
         : this.item.name;
     },
     orderValue: function () {
-      let ov = this.item.order_value;
+      let ov = this.item.orderValue;
       if (
         this.orderByCache === "sort_name" ||
         this.orderByCache === null ||

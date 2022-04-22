@@ -169,14 +169,17 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
 
     pk = IntegerField(read_only=True)
     group = CharField(read_only=True, max_length=1)
-    cover_path = CharField(read_only=True)
-    cover_updated_at = TimestampField(read_only=True)
-    publisher_name = CharField(read_only=True)
-    series_name = CharField(read_only=True)
-    volume_name = CharField(read_only=True)
+    coverPath = CharField(read_only=True, source="cover_path")  # noqa: N815
+    coverUpdatedAt = TimestampField(  # noqa: N815
+        read_only=True, source="cover_updated_at"
+    )
+    publisherName = CharField(read_only=True, source="publisher_name")  # noqa: N815
+    seriesName = CharField(read_only=True, source="series_name")  # noqa: N815
+    volumeName = CharField(read_only=True, source="volume_name")  # noqa: N815
     name = CharField(read_only=True)
-    issue = DecimalField(max_digits=5, decimal_places=1, read_only=True)
-    order_value = CharField(read_only=True)
+    issue = DecimalField(max_digits=16, decimal_places=2, read_only=True)
+    issueSuffix = CharField(read_only=True, source="issue_suffix")  # noqa: N815
+    orderValue = CharField(read_only=True, source="order_value")  # noqa: N815
 
 
 class BrowserRouteSerializer(Serializer):
@@ -206,17 +209,27 @@ class BrowserPageSerializer(Serializer):
 
     NUM_AUTOCOMPLETE_QUERIES = 10
 
-    browserTitle = BrowserTitleSerializer(read_only=True)  # noqa: N815
-    modelGroup = CharField(read_only=True)  # noqa: N815
-    upRoute = BrowserRouteSerializer(allow_null=True)  # noqa: N815
+    browserTitle = BrowserTitleSerializer(  # noqa: N815
+        read_only=True, source="browser_title"
+    )
+    modelGroup = CharField(read_only=True, source="model_group")  # noqa: N815
+    upRoute = BrowserRouteSerializer(allow_null=True, source="up_route")  # noqa: N815
     objList = ListField(  # noqa: N815
         child=BrowserCardSerializer(read_only=True),
         allow_empty=True,
         read_only=True,
+        source="obj_list",
     )
-    numPages = IntegerField(read_only=True)  # noqa: N815
-    formChoices = BrowserFormChoicesSerializer(read_only=True)  # noqa: N815
-    librariesExist = BooleanField(read_only=True)  # noqa: N815
+    issueMax = DecimalField(  # noqa: N815
+        max_digits=16, decimal_places=2, read_only=True, source="issue_max"
+    )
+    numPages = IntegerField(read_only=True, source="num_pages")  # noqa: N815
+    formChoices = BrowserFormChoicesSerializer(  # noqa: N815
+        read_only=True, source="form_choices"
+    )
+    librariesExist = BooleanField(  # noqa: N815
+        read_only=True, source="libraries_exist"
+    )
     queries = ListField(
         child=CharField(read_only=True), allow_empty=True, read_only=True
     )

@@ -1,4 +1,6 @@
 """Clean metadata before importing."""
+import re
+
 from decimal import Decimal
 from typing import Any, Optional
 
@@ -6,6 +8,10 @@ from comicbox.metadata.comic_base import ComicBaseMetadata
 from django.db.models.fields import CharField, DecimalField, PositiveSmallIntegerField
 
 from codex.models import BrowserGroupModel, Comic, NamedModel
+from codex.settings.logging import get_logger
+
+
+LOG = get_logger(__name__)
 
 
 _MD_INVALID_KEYS = frozenset(
@@ -23,7 +29,7 @@ _MD_INVALID_KEYS = frozenset(
 _MD_VALID_KEYS = (
     frozenset([field.name for field in Comic._meta.get_fields()]) - _MD_INVALID_KEYS
 )
-_MD_DECIMAL_KEYS = frozenset(("issue", "community_rating", "critical_rating"))
+_MD_DECIMAL_KEYS = frozenset(("community_rating", "critical_rating"))
 _MD_PSI_KEYS = frozenset(
     (
         "year",
@@ -39,6 +45,7 @@ _MD_CHAR_KEYS = frozenset(
         "cover_path",
         "file_format",
         "format",
+        "issue_suffix",
         "language",
         "name",
         "path",
@@ -63,26 +70,48 @@ _M2M_NAMED_KEYS = frozenset(
     )
 )
 _DECIMAL_ZERO = Decimal("0.00")
+_PARSE_ISSUE_REGEX = r"(\d*\.?\d*)(.*)"
+_PARSE_ISSUE_MATCHER = re.compile(_PARSE_ISSUE_REGEX)
+
+
+def _clean_decimal(value, field_name: str):
+    field: DecimalField = Comic._meta.get_field(field_name)  # type: ignore
+    try:
+        # Comicbox now gives issues as strings, convert them to decimal here.
+        value = ComicBaseMetadata.parse_decimal(value)
+        value = value.quantize(_TWO_PLACES)
+        value = value.max(_DECIMAL_ZERO)
+        decimal_max = Decimal(10 ** (field.max_digits - 2) - 1)
+        value = value.min(decimal_max)
+    except Exception:
+        if field.null:
+            value = None
+        else:
+            value = _DECIMAL_ZERO
+    return value
+
+
+def _parse_comic_issue(md: dict[str, Any]):
+    """Parse the issue field."""
+    issue_str = md.get("issue", "").strip()
+    try:
+        match = _PARSE_ISSUE_MATCHER.match(issue_str)
+        issue, issue_suffix = match.groups()  # type: ignore
+        md["issue"] = _clean_decimal(issue, "issue")
+        md["issue_suffix"] = _clean_charfield(
+            issue_suffix, Comic._meta.get_field("issue_suffix")  # type: ignore
+        )
+    except Exception as exc:
+        LOG.warning(f"parsing issue failed: {issue_str} {exc}")
+        md["issue"] = None
+        md["issue_suffix"] = issue_str
 
 
 def _clean_comic_decimals(md: dict[str, Any], md_keys: frozenset[str]) -> None:
     """Clean decimal values."""
     for key in _MD_DECIMAL_KEYS & md_keys:
-        field: DecimalField = Comic._meta.get_field(key)  # type:ignore
-        try:
-            value = md[key]
-            # Comicbox now gives issues as strings, convert them to decimal here.
-            value = ComicBaseMetadata.parse_decimal(value)
-            value = value.quantize(_TWO_PLACES)
-            value = value.max(_DECIMAL_ZERO)
-            decimal_max = Decimal(10 ** (field.max_digits - 2) - 1)
-            value = value.min(decimal_max)
-        except Exception:
-            if field.null:
-                value = None
-            else:
-                value = _DECIMAL_ZERO
-        md[key] = value
+        value = md.get(key)
+        md[key] = _clean_decimal(value, key)
 
 
 def _clean_comic_positive_small_ints(
@@ -198,6 +227,7 @@ def _remove_unused_keys(md: dict[str, Any]) -> frozenset[str]:
 
 def clean_md(md):
     """Sanitize the metadata before import."""
+    _parse_comic_issue(md)
     _title_to_name(md)
     md_keys = _remove_unused_keys(md)
     _clean_comic_groups(md, md_keys)
