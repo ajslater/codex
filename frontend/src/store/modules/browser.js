@@ -127,8 +127,8 @@ const getters = {
 };
 
 const computeZeroPad = (issueMax) => {
-  if (!issueMax) {
-    return 0;
+  if (!issueMax || issueMax < 1) {
+    return 1;
   }
   return Math.log10(Math.floor(issueMax)) + 1;
 };
