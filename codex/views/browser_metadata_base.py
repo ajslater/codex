@@ -211,13 +211,7 @@ class BrowserMetadataBaseView(BrowserBaseView):
         if for_cover_path:
             field = self._ORDER_BY_FIELD_ALIASES.get(order_key, order_key)
             if field == "sort_name" or not field:
-                order_fields = [
-                    "series__name",
-                    "volume__name",
-                    "issue",
-                    "issue_suffix",
-                    "name",
-                ]
+                order_fields = list(Comic.ORDERING)
             else:
                 order_fields = [field]
         elif order_key == "sort_name" or not order_key:
@@ -236,12 +230,10 @@ class BrowserMetadataBaseView(BrowserBaseView):
             # Use annotated order_value
             order_fields = ["order_value"]
 
-        order_fields += ["pk"]
+        if order_fields[-1] != "pk":
+            order_fields += ["pk"]
 
         # order_by
         # add prefixes to all order_by fields
         order_fields = [prefix + field for field in order_fields]
-        if for_cover_path or model in (Comic, Folder):
-            # Keep position stability for duplicate comics & folders
-            order_fields += [prefix + "library"]
         return order_fields

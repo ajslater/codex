@@ -294,6 +294,8 @@ class Comic(WatchedPath):
         PDF = "pdf"
         CHOICES = set((COMIC, PDF))
 
+    ORDERING = ("series__name", "volume__name", "issue", "issue_suffix", "name", "pk")
+
     # From BaseModel, but Comics are sorted by these so index them
     created_at = DateTimeField(auto_now_add=True, db_index=True)
     updated_at = DateTimeField(auto_now=True, db_index=True)
