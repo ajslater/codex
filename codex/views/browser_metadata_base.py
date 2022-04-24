@@ -185,11 +185,11 @@ class BrowserMetadataBaseView(BrowserBaseView):
         """Annotate common aggregates between browser and metadata."""
         is_model_comic = model == Comic
         qs = self._annotate_cover_path(qs, model)
-        if not is_model_comic:
+        if is_model_comic:
+            child_count_sum = Value(1, IntegerField())
+        else:
             qs = self._annotate_page_count(qs)
             child_count_sum = Count("comic__pk", distinct=True)
-        else:
-            child_count_sum = Value(1, IntegerField())
         qs = qs.annotate(child_count=child_count_sum)
         qs = self._annotate_bookmarks(qs, is_model_comic)
         qs = self._annotate_progress(qs)
@@ -211,29 +211,27 @@ class BrowserMetadataBaseView(BrowserBaseView):
         if for_cover_path:
             field = self._ORDER_BY_FIELD_ALIASES.get(order_key, order_key)
             if field == "sort_name" or not field:
-                order_fields = list(Comic.ORDERING)
+                ordering = Comic.ORDERING
             else:
-                order_fields = [field]
+                ordering = (field, "pk")
         elif order_key == "sort_name" or not order_key:
             # Use default sort
             if model in (Comic, Folder):
-                order_fields = [
+                ordering = [
                     "series_name",
                     "volume_name",
                     "unionfix_issue",
                     "unionfix_issue_suffix",
                     "name",
+                    "pk",
                 ]
             else:
-                order_fields = list(model._meta.ordering)
+                ordering = model.ORDERING
         else:
             # Use annotated order_value
-            order_fields = ["order_value"]
-
-        if order_fields[-1] != "pk":
-            order_fields += ["pk"]
+            ordering = ("order_value", "pk")
 
         # order_by
         # add prefixes to all order_by fields
-        order_fields = [prefix + field for field in order_fields]
-        return order_fields
+        ordering = [prefix + field for field in ordering]
+        return ordering

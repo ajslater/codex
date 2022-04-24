@@ -60,6 +60,7 @@ class BrowserGroupModel(BaseModel):
     """Browser groups."""
 
     DEFAULT_NAME = ""
+    ORDERING = ("name", "pk")
 
     name = CharField(db_index=True, max_length=64, default=DEFAULT_NAME)
 
@@ -67,7 +68,6 @@ class BrowserGroupModel(BaseModel):
         """Without this a real table is created and joined to."""
 
         abstract = True
-        ordering = ("name",)
 
 
 class Publisher(BrowserGroupModel):
@@ -77,11 +77,12 @@ class Publisher(BrowserGroupModel):
         """Constraints."""
 
         unique_together = ("name",)
-        ordering = ("name",)
 
 
 class Imprint(BrowserGroupModel):
     """A Publishing imprint."""
+
+    ORDERING = ("publisher__name", "name", "pk")
 
     publisher = ForeignKey(Publisher, on_delete=CASCADE)
 
@@ -89,7 +90,6 @@ class Imprint(BrowserGroupModel):
         """Constraints."""
 
         unique_together = ("name", "publisher")
-        ordering = ("publisher__name", "name")
 
 
 class Series(BrowserGroupModel):
@@ -104,11 +104,12 @@ class Series(BrowserGroupModel):
 
         unique_together = ("name", "imprint")
         verbose_name_plural = "Series"
-        ordering = ("name",)
 
 
 class Volume(BrowserGroupModel):
     """The volume of the series the comic belongs to."""
+
+    ORDERING = ("series__name", "name", "pk")
 
     publisher = ForeignKey(Publisher, on_delete=CASCADE)
     imprint = ForeignKey(Imprint, on_delete=CASCADE)
@@ -119,7 +120,6 @@ class Volume(BrowserGroupModel):
         """Constraints."""
 
         unique_together = ("name", "series")
-        ordering = ("series__name", "name")
 
 
 def validate_dir_exists(path):
@@ -528,7 +528,6 @@ class FailedImport(WatchedPath):
         """Constraints."""
 
         unique_together = ("library", "path")
-        ordering = ("path",)
 
 
 class LatestVersion(BaseModel):

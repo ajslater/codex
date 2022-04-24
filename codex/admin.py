@@ -111,9 +111,10 @@ class AdminLibrary(ModelAdmin):
         "poll_every",
         "groups",
     )
-    autocomplete_fields = ('groups',)
+    autocomplete_fields = ("groups",)
     readonly_fields = ("last_poll",)
     sortable_by = list_display
+    ordering = ("path", "pk")
 
     def get_queryset(self, request):
         """Prefetch groups."""
@@ -200,6 +201,7 @@ class AdminAdminFlag(AdminNoAddDelete):
     list_display = fields
     list_editable = ("on",)
     sortable_by = fields
+    ordering = ("name", "pk")
 
     def save_model(self, request, obj, form, change):
         """Trigger a change notification because options have changed."""
@@ -232,6 +234,7 @@ class AdminFailedImport(AdminNoAddDelete):
     readonly_fields = fields
     sortable_by = fields
     actions = ("poll",)
+    ordering = ("path", "library_link", "pk")
 
     def has_change_permission(self, request, obj=None):
         """Can't Change these."""
@@ -270,6 +273,7 @@ class CodexGroupAdmin(GroupAdmin):
     """Remove user_permissions to avoid confusion."""
 
     fields = ("name",)
+    ordering = ("name", "pk")
 
 
 @register(User)
@@ -288,3 +292,4 @@ class CodexUserAdmin(UserAdmin):
         (("Important dates"), {"fields": ("last_login", "date_joined")}),
     )
     filter_horizontal = ("groups",)
+    ordering = ("name", "pk")
