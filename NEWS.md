@@ -9,6 +9,7 @@ _PDF_
   - PDF support. Optional poppler binary needed to generate PDF cover thumbnails.
   - CBT support. Tarball comic archives.
   - Alphanumeric issue support.
+  - Individual folders for each library.
 
 - Fixes
 
