@@ -161,10 +161,7 @@ class BrowserView(BrowserMetadataBaseView):
             **{f"{UNIONFIX_PREFIX}issue_suffix": issue_suffix},
         )
         if model not in (Folder, Comic):
-            path = self._NONE_CHARFIELD
-            queryset = queryset.annotate(
-                path=path,
-            )
+            queryset = queryset.annotate(path=self._NONE_CHARFIELD)
 
         return queryset
 
