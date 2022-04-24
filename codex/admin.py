@@ -1,4 +1,6 @@
 """Django views for Codex."""
+from pathlib import Path
+
 from django.contrib.admin import ModelAdmin, register
 from django.contrib.admin.checks import ModelAdminChecks
 from django.contrib.admin.sites import site
@@ -21,7 +23,7 @@ from codex.librarian.queue_mp import (
     PurgeComicCoversLibrariesTask,
     WatchdogSyncTask,
 )
-from codex.models import AdminFlag, FailedImport, Library
+from codex.models import AdminFlag, FailedImport, Folder, Library
 from codex.settings.logging import get_logger
 
 
@@ -149,11 +151,17 @@ class AdminLibrary(ModelAdmin):
         task = DelayedTasks(2, tasks)
         LIBRARIAN_QUEUE.put(task)
 
-    def save_model(self, request, obj, form, change):
+    def save_model(self, request, obj: Library, form, change):
         """Trigger watching and polling on update or creation."""
         created = obj.pk is None
         super().save_model(request, obj, form, change)
         if change or created:
+            if created:
+                library = Library.objects.get(path=obj.path)
+                folder = Folder(
+                    library=library, path=library.path, name=Path(library.path).name
+                )
+                folder.save()
             self._on_change(obj, created)
 
     def delete_model(self, request, obj):
