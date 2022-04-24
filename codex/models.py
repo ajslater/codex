@@ -271,7 +271,6 @@ class WatchedPath(BrowserGroupModel):
 
         unique_together = ("library", "path")
         abstract = True
-        ordering = ("name",)
 
 
 class Folder(WatchedPath):
@@ -377,7 +376,6 @@ class Comic(WatchedPath):
 
         unique_together = ("library", "path")
         verbose_name = "Issue"
-        ordering = ("series__name", "volume__name", "issue", "issue_suffix")
 
     def _set_date(self):
         """Compute a date for the comic."""
@@ -528,6 +526,7 @@ class FailedImport(WatchedPath):
         """Constraints."""
 
         unique_together = ("library", "path")
+        ordering = ("path",)
 
 
 class LatestVersion(BaseModel):

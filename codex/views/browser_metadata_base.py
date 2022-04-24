@@ -142,33 +142,42 @@ class BrowserMetadataBaseView(BrowserBaseView):
         """Use the db to get only the filename."""
         return Right(field, StrIndex(Reverse(field), Value(sep)) - 1)  # type: ignore
 
-    def get_aggregate_func(self, field, model, autoquery_pk=None):
+    def get_aggregate_func(self, order_key, model, autoquery_pk=None):
         """Get a complete function for aggregating an attribute."""
-        if field == "search_score":
+        # Get field from order_key
+        if order_key == "search_score":
             if not autoquery_pk:
                 return self._NO_SEARCH_SCORE
             field = "searchresult__score"
-
-        # get agg_func
-        agg_func = self._ORDER_AGGREGATE_FUNCS.get(field)
-        if agg_func == Min and self.params.get("order_reverse"):
-            agg_func = Max
+        elif order_key == "sort_name" or not order_key:
+            field = None
+        else:
+            field = order_key
 
         # Determine order func
-        if field == "sort_name":
+        if not field:
             # use default sorting.
             func = Value(None, output_field=CharField())
         elif field == "path" and model in (Comic, Folder):
+            # special path sorting.
             func = self._get_path_query_func(field)
-        elif model == Comic or agg_func is None:
+        elif model == Comic:
             # agg_none uses group fields not comic fields.
             func = F(field)
         else:
-            prefix = "comic__"
-            filters = Q(**{f"{prefix}searchresult__query": autoquery_pk})
-            full_field = prefix + field
+            # order by aggregate.
+
+            # get agg_func
+            agg_func = self._ORDER_AGGREGATE_FUNCS[field]
+            if agg_func == Min and self.params.get("order_reverse"):
+                agg_func = Max
+
+            # get full_field
+            full_field = "comic__" + field
             if field == "path":
                 full_field = self._get_path_query_func(full_field)
+
+            filters = Q(comic__searchresult__query=autoquery_pk)
             func = agg_func(full_field, filters=filters)
         return func
 
@@ -194,29 +203,35 @@ class BrowserMetadataBaseView(BrowserBaseView):
         """
         # order_prefix
         reverse = self.params.get("order_reverse")
-        order_reverse_prefix = "-" if reverse else ""
-
-        # cover prefix
-        if for_cover_path:
-            for_cover_prefix = "comic__"
-        else:
-            for_cover_prefix = ""
-
-        prefixes = order_reverse_prefix + for_cover_prefix
+        prefix = "-" if reverse else ""
+        prefix += "comic__" if for_cover_path else ""
 
         # order_fields
-        ob_param = self.params.get("order_by", self.DEFAULT_ORDER_KEY)
-        if ob_param == "sort_name":
-            # Use default sort
-            if for_cover_path:
-                order_model = Comic
+        order_key = self.params.get("order_by", self.DEFAULT_ORDER_KEY)
+        if for_cover_path:
+            field = self._ORDER_BY_FIELD_ALIASES.get(order_key, order_key)
+            if field == "sort_name" or not field:
+                order_fields = [
+                    "series__name",
+                    "volume__name",
+                    "issue",
+                    "issue_suffix",
+                    "name",
+                ]
             else:
-                order_model = model
-            order_fields = list(order_model._meta.ordering)
-        elif for_cover_path:
-            # Use comic fields directly.
-            order_key = self._ORDER_BY_FIELD_ALIASES.get(ob_param, ob_param)
-            order_fields = [order_key]
+                order_fields = [field]
+        elif order_key == "sort_name" or not order_key:
+            # Use default sort
+            if model in (Comic, Folder):
+                order_fields = [
+                    "series_name",
+                    "volume_name",
+                    "unionfix_issue",
+                    "unionfix_issue_suffix",
+                    "name",
+                ]
+            else:
+                order_fields = list(model._meta.ordering)
         else:
             # Use annotated order_value
             order_fields = ["order_value"]
@@ -225,8 +240,8 @@ class BrowserMetadataBaseView(BrowserBaseView):
 
         # order_by
         # add prefixes to all order_by fields
-        order_by = [prefixes + field for field in order_fields]
-        if model in (Comic, Folder):
+        order_fields = [prefix + field for field in order_fields]
+        if for_cover_path or model in (Comic, Folder):
             # Keep position stability for duplicate comics & folders
-            order_by += [order_reverse_prefix + "library"]
-        return order_by
+            order_fields += [prefix + "library"]
+        return order_fields

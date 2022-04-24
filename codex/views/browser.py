@@ -124,8 +124,8 @@ class BrowserView(BrowserMetadataBaseView):
         #######################
         # Sortable aggregates #
         #######################
-        order_by = self.params.get("order_by", self.DEFAULT_ORDER_KEY)
-        order_func = self.get_aggregate_func(order_by, model, autoquery_pk)
+        order_key = self.params.get("order_by", self.DEFAULT_ORDER_KEY)
+        order_func = self.get_aggregate_func(order_key, model, autoquery_pk)
         queryset = queryset.annotate(order_value=order_func)
 
         ########################
@@ -534,9 +534,7 @@ class BrowserView(BrowserMetadataBaseView):
         # Create the main query with the filters
         is_model_comic = self.model == Comic
         try:
-            object_filter, autoquery_pk = self.get_query_filters(
-                is_model_comic, False
-            )
+            object_filter, autoquery_pk = self.get_query_filters(is_model_comic, False)
         except Folder.DoesNotExist:
             pk = self.kwargs.get("pk")
             self._raise_redirect(

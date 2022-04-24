@@ -44,7 +44,15 @@ class ComicOpenedView(SessionView, GroupACLMixin):
                 volume_name=F("volume__name"),
                 issue_count=F("volume__issue_count"),
             )
-            .order_by("series_name", "volume_name", "issue", "issue_suffix")
+            .order_by(
+                "series__name",
+                "volume__name",
+                "issue",
+                "issue_suffix",
+                "name",
+                "pk",
+                "library",
+            )
             .values(
                 "pk",
                 "file_format",
