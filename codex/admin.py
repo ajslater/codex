@@ -111,6 +111,7 @@ class AdminLibrary(ModelAdmin):
         "poll_every",
         "groups",
     )
+    autocomplete_fields = ('groups',)
     readonly_fields = ("last_poll",)
     sortable_by = list_display
 
@@ -167,7 +168,8 @@ class AdminLibrary(ModelAdmin):
     def delete_model(self, request, obj):
         """Stop watching on delete."""
         pks = set([obj.pk])
-        LIBRARIAN_QUEUE.put(PurgeComicCoversLibrariesTask(pks))
+        task = PurgeComicCoversLibrariesTask(pks)
+        LIBRARIAN_QUEUE.put(task)
         super().delete_model(request, obj)
         cache.clear()
         self._on_change(None)
@@ -175,7 +177,8 @@ class AdminLibrary(ModelAdmin):
     def delete_queryset(self, request, queryset):
         """Bulk delete."""
         pks = set(queryset.values_list("pk", flat=True))
-        LIBRARIAN_QUEUE.put(PurgeComicCoversLibrariesTask(pks))
+        task = PurgeComicCoversLibrariesTask(pks)
+        LIBRARIAN_QUEUE.put(task)
         super().delete_queryset(request, queryset)
         cache.clear()
         self._on_change(None)
