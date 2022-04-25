@@ -31,7 +31,7 @@
             id="bookCover"
             :cover-path="md.cover_path"
             :group="group"
-            :child-count="md.child_count"
+            :child-count="md.childCount"
             :finished="md.finished"
           />
           <v-progress-linear

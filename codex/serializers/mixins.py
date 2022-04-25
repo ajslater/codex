@@ -3,39 +3,28 @@ from rest_framework.serializers import (
     BooleanField,
     DecimalField,
     IntegerField,
-    SerializerMetaclass,
+    Serializer,
 )
 
 
 UNIONFIX_PREFIX = "unionfix_"
 
 
-class BrowserAggregateSerializerMixin(metaclass=SerializerMetaclass):
+class BrowserAggregateSerializerMixin(Serializer):
     """Mixin for browser & metadata serializers."""
 
-    UNIONFIX_KEYS = ("cover_path", "cover_updated_at", "issue", "issue_suffix")
-
     # Aggregate Annotations
-    childCount = IntegerField(read_only=True, source="child_count")  # noqa: N815
-
-    # UserBookmark annotations
-    bookmark = IntegerField(read_only=True)
-    finished = BooleanField(read_only=True)
-    progress = DecimalField(
-        max_digits=5, decimal_places=2, read_only=True, coerce_to_string=False
+    childCount = IntegerField(  # noqa: N815
+        read_only=True, source=UNIONFIX_PREFIX + "child_count"
     )
 
-    def to_representation(self, instance):
-        """
-        Copy prefixed input annotations back to regular field names.
-
-        This jankyness because folder/comic unions fail unless
-        fields are annotated in the exact same order.
-        """
-        if instance:
-            for key in self.UNIONFIX_KEYS:
-                unionfix_key = UNIONFIX_PREFIX + key
-                if unionfix_key in instance:
-                    instance[key] = instance[unionfix_key]
-
-        return super().to_representation(instance)  # type:ignore
+    # UserBookmark annotations
+    bookmark = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "bookmark")
+    finished = BooleanField(read_only=True, source=UNIONFIX_PREFIX + "finished")
+    progress = DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        read_only=True,
+        coerce_to_string=False,
+        source=UNIONFIX_PREFIX + "progress",
+    )

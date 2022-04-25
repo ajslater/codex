@@ -6,7 +6,7 @@ from django.core.paginator import EmptyPage, Paginator
 from django.db.models import CharField, F, IntegerField, Max, Value
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
-from stringcase import camelcase
+from stringcase import camelcase, snakecase
 
 from codex.exceptions import SeeOtherRedirectError
 from codex.models import (
@@ -21,6 +21,7 @@ from codex.models import (
     Volume,
 )
 from codex.serializers.browser import (
+    BrowserCardSerializer,
     BrowserOpenedSerializer,
     BrowserPageSerializer,
     BrowserSettingsSerializer,
@@ -46,24 +47,11 @@ class BrowserView(BrowserMetadataBaseView):
     _NAV_GROUPS = "rpisv"
     _MAX_OBJ_PER_PAGE = 100
     _ORPHANS = int(_MAX_OBJ_PER_PAGE / 20)
-    _BROWSER_CARD_FIELDS = (
-        "bookmark",
-        "child_count",
-        f"{UNIONFIX_PREFIX}cover_path",
-        f"{UNIONFIX_PREFIX}cover_updated_at",
-        "finished",
-        "group",
-        f"{UNIONFIX_PREFIX}issue",
-        f"{UNIONFIX_PREFIX}issue_suffix",
-        "library",
-        "name",
-        "order_value",
-        "path",
-        "pk",
-        "progress",
-        "publisher_name",
-        "series_name",
-        "volume_name",
+    _BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP = dict(
+        (
+            (UNIONFIX_PREFIX + snakecase(field), F(snakecase(field)))
+            for field in sorted(BrowserCardSerializer().get_fields())
+        )
     )
     _BROWSER_SETTINGS_KEYS_SNAKE_CAMEL_MAP = {
         snake_key: camelcase(snake_key)
@@ -155,11 +143,10 @@ class BrowserView(BrowserMetadataBaseView):
         else:
             issue = Value(None, IntegerField())
             issue_suffix = Value("", CharField())
-
-        queryset = queryset.annotate(
-            **{f"{UNIONFIX_PREFIX}issue": issue},
-            **{f"{UNIONFIX_PREFIX}issue_suffix": issue_suffix},
-        )
+            queryset = queryset.annotate(
+                **{"issue": issue},
+                **{"issue_suffix": issue_suffix},
+            )
         if model not in (Folder, Comic):
             queryset = queryset.annotate(path=self._NONE_CHARFIELD)
 
@@ -201,9 +188,12 @@ class BrowserView(BrowserMetadataBaseView):
         folder_list = self._add_annotations(folder_list, Folder, autoquery_pk)
         comic_list = self._add_annotations(comic_list, Comic, autoquery_pk)
 
-        # Reduce to values to make union align columns correctly
-        folder_list = folder_list.values(*self._BROWSER_CARD_FIELDS)
-        comic_list = comic_list.values(*self._BROWSER_CARD_FIELDS)
+        # Create ordered annotated values to make union align columns correctly because
+        # django lacks a way to specify values column order.
+        folder_list = folder_list.values(
+            **self._BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP
+        )
+        comic_list = comic_list.values(**self._BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP)
 
         obj_list = folder_list.union(comic_list)
         return obj_list
@@ -220,8 +210,8 @@ class BrowserView(BrowserMetadataBaseView):
         obj_list = self._add_annotations(obj_list, self.model, autoquery_pk)
 
         # Convert to a dict because otherwise the folder/comic union blows
-        # up the paginator
-        obj_list = obj_list.values(*self._BROWSER_CARD_FIELDS)
+        # up the paginator. Use the same annotations for the serializer.
+        obj_list = obj_list.values(**self._BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP)
 
         return obj_list
 

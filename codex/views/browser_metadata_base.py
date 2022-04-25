@@ -41,6 +41,10 @@ class BrowserMetadataBaseView(BrowserBaseView):
         "searchresult__score": Min,
     }
     _NO_SEARCH_SCORE = Value(None, IntegerField())
+    _UNIONFIX_DEFAULT_ORDERING = tuple(
+        UNIONFIX_PREFIX + field.replace("__", "_") for field in Comic.ORDERING
+    )
+    _ORDER_VALUE_ORDERING = (UNIONFIX_PREFIX + "order_value", UNIONFIX_PREFIX + "pk")
     GROUP_MODEL_MAP = {
         "r": None,
         "p": Publisher,
@@ -57,7 +61,6 @@ class BrowserMetadataBaseView(BrowserBaseView):
         # Select comics for the children by an outer ref for annotation
         # Order the descendant comics by the sort argumentst
         if model == Comic:
-            cover_path = F("cover_path")
             cover_updated_at = F("updated_at")
         else:
             order_by = self.get_order_by(model, for_cover_path=True)
@@ -72,11 +75,9 @@ class BrowserMetadataBaseView(BrowserBaseView):
                 .values("comic__updated_at")[:1]
             )
 
-        obj_list = queryset.annotate(
-            **{f"{UNIONFIX_PREFIX}cover_path": cover_path},
-            **{f"{UNIONFIX_PREFIX}cover_updated_at": cover_updated_at},
-        )
-        return obj_list
+            queryset = queryset.annotate(cover_path=cover_path)
+        queryset = queryset.annotate(cover_updated_at=cover_updated_at)
+        return queryset
 
     def _annotate_page_count(self, obj_list):
         """Hoist up total page_count of children."""
@@ -204,11 +205,11 @@ class BrowserMetadataBaseView(BrowserBaseView):
         # order_prefix
         reverse = self.params.get("order_reverse")
         prefix = "-" if reverse else ""
-        prefix += "comic__" if for_cover_path else ""
 
         # order_fields
         order_key = self.params.get("order_by", self.DEFAULT_ORDER_KEY)
         if for_cover_path:
+            prefix += "comic__"
             field = self._ORDER_BY_FIELD_ALIASES.get(order_key, order_key)
             if field == "sort_name" or not field:
                 ordering = Comic.ORDERING
@@ -217,21 +218,14 @@ class BrowserMetadataBaseView(BrowserBaseView):
         elif order_key == "sort_name" or not order_key:
             # Use default sort
             if model in (Comic, Folder):
-                ordering = [
-                    "series_name",
-                    "volume_name",
-                    "unionfix_issue",
-                    "unionfix_issue_suffix",
-                    "name",
-                    "pk",
-                ]
+                ordering = self._UNIONFIX_DEFAULT_ORDERING
             else:
                 ordering = model.ORDERING
         else:
             # Use annotated order_value
-            ordering = ("order_value", "pk")
+            ordering = self._ORDER_VALUE_ORDERING
 
         # order_by
         # add prefixes to all order_by fields
-        ordering = [prefix + field for field in ordering]
+        ordering = (prefix + field for field in ordering)
         return ordering

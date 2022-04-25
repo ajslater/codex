@@ -16,7 +16,7 @@ from rest_framework.serializers import (
 )
 
 from codex.serializers.choices import CHOICES, VUETIFY_NULL_CODE
-from codex.serializers.mixins import BrowserAggregateSerializerMixin
+from codex.serializers.mixins import UNIONFIX_PREFIX, BrowserAggregateSerializerMixin
 
 
 VUETIFY_NULL_CODE_STR = str(VUETIFY_NULL_CODE)
@@ -171,21 +171,37 @@ class BrowserSettingsSerializer(Serializer):
 class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
     """Browse card displayed in the browser."""
 
-    pk = IntegerField(read_only=True)
-    group = CharField(read_only=True, max_length=1)
-    coverPath = CharField(read_only=True, source="cover_path")  # noqa: N815
+    pk = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "pk")
+    group = CharField(read_only=True, max_length=1, source=UNIONFIX_PREFIX + "group")
+    coverPath = CharField(  # noqa: N815
+        read_only=True, source=UNIONFIX_PREFIX + "cover_path"
+    )
     coverUpdatedAt = TimestampField(  # noqa: N815
-        read_only=True, source="cover_updated_at"
+        read_only=True, source=UNIONFIX_PREFIX + "cover_updated_at"
     )
-    publisherName = CharField(read_only=True, source="publisher_name")  # noqa: N815
-    seriesName = CharField(read_only=True, source="series_name")  # noqa: N815
-    volumeName = CharField(read_only=True, source="volume_name")  # noqa: N815
-    name = CharField(read_only=True)
+    publisherName = CharField(  # noqa: N815
+        read_only=True, source=UNIONFIX_PREFIX + "publisher_name"
+    )
+    seriesName = CharField(  # noqa: N815
+        read_only=True, source=UNIONFIX_PREFIX + "series_name"
+    )
+    volumeName = CharField(  # noqa: N815
+        read_only=True, source=UNIONFIX_PREFIX + "volume_name"
+    )
+    name = CharField(read_only=True, source=UNIONFIX_PREFIX + "name")
     issue = DecimalField(
-        max_digits=16, decimal_places=3, read_only=True, coerce_to_string=False
+        max_digits=16,
+        decimal_places=3,
+        read_only=True,
+        coerce_to_string=False,
+        source=UNIONFIX_PREFIX + "issue",
     )
-    issueSuffix = CharField(read_only=True, source="issue_suffix")  # noqa: N815
-    orderValue = CharField(read_only=True, source="order_value")  # noqa: N815
+    issueSuffix = CharField(  # noqa: N815
+        read_only=True, source=UNIONFIX_PREFIX + "issue_suffix"
+    )
+    orderValue = CharField(  # noqa: N815
+        read_only=True, source=UNIONFIX_PREFIX + "order_value"
+    )
 
 
 class BrowserRouteSerializer(Serializer):

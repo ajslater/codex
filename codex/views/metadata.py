@@ -4,9 +4,11 @@ from copy import copy
 from django.db.models import Case, Count, F, Subquery, Value, When
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
+from stringcase import snakecase
 
 from codex.models import AdminFlag, Comic
 from codex.serializers.metadata import MetadataSerializer
+from codex.serializers.mixins import UNIONFIX_PREFIX, BrowserAggregateSerializerMixin
 from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser_metadata_base import BrowserMetadataBaseView
@@ -88,6 +90,12 @@ class MetadataView(BrowserMetadataBaseView):
     )
     _PATH_GROUPS = ("c", "f")
     _CREDIT_RELATIONS = ("role", "person")
+    _BROWSER_AGGREGATE_UNIONFIX_VALUES_MAP = dict(
+        (
+            (snakecase(field), UNIONFIX_PREFIX + snakecase(field))
+            for field in sorted(BrowserAggregateSerializerMixin().get_fields())
+        )
+    )
 
     def _get_comic_value_fields(self):
         """Include the path field for staff."""
@@ -132,6 +140,10 @@ class MetadataView(BrowserMetadataBaseView):
                 When(**condition, then=then),
                 default=Value(None),
             )
+            # TODO: this corrrupts the main qs by splitting into
+            # two qs results on the language variantsself.
+            # TODO: Maybe need to move most of the condition into as
+            # subquery and not annotate the main qs with _variants
             qs = qs.annotate(**{ann_field: lookup})
 
         return qs
@@ -275,6 +287,10 @@ class MetadataView(BrowserMetadataBaseView):
         # For highlighting the current group
         obj["group"] = self.group
 
+        # copy into unionfix fields for serializer
+        for from_field, to_field in self._BROWSER_AGGREGATE_UNIONFIX_VALUES_MAP.items():
+            obj[to_field] = obj.get(from_field)
+
         return obj
 
     def _get_metadata_object(self):
@@ -287,11 +303,7 @@ class MetadataView(BrowserMetadataBaseView):
         pk = self.kwargs["pk"]
         if self.model is None:
             raise NotFound(detail=f"Cannot get metadata for {self.group=}")
-        qs = (
-            self.model.objects.filter(pk=pk)
-            .filter(group_acl_filter)
-            .filter(aggregate_filter)
-        )
+        qs = self.model.objects.filter(group_acl_filter | aggregate_filter, pk=pk)
 
         qs = self._annotate_aggregates(qs)
         simple_qs = qs
