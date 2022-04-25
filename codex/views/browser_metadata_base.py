@@ -56,6 +56,11 @@ class BrowserMetadataBaseView(BrowserBaseView):
     }
     DEFAULT_ORDER_KEY = "sort_name"
 
+    @staticmethod
+    def _cover_subquery(cover_comics, field):
+        """Create cover subquery for each field."""
+        return Subquery(cover_comics.values(f"comic__{field}")[:1])
+
     def _annotate_cover_path(self, queryset, model):
         """Annotate the query set for the coverpath for the sort."""
         # Select comics for the children by an outer ref for annotation
@@ -63,19 +68,13 @@ class BrowserMetadataBaseView(BrowserBaseView):
         if model == Comic:
             cover_updated_at = F("updated_at")
         else:
-            order_by = self.get_order_by(model, for_cover_path=True)
-            cover_path = Subquery(
-                queryset.filter(pk=OuterRef("pk"))
-                .order_by(*order_by)
-                .values("comic__cover_path")[:1]
-            )
-            cover_updated_at = Subquery(
-                queryset.filter(pk=OuterRef("pk"))
-                .order_by(*order_by)
-                .values("comic__updated_at")[:1]
-            )
-
+            # This creates two subqueries. It would be better condensed into one.
+            # but there's no way to annotate an object or multiple values.
+            order_by = self.get_order_by(Comic, for_cover_path=True)
+            cover_comics = queryset.filter(pk=OuterRef("pk")).order_by(*order_by)
+            cover_path = self._cover_subquery(cover_comics, "cover_path")
             queryset = queryset.annotate(cover_path=cover_path)
+            cover_updated_at = self._cover_subquery(cover_comics, "updated_at")
         queryset = queryset.annotate(cover_updated_at=cover_updated_at)
         return queryset
 
