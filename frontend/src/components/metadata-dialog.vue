@@ -29,7 +29,7 @@
         <div id="metadataBookCoverWrapper">
           <BookCover
             id="bookCover"
-            :cover-path="md.cover_path"
+            :cover-path="md.coverPath"
             :group="group"
             :child-count="md.childCount"
             :finished="md.finished"
@@ -69,14 +69,14 @@
             label="Volume"
             :highlight="'v' === md.group"
           />
-          <MetadataText :value="md.volume_count" label="Volume Count" />
+          <MetadataText :value="md.volumeCount" label="Volume Count" />
           <MetadataText
             id="issue"
             :value="formattedIssue"
             label="Issue"
             :highlight="'c' === md.group"
           />
-          <MetadataText :value="md.issue_count" label="Issue Count" />
+          <MetadataText :value="md.issueCount" label="Issue Count" />
         </div>
         <section class="mdSection">
           <MetadataText :value="md.name" label="Title" />
@@ -104,14 +104,14 @@
         <section class="mdSection">
           <div class="quarterRow">
             <MetadataText
-              v-if="md.created_at"
-              :value="formatDateTime(md.created_at)"
+              v-if="md.createdAt"
+              :value="formatDateTime(md.createdAt)"
               label="Created at"
               class="mtime"
             />
             <MetadataText
-              v-if="md.updated_at"
-              :value="formatDateTime(md.updated_at)"
+              v-if="md.updatedAt"
+              :value="formatDateTime(md.updatedAt)"
               label="Updated at"
               class="mtime"
             />
@@ -127,9 +127,9 @@
           <MetadataText :value="md.language" label="Language" />
         </section>
         <section class="mdSection">
-          <MetadataText :value="md.community_rating" label="Community Rating" />
-          <MetadataText :value="md.critical_rating" label="Critical Rating" />
-          <MetadataText :value="md.age_rating" label="Age Rating" />
+          <MetadataText :value="md.communityRating" label="Community Rating" />
+          <MetadataText :value="md.criticalRating" label="Critical Rating" />
+          <MetadataText :value="md.ageRating" label="Age Rating" />
         </section>
         <section class="mdSection">
           <MetadataTags :values="md.genres" label="Genres" />
@@ -137,15 +137,15 @@
           <MetadataTags :values="md.teams" label="Teams" />
           <MetadataTags :values="md.characters" label="Characters" />
           <MetadataTags :values="md.locations" label="Locations" />
-          <MetadataTags :values="md.story_arcs" label="Story Arcs" />
-          <MetadataTags :values="md.series_groups" label="Series Groups" />
+          <MetadataTags :values="md.storyArcs" label="Story Arcs" />
+          <MetadataTags :values="md.seriesGroups" label="Series Groups" />
         </section>
         <section class="mdSection">
           <MetadataText :value="md.web" label="Web Link" :link="true" />
           <MetadataText :value="md.summary" label="Summary" />
           <MetadataText :value="md.comments" label="Comments" />
           <MetadataText :value="md.notes" label="Notes" />
-          <MetadataText :value="md.scan_info" label="Scan" />
+          <MetadataText :value="md.scanInfo" label="Scan" />
         </section>
         <section class="mdSection">
           <MetadataCreditsTable :value="md.credits" />

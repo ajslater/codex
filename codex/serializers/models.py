@@ -2,6 +2,9 @@
 import pycountry
 
 from rest_framework.serializers import (
+    CharField,
+    DateTimeField,
+    DecimalField,
     IntegerField,
     ModelSerializer,
     Serializer,
@@ -258,17 +261,42 @@ class ComicSerializer(ModelSerializer):
         """Dynamically whitelist fields."""
         fields = kwargs.pop("fields", None)
         # Use the fields argument to remove fields not in the list.
+        print(fields)
+        excluded_fields = set()
+        for field in self.fields:
+            # Dumb that I do this every instatiation.
+            # MUST include correct fields with source in camelCase
+            # block below.
+            if "_" in field:
+                excluded_fields.add(field)
+
         if fields:
             allowed_fields = set(fields)
             existing_fields = set(self.fields.keys())
-            excluded_fields = existing_fields - allowed_fields
-            for field in excluded_fields:
-                self.fields.pop(field)
+            excluded_fields |= existing_fields - allowed_fields
+        for field in excluded_fields:
+            self.fields.pop(field)
         super().__init__(*args, **kwargs)
 
+    # camelCase
+    coverPath = CharField(source="cover_path")  # noqa: N815
+    createdAt = DateTimeField(source="created_at")  # noqa: N815
+    updatedAt = DateTimeField(source="updated_at")  # noqa: N815
+    communityRating = DecimalField(  # noqa: N815
+        max_digits=5,
+        decimal_places=2,
+        coerce_to_string=False,
+        source="community_rating",
+    )
+    criticalRating = DecimalField(  # noqa: N815
+        max_digits=5, decimal_places=2, coerce_to_string=False, source="critical_rating"
+    )
+    ageRating = CharField(source="age_rating")  # noqa: N815
+    scanInfo = CharField(source="scan_info")  # noqa: N815
+
     # Annotations
-    issue_count = IntegerField(allow_null=True)
-    volume_count = IntegerField(allow_null=True)
+    issueCount = IntegerField(allow_null=True, source="issue_count")  # noqa:N815
+    volumeCount = IntegerField(allow_null=True, source="volume_count")  # noqa: N815
 
     # Special Serialization with pycountry
     country = CountrySerializer(allow_null=True)
@@ -284,8 +312,12 @@ class ComicSerializer(ModelSerializer):
     characters = CharacterSerializer(many=True, allow_null=True)
     genres = GenreSerializer(many=True, allow_null=True)
     locations = LocationSerializer(many=True, allow_null=True)
-    seriesGroups = SeriesGroupSerializer(many=True, allow_null=True)  # noqa: N815
-    storyArcs = StoryArcSerializer(many=True, allow_null=True)  # noqa: N815
+    seriesGroups = SeriesGroupSerializer(  # noqa: N815
+        many=True, allow_null=True, source="series_groups"
+    )
+    storyArcs = StoryArcSerializer(  # noqa: N815
+        many=True, allow_null=True, source="story_arcs"
+    )
     tags = TagSerializer(many=True, allow_null=True)
     teams = TeamSerializer(many=True, allow_null=True)
     credits = CreditSerializer(many=True, allow_null=True)
