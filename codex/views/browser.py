@@ -566,7 +566,7 @@ class BrowserView(BrowserMetadataBaseView):
         )[: BrowserPageSerializer.NUM_AUTOCOMPLETE_QUERIES]
 
         if is_model_comic:
-            # XXX runs obj list query twice
+            # runs obj list query twice :/
             issue_max = obj_list.aggregate(Max("issue"))["issue__max"]
         else:
             issue_max = 0
