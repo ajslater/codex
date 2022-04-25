@@ -270,18 +270,18 @@ export default {
     formattedIssue: function () {
       return formattedIssue({
         issue: this.md.issue,
-        issueSuffix: this.md.issue_suffix,
+        issueSuffix: this.md.issueSuffix,
       });
     },
     readerRoute: function () {
       const pk = this.md.id;
       const bookmark = this.md.bookmark;
-      const readLTR = this.md.read_ltr;
-      const pageCount = this.md.page_count;
+      const readLTR = this.md.readLTR;
+      const pageCount = this.md.pageCount;
       return getReaderRoute(pk, bookmark, readLTR, pageCount);
     },
     ltrText: function () {
-      return this.md.read_ltr ? "Left to Right" : "Right to Left";
+      return this.md.readLTR ? "Left to Right" : "Right to Left";
     },
     pages: function () {
       let pages = "";
@@ -289,7 +289,7 @@ export default {
         const humanBookmark = humanize.numberFormat(this.md.bookmark, 0);
         pages += `Read ${humanBookmark} of `;
       }
-      const humanPages = humanize.numberFormat(this.md.page_count, 0);
+      const humanPages = humanize.numberFormat(this.md.pageCount, 0);
       pages += `${humanPages} pages`;
       if (this.md.progress > 0) {
         pages += ` (${Math.round(this.md.progress)}%)`;
@@ -300,7 +300,7 @@ export default {
       return humanize.filesize(this.md.size);
     },
     fileFormat: function () {
-      return FILE_FORMATS[this.md.file_format] || this.md.file_format;
+      return FILE_FORMATS[this.md.fileFormat] || this.md.fileFormat;
     },
   },
   watch: {
@@ -450,11 +450,4 @@ export default {
   /* Seems like I'm fixing a bug here */
   background-color: #121212;
 }
-/* Show filter toolbar with dialog
-.v-dialog__content--active {
-  margin-top: 160px;
-  max-height: calc(100vh - 160px);
-  backdrop-filter: blur(2px) opacity(50%);
-}
-*/
 </style>

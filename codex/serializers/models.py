@@ -2,6 +2,7 @@
 import pycountry
 
 from rest_framework.serializers import (
+    BooleanField,
     CharField,
     DateTimeField,
     DecimalField,
@@ -293,6 +294,9 @@ class ComicSerializer(ModelSerializer):
     )
     ageRating = CharField(source="age_rating")  # noqa: N815
     scanInfo = CharField(source="scan_info")  # noqa: N815
+    readLTR = BooleanField(source="read_ltr")  # noqa: N815
+    pageCount = IntegerField(source="page_count")  # noqa: N815
+    fileFormat = CharField(source="file_format")  # noqa: N815
 
     # Annotations
     issueCount = IntegerField(allow_null=True, source="issue_count")  # noqa:N815

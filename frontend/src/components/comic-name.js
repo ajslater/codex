@@ -33,7 +33,9 @@ export const formattedIssue = function ({ issue, issueSuffix }, zeroPad) {
   } catch {
     issueStr = "";
   }
-  issueStr += issueSuffix;
+  if (issueSuffix) {
+    issueStr += issueSuffix;
+  }
 
   return issueStr;
 };
