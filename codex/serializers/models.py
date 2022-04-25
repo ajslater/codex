@@ -271,8 +271,8 @@ class ComicSerializer(ModelSerializer):
                 excluded_fields.add(field)
 
         if fields:
-            allowed_fields = set(fields)
-            existing_fields = set(self.fields.keys())
+            allowed_fields = frozenset(fields)
+            existing_fields = frozenset(self.fields.keys())
             excluded_fields |= existing_fields - allowed_fields
         for field in excluded_fields:
             self.fields.pop(field)

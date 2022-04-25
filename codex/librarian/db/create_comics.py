@@ -142,7 +142,7 @@ def _link_folders(folder_paths):
     folder_pks = Folder.objects.filter(path__in=folder_paths).values_list(
         "pk", flat=True
     )
-    return set(folder_pks)
+    return frozenset(folder_pks)
 
 
 def _link_credits(credits):
@@ -157,7 +157,7 @@ def _link_credits(credits):
         }
         filter = filter | Q(**filter_dict)
     credit_pks = Credit.objects.filter(filter).values_list("pk", flat=True)
-    return set(credit_pks)
+    return frozenset(credit_pks)
 
 
 def _link_named_m2ms(all_m2m_links, comic_pk, md):
@@ -170,13 +170,13 @@ def _link_named_m2ms(all_m2m_links, comic_pk, md):
         pks = related_model.objects.filter(name__in=names).values_list("pk", flat=True)
         if field not in all_m2m_links:
             all_m2m_links[field] = {}
-        all_m2m_links[field][comic_pk] = set(pks)
+        all_m2m_links[field][comic_pk] = frozenset(pks)
 
 
 def _link_comic_m2m_fields(m2m_mds):
     """Get the complete m2m field data to create."""
     all_m2m_links = {}
-    comic_paths = set(m2m_mds.keys())
+    comic_paths = frozenset(m2m_mds.keys())
     LOG.verbose(
         f"Preparing {len(comic_paths)} comics for many to many relation recreation."
     )

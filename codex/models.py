@@ -292,7 +292,7 @@ class Comic(WatchedPath):
 
         COMIC = "comic"
         PDF = "pdf"
-        CHOICES = set((COMIC, PDF))
+        CHOICES = frozenset((COMIC, PDF))
 
     ORDERING = ("series__name", "volume__name", "issue", "issue_suffix", "name", "pk")
 

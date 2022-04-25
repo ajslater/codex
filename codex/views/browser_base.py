@@ -19,7 +19,7 @@ from codex.views.session import SessionView
 LOG = get_logger(__name__)
 DATE_FORMAT = DATETIME_FORMAT.removesuffix("%H%M%S")
 RANGE_DELIMITER = ".."
-XAPIAN_UPPERCASE_OPERATORS = set(["AND", "OR", "XOR", "NEAR", "ADJ"])
+XAPIAN_UPPERCASE_OPERATORS = frozenset(["AND", "OR", "XOR", "NEAR", "ADJ"])
 
 
 class BrowserBaseView(SessionView, GroupACLMixin):

@@ -28,7 +28,7 @@ class SessionView(APIView):
         "teams": [],
         "year": [],
     }
-    FILTER_ATTRIBUTES = set(_DYNAMIC_FILTER_DEFAULTS.keys())
+    FILTER_ATTRIBUTES = frozenset(_DYNAMIC_FILTER_DEFAULTS.keys())
     SESSION_KEY = "UNDEFINED"  # Must override
     BROWSER_KEY = "browser"
     READER_KEY = "reader"

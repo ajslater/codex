@@ -168,7 +168,7 @@ class AdminLibrary(ModelAdmin):
 
     def delete_model(self, request, obj):
         """Stop watching on delete."""
-        pks = set([obj.pk])
+        pks = frozenset([obj.pk])
         task = PurgeComicCoversLibrariesTask(pks)
         LIBRARIAN_QUEUE.put(task)
         super().delete_model(request, obj)
@@ -177,7 +177,7 @@ class AdminLibrary(ModelAdmin):
 
     def delete_queryset(self, request, queryset):
         """Bulk delete."""
-        pks = set(queryset.values_list("pk", flat=True))
+        pks = frozenset(queryset.values_list("pk", flat=True))
         task = PurgeComicCoversLibrariesTask(pks)
         LIBRARIAN_QUEUE.put(task)
         super().delete_queryset(request, queryset)
@@ -258,7 +258,7 @@ class AdminFailedImport(AdminNoAddDelete):
     def poll(self, request, queryset):
         """Poll for new comics."""
         pks = queryset.values_list("library__pk", flat=True)
-        task = PollLibrariesTask(set(pks), False)
+        task = PollLibrariesTask(frozenset(pks), False)
         LIBRARIAN_QUEUE.put(task)
 
     poll.short_description = "Poll selected failed imports' libraries for changes"

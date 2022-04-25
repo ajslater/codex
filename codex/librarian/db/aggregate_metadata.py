@@ -19,7 +19,7 @@ from codex.version import COMICBOX_CONFIG
 
 LOG = get_logger(__name__)
 BROWSER_GROUPS = (Publisher, Imprint, Series, Volume)
-BROWSER_GROUP_TREE_COUNT_FIELDS = set(["volume_count", "issue_count"])
+BROWSER_GROUP_TREE_COUNT_FIELDS = frozenset(["volume_count", "issue_count"])
 COMIC_M2M_FIELDS = set()
 for field in Comic._meta.get_fields():
     if field.many_to_many and field.name != "folders":
@@ -121,7 +121,7 @@ def _aggregate_m2m_metadata(all_m2m_mds, m2m_md, all_fks, path):
         elif field != "folders":
             if field not in all_fks:
                 all_fks[field] = set()
-            all_fks[field] |= set(names)
+            all_fks[field] |= frozenset(names)
 
 
 def _none_max(a, b):
@@ -189,7 +189,7 @@ def get_aggregate_metadata(library, all_paths):
             LOG.info(f"Read tags from {num}/{total_paths} comics")
             last_log_time = now
 
-    all_fks["comic_paths"] = set(all_mds.keys())
+    all_fks["comic_paths"] = frozenset(all_mds.keys())
 
     LOG.verbose(f"Aggregated tags from {len(all_mds)} comics.")
     return all_mds, all_m2m_mds, all_fks, all_failed_imports
