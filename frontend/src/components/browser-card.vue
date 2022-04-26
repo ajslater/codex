@@ -10,11 +10,16 @@
           :finished="item.finished"
         />
         <div class="cardCoverOverlay">
-          <router-link class="browserLink" :to="toRoute">
+          <router-link v-if="toRoute" class="browserLink" :to="toRoute">
             <div class="cardCoverOverlayTopMiddleRow">
-              <v-icon v-if="item.group === 'c'">{{ mdiEye }}</v-icon>
+              <v-icon v-if="item.group === 'c'">
+                {{ mdiEye }}
+              </v-icon>
             </div>
           </router-link>
+          <div v-else class="cardCoverOverlayTopMiddleRow">
+            <v-icon v-if="item.group === 'c'">{{ mdiEyeOff }}</v-icon>
+          </div>
           <div class="cardCoverOverlayBottomRow">
             <MetadataButton
               class="metadataButton"
@@ -38,19 +43,19 @@
         background-color="inherit"
         height="2"
       />
-      <router-link class="browserLink cardSubtitle text-caption" :to="toRoute">
+      <span class="browserLink cardSubtitle text-caption">
         <div v-if="headerName" class="headerName">{{ headerName }}</div>
         <div class="displayName">{{ displayName }}</div>
         <!-- eslint-disable-next-line vue/no-v-html -->
         <div v-if="orderValue" class="orderValue" v-html="orderValue" />
-      </router-link>
+      </span>
     </div>
   </v-lazy>
 </template>
 
 <script>
 // import { mdiChevronLeft } from "@mdi/js";
-import { mdiEye } from "@mdi/js";
+import { mdiEye, mdiEyeOff } from "@mdi/js";
 import humanize from "humanize";
 import { mapState } from "vuex";
 
@@ -85,6 +90,7 @@ export default {
   data() {
     return {
       mdiEye,
+      mdiEyeOff,
     };
   },
   // Stored here instead of data to be non-reactive
@@ -149,12 +155,7 @@ export default {
     },
     toRoute: function () {
       return this.item.group === "c"
-        ? getReaderRoute(
-            this.item.pk,
-            this.item.bookmark,
-            this.item.read_ltr,
-            this.item.page_count
-          )
+        ? getReaderRoute(this.item)
         : {
             name: "browser",
             params: { group: this.item.group, pk: this.item.pk, page: 1 },

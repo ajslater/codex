@@ -161,12 +161,15 @@
           ><v-icon v-if="group === 'c'">{{ mdiDownload }}</v-icon></v-btn
         >
         <v-btn
-          v-if="isBrowser && group === 'c'"
+          v-if="isBrowser && group === 'c' && readerRoute"
           :to="readerRoute"
           title="Read Comic"
         >
           <v-icon>{{ mdiEye }}</v-icon>
         </v-btn>
+        <v-icon v-else-if="group === 'c' && !readerRoute">{{
+          mdiEyeOff
+        }}</v-icon>
 
         <span id="bottomRightButtons">
           <v-btn
@@ -199,7 +202,7 @@
   </v-dialog>
 </template>
 <script>
-import { mdiDownload, mdiEye, mdiTagOutline } from "@mdi/js";
+import { mdiDownload, mdiEye, mdiEyeOff, mdiTagOutline } from "@mdi/js";
 import humanize from "humanize";
 import { mapGetters, mapState } from "vuex";
 
@@ -248,6 +251,7 @@ export default {
     return {
       mdiDownload,
       mdiEye,
+      mdiEyeOff,
       mdiTagOutline,
       dialog: false,
       progress: 0,
@@ -274,11 +278,7 @@ export default {
       });
     },
     readerRoute: function () {
-      const pk = this.md.id;
-      const bookmark = this.md.bookmark;
-      const readLtr = this.md.readLtr;
-      const pageCount = this.md.pageCount;
-      return getReaderRoute(pk, bookmark, readLtr, pageCount);
+      return getReaderRoute(this.md);
     },
     ltrText: function () {
       return this.md.readLtr ? "Left to Right" : "Right to Left";

@@ -3,7 +3,15 @@ from copy import deepcopy
 from typing import Optional, Union
 
 from django.core.paginator import EmptyPage, Paginator
-from django.db.models import CharField, DecimalField, F, IntegerField, Max, Value
+from django.db.models import (
+    BooleanField,
+    CharField,
+    DecimalField,
+    F,
+    IntegerField,
+    Max,
+    Value,
+)
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
@@ -57,6 +65,7 @@ class BrowserView(BrowserMetadataBaseView):
     _NONE_DECIMALFIELD = Value(None, DecimalField())
     _EMPTY_CHARFIELD = Value("", CharField())
     _ZERO_INTEGERFIELD = Value(0, IntegerField())
+    _NONE_BOOLFIELD = Value(None, BooleanField())
 
     _GROUP_INSTANCE_SELECT_RELATED = {
         Comic: ("series", "volume"),
@@ -138,6 +147,9 @@ class BrowserView(BrowserMetadataBaseView):
             )
         if model not in (Folder, Comic):
             queryset = queryset.annotate(path=self.NONE_CHARFIELD)
+
+        if not is_model_comic:
+            queryset = queryset.annotate(read_ltr=self._NONE_BOOLFIELD)
 
         return queryset
 

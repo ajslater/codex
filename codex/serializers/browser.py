@@ -166,10 +166,8 @@ class BrowserSettingsSerializer(Serializer):
     show = BrowserSettingsShowGroupFlagsSerializer()
 
 
-class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
+class BrowserCardSerializer(BrowserAggregateSerializerMixin):
     """Browse card displayed in the browser."""
-
-    # TODO add a loop that adds sources.
 
     pk = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "pk")
     group = CharField(read_only=True, max_length=1, source=UNIONFIX_PREFIX + "group")
@@ -192,6 +190,8 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
     )
     issue_suffix = CharField(read_only=True, source=UNIONFIX_PREFIX + "issue_suffix")
     order_value = CharField(read_only=True, source=UNIONFIX_PREFIX + "order_value")
+    page_count = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "page_count")
+    read_ltr = BooleanField(read_only=True, source=UNIONFIX_PREFIX + "read_ltr")
 
 
 class BrowserRouteSerializer(Serializer):
