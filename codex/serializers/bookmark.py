@@ -27,12 +27,12 @@ class UserBookmarkFinishedSerializer(ModelSerializer):
 class ComicReaderSettingsSerializer(Serializer):
     """Reader settings the user can change."""
 
-    fitTo = ChoiceField(  # noqa: N815
+    fit_to = ChoiceField(
         choices=FIT_TO_CHOICES,
         allow_null=True,
         required=False,
     )
-    twoPages = BooleanField(allow_null=True, required=False)  # noqa: N815
+    two_pages = BooleanField(allow_null=True, required=False)
 
 
 class ComicReaderBothSettingsSerializer(Serializer):

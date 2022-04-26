@@ -6,7 +6,6 @@ from django.core.paginator import EmptyPage, Paginator
 from django.db.models import CharField, DecimalField, F, IntegerField, Max, Value
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
-from stringcase import camelcase, snakecase
 
 from codex.exceptions import SeeOtherRedirectError
 from codex.models import (
@@ -47,21 +46,14 @@ class BrowserView(BrowserMetadataBaseView):
     _NAV_GROUPS = "rpisv"
     _MAX_OBJ_PER_PAGE = 100
     _ORPHANS = int(_MAX_OBJ_PER_PAGE / 20)
+    # TODO move to BrowserCardSerializer?
+    # TODO doesn't need snakecase
     _BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP = dict(
         (
-            (UNIONFIX_PREFIX + snakecase(field), F(snakecase(field)))
+            (UNIONFIX_PREFIX + field, F(field))
             for field in sorted(BrowserCardSerializer().get_fields())
         )
     )
-    _BROWSER_SETTINGS_KEYS_SNAKE_CAMEL_MAP = {
-        snake_key: camelcase(snake_key)
-        for snake_key in BrowserMetadataBaseView.SESSION_DEFAULTS[
-            BrowserMetadataBaseView.BROWSER_KEY
-        ].keys()
-    }
-    _BROWSER_SETTINGS_KEYS_CAMEL_SNAKE_MAP = {
-        v: k for k, v in _BROWSER_SETTINGS_KEYS_SNAKE_CAMEL_MAP.items()
-    }
     _NONE_DECIMALFIELD = Value(None, DecimalField())
     _EMPTY_CHARFIELD = Value("", CharField())
     _ZERO_INTEGERFIELD = Value(0, IntegerField())
@@ -359,8 +351,7 @@ class BrowserView(BrowserMetadataBaseView):
         """Redirect the client to a valid group url."""
         route = deepcopy(self._DEFAULT_ROUTE)
         route["params"].update(route_changes)
-        settings = self._get_serializer_settings()
-        detail = {"route": route, "settings": settings, "reason": reason}
+        detail = {"route": route, "settings": self.params, "reason": reason}
         raise SeeOtherRedirectError(detail=detail)
 
     def _validate_folder_settings(self, enable_folder_view):
@@ -475,7 +466,8 @@ class BrowserView(BrowserMetadataBaseView):
             raise exc
 
         for key, value in serializer.validated_data.items():
-            snake_key = self._BROWSER_SETTINGS_KEYS_CAMEL_SNAKE_MAP[key]
+            # TODO reform
+            snake_key = key
             if snake_key == "autoquery" and not self.params.get(snake_key) and value:
                 self.autoquery_first = True
             if snake_key == "top_group" and self.params.get(snake_key) != value:
@@ -598,25 +590,15 @@ class BrowserView(BrowserMetadataBaseView):
         serializer = BrowserPageSerializer(browser_page)
         return Response(serializer.data)
 
-    def _get_serializer_settings(self):
-        """Get the camelcase settings."""
-        settings = {}
-        for key in self._BROWSER_SETTINGS_KEYS_SNAKE_CAMEL_MAP:
-            camel_key = camelcase(key)
-            settings[camel_key] = self.params.get(key)
-        return settings
-
     def get(self, request, *args, **kwargs):
         """Get browser settings."""
         self._load_params()
         browser_page = self._get_browser_page()
-
-        settings = self._get_serializer_settings()
         latest_version = get_latest_version(PACKAGE_NAME)
 
         data = {
-            "settings": settings,
-            "browserPage": browser_page,
+            "settings": self.params,
+            "browser_page": browser_page,
             "versions": {"installed": VERSION, "latest": latest_version},
         }
         serializer = BrowserOpenedSerializer(data)

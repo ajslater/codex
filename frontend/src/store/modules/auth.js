@@ -36,7 +36,7 @@ const mutations = {
 
 const getters = {
   isAdmin: (state) => {
-    return state.user && (state.user.is_staff || state.user.is_superuser);
+    return state.user && (state.user.isStaff || state.user.isSuperuser);
   },
   isOpenToSee: (state) => {
     return Boolean(state.user || state.enableNonUsers);

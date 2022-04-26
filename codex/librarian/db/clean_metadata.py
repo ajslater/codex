@@ -16,13 +16,12 @@ LOG = get_logger(__name__)
 
 _MD_INVALID_KEYS = frozenset(
     (
-        "created_at",
         "id",
+        "created_at",
         "library",
         "parent_folder",
         "pk",
         "stat",
-        "title",
         "updated_at",
     )
 )
@@ -216,20 +215,21 @@ def _clean_comic_m2m_named(md: dict[str, Any], md_keys: frozenset[str]):
         return cleaned_names
 
 
-def _remove_unused_keys(md: dict[str, Any]) -> frozenset[str]:
+def _allowed_keys(dirty_md: dict[str, Any]) -> dict[str, Any]:
     """Remove unused keys."""
-    md_keys = frozenset(md.keys())
-    unused_keys = md_keys - _MD_VALID_KEYS
-    for key in unused_keys:
-        del md[key]
-    return frozenset(md.keys())
+    allowed_md = {}
+    for key in _MD_VALID_KEYS:
+        if val := dirty_md.get(key):
+            allowed_md[key] = val
+    return allowed_md
 
 
 def clean_md(md):
     """Sanitize the metadata before import."""
     _parse_comic_issue(md)
     _title_to_name(md)
-    md_keys = _remove_unused_keys(md)
+    md = _allowed_keys(md)
+    md_keys = frozenset(md.keys())
     _clean_comic_groups(md, md_keys)
     _clean_comic_decimals(md, md_keys)
     _clean_comic_positive_small_ints(md, md_keys)

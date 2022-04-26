@@ -18,26 +18,22 @@ class ComicPageRouteSerializer(Serializer):
 class ComicReaderRoutesSerializer(Serializer):
     """Previous and next comic routes."""
 
-    prevBook = ComicPageRouteSerializer(  # noqa: N815
-        allow_null=True, read_only=True, source="prev_book"
-    )
-    nextBook = ComicPageRouteSerializer(  # noqa: N815
-        allow_null=True, read_only=True, source="next_book"
-    )
+    prev_book = ComicPageRouteSerializer(allow_null=True, read_only=True)
+    next_book = ComicPageRouteSerializer(allow_null=True, read_only=True)
 
 
 class ComicReaderComicSerializer(Serializer):
     """Components for constructing the title."""
 
-    fileFormat = CharField(read_only=True, source="file_format")  # noqa N815
+    file_format = CharField(read_only=True)
     issue = DecimalField(
         max_digits=None, decimal_places=3, read_only=True, coerce_to_string=False
     )
-    issueSuffix = CharField(read_only=True, source="issue_suffix")  # noqa: N815
-    issueCount = IntegerField(read_only=True, source="issue_count")  # noqa: N815
-    maxPage = IntegerField(read_only=True, source="max_page")  # noqa: N815
-    seriesName = CharField(read_only=True, source="series_name")  # noqa: N815
-    volumeName = CharField(read_only=True, source="volume_name")  # noqa: N815
+    issue_suffix = CharField(read_only=True)
+    issue_count = IntegerField(read_only=True)
+    max_page = IntegerField(read_only=True)
+    series_name = CharField(read_only=True)
+    volume_name = CharField(read_only=True)
 
 
 class ComicReaderInfoSerializer(Serializer):
@@ -45,4 +41,4 @@ class ComicReaderInfoSerializer(Serializer):
 
     comic = ComicReaderComicSerializer(read_only=True)
     routes = ComicReaderRoutesSerializer(read_only=True)
-    browserRoute = JSONField(read_only=True, source="browser_route")  # noqa: N815
+    browser_route = JSONField(read_only=True)

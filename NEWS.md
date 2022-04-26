@@ -16,7 +16,7 @@ _Portable Document Format_
 
   - Comic file suffixes now matched case insensitively.
   - Don't leak library root paths in Folder View for non-admins in the API.
-  - Fixed aggregation bug showing innacurate data when viewing group metadata.
+  - Fixed aggregation bug showing inaccurate data when viewing group metadata.
   - More accurate Name sorting.
 
 ## v0.9.14

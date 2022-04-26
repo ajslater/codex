@@ -125,9 +125,7 @@ class CharListField(FilterListField):
 class BrowserSettingsFilterSerializer(Serializer):
     """Filter values for settings."""
 
-    bookmark = ChoiceField(  # noqa: N815
-        choices=tuple(CHOICES["bookmarkFilter"].keys())
-    )
+    bookmark = ChoiceField(choices=tuple(CHOICES["bookmarkFilter"].keys()))
     # Dynamic filters
     community_rating = DecimalListField(
         max_digits=5, decimal_places=2, coerce_to_string=False
@@ -162,32 +160,28 @@ class BrowserSettingsSerializer(Serializer):
 
     filters = BrowserSettingsFilterSerializer()
     autoquery = CharField(allow_blank=True)
-    topGroup = ChoiceField(choices=tuple(CHOICES["topGroup"].keys()))  # noqa: N815
-    orderBy = ChoiceField(choices=tuple(CHOICES["orderBy"].keys()))  # noqa: N815
-    orderReverse = BooleanField()  # noqa: N815
+    top_group = ChoiceField(choices=tuple(CHOICES["topGroup"].keys()))
+    order_by = ChoiceField(choices=tuple(CHOICES["orderBy"].keys()))
+    order_reverse = BooleanField()
     show = BrowserSettingsShowGroupFlagsSerializer()
 
 
 class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
     """Browse card displayed in the browser."""
 
+    # TODO add a loop that adds sources.
+
     pk = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "pk")
     group = CharField(read_only=True, max_length=1, source=UNIONFIX_PREFIX + "group")
-    coverPath = CharField(  # noqa: N815
-        read_only=True, source=UNIONFIX_PREFIX + "cover_path"
-    )
-    coverUpdatedAt = TimestampField(  # noqa: N815
+    cover_path = CharField(read_only=True, source=UNIONFIX_PREFIX + "cover_path")
+    cover_updated_at = TimestampField(
         read_only=True, source=UNIONFIX_PREFIX + "cover_updated_at"
     )
-    publisherName = CharField(  # noqa: N815
+    publisher_name = CharField(
         read_only=True, source=UNIONFIX_PREFIX + "publisher_name"
     )
-    seriesName = CharField(  # noqa: N815
-        read_only=True, source=UNIONFIX_PREFIX + "series_name"
-    )
-    volumeName = CharField(  # noqa: N815
-        read_only=True, source=UNIONFIX_PREFIX + "volume_name"
-    )
+    series_name = CharField(read_only=True, source=UNIONFIX_PREFIX + "series_name")
+    volume_name = CharField(read_only=True, source=UNIONFIX_PREFIX + "volume_name")
     name = CharField(read_only=True, source=UNIONFIX_PREFIX + "name")
     issue = DecimalField(
         max_digits=16,
@@ -196,12 +190,8 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
         coerce_to_string=False,
         source=UNIONFIX_PREFIX + "issue",
     )
-    issueSuffix = CharField(  # noqa: N815
-        read_only=True, source=UNIONFIX_PREFIX + "issue_suffix"
-    )
-    orderValue = CharField(  # noqa: N815
-        read_only=True, source=UNIONFIX_PREFIX + "order_value"
-    )
+    issue_suffix = CharField(read_only=True, source=UNIONFIX_PREFIX + "issue_suffix")
+    order_value = CharField(read_only=True, source=UNIONFIX_PREFIX + "order_value")
 
 
 class BrowserRouteSerializer(Serializer):
@@ -215,15 +205,15 @@ class BrowserRouteSerializer(Serializer):
 class BrowserFormChoicesSerializer(Serializer):
     """These choices change with browse context."""
 
-    enableFolderView = BooleanField(read_only=True)  # noqa: N815
+    enable_folder_view = BooleanField(read_only=True)
 
 
 class BrowserTitleSerializer(Serializer):
     """Elements for constructing the browse title."""
 
-    parentName = CharField(read_only=True, allow_null=True)  # noqa: N815
-    groupName = CharField(read_only=True)  # noqa: N815
-    groupCount = IntegerField(read_only=True, allow_null=True)  # noqa: N815
+    parent_name = CharField(read_only=True, allow_null=True)
+    group_name = CharField(read_only=True)
+    group_count = IntegerField(read_only=True, allow_null=True)
 
 
 class BrowserPageSerializer(Serializer):
@@ -231,31 +221,21 @@ class BrowserPageSerializer(Serializer):
 
     NUM_AUTOCOMPLETE_QUERIES = 10
 
-    browserTitle = BrowserTitleSerializer(  # noqa: N815
-        read_only=True, source="browser_title"
+    browser_title = BrowserTitleSerializer(read_only=True)
+    model_group = CharField(read_only=True)
+    up_route = BrowserRouteSerializer(allow_null=True)
+    obj_list = ListField(
+        child=BrowserCardSerializer(read_only=True), allow_empty=True, read_only=True
     )
-    modelGroup = CharField(read_only=True, source="model_group")  # noqa: N815
-    upRoute = BrowserRouteSerializer(allow_null=True, source="up_route")  # noqa: N815
-    objList = ListField(  # noqa: N815
-        child=BrowserCardSerializer(read_only=True),
-        allow_empty=True,
-        read_only=True,
-        source="obj_list",
-    )
-    issueMax = DecimalField(  # noqa: N815
+    issue_max = DecimalField(
         max_digits=16,
         decimal_places=3,
         read_only=True,
         coerce_to_string=False,
-        source="issue_max",
     )
-    numPages = IntegerField(read_only=True, source="num_pages")  # noqa: N815
-    formChoices = BrowserFormChoicesSerializer(  # noqa: N815
-        read_only=True, source="form_choices"
-    )
-    librariesExist = BooleanField(  # noqa: N815
-        read_only=True, source="libraries_exist"
-    )
+    num_pages = IntegerField(read_only=True)
+    form_choices = BrowserFormChoicesSerializer(read_only=True)
+    libraries_exist = BooleanField(read_only=True)
     queries = ListField(
         child=CharField(read_only=True), allow_empty=True, read_only=True
     )
@@ -272,5 +252,5 @@ class BrowserOpenedSerializer(Serializer):
     """Component open settings."""
 
     settings = BrowserSettingsSerializer(read_only=True)
-    browserPage = BrowserPageSerializer(read_only=True)  # noqa: N815
+    browser_page = BrowserPageSerializer(read_only=True)
     versions = VersionsSerializer(read_only=True)

@@ -14,9 +14,9 @@ from codex.models import AdminFlag
 class UserSerializer(ModelSerializer):
     """Serialize User model for UI."""
 
-    enableNonUsers = SerializerMethodField()  # noqa: N815
+    enable_non_users = SerializerMethodField()
 
-    def get_enableNonUsers(self, obj):  # noqa: N802
+    def get_enable_non_users(self, obj):
         """Piggyback on user objects. A little awkward."""
         enu_flag = AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_NON_USERS)
         return enu_flag.on
@@ -25,7 +25,7 @@ class UserSerializer(ModelSerializer):
         """Model spec."""
 
         model = User
-        fields = ("pk", "username", "is_staff", "enableNonUsers")
+        fields = ("pk", "username", "is_staff", "enable_non_users")
         read_only_fields = fields
 
 
@@ -59,4 +59,4 @@ class UserLoginSerializer(UserCreateSerializer):
 class RegistrationEnabledSerializer(Serializer):
     """Serialize one admin flag."""
 
-    enableRegistration = BooleanField(read_only=True)  # noqa: N815
+    enable_registration = BooleanField(read_only=True)

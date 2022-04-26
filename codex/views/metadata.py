@@ -4,7 +4,6 @@ from copy import copy
 from django.db.models import Case, Count, F, Subquery, When
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
-from stringcase import snakecase
 
 from codex.models import AdminFlag, Comic
 from codex.serializers.metadata import MetadataSerializer
@@ -92,7 +91,7 @@ class MetadataView(BrowserMetadataBaseView):
     _CREDIT_RELATIONS = ("role", "person")
     _BROWSER_AGGREGATE_UNIONFIX_VALUES_MAP = dict(
         (
-            (snakecase(field), UNIONFIX_PREFIX + snakecase(field))
+            (field, UNIONFIX_PREFIX + field)
             for field in sorted(BrowserAggregateSerializerMixin().get_fields())
         )
     )
@@ -259,18 +258,16 @@ class MetadataView(BrowserMetadataBaseView):
 
         obj.update(m2m_intersections)
 
-        # Don't expose the filesystem
-        obj["folders"] = None
-        obj["parent_folder"] = None
-        if not self.is_admin() and obj["path"]:
+        # path security
+        if not self.is_admin():
             if self._is_enabled_folder_view():
                 library_path = obj.get("library_path")
                 if library_path:
                     obj["path"] = obj["path"].removeprefix(library_path)
                 else:
-                    obj["path"] = None
+                    obj["path"] = ""
             else:
-                obj["path"] = None
+                obj["path"] = ""
 
         # For highlighting the current group
         obj["group"] = self.group

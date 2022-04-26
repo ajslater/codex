@@ -113,7 +113,7 @@ export default {
   computed: {
     ...mapState("auth", {
       user: (state) => state.user,
-      isAdmin: (state) => state.user && state.user.is_staff,
+      isAdmin: (state) => state.user && state.user.isStaff,
       authFormError: (state) => state.form.error,
       usernameErrors: (state) => state.form.usernameErrors,
       passwordErrors: (state) => state.form.passwordErrors,

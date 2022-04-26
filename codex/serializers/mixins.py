@@ -13,10 +13,10 @@ UNIONFIX_PREFIX = "unionfix_"
 class BrowserAggregateSerializerMixin(Serializer):
     """Mixin for browser & metadata serializers."""
 
+    # TODO unionfix loop superclass
+
     # Aggregate Annotations
-    childCount = IntegerField(  # noqa: N815
-        read_only=True, source=UNIONFIX_PREFIX + "child_count"
-    )
+    child_count = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "child_count")
 
     # UserBookmark annotations
     bookmark = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "bookmark")

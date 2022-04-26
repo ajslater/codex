@@ -2,6 +2,10 @@
 from rest_framework.views import APIView
 
 from codex.serializers.choices import DEFAULTS
+from codex.settings.logging import get_logger
+
+
+LOG = get_logger(__name__)
 
 
 class SessionView(APIView):
@@ -85,8 +89,11 @@ class SessionView(APIView):
 
     def save_params_to_session(self):
         """Save the session from params with defaults for missing values."""
-        defaults = self.SESSION_DEFAULTS[self.SESSION_KEY]
-        data = {}
-        self._get_source_values_or_set_defaults(defaults, self.params, data)
-        self.request.session[self.SESSION_KEY] = data
-        self.request.session.save()
+        try:
+            defaults = self.SESSION_DEFAULTS[self.SESSION_KEY]
+            data = {}
+            self._get_source_values_or_set_defaults(defaults, self.params, data)
+            self.request.session[self.SESSION_KEY] = data
+            self.request.session.save()
+        except Exception as exc:
+            LOG.warning(f"Saving params to session: {exc}")

@@ -276,12 +276,12 @@ export default {
     readerRoute: function () {
       const pk = this.md.id;
       const bookmark = this.md.bookmark;
-      const readLTR = this.md.readLTR;
+      const readLtr = this.md.readLtr;
       const pageCount = this.md.pageCount;
-      return getReaderRoute(pk, bookmark, readLTR, pageCount);
+      return getReaderRoute(pk, bookmark, readLtr, pageCount);
     },
     ltrText: function () {
-      return this.md.readLTR ? "Left to Right" : "Right to Left";
+      return this.md.readLtr ? "Left to Right" : "Right to Left";
     },
     pages: function () {
       let pages = "";
