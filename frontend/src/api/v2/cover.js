@@ -6,9 +6,10 @@ const MISSING_COVER_PATH = `static/img/${MISSING_COVER_FN}`;
 export const getCoverSource = (coverPath, updatedAt) => {
   let src = `${ROOT_PATH}`;
   src +=
-    coverPath === MISSING_COVER_PATH ? MISSING_COVER_FN : `covers/${coverPath}`;
+    coverPath === MISSING_COVER_FN ? MISSING_COVER_PATH : `covers/${coverPath}`;
   if (updatedAt) {
     src += `?${updatedAt}`;
   }
+  console.log(src);
   return src;
 };
