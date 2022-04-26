@@ -18,6 +18,8 @@ _Portable Document Format_
   - Don't leak library root paths in Folder View for non-admins in the API.
   - Fixed aggregation bug showing inaccurate data when viewing group metadata.
   - More accurate Name sorting.
+  - Fixed default start page for RTL comics.
+  - Disabled reading links for empty comics.
 
 ## v0.9.14
 
