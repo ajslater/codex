@@ -122,9 +122,9 @@ class BrowserView(BrowserMetadataBaseView):
         # Annotate name fields #
         ########################
         # Optimized to only lookup what is used on the frontend
-        publisher_name = self._NONE_CHARFIELD
-        series_name = self._NONE_CHARFIELD
-        volume_name = self._NONE_CHARFIELD
+        publisher_name = self.NONE_CHARFIELD
+        series_name = self.NONE_CHARFIELD
+        volume_name = self.NONE_CHARFIELD
 
         if is_model_comic:
             series_name = F("series__name")
@@ -145,7 +145,7 @@ class BrowserView(BrowserMetadataBaseView):
                 issue_suffix=self._EMPTY_CHARFIELD,
             )
         if model not in (Folder, Comic):
-            queryset = queryset.annotate(path=self._NONE_CHARFIELD)
+            queryset = queryset.annotate(path=self.NONE_CHARFIELD)
 
         return queryset
 

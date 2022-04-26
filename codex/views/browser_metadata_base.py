@@ -48,7 +48,7 @@ class BrowserMetadataBaseView(BrowserBaseView):
     _HALF_VALUE = (Value(0.5),)
     _SEP_VALUE = Value(sep)
     _ONE_INTEGERFIELD = Value(1, IntegerField())
-    _NONE_CHARFIELD = Value(None, CharField())
+    NONE_CHARFIELD = Value(None, CharField())
     GROUP_MODEL_MAP = {
         "r": None,
         "p": Publisher,
@@ -163,7 +163,7 @@ class BrowserMetadataBaseView(BrowserBaseView):
         # Determine order func
         if not field:
             # use default sorting.
-            func = self._NONE_CHARFIELD
+            func = self.NONE_CHARFIELD
         elif field == "path" and model in (Comic, Folder):
             # special path sorting.
             func = self._get_path_query_func(field)
