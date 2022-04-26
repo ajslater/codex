@@ -10,7 +10,7 @@ _PDF_
   - CBT support. Tarball comic archives.
   - Alphanumeric issue support.
   - Individual folders for each library.
-  - More consistent browser card highlighting & display.
+  - Don't duplicate folder name in filename sort.
 
 - Fixes
 

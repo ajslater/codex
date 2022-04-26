@@ -123,10 +123,10 @@ export default {
     orderValue: function () {
       let ov = this.item.orderValue;
       if (
+        this.orderByCache === undefined ||
+        this.orderByCache === null ||
         this.orderByCache === "sort_name" ||
         (this.orderByCache === "path" && this.item.group === "f") ||
-        this.orderByCache === null ||
-        this.orderByCache === undefined ||
         ov === null ||
         ov === undefined
       ) {
@@ -137,7 +137,7 @@ export default {
       } else if (this.orderByCache == "size") {
         ov = humanize.filesize(Number.parseInt(ov, 10), 1024, 1);
       } else if (STAR_SORT_BY.has(this.orderByCache)) {
-        ov = `${ov} stars`;
+        ov = `★  ${ov}`;
       } else if (DATE_SORT_BY.has(this.orderByCache)) {
         const date = new Date(ov);
         ov = DATE_FORMAT.format(date);
