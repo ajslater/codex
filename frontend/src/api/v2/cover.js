@@ -10,6 +10,5 @@ export const getCoverSource = (coverPath, updatedAt) => {
   if (updatedAt) {
     src += `?${updatedAt}`;
   }
-  console.log(src);
   return src;
 };

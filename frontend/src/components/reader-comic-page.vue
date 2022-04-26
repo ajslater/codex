@@ -80,7 +80,6 @@ export default {
     },
     pdfWidth() {
       const fitTo = this.computedSettings.fitTo;
-      console.log(fitTo);
       let width = 0;
       if (fitTo === "WIDTH") {
         width = window.innerWidth;
@@ -92,7 +91,6 @@ export default {
     },
     pdfHeight() {
       const fitTo = this.computedSettings.fitTo;
-      console.log(fitTo);
       if (fitTo == "HEIGHT") {
         return window.innerHeight;
       }
