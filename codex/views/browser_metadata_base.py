@@ -147,7 +147,7 @@ class BrowserMetadataBaseView(BrowserBaseView):
     def _get_path_query_func(cls, field):
         """Use the db to get only the filename."""
         return Right(
-            field, StrIndex(Reverse(field), cls._VALUE_SEP) - 1  # type: ignore
+            field, StrIndex(Reverse(field), cls._SEP_VALUE) - 1  # type: ignore
         )
 
     def get_aggregate_func(self, order_key, model, autoquery_pk=None):

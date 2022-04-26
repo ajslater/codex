@@ -97,13 +97,6 @@ export default {
     headerName: function () {
       let headerName;
       switch (this.item.group) {
-        case "c":
-          headerName =
-            !Number(this.$route.params.pk) || this.$route.params.group === "f"
-              ? (headerName = getFullComicName(this.item, this.zeroPad))
-              : (headerName = getIssueName(this.item, this.zeroPad));
-          break;
-
         case "i":
           headerName = this.item.publisherName;
           break;
@@ -118,14 +111,27 @@ export default {
       return headerName;
     },
     displayName: function () {
-      return this.item.group === "v"
-        ? formattedVolumeName(this.item.name)
-        : this.item.name;
+      let dn;
+      switch (this.item.group) {
+        case "v":
+          dn = formattedVolumeName(this.item.name);
+          break;
+        case "c":
+          dn =
+            this.$route.params.group === "f"
+              ? getFullComicName(this.item, this.zeroPad)
+              : getIssueName(this.item, this.zeroPad);
+          break;
+        default:
+          dn = this.item.name;
+      }
+      return dn;
     },
     orderValue: function () {
       let ov = this.item.orderValue;
       if (
         this.orderByCache === "sort_name" ||
+        (this.orderByCache === "path" && this.item.group === "f") ||
         this.orderByCache === null ||
         this.orderByCache === undefined ||
         ov === null ||
