@@ -617,7 +617,6 @@ class BrowserView(BrowserMetadataBaseView):
         settings = self._get_serializer_settings()
         latest_version = get_latest_version(PACKAGE_NAME)
 
-        print(settings)
         data = {
             "settings": settings,
             "browserPage": browser_page,

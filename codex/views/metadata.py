@@ -1,7 +1,7 @@
 """View for marking comics read and unread."""
 from copy import copy
 
-from django.db.models import Case, Count, F, Subquery, Value, When
+from django.db.models import Case, Count, F, Subquery, When
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from stringcase import snakecase
@@ -115,36 +115,24 @@ class MetadataView(BrowserMetadataBaseView):
     ):
         """Annotate the intersection of value and fk fields."""
         for field in fields:
-            if self.is_model_comic:
-                comic_rel_field = field
-            else:
-                comic_rel_field = f"comic__{field}"
-
             # Annotate variant counts
             # Have to use simple_qs because every annotation in the loop
             # corrupts the the main qs
+            # If 1 variant, annotate value, otherwise None
+            if self.is_model_comic:
+                full_field = field
+            else:
+                full_field = "comic__" + field
+            lookup = Case(When(count=1, then=full_field + related_suffix))
             val = Subquery(
                 simple_qs.values("id")
                 .order_by()  # magic order_by saves the day again
-                .annotate(count=Count(comic_rel_field, distinct=True))
-                .values("count")
+                .annotate(count=Count(full_field, distinct=True))
+                .annotate(final_val=lookup)
+                .values("final_val")
             )
-            field_variants = field.replace("__", "_") + "_variants"
-            then = comic_rel_field + related_suffix
-            qs = qs.annotate(**{field_variants: val})
-
-            # If 1 variant, annotate value, otherwise None
             ann_field = (annotation_prefix + field).replace("__", "_")
-            condition = {field_variants: 1}
-            lookup = Case(
-                When(**condition, then=then),
-                default=Value(None),
-            )
-            # TODO: this corrrupts the main qs by splitting into
-            # two qs results on the language variantsself.
-            # TODO: Maybe need to move most of the condition into as
-            # subquery and not annotate the main qs with _variants
-            qs = qs.annotate(**{ann_field: lookup})
+            qs = qs.annotate(**{ann_field: val})
 
         return qs
 

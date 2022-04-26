@@ -262,7 +262,6 @@ class ComicSerializer(ModelSerializer):
         """Dynamically whitelist fields."""
         fields = kwargs.pop("fields", None)
         # Use the fields argument to remove fields not in the list.
-        print(fields)
         excluded_fields = set()
         for field in self.fields:
             # Dumb that I do this every instatiation.
