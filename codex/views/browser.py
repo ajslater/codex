@@ -193,8 +193,6 @@ class BrowserView(BrowserMetadataBaseView):
         comic_list = comic_list.values(**self._BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP)
 
         obj_list = folder_list.union(comic_list)
-        print("AFTER")
-        print(obj_list)
         return obj_list
 
     def _get_browser_group_queryset(self, object_filter, autoquery_pk):
