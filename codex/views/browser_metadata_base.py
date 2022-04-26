@@ -60,12 +60,22 @@ class BrowserMetadataBaseView(BrowserBaseView):
         BrowserBaseView.COMIC_GROUP: Comic,
         BrowserBaseView.FOLDER_GROUP: Folder,
     }
-    DEFAULT_ORDER_KEY = "sort_name"
 
     @staticmethod
     def _cover_subquery(cover_comics, field):
         """Create cover subquery for each field."""
         return Subquery(cover_comics.values(f"comic__{field}")[:1])
+
+    def get_order_key(self):
+        """Get the default order key for the view."""
+        order_key = self.params.get("order_by")
+        if not order_key:
+            group = self.kwargs.get("group")
+            if group == "f":
+                order_key = "path"
+            else:
+                order_key = "sort_name"
+        return order_key
 
     def _annotate_cover_path(self, queryset, model):
         """Annotate the query set for the coverpath for the sort."""
@@ -210,11 +220,10 @@ class BrowserMetadataBaseView(BrowserBaseView):
         Order on pk to give duplicates a consistent position.
         """
         # order_prefix
-        reverse = self.params.get("order_reverse")
-        prefix = "-" if reverse else ""
+        prefix = "-" if self.params.get("order_reverse") else ""
 
         # order_fields
-        order_key = self.params.get("order_by", self.DEFAULT_ORDER_KEY)
+        order_key = self.get_order_key()
         if for_cover_path:
             prefix += "comic__"
             field = self._ORDER_BY_FIELD_ALIASES.get(order_key, order_key)

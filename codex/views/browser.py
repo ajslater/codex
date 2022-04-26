@@ -114,7 +114,7 @@ class BrowserView(BrowserMetadataBaseView):
         #######################
         # Sortable aggregates #
         #######################
-        order_key = self.params.get("order_by", self.DEFAULT_ORDER_KEY)
+        order_key = self.get_order_key()
         order_func = self.get_aggregate_func(order_key, model, autoquery_pk)
         queryset = queryset.annotate(order_value=order_func)
 
@@ -437,9 +437,9 @@ class BrowserView(BrowserMetadataBaseView):
         """Validate group and top group settings."""
         group = self.kwargs.get("group")
         top_group = self.params.get("top_group")
-        order_by = self.params.get("order_by")
+        order_key = self.get_order_key()
         enable_folder_view = False
-        if top_group == self.FOLDER_GROUP or order_by == "path":
+        if top_group == self.FOLDER_GROUP or order_key == "path":
             try:
                 enable_folder_view = (
                     AdminFlag.objects.only("on")
@@ -454,8 +454,8 @@ class BrowserView(BrowserMetadataBaseView):
         else:
             self._validate_browser_group_settings()
 
-        if order_by == "path" and not enable_folder_view:
-            self.params["order_by"] = self.DEFAULT_ORDER_KEY
+        if order_key == "path" and not enable_folder_view:
+            self.params["order_by"] = "sort_name"
             LOG.warning("order by path not allowed by admin flag.")
 
         # save route once validated.
