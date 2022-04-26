@@ -279,23 +279,24 @@ class ComicSerializer(ModelSerializer):
         super().__init__(*args, **kwargs)
 
     # camelCase
-    coverPath = CharField(source="cover_path")  # noqa: N815
-    createdAt = DateTimeField(source="created_at")  # noqa: N815
-    updatedAt = DateTimeField(source="updated_at")  # noqa: N815
+    ageRating = CharField(source="age_rating")  # noqa: N815
     communityRating = DecimalField(  # noqa: N815
         max_digits=5,
         decimal_places=2,
         coerce_to_string=False,
         source="community_rating",
     )
+    coverPath = CharField(source="cover_path")  # noqa: N815
+    createdAt = DateTimeField(source="created_at")  # noqa: N815
     criticalRating = DecimalField(  # noqa: N815
         max_digits=5, decimal_places=2, coerce_to_string=False, source="critical_rating"
     )
-    ageRating = CharField(source="age_rating")  # noqa: N815
-    scanInfo = CharField(source="scan_info")  # noqa: N815
-    readLTR = BooleanField(source="read_ltr")  # noqa: N815
-    pageCount = IntegerField(source="page_count")  # noqa: N815
     fileFormat = CharField(source="file_format")  # noqa: N815
+    issueSuffix = CharField(source="issue_suffix")  # noqa: N815
+    pageCount = IntegerField(source="page_count")  # noqa: N815
+    readLTR = BooleanField(source="read_ltr")  # noqa: N815
+    scanInfo = CharField(source="scan_info")  # noqa: N815
+    updatedAt = DateTimeField(source="updated_at")  # noqa: N815
 
     # Annotations
     issueCount = IntegerField(allow_null=True, source="issue_count")  # noqa:N815
