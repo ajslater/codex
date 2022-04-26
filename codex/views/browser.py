@@ -3,7 +3,7 @@ from copy import deepcopy
 from typing import Optional, Union
 
 from django.core.paginator import EmptyPage, Paginator
-from django.db.models import CharField, F, IntegerField, Max, Value
+from django.db.models import CharField, DecimalField, F, IntegerField, Max, Value
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from stringcase import camelcase, snakecase
@@ -62,7 +62,9 @@ class BrowserView(BrowserMetadataBaseView):
     _BROWSER_SETTINGS_KEYS_CAMEL_SNAKE_MAP = {
         v: k for k, v in _BROWSER_SETTINGS_KEYS_SNAKE_CAMEL_MAP.items()
     }
-    _NONE_CHARFIELD = Value(None, CharField())
+    _NONE_DECIMALFIELD = Value(None, DecimalField())
+    _EMPTY_CHARFIELD = Value("", CharField())
+    _ZERO_INTEGERFIELD = Value(0, IntegerField())
 
     _GROUP_INSTANCE_SELECT_RELATED = {
         Comic: ("series", "volume"),
@@ -107,7 +109,7 @@ class BrowserView(BrowserMetadataBaseView):
         #######################
         if model not in (Folder, Comic):
             # For folder view stability sorting compatibility
-            queryset = queryset.annotate(library=Value(0, IntegerField()))
+            queryset = queryset.annotate(library=self._ZERO_INTEGERFIELD)
 
         #######################
         # Sortable aggregates #
@@ -137,15 +139,10 @@ class BrowserView(BrowserMetadataBaseView):
             series_name=series_name,
             volume_name=volume_name,
         )
-        if is_model_comic:
-            issue = F("issue")
-            issue_suffix = F("issue_suffix")
-        else:
-            issue = Value(None, IntegerField())
-            issue_suffix = Value("", CharField())
+        if not is_model_comic:
             queryset = queryset.annotate(
-                **{"issue": issue},
-                **{"issue_suffix": issue_suffix},
+                issue=self._NONE_DECIMALFIELD,
+                issue_suffix=self._EMPTY_CHARFIELD,
             )
         if model not in (Folder, Comic):
             queryset = queryset.annotate(path=self._NONE_CHARFIELD)
@@ -196,6 +193,8 @@ class BrowserView(BrowserMetadataBaseView):
         comic_list = comic_list.values(**self._BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP)
 
         obj_list = folder_list.union(comic_list)
+        print("AFTER")
+        print(obj_list)
         return obj_list
 
     def _get_browser_group_queryset(self, object_filter, autoquery_pk):

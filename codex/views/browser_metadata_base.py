@@ -45,6 +45,10 @@ class BrowserMetadataBaseView(BrowserBaseView):
         UNIONFIX_PREFIX + field.replace("__", "_") for field in Comic.ORDERING
     )
     _ORDER_VALUE_ORDERING = (UNIONFIX_PREFIX + "order_value", UNIONFIX_PREFIX + "pk")
+    _HALF_VALUE = (Value(0.5),)
+    _SEP_VALUE = Value(sep)
+    _ONE_INTEGERFIELD = Value(1, IntegerField())
+    _NONE_CHARFIELD = Value(None, CharField())
     GROUP_MODEL_MAP = {
         "r": None,
         "p": Publisher,
@@ -115,7 +119,7 @@ class BrowserMetadataBaseView(BrowserBaseView):
                     ),
                     False,  # Null db values counted as False
                 ),
-                Value(0.5),  # Null result if mixed true & false
+                self._HALF_VALUE,  # Null result if mixed true & false
             ),
             BooleanField(),  # Finally ends up as a ternary boolean
         )
@@ -137,10 +141,12 @@ class BrowserMetadataBaseView(BrowserBaseView):
         )
         return queryset
 
-    @staticmethod
-    def _get_path_query_func(field):
+    @classmethod
+    def _get_path_query_func(cls, field):
         """Use the db to get only the filename."""
-        return Right(field, StrIndex(Reverse(field), Value(sep)) - 1)  # type: ignore
+        return Right(
+            field, StrIndex(Reverse(field), cls._VALUE_SEP) - 1  # type: ignore
+        )
 
     def get_aggregate_func(self, order_key, model, autoquery_pk=None):
         """Get a complete function for aggregating an attribute."""
@@ -157,7 +163,7 @@ class BrowserMetadataBaseView(BrowserBaseView):
         # Determine order func
         if not field:
             # use default sorting.
-            func = Value(None, output_field=CharField())
+            func = self._NONE_CHARFIELD
         elif field == "path" and model in (Comic, Folder):
             # special path sorting.
             func = self._get_path_query_func(field)
@@ -186,7 +192,7 @@ class BrowserMetadataBaseView(BrowserBaseView):
         is_model_comic = model == Comic
         qs = self._annotate_cover_path(qs, model)
         if is_model_comic:
-            child_count_sum = Value(1, IntegerField())
+            child_count_sum = self._ONE_INTEGERFIELD
         else:
             qs = self._annotate_page_count(qs)
             child_count_sum = Count("comic__pk", distinct=True)
