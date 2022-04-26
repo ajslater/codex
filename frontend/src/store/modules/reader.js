@@ -138,7 +138,7 @@ const getNextRouteParams = (state) => {
   const twoPages = getters.computedSettings(state).twoPages;
   const increment = twoPages ? 2 : 1;
   const routeParams = router.currentRoute.params;
-  const condition = Number(routeParams.page) + increment <= state.maxPage;
+  const condition = Number(routeParams.page) + increment <= state.comic.maxPage;
   return getRouteParams(
     condition,
     routeParams,
@@ -238,8 +238,8 @@ const actions = {
 
     // Validate route
     if (finalRouteParams.pk === router.currentRoute.params.pk) {
-      if (finalRouteParams.page > state.maxPage) {
-        finalRouteParams.page = state.maxPage;
+      if (finalRouteParams.page > state.comic.maxPage) {
+        finalRouteParams.page = state.comic.maxPage;
         console.warn("Tried to navigate past the end of the book.");
       } else if (finalRouteParams.page < 0) {
         finalRouteParams.page = 0;
