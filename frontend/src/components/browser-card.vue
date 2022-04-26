@@ -95,37 +95,30 @@ export default {
       zeroPad: (state) => state.zeroPad,
     }),
     headerName: function () {
-      let headerName;
+      let hn;
       switch (this.item.group) {
         case "i":
-          headerName = this.item.publisherName;
+          hn = this.item.publisherName;
           break;
 
         case "v":
-          headerName = this.item.seriesName;
-          break;
-
-        default:
-          headerName = "";
-      }
-      return headerName;
-    },
-    displayName: function () {
-      let dn;
-      switch (this.item.group) {
-        case "v":
-          dn = formattedVolumeName(this.item.name);
+          hn = this.item.seriesName;
           break;
         case "c":
-          dn =
+          hn =
             this.$route.params.group === "f"
               ? getFullComicName(this.item, this.zeroPad)
               : getIssueName(this.item, this.zeroPad);
           break;
         default:
-          dn = this.item.name;
+          hn = "";
       }
-      return dn;
+      return hn;
+    },
+    displayName: function () {
+      return this.item.group === "v"
+        ? formattedVolumeName(this.item.name)
+        : this.item.name;
     },
     orderValue: function () {
       let ov = this.item.orderValue;

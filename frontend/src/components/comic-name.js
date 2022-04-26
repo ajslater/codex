@@ -1,12 +1,12 @@
 export const formattedVolumeName = function (volume) {
   let volumeName;
-  if (!volume) {
-    volumeName = "";
-  } else {
+  if (volume) {
     volumeName =
       volume.length === 4 && !Number.isNaN(volume)
         ? " (" + volume + ")"
         : " v" + volume;
+  } else {
+    volumeName = "";
   }
   return volumeName;
 };
