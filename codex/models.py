@@ -332,7 +332,6 @@ class Comic(WatchedPath):
     country = CharField(db_index=True, max_length=32, null=True)
     language = CharField(db_index=True, max_length=32, null=True)
     # misc
-    cover_image = CharField(max_length=256, null=True)
     format = CharField(db_index=True, max_length=16, null=True)
     page_count = PositiveSmallIntegerField(db_index=True, default=0)
     read_ltr = BooleanField(db_index=True, default=True)
@@ -350,17 +349,18 @@ class Comic(WatchedPath):
     # Ignore these, they seem useless:
     #
     # black_and_white = BooleanField(default=False)
+    # last_mark = PositiveSmallIntegerField(null=True)
+    # manga = BooleanField(default=False)
     # price = DecimalField(decimal_places=2, max_digits=9, null=True)
     # rights = CharField(max_length=64, null=True)
-    # manga = BooleanField(default=False)
-    # last_mark = PositiveSmallIntegerField(null=True)
     #
     # These are potentially useful, but too much work right now:
     #
-    # is_version_of = CharField(max_length=64, null=True)
     # alternate_issue = DecimalField(decimal_places=2, max_digits=6, null=True)
     # alternate_volumes = ManyToManyField(Volume, related_name="alternate_volume")
+    # cover_image = CharField(max_length=256, null=True)
     # identifier = CharField(max_length=64, null=True)
+    # is_version_of = CharField(max_length=64, null=True)
 
     # codex only
     cover_path = CharField(max_length=4095)

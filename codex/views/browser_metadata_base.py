@@ -4,6 +4,7 @@ from os import sep
 from django.db.models import (
     Avg,
     BooleanField,
+    Case,
     CharField,
     Count,
     DecimalField,
@@ -16,6 +17,7 @@ from django.db.models import (
     Subquery,
     Sum,
     Value,
+    When,
 )
 from django.db.models.functions import Cast, Coalesce, NullIf, Reverse, Right, StrIndex
 
@@ -45,7 +47,7 @@ class BrowserMetadataBaseView(BrowserBaseView):
         UNIONFIX_PREFIX + field.replace("__", "_") for field in Comic.ORDERING
     )
     _ORDER_VALUE_ORDERING = (UNIONFIX_PREFIX + "order_value", UNIONFIX_PREFIX + "pk")
-    _HALF_VALUE = (Value(0.5),)
+    _HALF_VALUE = Value(0.5)
     _SEP_VALUE = Value(sep)
     _ONE_INTEGERFIELD = Value(1, IntegerField())
     NONE_CHARFIELD = Value(None, CharField())
@@ -136,9 +138,9 @@ class BrowserMetadataBaseView(BrowserBaseView):
         """Compute progress for each member of a queryset."""
         # Requires bookmark and annotation hoisted from userbookmarks.
         # Requires page_count native to comic or aggregated
-        queryset = queryset.annotate(
-            progress=Coalesce(F("bookmark") * 100.0 / F("page_count"), 0.0)
-        )
+        then = F("bookmark") * 100.0 / F("page_count")
+        progress = Case(When(page_count__gt=0, then=then), default=0.0)
+        queryset = queryset.annotate(progress=progress)
         return queryset
 
     @classmethod

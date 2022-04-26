@@ -9,6 +9,5 @@ export DEBUG="${DEBUG:-1}"
 export PYTHONDEVMODE="$DEBUG"
 export PYTHONDONTWRITEBYTECODE=1 #"$DEBUG"
 export LOGLEVEL="${LOGLEVEL:-VERBOSE}"
-kill % || true
 ./kill-codex.sh || true
 poetry run python3 ./codex/run.py
