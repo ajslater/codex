@@ -2,19 +2,19 @@
 
 ## v0.10.0
 
-_PDF_
+_Portable Document Format_
 
 - Features
 
   - PDF support. Optional poppler binary needed to generate PDF cover thumbnails.
   - CBT support. Tarball comic archives.
-  - Alphanumeric issue support.
-  - Individual folders for each library.
+  - Alphanumeric issue support. Requires rescanning existing comics.
+  - Individual top level folders for each library.
   - Don't duplicate folder name in filename sort.
 
 - Fixes
 
-  - File suffixes in poller & watcher now matched case insensitively.
+  - Comic file suffixes now matched case insensitively.
   - Don't leak library root paths in Folder View for non-admins in the API.
   - Fixed aggregation bug showing innacurate data when viewing group metadata.
   - More accurate Name sorting.
