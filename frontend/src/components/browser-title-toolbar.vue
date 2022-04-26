@@ -58,22 +58,26 @@ export default {
     },
     longBrowseTitleMain: function () {
       let browserTitle;
-      const group = this.$route.params.group;
-      const { parentName, groupName, groupCount } = this.browserTitle;
       if (Number(this.$route.params.pk) === 0) {
         browserTitle = "All";
-      } else if (group === "i") {
-        browserTitle = `${parentName} ${groupName}`;
-      } else if (group === "v") {
-        const volumeName = formattedVolumeName(groupName);
-        browserTitle = `${parentName} ${volumeName}`;
-        if (browserTitle.volumeCount) {
-          browserTitle += ` of ${groupCount}`;
-        }
       } else {
-        browserTitle = groupName;
+        let names = [];
+        const { parentName, groupName, groupCount } = this.browserTitle;
+        if (parentName) {
+          names.push(parentName);
+        }
+        const group = this.$route.params.group;
+        const formattedGroupName =
+          group === "v" ? formattedVolumeName(groupName) : groupName;
+        if (formattedGroupName) {
+          names.push(formattedGroupName);
+        }
+        if (groupCount) {
+          const formattedGroupCount = `of ${groupCount}`;
+          names.push(formattedGroupCount);
+        }
+        browserTitle = names.join(" ");
       }
-
       return browserTitle;
     },
     longBrowseTitleSuffix: function () {

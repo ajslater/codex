@@ -297,9 +297,9 @@ class BrowserView(BrowserMetadataBaseView):
             group_name = self.group_instance.name
 
         browser_page_title = {
-            "parentName": parent_name,
-            "groupName": group_name,
-            "groupCount": group_count,
+            "parent_name": parent_name,
+            "group_name": group_name,
+            "group_count": group_count,
         }
 
         return browser_page_title
