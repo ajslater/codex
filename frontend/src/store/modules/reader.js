@@ -79,10 +79,11 @@ const mutations = {
     state.settings.globl = Object.assign(state.settings.globl, settings);
   },
   setBookInfo(state, data) {
-    state.comic = data.comic;
-    state.comic.maxPage = Number(data.comic.maxPage);
-    state.routes = data.routes;
     state.browserRoute = data.browserRoute;
+    state.comic = data.comic;
+    // Only set prev/next book info do not clobber page routes.
+    state.routes.prevBook = data.routes.prevBook;
+    state.routes.nextBook = data.routes.nextBook;
     state.updatedAt = data.updatedAt;
   },
   setBrowserRoute(state, value) {
