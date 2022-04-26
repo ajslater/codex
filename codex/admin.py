@@ -234,7 +234,7 @@ class AdminFailedImport(AdminNoAddDelete):
     readonly_fields = fields
     sortable_by = fields
     actions = ("poll",)
-    ordering = ("path", "library_link", "pk")
+    ordering = ("path", "library", "pk")
 
     def has_change_permission(self, request, obj=None):
         """Can't Change these."""
@@ -292,4 +292,4 @@ class CodexUserAdmin(UserAdmin):
         (("Important dates"), {"fields": ("last_login", "date_joined")}),
     )
     filter_horizontal = ("groups",)
-    ordering = ("name", "pk")
+    ordering = ("username", "pk")
