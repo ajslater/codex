@@ -59,16 +59,10 @@ export default {
     ...mapState("reader", {
       readerBrowserRoute: (state) => state.browserRoute,
     }),
-    ...mapState("browser", {
-      browserRoute: (state) => state.routes.current,
-    }),
     closeBookRoute: function () {
       // Choose the best route
       const params =
-        this.browserRoute ||
-        this.readerBrowserRoute ||
-        window.lastRoute ||
-        CHOICES.browser.route;
+        this.readerBrowserRoute || window.lastRoute || CHOICES.browser.route;
       return { name: "browser", params };
     },
     pageSrc: function () {

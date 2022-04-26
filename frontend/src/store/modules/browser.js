@@ -44,7 +44,6 @@ for (let choice of CHOICES.browser.settingsGroup) {
 const state = {
   timestamp: Date.now(),
   routes: {
-    current: undefined,
     up: undefined,
   },
   settings: {
