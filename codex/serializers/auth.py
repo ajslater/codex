@@ -14,18 +14,32 @@ from codex.models import AdminFlag
 class UserSerializer(ModelSerializer):
     """Serialize User model for UI."""
 
-    enable_non_users = SerializerMethodField()
+    _ADMIN_FLAG_NAMES = (AdminFlag.ENABLE_NON_USERS, AdminFlag.ENABLE_REGISTRATION)
 
-    def get_enable_non_users(self, obj):
-        """Piggyback on user objects. A little awkward."""
-        enu_flag = AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_NON_USERS)
-        return enu_flag.on
+    admin_flags = SerializerMethodField()
+
+    def get_admin_flags(self, obj):
+        """Piggyback admin flags on the user object."""
+        flags = AdminFlag.objects.filter(name__in=self._ADMIN_FLAG_NAMES).values(
+            "name", "on"
+        )
+        admin_flags = {}
+        for flag in flags:
+            name = flag["name"]
+            key = name[0].lower() + name[1:].replace(" ", "")
+            admin_flags[key] = flag["on"]
+        return admin_flags
 
     class Meta:
         """Model spec."""
 
         model = User
-        fields = ("pk", "username", "is_staff", "enable_non_users")
+        fields = (
+            "pk",
+            "username",
+            "is_staff",
+            "admin_flags",
+        )
         read_only_fields = fields
 
 

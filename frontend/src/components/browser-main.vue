@@ -13,9 +13,10 @@
     <div v-else-if="!isOpenToSee" id="announce">
       <h1>
         You may log in <span v-if="enableRegister">or register</span> with the
-        top right &emsp;<v-icon>{{ mdiMenu }}</v-icon
+        top right&emsp;<v-icon>{{ mdiMenu }}</v-icon
         >&emsp;menu
       </h1>
+      <h1 v-if="!enableRegister">Registration is disabled</h1>
     </div>
     <div v-else-if="librariesExist" id="announce">
       <div id="noComicsFound">No comics found for these filters</div>
@@ -85,8 +86,8 @@ export default {
       },
     }),
     ...mapState("auth", {
-      enableNonUsers: (state) => state.enableNonUsers,
-      enableRegister: (state) => state.enableRegistration,
+      enableNonUsers: (state) => state.adminFlags.enableNonUsers,
+      enableRegister: (state) => state.adminFlags.enableRegistration,
     }),
     ...mapGetters("auth", ["isAdmin", "isOpenToSee"]),
     outdated: function () {

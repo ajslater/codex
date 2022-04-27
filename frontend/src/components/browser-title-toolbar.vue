@@ -23,7 +23,7 @@
 
 <script>
 import { mdiArrowUp } from "@mdi/js";
-import { mapState } from "vuex";
+import { mapGetters, mapState } from "vuex";
 
 import { formattedVolumeName } from "@/components/comic-name";
 
@@ -41,6 +41,7 @@ export default {
       groupNames: (state) => state.groupNames,
       upRoute: (state) => state.routes.up,
     }),
+    ...mapGetters("auth", ["isOpenToSee"]),
     toUpRoute: function () {
       if (this.showUpButton) {
         return { name: "browser", params: this.upRoute };
@@ -58,7 +59,9 @@ export default {
     },
     longBrowseTitleMain: function () {
       let browserTitle;
-      if (Number(this.$route.params.pk) === 0) {
+      if (!this.isOpenToSee) {
+        browserTitle = "";
+      } else if (Number(this.$route.params.pk) === 0) {
         browserTitle = "All";
       } else {
         let names = [];

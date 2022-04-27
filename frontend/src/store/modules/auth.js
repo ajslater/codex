@@ -7,8 +7,10 @@ const state = {
     passwordErrors: undefined,
     error: undefined,
   },
-  enableRegistration: false,
-  enableNonUsers: undefined,
+  adminFlags: {
+    enableRegistration: false,
+    enableNonUsers: undefined,
+  },
 };
 
 const mutations = {
@@ -18,11 +20,12 @@ const mutations = {
   setUser: (state, value) => {
     let user = value;
     if (user) {
-      state.enableNonUsers = user.enableNonUsers;
+      state.adminFlags = user.adminFlags;
       if (!user.pk) {
         user = undefined;
       } else {
-        delete user.enableNonUsers;
+        // remove piggyback data
+        delete user.adminFlags;
       }
     }
     state.user = user;
