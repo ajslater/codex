@@ -67,7 +67,7 @@ def _update_comics(library, comic_paths, mds):
     LOG.verbose(f"Preparing {num_comics} comics for update in library {library.path}.")
     # Get existing comics to update
     comics = Comic.objects.filter(library=library, path__in=comic_paths).only(
-        "pk", "path", *BULK_UPDATE_COMIC_FIELDS
+        *BULK_UPDATE_COMIC_FIELDS
     )
 
     # set attributes for each comic
