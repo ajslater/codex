@@ -53,7 +53,6 @@ export default {
   data() {
     return {
       mdiDotsVertical,
-      markReadText: this.getMarkReadText(),
     };
   },
   computed: {
@@ -62,16 +61,7 @@ export default {
         return getDownloadURL(this.pk, state.timestamp);
       },
     }),
-  },
-  methods: {
-    toggleRead: function () {
-      this.$store.dispatch("browser/markedRead", {
-        group: this.group,
-        pk: this.pk,
-        finished: !this.finished,
-      });
-    },
-    getMarkReadText: function () {
+    markReadText: function () {
       const words = ["Mark"];
       if (this.group != "c") {
         words.push("Entire");
@@ -85,6 +75,15 @@ export default {
         words.push("Read");
       }
       return words.join(" ");
+    },
+  },
+  methods: {
+    toggleRead: function () {
+      this.$store.dispatch("browser/markedRead", {
+        group: this.group,
+        pk: this.pk,
+        finished: !this.finished,
+      });
     },
   },
 };
