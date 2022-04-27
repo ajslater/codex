@@ -7,7 +7,6 @@ from django.db.models import (
     Case,
     CharField,
     Count,
-    DecimalField,
     F,
     IntegerField,
     Max,
@@ -19,7 +18,8 @@ from django.db.models import (
     Value,
     When,
 )
-from django.db.models.functions import Cast, Coalesce, NullIf, Reverse, Right, StrIndex
+from django.db.models.fields import PositiveSmallIntegerField
+from django.db.models.functions import Reverse, Right, StrIndex
 
 from codex.models import Comic, Folder, Imprint, Publisher, Series, Volume
 from codex.serializers.mixins import UNIONFIX_PREFIX
@@ -119,27 +119,47 @@ class BrowserMetadataBaseView(BrowserBaseView):
 
         ubm_rel = self.get_ubm_rel(is_model_comic)
 
-        # Hoist up: are the children finished or unfinished?
-        finished_aggregate = Cast(
-            NullIf(
-                Coalesce(
-                    Avg(  # distinct average of user's finished values
-                        f"{ubm_rel}__finished",
-                        filter=ub_filter,
-                        distinct=True,
-                        output_field=DecimalField(max_digits=2, decimal_places=2),
-                    ),
-                    False,  # Null db values counted as False
+        when_no_ubm = When(Q(**{ubm_rel: None}), then=0)
+        bookmark_rel = f"{ubm_rel}__bookmark"
+        finished_rel = f"{ubm_rel}__finished"
+
+        if is_model_comic:
+            # Hoist up the bookmark and finished states
+            bookmark = Sum(
+                bookmark_rel,
+                default=0,
+                filter=ub_filter,
+                output_field=PositiveSmallIntegerField(),
+            )
+            finished_aggregate = Sum(
+                finished_rel,
+                default=False,
+                filter=ub_filter,
+                output_field=BooleanField(),
+            )
+        else:
+            # Aggregate bookmark and finished states
+            bookmark = Sum(
+                Case(
+                    when_no_ubm,
+                    When(**{finished_rel: True}, then="comic__page_count"),
+                    default=bookmark_rel,
+                    output_field=PositiveSmallIntegerField(),
                 ),
-                self._HALF_VALUE,  # Null result if mixed true & false
-            ),
-            BooleanField(),  # Finally ends up as a ternary boolean
+                default=0,
+                filter=ub_filter,
+                output_field=PositiveSmallIntegerField(),
+            )
+            finished_aggregate = Case(
+                When(bookmark=0, then=False),
+                When(bookmark=F("page_count"), then=True),
+                default=None,
+                output_field=BooleanField(),
+            )
+
+        obj_list = obj_list.annotate(bookmark=bookmark).annotate(
+            finished=finished_aggregate
         )
-
-        # Hoist up the bookmark
-        bookmark_sum = Sum(f"{ubm_rel}__bookmark", filter=ub_filter)
-
-        obj_list = obj_list.annotate(finished=finished_aggregate, bookmark=bookmark_sum)
 
         return obj_list
 
