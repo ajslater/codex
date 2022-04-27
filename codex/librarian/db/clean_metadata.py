@@ -219,7 +219,8 @@ def _allowed_keys(dirty_md: dict[str, Any]) -> dict[str, Any]:
     """Remove unused keys."""
     allowed_md = {}
     for key in _MD_VALID_KEYS:
-        if val := dirty_md.get(key):
+        val = dirty_md.get(key)
+        if val is not None:
             allowed_md[key] = val
     return allowed_md
 
@@ -238,3 +239,4 @@ def clean_md(md):
     _append_description(md)
     _clean_comic_credits(md)
     _clean_comic_m2m_named(md, md_keys)
+    return md

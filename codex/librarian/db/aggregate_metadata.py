@@ -62,7 +62,7 @@ def _get_path_metadata(path):
 
         md["path"] = path
         md["file_format"] = file_format
-        clean_md(md)
+        md = clean_md(md)
 
         # Create group tree
         group_tree = []
