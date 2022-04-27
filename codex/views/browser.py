@@ -73,6 +73,7 @@ class BrowserView(BrowserMetadataBaseView):
         Series: (None,),
         Imprint: ("publisher",),
         Publisher: (None,),
+        Folder: ("parent_folder",),
     }
     _DEFAULT_ROUTE = {
         "name": "browser",
@@ -223,9 +224,9 @@ class BrowserView(BrowserMetadataBaseView):
 
         # Recall root id & relative path from way back in
         # object creation
-        if self.host_folder:
-            if self.host_folder.parent_folder:
-                up_pk = self.host_folder.parent_folder.pk
+        if self.group_instance and isinstance(self.group_instance, Folder):
+            if self.group_instance.parent_folder:
+                up_pk = self.group_instance.parent_folder.pk
             else:
                 up_pk = 0
 
@@ -234,22 +235,19 @@ class BrowserView(BrowserMetadataBaseView):
     def _set_group_instance(self):
         """Create group_class instance."""
         pk = self.kwargs.get("pk")
-        group = self.kwargs.get("group")
-        self.group_instance: Optional[Union[Folder, Publisher, Imprint, Series, Volume]]
-        if pk == 0:
-            self.group_instance = None
-        elif group == self.FOLDER_GROUP:
-            self.group_instance = self.host_folder
-        else:
-            if not self.group_class:
-                raise ValueError("No group_class set in browser")
-            try:
-                select_related = self._GROUP_INSTANCE_SELECT_RELATED[self.group_class]
-                self.group_instance = self.group_class.objects.select_related(
-                    *select_related
-                ).get(pk=pk)
-            except self.group_class.DoesNotExist:
-                self._raise_redirect({"group": group}, f"{group}={pk} does not exist!")
+        self.group_instance: Optional[
+            Union[Folder, Publisher, Imprint, Series, Volume]
+        ] = None
+        if not pk:
+            return
+        try:
+            select_related = self._GROUP_INSTANCE_SELECT_RELATED[self.group_class]
+            self.group_instance = self.group_class.objects.select_related(
+                *select_related
+            ).get(pk=pk)
+        except self.group_class.DoesNotExist:
+            group = self.kwargs.get("group")
+            self._raise_redirect({"group": group}, f"{group}={pk} does not exist!")
 
     def _get_browse_up_route(self):
         """Get the up route from the first valid ancestor."""

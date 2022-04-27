@@ -118,7 +118,7 @@ class UserBookmarkFinishedView(BrowserBaseView, UserBookmarkUpdateMixin):
         serializer.is_valid(raise_exception=True)
 
         group = self.kwargs.get("group")
-        relation = str(self.GROUP_RELATION.get(group))
+        relation = self.GROUP_RELATION.get(group)
         updates = {"finished": serializer.validated_data.get("finished")}
 
         pk = self.kwargs.get("pk")

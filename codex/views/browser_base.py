@@ -128,16 +128,6 @@ class BrowserBaseView(SessionView, GroupACLMixin):
 
         return folders_filter
 
-    def _get_parent_folder_filter(self):
-        """Create the folder and comic object lists."""
-        pk = self.kwargs.get("pk")
-        if pk:
-            self.host_folder = Folder.objects.select_related("parent_folder").get(pk=pk)
-        else:
-            self.host_folder = None
-
-        return Q(parent_folder=self.host_folder)
-
     def _get_browser_group_filter(self):
         """Get the objects we'll be displaying."""
         # Get the instances that are children of the group_instance
@@ -381,14 +371,10 @@ class BrowserBaseView(SessionView, GroupACLMixin):
     def _get_group_filter(self, choices):
         """Get filter for the displayed group."""
         is_folder_view = self.kwargs.get("group") == self.FOLDER_GROUP
-        if is_folder_view:
-            if choices:
-                # Choice view needs to get all descendant comic attributes
-                # So filter by all the folders
-                group_filter = self._get_folders_filter()
-            else:
-                # Regular browsing just needs to filter by the parent
-                group_filter = self._get_parent_folder_filter()
+        if is_folder_view and choices:
+            # Choice view needs to get all descendant comic attributes
+            # So filter by all the folders
+            group_filter = self._get_folders_filter()
         else:
             # The browser filter is the same for all views
             group_filter = self._get_browser_group_filter()
