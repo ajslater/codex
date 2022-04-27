@@ -202,7 +202,7 @@ class BrowserRouteSerializer(Serializer):
     page = IntegerField(read_only=True)
 
 
-class BrowserFormChoicesSerializer(Serializer):
+class BrowserAdminFlagsSerializer(Serializer):
     """These choices change with browse context."""
 
     enable_folder_view = BooleanField(read_only=True)
@@ -234,7 +234,7 @@ class BrowserPageSerializer(Serializer):
         coerce_to_string=False,
     )
     num_pages = IntegerField(read_only=True)
-    form_choices = BrowserFormChoicesSerializer(read_only=True)
+    admin_flags = BrowserAdminFlagsSerializer(read_only=True)
     libraries_exist = BooleanField(read_only=True)
     queries = ListField(
         child=CharField(read_only=True), allow_empty=True, read_only=True

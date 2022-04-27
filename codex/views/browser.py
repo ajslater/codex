@@ -580,7 +580,7 @@ class BrowserView(BrowserMetadataBaseView):
             "obj_list": obj_list,
             "issue_max": issue_max,
             "num_pages": num_pages,
-            "form_choices": {"enableFolderView": efv_flag.on},
+            "admin_flags": {"enable_folder_view": efv_flag.on},
             "libraries_exist": libraries_exist,
             "queries": queries,
         }

@@ -3,27 +3,27 @@ import CHOICES from "@/choices";
 import router from "@/router";
 
 const DYNAMIC_FILTERS = {
-  age_rating: undefined,
-  community_rating: undefined,
+  ageRating: undefined,
+  communityRating: undefined,
   characters: undefined,
   country: undefined,
-  critical_rating: undefined,
+  criticalRating: undefined,
   creators: undefined,
   decade: undefined,
   format: undefined,
   genres: undefined,
   language: undefined,
   locations: undefined,
-  read_ltr: undefined,
-  series_groups: undefined,
-  story_arcs: undefined,
+  readLtr: undefined,
+  seriesGroups: undefined,
+  storyArcs: undefined,
   tags: undefined,
   teams: undefined,
   year: undefined,
 };
 export const NUMERIC_FILTERS = [
-  "community_rating",
-  "critical_rating",
+  "communityRating",
+  "criticalRating",
   "decade",
   "year",
 ];
@@ -33,7 +33,7 @@ const GROUP_FLAGS = {
   i: ["settings", "i"],
   s: ["settings", "s"],
   v: ["settings", "v"],
-  f: ["formChoices", "enableFolderView"],
+  f: ["adminFlags", "enableFolderView"],
 };
 
 const SETTINGS_SHOW_DEFAULTS = {};
@@ -63,10 +63,10 @@ const state = {
     // determined by api
     ...DYNAMIC_FILTERS,
     settingsGroup: CHOICES.browser.settingsGroup, // static
-    show: {
-      // determined by api
-      enableFolderView: true,
-    },
+  },
+  adminFlags: {
+    // determined by api
+    enableFolderView: undefined,
   },
   modelGroup: undefined,
   groupNames: CHOICES.browser.groupNames,
@@ -93,7 +93,8 @@ const isRootGroupEnabled = (state, topGroup) => {
     return true;
   }
   const [key, flag] = GROUP_FLAGS[topGroup];
-  return state[key].show[flag];
+  const root = state[key];
+  return topGroup === "f" ? root[flag] : root.show[flag];
 };
 
 const getters = {
@@ -114,7 +115,7 @@ const getters = {
     const choices = [];
     for (const item of Object.values(CHOICES.browser.orderBy)) {
       if (item.value === "path") {
-        if (state.formChoices.show.enableFolderView) {
+        if (state.adminFlags.enableFolderView) {
           choices.push(item);
         }
       } else {
@@ -155,9 +156,7 @@ const mutations = {
     }
   },
   setBrowserPage(state, data) {
-    state.formChoices.show = {
-      enableFolderView: data.formChoices.enableFolderView,
-    };
+    state.adminFlags = Object.freeze(data.adminFlags);
     state.browserTitle = Object.freeze(data.browserTitle);
     state.modelGroup = Object.freeze(data.modelGroup);
     state.routes.up = Object.freeze(data.upRoute);
