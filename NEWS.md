@@ -20,6 +20,7 @@ _Portable Document Format_
   - More accurate Name sorting.
   - Fixed default start page for RTL comics.
   - Disabled reading links for empty comics.
+  - Shield radation from Venus to reduce zombie indcidents.
 
 ## v0.9.14
 

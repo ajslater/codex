@@ -1,5 +1,8 @@
 """Start and stop daemons."""
+import multiprocessing
 import os
+
+from time import sleep
 
 from asgiref.sync import sync_to_async
 from django.contrib.auth.models import User
@@ -75,9 +78,15 @@ def codex_startup():
 
 def codex_shutdown():
     """Stop the daemons."""
-    LOG.info("Shutting down Codex...")
+    LOG.info("Codex suprocesses shutting down...")
     LibrarianDaemon.shutdown()
     Notifier.shutdown()
+    while multiprocessing.active_children():
+        procs = multiprocessing.active_children()
+        if procs:
+            LOG.debug(f"Waiting on {procs}.")
+        sleep(0.5)
+    LOG.info("Codex subprocesses shut down.")
 
 
 async def lifespan_application(_scope, receive, send):
