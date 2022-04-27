@@ -72,6 +72,7 @@ class Notifier(AggregateMessageQueuedThread):
         """Shut down the thread and discard the connections."""
         if not cls.thread:
             LOG.warning(f"Cannot shutdown {cls.NAME} that hasn't started.")
+            return
         cls.thread.stop()
         cls.thread.join()
         for type in cls.CONNS.keys():
