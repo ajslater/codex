@@ -117,7 +117,7 @@ export default {
       authFormError: (state) => state.form.error,
       usernameErrors: (state) => state.form.usernameErrors,
       passwordErrors: (state) => state.form.passwordErrors,
-      enableRegistration: (state) => state.enableRegistration,
+      enableRegistration: (state) => state.adminFlags.enableRegistration,
     }),
     loginButtonLabel: function () {
       return this.registerMode ? "Reigister" : "Login";

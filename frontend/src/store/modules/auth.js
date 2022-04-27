@@ -9,13 +9,13 @@ const state = {
   },
   adminFlags: {
     enableRegistration: false,
-    enableNonUsers: undefined,
+    enableNonUsers: false,
   },
 };
 
 const mutations = {
   setRegisterEnabled: (state, data) => {
-    state.enableRegistration = data.enableRegistration;
+    state.adminFlags.enableRegistration = data.enableRegistration;
   },
   setUser: (state, value) => {
     let user = value;
@@ -42,7 +42,7 @@ const getters = {
     return state.user && (state.user.isStaff || state.user.isSuperuser);
   },
   isOpenToSee: (state) => {
-    return Boolean(state.user || state.enableNonUsers);
+    return Boolean(state.user || state.adminFlags.enableNonUsers);
   },
   isLoggedIn: (state) => {
     return Boolean(state.user);
