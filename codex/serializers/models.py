@@ -254,18 +254,6 @@ class TeamSerializer(NamedModelSerializer):
 class ComicSerializer(ModelSerializer):
     """Serialize a comic object for the metadata dialog."""
 
-    def __init__(self, *args, **kwargs):
-        """Dynamically whitelist fields."""
-        fields = kwargs.pop("fields", None)
-        # Use the fields argument to remove fields not in the list.
-        if fields:
-            allowed_fields = set(fields)
-            existing_fields = set(self.fields.keys())
-            excluded_fields = existing_fields - allowed_fields
-            for field in excluded_fields:
-                self.fields.pop(field)
-        super().__init__(*args, **kwargs)
-
     # Annotations
     issue_count = IntegerField(allow_null=True)
     volume_count = IntegerField(allow_null=True)
@@ -284,8 +272,11 @@ class ComicSerializer(ModelSerializer):
     characters = CharacterSerializer(many=True, allow_null=True)
     genres = GenreSerializer(many=True, allow_null=True)
     locations = LocationSerializer(many=True, allow_null=True)
-    seriesGroups = SeriesGroupSerializer(many=True, allow_null=True)  # noqa: N815
-    storyArcs = StoryArcSerializer(many=True, allow_null=True)  # noqa: N815
+    series_groups = SeriesGroupSerializer(many=True, allow_null=True)
+    story_arcs = StoryArcSerializer(
+        many=True,
+        allow_null=True,
+    )
     tags = TagSerializer(many=True, allow_null=True)
     teams = TeamSerializer(many=True, allow_null=True)
     credits = CreditSerializer(many=True, allow_null=True)
@@ -294,5 +285,5 @@ class ComicSerializer(ModelSerializer):
         """Configure the model."""
 
         model = Comic
-        fields = "__all__"  # Overridden dynamically by constructor param
+        exclude = ("folders", "parent_folder", "stat")
         depth = 1

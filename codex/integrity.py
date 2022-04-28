@@ -36,7 +36,7 @@ M2M_NAMES = {
     "Team": "teams",
     "Folder": "folders",
 }
-NULL_SET = set([None])
+NULL_SET = frozenset([None])
 HAVE_LIBRARY_FKS = ("FailedImport", "Folder", "Comic")
 GROUP_HOSTS = {
     "Imprint": ("Publisher",),

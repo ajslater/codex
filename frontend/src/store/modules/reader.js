@@ -19,13 +19,15 @@ const getGlobalFitToDefault = () => {
 };
 
 const state = {
-  title: {
+  comic: {
+    fileFormat: undefined,
+    issue: undefined,
+    issueSuffix: "",
+    issueCount: undefined,
+    maxPage: 0,
     seriesName: "",
     volumeName: "",
-    issue: 0,
-    issueCount: undefined,
   },
-  maxPage: 0,
   timestamp: Date.now(),
   settings: {
     globl: {
@@ -77,14 +79,11 @@ const mutations = {
     state.settings.globl = Object.assign(state.settings.globl, settings);
   },
   setBookInfo(state, data) {
-    state.title.seriesName = data.title.seriesName;
-    state.title.volumeName = data.title.volumeName;
-    state.title.issue = Number.parseFloat(data.title.issue);
-    state.title.issueCount = data.title.issueCount;
-    state.maxPage = data.maxPage;
+    state.browserRoute = data.browserRoute;
+    state.comic = data.comic;
+    // Only set prev/next book info do not clobber page routes.
     state.routes.prevBook = data.routes.prevBook;
     state.routes.nextBook = data.routes.nextBook;
-    state.browserRoute = data.browserRoute;
     state.updatedAt = data.updatedAt;
   },
   setBrowserRoute(state, value) {
@@ -140,7 +139,7 @@ const getNextRouteParams = (state) => {
   const twoPages = getters.computedSettings(state).twoPages;
   const increment = twoPages ? 2 : 1;
   const routeParams = router.currentRoute.params;
-  const condition = Number(routeParams.page) + increment <= state.maxPage;
+  const condition = Number(routeParams.page) + increment <= state.comic.maxPage;
   return getRouteParams(
     condition,
     routeParams,
@@ -240,8 +239,8 @@ const actions = {
 
     // Validate route
     if (finalRouteParams.pk === router.currentRoute.params.pk) {
-      if (finalRouteParams.page > state.maxPage) {
-        finalRouteParams.page = state.maxPage;
+      if (finalRouteParams.page > state.comic.maxPage) {
+        finalRouteParams.page = state.comic.maxPage;
         console.warn("Tried to navigate past the end of the book.");
       } else if (finalRouteParams.page < 0) {
         finalRouteParams.page = 0;

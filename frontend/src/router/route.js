@@ -1,9 +1,12 @@
-export const getReaderRoute = (pk, bookmark, readLTR, pageCount) => {
+export const getReaderRoute = ({ pk, bookmark, readLtr, pageCount }) => {
   // Get the route to a comic with the correct entry page.
+  if (!pageCount) {
+    return;
+  }
   let page;
   if (bookmark) {
     page = Number(bookmark);
-  } else if (readLTR === false) {
+  } else if (readLtr === false) {
     const maxPage = Number(pageCount) - 1;
     page = Math.max(maxPage, 0);
   } else {

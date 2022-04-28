@@ -4,14 +4,14 @@ build-backend = ["poetry.core.masonry.api"]
 
 [tool.poetry]
 name = "codex"
-version = "0.9.14"
+version = "0.10.0"
 description = "A comic archive web server."
 license = "GPL-2.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
 readme = "README.md"
 homepage = "https://github.com/ajslater/codex"
 documentation = "https://github.com/ajslater/codex"
-keywords = ["comic", "cbz", "cbr", "cbt"]
+keywords = ["comic", "cbz", "cbr", "cbt", "pdf"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Environment :: Web Environment",
@@ -32,21 +32,24 @@ include = ["codex/static_root/**/*", "vendor/django_haystack"]
 [tool.poetry.dependencies]
 python = "^3.9"
 ansicolors = "^1.1"
-comicbox = "^0.5.0"
+comicbox = "^0.5.1"
 django = "^4.0"
 djangorestframework = "^3.11"
+djangorestframework-camel-case = "^1.3.0"
 django-cors-headers = "^3.2"
 django-dark = "^0.1"
 filelock = "^3.4.2"
+filetype = "^1.0.12"
 fnvhash = "^0.1"
 humanfriendly = "^10.0"
 humanize = "^4.0.0"
 hypercorn = { extras = ["h3"], version = "^0.13.0" }
+pdfrw = "^0.4"
+pdf2image = "^1.16.0"
 pycountry = "^22.1"
 python-dateutil = "^2.8.2"
 setproctitle = "^1.2.2"
 simplejson = "^3.17"
-stringcase = "^1.2"
 requests = "^2.24"
 tzlocal = "^4.1"
 watchdog = "^2.0"
@@ -62,7 +65,7 @@ coverage = { extras = ["toml"], version = "^6.0" }
 django-debug-toolbar = "^3.1"
 django-livereload-server = "^0.4"
 django-types = "^0.15.0"
-djangorestframework-types = "^0.6.0"
+djangorestframework-types = "^0.7.0"
 flake8 = "4.0.1" # https://github.com/tholo/pytest-flake8/issues/81
 flake8-black = "^0.3.2"
 flake8-bugbear = "^22.1"

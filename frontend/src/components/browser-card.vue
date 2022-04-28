@@ -3,24 +3,29 @@
     <div class="browserTileLazyWrapper">
       <div class="browserCardCoverWrapper">
         <BookCover
-          :cover-path="item.cover_path"
-          :updated-at="item.cover_updated_at"
+          :cover-path="item.coverPath"
+          :updated-at="item.coverUpdatedAt"
           :group="item.group"
-          :child-count="item.child_count"
+          :child-count="item.childCount"
           :finished="item.finished"
         />
         <div class="cardCoverOverlay">
-          <router-link class="browserLink" :to="toRoute">
+          <router-link v-if="toRoute" class="browserLink" :to="toRoute">
             <div class="cardCoverOverlayTopMiddleRow">
-              <v-icon v-if="item.group === 'c'">{{ mdiEye }}</v-icon>
+              <v-icon v-if="item.group === 'c'">
+                {{ mdiEye }}
+              </v-icon>
             </div>
           </router-link>
+          <div v-else class="cardCoverOverlayTopMiddleRow">
+            <v-icon v-if="item.group === 'c'">{{ mdiEyeOff }}</v-icon>
+          </div>
           <div class="cardCoverOverlayBottomRow">
             <MetadataButton
               class="metadataButton"
               :group="item.group"
               :pk="item.pk"
-              :children="item.child_count"
+              :children="item.childCount"
             />
             <BrowserCardMenu
               class="browserCardMenu"
@@ -38,28 +43,28 @@
         background-color="inherit"
         height="2"
       />
-      <router-link class="browserLink cardSubtitle text-caption" :to="toRoute">
+      <span class="browserLink cardSubtitle text-caption">
         <div v-if="headerName" class="headerName">{{ headerName }}</div>
         <div class="displayName">{{ displayName }}</div>
         <!-- eslint-disable-next-line vue/no-v-html -->
         <div v-if="orderValue" class="orderValue" v-html="orderValue" />
-      </router-link>
+      </span>
     </div>
   </v-lazy>
 </template>
 
 <script>
 // import { mdiChevronLeft } from "@mdi/js";
-import { mdiEye } from "@mdi/js";
+import { mdiEye, mdiEyeOff } from "@mdi/js";
 import humanize from "humanize";
 import { mapState } from "vuex";
 
 import BookCover from "@/components/book-cover";
 import BrowserCardMenu from "@/components/browser-card-menu";
 import {
+  formattedVolumeName,
   getFullComicName,
   getIssueName,
-  getVolumeName,
 } from "@/components/comic-name";
 import { DATE_FORMAT, DATETIME_FORMAT } from "@/components/datetime";
 import MetadataButton from "@/components/metadata-dialog";
@@ -85,6 +90,7 @@ export default {
   data() {
     return {
       mdiEye,
+      mdiEyeOff,
     };
   },
   // Stored here instead of data to be non-reactive
@@ -92,45 +98,41 @@ export default {
   computed: {
     ...mapState("browser", {
       orderBy: (state) => state.settings.orderBy,
+      zeroPad: (state) => state.zeroPad,
     }),
     headerName: function () {
-      let headerName;
+      let hn;
       switch (this.item.group) {
-        case "c":
-          headerName =
-            !Number(this.$route.params.pk) || this.$route.params.group === "f"
-              ? (headerName = getFullComicName(
-                  this.item.series_name,
-                  this.item.volume_name,
-                  Number(this.item.issue)
-                ))
-              : (headerName = getIssueName(this.item.issue));
-          break;
-
         case "i":
-          headerName = this.item.publisher_name;
+          hn = this.item.publisherName;
           break;
 
         case "v":
-          headerName = this.item.series_name;
+          hn = this.item.seriesName;
           break;
-
+        case "c":
+          hn =
+            this.$route.params.group === "f"
+              ? getFullComicName(this.item, this.zeroPad)
+              : getIssueName(this.item, this.zeroPad);
+          break;
         default:
-          headerName = "";
+          hn = "";
       }
-      return headerName;
+      return hn;
     },
     displayName: function () {
       return this.item.group === "v"
-        ? getVolumeName(this.item.name)
+        ? formattedVolumeName(this.item.name)
         : this.item.name;
     },
     orderValue: function () {
-      let ov = this.item.order_value;
+      let ov = this.item.orderValue;
       if (
-        this.orderByCache === "sort_name" ||
-        this.orderByCache === null ||
         this.orderByCache === undefined ||
+        this.orderByCache === null ||
+        this.orderByCache === "sort_name" ||
+        (this.orderByCache === "path" && this.item.group === "f") ||
         ov === null ||
         ov === undefined
       ) {
@@ -140,10 +142,8 @@ export default {
         ov = `${human} pages`;
       } else if (this.orderByCache == "size") {
         ov = humanize.filesize(Number.parseInt(ov, 10), 1024, 1);
-      } else if (this.orderByCache == "path") {
-        ov = `${ov.split("/").at(-1).split("\\").at(-1)}`;
       } else if (STAR_SORT_BY.has(this.orderByCache)) {
-        ov = `${ov} stars`;
+        ov = `★  ${ov}`;
       } else if (DATE_SORT_BY.has(this.orderByCache)) {
         const date = new Date(ov);
         ov = DATE_FORMAT.format(date);
@@ -155,12 +155,7 @@ export default {
     },
     toRoute: function () {
       return this.item.group === "c"
-        ? getReaderRoute(
-            this.item.pk,
-            this.item.bookmark,
-            this.item.read_ltr,
-            this.item.page_count
-          )
+        ? getReaderRoute(this.item)
         : {
             name: "browser",
             params: { group: this.item.group, pk: this.item.pk, page: 1 },

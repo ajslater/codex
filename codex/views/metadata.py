@@ -1,13 +1,13 @@
 """View for marking comics read and unread."""
 from copy import copy
 
-from django.contrib.auth.models import User
-from django.db.models import Case, Count, Subquery, Value, When
+from django.db.models import Count, F, IntegerField, Subquery, Value
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
-from codex.models import Comic
+from codex.models import AdminFlag, Comic
 from codex.serializers.metadata import MetadataSerializer
+from codex.serializers.mixins import UNIONFIX_PREFIX, BrowserAggregateSerializerMixin
 from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser_metadata_base import BrowserMetadataBaseView
@@ -30,8 +30,10 @@ class MetadataView(BrowserMetadataBaseView):
             "country",
             "critical_rating",
             "day",
+            "file_format",
             "format",
             "issue",
+            "issue_suffix",
             "language",
             "month",
             "notes",
@@ -42,7 +44,7 @@ class MetadataView(BrowserMetadataBaseView):
             "year",
         )
     )
-    _ADMIN_COMIC_VALUE_FIELDS = set(("path",))
+    _ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS = set(("path",))
     _COMIC_VALUE_FIELDS_CONFLICTING = set(
         (
             "name",
@@ -87,18 +89,19 @@ class MetadataView(BrowserMetadataBaseView):
     )
     _PATH_GROUPS = ("c", "f")
     _CREDIT_RELATIONS = ("role", "person")
-
-    def _get_is_admin(self):
-        """Is the current user an admin."""
-        user = self.request.user
-        return user and isinstance(user, User) and user.is_staff
+    _BROWSER_AGGREGATE_UNIONFIX_VALUES_MAP = dict(
+        (
+            (field, UNIONFIX_PREFIX + field)
+            for field in sorted(BrowserAggregateSerializerMixin().get_fields())
+        )
+    )
 
     def _get_comic_value_fields(self):
         """Include the path field for staff."""
         fields = copy(self._COMIC_VALUE_FIELDS)
         is_not_path_group = self.group not in self._PATH_GROUPS
-        if self.is_admin and is_not_path_group:
-            fields |= self._ADMIN_COMIC_VALUE_FIELDS
+        if (self._is_enabled_folder_view() or self.is_admin()) and is_not_path_group:
+            fields |= self._ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS
         return fields
 
     def _intersection_annotate(
@@ -111,32 +114,36 @@ class MetadataView(BrowserMetadataBaseView):
     ):
         """Annotate the intersection of value and fk fields."""
         for field in fields:
-            if self.is_model_comic:
-                comic_rel_field = field
-            else:
-                comic_rel_field = f"comic__{field}"
-
             # Annotate variant counts
             # Have to use simple_qs because every annotation in the loop
             # corrupts the the main qs
-            val = Subquery(
-                simple_qs.values("id")
-                .order_by()  # magic order_by saves the day again
-                .annotate(count=Count(comic_rel_field, distinct=True))
-                .values("count")
-            )
-            field_variants = field.replace("__", "_") + "_variants"
-            then = comic_rel_field + related_suffix
-            qs = qs.annotate(**{field_variants: val})
-
             # If 1 variant, annotate value, otherwise None
-            ann_field = (annotation_prefix + field).replace("__", "_")
-            condition = {field_variants: 1}
-            lookup = Case(
-                When(**condition, then=then),
-                default=Value(None),
+            if self.is_model_comic:
+                full_field = field
+            else:
+                full_field = "comic__" + field
+
+            sq = (
+                simple_qs.values("id")
+                .order_by()  # just in case
+                .annotate(count=Count(full_field, distinct=True))
+                .filter(count=1)
+                .values_list(full_field + related_suffix, flat=True)
             )
-            qs = qs.annotate(**{ann_field: lookup})
+
+            # The subquery above would work without this python dual evaluation
+            # if we could group by only model.id. However, the SQL standard and
+            # therefore Django, states that anything selected must be grouped by,
+            # which leads to multiple query results instead of null or one result.
+            # The query only version of this from 0.9.14 worked in most cases, but
+            # fractured on the language tag for some reason.
+            if len(sq) != 1:
+                val = Value(None, IntegerField())
+            else:
+                val = Subquery(sq)
+
+            ann_field = (annotation_prefix + field).replace("__", "_")
+            qs = qs.annotate(**{ann_field: val})
 
         return qs
 
@@ -183,6 +190,8 @@ class MetadataView(BrowserMetadataBaseView):
                 self._COMIC_VALUE_FIELDS_CONFLICTING,
                 annotation_prefix=self._COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
             )
+        elif self.is_admin() or self._is_enabled_folder_view():
+            qs = qs.annotate(library_path=F("library__path"))
 
         # Foreign Keys
         fk_fields = copy(self._COMIC_FK_FIELDS_MAP[self.group])
@@ -261,14 +270,23 @@ class MetadataView(BrowserMetadataBaseView):
 
         obj.update(m2m_intersections)
 
-        # Don't expose the filesystem
-        obj["folders"] = None
-        obj["parent_folder"] = None
-        if not self.is_admin:
-            obj["path"] = None
+        # path security
+        if not self.is_admin():
+            if self._is_enabled_folder_view():
+                library_path = obj.get("library_path")
+                if library_path:
+                    obj["path"] = obj["path"].removeprefix(library_path)
+                else:
+                    obj["path"] = ""
+            else:
+                obj["path"] = ""
 
         # For highlighting the current group
         obj["group"] = self.group
+
+        # copy into unionfix fields for serializer
+        for from_field, to_field in self._BROWSER_AGGREGATE_UNIONFIX_VALUES_MAP.items():
+            obj[to_field] = obj.get(from_field)
 
         return obj
 
@@ -282,11 +300,7 @@ class MetadataView(BrowserMetadataBaseView):
         pk = self.kwargs["pk"]
         if self.model is None:
             raise NotFound(detail=f"Cannot get metadata for {self.group=}")
-        qs = (
-            self.model.objects.filter(pk=pk)
-            .filter(group_acl_filter)
-            .filter(aggregate_filter)
-        )
+        qs = self.model.objects.filter(group_acl_filter | aggregate_filter, pk=pk)
 
         qs = self._annotate_aggregates(qs)
         simple_qs = qs
@@ -300,11 +314,18 @@ class MetadataView(BrowserMetadataBaseView):
         obj = self._copy_annotations_into_comic_fields(obj, m2m_intersections)
         return obj
 
+    def _is_enabled_folder_view(self):
+        if self._efv_flag is None:
+            self._efv_flag = (
+                AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_FOLDER_VIEW).on
+            )
+        return self._efv_flag
+
     def get(self, _request, *args, **kwargs):
         """Get metadata for a filtered browse group."""
         # Init
+        self._efv_flag = None
         self.load_params_from_session()
-        self.is_admin = self._get_is_admin()
         self.group = self.kwargs["group"]
         self.model = self.GROUP_MODEL_MAP[self.group]
         if self.model is None:

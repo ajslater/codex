@@ -7,22 +7,25 @@ const state = {
     passwordErrors: undefined,
     error: undefined,
   },
-  enableRegistration: false,
-  enableNonUsers: undefined,
+  adminFlags: {
+    enableRegistration: false,
+    enableNonUsers: false,
+  },
 };
 
 const mutations = {
   setRegisterEnabled: (state, data) => {
-    state.enableRegistration = data.enableRegistration;
+    state.adminFlags.enableRegistration = data.enableRegistration;
   },
   setUser: (state, value) => {
     let user = value;
     if (user) {
-      state.enableNonUsers = user.enableNonUsers;
+      state.adminFlags = user.adminFlags;
       if (!user.pk) {
         user = undefined;
       } else {
-        delete user.enableNonUsers;
+        // remove piggyback data
+        delete user.adminFlags;
       }
     }
     state.user = user;
@@ -36,10 +39,10 @@ const mutations = {
 
 const getters = {
   isAdmin: (state) => {
-    return state.user && (state.user.is_staff || state.user.is_superuser);
+    return state.user && (state.user.isStaff || state.user.isSuperuser);
   },
   isOpenToSee: (state) => {
-    return Boolean(state.user || state.enableNonUsers);
+    return Boolean(state.user || state.adminFlags.enableNonUsers);
   },
   isLoggedIn: (state) => {
     return Boolean(state.user);

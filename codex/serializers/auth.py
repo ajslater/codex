@@ -14,18 +14,32 @@ from codex.models import AdminFlag
 class UserSerializer(ModelSerializer):
     """Serialize User model for UI."""
 
-    enableNonUsers = SerializerMethodField()  # noqa: N815
+    _ADMIN_FLAG_NAMES = (AdminFlag.ENABLE_NON_USERS, AdminFlag.ENABLE_REGISTRATION)
 
-    def get_enableNonUsers(self, obj):  # noqa: N802
-        """Piggyback on user objects. A little awkward."""
-        enu_flag = AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_NON_USERS)
-        return enu_flag.on
+    admin_flags = SerializerMethodField()
+
+    def get_admin_flags(self, obj):
+        """Piggyback admin flags on the user object."""
+        flags = AdminFlag.objects.filter(name__in=self._ADMIN_FLAG_NAMES).values(
+            "name", "on"
+        )
+        admin_flags = {}
+        for flag in flags:
+            name = flag["name"]
+            key = name[0].lower() + name[1:].replace(" ", "")
+            admin_flags[key] = flag["on"]
+        return admin_flags
 
     class Meta:
         """Model spec."""
 
         model = User
-        fields = ("pk", "username", "is_staff", "enableNonUsers")
+        fields = (
+            "pk",
+            "username",
+            "is_staff",
+            "admin_flags",
+        )
         read_only_fields = fields
 
 
@@ -59,4 +73,4 @@ class UserLoginSerializer(UserCreateSerializer):
 class RegistrationEnabledSerializer(Serializer):
     """Serialize one admin flag."""
 
-    enableRegistration = BooleanField(read_only=True)  # noqa: N815
+    enable_registration = BooleanField(read_only=True)

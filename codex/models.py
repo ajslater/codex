@@ -3,7 +3,6 @@ import calendar
 import datetime
 import os
 
-from decimal import Decimal
 from pathlib import Path
 from uuid import uuid4
 
@@ -61,24 +60,14 @@ class BrowserGroupModel(BaseModel):
     """Browser groups."""
 
     DEFAULT_NAME = ""
+    ORDERING = ("name", "pk")
 
     name = CharField(db_index=True, max_length=64, default=DEFAULT_NAME)
-    sort_name = CharField(db_index=True, max_length=130, default=DEFAULT_NAME)
-
-    def presave(self):
-        """Save the sort name. Called by save()."""
-        self.sort_name = self.name
-
-    def save(self, *args, **kwargs):
-        """Save the sort name as the name by default."""
-        self.presave()
-        super().save(*args, **kwargs)
 
     class Meta:
         """Without this a real table is created and joined to."""
 
         abstract = True
-        ordering = ["sort_name"]
 
 
 class Publisher(BrowserGroupModel):
@@ -93,16 +82,14 @@ class Publisher(BrowserGroupModel):
 class Imprint(BrowserGroupModel):
     """A Publishing imprint."""
 
+    ORDERING = ("publisher__name", "name", "pk")
+
     publisher = ForeignKey(Publisher, on_delete=CASCADE)
 
     class Meta:
         """Constraints."""
 
         unique_together = ("name", "publisher")
-
-    def presave(self):
-        """Save the sort name. Called by save()."""
-        self.sort_name = f"{self.publisher.name} {self.name}"
 
 
 class Series(BrowserGroupModel):
@@ -122,14 +109,12 @@ class Series(BrowserGroupModel):
 class Volume(BrowserGroupModel):
     """The volume of the series the comic belongs to."""
 
+    ORDERING = ("series__name", "name", "pk")
+
     publisher = ForeignKey(Publisher, on_delete=CASCADE)
     imprint = ForeignKey(Imprint, on_delete=CASCADE)
     series = ForeignKey(Series, on_delete=CASCADE)
     issue_count = PositiveSmallIntegerField(null=True)
-
-    def presave(self):
-        """Save the sort name. Called by save()."""
-        self.sort_name = f"{self.series.name} {self.name}"
 
     class Meta:
         """Constraints."""
@@ -292,8 +277,24 @@ class Folder(WatchedPath):
     """File system folder."""
 
 
+def validate_file_format_choice(choice):
+    """Validate file format."""
+    values = Comic.FileFormats.CHOICES
+    if choice not in values:
+        raise ValidationError(_(f"{choice} is not one of {values}"))
+
+
 class Comic(WatchedPath):
     """Comic metadata."""
+
+    class FileFormats:
+        """Identifiers for file formats."""
+
+        COMIC = "comic"
+        PDF = "pdf"
+        CHOICES = frozenset((COMIC, PDF))
+
+    ORDERING = ("series__name", "volume__name", "issue", "issue_suffix", "name", "pk")
 
     # From BaseModel, but Comics are sorted by these so index them
     created_at = DateTimeField(auto_now_add=True, db_index=True)
@@ -305,9 +306,8 @@ class Comic(WatchedPath):
     )
 
     # Unique comic fields
-    issue = DecimalField(
-        db_index=True, decimal_places=2, max_digits=10, default=Decimal(0.0)
-    )
+    issue = DecimalField(db_index=True, decimal_places=2, max_digits=10, null=True)
+    issue_suffix = CharField(db_index=True, max_length=16, default="")
     volume = ForeignKey(Volume, db_index=True, on_delete=CASCADE)
     series = ForeignKey(Series, db_index=True, on_delete=CASCADE)
     imprint = ForeignKey(Imprint, db_index=True, on_delete=CASCADE)
@@ -332,7 +332,6 @@ class Comic(WatchedPath):
     country = CharField(db_index=True, max_length=32, null=True)
     language = CharField(db_index=True, max_length=32, null=True)
     # misc
-    cover_image = CharField(max_length=256, null=True)
     format = CharField(db_index=True, max_length=16, null=True)
     page_count = PositiveSmallIntegerField(db_index=True, default=0)
     read_ltr = BooleanField(db_index=True, default=True)
@@ -350,17 +349,18 @@ class Comic(WatchedPath):
     # Ignore these, they seem useless:
     #
     # black_and_white = BooleanField(default=False)
+    # last_mark = PositiveSmallIntegerField(null=True)
+    # manga = BooleanField(default=False)
     # price = DecimalField(decimal_places=2, max_digits=9, null=True)
     # rights = CharField(max_length=64, null=True)
-    # manga = BooleanField(default=False)
-    # last_mark = PositiveSmallIntegerField(null=True)
     #
     # These are potentially useful, but too much work right now:
     #
-    # is_version_of = CharField(max_length=64, null=True)
     # alternate_issue = DecimalField(decimal_places=2, max_digits=6, null=True)
     # alternate_volumes = ManyToManyField(Volume, related_name="alternate_volume")
+    # cover_image = CharField(max_length=256, null=True)
     # identifier = CharField(max_length=64, null=True)
+    # is_version_of = CharField(max_length=64, null=True)
 
     # codex only
     cover_path = CharField(max_length=4095)
@@ -369,6 +369,9 @@ class Comic(WatchedPath):
     folders = ManyToManyField(Folder)
     max_page = PositiveSmallIntegerField(default=0)
     size = PositiveIntegerField(db_index=True)
+    file_format = CharField(
+        validators=[validate_file_format_choice], max_length=5, default="comic"
+    )
 
     class Meta:
         """Constraints."""
@@ -408,21 +411,11 @@ class Comic(WatchedPath):
         self._set_decade()
         self.max_page = max(self.page_count - 1, 0)
         self.size = Path(self.path).stat().st_size
-        sort_names = (self.volume.sort_name, f"{self.issue:06.1f}")
-        self.sort_name = " ".join(sort_names)
 
     def save(self, *args, **kwargs):
         """Save computed fields."""
         self.presave()
         super().save(*args, **kwargs)
-
-    def _get_display_issue(self):
-        """Get the issue number, even if its a half issue."""
-        if self.issue % 1 == 0:
-            issue_str = f"#{int(self.issue):0>3d}"
-        else:
-            issue_str = f"#{self.issue:05.1f}"
-        return issue_str
 
     def __str__(self):
         """Most common text representation for logging."""
@@ -431,10 +424,13 @@ class Comic(WatchedPath):
             names.append(self.series.name)
         if self.volume.name:
             names.append(self.volume.name)
-        names.append(self._get_display_issue())
+        if self.issue is not None:
+            names.append(f"#{self.issue:06.1f}")
+        if self.issue_suffix:
+            names.append(self.issue_suffix)
         if self.name:
             names.append(self.name)
-        return " ".join(names)
+        return " ".join(names).strip()
 
 
 class AdminFlag(NamedModel):
@@ -486,8 +482,9 @@ def cascade_if_user_null(collector, field, sub_objs, _using):
 
 def validate_fit_to_choice(choice):
     """Validate fit to choice."""
-    if choice is not None and choice not in CHOICES["fitTo"]:
-        raise ValidationError(_(f"{choice} is not one of $(FIT_TO_CHOICE_VALUES)"))
+    values = CHOICES["fitTo"]
+    if choice is not None and choice not in values:
+        raise ValidationError(_(f"{choice} is not one of {values}"))
 
 
 class UserBookmark(BaseModel):

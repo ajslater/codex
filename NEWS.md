@@ -1,12 +1,36 @@
 # 📰 Codex News
 
+## v0.10.0
+
+_Portable Document Format_
+
+- Features
+
+  - PDF support. Optional poppler-utils binary package needed to generate PDF cover thumbnails.
+  - CBT support. Tarball comic archives.
+  - Alphanumeric issue support. Requires rescanning existing comics.
+  - Individual top level folders for each library.
+  - Don't duplicate folder name in filename sort.
+
+- Fixes
+
+  - Comic file suffixes now matched case insensitively.
+  - Finished comics count as 100% complete for bookmark aggregation.
+  - Mark all folder descendant comics un/read recursively instead of immediate children.
+  - Don't leak library root paths in Folder View for non-admins in the API.
+  - Fixed aggregation bug showing inaccurate data when viewing group metadata.
+  - More accurate Name sorting.
+  - Fixed default start page for RTL comics.
+  - Disabled reading links for empty comics.
+  - Shield radiation from Venus to reduce zombie incidents.
+
 ## v0.9.14
 
 - Fixes
 
   - Fix comicbox config crash.
   - Use codex config namespace (~/.config/codex) so codex doesn't interfere with standalone comicbox configs.
-  - Comic issue names display to one decimal point instead of ½ glyph.
+  - Comic issue numbers display to two decimal points instead of using ½ glyphs.
 
 - Features
 

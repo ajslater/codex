@@ -23,9 +23,9 @@
 
 <script>
 import { mdiArrowUp } from "@mdi/js";
-import { mapState } from "vuex";
+import { mapGetters, mapState } from "vuex";
 
-import { getVolumeName } from "@/components/comic-name";
+import { formattedVolumeName } from "@/components/comic-name";
 
 export default {
   name: "BrowserHeader",
@@ -41,6 +41,7 @@ export default {
       groupNames: (state) => state.groupNames,
       upRoute: (state) => state.routes.up,
     }),
+    ...mapGetters("auth", ["isOpenToSee"]),
     toUpRoute: function () {
       if (this.showUpButton) {
         return { name: "browser", params: this.upRoute };
@@ -58,22 +59,29 @@ export default {
     },
     longBrowseTitleMain: function () {
       let browserTitle;
-      const group = this.$route.params.group;
-      const { parentName, groupName, groupCount } = this.browserTitle;
-      if (Number(this.$route.params.pk) === 0) {
+      if (!this.isOpenToSee) {
+        browserTitle = "";
+      } else if (Number(this.$route.params.pk) === 0) {
         browserTitle = "All";
-      } else if (group === "i") {
-        browserTitle = `${parentName} ${groupName}`;
-      } else if (group === "v") {
-        const volumeName = getVolumeName(groupName);
-        browserTitle = `${parentName} ${volumeName}`;
-        if (browserTitle.volumeCount) {
-          browserTitle += ` of ${groupCount}`;
-        }
       } else {
-        browserTitle = groupName;
+        let names = [];
+        const { parentName, groupName, groupCount } = this.browserTitle;
+        if (parentName) {
+          names.push(parentName);
+        }
+        const group = this.$route.params.group;
+        const formattedGroupName =
+          group === "v" ? formattedVolumeName(groupName) : groupName;
+        if (formattedGroupName) {
+          names.push(formattedGroupName);
+        }
+        if (groupCount) {
+          const formattedGroupCount = `of ${groupCount}`;
+          names.push(formattedGroupCount);
+        }
+        const delimiter = group === "f" ? "/" : " ";
+        browserTitle = names.join(delimiter);
       }
-
       return browserTitle;
     },
     longBrowseTitleSuffix: function () {

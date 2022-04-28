@@ -3,10 +3,17 @@ from copy import deepcopy
 from typing import Optional, Union
 
 from django.core.paginator import EmptyPage, Paginator
-from django.db.models import CharField, F, IntegerField, Value
+from django.db.models import (
+    BooleanField,
+    CharField,
+    DecimalField,
+    F,
+    IntegerField,
+    Max,
+    Value,
+)
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
-from stringcase import camelcase
 
 from codex.exceptions import SeeOtherRedirectError
 from codex.models import (
@@ -21,6 +28,7 @@ from codex.models import (
     Volume,
 )
 from codex.serializers.browser import (
+    BrowserCardSerializer,
     BrowserOpenedSerializer,
     BrowserPageSerializer,
     BrowserSettingsSerializer,
@@ -46,35 +54,18 @@ class BrowserView(BrowserMetadataBaseView):
     _NAV_GROUPS = "rpisv"
     _MAX_OBJ_PER_PAGE = 100
     _ORPHANS = int(_MAX_OBJ_PER_PAGE / 20)
-    _BROWSER_CARD_FIELDS = (
-        "bookmark",
-        "child_count",
-        f"{UNIONFIX_PREFIX}cover_path",
-        f"{UNIONFIX_PREFIX}cover_updated_at",
-        "finished",
-        "group",
-        f"{UNIONFIX_PREFIX}issue",
-        "library",
-        "name",
-        "order_value",
-        "path",
-        "pk",
-        "progress",
-        "publisher_name",
-        "series_name",
-        "sort_name",
-        "volume_name",
+    # TODO move to BrowserCardSerializer?
+    # TODO doesn't need snakecase
+    _BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP = dict(
+        (
+            (UNIONFIX_PREFIX + field, F(field))
+            for field in sorted(BrowserCardSerializer().get_fields())
+        )
     )
-    _BROWSER_SETTINGS_KEYS_SNAKE_CAMEL_MAP = {
-        snake_key: camelcase(snake_key)
-        for snake_key in BrowserMetadataBaseView.SESSION_DEFAULTS[
-            BrowserMetadataBaseView.BROWSER_KEY
-        ].keys()
-    }
-    _BROWSER_SETTINGS_KEYS_CAMEL_SNAKE_MAP = {
-        v: k for k, v in _BROWSER_SETTINGS_KEYS_SNAKE_CAMEL_MAP.items()
-    }
-    _NONE_CHARFIELD = Value(None, CharField())
+    _NONE_DECIMALFIELD = Value(None, DecimalField())
+    _EMPTY_CHARFIELD = Value("", CharField())
+    _ZERO_INTEGERFIELD = Value(0, IntegerField())
+    _NONE_BOOLFIELD = Value(None, BooleanField())
 
     _GROUP_INSTANCE_SELECT_RELATED = {
         Comic: ("series", "volume"),
@@ -82,6 +73,7 @@ class BrowserView(BrowserMetadataBaseView):
         Series: (None,),
         Imprint: ("publisher",),
         Publisher: (None,),
+        Folder: ("parent_folder",),
     }
     _DEFAULT_ROUTE = {
         "name": "browser",
@@ -119,22 +111,22 @@ class BrowserView(BrowserMetadataBaseView):
         #######################
         if model not in (Folder, Comic):
             # For folder view stability sorting compatibility
-            queryset = queryset.annotate(library=Value(0, IntegerField()))
+            queryset = queryset.annotate(library=self._ZERO_INTEGERFIELD)
 
         #######################
         # Sortable aggregates #
         #######################
-        order_by = self.params.get("order_by", self.DEFAULT_ORDER_KEY)
-        order_func = self.get_aggregate_func(order_by, model, autoquery_pk)
+        order_key = self.get_order_key()
+        order_func = self.get_aggregate_func(order_key, model, autoquery_pk)
         queryset = queryset.annotate(order_value=order_func)
 
         ########################
         # Annotate name fields #
         ########################
         # Optimized to only lookup what is used on the frontend
-        publisher_name = self._NONE_CHARFIELD
-        series_name = self._NONE_CHARFIELD
-        volume_name = self._NONE_CHARFIELD
+        publisher_name = self.NONE_CHARFIELD
+        series_name = self.NONE_CHARFIELD
+        volume_name = self.NONE_CHARFIELD
 
         if is_model_comic:
             series_name = F("series__name")
@@ -149,18 +141,16 @@ class BrowserView(BrowserMetadataBaseView):
             series_name=series_name,
             volume_name=volume_name,
         )
-        if is_model_comic:
-            issue = F("issue")
-        else:
-            issue = Value(None, IntegerField())
-        queryset = queryset.annotate(
-            **{f"{UNIONFIX_PREFIX}issue": issue},
-        )
-        if model not in (Folder, Comic):
-            path = self._NONE_CHARFIELD
+        if not is_model_comic:
             queryset = queryset.annotate(
-                path=path,
+                issue=self._NONE_DECIMALFIELD,
+                issue_suffix=self._EMPTY_CHARFIELD,
             )
+        if model not in (Folder, Comic):
+            queryset = queryset.annotate(path=self.NONE_CHARFIELD)
+
+        if not is_model_comic:
+            queryset = queryset.annotate(read_ltr=self._NONE_BOOLFIELD)
 
         return queryset
 
@@ -200,9 +190,12 @@ class BrowserView(BrowserMetadataBaseView):
         folder_list = self._add_annotations(folder_list, Folder, autoquery_pk)
         comic_list = self._add_annotations(comic_list, Comic, autoquery_pk)
 
-        # Reduce to values to make union align columns correctly
-        folder_list = folder_list.values(*self._BROWSER_CARD_FIELDS)
-        comic_list = comic_list.values(*self._BROWSER_CARD_FIELDS)
+        # Create ordered annotated values to make union align columns correctly because
+        # django lacks a way to specify values column order.
+        folder_list = folder_list.values(
+            **self._BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP
+        )
+        comic_list = comic_list.values(**self._BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP)
 
         obj_list = folder_list.union(comic_list)
         return obj_list
@@ -219,8 +212,8 @@ class BrowserView(BrowserMetadataBaseView):
         obj_list = self._add_annotations(obj_list, self.model, autoquery_pk)
 
         # Convert to a dict because otherwise the folder/comic union blows
-        # up the paginator
-        obj_list = obj_list.values(*self._BROWSER_CARD_FIELDS)
+        # up the paginator. Use the same annotations for the serializer.
+        obj_list = obj_list.values(**self._BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP)
 
         return obj_list
 
@@ -231,9 +224,9 @@ class BrowserView(BrowserMetadataBaseView):
 
         # Recall root id & relative path from way back in
         # object creation
-        if self.host_folder:
-            if self.host_folder.parent_folder:
-                up_pk = self.host_folder.parent_folder.pk
+        if self.group_instance and isinstance(self.group_instance, Folder):
+            if self.group_instance.parent_folder:
+                up_pk = self.group_instance.parent_folder.pk
             else:
                 up_pk = 0
 
@@ -242,22 +235,19 @@ class BrowserView(BrowserMetadataBaseView):
     def _set_group_instance(self):
         """Create group_class instance."""
         pk = self.kwargs.get("pk")
-        group = self.kwargs.get("group")
-        self.group_instance: Optional[Union[Folder, Publisher, Imprint, Series, Volume]]
-        if pk == 0:
-            self.group_instance = None
-        elif group == self.FOLDER_GROUP:
-            self.group_instance = self.host_folder
-        else:
-            if not self.group_class:
-                raise ValueError("No group_class set in browser")
-            try:
-                select_related = self._GROUP_INSTANCE_SELECT_RELATED[self.group_class]
-                self.group_instance = self.group_class.objects.select_related(
-                    *select_related
-                ).get(pk=pk)
-            except self.group_class.DoesNotExist:
-                self._raise_redirect({"group": group}, f"{group}={pk} does not exist!")
+        self.group_instance: Optional[
+            Union[Folder, Publisher, Imprint, Series, Volume]
+        ] = None
+        if not pk:
+            return
+        try:
+            select_related = self._GROUP_INSTANCE_SELECT_RELATED[self.group_class]
+            self.group_instance = self.group_class.objects.select_related(
+                *select_related
+            ).get(pk=pk)
+        except self.group_class.DoesNotExist:
+            group = self.kwargs.get("group")
+            self._raise_redirect({"group": group}, f"{group}={pk} does not exist!")
 
     def _get_browse_up_route(self):
         """Get the up route from the first valid ancestor."""
@@ -308,8 +298,7 @@ class BrowserView(BrowserMetadataBaseView):
                     prefix = self.group_instance.library.path
                     if prefix[-1] != "/":
                         prefix += "/"
-                    user = self.request.user
-                    if not user or not getattr(user, "is_staff"):  # noqa: B009
+                    if not self.is_admin():
                         # remove library path for not admins
                         parent_name = parent_name.removeprefix(prefix)
                     suffix = "/" + self.group_instance.name
@@ -318,9 +307,9 @@ class BrowserView(BrowserMetadataBaseView):
             group_name = self.group_instance.name
 
         browser_page_title = {
-            "parentName": parent_name,
-            "groupName": group_name,
-            "groupCount": group_count,
+            "parent_name": parent_name,
+            "group_name": group_name,
+            "group_count": group_count,
         }
 
         return browser_page_title
@@ -372,8 +361,7 @@ class BrowserView(BrowserMetadataBaseView):
         """Redirect the client to a valid group url."""
         route = deepcopy(self._DEFAULT_ROUTE)
         route["params"].update(route_changes)
-        settings = self._get_serializer_settings()
-        detail = {"route": route, "settings": settings, "reason": reason}
+        detail = {"route": route, "settings": self.params, "reason": reason}
         raise SeeOtherRedirectError(detail=detail)
 
     def _validate_folder_settings(self, enable_folder_view):
@@ -450,9 +438,9 @@ class BrowserView(BrowserMetadataBaseView):
         """Validate group and top group settings."""
         group = self.kwargs.get("group")
         top_group = self.params.get("top_group")
-        order_by = self.params.get("order_by")
+        order_key = self.get_order_key()
         enable_folder_view = False
-        if top_group == self.FOLDER_GROUP or order_by == "path":
+        if top_group == self.FOLDER_GROUP or order_key == "path":
             try:
                 enable_folder_view = (
                     AdminFlag.objects.only("on")
@@ -467,8 +455,8 @@ class BrowserView(BrowserMetadataBaseView):
         else:
             self._validate_browser_group_settings()
 
-        if order_by == "path" and not enable_folder_view:
-            self.params["order_by"] = self.DEFAULT_ORDER_KEY
+        if order_key == "path" and not enable_folder_view:
+            self.params["order_by"] = "sort_name"
             LOG.warning("order by path not allowed by admin flag.")
 
         # save route once validated.
@@ -488,7 +476,8 @@ class BrowserView(BrowserMetadataBaseView):
             raise exc
 
         for key, value in serializer.validated_data.items():
-            snake_key = self._BROWSER_SETTINGS_KEYS_CAMEL_SNAKE_MAP[key]
+            # TODO reform
+            snake_key = key
             if snake_key == "autoquery" and not self.params.get(snake_key) and value:
                 self.autoquery_first = True
             if snake_key == "top_group" and self.params.get(snake_key) != value:
@@ -529,10 +518,9 @@ class BrowserView(BrowserMetadataBaseView):
         self._validate_settings()
         self._set_browse_model()
         # Create the main query with the filters
+        is_model_comic = self.model == Comic
         try:
-            object_filter, autoquery_pk = self.get_query_filters(
-                self.model == Comic, False
-            )
+            object_filter, autoquery_pk = self.get_query_filters(is_model_comic, False)
         except Folder.DoesNotExist:
             pk = self.kwargs.get("pk")
             self._raise_redirect(
@@ -576,15 +564,22 @@ class BrowserView(BrowserMetadataBaseView):
             "text", flat=True
         )[: BrowserPageSerializer.NUM_AUTOCOMPLETE_QUERIES]
 
+        if is_model_comic:
+            # runs obj list query twice :/
+            issue_max = obj_list.aggregate(Max("issue"))["issue__max"]
+        else:
+            issue_max = 0
+
         # construct final data structure
         browser_page = {
-            "upRoute": up_route,
-            "browserTitle": browser_page_title,
-            "modelGroup": self.model_group,
-            "objList": obj_list,
-            "numPages": num_pages,
-            "formChoices": {"enableFolderView": efv_flag.on},
-            "librariesExist": libraries_exist,
+            "up_route": up_route,
+            "browser_title": browser_page_title,
+            "model_group": self.model_group,
+            "obj_list": obj_list,
+            "issue_max": issue_max,
+            "num_pages": num_pages,
+            "admin_flags": {"enable_folder_view": efv_flag.on},
+            "libraries_exist": libraries_exist,
             "queries": queries,
         }
         return browser_page
@@ -605,25 +600,15 @@ class BrowserView(BrowserMetadataBaseView):
         serializer = BrowserPageSerializer(browser_page)
         return Response(serializer.data)
 
-    def _get_serializer_settings(self):
-        """Get the camelcase settings."""
-        settings = {}
-        for key in self._BROWSER_SETTINGS_KEYS_SNAKE_CAMEL_MAP:
-            camel_key = camelcase(key)
-            settings[camel_key] = self.params.get(key)
-        return settings
-
     def get(self, request, *args, **kwargs):
         """Get browser settings."""
         self._load_params()
         browser_page = self._get_browser_page()
-
-        settings = self._get_serializer_settings()
         latest_version = get_latest_version(PACKAGE_NAME)
 
         data = {
-            "settings": settings,
-            "browserPage": browser_page,
+            "settings": self.params,
+            "browser_page": browser_page,
             "versions": {"installed": VERSION, "latest": latest_version},
         }
         serializer = BrowserOpenedSerializer(data)

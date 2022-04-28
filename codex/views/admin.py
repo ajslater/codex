@@ -37,7 +37,7 @@ class QueueLibrarianJobs(APIView):
     @staticmethod
     def _get_all_library_pks():
         queryset = Library.objects.all()
-        return set(queryset.values_list("pk", flat=True))
+        return frozenset(queryset.values_list("pk", flat=True))
 
     @classmethod
     def _poll_all_libraries(cls, force):
