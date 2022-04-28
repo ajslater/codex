@@ -10,7 +10,7 @@ from xapian_backend import DATETIME_FORMAT
 
 from codex._vendor.haystack.query import SearchQuerySet
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, SearchIndexUpdateTask
-from codex.models import Comic, Folder, SearchQuery, SearchResult
+from codex.models import Comic, SearchQuery, SearchResult
 from codex.settings.logging import get_logger
 from codex.views.group_filter import GroupACLMixin
 from codex.views.session import SessionView

@@ -117,12 +117,15 @@ class UserBookmarkFinishedView(BrowserBaseView, UserBookmarkUpdateMixin):
         serializer = UserBookmarkFinishedSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        group = self.kwargs.get("group")
-        relation = self.GROUP_RELATION.get(group)
         updates = {"finished": serializer.validated_data.get("finished")}
 
+        group = self.kwargs.get("group")
         pk = self.kwargs.get("pk")
-        comic_filter = {relation: pk}
+        if group == "f":
+            comic_filter = {"folders__in": [pk]}
+        else:
+            relation = self.GROUP_RELATION.get(group)
+            comic_filter = {relation: pk}
         self.update_user_bookmarks(updates, comic_filter=comic_filter)
         return Response()
 
