@@ -243,10 +243,12 @@ const actions = {
   settingChanged({ commit, dispatch }, data) {
     // Save settings to state and re-get the objects.
     commit("setSettings", data);
-    if ("filters" in data) {
-      for (let filterName of Object.keys(data.filters)) {
-        commit("clearAllFormChoicesExcept", filterName);
+    if (data.filters || data.autoquery) {
+      let filterName;
+      if (data.filters) {
+        filterName = Object.keys(data.filters)[0];
       }
+      commit("clearAllFormChoicesExcept", filterName);
     }
     dispatch("browserPageStale");
   },
