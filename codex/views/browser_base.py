@@ -134,8 +134,10 @@ class BrowserBaseView(SessionView, GroupACLMixin):
         # And the filtered comics that are children of the group_instance
         group_filter = Q()
         pk = self.kwargs.get("pk")
-        if pk:
-            group = self.kwargs.get("group")
+        group = self.kwargs.get("group")
+        if pk or group == "f":
+            if not pk:
+                pk = None
             group_relation = self.GROUP_RELATION[group]
             group_filter |= Q(**{group_relation: pk})
 

@@ -1,7 +1,7 @@
 """View for marking comics read and unread."""
 from copy import copy
 
-from django.db.models import Case, Count, F, Subquery, When
+from django.db.models import Count, F, IntegerField, Subquery, Value
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
@@ -122,14 +122,26 @@ class MetadataView(BrowserMetadataBaseView):
                 full_field = field
             else:
                 full_field = "comic__" + field
-            lookup = Case(When(count=1, then=full_field + related_suffix))
-            val = Subquery(
+
+            sq = (
                 simple_qs.values("id")
-                .order_by()  # magic order_by saves the day again
+                .order_by()  # just in case
                 .annotate(count=Count(full_field, distinct=True))
-                .annotate(final_val=lookup)
-                .values("final_val")
+                .filter(count=1)
+                .values_list(full_field + related_suffix, flat=True)
             )
+
+            # The subquery above would work without this python dual evaluation
+            # if we could group by only model.id. However, the SQL standard and
+            # therefore Django, states that anything selected must be grouped by,
+            # which leads to multiple query results instead of null or one result.
+            # The query only version of this from 0.9.14 worked in most cases, but
+            # fractured on the language tag for some reason.
+            if len(sq) != 1:
+                val = Value(None, IntegerField())
+            else:
+                val = Subquery(sq)
+
             ann_field = (annotation_prefix + field).replace("__", "_")
             qs = qs.annotate(**{ann_field: val})
 

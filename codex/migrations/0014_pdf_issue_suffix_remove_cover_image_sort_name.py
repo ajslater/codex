@@ -25,9 +25,11 @@ def add_library_folders(apps, _schema_editor):
         folder = folder_model(library=library, path=path, name=name)
         create_folders.append(folder)
 
-        print("creating:", folder.path)
-
+    if create_folders:
+        print("creating library folders...")
     new_folders = folder_model.objects.bulk_create(create_folders)
+    for folder in new_folders:
+        print(f"created library folder {folder.pk}: {folder.path}")
 
     # Update previously top folders to descend from library fodlers.
     library_paths = library_model.objects.all().values_list("path", flat=True)
@@ -39,9 +41,17 @@ def add_library_folders(apps, _schema_editor):
                 old_parent = folder.parent_folder
                 folder.parent_folder = folder_model.objects.get(path=library_path)
                 update_folders.append(folder)
-                print("updating", folder.path, old_parent, "=>", folder.parent_folder)
+                print(
+                    "updating",
+                    folder.path,
+                    "parent from",
+                    old_parent,
+                    "to",
+                    folder.parent_folder.pk,
+                )
                 break
-    folder_model.objects.bulk_update(update_folders, ["parent_folder"])
+    count = folder_model.objects.bulk_update(update_folders, ["parent_folder"])
+    print(f"updated {count} folders.")
 
     # Link comics to new folders
     comic_model = apps.get_model("codex", "comic")
@@ -54,7 +64,11 @@ def add_library_folders(apps, _schema_editor):
         for comic_pk in comic_pks:
             tm = ThroughModel(comic_id=comic_pk, folder_id=new_folder.pk)
             tms.append(tm)
-    ThroughModel.objects.bulk_create(tms)
+
+    print(f"linking {len(tms)} comics to new folders...")
+    objs = ThroughModel.objects.bulk_create(tms)
+    if objs:
+        print(f"linked {len(objs)} comics to new folders.")
 
 
 class Migration(migrations.Migration):

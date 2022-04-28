@@ -272,6 +272,13 @@ export default {
       return this.$route.name === "browser";
     },
     formattedIssue: function () {
+      if (
+        (this.issue === null || this.issue === undefined) &&
+        !this.issueSuffix
+      ) {
+        // comic-name.formattedIssue() shows 0 for null issue.
+        return;
+      }
       return formattedIssue({
         issue: this.md.issue,
         issueSuffix: this.md.issueSuffix,

@@ -7,6 +7,7 @@ from typing import Optional, Union
 from comicbox.metadata.filename import FilenameMetadata
 from filetype import guess
 from pdf2image import convert_from_path
+from pdf2image.exceptions import PDFInfoNotInstalledError
 from pdfrw import PdfReader, PdfWriter
 from pdfrw.errors import log as pdfrw_log
 from PIL.Image import Image as ImageType
@@ -73,15 +74,19 @@ class PDF:
 
     def get_cover_image_as_pil(self) -> ImageType:
         """Get the first page as a image data."""
-        images = convert_from_path(
-            self._path,
-            first_page=self.COVER_PAGE_INDEX,
-            last_page=self.COVER_PAGE_INDEX,
-            thread_count=4,
-            fmt="tiff",  # tiff fastest, maybe lossless.
-            use_pdftocairo=True,
-        )
-        return images[0]
+        try:
+            images = convert_from_path(
+                self._path,
+                first_page=self.COVER_PAGE_INDEX,
+                last_page=self.COVER_PAGE_INDEX,
+                thread_count=4,
+                fmt="tiff",  # tiff fastest, maybe lossless.
+                use_pdftocairo=True,
+            )
+
+            return images[0]
+        except PDFInfoNotInstalledError as exc:
+            raise FileNotFoundError(str(exc)) from exc
 
     def close(self):
         """Get rid of the reader."""
