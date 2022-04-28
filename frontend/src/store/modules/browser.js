@@ -249,6 +249,7 @@ const actions = {
         filterName = Object.keys(data.filters)[0];
       }
       commit("clearAllFormChoicesExcept", filterName);
+      commit("setFilterMode", "base");
     }
     dispatch("browserPageStale");
   },
@@ -275,7 +276,10 @@ const actions = {
     dispatch("browserPageStale");
   },
   async filterModeChanged({ commit, state }, { group, pk, mode }) {
-    if (mode && mode !== "base" && state.formChoices[mode] == undefined) {
+    if (!mode) {
+      return;
+    }
+    if (mode !== "base" && state.formChoices[mode] == undefined) {
       await API.getBrowserChoices({
         group,
         pk,
