@@ -79,7 +79,8 @@ export default {
           const formattedGroupCount = `of ${groupCount}`;
           names.push(formattedGroupCount);
         }
-        browserTitle = names.join(" ");
+        const delimiter = group === "f" ? "/" : " ";
+        browserTitle = names.join(delimiter);
       }
       return browserTitle;
     },
