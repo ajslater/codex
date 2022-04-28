@@ -16,6 +16,7 @@ _Portable Document Format_
 
   - Comic file suffixes now matched case insensitively.
   - Finished comics count as 100% complete for bookmark aggregation.
+  - Mark all folder descendant comics un/read recursively instead of immediate chidren.
   - Don't leak library root paths in Folder View for non-admins in the API.
   - Fixed aggregation bug showing inaccurate data when viewing group metadata.
   - More accurate Name sorting.
