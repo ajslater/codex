@@ -19,15 +19,21 @@ def add_library_folders(apps, _schema_editor):
     )
 
     create_folders = []
+    folder_paths = []
     for library in libraries_missing_top_folders:
         path = library.path
         name = Path(library.path).name
         folder = folder_model(library=library, path=path, name=name)
         create_folders.append(folder)
+        folder_paths.append(folder.path)
 
-        print("creating:", folder.path)
+    if folder_paths:
+        print("creating library folders for", ", ".join(folder_paths))
 
-    new_folders = folder_model.objects.bulk_create(create_folders)
+    if create_folders:
+        new_folders = folder_model.objects.bulk_create(create_folders)
+    else:
+        new_folders = []
 
     # Update previously top folders to descend from library fodlers.
     library_paths = library_model.objects.all().values_list("path", flat=True)
@@ -39,7 +45,14 @@ def add_library_folders(apps, _schema_editor):
                 old_parent = folder.parent_folder
                 folder.parent_folder = folder_model.objects.get(path=library_path)
                 update_folders.append(folder)
-                print("updating", folder.path, old_parent, "=>", folder.parent_folder)
+                print(
+                    "updating",
+                    folder.path,
+                    "parent from",
+                    old_parent,
+                    "to",
+                    folder.parent_folder,
+                )
                 break
     folder_model.objects.bulk_update(update_folders, ["parent_folder"])
 
