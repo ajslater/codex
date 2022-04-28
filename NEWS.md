@@ -1,6 +1,6 @@
 # 📰 Codex News
 
-## v0.10.0a2
+## v0.10.0
 
 _Portable Document Format_
 
