@@ -1,6 +1,6 @@
 # 📰 Codex News
 
-## v0.10.0
+## v0.10.0a0
 
 _Portable Document Format_
 
@@ -16,13 +16,13 @@ _Portable Document Format_
 
   - Comic file suffixes now matched case insensitively.
   - Finished comics count as 100% complete for bookmark aggregation.
-  - Mark all folder descendant comics un/read recursively instead of immediate chidren.
+  - Mark all folder descendant comics un/read recursively instead of immediate children.
   - Don't leak library root paths in Folder View for non-admins in the API.
   - Fixed aggregation bug showing inaccurate data when viewing group metadata.
   - More accurate Name sorting.
   - Fixed default start page for RTL comics.
   - Disabled reading links for empty comics.
-  - Shield radation from Venus to reduce zombie indcidents.
+  - Shield radiation from Venus to reduce zombie indcidents.
 
 ## v0.9.14
 
