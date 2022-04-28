@@ -32,6 +32,7 @@
             filled
             rounded
             hide-details="auto"
+            @focus="setFilterMode(name)"
           />
         </header>
         <v-list-item-group
