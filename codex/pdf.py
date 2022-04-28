@@ -7,8 +7,8 @@ from typing import Optional, Union
 from comicbox.metadata.filename import FilenameMetadata
 from filetype import guess
 from pdf2image import convert_from_path
-from pdfrw import PdfReader, PdfWriter
 from pdf2image.exceptions import PDFInfoNotInstalledError
+from pdfrw import PdfReader, PdfWriter
 from pdfrw.errors import log as pdfrw_log
 from PIL.Image import Image as ImageType
 
