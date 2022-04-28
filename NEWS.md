@@ -1,12 +1,12 @@
 # 📰 Codex News
 
-## v0.10.0a0
+## v0.10.0a1
 
 _Portable Document Format_
 
 - Features
 
-  - PDF support. Optional poppler binary needed to generate PDF cover thumbnails.
+  - PDF support. Optional poppler-utils binary package needed to generate PDF cover thumbnails.
   - CBT support. Tarball comic archives.
   - Alphanumeric issue support. Requires rescanning existing comics.
   - Individual top level folders for each library.

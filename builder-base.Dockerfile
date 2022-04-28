@@ -20,7 +20,7 @@ RUN apk add --no-cache \
    musl-dev \
    npm \
    openssl-dev \
-   poppler \
+   poppler-utils \
    python3-dev \
    rust \
    xapian-bindings-python3 \
