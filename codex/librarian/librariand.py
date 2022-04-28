@@ -71,7 +71,7 @@ class LibrarianDaemon(Process):
             self.event_batcher.queue.put(task)
         elif isinstance(task, UpdaterTask):
             self.updater.queue.put(task)
-        elif isinstance(task, NotifierTask):
+        elif isinstance(task, NotifierTask) and Notifier.thread:
             Notifier.thread.queue.put(task)
         elif isinstance(task, WatchdogSyncTask):
             for observer in self._observers:
