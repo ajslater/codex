@@ -365,7 +365,6 @@ class BrowserBaseView(SessionView, GroupACLMixin):
             self.params["autoquery"] = " ".join(autoquery_tokens)
         except Exception as exc:
             LOG.warning(exc)
-            LOG.exception(exc)
         return search_filter, autoquery_pk
 
     def _get_group_filter(self, choices):
@@ -378,6 +377,7 @@ class BrowserBaseView(SessionView, GroupACLMixin):
         else:
             # The browser filter is the same for all views
             group_filter = self._get_browser_group_filter()
+
         return group_filter
 
     def is_admin(self):
