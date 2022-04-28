@@ -1,5 +1,11 @@
 # 📰 Codex News
 
+## v0.10.1
+
+- Fixes
+
+  - Linked old top level comics orphaned by library folders migration.
+
 ## v0.10.0
 
 _Portable Document Format_
