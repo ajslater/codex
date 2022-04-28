@@ -4,7 +4,7 @@
       <v-icon class="actionMenu" v-on="on">{{ mdiDotsVertical }}</v-icon>
     </template>
     <v-list nav>
-      <v-list-item v-if="group === 'c'" :href="downloadURL">
+      <v-list-item v-if="group === 'c'" :href="downloadURL" download>
         <v-list-item-content>
           <v-list-item-title>Download Comic</v-list-item-title>
         </v-list-item-content>
@@ -22,6 +22,7 @@
 
 <script>
 import { mdiDotsVertical } from "@mdi/js";
+import { mapState } from "vuex";
 
 import { getDownloadURL } from "@/api/v2/comic";
 
@@ -52,19 +53,15 @@ export default {
   data() {
     return {
       mdiDotsVertical,
-      downloadURL: getDownloadURL(this.pk),
-      markReadText: this.getMarkReadText(),
     };
   },
-  methods: {
-    toggleRead: function () {
-      this.$store.dispatch("browser/markedRead", {
-        group: this.group,
-        pk: this.pk,
-        finished: !this.finished,
-      });
-    },
-    getMarkReadText: function () {
+  computed: {
+    ...mapState("reader", {
+      downloadURL: function (state) {
+        return getDownloadURL(this.pk, state.timestamp);
+      },
+    }),
+    markReadText: function () {
       const words = ["Mark"];
       if (this.group != "c") {
         words.push("Entire");
@@ -78,6 +75,15 @@ export default {
         words.push("Read");
       }
       return words.join(" ");
+    },
+  },
+  methods: {
+    toggleRead: function () {
+      this.$store.dispatch("browser/markedRead", {
+        group: this.group,
+        pk: this.pk,
+        finished: !this.finished,
+      });
     },
   },
 };

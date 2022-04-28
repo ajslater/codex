@@ -29,9 +29,9 @@
         <div id="metadataBookCoverWrapper">
           <BookCover
             id="bookCover"
-            :cover-path="md.cover_path"
+            :cover-path="md.coverPath"
             :group="group"
-            :child-count="md.child_count"
+            :child-count="md.childCount"
             :finished="md.finished"
           />
           <v-progress-linear
@@ -69,14 +69,14 @@
             label="Volume"
             :highlight="'v' === md.group"
           />
-          <MetadataText :value="md.volume_count" label="Volume Count" />
+          <MetadataText :value="md.volumeCount" label="Volume Count" />
           <MetadataText
             id="issue"
             :value="formattedIssue"
             label="Issue"
             :highlight="'c' === md.group"
           />
-          <MetadataText :value="md.issue_count" label="Issue Count" />
+          <MetadataText :value="md.issueCount" label="Issue Count" />
         </div>
         <section class="mdSection">
           <MetadataText :value="md.name" label="Title" />
@@ -102,31 +102,34 @@
           </div>
         </section>
         <section class="mdSection">
-          <div class="thirdRow">
+          <div class="quarterRow">
             <MetadataText
-              v-if="md.created_at"
-              :value="formatDateTime(md.created_at)"
+              v-if="md.createdAt"
+              :value="formatDateTime(md.createdAt)"
               label="Created at"
               class="mtime"
             />
             <MetadataText
-              v-if="md.updated_at"
-              :value="formatDateTime(md.updated_at)"
+              v-if="md.updatedAt"
+              :value="formatDateTime(md.updatedAt)"
               label="Updated at"
               class="mtime"
             />
             <MetadataText :value="size" label="Size" />
+            <MetadataText :value="fileFormat" label="File Type" />
           </div>
-          <MetadataText :value="md.path" label="Path" />
+          <div class="lastSmallRow">
+            <MetadataText :value="md.path" label="Path" />
+          </div>
         </section>
         <section class="halfRow mdSection">
           <MetadataText :value="md.country" label="Country" />
           <MetadataText :value="md.language" label="Language" />
         </section>
         <section class="mdSection">
-          <MetadataText :value="md.community_rating" label="Community Rating" />
-          <MetadataText :value="md.critical_rating" label="Critical Rating" />
-          <MetadataText :value="md.age_rating" label="Age Rating" />
+          <MetadataText :value="md.communityRating" label="Community Rating" />
+          <MetadataText :value="md.criticalRating" label="Critical Rating" />
+          <MetadataText :value="md.ageRating" label="Age Rating" />
         </section>
         <section class="mdSection">
           <MetadataTags :values="md.genres" label="Genres" />
@@ -134,15 +137,15 @@
           <MetadataTags :values="md.teams" label="Teams" />
           <MetadataTags :values="md.characters" label="Characters" />
           <MetadataTags :values="md.locations" label="Locations" />
-          <MetadataTags :values="md.story_arcs" label="Story Arcs" />
-          <MetadataTags :values="md.series_groups" label="Series Groups" />
+          <MetadataTags :values="md.storyArcs" label="Story Arcs" />
+          <MetadataTags :values="md.seriesGroups" label="Series Groups" />
         </section>
         <section class="mdSection">
           <MetadataText :value="md.web" label="Web Link" :link="true" />
           <MetadataText :value="md.summary" label="Summary" />
           <MetadataText :value="md.comments" label="Comments" />
           <MetadataText :value="md.notes" label="Notes" />
-          <MetadataText :value="md.scan_info" label="Scan" />
+          <MetadataText :value="md.scanInfo" label="Scan" />
         </section>
         <section class="mdSection">
           <MetadataCreditsTable :value="md.credits" />
@@ -158,12 +161,15 @@
           ><v-icon v-if="group === 'c'">{{ mdiDownload }}</v-icon></v-btn
         >
         <v-btn
-          v-if="isBrowser && group === 'c'"
+          v-if="isBrowser && group === 'c' && readerRoute"
           :to="readerRoute"
           title="Read Comic"
         >
           <v-icon>{{ mdiEye }}</v-icon>
         </v-btn>
+        <v-icon v-else-if="group === 'c' && !readerRoute">{{
+          mdiEyeOff
+        }}</v-icon>
 
         <span id="bottomRightButtons">
           <v-btn
@@ -196,7 +202,7 @@
   </v-dialog>
 </template>
 <script>
-import { mdiDownload, mdiEye, mdiTagOutline } from "@mdi/js";
+import { mdiDownload, mdiEye, mdiEyeOff, mdiTagOutline } from "@mdi/js";
 import humanize from "humanize";
 import { mapGetters, mapState } from "vuex";
 
@@ -214,6 +220,10 @@ import { getReaderRoute } from "@/router/route";
 const CHILDREN_PER_SECOND = 1160;
 const MIN_SECS = 0.05;
 const UPDATE_INTERVAL = 250;
+const FILE_FORMATS = {
+  comic: "Comic Archive",
+  pdf: "PDF",
+};
 
 export default {
   name: "MetadataButton",
@@ -241,6 +251,7 @@ export default {
     return {
       mdiDownload,
       mdiEye,
+      mdiEyeOff,
       mdiTagOutline,
       dialog: false,
       progress: 0,
@@ -249,6 +260,9 @@ export default {
   computed: {
     ...mapState("metadata", {
       md: (state) => state.md,
+      downloadURL: function (state) {
+        return getDownloadURL(this.md.id, state.timestamp);
+      },
     }),
     ...mapState("browser", {
       autoquery: (state) => state.settings.autoquery,
@@ -258,20 +272,16 @@ export default {
       return this.$route.name === "browser";
     },
     formattedIssue: function () {
-      return formattedIssue(this.md.issue);
-    },
-    downloadURL: function () {
-      return getDownloadURL(this.md.id);
+      return formattedIssue({
+        issue: this.md.issue,
+        issueSuffix: this.md.issueSuffix,
+      });
     },
     readerRoute: function () {
-      const pk = this.md.id;
-      const bookmark = this.md.bookmark;
-      const readLTR = this.md.read_ltr;
-      const pageCount = this.md.page_count;
-      return getReaderRoute(pk, bookmark, readLTR, pageCount);
+      return getReaderRoute(this.md);
     },
     ltrText: function () {
-      return this.md.read_ltr ? "Left to Right" : "Right to Left";
+      return this.md.readLtr ? "Left to Right" : "Right to Left";
     },
     pages: function () {
       let pages = "";
@@ -279,7 +289,7 @@ export default {
         const humanBookmark = humanize.numberFormat(this.md.bookmark, 0);
         pages += `Read ${humanBookmark} of `;
       }
-      const humanPages = humanize.numberFormat(this.md.page_count, 0);
+      const humanPages = humanize.numberFormat(this.md.pageCount, 0);
       pages += `${humanPages} pages`;
       if (this.md.progress > 0) {
         pages += ` (${Math.round(this.md.progress)}%)`;
@@ -288,6 +298,9 @@ export default {
     },
     size: function () {
       return humanize.filesize(this.md.size);
+    },
+    fileFormat: function () {
+      return FILE_FORMATS[this.md.fileFormat] || this.md.fileFormat;
     },
   },
   watch: {
@@ -419,6 +432,10 @@ export default {
   width: 33.333%;
   display: inline-flex;
 }
+.quarterRow > * {
+  width: 25%;
+  display: inline-flex;
+}
 
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   #metadataContainer {
@@ -433,11 +450,4 @@ export default {
   /* Seems like I'm fixing a bug here */
   background-color: #121212;
 }
-/* Show filter toolbar with dialog
-.v-dialog__content--active {
-  margin-top: 160px;
-  max-height: calc(100vh - 160px);
-  backdrop-filter: blur(2px) opacity(50%);
-}
-*/
 </style>

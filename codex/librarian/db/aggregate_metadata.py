@@ -1,5 +1,4 @@
 """Aggregate metadata from comics to prepare for importing."""
-
 import time
 
 from pathlib import Path
@@ -13,16 +12,35 @@ from rarfile import BadRarFile
 from codex.librarian.db.clean_metadata import clean_md
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, ImageComicCoverCreateTask
 from codex.models import Comic, Imprint, Publisher, Series, Volume
+from codex.pdf import PDF
 from codex.settings.logging import LOG_EVERY, get_logger
+from codex.version import COMICBOX_CONFIG
 
 
 LOG = get_logger(__name__)
 BROWSER_GROUPS = (Publisher, Imprint, Series, Volume)
-BROWSER_GROUP_TREE_COUNT_FIELDS = set(["volume_count", "issue_count"])
+BROWSER_GROUP_TREE_COUNT_FIELDS = frozenset(["volume_count", "issue_count"])
 COMIC_M2M_FIELDS = set()
 for field in Comic._meta.get_fields():
     if field.many_to_many and field.name != "folders":
         COMIC_M2M_FIELDS.add(field.name)
+
+
+def _pregen_cover(path, car):
+    """Pregenerate the cover."""
+    # Getting the cover data while getting the metada and handing to the
+    # other thread is significantly faster than doing it later.
+    # Do this as soon as we have a path
+
+    try:
+        image = car.get_cover_image_as_pil()
+        car.close()
+        task = ImageComicCoverCreateTask(False, path, image)
+        LIBRARIAN_QUEUE.put_nowait(task)
+    except Full:
+        LOG.debug(f"Queue full. Not pre-creating cover for {path}")
+    except Exception as exc:
+        LOG.warning(f"Failed to pre-create cover for {path} {exc}")
 
 
 def _get_path_metadata(path):
@@ -32,20 +50,19 @@ def _get_path_metadata(path):
     group_tree_md = {}
     failed_import = {}
     try:
-        car = ComicArchive(path, get_cover=True)
+        pdf = PDF(path)
+        if pdf.is_pdf():
+            file_format = Comic.FileFormats.PDF
+            car = pdf
+        else:
+            file_format = Comic.FileFormats.COMIC
+            car = ComicArchive(path, config=COMICBOX_CONFIG, closefd=False)
         md = car.get_metadata()
-        md["path"] = path
-        clean_md(md)
+        _pregen_cover(path, car)
 
-        # Getting the cover data while getting the metada and handing to the
-        # other thread is significantly faster than doing it later.
-        # do this as soon as we have a path
-        if car.cover_image_data:
-            task = ImageComicCoverCreateTask(False, path, car.cover_image_data)
-            try:
-                LIBRARIAN_QUEUE.put_nowait(task)
-            except Full:
-                LOG.debug(f"Queue full. Not pre-creating cover for {path}")
+        md["path"] = path
+        md["file_format"] = file_format
+        md = clean_md(md)
 
         # Create group tree
         group_tree = []
@@ -104,7 +121,7 @@ def _aggregate_m2m_metadata(all_m2m_mds, m2m_md, all_fks, path):
         elif field != "folders":
             if field not in all_fks:
                 all_fks[field] = set()
-            all_fks[field] |= set(names)
+            all_fks[field] |= frozenset(names)
 
 
 def _none_max(a, b):
@@ -172,7 +189,7 @@ def get_aggregate_metadata(library, all_paths):
             LOG.info(f"Read tags from {num}/{total_paths} comics")
             last_log_time = now
 
-    all_fks["comic_paths"] = set(all_mds.keys())
+    all_fks["comic_paths"] = frozenset(all_mds.keys())
 
     LOG.verbose(f"Aggregated tags from {len(all_mds)} comics.")
     return all_mds, all_m2m_mds, all_fks, all_failed_imports

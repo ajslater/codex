@@ -51,33 +51,23 @@ export default {
   computed: {
     ...mapState("reader", {
       title: function (state) {
-        return getFullComicName(
-          state.title.seriesName,
-          state.title.volumeName,
-          state.title.issue,
-          state.title.issueCount
-        );
+        return getFullComicName(state.comic);
       },
+      timestamp: (state) => state.timestamp,
     }),
     ...mapGetters("reader", ["computedSettings"]),
     ...mapState("reader", {
       readerBrowserRoute: (state) => state.browserRoute,
     }),
-    ...mapState("browser", {
-      browserRoute: (state) => state.routes.current,
-    }),
     closeBookRoute: function () {
       // Choose the best route
       const params =
-        this.browserRoute ||
-        this.readerBrowserRoute ||
-        window.lastRoute ||
-        CHOICES.browser.route;
+        this.readerBrowserRoute || window.lastRoute || CHOICES.browser.route;
       return { name: "browser", params };
     },
     pageSrc: function () {
       const routeParams = { ...this.$router.currentRoute.params };
-      return getComicPageSource(routeParams);
+      return getComicPageSource(routeParams, this.timestamp);
     },
     pageName: function () {
       const page = this.$router.currentRoute.params.page;
@@ -138,6 +128,7 @@ export default {
 #toolbarTitle {
   overflow-y: auto;
   text-overflow: clip;
+  white-space: normal;
 }
 #downloadPageButton {
   height: 100%;
@@ -156,6 +147,9 @@ export default {
     padding-left: 10px;
     padding-right: 0px;
     width: 16px;
+  }
+  #toolbarTitle {
+    font-size: x-small;
   }
 }
 </style>

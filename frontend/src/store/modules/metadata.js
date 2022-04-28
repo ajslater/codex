@@ -2,13 +2,18 @@ import API from "@/api/v2/group";
 
 const state = {
   md: undefined,
+  timestamp: Date.now(),
 };
 
 const getters = {};
 
 const mutations = {
   setMetadata(state, md) {
+    md.pk = md.id;
     state.md = Object.seal(md);
+  },
+  setTimestamp(state) {
+    state.timestamp = Date.now();
   },
 };
 

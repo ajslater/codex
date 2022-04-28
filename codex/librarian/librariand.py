@@ -71,7 +71,7 @@ class LibrarianDaemon(Process):
             self.event_batcher.queue.put(task)
         elif isinstance(task, UpdaterTask):
             self.updater.queue.put(task)
-        elif isinstance(task, NotifierTask):
+        elif isinstance(task, NotifierTask) and Notifier.thread:
             Notifier.thread.queue.put(task)
         elif isinstance(task, WatchdogSyncTask):
             for observer in self._observers:
@@ -119,17 +119,19 @@ class LibrarianDaemon(Process):
 
     def _start_threads(self):
         """Start all librarian's threads."""
-        LOG.debug("Starting Librarian threads.")
+        LOG.debug(f"Starting all {self.NAME} threads.")
         for thread in self._threads:
             thread.start()
-        LOG.debug("Started Librarian threads.")
+        LOG.debug(f"Started all {self.NAME} threads.")
 
     def _stop_threads(self):
         """Stop all librarian's threads."""
-        LOG.debug("Stopping Librarain threads...")
+        LOG.debug(f"Stopping all {self.NAME} threads...")
         for thread in reversed(self._threads):
             thread.stop()
-        LOG.debug("Stopped Librarian threads.")
+        for thread in reversed(self._threads):
+            thread.join()
+        LOG.debug(f"Stopped all {self.NAME} threads.")
 
     def run(self):
         """
@@ -171,7 +173,11 @@ class LibrarianDaemon(Process):
     @classmethod
     def shutdown(cls):
         """Stop the librarian process."""
+        if not cls.proc:
+            LOG.warning(f"Cannot shutdown {cls.NAME}. It hasn't started.")
+            return
         LIBRARIAN_QUEUE.put(cls.SHUTDOWN_TASK)
-        if cls.proc:
-            LOG.debug("Waiting to shut down librarian...")
-            cls.proc.join()
+        LOG.debug(f"Waiting for {cls.NAME} to join...")
+        cls.proc.join()
+        cls.proc = None
+        LOG.debug(f"{cls.NAME}joined.")

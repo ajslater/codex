@@ -45,6 +45,7 @@ class ComicIndex(ModelSearchIndex, Indexable):
             "decade",
             "format",
             "issue",
+            "issue_suffix",
             "language",
             "month",
             "read_ltr",

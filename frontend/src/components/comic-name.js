@@ -1,52 +1,68 @@
-export const getVolumeName = function (volume) {
+export const formattedVolumeName = function (volume) {
   let volumeName;
-  if (!volume) {
-    volumeName = "";
-  } else {
+  if (volume) {
     volumeName =
       volume.length === 4 && !Number.isNaN(volume)
         ? " (" + volume + ")"
         : " v" + volume;
+  } else {
+    volumeName = "";
   }
   return volumeName;
 };
 
-export const formattedIssue = function (decimalIssue) {
-  if (decimalIssue === undefined || decimalIssue === null) {
-    return;
-  }
-  const intIssue = Math.floor(decimalIssue);
-  let issueStr = intIssue.toString().padStart(3, "0");
-  if (decimalIssue - intIssue === 0.5) {
-    if (intIssue === 0) {
-      issueStr = "";
+export const formattedIssue = function ({ issue, issueSuffix }, zeroPad) {
+  let issueStr;
+  try {
+    if (issue == undefined && !issueSuffix) {
+      // Null issue defaults to display #0
+      issue = 0;
     }
-    issueStr += "½";
-  } else if (decimalIssue !== intIssue) {
-    const remainder = decimalIssue - intIssue;
-    const decimalSuffix = remainder.toString().slice(1);
-    issueStr += decimalSuffix;
+    const floatIssue = Number.parseFloat(issue);
+    const intIssue = Math.floor(floatIssue);
+    if (zeroPad === undefined) {
+      zeroPad = 0;
+    }
+    if (floatIssue === intIssue) {
+      issueStr = intIssue.toString();
+    } else {
+      issueStr = floatIssue.toString();
+      zeroPad += issueStr.split(".")[1].length + 1;
+    }
+    issueStr = issueStr.padStart(zeroPad, "0");
+  } catch {
+    issueStr = "";
   }
+  if (issueSuffix) {
+    issueStr += issueSuffix;
+  }
+
   return issueStr;
 };
 
-export const getIssueName = function (issue, issueCount) {
-  let issueName = "#" + formattedIssue(issue);
+export const getIssueName = function (
+  { issue, issueSuffix, issueCount },
+  zeroPad
+) {
+  let issueName = "#" + formattedIssue({ issue, issueSuffix }, zeroPad);
   if (issueCount) {
     issueName += ` of ${issueCount}`;
   }
   return issueName;
 };
 
-export const getFullComicName = function (series, volume, issue, issueCount) {
+export const getFullComicName = function (
+  { seriesName, volumeName, issue, issueSuffix, issueCount },
+  zeroPad
+) {
   // Format a full comic name from the series on down.
-  const volumeName = getVolumeName(volume);
-  const issueName = getIssueName(issue, issueCount);
-  return [series, volumeName, issueName].join(" ");
+  const fvn = formattedVolumeName(volumeName);
+  const issueName = getIssueName({ issue, issueSuffix, issueCount }, zeroPad);
+  return [seriesName, fvn, issueName].join(" ");
 };
 
 export default {
   getFullComicName,
-  getVolumeName,
+  formattedVolumeName,
   getIssueName,
 };

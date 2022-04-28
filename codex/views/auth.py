@@ -69,7 +69,7 @@ class RegisterView(APIView):
         )
         LOG.verbose(f"Created user {username}")
         if count:
-            LOG.verbose("Linked user to existing session bookmarks")
+            LOG.verbose(f"Linked user to {count} existing session bookmarks")
         return user
 
     def validate(self):
@@ -110,7 +110,7 @@ class RegisterView(APIView):
         er_flag_on = (
             AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_REGISTRATION).on
         )
-        data = {"enableRegistration": er_flag_on}
+        data = {"enable_registration": er_flag_on}
         serializer = RegistrationEnabledSerializer(data)
         return Response(serializer.data)
 

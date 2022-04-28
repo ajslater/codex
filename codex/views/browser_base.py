@@ -2,6 +2,7 @@
 from distutils.util import strtobool
 
 from dateutil.parser import parse as du_parse
+from django.contrib.auth.models import User
 from django.db.models import F, Q
 from django.db.models.functions import Now
 from humanfriendly import parse_size
@@ -9,7 +10,7 @@ from xapian_backend import DATETIME_FORMAT
 
 from codex._vendor.haystack.query import SearchQuerySet
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, SearchIndexUpdateTask
-from codex.models import Comic, Folder, SearchQuery, SearchResult
+from codex.models import Comic, SearchQuery, SearchResult
 from codex.settings.logging import get_logger
 from codex.views.group_filter import GroupACLMixin
 from codex.views.session import SessionView
@@ -18,7 +19,7 @@ from codex.views.session import SessionView
 LOG = get_logger(__name__)
 DATE_FORMAT = DATETIME_FORMAT.removesuffix("%H%M%S")
 RANGE_DELIMITER = ".."
-XAPIAN_UPPERCASE_OPERATORS = set(["AND", "OR", "XOR", "NEAR", "ADJ"])
+XAPIAN_UPPERCASE_OPERATORS = frozenset(["AND", "OR", "XOR", "NEAR", "ADJ"])
 
 
 class BrowserBaseView(SessionView, GroupACLMixin):
@@ -57,6 +58,7 @@ class BrowserBaseView(SessionView, GroupACLMixin):
     def __init__(self, *args, **kwargs):
         """Set params for the type checker."""
         super().__init__(*args, **kwargs)
+        self._is_admin = None
 
     def _filter_by_comic_field(self, field, is_model_comic):
         """Filter by a comic any2many attribute."""
@@ -125,16 +127,6 @@ class BrowserBaseView(SessionView, GroupACLMixin):
             folders_filter = Q()
 
         return folders_filter
-
-    def _get_parent_folder_filter(self):
-        """Create the folder and comic object lists."""
-        pk = self.kwargs.get("pk")
-        if pk:
-            self.host_folder = Folder.objects.select_related("parent_folder").get(pk=pk)
-        else:
-            self.host_folder = None
-
-        return Q(parent_folder=self.host_folder)
 
     def _get_browser_group_filter(self):
         """Get the objects we'll be displaying."""
@@ -373,24 +365,27 @@ class BrowserBaseView(SessionView, GroupACLMixin):
             self.params["autoquery"] = " ".join(autoquery_tokens)
         except Exception as exc:
             LOG.warning(exc)
-            LOG.exception(exc)
         return search_filter, autoquery_pk
 
     def _get_group_filter(self, choices):
         """Get filter for the displayed group."""
         is_folder_view = self.kwargs.get("group") == self.FOLDER_GROUP
-        if is_folder_view:
-            if choices:
-                # Choice view needs to get all descendant comic attributes
-                # So filter by all the folders
-                group_filter = self._get_folders_filter()
-            else:
-                # Regular browsing just needs to filter by the parent
-                group_filter = self._get_parent_folder_filter()
+        if is_folder_view and choices:
+            # Choice view needs to get all descendant comic attributes
+            # So filter by all the folders
+            group_filter = self._get_folders_filter()
         else:
             # The browser filter is the same for all views
             group_filter = self._get_browser_group_filter()
+
         return group_filter
+
+    def is_admin(self):
+        """Is the current user an admin."""
+        if self._is_admin is None:
+            user = self.request.user
+            self._is_admin = user and isinstance(user, User) and user.is_staff
+        return self._is_admin
 
     def get_aggregate_filter(self, is_model_comic):
         """Return the filter for making aggregates."""

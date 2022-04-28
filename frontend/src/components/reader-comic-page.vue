@@ -1,14 +1,25 @@
 <template>
-  <img v-if="displayPage" :class="fitToClass" :src="src" :alt="alt" />
+  <div v-if="displayPage" :id="page">
+    <vue-pdf-embed
+      v-if="isPDF"
+      :source="src"
+      :page="1"
+      :width="pdfWidth"
+      :height="pdfHeight"
+    />
+    <img v-else :class="fitToClass" :src="src" :alt="alt" />
+  </div>
 </template>
 
 <script>
+import VuePdfEmbed from "vue-pdf-embed/dist/vue2-pdf-embed";
 import { mapGetters, mapState } from "vuex";
 
 import { getComicPageSource } from "@/api/v2/comic";
 
 export default {
   name: "ReaderComicPage",
+  components: { VuePdfEmbed },
   props: {
     pageIncrement: {
       type: Number,
@@ -27,8 +38,10 @@ export default {
   },
   computed: {
     ...mapState("reader", {
-      maxPage: (state) => state.maxPage,
+      maxPage: (state) => state.comic.maxPage,
       nextRoute: (state) => state.routes.next,
+      timestamp: (state) => state.timestamp,
+      isPDF: (state) => state.comic.fileFormat === "pdf",
     }),
     ...mapGetters("reader", ["computedSettings"]),
     displayPage() {
@@ -41,12 +54,12 @@ export default {
     src() {
       const routeParams = { ...this.$router.currentRoute.params };
       routeParams.page = this.page;
-      return getComicPageSource(routeParams);
+      return getComicPageSource(routeParams, this.timestamp);
     },
     nextSrc() {
       const route = { ...this.nextRoute };
       route.page = this.nextRoute.page + this.pageIncrement;
-      return getComicPageSource(route);
+      return getComicPageSource(route, this.timestamp);
     },
     alt() {
       return `Page ${this.page}`;
@@ -64,6 +77,24 @@ export default {
         classes[fitToClass] = true;
       }
       return classes;
+    },
+    pdfWidth() {
+      const fitTo = this.computedSettings.fitTo;
+      let width = 0;
+      if (fitTo === "WIDTH") {
+        width = window.innerWidth;
+      }
+      if (width && this.computedSettings.twoPages) {
+        width = width / 2;
+      }
+      return width;
+    },
+    pdfHeight() {
+      const fitTo = this.computedSettings.fitTo;
+      if (fitTo == "HEIGHT") {
+        return window.innerHeight;
+      }
+      return 0;
     },
   },
   watch: {

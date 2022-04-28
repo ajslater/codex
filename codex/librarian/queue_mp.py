@@ -4,6 +4,7 @@ from abc import ABC
 from dataclasses import dataclass
 from multiprocessing import Queue
 
+from PIL.Image import Image
 from watchdog.events import FileSystemEvent
 
 
@@ -34,12 +35,12 @@ class DBDiffTask(UpdaterTask, LibraryTask):
 
     dirs_moved: dict
     files_moved: dict
-    dirs_modified: set
-    files_modified: set
+    dirs_modified: frozenset
+    files_modified: frozenset
     # dirs_created: set
-    files_created: set
-    dirs_deleted: set
-    files_deleted: set
+    files_created: frozenset
+    dirs_deleted: frozenset
+    files_deleted: frozenset
 
 
 @dataclass
@@ -55,7 +56,7 @@ class ImageComicCoverCreateTask(ComicCoverTask):
 
     force: bool
     comic_path: str
-    image_data: bytes
+    cover_image: Image
 
 
 @dataclass
@@ -84,7 +85,7 @@ class CleanupMissingComicCovers(ComicCoverTask):
 class LibrariesTask(ABC):
     """Tasks over a set of libraries."""
 
-    library_ids: set
+    library_ids: frozenset
 
 
 @dataclass
@@ -105,7 +106,7 @@ class PurgeComicCoversLibrariesTask(ComicCoverTask, LibrariesTask):
 class PurgeComicCoversTask(ComicCoverTask):
     """Purge a set of comic cover_paths."""
 
-    cover_paths: set
+    cover_paths: frozenset
 
 
 @dataclass

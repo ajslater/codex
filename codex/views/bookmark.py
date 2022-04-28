@@ -1,7 +1,6 @@
 """Bookmark views."""
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from stringcase import camelcase, snakecase
 
 from codex.models import Comic, UserBookmark
 from codex.serializers.bookmark import (
@@ -100,11 +99,11 @@ class UserBookmarkUpdateMixin(APIView, GroupACLMixin):
             existing_comic_pks, comic_filter, search_kwargs, updates
         )
 
-    def update_one_user_bookmark(self, snake_dict):
+    def update_one_user_bookmark(self, updates):
         """Update one comic's userbookmark."""
         pk = self.kwargs.get("pk")
         comic_filter = {"pk": pk}
-        self.update_user_bookmarks(snake_dict, comic_filter)
+        self.update_user_bookmarks(updates, comic_filter)
         return Response()
 
 
@@ -118,12 +117,15 @@ class UserBookmarkFinishedView(BrowserBaseView, UserBookmarkUpdateMixin):
         serializer = UserBookmarkFinishedSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        group = self.kwargs.get("group")
-        relation = str(self.GROUP_RELATION.get(group))
         updates = {"finished": serializer.validated_data.get("finished")}
 
+        group = self.kwargs.get("group")
         pk = self.kwargs.get("pk")
-        comic_filter = {relation: pk}
+        if group == "f":
+            comic_filter = {"folders__in": [pk]}
+        else:
+            relation = self.GROUP_RELATION.get(group)
+            comic_filter = {relation: pk}
         self.update_user_bookmarks(updates, comic_filter=comic_filter)
         return Response()
 
@@ -147,34 +149,28 @@ class ComicSettingsView(SessionView, UserBookmarkUpdateMixin):
 
     SESSION_KEY = SessionView.READER_KEY
     _NULL_READER_SETTINGS = {
-        "fitTo": None,
-        "twoPages": None,
+        "fit_to": None,
+        "two_pages": None,
     }
     _SETTINGS_KEYS = ("fit_to", "two_pages")
 
-    def _validate(self, serializer):
+    def _validate(self):
         """Validate and translate the submitted data."""
+        serializer = ComicReaderSettingsSerializer(data=self.request.data)
         serializer.is_valid(raise_exception=True)
-        # camel 2 snake
-        snake_dict = {}
-        for key, val in serializer.validated_data.items():
-            snake_key = snakecase(key)
-            snake_dict[snake_key] = val
-        return snake_dict
+        return serializer.validated_data
 
     def patch(self, request, *args, **kwargs):
         """Patch the bookmark settings for one comic."""
-        serializer = ComicReaderSettingsSerializer(data=self.request.data)
-        snake_dict = self._validate(serializer)
-        return self.update_one_user_bookmark(snake_dict)
+        updates = self._validate()
+        return self.update_one_user_bookmark(updates)
 
     def put(self, request, *args, **kwargs):
         """Put the session settings for all comics."""
-        serializer = ComicReaderSettingsSerializer(data=self.request.data)
-        snake_dict = self._validate(serializer)
+        updates = self._validate()
         # Default for all comics
         self.load_params_from_session()
-        self.params["defaults"] = snake_dict
+        self.params["display"] = updates
         self.save_params_to_session()
 
         # Null out this comic's settings so it uses all comic defaults
@@ -193,20 +189,18 @@ class ComicSettingsView(SessionView, UserBookmarkUpdateMixin):
 
     def get(self, request, *args, **kwargs):
         """Get comic settings."""
-        defaults = self.get_from_session("defaults")
+        defaults = self.get_from_session("display")
         ub = self._get_user_bookmark()
 
         # Load settings into global and local parts
         data = {"globl": {}, "local": {}}
         for key in self._SETTINGS_KEYS:
-            camel_key = camelcase(key)
-            data["globl"][camel_key] = defaults.get(key)
+            data["globl"][key] = defaults.get(key)
             if ub:
                 val = getattr(ub, key)
             else:
                 val = None
-            data["local"][camel_key] = val
+            data["local"][key] = val
 
         serializer = ComicReaderBothSettingsSerializer(data)
-
         return Response(serializer.data)

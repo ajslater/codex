@@ -2,6 +2,7 @@
 {{ object.imprint.name }}
 {{ object.series.name }} {{ object.series.name }}
 {{ object.volume.name }}
+{{ object.issue_suffix }}
 {{ object.name }} {{ object.name }}
 {{ object.comments }}
 {{ object.country }}

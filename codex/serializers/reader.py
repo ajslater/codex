@@ -18,23 +18,27 @@ class ComicPageRouteSerializer(Serializer):
 class ComicReaderRoutesSerializer(Serializer):
     """Previous and next comic routes."""
 
-    prevBook = ComicPageRouteSerializer(allow_null=True, read_only=True)  # noqa: N815
-    nextBook = ComicPageRouteSerializer(allow_null=True, read_only=True)  # noqa: N815
+    prev_book = ComicPageRouteSerializer(allow_null=True, read_only=True)
+    next_book = ComicPageRouteSerializer(allow_null=True, read_only=True)
 
 
-class ComicReaderTitleSerializer(Serializer):
+class ComicReaderComicSerializer(Serializer):
     """Components for constructing the title."""
 
-    seriesName = CharField(read_only=True)  # noqa: N815
-    volumeName = CharField(read_only=True)  # noqa: N815
-    issue = DecimalField(max_digits=5, decimal_places=1, read_only=True)
-    issueCount = IntegerField(read_only=True)  # noqa: N815
+    file_format = CharField(read_only=True)
+    issue = DecimalField(
+        max_digits=None, decimal_places=3, read_only=True, coerce_to_string=False
+    )
+    issue_suffix = CharField(read_only=True)
+    issue_count = IntegerField(read_only=True)
+    max_page = IntegerField(read_only=True)
+    series_name = CharField(read_only=True)
+    volume_name = CharField(read_only=True)
 
 
 class ComicReaderInfoSerializer(Serializer):
     """Information when opening a new book."""
 
-    title = ComicReaderTitleSerializer(read_only=True)
-    maxPage = IntegerField(read_only=True)  # noqa: N815
+    comic = ComicReaderComicSerializer(read_only=True)
     routes = ComicReaderRoutesSerializer(read_only=True)
-    browserRoute = JSONField(read_only=True)  # noqa: N815
+    browser_route = JSONField(read_only=True)

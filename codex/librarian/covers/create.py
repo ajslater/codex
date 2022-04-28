@@ -1,14 +1,12 @@
 """Create comic cover paths."""
 import time
 
-from io import BytesIO
 from logging import INFO
 from pathlib import Path
 
 from comicbox.comic_archive import ComicArchive
 from django.db.models.functions import Now
 from fnvhash import fnv1a_32
-from PIL import Image
 
 from codex.librarian.covers import COVER_ROOT
 from codex.librarian.covers.purge import purge_cover_paths
@@ -18,11 +16,13 @@ from codex.librarian.queue_mp import (
     BulkComicCoverCreateTask,
 )
 from codex.models import Comic, Library
+from codex.pdf import PDF
 from codex.settings.logging import get_logger
+from codex.version import COMICBOX_CONFIG
 
 
 THUMBNAIL_SIZE = (120, 180)
-MISSING_COVER_FN = "missing_cover.png"
+MISSING_COVER_FN = "missing_cover.webp"
 BULK_UPDATE_COMIC_COVER_FIELDS = ("cover_path", "updated_at")
 COVER_DB_UPDATE_INTERVAL = 10
 HEX_FILL = 8
@@ -44,7 +44,7 @@ def _hex_path(comic_path):
 def _get_cover_path(comic_path):
     """Get path to a cover image, creating the image if not found."""
     cover_path = _hex_path(comic_path)
-    return str(cover_path.with_suffix(".jpg"))
+    return str(cover_path.with_suffix(".webp"))
 
 
 def create_comic_cover(comic_path, cover_image, cover_path=None):
@@ -59,9 +59,8 @@ def create_comic_cover(comic_path, cover_image, cover_path=None):
         fs_cover_path = COVER_ROOT / cover_path
         fs_cover_path.parent.mkdir(exist_ok=True, parents=True)
 
-        im = Image.open(BytesIO(cover_image))
-        im.thumbnail(THUMBNAIL_SIZE)
-        im.save(fs_cover_path, im.format)
+        cover_image.thumbnail(THUMBNAIL_SIZE)
+        cover_image.save(fs_cover_path, "WEBP", lossless=False, quality=100, method=6)
         LOG.debug(f"Created cover thumbnail for: {comic_path}")
         update_cover_path = cover_path
     except Exception as exc:
@@ -81,7 +80,11 @@ def _create_comic_cover_from_file(comic, force=False):
             if correct_cover_path != comic.cover_path:
                 update_cover_path = correct_cover_path
         else:
-            cover_image = ComicArchive(comic.path).get_cover_image()
+            if comic.file_format == Comic.FileFormats.PDF:
+                car = PDF(comic.path)
+            else:
+                car = ComicArchive(comic.path, config=COMICBOX_CONFIG)
+            cover_image = car.get_cover_image_as_pil()
             update_cover_path = create_comic_cover(
                 comic.path, cover_image, correct_cover_path
             )

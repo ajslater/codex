@@ -13,6 +13,13 @@ A comic archive browser and reader.
 - Per user bookmarking. You get per browser bookmarks even before you make an account.
 - Watches the filesystem and automatically imports new or changed comics.
 - Private Libraries accessible only to certain groups of users.
+- Reads CBZ, CBR, CBT, and PDF formatted comics.
+
+### Examples
+
+- _Filter by_ Story Arc and Unread, _Order by_ Publish Date to create an event reading list.
+- _Filter by_ Unread and _Order by_ Added Time to see your latest unread comics.
+- _Search by_ your favorite character to find their appearances across different comics.
 
 ## <a name="demonstration">👀 Demonstration</a>
 
@@ -41,7 +48,7 @@ You'll need to install these system dependencies before installing Codex.
 ##### macOS
 
 ```sh
-brew install jpeg libffi libyaml libzip openssl python unrar xapian
+brew install jpeg libffi libyaml libzip openssl poppler python unrar xapian
 ```
 
 ##### Linux
@@ -49,13 +56,13 @@ brew install jpeg libffi libyaml libzip openssl python unrar xapian
 ###### Debian based (e.g. Ubuntu)
 
 ```sh
-apt install build-essential libffi-dev libjpeg-dev libssl-dev libxapian30 libyaml-dev python3-pip python3-xapian zlib1g-dev
+apt install build-essential libffi-dev libjpeg-dev libssl-dev libxapian30 libyaml-dev poppler python3-pip python3-xapian zlib1g-dev
 ```
 
 ###### Alpine
 
 ```sh
-apk add bsd-compat-headers build-base jpeg-dev libffi-dev openssl-dev xapian-bindings-python3 xapian-core yaml-dev zlib-dev
+apk add bsd-compat-headers build-base jpeg-dev libffi-dev openssl-dev poppler xapian-bindings-python3 xapian-core yaml-dev zlib-dev
 ```
 
 ##### Install unrar Runtime Dependency on Linux
@@ -142,6 +149,13 @@ A library with _no_ groups is accessible to every user including anonymous users
 A library with _any_ groups is accessible only to users who are in those groups.
 
 Use the Groups admin panel to create groups and the Users admin panel to add and remove users to groups.
+
+### PDFs
+
+Codex only reads PDF metadata from the filename. If you decide to include PDFs in your comic library, I recommend taking time to rename your files so Codex can find some metadata.
+Codex recognizes several file naming schemes. This one has good results:
+
+`{series} v{volume} #{issue} {title} ({year}) {ignored}.pdf`
 
 ## <a name="configuration">⚙️ Configuration</a>
 
@@ -265,10 +279,12 @@ If this procedure goes kablooey, you may recover the original database at `confi
 
 I've tested Codex's bulk database updater to batch 100,000 filesystem events at a time. With enough RAM Codex could probably batch much more. But if you find that updating large batches of comics are failing, consider setting a the `max_db_ops` value in `hypercorn.toml` to a lower value. 1000 will probably still be pretty fast, for instance.
 
-### Bug Reports
+### 🐛 Bug Reports
 
-Issues are best filed [here on github](https://github.com/ajslater/codex/issues).
-I and other Codex users often lurk on the [Mylar support channels](https://github.com/mylar3/mylar3#live-support--conversation). It would be polite to use the `#anything-other-than-mylar` Discord channel to ask for help with Codex.
+Issues and feature requests are best filed on the [Github issue tracker](https://github.com/ajslater/codex/issues).
+
+By the generosity of the good people of [Mylar](https://github.com/mylar3/mylar3), I and other Codex users may be found answering questions on the [Mylar Discord](https://discord.gg/6UG94R7E8T).
+Please use the `#codex-support` channel to ask for help with Codex.
 
 ## <a name="out-of-scope">🚫 Out of Scope</a>
 

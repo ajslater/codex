@@ -13,7 +13,7 @@ from codex.settings.logging import get_logger
 
 LOG = get_logger(__name__)
 MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder")
-MOVED_BULK_FOLDER_UPDATE_FIELDS = ("path", "parent_folder", "name", "sort_name")
+MOVED_BULK_FOLDER_UPDATE_FIELDS = ("path", "parent_folder", "name")
 
 
 def bulk_comics_moved(library, moved_paths):
@@ -68,7 +68,7 @@ def bulk_comics_moved(library, moved_paths):
 def _get_parent_folders(library, folders_moved):
     """Get destination parent folders."""
     library_path = Path(library.path)
-    dest_folder_paths = set(folders_moved.values())
+    dest_folder_paths = frozenset(folders_moved.values())
     dest_parent_folder_paths = set()
     for dest_folder_path in dest_folder_paths:
         dest_parent_path = Path(dest_folder_path).parent
@@ -87,7 +87,7 @@ def _get_parent_folders(library, folders_moved):
 
 def _update_moved_folders(library, folders_moved, dest_parent_folders):
     # Move folders
-    src_folder_paths = set(folders_moved.keys())
+    src_folder_paths = frozenset(folders_moved.keys())
     folders = Folder.objects.filter(library=library, path__in=src_folder_paths)
 
     update_folders = []
@@ -95,7 +95,6 @@ def _update_moved_folders(library, folders_moved, dest_parent_folders):
     for folder in folders:
         new_path = folders_moved[folder.path]
         folder.name = Path(new_path).name
-        folder.sort_name = folder.name
         folder.path = new_path
         parent_path = str(Path(new_path).parent)
         if parent_path == library.path:

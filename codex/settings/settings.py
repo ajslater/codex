@@ -181,7 +181,7 @@ HYPERCORN_CONFIG_TOML_DEFAULT = CODEX_PATH / "settings/hypercorn.toml.default"
 HYPERCORN_CONFIG, MAX_DB_OPS = load_hypercorn_config(
     HYPERCORN_CONFIG_TOML, HYPERCORN_CONFIG_TOML_DEFAULT, DEBUG
 )
-ROOT_PATH = ""
+LOG.verbose(f"root_path: {HYPERCORN_CONFIG.root_path}")
 PORT = int(HYPERCORN_CONFIG.bind[0].split(":")[1])
 
 # Static files (CSS, JavaScript, Images)
@@ -197,7 +197,10 @@ WHITENOISE_STATIC_PREFIX = "static/"
 # http://whitenoise.evans.io/en/stable/django.html#WHITENOISE_AUTOREFRESH
 WHITENOISE_AUTOREFRESH = True
 STATIC_ROOT = CODEX_PATH / "static_root"
-STATIC_URL = ROOT_PATH + WHITENOISE_STATIC_PREFIX
+if HYPERCORN_CONFIG.root_path:
+    STATIC_URL = HYPERCORN_CONFIG.root_path + "/" + WHITENOISE_STATIC_PREFIX
+else:
+    STATIC_URL = WHITENOISE_STATIC_PREFIX
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 STATICFILES_DIRS = [CONFIG_STATIC]
 BUILD = os.environ.get("BUILD", False)
@@ -220,6 +223,15 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework.authentication.SessionAuthentication",
+    ),
+    "DEFAULT_RENDERER_CLASSES": (
+        "djangorestframework_camel_case.render.CamelCaseJSONRenderer",
+        "djangorestframework_camel_case.render.CamelCaseBrowsableAPIRenderer",
+    ),
+    "DEFAULT_PARSER_CLASSES": (
+        "djangorestframework_camel_case.parser.CamelCaseFormParser",
+        "djangorestframework_camel_case.parser.CamelCaseMultiPartParser",
+        "djangorestframework_camel_case.parser.CamelCaseJSONParser",
     ),
 }
 

@@ -21,6 +21,6 @@ class NotifyView(APIView):
         """Return if any libraries are updating."""
         any_in_progress = Library.objects.filter(update_in_progress=True).exists()
         any_in_progress |= not LIBRARIAN_QUEUE.empty()
-        data = {"updateInProgress": any_in_progress}
+        data = {"update_in_progress": any_in_progress}
         serializer = NotifySerializer(data)
         return Response(serializer.data)

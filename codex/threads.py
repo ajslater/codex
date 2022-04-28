@@ -90,7 +90,9 @@ class QueuedThread(NamedThread, ABC):
 
     def join(self):
         """End the thread."""
+        LOG.debug(f"Waiting for {self.NAME} to join.")
         super().join(self.SHUTDOWN_TIMEOUT)
+        LOG.debug(f"{self.NAME} joined.")
 
 
 class AggregateMessageQueuedThread(QueuedThread, ABC):

@@ -19,19 +19,23 @@ const getGlobalFitToDefault = () => {
 };
 
 const state = {
-  title: {
+  comic: {
+    fileFormat: undefined,
+    issue: undefined,
+    issueSuffix: "",
+    issueCount: undefined,
+    maxPage: 0,
     seriesName: "",
     volumeName: "",
-    issue: 0,
-    issueCount: undefined,
   },
-  maxPage: 0,
+  timestamp: Date.now(),
   settings: {
     globl: {
       fitTo: getGlobalFitToDefault(),
       twoPages: false,
     },
     local: JSON.parse(JSON.stringify(NULL_READER_SETTINGS)),
+    timestamp: Date.now(),
   },
   routes: {
     prev: undefined,
@@ -75,14 +79,12 @@ const mutations = {
     state.settings.globl = Object.assign(state.settings.globl, settings);
   },
   setBookInfo(state, data) {
-    state.title.seriesName = data.title.seriesName;
-    state.title.volumeName = data.title.volumeName;
-    state.title.issue = Number.parseFloat(data.title.issue);
-    state.title.issueCount = data.title.issueCount;
-    state.maxPage = data.maxPage;
+    state.browserRoute = data.browserRoute;
+    state.comic = data.comic;
+    // Only set prev/next book info do not clobber page routes.
     state.routes.prevBook = data.routes.prevBook;
     state.routes.nextBook = data.routes.nextBook;
-    state.browserRoute = data.browserRoute;
+    state.updatedAt = data.updatedAt;
   },
   setBrowserRoute(state, value) {
     state.browserRoute = value;
@@ -95,6 +97,9 @@ const mutations = {
   },
   setNextPage(state, nextPage) {
     state.routes.next = nextPage;
+  },
+  setTimestamp(state) {
+    state.timestamp = Date.now();
   },
 };
 
@@ -134,7 +139,7 @@ const getNextRouteParams = (state) => {
   const twoPages = getters.computedSettings(state).twoPages;
   const increment = twoPages ? 2 : 1;
   const routeParams = router.currentRoute.params;
-  const condition = Number(routeParams.page) + increment <= state.maxPage;
+  const condition = Number(routeParams.page) + increment <= state.comic.maxPage;
   return getRouteParams(
     condition,
     routeParams,
@@ -149,8 +154,11 @@ const actions = {
       console.debug(error);
     });
   },
-  async fetchComicSettings({ commit, dispatch }, info) {
-    return API.getComicSettings(router.currentRoute.params.pk)
+  async fetchComicSettings({ commit, dispatch, state }, info) {
+    return API.getComicSettings(
+      router.currentRoute.params.pk,
+      state.settings.timestamp
+    )
       .then((response) => {
         const data = response.data;
         commit("setBookInfo", info);
@@ -161,8 +169,8 @@ const actions = {
         return console.error(error);
       });
   },
-  async bookChanged({ dispatch }) {
-    await API.getComicOpened(router.currentRoute.params.pk)
+  async bookChanged({ dispatch, state }) {
+    await API.getComicOpened(router.currentRoute.params.pk, state.timestamp)
       .then((response) => {
         const info = response.data;
         return dispatch("fetchComicSettings", info);
@@ -225,11 +233,14 @@ const actions = {
     } else {
       finalRouteParams = routeParams;
     }
+    if (!finalRouteParams) {
+      return;
+    }
 
     // Validate route
     if (finalRouteParams.pk === router.currentRoute.params.pk) {
-      if (finalRouteParams.page > state.maxPage) {
-        finalRouteParams.page = state.maxPage;
+      if (finalRouteParams.page > state.comic.maxPage) {
+        finalRouteParams.page = state.comic.maxPage;
         console.warn("Tried to navigate past the end of the book.");
       } else if (finalRouteParams.page < 0) {
         finalRouteParams.page = 0;

@@ -1,6 +1,64 @@
 # 📰 Codex News
 
-## v0.9.11a3
+## v0.10.0a0
+
+_Portable Document Format_
+
+- Features
+
+  - PDF support. Optional poppler binary needed to generate PDF cover thumbnails.
+  - CBT support. Tarball comic archives.
+  - Alphanumeric issue support. Requires rescanning existing comics.
+  - Individual top level folders for each library.
+  - Don't duplicate folder name in filename sort.
+
+- Fixes
+
+  - Comic file suffixes now matched case insensitively.
+  - Finished comics count as 100% complete for bookmark aggregation.
+  - Mark all folder descendant comics un/read recursively instead of immediate children.
+  - Don't leak library root paths in Folder View for non-admins in the API.
+  - Fixed aggregation bug showing inaccurate data when viewing group metadata.
+  - More accurate Name sorting.
+  - Fixed default start page for RTL comics.
+  - Disabled reading links for empty comics.
+  - Shield radiation from Venus to reduce zombie indcidents.
+
+## v0.9.14
+
+- Fixes
+
+  - Fix comicbox config crash.
+  - Use codex config namespace (~/.config/codex) so codex doesn't interfere with standalone comicbox configs.
+  - Comic issue numbers display to two decimal points instead of using ½ glyphs.
+
+- Features
+
+  - Filename order by option. Disabled if the "Enable Folder View" Admin Flag is off.
+
+## v0.9.13
+
+- Fixes
+
+  - Fix root_path configuration for running codex in url sub-paths
+  - Parse new filename patterns for metadata.
+  - Slightly faster comic cover generation.
+
+## v0.9.12
+
+- Fixes
+
+  - Fix setting global reader settings.
+  - Fixed reader settings not applying due to caching.
+  - Bust reader caches when library updates.
+  - Reader titles smaller and wrap on mobile.
+  - Fixed deep linking into reader.
+
+- Features
+
+  - Disable reader prev/next touch swiping for phone sized browsers.
+
+## v0.9.11
 
 - Fixed
 
@@ -10,6 +68,7 @@
   - Bust browser cache when library updates.
   - Reader settings were not applying in some cases.
   - Fixed crash updating latest codex software version from the internet.
+  - Fixed crash loading admin page.
 
 - Features
 
@@ -18,7 +77,9 @@
   - Space and shift-space previous and next reader shortcuts.
   - Reader settings UI redesigned to be clearer.
 
-## v0.9.10 - BAD RELEASE
+## v0.9.10
+
+Yanked. Crash loading admin page.
 
 ## v0.9.9
 
