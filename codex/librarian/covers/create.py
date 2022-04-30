@@ -1,5 +1,6 @@
 """Create comic cover paths."""
 import time
+import tracemalloc
 
 from logging import INFO
 from pathlib import Path
@@ -19,6 +20,8 @@ from codex.models import Comic, Library
 from codex.pdf import PDF
 from codex.settings.logging import get_logger
 from codex.version import COMICBOX_CONFIG
+
+from .display_top import display_top
 
 
 THUMBNAIL_SIZE = (120, 180)
@@ -116,6 +119,8 @@ def _bulk_update_comic_covers_db(update_comics, covers_created_count, num_comics
 
 def bulk_create_comic_covers(comic_pks, force=False):
     """Create bulk comic covers."""
+    tracemalloc.start(100)
+
     num_comics = len(comic_pks)
     if not num_comics:
         return
@@ -165,6 +170,8 @@ def bulk_create_comic_covers(comic_pks, force=False):
         LOG.info(log_text)
     else:
         LOG.debug(log_text)
+    new_snapshot = tracemalloc.take_snapshot()
+    display_top(new_snapshot)
     return count
 
 
@@ -195,3 +202,9 @@ def create_missing_covers():
     LOG.verbose(f"Generating covers for {len(no_cover_comic_pks)} comics missing them.")
     task = BulkComicCoverCreateTask(True, no_cover_comic_pks)
     LIBRARIAN_QUEUE.put(task)
+
+
+def recreate_all_covers():
+    """Test."""
+    all_pks = Comic.objects.all().values_list("pk", flat=True)[:100]
+    bulk_create_comic_covers(all_pks, True)
