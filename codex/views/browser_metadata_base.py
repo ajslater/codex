@@ -71,7 +71,7 @@ class BrowserMetadataBaseView(BrowserBaseView):
         order_key = self.params.get("order_by")
         if not order_key:
             group = self.kwargs.get("group")
-            if group == "f":
+            if group == self.FOLDER_GROUP:
                 order_key = "path"
             else:
                 order_key = "sort_name"

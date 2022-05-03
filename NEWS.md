@@ -6,6 +6,7 @@
 
   - Fix possible cover generation memory leak. Undocumented cover RSS logger.
   - Build a deadfall trap for search indexer zombies. Use Offspring's brains as bait.
+  - URLS dictate view over top group. Fixes linking into views.
 
 ## v0.10.1
 
