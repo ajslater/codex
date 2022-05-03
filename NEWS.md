@@ -1,5 +1,11 @@
 # 📰 Codex News
 
+## v0.10.2a0
+
+- Fixes
+
+  - Fix possible cover generation memory leak. Undocumented cover RSS logger.
+
 ## v0.10.1
 
 - Fixes
