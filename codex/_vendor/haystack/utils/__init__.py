@@ -4,7 +4,7 @@ import re
 from django.conf import settings
 
 from codex._vendor.haystack.constants import DJANGO_CT, DJANGO_ID, ID
-from codex._vendor.haystack.utils.highlighting import Highlighter # noqa=F401
+from codex._vendor.haystack.utils.highlighting import Highlighter  # noqa=F401
 
 IDENTIFIER_REGEX = re.compile(r"^[\w\d_]+\.[\w\d_]+\.[\w\d-]+$")
 

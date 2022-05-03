@@ -1,3 +1,4 @@
+import django
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from pkg_resources import DistributionNotFound, get_distribution, parse_version
@@ -13,11 +14,14 @@ __author__ = "Daniel Lindsley"
 #    version_info = pkg_distribution.parsed_version
 # except DistributionNotFound:
 #    __version__ = "0.0.dev0"
-#    version_info = parse_version(__version__)
-__version__ = "3.1.1+codex.0"
+__version__ = "3.2.1+codex.0"
 version_info = parse_version(__version__)
 
-# default_app_config = "codex._vendor.haystack.apps.HaystackConfig"
+
+
+if django.VERSION < (3, 2):
+    # default_app_config is deprecated since django 3.2.
+    default_app_config = "haystack.apps.HaystackConfig"
 
 
 # Help people clean up from 1.X.

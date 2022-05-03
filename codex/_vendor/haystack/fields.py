@@ -2,7 +2,7 @@ import re
 from inspect import ismethod
 
 from django.template import loader
-import datetime
+from django.utils import datetime_safe
 
 from codex._vendor.haystack.exceptions import SearchFieldError
 from codex._vendor.haystack.utils import get_model_ct_tuple
@@ -395,7 +395,7 @@ class DateField(SearchField):
 
             if match:
                 data = match.groupdict()
-                return datetime.date(
+                return datetime_safe.date(
                     int(data["year"]), int(data["month"]), int(data["day"])
                 )
             else:
@@ -428,7 +428,7 @@ class DateTimeField(SearchField):
 
             if match:
                 data = match.groupdict()
-                return datetime.datetime(
+                return datetime_safe.datetime(
                     int(data["year"]),
                     int(data["month"]),
                     int(data["day"]),
