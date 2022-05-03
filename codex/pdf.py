@@ -22,6 +22,7 @@ class PDF:
 
     COVER_PAGE_INDEX = 1
     MIME_TYPE = "application/pdf"
+    IMAGE_FORMAT = "TIFF"
 
     @classmethod
     def is_pdf(cls, path):
@@ -82,25 +83,27 @@ class PDF:
 
     def get_cover_image(self) -> bytes:
         """Get the first page as a image data."""
+        image_data = b""
         try:
             images = convert_from_path(
                 self._path,
                 first_page=self.COVER_PAGE_INDEX,
                 last_page=self.COVER_PAGE_INDEX,
                 thread_count=4,
-                fmt="tiff",  # tiff fastest, maybe lossless.
+                fmt=self.IMAGE_FORMAT,  # tiff is fastest.
                 use_pdftocairo=True,
             )
-            # pdf2image only returns PIL Images :/
-            buf = BytesIO()
-            if images:
-                images[0].save(buf, "TIFF")
-                for image in images:
-                    image.close()
-            return buf.getvalue()
-
+            # pdf2image returns PIL Images :/
+            with BytesIO() as buf:
+                if images:
+                    images[0].save(buf, self.IMAGE_FORMAT)
+                    for image in images:
+                        image.close()
+                image_data = buf.getvalue()
         except PDFInfoNotInstalledError as exc:
             raise FileNotFoundError(str(exc)) from exc
+
+        return image_data
 
     def close(self):
         """Get rid of the reader."""
