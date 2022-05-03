@@ -34,6 +34,7 @@ COVER_DB_UPDATE_INTERVAL = 10
 HEX_FILL = 8
 PATH_STEP = 2
 LOG = get_logger(__name__)
+LOG_RSS = bool(os.getenv("LOG_COVER_RSS"))
 
 
 def _hex_path(comic_path):
@@ -70,7 +71,6 @@ def _save_thumbnail(image_data, fs_cover_path):
 
 def create_comic_cover(comic_path, image_data, cover_path=None):
     """Create a comic cover from an image."""
-    cover_image = None
     try:
         if image_data is None:
             raise ValueError(f"No cover image found for {comic_path}")
@@ -81,24 +81,18 @@ def create_comic_cover(comic_path, image_data, cover_path=None):
         fs_cover_path = COVER_ROOT / cover_path
         fs_cover_path.parent.mkdir(exist_ok=True, parents=True)
 
-        args = (image_data, fs_cover_path)
-        _save_thumbnail(*args)
+        _save_thumbnail(image_data, fs_cover_path)
 
         LOG.debug(f"Created cover thumbnail for: {comic_path}")
         update_cover_path = cover_path
     except Exception as exc:
         LOG.warning(f"Failed to create cover thumb for {comic_path}: {exc}")
-        LOG.exception(exc)
         update_cover_path = MISSING_COVER_FN
-    finally:
-        if cover_image:
-            cover_image.close()
     return update_cover_path
 
 
 def _create_comic_cover_from_file(comic, force=False):
     """Create a comic cover thumnail and save it to disk."""
-    car = None
     update_cover_path = None
     try:
         correct_cover_path = _get_cover_path(comic.path)
@@ -108,10 +102,10 @@ def _create_comic_cover_from_file(comic, force=False):
                 update_cover_path = correct_cover_path
         else:
             if comic.file_format == Comic.FileFormats.PDF:
-                car_cls = PDF
+                car_class = PDF
             else:
-                car_cls = ComicArchive
-            with car_cls(comic.path, config=COMICBOX_CONFIG) as car:
+                car_class = ComicArchive
+            with car_class(comic.path, config=COMICBOX_CONFIG) as car:
                 cover_image = car.get_cover_image()
             update_cover_path = create_comic_cover(
                 comic.path, cover_image, correct_cover_path
@@ -123,9 +117,6 @@ def _create_comic_cover_from_file(comic, force=False):
         LOG.error(f"Failed to create cover thumb for {comic.path}")
         LOG.exception(exc)
         update_cover_path = MISSING_COVER_FN
-    finally:
-        if car:
-            car.close()
     return update_cover_path
 
 
@@ -145,65 +136,30 @@ def _bulk_update_comic_covers_db(update_comics, covers_created_count, num_comics
     return batch_count
 
 
-def bulk_create_comic_covers(comic_pks, force=False):
-    """Create bulk comic covers."""
-    num_comics = len(comic_pks)
-    if not num_comics:
-        return
-
-    LOG.verbose(f"Checking {num_comics} comic covers...")
-    start_time = time.time()
-
-    log_rss = bool(os.getenv("COVER_RSS"))
-    if log_rss:
-        process = psutil.Process(os.getpid())
-        start_rss = process.memory_info().rss
-        LOG.verbose(f"Cover RSS: {naturalsize(start_rss)}")
-        peak_rss = start_rss
-
-    count = 0
-    last_db_update = time.time()
-    covers_created_count = 0
-    update_comics = []
-    purge_cps = set()
-    comics = Comic.objects.filter(pk__in=comic_pks).only("pk", "path", "cover_path")
-
-    for comic in comics:
-        update_cover_path = _create_comic_cover_from_file(comic, force)
-        if not update_cover_path:
+def _log_rss(rss):
+    """Log rss stats."""
+    log_str = "Cover RSS"
+    for key, val in rss.items():
+        if key == "process":
             continue
-        if comic.cover_path not in (MISSING_COVER_FN, update_cover_path):
-            purge_cps.add(comic.cover_path)
-        comic.cover_path = update_cover_path
-        update_comics.append(comic)
-        covers_created_count += 1
+        log_str += f" {key}: {naturalsize(val)}"
+    LOG.verbose(log_str)
 
-        if log_rss:
-            rss = process.memory_info().rss  # type: ignore
-            if rss > peak_rss:  # type: ignore
-                peak_rss = rss
 
-        # Update batches of comics in the db and notify the frontend every
-        # COVER_DB_UPDATE_INTERVAL seconds
-        elapsed = time.time() - last_db_update
-        if elapsed > COVER_DB_UPDATE_INTERVAL:
-            batch_update_comics = update_comics
-            update_comics = []
-            count += _bulk_update_comic_covers_db(
-                batch_update_comics, covers_created_count, num_comics
-            )
-            if log_rss:
-                LOG.verbose(
-                    f"Cover RSS start: {naturalsize(start_rss)} "  # type: ignore
-                    f"peak: {naturalsize(peak_rss)} "  # type: ignore
-                    f"now: {naturalsize(rss)}"  # type: ignore
-                )
-            last_db_update = time.time()
-    count += _bulk_update_comic_covers_db(
-        update_comics, covers_created_count, num_comics
-    )
-    purge_cover_paths(purge_cps)
+def _init_rss():
+    """Initialze the rss dict."""
+    rss = {
+        "process": psutil.Process(os.getpid()),
+    }
+    rss["start"] = rss["process"].memory_info().rss
+    rss["peak"] = rss["start"]
+    rss["now"] = rss["start"]
+    _log_rss(rss)
+    return rss
 
+
+def _log_bulk_create_results(start_time, count, rss):
+    """Log results of the bulk create."""
     elapsed = time.time() - start_time
     if count:
         per = elapsed / count
@@ -215,14 +171,69 @@ def bulk_create_comic_covers(comic_pks, force=False):
         LOG.info(log_text)
     else:
         LOG.debug(log_text)
-    comics = update_comics = purge_cps = None
-    if log_rss:
-        rss = process.memory_info().rss  # type: ignore
-        LOG.verbose(
-            f"Cover RSS start: {naturalsize(start_rss)} "  # type: ignore
-            f"peak: {naturalsize(peak_rss)} "  # type: ignore
-            f"finish: {naturalsize(rss)}"  # type:ignore
-        )
+
+    if LOG_RSS:
+        rss["process"].memory_info().rss  # type: ignore
+        _log_rss(rss)
+
+
+def bulk_create_comic_covers(comic_pks, force=False):
+    """Create bulk comic covers."""
+    num_comics = len(comic_pks)
+    if not num_comics:
+        return
+
+    LOG.verbose(f"Checking {num_comics} comic covers...")
+    start_time = time.time()
+
+    if LOG_RSS:
+        rss = _init_rss()
+    else:
+        rss = {}
+
+    # Get comic objects
+    count = 0
+    last_db_update = time.time()
+    covers_created_count = 0
+    update_comics = []
+    purge_cps = set()
+    comics = Comic.objects.filter(pk__in=comic_pks).only("path", "cover_path")
+
+    for comic in comics:
+        # Create all covers.
+        update_cover_path = _create_comic_cover_from_file(comic, force)
+        if not update_cover_path:
+            continue
+        if comic.cover_path not in (MISSING_COVER_FN, update_cover_path):
+            purge_cps.add(comic.cover_path)
+        comic.cover_path = update_cover_path
+        update_comics.append(comic)
+        covers_created_count += 1
+
+        if LOG_RSS:
+            rss["now"] = rss["process"].memory_info().rss  # type: ignore
+            if rss["now"] > rss["peak"]:
+                rss["peak"] = rss["now"]
+
+        # Update batches of comics in the db and notify the frontend every
+        # 10 seconds
+        elapsed = time.time() - last_db_update
+        if elapsed > COVER_DB_UPDATE_INTERVAL:
+            batch_update_comics = update_comics
+            update_comics = []
+            count += _bulk_update_comic_covers_db(
+                batch_update_comics, covers_created_count, num_comics
+            )
+            if LOG_RSS:
+                _log_rss(rss)
+            last_db_update = time.time()
+
+    # Finish
+    count += _bulk_update_comic_covers_db(
+        update_comics, covers_created_count, num_comics
+    )
+    purge_cover_paths(purge_cps)
+    _log_bulk_create_results(start_time, count, rss)
     return count
 
 
