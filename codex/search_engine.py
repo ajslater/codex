@@ -4,9 +4,8 @@
 from pathlib import Path
 
 from filelock import FileLock
-from xapian_backend import XapianSearchBackend, XapianSearchQuery
-
 from haystack.backends import BaseEngine
+from xapian_backend import XapianSearchBackend, XapianSearchQuery
 
 
 def filelocked(func):

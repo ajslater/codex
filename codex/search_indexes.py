@@ -2,6 +2,7 @@
 
 from haystack.fields import CharField, DateField, MultiValueField
 from haystack.indexes import Indexable, ModelSearchIndex
+
 from codex.models import Comic
 
 
