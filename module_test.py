@@ -6,7 +6,6 @@ import django
 
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "codex.settings.settings")
-# sys.modules["haystack"] = sys.modules["codex._vendor.haystack"]
 django.setup()
 from codex.librarian.covers.create import bulk_create_comic_covers  # noqa: E402
 from codex.models import Comic  # noqa: E402

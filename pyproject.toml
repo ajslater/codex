@@ -58,6 +58,7 @@ whitenoise = { extras = ["brotli"], version = "^6.0" }
 xapian-bindings = "^0.1.0"
 xapian-haystack = "^3.0.1"
 Pillow = "^9.1.0"
+django-haystack = "^3.2.1"
 
 [tool.poetry.dev-dependencies]
 codespell = "^2.1.0"

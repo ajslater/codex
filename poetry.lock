@@ -1364,7 +1364,7 @@ django-haystack = ">=2.8.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "2c29ecdd50bd7d96b891e70458f2006a59bd216fbe6a9102837575418e655161"
+content-hash = "d266be1a0444e73a5bfdded08fa41f4987914732508d8bdbdb5f97cc5ddee071"
 
 [metadata.files]
 aioquic = [

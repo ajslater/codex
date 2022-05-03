@@ -8,7 +8,7 @@ from django.db.models.functions import Now
 from humanfriendly import parse_size
 from xapian_backend import DATETIME_FORMAT
 
-from codex._vendor.haystack.query import SearchQuerySet
+from haystack.query import SearchQuerySet
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, SearchIndexUpdateTask
 from codex.models import Comic, SearchQuery, SearchResult
 from codex.settings.logging import get_logger

@@ -6,7 +6,7 @@ from pathlib import Path
 from filelock import FileLock
 from xapian_backend import XapianSearchBackend, XapianSearchQuery
 
-from codex._vendor.haystack.backends import BaseEngine
+from haystack.backends import BaseEngine
 
 
 def filelocked(func):
