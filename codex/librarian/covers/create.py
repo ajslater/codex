@@ -6,8 +6,6 @@ from io import BytesIO
 from logging import INFO
 from pathlib import Path
 
-import psutil
-
 from comicbox.comic_archive import ComicArchive
 from django.db.models.functions import Now
 from fnvhash import fnv1a_32
@@ -35,6 +33,8 @@ HEX_FILL = 8
 PATH_STEP = 2
 LOG = get_logger(__name__)
 LOG_RSS = bool(os.getenv("LOG_COVER_RSS"))
+if LOG_RSS:
+    import psutil
 
 
 def _hex_path(comic_path):
@@ -147,7 +147,7 @@ def _log_rss(rss):
 
 
 def _init_rss():
-    """Initialze the rss dict."""
+    """Initialize the rss dict."""
     rss = {
         "process": psutil.Process(os.getpid()),
     }
