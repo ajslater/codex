@@ -1,4 +1,6 @@
 """Purge comic covers."""
+from pathlib import Path
+
 from codex.librarian.covers import COVER_ROOT
 from codex.models import Comic
 from codex.settings.logging import get_logger
@@ -24,15 +26,14 @@ def _purge_cover_path(comic_cover_path):
         return
     cover_path = COVER_ROOT / comic_cover_path
     cover_path.unlink(missing_ok=True)
-    return cover_path.parent
 
 
 def purge_cover_paths(cover_paths):
     """Purge a set a cover paths."""
     cover_dirs = set()
     for cover_path in cover_paths:
-        cover_path_parent = _purge_cover_path(cover_path)
-        cover_dirs.add(cover_path_parent)
+        _purge_cover_path(cover_path)
+        cover_dirs.add(Path(cover_path).parent)
     for cover_dir in cover_dirs:
         _cleanup_cover_dirs(cover_dir)
 

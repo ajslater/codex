@@ -159,14 +159,14 @@ class BrowserView(BrowserMetadataBaseView):
         # the model group shown must be:
         #   A valid nav group or 'c'
         #   the child of the current nav group or 'c'
-        if self.kwargs["group"] == "f":
-            return "f"
+        if self.kwargs["group"] == self.FOLDER_GROUP:
+            return self.FOLDER_GROUP
         if (
             self.valid_nav_group_index == len(self.valid_nav_groups) - 1
             or self.valid_nav_group_index is None
         ):
             # special case for lowest valid group
-            return "c"
+            return self.COMIC_GROUP
         next_valid_nav_group = self.valid_nav_groups[self.valid_nav_group_index + 1]
         return next_valid_nav_group
 
@@ -326,7 +326,7 @@ class BrowserView(BrowserMetadataBaseView):
             if self.params["show"].get(nav_group):
                 valid_top_groups.append(nav_group)
         # Issues is always a valid top group
-        valid_top_groups += ["c"]
+        valid_top_groups += [self.COMIC_GROUP]
 
         return valid_top_groups
 
@@ -345,8 +345,8 @@ class BrowserView(BrowserMetadataBaseView):
         possible_nav_groups = valid_top_groups
 
         for possible_index, possible_nav_group in enumerate(possible_nav_groups):
-            if top_group in (possible_nav_group, "c"):
-                if top_group == "c":
+            if top_group in (possible_nav_group, self.COMIC_GROUP):
+                if top_group == self.COMIC_GROUP:
                     tail_top_groups = []
                 else:
                     # all the nav groups past this point, but not 'c' the last one
@@ -375,20 +375,14 @@ class BrowserView(BrowserMetadataBaseView):
             route_changes = {"group": new_top_group}
             self._raise_redirect(route_changes, reason)
 
-        # Validate folder nav group
-        # Redirect if nav group is wrong
-        group = self.kwargs["group"]
-        if group != "f":
-            route_changes = {"group": "f"}
-            reason = f"{group=} does not match top_group 'f'"
-            self._raise_redirect(route_changes, reason)
-        self.valid_nav_groups = ["f"]
+        self.params["top_group"] = self.FOLDER_GROUP
+        self.valid_nav_groups = [self.FOLDER_GROUP]
         self.valid_nav_group_index = 0
 
     def _validate_browser_group_settings(self):
         """Check that all the view variables for browser mode are set right."""
-        top_group = self.params.get("top_group")
         nav_group = self.kwargs["group"]
+        top_group = self.params.get("top_group")
 
         # Validate Browser top group
         # Change top_group if its not in the valid top groups
@@ -437,10 +431,9 @@ class BrowserView(BrowserMetadataBaseView):
     def _validate_settings(self):
         """Validate group and top group settings."""
         group = self.kwargs.get("group")
-        top_group = self.params.get("top_group")
         order_key = self.get_order_key()
         enable_folder_view = False
-        if top_group == self.FOLDER_GROUP or order_key == "path":
+        if group == self.FOLDER_GROUP or order_key == "path":
             try:
                 enable_folder_view = (
                     AdminFlag.objects.only("on")
@@ -450,7 +443,7 @@ class BrowserView(BrowserMetadataBaseView):
             except Exception:
                 pass
 
-        if top_group == self.FOLDER_GROUP:
+        if group == self.FOLDER_GROUP:
             self._validate_folder_settings(enable_folder_view)
         else:
             self._validate_browser_group_settings()
@@ -476,13 +469,11 @@ class BrowserView(BrowserMetadataBaseView):
             raise exc
 
         for key, value in serializer.validated_data.items():
-            # TODO reform
-            snake_key = key
-            if snake_key == "autoquery" and not self.params.get(snake_key) and value:
+            if key == "autoquery" and not self.params.get(key) and value:
                 self.autoquery_first = True
-            if snake_key == "top_group" and self.params.get(snake_key) != value:
+            elif key == "top_group" and self.params.get(key) != value:
                 self.top_group_changed = True
-            self.params[snake_key] = value
+            self.params[key] = value
         if self.autoquery_first:
             self.params["order_by"] = "search_score"
             self.params["order_reverse"] = True
@@ -524,7 +515,8 @@ class BrowserView(BrowserMetadataBaseView):
         except Folder.DoesNotExist:
             pk = self.kwargs.get("pk")
             self._raise_redirect(
-                {"group": "f"}, f"folder {pk} Does not exist! Redirect to root folder."
+                {"group": self.FOLDER_GROUP},
+                f"folder {pk} Does not exist! Redirect to root folder.",
             )
         group = self.kwargs.get("group")
 

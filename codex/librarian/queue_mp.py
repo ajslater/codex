@@ -56,7 +56,7 @@ class ImageComicCoverCreateTask(ComicCoverTask):
 
     force: bool
     comic_path: str
-    cover_image: Image
+    cover_image_data: bytes
 
 
 @dataclass

@@ -26,7 +26,7 @@ def add_library_folders(apps, _schema_editor):
         create_folders.append(folder)
 
     if create_folders:
-        print("creating library folders...")
+        print("\ncreating library folders...")
     new_folders = folder_model.objects.bulk_create(create_folders)
     for folder in new_folders:
         print(f"created library folder {folder.pk}: {folder.path}")

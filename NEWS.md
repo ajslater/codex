@@ -1,6 +1,20 @@
 # 📰 Codex News
 
-## v0.10.0a2
+## v0.10.2a0
+
+- Fixes
+
+  - Fix possible cover generation memory leak. Undocumented cover RSS logger.
+  - Build a deadfall trap for search indexer zombies. Use Offspring's brains as bait.
+  - URLS dictate view over top group. Fixes linking into views.
+
+## v0.10.1
+
+- Fixes
+
+  - Linked old top level comics orphaned by library folders migration.
+
+## v0.10.0
 
 _Portable Document Format_
 

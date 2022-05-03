@@ -205,7 +205,7 @@ export default {
   width: 100%;
 }
 .browserCardCoverWrapper:hover > .cardCoverOverlay * {
-  /* optimize-css-assets-webpack-plugin / cssnano bug destroys % values. 
+  /* optimize-css-assets-webpack-plugin / cssnano bug destroys % values.
      use decimals instead.
      https://github.com/NMFR/optimize-css-assets-webpack-plugin/issues/118
   */
@@ -252,16 +252,41 @@ export default {
 .orderValue {
   color: gray;
 }
-.metadataButton {
-  position: absolute;
-  bottom: 5px;
-  left: 5px;
-}
-
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   .browserTile {
     margin: 8px;
     width: 100px;
   }
 }
+/* Metadata and menu buttons always visible when using a touchscreen. */
+/*
+@media (hover: none) {
+  div.cardCoverOverlayBottomRow {
+    opacity: 1 !important;
+  }
+}
+*/
+</style>
+<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
+<style lang="scss">
+div.cardCoverOverlayBottomRow > * {
+  position: absolute;
+  bottom: 0px;
+}
+.metadataButton {
+  left: 0px;
+}
+
+/* Put browser card buttons in a dark circle so we can see them even against light covers,
+     since we don't get the darkening of the whole cover without hovering. */
+/*
+@media (hover: none) {
+  div.cardCoverOverlayBottomRow > .browserCardActionMenu,
+  div.cardCoverOverlayBottomRow > .metadataButton {
+    border-radius: 12px;
+    background-color: black;
+    opacity: 0.5;
+  }
+}
+*/
 </style>

@@ -330,7 +330,7 @@ class MetadataView(BrowserMetadataBaseView):
         self.model = self.GROUP_MODEL_MAP[self.group]
         if self.model is None:
             raise NotFound(detail=f"Cannot get metadata for {self.group=}")
-        self.is_model_comic = self.group == "c"
+        self.is_model_comic = self.group == self.COMIC_GROUP
 
         obj = self._get_metadata_object()
 

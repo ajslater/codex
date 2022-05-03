@@ -135,7 +135,7 @@ class BrowserBaseView(SessionView, GroupACLMixin):
         group_filter = Q()
         pk = self.kwargs.get("pk")
         group = self.kwargs.get("group")
-        if pk or group == "f":
+        if pk or group == self.FOLDER_GROUP:
             if not pk:
                 pk = None
             group_relation = self.GROUP_RELATION[group]
