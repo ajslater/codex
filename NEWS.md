@@ -1,12 +1,12 @@
 # 📰 Codex News
 
-## v0.10.2a1
+## v0.10.2
 
 - Fixes
 
-  - Fix possible cover generation memory leak. Undocumented cover RSS logger.
-  - Build a deadfall trap for search indexer zombies. Use Offspring's brains as bait.
   - URLS dictate view over top group. Fixes linking into views.
+  - Fix possible cover generation memory leak.
+  - Build a deadfall trap for search indexer zombies. Use Offspring's brains as bait.
 
 ## v0.10.1
 
