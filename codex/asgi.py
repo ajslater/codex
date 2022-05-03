@@ -7,7 +7,6 @@ For more information on this file, see
 https://docs.djangoproject.com/en/3.2/howto/deployment/asgi/
 """
 import os
-import sys
 
 import django
 
@@ -21,8 +20,6 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "codex.settings.settings")
 # os.environ["PYTHONASYNCIODEBUG"] = "1"
 connect_signals()
 django.setup()
-# Monkeypatch modules so xapian-haystack can reference haystack
-sys.modules["haystack"] = sys.modules["codex._vendor.haystack"]
 
 from codex.lifespan import lifespan_application  # noqa: E402
 from codex.websocket_server import websocket_application  # noqa: E402
