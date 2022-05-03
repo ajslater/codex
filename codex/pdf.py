@@ -29,7 +29,7 @@ class PDF:
         kind = guess(path)
         return kind and kind.mime == cls.MIME_TYPE
 
-    def __init__(self, path: Union[Path, str], config=None, closefd=None):
+    def __init__(self, path: Union[Path, str], **_kwargs):
         """Initialize."""
         self._path: Path = Path(path)
         self._reader: Optional[PdfReader] = None
@@ -39,7 +39,7 @@ class PDF:
         """Context enter."""
         return self
 
-    def __exit__(self, *_exc):
+    def __exit__(self, *_args):
         """Context exit."""
         self.close()
 
