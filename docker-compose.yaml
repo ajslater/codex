@@ -87,6 +87,5 @@ services:
       - "9810:9810"
     volumes:
       - .:/app
-      - /Volumes/Media/Comics:/Volumes/Media/Comics
     command: sleep 1000000
 version: "3.8"

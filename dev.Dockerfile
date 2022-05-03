@@ -4,6 +4,7 @@ LABEL version=dev
 
 # hadolint ignore=DL3018
 RUN apk add --no-cache \
+    htop \
     npm \
     valgrind
 # hadolint ignore=DL3013
