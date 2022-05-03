@@ -15,6 +15,7 @@ If my patch works submit a solution to django-haystack.
 
 - The `patch_imports.sh` script takes care of internal haystack references.
 - haystack/\_\_init\_\_.py
+
   - hardcode `__version__`
 
 - haystack/app.py: `HaystackConfig.name`, `signal_processor_path` getatrr default
