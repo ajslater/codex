@@ -23,7 +23,13 @@ class PDF:
     COVER_PAGE_INDEX = 1
     MIME_TYPE = "application/pdf"
 
-    def __init__(self, path: Union[Path, str], config=None):
+    @classmethod
+    def is_pdf(cls, path):
+        """Is the path a pdf."""
+        kind = guess(path)
+        return kind and kind.mime == cls.MIME_TYPE
+
+    def __init__(self, path: Union[Path, str], config=None, closefd=None):
         """Initialize."""
         self._path: Path = Path(path)
         self._reader: Optional[PdfReader] = None
@@ -36,11 +42,6 @@ class PDF:
     def __exit__(self, *_exc):
         """Context exit."""
         self.close()
-
-    def is_pdf(self):
-        """Is the path a pdf."""
-        kind = guess(self._path)
-        return kind and kind.mime == self.MIME_TYPE
 
     def _get_reader(self) -> PdfReader:
         """Lazily get the pdfrw reader."""

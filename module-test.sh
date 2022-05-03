@@ -8,4 +8,4 @@ export DEBUG="${DEBUG:-1}"
 export PYTHONDEVMODE="$DEBUG"
 export PYTHONDONTWRITEBYTECODE=1 #"$DEBUG"
 export LOGLEVEL="${LOGLEVEL:-VERBOSE}"
-poetry run python3 ./module_test.py
+poetry run python3 -m memory_profiler ./module_test.py "$@"
