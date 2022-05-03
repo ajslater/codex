@@ -33,8 +33,7 @@ def _pregen_cover(path, car):
     # Do this as soon as we have a path
 
     try:
-        image = car.get_cover_image_as_pil()
-        car.close()
+        image = car.get_cover_image()
         task = ImageComicCoverCreateTask(False, path, image)
         LIBRARIAN_QUEUE.put_nowait(task)
     except Full:
@@ -50,15 +49,15 @@ def _get_path_metadata(path):
     group_tree_md = {}
     failed_import = {}
     try:
-        pdf = PDF(path)
-        if pdf.is_pdf():
+        if PDF.is_pdf(path):
             file_format = Comic.FileFormats.PDF
-            car = pdf
+            car_class = PDF
         else:
             file_format = Comic.FileFormats.COMIC
-            car = ComicArchive(path, config=COMICBOX_CONFIG, closefd=False)
-        md = car.get_metadata()
-        _pregen_cover(path, car)
+            car_class = ComicArchive
+        with car_class(path, config=COMICBOX_CONFIG, closefd=False) as car:
+            md = car.get_metadata()
+            _pregen_cover(path, car)
 
         md["path"] = path
         md["file_format"] = file_format

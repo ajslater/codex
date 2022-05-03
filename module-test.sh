@@ -1,5 +1,4 @@
 #!/bin/bash
-# Run the codex server
 set -euxo pipefail
 THIS_DIR="$(dirname "$0")"
 cd "$THIS_DIR" || exit 1
@@ -9,6 +8,4 @@ export DEBUG="${DEBUG:-1}"
 export PYTHONDEVMODE="$DEBUG"
 export PYTHONDONTWRITEBYTECODE=1 #"$DEBUG"
 export LOGLEVEL="${LOGLEVEL:-VERBOSE}"
-kill % || true
-#./kill-codex.sh || true
-poetry run python3 ./codex/run.py
+poetry run python3 -m memory_profiler ./module_test.py "$@"

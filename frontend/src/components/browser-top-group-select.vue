@@ -39,6 +39,13 @@ export default {
         return this.topGroupSetting;
       },
       set(value) {
+        if (
+          (this.topGroupSetting === "f" && value !== "f") ||
+          (this.topGroupSetting !== "f" && value === "f")
+        ) {
+          this.$router.push({ params: { group: value, pk: 0 } });
+        }
+        // This must happen also after the pushe
         const settings = { topGroup: value };
         this.$store.dispatch("browser/settingChanged", settings);
       },

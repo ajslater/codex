@@ -1,5 +1,13 @@
 # 📰 Codex News
 
+## v0.10.2
+
+- Fixes
+
+  - URLS dictate view over top group. Fixes linking into views.
+  - Fix possible cover generation memory leak.
+  - Build a deadfall trap for search indexer zombies. Use Offspring's brains as bait.
+
 ## v0.10.1
 
 - Fixes

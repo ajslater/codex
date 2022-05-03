@@ -5,10 +5,10 @@ from dateutil.parser import parse as du_parse
 from django.contrib.auth.models import User
 from django.db.models import F, Q
 from django.db.models.functions import Now
+from haystack.query import SearchQuerySet
 from humanfriendly import parse_size
 from xapian_backend import DATETIME_FORMAT
 
-from codex._vendor.haystack.query import SearchQuerySet
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, SearchIndexUpdateTask
 from codex.models import Comic, SearchQuery, SearchResult
 from codex.settings.logging import get_logger
@@ -135,7 +135,7 @@ class BrowserBaseView(SessionView, GroupACLMixin):
         group_filter = Q()
         pk = self.kwargs.get("pk")
         group = self.kwargs.get("group")
-        if pk or group == "f":
+        if pk or group == self.FOLDER_GROUP:
             if not pk:
                 pk = None
             group_relation = self.GROUP_RELATION[group]
