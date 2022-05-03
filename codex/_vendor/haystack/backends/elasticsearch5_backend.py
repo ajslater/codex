@@ -3,7 +3,7 @@ import warnings
 
 from django.conf import settings
 
-from codex._vendor. import haystack
+from codex._vendor import haystack
 from codex._vendor.haystack.backends import BaseEngine
 from codex._vendor.haystack.backends.elasticsearch_backend import (
     ElasticsearchSearchBackend,

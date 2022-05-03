@@ -150,7 +150,7 @@ def do_update(
                 LOG.warning(error_msg, error_context, exc_info=True)
 
             # If going to try again, sleep a bit before
-            time.sleep(2 ** retries)
+            time.sleep(2**retries)
 
     # Clear out the DB connections queries because it bloats up RAM.
     reset_queries()
@@ -370,9 +370,12 @@ class Command(BaseCommand):
             if self.workers > 0:
                 pool = multiprocessing.Pool(self.workers)
 
+                successful_tasks = 0
                 try:
                     successful_tasks = pool.map(update_worker, ghetto_queue)
-
+                except Exception as exc:
+                    LOG.warning(exc)
+                finally:
                     if len(ghetto_queue) != len(successful_tasks):
                         self.stderr.write(
                             "Queued %d tasks but only %d completed"
@@ -381,9 +384,7 @@ class Command(BaseCommand):
                         for i in ghetto_queue:
                             if i not in successful_tasks:
                                 self.stderr.write("Incomplete task: %s" % repr(i))
-                except Exception as exc:
-                    LOG.warning(f"Updating search index {exc}")
-                finally:
+
                     pool.close()
                     pool.join()
 

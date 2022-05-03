@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
-from codex._vendor. import haystack
+from codex._vendor import haystack
 from codex._vendor.haystack.backends import BaseEngine, BaseSearchBackend, BaseSearchQuery, log_query
 from codex._vendor.haystack.constants import (
     ALL_FIELD,
