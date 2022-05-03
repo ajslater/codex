@@ -22,7 +22,6 @@ class PDF:
 
     COVER_PAGE_INDEX = 1
     MIME_TYPE = "application/pdf"
-    IMAGE_FORMAT = "TIFF"
 
     @classmethod
     def is_pdf(cls, path):
@@ -90,13 +89,14 @@ class PDF:
                 first_page=self.COVER_PAGE_INDEX,
                 last_page=self.COVER_PAGE_INDEX,
                 thread_count=4,
-                fmt=self.IMAGE_FORMAT,  # tiff is fastest.
+                fmt="tiff",  # tiff is fastest.
                 use_pdftocairo=True,
             )
             # pdf2image returns PIL Images :/
             with BytesIO() as buf:
                 if images:
-                    images[0].save(buf, self.IMAGE_FORMAT)
+                    image = images[0]
+                    image.save(buf, image.format)
                     for image in images:
                         image.close()
                 image_data = buf.getvalue()
