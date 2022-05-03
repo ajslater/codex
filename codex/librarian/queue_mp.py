@@ -4,7 +4,6 @@ from abc import ABC
 from dataclasses import dataclass
 from multiprocessing import Queue
 
-from PIL.Image import Image
 from watchdog.events import FileSystemEvent
 
 
@@ -56,7 +55,7 @@ class ImageComicCoverCreateTask(ComicCoverTask):
 
     force: bool
     comic_path: str
-    cover_image: Image
+    cover_image_data: bytes
 
 
 @dataclass
