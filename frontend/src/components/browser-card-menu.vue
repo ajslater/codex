@@ -1,7 +1,9 @@
 <template>
   <v-menu offset-y top>
     <template #activator="{ on }">
-      <v-icon class="actionMenu" v-on="on">{{ mdiDotsVertical }}</v-icon>
+      <v-icon class="browserCardActionMenu" v-on="on">{{
+        mdiDotsVertical
+      }}</v-icon>
     </template>
     <v-list nav>
       <v-list-item v-if="group === 'c'" :href="downloadURL" download>
@@ -90,9 +92,9 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.actionMenu {
+.browserCardActionMenu {
   position: absolute;
-  bottom: 3px;
-  right: 3px;
+  bottom: 0px;
+  right: 0px;
 }
 </style>
