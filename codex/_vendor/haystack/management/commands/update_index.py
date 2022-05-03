@@ -370,19 +370,22 @@ class Command(BaseCommand):
             if self.workers > 0:
                 pool = multiprocessing.Pool(self.workers)
 
-                successful_tasks = pool.map(update_worker, ghetto_queue)
+                try:
+                    successful_tasks = pool.map(update_worker, ghetto_queue)
 
-                if len(ghetto_queue) != len(successful_tasks):
-                    self.stderr.write(
-                        "Queued %d tasks but only %d completed"
-                        % (len(ghetto_queue), len(successful_tasks))
-                    )
-                    for i in ghetto_queue:
-                        if i not in successful_tasks:
-                            self.stderr.write("Incomplete task: %s" % repr(i))
-
-                pool.close()
-                pool.join()
+                    if len(ghetto_queue) != len(successful_tasks):
+                        self.stderr.write(
+                            "Queued %d tasks but only %d completed"
+                            % (len(ghetto_queue), len(successful_tasks))
+                        )
+                        for i in ghetto_queue:
+                            if i not in successful_tasks:
+                                self.stderr.write("Incomplete task: %s" % repr(i))
+                except Exception as exc:
+                    LOG.warning(f"Updating search index {exc}")
+                finally:
+                    pool.close()
+                    pool.join()
 
             if self.remove:
                 if self.start_date or self.end_date or total <= 0:
