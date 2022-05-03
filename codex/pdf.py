@@ -10,7 +10,6 @@ from pdf2image import convert_from_path
 from pdf2image.exceptions import PDFInfoNotInstalledError
 from pdfrw import PdfReader, PdfWriter
 from pdfrw.errors import log as pdfrw_log
-from PIL.Image import Image as ImageType
 
 from codex.settings.logging import get_logger
 
@@ -24,11 +23,19 @@ class PDF:
     COVER_PAGE_INDEX = 1
     MIME_TYPE = "application/pdf"
 
-    def __init__(self, path: Union[Path, str]):
+    def __init__(self, path: Union[Path, str], config=None):
         """Initialize."""
         self._path: Path = Path(path)
         self._reader: Optional[PdfReader] = None
         self._metadata: dict = {}
+
+    def __enter__(self):
+        """Context enter."""
+        return self
+
+    def __exit__(self, *_exc):
+        """Context exit."""
+        self.close()
 
     def is_pdf(self):
         """Is the path a pdf."""
@@ -72,7 +79,7 @@ class PDF:
         writer.write(buffer)
         return buffer.getvalue()
 
-    def get_cover_image_as_pil(self) -> ImageType:
+    def get_cover_image(self) -> bytes:
         """Get the first page as a image data."""
         try:
             images = convert_from_path(
@@ -83,8 +90,14 @@ class PDF:
                 fmt="tiff",  # tiff fastest, maybe lossless.
                 use_pdftocairo=True,
             )
+            # pdf2image only returns PIL Images :/
+            buf = BytesIO()
+            if images:
+                images[0].save(buf, "TIFF")
+                for image in images:
+                    image.close()
+            return buf.getvalue()
 
-            return images[0]
         except PDFInfoNotInstalledError as exc:
             raise FileNotFoundError(str(exc)) from exc
 
