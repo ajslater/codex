@@ -15,4 +15,4 @@ v3.1.1 does not support Django 4.0
 
 - xapian-haystack depends on the 'haystack' name so I monkeypatch sys.modules in codex/asgi.py
 
-- managment/commands/update.py:373 add a try block to catch multiprocessing pool errors and prevent zombies.
+- management/commands/update.py:373 add a try block to catch multiprocessing pool errors and prevent zombies.
