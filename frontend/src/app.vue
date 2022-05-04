@@ -52,6 +52,9 @@ export default {
 
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
+html {
+  overflow-y: auto;
+}
 body {
   background-color: #121212;
 }

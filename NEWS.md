@@ -1,5 +1,11 @@
 # 📰 Codex News
 
+## v0.10.3a0
+
+- Fixes
+
+  - Remove vestigal browser scrollbars when they're not needed. Thanks to ToxicFrog.
+
 ## v0.10.2
 
 - Fixes
