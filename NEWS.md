@@ -1,10 +1,12 @@
 # 📰 Codex News
 
-## v0.10.3a0
+## v0.10.3
 
 - Fixes
 
+  - Fix PDF going blank when settings change.
   - Remove vestigal browser scrollbars when they're not needed. Thanks to ToxicFrog.
+  - Fix cover cleanup maintence task.
 
 ## v0.10.2
 

@@ -2,10 +2,12 @@
   <div v-if="displayPage" :id="page">
     <vue-pdf-embed
       v-if="isPDF"
+      :key="pdfKey"
+      :class="fitToClass"
       :source="src"
       :page="1"
-      :width="pdfWidth"
       :height="pdfHeight"
+      :width="pdfWidth"
     />
     <img v-else :class="fitToClass" :src="src" :alt="alt" />
   </div>
@@ -81,7 +83,7 @@ export default {
     pdfWidth() {
       const fitTo = this.computedSettings.fitTo;
       let width = 0;
-      if (fitTo === "WIDTH") {
+      if (["WIDTH", "ORIG"].includes(fitTo)) {
         width = window.innerWidth;
       }
       if (width && this.computedSettings.twoPages) {
@@ -91,10 +93,10 @@ export default {
     },
     pdfHeight() {
       const fitTo = this.computedSettings.fitTo;
-      if (fitTo == "HEIGHT") {
-        return window.innerHeight;
-      }
-      return 0;
+      return ["HEIGHT", "ORIG"].includes(fitTo) ? window.innerHeight : 0;
+    },
+    pdfKey() {
+      return `${this.computedSettings.fitTo}${this.computedSettings.twoPages}`;
     },
   },
   watch: {
