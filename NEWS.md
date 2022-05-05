@@ -6,7 +6,7 @@
 
   - Fix PDF going blank when settings change.
   - Remove vestigal browser scrollbars when they're not needed. Thanks to ToxicFrog.
-  - Fix cover cleanup maintence task.
+  - Fix cover cleanup maintenance task.
 
 ## v0.10.2
 
