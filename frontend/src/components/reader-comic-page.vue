@@ -6,8 +6,10 @@
       :class="fitToClass"
       :source="src"
       :page="1"
-      :height="pdfHeight"
       :width="pdfWidth"
+      :height="pdfHeight"
+      :disable-annotation-layer="true"
+      :disable-text-layer="true"
     />
     <img v-else :class="fitToClass" :src="src" :alt="alt" />
   </div>
@@ -81,9 +83,12 @@ export default {
       return classes;
     },
     pdfWidth() {
+      // Wide PDFs will not fit to SCREEN well.
+      // vue-pdf-embed internal canvas sizing algorithm makes this difficult.
+      // Maybe not impossible but I'm lazy right now.
       const fitTo = this.computedSettings.fitTo;
       let width = 0;
-      if (["WIDTH", "SCREEN", "ORIG"].includes(fitTo)) {
+      if (["WIDTH", "ORIG"].includes(fitTo)) {
         width = window.innerWidth;
       }
       if (width && this.computedSettings.twoPages) {
@@ -93,7 +98,7 @@ export default {
     },
     pdfHeight() {
       const fitTo = this.computedSettings.fitTo;
-      return ["SCREEN", "HEIGHT", "ORIG"].includes(fitTo)
+      return ["HEIGHT", "SCREEN", "ORIG"].includes(fitTo)
         ? window.innerHeight
         : 0;
     },
