@@ -28,6 +28,10 @@
           <td>Shrink page to screen width</td>
         </tr>
         <tr>
+          <td>s</td>
+          <td>Shrink page to screen</td>
+        </tr>
+        <tr>
           <td>o</td>
           <td>Expand page to original size</td>
         </tr>

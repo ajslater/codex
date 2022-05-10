@@ -8,14 +8,12 @@ const NULL_READER_SETTINGS = {
 };
 
 const getGlobalFitToDefault = () => {
-  // Default to different settings for different screen sizes;
+  // Big screens default to fit by HEIGHT, small to WIDTH;
   const vw = Math.max(
     document.documentElement.clientWidth || 0,
     window.innerWidth || 0
   );
-  let fitTo;
-  fitTo = vw > 600 ? "HEIGHT" : "WIDTH";
-  return fitTo;
+  return vw > 600 ? "HEIGHT" : "WIDTH";
 };
 
 const state = {

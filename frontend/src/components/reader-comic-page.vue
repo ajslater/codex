@@ -83,7 +83,7 @@ export default {
     pdfWidth() {
       const fitTo = this.computedSettings.fitTo;
       let width = 0;
-      if (["WIDTH", "ORIG"].includes(fitTo)) {
+      if (["WIDTH", "SCREEN", "ORIG"].includes(fitTo)) {
         width = window.innerWidth;
       }
       if (width && this.computedSettings.twoPages) {
@@ -93,7 +93,9 @@ export default {
     },
     pdfHeight() {
       const fitTo = this.computedSettings.fitTo;
-      return ["HEIGHT", "ORIG"].includes(fitTo) ? window.innerHeight : 0;
+      return ["SCREEN", "HEIGHT", "ORIG"].includes(fitTo)
+        ? window.innerHeight
+        : 0;
     },
     pdfKey() {
       return `${this.computedSettings.fitTo}${this.computedSettings.twoPages}`;
@@ -122,6 +124,14 @@ export default {
   flex: 0 0 auto;
   /* align-self fixes mobile safari stretching the image weirdly */
   align-self: flex-start;
+}
+.fitToScreen {
+  max-height: 100vh;
+  max-width: 100vw;
+}
+.fitToScreenTwo {
+  max-height: 100vh;
+  max-width: 50vw;
 }
 .fitToHeight,
 .fitToHeightTwo {

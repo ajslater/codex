@@ -6,6 +6,11 @@
 
   - Fix double tap for non-iOS touch devices.
 
+- Features
+
+  - Shrink to Screen reader setting.
+
+
 ## v0.10.3
 
 - Fixes
