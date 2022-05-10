@@ -261,7 +261,7 @@ export default {
     ...mapState("metadata", {
       md: (state) => state.md,
       downloadURL: function (state) {
-        return getDownloadURL(this.md.id, state.timestamp);
+        return getDownloadURL(this.md.pk, state.timestamp);
       },
     }),
     ...mapState("browser", {

@@ -8,7 +8,7 @@
       />
     </div>
     <div v-else-if="showPlaceHolder" id="announce">
-      <PlaceholderLoading />
+      <PlaceholderLoading class="placeholder" :size="128" />
     </div>
     <div v-else-if="!isOpenToSee" id="announce">
       <h1>
@@ -114,6 +114,9 @@ export default {
 }
 .padFooter {
   padding-bottom: 45px !important;
+}
+.placeholder {
+  margin-top: 48px;
 }
 @import "~vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {

@@ -136,6 +136,10 @@
         "default": true
       },
       {
+        "text": "Screen",
+        "value": "SCREEN"
+      },
+      {
         "text": "Original Size",
         "value": "ORIG"
       }

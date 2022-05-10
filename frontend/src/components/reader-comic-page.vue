@@ -1,15 +1,23 @@
 <template>
   <div v-if="displayPage" :id="page">
+    <Placeholderplaceholder
+      class="placeholder"
+      :size="placeholderSize"
+      :class="{ hidden: loaded }"
+    />
     <vue-pdf-embed
       v-if="isPDF"
       :key="pdfKey"
       :class="fitToClass"
       :source="src"
       :page="1"
-      :height="pdfHeight"
       :width="pdfWidth"
+      :height="pdfHeight"
+      :disable-annotation-layer="true"
+      :disable-text-layer="true"
+      @load="imgLoaded"
     />
-    <img v-else :class="fitToClass" :src="src" :alt="alt" />
+    <img v-else :class="fitToClass" :src="src" :alt="alt" @load="imgLoaded" />
   </div>
 </template>
 
@@ -18,10 +26,13 @@ import VuePdfEmbed from "vue-pdf-embed/dist/vue2-pdf-embed";
 import { mapGetters, mapState } from "vuex";
 
 import { getComicPageSource } from "@/api/v2/comic";
+import Placeholderplaceholder from "@/components/placeholder-loading";
+
+const PLACEHOLDER_ENGAGE_MS = 250;
 
 export default {
   name: "ReaderComicPage",
-  components: { VuePdfEmbed },
+  components: { Placeholderplaceholder, VuePdfEmbed },
   props: {
     pageIncrement: {
       type: Number,
@@ -31,6 +42,7 @@ export default {
   data() {
     return {
       page: 0,
+      loaded: 0,
     };
   },
   head() {
@@ -52,6 +64,10 @@ export default {
         this.page <= this.maxPage &&
         this.page >= 0
       );
+    },
+    placeholderSize() {
+      const maxDimension = Math.min(window.innerHeight, window.innerWidth);
+      return Number.parseInt(maxDimension / 2);
     },
     src() {
       const routeParams = { ...this.$router.currentRoute.params };
@@ -81,6 +97,9 @@ export default {
       return classes;
     },
     pdfWidth() {
+      // Wide PDFs will not fit to SCREEN well.
+      // vue-pdf-embed internal canvas sizing algorithm makes this difficult.
+      // Maybe not impossible but I'm lazy right now.
       const fitTo = this.computedSettings.fitTo;
       let width = 0;
       if (["WIDTH", "ORIG"].includes(fitTo)) {
@@ -93,7 +112,9 @@ export default {
     },
     pdfHeight() {
       const fitTo = this.computedSettings.fitTo;
-      return ["HEIGHT", "ORIG"].includes(fitTo) ? window.innerHeight : 0;
+      return ["HEIGHT", "SCREEN", "ORIG"].includes(fitTo)
+        ? window.innerHeight
+        : 0;
     },
     pdfKey() {
       return `${this.computedSettings.fitTo}${this.computedSettings.twoPages}`;
@@ -109,9 +130,18 @@ export default {
   },
   methods: {
     setPage: function () {
-      // This can't be computed because router params aren't reactive.
+      setTimeout(() => {
+        if (Date.now() - this.loaded > PLACEHOLDER_ENGAGE_MS) {
+          this.loaded = 0;
+        }
+      }, PLACEHOLDER_ENGAGE_MS);
+
+      // page can't be computed because router params aren't reactive.
       this.page =
         Number(this.$router.currentRoute.params.page) + this.pageIncrement;
+    },
+    imgLoaded: function () {
+      this.loaded = Date.now();
     },
   },
 };
@@ -123,6 +153,14 @@ export default {
   /* align-self fixes mobile safari stretching the image weirdly */
   align-self: flex-start;
 }
+.fitToScreen {
+  max-height: 100vh;
+  max-width: 100vw;
+}
+.fitToScreenTwo {
+  max-height: 100vh;
+  max-width: 50vw;
+}
 .fitToHeight,
 .fitToHeightTwo {
   max-height: 100vh;
@@ -132,5 +170,13 @@ export default {
 }
 .fitToWidthTwo {
   max-width: 50vw;
+}
+.placeholder {
+  position: absolute;
+  top: 25vh;
+  left: 40vw;
+}
+.hidden {
+  display: none;
 }
 </style>

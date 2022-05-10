@@ -96,6 +96,9 @@ export default {
         case "h":
           this.settingsChangedLocal({ fitTo: "HEIGHT" });
           break;
+        case "s":
+          this.settingsChangedLocal({ fitTo: "SCREEN" });
+          break;
 
         case "o":
           this.settingsChangedLocal({ fitTo: "ORIG" });

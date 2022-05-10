@@ -1,5 +1,16 @@
 # 📰 Codex News
 
+## v0.10.4
+
+- Fixes
+
+  - Fix double tap for non-iOS touch devices.
+
+- Features
+
+  - Shrink to Screen reader setting.
+  - Reader throbber if a page takes longer than a quarter second to load.
+
 ## v0.10.3
 
 - Fixes
