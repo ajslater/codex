@@ -1,7 +1,7 @@
 <template>
   <v-lazy transition="scale-transition" class="browserTile">
     <div class="browserTileLazyWrapper">
-      <div class="browserCardCoverWrapper">
+      <div class="browserCardCoverWrapper" @click="doubleTapHovered = true">
         <BookCover
           :cover-path="item.coverPath"
           :updated-at="item.coverUpdatedAt"
@@ -54,7 +54,6 @@
 </template>
 
 <script>
-// import { mdiChevronLeft } from "@mdi/js";
 import { mdiEye, mdiEyeOff } from "@mdi/js";
 import humanize from "humanize";
 import { mapState } from "vuex";
@@ -68,6 +67,7 @@ import {
 } from "@/components/comic-name";
 import { DATE_FORMAT, DATETIME_FORMAT } from "@/components/datetime";
 import MetadataButton from "@/components/metadata-dialog";
+import { IS_IOS, IS_TOUCH } from "@/platform";
 import { getReaderRoute } from "@/router/route";
 
 const STAR_SORT_BY = new Set(["community_rating", "critical_rating"]);
@@ -91,6 +91,7 @@ export default {
     return {
       mdiEye,
       mdiEyeOff,
+      doubleTapHovered: !IS_TOUCH || IS_IOS,
     };
   },
   // Stored here instead of data to be non-reactive
@@ -154,6 +155,9 @@ export default {
       return ov;
     },
     toRoute: function () {
+      if (!this.doubleTapHovered) {
+        return {};
+      }
       return this.item.group === "c"
         ? getReaderRoute(this.item)
         : {
@@ -258,14 +262,6 @@ export default {
     width: 100px;
   }
 }
-/* Metadata and menu buttons always visible when using a touchscreen. */
-/*
-@media (hover: none) {
-  div.cardCoverOverlayBottomRow {
-    opacity: 1 !important;
-  }
-}
-*/
 </style>
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
@@ -276,17 +272,4 @@ div.cardCoverOverlayBottomRow > * {
 .metadataButton {
   left: 0px;
 }
-
-/* Put browser card buttons in a dark circle so we can see them even against light covers,
-     since we don't get the darkening of the whole cover without hovering. */
-/*
-@media (hover: none) {
-  div.cardCoverOverlayBottomRow > .browserCardActionMenu,
-  div.cardCoverOverlayBottomRow > .metadataButton {
-    border-radius: 12px;
-    background-color: black;
-    opacity: 0.5;
-  }
-}
-*/
 </style>
