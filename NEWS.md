@@ -1,5 +1,11 @@
 # 📰 Codex News
 
+## v0.10.4a0
+
+- Fixes
+
+  - Fix double tap for non-iOS touch devices.
+
 ## v0.10.3
 
 - Fixes
