@@ -1,6 +1,6 @@
 # 📰 Codex News
 
-## v0.10.4a0
+## v0.10.4
 
 - Fixes
 
@@ -9,7 +9,7 @@
 - Features
 
   - Shrink to Screen reader setting.
-
+  - Reader throbber if a page takes longer than a quarter second to load.
 
 ## v0.10.3
 
