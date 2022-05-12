@@ -4,7 +4,7 @@
 
 - Features
 
-  - Reader shrink to screen setting becomes fit to screen and grows small images.
+  - Reader shrink to screen setting becomes fit to screen and embiggens small images.
 
 - Fixes
 
