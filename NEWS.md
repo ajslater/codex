@@ -1,5 +1,11 @@
 # 📰 Codex News
 
+## v0.10.5a0
+
+- Fixes
+
+  - Preserve aspect ratios better in Reader settings.
+
 ## v0.10.4
 
 - Fixes
