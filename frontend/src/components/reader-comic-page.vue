@@ -152,14 +152,16 @@ export default {
   flex: 0 0 auto;
   /* align-self fixes mobile safari stretching the image weirdly */
   align-self: flex-start;
-  object-fit: scale-down;
+  object-fit: contain;
   display: block;
 }
 .fitToHeight,
-.fitToHeightTwo,
+.fitToHeightTwo {
+  max-height: 100vh;
+}
 .fitToScreen,
 .fitToScreenTwo {
-  max-height: 100vh;
+  height: 100vh;
 }
 .fitToScreen,
 .fitToWidth {

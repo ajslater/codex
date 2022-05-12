@@ -2,10 +2,13 @@
 
 ## v0.10.5a0
 
+- Features
+
+  - Reader shrink to screen setting becomes fit to screen and grows small images.
+
 - Fixes
 
-  - Removed vertical scrollbars when Reader fit to height.
-  - Preserve aspect ratios better in Reader settings.
+  - Removed vertical scrollbars when Reader shrunk to height.
 
 ## v0.10.4
 

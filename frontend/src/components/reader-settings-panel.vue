@@ -9,7 +9,7 @@
       <v-radio-group
         id="fitToSelect"
         :value="settingsDialogFitTo"
-        label="Shrink to"
+        label="Display"
         @change="settingsDialogChanged({ fitTo: $event })"
       >
         <v-radio
@@ -21,7 +21,7 @@
       </v-radio-group>
       <v-checkbox
         :value="settingsDialogTwoPages"
-        label="Display Two pages"
+        label="Show Two pages"
         :indeterminate="
           settingsDialogTwoPages === null ||
           settingsDialogTwoPages === undefined
