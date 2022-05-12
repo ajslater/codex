@@ -4,6 +4,7 @@
 
 - Fixes
 
+  - Removed vertical scrollbars when Reader fit to height.
   - Preserve aspect ratios better in Reader settings.
 
 ## v0.10.4

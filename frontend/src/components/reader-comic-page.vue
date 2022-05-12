@@ -153,6 +153,7 @@ export default {
   /* align-self fixes mobile safari stretching the image weirdly */
   align-self: flex-start;
   object-fit: scale-down;
+  display: block;
 }
 .fitToHeight,
 .fitToHeightTwo,

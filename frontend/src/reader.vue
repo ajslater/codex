@@ -104,7 +104,6 @@ export default {
   justify-content: center;
 }
 #readerContainer {
-  padding: 0px;
   max-width: 100%;
 }
 #announcement {
