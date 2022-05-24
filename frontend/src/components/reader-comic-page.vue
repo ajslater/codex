@@ -152,24 +152,28 @@ export default {
   flex: 0 0 auto;
   /* align-self fixes mobile safari stretching the image weirdly */
   align-self: flex-start;
-}
-.fitToScreen {
-  max-height: 100vh;
-  max-width: 100vw;
-}
-.fitToScreenTwo {
-  max-height: 100vh;
-  max-width: 50vw;
+  object-fit: contain;
+  display: block;
 }
 .fitToHeight,
 .fitToHeightTwo {
   max-height: 100vh;
 }
+.fitToScreen,
+.fitToScreenTwo {
+  height: 100vh;
+}
+.fitToScreen,
 .fitToWidth {
   max-width: 100vw;
 }
+.fitToScreenTwo,
 .fitToWidthTwo {
-  max-width: 50vw;
+  width: 50vw;
+}
+.fitToOrig,
+.fitToOrigTwo {
+  object-fit: none;
 }
 .placeholder {
   position: absolute;

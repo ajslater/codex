@@ -1,5 +1,17 @@
 # 📰 Codex News
 
+## v0.10.5a0
+
+- Features
+
+  - Reader shrink to screen setting becomes fit to screen and embiggens small images.
+  - Reader changing to the next book now has visual feedback and requires two clicks.
+
+- Fixes
+
+  - Removed vertical scrollbars when Reader shrunk to height.
+  - Don't disturb the view when top group changes from higher to lower.
+
 ## v0.10.4
 
 - Fixes

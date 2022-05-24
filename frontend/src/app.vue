@@ -1,21 +1,18 @@
 <template>
   <v-app>
     <router-view />
-    <SettingsDrawer />
     <NotifySnackBar />
   </v-app>
 </template>
 
 <script>
-import { mapState } from "vuex";
+import { mapActions, mapState } from "vuex";
 
 import NotifySnackBar from "@/components/notify";
-import SettingsDrawer from "@/components/settings-drawer";
 
 export default {
   name: "App",
   components: {
-    SettingsDrawer,
     NotifySnackBar,
   },
   computed: {
@@ -28,11 +25,11 @@ export default {
   },
   watch: {
     user: function () {
-      this.wsSubscribe();
+      this.subscribe();
     },
     isConnected(to) {
       if (to) {
-        this.wsSubscribe();
+        this.subscribe();
       }
     },
   },
@@ -43,9 +40,7 @@ export default {
     });
   },
   methods: {
-    wsSubscribe() {
-      this.$store.dispatch("notify/subscribe");
-    },
+    ...mapActions("notify", ["subscribe"]),
   },
 };
 </script>

@@ -22,7 +22,7 @@
 
 <script>
 import { mdiMagnify } from "@mdi/js";
-import { mapState } from "vuex";
+import { mapActions, mapState } from "vuex";
 
 export default {
   name: "BrowserSearchField",
@@ -40,18 +40,20 @@ export default {
   computed: {
     ...mapState("browser", {
       queries: (state) => state.queries,
+      stateAutoquery: (state) => state.settings.autoquery,
     }),
     autoquery: {
       get() {
-        return this.$store.state.browser.settings.autoquery;
+        return this.stateAutoquery;
       },
       set(value) {
         const autoquery = value ? value.trim() : "";
-        this.$store.dispatch("browser/settingChanged", { autoquery });
+        this.settingChanged({ autoquery });
       },
     },
   },
   methods: {
+    ...mapActions("browser", ["settingChanged"]),
     searchClick: function () {
       const value = this.$refs["searchbox"].$refs.input.value;
       this.autoquery = value;

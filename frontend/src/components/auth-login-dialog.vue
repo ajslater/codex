@@ -78,7 +78,7 @@
         </footer>
       </v-form>
     </v-dialog>
-    <v-list-item v-if="user" ripple @click="logout">
+    <v-list-item v-if="user" ripple @click="doLogout">
       <v-list-item-content>
         <v-list-item-title
           ><h3>Logout {{ user.username }}</h3>
@@ -89,7 +89,7 @@
 </template>
 
 <script>
-import { mapState } from "vuex";
+import { mapActions, mapState } from "vuex";
 
 export default {
   name: "AuthLoginDialog",
@@ -120,23 +120,20 @@ export default {
       enableRegistration: (state) => state.adminFlags.enableRegistration,
     }),
     loginButtonLabel: function () {
-      return this.registerMode ? "Reigister" : "Login";
+      return this.registerMode ? "Register" : "Login";
     },
   },
   methods: {
-    closeForm: function () {
+    ...mapActions("auth", ["login", "loginDialogOpened", "logout", "register"]),
+    processAuth: function (mode) {
+      this[mode](this.credentials).catch((error) => {
+        console.error(error);
+      });
       if (this.validationError !== undefined) {
         this.showLoginDialog = false;
         const form = this.$refs.loginForm;
         form.reset();
       }
-    },
-    processAuth: function (mode) {
-      // const oldUser = this.user;
-      this.$store.dispatch(`auth/${mode}`, this.credentials).catch((error) => {
-        console.error(error);
-      });
-      return this.closeForm();
     },
     processLogin: function () {
       const mode = this.registerMode ? "register" : "login";
@@ -146,13 +143,10 @@ export default {
       }
       this.processAuth(mode);
     },
-    loginDialogOpened: function () {
-      this.$store.dispatch("auth/loginDialogOpened");
-    },
     focus: function () {
       this.$emit("sub-dialog-open");
     },
-    logout: function () {
+    doLogout: function () {
       this.processAuth("logout");
     },
   },

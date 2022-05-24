@@ -22,16 +22,19 @@
         <router-link :to="{ name: 'home' }">Log in</router-link> to read comics
       </h1>
     </div>
+    <SettingsDrawer :panel="panel" />
   </div>
 </template>
 
 <script>
-import { mapGetters } from "vuex";
+import { mapActions, mapGetters } from "vuex";
 
 import ReaderComicPage from "@/components/reader-comic-page";
 import ReaderNavOverlay from "@/components/reader-nav-overlay";
 import ReaderNavToolbar from "@/components/reader-nav-toolbar";
+import ReaderSettingsPanel from "@/components/reader-settings-panel";
 import ReaderTopToolbar from "@/components/reader-top-toolbar";
+import SettingsDrawer from "@/components/settings-drawer";
 
 const MIN_VIEWPORT_WIDTH_SWIPE_ENABLED = 768;
 
@@ -42,9 +45,11 @@ export default {
     ReaderNavOverlay,
     ReaderNavToolbar,
     ReaderTopToolbar,
+    SettingsDrawer,
   },
   data() {
     return {
+      panel: ReaderSettingsPanel,
       showToolbars: false,
     };
   },
@@ -53,24 +58,19 @@ export default {
   },
   watch: {
     $route(to, from) {
-      const routeParams = {
-        pk: Number(to.params.pk),
-        page: Number(to.params.page),
-      };
-      let action = "reader/";
-      action +=
-        !from.params || routeParams.pk !== Number(from.params.pk)
-          ? "book"
-          : "route";
-      action += "Changed";
-      this.$store.dispatch(action, routeParams);
+      if (!from.params || Number(to.params.pk) !== Number(from.params.pk)) {
+        this.bookChanged();
+      } else {
+        this.routeChanged();
+      }
       window.scrollTo(0, 0);
     },
   },
   created() {
-    this.$store.dispatch("reader/bookChanged");
+    this.bookChanged();
   },
   methods: {
+    ...mapActions("reader", ["routeTo", "bookChanged", "routeChanged"]),
     toggleToolbars: function () {
       this.showToolbars = !this.showToolbars;
     },
@@ -81,8 +81,8 @@ export default {
       );
       return vw >= MIN_VIEWPORT_WIDTH_SWIPE_ENABLED
         ? {
-            left: () => this.$store.dispatch("reader/routeTo", "next"),
-            right: () => this.$store.dispatch("reader/routeTo", "prev"),
+            left: () => this.routeTo("next"),
+            right: () => this.routeTo("prev"),
           }
         : {};
     },
@@ -104,7 +104,6 @@ export default {
   justify-content: center;
 }
 #readerContainer {
-  padding: 0px;
   max-width: 100%;
 }
 #announcement {

@@ -5,7 +5,7 @@
     :title="toPage"
     large
     ripple
-    @click="routeToPage"
+    @click="routeToPage(toPage)"
   >
     <v-icon :class="{ flipHoriz: !back }">{{ mdiChevronLeft }}</v-icon>
   </v-btn>
@@ -13,7 +13,7 @@
 
 <script>
 import { mdiChevronLeft } from "@mdi/js";
-import { mapState } from "vuex";
+import { mapActions, mapState } from "vuex";
 
 export default {
   name: "BrowserNavButton",
@@ -53,12 +53,10 @@ export default {
     this.setPage();
   },
   methods: {
+    ...mapActions("browser", ["routeToPage"]),
     setPage: function () {
       // This cannot be computed because router params are not reactive.
       this.page = Number(this.$router.currentRoute.params.page);
-    },
-    routeToPage: function () {
-      this.$store.dispatch("browser/routeToPage", this.toPage);
     },
   },
 };
