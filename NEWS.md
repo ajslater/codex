@@ -5,6 +5,7 @@
 - Features
 
   - Reader shrink to screen setting becomes fit to screen and embiggens small images.
+  - Reader changing to the next book now has visual feedback and requires two clicks.
 
 - Fixes
 

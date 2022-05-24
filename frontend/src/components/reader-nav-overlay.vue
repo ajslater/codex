@@ -1,34 +1,84 @@
 <template>
   <div id="navColumns">
+    <v-navigation-drawer
+      id="prevBookDrawer"
+      class="bookChangeDrawer"
+      absolute
+      left
+      temporarary
+      :value="bookChangePrev"
+    >
+      <router-link
+        class="navLink"
+        :to="{ name: 'reader', params: routes.prevBook }"
+      >
+        <v-icon class="bookChangeIcon flipped" x-large>{{
+          mdiBookArrowRight
+        }}</v-icon>
+      </router-link>
+    </v-navigation-drawer>
     <section id="leftColumn" class="navColumn">
       <router-link
-        v-if="routes.prev"
+        v-if="routePrev"
         class="navLink"
-        :to="{ name: 'reader', params: routes.prev }"
-        @click.native.stop=""
+        :to="{ name: 'reader', params: routePrev }"
       />
+      <div v-else class="drawerButton" @click="setBookChangeFlag('prev')" />
     </section>
-    <section id="middleColumn" class="navColumn" />
+    <section
+      id="middleColumn"
+      class="navColumn"
+      @click="setBookChangeFlag(null)"
+    />
     <section id="rightColumn" class="navColumn">
       <router-link
-        v-if="routes.next"
+        v-if="routeNext"
         class="navLink"
-        :to="{ name: 'reader', params: routes.next }"
-        @click.native.stop=""
+        :to="{ name: 'reader', params: routeNext }"
       />
+      <div v-else class="drawerButton" @click="setBookChangeFlag('next')" />
     </section>
+    <v-navigation-drawer
+      id="nextBookDrawer"
+      class="bookChangeDrawer"
+      absolute
+      right
+      temporarary
+      :value="bookChangeNext"
+    >
+      <router-link
+        class="navLink"
+        :to="{ name: 'reader', params: routes.nextBook }"
+      >
+        <v-icon class="bookChangeIcon" x-large>{{ mdiBookArrowRight }}</v-icon>
+      </router-link>
+    </v-navigation-drawer>
   </div>
 </template>
 
 <script>
-import { mapState } from "vuex";
-const READER_ROUTE_TO = "reader/routeTo";
+import { mdiBookArrowRight } from "@mdi/js";
+import { mapActions, mapState } from "vuex";
+const PREV = "prev";
+const NEXT = "next";
 
 export default {
   name: "ReaderNavOverlay",
+  data() {
+    return { mdiBookArrowRight };
+  },
   computed: {
     ...mapState("reader", {
       routes: (state) => state.routes,
+      bookChange: (state) => state.bookChange,
+      bookChangePrev: (state) => state.bookChange === PREV,
+      bookChangeNext: (state) => state.bookChange === NEXT,
+      routePrev: function (state) {
+        return this.routeCompute(state, PREV);
+      },
+      routeNext: function (state) {
+        return this.routeCompute(state, NEXT);
+      },
     }),
   },
   mounted() {
@@ -38,8 +88,15 @@ export default {
   beforeDestroy: function () {
     window.removeEventListener("keyup", this._keyListener);
   },
-
   methods: {
+    ...mapActions("reader", ["routeToDirection", "setBookChangeFlag"]),
+    routeCompute(state, direction) {
+      return state.routes &&
+        state.routes[direction] &&
+        state.routes[direction].pk == this.$route.params.pk
+        ? state.routes[direction]
+        : false;
+    },
     _keyListener: function (event) {
       switch (event.key) {
         case " ":
@@ -49,24 +106,24 @@ export default {
             this.routes.next
           ) {
             // Spacebar goes next only at the bottom of page
-            this.$store.dispatch(READER_ROUTE_TO, "next");
+            this.routeToDirection(NEXT);
           } else if (
             // Shift + Spacebar goes back only at the top of page
             !!event.shiftKey &&
             window.scrollY === 0 &&
             this.routes.prev
           ) {
-            this.$store.dispatch(READER_ROUTE_TO, "prev");
+            this.routeToDirection(PREV);
           }
           break;
         case "j":
         case "ArrowRight":
-          this.$store.dispatch(READER_ROUTE_TO, "next");
+          this.routeToDirection(NEXT);
           break;
 
         case "k":
         case "ArrowLeft":
-          this.$store.dispatch(READER_ROUTE_TO, "prev");
+          this.routeToDirection(PREV);
           break;
         // No default
       }
@@ -93,5 +150,21 @@ export default {
 .navLink {
   display: block;
   height: 100%;
+}
+.drawerButton {
+  height: 100%;
+  cursor: grab;
+}
+.bookChangeDrawer {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+.bookChangeIcon {
+  top: 50%;
+  margin-left: 50%;
+  display: block;
+  color: white;
+}
+.flipped {
+  transform: rotateY(180deg);
 }
 </style>

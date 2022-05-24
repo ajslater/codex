@@ -26,7 +26,7 @@
 </template>
 
 <script>
-import { mapGetters } from "vuex";
+import { mapActions, mapGetters } from "vuex";
 
 import ReaderComicPage from "@/components/reader-comic-page";
 import ReaderNavOverlay from "@/components/reader-nav-overlay";
@@ -53,24 +53,19 @@ export default {
   },
   watch: {
     $route(to, from) {
-      const routeParams = {
-        pk: Number(to.params.pk),
-        page: Number(to.params.page),
-      };
-      let action = "reader/";
-      action +=
-        !from.params || routeParams.pk !== Number(from.params.pk)
-          ? "book"
-          : "route";
-      action += "Changed";
-      this.$store.dispatch(action, routeParams);
+      if (!from.params || Number(to.params.pk) !== Number(from.params.pk)) {
+        this.bookChanged();
+      } else {
+        this.routeChanged();
+      }
       window.scrollTo(0, 0);
     },
   },
   created() {
-    this.$store.dispatch("reader/bookChanged");
+    this.bookChanged();
   },
   methods: {
+    ...mapActions("reader", ["routeTo", "bookChanged", "routeChanged"]),
     toggleToolbars: function () {
       this.showToolbars = !this.showToolbars;
     },
@@ -81,8 +76,8 @@ export default {
       );
       return vw >= MIN_VIEWPORT_WIDTH_SWIPE_ENABLED
         ? {
-            left: () => this.$store.dispatch("reader/routeTo", "next"),
-            right: () => this.$store.dispatch("reader/routeTo", "prev"),
+            left: () => this.routeTo("next"),
+            right: () => this.routeTo("prev"),
           }
         : {};
     },
