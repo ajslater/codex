@@ -43,7 +43,7 @@
 </template>
 //
 <script>
-import { mapActions, mapState } from "vuex";
+import { mapActions, mapMutations, mapState } from "vuex";
 
 import ReaderKeyboardShortcutsPanel from "@/components/reader-keyboard-shortcuts-panel";
 
@@ -67,6 +67,7 @@ export default {
         }
         return state.settings.local;
       },
+      isSettingsDrawerOpen: (state) => state.isSettingsDrawerOpen,
     }),
     settingsDialogTwoPages: function () {
       return this.settingsScope.twoPages;
@@ -80,12 +81,16 @@ export default {
       return label;
     },
   },
+  mounted() {
+    this.$emit("panelMounted");
+  },
   methods: {
     ...mapActions("reader", [
       "settingsChangedGlobal",
       "settingsChangedLocal",
       "settingsDialogClear",
     ]),
+    ...mapMutations("reader", ["setIsSettingsDrawerOpen"]),
     settingsDialogChanged: function (data) {
       if (this.isSettingsDialogGlobalMode) {
         this.settingsChangedGlobal(data);

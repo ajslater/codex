@@ -1,7 +1,6 @@
 <template>
   <v-app>
     <router-view />
-    <SettingsDrawer />
     <NotifySnackBar />
   </v-app>
 </template>
@@ -10,12 +9,10 @@
 import { mapActions, mapState } from "vuex";
 
 import NotifySnackBar from "@/components/notify";
-import SettingsDrawer from "@/components/settings-drawer";
 
 export default {
   name: "App",
   components: {
-    SettingsDrawer,
     NotifySnackBar,
   },
   computed: {

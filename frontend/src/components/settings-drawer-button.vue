@@ -1,12 +1,11 @@
 <template>
-  <v-btn icon ripple title="Settings" @click.stop="toggleSettingsDrawerOpen">
+  <v-btn icon ripple title="Settings" v-on="$listeners">
     <v-icon>{{ mdiMenu }}</v-icon>
   </v-btn>
 </template>
 
 <script>
 import { mdiMenu } from "@mdi/js";
-import { mapMutations } from "vuex";
 
 export default {
   name: "SettingsDrawerButton",
@@ -14,9 +13,6 @@ export default {
     return {
       mdiMenu,
     };
-  },
-  methods: {
-    ...mapMutations(["toggleSettingsDrawerOpen"]),
   },
 };
 </script>

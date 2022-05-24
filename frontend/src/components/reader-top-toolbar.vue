@@ -22,14 +22,17 @@
           <v-icon>{{ mdiDownload }}</v-icon>
         </v-btn>
       </a>
-      <SettingsDrawerButton id="settingsButton" />
+      <SettingsDrawerButton
+        id="settingsButton"
+        @click.stop="toggleSettingsDrawerOpen"
+      />
     </v-toolbar-items>
   </v-toolbar>
 </template>
 
 <script>
 import { mdiDownload } from "@mdi/js";
-import { mapActions, mapGetters, mapState } from "vuex";
+import { mapActions, mapGetters, mapMutations, mapState } from "vuex";
 
 import { getComicPageSource } from "@/api/v2/comic";
 import CHOICES from "@/choices";
@@ -83,6 +86,7 @@ export default {
   },
   methods: {
     ...mapActions("reader", ["settingsChangedLocal"]),
+    ...mapMutations("reader", ["toggleSettingsDrawerOpen"]),
     _keyListener: function (event) {
       event.stopPropagation();
       switch (event.key) {

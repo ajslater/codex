@@ -35,6 +35,7 @@ const state = {
     local: JSON.parse(JSON.stringify(NULL_READER_SETTINGS)),
     timestamp: Date.now(),
   },
+  isSettingsDrawerOpen: false,
   routes: {
     prev: undefined,
     next: undefined,
@@ -121,6 +122,12 @@ const mutations = {
   },
   setBookChange(state, val) {
     state.bookChange = val;
+  },
+  setIsSettingsDrawerOpen(state, value) {
+    state.isSettingsDrawerOpen = value;
+  },
+  toggleSettingsDrawerOpen(state) {
+    state.isSettingsDrawerOpen = !state.isSettingsDrawerOpen;
   },
 };
 

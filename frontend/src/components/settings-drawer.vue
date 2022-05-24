@@ -7,8 +7,14 @@
     temporary
   >
     <v-list dense>
-      <BrowserSettingsPanel v-if="isOpenToSee && $route.name === 'browser'" />
-      <ReaderSettingsPanel v-if="isOpenToSee && $route.name === 'reader'" />
+      <component
+        :is="panel"
+        v-if="isOpenToSee"
+        ref="panel"
+        @panelMounted="panelMounted"
+      />
+      <v-divider />
+      <AdminMenu />
       <v-divider />
       <AuthLoginDialog />
       <VersionsFooter />
@@ -17,8 +23,9 @@
 </template>
 
 <script>
-import { mapGetters, mapMutations, mapState } from "vuex";
+import { mapGetters } from "vuex";
 
+import AdminMenu from "@/components/admin-menu";
 import AuthLoginDialog from "@/components/auth-login-dialog";
 import BrowserSettingsPanel from "@/components/browser-settings-panel";
 import ReaderSettingsPanel from "@/components/reader-settings-panel";
@@ -31,23 +38,33 @@ export default {
     BrowserSettingsPanel,
     ReaderSettingsPanel,
     VersionsFooter,
+    AdminMenu,
+  },
+  props: {
+    panel: { type: Object, required: true },
+  },
+  data() {
+    return {
+      panelReady: false,
+    };
   },
   computed: {
     ...mapGetters("auth", ["isLoggedIn", "isOpenToSee"]),
-    ...mapState({
-      isSettingsDrawerOpen: (state) => state.isSettingsDrawerOpen,
-    }),
     settingsDrawerOpen: {
       get() {
-        return this.isSettingsDrawerOpen;
+        return this.panelReady && this.$refs["panel"]
+          ? this.$refs["panel"].isSettingsDrawerOpen
+          : false;
       },
       set(value) {
-        this.setIsSettingsDrawerOpen(value);
+        this.$refs["panel"].setIsSettingsDrawerOpen(value);
       },
     },
   },
   methods: {
-    ...mapMutations(["setIsSettingsDrawerOpen"]),
+    panelMounted: function () {
+      this.panelReady = true;
+    },
   },
 };
 </script>

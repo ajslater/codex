@@ -1,6 +1,6 @@
 <template>
-  <div v-if="isOpenToSee && $route.name === 'browser'">
-    <div v-if="isOpenToSee" id="browserSettings">
+  <div>
+    <div id="browserSettings">
       <h3>Browser Settings</h3>
       <div class="settingsGroupCaption text-caption">
         Show these groups when navigating the browse hierarchy.
@@ -26,22 +26,15 @@
         >
       </v-list-item-content>
     </v-list-item>
-    <v-divider />
-    <AdminMenu />
   </div>
 </template>
 
 <script>
 import { mdiOpenInNew } from "@mdi/js";
-import { mapActions, mapGetters, mapState } from "vuex";
-
-import AdminMenu from "@/components/admin-menu";
+import { mapActions, mapMutations, mapState } from "vuex";
 
 export default {
   name: "BrowserSettingsDialog",
-  components: {
-    AdminMenu,
-  },
   data() {
     return {
       mdiOpenInNew,
@@ -52,11 +45,15 @@ export default {
     ...mapState("browser", {
       groupChoices: (state) => state.formChoices.settingsGroup,
       showSettings: (state) => state.settings.show,
+      isSettingsDrawerOpen: (state) => state.isSettingsDrawerOpen,
     }),
-    ...mapGetters("auth", ["isOpenToSee"]),
+  },
+  mounted() {
+    this.$emit("panelMounted");
   },
   methods: {
     ...mapActions("browser", ["settingChanged"]),
+    ...mapMutations("browser", ["setIsSettingsDrawerOpen"]),
     setShow: function (group, value) {
       const data = { show: { [group]: value === true } };
       this.settingChanged(data);
