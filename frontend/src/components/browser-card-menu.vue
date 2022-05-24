@@ -24,7 +24,7 @@
 
 <script>
 import { mdiDotsVertical } from "@mdi/js";
-import { mapState } from "vuex";
+import { mapActions, mapState } from "vuex";
 
 import { getDownloadURL } from "@/api/v2/comic";
 
@@ -80,8 +80,9 @@ export default {
     },
   },
   methods: {
+    ...mapActions("browser", ["markedRead"]),
     toggleRead: function () {
-      this.$store.dispatch("browser/markedRead", {
+      this.markedRead({
         group: this.group,
         pk: this.pk,
         finished: !this.finished,

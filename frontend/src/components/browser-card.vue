@@ -173,6 +173,7 @@ export default {
   },
   beforeCreate: function () {
     // Fixes empty order cache on first load
+    // can't use computed value.
     this.orderByCache = this.$store.state.browser.settings.orderBy;
   },
 };

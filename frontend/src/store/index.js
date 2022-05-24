@@ -23,6 +23,9 @@ const mutations = {
   setIsSettingsDrawerOpen(state, value) {
     state.isSettingsDrawerOpen = value;
   },
+  toggleSettingsDrawerOpen(state) {
+    state.isSettingsDrawerOpen = !state.isSettingsDrawerOpen;
+  },
 };
 
 const actions = {};

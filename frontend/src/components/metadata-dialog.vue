@@ -204,7 +204,7 @@
 <script>
 import { mdiDownload, mdiEye, mdiEyeOff, mdiTagOutline } from "@mdi/js";
 import humanize from "humanize";
-import { mapGetters, mapState } from "vuex";
+import { mapActions, mapGetters, mapState } from "vuex";
 
 import { getDownloadURL } from "@/api/v2/comic";
 import BookCover from "@/components/book-cover";
@@ -315,13 +315,14 @@ export default {
       if (to) {
         this.dialogOpened();
       } else {
-        this.dialogClosed();
+        this.metadataClosed();
       }
     },
   },
   methods: {
+    ...mapActions("metadata", ["metadataClosed", "metadataOpened"]),
     dialogOpened: function () {
-      this.$store.dispatch("metadata/metadataOpened", {
+      this.metadataOpened({
         group: this.group,
         pk: this.pk,
       });
@@ -332,9 +333,6 @@ export default {
       this.estimatedMS =
         Math.max(MIN_SECS, this.children / CHILDREN_PER_SECOND) * 1000;
       this.updateProgress();
-    },
-    dialogClosed: function () {
-      this.$store.dispatch("metadata/metadataClosed");
     },
     updateProgress: function () {
       const elapsed = Date.now() - this.startTime;

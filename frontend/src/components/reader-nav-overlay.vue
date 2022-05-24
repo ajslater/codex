@@ -1,6 +1,7 @@
 <template>
   <div id="navColumns">
     <v-navigation-drawer
+      v-if="!routePrevPage && routePrevBook"
       id="prevBookDrawer"
       class="bookChangeDrawer"
       absolute
@@ -8,22 +9,19 @@
       temporarary
       :value="bookChangePrev"
     >
-      <router-link
-        class="navLink"
-        :to="{ name: 'reader', params: routes.prevBook }"
-      >
+      <router-link class="navLink" :to="routePrevBook">
         <v-icon class="bookChangeIcon flipped" x-large>{{
           mdiBookArrowRight
         }}</v-icon>
       </router-link>
     </v-navigation-drawer>
     <section id="leftColumn" class="navColumn">
-      <router-link
-        v-if="routePrev"
-        class="navLink"
-        :to="{ name: 'reader', params: routePrev }"
+      <router-link v-if="routePrevPage" class="navLink" :to="routePrevPage" />
+      <div
+        v-else-if="routes.prevBook"
+        class="drawerButton"
+        @click="setBookChangeFlag('prev')"
       />
-      <div v-else class="drawerButton" @click="setBookChangeFlag('prev')" />
     </section>
     <section
       id="middleColumn"
@@ -31,14 +29,15 @@
       @click="setBookChangeFlag(null)"
     />
     <section id="rightColumn" class="navColumn">
-      <router-link
-        v-if="routeNext"
-        class="navLink"
-        :to="{ name: 'reader', params: routeNext }"
+      <router-link v-if="routeNextPage" class="navLink" :to="routeNextPage" />
+      <div
+        v-else-if="routes.nextBook"
+        class="drawerButton"
+        @click="setBookChangeFlag('next')"
       />
-      <div v-else class="drawerButton" @click="setBookChangeFlag('next')" />
     </section>
     <v-navigation-drawer
+      v-if="!routeNextPage && routeNextBook"
       id="nextBookDrawer"
       class="bookChangeDrawer"
       absolute
@@ -46,10 +45,7 @@
       temporarary
       :value="bookChangeNext"
     >
-      <router-link
-        class="navLink"
-        :to="{ name: 'reader', params: routes.nextBook }"
-      >
+      <router-link class="navLink" :to="routeNextBook">
         <v-icon class="bookChangeIcon" x-large>{{ mdiBookArrowRight }}</v-icon>
       </router-link>
     </v-navigation-drawer>
@@ -70,16 +66,21 @@ export default {
   computed: {
     ...mapState("reader", {
       routes: (state) => state.routes,
-      bookChange: (state) => state.bookChange,
       bookChangePrev: (state) => state.bookChange === PREV,
       bookChangeNext: (state) => state.bookChange === NEXT,
-      routePrev: function (state) {
-        return this.routeCompute(state, PREV);
-      },
-      routeNext: function (state) {
-        return this.routeCompute(state, NEXT);
-      },
     }),
+    routePrevPage: function () {
+      return this.toRoutePage(this.routes.prev);
+    },
+    routeNextPage: function () {
+      return this.toRoutePage(this.routes.next);
+    },
+    routePrevBook: function () {
+      return this.toRoute(this.routes.prevBook);
+    },
+    routeNextBook: function () {
+      return this.toRoute(this.routes.nextBook);
+    },
   },
   mounted() {
     // Keyboard Shortcuts
@@ -90,12 +91,19 @@ export default {
   },
   methods: {
     ...mapActions("reader", ["routeToDirection", "setBookChangeFlag"]),
-    routeCompute(state, direction) {
-      return state.routes &&
-        state.routes[direction] &&
-        state.routes[direction].pk == this.$route.params.pk
-        ? state.routes[direction]
-        : false;
+    toRoute: function (params) {
+      if (!params) {
+        return false;
+      }
+      return { name: "reader", params };
+    },
+    toRoutePage(params) {
+      // TODO make backend not serve prevroutes to book changes
+      // can eliminate this method
+      if (!params || params.pk !== Number(this.$route.params.pk)) {
+        return false;
+      }
+      return this.toRoute(params);
     },
     _keyListener: function (event) {
       switch (event.key) {

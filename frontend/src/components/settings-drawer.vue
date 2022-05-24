@@ -1,7 +1,7 @@
 <template>
   <v-navigation-drawer
     id="settingsDrawer"
-    v-model="isSettingsDrawerOpen"
+    v-model="settingsDrawerOpen"
     app
     right
     temporary
@@ -17,7 +17,7 @@
 </template>
 
 <script>
-import { mapGetters } from "vuex";
+import { mapGetters, mapMutations, mapState } from "vuex";
 
 import AuthLoginDialog from "@/components/auth-login-dialog";
 import BrowserSettingsPanel from "@/components/browser-settings-panel";
@@ -34,14 +34,20 @@ export default {
   },
   computed: {
     ...mapGetters("auth", ["isLoggedIn", "isOpenToSee"]),
-    isSettingsDrawerOpen: {
+    ...mapState({
+      isSettingsDrawerOpen: (state) => state.isSettingsDrawerOpen,
+    }),
+    settingsDrawerOpen: {
       get() {
-        return this.$store.state.isSettingsDrawerOpen;
+        return this.isSettingsDrawerOpen;
       },
       set(value) {
-        this.$store.commit("setIsSettingsDrawerOpen", value);
+        this.setIsSettingsDrawerOpen(value);
       },
     },
+  },
+  methods: {
+    ...mapMutations(["setIsSettingsDrawerOpen"]),
   },
 };
 </script>

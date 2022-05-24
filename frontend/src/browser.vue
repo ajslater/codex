@@ -10,7 +10,7 @@
 </template>
 
 <script>
-import { mapGetters, mapState } from "vuex";
+import { mapActions, mapGetters, mapState } from "vuex";
 
 import BrowserFilterToolbar from "@/components/browser-filter-toolbar";
 import BrowserMain from "@/components/browser-main";
@@ -33,7 +33,9 @@ export default {
   },
   watch: {
     $route: function () {
-      this.$store.dispatch("browser/browserPageStale");
+      if (this.isOpenToSee) {
+        this.browserPageStale();
+      }
     },
     user: function () {
       this.opened();
@@ -46,9 +48,10 @@ export default {
     this.opened();
   },
   methods: {
+    ...mapActions("browser", ["browserPageStale", "browserOpened"]),
     opened: function () {
       if (this.isOpenToSee) {
-        this.$store.dispatch("browser/browserOpened");
+        this.browserOpened();
       }
     },
   },

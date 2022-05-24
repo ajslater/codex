@@ -50,7 +50,7 @@
 
 <script>
 import { mdiCloseCircle } from "@mdi/js";
-import { mapGetters, mapState } from "vuex";
+import { mapActions, mapGetters, mapMutations, mapState } from "vuex";
 
 import FilterSubMenu from "@/components/filter-sub-menu";
 import { NUMERIC_FILTERS } from "@/store/modules/browser";
@@ -115,23 +115,25 @@ export default {
           console.warn(`bookmarkFilter was ${value}. Set to 'ALL'`);
         }
         const data = { filters: { bookmark } };
-        this.$store.dispatch("browser/settingChanged", data);
+        this.settingChanged(data);
       },
     },
   },
   methods: {
+    ...mapActions("browser", ["filtersCleared", "settingChanged"]),
+    ...mapMutations("browser", ["setFilterMode"]),
     camelToSnake: function (name) {
       // name is used as the submission value to the API as well async function (arguments) {
       // The widget translates snake_case to Cap Case.
       return name.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
     },
     clearFilters: function () {
-      this.$store.dispatch("browser/filtersCleared");
+      this.filtersCleared();
     },
     closeFilterSelect: function () {
       // On sub-menu click, close the menu and reset the filter mode.
       this.$refs.filterSelect.blur();
-      this.$store.commit("browser/setFilterMode", "base");
+      this.setFilterMode("base");
     },
   },
 };

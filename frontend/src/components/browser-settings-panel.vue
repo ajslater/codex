@@ -8,7 +8,7 @@
       <v-checkbox
         v-for="choice of groupChoices"
         :key="choice.text"
-        :input-value="getShow(choice.value)"
+        :input-value="showSettings[choice.value]"
         :label="`Show ${choice.text}`"
         dense
         class="settingsCheckbox"
@@ -33,7 +33,7 @@
 
 <script>
 import { mdiOpenInNew } from "@mdi/js";
-import { mapGetters, mapState } from "vuex";
+import { mapActions, mapGetters, mapState } from "vuex";
 
 import AdminMenu from "@/components/admin-menu";
 
@@ -56,12 +56,10 @@ export default {
     ...mapGetters("auth", ["isOpenToSee"]),
   },
   methods: {
-    getShow: function (group) {
-      return this.showSettings[group];
-    },
+    ...mapActions("browser", ["settingChanged"]),
     setShow: function (group, value) {
       const data = { show: { [group]: value === true } };
-      this.$store.dispatch("browser/settingChanged", data);
+      this.settingChanged(data);
     },
   },
 };

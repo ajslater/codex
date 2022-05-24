@@ -29,7 +29,7 @@
 
 <script>
 import { mdiDownload } from "@mdi/js";
-import { mapGetters, mapState } from "vuex";
+import { mapActions, mapGetters, mapState } from "vuex";
 
 import { getComicPageSource } from "@/api/v2/comic";
 import CHOICES from "@/choices";
@@ -82,6 +82,7 @@ export default {
     window.removeEventListener("keyup", this._keyListener);
   },
   methods: {
+    ...mapActions("reader", ["settingsChangedLocal"]),
     _keyListener: function (event) {
       event.stopPropagation();
       switch (event.key) {
@@ -111,9 +112,6 @@ export default {
           break;
         // No default
       }
-    },
-    settingsChangedLocal: function (data) {
-      this.$store.dispatch("reader/settingsChangedLocal", data);
     },
     openMetadata: function () {
       this.$refs.metadataDialog.dialog = true;

@@ -43,7 +43,7 @@
 </template>
 //
 <script>
-import { mapState } from "vuex";
+import { mapActions, mapState } from "vuex";
 
 import ReaderKeyboardShortcutsPanel from "@/components/reader-keyboard-shortcuts-panel";
 
@@ -81,15 +81,17 @@ export default {
     },
   },
   methods: {
+    ...mapActions("reader", [
+      "settingsChangedGlobal",
+      "settingsChangedLocal",
+      "settingsDialogClear",
+    ]),
     settingsDialogChanged: function (data) {
       if (this.isSettingsDialogGlobalMode) {
-        this.$store.dispatch("reader/settingsChangedGlobal", data);
+        this.settingsChangedGlobal(data);
       } else {
-        this.$store.dispatch("reader/settingsChangedLocal", data);
+        this.settingsChangedLocal(data);
       }
-    },
-    settingsDialogClear: function () {
-      this.$store.dispatch("reader/settingsDialogClear");
     },
   },
 };
