@@ -18,7 +18,7 @@
     <section id="leftColumn" class="navColumn">
       <router-link v-if="routePrevPage" class="navLink" :to="routePrevPage" />
       <div
-        v-else-if="routes.prevBook"
+        v-else-if="routePrevBook"
         class="drawerButton"
         @click="setBookChangeFlag('prev')"
       />
@@ -31,7 +31,7 @@
     <section id="rightColumn" class="navColumn">
       <router-link v-if="routeNextPage" class="navLink" :to="routeNextPage" />
       <div
-        v-else-if="routes.nextBook"
+        v-else-if="routeNextBook"
         class="drawerButton"
         @click="setBookChangeFlag('next')"
       />
@@ -70,16 +70,16 @@ export default {
       bookChangeNext: (state) => state.bookChange === NEXT,
     }),
     routePrevPage: function () {
-      return this.toRoutePage(this.routes.prev);
+      return this.toRoute("prev");
     },
     routeNextPage: function () {
-      return this.toRoutePage(this.routes.next);
+      return this.toRoute("next");
     },
     routePrevBook: function () {
-      return this.toRoute(this.routes.prevBook);
+      return this.toRoute("prevBook");
     },
     routeNextBook: function () {
-      return this.toRoute(this.routes.nextBook);
+      return this.toRoute("nextBook");
     },
   },
   mounted() {
@@ -91,19 +91,12 @@ export default {
   },
   methods: {
     ...mapActions("reader", ["routeToDirection", "setBookChangeFlag"]),
-    toRoute: function (params) {
+    toRoute: function (name) {
+      const params = this.routes[name];
       if (!params) {
         return false;
       }
       return { name: "reader", params };
-    },
-    toRoutePage(params) {
-      // TODO make backend not serve prevroutes to book changes
-      // can eliminate this method
-      if (!params || params.pk !== Number(this.$route.params.pk)) {
-        return false;
-      }
-      return this.toRoute(params);
     },
     _keyListener: function (event) {
       switch (event.key) {

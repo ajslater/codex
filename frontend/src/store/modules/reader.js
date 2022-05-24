@@ -69,22 +69,13 @@ const getters = {
 
 // mutation helpers
 //
-const getRouteParams = (
-  condition,
-  routeParams,
-  increment,
-  comicRouteParams
-) => {
-  let params;
-  if (condition) {
-    params = {
-      pk: Number(routeParams.pk),
-      page: Number(routeParams.page) + increment,
-    };
-  } else if (comicRouteParams) {
-    params = comicRouteParams;
-  }
-  return params;
+const getRouteParams = (condition, routeParams, increment) => {
+  return condition
+    ? {
+        pk: Number(routeParams.pk),
+        page: Number(routeParams.page) + increment,
+      }
+    : false;
 };
 
 const mutations = {
@@ -115,12 +106,7 @@ const mutations = {
     const routeParams = router.currentRoute.params;
     const condition = Number(routeParams.page) > 0;
     const increment = -1;
-    state.routes.prev = getRouteParams(
-      condition,
-      routeParams,
-      increment,
-      state.routes.prevBook
-    );
+    state.routes.prev = getRouteParams(condition, routeParams, increment);
   },
   setNextPage(state) {
     const routeParams = router.currentRoute.params;
@@ -128,12 +114,7 @@ const mutations = {
     const increment = twoPages ? 2 : 1;
     const condition =
       Number(routeParams.page) + increment <= state.comic.maxPage;
-    state.routes.next = getRouteParams(
-      condition,
-      routeParams,
-      increment,
-      state.routes.nextBook
-    );
+    state.routes.next = getRouteParams(condition, routeParams, increment);
   },
   setTimestamp(state) {
     state.timestamp = Date.now();
@@ -145,9 +126,7 @@ const mutations = {
 
 // action
 const isRouteBookChange = (state, direction) =>
-  state.routes &&
-  state.routes[direction] &&
-  state.routes[direction].pk !== Number(router.currentRoute.params.pk);
+  state.routes && !state.routes[direction] && state.routes[direction + "Book"];
 
 const actions = {
   routerPush(_, route) {
