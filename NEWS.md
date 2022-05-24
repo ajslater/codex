@@ -10,6 +10,7 @@
 - Fixes
 
   - Removed vertical scrollbars when Reader shrunk to height.
+  - Don't disturb the view when top group changes from higher to lower.
 
 ## v0.10.4
 
