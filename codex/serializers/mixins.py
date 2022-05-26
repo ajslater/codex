@@ -13,8 +13,6 @@ UNIONFIX_PREFIX = "unionfix_"
 class BrowserAggregateSerializerMixin(Serializer):
     """Mixin for browser & metadata serializers."""
 
-    # TODO unionfix loop superclass
-
     # Aggregate Annotations
     child_count = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "child_count")
 
@@ -28,3 +26,15 @@ class BrowserAggregateSerializerMixin(Serializer):
         coerce_to_string=False,
         source=UNIONFIX_PREFIX + "progress",
     )
+
+
+BROWSER_AGGREGATE_ORDERED_UNIONFIX_VALUES_MAP = dict(
+    # A map for ordering the metadata values() properly with the UNIONFIX_PREFIX
+    # Fixes Django's requirement that unions have the same field order, but Django
+    # provides no mechanism to actually order fields.
+    # used in views/metadata
+    (
+        (UNIONFIX_PREFIX + field, field)
+        for field in sorted(BrowserAggregateSerializerMixin().get_fields())
+    )
+)
