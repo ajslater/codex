@@ -1,5 +1,11 @@
 # 📰 Codex News
 
+## v0.10.6a0
+
+- Features
+
+  - Browser tries to scroll to closed book to keep your place.
+
 ## v0.10.5
 
 - Features

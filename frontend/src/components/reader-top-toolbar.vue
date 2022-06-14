@@ -64,9 +64,16 @@ export default {
     }),
     closeBookRoute: function () {
       // Choose the best route
-      const params =
-        this.readerBrowserRoute || window.lastRoute || CHOICES.browser.route;
-      return { name: "browser", params };
+      const route = {
+        name: "browser",
+      };
+      if (this.readerBrowserRoute) {
+        route.params = this.readerBrowserRoute;
+        route.hash = `#card-${this.$route.params.pk}`;
+      } else {
+        route.params = window.lastRoute || CHOICES.browser.route;
+      }
+      return route;
     },
     pageSrc: function () {
       const routeParams = { ...this.$router.currentRoute.params };

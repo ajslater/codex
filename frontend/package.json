@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "0.10.5",
+  "version": "0.10.6-a0",
   "private": true,
   "description": "ui for codex api",
   "scripts": {
@@ -35,7 +35,7 @@
     "@babel/core": "^7.16.7",
     "@babel/eslint-parser": "^7.16",
     "@babel/plugin-transform-modules-commonjs": "^7.16.8",
-    "@fsouza/prettierd": "^0.20.0",
+    "@fsouza/prettierd": "^0.21.1",
     "@mdi/font": "^6.4.95",
     "@mdi/js": "^6.4.95",
     "@vue/cli": "^5.0.0-rc.1",
