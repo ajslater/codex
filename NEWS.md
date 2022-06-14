@@ -6,6 +6,10 @@
 
   - Browser tries to scroll to closed book to keep your place.
 
+- Fixes
+
+  - Fix missing click area on browser cards.
+
 ## v0.10.5
 
 - Features

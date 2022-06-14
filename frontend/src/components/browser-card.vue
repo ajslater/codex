@@ -251,7 +251,7 @@ export default {
   opacity: 1;
 }
 .cardCoverOverlayTopMiddleRow {
-  height: 70%;
+  height: 85%;
   display: flex;
   align-items: center;
   justify-content: center;
