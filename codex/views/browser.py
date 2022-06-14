@@ -414,6 +414,8 @@ class BrowserView(BrowserMetadataBaseView):
             self.top_group_changed
             and nav_group == "r"
             and lowest_group != "r"
+            and self.old_top_group
+            and top_group
             and self._GROUP_INDEX_MAP[self.old_top_group]
             > self._GROUP_INDEX_MAP[top_group]
         ):
