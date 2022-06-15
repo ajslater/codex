@@ -4,7 +4,7 @@ build-backend = ["poetry.core.masonry.api"]
 
 [tool.poetry]
 name = "codex"
-version = "0.10.5"
+version = "0.10.6"
 description = "A comic archive web server."
 license = "GPL-2.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
@@ -73,7 +73,7 @@ flake8-bugbear = "^22.1"
 flake8-docstrings = "^1.5"
 memory-profiler = "^0.60.0"
 nplusone = "^1.0.0"
-pep8-naming = "^0.12"
+pep8-naming = "^0.13"
 psutil = "^5.9.0"
 pushover-simple-cli = "^1.1.2"
 pynvim = "^0.4"

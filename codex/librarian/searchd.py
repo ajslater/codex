@@ -7,7 +7,6 @@ from multiprocessing import Process
 from django.core.management import call_command
 from django.utils import timezone
 
-from codex.darwin_mp import force_darwin_multiprocessing_fork
 from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
     SearchIndexRebuildIfDBChangedTask,
@@ -106,8 +105,3 @@ class SearchIndexer(QueuedThread):
             update_search_index(rebuild=task.rebuild)
         else:
             LOG.warning(f"Bad task sent to search index thread: {task}")
-
-    def run(self):  # TODO maybe redundant now
-        """Run the multiprocessing start method change for haystack update_index."""
-        force_darwin_multiprocessing_fork()
-        super().run()

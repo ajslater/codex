@@ -1,5 +1,16 @@
 # 📰 Codex News
 
+## v0.10.6a0
+
+- Features
+
+  - Browser tries to scroll to closed book to keep your place.
+
+- Fixes
+
+  - Fixed missing lower click area on browser cards.
+  - Fixed session bookmark interfering with logged in user bookmark.
+
 ## v0.10.5
 
 - Features

@@ -28,12 +28,11 @@ from codex.models import (
     Volume,
 )
 from codex.serializers.browser import (
-    BrowserCardSerializer,
+    BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP,
     BrowserOpenedSerializer,
     BrowserPageSerializer,
     BrowserSettingsSerializer,
 )
-from codex.serializers.mixins import UNIONFIX_PREFIX
 from codex.settings.logging import get_logger
 from codex.version import PACKAGE_NAME, VERSION, get_latest_version
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
@@ -54,14 +53,6 @@ class BrowserView(BrowserMetadataBaseView):
     _NAV_GROUPS = "rpisv"
     _MAX_OBJ_PER_PAGE = 100
     _ORPHANS = int(_MAX_OBJ_PER_PAGE / 20)
-    # TODO move to BrowserCardSerializer?
-    # TODO doesn't need snakecase
-    _BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP = dict(
-        (
-            (UNIONFIX_PREFIX + field, F(field))
-            for field in sorted(BrowserCardSerializer().get_fields())
-        )
-    )
     _NONE_DECIMALFIELD = Value(None, DecimalField())
     _EMPTY_CHARFIELD = Value("", CharField())
     _ZERO_INTEGERFIELD = Value(0, IntegerField())
@@ -199,10 +190,8 @@ class BrowserView(BrowserMetadataBaseView):
 
         # Create ordered annotated values to make union align columns correctly because
         # django lacks a way to specify values column order.
-        folder_list = folder_list.values(
-            **self._BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP
-        )
-        comic_list = comic_list.values(**self._BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP)
+        folder_list = folder_list.values(**BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP)
+        comic_list = comic_list.values(**BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP)
 
         obj_list = folder_list.union(comic_list)
         return obj_list
@@ -220,7 +209,7 @@ class BrowserView(BrowserMetadataBaseView):
 
         # Convert to a dict because otherwise the folder/comic union blows
         # up the paginator. Use the same annotations for the serializer.
-        obj_list = obj_list.values(**self._BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP)
+        obj_list = obj_list.values(**BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP)
 
         return obj_list
 
@@ -425,6 +414,8 @@ class BrowserView(BrowserMetadataBaseView):
             self.top_group_changed
             and nav_group == "r"
             and lowest_group != "r"
+            and self.old_top_group
+            and top_group
             and self._GROUP_INDEX_MAP[self.old_top_group]
             > self._GROUP_INDEX_MAP[top_group]
         ):

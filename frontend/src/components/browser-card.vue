@@ -1,5 +1,9 @@
 <template>
-  <v-lazy transition="scale-transition" class="browserTile">
+  <v-lazy
+    :id="'card-' + item.pk"
+    transition="scale-transition"
+    class="browserTile"
+  >
     <div class="browserTileLazyWrapper">
       <div class="browserCardCoverWrapper" @click="doubleTapHovered = true">
         <BookCover
@@ -176,6 +180,36 @@ export default {
     // can't use computed value.
     this.orderByCache = this.$store.state.browser.settings.orderBy;
   },
+  mounted() {
+    this.scrollToMe();
+  },
+  methods: {
+    scrollToMe: function () {
+      if (
+        !this.$route.hash ||
+        this.$route.hash.split("-")[1] !== String(this.item.pk)
+      ) {
+        return;
+      }
+      const el = this.$el;
+      if (!el) {
+        console.warn("No element found to scroll to!");
+        return;
+      }
+      setTimeout(
+        function () {
+          // This works while nextTick() does not.
+          el.scrollIntoView();
+          // Adjust for toolbars
+          const header = document.querySelector("#browserHeader");
+          const verticalOffset = (header.offsetHeight + 16) * -1;
+          window.scrollBy(0, verticalOffset);
+        },
+        // A little hacky delay makes it work even more frequently.
+        100
+      );
+    },
+  },
 };
 </script>
 
@@ -217,7 +251,7 @@ export default {
   opacity: 1;
 }
 .cardCoverOverlayTopMiddleRow {
-  height: 70%;
+  height: 85%;
   display: flex;
   align-items: center;
   justify-content: center;
