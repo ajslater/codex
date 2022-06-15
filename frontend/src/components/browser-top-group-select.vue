@@ -19,7 +19,7 @@
 </template>
 
 <script>
-import { mapGetters, mapState } from "vuex";
+import { mapActions, mapGetters, mapState } from "vuex";
 
 export default {
   name: "BrowserRootGroupSelect",
@@ -45,11 +45,14 @@ export default {
         ) {
           this.$router.push({ params: { group: value, pk: 0 } });
         }
-        // This must happen also after the pushe
+        // This must happen after the push
         const settings = { topGroup: value };
-        this.$store.dispatch("browser/settingChanged", settings);
+        this.settingChanged(settings);
       },
     },
+  },
+  methods: {
+    ...mapActions("browser", ["settingChanged"]),
   },
 };
 </script>

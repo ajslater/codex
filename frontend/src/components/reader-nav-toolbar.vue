@@ -22,7 +22,7 @@
 </template>
 
 <script>
-import { mapState } from "vuex";
+import { mapActions, mapState } from "vuex";
 
 import ReaderNavButton from "@/components/reader-nav-button";
 
@@ -37,10 +37,7 @@ export default {
     }),
   },
   methods: {
-    routeToPage: function (page) {
-      const params = { pk: Number(this.$route.params.pk), page };
-      this.$store.dispatch("reader/routeTo", params);
-    },
+    ...mapActions("reader", ["routeToPage"]),
   },
 };
 </script>

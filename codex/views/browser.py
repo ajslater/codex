@@ -28,12 +28,11 @@ from codex.models import (
     Volume,
 )
 from codex.serializers.browser import (
-    BrowserCardSerializer,
+    BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP,
     BrowserOpenedSerializer,
     BrowserPageSerializer,
     BrowserSettingsSerializer,
 )
-from codex.serializers.mixins import UNIONFIX_PREFIX
 from codex.settings.logging import get_logger
 from codex.version import PACKAGE_NAME, VERSION, get_latest_version
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
@@ -54,14 +53,6 @@ class BrowserView(BrowserMetadataBaseView):
     _NAV_GROUPS = "rpisv"
     _MAX_OBJ_PER_PAGE = 100
     _ORPHANS = int(_MAX_OBJ_PER_PAGE / 20)
-    # TODO move to BrowserCardSerializer?
-    # TODO doesn't need snakecase
-    _BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP = dict(
-        (
-            (UNIONFIX_PREFIX + field, F(field))
-            for field in sorted(BrowserCardSerializer().get_fields())
-        )
-    )
     _NONE_DECIMALFIELD = Value(None, DecimalField())
     _EMPTY_CHARFIELD = Value("", CharField())
     _ZERO_INTEGERFIELD = Value(0, IntegerField())
@@ -80,6 +71,13 @@ class BrowserView(BrowserMetadataBaseView):
         "params": BrowserMetadataBaseView.SESSION_DEFAULTS[
             BrowserMetadataBaseView.BROWSER_KEY
         ]["route"],
+    }
+    _GROUP_INDEX_MAP = {
+        "p": 0,
+        "i": 1,
+        "s": 2,
+        "v": 3,
+        "c": 4,
     }
 
     def _add_annotations(self, queryset, model, autoquery_pk):
@@ -192,10 +190,8 @@ class BrowserView(BrowserMetadataBaseView):
 
         # Create ordered annotated values to make union align columns correctly because
         # django lacks a way to specify values column order.
-        folder_list = folder_list.values(
-            **self._BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP
-        )
-        comic_list = comic_list.values(**self._BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP)
+        folder_list = folder_list.values(**BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP)
+        comic_list = comic_list.values(**BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP)
 
         obj_list = folder_list.union(comic_list)
         return obj_list
@@ -213,7 +209,7 @@ class BrowserView(BrowserMetadataBaseView):
 
         # Convert to a dict because otherwise the folder/comic union blows
         # up the paginator. Use the same annotations for the serializer.
-        obj_list = obj_list.values(**self._BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP)
+        obj_list = obj_list.values(**BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP)
 
         return obj_list
 
@@ -415,16 +411,30 @@ class BrowserView(BrowserMetadataBaseView):
             self._raise_redirect({}, reason)
         lowest_group = self.valid_nav_groups[-1]
         if (
-            self.autoquery_first or (self.top_group_changed and nav_group == "r")
-        ) and nav_group != lowest_group:
-            # if not at the lowest issues showing nav group and its the first aq
-            # or the top group changed away from root.
+            self.top_group_changed
+            and nav_group == "r"
+            and lowest_group != "r"
+            and self.old_top_group
+            and top_group
+            and self._GROUP_INDEX_MAP[self.old_top_group]
+            > self._GROUP_INDEX_MAP[top_group]
+        ):
+            # if the top group changed and we're at the root and the new top group is
+            # lower than change to the proper nav group.
+            nav_group_from_old_top_group = lowest_group
+            for group in self.valid_nav_groups:
+                if group == self.old_top_group:
+                    break
+                nav_group_from_old_top_group = group
+                # keep the top group the same
+            route_changes = {"group": nav_group_from_old_top_group}
+            reason = f"changed top group: {nav_group_from_old_top_group} replaces root"
+            self.save_params_to_session()
+            self._raise_redirect(route_changes, reason)
+        if self.autoquery_first:
             route_changes = {"group": lowest_group}
-            if self.autoquery_first:
-                # params change handled in _apply_put, maybe doesn't need redirect.
-                reason = "first autoquery: show issues view"
-            else:
-                reason = f"changed top group so group {lowest_group} shows issues now"
+            # params change handled in _apply_put, maybe doesn't need redirect.
+            reason = "first autoquery: show issues view"
             self.save_params_to_session()
             self._raise_redirect(route_changes, reason)
 
@@ -473,6 +483,7 @@ class BrowserView(BrowserMetadataBaseView):
                 self.autoquery_first = True
             elif key == "top_group" and self.params.get(key) != value:
                 self.top_group_changed = True
+                self.old_top_group = self.params.get(key)
             self.params[key] = value
         if self.autoquery_first:
             self.params["order_by"] = "search_score"

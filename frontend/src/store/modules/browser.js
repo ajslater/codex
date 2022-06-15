@@ -58,6 +58,7 @@ const state = {
     orderReverse: undefined,
     show: SETTINGS_SHOW_DEFAULTS,
   },
+  isSettingsDrawerOpen: false,
   formChoices: {
     bookmark: CHOICES.browser.bookmarkFilter, // static
     // determined by api
@@ -192,6 +193,12 @@ const mutations = {
   },
   setTimestamp(state) {
     state.timestamp = Date.now();
+  },
+  setIsSettingsDrawerOpen(state, value) {
+    state.isSettingsDrawerOpen = value;
+  },
+  toggleSettingsDrawerOpen(state) {
+    state.isSettingsDrawerOpen = !state.isSettingsDrawerOpen;
   },
 };
 

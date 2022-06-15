@@ -3,6 +3,7 @@ from abc import ABC
 from datetime import datetime
 
 from django.core.exceptions import ValidationError
+from django.db.models import F
 from django.utils.translation import gettext_lazy as _
 from rest_framework.serializers import (
     BooleanField,
@@ -192,6 +193,15 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin):
     order_value = CharField(read_only=True, source=UNIONFIX_PREFIX + "order_value")
     page_count = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "page_count")
     read_ltr = BooleanField(read_only=True, source=UNIONFIX_PREFIX + "read_ltr")
+
+
+BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP = dict(
+    # a map for ordering the browser card values() properly with the UNIONFIX_PREFIX
+    (
+        (UNIONFIX_PREFIX + field, F(field))
+        for field in sorted(BrowserCardSerializer().get_fields())
+    )
+)
 
 
 class BrowserRouteSerializer(Serializer):

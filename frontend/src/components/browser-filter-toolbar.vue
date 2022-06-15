@@ -6,7 +6,7 @@
     </v-toolbar-items>
     <v-spacer />
     <v-toolbar-items>
-      <SettingsDrawerButton />
+      <SettingsDrawerButton @click="toggleSettingsDrawerOpen" />
     </v-toolbar-items>
     <template #extension>
       <v-toolbar-items v-if="isOpenToSee" id="searchToolbarItems">
@@ -19,7 +19,7 @@
 
 <script>
 import { mdiFamilyTree, mdiMagnify } from "@mdi/js";
-import { mapGetters } from "vuex";
+import { mapGetters, mapMutations } from "vuex";
 
 import BrowserFilterSelect from "@/components/browser-filter-select";
 import BrowserSortBySelect from "@/components/browser-order-by-select";
@@ -45,6 +45,9 @@ export default {
   },
   computed: {
     ...mapGetters("auth", ["isOpenToSee"]),
+  },
+  methods: {
+    ...mapMutations("browser", ["toggleSettingsDrawerOpen"]),
   },
 };
 </script>

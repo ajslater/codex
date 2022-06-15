@@ -127,13 +127,17 @@
   "reader": {
     "fitTo": [
       {
-        "text": "Height",
+        "text": "Shrink to Height",
         "value": "HEIGHT"
       },
       {
-        "text": "Width",
+        "text": "Shrink to Width",
         "value": "WIDTH",
         "default": true
+      },
+      {
+        "text": "Fit to Screen",
+        "value": "SCREEN"
       },
       {
         "text": "Original Size",

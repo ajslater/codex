@@ -35,7 +35,7 @@
 
 <script>
 import { mdiSortReverseVariant, mdiSortVariant } from "@mdi/js";
-import { mapGetters, mapState } from "vuex";
+import { mapActions, mapGetters, mapState } from "vuex";
 
 export default {
   name: "BrowseSortBySelect",
@@ -60,14 +60,15 @@ export default {
       },
       set(value) {
         const data = { orderBy: value };
-        this.$store.dispatch("browser/settingChanged", data);
+        this.settingChanged(data);
       },
     },
   },
   methods: {
+    ...mapActions("browser", ["settingChanged"]),
     toggleOrderReverse: function () {
       const data = { orderReverse: !this.orderReverseSetting };
-      this.$store.dispatch("browser/settingChanged", data);
+      this.settingChanged(data);
     },
   },
 };

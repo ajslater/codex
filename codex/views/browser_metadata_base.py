@@ -101,23 +101,10 @@ class BrowserMetadataBaseView(BrowserBaseView):
         obj_list = obj_list.annotate(page_count=page_count_sum)
         return obj_list
 
-    def _get_userbookmark_filter(self, is_model_comic):
-        """Get a filter for my session or user defined bookmarks."""
-        ubm_rel = self.get_ubm_rel(is_model_comic)
-
-        if self.request.user.is_authenticated:
-            my_bookmarks_kwargs = {f"{ubm_rel}__user": self.request.user}
-        else:
-            my_bookmarks_kwargs = {
-                f"{ubm_rel}__session__session_key": self.request.session.session_key
-            }
-        return Q(**my_bookmarks_kwargs)
-
     def _annotate_bookmarks(self, obj_list, is_model_comic):
         """Hoist up bookmark annoations."""
-        ub_filter = self._get_userbookmark_filter(is_model_comic)
-
         ubm_rel = self.get_ubm_rel(is_model_comic)
+        ub_filter = self._get_userbookmark_filter(ubm_rel)
 
         when_no_ubm = When(Q(**{ubm_rel: None}), then=0)
         bookmark_rel = f"{ubm_rel}__bookmark"

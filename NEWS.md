@@ -1,12 +1,58 @@
 # 📰 Codex News
 
-## v0.10.2a1
+## v0.10.7a0
+
+- Features
+
+  - Browser tries to scroll to closed book to keep your place.
 
 - Fixes
 
-  - Fix possible cover generation memory leak. Undocumented cover RSS logger.
-  - Build a deadfall trap for search indexer zombies. Use Offspring's brains as bait.
+  - Fixed missing lower click area on browser cards.
+  - Fixed session bookmark interfering with logged in user bookmark.
+
+## v0.10.6 
+
+-  Broken docker container
+
+## v0.10.5
+
+- Features
+
+  - Reader shrink to screen setting becomes fit to screen and embiggens small images.
+  - Reader changing to the next book now has visual feedback and requires two clicks.
+
+- Fixes
+
+  - Removed vertical scrollbars when Reader shrunk to height.
+  - Don't disturb the view when top group changes from higher to lower.
+
+## v0.10.4
+
+- Fixes
+
+  - Fix double tap for non-iOS touch devices.
+
+- Features
+
+  - Shrink to Screen reader setting.
+  - Reader throbber if a page takes longer than a quarter second to load.
+
+## v0.10.3
+
+- Fixes
+
+  - Fix PDF going blank when settings change.
+  - Remove vestigal browser scrollbars when they're not needed. Thanks to ToxicFrog.
+  - Fix cover cleanup maintenance task.
+
+## v0.10.2
+
+- Fixes
+
   - URLS dictate view over top group. Fixes linking into views.
+  - Fix possible cover generation memory leak.
+  - Build a deadfall trap for search indexer zombies. Use Offspring's brains as bait.
 
 ## v0.10.1
 

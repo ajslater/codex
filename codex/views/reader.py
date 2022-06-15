@@ -116,7 +116,7 @@ class ComicPageView(APIView, GroupACLMixin):
                 content_type = PDF.MIME_TYPE
             else:
                 car = ComicArchive(comic.path, config=COMICBOX_CONFIG)
-                content_type = "image"
+                content_type = "image/jpeg"
             page_image = car.get_page_by_index(page)
             return HttpResponse(page_image, content_type=content_type)
         except Comic.DoesNotExist as exc:
