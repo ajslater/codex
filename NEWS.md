@@ -11,9 +11,9 @@
   - Fixed missing lower click area on browser cards.
   - Fixed session bookmark interfering with logged in user bookmark.
 
-## v0.10.6 
+## v0.10.6
 
--  Broken docker container
+- Broken docker container
 
 ## v0.10.5
 
