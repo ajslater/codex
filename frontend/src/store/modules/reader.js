@@ -129,9 +129,6 @@ const mutations = {
   toggleSettingsDrawerOpen(state) {
     state.isSettingsDrawerOpen = !state.isSettingsDrawerOpen;
   },
-  setTimestamp(state) {
-    state.timestamp = Date.now();
-  },
 };
 
 // action

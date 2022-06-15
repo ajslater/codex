@@ -38,8 +38,6 @@ import SettingsDrawer from "@/components/settings-drawer";
 
 const MIN_VIEWPORT_WIDTH_SWIPE_ENABLED = 768;
 
-const MIN_VIEWPORT_WIDTH_SWIPE_ENABLED = 768;
-
 export default {
   name: "MainReader",
   components: {
