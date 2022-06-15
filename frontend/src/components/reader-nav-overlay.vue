@@ -1,35 +1,86 @@
 <template>
   <div id="navColumns">
+    <v-navigation-drawer
+      v-if="!routePrevPage && routePrevBook"
+      id="prevBookDrawer"
+      class="bookChangeDrawer"
+      absolute
+      left
+      temporarary
+      :value="bookChangePrev"
+    >
+      <router-link class="navLink" :to="routePrevBook">
+        <v-icon class="bookChangeIcon flipped" x-large>{{
+          mdiBookArrowRight
+        }}</v-icon>
+      </router-link>
+    </v-navigation-drawer>
     <section id="leftColumn" class="navColumn">
-      <router-link
-        v-if="routes.prev"
-        class="navLink"
-        :to="{ name: 'reader', params: routes.prev }"
-        @click.native.stop=""
+      <router-link v-if="routePrevPage" class="navLink" :to="routePrevPage" />
+      <div
+        v-else-if="routePrevBook"
+        class="drawerButton"
+        @click="setBookChangeFlag('prev')"
       />
     </section>
-    <section id="middleColumn" class="navColumn" />
+    <section
+      id="middleColumn"
+      class="navColumn"
+      @click="setBookChangeFlag(null)"
+    />
     <section id="rightColumn" class="navColumn">
-      <router-link
-        v-if="routes.next"
-        class="navLink"
-        :to="{ name: 'reader', params: routes.next }"
-        @click.native.stop=""
+      <router-link v-if="routeNextPage" class="navLink" :to="routeNextPage" />
+      <div
+        v-else-if="routeNextBook"
+        class="drawerButton"
+        @click="setBookChangeFlag('next')"
       />
     </section>
+    <v-navigation-drawer
+      v-if="!routeNextPage && routeNextBook"
+      id="nextBookDrawer"
+      class="bookChangeDrawer"
+      absolute
+      right
+      temporarary
+      :value="bookChangeNext"
+    >
+      <router-link class="navLink" :to="routeNextBook">
+        <v-icon class="bookChangeIcon" x-large>{{ mdiBookArrowRight }}</v-icon>
+      </router-link>
+    </v-navigation-drawer>
   </div>
 </template>
 
 <script>
-import { mapState } from "vuex";
-const READER_ROUTE_TO = "reader/routeTo";
+import { mdiBookArrowRight } from "@mdi/js";
+import { mapActions, mapState } from "vuex";
+const PREV = "prev";
+const NEXT = "next";
 
 export default {
   name: "ReaderNavOverlay",
+  data() {
+    return { mdiBookArrowRight };
+  },
   computed: {
     ...mapState("reader", {
       routes: (state) => state.routes,
+      bookChangePrev: (state) => state.bookChange === PREV,
+      bookChangeNext: (state) => state.bookChange === NEXT,
     }),
+    routePrevPage: function () {
+      return this.toRoute("prev");
+    },
+    routeNextPage: function () {
+      return this.toRoute("next");
+    },
+    routePrevBook: function () {
+      return this.toRoute("prevBook");
+    },
+    routeNextBook: function () {
+      return this.toRoute("nextBook");
+    },
   },
   mounted() {
     // Keyboard Shortcuts
@@ -38,8 +89,15 @@ export default {
   beforeDestroy: function () {
     window.removeEventListener("keyup", this._keyListener);
   },
-
   methods: {
+    ...mapActions("reader", ["routeToDirection", "setBookChangeFlag"]),
+    toRoute: function (name) {
+      const params = this.routes[name];
+      if (!params) {
+        return false;
+      }
+      return { name: "reader", params };
+    },
     _keyListener: function (event) {
       switch (event.key) {
         case " ":
@@ -49,24 +107,24 @@ export default {
             this.routes.next
           ) {
             // Spacebar goes next only at the bottom of page
-            this.$store.dispatch(READER_ROUTE_TO, "next");
+            this.routeToDirection(NEXT);
           } else if (
             // Shift + Spacebar goes back only at the top of page
             !!event.shiftKey &&
             window.scrollY === 0 &&
             this.routes.prev
           ) {
-            this.$store.dispatch(READER_ROUTE_TO, "prev");
+            this.routeToDirection(PREV);
           }
           break;
         case "j":
         case "ArrowRight":
-          this.$store.dispatch(READER_ROUTE_TO, "next");
+          this.routeToDirection(NEXT);
           break;
 
         case "k":
         case "ArrowLeft":
-          this.$store.dispatch(READER_ROUTE_TO, "prev");
+          this.routeToDirection(PREV);
           break;
         // No default
       }
@@ -93,5 +151,21 @@ export default {
 .navLink {
   display: block;
   height: 100%;
+}
+.drawerButton {
+  height: 100%;
+  cursor: grab;
+}
+.bookChangeDrawer {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+.bookChangeIcon {
+  top: 50%;
+  margin-left: 50%;
+  display: block;
+  color: white;
+}
+.flipped {
+  transform: rotateY(180deg);
 }
 </style>

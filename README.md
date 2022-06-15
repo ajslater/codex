@@ -48,7 +48,7 @@ You'll need to install these system dependencies before installing Codex.
 ##### macOS
 
 ```sh
-brew install jpeg libffi libyaml libzip openssl poppler python unrar xapian
+brew install jpeg libffi libyaml libzip openssl poppler python unrar webp xapian
 ```
 
 ##### Linux
@@ -56,13 +56,13 @@ brew install jpeg libffi libyaml libzip openssl poppler python unrar xapian
 ###### Debian based (e.g. Ubuntu)
 
 ```sh
-apt install build-essential libffi-dev libjpeg-dev libssl-dev libxapian30 libyaml-dev poppler-utils python3-pip python3-xapian zlib1g-dev
+apt install build-essential libffi-dev libjpeg-dev libssl-dev libwebp libxapian30 libyaml-dev poppler-utils python3-pip python3-xapian zlib1g-dev
 ```
 
 ###### Alpine
 
 ```sh
-apk add bsd-compat-headers build-base jpeg-dev libffi-dev openssl-dev poppler-utils xapian-bindings-python3 xapian-core yaml-dev zlib-dev
+apk add bsd-compat-headers build-base jpeg-dev libffi-dev libwebp openssl-dev poppler-utils xapian-bindings-python3 xapian-core yaml-dev zlib-dev
 ```
 
 ##### Install unrar Runtime Dependency on Linux
@@ -183,7 +183,7 @@ The config directory also holds the main sqlite database, the Xapian search inde
 - `TIMEZONE` or `TZ` will explicitly the timezone in long format (e.g. `"America/Los Angeles"`). This is useful inside Docker because codex cannot automatically detect the host machine's timezone.
 - `CODEX_CONFIG_DIR` will set the path to codex config directory. Defaults to `$CWD/config`
 - `CODEX_RESET_ADMIN=1` will reset the admin user and its password to defaults when codex starts.
-- `CODEX_SKIP_INTEGRITY_CHECK` will skip the database integrity repair that runs when codex starts.
+- `CODEX_SKIP_INTEGRITY_CHECK=1` will skip the database integrity repair that runs when codex starts.
 
 ### Reverse Proxy
 

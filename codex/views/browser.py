@@ -28,12 +28,11 @@ from codex.models import (
     Volume,
 )
 from codex.serializers.browser import (
-    BrowserCardSerializer,
+    BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP,
     BrowserOpenedSerializer,
     BrowserPageSerializer,
     BrowserSettingsSerializer,
 )
-from codex.serializers.mixins import UNIONFIX_PREFIX
 from codex.settings.logging import get_logger
 from codex.version import PACKAGE_NAME, VERSION, get_latest_version
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
@@ -54,14 +53,6 @@ class BrowserView(BrowserMetadataBaseView):
     _NAV_GROUPS = "rpisv"
     _MAX_OBJ_PER_PAGE = 100
     _ORPHANS = int(_MAX_OBJ_PER_PAGE / 20)
-    # TODO move to BrowserCardSerializer?
-    # TODO doesn't need snakecase
-    _BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP = dict(
-        (
-            (UNIONFIX_PREFIX + field, F(field))
-            for field in sorted(BrowserCardSerializer().get_fields())
-        )
-    )
     _NONE_DECIMALFIELD = Value(None, DecimalField())
     _EMPTY_CHARFIELD = Value("", CharField())
     _ZERO_INTEGERFIELD = Value(0, IntegerField())
@@ -80,6 +71,13 @@ class BrowserView(BrowserMetadataBaseView):
         "params": BrowserMetadataBaseView.SESSION_DEFAULTS[
             BrowserMetadataBaseView.BROWSER_KEY
         ]["route"],
+    }
+    _GROUP_INDEX_MAP = {
+        "p": 0,
+        "i": 1,
+        "s": 2,
+        "v": 3,
+        "c": 4,
     }
 
     def _add_annotations(self, queryset, model, autoquery_pk):
@@ -159,14 +157,14 @@ class BrowserView(BrowserMetadataBaseView):
         # the model group shown must be:
         #   A valid nav group or 'c'
         #   the child of the current nav group or 'c'
-        if self.kwargs["group"] == "f":
-            return "f"
+        if self.kwargs["group"] == self.FOLDER_GROUP:
+            return self.FOLDER_GROUP
         if (
             self.valid_nav_group_index == len(self.valid_nav_groups) - 1
             or self.valid_nav_group_index is None
         ):
             # special case for lowest valid group
-            return "c"
+            return self.COMIC_GROUP
         next_valid_nav_group = self.valid_nav_groups[self.valid_nav_group_index + 1]
         return next_valid_nav_group
 
@@ -192,10 +190,8 @@ class BrowserView(BrowserMetadataBaseView):
 
         # Create ordered annotated values to make union align columns correctly because
         # django lacks a way to specify values column order.
-        folder_list = folder_list.values(
-            **self._BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP
-        )
-        comic_list = comic_list.values(**self._BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP)
+        folder_list = folder_list.values(**BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP)
+        comic_list = comic_list.values(**BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP)
 
         obj_list = folder_list.union(comic_list)
         return obj_list
@@ -213,7 +209,7 @@ class BrowserView(BrowserMetadataBaseView):
 
         # Convert to a dict because otherwise the folder/comic union blows
         # up the paginator. Use the same annotations for the serializer.
-        obj_list = obj_list.values(**self._BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP)
+        obj_list = obj_list.values(**BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP)
 
         return obj_list
 
@@ -326,7 +322,7 @@ class BrowserView(BrowserMetadataBaseView):
             if self.params["show"].get(nav_group):
                 valid_top_groups.append(nav_group)
         # Issues is always a valid top group
-        valid_top_groups += ["c"]
+        valid_top_groups += [self.COMIC_GROUP]
 
         return valid_top_groups
 
@@ -345,8 +341,8 @@ class BrowserView(BrowserMetadataBaseView):
         possible_nav_groups = valid_top_groups
 
         for possible_index, possible_nav_group in enumerate(possible_nav_groups):
-            if top_group in (possible_nav_group, "c"):
-                if top_group == "c":
+            if top_group in (possible_nav_group, self.COMIC_GROUP):
+                if top_group == self.COMIC_GROUP:
                     tail_top_groups = []
                 else:
                     # all the nav groups past this point, but not 'c' the last one
@@ -375,20 +371,14 @@ class BrowserView(BrowserMetadataBaseView):
             route_changes = {"group": new_top_group}
             self._raise_redirect(route_changes, reason)
 
-        # Validate folder nav group
-        # Redirect if nav group is wrong
-        group = self.kwargs["group"]
-        if group != "f":
-            route_changes = {"group": "f"}
-            reason = f"{group=} does not match top_group 'f'"
-            self._raise_redirect(route_changes, reason)
-        self.valid_nav_groups = ["f"]
+        self.params["top_group"] = self.FOLDER_GROUP
+        self.valid_nav_groups = [self.FOLDER_GROUP]
         self.valid_nav_group_index = 0
 
     def _validate_browser_group_settings(self):
         """Check that all the view variables for browser mode are set right."""
-        top_group = self.params.get("top_group")
         nav_group = self.kwargs["group"]
+        top_group = self.params.get("top_group")
 
         # Validate Browser top group
         # Change top_group if its not in the valid top groups
@@ -421,26 +411,39 @@ class BrowserView(BrowserMetadataBaseView):
             self._raise_redirect({}, reason)
         lowest_group = self.valid_nav_groups[-1]
         if (
-            self.autoquery_first or (self.top_group_changed and nav_group == "r")
-        ) and nav_group != lowest_group:
-            # if not at the lowest issues showing nav group and its the first aq
-            # or the top group changed away from root.
+            self.top_group_changed
+            and nav_group == "r"
+            and lowest_group != "r"
+            and self.old_top_group
+            and top_group
+            and self._GROUP_INDEX_MAP[self.old_top_group]
+            > self._GROUP_INDEX_MAP[top_group]
+        ):
+            # if the top group changed and we're at the root and the new top group is
+            # lower than change to the proper nav group.
+            nav_group_from_old_top_group = lowest_group
+            for group in self.valid_nav_groups:
+                if group == self.old_top_group:
+                    break
+                nav_group_from_old_top_group = group
+                # keep the top group the same
+            route_changes = {"group": nav_group_from_old_top_group}
+            reason = f"changed top group: {nav_group_from_old_top_group} replaces root"
+            self.save_params_to_session()
+            self._raise_redirect(route_changes, reason)
+        if self.autoquery_first:
             route_changes = {"group": lowest_group}
-            if self.autoquery_first:
-                # params change handled in _apply_put, maybe doesn't need redirect.
-                reason = "first autoquery: show issues view"
-            else:
-                reason = f"changed top group so group {lowest_group} shows issues now"
+            # params change handled in _apply_put, maybe doesn't need redirect.
+            reason = "first autoquery: show issues view"
             self.save_params_to_session()
             self._raise_redirect(route_changes, reason)
 
     def _validate_settings(self):
         """Validate group and top group settings."""
         group = self.kwargs.get("group")
-        top_group = self.params.get("top_group")
         order_key = self.get_order_key()
         enable_folder_view = False
-        if top_group == self.FOLDER_GROUP or order_key == "path":
+        if group == self.FOLDER_GROUP or order_key == "path":
             try:
                 enable_folder_view = (
                     AdminFlag.objects.only("on")
@@ -450,7 +453,7 @@ class BrowserView(BrowserMetadataBaseView):
             except Exception:
                 pass
 
-        if top_group == self.FOLDER_GROUP:
+        if group == self.FOLDER_GROUP:
             self._validate_folder_settings(enable_folder_view)
         else:
             self._validate_browser_group_settings()
@@ -476,13 +479,12 @@ class BrowserView(BrowserMetadataBaseView):
             raise exc
 
         for key, value in serializer.validated_data.items():
-            # TODO reform
-            snake_key = key
-            if snake_key == "autoquery" and not self.params.get(snake_key) and value:
+            if key == "autoquery" and not self.params.get(key) and value:
                 self.autoquery_first = True
-            if snake_key == "top_group" and self.params.get(snake_key) != value:
+            elif key == "top_group" and self.params.get(key) != value:
                 self.top_group_changed = True
-            self.params[snake_key] = value
+                self.old_top_group = self.params.get(key)
+            self.params[key] = value
         if self.autoquery_first:
             self.params["order_by"] = "search_score"
             self.params["order_reverse"] = True
@@ -524,7 +526,8 @@ class BrowserView(BrowserMetadataBaseView):
         except Folder.DoesNotExist:
             pk = self.kwargs.get("pk")
             self._raise_redirect(
-                {"group": "f"}, f"folder {pk} Does not exist! Redirect to root folder."
+                {"group": self.FOLDER_GROUP},
+                f"folder {pk} Does not exist! Redirect to root folder.",
             )
         group = self.kwargs.get("group")
 

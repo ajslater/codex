@@ -1,7 +1,9 @@
 <template>
   <v-menu offset-y top>
     <template #activator="{ on }">
-      <v-icon class="actionMenu" v-on="on">{{ mdiDotsVertical }}</v-icon>
+      <v-icon class="browserCardActionMenu" v-on="on">{{
+        mdiDotsVertical
+      }}</v-icon>
     </template>
     <v-list nav>
       <v-list-item v-if="group === 'c'" :href="downloadURL" download>
@@ -22,7 +24,7 @@
 
 <script>
 import { mdiDotsVertical } from "@mdi/js";
-import { mapState } from "vuex";
+import { mapActions, mapState } from "vuex";
 
 import { getDownloadURL } from "@/api/v2/comic";
 
@@ -78,8 +80,9 @@ export default {
     },
   },
   methods: {
+    ...mapActions("browser", ["markedRead"]),
     toggleRead: function () {
-      this.$store.dispatch("browser/markedRead", {
+      this.markedRead({
         group: this.group,
         pk: this.pk,
         finished: !this.finished,
@@ -90,9 +93,9 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.actionMenu {
+.browserCardActionMenu {
   position: absolute;
-  bottom: 3px;
-  right: 3px;
+  bottom: 0px;
+  right: 0px;
 }
 </style>

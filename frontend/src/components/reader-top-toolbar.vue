@@ -22,14 +22,17 @@
           <v-icon>{{ mdiDownload }}</v-icon>
         </v-btn>
       </a>
-      <SettingsDrawerButton id="settingsButton" />
+      <SettingsDrawerButton
+        id="settingsButton"
+        @click.stop="toggleSettingsDrawerOpen"
+      />
     </v-toolbar-items>
   </v-toolbar>
 </template>
 
 <script>
 import { mdiDownload } from "@mdi/js";
-import { mapGetters, mapState } from "vuex";
+import { mapActions, mapGetters, mapMutations, mapState } from "vuex";
 
 import { getComicPageSource } from "@/api/v2/comic";
 import CHOICES from "@/choices";
@@ -61,9 +64,16 @@ export default {
     }),
     closeBookRoute: function () {
       // Choose the best route
-      const params =
-        this.readerBrowserRoute || window.lastRoute || CHOICES.browser.route;
-      return { name: "browser", params };
+      const route = {
+        name: "browser",
+      };
+      if (this.readerBrowserRoute) {
+        route.params = this.readerBrowserRoute;
+        route.hash = `#card-${this.$route.params.pk}`;
+      } else {
+        route.params = window.lastRoute || CHOICES.browser.route;
+      }
+      return route;
     },
     pageSrc: function () {
       const routeParams = { ...this.$router.currentRoute.params };
@@ -82,6 +92,8 @@ export default {
     window.removeEventListener("keyup", this._keyListener);
   },
   methods: {
+    ...mapActions("reader", ["settingsChangedLocal"]),
+    ...mapMutations("reader", ["toggleSettingsDrawerOpen"]),
     _keyListener: function (event) {
       event.stopPropagation();
       switch (event.key) {
@@ -96,6 +108,9 @@ export default {
         case "h":
           this.settingsChangedLocal({ fitTo: "HEIGHT" });
           break;
+        case "s":
+          this.settingsChangedLocal({ fitTo: "SCREEN" });
+          break;
 
         case "o":
           this.settingsChangedLocal({ fitTo: "ORIG" });
@@ -108,9 +123,6 @@ export default {
           break;
         // No default
       }
-    },
-    settingsChangedLocal: function (data) {
-      this.$store.dispatch("reader/settingsChangedLocal", data);
     },
     openMetadata: function () {
       this.$refs.metadataDialog.dialog = true;

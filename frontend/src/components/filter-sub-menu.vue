@@ -63,7 +63,7 @@ import {
   mdiChevronRight,
   mdiChevronRightCircle,
 } from "@mdi/js";
-import { mapState } from "vuex";
+import { mapActions, mapState } from "vuex";
 
 import { toVuetifyItems } from "@/api/v2/list-items";
 
@@ -114,7 +114,7 @@ export default {
         const data = {
           filters: { [this.name]: value },
         };
-        this.$store.dispatch("browser/settingChanged", data);
+        this.settingChanged(data);
         this.$emit("sub-menu-click");
       },
     },
@@ -143,8 +143,9 @@ export default {
     },
   },
   methods: {
+    ...mapActions("browser", ["filterModeChanged", "settingChanged"]),
     setFilterMode(mode) {
-      this.$store.dispatch("browser/filterModeChanged", {
+      this.filterModeChanged({
         group: this.$route.params.group,
         pk: this.$route.params.pk,
         mode,

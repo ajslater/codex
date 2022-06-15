@@ -9,6 +9,9 @@ const getters = {};
 
 const mutations = {
   setMetadata(state, md) {
+    if (md) {
+      md.pk = md.id;
+    }
     state.md = Object.seal(md);
   },
   setTimestamp(state) {

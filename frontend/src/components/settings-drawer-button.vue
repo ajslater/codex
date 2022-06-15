@@ -1,5 +1,5 @@
 <template>
-  <v-btn icon ripple title="Settings" @click.stop="openDrawer">
+  <v-btn icon ripple title="Settings" v-on="$listeners">
     <v-icon>{{ mdiMenu }}</v-icon>
   </v-btn>
 </template>
@@ -13,12 +13,6 @@ export default {
     return {
       mdiMenu,
     };
-  },
-  methods: {
-    openDrawer: function () {
-      const val = !this.$store.state.isSettingsDrawerOpen;
-      this.$store.commit("setIsSettingsDrawerOpen", val);
-    },
   },
 };
 </script>

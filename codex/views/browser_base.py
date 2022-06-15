@@ -5,10 +5,10 @@ from dateutil.parser import parse as du_parse
 from django.contrib.auth.models import User
 from django.db.models import F, Q
 from django.db.models.functions import Now
+from haystack.query import SearchQuerySet
 from humanfriendly import parse_size
 from xapian_backend import DATETIME_FORMAT
 
-from codex._vendor.haystack.query import SearchQuerySet
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, SearchIndexUpdateTask
 from codex.models import Comic, SearchQuery, SearchResult
 from codex.settings.logging import get_logger
@@ -98,24 +98,40 @@ class BrowserBaseView(SessionView, GroupACLMixin):
             ubm_rel = "comic__" + ubm_rel
         return ubm_rel
 
+    def _get_userbookmark_filter(self, ubm_rel):
+        """Get a filter for my session or user defined bookmarks."""
+        if self.request.user.is_authenticated:
+            my_bookmarks_kwargs = {f"{ubm_rel}__user": self.request.user}
+        else:
+            my_bookmarks_kwargs = {
+                f"{ubm_rel}__session__session_key": self.request.session.session_key
+            }
+        return Q(**my_bookmarks_kwargs)
+
     def _get_bookmark_filter(self, is_model_comic, choice):
         """Build bookmark query."""
         if choice is None:
             choice = self.params["filters"].get("bookmark", "ALL")
-        bookmark_filter = Q()
         if choice in (
             "UNREAD",
             "IN_PROGRESS",
         ):
             ubm_rel = self.get_ubm_rel(is_model_comic)
+            my_userbookmark_filter = self._get_userbookmark_filter(ubm_rel)
 
-            bookmark_filter &= (
-                Q(**{f"{ubm_rel}__finished": False})
-                | Q(**{ubm_rel: None})
-                | Q(**{f"{ubm_rel}__finished": None})
-            )
-            if choice == "IN_PROGRESS":
-                bookmark_filter &= Q(**{f"{ubm_rel}__bookmark__gt": 0})
+            if choice == "UNREAD":
+                bookmark_filter = Q(**{ubm_rel: None}) | Q(
+                    my_userbookmark_filter
+                    & Q(**{f"{ubm_rel}__finished__in": (False, None)})
+                )
+            elif choice == "IN_PROGRESS":
+                bookmark_filter = my_userbookmark_filter & Q(
+                    **{f"{ubm_rel}__bookmark__gt": 0}
+                )
+            else:
+                bookmark_filter = Q()
+        else:
+            bookmark_filter = Q()
         return bookmark_filter
 
     def _get_folders_filter(self):
@@ -135,7 +151,7 @@ class BrowserBaseView(SessionView, GroupACLMixin):
         group_filter = Q()
         pk = self.kwargs.get("pk")
         group = self.kwargs.get("group")
-        if pk or group == "f":
+        if pk or group == self.FOLDER_GROUP:
             if not pk:
                 pk = None
             group_relation = self.GROUP_RELATION[group]

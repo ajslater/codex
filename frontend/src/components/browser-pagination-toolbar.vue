@@ -17,7 +17,7 @@
 </template>
 
 <script>
-import { mapState } from "vuex";
+import { mapActions, mapState } from "vuex";
 
 import BrowserNavButton from "@/components/browser-nav-button";
 
@@ -32,9 +32,7 @@ export default {
     }),
   },
   methods: {
-    routeToPage: function (page) {
-      this.$store.dispatch("browser/routeToPage", page);
-    },
+    ...mapActions("browser", ["routeToPage"]),
   },
 };
 </script>

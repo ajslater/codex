@@ -2,11 +2,11 @@
 import os
 
 from datetime import datetime
+from multiprocessing import Process
 
 from django.core.management import call_command
 from django.utils import timezone
 
-from codex.darwin_mp import force_darwin_multiprocessing_fork
 from codex.librarian.queue_mp import (
     LIBRARIAN_QUEUE,
     SearchIndexRebuildIfDBChangedTask,
@@ -23,6 +23,22 @@ UPDATE_INDEX_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S%Z"
 LOG = get_logger(__name__)
 WORKERS = os.cpu_count()
 VERBOSITY = 1
+REBUILD_ARGS = ("rebuild_index",)
+REBUILD_KWARGS = {"interactive": False, "workers": WORKERS, "verbosity": VERBOSITY}
+UPDATE_ARGS = ("update_index", "codex")
+UPDATE_KWARGS = {
+    "remove": True,
+    "workers": WORKERS,
+    "verbosity": VERBOSITY,
+}
+
+
+def _call_command(args, kwargs):
+    """Call a command in a process to trap its zombies and errors."""
+    proc = Process(target=call_command, args=args, kwargs=kwargs)
+    proc.start()
+    proc.join()
+    proc.close()
 
 
 def update_search_index(rebuild=False):
@@ -39,12 +55,7 @@ def update_search_index(rebuild=False):
 
         if rebuild:
             LOG.verbose("Rebuilding search index...")
-            call_command(
-                "rebuild_index",
-                interactive=False,
-                workers=WORKERS,
-                verbosity=VERBOSITY,
-            )
+            _call_command(REBUILD_ARGS, REBUILD_KWARGS)
             LatestVersion.set_xapian_index_version()
         else:
             try:
@@ -59,14 +70,9 @@ def update_search_index(rebuild=False):
             # Workers are only possible with fork()
             # django-haystack has a bug
             # https://github.com/django-haystack/django-haystack/issues/1650
-            call_command(
-                "update_index",
-                "codex",
-                remove=True,
-                start=start,
-                workers=WORKERS,
-                verbosity=VERBOSITY,
-            )
+            kwargs = {"start": start}
+            kwargs.update(UPDATE_KWARGS)
+            _call_command(UPDATE_ARGS, kwargs)
         SEARCH_INDEX_TIMESTAMP_PATH.touch()
 
         # Nuke the Search Result table as it's now out of date.
@@ -99,8 +105,3 @@ class SearchIndexer(QueuedThread):
             update_search_index(rebuild=task.rebuild)
         else:
             LOG.warning(f"Bad task sent to search index thread: {task}")
-
-    def run(self):  # TODO maybe redundant now
-        """Run the multiprocessing start method change for haystack update_index."""
-        force_darwin_multiprocessing_fork()
-        super().run()

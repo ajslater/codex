@@ -8,14 +8,12 @@ const NULL_READER_SETTINGS = {
 };
 
 const getGlobalFitToDefault = () => {
-  // Default to different settings for different screen sizes;
+  // Big screens default to fit by HEIGHT, small to WIDTH;
   const vw = Math.max(
     document.documentElement.clientWidth || 0,
     window.innerWidth || 0
   );
-  let fitTo;
-  fitTo = vw > 600 ? "HEIGHT" : "WIDTH";
-  return fitTo;
+  return vw > 600 ? "HEIGHT" : "WIDTH";
 };
 
 const state = {
@@ -37,12 +35,14 @@ const state = {
     local: JSON.parse(JSON.stringify(NULL_READER_SETTINGS)),
     timestamp: Date.now(),
   },
+  isSettingsDrawerOpen: false,
   routes: {
     prev: undefined,
     next: undefined,
     prevBook: undefined,
     nextBook: undefined,
   },
+  bookChange: undefined,
   formChoices: {
     fitTo: CHOICES.reader.fitTo,
   },
@@ -66,6 +66,17 @@ const getters = {
     }
     return computedSettings;
   },
+};
+
+// mutation helpers
+//
+const getRouteParams = (condition, routeParams, increment) => {
+  return condition
+    ? {
+        pk: Number(routeParams.pk),
+        page: Number(routeParams.page) + increment,
+      }
+    : false;
 };
 
 const mutations = {
@@ -92,61 +103,40 @@ const mutations = {
   setSettings(state, data) {
     state.settings = data;
   },
-  setPrevRoute(state, { previousPage }) {
-    state.routes.prev = previousPage;
+  setPrevRoute(state) {
+    const routeParams = router.currentRoute.params;
+    const condition = Number(routeParams.page) > 0;
+    const increment = -1;
+    state.routes.prev = getRouteParams(condition, routeParams, increment);
   },
-  setNextPage(state, nextPage) {
-    state.routes.next = nextPage;
+  setNextPage(state) {
+    const routeParams = router.currentRoute.params;
+    const twoPages = getters.computedSettings(state).twoPages;
+    const increment = twoPages ? 2 : 1;
+    const condition =
+      Number(routeParams.page) + increment <= state.comic.maxPage;
+    state.routes.next = getRouteParams(condition, routeParams, increment);
+  },
+  setTimestamp(state) {
+    state.timestamp = Date.now();
+  },
+  setBookChange(state, val) {
+    state.bookChange = val;
+  },
+  setIsSettingsDrawerOpen(state, value) {
+    state.isSettingsDrawerOpen = value;
+  },
+  toggleSettingsDrawerOpen(state) {
+    state.isSettingsDrawerOpen = !state.isSettingsDrawerOpen;
   },
   setTimestamp(state) {
     state.timestamp = Date.now();
   },
 };
 
-// action helpers
-
-const getRouteParams = (
-  condition,
-  routeParams,
-  increment,
-  comicRouteParams
-) => {
-  let params;
-  if (condition) {
-    params = {
-      pk: Number(routeParams.pk),
-      page: Number(routeParams.page) + increment,
-    };
-  } else if (comicRouteParams) {
-    params = comicRouteParams;
-  }
-  return params;
-};
-
-const getPreviousRouteParams = (state) => {
-  const routeParams = router.currentRoute.params;
-  const condition = Number(routeParams.page) > 0;
-  const increment = -1;
-  return getRouteParams(
-    condition,
-    routeParams,
-    increment,
-    state.routes.prevBook
-  );
-};
-
-const getNextRouteParams = (state) => {
-  const twoPages = getters.computedSettings(state).twoPages;
-  const increment = twoPages ? 2 : 1;
-  const routeParams = router.currentRoute.params;
-  const condition = Number(routeParams.page) + increment <= state.comic.maxPage;
-  return getRouteParams(
-    condition,
-    routeParams,
-    increment,
-    state.routes.nextBook
-  );
-};
+// action
+const isRouteBookChange = (state, direction) =>
+  state.routes && !state.routes[direction] && state.routes[direction + "Book"];
 
 const actions = {
   routerPush(_, route) {
@@ -186,33 +176,26 @@ const actions = {
         }
       });
   },
-  nextRouteChanged({ commit, state }) {
-    const nextPage = getNextRouteParams(state);
-    commit("setNextPage", nextPage);
+  routeChanged({ commit }) {
+    commit("setPrevRoute");
+    commit("setNextPage");
+    commit("setBookChange"); // Reset!
+    return API.setComicBookmark(router.currentRoute.params);
   },
-  routeChanged({ commit, state, dispatch }) {
-    // Commit prev & next Pages to state.
-    const previousPage = getPreviousRouteParams(state);
-    commit("setPrevRoute", { previousPage });
-    dispatch("nextRouteChanged");
-
-    // Set the bookmark
-    API.setComicBookmark(router.currentRoute.params);
-  },
-  settingsChangedLocal({ commit, state, dispatch }, data) {
+  settingsChangedLocal({ commit, state }, data) {
     commit("setSettingLocal", data);
     API.setComicSettings({
       pk: router.currentRoute.params.pk,
       data: state.settings.local,
     });
     if (Object.prototype.hasOwnProperty.call(data, "twoPages")) {
-      dispatch("nextRouteChanged");
+      commit("setNextPage");
     }
   },
   settingsDialogClear({ dispatch }) {
     dispatch("settingsChangedLocal", NULL_READER_SETTINGS);
   },
-  settingsChangedGlobal({ commit, state, dispatch }, data) {
+  settingsChangedGlobal({ commit, state }, data) {
     commit("setSettingGlobal", data);
     commit("setSettingLocal", NULL_READER_SETTINGS);
     API.setComicDefaultSettings({
@@ -220,35 +203,44 @@ const actions = {
       data: state.settings.globl,
     });
     if (Object.prototype.hasOwnProperty.call(data, "twoPages")) {
-      dispatch("nextRouteChanged");
+      commit("setNextPage");
     }
   },
-  routeTo({ dispatch, state }, routeParams) {
-    // Construct route
-    let finalRouteParams;
-    if (routeParams === "next") {
-      finalRouteParams = state.routes.next;
-    } else if (routeParams === "prev") {
-      finalRouteParams = state.routes.prev;
-    } else {
-      finalRouteParams = routeParams;
+  setBookChangeFlag({ commit, state }, direction) {
+    if (!direction) {
+      commit("setBookChange");
+    } else if (isRouteBookChange(state, direction)) {
+      commit("setBookChange", direction);
     }
-    if (!finalRouteParams) {
-      return;
-    }
-
+  },
+  routeTo({ dispatch }, routeParams) {
     // Validate route
-    if (finalRouteParams.pk === router.currentRoute.params.pk) {
-      if (finalRouteParams.page > state.comic.maxPage) {
-        finalRouteParams.page = state.comic.maxPage;
+    if (routeParams.pk === router.currentRoute.params.pk) {
+      if (routeParams.page > state.comic.maxPage) {
+        routeParams.page = state.comic.maxPage;
         console.warn("Tried to navigate past the end of the book.");
-      } else if (finalRouteParams.page < 0) {
-        finalRouteParams.page = 0;
+      } else if (routeParams.page < 0) {
+        routeParams.page = 0;
         console.warn("Tried to navigate before the beginning of the book.");
       }
     }
-    const route = { name: "reader", params: finalRouteParams };
+    const route = { name: "reader", params: routeParams };
     return dispatch("routerPush", route);
+  },
+  routeToDirection({ dispatch, state }, direction) {
+    if (isRouteBookChange(state, direction) && state.bookChange !== direction) {
+      // Block book change routes unless the book change flag is set.
+      dispatch("setBookChangeFlag", direction);
+      return;
+    }
+    // Get real route
+    const finalRouteParams = state.routes[direction];
+
+    dispatch("routeTo", finalRouteParams);
+  },
+  routeToPage({ dispatch }, page) {
+    const params = { pk: Number(router.currentRoute.params.pk), page };
+    dispatch("routeTo", params);
   },
 };
 

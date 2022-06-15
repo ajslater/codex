@@ -28,7 +28,7 @@
 </template>
 
 <script>
-import { mapGetters, mapState } from "vuex";
+import { mapActions, mapGetters, mapState } from "vuex";
 
 import { FAILED_IMPORT_URL } from "@/api/v2/notify";
 import { NOTIFY_STATES } from "@/store/modules/notify";
@@ -59,17 +59,18 @@ export default {
     isAdmin: function (to) {
       if (to) {
         // If we switch to an admin user, check notifications.
-        this.$store.dispatch("notify/notifyChanged", NOTIFY_STATES.CHECK);
+        this.notifyChanged(NOTIFY_STATES.CHECK);
       }
     },
   },
   methods: {
+    ...mapActions("notify", ["notifyChanged"]),
     dismiss: function () {
       const state =
         this.notify === NOTIFY_STATES.FAILED
           ? NOTIFY_STATES.OFF
           : NOTIFY_STATES.DISMISSED;
-      this.$store.dispatch("notify/notifyChanged", state);
+      this.notifyChanged(state);
     },
   },
 };

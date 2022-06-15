@@ -9,7 +9,7 @@
       <v-radio-group
         id="fitToSelect"
         :value="settingsDialogFitTo"
-        label="Shrink to"
+        label="Display"
         @change="settingsDialogChanged({ fitTo: $event })"
       >
         <v-radio
@@ -21,7 +21,7 @@
       </v-radio-group>
       <v-checkbox
         :value="settingsDialogTwoPages"
-        label="Display Two pages"
+        label="Show Two pages"
         :indeterminate="
           settingsDialogTwoPages === null ||
           settingsDialogTwoPages === undefined
@@ -43,7 +43,7 @@
 </template>
 //
 <script>
-import { mapState } from "vuex";
+import { mapActions, mapMutations, mapState } from "vuex";
 
 import ReaderKeyboardShortcutsPanel from "@/components/reader-keyboard-shortcuts-panel";
 
@@ -67,6 +67,7 @@ export default {
         }
         return state.settings.local;
       },
+      isSettingsDrawerOpen: (state) => state.isSettingsDrawerOpen,
     }),
     settingsDialogTwoPages: function () {
       return this.settingsScope.twoPages;
@@ -80,16 +81,22 @@ export default {
       return label;
     },
   },
+  mounted() {
+    this.$emit("panelMounted");
+  },
   methods: {
+    ...mapActions("reader", [
+      "settingsChangedGlobal",
+      "settingsChangedLocal",
+      "settingsDialogClear",
+    ]),
+    ...mapMutations("reader", ["setIsSettingsDrawerOpen"]),
     settingsDialogChanged: function (data) {
       if (this.isSettingsDialogGlobalMode) {
-        this.$store.dispatch("reader/settingsChangedGlobal", data);
+        this.settingsChangedGlobal(data);
       } else {
-        this.$store.dispatch("reader/settingsChangedLocal", data);
+        this.settingsChangedLocal(data);
       }
-    },
-    settingsDialogClear: function () {
-      this.$store.dispatch("reader/settingsDialogClear");
     },
   },
 };

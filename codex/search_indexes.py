@@ -1,7 +1,8 @@
 """Haystack search indexes."""
 
-from codex._vendor.haystack.fields import CharField, DateField, MultiValueField
-from codex._vendor.haystack.indexes import Indexable, ModelSearchIndex
+from haystack.fields import CharField, DateField, MultiValueField
+from haystack.indexes import Indexable, ModelSearchIndex
+
 from codex.models import Comic
 
 

@@ -7,7 +7,7 @@ from rest_framework.response import Response
 
 from codex.models import AdminFlag, Comic
 from codex.serializers.metadata import MetadataSerializer
-from codex.serializers.mixins import UNIONFIX_PREFIX, BrowserAggregateSerializerMixin
+from codex.serializers.mixins import BROWSER_AGGREGATE_ORDERED_UNIONFIX_VALUES_MAP
 from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser_metadata_base import BrowserMetadataBaseView
@@ -89,12 +89,6 @@ class MetadataView(BrowserMetadataBaseView):
     )
     _PATH_GROUPS = ("c", "f")
     _CREDIT_RELATIONS = ("role", "person")
-    _BROWSER_AGGREGATE_UNIONFIX_VALUES_MAP = dict(
-        (
-            (field, UNIONFIX_PREFIX + field)
-            for field in sorted(BrowserAggregateSerializerMixin().get_fields())
-        )
-    )
 
     def _get_comic_value_fields(self):
         """Include the path field for staff."""
@@ -285,7 +279,10 @@ class MetadataView(BrowserMetadataBaseView):
         obj["group"] = self.group
 
         # copy into unionfix fields for serializer
-        for from_field, to_field in self._BROWSER_AGGREGATE_UNIONFIX_VALUES_MAP.items():
+        for (
+            from_field,
+            to_field,
+        ) in BROWSER_AGGREGATE_ORDERED_UNIONFIX_VALUES_MAP.items():
             obj[to_field] = obj.get(from_field)
 
         return obj
@@ -330,7 +327,7 @@ class MetadataView(BrowserMetadataBaseView):
         self.model = self.GROUP_MODEL_MAP[self.group]
         if self.model is None:
             raise NotFound(detail=f"Cannot get metadata for {self.group=}")
-        self.is_model_comic = self.group == "c"
+        self.is_model_comic = self.group == self.COMIC_GROUP
 
         obj = self._get_metadata_object()
 
