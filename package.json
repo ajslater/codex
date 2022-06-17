@@ -43,11 +43,6 @@
     "remark-preset-lint-recommended": "^6.1.2",
     "remark-preset-prettier": "^1.0.0"
   },
-  "prettier": {
-    "trailingComma": "es5",
-    "arrowParens": "always",
-    "tabWidth": 2
-  },
   "remarkConfig": {
     "plugins": [
       "gfm",

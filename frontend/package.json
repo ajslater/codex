@@ -111,10 +111,5 @@
       "^.+\\.js$": "babel-jest",
       "^.+\\.vue$": "@vue/vue2-jest"
     }
-  },
-  "prettier": {
-    "trailingComma": "es5",
-    "arrowParens": "always",
-    "tabWidth": 2
   }
 }
