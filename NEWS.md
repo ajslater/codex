@@ -1,5 +1,11 @@
 # 📰 Codex News
 
+## v0.10.8
+
+- Fixes
+
+  - Fixed reader nav clicks always showing the toolbars.
+
 ## v0.10.7
 
 - Features
