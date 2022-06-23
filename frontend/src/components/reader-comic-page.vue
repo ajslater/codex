@@ -28,7 +28,7 @@ import { mapGetters, mapState } from "vuex";
 import { getComicPageSource } from "@/api/v2/comic";
 import Placeholderplaceholder from "@/components/placeholder-loading";
 
-const PLACEHOLDER_ENGAGE_MS = 250;
+const PLACEHOLDER_ENGAGE_MS = 500;
 
 export default {
   name: "ReaderComicPage",
