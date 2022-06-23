@@ -5,6 +5,7 @@
 - Fixes
 
   - Fixed reader nav clicks always showing the toolbars.
+  - Attempt to fix unwanted browser toolbars when treated as mobile app
 
 ## v0.10.7
 

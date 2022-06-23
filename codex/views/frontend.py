@@ -24,8 +24,11 @@ class IndexView(SessionView, TemplateView):
 
 
 def webmanifest(request):
-    """Serve the webmanifest spec. For android and chrome."""
-    return render(request, "site.webmanifest", content_type="application/manifest+json")
+    """Serve the webmanifest spec."""
+    context = {"script_prefix": get_script_prefix()}
+    return render(
+        request, "site.webmanifest", context, content_type="application/manifest+json"
+    )
 
 
 def browserconfig(request):
