@@ -2,6 +2,8 @@
 from comicbox.comic_archive import ComicArchive
 from django.db.models import F
 from django.http import HttpResponse
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_control
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -18,6 +20,7 @@ from codex.views.session import SessionView
 
 
 LOG = get_logger(__name__)
+PAGE_TTL = 60 * 60 * 24
 
 
 class ComicOpenedView(SessionView, GroupACLMixin):
@@ -103,6 +106,7 @@ class ComicPageView(APIView, GroupACLMixin):
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
     SESSION_KEY = SessionView.READER_KEY
 
+    @method_decorator([cache_control(max_age=PAGE_TTL)], name="dispatch")
     def get(self, request, *args, **kwargs):
         """Get the comic page from the archive."""
         pk = self.kwargs.get("pk")

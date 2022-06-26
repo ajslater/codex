@@ -7,7 +7,6 @@
         <v-radio label="Default for all comics" :value="true" />
       </v-radio-group>
       <v-radio-group
-        id="fitToSelect"
         :value="settingsDialogFitTo"
         label="Display"
         @change="settingsDialogChanged({ fitTo: $event })"

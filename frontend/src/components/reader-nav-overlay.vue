@@ -9,14 +9,23 @@
       temporarary
       :value="bookChangePrev"
     >
-      <router-link class="navLink" :to="routePrevBook">
+      <router-link
+        class="navLink"
+        :to="routePrevBook"
+        aria-label="previous book"
+      >
         <v-icon class="bookChangeIcon flipped" x-large>{{
           mdiBookArrowRight
         }}</v-icon>
       </router-link>
     </v-navigation-drawer>
     <section id="leftColumn" class="navColumn" @click.stop>
-      <router-link v-if="routePrevPage" class="navLink" :to="routePrevPage" />
+      <router-link
+        v-if="routePrevPage"
+        class="navLink"
+        :to="routePrevPage"
+        aria-label="previous page"
+      />
       <div
         v-else-if="routePrevBook"
         class="drawerButton"
@@ -29,7 +38,12 @@
       @click="setBookChangeFlag(null)"
     />
     <section id="rightColumn" class="navColumn" @click.stop>
-      <router-link v-if="routeNextPage" class="navLink" :to="routeNextPage" />
+      <router-link
+        v-if="routeNextPage"
+        class="navLink"
+        :to="routeNextPage"
+        aria-label="next page"
+      />
       <div
         v-else-if="routeNextBook"
         class="drawerButton"
@@ -45,7 +59,12 @@
       temporarary
       :value="bookChangeNext"
     >
-      <router-link class="navLink" :to="routeNextBook" @click.native.stop>
+      <router-link
+        class="navLink"
+        :to="routeNextBook"
+        aria-label="next book"
+        @click.native.stop
+      >
         <v-icon class="bookChangeIcon" x-large>{{ mdiBookArrowRight }}</v-icon>
       </router-link>
     </v-navigation-drawer>
