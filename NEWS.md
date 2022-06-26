@@ -7,6 +7,8 @@
   - Fixed reader nav clicks always showing the toolbars.
   - Attempt to fix unwanted browser toolbars when treated as mobile app
   - Wait half a second before displaying reader placeholder spinner.
+  - Fix metadata missing search query.
+  - Fix metadata cache busting.
 
 ## v0.10.7
 

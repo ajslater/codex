@@ -412,16 +412,22 @@ class BrowserBaseView(SessionView, GroupACLMixin):
         aggregate_filter = bookmark_filter_join & comic_field_filter
         return aggregate_filter
 
-    def get_query_filters(self, is_model_comic, choices=False):
-        """Return the main object filter and the one for aggregates."""
-        object_filter = Q()
-
-        object_filter &= self.get_group_acl_filter(is_model_comic)
-
-        object_filter &= self._get_group_filter(choices)
+    def get_query_filters_without_group(self, is_model_comic):
+        """Return all the filters except the group filter."""
+        object_filter = self.get_group_acl_filter(is_model_comic)
 
         search_filter, autoquery_pk = self._get_search_filter(is_model_comic)
         object_filter &= search_filter
 
         object_filter &= self.get_aggregate_filter(is_model_comic)
+        return object_filter, autoquery_pk
+
+    def get_query_filters(self, is_model_comic, choices=False):
+        """Return the main object filter and the one for aggregates."""
+        object_filter, autoquery_pk = self.get_query_filters_without_group(
+            is_model_comic
+        )
+
+        object_filter &= self._get_group_filter(choices)
+
         return object_filter, autoquery_pk
