@@ -21,7 +21,7 @@ const setMarkRead = ({ group, pk, finished }) => {
   });
 };
 
-const getMetadata = ({group, pk}, ts) => {
+const getMetadata = ({ group, pk }, ts) => {
   return ajax("get", `/${group}/${pk}/metadata?ts=${ts}`);
 };
 

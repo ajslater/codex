@@ -20,7 +20,7 @@ const actions = {
     // Use the browser's timestamp
     const ts = rootState.browser.timestamp;
     // Set the metadata store.
-    await API.getMetadata({group, pk}, ts)
+    await API.getMetadata({ group, pk }, ts)
       .then((response) => {
         return commit("setMetadata", response.data);
       })
