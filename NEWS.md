@@ -12,7 +12,7 @@
 
 - Features
 
-  - Accessability enhancements for screen readers.
+  - Accessibility enhancements for screen readers.
 
 ## v0.10.7
 
