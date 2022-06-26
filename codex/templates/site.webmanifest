@@ -17,4 +17,5 @@
   "background_color": "#ffffff",
   "display": "standalone",
   "scope": "{{ script_prefix }}",
+  "start_url" : "{{ script_prefix }}"
 }
