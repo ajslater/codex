@@ -56,7 +56,7 @@ class Crond(NamedThread):
             next_midnight = datetime.combine(tomorrow, time.min).astimezone()
             delta = next_midnight - now
             seconds = max(0, delta.total_seconds())
-        return seconds
+        return int(seconds)
 
     def run(self):
         """Watch a path and log the events."""

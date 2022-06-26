@@ -184,9 +184,10 @@ class DatabasePollingEmitter(EventEmitter):
         # timeout behaves like an interval for polling emitters.
         try:
             with self._poll_cond:
-                LOG.verbose(
-                    f"Polling {self.watch.path} again in {precisedelta(timeout)}."
-                )
+                if timeout:
+                    LOG.verbose(
+                        f"Polling {self.watch.path} again in {precisedelta(timeout)}."
+                    )
                 self._poll_cond.wait(timeout)
                 if not self.should_keep_running():
                     return
