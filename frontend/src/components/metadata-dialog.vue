@@ -6,7 +6,7 @@
     content-class="metadataDialog"
   >
     <template #activator="{ on }">
-      <v-icon class="metadataButton" v-on="on">
+      <v-icon class="metadataButton" aria-label="tags" v-on="on">
         {{ mdiTagOutline }}
       </v-icon>
     </template>
@@ -40,6 +40,7 @@
             rounded
             background-color="inherit"
             height="2"
+            aria-label="% read"
           />
         </div>
         <div class="headerHalfRow">
@@ -197,6 +198,7 @@
         size="256"
         color="#cc7b19"
         class="placeholder"
+        aria-label="tags loading"
       />
     </div>
   </v-dialog>

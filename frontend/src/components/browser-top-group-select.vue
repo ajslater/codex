@@ -7,6 +7,7 @@
       dense
       hide-details="auto"
       :label="focused || hover ? label : undefined"
+      :aria-label="label"
       :menu-props="{
         maxHeight: '80vh',
         overflowY: false,
@@ -22,7 +23,7 @@
 import { mapActions, mapGetters, mapState } from "vuex";
 
 export default {
-  name: "BrowserRootGroupSelect",
+  name: "BrowserTopGroupSelect",
   data() {
     return {
       focused: false,

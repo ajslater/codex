@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "0.10.7",
+  "version": "0.10.8",
   "private": true,
   "description": "ui for codex api",
   "scripts": {
@@ -111,10 +111,5 @@
       "^.+\\.js$": "babel-jest",
       "^.+\\.vue$": "@vue/vue2-jest"
     }
-  },
-  "prettier": {
-    "trailingComma": "es5",
-    "arrowParens": "always",
-    "tabWidth": 2
   }
 }

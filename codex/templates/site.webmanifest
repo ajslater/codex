@@ -13,7 +13,9 @@
       "type": "image/webp"
     }
   ],
-  "theme_color": "#ffffff",
+  "theme_color": "#cc7b19",
   "background_color": "#ffffff",
-  "display": "standalone"
+  "display": "standalone",
+  "scope": "{{ script_prefix }}",
+  "start_url" : "{{ script_prefix }}"
 }

@@ -6,6 +6,7 @@
     autofocus
     clearable
     dense
+    aria-label="search"
     disable-lookup
     flat
     full-width

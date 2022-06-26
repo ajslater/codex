@@ -9,6 +9,7 @@
               indeterminate
               size="48"
               color="#cc7b19"
+              aria-label="loading"
             />
           </template>
         </v-img>

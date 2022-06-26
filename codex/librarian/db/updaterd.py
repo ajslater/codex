@@ -182,7 +182,9 @@ def _apply(task):
     if changed:
         LIBRARIAN_QUEUE.put(BroadcastNotifierTask("LIBRARY_CHANGED"))
         elapsed_time = time.time() - start_time
-        LOG.info(f"Updated library {library.path} in {precisedelta(elapsed_time)}.")
+        LOG.info(
+            f"Updated library {library.path} in {precisedelta(int(elapsed_time))}."
+        )
         suffix = ""
         if imported_count:
             cps = int(imported_count / elapsed_time)

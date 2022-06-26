@@ -4,10 +4,7 @@
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta
-      name="viewport"
-      content="width=device-width,initial-scale=1.0,maximum-scale=1.0"
-    />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
     <link
       rel="apple-touch-icon"
       type="image/webp"
@@ -26,13 +23,18 @@
       sizes="16x16"
       href="{% static 'img/favicon-16x16.webp' %}"
     />
-    <link rel="manifest" href="{{ script_prefix }}site.webmanifest" crossorigin="use-credentials" />
+    <link
+      rel="manifest"
+      href="{{ script_prefix }}site.webmanifest"
+      crossorigin="use-credentials"
+    />
     <link
       rel="mask-icon"
       color="#5bbad5"
       href="{% static 'img/safari-pinned-tab.svg' %}"
     />
     <link rel="shortcut icon" href="{% static 'img/favicon.ico' %}" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="msapplication-TileColor" content="#000000" />
     <meta
       name="msapplication-config"
@@ -55,8 +57,8 @@
   <body>
     <noscript>
       <strong
-        >Sorry but Codex doesn't work properly
-        without JavaScript enabled. Please enable it to continue.</strong
+        >Sorry but Codex doesn't work properly without JavaScript enabled.
+        Please enable it to continue.</strong
       >
     </noscript>
     <div id="App" />

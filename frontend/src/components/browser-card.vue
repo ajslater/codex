@@ -14,7 +14,12 @@
           :finished="item.finished"
         />
         <div class="cardCoverOverlay">
-          <router-link v-if="toRoute" class="browserLink" :to="toRoute">
+          <router-link
+            v-if="toRoute"
+            class="browserLink"
+            :to="toRoute"
+            :aria-label="linkLabel"
+          >
             <div class="cardCoverOverlayTopMiddleRow">
               <v-icon v-if="item.group === 'c'">
                 {{ mdiEye }}
@@ -43,6 +48,7 @@
       <v-progress-linear
         class="bookCoverProgress"
         :value="item.progress"
+        aria-label="% read"
         rounded
         background-color="inherit"
         height="2"
@@ -130,6 +136,12 @@ export default {
       return this.item.group === "v"
         ? formattedVolumeName(this.item.name)
         : this.item.name;
+    },
+    linkLabel: function () {
+      let label = "";
+      label += this.item.group === "c" ? "Read" : "Browse to";
+      label += " " + this.headerName;
+      return label;
     },
     orderValue: function () {
       let ov = this.item.orderValue;
@@ -295,6 +307,12 @@ export default {
   .browserTile {
     margin: 8px;
     width: 100px;
+  }
+  .cardCoverOverlayTopMiddleRow {
+    height: 82%;
+  }
+  .cardCoverOverlayBottomRow {
+    height: 18%;
   }
 }
 </style>
