@@ -52,7 +52,7 @@ export default {
     };
   },
   head() {
-    const page = this.$router.params.page;
+    const page = this.$route.params.page;
     const content = `read ${this.title} page ${page}`;
     return { meta: [{ hid: "description", name: "description", content }] };
   },
