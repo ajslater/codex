@@ -34,6 +34,16 @@ export default {
       mdiArrowUp,
     };
   },
+  head() {
+    const names = [
+      "browse comics",
+      this.longBrowserTitlePrefix,
+      this.longBrowseTitleMain,
+      this.longBrowseTitleSuffix,
+    ];
+    const content = names.join(" ");
+    return { meta: [{ hid: "description", name: "description", content }] };
+  },
   computed: {
     ...mapState("browser", {
       browserTitle: (state) => state.browserTitle,

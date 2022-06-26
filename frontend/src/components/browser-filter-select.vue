@@ -8,6 +8,7 @@
       :items="bookmarkChoices"
       hide-details="auto"
       :label="focused || hover ? LABEL : undefined"
+      :aria-label="LABEL"
       :menu-props="{
         maxHeight: '80vh',
         overflowY: false,

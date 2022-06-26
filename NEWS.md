@@ -10,6 +10,10 @@
   - Fix metadata missing search query.
   - Fix metadata cache busting.
 
+- Features
+
+  - Accessability enhancements for screen readers.
+
 ## v0.10.7
 
 - Features

@@ -51,6 +51,11 @@ export default {
       mdiDownload,
     };
   },
+  head() {
+    const page = this.$router.params.page;
+    const content = `read ${this.title} page ${page}`;
+    return { meta: [{ hid: "description", name: "description", content }] };
+  },
   computed: {
     ...mapState("reader", {
       title: function (state) {

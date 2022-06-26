@@ -10,7 +10,12 @@
   >
     <span v-if="notify === NOTIFY_STATES.LIBRARY_UPDATING">
       Updating Libraries
-      <v-progress-circular size="18" indeterminate color="#cc7b19" />
+      <v-progress-circular
+        size="18"
+        indeterminate
+        color="#cc7b19"
+        aria-label="updating"
+      />
     </span>
     <span v-else-if="notify === NOTIFY_STATES.FAILED">
       Review failed imports in the
