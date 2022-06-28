@@ -11,9 +11,7 @@ cache
 codex/_vendor/haystack
 codex/static_build
 codex/static_root
-codex/templates/*.xml
-codex/templates/admin/codex/queuejob/change_list.html
-codex/templates/site.webmanifest
+codex/templates
 comics
 frontend
 webpack-stats.json

@@ -13,6 +13,7 @@ if [ "$(uname)" = "Darwin" ]; then
     # Radon is only of interest to development
     poetry run radon mi --min B .
 fi
+poetry run djlint codex/templates --profile=django --lint
 
 ############################################
 ##### Javascript, JSON, Markdown, YAML #####

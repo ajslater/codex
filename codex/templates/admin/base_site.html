@@ -1,23 +1,25 @@
-{% extends "admin/base_site.html" %} {% load static %} {% block title %}Codex
-Administration{% endblock %} {% block extrastyle %}
-<link
-  href="{% static 'admin/css/dark.css' %}"
-  type="text/css"
-  media="(prefers-color-scheme: dark)"
-  rel="stylesheet"
-/>
-<link
-  href="{% static 'admin/css/codex-admin-dark.css' %}"
-  type="text/css"
-  rel="stylesheet"
-/>
-<link
-  href="{% static 'admin/css/codex-admin.css' %}"
-  rel="stylesheet"
-  type="text/css"
-/>
-{% block extrapagestyle %}{% endblock %} {% endblock %} {% block branding %}
-<h1 id="site-name">
-  <a href="{% url 'admin:index' %}">{{ _('Codex administration') }}</a>
-</h1>
-{% endblock %}
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% block title %}
+    Codex
+    Administration
+{% endblock title %}
+{% block extrastyle %}
+    <link href="{% static 'admin/css/dark.css' %}"
+          type="text/css"
+          media="(prefers-color-scheme: dark)"
+          rel="stylesheet"/>
+    <link href="{% static 'admin/css/codex-admin-dark.css' %}"
+          type="text/css"
+          rel="stylesheet"/>
+    <link href="{% static 'admin/css/codex-admin.css' %}"
+          rel="stylesheet"
+          type="text/css"/>
+    {% block extrapagestyle %}
+    {% endblock extrapagestyle %}
+{% endblock extrastyle %}
+{% block branding %}
+    <h1 id="site-name">
+        <a href="{% url 'admin:index' %}">{{ _('Codex administration') }}</a>
+    </h1>
+{% endblock branding %}

@@ -6,6 +6,7 @@ set -euxo pipefail
 ###################
 poetry run isort --color .
 poetry run black .
+poetry run djlint codex/templates --profile=django --reformat
 
 ############################################
 ##### Javascript, JSON, Markdown, YAML #####
