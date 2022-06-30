@@ -8,6 +8,10 @@
   - Fix indeterminate finished state when children have bookmark progress.
   - Fix maintence running inappropriately on first run. Crashed xapian database.
 
+- Special Thanks
+
+  - To ToxicFrog, who's been finding most of these bugs I'm fixing for a while.
+
 ## v0.10.8
 
 - Fixes
