@@ -8,7 +8,7 @@
   - Fix indeterminate finished state when children have bookmark progress.
   - Fix maintence running inappropriately on first run. Crashed xapian database.
   - Fix reader metadata keymap
-  
+
 - Features
 
   - Progressive Web App support
