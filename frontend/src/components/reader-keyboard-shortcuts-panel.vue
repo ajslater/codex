@@ -29,7 +29,7 @@
         </tr>
         <tr>
           <td>s</td>
-          <td>Shrink page to screen</td>
+          <td>Fit page to screen</td>
         </tr>
         <tr>
           <td>o</td>
