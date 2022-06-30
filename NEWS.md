@@ -5,6 +5,7 @@
 - Fixes
 
   - Fix null bookmark and count fields in metadata
+  - Fix indeterminate finished state when children have bookmark progress.
 
 ## v0.10.8
 
