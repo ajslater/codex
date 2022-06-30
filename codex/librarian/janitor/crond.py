@@ -54,7 +54,7 @@ class Crond(NamedThread):
             mtime = CRON_TIMESTAMP.stat().st_mtime
             last_cron = datetime.fromtimestamp(mtime, tz=timezone.utc)
         except FileNotFoundError:
-            # get last midnight. Usually only on first run.
+            # get last midnight. Usually only on very first run.
             last_cron = cls._get_midnight(now)
 
         if now - last_cron < ONE_DAY:
