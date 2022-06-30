@@ -1,5 +1,11 @@
 # 📰 Codex News
 
+## v0.10.9
+
+- Fixes
+
+  - Fix null bookmark and count fields in metadata
+
 ## v0.10.8
 
 - Fixes
