@@ -7,10 +7,12 @@
   - Fix null bookmark and count fields in metadata
   - Fix indeterminate finished state when children have bookmark progress.
   - Fix maintence running inappropriately on first run. Crashed xapian database.
+  - Fix reader metadata keymap
   
 - Features
 
   - Progressive Web App support
+  - Reader "Shrink to" settings replaced by "Fit to"
 
 - Special Thanks
 

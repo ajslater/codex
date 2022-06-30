@@ -126,6 +126,10 @@ export default {
             twoPages: !this.computedSettings.twoPages,
           });
           break;
+
+        case "m":
+          this.openMetadata();
+          break;
         // No default
       }
     },

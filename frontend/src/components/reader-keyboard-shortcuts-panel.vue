@@ -21,11 +21,11 @@
         </tr>
         <tr>
           <td>h</td>
-          <td>Shrink page to screen height</td>
+          <td>Fit page to screen height</td>
         </tr>
         <tr>
           <td>w</td>
-          <td>Shrink page to screen width</td>
+          <td>Fit page to screen width</td>
         </tr>
         <tr>
           <td>s</td>
@@ -33,7 +33,7 @@
         </tr>
         <tr>
           <td>o</td>
-          <td>Expand page to original size</td>
+          <td>Show page at original size</td>
         </tr>
         <tr>
           <td>2</td>
