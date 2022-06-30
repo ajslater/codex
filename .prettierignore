@@ -12,6 +12,7 @@ codex/_vendor/haystack
 codex/static_build
 codex/static_root
 codex/templates
+!codex/templates/pwa/serviceworkerRegister.js
 comics
 frontend
 webpack-stats.json
