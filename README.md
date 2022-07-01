@@ -71,7 +71,6 @@ The python cryptography wheel needs compiling on rare architectures. Install the
 apt install cargo
 ```
 
-
 ###### Alpine
 
 ```sh
