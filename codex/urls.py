@@ -20,7 +20,7 @@ from django.urls import include, path, re_path
 from django.views.decorators.cache import cache_page
 from django.views.generic.base import RedirectView
 
-from codex.views.frontend import IndexView, browserconfig, webmanifest
+from codex.views.frontend import IndexView
 
 
 CACHE_TIME = 60 * 60
@@ -40,13 +40,10 @@ urlpatterns = [
         ),
         name="robots",
     ),
-    path(
-        "browserconfig.xml", cache_page(CACHE_TIME)(browserconfig), name="browserconfig"
-    ),
-    path("site.webmanifest", cache_page(CACHE_TIME)(webmanifest), name="webmanifest"),
     path("api/v2/", include("codex.urls_api_v2")),
     path("admin/", admin.site.urls, name="admin"),
     path("", IndexView.as_view(), name="app"),
+    path("", include("codex.urls_pwa")),
     re_path(".*", IndexView.as_view(), name="app"),
 ]
 

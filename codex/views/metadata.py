@@ -280,8 +280,8 @@ class MetadataView(BrowserMetadataBaseView):
 
         # copy into unionfix fields for serializer
         for (
-            from_field,
             to_field,
+            from_field,
         ) in BROWSER_AGGREGATE_ORDERED_UNIONFIX_VALUES_MAP.items():
             obj[to_field] = obj.get(from_field)
 

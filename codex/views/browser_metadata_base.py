@@ -106,7 +106,6 @@ class BrowserMetadataBaseView(BrowserBaseView):
         ubm_rel = self.get_ubm_rel(is_model_comic)
         ub_filter = self._get_userbookmark_filter(ubm_rel)
 
-        when_no_ubm = When(Q(**{ubm_rel: None}), then=0)
         bookmark_rel = f"{ubm_rel}__bookmark"
         finished_rel = f"{ubm_rel}__finished"
 
@@ -128,7 +127,7 @@ class BrowserMetadataBaseView(BrowserBaseView):
             # Aggregate bookmark and finished states
             bookmark = Sum(
                 Case(
-                    when_no_ubm,
+                    When(**{ubm_rel: None}, then=0),
                     When(**{finished_rel: True}, then="comic__page_count"),
                     default=bookmark_rel,
                     output_field=PositiveSmallIntegerField(),
@@ -137,15 +136,26 @@ class BrowserMetadataBaseView(BrowserBaseView):
                 filter=ub_filter,
                 output_field=PositiveSmallIntegerField(),
             )
+            finished_count = Sum(
+                finished_rel,
+                default=0,
+                filter=ub_filter,
+                output_field=PositiveSmallIntegerField(),
+            )
+            obj_list = obj_list.annotate(finished_count=finished_count)
             finished_aggregate = Case(
+                When(
+                    Q(finished_count=F("child_count")) | Q(bookmark=F("page_count")),
+                    then=True,
+                ),
                 When(bookmark=0, then=False),
-                When(bookmark=F("page_count"), then=True),
                 default=None,
                 output_field=BooleanField(),
             )
 
-        obj_list = obj_list.annotate(bookmark=bookmark).annotate(
-            finished=finished_aggregate
+        obj_list = obj_list.annotate(
+            bookmark=bookmark,
+            finished=finished_aggregate,
         )
 
         return obj_list

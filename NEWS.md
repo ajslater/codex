@@ -1,5 +1,23 @@
 # 📰 Codex News
 
+## v0.10.9
+
+- Fixes
+
+  - Fix null bookmark and count fields in metadata
+  - Fix indeterminate finished state when children have bookmark progress.
+  - Fix maintenance running inappropriately on first run. Crashed xapian database.
+  - Fix reader metadata keymap
+
+- Features
+
+  - Progressive Web App support
+  - Reader "Shrink to" settings replaced by "Fit to"
+
+- Special Thanks
+
+  - To ToxicFrog, who's been finding most of these bugs I'm fixing for a while.
+
 ## v0.10.8
 
 - Fixes

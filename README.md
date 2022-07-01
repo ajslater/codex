@@ -53,10 +53,22 @@ brew install jpeg libffi libyaml libzip openssl poppler python unrar webp xapian
 
 ##### Linux
 
-###### Debian based (e.g. Ubuntu)
+###### Debian
+
+Like Ubuntu, Mint, MX and others.
 
 ```sh
-apt install build-essential libffi-dev libjpeg-dev libssl-dev libwebp libxapian30 libyaml-dev poppler-utils python3-pip python3-xapian zlib1g-dev
+apt install build-essential libffi-dev libjpeg-dev libssl-dev libwebp7 libxapian30 libyaml-dev poppler-utils python3-pip python3-xapian zlib1g-dev
+```
+
+older releases may use the `libweb6` package instead.
+
+###### Debian on ARM
+
+The python cryptography wheel needs compiling on rare architectures. Install the Rust compiler.
+
+```sh
+apt install cargo
 ```
 
 ###### Alpine

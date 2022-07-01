@@ -51,6 +51,10 @@ def update_search_index(rebuild=False):
             LOG.verbose("Database update in progress, not updating search index yet.")
             return
 
+        if not rebuild and not LatestVersion.is_xapian_uuid_match():
+            LOG.warning("Database does not match search index.")
+            rebuild = True
+
         XAPIAN_INDEX_PATH.mkdir(parents=True, exist_ok=True)
 
         if rebuild:

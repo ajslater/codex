@@ -4,7 +4,7 @@ build-backend = ["poetry.core.masonry.api"]
 
 [tool.poetry]
 name = "codex"
-version = "0.10.8"
+version = "0.10.9"
 description = "A comic archive web server."
 license = "GPL-2.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
@@ -67,6 +67,7 @@ django-debug-toolbar = "^3.1"
 django-livereload-server = "^0.4"
 django-types = "^0.15.0"
 djangorestframework-types = "^0.7.0"
+djlint = "^1.2.1"
 flake8 = "4.0.1" # https://github.com/tholo/pytest-flake8/issues/81
 flake8-black = "^0.3.2"
 flake8-bugbear = "^22.1"
@@ -206,3 +207,6 @@ exclude = [
 useLibraryCodeForTypes = true
 reportMissingImports = true
 reportImportCycles = true
+
+[tool.djlint]
+ignore="H030,H031"

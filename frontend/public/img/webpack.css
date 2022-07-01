@@ -1,25 +1,25 @@
 /* This file only exists for webpack to copy these images */
 a {
-  background: url("android-chrome-192x192.webp");
-}
-b {
-  background: url("android-chrome-512x512.webp");
-}
-c {
   background: url("apple-touch-icon.webp");
 }
+b {
+  background: url("favicon-32.webp");
+}
+c {
+  background: url("favicon-128.webp");
+}
 d {
-  background: url("favicon-16x16.webp");
+  background: url("favicon-180.webp");
 }
 e {
-  background: url("favicon-32x32.webp");
+  background: url("favicon-192.webp");
 }
 f {
-  background: url("favicon.ico");
+  background: url("favicon-512.webp");
 }
 g {
-  background: url("mstile-150x150.webp");
+  background: url("favicon.ico");
 }
 h {
-  background: url("safari-pinned-tab.svg");
+  background: url("favicon.svg");
 }

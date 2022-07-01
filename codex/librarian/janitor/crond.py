@@ -38,24 +38,34 @@ class Crond(NamedThread):
     NAME = "Cron"
 
     @staticmethod
-    def _get_timeout():
+    def _get_midnight(now, tomorrow=False):
+        """Get midnight relative to now."""
+        if tomorrow:
+            now += ONE_DAY
+        day = now.astimezone()
+        midnight = datetime.combine(day, time.min).astimezone()
+        return midnight
+
+    @classmethod
+    def _get_timeout(cls):
         """Get seconds until midnight."""
+        now = timezone.now()
         try:
             mtime = CRON_TIMESTAMP.stat().st_mtime
+            last_cron = datetime.fromtimestamp(mtime, tz=timezone.utc)
         except FileNotFoundError:
-            mtime = 0
+            # get last midnight. Usually only on very first run.
+            last_cron = cls._get_midnight(now)
 
-        last_cron = datetime.fromtimestamp(mtime, tz=timezone.utc)
-        now = timezone.now()
-        if now - last_cron > ONE_DAY:
-            # it's been too long
-            seconds = 0
-        else:
+        if now - last_cron < ONE_DAY:
             # wait until next midnight
-            tomorrow = (now + ONE_DAY).astimezone()
-            next_midnight = datetime.combine(tomorrow, time.min).astimezone()
+            next_midnight = cls._get_midnight(now, True)
             delta = next_midnight - now
             seconds = max(0, delta.total_seconds())
+        else:
+            # it's been too long
+            seconds = 0
+
         return int(seconds)
 
     def run(self):

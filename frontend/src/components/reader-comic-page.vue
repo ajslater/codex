@@ -155,17 +155,15 @@ export default {
   object-fit: contain;
   display: block;
 }
+.fitToScreen,
+.fitToScreenTwo,
 .fitToHeight,
 .fitToHeightTwo {
-  max-height: 100vh;
-}
-.fitToScreen,
-.fitToScreenTwo {
   height: 100vh;
 }
 .fitToScreen,
 .fitToWidth {
-  max-width: 100vw;
+  width: 100vw;
 }
 .fitToScreenTwo,
 .fitToWidthTwo {
