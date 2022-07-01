@@ -6,7 +6,7 @@
 
   - Fix null bookmark and count fields in metadata
   - Fix indeterminate finished state when children have bookmark progress.
-  - Fix maintence running inappropriately on first run. Crashed xapian database.
+  - Fix maintenance running inappropriately on first run. Crashed xapian database.
   - Fix reader metadata keymap
 
 - Features
