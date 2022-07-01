@@ -1,5 +1,11 @@
 # 📰 Codex News
 
+## v0.10.10a0
+
+- Features
+
+  - Reader nav toolbar shows position in series.
+
 ## v0.10.9
 
 - Fixes

@@ -7,7 +7,9 @@
       </v-btn>
     </v-toolbar-items>
     <v-spacer />
-    <v-toolbar-title id="toolbarTitle">{{ title }}</v-toolbar-title>
+    <v-toolbar-title id="toolbarTitle">
+      {{ title }}
+    </v-toolbar-title>
     <v-spacer />
     <v-toolbar-items>
       <v-btn id="tagButton" @click.stop="openMetadata">

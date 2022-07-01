@@ -18,6 +18,7 @@
       @change="routeToPage($event)"
     />
     <ReaderNavButton :value="maxPage" />
+    <span v-if="seriesPosition" id="seriesPosition">{{ seriesPosition }}</span>
   </v-toolbar>
 </template>
 
@@ -34,6 +35,13 @@ export default {
   computed: {
     ...mapState("reader", {
       maxPage: (state) => state.comic.maxPage,
+      seriesPosition: function (state) {
+        let pos = "";
+        if (state.routes.seriesCount > 1) {
+          pos = `${state.routes.seriesIndex}/${state.routes.seriesCount}`;
+        }
+        return pos;
+      },
     }),
   },
   methods: {
@@ -47,6 +55,11 @@ export default {
   position: fixed;
   bottom: 0px;
   width: 100%;
+}
+#seriesPosition {
+  padding-left: 0.5em;
+  padding-right: 1em;
+  color: darkgray;
 }
 </style>
 
