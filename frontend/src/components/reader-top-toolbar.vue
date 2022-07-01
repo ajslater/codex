@@ -1,10 +1,10 @@
 <template>
   <v-toolbar class="readerTopToolbar" dense>
     <v-toolbar-items>
-      <v-btn id="closeBook" ref="closeBook" :to="closeBookRoute" large ripple
-        ><span v-if="$vuetify.breakpoint.mdAndUp">close book</span
-        ><span v-else>x</span></v-btn
-      >
+      <v-btn id="closeBook" ref="closeBook" :to="closeBookRoute" large ripple>
+        <span v-if="$vuetify.breakpoint.mdAndUp">close book</span>
+        <span v-else>x</span>
+      </v-btn>
     </v-toolbar-items>
     <v-spacer />
     <v-toolbar-title id="toolbarTitle">{{ title }}</v-toolbar-title>
