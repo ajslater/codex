@@ -11,6 +11,7 @@
       {{ title }}
     </v-toolbar-title>
     <v-spacer />
+    <span v-if="seriesPosition" id="seriesPosition">{{ seriesPosition }}</span>
     <v-toolbar-items>
       <v-btn id="tagButton" @click.stop="openMetadata">
         <MetadataDialog
@@ -64,6 +65,11 @@ export default {
         return getFullComicName(state.comic);
       },
       timestamp: (state) => state.timestamp,
+      seriesPosition: function (state) {
+        if (state.routes.seriesCount > 1) {
+          return `${state.routes.seriesIndex}/${state.routes.seriesCount}`;
+        }
+      },
     }),
     ...mapGetters("reader", ["computedSettings"]),
     ...mapState("reader", {
@@ -152,6 +158,10 @@ export default {
   overflow-y: auto;
   text-overflow: clip;
   white-space: normal;
+  font-size: clamp(8pt, 2.5vw, 18pt);
+}
+#seriesPosition {
+  color: darkgray;
 }
 #downloadPageButton {
   height: 100%;
@@ -170,9 +180,6 @@ export default {
     padding-left: 10px;
     padding-right: 0px;
     width: 16px;
-  }
-  #toolbarTitle {
-    font-size: x-small;
   }
 }
 </style>
