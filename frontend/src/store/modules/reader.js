@@ -42,7 +42,7 @@ const state = {
     prevBook: undefined,
     nextBook: undefined,
     seriesIndex: undefined,
-    seriesCount: undefined
+    seriesCount: undefined,
   },
   bookChange: undefined,
   formChoices: {

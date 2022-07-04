@@ -24,7 +24,8 @@ module.exports = {
       }),
     ],
     devServer: {
-      writeToDisk: true, // Write files to disk in dev mode, so Django can serve the assets
+      // Write files to disk in dev mode, so Django can serve the assets
+      writeToDisk: true,
     },
   },
   transpileDependencies: ["vuetify"],

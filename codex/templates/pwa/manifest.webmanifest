@@ -6,19 +6,16 @@
   "start_url" : "{{ script_prefix }}",
    "icons": [
     {
-      "src": "{% static 'img/favicon-128.webp' %}",
-      "sizes": "128x128",
-      "type": "image/webp"
-    },
-    {
-      "src": "{% static 'img/favicon-192.webp' %}",
-      "sizes": "192x192",
-      "type": "image/webp"
+      "src": "{% static 'img/favicon.svg' %}",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
     },
     {
       "src": "{% static 'img/favicon-512.webp' %}",
       "sizes": "512x512",
-      "type": "image/webp"
+      "type": "image/webp",
+      "purpose": "any"
     }
   ],
   "display": "standalone",

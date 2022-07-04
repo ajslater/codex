@@ -1,25 +1,13 @@
 /* This file only exists for webpack to copy these images */
 a {
-  background: url("apple-touch-icon.webp");
-}
-b {
   background: url("favicon-32.webp");
 }
-c {
-  background: url("favicon-128.webp");
-}
-d {
+b {
   background: url("favicon-180.webp");
 }
-e {
-  background: url("favicon-192.webp");
-}
-f {
+c {
   background: url("favicon-512.webp");
 }
-g {
-  background: url("favicon.ico");
-}
-h {
+d {
   background: url("favicon.svg");
 }
