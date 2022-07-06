@@ -107,5 +107,6 @@ export default {
 }
 #readerSettings {
   padding-left: 15px;
+  padding-right: env(safe-area-inset-right);
 }
 </style>

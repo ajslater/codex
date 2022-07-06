@@ -71,6 +71,7 @@ export default {
 }
 #browserSettings {
   padding-left: 15px;
+  padding-right: env(safe-area-inset-right);
 }
 .openInNewIcon {
   color: gray;
