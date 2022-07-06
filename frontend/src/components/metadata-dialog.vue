@@ -416,7 +416,10 @@ export default {
   float: right;
 }
 .placeholder {
-  margin-top: 48px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 #metadataContainer,
 #placeholderContainer {

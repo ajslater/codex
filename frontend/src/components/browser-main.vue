@@ -116,7 +116,10 @@ export default {
   padding-bottom: 45px !important;
 }
 .placeholder {
-  margin-top: 48px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 @import "~vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
