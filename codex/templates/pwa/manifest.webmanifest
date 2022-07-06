@@ -12,10 +12,34 @@
       "purpose": "any"
     },
     {
-      "src": "{% static 'img/favicon-512.webp' %}",
+      "src": "{% static 'img/favicon.svg' %}",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "{% static 'img/manifest-icon-192.maskable.webp' %}",
+      "sizes": "192x192",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "{% static 'img/manifest-icon-192.maskable.webp' %}",
+      "sizes": "192x192",
+      "type": "image/webp",
+      "purpose": "maskable"
+    },
+    {
+      "src": "{% static 'img/manifest-icon-512.maskable.webp' %}",
       "sizes": "512x512",
       "type": "image/webp",
       "purpose": "any"
+    },
+    {
+      "src": "{% static 'img/manifest-icon-512.maskable.webp' %}",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "maskable"
     }
   ],
   "display": "standalone",
