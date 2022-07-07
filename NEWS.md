@@ -6,6 +6,10 @@
 
   - Reader nav toolbar shows position in series.
 
+- Fix
+
+  - Move controls away from iphone notch and home bar.
+
 ## v0.10.9
 
 - Fixes
