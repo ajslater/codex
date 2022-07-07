@@ -171,6 +171,7 @@ export default {
   #closeBook {
     min-width: 32px;
   }
+  #downloadPageButton,
   #tagButton {
     padding-left: 8px;
     padding-right: 0px;
