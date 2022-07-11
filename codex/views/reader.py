@@ -62,16 +62,23 @@ class ComicOpenedView(SessionView, GroupACLMixin):
 
         current_comic = None
         prev_route = next_route = None
-        for comic in comics:
+        series_index = None
+        for index, comic in enumerate(comics):
             if current_comic is not None:
                 next_route = {"pk": comic["pk"], "page": 0}
                 break
             elif comic["pk"] == pk:
                 current_comic = comic
+                series_index = index + 1
             else:
                 # Haven't matched yet, so set the previous comic
                 prev_route = {"pk": comic["pk"], "page": comic["max_page"]}
-        routes = {"prev_book": prev_route, "next_book": next_route}
+        routes = {
+            "prev_book": prev_route,
+            "next_book": next_route,
+            "series_index": series_index,
+            "series_count": comics.count(),
+        }
 
         return current_comic, routes
 

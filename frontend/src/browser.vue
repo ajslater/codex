@@ -6,7 +6,7 @@
     </header>
     <BrowserMain />
     <BrowserPaginationToolbar />
-    <SettingsDrawer :panel="panel" />
+    <BrowserSettingsDrawer />
   </div>
 </template>
 
@@ -16,9 +16,8 @@ import { mapActions, mapGetters, mapState } from "vuex";
 import BrowserFilterToolbar from "@/components/browser-filter-toolbar";
 import BrowserMain from "@/components/browser-main";
 import BrowserPaginationToolbar from "@/components/browser-pagination-toolbar";
-import BrowserSettingsPanel from "@/components/browser-settings-panel";
+import BrowserSettingsDrawer from "@/components/browser-settings-drawer";
 import BrowserTitleToolbar from "@/components/browser-title-toolbar";
-import SettingsDrawer from "@/components/settings-drawer";
 
 export default {
   name: "MainBrowser",
@@ -27,12 +26,7 @@ export default {
     BrowserMain,
     BrowserPaginationToolbar,
     BrowserTitleToolbar,
-    SettingsDrawer,
-  },
-  data() {
-    return {
-      panel: BrowserSettingsPanel,
-    };
+    BrowserSettingsDrawer,
   },
   computed: {
     ...mapState("auth", {

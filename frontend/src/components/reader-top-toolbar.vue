@@ -1,14 +1,17 @@
 <template>
   <v-toolbar class="readerTopToolbar" dense>
     <v-toolbar-items>
-      <v-btn id="closeBook" ref="closeBook" :to="closeBookRoute" large ripple
-        ><span v-if="$vuetify.breakpoint.mdAndUp">close book</span
-        ><span v-else>x</span></v-btn
-      >
+      <v-btn id="closeBook" ref="closeBook" :to="closeBookRoute" large ripple>
+        <span v-if="$vuetify.breakpoint.mdAndUp">close book</span>
+        <span v-else>x</span>
+      </v-btn>
     </v-toolbar-items>
     <v-spacer />
-    <v-toolbar-title id="toolbarTitle">{{ title }}</v-toolbar-title>
+    <v-toolbar-title id="toolbarTitle">
+      {{ title }}
+    </v-toolbar-title>
     <v-spacer />
+    <span v-if="seriesPosition" id="seriesPosition">{{ seriesPosition }}</span>
     <v-toolbar-items>
       <v-btn id="tagButton" @click.stop="openMetadata">
         <MetadataDialog
@@ -62,6 +65,11 @@ export default {
         return getFullComicName(state.comic);
       },
       timestamp: (state) => state.timestamp,
+      seriesPosition: function (state) {
+        if (state.routes.seriesCount > 1) {
+          return `${state.routes.seriesIndex}/${state.routes.seriesCount}`;
+        }
+      },
     }),
     ...mapGetters("reader", ["computedSettings"]),
     ...mapState("reader", {
@@ -150,6 +158,10 @@ export default {
   overflow-y: auto;
   text-overflow: clip;
   white-space: normal;
+  font-size: clamp(8pt, 2.5vw, 18pt);
+}
+#seriesPosition {
+  color: darkgray;
 }
 #downloadPageButton {
   height: 100%;
@@ -159,6 +171,7 @@ export default {
   #closeBook {
     min-width: 32px;
   }
+  #downloadPageButton,
   #tagButton {
     padding-left: 8px;
     padding-right: 0px;
@@ -168,9 +181,6 @@ export default {
     padding-left: 10px;
     padding-right: 0px;
     width: 16px;
-  }
-  #toolbarTitle {
-    font-size: x-small;
   }
 }
 </style>

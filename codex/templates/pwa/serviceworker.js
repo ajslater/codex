@@ -2,13 +2,10 @@
 var staticCacheName = "codex-pwa-v" + new Date().getTime();
 var filesToCache = [
   "/offline",
-  "{% static 'img/apple-touch-icon.webp' %}",
   "{% static 'img/favicon-32.webp' %}",
-  "{% static 'img/favicon-128.webp' %}",
-  "{% static 'img/favicon-180.webp' %}",
-  "{% static 'img/favicon-192.webp' %}",
-  "{% static 'img/favicon-512.webp' %}",
-  "{% static 'img/favicon.ico' %}",
+  "{% static 'img/apple-icon-180.webp' %}",
+  "{% static 'img/manifest-icon-192.maskable.webp' %}",
+  "{% static 'img/manifest-icon-512.maskable.webp' %}",
   "{% static 'img/favicon.svg' %}",
 ];
 // Cache on install

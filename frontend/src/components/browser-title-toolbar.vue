@@ -1,6 +1,6 @@
 <template>
   <v-toolbar id="titleToolbar" class="toolbar">
-    <v-toolbar-items>
+    <v-toolbar-items v-if="isOpenToSee">
       <v-btn :class="{ invisible: !showUpButton }" :to="toUpRoute" icon ripple
         ><v-icon>{{ mdiArrowUp }}</v-icon>
       </v-btn>
@@ -69,9 +69,7 @@ export default {
     },
     longBrowseTitleMain: function () {
       let browserTitle;
-      if (!this.isOpenToSee) {
-        browserTitle = "";
-      } else if (Number(this.$route.params.pk) === 0) {
+      if (Number(this.$route.params.pk) === 0) {
         browserTitle = "All";
       } else {
         let names = [];

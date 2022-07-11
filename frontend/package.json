@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "0.10.9",
+  "version": "0.10.10",
   "private": true,
   "description": "ui for codex api",
   "scripts": {
@@ -20,7 +20,6 @@
     "core-js": "^3.19",
     "eslint-plugin-yaml": "^0.5.0",
     "humanize": "^0.0.9",
-    "normalize.css": "^8.0.1",
     "reconnecting-websocket": "^4.4.0",
     "vue": "^2.6.14",
     "vue-meta": "^2.4.0",
@@ -68,7 +67,7 @@
     "eslint-plugin-simple-import-sort": "^7.0.0",
     "eslint-plugin-sonarjs": "^0.13.0",
     "eslint-plugin-switch-case": "^1.1.2",
-    "eslint-plugin-unicorn": "^42.0.0",
+    "eslint-plugin-unicorn": "^43.0.0",
     "eslint-plugin-vue": "^9.0.1",
     "eslint-plugin-vue-scoped-css": "^2.0.0",
     "eslint_d": "^12.0.0",

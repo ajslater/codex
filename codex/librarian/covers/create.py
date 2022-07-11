@@ -63,9 +63,7 @@ def _save_thumbnail(image_data, fs_cover_path):
                 Image.Resampling.LANCZOS,  # type: ignore
                 reducing_gap=3.0,
             )
-            cover_image.save(
-                fs_cover_path, "WEBP", lossless=False, quality=100, method=6
-            )
+            cover_image.save(fs_cover_path, "WEBP", method=6)
     cover_image.close()  # extra close for animated sequences
 
 

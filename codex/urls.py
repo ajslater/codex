@@ -29,7 +29,7 @@ urlpatterns = [
     path(
         "favicon.ico",
         cache_page(CACHE_TIME)(
-            RedirectView.as_view(url=staticfiles_storage.url("img/favicon.ico"))
+            RedirectView.as_view(url=staticfiles_storage.url("img/favicon-32.webp"))
         ),
         name="favicon",
     ),

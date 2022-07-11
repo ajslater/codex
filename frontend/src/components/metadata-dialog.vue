@@ -262,12 +262,12 @@ export default {
   computed: {
     ...mapState("metadata", {
       md: (state) => state.md,
-      downloadURL: function (state) {
-        return getDownloadURL(this.md.pk, state.timestamp);
-      },
     }),
     ...mapState("browser", {
       autoquery: (state) => state.settings.autoquery,
+      downloadURL: function (state) {
+        return getDownloadURL(this.pk, state.timestamp);
+      },
     }),
     ...mapGetters("auth", ["isAdmin"]),
     isBrowser: function () {
@@ -416,7 +416,10 @@ export default {
   float: right;
 }
 .placeholder {
-  margin-top: 48px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 #metadataContainer,
 #placeholderContainer {

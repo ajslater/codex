@@ -45,7 +45,7 @@ export default {
 <style scoped lang="scss">
 .readerNavToolbar {
   position: fixed;
-  bottom: 0px;
+  bottom: env(safe-area-inset-bottom);
   width: 100%;
 }
 </style>

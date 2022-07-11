@@ -1,5 +1,17 @@
 # 📰 Codex News
 
+## v0.10.10
+
+- Features
+
+  - Reader nav toolbar shows position in series.
+
+- Fix
+
+  - Fix inability to log in when Enable Non Users admin flag is unset.
+  - Simplify Admin Library delete confirmation page to prevent OOM crash.
+  - Move controls away from iphone notch and home bar.
+
 ## v0.10.9
 
 - Fixes

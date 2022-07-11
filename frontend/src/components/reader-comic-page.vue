@@ -1,6 +1,6 @@
 <template>
   <div v-if="displayPage" :id="page">
-    <Placeholderplaceholder
+    <Placeholder
       class="placeholder"
       :size="placeholderSize"
       :class="{ hidden: loaded }"
@@ -26,13 +26,13 @@ import VuePdfEmbed from "vue-pdf-embed/dist/vue2-pdf-embed";
 import { mapGetters, mapState } from "vuex";
 
 import { getComicPageSource } from "@/api/v2/comic";
-import Placeholderplaceholder from "@/components/placeholder-loading";
+import Placeholder from "@/components/placeholder-loading";
 
 const PLACEHOLDER_ENGAGE_MS = 500;
 
 export default {
   name: "ReaderComicPage",
-  components: { Placeholderplaceholder, VuePdfEmbed },
+  components: { Placeholder, VuePdfEmbed },
   props: {
     pageIncrement: {
       type: Number,
@@ -175,8 +175,9 @@ export default {
 }
 .placeholder {
   position: absolute;
-  top: 25vh;
-  left: 40vw;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 .hidden {
   display: none;
