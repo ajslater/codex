@@ -22,7 +22,7 @@
         <router-link :to="{ name: 'home' }">Log in</router-link> to read comics
       </h1>
     </div>
-    <SettingsDrawer :panel="panel" />
+    <ReaderSettingsDrawer />
   </div>
 </template>
 
@@ -32,9 +32,8 @@ import { mapActions, mapGetters } from "vuex";
 import ReaderComicPage from "@/components/reader-comic-page";
 import ReaderNavOverlay from "@/components/reader-nav-overlay";
 import ReaderNavToolbar from "@/components/reader-nav-toolbar";
-import ReaderSettingsPanel from "@/components/reader-settings-panel";
+import ReaderSettingsDrawer from "@/components/reader-settings-drawer";
 import ReaderTopToolbar from "@/components/reader-top-toolbar";
-import SettingsDrawer from "@/components/settings-drawer";
 
 const MIN_VIEWPORT_WIDTH_SWIPE_ENABLED = 768;
 
@@ -45,11 +44,10 @@ export default {
     ReaderNavOverlay,
     ReaderNavToolbar,
     ReaderTopToolbar,
-    SettingsDrawer,
+    ReaderSettingsDrawer,
   },
   data() {
     return {
-      panel: ReaderSettingsPanel,
       showToolbars: false,
     };
   },

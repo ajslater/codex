@@ -8,6 +8,7 @@
 
 - Fix
 
+  - Fix inability to log in when Enable Non Users flag is unset.
   - Move controls away from iphone notch and home bar.
 
 ## v0.10.9
