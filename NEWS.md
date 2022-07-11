@@ -10,6 +10,7 @@
 
   - Fix inability to log in when Enable Non Users flag is unset.
   - Move controls away from iphone notch and home bar.
+  - Simplify Admin Library delete confirmation page to prevent OOM crash.
 
 ## v0.10.9
 

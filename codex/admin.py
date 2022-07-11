@@ -191,6 +191,15 @@ class AdminLibrary(ModelAdmin):
             # for form in formset:
             self._on_change(form.instance)
 
+    def get_deleted_objects(self, objs, request):
+        """Prevent related objects from displaying on confirmation page due to OOM."""
+        to_delete = objs
+        model_count = {objs[0].__class__._meta.verbose_name_plural: len(objs)}
+        perms_needed = set()
+        protected = []
+        return to_delete, model_count, perms_needed, protected
+        # return super().get_deleted_objects(objs, request)
+
 
 @register(AdminFlag)
 class AdminAdminFlag(AdminNoAddDelete):
