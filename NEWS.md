@@ -1,6 +1,6 @@
 # 📰 Codex News
 
-## v0.10.10a0
+## v0.10.10
 
 - Features
 
@@ -8,9 +8,9 @@
 
 - Fix
 
-  - Fix inability to log in when Enable Non Users flag is unset.
-  - Move controls away from iphone notch and home bar.
+  - Fix inability to log in when Enable Non Users admin flag is unset.
   - Simplify Admin Library delete confirmation page to prevent OOM crash.
+  - Move controls away from iphone notch and home bar.
 
 ## v0.10.9
 
