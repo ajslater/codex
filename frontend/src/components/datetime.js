@@ -1,10 +1,11 @@
 // Date & time formats
-const LOCALE = "en-CA";
-export const DATE_FORMAT = new Intl.DateTimeFormat(LOCALE, { timeZone: 'UTC'});
+const LOCALE = "sv-SE"; // ISO 8601, en-CA has a comma for time delimiter
+export const DATE_FORMAT = new Intl.DateTimeFormat(LOCALE, {
+  timeZone: "UTC", // prevents off by one error using browser tz
+});
 export const DATETIME_FORMAT = new Intl.DateTimeFormat(LOCALE, {
   dateStyle: "short",
   timeStyle: "medium",
-  hour12: false,
 });
 
 export default {
