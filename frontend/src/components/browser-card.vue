@@ -166,7 +166,7 @@ export default {
         ov = DATE_FORMAT.format(date);
       } else if (TIME_SORT_BY.has(this.orderByCache)) {
         const date = new Date(ov);
-        ov = DATETIME_FORMAT.format(date).replace(" ", "<br />");
+        ov = DATETIME_FORMAT.format(date).replace(", ", "<br />");
       }
       return ov;
     },

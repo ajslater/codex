@@ -348,7 +348,7 @@ export default {
     },
     formatDateTime: function (ds) {
       const dt = new Date(ds);
-      return DATETIME_FORMAT.format(dt);
+      return DATETIME_FORMAT.format(dt).replace(",", "");
     },
   },
 };

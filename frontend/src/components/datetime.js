@@ -1,5 +1,7 @@
 // Date & time formats
-const LOCALE = "sv-SE"; // ISO 8601, en-CA has a comma for time delimiter
+// ISO 8601, en-CA has a comma for time delimiter, sv-SE does not.
+// but en-CA has p.m. as a 12hr suffix.
+const LOCALE = "en-CA";
 export const DATE_FORMAT = new Intl.DateTimeFormat(LOCALE, {
   timeZone: "UTC", // prevents off by one error using browser tz
 });
