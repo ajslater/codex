@@ -48,6 +48,7 @@ export default {
 
 <style scoped lang="scss">
 #adminMenuTitle {
+  padding-top: 10px;
   padding-left: 15px;
 }
 #adminPanelIcon {
