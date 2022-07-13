@@ -161,7 +161,10 @@ export default {
   font-size: clamp(8pt, 2.5vw, 18pt);
 }
 #seriesPosition {
+  padding-left: 10px;
+  padding-right: 10px;
   color: darkgray;
+  text-align: center;
 }
 #downloadPageButton {
   height: 100%;
@@ -179,8 +182,10 @@ export default {
   }
   #settingsButton {
     padding-left: 10px;
+  }
+  #seriesPosition {
+    padding-left: 0px;
     padding-right: 0px;
-    width: 16px;
   }
 }
 </style>
