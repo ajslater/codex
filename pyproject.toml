@@ -4,7 +4,7 @@ build-backend = ["poetry.core.masonry.api"]
 
 [tool.poetry]
 name = "codex"
-version = "0.10.10"
+version = "0.10.11a0"
 description = "A comic archive web server."
 license = "GPL-2.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
@@ -66,7 +66,7 @@ coverage = { extras = ["toml"], version = "^6.0" }
 django-debug-toolbar = "^3.1"
 django-livereload-server = "^0.4"
 django-types = "^0.15.0"
-djangorestframework-types = "^0.7.0"
+djangorestframework-types = "^0.8.0"
 djlint = "^1.2.1"
 flake8 = "4.0.1" # https://github.com/tholo/pytest-flake8/issues/81
 flake8-black = "^0.3.2"
