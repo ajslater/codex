@@ -7,7 +7,7 @@
     <div class="browserTileLazyWrapper">
       <div class="browserCardCoverWrapper" @click="doubleTapHovered = true">
         <BookCover
-          :cover-path="item.coverPath"
+          :cover-pk="item.coverPk"
           :updated-at="item.coverUpdatedAt"
           :group="item.group"
           :child-count="item.childCount"

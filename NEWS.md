@@ -2,6 +2,10 @@
 
 ## v0.10.11a0
 
+- Features
+
+  - Covers are now created lazily by the browser, rather than on import. A mass cover pre-generator is still availble in the admin panel.
+
 ## v0.10.10
 
 - Features

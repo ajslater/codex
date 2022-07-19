@@ -2,7 +2,6 @@
 import time
 
 from pathlib import Path
-from queue import Full
 from zipfile import BadZipFile
 
 from comicbox.comic_archive import ComicArchive
@@ -10,7 +9,6 @@ from comicbox.exceptions import UnsupportedArchiveTypeError
 from rarfile import BadRarFile
 
 from codex.librarian.db.clean_metadata import clean_md
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE, ImageComicCoverCreateTask
 from codex.models import Comic, Imprint, Publisher, Series, Volume
 from codex.pdf import PDF
 from codex.settings.logging import LOG_EVERY, get_logger
@@ -24,22 +22,6 @@ COMIC_M2M_FIELDS = set()
 for field in Comic._meta.get_fields():
     if field.many_to_many and field.name != "folders":
         COMIC_M2M_FIELDS.add(field.name)
-
-
-def _pregen_cover(path, car):
-    """Pregenerate the cover."""
-    # Getting the cover data while getting the metada and handing to the
-    # other thread is significantly faster than doing it later.
-    # Do this as soon as we have a path
-
-    try:
-        image = car.get_cover_image()
-        task = ImageComicCoverCreateTask(False, path, image)
-        LIBRARIAN_QUEUE.put_nowait(task)
-    except Full:
-        LOG.debug(f"Queue full. Not pre-creating cover for {path}")
-    except Exception as exc:
-        LOG.warning(f"Failed to pre-create cover for {path} {exc}")
 
 
 def _get_path_metadata(path):
@@ -57,7 +39,7 @@ def _get_path_metadata(path):
             car_class = ComicArchive
         with car_class(path, config=COMICBOX_CONFIG, closefd=False) as car:
             md = car.get_metadata()
-            _pregen_cover(path, car)
+            # TODO do not pregen
 
         md["path"] = path
         md["file_format"] = file_format

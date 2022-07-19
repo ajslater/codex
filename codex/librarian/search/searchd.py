@@ -7,18 +7,18 @@ from multiprocessing import Process
 from django.core.management import call_command
 from django.utils import timezone
 
-from codex.librarian.queue_mp import (
-    LIBRARIAN_QUEUE,
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE
+from codex.librarian.search.tasks import (
+    SearchIndexJanitorUpdateTask,
     SearchIndexRebuildIfDBChangedTask,
-    SearchIndexUpdateTask,
 )
 from codex.models import LatestVersion, Library, SearchResult
 from codex.settings.logging import get_logger
-from codex.settings.settings import CACHE_PATH, XAPIAN_INDEX_PATH
+from codex.settings.settings import ROOT_CACHE_PATH, XAPIAN_INDEX_PATH
 from codex.threads import QueuedThread
 
 
-SEARCH_INDEX_TIMESTAMP_PATH = CACHE_PATH / "search_index_timestamp"
+SEARCH_INDEX_TIMESTAMP_PATH = ROOT_CACHE_PATH / "search_index.timestamp"
 UPDATE_INDEX_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S%Z"
 LOG = get_logger(__name__)
 WORKERS = os.cpu_count()
@@ -90,7 +90,7 @@ def rebuild_search_index_if_db_changed():
     """Rebuild the search index if the db changed."""
     if not LatestVersion.is_xapian_uuid_match():
         LOG.warning("Database does not match search index.")
-        task = SearchIndexUpdateTask(True)
+        task = SearchIndexJanitorUpdateTask(True)
         LIBRARIAN_QUEUE.put(task)
     else:
         LOG.verbose("Database matches search index.")
@@ -105,7 +105,7 @@ class SearchIndexer(QueuedThread):
         """Run the updater."""
         if isinstance(task, SearchIndexRebuildIfDBChangedTask):
             rebuild_search_index_if_db_changed()
-        elif isinstance(task, SearchIndexUpdateTask):
+        elif isinstance(task, SearchIndexJanitorUpdateTask):
             update_search_index(rebuild=task.rebuild)
         else:
             LOG.warning(f"Bad task sent to search index thread: {task}")

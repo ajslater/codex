@@ -15,7 +15,7 @@ def _test(limit):
     """Recreate all covers."""
     all_pks = Comic.objects.all().values_list("pk", flat=True)[:limit]
     # all_pks = [2346]
-    bulk_create_comic_covers(all_pks, True)
+    bulk_create_comic_covers(all_pks)
 
 
 def main():

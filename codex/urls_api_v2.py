@@ -25,6 +25,7 @@ from codex.views.bookmark import (
 )
 from codex.views.browser import BrowserView
 from codex.views.browser_choices import BrowserChoiceView
+from codex.views.cover import CoverView
 from codex.views.download import ComicDownloadView
 from codex.views.metadata import MetadataView
 from codex.views.notify import NotifyView
@@ -53,6 +54,7 @@ urlpatterns = [
     #
     # Reader
     path("c/<int:pk>", ComicOpenedView.as_view(), name="comic_info"),
+    path("c/<int:pk>/thumb", CoverView.as_view(), name="comic_cover"),
     path(
         "c/<int:pk>/<int:page>/p.jpg",
         cache_page(CACHE_TIME)(ComicPageView.as_view()),

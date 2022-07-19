@@ -3,7 +3,7 @@ import asyncio
 
 from asgiref.sync import async_to_sync
 
-from codex.librarian.queue_mp import AdminNotifierTask, BroadcastNotifierTask
+from codex.librarian.notifier_tasks import NotifierAdminTask, NotifierBroadcastTask
 from codex.serializers.choices import WEBSOCKET_MESSAGES as WS_MSGS
 from codex.settings.logging import get_logger
 from codex.threads import AggregateMessageQueuedThread
@@ -17,10 +17,10 @@ class Notifier(AggregateMessageQueuedThread):
 
     NAME = "Notifier"
     WS_SEND_MSG = {"type": "websocket.send"}
-    CONNS = {AdminNotifierTask: set(), BroadcastNotifierTask: set()}
+    CONNS = {NotifierAdminTask: set(), NotifierBroadcastTask: set()}
     SUBSCRIBE_TYPES = {
-        "register": BroadcastNotifierTask,
-        "admin": AdminNotifierTask,
+        "register": NotifierBroadcastTask,
+        "admin": NotifierAdminTask,
     }
 
     @classmethod

@@ -14,14 +14,10 @@ from codex.librarian.db.deleted import bulk_comics_deleted, bulk_folders_deleted
 from codex.librarian.db.failed_imports import bulk_fail_imports
 from codex.librarian.db.moved import bulk_comics_moved, bulk_folders_moved
 from codex.librarian.db.query_fks import query_all_missing_fks
-from codex.librarian.queue_mp import (
-    LIBRARIAN_QUEUE,
-    AdminNotifierTask,
-    BroadcastNotifierTask,
-    DBDiffTask,
-    DelayedTasks,
-    SearchIndexUpdateTask,
-)
+from codex.librarian.db.tasks import UpdaterDBDiffTask
+from codex.librarian.notifier_tasks import NotifierAdminTask, NotifierBroadcastTask
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
+from codex.librarian.search.tasks import SearchIndexJanitorUpdateTask
 from codex.models import Library
 from codex.settings.logging import LOG_EVERY, VERBOSE, get_logger
 from codex.threads import QueuedThread
@@ -31,7 +27,7 @@ WRITE_WAIT_EXPIRY = LOG_EVERY
 LOG = get_logger(__name__)
 
 
-def _wait_for_filesystem_ops_to_finish(task: DBDiffTask) -> bool:
+def _wait_for_filesystem_ops_to_finish(task: UpdaterDBDiffTask) -> bool:
     """Watchdog sends events before filesystem events finish, so wait for them."""
     started_checking = time.time()
 
@@ -146,7 +142,7 @@ def _apply(task):
     _log_task(library.path, task)
     library.update_in_progress = True
     library.save()
-    LIBRARIAN_QUEUE.put(AdminNotifierTask("LIBRARY_UPDATE_IN_PROGRESS"))
+    LIBRARIAN_QUEUE.put(NotifierAdminTask("LIBRARY_UPDATE_IN_PROGRESS"))
 
     too_long = _wait_for_filesystem_ops_to_finish(task)
     if too_long:
@@ -171,16 +167,16 @@ def _apply(task):
         update_in_progress=False, updated_at=Now()
     )
     # Wait to start the search index update in case more updates are incoming.
-    delayed_search_task = DelayedTasks(2, (SearchIndexUpdateTask(False),))
+    delayed_search_task = DelayedTasks(2, (SearchIndexJanitorUpdateTask(False),))
     LIBRARIAN_QUEUE.put(delayed_search_task)
 
     if new_failed_imports:
         text = "FAILED_IMPORTS"
     else:
         text = "LIBRARY_UPDATE_DONE"
-    LIBRARIAN_QUEUE.put(AdminNotifierTask(text))
+    LIBRARIAN_QUEUE.put(NotifierAdminTask(text))
     if changed:
-        LIBRARIAN_QUEUE.put(BroadcastNotifierTask("LIBRARY_CHANGED"))
+        LIBRARIAN_QUEUE.put(NotifierBroadcastTask("LIBRARY_CHANGED"))
         elapsed_time = time.time() - start_time
         LOG.info(
             f"Updated library {library.path} in {precisedelta(int(elapsed_time))}."
@@ -199,7 +195,7 @@ class Updater(QueuedThread):
 
     def process_item(self, task):
         """Run the updater."""
-        if isinstance(task, DBDiffTask):
+        if isinstance(task, UpdaterDBDiffTask):
             _apply(task)
         else:
             LOG.warning(f"Bad task sent to library updater {task}")

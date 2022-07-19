@@ -172,7 +172,7 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin):
 
     pk = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "pk")
     group = CharField(read_only=True, max_length=1, source=UNIONFIX_PREFIX + "group")
-    cover_path = CharField(read_only=True, source=UNIONFIX_PREFIX + "cover_path")
+    cover_pk = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "cover_pk")
     cover_updated_at = TimestampField(
         read_only=True, source=UNIONFIX_PREFIX + "cover_updated_at"
     )

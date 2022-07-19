@@ -6,29 +6,29 @@ from time import sleep
 from django.utils import timezone
 from humanize import precisedelta
 
+from codex.librarian.covers.tasks import CoverRemoveOrphansTask
 from codex.librarian.janitor.cleanup import cleanup_fks
 from codex.librarian.janitor.search import clean_old_queries
+from codex.librarian.janitor.tasks import (
+    JanitorBackupTask,
+    JanitorCleanFKsTask,
+    JanitorCleanSearchTask,
+    JanitorRestartTask,
+    JanitorUpdateTask,
+    JanitorVacuumTask,
+)
 from codex.librarian.janitor.update import restart_codex, update_codex
 from codex.librarian.janitor.vacuum import backup_db, vacuum_db
-from codex.librarian.queue_mp import (
-    LIBRARIAN_QUEUE,
-    BackupTask,
-    CleanFKsTask,
-    CleanSearchTask,
-    CleanupMissingComicCovers,
-    RestartTask,
-    SearchIndexUpdateTask,
-    UpdateTask,
-    VacuumTask,
-)
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE
+from codex.librarian.search.tasks import SearchIndexJanitorUpdateTask
 from codex.settings.logging import get_logger
-from codex.settings.settings import CACHE_PATH
+from codex.settings.settings import ROOT_CACHE_PATH
 from codex.threads import NamedThread
 
 
 LOG = get_logger(__name__)
 DEBOUNCE = 5
-CRON_TIMESTAMP = CACHE_PATH / "crond_timestamp"
+CRON_TIMESTAMP = ROOT_CACHE_PATH / "crond.timestamp"
 ONE_DAY = timedelta(days=1)
 
 
@@ -84,13 +84,13 @@ class Crond(NamedThread):
 
                     try:
                         tasks = [
-                            CleanFKsTask(),
-                            CleanSearchTask(),
-                            VacuumTask(),
-                            BackupTask(),
-                            UpdateTask(force=False),
-                            SearchIndexUpdateTask(False),
-                            CleanupMissingComicCovers(),
+                            JanitorCleanFKsTask(),
+                            JanitorCleanSearchTask(),
+                            JanitorVacuumTask(),
+                            JanitorBackupTask(),
+                            JanitorUpdateTask(force=False),
+                            SearchIndexJanitorUpdateTask(False),
+                            CoverRemoveOrphansTask(),
                         ]
                         for task in tasks:
                             LIBRARIAN_QUEUE.put(task)
@@ -119,17 +119,17 @@ class Crond(NamedThread):
 
 def janitor(task):
     """Run Janitor tasks as the librarian process directly."""
-    if isinstance(task, VacuumTask):
+    if isinstance(task, JanitorVacuumTask):
         vacuum_db()
-    elif isinstance(task, BackupTask):
+    elif isinstance(task, JanitorBackupTask):
         backup_db()
-    elif isinstance(task, UpdateTask):
+    elif isinstance(task, JanitorUpdateTask):
         update_codex()
-    elif isinstance(task, RestartTask):
+    elif isinstance(task, JanitorRestartTask):
         restart_codex()
-    elif isinstance(task, CleanSearchTask):
+    elif isinstance(task, JanitorCleanSearchTask):
         clean_old_queries()
-    elif isinstance(task, CleanFKsTask):
+    elif isinstance(task, JanitorCleanFKsTask):
         cleanup_fks()
     else:
         LOG.warning(f"Janitor received unknown task {task}")

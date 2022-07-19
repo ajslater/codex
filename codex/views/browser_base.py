@@ -9,7 +9,8 @@ from haystack.query import SearchQuerySet
 from humanfriendly import parse_size
 from xapian_backend import DATETIME_FORMAT
 
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE, SearchIndexUpdateTask
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE
+from codex.librarian.search.tasks import SearchIndexJanitorUpdateTask
 from codex.models import Comic, SearchQuery, SearchResult
 from codex.settings.logging import get_logger
 from codex.views.group_filter import GroupACLMixin
@@ -309,7 +310,7 @@ class BrowserBaseView(SessionView, GroupACLMixin):
             if search_engine_out_of_date:
                 # XXX This should not happen. Need to sync search engine better.
                 LOG.warning("Search index out of date. Scoring non-existent comics.")
-                task = SearchIndexUpdateTask(False)
+                task = SearchIndexJanitorUpdateTask(False)
                 LIBRARIAN_QUEUE.put(task)
             SearchResult.objects.bulk_create(search_results)
         except Exception as exc:

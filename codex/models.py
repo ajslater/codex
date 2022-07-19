@@ -363,7 +363,6 @@ class Comic(WatchedPath):
     # is_version_of = CharField(max_length=64, null=True)
 
     # codex only
-    cover_path = CharField(max_length=4095)
     date = DateField(db_index=True, null=True)
     decade = PositiveSmallIntegerField(db_index=True, null=True)
     folders = ManyToManyField(Folder)

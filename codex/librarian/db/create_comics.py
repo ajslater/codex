@@ -4,11 +4,8 @@ from pathlib import Path
 from django.db.models import Q
 from django.db.models.functions import Now
 
-from codex.librarian.queue_mp import (
-    LIBRARIAN_QUEUE,
-    BulkComicCoverCreateTask,
-    CreateMissingCoversTask,
-)
+from codex.librarian.covers.tasks import CoverRemoveTask
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.models import Comic, Credit, Folder, Imprint, Publisher, Series, Volume
 from codex.settings.logging import get_logger
 
@@ -91,8 +88,8 @@ def _update_comics(library, comic_paths, mds):
 
     LOG.verbose(f"Bulk updating {num_comics} comics.")
     count = Comic.objects.bulk_update(update_comics, BULK_UPDATE_COMIC_FIELDS)
-    LOG.verbose(f"Queueing cover regeneration for {len(comic_pks)} updated comics.")
-    task = BulkComicCoverCreateTask(True, tuple(comic_pks))
+    task = CoverRemoveTask(frozenset(comic_pks))
+    LOG.verbose(f"Purged covers for {len(comic_pks)} updated comics.")
     LIBRARIAN_QUEUE.put(task)
     return count
 
@@ -125,14 +122,7 @@ def _create_comics(library, comic_paths, mds):
     num_comics = len(create_comics)
     LOG.verbose(f"Bulk creating {num_comics} comics...")
     created_comics = Comic.objects.bulk_create(create_comics)
-    # Start the covers task.
-    comic_pks = []
-    for comic in created_comics:
-        comic_pks.append(comic.pk)
-    LOG.verbose(f"Queueing cover generation for {len(comic_pks)} created comics.")
-    task = BulkComicCoverCreateTask(False, tuple(comic_pks))
-    LIBRARIAN_QUEUE.put(task)
-    return num_comics
+    return len(created_comics)
 
 
 def _link_folders(folder_paths):
@@ -240,7 +230,6 @@ def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2
     update_count = _update_comics(library, update_paths, all_bulk_mds)
     create_count = _create_comics(library, create_paths, all_bulk_mds)
     # Just to be sure.
-    LIBRARIAN_QUEUE.put(CreateMissingCoversTask())
 
     all_m2m_links = _link_comic_m2m_fields(all_m2m_mds)
     for field_name, m2m_links in all_m2m_links.items():

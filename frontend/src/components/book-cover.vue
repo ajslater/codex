@@ -45,8 +45,8 @@ export default {
     finished: {
       type: Boolean,
     },
-    coverPath: {
-      type: String,
+    coverPk: {
+      type: Number,
       required: true,
     },
     updatedAt: {
@@ -61,7 +61,7 @@ export default {
   },
   computed: {
     coverSrc: function () {
-      return getCoverSource(this.coverPath, this.updatedAt);
+      return getCoverSource(this.coverPk, this.updatedAt);
     },
   },
   mounted: function () {
