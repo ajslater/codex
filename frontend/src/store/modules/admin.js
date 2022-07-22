@@ -16,7 +16,7 @@ const mutations = {
 
 const isNotAdmin = function (rootGetters) {
   return !rootGetters["auth/isAdmin"];
-}
+};
 
 const actions = {
   fetchLibrarianStatuses({ commit, rootGetters }) {
