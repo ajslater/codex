@@ -6,9 +6,14 @@ from time import sleep
 from django.utils import timezone
 from humanize import precisedelta
 
+from codex.librarian.covers.purge import COVER_ORPHAN_FIND_STATUS_KEYS
 from codex.librarian.covers.tasks import CoverRemoveOrphansTask
-from codex.librarian.janitor.cleanup import cleanup_fks
-from codex.librarian.janitor.search import clean_old_queries
+from codex.librarian.janitor.cleanup import (
+    CLEANUP_FK_STATUS_KEYS,
+    TOTAL_CLASSES,
+    cleanup_fks,
+)
+from codex.librarian.janitor.search import CLEAN_SEARCH_STATUS_KEYS, clean_old_queries
 from codex.librarian.janitor.tasks import (
     JanitorBackupTask,
     JanitorCleanFKsTask,
@@ -17,10 +22,21 @@ from codex.librarian.janitor.tasks import (
     JanitorUpdateTask,
     JanitorVacuumTask,
 )
-from codex.librarian.janitor.update import restart_codex, update_codex
-from codex.librarian.janitor.vacuum import backup_db, vacuum_db
+from codex.librarian.janitor.update import (
+    UPDATE_CODEX_STATUS_KEYS,
+    restart_codex,
+    update_codex,
+)
+from codex.librarian.janitor.vacuum import (
+    BACKUP_STATUS_KEYS,
+    VACCUM_STATUS_KEYS,
+    backup_db,
+    vacuum_db,
+)
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
+from codex.librarian.search.searchd import UPDATE_SEARCH_INDEX_KEYS
 from codex.librarian.search.tasks import SearchIndexJanitorUpdateTask
+from codex.librarian.status import librarian_status_update
 from codex.settings.logging import get_logger
 from codex.settings.settings import ROOT_CACHE_PATH
 from codex.threads import NamedThread
@@ -68,6 +84,16 @@ class Crond(NamedThread):
 
         return int(seconds)
 
+    @staticmethod
+    def _init_librarian_status():
+        librarian_status_update(CLEANUP_FK_STATUS_KEYS, 0, TOTAL_CLASSES, notify=False)
+        librarian_status_update(CLEAN_SEARCH_STATUS_KEYS, 0, None, notify=False)
+        librarian_status_update(VACCUM_STATUS_KEYS, 0, None, notify=False)
+        librarian_status_update(BACKUP_STATUS_KEYS, 0, None, notify=False)
+        librarian_status_update(UPDATE_CODEX_STATUS_KEYS, 0, None, notify=False)
+        librarian_status_update(UPDATE_SEARCH_INDEX_KEYS, 0, None, notify=False)
+        librarian_status_update(COVER_ORPHAN_FIND_STATUS_KEYS, 0, None)
+
     def run(self):
         """Watch a path and log the events."""
         try:
@@ -82,6 +108,7 @@ class Crond(NamedThread):
                     if self._stop_event.is_set():
                         break
 
+                    self._init_librarian_status()
                     try:
                         tasks = [
                             JanitorCleanFKsTask(),

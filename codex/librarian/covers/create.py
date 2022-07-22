@@ -10,9 +10,10 @@ from PIL import Image
 
 from codex.librarian.covers.path import MISSING_COVER_PATH, get_cover_path
 from codex.librarian.covers.tasks import CoverBulkCreateTask, CoverCreateTask
-from codex.librarian.notifier_tasks import NotifierBroadcastTask
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
+from codex.librarian.status import librarian_status_done, librarian_status_update
 from codex.models import Comic, Library
+from codex.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.pdf import PDF
 from codex.settings.logging import get_logger
 from codex.version import COMICBOX_CONFIG
@@ -21,6 +22,7 @@ from codex.version import COMICBOX_CONFIG
 THUMBNAIL_SIZE = (120, 180)
 COVER_DB_UPDATE_INTERVAL = 10
 LOG = get_logger(__name__)
+COVER_CREATE_STATUS_KEYS = {"type": "Creating Covers"}
 
 
 def _create_cover_thumbnail(cover_image_data):
@@ -81,6 +83,7 @@ def bulk_create_comic_covers(comic_pks):
         return
 
     LOG.verbose(f"Creating {num_comics} comic covers...")
+    librarian_status_update(COVER_CREATE_STATUS_KEYS, 0, num_comics)
 
     # Get comic objects
     count = 0
@@ -89,7 +92,6 @@ def bulk_create_comic_covers(comic_pks):
     for pk in comic_pks:
         # Create all covers.
         cover_path = get_cover_path(pk)
-        # BUG XXX  does not detect missing symlink.
         if cover_path.exists():
             num_comics -= 1
         else:
@@ -102,12 +104,13 @@ def bulk_create_comic_covers(comic_pks):
         elapsed = time.time() - last_update
         if elapsed > COVER_DB_UPDATE_INTERVAL:
             LOG.verbose(f"Created {count}/{num_comics} comic covers.")
-            task = NotifierBroadcastTask("LIBRARY_CHANGED")
-            LIBRARIAN_QUEUE.put(task)
+            librarian_status_update(COVER_CREATE_STATUS_KEYS, count, num_comics)
+            LIBRARIAN_QUEUE.put(LIBRARY_CHANGED_TASK)
             last_update = time.time()
 
     total_elapsed = naturaldelta(time.time() - start_time)
     LOG.verbose(f"Created {count} comic covers in {total_elapsed}.")
+    librarian_status_done(COVER_CREATE_STATUS_KEYS)
     return count
 
 

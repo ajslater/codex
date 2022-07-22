@@ -1,10 +1,11 @@
 # 📰 Codex News
 
-## v0.10.11a0
+## v0.11.0a0
 
 - Features
 
-  - Covers are now created lazily by the browser, rather than on import. A mass cover pre-generator is still availble in the admin panel.
+  - Covers are now created lazily by the browser, rather than on import. Administrators may still pre-generate covers en-mass.
+  - Administrators may view librarian tasks in progress in the settings side drawer.
 
 ## v0.10.10
 

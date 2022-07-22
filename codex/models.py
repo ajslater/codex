@@ -605,3 +605,18 @@ class SearchResult(Model):
 
         unique_together = ("query", "comic")
         indexes = [Index(fields=["comic", "query"])]
+
+
+class LibrarianStatus(BaseModel):
+    """Active Library Tasks."""
+
+    type = CharField(db_index=True, max_length=64)
+    name = CharField(db_index=True, max_length=256, null=True)
+    complete = PositiveSmallIntegerField(default=0)
+    total = PositiveSmallIntegerField(null=True, default=None)
+    active = BooleanField(default=False)
+
+    class Meta:
+        """Constraints."""
+
+        unique_together = ("type", "name")

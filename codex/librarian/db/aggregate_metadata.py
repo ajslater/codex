@@ -9,6 +9,8 @@ from comicbox.exceptions import UnsupportedArchiveTypeError
 from rarfile import BadRarFile
 
 from codex.librarian.db.clean_metadata import clean_md
+from codex.librarian.db.status import ImportStatusKeys
+from codex.librarian.status import librarian_status_done, librarian_status_update
 from codex.models import Comic, Imprint, Publisher, Series, Volume
 from codex.pdf import PDF
 from codex.settings.logging import LOG_EVERY, get_logger
@@ -19,6 +21,7 @@ LOG = get_logger(__name__)
 BROWSER_GROUPS = (Publisher, Imprint, Series, Volume)
 BROWSER_GROUP_TREE_COUNT_FIELDS = frozenset(["volume_count", "issue_count"])
 COMIC_M2M_FIELDS = set()
+AGGREGATE_STATUS_KEYS = {"type": "Read Tags"}
 for field in Comic._meta.get_fields():
     if field.many_to_many and field.name != "folders":
         COMIC_M2M_FIELDS.add(field.name)
@@ -127,6 +130,13 @@ def _set_max_group_count(all_fks, group_tree, group_md, group_class, index, coun
     all_fks["group_trees"][group_class][group_name] = count
 
 
+def _init_librarian_status(failed_imports):
+    """Initialize the librarian status with the aggregate results."""
+    librarian_status_update(
+        ImportStatusKeys.CREATE_FAILED_IMPORTS, 0, len(failed_imports), notify=False
+    )
+
+
 def _aggregate_group_tree_metadata(all_fks, group_tree_md):
     """Aggregate group tree data by class."""
     for group_tree, group_md in group_tree_md.items():
@@ -147,6 +157,7 @@ def get_aggregate_metadata(library, all_paths):
     all_failed_imports = {}
     total_paths = len(all_paths)
 
+    status_keys = {**ImportStatusKeys.AGGREGATE_STATUS_KEYS, "name": library.path}
     LOG.info(f"Reading tags from {total_paths} comics in {library.path}...")
     last_log_time = time.time()
     for num, path in enumerate(all_paths):
@@ -167,10 +178,12 @@ def get_aggregate_metadata(library, all_paths):
 
         now = time.time()
         if now - last_log_time > LOG_EVERY:
+            librarian_status_update(status_keys, num, total_paths)
             LOG.info(f"Read tags from {num}/{total_paths} comics")
             last_log_time = now
 
     all_fks["comic_paths"] = frozenset(all_mds.keys())
-
+    _init_librarian_status(all_failed_imports)
+    librarian_status_done(status_keys)
     LOG.verbose(f"Aggregated tags from {len(all_mds)} comics.")
     return all_mds, all_m2m_mds, all_fks, all_failed_imports

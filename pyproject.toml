@@ -4,7 +4,7 @@ build-backend = ["poetry.core.masonry.api"]
 
 [tool.poetry]
 name = "codex"
-version = "0.10.11a0"
+version = "0.11.0a0"
 description = "A comic archive web server."
 license = "GPL-2.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
@@ -79,7 +79,7 @@ psutil = "^5.9.0"
 pushover-simple-cli = "^1.1.2"
 pynvim = "^0.4"
 pyright = "^1.1.232"
-pytest-asyncio = "^0.18"
+pytest-asyncio = "^0.19"
 pytest-bandit = "^0.6.1"
 pytest-black = "^0.3"
 pytest-cov = "^3.0"

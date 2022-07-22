@@ -11,7 +11,6 @@ from codex.librarian.db.tasks import UpdaterTask
 from codex.librarian.db.updaterd import Updater
 from codex.librarian.janitor.crond import Crond, janitor
 from codex.librarian.janitor.tasks import JanitorTask
-from codex.librarian.notifier_tasks import NotifierTask
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
 from codex.librarian.search.searchd import SearchIndexer
 from codex.librarian.search.tasks import (
@@ -28,7 +27,8 @@ from codex.librarian.watchdog.tasks import (
     WatchdogPollLibrariesTask,
     WatchdogSyncTask,
 )
-from codex.notifier import Notifier
+from codex.notifier.notifierd import Notifier
+from codex.notifier.tasks import NotifierTask
 from codex.settings.logging import get_logger
 from codex.threads import QueuedThread
 from codex.version import PACKAGE_NAME

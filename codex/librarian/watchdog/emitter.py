@@ -21,11 +21,13 @@ from watchdog.events import (
 from watchdog.observers.api import EventEmitter
 from watchdog.utils.dirsnapshot import DirectorySnapshot, DirectorySnapshotDiff
 
+from codex.librarian.status import librarian_status_done, librarian_status_update
 from codex.models import Comic, FailedImport, Folder, Library
 from codex.settings.logging import get_logger
 
 
 LOG = get_logger(__name__)
+POLL_STATUS_KEYS = {"type": "Poll"}
 DOCKER_UNMOUNTED_FN = "DOCKER_UNMOUNTED_VOLUME"
 
 
@@ -182,6 +184,7 @@ class DatabasePollingEmitter(EventEmitter):
         """Queue events like PollingEmitter but always use a fresh db snapshot."""
         # We don't want to hit the disk continuously.
         # timeout behaves like an interval for polling emitters.
+        status_keys = {**POLL_STATUS_KEYS, "name": self.watch.path}
         try:
             with self._poll_cond:
                 if timeout:
@@ -192,6 +195,7 @@ class DatabasePollingEmitter(EventEmitter):
                 if not self.should_keep_running():
                     return
 
+                librarian_status_update(status_keys, 0, None)
                 library = Library.objects.get(path=self.watch.path)
                 ok, _ = self._is_watch_path_ok(library)
                 if not ok:
@@ -257,6 +261,8 @@ class DatabasePollingEmitter(EventEmitter):
         except Exception as exc:
             LOG.exception(exc)
             raise exc
+        finally:
+            librarian_status_done(status_keys)
 
     def run(self, *args, **kwargs):
         """Identify the thread."""

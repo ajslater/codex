@@ -51,7 +51,7 @@ export default {
       groupNames: (state) => state.groupNames,
       upRoute: (state) => state.routes.up,
     }),
-    ...mapGetters("auth", ["isOpenToSee"]),
+    ...mapGetters("auth", ["isOpenToSee", "isAdmin"]),
     toUpRoute: function () {
       if (this.showUpButton) {
         return { name: "browser", params: this.upRoute };

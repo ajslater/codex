@@ -5,7 +5,18 @@ const queueJob = async (task) => {
   return await ajax("post", "/admin/queue_job", { task });
 };
 
+const getLibrarianStatuses = () => {
+  const ts = Date.now();
+  return ajax("get", `/admin/librarian_status?ts=${ts}`);
+};
+
+const getFailedImports = () => {
+  return ajax("get", "/admin/failed_imports");
+};
+
 export default {
   ADMIN_URL,
+  getFailedImports,
+  getLibrarianStatuses,
   queueJob,
 };

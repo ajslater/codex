@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from rest_framework.views import APIView
+from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from codex.librarian.covers.tasks import (
     CoverCreateForLibrariesTask,
@@ -17,15 +18,16 @@ from codex.librarian.janitor.tasks import (
     JanitorUpdateTask,
     JanitorVacuumTask,
 )
-from codex.librarian.notifier_tasks import NotifierBroadcastTask
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.librarian.search.tasks import (
     SearchIndexJanitorUpdateTask,
     SearchIndexRebuildIfDBChangedTask,
 )
 from codex.librarian.watchdog.tasks import WatchdogPollLibrariesTask, WatchdogSyncTask
-from codex.models import Library
+from codex.models import FailedImport, LibrarianStatus, Library
+from codex.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.serializers.admin import QueueJobSerializer
+from codex.serializers.models import FailedImportSerializer, LibrarianStatusSerializer
 from codex.settings.logging import get_logger
 
 
@@ -82,7 +84,7 @@ class QueueLibrarianJobs(APIView):
         elif task_name == "codex_restart":
             task = JanitorRestartTask()
         elif task_name == "notify_all":
-            task = NotifierBroadcastTask("LIBRARY_CHANGED")
+            task = LIBRARY_CHANGED_TASK
         elif task_name == "cleanup_fks":
             task = JanitorCleanFKsTask()
         elif task_name == "cleanup_covers":
@@ -96,3 +98,19 @@ class QueueLibrarianJobs(APIView):
             status = HTTP_400_BAD_REQUEST
 
         return Response({}, status=status)
+
+
+class LibrarianStatusViewSet(ReadOnlyModelViewSet):
+    """Librarian Task Statuses."""
+
+    permission_classes = [IsAdminUser]
+    queryset = LibrarianStatus.objects.filter(active=True).order_by("pk")
+    serializer_class = LibrarianStatusSerializer
+
+
+class FailedImportsViewSet(ReadOnlyModelViewSet):
+    """Failed Imports."""
+
+    permission_classes = [IsAdminUser]
+    queryset = FailedImport.objects.all().order_by("pk")
+    serializer_class = FailedImportSerializer

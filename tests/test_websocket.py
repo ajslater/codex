@@ -1,7 +1,7 @@
 """Test websockets."""
 import pytest
 
-from codex.notifier import Notifier
+from codex.notifier.notifierd import Notifier
 
 
 pytestmark = pytest.mark.asyncio

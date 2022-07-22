@@ -5,7 +5,9 @@ from django.db.models import Q
 from django.db.models.functions import Now
 
 from codex.librarian.covers.tasks import CoverRemoveTask
+from codex.librarian.db.status import ImportStatusKeys
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
+from codex.librarian.status import librarian_status_done, librarian_status_update
 from codex.models import Comic, Credit, Folder, Imprint, Publisher, Series, Volume
 from codex.settings.logging import get_logger
 
@@ -89,7 +91,7 @@ def _update_comics(library, comic_paths, mds):
     LOG.verbose(f"Bulk updating {num_comics} comics.")
     count = Comic.objects.bulk_update(update_comics, BULK_UPDATE_COMIC_FIELDS)
     task = CoverRemoveTask(frozenset(comic_pks))
-    LOG.verbose(f"Purged covers for {len(comic_pks)} updated comics.")
+    LOG.verbose(f"Purging covers for {len(comic_pks)} updated comics.")
     LIBRARIAN_QUEUE.put(task)
     return count
 
@@ -228,16 +230,28 @@ def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2
         return 0
 
     update_count = _update_comics(library, update_paths, all_bulk_mds)
+    librarian_status_done(ImportStatusKeys.FILES_MODIFIED)
     create_count = _create_comics(library, create_paths, all_bulk_mds)
+    librarian_status_done(ImportStatusKeys.FILES_CREATED)
     # Just to be sure.
 
     all_m2m_links = _link_comic_m2m_fields(all_m2m_mds)
+    total_links = 0
+    for m2m_links in all_m2m_links.values():
+        total_links += len(m2m_links)
+    librarian_status_update(ImportStatusKeys.LINK_M2M_FIELDS, 0, total_links)
+    completed_links = 0
     for field_name, m2m_links in all_m2m_links.items():
         try:
             bulk_recreate_m2m_field(field_name, m2m_links)
         except Exception as exc:
             LOG.error(f"Error recreating m2m field: {field_name}")
             LOG.exception(exc)
+        completed_links = len(m2m_links)
+        librarian_status_update(
+            ImportStatusKeys.LINK_M2M_FIELDS, completed_links, total_links
+        )
+    librarian_status_done(ImportStatusKeys.LINK_M2M_FIELDS)
 
     update_log = f"Updated {update_count} Comics."
     if update_count:

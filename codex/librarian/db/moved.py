@@ -6,6 +6,8 @@ from django.db.models.functions import Now
 from codex.librarian.db.create_comics import bulk_recreate_m2m_field
 from codex.librarian.db.create_fks import bulk_folders_create
 from codex.librarian.db.query_fks import query_missing_folder_paths
+from codex.librarian.db.status import ImportStatusKeys
+from codex.librarian.status import librarian_status_done
 from codex.models import Comic, Folder
 from codex.settings.logging import get_logger
 
@@ -53,6 +55,7 @@ def bulk_comics_moved(library, moved_paths):
     # Update m2m field
     if folder_m2m_links:
         bulk_recreate_m2m_field("folders", folder_m2m_links)
+    librarian_status_done(ImportStatusKeys.FILES_MOVED)
     log = f"Moved {count} comics."
     if count:
         LOG.info(log)
@@ -105,6 +108,7 @@ def _update_moved_folders(library, folders_moved, dest_parent_folders):
     update_folders = sorted(update_folders, key=lambda x: len(Path(x.path).parts))
 
     count = Folder.objects.bulk_update(update_folders, MOVED_BULK_FOLDER_UPDATE_FIELDS)
+    librarian_status_done(ImportStatusKeys.DIRS_MOVED)
     log = f"Moved {count} folders."
     if count:
         LOG.info(log)

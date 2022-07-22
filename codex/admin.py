@@ -15,10 +15,10 @@ from django.utils.html import format_html
 from django.utils.safestring import SafeText
 
 from codex.librarian.covers.tasks import CoverRemoveForLibrariesTask
-from codex.librarian.notifier_tasks import NotifierBroadcastTask
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
 from codex.librarian.watchdog.tasks import WatchdogPollLibrariesTask, WatchdogSyncTask
 from codex.models import AdminFlag, FailedImport, Folder, Library
+from codex.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.settings.logging import get_logger
 
 
@@ -146,7 +146,7 @@ class AdminLibrary(ModelAdmin):
     def _on_change(self, _, created=False):
         """Events for when the library has changed."""
         cache.clear()
-        tasks = (NotifierBroadcastTask("LIBRARY_CHANGED"), WatchdogSyncTask())
+        tasks = (LIBRARY_CHANGED_TASK, WatchdogSyncTask())
         task = DelayedTasks(2, tasks)
         LIBRARIAN_QUEUE.put(task)
 
@@ -227,8 +227,7 @@ class AdminAdminFlag(AdminNoAddDelete):
         # Heavy handed refresh everything, but simple.
         # Folder View could only change the group view and let the ui decide
         # Registration only needs to change the enable flag
-        task = NotifierBroadcastTask("LIBRARY_CHANGED")
-        LIBRARIAN_QUEUE.put(task)
+        LIBRARIAN_QUEUE.put(LIBRARY_CHANGED_TASK)
 
 
 @register(FailedImport)

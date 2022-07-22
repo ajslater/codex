@@ -1,5 +1,6 @@
 <template>
   <v-list-item-group>
+    <v-divider />
     <v-dialog
       v-if="!user"
       v-model="showLoginDialog"

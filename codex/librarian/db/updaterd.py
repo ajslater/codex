@@ -14,11 +14,13 @@ from codex.librarian.db.deleted import bulk_comics_deleted, bulk_folders_deleted
 from codex.librarian.db.failed_imports import bulk_fail_imports
 from codex.librarian.db.moved import bulk_comics_moved, bulk_folders_moved
 from codex.librarian.db.query_fks import query_all_missing_fks
+from codex.librarian.db.status import ImportStatusKeys
 from codex.librarian.db.tasks import UpdaterDBDiffTask
-from codex.librarian.notifier_tasks import NotifierAdminTask, NotifierBroadcastTask
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
 from codex.librarian.search.tasks import SearchIndexJanitorUpdateTask
+from codex.librarian.status import librarian_status_update
 from codex.models import Library
+from codex.notifier.tasks import LIBRARIAN_STATUS_TASK, LIBRARY_CHANGED_TASK
 from codex.settings.logging import LOG_EVERY, VERBOSE, get_logger
 from codex.threads import QueuedThread
 
@@ -135,6 +137,39 @@ def _log_task(path, task):
         LOG.verbose("  " + log)
 
 
+def _init_librarian_status(task, path, total_paths):
+    """Update the librarian status tasks."""
+    # TODO could be a bulk import
+    if task.files_moved:
+        librarian_status_update(
+            ImportStatusKeys.FILES_MOVED, 0, len(task.files_moved), notify=False
+        )
+    if total_paths:
+        status_keys = {**ImportStatusKeys.AGGREGATE_STATUS_KEYS, "name": path}
+        librarian_status_update(status_keys, 0, total_paths, notify=False)
+        librarian_status_update(
+            ImportStatusKeys.QUERY_MISSING_FKS, 0, None, notify=False
+        )
+        librarian_status_update(ImportStatusKeys.CREATE_FKS, 0, None, notify=False)
+        librarian_status_update(ImportStatusKeys.LINK_M2M_FIELDS, 0, None, notify=False)
+        if task.files_modified:
+            librarian_status_update(
+                ImportStatusKeys.FILES_MODIFIED,
+                0,
+                len(task.files_modified),
+                notify=False,
+            )
+        if task.files_created:
+            librarian_status_update(
+                ImportStatusKeys.FILES_CREATED, 0, len(task.files_created), notify=False
+            )
+    if task.files_deleted:
+        librarian_status_update(
+            ImportStatusKeys.FILES_DELETED, 0, len(task.files_deleted), notify=False
+        )
+    LIBRARIAN_QUEUE.put(LIBRARIAN_STATUS_TASK)
+
+
 def _apply(task):
     """Bulk import comics."""
     start_time = time.time()
@@ -142,14 +177,16 @@ def _apply(task):
     _log_task(library.path, task)
     library.update_in_progress = True
     library.save()
-    LIBRARIAN_QUEUE.put(NotifierAdminTask("LIBRARY_UPDATE_IN_PROGRESS"))
-
+    _init_librarian_status(
+        task, library.path, len(task.files_modified) + len(task.files_created)
+    )
     too_long = _wait_for_filesystem_ops_to_finish(task)
     if too_long:
         LOG.warning(
             "Import apply waited for the filesystem to stop changing too long. "
             "Try polling again once files have finished copying."
         )
+        return
 
     changed = False
     changed |= bulk_folders_moved(library, task.dirs_moved)
@@ -170,13 +207,8 @@ def _apply(task):
     delayed_search_task = DelayedTasks(2, (SearchIndexJanitorUpdateTask(False),))
     LIBRARIAN_QUEUE.put(delayed_search_task)
 
-    if new_failed_imports:
-        text = "FAILED_IMPORTS"
-    else:
-        text = "LIBRARY_UPDATE_DONE"
-    LIBRARIAN_QUEUE.put(NotifierAdminTask(text))
     if changed:
-        LIBRARIAN_QUEUE.put(NotifierBroadcastTask("LIBRARY_CHANGED"))
+        LIBRARIAN_QUEUE.put(LIBRARY_CHANGED_TASK)
         elapsed_time = time.time() - start_time
         LOG.info(
             f"Updated library {library.path} in {precisedelta(int(elapsed_time))}."

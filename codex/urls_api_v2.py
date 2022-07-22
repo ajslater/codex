@@ -14,9 +14,13 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.urls import path
-from django.views.decorators.cache import cache_control, cache_page, never_cache
+from django.views.decorators.cache import cache_page, never_cache
 
-from codex.views.admin import QueueLibrarianJobs
+from codex.views.admin import (
+    FailedImportsViewSet,
+    LibrarianStatusViewSet,
+    QueueLibrarianJobs,
+)
 from codex.views.auth import LoginView, LogoutView, RegisterView, UserView
 from codex.views.bookmark import (
     ComicBookmarkView,
@@ -28,12 +32,10 @@ from codex.views.browser_choices import BrowserChoiceView
 from codex.views.cover import CoverView
 from codex.views.download import ComicDownloadView
 from codex.views.metadata import MetadataView
-from codex.views.notify import NotifyView
 from codex.views.reader import ComicOpenedView, ComicPageView
 
 
 CACHE_TIME = 60 * 15
-NOTIFY_MAX_AGE = 3
 
 app_name = "api"
 urlpatterns = [
@@ -72,17 +74,20 @@ urlpatterns = [
     ),
     path("c/<int:pk>/comic.cbz", ComicDownloadView.as_view(), name="comic_download"),
     #
-    # Notify
-    path(
-        "notify",
-        cache_control(max_age=NOTIFY_MAX_AGE)(NotifyView.as_view()),
-        name="notify",
-    ),
-    #
     # Auth
     path("auth/register", RegisterView.as_view(), name="register"),
     path("auth/login", LoginView.as_view(), name="login"),
     path("auth/me", UserView.as_view(), name="me"),
     path("auth/logout", LogoutView.as_view(), name="logout"),
     path("admin/queue_job", QueueLibrarianJobs.as_view(), name="queue_job"),
+    path(
+        "admin/librarian_status",
+        never_cache(LibrarianStatusViewSet.as_view({"get": "list"})),
+        name="librarian_status",
+    ),
+    path(
+        "admin/failed_imports",
+        FailedImportsViewSet.as_view({"get": "list"}),
+        name="failed_imports",
+    ),
 ]

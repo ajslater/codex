@@ -8,8 +8,8 @@ from django.core.cache import cache
 from django.db.backends.signals import connection_created
 from django.db.models.signals import m2m_changed
 
-from codex.librarian.notifier_tasks import NotifierBroadcastTask
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
+from codex.notifier.tasks import LIBRARIAN_STATUS_TASK
 from codex.settings.logging import get_logger
 
 
@@ -60,7 +60,7 @@ def _user_group_change(action, instance, pk_set, model, **kwargs):  # noqa: F841
         "post_clear",
     ):
         cache.clear()
-        tasks = (NotifierBroadcastTask("LIBRARY_CHANGED"),)
+        tasks = (LIBRARIAN_STATUS_TASK,)
         task = DelayedTasks(2, tasks)
         LIBRARIAN_QUEUE.put(task)
 

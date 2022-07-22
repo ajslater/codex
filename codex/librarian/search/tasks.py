@@ -1,3 +1,4 @@
+"""Libarian Tasks for searchd."""
 from abc import ABC
 from dataclasses import dataclass
 

@@ -12,6 +12,7 @@ from codex.librarian.search.tasks import (
     SearchIndexJanitorUpdateTask,
     SearchIndexRebuildIfDBChangedTask,
 )
+from codex.librarian.status import librarian_status_done, librarian_status_update
 from codex.models import LatestVersion, Library, SearchResult
 from codex.settings.logging import get_logger
 from codex.settings.settings import ROOT_CACHE_PATH, XAPIAN_INDEX_PATH
@@ -31,6 +32,9 @@ UPDATE_KWARGS = {
     "workers": WORKERS,
     "verbosity": VERBOSITY,
 }
+SEARCH_INDEX_KEYS = {"type": "Search index"}
+UPDATE_SEARCH_INDEX_KEYS = {**SEARCH_INDEX_KEYS, "name": "update"}
+REBUILD_SEARCH_INDEX_KEYS = {**SEARCH_INDEX_KEYS, "name": "rebuild"}
 
 
 def _call_command(args, kwargs):
@@ -43,6 +47,10 @@ def _call_command(args, kwargs):
 
 def update_search_index(rebuild=False):
     """Update the search index."""
+    if rebuild:
+        status_keys = REBUILD_SEARCH_INDEX_KEYS
+    else:
+        status_keys = UPDATE_SEARCH_INDEX_KEYS
     try:
         any_update_in_progress = Library.objects.filter(
             update_in_progress=True
@@ -54,6 +62,8 @@ def update_search_index(rebuild=False):
         if not rebuild and not LatestVersion.is_xapian_uuid_match():
             LOG.warning("Database does not match search index.")
             rebuild = True
+            status_keys = REBUILD_SEARCH_INDEX_KEYS
+        librarian_status_update(status_keys, 0, None)
 
         XAPIAN_INDEX_PATH.mkdir(parents=True, exist_ok=True)
 
@@ -84,6 +94,8 @@ def update_search_index(rebuild=False):
         LOG.verbose("Finished updating search index.")
     except Exception as exc:
         LOG.error(f"Update search index: {exc}")
+    finally:
+        librarian_status_done(SEARCH_INDEX_KEYS)
 
 
 def rebuild_search_index_if_db_changed():

@@ -14,8 +14,10 @@ from codex.models import (
     Credit,
     CreditPerson,
     CreditRole,
+    FailedImport,
     Genre,
     Imprint,
+    LibrarianStatus,
     Location,
     Publisher,
     Series,
@@ -287,3 +289,23 @@ class ComicSerializer(ModelSerializer):
         model = Comic
         exclude = ("folders", "parent_folder", "stat")
         depth = 1
+
+
+class LibrarianStatusSerializer(ModelSerializer):
+    """Serializer Librarian task statuses."""
+
+    class Meta:
+        """Configure the model."""
+
+        model = LibrarianStatus
+        exclude = ("active", "created_at", "updated_at")
+
+
+class FailedImportSerializer(ModelSerializer):
+    """FailedImport Model."""
+
+    class Meta:
+        """Configure the model."""
+
+        model = FailedImport
+        exclude = ("stat", "parent_folder", "created_at", "updated_at")
