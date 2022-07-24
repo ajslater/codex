@@ -177,7 +177,10 @@ class AdminLibrary(ModelAdmin):
         pks = frozenset(queryset.values_list("pk", flat=True))
         task = CoverRemoveForLibrariesTask(pks)
         LIBRARIAN_QUEUE.put(task)
-        super().delete_queryset(request, queryset)
+        for library in queryset:
+            # so deletes will cascade
+            library.delete()
+        # super().delete_queryset(request, queryset)
         cache.clear()
         self._on_change(None)
 
