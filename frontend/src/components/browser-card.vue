@@ -230,7 +230,7 @@ export default {
 .browserTile {
   display: inline-flex;
   flex: 1;
-  margin: 16px;
+  margin: 0px;
   text-align: center;
 }
 .browserTileLazyWrapper {
@@ -305,7 +305,6 @@ export default {
 }
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   .browserTile {
-    margin: 8px;
     width: 100px;
   }
   .cardCoverOverlayTopMiddleRow {
