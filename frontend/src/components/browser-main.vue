@@ -101,7 +101,8 @@ export default {
 #browsePane {
   display: flex;
   margin-top: 160px;
-  margin-left: 15px;
+  margin-left: max(15px, env(safe-area-inset-left));
+  margin-right: max(15px, env(safe-area-inset-right));
   overflow: auto;
 }
 #announce {
