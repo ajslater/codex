@@ -8,26 +8,22 @@
           <v-list-item-title>Poll All Libraries</v-list-item-title>
         </v-list-item-content>
       </v-list-item>
-      <v-list-item :href="adminURL" target="_blank" ripple>
+      <v-list-item
+        :href="adminURL"
+        target="_blank"
+        ripple
+        @click="setFailedImports(false)"
+      >
         <v-list-item-content>
           <v-list-item-title
             >Admin Panel
-            <v-icon id="adminPanelIcon">{{
-              mdiOpenInNew
-            }}</v-icon></v-list-item-title
-          >
-        </v-list-item-content>
-      </v-list-item>
-      <v-list-item
-        v-if="failedImports.length > 0"
-        :href="`${adminURL}codex/failedimport/`"
-        target="_blank"
-        ripple
-      >
-        <v-list-item-content>
-          <v-list-item-title>
-            {{ failedImports.length }} failed imports
             <v-icon id="adminPanelIcon">{{ mdiOpenInNew }}</v-icon>
+            <v-icon
+              v-if="failedImports"
+              id="failedImportsIcon"
+              title="New Failed Imports"
+              >{{ mdiBookAlertOutline }}</v-icon
+            >
           </v-list-item-title>
         </v-list-item-content>
       </v-list-item>
@@ -37,7 +33,7 @@
 </template>
 
 <script>
-import { mdiOpenInNew } from "@mdi/js";
+import { mdiBookAlertOutline, mdiOpenInNew } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "vuex";
 
 import API from "@/api/v2/admin";
@@ -51,6 +47,7 @@ export default {
   data() {
     return {
       adminURL: API.ADMIN_URL,
+      mdiBookAlertOutline,
       mdiOpenInNew,
     };
   },
@@ -58,14 +55,11 @@ export default {
     ...mapGetters("auth", ["isAdmin"]),
     ...mapState("admin", { failedImports: (state) => state.failedImports }),
   },
-  created() {
-    this.fetchFailedImports();
-  },
   methods: {
+    ...mapActions("admin", ["setFailedImports"]),
     poll: function () {
       API.queueJob("poll");
     },
-    ...mapActions("admin", ["fetchFailedImports"]),
   },
 };
 </script>
@@ -77,5 +71,9 @@ export default {
 }
 #adminPanelIcon {
   color: gray;
+}
+#failedImportsIcon {
+  padding-left: 10px;
+  color: darkred;
 }
 </style>

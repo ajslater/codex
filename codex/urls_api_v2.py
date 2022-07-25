@@ -16,11 +16,7 @@ Including another URLconf
 from django.urls import path
 from django.views.decorators.cache import cache_page, never_cache
 
-from codex.views.admin import (
-    FailedImportsViewSet,
-    LibrarianStatusViewSet,
-    QueueLibrarianJobs,
-)
+from codex.views.admin import LibrarianStatusViewSet, QueueLibrarianJobs
 from codex.views.auth import LoginView, LogoutView, RegisterView, UserView
 from codex.views.bookmark import (
     ComicBookmarkView,
@@ -84,10 +80,5 @@ urlpatterns = [
         "admin/librarian_status",
         never_cache(LibrarianStatusViewSet.as_view({"get": "list"})),
         name="librarian_status",
-    ),
-    path(
-        "admin/failed_imports",
-        FailedImportsViewSet.as_view({"get": "list"}),
-        name="failed_imports",
     ),
 ]

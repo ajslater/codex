@@ -53,16 +53,24 @@ const mutations = {
     // 'this' context should be the store.
     const message = event.data;
     console.debug(message);
-    if (message === CHOICES.websockets.LIBRARY_CHANGED) {
-      if (router.currentRoute.name === "browser") {
-        this.dispatch("browser/browserPageStale", { showProgress: false });
-      }
-      this.commit("reader/setTimestamp");
-      this.dispatch("admin/fetchFailedImports");
-    } else if (message === CHOICES.websockets.LIBRARIAN_STATUS) {
-      this.dispatch("admin/fetchLibrarianStatuses");
-    } else {
-      console.debug("Unhandled websocket message:", message);
+    switch (message) {
+      case CHOICES.websockets.LIBRARY_CHANGED:
+        if (router.currentRoute.name === "browser") {
+          this.dispatch("browser/browserPageStale", { showProgress: false });
+        }
+        this.commit("reader/setTimestamp");
+
+        break;
+      case CHOICES.websockets.LIBRARIAN_STATUS:
+        this.dispatch("admin/fetchLibrarianStatuses");
+
+        break;
+      case CHOICES.websockets.FAILED_IMPORTS:
+        this.dispatch("admin/setFailedImports", true);
+
+        break;
+      default:
+        console.debug("Unhandled websocket message:", message);
     }
   },
   SOCKET_RECONNECT(state, count) {

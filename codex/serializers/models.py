@@ -14,7 +14,6 @@ from codex.models import (
     Credit,
     CreditPerson,
     CreditRole,
-    FailedImport,
     Genre,
     Imprint,
     LibrarianStatus,
@@ -299,13 +298,3 @@ class LibrarianStatusSerializer(ModelSerializer):
 
         model = LibrarianStatus
         exclude = ("active", "created_at", "updated_at")
-
-
-class FailedImportSerializer(ModelSerializer):
-    """FailedImport Model."""
-
-    class Meta:
-        """Configure the model."""
-
-        model = FailedImport
-        exclude = ("stat", "parent_folder", "created_at", "updated_at")

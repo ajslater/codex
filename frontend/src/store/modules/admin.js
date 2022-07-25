@@ -2,7 +2,7 @@ import API from "@/api/v2/admin";
 
 const state = {
   librarianStatuses: [],
-  failedImports: [],
+  failedImports: false,
 };
 
 const mutations = {
@@ -31,17 +31,11 @@ const actions = {
         return console.warn(error);
       });
   },
-  fetchFailedImports({ commit, rootGetters }) {
+  setFailedImports({ commit, rootGetters }, data) {
     if (isNotAdmin(rootGetters)) {
-      return commit("setFailedImports", []);
+      data = false;
     }
-    API.getFailedImports()
-      .then((response) => {
-        return commit("setFailedImports", response.data);
-      })
-      .catch((error) => {
-        return console.warn(error);
-      });
+    return commit("setFailedImports", data);
   },
 };
 

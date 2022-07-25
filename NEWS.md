@@ -4,8 +4,8 @@
 
 - Features
 
-  - Covers are now created lazily by the browser, rather than on import. Administrators may still pre-generate covers en-mass.
-  - Administrators may view librarian tasks in progress in the settings side drawer.
+  - Covers are now created on demand by the browser, rather than on import. Administrators may still pre-generate covers.
+  - Administrators may view librarian tasks in progress and failed imports notifications in the settings side drawer.
 
 ## v0.10.10
 

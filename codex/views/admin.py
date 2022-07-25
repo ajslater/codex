@@ -24,10 +24,10 @@ from codex.librarian.search.tasks import (
     SearchIndexRebuildIfDBChangedTask,
 )
 from codex.librarian.watchdog.tasks import WatchdogPollLibrariesTask, WatchdogSyncTask
-from codex.models import FailedImport, LibrarianStatus, Library
+from codex.models import LibrarianStatus, Library
 from codex.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.serializers.admin import QueueJobSerializer
-from codex.serializers.models import FailedImportSerializer, LibrarianStatusSerializer
+from codex.serializers.models import LibrarianStatusSerializer
 from codex.settings.logging import get_logger
 
 
@@ -106,11 +106,3 @@ class LibrarianStatusViewSet(ReadOnlyModelViewSet):
     permission_classes = [IsAdminUser]
     queryset = LibrarianStatus.objects.filter(active=True).order_by("pk")
     serializer_class = LibrarianStatusSerializer
-
-
-class FailedImportsViewSet(ReadOnlyModelViewSet):
-    """Failed Imports."""
-
-    permission_classes = [IsAdminUser]
-    queryset = FailedImport.objects.all().order_by("pk")
-    serializer_class = FailedImportSerializer

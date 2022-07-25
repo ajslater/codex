@@ -10,13 +10,8 @@ const getLibrarianStatuses = () => {
   return ajax("get", `/admin/librarian_status?ts=${ts}`);
 };
 
-const getFailedImports = () => {
-  return ajax("get", "/admin/failed_imports");
-};
-
 export default {
   ADMIN_URL,
-  getFailedImports,
   getLibrarianStatuses,
   queueJob,
 };

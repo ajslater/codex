@@ -20,7 +20,11 @@ from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
 from codex.librarian.search.tasks import SearchIndexJanitorUpdateTask
 from codex.librarian.status import librarian_status_update
 from codex.models import Library
-from codex.notifier.tasks import LIBRARIAN_STATUS_TASK, LIBRARY_CHANGED_TASK
+from codex.notifier.tasks import (
+    FAILED_IMPORTS_TASK,
+    LIBRARIAN_STATUS_TASK,
+    LIBRARY_CHANGED_TASK,
+)
 from codex.settings.logging import LOG_EVERY, VERBOSE, get_logger
 from codex.threads import QueuedThread
 
@@ -218,6 +222,8 @@ def _apply(task):
             cps = int(imported_count / elapsed_time)
             suffix = f" at {cps} comics per second."
         LOG.verbose(f"Imported {imported_count} comics{suffix}.")
+    if new_failed_imports:
+        LIBRARIAN_QUEUE.put(FAILED_IMPORTS_TASK)
 
 
 class Updater(QueuedThread):

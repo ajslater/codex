@@ -16,3 +16,4 @@ class NotifierTask:
 
 LIBRARY_CHANGED_TASK = NotifierTask(Channels.ALL, "LIBRARY_CHANGED")
 LIBRARIAN_STATUS_TASK = NotifierTask(Channels.ADMIN, "LIBRARIAN_STATUS")
+FAILED_IMPORTS_TASK = NotifierTask(Channels.ADMIN, "FAILED_IMPORTS")
