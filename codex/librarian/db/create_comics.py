@@ -246,7 +246,7 @@ def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2
     total_links = 0
     for m2m_links in all_m2m_links.values():
         total_links += len(m2m_links)
-    librarian_status_update([ImportStatusKeys.LINK_M2M_FIELDS], 0, total_links)
+    librarian_status_update(ImportStatusKeys.LINK_M2M_FIELDS, 0, total_links)
     completed_links = 0
     for field_name, m2m_links in all_m2m_links.items():
         try:
