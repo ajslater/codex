@@ -6,10 +6,10 @@
           <ReaderComicPage :page-increment="+0" />
           <ReaderComicPage :page-increment="+1" />
         </div>
+        <div id="navOverlay" @click="toggleToolbars">
+          <ReaderNavOverlay />
+        </div>
       </v-main>
-      <nav id="navOverlay" :v-touch="touchMap" @click="toggleToolbars">
-        <ReaderNavOverlay />
-      </nav>
       <v-slide-y-transition>
         <ReaderTopToolbar v-show="showToolbars" />
       </v-slide-y-transition>
@@ -100,9 +100,11 @@ export default {
   display: flex;
   flex-wrap: nowrap;
   justify-content: center;
+  touch-action: manipulation;
 }
 #readerContainer {
   max-width: 100%;
+  position: relative;
 }
 #announcement {
   text-align: center;

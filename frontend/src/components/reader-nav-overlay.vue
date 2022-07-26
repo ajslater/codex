@@ -1,5 +1,5 @@
 <template>
-  <div id="navColumns">
+  <nav id="navColumns">
     <v-navigation-drawer
       v-if="!routePrevPage && routePrevBook"
       id="prevBookDrawer"
@@ -32,11 +32,7 @@
         @click="setBookChangeFlag('prev')"
       />
     </section>
-    <section
-      id="middleColumn"
-      class="navColumn"
-      @click="setBookChangeFlag(null)"
-    />
+    <section id="middleColumn" @click="setBookChangeFlag(null)" />
     <section id="rightColumn" class="navColumn" @click.stop>
       <router-link
         v-if="routeNextPage"
@@ -68,7 +64,7 @@
         <v-icon class="bookChangeIcon" x-large>{{ mdiBookArrowRight }}</v-icon>
       </router-link>
     </v-navigation-drawer>
-  </div>
+  </nav>
 </template>
 
 <script>
@@ -153,19 +149,24 @@ export default {
 </script>
 
 <style scoped lang="scss">
-#navColumns {
-  width: 100%;
-  height: 100%;
-  padding-top: 48px;
-  padding-bottom: 48px;
+#leftColumn {
+  left: 0px;
+}
+#rightColumn {
+  right: 0px;
 }
 .navColumn {
-  float: left;
+  position: fixed;
   width: 25%;
-  height: 100%;
+  height: calc(100% - (2 * 48px));
+  margin-top: 48px;
+  margin-bottom: 48px;
 }
 #middleColumn {
+  position: fixed;
+  left: 25%;
   width: 50%;
+  height: 100%;
 }
 .navLink {
   display: block;
