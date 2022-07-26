@@ -1,30 +1,29 @@
 <template>
-  <v-expand-x-transition>
+  <v-expand-transition>
     <div v-if="librarianStatuses.length > 0">
       <v-divider />
       <h4>Librarian Tasks</h4>
-      <div
+      <v-expand-transition
         v-for="status of librarianStatuses"
         :key="`${status.type} ${status.name}`"
-        nav
-        class="statusItem"
-        disabled
       >
-        <div class="statusItemTitle">
-          {{ status.type }} {{ status.name }}
-          <span v-if="status.total">
-            {{ status.complete }}/{{ status.total }}
-          </span>
+        <div nav class="statusItem">
+          <div class="statusItemTitle">
+            {{ status.type }} {{ status.name }}
+            <span v-if="status.total">
+              {{ status.complete }}/{{ status.total }}
+            </span>
+          </div>
+          <v-progress-linear
+            color="#cc7b19"
+            :indeterminate="status.total == null"
+            :value="(100 * +status.complete) / +status.total"
+            bottom
+          />
         </div>
-        <v-progress-linear
-          color="#cc7b19"
-          :indeterminate="status.total == null"
-          :value="(100 * +status.complete) / +status.total"
-          bottom
-        />
-      </div>
+      </v-expand-transition>
     </div>
-  </v-expand-x-transition>
+  </v-expand-transition>
 </template>
 
 <script>
