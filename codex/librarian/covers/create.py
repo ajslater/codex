@@ -110,7 +110,7 @@ def bulk_create_comic_covers(comic_pks):
 
     total_elapsed = naturaldelta(time.time() - start_time)
     LOG.verbose(f"Created {count} comic covers in {total_elapsed}.")
-    librarian_status_done(COVER_CREATE_STATUS_KEYS)
+    librarian_status_done([COVER_CREATE_STATUS_KEYS])
     return count
 
 

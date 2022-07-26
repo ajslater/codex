@@ -130,13 +130,6 @@ def _set_max_group_count(all_fks, group_tree, group_md, group_class, index, coun
     all_fks["group_trees"][group_class][group_name] = count
 
 
-def _init_librarian_status(failed_imports):
-    """Initialize the librarian status with the aggregate results."""
-    librarian_status_update(
-        ImportStatusKeys.CREATE_FAILED_IMPORTS, 0, len(failed_imports), notify=False
-    )
-
-
 def _aggregate_group_tree_metadata(all_fks, group_tree_md):
     """Aggregate group tree data by class."""
     for group_tree, group_md in group_tree_md.items():
@@ -183,7 +176,9 @@ def get_aggregate_metadata(library, all_paths):
             last_log_time = now
 
     all_fks["comic_paths"] = frozenset(all_mds.keys())
-    _init_librarian_status(all_failed_imports)
-    librarian_status_done(status_keys)
+    librarian_status_update(
+        ImportStatusKeys.CREATE_FAILED_IMPORTS, 0, len(all_failed_imports), notify=False
+    )
+    librarian_status_done([status_keys])
     LOG.verbose(f"Aggregated tags from {len(all_mds)} comics.")
     return all_mds, all_m2m_mds, all_fks, all_failed_imports

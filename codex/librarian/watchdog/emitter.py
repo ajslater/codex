@@ -262,7 +262,7 @@ class DatabasePollingEmitter(EventEmitter):
             LOG.exception(exc)
             raise exc
         finally:
-            librarian_status_done(status_keys)
+            librarian_status_done([status_keys])
 
     def run(self, *args, **kwargs):
         """Identify the thread."""

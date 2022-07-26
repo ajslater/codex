@@ -95,7 +95,7 @@ def update_search_index(rebuild=False):
     except Exception as exc:
         LOG.error(f"Update search index: {exc}")
     finally:
-        librarian_status_done(SEARCH_INDEX_KEYS)
+        librarian_status_done([SEARCH_INDEX_KEYS])
 
 
 def rebuild_search_index_if_db_changed():

@@ -227,19 +227,26 @@ def bulk_recreate_m2m_field(field_name, m2m_links):
 def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2m_mds):
     """Bulk import comics."""
     if not (create_paths or update_paths or all_bulk_mds or all_m2m_mds):
+        librarian_status_done(
+            (
+                ImportStatusKeys.FILES_MODIFIED,
+                ImportStatusKeys.FILES_CREATED,
+                ImportStatusKeys.LINK_M2M_FIELDS,
+            )
+        )
         return 0
 
     update_count = _update_comics(library, update_paths, all_bulk_mds)
-    librarian_status_done(ImportStatusKeys.FILES_MODIFIED)
+    librarian_status_done([ImportStatusKeys.FILES_MODIFIED])
     create_count = _create_comics(library, create_paths, all_bulk_mds)
-    librarian_status_done(ImportStatusKeys.FILES_CREATED)
+    librarian_status_done([ImportStatusKeys.FILES_CREATED])
     # Just to be sure.
 
     all_m2m_links = _link_comic_m2m_fields(all_m2m_mds)
     total_links = 0
     for m2m_links in all_m2m_links.values():
         total_links += len(m2m_links)
-    librarian_status_update(ImportStatusKeys.LINK_M2M_FIELDS, 0, total_links)
+    librarian_status_update([ImportStatusKeys.LINK_M2M_FIELDS], 0, total_links)
     completed_links = 0
     for field_name, m2m_links in all_m2m_links.items():
         try:
@@ -251,7 +258,7 @@ def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2
         librarian_status_update(
             ImportStatusKeys.LINK_M2M_FIELDS, completed_links, total_links
         )
-    librarian_status_done(ImportStatusKeys.LINK_M2M_FIELDS)
+    librarian_status_done([ImportStatusKeys.LINK_M2M_FIELDS])
 
     update_log = f"Updated {update_count} Comics."
     if update_count:

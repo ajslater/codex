@@ -298,5 +298,5 @@ def bulk_create_all_fks(
     # This must happen after credit_fks created by create_named_models
     count = _bulk_create_credits(create_credits)
     changed |= count > 0
-    librarian_status_done(ImportStatusKeys.CREATE_FKS)
+    librarian_status_done([ImportStatusKeys.CREATE_FKS])
     return changed

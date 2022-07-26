@@ -4,7 +4,6 @@ import time
 from pathlib import Path
 
 from django.core.cache import cache
-from django.db.models.functions import Now
 from humanize import precisedelta
 
 from codex.librarian.db.aggregate_metadata import get_aggregate_metadata
@@ -18,7 +17,7 @@ from codex.librarian.db.status import ImportStatusKeys
 from codex.librarian.db.tasks import UpdaterDBDiffTask
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
 from codex.librarian.search.tasks import SearchIndexJanitorUpdateTask
-from codex.librarian.status import librarian_status_update
+from codex.librarian.status import librarian_status_done, librarian_status_update
 from codex.models import Library
 from codex.notifier.tasks import (
     FAILED_IMPORTS_TASK,
@@ -107,7 +106,7 @@ def _batch_modified_and_created(
     )
     new_failed_imports = bulk_fail_imports(library, fis)
     changed |= imported_count > 0
-    return changed, imported_count, new_failed_imports
+    return changed, imported_count, bool(new_failed_imports)
 
 
 def _log_task(path, task):
@@ -141,15 +140,15 @@ def _log_task(path, task):
         LOG.verbose("  " + log)
 
 
-def _init_librarian_status(task, path, total_paths):
+def _init_librarian_status(task, path):
     """Update the librarian status tasks."""
-    # TODO could be a bulk import
     if task.files_moved:
         librarian_status_update(
             ImportStatusKeys.FILES_MOVED, 0, len(task.files_moved), notify=False
         )
-    if total_paths:
+    if task.files_modified or task.files_created:
         status_keys = {**ImportStatusKeys.AGGREGATE_STATUS_KEYS, "name": path}
+        total_paths = len(task.files_modified) + len(task.files_created)
         librarian_status_update(status_keys, 0, total_paths, notify=False)
         librarian_status_update(
             ImportStatusKeys.QUERY_MISSING_FKS, 0, None, notify=False
@@ -174,23 +173,29 @@ def _init_librarian_status(task, path, total_paths):
     LIBRARIAN_QUEUE.put(LIBRARIAN_STATUS_TASK)
 
 
+def _finish_apply(library):
+    """Finish all librarian statuses."""
+    library.update_in_progress = False
+    library.save()
+    librarian_status_done(ImportStatusKeys.ALL)
+
+
 def _apply(task):
     """Bulk import comics."""
     start_time = time.time()
     library = Library.objects.get(pk=task.library_id)
-    _log_task(library.path, task)
     library.update_in_progress = True
     library.save()
-    _init_librarian_status(
-        task, library.path, len(task.files_modified) + len(task.files_created)
-    )
     too_long = _wait_for_filesystem_ops_to_finish(task)
     if too_long:
         LOG.warning(
             "Import apply waited for the filesystem to stop changing too long. "
             "Try polling again once files have finished copying."
         )
+        _finish_apply(library)
         return
+    _init_librarian_status(task, library.path)
+    _log_task(library.path, task)
 
     changed = False
     changed |= bulk_folders_moved(library, task.dirs_moved)
@@ -204,9 +209,7 @@ def _apply(task):
     changed |= bulk_comics_deleted(library, task.files_deleted)
     cache.clear()
 
-    Library.objects.filter(pk=task.library_id).update(
-        update_in_progress=False, updated_at=Now()
-    )
+    _finish_apply(library)
     # Wait to start the search index update in case more updates are incoming.
     delayed_search_task = DelayedTasks(2, (SearchIndexJanitorUpdateTask(False),))
     LIBRARIAN_QUEUE.put(delayed_search_task)

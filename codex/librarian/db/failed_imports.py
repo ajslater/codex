@@ -50,7 +50,7 @@ def _bulk_update_failed_imports(library, failed_imports):
 def _bulk_create_failed_imports(library, failed_imports) -> bool:
     """Bulk create failed imports."""
     if not failed_imports:
-        librarian_status_done(ImportStatusKeys.CREATE_FAILED_IMPORTS)
+        librarian_status_done([ImportStatusKeys.CREATE_FAILED_IMPORTS])
         return False
     create_failed_imports = []
     for path, exc in failed_imports.items():
@@ -64,7 +64,7 @@ def _bulk_create_failed_imports(library, failed_imports) -> bool:
             LOG.exception(exc)
     if create_failed_imports:
         FailedImport.objects.bulk_create(create_failed_imports)
-    librarian_status_done(ImportStatusKeys.CREATE_FAILED_IMPORTS)
+    librarian_status_done([ImportStatusKeys.CREATE_FAILED_IMPORTS])
     count = len(create_failed_imports)
     log = f"Added {count} comics to failed imports."
     if count:
@@ -103,7 +103,7 @@ def _bulk_cleanup_failed_imports(library):
         .filter(Q(path__in=succeeded_imports) | Q(path__in=missing_failed_imports))
         .delete()
     )
-    librarian_status_done(ImportStatusKeys.CLEAN_FAILED_IMPORTS)
+    librarian_status_done([ImportStatusKeys.CLEAN_FAILED_IMPORTS])
     if count:
         LOG.info(f"Cleaned up {count} failed imports from {library.path}")
     else:

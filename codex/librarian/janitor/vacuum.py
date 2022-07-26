@@ -22,7 +22,7 @@ def vacuum_db():
     new_size = DB_PATH.stat().st_size
     saved = naturalsize(old_size - new_size)
 
-    librarian_status_done(VACCUM_STATUS_KEYS)
+    librarian_status_done([VACCUM_STATUS_KEYS])
     LOG.verbose(f"Vacuumed database. Saved {saved}.")
 
 
@@ -32,5 +32,5 @@ def backup_db():
     BACKUP_DB_PATH.unlink(missing_ok=True)
     with connection.cursor() as cursor:
         cursor.execute(f"VACUUM INTO '{BACKUP_DB_PATH}'")
-    librarian_status_done(BACKUP_STATUS_KEYS)
+    librarian_status_done([BACKUP_STATUS_KEYS])
     LOG.verbose("Backed up database.")

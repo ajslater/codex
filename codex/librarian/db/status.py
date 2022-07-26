@@ -16,3 +16,17 @@ class ImportStatusKeys:
     LINK_M2M_FIELDS = {"type": "Link books to tags"}
     CLEAN_FAILED_IMPORTS = {"type": "Remove succeeded Failed Imports"}
     CREATE_FAILED_IMPORTS = {"type": "Record Failed Imports"}
+    ALL = (
+        DIRS_MOVED,
+        FILES_MOVED,
+        FILES_MODIFIED,
+        FILES_CREATED,
+        DIRS_DELETED,
+        FILES_DELETED,
+        AGGREGATE_STATUS_KEYS,
+        QUERY_MISSING_FKS,
+        CREATE_FKS,
+        LINK_M2M_FIELDS,
+        CLEAN_FAILED_IMPORTS,
+        CREATE_FAILED_IMPORTS,
+    )

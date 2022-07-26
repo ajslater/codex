@@ -76,7 +76,7 @@ def _query_create_metadata(fk_cls, create_mds, all_filter_args):
             filter = Q()
             filter_arg_count = 0
 
-    librarian_status_done(status_keys)
+    librarian_status_done([status_keys])
 
     return create_mds
 
@@ -194,7 +194,7 @@ def _query_missing_simple_models(base_cls, field, fk_field, names):
             last_log = now
             logged = True
         offset += FILTER_ARG_MAX
-    librarian_status_done(status_keys)
+    librarian_status_done([status_keys])
 
     return fk_cls, create_names
 
@@ -255,5 +255,5 @@ def query_all_missing_fks(library_path, fks):
         if num_names := len(names):
             LOG.verbose(f"Prepared {num_names} new {field}.")
 
-    librarian_status_done(ImportStatusKeys.QUERY_MISSING_FKS)
+    librarian_status_done([ImportStatusKeys.QUERY_MISSING_FKS])
     return create_fks, create_groups, update_groups, create_folder_paths, create_credits

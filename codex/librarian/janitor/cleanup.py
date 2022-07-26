@@ -62,5 +62,5 @@ def cleanup_fks():
     status_count = 0
     status_count = _bulk_cleanup_fks(DELETE_COMIC_FKS, "comic", status_count)
     _bulk_cleanup_fks(DELETE_CREDIT_FKS, "credit", status_count)
-    librarian_status_done(CLEANUP_FK_STATUS_KEYS)
+    librarian_status_done([CLEANUP_FK_STATUS_KEYS])
     LOG.verbose("Done cleaning up unused foreign keys.")

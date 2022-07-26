@@ -46,12 +46,12 @@ LOG = get_logger(__name__)
 def bulk_folders_deleted(library, delete_folder_paths=None) -> bool:
     """Bulk delete folders."""
     if not delete_folder_paths:
-        librarian_status_done(ImportStatusKeys.DIRS_DELETED)
+        librarian_status_done([ImportStatusKeys.DIRS_DELETED])
         return False
     query = Folder.objects.filter(library=library, path__in=delete_folder_paths)
     count = query.count()
     query.delete()
-    librarian_status_done(ImportStatusKeys.DIRS_DELETED)
+    librarian_status_done([ImportStatusKeys.DIRS_DELETED])
     log = f"Deleted {count} folders from {library.path}"
     if count:
         LOG.info(log)
@@ -63,7 +63,7 @@ def bulk_folders_deleted(library, delete_folder_paths=None) -> bool:
 def bulk_comics_deleted(library, delete_comic_paths=None) -> bool:
     """Bulk delete comics found missing from the filesystem."""
     if not delete_comic_paths:
-        librarian_status_done(ImportStatusKeys.FILES_DELETED)
+        librarian_status_done([ImportStatusKeys.FILES_DELETED])
         return False
     query = Comic.objects.filter(library=library, path__in=delete_comic_paths)
     delete_comic_pks = frozenset(query.values_list("pk", flat=True))
@@ -72,7 +72,7 @@ def bulk_comics_deleted(library, delete_comic_paths=None) -> bool:
 
     count = len(delete_comic_pks)
     query.delete()
-    librarian_status_done(ImportStatusKeys.FILES_DELETED)
+    librarian_status_done([ImportStatusKeys.FILES_DELETED])
     log = f"Deleted {count} comics from {library.path}"
     if count:
         LOG.info(log)

@@ -38,7 +38,7 @@ def purge_cover_paths(cover_paths):
         cover_dirs.add(cover_path.parent)
     for cover_dir in cover_dirs:
         _cleanup_cover_dirs(cover_dir)
-    librarian_status_done(COVER_PURGE_STATUS_KEYS)
+    librarian_status_done([COVER_PURGE_STATUS_KEYS])
     LIBRARIAN_QUEUE.put(LIBRARY_CHANGED_TASK)
     LOG.info(f"Removed {len(cover_paths)} cover thumnbails.")
 
@@ -81,7 +81,7 @@ def cleanup_orphan_covers():
             if fs_cover_path not in db_cover_paths:
                 orphan_cover_paths.add(fs_cover_path)
 
-    librarian_status_done(COVER_ORPHAN_FIND_STATUS_KEYS)
+    librarian_status_done([COVER_ORPHAN_FIND_STATUS_KEYS])
 
     purge_cover_paths(orphan_cover_paths)
     LOG.info(f"Removed {len(orphan_cover_paths)} covers for missing comics.")

@@ -23,7 +23,7 @@ def update_codex(force=False):
     else:
         eau = AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_AUTO_UPDATE)
         if not eau.on or not is_outdated(PACKAGE_NAME):
-            librarian_status_done(UPDATE_CODEX_STATUS_KEYS)
+            librarian_status_done([UPDATE_CODEX_STATUS_KEYS])
             LOG.verbose("Codex is up to date.")
             return
 
@@ -35,13 +35,13 @@ def update_codex(force=False):
         )
     except Exception as exc:
         LOG.error(exc)
-        librarian_status_done(UPDATE_CODEX_STATUS_KEYS)
+        librarian_status_done([UPDATE_CODEX_STATUS_KEYS])
         return
 
     new_version = get_version()
     restart = VERSION != new_version
 
-    librarian_status_done(UPDATE_CODEX_STATUS_KEYS)
+    librarian_status_done([UPDATE_CODEX_STATUS_KEYS])
     if restart:
         LOG.info(f"Codex was updated from {VERSION} to {new_version}.")
         restart_codex()
@@ -58,4 +58,4 @@ def restart_codex():
     LOG.info("Sending restart signal.")
     main_pid = os.getppid()
     os.kill(main_pid, signal.SIGUSR1)
-    librarian_status_done(RESTART_CODEX_STATUS_KEYS)
+    librarian_status_done([RESTART_CODEX_STATUS_KEYS])

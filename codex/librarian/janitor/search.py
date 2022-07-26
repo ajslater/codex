@@ -19,5 +19,5 @@ def clean_old_queries():
     )
     delete_sqs = SearchQuery.objects.filter(pk__in=delete_pks)
     count, _ = delete_sqs.delete()
-    librarian_status_done(CLEAN_SEARCH_STATUS_KEYS)
+    librarian_status_done([CLEAN_SEARCH_STATUS_KEYS])
     LOG.verbose(f"Deleted {count} old search queries.")

@@ -142,7 +142,6 @@ class Library(BaseModel):
     poll_every = DurationField(default=DEFAULT_POLL_EVERY)
     last_poll = DateTimeField(null=True)
     update_in_progress = BooleanField(default=False)
-    schema_version = PositiveSmallIntegerField(default=0)
     groups = ManyToManyField(Group, blank=True)
 
     def __str__(self):
