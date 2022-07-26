@@ -110,7 +110,7 @@ export default {
   display: grid;
   grid-template-columns: repeat(auto-fit, 120px);
   grid-gap: 32px;
-  justify-content: space-between;
+  justify-content: start;
   align-content: flex-start;
 }
 #announce {
@@ -133,7 +133,9 @@ export default {
 @import "~vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   #browsePaneContainer {
+    grid-template-columns: repeat(auto-fit, 100px);
     grid-gap: 16px;
+    justify-content: space-evenly;
   }
   #noComicsFound {
     font-size: large;

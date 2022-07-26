@@ -8,7 +8,7 @@ from codex.librarian.covers.path import COVER_ROOT, get_cover_paths
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.librarian.status import librarian_status_done, librarian_status_update
 from codex.models import Comic
-from codex.notifier.tasks import LIBRARY_CHANGED_TASK
+from codex.notifier.tasks import COVERS_CHANGED_TASK
 from codex.settings.logging import get_logger
 
 
@@ -30,7 +30,7 @@ def _cleanup_cover_dirs(path):
 
 def purge_cover_paths(cover_paths):
     """Purge a set a cover paths."""
-    LOG.verbose(f"Removing {len(cover_paths)} cover thumnbails...")
+    LOG.verbose(f"Removing {len(cover_paths)} cover thumbnails...")
     librarian_status_update(COVER_PURGE_STATUS_KEYS, 0, None)
     cover_dirs = set()
     for cover_path in cover_paths:
@@ -39,8 +39,9 @@ def purge_cover_paths(cover_paths):
     for cover_dir in cover_dirs:
         _cleanup_cover_dirs(cover_dir)
     librarian_status_done([COVER_PURGE_STATUS_KEYS])
-    LIBRARIAN_QUEUE.put(LIBRARY_CHANGED_TASK)
-    LOG.info(f"Removed {len(cover_paths)} cover thumnbails.")
+    if cover_paths:
+        LIBRARIAN_QUEUE.put(COVERS_CHANGED_TASK)
+    LOG.info(f"Removed {len(cover_paths)} cover thumbnails.")
 
 
 def purge_comic_covers(comic_pks):
@@ -63,7 +64,7 @@ def purge_all_comic_covers():
     LOG.verbose("Removing entire comic cover cache.")
     shutil.rmtree(COVER_ROOT)
     LOG.info("Removed entire comic cover cache.")
-    LIBRARIAN_QUEUE.put(LIBRARY_CHANGED_TASK)
+    LIBRARIAN_QUEUE.put(COVERS_CHANGED_TASK)
 
 
 def cleanup_orphan_covers():
@@ -82,6 +83,5 @@ def cleanup_orphan_covers():
                 orphan_cover_paths.add(fs_cover_path)
 
     librarian_status_done([COVER_ORPHAN_FIND_STATUS_KEYS])
-
     purge_cover_paths(orphan_cover_paths)
     LOG.info(f"Removed {len(orphan_cover_paths)} covers for missing comics.")

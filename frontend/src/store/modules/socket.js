@@ -55,19 +55,20 @@ const mutations = {
     console.debug(message);
     switch (message) {
       case CHOICES.websockets.LIBRARY_CHANGED:
+        this.commit("browser/setBrowseTimestamp");
         if (router.currentRoute.name === "browser") {
-          this.dispatch("browser/browserPageStale", { showProgress: false });
+          this.dispatch("browser/getBrowserPage", { showProgress: false });
         }
         this.commit("reader/setTimestamp");
-
+        break;
+      case CHOICES.websockets.COVERS_CHANGED:
+        this.commit("browser/setCoverTimestamp");
         break;
       case CHOICES.websockets.LIBRARIAN_STATUS:
         this.dispatch("admin/fetchLibrarianStatuses");
-
         break;
       case CHOICES.websockets.FAILED_IMPORTS:
         this.dispatch("admin/setFailedImports", true);
-
         break;
       default:
         console.debug("Unhandled websocket message:", message);

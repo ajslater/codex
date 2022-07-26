@@ -22,12 +22,14 @@
     <section id="leftColumn" class="navColumn" @click.stop>
       <router-link
         v-if="routePrevPage"
+        id="navLinkPrev"
         class="navLink"
         :to="routePrevPage"
         aria-label="previous page"
       />
       <div
         v-else-if="routePrevBook"
+        id="navLinkPrev"
         class="drawerButton"
         @click="setBookChangeFlag('prev')"
       />
@@ -36,12 +38,14 @@
     <section id="rightColumn" class="navColumn" @click.stop>
       <router-link
         v-if="routeNextPage"
+        id="navLinkNext"
         class="navLink"
         :to="routeNextPage"
         aria-label="next page"
       />
       <div
         v-else-if="routeNextBook"
+        id="navLinkNext"
         class="drawerButton"
         @click.stop="setBookChangeFlag('next')"
       />
@@ -172,9 +176,16 @@ export default {
   display: block;
   height: 100%;
 }
+#navLinkPrev,
+#prevBookDrawer {
+  cursor: w-resize;
+}
+#navLinkNext,
+#nextBookDrawer {
+  cursor: e-resize;
+}
 .drawerButton {
   height: 100%;
-  cursor: grab;
 }
 .bookChangeDrawer {
   background-color: rgba(0, 0, 0, 0.3);

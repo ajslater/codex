@@ -185,14 +185,10 @@ LOG.verbose(f"root_path: {HYPERCORN_CONFIG.root_path}")
 PORT = int(HYPERCORN_CONFIG.bind[0].split(":")[1])
 
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/3.1/howto/static-files/
+# https://docs.djangoproject.com/en/4.0/howto/static-files/
+# Keep missing-cover.webp around
 WHITENOISE_KEEP_ONLY_HASHED_FILES = True
 WHITENOISE_STATIC_PREFIX = "static/"
-# TODO remove this param when it all works
-# Bad for performance and security
-# But new covers don't display without it
-# http://whitenoise.evans.io/en/stable/django.html#WHITENOISE_AUTOREFRESH
-# WHITENOISE_AUTOREFRESH = True
 STATIC_ROOT = CODEX_PATH / "static_root"
 if HYPERCORN_CONFIG.root_path:
     STATIC_URL = HYPERCORN_CONFIG.root_path + "/" + WHITENOISE_STATIC_PREFIX

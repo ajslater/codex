@@ -7,13 +7,17 @@
   - Covers are now created on demand by the browser, rather than on import. Administrators may still pre-generate covers.
   - Administrators may view librarian tasks in progress and failed imports notifications in the settings side drawer.
 
+- Fixes
+
+  - Fix bookmark progress bar not updating in browser after closing book.
+
 ## v0.10.10
 
 - Features
 
   - Reader nav toolbar shows position in series.
 
-- Fix
+- Fixes
 
   - Fix inability to log in when Enable Non Users admin flag is unset.
   - Simplify Admin Library delete confirmation page to prevent OOM crash.

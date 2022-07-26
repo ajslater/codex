@@ -7,8 +7,8 @@ from codex.settings.settings import CODEX_PATH, ROOT_CACHE_PATH
 
 
 COVER_ROOT = ROOT_CACHE_PATH / "covers"
-MISSING_COVER_FN = "missing_cover.webp"
-MISSING_COVER_PATH = CODEX_PATH / "views" / MISSING_COVER_FN
+MISSING_COVER_FN = "missing-cover.webp"
+MISSING_COVER_PATH = CODEX_PATH / "img" / MISSING_COVER_FN
 HEX_FILL = 8
 PATH_STEP = 2
 ZFILL = 12

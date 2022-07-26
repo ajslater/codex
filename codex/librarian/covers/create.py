@@ -13,7 +13,7 @@ from codex.librarian.covers.tasks import CoverBulkCreateTask, CoverCreateTask
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.librarian.status import librarian_status_done, librarian_status_update
 from codex.models import Comic, Library
-from codex.notifier.tasks import LIBRARY_CHANGED_TASK
+from codex.notifier.tasks import COVERS_CHANGED_TASK
 from codex.pdf import PDF
 from codex.settings.logging import get_logger
 from codex.version import COMICBOX_CONFIG
@@ -105,7 +105,7 @@ def bulk_create_comic_covers(comic_pks):
         if elapsed > COVER_DB_UPDATE_INTERVAL:
             LOG.verbose(f"Created {count}/{num_comics} comic covers.")
             librarian_status_update(COVER_CREATE_STATUS_KEYS, count, num_comics)
-            LIBRARIAN_QUEUE.put(LIBRARY_CHANGED_TASK)
+            LIBRARIAN_QUEUE.put(COVERS_CHANGED_TASK)
             last_update = time.time()
 
     total_elapsed = naturaldelta(time.time() - start_time)

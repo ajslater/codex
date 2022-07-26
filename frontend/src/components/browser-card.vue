@@ -8,7 +8,6 @@
       <div class="browserCardCoverWrapper" @click="doubleTapHovered = true">
         <BookCover
           :cover-pk="item.coverPk"
-          :updated-at="item.coverUpdatedAt"
           :group="item.group"
           :child-count="item.childCount"
           :finished="item.finished"

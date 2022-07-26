@@ -83,16 +83,13 @@ class BrowserMetadataBaseView(BrowserBaseView):
         # Order the descendant comics by the sort argumentst
         if model == Comic:
             cover_pk = F("pk")
-            cover_updated_at = F("updated_at")
         else:
             # This creates two subqueries. It would be better condensed into one.
             # but there's no way to annotate an object or multiple values.
             order_by = self.get_order_by(Comic, for_cover_pk=True)
             cover_comics = queryset.filter(pk=OuterRef("pk")).order_by(*order_by)
             cover_pk = self._cover_subquery(cover_comics, "pk")
-            cover_updated_at = self._cover_subquery(cover_comics, "updated_at")
         queryset = queryset.annotate(cover_pk=cover_pk)
-        queryset = queryset.annotate(cover_updated_at=cover_updated_at)
         return queryset
 
     def _annotate_page_count(self, obj_list):

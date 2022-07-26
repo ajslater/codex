@@ -27,9 +27,6 @@ class BrowserAggregateSerializerMixin(Serializer):
     # Aggregate Annotations
     child_count = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "child_count")
     cover_pk = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "cover_pk")
-    cover_updated_at = TimestampField(
-        read_only=True, source=UNIONFIX_PREFIX + "cover_updated_at"
-    )
 
     # UserBookmark annotations
     bookmark = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "bookmark")

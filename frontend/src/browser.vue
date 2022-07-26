@@ -36,27 +36,20 @@ export default {
   },
   watch: {
     $route: function () {
-      if (this.isOpenToSee) {
-        this.browserPageStale();
-      }
+      this.getBrowserPage();
     },
     user: function () {
-      this.opened();
+      this.browserOpened();
     },
     isOpenToSee: function () {
-      this.opened();
+      this.browserOpened();
     },
   },
   created() {
-    this.opened();
+    this.browserOpened();
   },
   methods: {
-    ...mapActions("browser", ["browserPageStale", "browserOpened"]),
-    opened: function () {
-      if (this.isOpenToSee) {
-        this.browserOpened();
-      }
-    },
+    ...mapActions("browser", ["getBrowserPage", "browserOpened"]),
   },
 };
 </script>
