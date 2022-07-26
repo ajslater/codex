@@ -15,9 +15,9 @@ CACHE_DIR = CONFIG_PATH / "cache"
 
 def remove_old_caches(_apps, _schema_editor):
     """Clean up old cache locations."""
-    print("Removing old cover cache...")
+    print("\n  Removing old cover cache...")
     shutil.rmtree(OLD_COVER_CACHE, ignore_errors=True)
-    print("Removing old default cache...")
+    print("  Removing old default cache...")
     for path in CACHE_DIR.iterdir():
         if path.suffix == ".djcache":
             path.unlink(missing_ok=True)
@@ -36,6 +36,10 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RemoveField(
+            model_name="library",
+            name="schema_version",
+        ),
         migrations.RemoveField(
             model_name="comic",
             name="cover_path",
