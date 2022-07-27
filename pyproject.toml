@@ -13,7 +13,7 @@ homepage = "https://github.com/ajslater/codex"
 documentation = "https://github.com/ajslater/codex"
 keywords = ["comic", "cbz", "cbr", "cbt", "pdf"]
 classifiers = [
-  "Development Status :: 4 - Beta",
+  "Development Status :: 5 - Production/Stable",
   "Environment :: Web Environment",
   "Framework :: Django :: 4.0",
   "Intended Audience :: End Users/Desktop",
@@ -21,7 +21,7 @@ classifiers = [
   "Natural Language :: English",
   "Operating System :: OS Independent",
   "Programming Language :: JavaScript",
-  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3 :: 3.9",
   "Topic :: Internet :: WWW/HTTP",
   "Topic :: Multimedia :: Graphics :: Viewers",
 ]
