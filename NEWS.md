@@ -6,6 +6,7 @@
 
   - Covers are now created on demand by the browser, rather than on import. Administrators may still pre-generate covers.
   - Administrators may view librarian tasks in progress and failed imports notifications in the settings side drawer.
+  - Read filter.
 
 - Fixes
 

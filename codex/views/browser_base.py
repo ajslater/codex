@@ -113,10 +113,7 @@ class BrowserBaseView(SessionView, GroupACLMixin):
         """Build bookmark query."""
         if choice is None:
             choice = self.params["filters"].get("bookmark", "ALL")
-        if choice in (
-            "UNREAD",
-            "IN_PROGRESS",
-        ):
+        if choice in ("UNREAD", "IN_PROGRESS", "READ"):
             ubm_rel = self.get_ubm_rel(is_model_comic)
             my_userbookmark_filter = self._get_userbookmark_filter(ubm_rel)
 
@@ -128,6 +125,10 @@ class BrowserBaseView(SessionView, GroupACLMixin):
             elif choice == "IN_PROGRESS":
                 bookmark_filter = my_userbookmark_filter & Q(
                     **{f"{ubm_rel}__bookmark__gt": 0}
+                )
+            elif choice == "READ":
+                bookmark_filter = my_userbookmark_filter & Q(
+                    **{f"{ubm_rel}__finished": True}
                 )
             else:
                 bookmark_filter = Q()
