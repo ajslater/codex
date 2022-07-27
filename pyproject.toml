@@ -155,6 +155,7 @@ asyncio_mode = "strict"
 addopts = """
     --junit-xml=test-results/pytest/results.xml
     -ra
+    --strict-config
     --strict-markers
     --bandit
     --black
