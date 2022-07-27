@@ -18,7 +18,7 @@ from watchdog.events import (
     FileModifiedEvent,
     FileMovedEvent,
 )
-from watchdog.observers.api import EventEmitter
+from watchdog.observers.api import DEFAULT_EMITTER_TIMEOUT, EventEmitter
 from watchdog.utils.dirsnapshot import DirectorySnapshot, DirectorySnapshotDiff
 
 from codex.librarian.status import librarian_status_done, librarian_status_update
@@ -106,23 +106,18 @@ class DatabasePollingEmitter(EventEmitter):
 
     DIR_NOT_FOUND_TIMEOUT = 15 * 60
 
-    def __init__(
-        self,
-        event_queue,
-        watch,
-        timeout=None,  # unused, timeout is set dynamically internally
-        stat=os.stat,
-        listdir=os.listdir,
-    ):
+    def __init__(self, event_queue, watch, timeout=DEFAULT_EMITTER_TIMEOUT):
         """Initialize snapshot methods."""
         self._poll_cond = Condition()
         self._force = False
         self._watch_path = Path(watch.path)
         self._watch_path_unmounted = self._watch_path / DOCKER_UNMOUNTED_FN
-        super().__init__(event_queue, watch)
+        super().__init__(event_queue, watch, timeout=timeout)
 
         self._take_dir_snapshot = lambda: DirectorySnapshot(
-            self.watch.path, self.watch.is_recursive, stat=stat, listdir=listdir
+            self._watch.path,
+            recursive=self.watch.is_recursive,
+            # default stat and listdir params
         )
 
     def poll(self, force=False):
@@ -246,10 +241,7 @@ class DatabasePollingEmitter(EventEmitter):
                 for src_path in events.dirs_modified:
                     self.queue_event(DirModifiedEvent(src_path))
                 # Folders are only created by comics themselves
-                # The event handler excludes these but skip it here too.
-                # for src_path in events.dirs_created:
-                #    self.queue_event(DirCreatedEvent(src_path))
-                #
+                # The event handler excludes DirCreatedEvent as well.
                 for src_path, dest_path in events.dirs_moved:
                     self.queue_event(DirMovedEvent(src_path, dest_path))
 
