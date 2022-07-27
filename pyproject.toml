@@ -10,6 +10,7 @@ license = "GPL-2.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
 readme = "README.md"
 homepage = "https://github.com/ajslater/codex"
+repository = "https://github.com/ajslater/codex"
 documentation = "https://github.com/ajslater/codex"
 keywords = ["comic", "cbz", "cbr", "cbt", "pdf"]
 classifiers = [
@@ -96,7 +97,6 @@ codex = "codex.run:main"
 
 [tool.poetry.urls]
 "Docker Image" = "https://hub.docker.com/r/ajslater/codex"
-"Source" = "https://github.com/ajslater/codex/"
 "Issues" = "https://github.com/ajslater/codex/issues"
 
 [tool.black]
