@@ -55,6 +55,7 @@ class BrowserBaseView(SessionView, GroupACLMixin):
         COMIC_GROUP: "pk",
         FOLDER_GROUP: "parent_folder",
     }
+    _BOOKMARK_FILTERS = ("UNREAD", "IN_PROGRESS", "READ")
 
     def __init__(self, *args, **kwargs):
         """Set params for the type checker."""
@@ -113,7 +114,7 @@ class BrowserBaseView(SessionView, GroupACLMixin):
         """Build bookmark query."""
         if choice is None:
             choice = self.params["filters"].get("bookmark", "ALL")
-        if choice in ("UNREAD", "IN_PROGRESS", "READ"):
+        if choice in self._BOOKMARK_FILTERS:
             ubm_rel = self.get_ubm_rel(is_model_comic)
             my_userbookmark_filter = self._get_userbookmark_filter(ubm_rel)
 
