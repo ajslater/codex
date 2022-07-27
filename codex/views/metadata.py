@@ -63,10 +63,10 @@ class MetadataView(BrowserMetadataBaseView):
     )
     _COMIC_FK_FIELDS_MAP = {
         "f": _COMIC_FK_FIELDS,
-        "p": _COMIC_FK_FIELDS - set(["publisher"]),
-        "i": _COMIC_FK_FIELDS - set(["imprint"]),
-        "s": _COMIC_FK_FIELDS - set(["series"]),
-        "v": _COMIC_FK_FIELDS - set(["volume"]),
+        "p": _COMIC_FK_FIELDS.difference(frozenset(["publisher"])),
+        "i": _COMIC_FK_FIELDS.difference(frozenset(["imprint"])),
+        "s": _COMIC_FK_FIELDS.difference(frozenset(["series"])),
+        "v": _COMIC_FK_FIELDS.difference(frozenset(["volume"])),
         "c": _COMIC_FK_FIELDS,
     }
     _COMIC_FK_ANNOTATION_PREFIX = "fk_"
