@@ -1,8 +1,11 @@
 <template>
   <div v-if="computedValue" class="text" :class="{ highlight }">
     <div class="textLabel">{{ label }}</div>
-    <a v-if="link" class="textLink" href="computedValue">
+    <a v-if="link" class="textLink" :href="computedValue" target="_blank">
       {{ computedValue }}
+      <v-icon small color="rgba(204, 123, 25, 0.725)">
+        {{ mdiOpenInNew }}
+      </v-icon>
     </a>
     <div v-else class="textContent">
       {{ computedValue }}
@@ -11,6 +14,8 @@
 </template>
 
 <script>
+import { mdiOpenInNew } from "@mdi/js";
+
 export default {
   name: "MetadataTextBox",
   props: {
@@ -30,6 +35,11 @@ export default {
       type: Boolean,
       default: false,
     },
+  },
+  data() {
+    return {
+      mdiOpenInNew,
+    };
   },
   computed: {
     computedValue: function () {

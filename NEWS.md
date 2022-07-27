@@ -10,6 +10,7 @@
 - Fixes
 
   - Fix bookmark progress bar not updating in browser after closing book.
+  - Fix metadata web links
 
 ## v0.10.10
 
