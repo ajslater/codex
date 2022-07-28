@@ -2,7 +2,6 @@ import API from "@/api/v2/group";
 
 const state = {
   md: undefined,
-  timestamp: Date.now(),
 };
 
 const getters = {};
@@ -14,15 +13,14 @@ const mutations = {
     }
     state.md = Object.seal(md);
   },
-  setTimestamp(state) {
-    state.timestamp = Date.now();
-  },
 };
 
 const actions = {
-  async metadataOpened({ commit }, { group, pk }) {
+  async metadataOpened({ commit, rootState }, { group, pk }) {
+    // Use the browser's timestamp
+    const ts = rootState.browser.timestamp;
     // Set the metadata store.
-    await API.getMetadata(group, pk)
+    await API.getMetadata({ group, pk }, ts)
       .then((response) => {
         return commit("setMetadata", response.data);
       })

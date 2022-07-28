@@ -1,36 +1,52 @@
 {% extends "admin/change_list.html" %}
-
 {% block footer %}
-<div id="footer">
-<h1>Libraries</h1>
-<p>
-A Library is a path where Codex can recursively search for comic archives. Codex will try to import comics from a Library immediately.
-You may navigate back to the browser view by clicking the "<span style="font-variant-caps: small-caps">view site</span>" link in the upper right of this Admin Panel.
-</p><p>
-Wait for comics to appear. It may take some time to import large comic libraries and Codex will refresh the browser the library has finished loaded. A snackbar will notify admins that a library update is in progress, but check the logs in <code>config/logs/codex.log</code> if you want to follow the import in detail.
-</p>
-<h2>events</h2>
-Watch the Library filesystem for events and update Codex instantly when the filesystem changes.
-<h2>poll</h2>
-Periodically poll the library for changes. Possibly CPU and disk intensive.
-<h2>poll every</h2>
-How long to wait between polling the filesystem
-<h2>last poll</h2>
-A timestamp telling you when the last time this library was polled.
-<h2>groups</h2>
-A library with <em>no</em> groups is accessible to every user and non-users if those are enabled.<br/>
-A library with <em>any</em> groups is accessible only to users who are in those groups. Use the Groups admin panel to create groups and the Users admin panel to add users to groups.
-<br/><br/>
-<small>Hold down “Control”, or “Command” on a Mac, to select more than one.</small>
+    <div id="footer">
+        <h1>Libraries</h1>
+        <div>
+            A Library is a path where Codex can recursively search for comic archives.
+            Codex will try to import comics from a Library immediately. You may navigate
+        back to the browser view by clicking the "<span class="caps">view site</span
+        >" link in the upper right of this Admin Panel.
+    </div>
+    <div>
+        Wait for comics to appear. It may take some time to import large comic
+        libraries and Codex will refresh the browser the library has finished
+        loaded. A snackbar will notify admins that a library update is in progress,
+        but check the logs in <code>config/logs/codex.log</code> if you want to
+        follow the import in detail.
+    </div>
+    <h2>events</h2>
+    Watch the Library filesystem for events and update Codex instantly when the
+    filesystem changes.
+    <h2>poll</h2>
+    Periodically poll the library for changes. Possibly CPU and disk intensive.
+    <h2>poll every</h2>
+    How long to wait between polling the filesystem
+    <h2>last poll</h2>
+    A timestamp telling you when the last time this library was polled.
+    <h2>groups</h2>
+    A library with <em>no</em> groups is accessible to every user and non-users if
+    those are enabled.
+    <br />
+    A library with <em>any</em> groups is accessible only to users who are in
+    those groups. Use the Groups admin panel to create groups and the Users admin
+    panel to add users to groups.
+    <br />
+    <br />
+<small >Hold down “control”, or “command” on a Mac, to select more than one.</small
+>
 <h1>Actions</h1>
 <h2>Delete selected libraries</h2>
-Will delete the selected libraries from the codex database. Will not delete your comic archives on disk.
-Deleting large libraries may take a long time to create the confirmation screen.
+Will delete the selected libraries from the codex database. Will not delete
+your comic archives on disk. Deleting large libraries may take a long time to
+create the confirmation screen.
 <h2>Poll Selected libraries for changes</h2>
-Poll selected libraries now for changes. Update the library if changes are detected.
+Poll selected libraries now for changes. Update the library if changes are
+detected.
 <h2>Update All Comics in Selected Libraries</h2>
-Forcibly update all the comics for a library, overwrite the database and regenerate covers.
+Forcibly update all the comics for a library, overwrite the database and
+regenerate covers.
 <h2>Recreate Comic Covers in Selected Libraries</h2>
 Recreate all the comic covers for a library.
 </div>
-{% endblock %}
+{% endblock footer %}

@@ -14,6 +14,10 @@
       {
         "text": "In Progress",
         "value": "IN_PROGRESS"
+      },
+      {
+        "text": "Read",
+        "value": "READ"
       }
     ],
     "topGroup": [
@@ -127,17 +131,17 @@
   "reader": {
     "fitTo": [
       {
-        "text": "Shrink to Height",
-        "value": "HEIGHT"
-      },
-      {
-        "text": "Shrink to Width",
-        "value": "WIDTH",
+        "text": "Fit to Screen",
+        "value": "SCREEN",
         "default": true
       },
       {
-        "text": "Fit to Screen",
-        "value": "SCREEN"
+        "text": "Fit to Width",
+        "value": "WIDTH"
+      },
+      {
+        "text": "Fit to Height",
+        "value": "HEIGHT"
       },
       {
         "text": "Original Size",
@@ -146,9 +150,9 @@
     ]
   },
   "websockets": {
+    "COVERS_CHANGED": "COVERS_CHANGED",
     "LIBRARY_CHANGED": "LIBRARY_CHANGED",
-    "LIBRARY_UPDATE_IN_PROGRESS": "LIBRARY_UPDATE_IN_PROGRESS",
-    "LIBRARY_UPDATE_DONE": "LIBRARY_UPDATE_DONE",
+    "LIBRARIAN_STATUS": "LIBRARIAN_STATUS",
     "FAILED_IMPORTS": "FAILED_IMPORTS"
   }
 }

@@ -4,14 +4,15 @@
 .pytest_cache
 .venv
 /config
+/node_modules
 /test-results
 __pycache__
 cache
 codex/_vendor/haystack
 codex/static_build
 codex/static_root
+codex/templates
+!codex/templates/pwa/serviceworkerRegister.js
 comics
 frontend
-/node_modules
-templates
 webpack-stats.json

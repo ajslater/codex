@@ -2,6 +2,8 @@
 from comicbox.comic_archive import ComicArchive
 from django.db.models import F
 from django.http import HttpResponse
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_control
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -18,6 +20,7 @@ from codex.views.session import SessionView
 
 
 LOG = get_logger(__name__)
+PAGE_TTL = 60 * 60 * 24
 
 
 class ComicOpenedView(SessionView, GroupACLMixin):
@@ -59,16 +62,23 @@ class ComicOpenedView(SessionView, GroupACLMixin):
 
         current_comic = None
         prev_route = next_route = None
-        for comic in comics:
+        series_index = None
+        for index, comic in enumerate(comics):
             if current_comic is not None:
                 next_route = {"pk": comic["pk"], "page": 0}
                 break
             elif comic["pk"] == pk:
                 current_comic = comic
+                series_index = index + 1
             else:
                 # Haven't matched yet, so set the previous comic
                 prev_route = {"pk": comic["pk"], "page": comic["max_page"]}
-        routes = {"prev_book": prev_route, "next_book": next_route}
+        routes = {
+            "prev_book": prev_route,
+            "next_book": next_route,
+            "series_index": series_index,
+            "series_count": comics.count(),
+        }
 
         return current_comic, routes
 
@@ -103,6 +113,7 @@ class ComicPageView(APIView, GroupACLMixin):
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
     SESSION_KEY = SessionView.READER_KEY
 
+    @method_decorator([cache_control(max_age=PAGE_TTL)], name="dispatch")
     def get(self, request, *args, **kwargs):
         """Get the comic page from the archive."""
         pk = self.kwargs.get("pk")

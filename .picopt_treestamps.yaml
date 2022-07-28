@@ -1,0 +1,13 @@
+config:
+  bigger: false
+  convert_to: []
+  formats:
+    - GIF
+    - JPEG
+    - PNG
+    - WEBP
+  ignore: []
+  keep_metadata: true
+  recurse: true
+  symlinks: true
+.: 1657150080.593595

@@ -3,7 +3,7 @@ import platform
 
 from setproctitle import setproctitle
 from watchdog.observers import Observer
-from watchdog.observers.api import BaseObserver
+from watchdog.observers.api import DEFAULT_OBSERVER_TIMEOUT, BaseObserver
 
 from codex.librarian.watchdog.emitter import DatabasePollingEmitter
 from codex.librarian.watchdog.eventsd import CodexLibraryEventHandler
@@ -102,9 +102,9 @@ class LibraryPollingObserver(UatuMixin):
     ENABLE_FIELD = "poll"
     _SHUTDOWN_EVENT = (None, None)
 
-    def __init__(self):
+    def __init__(self, timeout=DEFAULT_OBSERVER_TIMEOUT):
         """Use the DatabasePollingEmitter."""
-        super().__init__(emitter_class=DatabasePollingEmitter, timeout=None)
+        super().__init__(emitter_class=DatabasePollingEmitter, timeout=timeout)
 
     def poll(self, library_pks, force=False):
         """Poll each requested emitter."""

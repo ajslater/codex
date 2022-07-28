@@ -1,0 +1,10 @@
+{% load static %}
+<link rel="icon"
+      href="{% static 'img/favicon.svg' %}"
+      sizes="any"
+      type="image/svg+xml"/>
+{# Safari doesn't support svg #}
+<link rel="icon"
+      href="{% static 'img/favicon-32.webp' %}"
+      sizes="32x32"
+      type="image/webp"/>

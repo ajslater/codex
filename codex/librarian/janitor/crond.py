@@ -6,29 +6,45 @@ from time import sleep
 from django.utils import timezone
 from humanize import precisedelta
 
-from codex.librarian.janitor.cleanup import cleanup_fks
-from codex.librarian.janitor.search import clean_old_queries
-from codex.librarian.janitor.update import restart_codex, update_codex
-from codex.librarian.janitor.vacuum import backup_db, vacuum_db
-from codex.librarian.queue_mp import (
-    LIBRARIAN_QUEUE,
-    BackupTask,
-    CleanFKsTask,
-    CleanSearchTask,
-    CleanupMissingComicCovers,
-    RestartTask,
-    SearchIndexUpdateTask,
-    UpdateTask,
-    VacuumTask,
+from codex.librarian.covers.purge import COVER_ORPHAN_FIND_STATUS_KEYS
+from codex.librarian.covers.tasks import CoverRemoveOrphansTask
+from codex.librarian.janitor.cleanup import (
+    CLEANUP_FK_STATUS_KEYS,
+    TOTAL_CLASSES,
+    cleanup_fks,
 )
+from codex.librarian.janitor.search import CLEAN_SEARCH_STATUS_KEYS, clean_old_queries
+from codex.librarian.janitor.tasks import (
+    JanitorBackupTask,
+    JanitorCleanFKsTask,
+    JanitorCleanSearchTask,
+    JanitorRestartTask,
+    JanitorUpdateTask,
+    JanitorVacuumTask,
+)
+from codex.librarian.janitor.update import (
+    UPDATE_CODEX_STATUS_KEYS,
+    restart_codex,
+    update_codex,
+)
+from codex.librarian.janitor.vacuum import (
+    BACKUP_STATUS_KEYS,
+    VACCUM_STATUS_KEYS,
+    backup_db,
+    vacuum_db,
+)
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE
+from codex.librarian.search.searchd import UPDATE_SEARCH_INDEX_KEYS
+from codex.librarian.search.tasks import SearchIndexJanitorUpdateTask
+from codex.librarian.status import librarian_status_update
 from codex.settings.logging import get_logger
-from codex.settings.settings import CACHE_PATH
+from codex.settings.settings import ROOT_CACHE_PATH
 from codex.threads import NamedThread
 
 
 LOG = get_logger(__name__)
 DEBOUNCE = 5
-CRON_TIMESTAMP = CACHE_PATH / "crond_timestamp"
+CRON_TIMESTAMP = ROOT_CACHE_PATH / "crond.timestamp"
 ONE_DAY = timedelta(days=1)
 
 
@@ -38,25 +54,45 @@ class Crond(NamedThread):
     NAME = "Cron"
 
     @staticmethod
-    def _get_timeout():
+    def _get_midnight(now, tomorrow=False):
+        """Get midnight relative to now."""
+        if tomorrow:
+            now += ONE_DAY
+        day = now.astimezone()
+        midnight = datetime.combine(day, time.min).astimezone()
+        return midnight
+
+    @classmethod
+    def _get_timeout(cls):
         """Get seconds until midnight."""
+        now = timezone.now()
         try:
             mtime = CRON_TIMESTAMP.stat().st_mtime
+            last_cron = datetime.fromtimestamp(mtime, tz=timezone.utc)
         except FileNotFoundError:
-            mtime = 0
+            # get last midnight. Usually only on very first run.
+            last_cron = cls._get_midnight(now)
 
-        last_cron = datetime.fromtimestamp(mtime, tz=timezone.utc)
-        now = timezone.now()
-        if now - last_cron > ONE_DAY:
-            # it's been too long
-            seconds = 0
-        else:
+        if now - last_cron < ONE_DAY:
             # wait until next midnight
-            tomorrow = (now + ONE_DAY).astimezone()
-            next_midnight = datetime.combine(tomorrow, time.min).astimezone()
+            next_midnight = cls._get_midnight(now, True)
             delta = next_midnight - now
             seconds = max(0, delta.total_seconds())
-        return seconds
+        else:
+            # it's been too long
+            seconds = 0
+
+        return int(seconds)
+
+    @staticmethod
+    def _init_librarian_status():
+        librarian_status_update(CLEANUP_FK_STATUS_KEYS, 0, TOTAL_CLASSES, notify=False)
+        librarian_status_update(CLEAN_SEARCH_STATUS_KEYS, 0, None, notify=False)
+        librarian_status_update(VACCUM_STATUS_KEYS, 0, None, notify=False)
+        librarian_status_update(BACKUP_STATUS_KEYS, 0, None, notify=False)
+        librarian_status_update(UPDATE_CODEX_STATUS_KEYS, 0, None, notify=False)
+        librarian_status_update(UPDATE_SEARCH_INDEX_KEYS, 0, None, notify=False)
+        librarian_status_update(COVER_ORPHAN_FIND_STATUS_KEYS, 0, None)
 
     def run(self):
         """Watch a path and log the events."""
@@ -72,15 +108,16 @@ class Crond(NamedThread):
                     if self._stop_event.is_set():
                         break
 
+                    self._init_librarian_status()
                     try:
                         tasks = [
-                            CleanFKsTask(),
-                            CleanSearchTask(),
-                            VacuumTask(),
-                            BackupTask(),
-                            UpdateTask(force=False),
-                            SearchIndexUpdateTask(False),
-                            CleanupMissingComicCovers(),
+                            JanitorCleanFKsTask(),
+                            JanitorCleanSearchTask(),
+                            JanitorVacuumTask(),
+                            JanitorBackupTask(),
+                            JanitorUpdateTask(force=False),
+                            SearchIndexJanitorUpdateTask(False),
+                            CoverRemoveOrphansTask(),
                         ]
                         for task in tasks:
                             LIBRARIAN_QUEUE.put(task)
@@ -109,17 +146,17 @@ class Crond(NamedThread):
 
 def janitor(task):
     """Run Janitor tasks as the librarian process directly."""
-    if isinstance(task, VacuumTask):
+    if isinstance(task, JanitorVacuumTask):
         vacuum_db()
-    elif isinstance(task, BackupTask):
+    elif isinstance(task, JanitorBackupTask):
         backup_db()
-    elif isinstance(task, UpdateTask):
+    elif isinstance(task, JanitorUpdateTask):
         update_codex()
-    elif isinstance(task, RestartTask):
+    elif isinstance(task, JanitorRestartTask):
         restart_codex()
-    elif isinstance(task, CleanSearchTask):
+    elif isinstance(task, JanitorCleanSearchTask):
         clean_old_queries()
-    elif isinstance(task, CleanFKsTask):
+    elif isinstance(task, JanitorCleanFKsTask):
         cleanup_fks()
     else:
         LOG.warning(f"Janitor received unknown task {task}")

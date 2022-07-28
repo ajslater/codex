@@ -20,6 +20,8 @@ class ComicReaderRoutesSerializer(Serializer):
 
     prev_book = ComicPageRouteSerializer(allow_null=True, read_only=True)
     next_book = ComicPageRouteSerializer(allow_null=True, read_only=True)
+    series_index = IntegerField(read_only=True)
+    series_count = IntegerField(read_only=True)
 
 
 class ComicReaderComicSerializer(Serializer):

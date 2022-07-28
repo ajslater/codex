@@ -1,6 +1,6 @@
 <template>
   <v-toolbar id="titleToolbar" class="toolbar">
-    <v-toolbar-items>
+    <v-toolbar-items v-if="isOpenToSee">
       <v-btn :class="{ invisible: !showUpButton }" :to="toUpRoute" icon ripple
         ><v-icon>{{ mdiArrowUp }}</v-icon>
       </v-btn>
@@ -34,6 +34,16 @@ export default {
       mdiArrowUp,
     };
   },
+  head() {
+    const names = [
+      "browse comics",
+      this.longBrowserTitlePrefix,
+      this.longBrowseTitleMain,
+      this.longBrowseTitleSuffix,
+    ];
+    const content = names.join(" ");
+    return { meta: [{ hid: "description", name: "description", content }] };
+  },
   computed: {
     ...mapState("browser", {
       browserTitle: (state) => state.browserTitle,
@@ -41,7 +51,7 @@ export default {
       groupNames: (state) => state.groupNames,
       upRoute: (state) => state.routes.up,
     }),
-    ...mapGetters("auth", ["isOpenToSee"]),
+    ...mapGetters("auth", ["isOpenToSee", "isAdmin"]),
     toUpRoute: function () {
       if (this.showUpButton) {
         return { name: "browser", params: this.upRoute };
@@ -59,9 +69,7 @@ export default {
     },
     longBrowseTitleMain: function () {
       let browserTitle;
-      if (!this.isOpenToSee) {
-        browserTitle = "";
-      } else if (Number(this.$route.params.pk) === 0) {
+      if (Number(this.$route.params.pk) === 0) {
         browserTitle = "All";
       } else {
         let names = [];

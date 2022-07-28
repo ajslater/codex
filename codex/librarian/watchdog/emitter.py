@@ -18,14 +18,16 @@ from watchdog.events import (
     FileModifiedEvent,
     FileMovedEvent,
 )
-from watchdog.observers.api import EventEmitter
+from watchdog.observers.api import DEFAULT_EMITTER_TIMEOUT, EventEmitter
 from watchdog.utils.dirsnapshot import DirectorySnapshot, DirectorySnapshotDiff
 
+from codex.librarian.status import librarian_status_done, librarian_status_update
 from codex.models import Comic, FailedImport, Folder, Library
 from codex.settings.logging import get_logger
 
 
 LOG = get_logger(__name__)
+POLL_STATUS_KEYS = {"type": "Poll"}
 DOCKER_UNMOUNTED_FN = "DOCKER_UNMOUNTED_VOLUME"
 
 
@@ -104,23 +106,18 @@ class DatabasePollingEmitter(EventEmitter):
 
     DIR_NOT_FOUND_TIMEOUT = 15 * 60
 
-    def __init__(
-        self,
-        event_queue,
-        watch,
-        timeout=None,  # unused, timeout is set dynamically internally
-        stat=os.stat,
-        listdir=os.listdir,
-    ):
+    def __init__(self, event_queue, watch, timeout=DEFAULT_EMITTER_TIMEOUT):
         """Initialize snapshot methods."""
         self._poll_cond = Condition()
         self._force = False
         self._watch_path = Path(watch.path)
         self._watch_path_unmounted = self._watch_path / DOCKER_UNMOUNTED_FN
-        super().__init__(event_queue, watch)
+        super().__init__(event_queue, watch, timeout=timeout)
 
         self._take_dir_snapshot = lambda: DirectorySnapshot(
-            self.watch.path, self.watch.is_recursive, stat=stat, listdir=listdir
+            self._watch.path,
+            recursive=self.watch.is_recursive,
+            # default stat and listdir params
         )
 
     def poll(self, force=False):
@@ -182,15 +179,18 @@ class DatabasePollingEmitter(EventEmitter):
         """Queue events like PollingEmitter but always use a fresh db snapshot."""
         # We don't want to hit the disk continuously.
         # timeout behaves like an interval for polling emitters.
+        status_keys = {**POLL_STATUS_KEYS, "name": self.watch.path}
         try:
             with self._poll_cond:
-                LOG.verbose(
-                    f"Polling {self.watch.path} again in {precisedelta(timeout)}."
-                )
+                if timeout:
+                    LOG.verbose(
+                        f"Polling {self.watch.path} again in {precisedelta(timeout)}."
+                    )
                 self._poll_cond.wait(timeout)
                 if not self.should_keep_running():
                     return
 
+                librarian_status_update(status_keys, 0, None)
                 library = Library.objects.get(path=self.watch.path)
                 ok, _ = self._is_watch_path_ok(library)
                 if not ok:
@@ -241,10 +241,7 @@ class DatabasePollingEmitter(EventEmitter):
                 for src_path in events.dirs_modified:
                     self.queue_event(DirModifiedEvent(src_path))
                 # Folders are only created by comics themselves
-                # The event handler excludes these but skip it here too.
-                # for src_path in events.dirs_created:
-                #    self.queue_event(DirCreatedEvent(src_path))
-                #
+                # The event handler excludes DirCreatedEvent as well.
                 for src_path, dest_path in events.dirs_moved:
                     self.queue_event(DirMovedEvent(src_path, dest_path))
 
@@ -256,6 +253,8 @@ class DatabasePollingEmitter(EventEmitter):
         except Exception as exc:
             LOG.exception(exc)
             raise exc
+        finally:
+            librarian_status_done([status_keys])
 
     def run(self, *args, **kwargs):
         """Identify the thread."""

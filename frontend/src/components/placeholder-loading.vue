@@ -1,5 +1,10 @@
 <template>
-  <v-progress-circular indeterminate :size="size" color="#cc7b19" />
+  <v-progress-circular
+    indeterminate
+    :size="size"
+    color="#cc7b19"
+    aria-label="loading"
+  />
 </template>
 
 <script>

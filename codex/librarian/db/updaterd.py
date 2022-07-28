@@ -4,7 +4,6 @@ import time
 from pathlib import Path
 
 from django.core.cache import cache
-from django.db.models.functions import Now
 from humanize import precisedelta
 
 from codex.librarian.db.aggregate_metadata import get_aggregate_metadata
@@ -14,15 +13,17 @@ from codex.librarian.db.deleted import bulk_comics_deleted, bulk_folders_deleted
 from codex.librarian.db.failed_imports import bulk_fail_imports
 from codex.librarian.db.moved import bulk_comics_moved, bulk_folders_moved
 from codex.librarian.db.query_fks import query_all_missing_fks
-from codex.librarian.queue_mp import (
-    LIBRARIAN_QUEUE,
-    AdminNotifierTask,
-    BroadcastNotifierTask,
-    DBDiffTask,
-    DelayedTasks,
-    SearchIndexUpdateTask,
-)
+from codex.librarian.db.status import ImportStatusKeys
+from codex.librarian.db.tasks import UpdaterDBDiffTask
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
+from codex.librarian.search.tasks import SearchIndexJanitorUpdateTask
+from codex.librarian.status import librarian_status_done, librarian_status_update
 from codex.models import Library
+from codex.notifier.tasks import (
+    FAILED_IMPORTS_TASK,
+    LIBRARIAN_STATUS_TASK,
+    LIBRARY_CHANGED_TASK,
+)
 from codex.settings.logging import LOG_EVERY, VERBOSE, get_logger
 from codex.threads import QueuedThread
 
@@ -31,7 +32,7 @@ WRITE_WAIT_EXPIRY = LOG_EVERY
 LOG = get_logger(__name__)
 
 
-def _wait_for_filesystem_ops_to_finish(task: DBDiffTask) -> bool:
+def _wait_for_filesystem_ops_to_finish(task: UpdaterDBDiffTask) -> bool:
     """Watchdog sends events before filesystem events finish, so wait for them."""
     started_checking = time.time()
 
@@ -105,7 +106,7 @@ def _batch_modified_and_created(
     )
     new_failed_imports = bulk_fail_imports(library, fis)
     changed |= imported_count > 0
-    return changed, imported_count, new_failed_imports
+    return changed, imported_count, bool(new_failed_imports)
 
 
 def _log_task(path, task):
@@ -139,21 +140,62 @@ def _log_task(path, task):
         LOG.verbose("  " + log)
 
 
+def _init_librarian_status(task, path):
+    """Update the librarian status tasks."""
+    if task.files_moved:
+        librarian_status_update(
+            ImportStatusKeys.FILES_MOVED, 0, len(task.files_moved), notify=False
+        )
+    if task.files_modified or task.files_created:
+        status_keys = {**ImportStatusKeys.AGGREGATE_STATUS_KEYS, "name": path}
+        total_paths = len(task.files_modified) + len(task.files_created)
+        librarian_status_update(status_keys, 0, total_paths, notify=False)
+        librarian_status_update(
+            ImportStatusKeys.QUERY_MISSING_FKS, 0, None, notify=False
+        )
+        librarian_status_update(ImportStatusKeys.CREATE_FKS, 0, None, notify=False)
+        librarian_status_update(ImportStatusKeys.LINK_M2M_FIELDS, 0, None, notify=False)
+        if task.files_modified:
+            librarian_status_update(
+                ImportStatusKeys.FILES_MODIFIED,
+                0,
+                len(task.files_modified),
+                notify=False,
+            )
+        if task.files_created:
+            librarian_status_update(
+                ImportStatusKeys.FILES_CREATED, 0, len(task.files_created), notify=False
+            )
+    if task.files_deleted:
+        librarian_status_update(
+            ImportStatusKeys.FILES_DELETED, 0, len(task.files_deleted), notify=False
+        )
+    LIBRARIAN_QUEUE.put(LIBRARIAN_STATUS_TASK)
+
+
+def _finish_apply(library):
+    """Finish all librarian statuses."""
+    library.update_in_progress = False
+    library.save()
+    librarian_status_done(ImportStatusKeys.ALL)
+
+
 def _apply(task):
     """Bulk import comics."""
     start_time = time.time()
     library = Library.objects.get(pk=task.library_id)
-    _log_task(library.path, task)
     library.update_in_progress = True
     library.save()
-    LIBRARIAN_QUEUE.put(AdminNotifierTask("LIBRARY_UPDATE_IN_PROGRESS"))
-
     too_long = _wait_for_filesystem_ops_to_finish(task)
     if too_long:
         LOG.warning(
             "Import apply waited for the filesystem to stop changing too long. "
             "Try polling again once files have finished copying."
         )
+        _finish_apply(library)
+        return
+    _init_librarian_status(task, library.path)
+    _log_task(library.path, task)
 
     changed = False
     changed |= bulk_folders_moved(library, task.dirs_moved)
@@ -167,27 +209,24 @@ def _apply(task):
     changed |= bulk_comics_deleted(library, task.files_deleted)
     cache.clear()
 
-    Library.objects.filter(pk=task.library_id).update(
-        update_in_progress=False, updated_at=Now()
-    )
+    _finish_apply(library)
     # Wait to start the search index update in case more updates are incoming.
-    delayed_search_task = DelayedTasks(2, (SearchIndexUpdateTask(False),))
+    delayed_search_task = DelayedTasks(2, (SearchIndexJanitorUpdateTask(False),))
     LIBRARIAN_QUEUE.put(delayed_search_task)
 
-    if new_failed_imports:
-        text = "FAILED_IMPORTS"
-    else:
-        text = "LIBRARY_UPDATE_DONE"
-    LIBRARIAN_QUEUE.put(AdminNotifierTask(text))
     if changed:
-        LIBRARIAN_QUEUE.put(BroadcastNotifierTask("LIBRARY_CHANGED"))
+        LIBRARIAN_QUEUE.put(LIBRARY_CHANGED_TASK)
         elapsed_time = time.time() - start_time
-        LOG.info(f"Updated library {library.path} in {precisedelta(elapsed_time)}.")
+        LOG.info(
+            f"Updated library {library.path} in {precisedelta(int(elapsed_time))}."
+        )
         suffix = ""
         if imported_count:
             cps = int(imported_count / elapsed_time)
             suffix = f" at {cps} comics per second."
         LOG.verbose(f"Imported {imported_count} comics{suffix}.")
+    if new_failed_imports:
+        LIBRARIAN_QUEUE.put(FAILED_IMPORTS_TASK)
 
 
 class Updater(QueuedThread):
@@ -197,7 +236,7 @@ class Updater(QueuedThread):
 
     def process_item(self, task):
         """Run the updater."""
-        if isinstance(task, DBDiffTask):
+        if isinstance(task, UpdaterDBDiffTask):
             _apply(task)
         else:
             LOG.warning(f"Bad task sent to library updater {task}")

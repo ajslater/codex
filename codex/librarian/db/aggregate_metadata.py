@@ -2,7 +2,6 @@
 import time
 
 from pathlib import Path
-from queue import Full
 from zipfile import BadZipFile
 
 from comicbox.comic_archive import ComicArchive
@@ -10,7 +9,8 @@ from comicbox.exceptions import UnsupportedArchiveTypeError
 from rarfile import BadRarFile
 
 from codex.librarian.db.clean_metadata import clean_md
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE, ImageComicCoverCreateTask
+from codex.librarian.db.status import ImportStatusKeys
+from codex.librarian.status import librarian_status_done, librarian_status_update
 from codex.models import Comic, Imprint, Publisher, Series, Volume
 from codex.pdf import PDF
 from codex.settings.logging import LOG_EVERY, get_logger
@@ -21,25 +21,10 @@ LOG = get_logger(__name__)
 BROWSER_GROUPS = (Publisher, Imprint, Series, Volume)
 BROWSER_GROUP_TREE_COUNT_FIELDS = frozenset(["volume_count", "issue_count"])
 COMIC_M2M_FIELDS = set()
+AGGREGATE_STATUS_KEYS = {"type": "Read Tags"}
 for field in Comic._meta.get_fields():
     if field.many_to_many and field.name != "folders":
         COMIC_M2M_FIELDS.add(field.name)
-
-
-def _pregen_cover(path, car):
-    """Pregenerate the cover."""
-    # Getting the cover data while getting the metada and handing to the
-    # other thread is significantly faster than doing it later.
-    # Do this as soon as we have a path
-
-    try:
-        image = car.get_cover_image()
-        task = ImageComicCoverCreateTask(False, path, image)
-        LIBRARIAN_QUEUE.put_nowait(task)
-    except Full:
-        LOG.debug(f"Queue full. Not pre-creating cover for {path}")
-    except Exception as exc:
-        LOG.warning(f"Failed to pre-create cover for {path} {exc}")
 
 
 def _get_path_metadata(path):
@@ -57,7 +42,7 @@ def _get_path_metadata(path):
             car_class = ComicArchive
         with car_class(path, config=COMICBOX_CONFIG, closefd=False) as car:
             md = car.get_metadata()
-            _pregen_cover(path, car)
+            # TODO do not pregen
 
         md["path"] = path
         md["file_format"] = file_format
@@ -165,6 +150,7 @@ def get_aggregate_metadata(library, all_paths):
     all_failed_imports = {}
     total_paths = len(all_paths)
 
+    status_keys = {**ImportStatusKeys.AGGREGATE_STATUS_KEYS, "name": library.path}
     LOG.info(f"Reading tags from {total_paths} comics in {library.path}...")
     last_log_time = time.time()
     for num, path in enumerate(all_paths):
@@ -185,10 +171,14 @@ def get_aggregate_metadata(library, all_paths):
 
         now = time.time()
         if now - last_log_time > LOG_EVERY:
+            librarian_status_update(status_keys, num, total_paths)
             LOG.info(f"Read tags from {num}/{total_paths} comics")
             last_log_time = now
 
     all_fks["comic_paths"] = frozenset(all_mds.keys())
-
+    librarian_status_update(
+        ImportStatusKeys.CREATE_FAILED_IMPORTS, 0, len(all_failed_imports), notify=False
+    )
+    librarian_status_done([status_keys])
     LOG.verbose(f"Aggregated tags from {len(all_mds)} comics.")
     return all_mds, all_m2m_mds, all_fks, all_failed_imports

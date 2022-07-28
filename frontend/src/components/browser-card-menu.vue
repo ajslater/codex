@@ -1,9 +1,12 @@
 <template>
   <v-menu offset-y top>
     <template #activator="{ on }">
-      <v-icon class="browserCardActionMenu" v-on="on">{{
-        mdiDotsVertical
-      }}</v-icon>
+      <v-icon
+        class="browserCardActionMenu"
+        aria-label="action menu"
+        v-on="on"
+        >{{ mdiDotsVertical }}</v-icon
+      >
     </template>
     <v-list nav>
       <v-list-item v-if="group === 'c'" :href="downloadURL" download>

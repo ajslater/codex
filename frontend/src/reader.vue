@@ -6,10 +6,10 @@
           <ReaderComicPage :page-increment="+0" />
           <ReaderComicPage :page-increment="+1" />
         </div>
+        <div id="navOverlay" @click="toggleToolbars">
+          <ReaderNavOverlay />
+        </div>
       </v-main>
-      <nav id="navOverlay" :v-touch="touchMap" @click="toggleToolbars">
-        <ReaderNavOverlay />
-      </nav>
       <v-slide-y-transition>
         <ReaderTopToolbar v-show="showToolbars" />
       </v-slide-y-transition>
@@ -22,19 +22,18 @@
         <router-link :to="{ name: 'home' }">Log in</router-link> to read comics
       </h1>
     </div>
-    <SettingsDrawer :panel="panel" />
+    <ReaderSettingsDrawer />
   </div>
 </template>
 
 <script>
-import { mapActions, mapGetters } from "vuex";
+import { mapActions, mapGetters, mapMutations } from "vuex";
 
 import ReaderComicPage from "@/components/reader-comic-page";
 import ReaderNavOverlay from "@/components/reader-nav-overlay";
 import ReaderNavToolbar from "@/components/reader-nav-toolbar";
-import ReaderSettingsPanel from "@/components/reader-settings-panel";
+import ReaderSettingsDrawer from "@/components/reader-settings-drawer";
 import ReaderTopToolbar from "@/components/reader-top-toolbar";
-import SettingsDrawer from "@/components/settings-drawer";
 
 const MIN_VIEWPORT_WIDTH_SWIPE_ENABLED = 768;
 
@@ -45,11 +44,10 @@ export default {
     ReaderNavOverlay,
     ReaderNavToolbar,
     ReaderTopToolbar,
-    SettingsDrawer,
+    ReaderSettingsDrawer,
   },
   data() {
     return {
-      panel: ReaderSettingsPanel,
       showToolbars: false,
     };
   },
@@ -64,6 +62,7 @@ export default {
         this.routeChanged();
       }
       window.scrollTo(0, 0);
+      this.setBrowseTimestamp();
     },
   },
   created() {
@@ -71,6 +70,7 @@ export default {
   },
   methods: {
     ...mapActions("reader", ["routeTo", "bookChanged", "routeChanged"]),
+    ...mapMutations("browser", ["setBrowseTimestamp"]),
     toggleToolbars: function () {
       this.showToolbars = !this.showToolbars;
     },
@@ -102,9 +102,11 @@ export default {
   display: flex;
   flex-wrap: nowrap;
   justify-content: center;
+  touch-action: manipulation;
 }
 #readerContainer {
   max-width: 100%;
+  position: relative;
 }
 #announcement {
   text-align: center;

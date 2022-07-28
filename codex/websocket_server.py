@@ -9,7 +9,7 @@ import json
 
 from json import JSONDecodeError
 
-from codex.notifier import Notifier
+from codex.notifier.notifierd import Notifier
 from codex.settings.logging import get_logger
 
 

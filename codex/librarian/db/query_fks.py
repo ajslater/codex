@@ -5,6 +5,8 @@ from pathlib import Path
 
 from django.db.models import Q
 
+from codex.librarian.db.status import ImportStatusKeys
+from codex.librarian.status import librarian_status_done, librarian_status_update
 from codex.models import Comic, Credit, Folder, Imprint, Publisher, Series, Volume
 from codex.settings.logging import LOG_EVERY, get_logger
 
@@ -49,6 +51,7 @@ def _query_create_metadata(fk_cls, create_mds, all_filter_args):
     logged = False
 
     num_filter_args_batches = len(all_filter_args)
+    status_keys = {**ImportStatusKeys.QUERY_MISSING_FKS, "name": fk_cls.__name__}
     for num, filter_args in enumerate(all_filter_args):
         filter = filter | Q(**dict(filter_args))
         filter_arg_count += len(filter_args)
@@ -60,6 +63,7 @@ def _query_create_metadata(fk_cls, create_mds, all_filter_args):
             if now - last_log > LOG_EVERY or (
                 logged and num >= num_filter_args_batches
             ):
+                librarian_status_update(status_keys, num, num_filter_args_batches)
                 log = (
                     f"Queried for existing {fk_cls.__name__}s, batch "
                     + f"{num}/{num_filter_args_batches}"
@@ -71,6 +75,8 @@ def _query_create_metadata(fk_cls, create_mds, all_filter_args):
             # Reset the filter
             filter = Q()
             filter_arg_count = 0
+
+    librarian_status_done([status_keys])
 
     return create_mds
 
@@ -154,9 +160,7 @@ def _query_missing_credits(credits):
         comparison_credits.add(comparison_tuple)
 
     # get the create metadata
-    create_credits = _query_create_metadata(Credit, comparison_credits, all_filter_args)
-
-    return create_credits
+    return _query_create_metadata(Credit, comparison_credits, all_filter_args)
 
 
 def _query_missing_simple_models(base_cls, field, fk_field, names):
@@ -171,6 +175,7 @@ def _query_missing_simple_models(base_cls, field, fk_field, names):
     num = 0
     logged = False
     last_log = time.time()
+    status_keys = {**ImportStatusKeys.QUERY_MISSING_FKS, "name": fk_cls.__name__}
     while offset < num_proposed_names:
         end = offset + FILTER_ARG_MAX
         batch_proposed_names = proposed_names[offset:end]
@@ -180,6 +185,7 @@ def _query_missing_simple_models(base_cls, field, fk_field, names):
         num += len(batch_proposed_names)
         now = time.time()
         if now - last_log > LOG_EVERY or (logged and num >= num_proposed_names):
+            librarian_status_update(status_keys, num, num_proposed_names)
             log = (
                 f"Queried for existing {fk_cls.__name__}s, "
                 + f"batch {num}/{num_proposed_names}"
@@ -188,6 +194,7 @@ def _query_missing_simple_models(base_cls, field, fk_field, names):
             last_log = now
             logged = True
         offset += FILTER_ARG_MAX
+    librarian_status_done([status_keys])
 
     return fk_cls, create_names
 
@@ -248,4 +255,5 @@ def query_all_missing_fks(library_path, fks):
         if num_names := len(names):
             LOG.verbose(f"Prepared {num_names} new {field}.")
 
+    librarian_status_done([ImportStatusKeys.QUERY_MISSING_FKS])
     return create_fks, create_groups, update_groups, create_folder_paths, create_credits

@@ -1,7 +1,10 @@
 """Serializer mixins."""
+from datetime import datetime
+
 from rest_framework.serializers import (
     BooleanField,
     DecimalField,
+    Field,
     IntegerField,
     Serializer,
 )
@@ -10,11 +13,20 @@ from rest_framework.serializers import (
 UNIONFIX_PREFIX = "unionfix_"
 
 
+class TimestampField(Field):
+    """Datetime Field represented as an integer."""
+
+    def to_representation(self, value: datetime):
+        """Return integer timestamp from datetime."""
+        return value.timestamp()
+
+
 class BrowserAggregateSerializerMixin(Serializer):
     """Mixin for browser & metadata serializers."""
 
     # Aggregate Annotations
     child_count = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "child_count")
+    cover_pk = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "cover_pk")
 
     # UserBookmark annotations
     bookmark = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "bookmark")

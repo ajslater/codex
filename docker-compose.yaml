@@ -23,6 +23,10 @@ services:
         CODEX_DIST_BUILDER_VERSION:
     image: docker.io/ajslater/codex-dist-builder:$CODEX_DIST_BUILDER_VERSION
     container_name: codex-dist-builder
+  codex-backend-lint:
+    <<: *codex-dist-builder
+    container_name: codex-backend-lint
+    command: ./lint-backend.sh
   codex-frontend-lint:
     <<: *codex-dist-builder
     container_name: codex-frontent-lint
@@ -47,10 +51,6 @@ services:
       - ./codex/static_root:/app/codex/static_root
       - ./test-results/:/app/test-results/
     command: ./test-backend.sh
-  codex-backend-lint:
-    <<: *codex-dist-builder
-    container_name: codex-backend-lint
-    command: ./lint-backend.sh
   codex-build-dist:
     <<: *codex-dist-builder
     container_name: codex-build-dist

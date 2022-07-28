@@ -14,16 +14,11 @@ from django.urls import get_script_prefix
 from django.utils.html import format_html
 from django.utils.safestring import SafeText
 
-from codex.librarian.queue_mp import (
-    LIBRARIAN_QUEUE,
-    BroadcastNotifierTask,
-    CreateComicCoversLibrariesTask,
-    DelayedTasks,
-    PollLibrariesTask,
-    PurgeComicCoversLibrariesTask,
-    WatchdogSyncTask,
-)
+from codex.librarian.covers.tasks import CoverRemoveForLibrariesTask
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
+from codex.librarian.watchdog.tasks import WatchdogPollLibrariesTask, WatchdogSyncTask
 from codex.models import AdminFlag, FailedImport, Folder, Library
+from codex.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.settings.logging import get_logger
 
 
@@ -95,7 +90,7 @@ class AdminLibrary(ModelAdmin):
         ("Watchdog", {"fields": ("events", "poll", "poll_every", "last_poll")}),
         ("Auth", {"fields": ("groups",)}),
     )
-    actions = ("poll", "force_poll", "regen_comic_covers")
+    actions = ("poll", "force_poll", "remove_comic_covers")
     empty_value_display = "Never"
     list_display = (
         "path",
@@ -124,7 +119,7 @@ class AdminLibrary(ModelAdmin):
     def queue_poll(queryset, force):
         """Queue a poll task for the library."""
         pks = queryset.values_list("pk", flat=True)
-        task = PollLibrariesTask(pks, force)
+        task = WatchdogPollLibrariesTask(pks, force)
         LIBRARIAN_QUEUE.put(task)
 
     def poll(self, request, queryset):
@@ -139,17 +134,19 @@ class AdminLibrary(ModelAdmin):
 
     force_poll.short_description = "Update all comics in selected libraries"
 
-    def regen_comic_covers(self, _, queryset):
+    def remove_comic_covers(self, _, queryset):
         """Regenerate all covers."""
         pks = queryset.values_list("pk", flat=True)
-        LIBRARIAN_QUEUE.put(CreateComicCoversLibrariesTask(pks))
+        LIBRARIAN_QUEUE.put(CoverRemoveForLibrariesTask(pks))
 
-    regen_comic_covers.short_description = "Recreate comic covers in selected libraries"
+    remove_comic_covers.short_description = (
+        "Remove comic covers from selected libraries"
+    )
 
     def _on_change(self, _, created=False):
         """Events for when the library has changed."""
         cache.clear()
-        tasks = (BroadcastNotifierTask("LIBRARY_CHANGED"), WatchdogSyncTask())
+        tasks = (LIBRARY_CHANGED_TASK, WatchdogSyncTask())
         task = DelayedTasks(2, tasks)
         LIBRARIAN_QUEUE.put(task)
 
@@ -169,7 +166,7 @@ class AdminLibrary(ModelAdmin):
     def delete_model(self, request, obj):
         """Stop watching on delete."""
         pks = frozenset([obj.pk])
-        task = PurgeComicCoversLibrariesTask(pks)
+        task = CoverRemoveForLibrariesTask(pks)
         LIBRARIAN_QUEUE.put(task)
         super().delete_model(request, obj)
         cache.clear()
@@ -178,9 +175,11 @@ class AdminLibrary(ModelAdmin):
     def delete_queryset(self, request, queryset):
         """Bulk delete."""
         pks = frozenset(queryset.values_list("pk", flat=True))
-        task = PurgeComicCoversLibrariesTask(pks)
+        task = CoverRemoveForLibrariesTask(pks)
         LIBRARIAN_QUEUE.put(task)
-        super().delete_queryset(request, queryset)
+        for library in queryset:
+            # so deletes will cascade
+            library.delete()
         cache.clear()
         self._on_change(None)
 
@@ -190,6 +189,14 @@ class AdminLibrary(ModelAdmin):
         if change:
             # for form in formset:
             self._on_change(form.instance)
+
+    def get_deleted_objects(self, objs, request):
+        """Prevent related objects from displaying on confirmation page due to OOM."""
+        to_delete = objs
+        model_count = {objs[0].__class__._meta.verbose_name_plural: len(objs)}
+        perms_needed = set()
+        protected = []
+        return to_delete, model_count, perms_needed, protected
 
 
 @register(AdminFlag)
@@ -221,8 +228,7 @@ class AdminAdminFlag(AdminNoAddDelete):
         # Heavy handed refresh everything, but simple.
         # Folder View could only change the group view and let the ui decide
         # Registration only needs to change the enable flag
-        task = BroadcastNotifierTask("LIBRARY_CHANGED")
-        LIBRARIAN_QUEUE.put(task)
+        LIBRARIAN_QUEUE.put(LIBRARY_CHANGED_TASK)
 
 
 @register(FailedImport)
@@ -258,7 +264,7 @@ class AdminFailedImport(AdminNoAddDelete):
     def poll(self, request, queryset):
         """Poll for new comics."""
         pks = queryset.values_list("library__pk", flat=True)
-        task = PollLibrariesTask(frozenset(pks), False)
+        task = WatchdogPollLibrariesTask(frozenset(pks), False)
         LIBRARIAN_QUEUE.put(task)
 
     poll.short_description = "Poll selected failed imports' libraries for changes"

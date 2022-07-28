@@ -41,6 +41,8 @@ const state = {
     next: undefined,
     prevBook: undefined,
     nextBook: undefined,
+    seriesIndex: undefined,
+    seriesCount: undefined,
   },
   bookChange: undefined,
   formChoices: {
@@ -95,6 +97,8 @@ const mutations = {
     // Only set prev/next book info do not clobber page routes.
     state.routes.prevBook = data.routes.prevBook;
     state.routes.nextBook = data.routes.nextBook;
+    state.routes.seriesIndex = data.routes.seriesIndex;
+    state.routes.seriesCount = data.routes.seriesCount;
     state.updatedAt = data.updatedAt;
   },
   setBrowserRoute(state, value) {

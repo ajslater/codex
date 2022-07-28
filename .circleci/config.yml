@@ -48,6 +48,9 @@ jobs:
           command: ./docker/docker-build-image.sh codex-dist-builder
           name: Build Distribution Builder Image
       - run:
+          command: ./docker/docker-compose-exit.sh codex-backend-lint
+          name: "Backend: Lint"
+      - run:
           command: ./docker/docker-compose-exit.sh codex-frontend-lint
           name: "Frontend: Lint"
       - run:
@@ -60,10 +63,7 @@ jobs:
           name: "Frontend: Build"
       - run:
           command: ./docker/docker-compose-exit.sh codex-backend-test
-          name: "Backend: Lint & Test"
-      - run:
-          command: ./docker/docker-compose-exit.sh codex-backend-lint
-          name: "Backend: Extra Linters"
+          name: "Backend: Test"
       - store_test_results:
           path: test-results/pytest
       - store_artifacts:

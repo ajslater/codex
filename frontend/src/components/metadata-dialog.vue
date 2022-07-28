@@ -6,7 +6,7 @@
     content-class="metadataDialog"
   >
     <template #activator="{ on }">
-      <v-icon class="metadataButton" v-on="on">
+      <v-icon class="metadataButton" aria-label="tags" v-on="on">
         {{ mdiTagOutline }}
       </v-icon>
     </template>
@@ -29,7 +29,7 @@
         <div id="metadataBookCoverWrapper">
           <BookCover
             id="bookCover"
-            :cover-path="md.coverPath"
+            :cover-pk="md.coverPk"
             :group="group"
             :child-count="md.childCount"
             :finished="md.finished"
@@ -40,6 +40,7 @@
             rounded
             background-color="inherit"
             height="2"
+            aria-label="% read"
           />
         </div>
         <div class="headerHalfRow">
@@ -197,6 +198,7 @@
         size="256"
         color="#cc7b19"
         class="placeholder"
+        aria-label="tags loading"
       />
     </div>
   </v-dialog>
@@ -260,12 +262,12 @@ export default {
   computed: {
     ...mapState("metadata", {
       md: (state) => state.md,
-      downloadURL: function (state) {
-        return getDownloadURL(this.md.pk, state.timestamp);
-      },
     }),
     ...mapState("browser", {
       autoquery: (state) => state.settings.autoquery,
+      downloadURL: function (state) {
+        return getDownloadURL(this.pk, state.timestamp);
+      },
     }),
     ...mapGetters("auth", ["isAdmin"]),
     isBrowser: function () {
@@ -346,7 +348,7 @@ export default {
     },
     formatDateTime: function (ds) {
       const dt = new Date(ds);
-      return DATETIME_FORMAT.format(dt);
+      return DATETIME_FORMAT.format(dt).replace(",", "");
     },
   },
 };
@@ -414,7 +416,10 @@ export default {
   float: right;
 }
 .placeholder {
-  margin-top: 48px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 #metadataContainer,
 #placeholderContainer {

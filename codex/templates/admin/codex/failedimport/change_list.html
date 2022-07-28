@@ -1,37 +1,49 @@
 {% extends "admin/change_list.html" %}
-
 {% block footer %}
-<div id="footer">
-<h1>Failed Imports</h1>
-<p>
-Comic archives that have failed to import.
-This list is updated every time the library updates. 
-You should probably review these files and fix or remove them
-</p>
-<h2>Fixing comics</h2>
-<p>
-Try using the zip fixer:
-<pre>
+    <div id="footer">
+        <h1>Failed Imports</h1>
+        <div>
+            Comic archives that have failed to import. This list is updated every time
+            the library updates. You should probably review these files and fix or
+            remove them
+        </div>
+        <h2>Fixing comics</h2>
+        <div>
+            Try using the zip fixer:
+            <pre>
 cp problem-comic.cbz /somewhere/safe/problem-comic.cbz.backup
 zip -F problem-comic.cbz --out fixed.zip
 mv fixed.zip problem-comic.cbz
-</pre>
-to fix comics. I've found that even if the fixed comic looks exactly the same as the original, replacing the original with the fixed archive can often get Codex to import it properly.<br/>
-If you've removed or fixed the unimportable comics in your library you can try polling the library again.<br/>
-You may also try <code>zip -FF</code> to fix comics which uses a different (not necissarily better) algorithm to fix archives.
-</p>
-<h1>Actions</h1>
-<h2>Delete selected failed imports</h2>
-<p>
-Deletes the failed imports entry from the database. May reappear after the next poll if Codex fails to import it again.
-</p>
-<h2>Poll selected failed imports' libraries for changes.</h2>
-<p>
-Poll the libraries the selected failed imports come from for changes, possibly clearing some failed imports if the comic archives were fixed or removed.
-</p>
-<h1>Reporting Issues</h1>
-<p>
-If the comic looks good to you, but still shows up as a failed import, it might be Codex's fault for not importing it correctly. Please file an <a href="https://github.com/ajslater/codex/issues">Issue Report</a> and include the stack trace from the logs at <code>config/logs/codex.log</code> if you can.
-</p>
-</div>
-{% endblock %}
+    </pre>
+            to fix comics. I've found that even if the fixed comic looks exactly the
+            same as the original, replacing the original with the fixed archive can
+            often get Codex to import it properly.
+            <br />
+            If you've removed or fixed the unimportable comics in your library you can
+            try polling the library again.
+            <br />
+            You may also try <code>zip -FF</code> to fix comics which uses a different
+            (not necissarily better) algorithm to fix archives.
+        </div>
+        <h1>Actions</h1>
+        <h2>Delete selected failed imports</h2>
+        <div>
+            Deletes the failed imports entry from the database. May reappear after the
+            next poll if Codex fails to import it again.
+        </div>
+        <h2>Poll selected failed imports' libraries for changes.</h2>
+        <div>
+            Poll the libraries the selected failed imports come from for changes,
+            possibly clearing some failed imports if the comic archives were fixed or
+            removed.
+        </div>
+        <h1>Reporting Issues</h1>
+        <div>
+            If the comic looks good to you, but still shows up as a failed import, it
+            might be Codex's fault for not importing it correctly. Please file an
+            <a href="https://github.com/ajslater/codex/issues">Issue Report</a> and
+            include the stack trace from the logs at
+            <code>config/logs/codex.log</code> if you can.
+        </div>
+    </div>
+{% endblock footer %}

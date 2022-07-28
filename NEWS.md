@@ -1,6 +1,63 @@
 # 📰 Codex News
 
-## v0.10.7a1
+## v0.11.0a0
+
+- Features
+
+  - Covers are now created on demand by the browser, rather than on import. Administrators may still pre-generate covers.
+  - Administrators may view librarian tasks in progress and failed imports notifications in the settings side drawer.
+  - Read filter.
+
+- Fixes
+
+  - Fix bookmark progress bar not updating in browser after closing book.
+  - Fix metadata web links
+
+## v0.10.10
+
+- Features
+
+  - Reader nav toolbar shows position in series.
+
+- Fixes
+
+  - Fix inability to log in when Enable Non Users admin flag is unset.
+  - Simplify Admin Library delete confirmation page to prevent OOM crash.
+  - Move controls away from iphone notch and home bar.
+
+## v0.10.9
+
+- Fixes
+
+  - Fix null bookmark and count fields in metadata
+  - Fix indeterminate finished state when children have bookmark progress.
+  - Fix maintenance running inappropriately on first run. Crashed xapian database.
+  - Fix reader metadata keymap
+
+- Features
+
+  - Progressive Web App support
+  - Reader "Shrink to" settings replaced by "Fit to"
+
+- Special Thanks
+
+  - To ToxicFrog, who's been finding most of these bugs I'm fixing for a while.
+
+## v0.10.8
+
+- Fixes
+
+  - Fixed reader nav clicks always showing the toolbars.
+  - Attempt to fix unwanted browser toolbars when treated as mobile app
+  - Wait half a second before displaying reader placeholder spinner.
+  - Fix metadata missing search query.
+  - Fix metadata cache busting.
+
+- Features
+
+  - Accessibility enhancements for screen readers.
+
+## v0.10.7
 
 - Features
 

@@ -77,21 +77,19 @@ class BrowserMetadataBaseView(BrowserBaseView):
                 order_key = "sort_name"
         return order_key
 
-    def _annotate_cover_path(self, queryset, model):
+    def _annotate_cover_pk(self, queryset, model):
         """Annotate the query set for the coverpath for the sort."""
         # Select comics for the children by an outer ref for annotation
         # Order the descendant comics by the sort argumentst
         if model == Comic:
-            cover_updated_at = F("updated_at")
+            cover_pk = F("pk")
         else:
             # This creates two subqueries. It would be better condensed into one.
             # but there's no way to annotate an object or multiple values.
-            order_by = self.get_order_by(Comic, for_cover_path=True)
+            order_by = self.get_order_by(Comic, for_cover_pk=True)
             cover_comics = queryset.filter(pk=OuterRef("pk")).order_by(*order_by)
-            cover_path = self._cover_subquery(cover_comics, "cover_path")
-            queryset = queryset.annotate(cover_path=cover_path)
-            cover_updated_at = self._cover_subquery(cover_comics, "updated_at")
-        queryset = queryset.annotate(cover_updated_at=cover_updated_at)
+            cover_pk = self._cover_subquery(cover_comics, "pk")
+        queryset = queryset.annotate(cover_pk=cover_pk)
         return queryset
 
     def _annotate_page_count(self, obj_list):
@@ -106,7 +104,6 @@ class BrowserMetadataBaseView(BrowserBaseView):
         ubm_rel = self.get_ubm_rel(is_model_comic)
         ub_filter = self._get_userbookmark_filter(ubm_rel)
 
-        when_no_ubm = When(Q(**{ubm_rel: None}), then=0)
         bookmark_rel = f"{ubm_rel}__bookmark"
         finished_rel = f"{ubm_rel}__finished"
 
@@ -128,7 +125,7 @@ class BrowserMetadataBaseView(BrowserBaseView):
             # Aggregate bookmark and finished states
             bookmark = Sum(
                 Case(
-                    when_no_ubm,
+                    When(**{ubm_rel: None}, then=0),
                     When(**{finished_rel: True}, then="comic__page_count"),
                     default=bookmark_rel,
                     output_field=PositiveSmallIntegerField(),
@@ -137,15 +134,26 @@ class BrowserMetadataBaseView(BrowserBaseView):
                 filter=ub_filter,
                 output_field=PositiveSmallIntegerField(),
             )
+            finished_count = Sum(
+                finished_rel,
+                default=0,
+                filter=ub_filter,
+                output_field=PositiveSmallIntegerField(),
+            )
+            obj_list = obj_list.annotate(finished_count=finished_count)
             finished_aggregate = Case(
+                When(
+                    Q(finished_count=F("child_count")) | Q(bookmark=F("page_count")),
+                    then=True,
+                ),
                 When(bookmark=0, then=False),
-                When(bookmark=F("page_count"), then=True),
                 default=None,
                 output_field=BooleanField(),
             )
 
-        obj_list = obj_list.annotate(bookmark=bookmark).annotate(
-            finished=finished_aggregate
+        obj_list = obj_list.annotate(
+            bookmark=bookmark,
+            finished=finished_aggregate,
         )
 
         return obj_list
@@ -209,7 +217,7 @@ class BrowserMetadataBaseView(BrowserBaseView):
     def annotate_common_aggregates(self, qs, model):
         """Annotate common aggregates between browser and metadata."""
         is_model_comic = model == Comic
-        qs = self._annotate_cover_path(qs, model)
+        qs = self._annotate_cover_pk(qs, model)
         if is_model_comic:
             child_count_sum = self._ONE_INTEGERFIELD
         else:
@@ -220,7 +228,7 @@ class BrowserMetadataBaseView(BrowserBaseView):
         qs = self._annotate_progress(qs)
         return qs
 
-    def get_order_by(self, model, for_cover_path=False):
+    def get_order_by(self, model, for_cover_pk=False):
         """
         Create the order_by list.
 
@@ -231,7 +239,7 @@ class BrowserMetadataBaseView(BrowserBaseView):
 
         # order_fields
         order_key = self.get_order_key()
-        if for_cover_path:
+        if for_cover_pk:
             prefix += "comic__"
             field = self._ORDER_BY_FIELD_ALIASES.get(order_key, order_key)
             if field == "sort_name" or not field:

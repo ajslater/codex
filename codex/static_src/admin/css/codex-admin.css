@@ -1,3 +1,6 @@
+.caps {
+  font-variant-caps: small-caps;
+}
 /* Dirty hack for django admin's refusal to display non-editable fields */
 .field-last_poll .vDateField,
 .field-last_poll .vTimeField {
@@ -6,7 +9,6 @@
   -ms-user-select: none;
   user-select: none;
 }
-
 .field-last_poll .datetimeshortcuts {
   display: none;
 }
@@ -23,4 +25,24 @@
 
 #footer > h2 {
   color: #ccc;
+}
+
+/* Queue Jobs */
+table.queueJobs {
+}
+table.queueJobs th {
+  background-color: #242424;
+  font-size: large;
+  padding-top: 20px;
+  padding-bottom: 10px;
+}
+table.queueJobs td {
+  padding-left: 0.25em;
+  padding-right: 0px;
+}
+table.queueJobs td:nth-child(3) {
+  color: darkgray;
+}
+#queueJobButton {
+  margin-top: 20px;
 }

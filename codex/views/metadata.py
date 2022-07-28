@@ -63,10 +63,10 @@ class MetadataView(BrowserMetadataBaseView):
     )
     _COMIC_FK_FIELDS_MAP = {
         "f": _COMIC_FK_FIELDS,
-        "p": _COMIC_FK_FIELDS - set(["publisher"]),
-        "i": _COMIC_FK_FIELDS - set(["imprint"]),
-        "s": _COMIC_FK_FIELDS - set(["series"]),
-        "v": _COMIC_FK_FIELDS - set(["volume"]),
+        "p": _COMIC_FK_FIELDS.difference(frozenset(["publisher"])),
+        "i": _COMIC_FK_FIELDS.difference(frozenset(["imprint"])),
+        "s": _COMIC_FK_FIELDS.difference(frozenset(["series"])),
+        "v": _COMIC_FK_FIELDS.difference(frozenset(["volume"])),
         "c": _COMIC_FK_FIELDS,
     }
     _COMIC_FK_ANNOTATION_PREFIX = "fk_"
@@ -280,8 +280,8 @@ class MetadataView(BrowserMetadataBaseView):
 
         # copy into unionfix fields for serializer
         for (
-            from_field,
             to_field,
+            from_field,
         ) in BROWSER_AGGREGATE_ORDERED_UNIONFIX_VALUES_MAP.items():
             obj[to_field] = obj.get(from_field)
 
@@ -292,12 +292,13 @@ class MetadataView(BrowserMetadataBaseView):
         # Comic model goes through the same code path as groups because
         # values dicts don't copy relations to the serializer. The values
         # dict is necessary because of the folders view union in browser.py.
-        group_acl_filter = self.get_group_acl_filter(self.is_model_comic)
-        aggregate_filter = self.get_aggregate_filter(self.is_model_comic)
-        pk = self.kwargs["pk"]
+
         if self.model is None:
             raise NotFound(detail=f"Cannot get metadata for {self.group=}")
-        qs = self.model.objects.filter(group_acl_filter | aggregate_filter, pk=pk)
+
+        object_filter, _ = self.get_query_filters_without_group(self.is_model_comic)
+        pk = self.kwargs["pk"]
+        qs = self.model.objects.filter(object_filter, pk=pk)
 
         qs = self._annotate_aggregates(qs)
         simple_qs = qs
