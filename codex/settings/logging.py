@@ -7,7 +7,6 @@ from logging.handlers import RotatingFileHandler
 from colors import color
 
 
-# "{asctime} {processName} {threadName} {name} {levelname} {message}"
 LOG_FMT = "{asctime} {levelname:8} {message}"
 DATEFMT = "%Y-%m-%d %H:%M:%S %Z"
 LOG_EVERY = 15

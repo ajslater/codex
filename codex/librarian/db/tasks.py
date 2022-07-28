@@ -19,7 +19,7 @@ class UpdaterDBDiffTask(UpdaterTask):
     files_moved: dict
     dirs_modified: frozenset
     files_modified: frozenset
-    # dirs_created: set
+    # dirs_created
     files_created: frozenset
     dirs_deleted: frozenset
     files_deleted: frozenset

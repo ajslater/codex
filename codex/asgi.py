@@ -17,7 +17,6 @@ from codex.signals import connect_signals
 
 # Must setup up the django environment before importing django models
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "codex.settings.settings")
-# os.environ["PYTHONASYNCIODEBUG"] = "1"
 connect_signals()
 django.setup()
 

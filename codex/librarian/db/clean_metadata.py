@@ -51,10 +51,8 @@ _MD_CHAR_KEYS = frozenset(
         "scan_info",
     )
 )
-# _MD_TEXT_KEYS = frozenset(("comments", "notes", "summary"))
 _TWO_PLACES = Decimal("0.01")
 _PSI_MAX = 2147483647
-# _TEXT_MAX_LENGTH = 9**10
 GROUPS = frozenset(("publisher", "imprint", "series", "volume"))
 _URL_MAX_LENGTH = 200
 _M2M_NAMED_KEYS = frozenset(

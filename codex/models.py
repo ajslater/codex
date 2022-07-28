@@ -47,7 +47,6 @@ class BaseModel(Model):
 
     created_at = DateTimeField(auto_now_add=True)
     updated_at = DateTimeField(auto_now=True)
-    # deleted_at = DateTimeField(null=True)
 
     class Meta:
         """Without this a real table is created and joined to."""
@@ -256,7 +255,6 @@ class WatchedPath(BrowserGroupModel):
         st[0] = st_record.st_mode
         st[1] = st_record.st_ino
         # st_dev changes every time with docker
-        # st[2] = st_record.st_dev
         st[6] = st_record.st_size
         st[8] = st_record.st_mtime
         self.stat = st
@@ -346,20 +344,18 @@ class Comic(WatchedPath):
     tags = ManyToManyField(Tag)
     teams = ManyToManyField(Team)
     # Ignore these, they seem useless:
-    #
-    # black_and_white = BooleanField(default=False)
-    # last_mark = PositiveSmallIntegerField(null=True)
-    # manga = BooleanField(default=False)
-    # price = DecimalField(decimal_places=2, max_digits=9, null=True)
-    # rights = CharField(max_length=64, null=True)
+    # black_and_white
+    # last_mark
+    # manga
+    # price
+    # rights
     #
     # These are potentially useful, but too much work right now:
-    #
-    # alternate_issue = DecimalField(decimal_places=2, max_digits=6, null=True)
-    # alternate_volumes = ManyToManyField(Volume, related_name="alternate_volume")
-    # cover_image = CharField(max_length=256, null=True)
-    # identifier = CharField(max_length=64, null=True)
-    # is_version_of = CharField(max_length=64, null=True)
+    # alternate_issue
+    # alternate_volumes
+    # cover_image
+    # identifier
+    # is_version_of
 
     # codex only
     date = DateField(db_index=True, null=True)
@@ -469,7 +465,6 @@ def cascade_if_user_null(collector, field, sub_objs, _using):
             source=field.remote_field.model,
             source_attr=field.name,
             nullable=field.null,
-            # fail_on_restricted=False,
         )
 
     # Set them all to null

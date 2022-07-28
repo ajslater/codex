@@ -180,7 +180,6 @@ class AdminLibrary(ModelAdmin):
         for library in queryset:
             # so deletes will cascade
             library.delete()
-        # super().delete_queryset(request, queryset)
         cache.clear()
         self._on_change(None)
 
@@ -198,7 +197,6 @@ class AdminLibrary(ModelAdmin):
         perms_needed = set()
         protected = []
         return to_delete, model_count, perms_needed, protected
-        # return super().get_deleted_objects(objs, request)
 
 
 @register(AdminFlag)
