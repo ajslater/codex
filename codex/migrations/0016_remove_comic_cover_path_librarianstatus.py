@@ -17,6 +17,9 @@ def remove_old_caches(_apps, _schema_editor):
     """Clean up old cache locations."""
     print("\n  Removing old cover cache...")
     shutil.rmtree(OLD_COVER_CACHE, ignore_errors=True)
+    if not CACHE_DIR.is_dir():
+        print("  COULD NOT FIND CACHE DIR!")
+        return
     print("  Removing old default cache...")
     for path in CACHE_DIR.iterdir():
         if path.suffix == ".djcache":

@@ -1,6 +1,6 @@
 # 📰 Codex News
 
-## v0.11.0a0
+## v0.11.0a1
 
 - Features
 
