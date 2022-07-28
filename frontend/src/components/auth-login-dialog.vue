@@ -11,7 +11,7 @@
       @focus="focus"
     >
       <template #activator="{ on }">
-        <v-list-item v-on="on" @click="loginDialogOpened">
+        <v-list-item ripple v-on="on" @click="loginDialogOpened">
           <v-list-item-content>
             <v-list-item-title><h3>Login</h3></v-list-item-title>
           </v-list-item-content>

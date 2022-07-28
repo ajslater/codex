@@ -1,7 +1,11 @@
 <template>
   <div>
     <v-slide-x-transition hide-on-leave>
-      <v-list-item v-if="filterMode === 'base'" @click="setFilterMode(name)">
+      <v-list-item
+        v-if="filterMode === 'base'"
+        ripple
+        @click="setFilterMode(name)"
+      >
         <v-list-item-content>
           <v-list-item-title class="filterMenu">
             {{ title }}
@@ -16,7 +20,7 @@
     <v-slide-x-reverse-transition hide-on-leave>
       <div v-if="filterMode === name">
         <header class="filterHeader">
-          <v-list-item @click="setFilterMode('base')">
+          <v-list-item ripple @click="setFilterMode('base')">
             <v-list-item-content>
               <v-list-item-title class="filterTitle"
                 ><v-icon>{{ mdiChevronLeft }}</v-icon

@@ -18,7 +18,7 @@
       @blur="focused = false"
     >
       <template #item="data">
-        <v-list-item v-bind="data.attrs" v-on="data.on">
+        <v-list-item v-bind="data.attrs" ripple v-on="data.on">
           <v-list-item-content>
             <v-list-item-title>
               {{ data.item.text }}
