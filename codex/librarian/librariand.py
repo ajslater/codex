@@ -1,4 +1,6 @@
 """Library process worker for background tasks."""
+import platform
+
 from multiprocessing import Process
 from time import sleep
 
@@ -144,7 +146,8 @@ class LibrarianDaemon(Process):
         threads.
         """
         try:
-            setproctitle(f"{PACKAGE_NAME}-{self.NAME}")
+            if platform.system() != "Darwin":
+                setproctitle(f"{PACKAGE_NAME}-{self.NAME}")
             LOG.verbose("Started Librarian process.")
             self._create_threads()
             self._start_threads()

@@ -1,6 +1,7 @@
 """Start and stop daemons."""
 import multiprocessing
 import os
+import platform
 
 from time import sleep
 
@@ -69,7 +70,8 @@ def clear_library_status():
 
 def codex_startup():
     """Initialize the database and start the daemons."""
-    setproctitle(PACKAGE_NAME)
+    if platform.system() != "Darwin":
+        setproctitle(PACKAGE_NAME)
     ensure_superuser()
     init_admin_flags()
     clear_library_status()

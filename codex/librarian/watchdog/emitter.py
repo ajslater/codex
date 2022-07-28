@@ -1,5 +1,6 @@
 """A Codex database event emitter for use by the observer."""
 import os
+import platform
 
 from itertools import chain
 from pathlib import Path
@@ -258,7 +259,8 @@ class DatabasePollingEmitter(EventEmitter):
 
     def run(self, *args, **kwargs):
         """Identify the thread."""
-        setproctitle(f"WE{self._watch_path}")
+        if platform.system() != "Darwin":
+            setproctitle(f"WE{self._watch_path}")
         super().run(*args, **kwargs)
 
     def on_thread_stop(self):
