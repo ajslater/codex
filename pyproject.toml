@@ -211,3 +211,12 @@ reportImportCycles = true
 
 [tool.djlint]
 ignore = "H030,H031"
+
+[tool.isort]
+profile = "black"
+atomic = true
+lines_after_imports = 2
+lines_between_types = 1
+multi_line_output = 3
+skip = ".git,.mypy_cache,.pytest_cache,.venv,__pycache__,cache,codex/_vendor/haystack,codex/static_build,codex/static_root,comics,config,dist,frontend,node_modules,test-results,typings"
+color_output = true
