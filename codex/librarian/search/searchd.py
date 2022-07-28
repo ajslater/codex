@@ -13,13 +13,12 @@ from codex.librarian.search.tasks import (
     SearchIndexRebuildIfDBChangedTask,
 )
 from codex.librarian.status import librarian_status_done, librarian_status_update
-from codex.models import LatestVersion, Library, SearchResult
+from codex.models import LatestVersion, Library, SearchResult, Timestamps
 from codex.settings.logging import get_logger
-from codex.settings.settings import ROOT_CACHE_PATH, XAPIAN_INDEX_PATH
+from codex.settings.settings import XAPIAN_INDEX_PATH
 from codex.threads import QueuedThread
 
 
-SEARCH_INDEX_TIMESTAMP_PATH = ROOT_CACHE_PATH / "search_index.timestamp"
 UPDATE_INDEX_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S%Z"
 LOG = get_logger(__name__)
 WORKERS = os.cpu_count()
@@ -73,7 +72,7 @@ def update_search_index(rebuild=False):
             LatestVersion.set_xapian_index_version()
         else:
             try:
-                timestamp = SEARCH_INDEX_TIMESTAMP_PATH.stat().st_mtime
+                timestamp = Timestamps.get(Timestamps.SEARCH_INDEX)
             except FileNotFoundError:
                 timestamp = 0
             start = datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime(
@@ -87,7 +86,7 @@ def update_search_index(rebuild=False):
             kwargs = {"start": start}
             kwargs.update(UPDATE_KWARGS)
             _call_command(UPDATE_ARGS, kwargs)
-        SEARCH_INDEX_TIMESTAMP_PATH.touch()
+        Timestamps.touch(Timestamps.SEARCH_INDEX)
 
         # Nuke the Search Result table as it's now out of date.
         SearchResult.truncate_and_reset()

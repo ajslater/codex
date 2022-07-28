@@ -25,6 +25,7 @@ from codex.models import (
     Publisher,
     SearchQuery,
     Series,
+    Timestamps,
     Volume,
 )
 from codex.serializers.browser import (
@@ -573,6 +574,8 @@ class BrowserView(BrowserMetadataBaseView):
         else:
             issue_max = 0
 
+        covers_timestamp = Timestamps.get(Timestamps.COVERS)
+
         # construct final data structure
         browser_page = {
             "up_route": up_route,
@@ -584,6 +587,7 @@ class BrowserView(BrowserMetadataBaseView):
             "admin_flags": {"enable_folder_view": efv_flag.on},
             "libraries_exist": libraries_exist,
             "queries": queries,
+            "covers_timestamp": covers_timestamp,
         }
         return browser_page
 

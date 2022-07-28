@@ -143,6 +143,7 @@ jspm_packages/
 .env
 .env-*
 .env.pushover
+.pypirc
 .venv
 .DS_Store
 build

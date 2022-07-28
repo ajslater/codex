@@ -14,6 +14,7 @@ from codex.librarian.janitor.tasks import (
     JanitorBackupTask,
     JanitorCleanFKsTask,
     JanitorCleanSearchTask,
+    JanitorClearStatusTask,
     JanitorRestartTask,
     JanitorUpdateTask,
     JanitorVacuumTask,
@@ -89,6 +90,8 @@ class QueueLibrarianJobs(APIView):
             task = JanitorCleanFKsTask()
         elif task_name == "cleanup_covers":
             task = CoverRemoveOrphansTask()
+        elif task_name == "librarian_clear_status":
+            task = JanitorClearStatusTask()
 
         if task:
             LIBRARIAN_QUEUE.put(task)

@@ -614,3 +614,24 @@ class LibrarianStatus(BaseModel):
         """Constraints."""
 
         unique_together = ("type", "name")
+
+
+class Timestamps(BaseModel):
+    """Timestamps."""
+
+    COVERS = "covers"
+    JANITOR = "janitor"
+    SEARCH_INDEX = "search_index"
+    NAMES = (COVERS, JANITOR, SEARCH_INDEX)
+
+    name = CharField(db_index=True, max_length=64, unique=True)
+
+    @classmethod
+    def touch(cls, name):
+        """Touch a timestamp."""
+        cls.objects.get(name=name).save()
+
+    @classmethod
+    def get(cls, name):
+        """Get the timestamp."""
+        return cls.objects.get(name=name).updated_at.timestamp()

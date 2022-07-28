@@ -30,15 +30,15 @@ class UatuMixin(BaseObserver):
         watch = self._get_watch(library.path)
         is_enabled = getattr(library, self.ENABLE_FIELD)
         watching_log = f"watching library {library.path} with {self.ENABLE_FIELD}"
-        if not watch and not is_enabled:
+        if watch and is_enabled:
+            LOG.info(f"Already {watching_log}.")
+            return
+        elif not watch and not is_enabled:
             LOG.debug(f"Not {watching_log}, disabled.")
             return
         elif watch and not is_enabled:
             self.unschedule(watch)
             LOG.info(f"Stopped {watching_log}.")
-            return
-        elif watch and is_enabled:
-            LOG.info(f"Already {watching_log}.")
             return
 
         # Set up the watch

@@ -9,12 +9,12 @@
       >
     </template>
     <v-list nav>
-      <v-list-item v-if="group === 'c'" :href="downloadURL" download>
+      <v-list-item v-if="group === 'c'" :href="downloadURL" ripple download>
         <v-list-item-content>
           <v-list-item-title>Download Comic</v-list-item-title>
         </v-list-item-content>
       </v-list-item>
-      <v-list-item @click="toggleRead">
+      <v-list-item ripple @click="toggleRead">
         <v-list-item-content>
           <v-list-item-title>
             {{ markReadText }}

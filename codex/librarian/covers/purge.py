@@ -7,8 +7,8 @@ from pathlib import Path
 from codex.librarian.covers.path import COVER_ROOT, get_cover_paths
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.librarian.status import librarian_status_done, librarian_status_update
-from codex.models import Comic
-from codex.notifier.tasks import COVERS_CHANGED_TASK
+from codex.models import Comic, Timestamps
+from codex.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.settings.logging import get_logger
 
 
@@ -39,8 +39,6 @@ def purge_cover_paths(cover_paths):
     for cover_dir in cover_dirs:
         _cleanup_cover_dirs(cover_dir)
     librarian_status_done([COVER_PURGE_STATUS_KEYS])
-    if cover_paths:
-        LIBRARIAN_QUEUE.put(COVERS_CHANGED_TASK)
     LOG.info(f"Removed {len(cover_paths)} cover thumbnails.")
 
 
@@ -63,8 +61,9 @@ def purge_all_comic_covers():
     """Purge every comic cover."""
     LOG.verbose("Removing entire comic cover cache.")
     shutil.rmtree(COVER_ROOT)
+    Timestamps.touch(Timestamps.COVERS)
     LOG.info("Removed entire comic cover cache.")
-    LIBRARIAN_QUEUE.put(COVERS_CHANGED_TASK)
+    LIBRARIAN_QUEUE.put(LIBRARY_CHANGED_TASK)
 
 
 def cleanup_orphan_covers():

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Compute the version tag for ajslater/codex-base
 set -euo pipefail
-EXTRA_MD5S=("x")
+EXTRA_MD5S=("x x")
 
 DEPS=(
     "$0"

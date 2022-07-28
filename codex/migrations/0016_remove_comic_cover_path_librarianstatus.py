@@ -8,7 +8,7 @@ from pathlib import Path
 from django.db import migrations, models
 
 
-CONFIG_PATH = Path(__file__).parent.parent.parent / "config"
+CONFIG_PATH = Path(os.environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
 OLD_COVER_CACHE = CONFIG_PATH / "static"
 CACHE_DIR = CONFIG_PATH / "cache"
 
@@ -17,15 +17,12 @@ def remove_old_caches(_apps, _schema_editor):
     """Clean up old cache locations."""
     print("\n  Removing old cover cache...")
     shutil.rmtree(OLD_COVER_CACHE, ignore_errors=True)
+    if not CACHE_DIR.is_dir():
+        print("  COULD NOT FIND CACHE DIR!")
+        return
     print("  Removing old default cache...")
-    for path in CACHE_DIR.iterdir():
-        if path.suffix == ".djcache":
-            path.unlink(missing_ok=True)
-        elif str(path).endswith("_timestamp"):
-            mtime = path.stat().st_mtime
-            new_path = str(path).replace("_timestamp", ".timestamp")
-            path = path.replace(new_path)
-            os.utime(path, (mtime, mtime))
+    shutil.rmtree(CACHE_DIR, ignore_errors=True)
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 
 class Migration(migrations.Migration):
@@ -66,6 +63,27 @@ class Migration(migrations.Migration):
             ],
             options={
                 "unique_together": {("type", "name")},
+            },
+        ),
+        migrations.CreateModel(
+            name="Timestamps",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("name", models.CharField(db_index=True, max_length=64, unique=True)),
+            ],
+            options={
+                "get_latest_by": "updated_at",
+                "abstract": False,
             },
         ),
         migrations.RunPython(remove_old_caches),
