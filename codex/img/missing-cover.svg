@@ -13,7 +13,6 @@
   height="512"
   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-  xmlns:xlink="http://www.w3.org/1999/xlink"
   xmlns="http://www.w3.org/2000/svg"
   xmlns:svg="http://www.w3.org/2000/svg"
 >
@@ -24,17 +23,7 @@
         style="stop-color:#080000;stop-opacity:1;"
         offset="0"
         id="stop1642"
-      /></linearGradient><linearGradient
-      inkscape:collect="always"
-      xlink:href="#linearGradient1644"
-      id="linearGradient1646"
-      x1="-25.105288"
-      y1="261.81226"
-      x2="368.89401"
-      y2="261.81226"
-      gradientUnits="userSpaceOnUse"
-      gradientTransform="translate(25.105288,14.345879)"
-    /></defs>
+      /></linearGradient></defs>
 <sodipodi:namedview
     id="namedview2984"
     pagecolor="#ffffff"
@@ -46,25 +35,17 @@
     inkscape:deskcolor="#d1d1d1"
     showgrid="false"
     inkscape:zoom="1.9517801"
-    inkscape:cx="168.56407"
-    inkscape:cy="241.57434"
+    inkscape:cx="123.47702"
+    inkscape:cy="241.57435"
     inkscape:window-width="1815"
     inkscape:window-height="1481"
     inkscape:window-x="958"
-    inkscape:window-y="42"
+    inkscape:window-y="25"
     inkscape:window-maximized="0"
     inkscape:current-layer="Layer_1"
   />
 
-<rect
-    style="fill:url(#linearGradient1646);fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:0;stroke-dasharray:none;stroke-opacity:1"
-    id="rect357"
-    width="342"
-    height="512"
-    x="5e-07"
-    y="5e-07"
-    inkscape:label="background"
-  /><path
+<path
     fill="#cb7b19"
     opacity="1"
     stroke="none"
