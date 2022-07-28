@@ -18,6 +18,7 @@ from codex.librarian.janitor.tasks import (
     JanitorBackupTask,
     JanitorCleanFKsTask,
     JanitorCleanSearchTask,
+    JanitorClearStatusTask,
     JanitorRestartTask,
     JanitorUpdateTask,
     JanitorVacuumTask,
@@ -36,7 +37,7 @@ from codex.librarian.janitor.vacuum import (
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.librarian.search.searchd import UPDATE_SEARCH_INDEX_KEYS
 from codex.librarian.search.tasks import SearchIndexJanitorUpdateTask
-from codex.librarian.status import librarian_status_update
+from codex.librarian.status import librarian_status_done, librarian_status_update
 from codex.settings.logging import get_logger
 from codex.settings.settings import ROOT_CACHE_PATH
 from codex.threads import NamedThread
@@ -144,19 +145,30 @@ class Crond(NamedThread):
             self._cond.notify()
 
 
+def clear_status():
+    """Clear all librarian statuses."""
+    librarian_status_done([])
+
+
 def janitor(task):
     """Run Janitor tasks as the librarian process directly."""
-    if isinstance(task, JanitorVacuumTask):
-        vacuum_db()
-    elif isinstance(task, JanitorBackupTask):
-        backup_db()
-    elif isinstance(task, JanitorUpdateTask):
-        update_codex()
-    elif isinstance(task, JanitorRestartTask):
-        restart_codex()
-    elif isinstance(task, JanitorCleanSearchTask):
-        clean_old_queries()
-    elif isinstance(task, JanitorCleanFKsTask):
-        cleanup_fks()
-    else:
-        LOG.warning(f"Janitor received unknown task {task}")
+    try:
+        if isinstance(task, JanitorVacuumTask):
+            vacuum_db()
+        elif isinstance(task, JanitorBackupTask):
+            backup_db()
+        elif isinstance(task, JanitorUpdateTask):
+            update_codex()
+        elif isinstance(task, JanitorRestartTask):
+            restart_codex()
+        elif isinstance(task, JanitorCleanSearchTask):
+            clean_old_queries()
+        elif isinstance(task, JanitorCleanFKsTask):
+            cleanup_fks()
+        elif isinstance(task, JanitorClearStatusTask):
+            clear_status()
+        else:
+            LOG.warning(f"Janitor received unknown task {task}")
+    except Exception as exc:
+        LOG.error("Janitor task crashed.")
+        LOG.exception(exc)

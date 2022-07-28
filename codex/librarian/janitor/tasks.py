@@ -50,3 +50,10 @@ class JanitorCleanFKsTask(JanitorTask):
     """Clean unused foreign keys."""
 
     pass
+
+
+@dataclass
+class JanitorClearStatusTask(JanitorTask):
+    """Clear all librarian statuses."""
+
+    pass

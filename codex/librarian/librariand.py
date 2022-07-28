@@ -19,7 +19,6 @@ from codex.librarian.search.tasks import (
     SearchIndexerTask,
     SearchIndexRebuildIfDBChangedTask,
 )
-from codex.librarian.status import LibrarianClearStatusTask, librarian_status_done
 from codex.librarian.watchdog.eventsd import EventBatcher
 from codex.librarian.watchdog.observers import (
     LibraryEventObserver,
@@ -85,8 +84,6 @@ class LibrarianDaemon(Process):
             self.search_indexer.queue.put(task)
         elif isinstance(task, JanitorTask):
             janitor(task)
-        elif isinstance(task, LibrarianClearStatusTask):
-            librarian_status_done([])
         elif isinstance(task, DelayedTasks):
             self.delayed_tasks.queue.put(task)
         elif task == self.SHUTDOWN_TASK:
