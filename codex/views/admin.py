@@ -23,6 +23,7 @@ from codex.librarian.search.tasks import (
     SearchIndexJanitorUpdateTask,
     SearchIndexRebuildIfDBChangedTask,
 )
+from codex.librarian.status import LibrarianClearStatusTask
 from codex.librarian.watchdog.tasks import WatchdogPollLibrariesTask, WatchdogSyncTask
 from codex.models import LibrarianStatus, Library
 from codex.notifier.tasks import LIBRARY_CHANGED_TASK
@@ -89,6 +90,8 @@ class QueueLibrarianJobs(APIView):
             task = JanitorCleanFKsTask()
         elif task_name == "cleanup_covers":
             task = CoverRemoveOrphansTask()
+        elif task_name == "librarian_clear_status":
+            task = LibrarianClearStatusTask()
 
         if task:
             LIBRARIAN_QUEUE.put(task)

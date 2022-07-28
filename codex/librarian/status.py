@@ -1,4 +1,6 @@
 """Librarian Status."""
+from dataclasses import dataclass
+
 from django.db.models import Q
 
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
@@ -8,6 +10,13 @@ from codex.settings.logging import get_logger
 
 
 LOG = get_logger(__name__)
+
+
+@dataclass
+class LibrarianClearStatusTask:
+    """Clear all statuses."""
+
+    pass
 
 
 def librarian_status_update(keys, complete, total, notify=True):
@@ -34,5 +43,7 @@ def librarian_status_done(keys_list, notify=True):
         )
         if notify:
             LIBRARIAN_QUEUE.put(LIBRARIAN_STATUS_TASK)
+        if filter == Q():
+            LOG.info("Cleared all librarian statuses")
     except Exception as exc:
         LOG.warning(exc)
