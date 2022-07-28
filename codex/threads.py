@@ -80,7 +80,7 @@ class QueuedThread(NamedThread, ABC):
             except BreakLoopError:
                 break
             except Exception as exc:
-                LOG.error(f"Error in {self.NAME}:")
+                LOG.error(f"{self.NAME} crashed:")
                 LOG.exception(exc)
         LOG.verbose(f"Stopped {self.NAME} thread")
 
