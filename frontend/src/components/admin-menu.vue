@@ -17,12 +17,12 @@
         <v-list-item-content>
           <v-list-item-title
             >Admin Panel
-            <v-icon id="adminPanelIcon">{{ mdiOpenInNew }}</v-icon>
+            <v-icon id="adminPanelOpenIcon">{{ mdiOpenInNew }}</v-icon>
             <v-icon
               v-if="failedImports"
               id="failedImportsIcon"
               title="New Failed Imports"
-              >{{ mdiBookAlertOutline }}</v-icon
+              >{{ mdiBookAlert }}</v-icon
             >
           </v-list-item-title>
         </v-list-item-content>
@@ -33,7 +33,7 @@
 </template>
 
 <script>
-import { mdiBookAlertOutline, mdiOpenInNew } from "@mdi/js";
+import { mdiBookAlert, mdiOpenInNew } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "vuex";
 
 import API from "@/api/v2/admin";
@@ -47,7 +47,7 @@ export default {
   data() {
     return {
       adminURL: API.ADMIN_URL,
-      mdiBookAlertOutline,
+      mdiBookAlert,
       mdiOpenInNew,
     };
   },
@@ -69,11 +69,11 @@ export default {
   padding-top: 10px;
   padding-left: 15px;
 }
-#adminPanelIcon {
+#adminPanelOpenIcon,
+#failedImportsIcon {
   color: gray;
 }
 #failedImportsIcon {
   padding-left: 10px;
-  color: darkred;
 }
 </style>
