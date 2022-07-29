@@ -25,7 +25,7 @@ from codex.models import (
     Publisher,
     SearchQuery,
     Series,
-    Timestamps,
+    Timestamp,
     Volume,
 )
 from codex.serializers.browser import (
@@ -574,7 +574,7 @@ class BrowserView(BrowserMetadataBaseView):
         else:
             issue_max = 0
 
-        covers_timestamp = Timestamps.get(Timestamps.COVERS)
+        covers_timestamp = Timestamp.get(Timestamp.COVERS)
 
         # construct final data structure
         browser_page = {

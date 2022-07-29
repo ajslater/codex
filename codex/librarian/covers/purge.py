@@ -7,7 +7,7 @@ from pathlib import Path
 from codex.librarian.covers.path import COVER_ROOT, get_cover_paths
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.librarian.status import librarian_status_done, librarian_status_update
-from codex.models import Comic, Timestamps
+from codex.models import Comic, Timestamp
 from codex.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.settings.logging import get_logger
 
@@ -61,7 +61,7 @@ def purge_all_comic_covers():
     """Purge every comic cover."""
     LOG.verbose("Removing entire comic cover cache.")
     shutil.rmtree(COVER_ROOT)
-    Timestamps.touch(Timestamps.COVERS)
+    Timestamp.touch(Timestamp.COVERS)
     LOG.info("Removed entire comic cover cache.")
     LIBRARIAN_QUEUE.put(LIBRARY_CHANGED_TASK)
 

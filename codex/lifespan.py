@@ -14,7 +14,7 @@ from setproctitle import setproctitle
 
 from codex.darwin_mp import force_darwin_multiprocessing_fork
 from codex.librarian.librariand import LibrarianDaemon
-from codex.models import AdminFlag, LibrarianStatus, Library, Timestamps
+from codex.models import AdminFlag, LibrarianStatus, Library, Timestamp
 from codex.notifier.notifierd import Notifier
 from codex.settings.logging import get_logger
 from codex.version import PACKAGE_NAME
@@ -58,11 +58,11 @@ def init_admin_flags():
 
 def init_timestamps():
     """Init timestamps."""
-    for name in Timestamps.NAMES:
-        ts, created = Timestamps.objects.get_or_create(name=name)
+    for name in Timestamp.NAMES:
+        _, created = Timestamp.objects.get_or_create(name=name)
         if created:
             LOG.info(f"Created {name} timestamp.")
-    query = Timestamps.objects.filter(~Q(name__in=Timestamps.NAMES))
+    query = Timestamp.objects.filter(~Q(name__in=Timestamp.NAMES))
     count = query.count()
     if count:
         query.delete()

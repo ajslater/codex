@@ -4,7 +4,6 @@ import datetime
 import os
 
 from pathlib import Path
-from uuid import uuid4
 
 from django.conf import settings
 from django.contrib.auth.models import Group
@@ -33,7 +32,6 @@ from django.utils.translation import gettext_lazy as _
 
 from codex.serializers.choices import CHOICES
 from codex.settings.logging import get_logger
-from codex.settings.settings import XAPIAN_INDEX_PATH, XAPIAN_INDEX_UUID_PATH
 
 
 LOG = get_logger(__name__)
@@ -523,54 +521,6 @@ class FailedImport(WatchedPath):
         unique_together = ("library", "path")
 
 
-class LatestVersion(BaseModel):
-    """Latest codex version."""
-
-    CODEX_VERSION_PK = 1
-    XAPIAN_INDEX_VERSION_PK = 2
-    version = CharField(max_length=32)
-
-    @classmethod
-    def _update_or_create(cls, pk, version):
-        search_kwargs = {"pk": pk}
-        defaults = {"version": version}
-        cls.objects.update_or_create(defaults=defaults, **search_kwargs)
-
-    @classmethod
-    def set_codex_version(cls, version):
-        """Ensure a single database row."""
-        cls._update_or_create(cls.CODEX_VERSION_PK, version)
-
-    @classmethod
-    def set_xapian_index_version(cls):
-        """Set the codex db to xapian matching id."""
-        version = str(uuid4())
-        try:
-            cls._update_or_create(cls.XAPIAN_INDEX_VERSION_PK, version)
-            XAPIAN_INDEX_PATH.mkdir(parents=True, exist_ok=True)
-            with XAPIAN_INDEX_UUID_PATH.open("w") as uuid_file:
-                uuid_file.write(version)
-        except Exception as exc:
-            LOG.error(f"Setting search index to db synchronization token: {exc}")
-
-    @classmethod
-    def is_xapian_uuid_match(cls):
-        """Is this xapian index for this database."""
-        result = False
-        try:
-            with XAPIAN_INDEX_UUID_PATH.open("r") as uuid_file:
-                version = uuid_file.read()
-            lv = cls.objects.only("pk").get(
-                pk=cls.XAPIAN_INDEX_VERSION_PK, version=version
-            )
-            result = lv.pk == cls.XAPIAN_INDEX_VERSION_PK
-        except (FileNotFoundError, cls.DoesNotExist):
-            pass
-        except Exception as exc:
-            LOG.exception(exc)
-        return result
-
-
 class SearchQuery(Model):
     """Search queries."""
 
@@ -616,15 +566,18 @@ class LibrarianStatus(BaseModel):
         unique_together = ("type", "name")
 
 
-class Timestamps(BaseModel):
-    """Timestamps."""
+class Timestamp(BaseModel):
+    """Timestamp."""
 
     COVERS = "covers"
     JANITOR = "janitor"
     SEARCH_INDEX = "search_index"
-    NAMES = (COVERS, JANITOR, SEARCH_INDEX)
+    CODEX_VERSION = "codex_version"
+    XAPIAN_INDEX_UUID = "xapian_index_uuid"
+    NAMES = (COVERS, JANITOR, SEARCH_INDEX, CODEX_VERSION, XAPIAN_INDEX_UUID)
 
-    name = CharField(db_index=True, max_length=64, unique=True)
+    name = CharField(db_index=True, max_length=32, unique=True)
+    version = CharField(max_length=32, null=True, default=None)
 
     @classmethod
     def touch(cls, name):

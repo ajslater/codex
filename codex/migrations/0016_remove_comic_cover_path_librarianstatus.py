@@ -11,6 +11,22 @@ from django.db import migrations, models
 CONFIG_PATH = Path(os.environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
 OLD_COVER_CACHE = CONFIG_PATH / "static"
 CACHE_DIR = CONFIG_PATH / "cache"
+LATEST_VERSION_TO_TIMESTAMPS_MAP = {1: "codex", 2: "xapian_index"}
+
+
+def copy_versions_to_timestamp(apps, _schema_editor):
+    """Convert old latest versions."""
+    lv_model = apps.get_model("codex", "latestversion")
+    ts_model = apps.get_model("codex", "timestamp")
+    lvs = lv_model.objects.filter(pk__in=LATEST_VERSION_TO_TIMESTAMPS_MAP.keys()).only(
+        "version"
+    )
+    for lv in lvs:
+        name = LATEST_VERSION_TO_TIMESTAMPS_MAP.get(lv.pk)
+        if not name:
+            continue
+        ts_model.objects.update_or_create(name=name, version=lv.version)
+        print(f"  Copied {name} version into Timestamps table.")
 
 
 def remove_old_caches(_apps, _schema_editor):
@@ -26,7 +42,7 @@ def remove_old_caches(_apps, _schema_editor):
 
 
 class Migration(migrations.Migration):
-    """Remove old cover_path. LibrarianStatus model. Remove old caches."""
+    """v0.11.0 migrations."""
 
     dependencies = [
         ("codex", "0015_link_comics_to_top_level_folders"),
@@ -66,7 +82,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name="Timestamps",
+            name="Timestamp",
             fields=[
                 (
                     "id",
@@ -79,7 +95,8 @@ class Migration(migrations.Migration):
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
-                ("name", models.CharField(db_index=True, max_length=64, unique=True)),
+                ("name", models.CharField(db_index=True, max_length=32, unique=True)),
+                ("version", models.CharField(max_length=32, null=True, default=None)),
             ],
             options={
                 "get_latest_by": "updated_at",
@@ -87,4 +104,8 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.RunPython(remove_old_caches),
+        migrations.RunPython(copy_versions_to_timestamp),
+        migrations.DeleteModel(
+            name="LatestVersion",
+        ),
     ]

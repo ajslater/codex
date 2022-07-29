@@ -38,7 +38,7 @@ from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.librarian.search.searchd import UPDATE_SEARCH_INDEX_KEYS
 from codex.librarian.search.tasks import SearchIndexJanitorUpdateTask
 from codex.librarian.status import librarian_status_done, librarian_status_update
-from codex.models import Timestamps
+from codex.models import Timestamp
 from codex.settings.logging import get_logger
 from codex.threads import NamedThread
 
@@ -67,7 +67,7 @@ class Crond(NamedThread):
         """Get seconds until midnight."""
         now = timezone.now()
         try:
-            mtime = Timestamps.get(Timestamps.JANITOR)
+            mtime = Timestamp.get(Timestamp.JANITOR)
             last_cron = datetime.fromtimestamp(mtime, tz=timezone.utc)
         except FileNotFoundError:
             # get last midnight. Usually only on very first run.
@@ -124,7 +124,7 @@ class Crond(NamedThread):
                     except Exception as exc:
                         LOG.error(f"Error in {self.NAME}")
                         LOG.exception(exc)
-                    Timestamps.touch(Timestamps.JANITOR)
+                    Timestamp.touch(Timestamp.JANITOR)
                     sleep(2)
         except Exception as exc:
             LOG.error(f"Error in {self.NAME}")

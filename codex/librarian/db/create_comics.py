@@ -15,7 +15,7 @@ from codex.models import (
     Imprint,
     Publisher,
     Series,
-    Timestamps,
+    Timestamp,
     Volume,
 )
 from codex.settings.logging import get_logger
@@ -271,7 +271,7 @@ def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2
 
     update_log = f"Updated {update_count} Comics."
     if update_count:
-        Timestamps.touch(Timestamps.COVERS)
+        Timestamp.touch(Timestamp.COVERS)
         LOG.info(update_log)
     else:
         LOG.verbose(update_log)
