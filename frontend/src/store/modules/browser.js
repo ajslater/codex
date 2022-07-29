@@ -42,7 +42,8 @@ for (let choice of CHOICES.browser.settingsGroup) {
 }
 
 const state = {
-  timestamp: Date.now(),
+  coversTimestamp: 0,
+  browseTimestamp: Date.now(),
   routes: {
     up: undefined,
   },
@@ -166,6 +167,7 @@ const mutations = {
     state.numPages = data.numPages;
     state.librariesExist = data.librariesExist;
     state.queries = data.queries;
+    state.coversTimestamp = data.coversTimestamp;
   },
   setBrowseChoice(state, { choiceName, choices }) {
     state.formChoices[choiceName] = Object.freeze(choices);
@@ -191,8 +193,8 @@ const mutations = {
   setUpdateNotify(state, data) {
     state.updateNotify = data.updateInProgress;
   },
-  setTimestamp(state) {
-    state.timestamp = Date.now();
+  setBrowseTimestamp(state) {
+    state.browseTimestamp = Date.now();
   },
   setIsSettingsDrawerOpen(state, value) {
     state.isSettingsDrawerOpen = value;
@@ -212,6 +214,8 @@ const handlePageError = (dispatch) => {
     }
   };
 };
+
+const IS_OPEN_TO_SEE = "auth/isOpenToSee";
 
 const actions = {
   redirectRoute({ commit, dispatch }, data) {
@@ -233,11 +237,17 @@ const actions = {
       console.debug(error);
     });
   },
-  async browserOpened({ commit, dispatch, state }) {
+  async browserOpened({ commit, dispatch, rootGetters, state }) {
     // Gets everything needed to open the component.
+    if (!rootGetters[IS_OPEN_TO_SEE]) {
+      return;
+    }
     commit("setBrowsePageLoaded", false);
     commit("clearAllFormChoicesExcept");
-    await API.getBrowserOpened(router.currentRoute.params, state.timestamp)
+    await API.getBrowserOpened(
+      router.currentRoute.params,
+      state.browseTimestamp
+    )
       .then((response) => {
         const data = response.data;
         commit("setSettings", data.settings);
@@ -258,11 +268,14 @@ const actions = {
       commit("clearAllFormChoicesExcept", filterName);
       commit("setFilterMode", "base");
     }
-    dispatch("browserPageStale");
+    commit("setBrowseTimestamp");
+    dispatch("getBrowserPage");
   },
-  async browserPageStale({ commit, dispatch, state }) {
+  async getBrowserPage({ commit, dispatch, rootGetters, state }) {
     // Get objects for the current route and settings.
-    commit("setTimestamp");
+    if (!rootGetters[IS_OPEN_TO_SEE]) {
+      return;
+    }
     if (!state.browserPageLoaded) {
       console.debug("Browser not setup running open");
       return dispatch("browserOpened");
@@ -270,7 +283,7 @@ const actions = {
     await API.getBrowserPage({
       route: router.currentRoute.params,
       settings: state.settings,
-      ts: state.timestamp,
+      ts: state.browseTimestamp,
     })
       .then((response) => {
         const data = response.data;
@@ -278,11 +291,18 @@ const actions = {
       })
       .catch(handlePageError(dispatch));
   },
-  async markedRead({ dispatch }, data) {
+  async markedRead({ commit, dispatch, rootGetters }, data) {
+    if (!rootGetters[IS_OPEN_TO_SEE]) {
+      return;
+    }
     await API.setMarkRead(data);
-    dispatch("browserPageStale");
+    commit("setBrowseTimestamp");
+    dispatch("getBrowserPage");
   },
-  async filterModeChanged({ commit, state }, { group, pk, mode }) {
+  async filterModeChanged({ commit, rootGetters, state }, { group, pk, mode }) {
+    if (!rootGetters[IS_OPEN_TO_SEE]) {
+      return;
+    }
     if (!mode) {
       return;
     }
@@ -291,7 +311,7 @@ const actions = {
         group,
         pk,
         choice_type: mode,
-        ts: state.timestamp,
+        ts: state.browseTimestamp,
       })
         .then((response) => {
           response.data.key = mode;
@@ -307,7 +327,8 @@ const actions = {
   filtersCleared({ commit, dispatch, getters }) {
     commit("clearFilters", getters.filterNames);
     commit("clearAllFormChoicesExcept");
-    dispatch("browserPageStale");
+    commit("setBrowseTimestamp");
+    dispatch("getBrowserPage");
   },
 };
 

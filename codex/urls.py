@@ -23,19 +23,19 @@ from django.views.generic.base import RedirectView
 from codex.views.frontend import IndexView
 
 
-CACHE_TIME = 60 * 60
+TIMEOUT = 60 * 60
 
 urlpatterns = [
     path(
         "favicon.ico",
-        cache_page(CACHE_TIME)(
+        cache_page(TIMEOUT)(
             RedirectView.as_view(url=staticfiles_storage.url("img/favicon-32.webp"))
         ),
         name="favicon",
     ),
     path(
         "robots.txt",
-        cache_page(CACHE_TIME)(
+        cache_page(TIMEOUT)(
             RedirectView.as_view(url=staticfiles_storage.url("robots.txt"))
         ),
         name="robots",

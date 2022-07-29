@@ -2,23 +2,19 @@
 import CHOICES from "@/choices";
 import router from "@/router";
 
-import { NOTIFY_STATES } from "./modules/notify";
-
 const WS_TIMEOUT = 19 * 1000;
-const NOTIFY_MESSAGES = new Set([
-  CHOICES.websockets.LIBRARY_UPDATE_IN_PROGRESS,
-  CHOICES.websockets.LIBRARY_UPDATE_DONE,
-  CHOICES.websockets.FAILED_IMPORTS,
-]);
-const NOTIFY_MAP = {
-  [CHOICES.websockets.LIBRARY_UPDATE_IN_PROGRESS]:
-    NOTIFY_STATES.LIBRARY_UPDATING,
-  [CHOICES.websockets.LIBRARY_UPDATE_DONE]: NOTIFY_STATES.OFF,
-  [CHOICES.websockets.FAILED_IMPORTS]: NOTIFY_STATES.FAILED,
+const SUBSCRIBE_MESSAGES = {
+  admin: JSON.stringify({
+    type: "subscribe",
+    register: true,
+    admin: true,
+  }),
+  user: JSON.stringify({ type: "subscribe", register: true }),
+  unsub: JSON.stringify({ type: "subscribe", register: false }),
 };
 
 const wsKeepAlive = function (ws) {
-  if (!ws || ws.readyState != 1) {
+  if (!ws || ws.readyState !== 1) {
     console.debug("socket not ready, not sending keep-alive.");
     return;
   }
@@ -57,18 +53,22 @@ const mutations = {
     // 'this' context should be the store.
     const message = event.data;
     console.debug(message);
-    if (message === CHOICES.websockets.LIBRARY_CHANGED) {
-      if (router.currentRoute.name === "browser") {
-        this.dispatch("browser/browserPageStale", { showProgress: false });
-      }
-      this.commit("reader/setTimestamp");
-      this.commit("metadata/setTimestamp");
-    } else if (NOTIFY_MESSAGES.has(message)) {
-      // notify
-      const notify = NOTIFY_MAP[message]; // translate message to state.t s
-      this.dispatch("notify/notifyChanged", notify);
-    } else {
-      console.debug("Unhandled websocket message:", message);
+    switch (message) {
+      case CHOICES.websockets.LIBRARY_CHANGED:
+        this.commit("browser/setBrowseTimestamp");
+        if (router.currentRoute.name === "browser") {
+          this.dispatch("browser/getBrowserPage", { showProgress: false });
+        }
+        this.commit("reader/setTimestamp");
+        break;
+      case CHOICES.websockets.LIBRARIAN_STATUS:
+        this.dispatch("admin/fetchLibrarianStatuses");
+        break;
+      case CHOICES.websockets.FAILED_IMPORTS:
+        this.dispatch("admin/setFailedImports", true);
+        break;
+      default:
+        console.debug("Unhandled websocket message:", message);
     }
   },
   SOCKET_RECONNECT(state, count) {
@@ -80,7 +80,31 @@ const mutations = {
   },
 };
 
+const actions = {
+  subscribe({ rootGetters }) {
+    const ws = this._vm.$socket;
+    if (!ws || ws.readyState !== 1) {
+      console.debug("No ready socket. Not subscribing to notifications.");
+      return;
+    }
+    const isAdmin = rootGetters["auth/isAdmin"];
+    if (isAdmin) {
+      ws.send(SUBSCRIBE_MESSAGES.admin);
+      return;
+    }
+    const isOpenToSee = rootGetters["auth/isOpenToSee"];
+    if (isOpenToSee) {
+      ws.send(SUBSCRIBE_MESSAGES.user);
+      return;
+    }
+    // else
+    ws.send(SUBSCRIBE_MESSAGES.unsub);
+  },
+};
+
 export default {
+  namespaced: true,
+  actions,
   state,
   mutations,
 };

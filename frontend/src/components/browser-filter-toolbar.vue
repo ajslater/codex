@@ -1,11 +1,11 @@
 <template>
   <v-toolbar id="browserToolbar" class="toolbar" dense>
-    <v-toolbar-items v-if="isOpenToSee" id="browserToolbarItems">
+    <v-toolbar-items v-if="isOpenToSee" id="browserToolbarLeftItems">
       <BrowserRootGroupSelect id="topGroupSelect" />
       <BrowserSortBySelect id="orderBySelect" />
     </v-toolbar-items>
     <v-spacer />
-    <v-toolbar-items>
+    <v-toolbar-items id="browserToolbarRightItems">
       <SettingsDrawerButton @click="toggleSettingsDrawerOpen" />
     </v-toolbar-items>
     <template #extension>
@@ -54,12 +54,15 @@ export default {
 
 <style scoped lang="scss">
 #browserToolbar {
-  padding-top: 6px; /* for filter labels */
+  padding-top: calc(6px + env(safe-area-inset-top)); /* for filter labels */
   width: 100vw;
 }
-#browserToolbarItems {
+#browserToolbarLeftItems {
   padding-top: 10px;
-  padding-left: 0px;
+  padding-left: calc(env(safe-area-inset-left) / 3);
+}
+#browserToolbarRightItems {
+  padding-right: calc(env(safe-area-inset-right) / 3);
 }
 
 #topGroupSelect {

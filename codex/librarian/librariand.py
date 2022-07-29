@@ -1,4 +1,6 @@
 """Library process worker for background tasks."""
+import platform
+
 from multiprocessing import Process
 from time import sleep
 
@@ -6,29 +8,29 @@ from setproctitle import setproctitle
 
 from codex.darwin_mp import force_darwin_multiprocessing_fork
 from codex.librarian.covers.coverd import CoverCreator
+from codex.librarian.covers.tasks import CoverTask
+from codex.librarian.db.tasks import UpdaterTask
 from codex.librarian.db.updaterd import Updater
 from codex.librarian.janitor.crond import Crond, janitor
-from codex.librarian.queue_mp import (
-    LIBRARIAN_QUEUE,
-    ComicCoverTask,
-    CreateMissingCoversTask,
-    DelayedTasks,
-    JanitorTask,
-    NotifierTask,
-    PollLibrariesTask,
+from codex.librarian.janitor.tasks import JanitorTask
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
+from codex.librarian.search.searchd import SearchIndexer
+from codex.librarian.search.tasks import (
     SearchIndexerTask,
     SearchIndexRebuildIfDBChangedTask,
-    UpdaterTask,
-    WatchdogEventTask,
-    WatchdogSyncTask,
 )
-from codex.librarian.searchd import SearchIndexer
 from codex.librarian.watchdog.eventsd import EventBatcher
 from codex.librarian.watchdog.observers import (
     LibraryEventObserver,
     LibraryPollingObserver,
 )
-from codex.notifier import Notifier
+from codex.librarian.watchdog.tasks import (
+    WatchdogEventTask,
+    WatchdogPollLibrariesTask,
+    WatchdogSyncTask,
+)
+from codex.notifier.notifierd import Notifier
+from codex.notifier.tasks import NotifierTask
 from codex.settings.logging import get_logger
 from codex.threads import QueuedThread
 from codex.version import PACKAGE_NAME
@@ -65,7 +67,7 @@ class LibrarianDaemon(Process):
     def _process_task(self, task):
         """Process an individual task popped off the queue."""
         run = True
-        if isinstance(task, ComicCoverTask):
+        if isinstance(task, CoverTask):
             self.cover_creator.queue.put(task)
         elif isinstance(task, WatchdogEventTask):
             self.event_batcher.queue.put(task)
@@ -76,7 +78,7 @@ class LibrarianDaemon(Process):
         elif isinstance(task, WatchdogSyncTask):
             for observer in self._observers:
                 observer.sync_library_watches()
-        elif isinstance(task, PollLibrariesTask):
+        elif isinstance(task, WatchdogPollLibrariesTask):
             self.library_polling_observer.poll(task.library_ids, task.force)
         elif isinstance(task, SearchIndexerTask):
             self.search_indexer.queue.put(task)
@@ -141,7 +143,8 @@ class LibrarianDaemon(Process):
         threads.
         """
         try:
-            setproctitle(f"{PACKAGE_NAME}-{self.NAME}")
+            if platform.system() != "Darwin":
+                setproctitle(f"{PACKAGE_NAME}-{self.NAME}")
             LOG.verbose("Started Librarian process.")
             self._create_threads()
             self._start_threads()
@@ -168,7 +171,6 @@ class LibrarianDaemon(Process):
         cls.proc = LibrarianDaemon()
         cls.proc.start()
         LIBRARIAN_QUEUE.put(WatchdogSyncTask())
-        LIBRARIAN_QUEUE.put(CreateMissingCoversTask())
 
     @classmethod
     def shutdown(cls):

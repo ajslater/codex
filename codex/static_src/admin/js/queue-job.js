@@ -1,6 +1,7 @@
 const CONFIRM_TASKS = new Set([
   "poll_force",
   "rebuild_index",
+  "create_missing_covers",
   "codex_update",
   "codex_restart",
 ]);

@@ -9,7 +9,7 @@ import requests
 from comicbox.config import get_config
 from django.utils import timezone
 
-from codex.models import LatestVersion
+from codex.models import Timestamp
 from codex.settings.logging import get_logger
 
 
@@ -35,12 +35,12 @@ VERSION = get_version()
 
 def _get_version_from_db():
     try:
-        lv = LatestVersion.objects.get(pk=LatestVersion.CODEX_VERSION_PK)
-        expired = timezone.now() - lv.updated_at > CACHE_EXPIRY
+        ts = Timestamp.objects.get(name=Timestamp.CODEX_VERSION)
+        expired = timezone.now() - ts.updated_at > CACHE_EXPIRY
         if expired:
-            raise LatestVersion.DoesNotExist()
-        db_version = lv.version
-    except LatestVersion.DoesNotExist:
+            raise Timestamp.DoesNotExist()
+        db_version = ts.version
+    except Timestamp.DoesNotExist:
         db_version = None
     return db_version
 
@@ -62,7 +62,9 @@ def get_latest_version(
     if latest_version is None:
         try:
             latest_version = _fetch_latest_version(package_name, repo_url_template)
-            LatestVersion.set_codex_version(latest_version)
+            ts = Timestamp.objects.get(name=Timestamp.CODEX_VERSION)
+            ts.version = latest_version
+            ts.save()
         except Exception as exc:
             LOG.error(f"Setting latest codex version in db {exc}")
     return latest_version

@@ -16,7 +16,7 @@ Including another URLconf
 from django.urls import path
 from django.views.decorators.cache import cache_control, cache_page, never_cache
 
-from codex.views.admin import QueueLibrarianJobs
+from codex.views.admin import LibrarianStatusViewSet, QueueLibrarianJobs
 from codex.views.auth import LoginView, LogoutView, RegisterView, UserView
 from codex.views.bookmark import (
     ComicBookmarkView,
@@ -25,21 +25,30 @@ from codex.views.bookmark import (
 )
 from codex.views.browser import BrowserView
 from codex.views.browser_choices import BrowserChoiceView
+from codex.views.cover import CoverView
 from codex.views.download import ComicDownloadView
 from codex.views.metadata import MetadataView
-from codex.views.notify import NotifyView
 from codex.views.reader import ComicOpenedView, ComicPageView
 
 
-CACHE_TIME = 60 * 15
-NOTIFY_MAX_AGE = 3
+COVER_MAX_AGE = 60 * 60 * 24 * 7
+PAGE_MAX_AGE = 60 * 60 * 24 * 7
+TIMEOUT = 60 * 5
 
 app_name = "api"
 urlpatterns = [
     #
     # Browser
-    path("<str:group>/<int:pk>/<int:page>", BrowserView.as_view(), name="browser_page"),
-    path("<str:group>/<int:pk>/metadata", MetadataView.as_view(), name="metadata"),
+    path(
+        "<str:group>/<int:pk>/<int:page>",
+        cache_page(TIMEOUT)(BrowserView.as_view()),
+        name="browser_page",
+    ),
+    path(
+        "<str:group>/<int:pk>/metadata",
+        cache_page(TIMEOUT)(MetadataView.as_view()),
+        name="metadata",
+    ),
     path(
         "<str:group>/<int:pk>/mark_read",
         UserBookmarkFinishedView.as_view(),
@@ -47,15 +56,22 @@ urlpatterns = [
     ),
     path(
         "<str:group>/<int:pk>/choices/<str:field_name>",
-        BrowserChoiceView.as_view(),
+        cache_page(TIMEOUT)(BrowserChoiceView.as_view()),
         name="browser_choices",
+    ),
+    path(
+        "c/<int:pk>/cover.webp",
+        cache_control(max_age=COVER_MAX_AGE)(CoverView.as_view()),
+        name="cover",
     ),
     #
     # Reader
-    path("c/<int:pk>", ComicOpenedView.as_view(), name="comic_info"),
+    path(
+        "c/<int:pk>", cache_page(TIMEOUT)(ComicOpenedView.as_view()), name="comic_info"
+    ),
     path(
         "c/<int:pk>/<int:page>/p.jpg",
-        cache_page(CACHE_TIME)(ComicPageView.as_view()),
+        cache_control(max_age=PAGE_MAX_AGE)(ComicPageView.as_view()),
         name="comic_page",
     ),
     path(
@@ -68,14 +84,7 @@ urlpatterns = [
         never_cache(ComicSettingsView.as_view()),
         name="comic_settings",
     ),
-    path("c/<int:pk>/comic.cbz", ComicDownloadView.as_view(), name="comic_download"),
-    #
-    # Notify
-    path(
-        "notify",
-        cache_control(max_age=NOTIFY_MAX_AGE)(NotifyView.as_view()),
-        name="notify",
-    ),
+    path("c/<int:pk>/comic.cbz", ComicDownloadView.as_view(), name="archive_download"),
     #
     # Auth
     path("auth/register", RegisterView.as_view(), name="register"),
@@ -83,4 +92,9 @@ urlpatterns = [
     path("auth/me", UserView.as_view(), name="me"),
     path("auth/logout", LogoutView.as_view(), name="logout"),
     path("admin/queue_job", QueueLibrarianJobs.as_view(), name="queue_job"),
+    path(
+        "admin/librarian_status",
+        never_cache(LibrarianStatusViewSet.as_view({"get": "list"})),
+        name="librarian_status",
+    ),
 ]

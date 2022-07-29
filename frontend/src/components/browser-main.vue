@@ -1,6 +1,6 @@
 <template>
   <v-main id="browsePane" :class="{ padFooter: padFooter }">
-    <div v-if="showBrowseItems">
+    <div v-if="showBrowseItems" id="browsePaneContainer">
       <BrowserCard
         v-for="item in objList"
         :key="`${item.group}${item.pk}`"
@@ -101,8 +101,17 @@ export default {
 #browsePane {
   display: flex;
   margin-top: 160px;
-  margin-left: 15px;
+  margin-left: max(16px, env(safe-area-inset-left));
+  margin-right: max(16px, env(safe-area-inset-right));
   overflow: auto;
+}
+#browsePaneContainer {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, 120px);
+  grid-gap: 32px;
+  justify-content: start;
+  align-content: flex-start;
 }
 #announce {
   text-align: center;
@@ -123,6 +132,11 @@ export default {
 }
 @import "~vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
+  #browsePaneContainer {
+    grid-template-columns: repeat(auto-fit, 100px);
+    grid-gap: 16px;
+    justify-content: space-evenly;
+  }
   #noComicsFound {
     font-size: large;
   }

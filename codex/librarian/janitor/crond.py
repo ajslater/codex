@@ -6,29 +6,45 @@ from time import sleep
 from django.utils import timezone
 from humanize import precisedelta
 
-from codex.librarian.janitor.cleanup import cleanup_fks
-from codex.librarian.janitor.search import clean_old_queries
-from codex.librarian.janitor.update import restart_codex, update_codex
-from codex.librarian.janitor.vacuum import backup_db, vacuum_db
-from codex.librarian.queue_mp import (
-    LIBRARIAN_QUEUE,
-    BackupTask,
-    CleanFKsTask,
-    CleanSearchTask,
-    CleanupMissingComicCovers,
-    RestartTask,
-    SearchIndexUpdateTask,
-    UpdateTask,
-    VacuumTask,
+from codex.librarian.covers.purge import COVER_ORPHAN_FIND_STATUS_KEYS
+from codex.librarian.covers.tasks import CoverRemoveOrphansTask
+from codex.librarian.janitor.cleanup import (
+    CLEANUP_FK_STATUS_KEYS,
+    TOTAL_CLASSES,
+    cleanup_fks,
 )
+from codex.librarian.janitor.search import CLEAN_SEARCH_STATUS_KEYS, clean_old_queries
+from codex.librarian.janitor.tasks import (
+    JanitorBackupTask,
+    JanitorCleanFKsTask,
+    JanitorCleanSearchTask,
+    JanitorClearStatusTask,
+    JanitorRestartTask,
+    JanitorUpdateTask,
+    JanitorVacuumTask,
+)
+from codex.librarian.janitor.update import (
+    UPDATE_CODEX_STATUS_KEYS,
+    restart_codex,
+    update_codex,
+)
+from codex.librarian.janitor.vacuum import (
+    BACKUP_STATUS_KEYS,
+    VACCUM_STATUS_KEYS,
+    backup_db,
+    vacuum_db,
+)
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE
+from codex.librarian.search.searchd import UPDATE_SEARCH_INDEX_KEYS
+from codex.librarian.search.tasks import SearchIndexJanitorUpdateTask
+from codex.librarian.status import librarian_status_done, librarian_status_update
+from codex.models import Timestamp
 from codex.settings.logging import get_logger
-from codex.settings.settings import CACHE_PATH
 from codex.threads import NamedThread
 
 
 LOG = get_logger(__name__)
 DEBOUNCE = 5
-CRON_TIMESTAMP = CACHE_PATH / "crond_timestamp"
 ONE_DAY = timedelta(days=1)
 
 
@@ -51,7 +67,7 @@ class Crond(NamedThread):
         """Get seconds until midnight."""
         now = timezone.now()
         try:
-            mtime = CRON_TIMESTAMP.stat().st_mtime
+            mtime = Timestamp.get(Timestamp.JANITOR)
             last_cron = datetime.fromtimestamp(mtime, tz=timezone.utc)
         except FileNotFoundError:
             # get last midnight. Usually only on very first run.
@@ -68,6 +84,16 @@ class Crond(NamedThread):
 
         return int(seconds)
 
+    @staticmethod
+    def _init_librarian_status():
+        librarian_status_update(CLEANUP_FK_STATUS_KEYS, 0, TOTAL_CLASSES, notify=False)
+        librarian_status_update(CLEAN_SEARCH_STATUS_KEYS, 0, None, notify=False)
+        librarian_status_update(VACCUM_STATUS_KEYS, 0, None, notify=False)
+        librarian_status_update(BACKUP_STATUS_KEYS, 0, None, notify=False)
+        librarian_status_update(UPDATE_CODEX_STATUS_KEYS, 0, None, notify=False)
+        librarian_status_update(UPDATE_SEARCH_INDEX_KEYS, 0, None, notify=False)
+        librarian_status_update(COVER_ORPHAN_FIND_STATUS_KEYS, 0, None)
+
     def run(self):
         """Watch a path and log the events."""
         try:
@@ -82,22 +108,23 @@ class Crond(NamedThread):
                     if self._stop_event.is_set():
                         break
 
+                    self._init_librarian_status()
                     try:
                         tasks = [
-                            CleanFKsTask(),
-                            CleanSearchTask(),
-                            VacuumTask(),
-                            BackupTask(),
-                            UpdateTask(force=False),
-                            SearchIndexUpdateTask(False),
-                            CleanupMissingComicCovers(),
+                            JanitorCleanFKsTask(),
+                            JanitorCleanSearchTask(),
+                            JanitorVacuumTask(),
+                            JanitorBackupTask(),
+                            JanitorUpdateTask(force=False),
+                            SearchIndexJanitorUpdateTask(False),
+                            CoverRemoveOrphansTask(),
                         ]
                         for task in tasks:
                             LIBRARIAN_QUEUE.put(task)
                     except Exception as exc:
                         LOG.error(f"Error in {self.NAME}")
                         LOG.exception(exc)
-                    CRON_TIMESTAMP.touch(exist_ok=True)
+                    Timestamp.touch(Timestamp.JANITOR)
                     sleep(2)
         except Exception as exc:
             LOG.error(f"Error in {self.NAME}")
@@ -117,19 +144,30 @@ class Crond(NamedThread):
             self._cond.notify()
 
 
+def clear_status():
+    """Clear all librarian statuses."""
+    librarian_status_done([])
+
+
 def janitor(task):
     """Run Janitor tasks as the librarian process directly."""
-    if isinstance(task, VacuumTask):
-        vacuum_db()
-    elif isinstance(task, BackupTask):
-        backup_db()
-    elif isinstance(task, UpdateTask):
-        update_codex()
-    elif isinstance(task, RestartTask):
-        restart_codex()
-    elif isinstance(task, CleanSearchTask):
-        clean_old_queries()
-    elif isinstance(task, CleanFKsTask):
-        cleanup_fks()
-    else:
-        LOG.warning(f"Janitor received unknown task {task}")
+    try:
+        if isinstance(task, JanitorVacuumTask):
+            vacuum_db()
+        elif isinstance(task, JanitorBackupTask):
+            backup_db()
+        elif isinstance(task, JanitorUpdateTask):
+            update_codex()
+        elif isinstance(task, JanitorRestartTask):
+            restart_codex()
+        elif isinstance(task, JanitorCleanSearchTask):
+            clean_old_queries()
+        elif isinstance(task, JanitorCleanFKsTask):
+            cleanup_fks()
+        elif isinstance(task, JanitorClearStatusTask):
+            clear_status()
+        else:
+            LOG.warning(f"Janitor received unknown task {task}")
+    except Exception as exc:
+        LOG.error("Janitor task crashed.")
+        LOG.exception(exc)

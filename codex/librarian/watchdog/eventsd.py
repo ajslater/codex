@@ -18,7 +18,9 @@ from watchdog.events import (
     FileSystemEventHandler,
 )
 
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DBDiffTask, WatchdogEventTask
+from codex.librarian.db.tasks import UpdaterDBDiffTask
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE
+from codex.librarian.watchdog.tasks import WatchdogEventTask
 from codex.settings.logging import get_logger
 from codex.settings.settings import MAX_DB_OPS
 from codex.threads import AggregateMessageQueuedThread
@@ -119,7 +121,7 @@ class EventBatcher(AggregateMessageQueuedThread):
         """Create a task from cached aggregated message data."""
         self._deduplicate_events(library_id)
         args = self.cache[library_id]
-        return DBDiffTask(**args)
+        return UpdaterDBDiffTask(**args)
 
     def send_all_items(self):
         """Send all tasks to library queue and reset events cache."""

@@ -5,6 +5,7 @@
     app
     right
     temporary
+    touchless
   >
     <div v-if="isOpenToSee">
       <div id="readerSettings">
@@ -14,8 +15,9 @@
           <v-radio label="Default for all comics" :value="true" />
         </v-radio-group>
         <v-radio-group
-          :value="settingsDialogFitTo"
+          class="displayRadioGroup"
           label="Display"
+          :value="settingsDialogFitTo"
           @change="settingsDialogChanged({ fitTo: $event })"
         >
           <v-radio
@@ -26,8 +28,9 @@
           />
         </v-radio-group>
         <v-checkbox
+          class="displayTwoPages"
+          label="Two pages"
           :value="settingsDialogTwoPages"
-          label="Show Two pages"
           :indeterminate="
             settingsDialogTwoPages === null ||
             settingsDialogTwoPages === undefined
@@ -129,5 +132,13 @@ export default {
   padding-top: 10px;
   padding-left: 15px;
   padding-right: env(safe-area-inset-right);
+  padding-bottom: 10px;
+}
+.displayRadioGroup,
+.displayTwoPages {
+  margin-top: 0px;
+}
+.displayTwoPages {
+  padding-top: 0px;
 }
 </style>

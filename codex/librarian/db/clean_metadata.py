@@ -41,7 +41,7 @@ _MD_CHAR_KEYS = frozenset(
     (
         "age_rating",
         "country",
-        "cover_path",
+        "cover_pk",
         "file_format",
         "format",
         "issue_suffix",
@@ -51,10 +51,8 @@ _MD_CHAR_KEYS = frozenset(
         "scan_info",
     )
 )
-# _MD_TEXT_KEYS = frozenset(("comments", "notes", "summary"))
 _TWO_PLACES = Decimal("0.01")
 _PSI_MAX = 2147483647
-# _TEXT_MAX_LENGTH = 9**10
 GROUPS = frozenset(("publisher", "imprint", "series", "volume"))
 _URL_MAX_LENGTH = 200
 _M2M_NAMED_KEYS = frozenset(
@@ -108,7 +106,7 @@ def _parse_comic_issue(md: dict[str, Any]):
 
 def _clean_comic_decimals(md: dict[str, Any], md_keys: frozenset[str]) -> None:
     """Clean decimal values."""
-    for key in _MD_DECIMAL_KEYS & md_keys:
+    for key in _MD_DECIMAL_KEYS.intersection(md_keys):
         value = md.get(key)
         md[key] = _clean_decimal(value, key)
 
@@ -117,7 +115,7 @@ def _clean_comic_positive_small_ints(
     md: dict[str, Any], md_keys: frozenset[str]
 ) -> None:
     """Clean positive small integers."""
-    for key in _MD_PSI_KEYS & md_keys:
+    for key in _MD_PSI_KEYS.intersection(md_keys):
         field: PositiveSmallIntegerField = Comic._meta.get_field(key)  # type:ignore
         try:
             value = md[key]
@@ -166,13 +164,13 @@ def _clean_charfield(value: Optional[str], field: CharField) -> Optional[str]:
 def _clean_comic_groups(md: dict[str, Any], md_keys: frozenset[str]) -> None:
     """Clean the comic groups."""
     field: CharField = BrowserGroupModel._meta.get_field("name")  # type:ignore
-    for group in GROUPS & md_keys:
+    for group in GROUPS.intersection(md_keys):
         md[group] = _clean_charfield(md[group], field)
 
 
 def _clean_comic_charfields(md: dict[str, Any], md_keys: frozenset[str]) -> None:
     """Clean all the comic charfields."""
-    for key in _MD_CHAR_KEYS & md_keys:
+    for key in _MD_CHAR_KEYS.intersection(md_keys):
         field: CharField = Comic._meta.get_field(key)  # type:ignore
         md[key] = _clean_charfield(md[key], field)
 
@@ -202,7 +200,7 @@ def _clean_comic_web(md):
 
 def _clean_comic_m2m_named(md: dict[str, Any], md_keys: frozenset[str]):
     """Clean the named models in the m2m fields."""
-    for key in _M2M_NAMED_KEYS & md_keys:
+    for key in _M2M_NAMED_KEYS.intersection(md_keys):
         names = md.get(key)
         if not names:
             continue

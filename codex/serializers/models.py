@@ -16,6 +16,7 @@ from codex.models import (
     CreditRole,
     Genre,
     Imprint,
+    LibrarianStatus,
     Location,
     Publisher,
     Series,
@@ -287,3 +288,13 @@ class ComicSerializer(ModelSerializer):
         model = Comic
         exclude = ("folders", "parent_folder", "stat")
         depth = 1
+
+
+class LibrarianStatusSerializer(ModelSerializer):
+    """Serializer Librarian task statuses."""
+
+    class Meta:
+        """Configure the model."""
+
+        model = LibrarianStatus
+        exclude = ("active", "created_at", "updated_at")

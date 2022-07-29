@@ -3,22 +3,23 @@ import os
 
 from datetime import datetime
 from multiprocessing import Process
+from uuid import uuid4
 
 from django.core.management import call_command
 from django.utils import timezone
 
-from codex.librarian.queue_mp import (
-    LIBRARIAN_QUEUE,
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE
+from codex.librarian.search.tasks import (
+    SearchIndexJanitorUpdateTask,
     SearchIndexRebuildIfDBChangedTask,
-    SearchIndexUpdateTask,
 )
-from codex.models import LatestVersion, Library, SearchResult
+from codex.librarian.status import librarian_status_done, librarian_status_update
+from codex.models import Library, SearchResult, Timestamp
 from codex.settings.logging import get_logger
-from codex.settings.settings import CACHE_PATH, XAPIAN_INDEX_PATH
+from codex.settings.settings import XAPIAN_INDEX_PATH, XAPIAN_INDEX_UUID_PATH
 from codex.threads import QueuedThread
 
 
-SEARCH_INDEX_TIMESTAMP_PATH = CACHE_PATH / "search_index_timestamp"
 UPDATE_INDEX_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S%Z"
 LOG = get_logger(__name__)
 WORKERS = os.cpu_count()
@@ -31,6 +32,39 @@ UPDATE_KWARGS = {
     "workers": WORKERS,
     "verbosity": VERBOSITY,
 }
+SEARCH_INDEX_KEYS = {"type": "Search index"}
+UPDATE_SEARCH_INDEX_KEYS = {**SEARCH_INDEX_KEYS, "name": "update"}
+REBUILD_SEARCH_INDEX_KEYS = {**SEARCH_INDEX_KEYS, "name": "rebuild"}
+
+
+def set_xapian_index_version():
+    """Set the codex db to xapian matching id."""
+    version = str(uuid4())
+    try:
+        lv = Timestamp.objects.get(name=Timestamp.XAPIAN_INDEX_UUID)
+        lv.version = version
+        lv.save()
+        XAPIAN_INDEX_PATH.mkdir(parents=True, exist_ok=True)
+        with XAPIAN_INDEX_UUID_PATH.open("w") as uuid_file:
+            uuid_file.write(version)
+    except Exception as exc:
+        LOG.error(f"Setting search index to db synchronization token: {exc}")
+
+
+def is_xapian_uuid_match():
+    """Is this xapian index for this database."""
+    result = False
+    try:
+        with XAPIAN_INDEX_UUID_PATH.open("r") as uuid_file:
+            version = uuid_file.read()
+        result = Timestamp.objects.filter(
+            name=Timestamp.XAPIAN_INDEX_UUID, version=version
+        ).exists()
+    except (FileNotFoundError, Timestamp.DoesNotExist):
+        pass
+    except Exception as exc:
+        LOG.exception(exc)
+    return result
 
 
 def _call_command(args, kwargs):
@@ -43,6 +77,10 @@ def _call_command(args, kwargs):
 
 def update_search_index(rebuild=False):
     """Update the search index."""
+    if rebuild:
+        status_keys = REBUILD_SEARCH_INDEX_KEYS
+    else:
+        status_keys = UPDATE_SEARCH_INDEX_KEYS
     try:
         any_update_in_progress = Library.objects.filter(
             update_in_progress=True
@@ -51,19 +89,21 @@ def update_search_index(rebuild=False):
             LOG.verbose("Database update in progress, not updating search index yet.")
             return
 
-        if not rebuild and not LatestVersion.is_xapian_uuid_match():
+        if not rebuild and not is_xapian_uuid_match():
             LOG.warning("Database does not match search index.")
             rebuild = True
+            status_keys = REBUILD_SEARCH_INDEX_KEYS
+        librarian_status_update(status_keys, 0, None)
 
         XAPIAN_INDEX_PATH.mkdir(parents=True, exist_ok=True)
 
         if rebuild:
             LOG.verbose("Rebuilding search index...")
             _call_command(REBUILD_ARGS, REBUILD_KWARGS)
-            LatestVersion.set_xapian_index_version()
+            set_xapian_index_version()
         else:
             try:
-                timestamp = SEARCH_INDEX_TIMESTAMP_PATH.stat().st_mtime
+                timestamp = Timestamp.get(Timestamp.SEARCH_INDEX)
             except FileNotFoundError:
                 timestamp = 0
             start = datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime(
@@ -77,20 +117,22 @@ def update_search_index(rebuild=False):
             kwargs = {"start": start}
             kwargs.update(UPDATE_KWARGS)
             _call_command(UPDATE_ARGS, kwargs)
-        SEARCH_INDEX_TIMESTAMP_PATH.touch()
+        Timestamp.touch(Timestamp.SEARCH_INDEX)
 
         # Nuke the Search Result table as it's now out of date.
         SearchResult.truncate_and_reset()
         LOG.verbose("Finished updating search index.")
     except Exception as exc:
         LOG.error(f"Update search index: {exc}")
+    finally:
+        librarian_status_done([SEARCH_INDEX_KEYS])
 
 
 def rebuild_search_index_if_db_changed():
     """Rebuild the search index if the db changed."""
-    if not LatestVersion.is_xapian_uuid_match():
+    if not is_xapian_uuid_match():
         LOG.warning("Database does not match search index.")
-        task = SearchIndexUpdateTask(True)
+        task = SearchIndexJanitorUpdateTask(True)
         LIBRARIAN_QUEUE.put(task)
     else:
         LOG.verbose("Database matches search index.")
@@ -105,7 +147,7 @@ class SearchIndexer(QueuedThread):
         """Run the updater."""
         if isinstance(task, SearchIndexRebuildIfDBChangedTask):
             rebuild_search_index_if_db_changed()
-        elif isinstance(task, SearchIndexUpdateTask):
+        elif isinstance(task, SearchIndexJanitorUpdateTask):
             update_search_index(rebuild=task.rebuild)
         else:
             LOG.warning(f"Bad task sent to search index thread: {task}")

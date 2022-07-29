@@ -8,6 +8,8 @@ from pathlib import Path
 
 from django.db.models.functions import Now
 
+from codex.librarian.db.status import ImportStatusKeys
+from codex.librarian.status import librarian_status_done, librarian_status_update
 from codex.models import (
     Credit,
     CreditPerson,
@@ -90,14 +92,14 @@ def _bulk_group_updater(group_tree_counts, cls):
         obj = _update_group_obj(cls, group_param_tuple, count, count_field)
         if obj:
             update_groups.append(obj)
-    return cls.objects.bulk_update(update_groups, fields=[count_field])
+    count = cls.objects.bulk_update(update_groups, fields=[count_field])
+    return count
 
 
 def _bulk_create_or_update_groups(all_operation_groups, func, log_tion, log_verb):
     """Create missing groups breadth first."""
     if not all_operation_groups:
         return False
-
     num_operation_groups = 0
     for cls, group_tree_counts in all_operation_groups.items():
         if not group_tree_counts:
@@ -114,7 +116,7 @@ def _bulk_create_or_update_groups(all_operation_groups, func, log_tion, log_verb
         else:
             LOG.verbose(log)
 
-    return num_operation_groups > 0
+    return num_operation_groups
 
 
 def bulk_folders_modified(library, paths):
@@ -141,7 +143,7 @@ def bulk_folders_modified(library, paths):
     else:
         LOG.verbose(log)
 
-    return bool(count)
+    return count
 
 
 def bulk_folders_create(library, folder_paths):
@@ -188,7 +190,7 @@ def bulk_folders_create(library, folder_paths):
             LOG.info(log)
         else:
             LOG.verbose(log)
-    return total_count > 0
+    return total_count
 
 
 def _bulk_create_named_models(cls, names):
@@ -208,7 +210,7 @@ def _bulk_create_named_models(cls, names):
         LOG.info(log)
     else:
         LOG.verbose(log)
-    return count > 0
+    return count
 
 
 def _bulk_create_credits(create_credit_tuples):
@@ -236,7 +238,30 @@ def _bulk_create_credits(create_credit_tuples):
     else:
         LOG.verbose(log)
 
-    return count > 0
+    return count
+
+
+def _init_librarian_status(
+    create_groups, update_groups, create_folder_paths, create_fks, create_credits
+):
+    total_fks = 0
+    for groups in create_groups.values():
+        total_fks += len(groups)
+    for groups in update_groups.values():
+        total_fks += len(groups)
+    total_fks += len(create_folder_paths)
+    for names in create_fks.values():
+        total_fks += len(names)
+    total_fks += len(create_credits)
+    librarian_status_update(ImportStatusKeys.CREATE_FKS, 0, total_fks)
+    return total_fks
+
+
+def _status_update(count, created_fks, total_fks, changed):
+    changed |= count > 0
+    created_fks += count
+    librarian_status_update(ImportStatusKeys.CREATE_FKS, created_fks, total_fks)
+    return changed, created_fks
 
 
 def bulk_create_all_fks(
@@ -248,17 +273,30 @@ def bulk_create_all_fks(
     create_credits,
 ) -> bool:
     """Bulk create all foreign keys."""
+    total_fks = _init_librarian_status(
+        create_groups, update_groups, create_folder_paths, create_fks, create_credits
+    )
     LOG.verbose(f"Creating comic foreign keys for {library.path}...")
-    changed = _bulk_create_or_update_groups(
+    created_fks = 0
+    changed = False
+    count = _bulk_create_or_update_groups(
         create_groups, _bulk_group_creator, "creation", "Created"
     )
-    changed |= _bulk_create_or_update_groups(
+    changed, created_fks = _status_update(count, created_fks, total_fks, changed)
+    count = _bulk_create_or_update_groups(
         update_groups, _bulk_group_updater, "update", "Updated"
     )
+    changed, created_fks = _status_update(count, created_fks, total_fks, changed)
 
-    changed |= bulk_folders_create(library, create_folder_paths)
+    count = bulk_folders_create(library, create_folder_paths)
+    changed, created_fks = _status_update(count, created_fks, total_fks, changed)
+
     for cls, names in create_fks.items():
-        changed |= _bulk_create_named_models(cls, names)
+        count = _bulk_create_named_models(cls, names)
+        changed, created_fks = _status_update(count, created_fks, total_fks, changed)
+
     # This must happen after credit_fks created by create_named_models
-    changed |= _bulk_create_credits(create_credits)
+    count = _bulk_create_credits(create_credits)
+    changed |= count > 0
+    librarian_status_done([ImportStatusKeys.CREATE_FKS])
     return changed

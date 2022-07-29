@@ -1,5 +1,5 @@
 import axios from "axios";
-export const ROOT_PATH = `${window.rootPath}`;
+export const ROOT_PATH = window.rootPath;
 const VERSION = 2;
 export const API_PREFIX = `${ROOT_PATH}api/v${VERSION}`;
 const CONFIG = {

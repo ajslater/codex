@@ -1,5 +1,6 @@
 """A Codex database event emitter for use by the observer."""
 import os
+import platform
 
 from itertools import chain
 from pathlib import Path
@@ -21,11 +22,13 @@ from watchdog.events import (
 from watchdog.observers.api import EventEmitter
 from watchdog.utils.dirsnapshot import DirectorySnapshot, DirectorySnapshotDiff
 
+from codex.librarian.status import librarian_status_done, librarian_status_update
 from codex.models import Comic, FailedImport, Folder, Library
 from codex.settings.logging import get_logger
 
 
 LOG = get_logger(__name__)
+POLL_STATUS_KEYS = {"type": "Poll"}
 DOCKER_UNMOUNTED_FN = "DOCKER_UNMOUNTED_VOLUME"
 
 
@@ -104,14 +107,7 @@ class DatabasePollingEmitter(EventEmitter):
 
     DIR_NOT_FOUND_TIMEOUT = 15 * 60
 
-    def __init__(
-        self,
-        event_queue,
-        watch,
-        timeout=None,  # unused, timeout is set dynamically internally
-        stat=os.stat,
-        listdir=os.listdir,
-    ):
+    def __init__(self, event_queue, watch, timeout=None):
         """Initialize snapshot methods."""
         self._poll_cond = Condition()
         self._force = False
@@ -120,13 +116,14 @@ class DatabasePollingEmitter(EventEmitter):
         super().__init__(event_queue, watch)
 
         self._take_dir_snapshot = lambda: DirectorySnapshot(
-            self.watch.path, self.watch.is_recursive, stat=stat, listdir=listdir
+            self._watch.path,
+            recursive=self.watch.is_recursive,
+            # default stat and listdir params
         )
 
     def poll(self, force=False):
         """Poll now, sooner than timeout."""
-        if force:
-            self._force = True
+        self._force = force
         with self._poll_cond:
             self._poll_cond.notify()
 
@@ -143,124 +140,149 @@ class DatabasePollingEmitter(EventEmitter):
         if not library.poll:
             LOG.warning(f"Library {self._watch_path} not poll enabled.")
             self._stopped_event.set()
-            return False, 0
+            return False
         if not self._watch_path.is_dir():
             LOG.warning(f"Library {self._watch_path} not found.")
-            return False, self.DIR_NOT_FOUND_TIMEOUT
+            return
         if self._watch_path_unmounted.exists():
             # Maybe overkill of caution here
             LOG.warning(
                 f"Library {self._watch_path} looks like an unmounted docker volume."
             )
-            return False, self.DIR_NOT_FOUND_TIMEOUT
+            return
         if not tuple(self._watch_path.iterdir()):
             # Maybe overkill of caution here too
             LOG.warning(f"{self._watch_path} is empty. Suspect it may be unmounted.")
-            return False, self.DIR_NOT_FOUND_TIMEOUT
+            return
 
-        return True, None
+        return True
 
     @property
     def timeout(self):
         """Get the timeout for this emitter from its library."""
-        library = Library.objects.get(path=self.watch.path)
-        ok, timeout = self._is_watch_path_ok(library)
-        if not ok:
-            return timeout
+        # The timeout from the constructor, self._timeout, is thrown away in favor
+        # of a dynamic timeout from the database.
+        timeout = self._timeout  # default is 1 second
+        try:
+            library = Library.objects.get(path=self.watch.path)
+            ok = self._is_watch_path_ok(library)
+            if ok is False:
+                return 0
+            elif ok is None:
+                return self.DIR_NOT_FOUND_TIMEOUT
 
-        if library.last_poll:
-            since_last_poll = timezone.now() - library.last_poll
-            timeout = max(
-                0, library.poll_every.total_seconds() - since_last_poll.total_seconds()
-            )
-
-        else:
-            timeout = 0
+            if library.last_poll:
+                since_last_poll = timezone.now() - library.last_poll
+                timeout = max(
+                    0,
+                    library.poll_every.total_seconds()
+                    - since_last_poll.total_seconds(),
+                )
+        except Exception as exc:
+            LOG.error(f"Getting timeout for {self.watch.path}")
+            LOG.exception(exc)
         return timeout
 
-    def queue_events(self, timeout=None):
+    def _is_take_snapshot(self, timeout):
+        """Determine if we should take a snapshot."""
+        with self._poll_cond:
+            if timeout:
+                LOG.verbose(
+                    f"Polling {self.watch.path} again in {precisedelta(timeout)}."
+                )
+            self._poll_cond.wait(timeout)
+
+        if not self.should_keep_running():
+            return
+
+        library = Library.objects.get(path=self.watch.path)
+        ok = self._is_watch_path_ok(library)
+        if not ok:
+            LOG.warning("Not Polling.")
+            return
+        return library
+
+    def _get_diff(self):
+        """Take snapshots and compute the diff."""
+        # Get event diff between database snapshot and directory snapshot.
+        # Update snapshot.
+        db_snapshot = self._take_db_snapshot()
+        dir_snapshot = self._take_dir_snapshot()
+
+        if len(dir_snapshot.paths) <= 1:
+            # Maybe overkill of caution here also
+            LOG.warning(f"{self._watch_path} dir snapshot is empty. Not polling")
+            LOG.verbose(f"{dir_snapshot.paths=}")
+            return
+
+        return DirectorySnapshotDiff(db_snapshot, dir_snapshot)
+
+    def _queue_events(self, diff):
+        """Create and queue the events from the diff."""
+        LOG.verbose(
+            f"Poller sending unfiltered files: {len(diff.files_deleted)} "
+            f"deleted, {len(diff.files_modified)} modified, "
+            f"{len(diff.files_created)} created, "
+            f"{len(diff.files_moved)} moved."
+        )
+        LOG.verbose(
+            f"Poller sending comic folders: {len(diff.dirs_deleted)} deleted,"
+            f" {len(diff.dirs_modified)} modified,"
+            f" {len(diff.dirs_moved)} moved."
+        )
+        # Files.
+        # Could remove non-comics here, but handled by the EventHandler
+        for src_path in diff.files_deleted:
+            self.queue_event(FileDeletedEvent(src_path))
+        for src_path in diff.files_modified:
+            self.queue_event(FileModifiedEvent(src_path))
+        for src_path in diff.files_created:
+            self.queue_event(FileCreatedEvent(src_path))
+        for src_path, dest_path in diff.files_moved:
+            self.queue_event(FileMovedEvent(src_path, dest_path))
+
+        # Directories.
+        for src_path in diff.dirs_deleted:
+            self.queue_event(DirDeletedEvent(src_path))
+        for src_path in diff.dirs_modified:
+            self.queue_event(DirModifiedEvent(src_path))
+        # Folders are only created by comics themselves
+        # The event handler excludes DirCreatedEvent as well.
+        for src_path, dest_path in diff.dirs_moved:
+            self.queue_event(DirMovedEvent(src_path, dest_path))
+
+    def queue_events(self, timeout):
         """Queue events like PollingEmitter but always use a fresh db snapshot."""
         # We don't want to hit the disk continuously.
         # timeout behaves like an interval for polling emitters.
+        status_keys = {**POLL_STATUS_KEYS, "name": self.watch.path}
         try:
-            with self._poll_cond:
-                if timeout:
-                    LOG.verbose(
-                        f"Polling {self.watch.path} again in {precisedelta(timeout)}."
-                    )
-                self._poll_cond.wait(timeout)
-                if not self.should_keep_running():
-                    return
+            library = self._is_take_snapshot(timeout)
+            if not library:
+                return
 
-                library = Library.objects.get(path=self.watch.path)
-                ok, _ = self._is_watch_path_ok(library)
-                if not ok:
-                    LOG.warning("Not Polling.")
-                    return
-                LOG.verbose(f"Polling {self.watch.path}...")
+            librarian_status_update(status_keys, 0, None)
+            LOG.verbose(f"Polling {self.watch.path}...")
+            diff = self._get_diff()
+            if not diff:
+                return
 
-                # Get event diff between database snapshot and directory snapshot.
-                # Update snapshot.
-                db_snapshot = self._take_db_snapshot()
-                dir_snapshot = self._take_dir_snapshot()
+            self._queue_events(diff)
 
-                if len(dir_snapshot.paths) <= 1:
-                    # Maybe overkill of caution here also
-                    LOG.warning(
-                        f"{self._watch_path} dir snapshot is empty. Not polling"
-                    )
-                    LOG.verbose(f"{dir_snapshot.paths=}")
-                    return
-
-                events = DirectorySnapshotDiff(db_snapshot, dir_snapshot)
-
-                LOG.verbose(
-                    f"Poller sending unfiltered files: {len(events.files_deleted)} "
-                    f"deleted, {len(events.files_modified)} modified, "
-                    f"{len(events.files_created)} created, "
-                    f"{len(events.files_moved)} moved."
-                )
-                LOG.verbose(
-                    f"Poller sending comic folders: {len(events.dirs_deleted)} deleted,"
-                    f" {len(events.dirs_modified)} modified,"
-                    f" {len(events.dirs_moved)} moved."
-                )
-                # Files.
-                # Could remove non-comics here, but handled by the EventHandler
-                for src_path in events.files_deleted:
-                    self.queue_event(FileDeletedEvent(src_path))
-                for src_path in events.files_modified:
-                    self.queue_event(FileModifiedEvent(src_path))
-                for src_path in events.files_created:
-                    self.queue_event(FileCreatedEvent(src_path))
-                for src_path, dest_path in events.files_moved:
-                    self.queue_event(FileMovedEvent(src_path, dest_path))
-
-                # Directories.
-                for src_path in events.dirs_deleted:
-                    self.queue_event(DirDeletedEvent(src_path))
-                for src_path in events.dirs_modified:
-                    self.queue_event(DirModifiedEvent(src_path))
-                # Folders are only created by comics themselves
-                # The event handler excludes these but skip it here too.
-                # for src_path in events.dirs_created:
-                #    self.queue_event(DirCreatedEvent(src_path))
-                #
-                for src_path, dest_path in events.dirs_moved:
-                    self.queue_event(DirMovedEvent(src_path, dest_path))
-
-                Library.objects.filter(path=self.watch.path).update(
-                    last_poll=Now(), updated_at=Now()
-                )
+            library.last_poll = Now()
+            library.save()
 
             LOG.verbose(f"Polling {self.watch.path} finished.")
         except Exception as exc:
             LOG.exception(exc)
             raise exc
+        finally:
+            librarian_status_done([status_keys])
 
     def run(self, *args, **kwargs):
         """Identify the thread."""
-        setproctitle(f"WE{self._watch_path}")
+        if platform.system() != "Darwin":
+            setproctitle(f"WE{self._watch_path}")
         super().run(*args, **kwargs)
 
     def on_thread_stop(self):

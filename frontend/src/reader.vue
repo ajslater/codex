@@ -6,10 +6,10 @@
           <ReaderComicPage :page-increment="+0" />
           <ReaderComicPage :page-increment="+1" />
         </div>
+        <div id="navOverlay" @click="toggleToolbars">
+          <ReaderNavOverlay />
+        </div>
       </v-main>
-      <nav id="navOverlay" :v-touch="touchMap" @click="toggleToolbars">
-        <ReaderNavOverlay />
-      </nav>
       <v-slide-y-transition>
         <ReaderTopToolbar v-show="showToolbars" />
       </v-slide-y-transition>
@@ -27,7 +27,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters } from "vuex";
+import { mapActions, mapGetters, mapMutations } from "vuex";
 
 import ReaderComicPage from "@/components/reader-comic-page";
 import ReaderNavOverlay from "@/components/reader-nav-overlay";
@@ -62,6 +62,7 @@ export default {
         this.routeChanged();
       }
       window.scrollTo(0, 0);
+      this.setBrowseTimestamp();
     },
   },
   created() {
@@ -69,6 +70,7 @@ export default {
   },
   methods: {
     ...mapActions("reader", ["routeTo", "bookChanged", "routeChanged"]),
+    ...mapMutations("browser", ["setBrowseTimestamp"]),
     toggleToolbars: function () {
       this.showToolbars = !this.showToolbars;
     },
@@ -100,9 +102,11 @@ export default {
   display: flex;
   flex-wrap: nowrap;
   justify-content: center;
+  touch-action: manipulation;
 }
 #readerContainer {
   max-width: 100%;
+  position: relative;
 }
 #announcement {
   text-align: center;

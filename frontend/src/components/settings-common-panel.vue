@@ -1,9 +1,7 @@
 <template>
   <div>
-    <v-divider />
-    <AdminMenu />
-    <v-divider />
     <AuthLoginDialog />
+    <AdminMenu />
     <VersionsFooter />
   </div>
 </template>

@@ -83,7 +83,6 @@ export default {
 
 <style scoped lang="scss">
 #readerKeyboardShortcutsDialog {
-  margin-top: 5px;
   padding: 15px;
 }
 #readerKeyboardShortcutsTable {

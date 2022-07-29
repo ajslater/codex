@@ -1,23 +1,17 @@
 <template>
   <v-app>
     <router-view />
-    <NotifySnackBar />
   </v-app>
 </template>
 
 <script>
 import { mapActions, mapState } from "vuex";
 
-import NotifySnackBar from "@/components/notify";
-
 export default {
   name: "App",
-  components: {
-    NotifySnackBar,
-  },
   computed: {
-    ...mapState({
-      isConnected: (state) => state.socket.isConnected,
+    ...mapState("socket", {
+      isConnected: (state) => state.isConnected,
     }),
     ...mapState("auth", {
       user: (state) => state.user,
@@ -33,14 +27,15 @@ export default {
       }
     },
   },
-  async beforeCreate() {
+  async created() {
     // First thing we do is see if we're logged in
-    return this.$store.dispatch("auth/me").then(() => {
+    return this.me().then(() => {
       return this.$connect();
     });
   },
   methods: {
-    ...mapActions("notify", ["subscribe"]),
+    ...mapActions("auth", ["me"]),
+    ...mapActions("socket", ["subscribe"]),
   },
 };
 </script>

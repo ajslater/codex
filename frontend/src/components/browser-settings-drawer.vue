@@ -5,6 +5,7 @@
     app
     right
     temporary
+    touchless
   >
     <div v-if="isOpenToSee">
       <div id="browserSettings">

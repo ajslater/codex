@@ -3,7 +3,7 @@ import asyncio
 
 from asgiref.sync import async_to_sync
 
-from codex.librarian.queue_mp import AdminNotifierTask, BroadcastNotifierTask
+from codex.notifier.tasks import Channels
 from codex.serializers.choices import WEBSOCKET_MESSAGES as WS_MSGS
 from codex.settings.logging import get_logger
 from codex.threads import AggregateMessageQueuedThread
@@ -17,10 +17,10 @@ class Notifier(AggregateMessageQueuedThread):
 
     NAME = "Notifier"
     WS_SEND_MSG = {"type": "websocket.send"}
-    CONNS = {AdminNotifierTask: set(), BroadcastNotifierTask: set()}
+    CONNS = dict([(channel, set()) for channel in Channels])
     SUBSCRIBE_TYPES = {
-        "register": BroadcastNotifierTask,
-        "admin": AdminNotifierTask,
+        "register": Channels.ALL,
+        "admin": Channels.ADMIN,
     }
 
     @classmethod
@@ -56,7 +56,7 @@ class Notifier(AggregateMessageQueuedThread):
             msg = WS_MSGS[text]
             send_msg = {"text": msg}
             send_msg.update(self.WS_SEND_MSG)
-            conns = self.CONNS[task.__class__]
+            conns = self.CONNS[task.type]
             async_to_sync(self._send_msg)(conns, send_msg)
             sent_keys.add(text)
         self.cleanup_cache(sent_keys)

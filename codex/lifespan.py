@@ -1,6 +1,7 @@
 """Start and stop daemons."""
 import multiprocessing
 import os
+import platform
 
 from time import sleep
 
@@ -13,10 +14,10 @@ from setproctitle import setproctitle
 
 from codex.darwin_mp import force_darwin_multiprocessing_fork
 from codex.librarian.librariand import LibrarianDaemon
-from codex.models import AdminFlag, Library
+from codex.models import AdminFlag, LibrarianStatus, Library, Timestamp
+from codex.notifier.notifierd import Notifier
 from codex.settings.logging import get_logger
 from codex.version import PACKAGE_NAME
-from codex.websocket_server import Notifier
 
 
 RESET_ADMIN = bool(os.environ.get("CODEX_RESET_ADMIN"))
@@ -55,20 +56,39 @@ def init_admin_flags():
         LOG.info(f"Deleted {count} orphan AdminFlags.")
 
 
-def unset_update_in_progress():
+def init_timestamps():
+    """Init timestamps."""
+    for name in Timestamp.NAMES:
+        _, created = Timestamp.objects.get_or_create(name=name)
+        if created:
+            LOG.info(f"Created {name} timestamp.")
+    query = Timestamp.objects.filter(~Q(name__in=Timestamp.NAMES))
+    count = query.count()
+    if count:
+        query.delete()
+        LOG.info(f"Deleted {count} orphan timestamps.")
+
+
+def clear_library_status():
     """Unset the update_in_progress flag for all libraries."""
     count = Library.objects.filter(update_in_progress=True).update(
         update_in_progress=False, updated_at=Now()
     )
     LOG.debug(f"Reset {count} Library's update_in_progress flag")
+    LibrarianStatus.objects.filter(active=True).update(
+        active=False, complete=0, total=None
+    )
+    LOG.debug("Cleared LibrarianStatuses.")
 
 
 def codex_startup():
     """Initialize the database and start the daemons."""
-    setproctitle(PACKAGE_NAME)
+    if platform.system() != "Darwin":
+        setproctitle(PACKAGE_NAME)
     ensure_superuser()
     init_admin_flags()
-    unset_update_in_progress()
+    init_timestamps()
+    clear_library_status()
     cache.clear()
     force_darwin_multiprocessing_fork()
 

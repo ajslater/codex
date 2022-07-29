@@ -10,6 +10,7 @@
         <script>
           var rootPath = "{{ script_prefix }}";
           var lastRoute = {{ last_route | safe }};
+          var missingCover = "{% static 'img/missing-cover.webp' %}"
         </script>
         {% include 'pwa/headers.html' %}
         {% if not DEBUG %}

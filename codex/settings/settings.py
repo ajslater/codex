@@ -75,7 +75,6 @@ INSTALLED_APPS += [
 ]
 
 MIDDLEWARE = [
-    "django.middleware.cache.UpdateCacheMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -86,7 +85,6 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "codex.middleware.TimezoneMiddleware",
-    "django.middleware.cache.FetchFromCacheMiddleware",
 ]
 if DEBUG:
     MIDDLEWARE += [
@@ -185,24 +183,16 @@ LOG.verbose(f"root_path: {HYPERCORN_CONFIG.root_path}")
 PORT = int(HYPERCORN_CONFIG.bind[0].split(":")[1])
 
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/3.1/howto/static-files/
-CONFIG_STATIC = CONFIG_PATH / "static"
-CONFIG_STATIC.mkdir(exist_ok=True, parents=True)
-# Use the Whitenoise ROOT feature to serve covers
-WHITENOISE_ROOT = CONFIG_STATIC
+# https://docs.djangoproject.com/en/4.0/howto/static-files/
 WHITENOISE_KEEP_ONLY_HASHED_FILES = True
 WHITENOISE_STATIC_PREFIX = "static/"
-# Bad for performance and security
-# But new covers don't display without it
-# http://whitenoise.evans.io/en/stable/django.html#WHITENOISE_AUTOREFRESH
-WHITENOISE_AUTOREFRESH = True
 STATIC_ROOT = CODEX_PATH / "static_root"
 if HYPERCORN_CONFIG.root_path:
     STATIC_URL = HYPERCORN_CONFIG.root_path + "/" + WHITENOISE_STATIC_PREFIX
 else:
     STATIC_URL = WHITENOISE_STATIC_PREFIX
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-STATICFILES_DIRS = [CONFIG_STATIC]
+STATICFILES_DIRS = []
 BUILD = os.environ.get("BUILD", False)
 if DEBUG or BUILD:
     STATIC_SRC = CODEX_PATH / "static_src"
@@ -237,13 +227,14 @@ REST_FRAMEWORK = {
 
 CORS_ALLOW_CREDENTIALS = True
 
-CACHE_PATH = CONFIG_PATH / "cache"
-CACHE_PATH.mkdir(exist_ok=True, parents=True)
+ROOT_CACHE_PATH = CONFIG_PATH / "cache"
+DEFAULT_CACHE_PATH = ROOT_CACHE_PATH / "default"
+DEFAULT_CACHE_PATH.mkdir(exist_ok=True, parents=True)
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
-        "LOCATION": str(CACHE_PATH),
-    }
+        "LOCATION": str(DEFAULT_CACHE_PATH),
+    },
 }
 
 INTERNAL_IPS = [

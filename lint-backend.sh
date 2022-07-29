@@ -6,7 +6,8 @@ cd "$(dirname "$0")"
 ####################
 ###### Python ######
 ####################
-# Pytest runs flake8, black, isort faster with caching
+# Pytest runs flake8, black, isort with caching, run tests later
+poetry run pytest --ignore=tests
 poetry run pyright
 poetry run vulture .
 if [ "$(uname)" = "Darwin" ]; then

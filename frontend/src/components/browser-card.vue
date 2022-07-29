@@ -7,8 +7,7 @@
     <div class="browserTileLazyWrapper">
       <div class="browserCardCoverWrapper" @click="doubleTapHovered = true">
         <BookCover
-          :cover-path="item.coverPath"
-          :updated-at="item.coverUpdatedAt"
+          :cover-pk="item.coverPk"
           :group="item.group"
           :child-count="item.childCount"
           :finished="item.finished"
@@ -166,7 +165,7 @@ export default {
         ov = DATE_FORMAT.format(date);
       } else if (TIME_SORT_BY.has(this.orderByCache)) {
         const date = new Date(ov);
-        ov = DATETIME_FORMAT.format(date).replace(",", "<br/>");
+        ov = DATETIME_FORMAT.format(date).replace(", ", "<br />");
       }
       return ov;
     },
@@ -230,7 +229,7 @@ export default {
 .browserTile {
   display: inline-flex;
   flex: 1;
-  margin: 16px;
+  margin: 0px;
   text-align: center;
 }
 .browserTileLazyWrapper {
@@ -305,7 +304,6 @@ export default {
 }
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   .browserTile {
-    margin: 8px;
     width: 100px;
   }
   .cardCoverOverlayTopMiddleRow {

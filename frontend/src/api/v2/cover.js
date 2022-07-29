@@ -1,14 +1,10 @@
 import { ROOT_PATH } from "./base";
 
-const MISSING_COVER_FN = "missing_cover.webp";
-const MISSING_COVER_PATH = `static/img/${MISSING_COVER_FN}`;
+const MISSING_COVER_PATH = ROOT_PATH + window.missingCover;
+const COVER_PATH_PREFIX = ROOT_PATH + "api/v2/c";
 
-export const getCoverSource = (coverPath, updatedAt) => {
-  let src = `${ROOT_PATH}`;
-  src +=
-    coverPath === MISSING_COVER_FN ? MISSING_COVER_PATH : `covers/${coverPath}`;
-  if (updatedAt) {
-    src += `?${updatedAt}`;
-  }
-  return src;
+export const getCoverSource = (pk, updatedAt) => {
+  return pk
+    ? `${COVER_PATH_PREFIX}/${pk}/cover.webp?${updatedAt}`
+    : MISSING_COVER_PATH;
 };

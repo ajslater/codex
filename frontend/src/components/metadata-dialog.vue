@@ -29,7 +29,7 @@
         <div id="metadataBookCoverWrapper">
           <BookCover
             id="bookCover"
-            :cover-path="md.coverPath"
+            :cover-pk="md.coverPk"
             :group="group"
             :child-count="md.childCount"
             :finished="md.finished"
@@ -348,7 +348,7 @@ export default {
     },
     formatDateTime: function (ds) {
       const dt = new Date(ds);
-      return DATETIME_FORMAT.format(dt);
+      return DATETIME_FORMAT.format(dt).replace(",", "");
     },
   },
 };

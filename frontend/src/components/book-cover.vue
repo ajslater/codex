@@ -2,7 +2,7 @@
   <div class="bookCoverWrapper">
     <div class="bookCover">
       <div class="coverImgWrapper">
-        <v-img :src="coverSrc" class="coverImg" contain>
+        <v-img :key="coverSrc" :src="coverSrc" class="coverImg" contain>
           <template #placeholder>
             <v-progress-circular
               v-if="showPlaceholder"
@@ -29,6 +29,8 @@
 </template>
 
 <script>
+import { mapState } from "vuex";
+
 import { getCoverSource } from "@/api/v2/cover";
 
 export default {
@@ -45,13 +47,9 @@ export default {
     finished: {
       type: Boolean,
     },
-    coverPath: {
-      type: String,
-      required: true,
-    },
-    updatedAt: {
+    coverPk: {
       type: Number,
-      default: 0,
+      required: true,
     },
   },
   data() {
@@ -60,9 +58,11 @@ export default {
     };
   },
   computed: {
-    coverSrc: function () {
-      return getCoverSource(this.coverPath, this.updatedAt);
-    },
+    ...mapState("browser", {
+      coverSrc: function (state) {
+        return getCoverSource(this.coverPk, state.coversTimestamp);
+      },
+    }),
   },
   mounted: function () {
     this.delayPlaceholder();

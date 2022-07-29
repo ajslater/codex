@@ -9,7 +9,8 @@ from haystack.query import SearchQuerySet
 from humanfriendly import parse_size
 from xapian_backend import DATETIME_FORMAT
 
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE, SearchIndexUpdateTask
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE
+from codex.librarian.search.tasks import SearchIndexJanitorUpdateTask
 from codex.models import Comic, SearchQuery, SearchResult
 from codex.settings.logging import get_logger
 from codex.views.group_filter import GroupACLMixin
@@ -54,6 +55,7 @@ class BrowserBaseView(SessionView, GroupACLMixin):
         COMIC_GROUP: "pk",
         FOLDER_GROUP: "parent_folder",
     }
+    _BOOKMARK_FILTERS = ("UNREAD", "IN_PROGRESS", "READ")
 
     def __init__(self, *args, **kwargs):
         """Set params for the type checker."""
@@ -112,10 +114,7 @@ class BrowserBaseView(SessionView, GroupACLMixin):
         """Build bookmark query."""
         if choice is None:
             choice = self.params["filters"].get("bookmark", "ALL")
-        if choice in (
-            "UNREAD",
-            "IN_PROGRESS",
-        ):
+        if choice in self._BOOKMARK_FILTERS:
             ubm_rel = self.get_ubm_rel(is_model_comic)
             my_userbookmark_filter = self._get_userbookmark_filter(ubm_rel)
 
@@ -127,6 +126,10 @@ class BrowserBaseView(SessionView, GroupACLMixin):
             elif choice == "IN_PROGRESS":
                 bookmark_filter = my_userbookmark_filter & Q(
                     **{f"{ubm_rel}__bookmark__gt": 0}
+                )
+            elif choice == "READ":
+                bookmark_filter = my_userbookmark_filter & Q(
+                    **{f"{ubm_rel}__finished": True}
                 )
             else:
                 bookmark_filter = Q()
@@ -309,7 +312,7 @@ class BrowserBaseView(SessionView, GroupACLMixin):
             if search_engine_out_of_date:
                 # XXX This should not happen. Need to sync search engine better.
                 LOG.warning("Search index out of date. Scoring non-existent comics.")
-                task = SearchIndexUpdateTask(False)
+                task = SearchIndexJanitorUpdateTask(False)
                 LIBRARIAN_QUEUE.put(task)
             SearchResult.objects.bulk_create(search_results)
         except Exception as exc:
