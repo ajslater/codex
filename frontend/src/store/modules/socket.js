@@ -61,9 +61,6 @@ const mutations = {
         }
         this.commit("reader/setTimestamp");
         break;
-      case CHOICES.websockets.COVERS_CHANGED:
-        this.commit("browser/setCoverTimestamp");
-        break;
       case CHOICES.websockets.LIBRARIAN_STATUS:
         this.dispatch("admin/fetchLibrarianStatuses");
         break;

@@ -236,6 +236,7 @@ class BrowserPageSerializer(Serializer):
     queries = ListField(
         child=CharField(read_only=True), allow_empty=True, read_only=True
     )
+    covers_timestamp = IntegerField(read_only=True)
 
 
 class VersionsSerializer(Serializer):

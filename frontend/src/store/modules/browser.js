@@ -42,7 +42,7 @@ for (let choice of CHOICES.browser.settingsGroup) {
 }
 
 const state = {
-  coverTimestamp: Date.now(),
+  coversTimestamp: 0,
   browseTimestamp: Date.now(),
   routes: {
     up: undefined,
@@ -167,6 +167,7 @@ const mutations = {
     state.numPages = data.numPages;
     state.librariesExist = data.librariesExist;
     state.queries = data.queries;
+    state.coversTimestamp = data.coversTimestamp;
   },
   setBrowseChoice(state, { choiceName, choices }) {
     state.formChoices[choiceName] = Object.freeze(choices);
@@ -194,9 +195,6 @@ const mutations = {
   },
   setBrowseTimestamp(state) {
     state.browseTimestamp = Date.now();
-  },
-  setCoverTimestamp(state) {
-    state.coverTimestamp = Date.now();
   },
   setIsSettingsDrawerOpen(state, value) {
     state.isSettingsDrawerOpen = value;

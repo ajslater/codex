@@ -8,7 +8,16 @@ from codex.librarian.covers.tasks import CoverRemoveTask
 from codex.librarian.db.status import ImportStatusKeys
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.librarian.status import librarian_status_done, librarian_status_update
-from codex.models import Comic, Credit, Folder, Imprint, Publisher, Series, Volume
+from codex.models import (
+    Comic,
+    Credit,
+    Folder,
+    Imprint,
+    Publisher,
+    Series,
+    Timestamp,
+    Volume,
+)
 from codex.settings.logging import get_logger
 
 
@@ -262,6 +271,7 @@ def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2
 
     update_log = f"Updated {update_count} Comics."
     if update_count:
+        Timestamp.touch(Timestamp.COVERS)
         LOG.info(update_log)
     else:
         LOG.verbose(update_log)

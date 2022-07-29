@@ -14,7 +14,7 @@ from setproctitle import setproctitle
 
 from codex.darwin_mp import force_darwin_multiprocessing_fork
 from codex.librarian.librariand import LibrarianDaemon
-from codex.models import AdminFlag, LibrarianStatus, Library
+from codex.models import AdminFlag, LibrarianStatus, Library, Timestamp
 from codex.notifier.notifierd import Notifier
 from codex.settings.logging import get_logger
 from codex.version import PACKAGE_NAME
@@ -56,6 +56,19 @@ def init_admin_flags():
         LOG.info(f"Deleted {count} orphan AdminFlags.")
 
 
+def init_timestamps():
+    """Init timestamps."""
+    for name in Timestamp.NAMES:
+        _, created = Timestamp.objects.get_or_create(name=name)
+        if created:
+            LOG.info(f"Created {name} timestamp.")
+    query = Timestamp.objects.filter(~Q(name__in=Timestamp.NAMES))
+    count = query.count()
+    if count:
+        query.delete()
+        LOG.info(f"Deleted {count} orphan timestamps.")
+
+
 def clear_library_status():
     """Unset the update_in_progress flag for all libraries."""
     count = Library.objects.filter(update_in_progress=True).update(
@@ -74,6 +87,7 @@ def codex_startup():
         setproctitle(PACKAGE_NAME)
     ensure_superuser()
     init_admin_flags()
+    init_timestamps()
     clear_library_status()
     cache.clear()
     force_darwin_multiprocessing_fork()

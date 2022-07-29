@@ -59,11 +59,10 @@ export default {
   },
   computed: {
     ...mapState("browser", {
-      coverTimestamp: (state) => state.coverTimestamp,
+      coverSrc: function (state) {
+        return getCoverSource(this.coverPk, state.coversTimestamp);
+      },
     }),
-    coverSrc: function () {
-      return getCoverSource(this.coverPk, this.coverTimestamp);
-    },
   },
   mounted: function () {
     this.delayPlaceholder();
