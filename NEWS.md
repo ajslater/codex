@@ -1,17 +1,17 @@
 # 📰 Codex News
 
-## v0.11.0a5
+## v0.11.0
 
 - Features
 
-  - Covers are now created on demand by the browser, rather than on import. Administrators may still pre-generate covers.
-  - Administrators may view librarian tasks in progress and failed imports notifications in the settings side drawer.
-  - Read filter.
+  - Librarian tasks in progress appear in the settings side drawer for adminstratiors.
+  - Covers are now created on demand by the browser, rather than on import.
+  - Browser Read filter.
 
 - Fixes
 
-  - Fix bookmark progress bar not updating in browser after closing book.
-  - Fix metadata web links
+  - Bookmark progress bar updates in browser after closing book.
+  - Metadata web links fix.
 
 ## v0.10.10
 
