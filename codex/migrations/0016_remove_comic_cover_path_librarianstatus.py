@@ -11,7 +11,7 @@ from django.db import migrations, models
 CONFIG_PATH = Path(os.environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
 OLD_COVER_CACHE = CONFIG_PATH / "static"
 CACHE_DIR = CONFIG_PATH / "cache"
-LATEST_VERSION_TO_TIMESTAMPS_MAP = {1: "codex", 2: "xapian_index"}
+LATEST_VERSION_TO_TIMESTAMPS_MAP = {1: "codex_version", 2: "xapian_index_uuid"}
 
 
 def copy_versions_to_timestamp(apps, _schema_editor):
