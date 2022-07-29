@@ -14,6 +14,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.urls import path
+from django.views.decorators.cache import cache_page
 
 from codex.views.pwa import (
     OfflineView,
@@ -23,16 +24,23 @@ from codex.views.pwa import (
 )
 
 
-CACHE_TIME = 60 * 15
-NOTIFY_MAX_AGE = 3
+TIMEOUT = 60 * 60
 
 urlpatterns = [
-    path("manifest.webmanifest", WebManifestView.as_view(), name="manifest"),
+    path(
+        "manifest.webmanifest",
+        cache_page(TIMEOUT)(WebManifestView.as_view()),
+        name="manifest",
+    ),
     path(
         "serviceworkerRegister.js",
-        ServiceWorkerRegisterView.as_view(),
+        cache_page(TIMEOUT)(ServiceWorkerRegisterView.as_view()),
         name="serviceworker_register",
     ),
-    path("serviceworker.js", ServiceWorkerView.as_view(), name="serviceworker"),
-    path("offline", OfflineView.as_view(), name="offline"),
+    path(
+        "serviceworker.js",
+        cache_page(TIMEOUT)(ServiceWorkerView.as_view()),
+        name="serviceworker",
+    ),
+    path("offline", cache_page(TIMEOUT)(OfflineView.as_view()), name="offline"),
 ]

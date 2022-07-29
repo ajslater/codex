@@ -75,7 +75,6 @@ INSTALLED_APPS += [
 ]
 
 MIDDLEWARE = [
-    "django.middleware.cache.UpdateCacheMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -86,7 +85,6 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "codex.middleware.TimezoneMiddleware",
-    "django.middleware.cache.FetchFromCacheMiddleware",
 ]
 if DEBUG:
     MIDDLEWARE += [
@@ -186,7 +184,6 @@ PORT = int(HYPERCORN_CONFIG.bind[0].split(":")[1])
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
-# Keep missing-cover.webp around
 WHITENOISE_KEEP_ONLY_HASHED_FILES = True
 WHITENOISE_STATIC_PREFIX = "static/"
 STATIC_ROOT = CODEX_PATH / "static_root"

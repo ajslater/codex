@@ -14,7 +14,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.urls import path
-from django.views.decorators.cache import cache_page, never_cache
+from django.views.decorators.cache import cache_control, cache_page, never_cache
 
 from codex.views.admin import LibrarianStatusViewSet, QueueLibrarianJobs
 from codex.views.auth import LoginView, LogoutView, RegisterView, UserView
@@ -31,14 +31,24 @@ from codex.views.metadata import MetadataView
 from codex.views.reader import ComicOpenedView, ComicPageView
 
 
-CACHE_TIME = 60 * 15
+COVER_MAX_AGE = 60 * 60 * 24 * 7
+PAGE_MAX_AGE = 60 * 60 * 24 * 7
+TIMEOUT = 60 * 5
 
 app_name = "api"
 urlpatterns = [
     #
     # Browser
-    path("<str:group>/<int:pk>/<int:page>", BrowserView.as_view(), name="browser_page"),
-    path("<str:group>/<int:pk>/metadata", MetadataView.as_view(), name="metadata"),
+    path(
+        "<str:group>/<int:pk>/<int:page>",
+        cache_page(TIMEOUT)(BrowserView.as_view()),
+        name="browser_page",
+    ),
+    path(
+        "<str:group>/<int:pk>/metadata",
+        cache_page(TIMEOUT)(MetadataView.as_view()),
+        name="metadata",
+    ),
     path(
         "<str:group>/<int:pk>/mark_read",
         UserBookmarkFinishedView.as_view(),
@@ -46,16 +56,22 @@ urlpatterns = [
     ),
     path(
         "<str:group>/<int:pk>/choices/<str:field_name>",
-        BrowserChoiceView.as_view(),
+        cache_page(TIMEOUT)(BrowserChoiceView.as_view()),
         name="browser_choices",
+    ),
+    path(
+        "c/<int:pk>/cover.webp",
+        cache_control(max_age=COVER_MAX_AGE)(CoverView.as_view()),
+        name="cover",
     ),
     #
     # Reader
-    path("c/<int:pk>", ComicOpenedView.as_view(), name="comic_info"),
-    path("c/<int:pk>/thumb", CoverView.as_view(), name="comic_cover"),
+    path(
+        "c/<int:pk>", cache_page(TIMEOUT)(ComicOpenedView.as_view()), name="comic_info"
+    ),
     path(
         "c/<int:pk>/<int:page>/p.jpg",
-        cache_page(CACHE_TIME)(ComicPageView.as_view()),
+        cache_control(max_age=PAGE_MAX_AGE)(ComicPageView.as_view()),
         name="comic_page",
     ),
     path(
@@ -68,7 +84,7 @@ urlpatterns = [
         never_cache(ComicSettingsView.as_view()),
         name="comic_settings",
     ),
-    path("c/<int:pk>/comic.cbz", ComicDownloadView.as_view(), name="comic_download"),
+    path("c/<int:pk>/comic.cbz", ComicDownloadView.as_view(), name="archive_download"),
     #
     # Auth
     path("auth/register", RegisterView.as_view(), name="register"),
