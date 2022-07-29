@@ -372,7 +372,7 @@ python-versions = ">=3.7,<4.0"
 
 [[package]]
 name = "djlint"
-version = "1.9.1"
+version = "1.9.2"
 description = "HTML Template Linter and Formatter"
 category = "dev"
 optional = false
@@ -1843,8 +1843,8 @@ djangorestframework-types = [
     {file = "djangorestframework_types-0.8.0-py3-none-any.whl", hash = "sha256:5136212ec0df2c11d5ebcf217246f606e68f1d46a770419de84ed676bdab0113"},
 ]
 djlint = [
-    {file = "djlint-1.9.1-py3-none-any.whl", hash = "sha256:ede988bb1b8e7dc4fb8b685473d66ea5f1715dfde5555973724753afe1c21bc1"},
-    {file = "djlint-1.9.1.tar.gz", hash = "sha256:172159eac579f98285f13150e46033530f6131adf817e32f78c586801050ee67"},
+    {file = "djlint-1.9.2-py3-none-any.whl", hash = "sha256:06dc70b281e0184d79a5c0e029c835e2df295134838642f5fb786c50e65f35c9"},
+    {file = "djlint-1.9.2.tar.gz", hash = "sha256:201c8a4d5bfac83d8e4e8099acff063a8802b8f8ddb65e30cda976b2910ed092"},
 ]
 editorconfig = [
     {file = "EditorConfig-0.12.3-py3-none-any.whl", hash = "sha256:6b0851425aa875b08b16789ee0eeadbd4ab59666e9ebe728e526314c4a2e52c1"},
