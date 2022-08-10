@@ -3,7 +3,7 @@
     <v-toolbar-items>
       <v-btn id="closeBook" ref="closeBook" :to="closeBookRoute" large ripple>
         <span v-if="$vuetify.breakpoint.mdAndUp">close book</span>
-        <span v-else>x</span>
+        <v-icon v-else>{{ mdiClose }}</v-icon>
       </v-btn>
     </v-toolbar-items>
     <v-spacer />
@@ -34,7 +34,7 @@
 </template>
 
 <script>
-import { mdiDownload } from "@mdi/js";
+import { mdiClose, mdiDownload } from "@mdi/js";
 import { mapActions, mapGetters, mapMutations, mapState } from "vuex";
 
 import { getComicPageSource } from "@/api/v2/comic";
@@ -51,6 +51,7 @@ export default {
   },
   data() {
     return {
+      mdiClose,
       mdiDownload,
     };
   },
