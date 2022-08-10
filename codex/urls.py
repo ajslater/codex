@@ -17,7 +17,6 @@ from django.conf import settings
 from django.contrib import admin
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import include, path, re_path
-from django.views.decorators.cache import cache_page
 from django.views.generic.base import RedirectView
 
 from codex.views.frontend import IndexView
@@ -28,22 +27,19 @@ TIMEOUT = 60 * 60
 urlpatterns = [
     path(
         "favicon.ico",
-        cache_page(TIMEOUT)(
-            RedirectView.as_view(url=staticfiles_storage.url("img/favicon-32.webp"))
-        ),
+        RedirectView.as_view(url=staticfiles_storage.url("img/favicon-32.webp")),
         name="favicon",
     ),
     path(
         "robots.txt",
-        cache_page(TIMEOUT)(
-            RedirectView.as_view(url=staticfiles_storage.url("robots.txt"))
-        ),
+        RedirectView.as_view(url=staticfiles_storage.url("robots.txt")),
         name="robots",
     ),
     path("api/v2/", include("codex.urls_api_v2")),
+    path("opds/", include("codex.urls_opds")),
     path("admin/", admin.site.urls, name="admin"),
     path("", IndexView.as_view(), name="app"),
-    path("", include("codex.urls_pwa")),
+    path("", include("codex.urls_pwa")),  # TODO move to pwa
     re_path(".*", IndexView.as_view(), name="app"),
 ]
 

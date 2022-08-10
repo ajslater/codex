@@ -52,7 +52,7 @@ class BrowserMetadataBaseView(BrowserBaseView):
     _ONE_INTEGERFIELD = Value(1, IntegerField())
     NONE_CHARFIELD = Value(None, CharField())
     GROUP_MODEL_MAP = {
-        "r": None,
+        BrowserBaseView.ROOT_GROUP: None,
         "p": Publisher,
         "i": Imprint,
         "s": Series,

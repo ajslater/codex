@@ -147,11 +147,6 @@ jspm_packages/
 .venv
 .DS_Store
 build
-# only include the cache/packages/README.md file
-cache/*
-!cache/packages
-cache/packages/*
-!cache/packages/README.md
 comics
 config
 codex/static_build/

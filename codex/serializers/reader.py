@@ -1,11 +1,5 @@
 """Codex Reader Serializers."""
-from rest_framework.serializers import (
-    CharField,
-    DecimalField,
-    IntegerField,
-    JSONField,
-    Serializer,
-)
+from rest_framework.serializers import CharField, DecimalField, IntegerField, Serializer
 
 
 class ComicPageRouteSerializer(Serializer):
@@ -43,4 +37,3 @@ class ComicReaderInfoSerializer(Serializer):
 
     comic = ComicReaderComicSerializer(read_only=True)
     routes = ComicReaderRoutesSerializer(read_only=True)
-    browser_route = JSONField(read_only=True)

@@ -39,17 +39,20 @@ export default {
       this.getBrowserPage();
     },
     user: function () {
-      this.browserOpened();
+      this.loadSettings();
+      this.getVersions();
     },
     isOpenToSee: function () {
-      this.browserOpened();
+      this.loadSettings();
+      this.getVersions();
     },
   },
   created() {
-    this.browserOpened();
+    this.loadSettings();
+    this.getVersions();
   },
   methods: {
-    ...mapActions("browser", ["getBrowserPage", "browserOpened"]),
+    ...mapActions("browser", ["getBrowserPage", "loadSettings", "getVersions"]),
   },
 };
 </script>

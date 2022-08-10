@@ -24,6 +24,7 @@ class UserBookmarkFinishedSerializer(ModelSerializer):
         fields = ("finished",)
 
 
+# TODO move to session serializer and rename to ReaderSettings apiv3
 class ComicReaderSettingsSerializer(Serializer):
     """Reader settings the user can change."""
 
@@ -35,6 +36,7 @@ class ComicReaderSettingsSerializer(Serializer):
     two_pages = BooleanField(allow_null=True, required=False)
 
 
+# TODO rework this terrible thing apiv3
 class ComicReaderBothSettingsSerializer(Serializer):
     """For both the default and local comic settings."""
 

@@ -1,17 +1,20 @@
 {% load static %}
 {# Apple #}
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-title" content="Codex"/>
+<link rel="apple-touch-icon"
+      href="{% static 'img/apple-icon-180.webp' %}"
+      type="image/webp"/>
 <link rel="apple-touch-icon"
       href="{% static 'img/apple-icon-180.webp' %}"
       sizes="180x180"
       type="image/webp"/>
-{# <meta name="apple-mobile-web-app-status-bar-style" content="default" /> #}
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Codex"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="#272727" />
 {# Chrome #}
-<meta name="mobile-web-app-capable" content="yes" />
-<meta name="application-name" content="Codex" />
 <link rel="manifest"
       href="{{ script_prefix }}manifest.webmanifest"
       crossorigin="use-credentials"/>
-{# <meta name="theme-color" content="#cc7b19"/> #}
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="application-name" content="Codex" />
+<meta name="theme-color" content="#272727" />
 <script async src="{{ script_prefix }}serviceworkerRegister.js"></script>

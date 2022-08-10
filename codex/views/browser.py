@@ -1,17 +1,20 @@
 """Views for browsing comic library."""
+import json
+
 from copy import deepcopy
 from typing import Optional, Union
 
 from django.core.paginator import EmptyPage, Paginator
-from django.db.models import (
+from django.db.models import F, Max, Value
+from django.db.models.fields import (
     BooleanField,
     CharField,
+    DateField,
     DecimalField,
-    F,
     IntegerField,
-    Max,
-    Value,
 )
+from djangorestframework_camel_case.settings import api_settings
+from djangorestframework_camel_case.util import underscoreize
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
@@ -29,11 +32,11 @@ from codex.models import (
     Volume,
 )
 from codex.serializers.browser import (
-    BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP,
     BrowserOpenedSerializer,
     BrowserPageSerializer,
     BrowserSettingsSerializer,
 )
+from codex.serializers.opds_v1 import BROWSER_CARD_AND_OPDS_ORDERED_UNIONFIX_VALUES_MAP
 from codex.settings.logging import get_logger
 from codex.version import PACKAGE_NAME, VERSION, get_latest_version
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
@@ -58,6 +61,7 @@ class BrowserView(BrowserMetadataBaseView):
     _EMPTY_CHARFIELD = Value("", CharField())
     _ZERO_INTEGERFIELD = Value(0, IntegerField())
     _NONE_BOOLFIELD = Value(None, BooleanField())
+    _NONE_DATEFIELD = Value(None, DateField())
 
     _GROUP_INSTANCE_SELECT_RELATED = {
         Comic: ("series", "volume"),
@@ -70,15 +74,8 @@ class BrowserView(BrowserMetadataBaseView):
     _DEFAULT_ROUTE = {
         "name": "browser",
         "params": BrowserMetadataBaseView.SESSION_DEFAULTS[
-            BrowserMetadataBaseView.BROWSER_KEY
+            BrowserMetadataBaseView.SESSION_KEY
         ]["route"],
-    }
-    _GROUP_INDEX_MAP = {
-        "p": 0,
-        "i": 1,
-        "s": 2,
-        "v": 3,
-        "c": 4,
     }
 
     def _add_annotations(self, queryset, model, autoquery_pk):
@@ -149,7 +146,14 @@ class BrowserView(BrowserMetadataBaseView):
             queryset = queryset.annotate(path=self.NONE_CHARFIELD)
 
         if not is_model_comic:
-            queryset = queryset.annotate(read_ltr=self._NONE_BOOLFIELD)
+            queryset = queryset.annotate(
+                read_ltr=self._NONE_BOOLFIELD,
+                size=self._ZERO_INTEGERFIELD,
+                date=self._NONE_DATEFIELD,
+                summary=self._EMPTY_CHARFIELD,
+                comments=self._EMPTY_CHARFIELD,
+                notes=self._EMPTY_CHARFIELD,
+            )
 
         return queryset
 
@@ -191,8 +195,12 @@ class BrowserView(BrowserMetadataBaseView):
 
         # Create ordered annotated values to make union align columns correctly because
         # django lacks a way to specify values column order.
-        folder_list = folder_list.values(**BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP)
-        comic_list = comic_list.values(**BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP)
+        folder_list = folder_list.values(
+            **BROWSER_CARD_AND_OPDS_ORDERED_UNIONFIX_VALUES_MAP
+        )
+        comic_list = comic_list.values(
+            **BROWSER_CARD_AND_OPDS_ORDERED_UNIONFIX_VALUES_MAP
+        )
 
         obj_list = folder_list.union(comic_list)
         return obj_list
@@ -210,7 +218,7 @@ class BrowserView(BrowserMetadataBaseView):
 
         # Convert to a dict because otherwise the folder/comic union blows
         # up the paginator. Use the same annotations for the serializer.
-        obj_list = obj_list.values(**BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP)
+        obj_list = obj_list.values(**BROWSER_CARD_AND_OPDS_ORDERED_UNIONFIX_VALUES_MAP)
 
         return obj_list
 
@@ -258,7 +266,7 @@ class BrowserView(BrowserMetadataBaseView):
 
         # Ancestor pk
         pk = self.kwargs.get("pk")
-        if up_group == "r" or pk == 0:
+        if up_group == self.ROOT_GROUP or pk == 0:
             up_pk = 0
         elif up_group:
             # get the ancestor pk from the current group
@@ -311,197 +319,18 @@ class BrowserView(BrowserMetadataBaseView):
 
         return browser_page_title
 
-    def _get_valid_top_groups(self):
-        """
-        Get valid top groups for the current settings.
-
-        Valid top groups are determined by the Browser Settings.
-        """
-        valid_top_groups = []
-
-        for nav_group in self._NAV_GROUPS:
-            if self.params["show"].get(nav_group):
-                valid_top_groups.append(nav_group)
-        # Issues is always a valid top group
-        valid_top_groups += [self.COMIC_GROUP]
-
-        return valid_top_groups
-
-    def _set_valid_nav_groups(self, valid_top_groups):
-        """
-        Get valid nav gorups for the current settings.
-
-        Valid nav groups are the top group and below that are also
-        enabled in browser settings.
-
-        May always navigate to root 'r' nav group.
-        """
-        top_group = self.params["top_group"]
-        nav_group = self.kwargs["group"]
-        self.valid_nav_group_index = None
-        possible_nav_groups = valid_top_groups
-
-        for possible_index, possible_nav_group in enumerate(possible_nav_groups):
-            if top_group in (possible_nav_group, self.COMIC_GROUP):
-                if top_group == self.COMIC_GROUP:
-                    tail_top_groups = []
-                else:
-                    # all the nav groups past this point, but not 'c' the last one
-                    tail_top_groups = possible_nav_groups[possible_index:-1]
-                self.valid_nav_groups = ["r"] + tail_top_groups
-                for valid_index, valid_nav_group in enumerate(self.valid_nav_groups):
-                    if nav_group == valid_nav_group:
-                        self.valid_nav_group_index = valid_index
-                break
-
-    def _raise_redirect(self, route_changes, reason):
-        """Redirect the client to a valid group url."""
-        route = deepcopy(self._DEFAULT_ROUTE)
-        route["params"].update(route_changes)
-        detail = {"route": route, "settings": self.params, "reason": reason}
-        raise SeeOtherRedirectError(detail=detail)
-
-    def _validate_folder_settings(self, enable_folder_view):
-        """Check that all the view variables for folder mode are set right."""
-        # Check folder view admin flag
-        if not enable_folder_view:
-            new_top_group = "r"
-            self.params["top_group"] = new_top_group
-            self.save_params_to_session()
-            reason = "folder view disabled"
-            route_changes = {"group": new_top_group}
-            self._raise_redirect(route_changes, reason)
-
-        self.params["top_group"] = self.FOLDER_GROUP
-        self.valid_nav_groups = [self.FOLDER_GROUP]
-        self.valid_nav_group_index = 0
-
-    def _validate_browser_group_settings(self):
-        """Check that all the view variables for browser mode are set right."""
-        nav_group = self.kwargs["group"]
-        top_group = self.params.get("top_group")
-
-        # Validate Browser top group
-        # Change top_group if its not in the valid top groups
-        valid_top_groups = self._get_valid_top_groups()
-        if top_group not in valid_top_groups:
-            reason = f"top group not in valid nav groups, changed {top_group}"
-            if nav_group in valid_top_groups:
-                valid_top_group = nav_group
-                reason += f"to nav group: {nav_group}"
-            else:
-                valid_top_group = valid_top_groups[0]
-                reason += f"to first valid top group {valid_top_groups[0]}"
-            self.params["top_group"] = valid_top_group
-            LOG.verbose(reason)
-            self.top_group_changed = True
-
-        # Validate Browser Nav Group
-        # Redirect if nav group is wrong
-        self._set_valid_nav_groups(valid_top_groups)
-        if self.valid_nav_group_index is None:
-            self.save_params_to_session()
-            new_nav_group = self.valid_nav_groups[0]
-            route_changes = {"group": new_nav_group}
-            reason = f"Nav group {nav_group} unavailable, redirect to {new_nav_group}"
-            self._raise_redirect(route_changes, reason)
-        pk = self.kwargs["pk"]
-        if nav_group == "r" and pk:
-            # r never has a pk
-            reason = f"Redirect r with {pk=} to pk 0"
-            self._raise_redirect({}, reason)
-        lowest_group = self.valid_nav_groups[-1]
-        if (
-            self.top_group_changed
-            and nav_group == "r"
-            and lowest_group != "r"
-            and self.old_top_group
-            and top_group
-            and self._GROUP_INDEX_MAP[self.old_top_group]
-            > self._GROUP_INDEX_MAP[top_group]
-        ):
-            # if the top group changed and we're at the root and the new top group is
-            # lower than change to the proper nav group.
-            nav_group_from_old_top_group = lowest_group
-            for group in self.valid_nav_groups:
-                if group == self.old_top_group:
-                    break
-                nav_group_from_old_top_group = group
-                # keep the top group the same
-            route_changes = {"group": nav_group_from_old_top_group}
-            reason = f"changed top group: {nav_group_from_old_top_group} replaces root"
-            self.save_params_to_session()
-            self._raise_redirect(route_changes, reason)
-        if self.autoquery_first:
-            route_changes = {"group": lowest_group}
-            # params change handled in _apply_put, maybe doesn't need redirect.
-            reason = "first autoquery: show issues view"
-            self.save_params_to_session()
-            self._raise_redirect(route_changes, reason)
-
-    def _validate_settings(self):
-        """Validate group and top group settings."""
-        group = self.kwargs.get("group")
-        order_key = self.get_order_key()
-        enable_folder_view = False
-        if group == self.FOLDER_GROUP or order_key == "path":
-            try:
-                enable_folder_view = (
-                    AdminFlag.objects.only("on")
-                    .get(name=AdminFlag.ENABLE_FOLDER_VIEW)
-                    .on
-                )
-            except Exception:
-                pass
-
-        if group == self.FOLDER_GROUP:
-            self._validate_folder_settings(enable_folder_view)
-        else:
-            self._validate_browser_group_settings()
-
-        if order_key == "path" and not enable_folder_view:
-            self.params["order_by"] = "sort_name"
-            LOG.warning("order by path not allowed by admin flag.")
-
-        # save route once validated.
-        pk = self.kwargs.get("pk")
-        page = self.kwargs.get("page")
-        # to save last browser route
-        self.params["route"] = {"group": group, "pk": pk, "page": page}
-
-    def _apply_put_settings(self, data):
-        """Validate submitted settings and apply them over the session settings."""
-        serializer = BrowserSettingsSerializer(data=data)
-        try:
-            serializer.is_valid(raise_exception=True)
-        except ValidationError as exc:
-            LOG.error(serializer.errors)
-            LOG.exception(exc)
-            raise exc
-
-        for key, value in serializer.validated_data.items():
-            if key == "autoquery" and not self.params.get(key) and value:
-                self.autoquery_first = True
-            elif key == "top_group" and self.params.get(key) != value:
-                self.top_group_changed = True
-                self.old_top_group = self.params.get(key)
-            self.params[key] = value
-        if self.autoquery_first:
-            self.params["order_by"] = "search_score"
-            self.params["order_reverse"] = True
-
     def _page_out_out_bounds(self, page, num_pages):
         """Redirect page out of bounds."""
         group = self.kwargs.get("group")
         pk = self.kwargs.get("pk", 1)
-        route = {"group": group, "pk": pk}
+        if page > num_pages:
+            new_page = num_pages
+        else:
+            new_page = 1
+        route_changes = {"group": group, "pk": pk, "page": new_page}
         reason = f"{page=} does not exist!"
-        if page < 1:
-            route["page"] = 1
-        elif page > num_pages:
-            route["page"] = num_pages
-        LOG.verbose(f"{reason} redirect to {route}.")
-        self._raise_redirect(route, reason)
+        LOG.verbose(f"{reason} redirect to page {new_page}.")
+        self._raise_redirect(route_changes, reason)
 
     def _paginate(self, queryset):
         """Paginate the queryset into a final object list."""
@@ -518,8 +347,8 @@ class BrowserView(BrowserMetadataBaseView):
 
     def _get_browser_page(self):
         """Validate settings and get the querysets."""
-        self._validate_settings()
         self._set_browse_model()
+        self._set_group_instance()  # Placed up here to invalidate earlier
         # Create the main query with the filters
         is_model_comic = self.model == Comic
         try:
@@ -544,11 +373,7 @@ class BrowserView(BrowserMetadataBaseView):
         # Paginate
         obj_list, num_pages = self._paginate(queryset)
 
-        # Save the session
-        self.save_params_to_session()
-
         # get additional context
-        self._set_group_instance()
         if group == self.FOLDER_GROUP:
             up_group, up_pk = self._get_folder_up_route()
         else:
@@ -591,25 +416,205 @@ class BrowserView(BrowserMetadataBaseView):
         }
         return browser_page
 
-    def _load_params(self, from_request=False):
-        """Load self.params from the session, update with request."""
-        self.top_group_changed = False
-        self.autoquery_first = False
-        self.load_params_from_session()
-        if from_request:
-            self._apply_put_settings(self.request.data)
+    def _get_valid_top_groups(self):
+        """
+        Get valid top groups for the current settings.
 
-    def put(self, request, *args, **kwargs):
+        Valid top groups are determined by the Browser Settings.
+        """
+        valid_top_groups = []
+
+        for nav_group in self._NAV_GROUPS:
+            if self.params["show"].get(nav_group):
+                valid_top_groups.append(nav_group)
+        # Issues is always a valid top group
+        valid_top_groups += [self.COMIC_GROUP]
+
+        return valid_top_groups
+
+    def _set_valid_nav_groups(self, valid_top_groups):
+        """
+        Get valid nav gorups for the current settings.
+
+        Valid nav groups are the top group and below that are also
+        enabled in browser settings.
+
+        May always navigate to root 'r' nav group.
+        """
+        top_group = self.params["top_group"]
+        nav_group = self.kwargs["group"]
+        self.valid_nav_group_index = None
+        possible_nav_groups = valid_top_groups
+
+        for possible_index, possible_nav_group in enumerate(possible_nav_groups):
+            if top_group in (possible_nav_group, self.COMIC_GROUP):
+                if top_group == self.COMIC_GROUP:
+                    tail_top_groups = []
+                else:
+                    # all the nav groups past this point, but not 'c' the last one
+                    tail_top_groups = possible_nav_groups[possible_index:-1]
+                self.valid_nav_groups = [self.ROOT_GROUP] + tail_top_groups
+                for valid_index, valid_nav_group in enumerate(self.valid_nav_groups):
+                    if nav_group == valid_nav_group:
+                        self.valid_nav_group_index = valid_index
+                break
+
+    def _raise_redirect(self, route_mask, reason):
+        """Redirect the client to a valid group url."""
+        route = deepcopy(self._DEFAULT_ROUTE)
+        # TODO api v3 params and DEFAULT ROUTE is too GUI ORIENTED.
+        # CHANGE. FLATTEN INTO SETTINGS?
+        route["params"].update(route_mask)
+        detail = {"route": route, "settings": self.params, "reason": reason}
+        raise SeeOtherRedirectError(detail=detail)
+
+    def _validate_folder_settings(self, enable_folder_view):
+        """Check that all the view variables for folder mode are set right."""
+        # Check folder view admin flag
+        if not enable_folder_view:
+            self.params["top_group"] = self.ROOT_GROUP
+            reason = "folder view disabled"
+            self._raise_redirect({}, reason)
+
+        top_group = self.params["top_group"]
+        if top_group != self.FOLDER_GROUP:
+            self.params["top_group"] = self.FOLDER_GROUP
+            reason = f"top_group {top_group} doesn't match route {self.FOLDER_GROUP}"
+            self._raise_redirect({"group": self.FOLDER_GROUP}, reason)
+
+        # TODO maybe move to _set_valid_nav_groups
+        self.valid_nav_groups = [self.FOLDER_GROUP]
+        self.valid_nav_group_index = 0
+
+    def _validate_browser_group_settings(self):
+        """Check that all the view variables for browser mode are set right."""
+        nav_group = self.kwargs["group"]
+        top_group = self.params.get("top_group")
+        pk = self.kwargs["pk"]
+
+        # Validate Browser top_group
+        # Change top_group if its not in the valid top groups
+        valid_top_groups = self._get_valid_top_groups()
+        if top_group not in valid_top_groups:
+            reason = f"top_group {top_group} not in valid nav groups, changed to "
+            if nav_group in valid_top_groups:
+                valid_top_group = nav_group
+                reason += "nav group: "
+            else:
+                valid_top_group = valid_top_groups[0]
+                reason += "first valid top group "
+            reason += valid_top_group
+            LOG.verbose(reason)
+            self.params["top_group"] = valid_top_group
+            page = self.kwargs["page"]
+            route = {"group": nav_group, "pk": pk, "page": page}
+            self._raise_redirect(route, reason)
+
+        # Validate Browser nav_group
+        # Redirect if nav group is wrong
+        self._set_valid_nav_groups(valid_top_groups)
+        if self.valid_nav_group_index is None:
+            route_changes = {"group": self.ROOT_GROUP}
+            reason = f"Nav group {nav_group} unavailable, redirect to {self.ROOT_GROUP}"
+            self._raise_redirect(route_changes, reason)
+
+        # Validate pk
+        if nav_group == self.ROOT_GROUP and pk:
+            # r never has a pk
+            reason = f"Redirect r with {pk=} to pk 0"
+            self._raise_redirect({"pk": 0}, reason)
+
+    def _validate_settings(self):
+        """Validate group and top group settings."""
+        group = self.kwargs.get("group")
+        order_key = self.get_order_key()
+        enable_folder_view = False
+        if group == self.FOLDER_GROUP or order_key == "path":
+            try:
+                enable_folder_view = (
+                    AdminFlag.objects.only("on")
+                    .get(name=AdminFlag.ENABLE_FOLDER_VIEW)
+                    .on
+                )
+            except Exception:
+                pass
+
+        if group == self.FOLDER_GROUP:
+            self._validate_folder_settings(enable_folder_view)
+        else:
+            self._validate_browser_group_settings()
+
+        # Validate path sort
+        if order_key == "path" and not enable_folder_view:
+            pk = self.kwargs("pk")
+            page = self.kwargs("page")
+            route_changes = {"group": group, "pk": pk, "page": page}
+            self.params["order_by"] = "sort_name"
+            reason = "order by path not allowed by admin flag."
+            self._raise_redirect(route_changes, reason)
+
+    def _parse_query_params(self, query_params):
+        """Parse GET query parameters: filter object & snake case."""
+        # TODO read up on sending objects via get apiv3
+        #      possibly use filter_bookmark syntax or something.
+        result = {}
+        for key, val in query_params.items():
+            if key == "filters":
+                parsed_val = json.loads(val)
+                if not parsed_val:
+                    continue
+            else:
+                parsed_val = val
+
+            result[key] = parsed_val
+        # TODO do this for all GETS
+        result = underscoreize(result, **api_settings.JSON_UNDERSCOREIZE)
+
+        return result
+
+    def _parse_params(self):
+        """Validate submitted settings and apply them over the session settings."""
+        self.params = deepcopy(self.SESSION_DEFAULTS[self.SESSION_KEY])
+        if self.request.method == "GET":
+            data = self._parse_query_params(self.request.GET)
+        elif self.request.method == "PUT":
+            data = self._parse_query_params(self.request.data)
+        else:
+            data = None
+
+        if data:
+            serializer = BrowserSettingsSerializer(data=data)
+            try:
+                serializer.is_valid(raise_exception=True)
+            except ValidationError as exc:
+                LOG.error(serializer.errors)
+                LOG.exception(exc)
+                raise exc
+
+            # Overlay params on defaults.
+            for key, value in serializer.validated_data.items():
+                self.params[key] = value
+
+        self._validate_settings()
+
+    ##############
+    # DEPRECATED #
+    ##############
+    def put(self, _request, *args, **kwargs):
         """Create the view."""
-        self._load_params(from_request=True)
+        # TODO Deprecated, remove with api v3
+        LOG.verbose("Browser put method is deprecated.")
+        self._parse_params()
         browser_page = self._get_browser_page()
 
         serializer = BrowserPageSerializer(browser_page)
+        self.save_params_to_session()
         return Response(serializer.data)
 
-    def get(self, request, *args, **kwargs):
+    def get(self, _request, *args, **kwargs):
         """Get browser settings."""
-        self._load_params()
+        # TODO api v3 moves settings & version to another api.
+        self._parse_params()
         browser_page = self._get_browser_page()
         latest_version = get_latest_version(PACKAGE_NAME)
 
@@ -619,4 +624,5 @@ class BrowserView(BrowserMetadataBaseView):
             "versions": {"installed": VERSION, "latest": latest_version},
         }
         serializer = BrowserOpenedSerializer(data)
+        self.save_params_to_session()
         return Response(serializer.data)

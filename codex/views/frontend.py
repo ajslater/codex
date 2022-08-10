@@ -3,13 +3,13 @@ from django.urls import get_script_prefix
 from django.views.generic import TemplateView
 
 from codex.settings.settings import DEBUG
-from codex.views.session import SessionView
+from codex.views.session import SessionViewBase
 
 
-class IndexView(SessionView, TemplateView):
+class IndexView(TemplateView, SessionViewBase):
     """The main app."""
 
-    SESSION_KEY = SessionView.BROWSER_KEY
+    SESSION_KEY = SessionViewBase.BROWSER_KEY
 
     template_name = "index.html"
 

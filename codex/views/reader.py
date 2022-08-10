@@ -2,11 +2,9 @@
 from comicbox.comic_archive import ComicArchive
 from django.db.models import F
 from django.http import HttpResponse
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_control
+from django.urls import reverse
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from codex.models import Comic
 from codex.pdf import PDF
@@ -15,19 +13,20 @@ from codex.serializers.redirect import ReaderRedirectSerializer
 from codex.settings.logging import get_logger
 from codex.version import COMICBOX_CONFIG
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
+from codex.views.bookmark import UserBookmarkUpdateMixin
 from codex.views.group_filter import GroupACLMixin
-from codex.views.session import SessionView
+from codex.views.session import SessionViewBase
 
 
 LOG = get_logger(__name__)
 PAGE_TTL = 60 * 60 * 24
 
 
-class ComicOpenedView(SessionView, GroupACLMixin):
+class ComicOpenedView(SessionViewBase, GroupACLMixin):
     """Get info for displaying comic pages."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
-    SESSION_KEY = SessionView.READER_KEY
+    SESSION_KEY = SessionViewBase.READER_KEY
 
     def _get_prev_next_comics(self):
         """
@@ -86,14 +85,11 @@ class ComicOpenedView(SessionView, GroupACLMixin):
         """Get method."""
         # Get the preve next links and the comic itself in the same go
         comic, routes = self._get_prev_next_comics()
-        browser_route = self.get_from_session(
-            "route", session_key=SessionView.BROWSER_KEY
-        )
 
         if not comic:
             pk = self.kwargs.get("pk")
             detail = {
-                "route": browser_route,
+                "route": reverse("app"),
                 "reason": f"comic {pk} not found",
                 "serializer": ReaderRedirectSerializer,
             }
@@ -101,19 +97,17 @@ class ComicOpenedView(SessionView, GroupACLMixin):
         data = {
             "comic": comic,
             "routes": routes,
-            "browser_route": browser_route,
         }
         serializer = ComicReaderInfoSerializer(data)
         return Response(serializer.data)
 
 
-class ComicPageView(APIView, GroupACLMixin):
+class ComicPageView(UserBookmarkUpdateMixin):
     """Display a comic page from the archive itself."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
-    SESSION_KEY = SessionView.READER_KEY
+    SESSION_KEY = SessionViewBase.READER_KEY
 
-    @method_decorator([cache_control(max_age=PAGE_TTL)], name="dispatch")
     def get(self, request, *args, **kwargs):
         """Get the comic page from the archive."""
         pk = self.kwargs.get("pk")
@@ -129,6 +123,11 @@ class ComicPageView(APIView, GroupACLMixin):
                 car = ComicArchive(comic.path, config=COMICBOX_CONFIG)
                 content_type = "image/jpeg"
             page_image = car.get_page_by_index(page)
+
+            if self.request.query_params.get("bookmark"):
+                updates = {"pk": pk, "bookmark": page}
+                comic_filter = {"pk": pk}
+                self.update_user_bookmarks(updates, comic_filter)
             return HttpResponse(page_image, content_type=content_type)
         except Comic.DoesNotExist as exc:
             raise NotFound(detail=f"comic {pk} not found in db.") from exc

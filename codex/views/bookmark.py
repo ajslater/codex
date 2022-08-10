@@ -12,7 +12,7 @@ from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser_base import BrowserBaseView
 from codex.views.group_filter import GroupACLMixin
-from codex.views.session import SessionView
+from codex.views.session import SessionViewBase
 
 
 LOG = get_logger(__name__)
@@ -142,12 +142,14 @@ class ComicBookmarkView(UserBookmarkUpdateMixin):
         return self.update_one_user_bookmark(updates)
 
 
-class ComicSettingsView(SessionView, UserBookmarkUpdateMixin):
+class ComicSettingsView(SessionViewBase, UserBookmarkUpdateMixin):
     """Set Comic Settigns."""
+
+    # TODO apiv3 replace with session, readersession api view.
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
 
-    SESSION_KEY = SessionView.READER_KEY
+    SESSION_KEY = SessionViewBase.READER_KEY
     _NULL_READER_SETTINGS = {
         "fit_to": None,
         "two_pages": None,

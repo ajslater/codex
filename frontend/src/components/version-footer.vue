@@ -31,6 +31,9 @@ export default {
         : "up to date";
     },
   },
+  created() {
+    this.$store.dispatch("browser/getVersions");
+  },
 };
 </script>
 

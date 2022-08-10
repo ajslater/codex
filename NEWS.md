@@ -1,6 +1,16 @@
 # 📰 Codex News
 
+## v0.12.0a0
+
+_Syndication_
+
+- Features
+
+  - Don't tell Offspring, but there's OPDS now.
+
 ## v0.11.0
+
+_Task monitor_
 
 - Features
 

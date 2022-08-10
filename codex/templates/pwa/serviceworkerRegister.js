@@ -1,8 +1,8 @@
 // Initialize the service worker
-var rootPath = "{{ script_prefix }}";
+var ROOT_PATH = "{{ script_prefix }}";
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register(rootPath + 'serviceworker.js', {
-    scope: rootPath
+  navigator.serviceWorker.register(ROOT_PATH + 'serviceworker.js', {
+    scope: ROOT_PATH
   }).then(function (registration) {
     // Registration was successful
     {% if DEBUG %}

@@ -71,17 +71,17 @@ export default {
         }
       },
     }),
-    ...mapGetters("reader", ["computedSettings"]),
-    ...mapState("reader", {
-      readerBrowserRoute: (state) => state.browserRoute,
+    ...mapState("browser", {
+      lastRoute: (state) => state.routes.last,
     }),
+    ...mapGetters("reader", ["computedSettings"]),
     closeBookRoute: function () {
       // Choose the best route
       const route = {
         name: "browser",
+        params: this.lastRoute,
       };
-      if (this.readerBrowserRoute) {
-        route.params = this.readerBrowserRoute;
+      if (route.params) {
         route.hash = `#card-${this.$route.params.pk}`;
       } else {
         route.params = window.lastRoute || CHOICES.browser.route;

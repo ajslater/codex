@@ -209,7 +209,7 @@ def bulk_recreate_m2m_field(field_name, m2m_links):
     Since we can't bulk_update or bulk_create m2m fields use a trick.
     bulk_create() on the through table:
     https://stackoverflow.com/questions/6996176/how-to-create-an-object-for-a-django-model-with-a-many-to-many-field/10116452#10116452 # noqa: B950,E501
-    https://docs.djangoproject.com/en/3.2/ref/models/fields/#django.db.models.ManyToManyField.through # noqa: B950,E501
+    https://docs.djangoproject.com/en/4.0/ref/models/fields/#django.db.models.ManyToManyField.through # noqa: B950,E501
     """
     LOG.verbose(f"Recreating {field_name} relations for altered comics.")
     field = getattr(Comic, field_name)
