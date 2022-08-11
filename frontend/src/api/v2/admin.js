@@ -1,5 +1,4 @@
-import { ajax, ROOT_PATH } from "./base";
-const ADMIN_URL = `${ROOT_PATH}admin/`;
+import { ajax } from "./base";
 
 const queueJob = async (task) => {
   return await ajax("post", "/admin/queue_job", { task });
@@ -11,7 +10,6 @@ const getLibrarianStatuses = () => {
 };
 
 export default {
-  ADMIN_URL,
   getLibrarianStatuses,
   queueJob,
 };

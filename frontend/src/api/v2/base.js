@@ -1,9 +1,6 @@
 import axios from "axios";
-export const ROOT_PATH = window.CODEX.ROOT_PATH;
-const VERSION = 2;
-export const API_PREFIX = `${ROOT_PATH}api/v${VERSION}`;
 const CONFIG = {
-  baseURL: API_PREFIX,
+  baseURL: window.CODEX.API_V2_PATH,
   withCredentials: true,
   xsrfCookieName: "csrftoken",
   xsrfHeaderName: "X-CSRFTOKEN",

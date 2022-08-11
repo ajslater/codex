@@ -37,10 +37,10 @@ urlpatterns = [
     ),
     path("api/v2/", include("codex.urls_api_v2")),
     path("opds/", include("codex.urls_opds")),
-    path("admin/", admin.site.urls, name="admin"),
+    path("admin/", admin.site.urls),
     path("", include("codex.urls_pwa")),
     path("", IndexView.as_view(), name="app"),
-    re_path(".*", IndexView.as_view(), name="app"),
+    re_path(".*", IndexView.as_view()),
 ]
 
 

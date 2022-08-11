@@ -1,12 +1,10 @@
 // Notifications and websockets
-import { API_PREFIX } from "./base";
-
 const getSocketURL = () => {
   let socketProto = "ws";
   if (window.location.protocol === "https:") {
     socketProto += "s";
   }
-  return `${socketProto}://${location.host}${API_PREFIX}/ws`;
+  return `${socketProto}://${location.host}${window.CODEX.API_V2_PATH}/ws`;
 };
 export const SOCKET_URL = getSocketURL(); // THIS MUST export itself
 

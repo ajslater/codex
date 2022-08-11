@@ -15,6 +15,8 @@ Including another URLconf
 """
 from django.urls import path
 from django.views.decorators.cache import cache_control, cache_page, never_cache
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 
 from codex.views.admin import LibrarianStatusViewSet, QueueLibrarianJobs
 from codex.views.auth import LoginView, LogoutView, RegisterView, UserView
@@ -38,7 +40,15 @@ PAGE_MAX_AGE = 60 * 60 * 24 * 7
 VERSIONS_AGE = 60 * 60 * 12
 TIMEOUT = 60 * 5
 
-app_name = "api:v2"
+
+@api_view()
+def base_view(_request):
+    """Return the api version."""
+    # Possibly openapi documentation someday.
+    return Response({"API_VERSION": 2})
+
+
+app_name = "api_v2"
 urlpatterns = [
     #
     # Browser & Group
@@ -111,4 +121,5 @@ urlpatterns = [
         cache_control(max_age=VERSIONS_AGE)(VersionView.as_view()),
         name="versions",
     ),
+    path("", base_view, name="base"),
 ]
