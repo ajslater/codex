@@ -107,6 +107,7 @@ class ComicPageView(UserBookmarkUpdateMixin):
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
     SESSION_KEY = SessionViewBase.READER_KEY
+    X_MOZ_PRE_HEADERS = set(("prefetch", "preload", "prerender", "subresource"))
 
     def get(self, request, *args, **kwargs):
         """Get the comic page from the archive."""
@@ -124,7 +125,10 @@ class ComicPageView(UserBookmarkUpdateMixin):
                 content_type = "image/jpeg"
             page_image = car.get_page_by_index(page)
 
-            if self.request.query_params.get("bookmark"):
+            if (
+                self.request.query_params.get("bookmark")
+                and self.request.headers.get("X-moz") not in self.X_MOZ_PRE_HEADERS
+            ):
                 updates = {"pk": pk, "bookmark": page}
                 comic_filter = {"pk": pk}
                 self.update_user_bookmarks(updates, comic_filter)
