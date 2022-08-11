@@ -3,7 +3,7 @@ from datetime import datetime
 from urllib.parse import urlencode
 
 from django.contrib.staticfiles.storage import staticfiles_storage
-from django.urls import get_script_prefix, reverse
+from django.urls import reverse
 from django.utils.encoding import iri_to_uri
 from django.utils.feedgenerator import Atom1Feed, get_tag_uri, rfc3339_date
 from django.utils.xmlutils import SimplerXMLGenerator
@@ -269,10 +269,8 @@ class OPDSFeedGenerator(Atom1Feed):
         pk = card.get("pk")
         if group == "c":
             # PSE
-            script_prefix = get_script_prefix()
-            group_link = (
-                f"{script_prefix}opds/v1.2/c/{pk}/" + "{pageNumber}/p.jpg?bookmark=1"
-            )
+            base_url = reverse("opds:v1:start")
+            group_link = f"{base_url}c/{pk}/" + "{pageNumber}/p.jpg?bookmark=1"
             group_link_args = (self.OPDS_PSE_STREAM_REL, "image/jpeg")
             pse_count = str(card.get("page_count", 0))
             pse_last_read = card.get("bookmark")
