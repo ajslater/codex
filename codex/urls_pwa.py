@@ -17,7 +17,6 @@ from django.urls import path
 from django.views.decorators.cache import cache_page
 
 from codex.views.pwa import (
-    OfflineView,
     ServiceWorkerRegisterView,
     ServiceWorkerView,
     WebManifestView,
@@ -25,6 +24,7 @@ from codex.views.pwa import (
 
 
 TIMEOUT = 60 * 60
+app_name = "pwa"
 
 urlpatterns = [
     path(
@@ -42,5 +42,4 @@ urlpatterns = [
         cache_page(TIMEOUT)(ServiceWorkerView.as_view()),
         name="serviceworker",
     ),
-    path("offline", cache_page(TIMEOUT)(OfflineView.as_view()), name="offline"),
 ]

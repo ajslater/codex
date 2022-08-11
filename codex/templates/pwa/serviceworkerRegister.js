@@ -1,13 +1,10 @@
 // Initialize the service worker
-var ROOT_PATH = "{{ script_prefix }}";
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register(ROOT_PATH + 'serviceworker.js', {
-    scope: ROOT_PATH
+  navigator.serviceWorker.register("{% url 'pwa:serviceworker' %}", {
+    scope: "{% url 'app' %}"
   }).then(function (registration) {
     // Registration was successful
-    {% if DEBUG %}
-    console.log('codex-pwa: ServiceWorker registration successful with scope: ', registration.scope);
-    {% endif %}
+    console.debug('codex-pwa: ServiceWorker registration successful with scope: ', registration.scope);
   }, function (err) {
     // registration failed :(
     console.warn('codex-pwa: ServiceWorker registration failed: ', err);

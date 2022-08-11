@@ -12,9 +12,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="#272727" />
 {# Chrome #}
 <link rel="manifest"
-      href="{{ script_prefix }}manifest.webmanifest"
+      href="{% url 'pwa:manifest' %}"
       crossorigin="use-credentials"/>
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="application-name" content="Codex" />
 <meta name="theme-color" content="#272727" />
-<script async src="{{ script_prefix }}serviceworkerRegister.js"></script>
+<script async src="{% url 'pwa:serviceworker_register' %}"></script>
