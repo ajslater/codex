@@ -8,9 +8,12 @@
         <title>Codex</title>
         {% include 'icon-headers.html' %}
         <script>
-          var rootPath = "{{ script_prefix }}";
-          var lastRoute = {{ last_route | safe }};
-          var missingCover = "{% static 'img/missing-cover.webp' %}"
+          var CODEX = {
+            ROOT_PATH: "{% url 'app' %}",
+            LAST_ROUTE: {{ last_route | safe }},
+            MISSING_COVER: "{% static 'img/missing-cover.webp' %}"
+          };
+          Object.freeze(CODEX);
         </script>
         {% include 'pwa/headers.html' %}
         {% if not DEBUG %}

@@ -10,7 +10,6 @@ from django.contrib.auth.models import Group, User
 from django.core.cache import cache
 from django.db.models import Model
 from django.shortcuts import resolve_url
-from django.urls import get_script_prefix
 from django.utils.html import format_html
 from django.utils.safestring import SafeText
 
@@ -59,12 +58,6 @@ class AdminQueueJob(AdminNoAddDelete):
     def get_queryset(self, request):
         """Don't hit the database at all."""
         return QueueJob.objects.none()
-
-    def changelist_view(self, request, extra_context=None):
-        """Add script prefix to context."""
-        extra_context = extra_context or {}
-        extra_context["script_prefix"] = get_script_prefix()
-        return super().changelist_view(request, extra_context=extra_context)
 
 
 @register(Library)

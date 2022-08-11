@@ -28,7 +28,7 @@ export default {
   data() {
     return {
       // Could calculate this server side, but whatever
-      opdsURL: window.origin + window.rootPath + "opds/v1.2/r/0/1",
+      opdsURL: window.origin + window.CODEX.ROOT_PATH + "opds/v1.2/r/0/1",
     };
   },
 };
