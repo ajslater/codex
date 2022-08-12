@@ -27,7 +27,7 @@
         :value="item.progress"
         aria-label="% read"
         rounded
-        background-color="inherit"
+        :background-color="progressBackgroundColor"
         height="2"
       />
       <BrowserCardSubtitle :item="item" />
@@ -78,6 +78,9 @@ export default {
             name: "browser",
             params: { group: this.item.group, pk: this.item.pk, page: 1 },
           };
+    },
+    progressBackgroundColor: function () {
+      return this.item.progress ? "grey darken-4" : "inherit";
     },
   },
   mounted() {

@@ -109,10 +109,13 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@import "~vuetify/src/styles/styles.sass";
+@import "book-cover.scss";
 .cardSubtitle {
   margin-top: 7px;
   padding-top: 3px;
   text-align: center;
+  width: $cover-width;
 }
 .headerName {
   padding-top: 5px;
@@ -127,5 +130,10 @@ export default {
 }
 .orderValue {
   color: gray;
+}
+@media #{map-get($display-breakpoints, 'sm-and-down')} {
+  .cardSubtitle {
+    width: $small-cover-width;
+  }
 }
 </style>
