@@ -225,7 +225,7 @@ color_output = true
 # most options must be on the command line
 exclude = [
   "**/__pycache__",
-  "codex/_vendor/haystack",
-  "codex/static_build",
-  "codex/static_root",
+  "_vendor/haystack",
+  "static_build",
+  "static_root",
 ]

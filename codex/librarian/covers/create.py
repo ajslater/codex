@@ -18,10 +18,14 @@ from codex.settings.logging import get_logger
 from codex.version import COMICBOX_CONFIG
 
 
-THUMBNAIL_SIZE = (165, 255)
-COVER_DB_UPDATE_INTERVAL = 10
+_COVER_RATIO = 1024 / 633  # Most common American comic cover ratio.
+_THUMBNAIL_WIDTH = 165
+_THUMBNAIL_HEIGHT = round(_THUMBNAIL_WIDTH * _COVER_RATIO)
+_THUMBNAIL_SIZE = (_THUMBNAIL_WIDTH, _THUMBNAIL_HEIGHT)
+_COVER_DB_UPDATE_INTERVAL = 10
+_COVER_CREATE_STATUS_KEYS = {"type": "Creating Covers"}
+
 LOG = get_logger(__name__)
-COVER_CREATE_STATUS_KEYS = {"type": "Creating Covers"}
 
 
 def _create_cover_thumbnail(cover_image_data):
@@ -30,7 +34,7 @@ def _create_cover_thumbnail(cover_image_data):
         with BytesIO(cover_image_data) as image_io:
             with Image.open(image_io) as cover_image:
                 cover_image.thumbnail(
-                    THUMBNAIL_SIZE,
+                    _THUMBNAIL_SIZE,
                     Image.Resampling.LANCZOS,  # type: ignore
                     reducing_gap=3.0,
                 )
@@ -82,7 +86,7 @@ def bulk_create_comic_covers(comic_pks):
         return
 
     LOG.verbose(f"Creating {num_comics} comic covers...")
-    librarian_status_update(COVER_CREATE_STATUS_KEYS, 0, num_comics)
+    librarian_status_update(_COVER_CREATE_STATUS_KEYS, 0, num_comics)
 
     # Get comic objects
     count = 0
@@ -101,14 +105,14 @@ def bulk_create_comic_covers(comic_pks):
 
         # notify the frontend every 10 seconds
         elapsed = time.time() - last_update
-        if elapsed > COVER_DB_UPDATE_INTERVAL:
+        if elapsed > _COVER_DB_UPDATE_INTERVAL:
             LOG.verbose(f"Created {count}/{num_comics} comic covers.")
-            librarian_status_update(COVER_CREATE_STATUS_KEYS, count, num_comics)
+            librarian_status_update(_COVER_CREATE_STATUS_KEYS, count, num_comics)
             last_update = time.time()
 
     total_elapsed = naturaldelta(time.time() - start_time)
     LOG.verbose(f"Created {count} comic covers in {total_elapsed}.")
-    librarian_status_done([COVER_CREATE_STATUS_KEYS])
+    librarian_status_done([_COVER_CREATE_STATUS_KEYS])
     return count
 
 
