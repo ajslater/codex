@@ -1,7 +1,7 @@
 """Update the codex python package."""
 import os
 import signal
-import subprocess
+import subprocess  # nosec
 import sys
 
 from codex.librarian.status import librarian_status_done, librarian_status_update
@@ -30,7 +30,7 @@ def update_codex(force=False):
         LOG.info("Codex seems outdated. Trying to update.")
 
     try:
-        subprocess.run(
+        subprocess.run(  # nosec
             (sys.executable, "-m", "pip", "install", "--upgrade", "codex"), check=True
         )
     except Exception as exc:

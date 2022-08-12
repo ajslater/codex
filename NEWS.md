@@ -7,6 +7,7 @@ _Syndication_
 - Features
 
   - Don't tell Offspring, but there's OPDS now.
+  - Larger browser covers.
 
 ## v0.11.0
 

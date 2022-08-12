@@ -6,6 +6,7 @@ const NULL_READER_SETTINGS = {
   fitTo: undefined,
   twoPages: undefined,
 };
+Object.freeze(NULL_READER_SETTINGS);
 
 const getGlobalFitToDefault = () => {
   // Big screens default to fit by HEIGHT, small to WIDTH;

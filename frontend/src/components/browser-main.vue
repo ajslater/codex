@@ -98,18 +98,21 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@import "./book-cover.scss";
+$card-margin: 32px;
 #browsePane {
   display: flex;
   margin-top: 160px;
-  margin-left: max(16px, env(safe-area-inset-left));
-  margin-right: max(16px, env(safe-area-inset-right));
+  margin-left: max($card-margin, env(safe-area-inset-left));
+  margin-right: max($card-margin, env(safe-area-inset-right));
+  margin-bottom: max($card-margin, env(safe-area-inset-bottom));
   overflow: auto;
 }
 #browsePaneContainer {
-  margin-top: 16px;
+  margin-top: $card-margin;
   display: grid;
-  grid-template-columns: repeat(auto-fit, 120px);
-  grid-gap: 32px;
+  grid-template-columns: repeat(auto-fit, $cover-width);
+  grid-gap: $card-margin;
   justify-content: start;
   align-content: flex-start;
 }
@@ -132,9 +135,16 @@ export default {
 }
 @import "~vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
+  $small-card-margin: 16px;
+  #browsePane {
+    margin-left: max($small-card-margin, env(safe-area-inset-left));
+    margin-right: max($small-card-margin, env(safe-area-inset-right));
+    margin-bottom: max($small-card-margin, env(safe-area-inset-bottom));
+  }
+
   #browsePaneContainer {
-    grid-template-columns: repeat(auto-fit, 100px);
-    grid-gap: 16px;
+    grid-template-columns: repeat(auto-fit, $small-cover-width);
+    grid-gap: $small-card-margin;
     justify-content: space-evenly;
   }
   #noComicsFound {

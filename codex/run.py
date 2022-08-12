@@ -41,7 +41,7 @@ def restart():
     import sys
 
     LOG.info("Restarting Codex. Hold on to your butts...")
-    os.execv(__file__, sys.argv)
+    os.execv(__file__, sys.argv)  # nosec
 
 
 def run():

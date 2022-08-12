@@ -21,12 +21,14 @@ const DYNAMIC_FILTERS = {
   teams: undefined,
   year: undefined,
 };
+Object.freeze(DYNAMIC_FILTERS);
 export const NUMERIC_FILTERS = [
   "communityRating",
   "criticalRating",
   "decade",
   "year",
 ];
+Object.freeze(NUMERIC_FILTERS);
 const GROUP_FLAGS = {
   p: ["settings", "p"],
   i: ["settings", "i"],
@@ -34,12 +36,16 @@ const GROUP_FLAGS = {
   v: ["settings", "v"],
   f: ["adminFlags", "enableFolderView"],
 };
+Object.freeze(GROUP_FLAGS);
 const GROUPS_REVERSED = "cvsipr";
+Object.freeze(GROUPS_REVERSED);
 const SETTINGS_SHOW_DEFAULTS = {};
 for (let choice of CHOICES.browser.settingsGroup) {
   SETTINGS_SHOW_DEFAULTS[choice.value] = choice.default === true;
 }
+Object.freeze(SETTINGS_SHOW_DEFAULTS);
 const IS_OPEN_TO_SEE = "auth/isOpenToSee";
+Object.freeze(IS_OPEN_TO_SEE);
 
 const state = {
   coversTimestamp: 0,

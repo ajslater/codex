@@ -78,18 +78,21 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@import "book-cover.scss";
 .bookCoverWrapper {
 }
 .coverImgWrapper {
-  height: 180px;
-  width: 120px;
+  height: $cover-height;
 }
 .coverImg {
   display: block;
   min-height: 48px; /* for the placeholder :/ */
-  max-height: 180px;
-  width: 120px;
+  max-height: $cover-height;
   border-radius: 5px;
+}
+.coverImgWrapper,
+.coverImg {
+  width: $cover-width;
 }
 .bookCoverOverlayTopRow {
   height: 15%;
@@ -141,12 +144,14 @@ export default {
 
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   .coverImgWrapper {
-    height: 150px;
-    width: 100px;
+    height: $small-cover-height;
   }
   .coverImg {
-    max-height: 150px;
-    width: 100px;
+    max-height: $small-cover-height;
+  }
+  .coverImgWrapper,
+  .coverImg {
+    width: $small-cover-width;
   }
 }
 </style>

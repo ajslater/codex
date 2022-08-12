@@ -79,6 +79,41 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.AlterField(  # Fixes django 4.1 bug removing fields
+            model_name="comic",
+            name="sort_name",
+            field=models.CharField(db_index=False, max_length=32),
+        ),
+        migrations.AlterField(  # Fixes django 4.1 bug removing fields
+            model_name="failedimport",
+            name="sort_name",
+            field=models.CharField(db_index=False, max_length=32),
+        ),
+        migrations.AlterField(  # Fixes django 4.1 bug removing fields
+            model_name="folder",
+            name="sort_name",
+            field=models.CharField(db_index=False, max_length=32),
+        ),
+        migrations.AlterField(  # Fixes django 4.1 bug removing fields
+            model_name="imprint",
+            name="sort_name",
+            field=models.CharField(db_index=False, max_length=32),
+        ),
+        migrations.AlterField(  # Fixes django 4.1 bug removing fields
+            model_name="publisher",
+            name="sort_name",
+            field=models.CharField(db_index=False, max_length=32),
+        ),
+        migrations.AlterField(  # Fixes django 4.1 bug removing fields
+            model_name="series",
+            name="sort_name",
+            field=models.CharField(db_index=False, max_length=32),
+        ),
+        migrations.AlterField(  # Fixes django 4.1 bug removing fields
+            model_name="volume",
+            name="sort_name",
+            field=models.CharField(db_index=False, max_length=32),
+        ),
         migrations.RemoveField(
             model_name="comic",
             name="cover_image",

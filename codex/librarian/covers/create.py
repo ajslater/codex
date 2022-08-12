@@ -18,7 +18,7 @@ from codex.settings.logging import get_logger
 from codex.version import COMICBOX_CONFIG
 
 
-THUMBNAIL_SIZE = (120, 180)
+THUMBNAIL_SIZE = (165, 255)
 COVER_DB_UPDATE_INTERVAL = 10
 LOG = get_logger(__name__)
 COVER_CREATE_STATUS_KEYS = {"type": "Creating Covers"}

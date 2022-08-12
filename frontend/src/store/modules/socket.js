@@ -12,6 +12,7 @@ const SUBSCRIBE_MESSAGES = {
   user: JSON.stringify({ type: "subscribe", register: true }),
   unsub: JSON.stringify({ type: "subscribe", register: false }),
 };
+Object.freeze(SUBSCRIBE_MESSAGES);
 
 const wsKeepAlive = function (ws) {
   if (!ws || ws.readyState !== 1) {

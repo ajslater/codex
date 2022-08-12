@@ -17,8 +17,8 @@ done
 
 # shellcheck disable=2068
 docker manifest create \
-    "${VERSION_TAG}" \
-    ${AMEND_TAGS[@]}
+    "$VERSION_TAG" \
+    "${AMEND_TAGS[@]}"
 
 docker manifest push "$VERSION_TAG"
 
@@ -28,8 +28,8 @@ if [[ $PKG_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]$ ]]; then
     echo "Creating $LATEST_TAG."
     # shellcheck disable=2068
     docker manifest create \
-        $LATEST_TAG \
-        ${AMEND_TAGS[@]}
+        "$LATEST_TAG" \
+        "${AMEND_TAGS[@]}"
 
-    docker manifest push $LATEST_TAG
+    docker manifest push "$LATEST_TAG"
 fi
