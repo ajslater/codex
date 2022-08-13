@@ -366,7 +366,6 @@ class Comic(WatchedPath):
     max_page = PositiveSmallIntegerField(default=0)
     size = PositiveIntegerField(db_index=True)
     file_format = CharField(
-        # validators=[validate_file_format_choice],
         choices=FileFormat.choices,
         max_length=max((len(val) for val in FileFormat.values)),
         default=FileFormat.COMIC.value,
