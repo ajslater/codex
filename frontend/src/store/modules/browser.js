@@ -216,6 +216,7 @@ const mutations = {
 const validateFirstSearch = ({ state }, data) => {
   // If first search redirect to lowest group and change order
   if (state.autoquery || !data.autoquery) {
+    // Not first search, validated.
     return;
   }
   data.orderBy = "search_score";
@@ -237,9 +238,11 @@ const validateNewTopGroupIsParent = ({ state }, data) => {
   // If the top group changed and we're at the root group and the new top group is above the proper nav group
   if (
     router.currentRoute.params.group !== "r" ||
-    GROUPS_REVERSED.indexOf(data.topGroup) <=
-      GROUPS_REVERSED.indexOf(state.settings.topGroup)
+    !state.settings.topGroup ||
+    GROUPS_REVERSED.indexOf(state.settings.topGroup) >
+      GROUPS_REVERSED.indexOf(data.topGroup)
   ) {
+    // All is well, validated.
     return;
   }
   const route = { params: { ...router.currentRoute.params } };
@@ -272,7 +275,9 @@ const clearChoicesAndResetFilterMode = ({ commit }, data) => {
 const validateSettings = ({ commit, state }, data) => {
   let redirect;
   redirect = validateFirstSearch({ state }, data);
+  console.log({ redirect });
   redirect = validateNewTopGroupIsParent({ state }, data);
+  console.log({ redirect });
   commit("setSettings", data);
   clearChoicesAndResetFilterMode({ commit }, data);
   commit("setBrowseTimestamp");
@@ -339,6 +344,7 @@ const actions = {
       .then((response) => {
         const data = response.data;
         const redirect = validateSettings({ commit, dispatch, state }, data);
+        console.log(redirect);
 
         commit("setBrowsePageLoaded", true);
         if (redirect) {
