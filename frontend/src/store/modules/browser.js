@@ -239,7 +239,7 @@ const validateNewTopGroupIsParent = ({ state }, data) => {
   if (
     router.currentRoute.params.group !== "r" ||
     !state.settings.topGroup ||
-    GROUPS_REVERSED.indexOf(state.settings.topGroup) >
+    GROUPS_REVERSED.indexOf(state.settings.topGroup) >=
       GROUPS_REVERSED.indexOf(data.topGroup)
   ) {
     // All is well, validated.
