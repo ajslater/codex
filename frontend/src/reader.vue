@@ -62,7 +62,7 @@ export default {
         this.routeChanged();
       }
       window.scrollTo(0, 0);
-      this.setBrowseTimestamp();
+      // this.setBrowseTimestamp();
     },
   },
   created() {

@@ -36,6 +36,7 @@ export default {
   },
   watch: {
     $route: function () {
+      window.scrollTo(0, 0);
       this.getBrowserPage();
     },
     user: function () {
