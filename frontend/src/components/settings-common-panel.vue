@@ -6,7 +6,7 @@
     <v-divider />
     <div id="opds">
       <h3>OPDS</h3>
-      <a :href="opdsURL" target="_blank">{{ opdsURL }}</a>
+      {{ opdsURL }}
     </div>
     <VersionsFooter />
   </div>
@@ -40,9 +40,8 @@ export default {
   padding-left: 15px;
   padding-right: calc(env(safe-area-inset-right) + 10px);
   padding-bottom: 10px;
-}
-#opds a {
   font-size: smaller;
   overflow-wrap: anywhere;
+  color: grey;
 }
 </style>
