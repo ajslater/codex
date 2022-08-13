@@ -18,7 +18,7 @@ from codex.settings.logging import get_logger
 from codex.version import COMICBOX_CONFIG
 
 
-_COVER_RATIO = 1024 / 633  # Most common American comic cover ratio.
+_COVER_RATIO = 1.5372233400402415  # modal cover ratio
 _THUMBNAIL_WIDTH = 165
 _THUMBNAIL_HEIGHT = round(_THUMBNAIL_WIDTH * _COVER_RATIO)
 _THUMBNAIL_SIZE = (_THUMBNAIL_WIDTH, _THUMBNAIL_HEIGHT)
@@ -53,7 +53,7 @@ def create_cover(pk, cover_path):
     thumb_image_data = None
     comic = Comic.objects.only("path", "file_format").get(pk=pk)
     try:
-        if comic.file_format == Comic.FileFormats.PDF:
+        if comic.file_format == Comic.FileFormat.PDF:
             car_class = PDF
         else:
             car_class = ComicArchive

@@ -117,7 +117,7 @@ class ComicPageView(UserBookmarkUpdateMixin):
             group_acl_filter = self.get_group_acl_filter(True)
             comic = Comic.objects.filter(group_acl_filter).only("path").get(pk=pk)
             page = self.kwargs.get("page")
-            if comic.file_format == Comic.FileFormats.PDF:
+            if comic.file_format == Comic.FileFormat.PDF:
                 car = PDF(comic.path)
                 content_type = PDF.MIME_TYPE
             else:

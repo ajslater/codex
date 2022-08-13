@@ -28,6 +28,7 @@ from django.db.models import (
     TextField,
     URLField,
 )
+from django.db.models.enums import TextChoices
 from django.utils.translation import gettext_lazy as _
 
 from codex.serializers.choices import CHOICES
@@ -37,7 +38,8 @@ from codex.settings.logging import get_logger
 LOG = get_logger(__name__)
 
 
-SCHEMA_VERSION = 1
+MAX_PATH_LENGTH = 4095
+MAX_NAME_LENGTH = 128
 
 
 class BaseModel(Model):
@@ -59,7 +61,7 @@ class BrowserGroupModel(BaseModel):
     DEFAULT_NAME = ""
     ORDERING = ("name", "pk")
 
-    name = CharField(db_index=True, max_length=64, default=DEFAULT_NAME)
+    name = CharField(db_index=True, max_length=MAX_NAME_LENGTH, default=DEFAULT_NAME)
 
     class Meta:
         """Without this a real table is created and joined to."""
@@ -132,7 +134,10 @@ class Library(BaseModel):
     DEFAULT_POLL_EVERY = datetime.timedelta(seconds=DEFAULT_POLL_EVERY_SECONDS)
 
     path = CharField(
-        unique=True, db_index=True, max_length=128, validators=[validate_dir_exists]
+        unique=True,
+        db_index=True,
+        max_length=MAX_PATH_LENGTH,
+        validators=[validate_dir_exists],
     )
     events = BooleanField(db_index=True, default=True)
     poll = BooleanField(db_index=True, default=True)
@@ -154,7 +159,7 @@ class Library(BaseModel):
 class NamedModel(BaseModel):
     """A for simple named tables."""
 
-    name = CharField(db_index=True, max_length=64)
+    name = CharField(db_index=True, max_length=MAX_NAME_LENGTH)
 
     class Meta:
         """Defaults to uniquely named, must be overridden."""
@@ -235,7 +240,7 @@ class WatchedPath(BrowserGroupModel):
     """A filesystem path with data for Watchdog."""
 
     library = ForeignKey(Library, on_delete=CASCADE, db_index=True)
-    path = CharField(max_length=4095, db_index=True)
+    path = CharField(max_length=MAX_PATH_LENGTH, db_index=True)
     stat = JSONField(null=True)
     parent_folder = ForeignKey(
         "Folder",
@@ -274,7 +279,7 @@ class Folder(WatchedPath):
 
 def validate_file_format_choice(choice):
     """Validate file format."""
-    values = Comic.FileFormats.CHOICES
+    values = Comic.FileFormat.values
     if choice not in values:
         raise ValidationError(_(f"{choice} is not one of {values}"))
 
@@ -282,12 +287,11 @@ def validate_file_format_choice(choice):
 class Comic(WatchedPath):
     """Comic metadata."""
 
-    class FileFormats:
+    class FileFormat(TextChoices):
         """Identifiers for file formats."""
 
         COMIC = "comic"
         PDF = "pdf"
-        CHOICES = frozenset((COMIC, PDF))
 
     ORDERING = ("series__name", "volume__name", "issue", "issue_suffix", "name", "pk")
 
@@ -327,10 +331,10 @@ class Comic(WatchedPath):
     country = CharField(db_index=True, max_length=32, null=True)
     language = CharField(db_index=True, max_length=32, null=True)
     # misc
-    format = CharField(db_index=True, max_length=16, null=True)
+    format = CharField(db_index=True, max_length=32, null=True)
     page_count = PositiveSmallIntegerField(db_index=True, default=0)
     read_ltr = BooleanField(db_index=True, default=True)
-    scan_info = CharField(max_length=128, null=True)
+    scan_info = CharField(max_length=MAX_NAME_LENGTH, null=True)
     web = URLField(null=True)
     # ManyToMany
     characters = ManyToManyField(Character)
@@ -362,7 +366,10 @@ class Comic(WatchedPath):
     max_page = PositiveSmallIntegerField(default=0)
     size = PositiveIntegerField(db_index=True)
     file_format = CharField(
-        validators=[validate_file_format_choice], max_length=5, default="comic"
+        # validators=[validate_file_format_choice],
+        choices=FileFormat.choices,
+        max_length=max((len(val) for val in FileFormat.values)),
+        default=FileFormat.COMIC.value,
     )
 
     class Meta:
@@ -428,6 +435,7 @@ class Comic(WatchedPath):
 class AdminFlag(NamedModel):
     """Flags set by administrators."""
 
+    # TODO: SPA admin maybe change this to proper TextChoices.
     ENABLE_FOLDER_VIEW = "Enable Folder View"
     ENABLE_REGISTRATION = "Enable Registration"
     ENABLE_NON_USERS = "Enable Non Users"
@@ -473,6 +481,7 @@ def cascade_if_user_null(collector, field, sub_objs, _using):
 
 def validate_fit_to_choice(choice):
     """Validate fit to choice."""
+    # Choices is loaded after migration time and after definition time.
     values = CHOICES["fitTo"]
     if choice is not None and choice not in values:
         raise ValidationError(_(f"{choice} is not one of {values}"))
@@ -491,7 +500,10 @@ class UserBookmark(BaseModel):
     bookmark = PositiveSmallIntegerField(db_index=True, null=True)
     finished = BooleanField(default=False, db_index=True)
     fit_to = CharField(
-        validators=[validate_fit_to_choice], null=True, default=None, max_length=6
+        validators=[validate_fit_to_choice],
+        null=True,
+        default=None,
+        max_length=len("SCREEN"),
     )
     two_pages = BooleanField(default=None, null=True)
 
@@ -504,15 +516,13 @@ class UserBookmark(BaseModel):
 class FailedImport(WatchedPath):
     """Failed Comic Imports. Displayed in Admin Panel."""
 
-    MAX_REASON_LEN = 32
-
     def set_reason(self, exc):
         """Can't do this in save() because it breaks update_or_create."""
         reason = str(exc)
         suffixes = (f": {self.path}", f": '{self.path}'")
         for suffix in suffixes:
             reason = reason.removesuffix(suffix)
-        reason = reason[: self.MAX_REASON_LEN]
+        reason = reason[:MAX_NAME_LENGTH]
         self.name = reason.strip()
 
     class Meta:
@@ -524,7 +534,9 @@ class FailedImport(WatchedPath):
 class SearchQuery(Model):
     """Search queries."""
 
-    text = CharField(db_index=True, unique=True, max_length=256)
+    QUERY_MAX_LENGTH = 256
+
+    text = CharField(db_index=True, unique=True, max_length=QUERY_MAX_LENGTH)
     used_at = DateTimeField(auto_now_add=True, db_index=True)
 
 
@@ -551,11 +563,10 @@ class SearchResult(Model):
         indexes = [Index(fields=["comic", "query"])]
 
 
-class LibrarianStatus(BaseModel):
+class LibrarianStatus(NamedModel):
     """Active Library Tasks."""
 
-    type = CharField(db_index=True, max_length=64)
-    name = CharField(db_index=True, max_length=256, null=True)
+    type = CharField(db_index=True, max_length=32)
     complete = PositiveSmallIntegerField(default=0)
     total = PositiveSmallIntegerField(null=True, default=None)
     active = BooleanField(default=False)
@@ -566,7 +577,7 @@ class LibrarianStatus(BaseModel):
         unique_together = ("type", "name")
 
 
-class Timestamp(BaseModel):
+class Timestamp(NamedModel):
     """Timestamp."""
 
     COVERS = "covers"
@@ -576,7 +587,6 @@ class Timestamp(BaseModel):
     XAPIAN_INDEX_UUID = "xapian_index_uuid"
     NAMES = (COVERS, JANITOR, SEARCH_INDEX, CODEX_VERSION, XAPIAN_INDEX_UUID)
 
-    name = CharField(db_index=True, max_length=32, unique=True)
     version = CharField(max_length=32, null=True, default=None)
 
     @classmethod

@@ -35,14 +35,13 @@ def _get_path_metadata(path):
     failed_import = {}
     try:
         if PDF.is_pdf(path):
-            file_format = Comic.FileFormats.PDF
+            file_format = Comic.FileFormat.PDF
             car_class = PDF
         else:
-            file_format = Comic.FileFormats.COMIC
+            file_format = Comic.FileFormat.COMIC
             car_class = ComicArchive
         with car_class(path, config=COMICBOX_CONFIG, closefd=False) as car:
             md = car.get_metadata()
-            # TODO do not pregen
 
         md["path"] = path
         md["file_format"] = file_format
