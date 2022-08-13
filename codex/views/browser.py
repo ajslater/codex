@@ -367,8 +367,7 @@ class BrowserView(BrowserMetadataBaseView):
             queryset = self._get_browser_group_queryset(object_filter, autoquery_pk)
 
         # Order
-        order_by = self.get_order_by(self.model)
-        queryset = queryset.order_by(*order_by)
+        queryset = self.get_order_by(self.model, queryset)
 
         # Paginate
         obj_list, num_pages = self._paginate(queryset)

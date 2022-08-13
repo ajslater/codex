@@ -8,6 +8,7 @@ _Syndication_
 
   - Don't tell Offspring, but there's OPDS now.
   - Larger browser covers.
+  - Sort by name ignores leading articles in 11 languages.
 
 - Fix
 
