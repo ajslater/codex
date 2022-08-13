@@ -13,6 +13,7 @@ _Syndication_
 - Fix
 
   - Use defusexml to load xml metadata for safety.
+  - Removed process naming. My implementation was prone to instability.
 
 ## v0.11.0
 

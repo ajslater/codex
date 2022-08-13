@@ -1,6 +1,5 @@
 """A Codex database event emitter for use by the observer."""
 import os
-import platform
 
 from itertools import chain
 from pathlib import Path
@@ -9,7 +8,6 @@ from threading import Condition
 from django.db.models.functions import Now
 from django.utils import timezone
 from humanize import precisedelta
-from setproctitle import setproctitle
 from watchdog.events import (
     DirDeletedEvent,
     DirModifiedEvent,
@@ -278,12 +276,6 @@ class DatabasePollingEmitter(EventEmitter):
             raise exc
         finally:
             librarian_status_done([status_keys])
-
-    def run(self, *args, **kwargs):
-        """Identify the thread."""
-        if platform.system() != "Darwin":
-            setproctitle(f"WE{self._watch_path}")
-        super().run(*args, **kwargs)
 
     def on_thread_stop(self):
         """Send the poller as well."""

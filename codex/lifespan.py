@@ -1,7 +1,6 @@
 """Start and stop daemons."""
 import multiprocessing
 import os
-import platform
 
 from time import sleep
 
@@ -10,14 +9,12 @@ from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.db.models import Q
 from django.db.models.functions import Now
-from setproctitle import setproctitle
 
 from codex.darwin_mp import force_darwin_multiprocessing_fork
 from codex.librarian.librariand import LibrarianDaemon
 from codex.models import AdminFlag, LibrarianStatus, Library, Timestamp
 from codex.notifier.notifierd import Notifier
 from codex.settings.logging import get_logger
-from codex.version import PACKAGE_NAME
 
 
 RESET_ADMIN = bool(os.environ.get("CODEX_RESET_ADMIN"))
@@ -83,8 +80,6 @@ def clear_library_status():
 
 def codex_startup():
     """Initialize the database and start the daemons."""
-    if platform.system() != "Darwin":
-        setproctitle(PACKAGE_NAME)
     ensure_superuser()
     init_admin_flags()
     init_timestamps()
