@@ -275,9 +275,7 @@ const clearChoicesAndResetFilterMode = ({ commit }, data) => {
 const validateSettings = ({ commit, state }, data) => {
   let redirect;
   redirect = validateFirstSearch({ state }, data);
-  console.log({ redirect });
   redirect = validateNewTopGroupIsParent({ state }, data);
-  console.log({ redirect });
   commit("setSettings", data);
   clearChoicesAndResetFilterMode({ commit }, data);
   commit("setBrowseTimestamp");
@@ -344,15 +342,16 @@ const actions = {
       .then((response) => {
         const data = response.data;
         const redirect = validateSettings({ commit, dispatch, state }, data);
-        console.log(redirect);
-
         commit("setBrowsePageLoaded", true);
         if (redirect) {
           return dispatch("redirectRoute", redirect);
         }
         return redirect;
       })
-      .catch(handlePageError({ commit, dispatch, state }));
+      .catch(() => {
+        commit("setBrowsePageLoaded", true);
+        handlePageError({ commit, dispatch, state });
+      });
     dispatch("getBrowserPage");
   },
   settingChanged({ commit, dispatch, state }, data) {
