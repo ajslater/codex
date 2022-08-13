@@ -80,7 +80,7 @@ export default {
           };
     },
     progressBackgroundColor: function () {
-      return this.item.progress ? "grey darken-4" : "inherit";
+      return this.item.progress ? "grey darken-3" : "inherit";
     },
   },
   mounted() {
