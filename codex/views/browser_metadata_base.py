@@ -253,7 +253,7 @@ class BrowserMetadataBaseView(BrowserBaseView):
         )
 
         lowercase_first_word = Lower(
-            Substr(first_field, 1, length=(F("first_space_index") - 1))
+            Substr(first_field, 1, length=(F("first_space_index") - 1))  # type: ignore
         )
         queryset = queryset.annotate(
             lowercase_first_word=Case(
@@ -266,7 +266,9 @@ class BrowserMetadataBaseView(BrowserBaseView):
             sort_name=Case(
                 When(
                     lowercase_first_word__in=cls.ARTICLES,
-                    then=Substr(first_field, F("first_space_index") + 1),
+                    then=Substr(
+                        first_field, F("first_space_index") + 1  # type: ignore
+                    ),
                 ),
                 default=first_field,
             )
