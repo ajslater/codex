@@ -9,6 +9,7 @@
         {% include 'icon-headers.html' %}
         <script>
           var CODEX = {
+            APP_PATH: "{% url 'app' %}",
             ADMIN_PATH: "{% url 'admin:index' %}",
             API_V2_PATH: "{% url 'api_v2:base' %}",
             LAST_ROUTE: {{ last_route | safe }},

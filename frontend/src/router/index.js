@@ -37,7 +37,7 @@ const routes = [
 ];
 
 export default new VueRouter({
-  base: window.CODEX.ROOT_PATH,
+  base: window.CODEX.APP_PATH,
   mode: "history",
   routes,
 });
