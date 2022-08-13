@@ -9,6 +9,10 @@ _Syndication_
   - Don't tell Offspring, but there's OPDS now.
   - Larger browser covers.
 
+- Fix
+
+  - Use defusexml to load xml metadata for safety.
+
 ## v0.11.0
 
 _Task monitor_
