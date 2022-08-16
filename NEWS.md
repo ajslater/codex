@@ -6,10 +6,11 @@ _Syndication_
 
 - Features
 
-  - Don't tell Offspring, but there's OPDS now.
+  - OPDS v1, OPDS Streaming & OPDS Search support.
   - Larger browser covers.
   - Sort by name ignores leading articles in 11 languages.
   - Admin Librarian Status updates update every 5 seconds.
+  - New favicon.
 
 - Fix
 
