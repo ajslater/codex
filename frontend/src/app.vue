@@ -48,4 +48,9 @@ html {
 body {
   background-color: #121212;
 }
+noscript {
+  text-align: center;
+  font-family: sans-serif;
+  color: darkgray;
+}
 </style>

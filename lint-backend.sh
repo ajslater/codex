@@ -6,10 +6,13 @@ cd "$(dirname "$0")"
 ####################
 ###### Python ######
 ####################
-# Pytest runs flake8, black, isort with caching, run tests later
-poetry run pytest --ignore=tests
+poetry run flake8 .
+poetry run black --check .
+poetry run isort --check-only .
 poetry run pyright
+poetry run bandit -r -c "pyproject.toml" --confidence-level=medium --severity-level=medium codex
 poetry run vulture .
+poetry run eradicate --recursive .
 if [ "$(uname)" = "Darwin" ]; then
     # Radon is only of interest to development
     poetry run radon mi --min B .
@@ -29,7 +32,8 @@ if [ "$(uname)" = "Darwin" ]; then
     # Hadolint & shfmt are difficult to install on linux
     # shellcheck disable=2035
     hadolint *.Dockerfile
-    shfmt -d -i 4 ./*.sh ./**/*.sh
+    #shfmt -d -i 4 ./*.sh ./**/*.sh
+    shellharden ./*.sh ./**/*.sh
     # subdirs aren't copied into docker builder
     # .env files aren't copied into docker
     shellcheck --external-sources ./**/*.sh .env.platforms .env.pushover

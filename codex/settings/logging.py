@@ -9,7 +9,7 @@ from colors import color
 
 LOG_FMT = "{asctime} {levelname:8} {message}"
 DATEFMT = "%Y-%m-%d %H:%M:%S %Z"
-LOG_EVERY = 15
+LOG_EVERY = 5
 LOG_MAX_BYTES = 10 * 1024 * 1024
 VERBOSE: int = int((logging.INFO + logging.DEBUG) / 2)
 

@@ -6,7 +6,7 @@
     content-class="metadataDialog"
   >
     <template #activator="{ on }">
-      <v-icon class="metadataButton" aria-label="tags" v-on="on">
+      <v-icon aria-label="tags" left class="tagIcon" v-on="on" @click.prevent>
         {{ mdiTagOutline }}
       </v-icon>
     </template>
@@ -445,6 +445,15 @@ export default {
 .quarterRow > * {
   width: 25%;
   display: inline-flex;
+}
+@import "browser-card.scss";
+.tagIcon {
+  color: $browser-card-icon-color;
+  width: $browser-card-icon-size;
+  height: $browser-card-icon-size;
+}
+.tagIcon:hover {
+  color: $browser-card-icon-hover-color;
 }
 
 @media #{map-get($display-breakpoints, 'sm-and-down')} {

@@ -1,7 +1,9 @@
 {% load static %}
-var staticCacheName = "codex-pwa-v" + new Date().getTime();
-var filesToCache = [
-  "/offline",
+var CACHE_PREFIX = "codex-pwa-v"
+var STATIC_CACHE_NAME = CACHE_PREFIX + new Date().getTime();
+var OFFLINE_PATH = "{% static 'pwa/offline.html' %}";
+var FILES_TO_CACHE = [
+  OFFLINE_PATH,
   "{% static 'img/favicon-32.webp' %}",
   "{% static 'img/apple-icon-180.webp' %}",
   "{% static 'img/manifest-icon-192.maskable.webp' %}",
@@ -12,8 +14,8 @@ var filesToCache = [
 self.addEventListener("install", (event) => {
   this.skipWaiting();
   event.waitUntil(
-    caches.open(staticCacheName).then((cache) => {
-      return cache.addAll(filesToCache);
+    caches.open(STATIC_CACHE_NAME).then((cache) => {
+      return cache.addAll(FILES_TO_CACHE);
     })
   );
 });
@@ -23,8 +25,8 @@ self.addEventListener("activate", (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((cacheName) => cacheName.startsWith("codex-pwa-"))
-          .filter((cacheName) => cacheName !== staticCacheName)
+          .filter((cacheName) => cacheName.startsWith(CACHE_PREFIX))
+          .filter((cacheName) => cacheName !== STATIC_CACHE_NAME)
           .map((cacheName) => caches.delete(cacheName))
       );
     })
@@ -39,7 +41,7 @@ self.addEventListener("fetch", (event) => {
         return response || fetch(event.request);
       })
       .catch(() => {
-        return caches.match("offline");
+        return caches.match(OFFLINE_PATH);
       })
   );
 });

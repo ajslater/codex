@@ -1,14 +1,19 @@
 """Manage user sessions with appropriate defaults."""
+from rest_framework.response import Response
+from rest_framework.serializers import Serializer
 from rest_framework.views import APIView
 
+from codex.serializers.bookmark import ComicReaderSettingsSerializer
+from codex.serializers.browser import BrowserSettingsSerializer
 from codex.serializers.choices import DEFAULTS
 from codex.settings.logging import get_logger
+from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 
 
 LOG = get_logger(__name__)
 
 
-class SessionView(APIView):
+class SessionViewBase(APIView):
     """Generic Session View."""
 
     CREDIT_PERSON_UI_FIELD = "creators"
@@ -34,6 +39,7 @@ class SessionView(APIView):
     }
     FILTER_ATTRIBUTES = frozenset(_DYNAMIC_FILTER_DEFAULTS.keys())
     SESSION_KEY = "UNDEFINED"  # Must override
+    SERIALIZER = Serializer
     BROWSER_KEY = "browser"
     READER_KEY = "reader"
     SESSION_DEFAULTS = {
@@ -97,3 +103,35 @@ class SessionView(APIView):
             self.request.session.save()
         except Exception as exc:
             LOG.warning(f"Saving params to session: {exc}")
+
+    def _validate(self):
+        """Validate submitted data."""
+        serializer = self.SERIALIZER(data=self.request.data)
+        serializer.is_valid(raise_exception=True)
+        return serializer.validated_data
+
+
+class SessionView(SessionViewBase):
+    """Session view for retrieving stored settings."""
+
+    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
+
+    def get(self, request, *args, **kwargs):
+        """Get settings."""
+        self.load_params_from_session()
+        serializer = self.SERIALIZER(self.params)
+        return Response(serializer.data)
+
+
+class BrowserSessionView(SessionView):
+    """Get Browser Settings."""
+
+    SESSION_KEY = SessionView.BROWSER_KEY
+    SERIALIZER = BrowserSettingsSerializer
+
+
+class ReaderSessionView(SessionView):
+    """Get Reader Settings."""
+
+    SESSION_KEY = SessionView.READER_KEY
+    SERIALIZER = ComicReaderSettingsSerializer

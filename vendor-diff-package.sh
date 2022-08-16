@@ -30,5 +30,5 @@ diff --minimal --recursive --suppress-common-lines \
     rg -v "Binary|Only" >>"$DIFF_FN"
 
 # cleanup
-rm -rf $VENDOR_TARGET
+rm -rf "$VENDOR_TARGET"
 rm -f vendorize.toml

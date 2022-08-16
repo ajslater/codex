@@ -1,17 +1,36 @@
 # 📰 Codex News
 
-## v0.11.0a5
+## v0.12.0a0
+
+_Syndication_
 
 - Features
 
-  - Covers are now created on demand by the browser, rather than on import. Administrators may still pre-generate covers.
-  - Administrators may view librarian tasks in progress and failed imports notifications in the settings side drawer.
-  - Read filter.
+  - OPDS v1, OPDS Streaming & OPDS Search support.
+  - Larger browser covers.
+  - Sort by name ignores leading articles in 11 languages.
+  - Admin Librarian Status updates update every 5 seconds.
+  - New favicon.
+
+- Fix
+
+  - Use defusexml to load xml metadata for safety.
+  - Removed process naming. My implementation was prone to instability.
+
+## v0.11.0
+
+_Task monitor_
+
+- Features
+
+  - Librarian tasks in progress appear in the settings side drawer for adminstratiors.
+  - Covers are now created on demand by the browser, rather than on import.
+  - Browser Read filter.
 
 - Fixes
 
-  - Fix bookmark progress bar not updating in browser after closing book.
-  - Fix metadata web links
+  - Bookmark progress bar updates in browser after closing book.
+  - Metadata web links fix.
 
 ## v0.10.10
 

@@ -4,8 +4,8 @@ from pathlib import Path
 from django.db.models import Q
 from django.db.models.functions import Now
 
-from codex.librarian.db.status import ImportStatusKeys
-from codex.librarian.status import librarian_status_done, librarian_status_update
+from codex.librarian.db.status import ImportStatusTypes
+from codex.librarian.status_control import StatusControl
 from codex.models import Comic, FailedImport
 from codex.settings.logging import get_logger
 
@@ -49,65 +49,68 @@ def _bulk_update_failed_imports(library, failed_imports):
 
 def _bulk_create_failed_imports(library, failed_imports) -> bool:
     """Bulk create failed imports."""
-    if not failed_imports:
-        librarian_status_done([ImportStatusKeys.CREATE_FAILED_IMPORTS])
-        return False
-    create_failed_imports = []
-    for path, exc in failed_imports.items():
-        try:
-            fi = FailedImport(library=library, path=path, parent_folder=None)
-            fi.set_reason(exc)
-            fi.set_stat()
-            create_failed_imports.append(fi)
-        except Exception as exc:
-            LOG.error(f"Error preparing failed import create for {path}")
-            LOG.exception(exc)
-    if create_failed_imports:
-        FailedImport.objects.bulk_create(create_failed_imports)
-    librarian_status_done([ImportStatusKeys.CREATE_FAILED_IMPORTS])
-    count = len(create_failed_imports)
-    log = f"Added {count} comics to failed imports."
-    if count:
-        LOG.warning(log)
-    else:
-        LOG.verbose(log)
-    return bool(count)
+    try:
+        if not failed_imports:
+            return False
+        create_failed_imports = []
+        for path, exc in failed_imports.items():
+            try:
+                fi = FailedImport(library=library, path=path, parent_folder=None)
+                fi.set_reason(exc)
+                fi.set_stat()
+                create_failed_imports.append(fi)
+            except Exception as exc:
+                LOG.error(f"Error preparing failed import create for {path}")
+                LOG.exception(exc)
+        if create_failed_imports:
+            FailedImport.objects.bulk_create(create_failed_imports)
+        count = len(create_failed_imports)
+        log = f"Added {count} comics to failed imports."
+        if count:
+            LOG.warning(log)
+        else:
+            LOG.verbose(log)
+        return bool(count)
+    finally:
+        StatusControl.finish(ImportStatusTypes.CREATE_FAILED_IMPORTS)
 
 
 def _bulk_cleanup_failed_imports(library):
     """Remove FailedImport objects that have since succeeded."""
-    librarian_status_update(ImportStatusKeys.CLEAN_FAILED_IMPORTS, 0, None)
-    LOG.verbose("Cleaning up failed imports...")
-    failed_import_paths = FailedImport.objects.filter(library=library).values_list(
-        "path", flat=True
-    )
+    try:
+        StatusControl.start(ImportStatusTypes.CLEAN_FAILED_IMPORTS)
+        LOG.verbose("Cleaning up failed imports...")
+        failed_import_paths = FailedImport.objects.filter(library=library).values_list(
+            "path", flat=True
+        )
 
-    # Cleanup FailedImports that were actually successful
-    succeeded_imports = Comic.objects.filter(
-        library=library, path__in=failed_import_paths
-    ).values_list("path", flat=True)
+        # Cleanup FailedImports that were actually successful
+        succeeded_imports = Comic.objects.filter(
+            library=library, path__in=failed_import_paths
+        ).values_list("path", flat=True)
 
-    # Cleanup FailedImports that aren't on the filesystem anymore.
-    didnt_succeed_paths = (
-        FailedImport.objects.filter(library=library)
-        .exclude(path__in=succeeded_imports)
-        .values_list("path", flat=True)
-    )
-    missing_failed_imports = set()
-    for path in didnt_succeed_paths:
-        if not Path(path).exists():
-            missing_failed_imports.add(path)
+        # Cleanup FailedImports that aren't on the filesystem anymore.
+        didnt_succeed_paths = (
+            FailedImport.objects.filter(library=library)
+            .exclude(path__in=succeeded_imports)
+            .values_list("path", flat=True)
+        )
+        missing_failed_imports = set()
+        for path in didnt_succeed_paths:
+            if not Path(path).exists():
+                missing_failed_imports.add(path)
 
-    count, _ = (
-        FailedImport.objects.filter(library=library.pk)
-        .filter(Q(path__in=succeeded_imports) | Q(path__in=missing_failed_imports))
-        .delete()
-    )
-    librarian_status_done([ImportStatusKeys.CLEAN_FAILED_IMPORTS])
-    if count:
-        LOG.info(f"Cleaned up {count} failed imports from {library.path}")
-    else:
-        LOG.verbose("No failed imports to clean up.")
+        count, _ = (
+            FailedImport.objects.filter(library=library.pk)
+            .filter(Q(path__in=succeeded_imports) | Q(path__in=missing_failed_imports))
+            .delete()
+        )
+        if count:
+            LOG.info(f"Cleaned up {count} failed imports from {library.path}")
+        else:
+            LOG.verbose("No failed imports to clean up.")
+    finally:
+        StatusControl.finish(ImportStatusTypes.CLEAN_FAILED_IMPORTS)
 
 
 def bulk_fail_imports(library, failed_imports) -> bool:

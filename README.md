@@ -14,6 +14,7 @@ A comic archive browser and reader.
 - Watches the filesystem and automatically imports new or changed comics.
 - Private Libraries accessible only to certain groups of users.
 - Reads CBZ, CBR, CBT, and PDF formatted comics.
+- Syndicatation with OPDS 1.2, OPDS-PSE 1.1, OPDS Authentication 1.0, and OpenSearch.
 
 ### Examples
 
@@ -250,6 +251,24 @@ You will have to contact your administrator to reset your password if you forget
 [Codex's metadata search engine has it's own help page.
 ](https://github.com/ajslater/codex/blob/release/SEARCH.md)
 
+### ᯤ OPDS
+
+Codex supports OPDS syndication and OPDS streaming.
+You may find the OPDS url in the side drawer. It should take the form:
+
+`http(s)://host.tld(:9810)(/root_path)/opds/v1.2/`
+
+#### Clients
+
+- iOS has [Panels](https://panels.app/) and [KYBook 3](http://kybook-reader.com/)
+- Android has [Moon+](https://play.google.com/store/apps/details?id=com.flyersoft.moonreader) and [Librera](https://play.google.com/store/apps/details?id=com.foobnix.pdf.reader)
+
+#### HTTP Basic Authentication
+
+If you wish to access OPDS as your Codex User. You will have to add your username and password to the URL. Some OPDS clients do not asssist you with authentication. In that case the OPDS url will look like:
+
+`http(s)://username:password@host.tld(:9810)(/root_path)/opds/v1.2/`
+
 ## <a name="troubleshooting">🩺 Troubleshooting</a>
 
 ### Logs
@@ -305,8 +324,8 @@ Please use the `#codex-support` channel to ask for help with Codex.
 
 ## <a name="alternatives-to-codex">📚Alternatives</a>
 
-- [Komga](https://komga.org/) has light metadata editing.
 - [Kavita](https://www.kavitareader.com/) has light metadata filtering/editing and supports comics and eBooks.
+- [Komga](https://komga.org/) has light metadata editing.
 - [Ubooquity](https://vaemendis.net/ubooquity/) reads both comics and eBooks.
 - [Mylar](https://github.com/mylar3/mylar3) is the best comic book manager which also has a built in reader.
 - [Comictagger](https://github.com/comictagger/comictagger) is a comic metadata editor. It comes with a powerful command line and desktop GUI.

@@ -8,9 +8,15 @@
         <title>Codex</title>
         {% include 'icon-headers.html' %}
         <script>
-          var rootPath = "{{ script_prefix }}";
-          var lastRoute = {{ last_route | safe }};
-          var missingCover = "{% static 'img/missing-cover.webp' %}"
+          var CODEX = {
+            APP_PATH: "{% url 'app' %}",
+            ADMIN_PATH: "{% url 'admin:index' %}",
+            API_V2_PATH: "{% url 'api_v2:base' %}",
+            LAST_ROUTE: {{ last_route | safe }},
+            MISSING_COVER: "{% static 'img/missing-cover.webp' %}",
+            OPDS_PATH: "{% url 'opds:v1:browser' 'r' 0 1 %}"
+          };
+          Object.freeze(CODEX);
         </script>
         {% include 'pwa/headers.html' %}
         {% if not DEBUG %}
@@ -22,10 +28,8 @@
     </head>
     <body>
         <noscript>
-            <strong>
-                Sorry but Codex doesn't work properly without JavaScript enabled.
-                Please enable it to continue.
-            </strong>
+            <h1>Codex doesn't work without JavaScript</h1>
+            Please enable it to continue.
         </noscript>
         <div id="App" />
     </body>

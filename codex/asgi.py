@@ -1,10 +1,10 @@
 """
 ASGI config for codex project.
 
-It exposes the ASGI callable as a module-level variable named ``application``.
+It exposes the ASGI callable as a module-level variable named ``DJANGO_APPLICATION``.
 
 For more information on this file, see
-https://docs.djangoproject.com/en/3.2/howto/deployment/asgi/
+https://docs.djangoproject.com/en/4.0/howto/deployment/asgi/
 """
 import os
 

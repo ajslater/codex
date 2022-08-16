@@ -1,7 +1,4 @@
 """The Codex Library Watchdog Observer threads."""
-import platform
-
-from setproctitle import setproctitle
 from watchdog.observers import Observer
 from watchdog.observers.api import DEFAULT_OBSERVER_TIMEOUT, BaseObserver
 
@@ -81,8 +78,6 @@ class UatuMixin(BaseObserver):
 
     def run(self, *args, **kwargs):
         """Set thread name on thread start."""
-        if platform.system() != "Darwin":
-            setproctitle(f"WO-{self.ENABLE_FIELD}")
         super().run(*args, **kwargs)
 
 

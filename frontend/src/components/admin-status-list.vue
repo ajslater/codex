@@ -10,14 +10,14 @@
         <div nav class="statusItem">
           <div class="statusItemTitle">
             {{ status.type }} {{ status.name }}
-            <span v-if="status.total">
+            <span v-if="+status.total">
               {{ status.complete }}/{{ status.total }}
             </span>
           </div>
           <v-progress-linear
             color="#cc7b19"
-            :indeterminate="status.total == null"
-            :value="(100 * +status.complete) / +status.total"
+            :indeterminate="!status.preactive && +status.total === 0"
+            :value="computeValue(status)"
             bottom
           />
         </div>
@@ -41,6 +41,12 @@ export default {
   },
   methods: {
     ...mapActions("admin", ["fetchLibrarianStatuses"]),
+    computeValue: function (status) {
+      if (status.preactive || +status.total === 0) {
+        return 0;
+      }
+      return (100 * +status.complete) / +status.total;
+    },
   },
 };
 </script>

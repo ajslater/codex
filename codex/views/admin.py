@@ -107,5 +107,7 @@ class LibrarianStatusViewSet(ReadOnlyModelViewSet):
     """Librarian Task Statuses."""
 
     permission_classes = [IsAdminUser]
-    queryset = LibrarianStatus.objects.filter(active=True).order_by("pk")
+    queryset = LibrarianStatus.objects.filter(active__isnull=False).order_by(
+        "active", "pk"
+    )
     serializer_class = LibrarianStatusSerializer

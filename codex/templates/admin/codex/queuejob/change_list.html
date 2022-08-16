@@ -2,8 +2,11 @@
 {% load static %}
 {% block extrapagestyle %}
     <script>
-  var csrfToken = "{{ csrf_token }}";
-  var rootPath = "{{ script_prefix }}";
+      var CODEX = {
+        CSRF_TOKEN: "{{ csrf_token }}",
+        ADMIN_QUEUE_JOB_PATH: "{% url 'api_v2:queue_job' %}"
+      };
+      Object.freeze(CODEX);
     </script>
     <script defer src="{% static "admin/js/queue-job.js" type="text/javascript"%}"></script>
     <link href="{% static "admin/css/queue-job.css" %}"

@@ -36,20 +36,24 @@ export default {
   },
   watch: {
     $route: function () {
+      window.scrollTo(0, 0);
       this.getBrowserPage();
     },
     user: function () {
-      this.browserOpened();
+      this.loadSettings();
+      this.getVersions();
     },
     isOpenToSee: function () {
-      this.browserOpened();
+      this.loadSettings();
+      this.getVersions();
     },
   },
   created() {
-    this.browserOpened();
+    this.loadSettings();
+    this.getVersions();
   },
   methods: {
-    ...mapActions("browser", ["getBrowserPage", "browserOpened"]),
+    ...mapActions("browser", ["getBrowserPage", "loadSettings", "getVersions"]),
   },
 };
 </script>

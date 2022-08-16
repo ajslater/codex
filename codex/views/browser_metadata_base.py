@@ -19,7 +19,7 @@ from django.db.models import (
     When,
 )
 from django.db.models.fields import PositiveSmallIntegerField
-from django.db.models.functions import Reverse, Right, StrIndex
+from django.db.models.functions import Lower, Reverse, Right, StrIndex, Substr
 
 from codex.models import Comic, Folder, Imprint, Publisher, Series, Volume
 from codex.serializers.mixins import UNIONFIX_PREFIX
@@ -52,7 +52,7 @@ class BrowserMetadataBaseView(BrowserBaseView):
     _ONE_INTEGERFIELD = Value(1, IntegerField())
     NONE_CHARFIELD = Value(None, CharField())
     GROUP_MODEL_MAP = {
-        "r": None,
+        BrowserBaseView.ROOT_GROUP: None,
         "p": Publisher,
         "i": Imprint,
         "s": Series,
@@ -60,6 +60,22 @@ class BrowserMetadataBaseView(BrowserBaseView):
         BrowserBaseView.COMIC_GROUP: Comic,
         BrowserBaseView.FOLDER_GROUP: Folder,
     }
+    ARTICLES = frozenset(
+        ("a", "an", "the")  # en
+        + ("un", "unos", "unas", "el", "los", "la", "las")  # es
+        + ("un", "une", "le", "les", "la", "les", "l'")  # fr
+        + ("o", "a", "os")  # pt
+        # pt "as" conflicts with English
+        + ("der", "dem", "des", "das")  # de
+        # de: "den & die conflict with English
+        + ("il", "lo", "gli", "la", "le", "l'")  # it
+        # it: "i" conflicts with English
+        + ("de", "het", "een")  # nl
+        + ("en", "ett")  # sw
+        + ("en", "ei", "et")  # no
+        + ("en", "et")  # da
+        + ("el", "la", "els", "les", "un", "una", "uns", "unes", "na")  # ct
+    )
 
     @staticmethod
     def _cover_subquery(cover_comics, field):
@@ -86,8 +102,8 @@ class BrowserMetadataBaseView(BrowserBaseView):
         else:
             # This creates two subqueries. It would be better condensed into one.
             # but there's no way to annotate an object or multiple values.
-            order_by = self.get_order_by(Comic, for_cover_pk=True)
-            cover_comics = queryset.filter(pk=OuterRef("pk")).order_by(*order_by)
+            qs = queryset.filter(pk=OuterRef("pk"))
+            cover_comics = self.get_order_by(Comic, qs, for_cover_pk=True)
             cover_pk = self._cover_subquery(cover_comics, "pk")
         queryset = queryset.annotate(cover_pk=cover_pk)
         return queryset
@@ -228,7 +244,39 @@ class BrowserMetadataBaseView(BrowserBaseView):
         qs = self._annotate_progress(qs)
         return qs
 
-    def get_order_by(self, model, for_cover_pk=False):
+    @classmethod
+    def _order_without_articles(cls, queryset, ordering):
+        """Sort by name ignoring articles."""
+        first_field = ordering[0]
+        queryset = queryset.annotate(
+            first_space_index=StrIndex(first_field, Value(" "))
+        )
+
+        lowercase_first_word = Lower(
+            Substr(first_field, 1, length=(F("first_space_index") - 1))  # type: ignore
+        )
+        queryset = queryset.annotate(
+            lowercase_first_word=Case(
+                When(Q(first_space_index__gt=0), then=lowercase_first_word)
+            ),
+            default=Value(""),
+        )
+
+        queryset = queryset.annotate(
+            sort_name=Case(
+                When(
+                    lowercase_first_word__in=cls.ARTICLES,
+                    then=Substr(
+                        first_field, F("first_space_index") + 1  # type: ignore
+                    ),
+                ),
+                default=first_field,
+            )
+        )
+        ordering = ("sort_name", *ordering[1:])
+        return queryset, ordering
+
+    def get_order_by(self, model, queryset, for_cover_pk=False):
         """
         Create the order_by list.
 
@@ -252,6 +300,8 @@ class BrowserMetadataBaseView(BrowserBaseView):
                 ordering = self._UNIONFIX_DEFAULT_ORDERING
             else:
                 ordering = model.ORDERING
+
+            queryset, ordering = self._order_without_articles(queryset, ordering)
         else:
             # Use annotated order_value
             ordering = self._ORDER_VALUE_ORDERING
@@ -259,4 +309,4 @@ class BrowserMetadataBaseView(BrowserBaseView):
         # order_by
         # add prefixes to all order_by fields
         ordering = (prefix + field for field in ordering)
-        return ordering
+        return queryset.order_by(*ordering)

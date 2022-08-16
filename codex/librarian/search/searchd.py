@@ -9,11 +9,12 @@ from django.core.management import call_command
 from django.utils import timezone
 
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
+from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import (
     SearchIndexJanitorUpdateTask,
     SearchIndexRebuildIfDBChangedTask,
 )
-from codex.librarian.status import librarian_status_done, librarian_status_update
+from codex.librarian.status_control import StatusControl
 from codex.models import Library, SearchResult, Timestamp
 from codex.settings.logging import get_logger
 from codex.settings.settings import XAPIAN_INDEX_PATH, XAPIAN_INDEX_UUID_PATH
@@ -32,9 +33,6 @@ UPDATE_KWARGS = {
     "workers": WORKERS,
     "verbosity": VERBOSITY,
 }
-SEARCH_INDEX_KEYS = {"type": "Search index"}
-UPDATE_SEARCH_INDEX_KEYS = {**SEARCH_INDEX_KEYS, "name": "update"}
-REBUILD_SEARCH_INDEX_KEYS = {**SEARCH_INDEX_KEYS, "name": "rebuild"}
 
 
 def set_xapian_index_version():
@@ -77,10 +75,6 @@ def _call_command(args, kwargs):
 
 def update_search_index(rebuild=False):
     """Update the search index."""
-    if rebuild:
-        status_keys = REBUILD_SEARCH_INDEX_KEYS
-    else:
-        status_keys = UPDATE_SEARCH_INDEX_KEYS
     try:
         any_update_in_progress = Library.objects.filter(
             update_in_progress=True
@@ -92,8 +86,12 @@ def update_search_index(rebuild=False):
         if not rebuild and not is_xapian_uuid_match():
             LOG.warning("Database does not match search index.")
             rebuild = True
-            status_keys = REBUILD_SEARCH_INDEX_KEYS
-        librarian_status_update(status_keys, 0, None)
+        status_keys = {"type": SearchIndexStatusTypes.SEARCH_INDEX}
+        if rebuild:
+            status_keys["name"] = "rebuild"
+        else:
+            status_keys["name"] = "update"
+        StatusControl.start(**status_keys)
 
         XAPIAN_INDEX_PATH.mkdir(parents=True, exist_ok=True)
 
@@ -125,7 +123,7 @@ def update_search_index(rebuild=False):
     except Exception as exc:
         LOG.error(f"Update search index: {exc}")
     finally:
-        librarian_status_done([SEARCH_INDEX_KEYS])
+        StatusControl.finish(SearchIndexStatusTypes.SEARCH_INDEX)
 
 
 def rebuild_search_index_if_db_changed():

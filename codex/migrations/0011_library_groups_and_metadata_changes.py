@@ -49,6 +49,11 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.RunPython(critical_rating_to_decimal),
+        migrations.AlterField(  # Added in django 4.1 to remove index before drop
+            model_name="comic",
+            name="critical_rating",
+            field=models.CharField(db_index=False, max_length=32, null=True),
+        ),
         migrations.RemoveField(model_name="comic", name="critical_rating"),
         migrations.RenameField(
             model_name="comic",
@@ -59,6 +64,11 @@ class Migration(migrations.Migration):
             model_name="comic",
             old_name="maturity_rating",
             new_name="age_rating",
+        ),
+        migrations.AlterField(  # Added in django 4.1 to remove index before drop
+            model_name="comic",
+            name="user_rating",
+            field=models.CharField(db_index=False, max_length=32, null=True),
         ),
         migrations.RemoveField(
             model_name="comic",

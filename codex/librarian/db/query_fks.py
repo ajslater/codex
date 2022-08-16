@@ -5,9 +5,18 @@ from pathlib import Path
 
 from django.db.models import Q
 
-from codex.librarian.db.status import ImportStatusKeys
-from codex.librarian.status import librarian_status_done, librarian_status_update
-from codex.models import Comic, Credit, Folder, Imprint, Publisher, Series, Volume
+from codex.librarian.db.status import ImportStatusTypes
+from codex.librarian.status_control import StatusControl
+from codex.models import (
+    Comic,
+    Credit,
+    Folder,
+    Imprint,
+    LibrarianStatus,
+    Publisher,
+    Series,
+    Volume,
+)
 from codex.settings.logging import LOG_EVERY, get_logger
 
 
@@ -49,9 +58,11 @@ def _query_create_metadata(fk_cls, create_mds, all_filter_args):
     all_filter_args = tuple(all_filter_args)
     last_log = time.time()
     logged = False
-
+    ls = LibrarianStatus.objects.get(type=ImportStatusTypes.QUERY_MISSING_FKS)
+    ls_complete = ls.complete
     num_filter_args_batches = len(all_filter_args)
-    status_keys = {**ImportStatusKeys.QUERY_MISSING_FKS, "name": fk_cls.__name__}
+    ls_total = ls.total
+    ls_total += num_filter_args_batches
     for num, filter_args in enumerate(all_filter_args):
         filter = filter | Q(**dict(filter_args))
         filter_arg_count += len(filter_args)
@@ -63,7 +74,12 @@ def _query_create_metadata(fk_cls, create_mds, all_filter_args):
             if now - last_log > LOG_EVERY or (
                 logged and num >= num_filter_args_batches
             ):
-                librarian_status_update(status_keys, num, num_filter_args_batches)
+
+                StatusControl.update(
+                    ImportStatusTypes.QUERY_MISSING_FKS,
+                    ls_complete + num,
+                    ls_total,
+                )
                 log = (
                     f"Queried for existing {fk_cls.__name__}s, batch "
                     + f"{num}/{num_filter_args_batches}"
@@ -75,9 +91,6 @@ def _query_create_metadata(fk_cls, create_mds, all_filter_args):
             # Reset the filter
             filter = Q()
             filter_arg_count = 0
-
-    librarian_status_done([status_keys])
-
     return create_mds
 
 
@@ -175,7 +188,12 @@ def _query_missing_simple_models(base_cls, field, fk_field, names):
     num = 0
     logged = False
     last_log = time.time()
-    status_keys = {**ImportStatusKeys.QUERY_MISSING_FKS, "name": fk_cls.__name__}
+
+    # Init status update.
+    ls = LibrarianStatus.objects.get(type=ImportStatusTypes.QUERY_MISSING_FKS)
+    ls_complete = ls.complete
+    ls_total = ls.total
+
     while offset < num_proposed_names:
         end = offset + FILTER_ARG_MAX
         batch_proposed_names = proposed_names[offset:end]
@@ -185,7 +203,9 @@ def _query_missing_simple_models(base_cls, field, fk_field, names):
         num += len(batch_proposed_names)
         now = time.time()
         if now - last_log > LOG_EVERY or (logged and num >= num_proposed_names):
-            librarian_status_update(status_keys, num, num_proposed_names)
+            StatusControl.update(
+                ImportStatusTypes.QUERY_MISSING_FKS, ls_complete + num, ls_total
+            )
             log = (
                 f"Queried for existing {fk_cls.__name__}s, "
                 + f"batch {num}/{num_proposed_names}"
@@ -194,7 +214,6 @@ def _query_missing_simple_models(base_cls, field, fk_field, names):
             last_log = now
             logged = True
         offset += FILTER_ARG_MAX
-    librarian_status_done([status_keys])
 
     return fk_cls, create_names
 
@@ -217,43 +236,66 @@ def query_missing_folder_paths(library_path, comic_paths):
     return create_folder_paths
 
 
+def _init_status(fks):
+    """Initialize Status update."""
+    ls_total = 0
+    for key, objs in fks.items():
+        if key == "group_trees":
+            for trees in objs.values():
+                ls_total += len(trees)
+        else:
+            ls_total += len(objs)
+
+    StatusControl.start(ImportStatusTypes.QUERY_MISSING_FKS, ls_total)
+
+
 def query_all_missing_fks(library_path, fks):
     """Get objects to create by querying existing objects for the proposed fks."""
-    LOG.verbose(f"Querying existing foreign keys for comics in {library_path}")
-    create_credits = set()
-    if "credits" in fks:
-        credits = fks.pop("credits")
-        create_credits |= _query_missing_credits(credits)
-        LOG.verbose(f"Prepared {len(create_credits)} new credits.")
+    try:
+        LOG.verbose(f"Querying existing foreign keys for comics in {library_path}")
+        _init_status(fks)
 
-    if "group_trees" in fks:
-        group_trees = fks.pop("group_trees")
-        create_groups, update_groups, create_group_count = _query_missing_groups(
-            group_trees
-        )
-        LOG.verbose(f"Prepared {create_group_count} new groups.")
-    else:
-        create_groups = {}
-        update_groups = {}
+        create_credits = set()
+        if "credits" in fks:
+            credits = fks.pop("credits")
+            create_credits |= _query_missing_credits(credits)
+            LOG.verbose(f"Prepared {len(create_credits)} new credits.")
 
-    create_folder_paths = set()
-    if "comic_paths" in fks:
-        create_folder_paths |= query_missing_folder_paths(
-            library_path, fks.pop("comic_paths")
-        )
-        LOG.verbose(f"Prepared {len(create_folder_paths)} new folders.")
-
-    create_fks = {}
-    for field in fks.keys():
-        names = fks.get(field)
-        if field in CREDIT_FKS:
-            base_cls = Credit
+        if "group_trees" in fks:
+            group_trees = fks.pop("group_trees")
+            create_groups, update_groups, create_group_count = _query_missing_groups(
+                group_trees
+            )
+            LOG.verbose(f"Prepared {create_group_count} new groups.")
         else:
-            base_cls = Comic
-        cls, names = _query_missing_simple_models(base_cls, field, "name", names)
-        create_fks[cls] = names
-        if num_names := len(names):
-            LOG.verbose(f"Prepared {num_names} new {field}.")
+            create_groups = {}
+            update_groups = {}
 
-    librarian_status_done([ImportStatusKeys.QUERY_MISSING_FKS])
-    return create_fks, create_groups, update_groups, create_folder_paths, create_credits
+        create_folder_paths = set()
+        if "comic_paths" in fks:
+            create_folder_paths |= query_missing_folder_paths(
+                library_path, fks.pop("comic_paths")
+            )
+            LOG.verbose(f"Prepared {len(create_folder_paths)} new folders.")
+
+        create_fks = {}
+        for field in fks.keys():
+            names = fks.get(field)
+            if field in CREDIT_FKS:
+                base_cls = Credit
+            else:
+                base_cls = Comic
+            cls, names = _query_missing_simple_models(base_cls, field, "name", names)
+            create_fks[cls] = names
+            if num_names := len(names):
+                LOG.verbose(f"Prepared {num_names} new {field}.")
+
+        return (
+            create_fks,
+            create_groups,
+            update_groups,
+            create_folder_paths,
+            create_credits,
+        )
+    finally:
+        StatusControl.finish(ImportStatusTypes.QUERY_MISSING_FKS)

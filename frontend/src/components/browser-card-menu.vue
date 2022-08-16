@@ -2,9 +2,11 @@
   <v-menu offset-y top>
     <template #activator="{ on }">
       <v-icon
-        class="browserCardActionMenu"
+        class="browserCardMenuIcon"
         aria-label="action menu"
+        right
         v-on="on"
+        @click.prevent
         >{{ mdiDotsVertical }}</v-icon
       >
     </template>
@@ -96,9 +98,13 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.browserCardActionMenu {
-  position: absolute;
-  bottom: 0px;
-  right: 0px;
+@import "browser-card.scss";
+.browserCardMenuIcon {
+  color: $browser-card-icon-color;
+  width: $browser-card-icon-size;
+  height: $browser-card-icon-size;
+}
+.browserCardMenuIcon:hover {
+  color: $browser-card-icon-hover-color;
 }
 </style>

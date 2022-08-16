@@ -13,17 +13,13 @@ from codex.librarian.db.deleted import bulk_comics_deleted, bulk_folders_deleted
 from codex.librarian.db.failed_imports import bulk_fail_imports
 from codex.librarian.db.moved import bulk_comics_moved, bulk_folders_moved
 from codex.librarian.db.query_fks import query_all_missing_fks
-from codex.librarian.db.status import ImportStatusKeys
+from codex.librarian.db.status import ImportStatusTypes
 from codex.librarian.db.tasks import UpdaterDBDiffTask
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
 from codex.librarian.search.tasks import SearchIndexJanitorUpdateTask
-from codex.librarian.status import librarian_status_done, librarian_status_update
+from codex.librarian.status_control import StatusControl
 from codex.models import Library
-from codex.notifier.tasks import (
-    FAILED_IMPORTS_TASK,
-    LIBRARIAN_STATUS_TASK,
-    LIBRARY_CHANGED_TASK,
-)
+from codex.notifier.tasks import FAILED_IMPORTS_TASK, LIBRARY_CHANGED_TASK
 from codex.settings.logging import LOG_EVERY, VERBOSE, get_logger
 from codex.threads import QueuedThread
 
@@ -142,74 +138,75 @@ def _log_task(path, task):
 
 def _init_librarian_status(task, path):
     """Update the librarian status tasks."""
+    types_map = {}
     if task.files_moved:
-        librarian_status_update(
-            ImportStatusKeys.FILES_MOVED, 0, len(task.files_moved), notify=False
-        )
+        types_map[ImportStatusTypes.FILES_MOVED] = ({"total": len(task.files_moved)},)
     if task.files_modified or task.files_created:
-        status_keys = {**ImportStatusKeys.AGGREGATE_STATUS_KEYS, "name": path}
         total_paths = len(task.files_modified) + len(task.files_created)
-        librarian_status_update(status_keys, 0, total_paths, notify=False)
-        librarian_status_update(
-            ImportStatusKeys.QUERY_MISSING_FKS, 0, None, notify=False
-        )
-        librarian_status_update(ImportStatusKeys.CREATE_FKS, 0, None, notify=False)
-        librarian_status_update(ImportStatusKeys.LINK_M2M_FIELDS, 0, None, notify=False)
+        types_map[ImportStatusTypes.AGGREGATE_TAGS] = {
+            "total": total_paths,
+            "name": path,
+        }
+        types_map[ImportStatusTypes.QUERY_MISSING_FKS] = {}
+        types_map[ImportStatusTypes.CREATE_FKS] = {}
         if task.files_modified:
-            librarian_status_update(
-                ImportStatusKeys.FILES_MODIFIED,
-                0,
-                len(task.files_modified),
-                notify=False,
-            )
+            types_map[ImportStatusTypes.FILES_MODIFIED] = {
+                "name": f"({len(task.files_modified)})"
+            }
         if task.files_created:
-            librarian_status_update(
-                ImportStatusKeys.FILES_CREATED, 0, len(task.files_created), notify=False
-            )
+            types_map[ImportStatusTypes.FILES_CREATED] = {
+                "name": f"({len(task.files_created)})"
+            }
+        if task.files_modified or task.files_created:
+            types_map[ImportStatusTypes.LINK_M2M_FIELDS] = {}
     if task.files_deleted:
-        librarian_status_update(
-            ImportStatusKeys.FILES_DELETED, 0, len(task.files_deleted), notify=False
-        )
-    LIBRARIAN_QUEUE.put(LIBRARIAN_STATUS_TASK)
+        types_map[ImportStatusTypes.FILES_DELETED] = {
+            "name": f"({len(task.files_deleted)})"
+        }
+    StatusControl.start_many(types_map)
 
 
 def _finish_apply(library):
     """Finish all librarian statuses."""
     library.update_in_progress = False
     library.save()
-    librarian_status_done(ImportStatusKeys.ALL)
+    StatusControl.finish_many(ImportStatusTypes.values())
 
 
 def _apply(task):
     """Bulk import comics."""
     start_time = time.time()
     library = Library.objects.get(pk=task.library_id)
-    library.update_in_progress = True
-    library.save()
-    too_long = _wait_for_filesystem_ops_to_finish(task)
-    if too_long:
-        LOG.warning(
-            "Import apply waited for the filesystem to stop changing too long. "
-            "Try polling again once files have finished copying."
+    try:
+        library.update_in_progress = True
+        library.save()
+        too_long = _wait_for_filesystem_ops_to_finish(task)
+        if too_long:
+            LOG.warning(
+                "Import apply waited for the filesystem to stop changing too long. "
+                "Try polling again once files have finished copying."
+            )
+            return
+        _log_task(library.path, task)
+        _init_librarian_status(task, library.path)
+
+        changed = False
+        changed |= bulk_folders_moved(library, task.dirs_moved)
+        changed |= bulk_comics_moved(library, task.files_moved)
+        changed |= bulk_folders_modified(library, task.dirs_modified)
+        (
+            changed_comics,
+            imported_count,
+            new_failed_imports,
+        ) = _batch_modified_and_created(
+            library, task.files_modified, task.files_created
         )
+        changed |= changed_comics
+        changed |= bulk_folders_deleted(library, task.dirs_deleted)
+        changed |= bulk_comics_deleted(library, task.files_deleted)
+        cache.clear()
+    finally:
         _finish_apply(library)
-        return
-    _init_librarian_status(task, library.path)
-    _log_task(library.path, task)
-
-    changed = False
-    changed |= bulk_folders_moved(library, task.dirs_moved)
-    changed |= bulk_comics_moved(library, task.files_moved)
-    changed |= bulk_folders_modified(library, task.dirs_modified)
-    changed_comics, imported_count, new_failed_imports = _batch_modified_and_created(
-        library, task.files_modified, task.files_created
-    )
-    changed |= changed_comics
-    changed |= bulk_folders_deleted(library, task.dirs_deleted)
-    changed |= bulk_comics_deleted(library, task.files_deleted)
-    cache.clear()
-
-    _finish_apply(library)
     # Wait to start the search index update in case more updates are incoming.
     delayed_search_task = DelayedTasks(2, (SearchIndexJanitorUpdateTask(False),))
     LIBRARIAN_QUEUE.put(delayed_search_task)

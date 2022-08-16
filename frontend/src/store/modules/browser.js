@@ -21,13 +21,14 @@ const DYNAMIC_FILTERS = {
   teams: undefined,
   year: undefined,
 };
+Object.freeze(DYNAMIC_FILTERS);
 export const NUMERIC_FILTERS = [
   "communityRating",
   "criticalRating",
   "decade",
   "year",
 ];
-
+Object.freeze(NUMERIC_FILTERS);
 const GROUP_FLAGS = {
   p: ["settings", "p"],
   i: ["settings", "i"],
@@ -35,17 +36,23 @@ const GROUP_FLAGS = {
   v: ["settings", "v"],
   f: ["adminFlags", "enableFolderView"],
 };
-
+Object.freeze(GROUP_FLAGS);
+const GROUPS_REVERSED = "cvsipr";
+Object.freeze(GROUPS_REVERSED);
 const SETTINGS_SHOW_DEFAULTS = {};
 for (let choice of CHOICES.browser.settingsGroup) {
   SETTINGS_SHOW_DEFAULTS[choice.value] = choice.default === true;
 }
+Object.freeze(SETTINGS_SHOW_DEFAULTS);
+const IS_OPEN_TO_SEE = "auth/isOpenToSee";
+Object.freeze(IS_OPEN_TO_SEE);
 
 const state = {
   coversTimestamp: 0,
   browseTimestamp: Date.now(),
   routes: {
     up: undefined,
+    last: undefined,
   },
   settings: {
     // set by user
@@ -57,7 +64,7 @@ const state = {
     topGroup: undefined,
     orderBy: undefined,
     orderReverse: undefined,
-    show: SETTINGS_SHOW_DEFAULTS,
+    show: { ...SETTINGS_SHOW_DEFAULTS },
   },
   isSettingsDrawerOpen: false,
   formChoices: {
@@ -84,6 +91,7 @@ const state = {
   librariesExist: undefined,
   numPages: 1,
   versions: {
+    // XXX not part of browser anymore
     installed: process.env.VUE_APP_PACKAGE_VERSION,
     latest: undefined,
   },
@@ -168,6 +176,7 @@ const mutations = {
     state.librariesExist = data.librariesExist;
     state.queries = data.queries;
     state.coversTimestamp = data.coversTimestamp;
+    state.routes.last = router.currentRoute.params;
   },
   setBrowseChoice(state, { choiceName, choices }) {
     state.formChoices[choiceName] = Object.freeze(choices);
@@ -204,26 +213,112 @@ const mutations = {
   },
 };
 
-const handlePageError = (dispatch) => {
+const validateFirstSearch = ({ state }, data) => {
+  // If first search redirect to lowest group and change order
+  if (state.autoquery || !data.autoquery) {
+    // Not first search, validated.
+    return;
+  }
+  data.orderBy = "search_score";
+  data.orderReverse = true;
+  let lowestGroup = "r";
+  for (const key of GROUPS_REVERSED) {
+    const val = state.settings.show[key];
+    if (val) {
+      lowestGroup = key;
+      break;
+    }
+  }
+  const route = { params: { ...router.currentRoute.params } };
+  route.params.group = lowestGroup;
+  return { route, settings: {} };
+};
+
+const validateNewTopGroupIsParent = ({ state }, data) => {
+  // If the top group changed and we're at the root group and the new top group is above the proper nav group
+  if (
+    router.currentRoute.params.group !== "r" ||
+    !state.settings.topGroup ||
+    GROUPS_REVERSED.indexOf(state.settings.topGroup) >=
+      GROUPS_REVERSED.indexOf(data.topGroup)
+  ) {
+    // All is well, validated.
+    return;
+  }
+  const route = { params: { ...router.currentRoute.params } };
+
+  let groupIndex = GROUPS_REVERSED.indexOf(state.settings.topGroup);
+  const parentGroups = GROUPS_REVERSED.slice(groupIndex + 1);
+  let jumpGroup;
+  for (jumpGroup of parentGroups) {
+    if (state.settings.show[jumpGroup]) {
+      break;
+    }
+  }
+  route.params.group = jumpGroup;
+  return { route, settings: {} };
+};
+
+const clearChoicesAndResetFilterMode = ({ commit }, data) => {
+  // clear choices and reset filter menu mode.
+  if (!data.filters && !data.autoquery) {
+    return;
+  }
+  let filterName;
+  if (data.filters) {
+    filterName = Object.keys(data.filters)[0];
+  }
+  commit("clearAllFormChoicesExcept", filterName);
+  commit("setFilterMode", "base");
+};
+
+const validateSettings = ({ commit, state }, data) => {
+  let redirect;
+  redirect = validateFirstSearch({ state }, data);
+  redirect = validateNewTopGroupIsParent({ state }, data);
+  commit("setSettings", data);
+  clearChoicesAndResetFilterMode({ commit }, data);
+  commit("setBrowseTimestamp");
+  return redirect;
+};
+
+const compareRouteParams = (a, b) => {
+  return a.group === b.group && +a.pk === +b.pk && +a.page === +b.page;
+};
+
+const handlePageError = ({ commit, dispatch, state }) => {
   return (error) => {
     if (error.response.status == 303) {
       const data = error.response.data;
-      return dispatch("redirectRoute", data);
+      const routesEqual = compareRouteParams(
+        data.route.params,
+        router.currentRoute.params
+      );
+      if (routesEqual) {
+        dispatch("settingChanged", data.settings);
+      } else {
+        const redirect = validateSettings(
+          { commit, dispatch, state },
+          data.settings
+        );
+        if (redirect && !compareRouteParams(redirect, data.route)) {
+          // ? i dunno if this is a good idea.
+          data.route = redirect;
+        }
+        dispatch("redirectRoute", data);
+      }
     } else {
       return console.error(error);
     }
   };
 };
 
-const IS_OPEN_TO_SEE = "auth/isOpenToSee";
-
 const actions = {
-  redirectRoute({ commit, dispatch }, data) {
-    commit("setSettings", data.settings);
-    if (data.route) {
+  redirectRoute(_, data) {
+    if (data.route.params) {
       router.push(data.route).catch((error) => {
         console.debug(error);
-        dispatch("settingChanged", data);
+        //dispatch("settingChanged", data.settings);
       });
     }
   },
@@ -237,38 +332,34 @@ const actions = {
       console.debug(error);
     });
   },
-  async browserOpened({ commit, dispatch, rootGetters, state }) {
-    // Gets everything needed to open the component.
+  async loadSettings({ commit, dispatch, rootGetters, state }) {
     if (!rootGetters[IS_OPEN_TO_SEE]) {
       return;
     }
     commit("setBrowsePageLoaded", false);
     commit("clearAllFormChoicesExcept");
-    await API.getBrowserOpened(
-      router.currentRoute.params,
-      state.browseTimestamp
-    )
+    await API.getSettings()
       .then((response) => {
         const data = response.data;
-        commit("setSettings", data.settings);
-        commit("setVersions", data.versions);
-        commit("setBrowserPage", data.browserPage);
-        return commit("setBrowsePageLoaded", true);
+        const redirect = validateSettings({ commit, dispatch, state }, data);
+        commit("setBrowsePageLoaded", true);
+        if (redirect) {
+          return dispatch("redirectRoute", redirect);
+        }
+        return redirect;
       })
-      .catch(handlePageError(dispatch));
+      .catch(() => {
+        commit("setBrowsePageLoaded", true);
+        handlePageError({ commit, dispatch, state });
+      });
+    dispatch("getBrowserPage");
   },
-  settingChanged({ commit, dispatch }, data) {
+  settingChanged({ commit, dispatch, state }, data) {
     // Save settings to state and re-get the objects.
-    commit("setSettings", data);
-    if (data.filters || data.autoquery) {
-      let filterName;
-      if (data.filters) {
-        filterName = Object.keys(data.filters)[0];
-      }
-      commit("clearAllFormChoicesExcept", filterName);
-      commit("setFilterMode", "base");
+    const redirect = validateSettings({ commit, dispatch, state }, data);
+    if (redirect) {
+      return dispatch("redirectRoute", redirect);
     }
-    commit("setBrowseTimestamp");
     dispatch("getBrowserPage");
   },
   async getBrowserPage({ commit, dispatch, rootGetters, state }) {
@@ -277,19 +368,20 @@ const actions = {
       return;
     }
     if (!state.browserPageLoaded) {
-      console.debug("Browser not setup running open");
-      return dispatch("browserOpened");
+      dispatch("loadSettings");
     }
-    await API.getBrowserPage({
-      route: router.currentRoute.params,
-      settings: state.settings,
+    const queryParams = {
+      ...state.settings,
       ts: state.browseTimestamp,
-    })
+      // route: router.currentRoute.params,
+      show: state.show,
+    };
+    await API.getBrowserOpened(router.currentRoute.params, queryParams)
       .then((response) => {
         const data = response.data;
-        return commit("setBrowserPage", data);
+        return commit("setBrowserPage", data.browserPage);
       })
-      .catch(handlePageError(dispatch));
+      .catch(handlePageError({ commit, dispatch, state }));
   },
   async markedRead({ commit, dispatch, rootGetters }, data) {
     if (!rootGetters[IS_OPEN_TO_SEE]) {
@@ -329,6 +421,16 @@ const actions = {
     commit("clearAllFormChoicesExcept");
     commit("setBrowseTimestamp");
     dispatch("getBrowserPage");
+  },
+  async getVersions({ commit }) {
+    await API.getVersions()
+      .then((response) => {
+        const data = response.data;
+        return commit("setVersions", data);
+      })
+      .catch((error) => {
+        return console.error(error);
+      });
   },
 };
 

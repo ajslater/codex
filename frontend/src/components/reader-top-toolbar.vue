@@ -3,7 +3,7 @@
     <v-toolbar-items>
       <v-btn id="closeBook" ref="closeBook" :to="closeBookRoute" large ripple>
         <span v-if="$vuetify.breakpoint.mdAndUp">close book</span>
-        <span v-else>x</span>
+        <v-icon v-else>{{ mdiClose }}</v-icon>
       </v-btn>
     </v-toolbar-items>
     <v-spacer />
@@ -34,7 +34,7 @@
 </template>
 
 <script>
-import { mdiDownload } from "@mdi/js";
+import { mdiClose, mdiDownload } from "@mdi/js";
 import { mapActions, mapGetters, mapMutations, mapState } from "vuex";
 
 import { getComicPageSource } from "@/api/v2/comic";
@@ -51,6 +51,7 @@ export default {
   },
   data() {
     return {
+      mdiClose,
       mdiDownload,
     };
   },
@@ -71,20 +72,20 @@ export default {
         }
       },
     }),
-    ...mapGetters("reader", ["computedSettings"]),
-    ...mapState("reader", {
-      readerBrowserRoute: (state) => state.browserRoute,
+    ...mapState("browser", {
+      lastRoute: (state) => state.routes.last,
     }),
+    ...mapGetters("reader", ["computedSettings"]),
     closeBookRoute: function () {
       // Choose the best route
       const route = {
         name: "browser",
+        params: this.lastRoute,
       };
-      if (this.readerBrowserRoute) {
-        route.params = this.readerBrowserRoute;
+      if (route.params) {
         route.hash = `#card-${this.$route.params.pk}`;
       } else {
-        route.params = window.lastRoute || CHOICES.browser.route;
+        route.params = window.CODEX.LAST_ROUTE || CHOICES.browser.route;
       }
       return route;
     },

@@ -7,9 +7,10 @@
             <v-progress-circular
               v-if="showPlaceholder"
               indeterminate
-              size="48"
+              size="109"
               color="#cc7b19"
               aria-label="loading"
+              class="coverPlaceholder"
             />
           </template>
         </v-img>
@@ -78,19 +79,22 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.bookCoverWrapper {
-}
+@import "book-cover.scss";
 .coverImgWrapper {
-  height: 180px;
-  width: 120px;
+  height: $cover-height;
+  width: $cover-width;
 }
 .coverImg {
   display: block;
-  min-height: 48px; /* for the placeholder :/ */
-  max-height: 180px;
-  width: 120px;
+  height: 100%;
+  width: 100%;
   border-radius: 5px;
 }
+.coverPlaceholder {
+  height: 100% !important;
+  width: 66% !important;
+}
+
 .bookCoverOverlayTopRow {
   height: 15%;
   display: flex;
@@ -141,12 +145,19 @@ export default {
 
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   .coverImgWrapper {
-    height: 150px;
-    width: 100px;
+    height: $small-cover-height;
+    width: $small-cover-width;
   }
-  .coverImg {
-    max-height: 150px;
-    width: 100px;
-  }
+}
+</style>
+<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
+<style lang="scss">
+.coverImg .v-image__placeholder {
+  top: 50%;
+  left: 50%;
+  transform: translate(-33%, -50%);
+}
+.v-image__image {
+  background-position-y: top !important;
 }
 </style>

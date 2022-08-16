@@ -8,8 +8,8 @@ from pathlib import Path
 
 from django.db.models.functions import Now
 
-from codex.librarian.db.status import ImportStatusKeys
-from codex.librarian.status import librarian_status_done, librarian_status_update
+from codex.librarian.db.status import ImportStatusTypes
+from codex.librarian.status_control import StatusControl
 from codex.models import (
     Credit,
     CreditPerson,
@@ -253,14 +253,14 @@ def _init_librarian_status(
     for names in create_fks.values():
         total_fks += len(names)
     total_fks += len(create_credits)
-    librarian_status_update(ImportStatusKeys.CREATE_FKS, 0, total_fks)
+    StatusControl.start(ImportStatusTypes.CREATE_FKS, total_fks)
     return total_fks
 
 
 def _status_update(count, created_fks, total_fks, changed):
     changed |= count > 0
     created_fks += count
-    librarian_status_update(ImportStatusKeys.CREATE_FKS, created_fks, total_fks)
+    StatusControl.update(ImportStatusTypes.CREATE_FKS, created_fks, total_fks)
     return changed, created_fks
 
 
@@ -273,30 +273,38 @@ def bulk_create_all_fks(
     create_credits,
 ) -> bool:
     """Bulk create all foreign keys."""
-    total_fks = _init_librarian_status(
-        create_groups, update_groups, create_folder_paths, create_fks, create_credits
-    )
-    LOG.verbose(f"Creating comic foreign keys for {library.path}...")
-    created_fks = 0
-    changed = False
-    count = _bulk_create_or_update_groups(
-        create_groups, _bulk_group_creator, "creation", "Created"
-    )
-    changed, created_fks = _status_update(count, created_fks, total_fks, changed)
-    count = _bulk_create_or_update_groups(
-        update_groups, _bulk_group_updater, "update", "Updated"
-    )
-    changed, created_fks = _status_update(count, created_fks, total_fks, changed)
-
-    count = bulk_folders_create(library, create_folder_paths)
-    changed, created_fks = _status_update(count, created_fks, total_fks, changed)
-
-    for cls, names in create_fks.items():
-        count = _bulk_create_named_models(cls, names)
+    try:
+        total_fks = _init_librarian_status(
+            create_groups,
+            update_groups,
+            create_folder_paths,
+            create_fks,
+            create_credits,
+        )
+        LOG.verbose(f"Creating comic foreign keys for {library.path}...")
+        created_fks = 0
+        changed = False
+        count = _bulk_create_or_update_groups(
+            create_groups, _bulk_group_creator, "creation", "Created"
+        )
+        changed, created_fks = _status_update(count, created_fks, total_fks, changed)
+        count = _bulk_create_or_update_groups(
+            update_groups, _bulk_group_updater, "update", "Updated"
+        )
         changed, created_fks = _status_update(count, created_fks, total_fks, changed)
 
-    # This must happen after credit_fks created by create_named_models
-    count = _bulk_create_credits(create_credits)
-    changed |= count > 0
-    librarian_status_done([ImportStatusKeys.CREATE_FKS])
-    return changed
+        count = bulk_folders_create(library, create_folder_paths)
+        changed, created_fks = _status_update(count, created_fks, total_fks, changed)
+
+        for cls, names in create_fks.items():
+            count = _bulk_create_named_models(cls, names)
+            changed, created_fks = _status_update(
+                count, created_fks, total_fks, changed
+            )
+
+        # This must happen after credit_fks created by create_named_models
+        count = _bulk_create_credits(create_credits)
+        changed |= count > 0
+        return changed
+    finally:
+        StatusControl.finish(ImportStatusTypes.CREATE_FKS)

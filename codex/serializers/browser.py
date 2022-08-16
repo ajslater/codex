@@ -2,7 +2,6 @@
 from abc import ABC
 
 from django.core.exceptions import ValidationError
-from django.db.models import F
 from django.utils.translation import gettext_lazy as _
 from rest_framework.serializers import (
     BooleanField,
@@ -16,7 +15,7 @@ from rest_framework.serializers import (
 )
 
 from codex.serializers.choices import CHOICES, VUETIFY_NULL_CODE
-from codex.serializers.mixins import UNIONFIX_PREFIX, BrowserAggregateSerializerMixin
+from codex.serializers.mixins import UNIONFIX_PREFIX, BrowserCardOPDSBaseSerializer
 
 
 VUETIFY_NULL_CODE_STR = str(VUETIFY_NULL_CODE)
@@ -83,6 +82,7 @@ class FilterListField(ListField, ABC):
         super().__init__(
             *args,
             child=self.CHILD_CLASS(allow_null=True, **kwargs),
+            required=False,
             validators=self.VALIDATORS,
         )
 
@@ -117,16 +117,22 @@ class CharListField(FilterListField):
 class BrowserSettingsFilterSerializer(Serializer):
     """Filter values for settings."""
 
-    bookmark = ChoiceField(choices=tuple(CHOICES["bookmarkFilter"].keys()))
+    bookmark = ChoiceField(
+        choices=tuple(CHOICES["bookmarkFilter"].keys()), required=False
+    )
     # Dynamic filters
     community_rating = DecimalListField(
-        max_digits=5, decimal_places=2, coerce_to_string=False
+        max_digits=5,
+        decimal_places=2,
+        coerce_to_string=False,
     )
     characters = IntListField()
     country = CharListField()
     creators = IntListField()
     critical_rating = DecimalListField(
-        max_digits=5, decimal_places=2, coerce_to_string=False
+        max_digits=5,
+        decimal_places=2,
+        coerce_to_string=False,
     )
     decade = DecadeListField()
     format = CharListField()
@@ -134,7 +140,7 @@ class BrowserSettingsFilterSerializer(Serializer):
     language = CharListField()
     locations = IntListField()
     age_rating = CharListField()
-    read_ltr = ListField(child=BooleanField())
+    read_ltr = ListField(child=BooleanField(), required=False)
     series_groups = IntListField()
     story_arcs = IntListField()
     tags = IntListField()
@@ -150,19 +156,17 @@ class BrowserSettingsSerializer(Serializer):
     It is also sent to the browser as part of BrowserOpenedSerializer.
     """
 
-    filters = BrowserSettingsFilterSerializer()
-    autoquery = CharField(allow_blank=True)
-    top_group = ChoiceField(choices=tuple(CHOICES["topGroup"].keys()))
-    order_by = ChoiceField(choices=tuple(CHOICES["orderBy"].keys()))
-    order_reverse = BooleanField()
-    show = BrowserSettingsShowGroupFlagsSerializer()
+    filters = BrowserSettingsFilterSerializer(required=False)
+    autoquery = CharField(allow_blank=True, required=False)
+    top_group = ChoiceField(choices=tuple(CHOICES["topGroup"].keys()), required=False)
+    order_by = ChoiceField(choices=tuple(CHOICES["orderBy"].keys()), required=False)
+    order_reverse = BooleanField(required=False)
+    show = BrowserSettingsShowGroupFlagsSerializer(required=False)
 
 
-class BrowserCardSerializer(BrowserAggregateSerializerMixin):
+class BrowserCardSerializer(BrowserCardOPDSBaseSerializer):
     """Browse card displayed in the browser."""
 
-    pk = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "pk")
-    group = CharField(read_only=True, max_length=1, source=UNIONFIX_PREFIX + "group")
     publisher_name = CharField(
         read_only=True, source=UNIONFIX_PREFIX + "publisher_name"
     )
@@ -180,15 +184,6 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin):
     order_value = CharField(read_only=True, source=UNIONFIX_PREFIX + "order_value")
     page_count = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "page_count")
     read_ltr = BooleanField(read_only=True, source=UNIONFIX_PREFIX + "read_ltr")
-
-
-BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP = dict(
-    # a map for ordering the browser card values() properly with the UNIONFIX_PREFIX
-    (
-        (UNIONFIX_PREFIX + field, F(field))
-        for field in sorted(BrowserCardSerializer().get_fields())
-    )
-)
 
 
 class BrowserRouteSerializer(Serializer):
@@ -220,7 +215,7 @@ class BrowserPageSerializer(Serializer):
 
     browser_title = BrowserTitleSerializer(read_only=True)
     model_group = CharField(read_only=True)
-    up_route = BrowserRouteSerializer(allow_null=True)
+    up_route = BrowserRouteSerializer(allow_null=True, read_only=True)
     obj_list = ListField(
         child=BrowserCardSerializer(read_only=True), allow_empty=True, read_only=True
     )

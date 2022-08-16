@@ -1,5 +1,4 @@
 """Abstract Thread worker for doing queued tasks."""
-import platform
 import time
 
 from abc import ABC, abstractmethod
@@ -7,10 +6,7 @@ from multiprocessing import Queue
 from queue import Empty
 from threading import Thread
 
-from setproctitle import setproctitle
-
 from codex.settings.logging import get_logger
-from codex.version import PACKAGE_NAME
 
 
 LOG = get_logger(__name__)
@@ -29,8 +25,6 @@ class NamedThread(Thread, ABC):
 
     def run_start(self):
         """First thing to do when running a new thread."""
-        if platform.system() != "Darwin":
-            setproctitle(f"{PACKAGE_NAME}-{self.NAME}")
         LOG.verbose(f"Started {self.NAME} thread")
 
 
@@ -98,8 +92,8 @@ class QueuedThread(NamedThread, ABC):
 class AggregateMessageQueuedThread(QueuedThread, ABC):
     """Abstract Thread worker for buffering and aggregating messages."""
 
-    FLOOD_DELAY = 2
-    MAX_DELAY = 15
+    FLOOD_DELAY = 1
+    MAX_DELAY = 5
 
     def __init__(self, *args, **kwargs):
         """Initialize the cache."""

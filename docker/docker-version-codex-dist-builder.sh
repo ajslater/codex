@@ -8,7 +8,7 @@ source "$ENV_FN"
 EXTRA_MD5S=("$CODEX_BUILDER_BASE_VERSION  codex-builder-base-version")
 
 # shellcheck disable=SC2046
-read -ra SOURCE_DEPS <<<$(find codex frontend -type f \( \
+read -ra SOURCE_DEPS <<<"$(find codex frontend -type f \( \
     ! -path "*node_modules*" \
     ! -path "*codex/static_build*" \
     ! -path "*codex/static_root*" \
@@ -17,7 +17,7 @@ read -ra SOURCE_DEPS <<<$(find codex frontend -type f \( \
     ! -name ".eslintcache" \
     ! -name ".DS_Store" \
     ! -name "webpack-stats.json" \
-    \))
+    \))"
 DEPS=(
     "$0"
     .dockerignore

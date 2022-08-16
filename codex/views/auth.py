@@ -32,6 +32,8 @@ def set_timezone(request, serializer):
 class IsAuthenticatedOrEnabledNonUsers(IsAuthenticated):
     """Custom DRF Authentication class."""
 
+    code = 403
+
     def has_permission(self, request, view):
         """Return True if ENABLE_NON_USERS is true or user authenticated."""
         enu_flag = AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_NON_USERS)
@@ -128,6 +130,7 @@ class LoginView(APIView):
             raise ex
         return serializer
 
+    # TODO put?
     def post(self, request, *args, **kwargs):
         """Authenticate and login."""
         serializer = self.validate()
@@ -154,6 +157,7 @@ class LoginView(APIView):
 class UserView(APIView):
     """User info."""
 
+    # TODO GET
     def post(self, request, *args, **kwargs):
         """Get the user info for the current user."""
         serializer = TimezoneSerializer(data=self.request.data)
@@ -173,6 +177,7 @@ class LogoutView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    # TODO put
     def post(self, request, *args, **kwargs):
         """Logout."""
         logout(request)

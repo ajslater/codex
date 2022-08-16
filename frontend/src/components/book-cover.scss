@@ -1,0 +1,5 @@
+$cover-ratio: 1.5372233400402415; /* Modal cover ratio */
+$cover-width: 165px;
+$cover-height: round(calc($cover-ratio * $cover-width));
+$small-cover-width: 100px;
+$small-cover-height: round(calc($cover-ratio * $small-cover-width));

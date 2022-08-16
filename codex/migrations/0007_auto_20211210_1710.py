@@ -68,11 +68,13 @@ class Migration(migrations.Migration):
             model_name="library",
             name="scan_frequency",
         ),
-        migrations.AddField(
+        # This was changed from add name, remove title for django 4.1 tests
+        migrations.AlterField(
             model_name="comic",
-            name="name",
+            name="title",
             field=models.CharField(db_index=True, default="", max_length=32),
         ),
+        migrations.RenameField(model_name="comic", old_name="title", new_name="name"),
         migrations.AddField(
             model_name="comic",
             name="stat",
@@ -207,10 +209,6 @@ class Migration(migrations.Migration):
         migrations.RemoveField(
             model_name="comic",
             name="myself",
-        ),
-        migrations.RemoveField(
-            model_name="comic",
-            name="title",
         ),
         migrations.RemoveField(
             model_name="imprint",
