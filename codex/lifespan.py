@@ -34,36 +34,51 @@ def ensure_superuser():
         LOG.info(f"{prefix}ated admin user.")
 
 
-def init_admin_flags():
-    """Init admin flag rows."""
-    for name in AdminFlag.FLAG_NAMES:
-        if name in AdminFlag.DEFAULT_FALSE:
-            defaults = {"on": False}
-            flag, created = AdminFlag.objects.get_or_create(
-                defaults=defaults, name=name
-            )
-        else:
-            flag, created = AdminFlag.objects.get_or_create(name=name)
-        if created:
-            LOG.info(f"Created AdminFlag: {flag.name} = {flag.on}")
-    query = AdminFlag.objects.filter(~Q(name__in=AdminFlag.FLAG_NAMES))
+def _delete_orphans(model, field, names):
+    """Delete orphans for declared models."""
+    params = {f"{field}__in": names}
+    query = model.objects.filter(~Q(**params))
     count = query.count()
     if count:
         query.delete()
-        LOG.info(f"Deleted {count} orphan AdminFlags.")
+        LOG.info(f"Deleted {count} orphan {model.verbose_name_plural}.")
+
+
+def init_admin_flags():
+    """Init admin flag rows."""
+    _delete_orphans(AdminFlag, "name", AdminFlag.FLAG_NAMES)
+
+    for name in AdminFlag.FLAG_NAMES:
+        if name in AdminFlag.DEFAULT_FALSE:
+            defaults = {"on": False}
+        else:
+            defaults = {}
+        flag, created = AdminFlag.objects.get_or_create(defaults=defaults, name=name)
+        if created:
+            LOG.info(f"Created AdminFlag: {flag.name} = {flag.on}")
 
 
 def init_timestamps():
     """Init timestamps."""
+    _delete_orphans(Timestamp, "name", Timestamp.NAMES)
+
     for name in Timestamp.NAMES:
         _, created = Timestamp.objects.get_or_create(name=name)
         if created:
             LOG.info(f"Created {name} timestamp.")
-    query = Timestamp.objects.filter(~Q(name__in=Timestamp.NAMES))
-    count = query.count()
-    if count:
-        query.delete()
-        LOG.info(f"Deleted {count} orphan timestamps.")
+
+
+def init_librarian_statuses():
+    """Init librarian statuses."""
+    _delete_orphans(LibrarianStatus, "type", LibrarianStatus.TYPES)
+
+    defaults = {**LibrarianStatus.DEFAULT_PARAMS, "updated_at": Now()}
+    for type in LibrarianStatus.TYPES:
+        _, created = LibrarianStatus.objects.update_or_create(
+            type=type, defaults=defaults
+        )
+        if created:
+            LOG.info(f"Created {type} LibrarianStatus.")
 
 
 def clear_library_status():
@@ -72,10 +87,6 @@ def clear_library_status():
         update_in_progress=False, updated_at=Now()
     )
     LOG.debug(f"Reset {count} Library's update_in_progress flag")
-    LibrarianStatus.objects.filter(active=True).update(
-        active=False, complete=0, total=None
-    )
-    LOG.debug("Cleared LibrarianStatuses.")
 
 
 def codex_startup():
@@ -83,6 +94,7 @@ def codex_startup():
     ensure_superuser()
     init_admin_flags()
     init_timestamps()
+    init_librarian_statuses()
     clear_library_status()
     cache.clear()
     force_darwin_multiprocessing_fork()

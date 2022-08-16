@@ -31,6 +31,11 @@ from django.db.models import (
 from django.db.models.enums import TextChoices
 from django.utils.translation import gettext_lazy as _
 
+from codex.librarian.covers.status import CoverStatusTypes
+from codex.librarian.db.status import ImportStatusTypes
+from codex.librarian.janitor.status import JanitorStatusTypes
+from codex.librarian.search.status import SearchIndexStatusTypes
+from codex.librarian.watchdog.status import WatchdogStatusTypes
 from codex.serializers.choices import CHOICES
 from codex.settings.logging import get_logger
 
@@ -565,10 +570,25 @@ class SearchResult(Model):
 class LibrarianStatus(NamedModel):
     """Active Library Tasks."""
 
+    DEFAULT_PARAMS = {
+        "name": "",
+        "preactive": False,
+        "complete": 0,
+        "total": 0,
+        "active": None,
+    }
+    TYPES = (
+        *CoverStatusTypes.values(),
+        *ImportStatusTypes.values(),
+        *JanitorStatusTypes.values(),
+        *SearchIndexStatusTypes.values(),
+        *WatchdogStatusTypes.values(),
+    )
     type = CharField(db_index=True, max_length=32)
+    preactive = BooleanField(default=False)
     complete = PositiveSmallIntegerField(default=0)
-    total = PositiveSmallIntegerField(null=True, default=None)
-    active = BooleanField(default=False)
+    total = PositiveSmallIntegerField(default=0)
+    active = DateTimeField(null=True, default=None)
 
     class Meta:
         """Constraints."""

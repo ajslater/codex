@@ -9,8 +9,8 @@ from comicbox.exceptions import UnsupportedArchiveTypeError
 from rarfile import BadRarFile
 
 from codex.librarian.db.clean_metadata import clean_md
-from codex.librarian.db.status import ImportStatusKeys
-from codex.librarian.status import librarian_status_done, librarian_status_update
+from codex.librarian.db.status import ImportStatusTypes
+from codex.librarian.status_control import StatusControl
 from codex.models import Comic, Imprint, Publisher, Series, Volume
 from codex.pdf import PDF
 from codex.settings.logging import LOG_EVERY, get_logger
@@ -21,7 +21,6 @@ LOG = get_logger(__name__)
 BROWSER_GROUPS = (Publisher, Imprint, Series, Volume)
 BROWSER_GROUP_TREE_COUNT_FIELDS = frozenset(["volume_count", "issue_count"])
 COMIC_M2M_FIELDS = set()
-AGGREGATE_STATUS_KEYS = {"type": "Read Tags"}
 for field in Comic._meta.get_fields():
     if field.many_to_many and field.name != "folders":
         COMIC_M2M_FIELDS.add(field.name)
@@ -148,36 +147,40 @@ def get_aggregate_metadata(library, all_paths):
     }
     all_failed_imports = {}
     total_paths = len(all_paths)
+    StatusControl.start(ImportStatusTypes.AGGREGATE_TAGS, total_paths)
+    try:
+        LOG.info(f"Reading tags from {total_paths} comics in {library.path}...")
+        last_log_time = time.time()
+        for num, path in enumerate(all_paths):
+            path = str(path)
+            md, m2m_md, group_tree_md, failed_import = _get_path_metadata(path)
 
-    status_keys = {**ImportStatusKeys.AGGREGATE_STATUS_KEYS, "name": library.path}
-    LOG.info(f"Reading tags from {total_paths} comics in {library.path}...")
-    last_log_time = time.time()
-    for num, path in enumerate(all_paths):
-        path = str(path)
-        md, m2m_md, group_tree_md, failed_import = _get_path_metadata(path)
+            if failed_import:
+                all_failed_imports.update(failed_import)
+            else:
+                if md:
+                    all_mds[path] = md
 
-        if failed_import:
-            all_failed_imports.update(failed_import)
-        else:
-            if md:
-                all_mds[path] = md
+                if m2m_md:
+                    _aggregate_m2m_metadata(all_m2m_mds, m2m_md, all_fks, path)
 
-            if m2m_md:
-                _aggregate_m2m_metadata(all_m2m_mds, m2m_md, all_fks, path)
+                if group_tree_md:
+                    _aggregate_group_tree_metadata(all_fks, group_tree_md)
 
-            if group_tree_md:
-                _aggregate_group_tree_metadata(all_fks, group_tree_md)
+            now = time.time()
+            if now - last_log_time > LOG_EVERY:
+                StatusControl.update(ImportStatusTypes.AGGREGATE_TAGS, num, total_paths)
+                LOG.info(f"Read tags from {num}/{total_paths} comics")
+                last_log_time = now
 
-        now = time.time()
-        if now - last_log_time > LOG_EVERY:
-            librarian_status_update(status_keys, num, total_paths)
-            LOG.info(f"Read tags from {num}/{total_paths} comics")
-            last_log_time = now
-
-    all_fks["comic_paths"] = frozenset(all_mds.keys())
-    librarian_status_update(
-        ImportStatusKeys.CREATE_FAILED_IMPORTS, 0, len(all_failed_imports), notify=False
-    )
-    librarian_status_done([status_keys])
-    LOG.verbose(f"Aggregated tags from {len(all_mds)} comics.")
+        all_fks["comic_paths"] = frozenset(all_mds.keys())
+        StatusControl.update(
+            ImportStatusTypes.CREATE_FAILED_IMPORTS,
+            0,
+            len(all_failed_imports),
+            notify=False,
+        )
+        LOG.verbose(f"Aggregated tags from {len(all_mds)} comics.")
+    finally:
+        StatusControl.finish(ImportStatusTypes.AGGREGATE_TAGS)
     return all_mds, all_m2m_mds, all_fks, all_failed_imports

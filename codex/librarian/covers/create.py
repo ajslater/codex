@@ -9,9 +9,10 @@ from humanize import naturaldelta
 from PIL import Image
 
 from codex.librarian.covers.path import MISSING_COVER_PATH, get_cover_path
+from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.covers.tasks import CoverBulkCreateTask, CoverCreateTask
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
-from codex.librarian.status import librarian_status_done, librarian_status_update
+from codex.librarian.status_control import StatusControl
 from codex.models import Comic, Library
 from codex.pdf import PDF
 from codex.settings.logging import get_logger
@@ -23,7 +24,6 @@ _THUMBNAIL_WIDTH = 165
 _THUMBNAIL_HEIGHT = round(_THUMBNAIL_WIDTH * _COVER_RATIO)
 _THUMBNAIL_SIZE = (_THUMBNAIL_WIDTH, _THUMBNAIL_HEIGHT)
 _COVER_DB_UPDATE_INTERVAL = 10
-_COVER_CREATE_STATUS_KEYS = {"type": "Creating Covers"}
 
 LOG = get_logger(__name__)
 
@@ -81,39 +81,41 @@ def create_comic_cover(cover_path, data):
 
 def bulk_create_comic_covers(comic_pks):
     """Create bulk comic covers."""
-    num_comics = len(comic_pks)
-    if not num_comics:
-        return
+    try:
+        num_comics = len(comic_pks)
+        if not num_comics:
+            return
 
-    LOG.verbose(f"Creating {num_comics} comic covers...")
-    librarian_status_update(_COVER_CREATE_STATUS_KEYS, 0, num_comics)
+        LOG.verbose(f"Creating {num_comics} comic covers...")
+        StatusControl.start(CoverStatusTypes.CREATE, num_comics)
 
-    # Get comic objects
-    count = 0
-    last_update = start_time = time.time()
+        # Get comic objects
+        count = 0
+        last_update = start_time = time.time()
 
-    for pk in comic_pks:
-        # Create all covers.
-        cover_path = get_cover_path(pk)
-        if cover_path.exists():
-            num_comics -= 1
-        else:
-            task = create_cover(pk, cover_path)
-            # bulk creator creates covers inline
-            create_comic_cover(task.path, task.data)
-            count += 1
+        for pk in comic_pks:
+            # Create all covers.
+            cover_path = get_cover_path(pk)
+            if cover_path.exists():
+                num_comics -= 1
+            else:
+                task = create_cover(pk, cover_path)
+                # bulk creator creates covers inline
+                create_comic_cover(task.path, task.data)
+                count += 1
 
-        # notify the frontend every 10 seconds
-        elapsed = time.time() - last_update
-        if elapsed > _COVER_DB_UPDATE_INTERVAL:
-            LOG.verbose(f"Created {count}/{num_comics} comic covers.")
-            librarian_status_update(_COVER_CREATE_STATUS_KEYS, count, num_comics)
-            last_update = time.time()
+            # notify the frontend every 10 seconds
+            elapsed = time.time() - last_update
+            if elapsed > _COVER_DB_UPDATE_INTERVAL:
+                LOG.verbose(f"Created {count}/{num_comics} comic covers.")
+                StatusControl.update(CoverStatusTypes.CREATE, count, num_comics)
+                last_update = time.time()
 
-    total_elapsed = naturaldelta(time.time() - start_time)
-    LOG.verbose(f"Created {count} comic covers in {total_elapsed}.")
-    librarian_status_done([_COVER_CREATE_STATUS_KEYS])
-    return count
+        total_elapsed = naturaldelta(time.time() - start_time)
+        LOG.verbose(f"Created {count} comic covers in {total_elapsed}.")
+        return count
+    finally:
+        StatusControl.finish(CoverStatusTypes.CREATE)
 
 
 def create_comic_covers_for_libraries(library_pks):

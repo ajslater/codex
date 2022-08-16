@@ -20,9 +20,9 @@ def clear_covers(_apps, _schema_editor):
 
 
 def remove_null_librarian_statuses(apps, _schema_editor):
-    """Remove any null librarian statuses."""
+    """Remove all librarian statuses."""
     ls_model = apps.get_model("codex", "librarianstatus")
-    ls_model.objects.filter(name=None).delete()
+    ls_model.objects.all().delete()
 
 
 class Migration(migrations.Migration):
@@ -107,6 +107,21 @@ class Migration(migrations.Migration):
             model_name="librarianstatus",
             name="type",
             field=models.CharField(db_index=True, max_length=32),
+        ),
+        migrations.AlterField(
+            model_name="librarianstatus",
+            name="active",
+            field=models.DateTimeField(default=None, null=True),
+        ),
+        migrations.AlterField(
+            model_name="librarianstatus",
+            name="total",
+            field=models.PositiveSmallIntegerField(default=0),
+        ),
+        migrations.AddField(
+            model_name="librarianstatus",
+            name="preactive",
+            field=models.BooleanField(default=False),
         ),
         migrations.AlterField(
             model_name="library",
