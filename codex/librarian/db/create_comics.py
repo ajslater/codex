@@ -248,9 +248,15 @@ def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2
     try:
         try:
             try:
+                StatusControl.start(
+                    ImportStatusTypes.FILES_MODIFIED, name=f"({len(update_paths)})"
+                )
                 update_count = _update_comics(library, update_paths, all_bulk_mds)
             finally:
                 StatusControl.finish(ImportStatusTypes.FILES_MODIFIED)
+            StatusControl.start(
+                ImportStatusTypes.FILES_CREATED, name=f"({len(create_paths)})"
+            )
             create_count = _create_comics(library, create_paths, all_bulk_mds)
         finally:
             StatusControl.finish(ImportStatusTypes.FILES_CREATED)

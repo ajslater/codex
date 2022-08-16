@@ -34,13 +34,12 @@ django.jQuery(function ($) {
     }
 
     // Do the call
-    const url = `${window.CODEX.ROOT_PATH}api/v2/admin/queue_job`;
-    const headers = { "X-CSRFToken": window.CODEX.CRSF_TOKEN };
+    const headers = { "X-CSRFToken": window.CODEX.CSRF_TOKEN };
     $.ajax({
-      url: url,
+      url: window.CODEX.ADMIN_QUEUE_JOB_PATH,
       method: "POST",
-      headers: headers,
-      data: data,
+      headers,
+      data,
       dataType: "json",
     })
       .done(() => {
