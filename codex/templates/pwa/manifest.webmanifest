@@ -6,13 +6,13 @@
   "start_url" : "{% url 'app' %}",
   "icons": [
     {
-      "src": "{% static 'img/favicon.svg' %}",
+      "src": "{% static 'img/logo.svg' %}",
       "sizes": "any 192x192 512x512",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "{% static 'img/manifest-icon-maskable.svg' %}",
+      "src": "{% static 'img/logo-maskable.svg' %}",
       "sizes": "any 192x192 512x512",
       "type": "image/svg+xml",
       "purpose": "maskable"
