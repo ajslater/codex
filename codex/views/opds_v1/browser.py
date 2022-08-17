@@ -9,14 +9,15 @@ from django.http.response import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.feedgenerator import Enclosure
 
+from codex.exceptions import SeeOtherRedirectError
 from codex.serializers.opds_v1 import OPDSFeedSerializer
 from codex.settings.logging import get_logger
 from codex.views.browser import BrowserView
+from codex.views.browser_util import BROWSER_ROOT_KWARGS
 from codex.views.opds_v1.feedgenerator import OPDSFeedGenerator
 from codex.views.opds_v1.mixins import OPDSAuthenticationMixin
 
 
-BROWSER_ROOT_KWARGS = {"group": "r", "pk": 0, "page": 1}
 LOG = get_logger(__name__)
 
 
@@ -67,7 +68,10 @@ class BrowserFeed(BrowserView, Feed, OPDSAuthenticationMixin):
         if response:
             return response
 
-        return super().__call__(request, *args, **kwargs)
+        try:
+            return super().__call__(request, *args, **kwargs)
+        except SeeOtherRedirectError as exc:
+            return exc.get_response("opds:v1:browser")
 
     def get_object(self, request, *args, **kwargs):
         """Get the main feed object from BrowserView."""
