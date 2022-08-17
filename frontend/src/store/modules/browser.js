@@ -91,7 +91,7 @@ const state = {
   librariesExist: undefined,
   numPages: 1,
   versions: {
-    // XXX not part of browser anymore
+    // TODO pinia not part of browser anymore
     installed: process.env.VUE_APP_PACKAGE_VERSION,
     latest: undefined,
   },

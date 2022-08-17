@@ -7,7 +7,7 @@ const CONFIG = {
 };
 export const HTTP = axios.create(CONFIG);
 
-// TODO just return the  HTTP instance let api use get() post() and url and data
+// TODO apiv3 just return the  HTTP instance let api use get() post() and url and data
 export const ajax = (method, url, data, qparams) => {
   return HTTP({ method, url, data, params: qparams });
 };
