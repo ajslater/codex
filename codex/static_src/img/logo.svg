@@ -1,12 +1,12 @@
 <svg class="snail_eye" width="512" xml:space="preserve" height="512" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" style="background-color:#1e1e1e">
     <defs>
         <linearGradient id="b">
-            <stop style="stop-color:#cc7b19;stop-opacity:1" offset="0"/>
-            <stop style="stop-color:#cc7b19;stop-opacity:.33" offset="1"/>
+            <stop style="stop-color:#d97700" offset="0"/>
+            <stop style="stop-color:#402300" offset=".8"/>
         </linearGradient>
         <linearGradient id="a">
-            <stop style="stop-color:#cc7b19;stop-opacity:1" offset="0"/>
-            <stop style="stop-color:#cc7b19;stop-opacity:.66" offset=".25"/>
+            <stop style="stop-color:#d97700" offset="0"/>
+            <stop style="stop-color:#8c4d00" offset=".2"/>
         </linearGradient>
         <linearGradient xlink:href="#a" id="c" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse"/>
         <linearGradient xlink:href="#b" id="d" x1="221.125" y1="191.955" x2="331.379" y2="382.636" gradientUnits="userSpaceOnUse" gradientTransform="translate(3 3)"/>
