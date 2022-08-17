@@ -4,11 +4,10 @@ var STATIC_CACHE_NAME = CACHE_PREFIX + new Date().getTime();
 var OFFLINE_PATH = "{% static 'pwa/offline.html' %}";
 var FILES_TO_CACHE = [
   OFFLINE_PATH,
-  "{% static 'img/favicon-32.webp' %}",
   "{% static 'img/apple-icon-180.webp' %}",
-  "{% static 'img/manifest-icon-192.maskable.webp' %}",
-  "{% static 'img/manifest-icon-512.maskable.webp' %}",
   "{% static 'img/favicon.svg' %}",
+  "{% static 'img/favicon-32.webp' %}",
+  "{% static 'img/manifest-icon-maskable.svg' %}",
 ];
 // Cache on install
 self.addEventListener("install", (event) => {
