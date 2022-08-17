@@ -61,7 +61,7 @@ Pillow = "^9.1.0"
 
 [tool.poetry.dev-dependencies]
 bandit = "^1.7.4"
-codespell = "^2.1.0"
+codespell = "2.1.0" # https://github.com/codespell-project/codespell/issues/2458
 coverage = { extras = ["toml"], version = "^6.0" }
 django-debug-toolbar = "^3.1"
 django-livereload-server = "^0.4"

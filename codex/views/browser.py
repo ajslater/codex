@@ -437,7 +437,7 @@ class BrowserView(BrowserMetadataBaseView):
 
     def _set_valid_browse_nav_groups(self, valid_top_groups):
         """
-        Get valid nav gorups for the current settings.
+        Get valid nav groups for the current settings.
 
         Valid nav groups are the top group and below that are also
         enabled in browser settings.

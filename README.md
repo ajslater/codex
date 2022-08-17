@@ -119,7 +119,7 @@ The first thing you should do is log in as the admin user and change the admin p
 #### Navigate to the Admin Panel
 
 - Click the hamburger menu ☰ to open the browser settings drawer.
-- Log in as the 'admin' user. The default administator password is also 'admin'.
+- Log in as the 'admin' user. The default administrator password is also 'admin'.
 - Navigate to the Admin Panel by clicking on its link in the browser settings drawer after you have logged in.
 
 ##### In the Admin Panel, Change the Password

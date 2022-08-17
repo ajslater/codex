@@ -143,7 +143,7 @@ class ComicBookmarkView(UserBookmarkUpdateMixin):
 
 
 class ComicSettingsView(SessionViewBase, UserBookmarkUpdateMixin):
-    """Set Comic Settigns."""
+    """Set Comic Settings."""
 
     # TODO apiv3 replace with session, readersession api view.
 
