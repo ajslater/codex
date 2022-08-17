@@ -12,13 +12,11 @@ VERSION_TAG=$REPO:$PKG_VERSION
 echo "Creating $VERSION_TAG"
 AMEND_TAGS=()
 for arch in "${ARCHES[@]}"; do
-    AMEND_TAGS+=("--amend $ARCH_REPO:${PKG_VERSION}-${arch}")
+    AMEND_TAGS+=("--amend" "$ARCH_REPO:${PKG_VERSION}-${arch}")
 done
 
 CREATE_VERSION_ARGS=("$VERSION_TAG" "${AMEND_TAGS[@]}")
-docker manifest create \
-    "${CREATE_VERSION_ARGS[@]}"
-
+docker manifest create "${CREATE_VERSION_ARGS[@]}"
 docker manifest push "$VERSION_TAG"
 
 if [[ $PKG_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]$ ]]; then
@@ -26,8 +24,6 @@ if [[ $PKG_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]$ ]]; then
     LATEST_TAG="$REPO:latest"
     echo "Creating $LATEST_TAG."
     CREATE_LATEST_ARGS=("$LATEST_TAG" "${AMEND_TAGS[@]}")
-    docker manifest create \
-        "${CREATE_LATEST_ARGS[@]}"
-
+    docker manifest create "${CREATE_LATEST_ARGS[@]}"
     docker manifest push "$LATEST_TAG"
 fi
