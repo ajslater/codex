@@ -130,7 +130,7 @@ class LoginView(APIView):
             raise ex
         return serializer
 
-    # TODO put?
+    # TODO apiv3 put?
     def post(self, request, *args, **kwargs):
         """Authenticate and login."""
         serializer = self.validate()
@@ -157,7 +157,7 @@ class LoginView(APIView):
 class UserView(APIView):
     """User info."""
 
-    # TODO GET
+    # TODO apiv3 GET
     def post(self, request, *args, **kwargs):
         """Get the user info for the current user."""
         serializer = TimezoneSerializer(data=self.request.data)
@@ -177,7 +177,7 @@ class LogoutView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    # TODO put
+    # TODO apiv3 put
     def post(self, request, *args, **kwargs):
         """Logout."""
         logout(request)

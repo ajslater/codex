@@ -162,15 +162,15 @@ class BrowserView(BrowserMetadataBaseView):
         # the model group shown must be:
         #   A valid nav group or 'c'
         #   the child of the current nav group or 'c'
-        if self.kwargs["group"] == self.FOLDER_GROUP:
+        group = self.kwargs["group"]
+        if group == self.FOLDER_GROUP:
             return self.FOLDER_GROUP
-        if (
-            self.valid_nav_group_index == len(self.valid_nav_groups) - 1
-            or self.valid_nav_group_index is None
-        ):
+        if group == self.valid_nav_groups[-1]:
             # special case for lowest valid group
             return self.COMIC_GROUP
-        next_valid_nav_group = self.valid_nav_groups[self.valid_nav_group_index + 1]
+        next_valid_nav_group = self.valid_nav_groups[
+            self.valid_nav_groups.index(group) + 1
+        ]
         return next_valid_nav_group
 
     def _set_browse_model(self):
@@ -257,9 +257,13 @@ class BrowserView(BrowserMetadataBaseView):
     def _get_browse_up_route(self):
         """Get the up route from the first valid ancestor."""
         # Ancestor group
-        ancestor_group = None
-        if self.valid_nav_group_index is not None and self.valid_nav_group_index > 0:
-            ancestor_group = self.valid_nav_groups[self.valid_nav_group_index - 1]
+        group = self.kwargs.get("group")
+        if self.valid_nav_groups.index(group) > 0:
+            ancestor_group = self.valid_nav_groups[
+                self.valid_nav_groups.index(group) - 1
+            ]
+        else:
+            ancestor_group = None
 
         up_group = ancestor_group
         up_pk = None
@@ -431,7 +435,7 @@ class BrowserView(BrowserMetadataBaseView):
 
         return valid_top_groups
 
-    def _set_valid_nav_groups(self, valid_top_groups):
+    def _set_valid_browse_nav_groups(self, valid_top_groups):
         """
         Get valid nav gorups for the current settings.
 
@@ -442,26 +446,27 @@ class BrowserView(BrowserMetadataBaseView):
         """
         top_group = self.params["top_group"]
         nav_group = self.kwargs["group"]
-        self.valid_nav_group_index = None
-        possible_nav_groups = valid_top_groups
+        self.valid_nav_groups = (self.ROOT_GROUP,)
 
-        for possible_index, possible_nav_group in enumerate(possible_nav_groups):
+        for possible_index, possible_nav_group in enumerate(valid_top_groups):
             if top_group in (possible_nav_group, self.COMIC_GROUP):
-                if top_group == self.COMIC_GROUP:
-                    tail_top_groups = []
-                else:
-                    # all the nav groups past this point, but not 'c' the last one
-                    tail_top_groups = possible_nav_groups[possible_index:-1]
-                self.valid_nav_groups = [self.ROOT_GROUP] + tail_top_groups
-                for valid_index, valid_nav_group in enumerate(self.valid_nav_groups):
-                    if nav_group == valid_nav_group:
-                        self.valid_nav_group_index = valid_index
+                # all the nav groups past this point, but not 'c' the last one
+                tail_top_groups = valid_top_groups[possible_index:-1]
+
+                self.valid_nav_groups = (*self.valid_nav_groups, *tail_top_groups)
+                if nav_group not in self.valid_nav_groups:
+                    route_changes = {"group": self.ROOT_GROUP}
+                    reason = (
+                        f"Nav group {nav_group} unavailable, "
+                        f"redirect to {self.ROOT_GROUP}"
+                    )
+                    self._raise_redirect(route_changes, reason)
                 break
 
     def _raise_redirect(self, route_mask, reason):
         """Redirect the client to a valid group url."""
         route = deepcopy(self._DEFAULT_ROUTE)
-        # TODO api v3 params and DEFAULT ROUTE is too GUI ORIENTED.
+        # TODO apiv3 params and DEFAULT ROUTE is too GUI ORIENTED.
         # CHANGE. FLATTEN INTO SETTINGS?
         route["params"].update(route_mask)
         detail = {"route": route, "settings": self.params, "reason": reason}
@@ -481,9 +486,8 @@ class BrowserView(BrowserMetadataBaseView):
             reason = f"top_group {top_group} doesn't match route {self.FOLDER_GROUP}"
             self._raise_redirect({"group": self.FOLDER_GROUP}, reason)
 
-        # TODO maybe move to _set_valid_nav_groups
-        self.valid_nav_groups = [self.FOLDER_GROUP]
-        self.valid_nav_group_index = 0
+        # set valid folder nav groups
+        self.valid_nav_groups = (self.FOLDER_GROUP,)
 
     def _validate_browser_group_settings(self):
         """Check that all the view variables for browser mode are set right."""
@@ -511,11 +515,7 @@ class BrowserView(BrowserMetadataBaseView):
 
         # Validate Browser nav_group
         # Redirect if nav group is wrong
-        self._set_valid_nav_groups(valid_top_groups)
-        if self.valid_nav_group_index is None:
-            route_changes = {"group": self.ROOT_GROUP}
-            reason = f"Nav group {nav_group} unavailable, redirect to {self.ROOT_GROUP}"
-            self._raise_redirect(route_changes, reason)
+        self._set_valid_browse_nav_groups(valid_top_groups)
 
         # Validate pk
         if nav_group == self.ROOT_GROUP and pk:
