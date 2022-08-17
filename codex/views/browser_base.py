@@ -312,7 +312,6 @@ class BrowserBaseView(SessionViewBase, GroupACLMixin):
                 )
                 search_results.append(sr)
             if search_engine_out_of_date:
-                # XXX This should not happen. Need to sync search engine better.
                 LOG.warning("Search index out of date. Scoring non-existent comics.")
                 task = SearchIndexJanitorUpdateTask(False)
                 LIBRARIAN_QUEUE.put(task)

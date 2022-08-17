@@ -554,7 +554,7 @@ class BrowserView(BrowserMetadataBaseView):
 
     def _parse_query_params(self, query_params):
         """Parse GET query parameters: filter object & snake case."""
-        # TODO read up on sending objects via get apiv3
+        # TODO apiv3 read up on sending objects via GET
         #      possibly use filter_bookmark syntax or something.
         result = {}
         for key, val in query_params.items():
@@ -566,7 +566,7 @@ class BrowserView(BrowserMetadataBaseView):
                 parsed_val = val
 
             result[key] = parsed_val
-        # TODO do this for all GETS
+        # TODO apiv3 do this for all GETS
         result = underscoreize(result, **api_settings.JSON_UNDERSCOREIZE)
 
         return result
@@ -601,7 +601,7 @@ class BrowserView(BrowserMetadataBaseView):
     ##############
     def put(self, _request, *args, **kwargs):
         """Create the view."""
-        # TODO Deprecated, remove with api v3
+        # TODO apiv3 Deprecated, remove
         LOG.verbose("Browser put method is deprecated.")
         self._parse_params()
         browser_page = self._get_browser_page()
@@ -612,7 +612,7 @@ class BrowserView(BrowserMetadataBaseView):
 
     def get(self, _request, *args, **kwargs):
         """Get browser settings."""
-        # TODO api v3 moves settings & version to another api.
+        # TODO apiv3 moves settings & version to another api.
         self._parse_params()
         browser_page = self._get_browser_page()
         latest_version = get_latest_version(PACKAGE_NAME)
