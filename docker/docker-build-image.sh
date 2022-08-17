@@ -38,16 +38,15 @@ export CODEX_DIST_BUILDER_VERSION
 export CODEX_WHEEL
 export PKG_VERSION
 # shellcheck disable=2068
+BAKE_ARGS=("${PLATFORM_ARG[@]}" --set "*.tags=${IMAGE}")
 docker buildx bake \
-    "${PLATFORM_ARG[@]:-}" \
-    --set "*.tags=${IMAGE}" \
+    "${BAKE_ARGS[@]:-}" \
     --load \
     "$SERVICE"
 # Keep the above if it caches
 # shellcheck disable=2068
 docker buildx bake \
-    "${PLATFORM_ARG[@]:-}" \
-    --set "*.tags=${IMAGE}" \
+    "${BAKE_ARGS[@]:-}" \
     --push \
     "$SERVICE"
 # It'd be faster if i could bake --load and then bake push instead

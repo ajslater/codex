@@ -15,10 +15,9 @@ for arch in "${ARCHES[@]}"; do
     AMEND_TAGS+=("--amend $ARCH_REPO:${PKG_VERSION}-${arch}")
 done
 
-# shellcheck disable=2068
+CREATE_VERSION_ARGS=("$VERSION_TAG" "${AMEND_TAGS[@]}")
 docker manifest create \
-    "$VERSION_TAG" \
-    "${AMEND_TAGS[@]}"
+    "${CREATE_VERSION_ARGS[@]}"
 
 docker manifest push "$VERSION_TAG"
 
@@ -26,10 +25,9 @@ if [[ $PKG_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]$ ]]; then
     # If the version is just numbers push it as latest
     LATEST_TAG="$REPO:latest"
     echo "Creating $LATEST_TAG."
-    # shellcheck disable=2068
+    CREATE_LATEST_ARGS=("$LATEST_TAG" "${AMEND_TAGS[@]}")
     docker manifest create \
-        "$LATEST_TAG" \
-        "${AMEND_TAGS[@]}"
+        "${CREATE_LATEST_ARGS[@]}"
 
     docker manifest push "$LATEST_TAG"
 fi
