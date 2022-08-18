@@ -27,7 +27,7 @@ TIMEOUT = 60 * 60
 urlpatterns = [
     path(
         "favicon.ico",
-        RedirectView.as_view(url=staticfiles_storage.url("img/favicon-32.webp")),
+        RedirectView.as_view(url=staticfiles_storage.url("img/logo-32.webp")),
         name="favicon",
     ),
     path(

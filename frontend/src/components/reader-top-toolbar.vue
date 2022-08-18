@@ -180,12 +180,13 @@ export default {
   }
   #downloadPageButton,
   #tagButton {
-    padding-left: 8px;
-    padding-right: 0px;
+    padding-left: 2px;
+    padding-right: 2px;
     min-width: 16px;
   }
   #settingsButton {
-    padding-left: 10px;
+    padding-left: 2px;
+    padding-right: 2px;
   }
   #seriesPosition {
     padding-left: 0px;
@@ -196,9 +197,15 @@ export default {
 
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
-/* TOOLBARS */
-.readerTopToolbar .v-toolbar__content {
+#readerTopToolbar .v-toolbar__content {
   padding: 0px;
-  padding-right: 16px;
+}
+#readerTopToolbar .tagIcon {
+  position: relative !important;
+  top: 0px !important;
+  left: 0px !important;
+  height: 24px;
+  width: 24px;
+  margin: 0px;
 }
 </style>

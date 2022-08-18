@@ -75,7 +75,7 @@ class Crond(NamedThread):
     @staticmethod
     def _init_librarian_status():
         types_map = {
-            JanitorStatusTypes.CLEANUP_FK: {"totals": TOTAL_CLASSES},
+            JanitorStatusTypes.CLEANUP_FK: {"total": TOTAL_CLASSES},
             JanitorStatusTypes.CLEAN_SEARCH: {},
             JanitorStatusTypes.DB_VACUUM: {},
             JanitorStatusTypes.DB_BACKUP: {},

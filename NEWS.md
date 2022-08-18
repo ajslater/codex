@@ -1,16 +1,16 @@
 # 📰 Codex News
 
-## v0.12.0a0
+## v0.12.0a1
 
 _Syndication_
 
 - Features
 
   - OPDS v1, OPDS Streaming & OPDS Search support.
+  - Codex now accepts HTTP Basic authentication.
+    - If you run Codex behind a proxy that accepts HTTP Basic credentials that are different than those for Codex, be sure to disable authorization forwarding.
   - Larger browser covers.
   - Sort by name ignores leading articles in 11 languages.
-  - Admin Librarian Status updates update every 5 seconds.
-  - New favicon.
 
 - Fix
 

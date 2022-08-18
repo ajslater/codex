@@ -110,7 +110,8 @@ class OPDSFeedGenerator(Atom1Feed):
     def add_root_elements(self, handler: SimplerXMLGenerator):
         """Add all root elements."""
         handler.addQuickElement("id", self.feed["id"])
-        handler.addQuickElement("icon", staticfiles_storage.url("img/favicon-32.webp"))
+        # opds clients are unlikely to support svg (or even webp)
+        handler.addQuickElement("icon", staticfiles_storage.url("img/logo-32.webp"))
         handler.addQuickElement("title", self.feed["title"])
         if self.feed.get("subtitle") is not None:
             handler.addQuickElement("subtitle", self.feed["subtitle"])

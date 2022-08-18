@@ -17,14 +17,14 @@ class AuthenticationView(APIView):
             "links": [
                 {
                     "rel": "logo",
-                    "href": staticfiles_storage.url("img/favicon.svg"),
+                    "href": staticfiles_storage.url("img/logo.svg"),
                     "type": "image/svg+xml",
                     "width": 512,
                     "height": 512,
                 },
                 {
                     "rel": "help",
-                    "href": "http://github.com/ajslater/codex",
+                    "href": "https://github.com/ajslater/codex",
                     "type": "text/hml",
                 },
                 {

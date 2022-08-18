@@ -15,6 +15,7 @@ A comic archive browser and reader.
 - Private Libraries accessible only to certain groups of users.
 - Reads CBZ, CBR, CBT, and PDF formatted comics.
 - Syndicatation with OPDS 1.2, OPDS-PSE 1.1, OPDS Authentication 1.0, and OpenSearch.
+- HTTP Basic Authentication
 
 ### Examples
 
@@ -119,7 +120,7 @@ The first thing you should do is log in as the admin user and change the admin p
 #### Navigate to the Admin Panel
 
 - Click the hamburger menu ☰ to open the browser settings drawer.
-- Log in as the 'admin' user. The default administator password is also 'admin'.
+- Log in as the 'admin' user. The default administrator password is also 'admin'.
 - Navigate to the Admin Panel by clicking on its link in the browser settings drawer after you have logged in.
 
 ##### In the Admin Panel, Change the Password
@@ -223,6 +224,10 @@ Here's an example nginx config with a subpath named '/codex'.
     # Use a valid IP or resolvable host name for other configurations.
     location /codex {
         proxy_pass  http://codex:9810;
+        # Codex reads http basic authentication.
+        # If the nginx credentials are different than codex credentials use this line to
+        #   not forward the authorization.
+        proxy_set_header Authorization "";
     }
 ```
 
