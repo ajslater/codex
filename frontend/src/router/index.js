@@ -1,7 +1,6 @@
 import Vue from "vue";
 import VueRouter from "vue-router";
 
-import { ROOT_PATH } from "@/api/v2/base";
 import MainBrowser from "@/browser.vue";
 import CHOICES from "@/choices";
 import NotFound from "@/not-found.vue";
@@ -11,7 +10,7 @@ Vue.use(VueRouter);
 
 const LAST_ROUTE = {
   name: "browser",
-  params: window.lastRoute || CHOICES.browser.route,
+  params: window.CODEX.LAST_ROUTE || CHOICES.browser.route,
 };
 
 const routes = [
@@ -38,7 +37,7 @@ const routes = [
 ];
 
 export default new VueRouter({
-  base: ROOT_PATH,
+  base: window.CODEX.APP_PATH,
   mode: "history",
   routes,
 });

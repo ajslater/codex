@@ -14,7 +14,7 @@ from codex.librarian.search.tasks import SearchIndexJanitorUpdateTask
 from codex.models import Comic, SearchQuery, SearchResult
 from codex.settings.logging import get_logger
 from codex.views.group_filter import GroupACLMixin
-from codex.views.session import SessionView
+from codex.views.session import SessionViewBase
 
 
 LOG = get_logger(__name__)
@@ -23,7 +23,7 @@ RANGE_DELIMITER = ".."
 XAPIAN_UPPERCASE_OPERATORS = frozenset(["AND", "OR", "XOR", "NEAR", "ADJ"])
 
 
-class BrowserBaseView(SessionView, GroupACLMixin):
+class BrowserBaseView(SessionViewBase, GroupACLMixin):
     """Browse comics with a variety of filters and sorts."""
 
     _SEARCH_FIELD_ALIASES = {
@@ -44,9 +44,9 @@ class BrowserBaseView(SessionView, GroupACLMixin):
         "team": "teams",
         "updated": "updated_at",
     }
-    SESSION_KEY = SessionView.BROWSER_KEY
-    COMIC_GROUP = "c"
+    ROOT_GROUP = "r"
     FOLDER_GROUP = "f"
+    COMIC_GROUP = "c"
     GROUP_RELATION = {
         "p": "publisher",
         "i": "imprint",
@@ -55,12 +55,14 @@ class BrowserBaseView(SessionView, GroupACLMixin):
         COMIC_GROUP: "pk",
         FOLDER_GROUP: "parent_folder",
     }
+    SESSION_KEY = SessionViewBase.BROWSER_KEY
     _BOOKMARK_FILTERS = ("UNREAD", "IN_PROGRESS", "READ")
 
     def __init__(self, *args, **kwargs):
         """Set params for the type checker."""
         super().__init__(*args, **kwargs)
         self._is_admin = None
+        self.params = {}
 
     def _filter_by_comic_field(self, field, is_model_comic):
         """Filter by a comic any2many attribute."""
@@ -310,7 +312,6 @@ class BrowserBaseView(SessionView, GroupACLMixin):
                 )
                 search_results.append(sr)
             if search_engine_out_of_date:
-                # XXX This should not happen. Need to sync search engine better.
                 LOG.warning("Search index out of date. Scoring non-existent comics.")
                 task = SearchIndexJanitorUpdateTask(False)
                 LIBRARIAN_QUEUE.put(task)

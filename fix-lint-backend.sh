@@ -16,4 +16,5 @@ npm run fix
 ###################
 ###### Shell ######
 ###################
-shfmt -s -w -i 4 ./*.sh ./**/*.sh
+#shfmt -s -w -i 4 ./*.sh ./**/*.sh
+shellharden --replace ./*.sh ./**/*.sh

@@ -14,6 +14,8 @@ A comic archive browser and reader.
 - Watches the filesystem and automatically imports new or changed comics.
 - Private Libraries accessible only to certain groups of users.
 - Reads CBZ, CBR, CBT, and PDF formatted comics.
+- Syndicatation with OPDS 1.2, OPDS-PSE 1.1, OPDS Authentication 1.0, and OpenSearch.
+- HTTP Basic Authentication
 
 ### Examples
 
@@ -118,7 +120,7 @@ The first thing you should do is log in as the admin user and change the admin p
 #### Navigate to the Admin Panel
 
 - Click the hamburger menu ☰ to open the browser settings drawer.
-- Log in as the 'admin' user. The default administator password is also 'admin'.
+- Log in as the 'admin' user. The default administrator password is also 'admin'.
 - Navigate to the Admin Panel by clicking on its link in the browser settings drawer after you have logged in.
 
 ##### In the Admin Panel, Change the Password
@@ -222,6 +224,10 @@ Here's an example nginx config with a subpath named '/codex'.
     # Use a valid IP or resolvable host name for other configurations.
     location /codex {
         proxy_pass  http://codex:9810;
+        # Codex reads http basic authentication.
+        # If the nginx credentials are different than codex credentials use this line to
+        #   not forward the authorization.
+        proxy_set_header Authorization "";
     }
 ```
 
@@ -249,6 +255,24 @@ You will have to contact your administrator to reset your password if you forget
 
 [Codex's metadata search engine has it's own help page.
 ](https://github.com/ajslater/codex/blob/release/SEARCH.md)
+
+### ᯤ OPDS
+
+Codex supports OPDS syndication and OPDS streaming.
+You may find the OPDS url in the side drawer. It should take the form:
+
+`http(s)://host.tld(:9810)(/root_path)/opds/v1.2/`
+
+#### Clients
+
+- iOS has [Panels](https://panels.app/) and [KYBook 3](http://kybook-reader.com/)
+- Android has [Moon+](https://play.google.com/store/apps/details?id=com.flyersoft.moonreader) and [Librera](https://play.google.com/store/apps/details?id=com.foobnix.pdf.reader)
+
+#### HTTP Basic Authentication
+
+If you wish to access OPDS as your Codex User. You will have to add your username and password to the URL. Some OPDS clients do not asssist you with authentication. In that case the OPDS url will look like:
+
+`http(s)://username:password@host.tld(:9810)(/root_path)/opds/v1.2/`
 
 ## <a name="troubleshooting">🩺 Troubleshooting</a>
 
@@ -305,8 +329,8 @@ Please use the `#codex-support` channel to ask for help with Codex.
 
 ## <a name="alternatives-to-codex">📚Alternatives</a>
 
-- [Komga](https://komga.org/) has light metadata editing.
 - [Kavita](https://www.kavitareader.com/) has light metadata filtering/editing and supports comics and eBooks.
+- [Komga](https://komga.org/) has light metadata editing.
 - [Ubooquity](https://vaemendis.net/ubooquity/) reads both comics and eBooks.
 - [Mylar](https://github.com/mylar3/mylar3) is the best comic book manager which also has a built in reader.
 - [Comictagger](https://github.com/comictagger/comictagger) is a comic metadata editor. It comes with a powerful command line and desktop GUI.

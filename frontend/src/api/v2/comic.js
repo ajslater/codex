@@ -1,4 +1,8 @@
-import { ajax, API_PREFIX } from "./base";
+import { ajax } from "./base";
+
+export const getComicBaseURL = (pk) => {
+  return `${window.CODEX.API_V2_PATH}c/${pk}`;
+};
 
 const getComicOpened = (pk, timestamp) => {
   return ajax("get", `c/${pk}?ts=${timestamp}`);
@@ -21,11 +25,13 @@ const setComicDefaultSettings = ({ pk, data }) => {
 };
 
 export const getDownloadURL = (pk, timestamp) => {
-  return `${API_PREFIX}/c/${pk}/comic.cbz?ts=${timestamp}`;
+  const COMIC_BASE_URL = getComicBaseURL(pk);
+  return `${COMIC_BASE_URL}/comic.cbz?ts=${timestamp}`;
 };
 
 export const getComicPageSource = ({ pk, page }, timestamp) => {
-  return `${API_PREFIX}/c/${pk}/${page}/p.jpg?ts=${timestamp}`;
+  const COMIC_BASE_URL = getComicBaseURL(pk);
+  return `${COMIC_BASE_URL}/${page}/p.jpg?ts=${timestamp}`;
 };
 
 export default {
@@ -34,4 +40,5 @@ export default {
   getComicSettings,
   setComicSettings,
   setComicDefaultSettings,
+  getComicBaseURL,
 };

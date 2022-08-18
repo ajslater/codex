@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+{% load static %}
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
+<ShortName>Codex</ShortName>
+<Description>Codex OPDS Search</Description>
+<InputEncoding>UTF-8</InputEncoding>
+<OutputEncoding>UTF-8</OutputEncoding>
+<Image width="512" height="512" type="image/svg+xml">{% static 'img/logo.svg' %}</Image>
+<Url type="application/atom+xml;profile=opds-catalog;kind=acquisition" template="{% url 'opds:v1:browser' 's' 0 1 %}?autoquery={searchTerms}"/>
+</OpenSearchDescription>

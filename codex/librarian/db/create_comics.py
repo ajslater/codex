@@ -5,9 +5,9 @@ from django.db.models import Q
 from django.db.models.functions import Now
 
 from codex.librarian.covers.tasks import CoverRemoveTask
-from codex.librarian.db.status import ImportStatusKeys
+from codex.librarian.db.status import ImportStatusTypes
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
-from codex.librarian.status import librarian_status_done, librarian_status_update
+from codex.librarian.status_control import StatusControl
 from codex.models import (
     Comic,
     Credit,
@@ -209,7 +209,7 @@ def bulk_recreate_m2m_field(field_name, m2m_links):
     Since we can't bulk_update or bulk_create m2m fields use a trick.
     bulk_create() on the through table:
     https://stackoverflow.com/questions/6996176/how-to-create-an-object-for-a-django-model-with-a-many-to-many-field/10116452#10116452 # noqa: B950,E501
-    https://docs.djangoproject.com/en/3.2/ref/models/fields/#django.db.models.ManyToManyField.through # noqa: B950,E501
+    https://docs.djangoproject.com/en/4.0/ref/models/fields/#django.db.models.ManyToManyField.through # noqa: B950,E501
     """
     LOG.verbose(f"Recreating {field_name} relations for altered comics.")
     field = getattr(Comic, field_name)
@@ -236,38 +236,51 @@ def bulk_recreate_m2m_field(field_name, m2m_links):
 def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2m_mds):
     """Bulk import comics."""
     if not (create_paths or update_paths or all_bulk_mds or all_m2m_mds):
-        librarian_status_done(
+        StatusControl.finish_many(
             (
-                ImportStatusKeys.FILES_MODIFIED,
-                ImportStatusKeys.FILES_CREATED,
-                ImportStatusKeys.LINK_M2M_FIELDS,
+                ImportStatusTypes.FILES_MODIFIED,
+                ImportStatusTypes.FILES_CREATED,
+                ImportStatusTypes.LINK_M2M_FIELDS,
             )
         )
         return 0
 
-    update_count = _update_comics(library, update_paths, all_bulk_mds)
-    librarian_status_done([ImportStatusKeys.FILES_MODIFIED])
-    create_count = _create_comics(library, create_paths, all_bulk_mds)
-    librarian_status_done([ImportStatusKeys.FILES_CREATED])
-    # Just to be sure.
-
-    all_m2m_links = _link_comic_m2m_fields(all_m2m_mds)
-    total_links = 0
-    for m2m_links in all_m2m_links.values():
-        total_links += len(m2m_links)
-    librarian_status_update(ImportStatusKeys.LINK_M2M_FIELDS, 0, total_links)
-    completed_links = 0
-    for field_name, m2m_links in all_m2m_links.items():
+    try:
         try:
-            bulk_recreate_m2m_field(field_name, m2m_links)
-        except Exception as exc:
-            LOG.error(f"Error recreating m2m field: {field_name}")
-            LOG.exception(exc)
-        completed_links = len(m2m_links)
-        librarian_status_update(
-            ImportStatusKeys.LINK_M2M_FIELDS, completed_links, total_links
-        )
-    librarian_status_done([ImportStatusKeys.LINK_M2M_FIELDS])
+            try:
+                StatusControl.start(
+                    ImportStatusTypes.FILES_MODIFIED, name=f"({len(update_paths)})"
+                )
+                update_count = _update_comics(library, update_paths, all_bulk_mds)
+            finally:
+                StatusControl.finish(ImportStatusTypes.FILES_MODIFIED)
+            StatusControl.start(
+                ImportStatusTypes.FILES_CREATED, name=f"({len(create_paths)})"
+            )
+            create_count = _create_comics(library, create_paths, all_bulk_mds)
+        finally:
+            StatusControl.finish(ImportStatusTypes.FILES_CREATED)
+            # Just to be sure.
+        all_m2m_links = _link_comic_m2m_fields(all_m2m_mds)
+        total_links = 0
+        for m2m_links in all_m2m_links.values():
+            total_links += len(m2m_links)
+        StatusControl.start(ImportStatusTypes.LINK_M2M_FIELDS, total_links)
+
+        for m2m_links in all_m2m_links.values():
+            completed_links = 0
+            for field_name, m2m_links in all_m2m_links.items():
+                try:
+                    bulk_recreate_m2m_field(field_name, m2m_links)
+                except Exception as exc:
+                    LOG.error(f"Error recreating m2m field: {field_name}")
+                    LOG.exception(exc)
+                completed_links = len(m2m_links)
+                StatusControl.update(
+                    ImportStatusTypes.LINK_M2M_FIELDS, completed_links, total_links
+                )
+    finally:
+        StatusControl.finish(ImportStatusTypes.LINK_M2M_FIELDS)
 
     update_log = f"Updated {update_count} Comics."
     if update_count:

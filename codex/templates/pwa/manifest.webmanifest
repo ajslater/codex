@@ -2,53 +2,27 @@
   "name": "Codex",
   "short_name": "Codex",
   "description": "Comic book reader",
-  "scope": "{{ script_prefix }}",
-  "start_url" : "{{ script_prefix }}",
-   "icons": [
+  "scope": "{% url 'app' %}",
+  "start_url" : "{% url 'app' %}",
+  "icons": [
     {
-      "src": "{% static 'img/favicon.svg' %}",
-      "sizes": "any",
+      "src": "{% static 'img/logo.svg' %}",
+      "sizes": "any 192x192 512x512",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "{% static 'img/favicon.svg' %}",
-      "sizes": "any",
+      "src": "{% static 'img/logo-maskable.svg' %}",
+      "sizes": "any 192x192 512x512",
       "type": "image/svg+xml",
-      "purpose": "maskable"
-    },
-    {
-      "src": "{% static 'img/manifest-icon-192.maskable.webp' %}",
-      "sizes": "192x192",
-      "type": "image/webp",
-      "purpose": "any"
-    },
-    {
-      "src": "{% static 'img/manifest-icon-192.maskable.webp' %}",
-      "sizes": "192x192",
-      "type": "image/webp",
-      "purpose": "maskable"
-    },
-    {
-      "src": "{% static 'img/manifest-icon-512.maskable.webp' %}",
-      "sizes": "512x512",
-      "type": "image/webp",
-      "purpose": "any"
-    },
-    {
-      "src": "{% static 'img/manifest-icon-512.maskable.webp' %}",
-      "sizes": "512x512",
-      "type": "image/webp",
       "purpose": "maskable"
     }
   ],
   "display": "standalone",
-  "lang": "en-US"
-{% comment %}
+  "lang": "en-US",
+  "background_color": "#272727",
+  "theme_color": "#cc7b19",
   "dir": "auto",
   "orientation": "any",
-  "background_color": "#000000",
-  "theme_color": "#cc7b19",
-  "status_bar": "default",
-{% endcomment %}
+  "status_bar": "default"
 }

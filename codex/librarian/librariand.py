@@ -1,10 +1,6 @@
 """Library process worker for background tasks."""
-import platform
-
 from multiprocessing import Process
 from time import sleep
-
-from setproctitle import setproctitle
 
 from codex.darwin_mp import force_darwin_multiprocessing_fork
 from codex.librarian.covers.coverd import CoverCreator
@@ -33,7 +29,6 @@ from codex.notifier.notifierd import Notifier
 from codex.notifier.tasks import NotifierTask
 from codex.settings.logging import get_logger
 from codex.threads import QueuedThread
-from codex.version import PACKAGE_NAME
 
 
 LOG = get_logger(__name__)
@@ -143,8 +138,6 @@ class LibrarianDaemon(Process):
         threads.
         """
         try:
-            if platform.system() != "Darwin":
-                setproctitle(f"{PACKAGE_NAME}-{self.NAME}")
             LOG.verbose("Started Librarian process.")
             self._create_threads()
             self._start_threads()

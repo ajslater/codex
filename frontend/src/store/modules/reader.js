@@ -6,6 +6,7 @@ const NULL_READER_SETTINGS = {
   fitTo: undefined,
   twoPages: undefined,
 };
+Object.freeze(NULL_READER_SETTINGS);
 
 const getGlobalFitToDefault = () => {
   // Big screens default to fit by HEIGHT, small to WIDTH;
@@ -48,7 +49,6 @@ const state = {
   formChoices: {
     fitTo: CHOICES.reader.fitTo,
   },
-  browserRoute: CHOICES.browser.route,
 };
 
 const getters = {
@@ -92,7 +92,6 @@ const mutations = {
     state.settings.globl = Object.assign(state.settings.globl, settings);
   },
   setBookInfo(state, data) {
-    state.browserRoute = data.browserRoute;
     state.comic = data.comic;
     // Only set prev/next book info do not clobber page routes.
     state.routes.prevBook = data.routes.prevBook;
@@ -100,9 +99,6 @@ const mutations = {
     state.routes.seriesIndex = data.routes.seriesIndex;
     state.routes.seriesCount = data.routes.seriesCount;
     state.updatedAt = data.updatedAt;
-  },
-  setBrowserRoute(state, value) {
-    state.browserRoute = value;
   },
   setSettings(state, data) {
     state.settings = data;

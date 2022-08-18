@@ -6,8 +6,10 @@ from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
 from codex.models import AdminFlag, Comic
-from codex.serializers.metadata import MetadataSerializer
-from codex.serializers.mixins import BROWSER_AGGREGATE_ORDERED_UNIONFIX_VALUES_MAP
+from codex.serializers.metadata import (
+    METADATA_ORDERED_UNIONFIX_VALUES_MAP,
+    MetadataSerializer,
+)
 from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser_metadata_base import BrowserMetadataBaseView
@@ -279,11 +281,8 @@ class MetadataView(BrowserMetadataBaseView):
         obj["group"] = self.group
 
         # copy into unionfix fields for serializer
-        for (
-            to_field,
-            from_field,
-        ) in BROWSER_AGGREGATE_ORDERED_UNIONFIX_VALUES_MAP.items():
-            obj[to_field] = obj.get(from_field)
+        for unionfix_field, field in METADATA_ORDERED_UNIONFIX_VALUES_MAP.items():
+            obj[unionfix_field] = obj.get(field)
 
         return obj
 

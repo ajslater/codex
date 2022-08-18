@@ -1,5 +1,6 @@
 """Comic cover thumbnail view."""
 from django.http import HttpResponse
+from rest_framework.renderers import BaseRenderer
 from rest_framework.views import APIView
 
 from codex.librarian.covers.create import create_cover
@@ -12,8 +13,23 @@ from codex.views.group_filter import GroupACLMixin
 LOG = get_logger(__name__)
 
 
+class WEBPRenderer(BaseRenderer):
+    """Render WEBP images."""
+
+    media_type = "image/webp"
+    format = "webp"
+    charset = None
+    render_style = "binary"
+
+    def render(self, data):
+        """Return raw data."""
+        return data
+
+
 class CoverView(APIView, GroupACLMixin):
     """ComicCover View."""
+
+    renderer_classes = (WEBPRenderer,)
 
     def get(self, request, *args, **kwargs):
         """Get comic cover."""
@@ -30,4 +46,5 @@ class CoverView(APIView, GroupACLMixin):
         if not thumb_image_data:
             with cover_path.open("rb") as f:
                 thumb_image_data = f.read()
+
         return HttpResponse(thumb_image_data, content_type="image/webp")
