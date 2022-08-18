@@ -1,6 +1,6 @@
 # 📰 Codex News
 
-## v0.12.0a1
+## v0.12.0
 
 _Syndication_
 
