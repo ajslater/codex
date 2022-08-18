@@ -15,6 +15,7 @@ A comic archive browser and reader.
 - Private Libraries accessible only to certain groups of users.
 - Reads CBZ, CBR, CBT, and PDF formatted comics.
 - Syndicatation with OPDS 1.2, OPDS-PSE 1.1, OPDS Authentication 1.0, and OpenSearch.
+- HTTP Basic Authentication
 
 ### Examples
 
@@ -223,6 +224,10 @@ Here's an example nginx config with a subpath named '/codex'.
     # Use a valid IP or resolvable host name for other configurations.
     location /codex {
         proxy_pass  http://codex:9810;
+        # Codex reads http basic authentication.
+        # If the nginx credentials are different than codex credentials use this line to
+        #   not forward the authorization.
+        proxy_set_header Authorization "";
     }
 ```
 
