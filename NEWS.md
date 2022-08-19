@@ -1,5 +1,11 @@
 # 📰 Codex News
 
+## v0.12.1
+
+- Fix
+
+  - Disable article ignore on name sort in folder view.
+
 ## v0.12.0
 
 _Syndication_

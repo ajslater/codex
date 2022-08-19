@@ -301,7 +301,10 @@ class BrowserMetadataBaseView(BrowserBaseView):
             else:
                 ordering = model.ORDERING
 
-            queryset, ordering = self._order_without_articles(queryset, ordering)
+            group = self.kwargs.get("group")
+            if group != self.FOLDER_GROUP:
+                # Can't annotate after union
+                queryset, ordering = self._order_without_articles(queryset, ordering)
         else:
             # Use annotated order_value
             ordering = self._ORDER_VALUE_ORDERING
