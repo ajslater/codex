@@ -5,6 +5,7 @@
 - Fix
 
   - Disable article ignore on name sort in folder view.
+  - Fix browser navigation bug with issues top group.
 
 ## v0.12.0
 

@@ -449,7 +449,7 @@ class BrowserView(BrowserMetadataBaseView):
         self.valid_nav_groups = (self.ROOT_GROUP,)
 
         for possible_index, possible_nav_group in enumerate(valid_top_groups):
-            if top_group in (possible_nav_group, self.COMIC_GROUP):
+            if top_group == possible_nav_group:
                 # all the nav groups past this point, but not 'c' the last one
                 tail_top_groups = valid_top_groups[possible_index:-1]
 
