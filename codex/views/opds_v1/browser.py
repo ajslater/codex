@@ -195,4 +195,15 @@ class BrowserFeed(BrowserView, Feed, OPDSAuthenticationMixin):
 
     def item_extra_kwargs(self, item: dict):
         """Send entry serialization to feedgenerator."""
-        return {"card": item, "summary": self.item_description(item)}
+        group = item.get("group")
+        try:
+            group_index = self.valid_nav_groups.index(group)
+            aq_link = group_index + 1 >= len(self.valid_nav_groups)
+        except (ValueError, IndexError):
+            aq_link = False
+
+        return {
+            "card": item,
+            "summary": self.item_description(item),
+            "aq_link": aq_link,
+        }

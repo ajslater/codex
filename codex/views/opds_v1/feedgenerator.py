@@ -8,6 +8,7 @@ from django.utils.encoding import iri_to_uri
 from django.utils.feedgenerator import Atom1Feed, get_tag_uri, rfc3339_date
 from django.utils.xmlutils import SimplerXMLGenerator
 
+from codex.models import Comic
 from codex.settings.logging import get_logger
 
 
@@ -125,9 +126,11 @@ class OPDSFeedGenerator(Atom1Feed):
             updated = datetime.fromtimestamp(updated)
             handler.addQuickElement("updated", rfc3339_date(updated))
 
-        self._add_root_link(
-            handler, self.feed.get("self_link"), "self", self.OPDS_NAV_TYPE
-        )
+        if self.feed.get("feed_obj", {}).get("model_group") == "c":
+            mime_type = self.OPDS_AQUISITION_TYPE
+        else:
+            mime_type = self.OPDS_NAV_TYPE
+        self._add_root_link(handler, self.feed.get("self_link"), "self", mime_type)
         self._add_root_link(
             handler, reverse("opds:v1:start"), "start", self.OPDS_NAV_TYPE
         )
@@ -284,7 +287,11 @@ class OPDSFeedGenerator(Atom1Feed):
             # Nav
             kwargs = {"group": group, "pk": pk, "page": 1}
             group_link = reverse("opds:v1:browser", kwargs=kwargs)
-            group_link_args = ("subsection", self.OPDS_NAV_TYPE)
+            if item.get("aq_link"):
+                mime_type = self.OPDS_AQUISITION_TYPE
+            else:
+                mime_type = self.OPDS_NAV_TYPE
+            group_link_args = ("subsection", mime_type)
             group_link_kwargs = {
                 "href": self._add_query_params_to_href(group_link, True)
             }
@@ -304,10 +311,14 @@ class OPDSFeedGenerator(Atom1Feed):
             download_kwargs = {"pk": pk}
             download_href = reverse("opds:v1:download", kwargs=download_kwargs)
             download_length = str(card.get("size", 0))
+            if card.get("file_format") == Comic.FileFormat.PDF:
+                mime_type = "application/pdf"
+            else:
+                mime_type = "application/vnd.comicbook+zip"
             self._add_item_link(
                 handler,
                 OPDSFeedGenerator.OPDS_AQUISITION_REL,
-                OPDSFeedGenerator.OPDS_AQUISITION_TYPE,
+                mime_type,
                 href=download_href,
                 length=download_length,
             )
