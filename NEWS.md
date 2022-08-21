@@ -5,6 +5,7 @@
 - Fixes
 
   - Fix OPDS downloading & streaming for Chunky Comic Reader.
+  - Hack in facets as nav links for Panels & Chunky OPDS readers.
 
 ## v0.12.1
 
