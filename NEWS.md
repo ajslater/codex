@@ -1,6 +1,6 @@
 # 📰 Codex News
 
-## v0.12.2 
+## v0.12.2
 
 - Fixes
 
