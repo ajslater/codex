@@ -265,7 +265,7 @@ You may find the OPDS url in the side drawer. It should take the form:
 
 #### Clients
 
-- iOS has [Panels](https://panels.app/) and [KYBook 3](http://kybook-reader.com/)
+- iOS has [Panels](https://panels.app/), [KYBook 3](http://kybook-reader.com/), and [Chunky Comic Reader](https://apps.apple.com/us/app/chunky-comic-reader/id663567628)
 - Android has [Moon+](https://play.google.com/store/apps/details?id=com.flyersoft.moonreader) and [Librera](https://play.google.com/store/apps/details?id=com.foobnix.pdf.reader)
 
 #### HTTP Basic Authentication

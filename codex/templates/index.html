@@ -14,7 +14,7 @@
             API_V2_PATH: "{% url 'api_v2:base' %}",
             LAST_ROUTE: {{ last_route | safe }},
             MISSING_COVER: "{% static 'img/missing-cover.webp' %}",
-            OPDS_PATH: "{% url 'opds:v1:browser' 'r' 0 1 %}"
+            OPDS_PATH: "{% url 'opds:start' %}"
           };
           Object.freeze(CODEX);
         </script>

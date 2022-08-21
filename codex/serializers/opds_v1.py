@@ -20,7 +20,6 @@ from codex.serializers.mixins import (
 )
 
 
-# LOOK AT BROWSERCARD
 class OPDSEntrySerializer(BrowserCardOPDSBaseSerializer):
     """Browse card displayed in the browser."""
 

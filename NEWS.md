@@ -1,8 +1,15 @@
 # 📰 Codex News
 
+## v0.12.2
+
+- Fixes
+
+  - Fix OPDS downloading & streaming for Chunky Comic Reader.
+  - Hack in facets as nav links for Panels & Chunky OPDS readers.
+
 ## v0.12.1
 
-- Fix
+- Fixes
 
   - Disable article ignore on name sort in folder view.
   - Fix browser navigation bug with issues top group.
@@ -19,7 +26,7 @@ _Syndication_
   - Larger browser covers.
   - Sort by name ignores leading articles in 11 languages.
 
-- Fix
+- Fixes
 
   - Use defusexml to load xml metadata for safety.
   - Removed process naming. My implementation was prone to instability.
