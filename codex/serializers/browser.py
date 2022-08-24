@@ -232,18 +232,3 @@ class BrowserPageSerializer(Serializer):
         child=CharField(read_only=True), allow_empty=True, read_only=True
     )
     covers_timestamp = IntegerField(read_only=True)
-
-
-class VersionsSerializer(Serializer):
-    """Codex version information."""
-
-    installed = CharField(read_only=True)
-    latest = CharField(read_only=True)
-
-
-class BrowserOpenedSerializer(Serializer):
-    """Component open settings."""
-
-    settings = BrowserSettingsSerializer(read_only=True)
-    browser_page = BrowserPageSerializer(read_only=True)
-    versions = VersionsSerializer(read_only=True)

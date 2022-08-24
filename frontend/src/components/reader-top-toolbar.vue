@@ -20,7 +20,12 @@
           :pk="Number($router.currentRoute.params.pk)"
         />
       </v-btn>
-      <a :href="pageSrc" title="Download Page" :download="pageName">
+      <a
+        id="downloadAnchor"
+        :href="pageSrc"
+        title="Download Page"
+        :download="pageName"
+      >
         <v-btn id="downloadPageButton">
           <v-icon>{{ mdiDownload }}</v-icon>
         </v-btn>
@@ -37,7 +42,7 @@
 import { mdiClose, mdiDownload } from "@mdi/js";
 import { mapActions, mapGetters, mapMutations, mapState } from "vuex";
 
-import { getComicPageSource } from "@/api/v2/comic";
+import { getComicPageSource } from "@/api/v3/reader";
 import CHOICES from "@/choices";
 import { getFullComicName } from "@/components/comic-name";
 import MetadataDialog from "@/components/metadata-dialog";
@@ -207,5 +212,8 @@ export default {
   height: 24px;
   width: 24px;
   margin: 0px;
+}
+#downloadAnchor .v-icon {
+  color: white !important;
 }
 </style>

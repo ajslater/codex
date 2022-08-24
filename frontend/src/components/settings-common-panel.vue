@@ -1,6 +1,6 @@
 <template>
   <div>
-    <AuthLoginDialog />
+    <AuthMenu />
     <AdminMenu />
 
     <v-divider />
@@ -14,14 +14,14 @@
 
 <script>
 import AdminMenu from "@/components/admin-menu";
-import AuthLoginDialog from "@/components/auth-login-dialog";
+import AuthMenu from "@/components/auth-menu";
 import VersionsFooter from "@/components/version-footer";
 
 export default {
   name: "SettingsCommonPanel",
 
   components: {
-    AuthLoginDialog,
+    AuthMenu,
     VersionsFooter,
     AdminMenu,
   },

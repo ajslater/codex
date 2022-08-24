@@ -9,6 +9,7 @@ from rest_framework.serializers import (
 )
 
 from codex.models import (
+    Bookmark,
     Character,
     Comic,
     Credit,
@@ -298,3 +299,23 @@ class LibrarianStatusSerializer(ModelSerializer):
 
         model = LibrarianStatus
         exclude = ("active", "created_at", "updated_at")
+
+
+class BookmarkSerializer(ModelSerializer):
+    """Serializer Bookmark."""
+
+    class Meta:
+        """Configure the model."""
+
+        model = Bookmark
+        exclude = ("id", "user", "session", "comic", "created_at", "updated_at")
+
+
+class BookmarkFinishedSerializer(ModelSerializer):
+    """The finished field of the Bookmark."""
+
+    class Meta:
+        """Model spec."""
+
+        model = Bookmark
+        fields = ("finished",)

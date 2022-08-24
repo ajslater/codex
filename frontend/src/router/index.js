@@ -3,7 +3,7 @@ import VueRouter from "vue-router";
 
 import MainBrowser from "@/browser.vue";
 import CHOICES from "@/choices";
-import NotFound from "@/not-found.vue";
+import HttpError from "@/http-error.vue";
 import MainReader from "@/reader.vue";
 
 Vue.use(VueRouter);
@@ -33,7 +33,8 @@ const routes = [
     component: MainBrowser,
     props: true,
   },
-  { name: "notfound", path: "*", component: NotFound, props: false },
+  { name: "error", path: "/error/:code", component: HttpError, props: false },
+  { path: "*", redirect: "/error/404" },
 ];
 
 export default new VueRouter({

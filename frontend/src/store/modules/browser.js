@@ -1,4 +1,4 @@
-import API from "@/api/v2/group";
+import API from "@/api/v3/browser";
 import CHOICES from "@/choices";
 import router from "@/router";
 
@@ -348,7 +348,8 @@ const actions = {
         }
         return redirect;
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error(error);
         commit("setBrowsePageLoaded", true);
         handlePageError({ commit, dispatch, state });
       });
@@ -373,21 +374,19 @@ const actions = {
     const queryParams = {
       ...state.settings,
       ts: state.browseTimestamp,
-      // route: router.currentRoute.params,
-      show: state.show,
     };
-    await API.getBrowserOpened(router.currentRoute.params, queryParams)
+    await API.getBrowserPage(router.currentRoute.params, queryParams)
       .then((response) => {
         const data = response.data;
-        return commit("setBrowserPage", data.browserPage);
+        return commit("setBrowserPage", data);
       })
       .catch(handlePageError({ commit, dispatch, state }));
   },
-  async markedRead({ commit, dispatch, rootGetters }, data) {
+  async markedRead({ commit, dispatch, rootGetters }, { params, updates }) {
     if (!rootGetters[IS_OPEN_TO_SEE]) {
       return;
     }
-    await API.setMarkRead(data);
+    await API.setGroupSettings(params, updates);
     commit("setBrowseTimestamp");
     dispatch("getBrowserPage");
   },
@@ -399,12 +398,11 @@ const actions = {
       return;
     }
     if (mode !== "base" && state.formChoices[mode] == undefined) {
-      await API.getBrowserChoices({
-        group,
-        pk,
-        choice_type: mode,
+      const queryParams = {
+        ...state.settings,
         ts: state.browseTimestamp,
-      })
+      };
+      await API.getBrowserChoices({ group, pk }, mode, queryParams)
         .then((response) => {
           response.data.key = mode;
           const payload = { choiceName: mode, choices: response.data };

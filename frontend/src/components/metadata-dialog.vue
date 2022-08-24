@@ -208,7 +208,7 @@ import { mdiDownload, mdiEye, mdiEyeOff, mdiTagOutline } from "@mdi/js";
 import humanize from "humanize";
 import { mapActions, mapGetters, mapState } from "vuex";
 
-import { getDownloadURL } from "@/api/v2/comic";
+import { getDownloadURL } from "@/api/v3/reader";
 import BookCover from "@/components/book-cover";
 import { formattedIssue } from "@/components/comic-name.js";
 import { DATETIME_FORMAT } from "@/components/datetime";
@@ -294,8 +294,8 @@ export default {
     },
     pages: function () {
       let pages = "";
-      if (this.md.bookmark) {
-        const humanBookmark = humanize.numberFormat(this.md.bookmark, 0);
+      if (this.md.page) {
+        const humanBookmark = humanize.numberFormat(this.md.page, 0);
         pages += `Read ${humanBookmark} of `;
       }
       const humanPages = humanize.numberFormat(this.md.pageCount, 0);

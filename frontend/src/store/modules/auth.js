@@ -1,39 +1,41 @@
-import API from "@/api/v2/auth";
+import API from "@/api/v3/auth";
 
 const state = {
   user: undefined,
-  form: {
-    usernameErrors: undefined,
-    passwordErrors: undefined,
-    error: undefined,
-  },
+  errors: [],
+  success: undefined,
   adminFlags: {
-    enableRegistration: false,
-    enableNonUsers: false,
+    enableRegistration: undefined,
+    enableNonUsers: undefined,
   },
 };
 
 const mutations = {
-  setRegisterEnabled: (state, data) => {
-    state.adminFlags.enableRegistration = data.enableRegistration;
+  setAdminFlags: (state, adminFlags) => {
+    state.adminFlags = adminFlags;
   },
-  setUser: (state, value) => {
-    let user = value;
-    if (user) {
-      state.adminFlags = user.adminFlags;
-      if (!user.pk) {
-        user = undefined;
-      } else {
-        // remove piggyback data
-        delete user.adminFlags;
-      }
-    }
+  setUser: (state, user) => {
     state.user = user;
   },
-  setErrors: (state, data) => {
-    state.form.usernameErrors = data.username;
-    state.form.passwordErrors = data.password;
-    state.form.error = data.detail;
+  setErrors: (state, axiosError) => {
+    if (!axiosError) {
+      state.errors = [];
+      return;
+    }
+    const data = axiosError.response.data;
+    let errors = [];
+    for (const val of Object.values(data)) {
+      if (val) {
+        errors = Array.isArray(val) ? [...errors, ...val] : [...errors, val];
+      }
+    }
+    if (errors.length === 0) {
+      errors = ["Unknown error"];
+    }
+    state.errors = errors;
+  },
+  setSuccess: (state, success) => {
+    state.success = success;
   },
 };
 
@@ -50,51 +52,78 @@ const getters = {
 };
 
 const actions = {
-  async loginDialogOpened({ commit }) {
-    await API.registerEnabled()
+  async setTimezone() {
+    await API.setTimezone().catch((error) => {
+      console.error(error);
+    });
+  },
+  async getAdminFlags({ commit }) {
+    await API.getAdminFlags()
       .then((response) => {
-        commit("setRegisterEnabled", response.data);
-        return response;
+        return commit("setAdminFlags", response.data);
       })
       .catch((error) => {
         console.error(error);
       });
   },
-  async register({ commit }, credentials) {
+  async register({ commit, dispatch }, credentials) {
     await API.register(credentials)
-      .then((response) => {
-        commit("setUser", response.data);
-        return response;
+      .then(() => {
+        return dispatch("login", credentials);
       })
       .catch((error) => {
-        commit("setErrors", error.response.data);
+        commit("setErrors", error);
       });
   },
-  async login({ commit }, credentials) {
+  async login({ commit, dispatch }, credentials) {
     await API.login(credentials)
-      .then((response) => {
-        commit("setUser", response.data);
-        return response;
+      .then(() => {
+        return dispatch("getProfile");
       })
       .catch((error) => {
-        commit("setErrors", error.response.data);
+        commit("setErrors", error);
       });
   },
-  async me({ commit }) {
-    await API.me()
+  async getProfile({ commit }) {
+    return API.getProfile()
       .then((response) => {
-        commit("setUser", response.data);
-        return response;
+        return commit("setUser", response.data);
       })
       .catch((error) => {
-        return console.debug(error.response.data);
+        console.debug(error);
       });
   },
   logout({ commit }) {
-    API.logout().catch((error) => {
-      console.error(error);
-    });
-    commit("setUser");
+    API.logout()
+      .then(() => {
+        return commit("setUser");
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  },
+  async changePassword({ commit, dispatch, state }, credentials) {
+    const username = state.user.username;
+    const password = credentials.password;
+    commit("setErrors");
+    commit("setSuccess", "");
+    await API.changePassword(credentials)
+      .then((response) => {
+        const success = response.data.detail;
+        commit("setSuccess", success);
+        const changedCredentials = {
+          username: username,
+          password: password,
+        };
+        return dispatch("login", changedCredentials);
+      })
+      .catch((error) => {
+        commit("setErrors", error);
+      });
+  },
+  clearErrors({ commit }) {
+    commit("setErrors");
+    commit("setSuccess", "");
   },
 };
 

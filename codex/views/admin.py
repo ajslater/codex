@@ -1,7 +1,7 @@
 """Queue Libraian Jobs."""
+from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
-from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 from rest_framework.views import APIView
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
@@ -39,6 +39,7 @@ class QueueLibrarianJobs(APIView):
     """Queue Librarian Jobs."""
 
     permission_classes = [IsAdminUser]
+    input_serializer_class = QueueJobSerializer
 
     @staticmethod
     def _get_all_library_pks():
@@ -51,9 +52,10 @@ class QueueLibrarianJobs(APIView):
         pks = cls._get_all_library_pks()
         return WatchdogPollLibrariesTask(pks, force)
 
+    @extend_schema(request=input_serializer_class)
     def post(self, request, *args, **kwargs):
         """Download a comic archive."""
-        serializer = QueueJobSerializer(data=self.request.data)
+        serializer = self.input_serializer_class(data=self.request.data)
         serializer.is_valid(raise_exception=True)
         task_name = serializer.validated_data.get("task")
         task = None
@@ -95,12 +97,13 @@ class QueueLibrarianJobs(APIView):
 
         if task:
             LIBRARIAN_QUEUE.put(task)
-            status = HTTP_200_OK
+            # status = HTTP_200_OK
         else:
             LOG.warning(f"Unknown admin library task_name: {task_name}")
-            status = HTTP_400_BAD_REQUEST
+            raise ValueError("Unknown admin library task_name: {task_name}")
+            # status = HTTP_400_BAD_REQUEST
 
-        return Response({}, status=status)
+        return Response({})  # , status=status)
 
 
 class LibrarianStatusViewSet(ReadOnlyModelViewSet):

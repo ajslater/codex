@@ -40,7 +40,7 @@
       <a
         href="https://github.com/ajslater/codex#-administration"
         target="_blank"
-        >See the README</a
+        >See the README <v-icon>{{ mdiOpenInNew }}</v-icon></a
       >
       for detailed instructions.
     </div>
@@ -48,7 +48,7 @@
 </template>
 
 <script>
-import { mdiMenu } from "@mdi/js";
+import { mdiMenu, mdiOpenInNew } from "@mdi/js";
 import { mapGetters, mapState } from "vuex";
 
 import BrowserCard from "@/components/browser-card";
@@ -63,6 +63,7 @@ export default {
   data() {
     return {
       mdiMenu,
+      mdiOpenInNew,
     };
   },
   computed: {

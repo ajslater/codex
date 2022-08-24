@@ -32,8 +32,8 @@ class BrowserAggregateBaseSerializerMixin(Serializer):
     child_count = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "child_count")
     cover_pk = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "cover_pk")
 
-    # UserBookmark annotations
-    bookmark = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "bookmark")
+    # Bookmark annotations
+    page = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "page")
 
 
 class BrowserAggregateSerializerMixin(BrowserAggregateBaseSerializerMixin):

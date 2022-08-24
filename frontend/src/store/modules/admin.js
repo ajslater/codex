@@ -1,4 +1,4 @@
-import API from "@/api/v2/admin";
+import API from "@/api/v3/admin";
 
 const state = {
   librarianStatuses: [],

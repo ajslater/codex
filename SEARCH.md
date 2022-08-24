@@ -4,8 +4,8 @@
 
 Codex uses the Xapian search backend to execute your text search queries.
 Xapian operates much like other familiar search engines. As such, I document only
-some special features on this page. I encourage users looking to
-understand its full power to read the
+some special features on this page. Users looking to
+understand its full power should read the
 **[Xapian Query Parser Syntax documentation](https://xapian.org/docs/queryparser.html)**.
 
 ## Searching Fields

@@ -33,9 +33,9 @@ CONFIG_PATH.mkdir(exist_ok=True, parents=True)
 SECRET_KEY = get_secret_key(CONFIG_PATH)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = bool(os.environ.get("DEBUG", False))
+DEBUG = bool(os.environ.get("DEBUG", "").lower() not in ("0", "false", ""))
 DEBUG_TOOLBAR = bool(os.environ.get("DEBUG_TOOLBAR", False))
-
+print(f"{os.environ.get('DEBUG')=} {DEBUG=}")
 #
 # Logging
 #
@@ -69,8 +69,10 @@ INSTALLED_APPS += [
     "whitenoise.runserver_nostatic",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_registration",
     "corsheaders",
     "codex",
+    "drf_spectacular",
     "dark",
 ]
 
@@ -101,7 +103,7 @@ if DEBUG:
     NPLUSONE_LOG_LEVEL = WARN
 
 
-ROOT_URLCONF = "codex.urls"
+ROOT_URLCONF = "codex.urls.root"
 
 CODEX_TEMPLATES = CODEX_PATH / "templates"
 TEMPLATES = [
@@ -212,7 +214,6 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework.authentication.BasicAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ),
     "DEFAULT_RENDERER_CLASSES": (
@@ -224,6 +225,38 @@ REST_FRAMEWORK = {
         "djangorestframework_camel_case.parser.CamelCaseMultiPartParser",
         "djangorestframework_camel_case.parser.CamelCaseJSONParser",
     ),
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "EXCEPTION_HANDLER": "codex.views.error.codex_exception_handler",
+}
+
+REST_REGISTRATION = {
+    "REGISTER_VERIFICATION_ENABLED": False,
+    "REGISTER_EMAIL_VERIFICATION_ENABLED": False,
+    "RESET_PASSWORD_VERIFICATION_ENABLED": False,
+    "USER_HIDDEN_FIELDS": (
+        # DEFAULT
+        "last_login",
+        "is_active",
+        "user_permissions",
+        "groups",
+        "date_joined",
+        # SHOWN
+        # "is_staff", "is_superuser",
+        # HIDDEN
+        "id",
+        "email",
+        "first_name",
+        "last_name",
+    ),
+}
+
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Codex API",
+    "DESCRIPTION": "Comic Library Browser and Reader",
+    "VERSION": "3.0.0",
+    "CONTACT": {"name": "Repository", "url": "https://github.com/ajslater/codex/"},
+    "PREPROCESSING_HOOKS": ["codex.urls.spectacular.allow_list"],
 }
 
 CORS_ALLOW_CREDENTIALS = True

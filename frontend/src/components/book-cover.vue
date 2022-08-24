@@ -32,7 +32,7 @@
 <script>
 import { mapState } from "vuex";
 
-import { getCoverSource } from "@/api/v2/cover";
+import { getCoverSource } from "@/api/v3/cover";
 
 export default {
   name: "BookCover",

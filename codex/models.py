@@ -459,7 +459,7 @@ def cascade_if_user_null(collector, field, sub_objs, _using):
     """
     Cascade only if the user field is null.
 
-    Do this to keep deleting ephemeral session data from UserBookmark table.
+    Do this to keep deleting ephemeral session data from Bookmark table.
     Adapted from:
     https://github.com/django/django/blob/master/django/db/models/deletion.py#L23
     """
@@ -491,7 +491,7 @@ def validate_fit_to_choice(choice):
         raise ValidationError(_(f"{choice} is not one of {values}"))
 
 
-class UserBookmark(BaseModel):
+class Bookmark(BaseModel):
     """Persist user's bookmarks and settings."""
 
     user = ForeignKey(
@@ -501,7 +501,7 @@ class UserBookmark(BaseModel):
         Session, db_index=True, on_delete=cascade_if_user_null, null=True
     )
     comic = ForeignKey(Comic, db_index=True, on_delete=CASCADE)
-    bookmark = PositiveSmallIntegerField(db_index=True, null=True)
+    page = PositiveSmallIntegerField(db_index=True, null=True)
     finished = BooleanField(default=False, db_index=True)
     fit_to = CharField(
         validators=[validate_fit_to_choice],

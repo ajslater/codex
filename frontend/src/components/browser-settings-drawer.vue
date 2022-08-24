@@ -24,16 +24,7 @@
         />
       </div>
       <v-divider />
-      <v-list-item :href="searchHelpURL" target="_blank" ripple>
-        <v-list-item-content>
-          <v-list-item-title
-            >Search Syntax Help
-            <v-icon class="openInNewIcon">{{
-              mdiOpenInNew
-            }}</v-icon></v-list-item-title
-          >
-        </v-list-item-content>
-      </v-list-item>
+      <SearchHelp />
     </div>
     <SettingsCommonPanel />
   </v-navigation-drawer>
@@ -43,15 +34,15 @@
 import { mdiOpenInNew } from "@mdi/js";
 import { mapActions, mapGetters, mapMutations, mapState } from "vuex";
 
+import SearchHelp from "@/components/browser-search-help";
 import SettingsCommonPanel from "@/components/settings-common-panel";
 
 export default {
   name: "BrowserSettingsDialog",
-  components: { SettingsCommonPanel },
+  components: { SearchHelp, SettingsCommonPanel },
   data() {
     return {
       mdiOpenInNew,
-      searchHelpURL: "https://github.com/ajslater/codex/blob/release/SEARCH.md",
     };
   },
   computed: {
@@ -92,9 +83,6 @@ export default {
   padding-top: 10px;
   padding-left: 15px;
   padding-right: env(safe-area-inset-right);
-}
-.openInNewIcon {
-  color: gray;
 }
 .settingsGroupCaption {
   color: gray;

@@ -5,7 +5,7 @@ import Vue from "vue";
 import VueMeta from "vue-meta";
 import VueNativeSock from "vue-native-websocket";
 
-import { SOCKET_URL } from "@/api/v2/notify";
+import { SOCKET_URL } from "@/api/v3/notify";
 import App from "@/app.vue";
 import { SOCKET_OPTIONS } from "@/plugins/vue-native-sock";
 import vuetify from "@/plugins/vuetify";

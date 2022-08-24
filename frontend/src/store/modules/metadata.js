@@ -1,4 +1,4 @@
-import API from "@/api/v2/group";
+import API from "@/api/v3/browser";
 
 const state = {
   md: undefined,
@@ -18,9 +18,13 @@ const mutations = {
 const actions = {
   async metadataOpened({ commit, rootState }, { group, pk }) {
     // Use the browser's timestamp
-    const ts = rootState.browser.timestamp;
     // Set the metadata store.
-    await API.getMetadata({ group, pk }, ts)
+    const queryParams = {
+      ...rootState.browser.settings,
+      ts: rootState.browser.timestamp,
+      show: rootState.browser.show,
+    };
+    await API.getMetadata({ group, pk }, queryParams)
       .then((response) => {
         return commit("setMetadata", response.data);
       })

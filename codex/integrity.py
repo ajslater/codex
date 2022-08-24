@@ -25,6 +25,7 @@ MIGRATION_0005 = "0005_auto_20200918_0146"
 MIGRATION_0007 = "0007_auto_20211210_1710"
 MIGRATION_0010 = "0010_haystack"
 MIGRATION_0011 = "0010_library_groups_and_metadata_changes"
+MIGRATION_0018 = "0018_rename_userbookmark_bookmark"
 M2M_NAMES = {
     "Character": "characters",
     "Credit": "credits",
@@ -207,17 +208,19 @@ def _null_missing_fk(host_model, fk_model, fk_field_name):
         )
 
 
-def _delete_userbookmark_integrity_errors(apps):
-    """Fix UserBookmarks with non codex model fields."""
-    # UserBookmarks that don't reference a valid comic are useless.
-    _delete_fk_integrity_errors(apps, "UserBookmark", "Comic", "comic")
+def _delete_bookmark_integrity_errors(apps):
+    """Fix Bookmarks with non codex model fields."""
+    if not has_applied_migration(MIGRATION_0018):
+        return
+    # Bookmarks that don't reference a valid comic are useless.
+    _delete_fk_integrity_errors(apps, "Bookmark", "Comic", "comic")
 
-    # UserBookmarks that aren't linked to a valid session or a user are orphans
-    ubm_model = apps.get_model("codex", "UserBookmark")
-    _null_missing_fk(ubm_model, Session, "session")
-    _null_missing_fk(ubm_model, get_user_model(), "user")
-    orphan_ubms = ubm_model.objects.filter(session=None, user=None)
-    _delete_query(orphan_ubms, "UserBookmark", "session or user")
+    # Bookmarks that aren't linked to a valid session or a user are orphans
+    bm_model = apps.get_model("codex", "Bookmark")
+    _null_missing_fk(bm_model, Session, "session")
+    _null_missing_fk(bm_model, get_user_model(), "user")
+    orphan_bms = bm_model.objects.filter(session=None, user=None)
+    _delete_query(orphan_bms, "Bookmark", "session or user")
 
 
 def _delete_search_result_fk_errors(apps):
@@ -268,7 +271,7 @@ def _fix_db_integrity():
     for fk_model_name, fk_field_name in CREDIT_FIELDS.items():
         _delete_fk_integrity_errors(apps, "Credit", fk_model_name, fk_field_name)
 
-    _delete_userbookmark_integrity_errors(apps)
+    _delete_bookmark_integrity_errors(apps)
 
     _repair_old_comic_folder_fks()
 

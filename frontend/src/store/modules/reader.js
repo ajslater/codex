@@ -1,4 +1,5 @@
-import API from "@/api/v2/comic";
+import BROWSER_API from "@/api/v3/browser";
+import API from "@/api/v3/reader";
 import CHOICES from "@/choices";
 import router from "@/router";
 
@@ -86,10 +87,11 @@ const mutations = {
     state.fitToChoices = data.fitToChoices;
   },
   setSettingLocal(state, settings) {
-    state.settings.local = Object.assign(state.settings.local, settings);
+    // need to spread for assign to create reactivity.
+    state.settings.local = Object.assign({ ...state.settings.local }, settings);
   },
   setSettingGlobal(state, settings) {
-    state.settings.globl = Object.assign(state.settings.globl, settings);
+    state.settings.globl = Object.assign({ ...state.settings.globl }, settings);
   },
   setBookInfo(state, data) {
     state.comic = data.comic;
@@ -99,9 +101,6 @@ const mutations = {
     state.routes.seriesIndex = data.routes.seriesIndex;
     state.routes.seriesCount = data.routes.seriesCount;
     state.updatedAt = data.updatedAt;
-  },
-  setSettings(state, data) {
-    state.settings = data;
   },
   setPrevRoute(state) {
     const routeParams = router.currentRoute.params;
@@ -141,26 +140,36 @@ const actions = {
       console.debug(error);
     });
   },
-  async fetchComicSettings({ commit, dispatch, state }, info) {
+  async fetchReaderSettings({ commit }) {
+    return API.getReaderSettings()
+      .then((response) => {
+        const data = response.data;
+        return commit("setSettingGlobal", data);
+      })
+      .catch((error) => {
+        return console.error(error);
+      });
+  },
+  async fetchComicSettings({ commit, dispatch, state }) {
     return API.getComicSettings(
       router.currentRoute.params.pk,
       state.settings.timestamp
     )
       .then((response) => {
         const data = response.data;
-        commit("setBookInfo", info);
-        commit("setSettings", data);
+        commit("setSettingLocal", data);
         return dispatch("routeChanged");
       })
       .catch((error) => {
         return console.error(error);
       });
   },
-  async bookChanged({ dispatch, state }) {
-    await API.getComicOpened(router.currentRoute.params.pk, state.timestamp)
+  async bookChanged({ commit, dispatch, state }) {
+    await API.getReaderInfo(router.currentRoute.params.pk, state.timestamp)
       .then((response) => {
         const info = response.data;
-        return dispatch("fetchComicSettings", info);
+        commit("setBookInfo", info);
+        return dispatch("fetchComicSettings");
       })
       .catch((error) => {
         if ([303, 404].includes(error.response.status)) {
@@ -173,18 +182,25 @@ const actions = {
         }
       });
   },
-  routeChanged({ commit }) {
+  async routeChanged({ commit }) {
     commit("setPrevRoute");
     commit("setNextPage");
-    commit("setBookChange"); // Reset!
-    return API.setComicBookmark(router.currentRoute.params);
+    commit("setBookChange");
+    const pk = +router.currentRoute.params.pk;
+    const params = { group: "c", pk };
+    const page = +router.currentRoute.params.page;
+    const updates = { page };
+    await BROWSER_API.setGroupSettings(params, updates);
   },
   settingsChangedLocal({ commit, state }, data) {
     commit("setSettingLocal", data);
-    API.setComicSettings({
-      pk: router.currentRoute.params.pk,
-      data: state.settings.local,
-    });
+    BROWSER_API.setGroupSettings(
+      {
+        group: "c",
+        pk: router.currentRoute.params.pk,
+      },
+      state.settings.local
+    );
     if (Object.prototype.hasOwnProperty.call(data, "twoPages")) {
       commit("setNextPage");
     }
@@ -192,16 +208,14 @@ const actions = {
   settingsDialogClear({ dispatch }) {
     dispatch("settingsChangedLocal", NULL_READER_SETTINGS);
   },
-  settingsChangedGlobal({ commit, state }, data) {
+  settingsChangedGlobal({ commit, dispatch, state }, data) {
     commit("setSettingGlobal", data);
     commit("setSettingLocal", NULL_READER_SETTINGS);
-    API.setComicDefaultSettings({
-      pk: router.currentRoute.params.pk,
-      data: state.settings.globl,
-    });
+    API.setReaderSettings(state.settings.globl);
     if (Object.prototype.hasOwnProperty.call(data, "twoPages")) {
       commit("setNextPage");
     }
+    dispatch("settingsDialogClear");
   },
   setBookChangeFlag({ commit, state }, direction) {
     if (!direction) {

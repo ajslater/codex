@@ -1,92 +1,87 @@
 <template>
-  <v-list-item-group>
-    <v-divider />
-    <v-dialog
-      v-if="!user"
-      v-model="showLoginDialog"
-      origin="center-top"
-      transition="slide-y-transition"
-      max-width="20em"
-      overlay-opacity="0.5"
-      @focus="focus"
-    >
-      <template #activator="{ on }">
-        <v-list-item ripple v-on="on" @click="loginDialogOpened">
-          <v-list-item-content>
-            <v-list-item-title><h3>Login</h3></v-list-item-title>
-          </v-list-item-content>
-        </v-list-item>
-      </template>
-      <v-form id="authDialog" ref="loginForm">
+  <v-dialog
+    v-model="showLoginDialog"
+    origin="center-top"
+    transition="slide-y-transition"
+    max-width="20em"
+    overlay-opacity="0.5"
+    @focus="focus"
+  >
+    <template #activator="{ on }">
+      <v-list-item ripple v-on="on" @click="getAdminFlags">
+        <v-list-item-content>
+          <v-list-item-title><h3>Login</h3></v-list-item-title>
+        </v-list-item-content>
+      </v-list-item>
+    </template>
+    <v-form id="authDialog" ref="loginForm">
+      <v-text-field
+        v-model="credentials.username"
+        autocomplete="username"
+        label="Username"
+        :rules="usernameRules"
+        clearable
+        autofocus
+        @keydown.enter="$refs.password.focus()"
+      />
+      <v-text-field
+        ref="password"
+        v-model="credentials.password"
+        :autocomplete="registerMode ? 'new-password' : 'current-password'"
+        label="Password"
+        :rules="passwordRules"
+        clearable
+        type="password"
+        @keydown.enter="
+          if (registerMode) {
+            $refs.passwordConfirm.focus();
+          } else {
+            processLogin();
+          }
+        "
+      />
+      <v-expand-transition>
         <v-text-field
-          v-model="credentials.username"
-          autocomplete="username"
-          :error-messages="usernameErrors"
-          label="Username"
-          :rules="usernameRules"
-          clearable
-          autofocus
-          @keydown.enter="$refs.password.focus()"
-        />
-        <v-text-field
-          ref="password"
-          v-model="credentials.password"
-          :autocomplete="registerMode ? 'new-password' : 'current-password'"
-          :error-messages="passwordErrors"
-          label="Password"
-          :rules="passwordRules"
+          v-if="registerMode"
+          ref="passwordConfirm"
+          v-model="credentials.passwordConfirm"
+          autocomplete="new-password"
+          label="Confirm Password"
+          :rules="passwordConfirmRules"
           clearable
           type="password"
-          @keydown.enter="
-            if (registerMode) {
-              $refs.confirmPassword.focus();
-            } else {
-              processLogin();
-            }
-          "
+          @keydown.enter="processLogin"
         />
-        <v-expand-transition>
-          <v-text-field
-            v-if="registerMode"
-            ref="confirmPassword"
-            v-model="confirmPassword"
-            label="Confirm Password"
-            :rules="confirmPasswordRules"
-            clearable
-            type="password"
-            @keydown.enter="processLogin"
-          />
-        </v-expand-transition>
-        <v-btn ripple @click="processLogin">
-          {{ loginButtonLabel }}
-        </v-btn>
-        <v-switch
-          v-if="enableRegistration"
-          v-model="registerMode"
-          label="Register"
-          ripple
+      </v-expand-transition>
+      <v-btn ripple :disabled="!loginButtonEnabled" @click="processLogin">
+        {{ loginButtonLabel }}
+      </v-btn>
+      <v-switch
+        v-if="enableRegistration"
+        v-model="registerMode"
+        label="Register"
+        ripple
+      >
+        Register
+      </v-switch>
+      <footer>
+        <small
+          v-if="authFormErrors && authFormErrors.length > 0"
+          style="color: red"
         >
-          Register
-        </v-switch>
-        <footer>
-          <small v-if="authFormError" style="color: red">
-            {{ authFormError }}
-          </small>
-          <small v-else-if="enableRegistration"
-            >Registering preserves bookmarks and settings across different
-            browsers</small
-          >
-        </footer>
-      </v-form>
-    </v-dialog>
-    <v-list-item v-if="user" ripple @click="doLogout">
-      <v-list-item-content>
-        <v-list-item-title
-          ><h3>Logout {{ user.username }}</h3>
-        </v-list-item-title>
-      </v-list-item-content>
-    </v-list-item>
-  </v-list-item-group>
+          <div v-for="error in authFormErrors" :key="error">
+            {{ error }}
+          </div>
+        </small>
+        <small v-else-if="authFormSuccess" style="color: green"
+          >{{ authFormSuccess }}
+        </small>
+        <small v-else-if="enableRegistration">
+          Registering preserves bookmarks and settings across different browsers
+        </small>
+      </footer>
+    </v-form>
+  </v-dialog>
 </template>
 
 <script>
@@ -99,33 +94,50 @@ export default {
     return {
       usernameRules: [(v) => !!v || "Username is required"],
       passwordRules: [(v) => !!v || "Password is required"],
-      confirmPasswordRules: [
+      passwordConfirmRules: [
         (v) => v === this.credentials.password || "Passwords must match",
       ],
       credentials: {
         username: "",
         password: "",
+        passwordConfirm: "",
       },
-      confirmPassword: "",
       showLoginDialog: false,
       registerMode: false,
     };
   },
   computed: {
     ...mapState("auth", {
-      user: (state) => state.user,
-      isAdmin: (state) => state.user && state.user.isStaff,
-      authFormError: (state) => state.form.error,
-      usernameErrors: (state) => state.form.usernameErrors,
-      passwordErrors: (state) => state.form.passwordErrors,
+      authFormErrors: (state) => state.errors,
+      authFormSuccess: (state) => state.success,
       enableRegistration: (state) => state.adminFlags.enableRegistration,
     }),
     loginButtonLabel: function () {
       return this.registerMode ? "Register" : "Login";
     },
+    loginButtonEnabled: function () {
+      return (
+        this.credentials.username.length > 0 &&
+        this.credentials.password.length > 0 &&
+        (!this.registerMode ||
+          this.credentials.password == this.credentials.passwordConfirm)
+      );
+    },
+  },
+  watch: {
+    showLoginDialog(show) {
+      if (show) {
+        this.clearErrors();
+      }
+    },
   },
   methods: {
-    ...mapActions("auth", ["login", "loginDialogOpened", "logout", "register"]),
+    ...mapActions("auth", [
+      "clearErrors",
+      "getAdminFlags",
+      "login",
+      "register",
+    ]),
     processAuth: function (mode) {
       this[mode](this.credentials).catch((error) => {
         console.error(error);
@@ -146,9 +158,6 @@ export default {
     },
     focus: function () {
       this.$emit("sub-dialog-open");
-    },
-    doLogout: function () {
-      this.processAuth("logout");
     },
   },
 };

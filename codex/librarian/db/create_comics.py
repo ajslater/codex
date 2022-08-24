@@ -26,7 +26,7 @@ EXCLUDE_BULK_UPDATE_COMIC_FIELDS = (
     "created_at",
     "searchresult",
     "id",
-    "userbookmark",
+    "bookmark",
 )
 BULK_UPDATE_COMIC_FIELDS = []
 for field in Comic._meta.get_fields():

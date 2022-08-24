@@ -28,13 +28,13 @@ export default {
     },
   },
   async created() {
-    // First thing we do is see if we're logged in
-    return this.me().then(() => {
-      return this.$connect();
-    });
+    this.setTimezone();
+    this.getAdminFlags();
+    this.getProfile();
+    return this.$connect();
   },
   methods: {
-    ...mapActions("auth", ["me"]),
+    ...mapActions("auth", ["getProfile", "setTimezone", "getAdminFlags"]),
     ...mapActions("socket", ["subscribe"]),
   },
 };
@@ -52,5 +52,18 @@ noscript {
   text-align: center;
   font-family: sans-serif;
   color: darkgray;
+}
+a {
+  text-decoration: none !important;
+}
+a:hover,
+a:hover .v-icon {
+  color: white !important;
+}
+a .v-icon {
+  color: #cc7b19 !important;
+}
+a.v-btn .v-icon {
+  color: white !important;
 }
 </style>

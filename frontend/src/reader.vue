@@ -27,7 +27,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapMutations } from "vuex";
+import { mapActions, mapGetters, mapMutations, mapState } from "vuex";
 
 import ReaderComicPage from "@/components/reader-comic-page";
 import ReaderNavOverlay from "@/components/reader-nav-overlay";
@@ -52,6 +52,9 @@ export default {
     };
   },
   computed: {
+    ...mapState("auth", {
+      user: (state) => state.user,
+    }),
     ...mapGetters("auth", ["isOpenToSee"]),
   },
   watch: {
@@ -64,12 +67,24 @@ export default {
       window.scrollTo(0, 0);
       // this.setBrowseTimestamp();
     },
+    user: function () {
+      this.fetchReaderSettings();
+    },
+    isOpenToSee: function () {
+      this.fetchReaderSettings();
+    },
   },
   created() {
+    this.fetchReaderSettings();
     this.bookChanged();
   },
   methods: {
-    ...mapActions("reader", ["routeTo", "bookChanged", "routeChanged"]),
+    ...mapActions("reader", [
+      "routeTo",
+      "bookChanged",
+      "routeChanged",
+      "fetchReaderSettings",
+    ]),
     ...mapMutations("browser", ["setBrowseTimestamp"]),
     toggleToolbars: function () {
       this.showToolbars = !this.showToolbars;

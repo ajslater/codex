@@ -18,7 +18,7 @@
 import { mdiFilter } from "@mdi/js";
 import { mapState } from "vuex";
 
-import { toVuetifyItems } from "@/api/v2/list-items";
+import { toVuetifyItems } from "@/api/v3/vuetify-items";
 
 export default {
   name: "MetadataTags",

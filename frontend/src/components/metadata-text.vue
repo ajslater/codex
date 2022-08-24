@@ -1,9 +1,9 @@
 <template>
   <div v-if="computedValue" class="text" :class="{ highlight }">
     <div class="textLabel">{{ label }}</div>
-    <a v-if="link" class="textLink" :href="computedValue" target="_blank">
+    <a v-if="link" :href="computedValue" target="_blank">
       {{ computedValue }}
-      <v-icon small color="rgba(204, 123, 25, 0.725)">
+      <v-icon small>
         {{ mdiOpenInNew }}
       </v-icon>
     </a>
@@ -63,23 +63,6 @@ export default {
 .textLabel {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.8);
-}
-.textContent {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.textLink:link {
-  color: rgba(204, 123, 25, 0.725);
-  text-decoration: none;
-}
-.textLink:visited {
-  color: rgba(204, 123, 25, 0.5);
-}
-.textLink:hover {
-  color: rgba(204, 123, 25, 0.95);
-}
-.textLink:active {
-  color: rgba(204, 123, 25, 1);
 }
 .highlight .textContent {
   background-color: rgba(204, 123, 25, 0.75);

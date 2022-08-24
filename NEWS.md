@@ -1,5 +1,18 @@
 # 📰 Codex News
 
+## v0.13.0a0
+
+- Features
+
+  - Users may now change their own passwords.
+  - HTTP Basic auth only used on OPDS.
+  - OPDS gains a Newest issues facet.
+
+- Dev Features
+
+  - API v3 is more restful.
+  - /api/v3/ root displays swagger api documentation.
+
 ## v0.12.2
 
 - Fixes

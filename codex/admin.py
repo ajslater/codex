@@ -19,6 +19,7 @@ from codex.librarian.watchdog.tasks import WatchdogPollLibrariesTask, WatchdogSy
 from codex.models import AdminFlag, FailedImport, Folder, Library
 from codex.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.settings.logging import get_logger
+from codex.settings.patch import patch_registration_setting
 
 
 LOG = get_logger(__name__)
@@ -203,21 +204,26 @@ class AdminAdminFlag(AdminNoAddDelete):
     sortable_by = fields
     ordering = ("name", "pk")
 
-    def save_model(self, request, obj, form, change):
+    def save_model(self, request, obj: AdminFlag, form, change):
         """Trigger a change notification because options have changed."""
         created = obj.pk is None
         super().save_model(request, obj, form, change)
         if change or created:
-            self._on_change()
+            self._on_change(set([obj.name]))
 
     def save_formset(self, request, form, formset, change):
         """Bulk update triggers change."""
         super().save_formset(request, form, formset, change)
+        names = set()
+        for fform in formset:
+            names.add(fform.cleaned_data.get("name"))
         if change:
-            self._on_change()
+            self._on_change(names)
 
-    def _on_change(self):
+    def _on_change(self, names):
         """Signal UI that its out of date."""
+        if AdminFlag.ENABLE_REGISTRATION in names:
+            patch_registration_setting()
         # Heavy handed refresh everything, but simple.
         # Folder View could only change the group view and let the ui decide
         # Registration only needs to change the enable flag

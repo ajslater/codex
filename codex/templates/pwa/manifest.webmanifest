@@ -2,8 +2,8 @@
   "name": "Codex",
   "short_name": "Codex",
   "description": "Comic book reader",
-  "scope": "{% url 'app' %}",
-  "start_url" : "{% url 'app' %}",
+  "scope": "{% url 'app:start' %}",
+  "start_url" : "{% url 'app:start' %}",
   "icons": [
     {
       "src": "{% static 'img/logo.svg' %}",

@@ -1,21 +1,26 @@
 <template>
   <v-footer id="versionFooter">
-    <a
-      id="versionFooter"
-      href="https://github.com/ajslater/codex"
-      :title="versionTitle"
-      :class="{ outdated: outdated }"
-      >codex v{{ versions.installed }}
-      <div v-if="outdated">codex v{{ versions.latest }} is available</div>
+    <div id="version" :class="{ outdated: outdated }">
+      codex v{{ versions.installed }}
+    </div>
+    <div v-if="outdated">codex v{{ versions.latest }} is available</div>
+    <a id="repo" href="https://github.com/ajslater/codex" :title="versionTitle">
+      repository<v-icon color="grey" dense x-small>{{ mdiOpenInNew }}</v-icon>
     </a>
   </v-footer>
 </template>
 
 <script>
+import { mdiOpenInNew } from "@mdi/js";
 import { mapGetters, mapState } from "vuex";
 
 export default {
   name: "VersionFooter",
+  data() {
+    return {
+      mdiOpenInNew,
+    };
+  },
   computed: {
     ...mapState("browser", {
       numPages: (state) => state.numPages,
@@ -43,6 +48,17 @@ export default {
   text-align: center;
   font-size: small;
   color: gray;
+}
+#version {
+}
+#repo {
+  color: gray;
+}
+#repo:hover {
+  color: white;
+}
+#versionFooter * {
+  width: 100%;
 }
 .outdated {
   font-style: italic;

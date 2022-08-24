@@ -31,7 +31,7 @@
 import { mdiDotsVertical } from "@mdi/js";
 import { mapActions, mapState } from "vuex";
 
-import { getDownloadURL } from "@/api/v2/comic";
+import { getDownloadURL } from "@/api/v3/reader";
 
 const groupNames = {
   p: "Publisher",
@@ -87,11 +87,16 @@ export default {
   methods: {
     ...mapActions("browser", ["markedRead"]),
     toggleRead: function () {
-      this.markedRead({
-        group: this.group,
-        pk: this.pk,
-        finished: !this.finished,
-      });
+      const data = {
+        params: {
+          group: this.group,
+          pk: this.pk,
+        },
+        updates: {
+          finished: !this.finished,
+        },
+      };
+      this.markedRead(data);
     },
   },
 };

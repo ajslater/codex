@@ -1,31 +1,27 @@
 """Bookmark views."""
+from drf_spectacular.utils import extend_schema
+from rest_framework.exceptions import ValidationError
+from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
-from codex.models import Comic, UserBookmark
-from codex.serializers.bookmark import (
-    ComicReaderBothSettingsSerializer,
-    ComicReaderSettingsSerializer,
-    UserBookmarkFinishedSerializer,
-)
+from codex.models import Bookmark, Comic
+from codex.serializers.models import BookmarkFinishedSerializer, BookmarkSerializer
 from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
-from codex.views.browser_base import BrowserBaseView
-from codex.views.group_filter import GroupACLMixin
-from codex.views.session import SessionViewBase
+from codex.views.mixins import GroupACLMixin
 
 
 LOG = get_logger(__name__)
 
 
-class UserBookmarkUpdateMixin(APIView, GroupACLMixin):
-    """UserBookmark Updater."""
+class BookmarkBaseView(GenericAPIView, GroupACLMixin):
+    """Bookmark Updater."""
 
-    _USERBOOKMARK_UPDATE_FIELDS = ["bookmark", "finished", "fit_to", "two_pages"]
-    _USERBOOKMARK_ONLY_FIELDS = _USERBOOKMARK_UPDATE_FIELDS + ["pk", "comic"]
+    _BOOKMARK_UPDATE_FIELDS = ["page", "finished", "fit_to", "two_pages"]
+    _BOOKMARK_ONLY_FIELDS = _BOOKMARK_UPDATE_FIELDS + ["pk", "comic"]
     _COMIC_ONLY_FIELDS = ("pk", "max_page")
 
-    def get_user_bookmark_search_kwargs(self, comic_filter):
+    def get_bookmark_search_kwargs(self, comic_filter):
         """Get the search kwargs for a user's authentication state."""
         search_kwargs = {}
         for key, value in comic_filter.items():
@@ -40,31 +36,30 @@ class UserBookmarkUpdateMixin(APIView, GroupACLMixin):
             search_kwargs["session_id"] = self.request.session.session_key
         return search_kwargs
 
-    @classmethod
-    def _update_user_bookmarks(cls, search_kwargs, updates):
+    def _update_bookmarks(self, search_kwargs, updates):
         """Update existing bookmarks."""
+        group_acl_filter = self.get_group_acl_filter(False)
         existing_bookmarks = (
-            UserBookmark.objects.filter(**search_kwargs)
+            Bookmark.objects.filter(group_acl_filter)
+            .filter(**search_kwargs)
             .select_related("comic")
-            .only(*cls._USERBOOKMARK_ONLY_FIELDS)
+            .only(*self._BOOKMARK_ONLY_FIELDS)
         )
         update_bookmarks = []
         existing_comic_pks = set()
-        for ub in existing_bookmarks:
-            if updates.get("bookmark") == ub.comic.max_page:
+        for bm in existing_bookmarks:
+            if updates.get("page") == bm.comic.max_page:
                 # Auto finish on bookmark last page
-                ub.finished = True
+                bm.finished = True
 
             for key, value in updates.items():
-                setattr(ub, key, value)
-            update_bookmarks.append(ub)
-            existing_comic_pks.add(ub.comic.pk)
-        UserBookmark.objects.bulk_update(
-            update_bookmarks, cls._USERBOOKMARK_UPDATE_FIELDS
-        )
+                setattr(bm, key, value)
+            update_bookmarks.append(bm)
+            existing_comic_pks.add(bm.comic.pk)
+        Bookmark.objects.bulk_update(update_bookmarks, self._BOOKMARK_UPDATE_FIELDS)
         return existing_comic_pks
 
-    def _create_user_bookmarks(
+    def _create_bookmarks(
         self, existing_comic_pks, comic_filter, search_kwargs, updates
     ):
         """Create new bookmarks for comics that don't exist yet."""
@@ -83,126 +78,68 @@ class UserBookmarkUpdateMixin(APIView, GroupACLMixin):
                 if not key.startswith("comic"):
                     defaults[key] = value
 
-            ub = UserBookmark(**defaults)
-            if updates.get("bookmark") == comic.max_page:
+            bm = Bookmark(**defaults)
+            if updates.get("page") == comic.max_page:
                 # Auto finish on bookmark last page
                 # This almost never happens. Possibly never.
-                ub.finished = True
-            create_bookmarks.append(ub)
-        UserBookmark.objects.bulk_create(create_bookmarks)
+                bm.finished = True
+            create_bookmarks.append(bm)
+        Bookmark.objects.bulk_create(create_bookmarks)
 
-    def update_user_bookmarks(self, updates, comic_filter):
+    def update_bookmarks(self, updates, comic_filter):
         """Update a user bookmark."""
-        search_kwargs = self.get_user_bookmark_search_kwargs(comic_filter)
-        existing_comic_pks = self._update_user_bookmarks(search_kwargs, updates)
-        self._create_user_bookmarks(
-            existing_comic_pks, comic_filter, search_kwargs, updates
-        )
-
-    def update_one_user_bookmark(self, updates):
-        """Update one comic's userbookmark."""
-        pk = self.kwargs.get("pk")
-        comic_filter = {"pk": pk}
-        self.update_user_bookmarks(updates, comic_filter)
-        return Response()
+        search_kwargs = self.get_bookmark_search_kwargs(comic_filter)
+        existing_comic_pks = self._update_bookmarks(search_kwargs, updates)
+        self._create_bookmarks(existing_comic_pks, comic_filter, search_kwargs, updates)
 
 
-class UserBookmarkFinishedView(BrowserBaseView, UserBookmarkUpdateMixin):
-    """Mark read or unread recursively."""
+class BookmarkView(BookmarkBaseView):
+    """User Bookmark View."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
+    serializer_class = BookmarkSerializer
 
-    def patch(self, request, *args, **kwargs):
-        """Mark read or unread recursively."""
-        serializer = UserBookmarkFinishedSerializer(data=request.data)
+    def _validate(self):
+        """Validate and translate the submitted data."""
+        serializer = self.get_serializer(data=self.request.data)
         serializer.is_valid(raise_exception=True)
+        return serializer.validated_data
 
-        updates = {"finished": serializer.validated_data.get("finished")}
-
+    @extend_schema(request=serializer_class, responses=None)
+    def patch(self, request, *args, **kwargs):
+        """Update bookmarks recursively."""
         group = self.kwargs.get("group")
+        if group != "c":
+            # If the target is recursive, strip everything but finished state data.
+            self.serializer_class = BookmarkFinishedSerializer
+        updates = self._validate()
+
         pk = self.kwargs.get("pk")
         if group == "f":
             comic_filter = {"folders__in": [pk]}
         else:
             relation = self.GROUP_RELATION.get(group)
             comic_filter = {relation: pk}
-        self.update_user_bookmarks(updates, comic_filter=comic_filter)
+
+        self.update_bookmarks(updates, comic_filter=comic_filter)
         return Response()
 
-
-class ComicBookmarkView(UserBookmarkUpdateMixin):
-    """Bookmark updater."""
-
-    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
-
-    def patch(self, request, *args, **kwargs):
-        """Save a user bookmark after a page change."""
-        page = self.kwargs.get("page")
-        updates = {"bookmark": page}
-        return self.update_one_user_bookmark(updates)
-
-
-class ComicSettingsView(SessionViewBase, UserBookmarkUpdateMixin):
-    """Set Comic Settings."""
-
-    # TODO apiv3 replace with session, readersession api view.
-
-    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
-
-    SESSION_KEY = SessionViewBase.READER_KEY
-    _NULL_READER_SETTINGS = {
-        "fit_to": None,
-        "two_pages": None,
-    }
-    _SETTINGS_KEYS = ("fit_to", "two_pages")
-
-    def _validate(self):
-        """Validate and translate the submitted data."""
-        serializer = ComicReaderSettingsSerializer(data=self.request.data)
-        serializer.is_valid(raise_exception=True)
-        return serializer.validated_data
-
-    def patch(self, request, *args, **kwargs):
-        """Patch the bookmark settings for one comic."""
-        updates = self._validate()
-        return self.update_one_user_bookmark(updates)
-
-    def put(self, request, *args, **kwargs):
-        """Put the session settings for all comics."""
-        updates = self._validate()
-        # Default for all comics
-        self.load_params_from_session()
-        self.params["display"] = updates
-        self.save_params_to_session()
-
-        # Null out this comic's settings so it uses all comic defaults
-        return self.update_one_user_bookmark(self._NULL_READER_SETTINGS)
-
-    def _get_user_bookmark(self):
-        """Get a user bookmark."""
+    def get_object(self):
+        """Get the Bookmark object."""
+        group = self.kwargs.get("group")
+        if group != "c":
+            raise ValidationError(detail="Aggregate bookmarks not available.")
         pk = self.kwargs.get("pk")
         comic_filter = {"pk": pk}
-        search_kwargs = self.get_user_bookmark_search_kwargs(comic_filter)
+        search_kwargs = self.get_bookmark_search_kwargs(comic_filter)
         try:
-            ub = UserBookmark.objects.get(**search_kwargs)
-        except UserBookmark.DoesNotExist:
-            ub = None
-        return ub
+            bm = Bookmark.objects.get(**search_kwargs)
+        except Bookmark.DoesNotExist:
+            bm = None
+        return bm
 
     def get(self, request, *args, **kwargs):
-        """Get comic settings."""
-        defaults = self.get_from_session("display")
-        ub = self._get_user_bookmark()
-
-        # Load settings into global and local parts
-        data = {"globl": {}, "local": {}}
-        for key in self._SETTINGS_KEYS:
-            data["globl"][key] = defaults.get(key)
-            if ub:
-                val = getattr(ub, key)
-            else:
-                val = None
-            data["local"][key] = val
-
-        serializer = ComicReaderBothSettingsSerializer(data)
+        """Get one bookmark."""
+        obj = self.get_object()
+        serializer = self.get_serializer(obj)
         return Response(serializer.data)

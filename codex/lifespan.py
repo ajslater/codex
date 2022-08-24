@@ -15,6 +15,7 @@ from codex.librarian.librariand import LibrarianDaemon
 from codex.models import AdminFlag, LibrarianStatus, Library, Timestamp
 from codex.notifier.notifierd import Notifier
 from codex.settings.logging import get_logger
+from codex.settings.patch import patch_registration_setting
 
 
 RESET_ADMIN = bool(os.environ.get("CODEX_RESET_ADMIN"))
@@ -93,6 +94,7 @@ def codex_startup():
     """Initialize the database and start the daemons."""
     ensure_superuser()
     init_admin_flags()
+    patch_registration_setting()
     init_timestamps()
     init_librarian_statuses()
     clear_library_status()

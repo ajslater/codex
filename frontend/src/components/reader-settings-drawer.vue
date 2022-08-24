@@ -17,7 +17,7 @@
         <v-radio-group
           class="displayRadioGroup"
           label="Display"
-          :value="settingsDialogFitTo"
+          :value="settingsScope.fitTo"
           @change="settingsDialogChanged({ fitTo: $event })"
         >
           <v-radio
@@ -30,10 +30,10 @@
         <v-checkbox
           class="displayTwoPages"
           label="Two pages"
-          :value="settingsDialogTwoPages"
+          :value="settingsScope.twoPages"
           :indeterminate="
-            settingsDialogTwoPages === null ||
-            settingsDialogTwoPages === undefined
+            settingsScope.twoPages === null ||
+            settingsScope.twoPages === undefined
           "
           ripple
           @change="settingsDialogChanged({ twoPages: $event === true })"
@@ -89,17 +89,6 @@ export default {
       set(value) {
         this.setIsSettingsDrawerOpen(value);
       },
-    },
-    settingsDialogTwoPages: function () {
-      return this.settingsScope.twoPages;
-    },
-    settingsDialogFitTo: function () {
-      return this.settingsScope.fitTo;
-    },
-    settingsDialogSwitchLabel: function () {
-      let label = "For ";
-      label += this.isSettingsDialogGlobalMode ? "All Comics" : "This Comic";
-      return label;
     },
   },
   mounted() {

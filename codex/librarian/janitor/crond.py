@@ -1,9 +1,9 @@
 """Perform maintence tasks."""
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, timezone
 from threading import Condition, Event
 from time import sleep
 
-from django.utils import timezone
+from django.utils import timezone as django_timezone
 from humanize import precisedelta
 
 from codex.librarian.covers.status import CoverStatusTypes
@@ -53,7 +53,7 @@ class Crond(NamedThread):
     @classmethod
     def _get_timeout(cls):
         """Get seconds until midnight."""
-        now = timezone.now()
+        now = django_timezone.now()
         try:
             mtime = Timestamp.get(Timestamp.JANITOR)
             last_cron = datetime.fromtimestamp(mtime, tz=timezone.utc)

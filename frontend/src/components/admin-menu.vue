@@ -36,7 +36,7 @@
 import { mdiBookAlert, mdiOpenInNew } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "vuex";
 
-import API from "@/api/v2/admin";
+import API from "@/api/v3/admin";
 import AdminStatusList from "@/components/admin-status-list";
 
 export default {
@@ -71,7 +71,7 @@ export default {
 }
 #adminPanelOpenIcon,
 #failedImportsIcon {
-  color: gray;
+  color: gray !important;
 }
 #failedImportsIcon {
   padding-left: 10px;
