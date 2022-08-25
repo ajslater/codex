@@ -29,11 +29,11 @@
 <script>
 import { mapActions, mapGetters, mapMutations, mapState } from "vuex";
 
-import ReaderComicPage from "@/components/reader-comic-page";
-import ReaderNavOverlay from "@/components/reader-nav-overlay";
-import ReaderNavToolbar from "@/components/reader-nav-toolbar";
-import ReaderSettingsDrawer from "@/components/reader-settings-drawer";
-import ReaderTopToolbar from "@/components/reader-top-toolbar";
+import ReaderComicPage from "@/components/reader-comic-page.vue";
+import ReaderNavOverlay from "@/components/reader-nav-overlay.vue";
+import ReaderNavToolbar from "@/components/reader-nav-toolbar.vue";
+import ReaderSettingsDrawer from "@/components/reader-settings-drawer.vue";
+import ReaderTopToolbar from "@/components/reader-top-toolbar.vue";
 
 const MIN_VIEWPORT_WIDTH_SWIPE_ENABLED = 768;
 

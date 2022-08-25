@@ -51,8 +51,8 @@
 import { mdiMenu, mdiOpenInNew } from "@mdi/js";
 import { mapGetters, mapState } from "vuex";
 
-import BrowserCard from "@/components/browser-card";
-import PlaceholderLoading from "@/components/placeholder-loading";
+import BrowserCard from "@/components/browser-card.vue";
+import PlaceholderLoading from "@/components/placeholder-loading.vue";
 
 export default {
   name: "BrowserMain",
@@ -99,7 +99,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "./book-cover.scss";
+@import "./book-cover.scss.vue";
 $card-margin: 32px;
 #browsePane {
   display: flex;
@@ -134,7 +134,7 @@ $card-margin: 32px;
   left: 50%;
   transform: translate(-50%, -50%);
 }
-@import "~vuetify/src/styles/styles.sass";
+@import "vuetify/src/styles/styles.sass.vue";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   $small-card-margin: 16px;
   #browsePane {

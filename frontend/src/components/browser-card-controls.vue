@@ -21,8 +21,8 @@
 <script>
 import { mdiEye, mdiEyeOff } from "@mdi/js";
 
-import BrowserCardMenu from "@/components/browser-card-menu";
-import MetadataButton from "@/components/metadata-dialog";
+import BrowserCardMenu from "@/components/browser-card-menu.vue";
+import MetadataButton from "@/components/metadata-dialog.vue";
 export default {
   name: "BrowserCardControls",
   components: {
@@ -54,8 +54,8 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "~vuetify/src/styles/styles.sass";
-@import "book-cover.scss";
+@import "vuetify/src/styles/styles.sass.vue";
+@import "book-cover.scss.vue";
 .linkSpacer {
   height: 100%;
   width: 100%;
@@ -82,7 +82,7 @@ $button-margin: 5px;
   bottom: $button-margin !important;
 }
 
-@import "~vuetify/src/styles/styles.sass";
+@import "vuetify/src/styles/styles.sass.vue";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   $small-button-margin: 5px;
   .tagIcon {

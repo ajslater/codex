@@ -36,8 +36,8 @@
 import { mdiBookAlert, mdiOpenInNew } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "vuex";
 
-import API from "@/api/v3/admin";
-import AdminStatusList from "@/components/admin-status-list";
+import API from "@/api/v3/admin.js";
+import AdminStatusList from "@/components/admin-status-list.vue";
 
 export default {
   name: "AdminMenu",

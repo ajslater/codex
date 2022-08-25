@@ -19,7 +19,7 @@
 <script>
 import { mapActions, mapState } from "vuex";
 
-import BrowserNavButton from "@/components/browser-nav-button";
+import BrowserNavButton from "@/components/browser-nav-button.vue";
 
 export default {
   name: "BrowserPaginationToolbar",

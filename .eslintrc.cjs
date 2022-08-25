@@ -74,12 +74,14 @@ module.exports = {
     "yaml",
   ],
   rules: {
+    /*
     "import/no-unresolved": [
       "error",
       {
         ignore: ["^[@]"],
       },
     ],
+  */
     "max-params": ["warn", 4],
     /*
      md/remark plugins can't be read by eslint
@@ -101,6 +103,7 @@ module.exports = {
     "no-constructor-bind/no-constructor-bind": "error",
     "no-constructor-bind/no-constructor-state": "error",
     "no-secrets/no-secrets": "error",
+    "eslint-comments/no-unused-disable": 1,
     "prettier/prettier": "warn",
     "security/detect-object-injection": "off",
     "simple-import-sort/exports": "warn",
@@ -132,8 +135,6 @@ module.exports = {
     "comics",
     "config",
     "dist",
-    "frontend",
-    "node_modules",
     "package-lock.json",
     "test-results",
     "typings",

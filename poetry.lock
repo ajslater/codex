@@ -364,6 +364,20 @@ optional = false
 python-versions = ">=3.7,<4.0"
 
 [[package]]
+name = "django-vite"
+version = "2.0.2"
+description = "Integration of ViteJS in a Django project."
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+Django = ">=1.11"
+
+[package.extras]
+dev = ["black", "flake8"]
+
+[[package]]
 name = "djangorestframework"
 version = "3.13.1"
 description = "Web APIs for Django, made easy."
@@ -1493,7 +1507,7 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=6)", "pytest-black (>=
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "608b25ccf9507d4150f4324593a41aa319b5c0ed0da6259d2c1400d47c2af94f"
+content-hash = "1491c233257be38d42150ae630386c33024faa77a52771e0cf2a6c8590de2e5d"
 
 [metadata.files]
 aioquic = [
@@ -1852,6 +1866,10 @@ django-rest-registration = [
 django-types = [
     {file = "django-types-0.16.0.tar.gz", hash = "sha256:29d23af8b88fa1579b47418e92ffc1d89bfbdf11eab64d2ae006fa09e54fed9a"},
     {file = "django_types-0.16.0-py3-none-any.whl", hash = "sha256:9df4e1936f304f309a59f4cee19a607e151282fc0d97238833a382fafc5052c8"},
+]
+django-vite = [
+    {file = "django-vite-2.0.2.tar.gz", hash = "sha256:5a2e11a9f08a2a0a69c9a7c637a3254ad0c8dd01e07cb40de09a3a180ed99791"},
+    {file = "django_vite-2.0.2-py3-none-any.whl", hash = "sha256:f11f4747183b884ee4e6c2ea12f0aa96a846574ee7344c05ac96b4fa89309535"},
 ]
 djangorestframework = [
     {file = "djangorestframework-3.13.1-py3-none-any.whl", hash = "sha256:24c4bf58ed7e85d1fe4ba250ab2da926d263cd57d64b03e8dcef0ac683f8b1aa"},

@@ -34,8 +34,8 @@
 import { mdiOpenInNew } from "@mdi/js";
 import { mapActions, mapGetters, mapMutations, mapState } from "vuex";
 
-import SearchHelp from "@/components/browser-search-help";
-import SettingsCommonPanel from "@/components/settings-common-panel";
+import SearchHelp from "@/components/browser-search-help.vue";
+import SettingsCommonPanel from "@/components/settings-common-panel.vue";
 
 export default {
   name: "BrowserSettingsDialog",

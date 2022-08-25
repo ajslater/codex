@@ -92,7 +92,8 @@ const state = {
   numPages: 1,
   versions: {
     // TODO pinia not part of browser anymore
-    installed: process.env.VUE_APP_PACKAGE_VERSION,
+    // This is injected by vite define
+    installed: CODEX_PACKAGE_VERSION, // eslint-disable-line no-undef
     latest: undefined,
   },
   queries: [],

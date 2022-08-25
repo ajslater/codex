@@ -5,8 +5,7 @@ import Vuetify from "vuetify";
 import Vuex from "vuex";
 
 // Can't figure out how to use @ refs in jest yet.
-// eslint-disable-next-line import/no-unresolved
-import ReaderNavButton from "../../src/components/reader-nav-button";
+import ReaderNavButton from "../../src/components/reader-nav-button.vue";
 
 const setupVue = () => {
   Vue.use(VueRouter);
@@ -34,7 +33,6 @@ const setupStore = () => {
     },
   };
 
-  // eslint-disable-next-line import/no-named-as-default-member
   return new Vuex.Store({
     modules: {
       reader: {

@@ -53,7 +53,7 @@
 import { mdiCloseCircle } from "@mdi/js";
 import { mapActions, mapGetters, mapMutations, mapState } from "vuex";
 
-import FilterSubMenu from "@/components/filter-sub-menu";
+import FilterSubMenu from "@/components/filter-sub-menu.vue";
 import { NUMERIC_FILTERS } from "@/store/modules/browser";
 
 export default {

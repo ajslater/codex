@@ -13,11 +13,11 @@
 <script>
 import { mapActions, mapGetters, mapState } from "vuex";
 
-import BrowserFilterToolbar from "@/components/browser-filter-toolbar";
-import BrowserMain from "@/components/browser-main";
-import BrowserPaginationToolbar from "@/components/browser-pagination-toolbar";
-import BrowserSettingsDrawer from "@/components/browser-settings-drawer";
-import BrowserTitleToolbar from "@/components/browser-title-toolbar";
+import BrowserFilterToolbar from "@/components/browser-filter-toolbar.vue";
+import BrowserMain from "@/components/browser-main.vue";
+import BrowserPaginationToolbar from "@/components/browser-pagination-toolbar.vue";
+import BrowserSettingsDrawer from "@/components/browser-settings-drawer.vue";
+import BrowserTitleToolbar from "@/components/browser-title-toolbar.vue";
 
 export default {
   name: "MainBrowser",

@@ -36,9 +36,9 @@
 </template>
 
 <script>
-import BookCover from "@/components/book-cover";
-import BrowserCardControls from "@/components/browser-card-controls";
-import BrowserCardSubtitle from "@/components/browser-card-subtitle";
+import BookCover from "@/components/book-cover.vue";
+import BrowserCardControls from "@/components/browser-card-controls.vue";
+import BrowserCardSubtitle from "@/components/browser-card-subtitle.vue";
 import { IS_IOS, IS_TOUCH } from "@/platform";
 import { getReaderRoute } from "@/router/route";
 
@@ -117,8 +117,8 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "~vuetify/src/styles/styles.sass";
-@import "book-cover.scss";
+@import "vuetify/src/styles/styles.sass.vue";
+@import "book-cover.scss.vue";
 .browserTile {
   display: inline-flex;
   flex: 1;

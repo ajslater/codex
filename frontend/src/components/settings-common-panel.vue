@@ -13,9 +13,9 @@
 </template>
 
 <script>
-import AdminMenu from "@/components/admin-menu";
-import AuthMenu from "@/components/auth-menu";
-import VersionsFooter from "@/components/version-footer";
+import AdminMenu from "@/components/admin-menu.vue";
+import AuthMenu from "@/components/auth-menu.vue";
+import VersionsFooter from "@/components/version-footer.vue";
 
 export default {
   name: "SettingsCommonPanel",

@@ -21,11 +21,11 @@
 import { mdiFamilyTree, mdiMagnify } from "@mdi/js";
 import { mapGetters, mapMutations } from "vuex";
 
-import BrowserFilterSelect from "@/components/browser-filter-select";
-import BrowserSortBySelect from "@/components/browser-order-by-select";
-import BrowserSearchField from "@/components/browser-search-field";
-import BrowserRootGroupSelect from "@/components/browser-top-group-select";
-import SettingsDrawerButton from "@/components/settings-drawer-button";
+import BrowserFilterSelect from "@/components/browser-filter-select.vue";
+import BrowserSortBySelect from "@/components/browser-order-by-select.vue";
+import BrowserSearchField from "@/components/browser-search-field.vue";
+import BrowserRootGroupSelect from "@/components/browser-top-group-select.vue";
+import SettingsDrawerButton from "@/components/settings-drawer-button.vue";
 
 export default {
   name: "BrowserHeader",
@@ -88,7 +88,7 @@ export default {
 #searchToolbarItems {
   width: 100%;
 }
-@import "~vuetify/src/styles/styles.sass";
+@import "vuetify/src/styles/styles.sass.vue";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   #topGroupSelect {
     margin-left: 16px;
@@ -141,7 +141,7 @@ export default {
   /* Counteract fake solo styling */
   top: -6px;
 }
-@import "~vuetify/src/styles/styles.sass";
+@import "vuetify/src/styles/styles.sass.vue";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   #browserToolbar > .v-toolbar__content,
   #browserToolbar > .v-toolbar__extension {

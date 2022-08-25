@@ -18,8 +18,8 @@
 <script>
 import { mapActions, mapState } from "vuex";
 
-import AuthChangePasswordDialog from "@/components/auth-change-password-dialog";
-import AuthLoginDialog from "@/components/auth-login-dialog";
+import AuthChangePasswordDialog from "@/components/auth-change-password-dialog.vue";
+import AuthLoginDialog from "@/components/auth-login-dialog.vue";
 
 export default {
   name: "AuthMenu",

@@ -1,7 +1,7 @@
 import Vue from "vue";
-import Vuetify from "vuetify/lib";
+import Vuetify, { VApp, VMain } from "vuetify/lib";
 
-Vue.use(Vuetify);
+Vue.use(Vuetify, { components: { VApp, VMain } });
 
 export default new Vuetify({
   theme: {

@@ -109,8 +109,8 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "~vuetify/src/styles/styles.sass";
-@import "book-cover.scss";
+@import "vuetify/src/styles/styles.sass.vue";
+@import "book-cover.scss.vue";
 .cardSubtitle {
   margin-top: 7px;
   padding-top: 3px;

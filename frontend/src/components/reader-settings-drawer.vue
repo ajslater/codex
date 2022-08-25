@@ -56,8 +56,8 @@
 <script>
 import { mapActions, mapGetters, mapMutations, mapState } from "vuex";
 
-import ReaderKeyboardShortcutsPanel from "@/components/reader-keyboard-shortcuts-panel";
-import SettingsCommonPanel from "@/components/settings-common-panel";
+import ReaderKeyboardShortcutsPanel from "@/components/reader-keyboard-shortcuts-panel.vue";
+import SettingsCommonPanel from "@/components/settings-common-panel.vue";
 
 export default {
   name: "ReaderSettingsPanel",

@@ -26,7 +26,7 @@ import VuePdfEmbed from "vue-pdf-embed/dist/vue2-pdf-embed";
 import { mapGetters, mapState } from "vuex";
 
 import { getComicPageSource } from "@/api/v3/reader";
-import Placeholder from "@/components/placeholder-loading";
+import Placeholder from "@/components/placeholder-loading.vue";
 
 const PLACEHOLDER_ENGAGE_MS = 500;
 

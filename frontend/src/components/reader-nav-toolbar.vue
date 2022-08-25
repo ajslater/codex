@@ -24,7 +24,7 @@
 <script>
 import { mapActions, mapState } from "vuex";
 
-import ReaderNavButton from "@/components/reader-nav-button";
+import ReaderNavButton from "@/components/reader-nav-button.vue";
 
 export default {
   name: "ReaderNavToolbar",

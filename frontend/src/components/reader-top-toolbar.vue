@@ -45,8 +45,8 @@ import { mapActions, mapGetters, mapMutations, mapState } from "vuex";
 import { getComicPageSource } from "@/api/v3/reader";
 import CHOICES from "@/choices";
 import { getFullComicName } from "@/components/comic-name";
-import MetadataDialog from "@/components/metadata-dialog";
-import SettingsDrawerButton from "@/components/settings-drawer-button";
+import MetadataDialog from "@/components/metadata-dialog.vue";
+import SettingsDrawerButton from "@/components/settings-drawer-button.vue";
 
 export default {
   name: "ReaderTopToolbar",
@@ -178,7 +178,7 @@ export default {
 #downloadPageButton {
   height: 100%;
 }
-@import "~vuetify/src/styles/styles.sass";
+@import "vuetify/src/styles/styles.sass.vue";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   #closeBook {
     min-width: 32px;

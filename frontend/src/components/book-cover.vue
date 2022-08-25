@@ -32,7 +32,7 @@
 <script>
 import { mapState } from "vuex";
 
-import { getCoverSource } from "@/api/v3/cover";
+import { getCoverSource } from "@/api/v3/cover.js";
 
 export default {
   name: "BookCover",
@@ -79,7 +79,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "book-cover.scss";
+@import "book-cover.scss.vue";
 .coverImgWrapper {
   height: $cover-height;
   width: $cover-width;
@@ -112,7 +112,7 @@ export default {
   background-color: black;
   color: white;
 }
-@import "~vuetify/src/styles/styles.sass";
+@import "vuetify/src/styles/styles.sass.vue";
 .unreadFlag {
   position: absolute;
   top: 0;

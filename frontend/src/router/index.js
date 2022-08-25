@@ -2,7 +2,7 @@ import Vue from "vue";
 import VueRouter from "vue-router";
 
 import MainBrowser from "@/browser.vue";
-import CHOICES from "@/choices";
+import CHOICES from "@/choices.json";
 import HttpError from "@/http-error.vue";
 import MainReader from "@/reader.vue";
 

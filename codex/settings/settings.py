@@ -10,8 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
-
 import os
+import re
 
 from pathlib import Path
 
@@ -71,6 +71,7 @@ INSTALLED_APPS += [
     "rest_framework",
     "rest_registration",
     "corsheaders",
+    "django_vite",
     "codex",
     "drf_spectacular",
     "dark",
@@ -184,10 +185,20 @@ HYPERCORN_CONFIG, MAX_DB_OPS = load_hypercorn_config(
 LOG.verbose(f"root_path: {HYPERCORN_CONFIG.root_path}")
 PORT = int(HYPERCORN_CONFIG.bind[0].split(":")[1])
 
+
+def immutable_file_test(_path, url):
+    """For django-vite."""
+    # Match filename with 12 hex digits before the extension
+    # e.g. app.db8f2edc0c8a.js
+    return re.match(r"^.+\.[0-9a-f]{8,12}\..+$", url)
+
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 WHITENOISE_KEEP_ONLY_HASHED_FILES = True
 WHITENOISE_STATIC_PREFIX = "static/"
+
+WHITENOISE_IMMUTABLE_FILE_TEST = immutable_file_test
 STATIC_ROOT = CODEX_PATH / "static_root"
 if HYPERCORN_CONFIG.root_path:
     STATIC_URL = HYPERCORN_CONFIG.root_path + "/" + WHITENOISE_STATIC_PREFIX
@@ -205,6 +216,9 @@ if DEBUG or BUILD:
         STATIC_SRC,
         STATIC_BUILD,
     ]
+    DJANGO_VITE_ASSETS_PATH = STATIC_BUILD
+else:
+    DJANGO_VITE_ASSETS_PATH = STATIC_ROOT
 
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 60  # 60 days
 
@@ -293,3 +307,6 @@ HAYSTACK_CONNECTIONS = {
         "HAYSTACK_XAPIAN_FLAGS": _XAPIAN_FLAGS,
     },
 }
+
+DJANGO_VITE_DEV_MODE = DEBUG
+DJANGO_VITE_DEV_SERVER_PORT = 5173

@@ -158,5 +158,4 @@ monkeytype.sqlite3
 node_modules
 requirements.txt
 test-results
-webpack-stats.json
 TODO.md

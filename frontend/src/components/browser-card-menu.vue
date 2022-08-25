@@ -31,7 +31,7 @@
 import { mdiDotsVertical } from "@mdi/js";
 import { mapActions, mapState } from "vuex";
 
-import { getDownloadURL } from "@/api/v3/reader";
+import { getDownloadURL } from "@/api/v3/reader.js";
 
 const groupNames = {
   p: "Publisher",
@@ -103,7 +103,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "browser-card.scss";
+@import "browser-card.scss.vue";
 .browserCardMenuIcon {
   color: $browser-card-icon-color;
   width: $browser-card-icon-size;

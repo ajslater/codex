@@ -209,12 +209,12 @@ import humanize from "humanize";
 import { mapActions, mapGetters, mapState } from "vuex";
 
 import { getDownloadURL } from "@/api/v3/reader";
-import BookCover from "@/components/book-cover";
+import BookCover from "@/components/book-cover.vue";
 import { formattedIssue } from "@/components/comic-name.js";
 import { DATETIME_FORMAT } from "@/components/datetime";
-import MetadataCreditsTable from "@/components/metadata-credits-table";
-import MetadataTags from "@/components/metadata-tags";
-import MetadataText from "@/components/metadata-text";
+import MetadataCreditsTable from "@/components/metadata-credits-table.vue";
+import MetadataTags from "@/components/metadata-tags.vue";
+import MetadataText from "@/components/metadata-text.vue";
 import { getReaderRoute } from "@/router/route";
 
 // Progress circle
@@ -355,7 +355,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "~vuetify/src/styles/styles.sass";
+@import "vuetify/src/styles/styles.sass.vue";
 #metadataContainer {
   display: flex;
   flex-direction: column;
@@ -446,7 +446,7 @@ export default {
   width: 25%;
   display: inline-flex;
 }
-@import "browser-card.scss";
+@import "browser-card.scss.vue";
 .tagIcon {
   color: $browser-card-icon-color;
   width: $browser-card-icon-size;
