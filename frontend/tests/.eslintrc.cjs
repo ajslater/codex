@@ -7,7 +7,4 @@ module.exports = {
   rules: {
     "vitest/lower-case-title": 2,
   },
-  env: {
-    jest: true, // why not vitest?
-  },
 };

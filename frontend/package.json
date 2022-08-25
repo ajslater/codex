@@ -68,7 +68,7 @@
     "vite": "^3.0.9",
     "vite-plugin-checker": "^0.4.9",
     "vite-plugin-eslint": "^1.8.1",
-    "vite-plugin-static-copy": "^0.7.0",
+    "vite-plugin-static-copy": "^0.8.0",
     "vitest": "^0.22.1",
     "vue-eslint-parser": "^9.0.2",
     "vuetify-loader": "^1.6.0"

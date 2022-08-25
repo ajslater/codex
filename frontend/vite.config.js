@@ -64,6 +64,7 @@ const config = defineConfig(({ mode }) => {
           {
             src: "src/choices.json",
             dest: "js/",
+            transform: (content) => JSON.stringify(JSON.parse(content)),
           },
         ],
       }),
