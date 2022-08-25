@@ -24,6 +24,7 @@ const config = defineConfig(({ mode }) => {
   const PROD = mode === "production";
   const DEV = mode === "development";
   return {
+    root: "src",
     base: root_path + "/static",
     server: {
       host: true,
@@ -33,7 +34,6 @@ const config = defineConfig(({ mode }) => {
     build: {
       manifest: PROD,
       minify: PROD,
-      // TODO move js & css to dirs not assets/
       outDir: path.resolve(__dirname, "../codex/static_build"),
       rollupOptions: {
         // No need for index.html

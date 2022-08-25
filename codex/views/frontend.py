@@ -24,8 +24,8 @@ class IndexView(BrowserSessionViewBase):
             manifest = json.load(manifest_file)
 
         cls.main_urls = {
-            "main_js": manifest["src/main.js"]["file"],
-            "main_css": manifest["src/main.css"]["file"],
+            "main_js": manifest["main.js"]["file"],
+            "main_css": manifest["main.css"]["file"],
         }
 
     def get(self, request, *args, **kwargs):
