@@ -178,7 +178,7 @@ export default {
 #downloadPageButton {
   height: 100%;
 }
-@import "vuetify/src/styles/styles.sass.vue";
+@import "vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   #closeBook {
     min-width: 32px;

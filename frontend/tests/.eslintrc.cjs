@@ -1,14 +1,13 @@
 module.exports = {
-  env: {
-    jest: { globals: true },
-  },
-  plugins: ["jest", "jest-async"],
+  plugins: ["vitest"],
   extends: [
     "../.eslintrc.cjs",
     // TEST LIBRARIES
-    "plugin:jest/all",
   ],
   rules: {
-    "jest-async/expect-return": "error",
+    "vitest/lower-case-title": 2,
+  },
+  env: {
+    jest: true, // why not vitest?
   },
 };

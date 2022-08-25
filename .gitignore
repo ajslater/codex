@@ -159,3 +159,4 @@ node_modules
 requirements.txt
 test-results
 TODO.md
+__snapshots__

@@ -195,7 +195,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "vuetify/src/styles/styles.sass.vue";
+@import "vuetify/src/styles/styles.sass";
 #searchHelp {
   max-width: 100vw;
   background-color: #121212;

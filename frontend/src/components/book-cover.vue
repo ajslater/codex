@@ -79,7 +79,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "book-cover.scss.vue";
+@import "book-cover.scss";
 .coverImgWrapper {
   height: $cover-height;
   width: $cover-width;
@@ -112,7 +112,7 @@ export default {
   background-color: black;
   color: white;
 }
-@import "vuetify/src/styles/styles.sass.vue";
+@import "vuetify/src/styles/styles.sass";
 .unreadFlag {
   position: absolute;
   top: 0;

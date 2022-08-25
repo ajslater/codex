@@ -54,8 +54,8 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "vuetify/src/styles/styles.sass.vue";
-@import "book-cover.scss.vue";
+@import "vuetify/src/styles/styles.sass";
+@import "book-cover.scss";
 .linkSpacer {
   height: 100%;
   width: 100%;
@@ -82,7 +82,7 @@ $button-margin: 5px;
   bottom: $button-margin !important;
 }
 
-@import "vuetify/src/styles/styles.sass.vue";
+@import "vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   $small-button-margin: 5px;
   .tagIcon {

@@ -355,7 +355,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "vuetify/src/styles/styles.sass.vue";
+@import "vuetify/src/styles/styles.sass";
 #metadataContainer {
   display: flex;
   flex-direction: column;
@@ -446,7 +446,7 @@ export default {
   width: 25%;
   display: inline-flex;
 }
-@import "browser-card.scss.vue";
+@import "browser-card.scss";
 .tagIcon {
   color: $browser-card-icon-color;
   width: $browser-card-icon-size;

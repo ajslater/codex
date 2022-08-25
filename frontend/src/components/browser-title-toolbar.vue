@@ -130,7 +130,7 @@ export default {
   font-size: smaller;
 }
 
-@import "vuetify/src/styles/styles.sass.vue";
+@import "vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   /* eslint-disable-next-line vue-scoped-css/no-unused-selector */
   #titleToolbar .v-toolbar__title {

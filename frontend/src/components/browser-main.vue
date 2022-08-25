@@ -99,7 +99,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "./book-cover.scss.vue";
+@import "./book-cover.scss";
 $card-margin: 32px;
 #browsePane {
   display: flex;
@@ -134,7 +134,7 @@ $card-margin: 32px;
   left: 50%;
   transform: translate(-50%, -50%);
 }
-@import "vuetify/src/styles/styles.sass.vue";
+@import "vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   $small-card-margin: 16px;
   #browsePane {

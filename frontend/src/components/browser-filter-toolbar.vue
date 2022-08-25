@@ -88,7 +88,7 @@ export default {
 #searchToolbarItems {
   width: 100%;
 }
-@import "vuetify/src/styles/styles.sass.vue";
+@import "vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   #topGroupSelect {
     margin-left: 16px;
@@ -141,7 +141,7 @@ export default {
   /* Counteract fake solo styling */
   top: -6px;
 }
-@import "vuetify/src/styles/styles.sass.vue";
+@import "vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   #browserToolbar > .v-toolbar__content,
   #browserToolbar > .v-toolbar__extension {

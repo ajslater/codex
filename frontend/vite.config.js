@@ -6,7 +6,7 @@ import { VuetifyResolver } from "unplugin-vue-components/resolvers";
 import Components from "unplugin-vue-components/vite";
 import { fileURLToPath } from "url";
 import { defineConfig } from "vite";
-import eslint from "vite-plugin-eslint"; // eslint-disable-line import/default
+import eslint from "vite-plugin-eslint";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 
 import package_json from "./package.json";
@@ -74,6 +74,11 @@ const config = defineConfig(({ mode }) => {
     },
     define: {
       CODEX_PACKAGE_VERSION: JSON.stringify(package_json.version),
+      "import.meta.vitest": "undefined",
+    },
+    test: {
+      environment: "jsdom",
+      includeSource: ["src/tests/**.*.{js,ts}"],
     },
   };
 });

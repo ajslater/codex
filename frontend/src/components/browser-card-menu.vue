@@ -103,7 +103,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "browser-card.scss.vue";
+@import "browser-card.scss";
 .browserCardMenuIcon {
   color: $browser-card-icon-color;
   width: $browser-card-icon-size;

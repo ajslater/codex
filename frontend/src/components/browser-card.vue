@@ -117,8 +117,8 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "vuetify/src/styles/styles.sass.vue";
-@import "book-cover.scss.vue";
+@import "vuetify/src/styles/styles.sass";
+@import "book-cover.scss";
 .browserTile {
   display: inline-flex;
   flex: 1;
