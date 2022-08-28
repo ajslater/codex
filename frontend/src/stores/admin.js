@@ -32,7 +32,7 @@ export const useAdminStore = defineStore("admin", {
           return true;
         })
         .catch((error) => {
-          console.log.warn(error);
+          console.warn(error);
         });
     },
   },
