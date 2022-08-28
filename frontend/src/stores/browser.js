@@ -252,7 +252,7 @@ export const useBrowserStore = defineStore("browser", {
       this.$patch((state) => {
         state.filterMode = "base";
         state.settings.filters.bookmark = "ALL";
-        for (let filterName of state.filterNames) {
+        for (let filterName of this.filterNames) {
           state.settings.filters[filterName] = [];
         }
       });

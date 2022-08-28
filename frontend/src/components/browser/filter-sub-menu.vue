@@ -4,7 +4,7 @@
       <v-list-item
         v-if="filterMode === 'base'"
         ripple
-        @click="setFilterModeUI(name)"
+        @click="setUIFilterMode(name)"
       >
         <v-list-item-content>
           <v-list-item-title class="filterMenu">
@@ -20,7 +20,7 @@
     <v-slide-x-reverse-transition hide-on-leave>
       <div v-if="filterMode === name">
         <header class="filterHeader">
-          <v-list-item ripple @click="setFilterMode('base')">
+          <v-list-item ripple @click="setUIFilterMode('base')">
             <v-list-item-content>
               <v-list-item-title class="filterTitle"
                 ><v-icon>{{ mdiChevronLeft }}</v-icon
@@ -104,7 +104,6 @@ export default {
       filterMode: (state) => state.filterMode,
     }),
     vuetifyItems: function () {
-      console.log(this.choices);
       return toVuetifyItems(
         undefined,
         this.choices,
@@ -150,9 +149,9 @@ export default {
   },
   methods: {
     ...mapActions(useBrowserStore, ["setFilterMode", "setSettings"]),
-    setFilterModeUI(mode) {
-      this.query = "";
+    setUIFilterMode(mode) {
       this.setFilterMode(this.$route.params, mode);
+      this.query = "";
     },
   },
 };

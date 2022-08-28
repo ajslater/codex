@@ -232,3 +232,10 @@ class BrowserPageSerializer(Serializer):
         child=CharField(read_only=True), allow_empty=True, read_only=True
     )
     up_route = BrowserRouteSerializer(allow_null=True, read_only=True)
+
+
+class BrowserChoicesSerializer(Serializer):
+    """Named Model Serailizer with pk = char hack for languages & countries."""
+
+    pk = CharField(read_only=True)
+    name = CharField(read_only=True)

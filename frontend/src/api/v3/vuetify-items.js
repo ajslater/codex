@@ -53,7 +53,6 @@ export const toVuetifyItems = function (value, items, filter, numeric = false) {
   const lowerCaseFilter = filter ? filter.toLowerCase() : filter;
 
   let computedItems = [];
-  console.log({ sourceItems });
   for (const item of sourceItems) {
     const vuetifyItem = toVuetifyItem(item);
     if (

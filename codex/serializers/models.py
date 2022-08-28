@@ -2,6 +2,7 @@
 import pycountry
 
 from rest_framework.serializers import (
+    CharField,
     IntegerField,
     ModelSerializer,
     Serializer,
@@ -19,6 +20,7 @@ from codex.models import (
     Imprint,
     LibrarianStatus,
     Location,
+    NamedModel,
     Publisher,
     Series,
     SeriesGroup,
@@ -52,22 +54,27 @@ class PyCountrySerializer(Serializer):
         """Return submitted value as the key."""
         return obj
 
-    def get_name(self, obj):
+    @staticmethod
+    def lookup_name(lookup_module, name):
         """Lookup the name with pycountry, just copy the key on fail."""
-        if obj is None:
+        if name is None:
             # This never seems to get called so I do it on the front end.
             return "None"
-        if len(obj) == 2:
+        if len(name) == 2:
             # fix for https://github.com/flyingcircusio/pycountry/issues/41
-            lookup_obj = self.LOOKUP_MODULE.get(alpha_2=obj)
+            lookup_obj = lookup_module.get(alpha_2=name)
         else:
-            lookup_obj = self.LOOKUP_MODULE.lookup(obj)
+            lookup_obj = lookup_module.lookup(name)
         if lookup_obj:
             value = lookup_obj.name
         else:
             # If lookup fails, return the key as the name
-            value = obj
+            value = name
         return value
+
+    def get_name(self, obj):
+        """Lookup the name with pycountry, just copy the key on fail."""
+        return self.lookup_name(self.LOOKUP_MODULE, obj)
 
 
 class LanguageSerializer(PyCountrySerializer):
@@ -102,10 +109,10 @@ class GroupModelMeta:
 class NamedModelSerializer(ModelSerializer):
     """A common class for NamedModels."""
 
-    class Meta:
-        """Abstract class."""
+    class Meta(NamedModelMeta):
+        """Not Abstract."""
 
-        abstract = True
+        model = Character  # XXX GENERIC SPECIFIC
 
 
 class GroupModelSerializer(NamedModelSerializer):
