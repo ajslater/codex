@@ -4,7 +4,7 @@
       <v-list-item
         v-if="filterMode === 'base'"
         ripple
-        @click="setFilterMode(name)"
+        @click="setFilterModeUI(name)"
       >
         <v-list-item-content>
           <v-list-item-title class="filterMenu">
@@ -104,9 +104,13 @@ export default {
       filterMode: (state) => state.filterMode,
     }),
     vuetifyItems: function () {
-      const formChoices = { ...this.choices };
-      delete formChoices["groupNames"];
-      return toVuetifyItems(undefined, formChoices, this.query, this.isNumeric);
+      console.log(this.choices);
+      return toVuetifyItems(
+        undefined,
+        this.choices,
+        this.query,
+        this.isNumeric
+      );
     },
     filter: {
       get() {
@@ -145,14 +149,10 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useBrowserStore, ["loadFilterChoices", "setSettings"]),
-    setFilterMode(mode) {
-      this.loadFilterChoices({
-        group: this.$route.params.group,
-        pk: this.$route.params.pk,
-        mode,
-      });
+    ...mapActions(useBrowserStore, ["setFilterMode", "setSettings"]),
+    setFilterModeUI(mode) {
       this.query = "";
+      this.setFilterMode(this.$route.params, mode);
     },
   },
 };

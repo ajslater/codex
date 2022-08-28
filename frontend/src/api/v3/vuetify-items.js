@@ -38,7 +38,8 @@ const vuetifyItemCompareNumeric = function (itemA, itemB) {
 export const toVuetifyItems = function (value, items, filter, numeric = false) {
   // Takes a value (can be a list) and a list of items and
   // Returns a list of valid items with items arg having preference.
-  let computedItems = [];
+
+  // Transform items into an array of items
   let sourceItems;
   if (items) {
     sourceItems = items;
@@ -47,14 +48,18 @@ export const toVuetifyItems = function (value, items, filter, numeric = false) {
   } else {
     sourceItems = [];
   }
-  // Case insensitive search
-  const finalFilter = filter ? filter.toLowerCase() : filter;
 
+  // Case insensitive search
+  const lowerCaseFilter = filter ? filter.toLowerCase() : filter;
+
+  let computedItems = [];
+  console.log({ sourceItems });
   for (const item of sourceItems) {
     const vuetifyItem = toVuetifyItem(item);
     if (
       vuetifyItem &&
-      (!finalFilter || vuetifyItem.name.toLowerCase().includes(finalFilter))
+      (!lowerCaseFilter ||
+        vuetifyItem.name.toLowerCase().includes(lowerCaseFilter))
     ) {
       computedItems.push(vuetifyItem);
     }

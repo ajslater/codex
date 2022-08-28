@@ -354,26 +354,22 @@ export const useBrowserStore = defineStore("browser", {
         return true;
       });
     },
-    async loadFilterChoices({ group, pk, mode }) {
-      if (!this.isCodexViewable) {
+    async loadFilterChoices(routeParams, mode) {
+      await API.getBrowserChoices(routeParams, mode, this.settings)
+        .then((response) => {
+          this.choices[mode] = Object.freeze(response.data);
+          return true;
+        })
+        .catch((error) => {
+          console.error(error);
+        });
+    },
+    async setFilterMode(routeParams, mode) {
+      if (!this.isCodexViewable || !mode) {
         return;
       }
-      if (!mode) {
-        return;
-      }
-      if (mode !== "base" && this.choices[mode] == undefined) {
-        await API.getBrowserChoices({ group, pk }, mode, this.settings)
-          .then((response) => {
-            const payload = {
-              choiceName: mode,
-              choices: { ...response.data, key: mode },
-            };
-            this.choices[mode] = Object.freeze(payload);
-            return true;
-          })
-          .catch((error) => {
-            console.error(error);
-          });
+      if (mode !== "base" && this.choices[mode] === undefined) {
+        this.loadFilterChoices(routeParams, mode);
       }
       this.filterMode = mode;
     },
