@@ -67,9 +67,10 @@ import {
   mdiChevronRight,
   mdiChevronRightCircle,
 } from "@mdi/js";
-import { mapActions, mapState } from "vuex";
+import { mapActions, mapState } from "pinia";
 
 import { toVuetifyItems } from "@/api/v3/vuetify-items";
+import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "FilterSubMenu",
@@ -93,9 +94,9 @@ export default {
     };
   },
   computed: {
-    ...mapState("browser", {
-      formChoices: function (state) {
-        return state.formChoices[this.name];
+    ...mapState(useBrowserStore, {
+      choices: function (state) {
+        return state.choices[this.name];
       },
       filterSetting: function (state) {
         return state.settings.filters[this.name];
@@ -103,12 +104,9 @@ export default {
       filterMode: (state) => state.filterMode,
     }),
     vuetifyItems: function () {
-      return toVuetifyItems(
-        undefined,
-        this.formChoices,
-        this.query,
-        this.isNumeric
-      );
+      const formChoices = { ...this.choices };
+      delete formChoices["groupNames"];
+      return toVuetifyItems(undefined, formChoices, this.query, this.isNumeric);
     },
     filter: {
       get() {
@@ -118,7 +116,7 @@ export default {
         const data = {
           filters: { [this.name]: value },
         };
-        this.settingChanged(data);
+        this.setSettings(data);
         this.$emit("sub-menu-click");
       },
     },
@@ -147,9 +145,9 @@ export default {
     },
   },
   methods: {
-    ...mapActions("browser", ["filterModeChanged", "settingChanged"]),
+    ...mapActions(useBrowserStore, ["loadFilterChoices", "setSettings"]),
     setFilterMode(mode) {
-      this.filterModeChanged({
+      this.loadFilterChoices({
         group: this.$route.params.group,
         pk: this.$route.params.pk,
         mode,

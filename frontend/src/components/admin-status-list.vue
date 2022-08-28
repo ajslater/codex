@@ -27,20 +27,22 @@
 </template>
 
 <script>
-import { mapActions, mapState } from "vuex";
+import { mapActions, mapState } from "pinia";
+
+import { useAdminStore } from "@/stores/admin";
 
 export default {
   name: "AdminStatusList",
   computed: {
-    ...mapState("admin", {
+    ...mapState(useAdminStore, {
       librarianStatuses: (state) => state.librarianStatuses,
     }),
   },
   mounted() {
-    // this.fetchLibrarianStatuses();
+    // this.loadLibrarianStatuses();
   },
   methods: {
-    ...mapActions("admin", ["fetchLibrarianStatuses"]),
+    ...mapActions(useAdminStore, ["loadLibrarianStatuses"]),
     computeValue: function (status) {
       if (status.preactive || +status.total === 0) {
         return 0;

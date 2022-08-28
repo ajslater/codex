@@ -14,7 +14,9 @@
 
 <script>
 import { mdiMenu } from "@mdi/js";
-import { mapActions, mapState } from "vuex";
+import { mapActions, mapState } from "pinia";
+
+import { useAdminStore } from "@/stores/admin";
 
 export default {
   name: "SettingsDrawerButton",
@@ -24,7 +26,7 @@ export default {
     };
   },
   computed: {
-    ...mapState("admin", {
+    ...mapState(useAdminStore, {
       librarianStatuses: (state) => state.librarianStatuses,
     }),
     progressEnabled: function () {
@@ -54,10 +56,10 @@ export default {
     },
   },
   mounted() {
-    this.fetchLibrarianStatuses();
+    this.loadLibrarianStatuses();
   },
   methods: {
-    ...mapActions("admin", ["fetchLibrarianStatuses"]),
+    ...mapActions(useAdminStore, ["loadLibrarianStatuses"]),
   },
 };
 </script>

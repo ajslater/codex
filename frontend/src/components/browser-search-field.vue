@@ -23,7 +23,9 @@
 
 <script>
 import { mdiMagnify } from "@mdi/js";
-import { mapActions, mapState } from "vuex";
+import { mapActions, mapState } from "pinia";
+
+import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BrowserSearchField",
@@ -39,8 +41,8 @@ export default {
     };
   },
   computed: {
-    ...mapState("browser", {
-      queries: (state) => state.queries,
+    ...mapState(useBrowserStore, {
+      queries: (state) => state.page.queries,
       stateAutoquery: (state) => state.settings.autoquery,
     }),
     autoquery: {
@@ -49,12 +51,12 @@ export default {
       },
       set(value) {
         const autoquery = value ? value.trim() : "";
-        this.settingChanged({ autoquery });
+        this.setSettings({ autoquery });
       },
     },
   },
   methods: {
-    ...mapActions("browser", ["settingChanged"]),
+    ...mapActions(useBrowserStore, ["setSettings"]),
     searchClick: function () {
       const value = this.$refs["searchbox"].$refs.input.value;
       this.autoquery = value;

@@ -1,15 +1,15 @@
 <template>
   <v-toolbar id="browserToolbar" class="toolbar" dense>
-    <v-toolbar-items v-if="isOpenToSee" id="browserToolbarLeftItems">
+    <v-toolbar-items v-if="isCodexViewable" id="browserToolbarLeftItems">
       <BrowserRootGroupSelect id="topGroupSelect" />
       <BrowserSortBySelect id="orderBySelect" />
     </v-toolbar-items>
     <v-spacer />
     <v-toolbar-items id="browserToolbarRightItems">
-      <SettingsDrawerButton @click="toggleSettingsDrawerOpen" />
+      <SettingsDrawerButton @click="isSettingsDrawerOpen = true" />
     </v-toolbar-items>
     <template #extension>
-      <v-toolbar-items v-if="isOpenToSee" id="searchToolbarItems">
+      <v-toolbar-items v-if="isCodexViewable" id="searchToolbarItems">
         <BrowserFilterSelect id="filterSelect" />
         <BrowserSearchField id="searchField" />
       </v-toolbar-items>
@@ -19,13 +19,15 @@
 
 <script>
 import { mdiFamilyTree, mdiMagnify } from "@mdi/js";
-import { mapGetters, mapMutations } from "vuex";
+import { mapGetters, mapWritableState } from "pinia";
 
 import BrowserFilterSelect from "@/components/browser-filter-select.vue";
 import BrowserSortBySelect from "@/components/browser-order-by-select.vue";
 import BrowserSearchField from "@/components/browser-search-field.vue";
 import BrowserRootGroupSelect from "@/components/browser-top-group-select.vue";
 import SettingsDrawerButton from "@/components/settings-drawer-button.vue";
+import { useAuthStore } from "@/stores/auth";
+import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BrowserHeader",
@@ -44,10 +46,8 @@ export default {
     };
   },
   computed: {
-    ...mapGetters("auth", ["isOpenToSee"]),
-  },
-  methods: {
-    ...mapMutations("browser", ["toggleSettingsDrawerOpen"]),
+    ...mapGetters(useAuthStore, ["isCodexViewable"]),
+    ...mapWritableState(useBrowserStore, ["isSettingsDrawerOpen"]),
   },
 };
 </script>

@@ -32,7 +32,7 @@
       </a>
       <SettingsDrawerButton
         id="settingsButton"
-        @click.stop="toggleSettingsDrawerOpen"
+        @click.stop="openSettingsDrawer"
       />
     </v-toolbar-items>
   </v-toolbar>
@@ -40,13 +40,15 @@
 
 <script>
 import { mdiClose, mdiDownload } from "@mdi/js";
-import { mapActions, mapGetters, mapMutations, mapState } from "vuex";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import { getComicPageSource } from "@/api/v3/reader";
 import CHOICES from "@/choices";
 import { getFullComicName } from "@/components/comic-name";
 import MetadataDialog from "@/components/metadata-dialog.vue";
 import SettingsDrawerButton from "@/components/settings-drawer-button.vue";
+import { useBrowserStore } from "@/stores/browser";
+import { useReaderStore } from "@/stores/reader";
 
 export default {
   name: "ReaderTopToolbar",
@@ -66,7 +68,7 @@ export default {
     return { meta: [{ hid: "description", name: "description", content }] };
   },
   computed: {
-    ...mapState("reader", {
+    ...mapState(useReaderStore, {
       title: function (state) {
         return getFullComicName(state.comic);
       },
@@ -77,10 +79,10 @@ export default {
         }
       },
     }),
-    ...mapState("browser", {
-      lastRoute: (state) => state.routes.last,
+    ...mapState(useBrowserStore, {
+      lastRoute: (state) => state.page.routes.last,
     }),
-    ...mapGetters("reader", ["computedSettings"]),
+    ...mapGetters(useReaderStore, ["computedSettings"]),
     closeBookRoute: function () {
       // Choose the best route
       const route = {
@@ -111,9 +113,12 @@ export default {
     window.removeEventListener("keyup", this._keyListener);
   },
   methods: {
-    ...mapActions("reader", ["settingsChangedLocal"]),
-    ...mapMutations("reader", ["toggleSettingsDrawerOpen"]),
+    ...mapActions(useReaderStore, ["setSettingsLocal"]),
+    openSettingsDrawer: function () {
+      useReaderStore().isSettingsDrawerOpen = true;
+    },
     _keyListener: function (event) {
+      // TODO can i move this to the drawer?
       event.stopPropagation();
       switch (event.key) {
         case "c":
@@ -121,22 +126,22 @@ export default {
           break;
 
         case "w":
-          this.settingsChangedLocal({ fitTo: "WIDTH" });
+          this.setSettingsLocal({ fitTo: "WIDTH" });
           break;
 
         case "h":
-          this.settingsChangedLocal({ fitTo: "HEIGHT" });
+          this.setSettingsLocal({ fitTo: "HEIGHT" });
           break;
         case "s":
-          this.settingsChangedLocal({ fitTo: "SCREEN" });
+          this.setSettingsLocal({ fitTo: "SCREEN" });
           break;
 
         case "o":
-          this.settingsChangedLocal({ fitTo: "ORIG" });
+          this.setSettingsLocal({ fitTo: "ORIG" });
           break;
 
         case "2":
-          this.settingsChangedLocal({
+          this.setSettingsLocal({
             twoPages: !this.computedSettings.twoPages,
           });
           break;

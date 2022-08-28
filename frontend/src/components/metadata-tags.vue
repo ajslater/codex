@@ -16,9 +16,10 @@
 
 <script>
 import { mdiFilter } from "@mdi/js";
-import { mapState } from "vuex";
+import { mapState } from "pinia";
 
 import { toVuetifyItems } from "@/api/v3/vuetify-items";
+import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "MetadataTags",
@@ -47,7 +48,7 @@ export default {
     };
   },
   computed: {
-    ...mapState("browser", {
+    ...mapState(useBrowserStore, {
       filterValues: function (state) {
         return state.settings.filters[this.label.toLowerCase()];
       },

@@ -8,11 +8,6 @@ module.exports = {
     "@vue/eslint-config-prettier",
   ],
   parser: "vue-eslint-parser",
-  parserOptions: {
-    requireConfigFile: false,
-    sourceType: "module",
-    ecmaVersion: 2022,
-  },
   plugins: ["vue"],
   rules: {
     "unicorn/prefer-node-protocol": 0,

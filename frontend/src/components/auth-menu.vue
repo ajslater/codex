@@ -16,10 +16,11 @@
 </template>
 
 <script>
-import { mapActions, mapState } from "vuex";
+import { mapActions, mapState } from "pinia";
 
 import AuthChangePasswordDialog from "@/components/auth-change-password-dialog.vue";
 import AuthLoginDialog from "@/components/auth-login-dialog.vue";
+import { useAuthStore } from "@/stores/auth";
 
 export default {
   name: "AuthMenu",
@@ -33,12 +34,12 @@ export default {
     };
   },
   computed: {
-    ...mapState("auth", {
+    ...mapState(useAuthStore, {
       user: (state) => state.user,
     }),
   },
   methods: {
-    ...mapActions("auth", ["logout"]),
+    ...mapActions(useAuthStore, ["logout"]),
   },
 };
 </script>

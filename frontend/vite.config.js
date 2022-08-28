@@ -50,8 +50,8 @@ const config = defineConfig(({ mode }) => {
     plugins: [
       vue(),
       eslint({
-        cache: true,
         lintOnStart: true,
+        failOnError: false,
       }),
       Components({
         resolvers: [
@@ -79,7 +79,7 @@ const config = defineConfig(({ mode }) => {
     },
     test: {
       environment: "jsdom",
-      includeSource: ["src/tests/**.*.{js,ts}"],
+      includeSource: ["../tests/**/*.*.{js,ts}"],
     },
   };
 });

@@ -7,7 +7,7 @@
     temporary
     touchless
   >
-    <div v-if="isOpenToSee">
+    <div v-if="isCodexViewable">
       <div id="browserSettings">
         <h3>Browser Settings</h3>
         <div class="settingsGroupCaption text-caption">
@@ -32,10 +32,12 @@
 
 <script>
 import { mdiOpenInNew } from "@mdi/js";
-import { mapActions, mapGetters, mapMutations, mapState } from "vuex";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import SearchHelp from "@/components/browser-search-help.vue";
 import SettingsCommonPanel from "@/components/settings-common-panel.vue";
+import { useAuthStore } from "@/stores/auth";
+import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BrowserSettingsDialog",
@@ -46,17 +48,17 @@ export default {
     };
   },
   computed: {
-    ...mapGetters("auth", ["isOpenToSee"]),
-    ...mapState("browser", {
-      groupChoices: (state) => state.formChoices.settingsGroup,
+    ...mapGetters(useAuthStore, ["isCodexViewable"]),
+    ...mapState(useBrowserStore, {
+      groupChoices: (state) => state.choices.settingsGroup,
       showSettings: (state) => state.settings.show,
     }),
     isSettingsDrawerOpen: {
       get() {
-        return this.$store.state.browser.isSettingsDrawerOpen;
+        return useBrowserStore().isSettingsDrawerOpen;
       },
       set(value) {
-        this.setIsSettingsDrawerOpen(value);
+        useBrowserStore().isSettingsDrawerOpen = value;
       },
     },
   },
@@ -64,11 +66,14 @@ export default {
     this.$emit("panelMounted");
   },
   methods: {
-    ...mapActions("browser", ["settingChanged"]),
-    ...mapMutations("browser", ["setIsSettingsDrawerOpen"]),
+    ...mapActions(
+      useBrowserStore,
+      ["setSettings"],
+      ["setIsSettingsDrawerOpen"]
+    ),
     setShow: function (group, value) {
       const data = { show: { [group]: value === true } };
-      this.settingChanged(data);
+      this.setSettings(data);
     },
   },
 };

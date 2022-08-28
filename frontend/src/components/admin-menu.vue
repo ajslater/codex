@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isAdmin">
+  <div v-if="isUserAdmin">
     <v-divider />
     <h3 id="adminMenuTitle">Admin Tools</h3>
     <v-list-item-group>
@@ -34,10 +34,12 @@
 
 <script>
 import { mdiBookAlert, mdiOpenInNew } from "@mdi/js";
-import { mapActions, mapGetters, mapState } from "vuex";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import API from "@/api/v3/admin.js";
 import AdminStatusList from "@/components/admin-status-list.vue";
+import { useAdminStore } from "@/stores/admin";
+import { useAuthStore } from "@/stores/auth";
 
 export default {
   name: "AdminMenu",
@@ -52,11 +54,13 @@ export default {
     };
   },
   computed: {
-    ...mapGetters("auth", ["isAdmin"]),
-    ...mapState("admin", { failedImports: (state) => state.failedImports }),
+    ...mapGetters(useAuthStore, ["isUserAdmin"]),
+    ...mapState(useAdminStore, {
+      failedImports: (state) => state.failedImports,
+    }),
   },
   methods: {
-    ...mapActions("admin", ["setFailedImports"]),
+    ...mapActions(useAdminStore, ["setFailedImports"]),
     poll: function () {
       API.queueJob("poll");
     },

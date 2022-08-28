@@ -1,9 +1,9 @@
 module.exports = {
   root: true,
   env: {
-    node: true,
-    es2021: true,
     browser: true,
+    es2022: true,
+    node: true,
   },
   extends: [
     "eslint:recommended",
@@ -30,10 +30,10 @@ module.exports = {
     "plugin:security/recommended",
   ],
   parserOptions: {
+    sourceType: "module",
     ecmaFeatures: {
       impliedStrict: true,
     },
-    ecmaVersion: 2022,
   },
   overrides: [
     {

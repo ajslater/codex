@@ -22,11 +22,12 @@
 </template>
 
 <script>
+import { mapGetters, mapState } from "pinia";
 import VuePdfEmbed from "vue-pdf-embed/dist/vue2-pdf-embed";
-import { mapGetters, mapState } from "vuex";
 
 import { getComicPageSource } from "@/api/v3/reader";
 import Placeholder from "@/components/placeholder-loading.vue";
+import { useReaderStore } from "@/stores/reader";
 
 const PLACEHOLDER_ENGAGE_MS = 500;
 
@@ -51,13 +52,13 @@ export default {
     }
   },
   computed: {
-    ...mapState("reader", {
+    ...mapState(useReaderStore, {
       maxPage: (state) => state.comic.maxPage,
       nextRoute: (state) => state.routes.next,
       timestamp: (state) => state.timestamp,
       isPDF: (state) => state.comic.fileFormat === "pdf",
     }),
-    ...mapGetters("reader", ["computedSettings"]),
+    ...mapGetters(useReaderStore, ["computedSettings"]),
     displayPage() {
       return (
         (this.pageIncrement === 0 || this.computedSettings.twoPages) &&

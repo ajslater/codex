@@ -20,7 +20,9 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "vuex";
+import { mapActions, mapGetters, mapState } from "pinia";
+
+import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BrowserTopGroupSelect",
@@ -31,10 +33,10 @@ export default {
     };
   },
   computed: {
-    ...mapState("browser", {
+    ...mapState(useBrowserStore, {
       topGroupSetting: (state) => state.settings.topGroup,
     }),
-    ...mapGetters("browser", ["topGroupChoices"]),
+    ...mapGetters(useBrowserStore, ["topGroupChoices"]),
     topGroup: {
       get() {
         return this.topGroupSetting;
@@ -48,12 +50,12 @@ export default {
         }
         // This must happen after the push
         const settings = { topGroup: value };
-        this.settingChanged(settings);
+        this.setSettings(settings);
       },
     },
   },
   methods: {
-    ...mapActions("browser", ["settingChanged"]),
+    ...mapActions(useBrowserStore, ["setSettings"]),
   },
 };
 </script>

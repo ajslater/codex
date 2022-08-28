@@ -14,13 +14,11 @@ const setTimezone = async () => {
 };
 
 const register = async (credentials) => {
-  // This should not be neccissary TODO
   credentials.login = credentials.username;
   return await HTTP.post("/auth/register/", credentials);
 };
 
 const login = async (credentials) => {
-  // This should not be neccissary TODO
   credentials.login = credentials.username;
   return await HTTP.post("/auth/login/", credentials);
 };

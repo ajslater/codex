@@ -13,8 +13,9 @@
 
 <script>
 import { mdiChevronLeft } from "@mdi/js";
-import { mapActions, mapState } from "vuex";
+import { mapActions, mapState } from "pinia";
 
+import { useBrowserStore } from "@/stores/browser";
 export default {
   name: "BrowserNavButton",
   props: {
@@ -31,8 +32,8 @@ export default {
     };
   },
   computed: {
-    ...mapState("browser", {
-      numPages: (state) => state.numPages,
+    ...mapState(useBrowserStore, {
+      numPages: (state) => state.page.numPages,
     }),
     toPage: function () {
       return this.page + this.increment;
@@ -53,7 +54,7 @@ export default {
     this.setPage();
   },
   methods: {
-    ...mapActions("browser", ["routeToPage"]),
+    ...mapActions(useBrowserStore, ["routeToPage"]),
     setPage: function () {
       // This cannot be computed because router params are not reactive.
       this.page = Number(this.$router.currentRoute.params.page);

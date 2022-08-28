@@ -162,15 +162,13 @@
           ><v-icon v-if="group === 'c'">{{ mdiDownload }}</v-icon></v-btn
         >
         <v-btn
-          v-if="isBrowser && group === 'c' && readerRoute"
+          v-if="isReadButtonShown && isReadButtonEnabled"
           :to="readerRoute"
           title="Read Comic"
         >
           <v-icon>{{ mdiEye }}</v-icon>
         </v-btn>
-        <v-icon v-else-if="group === 'c' && !readerRoute">{{
-          mdiEyeOff
-        }}</v-icon>
+        <v-icon v-else-if="isReadButtonShown">{{ mdiEyeOff }}</v-icon>
 
         <span id="bottomRightButtons">
           <v-btn
@@ -206,7 +204,7 @@
 <script>
 import { mdiDownload, mdiEye, mdiEyeOff, mdiTagOutline } from "@mdi/js";
 import humanize from "humanize";
-import { mapActions, mapGetters, mapState } from "vuex";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import { getDownloadURL } from "@/api/v3/reader";
 import BookCover from "@/components/book-cover.vue";
@@ -216,7 +214,9 @@ import MetadataCreditsTable from "@/components/metadata-credits-table.vue";
 import MetadataTags from "@/components/metadata-tags.vue";
 import MetadataText from "@/components/metadata-text.vue";
 import { getReaderRoute } from "@/router/route";
-
+import { useAuthStore } from "@/stores/auth";
+import { useBrowserStore } from "@/stores/browser";
+import { useMetadataStore } from "@/stores/metadata";
 // Progress circle
 // Can take 19 seconds for 22k children on huge collections
 const CHILDREN_PER_SECOND = 1160;
@@ -260,19 +260,16 @@ export default {
     };
   },
   computed: {
-    ...mapState("metadata", {
+    ...mapState(useMetadataStore, {
       md: (state) => state.md,
     }),
-    ...mapState("browser", {
+    ...mapState(useBrowserStore, {
       autoquery: (state) => state.settings.autoquery,
       downloadURL: function (state) {
         return getDownloadURL(this.pk, state.timestamp);
       },
     }),
-    ...mapGetters("auth", ["isAdmin"]),
-    isBrowser: function () {
-      return this.$route.name === "browser";
-    },
+    ...mapGetters(useAuthStore, ["isUserAdmin"]),
     formattedIssue: function () {
       if (
         (this.issue === null || this.issue === undefined) &&
@@ -288,6 +285,12 @@ export default {
     },
     readerRoute: function () {
       return getReaderRoute(this.md);
+    },
+    isReadButtonShown: function () {
+      return this.group === "c";
+    },
+    isReadButtonEnabled: function () {
+      return this.$route.name === "browser" && Boolean(this.readerRoute);
     },
     ltrText: function () {
       return this.md.readLtr ? "Left to Right" : "Right to Left";
@@ -317,14 +320,14 @@ export default {
       if (to) {
         this.dialogOpened();
       } else {
-        this.metadataClosed();
+        this.clearMetadata();
       }
     },
   },
   methods: {
-    ...mapActions("metadata", ["metadataClosed", "metadataOpened"]),
+    ...mapActions(useMetadataStore, ["clearMetadata", "loadMetadata"]),
     dialogOpened: function () {
-      this.metadataOpened({
+      this.loadMetadata({
         group: this.group,
         pk: this.pk,
       });

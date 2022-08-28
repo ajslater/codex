@@ -36,7 +36,7 @@ const getBrowserChoices = ({ group, pk }, choice_type, data) => {
   return HTTP.get(`/${group}/${pk}/choices/${choice_type}`, { params });
 };
 
-const getBrowserPage = ({ group, pk, page }, data) => {
+const loadBrowserPage = ({ group, pk, page }, data) => {
   const params = pruneParams(data);
   return HTTP.get(`/${group}/${pk}/${page}`, { params });
 };
@@ -54,15 +54,10 @@ const setGroupSettings = ({ group, pk }, data) => {
   return HTTP.patch(`${group}/${pk}/settings`, data);
 };
 
-const getVersions = () => {
-  return HTTP.get("/version");
-};
-
 export default {
   getBrowserChoices,
-  getBrowserPage,
+  loadBrowserPage,
   getMetadata,
   getSettings,
-  getVersions,
   setGroupSettings,
 };

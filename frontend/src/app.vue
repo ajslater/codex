@@ -5,37 +5,44 @@
 </template>
 
 <script>
-import { mapActions, mapState } from "vuex";
+import { mapActions, mapState } from "pinia";
+
+import { useAuthStore } from "@/stores/auth";
+import { useSocketStore } from "@/stores/socket";
 
 export default {
   name: "App",
   computed: {
-    ...mapState("socket", {
+    ...mapState(useSocketStore, {
       isConnected: (state) => state.isConnected,
     }),
-    ...mapState("auth", {
+    ...mapState(useAuthStore, {
       user: (state) => state.user,
     }),
   },
   watch: {
     user: function () {
-      this.subscribe();
+      this.setTimezone();
+      this.sendSubscribe();
     },
     isConnected(to) {
       if (to) {
-        this.subscribe();
+        this.sendSubscribe();
       }
     },
   },
   async created() {
     this.setTimezone();
-    this.getAdminFlags();
-    this.getProfile();
-    return this.$connect();
+    this.loadAdminFlags();
+    this.loadProfile();
   },
   methods: {
-    ...mapActions("auth", ["getProfile", "setTimezone", "getAdminFlags"]),
-    ...mapActions("socket", ["subscribe"]),
+    ...mapActions(useAuthStore, [
+      "loadAdminFlags",
+      "loadProfile",
+      "setTimezone",
+    ]),
+    ...mapActions(useSocketStore, ["sendSubscribe"]),
   },
 };
 </script>

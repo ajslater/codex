@@ -10,7 +10,7 @@
     <div v-else-if="showPlaceHolder" id="announce">
       <PlaceholderLoading class="placeholder" :size="128" />
     </div>
-    <div v-else-if="!isOpenToSee" id="announce">
+    <div v-else-if="!isCodexViewable" id="announce">
       <h1>
         You may log in <span v-if="enableRegister">or register</span> with the
         top right&emsp;<v-icon>{{ mdiMenu }}</v-icon
@@ -23,7 +23,7 @@
     </div>
     <div v-else id="announce">
       <h1>No libraries have been added to Codex yet</h1>
-      <h2 v-if="isAdmin">
+      <h2 v-if="isUserAdmin">
         Use the top right <v-icon>{{ mdiMenu }}</v-icon> menu to navigate to the
         admin panel and add a comic library.
       </h2>
@@ -49,10 +49,12 @@
 
 <script>
 import { mdiMenu, mdiOpenInNew } from "@mdi/js";
-import { mapGetters, mapState } from "vuex";
+import { mapGetters, mapState } from "pinia";
 
 import BrowserCard from "@/components/browser-card.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
+import { useAuthStore } from "@/stores/auth";
+import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BrowserMain",
@@ -67,33 +69,33 @@ export default {
     };
   },
   computed: {
-    ...mapState("browser", {
-      objList: (state) => state.objList,
-      librariesExist: (state) => state.librariesExist,
-      padFooter: (state) => state.numPages > 1,
+    ...mapState(useAuthStore, {
+      enabelNonUsers: (state) => state.adminFlags.enableNonUsers,
+      enableRegister: (state) => state.adminFlags.enableRegistration,
+    }),
+    ...mapGetters(useAuthStore, ["isUserAdmin", "isCodexViewable"]),
+    outdated: function () {
+      return this.versions.latest > this.versions.installed;
+    },
+    ...mapState(useBrowserStore, {
+      objList: (state) => state.page.objList,
+      librariesExist: (state) => state.page.librariesExist,
+      padFooter: (state) => state.page.numPages > 1,
       showBrowseItems: function (state) {
         return (
-          state.objList &&
-          state.objList.length > 0 &&
-          this.isOpenToSee &&
+          state.page.objList &&
+          state.page.objList.length > 0 &&
+          this.isCodexViewable &&
           !this.showPlaceHolder
         );
       },
       showPlaceHolder: function (state) {
         return (
-          this.enableNonUsers === undefined ||
-          (!state.browserPageLoaded && this.isOpenToSee)
+          !this.enableNonUsers === undefined ||
+          (!state.browserPageLoaded && this.isCodexViewable)
         );
       },
     }),
-    ...mapState("auth", {
-      enableNonUsers: (state) => state.adminFlags.enableNonUsers,
-      enableRegister: (state) => state.adminFlags.enableRegistration,
-    }),
-    ...mapGetters("auth", ["isAdmin", "isOpenToSee"]),
-    outdated: function () {
-      return this.versions.latest > this.versions.installed;
-    },
   },
 };
 </script>

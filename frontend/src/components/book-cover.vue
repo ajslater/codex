@@ -30,9 +30,10 @@
 </template>
 
 <script>
-import { mapState } from "vuex";
+import { mapState } from "pinia";
 
 import { getCoverSource } from "@/api/v3/cover.js";
+import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BookCover",
@@ -59,9 +60,9 @@ export default {
     };
   },
   computed: {
-    ...mapState("browser", {
+    ...mapState(useBrowserStore, {
       coverSrc: function (state) {
-        return getCoverSource(this.coverPk, state.coversTimestamp);
+        return getCoverSource(this.coverPk, state.page.coversTimestamp);
       },
     }),
   },

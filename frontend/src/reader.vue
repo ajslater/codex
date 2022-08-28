@@ -1,6 +1,6 @@
 <template>
   <div id="readerWrapper">
-    <div v-if="isOpenToSee" id="readerContainer">
+    <div v-if="isCodexViewable" id="readerContainer">
       <v-main>
         <div id="pagesContainer">
           <ReaderComicPage :page-increment="+0" />
@@ -27,13 +27,15 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapMutations, mapState } from "vuex";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import ReaderComicPage from "@/components/reader-comic-page.vue";
 import ReaderNavOverlay from "@/components/reader-nav-overlay.vue";
 import ReaderNavToolbar from "@/components/reader-nav-toolbar.vue";
 import ReaderSettingsDrawer from "@/components/reader-settings-drawer.vue";
 import ReaderTopToolbar from "@/components/reader-top-toolbar.vue";
+import { useAuthStore } from "@/stores/auth";
+import { useReaderStore } from "@/stores/reader";
 
 const MIN_VIEWPORT_WIDTH_SWIPE_ENABLED = 768;
 
@@ -52,40 +54,38 @@ export default {
     };
   },
   computed: {
-    ...mapState("auth", {
+    ...mapState(useAuthStore, {
       user: (state) => state.user,
     }),
-    ...mapGetters("auth", ["isOpenToSee"]),
+    ...mapGetters(useAuthStore, ["isCodexViewable"]),
   },
   watch: {
     $route(to, from) {
       if (!from.params || Number(to.params.pk) !== Number(from.params.pk)) {
-        this.bookChanged();
+        this.loadBook();
       } else {
-        this.routeChanged();
+        this.setRoutesAndBookmarkPage();
       }
       window.scrollTo(0, 0);
-      // this.setBrowseTimestamp();
     },
     user: function () {
-      this.fetchReaderSettings();
+      this.loadReaderSettings();
     },
-    isOpenToSee: function () {
-      this.fetchReaderSettings();
+    isCodexViewable: function () {
+      this.loadReaderSettings();
     },
   },
   created() {
-    this.fetchReaderSettings();
-    this.bookChanged();
+    this.loadReaderSettings();
+    this.loadBook();
   },
   methods: {
-    ...mapActions("reader", [
+    ...mapActions(useReaderStore, [
+      "loadBook",
+      "loadReaderSettings",
       "routeTo",
-      "bookChanged",
-      "routeChanged",
-      "fetchReaderSettings",
+      "setRoutesAndBookmarkPage",
     ]),
-    ...mapMutations("browser", ["setBrowseTimestamp"]),
     toggleToolbars: function () {
       this.showToolbars = !this.showToolbars;
     },

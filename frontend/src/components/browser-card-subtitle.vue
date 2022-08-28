@@ -9,7 +9,7 @@
 
 <script>
 import humanize from "humanize";
-import { mapState } from "vuex";
+import { mapState } from "pinia";
 
 import {
   formattedVolumeName,
@@ -17,6 +17,7 @@ import {
   getIssueName,
 } from "@/components/comic-name";
 import { DATE_FORMAT, DATETIME_FORMAT } from "@/components/datetime";
+import { useBrowserStore } from "@/stores/browser";
 const STAR_SORT_BY = new Set(["community_rating", "critical_rating"]);
 const DATE_SORT_BY = new Set(["date"]);
 const TIME_SORT_BY = new Set(["created_at", "updated_at"]);
@@ -31,7 +32,7 @@ export default {
   },
   orderByCache: "sort_name",
   computed: {
-    ...mapState("browser", {
+    ...mapState(useBrowserStore, {
       orderBy: (state) => state.settings.orderBy,
       zeroPad: (state) => state.zeroPad,
     }),
@@ -103,7 +104,8 @@ export default {
   beforeCreate: function () {
     // Fixes empty order cache on first load
     // can't use computed value.
-    this.orderByCache = this.$store.state.browser.settings.orderBy;
+    const browserStore = useBrowserStore();
+    this.orderByCache = browserStore.settings.orderBy;
   },
 };
 </script>

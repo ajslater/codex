@@ -29,18 +29,11 @@
 
 <script>
 import { mdiDotsVertical } from "@mdi/js";
-import { mapActions, mapState } from "vuex";
+import { mapActions, mapState } from "pinia";
 
 import { getDownloadURL } from "@/api/v3/reader.js";
-
-const groupNames = {
-  p: "Publisher",
-  i: "Imprint",
-  s: "Series",
-  v: "Volume",
-  c: "Issue",
-  f: "Folder",
-};
+import { useBrowserStore } from "@/stores/browser";
+import { useReaderStore } from "@/stores/reader";
 
 export default {
   name: "BrowserContainerMenu",
@@ -63,7 +56,7 @@ export default {
     };
   },
   computed: {
-    ...mapState("reader", {
+    ...mapState(useReaderStore, {
       downloadURL: function (state) {
         return getDownloadURL(this.pk, state.timestamp);
       },
@@ -73,6 +66,7 @@ export default {
       if (this.group != "c") {
         words.push("Entire");
       }
+      const groupNames = useBrowserStore().choices.groupNames;
       const groupName = groupNames[this.group];
       words.push(groupName);
 
@@ -85,18 +79,13 @@ export default {
     },
   },
   methods: {
-    ...mapActions("browser", ["markedRead"]),
+    ...mapActions(useBrowserStore, ["setBookmarkFinished"]),
     toggleRead: function () {
-      const data = {
-        params: {
-          group: this.group,
-          pk: this.pk,
-        },
-        updates: {
-          finished: !this.finished,
-        },
+      const params = {
+        group: this.group,
+        pk: this.pk,
       };
-      this.markedRead(data);
+      this.setBookmarkFinished(params, !this.finished);
     },
   },
 };

@@ -8,7 +8,7 @@
     @focus="focus"
   >
     <template #activator="{ on }">
-      <v-list-item ripple v-on="on" @click="getAdminFlags">
+      <v-list-item ripple v-on="on" @click="loadAdminFlags">
         <v-list-item-content>
           <v-list-item-title><h3>Login</h3></v-list-item-title>
         </v-list-item-content>
@@ -85,7 +85,9 @@
 </template>
 
 <script>
-import { mapActions, mapState } from "vuex";
+import { mapActions, mapState } from "pinia";
+
+import { useAuthStore } from "@/stores/auth";
 
 export default {
   name: "AuthLoginDialog",
@@ -107,7 +109,7 @@ export default {
     };
   },
   computed: {
-    ...mapState("auth", {
+    ...mapState(useAuthStore, {
       authFormErrors: (state) => state.errors,
       authFormSuccess: (state) => state.success,
       enableRegistration: (state) => state.adminFlags.enableRegistration,
@@ -132,9 +134,9 @@ export default {
     },
   },
   methods: {
-    ...mapActions("auth", [
+    ...mapActions(useAuthStore, [
       "clearErrors",
-      "getAdminFlags",
+      "loadAdminFlags",
       "login",
       "register",
     ]),

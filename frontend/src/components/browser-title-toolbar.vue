@@ -1,6 +1,6 @@
 <template>
   <v-toolbar id="titleToolbar" class="toolbar">
-    <v-toolbar-items v-if="isOpenToSee">
+    <v-toolbar-items v-if="isCodexViewable">
       <v-btn :class="{ invisible: !showUpButton }" :to="toUpRoute" icon ripple
         ><v-icon>{{ mdiArrowUp }}</v-icon>
       </v-btn>
@@ -23,9 +23,11 @@
 
 <script>
 import { mdiArrowUp } from "@mdi/js";
-import { mapGetters, mapState } from "vuex";
+import { mapGetters, mapState } from "pinia";
 
 import { formattedVolumeName } from "@/components/comic-name";
+import { useAuthStore } from "@/stores/auth";
+import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BrowserHeader",
@@ -45,13 +47,13 @@ export default {
     return { meta: [{ hid: "description", name: "description", content }] };
   },
   computed: {
-    ...mapState("browser", {
-      browserTitle: (state) => state.browserTitle,
-      modelGroup: (state) => state.modelGroup,
-      groupNames: (state) => state.groupNames,
-      upRoute: (state) => state.routes.up,
+    ...mapState(useBrowserStore, {
+      groupNames: (state) => state.choices.groupNames,
+      browserTitle: (state) => state.page.browserTitle,
+      modelGroup: (state) => state.page.modelGroup,
+      upRoute: (state) => state.page.routes.up,
     }),
-    ...mapGetters("auth", ["isOpenToSee", "isAdmin"]),
+    ...mapGetters(useAuthStore, ["isCodexViewable", "isUserAdmin"]),
     toUpRoute: function () {
       if (this.showUpButton) {
         return { name: "browser", params: this.upRoute };

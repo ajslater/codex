@@ -120,7 +120,8 @@
       "i": "Imprints",
       "s": "Series",
       "v": "Volumes",
-      "c": "Issues"
+      "c": "Issues",
+      "f": "Folders"
     },
     "route": {
       "group": "r",

@@ -6,11 +6,11 @@ export const getReaderRoute = ({ pk, bookmark, readLtr, pageCount }) => {
   let page;
   if (bookmark) {
     page = Number(bookmark);
-  } else if (readLtr === false) {
+  } else if (readLtr) {
+    page = 0;
+  } else {
     const maxPage = Number(pageCount) - 1;
     page = Math.max(maxPage, 0);
-  } else {
-    page = 0;
   }
   return {
     name: "reader",

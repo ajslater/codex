@@ -35,7 +35,9 @@
 
 <script>
 import { mdiSortReverseVariant, mdiSortVariant } from "@mdi/js";
-import { mapActions, mapGetters, mapState } from "vuex";
+import { mapActions, mapGetters, mapState } from "pinia";
+
+import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BrowseSortBySelect",
@@ -47,28 +49,28 @@ export default {
     };
   },
   computed: {
-    ...mapGetters("browser", ["orderByChoices"]),
-    ...mapState("browser", {
+    ...mapState(useBrowserStore, {
       orderReverseSetting: (state) => state.settings.orderReverse,
       orderBySetting: (state) => state.settings.orderBy,
       orderIcon: (state) =>
         state.settings.orderReverse ? mdiSortVariant : mdiSortReverseVariant,
     }),
+    ...mapGetters(useBrowserStore, ["orderByChoices"]),
     orderBy: {
       get() {
         return this.orderBySetting;
       },
       set(value) {
         const data = { orderBy: value };
-        this.settingChanged(data);
+        this.setSettings(data);
       },
     },
   },
   methods: {
-    ...mapActions("browser", ["settingChanged"]),
+    ...mapActions(useBrowserStore, ["setSettings"]),
     toggleOrderReverse: function () {
       const data = { orderReverse: !this.orderReverseSetting };
-      this.settingChanged(data);
+      this.setSettings(data);
     },
   },
 };

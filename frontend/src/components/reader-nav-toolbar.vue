@@ -22,9 +22,10 @@
 </template>
 
 <script>
-import { mapActions, mapState } from "vuex";
+import { mapActions, mapState } from "pinia";
 
 import ReaderNavButton from "@/components/reader-nav-button.vue";
+import { useReaderStore } from "@/stores/reader";
 
 export default {
   name: "ReaderNavToolbar",
@@ -32,12 +33,12 @@ export default {
     ReaderNavButton,
   },
   computed: {
-    ...mapState("reader", {
+    ...mapState(useReaderStore, {
       maxPage: (state) => state.comic.maxPage,
     }),
   },
   methods: {
-    ...mapActions("reader", ["routeToPage"]),
+    ...mapActions(useReaderStore, ["routeToPage"]),
   },
 };
 </script>

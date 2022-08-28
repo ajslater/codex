@@ -213,22 +213,22 @@ class BrowserPageSerializer(Serializer):
 
     NUM_AUTOCOMPLETE_QUERIES = 10
 
+    admin_flags = BrowserAdminFlagsSerializer(read_only=True)
     browser_title = BrowserTitleSerializer(read_only=True)
-    model_group = CharField(read_only=True)
-    up_route = BrowserRouteSerializer(allow_null=True, read_only=True)
-    obj_list = ListField(
-        child=BrowserCardSerializer(read_only=True), allow_empty=True, read_only=True
-    )
+    covers_timestamp = IntegerField(read_only=True)
     issue_max = DecimalField(
         max_digits=16,
         decimal_places=3,
         read_only=True,
         coerce_to_string=False,
     )
-    num_pages = IntegerField(read_only=True)
-    admin_flags = BrowserAdminFlagsSerializer(read_only=True)
     libraries_exist = BooleanField(read_only=True)
+    model_group = CharField(read_only=True)
+    num_pages = IntegerField(read_only=True)
+    obj_list = ListField(
+        child=BrowserCardSerializer(read_only=True), allow_empty=True, read_only=True
+    )
     queries = ListField(
         child=CharField(read_only=True), allow_empty=True, read_only=True
     )
-    covers_timestamp = IntegerField(read_only=True)
+    up_route = BrowserRouteSerializer(allow_null=True, read_only=True)

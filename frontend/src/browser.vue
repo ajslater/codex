@@ -11,13 +11,15 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "vuex";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import BrowserFilterToolbar from "@/components/browser-filter-toolbar.vue";
 import BrowserMain from "@/components/browser-main.vue";
 import BrowserPaginationToolbar from "@/components/browser-pagination-toolbar.vue";
 import BrowserSettingsDrawer from "@/components/browser-settings-drawer.vue";
 import BrowserTitleToolbar from "@/components/browser-title-toolbar.vue";
+import { useAuthStore } from "@/stores/auth";
+import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "MainBrowser",
@@ -29,31 +31,32 @@ export default {
     BrowserSettingsDrawer,
   },
   computed: {
-    ...mapState("auth", {
+    ...mapState(useAuthStore, {
       user: (state) => state.user,
     }),
-    ...mapGetters("auth", ["isOpenToSee"]),
+    ...mapGetters(useAuthStore, ["isCodexViewable"]),
   },
   watch: {
     $route: function () {
       window.scrollTo(0, 0);
-      this.getBrowserPage();
+      this.loadBrowserPage();
     },
     user: function () {
       this.loadSettings();
-      this.getVersions();
     },
-    isOpenToSee: function () {
+    isCodexViewable: function () {
       this.loadSettings();
-      this.getVersions();
     },
   },
   created() {
     this.loadSettings();
-    this.getVersions();
   },
   methods: {
-    ...mapActions("browser", ["getBrowserPage", "loadSettings", "getVersions"]),
+    ...mapActions(useBrowserStore, [
+      "loadBrowserPage",
+      "loadSettings",
+      "getVersions",
+    ]),
   },
 };
 </script>

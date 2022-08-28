@@ -1,7 +1,8 @@
+import { createTestingPinia } from "@pinia/testing";
 import { createLocalVue, mount } from "@vue/test-utils";
+import { defineStore, PiniaVuePlugin } from "pinia";
 import VueRouter from "vue-router";
 import Vuetify from "vuetify";
-import Vuex from "vuex";
 
 import ReaderNavButton from "@/components/reader-nav-button.vue";
 
@@ -12,40 +13,31 @@ const localVue = createLocalVue();
 const setupVue = () => {
   localVue.use(VueRouter);
   localVue.use(Vuetify);
-  localVue.use(Vuex);
+  localVue.use(PiniaVuePlugin);
 };
 
 const setupStore = () => {
-  const state = {
-    routes: {
-      current: {
-        pk: 2,
-        page: 5,
+  return defineStore("mockReader", {
+    state: () => {
+      return {
+        routes: {
+          current: {
+            pk: 2,
+            page: 5,
+          },
+        },
+      };
+    },
+    actions: {
+      setPage(state, pn) {
+        state.routes.current.page = pn;
       },
-    },
-  };
-  const mutations = {
-    setPage(state, pn) {
-      state.routes.current.page = pn;
-    },
-  };
-  const actions = {
-    routeChanged({ commit }, pn) {
-      commit("setPage", pn);
-    },
-  };
-  return new Vuex.Store({
-    modules: {
-      reader: {
-        namespaced: true,
-        state,
-        mutations,
-        actions,
+      routeChanged({ commit }, pn) {
+        commit("setPage", pn);
       },
     },
   });
 };
-
 const setupRouter = () => {
   return new VueRouter({
     routes: [
@@ -60,6 +52,7 @@ test("mount component", async () => {
   expect(ReaderNavButton).toBeTruthy();
 
   setupVue();
+  //const store = setupStore();
   const store = setupStore();
   const router = setupRouter();
   const wrapper = mount(ReaderNavButton, {
@@ -70,6 +63,9 @@ test("mount component", async () => {
       value: 0,
     },
     stubs: ["router-link", "router-view"],
+    global: {
+      plugins: [createTestingPinia()],
+    },
   });
 
   expect(wrapper.text()).toContain("0");

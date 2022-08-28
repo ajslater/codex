@@ -7,7 +7,7 @@
     temporary
     touchless
   >
-    <div v-if="isOpenToSee">
+    <div v-if="isCodexViewable">
       <div id="readerSettings">
         <h3>Reader Settings</h3>
         <v-radio-group v-model="isSettingsDialogGlobalMode" label="Scope">
@@ -41,7 +41,7 @@
         <v-btn
           :disabled="isSettingsDialogGlobalMode"
           title="Use the default settings for all comics for this comic"
-          @click="settingsDialogClear"
+          @click="clearSettingsLocal"
         >
           Clear Comic Settings
         </v-btn>
@@ -54,10 +54,12 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapMutations, mapState } from "vuex";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import ReaderKeyboardShortcutsPanel from "@/components/reader-keyboard-shortcuts-panel.vue";
 import SettingsCommonPanel from "@/components/settings-common-panel.vue";
+import { useAuthStore } from "@/stores/auth";
+import { useReaderStore } from "@/stores/reader";
 
 export default {
   name: "ReaderSettingsPanel",
@@ -72,9 +74,9 @@ export default {
     };
   },
   computed: {
-    ...mapGetters("auth", ["isOpenToSee"]),
-    ...mapState("reader", {
-      fitToChoices: (state) => state.formChoices.fitTo,
+    ...mapGetters(useAuthStore, ["isCodexViewable"]),
+    ...mapState(useReaderStore, {
+      fitToChoices: (state) => state.choices.fitTo,
       settingsScope: function (state) {
         if (this.isSettingsDialogGlobalMode) {
           return state.settings.globl;
@@ -84,10 +86,10 @@ export default {
     }),
     isSettingsDrawerOpen: {
       get() {
-        return this.$store.state.reader.isSettingsDrawerOpen;
+        return useReaderStore().isSettingsDrawerOpen;
       },
       set(value) {
-        this.setIsSettingsDrawerOpen(value);
+        useReaderStore().isSettingsDrawerOpen = value;
       },
     },
   },
@@ -95,17 +97,16 @@ export default {
     this.$emit("panelMounted");
   },
   methods: {
-    ...mapActions("reader", [
-      "settingsChangedGlobal",
-      "settingsChangedLocal",
-      "settingsDialogClear",
+    ...mapActions(useReaderStore, [
+      "clearSettingsLocal",
+      "setSettingsGlobal",
+      "setSettingsLocal",
     ]),
-    ...mapMutations("reader", ["setIsSettingsDrawerOpen"]),
     settingsDialogChanged: function (data) {
       if (this.isSettingsDialogGlobalMode) {
-        this.settingsChangedGlobal(data);
+        this.setSettingsGlobal(data);
       } else {
-        this.settingsChangedLocal(data);
+        this.setSettingsLocal(data);
       }
     },
   },

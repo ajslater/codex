@@ -17,9 +17,10 @@
 </template>
 
 <script>
-import { mapActions, mapState } from "vuex";
+import { mapActions, mapState } from "pinia";
 
 import BrowserNavButton from "@/components/browser-nav-button.vue";
+import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BrowserPaginationToolbar",
@@ -27,12 +28,12 @@ export default {
     BrowserNavButton,
   },
   computed: {
-    ...mapState("browser", {
-      numPages: (state) => state.numPages,
+    ...mapState(useBrowserStore, {
+      numPages: (state) => state.page.numPages,
     }),
   },
   methods: {
-    ...mapActions("browser", ["routeToPage"]),
+    ...mapActions(useBrowserStore, ["routeToPage"]),
   },
 };
 </script>

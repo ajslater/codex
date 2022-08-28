@@ -73,7 +73,9 @@
 
 <script>
 import { mdiBookArrowRight } from "@mdi/js";
-import { mapActions, mapState } from "vuex";
+import { mapActions, mapState } from "pinia";
+
+import { useReaderStore } from "@/stores/reader";
 const PREV = "prev";
 const NEXT = "next";
 
@@ -83,7 +85,7 @@ export default {
     return { mdiBookArrowRight };
   },
   computed: {
-    ...mapState("reader", {
+    ...mapState(useReaderStore, {
       routes: (state) => state.routes,
       bookChangePrev: (state) => state.bookChange === PREV,
       bookChangeNext: (state) => state.bookChange === NEXT,
@@ -109,7 +111,7 @@ export default {
     window.removeEventListener("keyup", this._keyListener);
   },
   methods: {
-    ...mapActions("reader", ["routeToDirection", "setBookChangeFlag"]),
+    ...mapActions(useReaderStore, ["routeToDirection", "setBookChangeFlag"]),
     toRoute: function (name) {
       const params = this.routes[name];
       if (!params) {

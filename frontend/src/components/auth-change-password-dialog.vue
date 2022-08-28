@@ -68,7 +68,9 @@
 </template>
 
 <script>
-import { mapActions, mapState } from "vuex";
+import { mapActions, mapState } from "pinia";
+
+import { useAuthStore } from "@/stores/auth";
 
 export default {
   name: "ChangePasswordDialog",
@@ -100,7 +102,7 @@ export default {
   },
 
   computed: {
-    ...mapState("auth", {
+    ...mapState(useAuthStore, {
       user: (state) => state.user,
       authFormErrors: (state) => state.errors,
       authFormSuccess: (state) => state.success,
@@ -126,7 +128,7 @@ export default {
     },
   },
   methods: {
-    ...mapActions("auth", ["changePassword", "clearErrors"]),
+    ...mapActions(useAuthStore, ["changePassword", "clearErrors"]),
     processChangePassword: function () {
       const form = this.$refs.changePasswordForm;
       if (!form.validate()) {

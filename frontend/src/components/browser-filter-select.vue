@@ -16,7 +16,7 @@
       }"
       :prepend-inner-icon="filterInnerIcon"
       ripple
-      @click:prepend-inner="clearFilters"
+      @click:prepend-inner="clearFiltersAndChoices"
       @focus="focused = true"
       @blur="focused = false"
     >
@@ -51,10 +51,10 @@
 
 <script>
 import { mdiCloseCircle } from "@mdi/js";
-import { mapActions, mapGetters, mapMutations, mapState } from "vuex";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import FilterSubMenu from "@/components/filter-sub-menu.vue";
-import { NUMERIC_FILTERS } from "@/store/modules/browser";
+import { NUMERIC_FILTERS, useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BrowserFilterSelect",
@@ -69,12 +69,12 @@ export default {
     };
   },
   computed: {
-    ...mapState("browser", {
-      bookmarkChoices: (state) => state.formChoices.bookmark,
+    ...mapState(useBrowserStore, {
+      bookmarkChoices: (state) => state.choices.bookmark,
       filterMode: (state) => state.filterMode,
       filters: (state) => state.settings.filters,
     }),
-    ...mapGetters("browser", ["filterNames"]),
+    ...mapGetters(useBrowserStore, ["filterNames"]),
     filterMenuClass: function () {
       // Lets me hide bookmark menu items with css when the filterMode
       //   changes.
@@ -116,25 +116,21 @@ export default {
           console.warn(`bookmarkFilter was ${value}. Set to 'ALL'`);
         }
         const data = { filters: { bookmark } };
-        this.settingChanged(data);
+        this.setSettings(data);
       },
     },
   },
   methods: {
-    ...mapActions("browser", ["filtersCleared", "settingChanged"]),
-    ...mapMutations("browser", ["setFilterMode"]),
+    ...mapActions(useBrowserStore, ["clearFiltersAndChoices", "setSettings"]),
     camelToSnake: function (name) {
       // name is used as the submission value to the API as well async function (arguments) {
       // The widget translates snake_case to Cap Case.
       return name.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
     },
-    clearFilters: function () {
-      this.filtersCleared();
-    },
     closeFilterSelect: function () {
       // On sub-menu click, close the menu and reset the filter mode.
       this.$refs.filterSelect.blur();
-      this.setFilterMode("base");
+      useBrowserStore().filterMode = "base";
     },
   },
 };

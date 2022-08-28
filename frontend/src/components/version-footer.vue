@@ -12,8 +12,10 @@
 
 <script>
 import { mdiOpenInNew } from "@mdi/js";
-import { mapGetters, mapState } from "vuex";
+import { mapActions, mapGetters, mapState } from "pinia";
 
+import { useAuthStore } from "@/stores/auth";
+import { useCommonStore } from "@/stores/common";
 export default {
   name: "VersionFooter",
   data() {
@@ -22,13 +24,12 @@ export default {
     };
   },
   computed: {
-    ...mapState("browser", {
-      numPages: (state) => state.numPages,
+    ...mapState(useCommonStore, {
       versions: (state) => state.versions,
     }),
-    ...mapGetters("auth", ["isAdmin"]),
+    ...mapGetters(useAuthStore, ["isUserAdmin"]),
     outdated: function () {
-      return this.isAdmin && this.versions.latest > this.versions.installed;
+      return this.isUserAdmin && this.versions.latest > this.versions.installed;
     },
     versionTitle: function () {
       return this.outdated
@@ -37,7 +38,10 @@ export default {
     },
   },
   created() {
-    this.$store.dispatch("browser/getVersions");
+    this.loadVersions();
+  },
+  methods: {
+    ...mapActions(useCommonStore, ["loadVersions"]),
   },
 };
 </script>
