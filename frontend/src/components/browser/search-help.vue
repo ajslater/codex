@@ -25,7 +25,7 @@
         <h1>Search Syntax Help</h1>
         <div id="fieldTableContainer">
           <h2>Search Fields</h2>
-          <table id="fieldTable">
+          <table id="fieldTable" class="highlight-table">
             <thead>
               <tr>
                 <th>Field</th>
@@ -199,7 +199,6 @@ export default {
 @import "../anchors.scss";
 #searchHelp {
   max-width: 100vw;
-  background-color: #121212;
   padding: 20px;
   padding-left: 20px;
   padding-right: 20px;
@@ -232,11 +231,7 @@ h1 {
   margin-bottom: 1em;
   margin-right: 2em;
 }
-#fieldTable tr:nth-child(even) {
-  background-color: #272727;
-}
 #fieldTable th {
-  background-color: #272727;
   font-size: larger;
   font-weight: bold;
   color: lightgrey;
@@ -248,13 +243,5 @@ h1 {
 code {
   width: fit-content;
   color: lightgrey !important;
-}
-</style>
-
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-.v-dialog {
-  /* Seems like I'm fixing a bug here */
-  background-color: #121212;
 }
 </style>

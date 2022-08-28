@@ -5,7 +5,7 @@
   >
     <template #default>
       <h2>Credits</h2>
-      <table>
+      <table class="highlight-table">
         <thead>
           <tr>
             <th class="text-left">Role</th>
@@ -86,9 +86,5 @@ export default {
 #creditsTable th,
 #creditsTable td {
   padding: 10px;
-}
-#creditsTable thead tr,
-#creditsTable tr:nth-child(even) {
-  background-color: #282828;
 }
 </style>

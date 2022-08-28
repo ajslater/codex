@@ -115,7 +115,6 @@ export default {
 
 <style scoped lang="scss">
 #readerSettingsDrawer {
-  background-color: #121212;
   z-index: 20;
 }
 #readerSettings {

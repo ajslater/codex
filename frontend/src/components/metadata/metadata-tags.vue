@@ -4,6 +4,7 @@
     v-model="model"
     multiple
     class="tags"
+    :class="{ 'background-soft-highlight': true }"
   >
     <v-subheader class="subheader">{{ label }}</v-subheader>
     <v-item v-for="item in model" :key="item.name">
@@ -65,7 +66,7 @@ export default {
     chipColor: function (pk) {
       return this.filterValues && this.filterValues.includes(pk)
         ? "rgba(204, 123, 25, 0.75)"
-        : "#212121";
+        : "#202020";
     },
   },
 };
@@ -78,7 +79,6 @@ export default {
   height: 32px;
 }
 .tags {
-  background-color: #282828;
   border-radius: 3px;
   padding: 10px;
 }

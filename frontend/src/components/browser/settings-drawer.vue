@@ -81,7 +81,6 @@ export default {
 
 <style scoped lang="scss">
 #browserSettingsDrawer {
-  background-color: #121212;
   z-index: 20;
 }
 #browserSettings {

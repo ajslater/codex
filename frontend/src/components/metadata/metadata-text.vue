@@ -1,5 +1,9 @@
 <template>
-  <div v-if="computedValue" class="text" :class="{ highlight }">
+  <div
+    v-if="computedValue"
+    class="text background-soft-highlight"
+    :class="{ highlight }"
+  >
     <div class="textLabel">{{ label }}</div>
     <a v-if="link" :href="computedValue" target="_blank">
       {{ computedValue }}
@@ -57,7 +61,6 @@ export default {
   display: flex;
   flex-direction: column;
   padding: 10px;
-  background-color: #282828;
   border-radius: 3px;
   max-width: 100%;
 }

@@ -1,7 +1,7 @@
 <template>
   <div v-if="!isMobile()" id="readerKeyboardShortcutsDialog">
     <h3>Keyboard Shortcuts</h3>
-    <table id="readerKeyboardShortcutsTable">
+    <table id="readerKeyboardShortcutsTable" class="highlight-table">
       <tbody>
         <tr>
           <td>
@@ -92,9 +92,6 @@ export default {
 }
 #readerKeyboardShortcutsTable td {
   min-width: 60px;
-}
-#readerKeyboardShortcutsTable tr:nth-child(odd) {
-  background-color: #222;
 }
 #readerKeyboardShortcutsTable td {
   padding: 5px;

@@ -63,4 +63,17 @@ noscript {
 a {
   text-decoration: none !important;
 }
+.v-dialog,
+.v-navigation-drawer {
+  background-color: #202020 !important;
+}
+
+.background-highlight,
+.highlight-table tr:nth-child(even),
+.highlight-table th {
+  background-color: #121212;
+}
+.background-soft-highlight {
+  background-color: #272727;
+}
 </style>

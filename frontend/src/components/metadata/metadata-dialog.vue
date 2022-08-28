@@ -363,7 +363,6 @@ export default {
   display: flex;
   flex-direction: column;
   max-width: 100vw;
-  background-color: #121212;
 }
 #search {
   margin-bottom: 10px;
@@ -454,13 +453,5 @@ export default {
   #metadataContainer {
     font-size: 12px;
   }
-}
-</style>
-
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-.v-dialog {
-  /* Seems like I'm fixing a bug here */
-  background-color: #121212;
 }
 </style>
