@@ -56,8 +56,8 @@
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 
-import ReaderKeyboardShortcutsPanel from "@/components/reader-keyboard-shortcuts-panel.vue";
-import SettingsCommonPanel from "@/components/settings-common-panel.vue";
+import ReaderKeyboardShortcutsPanel from "@/components/reader/keyboard-shortcuts-panel.vue";
+import SettingsCommonPanel from "@/components/settings/panel.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useReaderStore } from "@/stores/reader";
 

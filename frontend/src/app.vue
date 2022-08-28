@@ -63,14 +63,4 @@ noscript {
 a {
   text-decoration: none !important;
 }
-a:hover,
-a:hover .v-icon {
-  color: white !important;
-}
-a .v-icon {
-  color: #cc7b19 !important;
-}
-a.v-btn .v-icon {
-  color: white !important;
-}
 </style>

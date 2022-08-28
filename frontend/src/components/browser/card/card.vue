@@ -37,8 +37,8 @@
 
 <script>
 import BookCover from "@/components/book-cover.vue";
-import BrowserCardControls from "@/components/browser-card-controls.vue";
-import BrowserCardSubtitle from "@/components/browser-card-subtitle.vue";
+import BrowserCardControls from "@/components/browser/card/controls.vue";
+import BrowserCardSubtitle from "@/components/browser/card/subtitle.vue";
 import { IS_IOS, IS_TOUCH } from "@/platform";
 import { getReaderRoute } from "@/router/route";
 
@@ -118,7 +118,7 @@ export default {
 
 <style scoped lang="scss">
 @import "vuetify/src/styles/styles.sass";
-@import "book-cover.scss";
+@import "../../book-cover.scss";
 .browserTile {
   display: inline-flex;
   flex: 1;
@@ -137,7 +137,7 @@ export default {
   border: solid thin transparent;
 }
 .browserCardCoverWrapper:hover > .cardCoverOverlay {
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.55);
   border: solid thin #cc7b19;
 }
 .browserCardCoverWrapper:hover > .cardCoverOverlay * {

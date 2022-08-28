@@ -37,7 +37,7 @@
         <v-slide-x-transition hide-on-leave>
           <v-divider v-if="filterMode === 'base'" />
         </v-slide-x-transition>
-        <FilterSubMenu
+        <BrowserFilterSubMenu
           v-for="filterName of filterNames"
           :key="filterName"
           :name="camelToSnake(filterName)"
@@ -53,13 +53,13 @@
 import { mdiCloseCircle } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
-import FilterSubMenu from "@/components/filter-sub-menu.vue";
+import BrowserFilterSubMenu from "@/components/browser/filter-sub-menu.vue";
 import { NUMERIC_FILTERS, useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BrowserFilterSelect",
   components: {
-    FilterSubMenu,
+    BrowserFilterSubMenu,
   },
   data() {
     return {
@@ -140,5 +140,5 @@ export default {
 .filterSuffix {
   margin-left: 0.25em;
 }
-// #filterSelect style is handled in browser-filter-toolbar.vue
+// #filterSelect style is handled in browser/filter-toolbar.vue
 </style>

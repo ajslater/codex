@@ -21,11 +21,11 @@
 import { mdiFamilyTree, mdiMagnify } from "@mdi/js";
 import { mapGetters, mapWritableState } from "pinia";
 
-import BrowserFilterSelect from "@/components/browser-filter-select.vue";
-import BrowserSortBySelect from "@/components/browser-order-by-select.vue";
-import BrowserSearchField from "@/components/browser-search-field.vue";
-import BrowserRootGroupSelect from "@/components/browser-top-group-select.vue";
-import SettingsDrawerButton from "@/components/settings-drawer-button.vue";
+import BrowserFilterSelect from "@/components/browser/filter-select.vue";
+import BrowserSortBySelect from "@/components/browser/order-by-select.vue";
+import BrowserSearchField from "@/components/browser/search-field.vue";
+import BrowserRootGroupSelect from "@/components/browser/top-group-select.vue";
+import SettingsDrawerButton from "@/components/settings/button.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 

@@ -37,7 +37,7 @@ import { mdiBookAlert, mdiOpenInNew } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import API from "@/api/v3/admin.js";
-import AdminStatusList from "@/components/admin-status-list.vue";
+import AdminStatusList from "@/components/admin/status-list.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useAuthStore } from "@/stores/auth";
 

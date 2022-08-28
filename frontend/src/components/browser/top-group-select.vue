@@ -60,4 +60,4 @@ export default {
 };
 </script>
 
-// #topGroupSelect style is handled in browser-filter-toolbar.vue
+// #topGroupSelect style is handled in browser/filter-toolbar.vue

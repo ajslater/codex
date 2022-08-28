@@ -4,7 +4,7 @@ import { defineStore, PiniaVuePlugin } from "pinia";
 import VueRouter from "vue-router";
 import Vuetify from "vuetify";
 
-import ReaderNavButton from "@/components/reader-nav-button.vue";
+import ReaderNavButton from "@/components/reader/nav-button.vue";
 
 const { expect, test } = import.meta.vitest;
 

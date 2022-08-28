@@ -73,7 +73,7 @@ import { toVuetifyItems } from "@/api/v3/vuetify-items";
 import { useBrowserStore } from "@/stores/browser";
 
 export default {
-  name: "FilterSubMenu",
+  name: "BrowserFilterSubMenu",
   props: {
     name: {
       type: String,

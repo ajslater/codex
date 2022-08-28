@@ -207,12 +207,12 @@ import humanize from "humanize";
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import { getDownloadURL } from "@/api/v3/reader";
+import { formattedIssue } from "@/comic-name.js";
 import BookCover from "@/components/book-cover.vue";
-import { formattedIssue } from "@/components/comic-name.js";
-import { DATETIME_FORMAT } from "@/components/datetime";
-import MetadataCreditsTable from "@/components/metadata-credits-table.vue";
-import MetadataTags from "@/components/metadata-tags.vue";
-import MetadataText from "@/components/metadata-text.vue";
+import MetadataCreditsTable from "@/components/metadata/credits-table.vue";
+import MetadataTags from "@/components/metadata/metadata-tags.vue";
+import MetadataText from "@/components/metadata/metadata-text.vue";
+import { DATETIME_FORMAT } from "@/datetime";
 import { getReaderRoute } from "@/router/route";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
@@ -448,15 +448,6 @@ export default {
 .quarterRow > * {
   width: 25%;
   display: inline-flex;
-}
-@import "browser-card.scss";
-.tagIcon {
-  color: $browser-card-icon-color;
-  width: $browser-card-icon-size;
-  height: $browser-card-icon-size;
-}
-.tagIcon:hover {
-  color: $browser-card-icon-hover-color;
 }
 
 @media #{map-get($display-breakpoints, 'sm-and-down')} {

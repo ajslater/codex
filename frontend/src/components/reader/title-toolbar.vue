@@ -44,14 +44,14 @@ import { mapActions, mapGetters, mapState } from "pinia";
 
 import { getComicPageSource } from "@/api/v3/reader";
 import CHOICES from "@/choices";
-import { getFullComicName } from "@/components/comic-name";
-import MetadataDialog from "@/components/metadata-dialog.vue";
-import SettingsDrawerButton from "@/components/settings-drawer-button.vue";
+import { getFullComicName } from "@/comic-name";
+import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
+import SettingsDrawerButton from "@/components/settings/button.vue";
 import { useBrowserStore } from "@/stores/browser";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
-  name: "ReaderTopToolbar",
+  name: "ReaderTitleToolbar",
   components: {
     MetadataDialog,
     SettingsDrawerButton,

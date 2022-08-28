@@ -34,8 +34,8 @@
 import { mdiOpenInNew } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
-import SearchHelp from "@/components/browser-search-help.vue";
-import SettingsCommonPanel from "@/components/settings-common-panel.vue";
+import SearchHelp from "@/components/browser/search-help.vue";
+import SettingsCommonPanel from "@/components/settings/panel.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 

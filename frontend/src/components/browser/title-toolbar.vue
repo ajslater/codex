@@ -25,7 +25,7 @@
 import { mdiArrowUp } from "@mdi/js";
 import { mapGetters, mapState } from "pinia";
 
-import { formattedVolumeName } from "@/components/comic-name";
+import { formattedVolumeName } from "@/comic-name";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 

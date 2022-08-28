@@ -19,11 +19,11 @@
 <script>
 import { mapActions, mapState } from "pinia";
 
-import BrowserNavButton from "@/components/browser-nav-button.vue";
+import BrowserNavButton from "@/components/browser/nav-button.vue";
 import { useBrowserStore } from "@/stores/browser";
 
 export default {
-  name: "BrowserPaginationToolbar",
+  name: "BrowserNavToolbar",
   components: {
     BrowserNavButton,
   },

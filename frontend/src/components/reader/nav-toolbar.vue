@@ -24,7 +24,7 @@
 <script>
 import { mapActions, mapState } from "pinia";
 
-import ReaderNavButton from "@/components/reader-nav-button.vue";
+import ReaderNavButton from "@/components/reader/nav-button.vue";
 import { useReaderStore } from "@/stores/reader";
 
 export default {

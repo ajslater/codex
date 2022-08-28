@@ -51,7 +51,7 @@
 import { mdiMenu, mdiOpenInNew } from "@mdi/js";
 import { mapGetters, mapState } from "pinia";
 
-import BrowserCard from "@/components/browser-card.vue";
+import BrowserCard from "@/components/browser/card/card.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
@@ -101,7 +101,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "./book-cover.scss";
+@import "../book-cover.scss";
 $card-margin: 32px;
 #browsePane {
   display: flex;

@@ -90,15 +90,3 @@ export default {
   },
 };
 </script>
-
-<style scoped lang="scss">
-@import "browser-card.scss";
-.browserCardMenuIcon {
-  color: $browser-card-icon-color;
-  width: $browser-card-icon-size;
-  height: $browser-card-icon-size;
-}
-.browserCardMenuIcon:hover {
-  color: $browser-card-icon-hover-color;
-}
-</style>

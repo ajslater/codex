@@ -15,8 +15,8 @@ import {
   formattedVolumeName,
   getFullComicName,
   getIssueName,
-} from "@/components/comic-name";
-import { DATE_FORMAT, DATETIME_FORMAT } from "@/components/datetime";
+} from "@/comic-name";
+import { DATE_FORMAT, DATETIME_FORMAT } from "@/datetime";
 import { useBrowserStore } from "@/stores/browser";
 const STAR_SORT_BY = new Set(["community_rating", "critical_rating"]);
 const DATE_SORT_BY = new Set(["date"]);
@@ -112,7 +112,7 @@ export default {
 
 <style scoped lang="scss">
 @import "vuetify/src/styles/styles.sass";
-@import "book-cover.scss";
+@import "../../book-cover.scss";
 .cardSubtitle {
   margin-top: 7px;
   padding-top: 3px;

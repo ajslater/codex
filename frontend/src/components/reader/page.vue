@@ -32,7 +32,7 @@ import { useReaderStore } from "@/stores/reader";
 const PLACEHOLDER_ENGAGE_MS = 500;
 
 export default {
-  name: "ReaderComicPage",
+  name: "ReaderPage",
   components: { Placeholder, VuePdfEmbed },
   props: {
     pageIncrement: {

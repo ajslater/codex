@@ -196,6 +196,7 @@ export default {
 
 <style scoped lang="scss">
 @import "vuetify/src/styles/styles.sass";
+@import "../anchors.scss";
 #searchHelp {
   max-width: 100vw;
   background-color: #121212;

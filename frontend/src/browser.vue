@@ -5,7 +5,7 @@
       <BrowserTitleToolbar />
     </header>
     <BrowserMain />
-    <BrowserPaginationToolbar />
+    <BrowserNavToolbar />
     <BrowserSettingsDrawer />
   </div>
 </template>
@@ -13,11 +13,11 @@
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 
-import BrowserFilterToolbar from "@/components/browser-filter-toolbar.vue";
-import BrowserMain from "@/components/browser-main.vue";
-import BrowserPaginationToolbar from "@/components/browser-pagination-toolbar.vue";
-import BrowserSettingsDrawer from "@/components/browser-settings-drawer.vue";
-import BrowserTitleToolbar from "@/components/browser-title-toolbar.vue";
+import BrowserFilterToolbar from "@/components/browser/filter-toolbar.vue";
+import BrowserMain from "@/components/browser/main.vue";
+import BrowserNavToolbar from "@/components/browser/nav-toolbar.vue";
+import BrowserSettingsDrawer from "@/components/browser/settings-drawer.vue";
+import BrowserTitleToolbar from "@/components/browser/title-toolbar.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 
@@ -26,7 +26,7 @@ export default {
   components: {
     BrowserFilterToolbar,
     BrowserMain,
-    BrowserPaginationToolbar,
+    BrowserNavToolbar,
     BrowserTitleToolbar,
     BrowserSettingsDrawer,
   },

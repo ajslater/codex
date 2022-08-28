@@ -1,28 +1,28 @@
 <template>
-  <div class="linkSpacer">
+  <div class="cardControls">
     <v-icon v-if="item.group === 'c'" class="eye">
       {{ eyeIcon }}
     </v-icon>
-    <MetadataButton
-      class="metadataButton"
-      :group="item.group"
-      :pk="item.pk"
-      :children="item.childCount"
-    />
-    <BrowserCardMenu
-      class="browserCardMenu"
-      :group="item.group"
-      :pk="item.pk"
-      :finished="item.finished"
-    />
+    <span class="cardControlButton">
+      <MetadataButton
+        :group="item.group"
+        :pk="item.pk"
+        :children="item.childCount"
+      />
+      <BrowserCardMenu
+        :group="item.group"
+        :pk="item.pk"
+        :finished="item.finished"
+      />
+    </span>
   </div>
 </template>
 
 <script>
 import { mdiEye, mdiEyeOff } from "@mdi/js";
 
-import BrowserCardMenu from "@/components/browser-card-menu.vue";
-import MetadataButton from "@/components/metadata-dialog.vue";
+import BrowserCardMenu from "@/components/browser/card/menu.vue";
+import MetadataButton from "@/components/metadata/metadata-dialog.vue";
 export default {
   name: "BrowserCardControls",
   components: {
@@ -55,8 +55,8 @@ export default {
 
 <style scoped lang="scss">
 @import "vuetify/src/styles/styles.sass";
-@import "book-cover.scss";
-.linkSpacer {
+@import "../../book-cover.scss";
+.cardControls {
   height: 100%;
   width: 100%;
   opacity: 0; // invisible by default. hover exposes it.
@@ -80,6 +80,22 @@ $button-margin: 5px;
   position: absolute !important;
   right: $button-margin !important;
   bottom: $button-margin !important;
+}
+
+$browser-card-icon-size: 24px;
+$unselected-icon-color: #a0a0a0;
+.cardControlButton .v-icon {
+  color: $unselected-icon-color !important;
+  width: $browser-card-icon-size;
+  height: $browser-card-icon-size;
+}
+.cardControlButton .v-icon:hover {
+  color: white !important;
+}
+
+.cardControls:has(> .cardControlButton:hover) .eye {
+  /* this selector only works on safari 2022-08 */
+  color: $unselected-icon-color;
 }
 
 @import "vuetify/src/styles/styles.sass";

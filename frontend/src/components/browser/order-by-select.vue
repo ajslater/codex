@@ -82,5 +82,5 @@ export default {
   float: right;
   margin-left: 5px;
 }
-/* #orderSelect style is handled in browser-filter-toolbar.vue */
+/* #orderSelect style is handled in browser/filter-toolbar.vue */
 </style>

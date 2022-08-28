@@ -3,15 +3,15 @@
     <div v-if="isCodexViewable" id="readerContainer">
       <v-main>
         <div id="pagesContainer">
-          <ReaderComicPage :page-increment="+0" />
-          <ReaderComicPage :page-increment="+1" />
+          <ReaderPage :page-increment="+0" />
+          <ReaderPage :page-increment="+1" />
         </div>
         <div id="navOverlay" @click="toggleToolbars">
           <ReaderNavOverlay />
         </div>
       </v-main>
       <v-slide-y-transition>
-        <ReaderTopToolbar v-show="showToolbars" />
+        <ReaderTitleToolbar v-show="showToolbars" />
       </v-slide-y-transition>
       <v-slide-y-reverse-transition>
         <ReaderNavToolbar v-show="showToolbars" />
@@ -29,11 +29,11 @@
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 
-import ReaderComicPage from "@/components/reader-comic-page.vue";
-import ReaderNavOverlay from "@/components/reader-nav-overlay.vue";
-import ReaderNavToolbar from "@/components/reader-nav-toolbar.vue";
-import ReaderSettingsDrawer from "@/components/reader-settings-drawer.vue";
-import ReaderTopToolbar from "@/components/reader-top-toolbar.vue";
+import ReaderNavOverlay from "@/components/reader/nav-overlay.vue";
+import ReaderNavToolbar from "@/components/reader/nav-toolbar.vue";
+import ReaderPage from "@/components/reader/page.vue";
+import ReaderSettingsDrawer from "@/components/reader/settings-drawer.vue";
+import ReaderTitleToolbar from "@/components/reader/title-toolbar.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useReaderStore } from "@/stores/reader";
 
@@ -42,10 +42,10 @@ const MIN_VIEWPORT_WIDTH_SWIPE_ENABLED = 768;
 export default {
   name: "MainReader",
   components: {
-    ReaderComicPage,
+    ReaderPage,
     ReaderNavOverlay,
     ReaderNavToolbar,
-    ReaderTopToolbar,
+    ReaderTitleToolbar,
     ReaderSettingsDrawer,
   },
   data() {

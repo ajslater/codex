@@ -52,6 +52,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@import "../anchors.scss";
 .text {
   display: flex;
   flex-direction: column;
