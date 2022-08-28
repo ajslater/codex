@@ -1,5 +1,5 @@
 """Serializers for the browser view."""
-from abc import ABC
+from abc import ABC, abstractmethod
 
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
@@ -8,7 +8,6 @@ from rest_framework.serializers import (
     CharField,
     ChoiceField,
     DecimalField,
-    Field,
     IntegerField,
     ListField,
     Serializer,
@@ -74,7 +73,13 @@ class BrowserSettingsShowGroupFlagsSerializer(Serializer):
 class FilterListField(ListField, ABC):
     """Filter List field with custom arguments."""
 
-    CHILD_CLASS = Field
+    @property
+    @classmethod
+    @abstractmethod
+    def CHILD_CLASS(cls):  # noqa: N802
+        """Child field class."""
+        raise NotImplementedError()
+
     VALIDATORS = tuple()
 
     def __init__(self, *args, **kwargs):

@@ -93,6 +93,8 @@ class AuthenticationSerializer(Serializer):
 
 
 class OPDSTemplateLinkSerializer(Serializer):
+    """OPDS Link Template Serializer."""
+
     href = CharField(read_only=True)
     rel = CharField(read_only=True)
     type = CharField(read_only=True)
@@ -106,6 +108,8 @@ class OPDSTemplateLinkSerializer(Serializer):
 
 
 class OPDSTemplateEntrySerializer(Serializer):
+    """OPDS Entry Template Serializer."""
+
     id = CharField(read_only=True)
     title = CharField(read_only=True)
     links = ListField(child=OPDSTemplateLinkSerializer(), read_only=True)
@@ -115,6 +119,8 @@ class OPDSTemplateEntrySerializer(Serializer):
 
 
 class OPDSTemplateSerializer(Serializer):
+    """OPDS Browser Template Serializer."""
+
     opds_ns = CharField(read_only=True)
     id = CharField(read_only=True)
     title = CharField(read_only=True)

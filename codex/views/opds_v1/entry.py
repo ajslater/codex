@@ -21,6 +21,7 @@ LOG = get_logger(__name__)
 
 
 class OPDSEntry:
+    """An OPDS entry object."""
 
     _DATE_FORMAT_BASE = "%Y-%m-%dT%H:%M:%S"
     DATE_FORMAT_MS = _DATE_FORMAT_BASE + ".%f%z"
@@ -28,6 +29,7 @@ class OPDSEntry:
     DATE_FORMATS = (DATE_FORMAT_MS, DATE_FORMAT)
 
     def __init__(self, obj, valid_nav_groups, query_params, at_top=False):
+        """Initialize params."""
         self.obj = obj
         self.valid_nav_groups = valid_nav_groups
         self.query_params = query_params
@@ -91,11 +93,13 @@ class OPDSEntry:
 
     @property
     def issued(self):
+        """Return the published date."""
         if date := self.obj.get("date"):
             return date
 
     @property
     def updated(self):
+        """When the entry was last updated."""
         if updated_at := self.obj.get("updated_at"):
             updated = None
             try:
@@ -187,6 +191,7 @@ class OPDSEntry:
 
     @property
     def links(self):
+        """Create all entry links."""
         result = []
         if thumb := self._thumb_link():
             result += [thumb]

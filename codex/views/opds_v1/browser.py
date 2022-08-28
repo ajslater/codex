@@ -37,6 +37,7 @@ class OPDSBrowser(BrowserView, CodexXMLTemplateView):
 
     @property
     def opds_ns(self):
+        """Dynamic opds namespace."""
         if self.is_aq_feed:
             ns = OpdsNs.ACQUISITION
         else:
@@ -45,6 +46,7 @@ class OPDSBrowser(BrowserView, CodexXMLTemplateView):
 
     @property
     def id(self):
+        """Feed id is the url."""
         return self.request.build_absolute_uri()
 
     @property
@@ -178,6 +180,7 @@ class OPDSBrowser(BrowserView, CodexXMLTemplateView):
         return links
 
     def is_top_link_displayed(self, top_link):
+        """Determine if this top link should be displayed."""
         is_displayed = True
         for key, val in top_link.kwargs.items():
             if key == "page":
@@ -194,6 +197,7 @@ class OPDSBrowser(BrowserView, CodexXMLTemplateView):
 
     @property
     def links(self):
+        """Create all the links."""
         if self.is_aq_feed:
             mime_type = MimeType.ACQUISITION
         else:
@@ -219,6 +223,7 @@ class OPDSBrowser(BrowserView, CodexXMLTemplateView):
         return links
 
     def _root_link_entry(self, kwargs, qps, glyph, title):
+        """Create a root link entry instead of as a facet."""
         entry_obj = {
             **kwargs,
             "name": " ".join((glyph, title)),
@@ -229,6 +234,7 @@ class OPDSBrowser(BrowserView, CodexXMLTemplateView):
 
     @property
     def entries(self):
+        """Create all the entries."""
         entries = []
         if not self.use_facets:
             entries += self._facets(entries=True)
@@ -257,7 +263,9 @@ class OPDSBrowser(BrowserView, CodexXMLTemplateView):
         return entries
 
     def get_object(self):
+        """Get the browser page and serialize it for this subclass."""
         browser_page = super().get_object()
+        # TODO try not serailizing this and use the object directly.
         serializer = OPDSFeedSerializer(browser_page)
         self.obj = serializer.data
         self.is_aq_feed = self.obj.get("model_group") == "c"
@@ -281,7 +289,7 @@ class OPDSBrowser(BrowserView, CodexXMLTemplateView):
 
     @extend_schema(request=BrowserView.input_serializer_class)
     def get(self, request, *args, **kwargs):
-
+        """Get the feed."""
         self.parse_params()
         self.validate_settings()
         self._detect_user_agent()

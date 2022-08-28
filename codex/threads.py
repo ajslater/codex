@@ -21,7 +21,12 @@ class BreakLoopError(Exception):
 class NamedThread(Thread, ABC):
     """A thread that sets its name for ps."""
 
-    NAME = "abstract-named-thread"
+    @property
+    @classmethod
+    @abstractmethod
+    def NAME(cls):  # noqa: N802
+        """Name the thread."""
+        raise NotImplementedError()
 
     def run_start(self):
         """First thing to do when running a new thread."""
@@ -33,8 +38,6 @@ class QueuedThread(NamedThread, ABC):
 
     SHUTDOWN_MSG = "shutdown"
     SHUTDOWN_TIMEOUT = 5
-
-    NAME = "abstract-queued-thread"
 
     def __init__(self):
         """Initialize with overridden name and as a daemon thread."""

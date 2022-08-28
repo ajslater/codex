@@ -96,6 +96,7 @@ class ReaderView(GenericAPIView, GroupACLMixin):
         return obj
 
     def get(self, request, *args, **kwargs):
+        """Get the book info."""
         obj = self.get_object()
         serializer = self.get_serializer(obj)
         return Response(serializer.data)

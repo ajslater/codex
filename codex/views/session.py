@@ -1,11 +1,10 @@
 """Manage user sessions with appropriate defaults."""
-from abc import ABC
+from abc import ABC, abstractmethod
 from copy import deepcopy
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
-from rest_framework.serializers import Serializer
 
 from codex.serializers.choices import DEFAULTS
 from codex.settings.logging import get_logger
@@ -19,7 +18,13 @@ class SessionViewBaseBase(GenericAPIView, ABC):
     """Generic Session View."""
 
     # Must override both of these
-    SESSION_KEY = "UNDEFINED"
+    @property
+    @classmethod
+    @abstractmethod
+    def SESSION_KEY(cls):  # noqa: N802, type: ignore
+        """Implement the session key string."""
+        raise NotImplementedError()
+
     SESSION_DEFAULTS = {}
 
     @classmethod
@@ -55,9 +60,10 @@ class SessionViewBaseBase(GenericAPIView, ABC):
             LOG.warning(f"Saving params to session: {exc}")
 
 
-class BrowserSessionViewBase(SessionViewBaseBase, ABC):
+class BrowserSessionViewBase(SessionViewBaseBase):
     """Browser session base."""
 
+    SESSION_KEY = "browser"  # type: ignore
     CREDIT_PERSON_UI_FIELD = "creators"
     _DYNAMIC_FILTER_DEFAULTS = {
         "age_rating": [],
@@ -92,13 +98,12 @@ class BrowserSessionViewBase(SessionViewBaseBase, ABC):
         "show": DEFAULTS["show"],
         "route": DEFAULTS["route"],
     }
-    SESSION_KEY = "browser"
 
 
-class ReaderSessionViewBase(SessionViewBaseBase, ABC):
+class ReaderSessionViewBase(SessionViewBaseBase):
     """Reader session base."""
 
-    SESSION_KEY = "reader"
+    SESSION_KEY = "reader"  # type: ignore
     SESSION_DEFAULTS = {"fit_to": DEFAULTS["fitTo"], "two_pages": False}
 
 
@@ -107,7 +112,12 @@ class SessionViewBase(SessionViewBaseBase, ABC):
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
 
-    serializer_class = Serializer  # must override
+    @property
+    @classmethod
+    @abstractmethod
+    def serializer_class(cls):
+        """Define the output serializer class."""
+        raise NotImplementedError()
 
     def load_params_from_session(self):
         """Set the params from view session, creating missing values from defaults."""

@@ -1,10 +1,9 @@
 """Janitor Tasks."""
-from abc import ABC
 from dataclasses import dataclass
 
 
 @dataclass
-class JanitorTask(ABC):
+class JanitorTask:
     """Tasks for the janitor."""
 
     pass

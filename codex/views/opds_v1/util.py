@@ -10,6 +10,8 @@ BLANK_TITLE = "Unknown"
 
 
 class OpdsNs:
+    """xml namespaces."""
+
     CATALOG = "http://opds-spec.org/2010/catalog"
     ACQUISITION = "http://opds-spec.org/2010/acquisition"
 
@@ -23,12 +25,16 @@ class UserAgents:
 
 
 class TopRoutes:
+    """Routes for top groups."""
+
     SERIES = {"group": "s", "pk": 0}
     FOLDER = {"group": "f", "pk": 0}
     ROOT = {"group": "r", "pk": 0}
 
 
 class Rel:
+    """Link rel strings."""
+
     AUTHENTICATION = "http://opds-spec.org/auth/document"
     FACET = "http://opds-spec.org/facet"
     ACQUISITION = "http://opds-spec.org/acquisition"
@@ -42,6 +48,8 @@ class Rel:
 
 
 class MimeType:
+    """Mime Types."""
+
     ATOM = "application/atom+xml"
     _PROFILE_CATALOG = "profile=opds-catalog"
     NAV = ";".join((ATOM, _PROFILE_CATALOG, "kind=navigation"))
@@ -54,6 +62,8 @@ class MimeType:
 
 @dataclass
 class RootLink:
+    """A feed root link."""
+
     rel: str
     mime_type: str = MimeType.NAV
     query_params: defaultdict[dict[str, Any]] = field(
@@ -63,6 +73,8 @@ class RootLink:
 
 @dataclass
 class FacetGroup:
+    """An opds:facetGroup."""
+
     title_prefix: str
     query_param: str
     glyph: str
@@ -71,12 +83,16 @@ class FacetGroup:
 
 @dataclass
 class Facet:
+    """An OPDS facet."""
+
     value: str
     title: str
 
 
 @dataclass
 class TopLink:
+    """A non standard root link when facets are unsupported."""
+
     kwargs: dict
     root_link: RootLink
     glyph: str
@@ -84,6 +100,8 @@ class TopLink:
 
 
 class RootLinks:
+    """Root link definitions."""
+
     UP = RootLink(Rel.UP)
     PREV = RootLink(Rel.PREV)
     NEXT = RootLink(Rel.NEXT)
@@ -95,6 +113,8 @@ class RootLinks:
 
 
 class TopLinks:
+    """Top link definitions."""
+
     NEW = TopLink(
         TopRoutes.SERIES,
         RootLinks.NEW,
@@ -104,6 +124,8 @@ class TopLinks:
 
 
 class FacetGroups:
+    """Facet Group definitions."""
+
     ORDER_BY = FacetGroup(
         "Order By",
         "orderBy",
@@ -137,6 +159,8 @@ DEFAULT_FACETS = {
 
 @dataclass
 class OPDSLink:
+    """An OPDS Link."""
+
     rel: str
     href: str
     type: str
@@ -150,6 +174,7 @@ class OPDSLink:
 
 
 def update_href_query_params(href, old_query_params, new_query_params):
+    """Update an href by masking query params on top of the ones it has."""
     query_params = {}
     for key, value in old_query_params.items():
         # qps are sometimes encapsulated in a list for when there's mutiples.

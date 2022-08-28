@@ -6,14 +6,16 @@ from rest_framework.views import APIView
 
 
 class TemplateXMLRenderer(TemplateHTMLRenderer):
+    """Template rendeerer for xml."""
 
     media_type = "text/xml"
     format = "xml"
 
 
 class SimpleAPIView(APIView):
+    """APIView with a simple getter and no data."""
 
-    content_type = "text/html"
+    content_type = "application/json"
     status_code = status.HTTP_200_OK
 
     def get(self, request, *args, **kwargs):
@@ -24,13 +26,14 @@ class SimpleAPIView(APIView):
 
 
 class CodexTemplateView(SimpleAPIView):
-    """Template View."""
+    """HTML Template View."""
 
     renderer_classes = [TemplateHTMLRenderer]
     content_type = "text/html"
 
 
 class CodexXMLTemplateView(SimpleAPIView):
+    """XML Template View."""
 
     renderer_classes = [TemplateXMLRenderer]
     content_type = "application/xml"

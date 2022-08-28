@@ -1,11 +1,10 @@
 """Covers Tasks."""
-from abc import ABC
 from dataclasses import dataclass
 from pathlib import Path
 
 
 @dataclass
-class CoverTask(ABC):
+class CoverTask:
     """Handle with the CoverCreator."""
 
     pass
@@ -41,7 +40,7 @@ class CoverRemoveOrphansTask(CoverTask):
 
 
 @dataclass
-class LibrariesTask(ABC):
+class LibrariesTask:
     """Tasks over a set of libraries."""
 
     library_ids: frozenset

@@ -1,12 +1,11 @@
 """Watchdog Tasks."""
-from abc import ABC
 from dataclasses import dataclass
 
 from watchdog.events import FileSystemEvent
 
 
 @dataclass
-class WatchdogTask(ABC):
+class WatchdogTask:
     """Watchdog tasks."""
 
     pass

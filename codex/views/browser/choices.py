@@ -42,11 +42,12 @@ class BrowserChoiceView(BrowserBaseView):
         return qs
 
     def get_object(self):
+        """Get the comic subquery use for the choices."""
         object_filter, _ = self.get_query_filters(True, True)
         return Comic.objects.filter(object_filter)
 
     def _serialize_pycounty_field(self, field_name, comic_qs):
-        """Special hack because countries & languages don't have pks."""
+        """Create a pk:name object for fields without tables."""
         qs = []
 
         if field_name == "country":
