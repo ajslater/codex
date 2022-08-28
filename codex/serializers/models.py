@@ -2,7 +2,6 @@
 import pycountry
 
 from rest_framework.serializers import (
-    CharField,
     IntegerField,
     ModelSerializer,
     Serializer,
@@ -20,7 +19,6 @@ from codex.models import (
     Imprint,
     LibrarianStatus,
     Location,
-    NamedModel,
     Publisher,
     Series,
     SeriesGroup,
@@ -100,25 +98,19 @@ class NamedModelMeta:
 ##########
 
 
-class GroupModelMeta:
-    """Meta class for group models."""
-
-    fields = NamedModelMeta.fields
-
-
 class NamedModelSerializer(ModelSerializer):
     """A common class for NamedModels."""
 
     class Meta(NamedModelMeta):
         """Not Abstract."""
 
-        model = Character  # XXX GENERIC SPECIFIC
+        abstract = True
 
 
 class GroupModelSerializer(NamedModelSerializer):
     """A common class for BrowserGroupModels."""
 
-    class Meta:
+    class Meta(NamedModelMeta):
         """Abstract class."""
 
         abstract = True
@@ -127,7 +119,7 @@ class GroupModelSerializer(NamedModelSerializer):
 class PublisherSerializer(GroupModelSerializer):
     """Publisher Model."""
 
-    class Meta(GroupModelMeta):
+    class Meta(NamedModelMeta):
         """Configure model."""
 
         model = Publisher
@@ -136,7 +128,7 @@ class PublisherSerializer(GroupModelSerializer):
 class ImprintSerializer(GroupModelSerializer):
     """Imprint Model."""
 
-    class Meta(GroupModelMeta):
+    class Meta(NamedModelMeta):
         """Configure model."""
 
         model = Imprint
@@ -145,7 +137,7 @@ class ImprintSerializer(GroupModelSerializer):
 class SeriesSerializer(GroupModelSerializer):
     """Series Model."""
 
-    class Meta(GroupModelMeta):
+    class Meta(NamedModelMeta):
         """Configure model."""
 
         model = Series
@@ -154,7 +146,7 @@ class SeriesSerializer(GroupModelSerializer):
 class VolumeSerializer(GroupModelSerializer):
     """Volume Model."""
 
-    class Meta(GroupModelMeta):
+    class Meta(NamedModelMeta):
         """Configure model."""
 
         model = Volume

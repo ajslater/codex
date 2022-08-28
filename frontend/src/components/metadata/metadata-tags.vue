@@ -54,13 +54,9 @@ export default {
         return state.settings.filters[this.label.toLowerCase()];
       },
     }),
-    vuetifyItems: function () {
-      return toVuetifyItems(this.values, this.items);
-    },
   },
   created: function () {
-    // Different than combobox, returns a list of items.
-    this.model = toVuetifyItems(undefined, this.values);
+    this.model = toVuetifyItems(this.values);
   },
   methods: {
     chipColor: function (pk) {

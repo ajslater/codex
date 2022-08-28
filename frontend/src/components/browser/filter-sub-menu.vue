@@ -104,12 +104,7 @@ export default {
       filterMode: (state) => state.filterMode,
     }),
     vuetifyItems: function () {
-      return toVuetifyItems(
-        undefined,
-        this.choices,
-        this.query,
-        this.isNumeric
-      );
+      return toVuetifyItems(this.choices, this.query, this.isNumeric);
     },
     filter: {
       get() {

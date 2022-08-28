@@ -35,7 +35,6 @@ SECRET_KEY = get_secret_key(CONFIG_PATH)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(os.environ.get("DEBUG", "").lower() not in ("0", "false", ""))
 DEBUG_TOOLBAR = bool(os.environ.get("DEBUG_TOOLBAR", False))
-print(f"{os.environ.get('DEBUG')=} {DEBUG=}")
 #
 # Logging
 #

@@ -35,21 +35,12 @@ const vuetifyItemCompareNumeric = function (itemA, itemB) {
   return Number.parseFloat(itemA.name) - Number.parseFloat(itemB.name);
 };
 
-export const toVuetifyItems = function (value, items, filter, numeric = false) {
+export const toVuetifyItems = function (items, filter, numeric = false) {
   // Takes a value (can be a list) and a list of items and
   // Returns a list of valid items with items arg having preference.
+  const sourceItems = items || [];
 
-  // Transform items into an array of items
-  let sourceItems;
-  if (items) {
-    sourceItems = items;
-  } else if (value) {
-    sourceItems = Array.isArray(value) ? value : [value];
-  } else {
-    sourceItems = [];
-  }
-
-  // Case insensitive search
+  // Case insensitive search for filter-sub-menu
   const lowerCaseFilter = filter ? filter.toLowerCase() : filter;
 
   let computedItems = [];
