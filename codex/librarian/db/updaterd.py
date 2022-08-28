@@ -229,7 +229,7 @@ def _apply(task):
 class Updater(QueuedThread):
     """A worker to handle all bulk database updates."""
 
-    NAME = "Updater"
+    NAME = "Updater"  # type: ignore
 
     def process_item(self, task):
         """Run the updater."""

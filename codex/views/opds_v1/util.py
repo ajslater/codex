@@ -1,7 +1,7 @@
 """OPDS Utility classes."""
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Union
 
 from django.utils.http import urlencode
 
@@ -21,7 +21,7 @@ class UserAgents:
 
     NO_FACET_SUPPORT = ("Panels", "Chunky")
     CLIENT_REORDERS = ("Chunky",)
-    # FACET_SUPPORT = ("yar",) # kybooks
+    # kybooks UA starts with "yar"
 
 
 class TopRoutes:
@@ -66,8 +66,8 @@ class RootLink:
 
     rel: str
     mime_type: str = MimeType.NAV
-    query_params: defaultdict[dict[str, Any]] = field(
-        default_factory=lambda: defaultdict(dict)
+    query_params: defaultdict[str, Union[str, bool]] = field(
+        default_factory=lambda: defaultdict()
     )
 
 
@@ -108,7 +108,7 @@ class RootLinks:
     NEW = RootLink(
         Rel.SORT_NEW,
         MimeType.ACQUISITION,
-        {"orderBy": "date", "orderReverse": True},
+        defaultdict(None, {"orderBy": "date", "orderReverse": True}),
     )
 
 

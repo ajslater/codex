@@ -97,13 +97,11 @@ class QueueLibrarianJobs(APIView):
 
         if task:
             LIBRARIAN_QUEUE.put(task)
-            # status = HTTP_200_OK
         else:
             LOG.warning(f"Unknown admin library task_name: {task_name}")
             raise ValueError("Unknown admin library task_name: {task_name}")
-            # status = HTTP_400_BAD_REQUEST
 
-        return Response({})  # , status=status)
+        return Response({})
 
 
 class LibrarianStatusViewSet(ReadOnlyModelViewSet):

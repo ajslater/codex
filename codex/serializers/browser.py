@@ -95,14 +95,14 @@ class FilterListField(ListField, ABC):
 class DecimalListField(FilterListField):
     """Decimal List Field with validation."""
 
-    CHILD_CLASS = DecimalField
+    CHILD_CLASS = DecimalField  # type: ignore
     VALIDATORS = (validate_int_null,)
 
 
 class IntListField(FilterListField):
     """Integer List Field with validation."""
 
-    CHILD_CLASS = IntegerField
+    CHILD_CLASS = IntegerField  # type: ignore
     VALIDATORS = (validate_int_null,)
 
 
@@ -115,7 +115,7 @@ class DecadeListField(IntListField):
 class CharListField(FilterListField):
     """Char List Field with validation."""
 
-    CHILD_CLASS = CharField
+    CHILD_CLASS = CharField  # type: ignore
     VALIDATORS = (validate_str_null,)
 
 

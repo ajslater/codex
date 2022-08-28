@@ -29,7 +29,7 @@ LOG = get_logger(__name__)
 class CoverCreator(QueuedThread):
     """Create comic covers in it's own thread."""
 
-    NAME = "CoverCreator"
+    NAME = "CoverCreator"  # type: ignore
 
     def process_item(self, task):
         """Run the creator."""

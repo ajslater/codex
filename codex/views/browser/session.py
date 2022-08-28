@@ -8,4 +8,4 @@ class BrowserSessionView(BrowserSessionViewBase, SessionViewBase):
 
     # Put Browser Settings is nomally done through BrowserView.get()
 
-    serializer_class = BrowserSettingsSerializer
+    serializer_class = BrowserSettingsSerializer  # type: ignore

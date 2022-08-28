@@ -15,7 +15,7 @@ LOG = get_logger(__name__)
 class Notifier(AggregateMessageQueuedThread):
     """Aggregates messages preventing floods and sends messages to clients."""
 
-    NAME = "Notifier"
+    NAME = "Notifier"  # type: ignore
     WS_SEND_MSG = {"type": "websocket.send"}
     CONNS = dict([(channel, set()) for channel in Channels])
     SUBSCRIBE_TYPES = {

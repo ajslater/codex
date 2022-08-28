@@ -39,7 +39,7 @@ ONE_DAY = timedelta(days=1)
 class Crond(NamedThread):
     """Run a scheduled service for codex."""
 
-    NAME = "Cron"
+    NAME = "Cron"  # type: ignore
 
     @staticmethod
     def _get_midnight(now, tomorrow=False):

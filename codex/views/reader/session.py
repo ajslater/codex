@@ -6,4 +6,4 @@ from codex.views.session import ReaderSessionViewBase, SessionViewBase
 class ReaderSessionView(ReaderSessionViewBase, SessionViewBase):
     """Get Reader Settings."""
 
-    serializer_class = ReaderSettingsSerializer
+    serializer_class = ReaderSettingsSerializer  # type: ignore

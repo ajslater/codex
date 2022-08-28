@@ -34,7 +34,7 @@ LOG = get_logger(__name__)
 class EventBatcher(AggregateMessageQueuedThread):
     """Batch watchdog events into bulk database tasks."""
 
-    NAME = "WatchdogEventBatcher"
+    NAME = "WatchdogEventBatcher"  # type: ignore
     CLS_SUFFIX = -len("Event")
     DBDIFF_TASK_PARAMS = {
         "library_id": None,
