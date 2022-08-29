@@ -141,10 +141,6 @@ export default {
   border: solid thin #cc7b19;
 }
 .browserCardCoverWrapper:hover > .cardCoverOverlay * {
-  /* optimize-css-assets-webpack-plugin / cssnano bug destroys % values.
-     use decimals instead.
-     https://github.com/NMFR/optimize-css-assets-webpack-plugin/issues/118
-  */
   opacity: 1;
 }
 .bookCoverProgress {

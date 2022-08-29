@@ -16,7 +16,6 @@ read -ra SOURCE_DEPS <<<"$(find codex frontend -type f \( \
     ! -name "*.pyc" \
     ! -name ".eslintcache" \
     ! -name ".DS_Store" \
-    ! -name "webpack-stats.json" \
     \))"
 DEPS=(
     "$0"

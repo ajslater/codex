@@ -8,4 +8,4 @@ See the package.json file for common development scripts. Running the live reloa
 
 ## Production
 
-The Django collectstatic script packages the webpacked modules from `codex/static_build/` and packages them with the main server app in `codex/static_root/`.
+The Django collectstatic script packages the vite rolled up modules from `codex/static_build/` and packages them with the main server app in `codex/static_root/`.
