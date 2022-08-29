@@ -43,14 +43,6 @@ module.exports = {
         "prettier/prettier": ["error", { parser: "markdown" }],
       },
     },
-    {
-      files: ["*.md.js"], // Will match js code inside *.md files
-      rules: {
-        // disable 2 core eslint rules 'no-unused-vars' and 'no-undef'
-        "no-unused-vars": "off",
-        "no-undef": "off",
-      },
-    },
   ],
   plugins: [
     "array-func",
@@ -74,14 +66,6 @@ module.exports = {
     "yaml",
   ],
   rules: {
-    /*
-    "import/no-unresolved": [
-      "error",
-      {
-        ignore: ["^[@]"],
-      },
-    ],
-  */
     "max-params": ["warn", 4],
     /*
      md/remark plugins can't be read by eslint
