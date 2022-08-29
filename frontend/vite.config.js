@@ -24,7 +24,6 @@ const config = defineConfig(({ mode }) => {
   const PROD = mode === "production";
   const DEV = mode === "development";
   return {
-    root: "src",
     base: root_path + "/static",
     server: {
       host: true,
@@ -79,7 +78,6 @@ const config = defineConfig(({ mode }) => {
     },
     test: {
       environment: "jsdom",
-      includeSource: ["../tests/**/*.*.{js,ts}"],
     },
   };
 });

@@ -1,22 +1,21 @@
 import { createTestingPinia } from "@pinia/testing";
 import { createLocalVue, mount } from "@vue/test-utils";
 import { defineStore, PiniaVuePlugin } from "pinia";
+import { expect, test, vi } from "vitest";
 import VueRouter from "vue-router";
 import Vuetify from "vuetify";
 
 import ReaderNavButton from "@/components/reader/nav-button.vue";
 
-const { expect, test } = import.meta.vitest;
+const BTN_DISABLED = "v-btn--disabled";
 
-// XXX fix multiple vue instances https://github.com/vuetifyjs/vuetify/issues/4068
-const localVue = createLocalVue();
-const setupVue = () => {
-  localVue.use(VueRouter);
-  localVue.use(Vuetify);
-  localVue.use(PiniaVuePlugin);
+const setupVue = function (vue) {
+  vue.use(VueRouter);
+  vue.use(Vuetify);
+  vue.use(PiniaVuePlugin);
 };
 
-const setupStore = () => {
+const setupStore = function () {
   return defineStore("mockReader", {
     state: () => {
       return {
@@ -38,7 +37,8 @@ const setupStore = () => {
     },
   });
 };
-const setupRouter = () => {
+
+const setupRouter = function () {
   return new VueRouter({
     routes: [
       { path: "/c/:pk/:page", name: "reader", component: ReaderNavButton },
@@ -46,13 +46,13 @@ const setupRouter = () => {
   });
 };
 
-const DISABLED_CLASS = "v-btn--disabled";
-
-test("mount component", async () => {
+test("reader-nav-button", async () => {
+  console.log("started test");
   expect(ReaderNavButton).toBeTruthy();
 
-  setupVue();
-  //const store = setupStore();
+  const localVue = createLocalVue();
+  setupVue(localVue);
+
   const store = setupStore();
   const router = setupRouter();
   const wrapper = mount(ReaderNavButton, {
@@ -64,27 +64,28 @@ test("mount component", async () => {
     },
     stubs: ["router-link", "router-view"],
     global: {
-      plugins: [createTestingPinia()],
+      plugins: [createTestingPinia({ createSpy: vi.fn })],
     },
   });
 
   expect(wrapper.text()).toContain("0");
   expect(wrapper.html()).toMatchSnapshot();
   const btn = wrapper.findComponent({ name: "v-btn" });
-  expect(btn.classes(DISABLED_CLASS)).toBe(false);
-
+  expect(btn.classes(BTN_DISABLED)).toBe(false);
   await wrapper.vm.$router.push({
     name: "reader",
     params: { pk: 2, page: 10 },
   });
-  expect(btn.classes(DISABLED_CLASS)).toBe(false);
 
+  expect(btn.classes(BTN_DISABLED)).toBe(false);
   // doesn't work
   // await btn.trigger("click");
   wrapper.vm.$router.push({ name: "reader", params: { pk: 2, page: 0 } });
   await wrapper.vm.$nextTick();
 
-  expect(btn.classes(DISABLED_CLASS)).toBe(true);
+  expect(btn.classes(BTN_DISABLED)).toBe(true);
 
   expect(wrapper.text()).toContain("0");
-});
+}, 1000);
+
+export default {};

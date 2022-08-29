@@ -25,7 +25,7 @@
         </script>
         {% if DEBUG %}
             {% vite_hmr_client %}
-            {% vite_asset 'main.js' %}
+            {% vite_asset 'src/main.js' %}
         {% else %}
             <script defer type="module" src="{% static main_js %}"></script>
         {% endif %}
