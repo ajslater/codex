@@ -32,7 +32,7 @@
       </a>
       <SettingsDrawerButton
         id="settingsButton"
-        @click.stop="openSettingsDrawer"
+        @click.stop="isSettingsDrawerOpen = true"
       />
     </v-toolbar-items>
   </v-toolbar>
@@ -40,7 +40,7 @@
 
 <script>
 import { mdiClose, mdiDownload } from "@mdi/js";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapGetters, mapState, mapWritableState } from "pinia";
 
 import { getComicPageSource } from "@/api/v3/reader";
 import CHOICES from "@/choices";
@@ -82,6 +82,7 @@ export default {
     ...mapState(useBrowserStore, {
       lastRoute: (state) => state.page.routes.last,
     }),
+    ...mapWritableState(useReaderStore, ["isSettingsDrawerOpen"]),
     ...mapGetters(useReaderStore, ["computedSettings"]),
     closeBookRoute: function () {
       // Choose the best route
@@ -106,54 +107,22 @@ export default {
     },
   },
   mounted() {
-    // Keyboard Shortcuts
     window.addEventListener("keyup", this._keyListener);
   },
   beforeDestroy: function () {
     window.removeEventListener("keyup", this._keyListener);
   },
   methods: {
-    ...mapActions(useReaderStore, ["setSettingsLocal"]),
-    openSettingsDrawer: function () {
-      useReaderStore().isSettingsDrawerOpen = true;
-    },
-    _keyListener: function (event) {
-      // TODO can i move this to the drawer?
-      event.stopPropagation();
-      switch (event.key) {
-        case "c":
-          this.$refs.closeBook.$el.click();
-          break;
-
-        case "w":
-          this.setSettingsLocal({ fitTo: "WIDTH" });
-          break;
-
-        case "h":
-          this.setSettingsLocal({ fitTo: "HEIGHT" });
-          break;
-        case "s":
-          this.setSettingsLocal({ fitTo: "SCREEN" });
-          break;
-
-        case "o":
-          this.setSettingsLocal({ fitTo: "ORIG" });
-          break;
-
-        case "2":
-          this.setSettingsLocal({
-            twoPages: !this.computedSettings.twoPages,
-          });
-          break;
-
-        case "m":
-          this.openMetadata();
-          break;
-        // No default
-      }
-    },
     openMetadata: function () {
       this.$refs.metadataDialog.dialog = true;
+    },
+    _keyListener: function (event) {
+      event.stopPropagation();
+      if (event.key === "c") {
+        this.$refs.closeBook.$el.click();
+      } else if (event.key === "m") {
+        this.openMetadata();
+      }
     },
   },
 };

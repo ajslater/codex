@@ -94,7 +94,11 @@ export default {
     },
   },
   mounted() {
+    window.addEventListener("keyup", this._keyListener);
     this.$emit("panelMounted");
+  },
+  beforeDestroy: function () {
+    window.removeEventListener("keyup", this._keyListener);
   },
   methods: {
     ...mapActions(useReaderStore, [
@@ -107,6 +111,34 @@ export default {
         this.setSettingsGlobal(data);
       } else {
         this.setSettingsLocal(data);
+      }
+    },
+    _keyListener: function (event) {
+      event.stopPropagation();
+      switch (event.key) {
+        case "w":
+          this.setSettingsLocal({ fitTo: "WIDTH" });
+          break;
+
+        case "h":
+          this.setSettingsLocal({ fitTo: "HEIGHT" });
+          break;
+        case "s":
+          this.setSettingsLocal({ fitTo: "SCREEN" });
+          break;
+
+        case "o":
+          this.setSettingsLocal({ fitTo: "ORIG" });
+          break;
+
+        case "2":
+          this.setSettingsLocal({
+            twoPages: !this.settingsScope.twoPages,
+          });
+          break;
+
+        // metadata and close are attached to to title-toolbar
+        // No default
       }
     },
   },
