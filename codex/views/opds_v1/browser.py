@@ -8,7 +8,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication
 from rest_framework.response import Response
 
-from codex.serializers.opds_v1 import OPDSFeedSerializer, OPDSTemplateSerializer
+from codex.serializers.opds_v1 import OPDSEntrySerializer, OPDSTemplateSerializer
 from codex.views.browser.browser import BrowserView
 from codex.views.opds_v1.entry import OPDSEntry
 from codex.views.opds_v1.util import (
@@ -265,9 +265,10 @@ class OPDSBrowser(BrowserView, CodexXMLTemplateView):
     def get_object(self):
         """Get the browser page and serialize it for this subclass."""
         browser_page = super().get_object()
-        # TODO try not serailizing this and use the object directly.
-        serializer = OPDSFeedSerializer(browser_page)
-        self.obj = serializer.data
+        # this serialization fixes the unionfix prefixes
+        serializer = OPDSEntrySerializer(browser_page.get("obj_list"), many=True)
+        browser_page["obj_list"] = serializer.data
+        self.obj = browser_page
         self.is_aq_feed = self.obj.get("model_group") == "c"
         return self
 
