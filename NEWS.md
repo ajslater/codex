@@ -6,7 +6,7 @@
 
   - Users may now change their own passwords.
   - HTTP Basic auth only used for OPDS.
-  - OPDS gains a Newest issues facet.
+  - OPDS gains a Newest Issues facet.
 
 - Dev Features
 
