@@ -70,13 +70,10 @@ export default {
   },
   computed: {
     ...mapState(useAuthStore, {
-      enabelNonUsers: (state) => state.adminFlags.enableNonUsers,
+      enableNonUsers: (state) => state.adminFlags.enableNonUsers,
       enableRegister: (state) => state.adminFlags.enableRegistration,
     }),
     ...mapGetters(useAuthStore, ["isUserAdmin", "isCodexViewable"]),
-    outdated: function () {
-      return this.versions.latest > this.versions.installed;
-    },
     ...mapState(useBrowserStore, {
       objList: (state) => state.page.objList,
       librariesExist: (state) => state.page.librariesExist,
@@ -91,7 +88,8 @@ export default {
       },
       showPlaceHolder: function (state) {
         return (
-          !this.enableNonUsers === undefined ||
+          this.enableNonUsers === undefined ||
+          this.librariesExist == undefined ||
           (!state.browserPageLoaded && this.isCodexViewable)
         );
       },
