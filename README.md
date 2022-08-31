@@ -4,18 +4,17 @@ A comic archive browser and reader.
 
 ## <a name="features">✨ Features</a>
 
-- Codex is a web server, not a desktop or mobile app.
+- Codex is a web server.
 - Full text search of metadata and bookmarks.
 - Filter and sort on all comic metadata and unread status per user.
 - Browse a tree of publishers, imprints, series, volumes, or your
   own folder hierarchy.
 - Read comics in a variety of aspect ratios that fit your screen.
-- Per user bookmarking. You get per browser bookmarks even before you make an account.
+- Per user bookmarking. Per browser bookmarks even before you make an account.
 - Watches the filesystem and automatically imports new or changed comics.
 - Private Libraries accessible only to certain groups of users.
 - Reads CBZ, CBR, CBT, and PDF formatted comics.
-- Syndicatation with OPDS 1.2, OPDS-PSE 1.1, OPDS Authentication 1.0, and OpenSearch.
-- HTTP Basic Authentication
+- Syndication with OPDS, streaming, search and authentication.
 
 ### Examples
 
@@ -274,6 +273,13 @@ If you wish to access OPDS as your Codex User. You will have to add your usernam
 
 `http(s)://username:password@host.tld(:9810)(/root_path)/opds/v1.2/`
 
+#### Supported OPDS Specifications
+
+- OPDS 1.2
+- OPDS-PSE 1.1
+- OPDS Authentication 1.0
+- OpenSearch
+
 ## <a name="troubleshooting">🩺 Troubleshooting</a>
 
 ### Logs
@@ -329,7 +335,7 @@ Please use the `#codex-support` channel to ask for help with Codex.
 
 ## <a name="alternatives-to-codex">📚Alternatives</a>
 
-- [Kavita](https://www.kavitareader.com/) has light metadata filtering/editing and supports comics and eBooks.
+- [Kavita](https://www.kavitareader.com/) has light metadata filtering/editing, supports comics, eBooks, and features for manga.
 - [Komga](https://komga.org/) has light metadata editing.
 - [Ubooquity](https://vaemendis.net/ubooquity/) reads both comics and eBooks.
 - [Mylar](https://github.com/mylar3/mylar3) is the best comic book manager which also has a built in reader.
