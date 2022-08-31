@@ -13,6 +13,10 @@
   - API v3 is more restful.
   - /api/v3/ root displays swagger api documentation.
 
+- Fix
+
+  - Fixed imprints & volume levels not displaying sometimes.
+
 ## v0.12.2
 
 - Fixes
