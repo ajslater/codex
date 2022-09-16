@@ -1,5 +1,11 @@
 # 📰 Codex News
 
+<img src="codex/img/logo.svg" style="
+   height: 128px;
+   width: 128px;
+   border-radius: 128px;
+" />
+
 ## v0.13.0a0
 
 _Admin Panel_
