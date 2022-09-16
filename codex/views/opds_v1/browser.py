@@ -204,7 +204,7 @@ class OPDSBrowser(BrowserView, CodexXMLTemplateView):
             mime_type = MimeType.NAV
         links = [
             OPDSLink("self", self.request.get_full_path(), mime_type),
-            OPDSLink("start", reverse("opds:v1:start"), MimeType.NAV),
+            OPDSLink(Rel.START, reverse("opds:v1:start"), MimeType.NAV),
             OPDSLink(
                 Rel.AUTHENTICATION,
                 reverse("opds:v1:authentication"),
@@ -237,17 +237,17 @@ class OPDSBrowser(BrowserView, CodexXMLTemplateView):
         """Create all the entries."""
         entries = []
         if not self.use_facets:
+            for tl in TopLinks.ALL:
+                if not self.is_top_link_displayed(tl):
+                    entries += [
+                        self._root_link_entry(
+                            tl.kwargs,
+                            tl.root_link.query_params,
+                            tl.glyph,
+                            tl.title,
+                        )
+                    ]
             entries += self._facets(entries=True)
-            tl = TopLinks.NEW
-            if not self.is_top_link_displayed(tl):
-                entries += [
-                    self._root_link_entry(
-                        tl.kwargs,
-                        tl.root_link.query_params,
-                        tl.glyph,
-                        tl.title,
-                    )
-                ]
 
         if obj_list := self.obj.get("obj_list"):
             at_top = self.kwargs.get("pk") == 0

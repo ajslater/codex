@@ -14,8 +14,9 @@ _Admin Panel_
 
   - Single Page Admin Panel.
   - Users may now change their own passwords.
+  - OPDS defaults to using entry links instead of facets. Known conforming user agents get facets.
   - OPDS gains a Newest Issues facet.
-  - OPDS defaults to *not* using facets. Specific user agents get facets.
+  - OPDS gains a Start top link.
   - HTTP Basic auth only used for OPDS.
 
 - Fixes

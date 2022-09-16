@@ -42,6 +42,7 @@ class Rel:
     STREAM = "http://vaemendis.net/opds-pse/stream"
     SORT_NEW = "http://opds-spec.org/sort/new"
     SELF = "self"
+    START = "start"
     UP = "up"
     PREV = "prev"
     NEXT = "next"
@@ -110,6 +111,7 @@ class RootLinks:
         MimeType.ACQUISITION,
         defaultdict(None, {"orderBy": "date", "orderReverse": True}),
     )
+    START = RootLink(Rel.START, MimeType.NAV, defaultdict())
 
 
 class TopLinks:
@@ -121,6 +123,8 @@ class TopLinks:
         "📥",
         "New",
     )
+    START = TopLink(TopRoutes.ROOT, RootLinks.START, "⌂", "Start")
+    ALL = (START, NEW)
 
 
 class FacetGroups:
