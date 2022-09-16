@@ -14,10 +14,13 @@
         </v-list-item-content>
       </v-list-item>
     </v-list-item-group>
+    <v-divider />
     <AuthMenu />
+    <v-divider />
     <AdminStatusList />
-    <v-spacer />
+    <v-divider />
     <v-list-item-group id="footerGroup">
+      <v-divider />
       <v-list-item :href="djangoAdminURL" target="_blank" ripple>
         <v-list-item-content>
           <v-list-item-title id="oldDjangoTitle">

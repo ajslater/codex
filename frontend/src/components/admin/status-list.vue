@@ -1,30 +1,38 @@
 <template>
-  <v-expand-transition>
-    <div v-if="librarianStatuses.length > 0">
-      <v-divider />
-      <h4>Librarian Tasks</h4>
-      <v-expand-transition
-        v-for="status of librarianStatuses"
-        :key="`${status.type} ${status.name}`"
-      >
-        <div nav class="statusItem">
-          <div class="statusItemTitle">
-            {{ status.type }} {{ status.name }}
-            <span v-if="+status.total">
-              {{ status.complete }}/{{ status.total }}
-            </span>
+  <v-list-item-group>
+    <v-list-item ripple @click="load">
+      <v-list-item-content>
+        <v-expand-transition>
+          <div v-if="librarianStatuses.length > 0">
+            <v-divider />
+            <h4>Librarian Tasks</h4>
+            <v-expand-transition
+              v-for="status of librarianStatuses"
+              :key="`${status.type} ${status.name}`"
+            >
+              <div nav class="statusItem">
+                <div class="statusItemTitle">
+                  {{ status.type }} {{ status.name }}
+                  <span v-if="+status.total">
+                    {{ status.complete }}/{{ status.total }}
+                  </span>
+                </div>
+                <v-progress-linear
+                  color="#cc7b19"
+                  :indeterminate="!status.preactive && +status.total === 0"
+                  :value="computeValue(status)"
+                  bottom
+                />
+              </div>
+            </v-expand-transition>
           </div>
-          <v-progress-linear
-            color="#cc7b19"
-            :indeterminate="!status.preactive && +status.total === 0"
-            :value="computeValue(status)"
-            bottom
-          />
-        </div>
-      </v-expand-transition>
-    </div>
-    <div v-else id="noTasksRunning">No librarian tasks running</div>
-  </v-expand-transition>
+          <v-list-item-title v-else id="noTasksRunning"
+            >No librarian tasks running</v-list-item-title
+          >
+        </v-expand-transition>
+      </v-list-item-content>
+    </v-list-item>
+  </v-list-item-group>
 </template>
 
 <script>
@@ -40,7 +48,7 @@ export default {
     }),
   },
   created() {
-    this.loadTable("LibrarianStatus");
+    this.load();
   },
   methods: {
     ...mapActions(useAdminStore, ["loadTable"]),
@@ -49,6 +57,9 @@ export default {
         return 0;
       }
       return (100 * +status.complete) / +status.total;
+    },
+    load() {
+      this.loadTable("LibrarianStatus");
     },
   },
 };
