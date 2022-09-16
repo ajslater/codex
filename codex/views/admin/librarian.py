@@ -1,15 +1,11 @@
-"""Queue Libraian Jobs."""
+"""Librarian Status View."""
 from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
-from codex.librarian.covers.tasks import (
-    CoverCreateForLibrariesTask,
-    CoverRemoveAllTask,
-    CoverRemoveOrphansTask,
-)
+from codex.librarian.covers.tasks import CoverRemoveAllTask, CoverRemoveOrphansTask
 from codex.librarian.janitor.tasks import (
     JanitorBackupTask,
     JanitorCleanFKsTask,
@@ -27,7 +23,7 @@ from codex.librarian.search.tasks import (
 from codex.librarian.watchdog.tasks import WatchdogPollLibrariesTask, WatchdogSyncTask
 from codex.models import LibrarianStatus, Library
 from codex.notifier.tasks import LIBRARY_CHANGED_TASK
-from codex.serializers.admin import QueueJobSerializer
+from codex.serializers.admin import AdminLibrarianTaskSerializer
 from codex.serializers.models import LibrarianStatusSerializer
 from codex.settings.logging import get_logger
 
@@ -35,11 +31,21 @@ from codex.settings.logging import get_logger
 LOG = get_logger(__name__)
 
 
-class QueueLibrarianJobs(APIView):
+class AdminLibrarianStatusViewSet(ReadOnlyModelViewSet):
+    """Librarian Task Statuses."""
+
+    permission_classes = [IsAdminUser]
+    queryset = LibrarianStatus.objects.filter(active__isnull=False).order_by(
+        "active", "pk"
+    )
+    serializer_class = LibrarianStatusSerializer
+
+
+class AdminLibrarianTaskView(APIView):
     """Queue Librarian Jobs."""
 
     permission_classes = [IsAdminUser]
-    input_serializer_class = QueueJobSerializer
+    input_serializer_class = AdminLibrarianTaskSerializer
 
     @staticmethod
     def _get_all_library_pks():
@@ -47,9 +53,12 @@ class QueueLibrarianJobs(APIView):
         return frozenset(queryset.values_list("pk", flat=True))
 
     @classmethod
-    def _poll_all_libraries(cls, force):
+    def _poll_libraries(cls, force, pk=None):
         """Queue a poll task for the library."""
-        pks = cls._get_all_library_pks()
+        if pk:
+            pks = frozenset((pk,))
+        else:
+            pks = cls._get_all_library_pks()
         return WatchdogPollLibrariesTask(pks, force)
 
     @extend_schema(request=input_serializer_class)
@@ -60,19 +69,16 @@ class QueueLibrarianJobs(APIView):
         task_name = serializer.validated_data.get("task")
         task = None
         if task_name == "poll":
-            task = self._poll_all_libraries(False)
+            pk = serializer.validated_data.get("library_id")
+            task = self._poll_libraries(False, pk)
         elif task_name == "poll_force":
-            task = self._poll_all_libraries(True)
-        elif task_name == "clean_queries":
-            task = JanitorCleanSearchTask()
-        elif task_name == "create_missing_covers":
-            library_pks = self._get_all_library_pks()
-            task = CoverCreateForLibrariesTask(library_pks)
+            pk = serializer.validated_data.get("library_id")
+            task = self._poll_libraries(True, pk)
         elif task_name == "purge_comic_covers":
             task = CoverRemoveAllTask()
-        elif task_name == "update_index":
+        elif task_name == "search_index_update":
             task = SearchIndexJanitorUpdateTask(False)
-        elif task_name == "rebuild_index":
+        elif task_name == "search_index_rebuild":
             task = SearchIndexJanitorUpdateTask(True)
         elif task_name == "db_vacuum":
             task = JanitorVacuumTask()
@@ -86,8 +92,10 @@ class QueueLibrarianJobs(APIView):
             task = JanitorUpdateTask(False)
         elif task_name == "codex_restart":
             task = JanitorRestartTask()
-        elif task_name == "notify_all":
+        elif task_name == "notify_library_changed":
             task = LIBRARY_CHANGED_TASK
+        elif task_name == "cleanup_queries":
+            task = JanitorCleanSearchTask()
         elif task_name == "cleanup_fks":
             task = JanitorCleanFKsTask()
         elif task_name == "cleanup_covers":
@@ -99,16 +107,6 @@ class QueueLibrarianJobs(APIView):
             LIBRARIAN_QUEUE.put(task)
         else:
             LOG.warning(f"Unknown admin library task_name: {task_name}")
-            raise ValueError("Unknown admin library task_name: {task_name}")
+            raise ValueError(f"Unknown admin library task_name: {task_name}")
 
         return Response({})
-
-
-class LibrarianStatusViewSet(ReadOnlyModelViewSet):
-    """Librarian Task Statuses."""
-
-    permission_classes = [IsAdminUser]
-    queryset = LibrarianStatus.objects.filter(active__isnull=False).order_by(
-        "active", "pk"
-    )
-    serializer_class = LibrarianStatusSerializer

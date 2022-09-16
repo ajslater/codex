@@ -9,8 +9,12 @@ export const DATETIME_FORMAT = new Intl.DateTimeFormat(LOCALE, {
   dateStyle: "short",
   timeStyle: "medium",
 });
+export const TIME_FORMAT = new Intl.DateTimeFormat(LOCALE, {
+  timeStyle: "medium",
+});
 
 export default {
   DATE_FORMAT,
   DATETIME_FORMAT,
+  TIME_FORMAT,
 };

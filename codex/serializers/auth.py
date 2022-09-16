@@ -76,7 +76,7 @@ class RegistrationEnabledSerializer(Serializer):
     enable_registration = BooleanField(read_only=True)
 
 
-class AdminFlagsSerializer(Serializer):
+class AuthAdminFlagsSerializer(Serializer):
     """Admin flags related to auth."""
 
     enable_non_users = BooleanField(read_only=True)

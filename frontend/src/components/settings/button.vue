@@ -1,5 +1,5 @@
 <template>
-  <v-btn icon ripple title="Settings" v-on="$listeners">
+  <v-btn v-bind="$attrs" icon ripple title="Settings" v-on="$listeners">
     <v-icon v-if="!progressEnabled">{{ mdiMenu }}</v-icon>
     <v-progress-circular
       v-else
@@ -55,11 +55,11 @@ export default {
       return (100 * complete) / total;
     },
   },
-  mounted() {
-    this.loadLibrarianStatuses();
+  created() {
+    this.loadTable("LibrarianStatus");
   },
   methods: {
-    ...mapActions(useAdminStore, ["loadLibrarianStatuses"]),
+    ...mapActions(useAdminStore, ["loadTable"]),
   },
 };
 </script>

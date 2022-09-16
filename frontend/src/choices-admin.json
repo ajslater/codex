@@ -1,0 +1,124 @@
+{
+  "tasks": [
+    {
+      "title": "Libraries",
+      "tasks": [
+        {
+          "value": "poll",
+          "text": "Poll All Libraries",
+          "desc": "Update Libraries if changes detected"
+        },
+        {
+          "value": "poll_force",
+          "text": "Update All Libraries",
+          "desc": "Forcibly update all the comics in all libraries",
+          "confirm": "This can take a long time"
+        }
+      ]
+    },
+    {
+      "title": "Covers",
+      "tasks": [
+        {
+          "value": "purge_comic_covers",
+          "text": "Remove Comic Covers",
+          "desc": "in every library",
+          "confirm": "Are you sure?"
+        }
+      ]
+    },
+    {
+      "title": "Search",
+      "tasks": [
+        {
+          "value": "search_index_update",
+          "text": "Update Search Index",
+          "desc": "with recently changed comics"
+        },
+        {
+          "value": "search_index_rebuild",
+          "text": "Rebuild Search Index",
+          "desc": "Delete and rebuild the search index from scratch",
+          "confirm": "This can take a long time"
+        }
+      ]
+    },
+    {
+      "title": "Database",
+      "tasks": [
+        {
+          "value": "db_vacuum",
+          "text": "Compact Database",
+          "desc": "Run the sqlite3 vacuum pragma. Runs nightly"
+        },
+        {
+          "value": "db_backup",
+          "text": "Backup Database",
+          "desc": "Runs nightly"
+        },
+        {
+          "value": "db_search_sync",
+          "text": "Sync Search Index to DB",
+          "desc": "Check to see if this database matches the current search index. If there is a mismatch, rebuild the search index. Runs on startup."
+        },
+        {
+          "value": "watchdog_sync",
+          "text": "Sync Watchdog with DB",
+          "desc": "Ensure the Watchdog file watcher is enabled per database preferences for each library"
+        }
+      ]
+    },
+    {
+      "title": "Codex Software",
+      "tasks": [
+        {
+          "value": "codex_update",
+          "text": "Update Codex",
+          "desc": "If Codex updates to a new version, it will restart",
+          "confirm": "Are you sure?"
+        },
+        {
+          "value": "codex_restart",
+          "text": "Restart Codex Server",
+          "desc": "Immediately",
+          "confirm": "Are you sure?"
+        }
+      ]
+    },
+    {
+      "title": "Notify",
+      "tasks": [
+        {
+          "value": "notify_library_changed",
+          "text": "Notify Library Changed ",
+          "desc": "Signal all clients that the libraries have changed and the browser should fetch new data."
+        }
+      ]
+    },
+    {
+      "title": "Cleanup",
+      "tasks": [
+        {
+          "value": "cleanup_queries",
+          "text": "Clean Up Search Cache",
+          "desc": "Remove old cached search queries. Runs nightly"
+        },
+        {
+          "value": "cleanup_fks",
+          "text": "Remove Orphan Tags",
+          "desc": "After deleting comics, unused linked objects remain in case new comics use the. Runs nightly."
+        },
+        {
+          "value": "cleanup_covers",
+          "text": "Remove Orphan Covers",
+          "desc": "from comics that no longer exist. Runs nightly."
+        },
+        {
+          "value": "librarian_clear_status",
+          "text": "Clear Librarian Statuses",
+          "desc": "Mark all Librarian tasks finished."
+        }
+      ]
+    }
+  ]
+}

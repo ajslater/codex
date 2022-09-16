@@ -46,6 +46,7 @@ class LibrariesTask:
     library_ids: frozenset
 
 
+# TODO look if obsolete
 @dataclass
 class CoverCreateForLibrariesTask(CoverTask):
     """Create Comic covers for a set of libraries."""
@@ -53,6 +54,7 @@ class CoverCreateForLibrariesTask(CoverTask):
     library_ids: frozenset
 
 
+# TODO look if obsolete
 @dataclass
 class CoverRemoveForLibrariesTask(CoverTask):
     """Purge all covers for a set of libraries."""

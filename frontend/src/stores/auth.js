@@ -8,8 +8,10 @@ export const useAuthStore = defineStore("auth", {
       enableNonUsers: undefined,
     },
     user: undefined,
-    errors: [],
-    success: undefined,
+    form: {
+      errors: [],
+      success: undefined,
+    },
   }),
   getters: {
     isCodexViewable() {
@@ -35,7 +37,7 @@ export const useAuthStore = defineStore("auth", {
       if (errors.length === 0) {
         errors = ["Unknown error"];
       }
-      this.errors = errors;
+      this.form.errors = errors;
     },
     async loadAdminFlags() {
       await API.getAdminFlags()
@@ -62,18 +64,14 @@ export const useAuthStore = defineStore("auth", {
         .then(() => {
           return this.loadProfile();
         })
-        .catch((error) => {
-          this.setErrors(error);
-        });
+        .catch(this.setErrors);
     },
     async register(credentials) {
       await API.register(credentials)
         .then(() => {
           return this.login(credentials);
         })
-        .catch((error) => {
-          this.setErrors(error);
-        });
+        .catch(this.setErrors);
     },
     logout() {
       API.logout()
@@ -87,8 +85,8 @@ export const useAuthStore = defineStore("auth", {
     },
     clearErrors() {
       this.$patch((state) => {
-        state.errors = [];
-        state.success = "";
+        state.form.errors = [];
+        state.form.success = "";
       });
     },
     async changePassword(credentials) {
@@ -97,7 +95,7 @@ export const useAuthStore = defineStore("auth", {
       this.clearErrors();
       await API.changePassword(credentials)
         .then((response) => {
-          this.success = response.data.detail;
+          this.form.success = response.data.detail;
           const changedCredentials = {
             username: username,
             password: password,

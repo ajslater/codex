@@ -47,13 +47,10 @@ def _delete_orphans(model, field, names):
 
 def init_admin_flags():
     """Init admin flag rows."""
-    _delete_orphans(AdminFlag, "name", AdminFlag.FLAG_NAMES)
+    _delete_orphans(AdminFlag, "name", AdminFlag.FLAG_NAMES.keys())
 
-    for name in AdminFlag.FLAG_NAMES:
-        if name in AdminFlag.DEFAULT_FALSE:
-            defaults = {"on": False}
-        else:
-            defaults = {}
+    for name, on in AdminFlag.FLAG_NAMES.items():
+        defaults = {"on": on}
         flag, created = AdminFlag.objects.get_or_create(defaults=defaults, name=name)
         if created:
             LOG.info(f"Created AdminFlag: {flag.name} = {flag.on}")

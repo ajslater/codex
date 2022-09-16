@@ -1,9 +1,10 @@
 import VueRouter from "vue-router";
 
-import MainBrowser from "@/browser.vue";
 import CHOICES from "@/choices.json";
-import HttpError from "@/http-error.vue";
-import MainReader from "@/reader.vue";
+const MainAdmin = () => import("@/admin.vue");
+const MainBrowser = () => import("@/browser.vue");
+const HttpError = () => import("@/http-error.vue");
+const MainReader = () => import("@/reader.vue");
 
 const LAST_ROUTE = {
   name: "browser",
@@ -18,7 +19,6 @@ const routes = [
     props: true,
   },
   {
-    // if this isn't first it breaks deep linking into reader
     name: "reader",
     path: "/c/:pk/:page",
     component: MainReader,
@@ -30,8 +30,14 @@ const routes = [
     component: MainBrowser,
     props: true,
   },
-  { name: "error", path: "/error/:code", component: HttpError, props: false },
-  { path: "*", redirect: "/error/404" },
+  {
+    name: "admin",
+    path: "/admin",
+    component: MainAdmin,
+    props: true,
+  },
+  { name: "error", path: "/error/:code", component: HttpError, props: true },
+  { name: "404", path: "*", redirect: "/error/404" },
 ];
 
 export default new VueRouter({

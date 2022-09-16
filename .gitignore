@@ -153,6 +153,7 @@ codex/static_build/
 codex/static_root/
 dist
 db.sqlite3
+frontend/components.d.ts
 frontend/coverage
 monkeytype.sqlite3
 node_modules

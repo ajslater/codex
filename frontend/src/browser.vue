@@ -1,11 +1,13 @@
 <template>
-  <div id="browser">
-    <header id="browserHeader">
-      <BrowserFilterToolbar />
-      <BrowserTitleToolbar />
-    </header>
-    <BrowserMain />
-    <BrowserNavToolbar />
+  <div>
+    <v-main id="browser">
+      <header id="browserHeader">
+        <BrowserFilterToolbar />
+        <BrowserTitleToolbar />
+      </header>
+      <BrowserMain />
+      <BrowserNavToolbar />
+    </v-main>
     <BrowserSettingsDrawer />
   </div>
 </template>

@@ -10,16 +10,6 @@ import { useBrowserStore } from "@/stores/browser";
 import { useReaderStore } from "@/stores/reader";
 
 const WS_TIMEOUT = 19 * 1000;
-const SUBSCRIBE_MESSAGES = {
-  admin: JSON.stringify({
-    type: "subscribe",
-    register: true,
-    admin: true,
-  }),
-  user: JSON.stringify({ type: "subscribe", register: true }),
-  unsub: JSON.stringify({ type: "subscribe", register: false }),
-};
-Object.freeze(SUBSCRIBE_MESSAGES);
 
 const wsKeepAlive = function (ws) {
   if (!ws || ws.readyState !== 1) {
@@ -28,6 +18,19 @@ const wsKeepAlive = function (ws) {
   }
   ws.send("{}");
   setTimeout(() => wsKeepAlive(ws), WS_TIMEOUT);
+};
+
+const libraryChanged = function (adminStore) {
+  const browserStore = useBrowserStore();
+  const readerStore = useReaderStore();
+  browserStore.setTimestamp();
+  readerStore.setTimestamp();
+  if (router.currentRoute.name === "browser") {
+    browserStore.loadBrowserPage({ showProgress: false });
+  } else if (router.currentRoute.name == "admin") {
+    adminStore.loadTable("Library");
+    adminStore.loadTable("FailedImport");
+  }
 };
 
 // vue-native-websockets doesn't put socket stuff in its own module :/
@@ -66,20 +69,15 @@ export const useSocketStore = defineStore("socket", {
       const message = event.data;
       console.debug(message);
       const adminStore = useAdminStore();
-      const browserStore = useBrowserStore();
-      const readerStore = useReaderStore();
 
       switch (message) {
         case CHOICES.websockets.LIBRARY_CHANGED:
-          browserStore.setTimestamp();
-          if (router.currentRoute.name === "browser") {
-            browserStore.loadBrowserPage({ showProgress: false });
-          }
-          readerStore.setTimestamp();
+          libraryChanged(adminStore);
 
           break;
         case CHOICES.websockets.LIBRARIAN_STATUS:
-          adminStore.loadLibrarianStatuses();
+          console.log("load statuses");
+          adminStore.loadTable("LibrarianStatus");
 
           break;
         case CHOICES.websockets.FAILED_IMPORTS:
@@ -104,14 +102,12 @@ export const useSocketStore = defineStore("socket", {
         return;
       }
       const authStore = useAuthStore();
-      if (authStore.isUserAdmin) {
-        ws.send(SUBSCRIBE_MESSAGES.admin);
-      }
-      if (authStore.isCodexViewable) {
-        ws.send(SUBSCRIBE_MESSAGES.user);
-      } else {
-        ws.send(SUBSCRIBE_MESSAGES.unsub);
-      }
+      const msg = {
+        type: "subscribe",
+        register: authStore.isCodexViewable,
+        admin: authStore.isUserAdmin,
+      };
+      ws.send(JSON.stringify(msg));
     },
   },
 });

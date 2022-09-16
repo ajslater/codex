@@ -25,14 +25,10 @@ urlpatterns = [
     ),
     path("api/", include("codex.urls.api.root")),
     path("opds/", include("codex.urls.opds.root")),
-    path("admin/", admin.site.urls),
+    path("django-admin/", admin.site.urls),  # deprecated
     path("", include("codex.urls.pwa")),
+    # The app must be last because it includes a catch-all path
     path("", include("codex.urls.app")),
-    re_path(
-        ".*",
-        RedirectView.as_view(url=reverse_lazy("app:error", kwargs={"code": 404})),
-        name="not_found",
-    ),
 ]
 
 if settings.DEBUG_TOOLBAR:

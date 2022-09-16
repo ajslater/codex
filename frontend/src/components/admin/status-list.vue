@@ -23,6 +23,7 @@
         </div>
       </v-expand-transition>
     </div>
+    <div v-else id="noTasksRunning">No librarian tasks running</div>
   </v-expand-transition>
 </template>
 
@@ -38,11 +39,11 @@ export default {
       librarianStatuses: (state) => state.librarianStatuses,
     }),
   },
-  mounted() {
-    // this.loadLibrarianStatuses();
+  created() {
+    this.loadTable("LibrarianStatus");
   },
   methods: {
-    ...mapActions(useAdminStore, ["loadLibrarianStatuses"]),
+    ...mapActions(useAdminStore, ["loadTable"]),
     computeValue: function (status) {
       if (status.preactive || +status.total === 0) {
         return 0;
@@ -64,5 +65,9 @@ h4 {
   padding-right: 5px;
   padding-bottom: 10px;
   color: gray;
+}
+#noTasksRunning {
+  margin-left: 1em;
+  color: grey;
 }
 </style>

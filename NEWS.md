@@ -2,20 +2,26 @@
 
 ## v0.13.0a0
 
+_Admin Panel_
+
 - Features
 
+  - Single Page Admin Panel.
   - Users may now change their own passwords.
-  - HTTP Basic auth only used for OPDS.
   - OPDS gains a Newest Issues facet.
+  - HTTP Basic auth only used for OPDS.
 
-- Dev Features
+- Fixes
+
+  - Fixed imprints & volume levels not displaying sometimes.
+
+- Dev Notes
 
   - API v3 is more restful.
   - /api/v3/ root displays swagger api documentation.
-
-- Fix
-
-  - Fixed imprints & volume levels not displaying sometimes.
+  - Vite replaces Vue CLI.
+  - Pina replaces Vuex.
+  - Vitest replaces Jest.
 
 ## v0.12.2
 
