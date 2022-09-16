@@ -13,7 +13,7 @@ export default {
   props: {
     dttm: {
       type: String,
-      required: true,
+      default: "",
     },
   },
   data() {
