@@ -399,7 +399,7 @@ python-versions = ">=3.7,<4.0"
 
 [[package]]
 name = "djlint"
-version = "1.14.1"
+version = "1.15.0"
 description = "HTML Template Linter and Formatter"
 category = "dev"
 optional = false
@@ -527,6 +527,20 @@ python-versions = "*"
 [package.dependencies]
 flake8 = ">=3"
 pydocstyle = ">=2.1"
+
+[[package]]
+name = "flake8-eradicate"
+version = "1.3.0"
+description = "Flake8 plugin to find commented out code"
+category = "dev"
+optional = false
+python-versions = ">=3.6,<4.0"
+
+[package.dependencies]
+attrs = "*"
+eradicate = ">=2.0,<3.0"
+flake8 = ">=3.5,<6"
+setuptools = "*"
 
 [[package]]
 name = "fnvhash"
@@ -1496,7 +1510,7 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=6)", "pytest-black (>=
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "a3ae11995e052714da6c4c26dc21b759c7b9233508c5698a4ca1035bb1b927c7"
+content-hash = "6f8cb58c4f4330e7c5960b5b6191362181cd1bd790330e04ea957f91b3402bf6"
 
 [metadata.files]
 aioquic = [
@@ -1873,8 +1887,8 @@ djangorestframework-types = [
     {file = "djangorestframework_types-0.8.0-py3-none-any.whl", hash = "sha256:5136212ec0df2c11d5ebcf217246f606e68f1d46a770419de84ed676bdab0113"},
 ]
 djlint = [
-    {file = "djlint-1.14.1-py3-none-any.whl", hash = "sha256:c737453a19a120359c22c537004bf8fcba5c933a6f87c9b2e1167f316a9d59d4"},
-    {file = "djlint-1.14.1.tar.gz", hash = "sha256:d69fa9ba767da86b81840bbf7447122018d4a198c9e663901f234d415e907ac6"},
+    {file = "djlint-1.15.0-py3-none-any.whl", hash = "sha256:de184041d0492273ab6654acca262822f35da2f98c7e360f829c1f5486b8a27d"},
+    {file = "djlint-1.15.0.tar.gz", hash = "sha256:510292359b239b4f915dce35665db9169033d8ee923b89d7667baa95d5f4dbbd"},
 ]
 drf-spectacular = [
     {file = "drf-spectacular-0.24.0.tar.gz", hash = "sha256:bf22390e8d0aa53d81c5abf718ad4989c4e2eab133decc411a15c7e4ae3f6baf"},
@@ -1911,6 +1925,10 @@ flake8-bugbear = [
 flake8-docstrings = [
     {file = "flake8-docstrings-1.6.0.tar.gz", hash = "sha256:9fe7c6a306064af8e62a055c2f61e9eb1da55f84bb39caef2b84ce53708ac34b"},
     {file = "flake8_docstrings-1.6.0-py2.py3-none-any.whl", hash = "sha256:99cac583d6c7e32dd28bbfbef120a7c0d1b6dde4adb5a9fd441c4227a6534bde"},
+]
+flake8-eradicate = [
+    {file = "flake8-eradicate-1.3.0.tar.gz", hash = "sha256:e4c98f00d17dc8653e3388cac2624cd81e9735de2fd4a8dcf99029633ebd7a63"},
+    {file = "flake8_eradicate-1.3.0-py3-none-any.whl", hash = "sha256:85a71e0c5f4e07f7c6c5fec520483561fd6bd295417d622855bdeade99242e3d"},
 ]
 fnvhash = [
     {file = "fnvhash-0.1.0.tar.gz", hash = "sha256:3e82d505054f9f3987b2b5b649f7e7b6f48349f6af8a1b8e4d66779699c85a8e"},
