@@ -2,15 +2,11 @@
 
 A comic archive browser and reader.
 
-![Snail Martyrs](codex/img/logo.svg)
-
-<style type="text/css">
-  img[alt="Snail Martyrs"] {
-      height: 128px;
-      width: 128px;
-      border-radius: 128px;
-    }
-</style>
+<img src="codex/img/logo.svg" style="
+   height: 128px;
+   width: 128px;
+   border-radius: 128px;
+" />
 
 ## <a name="features">✨ Features</a>
 
