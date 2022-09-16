@@ -17,6 +17,7 @@
     </template>
     <div v-if="formSuccess" id="success">{{ formSuccess }}</div>
     <v-form v-else id="authDialog" ref="changePasswordForm">
+      <h2>User {{ user.username }}</h2>
       <v-text-field
         ref="oldPassword"
         v-model="credentials.oldPassword"
