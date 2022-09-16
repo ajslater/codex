@@ -19,9 +19,9 @@ class OpdsNs:
 class UserAgents:
     """Control whether to hack in facets with nav links."""
 
-    NO_FACET_SUPPORT = ("Panels", "Chunky")
     CLIENT_REORDERS = ("Chunky",)
-    # kybooks UA starts with "yar"
+    FACET_SUPPORT = ("yar",)  # kybooks
+    # NO_FACET_SUPPORT = ("Panels", "Chunky")
 
 
 class TopRoutes:

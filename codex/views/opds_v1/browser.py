@@ -275,13 +275,13 @@ class OPDSBrowser(BrowserView, CodexXMLTemplateView):
     def _detect_user_agent(self):
         # Hacks for clients that don't support facets
         user_agent = self.request.headers.get("User-Agent")
-        self.use_facets = True
+        self.use_facets = False
         self.skip_order_facets = False
         if not user_agent:
             return
-        for prefix in UserAgents.NO_FACET_SUPPORT:
+        for prefix in UserAgents.FACET_SUPPORT:
             if user_agent.startswith(prefix):
-                self.use_facets = False
+                self.use_facets = True
                 break
         for prefix in UserAgents.CLIENT_REORDERS:
             if user_agent.startswith(prefix):
