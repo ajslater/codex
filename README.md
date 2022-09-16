@@ -256,11 +256,6 @@ Once your administrator has added some comic libraries, you may browse and read 
 To preserve these settings across browsers and after sessions expire, you may register an account with a username and password.
 You will have to contact your administrator to reset your password if you forget it.
 
-### 🔎 Search Help
-
-[Codex's metadata search engine has it's own help page.
-](https://github.com/ajslater/codex/blob/release/SEARCH.md)
-
 ### ᯤ OPDS
 
 Codex supports OPDS syndication and OPDS streaming.
