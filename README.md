@@ -2,6 +2,16 @@
 
 A comic archive browser and reader.
 
+![Snail Martyrs](codex/img/logo.svg)
+
+<style type="text/css">
+  img[alt="Snail Martyrs"] {
+      height: 128px;
+      width: 128px;
+      border-radius: 128px;
+    }
+</style>
+
 ## <a name="features">✨ Features</a>
 
 - Codex is a web server.
