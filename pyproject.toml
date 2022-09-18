@@ -27,7 +27,12 @@ classifiers = [
   "Topic :: Multimedia :: Graphics :: Viewers",
 ]
 packages = [{ include = "codex" }, { include = "tests", format = "sdist" }]
-exclude = ["*/**/*~", "codex/img/*.svg", "codex/static_src/*", "codex/static_build/*"]
+exclude = [
+  "*/**/*~",
+  "codex/img/*.svg",
+  "codex/static_src/*",
+  "codex/static_build/*"
+]
 include = ["codex/static_root/**/*", "vendor/django_haystack"]
 
 [tool.poetry.dependencies]
