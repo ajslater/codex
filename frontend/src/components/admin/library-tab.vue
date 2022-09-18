@@ -75,9 +75,9 @@
               />
             </td>
             <td>
-              <v-btn icon ripple @click="poll(item.id)"
-                ><v-icon>{{ mdiDatabaseClockOutline }}</v-icon></v-btn
-              >
+              <v-btn icon ripple @click="poll(item.id)">
+                <v-icon>{{ mdiDatabaseClockOutline }}</v-icon>
+              </v-btn>
             </td>
             <td>
               <AdminTaskConfirmDialog

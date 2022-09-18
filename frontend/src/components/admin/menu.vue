@@ -14,14 +14,15 @@
         @click="unseedFailedImports = false"
       >
         <v-list-item-content>
-          <v-list-item-title
-            >Admin Panel
+          <v-list-item-title>
+            Admin Panel
             <v-icon
               v-if="unseenFailedImports"
               id="failedImportsIcon"
               title="New Failed Imports"
-              >{{ mdiBookAlert }}</v-icon
             >
+              {{ mdiBookAlert }}
+            </v-icon>
           </v-list-item-title>
         </v-list-item-content>
       </v-list-item>

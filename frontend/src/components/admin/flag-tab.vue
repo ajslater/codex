@@ -10,7 +10,9 @@
       </thead>
       <tbody>
         <tr v-for="item in flags" :key="`f:${item.id}:${item.keyHack}`">
-          <td class="nameCol">{{ item.name }}</td>
+          <td class="nameCol">
+            {{ item.name }}
+          </td>
           <td>
             <v-checkbox
               :input-value="item.on"
@@ -23,7 +25,9 @@
               @change="changeCol(item.id, 'on', $event === true)"
             />
           </td>
-          <td class="descCol">{{ DESC[item.name] }}</td>
+          <td class="descCol">
+            {{ DESC[item.name] }}
+          </td>
         </tr>
       </tbody>
     </template>

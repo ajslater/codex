@@ -19,9 +19,9 @@
     <template #append-outer>
       <v-tooltip top :open-delay="2000">
         <template #activator="{ on, attrs }">
-          <v-icon v-bind="attrs" v-on="on" @click="toggleHidden">{{
-            appendOuterIcon
-          }}</v-icon>
+          <v-icon v-bind="attrs" v-on="on" @click="toggleHidden">
+            {{ appendOuterIcon }}
+          </v-icon>
         </template>
         <span>{{ showHiddenTooltipPrefix }} Hidden Folders</span>
       </v-tooltip>

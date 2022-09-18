@@ -3,7 +3,9 @@
     <v-toolbar-items>
       <v-btn id="closeBook" ref="closeBook" :to="closeBookRoute" large ripple>
         <span v-if="!$vuetify.breakpoint.mobile">close book</span>
-        <v-icon v-else>{{ mdiClose }}</v-icon>
+        <v-icon v-else>
+          {{ mdiClose }}
+        </v-icon>
       </v-btn>
     </v-toolbar-items>
     <v-spacer />

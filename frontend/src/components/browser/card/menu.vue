@@ -7,8 +7,9 @@
         right
         v-on="on"
         @click.prevent
-        >{{ mdiDotsVertical }}</v-icon
       >
+        {{ mdiDotsVertical }}
+      </v-icon>
     </template>
     <v-list nav>
       <v-list-item v-if="group === 'c'" :href="downloadURL" ripple download>

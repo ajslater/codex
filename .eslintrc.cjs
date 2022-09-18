@@ -7,12 +7,12 @@ module.exports = {
   },
   extends: [
     "eslint:recommended",
-    // CODE QUALITY
-    "plugin:sonarjs/recommended",
-    "plugin:unicorn/all",
     // LANGS
     "plugin:json/recommended",
     "plugin:yaml/recommended",
+    // CODE QUALITY
+    "plugin:sonarjs/recommended",
+    "plugin:unicorn/all",
     // PRACTICES
     "plugin:array-func/recommended",
     "plugin:eslint-comments/recommended",
@@ -22,13 +22,14 @@ module.exports = {
     "plugin:import/recommended",
     "plugin:switch-case/recommended",
     // PRETTIER
-    "plugin:prettier/recommended",
+    "plugin:prettier-vue/recommended",
+    "prettier", // prettier-config
     // SECURITY
     "plugin:no-unsanitized/DOM",
     "plugin:security/recommended",
   ],
   parserOptions: {
-    sourceType: "module",
+    ecmaVersion: "latest",
     ecmaFeatures: {
       impliedStrict: true,
     },
@@ -55,7 +56,7 @@ module.exports = {
     "no-unsanitized",
     "no-use-extend-native",
     "optimize-regex",
-    "prettier",
+    "prettier-vue",
     "promise",
     "simple-import-sort",
     "switch-case",
@@ -72,12 +73,13 @@ module.exports = {
     "no-constructor-bind/no-constructor-state": "error",
     "no-secrets/no-secrets": "error",
     "eslint-comments/no-unused-disable": 1,
-    "prettier/prettier": "warn",
+    "prettier-vue/prettier": "warn",
     "security/detect-object-injection": "off",
     "simple-import-sort/exports": "warn",
     "simple-import-sort/imports": "warn",
     "space-before-function-paren": "off",
     "switch-case/newline-between-switch-case": "off", // Malfunctioning
+    "unicorn/prefer-node-protocol": 0,
     "unicorn/prevent-abbreviations": "off",
     "unicorn/filename-case": [
       "error",

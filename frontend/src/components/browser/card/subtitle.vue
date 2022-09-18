@@ -1,7 +1,11 @@
 <template>
   <div class="browserLink cardSubtitle text-caption">
-    <div v-if="headerName" class="headerName">{{ headerName }}</div>
-    <div class="displayName">{{ displayName }}</div>
+    <div v-if="headerName" class="headerName">
+      {{ headerName }}
+    </div>
+    <div class="displayName">
+      {{ displayName }}
+    </div>
     <!-- eslint-disable-next-line vue/no-v-html -->
     <div v-if="orderValue" class="orderValue" v-html="orderValue" />
   </div>

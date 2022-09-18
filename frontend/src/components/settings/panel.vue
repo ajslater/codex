@@ -8,7 +8,10 @@
       <v-list-item id="opds" ripple @click="copyToClipboard">
         <v-list-item-content>
           <h3>
-            OPDS <v-icon small>{{ mdiContentCopy }}</v-icon>
+            OPDS
+            <v-icon small>
+              {{ mdiContentCopy }}
+            </v-icon>
             <v-fade-transition>
               <span v-if="showTool" id="copied"> Copied </span>
             </v-fade-transition>

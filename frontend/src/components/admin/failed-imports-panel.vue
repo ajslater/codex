@@ -23,9 +23,9 @@
     </v-simple-table>
     <v-expansion-panels>
       <v-expansion-panel id="failedImportsHelp">
-        <v-expansion-panel-header
-          ><h5>Failed Imports Help</h5></v-expansion-panel-header
-        >
+        <v-expansion-panel-header>
+          <h5>Failed Imports Help</h5>
+        </v-expansion-panel-header>
         <v-expansion-panel-content>
           <p>
             These are Comic archives that have failed to import. This list is

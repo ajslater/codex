@@ -1,8 +1,8 @@
 <template>
   <v-toolbar id="titleToolbar" class="toolbar">
     <v-toolbar-items v-if="isCodexViewable">
-      <v-btn :class="{ invisible: !showUpButton }" :to="toUpRoute" icon ripple
-        ><v-icon>{{ mdiArrowUp }}</v-icon>
+      <v-btn :class="{ invisible: !showUpButton }" :to="toUpRoute" icon ripple>
+        <v-icon>{{ mdiArrowUp }}</v-icon>
       </v-btn>
     </v-toolbar-items>
     <v-toolbar-title>

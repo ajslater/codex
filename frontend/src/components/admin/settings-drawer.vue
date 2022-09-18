@@ -25,7 +25,9 @@
         <v-list-item-content>
           <v-list-item-title id="oldDjangoTitle">
             Old Django Admin Panel
-            <v-icon small>{{ mdiOpenInNew }}</v-icon>
+            <v-icon small>
+              {{ mdiOpenInNew }}
+            </v-icon>
           </v-list-item-title>
         </v-list-item-content>
       </v-list-item>

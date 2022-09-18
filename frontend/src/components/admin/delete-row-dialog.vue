@@ -7,12 +7,12 @@
   >
     <template #activator="{ on }">
       <v-btn icon ripple v-on="on">
-        <v-icon> {{ mdiTrashCan }} </v-icon></v-btn
-      >
+        <v-icon> {{ mdiTrashCan }} </v-icon>
+      </v-btn>
     </template>
     <div id="deleteDialog">
       Delete {{ table }} {{ name }}?
-      <v-btn id="confirmButton" @click="deleteRow">Confirm Delete</v-btn>
+      <v-btn id="confirmButton" @click="deleteRow"> Confirm Delete </v-btn>
     </div>
   </v-dialog>
 </template>

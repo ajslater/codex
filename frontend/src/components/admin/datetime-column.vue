@@ -1,7 +1,9 @@
 <template>
   <div v-if="dttm">
     {{ formattedDate }}
-    <div class="colTime">{{ formattedTime }}</div>
+    <div class="colTime">
+      {{ formattedTime }}
+    </div>
   </div>
 </template>
 

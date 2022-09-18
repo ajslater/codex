@@ -4,7 +4,9 @@
     class="text background-soft-highlight"
     :class="{ highlight }"
   >
-    <div class="textLabel">{{ label }}</div>
+    <div class="textLabel">
+      {{ label }}
+    </div>
     <a v-if="link" :href="computedValue" target="_blank">
       {{ computedValue }}
       <v-icon small>

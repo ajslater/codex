@@ -7,7 +7,9 @@
     ripple
     @click="routeToPage(toPage)"
   >
-    <v-icon :class="{ flipHoriz: !back }">{{ mdiChevronLeft }}</v-icon>
+    <v-icon :class="{ flipHoriz: !back }">
+      {{ mdiChevronLeft }}
+    </v-icon>
   </v-btn>
 </template>
 

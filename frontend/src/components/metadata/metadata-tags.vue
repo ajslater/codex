@@ -6,7 +6,9 @@
     class="tags"
     :class="{ 'background-soft-highlight': true }"
   >
-    <v-subheader class="subheader">{{ label }}</v-subheader>
+    <v-subheader class="subheader">
+      {{ label }}
+    </v-subheader>
     <v-item v-for="item in model" :key="item.name">
       <v-chip small :color="chipColor(item.pk)">
         {{ item.name }}

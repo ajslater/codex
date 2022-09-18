@@ -12,7 +12,7 @@
       </v-btn>
     </template>
     <div v-if="formSuccess" id="success">
-      {{ formSuccess }} <v-btn block @click="showDialog = false">X</v-btn>
+      {{ formSuccess }} <v-btn block @click="showDialog = false"> X </v-btn>
     </div>
     <v-form v-else id="authDialog" ref="changePasswordForm">
       <input

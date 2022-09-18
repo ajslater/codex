@@ -5,17 +5,25 @@
       <tbody>
         <tr>
           <td>
-            <v-icon color="grey">{{ mdiMenuLeft }}</v-icon> j<br />
-            <v-icon color="grey" dense>{{ mdiAppleKeyboardShift }}</v-icon>
-            <v-icon color="grey" dense>{{ mdiKeyboardSpace }}</v-icon>
+            <v-icon color="grey">
+              {{ mdiMenuLeft }}
+            </v-icon>
+            j<br />
+            <v-icon color="grey" dense>
+              {{ mdiAppleKeyboardShift }}
+            </v-icon>
+            <v-icon color="grey" dense>
+              {{ mdiKeyboardSpace }}
+            </v-icon>
           </td>
           <td>Previous page</td>
         </tr>
         <tr>
           <td>
-            <v-icon color="grey">{{ mdiMenuRight }}</v-icon
-            >k<br />
-            <v-icon color="grey" dense>{{ mdiKeyboardSpace }}</v-icon>
+            <v-icon color="grey"> {{ mdiMenuRight }} </v-icon>k<br />
+            <v-icon color="grey" dense>
+              {{ mdiKeyboardSpace }}
+            </v-icon>
           </td>
           <td>Next page</td>
         </tr>

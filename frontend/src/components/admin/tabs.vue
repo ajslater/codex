@@ -1,7 +1,9 @@
 <template>
   <div id="tabs">
     <v-tabs v-model="tab" centered grow show-arrows>
-      <v-tab v-for="name of Object.keys(panels)" :key="name">{{ name }}</v-tab>
+      <v-tab v-for="name of Object.keys(panels)" :key="name">
+        {{ name }}
+      </v-tab>
     </v-tabs>
     <v-tabs-items id="tabItems" v-model="tab">
       <v-tab-item

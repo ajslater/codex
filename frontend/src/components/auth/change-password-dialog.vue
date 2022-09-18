@@ -15,7 +15,9 @@
         </v-list-item-content>
       </v-list-item>
     </template>
-    <div v-if="formSuccess" id="success">{{ formSuccess }}</div>
+    <div v-if="formSuccess" id="success">
+      {{ formSuccess }}
+    </div>
     <v-form v-else id="authDialog" ref="changePasswordForm">
       <h2>User {{ user.username }}</h2>
       <v-text-field

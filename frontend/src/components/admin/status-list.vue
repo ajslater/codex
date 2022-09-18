@@ -26,9 +26,9 @@
               </div>
             </v-expand-transition>
           </div>
-          <v-list-item-title v-else id="noTasksRunning"
-            >No librarian tasks running</v-list-item-title
-          >
+          <v-list-item-title v-else id="noTasksRunning">
+            No librarian tasks running
+          </v-list-item-title>
         </v-expand-transition>
       </v-list-item-content>
     </v-list-item>

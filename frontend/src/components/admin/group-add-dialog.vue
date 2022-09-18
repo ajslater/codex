@@ -38,9 +38,9 @@
       >
         Add Group
       </v-btn>
-      <v-btn class="addCancelButton" ripple @click="showDialog = false"
-        >Cancel</v-btn
-      >
+      <v-btn class="addCancelButton" ripple @click="showDialog = false">
+        Cancel
+      </v-btn>
       <footer>
         <small v-if="formErrors && formErrors.length > 0" style="color: red">
           <div v-for="error in formErrors" :key="error">

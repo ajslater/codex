@@ -19,8 +19,8 @@
     </div>
     <div v-else id="announcement">
       <h1>
-        <router-link :to="{ name: 'home' }">Log in</router-link> as an
-        Administrator to use this panel
+        <router-link :to="{ name: 'home' }"> Log in </router-link>
+        as an Administrator to use this panel
       </h1>
     </div>
   </div>

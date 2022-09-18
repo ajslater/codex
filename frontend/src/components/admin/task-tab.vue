@@ -14,7 +14,9 @@
     </tbody>
     <tbody v-for="group in tasks" :key="group.title">
       <tr class="trow">
-        <td class="title" colspan="2">{{ group.title }}</td>
+        <td class="title" colspan="2">
+          {{ group.title }}
+        </td>
       </tr>
       <tr v-for="item in group.tasks" :key="item.value" class="trow">
         <td class="tcol">
@@ -23,11 +25,13 @@
             :task="item"
             @confirmed="queueTask(item)"
           />
-          <v-btn v-else block ripple @click="queueTask(item)">{{
-            item.text
-          }}</v-btn>
+          <v-btn v-else block ripple @click="queueTask(item)">
+            {{ item.text }}
+          </v-btn>
         </td>
-        <td class="tcolG desc">{{ item.desc }}</td>
+        <td class="tcolG desc">
+          {{ item.desc }}
+        </td>
       </tr>
     </tbody>
   </v-simple-table>

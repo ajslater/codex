@@ -20,7 +20,7 @@
       </div>
       <div v-else id="announcement">
         <h1>
-          <router-link :to="{ name: 'home' }">Log in</router-link> to read
+          <router-link :to="{ name: 'home' }"> Log in </router-link> to read
           comics
         </h1>
       </div>

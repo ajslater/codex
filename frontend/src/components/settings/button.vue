@@ -1,6 +1,8 @@
 <template>
   <v-btn v-bind="$attrs" icon ripple title="Settings" v-on="$listeners">
-    <v-icon v-if="!progressEnabled">{{ mdiMenu }}</v-icon>
+    <v-icon v-if="!progressEnabled">
+      {{ mdiMenu }}
+    </v-icon>
     <v-progress-circular
       v-else
       :indeterminate="progress == null"

@@ -7,7 +7,7 @@
     overlay-opacity="0.5"
   >
     <template #activator="{ on }">
-      <v-btn ripple rounded v-on="on"> + Add Library</v-btn>
+      <v-btn ripple rounded v-on="on"> + Add Library </v-btn>
     </template>
     <v-form id="libraryAddDialog" ref="form">
       <AdminServerFolderPicker
@@ -50,9 +50,9 @@
       >
         Add Library
       </v-btn>
-      <v-btn class="addCancelButton" ripple @click="showDialog = false"
-        >Cancel</v-btn
-      >
+      <v-btn class="addCancelButton" ripple @click="showDialog = false">
+        Cancel
+      </v-btn>
       <footer>
         <small v-if="formErrors && formErrors.length > 0" style="color: red">
           <div v-for="error in formErrors" :key="error">
