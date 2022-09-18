@@ -1,6 +1,6 @@
 """OPDS Utility classes."""
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Union
 
 from comicbox.metadata.comic_json import json
