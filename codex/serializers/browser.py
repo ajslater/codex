@@ -239,9 +239,7 @@ class BrowserPageSerializer(Serializer):
     libraries_exist = BooleanField(read_only=True)
     model_group = CharField(read_only=True)
     num_pages = IntegerField(read_only=True)
-    obj_list = ListField(
-        child=BrowserCardSerializer(read_only=True), allow_empty=True, read_only=True
-    )
+    obj_list = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
     queries = ListField(
         child=CharField(read_only=True), allow_empty=True, read_only=True
     )

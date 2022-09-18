@@ -100,8 +100,8 @@ class AuthenticationSerializer(Serializer):
     id = CharField(read_only=True)
     title = CharField(read_only=True)
     description = CharField(read_only=True)
-    links = ListField(child=AuthLinksSerializer())
-    authentication = ListField(child=AuthenticationTypeSerializer())
+    links = AuthLinksSerializer(many=True, read_only=True)
+    authentication = AuthenticationTypeSerializer(many=True, read_only=True)
 
 
 class OPDSTemplateLinkSerializer(Serializer):
@@ -124,7 +124,7 @@ class OPDSTemplateEntrySerializer(Serializer):
 
     id = CharField(read_only=True)
     title = CharField(read_only=True)
-    links = ListField(child=OPDSTemplateLinkSerializer(), read_only=True)
+    links = OPDSTemplateLinkSerializer(many=True, read_only=True)
     issued = DateField(read_only=True, required=False)
     updated = DateTimeField(read_only=True, required=False, default_timezone=UTC_TZ)
     published = DateTimeField(read_only=True, required=False, default_timezone=UTC_TZ)
@@ -143,7 +143,7 @@ class OPDSTemplateSerializer(Serializer):
     id = CharField(read_only=True)
     title = CharField(read_only=True)
     updated = DateTimeField(read_only=True, default_timezone=UTC_TZ)
-    links = ListField(child=OPDSTemplateLinkSerializer(), read_only=True)
-    entries = ListField(child=OPDSTemplateEntrySerializer(), read_only=True)
+    links = OPDSTemplateLinkSerializer(many=True, read_only=True)
+    entries = OPDSTemplateEntrySerializer(many=True, read_only=True)
     items_per_page = IntegerField(read_only=True)
     total_results = IntegerField(read_only=True)
