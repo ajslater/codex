@@ -8,7 +8,7 @@ border-radius: 128px;
 
 ## v0.13.0a0
 
-_Admin Panel_
+### Admin Panel
 
 - Features
 
@@ -50,7 +50,7 @@ _Admin Panel_
 
 ## v0.12.0
 
-_Syndication_
+### Syndication
 
 - Features
 
@@ -67,7 +67,7 @@ _Syndication_
 
 ## v0.11.0
 
-_Task monitor_
+### Task monitor
 
 - Features
 
@@ -186,7 +186,7 @@ _Task monitor_
 
 ## v0.10.0
 
-_Portable Document Format_
+### Portable Document Format
 
 - Features
 
@@ -353,7 +353,7 @@ Yanked. Crash loading admin page.
 
 ## v0.9.0
 
-_Private Libraries_
+### Private Libraries
 
 - Features
 
@@ -368,7 +368,7 @@ _Private Libraries_
 
 ## v0.8.0
 
-_Search_
+### Search
 
 - Features
 
@@ -422,7 +422,7 @@ _Search_
 
 ## v0.7.0
 
-_Feels Snappier_
+### Feels Snappier
 
 - Database Migration
 
@@ -495,7 +495,7 @@ _Feels Snappier_
 
 ## v0.6.0
 
-_Better Filtering and Sorting_
+### Better Filtering and Sorting
 
 - New Filters
 - New sort options: Updated Time and Maturity Rating
@@ -621,31 +621,31 @@ _Better Filtering and Sorting_
 
 ## v0.5.0
 
-_First useful working version_
+### First useful working version
 
 - Productionized alpha release
 
 ## v0.4.0
 
-_Polished UI_
+### Polished UI
 
 - Polished VueJS frontend
 
 ## v0.3.0
 
-_I'm a frontend developer_
+### I'm a frontend developer
 
 - Single Page VueJS frontend PoC without much styling
 
 ## v0.2.0
 
-_It's alive_
+### It's alive
 
 - Working application with all initial features
 - Django frontend
 
 ## v0.1.0
 
-_Hello world_
+### Hello world
 
 - Proof of concept.
