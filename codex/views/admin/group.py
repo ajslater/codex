@@ -1,3 +1,4 @@
+"""Group View."""
 from django.contrib.auth.models import Group
 from django.core.cache import cache
 from rest_framework.permissions import IsAdminUser
@@ -24,6 +25,7 @@ class AdminGroupViewSet(ModelViewSet):
     CHANGE_FIELDS = frozenset(("librarySet", "userSet"))
 
     def _on_change(self, validated_keys):
+        """On change hook."""
         if validated_keys.intersection(self.CHANGE_FIELDS):
             cache.clear()
             LIBRARIAN_QUEUE.put(LIBRARY_CHANGED_TASK)
@@ -34,15 +36,18 @@ class AdminGroupViewSet(ModelViewSet):
         return super().get_serializer(*args, **kwargs)
 
     def perform_update(self, serializer):
+        """Perform update and run hooks."""
         validated_keys = frozenset(serializer.validated_data.keys())
         super().perform_update(serializer)
         self._on_change(validated_keys)
 
     def perform_create(self, serializer):
+        """Perform create and run hooks."""
         validated_keys = frozenset(serializer.validated_data.keys())
         super().perform_create(serializer)
         self._on_change(validated_keys)
 
     def perform_destroy(self, instance):
+        """Perform destroy and run hooks."""
         super().perform_destroy(instance)
         self._on_change(self.CHANGE_FIELDS)

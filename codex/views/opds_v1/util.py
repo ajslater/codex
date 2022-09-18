@@ -22,7 +22,7 @@ class UserAgents:
 
     CLIENT_REORDERS = ("Chunky",)
     FACET_SUPPORT = ("yar",)  # kybooks
-    # NO_FACET_SUPPORT = ("Panels", "Chunky", "PocketBook")
+    # NO_FACET_SUPPORT "Panels", "Chunky", "PocketBook"
 
 
 class TopRoutes:
@@ -94,10 +94,6 @@ class TopLink:
     glyph: str
     title: str
     desc: str
-
-    # = field(
-    #    default_factory=lambda: defaultdict()
-    # )
 
 
 class TopLinks:

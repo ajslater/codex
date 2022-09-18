@@ -59,6 +59,7 @@ class AdminLibraryViewSet(ModelViewSet):
         LIBRARIAN_QUEUE.put(task)
 
     def perform_update(self, serializer):
+        """Perform update an run hooks."""
         validated_keys = set(serializer.validated_data.keys())
         super().perform_update(serializer)
         if "groupSet" in validated_keys:
@@ -69,6 +70,7 @@ class AdminLibraryViewSet(ModelViewSet):
         self._poll(pk, False)
 
     def perform_create(self, serializer):
+        """Perform create and run hooks."""
         super().perform_create(serializer)
         library = Library.objects.only("pk", "path").get(
             path=serializer.validated_data["path"]
@@ -78,6 +80,7 @@ class AdminLibraryViewSet(ModelViewSet):
         self._poll(library.pk, False)
 
     def perform_destroy(self, instance):
+        """Perform destory and run hooks."""
         super().perform_destroy(instance)
         self._sync_watchdog()
         self._on_change()

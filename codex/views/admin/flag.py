@@ -1,3 +1,4 @@
+"""Admin Flag View."""
 from rest_framework.permissions import IsAdminUser
 from rest_framework.viewsets import ModelViewSet
 
@@ -30,5 +31,6 @@ class AdminFlagViewSet(ModelViewSet):
         LIBRARIAN_QUEUE.put(LIBRARY_CHANGED_TASK)
 
     def perform_update(self, serializer):
+        """Perform update and hook for change."""
         super().perform_update(serializer)
         self._on_change()
