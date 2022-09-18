@@ -59,13 +59,14 @@ export default {
       user: (state) => state.user,
     }),
     ...mapGetters(useAuthStore, ["isCodexViewable"]),
-    touchMap: () =>
-      !this.$vuetify.breakpoint.mobile
+    touchMap: function () {
+      return !this.$vuetify.breakpoint.mobile
         ? {
             left: () => this.routeTo("next"),
             right: () => this.routeTo("prev"),
           }
-        : {},
+        : {};
+    },
   },
   watch: {
     $route(to, from) {

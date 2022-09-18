@@ -8,7 +8,12 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication
 from rest_framework.response import Response
 
-from codex.serializers.opds_v1 import OPDSEntrySerializer, OPDSTemplateSerializer
+from codex.serializers.opds_v1 import (
+    OPDSAcquisitionEntrySerializer,
+    OPDSEntrySerializer,
+    OPDSTemplateSerializer,
+)
+from codex.settings.logging import get_logger
 from codex.views.browser.browser import BrowserView
 from codex.views.opds_v1.entry import OPDSEntry
 from codex.views.opds_v1.util import (
@@ -20,7 +25,6 @@ from codex.views.opds_v1.util import (
     OPDSLink,
     OpdsNs,
     Rel,
-    RootLinks,
     TopLinks,
     UserAgents,
     update_href_query_params,
@@ -28,52 +32,97 @@ from codex.views.opds_v1.util import (
 from codex.views.template import CodexXMLTemplateView
 
 
-class OPDSBrowser(BrowserView, CodexXMLTemplateView):
+LOG = get_logger(__name__)
+
+
+class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
     """The main opds browser."""
 
     authentication_classes = (SessionAuthentication, BasicAuthentication)
     template_name = "opds/index.xml"
     serializer_class = OPDSTemplateSerializer
 
+    AQUISITION_GROUPS = set(("s", "f"))
+
     @property
     def opds_ns(self):
         """Dynamic opds namespace."""
-        if self.is_aq_feed:
-            ns = OpdsNs.ACQUISITION
-        else:
-            ns = OpdsNs.CATALOG
-        return ns
+        try:
+            if self.is_aq_feed:
+                ns = OpdsNs.ACQUISITION
+            else:
+                ns = OpdsNs.CATALOG
+            return ns
+        except Exception as exc:
+            LOG.exception(exc)
 
     @property
     def id(self):
         """Feed id is the url."""
-        return self.request.build_absolute_uri()
+        try:
+            return self.request.build_absolute_uri()
+        except Exception as exc:
+            LOG.exception(exc)
 
     @property
     def title(self):
         """Create the feed title."""
         result = ""
-        if browser_title := self.obj.get("browser_title"):
-            parent_name = browser_title.get("parent_name", "All")
-            if not parent_name and self.kwargs.get("pk") == 0:
-                parent_name = "All"
-            group_name = browser_title.get("group_name")
-            names = []
-            for name in (parent_name, group_name):
-                if name:
-                    names.append(name)
+        try:
+            if browser_title := self.obj.get("browser_title"):
+                parent_name = browser_title.get("parent_name", "All")
+                if not parent_name and self.kwargs.get("pk") == 0:
+                    parent_name = "All"
+                group_name = browser_title.get("group_name")
+                names = []
+                for name in (parent_name, group_name):
+                    if name:
+                        names.append(name)
 
-            result = " ".join(names).strip()
+                result = " ".join(names).strip()
 
-        if not result:
-            result = BLANK_TITLE
+            if not result:
+                result = BLANK_TITLE
+        except Exception as exc:
+            LOG.exception(exc)
         return result
 
     @property
     def updated(self):
         """Hack in feed update time from cover timestamp."""
-        if ts := self.obj.get("covers_timestamp"):
-            return datetime.fromtimestamp(ts, tz=timezone.utc)
+        try:
+            if ts := self.obj.get("covers_timestamp"):
+                return datetime.fromtimestamp(ts, tz=timezone.utc)
+        except Exception as exc:
+            LOG.exception(exc)
+
+    @property
+    def items_per_page(self):
+        """Return opensearch:itemsPerPage."""
+        try:
+            if self.params.get("autoquery"):
+                num_pages = self.obj.get("num_pages", 0)
+                if num_pages > 1:
+                    res = self.MAX_OBJ_PER_PAGE
+                else:
+                    res = len(self.obj.get("obj_list", []))
+                return res
+        except Exception as exc:
+            LOG.exception(exc)
+
+    @property
+    def total_results(self):
+        """Return opensearch:totalResults."""
+        try:
+            if self.params.get("autoquery"):
+                num_pages = self.obj.get("num_pages", 0)
+                if num_pages > 1:
+                    res = self.MAX_OBJ_PER_PAGE * num_pages
+                else:
+                    res = len(self.obj.get("obj_list", []))
+                return res
+        except Exception as exc:
+            LOG.exception(exc)
 
     def _facet(self, kwargs, facet_group, facet_title, new_query_params):
         href = reverse("opds:v1:browser", kwargs=kwargs)
@@ -159,24 +208,28 @@ class OPDSBrowser(BrowserView, CodexXMLTemplateView):
             facets += [facet_obj]
         return facets
 
-    def _root_link(self, kwargs, root_link):
+    def _nav_link(self, kwargs, rel):
         href = reverse("opds:v1:browser", kwargs={**kwargs, "page": 1})
-        if root_link.query_params:
-            href += "?" + urlencode(root_link.query_params, doseq=True)
-        return OPDSLink(root_link.rel, href, root_link.mime_type)
+        return OPDSLink(rel, href, MimeType.NAV)
+
+    def _top_link(self, top_link):
+        href = reverse("opds:v1:browser", kwargs={**top_link.kwargs, "page": 1})
+        if top_link.query_params:
+            href += "?" + urlencode(top_link.query_params, doseq=True)
+        return OPDSLink(top_link.rel, href, top_link.mime_type)
 
     def _root_nav_links(self):
         """Navigation Root Links."""
         links = []
         if route := self.obj.get("up_route"):
-            links += [self._root_link(route, RootLinks.UP)]
+            links += [self._nav_link(route, Rel.UP)]
         page = self.obj.get("page", 1)
         if page > 1:
             route = {**self.kwargs, "page": page - 1}
-            links += [self._root_link(route, RootLinks.PREV)]
+            links += [self._nav_link(route, Rel.PREV)]
         if page < self.obj.get("num_pages", 1):
             route = {**self.kwargs, "page": page + 1}
-            links += [self._root_link(route, RootLinks.NEXT)]
+            links += [self._nav_link(route, Rel.NEXT)]
         return links
 
     def is_top_link_displayed(self, top_link):
@@ -189,7 +242,7 @@ class OPDSBrowser(BrowserView, CodexXMLTemplateView):
                 is_displayed = False
                 break
         if not is_displayed:
-            for key, val in top_link.root_link.query_params.items():
+            for key, val in top_link.query_params.items():
                 if self.request.query_params.get(key) != val:
                     is_displayed = False
                     break
@@ -198,36 +251,38 @@ class OPDSBrowser(BrowserView, CodexXMLTemplateView):
     @property
     def links(self):
         """Create all the links."""
-        if self.is_aq_feed:
-            mime_type = MimeType.ACQUISITION
-        else:
-            mime_type = MimeType.NAV
-        links = [
-            OPDSLink("self", self.request.get_full_path(), mime_type),
-            OPDSLink(Rel.START, reverse("opds:v1:start"), MimeType.NAV),
-            OPDSLink(
-                Rel.AUTHENTICATION,
-                reverse("opds:v1:authentication"),
-                MimeType.AUTHENTICATION,
-            ),
-            OPDSLink("search", reverse("opds:v1:opensearch"), MimeType.OPENSEARCH),
-        ]
-        links += self._root_nav_links()
-        if self.use_facets:
-            if facets := self._facets():
-                links += facets
-                tl = TopLinks.NEW
-                if not self.is_top_link_displayed(tl):
-                    links += [self._root_link(tl.kwargs, tl.root_link)]
-
+        links = []
+        try:
+            if self.is_aq_feed:
+                mime_type = MimeType.ACQUISITION
+            else:
+                mime_type = MimeType.NAV
+            links += [
+                OPDSLink("self", self.request.get_full_path(), mime_type),
+                OPDSLink(
+                    Rel.AUTHENTICATION,
+                    reverse("opds:v1:authentication"),
+                    MimeType.AUTHENTICATION,
+                ),
+                OPDSLink("search", reverse("opds:v1:opensearch"), MimeType.OPENSEARCH),
+            ]
+            links += self._root_nav_links()
+            if self.use_facets:
+                for top_link in TopLinks.ALL:
+                    links += [self._top_link(top_link)]
+                if facets := self._facets():
+                    links += facets
+        except Exception as exc:
+            LOG.exception(exc)
         return links
 
-    def _root_link_entry(self, kwargs, qps, glyph, title):
-        """Create a root link entry instead of as a facet."""
+    def _top_link_entry(self, top_link):
+        """Create a entry instead of a facet."""
         entry_obj = {
-            **kwargs,
-            "name": " ".join((glyph, title)),
-            "query_params": qps,
+            **top_link.kwargs,
+            "name": " ".join((top_link.glyph, top_link.title)),
+            "query_params": top_link.query_params,
+            "summary": top_link.desc,
         }
 
         return OPDSEntry(entry_obj, self.valid_nav_groups, {})
@@ -236,37 +291,42 @@ class OPDSBrowser(BrowserView, CodexXMLTemplateView):
     def entries(self):
         """Create all the entries."""
         entries = []
-        if not self.use_facets:
-            for tl in TopLinks.ALL:
-                if not self.is_top_link_displayed(tl):
+        try:
+            if not self.use_facets:
+                for tl in TopLinks.ALL:
+                    if not self.is_top_link_displayed(tl):
+                        entries += [self._top_link_entry(tl)]
+                entries += self._facets(entries=True)
+
+            if obj_list := self.obj.get("obj_list"):
+                at_top = self.kwargs.get("pk") == 0
+                for entry_obj in obj_list:
                     entries += [
-                        self._root_link_entry(
-                            tl.kwargs,
-                            tl.root_link.query_params,
-                            tl.glyph,
-                            tl.title,
+                        OPDSEntry(
+                            entry_obj,
+                            self.valid_nav_groups,
+                            self.request.query_params,
+                            at_top,
                         )
                     ]
-            entries += self._facets(entries=True)
-
-        if obj_list := self.obj.get("obj_list"):
-            at_top = self.kwargs.get("pk") == 0
-            for entry_obj in obj_list:
-                entries += [
-                    OPDSEntry(
-                        entry_obj,
-                        self.valid_nav_groups,
-                        self.request.query_params,
-                        at_top,
-                    )
-                ]
+        except Exception as exc:
+            LOG.exception(exc)
         return entries
 
     def get_object(self):
         """Get the browser page and serialize it for this subclass."""
+        group = self.kwargs.get("group")
+        if group in self.AQUISITION_GROUPS:
+            self.is_opds_acquisition = True
         browser_page = super().get_object()
         # this serialization fixes the unionfix prefixes
-        serializer = OPDSEntrySerializer(browser_page.get("obj_list"), many=True)
+        obj_list = browser_page.get("obj_list")
+        model_group = browser_page.get("model_group")
+        if model_group == "c":
+            serializer_class = OPDSAcquisitionEntrySerializer
+        else:
+            serializer_class = OPDSEntrySerializer
+        serializer = serializer_class(obj_list, many=True)
         browser_page["obj_list"] = serializer.data
         self.obj = browser_page
         self.is_aq_feed = self.obj.get("model_group") == "c"

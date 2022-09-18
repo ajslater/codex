@@ -17,6 +17,12 @@
   <uri>https://github.com/ajslater/codex</uri>
 </author>
 <updated>{{ updated }}</updated>
+{% if items_per_page %}
+<opensearch:itemsPerPage>{{ items_per_page }}</opensearch:itemsPerPage>
+{% endif %}
+{% if total_results %}
+<opensearch:totalResults>{{ total_results }}</opensearch:totalResults>
+{% endif %}
 {% for link in links %}
 <link 
   {% if link.title %}
@@ -42,8 +48,8 @@
   <title>{{ entry.title }}</title>
   {% for link in entry.links %}
     <link 
-      rel="{{link.rel}}" 
-      href="{{ link.href }}" 
+      rel="{{ link.rel }}"
+      href="{{ link.href }}"
       type="{{ link.type }}"
       {% if link.thr_count %}
         thr:count="{{ link.thr_count }}"
@@ -62,12 +68,31 @@
   {% if entry.issued %}
     <dc:issued>{{ entry.issued }}</dc:issued>
   {% endif %}
+  {% if entry.published %}
+    <published>{{ entry.published }}</published>
+  {% endif %}
   {% if entry.updated %}
     <updated>{{ entry.updated }}</updated>
   {% endif %}
-  {% if entry.summary %}
-    <summary type="text">{{ entry.summary }}</summary>
+  {% if entry.publisher %}
+    <dc:publisher>{{ entry.publisher }}</dc:publisher>
   {% endif %}
+  {% if entry.language %}
+    <dc:language>{{ entry.language.name }}</dc:language>
+  {% endif %}
+  {% if entry.summary %}
+    {# pocketbooks supports content but not summary #}
+    <content type="text">{{ entry.summary }}</content>
+  {% endif %}
+  {% for author in entry.authors %}
+    <author><name>{{ author }}i</name></author>
+  {% endfor %}
+  {% for contributor in entry.contributors %}
+    <contributor><name>{{ contributor }}</name></contributor>
+  {% endfor %}
+  {% for category in entry.categories %}
+    <category label="{{ category }}" />
+  {% endfor %}
 </entry>
 {% endfor %}
 </feed>

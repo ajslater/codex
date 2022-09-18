@@ -3,7 +3,7 @@ from copy import deepcopy
 from typing import Optional, Union
 
 from django.core.paginator import EmptyPage, Paginator
-from django.db.models import F, Max, Value
+from django.db.models import F, ManyToManyField, Max, Value
 from django.db.models.fields import (
     BooleanField,
     CharField,
@@ -21,15 +21,23 @@ from codex.models import (
     Folder,
     Imprint,
     Library,
+    NamedModel,
     Publisher,
     SearchQuery,
     Series,
     Timestamp,
     Volume,
 )
-from codex.serializers.browser import BrowserPageSerializer
+from codex.serializers.browser import (
+    BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP,
+    BrowserPageSerializer,
+)
 from codex.serializers.choices import DEFAULTS
-from codex.serializers.opds_v1 import BROWSER_CARD_AND_OPDS_ORDERED_UNIONFIX_VALUES_MAP
+from codex.serializers.opds_v1 import (
+    OPDS_COMICS_ORDERED_UNIONFIX_VALUES_MAP,
+    OPDS_FOLDERS_ORDERED_UNIONFIX_VALUES_MAP,
+    OPDS_M2M_FIELDS,
+)
 from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_metadata_base import BrowserMetadataBaseView
@@ -48,13 +56,14 @@ class BrowserView(BrowserMetadataBaseView):
         v: k for k, v in BrowserMetadataBaseView.GROUP_MODEL_MAP.items()
     }
     _NAV_GROUPS = "rpisv"
-    _MAX_OBJ_PER_PAGE = 100
-    _ORPHANS = int(_MAX_OBJ_PER_PAGE / 20)
+    MAX_OBJ_PER_PAGE = 100
+    _ORPHANS = int(MAX_OBJ_PER_PAGE / 20)
     _NONE_DECIMALFIELD = Value(None, DecimalField())
     _EMPTY_CHARFIELD = Value("", CharField())
     _ZERO_INTEGERFIELD = Value(0, IntegerField())
     _NONE_BOOLFIELD = Value(None, BooleanField())
     _NONE_DATEFIELD = Value(None, DateField())
+    _EMPTY_M2M_FIELD = Value(None, ManyToManyField(NamedModel))
 
     _GROUP_INSTANCE_SELECT_RELATED = {
         Comic: ("series", "volume"),
@@ -68,6 +77,8 @@ class BrowserView(BrowserMetadataBaseView):
         "name": "browser",
         "params": deepcopy(DEFAULTS["route"]),
     }
+
+    is_opds_acquisition = False
 
     def _add_annotations(self, queryset, model, autoquery_pk):
         """
@@ -116,6 +127,7 @@ class BrowserView(BrowserMetadataBaseView):
         volume_name = self.NONE_CHARFIELD
 
         if is_model_comic:
+            publisher_name = F("publisher__name")
             series_name = F("series__name")
             volume_name = F("volume__name")
         elif model == Volume:
@@ -139,12 +151,25 @@ class BrowserView(BrowserMetadataBaseView):
         if not is_model_comic:
             queryset = queryset.annotate(
                 read_ltr=self._NONE_BOOLFIELD,
-                size=self._ZERO_INTEGERFIELD,
-                date=self._NONE_DATEFIELD,
-                summary=self._EMPTY_CHARFIELD,
-                comments=self._EMPTY_CHARFIELD,
-                notes=self._EMPTY_CHARFIELD,
             )
+            if self.is_opds_acquisition:
+                # This is for opds folder view.
+                queryset = queryset.annotate(
+                    size=self._ZERO_INTEGERFIELD,
+                    date=self._NONE_DATEFIELD,
+                    summary=self._EMPTY_CHARFIELD,
+                    comments=self._EMPTY_CHARFIELD,
+                    notes=self._EMPTY_CHARFIELD,
+                    language=self._EMPTY_CHARFIELD,
+                    characters=self._EMPTY_M2M_FIELD,
+                    genres=self._EMPTY_M2M_FIELD,
+                    locations=self._EMPTY_M2M_FIELD,
+                    series_groups=self._EMPTY_M2M_FIELD,
+                    story_arcs=self._EMPTY_M2M_FIELD,
+                    tags=self._EMPTY_M2M_FIELD,
+                    teams=self._EMPTY_M2M_FIELD,
+                    credits=self._EMPTY_M2M_FIELD,
+                )
 
         return queryset
 
@@ -172,12 +197,23 @@ class BrowserView(BrowserMetadataBaseView):
         model_group = self._get_model_group()
         self.model = self.GROUP_MODEL_MAP[model_group]
 
+    def _get_unionfix_values_map(self, folders=False):
+        if self.is_opds_acquisition:
+            if folders:
+                return OPDS_FOLDERS_ORDERED_UNIONFIX_VALUES_MAP
+            else:
+                return OPDS_COMICS_ORDERED_UNIONFIX_VALUES_MAP
+        else:
+            return BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP
+
     def get_folder_queryset(self, object_filter, autoquery_pk):
         """Create folder queryset."""
         # Create the main queries with filters
         folder_list = Folder.objects.filter(object_filter)
         comic_object_filter, _ = self.get_query_filters(True, False)
         comic_list = Comic.objects.filter(comic_object_filter)
+        if self.is_opds_acquisition:
+            comic_list = comic_list.prefetch_related(*OPDS_M2M_FIELDS)
 
         # add annotations for display and sorting
         # and the comic_cover which uses a sort
@@ -186,12 +222,10 @@ class BrowserView(BrowserMetadataBaseView):
 
         # Create ordered annotated values to make union align columns correctly because
         # django lacks a way to specify values column order.
-        folder_list = folder_list.values(
-            **BROWSER_CARD_AND_OPDS_ORDERED_UNIONFIX_VALUES_MAP
-        )
-        comic_list = comic_list.values(
-            **BROWSER_CARD_AND_OPDS_ORDERED_UNIONFIX_VALUES_MAP
-        )
+        values_map = self._get_unionfix_values_map(True)
+        folder_list = folder_list.values(**values_map)
+        values_map = self._get_unionfix_values_map()
+        comic_list = comic_list.values(**values_map)
 
         obj_list = folder_list.union(comic_list)
         return obj_list
@@ -202,6 +236,8 @@ class BrowserView(BrowserMetadataBaseView):
             raise ValueError("No model set in browser")
 
         obj_list = self.model.objects.filter(object_filter)
+        if self.is_opds_acquisition:
+            obj_list = obj_list.prefetch_related(*OPDS_M2M_FIELDS)
         # obj_list filtering done
 
         # Add annotations for display and sorting
@@ -209,7 +245,8 @@ class BrowserView(BrowserMetadataBaseView):
 
         # Convert to a dict because otherwise the folder/comic union blows
         # up the paginator. Use the same annotations for the serializer.
-        obj_list = obj_list.values(**BROWSER_CARD_AND_OPDS_ORDERED_UNIONFIX_VALUES_MAP)
+        values_map = self._get_unionfix_values_map()
+        obj_list = obj_list.values(**values_map)
 
         return obj_list
 
@@ -243,7 +280,8 @@ class BrowserView(BrowserMetadataBaseView):
             ).get(pk=pk)
         except self.group_class.DoesNotExist:
             group = self.kwargs.get("group")
-            self._raise_redirect({"group": group}, f"{group}={pk} does not exist!")
+            reason = f"{group}={pk} does not exist!"
+            self._raise_redirect({"group": group}, reason)
 
     def _get_browse_up_route(self):
         """Get the up route from the first valid ancestor."""
@@ -329,7 +367,7 @@ class BrowserView(BrowserMetadataBaseView):
 
     def _paginate(self, queryset):
         """Paginate the queryset into a final object list."""
-        paginator = Paginator(queryset, self._MAX_OBJ_PER_PAGE, orphans=self._ORPHANS)
+        paginator = Paginator(queryset, self.MAX_OBJ_PER_PAGE, orphans=self._ORPHANS)
         page = self.kwargs.get("page", 1)
         try:
             obj_list = paginator.page(page).object_list
@@ -454,26 +492,29 @@ class BrowserView(BrowserMetadataBaseView):
                     self._raise_redirect(route_changes, reason)
                 break
 
-    def _raise_redirect(self, route_mask, reason):
+    def _raise_redirect(self, route_mask, reason, settings_mask=None):
         """Redirect the client to a valid group url."""
         route = deepcopy(self._DEFAULT_ROUTE)
         route["params"].update(route_mask)
-        detail = {"route": route, "settings": self.params, "reason": reason}
+        settings = deepcopy(self.params)
+        if settings_mask:
+            settings.update(settings_mask)
+        detail = {"route": route, "settings": settings, "reason": reason}
         raise SeeOtherRedirectError(detail=detail)
 
     def _validate_folder_settings(self, enable_folder_view):
         """Check that all the view variables for folder mode are set right."""
         # Check folder view admin flag
         if not enable_folder_view:
-            self.params["top_group"] = self.ROOT_GROUP
             reason = "folder view disabled"
-            self._raise_redirect({}, reason)
+            settings_mask = {"top_group": self.ROOT_GROUP}
+            self._raise_redirect({}, reason, settings_mask)
 
         top_group = self.params["top_group"]
         if top_group != self.FOLDER_GROUP:
-            self.params["top_group"] = self.FOLDER_GROUP
             reason = f"top_group {top_group} doesn't match route {self.FOLDER_GROUP}"
-            self._raise_redirect({"group": self.FOLDER_GROUP}, reason)
+            settings_mask = {"top_group": self.FOLDER_GROUP}
+            self._raise_redirect({"group": self.FOLDER_GROUP}, reason, settings_mask)
 
         # set valid folder nav groups
         self.valid_nav_groups = (self.FOLDER_GROUP,)
@@ -497,10 +538,10 @@ class BrowserView(BrowserMetadataBaseView):
                 reason += "first valid top group "
             reason += valid_top_group
             LOG.verbose(reason)
-            self.params["top_group"] = valid_top_group
             page = self.kwargs["page"]
             route = {"group": nav_group, "pk": pk, "page": page}
-            self._raise_redirect(route, reason)
+            settings_mask = {"top_group": valid_top_group}
+            self._raise_redirect(route, reason, settings_mask)
 
         # Validate Browser nav_group
         # Redirect if nav group is wrong
@@ -537,9 +578,9 @@ class BrowserView(BrowserMetadataBaseView):
             pk = self.kwargs("pk")
             page = self.kwargs("page")
             route_changes = {"group": group, "pk": pk, "page": page}
-            self.params["order_by"] = "sort_name"
             reason = "order by path not allowed by admin flag."
-            self._raise_redirect(route_changes, reason)
+            settings_mask = {"order_by": "sort_name"}
+            self._raise_redirect(route_changes, reason, settings_mask)
 
     @extend_schema(request=BrowserMetadataBaseView.input_serializer_class)
     def get(self, _request, *args, **kwargs):

@@ -5,7 +5,7 @@ from django.views.decorators.cache import cache_control, cache_page
 from codex.views.cover import CoverView
 from codex.views.download import DownloadView
 from codex.views.opds_v1.authentication import AuthenticationView
-from codex.views.opds_v1.browser import OPDSBrowser
+from codex.views.opds_v1.browser import OPDSBrowserView
 from codex.views.opds_v1.opensearch import OpenSearchView
 from codex.views.opds_v1.start import opds_start_view
 from codex.views.reader.page import ReaderPageView
@@ -22,7 +22,7 @@ urlpatterns = [
     # Browser
     path(
         "<str:group>/<int:pk>/<int:page>",
-        OPDSBrowser.as_view(),
+        OPDSBrowserView.as_view(),
         name="browser",
     ),
     #

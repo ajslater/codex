@@ -1,9 +1,9 @@
 # 📰 Codex News
 
 <img src="codex/img/logo.svg" style="
-   height: 128px;
-   width: 128px;
-   border-radius: 128px;
+height: 128px;
+width: 128px;
+border-radius: 128px;
 " />
 
 ## v0.13.0a0
@@ -14,19 +14,22 @@ _Admin Panel_
 
   - Single Page Admin Panel.
   - Users may now change their own passwords.
-  - OPDS defaults to using entry links instead of facets. Known conforming user agents get facets.
-  - OPDS gains a Newest Issues facet.
-  - OPDS gains a Start top link.
+  - OPDS
+      - Use facets for known User Agents that support them. Default to using entry links.
+      - Gain a Newest Issues facet, a Start top link and a Featured / Oldest Unread link.
+      - More metadata tags.
+      - Special thanks to @beville for UX research and suggestions
   - HTTP Basic auth only used for OPDS.
 
 - Fixes
 
   - Fixed imprints & volume levels not displaying sometimes.
+  - Fix large images & downloads for some OPDS clients.
 
 - Dev Notes
 
   - API v3 is more restful.
-  - /api/v3/ root displays swagger api documentation.
+  - /api/v3/ displays API documentation.
   - Vite replaces Vue CLI.
   - Pina replaces Vuex.
   - Vitest replaces Jest.
@@ -210,7 +213,7 @@ _Portable Document Format_
 - Fixes
 
   - Fix comicbox config crash.
-  - Use codex config namespace (~/.config/codex) so codex doesn't interfere with standalone comicbox configs.
+  - Use codex config namespace (\~/.config/codex) so codex doesn't interfere with standalone comicbox configs.
   - Comic issue numbers display to two decimal points instead of using ½ glyphs.
 
 - Features

@@ -2,7 +2,7 @@
   <v-toolbar id="readerTopToolbar" dense>
     <v-toolbar-items>
       <v-btn id="closeBook" ref="closeBook" :to="closeBookRoute" large ripple>
-        <span v-if="$vuetify.breakpoint.mdAndUp">close book</span>
+        <span v-if="!$vuetify.breakpoint.mobile">close book</span>
         <v-icon v-else>{{ mdiClose }}</v-icon>
       </v-btn>
     </v-toolbar-items>
