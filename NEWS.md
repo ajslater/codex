@@ -15,10 +15,10 @@ _Admin Panel_
   - Single Page Admin Panel.
   - Users may now change their own passwords.
   - OPDS
-      - Use facets for known User Agents that support them. Default to using entry links.
-      - Gain a Newest Issues facet, a Start top link and a Featured / Oldest Unread link.
-      - More metadata tags.
-      - Special thanks to @beville for UX research and suggestions
+    - Use facets for known User Agents that support them. Default to using entry links.
+    - Gain a Newest Issues facet, a Start top link and a Featured / Oldest Unread link.
+    - More metadata tags.
+    - Special thanks to @beville for UX research and suggestions
   - HTTP Basic auth only used for OPDS.
 
 - Fixes

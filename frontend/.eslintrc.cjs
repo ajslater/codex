@@ -14,6 +14,16 @@ module.exports = {
     "vue/no-deprecated-filter": "off", // Vue 3
     "vue/no-deprecated-v-on-native-modifier": "off", // Vue 3
   },
+  overrides: [
+    {
+      files: ["*.md"],
+      parser: "eslint-plugin-markdownlint/parser",
+      extends: ["plugin:markdownlint/recommended"],
+      rules: {
+        "markdownlint/md013": "warn",
+      },
+    },
+  ],
   ignorePatterns: ["!frontend", "coverage", "components.d.ts"],
   settings: {
     "import/resolver": {

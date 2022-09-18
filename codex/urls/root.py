@@ -6,7 +6,7 @@ https://docs.djangoproject.com/en/dev/topics/http/urls/
 from django.conf import settings
 from django.contrib import admin
 from django.contrib.staticfiles.storage import staticfiles_storage
-from django.urls import include, path, re_path, reverse_lazy
+from django.urls import include, path
 from django.views.generic.base import RedirectView
 
 

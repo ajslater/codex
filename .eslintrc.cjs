@@ -12,8 +12,6 @@ module.exports = {
     "plugin:unicorn/all",
     // LANGS
     "plugin:json/recommended",
-    "plugin:markdown/recommended",
-    //"plugin:md/recommended",
     "plugin:yaml/recommended",
     // PRACTICES
     "plugin:array-func/recommended",
@@ -38,9 +36,11 @@ module.exports = {
   overrides: [
     {
       files: ["*.md"],
-      parser: "markdown-eslint-parser",
+      parser: "eslint-plugin-markdownlint/parser",
+      extends: ["plugin:markdownlint/recommended"],
       rules: {
-        "prettier/prettier": ["error", { parser: "markdown" }],
+        "markdownlint/md013": "warn",
+        "markdownlint/md033": "off",
       },
     },
   ],
@@ -49,8 +49,7 @@ module.exports = {
     "eslint-comments",
     "json",
     "import",
-    "markdown",
-    //"md",
+    "markdownlint",
     "no-constructor-bind",
     "no-secrets",
     "no-unsanitized",
@@ -67,21 +66,6 @@ module.exports = {
   ],
   rules: {
     "max-params": ["warn", 4],
-    /*
-     md/remark plugins can't be read by eslint
-     https://github.com/standard-things/esm/issues/855
-    "md/remark": [ "error",
-      {
-        plugins: [
-          "gfm",
-          "preset-lint-consistent",
-          "preset-lint-markdown-style-guide",
-          "preset-lint-recommended",
-          "preset-prettier"
-        ],
-      }
-    ],
-    */
     "no-console": process.env.NODE_ENV === "production" ? "warn" : "off",
     "no-debugger": process.env.NODE_ENV === "production" ? "warn" : "off",
     "no-constructor-bind/no-constructor-bind": "error",
