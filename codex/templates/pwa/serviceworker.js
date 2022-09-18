@@ -1,6 +1,6 @@
-{% load static %}
+// {% load static %}
 var CACHE_PREFIX = "codex-pwa-v"
-var STATIC_CACHE_NAME = CACHE_PREFIX + new Date().getTime();
+var STATIC_CACHE_NAME = CACHE_PREFIX + new Date().now();
 var OFFLINE_PATH = "{% static 'pwa/offline.html' %}";
 var FILES_TO_CACHE = [
   OFFLINE_PATH,

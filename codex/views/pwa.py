@@ -12,7 +12,7 @@ class WebManifestView(CodexTemplateView):
 class ServiceWorkerRegisterView(CodexTemplateView):
     """Serve the serviceworker register javascript."""
 
-    template_name = "pwa/serviceworkerRegister.js"
+    template_name = "pwa/serviceworker-register.js"
     content_type = "application/javascript"
 
 
