@@ -21,6 +21,7 @@ module.exports = {
       extends: ["plugin:markdownlint/recommended"],
       rules: {
         "markdownlint/md013": "warn",
+        "markdownlint/md033": "off",
       },
     },
   ],
