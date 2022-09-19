@@ -22,7 +22,7 @@
         {
           "value": "purge_comic_covers",
           "text": "Remove Comic Covers",
-          "desc": "in every library",
+          "desc": "from every library",
           "confirm": "Are you sure?"
         }
       ]
