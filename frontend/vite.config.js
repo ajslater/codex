@@ -4,18 +4,17 @@ import path from "path";
 import toml from "toml";
 import { VuetifyResolver } from "unplugin-vue-components/resolvers";
 import Components from "unplugin-vue-components/vite";
-import { fileURLToPath } from "url";
 import { defineConfig } from "vite";
 import eslint from "vite-plugin-eslint";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 
 import package_json from "./package.json";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let root_path;
 try {
-  const hypercorn = toml.parse(fs.readFileSync("../config/hypercorn.toml"));
-  root_path = hypercorn.root_path || "";
+  // for dev & build
+  const HYPERCORN_CONF = toml.parse(fs.readFileSync("../config/hypercorn.toml"));
+  root_path = HYPERCORN_CONF.root_path || "";
 } catch {
   root_path = "";
 }
@@ -24,7 +23,7 @@ const config = defineConfig(({ mode }) => {
   const PROD = mode === "production";
   const DEV = mode === "development";
   return {
-    base: root_path + "/static",
+    base: root_path + "/static/",
     server: {
       host: true,
       strictPort: true,
@@ -33,17 +32,17 @@ const config = defineConfig(({ mode }) => {
     build: {
       manifest: PROD,
       minify: PROD,
-      outDir: path.resolve(__dirname, "../codex/static_build"),
+      outDir: path.resolve("../codex/static_build"),
       rollupOptions: {
         // No need for index.html
-        input: "./src/main.js",
+        input: path.resolve("./src/main.js"),
       },
       sourcemap: DEV,
       //emptyOutDir: true
     },
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "./src"),
+        "@": path.resolve("./src"),
       },
     },
     plugins: [
