@@ -84,7 +84,7 @@ class ReaderView(GenericAPIView, GroupACLMixin):
         if not comic:
             pk = self.kwargs.get("pk")
             detail = {
-                "route": reverse("app"),
+                "route": reverse("app:start"),
                 "reason": f"comic {pk} not found",
                 "serializer": ReaderRedirectSerializer,
             }
