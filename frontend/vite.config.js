@@ -13,7 +13,9 @@ import package_json from "./package.json";
 let root_path;
 try {
   // for dev & build
-  const HYPERCORN_CONF = toml.parse(fs.readFileSync("../config/hypercorn.toml"));
+  const HYPERCORN_CONF = toml.parse(
+    fs.readFileSync("../config/hypercorn.toml")
+  );
   root_path = HYPERCORN_CONF.root_path || "";
 } catch {
   root_path = "";
