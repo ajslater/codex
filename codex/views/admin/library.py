@@ -80,7 +80,7 @@ class AdminLibraryViewSet(ModelViewSet):
         self._poll(library.pk, False)
 
     def perform_destroy(self, instance):
-        """Perform destory and run hooks."""
+        """Perform destroy and run hooks."""
         super().perform_destroy(instance)
         self._sync_watchdog()
         self._on_change()
