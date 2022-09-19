@@ -43,7 +43,7 @@ export default {
       this.longBrowseTitleMain,
       this.longBrowseTitleSuffix,
     ];
-    const content = names.join(" ");
+    const content = names.filter(Boolean).join(" ");
     return { meta: [{ hid: "description", name: "description", content }] };
   },
   computed: {
