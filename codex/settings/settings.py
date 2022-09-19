@@ -34,7 +34,6 @@ SECRET_KEY = get_secret_key(CONFIG_PATH)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(os.environ.get("DEBUG", "").lower() not in ("0", "false", ""))
-DEBUG_TOOLBAR = bool(os.environ.get("DEBUG_TOOLBAR", False))
 #
 # Logging
 #
@@ -59,10 +58,7 @@ INSTALLED_APPS = [
 
 if DEBUG:
     # comes before static apps
-    INSTALLED_APPS += ["livereload"]
     INSTALLED_APPS += ["nplusone.ext.django"]
-    if DEBUG_TOOLBAR:
-        INSTALLED_APPS += ["debug_toolbar"]
 
 INSTALLED_APPS += [
     "whitenoise.runserver_nostatic",
@@ -89,17 +85,10 @@ MIDDLEWARE = [
     "codex.middleware.TimezoneMiddleware",
 ]
 if DEBUG:
-    MIDDLEWARE += [
-        "livereload.middleware.LiveReloadScript",
-    ]
-    if DEBUG_TOOLBAR:
-        MIDDLEWARE += [
-            "debug_toolbar.middleware.DebugToolbarMiddleware",
-        ]
-    MIDDLEWARE += ["nplusone.ext.django.NPlusOneMiddleware"]
-    NPLUSONE_LOGGER = get_logger("nplusone")
     from logging import WARN
 
+    MIDDLEWARE += ["nplusone.ext.django.NPlusOneMiddleware"]
+    NPLUSONE_LOGGER = get_logger("nplusone")
     NPLUSONE_LOG_LEVEL = WARN
 
 

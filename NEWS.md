@@ -30,6 +30,7 @@ border-radius: 128px;
   - Vite replaces Vue CLI.
   - Pina replaces Vuex.
   - Vitest replaces Jest.
+  - Django livereload server and debug toolbar removed.
 
 ## v0.12.2
 
