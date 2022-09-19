@@ -45,7 +45,6 @@ export default {
   },
   data() {
     return {
-      djangoAdminURL: window.CODEX.ADMIN_PATH,
       mdiOpenInNew,
     };
   },

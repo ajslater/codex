@@ -12,11 +12,11 @@
         <script>
           var CODEX = {
             APP_PATH: "{% url 'app:start' %}",
-            ADMIN_PATH: "{% url 'admin:index' %}",
             API_V3_PATH: "{% url 'api:v3:base' %}",
             LAST_ROUTE: {{ last_route | safe }},
             MISSING_COVER: "{% static 'img/missing-cover.webp' %}",
             OPDS_PATH: "{% url 'opds:v1:browser' 'r' 0 1 %}"
+            DJANGO_ADMIN_PATH: "{% url 'admin:index' %}",
           };
           Object.freeze(CODEX);
         </script>

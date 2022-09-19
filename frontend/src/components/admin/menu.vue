@@ -46,7 +46,6 @@ export default {
   },
   data() {
     return {
-      adminURL: window.CODEX.ADMIN_PATH,
       mdiBookAlert,
       mdiOpenInNew,
     };
