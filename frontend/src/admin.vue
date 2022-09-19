@@ -53,7 +53,7 @@ export default {
     ...mapGetters(useAuthStore, ["isUserAdmin"]),
     ...mapWritableState(useAdminStore, ["isSettingsDrawerOpen"]),
   },
-  created() {
+  mounted() {
     this.isSettingsDrawerOpen = !this.$vuetify.breakpoint.mobile;
   },
 };
