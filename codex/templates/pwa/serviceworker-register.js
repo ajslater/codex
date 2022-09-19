@@ -1,6 +1,6 @@
 // Initialize the service worker
 if ('serviceWorker' in navigator) {
-  await navigator.serviceWorker.register("{% url 'pwa:serviceworker' %}", {
+  navigator.serviceWorker.register("{% url 'pwa:serviceworker' %}", {
     scope: "{% url 'app:start' %}"
   }).then(function (registration) {
     // Registration was successful
