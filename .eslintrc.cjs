@@ -9,6 +9,7 @@ module.exports = {
     "eslint:recommended",
     // LANGS
     "plugin:json/recommended",
+    "plugin:mdx/recommended",
     "plugin:yaml/recommended",
     // CODE QUALITY
     "plugin:sonarjs/recommended",
@@ -28,29 +29,25 @@ module.exports = {
     "plugin:no-unsanitized/DOM",
     "plugin:security/recommended",
   ],
+  overrides: [
+    {
+      files: ["*.md"],
+      rules: {
+        "prettier-vue/prettier": ["warn", { parser: "markdown" }],
+      },
+    },
+  ],
   parserOptions: {
     ecmaVersion: "latest",
     ecmaFeatures: {
       impliedStrict: true,
     },
   },
-  overrides: [
-    {
-      files: ["*.md"],
-      parser: "eslint-plugin-markdownlint/parser",
-      extends: ["plugin:markdownlint/recommended"],
-      rules: {
-        "markdownlint/md013": "warn",
-        "markdownlint/md033": "off",
-      },
-    },
-  ],
   plugins: [
     "array-func",
     "eslint-comments",
     "json",
     "import",
-    "markdownlint",
     "no-constructor-bind",
     "no-secrets",
     "no-unsanitized",

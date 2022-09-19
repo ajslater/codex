@@ -1,10 +1,17 @@
 module.exports = {
   extends: [
-    "../.eslintrc.cjs",
     // VUE
     "plugin:vue/recommended",
     "plugin:vue-scoped-css/recommended", // XXX breaks eslint_d, vue3- prefix
     "prettier", // eslint-prettier-config AFTER vue/recommended
+  ],
+  overrides: [
+    {
+      files: ["*.md"],
+      rules: {
+        "prettier-vue/prettier": ["warn", { parser: "markdown" }],
+      },
+    },
   ],
   parser: "vue-eslint-parser",
   plugins: ["vue"],
@@ -12,18 +19,7 @@ module.exports = {
     "vue/no-deprecated-filter": "off", // Vue 3
     "vue/no-deprecated-v-on-native-modifier": "off", // Vue 3
   },
-  overrides: [
-    {
-      files: ["*.md"],
-      parser: "eslint-plugin-markdownlint/parser",
-      extends: ["plugin:markdownlint/recommended"],
-      rules: {
-        "markdownlint/md013": "off",
-        "markdownlint/md033": "off",
-      },
-    },
-  ],
-  ignorePatterns: ["!frontend", "coverage", "components.d.ts"],
+  ignorePatterns: ["coverage", "components.d.ts", "!frontend", "node_modules"],
   settings: {
     "import/resolver": {
       alias: {

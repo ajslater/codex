@@ -11,23 +11,20 @@ border-radius: 128px;
 ### Admin Panel
 
 - Features
-
   - Single Page Admin Panel.
   - Users may now change their own passwords.
   - OPDS
-    - Use facets for known User Agents that support them. Default to using entry links.
-    - Gain a Newest Issues facet, a Start top link and a Featured / Oldest Unread link.
+    - Use facets for known User Agents that support them. Default to using entry
+      links.
+    - Gain a Newest Issues facet, a Start top link and a Featured / Oldest
+      Unread link.
     - More metadata tags.
     - Special thanks to @beville for UX research and suggestions
   - HTTP Basic auth only used for OPDS.
-
 - Fixes
-
   - Fixed imprints & volume levels not displaying sometimes.
   - Fix large images & downloads for some OPDS clients.
-
 - Dev Notes
-
   - API v3 is more restful.
   - /api/v3/ displays API documentation.
   - Vite replaces Vue CLI.
@@ -37,14 +34,12 @@ border-radius: 128px;
 ## v0.12.2
 
 - Fixes
-
   - Fix OPDS downloading & streaming for Chunky Comic Reader.
   - Hack in facets as nav links for Panels & Chunky OPDS readers.
 
 ## v0.12.1
 
 - Fixes
-
   - Disable article ignore on name sort in folder view.
   - Fix browser navigation bug with issues top group.
 
@@ -53,15 +48,14 @@ border-radius: 128px;
 ### Syndication
 
 - Features
-
   - OPDS v1, OPDS Streaming & OPDS Search support.
   - Codex now accepts HTTP Basic authentication.
-    - If you run Codex behind a proxy that accepts HTTP Basic credentials that are different than those for Codex, be sure to disable authorization forwarding.
+    - If you run Codex behind a proxy that accepts HTTP Basic credentials that
+      are different than those for Codex, be sure to disable authorization
+      forwarding.
   - Larger browser covers.
   - Sort by name ignores leading articles in 11 languages.
-
 - Fixes
-
   - Use defusexml to load xml metadata for safety.
   - Removed process naming. My implementation was prone to instability.
 
@@ -70,13 +64,11 @@ border-radius: 128px;
 ### Task monitor
 
 - Features
-
-  - Librarian tasks in progress appear in the settings side drawer for adminstratiors.
+  - Librarian tasks in progress appear in the settings side drawer for
+    adminstratiors.
   - Covers are now created on demand by the browser, rather than on import.
   - Browser Read filter.
-
 - Fixes
-
   - Bookmark progress bar updates in browser after closing book.
   - Metadata web links fix.
 
@@ -87,7 +79,6 @@ border-radius: 128px;
   - Reader nav toolbar shows position in series.
 
 - Fixes
-
   - Fix inability to log in when Enable Non Users admin flag is unset.
   - Simplify Admin Library delete confirmation page to prevent OOM crash.
   - Move controls away from iphone notch and home bar.
@@ -98,7 +89,8 @@ border-radius: 128px;
 
   - Fix null bookmark and count fields in metadata
   - Fix indeterminate finished state when children have bookmark progress.
-  - Fix maintenance running inappropriately on first run. Crashed xapian database.
+  - Fix maintenance running inappropriately on first run. Crashed xapian
+    database.
   - Fix reader metadata keymap
 
 - Features
@@ -107,7 +99,6 @@ border-radius: 128px;
   - Reader "Shrink to" settings replaced by "Fit to"
 
 - Special Thanks
-
   - To ToxicFrog, who's been finding most of these bugs I'm fixing for a while.
 
 ## v0.10.8
@@ -121,7 +112,6 @@ border-radius: 128px;
   - Fix metadata cache busting.
 
 - Features
-
   - Accessibility enhancements for screen readers.
 
 ## v0.10.7
@@ -131,7 +121,6 @@ border-radius: 128px;
   - Browser tries to scroll to closed book to keep your place.
 
 - Fixes
-
   - Fixed missing lower click area on browser cards.
   - Fixed session bookmark interfering with logged in user bookmark.
 
@@ -143,11 +132,12 @@ border-radius: 128px;
 
 - Features
 
-  - Reader shrink to screen setting becomes fit to screen and embiggens small images.
-  - Reader changing to the next book now has visual feedback and requires two clicks.
+  - Reader shrink to screen setting becomes fit to screen and embiggens small
+    images.
+  - Reader changing to the next book now has visual feedback and requires two
+    clicks.
 
 - Fixes
-
   - Removed vertical scrollbars when Reader shrunk to height.
   - Don't disturb the view when top group changes from higher to lower.
 
@@ -158,30 +148,28 @@ border-radius: 128px;
   - Fix double tap for non-iOS touch devices.
 
 - Features
-
   - Shrink to Screen reader setting.
   - Reader throbber if a page takes longer than a quarter second to load.
 
 ## v0.10.3
 
 - Fixes
-
   - Fix PDF going blank when settings change.
-  - Remove vestigal browser scrollbars when they're not needed. Thanks to ToxicFrog.
+  - Remove vestigal browser scrollbars when they're not needed. Thanks to
+    ToxicFrog.
   - Fix cover cleanup maintenance task.
 
 ## v0.10.2
 
 - Fixes
-
   - URLS dictate view over top group. Fixes linking into views.
   - Fix possible cover generation memory leak.
-  - Build a deadfall trap for search indexer zombies. Use Offspring's brains as bait.
+  - Build a deadfall trap for search indexer zombies. Use Offspring's brains as
+    bait.
 
 ## v0.10.1
 
 - Fixes
-
   - Linked old top level comics orphaned by library folders migration.
 
 ## v0.10.0
@@ -190,17 +178,18 @@ border-radius: 128px;
 
 - Features
 
-  - PDF support. Optional poppler-utils binary package needed to generate PDF cover thumbnails.
+  - PDF support. Optional poppler-utils binary package needed to generate PDF
+    cover thumbnails.
   - CBT support. Tarball comic archives.
   - Alphanumeric issue support. Requires rescanning existing comics.
   - Individual top level folders for each library.
   - Don't duplicate folder name in filename sort.
 
 - Fixes
-
   - Comic file suffixes now matched case insensitively.
   - Finished comics count as 100% complete for bookmark aggregation.
-  - Mark all folder descendant comics un/read recursively instead of immediate children.
+  - Mark all folder descendant comics un/read recursively instead of immediate
+    children.
   - Don't leak library root paths in Folder View for non-admins in the API.
   - Fixed aggregation bug showing inaccurate data when viewing group metadata.
   - More accurate Name sorting.
@@ -213,17 +202,17 @@ border-radius: 128px;
 - Fixes
 
   - Fix comicbox config crash.
-  - Use codex config namespace (\~/.config/codex) so codex doesn't interfere with standalone comicbox configs.
+  - Use codex config namespace (~/.config/codex) so codex doesn't interfere with
+    standalone comicbox configs.
   - Comic issue numbers display to two decimal points instead of using ½ glyphs.
 
 - Features
-
-  - Filename order by option. Disabled if the "Enable Folder View" Admin Flag is off.
+  - Filename order by option. Disabled if the "Enable Folder View" Admin Flag is
+    off.
 
 ## v0.9.13
 
 - Fixes
-
   - Fix root_path configuration for running codex in url sub-paths
   - Parse new filename patterns for metadata.
   - Slightly faster comic cover generation.
@@ -239,7 +228,6 @@ border-radius: 128px;
   - Fixed deep linking into reader.
 
 - Features
-
   - Disable reader prev/next touch swiping for phone sized browsers.
 
 ## v0.9.11
@@ -255,7 +243,6 @@ border-radius: 128px;
   - Fixed crash loading admin page.
 
 - Features
-
   - Codex processes show names in ps and thread names on Linux.
   - Add Poll libraries action to FailedImports Admin Panel.
   - Space and shift-space previous and next reader shortcuts.
@@ -273,7 +260,6 @@ Yanked. Crash loading admin page.
   - Failed imports notification appears only for new failed imports.
 
 - Features
-
   - Update search index daily.
   - Clean up orphan comic covers every night.
 
@@ -290,7 +276,6 @@ Yanked. Crash loading admin page.
   - Fixed comic name display wrapping in browser.
 
 - Features
-
   - More comprehensive metadata sanitizing before import.
   - Reduced time checking to see if files have finished writing before import.
   - Uniform format for metadata parsing logging.
@@ -303,7 +288,6 @@ Yanked. Crash loading admin page.
   - Coerce decimal values into valid ranges and precision before importing.
 
 - Features
-
   - Clean up unused foreign keys once a day instead of after every import.
   - Clean up unused foreign keys librarian job available in admin panel.
 
@@ -315,7 +299,6 @@ Yanked. Crash loading admin page.
   - Fixed crash creating illegal dates on import.
 
 - Features
-
   - Replace description field with more common ComicInfo comments field.
   - Log files now rotate by size instead of daily.
   - Log path for failed imports and cover creation.
@@ -323,32 +306,27 @@ Yanked. Crash loading admin page.
 ## v0.9.5
 
 - Fixed
-
   - Use an allow list for importing metadata to prevent crashes.
 
 ## v0.9.4
 
 - Fixed
-
   - Fixed crash when importing comments metadata.
 
 ## v0.9.3
 
 - Fixed
-
   - Import credits data for CBI and CIX tagged comics.
   - More liberal metadata decimal parsing.
 
 ## v0.9.2
 
 - Fixed
-
   - Fix rare migration bug for Cover Artist role.
 
 ## v0.9.1
 
 - Fixes
-
   - Fix to library group integrity checker
 
 ## v0.9.0
@@ -356,7 +334,6 @@ Yanked. Crash loading admin page.
 ### Private Libraries
 
 - Features
-
   - Libraries may have access restricted to certain user groups.
   - The "Critical Rating" tag is now a decimal value.
   - The "Community Rating" tag replaced "User Rating" tag, a decimal value.
@@ -371,38 +348,33 @@ Yanked. Crash loading admin page.
 ### Search
 
 - Features
-
   - Metadata search field in browser
   - Settings dialogs replaced with side drawers
   - Changed some keyboard shortcuts in reader.
   - "group by" renamed to "top group".
   - Admin panel gained a Queue Jobs page.
-
 - Fixes
-
-  - Browser does a better job of remembering your last browser view on first load.
-  - Reader's "close book" button now does a better job returning you to your last browser view.
+  - Browser does a better job of remembering your last browser view on first
+    load.
+  - Reader's "close book" button now does a better job returning you to your
+    last browser view.
   - Metadata panel cleanup and fix some missing fields.
-
 - Binary Dependencies
-
   - Codex now requires the Xapian library to run as a native application
-
 - Drop Support
-
   - The linux/armhf platform is no longer published for Docker.
-
 - License
-
   - Codex is GPLv3
 
 ## v0.7.5
 
-- Fix integrity cleanup check for old comic_folder relations that prevented migrations.
+- Fix integrity cleanup check for old comic_folder relations that prevented
+  migrations.
 
 ## v0.7.4
 
-- Fix integrity cleanup check for more types of integrity errors that may have prevented clean db migrations.
+- Fix integrity cleanup check for more types of integrity errors that may have
+  prevented clean db migrations.
 - Fix last filter, group, sort not loading properly for some new views.
 
 ## v0.7.3
@@ -425,22 +397,24 @@ Yanked. Crash loading admin page.
 ### Feels Snappier
 
 - Database Migration
-
-  - v0.7.0 changes the database schema. Databases run with v0.7.0+ will not run on previous versions of codex.
-
+  - v0.7.0 changes the database schema. Databases run with v0.7.0+ will not run
+    on previous versions of codex.
 - Features
 
   - Big speed up to importing comics for large imports.
   - Speed up creating comic covers on large imports.
-  - Admin Panel options for polling (formerly "scanning") and watching events have changed names.
+  - Admin Panel options for polling (formerly "scanning") and watching events
+    have changed names.
   - Admin Panel task added to regenerate all comic covers.
   - Browser Admin Menu option added for polling all Libraries on demand.
-  - Comics with no specified Publishers, Imprints and Series no longer have induced default names for these but have no name like Volumes.
+  - Comics with no specified Publishers, Imprints and Series no longer have
+    induced default names for these but have no name like Volumes.
   - Codex repairs database integrity on startup.
   - Codex backs up the database every night.
   - Autodetect server timezone (for logging).
   - Use TZ and TIMEZONE environment variables to explicitly set server timezone.
-  - Added `VERBOSE` logging level to help screen out bulk `DEBUG` messages from dependencies.
+  - Added `VERBOSE` logging level to help screen out bulk `DEBUG` messages from
+    dependencies.
   - Truncated logging messages for easier reading.
 
 - Fixes
@@ -502,14 +476,17 @@ Yanked. Crash loading admin page.
 - New frontend URL scheme
 - New API
 - Added time to the browse card when sorting by time fields
-- Fixed a bug importing Story Arc Series Groups and Genres. Requires re-import to correct.
-- Fixed a bug with sorting that grouped improperly and showed the wrong covers for reverse sorts.
+- Fixed a bug importing Story Arc Series Groups and Genres. Requires re-import
+  to correct.
+- Fixed a bug with sorting that grouped improperly and showed the wrong covers
+  for reverse sorts.
 - Browser pagination footer now remains fixed on the page
 - Browser pagination footer is now a slider to handle larger collections
 - Notifications now appear in reader as well as browser
 - Scanning notifications on login not disappearing bug squashed
 - On comic import failure, log the path as well as the reason
-- Fixed a bug where the browser settings menu wouldn't close when opening a dialog
+- Fixed a bug where the browser settings menu wouldn't close when opening a
+  dialog
 - Codex version information moved to Browser > Settings
 
 ## v0.5.18
