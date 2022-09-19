@@ -3,7 +3,7 @@
     v-model="showDialog"
     origin="center-top"
     transition="slide-y-transition"
-    max-width="20em"
+    max-width="22em"
     overlay-opacity="0.5"
   >
     <template #activator="{ on }">
@@ -42,13 +42,16 @@
         clearable
         type="password"
       />
-      <v-btn
-        ripple
-        :disabled="!changePasswordButtonEnabled"
-        @click="changePassword"
-      >
-        Change Password
-      </v-btn>
+      <div>
+        <v-btn
+          ripple
+          :disabled="!changePasswordButtonEnabled"
+          @click="changePassword"
+        >
+          Change Password
+        </v-btn>
+        <v-btn id="cancelButton" @click="showDialog = false">Cancel</v-btn>
+      </div>
       <footer id="messageFooter">
         <small v-if="formErrors && formErrors.length > 0" id="error">
           <div v-for="error in formErrors" :key="error">
@@ -171,5 +174,8 @@ export default {
   font-size: larger;
   color: green;
   text-align: center;
+}
+#cancelButton {
+  float: right;
 }
 </style>
