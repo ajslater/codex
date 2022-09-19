@@ -1,4 +1,3 @@
-import "vite/modulepreload-polyfill";
 import "vuetify/dist/vuetify.min.css"; // Ensure you are using css-loader
 import "@mdi/font/css/materialdesignicons.css";
 
