@@ -9,9 +9,6 @@
         <title>Codex</title>
         {% include "icon-headers.html" %}
         {% include "pwa/headers.html" %}
-        {% if not DEBUG %}
-            <link rel="stylesheet" href="{% static main_css %}" />
-        {% endif %}
         <script>
           var CODEX = {
             APP_PATH: "{% url 'app:start' %}",
@@ -23,12 +20,8 @@
           };
           Object.freeze(CODEX);
         </script>
-        {% if DEBUG %}
-            {% vite_hmr_client %}
-            {% vite_asset 'src/main.js' %}
-        {% else %}
-            <script defer type="module" src="{% static main_js %}"></script>
-        {% endif %}
+        {% vite_hmr_client %}
+        {% vite_asset "src/main.js" %}
     </head>
     <body>
         <noscript>

@@ -15,6 +15,7 @@ import re
 
 from pathlib import Path
 
+from django.contrib.staticfiles.storage import staticfiles_storage
 from tzlocal import get_localzone_name
 from xapian import QueryParser
 
@@ -183,7 +184,7 @@ def immutable_file_test(_path, url):
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
-WHITENOISE_KEEP_ONLY_HASHED_FILES = True
+# WHITENOISE_KEEP_ONLY_HASHED_FILES = True # TODO patch django-vite to bring this back
 WHITENOISE_STATIC_PREFIX = "static/"
 
 WHITENOISE_IMMUTABLE_FILE_TEST = immutable_file_test
@@ -207,6 +208,10 @@ if DEBUG or BUILD:
     DJANGO_VITE_ASSETS_PATH = STATIC_BUILD
 else:
     DJANGO_VITE_ASSETS_PATH = STATIC_ROOT
+    DJANGO_VITE_MANIFEST_PATH = STATIC_ROOT / staticfiles_storage.stored_name(
+        "manifest.json"
+    )
+
 
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 60  # 60 days
 
