@@ -4,7 +4,8 @@
   "scripts": {
     "fix": "eslint_d --cache --fix --ignore-pattern frontend --ext .cjs,.mjs,.js,.json,.yaml,.md . && prettier --write .",
     "lint": "eslint_d --cache --ignore-pattern frontend --ext .cjs,.mjs,.js,.json,.yaml,.md . && prettier --check .",
-    "remark": "remark . --output"
+    "remark-check": "remark .",
+    "remark-fix": "remark . --output"
   },
   "devDependencies": {
     "@fsouza/prettierd": "^0.22.0",
