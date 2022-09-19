@@ -18,24 +18,62 @@ from codex.serializers.mixins import (
     BrowserCardOPDSBaseSerializer,
     get_serializer_values_map,
 )
+from codex.serializers.models import LanguageSerializer
 
 
 UTC_TZ = ZoneInfo("UTC")
 
 
 class OPDSEntrySerializer(BrowserCardOPDSBaseSerializer):
-    """Browse card displayed in the browser."""
+    """Group OPDS Entry Serializer."""
+
+
+class OPDSAcquisitionEntrySerializer(BrowserCardSerializer):
+    """Comic OPDS Entry Serializer."""
 
     size = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "size")
     date = DateField(read_only=True, source=UNIONFIX_PREFIX + "date")
-    summary = CharField(read_only=True, source=UNIONFIX_PREFIX + "summary")
     updated_at = DateTimeField(read_only=True, source=UNIONFIX_PREFIX + "updated_at")
-    #
-    # authors, category, dc:identifier SOME CVID?
+    created_at = DateTimeField(read_only=True, source=UNIONFIX_PREFIX + "created_at")
+    summary = CharField(read_only=True, source=UNIONFIX_PREFIX + "summary")
+    comments = CharField(read_only=True, source=UNIONFIX_PREFIX + "comments")
+    notes = CharField(read_only=True, source=UNIONFIX_PREFIX + "notes")
+    publisher_name = CharField(
+        read_only=True, source=UNIONFIX_PREFIX + "publisher_name"
+    )
+    language = CharField(read_only=True, source=UNIONFIX_PREFIX + "language")
+
+    # ManyToMany
+    characters = CharField(allow_null=True, source=UNIONFIX_PREFIX + "characters")
+    genres = CharField(allow_null=True, source=UNIONFIX_PREFIX + "genres")
+    locations = CharField(allow_null=True, source=UNIONFIX_PREFIX + "locations")
+    series_groups = CharField(allow_null=True, source=UNIONFIX_PREFIX + "series_groups")
+    story_arcs = CharField(allow_null=True, source=UNIONFIX_PREFIX + "story_arcs")
+    tags = CharField(allow_null=True, source=UNIONFIX_PREFIX + "tags")
+    teams = CharField(allow_null=True, source=UNIONFIX_PREFIX + "teams")
+    authors = CharField(allow_null=True, source=UNIONFIX_PREFIX + "authors")
+    contributors = CharField(allow_null=True, source=UNIONFIX_PREFIX + "contributors")
 
 
-BROWSER_CARD_AND_OPDS_ORDERED_UNIONFIX_VALUES_MAP = get_serializer_values_map(
-    [BrowserCardSerializer, OPDSEntrySerializer]
+OPDS_COMICS_ORDERED_UNIONFIX_VALUES_MAP = get_serializer_values_map(
+    [OPDSAcquisitionEntrySerializer],
+)
+OPDS_FOLDERS_ORDERED_UNIONFIX_VALUES_MAP = get_serializer_values_map(
+    [OPDSAcquisitionEntrySerializer], folders=True
+)
+
+
+OPDS_M2M_FIELDS = (
+    "characters",
+    "genres",
+    "locations",
+    "series_groups",
+    "story_arcs",
+    "tags",
+    "teams",
+    "credits",
+    "credits__role__name",
+    "credits__person__name",
 )
 
 
@@ -62,8 +100,8 @@ class AuthenticationSerializer(Serializer):
     id = CharField(read_only=True)
     title = CharField(read_only=True)
     description = CharField(read_only=True)
-    links = ListField(child=AuthLinksSerializer())
-    authentication = ListField(child=AuthenticationTypeSerializer())
+    links = AuthLinksSerializer(many=True, read_only=True)
+    authentication = AuthenticationTypeSerializer(many=True, read_only=True)
 
 
 class OPDSTemplateLinkSerializer(Serializer):
@@ -86,10 +124,16 @@ class OPDSTemplateEntrySerializer(Serializer):
 
     id = CharField(read_only=True)
     title = CharField(read_only=True)
-    links = ListField(child=OPDSTemplateLinkSerializer(), read_only=True)
+    links = OPDSTemplateLinkSerializer(many=True, read_only=True)
     issued = DateField(read_only=True, required=False)
     updated = DateTimeField(read_only=True, required=False, default_timezone=UTC_TZ)
+    published = DateTimeField(read_only=True, required=False, default_timezone=UTC_TZ)
     summary = CharField(read_only=True, required=False)
+    authors = ListField(child=CharField(), required=False, read_only=True)
+    contributors = ListField(child=CharField(), required=False, read_only=True)
+    categories = ListField(child=CharField(), required=False, read_only=True)
+    publisher = CharField(read_only=True, required=False)
+    language = LanguageSerializer(read_only=True, required=False)
 
 
 class OPDSTemplateSerializer(Serializer):
@@ -99,5 +143,7 @@ class OPDSTemplateSerializer(Serializer):
     id = CharField(read_only=True)
     title = CharField(read_only=True)
     updated = DateTimeField(read_only=True, default_timezone=UTC_TZ)
-    links = ListField(child=OPDSTemplateLinkSerializer(), read_only=True)
-    entries = ListField(child=OPDSTemplateEntrySerializer(), read_only=True)
+    links = OPDSTemplateLinkSerializer(many=True, read_only=True)
+    entries = OPDSTemplateEntrySerializer(many=True, read_only=True)
+    items_per_page = IntegerField(read_only=True)
+    total_results = IntegerField(read_only=True)

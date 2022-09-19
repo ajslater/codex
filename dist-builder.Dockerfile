@@ -12,7 +12,8 @@ RUN apk add --no-cache \
 # **** install python app dependencies ****
 # hadolint ignore=DL3022
 COPY pyproject.toml poetry.lock ./
-RUN PIP_CACHE_DIR=$(pip3 cache dir) poetry install --no-root --remove-untracked 
+RUN PIP_CACHE_DIR=$(pip3 cache dir) poetry install --no-root --remove-untracked --without dev
+
 
 # *** install node lint & test dependency packages ***
 COPY package.json package-lock.json ./

@@ -55,7 +55,7 @@ class PyCountrySerializer(Serializer):
     @staticmethod
     def lookup_name(lookup_module, name):
         """Lookup the name with pycountry, just copy the key on fail."""
-        if name is None:
+        if not name:
             # This never seems to get called so I do it on the front end.
             return "None"
         if len(name) == 2:
@@ -70,9 +70,9 @@ class PyCountrySerializer(Serializer):
             value = name
         return value
 
-    def get_name(self, obj):
+    def get_name(self, name):
         """Lookup the name with pycountry, just copy the key on fail."""
-        return self.lookup_name(self.LOOKUP_MODULE, obj)
+        return self.lookup_name(self.LOOKUP_MODULE, name)
 
 
 class LanguageSerializer(PyCountrySerializer):

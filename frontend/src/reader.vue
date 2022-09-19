@@ -1,27 +1,30 @@
 <template>
-  <div id="readerWrapper">
-    <div v-if="isCodexViewable" id="readerContainer">
-      <v-main>
-        <div id="pagesContainer">
-          <ReaderPage :page-increment="+0" />
-          <ReaderPage :page-increment="+1" />
-        </div>
-        <div id="navOverlay" @click="toggleToolbars">
-          <ReaderNavOverlay />
-        </div>
-      </v-main>
-      <v-slide-y-transition>
-        <ReaderTitleToolbar v-show="showToolbars" />
-      </v-slide-y-transition>
-      <v-slide-y-reverse-transition>
-        <ReaderNavToolbar v-show="showToolbars" />
-      </v-slide-y-reverse-transition>
-    </div>
-    <div v-else id="announcement">
-      <h1>
-        <router-link :to="{ name: 'home' }">Log in</router-link> to read comics
-      </h1>
-    </div>
+  <div>
+    <v-main id="readerWrapper">
+      <div v-if="isCodexViewable" id="readerContainer">
+        <v-main>
+          <div id="pagesContainer">
+            <ReaderPage :page-increment="+0" />
+            <ReaderPage :page-increment="+1" />
+          </div>
+          <div id="navOverlay" :v-touch="touchMap" @click="toggleToolbars">
+            <ReaderNavOverlay />
+          </div>
+        </v-main>
+        <v-slide-y-transition>
+          <ReaderTitleToolbar v-show="showToolbars" />
+        </v-slide-y-transition>
+        <v-slide-y-reverse-transition>
+          <ReaderNavToolbar v-show="showToolbars" />
+        </v-slide-y-reverse-transition>
+      </div>
+      <div v-else id="announcement">
+        <h1>
+          <router-link :to="{ name: 'home' }"> Log in </router-link> to read
+          comics
+        </h1>
+      </div>
+    </v-main>
     <ReaderSettingsDrawer />
   </div>
 </template>
@@ -36,8 +39,6 @@ import ReaderSettingsDrawer from "@/components/reader/settings-drawer.vue";
 import ReaderTitleToolbar from "@/components/reader/title-toolbar.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useReaderStore } from "@/stores/reader";
-
-const MIN_VIEWPORT_WIDTH_SWIPE_ENABLED = 768;
 
 export default {
   name: "MainReader",
@@ -58,6 +59,14 @@ export default {
       user: (state) => state.user,
     }),
     ...mapGetters(useAuthStore, ["isCodexViewable"]),
+    touchMap: function () {
+      return !this.$vuetify.breakpoint.mobile
+        ? {
+            left: () => this.routeTo("next"),
+            right: () => this.routeTo("prev"),
+          }
+        : {};
+    },
   },
   watch: {
     $route(to, from) {
@@ -88,18 +97,6 @@ export default {
     ]),
     toggleToolbars: function () {
       this.showToolbars = !this.showToolbars;
-    },
-    touchMap: function () {
-      const vw = Math.max(
-        document.documentElement.clientWidth || 0,
-        window.innerWidth || 0
-      );
-      return vw >= MIN_VIEWPORT_WIDTH_SWIPE_ENABLED
-        ? {
-            left: () => this.routeTo("next"),
-            right: () => this.routeTo("prev"),
-          }
-        : {};
     },
   },
 };

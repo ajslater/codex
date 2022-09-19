@@ -65,16 +65,13 @@
         Register
       </v-switch>
       <footer>
-        <small
-          v-if="authFormErrors && authFormErrors.length > 0"
-          style="color: red"
-        >
-          <div v-for="error in authFormErrors" :key="error">
+        <small v-if="formErrors && formErrors.length > 0" style="color: red">
+          <div v-for="error in formErrors" :key="error">
             {{ error }}
           </div>
         </small>
-        <small v-else-if="authFormSuccess" style="color: green"
-          >{{ authFormSuccess }}
+        <small v-else-if="formSuccess" style="color: green"
+          >{{ formSuccess }}
         </small>
         <small v-else-if="enableRegistration">
           Registering preserves bookmarks and settings across different browsers
@@ -110,8 +107,8 @@ export default {
   },
   computed: {
     ...mapState(useAuthStore, {
-      authFormErrors: (state) => state.errors,
-      authFormSuccess: (state) => state.success,
+      formErrors: (state) => state.form.errors,
+      formSuccess: (state) => state.form.success,
       enableRegistration: (state) => state.adminFlags.enableRegistration,
     }),
     loginButtonLabel: function () {
@@ -144,10 +141,9 @@ export default {
       this[mode](this.credentials).catch((error) => {
         console.error(error);
       });
-      if (this.validationError !== undefined) {
+      if (!this.formErrors || this.formErrors === []) {
         this.showLoginDialog = false;
-        const form = this.$refs.loginForm;
-        form.reset();
+        this.$refs.loginForm.reset();
       }
     },
     processLogin: function () {

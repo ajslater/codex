@@ -19,7 +19,7 @@ urlpatterns = [
         name="manifest",
     ),
     path(
-        "serviceworkerRegister.js",
+        "serviceworker-register.js",
         cache_page(TIMEOUT)(ServiceWorkerRegisterView.as_view()),
         name="serviceworker_register",
     ),

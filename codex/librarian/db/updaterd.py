@@ -140,7 +140,7 @@ def _init_librarian_status(task, path):
     """Update the librarian status tasks."""
     types_map = {}
     if task.files_moved:
-        types_map[ImportStatusTypes.FILES_MOVED] = ({"total": len(task.files_moved)},)
+        types_map[ImportStatusTypes.FILES_MOVED] = {"total": len(task.files_moved)}
     if task.files_modified or task.files_created:
         total_paths = len(task.files_modified) + len(task.files_created)
         types_map[ImportStatusTypes.AGGREGATE_TAGS] = {

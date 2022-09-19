@@ -9,10 +9,12 @@
         <v-list-item-content>
           <v-list-item-title class="filterMenu">
             {{ title }}
-            <v-icon v-if="filter && filter.length > 0" class="nameChevron">{{
-              mdiChevronRightCircle
-            }}</v-icon>
-            <v-icon v-else class="nameChevron">{{ mdiChevronRight }}</v-icon>
+            <v-icon v-if="filter && filter.length > 0" class="nameChevron">
+              mdiChevronRightCircle }}
+            </v-icon>
+            <v-icon v-else class="nameChevron">
+              {{ mdiChevronRight }}
+            </v-icon>
           </v-list-item-title>
         </v-list-item-content>
       </v-list-item>
@@ -22,8 +24,8 @@
         <header class="filterHeader">
           <v-list-item ripple @click="setUIFilterMode('base')">
             <v-list-item-content>
-              <v-list-item-title class="filterTitle"
-                ><v-icon>{{ mdiChevronLeft }}</v-icon
+              <v-list-item-title class="filterTitle">
+                <v-icon>{{ mdiChevronLeft }}</v-icon
                 >{{ lowerTitle }}
               </v-list-item-title>
             </v-list-item-content>

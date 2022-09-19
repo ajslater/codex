@@ -1,6 +1,6 @@
-{% load static %}
+// {% load static %}
 var CACHE_PREFIX = "codex-pwa-v"
-var STATIC_CACHE_NAME = CACHE_PREFIX + new Date().getTime();
+var STATIC_CACHE_NAME = CACHE_PREFIX + new Date().now();
 var OFFLINE_PATH = "{% static 'pwa/offline.html' %}";
 var FILES_TO_CACHE = [
   OFFLINE_PATH,
@@ -13,6 +13,7 @@ var FILES_TO_CACHE = [
 self.addEventListener("install", (event) => {
   this.skipWaiting();
   event.waitUntil(
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     caches.open(STATIC_CACHE_NAME).then((cache) => {
       return cache.addAll(FILES_TO_CACHE);
     })

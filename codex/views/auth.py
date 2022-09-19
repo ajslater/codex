@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from codex.models import AdminFlag
-from codex.serializers.auth import AdminFlagsSerializer, TimezoneSerializer
+from codex.serializers.auth import AuthAdminFlagsSerializer, TimezoneSerializer
 from codex.settings.logging import get_logger
 
 
@@ -45,12 +45,12 @@ class TimezoneView(GenericAPIView):
 class AdminFlagsView(GenericAPIView, RetrieveModelMixin):
     """Get admin flags relevant to auth."""
 
-    ADMIN_FLAG_NAMES = frozenset(
+    _ADMIN_FLAG_NAMES = frozenset(
         (AdminFlag.ENABLE_NON_USERS, AdminFlag.ENABLE_REGISTRATION)
     )
 
-    serializer_class = AdminFlagsSerializer
-    queryset = AdminFlag.objects.filter(name__in=ADMIN_FLAG_NAMES).only("name", "on")
+    serializer_class = AuthAdminFlagsSerializer
+    queryset = AdminFlag.objects.filter(name__in=_ADMIN_FLAG_NAMES).only("name", "on")
 
     def get_object(self):
         """Get admin flags."""

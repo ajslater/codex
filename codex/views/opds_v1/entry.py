@@ -27,6 +27,15 @@ class OPDSEntry:
     DATE_FORMAT_MS = _DATE_FORMAT_BASE + ".%f%z"
     DATE_FORMAT = _DATE_FORMAT_BASE + "%z"
     DATE_FORMATS = (DATE_FORMAT_MS, DATE_FORMAT)
+    CATEGORY_KEYS = (
+        "characters",
+        "genres",
+        "locations",
+        "series_groups",
+        "story_arcs",
+        "tags",
+        "teams",
+    )
 
     def __init__(self, obj, valid_nav_groups, query_params, at_top=False):
         """Initialize params."""
@@ -45,48 +54,58 @@ class OPDSEntry:
     @property
     def id(self):
         """GUID is a nav url."""
-        group = self.obj.get("group")
-        pk = self.obj.get("pk")
-        return reverse("opds:v1:browser", kwargs={"group": group, "pk": pk, "page": 1})
+        try:
+            group = self.obj.get("group")
+            pk = self.obj.get("pk")
+            return reverse(
+                "opds:v1:browser", kwargs={"group": group, "pk": pk, "page": 1}
+            )
+        except Exception as exc:
+            LOG.exception(exc)
 
     @property
     def title(self):
         """Compute the item title."""
-        group = self.obj.get("group")
-        parts = []
-        if group == "i":
-            parts.append(self.obj.get("publisher_name"))
-        elif group == "v":
-            parts.append(self.obj.get("series_name"))
-        elif group == "c":
-            if self.at_top:
+        result = ""
+        try:
+            group = self.obj.get("group")
+            parts = []
+            if group == "i":
+                parts.append(self.obj.get("publisher_name"))
+            elif group == "v":
                 parts.append(self.obj.get("series_name"))
+            elif group == "c":
+                if self.at_top:
+                    parts.append(self.obj.get("series_name"))
 
-            issue_max = self.obj.get("issue_max")
-            zero_pad = self._compute_zero_pad(issue_max)
-            issue = self.obj.get("issue")
-            if issue is None:
-                issue = Decimal(0)
-            issue = issue.normalize()
-            issue_suffix = self.obj.get("issue_suffix", "")
+                issue_max = self.obj.get("issue_max")
+                zero_pad = self._compute_zero_pad(issue_max)
+                issue = self.obj.get("issue")
+                if issue is None:
+                    issue = Decimal(0)
+                issue = issue.normalize()
+                issue_suffix = self.obj.get("issue_suffix", "")
 
-            int_issue = math.floor(issue)
-            if issue == int_issue:
-                issue_str = str(int_issue)
-            else:
-                issue_str = str(issue)
-                decimal_parts = issue_str.split(".")
-                if len(decimal_parts) > 1:
-                    zero_pad += len(decimal_parts[1]) + 1
+                int_issue = math.floor(issue)
+                if issue == int_issue:
+                    issue_str = str(int_issue)
+                else:
+                    issue_str = str(issue)
+                    decimal_parts = issue_str.split(".")
+                    if len(decimal_parts) > 1:
+                        zero_pad += len(decimal_parts[1]) + 1
 
-            issue_num = issue_str.zfill(zero_pad)
-            full_issue_str = f"#{issue_num}{issue_suffix}"
-            parts.append(full_issue_str)
+                issue_num = issue_str.zfill(zero_pad)
+                full_issue_str = f"#{issue_num}{issue_suffix}"
+                parts.append(full_issue_str)
 
-        if name := self.obj.get("name"):
-            parts.append(name)
+            if name := self.obj.get("name"):
+                parts.append(name)
 
-        result = " ".join(parts)
+            result = " ".join(parts)
+        except Exception as exc:
+            LOG.exception(exc)
+
         if not result:
             result = BLANK_TITLE
         return result
@@ -94,37 +113,65 @@ class OPDSEntry:
     @property
     def issued(self):
         """Return the published date."""
-        if date := self.obj.get("date"):
-            return date
+        try:
+            return self.obj.get("date")
+        except Exception as exc:
+            LOG.exception(exc)
+
+    @property
+    def publisher(self):
+        """Return the publisher."""
+        try:
+            return self.obj.get("publisher_name")
+        except Exception as exc:
+            LOG.exception(exc)
+
+    def _get_datefield(self, key):
+        try:
+            if value := self.obj.get(key):
+                result = None
+                for format in self.DATE_FORMATS:
+                    try:
+                        result = datetime.strptime(value, format).astimezone(
+                            timezone.utc
+                        )
+                        break
+                    except ValueError:
+                        pass
+                return result
+        except Exception as exc:
+            LOG.warning(exc)
 
     @property
     def updated(self):
         """When the entry was last updated."""
-        if updated_at := self.obj.get("updated_at"):
-            updated = None
-            try:
-                for format in self.DATE_FORMATS:
-                    try:
-                        updated = datetime.strptime(updated_at, format)
-                        updated = updated.astimezone(timezone.utc)
-                        break
-                    except ValueError:
-                        pass
-            except Exception as exc:
-                LOG.warning(exc)
-            return updated
+        return self._get_datefield("updated_at")
+
+    @property
+    def published(self):
+        """When the entry was created."""
+        return self._get_datefield("created_at")
+
+    @property
+    def language(self):
+        """Return the entry language."""
+        try:
+            return self.obj.get("language")
+        except Exception as exc:
+            LOG.exception(exc)
 
     @property
     def summary(self):
         """Return a child count or comic summary."""
-        if self.obj.get("group") == "c":
+        try:
             desc = self.obj.get("summary")
-        elif children := self.obj.get("child_count"):
-            desc = f"{children} issues"
-        else:
-            desc = None
+            if not desc:
+                if children := self.obj.get("child_count"):
+                    desc = f"{children} issues"
 
-        return desc
+            return desc
+        except Exception as exc:
+            LOG.exception(exc)
 
     def _thumb_link(self):
         cover_pk = self.obj.get("cover_pk")
@@ -135,7 +182,20 @@ class OPDSEntry:
             href = staticfiles_storage.url("img/missing_cover.webp")
         else:
             return
-        return OPDSLink(Rel.THUMBNAIL, href, "image/webp")
+        return (OPDSLink(Rel.THUMBNAIL, href, "image/webp"),)
+
+    def _image_link(self):
+        cover_pk = self.obj.get("cover_pk")
+        if cover_pk:
+            kwargs = {"pk": cover_pk, "page": 0}
+            href = reverse("opds:v1:page", kwargs=kwargs)
+            mime_type = "image/jpeg"
+        elif cover_pk == 0:
+            href = staticfiles_storage.url("img/missing_cover.webp")
+            mime_type = "image/webp"
+        else:
+            return
+        return OPDSLink(Rel.IMAGE, href, mime_type)
 
     def _nav_link(self):
         group = self.obj.get("group")
@@ -158,8 +218,9 @@ class OPDSEntry:
             href, self.query_params, self.obj.get("query_params", {})
         )
         thr_count = self.obj.get("child_count")
+        rel = self.obj.get("nav_link_rel", "subsection")
 
-        return OPDSLink("subsection", href, mime_type, thr_count=thr_count)
+        return OPDSLink(rel, href, mime_type, thr_count=thr_count)
 
     def _download_link(self):
         pk = self.obj.get("pk")
@@ -195,6 +256,8 @@ class OPDSEntry:
         result = []
         if thumb := self._thumb_link():
             result += [thumb]
+        if image := self._image_link():
+            result += [image]
 
         if self.obj.get("group") == "c":
             if download := self._download_link():
@@ -206,3 +269,29 @@ class OPDSEntry:
                 result += [nav]
 
         return result
+
+    def _parse_csv_fields(self, keys):
+        """Parse hacky csv field annotation."""
+        names = set()
+        try:
+            for key in keys:
+                if val := self.obj.get(key):
+                    names |= set((val.split(",")))
+        except Exception as exc:
+            LOG.exception(exc)
+        return names
+
+    @property
+    def authors(self):
+        """Get Author names."""
+        return self._parse_csv_fields(("authors",))
+
+    @property
+    def contributors(self):
+        """Get Contributor names."""
+        return self._parse_csv_fields(("contributors",))
+
+    @property
+    def categories(self):
+        """Get Category labels."""
+        return self._parse_csv_fields(self.CATEGORY_KEYS)

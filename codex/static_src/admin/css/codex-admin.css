@@ -12,6 +12,14 @@
 .field-last_poll .datetimeshortcuts {
   display: none;
 }
+
+#deprecatedWarning {
+  display: block;
+  padding: 1em;
+  margin-bottom: 1rem;
+  background-color: #500000;
+}
+
 #footer {
   padding: 0px 20px;
   color: #aaa;

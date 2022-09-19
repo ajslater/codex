@@ -4,6 +4,7 @@ from django.http import HttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import NotFound
+from rest_framework.negotiation import BaseContentNegotiation
 
 from codex.models import Comic
 from codex.pdf import PDF
@@ -16,17 +17,30 @@ from codex.views.bookmark import BookmarkBaseView
 LOG = get_logger(__name__)
 
 
+class IgnoreClientContentNegotiation(BaseContentNegotiation):
+    """Hack for clients with wild accept headers."""
+
+    def select_parser(self, _request, parsers):
+        """Select the first parser in the `.parser_classes` list."""
+        return parsers[0]
+
+    def select_renderer(self, _request, renderers, _format_suffix):
+        """Select the first renderer in the `.renderer_classes` list."""
+        return (renderers[0], renderers[0].media_type)
+
+
 class ReaderPageView(BookmarkBaseView):
     """Display a comic page from the archive itself."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
     X_MOZ_PRE_HEADERS = set(("prefetch", "preload", "prerender", "subresource"))
     content_type = "image/jpeg"
+    content_negotiation_class = IgnoreClientContentNegotiation  # type: ignore
 
     def _update_bookmark(self):
         """Update the bookmark if the bookmark param was passed."""
         if (
-            not self.request.query_params.get("bookmark")
+            not self.request.GET.get("bookmark")
             or self.request.headers.get("X-moz") in self.X_MOZ_PRE_HEADERS
         ):
             return

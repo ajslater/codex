@@ -3,6 +3,7 @@ import json
 
 from copy import deepcopy
 from distutils.util import strtobool
+from urllib.parse import unquote_plus
 
 from dateutil.parser import parse as du_parse
 from django.contrib.auth.models import User
@@ -437,6 +438,7 @@ class BrowserBaseView(BrowserSessionViewBase, GroupACLMixin):
         result = {}
         for key, val in query_params.items():
             if key in self._GET_JSON_KEYS:
+                val = unquote_plus(val)  # for pocketbooks reader
                 parsed_val = json.loads(val)
                 if not parsed_val:
                     continue

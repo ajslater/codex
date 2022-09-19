@@ -17,8 +17,9 @@
           title="Close Metadata (esc)"
           ripple
           @click="dialog = false"
-          >x</v-btn
         >
+          x
+        </v-btn>
         <MetadataText
           v-if="autoquery"
           id="search"
@@ -159,8 +160,11 @@
           :href="downloadURL"
           download
           title="Download Comic Archive"
-          ><v-icon v-if="group === 'c'">{{ mdiDownload }}</v-icon></v-btn
         >
+          <v-icon v-if="group === 'c'">
+            {{ mdiDownload }}
+          </v-icon>
+        </v-btn>
         <v-btn
           v-if="isReadButtonShown && isReadButtonEnabled"
           :to="readerRoute"
@@ -168,7 +172,9 @@
         >
           <v-icon>{{ mdiEye }}</v-icon>
         </v-btn>
-        <v-icon v-else-if="isReadButtonShown">{{ mdiEyeOff }}</v-icon>
+        <v-icon v-else-if="isReadButtonShown">
+          {{ mdiEyeOff }}
+        </v-icon>
 
         <span id="bottomRightButtons">
           <v-btn
@@ -187,8 +193,9 @@
         title="Close Metadata (esc)"
         ripple
         @click="dialog = false"
-        >x</v-btn
       >
+        x
+      </v-btn>
       <div id="placeholderTitle">Tags Loading</div>
       <v-progress-circular
         :value="progress"

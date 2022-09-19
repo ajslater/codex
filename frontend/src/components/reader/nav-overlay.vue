@@ -14,9 +14,9 @@
         :to="routePrevBook"
         aria-label="previous book"
       >
-        <v-icon class="bookChangeIcon flipped" x-large>{{
-          mdiBookArrowRight
-        }}</v-icon>
+        <v-icon class="bookChangeIcon flipped" x-large>
+          {{ mdiBookArrowRight }}
+        </v-icon>
       </router-link>
     </v-navigation-drawer>
     <section id="leftColumn" class="navColumn" @click.stop>
@@ -65,7 +65,9 @@
         aria-label="next book"
         @click.native.stop
       >
-        <v-icon class="bookChangeIcon" x-large>{{ mdiBookArrowRight }}</v-icon>
+        <v-icon class="bookChangeIcon" x-large>
+          {{ mdiBookArrowRight }}
+        </v-icon>
       </router-link>
     </v-navigation-drawer>
   </nav>

@@ -15,8 +15,11 @@
         </v-list-item-content>
       </v-list-item>
     </template>
-    <div v-if="authFormSuccess" id="success">{{ authFormSuccess }}</div>
+    <div v-if="formSuccess" id="success">
+      {{ formSuccess }}
+    </div>
     <v-form v-else id="authDialog" ref="changePasswordForm">
+      <h2>User {{ user.username }}</h2>
       <v-text-field
         ref="oldPassword"
         v-model="credentials.oldPassword"
@@ -57,8 +60,8 @@
         Change Password
       </v-btn>
       <footer id="messageFooter">
-        <small v-if="authFormErrors && authFormErrors.length > 0" id="error">
-          <div v-for="error in authFormErrors" :key="error">
+        <small v-if="formErrors && formErrors.length > 0" id="error">
+          <div v-for="error in formErrors" :key="error">
             {{ error }}
           </div>
         </small>
@@ -104,8 +107,8 @@ export default {
   computed: {
     ...mapState(useAuthStore, {
       user: (state) => state.user,
-      authFormErrors: (state) => state.errors,
-      authFormSuccess: (state) => state.success,
+      formErrors: (state) => state.form.errors,
+      formSuccess: (state) => state.form.success,
     }),
     changePasswordButtonEnabled: function () {
       return (

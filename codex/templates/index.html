@@ -7,8 +7,8 @@
         <meta name="viewport"
               content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
         <title>Codex</title>
-        {% include 'icon-headers.html' %}
-        {% include 'pwa/headers.html' %}
+        {% include "icon-headers.html" %}
+        {% include "pwa/headers.html" %}
         {% if not DEBUG %}
             <link rel="stylesheet" href="{% static main_css %}" />
         {% endif %}
@@ -19,7 +19,7 @@
             API_V3_PATH: "{% url 'api:v3:base' %}",
             LAST_ROUTE: {{ last_route | safe }},
             MISSING_COVER: "{% static 'img/missing-cover.webp' %}",
-            OPDS_PATH: "{% url 'opds:start' %}"
+            OPDS_PATH: "{% url 'opds:v1:browser' 'r' 0 1 %}"
           };
           Object.freeze(CODEX);
         </script>

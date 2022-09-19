@@ -1,15 +1,21 @@
 <template>
-  <main id="main">
+  <v-main id="main">
     <div id="httpCodeWrapper">
-      <h1 id="httpCode">{{ code }}</h1>
+      <h1 id="httpCode">
+        {{ code }}
+      </h1>
     </div>
     <div id="foreground">
-      <h1 id="title">{{ title }}</h1>
+      <h1 id="title">
+        {{ title }}
+      </h1>
       <div>
-        <router-link :to="{ name: 'home' }"><h2>Codex Home</h2></router-link>
+        <router-link :to="{ name: 'home' }">
+          <h2>Codex Home</h2>
+        </router-link>
       </div>
     </div>
-  </main>
+  </v-main>
 </template>
 
 <script>
@@ -44,25 +50,30 @@ export default {
 <style scoped lang="scss">
 #main,
 #httpCodeWrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   width: 100vw;
   height: 100vh;
-  position: fixed;
+}
+#httpCode,
+#foreground {
+  position: absolute;
+  top: 25%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-25%);
+}
+#httpCode {
+  padding-top: 2rem;
 }
 
+#foreground {
+  text-align: center;
+  z-index: 100;
+}
 #title {
   color: gray;
   stroke: gray;
   fill: gray;
-  float: left;
   margin: 0px;
-  font-size: 10vw;
+  font-size: 6vw;
   opacity: 25%;
-}
-#foreground {
-  text-align: center;
-  z-index: 100;
 }
 </style>

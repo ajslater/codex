@@ -1,8 +1,9 @@
 """OPDS Utility classes."""
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Union
 
+from comicbox.metadata.comic_json import json
 from django.utils.http import urlencode
 
 
@@ -19,14 +20,15 @@ class OpdsNs:
 class UserAgents:
     """Control whether to hack in facets with nav links."""
 
-    NO_FACET_SUPPORT = ("Panels", "Chunky")
     CLIENT_REORDERS = ("Chunky",)
-    # kybooks UA starts with "yar"
+    FACET_SUPPORT = ("yar",)  # kybooks
+    # NO_FACET_SUPPORT "Panels", "Chunky", "PocketBook"
 
 
 class TopRoutes:
     """Routes for top groups."""
 
+    PUBLISHER = {"group": "p", "pk": 0}
     SERIES = {"group": "s", "pk": 0}
     FOLDER = {"group": "f", "pk": 0}
     ROOT = {"group": "r", "pk": 0}
@@ -39,9 +41,12 @@ class Rel:
     FACET = "http://opds-spec.org/facet"
     ACQUISITION = "http://opds-spec.org/acquisition"
     THUMBNAIL = "http://opds-spec.org/image/thumbnail"
+    IMAGE = "http://opds-spec.org/image"
     STREAM = "http://vaemendis.net/opds-pse/stream"
     SORT_NEW = "http://opds-spec.org/sort/new"
+    FEATURED = "http://opds-spec.org/featured"
     SELF = "self"
+    START = "start"
     UP = "up"
     PREV = "prev"
     NEXT = "next"
@@ -56,19 +61,8 @@ class MimeType:
     ACQUISITION = ";".join((ATOM, _PROFILE_CATALOG, "kind=acquisition"))
     AUTHENTICATION = "application/opds-authentication+json"
     OPENSEARCH = "application/opensearchdescription+xml"
-    DOWNLOAD = "application/vnd.comicbook+zip"
+    DOWNLOAD = "application/zip"  # PocketBooks needs app/zip
     STREAM = "image/jpeg"
-
-
-@dataclass
-class RootLink:
-    """A feed root link."""
-
-    rel: str
-    mime_type: str = MimeType.NAV
-    query_params: defaultdict[str, Union[str, bool]] = field(
-        default_factory=lambda: defaultdict()
-    )
 
 
 @dataclass
@@ -94,33 +88,47 @@ class TopLink:
     """A non standard root link when facets are unsupported."""
 
     kwargs: dict
-    root_link: RootLink
+    rel: str
+    mime_type: str
+    query_params: defaultdict[str, Union[str, bool]]
     glyph: str
     title: str
-
-
-class RootLinks:
-    """Root link definitions."""
-
-    UP = RootLink(Rel.UP)
-    PREV = RootLink(Rel.PREV)
-    NEXT = RootLink(Rel.NEXT)
-    NEW = RootLink(
-        Rel.SORT_NEW,
-        MimeType.ACQUISITION,
-        defaultdict(None, {"orderBy": "date", "orderReverse": True}),
-    )
+    desc: str
 
 
 class TopLinks:
     """Top link definitions."""
 
+    START = TopLink(
+        TopRoutes.ROOT,
+        Rel.START,
+        MimeType.NAV,
+        defaultdict(),
+        "⌂",
+        "Start of the catalog",
+        "",
+    )
     NEW = TopLink(
         TopRoutes.SERIES,
-        RootLinks.NEW,
+        Rel.SORT_NEW,
+        MimeType.ACQUISITION,
+        defaultdict(None, {"orderBy": "date", "orderReverse": True}),
         "📥",
-        "New",
+        "Newest Issues",
+        "",
     )
+    FEATURED = TopLink(
+        TopRoutes.SERIES,
+        Rel.FEATURED,
+        MimeType.NAV,
+        defaultdict(
+            None, {"orderBy": "date", "filters": json.dumps({"bookmark": "UNREAD"})}
+        ),
+        "📚",
+        "Oldest Unread",
+        "Unread issues, oldest first",
+    )
+    ALL = (START, NEW, FEATURED)
 
 
 class FacetGroups:
@@ -133,7 +141,6 @@ class FacetGroups:
         (
             Facet("date", "Date"),
             Facet("sort_name", "Name"),
-            Facet("search_score", "Search Score"),
         ),
     )
     TOP_GROUP = FacetGroup(
@@ -148,6 +155,7 @@ class FacetGroups:
         "⇕",
         (Facet("false", "Ascending"), Facet("true", "Descending")),
     )
+    ALL = (ORDER_BY, TOP_GROUP, ORDER_REVERSE)
 
 
 DEFAULT_FACETS = {

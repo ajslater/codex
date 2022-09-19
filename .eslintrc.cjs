@@ -7,14 +7,13 @@ module.exports = {
   },
   extends: [
     "eslint:recommended",
+    // LANGS
+    "plugin:json/recommended",
+    "plugin:mdx/recommended",
+    "plugin:yaml/recommended",
     // CODE QUALITY
     "plugin:sonarjs/recommended",
     "plugin:unicorn/all",
-    // LANGS
-    "plugin:json/recommended",
-    "plugin:markdown/recommended",
-    //"plugin:md/recommended",
-    "plugin:yaml/recommended",
     // PRACTICES
     "plugin:array-func/recommended",
     "plugin:eslint-comments/recommended",
@@ -24,39 +23,37 @@ module.exports = {
     "plugin:import/recommended",
     "plugin:switch-case/recommended",
     // PRETTIER
-    "plugin:prettier/recommended",
+    "plugin:prettier-vue/recommended",
+    "prettier", // prettier-config
     // SECURITY
     "plugin:no-unsanitized/DOM",
     "plugin:security/recommended",
   ],
+  overrides: [
+    {
+      files: ["*.md"],
+      rules: {
+        "prettier-vue/prettier": ["warn", { parser: "markdown" }],
+      },
+    },
+  ],
   parserOptions: {
-    sourceType: "module",
+    ecmaVersion: "latest",
     ecmaFeatures: {
       impliedStrict: true,
     },
   },
-  overrides: [
-    {
-      files: ["*.md"],
-      parser: "markdown-eslint-parser",
-      rules: {
-        "prettier/prettier": ["error", { parser: "markdown" }],
-      },
-    },
-  ],
   plugins: [
     "array-func",
     "eslint-comments",
     "json",
     "import",
-    "markdown",
-    //"md",
     "no-constructor-bind",
     "no-secrets",
     "no-unsanitized",
     "no-use-extend-native",
     "optimize-regex",
-    "prettier",
+    "prettier-vue",
     "promise",
     "simple-import-sort",
     "switch-case",
@@ -67,33 +64,19 @@ module.exports = {
   ],
   rules: {
     "max-params": ["warn", 4],
-    /*
-     md/remark plugins can't be read by eslint
-     https://github.com/standard-things/esm/issues/855
-    "md/remark": [ "error",
-      {
-        plugins: [
-          "gfm",
-          "preset-lint-consistent",
-          "preset-lint-markdown-style-guide",
-          "preset-lint-recommended",
-          "preset-prettier"
-        ],
-      }
-    ],
-    */
     "no-console": process.env.NODE_ENV === "production" ? "warn" : "off",
     "no-debugger": process.env.NODE_ENV === "production" ? "warn" : "off",
     "no-constructor-bind/no-constructor-bind": "error",
     "no-constructor-bind/no-constructor-state": "error",
     "no-secrets/no-secrets": "error",
     "eslint-comments/no-unused-disable": 1,
-    "prettier/prettier": "warn",
+    "prettier-vue/prettier": "warn",
     "security/detect-object-injection": "off",
     "simple-import-sort/exports": "warn",
     "simple-import-sort/imports": "warn",
     "space-before-function-paren": "off",
     "switch-case/newline-between-switch-case": "off", // Malfunctioning
+    "unicorn/prefer-node-protocol": 0,
     "unicorn/prevent-abbreviations": "off",
     "unicorn/filename-case": [
       "error",

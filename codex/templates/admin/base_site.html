@@ -1,8 +1,7 @@
 {% extends "admin/base_site.html" %}
 {% load static %}
 {% block title %}
-    Codex
-    Administration
+    Codex Administration
 {% endblock title %}
 {% block extrastyle %}
     <link href="{% static 'admin/css/dark.css' %}"
@@ -20,6 +19,15 @@
 {% endblock extrastyle %}
 {% block branding %}
     <h1 id="site-name">
-        <a href="{% url 'admin:index' %}">{{ _('Codex administration') }}</a>
+        <a href="{% url 'admin:index' %}">{{ _('Codex Administration') }}</a>
     </h1>
 {% endblock branding %}
+{% block pretitle %}
+<dev id="deprecatedWarning" >
+    The Django Admin panel is deprecated and will eventually be removed.
+    <br/>
+Please use <a style="color: yellow"
+    href="{% url 'app:start' %}admin"
+    target="_blank">the new Admin Panel</a>
+</dev>
+{% endblock pretitle %}

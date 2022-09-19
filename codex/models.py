@@ -439,18 +439,16 @@ class Comic(WatchedPath):
 class AdminFlag(NamedModel):
     """Flags set by administrators."""
 
-    # TODO: SPA admin maybe change this to proper TextChoices.
     ENABLE_FOLDER_VIEW = "Enable Folder View"
     ENABLE_REGISTRATION = "Enable Registration"
     ENABLE_NON_USERS = "Enable Non Users"
     ENABLE_AUTO_UPDATE = "Enable Auto Update"
-    FLAG_NAMES = (
-        ENABLE_FOLDER_VIEW,
-        ENABLE_REGISTRATION,
-        ENABLE_NON_USERS,
-        ENABLE_AUTO_UPDATE,
-    )
-    DEFAULT_FALSE = (ENABLE_AUTO_UPDATE,)
+    FLAG_NAMES = {
+        ENABLE_FOLDER_VIEW: True,
+        ENABLE_REGISTRATION: True,
+        ENABLE_NON_USERS: True,
+        ENABLE_AUTO_UPDATE: False,
+    }
 
     on = BooleanField(default=True)
 

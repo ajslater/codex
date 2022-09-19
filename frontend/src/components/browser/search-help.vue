@@ -19,8 +19,9 @@
         title="Close Help (esc)"
         ripple
         @click="dialog = false"
-        >x</v-btn
       >
+        x
+      </v-btn>
       <div id="textContainer">
         <h1>Search Syntax Help</h1>
         <div id="fieldTableContainer">
@@ -133,8 +134,9 @@
         ripple
         title="Close Help (esc)"
         @click="dialog = false"
-        >x</v-btn
       >
+        x
+      </v-btn>
     </div>
   </v-dialog>
 </template>

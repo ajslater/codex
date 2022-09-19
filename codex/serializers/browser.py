@@ -14,7 +14,11 @@ from rest_framework.serializers import (
 )
 
 from codex.serializers.choices import CHOICES, VUETIFY_NULL_CODE
-from codex.serializers.mixins import UNIONFIX_PREFIX, BrowserCardOPDSBaseSerializer
+from codex.serializers.mixins import (
+    UNIONFIX_PREFIX,
+    BrowserCardOPDSBaseSerializer,
+    get_serializer_values_map,
+)
 
 
 VUETIFY_NULL_CODE_STR = str(VUETIFY_NULL_CODE)
@@ -191,6 +195,11 @@ class BrowserCardSerializer(BrowserCardOPDSBaseSerializer):
     read_ltr = BooleanField(read_only=True, source=UNIONFIX_PREFIX + "read_ltr")
 
 
+BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP = get_serializer_values_map(
+    [BrowserCardSerializer]
+)
+
+
 class BrowserRouteSerializer(Serializer):
     """A vue route for the browser."""
 
@@ -230,9 +239,7 @@ class BrowserPageSerializer(Serializer):
     libraries_exist = BooleanField(read_only=True)
     model_group = CharField(read_only=True)
     num_pages = IntegerField(read_only=True)
-    obj_list = ListField(
-        child=BrowserCardSerializer(read_only=True), allow_empty=True, read_only=True
-    )
+    obj_list = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
     queries = ListField(
         child=CharField(read_only=True), allow_empty=True, read_only=True
     )
