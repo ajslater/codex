@@ -358,7 +358,7 @@ python-versions = ">=3.7,<4.0"
 
 [[package]]
 name = "djlint"
-version = "1.15.0"
+version = "1.16.0"
 description = "HTML Template Linter and Formatter"
 category = "dev"
 optional = false
@@ -1360,7 +1360,7 @@ socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 
 [[package]]
 name = "vulture"
-version = "2.5"
+version = "2.6"
 description = "Find dead code"
 category = "dev"
 optional = false
@@ -1818,8 +1818,8 @@ djangorestframework-types = [
     {file = "djangorestframework_types-0.8.0-py3-none-any.whl", hash = "sha256:5136212ec0df2c11d5ebcf217246f606e68f1d46a770419de84ed676bdab0113"},
 ]
 djlint = [
-    {file = "djlint-1.15.0-py3-none-any.whl", hash = "sha256:de184041d0492273ab6654acca262822f35da2f98c7e360f829c1f5486b8a27d"},
-    {file = "djlint-1.15.0.tar.gz", hash = "sha256:510292359b239b4f915dce35665db9169033d8ee923b89d7667baa95d5f4dbbd"},
+    {file = "djlint-1.16.0-py3-none-any.whl", hash = "sha256:611733da2aece7112021ca48f348189c4a4c07a152ac88acbf34d3c501092294"},
+    {file = "djlint-1.16.0.tar.gz", hash = "sha256:dc83489ae43800492c62d2b79836a577199e96374048f957c50ebb91cd6ea90f"},
 ]
 drf-spectacular = [
     {file = "drf-spectacular-0.24.0.tar.gz", hash = "sha256:bf22390e8d0aa53d81c5abf718ad4989c4e2eab133decc411a15c7e4ae3f6baf"},
@@ -2506,8 +2506,8 @@ urllib3 = [
     {file = "urllib3-1.26.12.tar.gz", hash = "sha256:3fa96cf423e6987997fc326ae8df396db2a8b7c667747d47ddd8ecba91f4a74e"},
 ]
 vulture = [
-    {file = "vulture-2.5-py2.py3-none-any.whl", hash = "sha256:a7c7e7a23b11e78840fdd821509d05a6134aa9fd60418fe39d60b3026fe698d9"},
-    {file = "vulture-2.5.tar.gz", hash = "sha256:2831694055eb2e36a09c3b7680934837102b9b6c0969206e3902d513612177c3"},
+    {file = "vulture-2.6-py2.py3-none-any.whl", hash = "sha256:e792e903ccc063ec4873a8979dcf11b51ea3d65a2d3b31c113d47be48f0cdcae"},
+    {file = "vulture-2.6.tar.gz", hash = "sha256:2515fa848181001dc8a73aba6a01a1a17406f5d372f24ec7f7191866f9f4997e"},
 ]
 watchdog = [
     {file = "watchdog-2.1.9-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:a735a990a1095f75ca4f36ea2ef2752c99e6ee997c46b0de507ba40a09bf7330"},
