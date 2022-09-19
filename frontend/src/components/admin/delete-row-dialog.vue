@@ -1,10 +1,5 @@
 <template>
-  <v-dialog
-    origin="center-top"
-    transition="slide-y-transition"
-    max-width="20em"
-    overlay-opacity="0.5"
-  >
+  <v-dialog transition="fab-transition" max-width="20em" overlay-opacity="0.5">
     <template #activator="{ on }">
       <v-btn icon ripple v-on="on">
         <v-icon> {{ mdiTrashCan }} </v-icon>

@@ -1,8 +1,7 @@
 <template>
   <v-dialog
     v-model="showDialog"
-    origin="center-top"
-    transition="slide-y-transition"
+    transition="fab-transition"
     max-width="22em"
     overlay-opacity="0.5"
   >
