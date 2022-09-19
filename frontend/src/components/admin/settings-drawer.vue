@@ -87,4 +87,7 @@ export default {
 #oldDjangoTitle .v-icon {
   color: grey;
 }
+#versionFooter {
+  padding-bottom: 10px;
+}
 </style>
