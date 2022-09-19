@@ -6,7 +6,7 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v0.13.0a0
+## v0.13.0a1
 
 ### Admin Panel
 
