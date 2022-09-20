@@ -6,8 +6,9 @@ import CHOICES from "@/choices";
 import router from "@/router";
 
 const NULL_READER_SETTINGS = {
-  fitTo: null,
-  twoPages: null,
+  // Must be null so axios doesn't throw them out when sending.
+  fitTo: null, // eslint-disable-line unicorn/no-null
+  twoPages: null, // eslint-disable-line unicorn/no-null
 };
 Object.freeze(NULL_READER_SETTINGS);
 

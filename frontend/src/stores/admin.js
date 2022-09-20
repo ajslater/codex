@@ -27,13 +27,13 @@ const getTablePlural = (table) => {
 };
 
 const itemMap = (items, key) => {
-  const map = {}
+  const map = {};
   for (const item of items) {
-    const pk = item.pk ? item.pk : item.id;
-     map[pk] = item[key];
+    const pk = item.pk || item.id;
+    map[pk] = item[key];
   }
   return map;
-}
+};
 
 export const useAdminStore = defineStore("admin", {
   state: () => ({
@@ -63,10 +63,10 @@ export const useAdminStore = defineStore("admin", {
       return itemMap(this.groups, "name");
     },
     userMap() {
-      return itemMap(this.users, "username")
+      return itemMap(this.users, "username");
     },
     libraryMap() {
-      return itemMap(this.libraries, "path")
+      return itemMap(this.libraries, "path");
     },
     vuetifyUsers() {
       return vuetifyItems(this.users, "username");
