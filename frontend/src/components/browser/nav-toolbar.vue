@@ -1,15 +1,10 @@
 <template>
   <v-toolbar v-if="numPages > 1" class="paginationToolbar" dense>
     <BrowserNavButton :back="true" />
-    <v-slider
-      class="paginationSlider"
+    <PaginationSlider
       :value="+$route.params.page"
       :min="+1"
       :max="numPages"
-      ticks="always"
-      thumb-label="always"
-      hide-details="auto"
-      dense
       @change="routeToPage($event)"
     />
     <BrowserNavButton :back="false" />
@@ -20,12 +15,14 @@
 import { mapActions, mapState } from "pinia";
 
 import BrowserNavButton from "@/components/browser/nav-button.vue";
+import PaginationSlider from "@/components/pagination-slider.vue";
 import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BrowserNavToolbar",
   components: {
     BrowserNavButton,
+    PaginationSlider,
   },
   computed: {
     ...mapState(useBrowserStore, {
@@ -48,22 +45,7 @@ export default {
 
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
-.paginationToolbar > .v-toolbar__content {
+#browsePane .paginationToolbar > .v-toolbar__content {
   padding: 0px;
-}
-/* Custom slider with a large control. */
-.paginationSlider .v-slider__thumb {
-  height: 48px;
-  width: 48px;
-  left: -24px;
-}
-.paginationSlider .v-slider__thumb::before {
-  left: -8px;
-  top: -8px;
-  height: 64px;
-  width: 64px;
-}
-.paginationSlider .v-slider__thumb-label {
-  transform: translateY(16px) translateX(-50%) rotate(45deg) !important;
 }
 </style>

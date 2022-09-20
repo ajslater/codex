@@ -71,9 +71,9 @@ a {
 .background-highlight,
 .highlight-table tr:nth-child(even),
 .highlight-table th {
-  background-color: #121212;
+  background-color: #121212 !important;
 }
 .background-soft-highlight {
-  background-color: #272727;
+  background-color: #272727 !important;
 }
 </style>

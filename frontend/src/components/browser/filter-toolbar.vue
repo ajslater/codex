@@ -105,52 +105,51 @@ export default {
   }
 }
 </style>
-
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
-.toolbarSelect {
-  white-space: nowrap;
+#browserToolbar .toolbarSelect {
+  white-space: nowrap !important;
 }
-.toolbarSelect .v-select__selection--comma {
-  text-overflow: unset;
+#browserToolbar .toolbarSelect .v-select__selection--comma {
+  text-overflow: unset !important;
 }
-.toolbarSelect .v-input__control > .v-input__slot:before {
-  border: none;
+#browserToolbar .toolbarSelect .v-input__control > .v-input__slot:before {
+  border: none !important;
 }
 #orderBySelect .v-select__selection--comma {
-  margin-right: 0px;
-  max-width: 100%;
+  margin-right: 0px !important;
+  max-width: 100% !important;
 }
 #orderBySelect .v-select__selections input {
   display: none;
 }
 #orderBySelect .v-select.v-input--dense .v-select__selection--comma {
-  margin-right: 0px;
+  margin-right: 0px !important;
 }
 #orderBySelect .v-input__append-inner {
   padding: 0px !important;
 }
 #filterSelect .v-input__prepend-inner {
-  padding-right: 0px;
+  padding-right: 0px !important;
 }
 #filterSelect .v-input__icon--prepend-inner svg {
-  color: gray;
-  width: 16px;
+  color: gray !important;
+  width: 16px !important;
 }
 #filterSelect .v-label {
   /* Counteract fake solo styling */
-  top: -6px;
+  top: -6px !important;
 }
 @import "vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
-  #browserToolbar > .v-toolbar__content,
-  #browserToolbar > .v-toolbar__extension {
+  #browserToolbar .v-toolbar__content,
+  #browserToolbar .v-toolbar__extension {
     padding-right: 2px !important;
     padding-left: 0px !important;
   }
-  .toolbarSelect {
-    margin-left: 0px;
-    margin-right: 0px;
+  #browserToolbar .toolbarSelect {
+    margin-left: 0px !important;
+    margin-right: 0px !important;
   }
 }
 </style>

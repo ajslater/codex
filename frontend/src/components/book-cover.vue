@@ -153,12 +153,12 @@ export default {
 </style>
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
-.coverImg .v-image__placeholder {
+#browsePaneContainer .coverImg .v-image__placeholder {
   top: 50%;
   left: 50%;
   transform: translate(-33%, -50%);
 }
-.v-image__image {
+#browsePaneContainer .coverImgWrapper .v-image__image {
   background-position-y: top !important;
 }
 </style>

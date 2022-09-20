@@ -111,14 +111,15 @@ $tabItemMargin: 64px;
 </style>
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
-.tabHeader {
+#tabs .tabHeader {
   padding: 10px;
 }
+
+#tabItems .highlight-simple-table tr:nth-child(odd) {
+  background-color: #121212;
+}
+/* dialogs live outside of most structure */
 .addCancelButton {
   float: right !important;
-}
-
-.highlight-simple-table tr:nth-child(odd) {
-  background-color: #121212;
 }
 </style>

@@ -71,12 +71,12 @@ export default {
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
 $button-margin: 5px;
-.tagIcon {
+#browsePaneContainer .tagIcon {
   position: absolute !important;
   left: $button-margin !important;
   bottom: $button-margin !important;
 }
-.browserCardMenuIcon {
+#browsePaneContainer .browserCardMenuIcon {
   position: absolute !important;
   right: $button-margin !important;
   bottom: $button-margin !important;
@@ -84,16 +84,16 @@ $button-margin: 5px;
 
 $browser-card-icon-size: 24px;
 $unselected-icon-color: #a0a0a0;
-.cardControlButton .v-icon {
+#browsePaneContainer .cardControlButton .v-icon {
   color: $unselected-icon-color !important;
   width: $browser-card-icon-size;
   height: $browser-card-icon-size;
 }
-.cardControlButton .v-icon:hover {
+#browsePaneContainer .cardControlButton .v-icon:hover {
   color: white !important;
 }
 
-.cardControls:has(> .cardControlButton:hover) .eye {
+#browsePaneContainer .cardControls:has(> .cardControlButton:hover) .eye {
   /* this selector only works on safari 2022-08 */
   color: $unselected-icon-color;
 }
@@ -101,11 +101,11 @@ $unselected-icon-color: #a0a0a0;
 @import "vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   $small-button-margin: 5px;
-  .tagIcon {
+  #browsePaneContainer .tagIcon {
     left: $small-button-margin !important;
     bottom: $small-button-margin !important;
   }
-  .browserCardMenuIcon {
+  #browsePaneContainer .browserCardMenuIcon {
     right: $small-button-margin !important;
     bottom: $small-button-margin !important;
   }
