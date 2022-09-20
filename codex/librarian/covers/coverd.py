@@ -1,8 +1,5 @@
 """Functions for dealing with comic cover thumbnails."""
-from codex.librarian.covers.create import (
-    bulk_create_comic_covers,
-    create_comic_cover,
-)
+from codex.librarian.covers.create import bulk_create_comic_covers, create_comic_cover
 from codex.librarian.covers.purge import (
     cleanup_orphan_covers,
     purge_all_comic_covers,

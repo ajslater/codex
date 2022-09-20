@@ -1,6 +1,6 @@
 <template>
   <div id="tabContainer">
-    <v-tabs v-model="tab" centered grow show-arrows id="tabs">
+    <v-tabs id="tabs" v-model="tab" centered grow show-arrows>
       <v-tab v-for="name of Object.keys(tabs)" :key="name">
         {{ name }}
       </v-tab>

@@ -296,7 +296,7 @@ elasticsearch = ["elasticsearch (>=5,<8)"]
 
 [[package]]
 name = "django-rest-registration"
-version = "0.7.2"
+version = "0.7.3"
 description = "User registration REST API, based on django-rest-framework"
 category = "main"
 optional = false
@@ -358,7 +358,7 @@ python-versions = ">=3.7,<4.0"
 
 [[package]]
 name = "djlint"
-version = "1.16.0"
+version = "1.17.0"
 description = "HTML Template Linter and Formatter"
 category = "dev"
 optional = false
@@ -489,17 +489,16 @@ pydocstyle = ">=2.1"
 
 [[package]]
 name = "flake8-eradicate"
-version = "1.3.0"
+version = "1.4.0"
 description = "Flake8 plugin to find commented out code"
 category = "dev"
 optional = false
-python-versions = ">=3.6,<4.0"
+python-versions = ">=3.7,<4.0"
 
 [package.dependencies]
 attrs = "*"
 eradicate = ">=2.0,<3.0"
 flake8 = ">=3.5,<6"
-setuptools = "*"
 
 [[package]]
 name = "fnvhash"
@@ -1795,8 +1794,8 @@ django-haystack = [
     {file = "django-haystack-3.2.1.tar.gz", hash = "sha256:97e3197aefc225fe405b6f17600a2534bf827cb4d6743130c20bc1a06f7293a4"},
 ]
 django-rest-registration = [
-    {file = "django-rest-registration-0.7.2.tar.gz", hash = "sha256:83996992658fe1f6ceb1fcd12ebad3a4deb11c6a8b993c5901c573b6c6f70aa4"},
-    {file = "django_rest_registration-0.7.2-py3-none-any.whl", hash = "sha256:79a7caca716b12a3bb616ac94321b778ff7027d481bed12752edc5ccfeba34e3"},
+    {file = "django-rest-registration-0.7.3.tar.gz", hash = "sha256:5ede9f8a1a08a1590124e6a91f1f132eeec872ecc5661a5564f07cae847689af"},
+    {file = "django_rest_registration-0.7.3-py3-none-any.whl", hash = "sha256:7807f9297743abbc7b9a22dbe58648d6c5f01ebc2c70ecfb8315adf95ce45dc4"},
 ]
 django-types = [
     {file = "django-types-0.16.0.tar.gz", hash = "sha256:29d23af8b88fa1579b47418e92ffc1d89bfbdf11eab64d2ae006fa09e54fed9a"},
@@ -1818,8 +1817,8 @@ djangorestframework-types = [
     {file = "djangorestframework_types-0.8.0-py3-none-any.whl", hash = "sha256:5136212ec0df2c11d5ebcf217246f606e68f1d46a770419de84ed676bdab0113"},
 ]
 djlint = [
-    {file = "djlint-1.16.0-py3-none-any.whl", hash = "sha256:611733da2aece7112021ca48f348189c4a4c07a152ac88acbf34d3c501092294"},
-    {file = "djlint-1.16.0.tar.gz", hash = "sha256:dc83489ae43800492c62d2b79836a577199e96374048f957c50ebb91cd6ea90f"},
+    {file = "djlint-1.17.0-py3-none-any.whl", hash = "sha256:72da5c87df3196196fa77e566f84d088d2c009578d027717fcd0d22b29542c44"},
+    {file = "djlint-1.17.0.tar.gz", hash = "sha256:102e226a443fa4ad121ebb7547776c21f8d9066708efdb4a7b4a5c2dd56f1823"},
 ]
 drf-spectacular = [
     {file = "drf-spectacular-0.24.0.tar.gz", hash = "sha256:bf22390e8d0aa53d81c5abf718ad4989c4e2eab133decc411a15c7e4ae3f6baf"},
@@ -1858,8 +1857,8 @@ flake8-docstrings = [
     {file = "flake8_docstrings-1.6.0-py2.py3-none-any.whl", hash = "sha256:99cac583d6c7e32dd28bbfbef120a7c0d1b6dde4adb5a9fd441c4227a6534bde"},
 ]
 flake8-eradicate = [
-    {file = "flake8-eradicate-1.3.0.tar.gz", hash = "sha256:e4c98f00d17dc8653e3388cac2624cd81e9735de2fd4a8dcf99029633ebd7a63"},
-    {file = "flake8_eradicate-1.3.0-py3-none-any.whl", hash = "sha256:85a71e0c5f4e07f7c6c5fec520483561fd6bd295417d622855bdeade99242e3d"},
+    {file = "flake8-eradicate-1.4.0.tar.gz", hash = "sha256:3088cfd6717d1c9c6c3ac45ef2e5f5b6c7267f7504d5a74b781500e95cb9c7e1"},
+    {file = "flake8_eradicate-1.4.0-py3-none-any.whl", hash = "sha256:e3bbd0871be358e908053c1ab728903c114f062ba596b4d40c852fd18f473d56"},
 ]
 fnvhash = [
     {file = "fnvhash-0.1.0.tar.gz", hash = "sha256:3e82d505054f9f3987b2b5b649f7e7b6f48349f6af8a1b8e4d66779699c85a8e"},
