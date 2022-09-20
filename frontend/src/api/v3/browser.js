@@ -50,8 +50,8 @@ const getSettings = () => {
   return HTTP.get("/r/settings");
 };
 
-const setGroupSettings = ({ group, pk }, data) => {
-  return HTTP.patch(`${group}/${pk}/settings`, data);
+const setGroupBookmarks = ({ group, pk }, data) => {
+  return HTTP.patch(`${group}/${pk}/bookmark`, data);
 };
 
 export default {
@@ -59,5 +59,5 @@ export default {
   loadBrowserPage,
   getMetadata,
   getSettings,
-  setGroupSettings,
+  setGroupBookmarks,
 };

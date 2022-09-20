@@ -122,3 +122,9 @@ def get_serializer_values_map(serializers, copy_only=False, folders=False):
                 val = F(field)
         result[UNIONFIX_PREFIX + field] = val
     return result
+
+
+class OKSerializer(Serializer):
+    """Default serializer for views without much response."""
+
+    ok = BooleanField(default=True)

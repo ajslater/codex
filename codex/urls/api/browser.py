@@ -36,9 +36,9 @@ urlpatterns = [
     #
     # Bookmark
     path(
-        "<int:pk>/settings",
+        "<int:pk>/bookmark",
         BookmarkView.as_view(),
-        name="group_settings",
+        name="bookmark",
     ),
     path("settings", never_cache(BrowserSessionView.as_view()), name="settings"),
 ]

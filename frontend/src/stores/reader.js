@@ -142,7 +142,7 @@ export const useReaderStore = defineStore("reader", {
     },
     async loadBookSettings() {
       // ONLY USED in bookChanged
-      return API.getComicSettings(router.currentRoute.params.pk, this.timestamp)
+      return API.getComicBookmark(router.currentRoute.params.pk, this.timestamp)
         .then((response) => {
           const data = response.data;
           updateSettings(this, "local", data);
@@ -175,7 +175,7 @@ export const useReaderStore = defineStore("reader", {
       const params = { group: "c", pk };
       const page = +router.currentRoute.params.page;
       const updates = { page };
-      await BROWSER_API.setGroupSettings(params, updates);
+      await BROWSER_API.setGroupBookmarks(params, updates);
     },
     async setRoutesAndBookmarkPage() {
       this.setPrevRoute();
@@ -187,7 +187,7 @@ export const useReaderStore = defineStore("reader", {
     async setSettingsLocal(data) {
       updateSettings(this, "local", data);
 
-      await BROWSER_API.setGroupSettings(
+      await BROWSER_API.setGroupBookmarks(
         {
           group: "c",
           pk: router.currentRoute.params.pk,

@@ -24,6 +24,7 @@ from codex.librarian.watchdog.tasks import WatchdogPollLibrariesTask, WatchdogSy
 from codex.models import LibrarianStatus, Library
 from codex.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.serializers.admin import AdminLibrarianTaskSerializer
+from codex.serializers.mixins import OKSerializer
 from codex.serializers.models import LibrarianStatusSerializer
 from codex.settings.logging import get_logger
 
@@ -46,6 +47,7 @@ class AdminLibrarianTaskView(APIView):
 
     permission_classes = [IsAdminUser]
     input_serializer_class = AdminLibrarianTaskSerializer
+    serializer_class = OKSerializer
 
     @staticmethod
     def _get_all_library_pks():
@@ -109,4 +111,5 @@ class AdminLibrarianTaskView(APIView):
             LOG.warning(f"Unknown admin library task_name: {task_name}")
             raise ValueError(f"Unknown admin library task_name: {task_name}")
 
-        return Response({})
+        serializer = self.serializer_class()
+        return Response(serializer.data)

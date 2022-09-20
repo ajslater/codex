@@ -348,7 +348,7 @@ export const useBrowserStore = defineStore("browser", {
       if (!this.isCodexViewable) {
         return;
       }
-      await API.setGroupSettings(params, { finished }).then(() => {
+      await API.setGroupBookmarks(params, { finished }).then(() => {
         this.setTimestamp();
         this.loadBrowserPage();
         return true;
