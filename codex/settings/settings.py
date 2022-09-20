@@ -250,7 +250,6 @@ REST_REGISTRATION = {
         # SHOWN
         # "is_staff", "is_superuser",
         # HIDDEN
-        "id",
         "email",
         "first_name",
         "last_name",

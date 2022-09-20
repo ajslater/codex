@@ -52,9 +52,8 @@
               />
             </td>
             <td class="buttonCol">
-              <!-- TODO use user.pk -->
               <AdminDeleteRowDialog
-                v-if="me.username !== item.username"
+                v-if="me.id !== item.pk"
                 table="User"
                 :pk="item.pk"
                 :name="item.username"
