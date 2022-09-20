@@ -14,7 +14,7 @@
             <th>Name</th>
             <th>Users</th>
             <th>Libraries</th>
-            <th>Update</th>
+            <th>Edit</th>
             <th>Delete</th>
           </tr>
         </thead>

@@ -19,7 +19,7 @@
             <th>Groups</th>
             <th>Poll for Updates Now</th>
             <th>Force Update</th>
-            <th>Update</th>
+            <th>Edit</th>
             <th>Delete</th>
           </tr>
         </thead>

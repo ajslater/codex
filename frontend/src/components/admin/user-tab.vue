@@ -17,7 +17,7 @@
             <th>Groups</th>
             <th>Last Login</th>
             <th>Joined</th>
-            <th>Update</th>
+            <th>Edit</th>
             <th>Change Password</th>
             <th>Delete</th>
           </tr>
