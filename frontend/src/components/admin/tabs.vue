@@ -5,7 +5,7 @@
         {{ name }}
       </v-tab>
     </v-tabs>
-    <v-tabs-items id="tabItems" v-model="tab">
+    <v-tabs-items id="tabItems" v-model="tab" touchless>
       <v-tab-item
         v-for="name of Object.keys(panels)"
         :key="name"
