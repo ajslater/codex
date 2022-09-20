@@ -1,17 +1,23 @@
 <template>
-  <v-simple-table fixed-header :height="tableHeight">
+  <v-simple-table
+    fixed-header
+    :height="tableHeight"
+    class="highlight-simple-table"
+  >
     <template #default>
       <thead>
         <tr>
-          <th>Name</th>
-          <th>Enabled</th>
           <th>Description</th>
+          <th>Enabled</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="item in flags" :key="`f:${item.id}:${item.keyHack}`">
           <td class="nameCol">
-            {{ item.name }}
+            <h4>{{ item.name }}</h4>
+            <p class="desc">
+              {{ DESC[item.name] }}
+            </p>
           </td>
           <td>
             <v-checkbox
@@ -24,9 +30,6 @@
               @blur="item.keyHack = Date.now()"
               @change="changeCol(item.id, 'on', $event === true)"
             />
-          </td>
-          <td class="descCol">
-            {{ DESC[item.name] }}
           </td>
         </tr>
       </tbody>
@@ -66,7 +69,7 @@ export default {
     ...mapState(useAdminStore, {
       flags: (state) => state.flags,
     }),
-    tableHeight: () => window.innerHeight * 0.9,
+    tableHeight: () => window.innerHeight * 0.7,
   },
   methods: {
     ...mapActions(useAdminStore, ["updateRow", "clearErrors"]),
@@ -87,10 +90,10 @@ export default {
 
 <style scoped lang="scss">
 .nameCol {
-  min-width: 12em;
+  padding-top: 0.5em !important;
 }
-.descCol {
-  color: lightgrey;
-  min-width: 15em;
+.desc {
+  margin-top: 1em;
+  color: darkgrey;
 }
 </style>

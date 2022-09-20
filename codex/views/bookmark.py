@@ -99,9 +99,12 @@ class BookmarkView(BookmarkBaseView):
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
     serializer_class = BookmarkSerializer
 
-    def _validate(self):
+    def _validate(self, serializer_class):
         """Validate and translate the submitted data."""
-        serializer = self.get_serializer(data=self.request.data)
+        if serializer_class:
+            serializer = serializer_class(data=self.request.data)
+        else:
+            serializer = self.get_serializer(data=self.request.data)
         serializer.is_valid(raise_exception=True)
         return serializer.validated_data
 
@@ -109,10 +112,13 @@ class BookmarkView(BookmarkBaseView):
     def patch(self, request, *args, **kwargs):
         """Update bookmarks recursively."""
         group = self.kwargs.get("group")
-        if group != "c":
+        if group == "c":
+            serializer_class = None
+        else:
             # If the target is recursive, strip everything but finished state data.
-            self.serializer_class = BookmarkFinishedSerializer
-        updates = self._validate()
+            serializer_class = BookmarkFinishedSerializer
+
+        updates = self._validate(serializer_class)
 
         pk = self.kwargs.get("pk")
         if group == "f":

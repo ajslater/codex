@@ -39,7 +39,7 @@
           @change="settingsDialogChanged({ twoPages: $event === true })"
         />
         <v-btn
-          :disabled="isSettingsDialogGlobalMode"
+          :disabled="isClearSettingsButtonDisabled"
           title="Use the default settings for all comics for this comic"
           @click="clearSettingsLocal"
         >
@@ -91,6 +91,15 @@ export default {
       set(value) {
         useReaderStore().isSettingsDrawerOpen = value;
       },
+    },
+    isClearSettingsButtonDisabled: function () {
+      return (
+        this.isSettingsDialogGlobalMode ||
+        ((this.settingsScope.twoPages === null ||
+          this.settingsScope.twoPages === undefined) &&
+          (this.settingsScope.fitTo === null ||
+            this.settingsScope.fitTo === undefined))
+      );
     },
   },
   mounted() {

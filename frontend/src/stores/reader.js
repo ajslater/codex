@@ -6,8 +6,8 @@ import CHOICES from "@/choices";
 import router from "@/router";
 
 const NULL_READER_SETTINGS = {
-  fitTo: undefined,
-  twoPages: undefined,
+  fitTo: null,
+  twoPages: null,
 };
 Object.freeze(NULL_READER_SETTINGS);
 

@@ -18,7 +18,7 @@
       {{ task.confirm }}
       <footer id="buttonFooter">
         <v-btn id="confirmButton" ripple @click="confirm"> Confirm </v-btn>
-        <v-btn class="addCancelButton" ripple @click="showDialog = false">
+        <v-btn class="cancelButton" ripple @click="showDialog = false">
           Cancel
         </v-btn>
       </footer>
@@ -61,5 +61,9 @@ export default {
 }
 #buttonFooter {
   margin-top: 1em;
+  text-align: left;
+}
+.cancelButton {
+  float: right;
 }
 </style>

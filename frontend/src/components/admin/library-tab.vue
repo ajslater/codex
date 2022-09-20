@@ -1,9 +1,13 @@
 <template>
   <div>
     <header class="tabHeader">
-      <AdminLibraryAddDialog id="libraryAdd" />
+      <AdminLibraryCreateUpdateDialog />
     </header>
-    <v-simple-table class="highlight-simple-table" fixed-header>
+    <v-simple-table
+      class="highlight-simple-table"
+      fixed-header
+      :height="tableHeight"
+    >
       <template #default>
         <thead>
           <tr>
@@ -15,6 +19,7 @@
             <th>Groups</th>
             <th>Poll for Updates Now</th>
             <th>Force Update</th>
+            <th>Update</th>
             <th>Delete</th>
           </tr>
         </thead>
@@ -22,57 +27,19 @@
           <tr v-for="item in libraries" :key="item.id">
             <td>{{ item.path }}</td>
             <td>
-              <v-checkbox
-                :input-value="item.events"
-                dense
-                ripple
-                hide-details="auto"
-                :error-messages="getFormErrors(item.id, 'events')"
-                @focus="clearErrors"
-                @blur="item.keyHack = Date.now()"
-                @change="changeCol(item.id, 'events', $event === true)"
-              />
+              <v-simple-checkbox :value="item.events" dense disabled />
             </td>
             <td>
-              <v-checkbox
-                :input-value="item.poll"
-                dense
-                ripple
-                hide-details="auto"
-                :error-messages="getFormErrors(item.id, 'poll')"
-                @focus="clearErrors"
-                @blur="item.keyHack = Date.now()"
-                @change="changeCol(item.id, 'poll', $event === true)"
-              />
+              <v-simple-checkbox :value="item.poll" dense disabled />
             </td>
-            <td class="pollEveryCol">
-              <TimeTextField
-                :disabled="!item.poll"
-                :value="item.pollEvery"
-                dense
-                ripple
-                hide-details="auto"
-                :error-messages="getFormErrors(item.id, 'poll')"
-                @focus="clearErrors"
-                @blur="item.keyHack = Date.now()"
-                @change="changeCol(item.id, 'pollEvery', $event)"
-              />
+            <td class="pollEveryCol" :class="{ disabled: !item.poll }">
+              {{ item.pollEvery }}
             </td>
             <td class="dateCol">
               <DateTimeColumn :dttm="item.lastPoll" />
             </td>
             <td>
-              <AdminRelationPicker
-                :items="vuetifyGroups"
-                :value="item.groups"
-                dense
-                ripple
-                hide-details="auto"
-                :error-messages="getFormErrors(item.id, 'groups')"
-                @focus="clearErrors"
-                @blur="item.keyHack = Date.now()"
-                @change="changeCol(item.id, 'groups', $event)"
-              />
+              <RelationChips :pks="item.groups" :map="groupMap" />
             </td>
             <td>
               <v-btn icon ripple @click="poll(item.id)">
@@ -87,6 +54,12 @@
                   confirm: 'This can take a long time',
                 }"
                 @confirmed="forcePoll(item.id)"
+              />
+            </td>
+            <td>
+              <AdminLibraryCreateUpdateDialog
+                :update="true"
+                :old-library="item"
               />
             </td>
             <td>
@@ -113,10 +86,9 @@ import { mapActions, mapGetters, mapState } from "pinia";
 import DateTimeColumn from "@/components/admin/datetime-column.vue";
 import AdminDeleteRowDialog from "@/components/admin/delete-row-dialog.vue";
 import AdminFailedImportsPanel from "@/components/admin/failed-imports-panel.vue";
-import AdminLibraryAddDialog from "@/components/admin/library-add-dialog.vue";
-import AdminRelationPicker from "@/components/admin/relation-picker.vue";
+import AdminLibraryCreateUpdateDialog from "@/components/admin/library-create-update-dialog.vue";
+import RelationChips from "@/components/admin/relation-chips.vue";
 import AdminTaskConfirmDialog from "@/components/admin/task-dialog.vue";
-import TimeTextField from "@/components/admin/time-text-field.vue";
 import { DATETIME_FORMAT } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
 
@@ -125,11 +97,10 @@ export default {
   components: {
     AdminDeleteRowDialog,
     AdminFailedImportsPanel,
-    AdminLibraryAddDialog,
-    AdminRelationPicker,
+    AdminLibraryCreateUpdateDialog,
+    RelationChips,
     AdminTaskConfirmDialog,
     DateTimeColumn,
-    TimeTextField,
   },
   data() {
     return {
@@ -146,7 +117,8 @@ export default {
       libraries: (state) => state.libraries,
       formErrors: (state) => state.form.errors,
     }),
-    ...mapGetters(useAdminStore, ["vuetifyGroups"]),
+    ...mapGetters(useAdminStore, ["groupMap"]),
+    tableHeight: () => window.innerHeight * 0.25,
   },
   methods: {
     ...mapActions(useAdminStore, ["updateRow", "clearErrors", "librarianTask"]),
@@ -183,5 +155,8 @@ export default {
 }
 .dateCol {
   min-width: 8em;
+}
+.disabled {
+  color: grey;
 }
 </style>

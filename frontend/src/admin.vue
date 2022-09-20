@@ -2,7 +2,7 @@
   <div id="adminWrapper">
     <div v-if="isUserAdmin" id="adminContainer">
       <v-main>
-        <v-toolbar dense>
+        <v-toolbar id="titleBar" dense>
           <v-spacer />
           <v-toolbar-title>Codex Administration</v-toolbar-title>
           <v-spacer />
@@ -30,7 +30,7 @@
 import { mdiOpenInNew } from "@mdi/js";
 import { mapGetters, mapWritableState } from "pinia";
 
-import AdminSettingsDrawer from "@/components/admin/settings-drawer.vue";
+import AdminSettingsDrawer from "@/components/admin/admin-settings-drawer.vue";
 import AdminTabs from "@/components/admin/tabs.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
 import { useAdminStore } from "@/stores/admin";
@@ -71,6 +71,12 @@ export default {
 }
 .invisible {
   visibility: hidden;
+}
+#titleBar {
+  position: fixed;
+  width: 100%;
+  top: 0px;
+  z-index: 10;
 }
 @import "./components/anchors.scss";
 </style>

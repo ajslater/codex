@@ -311,7 +311,7 @@ class BookmarkSerializer(ModelSerializer):
         """Configure the model."""
 
         model = Bookmark
-        exclude = ("id", "user", "session", "comic", "created_at", "updated_at")
+        fields = ("finished", "fit_to", "page", "two_pages")
 
 
 class BookmarkFinishedSerializer(ModelSerializer):

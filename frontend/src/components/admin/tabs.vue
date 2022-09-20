@@ -1,17 +1,19 @@
 <template>
-  <div id="tabs">
-    <v-tabs v-model="tab" centered grow show-arrows>
-      <v-tab v-for="name of Object.keys(panels)" :key="name">
+  <div id="tabContainer">
+    <v-tabs v-model="tab" centered grow show-arrows id="tabs">
+      <v-tab v-for="name of Object.keys(tabs)" :key="name">
         {{ name }}
       </v-tab>
     </v-tabs>
     <v-tabs-items id="tabItems" v-model="tab" touchless>
       <v-tab-item
-        v-for="name of Object.keys(panels)"
+        v-for="[name, attrs] of Object.entries(tabs)"
         :key="name"
         class="tabItem"
       >
-        <component :is="panels[name]" />
+        <div class="tabItemContainer">
+          <component :is="attrs.panel" />
+        </div>
       </v-tab-item>
     </v-tabs-items>
     <div v-if="!librariesExist" id="noLibraries">
@@ -43,13 +45,19 @@ export default {
   },
   data() {
     return {
-      tab: undefined,
-      panels: {
-        Users: AdminUsersPanel,
-        Groups: AdminGroupPanel,
-        Libraries: AdminLibrarysPanel,
-        Flags: AdminFlagsPanel,
-        Tasks: AdminTasksPanel,
+      tab: LIBRARY_TAB_INDEX,
+      tabs: {
+        Users: { panel: AdminUsersPanel, tables: ["Group", "User"] },
+        Groups: {
+          panel: AdminGroupPanel,
+          tables: ["User", "Library", "Group"],
+        },
+        Libraries: {
+          panel: AdminLibrarysPanel,
+          tables: ["Group", "Library", "FailedImport"],
+        },
+        Flags: { panel: AdminFlagsPanel, tables: ["Flag"] },
+        Tasks: { panel: AdminTasksPanel, tables: [] },
       },
     };
   },
@@ -57,27 +65,12 @@ export default {
     ...mapGetters(useAdminStore, ["librariesExist"]),
   },
   watch: {
-    tab: function (to) {
-      const tabName = Object.keys(this.panels)[to];
-
-      switch (tabName) {
-        case "Users":
-          this.loadTables(["Group", "User"]);
-          break;
-        case "Flags":
-          this.loadTable("Flag");
-          break;
-        case "Groups":
-          this.loadTables(["User", "Library", "Group"]);
-          break;
-        case "Libraries":
-          this.loadTables(["Group", "Library", "FailedImport"]);
-          break;
-      }
+    tab: function () {
+      this.loadTab();
     },
   },
   created() {
-    this.tab = LIBRARY_TAB_INDEX;
+    this.loadTab();
   },
   methods: {
     ...mapActions(useAdminStore, ["loadTable"]),
@@ -86,35 +79,39 @@ export default {
         this.loadTable(table);
       }
     },
+    loadTab() {
+      const tables = Object.values(this.tabs)[this.tab].tables;
+      this.loadTables(tables);
+    },
   },
 };
 </script>
 
 <style scoped lang="scss">
-$task-width: 256px;
 #tabs {
-  height: 100%;
+  position: fixed;
+  top: 48px;
+  z-index: 10;
 }
+
+$task-width: 256px;
 #tabItems {
-  height: 100%;
+  margin-top: 96px;
   padding-top: 15px;
+  width: 100%;
 }
-$tabItemMargin: 48px;
 .tabItem {
-  margin-left: $tabItemMargin;
-  margin-right: $tabItemMargin;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+.tabItemContainer {
+  max-width: 1024px;
+  margin-left: auto;
+  margin-right: auto;
 }
 #noLibraries {
   text-align: center;
   padding: 1em;
-}
-@import "vuetify/src/styles/styles.sass";
-@media #{map-get($display-breakpoints, 'sm-and-down')} {
-  $tabItemMargin: 20px;
-  .tabItem {
-    margin-left: $tabItemMargin;
-    margin-right: $tabItemMargin;
-  }
 }
 </style>
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
@@ -123,11 +120,18 @@ $tabItemMargin: 48px;
   padding: 10px;
 }
 
-#tabItems .highlight-simple-table tr:nth-child(odd) {
-  background-color: #121212;
+/* Turn off hover highlighting on v-simple-table */
+#tabItems .v-data-table > .v-data-table__wrapper > table > tbody > tr:hover {
+  background-color: inherit !important;
 }
-/* dialogs live outside of most structure */
-.addCancelButton {
-  float: right !important;
+
+#tabItems .highlight-simple-table tr:nth-child(odd),
+#tabItems
+  .highlight-simple-table
+  > .v-data-table__wrapper
+  > table
+  > tbody
+  > tr:nth-child(odd):hover {
+  background-color: #121212 !important;
 }
 </style>

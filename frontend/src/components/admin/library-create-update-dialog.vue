@@ -6,16 +6,17 @@
     overlay-opacity="0.5"
   >
     <template #activator="{ on }">
-      <v-btn ripple rounded v-on="on"> + Add Library </v-btn>
+      <AdminCreateUpdateButton :update="update" table="Library" v-on="on" />
     </template>
-    <v-form id="libraryAddDialog" ref="form">
+    <v-form ref="form" class="cuForm">
       <AdminServerFolderPicker
+        v-if="!update"
         :rules="pathRules"
         autofocus
         label="Library Folder"
-        @keydown.enter="$refs.addLibrary.$el.focus()"
         @change="library.path = $event"
       />
+      <div v-else>{{ oldLibrary.path }}</div>
       <v-checkbox
         v-model="library.events"
         label="Watch Filesystem Events"
@@ -36,32 +37,17 @@
         :disabled="!library.poll"
       />
       <AdminRelationPicker
+        v-model="library.groups"
         label="Groups"
         :items="vuetifyGroups"
-        :value="library.groupSet"
       />
-
-      <v-btn
-        ref="addLibrary"
-        ripple
-        :disabled="!addLibraryButtonEnabled"
-        @click="addLibrary"
-      >
-        Add Library
-      </v-btn>
-      <v-btn class="addCancelButton" ripple @click="showDialog = false">
-        Cancel
-      </v-btn>
-      <footer>
-        <small v-if="formErrors && formErrors.length > 0" style="color: red">
-          <div v-for="error in formErrors" :key="error">
-            {{ error }}
-          </div>
-        </small>
-        <small v-else-if="formSuccess" style="color: green"
-          >{{ formSuccess }}
-        </small>
-      </footer>
+      <AdminCreateUpdateFooter
+        :update="update"
+        table="Library"
+        :disabled="submitButtonDisabled"
+        @submit="submit"
+        @cancel="showDialog = false"
+      />
     </v-form>
   </v-dialog>
 </template>
@@ -69,26 +55,41 @@
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 
+import AdminCreateUpdateButton from "@/components/admin/create-update-button.vue";
+import AdminCreateUpdateFooter from "@/components/admin/create-update-footer.vue";
 import AdminRelationPicker from "@/components/admin/relation-picker.vue";
 import AdminServerFolderPicker from "@/components/admin/server-folder-picker.vue";
 import TimeTextField from "@/components/admin/time-text-field.vue";
 import { useAdminStore } from "@/stores/admin";
 
+const UPDATE_KEYS = ["events", "poll", "pollEvery", "groups"];
 const EMPTY_LIBRARY = {
   path: "",
   events: true,
   poll: true,
   pollEvery: "01:00:00",
-  groupSet: [],
+  groups: [],
 };
 Object.freeze(EMPTY_LIBRARY);
 
 export default {
-  name: "AdminLibraryAddDialog",
+  // eslint-disable-next-line no-secrets/no-secrets
+  name: "AdminLibraryCreateUpdateDialog",
   components: {
+    AdminCreateUpdateButton,
+    AdminCreateUpdateFooter,
     AdminRelationPicker,
     AdminServerFolderPicker,
     TimeTextField,
+  },
+  props: {
+    update: { type: Boolean, default: false },
+    oldLibrary: {
+      type: Object,
+      default: () => {
+        return { ...EMPTY_LIBRARY };
+      },
+    },
   },
   data() {
     return {
@@ -115,57 +116,91 @@ export default {
   },
   computed: {
     ...mapState(useAdminStore, {
-      formErrors: (state) => state.errors,
-      formSuccess: (state) => state.success,
       paths: (state) => {
-        const libraryPaths = [];
+        const paths = new Set();
         for (const library of state.libraries) {
-          libraryPaths.push(library.path);
+          paths.add(library.path);
         }
-        return libraryPaths;
+        return paths;
       },
     }),
     ...mapGetters(useAdminStore, ["vuetifyGroups"]),
-    addLibraryButtonEnabled: function () {
-      for (const rule of this.pathRules) {
-        if (rule(this.library.path) !== true) {
-          return false;
+    submitButtonDisabled: function () {
+      let changed = false;
+      for (const [key, value] of Object.entries(this.library)) {
+        if (this.oldLibrary[key] !== value) {
+          changed = true;
+          break;
         }
       }
-      return true;
+      if (!changed) {
+        return true;
+      }
+      const form = this.$refs.form;
+      return !form || !form.validate();
     },
   },
   watch: {
     showDialog(show) {
-      if (show) {
-        this.clearErrors();
-        this.loadFolders();
-      }
+      this.clearErrors();
+      this.library =
+        show && this.update ? this.createUpdateLibrary() : { ...EMPTY_LIBRARY };
     },
   },
   methods: {
-    ...mapActions(useAdminStore, ["clearErrors", "createRow", "loadFolders"]),
-    addLibrary: function () {
-      const form = this.$refs.form;
-      if (!form.validate()) {
-        return;
+    ...mapActions(useAdminStore, ["clearErrors", "createRow", "updateRow"]),
+    createUpdateLibrary() {
+      const updateLibrary = {};
+      for (const key of UPDATE_KEYS) {
+        updateLibrary[key] = this.oldLibrary[key];
       }
-      this.createRow("Library", this.library)
+      return updateLibrary;
+    },
+    doUpdate: function () {
+      // only pass diff from old library as update
+      const updateLibrary = {};
+      for (const [key, value] of Object.entries(this.library)) {
+        if (this.oldLibrary[key] !== value) {
+          updateLibrary[key] = value;
+        }
+      }
+      this.updateRow("Library", this.oldLibrary.id, updateLibrary)
         .then(() => {
           this.showDialog = false;
-          this.library = { ...EMPTY_LIBRARY };
           return true;
         })
         .catch((error) => {
           console.error(error);
         });
     },
+    doCreate: function () {
+      this.createRow("Library", this.library)
+        .then(() => {
+          this.showDialog = false;
+          return true;
+        })
+        .catch((error) => {
+          console.error(error);
+        });
+    },
+    submit: function () {
+      const form = this.$refs.form;
+      if (!form.validate()) {
+        console.warn("submit attempted with invalid form");
+        return;
+      }
+      if (this.update) {
+        this.doUpdate();
+      } else {
+        this.doCreate();
+      }
+    },
   },
 };
 </script>
 
 <style scoped lang="scss">
-#libraryAddDialog {
+.cuForm {
   padding: 20px;
 }
 </style>
