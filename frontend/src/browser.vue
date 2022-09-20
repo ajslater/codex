@@ -15,11 +15,11 @@
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 
+import BrowserNavToolbar from "@/components/browser/browser-nav-toolbar.vue";
+import BrowserSettingsDrawer from "@/components/browser/browser-settings-drawer.vue";
+import BrowserTitleToolbar from "@/components/browser/browser-title-toolbar.vue";
 import BrowserFilterToolbar from "@/components/browser/filter-toolbar.vue";
 import BrowserMain from "@/components/browser/main.vue";
-import BrowserNavToolbar from "@/components/browser/nav-toolbar.vue";
-import BrowserSettingsDrawer from "@/components/browser/settings-drawer.vue";
-import BrowserTitleToolbar from "@/components/browser/title-toolbar.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 

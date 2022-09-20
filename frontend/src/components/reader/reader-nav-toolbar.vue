@@ -20,7 +20,7 @@
 import { mapActions, mapState } from "pinia";
 
 import PaginationSlider from "@/components/pagination-slider.vue";
-import ReaderNavButton from "@/components/reader/nav-button.vue";
+import ReaderNavButton from "@/components/reader/reader-nav-button.vue";
 import { useReaderStore } from "@/stores/reader";
 
 export default {

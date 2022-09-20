@@ -29,8 +29,8 @@ import { mapGetters } from "pinia";
 
 import { useAuthStore } from "@/stores/auth";
 
-const AdminMenu = () => import("@/components/admin/menu.vue");
-import AuthMenu from "@/components/auth/menu.vue";
+const AdminMenu = () => import("@/components/admin/admin-menu.vue");
+import AuthMenu from "@/components/auth/auth-menu.vue";
 import VersionsFooter from "@/components/settings/version-footer.vue";
 
 export default {

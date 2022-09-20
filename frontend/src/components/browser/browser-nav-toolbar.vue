@@ -14,7 +14,7 @@
 <script>
 import { mapActions, mapState } from "pinia";
 
-import BrowserNavButton from "@/components/browser/nav-button.vue";
+import BrowserNavButton from "@/components/browser/browser-nav-button.vue";
 import PaginationSlider from "@/components/pagination-slider.vue";
 import { useBrowserStore } from "@/stores/browser";
 

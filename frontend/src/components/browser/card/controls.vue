@@ -21,7 +21,7 @@
 <script>
 import { mdiEye, mdiEyeOff } from "@mdi/js";
 
-import BrowserCardMenu from "@/components/browser/card/menu.vue";
+import BrowserCardMenu from "@/components/browser/card/browser-card-menu.vue";
 import MetadataButton from "@/components/metadata/metadata-dialog.vue";
 export default {
   name: "BrowserCardControls",

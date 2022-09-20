@@ -76,7 +76,8 @@ import { mapActions, mapState } from "pinia";
 import { useAuthStore } from "@/stores/auth";
 
 export default {
-  name: "ChangePasswordDialog",
+  // eslint-disable-next-line no-secrets/no-secrets
+  name: "AuthChangePasswordDialog",
   emits: ["sub-dialog-open"],
   data() {
     return {
