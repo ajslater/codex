@@ -99,7 +99,7 @@ $task-width: 256px;
   height: 100%;
   padding-top: 15px;
 }
-$tabItemMargin: 64px;
+$tabItemMargin: 48px;
 .tabItem {
   margin-left: $tabItemMargin;
   margin-right: $tabItemMargin;
@@ -107,6 +107,14 @@ $tabItemMargin: 64px;
 #noLibraries {
   text-align: center;
   padding: 1em;
+}
+@import "vuetify/src/styles/styles.sass";
+@media #{map-get($display-breakpoints, 'sm-and-down')} {
+  $tabItemMargin: 20px;
+  .tabItem {
+    margin-left: $tabItemMargin;
+    margin-right: $tabItemMargin;
+  }
 }
 </style>
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
