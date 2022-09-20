@@ -2,20 +2,16 @@
 from codex.librarian.covers.create import (
     bulk_create_comic_covers,
     create_comic_cover,
-    create_comic_covers_for_libraries,
 )
 from codex.librarian.covers.purge import (
     cleanup_orphan_covers,
     purge_all_comic_covers,
     purge_comic_covers,
-    purge_library_covers,
 )
 from codex.librarian.covers.tasks import (
     CoverBulkCreateTask,
-    CoverCreateForLibrariesTask,
     CoverCreateTask,
     CoverRemoveAllTask,
-    CoverRemoveForLibrariesTask,
     CoverRemoveOrphansTask,
     CoverRemoveTask,
 )
@@ -37,12 +33,8 @@ class CoverCreator(QueuedThread):
             create_comic_cover(task.path, task.data)
         elif isinstance(task, CoverBulkCreateTask):
             bulk_create_comic_covers(task.comic_pks)
-        elif isinstance(task, CoverCreateForLibrariesTask):
-            create_comic_covers_for_libraries(task.library_ids)
         elif isinstance(task, CoverRemoveAllTask):
             purge_all_comic_covers()
-        elif isinstance(task, CoverRemoveForLibrariesTask):
-            purge_library_covers(task.library_ids)
         elif isinstance(task, CoverRemoveTask):
             purge_comic_covers(task.comic_pks)
         elif isinstance(task, CoverRemoveOrphansTask):

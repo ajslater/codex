@@ -13,7 +13,6 @@ from django.shortcuts import resolve_url
 from django.utils.html import format_html
 from django.utils.safestring import SafeText
 
-from codex.librarian.covers.tasks import CoverRemoveForLibrariesTask
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
 from codex.librarian.watchdog.tasks import WatchdogPollLibrariesTask, WatchdogSyncTask
 from codex.models import AdminFlag, FailedImport, Folder, Library
@@ -128,15 +127,6 @@ class AdminLibrary(ModelAdmin):
 
     force_poll.short_description = "Update all comics in selected libraries"
 
-    def remove_comic_covers(self, _, queryset):
-        """Regenerate all covers."""
-        pks = queryset.values_list("pk", flat=True)
-        LIBRARIAN_QUEUE.put(CoverRemoveForLibrariesTask(pks))
-
-    remove_comic_covers.short_description = (
-        "Remove comic covers from selected libraries"
-    )
-
     def _on_change(self, _, created=False):
         """Events for when the library has changed."""
         cache.clear()
@@ -159,18 +149,12 @@ class AdminLibrary(ModelAdmin):
 
     def delete_model(self, request, obj):
         """Stop watching on delete."""
-        pks = frozenset([obj.pk])
-        task = CoverRemoveForLibrariesTask(pks)
-        LIBRARIAN_QUEUE.put(task)
         super().delete_model(request, obj)
         cache.clear()
         self._on_change(None)
 
     def delete_queryset(self, request, queryset):
         """Bulk delete."""
-        pks = frozenset(queryset.values_list("pk", flat=True))
-        task = CoverRemoveForLibrariesTask(pks)
-        LIBRARIAN_QUEUE.put(task)
         for library in queryset:
             # so deletes will cascade
             library.delete()
