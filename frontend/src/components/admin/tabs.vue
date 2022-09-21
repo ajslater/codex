@@ -89,14 +89,10 @@ export default {
 
 <style scoped lang="scss">
 #tabs {
-  position: fixed;
-  top: 48px;
-  z-index: 10;
 }
 
 $task-width: 256px;
 #tabItems {
-  margin-top: 96px;
   padding-top: 15px;
   width: 100%;
   padding-left: env(safe-area-inset-left);

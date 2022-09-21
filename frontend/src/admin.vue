@@ -60,8 +60,7 @@ export default {
 
 <style scoped lang="scss">
 #adminContainer {
-  max-width: 100%;
-  position: relative;
+  width: 100%;
   padding-bottom: env(safe-area-inset-bottom);
 }
 #announcement {
@@ -74,10 +73,7 @@ export default {
   visibility: hidden;
 }
 #titleBar {
-  position: fixed;
   width: 100%;
-  top: 0px;
-  z-index: 10;
   padding-top: env(safe-area-inset-top);
   padding-right: calc(env(safe-area-inset-right) / 3);
   padding-left: calc(env(safe-area-inset-left) / 3);
