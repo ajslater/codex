@@ -166,16 +166,13 @@
           </v-icon>
         </v-btn>
         <v-btn
-          v-if="isReadButtonShown && isReadButtonEnabled"
+          v-if="isReadButtonShown"
           :to="readerRoute"
           title="Read Comic"
+          :disabled="!isReadButtonEnabled"
         >
-          <v-icon>{{ mdiEye }}</v-icon>
+          <v-icon>{{ readButtonIcon }}</v-icon>
         </v-btn>
-        <v-icon v-else-if="isReadButtonShown">
-          {{ mdiEyeOff }}
-        </v-icon>
-
         <span id="bottomRightButtons">
           <v-btn
             id="bottomCloseButton"
@@ -259,14 +256,13 @@ export default {
   data() {
     return {
       mdiDownload,
-      mdiEye,
-      mdiEyeOff,
       mdiTagOutline,
       dialog: false,
       progress: 0,
     };
   },
   computed: {
+    ...mapGetters(useAuthStore, ["isUserAdmin"]),
     ...mapState(useMetadataStore, {
       md: (state) => state.md,
     }),
@@ -276,7 +272,18 @@ export default {
         return getDownloadURL(this.pk, state.timestamp);
       },
     }),
-    ...mapGetters(useAuthStore, ["isUserAdmin"]),
+    isReadButtonShown: function () {
+      return this.group === "c" && this.$router.currentRoute.name != "reader";
+    },
+    isReadButtonEnabled: function () {
+      return this.$route.name === "browser" && Boolean(this.readerRoute);
+    },
+    readButtonIcon: function () {
+      return this.isReadButtonEnabled ? mdiEye : mdiEyeOff;
+    },
+    readerRoute: function () {
+      return getReaderRoute(this.md);
+    },
     formattedIssue: function () {
       if (
         (this.issue === null || this.issue === undefined) &&
@@ -289,15 +296,6 @@ export default {
         issue: this.md.issue,
         issueSuffix: this.md.issueSuffix,
       });
-    },
-    readerRoute: function () {
-      return getReaderRoute(this.md);
-    },
-    isReadButtonShown: function () {
-      return this.group === "c";
-    },
-    isReadButtonEnabled: function () {
-      return this.$route.name === "browser" && Boolean(this.readerRoute);
     },
     ltrText: function () {
       return this.md.readLtr ? "Left to Right" : "Right to Left";
