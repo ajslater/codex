@@ -22,12 +22,7 @@
           :pk="Number($router.currentRoute.params.pk)"
         />
       </v-btn>
-      <v-btn
-        id="downloadPageButton"
-        :href="pageSrc"
-        title="Download Page"
-        download
-      >
+      <v-btn id="downloadPageButton" title="Download Page" @click="download">
         <v-icon>{{ mdiFileImage }}</v-icon>
       </v-btn>
       <SettingsDrawerButton
@@ -40,7 +35,7 @@
 
 <script>
 import { mdiClose, mdiFileImage } from "@mdi/js";
-import { mapGetters, mapState, mapWritableState } from "pinia";
+import { mapActions, mapGetters, mapState, mapWritableState } from "pinia";
 
 import { getComicPageSource } from "@/api/v3/reader";
 import CHOICES from "@/choices";
@@ -48,6 +43,7 @@ import { getFullComicName } from "@/comic-name";
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
 import { useBrowserStore } from "@/stores/browser";
+import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
@@ -113,6 +109,7 @@ export default {
     window.removeEventListener("keyup", this._keyListener);
   },
   methods: {
+    ...mapActions(useCommonStore, ["downloadIOSPWAFix"]),
     openMetadata: function () {
       this.$refs.metadataDialog.dialog = true;
     },
@@ -123,6 +120,9 @@ export default {
       } else if (event.key === "m") {
         this.openMetadata();
       }
+    },
+    download() {
+      this.downloadIOSPWAFix(this.pageSrc, this.pageName);
     },
   },
 };

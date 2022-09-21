@@ -157,9 +157,8 @@
         <v-btn
           v-if="group === 'c'"
           id="downloadButton"
-          :href="downloadURL"
-          download
           title="Download Comic Archive"
+          @click="download"
         >
           <v-icon v-if="group === 'c'">
             {{ mdiDownload }}
@@ -211,7 +210,7 @@ import humanize from "humanize";
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import { getDownloadURL } from "@/api/v3/reader";
-import { formattedIssue } from "@/comic-name.js";
+import { formattedIssue, getFullComicName } from "@/comic-name";
 import BookCover from "@/components/book-cover.vue";
 import MetadataCreditsTable from "@/components/metadata/credits-table.vue";
 import MetadataTags from "@/components/metadata/metadata-tags.vue";
@@ -220,6 +219,7 @@ import { DATETIME_FORMAT } from "@/datetime";
 import { getReaderRoute } from "@/router/route";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
+import { useCommonStore } from "@/stores/common";
 import { useMetadataStore } from "@/stores/metadata";
 // Progress circle
 // Can take 19 seconds for 22k children on huge collections
@@ -265,13 +265,25 @@ export default {
     ...mapGetters(useAuthStore, ["isUserAdmin"]),
     ...mapState(useMetadataStore, {
       md: (state) => state.md,
+      downloadFileName: (state) => {
+        let name;
+        name = state.md.path
+          ? state.md.path.split("/").at(-1)
+          : getFullComicName({
+              seriesName: state.md.series.name,
+              volumeName: state.md.volume.name,
+              issue: state.md.issue,
+              issueSuffix: state.md.issueSuffix,
+            }) + ".cbz";
+        return name;
+      },
     }),
     ...mapState(useBrowserStore, {
       autoquery: (state) => state.settings.autoquery,
-      downloadURL: function (state) {
-        return getDownloadURL(this.pk, state.timestamp);
-      },
     }),
+    downloadURL: function () {
+      return getDownloadURL(this.pk); // browser timestamp missing.
+    },
     isReadButtonShown: function () {
       return this.group === "c" && this.$router.currentRoute.name != "reader";
     },
@@ -331,6 +343,7 @@ export default {
   },
   methods: {
     ...mapActions(useMetadataStore, ["clearMetadata", "loadMetadata"]),
+    ...mapActions(useCommonStore, ["downloadIOSPWAFix"]),
     dialogOpened: function () {
       this.loadMetadata({
         group: this.group,
@@ -357,6 +370,9 @@ export default {
     formatDateTime: function (ds) {
       const dt = new Date(ds);
       return DATETIME_FORMAT.format(dt).replace(",", "");
+    },
+    download() {
+      this.downloadIOSPWAFix(this.downloadURL, this.downloadFileName);
     },
   },
 };
