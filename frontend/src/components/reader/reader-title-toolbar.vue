@@ -29,7 +29,7 @@
         :download="pageName"
       >
         <v-btn id="downloadPageButton">
-          <v-icon>{{ mdiDownload }}</v-icon>
+          <v-icon>{{ mdiFileImage }}</v-icon>
         </v-btn>
       </a>
       <SettingsDrawerButton
@@ -41,7 +41,7 @@
 </template>
 
 <script>
-import { mdiClose, mdiDownload } from "@mdi/js";
+import { mdiClose, mdiFileImage } from "@mdi/js";
 import { mapGetters, mapState, mapWritableState } from "pinia";
 
 import { getComicPageSource } from "@/api/v3/reader";
@@ -61,7 +61,7 @@ export default {
   data() {
     return {
       mdiClose,
-      mdiDownload,
+      mdiFileImage,
     };
   },
   head() {
