@@ -22,16 +22,14 @@
           :pk="Number($router.currentRoute.params.pk)"
         />
       </v-btn>
-      <a
-        id="downloadAnchor"
+      <v-btn
+        id="downloadPageButton"
         :href="pageSrc"
         title="Download Page"
-        :download="pageName"
+        download
       >
-        <v-btn id="downloadPageButton">
-          <v-icon>{{ mdiFileImage }}</v-icon>
-        </v-btn>
-      </a>
+        <v-icon>{{ mdiFileImage }}</v-icon>
+      </v-btn>
       <SettingsDrawerButton
         id="settingsButton"
         @click.stop="isSettingsDrawerOpen = true"
@@ -188,8 +186,5 @@ export default {
   height: 24px;
   width: 24px;
   margin: 0px;
-}
-#downloadAnchor .v-icon {
-  color: white !important;
 }
 </style>
