@@ -52,7 +52,7 @@ export const useAdminStore = defineStore("admin", {
       errors: [],
       success: "",
     },
-    isSettingsDrawerOpen: true,
+    isSettingsDrawerOpen: false,
   }),
   getters: {
     isUserAdmin() {
