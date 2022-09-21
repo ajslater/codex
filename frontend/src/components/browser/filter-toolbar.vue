@@ -91,7 +91,6 @@ export default {
 @import "vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   #topGroupSelect {
-    margin-left: 16px;
     width: 136px;
   }
   #orderBySelect {
@@ -150,6 +149,9 @@ export default {
   #browserToolbar .toolbarSelect {
     margin-left: 0px !important;
     margin-right: 0px !important;
+  }
+  #browserToolbar .topGroupSelect {
+    margin-left: 6px !important;
   }
 }
 </style>
