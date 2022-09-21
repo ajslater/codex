@@ -5,7 +5,7 @@
     app
     right
     touchless
-    :mobile-breakpoint="1024"
+    :mobile-breakpoint="md"
   >
     <v-list-item-group id="browserLink">
       <v-list-item ref="browserLink" ripple :to="browserRoute">
@@ -73,6 +73,7 @@ export default {
 
 <style scoped lang="scss">
 #adminSetingsDrawer {
+  z-index: 20;
   padding-right: env(safe-area-inset-right);
 }
 #footerGroup {

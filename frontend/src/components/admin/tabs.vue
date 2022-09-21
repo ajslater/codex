@@ -1,6 +1,13 @@
 <template>
   <div id="tabContainer">
-    <v-tabs id="tabs" v-model="tab" centered grow show-arrows>
+    <v-tabs
+      id="tabs"
+      v-model="tab"
+      :class="{ rightSpace: rightSpace }"
+      centered
+      grow
+      show-arrows
+    >
       <v-tab v-for="name of Object.keys(tabs)" :key="name">
         {{ name }}
       </v-tab>
@@ -63,6 +70,9 @@ export default {
   },
   computed: {
     ...mapGetters(useAdminStore, ["librariesExist"]),
+    rightSpace() {
+      return this.$vuetify.breakpoint.mdAndUp;
+    },
   },
   watch: {
     tab: function () {
@@ -89,12 +99,16 @@ export default {
 
 <style scoped lang="scss">
 #tabs {
+  position: fixed;
+  width: 100%;
+  top: 48px;
+  z-index: 10;
 }
 
 $task-width: 256px;
 #tabItems {
+  margin-top: 96px;
   padding-top: 15px;
-  width: 100%;
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
 }
@@ -110,6 +124,9 @@ $task-width: 256px;
 #noLibraries {
   text-align: center;
   padding: 1em;
+}
+.rightSpace {
+  width: calc(100% - 256px) !important;
 }
 </style>
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
