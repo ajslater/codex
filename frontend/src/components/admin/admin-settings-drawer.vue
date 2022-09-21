@@ -5,7 +5,7 @@
     app
     right
     touchless
-    :mobile-breakpoint="md"
+    :mobile-breakpoint="960"
   >
     <v-list-item-group id="browserLink">
       <v-list-item ref="browserLink" ripple :to="browserRoute">
