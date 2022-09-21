@@ -74,7 +74,6 @@ export default {
 <style scoped lang="scss">
 #adminSetingsDrawer {
   z-index: 20;
-  padding-right: env(safe-area-inset-right);
 }
 #footerGroup {
   color: grey;
