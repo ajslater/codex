@@ -10,26 +10,41 @@ import { viteStaticCopy } from "vite-plugin-static-copy";
 
 import package_json from "./package.json";
 
-let root_path;
+let rootPath;
 try {
   // for dev & build
   const HYPERCORN_CONF = toml.parse(
     fs.readFileSync("../config/hypercorn.toml")
   );
-  root_path = HYPERCORN_CONF.root_path || "";
+  rootPath = HYPERCORN_CONF.root_path || "";
 } catch {
-  root_path = "";
+  rootPath = "";
 }
+const BASE_PATH = rootPath + "/static/";
+const VITE_HMR_URL_PREFIXES = ["node_modules", "src", "@id", "@vite/client"];
 
 const config = defineConfig(({ mode }) => {
   const PROD = mode === "production";
   const DEV = mode === "development";
   return {
-    base: root_path + "/static/",
+    base: BASE_PATH,
     server: {
       host: true,
       strictPort: true,
-      open: true,
+      proxy: {
+        "/": {
+          target: "http://127.0.0.1:9810/",
+          secure: false,
+          bypass: function (req) {
+            for (const prefix of VITE_HMR_URL_PREFIXES) {
+              if (req.url.startsWith(BASE_PATH + prefix)) {
+                return req.url;
+              }
+            }
+          },
+          ws: true,
+        },
+      },
     },
     build: {
       manifest: PROD,
@@ -40,7 +55,6 @@ const config = defineConfig(({ mode }) => {
         input: path.resolve("./src/main.js"),
       },
       sourcemap: DEV,
-      //emptyOutDir: true
     },
     resolve: {
       alias: {
