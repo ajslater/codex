@@ -23,7 +23,7 @@
 
 <script>
 import { mapGetters, mapState } from "pinia";
-import VuePdfEmbed from "vue-pdf-embed/dist/vue2-pdf-embed";
+const VuePdfEmbed = () => import("vue-pdf-embed/dist/vue2-pdf-embed");
 
 import { getComicPageSource } from "@/api/v3/reader";
 import Placeholder from "@/components/placeholder-loading.vue";
