@@ -6,7 +6,7 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v0.13.0a2
+## v0.13.0a3
 
 ### Admin Panel
 
@@ -21,6 +21,7 @@ border-radius: 128px;
     - More metadata tags.
     - Special thanks to @beville for UX research and suggestions
   - HTTP Basic auth only used for OPDS.
+  - Frontend components do lazy loading, should see some speedups.
 - Fixes
   - Fixed imprints & volume levels not displaying sometimes.
   - Fix large images & downloads for some OPDS clients.
