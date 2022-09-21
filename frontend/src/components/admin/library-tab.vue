@@ -92,6 +92,12 @@ import AdminTaskConfirmDialog from "@/components/admin/task-dialog.vue";
 import { DATETIME_FORMAT } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
 
+const FIXED_TOOLBARS = 96 + 16;
+const ADD_HEADER = 36;
+const FAILED_IMPORTS = 60 + 48 + 64;
+const BUFFER = FIXED_TOOLBARS + ADD_HEADER + FAILED_IMPORTS;
+const MIN_TABLE_HEIGHT = 48 * 4;
+
 export default {
   name: "AdminLibrariesPanel",
   components: {
@@ -110,6 +116,7 @@ export default {
       },
       mdiDatabaseClockOutline,
       mdiOpenInNew,
+      tableHeight: 0,
     };
   },
   computed: {
@@ -118,7 +125,13 @@ export default {
       formErrors: (state) => state.form.errors,
     }),
     ...mapGetters(useAdminStore, ["groupMap"]),
-    tableHeight: () => window.innerHeight * 0.25,
+  },
+  mounted() {
+    this.onResize();
+    window.addEventListener("resize", this.onResize);
+  },
+  unmounted() {
+    window.removeEventListener("resize", this.onResize);
   },
   methods: {
     ...mapActions(useAdminStore, ["updateRow", "clearErrors", "librarianTask"]),
@@ -144,6 +157,12 @@ export default {
     },
     forcePoll(pk) {
       this.librarianTask("poll_force", `Force Poll Library ${pk}`, pk);
+    },
+    onResize() {
+      this.tableHeight = Math.max(
+        MIN_TABLE_HEIGHT,
+        (window.innerHeight - BUFFER) / 2
+      );
     },
   },
 };

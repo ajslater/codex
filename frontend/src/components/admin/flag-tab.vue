@@ -54,6 +54,9 @@ const DESC = {
 };
 Object.freeze(DESC);
 
+const FIXED_TOOLBARS = 96 + 16;
+const BUFFER = FIXED_TOOLBARS;
+
 export default {
   name: "AdminFlagsPanel",
   data() {
@@ -63,13 +66,20 @@ export default {
         field: undefined,
       },
       DESC,
+      tableHeight: 0,
     };
   },
   computed: {
     ...mapState(useAdminStore, {
       flags: (state) => state.flags,
     }),
-    tableHeight: () => window.innerHeight * 0.7,
+  },
+  mounted() {
+    this.onResize();
+    window.addEventListener("resize", this.onResize);
+  },
+  unmounted() {
+    window.removeEventListener("resize", this.onResize);
   },
   methods: {
     ...mapActions(useAdminStore, ["updateRow", "clearErrors"]),
@@ -83,6 +93,9 @@ export default {
       if (pk === this.lastUpdate.pk && field === this.lastUpdate.field) {
         return this.formErrors;
       }
+    },
+    onResize() {
+      this.tableHeight = window.innerHeight - BUFFER;
     },
   },
 };

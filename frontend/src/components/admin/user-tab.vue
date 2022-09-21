@@ -77,6 +77,10 @@ import AdminUserCreateUpdateDialog from "@/components/admin/user-create-update-d
 import { useAdminStore } from "@/stores/admin";
 import { useAuthStore } from "@/stores/auth";
 
+const FIXED_TOOLBARS = 96 + 16;
+const ADD_HEADER = 36;
+const BUFFER = FIXED_TOOLBARS + ADD_HEADER;
+
 export default {
   name: "AdminUsersPanel",
   components: {
@@ -86,6 +90,11 @@ export default {
     DateTimeColumn,
     RelationChips,
   },
+  data() {
+    return {
+      tableHeight: 0,
+    };
+  },
   computed: {
     ...mapState(useAdminStore, {
       users: (state) => state.users,
@@ -94,7 +103,18 @@ export default {
       me: (state) => state.user,
     }),
     ...mapGetters(useAdminStore, ["groupMap"]),
-    tableHeight: () => window.innerHeight * 0.7,
+  },
+  mounted() {
+    window.addEventListener("resize", this.onResize);
+    this.onResize();
+  },
+  unmounted() {
+    window.removeEventListener("resize", this.onResize);
+  },
+  methods: {
+    onResize() {
+      this.tableHeight = window.innerHeight - BUFFER;
+    },
   },
 };
 </script>

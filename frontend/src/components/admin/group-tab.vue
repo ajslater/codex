@@ -69,6 +69,12 @@ import AdminGroupCreateUpdateDialog from "@/components/admin/group-create-update
 import RelationChips from "@/components/admin/relation-chips.vue";
 import { useAdminStore } from "@/stores/admin";
 
+const FIXED_TOOLBARS = 96 + 16;
+const ADD_HEADER = 36;
+const GROUP_HELP = 180;
+const BUFFER = FIXED_TOOLBARS + ADD_HEADER + GROUP_HELP;
+const MIN_TABLE_HEIGHT = 48 * 4;
+
 export default {
   name: "AdminGroupsPanel",
   components: {
@@ -82,6 +88,7 @@ export default {
         pk: 0,
         field: undefined,
       },
+      tableHeight: 0,
     };
   },
   computed: {
@@ -89,7 +96,21 @@ export default {
       groups: (state) => state.groups,
     }),
     ...mapGetters(useAdminStore, ["libraryMap", "userMap"]),
-    tableHeight: () => window.innerHeight * 0.25,
+  },
+  mounted() {
+    this.onResize();
+    window.addEventListener("resize", this.onResize);
+  },
+  unmounted() {
+    window.removeEventListener("resize", this.onResize);
+  },
+  methods: {
+    onResize() {
+      this.tableHeight = Math.max(
+        MIN_TABLE_HEIGHT,
+        window.innerHeight - BUFFER
+      );
+    },
   },
 };
 </script>
