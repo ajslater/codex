@@ -62,6 +62,7 @@ export default {
 #adminContainer {
   max-width: 100%;
   position: relative;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 #announcement {
   position: absolute;
@@ -77,6 +78,9 @@ export default {
   width: 100%;
   top: 0px;
   z-index: 10;
+  padding-top: env(safe-area-inset-top);
+  padding-right: calc(env(safe-area-inset-right) / 3);
+  padding-left: calc(env(safe-area-inset-left) / 3);
 }
 @import "./components/anchors.scss";
 </style>

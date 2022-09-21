@@ -99,6 +99,8 @@ $task-width: 256px;
   margin-top: 96px;
   padding-top: 15px;
   width: 100%;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 .tabItem {
   padding-left: 10px;
