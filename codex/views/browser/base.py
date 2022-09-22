@@ -119,19 +119,20 @@ class BrowserBaseView(BrowserSessionViewBase, GroupACLMixin):
         if choice in self._BOOKMARK_FILTERS:
             bm_rel = self.get_bm_rel(is_model_comic)
             my_bookmark_filter = self._get_my_bookmark_filter(bm_rel)
-
-            if choice == "UNREAD":
-                bookmark_filter = Q(**{bm_rel: None}) | Q(
-                    my_bookmark_filter & Q(**{f"{bm_rel}__finished__in": (False, None)})
+            if choice in ("UNREAD", "IN_PROGRESS"):
+                my_not_finished_filter = my_bookmark_filter & Q(
+                    **{f"{bm_rel}__finished__in": (False, None)}
                 )
-            elif choice == "IN_PROGRESS":
-                bookmark_filter = my_bookmark_filter & Q(**{f"{bm_rel}__page__gt": 0})
-            elif choice == "READ":
+                if choice == "UNREAD":
+                    bookmark_filter = Q(**{bm_rel: None}) | my_not_finished_filter
+                else:  # IN_PROGRESS
+                    bookmark_filter = my_not_finished_filter & Q(
+                        **{f"{bm_rel}__page__gt": 0}
+                    )
+            else:  # READ
                 bookmark_filter = my_bookmark_filter & Q(
                     **{f"{bm_rel}__finished": True}
                 )
-            else:
-                bookmark_filter = Q()
         else:
             bookmark_filter = Q()
         return bookmark_filter
