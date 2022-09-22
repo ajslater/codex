@@ -7,10 +7,13 @@ import router from "@/router";
 
 const NULL_READER_SETTINGS = {
   // Must be null so axios doesn't throw them out when sending.
-  fitTo: null, // eslint-disable-line unicorn/no-null
+  fitTo: "",
   twoPages: null, // eslint-disable-line unicorn/no-null
 };
 Object.freeze(NULL_READER_SETTINGS);
+
+const SETTINGS_NULL_VALUES = new Set(["", null, undefined]);
+Object.freeze(SETTINGS_NULL_VALUES);
 
 const getGlobalFitToDefault = () => {
   // Big screens default to fit by HEIGHT, small to WIDTH;
@@ -28,11 +31,6 @@ const getRouteParams = function (condition, routeParams, increment) {
         page: Number(routeParams.page) + increment,
       }
     : false;
-};
-
-const updateSettings = function (store, settingsKey, updates) {
-  // Doing this with $patch breaks reactivity
-  store.settings[settingsKey] = { ...store.settings[settingsKey], ...updates };
 };
 
 const isRouteBookChange = function (state, direction) {
@@ -61,7 +59,7 @@ export const useReaderStore = defineStore("reader", {
         fitTo: getGlobalFitToDefault(),
         twoPages: false,
       },
-      local: JSON.parse(JSON.stringify(NULL_READER_SETTINGS)),
+      local: { ...NULL_READER_SETTINGS },
     },
     timestamp: Date.now(),
     comic: {
@@ -84,6 +82,7 @@ export const useReaderStore = defineStore("reader", {
     // LOCAL UI
     bookChange: undefined,
     isSettingsDrawerOpen: false,
+    nullValues: SETTINGS_NULL_VALUES,
   }),
   getters: {
     computedSettings(state) {
@@ -91,13 +90,22 @@ export const useReaderStore = defineStore("reader", {
       const computedSettings = {};
       for (const [key, globalVal] of Object.entries(state.settings.globl)) {
         const localVal = state.settings.local[key];
-        const isLocalValSet = localVal !== undefined && localVal !== null;
+        const isLocalValSet = !SETTINGS_NULL_VALUES.has(localVal);
         computedSettings[key] = isLocalValSet ? localVal : globalVal;
       }
       return computedSettings;
     },
   },
   actions: {
+    ///////////////////////////////////////////////////////////////////////////
+    // UTIL
+    _updateSettings(settingsKey, updates) {
+      // Doing this with $patch breaks reactivity
+      this.settings[settingsKey] = {
+        ...this.settings[settingsKey],
+        ...updates,
+      };
+    },
     ///////////////////////////////////////////////////////////////////////////
     // MUTATIONS
     setBookInfo(data) {
@@ -134,7 +142,7 @@ export const useReaderStore = defineStore("reader", {
       return API.getReaderSettings()
         .then((response) => {
           const data = response.data;
-          updateSettings(this, "globl", data);
+          this._updateSettings("globl", data);
           return true;
         })
         .catch((error) => {
@@ -146,7 +154,7 @@ export const useReaderStore = defineStore("reader", {
       return API.getComicBookmark(router.currentRoute.params.pk, this.timestamp)
         .then((response) => {
           const data = response.data;
-          updateSettings(this, "local", data);
+          this._updateSettings("local", data);
           return this.setRoutesAndBookmarkPage();
         })
         .catch((error) => {
@@ -186,7 +194,7 @@ export const useReaderStore = defineStore("reader", {
       await this.setBookmarkPage();
     },
     async setSettingsLocal(data) {
-      updateSettings(this, "local", data);
+      this._updateSettings("local", data);
 
       await BROWSER_API.setGroupBookmarks(
         {
@@ -204,7 +212,7 @@ export const useReaderStore = defineStore("reader", {
       await this.setSettingsLocal(NULL_READER_SETTINGS);
     },
     async setSettingsGlobal(data) {
-      updateSettings(this, "globl", data);
+      this._updateSettings("globl", data);
       await API.setReaderSettings(this.settings.globl);
       await this.clearSettingsLocal();
     },

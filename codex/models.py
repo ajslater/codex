@@ -484,8 +484,8 @@ def cascade_if_user_null(collector, field, sub_objs, _using):
 def validate_fit_to_choice(choice):
     """Validate fit to choice."""
     # Choices is loaded after migration time and after definition time.
-    values = CHOICES["fitTo"]
-    if choice is not None and choice not in values:
+    values = frozenset((None, *CHOICES["fitTo"]))
+    if choice not in values:
         raise ValidationError(_(f"{choice} is not one of {values}"))
 
 
@@ -503,8 +503,8 @@ class Bookmark(BaseModel):
     finished = BooleanField(default=False, db_index=True)
     fit_to = CharField(
         validators=[validate_fit_to_choice],
-        null=True,
-        default=None,
+        default="",
+        blank=True,
         max_length=len("SCREEN"),
     )
     two_pages = BooleanField(default=None, null=True)
