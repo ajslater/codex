@@ -87,7 +87,7 @@ h4 {
   padding-top: 10px;
   padding-left: 16px;
   padding-right: 10px;
-  paddint-bottom: 10px;
+  padding-bottom: 10px;
 }
 .statusItem {
   padding-left: 16px;
