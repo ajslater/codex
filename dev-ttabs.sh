@@ -8,4 +8,4 @@ ttab -t "Codex Django" "DEBUG=1 $CODEX_DIR/dev-codex.sh"
 # The Vue dev server
 ttab -t "Codex Vue" "$CODEX_DIR/dev-frontend.sh"
 # An nginx reverse proxy with docker
-ttab -t "Codex Nginx" "$CODEX_DIR/dev-reverse-proxy.sh"
+# ttab -t "Codex Nginx" "$CODEX_DIR/dev-reverse-proxy.sh"

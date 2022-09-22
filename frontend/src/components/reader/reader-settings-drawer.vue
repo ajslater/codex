@@ -39,6 +39,8 @@
           @change="settingsDialogChanged({ twoPages: $event === true })"
         />
         <v-btn
+          id="clearSettingsButton"
+          :class="{ invisible: isSettingsDialogGlobalMode }"
           :disabled="isClearSettingsButtonDisabled"
           title="Use the default settings for all comics for this comic"
           @click="clearSettingsLocal"
@@ -83,6 +85,7 @@ export default {
         }
         return state.settings.local;
       },
+      nullValues: (state) => state.nullValues,
     }),
     isSettingsDrawerOpen: {
       get() {
@@ -93,12 +96,12 @@ export default {
       },
     },
     isClearSettingsButtonDisabled: function () {
+      console.log(this.nullValues);
+      console.log(this.settingsScope);
       return (
         this.isSettingsDialogGlobalMode ||
-        ((this.settingsScope.twoPages === null ||
-          this.settingsScope.twoPages === undefined) &&
-          (this.settingsScope.fitTo === null ||
-            this.settingsScope.fitTo === undefined))
+        (this.nullValues.has(this.settingsScope.fitTo) &&
+          this.nullValues.has(this.settingsScope.twoPages))
       );
     },
   },
@@ -170,5 +173,12 @@ export default {
 }
 .displayTwoPages {
   padding-top: 0px;
+}
+#clearSettingsButton {
+  transition: visibility 0.25s, opacity 0.25s;
+}
+.invisible {
+  visibility: hidden;
+  opacity: 0;
 }
 </style>
