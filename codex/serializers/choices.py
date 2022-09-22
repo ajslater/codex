@@ -123,7 +123,7 @@ def _build_choices_and_defaults(data_dict):
         if vuetify_key == "vuetifyNullCode":
             VUETIFY_NULL_CODE = vuetify_list
             continue
-        if vuetify_key in ("autoquery", "route"):
+        if vuetify_key in ("q", "route"):
             DEFAULTS[vuetify_key] = vuetify_list
             continue
         CHOICES[vuetify_key] = _parse_choices_to_dict(vuetify_key, vuetify_list)

@@ -325,10 +325,10 @@ class BrowserBaseView(BrowserSessionViewBase, GroupACLMixin):
         if not autoquery_tokens:
             return search_filter, autoquery_pk
 
-        autoquery = " ".join(autoquery_tokens)
         defaults = {"used_at": Now()}
+        text = " ".join(autoquery_tokens)
         query_obj, created = SearchQuery.objects.update_or_create(
-            defaults=defaults, text=autoquery
+            defaults=defaults, text=text
         )
         if created or not SearchResult.objects.filter(query=query_obj).exists():
             self._cache_haystack_query(query_obj)
@@ -350,7 +350,7 @@ class BrowserBaseView(BrowserSessionViewBase, GroupACLMixin):
 
         Also saves the query with whitespace removed.
         """
-        autoquery_tokens_raw = self.params.get("autoquery", "").split(" ")
+        autoquery_tokens_raw = self.params.get("q", "").split(" ")
 
         autoquery_tokens = []
         for token in autoquery_tokens_raw:
@@ -381,7 +381,7 @@ class BrowserBaseView(BrowserSessionViewBase, GroupACLMixin):
                 autoquery_pk,
             ) = self._get_search_query_filter(haystack_autoquery_tokens, is_model_comic)
             search_filter &= haystack_search_filter
-            self.params["autoquery"] = " ".join(autoquery_tokens)
+            self.params["q"] = " ".join(autoquery_tokens)
         except Exception as exc:
             LOG.warning(exc)
         return search_filter, autoquery_pk

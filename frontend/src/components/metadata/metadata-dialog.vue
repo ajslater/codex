@@ -21,9 +21,9 @@
           x
         </v-btn>
         <MetadataText
-          v-if="autoquery"
+          v-if="q"
           id="search"
-          :value="autoquery"
+          :value="q"
           label="Search Query"
           :highlight="true"
         />
@@ -279,7 +279,7 @@ export default {
       },
     }),
     ...mapState(useBrowserStore, {
-      autoquery: (state) => state.settings.autoquery,
+      q: (state) => state.settings.q,
     }),
     downloadURL: function () {
       return getDownloadURL(this.pk); // browser timestamp missing.

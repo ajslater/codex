@@ -67,7 +67,6 @@ class BrowserSessionViewBase(SessionViewBaseBase):
     CREDIT_PERSON_UI_FIELD = "creators"
     _DYNAMIC_FILTER_DEFAULTS = {
         "age_rating": [],
-        "autoquery": "",
         "characters": [],
         "country": [],
         CREDIT_PERSON_UI_FIELD: [],
@@ -78,6 +77,7 @@ class BrowserSessionViewBase(SessionViewBaseBase):
         "genres": [],
         "language": [],
         "locations": [],
+        "q": "",
         "read_ltr": [],
         "series_groups": [],
         "story_arcs": [],
@@ -91,12 +91,12 @@ class BrowserSessionViewBase(SessionViewBaseBase):
             "bookmark": DEFAULTS["bookmarkFilter"],
             **_DYNAMIC_FILTER_DEFAULTS,
         },
-        "autoquery": DEFAULTS["autoquery"],
-        "top_group": DEFAULTS["topGroup"],
         "order_by": DEFAULTS["orderBy"],
         "order_reverse": False,
-        "show": DEFAULTS["show"],
+        "q": DEFAULTS["q"],
         "route": DEFAULTS["route"],
+        "show": DEFAULTS["show"],
+        "top_group": DEFAULTS["topGroup"],
     }
 
 

@@ -25,8 +25,8 @@ const trimObject = (obj) => {
 
 const pruneParams = (data) => {
   const params = trimObject(data);
-  if (params.autoquery === "") {
-    delete params.autoquery;
+  if (params.q === "") {
+    delete params.q;
   }
   return params;
 };
