@@ -358,7 +358,7 @@ python-versions = ">=3.7,<4.0"
 
 [[package]]
 name = "djlint"
-version = "1.17.0"
+version = "1.17.1"
 description = "HTML Template Linter and Formatter"
 category = "dev"
 optional = false
@@ -606,7 +606,7 @@ pyreadline3 = {version = "*", markers = "sys_platform == \"win32\" and python_ve
 
 [[package]]
 name = "humanize"
-version = "4.3.0"
+version = "4.4.0"
 description = "Python humanize utilities"
 category = "main"
 optional = false
@@ -1026,7 +1026,7 @@ python-versions = "*"
 
 [[package]]
 name = "pyright"
-version = "1.1.271"
+version = "1.1.272"
 description = "Command line wrapper for pyright"
 category = "dev"
 optional = false
@@ -1817,8 +1817,8 @@ djangorestframework-types = [
     {file = "djangorestframework_types-0.8.0-py3-none-any.whl", hash = "sha256:5136212ec0df2c11d5ebcf217246f606e68f1d46a770419de84ed676bdab0113"},
 ]
 djlint = [
-    {file = "djlint-1.17.0-py3-none-any.whl", hash = "sha256:72da5c87df3196196fa77e566f84d088d2c009578d027717fcd0d22b29542c44"},
-    {file = "djlint-1.17.0.tar.gz", hash = "sha256:102e226a443fa4ad121ebb7547776c21f8d9066708efdb4a7b4a5c2dd56f1823"},
+    {file = "djlint-1.17.1-py3-none-any.whl", hash = "sha256:892e0e0ba5b49c017da7e7e4089426fd57fd9366f3fa69b5767dd0216475a786"},
+    {file = "djlint-1.17.1.tar.gz", hash = "sha256:f7109814c714d793ff45af3b25deafe787ea02d3117e3366c019ecd11ae6b3f5"},
 ]
 drf-spectacular = [
     {file = "drf-spectacular-0.24.0.tar.gz", hash = "sha256:bf22390e8d0aa53d81c5abf718ad4989c4e2eab133decc411a15c7e4ae3f6baf"},
@@ -1955,8 +1955,8 @@ humanfriendly = [
     {file = "humanfriendly-10.0.tar.gz", hash = "sha256:6b0b831ce8f15f7300721aa49829fc4e83921a9a301cc7f606be6686a2288ddc"},
 ]
 humanize = [
-    {file = "humanize-4.3.0-py3-none-any.whl", hash = "sha256:5dd159c9910cd57b94072e4d7decae097f0eb84c4645153706929a7f127cb2ef"},
-    {file = "humanize-4.3.0.tar.gz", hash = "sha256:0dfac79fe8c1c0c734c14177b07b857bad9ae30dd50daa0a14e2c3d8054ee0c4"},
+    {file = "humanize-4.4.0-py3-none-any.whl", hash = "sha256:8830ebf2d65d0395c1bd4c79189ad71e023f277c2c7ae00f263124432e6f2ffa"},
+    {file = "humanize-4.4.0.tar.gz", hash = "sha256:efb2584565cc86b7ea87a977a15066de34cdedaf341b11c851cfcfd2b964779c"},
 ]
 hypercorn = [
     {file = "Hypercorn-0.14.3-py3-none-any.whl", hash = "sha256:7c491d5184f28ee960dcdc14ab45d14633ca79d72ddd13cf4fcb4cb854d679ab"},
@@ -2249,8 +2249,8 @@ pyreadline3 = [
     {file = "pyreadline3-3.4.1.tar.gz", hash = "sha256:6f3d1f7b8a31ba32b73917cefc1f28cc660562f39aea8646d30bd6eff21f7bae"},
 ]
 pyright = [
-    {file = "pyright-1.1.271-py3-none-any.whl", hash = "sha256:1d8da0eca3eade0500cf19da90aaf029263b6e339c6210c158c863758fe21de1"},
-    {file = "pyright-1.1.271.tar.gz", hash = "sha256:67b18ae5e6a5e291120bda19880d0e78c9c05e3cb10bd4439921bacc0bfd780f"},
+    {file = "pyright-1.1.272-py3-none-any.whl", hash = "sha256:1cbb7806265f57430a036420d0a69aa91db5b914f0f24777edc8b89824fb2142"},
+    {file = "pyright-1.1.272.tar.gz", hash = "sha256:4e65ce4120a75991e67f476989df55def4d366bced58fd27ec4e377143115069"},
 ]
 pyrsistent = [
     {file = "pyrsistent-0.18.1-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:df46c854f490f81210870e509818b729db4488e1f30f2a1ce1698b2295a878d1"},
