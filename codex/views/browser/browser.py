@@ -3,7 +3,7 @@ from copy import deepcopy
 from typing import Optional, Union
 
 from django.core.paginator import EmptyPage, Paginator
-from django.db.models import F, ManyToManyField, Max, Value
+from django.db.models import F, Max, Value
 from django.db.models.fields import (
     BooleanField,
     CharField,
@@ -21,7 +21,6 @@ from codex.models import (
     Folder,
     Imprint,
     Library,
-    NamedModel,
     Publisher,
     SearchQuery,
     Series,
@@ -63,7 +62,6 @@ class BrowserView(BrowserMetadataBaseView):
     _ZERO_INTEGERFIELD = Value(0, IntegerField())
     _NONE_BOOLFIELD = Value(None, BooleanField())
     _NONE_DATEFIELD = Value(None, DateField())
-    _EMPTY_M2M_FIELD = Value(None, ManyToManyField(NamedModel))
 
     _GROUP_INSTANCE_SELECT_RELATED = {
         Comic: ("series", "volume"),
@@ -161,14 +159,14 @@ class BrowserView(BrowserMetadataBaseView):
                     comments=self._EMPTY_CHARFIELD,
                     notes=self._EMPTY_CHARFIELD,
                     language=self._EMPTY_CHARFIELD,
-                    characters=self._EMPTY_M2M_FIELD,
-                    genres=self._EMPTY_M2M_FIELD,
-                    locations=self._EMPTY_M2M_FIELD,
-                    series_groups=self._EMPTY_M2M_FIELD,
-                    story_arcs=self._EMPTY_M2M_FIELD,
-                    tags=self._EMPTY_M2M_FIELD,
-                    teams=self._EMPTY_M2M_FIELD,
-                    credits=self._EMPTY_M2M_FIELD,
+                    characters=self._EMPTY_CHARFIELD,
+                    genres=self._EMPTY_CHARFIELD,
+                    locations=self._EMPTY_CHARFIELD,
+                    series_groups=self._EMPTY_CHARFIELD,
+                    story_arcs=self._EMPTY_CHARFIELD,
+                    tags=self._EMPTY_CHARFIELD,
+                    teams=self._EMPTY_CHARFIELD,
+                    credits=self._EMPTY_CHARFIELD,
                 )
 
         return queryset
@@ -311,9 +309,9 @@ class BrowserView(BrowserMetadataBaseView):
     def _get_browser_page_title(self):
         """Get the proper title for this browse level."""
         pk = self.kwargs.get("pk")
-        parent_name = None
+        parent_name = ""
         group_count = 0
-        group_name = None
+        group_name = ""
         if pk == 0:
             if not self.model:
                 raise ValueError("No model set in browser")

@@ -59,8 +59,7 @@ class PyCountrySerializer(Serializer):
     def lookup_name(lookup_module, name):
         """Lookup the name with pycountry, just copy the key on fail."""
         if not name:
-            # This never seems to get called so I do it on the front end.
-            return "None"
+            return ""
         if len(name) == 2:
             # fix for https://github.com/flyingcircusio/pycountry/issues/41
             lookup_obj = lookup_module.get(alpha_2=name)

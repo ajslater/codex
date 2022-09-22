@@ -331,16 +331,16 @@ class Comic(WatchedPath):
     critical_rating = DecimalField(
         db_index=True, decimal_places=2, max_digits=5, default=None, null=True
     )
-    age_rating = CharField(db_index=True, max_length=32, null=True)
+    age_rating = CharField(db_index=True, max_length=32, default="")
     # alpha2 fields for countries
-    country = CharField(db_index=True, max_length=32, null=True)
-    language = CharField(db_index=True, max_length=32, null=True)
+    country = CharField(db_index=True, max_length=32, default="")
+    language = CharField(db_index=True, max_length=32, default="")
     # misc
-    format = CharField(db_index=True, max_length=32, null=True)
+    format = CharField(db_index=True, max_length=32, default="")
     page_count = PositiveSmallIntegerField(db_index=True, default=0)
     read_ltr = BooleanField(db_index=True, default=True)
-    scan_info = CharField(max_length=MAX_NAME_LENGTH, null=True)
-    web = URLField(null=True)
+    scan_info = CharField(max_length=MAX_NAME_LENGTH, default="")
+    web = URLField(default="")
     # ManyToMany
     characters = ManyToManyField(Character)
     credits = ManyToManyField(Credit)
@@ -604,7 +604,7 @@ class Timestamp(NamedModel):
     XAPIAN_INDEX_UUID = "xapian_index_uuid"
     NAMES = (COVERS, JANITOR, SEARCH_INDEX, CODEX_VERSION, XAPIAN_INDEX_UUID)
 
-    version = CharField(max_length=32, null=True, default=None)
+    version = CharField(max_length=32, default="")
 
     @classmethod
     def touch(cls, name):

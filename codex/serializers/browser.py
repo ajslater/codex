@@ -217,7 +217,7 @@ class BrowserAdminFlagsSerializer(Serializer):
 class BrowserTitleSerializer(Serializer):
     """Elements for constructing the browse title."""
 
-    parent_name = CharField(read_only=True, allow_null=True)
+    parent_name = CharField(read_only=True)
     group_name = CharField(read_only=True)
     group_count = IntegerField(read_only=True, allow_null=True)
 

@@ -7,7 +7,7 @@ import codex.models
 
 
 class Migration(migrations.Migration):
-    """Rename Bookmark table."""
+    """Rename Bookmark table & use '' for CharField nulls."""
 
     dependencies = [
         ("sessions", "0001_initial"),
@@ -32,5 +32,40 @@ class Migration(migrations.Migration):
                 max_length=6,
                 validators=[codex.models.validate_fit_to_choice],
             ),
+        ),
+        migrations.AlterField(
+            model_name="comic",
+            name="age_rating",
+            field=models.CharField(db_index=True, default="", max_length=32),
+        ),
+        migrations.AlterField(
+            model_name="comic",
+            name="country",
+            field=models.CharField(db_index=True, default="", max_length=32),
+        ),
+        migrations.AlterField(
+            model_name="comic",
+            name="format",
+            field=models.CharField(db_index=True, default="", max_length=32),
+        ),
+        migrations.AlterField(
+            model_name="comic",
+            name="language",
+            field=models.CharField(db_index=True, default="", max_length=32),
+        ),
+        migrations.AlterField(
+            model_name="comic",
+            name="scan_info",
+            field=models.CharField(default="", max_length=128),
+        ),
+        migrations.AlterField(
+            model_name="comic",
+            name="web",
+            field=models.URLField(default=""),
+        ),
+        migrations.AlterField(
+            model_name="timestamp",
+            name="version",
+            field=models.CharField(default="", max_length=32),
         ),
     ]

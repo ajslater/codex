@@ -44,15 +44,15 @@ class OPDSAcquisitionEntrySerializer(BrowserCardSerializer):
     language = CharField(read_only=True, source=UNIONFIX_PREFIX + "language")
 
     # ManyToMany
-    characters = CharField(allow_null=True, source=UNIONFIX_PREFIX + "characters")
-    genres = CharField(allow_null=True, source=UNIONFIX_PREFIX + "genres")
-    locations = CharField(allow_null=True, source=UNIONFIX_PREFIX + "locations")
-    series_groups = CharField(allow_null=True, source=UNIONFIX_PREFIX + "series_groups")
-    story_arcs = CharField(allow_null=True, source=UNIONFIX_PREFIX + "story_arcs")
-    tags = CharField(allow_null=True, source=UNIONFIX_PREFIX + "tags")
-    teams = CharField(allow_null=True, source=UNIONFIX_PREFIX + "teams")
-    authors = CharField(allow_null=True, source=UNIONFIX_PREFIX + "authors")
-    contributors = CharField(allow_null=True, source=UNIONFIX_PREFIX + "contributors")
+    characters = CharField(source=UNIONFIX_PREFIX + "characters")
+    genres = CharField(source=UNIONFIX_PREFIX + "genres")
+    locations = CharField(source=UNIONFIX_PREFIX + "locations")
+    series_groups = CharField(source=UNIONFIX_PREFIX + "series_groups")
+    story_arcs = CharField(source=UNIONFIX_PREFIX + "story_arcs")
+    tags = CharField(source=UNIONFIX_PREFIX + "tags")
+    teams = CharField(source=UNIONFIX_PREFIX + "teams")
+    authors = CharField(source=UNIONFIX_PREFIX + "authors")
+    contributors = CharField(source=UNIONFIX_PREFIX + "contributors")
 
 
 OPDS_COMICS_ORDERED_UNIONFIX_VALUES_MAP = get_serializer_values_map(
