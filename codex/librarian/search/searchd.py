@@ -1,12 +1,11 @@
 """Haystack Search index updater."""
 import os
 
-from datetime import datetime
+from datetime import datetime, timezone
 from multiprocessing import Process
 from uuid import uuid4
 
 from django.core.management import call_command
-from django.utils import timezone
 
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.librarian.search.status import SearchIndexStatusTypes
@@ -139,7 +138,7 @@ def rebuild_search_index_if_db_changed():
 class SearchIndexer(QueuedThread):
     """A worker to handle search index update tasks."""
 
-    NAME = "SearchIndexer"
+    NAME = "SearchIndexer"  # type: ignore
 
     def process_item(self, task):
         """Run the updater."""

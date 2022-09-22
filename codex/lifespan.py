@@ -15,6 +15,7 @@ from codex.librarian.librariand import LibrarianDaemon
 from codex.models import AdminFlag, LibrarianStatus, Library, Timestamp
 from codex.notifier.notifierd import Notifier
 from codex.settings.logging import get_logger
+from codex.settings.patch import patch_registration_setting
 
 
 RESET_ADMIN = bool(os.environ.get("CODEX_RESET_ADMIN"))
@@ -46,13 +47,10 @@ def _delete_orphans(model, field, names):
 
 def init_admin_flags():
     """Init admin flag rows."""
-    _delete_orphans(AdminFlag, "name", AdminFlag.FLAG_NAMES)
+    _delete_orphans(AdminFlag, "name", AdminFlag.FLAG_NAMES.keys())
 
-    for name in AdminFlag.FLAG_NAMES:
-        if name in AdminFlag.DEFAULT_FALSE:
-            defaults = {"on": False}
-        else:
-            defaults = {}
+    for name, on in AdminFlag.FLAG_NAMES.items():
+        defaults = {"on": on}
         flag, created = AdminFlag.objects.get_or_create(defaults=defaults, name=name)
         if created:
             LOG.info(f"Created AdminFlag: {flag.name} = {flag.on}")
@@ -93,6 +91,7 @@ def codex_startup():
     """Initialize the database and start the daemons."""
     ensure_superuser()
     init_admin_flags()
+    patch_registration_setting()
     init_timestamps()
     init_librarian_statuses()
     clear_library_status()

@@ -141,6 +141,7 @@ def bulk_folders_modified(library, paths):
     if count:
         LOG.info(log)
     else:
+        count = 0
         LOG.verbose(log)
 
     return count

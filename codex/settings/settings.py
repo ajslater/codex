@@ -10,11 +10,12 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
-
 import os
+import re
 
 from pathlib import Path
 
+from django.contrib.staticfiles.storage import staticfiles_storage
 from tzlocal import get_localzone_name
 from xapian import QueryParser
 
@@ -33,9 +34,7 @@ CONFIG_PATH.mkdir(exist_ok=True, parents=True)
 SECRET_KEY = get_secret_key(CONFIG_PATH)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = bool(os.environ.get("DEBUG", False))
-DEBUG_TOOLBAR = bool(os.environ.get("DEBUG_TOOLBAR", False))
-
+DEBUG = bool(os.environ.get("DEBUG", "").lower() not in ("0", "false", ""))
 #
 # Logging
 #
@@ -60,17 +59,17 @@ INSTALLED_APPS = [
 
 if DEBUG:
     # comes before static apps
-    INSTALLED_APPS += ["livereload"]
     INSTALLED_APPS += ["nplusone.ext.django"]
-    if DEBUG_TOOLBAR:
-        INSTALLED_APPS += ["debug_toolbar"]
 
 INSTALLED_APPS += [
     "whitenoise.runserver_nostatic",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_registration",
     "corsheaders",
+    "django_vite",
     "codex",
+    "drf_spectacular",
     "dark",
 ]
 
@@ -87,21 +86,14 @@ MIDDLEWARE = [
     "codex.middleware.TimezoneMiddleware",
 ]
 if DEBUG:
-    MIDDLEWARE += [
-        "livereload.middleware.LiveReloadScript",
-    ]
-    if DEBUG_TOOLBAR:
-        MIDDLEWARE += [
-            "debug_toolbar.middleware.DebugToolbarMiddleware",
-        ]
-    MIDDLEWARE += ["nplusone.ext.django.NPlusOneMiddleware"]
-    NPLUSONE_LOGGER = get_logger("nplusone")
     from logging import WARN
 
+    MIDDLEWARE += ["nplusone.ext.django.NPlusOneMiddleware"]
+    NPLUSONE_LOGGER = get_logger("nplusone")
     NPLUSONE_LOG_LEVEL = WARN
 
 
-ROOT_URLCONF = "codex.urls"
+ROOT_URLCONF = "codex.urls.root"
 
 CODEX_TEMPLATES = CODEX_PATH / "templates"
 TEMPLATES = [
@@ -182,10 +174,20 @@ HYPERCORN_CONFIG, MAX_DB_OPS = load_hypercorn_config(
 LOG.verbose(f"root_path: {HYPERCORN_CONFIG.root_path}")
 PORT = int(HYPERCORN_CONFIG.bind[0].split(":")[1])
 
+
+def immutable_file_test(_path, url):
+    """For django-vite."""
+    # Match filename with 12 hex digits before the extension
+    # e.g. app.db8f2edc0c8a.js
+    return re.match(r"^.+\.[0-9a-f]{8,12}\..+$", url)
+
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
-WHITENOISE_KEEP_ONLY_HASHED_FILES = True
+# WHITENOISE_KEEP_ONLY_HASHED_FILES is not usable with vite chunking
 WHITENOISE_STATIC_PREFIX = "static/"
+
+WHITENOISE_IMMUTABLE_FILE_TEST = immutable_file_test
 STATIC_ROOT = CODEX_PATH / "static_root"
 if HYPERCORN_CONFIG.root_path:
     STATIC_URL = HYPERCORN_CONFIG.root_path + "/" + WHITENOISE_STATIC_PREFIX
@@ -203,6 +205,13 @@ if DEBUG or BUILD:
         STATIC_SRC,
         STATIC_BUILD,
     ]
+    DJANGO_VITE_ASSETS_PATH = STATIC_BUILD
+else:
+    DJANGO_VITE_ASSETS_PATH = STATIC_ROOT
+    DJANGO_VITE_MANIFEST_PATH = STATIC_ROOT / staticfiles_storage.stored_name(
+        "manifest.json"
+    )
+
 
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 60  # 60 days
 
@@ -212,7 +221,6 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework.authentication.BasicAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ),
     "DEFAULT_RENDERER_CLASSES": (
@@ -224,6 +232,37 @@ REST_FRAMEWORK = {
         "djangorestframework_camel_case.parser.CamelCaseMultiPartParser",
         "djangorestframework_camel_case.parser.CamelCaseJSONParser",
     ),
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "EXCEPTION_HANDLER": "codex.views.error.codex_exception_handler",
+}
+
+REST_REGISTRATION = {
+    "REGISTER_VERIFICATION_ENABLED": False,
+    "REGISTER_EMAIL_VERIFICATION_ENABLED": False,
+    "RESET_PASSWORD_VERIFICATION_ENABLED": False,
+    "USER_HIDDEN_FIELDS": (
+        # DEFAULT
+        "last_login",
+        "is_active",
+        "user_permissions",
+        "groups",
+        "date_joined",
+        # SHOWN
+        # "is_staff", "is_superuser",
+        # HIDDEN
+        "email",
+        "first_name",
+        "last_name",
+    ),
+}
+
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Codex API",
+    "DESCRIPTION": "Comic Library Browser and Reader",
+    "VERSION": "3.0.0",
+    "CONTACT": {"name": "Repository", "url": "https://github.com/ajslater/codex/"},
+    "PREPROCESSING_HOOKS": ["codex.urls.spectacular.allow_list"],
 }
 
 CORS_ALLOW_CREDENTIALS = True
@@ -260,3 +299,7 @@ HAYSTACK_CONNECTIONS = {
         "HAYSTACK_XAPIAN_FLAGS": _XAPIAN_FLAGS,
     },
 }
+
+DJANGO_VITE_DEV_MODE = DEBUG
+DJANGO_VITE_DEV_SERVER_HOST = os.uname().nodename
+DJANGO_VITE_DEV_SERVER_PORT = 5173

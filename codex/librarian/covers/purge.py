@@ -49,15 +49,6 @@ def purge_comic_covers(comic_pks):
     purge_cover_paths(cover_paths)
 
 
-def purge_library_covers(library_pks):
-    """Remove all cover thumbs for a library."""
-    LOG.verbose(f"Removing comic covers from libraries: {library_pks}")
-    comic_pks = Comic.objects.filter(library_id__in=library_pks).values_list(
-        "pk", flat=True
-    )
-    purge_comic_covers(comic_pks)
-
-
 def purge_all_comic_covers():
     """Purge every comic cover."""
     LOG.verbose("Removing entire comic cover cache.")

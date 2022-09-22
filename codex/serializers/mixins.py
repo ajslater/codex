@@ -1,7 +1,7 @@
 """Serializer mixins."""
 from datetime import datetime
 
-from django.db.models import F
+from django.db.models import F, Q
 from rest_framework.serializers import (
     BooleanField,
     CharField,
@@ -11,8 +11,23 @@ from rest_framework.serializers import (
     Serializer,
 )
 
+from codex.db_functions import GroupConcat
+
 
 UNIONFIX_PREFIX = "unionfix_"
+COMIC_M2M_NAME_FIELDS = frozenset(
+    (
+        "characters",
+        "genres",
+        "locations",
+        "series_groups",
+        "story_arcs",
+        "tags",
+        "teams",
+    )
+)
+AUTHOR_ROLES = set(("Writer", "Author", "Plotter", "Scripter", "Creator"))
+AUTHOR_ROLES_QUERY = {"credits__role__name__in": AUTHOR_ROLES}
 
 
 class TimestampField(Field):
@@ -32,8 +47,8 @@ class BrowserAggregateBaseSerializerMixin(Serializer):
     child_count = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "child_count")
     cover_pk = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "cover_pk")
 
-    # UserBookmark annotations
-    bookmark = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "bookmark")
+    # Bookmark annotations
+    page = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "page")
 
 
 class BrowserAggregateSerializerMixin(BrowserAggregateBaseSerializerMixin):
@@ -71,10 +86,22 @@ class BrowserCardOPDSBaseSerializer(BrowserAggregateSerializerMixin):
     page_count = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "page_count")
 
 
-def get_serializer_values_map(serializers, copy_only=False):
+def _get_credit_persons(authors=False):
+    """Get credit persons as a csv."""
+    if authors:
+        filter = Q(**AUTHOR_ROLES_QUERY)
+    else:
+        filter = ~Q(**AUTHOR_ROLES_QUERY)
+
+    return GroupConcat("credits__person__name", distinct=True, filter=filter)
+
+
+def get_serializer_values_map(serializers, copy_only=False, folders=False):
     """Create map for ordering values() properly with the UNIONFIX_PREFIX."""
     # Fixes Django's requirement that unions have the same field order, but Django
     # provides no mechanism to actually order fields.
+    # copy_only is for metadata view.
+    # folders is for OPDS folders view.
     fields = {}
     for serializer in serializers:
         fields.update(serializer().get_fields())
@@ -84,6 +111,20 @@ def get_serializer_values_map(serializers, copy_only=False):
         if copy_only:
             val = field
         else:
-            val = F(field)
+            if field in COMIC_M2M_NAME_FIELDS and not folders:
+                val = GroupConcat(f"{field}__name", distinct=True)
+            elif field in ("contributors", "authors"):
+                if folders:
+                    val = F("credits")
+                else:
+                    val = _get_credit_persons(field == "authors")
+            else:
+                val = F(field)
         result[UNIONFIX_PREFIX + field] = val
     return result
+
+
+class OKSerializer(Serializer):
+    """Default serializer for views without much response."""
+
+    ok = BooleanField(default=True)

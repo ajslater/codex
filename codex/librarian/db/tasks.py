@@ -1,10 +1,9 @@
 """DB Updater Tasks."""
-from abc import ABC
 from dataclasses import dataclass
 
 
 @dataclass
-class UpdaterTask(ABC):
+class UpdaterTask:
     """Tasks for the updater."""
 
     pass

@@ -1,11 +1,10 @@
 """Covers Tasks."""
-from abc import ABC
 from dataclasses import dataclass
 from pathlib import Path
 
 
 @dataclass
-class CoverTask(ABC):
+class CoverTask:
     """Handle with the CoverCreator."""
 
     pass
@@ -41,26 +40,13 @@ class CoverRemoveOrphansTask(CoverTask):
 
 
 @dataclass
-class LibrariesTask(ABC):
+class LibrariesTask:
     """Tasks over a set of libraries."""
 
     library_ids: frozenset
 
 
-@dataclass
-class CoverCreateForLibrariesTask(CoverTask):
-    """Create Comic covers for a set of libraries."""
-
-    library_ids: frozenset
-
-
-@dataclass
-class CoverRemoveForLibrariesTask(CoverTask):
-    """Purge all covers for a set of libraries."""
-
-    library_ids: frozenset
-
-
+# TODO look if obsolete
 @dataclass
 class CoverRemoveTask(CoverTask):
     """Purge a set of comic covers."""

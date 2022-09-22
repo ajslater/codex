@@ -331,16 +331,16 @@ class Comic(WatchedPath):
     critical_rating = DecimalField(
         db_index=True, decimal_places=2, max_digits=5, default=None, null=True
     )
-    age_rating = CharField(db_index=True, max_length=32, null=True)
+    age_rating = CharField(db_index=True, max_length=32, default="")
     # alpha2 fields for countries
-    country = CharField(db_index=True, max_length=32, null=True)
-    language = CharField(db_index=True, max_length=32, null=True)
+    country = CharField(db_index=True, max_length=32, default="")
+    language = CharField(db_index=True, max_length=32, default="")
     # misc
-    format = CharField(db_index=True, max_length=32, null=True)
+    format = CharField(db_index=True, max_length=32, default="")
     page_count = PositiveSmallIntegerField(db_index=True, default=0)
     read_ltr = BooleanField(db_index=True, default=True)
-    scan_info = CharField(max_length=MAX_NAME_LENGTH, null=True)
-    web = URLField(null=True)
+    scan_info = CharField(max_length=MAX_NAME_LENGTH, default="")
+    web = URLField(default="")
     # ManyToMany
     characters = ManyToManyField(Character)
     credits = ManyToManyField(Credit)
@@ -439,18 +439,16 @@ class Comic(WatchedPath):
 class AdminFlag(NamedModel):
     """Flags set by administrators."""
 
-    # TODO: SPA admin maybe change this to proper TextChoices.
     ENABLE_FOLDER_VIEW = "Enable Folder View"
     ENABLE_REGISTRATION = "Enable Registration"
     ENABLE_NON_USERS = "Enable Non Users"
     ENABLE_AUTO_UPDATE = "Enable Auto Update"
-    FLAG_NAMES = (
-        ENABLE_FOLDER_VIEW,
-        ENABLE_REGISTRATION,
-        ENABLE_NON_USERS,
-        ENABLE_AUTO_UPDATE,
-    )
-    DEFAULT_FALSE = (ENABLE_AUTO_UPDATE,)
+    FLAG_NAMES = {
+        ENABLE_FOLDER_VIEW: True,
+        ENABLE_REGISTRATION: True,
+        ENABLE_NON_USERS: True,
+        ENABLE_AUTO_UPDATE: False,
+    }
 
     on = BooleanField(default=True)
 
@@ -459,7 +457,7 @@ def cascade_if_user_null(collector, field, sub_objs, _using):
     """
     Cascade only if the user field is null.
 
-    Do this to keep deleting ephemeral session data from UserBookmark table.
+    Do this to keep deleting ephemeral session data from Bookmark table.
     Adapted from:
     https://github.com/django/django/blob/master/django/db/models/deletion.py#L23
     """
@@ -486,12 +484,12 @@ def cascade_if_user_null(collector, field, sub_objs, _using):
 def validate_fit_to_choice(choice):
     """Validate fit to choice."""
     # Choices is loaded after migration time and after definition time.
-    values = CHOICES["fitTo"]
-    if choice is not None and choice not in values:
+    values = frozenset((None, *CHOICES["fitTo"]))
+    if choice not in values:
         raise ValidationError(_(f"{choice} is not one of {values}"))
 
 
-class UserBookmark(BaseModel):
+class Bookmark(BaseModel):
     """Persist user's bookmarks and settings."""
 
     user = ForeignKey(
@@ -501,12 +499,12 @@ class UserBookmark(BaseModel):
         Session, db_index=True, on_delete=cascade_if_user_null, null=True
     )
     comic = ForeignKey(Comic, db_index=True, on_delete=CASCADE)
-    bookmark = PositiveSmallIntegerField(db_index=True, null=True)
+    page = PositiveSmallIntegerField(db_index=True, null=True)
     finished = BooleanField(default=False, db_index=True)
     fit_to = CharField(
         validators=[validate_fit_to_choice],
-        null=True,
-        default=None,
+        default="",
+        blank=True,
         max_length=len("SCREEN"),
     )
     two_pages = BooleanField(default=None, null=True)
@@ -606,7 +604,7 @@ class Timestamp(NamedModel):
     XAPIAN_INDEX_UUID = "xapian_index_uuid"
     NAMES = (COVERS, JANITOR, SEARCH_INDEX, CODEX_VERSION, XAPIAN_INDEX_UUID)
 
-    version = CharField(max_length=32, null=True, default=None)
+    version = CharField(max_length=32, default="")
 
     @classmethod
     def touch(cls, name):

@@ -37,7 +37,7 @@ LOG = get_logger(__name__)
 class DelayedTasksThread(QueuedThread):
     """Wait for the DB to sync before running tasks."""
 
-    NAME = "DelayedTask"
+    NAME = "DelayedTask"  # type: ignore
 
     def process_item(self, item):
         """Sleep and then put tasks on the queue."""

@@ -1,0 +1,10 @@
+a:hover,
+a:hover .v-icon {
+  color: white;
+}
+a > .v-icon {
+  color: #cc7b19;
+}
+a.v-btn > .v-icon {
+  color: white;
+}

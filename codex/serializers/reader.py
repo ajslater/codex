@@ -1,24 +1,36 @@
 """Codex Reader Serializers."""
-from rest_framework.serializers import CharField, DecimalField, IntegerField, Serializer
+from rest_framework.serializers import (
+    BooleanField,
+    CharField,
+    ChoiceField,
+    DecimalField,
+    IntegerField,
+    Serializer,
+)
+
+from codex.serializers.choices import CHOICES
 
 
-class ComicPageRouteSerializer(Serializer):
+FIT_TO_CHOICES = tuple(CHOICES["fitTo"].keys())
+
+
+class PageRouteSerializer(Serializer):
     """A comic page route."""
 
     pk = IntegerField(read_only=True)
     page = IntegerField(read_only=True)
 
 
-class ComicReaderRoutesSerializer(Serializer):
+class ReaderRoutesSerializer(Serializer):
     """Previous and next comic routes."""
 
-    prev_book = ComicPageRouteSerializer(allow_null=True, read_only=True)
-    next_book = ComicPageRouteSerializer(allow_null=True, read_only=True)
+    prev_book = PageRouteSerializer(allow_null=True, read_only=True)
+    next_book = PageRouteSerializer(allow_null=True, read_only=True)
     series_index = IntegerField(read_only=True)
     series_count = IntegerField(read_only=True)
 
 
-class ComicReaderComicSerializer(Serializer):
+class ReaderComicSerializer(Serializer):
     """Components for constructing the title."""
 
     file_format = CharField(read_only=True)
@@ -32,8 +44,19 @@ class ComicReaderComicSerializer(Serializer):
     volume_name = CharField(read_only=True)
 
 
-class ComicReaderInfoSerializer(Serializer):
+class ReaderInfoSerializer(Serializer):
     """Information when opening a new book."""
 
-    comic = ComicReaderComicSerializer(read_only=True)
-    routes = ComicReaderRoutesSerializer(read_only=True)
+    comic = ReaderComicSerializer(read_only=True)
+    routes = ReaderRoutesSerializer(read_only=True)
+
+
+class ReaderSettingsSerializer(Serializer):
+    """Reader settings the user can change."""
+
+    fit_to = ChoiceField(
+        choices=FIT_TO_CHOICES,
+        allow_null=True,
+        required=False,
+    )
+    two_pages = BooleanField(allow_null=True, required=False)

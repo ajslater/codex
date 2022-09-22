@@ -1,10 +1,11 @@
 """Manage user sessions with appropriate defaults."""
-from rest_framework.response import Response
-from rest_framework.serializers import Serializer
-from rest_framework.views import APIView
+from abc import ABC, abstractmethod
+from copy import deepcopy
 
-from codex.serializers.bookmark import ComicReaderSettingsSerializer
-from codex.serializers.browser import BrowserSettingsSerializer
+from drf_spectacular.utils import extend_schema
+from rest_framework.generics import GenericAPIView
+from rest_framework.response import Response
+
 from codex.serializers.choices import DEFAULTS
 from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
@@ -13,13 +14,59 @@ from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 LOG = get_logger(__name__)
 
 
-class SessionViewBase(APIView):
+class SessionViewBaseBase(GenericAPIView, ABC):
     """Generic Session View."""
 
+    # Must override both of these
+    @property
+    @classmethod
+    @abstractmethod
+    def SESSION_KEY(cls):  # noqa: N802, type: ignore
+        """Implement the session key string."""
+        raise NotImplementedError()
+
+    SESSION_DEFAULTS = {}
+
+    @classmethod
+    def _get_source_values_or_set_defaults(cls, defaults_dict, source_dict, data):
+        """Recursively copy source_dict values into data or use defaults."""
+        result = deepcopy(data)
+        for key, default_value in defaults_dict.items():
+            result[key] = source_dict.get(key, default_value)
+            if result[key] is None:
+                # extra check for migrated or corrupt data
+                result[key] = default_value
+            if isinstance(default_value, dict):
+                result[key] = cls._get_source_values_or_set_defaults(
+                    default_value, source_dict.get(key, {}), result[key]
+                )
+        return result
+
+    def get_from_session(self, key):  # only used by frontend
+        """Get one key from the session or its default."""
+        session = self.request.session.get(self.SESSION_KEY, self.SESSION_DEFAULTS)
+        value = session.get(key, self.SESSION_DEFAULTS[key])
+        return value
+
+    def save_params_to_session(self, params):  # reader session & browser final
+        """Save the session from params with defaults for missing values."""
+        try:
+            data = self._get_source_values_or_set_defaults(
+                self.SESSION_DEFAULTS, params, {}
+            )
+            self.request.session[self.SESSION_KEY] = data
+            self.request.session.save()
+        except Exception as exc:
+            LOG.warning(f"Saving params to session: {exc}")
+
+
+class BrowserSessionViewBase(SessionViewBaseBase):
+    """Browser session base."""
+
+    SESSION_KEY = "browser"  # type: ignore
     CREDIT_PERSON_UI_FIELD = "creators"
     _DYNAMIC_FILTER_DEFAULTS = {
         "age_rating": [],
-        "autoquery": "",
         "characters": [],
         "country": [],
         CREDIT_PERSON_UI_FIELD: [],
@@ -30,6 +77,7 @@ class SessionViewBase(APIView):
         "genres": [],
         "language": [],
         "locations": [],
+        "q": "",
         "read_ltr": [],
         "series_groups": [],
         "story_arcs": [],
@@ -38,100 +86,56 @@ class SessionViewBase(APIView):
         "year": [],
     }
     FILTER_ATTRIBUTES = frozenset(_DYNAMIC_FILTER_DEFAULTS.keys())
-    SESSION_KEY = "UNDEFINED"  # Must override
-    SERIALIZER = Serializer
-    BROWSER_KEY = "browser"
-    READER_KEY = "reader"
     SESSION_DEFAULTS = {
-        BROWSER_KEY: {
-            "filters": {
-                "bookmark": DEFAULTS["bookmarkFilter"],
-                **_DYNAMIC_FILTER_DEFAULTS,
-            },
-            "autoquery": DEFAULTS["autoquery"],
-            "top_group": DEFAULTS["topGroup"],
-            "order_by": DEFAULTS["orderBy"],
-            "order_reverse": False,
-            "show": DEFAULTS["show"],
-            "route": DEFAULTS["route"],
+        "filters": {
+            "bookmark": DEFAULTS["bookmarkFilter"],
+            **_DYNAMIC_FILTER_DEFAULTS,
         },
-        READER_KEY: {"display": {"fit_to": DEFAULTS["fitTo"], "two_pages": False}},
+        "order_by": DEFAULTS["orderBy"],
+        "order_reverse": False,
+        "q": DEFAULTS["q"],
+        "route": DEFAULTS["route"],
+        "show": DEFAULTS["show"],
+        "top_group": DEFAULTS["topGroup"],
     }
 
-    def _get_defaults_and_session(self, session_key: str):
-        """Get the session defaults and the session."""
-        defaults = self.SESSION_DEFAULTS[session_key]
-        session = self.request.session.get(session_key, defaults)
-        return defaults, session
 
-    @classmethod
-    def _get_source_values_or_set_defaults(cls, defaults_dict, source_dict, data):
-        """Recursively copy source_dict values into data or use defaults."""
-        for key, default_value in defaults_dict.items():
-            data[key] = source_dict.get(key, default_value)
-            if data[key] is None:
-                # extra check for migrated or corrupt data
-                data[key] = default_value
-            if isinstance(default_value, dict):
-                cls._get_source_values_or_set_defaults(
-                    default_value, source_dict.get(key, {}), data[key]
-                )
+class ReaderSessionViewBase(SessionViewBaseBase):
+    """Reader session base."""
 
-    def load_params_from_session(self):
-        """Set the params from view session, creating missing values from defaults."""
-        defaults, session = self._get_defaults_and_session(self.SESSION_KEY)
-        data = {}
-
-        self._get_source_values_or_set_defaults(defaults, session, data)
-        self.params = data
-
-    def get_from_session(self, key, session_key=None):
-        """Get one key from the session or its default."""
-        if session_key is None:
-            session_key = self.SESSION_KEY
-        defaults, session = self._get_defaults_and_session(session_key)
-        value = session.get(key, defaults[key])
-        return value
-
-    def save_params_to_session(self):
-        """Save the session from params with defaults for missing values."""
-        try:
-            defaults = self.SESSION_DEFAULTS[self.SESSION_KEY]
-            data = {}
-            self._get_source_values_or_set_defaults(defaults, self.params, data)
-            self.request.session[self.SESSION_KEY] = data
-            self.request.session.save()
-        except Exception as exc:
-            LOG.warning(f"Saving params to session: {exc}")
-
-    def _validate(self):
-        """Validate submitted data."""
-        serializer = self.SERIALIZER(data=self.request.data)
-        serializer.is_valid(raise_exception=True)
-        return serializer.validated_data
+    SESSION_KEY = "reader"  # type: ignore
+    SESSION_DEFAULTS = {"fit_to": DEFAULTS["fitTo"], "two_pages": False}
 
 
-class SessionView(SessionViewBase):
+class SessionViewBase(SessionViewBaseBase, ABC):
     """Session view for retrieving stored settings."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
 
+    @property
+    @classmethod
+    @abstractmethod
+    def serializer_class(cls):
+        """Define the output serializer class."""
+        raise NotImplementedError()
+
+    def load_params_from_session(self):
+        """Set the params from view session, creating missing values from defaults."""
+        session = self.request.session.get(self.SESSION_KEY, self.SESSION_DEFAULTS)
+        return self._get_source_values_or_set_defaults(
+            self.SESSION_DEFAULTS, session, {}
+        )
+
     def get(self, request, *args, **kwargs):
-        """Get settings."""
-        self.load_params_from_session()
-        serializer = self.SERIALIZER(self.params)
+        """Get session settings."""
+        params = self.load_params_from_session()
+        serializer = self.get_serializer(params)
         return Response(serializer.data)
 
-
-class BrowserSessionView(SessionView):
-    """Get Browser Settings."""
-
-    SESSION_KEY = SessionView.BROWSER_KEY
-    SERIALIZER = BrowserSettingsSerializer
-
-
-class ReaderSessionView(SessionView):
-    """Get Reader Settings."""
-
-    SESSION_KEY = SessionView.READER_KEY
-    SERIALIZER = ComicReaderSettingsSerializer
+    @extend_schema(responses=None)
+    def put(self, request, *args, **kwargs):
+        """Update session settings."""
+        serializer = self.get_serializer(data=self.request.data)
+        serializer.is_valid(raise_exception=True)
+        self.save_params_to_session(serializer.validated_data)
+        return Response()

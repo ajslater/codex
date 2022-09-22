@@ -1,5 +1,5 @@
 """Serializers for the browser view."""
-from abc import ABC
+from abc import ABC, abstractmethod
 
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
@@ -8,14 +8,17 @@ from rest_framework.serializers import (
     CharField,
     ChoiceField,
     DecimalField,
-    Field,
     IntegerField,
     ListField,
     Serializer,
 )
 
 from codex.serializers.choices import CHOICES, VUETIFY_NULL_CODE
-from codex.serializers.mixins import UNIONFIX_PREFIX, BrowserCardOPDSBaseSerializer
+from codex.serializers.mixins import (
+    UNIONFIX_PREFIX,
+    BrowserCardOPDSBaseSerializer,
+    get_serializer_values_map,
+)
 
 
 VUETIFY_NULL_CODE_STR = str(VUETIFY_NULL_CODE)
@@ -74,7 +77,13 @@ class BrowserSettingsShowGroupFlagsSerializer(Serializer):
 class FilterListField(ListField, ABC):
     """Filter List field with custom arguments."""
 
-    CHILD_CLASS = Field
+    @property
+    @classmethod
+    @abstractmethod
+    def CHILD_CLASS(cls):  # noqa: N802
+        """Child field class."""
+        raise NotImplementedError()
+
     VALIDATORS = tuple()
 
     def __init__(self, *args, **kwargs):
@@ -90,14 +99,14 @@ class FilterListField(ListField, ABC):
 class DecimalListField(FilterListField):
     """Decimal List Field with validation."""
 
-    CHILD_CLASS = DecimalField
+    CHILD_CLASS = DecimalField  # type: ignore
     VALIDATORS = (validate_int_null,)
 
 
 class IntListField(FilterListField):
     """Integer List Field with validation."""
 
-    CHILD_CLASS = IntegerField
+    CHILD_CLASS = IntegerField  # type: ignore
     VALIDATORS = (validate_int_null,)
 
 
@@ -110,7 +119,7 @@ class DecadeListField(IntListField):
 class CharListField(FilterListField):
     """Char List Field with validation."""
 
-    CHILD_CLASS = CharField
+    CHILD_CLASS = CharField  # type: ignore
     VALIDATORS = (validate_str_null,)
 
 
@@ -157,11 +166,11 @@ class BrowserSettingsSerializer(Serializer):
     """
 
     filters = BrowserSettingsFilterSerializer(required=False)
-    autoquery = CharField(allow_blank=True, required=False)
-    top_group = ChoiceField(choices=tuple(CHOICES["topGroup"].keys()), required=False)
     order_by = ChoiceField(choices=tuple(CHOICES["orderBy"].keys()), required=False)
     order_reverse = BooleanField(required=False)
+    q = CharField(allow_blank=True, required=False)
     show = BrowserSettingsShowGroupFlagsSerializer(required=False)
+    top_group = ChoiceField(choices=tuple(CHOICES["topGroup"].keys()), required=False)
 
 
 class BrowserCardSerializer(BrowserCardOPDSBaseSerializer):
@@ -186,6 +195,11 @@ class BrowserCardSerializer(BrowserCardOPDSBaseSerializer):
     read_ltr = BooleanField(read_only=True, source=UNIONFIX_PREFIX + "read_ltr")
 
 
+BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP = get_serializer_values_map(
+    [BrowserCardSerializer]
+)
+
+
 class BrowserRouteSerializer(Serializer):
     """A vue route for the browser."""
 
@@ -203,7 +217,7 @@ class BrowserAdminFlagsSerializer(Serializer):
 class BrowserTitleSerializer(Serializer):
     """Elements for constructing the browse title."""
 
-    parent_name = CharField(read_only=True, allow_null=True)
+    parent_name = CharField(read_only=True)
     group_name = CharField(read_only=True)
     group_count = IntegerField(read_only=True, allow_null=True)
 
@@ -213,37 +227,27 @@ class BrowserPageSerializer(Serializer):
 
     NUM_AUTOCOMPLETE_QUERIES = 10
 
+    admin_flags = BrowserAdminFlagsSerializer(read_only=True)
     browser_title = BrowserTitleSerializer(read_only=True)
-    model_group = CharField(read_only=True)
-    up_route = BrowserRouteSerializer(allow_null=True, read_only=True)
-    obj_list = ListField(
-        child=BrowserCardSerializer(read_only=True), allow_empty=True, read_only=True
-    )
+    covers_timestamp = IntegerField(read_only=True)
     issue_max = DecimalField(
         max_digits=16,
         decimal_places=3,
         read_only=True,
         coerce_to_string=False,
     )
-    num_pages = IntegerField(read_only=True)
-    admin_flags = BrowserAdminFlagsSerializer(read_only=True)
     libraries_exist = BooleanField(read_only=True)
+    model_group = CharField(read_only=True)
+    num_pages = IntegerField(read_only=True)
+    obj_list = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
     queries = ListField(
         child=CharField(read_only=True), allow_empty=True, read_only=True
     )
-    covers_timestamp = IntegerField(read_only=True)
+    up_route = BrowserRouteSerializer(allow_null=True, read_only=True)
 
 
-class VersionsSerializer(Serializer):
-    """Codex version information."""
+class BrowserChoicesSerializer(Serializer):
+    """Named Model Serailizer with pk = char hack for languages & countries."""
 
-    installed = CharField(read_only=True)
-    latest = CharField(read_only=True)
-
-
-class BrowserOpenedSerializer(Serializer):
-    """Component open settings."""
-
-    settings = BrowserSettingsSerializer(read_only=True)
-    browser_page = BrowserPageSerializer(read_only=True)
-    versions = VersionsSerializer(read_only=True)
+    pk = CharField(read_only=True)
+    name = CharField(read_only=True)

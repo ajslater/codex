@@ -10,11 +10,11 @@
     <defs>
         <linearGradient id="b">
             <stop style="stop-color:#d97700" offset="0" />
-            <stop style="stop-color:#402300" offset=".8" />
+            <stop style="stop-color:#a85c00" offset=".8" />
         </linearGradient>
         <linearGradient id="a">
             <stop style="stop-color:#d97700" offset="0" />
-            <stop style="stop-color:#8c4d00" offset=".2" />
+            <stop style="stop-color:#a85c00" offset=".2" />
         </linearGradient>
         <linearGradient
       xlink:href="#a"
@@ -48,10 +48,10 @@
       xlink:href="#b"
       id="e"
       gradientUnits="userSpaceOnUse"
-      x1="173.013"
-      y1="154.985"
-      x2="401.004"
-      y2="467.992"
+      x1="173"
+      y1="155"
+      x2="401"
+      y2="468"
       gradientTransform="translate(.5 .5)"
     />
     </defs>

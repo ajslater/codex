@@ -1,10 +1,9 @@
 """Libarian Tasks for searchd."""
-from abc import ABC
 from dataclasses import dataclass
 
 
 @dataclass
-class SearchIndexerTask(ABC):
+class SearchIndexerTask:
     """Tasks for the search indexer."""
 
     pass

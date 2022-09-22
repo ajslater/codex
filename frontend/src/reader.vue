@@ -1,49 +1,52 @@
 <template>
-  <div id="readerWrapper">
-    <div v-if="isOpenToSee" id="readerContainer">
-      <v-main>
-        <div id="pagesContainer">
-          <ReaderComicPage :page-increment="+0" />
-          <ReaderComicPage :page-increment="+1" />
-        </div>
-        <div id="navOverlay" @click="toggleToolbars">
-          <ReaderNavOverlay />
-        </div>
-      </v-main>
-      <v-slide-y-transition>
-        <ReaderTopToolbar v-show="showToolbars" />
-      </v-slide-y-transition>
-      <v-slide-y-reverse-transition>
-        <ReaderNavToolbar v-show="showToolbars" />
-      </v-slide-y-reverse-transition>
-    </div>
-    <div v-else id="announcement">
-      <h1>
-        <router-link :to="{ name: 'home' }">Log in</router-link> to read comics
-      </h1>
-    </div>
+  <div>
+    <v-main id="readerWrapper">
+      <div v-if="isCodexViewable" id="readerContainer">
+        <v-main>
+          <div id="pagesContainer">
+            <ReaderPage :page-increment="+0" />
+            <ReaderPage :page-increment="+1" />
+          </div>
+          <div id="navOverlay" :v-touch="touchMap" @click="toggleToolbars">
+            <ReaderNavOverlay />
+          </div>
+        </v-main>
+        <v-slide-y-transition>
+          <ReaderTitleToolbar v-show="showToolbars" />
+        </v-slide-y-transition>
+        <v-slide-y-reverse-transition>
+          <ReaderNavToolbar v-show="showToolbars" />
+        </v-slide-y-reverse-transition>
+      </div>
+      <div v-else id="announcement">
+        <h1>
+          <router-link :to="{ name: 'home' }"> Log in </router-link> to read
+          comics
+        </h1>
+      </div>
+    </v-main>
     <ReaderSettingsDrawer />
   </div>
 </template>
 
 <script>
-import { mapActions, mapGetters, mapMutations } from "vuex";
+import { mapActions, mapGetters, mapState } from "pinia";
 
-import ReaderComicPage from "@/components/reader-comic-page";
-import ReaderNavOverlay from "@/components/reader-nav-overlay";
-import ReaderNavToolbar from "@/components/reader-nav-toolbar";
-import ReaderSettingsDrawer from "@/components/reader-settings-drawer";
-import ReaderTopToolbar from "@/components/reader-top-toolbar";
-
-const MIN_VIEWPORT_WIDTH_SWIPE_ENABLED = 768;
+import ReaderNavOverlay from "@/components/reader/nav-overlay.vue";
+import ReaderPage from "@/components/reader/page.vue";
+import ReaderNavToolbar from "@/components/reader/reader-nav-toolbar.vue";
+import ReaderSettingsDrawer from "@/components/reader/reader-settings-drawer.vue";
+import ReaderTitleToolbar from "@/components/reader/reader-title-toolbar.vue";
+import { useAuthStore } from "@/stores/auth";
+import { useReaderStore } from "@/stores/reader";
 
 export default {
   name: "MainReader",
   components: {
-    ReaderComicPage,
+    ReaderPage,
     ReaderNavOverlay,
     ReaderNavToolbar,
-    ReaderTopToolbar,
+    ReaderTitleToolbar,
     ReaderSettingsDrawer,
   },
   data() {
@@ -52,39 +55,48 @@ export default {
     };
   },
   computed: {
-    ...mapGetters("auth", ["isOpenToSee"]),
-  },
-  watch: {
-    $route(to, from) {
-      if (!from.params || Number(to.params.pk) !== Number(from.params.pk)) {
-        this.bookChanged();
-      } else {
-        this.routeChanged();
-      }
-      window.scrollTo(0, 0);
-      // this.setBrowseTimestamp();
-    },
-  },
-  created() {
-    this.bookChanged();
-  },
-  methods: {
-    ...mapActions("reader", ["routeTo", "bookChanged", "routeChanged"]),
-    ...mapMutations("browser", ["setBrowseTimestamp"]),
-    toggleToolbars: function () {
-      this.showToolbars = !this.showToolbars;
-    },
+    ...mapState(useAuthStore, {
+      user: (state) => state.user,
+    }),
+    ...mapGetters(useAuthStore, ["isCodexViewable"]),
     touchMap: function () {
-      const vw = Math.max(
-        document.documentElement.clientWidth || 0,
-        window.innerWidth || 0
-      );
-      return vw >= MIN_VIEWPORT_WIDTH_SWIPE_ENABLED
+      return !this.$vuetify.breakpoint.mobile
         ? {
             left: () => this.routeTo("next"),
             right: () => this.routeTo("prev"),
           }
         : {};
+    },
+  },
+  watch: {
+    $route(to, from) {
+      if (!from.params || Number(to.params.pk) !== Number(from.params.pk)) {
+        this.loadBook();
+      } else {
+        this.setRoutesAndBookmarkPage();
+      }
+      window.scrollTo(0, 0);
+    },
+    user: function () {
+      this.loadReaderSettings();
+    },
+    isCodexViewable: function () {
+      this.loadReaderSettings();
+    },
+  },
+  created() {
+    this.loadReaderSettings();
+    this.loadBook();
+  },
+  methods: {
+    ...mapActions(useReaderStore, [
+      "loadBook",
+      "loadReaderSettings",
+      "routeTo",
+      "setRoutesAndBookmarkPage",
+    ]),
+    toggleToolbars: function () {
+      this.showToolbars = !this.showToolbars;
     },
   },
 };

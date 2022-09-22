@@ -15,23 +15,27 @@ LOG = get_logger(__name__)
 class Notifier(AggregateMessageQueuedThread):
     """Aggregates messages preventing floods and sends messages to clients."""
 
-    NAME = "Notifier"
+    NAME = "Notifier"  # type: ignore
     WS_SEND_MSG = {"type": "websocket.send"}
     CONNS = dict([(channel, set()) for channel in Channels])
-    SUBSCRIBE_TYPES = {
-        "register": Channels.ALL,
-        "admin": Channels.ADMIN,
-    }
 
     @classmethod
     def subscribe(cls, msg, send):
         """Subscribe or unsubscribe from a connection class."""
-        for key, type in cls.SUBSCRIBE_TYPES.items():
-            conns = cls.CONNS[type]
-            if msg.get(key):
-                conns.add(send)
-            else:
-                conns.discard(send)
+        if msg.get("admin"):
+            key = Channels.ADMIN
+        else:
+            key = Channels.ALL
+
+        conns = cls.CONNS.get(key)
+        if conns is None:
+            LOG.warning(f"No socket conn set found for {key}")
+            return
+
+        if msg.get("register"):
+            conns.add(send)
+        else:
+            conns.discard(send)
 
     @staticmethod
     async def _send_msg(conns, send_msg):
@@ -56,7 +60,9 @@ class Notifier(AggregateMessageQueuedThread):
             msg = WS_MSGS[text]
             send_msg = {"text": msg}
             send_msg.update(self.WS_SEND_MSG)
-            conns = self.CONNS[task.type]
+            conns = self.CONNS.get(Channels.ALL, set())
+            if task.type == Channels.ADMIN:
+                conns |= self.CONNS.get(Channels.ADMIN, set())
             async_to_sync(self._send_msg)(conns, send_msg)
             sent_keys.add(text)
         self.cleanup_cache(sent_keys)

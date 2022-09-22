@@ -31,13 +31,26 @@ else:
     _SRC_JS_ROOT = Path()
     _DEV_JS_ROOT = Path()
 
+
+def create_choices_fn_regexes(module_name):
+    """Build regex paths for a json module."""
+    regexes = {
+        _PROD_JS_ROOT: re.compile("^" + module_name + r"\.[0-9a-f]{12}\.json$"),
+    }
+    if DEBUG:
+        regexes[_SRC_JS_ROOT] = re.compile(f"^{module_name}.json$")
+        regexes[_DEV_JS_ROOT] = re.compile(f"^{module_name}.json$")
+    return regexes
+
+
 _CHOICES_MODULE_NAME = "choices"
+_ADMIN_CHOICES_MODULE_NAME = "choices-admin"
+
 _CHOICES_FN_RE = {
-    _PROD_JS_ROOT: re.compile("^" + _CHOICES_MODULE_NAME + r"\.[0-9a-f]{12}\.json$"),
+    _CHOICES_MODULE_NAME: create_choices_fn_regexes(_CHOICES_MODULE_NAME),
+    _ADMIN_CHOICES_MODULE_NAME: create_choices_fn_regexes(_ADMIN_CHOICES_MODULE_NAME),
 }
-if DEBUG:
-    _CHOICES_FN_RE[_SRC_JS_ROOT] = re.compile(f"^{_CHOICES_MODULE_NAME}.json$")
-    _CHOICES_FN_RE[_DEV_JS_ROOT] = re.compile(f"^{_CHOICES_MODULE_NAME}.json$")
+
 
 # Exports
 CHOICES = {}
@@ -46,36 +59,36 @@ WEBSOCKET_MESSAGES = {}
 VUETIFY_NULL_CODE = -1
 
 
-def _find_filename_regex(js_root):
+def _find_filename_regex(js_root, module_name):
     """Find a filename in a dir that matches the regex."""
     if not js_root.is_dir():
         LOG.warning(f"Not a directory: {js_root}")
         return
-    matcher = _CHOICES_FN_RE[js_root]
+    matcher = _CHOICES_FN_RE[module_name][js_root]
     for path in js_root.iterdir():
         if matcher.match(path.name):
             return path
-    raise FileNotFoundError(f"Could not find {js_root} {_CHOICES_MODULE_NAME}")
+    raise FileNotFoundError(f"Could not find {js_root} {module_name}")
 
 
-def _parse_choices():
+def _parse_choices(module_name):
     """Parse the choices.json."""
     data_dict = {}
     for js_root in _JS_ROOTS:
         try:
-            path = _find_filename_regex(js_root)
+            path = _find_filename_regex(js_root, module_name)
             if path:
                 with path.open("r") as choices_file, mmap.mmap(
                     choices_file.fileno(), 0, access=mmap.ACCESS_READ
                 ) as choices_mmap_file:
                     json_str = choices_mmap_file.read()
                     data_dict = json.loads(json_str)
-                    LOG.verbose(f"Loaded json choices from {js_root}")
+                    LOG.verbose(f"Loaded json choices from {js_root} {module_name}")
                     break
         except Exception as exc:
             LOG.exception(exc)
     if not data_dict:
-        LOG.error(f"Could not extract values from {_CHOICES_MODULE_NAME}")
+        LOG.error(f"Could not extract values from {module_name}")
 
     return data_dict
 
@@ -110,7 +123,7 @@ def _build_choices_and_defaults(data_dict):
         if vuetify_key == "vuetifyNullCode":
             VUETIFY_NULL_CODE = vuetify_list
             continue
-        if vuetify_key in ("autoquery", "route"):
+        if vuetify_key in ("q", "route"):
             DEFAULTS[vuetify_key] = vuetify_list
             continue
         CHOICES[vuetify_key] = _parse_choices_to_dict(vuetify_key, vuetify_list)
@@ -122,7 +135,7 @@ def _load_json():
     if DEFAULTS and VUETIFY_NULL_CODE and CHOICES and WEBSOCKET_MESSAGES:
         LOG.verbose("choices already loaded")
         return
-    data_dict = _parse_choices()
+    data_dict = _parse_choices(_CHOICES_MODULE_NAME)
     for key, value in data_dict.items():
         if key == "websockets":
             WEBSOCKET_MESSAGES = value
@@ -131,6 +144,13 @@ def _load_json():
                 del value["groupNames"]
             _build_choices_and_defaults(value)
         LOG.debug(f"Parsed {key} choices")
+
+    data_dict = _parse_choices(_ADMIN_CHOICES_MODULE_NAME)
+    admin_tasks = set()
+    for group in data_dict["tasks"]:
+        for item in group["tasks"]:
+            admin_tasks.add(item["value"])
+    CHOICES["admin_tasks"] = frozenset(admin_tasks)
 
 
 if not BUILD:

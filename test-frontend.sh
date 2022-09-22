@@ -4,4 +4,4 @@ set -euxo pipefail
 
 cd "$(dirname "$0")"/frontend
 
-npm run test:unit
+npm run test:ci

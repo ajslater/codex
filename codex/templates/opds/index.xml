@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+{% load static %}
+{% load tz %}
+<feed 
+  xmlns:atom="http://www.w3.org/2005/Atom"
+  xmlns:opds="{{opds_ns}}"
+  xmlns:dc="http://purl.org/dc/terms/"
+  xmlns:thr="http://purl.org/syndication/thread/1.0"
+  xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/"
+  xmlns:pse="http://vaemendis.net/opds-pse/ns"
+  >
+<id>{{ id }}</id>
+<icon>{% static 'img/logo-32.webp' %}</icon>
+<title>{{ title }}</title>
+<author>
+  <name>Codex</name>
+  <uri>https://github.com/ajslater/codex</uri>
+</author>
+<updated>{{ updated }}</updated>
+{% if items_per_page %}
+<opensearch:itemsPerPage>{{ items_per_page }}</opensearch:itemsPerPage>
+{% endif %}
+{% if total_results %}
+<opensearch:totalResults>{{ total_results }}</opensearch:totalResults>
+{% endif %}
+{% for link in links %}
+<link 
+  {% if link.title %}
+    title="{{ link.title }}"
+  {% endif %}
+  rel="{{ link.rel }}"
+  href="{{ link.href }}"
+  type="{{ link.type }}"
+  {% if link.facet_group %}
+    opds:facetGroup="{{ link.facet_group }}"
+  {% endif %}
+  {% if link.facet_active %}
+      opds:activeFacet="true"
+  {% endif %}
+  {% if link.thr_count %}
+    thr:count="{{ link.thr_count }}"
+  {% endif %}
+  />
+{% endfor %}
+{% for entry in entries %}
+<entry>
+  <id>{{ entry.id }}</id>
+  <title>{{ entry.title }}</title>
+  {% for link in entry.links %}
+    <link 
+      rel="{{ link.rel }}"
+      href="{{ link.href }}"
+      type="{{ link.type }}"
+      {% if link.thr_count %}
+        thr:count="{{ link.thr_count }}"
+      {% endif %}
+      {% if link.length %}
+        length="{{ link.length }}"
+      {% endif %}
+      {% if link.pse_count %}
+        pse:count="{{ link.pse_count }}"
+      {% endif %}
+      {% if link.pse_last_read %}
+        pse:last_read="{{ link.pse_last_read }}"
+      {% endif %}
+      />
+  {% endfor %}
+  {% if entry.issued %}
+    <dc:issued>{{ entry.issued }}</dc:issued>
+  {% endif %}
+  {% if entry.published %}
+    <published>{{ entry.published }}</published>
+  {% endif %}
+  {% if entry.updated %}
+    <updated>{{ entry.updated }}</updated>
+  {% endif %}
+  {% if entry.publisher %}
+    <dc:publisher>{{ entry.publisher }}</dc:publisher>
+  {% endif %}
+  {% if entry.language %}
+    <dc:language>{{ entry.language.name }}</dc:language>
+  {% endif %}
+  {% if entry.summary %}
+    {# pocketbooks supports content but not summary #}
+    <content type="text">{{ entry.summary }}</content>
+  {% endif %}
+  {% for author in entry.authors %}
+    <author><name>{{ author }}i</name></author>
+  {% endfor %}
+  {% for contributor in entry.contributors %}
+    <contributor><name>{{ contributor }}</name></contributor>
+  {% endfor %}
+  {% for category in entry.categories %}
+    <category label="{{ category }}" />
+  {% endfor %}
+</entry>
+{% endfor %}
+</feed>

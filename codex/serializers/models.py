@@ -1,7 +1,10 @@
 """Serializers for codex models."""
 import pycountry
 
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework.serializers import (
+    BooleanField,
     IntegerField,
     ModelSerializer,
     Serializer,
@@ -9,6 +12,7 @@ from rest_framework.serializers import (
 )
 
 from codex.models import (
+    Bookmark,
     Character,
     Comic,
     Credit,
@@ -47,26 +51,32 @@ class PyCountrySerializer(Serializer):
 
         abstract = True
 
-    def get_pk(self, obj):
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_pk(self, pk):
         """Return submitted value as the key."""
-        return obj
+        return pk
 
-    def get_name(self, obj):
+    @staticmethod
+    def lookup_name(lookup_module, name):
         """Lookup the name with pycountry, just copy the key on fail."""
-        if obj is None:
-            # This never seems to get called so I do it on the front end.
-            return "None"
-        if len(obj) == 2:
+        if not name:
+            return ""
+        if len(name) == 2:
             # fix for https://github.com/flyingcircusio/pycountry/issues/41
-            lookup_obj = self.LOOKUP_MODULE.get(alpha_2=obj)
+            lookup_obj = lookup_module.get(alpha_2=name)
         else:
-            lookup_obj = self.LOOKUP_MODULE.lookup(obj)
+            lookup_obj = lookup_module.lookup(name)
         if lookup_obj:
             value = lookup_obj.name
         else:
             # If lookup fails, return the key as the name
-            value = obj
+            value = name
         return value
+
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_name(self, name):
+        """Lookup the name with pycountry, just copy the key on fail."""
+        return self.lookup_name(self.LOOKUP_MODULE, name)
 
 
 class LanguageSerializer(PyCountrySerializer):
@@ -92,17 +102,11 @@ class NamedModelMeta:
 ##########
 
 
-class GroupModelMeta:
-    """Meta class for group models."""
-
-    fields = NamedModelMeta.fields
-
-
 class NamedModelSerializer(ModelSerializer):
     """A common class for NamedModels."""
 
-    class Meta:
-        """Abstract class."""
+    class Meta(NamedModelMeta):
+        """Not Abstract."""
 
         abstract = True
 
@@ -110,7 +114,7 @@ class NamedModelSerializer(ModelSerializer):
 class GroupModelSerializer(NamedModelSerializer):
     """A common class for BrowserGroupModels."""
 
-    class Meta:
+    class Meta(NamedModelMeta):
         """Abstract class."""
 
         abstract = True
@@ -119,7 +123,7 @@ class GroupModelSerializer(NamedModelSerializer):
 class PublisherSerializer(GroupModelSerializer):
     """Publisher Model."""
 
-    class Meta(GroupModelMeta):
+    class Meta(NamedModelMeta):
         """Configure model."""
 
         model = Publisher
@@ -128,7 +132,7 @@ class PublisherSerializer(GroupModelSerializer):
 class ImprintSerializer(GroupModelSerializer):
     """Imprint Model."""
 
-    class Meta(GroupModelMeta):
+    class Meta(NamedModelMeta):
         """Configure model."""
 
         model = Imprint
@@ -137,7 +141,7 @@ class ImprintSerializer(GroupModelSerializer):
 class SeriesSerializer(GroupModelSerializer):
     """Series Model."""
 
-    class Meta(GroupModelMeta):
+    class Meta(NamedModelMeta):
         """Configure model."""
 
         model = Series
@@ -146,7 +150,7 @@ class SeriesSerializer(GroupModelSerializer):
 class VolumeSerializer(GroupModelSerializer):
     """Volume Model."""
 
-    class Meta(GroupModelMeta):
+    class Meta(NamedModelMeta):
         """Configure model."""
 
         model = Volume
@@ -298,3 +302,25 @@ class LibrarianStatusSerializer(ModelSerializer):
 
         model = LibrarianStatus
         exclude = ("active", "created_at", "updated_at")
+
+
+class BookmarkSerializer(ModelSerializer):
+    """Serializer Bookmark."""
+
+    two_pages = BooleanField(allow_null=True, default=None, initial=None)
+
+    class Meta:
+        """Configure the model."""
+
+        model = Bookmark
+        fields = ("finished", "fit_to", "page", "two_pages")
+
+
+class BookmarkFinishedSerializer(ModelSerializer):
+    """The finished field of the Bookmark."""
+
+    class Meta:
+        """Model spec."""
+
+        model = Bookmark
+        fields = ("finished",)

@@ -26,7 +26,7 @@ EXCLUDE_BULK_UPDATE_COMIC_FIELDS = (
     "created_at",
     "searchresult",
     "id",
-    "userbookmark",
+    "bookmark",
 )
 BULK_UPDATE_COMIC_FIELDS = []
 for field in Comic._meta.get_fields():
@@ -245,6 +245,7 @@ def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2
         )
         return 0
 
+    update_count = create_count = 0
     try:
         try:
             try:
@@ -281,6 +282,11 @@ def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2
                 )
     finally:
         StatusControl.finish(ImportStatusTypes.LINK_M2M_FIELDS)
+
+    if update_count is None:
+        update_count = 0
+    if create_count is None:
+        create_count = 0
 
     update_log = f"Updated {update_count} Comics."
     if update_count:

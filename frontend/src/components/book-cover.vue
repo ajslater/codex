@@ -30,9 +30,10 @@
 </template>
 
 <script>
-import { mapState } from "vuex";
+import { mapState } from "pinia";
 
-import { getCoverSource } from "@/api/v2/cover";
+import { getCoverSource } from "@/api/v3/cover.js";
+import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BookCover",
@@ -59,9 +60,9 @@ export default {
     };
   },
   computed: {
-    ...mapState("browser", {
+    ...mapState(useBrowserStore, {
       coverSrc: function (state) {
-        return getCoverSource(this.coverPk, state.coversTimestamp);
+        return getCoverSource(this.coverPk, state.page.coversTimestamp);
       },
     }),
   },
@@ -112,7 +113,7 @@ export default {
   background-color: black;
   color: white;
 }
-@import "~vuetify/src/styles/styles.sass";
+@import "vuetify/src/styles/styles.sass";
 .unreadFlag {
   position: absolute;
   top: 0;
@@ -152,12 +153,12 @@ export default {
 </style>
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
-.coverImg .v-image__placeholder {
+#browsePaneContainer .coverImg .v-image__placeholder {
   top: 50%;
   left: 50%;
   transform: translate(-33%, -50%);
 }
-.v-image__image {
+#browsePaneContainer .coverImgWrapper .v-image__image {
   background-position-y: top !important;
 }
 </style>

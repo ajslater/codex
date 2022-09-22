@@ -5,37 +5,44 @@
 </template>
 
 <script>
-import { mapActions, mapState } from "vuex";
+import { mapActions, mapState } from "pinia";
+
+import { useAuthStore } from "@/stores/auth";
+import { useSocketStore } from "@/stores/socket";
 
 export default {
   name: "App",
   computed: {
-    ...mapState("socket", {
+    ...mapState(useSocketStore, {
       isConnected: (state) => state.isConnected,
     }),
-    ...mapState("auth", {
+    ...mapState(useAuthStore, {
       user: (state) => state.user,
     }),
   },
   watch: {
     user: function () {
-      this.subscribe();
+      this.setTimezone();
+      this.sendSubscribe();
     },
     isConnected(to) {
       if (to) {
-        this.subscribe();
+        this.sendSubscribe();
       }
     },
   },
   async created() {
-    // First thing we do is see if we're logged in
-    return this.me().then(() => {
-      return this.$connect();
-    });
+    this.setTimezone();
+    this.loadAdminFlags();
+    this.loadProfile();
   },
   methods: {
-    ...mapActions("auth", ["me"]),
-    ...mapActions("socket", ["subscribe"]),
+    ...mapActions(useAuthStore, [
+      "loadAdminFlags",
+      "loadProfile",
+      "setTimezone",
+    ]),
+    ...mapActions(useSocketStore, ["sendSubscribe"]),
   },
 };
 </script>
@@ -52,5 +59,21 @@ noscript {
   text-align: center;
   font-family: sans-serif;
   color: darkgray;
+}
+a {
+  text-decoration: none !important;
+}
+.v-dialog,
+.v-navigation-drawer {
+  background-color: #202020 !important;
+}
+
+.background-highlight,
+.highlight-table tr:nth-child(even),
+.highlight-table th {
+  background-color: #121212 !important;
+}
+.background-soft-highlight {
+  background-color: #272727 !important;
 }
 </style>

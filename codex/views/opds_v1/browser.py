@@ -1,333 +1,360 @@
-"""OPDS Feed Browser."""
-import math
+"""OPDS browser."""
 
-from decimal import Decimal
-from urllib.parse import urlencode
+from datetime import datetime, timezone
 
-from django.contrib.syndication.views import Feed
-from django.core.handlers.wsgi import WSGIRequest
-from django.http.response import HttpResponseRedirect
 from django.urls import reverse
-from django.utils.feedgenerator import Enclosure
+from django.utils.http import urlencode
+from drf_spectacular.utils import extend_schema
+from rest_framework.authentication import BasicAuthentication, SessionAuthentication
+from rest_framework.response import Response
 
-from codex.exceptions import SeeOtherRedirectError
-from codex.serializers.opds_v1 import OPDSFeedSerializer
+from codex.serializers.opds_v1 import (
+    OPDSAcquisitionEntrySerializer,
+    OPDSEntrySerializer,
+    OPDSTemplateSerializer,
+)
 from codex.settings.logging import get_logger
-from codex.views.browser import BrowserView
-from codex.views.browser_util import BROWSER_ROOT_KWARGS
-from codex.views.opds_v1.feedgenerator import OPDSFeedGenerator
-from codex.views.opds_v1.mixins import OPDSAuthenticationMixin
+from codex.views.browser.browser import BrowserView
+from codex.views.opds_v1.entry import OPDSEntry
+from codex.views.opds_v1.util import (
+    BLANK_TITLE,
+    DEFAULT_FACETS,
+    Facet,
+    FacetGroups,
+    MimeType,
+    OPDSLink,
+    OpdsNs,
+    Rel,
+    TopLinks,
+    UserAgents,
+    update_href_query_params,
+)
+from codex.views.template import CodexXMLTemplateView
 
 
 LOG = get_logger(__name__)
 
 
-def opds_start_view(request):
-    """Redirect to start view, forwarding query strings and auth."""
-    url = reverse("opds:v1:browser", kwargs=BROWSER_ROOT_KWARGS)
+class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
+    """The main opds browser."""
 
-    # Forward the query string.
-    path = request.get_full_path()
-    if path:
-        parts = path.split("?")
-        if len(parts) >= 2:
-            parts[0] = url
-            url = "?".join(parts)
+    authentication_classes = (SessionAuthentication, BasicAuthentication)
+    template_name = "opds/index.xml"
+    serializer_class = OPDSTemplateSerializer
 
-    response = HttpResponseRedirect(url)
+    AQUISITION_GROUPS = set(("s", "f"))
 
-    # Forward authorization.
-    auth_header = request.META.get("HTTP_AUTHORIZATION")
-    if auth_header:
-        response["HTTP_AUTHORIZATION"] = auth_header
-
-    return response
-
-
-class OPDSAcquisitionEnclosure(Enclosure):
-    """OPDS enclosures specify a rel and type."""
-
-    def __init__(self, url, length):
-        """Hardcode values for this one type."""
-        self.rel = "http://opds-spec.org/acquisition"
-        mime_type = OPDSFeedGenerator.OPDS_AQUISITION_TYPE
-        super().__init__(url, length, mime_type)
-
-
-class BrowserFeed(BrowserView, Feed, OPDSAuthenticationMixin):
-    """OPDS Navigation Feed."""
-
-    feed_type = OPDSFeedGenerator
-    language = "eng-US"
-    OPDS_THUMBNAIL_REL = "http://opds-spec.org/image/thumbnail"
-    FOLDER_VIEW_KWARGS = {"group": "f", "pk": 0, "page": 1}
-    BLANK_TITLE = "Unknown"
-
-    class UserAgents:
-        """Control whether to hack in facets with nav links."""
-
-        NO_FACET_SUPPORT = ("Panels", "Chunky")
-        CLIENT_REORDERS = ("Chunky",)
-        # FACET_SUPPORT = ("yar",) # kybooks 3
-
-    ORDER_GLYPH = "↓"
-    TOP_GROUP_GLYPH = "⊙"
-
-    def _init(self, request, kwargs):
-        """Initialize a bit like the api browser."""
-        self.request: WSGIRequest = request
-        self.kwargs = kwargs
-        self._parse_params()
-
-        # Hacks for clients that don't support facets
-        user_agent = request.headers.get("User-Agent")
-        self.use_facets = True
-        self.skip_order_facet_hacks = False
-        for prefix in self.UserAgents.NO_FACET_SUPPORT:
-            if user_agent.startswith(prefix):
-                self.use_facets = False
-                break
-        for prefix in self.UserAgents.CLIENT_REORDERS:
-            if user_agent.startswith(prefix):
-                self.skip_order_facet_hacks = True
-                break
-
-    def __call__(self, request, *args, **kwargs):
-        """Check permissions, use call() instead of get()."""
-        response = self._authenticate(request)
-        if response:
-            return response
-
+    @property
+    def opds_ns(self):
+        """Dynamic opds namespace."""
         try:
-            self._init(request, kwargs)
-            return super().__call__(request, *args, **kwargs)
-        except SeeOtherRedirectError as exc:
-            return exc.get_response("opds:v1:browser")
+            if self.is_aq_feed:
+                ns = OpdsNs.ACQUISITION
+            else:
+                ns = OpdsNs.CATALOG
+            return ns
+        except Exception as exc:
+            LOG.exception(exc)
 
-    def get_object(self, request, *args, **kwargs):
-        """Get the main feed object from BrowserView."""
-        browser_page = self._get_browser_page()
-        serializer = OPDSFeedSerializer(browser_page)
-        self.obj = serializer.data
-        return self.obj
+    @property
+    def id(self):
+        """Feed id is the url."""
+        try:
+            return self.request.build_absolute_uri()
+        except Exception as exc:
+            LOG.exception(exc)
 
-    def title(self, obj):
+    @property
+    def title(self):
         """Create the feed title."""
-        browser_title = obj.get("browser_title")
-        parent_name = browser_title.get("parent_name", "All")
-        if not parent_name and self.kwargs.get("pk") == 0:
-            parent_name = "All"
-        group_name = browser_title.get("group_name")
-        names = []
-        for name in (parent_name, group_name):
-            if name:
-                names.append(name)
+        result = ""
+        try:
+            if browser_title := self.obj.get("browser_title"):
+                parent_name = browser_title.get("parent_name", "All")
+                if not parent_name and self.kwargs.get("pk") == 0:
+                    parent_name = "All"
+                group_name = browser_title.get("group_name")
+                names = []
+                for name in (parent_name, group_name):
+                    if name:
+                        names.append(name)
 
-        result = " ".join(names).strip()
-        if not result:
-            result = self.BLANK_TITLE
+                result = " ".join(names).strip()
+
+            if not result:
+                result = BLANK_TITLE
+        except Exception as exc:
+            LOG.exception(exc)
         return result
 
-    def link(self):
-        """Feed main link."""
-        # Does not render so send it to the feed generator.
-        return self.request.get_full_path()
+    @property
+    def updated(self):
+        """Hack in feed update time from cover timestamp."""
+        try:
+            if ts := self.obj.get("covers_timestamp"):
+                return datetime.fromtimestamp(ts, tz=timezone.utc)
+        except Exception as exc:
+            LOG.exception(exc)
 
-    def description(self):
-        """Feed Description."""
-        return "Codex"
+    @property
+    def items_per_page(self):
+        """Return opensearch:itemsPerPage."""
+        try:
+            if self.params.get("q"):
+                num_pages = self.obj.get("num_pages", 0)
+                if num_pages > 1:
+                    res = self.MAX_OBJ_PER_PAGE
+                else:
+                    res = len(self.obj.get("obj_list", []))
+                return res
+        except Exception as exc:
+            LOG.exception(exc)
 
-    def feed_guid(self):
-        """Feed GUID is the uri."""
-        return self.request.build_absolute_uri()
+    @property
+    def total_results(self):
+        """Return opensearch:totalResults."""
+        try:
+            if self.params.get("q"):
+                num_pages = self.obj.get("num_pages", 0)
+                if num_pages > 1:
+                    res = self.MAX_OBJ_PER_PAGE * num_pages
+                else:
+                    res = len(self.obj.get("obj_list", []))
+                return res
+        except Exception as exc:
+            LOG.exception(exc)
 
-    def feed_extra_kwargs(self, obj):
-        """Extra kwargs for the feed."""
-        is_aq_feed = obj and obj.get("model_group") == "c"
-        extra_kwargs = {
-            "feed_obj": obj,
-            "kwargs": self.kwargs,
-            "query_params": self.request.GET.dict(),
-            "self_link": self.link(),
-            "is_aquisition_feed": is_aq_feed,
-            "use_facets": self.use_facets,
-        }
-        return extra_kwargs
+    def _facet(self, kwargs, facet_group, facet_title, new_query_params):
+        href = reverse("opds:v1:browser", kwargs=kwargs)
+        facet_active = False
+        for key, val in new_query_params.items():
+            if self.request.query_params.get(key) == val:
+                facet_active = True
+                break
+        href = update_href_query_params(
+            href, self.request.query_params, new_query_params
+        )
 
-    def _get_facet_nav_hack_item(self, query_params, title, reverse_kwargs, glyph):
-        group = self.kwargs.get("group")
-        pk = self.kwargs.get("pk")
-        href = reverse("opds:v1:browser", kwargs=reverse_kwargs)
-        return {
-            "href": href,
-            "name": " ".join((glyph, title)),
-            "group": group,
-            "pk": pk,
+        title = " ".join((facet_group.title_prefix, facet_title)).strip()
+        link = OPDSLink(
+            Rel.FACET,
+            href,
+            MimeType.NAV,
+            title=title,
+            facet_group=facet_group.query_param,
+            facet_active=facet_active,
+        )
+        return link
+
+    def _facet_entry(self, item, facet_group, facet, query_params):
+        name = " ".join(
+            (facet_group.glyph, facet_group.title_prefix, facet.title)
+        ).strip()
+        obj = {
+            "group": item.get("group"),
+            "pk": item.get("pk"),
+            "name": name,
             "query_params": query_params,
         }
+        return OPDSEntry(obj, self.valid_nav_groups, {**self.request.query_params})
 
-    def _get_facet_nav_hack_items(self):
+    def _is_facet_active(self, facet_group, facet):
+        compare = [facet.value]
+        default_val = DEFAULT_FACETS.get(facet_group.query_param)
+        if facet.value == default_val:
+            compare += [None]
+        return self.request.query_params.get(facet_group.query_param) in compare
+
+    def _facet_or_facet_entry(self, facet_group, facet, entries):
+
+        # This logic preempts facet:activeFacet but no one uses it.
+        # don't add default facets if in default mode.
+        if self._is_facet_active(facet_group, facet):
+            return
+
         group = self.kwargs.get("group")
-        order_by = self.request.GET.get("order_by")
-        top_group = self.request.GET.get("top_group", "p")
-        item_params = []
-        if not self.skip_order_facet_hacks:
-            if order_by != "date":
-                item_params.append(
-                    (
-                        {"order_by": "date"},
-                        "Order by Publication Date",
-                        self.kwargs,
-                        self.ORDER_GLYPH,
-                    )
-                )
-            if order_by not in (None, "sort_name"):
-                item_params.append(
-                    (
-                        {"order_by": "sort_name"},
-                        "Order by Name",
-                        self.kwargs,
-                        self.ORDER_GLYPH,
-                    )
-                )
-            if order_by != "search_score":
-                item_params.append(
-                    (
-                        {"order_by": "search_score"},
-                        "Order by Search Score",
-                        self.kwargs,
-                        self.ORDER_GLYPH,
-                    )
-                )
-
-        browser_view_kwargs = {**self.kwargs}
-        if group == "f":
-            browser_view_kwargs["group"] = "r"
-        if top_group != "p":
-            item_params.append(
-                (
-                    {"top_group": "p"},
-                    "Publishers View",
-                    browser_view_kwargs,
-                    self.TOP_GROUP_GLYPH,
-                )
-            )
-        if top_group != "s":
-            item_params.append(
-                (
-                    {"top_group": "s"},
-                    "Series View",
-                    browser_view_kwargs,
-                    self.TOP_GROUP_GLYPH,
-                )
-            )
-        if group != "f":
-            item_params.append(
-                (
-                    {"top_group": "f"},
-                    "Folder View",
-                    browser_view_kwargs,
-                    self.TOP_GROUP_GLYPH,
-                )
-            )
-
-        items = []
-        for params in item_params:
-            items += [self._get_facet_nav_hack_item(*params)]
-        return items
-
-    def items(self, obj):
-        """Return items from the obj."""
-        items = obj.get("obj_list")
-        if not self.use_facets:
-            facet_items = self._get_facet_nav_hack_items()
-            items = (*facet_items, *items)
-        return items
-
-    def item_link(self):
-        """Link is handled by item_extra_kwargs to change its rel."""
-        return ""
-
-    @staticmethod
-    def _compute_zero_pad(issue_max):
-        """Compute zero padding for issues."""
-        if not issue_max or issue_max < 1:
-            return 1
-        return math.floor(math.log10(issue_max)) + 1
-
-    def item_title(self, item: dict):
-        """Compute the item title."""
-        group = item.get("group")
-        parts = []
-        if group == "i":
-            parts.append(item.get("publisher_name"))
-        elif group == "v":
-            parts.append(item.get("series_name"))
-        elif group == "c":
-            issue_max = self.obj.get("issue_max")
-            zero_pad = self._compute_zero_pad(issue_max)
-            issue = item.get("issue")
-            if issue is None:
-                issue = Decimal(0)
-            issue = issue.normalize()
-            issue_suffix = item.get("issue_suffix", "")
-
-            int_issue = math.floor(issue)
-            if issue == int_issue:
-                issue_str = str(int_issue)
-            else:
-                issue_str = str(issue)
-                decimal_parts = issue_str.split(".")
-                if len(decimal_parts) > 1:
-                    zero_pad += len(decimal_parts[1]) + 1
-
-            issue_num = issue_str.zfill(zero_pad)
-            full_issue_str = f"#{issue_num}{issue_suffix}"
-            parts.append(full_issue_str)
-
-        parts.append(item.get("name"))
-
-        result = " ".join(parts)
-        if not result:
-            result = self.BLANK_TITLE
-        return result
-
-    def item_description(self, item: dict):
-        """Return a child count or comic summary."""
-        # This does not render.
-        # So take it's value and use it in the feed generator.
-        if item.get("group") == "c":
-            desc = item.get("summary")
-        elif children := item.get("child_count"):
-            desc = f"{children} items."
+        if (
+            facet_group.query_param == "topGroup"
+            and (group == "f" and facet.value != "f")
+            or (group != "f" and facet.value == "f")
+        ):
+            kwargs = {"group": facet.value, "pk": 0, "page": 1}
         else:
-            desc = None
+            kwargs = self.kwargs
 
-        return desc
+        qps = {facet_group.query_param: facet.value}
+        if not entries:
+            facet = self._facet(kwargs, facet_group, facet.title, qps)
+        else:
+            facet = self._facet_entry(kwargs, facet_group, facet, qps)
+        return facet
 
-    def item_guid(self, item):
-        """GUID is a nav url."""
-        if item.get("rel") == "alternate":
-            href = item.get("href")
-            if qp := item.get("query_params"):
-                href += "?" + urlencode(qp)
-            return href
+    def _facet_group(self, facet_group, entries):
+        facets = []
+        for facet in facet_group.facets:
+            if facet_obj := self._facet_or_facet_entry(facet_group, facet, entries):
+                facets += [facet_obj]
+        return facets
 
-        group = item.get("group")
-        pk = item.get("pk")
-        return reverse("opds:v1:browser", kwargs={"group": group, "pk": pk, "page": 1})
+    def _facets(self, entries=False):
+        facets = []
+        if not self.skip_order_facets:
+            facets += self._facet_group(FacetGroups.ORDER_BY, entries)
+            facets += self._facet_group(FacetGroups.ORDER_REVERSE, entries)
+        facets += self._facet_group(FacetGroups.TOP_GROUP, entries)
+        if facet_obj := self._facet_or_facet_entry(
+            FacetGroups.TOP_GROUP, Facet("f", "Folder View"), entries
+        ):
+            facets += [facet_obj]
+        return facets
 
-    def item_extra_kwargs(self, item: dict):
-        """Send entry serialization to feedgenerator."""
-        group = item.get("group")
+    def _nav_link(self, kwargs, rel):
+        href = reverse("opds:v1:browser", kwargs={**kwargs, "page": 1})
+        return OPDSLink(rel, href, MimeType.NAV)
+
+    def _top_link(self, top_link):
+        href = reverse("opds:v1:browser", kwargs={**top_link.kwargs, "page": 1})
+        if top_link.query_params:
+            href += "?" + urlencode(top_link.query_params, doseq=True)
+        return OPDSLink(top_link.rel, href, top_link.mime_type)
+
+    def _root_nav_links(self):
+        """Navigation Root Links."""
+        links = []
+        if route := self.obj.get("up_route"):
+            links += [self._nav_link(route, Rel.UP)]
+        page = self.obj.get("page", 1)
+        if page > 1:
+            route = {**self.kwargs, "page": page - 1}
+            links += [self._nav_link(route, Rel.PREV)]
+        if page < self.obj.get("num_pages", 1):
+            route = {**self.kwargs, "page": page + 1}
+            links += [self._nav_link(route, Rel.NEXT)]
+        return links
+
+    def is_top_link_displayed(self, top_link):
+        """Determine if this top link should be displayed."""
+        is_displayed = True
+        for key, val in top_link.kwargs.items():
+            if key == "page":
+                continue
+            if self.kwargs.get(key) != val:
+                is_displayed = False
+                break
+        if not is_displayed:
+            for key, val in top_link.query_params.items():
+                if self.request.query_params.get(key) != val:
+                    is_displayed = False
+                    break
+        return is_displayed
+
+    @property
+    def links(self):
+        """Create all the links."""
+        links = []
         try:
-            group_index = self.valid_nav_groups.index(group)
-            aq_link = group_index + 1 >= len(self.valid_nav_groups)
-        except (ValueError, IndexError):
-            aq_link = False
+            if self.is_aq_feed:
+                mime_type = MimeType.ACQUISITION
+            else:
+                mime_type = MimeType.NAV
+            links += [
+                OPDSLink("self", self.request.get_full_path(), mime_type),
+                OPDSLink(
+                    Rel.AUTHENTICATION,
+                    reverse("opds:v1:authentication"),
+                    MimeType.AUTHENTICATION,
+                ),
+                OPDSLink("search", reverse("opds:v1:opensearch"), MimeType.OPENSEARCH),
+            ]
+            links += self._root_nav_links()
+            if self.use_facets:
+                for top_link in TopLinks.ALL:
+                    links += [self._top_link(top_link)]
+                if facets := self._facets():
+                    links += facets
+        except Exception as exc:
+            LOG.exception(exc)
+        return links
 
-        return {
-            "card": item,
-            "summary": self.item_description(item),
-            "aq_link": aq_link,
+    def _top_link_entry(self, top_link):
+        """Create a entry instead of a facet."""
+        entry_obj = {
+            **top_link.kwargs,
+            "name": " ".join((top_link.glyph, top_link.title)),
+            "query_params": top_link.query_params,
+            "summary": top_link.desc,
         }
+
+        return OPDSEntry(entry_obj, self.valid_nav_groups, {})
+
+    @property
+    def entries(self):
+        """Create all the entries."""
+        entries = []
+        try:
+            if not self.use_facets:
+                for tl in TopLinks.ALL:
+                    if not self.is_top_link_displayed(tl):
+                        entries += [self._top_link_entry(tl)]
+                entries += self._facets(entries=True)
+
+            if obj_list := self.obj.get("obj_list"):
+                at_top = self.kwargs.get("pk") == 0
+                for entry_obj in obj_list:
+                    entries += [
+                        OPDSEntry(
+                            entry_obj,
+                            self.valid_nav_groups,
+                            self.request.query_params,
+                            at_top,
+                        )
+                    ]
+        except Exception as exc:
+            LOG.exception(exc)
+        return entries
+
+    def get_object(self):
+        """Get the browser page and serialize it for this subclass."""
+        group = self.kwargs.get("group")
+        if group in self.AQUISITION_GROUPS:
+            self.is_opds_acquisition = True
+        browser_page = super().get_object()
+        # this serialization fixes the unionfix prefixes
+        obj_list = browser_page.get("obj_list")
+        model_group = browser_page.get("model_group")
+        if model_group == "c":
+            serializer_class = OPDSAcquisitionEntrySerializer
+        else:
+            serializer_class = OPDSEntrySerializer
+        serializer = serializer_class(obj_list, many=True)
+        browser_page["obj_list"] = serializer.data
+        self.obj = browser_page
+        self.is_aq_feed = self.obj.get("model_group") == "c"
+        return self
+
+    def _detect_user_agent(self):
+        # Hacks for clients that don't support facets
+        user_agent = self.request.headers.get("User-Agent")
+        self.use_facets = False
+        self.skip_order_facets = False
+        if not user_agent:
+            return
+        for prefix in UserAgents.FACET_SUPPORT:
+            if user_agent.startswith(prefix):
+                self.use_facets = True
+                break
+        for prefix in UserAgents.CLIENT_REORDERS:
+            if user_agent.startswith(prefix):
+                self.skip_order_facets = True
+                break
+
+    @extend_schema(request=BrowserView.input_serializer_class)
+    def get(self, request, *args, **kwargs):
+        """Get the feed."""
+        self.parse_params()
+        self.validate_settings()
+        self._detect_user_agent()
+
+        obj = self.get_object()
+        serializer = self.get_serializer(obj)
+        return Response(serializer.data, content_type=self.content_type)

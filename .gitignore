@@ -153,10 +153,11 @@ codex/static_build/
 codex/static_root/
 dist
 db.sqlite3
+frontend/components.d.ts
 frontend/coverage
 monkeytype.sqlite3
 node_modules
 requirements.txt
 test-results
-webpack-stats.json
 TODO.md
+__snapshots__
