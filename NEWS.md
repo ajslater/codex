@@ -1,4 +1,4 @@
-# 📰 Codex News
+# 📜 Codex News
 
 <img src="codex/static_src/img/logo.svg" style="
 height: 128px;
