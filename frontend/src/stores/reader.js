@@ -12,6 +12,7 @@ const NULL_READER_SETTINGS = {
 };
 Object.freeze(NULL_READER_SETTINGS);
 
+// eslint-disable-next-line unicorn/no-null
 const SETTINGS_NULL_VALUES = new Set(["", null, undefined]);
 Object.freeze(SETTINGS_NULL_VALUES);
 
