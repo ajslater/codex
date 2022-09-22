@@ -90,6 +90,10 @@ export default {
 }
 @import "vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
+  #browserToolbar {
+    padding-left: 4px;
+    padding-right: 4px;
+  }
   #topGroupSelect {
     width: 136px;
   }
@@ -97,7 +101,7 @@ export default {
     margin-left: 2px;
   }
   #filterSelect {
-    width: 164px;
+    width: 172px;
   }
   #searchField {
     margin-right: 0px;
@@ -143,15 +147,12 @@ export default {
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   #browserToolbar .v-toolbar__content,
   #browserToolbar .v-toolbar__extension {
-    padding-right: 2px !important;
+    padding-right: 0px !important;
     padding-left: 0px !important;
   }
   #browserToolbar .toolbarSelect {
     margin-left: 0px !important;
     margin-right: 0px !important;
-  }
-  #browserToolbar .topGroupSelect {
-    margin-left: 6px !important;
   }
 }
 </style>
