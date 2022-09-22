@@ -81,7 +81,7 @@ export const useSocketStore = defineStore("socket", {
 
           break;
         case CHOICES.websockets.FAILED_IMPORTS:
-          adminStore.setFailedImports(true);
+          adminStore.unseenFailedImports = true;
 
           break;
         default:
