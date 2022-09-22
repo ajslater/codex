@@ -4,7 +4,7 @@
       <AdminLibraryCreateUpdateDialog />
     </header>
     <v-simple-table
-      class="highlight-simple-table"
+      class="highlight-simple-table admin-table"
       fixed-header
       :height="tableHeight"
     >
@@ -94,8 +94,9 @@ import { useAdminStore } from "@/stores/admin";
 
 const FIXED_TOOLBARS = 96 + 16;
 const ADD_HEADER = 36;
+const TABLE_PADDING = 24;
 const FAILED_IMPORTS = 60 + 48 + 64;
-const BUFFER = FIXED_TOOLBARS + ADD_HEADER + FAILED_IMPORTS;
+const BUFFER = FIXED_TOOLBARS + ADD_HEADER + FAILED_IMPORTS + TABLE_PADDING;
 const TABLE_ROW_HEIGHT = 48;
 const MIN_TABLE_HEIGHT = TABLE_ROW_HEIGHT * 2;
 

@@ -149,4 +149,8 @@ $task-width: 256px;
   > tr:nth-child(odd):hover {
   background-color: #121212 !important;
 }
+
+.admin-table {
+  padding-bottom: 24px;
+}
 </style>

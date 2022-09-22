@@ -2,7 +2,7 @@
   <v-simple-table
     fixed-header
     :height="tableHeight"
-    class="highlight-simple-table"
+    class="highlight-simple-table admin-tab"
   >
     <template #default>
       <thead>
@@ -55,7 +55,8 @@ const DESC = {
 Object.freeze(DESC);
 
 const FIXED_TOOLBARS = 96 + 16;
-const BUFFER = FIXED_TOOLBARS;
+const TABLE_PADDING = 24;
+const BUFFER = FIXED_TOOLBARS + TABLE_PADDING;
 
 export default {
   name: "AdminFlagsPanel",

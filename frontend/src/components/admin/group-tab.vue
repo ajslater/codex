@@ -6,7 +6,7 @@
     <v-simple-table
       fixed-header
       :height="tableHeight"
-      class="highlight-simple-table"
+      class="highlight-simple-table admin-table"
     >
       <template #default>
         <thead>
@@ -72,7 +72,8 @@ import { useAdminStore } from "@/stores/admin";
 const FIXED_TOOLBARS = 96 + 16;
 const ADD_HEADER = 36;
 const GROUP_HELP = 180;
-const BUFFER = FIXED_TOOLBARS + ADD_HEADER + GROUP_HELP;
+const TABLE_PADDING = 24;
+const BUFFER = FIXED_TOOLBARS + ADD_HEADER + GROUP_HELP + TABLE_PADDING;
 const TABLE_ROW_HEIGHT = 48;
 const MIN_TABLE_HEIGHT = TABLE_ROW_HEIGHT * 2;
 
