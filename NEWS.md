@@ -10,6 +10,8 @@ border-radius: 128px;
 
 ### Admin Panel
 
+### Admin Panel
+
 - Features
   - Single Page Admin Panel.
   - Users may now change their own passwords.

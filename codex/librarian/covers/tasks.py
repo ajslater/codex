@@ -46,6 +46,7 @@ class LibrariesTask:
     library_ids: frozenset
 
 
+# TODO look if obsolete
 @dataclass
 class CoverRemoveTask(CoverTask):
     """Purge a set of comic covers."""
