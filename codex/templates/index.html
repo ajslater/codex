@@ -9,26 +9,19 @@
         <title>Codex</title>
         {% include "icon-headers.html" %}
         {% include "pwa/headers.html" %}
-        {% if not DEBUG %}
-            <link rel="stylesheet" href="{% static main_css %}" />
-        {% endif %}
         <script>
           var CODEX = {
             APP_PATH: "{% url 'app:start' %}",
-            ADMIN_PATH: "{% url 'admin:index' %}",
             API_V3_PATH: "{% url 'api:v3:base' %}",
             LAST_ROUTE: {{ last_route | safe }},
             MISSING_COVER: "{% static 'img/missing-cover.webp' %}",
-            OPDS_PATH: "{% url 'opds:v1:browser' 'r' 0 1 %}"
+            OPDS_PATH: "{% url 'opds:v1:browser' 'r' 0 1 %}",
+            DJANGO_ADMIN_PATH: "{% url 'admin:index' %}"
           };
           Object.freeze(CODEX);
         </script>
-        {% if DEBUG %}
-            {% vite_hmr_client %}
-            {% vite_asset 'src/main.js' %}
-        {% else %}
-            <script defer type="module" src="{% static main_js %}"></script>
-        {% endif %}
+        {% vite_hmr_client %}
+        {% vite_asset "src/main.js" %}
     </head>
     <body>
         <noscript>

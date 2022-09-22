@@ -176,7 +176,7 @@ export default {
   width: 50%;
   height: 100%;
 }
-.navLink {
+#navColumns .navLink {
   display: block;
   height: 100%;
 }
@@ -188,13 +188,13 @@ export default {
 #nextBookDrawer {
   cursor: e-resize;
 }
-.drawerButton {
+#navColumns .drawerButton {
   height: 100%;
 }
-.bookChangeDrawer {
-  background-color: rgba(0, 0, 0, 0.3);
+#navColumns .bookChangeDrawer {
+  background-color: rgba(0, 0, 0, 0.3) !important;
 }
-.bookChangeIcon {
+#navColumns .bookChangeIcon {
   top: 50%;
   margin-left: 50%;
   display: block;

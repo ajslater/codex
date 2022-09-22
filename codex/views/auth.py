@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from codex.models import AdminFlag
 from codex.serializers.auth import AuthAdminFlagsSerializer, TimezoneSerializer
+from codex.serializers.mixins import OKSerializer
 from codex.settings.logging import get_logger
 
 
@@ -31,6 +32,7 @@ class TimezoneView(GenericAPIView):
     """User info."""
 
     input_serializer_class = TimezoneSerializer
+    serializer_class = OKSerializer
 
     @extend_schema(request=input_serializer_class)
     def post(self, request, *args, **kwargs):
@@ -39,7 +41,8 @@ class TimezoneView(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         request.session["django_timezone"] = serializer.validated_data["timezone"]
         request.session.save()
-        return Response()
+        serializer = self.get_serializer()
+        return Response(serializer.data)
 
 
 class AdminFlagsView(GenericAPIView, RetrieveModelMixin):

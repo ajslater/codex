@@ -29,7 +29,7 @@
           <v-expansion-panels>
             <v-expansion-panel id="failedImportsHelp">
               <v-expansion-panel-header>
-                <h5>Failed Imports Help</h5>
+                <h4>Failed Imports Help</h4>
               </v-expansion-panel-header>
               <v-expansion-panel-content>
                 <p>
@@ -47,16 +47,10 @@
                     zip -F problem-comic.cbz --out fixed.zip<br />
                     mv fixed.zip problem-comic.cbz
                   </code>
-
-                  I've found that even if the fixed comic looks exactly the same
-                  as the original, replacing the original with the fixed archive
-                  can often get Codex to import it properly. If you've removed
-                  or fixed the unimportable comics in your library you can try
-                  polling the library again. You may also try zip -FF to fix
-                  comics which uses a different (not necissarily better)
-                  algorithm. If you fix some imports, and Codex does not
-                  immediately detect the change, poll the library the fixed
-                  comics are in.
+                  You may also try <code>zip -FF</code> to fix comics which uses
+                  a different (not necissarily better) algorithm. If you fix
+                  some imports, and Codex does not immediately detect the
+                  change, poll the library which contains the fixed comics.
                 </p>
 
                 <h4>Reporting Issues</h4>
@@ -116,7 +110,7 @@ export default {
   margin-top: 60px;
 }
 #failedImportsHelp {
-  color: lightgrey;
+  color: darkgrey;
 }
 @import "../anchors.scss";
 </style>

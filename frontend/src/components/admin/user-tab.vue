@@ -1,12 +1,12 @@
 <template>
   <div>
     <header class="tabHeader">
-      <AdminUserAddDialog id="userAdd" />
+      <AdminUserCreateUpdateDialog id="userAdd" />
     </header>
     <v-simple-table
       fixed-header
       :height="tableHeight"
-      class="highlight-simple-table"
+      class="highlight-simple-table admin-table"
     >
       <template #default>
         <thead>
@@ -17,6 +17,7 @@
             <th>Groups</th>
             <th>Last Login</th>
             <th>Joined</th>
+            <th>Edit</th>
             <th>Change Password</th>
             <th>Delete</th>
           </tr>
@@ -24,52 +25,16 @@
         <tbody>
           <tr v-for="item in users" :key="`u:${item.pk}:${item.keyHack}`">
             <td class="usernameCol">
-              <v-text-field
-                :value="item.username"
-                dense
-                round
-                filled
-                hide-details="auto"
-                :error-messages="getFormErrors(item.pk, 'username')"
-                @focus="clearErrors"
-                @blur="item.keyHack = Date.now()"
-                @change="changeCol(item.pk, 'username', $event)"
-              />
+              {{ item.username }}
             </td>
-            <td>
-              <v-checkbox
-                :input-value="item.isStaff"
-                dense
-                ripple
-                hide-details="auto"
-                :error-messages="getFormErrors(item.pk, 'isStaff')"
-                @focus="clearErrors"
-                @blur="item.keyHack = Date.now()"
-                @change="changeCol(item.pk, 'isStaff', $event === true)"
-              />
+            <td class="buttonCol">
+              <v-simple-checkbox :value="item.isStaff" dense disabled />
             </td>
-            <td>
-              <v-checkbox
-                :input-value="item.isActive"
-                dense
-                ripple
-                hide-details="auto"
-                :error-messages="getFormErrors(item.pk, 'isActive')"
-                @focus="clearErrors"
-                @blur="item.keyHack = Date.now()"
-                @change="changeCol(item.pk, 'isActive', $event === true)"
-              />
+            <td class="buttonCol">
+              <v-simple-checkbox :value="item.isActive" dense disabled />
             </td>
             <td class="relationCol">
-              <AdminRelationPicker
-                :items="vuetifyGroups"
-                :value="item.groups"
-                hide-details="auto"
-                :error-messages="getFormErrors(item.pk, 'groupSet')"
-                @focus="clearErrors"
-                @blur="item.keyHack = Date.now()"
-                @change="changeCol(item.pk, 'groups', $event)"
-              />
+              <RelationChips :pks="item.groups" :map="groupMap" />
             </td>
             <td class="dttmCol">
               <DateTimeColumn :dttm="item.lastLogin" />
@@ -77,17 +42,18 @@
             <td class="dttmCol">
               <DateTimeColumn :dttm="item.dateJoined" />
             </td>
-            <td>
+            <td class="buttonCol">
+              <AdminUserCreateUpdateDialog :update="true" :old-user="item" />
+            </td>
+            <td class="buttonCol">
               <AdminChangePasswordDialog
                 :pk="item.pk"
                 :username="item.username"
-                @close="item.showPasswordChangeDialog = false"
               />
             </td>
-            <td>
-              <!-- TODO use user.pk -->
+            <td class="buttonCol">
               <AdminDeleteRowDialog
-                v-if="me.username !== item.username"
+                v-if="me.id !== item.pk"
                 table="User"
                 :pk="item.pk"
                 :name="item.username"
@@ -101,56 +67,61 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapGetters, mapState } from "pinia";
 
 import AdminChangePasswordDialog from "@/components/admin/change-password-dialog.vue";
 import DateTimeColumn from "@/components/admin/datetime-column.vue";
 import AdminDeleteRowDialog from "@/components/admin/delete-row-dialog.vue";
-import AdminRelationPicker from "@/components/admin/relation-picker.vue";
-import AdminUserAddDialog from "@/components/admin/user-add-dialog.vue";
+import RelationChips from "@/components/admin/relation-chips.vue";
+import AdminUserCreateUpdateDialog from "@/components/admin/user-create-update-dialog.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useAuthStore } from "@/stores/auth";
+
+const FIXED_TOOLBARS = 96 + 16;
+const ADD_HEADER = 36;
+const TABLE_PADDING = 24;
+const BUFFER = FIXED_TOOLBARS + ADD_HEADER + TABLE_PADDING;
+const TABLE_ROW_HEIGHT = 48;
+const MIN_TABLE_HEIGHT = TABLE_ROW_HEIGHT * 2;
 
 export default {
   name: "AdminUsersPanel",
   components: {
     AdminDeleteRowDialog,
-    AdminRelationPicker,
     AdminChangePasswordDialog,
-    AdminUserAddDialog,
+    AdminUserCreateUpdateDialog,
     DateTimeColumn,
+    RelationChips,
   },
   data() {
     return {
-      lastUpdate: {
-        pk: 0,
-        field: undefined,
-      },
+      tableHeight: undefined,
     };
   },
   computed: {
     ...mapState(useAdminStore, {
       users: (state) => state.users,
-      formErrors: (state) => state.form.errors,
+      tableMaxHeight: (state) => (state.users.length + 1) * TABLE_ROW_HEIGHT,
     }),
     ...mapState(useAuthStore, {
       me: (state) => state.user,
     }),
-    ...mapGetters(useAdminStore, ["vuetifyGroups"]),
-    tableHeight: () => window.innerHeight * 0.9,
+    ...mapGetters(useAdminStore, ["groupMap"]),
+  },
+  mounted() {
+    window.addEventListener("resize", this.onResize);
+    this.onResize();
+  },
+  unmounted() {
+    window.removeEventListener("resize", this.onResize);
   },
   methods: {
-    ...mapActions(useAdminStore, ["updateRow", "clearErrors"]),
-    changeCol: function (pk, field, val) {
-      this.lastUpdate.pk = pk;
-      this.lastUpdate.field = field;
-      const data = { [field]: val };
-      this.updateRow("User", pk, data);
-    },
-    getFormErrors(pk, field) {
-      if (pk === this.lastUpdate.pk && field === this.lastUpdate.field) {
-        return this.formErrors;
-      }
+    onResize() {
+      const availableHeight = window.innerHeight - BUFFER;
+      this.tableHeight =
+        this.tableMaxHeight < availableHeight
+          ? undefined
+          : Math.max(availableHeight, MIN_TABLE_HEIGHT);
     },
   },
 };
@@ -160,10 +131,10 @@ export default {
 .usernameCol {
   min-width: 11em;
 }
-.relationCol {
-  min-width: 200px;
-}
 .dttmCol {
   min-width: 9em;
+}
+.buttonCol {
+  width: 24px;
 }
 </style>

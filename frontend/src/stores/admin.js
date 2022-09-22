@@ -26,6 +26,15 @@ const getTablePlural = (table) => {
   return table + "s";
 };
 
+const itemMap = (items, key) => {
+  const map = {};
+  for (const item of items) {
+    const pk = item.pk || item.id;
+    map[pk] = item[key];
+  }
+  return map;
+};
+
 export const useAdminStore = defineStore("admin", {
   state: () => ({
     librarianStatuses: [],
@@ -43,12 +52,21 @@ export const useAdminStore = defineStore("admin", {
       errors: [],
       success: "",
     },
-    isSettingsDrawerOpen: true,
+    isSettingsDrawerOpen: false,
   }),
   getters: {
     isUserAdmin() {
       const authStore = useAuthStore();
       return authStore.isUserAdmin;
+    },
+    groupMap() {
+      return itemMap(this.groups, "name");
+    },
+    userMap() {
+      return itemMap(this.users, "username");
+    },
+    libraryMap() {
+      return itemMap(this.libraries, "path");
     },
     vuetifyUsers() {
       return vuetifyItems(this.users, "username");

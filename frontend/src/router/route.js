@@ -1,11 +1,10 @@
-export const getReaderRoute = ({ pk, bookmark, readLtr, pageCount }) => {
+export const getReaderRoute = ({ pk, page, readLtr, pageCount }) => {
   // Get the route to a comic with the correct entry page.
   if (!pageCount) {
     return;
   }
-  let page;
-  if (bookmark) {
-    page = Number(bookmark);
+  if (page) {
+    page = Number(page);
   } else if (readLtr) {
     page = 0;
   } else {

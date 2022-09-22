@@ -15,6 +15,7 @@ import re
 
 from pathlib import Path
 
+from django.contrib.staticfiles.storage import staticfiles_storage
 from tzlocal import get_localzone_name
 from xapian import QueryParser
 
@@ -34,7 +35,6 @@ SECRET_KEY = get_secret_key(CONFIG_PATH)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(os.environ.get("DEBUG", "").lower() not in ("0", "false", ""))
-DEBUG_TOOLBAR = bool(os.environ.get("DEBUG_TOOLBAR", False))
 #
 # Logging
 #
@@ -59,10 +59,7 @@ INSTALLED_APPS = [
 
 if DEBUG:
     # comes before static apps
-    INSTALLED_APPS += ["livereload"]
     INSTALLED_APPS += ["nplusone.ext.django"]
-    if DEBUG_TOOLBAR:
-        INSTALLED_APPS += ["debug_toolbar"]
 
 INSTALLED_APPS += [
     "whitenoise.runserver_nostatic",
@@ -89,17 +86,10 @@ MIDDLEWARE = [
     "codex.middleware.TimezoneMiddleware",
 ]
 if DEBUG:
-    MIDDLEWARE += [
-        "livereload.middleware.LiveReloadScript",
-    ]
-    if DEBUG_TOOLBAR:
-        MIDDLEWARE += [
-            "debug_toolbar.middleware.DebugToolbarMiddleware",
-        ]
-    MIDDLEWARE += ["nplusone.ext.django.NPlusOneMiddleware"]
-    NPLUSONE_LOGGER = get_logger("nplusone")
     from logging import WARN
 
+    MIDDLEWARE += ["nplusone.ext.django.NPlusOneMiddleware"]
+    NPLUSONE_LOGGER = get_logger("nplusone")
     NPLUSONE_LOG_LEVEL = WARN
 
 
@@ -194,7 +184,7 @@ def immutable_file_test(_path, url):
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
-WHITENOISE_KEEP_ONLY_HASHED_FILES = True
+# WHITENOISE_KEEP_ONLY_HASHED_FILES is not usable with vite chunking
 WHITENOISE_STATIC_PREFIX = "static/"
 
 WHITENOISE_IMMUTABLE_FILE_TEST = immutable_file_test
@@ -218,6 +208,10 @@ if DEBUG or BUILD:
     DJANGO_VITE_ASSETS_PATH = STATIC_BUILD
 else:
     DJANGO_VITE_ASSETS_PATH = STATIC_ROOT
+    DJANGO_VITE_MANIFEST_PATH = STATIC_ROOT / staticfiles_storage.stored_name(
+        "manifest.json"
+    )
+
 
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 60  # 60 days
 
@@ -256,7 +250,6 @@ REST_REGISTRATION = {
         # SHOWN
         # "is_staff", "is_superuser",
         # HIDDEN
-        "id",
         "email",
         "first_name",
         "last_name",
@@ -308,4 +301,5 @@ HAYSTACK_CONNECTIONS = {
 }
 
 DJANGO_VITE_DEV_MODE = DEBUG
+DJANGO_VITE_DEV_SERVER_HOST = os.uname().nodename
 DJANGO_VITE_DEV_SERVER_PORT = 5173

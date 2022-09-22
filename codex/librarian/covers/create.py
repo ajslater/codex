@@ -2,7 +2,6 @@
 import time
 
 from io import BytesIO
-from logging import INFO
 
 from comicbox.comic_archive import ComicArchive
 from humanize import naturaldelta
@@ -10,10 +9,9 @@ from PIL import Image
 
 from codex.librarian.covers.path import MISSING_COVER_PATH, get_cover_path
 from codex.librarian.covers.status import CoverStatusTypes
-from codex.librarian.covers.tasks import CoverBulkCreateTask, CoverCreateTask
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE
+from codex.librarian.covers.tasks import CoverCreateTask
 from codex.librarian.status_control import StatusControl
-from codex.models import Comic, Library
+from codex.models import Comic
 from codex.pdf import PDF
 from codex.settings.logging import get_logger
 from codex.version import COMICBOX_CONFIG
@@ -116,18 +114,3 @@ def bulk_create_comic_covers(comic_pks):
         return count
     finally:
         StatusControl.finish(CoverStatusTypes.CREATE)
-
-
-def create_comic_covers_for_libraries(library_pks):
-    """Force regeneration of all covers."""
-    if LOG.getEffectiveLevel() <= INFO:
-        paths = Library.objects.filter(pk__in=library_pks).values_list(
-            "path", flat=True
-        )
-        paths_str = ",".join(paths)
-        LOG.info(f"Creating comic covers for libraries: {paths_str}")
-    comic_pks = Comic.objects.filter(library_id__in=library_pks).values_list(
-        "pk", flat=True
-    )
-    task = CoverBulkCreateTask(frozenset(comic_pks))
-    LIBRARIAN_QUEUE.put(task)

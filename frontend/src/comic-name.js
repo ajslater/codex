@@ -58,7 +58,7 @@ export const getFullComicName = function (
   // Format a full comic name from the series on down.
   const fvn = formattedVolumeName(volumeName);
   const issueName = getIssueName({ issue, issueSuffix, issueCount }, zeroPad);
-  return [seriesName, fvn, issueName].join(" ");
+  return [seriesName, fvn, issueName].filter(Boolean).join(" ");
 };
 
 export default {

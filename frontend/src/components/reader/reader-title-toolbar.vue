@@ -22,16 +22,9 @@
           :pk="Number($router.currentRoute.params.pk)"
         />
       </v-btn>
-      <a
-        id="downloadAnchor"
-        :href="pageSrc"
-        title="Download Page"
-        :download="pageName"
-      >
-        <v-btn id="downloadPageButton">
-          <v-icon>{{ mdiDownload }}</v-icon>
-        </v-btn>
-      </a>
+      <v-btn id="downloadPageButton" title="Download Page" @click="download">
+        <v-icon>{{ mdiFileImage }}</v-icon>
+      </v-btn>
       <SettingsDrawerButton
         id="settingsButton"
         @click.stop="isSettingsDrawerOpen = true"
@@ -41,8 +34,8 @@
 </template>
 
 <script>
-import { mdiClose, mdiDownload } from "@mdi/js";
-import { mapGetters, mapState, mapWritableState } from "pinia";
+import { mdiClose, mdiFileImage } from "@mdi/js";
+import { mapActions, mapGetters, mapState, mapWritableState } from "pinia";
 
 import { getComicPageSource } from "@/api/v3/reader";
 import CHOICES from "@/choices";
@@ -50,6 +43,7 @@ import { getFullComicName } from "@/comic-name";
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
 import { useBrowserStore } from "@/stores/browser";
+import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
@@ -61,7 +55,7 @@ export default {
   data() {
     return {
       mdiClose,
-      mdiDownload,
+      mdiFileImage,
     };
   },
   head() {
@@ -115,6 +109,7 @@ export default {
     window.removeEventListener("keyup", this._keyListener);
   },
   methods: {
+    ...mapActions(useCommonStore, ["downloadIOSPWAFix"]),
     openMetadata: function () {
       this.$refs.metadataDialog.dialog = true;
     },
@@ -125,6 +120,9 @@ export default {
       } else if (event.key === "m") {
         this.openMetadata();
       }
+    },
+    download() {
+      this.downloadIOSPWAFix(this.pageSrc, this.pageName);
     },
   },
 };
@@ -188,8 +186,5 @@ export default {
   height: 24px;
   width: 24px;
   margin: 0px;
-}
-#downloadAnchor .v-icon {
-  color: white !important;
 }
 </style>

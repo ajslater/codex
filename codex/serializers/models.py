@@ -1,6 +1,8 @@
 """Serializers for codex models."""
 import pycountry
 
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework.serializers import (
     IntegerField,
     ModelSerializer,
@@ -48,9 +50,10 @@ class PyCountrySerializer(Serializer):
 
         abstract = True
 
-    def get_pk(self, obj):
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_pk(self, pk):
         """Return submitted value as the key."""
-        return obj
+        return pk
 
     @staticmethod
     def lookup_name(lookup_module, name):
@@ -70,6 +73,7 @@ class PyCountrySerializer(Serializer):
             value = name
         return value
 
+    @extend_schema_field(OpenApiTypes.STR)
     def get_name(self, name):
         """Lookup the name with pycountry, just copy the key on fail."""
         return self.lookup_name(self.LOOKUP_MODULE, name)
@@ -307,7 +311,7 @@ class BookmarkSerializer(ModelSerializer):
         """Configure the model."""
 
         model = Bookmark
-        exclude = ("id", "user", "session", "comic", "created_at", "updated_at")
+        fields = ("finished", "fit_to", "page", "two_pages")
 
 
 class BookmarkFinishedSerializer(ModelSerializer):

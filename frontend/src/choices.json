@@ -1,6 +1,5 @@
 {
   "browser": {
-    "autoquery": "",
     "bookmarkFilter": [
       {
         "text": "All",
@@ -20,6 +19,7 @@
         "value": "READ"
       }
     ],
+    "q": "",
     "topGroup": [
       {
         "text": "Publishers",

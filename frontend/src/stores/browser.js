@@ -61,7 +61,7 @@ const clearAllFormChoicesExcept = function (state, keepChoiceName) {
 
 const validateFirstSearch = function (state, data) {
   // If first search redirect to lowest group and change order
-  if (state.autoquery || !data.autoquery) {
+  if (state.q || !data.q) {
     // Not first search, validated.
     return;
   }
@@ -133,7 +133,7 @@ const validateAndSaveSettings = function (store, data) {
   }
 
   // clear choices and reset filter menu mode.
-  if (data.filters || data.autoquery) {
+  if (data.filters || data.q) {
     let filterName;
     if (data.filters) {
       filterName = Object.keys(data.filters)[0];
@@ -175,7 +175,7 @@ export const useBrowserStore = defineStore("browser", {
         bookmark: undefined,
         ...DYNAMIC_FILTERS,
       },
-      autoquery: "",
+      q: "",
       topGroup: undefined,
       orderBy: undefined,
       orderReverse: undefined,
@@ -348,7 +348,7 @@ export const useBrowserStore = defineStore("browser", {
       if (!this.isCodexViewable) {
         return;
       }
-      await API.setGroupSettings(params, { finished }).then(() => {
+      await API.setGroupBookmarks(params, { finished }).then(() => {
         this.setTimestamp();
         this.loadBrowserPage();
         return true;

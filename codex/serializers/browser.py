@@ -166,11 +166,11 @@ class BrowserSettingsSerializer(Serializer):
     """
 
     filters = BrowserSettingsFilterSerializer(required=False)
-    autoquery = CharField(allow_blank=True, required=False)
-    top_group = ChoiceField(choices=tuple(CHOICES["topGroup"].keys()), required=False)
     order_by = ChoiceField(choices=tuple(CHOICES["orderBy"].keys()), required=False)
     order_reverse = BooleanField(required=False)
+    q = CharField(allow_blank=True, required=False)
     show = BrowserSettingsShowGroupFlagsSerializer(required=False)
+    top_group = ChoiceField(choices=tuple(CHOICES["topGroup"].keys()), required=False)
 
 
 class BrowserCardSerializer(BrowserCardOPDSBaseSerializer):

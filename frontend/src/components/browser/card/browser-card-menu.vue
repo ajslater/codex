@@ -12,11 +12,6 @@
       </v-icon>
     </template>
     <v-list nav>
-      <v-list-item v-if="group === 'c'" :href="downloadURL" ripple download>
-        <v-list-item-content>
-          <v-list-item-title>Download Comic</v-list-item-title>
-        </v-list-item-content>
-      </v-list-item>
       <v-list-item ripple @click="toggleRead">
         <v-list-item-content>
           <v-list-item-title>
@@ -30,11 +25,10 @@
 
 <script>
 import { mdiDotsVertical } from "@mdi/js";
-import { mapActions, mapState } from "pinia";
+import { mapActions } from "pinia";
 
-import { getDownloadURL } from "@/api/v3/reader.js";
 import { useBrowserStore } from "@/stores/browser";
-import { useReaderStore } from "@/stores/reader";
+import { useCommonStore } from "@/stores/common";
 
 export default {
   name: "BrowserContainerMenu",
@@ -57,11 +51,6 @@ export default {
     };
   },
   computed: {
-    ...mapState(useReaderStore, {
-      downloadURL: function (state) {
-        return getDownloadURL(this.pk, state.timestamp);
-      },
-    }),
     markReadText: function () {
       const words = ["Mark"];
       if (this.group != "c") {
@@ -81,6 +70,7 @@ export default {
   },
   methods: {
     ...mapActions(useBrowserStore, ["setBookmarkFinished"]),
+    ...mapActions(useCommonStore, ["downloadIOSPWAFix"]),
     toggleRead: function () {
       const params = {
         group: this.group,

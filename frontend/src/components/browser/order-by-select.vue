@@ -77,7 +77,7 @@ export default {
 </script>
 
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
+<style scoped lang="scss">
 .orderIcon {
   float: right;
   margin-left: 5px;

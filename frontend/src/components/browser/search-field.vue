@@ -1,7 +1,7 @@
 <template>
   <v-combobox
     ref="searchbox"
-    v-model="autoquery"
+    v-model="q"
     :items="queries"
     autofocus
     clearable
@@ -43,15 +43,15 @@ export default {
   computed: {
     ...mapState(useBrowserStore, {
       queries: (state) => state.page.queries,
-      stateAutoquery: (state) => state.settings.autoquery,
+      stateQ: (state) => state.settings.q,
     }),
-    autoquery: {
+    q: {
       get() {
-        return this.stateAutoquery;
+        return this.stateQ;
       },
       set(value) {
-        const autoquery = value ? value.trim() : "";
-        this.setSettings({ autoquery });
+        const q = value ? value.trim() : "";
+        this.setSettings({ q });
       },
     },
   },
@@ -59,7 +59,7 @@ export default {
     ...mapActions(useBrowserStore, ["setSettings"]),
     searchClick: function () {
       const value = this.$refs["searchbox"].$refs.input.value;
-      this.autoquery = value;
+      this.q = value;
     },
     closeMenu: function () {
       this.$refs.searchbox.$refs.menu.isActive = false;

@@ -21,5 +21,8 @@ export const useCommonStore = defineStore("common", {
           return console.error(error);
         });
     },
+    downloadIOSPWAFix(href, fileName) {
+      API.downloadIOSPWAFix(href, fileName);
+    },
   },
 });

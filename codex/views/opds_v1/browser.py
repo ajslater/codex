@@ -100,7 +100,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
     def items_per_page(self):
         """Return opensearch:itemsPerPage."""
         try:
-            if self.params.get("autoquery"):
+            if self.params.get("q"):
                 num_pages = self.obj.get("num_pages", 0)
                 if num_pages > 1:
                     res = self.MAX_OBJ_PER_PAGE
@@ -114,7 +114,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
     def total_results(self):
         """Return opensearch:totalResults."""
         try:
-            if self.params.get("autoquery"):
+            if self.params.get("q"):
                 num_pages = self.obj.get("num_pages", 0)
                 if num_pages > 1:
                     res = self.MAX_OBJ_PER_PAGE * num_pages

@@ -3,7 +3,6 @@ Codex URL Configuration.
 
 https://docs.djangoproject.com/en/dev/topics/http/urls/
 """
-from django.conf import settings
 from django.contrib import admin
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import include, path
@@ -30,8 +29,3 @@ urlpatterns = [
     # The app must be last because it includes a catch-all path
     path("", include("codex.urls.app")),
 ]
-
-if settings.DEBUG_TOOLBAR:
-    import debug_toolbar
-
-    urlpatterns = [path("__debug__/", include(debug_toolbar.urls))] + urlpatterns

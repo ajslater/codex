@@ -63,6 +63,7 @@ export default {
 }
 #versionFooter * {
   width: 100%;
+  padding-bottom: 5px;
 }
 .outdated {
   font-style: italic;

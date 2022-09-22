@@ -1,40 +1,51 @@
 <template>
-  <v-simple-table fixed-header class="taskTable">
-    <tbody>
-      <tr class="trow">
-        <td>Last Task Queued</td>
-        <td>
-          <span v-if="formSuccess" id="success">{{ formSuccess }}</span>
-          <span v-else-if="formErrors && formErrors.length > 0" id="error">
-            <span v-for="error in formErrors" :key="error">{{ error }}</span>
-          </span>
-          <span v-else id="noRecentTask">No recent task</span>
-        </td>
-      </tr>
-    </tbody>
-    <tbody v-for="group in tasks" :key="group.title">
-      <tr class="trow">
-        <td class="title" colspan="2">
-          {{ group.title }}
-        </td>
-      </tr>
-      <tr v-for="item in group.tasks" :key="item.value" class="trow">
-        <td class="tcol">
+  <div id="tasks">
+    <div>
+      <span id="lastTaskLabel">Last Task Queued:</span>
+      <span>
+        <span v-if="formSuccess" id="success">{{ formSuccess }}</span>
+        <span v-else-if="formErrors && formErrors.length > 0" id="error">
+          <span v-for="error in formErrors" :key="error">{{ error }}</span>
+        </span>
+        <span v-else id="noRecentTask">No recent task</span>
+      </span>
+    </div>
+    <div
+      v-for="group in tasks"
+      :key="group.title"
+      fixed-header
+      class="taskGroup"
+    >
+      <h3>
+        {{ group.title }}
+      </h3>
+      <div
+        v-for="item in group.tasks"
+        :key="item.value"
+        class="trow"
+        :class="{ selected: false }"
+      >
+        <div class="taskBox">
           <AdminTaskConfirmDialog
             v-if="item.confirm"
             :task="item"
-            @confirmed="queueTask(item)"
+            @confirmed="librarianTask(item.value, item.text)"
           />
-          <v-btn v-else block ripple @click="queueTask(item)">
+          <v-btn
+            v-else
+            block
+            ripple
+            @click="librarianTask(item.value, item.text)"
+          >
             {{ item.text }}
           </v-btn>
-        </td>
-        <td class="tcolG desc">
-          {{ item.desc }}
-        </td>
-      </tr>
-    </tbody>
-  </v-simple-table>
+          <div class="taskDesc">
+            {{ item.desc }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -62,17 +73,14 @@ export default {
   },
   methods: {
     ...mapActions(useAdminStore, ["librarianTask"]),
-    queueTask(item) {
-      if (item.confirm) {
-        console.log("launch dialog");
-      }
-      this.librarianTask(item.value, item.text);
-    },
   },
 };
 </script>
 
 <style scoped lang="scss">
+#lastTaskLabel {
+  margin-right: 1em;
+}
 #success {
   color: green;
 }
@@ -82,27 +90,23 @@ export default {
 #noRecentTask {
   color: gray;
 }
-.title {
-  font-weight: bold;
-  font-size: larger;
+.taskGroup {
+  margin-top: 1em;
 }
-.trow {
-  border: none;
+.taskBox {
+  padding: 12px;
+  margin: 10px;
+  border-radius: 5px;
+  background-color: #121212;
 }
-.tcol {
-  border: none;
-}
-.desc {
+.taskDesc {
   vertical-align: top;
-  color: lightgrey;
-  min-width: 15em;
+  color: darkgrey;
+  padding-top: 0.25em;
 }
-</style>
-
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-.taskTable > div > table {
-  border: none;
-  border-collapse: collapse;
+#tasks {
+  max-width: 512px;
+  margin-left: auto;
+  margin-right: auto;
 }
 </style>

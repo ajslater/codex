@@ -5,7 +5,7 @@ import { expect, test, vi } from "vitest";
 import VueRouter from "vue-router";
 import Vuetify from "vuetify";
 
-import ReaderNavButton from "@/components/reader/nav-button.vue";
+import ReaderNavButton from "@/components/reader/reader-nav-button.vue";
 
 const BTN_DISABLED = "v-btn--disabled";
 

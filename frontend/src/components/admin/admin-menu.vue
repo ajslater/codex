@@ -11,7 +11,7 @@
       <v-list-item
         :to="{ name: 'admin' }"
         ripple
-        @click="unseedFailedImports = false"
+        @click="unseenFailedImports = false"
       >
         <v-list-item-content>
           <v-list-item-title>
@@ -46,7 +46,6 @@ export default {
   },
   data() {
     return {
-      adminURL: window.CODEX.ADMIN_PATH,
       mdiBookAlert,
       mdiOpenInNew,
     };

@@ -1,8 +1,7 @@
 <template>
   <div>
     <AuthMenu />
-    <AdminMenu />
-
+    <component :is="adminMenuLoader" />
     <v-divider />
     <v-list-item-group>
       <v-list-item id="opds" ripple @click="copyToClipboard">
@@ -26,18 +25,19 @@
 
 <script>
 import { mdiContentCopy } from "@mdi/js";
+import { mapGetters } from "pinia";
 
-import AdminMenu from "@/components/admin/menu.vue";
-import AuthMenu from "@/components/auth/menu.vue";
+import { useAuthStore } from "@/stores/auth";
+
+const AdminMenu = () => import("@/components/admin/admin-menu.vue");
+import AuthMenu from "@/components/auth/auth-menu.vue";
 import VersionsFooter from "@/components/settings/version-footer.vue";
 
 export default {
   name: "SettingsCommonPanel",
-
   components: {
     AuthMenu,
     VersionsFooter,
-    AdminMenu,
   },
   data() {
     return {
@@ -46,6 +46,12 @@ export default {
       mdiContentCopy,
       showTool: false,
     };
+  },
+  computed: {
+    ...mapGetters(useAuthStore, ["isUserAdmin"]),
+    adminMenuLoader: function () {
+      return this.isUserAdmin ? AdminMenu : undefined;
+    },
   },
   methods: {
     copyToClipboard() {

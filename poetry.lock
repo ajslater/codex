@@ -65,21 +65,6 @@ toml = ["toml"]
 yaml = ["PyYAML"]
 
 [[package]]
-name = "beautifulsoup4"
-version = "4.11.1"
-description = "Screen-scraping library"
-category = "dev"
-optional = false
-python-versions = ">=3.6.0"
-
-[package.dependencies]
-soupsieve = ">1.2"
-
-[package.extras]
-html5lib = ["html5lib"]
-lxml = ["lxml"]
-
-[[package]]
 name = "black"
 version = "22.8.0"
 description = "The uncompromising code formatter."
@@ -296,18 +281,6 @@ optional = false
 python-versions = "*"
 
 [[package]]
-name = "django-debug-toolbar"
-version = "3.6.0"
-description = "A configurable set of panels that display various debug information about the current request/response."
-category = "dev"
-optional = false
-python-versions = ">=3.7"
-
-[package.dependencies]
-Django = ">=3.2.4"
-sqlparse = ">=0.2.0"
-
-[[package]]
 name = "django-haystack"
 version = "3.2.1"
 description = "Pluggable search for Django."
@@ -322,22 +295,8 @@ Django = ">=2.2"
 elasticsearch = ["elasticsearch (>=5,<8)"]
 
 [[package]]
-name = "django-livereload-server"
-version = "0.4"
-description = "LiveReload functionality integrated with your Django development environment"
-category = "dev"
-optional = false
-python-versions = "*"
-
-[package.dependencies]
-beautifulsoup4 = ">=4.3.2"
-django = ">=1.8"
-six = "*"
-tornado = "*"
-
-[[package]]
 name = "django-rest-registration"
-version = "0.7.2"
+version = "0.7.3"
 description = "User registration REST API, based on django-rest-framework"
 category = "main"
 optional = false
@@ -399,7 +358,7 @@ python-versions = ">=3.7,<4.0"
 
 [[package]]
 name = "djlint"
-version = "1.15.0"
+version = "1.17.1"
 description = "HTML Template Linter and Formatter"
 category = "dev"
 optional = false
@@ -530,17 +489,16 @@ pydocstyle = ">=2.1"
 
 [[package]]
 name = "flake8-eradicate"
-version = "1.3.0"
+version = "1.4.0"
 description = "Flake8 plugin to find commented out code"
 category = "dev"
 optional = false
-python-versions = ">=3.6,<4.0"
+python-versions = ">=3.7,<4.0"
 
 [package.dependencies]
 attrs = "*"
 eradicate = ">=2.0,<3.0"
 flake8 = ">=3.5,<6"
-setuptools = "*"
 
 [[package]]
 name = "fnvhash"
@@ -648,7 +606,7 @@ pyreadline3 = {version = "*", markers = "sys_platform == \"win32\" and python_ve
 
 [[package]]
 name = "humanize"
-version = "4.3.0"
+version = "4.4.0"
 description = "Python humanize utilities"
 category = "main"
 optional = false
@@ -1068,7 +1026,7 @@ python-versions = "*"
 
 [[package]]
 name = "pyright"
-version = "1.1.271"
+version = "1.1.272"
 description = "Command line wrapper for pyright"
 category = "dev"
 optional = false
@@ -1287,14 +1245,6 @@ optional = false
 python-versions = "*"
 
 [[package]]
-name = "soupsieve"
-version = "2.3.2.post1"
-description = "A modern CSS selector implementation for Beautiful Soup."
-category = "dev"
-optional = false
-python-versions = ">=3.6"
-
-[[package]]
 name = "sqlparse"
 version = "0.4.2"
 description = "A non-validating SQL parser."
@@ -1328,14 +1278,6 @@ description = "A lil' TOML parser"
 category = "dev"
 optional = false
 python-versions = ">=3.7"
-
-[[package]]
-name = "tornado"
-version = "6.2"
-description = "Tornado is a Python web framework and asynchronous networking library, originally developed at FriendFeed."
-category = "dev"
-optional = false
-python-versions = ">= 3.7"
 
 [[package]]
 name = "tqdm"
@@ -1417,7 +1359,7 @@ socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 
 [[package]]
 name = "vulture"
-version = "2.5"
+version = "2.6"
 description = "Find dead code"
 category = "dev"
 optional = false
@@ -1510,7 +1452,7 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=6)", "pytest-black (>=
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "6f8cb58c4f4330e7c5960b5b6191362181cd1bd790330e04ea957f91b3402bf6"
+content-hash = "d5ed6d4528719523d086e3326703e3d57cdb32e0b8d0308e8e880492b58990ce"
 
 [metadata.files]
 aioquic = [
@@ -1562,10 +1504,6 @@ attrs = [
 bandit = [
     {file = "bandit-1.7.4-py3-none-any.whl", hash = "sha256:412d3f259dab4077d0e7f0c11f50f650cc7d10db905d98f6520a95a18049658a"},
     {file = "bandit-1.7.4.tar.gz", hash = "sha256:2d63a8c573417bae338962d4b9b06fbc6080f74ecd955a092849e1e65c717bd2"},
-]
-beautifulsoup4 = [
-    {file = "beautifulsoup4-4.11.1-py3-none-any.whl", hash = "sha256:58d5c3d29f5a36ffeb94f02f0d786cd53014cf9b3b3951d42e0080d8a9498d30"},
-    {file = "beautifulsoup4-4.11.1.tar.gz", hash = "sha256:ad9aa55b65ef2808eb405f46cf74df7fcb7044d5cbc26487f96eb2ef2e436693"},
 ]
 black = [
     {file = "black-22.8.0-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:ce957f1d6b78a8a231b18e0dd2d94a33d2ba738cd88a7fe64f53f659eea49fdd"},
@@ -1852,20 +1790,12 @@ django-cors-headers = [
 django-dark = [
     {file = "django-dark-0.1.9.tar.gz", hash = "sha256:e7209f3606c6df0338211f8d2a01b5858d6f9984795f63cbe38fc02bd959ed37"},
 ]
-django-debug-toolbar = [
-    {file = "django-debug-toolbar-3.6.0.tar.gz", hash = "sha256:95fc2fd29c56cc86678aae9f6919ececefe892f2a78c4004b193a223a8380c3d"},
-    {file = "django_debug_toolbar-3.6.0-py3-none-any.whl", hash = "sha256:fe7fe3f21865218827e2162ecc06eba386dfe8cffe4f3501c49bb4359e06a0e6"},
-]
 django-haystack = [
     {file = "django-haystack-3.2.1.tar.gz", hash = "sha256:97e3197aefc225fe405b6f17600a2534bf827cb4d6743130c20bc1a06f7293a4"},
 ]
-django-livereload-server = [
-    {file = "django-livereload-server-0.4.tar.gz", hash = "sha256:60ed030085ca53671d25704b10ec7aa3cc94a16da437b727a8dcce42471b4c65"},
-    {file = "django_livereload_server-0.4-py2.py3-none-any.whl", hash = "sha256:136c231e7ad3ba7a4db65426632dfa9b964ac04e8fa5f3808166447f016a4a91"},
-]
 django-rest-registration = [
-    {file = "django-rest-registration-0.7.2.tar.gz", hash = "sha256:83996992658fe1f6ceb1fcd12ebad3a4deb11c6a8b993c5901c573b6c6f70aa4"},
-    {file = "django_rest_registration-0.7.2-py3-none-any.whl", hash = "sha256:79a7caca716b12a3bb616ac94321b778ff7027d481bed12752edc5ccfeba34e3"},
+    {file = "django-rest-registration-0.7.3.tar.gz", hash = "sha256:5ede9f8a1a08a1590124e6a91f1f132eeec872ecc5661a5564f07cae847689af"},
+    {file = "django_rest_registration-0.7.3-py3-none-any.whl", hash = "sha256:7807f9297743abbc7b9a22dbe58648d6c5f01ebc2c70ecfb8315adf95ce45dc4"},
 ]
 django-types = [
     {file = "django-types-0.16.0.tar.gz", hash = "sha256:29d23af8b88fa1579b47418e92ffc1d89bfbdf11eab64d2ae006fa09e54fed9a"},
@@ -1887,8 +1817,8 @@ djangorestframework-types = [
     {file = "djangorestframework_types-0.8.0-py3-none-any.whl", hash = "sha256:5136212ec0df2c11d5ebcf217246f606e68f1d46a770419de84ed676bdab0113"},
 ]
 djlint = [
-    {file = "djlint-1.15.0-py3-none-any.whl", hash = "sha256:de184041d0492273ab6654acca262822f35da2f98c7e360f829c1f5486b8a27d"},
-    {file = "djlint-1.15.0.tar.gz", hash = "sha256:510292359b239b4f915dce35665db9169033d8ee923b89d7667baa95d5f4dbbd"},
+    {file = "djlint-1.17.1-py3-none-any.whl", hash = "sha256:892e0e0ba5b49c017da7e7e4089426fd57fd9366f3fa69b5767dd0216475a786"},
+    {file = "djlint-1.17.1.tar.gz", hash = "sha256:f7109814c714d793ff45af3b25deafe787ea02d3117e3366c019ecd11ae6b3f5"},
 ]
 drf-spectacular = [
     {file = "drf-spectacular-0.24.0.tar.gz", hash = "sha256:bf22390e8d0aa53d81c5abf718ad4989c4e2eab133decc411a15c7e4ae3f6baf"},
@@ -1927,8 +1857,8 @@ flake8-docstrings = [
     {file = "flake8_docstrings-1.6.0-py2.py3-none-any.whl", hash = "sha256:99cac583d6c7e32dd28bbfbef120a7c0d1b6dde4adb5a9fd441c4227a6534bde"},
 ]
 flake8-eradicate = [
-    {file = "flake8-eradicate-1.3.0.tar.gz", hash = "sha256:e4c98f00d17dc8653e3388cac2624cd81e9735de2fd4a8dcf99029633ebd7a63"},
-    {file = "flake8_eradicate-1.3.0-py3-none-any.whl", hash = "sha256:85a71e0c5f4e07f7c6c5fec520483561fd6bd295417d622855bdeade99242e3d"},
+    {file = "flake8-eradicate-1.4.0.tar.gz", hash = "sha256:3088cfd6717d1c9c6c3ac45ef2e5f5b6c7267f7504d5a74b781500e95cb9c7e1"},
+    {file = "flake8_eradicate-1.4.0-py3-none-any.whl", hash = "sha256:e3bbd0871be358e908053c1ab728903c114f062ba596b4d40c852fd18f473d56"},
 ]
 fnvhash = [
     {file = "fnvhash-0.1.0.tar.gz", hash = "sha256:3e82d505054f9f3987b2b5b649f7e7b6f48349f6af8a1b8e4d66779699c85a8e"},
@@ -2025,8 +1955,8 @@ humanfriendly = [
     {file = "humanfriendly-10.0.tar.gz", hash = "sha256:6b0b831ce8f15f7300721aa49829fc4e83921a9a301cc7f606be6686a2288ddc"},
 ]
 humanize = [
-    {file = "humanize-4.3.0-py3-none-any.whl", hash = "sha256:5dd159c9910cd57b94072e4d7decae097f0eb84c4645153706929a7f127cb2ef"},
-    {file = "humanize-4.3.0.tar.gz", hash = "sha256:0dfac79fe8c1c0c734c14177b07b857bad9ae30dd50daa0a14e2c3d8054ee0c4"},
+    {file = "humanize-4.4.0-py3-none-any.whl", hash = "sha256:8830ebf2d65d0395c1bd4c79189ad71e023f277c2c7ae00f263124432e6f2ffa"},
+    {file = "humanize-4.4.0.tar.gz", hash = "sha256:efb2584565cc86b7ea87a977a15066de34cdedaf341b11c851cfcfd2b964779c"},
 ]
 hypercorn = [
     {file = "Hypercorn-0.14.3-py3-none-any.whl", hash = "sha256:7c491d5184f28ee960dcdc14ab45d14633ca79d72ddd13cf4fcb4cb854d679ab"},
@@ -2319,8 +2249,8 @@ pyreadline3 = [
     {file = "pyreadline3-3.4.1.tar.gz", hash = "sha256:6f3d1f7b8a31ba32b73917cefc1f28cc660562f39aea8646d30bd6eff21f7bae"},
 ]
 pyright = [
-    {file = "pyright-1.1.271-py3-none-any.whl", hash = "sha256:1d8da0eca3eade0500cf19da90aaf029263b6e339c6210c158c863758fe21de1"},
-    {file = "pyright-1.1.271.tar.gz", hash = "sha256:67b18ae5e6a5e291120bda19880d0e78c9c05e3cb10bd4439921bacc0bfd780f"},
+    {file = "pyright-1.1.272-py3-none-any.whl", hash = "sha256:1cbb7806265f57430a036420d0a69aa91db5b914f0f24777edc8b89824fb2142"},
+    {file = "pyright-1.1.272.tar.gz", hash = "sha256:4e65ce4120a75991e67f476989df55def4d366bced58fd27ec4e377143115069"},
 ]
 pyrsistent = [
     {file = "pyrsistent-0.18.1-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:df46c854f490f81210870e509818b729db4488e1f30f2a1ce1698b2295a878d1"},
@@ -2530,10 +2460,6 @@ snowballstemmer = [
     {file = "snowballstemmer-2.2.0-py2.py3-none-any.whl", hash = "sha256:c8e1716e83cc398ae16824e5572ae04e0d9fc2c6b985fb0f900f5f0c96ecba1a"},
     {file = "snowballstemmer-2.2.0.tar.gz", hash = "sha256:09b16deb8547d3412ad7b590689584cd0fe25ec8db3be37788be3810cbf19cb1"},
 ]
-soupsieve = [
-    {file = "soupsieve-2.3.2.post1-py3-none-any.whl", hash = "sha256:3b2503d3c7084a42b1ebd08116e5f81aadfaea95863628c80a3b774a11b7c759"},
-    {file = "soupsieve-2.3.2.post1.tar.gz", hash = "sha256:fc53893b3da2c33de295667a0e19f078c14bf86544af307354de5fcf12a3f30d"},
-]
 sqlparse = [
     {file = "sqlparse-0.4.2-py3-none-any.whl", hash = "sha256:48719e356bb8b42991bdbb1e8b83223757b93789c00910a616a071910ca4a64d"},
     {file = "sqlparse-0.4.2.tar.gz", hash = "sha256:0c00730c74263a94e5a9919ade150dfc3b19c574389985446148402998287dae"},
@@ -2549,19 +2475,6 @@ toml = [
 tomli = [
     {file = "tomli-2.0.1-py3-none-any.whl", hash = "sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc"},
     {file = "tomli-2.0.1.tar.gz", hash = "sha256:de526c12914f0c550d15924c62d72abc48d6fe7364aa87328337a31007fe8a4f"},
-]
-tornado = [
-    {file = "tornado-6.2-cp37-abi3-macosx_10_9_universal2.whl", hash = "sha256:20f638fd8cc85f3cbae3c732326e96addff0a15e22d80f049e00121651e82e72"},
-    {file = "tornado-6.2-cp37-abi3-macosx_10_9_x86_64.whl", hash = "sha256:87dcafae3e884462f90c90ecc200defe5e580a7fbbb4365eda7c7c1eb809ebc9"},
-    {file = "tornado-6.2-cp37-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:ba09ef14ca9893954244fd872798b4ccb2367c165946ce2dd7376aebdde8e3ac"},
-    {file = "tornado-6.2-cp37-abi3-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:b8150f721c101abdef99073bf66d3903e292d851bee51910839831caba341a75"},
-    {file = "tornado-6.2-cp37-abi3-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d3a2f5999215a3a06a4fc218026cd84c61b8b2b40ac5296a6db1f1451ef04c1e"},
-    {file = "tornado-6.2-cp37-abi3-musllinux_1_1_aarch64.whl", hash = "sha256:5f8c52d219d4995388119af7ccaa0bcec289535747620116a58d830e7c25d8a8"},
-    {file = "tornado-6.2-cp37-abi3-musllinux_1_1_i686.whl", hash = "sha256:6fdfabffd8dfcb6cf887428849d30cf19a3ea34c2c248461e1f7d718ad30b66b"},
-    {file = "tornado-6.2-cp37-abi3-musllinux_1_1_x86_64.whl", hash = "sha256:1d54d13ab8414ed44de07efecb97d4ef7c39f7438cf5e976ccd356bebb1b5fca"},
-    {file = "tornado-6.2-cp37-abi3-win32.whl", hash = "sha256:5c87076709343557ef8032934ce5f637dbb552efa7b21d08e89ae7619ed0eb23"},
-    {file = "tornado-6.2-cp37-abi3-win_amd64.whl", hash = "sha256:e5f923aa6a47e133d1cf87d60700889d7eae68988704e20c75fb2d65677a8e4b"},
-    {file = "tornado-6.2.tar.gz", hash = "sha256:9b630419bde84ec666bfd7ea0a4cb2a8a651c2d5cccdbdd1972a0c859dfc3c13"},
 ]
 tqdm = [
     {file = "tqdm-4.64.1-py2.py3-none-any.whl", hash = "sha256:6fee160d6ffcd1b1c68c65f14c829c22832bc401726335ce92c52d395944a6a1"},
@@ -2592,8 +2505,8 @@ urllib3 = [
     {file = "urllib3-1.26.12.tar.gz", hash = "sha256:3fa96cf423e6987997fc326ae8df396db2a8b7c667747d47ddd8ecba91f4a74e"},
 ]
 vulture = [
-    {file = "vulture-2.5-py2.py3-none-any.whl", hash = "sha256:a7c7e7a23b11e78840fdd821509d05a6134aa9fd60418fe39d60b3026fe698d9"},
-    {file = "vulture-2.5.tar.gz", hash = "sha256:2831694055eb2e36a09c3b7680934837102b9b6c0969206e3902d513612177c3"},
+    {file = "vulture-2.6-py2.py3-none-any.whl", hash = "sha256:e792e903ccc063ec4873a8979dcf11b51ea3d65a2d3b31c113d47be48f0cdcae"},
+    {file = "vulture-2.6.tar.gz", hash = "sha256:2515fa848181001dc8a73aba6a01a1a17406f5d372f24ec7f7191866f9f4997e"},
 ]
 watchdog = [
     {file = "watchdog-2.1.9-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:a735a990a1095f75ca4f36ea2ef2752c99e6ee997c46b0de507ba40a09bf7330"},

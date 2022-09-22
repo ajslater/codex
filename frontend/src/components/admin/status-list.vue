@@ -1,10 +1,19 @@
 <template>
   <v-list-item-group>
+    <v-divider v-if="show" />
     <v-list-item ripple @click="load">
       <v-list-item-content>
         <v-expand-transition>
-          <div v-if="librarianStatuses.length > 0">
-            <v-divider />
+          <div v-if="show">
+            <v-btn
+              id="clearButton"
+              small
+              ripple
+              icon
+              title="Clear Librarian Statuses"
+              @click="clear"
+              ><v-icon>{{ mdiCloseCircleOutline }}</v-icon></v-btn
+            >
             <h4>Librarian Tasks</h4>
             <v-expand-transition
               v-for="status of librarianStatuses"
@@ -36,22 +45,27 @@
 </template>
 
 <script>
+import { mdiCloseCircleOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import { useAdminStore } from "@/stores/admin";
 
 export default {
   name: "AdminStatusList",
+  data() {
+    return { mdiCloseCircleOutline };
+  },
   computed: {
     ...mapState(useAdminStore, {
       librarianStatuses: (state) => state.librarianStatuses,
+      show: (state) => state.librarianStatuses.length > 0,
     }),
   },
   created() {
     this.load();
   },
   methods: {
-    ...mapActions(useAdminStore, ["loadTable"]),
+    ...mapActions(useAdminStore, ["loadTable", "librarianTask"]),
     computeValue: function (status) {
       if (status.preactive || +status.total === 0) {
         return 0;
@@ -60,6 +74,9 @@ export default {
     },
     load() {
       this.loadTable("LibrarianStatus");
+    },
+    clear() {
+      this.librarianTask("librarian_clear_status", "");
     },
   },
 };
@@ -79,6 +96,10 @@ h4 {
 }
 #noTasksRunning {
   margin-left: 1em;
+  color: grey;
+}
+#clearButton {
+  float: right;
   color: grey;
 }
 </style>

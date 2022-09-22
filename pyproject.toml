@@ -4,7 +4,7 @@ build-backend = ["poetry.core.masonry.api"]
 
 [tool.poetry]
 name = "codex"
-version = "0.13.0a0"
+version = "0.13.0a6"
 description = "A comic archive web server."
 license = "GPL-2.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
@@ -68,8 +68,6 @@ xapian-haystack = "^3.0.1"
 Pillow = "^9.1.0"
 
 [tool.poetry.group.dev.dependencies]
-django-debug-toolbar = "^3.1"
-django-livereload-server = "^0.4"
 nplusone = "^1.0.0"
 pushover-simple-cli = "^1.1.2"
 pynvim = "^0.4"

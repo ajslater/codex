@@ -18,7 +18,7 @@
 <script>
 import { mapActions, mapState } from "pinia";
 
-import AuthChangePasswordDialog from "@/components/auth/change-password-dialog.vue";
+import AuthChangePasswordDialog from "@/components/auth/auth-change-password-dialog.vue";
 import AuthLoginDialog from "@/components/auth/login-dialog.vue";
 import { useAuthStore } from "@/stores/auth";
 

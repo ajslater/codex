@@ -5,10 +5,10 @@
     app
     right
     touchless
-    :mobile-breakpoint="768"
+    :mobile-breakpoint="960"
   >
-    <v-list-item-group>
-      <v-list-item :to="{ name: 'home' }">
+    <v-list-item-group id="browserLink">
+      <v-list-item ref="browserLink" ripple :to="browserRoute">
         <v-list-item-content>
           <v-list-item-title> Browser </v-list-item-title>
         </v-list-item-content>
@@ -38,12 +38,13 @@
 
 <script>
 import { mdiOpenInNew } from "@mdi/js";
-import { mapWritableState } from "pinia";
+import { mapState, mapWritableState } from "pinia";
 
 import AdminStatusList from "@/components/admin/status-list.vue";
 import AuthMenu from "@/components/auth/auth-menu.vue";
 import VersionFooter from "@/components/settings/version-footer.vue";
 import { useAdminStore } from "@/stores/admin";
+import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "AdminSettingsDrawer",
@@ -54,17 +55,26 @@ export default {
   },
   data() {
     return {
-      djangoAdminURL: window.CODEX.ADMIN_PATH,
+      djangoAdminURL: window.CODEX.DJANGO_ADMIN_PATH,
       mdiOpenInNew,
     };
   },
   computed: {
     ...mapWritableState(useAdminStore, ["isSettingsDrawerOpen"]),
+    ...mapState(useBrowserStore, {
+      browserRoute: (state) =>
+        state.page.routes.last
+          ? { name: "browser", params: state.page.routes.last }
+          : { name: "home" },
+    }),
   },
 };
 </script>
 
 <style scoped lang="scss">
+#adminSetingsDrawer {
+  z-index: 20;
+}
 #footerGroup {
   color: grey;
   position: absolute;

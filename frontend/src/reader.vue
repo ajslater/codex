@@ -33,10 +33,10 @@
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import ReaderNavOverlay from "@/components/reader/nav-overlay.vue";
-import ReaderNavToolbar from "@/components/reader/nav-toolbar.vue";
 import ReaderPage from "@/components/reader/page.vue";
-import ReaderSettingsDrawer from "@/components/reader/settings-drawer.vue";
-import ReaderTitleToolbar from "@/components/reader/title-toolbar.vue";
+import ReaderNavToolbar from "@/components/reader/reader-nav-toolbar.vue";
+import ReaderSettingsDrawer from "@/components/reader/reader-settings-drawer.vue";
+import ReaderTitleToolbar from "@/components/reader/reader-title-toolbar.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useReaderStore } from "@/stores/reader";
 

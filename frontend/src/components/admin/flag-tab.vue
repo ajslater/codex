@@ -1,17 +1,23 @@
 <template>
-  <v-simple-table fixed-header :height="tableHeight">
+  <v-simple-table
+    fixed-header
+    :height="tableHeight"
+    class="highlight-simple-table admin-tab"
+  >
     <template #default>
       <thead>
         <tr>
-          <th>Name</th>
-          <th>Enabled</th>
           <th>Description</th>
+          <th>Enabled</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="item in flags" :key="`f:${item.id}:${item.keyHack}`">
           <td class="nameCol">
-            {{ item.name }}
+            <h4>{{ item.name }}</h4>
+            <p class="desc">
+              {{ DESC[item.name] }}
+            </p>
           </td>
           <td>
             <v-checkbox
@@ -24,9 +30,6 @@
               @blur="item.keyHack = Date.now()"
               @change="changeCol(item.id, 'on', $event === true)"
             />
-          </td>
-          <td class="descCol">
-            {{ DESC[item.name] }}
           </td>
         </tr>
       </tbody>
@@ -51,6 +54,10 @@ const DESC = {
 };
 Object.freeze(DESC);
 
+const FIXED_TOOLBARS = 96 + 16;
+const TABLE_PADDING = 24;
+const BUFFER = FIXED_TOOLBARS + TABLE_PADDING;
+
 export default {
   name: "AdminFlagsPanel",
   data() {
@@ -60,13 +67,20 @@ export default {
         field: undefined,
       },
       DESC,
+      tableHeight: 0,
     };
   },
   computed: {
     ...mapState(useAdminStore, {
       flags: (state) => state.flags,
     }),
-    tableHeight: () => window.innerHeight * 0.9,
+  },
+  mounted() {
+    this.onResize();
+    window.addEventListener("resize", this.onResize);
+  },
+  unmounted() {
+    window.removeEventListener("resize", this.onResize);
   },
   methods: {
     ...mapActions(useAdminStore, ["updateRow", "clearErrors"]),
@@ -81,16 +95,19 @@ export default {
         return this.formErrors;
       }
     },
+    onResize() {
+      this.tableHeight = window.innerHeight - BUFFER;
+    },
   },
 };
 </script>
 
 <style scoped lang="scss">
 .nameCol {
-  min-width: 12em;
+  padding-top: 0.5em !important;
 }
-.descCol {
-  color: lightgrey;
-  min-width: 15em;
+.desc {
+  margin-top: 1em;
+  color: darkgrey;
 }
 </style>
