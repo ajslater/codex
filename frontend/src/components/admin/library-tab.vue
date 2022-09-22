@@ -96,7 +96,8 @@ const FIXED_TOOLBARS = 96 + 16;
 const ADD_HEADER = 36;
 const FAILED_IMPORTS = 60 + 48 + 64;
 const BUFFER = FIXED_TOOLBARS + ADD_HEADER + FAILED_IMPORTS;
-const MIN_TABLE_HEIGHT = 48 * 4;
+const TABLE_ROW_HEIGHT = 48;
+const MIN_TABLE_HEIGHT = TABLE_ROW_HEIGHT * 2;
 
 export default {
   name: "AdminLibrariesPanel",
@@ -123,6 +124,8 @@ export default {
     ...mapState(useAdminStore, {
       libraries: (state) => state.libraries,
       formErrors: (state) => state.form.errors,
+      tableMaxHeight: (state) =>
+        (state.libraries.length + 1) * TABLE_ROW_HEIGHT,
     }),
     ...mapGetters(useAdminStore, ["groupMap"]),
   },
@@ -159,10 +162,11 @@ export default {
       this.librarianTask("poll_force", `Force Poll Library ${pk}`, pk);
     },
     onResize() {
-      this.tableHeight = Math.max(
-        MIN_TABLE_HEIGHT,
-        (window.innerHeight - BUFFER) / 2
-      );
+      const availableHeight = window.innerHeight - BUFFER;
+      this.tableHeight =
+        this.tableMaxHeight < availableHeight
+          ? undefined
+          : Math.max(availableHeight, MIN_TABLE_HEIGHT);
     },
   },
 };

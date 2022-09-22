@@ -83,8 +83,8 @@ export default {
   z-index: 10;
   width: 100%;
   padding-top: env(safe-area-inset-top);
-  padding-right: calc(env(safe-area-inset-right) / 3);
-  padding-left: calc(env(safe-area-inset-left) / 3);
+  padding-right: calc(env(safe-area-inset-right) / 2);
+  padding-left: calc(env(safe-area-inset-left) / 2);
 }
 .rightSpace {
   width: calc(100% - 256px) !important;

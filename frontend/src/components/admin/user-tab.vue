@@ -80,6 +80,8 @@ import { useAuthStore } from "@/stores/auth";
 const FIXED_TOOLBARS = 96 + 16;
 const ADD_HEADER = 36;
 const BUFFER = FIXED_TOOLBARS + ADD_HEADER;
+const TABLE_ROW_HEIGHT = 48;
+const MIN_TABLE_HEIGHT = TABLE_ROW_HEIGHT * 2;
 
 export default {
   name: "AdminUsersPanel",
@@ -92,12 +94,13 @@ export default {
   },
   data() {
     return {
-      tableHeight: 0,
+      tableHeight: undefined,
     };
   },
   computed: {
     ...mapState(useAdminStore, {
       users: (state) => state.users,
+      tableMaxHeight: (state) => (state.users.length + 1) * TABLE_ROW_HEIGHT,
     }),
     ...mapState(useAuthStore, {
       me: (state) => state.user,
@@ -113,7 +116,11 @@ export default {
   },
   methods: {
     onResize() {
-      this.tableHeight = window.innerHeight - BUFFER;
+      const availableHeight = window.innerHeight - BUFFER;
+      this.tableHeight =
+        this.tableMaxHeight < availableHeight
+          ? undefined
+          : Math.max(availableHeight, MIN_TABLE_HEIGHT);
     },
   },
 };

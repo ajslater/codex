@@ -73,7 +73,8 @@ const FIXED_TOOLBARS = 96 + 16;
 const ADD_HEADER = 36;
 const GROUP_HELP = 180;
 const BUFFER = FIXED_TOOLBARS + ADD_HEADER + GROUP_HELP;
-const MIN_TABLE_HEIGHT = 48 * 4;
+const TABLE_ROW_HEIGHT = 48;
+const MIN_TABLE_HEIGHT = TABLE_ROW_HEIGHT * 2;
 
 export default {
   name: "AdminGroupsPanel",
@@ -94,6 +95,7 @@ export default {
   computed: {
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,
+      tableMaxHeight: (state) => (state.groups.length + 1) * TABLE_ROW_HEIGHT,
     }),
     ...mapGetters(useAdminStore, ["libraryMap", "userMap"]),
   },
@@ -106,10 +108,11 @@ export default {
   },
   methods: {
     onResize() {
-      this.tableHeight = Math.max(
-        MIN_TABLE_HEIGHT,
-        window.innerHeight - BUFFER
-      );
+      const availableHeight = window.innerHeight - BUFFER;
+      this.tableHeight =
+        this.tableMaxHeight < availableHeight
+          ? undefined
+          : Math.max(availableHeight, MIN_TABLE_HEIGHT);
     },
   },
 };
