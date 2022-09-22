@@ -41,7 +41,7 @@ import { mdiOpenInNew } from "@mdi/js";
 import { mapWritableState } from "pinia";
 
 import AdminStatusList from "@/components/admin/status-list.vue";
-import AuthMenu from "@/components/auth/menu.vue";
+import AuthMenu from "@/components/auth/auth-menu.vue";
 import VersionFooter from "@/components/settings/version-footer.vue";
 import { useAdminStore } from "@/stores/admin";
 

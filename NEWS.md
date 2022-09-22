@@ -10,8 +10,6 @@ border-radius: 128px;
 
 ### Admin Panel
 
-### Admin Panel
-
 - Features
   - Single Page Admin Panel.
   - Users may now change their own passwords.
@@ -401,8 +399,10 @@ Yanked. Crash loading admin page.
 ### Feels Snappier
 
 - Database Migration
+
   - v0.7.0 changes the database schema. Databases run with v0.7.0+ will not run
     on previous versions of codex.
+
 - Features
 
   - Big speed up to importing comics for large imports.
