@@ -3,6 +3,7 @@
     <v-main id="readerWrapper">
       <div v-if="isCodexViewable" id="readerContainer">
         <v-main>
+          <!--
           <div id="pagesContainer">
             <ReaderPage :page-increment="+0" />
             <ReaderPage :page-increment="+1" />
@@ -10,6 +11,8 @@
           <div id="navOverlay" :v-touch="touchMap" @click="toggleToolbars">
             <ReaderNavOverlay />
           </div>
+            -->
+          <ReaderCarousel @click="toggleToolbars" />
         </v-main>
         <v-slide-y-transition>
           <ReaderTitleToolbar v-show="showToolbars" />
@@ -32,8 +35,9 @@
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 
-import ReaderNavOverlay from "@/components/reader/nav-overlay.vue";
-import ReaderPage from "@/components/reader/page.vue";
+// import ReaderNavOverlay from "@/components/reader/nav-overlay.vue";
+// import ReaderPage from "@/components/reader/page.vue";
+import ReaderCarousel from "@/components/reader/reader-carousel.vue";
 import ReaderNavToolbar from "@/components/reader/reader-nav-toolbar.vue";
 import ReaderSettingsDrawer from "@/components/reader/reader-settings-drawer.vue";
 import ReaderTitleToolbar from "@/components/reader/reader-title-toolbar.vue";
@@ -43,8 +47,7 @@ import { useReaderStore } from "@/stores/reader";
 export default {
   name: "MainReader",
   components: {
-    ReaderPage,
-    ReaderNavOverlay,
+    ReaderCarousel,
     ReaderNavToolbar,
     ReaderTitleToolbar,
     ReaderSettingsDrawer,
@@ -55,10 +58,13 @@ export default {
     };
   },
   computed: {
+    ...mapGetters(useAuthStore, ["isCodexViewable"]),
     ...mapState(useAuthStore, {
       user: (state) => state.user,
     }),
-    ...mapGetters(useAuthStore, ["isCodexViewable"]),
+    ...mapState(useReaderStore, {
+      pages: (state) => state.pages,
+    }),
     touchMap: function () {
       return !this.$vuetify.breakpoint.mobile
         ? {
