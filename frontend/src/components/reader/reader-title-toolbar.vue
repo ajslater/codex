@@ -46,6 +46,9 @@ import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
 
+const PREV = "prev";
+const NEXT = "next";
+
 export default {
   name: "ReaderTitleToolbar",
   components: {
@@ -68,6 +71,7 @@ export default {
       title: function (state) {
         return getFullComicName(state.comic);
       },
+      routes: (state) => state.routes,
       timestamp: (state) => state.timestamp,
       seriesPosition: function (state) {
         if (state.routes.seriesCount > 1) {
@@ -110,15 +114,46 @@ export default {
   },
   methods: {
     ...mapActions(useCommonStore, ["downloadIOSPWAFix"]),
+    ...mapActions(useReaderStore, ["routeToDirection"]),
     openMetadata: function () {
       this.$refs.metadataDialog.dialog = true;
     },
     _keyListener: function (event) {
       event.stopPropagation();
-      if (event.key === "c") {
-        this.$refs.closeBook.$el.click();
-      } else if (event.key === "m") {
-        this.openMetadata();
+      switch (event.key) {
+        case " ":
+          if (
+            !event.shiftKey &&
+            window.innerHeight + window.scrollY >= document.body.scrollHeight &&
+            this.routes.next
+          ) {
+            // Spacebar goes next only at the bottom of page
+            this.routeToDirection(NEXT);
+          } else if (
+            // Shift + Spacebar goes back only at the top of page
+            !!event.shiftKey &&
+            window.scrollY === 0 &&
+            this.routes.prev
+          ) {
+            this.routeToDirection(PREV);
+          }
+          break;
+        case "j":
+        case "ArrowRight":
+          this.routeToDirection(NEXT);
+          break;
+
+        case "k":
+        case "ArrowLeft":
+          this.routeToDirection(PREV);
+          break;
+        case "c":
+          this.$refs.closeBook.$el.click();
+          break;
+        case "m":
+          this.openMetadata();
+          break;
+        // No default
       }
     },
     download() {

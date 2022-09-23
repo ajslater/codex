@@ -68,7 +68,7 @@ export const useReaderStore = defineStore("reader", {
       issue: undefined,
       issueSuffix: "",
       issueCount: undefined,
-      maxPage: 0,
+      maxPage: undefined,
       seriesName: "",
       volumeName: "",
     },

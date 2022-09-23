@@ -3,16 +3,8 @@
     <v-main id="readerWrapper">
       <div v-if="isCodexViewable" id="readerContainer">
         <v-main>
-          <!--
-          <div id="pagesContainer">
-            <ReaderPage :page-increment="+0" />
-            <ReaderPage :page-increment="+1" />
-          </div>
-          <div id="navOverlay" :v-touch="touchMap" @click="toggleToolbars">
-            <ReaderNavOverlay />
-          </div>
-            -->
-          <ReaderCarousel @click="toggleToolbars" />
+          <PDFReader v-if="isPDF" @click="toggleToolbars" />
+          <ComicReader v-else @click="toggleToolbars" />
         </v-main>
         <v-slide-y-transition>
           <ReaderTitleToolbar v-show="showToolbars" />
@@ -35,9 +27,8 @@
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 
-// import ReaderNavOverlay from "@/components/reader/nav-overlay.vue";
-// import ReaderPage from "@/components/reader/page.vue";
-import ReaderCarousel from "@/components/reader/reader-carousel.vue";
+const PDFReader = import("@/components/reader/pdf.vue");
+import ComicReader from "@/components/reader/pages.vue";
 import ReaderNavToolbar from "@/components/reader/reader-nav-toolbar.vue";
 import ReaderSettingsDrawer from "@/components/reader/reader-settings-drawer.vue";
 import ReaderTitleToolbar from "@/components/reader/reader-title-toolbar.vue";
@@ -47,7 +38,8 @@ import { useReaderStore } from "@/stores/reader";
 export default {
   name: "MainReader",
   components: {
-    ReaderCarousel,
+    PDFReader,
+    ComicReader,
     ReaderNavToolbar,
     ReaderTitleToolbar,
     ReaderSettingsDrawer,
@@ -63,16 +55,8 @@ export default {
       user: (state) => state.user,
     }),
     ...mapState(useReaderStore, {
-      pages: (state) => state.pages,
+      isPDF: (state) => state.comic.fileFormat === "pdf",
     }),
-    touchMap: function () {
-      return !this.$vuetify.breakpoint.mobile
-        ? {
-            left: () => this.routeTo("next"),
-            right: () => this.routeTo("prev"),
-          }
-        : {};
-    },
   },
   watch: {
     $route(to, from) {
@@ -109,19 +93,6 @@ export default {
 </script>
 
 <style scoped lang="scss">
-#navOverlay {
-  position: fixed;
-  top: 0px;
-  width: 100%;
-  height: 100vh;
-}
-#pagesContainer {
-  /* because its more difficult to center with v-main */
-  display: flex;
-  flex-wrap: nowrap;
-  justify-content: center;
-  touch-action: manipulation;
-}
 #readerContainer {
   max-width: 100%;
   position: relative;
