@@ -1,25 +1,33 @@
 <template>
-  <v-window id="pageWindow" v-model="windowPage" show-arrows @change="change">
+  <v-window
+    id="pageWindow"
+    ref="pageWindow"
+    v-model="windowPage"
+    show-arrows
+    @change="change"
+  >
     <template #prev="{ on, attrs }">
       <div class="navColumn" v-bind="attrs" v-on="on"></div>
     </template>
     <template #next="{ on, attrs }">
       <div class="navColumn" v-bind="attrs" v-on="on"></div>
     </template>
-    <v-window-item
-      v-for="page in maxPage"
-      :key="page"
-      class="windowItem"
-      @click="$emit('click')"
-    >
+    <v-window-item v-for="page in maxPage" :key="page" class="windowItem">
+      <PDFPage v-if="isPDF" :source="getSrc(page)" :classes="fitToClass" />
       <img
+        v-else
         class="page"
         :src="getSrc(page)"
         :class="fitToClass"
         :alt="`Page ${page}`"
       />
+      <PDFPage
+        v-if="secondPage && isPDF"
+        :source="getSrc(page + 1)"
+        :classes="fitToClass"
+      />
       <img
-        v-if="secondPage"
+        v-else-if="secondPage"
         class="page"
         :src="getSrc(page + 1)"
         :class="fitToClass"
@@ -33,14 +41,14 @@
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import { getComicPageSource } from "@/api/v3/reader";
+import PDFPage from "@/components/reader/pdf.vue";
 import { useReaderStore } from "@/stores/reader";
-
-//const PLACEHOLDER_ENGAGE_MS = 500;
-//const TOOLBAR_HEIGHT = 48;
 
 export default {
   name: "ReaderWindow",
-  props: {},
+  components: {
+    PDFPage,
+  },
   data() {
     return {
       windowPage: 0,
@@ -64,6 +72,7 @@ export default {
           +this.windowPage + 1 <= state.comic.maxPage
         );
       },
+      isPDF: (state) => state.comic.fileFormat === "pdf",
     }),
     ...mapGetters(useReaderStore, ["computedSettings"]),
     prefetchHref() {
@@ -89,12 +98,19 @@ export default {
   },
   watch: {
     $route: function () {
-      console.log("route changed");
       this.setPage();
     },
   },
-  created: function () {
+  created() {
     this.setPage();
+  },
+  mounted() {
+    const windowContainer = this.$refs.pageWindow.$el.children[0];
+    windowContainer.addEventListener("click", this.click);
+  },
+  unmounted() {
+    const windowContainer = this.$refs.pageWindow.$el.children[0];
+    windowContainer.removeEventListener("click", this.click);
   },
   methods: {
     ...mapActions(useReaderStore, ["routeToPage"]),
@@ -108,6 +124,9 @@ export default {
     change(page) {
       this.routeToPage(page);
     },
+    click() {
+      this.$emit("click");
+    },
   },
 };
 </script>
@@ -118,8 +137,9 @@ export default {
   height: 100%;
 }
 .windowItem {
+  /* keeps clickable area full screen when image is small */
+  min-height: 100vh;
   text-align: center;
-  height: 100vh;
 }
 .fitToScreen,
 .fitToScreenTwo {
