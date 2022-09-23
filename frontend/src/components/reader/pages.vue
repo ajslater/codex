@@ -40,7 +40,7 @@
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import { getComicPageSource } from "@/api/v3/reader";
-import PDFPage from "@/components/reader/pdf.vue";
+const PDFPage = () => import("@/components/reader/pdf.vue");
 import { useReaderStore } from "@/stores/reader";
 
 export default {
