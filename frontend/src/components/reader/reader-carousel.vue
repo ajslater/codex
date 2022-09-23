@@ -1,10 +1,5 @@
 <template>
   <div>
-    <Placeholder
-      class="placeholder"
-      :size="placeholderSize"
-      :class="{ hidden: loaded }"
-    />
     <vue-pdf-embed
       v-if="isPDF"
       :key="pdfKey"
@@ -17,9 +12,14 @@
       :disable-text-layer="true"
       @load="imgLoaded"
     />
-    <v-carousel @change="carouselChange">
-      <v-carousel-item v-for="page in pages" :key="page" :src="src(page)" />
-    </v-carousel>
+    <v-window v-else v-model="currentPage" @change="change">
+      <v-window-item v-for="page in pages" :key="page" @click="click">
+        <v-card>
+          <img :src="src(page)" />
+          <img v-if="secondPage" :src="src(page + 1)" />
+        </v-card>
+      </v-window-item>
+    </v-window>
   </div>
 </template>
 
@@ -28,14 +28,14 @@ import { mapGetters, mapState } from "pinia";
 const VuePdfEmbed = () => import("vue-pdf-embed/dist/vue2-pdf-embed");
 
 import { getComicPageSource } from "@/api/v3/reader";
-import Placeholder from "@/components/placeholder-loading.vue";
 import { useReaderStore } from "@/stores/reader";
 
 //const PLACEHOLDER_ENGAGE_MS = 500;
+const TOOLBAR_HEIGHT = 48;
 
 export default {
-  name: "ReaderCarousel",
-  components: { Placeholder, VuePdfEmbed },
+  name: "ReaderWindow",
+  components: { VuePdfEmbed },
   props: {},
   data() {
     return {
@@ -55,14 +55,12 @@ export default {
       nextRoute: (state) => state.routes.next,
       timestamp: (state) => state.timestamp,
       isPDF: (state) => state.comic.fileFormat === "pdf",
+      secondPage: (state) =>
+        state.settings.twoPages && this.currentPage + 1 <= state.comic.maxPage,
     }),
     ...mapGetters(useReaderStore, ["computedSettings"]),
     displayPage() {
       return this.currentPage <= this.maxPage && this.currentPage >= 0;
-    },
-    placeholderSize() {
-      const maxDimension = Math.min(window.innerHeight, window.innerWidth);
-      return Number.parseInt(maxDimension / 2);
     },
     nextSrc() {
       const route = { ...this.nextRoute };
@@ -121,9 +119,7 @@ export default {
   methods: {
     src(page) {
       const routeParams = { ...this.$router.currentRoute.params, page };
-      const res = getComicPageSource(routeParams, this.timestamp);
-      console.log(res);
-      return res;
+      return getComicPageSource(routeParams, this.timestamp);
     },
     setPage: function () {
       // page can't be computed because router params aren't reactive.
@@ -137,7 +133,7 @@ export default {
       }
       this.pages.sort();
     },
-    carouselChange(page) {
+    change(page) {
       console.log({ page });
       const params = {
         ...this.$router.currentRoute.params,
@@ -146,14 +142,51 @@ export default {
       console.log({ params });
       this.$router.push({ params });
     },
-    imgLoaded: function () {
-      this.loaded = Date.now();
+    click(event) {
+      const columnWidth = window.innerWidth / 3;
+      if (
+        event.y < TOOLBAR_HEIGHT ||
+        event.y > window.innerHeight - TOOLBAR_HEIGHT ||
+        (event.x > columnWidth && event.x < window.innerWidth - columnWidth)
+      ) {
+        this.$emit("click");
+      } else {
+        if (event.x < columnWidth) {
+          if (this.currentPage > 0) {
+            console.log("back");
+            const page = this.currentPage - 1;
+            const params = {
+              ...this.$router.currentRoute.params,
+              page,
+            };
+
+            this.$router.push({ params });
+          }
+        } else {
+          if (this.currentPage < this.maxPage) {
+            console.log("forth");
+            const page = this.currentPage + 1;
+            const params = {
+              ...this.$router.currentRoute.params,
+              page,
+            };
+
+            this.$router.push({ params });
+          }
+        }
+      }
     },
   },
 };
 </script>
 
 <style scoped lang="scss">
+/*
+#window,
+ #window .v-window__item {
+  height: 100% !important;
+}
+*/
 .page {
   flex: 0 0 auto;
   /* align-self fixes mobile safari stretching the image weirdly */
