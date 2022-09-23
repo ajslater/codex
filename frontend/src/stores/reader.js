@@ -96,6 +96,20 @@ export const useReaderStore = defineStore("reader", {
       }
       return computedSettings;
     },
+    fitToClass(state) {
+      let classes = {};
+      const fitTo = state.computedSettings.fitTo;
+      if (fitTo) {
+        let fitToClass = "fitTo";
+        fitToClass += fitTo.charAt(0).toUpperCase();
+        fitToClass += fitTo.slice(1).toLowerCase();
+        if (state.computedSettings.twoPages) {
+          fitToClass += "Two";
+        }
+        classes[fitToClass] = true;
+      }
+      return classes;
+    },
   },
   actions: {
     ///////////////////////////////////////////////////////////////////////////

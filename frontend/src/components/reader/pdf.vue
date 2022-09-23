@@ -4,7 +4,7 @@
     :disable-annotation-layer="false"
     :disable-text-layer="false"
     class="pdfPage"
-    :class="classes"
+    :class="fitToClass"
     :page="1"
     :source="source"
     :width="width"
@@ -13,7 +13,7 @@
 </template>
 
 <script>
-import { mapState } from "pinia";
+import { mapGetters, mapState } from "pinia";
 import VuePdfEmbed from "vue-pdf-embed/dist/vue2-pdf-embed";
 
 import { useReaderStore } from "@/stores/reader";
@@ -26,12 +26,9 @@ export default {
       type: String,
       required: true,
     },
-    classes: {
-      type: Object,
-      default: undefined,
-    },
   },
   computed: {
+    ...mapGetters(useReaderStore, ["fitToClass"]),
     ...mapState(useReaderStore, {
       width(state) {
         // Wide PDFs will not fit to SCREEN well.

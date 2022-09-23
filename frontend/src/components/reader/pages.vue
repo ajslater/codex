@@ -13,7 +13,7 @@
       <div class="navColumn" v-bind="attrs" v-on="on"></div>
     </template>
     <v-window-item v-for="page in maxPage" :key="page" class="windowItem">
-      <PDFPage v-if="isPDF" :source="getSrc(page)" :classes="fitToClass" />
+      <PDFPage v-if="isPDF" :source="getSrc(page)" />
       <img
         v-else
         class="page"
@@ -30,7 +30,6 @@
         v-else-if="secondPage"
         class="page"
         :src="getSrc(page + 1)"
-        :class="fitToClass"
         :alt="`Page ${page + 1}`"
       />
     </v-window-item>
@@ -74,26 +73,12 @@ export default {
       },
       isPDF: (state) => state.comic.fileFormat === "pdf",
     }),
-    ...mapGetters(useReaderStore, ["computedSettings"]),
+    ...mapGetters(useReaderStore, ["computedSettings", "fitToClass"]),
     prefetchHref() {
       if (!this.nextRoute) {
         return;
       }
       return getComicPageSource(this.nextRoute, this.timestamp);
-    },
-    fitToClass() {
-      let classes = {};
-      const fitTo = this.computedSettings.fitTo;
-      if (fitTo) {
-        let fitToClass = "fitTo";
-        fitToClass += fitTo.charAt(0).toUpperCase();
-        fitToClass += fitTo.slice(1).toLowerCase();
-        if (this.computedSettings.twoPages) {
-          fitToClass += "Two";
-        }
-        classes[fitToClass] = true;
-      }
-      return classes;
     },
   },
   watch: {
