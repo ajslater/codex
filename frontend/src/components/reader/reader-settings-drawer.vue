@@ -96,8 +96,6 @@ export default {
       },
     },
     isClearSettingsButtonDisabled: function () {
-      console.log(this.nullValues);
-      console.log(this.settingsScope);
       return (
         this.isSettingsDialogGlobalMode ||
         (this.nullValues.has(this.settingsScope.fitTo) &&
