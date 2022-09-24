@@ -2,11 +2,9 @@
   <div>
     <v-main id="readerWrapper">
       <div v-if="isCodexViewable" id="readerContainer">
-        <v-main>
-          <ChangeBookDrawer direction="prev" />
-          <ComicReader @click="toggleToolbars" />
-          <ChangeBookDrawer direction="next" />
-        </v-main>
+        <ChangeBookDrawer direction="prev" />
+        <ComicReader @click="toggleToolbars" />
+        <ChangeBookDrawer direction="next" />
         <v-slide-y-transition>
           <ReaderTitleToolbar v-show="showToolbars" />
         </v-slide-y-transition>
