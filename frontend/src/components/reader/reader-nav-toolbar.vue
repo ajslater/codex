@@ -45,6 +45,7 @@ export default {
   position: fixed;
   bottom: env(safe-area-inset-bottom);
   width: 100%;
+  z-index: 10;
 }
 </style>
 

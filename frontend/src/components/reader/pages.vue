@@ -37,7 +37,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapGetters, mapState, mapWritableState } from "pinia";
 
 import { getComicPageSource } from "@/api/v3/reader";
 const PDFPage = () => import("@/components/reader/pdf.vue");
@@ -72,7 +72,14 @@ export default {
         );
       },
       isPDF: (state) => state.comic.fileFormat === "pdf",
+      isPrevBookLinkActivated(state) {
+        return Boolean(state.routes.prevBook);
+      },
+      isNextBookLinkActivated(state) {
+        return Boolean(state.routes.nextBook);
+      },
     }),
+    ...mapWritableState(useReaderStore, ["bookChange"]),
     ...mapGetters(useReaderStore, ["computedSettings", "fitToClass"]),
     prefetchHref() {
       if (!this.nextRoute) {
@@ -109,8 +116,18 @@ export default {
     change(page) {
       this.routeToPage(page);
     },
-    click() {
-      this.$emit("click");
+    click(event) {
+      const navColumnWidth = window.innerWidth / 3;
+      if (this.isPrevBookLinkActivated && event.x < navColumnWidth) {
+        this.bookChange = "prev";
+      } else if (
+        this.isNexBookLinkActivated &&
+        event.x > window.innerWidth - navColumnWidth
+      ) {
+        this.bookChange = "next";
+      } else {
+        this.$emit("click");
+      }
     },
   },
 };

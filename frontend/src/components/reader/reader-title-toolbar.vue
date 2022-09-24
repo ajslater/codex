@@ -171,6 +171,7 @@ export default {
   padding-top: env(safe-area-inset-top);
   padding-left: calc(env(safe-area-inset-left) / 3);
   padding-right: calc(env(safe-area-inset-right) / 3);
+  z-index: 10;
 }
 #toolbarTitle {
   overflow-y: auto;

@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v0.13.1
+
+- Features
+  - Animated sliding pages on reader.
+
 ## v0.13.0
 
 ### Admin Panel

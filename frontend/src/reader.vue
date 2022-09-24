@@ -3,7 +3,9 @@
     <v-main id="readerWrapper">
       <div v-if="isCodexViewable" id="readerContainer">
         <v-main>
+          <ChangeBookDrawer direction="prev" />
           <ComicReader @click="toggleToolbars" />
+          <ChangeBookDrawer direction="next" />
         </v-main>
         <v-slide-y-transition>
           <ReaderTitleToolbar v-show="showToolbars" />
@@ -26,6 +28,7 @@
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 
+import ChangeBookDrawer from "@/components/reader/change-book-drawer.vue";
 import ComicReader from "@/components/reader/pages.vue";
 import ReaderNavToolbar from "@/components/reader/reader-nav-toolbar.vue";
 import ReaderSettingsDrawer from "@/components/reader/reader-settings-drawer.vue";
@@ -36,6 +39,7 @@ import { useReaderStore } from "@/stores/reader";
 export default {
   name: "MainReader",
   components: {
+    ChangeBookDrawer,
     ComicReader,
     ReaderNavToolbar,
     ReaderTitleToolbar,
