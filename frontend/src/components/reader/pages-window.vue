@@ -67,9 +67,11 @@ export default {
     }
   },
   computed: {
+    ...mapGetters(useReaderStore, ["computedSettings", "fitToClass"]),
     ...mapState(useReaderStore, {
       maxPage: (state) => state.comic.maxPage || 0,
-      nextRoute: (state) => state.routes.next,
+      isPDF: (state) => state.comic.fileFormat === "pdf",
+      routes: (state) => state.routes,
       timestamp: (state) => state.timestamp,
       secondPage(state) {
         return (
@@ -77,17 +79,14 @@ export default {
           +this.windowPage + 1 <= state.comic.maxPage
         );
       },
-      isPDF: (state) => state.comic.fileFormat === "pdf",
-      routes: (state) => state.routes,
       vertical: (state) => state.bookChange !== undefined,
+      prefetchHref(state) {
+        if (!state.routes.next) {
+          return;
+        }
+        return getComicPageSource(state.routes.next, state.timestamp);
+      },
     }),
-    ...mapGetters(useReaderStore, ["computedSettings", "fitToClass"]),
-    prefetchHref() {
-      if (!this.nextRoute) {
-        return;
-      }
-      return getComicPageSource(this.nextRoute, this.timestamp);
-    },
     pk() {
       return this.$route.params.pk;
     },
@@ -115,21 +114,12 @@ export default {
       return getComicPageSource(routeParams, this.timestamp);
     },
     setPage: function () {
-      /*
-      if (+this.$router.currentRoute.params.page <= this.maxPage) {
-        console.log(
-          "OK setting windowPage",
-          +this.$router.currentRoute.params.page
-        );
-        this.windowPage = +this.$router.currentRoute.params.page;
-      } else {
-        console.log("not ready try soon");
-        setTimeout(this.setPage, 1000);
-      }
-      */
       this.windowPage = +this.$router.currentRoute.params.page;
     },
     change(page) {
+      if (page === undefined || page < 0 || page > this.maxPage) {
+        return;
+      }
       this.routeToPage(page);
     },
     click(event) {
