@@ -4,7 +4,7 @@
     ref="pageWindow"
     v-model="windowPage"
     show-arrows
-    vertical="vertical"
+    :vertical="vertical"
     @change="change"
   >
     <template #prev="{ on, attrs }">
