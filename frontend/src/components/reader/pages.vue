@@ -14,7 +14,7 @@
     </template>
     <v-window-item
       v-for="(_, page) in maxPage + 1"
-      :key="page"
+      :key="`${pk}${page}`"
       class="windowItem"
     >
       <PDFPage v-if="isPDF" :source="getSrc(page)" />
@@ -85,6 +85,9 @@ export default {
         return;
       }
       return getComicPageSource(this.nextRoute, this.timestamp);
+    },
+    pk() {
+      return this.$route.params.pk;
     },
   },
   watch: {
