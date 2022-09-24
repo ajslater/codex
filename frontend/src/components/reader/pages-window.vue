@@ -15,7 +15,7 @@
     </template>
     <v-window-item
       v-for="(_, page) in maxPage + 1"
-      :key="`${pk}${page}`"
+      :key="`c/${pk}/${page}`"
       class="windowItem"
     >
       <PDFPage v-if="isPDF" :source="getSrc(page)" />
@@ -114,7 +114,17 @@ export default {
       return getComicPageSource(routeParams, this.timestamp);
     },
     setPage: function () {
-      this.windowPage = +this.$router.currentRoute.params.page;
+      const params = this.$router.currentRoute.params;
+      const pk = +params.pk;
+      if (pk === this.routes.prevBook || pk === this.routes.nextBook) {
+        // Hacky way to avoid using a separate v-window for books.
+        // Wait until the new comic has loaded to set the window page.
+        setTimeout(() => {
+          this.setPage(pk);
+        }, 100);
+      } else {
+        this.windowPage = +params.page;
+      }
     },
     change(page) {
       if (page === undefined || page < 0 || page > this.maxPage) {
