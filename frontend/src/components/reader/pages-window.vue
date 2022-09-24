@@ -42,7 +42,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState, mapWritableState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import { getComicPageSource } from "@/api/v3/reader";
 const PDFPage = () => import("@/components/reader/pdf.vue");
@@ -80,7 +80,6 @@ export default {
       routes: (state) => state.routes,
       vertical: (state) => state.bookChange !== undefined,
     }),
-    ...mapWritableState(useReaderStore, ["bookChange"]),
     ...mapGetters(useReaderStore, ["computedSettings", "fitToClass"]),
     prefetchHref() {
       if (!this.nextRoute) {
@@ -109,7 +108,7 @@ export default {
     windowContainer.removeEventListener("click", this.click);
   },
   methods: {
-    ...mapActions(useReaderStore, ["routeToPage"]),
+    ...mapActions(useReaderStore, ["routeToPage", "setBookChangeFlag"]),
     getSrc(page) {
       const routeParams = { ...this.$router.currentRoute.params, page };
       return getComicPageSource(routeParams, this.timestamp);
@@ -122,15 +121,12 @@ export default {
     },
     click(event) {
       const navColumnWidth = window.innerWidth / 3;
-      if (this.routes.prevBook && event.x < navColumnWidth) {
-        this.bookChange = "prev";
-      } else if (
-        this.routes.nextBook &&
-        event.x > window.innerWidth - navColumnWidth
-      ) {
-        this.bookChange = "next";
+      if (event.x < navColumnWidth) {
+        this.setBookChangeFlag("prev");
+      } else if (event.x > window.innerWidth - navColumnWidth) {
+        this.setBookChangeFlag("next");
       } else {
-        this.bookChange = undefined;
+        this.setBookChangeFlag();
         this.$emit("click");
       }
     },
