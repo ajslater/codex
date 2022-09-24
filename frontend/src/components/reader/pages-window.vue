@@ -22,8 +22,8 @@
       <img
         v-else
         class="page"
-        :src="getSrc(page)"
         :class="fitToClass"
+        :src="getSrc(page)"
         :alt="`Page ${page}`"
       />
       <PDFPage
@@ -34,6 +34,7 @@
       <img
         v-else-if="secondPage"
         class="page"
+        :class="fitToClass"
         :src="getSrc(page + 1)"
         :alt="`Page ${page + 1}`"
       />
@@ -114,6 +115,18 @@ export default {
       return getComicPageSource(routeParams, this.timestamp);
     },
     setPage: function () {
+      /*
+      if (+this.$router.currentRoute.params.page <= this.maxPage) {
+        console.log(
+          "OK setting windowPage",
+          +this.$router.currentRoute.params.page
+        );
+        this.windowPage = +this.$router.currentRoute.params.page;
+      } else {
+        console.log("not ready try soon");
+        setTimeout(this.setPage, 1000);
+      }
+      */
       this.windowPage = +this.$router.currentRoute.params.page;
     },
     change(page) {
@@ -144,6 +157,8 @@ export default {
   min-height: 100vh;
   text-align: center;
 }
+.page {
+}
 .fitToScreen,
 .fitToScreenTwo {
   max-height: 100vh;
@@ -173,10 +188,12 @@ export default {
 <style lang="scss">
 #pagesWindow .v-window__prev,
 #pagesWindow .v-window__next {
+  position: fixed;
   top: 48px;
   width: 33vw;
   height: calc(100vh - 96px);
-  opacity: 0.2;
+  border-radius: 0;
+  opacity: 0;
 }
 #pagesWindow .v-window__prev {
   cursor: w-resize;
