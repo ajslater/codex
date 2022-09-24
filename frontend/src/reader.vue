@@ -58,14 +58,6 @@ export default {
     }),
   },
   watch: {
-    $route(to, from) {
-      if (!from.params || Number(to.params.pk) !== Number(from.params.pk)) {
-        this.loadBook();
-      } else {
-        this.setRoutesAndBookmarkPage();
-      }
-      window.scrollTo(0, 0);
-    },
     user: function () {
       this.loadReaderSettings();
     },

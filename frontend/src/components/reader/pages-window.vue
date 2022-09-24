@@ -64,6 +64,7 @@ export default {
   data() {
     return {
       windowPage: 0,
+      loadBookPage: 0,
     };
   },
   head() {
@@ -100,16 +101,20 @@ export default {
     },
   },
   watch: {
-    $route: function (to, from) {
+    $route(to, from) {
       if (!from.params || Number(to.params.pk) !== Number(from.params.pk)) {
-        // this is invoked before the one in /reader.vue
-        this.loading = true;
+        this.loadBookPage = to.params.page;
+        this.loadBook();
+      } else {
+        this.setRoutesAndBookmarkPage();
+        this.setPage(to.params.page);
       }
-      this.setPage();
     },
-  },
-  created() {
-    this.setPage();
+    loading(to) {
+      if (!to) {
+        this.setPage(this.loadBookPage);
+      }
+    },
   },
   mounted() {
     const windowContainer = this.$refs.pagesWindow.$el.children[0];
@@ -120,26 +125,25 @@ export default {
     windowContainer.removeEventListener("click", this.click);
   },
   methods: {
-    ...mapActions(useReaderStore, ["setBookChangeFlag", "routeToDirection"]),
+    ...mapActions(useReaderStore, [
+      "loadBook",
+      "routeToDirection",
+      "setBookChangeFlag",
+      "setRoutesAndBookmarkPage",
+    ]),
     getSrc(page) {
       const routeParams = { ...this.$router.currentRoute.params, page };
       return getComicPageSource(routeParams, this.timestamp);
     },
     async setPage(page) {
-      const params = this.$router.currentRoute.params;
-      if (page === undefined) {
-        page = +params.page;
-      }
       if (this.loading) {
-        // Hacky way to avoid using a separate v-window for books.
-        // Wait until the new comic has loaded to set the window page.
-        setTimeout(() => {
-          this.setPage(page);
-          return true;
-        }, 50);
-      } else {
-        this.windowPage = page;
+        return;
       }
+      if (page === undefined) {
+        page = +this.$router.currentRoute.params.page;
+      }
+      this.windowPage = page;
+      window.scrollTo(0, 0);
     },
     click(event) {
       const navColumnWidth = window.innerWidth / 3;
