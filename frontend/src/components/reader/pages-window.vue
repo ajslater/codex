@@ -95,7 +95,7 @@ export default {
         return getComicPageSource(state.routes.next, state.timestamp);
       },
     }),
-    ...mapWritableState(useReaderStore, ["loading"]),
+    ...mapWritableState(useReaderStore, ["comicLoaded"]),
     pk() {
       return this.$route.params.pk;
     },
@@ -110,8 +110,8 @@ export default {
         this.setPage(to.params.page);
       }
     },
-    loading(to) {
-      if (!to) {
+    comicLoaded(to) {
+      if (to) {
         this.setPage(this.loadBookPage);
       }
     },
@@ -136,7 +136,7 @@ export default {
       return getComicPageSource(routeParams, this.timestamp);
     },
     async setPage(page) {
-      if (this.loading) {
+      if (!this.comicLoaded) {
         return;
       }
       if (page === undefined) {

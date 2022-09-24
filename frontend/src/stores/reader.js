@@ -84,7 +84,7 @@ export const useReaderStore = defineStore("reader", {
     bookChange: undefined,
     isSettingsDrawerOpen: false,
     nullValues: SETTINGS_NULL_VALUES,
-    loading: true,
+    comicLoaded: false,
   }),
   getters: {
     computedSettings(state) {
@@ -167,16 +167,16 @@ export const useReaderStore = defineStore("reader", {
     },
     async loadBookSettings() {
       // ONLY USED in bookChanged
-      this.loading = true;
+      this.comicLoaded = false;
       return API.getComicBookmark(router.currentRoute.params.pk, this.timestamp)
         .then((response) => {
           const data = response.data;
           this._updateSettings("local", data);
-          this.loading = false;
+          this.comicLoaded = true;
           return this.setRoutesAndBookmarkPage();
         })
         .catch((error) => {
-          this.loading = false;
+          this.comicLoaded = true;
           return console.error(error);
         });
     },

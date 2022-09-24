@@ -7,7 +7,7 @@
   >
     <ReaderNavButton :value="0" />
     <PaginationSlider
-      :key="loading"
+      :key="comicLoaded"
       :value="+$route.params.page"
       :min="+0"
       :max="maxPage"
@@ -34,7 +34,7 @@ export default {
     ...mapState(useReaderStore, {
       maxPage: (state) => state.comic.maxPage,
       // without this the slider can fail to place right on book change
-      loading: (state) => state.loading,
+      comicLoaded: (state) => state.comicLoaded,
     }),
   },
   methods: {
