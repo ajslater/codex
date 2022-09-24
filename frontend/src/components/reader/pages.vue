@@ -12,7 +12,11 @@
     <template #next="{ on, attrs }">
       <div class="navColumn" v-bind="attrs" v-on="on"></div>
     </template>
-    <v-window-item v-for="page in maxPage" :key="page" class="windowItem">
+    <v-window-item
+      v-for="(_, page) in maxPage + 1"
+      :key="page"
+      class="windowItem"
+    >
       <PDFPage v-if="isPDF" :source="getSrc(page)" />
       <img
         v-else
@@ -62,7 +66,7 @@ export default {
   },
   computed: {
     ...mapState(useReaderStore, {
-      maxPage: (state) => state.comic.maxPage,
+      maxPage: (state) => state.comic.maxPage || 0,
       nextRoute: (state) => state.routes.next,
       timestamp: (state) => state.timestamp,
       secondPage(state) {
@@ -72,12 +76,7 @@ export default {
         );
       },
       isPDF: (state) => state.comic.fileFormat === "pdf",
-      isPrevBookLinkActivated(state) {
-        return Boolean(state.routes.prevBook);
-      },
-      isNextBookLinkActivated(state) {
-        return Boolean(state.routes.nextBook);
-      },
+      routes: (state) => state.routes,
     }),
     ...mapWritableState(useReaderStore, ["bookChange"]),
     ...mapGetters(useReaderStore, ["computedSettings", "fitToClass"]),
@@ -118,10 +117,10 @@ export default {
     },
     click(event) {
       const navColumnWidth = window.innerWidth / 3;
-      if (this.isPrevBookLinkActivated && event.x < navColumnWidth) {
+      if (this.routes.prevBook && event.x < navColumnWidth) {
         this.bookChange = "prev";
       } else if (
-        this.isNexBookLinkActivated &&
+        this.routes.nextBook &&
         event.x > window.innerWidth - navColumnWidth
       ) {
         this.bookChange = "next";
