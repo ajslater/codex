@@ -64,9 +64,10 @@ export default {
   },
   created() {
     this.loadReaderSettings();
+    this.loadBook();
   },
   methods: {
-    ...mapActions(useReaderStore, ["loadReaderSettings"]),
+    ...mapActions(useReaderStore, ["loadReaderSettings", "loadBook"]),
     toggleToolbars: function () {
       this.showToolbars = !this.showToolbars;
     },
