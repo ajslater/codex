@@ -165,8 +165,7 @@ export const useReaderStore = defineStore("reader", {
           return console.error(error);
         });
     },
-    async loadBookSettings() {
-      // ONLY USED in bookChanged
+    async _loadBookSettings() {
       this.comicLoaded = false;
       return API.getComicBookmark(router.currentRoute.params.pk, this.timestamp)
         .then((response) => {
@@ -185,7 +184,7 @@ export const useReaderStore = defineStore("reader", {
         .then((response) => {
           const info = response.data;
           this.setBookInfo(info);
-          return this.loadBookSettings();
+          return this._loadBookSettings();
         })
         .catch((error) => {
           if ([303, 404].includes(error.response.status)) {
@@ -209,8 +208,9 @@ export const useReaderStore = defineStore("reader", {
       this.setPrevRoute();
 
       this.setNextPage();
-      this.bookChange = undefined;
-      await this.setBookmarkPage();
+      await this.setBookmarkPage().then(() => {
+        this.bookChange = undefined;
+      });
     },
     async setSettingsLocal(data) {
       this._updateSettings("local", data);
