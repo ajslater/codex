@@ -4,6 +4,7 @@
     ref="pageWindow"
     v-model="windowPage"
     show-arrows
+    vertical="vertical"
     @change="change"
   >
     <template #prev="{ on, attrs }">
@@ -77,6 +78,7 @@ export default {
       },
       isPDF: (state) => state.comic.fileFormat === "pdf",
       routes: (state) => state.routes,
+      vertical: (state) => state.bookChange !== undefined,
     }),
     ...mapWritableState(useReaderStore, ["bookChange"]),
     ...mapGetters(useReaderStore, ["computedSettings", "fitToClass"]),
