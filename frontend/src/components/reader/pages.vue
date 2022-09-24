@@ -126,6 +126,7 @@ export default {
       ) {
         this.bookChange = "next";
       } else {
+        this.bookChange = undefined;
         this.$emit("click");
       }
     },
