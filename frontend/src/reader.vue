@@ -53,9 +53,6 @@ export default {
     ...mapState(useAuthStore, {
       user: (state) => state.user,
     }),
-    ...mapState(useReaderStore, {
-      isPDF: (state) => state.comic.fileFormat === "pdf",
-    }),
   },
   watch: {
     user: function () {
@@ -67,15 +64,9 @@ export default {
   },
   created() {
     this.loadReaderSettings();
-    this.loadBook();
   },
   methods: {
-    ...mapActions(useReaderStore, [
-      "loadBook",
-      "loadReaderSettings",
-      "routeTo",
-      "setRoutesAndBookmarkPage",
-    ]),
+    ...mapActions(useReaderStore, ["loadReaderSettings"]),
     toggleToolbars: function () {
       this.showToolbars = !this.showToolbars;
     },
