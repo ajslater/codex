@@ -2,16 +2,23 @@
   <v-window
     id="pagesWindow"
     ref="pagesWindow"
-    v-model="windowPage"
     show-arrows
+    :value="windowPage"
     :vertical="vertical"
-    @change="change"
   >
-    <template #prev="{ on, attrs }">
-      <div class="navColumn" v-bind="attrs" v-on="on"></div>
+    <template #prev>
+      <div
+        class="navColumn"
+        aria-label="previous page"
+        @click="routeToDirection('prev')"
+      />
     </template>
-    <template #next="{ on, attrs }">
-      <div class="navColumn" v-bind="attrs" v-on="on"></div>
+    <template #next>
+      <div
+        class="navColumn"
+        aria-label="next page"
+        @click="routeToDirection('next')"
+      />
     </template>
     <v-window-item
       v-for="(_, page) in maxPage + 1"
@@ -43,7 +50,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapGetters, mapState, mapWritableState } from "pinia";
 
 import { getComicPageSource } from "@/api/v3/reader";
 const PDFPage = () => import("@/components/reader/pdf.vue");
@@ -87,12 +94,17 @@ export default {
         return getComicPageSource(state.routes.next, state.timestamp);
       },
     }),
+    ...mapWritableState(useReaderStore, ["loading"]),
     pk() {
       return this.$route.params.pk;
     },
   },
   watch: {
-    $route: function () {
+    $route: function (to, from) {
+      if (!from.params || Number(to.params.pk) !== Number(from.params.pk)) {
+        // this is invoked before the one in /reader.vue
+        this.loading = true;
+      }
       this.setPage();
     },
   },
@@ -108,40 +120,39 @@ export default {
     windowContainer.removeEventListener("click", this.click);
   },
   methods: {
-    ...mapActions(useReaderStore, ["routeToPage", "setBookChangeFlag"]),
+    ...mapActions(useReaderStore, ["setBookChangeFlag", "routeToDirection"]),
     getSrc(page) {
       const routeParams = { ...this.$router.currentRoute.params, page };
       return getComicPageSource(routeParams, this.timestamp);
     },
-    setPage: function () {
+    async setPage(page) {
       const params = this.$router.currentRoute.params;
-      const pk = +params.pk;
-      if (pk === this.routes.prevBook || pk === this.routes.nextBook) {
+      if (page === undefined) {
+        page = +params.page;
+      }
+      if (this.loading) {
         // Hacky way to avoid using a separate v-window for books.
         // Wait until the new comic has loaded to set the window page.
         setTimeout(() => {
-          this.setPage(pk);
-        }, 100);
+          this.setPage(page);
+          return true;
+        }, 50);
       } else {
-        this.windowPage = +params.page;
+        this.windowPage = page;
       }
-    },
-    change(page) {
-      if (page === undefined || page < 0 || page > this.maxPage) {
-        return;
-      }
-      this.routeToPage(page);
     },
     click(event) {
       const navColumnWidth = window.innerWidth / 3;
-      if (event.x < navColumnWidth) {
-        this.setBookChangeFlag("prev");
-      } else if (event.x > window.innerWidth - navColumnWidth) {
-        this.setBookChangeFlag("next");
+      const nextColumnX = window.innerWidth - navColumnWidth;
+      let direction;
+      if (event.x > nextColumnX) {
+        direction = "next";
+      } else if (event.x < navColumnWidth) {
+        direction = "prev";
       } else {
-        this.setBookChangeFlag();
         this.$emit("click");
       }
+      this.setBookChangeFlag(direction);
     },
   },
 };
