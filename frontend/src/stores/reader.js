@@ -210,6 +210,7 @@ export const useReaderStore = defineStore("reader", {
       this.setNextPage();
       await this.setBookmarkPage().then(() => {
         this.bookChange = undefined;
+        return true;
       });
     },
     async setSettingsLocal(data) {
