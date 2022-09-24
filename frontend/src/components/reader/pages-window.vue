@@ -1,7 +1,7 @@
 <template>
   <v-window
-    id="pageWindow"
-    ref="pageWindow"
+    id="pagesWindow"
+    ref="pagesWindow"
     v-model="windowPage"
     show-arrows
     :vertical="vertical"
@@ -49,7 +49,7 @@ const PDFPage = () => import("@/components/reader/pdf.vue");
 import { useReaderStore } from "@/stores/reader";
 
 export default {
-  name: "ReaderWindow",
+  name: "PagesWindow",
   components: {
     PDFPage,
   },
@@ -101,11 +101,11 @@ export default {
     this.setPage();
   },
   mounted() {
-    const windowContainer = this.$refs.pageWindow.$el.children[0];
+    const windowContainer = this.$refs.pagesWindow.$el.children[0];
     windowContainer.addEventListener("click", this.click);
   },
   unmounted() {
-    const windowContainer = this.$refs.pageWindow.$el.children[0];
+    const windowContainer = this.$refs.pagesWindow.$el.children[0];
     windowContainer.removeEventListener("click", this.click);
   },
   methods: {
@@ -175,17 +175,17 @@ export default {
 </style>
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
-#pageWindow .v-window__prev,
-#pageWindow .v-window__next {
+#pagesWindow .v-window__prev,
+#pagesWindow .v-window__next {
   top: 48px;
   width: 33vw;
   height: calc(100vh - 96px);
   opacity: 0.2;
 }
-#pageWindow .v-window__prev {
+#pagesWindow .v-window__prev {
   cursor: w-resize;
 }
-#pageWindow .v-window__next {
+#pagesWindow .v-window__next {
   cursor: e-resize;
 }
 </style>
