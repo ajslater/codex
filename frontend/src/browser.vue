@@ -39,8 +39,7 @@ export default {
     ...mapGetters(useAuthStore, ["isCodexViewable"]),
   },
   watch: {
-    $route: function (to, from) {
-      console.log(from);
+    $route: function () {
       window.scrollTo(0, 0);
       this.loadBrowserPage();
     },
