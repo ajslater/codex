@@ -22,28 +22,27 @@
       >
         x
       </v-btn>
+      <h1>Search Syntax Help</h1>
+      <div id="fieldTableContainer">
+        <h2>Search Fields</h2>
+        <table id="fieldTable" class="highlight-table">
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Type</th>
+              <th>Aliases</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in FIELD_ROWS" :key="row[0]">
+              <td>{{ row[0] }}</td>
+              <td>{{ row[1] }}</td>
+              <td>{{ row[2] }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       <div id="textContainer">
-        <h1>Search Syntax Help</h1>
-        <div id="fieldTableContainer">
-          <h2>Search Fields</h2>
-          <table id="fieldTable" class="highlight-table">
-            <thead>
-              <tr>
-                <th>Field</th>
-                <th>Type</th>
-                <th>Aliases</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="row in FIELD_ROWS" :key="row[0]">
-                <td>{{ row[0] }}</td>
-                <td>{{ row[1] }}</td>
-                <td>{{ row[2] }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
         <h2>Xapian Query Parser</h2>
         <p>
           Codex uses the Xapian search backend to execute your text search
@@ -200,15 +199,12 @@ export default {
 @import "vuetify/src/styles/styles.sass";
 @import "../anchors.scss";
 #searchHelp {
-  max-width: 100vw;
+  max-width: 850px;
   padding: 20px;
   padding-left: 20px;
   padding-right: 20px;
+  margin: auto;
   color: grey;
-}
-#textContainer {
-  padding-left: 173px;
-  padding-right: 173px;
 }
 h1,
 h2,
@@ -221,8 +217,6 @@ h1 {
 .closeButton {
   float: right;
   width: 64px;
-}
-#bottomCloseButton {
 }
 #fieldTableContainer {
   float: left;
