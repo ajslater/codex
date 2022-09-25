@@ -51,6 +51,8 @@ export default {
     },
   },
   created() {
+    // mapWritableState does not work.
+    useBrowserStore().isSettingsDrawerOpen = false;
     this.loadSettings();
   },
   methods: {
