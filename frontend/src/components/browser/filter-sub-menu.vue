@@ -121,27 +121,13 @@ export default {
       },
     },
     title: function () {
-      const words = this.name.split("_");
-      let title = "";
-      for (const index in words) {
-        if (Object.prototype.hasOwnProperty.call(words, index)) {
-          // Capitalize words
-          const word = words[index];
-          const capWord =
-            word === "ltr"
-              ? "LTR"
-              : word.charAt(0).toUpperCase() + word.slice(1);
-          // Append to title
-          if (index) {
-            title += " ";
-          }
-          title += capWord;
-        }
-      }
+      let title = this.name.replace(/[A-Z]/g, (letter) => ` ${letter}`);
+      title = title.replace("Ltr", "LTR");
+      title = title[0].toUpperCase() + title.slice(1);
       return title;
     },
     lowerTitle: function () {
-      return this.name.replace("_", " ");
+      return this.title.toLowerCase();
     },
   },
   methods: {

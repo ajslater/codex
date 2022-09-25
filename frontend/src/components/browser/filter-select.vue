@@ -40,7 +40,7 @@
         <BrowserFilterSubMenu
           v-for="filterName of filterNames"
           :key="filterName"
-          :name="camelToSnake(filterName)"
+          :name="filterName"
           :is-numeric="NUMERIC_FILTERS.includes(filterName)"
           @sub-menu-click="closeFilterSelect"
         />
@@ -122,11 +122,6 @@ export default {
   },
   methods: {
     ...mapActions(useBrowserStore, ["clearFiltersAndChoices", "setSettings"]),
-    camelToSnake: function (name) {
-      // name is used as the submission value to the API as well async function (arguments) {
-      // The widget translates snake_case to Cap Case.
-      return name.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
-    },
     closeFilterSelect: function () {
       // On sub-menu click, close the menu and reset the filter mode.
       this.$refs.filterSelect.blur();

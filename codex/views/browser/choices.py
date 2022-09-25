@@ -1,6 +1,7 @@
 """View for marking comics read and unread."""
 import pycountry
 
+from djangorestframework_camel_case.util import camel_to_underscore
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
@@ -71,6 +72,7 @@ class BrowserChoiceView(BrowserBaseView):
         comic_qs = self.get_object()
 
         field_name = self.kwargs.get("field_name")
+        field_name = camel_to_underscore(field_name)
         if field_name == self.CREDIT_PERSON_UI_FIELD:
             qs = self._get_credit_persons(comic_qs)
         else:
