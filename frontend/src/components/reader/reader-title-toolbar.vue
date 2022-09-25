@@ -3,7 +3,7 @@
     <v-toolbar-items>
       <v-btn id="closeBook" ref="closeBook" :to="closeBookRoute" large ripple>
         <span v-if="!$vuetify.breakpoint.mobile">close book</span>
-        <v-icon v-else>
+        <v-icon v-else title="Close Book">
           {{ mdiClose }}
         </v-icon>
       </v-btn>
@@ -13,7 +13,9 @@
       {{ title }}
     </v-toolbar-title>
     <v-spacer />
-    <span v-if="seriesPosition" id="seriesPosition">{{ seriesPosition }}</span>
+    <span v-if="seriesPosition" id="seriesPosition" title="Series Position">{{
+      seriesPosition
+    }}</span>
     <v-toolbar-items>
       <v-btn id="tagButton" @click.stop="openMetadata">
         <MetadataDialog
@@ -70,8 +72,9 @@ export default {
       },
       timestamp: (state) => state.timestamp,
       seriesPosition: function (state) {
-        if (state.routes.seriesCount > 1) {
-          return `${state.routes.seriesIndex}/${state.routes.seriesCount}`;
+        const routes = state.routes;
+        if (routes.seriesCount > 1) {
+          return `${routes.seriesIndex}/${routes.seriesCount}`;
         }
       },
     }),
@@ -179,10 +182,8 @@ export default {
 #readerTopToolbar .v-toolbar__content {
   padding: 0px;
 }
-#readerTopToolbar .tagIcon {
-  position: relative !important;
-  top: 0px !important;
-  left: 0px !important;
+#readerTopToolbar .tagButton {
+  min-width: 24px;
   height: 24px;
   width: 24px;
   margin: 0px;

@@ -70,8 +70,8 @@ export default {
 </style>
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
-$button-margin: 5px;
-#browsePaneContainer .tagIcon {
+$button-margin: 0px;
+#browsePaneContainer .tagButton {
   position: absolute !important;
   left: $button-margin !important;
   bottom: $button-margin !important;
@@ -99,15 +99,4 @@ $unselected-icon-color: #a0a0a0;
 }
 
 @import "vuetify/src/styles/styles.sass";
-@media #{map-get($display-breakpoints, 'sm-and-down')} {
-  $small-button-margin: 5px;
-  #browsePaneContainer .tagIcon {
-    left: $small-button-margin !important;
-    bottom: $small-button-margin !important;
-  }
-  #browsePaneContainer .browserCardMenuIcon {
-    right: $small-button-margin !important;
-    bottom: $small-button-margin !important;
-  }
-}
 </style>
