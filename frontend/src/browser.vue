@@ -39,7 +39,8 @@ export default {
     ...mapGetters(useAuthStore, ["isCodexViewable"]),
   },
   watch: {
-    $route: function () {
+    $route: function (to, from) {
+      console.log(from);
       window.scrollTo(0, 0);
       this.loadBrowserPage();
     },
@@ -51,6 +52,8 @@ export default {
     },
   },
   created() {
+    // mapWritableState does not work.
+    useBrowserStore().isSettingsDrawerOpen = false;
     this.loadSettings();
   },
   methods: {
