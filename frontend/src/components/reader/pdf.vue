@@ -1,28 +1,40 @@
 <template>
   <div>
-    <Placeholder
-      class="placeholder"
-      :class="{ hidden: rendered }"
-      :size="placeholderSize"
-    />
-    <vue-pdf-embed
-      :key="key"
-      ref="pdfembed"
-      :disable-annotation-layer="false"
-      :disable-text-layer="false"
-      class="pdfPage"
-      :class="fitToClass"
-      :page="1"
-      :source="source"
-      :width="width"
-      :height="height"
-      @rendered="onRendered"
-      @internal-link-clicked="routeToPage"
-    />
+    <div v-if="error">
+      <div id="failed">
+        {{ error.text }}
+      </div>
+      <v-icon id="failedIcon">{{ error.icon }}</v-icon>
+    </div>
+    <div v-else>
+      <Placeholder
+        class="placeholder"
+        :class="{ hidden: rendered }"
+        :size="placeholderSize"
+      />
+      <vue-pdf-embed
+        :key="key"
+        ref="pdfembed"
+        :disable-annotation-layer="false"
+        :disable-text-layer="false"
+        class="pdfPage"
+        :class="fitToClass"
+        :page="1"
+        :source="source"
+        :width="width"
+        :height="height"
+        @rendered="onRendered"
+        @internal-link-clicked="routeToPage"
+        @loading-failed="failed"
+        @rendering-failed="failed"
+        @password-requested="unauthorized"
+      />
+    </div>
   </div>
 </template>
 
 <script>
+import { mdiAlertCircleOutline, mdiLockOutline } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 import VuePdfEmbed from "vue-pdf-embed/dist/vue2-pdf-embed";
 
@@ -44,6 +56,7 @@ export default {
     return {
       rendered: false,
       startedLoading: 0,
+      error: false,
     };
   },
   computed: {
@@ -94,6 +107,16 @@ export default {
     onRendered() {
       this.startedLoading = 0;
       this.rendered = true;
+      this.error = false;
+    },
+    failed() {
+      this.error = {
+        text: "Failed to load PDF",
+        icon: mdiAlertCircleOutline,
+      };
+    },
+    unauthorized() {
+      this.error = { text: "Protected PDF", icon: mdiLockOutline };
     },
   },
 };
@@ -124,5 +147,31 @@ export default {
 }
 .hidden {
   display: none;
+}
+#failed {
+  color: #505050;
+  font-size: 72px;
+  text-align: center;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+#failedIcon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: darkred;
+}
+</style>
+<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
+<style lang="scss">
+$iconsize: calc(100vw / 2);
+#failedIcon svg {
+  width: $iconsize;
+  height: $iconsize;
+  font-size: $iconsize;
+  opacity: 0.33;
 }
 </style>
