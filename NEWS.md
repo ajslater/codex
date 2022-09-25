@@ -10,6 +10,8 @@ border-radius: 128px;
 
 - Features
   - Animated sliding pages on reader.
+- Fixes
+  - Filters with compound names were not loading choices.
 
 ## v0.13.0
 
