@@ -1,4 +1,4 @@
-# 📰 Codex News
+# 📜 Codex News
 
 <img src="codex/static_src/img/logo.svg" style="
 height: 128px;
@@ -6,7 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v0.13.0rc0
+## v0.13.1
+
+- Features
+  - Animated sliding pages on reader.
+
+## v0.13.0
 
 ### Admin Panel
 

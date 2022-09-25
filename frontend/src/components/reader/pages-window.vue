@@ -1,0 +1,219 @@
+<template>
+  <v-window
+    id="pagesWindow"
+    ref="pagesWindow"
+    show-arrows
+    :value="windowPage"
+    :vertical="vertical"
+  >
+    <template #prev>
+      <div
+        class="navColumn"
+        aria-label="previous page"
+        @click="routeToDirection('prev')"
+      />
+    </template>
+    <template #next>
+      <div
+        class="navColumn"
+        aria-label="next page"
+        @click="routeToDirection('next')"
+      />
+    </template>
+    <v-window-item
+      v-for="(_, page) in maxPage + 1"
+      :key="`c/${pk}/${page}`"
+      class="windowItem"
+    >
+      <PDFPage v-if="isPDF" :source="getSrc(page)" />
+      <img
+        v-else
+        class="page"
+        :class="fitToClass"
+        :src="getSrc(page)"
+        :alt="`Page ${page}`"
+      />
+      <PDFPage
+        v-if="secondPage && isPDF"
+        :source="getSrc(page + 1)"
+        :classes="fitToClass"
+      />
+      <img
+        v-else-if="secondPage"
+        class="page"
+        :class="fitToClass"
+        :src="getSrc(page + 1)"
+        :alt="`Page ${page + 1}`"
+      />
+    </v-window-item>
+  </v-window>
+</template>
+
+<script>
+import { mapActions, mapGetters, mapState, mapWritableState } from "pinia";
+
+import { getComicPageSource } from "@/api/v3/reader";
+const PDFPage = () => import("@/components/reader/pdf.vue");
+import { useReaderStore } from "@/stores/reader";
+
+export default {
+  name: "PagesWindow",
+  components: {
+    PDFPage,
+  },
+  data() {
+    return {
+      windowPage: 0,
+      loadBookPage: 0,
+    };
+  },
+  head() {
+    if (this.prefetchHref) {
+      return {
+        lnk: [{ rel: "prefetch", as: "image", href: this.prefetchHref }],
+      };
+    }
+  },
+  computed: {
+    ...mapGetters(useReaderStore, ["computedSettings", "fitToClass"]),
+    ...mapState(useReaderStore, {
+      maxPage: (state) => state.comic.maxPage || 0,
+      isPDF: (state) => state.comic.fileFormat === "pdf",
+      routes: (state) => state.routes,
+      timestamp: (state) => state.timestamp,
+      secondPage(state) {
+        return (
+          state.computedSettings.twoPages &&
+          +this.windowPage + 1 <= state.comic.maxPage
+        );
+      },
+      vertical: (state) => state.bookChange !== undefined,
+      prefetchHref(state) {
+        if (!state.routes.next) {
+          return;
+        }
+        return getComicPageSource(state.routes.next, state.timestamp);
+      },
+    }),
+    ...mapWritableState(useReaderStore, ["comicLoaded"]),
+    pk() {
+      return this.$route.params.pk;
+    },
+  },
+  watch: {
+    $route(to, from) {
+      if (!from.params || Number(to.params.pk) !== Number(from.params.pk)) {
+        this.loadBookPage = to.params.page;
+        this.loadBook();
+      } else {
+        this.setRoutesAndBookmarkPage();
+        this.setPage(to.params.page);
+      }
+    },
+    comicLoaded(to) {
+      if (to) {
+        this.setPage(this.loadBookPage);
+      }
+    },
+  },
+  mounted() {
+    const windowContainer = this.$refs.pagesWindow.$el.children[0];
+    windowContainer.addEventListener("click", this.click);
+  },
+  unmounted() {
+    const windowContainer = this.$refs.pagesWindow.$el.children[0];
+    windowContainer.removeEventListener("click", this.click);
+  },
+  methods: {
+    ...mapActions(useReaderStore, [
+      "loadBook",
+      "routeToDirection",
+      "setBookChangeFlag",
+      "setRoutesAndBookmarkPage",
+    ]),
+    getSrc(page) {
+      const routeParams = { ...this.$router.currentRoute.params, page };
+      return getComicPageSource(routeParams, this.timestamp);
+    },
+    async setPage(page) {
+      if (!this.comicLoaded) {
+        return;
+      }
+      if (page === undefined) {
+        page = +this.$router.currentRoute.params.page;
+      }
+      this.windowPage = page;
+      window.scrollTo(0, 0);
+    },
+    click(event) {
+      const navColumnWidth = window.innerWidth / 3;
+      const nextColumnX = window.innerWidth - navColumnWidth;
+      let direction;
+      if (event.x > nextColumnX) {
+        direction = "next";
+      } else if (event.x < navColumnWidth) {
+        direction = "prev";
+      } else {
+        this.$emit("click");
+      }
+      this.setBookChangeFlag(direction);
+    },
+  },
+};
+</script>
+
+<style scoped lang="scss">
+.navColumn {
+  width: 100%;
+  height: 100%;
+}
+.windowItem {
+  /* keeps clickable area full screen when image is small */
+  min-height: 100vh;
+  text-align: center;
+}
+.page {
+}
+.fitToScreen,
+.fitToScreenTwo {
+  max-height: 100vh;
+}
+.fitToScreen {
+  max-width: 100vw;
+}
+.fitToHeight,
+.fitToHeightTwo {
+  height: 100vh;
+}
+.fitToWidth {
+  width: 100vw;
+}
+.fitToWidthTwo {
+  width: 50vw;
+}
+.fitToScreenTwo {
+  max-width: 50vw;
+}
+.fitToOrig,
+.fitToOrigTwo {
+  object-fit: none;
+}
+</style>
+<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
+<style lang="scss">
+#pagesWindow .v-window__prev,
+#pagesWindow .v-window__next {
+  position: fixed;
+  top: 48px;
+  width: 33vw;
+  height: calc(100vh - 96px);
+  border-radius: 0;
+  opacity: 0;
+}
+#pagesWindow .v-window__prev {
+  cursor: w-resize;
+}
+#pagesWindow .v-window__next {
+  cursor: e-resize;
+}
+</style>

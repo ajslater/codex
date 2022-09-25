@@ -66,8 +66,8 @@ export default {
 }
 
 #topGroupSelect {
-  margin-left: 18px;
-  width: 122px;
+  margin-left: 22px;
+  width: 130px;
 }
 #orderBySelect {
   margin-left: 16px;
@@ -96,6 +96,7 @@ export default {
   }
   #topGroupSelect {
     width: 136px;
+    padding-left: 2px;
   }
   #orderBySelect {
     margin-left: 2px;

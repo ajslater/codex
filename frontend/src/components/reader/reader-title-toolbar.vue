@@ -3,7 +3,7 @@
     <v-toolbar-items>
       <v-btn id="closeBook" ref="closeBook" :to="closeBookRoute" large ripple>
         <span v-if="!$vuetify.breakpoint.mobile">close book</span>
-        <v-icon v-else>
+        <v-icon v-else title="Close Book">
           {{ mdiClose }}
         </v-icon>
       </v-btn>
@@ -13,7 +13,9 @@
       {{ title }}
     </v-toolbar-title>
     <v-spacer />
-    <span v-if="seriesPosition" id="seriesPosition">{{ seriesPosition }}</span>
+    <span v-if="seriesPosition" id="seriesPosition" title="Series Position">{{
+      seriesPosition
+    }}</span>
     <v-toolbar-items>
       <v-btn id="tagButton" @click.stop="openMetadata">
         <MetadataDialog
@@ -46,6 +48,9 @@ import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
 
+const PREV = "prev";
+const NEXT = "next";
+
 export default {
   name: "ReaderTitleToolbar",
   components: {
@@ -68,10 +73,12 @@ export default {
       title: function (state) {
         return getFullComicName(state.comic);
       },
+      routes: (state) => state.routes,
       timestamp: (state) => state.timestamp,
       seriesPosition: function (state) {
-        if (state.routes.seriesCount > 1) {
-          return `${state.routes.seriesIndex}/${state.routes.seriesCount}`;
+        const routes = state.routes;
+        if (routes.seriesCount > 1) {
+          return `${routes.seriesIndex}/${routes.seriesCount}`;
         }
       },
     }),
@@ -110,15 +117,46 @@ export default {
   },
   methods: {
     ...mapActions(useCommonStore, ["downloadIOSPWAFix"]),
+    ...mapActions(useReaderStore, ["routeToDirection"]),
     openMetadata: function () {
       this.$refs.metadataDialog.dialog = true;
     },
     _keyListener: function (event) {
       event.stopPropagation();
-      if (event.key === "c") {
-        this.$refs.closeBook.$el.click();
-      } else if (event.key === "m") {
-        this.openMetadata();
+      switch (event.key) {
+        case " ":
+          if (
+            !event.shiftKey &&
+            window.innerHeight + window.scrollY >= document.body.scrollHeight &&
+            this.routes.next
+          ) {
+            // Spacebar goes next only at the bottom of page
+            this.routeToDirection(NEXT);
+          } else if (
+            // Shift + Spacebar goes back only at the top of page
+            !!event.shiftKey &&
+            window.scrollY === 0 &&
+            this.routes.prev
+          ) {
+            this.routeToDirection(PREV);
+          }
+          break;
+        case "j":
+        case "ArrowRight":
+          this.routeToDirection(NEXT);
+          break;
+
+        case "k":
+        case "ArrowLeft":
+          this.routeToDirection(PREV);
+          break;
+        case "c":
+          this.$refs.closeBook.$el.click();
+          break;
+        case "m":
+          this.openMetadata();
+          break;
+        // No default
       }
     },
     download() {
@@ -136,6 +174,7 @@ export default {
   padding-top: env(safe-area-inset-top);
   padding-left: calc(env(safe-area-inset-left) / 3);
   padding-right: calc(env(safe-area-inset-right) / 3);
+  z-index: 10;
 }
 #toolbarTitle {
   overflow-y: auto;
@@ -179,10 +218,8 @@ export default {
 #readerTopToolbar .v-toolbar__content {
   padding: 0px;
 }
-#readerTopToolbar .tagIcon {
-  position: relative !important;
-  top: 0px !important;
-  left: 0px !important;
+#readerTopToolbar .tagButton {
+  min-width: 24px;
   height: 24px;
   width: 24px;
   margin: 0px;

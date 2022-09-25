@@ -1,15 +1,18 @@
 <template>
   <v-menu offset-y top>
     <template #activator="{ on }">
-      <v-icon
-        class="browserCardMenuIcon"
+      <v-btn
         aria-label="action menu"
-        right
+        class="browserCardMenuIcon"
+        icon
+        title="Action Menu"
         v-on="on"
         @click.prevent
       >
-        {{ mdiDotsVertical }}
-      </v-icon>
+        <v-icon>
+          {{ mdiDotsVertical }}
+        </v-icon>
+      </v-btn>
     </template>
     <v-list nav>
       <v-list-item ripple @click="toggleRead">

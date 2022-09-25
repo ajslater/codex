@@ -35,7 +35,7 @@ border-radius: 128px;
 You may browse a [live demo server](https://codex.sl8r.net/) to get a feel for
 Codex.
 
-## <a name="news">📰 News</a>
+## <a name="news">📜 News</a>
 
 Codex has a <a href="NEWS.md">NEWS file</a> to summarize changes that affect
 users.

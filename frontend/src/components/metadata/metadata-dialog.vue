@@ -6,9 +6,18 @@
     content-class="metadataDialog"
   >
     <template #activator="{ on }">
-      <v-icon aria-label="tags" left class="tagIcon" v-on="on" @click.prevent>
-        {{ mdiTagOutline }}
-      </v-icon>
+      <v-btn
+        aria-label="tags"
+        class="tagButton"
+        icon
+        title="Tags"
+        v-on="on"
+        @click.prevent
+      >
+        <v-icon>
+          {{ mdiTagOutline }}
+        </v-icon>
+      </v-btn>
     </template>
     <div v-if="md" id="metadataContainer">
       <header id="metadataHeader">

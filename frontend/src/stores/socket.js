@@ -76,7 +76,6 @@ export const useSocketStore = defineStore("socket", {
 
           break;
         case CHOICES.websockets.LIBRARIAN_STATUS:
-          console.log("load statuses");
           adminStore.loadTable("LibrarianStatus");
 
           break;

@@ -68,7 +68,7 @@ export const useReaderStore = defineStore("reader", {
       issue: undefined,
       issueSuffix: "",
       issueCount: undefined,
-      maxPage: 0,
+      maxPage: undefined,
       seriesName: "",
       volumeName: "",
     },
@@ -84,6 +84,7 @@ export const useReaderStore = defineStore("reader", {
     bookChange: undefined,
     isSettingsDrawerOpen: false,
     nullValues: SETTINGS_NULL_VALUES,
+    comicLoaded: false,
   }),
   getters: {
     computedSettings(state) {
@@ -95,6 +96,20 @@ export const useReaderStore = defineStore("reader", {
         computedSettings[key] = isLocalValSet ? localVal : globalVal;
       }
       return computedSettings;
+    },
+    fitToClass(state) {
+      let classes = {};
+      const fitTo = state.computedSettings.fitTo;
+      if (fitTo) {
+        let fitToClass = "fitTo";
+        fitToClass += fitTo.charAt(0).toUpperCase();
+        fitToClass += fitTo.slice(1).toLowerCase();
+        if (state.computedSettings.twoPages) {
+          fitToClass += "Two";
+        }
+        classes[fitToClass] = true;
+      }
+      return classes;
     },
   },
   actions: {
@@ -150,15 +165,17 @@ export const useReaderStore = defineStore("reader", {
           return console.error(error);
         });
     },
-    async loadBookSettings() {
-      // ONLY USED in bookChanged
+    async _loadBookSettings() {
+      this.comicLoaded = false;
       return API.getComicBookmark(router.currentRoute.params.pk, this.timestamp)
         .then((response) => {
           const data = response.data;
           this._updateSettings("local", data);
+          this.comicLoaded = true;
           return this.setRoutesAndBookmarkPage();
         })
         .catch((error) => {
+          this.comicLoaded = true;
           return console.error(error);
         });
     },
@@ -167,7 +184,7 @@ export const useReaderStore = defineStore("reader", {
         .then((response) => {
           const info = response.data;
           this.setBookInfo(info);
-          return this.loadBookSettings();
+          return this._loadBookSettings();
         })
         .catch((error) => {
           if ([303, 404].includes(error.response.status)) {
@@ -191,8 +208,10 @@ export const useReaderStore = defineStore("reader", {
       this.setPrevRoute();
 
       this.setNextPage();
-      this.bookChange = undefined;
-      await this.setBookmarkPage();
+      await this.setBookmarkPage().then(() => {
+        this.bookChange = undefined;
+        return true;
+      });
     },
     async setSettingsLocal(data) {
       this._updateSettings("local", data);

@@ -2,7 +2,7 @@
 """The main runnable for codex. Sets up codex and runs hypercorn."""
 import os
 
-from asyncio import get_event_loop
+from asyncio import new_event_loop
 
 import django
 
@@ -47,7 +47,7 @@ def restart():
 def run():
     """Run Codex."""
     # configure the loop
-    loop = get_event_loop()
+    loop = new_event_loop()
     bind_signals(loop)
     loop.run_until_complete(
         serve(

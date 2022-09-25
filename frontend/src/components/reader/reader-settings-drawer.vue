@@ -30,7 +30,7 @@
         <v-checkbox
           class="displayTwoPages"
           label="Two pages"
-          :value="settingsScope.twoPages"
+          :input-value="settingsScope.twoPages"
           :indeterminate="
             settingsScope.twoPages === null ||
             settingsScope.twoPages === undefined
@@ -96,8 +96,6 @@ export default {
       },
     },
     isClearSettingsButtonDisabled: function () {
-      console.log(this.nullValues);
-      console.log(this.settingsScope);
       return (
         this.isSettingsDialogGlobalMode ||
         (this.nullValues.has(this.settingsScope.fitTo) &&

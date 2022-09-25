@@ -54,6 +54,10 @@ class BrowserBaseView(BrowserSessionViewBase, GroupACLMixin):
         "tag": "tags",
         "team": "teams",
         "updated": "updated_at",
+        # OPDS
+        "author": "creators",
+        "contributor": "creators",
+        "category": "characters",  # the most common category, probably
     }
     _BOOKMARK_FILTERS = frozenset(set(CHOICES["bookmarkFilter"].keys()) - set(("ALL",)))
     _GET_JSON_KEYS = frozenset(("filters", "show"))
