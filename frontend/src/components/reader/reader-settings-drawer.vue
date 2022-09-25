@@ -30,7 +30,7 @@
         <v-checkbox
           class="displayTwoPages"
           label="Two pages"
-          :value="settingsScope.twoPages"
+          :input-value="settingsScope.twoPages"
           :indeterminate="
             settingsScope.twoPages === null ||
             settingsScope.twoPages === undefined
