@@ -354,7 +354,7 @@ export const useBrowserStore = defineStore("browser", {
         return true;
       });
     },
-    async loadFilterChoices(routeParams, mode) {
+    async _loadFilterChoices(routeParams, mode) {
       await API.getBrowserChoices(routeParams, mode, this.settings)
         .then((response) => {
           this.choices[mode] = Object.freeze(response.data);
@@ -369,7 +369,7 @@ export const useBrowserStore = defineStore("browser", {
         return;
       }
       if (mode !== "base" && this.choices[mode] === undefined) {
-        this.loadFilterChoices(routeParams, mode);
+        this._loadFilterChoices(routeParams, mode);
       }
       this.filterMode = mode;
     },
