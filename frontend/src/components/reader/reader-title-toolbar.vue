@@ -76,8 +76,8 @@ export default {
       routes: (state) => state.routes,
       timestamp: (state) => state.timestamp,
       seriesPosition: function (state) {
-        if (state.routes.seriesCount > 1) {
-          const routes = state.routes;
+        const routes = state.routes;
+        if (routes.seriesCount > 1) {
           return `${routes.seriesIndex}/${routes.seriesCount}`;
         }
       },

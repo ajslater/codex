@@ -7,9 +7,9 @@
   >
     <template #activator="{ on }">
       <v-btn
-        icon
         aria-label="tags"
         class="tagButton"
+        icon
         title="Tags"
         v-on="on"
         @click.prevent
