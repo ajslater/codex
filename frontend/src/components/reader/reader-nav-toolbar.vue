@@ -32,7 +32,7 @@ export default {
   },
   computed: {
     ...mapState(useReaderStore, {
-      maxPage: (state) => state.comic.maxPage,
+      maxPage: (state) => (state.comic ? state.comic.maxPage : 0),
       // without this the slider can fail to place right on book change
       comicLoaded: (state) => state.comicLoaded,
     }),
