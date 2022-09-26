@@ -31,7 +31,7 @@
       />
     </template>
     <v-window-item
-      v-for="(_, page) in maxPage + 1"
+      v-for="(_, page) in numWindowItems"
       :key="`c/${pk}/${page}`"
       class="windowItem"
     >
@@ -86,8 +86,14 @@ export default {
   computed: {
     ...mapGetters(useReaderStore, ["computedSettings", "fitToClass"]),
     ...mapState(useReaderStore, {
-      maxPage: (state) => state.comic.maxPage || 0,
-      isPDF: (state) => state.comic.fileFormat === "pdf",
+      numWindowItems: (state) => {
+        if (state.comic) {
+          return (state.comic.maxPage || 0) + 1;
+        }
+        return 0;
+      },
+      isPDF: (state) =>
+        state.comic ? state.comic.fileFormat === "pdf" : false,
       routes: (state) => state.routes,
       timestamp: (state) => state.timestamp,
       secondPage(state) {
