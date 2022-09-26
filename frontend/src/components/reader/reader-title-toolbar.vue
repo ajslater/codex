@@ -24,9 +24,6 @@
           :pk="Number($route.params.pk)"
         />
       </v-btn>
-      <v-btn id="downloadPageButton" title="Download Page" @click="download">
-        <v-icon>{{ mdiFileImage }}</v-icon>
-      </v-btn>
       <SettingsDrawerButton
         id="settingsButton"
         @click.stop="isSettingsDrawerOpen = true"
@@ -36,16 +33,13 @@
 </template>
 
 <script>
-import { mdiClose, mdiFileImage } from "@mdi/js";
+import { mdiClose } from "@mdi/js";
 import { mapActions, mapGetters, mapState, mapWritableState } from "pinia";
 
-import { getComicPageSource } from "@/api/v3/reader";
 import CHOICES from "@/choices";
-import { getFullComicName } from "@/comic-name";
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
 import { useBrowserStore } from "@/stores/browser";
-import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
 
 const PREV = "prev";
@@ -60,7 +54,6 @@ export default {
   data() {
     return {
       mdiClose,
-      mdiFileImage,
     };
   },
   head() {
@@ -69,13 +62,8 @@ export default {
     return { meta: [{ hid: "description", name: "description", content }] };
   },
   computed: {
+    ...mapGetters(useReaderStore, ["computedSettings", "title"]),
     ...mapState(useReaderStore, {
-      title: function (state) {
-        if (state.comic) {
-          return getFullComicName(state.comic);
-        }
-        return "";
-      },
       routes: (state) => state.routes,
       timestamp: (state) => state.timestamp,
       seriesPosition: function (state) {
@@ -89,7 +77,6 @@ export default {
       lastRoute: (state) => state.page.routes.last,
     }),
     ...mapWritableState(useReaderStore, ["isSettingsDrawerOpen"]),
-    ...mapGetters(useReaderStore, ["computedSettings"]),
     closeBookRoute: function () {
       // Choose the best route
       const route = {
@@ -103,14 +90,6 @@ export default {
       }
       return route;
     },
-    pageSrc: function () {
-      const routeParams = { ...this.$route.params };
-      return getComicPageSource(routeParams, this.timestamp);
-    },
-    pageName: function () {
-      const page = this.$route.params.page;
-      return `${this.title} - page ${page}.jpg`;
-    },
   },
   mounted() {
     window.addEventListener("keyup", this._keyListener);
@@ -119,7 +98,6 @@ export default {
     window.removeEventListener("keyup", this._keyListener);
   },
   methods: {
-    ...mapActions(useCommonStore, ["downloadIOSPWAFix"]),
     ...mapActions(useReaderStore, ["routeToDirection"]),
     openMetadata: function () {
       this.$refs.metadataDialog.dialog = true;
@@ -162,9 +140,6 @@ export default {
         // No default
       }
     },
-    download() {
-      this.downloadIOSPWAFix(this.pageSrc, this.pageName);
-    },
   },
 };
 </script>
@@ -191,15 +166,11 @@ export default {
   color: darkgray;
   text-align: center;
 }
-#downloadPageButton {
-  height: 100%;
-}
 @import "vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   #closeBook {
     min-width: 32px;
   }
-  #downloadPageButton,
   #tagButton {
     padding-left: 2px;
     padding-right: 2px;

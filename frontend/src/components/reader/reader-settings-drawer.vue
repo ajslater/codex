@@ -49,6 +49,15 @@
         </v-btn>
       </div>
       <v-divider />
+      <v-list-item ripple @click="downloadPage">
+        <v-list-item-content>
+          <v-list-item-title>
+            <v-icon>{{ mdiFileImage }}</v-icon> Download Page
+            {{ $route.params.page }}
+          </v-list-item-title>
+        </v-list-item-content>
+      </v-list-item>
+      <v-divider />
       <ReaderKeyboardShortcutsPanel />
     </div>
     <SettingsCommonPanel />
@@ -56,11 +65,14 @@
 </template>
 
 <script>
+import { mdiFileImage } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
+import { getComicPageSource } from "@/api/v3/reader";
 import ReaderKeyboardShortcutsPanel from "@/components/reader/keyboard-shortcuts-panel.vue";
 import SettingsCommonPanel from "@/components/settings/panel.vue";
 import { useAuthStore } from "@/stores/auth";
+import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
@@ -73,10 +85,12 @@ export default {
   data() {
     return {
       isSettingsDialogGlobalMode: false,
+      mdiFileImage,
     };
   },
   computed: {
     ...mapGetters(useAuthStore, ["isCodexViewable"]),
+    ...mapGetters(useReaderStore, ["title"]),
     ...mapState(useReaderStore, {
       fitToChoices: (state) => state.choices.fitTo,
       settingsScope: function (state) {
@@ -102,6 +116,14 @@ export default {
           this.nullValues.has(this.settingsScope.twoPages))
       );
     },
+    pageSrc: function () {
+      const routeParams = { ...this.$route.params };
+      return getComicPageSource(routeParams, this.timestamp);
+    },
+    pageName: function () {
+      const page = this.$route.params.page;
+      return `${this.title} - page ${page}.jpg`;
+    },
   },
   mounted() {
     window.addEventListener("keyup", this._keyListener);
@@ -111,6 +133,7 @@ export default {
     window.removeEventListener("keyup", this._keyListener);
   },
   methods: {
+    ...mapActions(useCommonStore, ["downloadIOSPWAFix"]),
     ...mapActions(useReaderStore, [
       "clearSettingsLocal",
       "setSettingsGlobal",
@@ -150,6 +173,10 @@ export default {
         // metadata and close are attached to to title-toolbar
         // No default
       }
+    },
+
+    downloadPage() {
+      this.downloadIOSPWAFix(this.pageSrc, this.pageName);
     },
   },
 };
