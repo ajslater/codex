@@ -4,9 +4,7 @@
     <div v-if="user">
       <v-list-item ripple @click="logout">
         <v-list-item-content>
-          <v-list-item-title>
-            <h3>Logout {{ user.username }}</h3>
-          </v-list-item-title>
+          <v-list-item-title> Logout {{ user.username }} </v-list-item-title>
         </v-list-item-content>
       </v-list-item>
       <AuthChangePasswordDialog />

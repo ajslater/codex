@@ -7,6 +7,9 @@
     touchless
     :mobile-breakpoint="960"
   >
+    <header id="adminMenuHeader">
+      <h3>Admin Status</h3>
+    </header>
     <v-list-item-group id="browserLink">
       <v-list-item ref="browserLink" ripple :to="browserRoute">
         <v-list-item-content>
@@ -74,6 +77,10 @@ export default {
 <style scoped lang="scss">
 #adminSetingsDrawer {
   z-index: 20;
+}
+#adminMenuHeader {
+  padding: 10px;
+  padding-left: 15px;
 }
 #footerGroup {
   color: grey;
