@@ -194,7 +194,7 @@ export const useReaderStore = defineStore("reader", {
           return this._loadBookSettings();
         })
         .catch((error) => {
-          if ([303, 404].includes(error.response.status)) {
+          if (error.response && [303, 404].includes(error.response.status)) {
             const data = error.response.data;
             console.debug(`redirect: ${data.reason}`);
             const route = { name: "browser", params: data.route };
