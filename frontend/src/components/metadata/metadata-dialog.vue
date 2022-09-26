@@ -172,6 +172,7 @@
           <v-icon v-if="group === 'c'">
             {{ mdiDownload }}
           </v-icon>
+          Download
         </v-btn>
         <v-btn
           v-if="isReadButtonShown"
@@ -180,6 +181,7 @@
           :disabled="!isReadButtonEnabled"
         >
           <v-icon>{{ readButtonIcon }}</v-icon>
+          Read
         </v-btn>
         <span id="bottomRightButtons">
           <v-btn
