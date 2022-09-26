@@ -1,7 +1,13 @@
 <template>
   <v-toolbar id="titleToolbar" class="toolbar">
     <v-toolbar-items v-if="isCodexViewable">
-      <v-btn :class="{ invisible: !showUpButton }" :to="toUpRoute" icon ripple>
+      <v-btn
+        :class="{ invisible: !showUpButton }"
+        :to="toUpRoute"
+        icon
+        ripple
+        :title="upTitle"
+      >
         <v-icon>{{ mdiArrowUp }}</v-icon>
       </v-btn>
     </v-toolbar-items>
@@ -100,6 +106,11 @@ export default {
         return "";
       }
       return this.groupNames[this.modelGroup];
+    },
+    upTitle() {
+      const group = this.$route.params.group || "";
+      const name = this.groupNames[group] || "All";
+      return `Up to ${name}`;
     },
   },
 };
