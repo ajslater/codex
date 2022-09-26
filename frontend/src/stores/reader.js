@@ -3,8 +3,8 @@ import { defineStore } from "pinia";
 import BROWSER_API from "@/api/v3/browser";
 import API from "@/api/v3/reader";
 import CHOICES from "@/choices";
-import router from "@/router";
 import { getFullComicName } from "@/comic-name";
+import router from "@/router";
 
 const NULL_READER_SETTINGS = {
   // Must be null so axios doesn't throw them out when sending.
@@ -113,11 +113,8 @@ export const useReaderStore = defineStore("reader", {
       return classes;
     },
     title(state) {
-       if (state.comic) {
-          return getFullComicName(state.comic);
-      }
-      return "";
-    }
+      return state.comic ? getFullComicName(state.comic) : "";
+    },
   },
   actions: {
     ///////////////////////////////////////////////////////////////////////////
