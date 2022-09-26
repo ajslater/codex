@@ -146,7 +146,7 @@ export default {
       "setRoutesAndBookmarkPage",
     ]),
     getSrc(page) {
-      const routeParams = { ...this.$router.currentRoute.params, page };
+      const routeParams = { ...this.$route.params, page };
       return getComicPageSource(routeParams, this.timestamp);
     },
     async setPage(page) {
@@ -154,7 +154,7 @@ export default {
         return;
       }
       if (page === undefined) {
-        page = +this.$router.currentRoute.params.page;
+        page = +this.$route.params.page;
       }
       this.windowPage = page;
       window.scrollTo(0, 0);

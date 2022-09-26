@@ -21,7 +21,7 @@
         <MetadataDialog
           ref="metadataDialog"
           group="c"
-          :pk="Number($router.currentRoute.params.pk)"
+          :pk="Number($route.params.pk)"
         />
       </v-btn>
       <v-btn id="downloadPageButton" title="Download Page" @click="download">
@@ -71,7 +71,10 @@ export default {
   computed: {
     ...mapState(useReaderStore, {
       title: function (state) {
-        return getFullComicName(state.comic);
+        if (state.comic) {
+          return getFullComicName(state.comic);
+        }
+        return "";
       },
       routes: (state) => state.routes,
       timestamp: (state) => state.timestamp,
@@ -101,11 +104,11 @@ export default {
       return route;
     },
     pageSrc: function () {
-      const routeParams = { ...this.$router.currentRoute.params };
+      const routeParams = { ...this.$route.params };
       return getComicPageSource(routeParams, this.timestamp);
     },
     pageName: function () {
-      const page = this.$router.currentRoute.params.page;
+      const page = this.$route.params.page;
       return `${this.title} - page ${page}.jpg`;
     },
   },

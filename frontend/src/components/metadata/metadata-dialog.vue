@@ -296,7 +296,7 @@ export default {
       return getDownloadURL(this.pk); // browser timestamp missing.
     },
     isReadButtonShown: function () {
-      return this.group === "c" && this.$router.currentRoute.name != "reader";
+      return this.group === "c" && this.$route.name != "reader";
     },
     isReadButtonEnabled: function () {
       return this.$route.name === "browser" && Boolean(this.readerRoute);
