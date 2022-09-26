@@ -34,6 +34,7 @@
       v-for="(_, page) in numWindowItems"
       :key="`c/${pk}/${page}`"
       class="windowItem"
+      disabled
     >
       <PDFPage v-if="isPDF" :source="getSrc(page)" />
       <img
