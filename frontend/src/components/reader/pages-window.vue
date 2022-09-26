@@ -6,18 +6,28 @@
     :value="windowPage"
     :vertical="vertical"
   >
+    <div
+      id="bookChangePrev"
+      class="bookChangeColumn"
+      @click="bookChange('prev')"
+    />
+    <div
+      id="bookChangeNext"
+      class="bookChangeColumn"
+      @click="bookChange('next')"
+    />
     <template #prev>
       <div
-        class="navColumn"
+        class="pageChangeColumn"
         aria-label="previous page"
-        @click="routeToDirection('prev')"
+        @click="pageChange('prev')"
       />
     </template>
     <template #next>
       <div
-        class="navColumn"
+        class="pageChangeColumn"
         aria-label="next page"
-        @click="routeToDirection('next')"
+        @click="pageChange('next')"
       />
     </template>
     <v-window-item
@@ -145,25 +155,21 @@ export default {
       this.windowPage = page;
       window.scrollTo(0, 0);
     },
-    click(event) {
-      const navColumnWidth = window.innerWidth / 3;
-      const nextColumnX = window.innerWidth - navColumnWidth;
-      let direction;
-      if (event.x > nextColumnX) {
-        direction = "next";
-      } else if (event.x < navColumnWidth) {
-        direction = "prev";
-      } else {
-        this.$emit("click");
-      }
+    pageChange(direction) {
+      this.routeToDirection(direction);
+    },
+    bookChange(direction) {
       this.setBookChangeFlag(direction);
+    },
+    click() {
+      this.$emit("click");
     },
   },
 };
 </script>
 
 <style scoped lang="scss">
-.navColumn {
+.pageChangeColumn {
   width: 100%;
   height: 100%;
 }
@@ -198,6 +204,19 @@ export default {
 .fitToOrigTwo {
   object-fit: none;
 }
+.bookChangeColumn {
+  position: fixed;
+  top: 48px;
+  width: 33vw;
+  height: calc(100vh - 96px);
+  z-index: 5;
+}
+#bookChangePrev {
+  left: 0px;
+}
+#bookChangeNext {
+  right: 0px;
+}
 </style>
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
@@ -209,6 +228,7 @@ export default {
   height: calc(100vh - 96px);
   border-radius: 0;
   opacity: 0;
+  z-index: 8;
 }
 #pagesWindow .v-window__prev {
   cursor: w-resize;
