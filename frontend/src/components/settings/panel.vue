@@ -4,7 +4,7 @@
     <component :is="adminMenuLoader" />
     <v-divider />
     <v-list-item-group>
-      <v-list-item id="opds" ripple @click="copyToClipboard">
+      <v-list-item id="opds" ripple title="Copy URL" @click="copyToClipboard">
         <v-list-item-content>
           <h3>
             OPDS
