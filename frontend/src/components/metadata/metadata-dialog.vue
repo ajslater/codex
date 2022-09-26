@@ -21,14 +21,12 @@
     </template>
     <div v-if="md" id="metadataContainer">
       <header id="metadataHeader">
-        <v-btn
-          id="topCloseButton"
+        <CloseButton
+          class="closeButton"
           title="Close Metadata (esc)"
-          ripple
+          x-large
           @click="dialog = false"
-        >
-          x
-        </v-btn>
+        />
         <MetadataText
           v-if="q"
           id="search"
@@ -184,25 +182,21 @@
           Read
         </v-btn>
         <span id="bottomRightButtons">
-          <v-btn
-            id="bottomCloseButton"
-            ripple
+          <CloseButton
+            class="closeButton"
             title="Close Metadata (esc)"
+            x-large
             @click="dialog = false"
-            >x</v-btn
-          >
+          />
         </span>
       </footer>
     </div>
     <div v-else id="placeholderContainer">
-      <v-btn
-        id="topCloseButton"
+      <CloseButton
+        class="closeButton"
         title="Close Metadata (esc)"
-        ripple
         @click="dialog = false"
-      >
-        x
-      </v-btn>
+      />
       <div id="placeholderTitle">Tags Loading</div>
       <v-progress-circular
         :value="progress"
@@ -223,6 +217,7 @@ import { mapActions, mapGetters, mapState } from "pinia";
 import { getDownloadURL } from "@/api/v3/reader";
 import { formattedIssue, getFullComicName } from "@/comic-name";
 import BookCover from "@/components/book-cover.vue";
+import CloseButton from "@/components/close-button.vue";
 import MetadataCreditsTable from "@/components/metadata/credits-table.vue";
 import MetadataTags from "@/components/metadata/metadata-tags.vue";
 import MetadataText from "@/components/metadata/metadata-text.vue";
@@ -246,6 +241,7 @@ export default {
   name: "MetadataButton",
   components: {
     BookCover,
+    CloseButton,
     MetadataCreditsTable,
     MetadataTags,
     MetadataText,
@@ -414,7 +410,7 @@ export default {
   font-size: xx-large;
   color: gray;
 }
-#topCloseButton {
+.closeButton {
   float: right;
   margin-left: 5px;
 }
@@ -430,7 +426,6 @@ export default {
 .bookCoverProgress {
   margin-top: 1px;
 }
-#topCloseButton,
 #bookCover {
   padding-top: 0px !important;
 }

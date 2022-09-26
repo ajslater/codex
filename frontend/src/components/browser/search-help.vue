@@ -13,15 +13,12 @@
       </v-list-item>
     </template>
     <div id="searchHelp">
-      <v-btn
-        id="topCloseButton"
+      <CloseButton
         class="closeButton"
         title="Close Help (esc)"
-        ripple
+        x-large
         @click="dialog = false"
-      >
-        x
-      </v-btn>
+      />
       <h1>Search Syntax Help</h1>
       <div id="fieldTableContainer">
         <h2>Search Fields</h2>
@@ -127,15 +124,12 @@
           only one of them.
         </p>
       </div>
-      <v-btn
-        id="bottomCloseButton"
+      <CloseButton
         class="closeButton"
-        ripple
         title="Close Help (esc)"
+        x-large
         @click="dialog = false"
-      >
-        x
-      </v-btn>
+      />
     </div>
   </v-dialog>
 </template>
@@ -216,7 +210,6 @@ h1 {
 }
 .closeButton {
   float: right;
-  width: 64px;
 }
 #fieldTableContainer {
   float: left;
