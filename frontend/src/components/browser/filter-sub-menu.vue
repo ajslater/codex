@@ -38,7 +38,7 @@
             filled
             rounded
             hide-details="auto"
-            @focus="setFilterMode(name)"
+            @focus="filterMode = name"
           />
         </header>
         <v-list-item-group
@@ -54,7 +54,12 @@
             ripple
           >
             <v-list-item-content>
-              <v-list-item-title>{{ item.name }}</v-list-item-title>
+              <v-list-item-title v-if="isNullPk(item.pk)" class="noneItem">
+                None
+              </v-list-item-title>
+              <v-list-item-title v-else>
+                {{ item.name }}
+              </v-list-item-title>
             </v-list-item-content>
           </v-list-item>
         </v-list-item-group>
@@ -69,10 +74,12 @@ import {
   mdiChevronRight,
   mdiChevronRightCircle,
 } from "@mdi/js";
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapState, mapWritableState } from "pinia";
 
 import { toVuetifyItems } from "@/api/v3/vuetify-items";
 import { useBrowserStore } from "@/stores/browser";
+
+const NULL_PKS = new Set(["", -1]);
 
 export default {
   name: "BrowserFilterSubMenu",
@@ -98,13 +105,13 @@ export default {
   computed: {
     ...mapState(useBrowserStore, {
       choices: function (state) {
-        return state.choices[this.name];
+        return state.choices.dynamic[this.name];
       },
       filterSetting: function (state) {
         return state.settings.filters[this.name];
       },
-      filterMode: (state) => state.filterMode,
     }),
+    ...mapWritableState(useBrowserStore, ["filterMode"]),
     vuetifyItems: function () {
       return toVuetifyItems(this.choices, this.query, this.isNumeric);
     },
@@ -131,11 +138,12 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useBrowserStore, ["setFilterMode", "setSettings"]),
+    ...mapActions(useBrowserStore, ["setSettings"]),
     setUIFilterMode(mode) {
-      this.setFilterMode(this.$route.params, mode);
+      this.filterMode = mode;
       this.query = "";
     },
+    isNullPk: (pk) => NULL_PKS.has(pk),
   },
 };
 </script>
@@ -157,5 +165,8 @@ export default {
 }
 .filterGroup {
   max-height: 80vh; /* has to be less than the menu height */
+}
+.noneItem {
+  color: gray;
 }
 </style>

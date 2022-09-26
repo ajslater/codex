@@ -36,6 +36,11 @@ const getBrowserChoices = ({ group, pk }, choice_type, data) => {
   return HTTP.get(`/${group}/${pk}/choices/${choice_type}`, { params });
 };
 
+const getAllBrowserChoices = ({ group, pk }, data) => {
+  const params = pruneParams(data);
+  return HTTP.get(`/${group}/${pk}/choices`, { params });
+};
+
 const loadBrowserPage = ({ group, pk, page }, data) => {
   const params = pruneParams(data);
   return HTTP.get(`/${group}/${pk}/${page}`, { params });
@@ -55,9 +60,10 @@ const setGroupBookmarks = ({ group, pk }, data) => {
 };
 
 export default {
+  getAllBrowserChoices,
   getBrowserChoices,
-  loadBrowserPage,
   getMetadata,
   getSettings,
+  loadBrowserPage,
   setGroupBookmarks,
 };

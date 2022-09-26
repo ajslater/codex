@@ -5,26 +5,6 @@ import CHOICES from "@/choices";
 import router from "@/router";
 import { useAuthStore } from "@/stores/auth";
 
-const DYNAMIC_FILTERS = {
-  ageRating: undefined,
-  communityRating: undefined,
-  characters: undefined,
-  country: undefined,
-  criticalRating: undefined,
-  creators: undefined,
-  decade: undefined,
-  format: undefined,
-  genres: undefined,
-  language: undefined,
-  locations: undefined,
-  readLtr: undefined,
-  seriesGroups: undefined,
-  storyArcs: undefined,
-  tags: undefined,
-  teams: undefined,
-  year: undefined,
-};
-Object.freeze(DYNAMIC_FILTERS);
 export const NUMERIC_FILTERS = [
   "communityRating",
   "criticalRating",
@@ -48,15 +28,6 @@ const isRootGroupEnabled = function (state, topGroup) {
 
 const getZeroPad = function (issueMax) {
   return !issueMax || issueMax < 1 ? 1 : Math.floor(Math.log10(issueMax)) + 1;
-};
-
-const clearAllFormChoicesExcept = function (state, keepChoiceName) {
-  for (let choiceName of Object.keys(DYNAMIC_FILTERS)) {
-    if (choiceName === keepChoiceName) {
-      continue;
-    }
-    state.choices[choiceName] = undefined;
-  }
 };
 
 const validateFirstSearch = function (state, data) {
@@ -113,9 +84,7 @@ const mutateSettings = function (store, data) {
   store.$patch((state) => {
     for (let [key, value] of Object.entries(data)) {
       if (typeof state.settings[key] === "object") {
-        for (let [sub_key, sub_value] of Object.entries(value)) {
-          state.settings[key][sub_key] = sub_value;
-        }
+        state.settings[key] = { ...state.settings[key], ...value };
       } else {
         state.settings[key] = value;
       }
@@ -132,18 +101,7 @@ const validateAndSaveSettings = function (store, data) {
     mutateSettings(store, data);
   }
 
-  // clear choices and reset filter menu mode.
-  if (data.filters || data.q) {
-    let filterName;
-    if (data.filters) {
-      filterName = Object.keys(data.filters)[0];
-    }
-    store.$patch((state) => {
-      clearAllFormChoicesExcept(state, filterName);
-      state.filterMode = "base";
-    });
-  }
-
+  store.filterMode = "base";
   store.setTimestamp();
   return redirect;
 };
@@ -163,18 +121,15 @@ const redirectRoute = function (route) {
 export const useBrowserStore = defineStore("browser", {
   state: () => ({
     choices: {
-      // static choices
-      bookmark: CHOICES.browser.bookmarkFilter,
-      groupNames: CHOICES.browser.groupNames,
-      settingsGroup: CHOICES.browser.settingsGroup,
-      // determined by api
-      ...DYNAMIC_FILTERS,
+      static: Object.freeze({
+        bookmark: CHOICES.browser.bookmarkFilter,
+        groupNames: CHOICES.browser.groupNames,
+        settingsGroup: CHOICES.browser.settingsGroup,
+      }),
+      dynamic: {},
     },
     settings: {
-      filters: {
-        bookmark: undefined,
-        ...DYNAMIC_FILTERS,
-      },
+      filters: {},
       q: "",
       topGroup: undefined,
       orderBy: undefined,
@@ -222,9 +177,6 @@ export const useBrowserStore = defineStore("browser", {
       }
       return Object.values(choices);
     },
-    filterNames(state) {
-      return Object.keys(state.settings.filters).slice(1);
-    },
     orderByChoices(state) {
       const choices = [];
       for (const item of Object.values(CHOICES.browser.orderBy)) {
@@ -248,18 +200,29 @@ export const useBrowserStore = defineStore("browser", {
     setTimestamp() {
       this.settings.ts = Date.now();
     },
-    clearFiltersAndChoices() {
+    async clearFiltersAndChoices() {
       this.$patch((state) => {
         state.filterMode = "base";
-        state.settings.filters.bookmark = "ALL";
-        for (let filterName of this.filterNames) {
-          state.settings.filters[filterName] = [];
-        }
+        state.settings.filters = {};
+        state.choices.dynamic = {};
+        state.settings.ts = Date.now();
       });
-
-      clearAllFormChoicesExcept(this);
-      this.setTimestamp();
-      return this.loadBrowserPage();
+      await this.loadBrowserPage();
+    },
+    async setSettings(data) {
+      // Save settings to state and re-get the objects.
+      const redirect = validateAndSaveSettings(this, data);
+      await (redirect ? redirectRoute(redirect) : this.loadBrowserPage());
+    },
+    async setBookmarkFinished(params, finished) {
+      if (!this.isCodexViewable) {
+        return;
+      }
+      await API.setGroupBookmarks(params, { finished }).then(() => {
+        this.setTimestamp();
+        this.loadBrowserPage();
+        return true;
+      });
     },
     ///////////////////////////////////////////////////////////////////////////
     // ROUTE
@@ -295,8 +258,10 @@ export const useBrowserStore = defineStore("browser", {
       if (!this.isCodexViewable) {
         return;
       }
-      this.browserPageLoaded = false;
-      clearAllFormChoicesExcept(this);
+      this.$patch((state) => {
+        state.browserPageLoaded = false;
+        state.choices.dynamic = {};
+      });
       await API.getSettings()
         .then((response) => {
           const data = response.data;
@@ -311,11 +276,6 @@ export const useBrowserStore = defineStore("browser", {
           this.browserPageLoaded = true;
           return this.handlePageError(error);
         });
-    },
-    async setSettings(data) {
-      // Save settings to state and re-get the objects.
-      const redirect = validateAndSaveSettings(this, data);
-      await (redirect ? redirectRoute(redirect) : this.loadBrowserPage());
     },
     async loadBrowserPage() {
       // Get objects for the current route and settings.
@@ -339,39 +299,24 @@ export const useBrowserStore = defineStore("browser", {
             delete page.issueMax;
 
             state.page = Object.freeze(page);
+            state.choices.dynamic = {};
           });
           return true;
         })
         .catch(this.handlePageError);
     },
-    async setBookmarkFinished(params, finished) {
-      if (!this.isCodexViewable) {
-        return;
-      }
-      await API.setGroupBookmarks(params, { finished }).then(() => {
-        this.setTimestamp();
-        this.loadBrowserPage();
-        return true;
-      });
-    },
-    async _loadFilterChoices(routeParams, mode) {
-      await API.getBrowserChoices(routeParams, mode, this.settings)
+    async loadAllFilterChoices() {
+      return await API.getAllBrowserChoices(
+        router.currentRoute.params,
+        this.settings
+      )
         .then((response) => {
-          this.choices[mode] = Object.freeze(response.data);
-          return true;
+          this.choices.dynamic = Object.freeze(response.data);
+          return Object.keys(this.choices.dynamic);
         })
         .catch((error) => {
           console.error(error);
         });
-    },
-    async setFilterMode(routeParams, mode) {
-      if (!this.isCodexViewable || !mode) {
-        return;
-      }
-      if (mode !== "base" && this.choices[mode] === undefined) {
-        this._loadFilterChoices(routeParams, mode);
-      }
-      this.filterMode = mode;
     },
   },
 });

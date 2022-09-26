@@ -10,8 +10,12 @@ border-radius: 128px;
 
 - Features
   - Animated sliding pages on reader.
+  - Allow filtering by None values when None values exist.
+  - Show only usable filters for current view as filter choices.
+  - PDF viewer shows loading, rendering and password errors.
 - Fixes
   - Filters with compound names were not loading choices.
+  - Handle an iOS bug with downloading pages and comics inside a PWA.
 
 ## v0.13.0
 

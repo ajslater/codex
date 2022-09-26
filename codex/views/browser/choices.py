@@ -1,12 +1,11 @@
 """View for marking comics read and unread."""
 import pycountry
 
-from djangorestframework_camel_case.util import camel_to_underscore
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
-from codex.models import Comic, CreditPerson
-from codex.serializers.browser import BrowserChoicesSerializer
+from codex.models import Comic
+from codex.serializers.browser import BrowserFilterChoicesSerializer
 from codex.serializers.models import PyCountrySerializer
 from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
@@ -16,73 +15,78 @@ from codex.views.browser.base import BrowserBaseView
 LOG = get_logger(__name__)
 
 
-class BrowserChoiceView(BrowserBaseView):
+class BrowserChoicesView(BrowserBaseView):
     """Get choices for filter dialog."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
-    serializer_class = BrowserChoicesSerializer
-
-    _PYCOUNTRY_FIELDS = ("country", "language")
-
-    @classmethod
-    def _get_remote_fields(cls, remote_field, comic_qs):
-        """Use a model serializer."""
-        model = remote_field.model
-        qs = model.objects.filter(comic__in=comic_qs).distinct().values("pk", "name")
-
-        return qs
+    serializer_class = BrowserFilterChoicesSerializer
 
     @staticmethod
-    def _get_credit_persons(comic_qs):
-        """Serialize this special double remote relationship."""
-        qs = (
-            CreditPerson.objects.filter(credit__comic__in=comic_qs)
-            .distinct()
-            .values("pk", "name")
-        )
-        return qs
-
-    def get_object(self):
-        """Get the comic subquery use for the choices."""
-        object_filter, _ = self.get_query_filters(True, True)
-        return Comic.objects.filter(object_filter)
-
-    def _serialize_pycounty_field(self, field_name, comic_qs):
+    def _get_field_choices(field_name, comic_qs):
         """Create a pk:name object for fields without tables."""
-        qs = []
+        qs = comic_qs.values_list(field_name, flat=True).distinct()
 
         if field_name == "country":
             lookup = pycountry.countries
         elif field_name == "language":
             lookup = pycountry.languages
         else:
-            return qs
+            lookup = None
 
-        vals = comic_qs.values_list(field_name, flat=True).distinct()
-        for val in vals:
-            name = PyCountrySerializer.lookup_name(lookup, val)
-            qs.append({"pk": val, "name": name})
+        choices = []
+        for val in qs:
+            if lookup:
+                name = PyCountrySerializer.lookup_name(lookup, val)
+            else:
+                name = val
+            choices.append({"pk": val, "name": name})
 
-        return qs
+        return choices
+
+    @staticmethod
+    def _get_m2m_field_choices(rel, comic_qs):
+        """Get choices with nulls where there are nulls."""
+        qs = (
+            comic_qs.prefetch_related(rel)
+            .values_list(f"{rel}__pk", f"{rel}__name")
+            .distinct()
+        )
+        choices = []
+        for pk, name in qs:
+            if name is None:
+                name = ""
+            choices.append({"pk": pk, "name": name})
+        return choices
+
+    def get_object(self):
+        """Get the comic subquery use for the choices."""
+        object_filter, _ = self.get_query_filters(True, True)
+        return Comic.objects.filter(object_filter)
 
     @extend_schema(request=BrowserBaseView.input_serializer_class)
     def get(self, request, *args, **kwargs):
-        """Get choices for filter dialog."""
+        """Return all choices with more than one choice."""
         self.parse_params()
         comic_qs = self.get_object()
 
-        field_name = self.kwargs.get("field_name")
-        field_name = camel_to_underscore(field_name)
-        if field_name == self.CREDIT_PERSON_UI_FIELD:
-            qs = self._get_credit_persons(comic_qs)
-        else:
-            field = Comic._meta.get_field(field_name)
-            remote_field = getattr(field, "remote_field", None)
+        data = {}
+        for field_name in self.serializer_class().get_fields():  # type: ignore
+            if field_name == self.CREDIT_PERSON_UI_FIELD or getattr(
+                Comic._meta.get_field(field_name), "remote_field", None
+            ):
+                if field_name == self.CREDIT_PERSON_UI_FIELD:
+                    # The only deep relation choice
+                    rel = "credits__person"
+                else:
+                    rel = field_name
 
-            if remote_field:
-                qs = self._get_remote_fields(remote_field, comic_qs)
+                choices = self._get_m2m_field_choices(rel, comic_qs)
             else:
-                qs = self._serialize_pycounty_field(field_name, comic_qs)
+                choices = self._get_field_choices(field_name, comic_qs)
 
-        serializer = self.get_serializer(qs, many=True, read_only=True)
+            if len(choices) > 1:
+                # only offer choices when there's more than one choice.
+                data[field_name] = choices
+
+        serializer = self.get_serializer(data)
         return Response(serializer.data)

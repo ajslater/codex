@@ -17,12 +17,12 @@
       :prepend-inner-icon="filterInnerIcon"
       ripple
       @click:prepend-inner="clearFiltersAndChoices"
-      @focus="focused = true"
+      @focus="focus"
       @blur="focused = false"
     >
       <template #selection="{ item }">
         {{ item.text }}
-        <span v-if="isOtherFiltersSelected" class="filterSuffix"> + </span>
+        <span v-if="isDynamicFiltersSelected" class="filterSuffix"> + </span>
       </template>
       <template #item="data">
         <v-slide-x-transition hide-on-leave>
@@ -38,7 +38,7 @@
           <v-divider v-if="filterMode === 'base'" />
         </v-slide-x-transition>
         <BrowserFilterSubMenu
-          v-for="filterName of filterNames"
+          v-for="filterName of dynamicChoiceNames"
           :key="filterName"
           :name="filterName"
           :is-numeric="NUMERIC_FILTERS.includes(filterName)"
@@ -51,7 +51,7 @@
 
 <script>
 import { mdiCloseCircle } from "@mdi/js";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import BrowserFilterSubMenu from "@/components/browser/filter-sub-menu.vue";
 import { NUMERIC_FILTERS, useBrowserStore } from "@/stores/browser";
@@ -66,66 +66,81 @@ export default {
       focused: false,
       LABEL: "filter by",
       NUMERIC_FILTERS: NUMERIC_FILTERS,
+      dynamicChoiceNames: [],
     };
   },
   computed: {
     ...mapState(useBrowserStore, {
-      bookmarkChoices: (state) => state.choices.bookmark,
+      bookmarkChoices: (state) => state.choices.static.bookmark,
       filterMode: (state) => state.filterMode,
       filters: (state) => state.settings.filters,
-    }),
-    ...mapGetters(useBrowserStore, ["filterNames"]),
-    filterMenuClass: function () {
-      // Lets me hide bookmark menu items with css when the filterMode
-      //   changes.
-      let clsName = "filterMenu";
-      if (this.filterMode !== "base") {
-        clsName += "Hidden";
-      }
-      return clsName;
-    },
-    isOtherFiltersSelected: function () {
-      for (const filterName of this.filterNames) {
-        const filterArray = this.filters[filterName];
-        if (filterArray && filterArray.length > 0) {
-          return true;
+      dynamicChoices: (state) => state.choices.dynamic,
+      isDynamicFiltersSelected: function (state) {
+        for (const [name, array] of Object.entries(state.settings.filters)) {
+          if (name !== "bookmark" && array && array.length > 0) {
+            return true;
+          }
         }
-      }
-      return false;
+        return false;
+      },
+      isFiltersClearable: function (state) {
+        const defaultBookmarkValues = [
+          undefined,
+          state.choices.static.bookmark[0].value,
+        ];
+        return (
+          !defaultBookmarkValues.includes(state.settings.filters.bookmark) ||
+          this.isDynamicFiltersSelected
+        );
+      },
+      filterMenuClass: function (state) {
+        // Lets me hide bookmark menu items with css when the filterMode
+        //   changes.
+        let clsName = "filterMenu";
+        if (state.filterMode !== "base") {
+          clsName += "Hidden";
+        }
+        return clsName;
+      },
+    }),
+    bookmarkFilter: {
+      get() {
+        return this.filters.bookmark || this.bookmarkChoices[0];
+      },
+      set(bookmark) {
+        const data = { filters: { bookmark } };
+        this.setSettings(data);
+      },
     },
-    isFiltersClearable: function () {
-      if (this.bookmarkFilter !== "ALL") {
-        return true;
-      }
-      return this.isOtherFiltersSelected;
-    },
+    //...mapGetters(useBrowserStore, ["dynamicChoiceNames"]),
     filterInnerIcon: function () {
       if (this.isFiltersClearable) {
         return mdiCloseCircle;
       }
       return " ";
     },
-    bookmarkFilter: {
-      get() {
-        return this.filters.bookmark;
-      },
-      set(value) {
-        let bookmark = value;
-        if (bookmark === null || bookmark === undefined) {
-          bookmark = "ALL";
-          console.warn(`bookmarkFilter was ${value}. Set to 'ALL'`);
-        }
-        const data = { filters: { bookmark } };
-        this.setSettings(data);
-      },
-    },
   },
   methods: {
-    ...mapActions(useBrowserStore, ["clearFiltersAndChoices", "setSettings"]),
+    ...mapActions(useBrowserStore, [
+      "clearFiltersAndChoices",
+      "loadAllFilterChoices",
+      "setSettings",
+    ]),
     closeFilterSelect: function () {
       // On sub-menu click, close the menu and reset the filter mode.
       this.$refs.filterSelect.blur();
       useBrowserStore().filterMode = "base";
+    },
+    focus() {
+      this.focused = true;
+      if (Object.keys(this.dynamicChoices).length === 0) {
+        this.loadAllFilterChoices()
+          .then((names) => {
+            this.dynamicChoiceNames = names;
+            return true;
+          })
+          .catch((error) => console.error(error));
+      }
     },
   },
 };

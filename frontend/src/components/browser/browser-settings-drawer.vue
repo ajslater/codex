@@ -50,7 +50,7 @@ export default {
   computed: {
     ...mapGetters(useAuthStore, ["isCodexViewable"]),
     ...mapState(useBrowserStore, {
-      groupChoices: (state) => state.choices.settingsGroup,
+      groupChoices: (state) => state.choices.static.settingsGroup,
       showSettings: (state) => state.settings.show,
     }),
     isSettingsDrawerOpen: {

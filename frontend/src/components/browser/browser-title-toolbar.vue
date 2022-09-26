@@ -48,7 +48,7 @@ export default {
   },
   computed: {
     ...mapState(useBrowserStore, {
-      groupNames: (state) => state.choices.groupNames,
+      groupNames: (state) => state.choices.static.groupNames,
       browserTitle: (state) => state.page.browserTitle,
       modelGroup: (state) => state.page.modelGroup,
       upRoute: (state) => state.page.routes.up,
