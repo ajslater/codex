@@ -2,8 +2,11 @@
   <v-toolbar id="titleToolbar" class="toolbar">
     <v-toolbar-items v-if="isCodexViewable">
       <v-btn
+        id="upButton"
         :class="{ invisible: !showUpButton }"
         :to="toUpRoute"
+        :disabled="!toUpRoute"
+        x-large
         icon
         ripple
         :title="upTitle"
@@ -120,13 +123,18 @@ export default {
 #titleToolbar {
   width: 100vw;
 }
+$upButtonWidth: 64px;
+/* eslint-disable-next-line vue-scoped-css/no-unused-selector */
+#upButton.v-btn {
+  width: $upButtonWidth;
+}
 .invisible {
   visibility: hidden;
 }
 /* eslint-disable-next-line vue-scoped-css/no-unused-selector */
 #titleToolbar .v-toolbar__title {
   margin: auto;
-  padding-right: 48px;
+  padding-right: $upButtonWidth;
   padding-top: 4px;
   text-align: center;
   line-height: 120%;
