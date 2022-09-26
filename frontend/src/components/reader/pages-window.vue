@@ -74,7 +74,6 @@ export default {
   data() {
     return {
       windowPage: 0,
-      loadBookPage: 0,
     };
   },
   head() {
@@ -113,7 +112,6 @@ export default {
   watch: {
     $route(to, from) {
       if (!from.params || Number(to.params.pk) !== Number(from.params.pk)) {
-        this.loadBookPage = to.params.page;
         this.loadBook();
       } else {
         this.setRoutesAndBookmarkPage();
@@ -122,7 +120,7 @@ export default {
     },
     comicLoaded(to) {
       if (to) {
-        this.setPage(this.loadBookPage);
+        this.setPage(this.$route.params.page || 0);
       }
     },
   },
