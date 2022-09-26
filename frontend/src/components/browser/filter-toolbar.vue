@@ -2,7 +2,7 @@
   <v-toolbar id="browserToolbar" class="toolbar" dense>
     <v-toolbar-items v-if="isCodexViewable" id="browserToolbarLeftItems">
       <BrowserRootGroupSelect id="topGroupSelect" />
-      <BrowserSortBySelect id="orderBySelect" />
+      <BrowserOrderBySelect id="orderBySelect" />
     </v-toolbar-items>
     <v-spacer />
     <v-toolbar-items id="browserToolbarRightItems">
@@ -22,7 +22,7 @@ import { mdiFamilyTree, mdiMagnify } from "@mdi/js";
 import { mapGetters, mapWritableState } from "pinia";
 
 import BrowserFilterSelect from "@/components/browser/filter-select.vue";
-import BrowserSortBySelect from "@/components/browser/order-by-select.vue";
+import BrowserOrderBySelect from "@/components/browser/order-by-select.vue";
 import BrowserSearchField from "@/components/browser/search-field.vue";
 import BrowserRootGroupSelect from "@/components/browser/top-group-select.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
@@ -35,7 +35,7 @@ export default {
     BrowserFilterSelect,
     BrowserRootGroupSelect,
     BrowserSearchField,
-    BrowserSortBySelect,
+    BrowserOrderBySelect,
     SettingsDrawerButton,
   },
   data() {
