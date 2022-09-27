@@ -17,6 +17,7 @@ border-radius: 128px;
 - Fixes
   - Filters with compound names were not loading choices.
   - Handle an iOS bug with downloading pages and comics inside a PWA.
+  - PDF failure to render on load and after changing settings.
 
 ## v0.13.0
 
