@@ -49,7 +49,7 @@
         >
           Change Password
         </v-btn>
-        <v-btn id="cancelButton" @click="showDialog = false">Cancel</v-btn>
+        <CancelButton @click="showDialog = false" />
       </div>
       <footer id="messageFooter">
         <small v-if="formErrors && formErrors.length > 0" id="error">
@@ -66,12 +66,14 @@
 import { mdiLockPlusOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
+import CancelButton from "@/components/cancel-button.vue";
 import { useAdminStore } from "@/stores/admin";
 
 const MIN_PASSWORD_LENGTH = 4;
 
 export default {
   name: "AdminChangePasswordDialog",
+  components: { CancelButton },
   props: {
     pk: {
       type: Number,
@@ -173,8 +175,5 @@ export default {
   font-size: larger;
   color: green;
   text-align: center;
-}
-#cancelButton {
-  float: right;
 }
 </style>

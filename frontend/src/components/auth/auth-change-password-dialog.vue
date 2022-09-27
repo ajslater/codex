@@ -1,7 +1,7 @@
 <template>
   <v-dialog
     v-if="user"
-    v-model="showChangePasswordDialog"
+    v-model="showDialog"
     origin="center-top"
     transition="slide-y-transition"
     max-width="20em"
@@ -62,6 +62,7 @@
       >
         Change Password
       </v-btn>
+      <CancelButton @click="showDialog = false" />
       <footer id="messageFooter">
         <small v-if="formErrors && formErrors.length > 0" id="error">
           <div v-for="error in formErrors" :key="error">
@@ -77,11 +78,15 @@
 import { mdiLockReset } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
+import CancelButton from "@/components/cancel-button.vue";
 import { useAuthStore } from "@/stores/auth";
 
 export default {
   // eslint-disable-next-line no-secrets/no-secrets
   name: "AuthChangePasswordDialog",
+  components: {
+    CancelButton,
+  },
   emits: ["sub-dialog-open"],
   data() {
     return {
@@ -105,11 +110,10 @@ export default {
         password: "",
         passwordConfirm: "",
       },
-      showChangePasswordDialog: false,
+      showDialog: false,
       mdiLockReset,
     };
   },
-
   computed: {
     ...mapState(useAuthStore, {
       user: (state) => state.user,
@@ -128,7 +132,7 @@ export default {
     },
   },
   watch: {
-    showChangePasswordDialog(show) {
+    showDialog(show) {
       if (show) {
         this.clearErrors();
       } else {

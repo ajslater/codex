@@ -18,9 +18,7 @@
       {{ task.confirm }}
       <footer id="buttonFooter">
         <v-btn id="confirmButton" ripple @click="confirm"> Confirm </v-btn>
-        <v-btn class="cancelButton" ripple @click="showDialog = false">
-          Cancel
-        </v-btn>
+        <CancelButton @click="showDialog = false" />
       </footer>
     </div>
   </v-dialog>
@@ -29,8 +27,13 @@
 <script>
 import { mdiDatabaseImportOutline } from "@mdi/js";
 
+import CancelButton from "@/components/cancel-button.vue";
+
 export default {
   name: "AdminTaskConfirmDialog",
+  components: {
+    CancelButton,
+  },
   props: {
     task: {
       type: Object,
@@ -62,8 +65,5 @@ export default {
 #buttonFooter {
   margin-top: 1em;
   text-align: left;
-}
-.cancelButton {
-  float: right;
 }
 </style>
