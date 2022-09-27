@@ -1,17 +1,14 @@
 <template>
-  <v-footer id="versionFooter">
+  <v-footer id="version-footer" :title="versionTitle">
     <div id="version" :class="{ outdated: outdated }">
       codex v{{ versions.installed }}
     </div>
     <div v-if="outdated">codex v{{ versions.latest }} is available</div>
-    <a id="repo" href="https://github.com/ajslater/codex" :title="versionTitle">
-      repository<v-icon color="grey" dense x-small>{{ mdiOpenInNew }}</v-icon>
-    </a>
   </v-footer>
 </template>
 
 <script>
-import { mdiOpenInNew } from "@mdi/js";
+import { mdiContentCopy, mdiOpenInNew } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import { useAuthStore } from "@/stores/auth";
@@ -21,6 +18,9 @@ export default {
   data() {
     return {
       mdiOpenInNew,
+      opdsURL: window.origin + window.CODEX.OPDS_PATH,
+      mdiContentCopy,
+      showTool: false,
     };
   },
   computed: {
@@ -42,37 +42,37 @@ export default {
   },
   methods: {
     ...mapActions(useCommonStore, ["loadVersions"]),
+    copyToClipboard() {
+      navigator.clipboard
+        .writeText(this.opdsURL)
+        .then(() => {
+          this.showTool = true;
+          setTimeout(() => {
+            this.showTool = false;
+          }, 5000);
+          return true;
+        })
+        .catch((error) => {
+          console.warn(error);
+        });
+    },
   },
 };
 </script>
 
 <style scoped lang="scss">
-#versionFooter {
+#version-footer {
   width: 100%;
+  padding-top: 5px;
+  padding-bottom: calc(5px + env(safe-area-inset-bottom) * 2);
   text-align: center;
   font-size: small;
   color: gray;
 }
-#version {
-}
-#repo {
-  color: gray;
-}
-#repo:hover {
-  color: white;
-}
-#versionFooter * {
-  width: 100%;
-  padding-bottom: 5px;
+#version-footer * {
+  margin: auto;
 }
 .outdated {
   font-style: italic;
-}
-</style>
-
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-#repo:hover .v-icon {
-  color: white !important;
 }
 </style>

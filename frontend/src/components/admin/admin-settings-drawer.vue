@@ -7,35 +7,45 @@
     touchless
     :mobile-breakpoint="960"
   >
-    <header id="adminMenuHeader">
-      <h3>Admin Status</h3>
-    </header>
-    <v-list-item-group id="browserLink">
-      <v-list-item ref="browserLink" ripple :to="browserRoute">
-        <v-list-item-content>
-          <v-list-item-title> Browser </v-list-item-title>
-        </v-list-item-content>
-      </v-list-item>
-    </v-list-item-group>
-    <v-divider />
-    <AuthMenu />
-    <v-divider />
-    <AdminStatusList />
-    <v-divider />
-    <v-list-item-group id="footerGroup">
-      <v-divider />
-      <v-list-item :href="djangoAdminURL" target="_blank" ripple>
-        <v-list-item-content>
-          <v-list-item-title id="oldDjangoTitle">
-            Old Django Admin Panel
-            <v-icon small>
-              {{ mdiOpenInNew }}
-            </v-icon>
-          </v-list-item-title>
-        </v-list-item-content>
-      </v-list-item>
+    <div id="settingsDrawerContainer">
+      <div id="topBlock">
+        <header id="adminMenuHeader">
+          <h3>Admin Status</h3>
+        </header>
+        <v-list-item-group id="browserLink">
+          <v-list-item ref="browserLink" ripple :to="browserRoute">
+            <v-list-item-content>
+              <v-list-item-title> Browser </v-list-item-title>
+            </v-list-item-content>
+          </v-list-item>
+        </v-list-item-group>
+        <v-divider />
+        <SettingsCommonPanel :admin="false" />
+      </div>
+      <div id="footerGroup">
+        <v-list-item-group>
+          <v-list-item
+            id="oldDjangoAdmin"
+            :href="djangoAdminURL"
+            target="_blank"
+            ripple
+          >
+            <v-list-item-content>
+              <v-list-item-title>
+                Old Django Admin Panel
+                <v-icon small>
+                  {{ mdiOpenInNew }}
+                </v-icon>
+              </v-list-item-title>
+            </v-list-item-content>
+          </v-list-item>
+        </v-list-item-group>
+        <SettingsFooter />
+      </div>
+    </div>
+    <template #append>
       <VersionFooter />
-    </v-list-item-group>
+    </template>
   </v-navigation-drawer>
 </template>
 
@@ -43,8 +53,8 @@
 import { mdiOpenInNew } from "@mdi/js";
 import { mapState, mapWritableState } from "pinia";
 
-import AdminStatusList from "@/components/admin/status-list.vue";
-import AuthMenu from "@/components/auth/auth-menu.vue";
+import SettingsCommonPanel from "@/components/settings/panel.vue";
+import SettingsFooter from "@/components/settings/settings-footer.vue";
 import VersionFooter from "@/components/settings/version-footer.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useBrowserStore } from "@/stores/browser";
@@ -52,8 +62,8 @@ import { useBrowserStore } from "@/stores/browser";
 export default {
   name: "AdminSettingsDrawer",
   components: {
-    AdminStatusList,
-    AuthMenu,
+    SettingsCommonPanel,
+    SettingsFooter,
     VersionFooter,
   },
   data() {
@@ -82,26 +92,26 @@ export default {
   padding: 10px;
   padding-left: 15px;
 }
+@import "../settings/settings-drawer.scss";
 #footerGroup {
-  color: grey;
-  position: absolute;
-  bottom: 0px;
   width: 100%;
+  background-color: #272727;
+  color: grey;
 }
-#footerGroup:hover #oldDjangoTitle {
+#oldDjangoAdmin:hover {
   color: white;
 }
-#oldDjangoTitle {
+#oldDjangoAdmin {
   color: grey;
 }
 </style>
 
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
-#footerGroup:hover #oldDjangoTitle .v-icon {
-  color: white;
-}
-#oldDjangoTitle .v-icon {
+#oldDjangoAdmin .v-icon {
   color: grey;
+}
+#oldDjangoAdmin:hover .v-icon {
+  color: white;
 }
 </style>
