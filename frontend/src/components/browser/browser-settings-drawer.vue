@@ -2,6 +2,7 @@
   <v-navigation-drawer
     id="browserSettingsDrawer"
     v-model="isSettingsDrawerOpen"
+    class="settingsDrawer"
     app
     right
     temporary

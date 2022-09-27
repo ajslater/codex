@@ -2,6 +2,7 @@
   <v-navigation-drawer
     id="readerSettingsDrawer"
     v-model="isSettingsDrawerOpen"
+    class="settingsDrawer"
     app
     right
     temporary

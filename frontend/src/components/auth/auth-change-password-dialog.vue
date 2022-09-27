@@ -11,7 +11,10 @@
     <template #activator="{ on }">
       <v-list-item ripple v-on="on">
         <v-list-item-content>
-          <v-list-item-title>Change Password</v-list-item-title>
+          <v-list-item-title
+            ><v-icon>{{ mdiLockReset }}</v-icon
+            >Change Password</v-list-item-title
+          >
         </v-list-item-content>
       </v-list-item>
     </template>
@@ -71,6 +74,7 @@
 </template>
 
 <script>
+import { mdiLockReset } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import { useAuthStore } from "@/stores/auth";
@@ -102,6 +106,7 @@ export default {
         passwordConfirm: "",
       },
       showChangePasswordDialog: false,
+      mdiLockReset,
     };
   },
 

@@ -8,7 +8,7 @@
     >
       <v-list-item-content>
         <v-list-item-title>
-          Old Django Admin Panel
+          Old Admin Panel
           <v-icon small>
             {{ mdiOpenInNew }}
           </v-icon>

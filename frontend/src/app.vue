@@ -76,4 +76,8 @@ a {
 .background-soft-highlight {
   background-color: #272727 !important;
 }
+.settingsDrawer .v-icon {
+  color: gray;
+  margin-right: 0.33em;
+}
 </style>
