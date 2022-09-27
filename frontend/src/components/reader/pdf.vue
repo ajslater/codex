@@ -7,13 +7,7 @@
       <v-icon id="failedIcon">{{ error.icon }}</v-icon>
     </div>
     <div v-else>
-      <Placeholder
-        class="placeholder"
-        :class="{ hidden: rendered }"
-        :size="placeholderSize"
-      />
       <vue-pdf-embed
-        :key="key"
         ref="pdfembed"
         :disable-annotation-layer="false"
         :disable-text-layer="false"
@@ -28,6 +22,11 @@
         @loading-failed="failed"
         @rendering-failed="failed"
         @password-requested="unauthorized"
+      />
+      <Placeholder
+        v-if="!rendered"
+        class="placeholder"
+        :size="placeholderSize"
       />
     </div>
   </div>
@@ -78,10 +77,6 @@ export default {
         return ["HEIGHT", "SCREEN"].includes(state.computedSettings.fitTo)
           ? window.innerHeight
           : 0;
-      },
-      key(state) {
-        // Force render when settings change.
-        return JSON.stringify(state.computedSettings);
       },
     }),
     placeholderSize() {
@@ -144,9 +139,6 @@ export default {
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 20;
-}
-.hidden {
-  display: none;
 }
 #failed {
   color: #505050;

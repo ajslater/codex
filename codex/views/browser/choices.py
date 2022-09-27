@@ -84,6 +84,9 @@ class BrowserChoicesView(BrowserBaseView):
             else:
                 choices = self._get_field_choices(field_name, comic_qs)
 
+            if field_name == "characters":
+                print(choices)
+                print(comic_qs)
             if len(choices) > 1:
                 # only offer choices when there's more than one choice.
                 data[field_name] = choices
