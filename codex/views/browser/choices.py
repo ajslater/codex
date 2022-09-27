@@ -84,11 +84,10 @@ class BrowserChoicesView(BrowserBaseView):
             else:
                 choices = self._get_field_choices(field_name, comic_qs)
 
-            if field_name == "characters":
-                print(choices)
-                print(comic_qs)
-            if len(choices) > 1:
-                # only offer choices when there's more than one choice.
+            filters = self.params.get("filters", {}).keys()
+            if len(choices) > 1 or field_name in filters:
+                # only offer choices when there's more than one choice
+                # OR there is a chance to deleselect a selected filter
                 data[field_name] = choices
 
         serializer = self.get_serializer(data)
