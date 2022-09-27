@@ -78,6 +78,7 @@ import { getComicPageSource } from "@/api/v3/reader";
 import ReaderKeyboardShortcutsPanel from "@/components/reader/keyboard-shortcuts-panel.vue";
 import SettingsCommonPanel from "@/components/settings/panel.vue";
 import SettingsFooter from "@/components/settings/settings-footer.vue";
+import VersionFooter from "@/components/settings/version-footer.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
@@ -88,6 +89,7 @@ export default {
     ReaderKeyboardShortcutsPanel,
     SettingsCommonPanel,
     SettingsFooter,
+    VersionFooter,
   },
 
   data() {
