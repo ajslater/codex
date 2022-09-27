@@ -9,37 +9,12 @@
   >
     <div id="settingsDrawerContainer">
       <div id="topBlock">
-        <header id="adminMenuHeader">
-          <h3>Admin Status</h3>
-        </header>
-        <v-list-item-group id="browserLink">
-          <v-list-item ref="browserLink" ripple :to="browserRoute">
-            <v-list-item-content>
-              <v-list-item-title> Browser </v-list-item-title>
-            </v-list-item-content>
-          </v-list-item>
-        </v-list-item-group>
-        <v-divider />
+        <AdminSettingsPanel />
         <SettingsCommonPanel :admin="false" />
+        <v-divider />
       </div>
       <div id="footerGroup">
-        <v-list-item-group>
-          <v-list-item
-            id="oldDjangoAdmin"
-            :href="djangoAdminURL"
-            target="_blank"
-            ripple
-          >
-            <v-list-item-content>
-              <v-list-item-title>
-                Old Django Admin Panel
-                <v-icon small>
-                  {{ mdiOpenInNew }}
-                </v-icon>
-              </v-list-item-title>
-            </v-list-item-content>
-          </v-list-item>
-        </v-list-item-group>
+        <DjangoAdminLink />
         <SettingsFooter />
       </div>
     </div>
@@ -50,36 +25,26 @@
 </template>
 
 <script>
-import { mdiOpenInNew } from "@mdi/js";
-import { mapState, mapWritableState } from "pinia";
+import { mapWritableState } from "pinia";
 
+import AdminSettingsPanel from "@/components/admin/admin-settings-panel.vue";
+import DjangoAdminLink from "@/components/admin/django-admin-link.vue";
 import SettingsCommonPanel from "@/components/settings/panel.vue";
 import SettingsFooter from "@/components/settings/settings-footer.vue";
 import VersionFooter from "@/components/settings/version-footer.vue";
 import { useAdminStore } from "@/stores/admin";
-import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "AdminSettingsDrawer",
   components: {
+    AdminSettingsPanel,
+    DjangoAdminLink,
     SettingsCommonPanel,
     SettingsFooter,
     VersionFooter,
   },
-  data() {
-    return {
-      djangoAdminURL: window.CODEX.DJANGO_ADMIN_PATH,
-      mdiOpenInNew,
-    };
-  },
   computed: {
     ...mapWritableState(useAdminStore, ["isSettingsDrawerOpen"]),
-    ...mapState(useBrowserStore, {
-      browserRoute: (state) =>
-        state.page.routes.last
-          ? { name: "browser", params: state.page.routes.last }
-          : { name: "home" },
-    }),
   },
 };
 </script>
@@ -88,30 +53,10 @@ export default {
 #adminSetingsDrawer {
   z-index: 20;
 }
-#adminMenuHeader {
-  padding: 10px;
-  padding-left: 15px;
-}
 @import "../settings/settings-drawer.scss";
 #footerGroup {
   width: 100%;
   background-color: #272727;
   color: grey;
-}
-#oldDjangoAdmin:hover {
-  color: white;
-}
-#oldDjangoAdmin {
-  color: grey;
-}
-</style>
-
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-#oldDjangoAdmin .v-icon {
-  color: grey;
-}
-#oldDjangoAdmin:hover .v-icon {
-  color: white;
 }
 </style>
