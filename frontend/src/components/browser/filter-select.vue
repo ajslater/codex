@@ -40,7 +40,6 @@
             v-for="filterName of dynamicChoiceNames"
             :key="filterName"
             :name="filterName"
-            :is-numeric="NUMERIC_FILTERS.includes(filterName)"
             @sub-menu-click="closeFilterSelect"
           />
         </div>
@@ -60,7 +59,7 @@ import { mdiCloseCircle } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import BrowserFilterSubMenu from "@/components/browser/filter-sub-menu.vue";
-import { NUMERIC_FILTERS, useBrowserStore } from "@/stores/browser";
+import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BrowserFilterSelect",
@@ -71,7 +70,6 @@ export default {
     return {
       focused: false,
       LABEL: "filter by",
-      NUMERIC_FILTERS: NUMERIC_FILTERS,
     };
   },
   computed: {

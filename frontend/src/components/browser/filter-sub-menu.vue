@@ -77,7 +77,11 @@ import {
 import { mapActions, mapState, mapWritableState } from "pinia";
 
 import { toVuetifyItems } from "@/api/v3/vuetify-items";
-import { useBrowserStore } from "@/stores/browser";
+import {
+  CHARPK_FILTERS,
+  NUMERIC_FILTERS,
+  useBrowserStore,
+} from "@/stores/browser";
 
 const NULL_PKS = new Set(["", -1]);
 
@@ -87,10 +91,6 @@ export default {
     name: {
       type: String,
       required: true,
-    },
-    isNumeric: {
-      type: Boolean,
-      default: false,
     },
   },
   emits: ["sub-menu-click"],
@@ -113,7 +113,12 @@ export default {
     }),
     ...mapWritableState(useBrowserStore, ["filterMode"]),
     vuetifyItems: function () {
-      return toVuetifyItems(this.choices, this.query, this.isNumeric);
+      return toVuetifyItems(
+        this.choices,
+        this.query,
+        NUMERIC_FILTERS.includes(this.name),
+        CHARPK_FILTERS.includes(this.name)
+      );
     },
     filter: {
       get() {

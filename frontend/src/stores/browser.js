@@ -12,6 +12,10 @@ export const NUMERIC_FILTERS = [
   "year",
 ];
 Object.freeze(NUMERIC_FILTERS);
+export const CHARPK_FILTERS = [
+  "ageRating", "country", "format", "language"
+];
+Object.freeze(CHARPK_FILTERS);
 const GROUPS_REVERSED = "cvsipr";
 Object.freeze(GROUPS_REVERSED);
 const SETTINGS_SHOW_DEFAULTS = {};
