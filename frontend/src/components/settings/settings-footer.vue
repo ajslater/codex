@@ -1,14 +1,15 @@
 <template>
   <v-footer id="settingsFooter">
     <div id="opds" title="Copy OPDS URL to Clipboard" @click="copyToClipboard">
-      OPDS
-      <v-icon x-small color="gray">
+      <v-icon x-small>{{ mdiRss }}</v-icon
+      >OPDS
+      <v-icon id="clipBoardIcon" x-small color="gray">
         {{ clipBoardIcon }}
       </v-icon>
       <v-fade-transition>
         <span v-if="showTool" id="copied"> Copied </span>
       </v-fade-transition>
-      <div>
+      <div id="opdsUrl">
         {{ opdsURL }}
       </div>
     </div>
@@ -27,6 +28,7 @@ import {
   mdiClipboardCheckOutline,
   mdiClipboardOutline,
   mdiOpenInNew,
+  mdiRss,
 } from "@mdi/js";
 
 export default {
@@ -34,6 +36,7 @@ export default {
   data() {
     return {
       mdiOpenInNew,
+      mdiRss,
       opdsURL: window.origin + window.CODEX.OPDS_PATH,
       showTool: false,
     };
@@ -94,7 +97,8 @@ export default {
 }
 
 /* eslint-disable-next-line vue-scoped-css/no-unused-selector */
-#opds:hover .v-icon {
+#opds:hover #clipBoardIcon,
+#opds:hover #opdsUrl {
   color: white;
 }
 #repo {
