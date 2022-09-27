@@ -56,7 +56,7 @@
 
 <script>
 import { mdiCloseCircle } from "@mdi/js";
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapState, mapWritableState } from "pinia";
 
 import BrowserFilterSubMenu from "@/components/browser/filter-sub-menu.vue";
 import { useBrowserStore } from "@/stores/browser";
@@ -75,7 +75,6 @@ export default {
   computed: {
     ...mapState(useBrowserStore, {
       bookmarkChoices: (state) => state.choices.static.bookmark,
-      filterMode: (state) => state.filterMode,
       filters: (state) => state.settings.filters,
       isDynamicFiltersSelected: function (state) {
         for (const [name, array] of Object.entries(state.settings.filters)) {
@@ -108,6 +107,7 @@ export default {
         return Object.keys(state.choices.dynamic);
       },
     }),
+    ...mapWritableState(useBrowserStore, ["filterMode"]),
     bookmarkFilter: {
       get() {
         return this.filters.bookmark || this.bookmarkChoices[0];
@@ -133,7 +133,7 @@ export default {
     closeFilterSelect: function () {
       // On sub-menu click, close the menu and reset the filter mode.
       this.$refs.filterSelect.blur();
-      useBrowserStore().filterMode = "base";
+      this.filterMode = "base";
     },
     focus() {
       this.focused = true;
