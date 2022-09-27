@@ -10,7 +10,7 @@
           <v-list-item-title class="filterMenu">
             {{ title }}
             <v-icon v-if="filter && filter.length > 0" class="nameChevron">
-              mdiChevronRightCircle }}
+              {{ mdiChevronRightCircle }}
             </v-icon>
             <v-icon v-else class="nameChevron">
               {{ mdiChevronRight }}
