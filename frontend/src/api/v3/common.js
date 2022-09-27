@@ -20,8 +20,8 @@ const downloadIOSPWAFix = (href, fileName) => {
     .catch((error) => console.warn(error));
 };
 
-const getVersions = () => {
-  return HTTP.get("/version");
+const getVersions = (ts) => {
+  return HTTP.get("/version?ts=${ts}");
 };
 
 export default {
