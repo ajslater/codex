@@ -21,7 +21,7 @@ const downloadIOSPWAFix = (href, fileName) => {
 };
 
 const getVersions = (ts) => {
-  return HTTP.get("/version?ts=${ts}");
+  return HTTP.get(`/version?ts=${ts}`);
 };
 
 export default {
