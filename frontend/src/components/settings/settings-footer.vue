@@ -18,6 +18,7 @@
       href="https://github.com/ajslater/codex"
       title="Codex Source Repository"
     >
+      <v-icon id="repoIcon" x-small>{{ mdiSourceRepository }}</v-icon>
       repository<v-icon color="grey" x-small>{{ mdiOpenInNew }}</v-icon>
     </a>
   </v-footer>
@@ -29,6 +30,7 @@ import {
   mdiClipboardOutline,
   mdiOpenInNew,
   mdiRss,
+  mdiSourceRepository,
 } from "@mdi/js";
 
 export default {
@@ -37,6 +39,7 @@ export default {
     return {
       mdiOpenInNew,
       mdiRss,
+      mdiSourceRepository,
       opdsURL: window.origin + window.CODEX.OPDS_PATH,
       showTool: false,
     };
@@ -106,6 +109,9 @@ export default {
 }
 #repo:hover {
   color: white;
+}
+#repoIcon {
+  margin-right: 0px;
 }
 </style>
 
