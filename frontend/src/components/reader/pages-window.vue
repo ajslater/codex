@@ -9,25 +9,25 @@
     <div
       id="bookChangePrev"
       class="bookChangeColumn"
-      @click="bookChange('prev')"
+      @click.stop="bookChange('prev')"
     />
     <div
       id="bookChangeNext"
       class="bookChangeColumn"
-      @click="bookChange('next')"
+      @click.stop="bookChange('next')"
     />
     <template #prev>
       <div
         class="pageChangeColumn"
         aria-label="previous page"
-        @click="pageChange('prev')"
+        @click.stop="pageChange('prev')"
       />
     </template>
     <template #next>
       <div
         class="pageChangeColumn"
         aria-label="next page"
-        @click="pageChange('next')"
+        @click.stop="pageChange('next')"
       />
     </template>
     <v-window-item
