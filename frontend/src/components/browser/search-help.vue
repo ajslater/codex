@@ -9,7 +9,7 @@
       <v-list-item ripple v-on="on">
         <v-list-item-content>
           <v-list-item-title
-            ><v-icon>{{ mdiMagnifyExpand }}</v-icon> Search Syntax Help
+            ><v-icon>{{ mdiArchiveSearchOutline }}</v-icon> Search Syntax Help
           </v-list-item-title>
         </v-list-item-content>
       </v-list-item>
@@ -136,7 +136,7 @@
   </v-dialog>
 </template>
 <script>
-import { mdiMagnifyExpand, mdiOpenInNew } from "@mdi/js";
+import { mdiArchiveSearchOutline, mdiOpenInNew } from "@mdi/js";
 
 const FIELD_ROWS = [
   ["community_rating", "Decimal", ""],
@@ -184,7 +184,7 @@ export default {
   data() {
     return {
       mdiOpenInNew,
-      mdiMagnifyExpand,
+      mdiArchiveSearchOutline,
       dialog: false,
       FIELD_ROWS,
     };
