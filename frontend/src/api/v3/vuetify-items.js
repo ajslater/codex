@@ -37,7 +37,12 @@ const vuetifyItemCompareNumeric = function (itemA, itemB) {
   return Number.parseFloat(itemA.name) - Number.parseFloat(itemB.name);
 };
 
-export const toVuetifyItems = function (items, filter, numeric = false, charPk = false) {
+export const toVuetifyItems = function (
+  items,
+  filter,
+  numeric = false,
+  charPk = false
+) {
   // Takes a value (can be a list) and a list of items and
   // Returns a list of valid items with items arg having preference.
   const sourceItems = items || [];
