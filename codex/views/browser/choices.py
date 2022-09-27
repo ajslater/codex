@@ -4,7 +4,7 @@ import pycountry
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
-from codex.models import Comic
+from codex.models import Comic, CreditPerson
 from codex.serializers.browser import BrowserFilterChoicesSerializer
 from codex.serializers.models import PyCountrySerializer
 from codex.settings.logging import get_logger
@@ -20,6 +20,9 @@ class BrowserChoicesView(BrowserBaseView):
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
     serializer_class = BrowserFilterChoicesSerializer
+
+    CREDITS_PERSON_REL = "credits__person"
+    NULL_NAMED_ROW = {"pk": None, "name": ""}
 
     @staticmethod
     def _get_field_choices(field_name, comic_qs):
@@ -43,20 +46,48 @@ class BrowserChoicesView(BrowserBaseView):
 
         return choices
 
-    @staticmethod
-    def _get_m2m_field_choices(rel, comic_qs):
+    @classmethod
+    def _get_m2m_field_choices(cls, rel, comic_qs, model):
         """Get choices with nulls where there are nulls."""
+        if rel == cls.CREDITS_PERSON_REL:
+            comic_rel = "credit__comic"
+        else:
+            comic_rel = "comic"
         qs = (
-            comic_qs.prefetch_related(rel)
-            .values_list(f"{rel}__pk", f"{rel}__name")
+            model.objects.filter(**{f"{comic_rel}__in": comic_qs})
+            .prefetch_related(comic_rel)
+            .values("pk", "name")
             .distinct()
         )
-        choices = []
-        for pk, name in qs:
-            if name is None:
-                name = ""
-            choices.append({"pk": pk, "name": name})
+
+        # Detect if there are null choices.
+        # Regretabbly with another query, but doing a forward query
+        # on the comic above restricts all results to only the filtered
+        # rows. :(
+        if comic_qs.filter(**{f"{rel}__isnull": True}).exists():
+            choices = list(qs)
+            choices.append(cls.NULL_NAMED_ROW)
+        else:
+            choices = qs
         return choices
+
+    @classmethod
+    def _get_rel_and_model(cls, field_name):
+        """Return the relation and model for the field name."""
+        if field_name == cls.CREDIT_PERSON_UI_FIELD:
+            rel = cls.CREDITS_PERSON_REL
+            model = CreditPerson
+        else:
+            remote_field = getattr(
+                Comic._meta.get_field(field_name), "remote_field", None
+            )
+            rel = field_name
+            if remote_field:
+                model = remote_field.model
+            else:
+                model = None
+
+        return rel, model
 
     def get_object(self):
         """Get the comic subquery use for the choices."""
@@ -71,20 +102,15 @@ class BrowserChoicesView(BrowserBaseView):
 
         data = {}
         for field_name in self.serializer_class().get_fields():  # type: ignore
-            if field_name == self.CREDIT_PERSON_UI_FIELD or getattr(
-                Comic._meta.get_field(field_name), "remote_field", None
-            ):
-                if field_name == self.CREDIT_PERSON_UI_FIELD:
-                    # The only deep relation choice
-                    rel = "credits__person"
-                else:
-                    rel = field_name
 
-                choices = self._get_m2m_field_choices(rel, comic_qs)
+            rel, m2m_model = self._get_rel_and_model(field_name)
+
+            if m2m_model:
+                choices = self._get_m2m_field_choices(rel, comic_qs, m2m_model)
             else:
-                choices = self._get_field_choices(field_name, comic_qs)
+                choices = self._get_field_choices(rel, comic_qs)
 
-            filters = self.params.get("filters", {}).keys()
+            filters = self.params.get("filters", {})
             if len(choices) > 1 or field_name in filters:
                 # only offer choices when there's more than one choice
                 # OR there is a chance to deleselect a selected filter
