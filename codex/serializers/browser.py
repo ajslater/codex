@@ -130,13 +130,14 @@ class BrowserSettingsFilterSerializer(Serializer):
         choices=tuple(CHOICES["bookmarkFilter"].keys()), required=False
     )
     # Dynamic filters
+    age_rating = CharListField(allow_blank=True, required=False)
+    characters = IntListField(required=False)
     community_rating = DecimalListField(
         max_digits=5,
         decimal_places=2,
         coerce_to_string=False,
         required=False,
     )
-    characters = IntListField(required=False)
     country = CharListField(allow_blank=True, required=False)
     creators = IntListField(required=False)
     critical_rating = DecimalListField(
@@ -147,7 +148,6 @@ class BrowserSettingsFilterSerializer(Serializer):
     genres = IntListField(required=False)
     language = CharListField(allow_blank=True, required=False)
     locations = IntListField()
-    age_rating = CharListField(allow_blank=True, required=False)
     read_ltr = ListField(child=BooleanField(allow_null=True), required=False)
     series_groups = IntListField(required=False)
     story_arcs = IntListField(required=False)
