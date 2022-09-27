@@ -147,7 +147,7 @@ export default {
 <style scoped lang="scss">
 #readerTopToolbar {
   width: 100%;
-  position: fixed;
+  position: fixed !important;
   top: 0px;
   padding-top: env(safe-area-inset-top);
   padding-left: calc(env(safe-area-inset-left) / 2);

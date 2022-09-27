@@ -35,6 +35,7 @@
       :key="`c/${pk}/${page}`"
       class="windowItem"
       disabled
+      eager
     >
       <PDFPage v-if="isPDF" :source="getSrc(page)" />
       <img
@@ -182,8 +183,6 @@ export default {
   /* keeps clickable area full screen when image is small */
   min-height: 100vh;
   text-align: center;
-}
-.page {
 }
 .fitToScreen,
 .fitToScreenTwo {
