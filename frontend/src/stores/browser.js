@@ -312,7 +312,7 @@ export const useBrowserStore = defineStore("browser", {
       )
         .then((response) => {
           this.choices.dynamic = Object.freeze(response.data);
-          return Object.keys(this.choices.dynamic);
+          return true;
         })
         .catch((error) => {
           console.error(error);

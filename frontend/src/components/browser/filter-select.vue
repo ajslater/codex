@@ -72,7 +72,6 @@ export default {
       focused: false,
       LABEL: "filter by",
       NUMERIC_FILTERS: NUMERIC_FILTERS,
-      dynamicChoiceNames: [],
     };
   },
   computed: {
@@ -80,7 +79,6 @@ export default {
       bookmarkChoices: (state) => state.choices.static.bookmark,
       filterMode: (state) => state.filterMode,
       filters: (state) => state.settings.filters,
-      dynamicChoices: (state) => state.choices.dynamic,
       isDynamicFiltersSelected: function (state) {
         for (const [name, array] of Object.entries(state.settings.filters)) {
           if (name !== "bookmark" && array && array.length > 0) {
@@ -108,6 +106,9 @@ export default {
         }
         return clsName;
       },
+      dynamicChoiceNames: function (state) {
+        return Object.keys(state.choices.dynamic);
+      },
     }),
     bookmarkFilter: {
       get() {
@@ -118,7 +119,6 @@ export default {
         this.setSettings(data);
       },
     },
-    //...mapGetters(useBrowserStore, ["dynamicChoiceNames"]),
     filterInnerIcon: function () {
       if (this.isFiltersClearable) {
         return mdiCloseCircle;
@@ -139,13 +139,8 @@ export default {
     },
     focus() {
       this.focused = true;
-      if (Object.keys(this.dynamicChoices).length === 0) {
-        this.loadAllFilterChoices()
-          .then((names) => {
-            this.dynamicChoiceNames = names;
-            return true;
-          })
-          .catch((error) => console.error(error));
+      if (this.dynamicChoiceNames.length === 0) {
+        this.loadAllFilterChoices();
       }
     },
   },
