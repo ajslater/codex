@@ -77,7 +77,7 @@ a {
   background-color: #272727 !important;
 }
 .settingsDrawer .v-icon {
-  color: gray;
+  color: gray !important;
   margin-right: 0.33em;
 }
 </style>
