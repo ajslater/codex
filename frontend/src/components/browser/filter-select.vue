@@ -34,15 +34,21 @@
         </v-slide-x-transition>
       </template>
       <template #append-item>
-        <v-slide-x-transition hide-on-leave>
-          <v-divider v-if="filterMode === 'base'" />
-        </v-slide-x-transition>
-        <BrowserFilterSubMenu
-          v-for="filterName of dynamicChoiceNames"
-          :key="filterName"
-          :name="filterName"
-          :is-numeric="NUMERIC_FILTERS.includes(filterName)"
-          @sub-menu-click="closeFilterSelect"
+        <v-divider />
+        <div v-if="dynamicChoiceNames && dynamicChoiceNames.length > 0">
+          <BrowserFilterSubMenu
+            v-for="filterName of dynamicChoiceNames"
+            :key="filterName"
+            :name="filterName"
+            :is-numeric="NUMERIC_FILTERS.includes(filterName)"
+            @sub-menu-click="closeFilterSelect"
+          />
+        </div>
+        <v-progress-linear
+          v-else
+          id="subMenuProgress"
+          rounded
+          :indeterminate="true"
         />
       </template>
     </v-select>
@@ -149,6 +155,11 @@ export default {
 <style scoped lang="scss">
 .filterSuffix {
   margin-left: 0.25em;
+}
+#subMenuProgress {
+  margin: 10px;
+  margin-bottom: 2px;
+  width: 132px;
 }
 // #filterSelect style is handled in browser/filter-toolbar.vue
 </style>
