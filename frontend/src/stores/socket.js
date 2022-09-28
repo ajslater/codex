@@ -28,8 +28,7 @@ const libraryChanged = function (adminStore) {
   if (router.currentRoute.name === "browser") {
     browserStore.loadBrowserPage({ showProgress: false });
   } else if (router.currentRoute.name == "admin") {
-    adminStore.loadTable("Library");
-    adminStore.loadTable("FailedImport");
+    adminStore.loadTables(["Library", "FailedImport"]);
   }
 };
 

@@ -83,12 +83,7 @@ export default {
     this.loadTab();
   },
   methods: {
-    ...mapActions(useAdminStore, ["loadTable"]),
-    loadTables(tables) {
-      for (const table of tables) {
-        this.loadTable(table);
-      }
-    },
+    ...mapActions(useAdminStore, ["loadTables"]),
     loadTab() {
       const tables = Object.values(this.tabs)[this.tab].tables;
       this.loadTables(tables);
