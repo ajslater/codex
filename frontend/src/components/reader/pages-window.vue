@@ -9,11 +9,13 @@
     <div
       id="bookChangePrev"
       class="bookChangeColumn"
+      :class="{ upArrow: routes.prevBook }"
       @click.stop="bookChange('prev')"
     />
     <div
       id="bookChangeNext"
       class="bookChangeColumn"
+      :class="{ downArrow: routes.nextBook }"
       @click.stop="bookChange('next')"
     />
     <template #prev>
@@ -68,6 +70,8 @@ import { getComicPageSource } from "@/api/v3/reader";
 const PDFPage = () => import("@/components/reader/pdf.vue");
 import { useReaderStore } from "@/stores/reader";
 
+const PREFETCH_LINK = { rel: "prefetch", as: "image" };
+
 export default {
   name: "PagesWindow",
   components: {
@@ -79,10 +83,15 @@ export default {
     };
   },
   head() {
-    if (this.prefetchHref) {
-      return {
-        link: [{ rel: "prefetch", as: "image", href: this.prefetchHref }],
-      };
+    const links = [];
+    if (this.nextSrc) {
+      links.push({ ...PREFETCH_LINK, href: this.nextSrc });
+    }
+    if (this.prevSrc) {
+      links.push({ ...PREFETCH_LINK, href: this.prevSrc });
+    }
+    if (links.length > 0) {
+      return { link: links };
     }
   },
   computed: {
@@ -105,11 +114,29 @@ export default {
         );
       },
       vertical: (state) => state.bookChange !== undefined,
-      prefetchHref(state) {
-        if (!state.routes.next) {
-          return;
+      nextSrc(state) {
+        const routes = state.routes;
+        let route;
+        if (routes.next) {
+          route = routes.next;
+        } else if (routes.nextBook) {
+          route = routes.nextBook;
         }
-        return getComicPageSource(state.routes.next, state.timestamp);
+        if (route) {
+          return getComicPageSource(route, state.timestamp);
+        }
+      },
+      prevSrc(state) {
+        const routes = state.routes;
+        let route;
+        if (routes.prev) {
+          route = routes.prev;
+        } else if (routes.prevBook) {
+          route = routes.prevBook;
+        }
+        if (route) {
+          return getComicPageSource(route, state.timestamp);
+        }
       },
       comicLoaded: (state) => state.comicLoaded,
     }),
@@ -149,7 +176,7 @@ export default {
       const routeParams = { ...this.$route.params, page };
       return getComicPageSource(routeParams, this.timestamp);
     },
-    async setPage(page) {
+    setPage(page) {
       if (!this.comicLoaded) {
         return;
       }
@@ -166,6 +193,7 @@ export default {
       this.setBookChangeFlag(direction);
     },
     click() {
+      this.setBookChangeFlag();
       this.$emit("click");
     },
   },
@@ -216,8 +244,14 @@ export default {
 #bookChangePrev {
   left: 0px;
 }
+.upArrow {
+  cursor: n-resize;
+}
 #bookChangeNext {
   right: 0px;
+}
+.downArrow {
+  cursor: s-resize;
 }
 </style>
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->

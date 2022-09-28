@@ -1,10 +1,5 @@
 <template>
-  <v-dialog
-    v-model="dialog"
-    fullscreen
-    transition="dialog-bottom-transition"
-    content-class="metadataDialog"
-  >
+  <v-dialog v-model="dialog" fullscreen transition="dialog-bottom-transition">
     <template #activator="{ on }">
       <v-btn
         aria-label="tags"
@@ -452,7 +447,9 @@ export default {
 }
 #metadataContainer,
 #placeholderContainer {
-  padding: 20px;
+  padding-top: calc(20px + env(safe-area-inset-top));
+  padding-left: calc(20px + env(safe-area-inset-left));
+  padding-right: calc(20px + env(safe-area-inset-right));
 }
 .headerHalfRow > * {
   width: calc((100vw - 175px) / 2);
