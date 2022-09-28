@@ -67,7 +67,7 @@ export default {
   position: fixed;
   height: 100vh;
   opacity: 0.75;
-  z-index: 8;
+  z-index: 15;
 }
 .prev {
   cursor: n-resize;
