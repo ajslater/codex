@@ -12,21 +12,14 @@ import { useAuthStore } from "@/stores/auth";
 
 const AdminMenu = () => import("@/components/admin/admin-menu.vue");
 import AuthMenu from "@/components/auth/auth-menu.vue";
-import SettingsFooter from "@/components/settings/settings-footer.vue";
 
 export default {
   name: "SettingsCommonPanel",
   components: {
     AuthMenu,
-    SettingsFooter,
   },
   props: {
     admin: { type: Boolean, default: true },
-  },
-  data() {
-    return {
-      // Could calculate this server side, but whatever
-    };
   },
   computed: {
     ...mapGetters(useAuthStore, ["isUserAdmin"]),
