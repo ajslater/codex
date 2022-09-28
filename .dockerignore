@@ -1,4 +1,3 @@
-!cache/packages
 *.egg-info
 *.py[co]
 *Dockerfile
