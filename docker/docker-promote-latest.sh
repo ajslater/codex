@@ -1,5 +1,5 @@
 #!/bin/bash
-# Combine arch specific images into a multiarch image
+# push a latest tag from an-arch repo version
 set -euo pipefail
 REPO=docker.io/ajslater/codex
 ARCH_REPO=docker.io/ajslater/codex-arch
