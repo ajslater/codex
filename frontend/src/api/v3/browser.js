@@ -56,7 +56,6 @@ const setGroupBookmarks = ({ group, pk }, data) => {
 
 export default {
   getAllBrowserChoices,
-  getBrowserChoices,
   getMetadata,
   getSettings,
   loadBrowserPage,
