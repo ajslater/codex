@@ -31,11 +31,6 @@ const pruneParams = (data) => {
   return params;
 };
 
-const getBrowserChoices = ({ group, pk }, choice_type, data) => {
-  const params = pruneParams(data);
-  return HTTP.get(`/${group}/${pk}/choices/${choice_type}`, { params });
-};
-
 const getAllBrowserChoices = ({ group, pk }, data) => {
   const params = pruneParams(data);
   return HTTP.get(`/${group}/${pk}/choices`, { params });
