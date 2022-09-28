@@ -1,7 +1,6 @@
 <template>
   <div v-if="isUserAdmin">
     <v-divider />
-    <h3 id="adminMenuTitle">Admin Tools</h3>
     <v-list-item-group>
       <v-list-item ripple @click="librarianTask('poll')">
         <v-list-item-content>
@@ -74,10 +73,6 @@ export default {
 </script>
 
 <style scoped lang="scss">
-#adminMenuTitle {
-  padding-top: 10px;
-  padding-left: 15px;
-}
 #failedImportsIcon {
   padding-left: 10px;
 }
