@@ -29,7 +29,7 @@
           <AdminTaskConfirmDialog
             v-if="item.confirm"
             :task="item"
-            @confirmed="librarianTask(item.value, item.text)"
+            @confirm="librarianTask(item.value, item.text)"
           />
           <v-btn
             v-else

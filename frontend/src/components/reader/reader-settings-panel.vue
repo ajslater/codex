@@ -48,7 +48,6 @@ const ATTRS = ["fitTo", "twoPages"];
 
 export default {
   name: "ReaderSettingsPanel",
-  emits: ["panelMounted"],
   data() {
     return {
       isGlobalScope: false,
@@ -77,9 +76,8 @@ export default {
   },
   mounted() {
     window.addEventListener("keyup", this._keyListener);
-    this.$emit("panelMounted");
   },
-  beforeDestroy: function () {
+  unmounted: function () {
     window.removeEventListener("keyup", this._keyListener);
   },
 

@@ -13,7 +13,9 @@
     <div id="deleteDialog">
       Delete {{ table }} {{ name }}?
       <footer>
-        <v-btn id="confirmButton" @click="deleteRow"> Confirm Delete </v-btn>
+        <v-btn id="confirmButton" @click="deleteRow(table, pk)">
+          Confirm Delete
+        </v-btn>
         <CancelButton @click="showDialog = false" />
       </footer>
     </div>
@@ -22,7 +24,7 @@
 
 <script>
 import { mdiTrashCan } from "@mdi/js";
-import { mapActions, mapState } from "pinia";
+import { mapActions } from "pinia";
 
 import CancelButton from "@/components/cancel-button.vue";
 import { useAdminStore } from "@/stores/admin";
@@ -46,24 +48,14 @@ export default {
       required: true,
     },
   },
-  emits: ["deleted"],
   data() {
     return {
       showDialog: false,
       mdiTrashCan,
     };
   },
-  computed: {
-    ...mapState(useAdminStore, {}),
-  },
   methods: {
     ...mapActions(useAdminStore, ["deleteRow"]),
-    deleteRow: async function () {
-      const adminStore = useAdminStore();
-      adminStore.deleteRow(this.table, this.pk).catch((error) => {
-        console.warn(error);
-      });
-    },
   },
 };
 </script>

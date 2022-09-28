@@ -1,11 +1,10 @@
 <template>
   <v-dialog
-    v-model="showLoginDialog"
+    v-model="showDialog"
     origin="center-top"
     transition="slide-y-transition"
     max-width="20em"
     overlay-opacity="0.5"
-    @focus="focus"
   >
     <template #activator="{ on }">
       <v-list-item ripple v-on="on" @click="loadAdminFlags">
@@ -41,7 +40,7 @@
           if (registerMode) {
             $refs.passwordConfirm.focus();
           } else {
-            processLogin();
+            submit();
           }
         "
       />
@@ -55,10 +54,10 @@
           :rules="passwordConfirmRules"
           clearable
           type="password"
-          @keydown.enter="processLogin"
+          @keydown.enter="submit"
         />
       </v-expand-transition>
-      <v-btn ripple :disabled="!loginButtonEnabled" @click="processLogin">
+      <v-btn ripple :disabled="!loginButtonEnabled" @click="submit">
         {{ loginButtonLabel }}
       </v-btn>
       <v-switch
@@ -94,7 +93,6 @@ import { useAuthStore } from "@/stores/auth";
 
 export default {
   name: "AuthLoginDialog",
-  emits: ["sub-dialog-open"],
   data() {
     return {
       usernameRules: [(v) => !!v || "Username is required"],
@@ -107,7 +105,7 @@ export default {
         password: "",
         passwordConfirm: "",
       },
-      showLoginDialog: false,
+      showDialog: false,
       registerMode: false,
       mdiLogin,
     };
@@ -131,10 +129,12 @@ export default {
     },
   },
   watch: {
-    showLoginDialog(show) {
-      if (show) {
-        this.clearErrors();
+    showDialog() {
+      const form = this.$refs.loginForm;
+      if (form) {
+        this.$refs.loginForm.reset();
       }
+      this.clearErrors();
     },
   },
   methods: {
@@ -144,25 +144,22 @@ export default {
       "login",
       "register",
     ]),
-    processAuth: function (mode) {
-      this[mode](this.credentials).catch((error) => {
-        console.error(error);
-      });
-      if (!this.formErrors || this.formErrors === []) {
-        this.showLoginDialog = false;
-        this.$refs.loginForm.reset();
-      }
-    },
-    processLogin: function () {
+    submit: function () {
       const mode = this.registerMode ? "register" : "login";
       const form = this.$refs.loginForm;
       if (!form.validate()) {
         return;
       }
-      this.processAuth(mode);
-    },
-    focus: function () {
-      this.$emit("sub-dialog-open");
+      this[mode](this.credentials)
+        .then(() => {
+          if (!this.formErrors || this.formErrors.length === 0) {
+            this.showDialog = false;
+          }
+          return true;
+        })
+        .catch((error) => {
+          console.error(error);
+        });
     },
   },
 };

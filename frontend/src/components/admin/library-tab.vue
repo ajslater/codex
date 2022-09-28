@@ -53,7 +53,7 @@
                   text: `Force Update ${item.path}`,
                   confirm: 'This can take a long time',
                 }"
-                @confirmed="forcePoll(item.id)"
+                @confirm="forcePoll(item.id)"
               />
             </td>
             <td>

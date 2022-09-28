@@ -40,7 +40,7 @@ export default {
       required: true,
     },
   },
-  emits: ["confirmed"],
+  emits: ["confirm"],
   data() {
     return {
       showDialog: false,
@@ -49,7 +49,7 @@ export default {
   },
   methods: {
     confirm: function () {
-      this.$emit("confirmed");
+      this.$emit("confirm");
       this.showDialog = false;
     },
   },

@@ -42,9 +42,10 @@
           />
         </header>
         <v-list-item-group
-          v-model="filter"
+          :value="filter"
           class="filterGroup overflow-y-auto"
           multiple
+          @change="change"
         >
           <v-list-item
             v-for="item of vuetifyItems"
@@ -74,7 +75,7 @@ import {
   mdiChevronRight,
   mdiChevronRightCircle,
 } from "@mdi/js";
-import { mapActions, mapState, mapWritableState } from "pinia";
+import { mapState, mapWritableState } from "pinia";
 
 import { toVuetifyItems } from "@/api/v3/vuetify-items";
 import {
@@ -93,7 +94,7 @@ export default {
       required: true,
     },
   },
-  emits: ["sub-menu-click"],
+  emits: ["change"],
   data() {
     return {
       mdiChevronLeft,
@@ -107,7 +108,7 @@ export default {
       choices: function (state) {
         return state.choices.dynamic[this.name];
       },
-      filterSetting: function (state) {
+      filter: function (state) {
         return state.settings.filters[this.name];
       },
     }),
@@ -120,18 +121,6 @@ export default {
         CHARPK_FILTERS.includes(this.name)
       );
     },
-    filter: {
-      get() {
-        return this.filterSetting;
-      },
-      set(value) {
-        const data = {
-          filters: { [this.name]: value },
-        };
-        this.setSettings(data);
-        this.$emit("sub-menu-click");
-      },
-    },
     title: function () {
       let title = this.name.replace(/[A-Z]/g, (letter) => ` ${letter}`);
       title = title.replace("Ltr", "LTR");
@@ -143,12 +132,17 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useBrowserStore, ["setSettings"]),
     setUIFilterMode(mode) {
       this.filterMode = mode;
       this.query = "";
     },
     isNullPk: (pk) => NULL_PKS.has(pk),
+    change(value) {
+      const data = {
+        filters: { [this.name]: value },
+      };
+      this.$emit("change", data);
+    },
   },
 };
 </script>

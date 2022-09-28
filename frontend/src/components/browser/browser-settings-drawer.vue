@@ -43,13 +43,9 @@ export default {
     SettingsFooter,
     VersionFooter,
   },
-  emits: ["panelMounted"],
   computed: {
     ...mapGetters(useAuthStore, ["isCodexViewable"]),
     ...mapWritableState(useBrowserStore, ["isSettingsDrawerOpen"]),
-  },
-  mounted() {
-    this.$emit("panelMounted");
   },
   methods: {
     ...mapActions(useBrowserStore, ["setIsSettingsDrawerOpen"]),
