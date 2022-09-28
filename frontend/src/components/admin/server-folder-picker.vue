@@ -37,6 +37,7 @@ import { useAdminStore } from "@/stores/admin";
 
 export default {
   name: "AdminServerFolderPicker",
+  emits: ["change"],
   data() {
     return {
       path: "",

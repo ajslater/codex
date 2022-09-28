@@ -77,6 +77,7 @@ export default {
   components: {
     PDFPage,
   },
+  emits: ["click"],
   data() {
     return {
       windowPage: 0,

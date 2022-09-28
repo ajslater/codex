@@ -48,6 +48,7 @@ const ATTRS = ["fitTo", "twoPages"];
 
 export default {
   name: "ReaderSettingsPanel",
+  emits: ["panelMounted"],
   data() {
     return {
       isGlobalScope: false,

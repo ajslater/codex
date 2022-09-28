@@ -43,6 +43,7 @@ export default {
     SettingsFooter,
     VersionFooter,
   },
+  emits: ["panelMounted"],
   computed: {
     ...mapGetters(useAuthStore, ["isCodexViewable"]),
     ...mapWritableState(useBrowserStore, ["isSettingsDrawerOpen"]),

@@ -34,7 +34,7 @@ export default {
     table: { type: String, required: true },
     disabled: { type: Boolean, default: false },
   },
-  emits: ["cancel"],
+  emits: ["cancel", "submit"],
   computed: {
     ...mapState(useAdminStore, {
       formErrors: (state) => state.form.errors,

@@ -87,7 +87,7 @@ export default {
   components: {
     CancelButton,
   },
-  emits: ["sub-dialog-open"],
+  emits: ["sub-dialog-open", "change-password-closed"],
   data() {
     return {
       oldPasswordRules: [(v) => !!v || "Old Password is required"],
