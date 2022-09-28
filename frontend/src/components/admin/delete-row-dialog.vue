@@ -1,5 +1,10 @@
 <template>
-  <v-dialog transition="fab-transition" max-width="20em" overlay-opacity="0.5">
+  <v-dialog
+    v-model="showDialog"
+    transition="fab-transition"
+    max-width="20em"
+    overlay-opacity="0.5"
+  >
     <template #activator="{ on }">
       <v-btn icon ripple v-on="on">
         <v-icon> {{ mdiTrashCan }} </v-icon>
@@ -7,7 +12,10 @@
     </template>
     <div id="deleteDialog">
       Delete {{ table }} {{ name }}?
-      <v-btn id="confirmButton" @click="deleteRow"> Confirm Delete </v-btn>
+      <footer>
+        <v-btn id="confirmButton" @click="deleteRow"> Confirm Delete </v-btn>
+        <CancelButton @click="showDialog = false" />
+      </footer>
     </div>
   </v-dialog>
 </template>
@@ -16,10 +24,14 @@
 import { mdiTrashCan } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
+import CancelButton from "@/components/cancel-button.vue";
 import { useAdminStore } from "@/stores/admin";
 
 export default {
   name: "AdminDeleteRowDialog",
+  components: {
+    CancelButton,
+  },
   props: {
     table: {
       type: String,
@@ -37,7 +49,7 @@ export default {
   emits: ["deleted"],
   data() {
     return {
-      showDeleteRowDialog: false,
+      showDialog: false,
       mdiTrashCan,
     };
   },
@@ -60,9 +72,11 @@ export default {
 #deleteDialog {
   padding: 20px;
   text-align: center;
-  background-color: #272727;
 }
-#confirmButton {
+footer {
+  margin: auto;
   margin-top: 1em;
+  display: flex;
+  justify-content: space-between;
 }
 </style>
