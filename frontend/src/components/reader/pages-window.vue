@@ -35,7 +35,7 @@
       :key="`c/${pk}/${page}`"
       class="windowItem"
       disabled
-      eager
+      :eager="page >= windowPage - 1 && page <= windowPage + 2"
     >
       <PDFPage v-if="isPDF" :source="getSrc(page)" />
       <img
