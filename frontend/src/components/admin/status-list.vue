@@ -28,8 +28,8 @@
                 </div>
                 <v-progress-linear
                   color="#cc7b19"
-                  :indeterminate="!status.preactive && +status.total === 0"
-                  :value="computeValue(status)"
+                  :indeterminate="indeterminate(status)"
+                  :value="progress(status)"
                   bottom
                 />
               </div>
@@ -66,7 +66,8 @@ export default {
   },
   methods: {
     ...mapActions(useAdminStore, ["loadTable", "librarianTask"]),
-    computeValue: function (status) {
+    indeterminate: (status) => !status.preactive && +status.total === 0,
+    progress(status) {
       if (status.preactive || +status.total === 0) {
         return 0;
       }
