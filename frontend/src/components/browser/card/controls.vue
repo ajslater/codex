@@ -9,11 +9,7 @@
         :pk="item.pk"
         :children="item.childCount"
       />
-      <BrowserCardMenu
-        :group="item.group"
-        :pk="item.pk"
-        :finished="item.finished"
-      />
+      <BrowserCardMenu :item="item" />
     </span>
   </div>
 </template>
