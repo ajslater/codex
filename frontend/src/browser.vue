@@ -1,7 +1,7 @@
 <template>
   <div>
     <v-main id="browser">
-      <header id="browserHeader">
+      <header class="codexToolbar">
         <BrowserFilterToolbar />
         <BrowserTitleToolbar />
       </header>
@@ -70,9 +70,5 @@ export default {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-}
-#browserHeader {
-  position: fixed;
-  z-index: 10;
 }
 </style>

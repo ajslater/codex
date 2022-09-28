@@ -34,9 +34,3 @@ export default {
   },
 };
 </script>
-
-<style scoped lang="scss">
-.readerNavButton {
-  z-index: -1;
-}
-</style>

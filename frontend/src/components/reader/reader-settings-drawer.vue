@@ -8,7 +8,7 @@
     temporary
     touchless
   >
-    <div v-if="isCodexViewable" id="settingsDrawerContainer">
+    <div v-if="isCodexViewable" class="settingsDrawerContainer">
       <div id="topBlock">
         <ReaderSettingsPanel />
         <v-divider />
@@ -54,10 +54,3 @@ export default {
   },
 };
 </script>
-
-<style scoped lang="scss">
-#readerSettingsDrawer {
-  z-index: 20;
-}
-@import "../settings/settings-drawer.scss";
-</style>

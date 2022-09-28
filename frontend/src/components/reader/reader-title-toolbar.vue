@@ -1,5 +1,5 @@
 <template>
-  <v-toolbar id="readerTopToolbar" dense>
+  <v-toolbar id="readerTopToolbar" class="codexToolbar" dense>
     <v-toolbar-items>
       <v-btn id="closeBook" ref="closeBook" :to="closeBookRoute" large ripple>
         <span v-if="!$vuetify.breakpoint.mobile">close book</span>
@@ -147,12 +147,10 @@ export default {
 <style scoped lang="scss">
 #readerTopToolbar {
   width: 100%;
-  position: fixed !important;
   top: 0px;
   padding-top: env(safe-area-inset-top);
   padding-left: calc(env(safe-area-inset-left) / 2);
   padding-right: calc(env(safe-area-inset-right) / 2);
-  z-index: 10;
 }
 #toolbarTitle {
   overflow-y: auto;
