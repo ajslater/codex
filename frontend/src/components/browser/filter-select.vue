@@ -17,12 +17,12 @@
       :prepend-inner-icon="filterInnerIcon"
       ripple
       @click:prepend-inner="clearFiltersAndChoices"
-      @focus="focused = true"
+      @focus="focus"
       @blur="focused = false"
     >
       <template #selection="{ item }">
         {{ item.text }}
-        <span v-if="isOtherFiltersSelected" class="filterSuffix"> + </span>
+        <span v-if="isDynamicFiltersSelected" class="filterSuffix"> + </span>
       </template>
       <template #item="data">
         <v-slide-x-transition hide-on-leave>
@@ -34,15 +34,20 @@
         </v-slide-x-transition>
       </template>
       <template #append-item>
-        <v-slide-x-transition hide-on-leave>
-          <v-divider v-if="filterMode === 'base'" />
-        </v-slide-x-transition>
-        <BrowserFilterSubMenu
-          v-for="filterName of filterNames"
-          :key="filterName"
-          :name="camelToSnake(filterName)"
-          :is-numeric="NUMERIC_FILTERS.includes(filterName)"
-          @sub-menu-click="closeFilterSelect"
+        <v-divider />
+        <div v-if="dynamicChoiceNames && dynamicChoiceNames.length > 0">
+          <BrowserFilterSubMenu
+            v-for="filterName of dynamicChoiceNames"
+            :key="filterName"
+            :name="filterName"
+            @sub-menu-click="closeFilterSelect"
+          />
+        </div>
+        <v-progress-linear
+          v-else
+          id="subMenuProgress"
+          rounded
+          :indeterminate="true"
         />
       </template>
     </v-select>
@@ -51,10 +56,10 @@
 
 <script>
 import { mdiCloseCircle } from "@mdi/js";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState, mapWritableState } from "pinia";
 
 import BrowserFilterSubMenu from "@/components/browser/filter-sub-menu.vue";
-import { NUMERIC_FILTERS, useBrowserStore } from "@/stores/browser";
+import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BrowserFilterSelect",
@@ -65,39 +70,52 @@ export default {
     return {
       focused: false,
       LABEL: "filter by",
-      NUMERIC_FILTERS: NUMERIC_FILTERS,
     };
   },
   computed: {
     ...mapState(useBrowserStore, {
-      bookmarkChoices: (state) => state.choices.bookmark,
-      filterMode: (state) => state.filterMode,
+      bookmarkChoices: (state) => state.choices.static.bookmark,
       filters: (state) => state.settings.filters,
-    }),
-    ...mapGetters(useBrowserStore, ["filterNames"]),
-    filterMenuClass: function () {
-      // Lets me hide bookmark menu items with css when the filterMode
-      //   changes.
-      let clsName = "filterMenu";
-      if (this.filterMode !== "base") {
-        clsName += "Hidden";
-      }
-      return clsName;
-    },
-    isOtherFiltersSelected: function () {
-      for (const filterName of this.filterNames) {
-        const filterArray = this.filters[filterName];
-        if (filterArray && filterArray.length > 0) {
-          return true;
+      isDynamicFiltersSelected: function (state) {
+        for (const [name, array] of Object.entries(state.settings.filters)) {
+          if (name !== "bookmark" && array && array.length > 0) {
+            return true;
+          }
         }
-      }
-      return false;
-    },
-    isFiltersClearable: function () {
-      if (this.bookmarkFilter !== "ALL") {
-        return true;
-      }
-      return this.isOtherFiltersSelected;
+        return false;
+      },
+      isFiltersClearable: function (state) {
+        const defaultBookmarkValues = [
+          undefined,
+          state.choices.static.bookmark[0].value,
+        ];
+        return (
+          !defaultBookmarkValues.includes(state.settings.filters.bookmark) ||
+          this.isDynamicFiltersSelected
+        );
+      },
+      filterMenuClass: function (state) {
+        // Lets me hide bookmark menu items with css when the filterMode
+        //   changes.
+        let clsName = "filterMenu";
+        if (state.filterMode !== "base") {
+          clsName += "Hidden";
+        }
+        return clsName;
+      },
+      dynamicChoiceNames: function (state) {
+        return Object.keys(state.choices.dynamic);
+      },
+    }),
+    ...mapWritableState(useBrowserStore, ["filterMode"]),
+    bookmarkFilter: {
+      get() {
+        return this.filters.bookmark || this.bookmarkChoices[0];
+      },
+      set(bookmark) {
+        const data = { filters: { bookmark } };
+        this.setSettings(data);
+      },
     },
     filterInnerIcon: function () {
       if (this.isFiltersClearable) {
@@ -105,32 +123,23 @@ export default {
       }
       return " ";
     },
-    bookmarkFilter: {
-      get() {
-        return this.filters.bookmark;
-      },
-      set(value) {
-        let bookmark = value;
-        if (bookmark === null || bookmark === undefined) {
-          bookmark = "ALL";
-          console.warn(`bookmarkFilter was ${value}. Set to 'ALL'`);
-        }
-        const data = { filters: { bookmark } };
-        this.setSettings(data);
-      },
-    },
   },
   methods: {
-    ...mapActions(useBrowserStore, ["clearFiltersAndChoices", "setSettings"]),
-    camelToSnake: function (name) {
-      // name is used as the submission value to the API as well async function (arguments) {
-      // The widget translates snake_case to Cap Case.
-      return name.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
-    },
+    ...mapActions(useBrowserStore, [
+      "clearFiltersAndChoices",
+      "loadAllFilterChoices",
+      "setSettings",
+    ]),
     closeFilterSelect: function () {
       // On sub-menu click, close the menu and reset the filter mode.
       this.$refs.filterSelect.blur();
-      useBrowserStore().filterMode = "base";
+      this.filterMode = "base";
+    },
+    focus() {
+      this.focused = true;
+      if (this.dynamicChoiceNames.length === 0) {
+        this.loadAllFilterChoices();
+      }
     },
   },
 };
@@ -139,6 +148,11 @@ export default {
 <style scoped lang="scss">
 .filterSuffix {
   margin-left: 0.25em;
+}
+#subMenuProgress {
+  margin: 10px;
+  margin-bottom: 2px;
+  width: 132px;
 }
 // #filterSelect style is handled in browser/filter-toolbar.vue
 </style>

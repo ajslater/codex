@@ -2,15 +2,9 @@
   <div>
     <v-main id="readerWrapper">
       <div v-if="isCodexViewable" id="readerContainer">
-        <v-main>
-          <div id="pagesContainer">
-            <ReaderPage :page-increment="+0" />
-            <ReaderPage :page-increment="+1" />
-          </div>
-          <div id="navOverlay" :v-touch="touchMap" @click="toggleToolbars">
-            <ReaderNavOverlay />
-          </div>
-        </v-main>
+        <ChangeBookDrawer direction="prev" />
+        <PagesWindow @click="toggleToolbars" />
+        <ChangeBookDrawer direction="next" />
         <v-slide-y-transition>
           <ReaderTitleToolbar v-show="showToolbars" />
         </v-slide-y-transition>
@@ -32,8 +26,8 @@
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 
-import ReaderNavOverlay from "@/components/reader/nav-overlay.vue";
-import ReaderPage from "@/components/reader/page.vue";
+import ChangeBookDrawer from "@/components/reader/change-book-drawer.vue";
+import PagesWindow from "@/components/reader/pages-window.vue";
 import ReaderNavToolbar from "@/components/reader/reader-nav-toolbar.vue";
 import ReaderSettingsDrawer from "@/components/reader/reader-settings-drawer.vue";
 import ReaderTitleToolbar from "@/components/reader/reader-title-toolbar.vue";
@@ -43,8 +37,8 @@ import { useReaderStore } from "@/stores/reader";
 export default {
   name: "MainReader",
   components: {
-    ReaderPage,
-    ReaderNavOverlay,
+    ChangeBookDrawer,
+    PagesWindow,
     ReaderNavToolbar,
     ReaderTitleToolbar,
     ReaderSettingsDrawer,
@@ -55,28 +49,12 @@ export default {
     };
   },
   computed: {
+    ...mapGetters(useAuthStore, ["isCodexViewable"]),
     ...mapState(useAuthStore, {
       user: (state) => state.user,
     }),
-    ...mapGetters(useAuthStore, ["isCodexViewable"]),
-    touchMap: function () {
-      return !this.$vuetify.breakpoint.mobile
-        ? {
-            left: () => this.routeTo("next"),
-            right: () => this.routeTo("prev"),
-          }
-        : {};
-    },
   },
   watch: {
-    $route(to, from) {
-      if (!from.params || Number(to.params.pk) !== Number(from.params.pk)) {
-        this.loadBook();
-      } else {
-        this.setRoutesAndBookmarkPage();
-      }
-      window.scrollTo(0, 0);
-    },
     user: function () {
       this.loadReaderSettings();
     },
@@ -89,12 +67,7 @@ export default {
     this.loadBook();
   },
   methods: {
-    ...mapActions(useReaderStore, [
-      "loadBook",
-      "loadReaderSettings",
-      "routeTo",
-      "setRoutesAndBookmarkPage",
-    ]),
+    ...mapActions(useReaderStore, ["loadReaderSettings", "loadBook"]),
     toggleToolbars: function () {
       this.showToolbars = !this.showToolbars;
     },
@@ -103,19 +76,6 @@ export default {
 </script>
 
 <style scoped lang="scss">
-#navOverlay {
-  position: fixed;
-  top: 0px;
-  width: 100%;
-  height: 100vh;
-}
-#pagesContainer {
-  /* because its more difficult to center with v-main */
-  display: flex;
-  flex-wrap: nowrap;
-  justify-content: center;
-  touch-action: manipulation;
-}
 #readerContainer {
   max-width: 100%;
   position: relative;

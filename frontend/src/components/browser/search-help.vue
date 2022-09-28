@@ -8,42 +8,40 @@
     <template #activator="{ on }">
       <v-list-item ripple v-on="on">
         <v-list-item-content>
-          <v-list-item-title> Search Syntax Help </v-list-item-title>
+          <v-list-item-title
+            ><v-icon>{{ mdiArchiveSearchOutline }}</v-icon> Search Syntax Help
+          </v-list-item-title>
         </v-list-item-content>
       </v-list-item>
     </template>
     <div id="searchHelp">
-      <v-btn
-        id="topCloseButton"
+      <CloseButton
         class="closeButton"
         title="Close Help (esc)"
-        ripple
+        x-large
         @click="dialog = false"
-      >
-        x
-      </v-btn>
+      />
+      <h1>Search Syntax Help</h1>
+      <div id="fieldTableContainer">
+        <h2>Search Fields</h2>
+        <table id="fieldTable" class="highlight-table">
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Type</th>
+              <th>Aliases</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in FIELD_ROWS" :key="row[0]">
+              <td>{{ row[0] }}</td>
+              <td>{{ row[1] }}</td>
+              <td>{{ row[2] }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       <div id="textContainer">
-        <h1>Search Syntax Help</h1>
-        <div id="fieldTableContainer">
-          <h2>Search Fields</h2>
-          <table id="fieldTable" class="highlight-table">
-            <thead>
-              <tr>
-                <th>Field</th>
-                <th>Type</th>
-                <th>Aliases</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="row in FIELD_ROWS" :key="row[0]">
-                <td>{{ row[0] }}</td>
-                <td>{{ row[1] }}</td>
-                <td>{{ row[2] }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
         <h2>Xapian Query Parser</h2>
         <p>
           Codex uses the Xapian search backend to execute your text search
@@ -128,20 +126,17 @@
           only one of them.
         </p>
       </div>
-      <v-btn
-        id="bottomCloseButton"
+      <CloseButton
         class="closeButton"
-        ripple
         title="Close Help (esc)"
+        x-large
         @click="dialog = false"
-      >
-        x
-      </v-btn>
+      />
     </div>
   </v-dialog>
 </template>
 <script>
-import { mdiOpenInNew } from "@mdi/js";
+import { mdiArchiveSearchOutline, mdiOpenInNew } from "@mdi/js";
 
 const FIELD_ROWS = [
   ["community_rating", "Decimal", ""],
@@ -189,6 +184,7 @@ export default {
   data() {
     return {
       mdiOpenInNew,
+      mdiArchiveSearchOutline,
       dialog: false,
       FIELD_ROWS,
     };
@@ -200,15 +196,12 @@ export default {
 @import "vuetify/src/styles/styles.sass";
 @import "../anchors.scss";
 #searchHelp {
-  max-width: 100vw;
+  max-width: 850px;
   padding: 20px;
   padding-left: 20px;
   padding-right: 20px;
+  margin: auto;
   color: grey;
-}
-#textContainer {
-  padding-left: 173px;
-  padding-right: 173px;
 }
 h1,
 h2,
@@ -220,9 +213,6 @@ h1 {
 }
 .closeButton {
   float: right;
-  width: 64px;
-}
-#bottomCloseButton {
 }
 #fieldTableContainer {
   float: left;

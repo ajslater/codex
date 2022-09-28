@@ -31,9 +31,9 @@ const pruneParams = (data) => {
   return params;
 };
 
-const getBrowserChoices = ({ group, pk }, choice_type, data) => {
+const getAllBrowserChoices = ({ group, pk }, data) => {
   const params = pruneParams(data);
-  return HTTP.get(`/${group}/${pk}/choices/${choice_type}`, { params });
+  return HTTP.get(`/${group}/${pk}/choices`, { params });
 };
 
 const loadBrowserPage = ({ group, pk, page }, data) => {
@@ -55,9 +55,9 @@ const setGroupBookmarks = ({ group, pk }, data) => {
 };
 
 export default {
-  getBrowserChoices,
-  loadBrowserPage,
+  getAllBrowserChoices,
   getMetadata,
   getSettings,
+  loadBrowserPage,
   setGroupBookmarks,
 };

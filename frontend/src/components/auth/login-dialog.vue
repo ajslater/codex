@@ -10,7 +10,12 @@
     <template #activator="{ on }">
       <v-list-item ripple v-on="on" @click="loadAdminFlags">
         <v-list-item-content>
-          <v-list-item-title><h3>Login</h3></v-list-item-title>
+          <v-list-item-title
+            ><h3>
+              <v-icon>{{ mdiLogin }}</v-icon
+              >Login
+            </h3></v-list-item-title
+          >
         </v-list-item-content>
       </v-list-item>
     </template>
@@ -82,6 +87,7 @@
 </template>
 
 <script>
+import { mdiLogin } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import { useAuthStore } from "@/stores/auth";
@@ -103,6 +109,7 @@ export default {
       },
       showLoginDialog: false,
       registerMode: false,
+      mdiLogin,
     };
   },
   computed: {

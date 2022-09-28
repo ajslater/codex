@@ -9,10 +9,11 @@ export const useCommonStore = defineStore("common", {
       installed: CODEX_PACKAGE_VERSION, // eslint-disable-line no-undef
       latest: undefined,
     },
+    timestamp: Date.now(),
   }),
   actions: {
     async loadVersions() {
-      await API.getVersions()
+      await API.getVersions(this.timestamp)
         .then((response) => {
           const data = response.data;
           return (this.versions = data);

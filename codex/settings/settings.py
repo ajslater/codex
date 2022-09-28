@@ -183,7 +183,7 @@ def immutable_file_test(_path, url):
 
 
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.0/howto/static-files/
+# https://docs.djangoproject.com/en/dev/howto/static-files/
 # WHITENOISE_KEEP_ONLY_HASHED_FILES is not usable with vite chunking
 WHITENOISE_STATIC_PREFIX = "static/"
 

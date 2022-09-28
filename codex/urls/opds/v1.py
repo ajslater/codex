@@ -1,7 +1,8 @@
 """codex:opds:v1 URL Configuration."""
-from django.urls import path
+from django.urls import path, register_converter
 from django.views.decorators.cache import cache_control, cache_page
 
+from codex.urls.converters import GroupConverter
 from codex.views.cover import CoverView
 from codex.views.download import DownloadView
 from codex.views.opds_v1.authentication import AuthenticationView
@@ -17,11 +18,13 @@ COVER_MAX_AGE = PAGE_MAX_AGE
 
 app_name = "v1"
 
+register_converter(GroupConverter, "group")
+
 urlpatterns = [
     #
     # Browser
     path(
-        "<str:group>/<int:pk>/<int:page>",
+        "<group:group>/<int:pk>/<int:page>",
         OPDSBrowserView.as_view(),
         name="browser",
     ),

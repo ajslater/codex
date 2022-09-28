@@ -59,7 +59,7 @@ export default {
     ...mapActions(useBrowserStore, ["routeToPage"]),
     setPage: function () {
       // This cannot be computed because router params are not reactive.
-      this.page = Number(this.$router.currentRoute.params.page);
+      this.page = Number(this.$route.params.page);
     },
   },
 };

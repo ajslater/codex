@@ -130,31 +130,30 @@ class BrowserSettingsFilterSerializer(Serializer):
         choices=tuple(CHOICES["bookmarkFilter"].keys()), required=False
     )
     # Dynamic filters
+    age_rating = CharListField(allow_blank=True, required=False)
+    characters = IntListField(required=False)
     community_rating = DecimalListField(
         max_digits=5,
         decimal_places=2,
         coerce_to_string=False,
+        required=False,
     )
-    characters = IntListField()
-    country = CharListField()
-    creators = IntListField()
+    country = CharListField(allow_blank=True, required=False)
+    creators = IntListField(required=False)
     critical_rating = DecimalListField(
-        max_digits=5,
-        decimal_places=2,
-        coerce_to_string=False,
+        max_digits=5, decimal_places=2, coerce_to_string=False, required=False
     )
-    decade = DecadeListField()
-    format = CharListField()
-    genres = IntListField()
-    language = CharListField()
+    decade = DecadeListField(required=False)
+    format = CharListField(required=False, allow_blank=True)
+    genres = IntListField(required=False)
+    language = CharListField(allow_blank=True, required=False)
     locations = IntListField()
-    age_rating = CharListField()
-    read_ltr = ListField(child=BooleanField(), required=False)
-    series_groups = IntListField()
-    story_arcs = IntListField()
-    tags = IntListField()
-    teams = IntListField()
-    year = IntListField()
+    read_ltr = ListField(child=BooleanField(allow_null=True), required=False)
+    series_groups = IntListField(required=False)
+    story_arcs = IntListField(required=False)
+    tags = IntListField(required=False)
+    teams = IntListField(required=False)
+    year = IntListField(required=False)
 
 
 class BrowserSettingsSerializer(Serializer):
@@ -251,3 +250,25 @@ class BrowserChoicesSerializer(Serializer):
 
     pk = CharField(read_only=True)
     name = CharField(read_only=True)
+
+
+class BrowserFilterChoicesSerializer(Serializer):
+    """All dynamic filters."""
+
+    age_rating = BrowserChoicesSerializer(many=True, read_only=True)
+    community_rating = BrowserChoicesSerializer(many=True, read_only=True)
+    characters = BrowserChoicesSerializer(many=True, read_only=True)
+    country = BrowserChoicesSerializer(many=True, read_only=True)
+    critical_rating = BrowserChoicesSerializer(many=True, read_only=True)
+    creators = BrowserChoicesSerializer(many=True, read_only=True)
+    decade = BrowserChoicesSerializer(many=True, read_only=True)
+    format = BrowserChoicesSerializer(many=True, read_only=True)
+    genres = BrowserChoicesSerializer(many=True, read_only=True)
+    language = BrowserChoicesSerializer(many=True, read_only=True)
+    locations = BrowserChoicesSerializer(many=True, read_only=True)
+    read_ltr = BrowserChoicesSerializer(many=True, read_only=True)
+    series_groups = BrowserChoicesSerializer(many=True, read_only=True)
+    story_arcs = BrowserChoicesSerializer(many=True, read_only=True)
+    tags = BrowserChoicesSerializer(many=True, read_only=True)
+    teams = BrowserChoicesSerializer(many=True, read_only=True)
+    year = BrowserChoicesSerializer(many=True, read_only=True)

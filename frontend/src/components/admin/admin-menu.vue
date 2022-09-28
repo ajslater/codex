@@ -1,11 +1,13 @@
 <template>
   <div v-if="isUserAdmin">
     <v-divider />
-    <h3 id="adminMenuTitle">Admin Tools</h3>
     <v-list-item-group>
       <v-list-item ripple @click="librarianTask('poll')">
         <v-list-item-content>
-          <v-list-item-title>Poll All Libraries</v-list-item-title>
+          <v-list-item-title
+            ><v-icon>{{ mdiDatabaseClockOutline }}</v-icon
+            >Poll All Libraries</v-list-item-title
+          >
         </v-list-item-content>
       </v-list-item>
       <v-list-item
@@ -15,7 +17,8 @@
       >
         <v-list-item-content>
           <v-list-item-title>
-            Admin Panel
+            <v-icon>{{ mdiCogOutline }}</v-icon
+            >Admin Panel
             <v-icon
               v-if="unseenFailedImports"
               id="failedImportsIcon"
@@ -32,7 +35,12 @@
 </template>
 
 <script>
-import { mdiBookAlert, mdiOpenInNew } from "@mdi/js";
+import {
+  mdiBookAlert,
+  mdiCogOutline,
+  mdiDatabaseClockOutline,
+  mdiOpenInNew,
+} from "@mdi/js";
 import { mapActions, mapGetters, mapWritableState } from "pinia";
 
 import AdminStatusList from "@/components/admin/status-list.vue";
@@ -48,6 +56,8 @@ export default {
     return {
       mdiBookAlert,
       mdiOpenInNew,
+      mdiDatabaseClockOutline,
+      mdiCogOutline,
     };
   },
   computed: {
@@ -63,10 +73,6 @@ export default {
 </script>
 
 <style scoped lang="scss">
-#adminMenuTitle {
-  padding-top: 10px;
-  padding-left: 15px;
-}
 #failedImportsIcon {
   padding-left: 10px;
 }

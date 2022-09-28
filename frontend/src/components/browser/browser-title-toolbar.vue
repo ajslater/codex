@@ -1,7 +1,16 @@
 <template>
   <v-toolbar id="titleToolbar" class="toolbar">
     <v-toolbar-items v-if="isCodexViewable">
-      <v-btn :class="{ invisible: !showUpButton }" :to="toUpRoute" icon ripple>
+      <v-btn
+        id="upButton"
+        :class="{ invisible: !showUpButton }"
+        :to="toUpRoute"
+        :disabled="!toUpRoute"
+        x-large
+        icon
+        ripple
+        :title="upTitle"
+      >
         <v-icon>{{ mdiArrowUp }}</v-icon>
       </v-btn>
     </v-toolbar-items>
@@ -48,7 +57,7 @@ export default {
   },
   computed: {
     ...mapState(useBrowserStore, {
-      groupNames: (state) => state.choices.groupNames,
+      groupNames: (state) => state.choices.static.groupNames,
       browserTitle: (state) => state.page.browserTitle,
       modelGroup: (state) => state.page.modelGroup,
       upRoute: (state) => state.page.routes.up,
@@ -101,6 +110,11 @@ export default {
       }
       return this.groupNames[this.modelGroup];
     },
+    upTitle() {
+      const group = this.$route.params.group || "";
+      const name = this.groupNames[group] || "All";
+      return `Up to ${name}`;
+    },
   },
 };
 </script>
@@ -109,13 +123,18 @@ export default {
 #titleToolbar {
   width: 100vw;
 }
+$upButtonWidth: 64px;
+/* eslint-disable-next-line vue-scoped-css/no-unused-selector */
+#upButton.v-btn {
+  width: $upButtonWidth;
+}
 .invisible {
   visibility: hidden;
 }
 /* eslint-disable-next-line vue-scoped-css/no-unused-selector */
 #titleToolbar .v-toolbar__title {
   margin: auto;
-  padding-right: 48px;
+  padding-right: $upButtonWidth;
   padding-top: 4px;
   text-align: center;
   line-height: 120%;

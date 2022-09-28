@@ -1,25 +1,21 @@
 """codex:api:v3 URL Configuration."""
-from django.urls import include, path
-from django.views.decorators.cache import cache_control
+from django.urls import include, path, register_converter
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
+from codex.urls.converters import GroupConverter
 from codex.views.version import VersionView
 
 
-VERSIONS_AGE = 60 * 60 * 12
+register_converter(GroupConverter, "group")
 
 
 app_name = "v3"
 urlpatterns = [
-    path("c/", include("codex.urls.api.reader")),
     path("auth/", include("codex.urls.api.auth")),
+    path("<group:group>/", include("codex.urls.api.browser")),
+    path("c/", include("codex.urls.api.reader")),
+    path("version", VersionView.as_view(), name="version"),
     path("admin/", include("codex.urls.api.admin")),
-    path("<str:group>/", include("codex.urls.api.browser")),
-    path(
-        "version",
-        cache_control(max_age=VERSIONS_AGE)(VersionView.as_view()),
-        name="version",
-    ),
     path("schema", SpectacularAPIView.as_view(), name="schema"),
     path(
         "",
