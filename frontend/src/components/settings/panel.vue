@@ -1,7 +1,7 @@
 <template>
   <div>
     <AuthMenu />
-    <component :is="adminMenuLoader" />
+    <component :is="adminMenuLoader" :menu="adminMenu" />
   </div>
 </template>
 
@@ -19,12 +19,12 @@ export default {
     AuthMenu,
   },
   props: {
-    admin: { type: Boolean, default: true },
+    adminMenu: { type: Boolean, default: true },
   },
   computed: {
     ...mapGetters(useAuthStore, ["isUserAdmin"]),
     adminMenuLoader: function () {
-      return this.admin && this.isUserAdmin ? AdminMenu : undefined;
+      return this.isUserAdmin ? AdminMenu : undefined;
     },
   },
 };

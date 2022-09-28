@@ -11,7 +11,7 @@
     <div class="settingsDrawerContainer">
       <div id="topBlock">
         <AdminSettingsPanel />
-        <SettingsCommonPanel :admin="false" />
+        <SettingsCommonPanel :admin-menu="false" />
         <v-divider />
       </div>
       <div id="footerGroup">
