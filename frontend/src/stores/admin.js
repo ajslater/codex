@@ -127,7 +127,7 @@ export const useAdminStore = defineStore("admin", {
         .catch(warnError);
     },
     loadTables(tables) {
-       for (const table of tables) {
+      for (const table of tables) {
         this.loadTable(table);
       }
     },
@@ -186,7 +186,7 @@ export const useAdminStore = defineStore("admin", {
       const apiFn = "delete" + table;
       await API[apiFn](pk)
         .then(() => {
-          this.loadTable(table);
+          return this.loadTable(table);
         })
         .catch(this.setErrors);
     },
