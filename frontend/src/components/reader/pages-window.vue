@@ -232,7 +232,7 @@ export default {
   height: calc(100vh - 96px);
   border-radius: 0;
   opacity: 0;
-  z-index: 8;
+  z-index: 7;
 }
 #pagesWindow .v-window__prev {
   cursor: w-resize;
