@@ -4,7 +4,7 @@ const VUETIFY_NULL_CODE = CHOICES.browser.vuetifyNullCode;
 const NULL_NAME = "None";
 const NULL_ITEM = { pk: VUETIFY_NULL_CODE, name: NULL_NAME };
 
-const toVuetifyItem = function (item) {
+const toVuetifyItem = function (item, charPk) {
   // Translates an raw value or an item item into a vuetify item.
   let vuetifyItem;
   if (item === undefined) {
@@ -13,6 +13,8 @@ const toVuetifyItem = function (item) {
     vuetifyItem = item;
     if (vuetifyItem.pk === null || vuetifyItem.pk === undefined) {
       vuetifyItem.pk = VUETIFY_NULL_CODE;
+    } else if (!charPk) {
+      vuetifyItem.pk = +vuetifyItem.pk;
     }
     if (vuetifyItem.name === null || vuetifyItem.pk === undefined) {
       vuetifyItem.name = NULL_NAME;
@@ -35,7 +37,12 @@ const vuetifyItemCompareNumeric = function (itemA, itemB) {
   return Number.parseFloat(itemA.name) - Number.parseFloat(itemB.name);
 };
 
-export const toVuetifyItems = function (items, filter, numeric = false) {
+export const toVuetifyItems = function (
+  items,
+  filter,
+  numeric = false,
+  charPk = false
+) {
   // Takes a value (can be a list) and a list of items and
   // Returns a list of valid items with items arg having preference.
   const sourceItems = items || [];
@@ -45,7 +52,7 @@ export const toVuetifyItems = function (items, filter, numeric = false) {
 
   let computedItems = [];
   for (const item of sourceItems) {
-    const vuetifyItem = toVuetifyItem(item);
+    const vuetifyItem = toVuetifyItem(item, charPk);
     if (
       vuetifyItem &&
       (!lowerCaseFilter ||

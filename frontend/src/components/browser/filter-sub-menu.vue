@@ -10,7 +10,7 @@
           <v-list-item-title class="filterMenu">
             {{ title }}
             <v-icon v-if="filter && filter.length > 0" class="nameChevron">
-              mdiChevronRightCircle }}
+              {{ mdiChevronRightCircle }}
             </v-icon>
             <v-icon v-else class="nameChevron">
               {{ mdiChevronRight }}
@@ -38,7 +38,7 @@
             filled
             rounded
             hide-details="auto"
-            @focus="setFilterMode(name)"
+            @focus="filterMode = name"
           />
         </header>
         <v-list-item-group
@@ -54,7 +54,12 @@
             ripple
           >
             <v-list-item-content>
-              <v-list-item-title>{{ item.name }}</v-list-item-title>
+              <v-list-item-title v-if="isNullPk(item.pk)" class="noneItem">
+                None
+              </v-list-item-title>
+              <v-list-item-title v-else>
+                {{ item.name }}
+              </v-list-item-title>
             </v-list-item-content>
           </v-list-item>
         </v-list-item-group>
@@ -69,10 +74,16 @@ import {
   mdiChevronRight,
   mdiChevronRightCircle,
 } from "@mdi/js";
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapState, mapWritableState } from "pinia";
 
 import { toVuetifyItems } from "@/api/v3/vuetify-items";
-import { useBrowserStore } from "@/stores/browser";
+import {
+  CHARPK_FILTERS,
+  NUMERIC_FILTERS,
+  useBrowserStore,
+} from "@/stores/browser";
+
+const NULL_PKS = new Set(["", -1]);
 
 export default {
   name: "BrowserFilterSubMenu",
@@ -80,10 +91,6 @@ export default {
     name: {
       type: String,
       required: true,
-    },
-    isNumeric: {
-      type: Boolean,
-      default: false,
     },
   },
   emits: ["sub-menu-click"],
@@ -98,15 +105,20 @@ export default {
   computed: {
     ...mapState(useBrowserStore, {
       choices: function (state) {
-        return state.choices[this.name];
+        return state.choices.dynamic[this.name];
       },
       filterSetting: function (state) {
         return state.settings.filters[this.name];
       },
-      filterMode: (state) => state.filterMode,
     }),
+    ...mapWritableState(useBrowserStore, ["filterMode"]),
     vuetifyItems: function () {
-      return toVuetifyItems(this.choices, this.query, this.isNumeric);
+      return toVuetifyItems(
+        this.choices,
+        this.query,
+        NUMERIC_FILTERS.includes(this.name),
+        CHARPK_FILTERS.includes(this.name)
+      );
     },
     filter: {
       get() {
@@ -121,35 +133,22 @@ export default {
       },
     },
     title: function () {
-      const words = this.name.split("_");
-      let title = "";
-      for (const index in words) {
-        if (Object.prototype.hasOwnProperty.call(words, index)) {
-          // Capitalize words
-          const word = words[index];
-          const capWord =
-            word === "ltr"
-              ? "LTR"
-              : word.charAt(0).toUpperCase() + word.slice(1);
-          // Append to title
-          if (index) {
-            title += " ";
-          }
-          title += capWord;
-        }
-      }
+      let title = this.name.replace(/[A-Z]/g, (letter) => ` ${letter}`);
+      title = title.replace("Ltr", "LTR");
+      title = title[0].toUpperCase() + title.slice(1);
       return title;
     },
     lowerTitle: function () {
-      return this.name.replace("_", " ");
+      return this.title.toLowerCase();
     },
   },
   methods: {
-    ...mapActions(useBrowserStore, ["setFilterMode", "setSettings"]),
+    ...mapActions(useBrowserStore, ["setSettings"]),
     setUIFilterMode(mode) {
-      this.setFilterMode(this.$route.params, mode);
+      this.filterMode = mode;
       this.query = "";
     },
+    isNullPk: (pk) => NULL_PKS.has(pk),
   },
 };
 </script>
@@ -171,5 +170,8 @@ export default {
 }
 .filterGroup {
   max-height: 80vh; /* has to be less than the menu height */
+}
+.noneItem {
+  color: gray;
 }
 </style>

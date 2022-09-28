@@ -54,6 +54,10 @@ class BrowserBaseView(BrowserSessionViewBase, GroupACLMixin):
         "tag": "tags",
         "team": "teams",
         "updated": "updated_at",
+        # OPDS
+        "author": "creators",
+        "contributor": "creators",
+        "category": "characters",  # the most common category, probably
     }
     _BOOKMARK_FILTERS = frozenset(set(CHOICES["bookmarkFilter"].keys()) - set(("ALL",)))
     _GET_JSON_KEYS = frozenset(("filters", "show"))
@@ -74,18 +78,18 @@ class BrowserBaseView(BrowserSessionViewBase, GroupACLMixin):
             else:
                 query_prefix = "comic__"
 
-            # None values in a list don't work right so test for them
-            #   separately
+            if field == self.CREDIT_PERSON_UI_FIELD:
+                rel = f"{query_prefix}credits__person"
+            else:
+                rel = f"{query_prefix}{field}"
+
             for index, val in enumerate(filter_list):
+                # None values in a list don't work right so test for them separately
                 if val is None:
                     del filter_list[index]
-                    filter_query |= Q(**{f"{query_prefix}{field}__isnull": True})
+                    filter_query |= Q(**{f"{rel}__isnull": True})
             if filter_list:
-                if field == self.CREDIT_PERSON_UI_FIELD:
-                    rel = f"{query_prefix}credits__person__in"
-                else:
-                    rel = f"{query_prefix}{field}__in"
-                filter_query |= Q(**{rel: filter_list})
+                filter_query |= Q(**{f"{rel}__in": filter_list})
         return filter_query
 
     def _get_comic_field_filter(self, is_model_comic):

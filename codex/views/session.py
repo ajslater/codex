@@ -129,6 +129,11 @@ class SessionViewBase(SessionViewBaseBase, ABC):
     def get(self, request, *args, **kwargs):
         """Get session settings."""
         params = self.load_params_from_session()
+        data = {}
+        for key, filter in params.get("filters", {}).items():
+            if filter:
+                data[key] = filter
+        params["filters"] = data
         serializer = self.get_serializer(params)
         return Response(serializer.data)
 

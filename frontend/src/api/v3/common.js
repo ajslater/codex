@@ -9,16 +9,19 @@ const downloadIOSPWAFix = (href, fileName) => {
   HTTP.get(href, { responseType: "blob" })
     .then((response) => {
       const link = document.createElement("a");
-      link.href = window.URL.createObjectURL(response.data);
+      const blob = new Blob([response.data], {
+        type: "application/octet-stream",
+      });
+      link.href = window.URL.createObjectURL(blob);
       link.download = fileName;
       link.click();
-      return true;
+      return window.URL.releaseObjectURL(response.data);
     })
     .catch((error) => console.warn(error));
 };
 
-const getVersions = () => {
-  return HTTP.get("/version");
+const getVersions = (ts) => {
+  return HTTP.get(`/version?ts=${ts}`);
 };
 
 export default {

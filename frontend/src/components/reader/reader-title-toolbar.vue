@@ -3,7 +3,7 @@
     <v-toolbar-items>
       <v-btn id="closeBook" ref="closeBook" :to="closeBookRoute" large ripple>
         <span v-if="!$vuetify.breakpoint.mobile">close book</span>
-        <v-icon v-else>
+        <v-icon v-else title="Close Book">
           {{ mdiClose }}
         </v-icon>
       </v-btn>
@@ -13,17 +13,16 @@
       {{ title }}
     </v-toolbar-title>
     <v-spacer />
-    <span v-if="seriesPosition" id="seriesPosition">{{ seriesPosition }}</span>
+    <span v-if="seriesPosition" id="seriesPosition" title="Series Position">{{
+      seriesPosition
+    }}</span>
     <v-toolbar-items>
       <v-btn id="tagButton" @click.stop="openMetadata">
         <MetadataDialog
           ref="metadataDialog"
           group="c"
-          :pk="Number($router.currentRoute.params.pk)"
+          :pk="Number($route.params.pk)"
         />
-      </v-btn>
-      <v-btn id="downloadPageButton" title="Download Page" @click="download">
-        <v-icon>{{ mdiFileImage }}</v-icon>
       </v-btn>
       <SettingsDrawerButton
         id="settingsButton"
@@ -34,17 +33,17 @@
 </template>
 
 <script>
-import { mdiClose, mdiFileImage } from "@mdi/js";
+import { mdiClose } from "@mdi/js";
 import { mapActions, mapGetters, mapState, mapWritableState } from "pinia";
 
-import { getComicPageSource } from "@/api/v3/reader";
 import CHOICES from "@/choices";
-import { getFullComicName } from "@/comic-name";
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
 import { useBrowserStore } from "@/stores/browser";
-import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
+
+const PREV = "prev";
+const NEXT = "next";
 
 export default {
   name: "ReaderTitleToolbar",
@@ -55,7 +54,6 @@ export default {
   data() {
     return {
       mdiClose,
-      mdiFileImage,
     };
   },
   head() {
@@ -64,14 +62,14 @@ export default {
     return { meta: [{ hid: "description", name: "description", content }] };
   },
   computed: {
+    ...mapGetters(useReaderStore, ["computedSettings", "title"]),
     ...mapState(useReaderStore, {
-      title: function (state) {
-        return getFullComicName(state.comic);
-      },
+      routes: (state) => state.routes,
       timestamp: (state) => state.timestamp,
       seriesPosition: function (state) {
-        if (state.routes.seriesCount > 1) {
-          return `${state.routes.seriesIndex}/${state.routes.seriesCount}`;
+        const routes = state.routes;
+        if (routes.seriesCount > 1) {
+          return `${routes.seriesIndex}/${routes.seriesCount}`;
         }
       },
     }),
@@ -79,7 +77,6 @@ export default {
       lastRoute: (state) => state.page.routes.last,
     }),
     ...mapWritableState(useReaderStore, ["isSettingsDrawerOpen"]),
-    ...mapGetters(useReaderStore, ["computedSettings"]),
     closeBookRoute: function () {
       // Choose the best route
       const route = {
@@ -93,14 +90,6 @@ export default {
       }
       return route;
     },
-    pageSrc: function () {
-      const routeParams = { ...this.$router.currentRoute.params };
-      return getComicPageSource(routeParams, this.timestamp);
-    },
-    pageName: function () {
-      const page = this.$router.currentRoute.params.page;
-      return `${this.title} - page ${page}.jpg`;
-    },
   },
   mounted() {
     window.addEventListener("keyup", this._keyListener);
@@ -109,20 +98,47 @@ export default {
     window.removeEventListener("keyup", this._keyListener);
   },
   methods: {
-    ...mapActions(useCommonStore, ["downloadIOSPWAFix"]),
+    ...mapActions(useReaderStore, ["routeToDirection"]),
     openMetadata: function () {
       this.$refs.metadataDialog.dialog = true;
     },
     _keyListener: function (event) {
       event.stopPropagation();
-      if (event.key === "c") {
-        this.$refs.closeBook.$el.click();
-      } else if (event.key === "m") {
-        this.openMetadata();
+      switch (event.key) {
+        case " ":
+          if (
+            !event.shiftKey &&
+            window.innerHeight + window.scrollY >= document.body.scrollHeight &&
+            this.routes.next
+          ) {
+            // Spacebar goes next only at the bottom of page
+            this.routeToDirection(NEXT);
+          } else if (
+            // Shift + Spacebar goes back only at the top of page
+            !!event.shiftKey &&
+            window.scrollY === 0 &&
+            this.routes.prev
+          ) {
+            this.routeToDirection(PREV);
+          }
+          break;
+        case "j":
+        case "ArrowRight":
+          this.routeToDirection(NEXT);
+          break;
+
+        case "k":
+        case "ArrowLeft":
+          this.routeToDirection(PREV);
+          break;
+        case "c":
+          this.$refs.closeBook.$el.click();
+          break;
+        case "m":
+          this.openMetadata();
+          break;
+        // No default
       }
-    },
-    download() {
-      this.downloadIOSPWAFix(this.pageSrc, this.pageName);
     },
   },
 };
@@ -131,11 +147,12 @@ export default {
 <style scoped lang="scss">
 #readerTopToolbar {
   width: 100%;
-  position: fixed;
+  position: fixed !important;
   top: 0px;
   padding-top: env(safe-area-inset-top);
-  padding-left: calc(env(safe-area-inset-left) / 3);
-  padding-right: calc(env(safe-area-inset-right) / 3);
+  padding-left: calc(env(safe-area-inset-left) / 2);
+  padding-right: calc(env(safe-area-inset-right) / 2);
+  z-index: 10;
 }
 #toolbarTitle {
   overflow-y: auto;
@@ -149,15 +166,11 @@ export default {
   color: darkgray;
   text-align: center;
 }
-#downloadPageButton {
-  height: 100%;
-}
 @import "vuetify/src/styles/styles.sass";
 @media #{map-get($display-breakpoints, 'sm-and-down')} {
   #closeBook {
     min-width: 32px;
   }
-  #downloadPageButton,
   #tagButton {
     padding-left: 2px;
     padding-right: 2px;
@@ -179,10 +192,8 @@ export default {
 #readerTopToolbar .v-toolbar__content {
   padding: 0px;
 }
-#readerTopToolbar .tagIcon {
-  position: relative !important;
-  top: 0px !important;
-  left: 0px !important;
+#readerTopToolbar .tagButton {
+  min-width: 24px;
   height: 24px;
   width: 24px;
   margin: 0px;

@@ -1,15 +1,18 @@
 <template>
   <v-menu offset-y top>
     <template #activator="{ on }">
-      <v-icon
-        class="browserCardMenuIcon"
+      <v-btn
         aria-label="action menu"
-        right
+        class="browserCardMenuIcon"
+        icon
+        title="Action Menu"
         v-on="on"
         @click.prevent
       >
-        {{ mdiDotsVertical }}
-      </v-icon>
+        <v-icon>
+          {{ mdiDotsVertical }}
+        </v-icon>
+      </v-btn>
     </template>
     <v-list nav>
       <v-list-item ripple @click="toggleRead">
@@ -25,7 +28,7 @@
 
 <script>
 import { mdiDotsVertical } from "@mdi/js";
-import { mapActions } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
@@ -51,13 +54,15 @@ export default {
     };
   },
   computed: {
+    ...mapState(useBrowserStore, {
+      groupNames: (state) => state.choices.static.groupNames,
+    }),
     markReadText: function () {
       const words = ["Mark"];
       if (this.group != "c") {
         words.push("Entire");
       }
-      const groupNames = useBrowserStore().choices.groupNames;
-      const groupName = groupNames[this.group];
+      const groupName = this.groupNames[this.group];
       words.push(groupName);
 
       if (this.finished) {

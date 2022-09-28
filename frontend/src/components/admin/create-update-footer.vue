@@ -14,24 +14,27 @@
       <v-btn ref="submit" ripple :disabled="disabled" @click="$emit('submit')">
         {{ modeName }} {{ table }}
       </v-btn>
-      <v-btn class="cuCancelButton" ripple @click="$emit('cancel')">
-        Cancel
-      </v-btn>
+      <CancelButton @click="$emit('cancel')" />
     </div>
   </footer>
 </template>
 <script>
 import { mapState } from "pinia";
 
+import CancelButton from "@/components/cancel-button.vue";
 import { useAdminStore } from "@/stores/admin";
 
 export default {
   name: "AdminCreateUpdateFooter",
+  components: {
+    CancelButton,
+  },
   props: {
     update: { type: Boolean, default: false },
     table: { type: String, required: true },
     disabled: { type: Boolean, default: false },
   },
+  emits: ["cancel"],
   computed: {
     ...mapState(useAdminStore, {
       formErrors: (state) => state.form.errors,
@@ -43,9 +46,3 @@ export default {
   },
 };
 </script>
-
-<style scoped lang="scss">
-.cuCancelButton {
-  float: right;
-}
-</style>

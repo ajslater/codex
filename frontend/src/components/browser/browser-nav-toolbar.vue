@@ -40,12 +40,13 @@ export default {
   position: fixed;
   bottom: env(safe-area-inset-bottom);
   width: 100%;
+  padding: 0px;
 }
 </style>
 
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
-#browsePane .paginationToolbar > .v-toolbar__content {
+#browser .paginationToolbar > .v-toolbar__content {
   padding: 0px;
 }
 </style>

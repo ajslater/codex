@@ -40,7 +40,7 @@ import { mapActions, mapGetters, mapState } from "pinia";
 import { useBrowserStore } from "@/stores/browser";
 
 export default {
-  name: "BrowseSortBySelect",
+  name: "BrowseOrderBySelect",
   data() {
     return {
       focused: false,

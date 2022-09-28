@@ -49,9 +49,7 @@
       >
         Add Library
       </v-btn>
-      <v-btn class="addCancelButton" ripple @click="showDialog = false">
-        Cancel
-      </v-btn>
+      <CancelButton @click="showDialog = false" />
       <footer>
         <small v-if="formErrors && formErrors.length > 0" style="color: red">
           <div v-for="error in formErrors" :key="error">
@@ -72,6 +70,7 @@ import { mapActions, mapGetters, mapState } from "pinia";
 import AdminRelationPicker from "@/components/admin/relation-picker.vue";
 import AdminServerFolderPicker from "@/components/admin/server-folder-picker.vue";
 import TimeTextField from "@/components/admin/time-text-field.vue";
+import CancelButton from "@/components/cancel-button.vue";
 import { useAdminStore } from "@/stores/admin";
 
 const EMPTY_LIBRARY = {
@@ -89,6 +88,7 @@ export default {
     AdminRelationPicker,
     AdminServerFolderPicker,
     TimeTextField,
+    CancelButton,
   },
   data() {
     return {
