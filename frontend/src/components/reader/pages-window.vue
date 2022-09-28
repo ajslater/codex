@@ -81,7 +81,7 @@ export default {
   head() {
     if (this.prefetchHref) {
       return {
-        lnk: [{ rel: "prefetch", as: "image", href: this.prefetchHref }],
+        link: [{ rel: "prefetch", as: "image", href: this.prefetchHref }],
       };
     }
   },
