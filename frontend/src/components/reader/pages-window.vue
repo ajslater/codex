@@ -62,7 +62,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState, mapWritableState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import { getComicPageSource } from "@/api/v3/reader";
 const PDFPage = () => import("@/components/reader/pdf.vue");
@@ -111,25 +111,23 @@ export default {
         }
         return getComicPageSource(state.routes.next, state.timestamp);
       },
+      comicLoaded: (state) => state.comicLoaded,
     }),
-    ...mapWritableState(useReaderStore, ["comicLoaded"]),
     pk() {
       return this.$route.params.pk;
     },
   },
   watch: {
     $route(to, from) {
-      if (!from.params || Number(to.params.pk) !== Number(from.params.pk)) {
+      if (!from || !from.params || +to.params.pk !== +from.params.pk) {
         this.loadBook();
       } else {
         this.setRoutesAndBookmarkPage();
-        this.setPage(to.params.page);
+        this.setPage(+to.params.page);
       }
     },
-    comicLoaded(to) {
-      if (to) {
-        this.setPage(this.$route.params.page || 0);
-      }
+    comicLoaded() {
+      this.setPage();
     },
   },
   mounted() {
@@ -156,7 +154,7 @@ export default {
         return;
       }
       if (page === undefined) {
-        page = +this.$route.params.page;
+        page = +this.$route.params.page || 0;
       }
       this.windowPage = page;
       window.scrollTo(0, 0);
