@@ -190,7 +190,11 @@ export default {
       this.routeToDirection(direction);
     },
     bookChange(direction) {
-      this.setBookChangeFlag(direction);
+      if (this.routes[direction + "Book"]) {
+        this.setBookChangeFlag(direction);
+      } else {
+        this.click();
+      }
     },
     click() {
       this.setBookChangeFlag();
