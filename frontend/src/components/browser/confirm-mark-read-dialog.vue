@@ -18,12 +18,11 @@
         {{ name }}
       </h3>
       {{ text }}
-      <footer>
-        <v-btn id="confirmButton" ripple @click="click('confirm')">
-          Confirm
-        </v-btn>
-        <CancelButton @click="click('cancel')" />
-      </footer>
+      <ConfirmFooter
+        confirm-text="Confirm"
+        @confirm="click('confirm')"
+        @cancel="click('cancel')"
+      />
     </div>
   </v-dialog>
 </template>
@@ -32,13 +31,13 @@
 import { mdiTrashCan } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
-import CancelButton from "@/components/cancel-button.vue";
+import ConfirmFooter from "@/components/confirm-footer.vue";
 import { useAdminStore } from "@/stores/admin";
 
 export default {
   name: "ConfirmMarkReadDialog",
   components: {
-    CancelButton,
+    ConfirmFooter,
   },
   props: {
     text: {
@@ -74,11 +73,5 @@ export default {
 #confirmMarkReadDialog {
   padding: 20px;
   text-align: center;
-}
-footer {
-  margin: auto;
-  margin-top: 1em;
-  display: flex;
-  justify-content: space-between;
 }
 </style>
