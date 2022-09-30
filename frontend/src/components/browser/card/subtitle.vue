@@ -108,8 +108,7 @@ export default {
   beforeCreate: function () {
     // Fixes empty order cache on first load
     // can't use computed value.
-    const browserStore = useBrowserStore();
-    this.orderByCache = browserStore.settings.orderBy;
+    this.orderByCache = useBrowserStore().settings.orderBy;
   },
 };
 </script>
