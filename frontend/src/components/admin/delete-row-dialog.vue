@@ -1,38 +1,24 @@
 <template>
-  <v-dialog
-    v-model="showDialog"
-    transition="fab-transition"
-    max-width="20em"
-    overlay-opacity="0.5"
-  >
-    <template #activator="{ on }">
-      <v-btn icon ripple v-on="on">
-        <v-icon> {{ mdiTrashCan }} </v-icon>
-      </v-btn>
-    </template>
-    <div id="deleteDialog">
-      Delete {{ table }} {{ name }}?
-      <footer>
-        <v-btn id="confirmButton" @click="deleteRow(table, pk)">
-          Confirm Delete
-        </v-btn>
-        <CancelButton @click="showDialog = false" />
-      </footer>
-    </div>
-  </v-dialog>
+  <ConfirmDialog
+    :icon="mdiTrashCan"
+    :title-text="titleText"
+    :object-name="name"
+    :confirm-text="titleText"
+    @confirm="confirm"
+  />
 </template>
 
 <script>
 import { mdiTrashCan } from "@mdi/js";
 import { mapActions } from "pinia";
 
-import CancelButton from "@/components/cancel-button.vue";
+import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useAdminStore } from "@/stores/admin";
 
 export default {
   name: "AdminDeleteRowDialog",
   components: {
-    CancelButton,
+    ConfirmDialog,
   },
   props: {
     table: {
@@ -50,25 +36,20 @@ export default {
   },
   data() {
     return {
-      showDialog: false,
       mdiTrashCan,
     };
   },
+  computed: {
+    titleText() {
+      return `Delete ${this.table}`;
+    },
+  },
   methods: {
     ...mapActions(useAdminStore, ["deleteRow"]),
+    confirm() {
+      this.deleteRow(this.table, this.pk);
+      this.showDialog = false;
+    },
   },
 };
 </script>
-
-<style scoped lang="scss">
-#deleteDialog {
-  padding: 20px;
-  text-align: center;
-}
-footer {
-  margin: auto;
-  margin-top: 1em;
-  display: flex;
-  justify-content: space-between;
-}
-</style>

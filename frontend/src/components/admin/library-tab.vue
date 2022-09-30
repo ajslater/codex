@@ -47,12 +47,11 @@
               </v-btn>
             </td>
             <td>
-              <AdminTaskConfirmDialog
-                :task="{
-                  icon: true,
-                  text: `Force Update ${item.path}`,
-                  confirm: 'This can take a long time',
-                }"
+              <ConfirmDialog
+                :icon="mdiDatabaseImportOutline"
+                title-text="Force Update Library"
+                :object-name="item.path"
+                confirm-text="Force Update"
                 @confirm="forcePoll(item.id)"
               />
             </td>
@@ -80,7 +79,11 @@
 </template>
 
 <script>
-import { mdiDatabaseClockOutline, mdiOpenInNew } from "@mdi/js";
+import {
+  mdiDatabaseClockOutline,
+  mdiDatabaseImportOutline,
+  mdiOpenInNew,
+} from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import DateTimeColumn from "@/components/admin/datetime-column.vue";
@@ -88,7 +91,7 @@ import AdminDeleteRowDialog from "@/components/admin/delete-row-dialog.vue";
 import AdminFailedImportsPanel from "@/components/admin/failed-imports-panel.vue";
 import AdminLibraryCreateUpdateDialog from "@/components/admin/library-create-update-dialog.vue";
 import RelationChips from "@/components/admin/relation-chips.vue";
-import AdminTaskConfirmDialog from "@/components/admin/task-dialog.vue";
+import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { DATETIME_FORMAT } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
 
@@ -107,7 +110,7 @@ export default {
     AdminFailedImportsPanel,
     AdminLibraryCreateUpdateDialog,
     RelationChips,
-    AdminTaskConfirmDialog,
+    ConfirmDialog,
     DateTimeColumn,
   },
   data() {
@@ -117,6 +120,7 @@ export default {
         field: undefined,
       },
       mdiDatabaseClockOutline,
+      mdiDatabaseImportOutline,
       mdiOpenInNew,
       tableHeight: 0,
     };

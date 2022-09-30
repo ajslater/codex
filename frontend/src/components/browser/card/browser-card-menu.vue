@@ -22,10 +22,12 @@
           </v-list-item-title>
         </v-list-item-content>
       </v-list-item>
-      <ConfirmMarkReadDialog
+      <ConfirmDialog
         v-else
-        :text="markReadText"
-        :name="item.name"
+        :button-text="markReadText"
+        :title-text="markReadText"
+        :confirm-text="confirmText"
+        :object-name="item.name"
         @confirm="toggleRead"
         @cancel="showMenu = false"
       />
@@ -37,14 +39,14 @@
 import { mdiDotsVertical } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
-import ConfirmMarkReadDialog from "@/components/browser/confirm-mark-read-dialog.vue";
+import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
 
 export default {
   name: "BrowserContainerMenu",
   components: {
-    ConfirmMarkReadDialog,
+    ConfirmDialog,
   },
   props: {
     item: {
@@ -62,7 +64,13 @@ export default {
     ...mapState(useBrowserStore, {
       groupNames: (state) => state.choices.static.groupNames,
     }),
-    markReadText: function () {
+    verb() {
+      return this.item.finished ? "Unread" : "Read";
+    },
+    confirmText() {
+      return `Mark ${this.verb}`;
+    },
+    markReadText() {
       const words = ["Mark"];
       if (this.item.group != "c") {
         words.push("Entire");
@@ -71,13 +79,7 @@ export default {
       if (this.item.group !== "s") {
         groupName = groupName.slice(0, -1);
       }
-      words.push(groupName);
-
-      if (this.item.finished) {
-        words.push("Unread");
-      } else {
-        words.push("Read");
-      }
+      words.push(groupName, this.verb);
       return words.join(" ");
     },
   },
