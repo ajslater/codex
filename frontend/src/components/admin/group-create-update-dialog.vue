@@ -28,7 +28,7 @@
         :items="vuetifyLibraries"
         @change="group.librarySet = $event"
       />
-      <AdminSubmitFooter
+      <SubmitFooter
         :verb="verb"
         table="Group"
         :disabled="submitButtonDisabled"
@@ -44,7 +44,7 @@ import { mapActions, mapGetters, mapState } from "pinia";
 
 import AdminCreateUpdateButton from "@/components/admin/create-update-button.vue";
 import AdminRelationPicker from "@/components/admin/relation-picker.vue";
-import AdminSubmitFooter from "@/components/submit-footer.vue";
+import SubmitFooter from "@/components/submit-footer.vue";
 import { useAdminStore } from "@/stores/admin";
 
 const UPDATE_KEYS = ["name", "userSet", "librarySet"];
@@ -61,7 +61,7 @@ export default {
   components: {
     AdminRelationPicker,
     AdminCreateUpdateButton,
-    AdminSubmitFooter,
+    SubmitFooter,
   },
   props: {
     update: { type: Boolean, default: false },
@@ -109,9 +109,9 @@ export default {
       const form = this.$refs.form;
       return !form || !form.validate();
     },
-  },
-  verb() {
-    return this.update ? "Update" : "Add";
+    verb() {
+      return this.update ? "Update" : "Add";
+    },
   },
   watch: {
     showDialog(show) {
