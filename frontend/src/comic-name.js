@@ -1,3 +1,4 @@
+// Create comic names
 export const formattedVolumeName = function (volume) {
   let volumeName;
   if (volume) {
