@@ -41,7 +41,7 @@
         label="Groups"
         :items="vuetifyGroups"
       />
-      <AdminSubmitFooter
+      <SubmitFooter
         :verb="verb"
         table="Library"
         :disabled="submitButtonDisabled"
@@ -59,7 +59,7 @@ import AdminCreateUpdateButton from "@/components/admin/create-update-button.vue
 import AdminRelationPicker from "@/components/admin/relation-picker.vue";
 import AdminServerFolderPicker from "@/components/admin/server-folder-picker.vue";
 import TimeTextField from "@/components/admin/time-text-field.vue";
-import AdminSubmitFooter from "@/components/submit-footer.vue";
+import SubmitFooter from "@/components/submit-footer.vue";
 import { useAdminStore } from "@/stores/admin";
 
 const UPDATE_KEYS = ["events", "poll", "pollEvery", "groups"];
@@ -77,7 +77,7 @@ export default {
   name: "AdminLibraryCreateUpdateDialog",
   components: {
     AdminCreateUpdateButton,
-    AdminSubmitFooter,
+    SubmitFooter,
     AdminRelationPicker,
     AdminServerFolderPicker,
     TimeTextField,

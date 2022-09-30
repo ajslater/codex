@@ -46,7 +46,7 @@
         label="Groups"
         :items="vuetifyGroups"
       />
-      <AdminSubmitFooter
+      <SubmitFooter
         :verb="verb"
         table="User"
         :disabled="submitButtonDisabled"
@@ -62,7 +62,7 @@ import { mapActions, mapGetters, mapState } from "pinia";
 
 import AdminCreateUpdateButton from "@/components/admin/create-update-button.vue";
 import AdminRelationPicker from "@/components/admin/relation-picker.vue";
-import AdminSubmitFooter from "@/components/submit-footer.vue";
+import SubmitFooter from "@/components/submit-footer.vue";
 import { useAdminStore } from "@/stores/admin";
 
 const UPDATE_KEYS = ["username", "isStaff", "isActive", "groups"];
@@ -80,7 +80,7 @@ export default {
   name: "AdminUserCreateUpdateDialog",
   components: {
     AdminCreateUpdateButton,
-    AdminSubmitFooter,
+    SubmitFooter,
     AdminRelationPicker,
   },
   props: {
