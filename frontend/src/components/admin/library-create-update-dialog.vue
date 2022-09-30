@@ -41,8 +41,8 @@
         label="Groups"
         :items="vuetifyGroups"
       />
-      <AdminCreateUpdateFooter
-        :update="update"
+      <AdminSubmitFooter
+        :verb="verb"
         table="Library"
         :disabled="submitButtonDisabled"
         @submit="submit"
@@ -56,10 +56,10 @@
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import AdminCreateUpdateButton from "@/components/admin/create-update-button.vue";
-import AdminCreateUpdateFooter from "@/components/admin/create-update-footer.vue";
 import AdminRelationPicker from "@/components/admin/relation-picker.vue";
 import AdminServerFolderPicker from "@/components/admin/server-folder-picker.vue";
 import TimeTextField from "@/components/admin/time-text-field.vue";
+import AdminSubmitFooter from "@/components/submit-footer.vue";
 import { useAdminStore } from "@/stores/admin";
 
 const UPDATE_KEYS = ["events", "poll", "pollEvery", "groups"];
@@ -77,7 +77,7 @@ export default {
   name: "AdminLibraryCreateUpdateDialog",
   components: {
     AdminCreateUpdateButton,
-    AdminCreateUpdateFooter,
+    AdminSubmitFooter,
     AdminRelationPicker,
     AdminServerFolderPicker,
     TimeTextField,
@@ -139,16 +139,18 @@ export default {
       const form = this.$refs.form;
       return !form || !form.validate();
     },
+    verb() {
+      return this.update ? "Update" : "Add";
+    },
   },
   watch: {
     showDialog(show) {
-      this.clearErrors();
       this.library =
         show && this.update ? this.createUpdateLibrary() : { ...EMPTY_LIBRARY };
     },
   },
   methods: {
-    ...mapActions(useAdminStore, ["clearErrors", "createRow", "updateRow"]),
+    ...mapActions(useAdminStore, ["createRow", "updateRow"]),
     createUpdateLibrary() {
       const updateLibrary = {};
       for (const key of UPDATE_KEYS) {
@@ -169,9 +171,7 @@ export default {
           this.showDialog = false;
           return true;
         })
-        .catch((error) => {
-          console.error(error);
-        });
+        .catch(console.error);
     },
     doCreate: function () {
       this.createRow("Library", this.library)
@@ -179,9 +179,7 @@ export default {
           this.showDialog = false;
           return true;
         })
-        .catch((error) => {
-          console.error(error);
-        });
+        .catch(console.error);
     },
     submit: function () {
       const form = this.$refs.form;

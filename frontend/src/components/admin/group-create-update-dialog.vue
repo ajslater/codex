@@ -28,8 +28,8 @@
         :items="vuetifyLibraries"
         @change="group.librarySet = $event"
       />
-      <AdminCreateUpdateFooter
-        :update="update"
+      <AdminSubmitFooter
+        :verb="verb"
         table="Group"
         :disabled="submitButtonDisabled"
         @submit="submit"
@@ -43,8 +43,8 @@
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import AdminCreateUpdateButton from "@/components/admin/create-update-button.vue";
-import AdminCreateUpdateFooter from "@/components/admin/create-update-footer.vue";
 import AdminRelationPicker from "@/components/admin/relation-picker.vue";
+import AdminSubmitFooter from "@/components/submit-footer.vue";
 import { useAdminStore } from "@/stores/admin";
 
 const UPDATE_KEYS = ["name", "userSet", "librarySet"];
@@ -61,7 +61,7 @@ export default {
   components: {
     AdminRelationPicker,
     AdminCreateUpdateButton,
-    AdminCreateUpdateFooter,
+    AdminSubmitFooter,
   },
   props: {
     update: { type: Boolean, default: false },
@@ -110,15 +110,17 @@ export default {
       return !form || !form.validate();
     },
   },
+  verb() {
+    return this.update ? "Update" : "Add";
+  },
   watch: {
     showDialog(show) {
-      this.clearErrors();
       this.group =
         show && this.update ? this.createUpdateGroup() : { ...EMPTY_GROUP };
     },
   },
   methods: {
-    ...mapActions(useAdminStore, ["clearErrors", "createRow", "updateRow"]),
+    ...mapActions(useAdminStore, ["createRow", "updateRow"]),
     createUpdateGroup() {
       const updateGroup = {};
       for (const key of UPDATE_KEYS) {

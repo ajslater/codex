@@ -46,8 +46,8 @@
         label="Groups"
         :items="vuetifyGroups"
       />
-      <AdminCreateUpdateFooter
-        :update="update"
+      <AdminSubmitFooter
+        :verb="verb"
         table="User"
         :disabled="submitButtonDisabled"
         @submit="submit"
@@ -61,8 +61,8 @@
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import AdminCreateUpdateButton from "@/components/admin/create-update-button.vue";
-import AdminCreateUpdateFooter from "@/components/admin/create-update-footer.vue";
 import AdminRelationPicker from "@/components/admin/relation-picker.vue";
+import AdminSubmitFooter from "@/components/submit-footer.vue";
 import { useAdminStore } from "@/stores/admin";
 
 const UPDATE_KEYS = ["username", "isStaff", "isActive", "groups"];
@@ -80,7 +80,7 @@ export default {
   name: "AdminUserCreateUpdateDialog",
   components: {
     AdminCreateUpdateButton,
-    AdminCreateUpdateFooter,
+    AdminSubmitFooter,
     AdminRelationPicker,
   },
   props: {
@@ -137,16 +137,18 @@ export default {
       const form = this.$refs.form;
       return !form || !form.validate();
     },
+    verb() {
+      return this.update ? "Update" : "Add";
+    },
   },
   watch: {
     showDialog(show) {
-      this.clearErrors();
       this.user =
         show && this.update ? this.createUpdateUser() : { ...EMPTY_USER };
     },
   },
   methods: {
-    ...mapActions(useAdminStore, ["clearErrors", "createRow", "updateRow"]),
+    ...mapActions(useAdminStore, ["createRow", "updateRow"]),
     createUpdateUser() {
       const updateUser = {};
       for (const key of UPDATE_KEYS) {

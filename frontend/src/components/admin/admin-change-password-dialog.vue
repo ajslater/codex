@@ -11,14 +11,16 @@
       </v-btn>
     </template>
     <div v-if="formSuccess" id="success">
-      {{ formSuccess }} <v-btn block @click="showDialog = false"> X </v-btn>
+      {{ formSuccess }}
+      <CloseButton @click="showDialog = false" />
     </div>
-    <v-form v-else id="authDialog" ref="changePasswordForm">
+    <v-form v-else id="authDialog" ref="submitForm">
       <input
         id="usernameInput"
         name="username"
         autocomplete="username"
         disabled
+        type="hidden"
         :value="`User ${username}`"
       />
       <v-text-field
@@ -41,23 +43,13 @@
         clearable
         type="password"
       />
-      <div>
-        <v-btn
-          ripple
-          :disabled="!changePasswordButtonEnabled"
-          @click="changePassword"
-        >
-          Change Password
-        </v-btn>
-        <CancelButton @click="showDialog = false" />
-      </div>
-      <footer id="messageFooter">
-        <small v-if="formErrors && formErrors.length > 0" id="error">
-          <div v-for="error in formErrors" :key="error">
-            {{ error }}
-          </div>
-        </small>
-      </footer>
+      <SubmitFooter
+        verb="Change"
+        table="Password"
+        :disabled="!submitButtonEnabled"
+        @submit="submit"
+        @cancel="showDialog = false"
+      />
     </v-form>
   </v-dialog>
 </template>
@@ -66,14 +58,16 @@
 import { mdiLockPlusOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
-import CancelButton from "@/components/cancel-button.vue";
+import CloseButton from "@/components/close-button.vue";
+import SubmitFooter from "@/components/submit-footer.vue";
 import { useAdminStore } from "@/stores/admin";
+import { useCommonStore } from "@/stores/common";
 
 const MIN_PASSWORD_LENGTH = 4;
 
 export default {
   name: "AdminChangePasswordDialog",
-  components: { CancelButton },
+  components: { SubmitFooter, CloseButton },
   props: {
     pk: {
       type: Number,
@@ -113,11 +107,11 @@ export default {
     };
   },
   computed: {
-    ...mapState(useAdminStore, {
+    ...mapState(useCommonStore, {
       formErrors: (state) => state.form.errors,
       formSuccess: (state) => state.form.success,
     }),
-    changePasswordButtonEnabled: function () {
+    submitButtonEnabled: function () {
       return (
         this.credentials.password &&
         this.credentials.password.length >= MIN_PASSWORD_LENGTH &&
@@ -125,17 +119,11 @@ export default {
       );
     },
   },
-  watch: {
-    showDialog(to) {
-      if (to) {
-        this.clearErrors();
-      }
-    },
-  },
   methods: {
-    ...mapActions(useAdminStore, ["changeUserPassword", "clearErrors"]),
-    changePassword: function () {
-      const form = this.$refs.changePasswordForm;
+    ...mapActions(useAdminStore, ["changeUserPassword"]),
+    submit() {
+      console.log("submit");
+      const form = this.$refs.submitForm;
       if (!form.validate()) {
         return;
       }
@@ -163,12 +151,6 @@ export default {
   font-size: x-large;
   font-weight: bold;
   color: white;
-}
-#messageFooter {
-  padding-top: 10px;
-}
-#error {
-  color: red;
 }
 #success {
   padding: 10px;

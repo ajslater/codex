@@ -69,7 +69,7 @@
 <script>
 import { mapGetters, mapState } from "pinia";
 
-import AdminChangePasswordDialog from "@/components/admin/change-password-dialog.vue";
+import AdminChangePasswordDialog from "@/components/admin/admin-change-password-dialog.vue";
 import DateTimeColumn from "@/components/admin/datetime-column.vue";
 import AdminDeleteRowDialog from "@/components/admin/delete-row-dialog.vue";
 import RelationChips from "@/components/admin/relation-chips.vue";

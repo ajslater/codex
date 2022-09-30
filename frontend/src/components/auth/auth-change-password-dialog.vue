@@ -23,6 +23,14 @@
     </div>
     <v-form v-else id="authDialog" ref="changePasswordForm">
       <h2>User {{ user.username }}</h2>
+      <input
+        id="usernameInput"
+        name="username"
+        autocomplete="username"
+        disabled
+        type="hidden"
+        :value="user.username"
+      />
       <v-text-field
         ref="oldPassword"
         v-model="credentials.oldPassword"
@@ -55,23 +63,13 @@
           type="password"
         />
       </v-expand-transition>
-      <footer id="buttonFooter">
-        <v-btn
-          ripple
-          :disabled="!changePasswordButtonEnabled"
-          @click="processChangePassword"
-        >
-          Change Password
-        </v-btn>
-        <CancelButton @click="showDialog = false" />
-      </footer>
-      <footer id="messageFooter">
-        <small v-if="formErrors && formErrors.length > 0" id="error">
-          <div v-for="error in formErrors" :key="error">
-            {{ error }}
-          </div>
-        </small>
-      </footer>
+      <SubmitFooter
+        verb="Change"
+        table="Password"
+        :disabled="!changePasswordButtonEnabled"
+        @submit="submit"
+        @cancel="showDialog = false"
+      />
     </v-form>
   </v-dialog>
 </template>
@@ -80,15 +78,17 @@
 import { mdiLockReset } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
-import CancelButton from "@/components/cancel-button.vue";
 import CloseButton from "@/components/close-button.vue";
+import SubmitFooter from "@/components/submit-footer.vue";
 import { useAuthStore } from "@/stores/auth";
+import { useCommonStore } from "@/stores/common";
+const MIN_PASSWORD_LENGTH = 4;
 
 export default {
   // eslint-disable-next-line no-secrets/no-secrets
   name: "AuthChangePasswordDialog",
   components: {
-    CancelButton,
+    SubmitFooter,
     CloseButton,
   },
   data() {
@@ -120,6 +120,8 @@ export default {
   computed: {
     ...mapState(useAuthStore, {
       user: (state) => state.user,
+    }),
+    ...mapState(useCommonStore, {
       formErrors: (state) => state.form.errors,
       formSuccess: (state) => state.form.success,
     }),
@@ -128,7 +130,7 @@ export default {
         this.credentials.oldPassword &&
         this.credentials.oldPassword.length > 0 &&
         this.credentials.password &&
-        this.credentials.password.length > 0 &&
+        this.credentials.password.length > MIN_PASSWORD_LENGTH &&
         this.credentials.oldPassword !== this.credentials.password &&
         this.credentials.password === this.credentials.passwordConfirm
       );
@@ -140,12 +142,11 @@ export default {
       if (form) {
         form.reset();
       }
-      this.clearErrors();
     },
   },
   methods: {
-    ...mapActions(useAuthStore, ["changePassword", "clearErrors"]),
-    processChangePassword: function () {
+    ...mapActions(useAuthStore, ["changePassword"]),
+    submit: function () {
       const form = this.$refs.changePasswordForm;
       if (!form.validate()) {
         return;
@@ -162,16 +163,6 @@ export default {
 <style scoped lang="scss">
 #authDialog {
   padding: 20px;
-}
-#buttonFooter {
-  display: flex;
-  justify-content: space-between;
-}
-#messageFooter {
-  padding-top: 10px;
-}
-#error {
-  color: red;
 }
 #success {
   padding: 10px;

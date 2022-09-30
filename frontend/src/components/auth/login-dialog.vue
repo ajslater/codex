@@ -57,9 +57,6 @@
           @keydown.enter="submit"
         />
       </v-expand-transition>
-      <v-btn ripple :disabled="!loginButtonEnabled" @click="submit">
-        {{ loginButtonLabel }}
-      </v-btn>
       <v-switch
         v-if="enableRegistration"
         v-model="registerMode"
@@ -68,19 +65,13 @@
       >
         Register
       </v-switch>
-      <footer>
-        <small v-if="formErrors && formErrors.length > 0" style="color: red">
-          <div v-for="error in formErrors" :key="error">
-            {{ error }}
-          </div>
-        </small>
-        <small v-else-if="formSuccess" style="color: green"
-          >{{ formSuccess }}
-        </small>
-        <small v-else-if="enableRegistration">
-          Registering preserves bookmarks and settings across different browsers
-        </small>
-      </footer>
+      <SubmitFooter
+        :verb="registerMode ? 'Register' : 'Login'"
+        table=""
+        :disabled="!loginButtonEnabled"
+        @submit="submit"
+        @cancel="showDialog = false"
+      />
     </v-form>
   </v-dialog>
 </template>
@@ -89,10 +80,14 @@
 import { mdiLogin } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
+import SubmitFooter from "@/components/submit-footer.vue";
 import { useAuthStore } from "@/stores/auth";
 
 export default {
   name: "AuthLoginDialog",
+  components: {
+    SubmitFooter,
+  },
   data() {
     return {
       usernameRules: [(v) => !!v || "Username is required"],
@@ -134,16 +129,10 @@ export default {
       if (form) {
         this.$refs.loginForm.reset();
       }
-      this.clearErrors();
     },
   },
   methods: {
-    ...mapActions(useAuthStore, [
-      "clearErrors",
-      "loadAdminFlags",
-      "login",
-      "register",
-    ]),
+    ...mapActions(useAuthStore, ["loadAdminFlags", "login", "register"]),
     submit: function () {
       const mode = this.registerMode ? "register" : "login";
       const form = this.$refs.loginForm;

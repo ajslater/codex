@@ -34,6 +34,7 @@ import { mdiFileTree, mdiFolderHidden, mdiFolderOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import { useAdminStore } from "@/stores/admin";
+import { useCommonStore } from "@/stores/common";
 
 export default {
   name: "AdminServerFolderPicker",
@@ -52,6 +53,8 @@ export default {
     ...mapState(useAdminStore, {
       folders: (state) => state.folderPicker.folders,
       rootFolder: (state) => state.folderPicker.rootFolder,
+    }),
+    ...mapState(useCommonStore, {
       formErrors: (state) => state.form.errors,
     }),
     appendOuterIcon: function () {
@@ -72,7 +75,8 @@ export default {
       });
   },
   methods: {
-    ...mapActions(useAdminStore, ["loadFolders", "clearErrors"]),
+    ...mapActions(useAdminStore, ["loadFolders"]),
+    ...mapActions(useCommonStore, ["clearErrors"]),
     change: function (path) {
       const relativePath = !path
         ? this.rootFolder

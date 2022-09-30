@@ -1,6 +1,8 @@
 import { defineStore } from "pinia";
 
 import API from "@/api/v3/auth";
+import { useCommonStore } from "@/stores/common";
+
 export const useAuthStore = defineStore("auth", {
   state: () => ({
     adminFlags: {
@@ -8,10 +10,6 @@ export const useAuthStore = defineStore("auth", {
       enableNonUsers: undefined,
     },
     user: undefined,
-    form: {
-      errors: [],
-      success: undefined,
-    },
   }),
   getters: {
     isCodexViewable() {
@@ -22,32 +20,13 @@ export const useAuthStore = defineStore("auth", {
     },
   },
   actions: {
-    setErrors(axiosError) {
-      let errors = [];
-      if (!axiosError) {
-        this.errors = errors;
-        return;
-      }
-      const data = axiosError.response.data;
-      for (const val of Object.values(data)) {
-        if (val) {
-          errors = Array.isArray(val) ? [...errors, ...val] : [...errors, val];
-        }
-      }
-      if (errors.length === 0) {
-        errors = ["Unknown error"];
-      }
-      this.form.errors = errors;
-    },
     async loadAdminFlags() {
       await API.getAdminFlags()
         .then((response) => {
           this.adminFlags = response.data;
           return true;
         })
-        .catch((error) => {
-          console.error(error);
-        });
+        .catch(console.error);
     },
     async loadProfile() {
       return API.getProfile()
@@ -55,23 +34,25 @@ export const useAuthStore = defineStore("auth", {
           this.user = response.data;
           return true;
         })
-        .catch((error) => {
-          console.debug(error);
-        });
+        .catch(console.debug);
     },
     async login(credentials) {
+      const commonStore = useCommonStore();
       await API.login(credentials)
         .then(() => {
+          commonStore.clearErrors();
           return this.loadProfile();
         })
-        .catch(this.setErrors);
+        .catch(commonStore.setErrors);
     },
     async register(credentials) {
+      const commonStore = useCommonStore();
       await API.register(credentials)
         .then(() => {
+          commonStore.clearErrors();
           return this.login(credentials);
         })
-        .catch(this.setErrors);
+        .catch(commonStore.setErrors);
     },
     logout() {
       API.logout()
@@ -79,37 +60,25 @@ export const useAuthStore = defineStore("auth", {
           this.user = undefined;
           return true;
         })
-        .catch((error) => {
-          console.error(error);
-        });
-    },
-    clearErrors() {
-      this.$patch((state) => {
-        state.form.errors = [];
-        state.form.success = "";
-      });
+        .catch(console.error);
     },
     async changePassword(credentials) {
       const username = this.user.username;
       const password = credentials.password;
-      this.clearErrors();
+      const commonStore = useCommonStore();
       await API.changePassword(credentials)
         .then((response) => {
-          this.form.success = response.data.detail;
+          commonStore.setSuccess(response.data.detail);
           const changedCredentials = {
             username: username,
             password: password,
           };
           return this.login(changedCredentials);
         })
-        .catch((error) => {
-          this.setErrors(error);
-        });
+        .catch(commonStore.setErrors);
     },
     async setTimezone() {
-      await API.setTimezone().catch((error) => {
-        console.error(error);
-      });
+      await API.setTimezone().catch(console.error);
     },
   },
 });

@@ -1,8 +1,12 @@
 <template>
   <footer class="confirmFooter">
-    <v-btn class="confirmButton" ripple @click="$emit('confirm')">{{
-      confirmText
-    }}</v-btn>
+    <v-btn
+      class="confirmButton"
+      ripple
+      :disabled="disabled"
+      @click="$emit('confirm')"
+      >{{ confirmText }}</v-btn
+    >
 
     <v-btn class="cancelButton" ripple @click="$emit('cancel')">Cancel</v-btn>
   </footer>
@@ -10,7 +14,10 @@
 <script>
 export default {
   name: "ConfirmFooter",
-  props: { confirmText: { type: String, required: true } },
+  props: {
+    confirmText: { type: String, required: true },
+    disabled: { type: Boolean, default: false },
+  },
   emits: ["confirm", "cancel"],
 };
 </script>
