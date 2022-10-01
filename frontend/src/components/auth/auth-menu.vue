@@ -10,7 +10,7 @@
           </v-list-item-title>
         </v-list-item-content>
       </v-list-item>
-      <AuthChangePasswordDialog />
+      <ChangePasswordDialog :user="user" />
     </div>
     <AuthLoginDialog v-else />
   </div>
@@ -20,14 +20,14 @@
 import { mdiLogout } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
-import AuthChangePasswordDialog from "@/components/auth/auth-change-password-dialog.vue";
 import AuthLoginDialog from "@/components/auth/login-dialog.vue";
+import ChangePasswordDialog from "@/components/change-password-dialog.vue";
 import { useAuthStore } from "@/stores/auth";
 
 export default {
   name: "AuthMenu",
   components: {
-    AuthChangePasswordDialog,
+    ChangePasswordDialog,
     AuthLoginDialog,
   },
   data: function () {

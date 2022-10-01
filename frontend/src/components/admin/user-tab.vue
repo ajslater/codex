@@ -55,10 +55,7 @@
               />
             </td>
             <td class="buttonCol">
-              <AdminChangePasswordDialog
-                :pk="item.pk"
-                :username="item.username"
-              />
+              <ChangePasswordDialog :user="item" :is-admin-mode="true" />
             </td>
             <td class="buttonCol">
               <AdminDeleteRowDialog
@@ -78,12 +75,12 @@
 <script>
 import { mapGetters, mapState } from "pinia";
 
-import AdminChangePasswordDialog from "@/components/admin/admin-change-password-dialog.vue";
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
 import DateTimeColumn from "@/components/admin/datetime-column.vue";
 import AdminDeleteRowDialog from "@/components/admin/delete-row-dialog.vue";
 import RelationChips from "@/components/admin/relation-chips.vue";
 import AdminUserCreateUpdateInputs from "@/components/admin/user-create-update-inputs.vue";
+import ChangePasswordDialog from "@/components/change-password-dialog.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useAuthStore } from "@/stores/auth";
 
@@ -98,7 +95,7 @@ export default {
   name: "AdminUsersPanel",
   components: {
     AdminDeleteRowDialog,
-    AdminChangePasswordDialog,
+    ChangePasswordDialog,
     AdminCreateUpdateDialog,
     DateTimeColumn,
     RelationChips,

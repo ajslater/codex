@@ -36,11 +36,13 @@ export const useAuthStore = defineStore("auth", {
         })
         .catch(console.debug);
     },
-    async login(credentials) {
+    async login(credentials, clear = true) {
       const commonStore = useCommonStore();
       await API.login(credentials)
         .then(() => {
-          commonStore.clearErrors();
+          if (clear) {
+            commonStore.clearErrors();
+          }
           return this.loadProfile();
         })
         .catch(commonStore.setErrors);
@@ -63,17 +65,15 @@ export const useAuthStore = defineStore("auth", {
         .catch(console.error);
     },
     async changePassword(credentials) {
-      const username = this.user.username;
-      const password = credentials.password;
+      const changedCredentials = {
+        username: this.user.username,
+        password: credentials.password,
+      };
       const commonStore = useCommonStore();
       await API.changePassword(credentials)
         .then((response) => {
           commonStore.setSuccess(response.data.detail);
-          const changedCredentials = {
-            username: username,
-            password: password,
-          };
-          return this.login(changedCredentials);
+          return this.login(changedCredentials, false);
         })
         .catch(commonStore.setErrors);
     },

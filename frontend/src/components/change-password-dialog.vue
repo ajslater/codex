@@ -8,7 +8,10 @@
     overlay-opacity="0.5"
   >
     <template #activator="{ on }">
-      <v-list-item ripple v-on="on">
+      <v-btn v-if="isAdminMode" icon ripple v-on="on">
+        <v-icon> {{ mdiLockPlusOutline }}</v-icon>
+      </v-btn>
+      <v-list-item v-else ripple v-on="on">
         <v-list-item-content>
           <v-list-item-title
             ><v-icon>{{ mdiLockReset }}</v-icon
@@ -17,11 +20,11 @@
         </v-list-item-content>
       </v-list-item>
     </template>
-    <div v-if="formSuccess" id="success">
+    <div v-if="formSuccess" class="codexFormSuccess">
       {{ formSuccess }}
       <CloseButton @click="showDialog = false" />
     </div>
-    <v-form v-else id="authDialog" ref="changePasswordForm">
+    <v-form v-else ref="form" class="changePasswordDialog">
       <h2>User {{ user.username }}</h2>
       <input
         id="usernameInput"
@@ -32,11 +35,12 @@
         :value="user.username"
       />
       <v-text-field
+        v-if="!isAdminMode"
         ref="oldPassword"
         v-model="credentials.oldPassword"
         autocomplete="current-password"
         label="Old Password"
-        :rules="oldPasswordRules"
+        :rules="rules.oldPassword"
         clearable
         type="password"
         autofocus
@@ -47,26 +51,25 @@
         v-model="credentials.password"
         autocomplete="new-password"
         label="New Password"
-        :rules="passwordRules"
+        :rules="rules.password"
         clearable
         type="password"
+        :autofocus="isAdminMode"
         @keydown.enter="$refs.passwordConfirm.focus()"
       />
-      <v-expand-transition>
-        <v-text-field
-          ref="passwordConfirm"
-          v-model="credentials.passwordConfirm"
-          autocomplete="new-password"
-          label="Confirm Password"
-          :rules="passwordConfirmRules"
-          clearable
-          type="password"
-        />
-      </v-expand-transition>
+      <v-text-field
+        ref="passwordConfirm"
+        v-model="credentials.passwordConfirm"
+        autocomplete="new-password"
+        label="Confirm Password"
+        :rules="rules.passwordConfirm"
+        clearable
+        type="password"
+      />
       <SubmitFooter
         verb="Change"
         table="Password"
-        :disabled="!changePasswordButtonEnabled"
+        :disabled="!submitButtonEnabled"
         @submit="submit"
         @cancel="showDialog = false"
       />
@@ -75,98 +78,113 @@
 </template>
 
 <script>
-import { mdiLockReset } from "@mdi/js";
+import { mdiLockPlusOutline, mdiLockReset } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import CloseButton from "@/components/close-button.vue";
 import SubmitFooter from "@/components/submit-footer.vue";
+import { useAdminStore } from "@/stores/admin";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
+
 const MIN_PASSWORD_LENGTH = 4;
 
 export default {
-  // eslint-disable-next-line no-secrets/no-secrets
-  name: "AuthChangePasswordDialog",
+  name: "ChangePasswordDialog",
   components: {
     SubmitFooter,
     CloseButton,
   },
+  props: {
+    user: { type: Object, required: true },
+    isAdminMode: { type: Boolean, default: false },
+  },
   data() {
     return {
-      oldPasswordRules: [(v) => !!v || "Old Password is required"],
-      passwordRules: [
-        (v) => {
-          if (!v) {
-            return "New Password is required";
-          }
-          if (v === this.credentials.oldPassword) {
-            return "New password must be different than old password";
-          }
-          return true;
-        },
-      ],
-      passwordConfirmRules: [
-        (v) => v === this.credentials.password || "Passwords must match",
-      ],
+      rules: {
+        oldPassword: [(v) => !!v || "Old Password is required"],
+        password: [
+          (v) => {
+            if (!v) {
+              return "New Password is required";
+            }
+            if (v.length < MIN_PASSWORD_LENGTH) {
+              return `Password must be ${MIN_PASSWORD_LENGTH} characters long`;
+            }
+            if (v === this.credentials.oldPassword) {
+              return "New password must be different than old password";
+            }
+            return true;
+          },
+        ],
+        passwordConfirm: [
+          (v) => v === this.credentials.password || "Passwords must match",
+        ],
+      },
       credentials: {
         oldPassword: "",
         password: "",
         passwordConfirm: "",
       },
+      submitButtonEnabled: false,
       showDialog: false,
       mdiLockReset,
+      mdiLockPlusOutline,
     };
   },
   computed: {
-    ...mapState(useAuthStore, {
-      user: (state) => state.user,
-    }),
     ...mapState(useCommonStore, {
       formErrors: (state) => state.form.errors,
       formSuccess: (state) => state.form.success,
     }),
-    changePasswordButtonEnabled: function () {
-      return (
-        this.credentials.oldPassword &&
-        this.credentials.oldPassword.length > 0 &&
-        this.credentials.password &&
-        this.credentials.password.length > MIN_PASSWORD_LENGTH &&
-        this.credentials.oldPassword !== this.credentials.password &&
-        this.credentials.password === this.credentials.passwordConfirm
-      );
-    },
   },
   watch: {
-    showDialog() {
-      const form = this.$refs.changePasswordForm;
-      if (form) {
-        form.reset();
+    showDialog(to) {
+      if (to) {
+        const form = this.$refs.form;
+        if (form) {
+          form.reset();
+        }
+        this.clearErrors();
       }
+    },
+    credentials: {
+      handler() {
+        const form = this.$refs.form;
+        this.submitButtonEnabled = form && form.validate();
+      },
+      deep: true,
     },
   },
   methods: {
     ...mapActions(useAuthStore, ["changePassword"]),
+    ...mapActions(useAdminStore, ["changeUserPassword"]),
+    ...mapActions(useCommonStore, ["clearErrors"]),
     submit: function () {
-      const form = this.$refs.changePasswordForm;
+      const form = this.$refs.form;
       if (!form.validate()) {
         return;
       }
-      this.changePassword(this.credentials).catch((error) => {
-        console.error(error);
-      });
-      form.reset();
+      if (this.isAdminMode) {
+        this.changeUserPassword(this.user.pk, this.credentials).catch(
+          console.error
+        );
+      } else {
+        this.changePassword(this.credentials).catch(console.error);
+      }
     },
   },
 };
 </script>
 
 <style scoped lang="scss">
-#authDialog {
+.changePasswordDialog {
   padding: 20px;
 }
-#success {
+.codexFormSuccess {
   padding: 10px;
   font-size: larger;
   color: green;
+  text-align: center;
 }
 </style>
