@@ -111,7 +111,7 @@ const TABLE_ROW_HEIGHT = 48;
 const MIN_TABLE_HEIGHT = TABLE_ROW_HEIGHT * 2;
 
 export default {
-  name: "AdminLibrariesPanel",
+  name: "AdminLibrariesTab",
   components: {
     AdminDeleteRowDialog,
     AdminFailedImportsPanel,
@@ -153,8 +153,16 @@ export default {
         : Math.max(availableHeight, MIN_TABLE_HEIGHT);
     },
   },
+  mounted() {
+    this.loadTables(["Group", "Library", "FailedImport"]);
+  },
   methods: {
-    ...mapActions(useAdminStore, ["updateRow", "clearErrors", "librarianTask"]),
+    ...mapActions(useAdminStore, [
+      "updateRow",
+      "clearErrors",
+      "librarianTask",
+      "loadTables",
+    ]),
     formatDateTime: (dttm) => {
       if (!dttm) {
         return "";

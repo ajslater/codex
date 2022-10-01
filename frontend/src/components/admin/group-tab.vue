@@ -71,7 +71,7 @@
 </template>
 
 <script>
-import { mapGetters, mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
 import AdminDeleteRowDialog from "@/components/admin/delete-row-dialog.vue";
@@ -88,7 +88,7 @@ const TABLE_ROW_HEIGHT = 48;
 const MIN_TABLE_HEIGHT = TABLE_ROW_HEIGHT * 2;
 
 export default {
-  name: "AdminGroupsPanel",
+  name: "AdminGroupsTab",
   components: {
     AdminDeleteRowDialog,
     AdminCreateUpdateDialog,
@@ -121,6 +121,12 @@ export default {
         ? undefined
         : Math.max(availableHeight, MIN_TABLE_HEIGHT);
     },
+  },
+  mounted() {
+    this.loadTables(["User", "Library", "Group"]);
+  },
+  methods: {
+    ...mapActions(useAdminStore, ["loadTables"]),
   },
 };
 </script>

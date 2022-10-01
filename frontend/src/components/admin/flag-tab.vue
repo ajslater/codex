@@ -59,7 +59,7 @@ const TABLE_PADDING = 24;
 const BUFFER = FIXED_TOOLBARS + TABLE_PADDING;
 
 export default {
-  name: "AdminFlagsPanel",
+  name: "AdminFlagsTab",
   props: {
     innerHeight: {
       type: Number,
@@ -83,8 +83,11 @@ export default {
       return this.innerHeight - BUFFER;
     },
   },
+  mounted() {
+    this.loadTables(["Flag"]);
+  },
   methods: {
-    ...mapActions(useAdminStore, ["updateRow", "clearErrors"]),
+    ...mapActions(useAdminStore, ["updateRow", "clearErrors", "loadTables"]),
     changeCol(pk, field, val) {
       this.lastUpdate.pk = pk;
       this.lastUpdate.field = field;

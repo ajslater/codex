@@ -73,7 +73,7 @@
 </template>
 
 <script>
-import { mapGetters, mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
 import DateTimeColumn from "@/components/admin/datetime-column.vue";
@@ -92,7 +92,7 @@ const TABLE_ROW_HEIGHT = 48;
 const MIN_TABLE_HEIGHT = TABLE_ROW_HEIGHT * 2;
 
 export default {
-  name: "AdminUsersPanel",
+  name: "AdminUsersTab",
   components: {
     AdminDeleteRowDialog,
     ChangePasswordDialog,
@@ -126,6 +126,12 @@ export default {
         ? undefined
         : Math.max(availableHeight, MIN_TABLE_HEIGHT);
     },
+  },
+  mounted() {
+    this.loadTables(["Group", "User"]);
+  },
+  methods: {
+    ...mapActions(useAdminStore, ["loadTables"]),
   },
 };
 </script>

@@ -60,7 +60,7 @@ import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
 export default {
-  name: "AdminTasksPanel",
+  name: "AdminTasksTab",
   components: {
     ConfirmDialog,
   },
