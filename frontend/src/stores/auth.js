@@ -10,6 +10,7 @@ export const useAuthStore = defineStore("auth", {
       enableNonUsers: undefined,
     },
     user: undefined,
+    MIN_PASSWORD_LENGTH: 4,
   }),
   getters: {
     isCodexViewable() {
@@ -81,5 +82,4 @@ export const useAuthStore = defineStore("auth", {
       await API.setTimezone().catch(console.error);
     },
   },
-  MIN_PASSWORD_LENGTH: 4,
 });
