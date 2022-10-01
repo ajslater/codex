@@ -42,6 +42,8 @@ import BrowserCardSubtitle from "@/components/browser/card/subtitle.vue";
 import { IS_IOS, IS_TOUCH } from "@/platform";
 import { getReaderRoute } from "@/router/route";
 
+const HEADER_OFFSET = (96 + 16) * -1;
+
 export default {
   name: "BrowserCard",
   components: {
@@ -104,9 +106,7 @@ export default {
           // This works while nextTick() does not.
           el.scrollIntoView();
           // Adjust for toolbars
-          const header = document.querySelector("#browserHeader");
-          const verticalOffset = (header.offsetHeight + 16) * -1;
-          window.scrollBy(0, verticalOffset);
+          window.scrollBy(0, HEADER_OFFSET);
         },
         // A little hacky delay makes it work even more frequently.
         100
