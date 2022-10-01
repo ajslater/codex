@@ -28,7 +28,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="item in libraries" :key="item.id">
+          <tr v-for="item in libraries" :key="item.pk">
             <td>{{ item.path }}</td>
             <td>
               <v-simple-checkbox :value="item.events" dense disabled />
@@ -46,7 +46,7 @@
               <RelationChips :pks="item.groups" :map="groupMap" />
             </td>
             <td>
-              <v-btn icon ripple @click="poll(item.id)">
+              <v-btn icon ripple @click="poll(item.pk)">
                 <v-icon>{{ mdiDatabaseClockOutline }}</v-icon>
               </v-btn>
             </td>
@@ -56,7 +56,7 @@
                 title-text="Force Update Library"
                 :object-name="item.path"
                 confirm-text="Force Update"
-                @confirm="forcePoll(item.id)"
+                @confirm="forcePoll(item.pk)"
               />
             </td>
             <td>
@@ -70,7 +70,7 @@
             <td>
               <AdminDeleteRowDialog
                 table="Library"
-                :pk="item.id"
+                :pk="item.pk"
                 :name="item.path"
               />
             </td>

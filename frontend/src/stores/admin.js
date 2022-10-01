@@ -9,8 +9,7 @@ const warnError = (error) => console.warn(error);
 const vuetifyItems = (items, textAttr) => {
   const result = [];
   for (const item of items) {
-    const pk = "pk" in item ? item.pk : item.id;
-    result.push({ value: +pk, text: item[textAttr] });
+    result.push({ value: item.pk, text: item[textAttr] });
   }
   return result;
 };
@@ -30,8 +29,7 @@ const getTablePlural = (table) => {
 const itemMap = (items, key) => {
   const map = {};
   for (const item of items) {
-    const pk = item.pk || item.id;
-    map[pk] = item[key];
+    map[item.pk] = item[key];
   }
   return map;
 };

@@ -108,8 +108,7 @@ export default {
           updateRow[key] = value;
         }
       }
-      const pk = this.oldRow.pk || this.oldRow.id;
-      this.updateRow(this.table, pk, updateRow)
+      this.updateRow(this.table, this.oldRow.pk, updateRow)
         .then(() => {
           this.showDialog = false;
           return true;

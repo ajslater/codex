@@ -64,8 +64,8 @@ class AdminFlagSerializer(ModelSerializer):
         """Specify Model."""
 
         model = AdminFlag
-        exclude = ("updated_at", "created_at")
-        read_only_fields = ("name",)
+        fields = ("pk", "name", "on")
+        read_only_fields = ("name", "pk")
 
 
 class LibrarySerializer(ModelSerializer):
@@ -75,8 +75,8 @@ class LibrarySerializer(ModelSerializer):
         """Specify Model."""
 
         model = Library
-        exclude = ("update_in_progress", "updated_at", "created_at")
-        read_only_fields = ("last_poll",)
+        fields = ("pk", "events", "groups", "last_poll", "path", "poll", "poll_every")
+        read_only_fields = ("last_poll", "pk")
 
     def validate_path(self, path):
         """Validate new library paths."""
@@ -104,8 +104,8 @@ class FailedImportSerializer(ModelSerializer):
         """Specify Model."""
 
         model = FailedImport
-        exclude = ("updated_at",)
-        read_only_fields = ("path", "created_at")
+        fields = ("pk", "path", "created_at",)
+        read_only_fields = ("pk, ""path", "created_at")
 
 
 class AdminLibrarianTaskSerializer(Serializer):

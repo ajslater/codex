@@ -259,6 +259,9 @@ class TeamSerializer(NamedModelSerializer):
 class ComicSerializer(ModelSerializer):
     """Serialize a comic object for the metadata dialog."""
 
+    # Easier than specifying fields in Meta
+    pk = IntegerField(source="id")
+
     # Annotations
     issue_count = IntegerField(allow_null=True)
     volume_count = IntegerField(allow_null=True)
@@ -291,6 +294,7 @@ class ComicSerializer(ModelSerializer):
 
         model = Comic
         exclude = ("folders", "parent_folder", "stat")
+        read_only_fields = "__all__"
         depth = 1
 
 

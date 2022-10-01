@@ -12,7 +12,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="item in flags" :key="`f:${item.id}:${item.keyHack}`">
+        <tr v-for="item in flags" :key="`f:${item.pk}:${item.keyHack}`">
           <td class="nameCol">
             <h4>{{ item.name }}</h4>
             <p class="desc">
@@ -25,10 +25,10 @@
               dense
               ripple
               hide-details="auto"
-              :error-messages="getFormErrors(item.id, 'on')"
+              :error-messages="getFormErrors(item.pk, 'on')"
               @focus="clearErrors"
               @blur="item.keyHack = Date.now()"
-              @change="changeCol(item.id, 'on', $event === true)"
+              @change="changeCol(item.pk, 'on', $event === true)"
             />
           </td>
         </tr>
