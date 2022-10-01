@@ -1,7 +1,11 @@
 <template>
   <div>
     <header class="tabHeader">
-      <AdminGroupCreateUpdateDialog />
+      <AdminCreateUpdateDialog
+        table="Group"
+        max-width="20em"
+        :inputs="AdminGroupCreateUpdateInputs"
+      />
     </header>
     <v-simple-table
       fixed-header
@@ -30,7 +34,12 @@
               <RelationChips :pks="item.librarySet" :map="libraryMap" />
             </td>
             <td>
-              <AdminGroupCreateUpdateDialog :update="true" :old-group="item" />
+              <AdminCreateUpdateDialog
+                table="Group"
+                :old-row="item"
+                max-width="20em"
+                :inputs="AdminGroupCreateUpdateInputs"
+              />
             </td>
             <td>
               <AdminDeleteRowDialog
@@ -64,8 +73,9 @@
 <script>
 import { mapGetters, mapState } from "pinia";
 
+import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
 import AdminDeleteRowDialog from "@/components/admin/delete-row-dialog.vue";
-import AdminGroupCreateUpdateDialog from "@/components/admin/group-create-update-dialog.vue";
+import AdminGroupCreateUpdateInputs from "@/components/admin/group-create-update-inputs.vue";
 import RelationChips from "@/components/admin/relation-chips.vue";
 import { useAdminStore } from "@/stores/admin";
 
@@ -81,7 +91,7 @@ export default {
   name: "AdminGroupsPanel",
   components: {
     AdminDeleteRowDialog,
-    AdminGroupCreateUpdateDialog,
+    AdminCreateUpdateDialog,
     RelationChips,
   },
   data() {
@@ -91,6 +101,7 @@ export default {
         field: undefined,
       },
       tableHeight: 0,
+      AdminGroupCreateUpdateInputs,
     };
   },
   computed: {
@@ -101,8 +112,8 @@ export default {
     ...mapGetters(useAdminStore, ["libraryMap", "userMap"]),
   },
   mounted() {
-    this.onResize();
     window.addEventListener("resize", this.onResize);
+    this.onResize();
   },
   unmounted() {
     window.removeEventListener("resize", this.onResize);

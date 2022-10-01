@@ -1,7 +1,11 @@
 <template>
   <div>
     <header class="tabHeader">
-      <AdminUserCreateUpdateDialog id="userAdd" />
+      <AdminCreateUpdateDialog
+        table="User"
+        :inputs="AdminUserCreateUpdateInputs"
+        max-width="20em"
+      />
     </header>
     <v-simple-table
       fixed-header
@@ -43,7 +47,12 @@
               <DateTimeColumn :dttm="item.dateJoined" />
             </td>
             <td class="buttonCol">
-              <AdminUserCreateUpdateDialog :update="true" :old-user="item" />
+              <AdminCreateUpdateDialog
+                table="User"
+                :inputs="AdminUserCreateUpdateInputs"
+                :old-row="item"
+                max-width="20em"
+              />
             </td>
             <td class="buttonCol">
               <AdminChangePasswordDialog
@@ -70,10 +79,11 @@
 import { mapGetters, mapState } from "pinia";
 
 import AdminChangePasswordDialog from "@/components/admin/admin-change-password-dialog.vue";
+import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
 import DateTimeColumn from "@/components/admin/datetime-column.vue";
 import AdminDeleteRowDialog from "@/components/admin/delete-row-dialog.vue";
 import RelationChips from "@/components/admin/relation-chips.vue";
-import AdminUserCreateUpdateDialog from "@/components/admin/user-create-update-dialog.vue";
+import AdminUserCreateUpdateInputs from "@/components/admin/user-create-update-inputs.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useAuthStore } from "@/stores/auth";
 
@@ -89,13 +99,14 @@ export default {
   components: {
     AdminDeleteRowDialog,
     AdminChangePasswordDialog,
-    AdminUserCreateUpdateDialog,
+    AdminCreateUpdateDialog,
     DateTimeColumn,
     RelationChips,
   },
   data() {
     return {
       tableHeight: undefined,
+      AdminUserCreateUpdateInputs,
     };
   },
   computed: {

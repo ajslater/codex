@@ -1,7 +1,11 @@
 <template>
   <div>
     <header class="tabHeader">
-      <AdminLibraryCreateUpdateDialog />
+      <AdminCreateUpdateDialog
+        table="Library"
+        :inputs="AdminLibraryCreateUpdateInputs"
+        max-width="22em"
+      />
     </header>
     <v-simple-table
       class="highlight-simple-table admin-table"
@@ -56,9 +60,11 @@
               />
             </td>
             <td>
-              <AdminLibraryCreateUpdateDialog
-                :update="true"
-                :old-library="item"
+              <AdminCreateUpdateDialog
+                table="Library"
+                :old-row="item"
+                :inputs="AdminLibraryCreateUpdateInputs"
+                max-width="22em"
               />
             </td>
             <td>
@@ -86,10 +92,11 @@ import {
 } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
+import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
 import DateTimeColumn from "@/components/admin/datetime-column.vue";
 import AdminDeleteRowDialog from "@/components/admin/delete-row-dialog.vue";
 import AdminFailedImportsPanel from "@/components/admin/failed-imports-panel.vue";
-import AdminLibraryCreateUpdateDialog from "@/components/admin/library-create-update-dialog.vue";
+import AdminLibraryCreateUpdateInputs from "@/components/admin/library-create-update-inputs.vue";
 import RelationChips from "@/components/admin/relation-chips.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { DATETIME_FORMAT } from "@/datetime";
@@ -108,7 +115,7 @@ export default {
   components: {
     AdminDeleteRowDialog,
     AdminFailedImportsPanel,
-    AdminLibraryCreateUpdateDialog,
+    AdminCreateUpdateDialog,
     RelationChips,
     ConfirmDialog,
     DateTimeColumn,
@@ -123,6 +130,7 @@ export default {
       mdiDatabaseImportOutline,
       mdiOpenInNew,
       tableHeight: 0,
+      AdminLibraryCreateUpdateInputs,
     };
   },
   computed: {
