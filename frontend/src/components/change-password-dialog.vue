@@ -87,8 +87,6 @@ import { useAdminStore } from "@/stores/admin";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
 
-const MIN_PASSWORD_LENGTH = 4;
-
 export default {
   name: "ChangePasswordDialog",
   components: {
@@ -108,8 +106,8 @@ export default {
             if (!v) {
               return "New Password is required";
             }
-            if (v.length < MIN_PASSWORD_LENGTH) {
-              return `Password must be ${MIN_PASSWORD_LENGTH} characters long`;
+            if (v.length < this.MIN_PASSWORD_LENGTH) {
+              return `Password must be ${this.MIN_PASSWORD_LENGTH} characters long`;
             }
             if (v === this.credentials.oldPassword) {
               return "New password must be different than old password";
@@ -136,6 +134,7 @@ export default {
     ...mapState(useCommonStore, {
       formErrors: (state) => state.form.errors,
       formSuccess: (state) => state.form.success,
+      MIN_PASSWORD_LEN: (state) => state.MIN_PASSWORD_LEN,
     }),
   },
   watch: {

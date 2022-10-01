@@ -81,4 +81,5 @@ export const useAuthStore = defineStore("auth", {
       await API.setTimezone().catch(console.error);
     },
   },
+  MIN_PASSWORD_LENGTH: 4,
 });

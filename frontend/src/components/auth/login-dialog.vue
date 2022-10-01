@@ -7,7 +7,7 @@
     overlay-opacity="0.5"
   >
     <template #activator="{ on }">
-      <v-list-item ripple v-on="on" @click="loadAdminFlags">
+      <v-list-item ripple v-on="on">
         <v-list-item-content>
           <v-list-item-title
             ><h3>
@@ -82,6 +82,7 @@ import { mapActions, mapState } from "pinia";
 
 import SubmitFooter from "@/components/submit-footer.vue";
 import { useAuthStore } from "@/stores/auth";
+import { useCommonStore } from "@/stores/common";
 
 export default {
   name: "AuthLoginDialog",
@@ -92,7 +93,17 @@ export default {
     return {
       rules: {
         username: [(v) => !!v || "Username is required"],
-        password: [(v) => !!v || "Password is required"],
+        password: [
+          (v) => {
+            if (!v) {
+              return "Password is required";
+            }
+            if (this.registerMode && v.length < this.MIN_PASSWORD_LEN) {
+              return `Password must be ${this.MIN_PASSWORD_LEN} characters long`;
+            }
+            return true;
+          },
+        ],
         passwordConfirm: [
           (v) => v === this.credentials.password || "Passwords must match",
         ],
@@ -109,20 +120,26 @@ export default {
     };
   },
   computed: {
-    ...mapState(useAuthStore, {
+    ...mapState(useCommonStore, {
       formErrors: (state) => state.form.errors,
       formSuccess: (state) => state.form.success,
+    }),
+    ...mapState(useAuthStore, {
       enableRegistration: (state) => state.adminFlags.enableRegistration,
+      MIN_PASSWORD_LEN: (state) => state.MIN_PASSWORD_LEN,
     }),
     submitButtonLabel: function () {
       return this.registerMode ? "Register" : "Login";
     },
   },
   watch: {
-    showDialog() {
-      const form = this.$refs.form;
-      if (form) {
-        this.$refs.form.reset();
+    showDialog(to) {
+      if (to) {
+        this.loadAdminFlags();
+        const form = this.$refs.form;
+        if (form) {
+          this.$refs.form.reset();
+        }
       }
     },
     credentials: {
