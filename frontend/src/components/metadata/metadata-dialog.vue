@@ -343,6 +343,12 @@ export default {
       }
     },
   },
+  mounted() {
+    window.addEventListener("keyup", this._keyListener);
+  },
+  unmounted() {
+    window.removeEventListener("keyup", this._keyListener);
+  },
   methods: {
     ...mapActions(useMetadataStore, ["clearMetadata", "loadMetadata"]),
     ...mapActions(useCommonStore, ["downloadIOSPWAFix"]),
@@ -375,6 +381,12 @@ export default {
     },
     download() {
       this.downloadIOSPWAFix(this.downloadURL, this.downloadFileName);
+    },
+    _keyListener(event) {
+      event.stopImmediatePropagation();
+      if (event.key === "Escape") {
+        this.dialog = false;
+      }
     },
   },
 };

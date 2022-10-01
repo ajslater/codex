@@ -131,7 +131,7 @@ export default {
         case "ArrowLeft":
           this.routeToDirection(PREV);
           break;
-        case "c":
+        case "Escape":
           this.$refs.closeBook.$el.click();
           break;
         case "m":
