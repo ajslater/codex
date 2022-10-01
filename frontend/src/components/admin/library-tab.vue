@@ -120,6 +120,12 @@ export default {
     ConfirmDialog,
     DateTimeColumn,
   },
+  props: {
+    innerHeight: {
+      type: Number,
+      required: true,
+    },
+  },
   data() {
     return {
       lastUpdate: {
@@ -129,25 +135,23 @@ export default {
       mdiDatabaseClockOutline,
       mdiDatabaseImportOutline,
       mdiOpenInNew,
-      tableHeight: 0,
       AdminLibraryCreateUpdateInputs,
     };
   },
   computed: {
+    ...mapGetters(useAdminStore, ["groupMap"]),
     ...mapState(useAdminStore, {
       libraries: (state) => state.libraries,
       formErrors: (state) => state.form.errors,
       tableMaxHeight: (state) =>
         (state.libraries.length + 1) * TABLE_ROW_HEIGHT,
     }),
-    ...mapGetters(useAdminStore, ["groupMap"]),
-  },
-  mounted() {
-    this.onResize();
-    window.addEventListener("resize", this.onResize);
-  },
-  unmounted() {
-    window.removeEventListener("resize", this.onResize);
+    tableHeight() {
+      const availableHeight = this.innerHeight - BUFFER;
+      return this.tableMaxHeight < availableHeight
+        ? undefined
+        : Math.max(availableHeight, MIN_TABLE_HEIGHT);
+    },
   },
   methods: {
     ...mapActions(useAdminStore, ["updateRow", "clearErrors", "librarianTask"]),
@@ -173,13 +177,6 @@ export default {
     },
     forcePoll(pk) {
       this.librarianTask("poll_force", `Force Poll Library ${pk}`, pk);
-    },
-    onResize() {
-      const availableHeight = window.innerHeight - BUFFER;
-      this.tableHeight =
-        this.tableMaxHeight < availableHeight
-          ? undefined
-          : Math.max(availableHeight, MIN_TABLE_HEIGHT);
     },
   },
 };

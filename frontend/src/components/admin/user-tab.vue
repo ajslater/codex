@@ -103,13 +103,19 @@ export default {
     DateTimeColumn,
     RelationChips,
   },
+  props: {
+    innerHeight: {
+      type: Number,
+      required: true,
+    },
+  },
   data() {
     return {
-      tableHeight: undefined,
       AdminUserCreateUpdateInputs,
     };
   },
   computed: {
+    ...mapGetters(useAdminStore, ["groupMap"]),
     ...mapState(useAdminStore, {
       users: (state) => state.users,
       tableMaxHeight: (state) => (state.users.length + 1) * TABLE_ROW_HEIGHT,
@@ -117,22 +123,11 @@ export default {
     ...mapState(useAuthStore, {
       me: (state) => state.user,
     }),
-    ...mapGetters(useAdminStore, ["groupMap"]),
-  },
-  mounted() {
-    window.addEventListener("resize", this.onResize);
-    this.onResize();
-  },
-  unmounted() {
-    window.removeEventListener("resize", this.onResize);
-  },
-  methods: {
-    onResize() {
-      const availableHeight = window.innerHeight - BUFFER;
-      this.tableHeight =
-        this.tableMaxHeight < availableHeight
-          ? undefined
-          : Math.max(availableHeight, MIN_TABLE_HEIGHT);
+    tableHeight() {
+      const availableHeight = this.innerHeight - BUFFER;
+      return this.tableMaxHeight < availableHeight
+        ? undefined
+        : Math.max(availableHeight, MIN_TABLE_HEIGHT);
     },
   },
 };

@@ -94,13 +94,18 @@ export default {
     AdminCreateUpdateDialog,
     RelationChips,
   },
+  props: {
+    innerHeight: {
+      type: Number,
+      required: true,
+    },
+  },
   data() {
     return {
       lastUpdate: {
         pk: 0,
         field: undefined,
       },
-      tableHeight: 0,
       AdminGroupCreateUpdateInputs,
     };
   },
@@ -110,21 +115,11 @@ export default {
       tableMaxHeight: (state) => (state.groups.length + 1) * TABLE_ROW_HEIGHT,
     }),
     ...mapGetters(useAdminStore, ["libraryMap", "userMap"]),
-  },
-  mounted() {
-    window.addEventListener("resize", this.onResize);
-    this.onResize();
-  },
-  unmounted() {
-    window.removeEventListener("resize", this.onResize);
-  },
-  methods: {
-    onResize() {
-      const availableHeight = window.innerHeight - BUFFER;
-      this.tableHeight =
-        this.tableMaxHeight < availableHeight
-          ? undefined
-          : Math.max(availableHeight, MIN_TABLE_HEIGHT);
+    tableHeight() {
+      const availableHeight = this.innerHeight - BUFFER;
+      return this.tableMaxHeight < availableHeight
+        ? undefined
+        : Math.max(availableHeight, MIN_TABLE_HEIGHT);
     },
   },
 };

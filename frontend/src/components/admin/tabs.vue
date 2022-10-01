@@ -19,7 +19,7 @@
         class="tabItem"
       >
         <div class="tabItemContainer">
-          <component :is="attrs.panel" />
+          <component :is="attrs.panel" :inner-height="innerHeight" />
         </div>
       </v-tab-item>
     </v-tabs-items>
@@ -66,6 +66,7 @@ export default {
         Flags: { panel: AdminFlagsPanel, tables: ["Flag"] },
         Tasks: { panel: AdminTasksPanel, tables: [] },
       },
+      innerHeight: window.innerHeight,
     };
   },
   computed: {
@@ -79,6 +80,12 @@ export default {
       this.loadTab();
     },
   },
+  mounted() {
+    window.addEventListener("resize", this.onResize);
+  },
+  unmounted() {
+    window.removeEventListener("resize", this.onResize);
+  },
   created() {
     this.loadTab();
   },
@@ -87,6 +94,9 @@ export default {
     loadTab() {
       const tables = Object.values(this.tabs)[this.tab].tables;
       this.loadTables(tables);
+    },
+    onResize() {
+      this.innerHeight = window.innerHeight;
     },
   },
 };

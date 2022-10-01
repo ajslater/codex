@@ -60,6 +60,12 @@ const BUFFER = FIXED_TOOLBARS + TABLE_PADDING;
 
 export default {
   name: "AdminFlagsPanel",
+  props: {
+    innerHeight: {
+      type: Number,
+      required: true,
+    },
+  },
   data() {
     return {
       lastUpdate: {
@@ -67,20 +73,15 @@ export default {
         field: undefined,
       },
       DESC,
-      tableHeight: 0,
     };
   },
   computed: {
     ...mapState(useAdminStore, {
       flags: (state) => state.flags,
     }),
-  },
-  mounted() {
-    this.onResize();
-    window.addEventListener("resize", this.onResize);
-  },
-  unmounted() {
-    window.removeEventListener("resize", this.onResize);
+    tableHeight() {
+      return this.innerHeight - BUFFER;
+    },
   },
   methods: {
     ...mapActions(useAdminStore, ["updateRow", "clearErrors"]),
@@ -94,9 +95,6 @@ export default {
       if (pk === this.lastUpdate.pk && field === this.lastUpdate.field) {
         return this.formErrors;
       }
-    },
-    onResize() {
-      this.tableHeight = window.innerHeight - BUFFER;
     },
   },
 };
