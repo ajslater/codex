@@ -150,6 +150,12 @@ export default {
       deep: true,
     },
   },
+  mounted() {
+    window.addEventListener("keyup", this._keyListener);
+  },
+  unmounted() {
+    window.removeEventListener("keyup", this._keyListener);
+  },
   methods: {
     ...mapActions(useAuthStore, ["loadAdminFlags", "login", "register"]),
     submit: function () {
@@ -164,6 +170,10 @@ export default {
           return true;
         })
         .catch(console.error);
+    },
+    _keyListener(event) {
+      // stop keys from activating reader shortcuts.
+      event.stopImmediatePropagation();
     },
   },
 };

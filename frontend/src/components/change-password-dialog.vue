@@ -155,6 +155,12 @@ export default {
       deep: true,
     },
   },
+  mounted() {
+    window.addEventListener("keyup", this._keyListener);
+  },
+  unmounted() {
+    window.removeEventListener("keyup", this._keyListener);
+  },
   methods: {
     ...mapActions(useAuthStore, ["changePassword"]),
     ...mapActions(useCommonStore, ["clearErrors"]),
@@ -170,6 +176,10 @@ export default {
       } else {
         this.changePassword(this.credentials).catch(console.error);
       }
+    },
+    _keyListener(event) {
+      // stop keys from activating reader shortcuts.
+      event.stopImmediatePropagation();
     },
   },
 };
