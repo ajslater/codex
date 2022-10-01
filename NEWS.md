@@ -20,6 +20,8 @@ border-radius: 128px;
   - Handle an iOS bug with downloading pages and comics inside a PWA.
   - Fixed PDF failure to render on load and after changing settings.
   - PDF viewer shows loading, rendering and password errors.
+  - Login & Change Password dialogs no longer activate Reader shortcuts by
+    accident.
 
 ## v0.13.0
 
