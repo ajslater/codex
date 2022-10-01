@@ -20,7 +20,7 @@ const wsKeepAlive = function (ws) {
   setTimeout(() => wsKeepAlive(ws), WS_TIMEOUT);
 };
 
-const libraryChanged = function (adminStore) {
+const libraryChanged = function () {
   const browserStore = useBrowserStore();
   const readerStore = useReaderStore();
   browserStore.setTimestamp();
@@ -28,7 +28,7 @@ const libraryChanged = function (adminStore) {
   if (router.currentRoute.name === "browser") {
     browserStore.loadBrowserPage({ showProgress: false });
   } else if (router.currentRoute.name == "admin") {
-    adminStore.loadTables(["Library", "FailedImport"]);
+    useAdminStore().loadTables(["Library", "FailedImport"]);
   }
 };
 
@@ -67,19 +67,18 @@ export const useSocketStore = defineStore("socket", {
       // Would be nicer if components could add their own listeners.
       const message = event.data;
       console.debug(message);
-      const adminStore = useAdminStore();
 
       switch (message) {
         case CHOICES.websockets.LIBRARY_CHANGED:
-          libraryChanged(adminStore);
+          libraryChanged();
 
           break;
         case CHOICES.websockets.LIBRARIAN_STATUS:
-          adminStore.loadTable("LibrarianStatus");
+          useAdminStore().loadTable("LibrarianStatus");
 
           break;
         case CHOICES.websockets.FAILED_IMPORTS:
-          adminStore.unseenFailedImports = true;
+          useAdminStore().unseenFailedImports = true;
 
           break;
         default:
