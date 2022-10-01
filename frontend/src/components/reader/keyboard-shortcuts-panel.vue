@@ -5,23 +5,22 @@
       <tbody>
         <tr>
           <td>
-            <v-icon color="grey">
-              {{ mdiMenuLeft }}
-            </v-icon>
-            j<br />
-            <v-icon color="grey" dense>
-              {{ mdiAppleKeyboardShift }}
-            </v-icon>
-            <v-icon color="grey" dense>
-              {{ mdiKeyboardSpace }}
-            </v-icon>
+            <v-icon class="keyIcon"> {{ mdiMenuLeft }} </v-icon>, j,
+            <div>
+              <v-icon class="keyIcon" dense>
+                {{ mdiAppleKeyboardShift }}
+              </v-icon>
+              <v-icon class="keyIcon" dense>
+                {{ mdiKeyboardSpace }}
+              </v-icon>
+            </div>
           </td>
           <td>Previous page</td>
         </tr>
         <tr>
           <td>
-            <v-icon color="grey"> {{ mdiMenuRight }} </v-icon>k<br />
-            <v-icon color="grey" dense>
+            <v-icon class="keyIcon"> {{ mdiMenuRight }} </v-icon>, k,
+            <v-icon class="keyIcon" dense>
               {{ mdiKeyboardSpace }}
             </v-icon>
           </td>
@@ -52,7 +51,7 @@
           <td>Show comic's metadata</td>
         </tr>
         <tr>
-          <td>c</td>
+          <td>esc</td>
           <td>Close book</td>
         </tr>
       </tbody>
@@ -106,5 +105,8 @@ export default {
 }
 #readerKeyboardShortcutsTable td:first-child {
   text-align: center;
+}
+.keyIcon {
+  margin: 0;
 }
 </style>
