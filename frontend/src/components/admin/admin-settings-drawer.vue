@@ -11,6 +11,7 @@
     <div class="settingsDrawerContainer">
       <div id="topBlock">
         <AdminSettingsPanel />
+        <v-divider />
         <SettingsCommonPanel :admin-menu="false" />
         <v-divider />
       </div>

@@ -1,6 +1,7 @@
 <template>
   <div>
     <AuthMenu />
+    <v-divider v-if="isUserAdmin" />
     <component :is="adminMenuLoader" :menu="adminMenu" />
   </div>
 </template>

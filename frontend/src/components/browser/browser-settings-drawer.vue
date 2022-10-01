@@ -13,7 +13,9 @@
         <BrowserSettingsPanel />
         <v-divider />
         <SearchHelp />
+        <v-divider />
         <SettingsCommonPanel />
+        <v-divider />
       </div>
       <SettingsFooter />
     </div>

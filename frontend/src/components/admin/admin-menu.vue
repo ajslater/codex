@@ -1,6 +1,5 @@
 <template>
   <div v-if="isUserAdmin">
-    <v-divider />
     <v-list-item-group v-if="menu">
       <v-list-item ripple @click="librarianTask('poll')">
         <v-list-item-content>

@@ -158,7 +158,6 @@ export default {
   },
   methods: {
     ...mapActions(useAuthStore, ["changePassword"]),
-    ...mapActions(useAdminStore, ["changeUserPassword"]),
     ...mapActions(useCommonStore, ["clearErrors"]),
     submit: function () {
       const form = this.$refs.form;
@@ -166,9 +165,9 @@ export default {
         return;
       }
       if (this.isAdminMode) {
-        this.changeUserPassword(this.user.pk, this.credentials).catch(
-          console.error
-        );
+        useAdminStore()
+          .changeUserPassword(this.user.pk, this.credentials)
+          .catch(console.error);
       } else {
         this.changePassword(this.credentials).catch(console.error);
       }

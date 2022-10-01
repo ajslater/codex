@@ -1,15 +1,7 @@
 <template>
   <div>
-    <v-divider />
     <div v-if="user">
-      <v-list-item ripple @click="logout">
-        <v-list-item-content>
-          <v-list-item-title>
-            <v-icon>{{ mdiLogout }}</v-icon
-            >Logout {{ user.username }}
-          </v-list-item-title>
-        </v-list-item-content>
-      </v-list-item>
+      <AuthLogoutItem />
       <ChangePasswordDialog :user="user" />
     </div>
     <AuthLoginDialog v-else />
@@ -17,10 +9,10 @@
 </template>
 
 <script>
-import { mdiLogout } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import AuthLoginDialog from "@/components/auth/login-dialog.vue";
+import AuthLogoutItem from "@/components/auth/logout-item.vue";
 import ChangePasswordDialog from "@/components/change-password-dialog.vue";
 import { useAuthStore } from "@/stores/auth";
 
@@ -29,11 +21,7 @@ export default {
   components: {
     ChangePasswordDialog,
     AuthLoginDialog,
-  },
-  data: function () {
-    return {
-      mdiLogout,
-    };
+    AuthLogoutItem,
   },
   computed: {
     ...mapState(useAuthStore, {
@@ -45,5 +33,3 @@ export default {
   },
 };
 </script>
-
-<style scoped lang="scss"></style>

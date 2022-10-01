@@ -37,7 +37,7 @@ export default {
     progress: function () {
       let complete = 0;
       let total = 0;
-      if (this.librarianStatuses.length === 0) {
+      if (!this.librarianStatuses || this.librarianStatuses.length === 0) {
         return;
       }
       for (const status of this.librarianStatuses) {
