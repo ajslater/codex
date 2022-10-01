@@ -18,12 +18,12 @@
         </v-list-item-content>
       </v-list-item>
     </template>
-    <v-form id="authDialog" ref="loginForm">
+    <v-form id="authDialog" ref="form">
       <v-text-field
         v-model="credentials.username"
         autocomplete="username"
         label="Username"
-        :rules="usernameRules"
+        :rules="rules.username"
         clearable
         autofocus
         @keydown.enter="$refs.password.focus()"
@@ -33,7 +33,7 @@
         v-model="credentials.password"
         :autocomplete="registerMode ? 'new-password' : 'current-password'"
         label="Password"
-        :rules="passwordRules"
+        :rules="rules.password"
         clearable
         type="password"
         @keydown.enter="
@@ -51,7 +51,7 @@
           v-model="credentials.passwordConfirm"
           autocomplete="new-password"
           label="Confirm Password"
-          :rules="passwordConfirmRules"
+          :rules="rules.passwordConfirm"
           clearable
           type="password"
           @keydown.enter="submit"
@@ -68,7 +68,7 @@
       <SubmitFooter
         :verb="registerMode ? 'Register' : 'Login'"
         table=""
-        :disabled="!loginButtonEnabled"
+        :disabled="!submitButtonEnabled"
         @submit="submit"
         @cancel="showDialog = false"
       />
@@ -90,16 +90,19 @@ export default {
   },
   data() {
     return {
-      usernameRules: [(v) => !!v || "Username is required"],
-      passwordRules: [(v) => !!v || "Password is required"],
-      passwordConfirmRules: [
-        (v) => v === this.credentials.password || "Passwords must match",
-      ],
+      rules: {
+        username: [(v) => !!v || "Username is required"],
+        password: [(v) => !!v || "Password is required"],
+        passwordConfirm: [
+          (v) => v === this.credentials.password || "Passwords must match",
+        ],
+      },
       credentials: {
         username: "",
         password: "",
         passwordConfirm: "",
       },
+      submitButtonEnabled: false,
       showDialog: false,
       registerMode: false,
       mdiLogin,
@@ -111,44 +114,39 @@ export default {
       formSuccess: (state) => state.form.success,
       enableRegistration: (state) => state.adminFlags.enableRegistration,
     }),
-    loginButtonLabel: function () {
+    submitButtonLabel: function () {
       return this.registerMode ? "Register" : "Login";
-    },
-    loginButtonEnabled: function () {
-      return (
-        this.credentials.username.length > 0 &&
-        this.credentials.password.length > 0 &&
-        (!this.registerMode ||
-          this.credentials.password == this.credentials.passwordConfirm)
-      );
     },
   },
   watch: {
     showDialog() {
-      const form = this.$refs.loginForm;
+      const form = this.$refs.form;
       if (form) {
-        this.$refs.loginForm.reset();
+        this.$refs.form.reset();
       }
+    },
+    credentials: {
+      handler() {
+        const form = this.$refs.form;
+        this.submitButtonEnabled = form && form.validate();
+      },
+      deep: true,
     },
   },
   methods: {
     ...mapActions(useAuthStore, ["loadAdminFlags", "login", "register"]),
     submit: function () {
-      const mode = this.registerMode ? "register" : "login";
-      const form = this.$refs.loginForm;
+      const form = this.$refs.form;
       if (!form.validate()) {
         return;
       }
+      const mode = this.registerMode ? "register" : "login";
       this[mode](this.credentials)
         .then(() => {
-          if (!this.formErrors || this.formErrors.length === 0) {
-            this.showDialog = false;
-          }
+          this.showDialog = this.formErrors && this.formErrors.length > 0;
           return true;
         })
-        .catch((error) => {
-          console.error(error);
-        });
+        .catch(console.error);
     },
   },
 };
