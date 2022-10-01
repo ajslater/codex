@@ -24,7 +24,7 @@
 
 <script>
 import _ from "lodash";
-import { mapGetters, mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import AdminRelationPicker from "@/components/admin/relation-picker.vue";
 import { useAdminStore } from "@/stores/admin";
@@ -62,19 +62,13 @@ export default {
     };
   },
   computed: {
-    ...mapState(useAdminStore, {
-      names: function (state) {
-        // TODO make groupNames getter
-        const names = new Set();
-        for (const group of state.groups) {
-          if (!this.oldRow || group.name !== this.oldRow.name) {
-            names.add(group.name);
-          }
-        }
-        return names;
-      },
-    }),
     ...mapGetters(useAdminStore, ["vuetifyLibraries", "vuetifyUsers"]),
+    ...mapState(useAdminStore, {
+      groups: (state) => state.groups,
+    }),
+    names() {
+      return this.nameSet(this.groups, "name", this.oldRow, true);
+    },
   },
   watch: {
     row: {
@@ -89,6 +83,9 @@ export default {
       },
       deep: true,
     },
+  },
+  methods: {
+    ...mapActions(useAdminStore, ["nameSet"]),
   },
   UPDATE_KEYS,
   EMPTY_ROW,

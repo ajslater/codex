@@ -56,11 +56,11 @@ export const useAdminStore = defineStore("admin", {
       const authStore = useAuthStore();
       return authStore.isUserAdmin;
     },
-    groupMap() {
-      return itemMap(this.groups, "name");
-    },
     userMap() {
       return itemMap(this.users, "username");
+    },
+    groupMap() {
+      return itemMap(this.groups, "name");
     },
     libraryMap() {
       return itemMap(this.libraries, "path");
@@ -169,6 +169,17 @@ export const useAdminStore = defineStore("admin", {
       await API.librarianTask(task, library_id)
         .then(() => commonStore.setSuccess(text))
         .catch(commonStore.setErrors);
+    },
+    nameSet(rows, nameKey, oldRow, dupeCheck) {
+      const names = new Set();
+      if (rows) {
+        for (const obj of rows) {
+          if (!dupeCheck || !oldRow || obj[nameKey] !== oldRow[nameKey]) {
+            names.add(obj[nameKey]);
+          }
+        }
+      }
+      return names;
     },
   },
 });

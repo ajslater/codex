@@ -37,7 +37,7 @@
 
 <script>
 import _ from "lodash";
-import { mapGetters, mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import AdminRelationPicker from "@/components/admin/relation-picker.vue";
 import AdminServerFolderPicker from "@/components/admin/server-folder-picker.vue";
@@ -94,16 +94,13 @@ export default {
     };
   },
   computed: {
-    ...mapState(useAdminStore, {
-      paths: (state) => {
-        const paths = new Set();
-        for (const library of state.libraries) {
-          paths.add(library.path);
-        }
-        return paths;
-      },
-    }),
     ...mapGetters(useAdminStore, ["vuetifyGroups"]),
+    ...mapState(useAdminStore, {
+      libraries: (state) => state.libraries,
+    }),
+    paths() {
+      return this.nameSet(this.libraries, "path", this.oldRow, false);
+    },
   },
   watch: {
     row: {
@@ -118,6 +115,9 @@ export default {
       },
       deep: true,
     },
+  },
+  methods: {
+    ...mapActions(useAdminStore, ["nameSet"]),
   },
   UPDATE_KEYS,
   EMPTY_ROW,
