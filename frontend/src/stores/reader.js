@@ -5,6 +5,7 @@ import API from "@/api/v3/reader";
 import CHOICES from "@/choices";
 import { getFullComicName } from "@/comic-name";
 import router from "@/router";
+import { useBrowserStore } from "@/stores/browser";
 
 const NULL_READER_SETTINGS = {
   // Must be null so axios doesn't throw them out when sending.
@@ -184,14 +185,12 @@ export const useReaderStore = defineStore("reader", {
           return this._loadBookSettings();
         })
         .catch((error) => {
-          if (error.response && [303, 404].includes(error.response.status)) {
-            const data = error.response.data;
-            console.debug(`redirect: ${data.reason}`);
-            const route = { name: "browser", params: data.route };
-            return this.routerPush(route);
-          } else {
-            console.error(error);
-          }
+          console.debug(error);
+          const page = useBrowserStore().page;
+          const lastBrowserRoute =
+            page && page.routes ? page.routes.last : undefined;
+          const route = lastBrowserRoute || { name: "home" };
+          return routerPush(route);
         });
     },
     async setBookmarkPage() {
