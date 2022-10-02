@@ -1,7 +1,11 @@
 <template>
   <div>
     <header class="tabHeader">
-      <AdminLibraryCreateUpdateDialog />
+      <AdminCreateUpdateDialog
+        table="Library"
+        :inputs="AdminLibraryCreateUpdateInputs"
+        max-width="22em"
+      />
     </header>
     <v-simple-table
       class="highlight-simple-table admin-table"
@@ -24,7 +28,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="item in libraries" :key="item.id">
+          <tr v-for="item in libraries" :key="item.pk">
             <td>{{ item.path }}</td>
             <td>
               <v-simple-checkbox :value="item.events" dense disabled />
@@ -42,30 +46,31 @@
               <RelationChips :pks="item.groups" :map="groupMap" />
             </td>
             <td>
-              <v-btn icon ripple @click="poll(item.id)">
+              <v-btn icon ripple @click="poll(item.pk)">
                 <v-icon>{{ mdiDatabaseClockOutline }}</v-icon>
               </v-btn>
             </td>
             <td>
-              <AdminTaskConfirmDialog
-                :task="{
-                  icon: true,
-                  text: `Force Update ${item.path}`,
-                  confirm: 'This can take a long time',
-                }"
-                @confirmed="forcePoll(item.id)"
+              <ConfirmDialog
+                :icon="mdiDatabaseImportOutline"
+                title-text="Force Update Library"
+                :object-name="item.path"
+                confirm-text="Force Update"
+                @confirm="forcePoll(item.pk)"
               />
             </td>
             <td>
-              <AdminLibraryCreateUpdateDialog
-                :update="true"
-                :old-library="item"
+              <AdminCreateUpdateDialog
+                table="Library"
+                :old-row="item"
+                :inputs="AdminLibraryCreateUpdateInputs"
+                max-width="22em"
               />
             </td>
             <td>
               <AdminDeleteRowDialog
                 table="Library"
-                :pk="item.id"
+                :pk="item.pk"
                 :name="item.path"
               />
             </td>
@@ -80,15 +85,20 @@
 </template>
 
 <script>
-import { mdiDatabaseClockOutline, mdiOpenInNew } from "@mdi/js";
+import {
+  mdiDatabaseClockOutline,
+  mdiDatabaseImportOutline,
+  mdiOpenInNew,
+} from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
+import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
 import DateTimeColumn from "@/components/admin/datetime-column.vue";
 import AdminDeleteRowDialog from "@/components/admin/delete-row-dialog.vue";
 import AdminFailedImportsPanel from "@/components/admin/failed-imports-panel.vue";
-import AdminLibraryCreateUpdateDialog from "@/components/admin/library-create-update-dialog.vue";
+import AdminLibraryCreateUpdateInputs from "@/components/admin/library-create-update-inputs.vue";
 import RelationChips from "@/components/admin/relation-chips.vue";
-import AdminTaskConfirmDialog from "@/components/admin/task-dialog.vue";
+import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { DATETIME_FORMAT } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
 
@@ -101,14 +111,20 @@ const TABLE_ROW_HEIGHT = 48;
 const MIN_TABLE_HEIGHT = TABLE_ROW_HEIGHT * 2;
 
 export default {
-  name: "AdminLibrariesPanel",
+  name: "AdminLibrariesTab",
   components: {
     AdminDeleteRowDialog,
     AdminFailedImportsPanel,
-    AdminLibraryCreateUpdateDialog,
+    AdminCreateUpdateDialog,
     RelationChips,
-    AdminTaskConfirmDialog,
+    ConfirmDialog,
     DateTimeColumn,
+  },
+  props: {
+    innerHeight: {
+      type: Number,
+      required: true,
+    },
   },
   data() {
     return {
@@ -117,28 +133,36 @@ export default {
         field: undefined,
       },
       mdiDatabaseClockOutline,
+      mdiDatabaseImportOutline,
       mdiOpenInNew,
-      tableHeight: 0,
+      AdminLibraryCreateUpdateInputs,
     };
   },
   computed: {
+    ...mapGetters(useAdminStore, ["groupMap"]),
     ...mapState(useAdminStore, {
       libraries: (state) => state.libraries,
       formErrors: (state) => state.form.errors,
       tableMaxHeight: (state) =>
         (state.libraries.length + 1) * TABLE_ROW_HEIGHT,
     }),
-    ...mapGetters(useAdminStore, ["groupMap"]),
+    tableHeight() {
+      const availableHeight = this.innerHeight - BUFFER;
+      return this.tableMaxHeight < availableHeight
+        ? undefined
+        : Math.max(availableHeight, MIN_TABLE_HEIGHT);
+    },
   },
   mounted() {
-    this.onResize();
-    window.addEventListener("resize", this.onResize);
-  },
-  unmounted() {
-    window.removeEventListener("resize", this.onResize);
+    this.loadTables(["Group", "Library", "FailedImport"]);
   },
   methods: {
-    ...mapActions(useAdminStore, ["updateRow", "clearErrors", "librarianTask"]),
+    ...mapActions(useAdminStore, [
+      "updateRow",
+      "clearErrors",
+      "librarianTask",
+      "loadTables",
+    ]),
     formatDateTime: (dttm) => {
       if (!dttm) {
         return "";
@@ -161,13 +185,6 @@ export default {
     },
     forcePoll(pk) {
       this.librarianTask("poll_force", `Force Poll Library ${pk}`, pk);
-    },
-    onResize() {
-      const availableHeight = window.innerHeight - BUFFER;
-      this.tableHeight =
-        this.tableMaxHeight < availableHeight
-          ? undefined
-          : Math.max(availableHeight, MIN_TABLE_HEIGHT);
     },
   },
 };

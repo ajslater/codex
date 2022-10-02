@@ -1,14 +1,13 @@
 <template>
   <v-dialog
-    v-model="showLoginDialog"
+    v-model="showDialog"
     origin="center-top"
     transition="slide-y-transition"
     max-width="20em"
     overlay-opacity="0.5"
-    @focus="focus"
   >
     <template #activator="{ on }">
-      <v-list-item ripple v-on="on" @click="loadAdminFlags">
+      <v-list-item ripple v-on="on">
         <v-list-item-content>
           <v-list-item-title
             ><h3>
@@ -19,12 +18,12 @@
         </v-list-item-content>
       </v-list-item>
     </template>
-    <v-form id="authDialog" ref="loginForm">
+    <v-form id="authDialog" ref="form">
       <v-text-field
         v-model="credentials.username"
         autocomplete="username"
         label="Username"
-        :rules="usernameRules"
+        :rules="rules.username"
         clearable
         autofocus
         @keydown.enter="$refs.password.focus()"
@@ -34,14 +33,14 @@
         v-model="credentials.password"
         :autocomplete="registerMode ? 'new-password' : 'current-password'"
         label="Password"
-        :rules="passwordRules"
+        :rules="rules.password"
         clearable
         type="password"
         @keydown.enter="
           if (registerMode) {
             $refs.passwordConfirm.focus();
           } else {
-            processLogin();
+            submit();
           }
         "
       />
@@ -52,15 +51,12 @@
           v-model="credentials.passwordConfirm"
           autocomplete="new-password"
           label="Confirm Password"
-          :rules="passwordConfirmRules"
+          :rules="rules.passwordConfirm"
           clearable
           type="password"
-          @keydown.enter="processLogin"
+          @keydown.enter="submit"
         />
       </v-expand-transition>
-      <v-btn ripple :disabled="!loginButtonEnabled" @click="processLogin">
-        {{ loginButtonLabel }}
-      </v-btn>
       <v-switch
         v-if="enableRegistration"
         v-model="registerMode"
@@ -69,19 +65,13 @@
       >
         Register
       </v-switch>
-      <footer>
-        <small v-if="formErrors && formErrors.length > 0" style="color: red">
-          <div v-for="error in formErrors" :key="error">
-            {{ error }}
-          </div>
-        </small>
-        <small v-else-if="formSuccess" style="color: green"
-          >{{ formSuccess }}
-        </small>
-        <small v-else-if="enableRegistration">
-          Registering preserves bookmarks and settings across different browsers
-        </small>
-      </footer>
+      <SubmitFooter
+        :verb="registerMode ? 'Register' : 'Login'"
+        table=""
+        :disabled="!submitButtonEnabled"
+        @submit="submit"
+        @cancel="showDialog = false"
+      />
     </v-form>
   </v-dialog>
 </template>
@@ -90,79 +80,100 @@
 import { mdiLogin } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
+import SubmitFooter from "@/components/submit-footer.vue";
 import { useAuthStore } from "@/stores/auth";
+import { useCommonStore } from "@/stores/common";
 
 export default {
   name: "AuthLoginDialog",
-  emits: ["sub-dialog-open"],
+  components: {
+    SubmitFooter,
+  },
   data() {
     return {
-      usernameRules: [(v) => !!v || "Username is required"],
-      passwordRules: [(v) => !!v || "Password is required"],
-      passwordConfirmRules: [
-        (v) => v === this.credentials.password || "Passwords must match",
-      ],
+      rules: {
+        username: [(v) => !!v || "Username is required"],
+        password: [
+          (v) => {
+            if (!v) {
+              return "Password is required";
+            }
+            if (this.registerMode && v.length < this.MIN_PASSWORD_LEN) {
+              return `Password must be ${this.MIN_PASSWORD_LEN} characters long`;
+            }
+            return true;
+          },
+        ],
+        passwordConfirm: [
+          (v) => v === this.credentials.password || "Passwords must match",
+        ],
+      },
       credentials: {
         username: "",
         password: "",
         passwordConfirm: "",
       },
-      showLoginDialog: false,
+      submitButtonEnabled: false,
+      showDialog: false,
       registerMode: false,
       mdiLogin,
     };
   },
   computed: {
-    ...mapState(useAuthStore, {
+    ...mapState(useCommonStore, {
       formErrors: (state) => state.form.errors,
       formSuccess: (state) => state.form.success,
-      enableRegistration: (state) => state.adminFlags.enableRegistration,
     }),
-    loginButtonLabel: function () {
+    ...mapState(useAuthStore, {
+      enableRegistration: (state) => state.adminFlags.enableRegistration,
+      MIN_PASSWORD_LEN: (state) => state.MIN_PASSWORD_LEN,
+    }),
+    submitButtonLabel: function () {
       return this.registerMode ? "Register" : "Login";
-    },
-    loginButtonEnabled: function () {
-      return (
-        this.credentials.username.length > 0 &&
-        this.credentials.password.length > 0 &&
-        (!this.registerMode ||
-          this.credentials.password == this.credentials.passwordConfirm)
-      );
     },
   },
   watch: {
-    showLoginDialog(show) {
-      if (show) {
-        this.clearErrors();
+    showDialog(to) {
+      if (to) {
+        this.loadAdminFlags();
+        const form = this.$refs.form;
+        if (form) {
+          this.$refs.form.reset();
+        }
       }
+    },
+    credentials: {
+      handler() {
+        const form = this.$refs.form;
+        this.submitButtonEnabled = form && form.validate();
+      },
+      deep: true,
     },
   },
+  mounted() {
+    window.addEventListener("keyup", this._keyListener);
+  },
+  unmounted() {
+    window.removeEventListener("keyup", this._keyListener);
+  },
   methods: {
-    ...mapActions(useAuthStore, [
-      "clearErrors",
-      "loadAdminFlags",
-      "login",
-      "register",
-    ]),
-    processAuth: function (mode) {
-      this[mode](this.credentials).catch((error) => {
-        console.error(error);
-      });
-      if (!this.formErrors || this.formErrors === []) {
-        this.showLoginDialog = false;
-        this.$refs.loginForm.reset();
-      }
-    },
-    processLogin: function () {
-      const mode = this.registerMode ? "register" : "login";
-      const form = this.$refs.loginForm;
+    ...mapActions(useAuthStore, ["loadAdminFlags", "login", "register"]),
+    submit: function () {
+      const form = this.$refs.form;
       if (!form.validate()) {
         return;
       }
-      this.processAuth(mode);
+      const mode = this.registerMode ? "register" : "login";
+      this[mode](this.credentials)
+        .then(() => {
+          this.showDialog = this.formErrors && this.formErrors.length > 0;
+          return true;
+        })
+        .catch(console.error);
     },
-    focus: function () {
-      this.$emit("sub-dialog-open");
+    _keyListener(event) {
+      // stop keys from activating reader shortcuts.
+      event.stopImmediatePropagation();
     },
   },
 };

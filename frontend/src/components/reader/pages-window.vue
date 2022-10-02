@@ -1,19 +1,15 @@
 <template>
-  <v-window
-    id="pagesWindow"
-    ref="pagesWindow"
-    show-arrows
-    :value="windowPage"
-    :vertical="vertical"
-  >
+  <v-window id="pagesWindow" ref="pagesWindow" show-arrows :value="activePage">
     <div
       id="bookChangePrev"
       class="bookChangeColumn"
+      :class="{ upArrow: routes.prevBook }"
       @click.stop="bookChange('prev')"
     />
     <div
       id="bookChangeNext"
       class="bookChangeColumn"
+      :class="{ downArrow: routes.nextBook }"
       @click.stop="bookChange('next')"
     />
     <template #prev>
@@ -35,7 +31,7 @@
       :key="`c/${pk}/${page}`"
       class="windowItem"
       disabled
-      eager
+      :eager="page >= activePage - 1 && page <= activePage + 2"
     >
       <PDFPage v-if="isPDF" :source="getSrc(page)" />
       <img
@@ -62,27 +58,38 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState, mapWritableState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import { getComicPageSource } from "@/api/v3/reader";
 const PDFPage = () => import("@/components/reader/pdf.vue");
 import { useReaderStore } from "@/stores/reader";
+
+const PREFETCH_LINK = { rel: "prefetch", as: "image" };
 
 export default {
   name: "PagesWindow",
   components: {
     PDFPage,
   },
+  props: {
+    pk: { type: Number, required: true },
+    initialPage: { type: Number, default: 0 },
+  },
   data() {
     return {
-      windowPage: 0,
+      activePage: this.initialPage,
     };
   },
   head() {
-    if (this.prefetchHref) {
-      return {
-        lnk: [{ rel: "prefetch", as: "image", href: this.prefetchHref }],
-      };
+    const links = [];
+    if (this.nextSrc) {
+      links.push({ ...PREFETCH_LINK, href: this.nextSrc });
+    }
+    if (this.prevSrc) {
+      links.push({ ...PREFETCH_LINK, href: this.prevSrc });
+    }
+    if (links.length > 0) {
+      return { link: links };
     }
   },
   computed: {
@@ -101,34 +108,34 @@ export default {
       secondPage(state) {
         return (
           state.computedSettings.twoPages &&
-          +this.windowPage + 1 <= state.comic.maxPage
+          +this.activePage + 1 <= state.comic.maxPage
         );
       },
-      vertical: (state) => state.bookChange !== undefined,
-      prefetchHref(state) {
-        if (!state.routes.next) {
-          return;
-        }
-        return getComicPageSource(state.routes.next, state.timestamp);
+      nextSrc(state) {
+        const routes = state.routes;
+        return routes.next
+          ? getComicPageSource(routes.next, state.timestamp)
+          : undefined;
       },
+      prevSrc(state) {
+        const routes = state.routes;
+        return routes.prev
+          ? getComicPageSource(routes.prev, state.timestamp)
+          : undefined;
+      },
+      comicLoaded: (state) => state.comicLoaded,
     }),
-    ...mapWritableState(useReaderStore, ["comicLoaded"]),
-    pk() {
-      return this.$route.params.pk;
-    },
   },
   watch: {
-    $route(to, from) {
-      if (!from.params || Number(to.params.pk) !== Number(from.params.pk)) {
-        this.loadBook();
-      } else {
+    $route(to) {
+      if (+to.params.pk === this.pk) {
         this.setRoutesAndBookmarkPage();
-        this.setPage(to.params.page);
+        this.setActivePage(+to.params.page);
       }
     },
     comicLoaded(to) {
       if (to) {
-        this.setPage(this.$route.params.page || 0);
+        this.setActivePage();
       }
     },
   },
@@ -148,27 +155,26 @@ export default {
       "setRoutesAndBookmarkPage",
     ]),
     getSrc(page) {
-      const routeParams = { ...this.$route.params, page };
-      return getComicPageSource(routeParams, this.timestamp);
+      const params = { pk: this.pk, page };
+      return getComicPageSource(params, this.timestamp);
     },
-    async setPage(page) {
-      if (!this.comicLoaded) {
+    setActivePage(page) {
+      if (!this.comicLoaded || this.pk !== +this.$route.params.pk) {
         return;
       }
       if (page === undefined) {
-        page = +this.$route.params.page;
+        page = +this.$route.params.page || 0;
       }
-      this.windowPage = page;
+      this.activePage = page;
       window.scrollTo(0, 0);
     },
     pageChange(direction) {
       this.routeToDirection(direction);
     },
     bookChange(direction) {
-      this.setBookChangeFlag(direction);
-    },
-    click() {
-      this.$emit("click");
+      if (this.routes[direction + "Book"]) {
+        this.setBookChangeFlag(direction);
+      }
     },
   },
 };
@@ -218,8 +224,14 @@ export default {
 #bookChangePrev {
   left: 0px;
 }
+.upArrow {
+  cursor: n-resize;
+}
 #bookChangeNext {
   right: 0px;
+}
+.downArrow {
+  cursor: s-resize;
 }
 </style>
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->

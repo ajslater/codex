@@ -2,25 +2,28 @@
   <div id="tabContainer">
     <v-tabs
       id="tabs"
-      v-model="tab"
       :class="{ rightSpace: rightSpace }"
       centered
       grow
       show-arrows
     >
-      <v-tab v-for="name of Object.keys(tabs)" :key="name">
-        {{ name }}
+      <v-tab
+        v-for="tab in tabs"
+        :key="tab"
+        v-model="activeTab"
+        :to="tab.toLowerCase()"
+      >
+        {{ tab }}
       </v-tab>
     </v-tabs>
-    <v-tabs-items id="tabItems" v-model="tab" touchless>
+    <v-tabs-items id="tabItems" v-model="activeTab" touchless>
       <v-tab-item
-        v-for="[name, attrs] of Object.entries(tabs)"
-        :key="name"
-        class="tabItem"
+        v-for="tab in tabs"
+        :key="tab"
+        :value="tab"
+        class="tabItemContainer"
       >
-        <div class="tabItemContainer">
-          <component :is="attrs.panel" />
-        </div>
+        <router-view v-if="tab === activeTab" :inner-height="innerHeight" />
       </v-tab-item>
     </v-tabs-items>
     <div v-if="!librariesExist" id="noLibraries">
@@ -30,42 +33,17 @@
 </template>
 
 <script>
-import { mapActions, mapGetters } from "pinia";
+import { mapGetters } from "pinia";
 
-import AdminFlagsPanel from "@/components/admin/flag-tab.vue";
-import AdminGroupPanel from "@/components/admin/group-tab.vue";
-import AdminLibrarysPanel from "@/components/admin/library-tab.vue";
-import AdminTasksPanel from "@/components/admin/task-tab.vue";
-import AdminUsersPanel from "@/components/admin/user-tab.vue";
 import { useAdminStore } from "@/stores/admin";
-
-const LIBRARY_TAB_INDEX = 2;
 
 export default {
   name: "AdminTabs",
-  components: {
-    AdminUsersPanel,
-    AdminGroupPanel,
-    AdminLibrarysPanel,
-    AdminFlagsPanel,
-    AdminTasksPanel,
-  },
   data() {
     return {
-      tab: LIBRARY_TAB_INDEX,
-      tabs: {
-        Users: { panel: AdminUsersPanel, tables: ["Group", "User"] },
-        Groups: {
-          panel: AdminGroupPanel,
-          tables: ["User", "Library", "Group"],
-        },
-        Libraries: {
-          panel: AdminLibrarysPanel,
-          tables: ["Group", "Library", "FailedImport"],
-        },
-        Flags: { panel: AdminFlagsPanel, tables: ["Flag"] },
-        Tasks: { panel: AdminTasksPanel, tables: [] },
-      },
+      activeTab: "Libraries",
+      tabs: ["Users", "Groups", "Libraries", "Flags", "Tasks"],
+      innerHeight: window.innerHeight,
     };
   },
   computed: {
@@ -75,23 +53,21 @@ export default {
     },
   },
   watch: {
-    tab: function () {
-      this.loadTab();
+    $route(to) {
+      const parts = to.path.split("/");
+      const lastPart = parts.at(-1);
+      this.activeTab = lastPart[0].toUpperCase() + lastPart.slice(1);
     },
   },
-  created() {
-    this.loadTab();
+  mounted() {
+    window.addEventListener("resize", this.onResize);
+  },
+  unmounted() {
+    window.removeEventListener("resize", this.onResize);
   },
   methods: {
-    ...mapActions(useAdminStore, ["loadTable"]),
-    loadTables(tables) {
-      for (const table of tables) {
-        this.loadTable(table);
-      }
-    },
-    loadTab() {
-      const tables = Object.values(this.tabs)[this.tab].tables;
-      this.loadTables(tables);
+    onResize() {
+      this.innerHeight = window.innerHeight;
     },
   },
 };
@@ -112,14 +88,12 @@ $task-width: 256px;
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
 }
-.tabItem {
-  padding-left: 10px;
-  padding-right: 10px;
-}
 .tabItemContainer {
   max-width: 1024px;
   margin-left: auto;
   margin-right: auto;
+  padding-left: 10px;
+  padding-right: 10px;
 }
 #noLibraries {
   text-align: center;

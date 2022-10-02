@@ -13,7 +13,9 @@
         <BrowserSettingsPanel />
         <v-divider />
         <SearchHelp />
+        <v-divider />
         <SettingsCommonPanel />
+        <v-divider />
       </div>
       <SettingsFooter />
     </div>
@@ -46,9 +48,6 @@ export default {
   computed: {
     ...mapGetters(useAuthStore, ["isCodexViewable"]),
     ...mapWritableState(useBrowserStore, ["isSettingsDrawerOpen"]),
-  },
-  mounted() {
-    this.$emit("panelMounted");
   },
   methods: {
     ...mapActions(useBrowserStore, ["setIsSettingsDrawerOpen"]),

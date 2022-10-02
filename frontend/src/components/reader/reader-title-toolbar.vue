@@ -94,7 +94,7 @@ export default {
   mounted() {
     window.addEventListener("keyup", this._keyListener);
   },
-  beforeDestroy: function () {
+  unmounted: function () {
     window.removeEventListener("keyup", this._keyListener);
   },
   methods: {
@@ -131,7 +131,7 @@ export default {
         case "ArrowLeft":
           this.routeToDirection(PREV);
           break;
-        case "c":
+        case "Escape":
           this.$refs.closeBook.$el.click();
           break;
         case "m":

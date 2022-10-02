@@ -22,7 +22,6 @@ TODO.md
 __pycache__
 alpha*
 cache
-!cache/packages
 circleci*
 comics
 config

@@ -35,19 +35,8 @@ const getRouteParams = function (condition, routeParams, increment) {
     : false;
 };
 
-const isRouteBookChange = function (state, direction) {
-  return (
-    direction &&
-    state.routes &&
-    !state.routes[direction] &&
-    state.routes[direction + "Book"]
-  );
-};
-
 const routerPush = function (route) {
-  router.push(route).catch((error) => {
-    console.debug(error);
-  });
+  router.push(route).catch(console.debug);
 };
 
 export const useReaderStore = defineStore("reader", {
@@ -125,6 +114,14 @@ export const useReaderStore = defineStore("reader", {
         ...this.settings[settingsKey],
         ...updates,
       };
+    },
+    _isRouteBookChange(direction) {
+      return (
+        direction &&
+        this.routes &&
+        !this.routes[direction] &&
+        this.routes[direction + "Book"]
+      );
     },
     ///////////////////////////////////////////////////////////////////////////
     // MUTATIONS
@@ -241,7 +238,7 @@ export const useReaderStore = defineStore("reader", {
       await this.clearSettingsLocal();
     },
     setBookChangeFlag(direction) {
-      this.bookChange = isRouteBookChange(this, direction)
+      this.bookChange = this._isRouteBookChange(direction)
         ? direction
         : undefined;
     },
@@ -262,7 +259,7 @@ export const useReaderStore = defineStore("reader", {
       return routerPush(route);
     },
     routeToDirection(direction) {
-      if (isRouteBookChange(this, direction) && this.bookChange !== direction) {
+      if (this._isRouteBookChange(direction) && this.bookChange !== direction) {
         // Block book change routes unless the book change flag is set.
         this.setBookChangeFlag(direction);
         return;

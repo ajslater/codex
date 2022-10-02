@@ -6,18 +6,22 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v0.14.0
+## v0.14.0a2
+
+### Sliding Pages
 
 - Features
   - Animated sliding pages on reader.
-  - Allow filtering by None values when None values exist.
-  - Show only usable filters for current view as filter choices.
-  - PDF viewer shows loading, rendering and password errors.
   - Move download page button to the reader settings drawer.
 - Fixes
   - Filters with compound names were not loading choices.
+  - Show only usable filters for current view as filter choices.
+  - Allow filtering by None values when None values exist.
   - Handle an iOS bug with downloading pages and comics inside a PWA.
-  - PDF failure to render on load and after changing settings.
+  - Fixed PDF failure to render on load and after changing settings.
+  - PDF viewer shows loading, rendering and password errors.
+  - Login & Change Password dialogs no longer activate Reader shortcuts by
+    accident.
 
 ## v0.13.0
 

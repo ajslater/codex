@@ -1,7 +1,6 @@
 <template>
   <div v-if="isUserAdmin">
-    <v-divider />
-    <v-list-item-group>
+    <v-list-item-group v-if="menu">
       <v-list-item ripple @click="librarianTask('poll')">
         <v-list-item-content>
           <v-list-item-title
@@ -51,6 +50,9 @@ export default {
   name: "AdminMenu",
   components: {
     AdminStatusList,
+  },
+  props: {
+    menu: { type: Boolean, default: true },
   },
   data() {
     return {

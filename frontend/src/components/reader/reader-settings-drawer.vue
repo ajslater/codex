@@ -17,6 +17,7 @@
         <DownloadPanel />
         <v-divider />
         <SettingsCommonPanel />
+        <v-divider />
       </div>
       <SettingsFooter />
     </div>

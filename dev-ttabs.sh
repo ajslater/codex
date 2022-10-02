@@ -1,11 +1,8 @@
 #!/bin/sh
-# Open all three development server processes in macOS terminal tabs
+# Open development server processes in macOS terminal tabs
 # Requires npm ttab
 CODEX_DIR="$(dirname "$0")"
-
-# The API server
-ttab -t "Codex Django" "DEBUG=1 $CODEX_DIR/dev-codex.sh"
 # The Vue dev server
 ttab -t "Codex Vue" "$CODEX_DIR/dev-frontend.sh"
-# An nginx reverse proxy with docker
-# ttab -t "Codex Nginx" "$CODEX_DIR/dev-reverse-proxy.sh"
+# The API server
+DEBUG=1 "$CODEX_DIR"/dev-codex.sh

@@ -26,10 +26,13 @@
         :class="{ selected: false }"
       >
         <div class="taskBox">
-          <AdminTaskConfirmDialog
+          <ConfirmDialog
             v-if="item.confirm"
-            :task="item"
-            @confirmed="librarianTask(item.value, item.text)"
+            :button-text="item.text"
+            :title-text="item.text"
+            :object-name="item.confirm"
+            confirm-text="Confirm"
+            @confirm="librarianTask(item.value, item.text)"
           />
           <v-btn
             v-else
@@ -52,13 +55,14 @@
 import { mapActions, mapState } from "pinia";
 
 import { tasks } from "@/choices-admin.json";
-import AdminTaskConfirmDialog from "@/components/admin/task-dialog.vue";
+import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useAdminStore } from "@/stores/admin";
+import { useCommonStore } from "@/stores/common";
 
 export default {
-  name: "AdminTasksPanel",
+  name: "AdminTasksTab",
   components: {
-    AdminTaskConfirmDialog,
+    ConfirmDialog,
   },
   data() {
     return {
@@ -66,7 +70,7 @@ export default {
     };
   },
   computed: {
-    ...mapState(useAdminStore, {
+    ...mapState(useCommonStore, {
       formSuccess: (state) => state.form.success,
       formErrors: (state) => state.form.errors,
     }),

@@ -76,9 +76,8 @@ export default {
   },
   mounted() {
     window.addEventListener("keyup", this._keyListener);
-    this.$emit("panelMounted");
   },
-  beforeDestroy: function () {
+  unmounted: function () {
     window.removeEventListener("keyup", this._keyListener);
   },
 

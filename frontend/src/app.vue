@@ -77,16 +77,16 @@ a {
   background-color: #272727 !important;
 }
 .codexToolbar {
-  position: fixed;
-  z-index: 20;
+  position: fixed !important;
+  z-index: 20 !important;
 }
 
 .settingsDrawer {
-  z-index: 30;
+  z-index: 30 !important;
 }
 
 .settingsDrawerContainer {
-  position: relative;
+  position: relative !important;
   display: flex;
   flex-direction: column;
   justify-content: space-between;

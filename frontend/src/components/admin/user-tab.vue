@@ -1,7 +1,11 @@
 <template>
   <div>
     <header class="tabHeader">
-      <AdminUserCreateUpdateDialog id="userAdd" />
+      <AdminCreateUpdateDialog
+        table="User"
+        :inputs="AdminUserCreateUpdateInputs"
+        max-width="20em"
+      />
     </header>
     <v-simple-table
       fixed-header
@@ -43,13 +47,15 @@
               <DateTimeColumn :dttm="item.dateJoined" />
             </td>
             <td class="buttonCol">
-              <AdminUserCreateUpdateDialog :update="true" :old-user="item" />
+              <AdminCreateUpdateDialog
+                table="User"
+                :inputs="AdminUserCreateUpdateInputs"
+                :old-row="item"
+                max-width="20em"
+              />
             </td>
             <td class="buttonCol">
-              <AdminChangePasswordDialog
-                :pk="item.pk"
-                :username="item.username"
-              />
+              <ChangePasswordDialog :user="item" :is-admin-mode="true" />
             </td>
             <td class="buttonCol">
               <AdminDeleteRowDialog
@@ -67,13 +73,14 @@
 </template>
 
 <script>
-import { mapGetters, mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
-import AdminChangePasswordDialog from "@/components/admin/change-password-dialog.vue";
+import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
 import DateTimeColumn from "@/components/admin/datetime-column.vue";
 import AdminDeleteRowDialog from "@/components/admin/delete-row-dialog.vue";
 import RelationChips from "@/components/admin/relation-chips.vue";
-import AdminUserCreateUpdateDialog from "@/components/admin/user-create-update-dialog.vue";
+import AdminUserCreateUpdateInputs from "@/components/admin/user-create-update-inputs.vue";
+import ChangePasswordDialog from "@/components/change-password-dialog.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useAuthStore } from "@/stores/auth";
 
@@ -85,20 +92,27 @@ const TABLE_ROW_HEIGHT = 48;
 const MIN_TABLE_HEIGHT = TABLE_ROW_HEIGHT * 2;
 
 export default {
-  name: "AdminUsersPanel",
+  name: "AdminUsersTab",
   components: {
     AdminDeleteRowDialog,
-    AdminChangePasswordDialog,
-    AdminUserCreateUpdateDialog,
+    ChangePasswordDialog,
+    AdminCreateUpdateDialog,
     DateTimeColumn,
     RelationChips,
   },
+  props: {
+    innerHeight: {
+      type: Number,
+      required: true,
+    },
+  },
   data() {
     return {
-      tableHeight: undefined,
+      AdminUserCreateUpdateInputs,
     };
   },
   computed: {
+    ...mapGetters(useAdminStore, ["groupMap"]),
     ...mapState(useAdminStore, {
       users: (state) => state.users,
       tableMaxHeight: (state) => (state.users.length + 1) * TABLE_ROW_HEIGHT,
@@ -106,23 +120,18 @@ export default {
     ...mapState(useAuthStore, {
       me: (state) => state.user,
     }),
-    ...mapGetters(useAdminStore, ["groupMap"]),
+    tableHeight() {
+      const availableHeight = this.innerHeight - BUFFER;
+      return this.tableMaxHeight < availableHeight
+        ? undefined
+        : Math.max(availableHeight, MIN_TABLE_HEIGHT);
+    },
   },
   mounted() {
-    window.addEventListener("resize", this.onResize);
-    this.onResize();
-  },
-  unmounted() {
-    window.removeEventListener("resize", this.onResize);
+    this.loadTables(["Group", "User"]);
   },
   methods: {
-    onResize() {
-      const availableHeight = window.innerHeight - BUFFER;
-      this.tableHeight =
-        this.tableMaxHeight < availableHeight
-          ? undefined
-          : Math.max(availableHeight, MIN_TABLE_HEIGHT);
-    },
+    ...mapActions(useAdminStore, ["loadTables"]),
   },
 };
 </script>

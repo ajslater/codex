@@ -2,14 +2,14 @@ import { defineStore } from "pinia";
 
 import API from "@/api/v3/admin";
 import { useAuthStore } from "@/stores/auth";
+import { useCommonStore } from "@/stores/common";
 
 const warnError = (error) => console.warn(error);
 
 const vuetifyItems = (items, textAttr) => {
   const result = [];
   for (const item of items) {
-    const pk = "pk" in item ? item.pk : item.id;
-    result.push({ value: +pk, text: item[textAttr] });
+    result.push({ value: item.pk, text: item[textAttr] });
   }
   return result;
 };
@@ -29,8 +29,7 @@ const getTablePlural = (table) => {
 const itemMap = (items, key) => {
   const map = {};
   for (const item of items) {
-    const pk = item.pk || item.id;
-    map[pk] = item[key];
+    map[item.pk] = item[key];
   }
   return map;
 };
@@ -48,10 +47,6 @@ export const useAdminStore = defineStore("admin", {
       root: undefined,
       folders: [],
     },
-    form: {
-      errors: [],
-      success: "",
-    },
     isSettingsDrawerOpen: false,
   }),
   getters: {
@@ -59,11 +54,11 @@ export const useAdminStore = defineStore("admin", {
       const authStore = useAuthStore();
       return authStore.isUserAdmin;
     },
-    groupMap() {
-      return itemMap(this.groups, "name");
-    },
     userMap() {
       return itemMap(this.users, "username");
+    },
+    groupMap() {
+      return itemMap(this.groups, "name");
     },
     libraryMap() {
       return itemMap(this.libraries, "path");
@@ -82,35 +77,6 @@ export const useAdminStore = defineStore("admin", {
     },
   },
   actions: {
-    clearErrors() {
-      this.$patch((state) => {
-        state.form.errors = [];
-        state.form.success = "";
-      });
-    },
-    setErrors(axiosError) {
-      let errors = [];
-      if (!axiosError) {
-        this.errors = errors;
-        return;
-      }
-      if (axiosError.response && axiosError.response.data) {
-        const data = axiosError.response.data;
-        for (const val of Object.values(data)) {
-          if (val) {
-            errors = Array.isArray(val)
-              ? [...errors, ...val]
-              : [...errors, val];
-          }
-        }
-      } else {
-        console.warn("Unable to parse error", axiosError);
-      }
-      if (errors.length === 0) {
-        errors = ["Unknown error"];
-      }
-      this.form.errors = errors;
-    },
     async loadTable(table) {
       if (!this.isUserAdmin) {
         return false;
@@ -126,6 +92,11 @@ export const useAdminStore = defineStore("admin", {
         })
         .catch(warnError);
     },
+    loadTables(tables) {
+      for (const table of tables) {
+        this.loadTable(table);
+      }
+    },
     async loadFolders(path, showHidden) {
       if (!this.isUserAdmin) {
         return false;
@@ -135,63 +106,78 @@ export const useAdminStore = defineStore("admin", {
           this.folderPicker = response.data;
           return true;
         })
-        .catch(this.setErrors);
+        .catch(useCommonStore().setErrors);
     },
     async createRow(table, data) {
       if (!this.isUserAdmin) {
         return false;
       }
-      this.clearErrors();
       const apiFn = "create" + table;
+      const commonStore = useCommonStore();
       await API[apiFn](data)
         .then(() => {
+          commonStore.clearErrors();
           return this.loadTable(table);
         })
-        .catch(this.setErrors);
+        .catch(commonStore.setErrors);
     },
     async updateRow(table, pk, data) {
       if (!this.isUserAdmin) {
         return false;
       }
-      this.clearErrors();
       const apiFn = "update" + table;
+      const commonStore = useCommonStore();
       await API[apiFn](pk, data)
         .then(() => {
+          commonStore.clearErrors();
           return this.loadTable(table);
         })
-        .catch(this.setErrors);
+        .catch(commonStore.setErrors);
     },
     async changeUserPassword(pk, data) {
       if (!this.isUserAdmin) {
         return false;
       }
-      this.clearErrors();
+      const commonStore = useCommonStore();
       await API.changeUserPassword(pk, data)
         .then((response) => {
-          this.form.success = response.data.detail;
+          commonStore.setSuccess(response.data.detail);
           return true;
         })
-        .catch(this.setErrors);
+        .catch(commonStore.setErrors);
     },
     async deleteRow(table, pk) {
       if (!this.isUserAdmin) {
         return false;
       }
-      this.clearErrors();
       const apiFn = "delete" + table;
+      const commonStore = useCommonStore();
       await API[apiFn](pk)
         .then(() => {
+          commonStore.clearErrors();
           return this.loadTable(table);
         })
-        .catch(this.setErrors);
+        .catch(commonStore.setErrors);
     },
     async librarianTask(task, text, library_id) {
       if (!this.isUserAdmin) {
         return false;
       }
+      const commonStore = useCommonStore();
       await API.librarianTask(task, library_id)
-        .then(() => (this.form.success = text))
-        .catch(this.setErrors);
+        .then(() => commonStore.setSuccess(text))
+        .catch(commonStore.setErrors);
+    },
+    nameSet(rows, nameKey, oldRow, dupeCheck) {
+      const names = new Set();
+      if (rows) {
+        for (const obj of rows) {
+          if (!dupeCheck || !oldRow || obj[nameKey] !== oldRow[nameKey]) {
+            names.add(obj[nameKey]);
+          }
+        }
+      }
+      return names;
     },
   },
 });
