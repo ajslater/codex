@@ -104,11 +104,7 @@ class FailedImportSerializer(ModelSerializer):
         """Specify Model."""
 
         model = FailedImport
-        fields = (
-            "pk",
-            "path",
-            "created_at",
-        )
+        fields = ("pk", "path", "created_at")
         read_only_fields = ("pk, " "path", "created_at")
 
 
