@@ -27,11 +27,11 @@
     <v-form v-else ref="form" class="changePasswordDialog">
       <h2>User {{ user.username }}</h2>
       <input
-        id="usernameInput"
         name="username"
         autocomplete="username"
         disabled
-        type="hidden"
+        type="text"
+        class="hidden"
         :value="user.username"
       />
       <v-text-field
@@ -194,5 +194,8 @@ export default {
   font-size: larger;
   color: green;
   text-align: center;
+}
+.hidden {
+  display: none;
 }
 </style>
