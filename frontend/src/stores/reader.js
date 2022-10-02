@@ -129,11 +129,7 @@ export const useReaderStore = defineStore("reader", {
       this.$patch((state) => {
         state.comic = data.comic;
         // Only set prev/next book info do not clobber page routes.
-        state.routes.prevBook = data.routes.prevBook;
-        state.routes.nextBook = data.routes.nextBook;
-        state.routes.seriesIndex = data.routes.seriesIndex;
-        state.routes.seriesCount = data.routes.seriesCount;
-        state.updatedAt = data.updatedAt;
+        state.routes = { ...state.routes, ...data.routes };
       });
     },
     setPrevRoute() {
