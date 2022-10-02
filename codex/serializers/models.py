@@ -294,7 +294,6 @@ class ComicSerializer(ModelSerializer):
 
         model = Comic
         exclude = ("folders", "parent_folder", "stat")
-        read_only_fields = "__all__"
         depth = 1
 
 

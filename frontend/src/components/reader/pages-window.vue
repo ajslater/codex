@@ -1,11 +1,5 @@
 <template>
-  <v-window
-    id="pagesWindow"
-    ref="pagesWindow"
-    show-arrows
-    :value="windowPage"
-    :vertical="vertical"
-  >
+  <v-window id="pagesWindow" ref="pagesWindow" show-arrows :value="activePage">
     <div
       id="bookChangePrev"
       class="bookChangeColumn"
@@ -37,7 +31,7 @@
       :key="`c/${pk}/${page}`"
       class="windowItem"
       disabled
-      :eager="page >= windowPage - 1 && page <= windowPage + 2"
+      :eager="page >= activePage - 1 && page <= activePage + 2"
     >
       <PDFPage v-if="isPDF" :source="getSrc(page)" />
       <img
@@ -77,10 +71,13 @@ export default {
   components: {
     PDFPage,
   },
-  emits: ["click"],
+  props: {
+    pk: { type: Number, required: true },
+    initialPage: { type: Number, default: 0 },
+  },
   data() {
     return {
-      windowPage: 0,
+      activePage: this.initialPage,
     };
   },
   head() {
@@ -111,51 +108,35 @@ export default {
       secondPage(state) {
         return (
           state.computedSettings.twoPages &&
-          +this.windowPage + 1 <= state.comic.maxPage
+          +this.activePage + 1 <= state.comic.maxPage
         );
       },
-      vertical: (state) => state.bookChange !== undefined,
       nextSrc(state) {
         const routes = state.routes;
-        let route;
-        if (routes.next) {
-          route = routes.next;
-        } else if (routes.nextBook) {
-          route = routes.nextBook;
-        }
-        if (route) {
-          return getComicPageSource(route, state.timestamp);
-        }
+        return routes.next
+          ? getComicPageSource(routes.next, state.timestamp)
+          : undefined;
       },
       prevSrc(state) {
         const routes = state.routes;
-        let route;
-        if (routes.prev) {
-          route = routes.prev;
-        } else if (routes.prevBook) {
-          route = routes.prevBook;
-        }
-        if (route) {
-          return getComicPageSource(route, state.timestamp);
-        }
+        return routes.prev
+          ? getComicPageSource(routes.prev, state.timestamp)
+          : undefined;
       },
       comicLoaded: (state) => state.comicLoaded,
     }),
-    pk() {
-      return this.$route.params.pk;
-    },
   },
   watch: {
-    $route(to, from) {
-      if (!from || !from.params || +to.params.pk !== +from.params.pk) {
-        this.loadBook();
-      } else {
+    $route(to) {
+      if (+to.params.pk === this.pk) {
         this.setRoutesAndBookmarkPage();
-        this.setPage(+to.params.page);
+        this.setActivePage(+to.params.page);
       }
     },
-    comicLoaded() {
-      this.setPage();
+    comicLoaded(to) {
+      if (to) {
+        this.setActivePage();
+      }
     },
   },
   mounted() {
@@ -174,17 +155,17 @@ export default {
       "setRoutesAndBookmarkPage",
     ]),
     getSrc(page) {
-      const routeParams = { ...this.$route.params, page };
-      return getComicPageSource(routeParams, this.timestamp);
+      const params = { pk: this.pk, page };
+      return getComicPageSource(params, this.timestamp);
     },
-    setPage(page) {
-      if (!this.comicLoaded) {
+    setActivePage(page) {
+      if (!this.comicLoaded || this.pk !== +this.$route.params.pk) {
         return;
       }
       if (page === undefined) {
         page = +this.$route.params.page || 0;
       }
-      this.windowPage = page;
+      this.activePage = page;
       window.scrollTo(0, 0);
     },
     pageChange(direction) {
@@ -193,13 +174,7 @@ export default {
     bookChange(direction) {
       if (this.routes[direction + "Book"]) {
         this.setBookChangeFlag(direction);
-      } else {
-        this.click();
       }
-    },
-    click() {
-      this.setBookChangeFlag();
-      this.$emit("click");
     },
   },
 };
