@@ -12,12 +12,7 @@
       :key="`c/${pk}`"
       class="windowItem"
       disabled
-      :eager="
-        (routes.prevBook &&
-          routes.prevBook.pk === pk &&
-          bookChange === 'prev') ||
-        (routes.nextBook && routes.nextBook === pk && bookChange === 'next')
-      "
+      :eager="eager(pk)"
       :value="pk"
     >
       <PagesWindow
@@ -130,8 +125,12 @@ export default {
     },
     eager(pk) {
       return (
-        (this.bookChange === "next " && this.routes.nextBook.pk === pk) ||
-        (this.bookChange === "prev " && this.routes.prevBook.pk === pk)
+        (this.routes.nextBook &&
+          this.routes.nextBook.pk === pk &&
+          this.bookChange === "next") ||
+        (this.routes.prevBook &&
+          this.routes.prevBook.pk === pk &&
+          this.bookChange === "prev")
       );
     },
   },
