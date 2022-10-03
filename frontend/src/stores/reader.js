@@ -36,10 +36,6 @@ const getRouteParams = function (condition, routeParams, increment) {
     : false;
 };
 
-const routerPush = function (route) {
-  router.push(route).catch(console.debug);
-};
-
 export const useReaderStore = defineStore("reader", {
   state: () => ({
     choices: {
@@ -188,7 +184,7 @@ export const useReaderStore = defineStore("reader", {
           const lastBrowserRoute =
             page && page.routes ? page.routes.last : undefined;
           const route = lastBrowserRoute || { name: "home" };
-          return routerPush(route);
+          return router.push(route).catch(console.debug);
         });
     },
     async setBookmarkPage() {
@@ -249,7 +245,7 @@ export const useReaderStore = defineStore("reader", {
         }
       }
       const route = { name: "reader", params: routeParams };
-      return routerPush(route);
+      return router.push(route).catch(console.debug);
     },
     routeToDirection(direction) {
       if (this._isRouteBookChange(direction) && this.bookChange !== direction) {
