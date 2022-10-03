@@ -40,6 +40,7 @@
         :class="fitToClass"
         :src="getSrc(page)"
         :alt="`Page ${page}`"
+        @error="changeSrcToError"
       />
       <PDFPage
         v-if="secondPage && isPDF"
@@ -52,6 +53,7 @@
         :class="fitToClass"
         :src="getSrc(page + 1)"
         :alt="`Page ${page + 1}`"
+        @error="changeSrcToError"
       />
     </v-window-item>
   </v-window>
@@ -101,6 +103,7 @@ export default {
         }
         return 0;
       },
+      maxPage: (state) => state.comic.maxPage,
       isPDF: (state) =>
         state.comic ? state.comic.fileFormat === "pdf" : false,
       routes: (state) => state.routes,
@@ -151,6 +154,7 @@ export default {
     ...mapActions(useReaderStore, [
       "loadBook",
       "routeToDirection",
+      "routeToPage",
       "setBookChangeFlag",
       "setRoutesAndBookmarkPage",
     ]),
@@ -165,6 +169,12 @@ export default {
       if (page === undefined) {
         page = +this.$route.params.page || 0;
       }
+      if (page < 0) {
+        return this.routeToPage(0);
+      }
+      if (page > this.maxPage) {
+        return this.routeToPage(this.maxPage);
+      }
       this.activePage = page;
       window.scrollTo(0, 0);
     },
@@ -175,6 +185,9 @@ export default {
       if (this.routes[direction + "Book"]) {
         this.setBookChangeFlag(direction);
       }
+    },
+    changeSrcToError(event) {
+      event.target.src = window.CODEX.MISSING_PAGE;
     },
   },
 };
