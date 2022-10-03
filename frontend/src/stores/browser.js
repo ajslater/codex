@@ -300,13 +300,25 @@ export const useBrowserStore = defineStore("browser", {
         })
         .catch(this.handlePageError);
     },
-    async loadAllFilterChoices() {
-      return await API.getAllBrowserChoices(
+    async loadAvailableFilterChoices() {
+      return await API.getAvailableFilterChoices(
         router.currentRoute.params,
         this.settings
       )
         .then((response) => {
-          this.choices.dynamic = Object.freeze(response.data);
+          this.choices.dynamic = response.data;
+          return true;
+        })
+        .catch(console.error);
+    },
+    async loadFilterChoices(fieldName) {
+      return await API.getFilterChoices(
+        router.currentRoute.params,
+        fieldName,
+        this.settings
+      )
+        .then((response) => {
+          this.choices.dynamic[fieldName] = Object.freeze(response.data);
           return true;
         })
         .catch(console.error);
