@@ -27,7 +27,6 @@
 </template>
 
 <script>
-// import AdminGroupCreateUpdateInputs from "@/components/admin/group-create-update-inputs.vue";
 import _ from "lodash";
 import { mapActions } from "pinia";
 
@@ -142,5 +141,6 @@ export default {
 <style scoped lang="scss">
 .cuForm {
   padding: 20px;
+  max-height: 100%;
 }
 </style>

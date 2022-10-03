@@ -1,11 +1,12 @@
 <template>
-  <div>
+  <div id="libraryInputs" :class="{ tallForPicker: folderMenuOpen }">
     <AdminServerFolderPicker
       v-if="!oldRow"
       :rules="rules.path"
       autofocus
       label="Library Folder"
       @change="row.path = $event"
+      @menu="folderMenuOpen = folderMenuOpen || $event"
     />
     <div v-else>{{ oldRow.path }}</div>
     <v-checkbox
@@ -91,6 +92,7 @@ export default {
         ],
       },
       row: _.cloneDeep(this.oldRow || EMPTY_ROW),
+      folderMenuOpen: false,
     };
   },
   computed: {
@@ -123,3 +125,12 @@ export default {
   EMPTY_ROW,
 };
 </script>
+
+<style scoped lang="scss">
+.tallForPicker {
+  height: 75vh;
+}
+#libraryInputs {
+  transition: height 0.33s;
+}
+</style>

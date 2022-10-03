@@ -8,7 +8,7 @@
     :append-icon="mdiFileTree"
     :items="folders"
     :error-messages="formErrors"
-    :menu-props="{ value: menuOpen }"
+    :menu-props="{ value: menuOpen, maxHeight: '75%' }"
     v-bind="$attrs"
     v-on="$listeners"
     @blur="toggleMenu(false)"
@@ -38,7 +38,7 @@ import { useCommonStore } from "@/stores/common";
 
 export default {
   name: "AdminServerFolderPicker",
-  emits: ["change"],
+  emits: ["change", "menu"],
   data() {
     return {
       path: "",
@@ -62,6 +62,13 @@ export default {
     },
     showHiddenTooltipPrefix: function () {
       return this.showHidden ? "Hide" : "Show";
+    },
+  },
+  watch: {
+    menuOpen(to) {
+      if (to) {
+        this.$emit("menu", to);
+      }
     },
   },
   created() {
