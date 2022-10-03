@@ -19,7 +19,7 @@ from django.db.models import (
     When,
 )
 from django.db.models.fields import PositiveSmallIntegerField
-from django.db.models.functions import Lower, Reverse, Right, StrIndex, Substr
+from django.db.models.functions import Least, Lower, Reverse, Right, StrIndex, Substr
 
 from codex.models import Comic, Folder, Imprint, Publisher, Series, Volume
 from codex.serializers.mixins import UNIONFIX_PREFIX
@@ -179,7 +179,9 @@ class BrowserMetadataBaseView(BrowserBaseView):
         """Compute progress for each member of a queryset."""
         # Requires bookmark and annotation hoisted from bookmarks.
         # Requires page_count native to comic or aggregated
-        then = F("page") * 100.0 / F("page_count")
+        # Least guard is for rare instances when bookmarks are set to
+        # invalid high values
+        then = Least(F("page") * 100.0 / F("page_count"), Value(100.0))
         progress = Case(When(page_count__gt=0, then=then), default=0.0)
         queryset = queryset.annotate(progress=progress)
         return queryset

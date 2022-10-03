@@ -8,7 +8,7 @@
     :append-icon="mdiFileTree"
     :items="folders"
     :error-messages="formErrors"
-    :menu-props="{ value: menuOpen }"
+    :menu-props="{ value: menuOpen, maxHeight: '75%' }"
     v-bind="$attrs"
     v-on="$listeners"
     @blur="toggleMenu(false)"
@@ -38,7 +38,7 @@ import { useCommonStore } from "@/stores/common";
 
 export default {
   name: "AdminServerFolderPicker",
-  emits: ["change"],
+  emits: ["change", "menu"],
   data() {
     return {
       path: "",
@@ -64,15 +64,20 @@ export default {
       return this.showHidden ? "Hide" : "Show";
     },
   },
+  watch: {
+    menuOpen(to) {
+      if (to) {
+        this.$emit("menu", to);
+      }
+    },
+  },
   created() {
     this.loadFolders()
       .then(() => {
         this.path = this.rootFolder;
         return true;
       })
-      .catch((error) => {
-        console.warn(error);
-      });
+      .catch(console.warn);
   },
   methods: {
     ...mapActions(useAdminStore, ["loadFolders"]),
@@ -92,9 +97,7 @@ export default {
           this.$refs.folderPicker.isMenuActive = isMenuActive;
           return this.$emit("change", this.path);
         })
-        .catch((error) => {
-          console.warn(error);
-        });
+        .catch(console.warn);
     },
     toggleMenu: function (val) {
       if (val === undefined) {

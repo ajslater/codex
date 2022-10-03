@@ -5,6 +5,7 @@ import API from "@/api/v3/reader";
 import CHOICES from "@/choices";
 import { getFullComicName } from "@/comic-name";
 import router from "@/router";
+import { useBrowserStore } from "@/stores/browser";
 
 const NULL_READER_SETTINGS = {
   // Must be null so axios doesn't throw them out when sending.
@@ -33,10 +34,6 @@ const getRouteParams = function (condition, routeParams, increment) {
         page: Number(routeParams.page) + increment,
       }
     : false;
-};
-
-const routerPush = function (route) {
-  router.push(route).catch(console.debug);
 };
 
 export const useReaderStore = defineStore("reader", {
@@ -129,11 +126,7 @@ export const useReaderStore = defineStore("reader", {
       this.$patch((state) => {
         state.comic = data.comic;
         // Only set prev/next book info do not clobber page routes.
-        state.routes.prevBook = data.routes.prevBook;
-        state.routes.nextBook = data.routes.nextBook;
-        state.routes.seriesIndex = data.routes.seriesIndex;
-        state.routes.seriesCount = data.routes.seriesCount;
-        state.updatedAt = data.updatedAt;
+        state.routes = { ...state.routes, ...data.routes };
       });
     },
     setPrevRoute() {
@@ -162,9 +155,7 @@ export const useReaderStore = defineStore("reader", {
           this._updateSettings("globl", data);
           return true;
         })
-        .catch((error) => {
-          return console.error(error);
-        });
+        .catch(console.error);
     },
     async _loadBookSettings() {
       this.comicLoaded = false;
@@ -188,14 +179,12 @@ export const useReaderStore = defineStore("reader", {
           return this._loadBookSettings();
         })
         .catch((error) => {
-          if (error.response && [303, 404].includes(error.response.status)) {
-            const data = error.response.data;
-            console.debug(`redirect: ${data.reason}`);
-            const route = { name: "browser", params: data.route };
-            return this.routerPush(route);
-          } else {
-            console.error(error);
-          }
+          console.debug(error);
+          const page = useBrowserStore().page;
+          const lastBrowserRoute =
+            page && page.routes ? page.routes.last : undefined;
+          const route = lastBrowserRoute || { name: "home" };
+          return router.push(route);
         });
     },
     async setBookmarkPage() {
@@ -256,7 +245,7 @@ export const useReaderStore = defineStore("reader", {
         }
       }
       const route = { name: "reader", params: routeParams };
-      return routerPush(route);
+      return router.push(route).catch(console.debug);
     },
     routeToDirection(direction) {
       if (this._isRouteBookChange(direction) && this.bookChange !== direction) {

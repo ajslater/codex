@@ -3,23 +3,11 @@ import { defineStore } from "pinia";
 
 import API from "@/api/v3/common";
 
-const _flattenNestedStringArray = (error) => {
-  const errors = [];
-  if (typeof error === "string") {
-    errors.push(error);
-  } else {
-    for (const subError of Object.values(error)) {
-      errors.push(..._flattenNestedStringArray(subError));
-    }
-  }
-  return errors;
-};
-
 const getErrors = (axiosError) => {
   let errors = [];
   if (axiosError && axiosError.response && axiosError.response.data) {
     const data = axiosError.response.data;
-    errors = _flattenNestedStringArray(data);
+    errors = data.flat();
   } else {
     console.warn("Unable to parse error", axiosError);
   }
@@ -49,9 +37,7 @@ export const useCommonStore = defineStore("common", {
           const data = response.data;
           return (this.versions = data);
         })
-        .catch((error) => {
-          return console.error(error);
-        });
+        .catch(console.error);
     },
     downloadIOSPWAFix(href, fileName) {
       API.downloadIOSPWAFix(href, fileName);

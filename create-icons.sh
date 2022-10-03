@@ -30,6 +30,10 @@ inkscape --export-width=180 --export-height=180 --export-filename="$LOGO_MASKABL
 # if missing-cover.svg or logo.svg has changed
 inkscape --export-filename=missing-cover.png missing-cover.svg
 
+MISSING_PAGE_PATH=missing-page.svg
+STATIC_MISSING_PAGE_PATH=$RELATIVE_STATIC_PATH/$MISSING_PAGE_PATH
+npx svgo --multipass --pretty --input "$MISSING_PAGE_PATH" --output "$STATIC_MISSING_PAGE_PATH"
+
 cd "$TOP_PATH"
 STATIC_PATH=codex/static_src/img
 picopt -rc WEBP "$IMG_PATH" "$STATIC_PATH"

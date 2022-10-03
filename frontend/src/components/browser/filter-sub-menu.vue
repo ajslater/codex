@@ -31,6 +31,7 @@
             </v-list-item-content>
           </v-list-item>
           <v-text-field
+            v-if="typeof choices === 'object'"
             v-model="query"
             placeholder="Filter"
             full-width
@@ -40,8 +41,15 @@
             hide-details="auto"
             @focus="filterMode = name"
           />
+          <v-progress-linear
+            v-else
+            class="filterValuesProgress"
+            rounded
+            indeterminate
+          />
         </header>
         <v-list-item-group
+          v-if="typeof choices === 'object'"
           :value="filter"
           class="filterGroup overflow-y-auto"
           multiple
@@ -75,7 +83,7 @@ import {
   mdiChevronRight,
   mdiChevronRightCircle,
 } from "@mdi/js";
-import { mapState, mapWritableState } from "pinia";
+import { mapActions, mapState, mapWritableState } from "pinia";
 
 import { toVuetifyItems } from "@/api/v3/vuetify-items";
 import {
@@ -132,9 +140,13 @@ export default {
     },
   },
   methods: {
+    ...mapActions(useBrowserStore, ["loadFilterChoices"]),
     setUIFilterMode(mode) {
       this.filterMode = mode;
       this.query = "";
+      if (mode !== "base" && typeof this.choices !== "object") {
+        this.loadFilterChoices(mode);
+      }
     },
     isNullPk: (pk) => NULL_PKS.has(pk),
     change(value) {
@@ -167,5 +179,9 @@ export default {
 }
 .noneItem {
   color: gray;
+}
+.filterValuesProgress {
+  margin: 10px;
+  width: 88%;
 }
 </style>

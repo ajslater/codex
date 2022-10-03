@@ -27,7 +27,7 @@ const libraryChanged = function () {
   readerStore.setTimestamp();
   if (router.currentRoute.name === "browser") {
     browserStore.loadBrowserPage({ showProgress: false });
-  } else if (router.currentRoute.name == "admin") {
+  } else if (router.currentRoute.name == "admin-libraries") {
     useAdminStore().loadTables(["Library", "FailedImport"]);
   }
 };
@@ -73,14 +73,17 @@ export const useSocketStore = defineStore("socket", {
           libraryChanged();
 
           break;
+
         case CHOICES.websockets.LIBRARIAN_STATUS:
           useAdminStore().loadTable("LibrarianStatus");
 
           break;
+
         case CHOICES.websockets.FAILED_IMPORTS:
           useAdminStore().unseenFailedImports = true;
 
           break;
+
         default:
           console.debug("Unhandled websocket message:", message);
       }

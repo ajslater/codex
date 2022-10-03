@@ -4,7 +4,7 @@ from django.views.decorators.cache import cache_page, never_cache
 
 from codex.views.bookmark import BookmarkView
 from codex.views.browser.browser import BrowserView
-from codex.views.browser.choices import BrowserChoicesView
+from codex.views.browser.choices import BrowserChoicesAvailableView, BrowserChoicesView
 from codex.views.browser.metadata import MetadataView
 from codex.views.browser.session import BrowserSessionView
 
@@ -23,8 +23,13 @@ urlpatterns = [
         name="page",
     ),
     path(
-        "<int:pk>/choices",
+        "<int:pk>/choices/<str:field_name>",
         cache_page(TIMEOUT)(BrowserChoicesView.as_view()),
+        name="choices",
+    ),
+    path(
+        "<int:pk>/choices",
+        cache_page(TIMEOUT)(BrowserChoicesAvailableView.as_view()),
         name="choices",
     ),
     path(

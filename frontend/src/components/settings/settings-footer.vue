@@ -60,9 +60,7 @@ export default {
           }, 5000);
           return true;
         })
-        .catch((error) => {
-          console.warn(error);
-        });
+        .catch(console.warn);
     },
   },
 };

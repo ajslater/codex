@@ -76,6 +76,7 @@ module.exports = {
     "simple-import-sort/imports": "warn",
     "space-before-function-paren": "off",
     "switch-case/newline-between-switch-case": "off", // Malfunctioning
+    "unicorn/switch-case-braces": ["warn", "avoid"],
     "unicorn/prefer-node-protocol": 0,
     "unicorn/prevent-abbreviations": "off",
     "unicorn/filename-case": [

@@ -46,9 +46,9 @@
         </div>
         <v-progress-linear
           v-else
-          id="subMenuProgress"
+          id="availableFiltersProgress"
           rounded
-          :indeterminate="true"
+          indeterminate
         />
       </template>
     </v-select>
@@ -107,7 +107,13 @@ export default {
         return clsName;
       },
       dynamicChoiceNames: function (state) {
-        return Object.keys(state.choices.dynamic);
+        const names = [];
+        for (const [key, value] of Object.entries(state.choices.dynamic)) {
+          if (value) {
+            names.push(key);
+          }
+        }
+        return names;
       },
     }),
     ...mapWritableState(useBrowserStore, ["filterMode"]),
@@ -121,7 +127,7 @@ export default {
   methods: {
     ...mapActions(useBrowserStore, [
       "clearFiltersAndChoices",
-      "loadAllFilterChoices",
+      "loadAvailableFilterChoices",
       "setSettings",
     ]),
     change(bookmark) {
@@ -137,7 +143,7 @@ export default {
     focus() {
       this.focused = true;
       if (this.dynamicChoiceNames.length === 0) {
-        this.loadAllFilterChoices();
+        this.loadAvailableFilterChoices();
       }
     },
   },
@@ -148,7 +154,7 @@ export default {
 .filterSuffix {
   margin-left: 0.25em;
 }
-#subMenuProgress {
+#availableFiltersProgress {
   margin: 10px;
   margin-bottom: 2px;
   width: 132px;
