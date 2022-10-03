@@ -184,7 +184,7 @@ export const useReaderStore = defineStore("reader", {
           const lastBrowserRoute =
             page && page.routes ? page.routes.last : undefined;
           const route = lastBrowserRoute || { name: "home" };
-          return router.push(route).catch(console.debug);
+          return router.push(route);
         });
     },
     async setBookmarkPage() {

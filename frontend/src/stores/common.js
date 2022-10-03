@@ -2,13 +2,12 @@
 import { defineStore } from "pinia";
 
 import API from "@/api/v3/common";
-import _ from "lodash";
 
 const getErrors = (axiosError) => {
   let errors = [];
   if (axiosError && axiosError.response && axiosError.response.data) {
     const data = axiosError.response.data;
-    errors = _.flatten(data);
+    errors = data.flat();
   } else {
     console.warn("Unable to parse error", axiosError);
   }
