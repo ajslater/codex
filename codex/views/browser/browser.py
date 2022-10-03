@@ -429,7 +429,7 @@ class BrowserView(BrowserMetadataBaseView):
         else:
             issue_max = 0
 
-        covers_timestamp = Timestamp.get(Timestamp.COVERS)
+        covers_timestamp = int(Timestamp.get(Timestamp.COVERS))
 
         # construct final data structure
         browser_page = {
@@ -588,4 +588,5 @@ class BrowserView(BrowserMetadataBaseView):
         data = self.get_object()
         serializer = self.get_serializer(data)
         self.save_params_to_session(self.params)
+        print(data)
         return Response(serializer.data)
