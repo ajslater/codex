@@ -2,24 +2,13 @@
 import { defineStore } from "pinia";
 
 import API from "@/api/v3/common";
-
-const _flattenNestedStringArray = (error) => {
-  const errors = [];
-  if (typeof error === "string") {
-    errors.push(error);
-  } else {
-    for (const subError of Object.values(error)) {
-      errors.push(..._flattenNestedStringArray(subError));
-    }
-  }
-  return errors;
-};
+import _ from "lodash";
 
 const getErrors = (axiosError) => {
   let errors = [];
   if (axiosError && axiosError.response && axiosError.response.data) {
     const data = axiosError.response.data;
-    errors = _flattenNestedStringArray(data);
+    errors = _.flatten(data);
   } else {
     console.warn("Unable to parse error", axiosError);
   }
