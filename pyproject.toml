@@ -75,7 +75,7 @@ pynvim = "^0.4"
 [tool.poetry.group.test.dependencies]
 coverage = { extras = ["toml"], version = "^6.0" }
 pytest-asyncio = "^0.19"
-pytest-cov = "^3.0"
+pytest-cov = "^4.0"
 pytest-django = "^4.1"
 pytest-gitignore = "^1.3"
 
