@@ -114,9 +114,7 @@ const compareRouteParams = function (a, b) {
 
 const redirectRoute = function (route) {
   if (route.params) {
-    router.push(route).catch((error) => {
-      console.debug(error);
-    });
+    router.push(route).catch(console.debug);
   }
 };
 
@@ -233,9 +231,7 @@ export const useBrowserStore = defineStore("browser", {
         name: router.currentRoute.name,
         params: { ...router.currentRoute.params, page },
       };
-      router.push(route).catch((error) => {
-        console.debug(error);
-      });
+      router.push(route).catch(console.debug);
     },
     handlePageError(error) {
       if (error.response.status == 303) {
@@ -316,9 +312,7 @@ export const useBrowserStore = defineStore("browser", {
           this.choices.dynamic = Object.freeze(response.data);
           return true;
         })
-        .catch((error) => {
-          console.error(error);
-        });
+        .catch(console.error);
     },
   },
 });

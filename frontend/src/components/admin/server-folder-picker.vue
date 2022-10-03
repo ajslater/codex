@@ -70,9 +70,7 @@ export default {
         this.path = this.rootFolder;
         return true;
       })
-      .catch((error) => {
-        console.warn(error);
-      });
+      .catch(console.warn);
   },
   methods: {
     ...mapActions(useAdminStore, ["loadFolders"]),
@@ -92,9 +90,7 @@ export default {
           this.$refs.folderPicker.isMenuActive = isMenuActive;
           return this.$emit("change", this.path);
         })
-        .catch((error) => {
-          console.warn(error);
-        });
+        .catch(console.warn);
     },
     toggleMenu: function (val) {
       if (val === undefined) {

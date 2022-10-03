@@ -49,9 +49,7 @@ export const useCommonStore = defineStore("common", {
           const data = response.data;
           return (this.versions = data);
         })
-        .catch((error) => {
-          return console.error(error);
-        });
+        .catch(console.error);
     },
     downloadIOSPWAFix(href, fileName) {
       API.downloadIOSPWAFix(href, fileName);

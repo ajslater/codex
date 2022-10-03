@@ -159,9 +159,7 @@ export const useReaderStore = defineStore("reader", {
           this._updateSettings("globl", data);
           return true;
         })
-        .catch((error) => {
-          return console.error(error);
-        });
+        .catch(console.error);
     },
     async _loadBookSettings() {
       this.comicLoaded = false;
