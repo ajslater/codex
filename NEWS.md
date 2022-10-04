@@ -6,7 +6,7 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v0.14.0a2
+## v0.14.0a3
 
 ### Sliding Pages
 
