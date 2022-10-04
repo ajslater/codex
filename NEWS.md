@@ -6,13 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v0.14.0a3
+## v0.14.0a4
 
 ### Sliding Pages
 
 - Features
   - Animated sliding pages on reader.
-  - Move download page button to the reader settings drawer.
 - Fixes
   - Filters with compound names were not loading choices.
   - Show only usable filters for current view as filter choices.
