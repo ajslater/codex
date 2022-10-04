@@ -37,6 +37,7 @@ import { mdiAlertCircleOutline, mdiLockOutline } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 import VuePdfEmbed from "vue-pdf-embed/dist/vue2-pdf-embed";
 
+import { getComicPageSource } from "@/api/v3/reader";
 import Placeholder from "@/components/placeholder-loading.vue";
 import { useReaderStore } from "@/stores/reader";
 
@@ -46,8 +47,12 @@ export default {
   name: "PDFPage",
   components: { Placeholder, VuePdfEmbed },
   props: {
-    source: {
-      type: String,
+    pk: {
+      type: Number,
+      required: true,
+    },
+    page: {
+      type: Number,
       required: true,
     },
   },
@@ -77,6 +82,10 @@ export default {
         return ["HEIGHT", "SCREEN"].includes(state.computedSettings.fitTo)
           ? window.innerHeight
           : 0;
+      },
+      source(state) {
+        const params = { pk: this.pk, page: this.page };
+        return getComicPageSource(params, state.timestamp);
       },
     }),
     placeholderSize() {

@@ -6,7 +6,7 @@ from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
 from codex.models import Comic
-from codex.serializers.reader import ReaderInfoSerializer
+from codex.serializers.reader import ReaderComicSerializer
 from codex.serializers.redirect import ReaderRedirectSerializer
 from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
@@ -21,9 +21,9 @@ class ReaderView(GenericAPIView, GroupACLMixin):
     """Get info for displaying comic pages."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
-    serializer_class = ReaderInfoSerializer
+    serializer_class = ReaderComicSerializer
 
-    def _get_prev_next_comics(self):
+    def get_object(self):
         """
         Get the previous and next comics in a series.
 
@@ -67,21 +67,8 @@ class ReaderView(GenericAPIView, GroupACLMixin):
             else:
                 # Haven't matched yet, so set the previous comic
                 prev_route = {"pk": comic["pk"], "page": comic["max_page"]}
-        routes = {
-            "prev_book": prev_route,
-            "next_book": next_route,
-            "series_index": series_index,
-            "series_count": comics.count(),
-        }
 
-        return current_comic, routes
-
-    def get_object(self):
-        """Get method."""
-        # Get the preve next links and the comic itself in the same go
-        comic, routes = self._get_prev_next_comics()
-
-        if not comic:
+        if not current_comic:
             pk = self.kwargs.get("pk")
             detail = {
                 "route": reverse("app:start"),
@@ -89,11 +76,15 @@ class ReaderView(GenericAPIView, GroupACLMixin):
                 "serializer": ReaderRedirectSerializer,
             }
             raise NotFound(detail=detail)
-        obj = {
-            "comic": comic,
-            "routes": routes,
+
+        current_comic["series"] = {
+            "prev": prev_route,
+            "next": next_route,
+            "index": series_index,
+            "count": comics.count(),
         }
-        return obj
+
+        return current_comic
 
     def get(self, request, *args, **kwargs):
         """Get the book info."""

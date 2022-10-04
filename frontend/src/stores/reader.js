@@ -58,14 +58,16 @@ export const useReaderStore = defineStore("reader", {
       maxPage: undefined,
       seriesName: "",
       volumeName: "",
+      series: {
+        prev: undefined,
+        next: undefined,
+        index: undefined,
+        count: undefined,
+      },
     },
     routes: {
       prev: undefined,
       next: undefined,
-      prevBook: undefined,
-      nextBook: undefined,
-      seriesIndex: undefined,
-      seriesCount: undefined,
     },
     // LOCAL UI
     bookChange: undefined,
@@ -117,18 +119,11 @@ export const useReaderStore = defineStore("reader", {
         direction &&
         this.routes &&
         !this.routes[direction] &&
-        this.routes[direction + "Book"]
+        this.comic.series[direction]
       );
     },
     ///////////////////////////////////////////////////////////////////////////
     // MUTATIONS
-    setBookInfo(data) {
-      this.$patch((state) => {
-        state.comic = data.comic;
-        // Only set prev/next book info do not clobber page routes.
-        state.routes = { ...state.routes, ...data.routes };
-      });
-    },
     setPrevRoute() {
       const routeParams = router.currentRoute.params;
       const condition = Number(routeParams.page) > 0;
@@ -174,23 +169,24 @@ export const useReaderStore = defineStore("reader", {
     async loadBook() {
       await API.getReaderInfo(router.currentRoute.params.pk, this.timestamp)
         .then((response) => {
-          const info = response.data;
-          this.setBookInfo(info);
+          this.comic = response.data;
           return this._loadBookSettings();
         })
         .catch((error) => {
           console.debug(error);
           const page = useBrowserStore().page;
-          const lastBrowserRoute =
-            page && page.routes ? page.routes.last : undefined;
-          const route = lastBrowserRoute || { name: "home" };
+          const route =
+            page && page.routes ? page.routes.last : { name: "home" };
           return router.push(route);
         });
     },
     async setBookmarkPage() {
       const pk = +router.currentRoute.params.pk;
       const params = { group: "c", pk };
-      const page = +router.currentRoute.params.page;
+      const page = Math.max(
+        Math.min(this.comic.maxPage, +router.currentRoute.params.page),
+        0
+      );
       const updates = { page };
       await BROWSER_API.setGroupBookmarks(params, updates);
     },

@@ -1,6 +1,5 @@
 <template>
   <v-navigation-drawer
-    v-if="display"
     class="changeBookDrawer"
     :class="classes"
     absolute
@@ -19,6 +18,7 @@
 import { mdiBookArrowDown, mdiBookArrowUp } from "@mdi/js";
 import { mapState } from "pinia";
 
+import { getComicPageSource } from "@/api/v3/reader";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
@@ -35,29 +35,34 @@ export default {
       classes: { [this.direction]: true },
     };
   },
+  head() {
+    if (this.prefetchSrc) {
+      return { link: { rel: "prefetch", as: "image", href: this.prefetchSrc } };
+    }
+  },
   computed: {
     ...mapState(useReaderStore, {
-      routes: (state) => state.routes,
       isDrawerOpen(state) {
         return state.bookChange === this.direction;
       },
+      series: (state) => state.comic.series,
+      prefetchSrc(state) {
+        if (this.isDrawerOpen) {
+          return getComicPageSource(this.params, state.timestamp);
+        }
+      },
     }),
-    display() {
-      return (
-        !this.routes[this.direction] && this.routes[this.direction + "Book"]
-      );
+    params() {
+      return this.series[this.direction];
     },
     route() {
-      const key = this.direction + "Book";
-      const params = this.routes[key];
-      if (!params) {
-        return false;
-      }
-      return { params };
+      return this.series && this.series[this.direction]
+        ? { params: this.params }
+        : {};
     },
     label() {
       const prefix = this.direction === "prev" ? "Previous" : "Next";
-      return prefix + " Book";
+      return `${prefix} Book`;
     },
   },
 };

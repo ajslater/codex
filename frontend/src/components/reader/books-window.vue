@@ -15,14 +15,7 @@
       :eager="eager(pk)"
       :value="pk"
     >
-      <PagesWindow
-        :pk="pk"
-        :initial-page="
-          routes.prevBook && pk === routes.prevBook.pk
-            ? routes.prevBook.page
-            : 0
-        "
-      />
+      <PagesWindow :pk="pk" />
     </v-window-item>
     <ChangeBookDrawer direction="next" />
   </v-window>
@@ -31,11 +24,8 @@
 <script>
 import { mapActions, mapState } from "pinia";
 
-import { getComicPageSource } from "@/api/v3/reader";
 import ChangeBookDrawer from "@/components/reader/change-book-drawer.vue";
 import { useReaderStore } from "@/stores/reader";
-
-const PREFETCH_LINK = { rel: "prefetch", as: "image" };
 
 export default {
   name: "BooksWindow",
@@ -48,53 +38,25 @@ export default {
       windowBook: +this.$route.params.pk,
     };
   },
-  head() {
-    const links = [];
-    if (this.nextSrc) {
-      links.push({ ...PREFETCH_LINK, href: this.nextSrc });
-    }
-    if (this.prevSrc) {
-      links.push({ ...PREFETCH_LINK, href: this.prevSrc });
-    }
-    if (links.length > 0) {
-      return { link: links };
-    }
-  },
   computed: {
     ...mapState(useReaderStore, {
       books: function (state) {
         const res = [];
         const routes = state.routes;
-        if (!routes.prev && routes.prevBook) {
-          res.push(+routes.prevBook.pk);
+        const series = state.comic.series;
+        if (!routes.prev && series.prev) {
+          res.push(series.prev.pk);
         }
         if (!res.includes(+this.$route.params.pk)) {
           res.push(+this.$route.params.pk);
         }
-        if (
-          !routes.next &&
-          routes.nextBook &&
-          !res.includes(+routes.nextBook.pk)
-        ) {
-          res.push(+routes.nextBook.pk);
+        if (!routes.next && series.next && !res.includes(series.next.pk)) {
+          res.push(series.next.pk);
         }
         return res;
       },
-      routes: (state) => state.routes,
       bookChange: (state) => state.bookChange,
-      nextSrc(state) {
-        const routes = state.routes;
-        if (!routes.next && routes.nextBook) {
-          return getComicPageSource(routes.nextBook, state.timestamp);
-        }
-      },
-      prevSrc(state) {
-        const routes = state.routes;
-        if (!routes.prev && routes.prevBook) {
-          return getComicPageSource(routes.prevBook, state.timestamp);
-        }
-      },
-      comicLoaded: (state) => state.comicLoaded,
+      series: (state) => state.comic.series,
     }),
   },
   watch: {
@@ -125,11 +87,11 @@ export default {
     },
     eager(pk) {
       return (
-        (this.routes.nextBook &&
-          this.routes.nextBook.pk === pk &&
+        (this.series.next &&
+          this.series.next.pk === pk &&
           this.bookChange === "next") ||
-        (this.routes.prevBook &&
-          this.routes.prevBook.pk === pk &&
+        (this.series.prev &&
+          this.series.prev.pk === pk &&
           this.bookChange === "prev")
       );
     },

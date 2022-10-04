@@ -21,18 +21,19 @@ class PageRouteSerializer(Serializer):
     page = IntegerField(read_only=True)
 
 
-class ReaderRoutesSerializer(Serializer):
-    """Previous and next comic routes."""
+class ReaderSeriesInfoSerializer(Serializer):
+    """Information about the series this comic belongs to."""
 
-    prev_book = PageRouteSerializer(allow_null=True, read_only=True)
-    next_book = PageRouteSerializer(allow_null=True, read_only=True)
-    series_index = IntegerField(read_only=True)
-    series_count = IntegerField(read_only=True)
+    count = IntegerField(read_only=True)
+    index = IntegerField(read_only=True)
+    next = PageRouteSerializer(allow_null=True, read_only=True)
+    prev = PageRouteSerializer(allow_null=True, read_only=True)
 
 
 class ReaderComicSerializer(Serializer):
     """Components for constructing the title."""
 
+    pk = IntegerField(read_only=True)
     file_format = CharField(read_only=True)
     issue = DecimalField(
         max_digits=None, decimal_places=3, read_only=True, coerce_to_string=False
@@ -42,13 +43,7 @@ class ReaderComicSerializer(Serializer):
     max_page = IntegerField(read_only=True)
     series_name = CharField(read_only=True)
     volume_name = CharField(read_only=True)
-
-
-class ReaderInfoSerializer(Serializer):
-    """Information when opening a new book."""
-
-    comic = ReaderComicSerializer(read_only=True)
-    routes = ReaderRoutesSerializer(read_only=True)
+    series = ReaderSeriesInfoSerializer(read_only=True)
 
 
 class ReaderSettingsSerializer(Serializer):

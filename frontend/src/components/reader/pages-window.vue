@@ -1,60 +1,34 @@
 <template>
   <v-window id="pagesWindow" ref="pagesWindow" show-arrows :value="activePage">
     <div
-      id="bookChangePrev"
-      class="bookChangeColumn"
-      :class="{ upArrow: routes.prevBook }"
-      @click.stop="bookChange('prev')"
+      id="bookChangeActivatorPrev"
+      class="bookChangeActivatorColumn"
+      :class="{ upArrow: series.prev }"
+      @click.stop="setBookChange('prev')"
     />
     <div
-      id="bookChangeNext"
-      class="bookChangeColumn"
-      :class="{ downArrow: routes.nextBook }"
-      @click.stop="bookChange('next')"
+      id="bookChangeActivatorNext"
+      class="bookChangeActivatorColumn"
+      :class="{ downArrow: series.next }"
+      @click.stop="setBookChange('next')"
     />
     <template #prev>
-      <div
-        class="pageChangeColumn"
-        aria-label="previous page"
-        @click.stop="pageChange('prev')"
-      />
+      <PageChangeLink direction="prev" />
     </template>
     <template #next>
-      <div
-        class="pageChangeColumn"
-        aria-label="next page"
-        @click.stop="pageChange('next')"
-      />
+      <PageChangeLink direction="next" />
     </template>
     <v-window-item
-      v-for="(_, page) in numWindowItems"
+      v-for="page of pages"
       :key="`c/${pk}/${page}`"
       class="windowItem"
       disabled
       :eager="page >= activePage - 1 && page <= activePage + 2"
     >
-      <PDFPage v-if="isPDF" :source="getSrc(page)" />
-      <img
-        v-else
-        class="page"
-        :class="fitToClass"
-        :src="getSrc(page)"
-        :alt="`Page ${page}`"
-        @error="changeSrcToError"
-      />
-      <PDFPage
-        v-if="secondPage && isPDF"
-        :source="getSrc(page + 1)"
-        :classes="fitToClass"
-      />
-      <img
-        v-else-if="secondPage"
-        class="page"
-        :class="fitToClass"
-        :src="getSrc(page + 1)"
-        :alt="`Page ${page + 1}`"
-        @error="changeSrcToError"
-      />
+      <PDFPage v-if="isPDF" :pk="pk" :page="page" />
+      <ComicPage v-else :pk="pk" :page="page" />
+      <PDFPage v-if="secondPage && isPDF" :pk="pk" :page="page + 1" />
+      <ComicPage v-else-if="secondPage" :pk="pk" :page="page + 1" />
     </v-window-item>
   </v-window>
 </template>
@@ -62,78 +36,54 @@
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 
-import { getComicPageSource } from "@/api/v3/reader";
 const PDFPage = () => import("@/components/reader/pdf.vue");
+import _ from "lodash";
+
+import PageChangeLink from "@/components/reader/change-page-link.vue";
+import ComicPage from "@/components/reader/page.vue";
 import { useReaderStore } from "@/stores/reader";
-
-const PREFETCH_LINK = { rel: "prefetch", as: "image" };
-
 export default {
   name: "PagesWindow",
   components: {
     PDFPage,
+    ComicPage,
+    PageChangeLink,
   },
   props: {
     pk: { type: Number, required: true },
-    initialPage: { type: Number, default: 0 },
   },
   data() {
     return {
-      activePage: this.initialPage,
+      activePage: undefined,
     };
   },
-  head() {
-    const links = [];
-    if (this.nextSrc) {
-      links.push({ ...PREFETCH_LINK, href: this.nextSrc });
-    }
-    if (this.prevSrc) {
-      links.push({ ...PREFETCH_LINK, href: this.prevSrc });
-    }
-    if (links.length > 0) {
-      return { link: links };
-    }
-  },
   computed: {
-    ...mapGetters(useReaderStore, ["computedSettings", "fitToClass"]),
+    ...mapGetters(useReaderStore, ["computedSettings"]),
     ...mapState(useReaderStore, {
-      numWindowItems: (state) => {
-        if (state.comic) {
-          return (state.comic.maxPage || 0) + 1;
-        }
-        return 0;
+      pages(state) {
+        const len = state.comic ? state.comic.maxPage + 1 : 0;
+        return _.range(len);
       },
-      maxPage: (state) => state.comic.maxPage,
+      maxPage: (state) => state.comic.maxPage || 0,
       isPDF: (state) =>
         state.comic ? state.comic.fileFormat === "pdf" : false,
-      routes: (state) => state.routes,
-      timestamp: (state) => state.timestamp,
       secondPage(state) {
         return (
           state.computedSettings.twoPages &&
           +this.activePage + 1 <= state.comic.maxPage
         );
       },
-      nextSrc(state) {
-        const routes = state.routes;
-        return routes.next
-          ? getComicPageSource(routes.next, state.timestamp)
-          : undefined;
-      },
-      prevSrc(state) {
-        const routes = state.routes;
-        return routes.prev
-          ? getComicPageSource(routes.prev, state.timestamp)
-          : undefined;
-      },
       comicLoaded: (state) => state.comicLoaded,
+      bookChange: (state) => state.bookChange,
+      comicPk: (state) => state.comic.pk,
+      series: (state) => state.comic.series,
     }),
   },
   watch: {
     $route(to) {
-      if (+to.params.pk === this.pk) {
+      if (+to.params.pk === this.pk && this.comicLoaded) {
         this.setRoutesAndBookmarkPage();
-        this.setActivePage(+to.params.page);
+        this.setActivePage();
       }
     },
     comicLoaded(to) {
@@ -141,6 +91,16 @@ export default {
         this.setActivePage();
       }
     },
+  },
+  created() {
+    if (this.pk === +this.$route.params.pk) {
+      this.activePage = +this.$route.params.page;
+    } else if (this.bookChange === "prev") {
+      // XXX this.bookChange seems a little hacky
+      this.activePage = +this.series.prev.page;
+    } else {
+      this.activePage = 0;
+    }
   },
   mounted() {
     const windowContainer = this.$refs.pagesWindow.$el.children[0];
@@ -153,94 +113,59 @@ export default {
   methods: {
     ...mapActions(useReaderStore, [
       "loadBook",
-      "routeToDirection",
       "routeToPage",
       "setBookChangeFlag",
       "setRoutesAndBookmarkPage",
     ]),
-    getSrc(page) {
-      const params = { pk: this.pk, page };
-      return getComicPageSource(params, this.timestamp);
-    },
-    setActivePage(page) {
-      if (!this.comicLoaded || this.pk !== +this.$route.params.pk) {
+    setActivePage() {
+      if (
+        !this.comicLoaded ||
+        this.pk !== +this.$route.params.pk ||
+        this.pk !== this.comicPk
+      ) {
         return;
       }
-      if (page === undefined) {
-        page = +this.$route.params.page || 0;
-      }
+      const page = +this.$route.params.page || 0;
       if (page < 0) {
+        console.warn("Page out of bounds. Redirecting to 0.");
         return this.routeToPage(0);
       }
       if (page > this.maxPage) {
+        console.warn(`Page out of bounds. Redirecting to ${this.maxPage}.`);
         return this.routeToPage(this.maxPage);
       }
       this.activePage = page;
       window.scrollTo(0, 0);
     },
-    pageChange(direction) {
-      this.routeToDirection(direction);
-    },
-    bookChange(direction) {
-      if (this.routes[direction + "Book"]) {
+    setBookChange(direction) {
+      if (this.series[direction]) {
         this.setBookChangeFlag(direction);
       }
-    },
-    changeSrcToError(event) {
-      event.target.src = window.CODEX.MISSING_PAGE;
     },
   },
 };
 </script>
 
 <style scoped lang="scss">
-.pageChangeColumn {
-  width: 100%;
-  height: 100%;
-}
 .windowItem {
   /* keeps clickable area full screen when image is small */
   min-height: 100vh;
   text-align: center;
 }
-.fitToScreen,
-.fitToScreenTwo {
-  max-height: 100vh;
-}
-.fitToScreen {
-  max-width: 100vw;
-}
-.fitToHeight,
-.fitToHeightTwo {
-  height: 100vh;
-}
-.fitToWidth {
-  width: 100vw;
-}
-.fitToWidthTwo {
-  width: 50vw;
-}
-.fitToScreenTwo {
-  max-width: 50vw;
-}
-.fitToOrig,
-.fitToOrigTwo {
-  object-fit: none;
-}
-.bookChangeColumn {
+.bookChangeActivatorColumn {
   position: fixed;
   top: 48px;
   width: 33vw;
   height: calc(100vh - 96px);
   z-index: 5;
 }
-#bookChangePrev {
+#bookChangeActivatorPrev {
   left: 0px;
 }
 .upArrow {
   cursor: n-resize;
 }
-#bookChangeNext {
+#bookChangeActivatorNext {
   right: 0px;
 }
 .downArrow {
@@ -258,11 +183,5 @@ export default {
   border-radius: 0;
   opacity: 0;
   z-index: 10;
-}
-#pagesWindow .v-window__prev {
-  cursor: w-resize;
-}
-#pagesWindow .v-window__next {
-  cursor: e-resize;
 }
 </style>
