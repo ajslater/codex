@@ -15,7 +15,7 @@
       :eager="eager(pk)"
       :value="pk"
     >
-      <PagesWindow :pk="pk" />
+      <PagesWindow :pk="pk" @click="click" />
     </v-window-item>
     <ChangeBookDrawer direction="next" />
   </v-window>

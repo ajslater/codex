@@ -9,7 +9,13 @@
     :value="isDrawerOpen"
     width="33%"
   >
-    <router-link class="navLink" :to="route" :aria-label="label" :title="label">
+    <router-link
+      class="navLink"
+      :to="route"
+      :aria-label="label"
+      :title="label"
+      @click.native="$event.stopImmediatePropagation()"
+    >
       <v-icon class="bookChangeIcon"> {{ icon }} </v-icon>
     </router-link>
   </v-navigation-drawer>
@@ -47,7 +53,7 @@ export default {
       },
       series: (state) => state.comic.series,
       prefetchSrc(state) {
-        if (this.isDrawerOpen) {
+        if (this.isDrawerOpen && this.params) {
           return getComicPageSource(this.params, state.timestamp);
         }
       },

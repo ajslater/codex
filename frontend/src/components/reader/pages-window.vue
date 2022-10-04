@@ -52,6 +52,7 @@ export default {
   props: {
     pk: { type: Number, required: true },
   },
+  emits: ["click"],
   data() {
     return {
       activePage: undefined,
@@ -140,6 +141,8 @@ export default {
     setBookChange(direction) {
       if (this.series[direction]) {
         this.setBookChangeFlag(direction);
+      } else {
+        this.$emit("click");
       }
     },
   },

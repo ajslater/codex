@@ -7,6 +7,7 @@
       leftArrow: direction === 'prev',
       rightArrow: direction === 'next',
     }"
+    @click.native="$event.stopImmediatePropagation()"
   />
 </template>
 <script>
