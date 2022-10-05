@@ -22,10 +22,12 @@
 </template>
 <script>
 import { mdiBookArrowDown, mdiBookArrowUp } from "@mdi/js";
-import { mapState } from "pinia";
+import { mapGetters, mapState } from "pinia";
 
 import { getComicPageSource } from "@/api/v3/reader";
 import { useReaderStore } from "@/stores/reader";
+
+const PREFETCH_LINK = { rel: "prefetch", as: "image" };
 
 export default {
   name: "ChangeBookDrawer",
@@ -42,20 +44,42 @@ export default {
     };
   },
   head() {
-    if (this.prefetchSrc) {
-      return { link: { rel: "prefetch", as: "image", href: this.prefetchSrc } };
+    const links = [];
+    if (this.prefetchSrc1) {
+      links.push({ ...PREFETCH_LINK, href: this.prefetchSrc1 });
+    }
+    if (this.prefetchSrc2) {
+      links.push({ ...PREFETCH_LINK, href: this.prefetchSrc2 });
+    }
+    if (links.length > 0) {
+      return { link: links };
     }
   },
   computed: {
+    ...mapGetters(useReaderStore, ["computedSettings"]),
     ...mapState(useReaderStore, {
       isDrawerOpen(state) {
         return state.bookChange === this.direction;
       },
       series: (state) => state.comic.series,
-      prefetchSrc(state) {
-        if (this.isDrawerOpen && this.params) {
-          return getComicPageSource(this.params, state.timestamp);
+      prefetchSrc1(state) {
+        if (!this.isDrawerOpen || !this.params) {
+          return false;
         }
+        return getComicPageSource(this.params, state.timestamp);
+      },
+      prefetchSrc2(state) {
+        if (
+          !this.computedSettings.twoPages ||
+          this.direction !== "next" ||
+          !this.isDrawerOpen ||
+          !this.params
+        ) {
+          return false;
+        }
+        const params = { ...this.params };
+        params.page += 1;
+        return getComicPageSource(params, state.timestamp);
       },
     }),
     params() {

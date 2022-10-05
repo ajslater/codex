@@ -26,15 +26,6 @@ const getGlobalFitToDefault = () => {
   );
   return vw > 600 ? "HEIGHT" : "WIDTH";
 };
-const getRouteParams = function (condition, routeParams, increment) {
-  // Mutation helper
-  return condition
-    ? {
-        pk: Number(routeParams.pk),
-        page: Number(routeParams.page) + increment,
-      }
-    : false;
-};
 
 export const useReaderStore = defineStore("reader", {
   state: () => ({
@@ -122,21 +113,27 @@ export const useReaderStore = defineStore("reader", {
         this.comic.series[direction]
       );
     },
+    _getRoutePage(direction) {
+      const params = {
+        pk: +router.currentRoute.params.pk,
+        page: +router.currentRoute.params.page,
+      };
+      let delta = this.computedSettings.twoPages ? 2 : 1;
+      if (direction === "prev") {
+        delta = delta * -1;
+      }
+      params.page = params.page + delta;
+      return params;
+    },
     ///////////////////////////////////////////////////////////////////////////
     // MUTATIONS
     setPrevRoute() {
-      const routeParams = router.currentRoute.params;
-      const condition = Number(routeParams.page) > 0;
-      const increment = -1;
-      this.routes.prev = getRouteParams(condition, routeParams, increment);
+      const params = this._getRoutePage("prev");
+      this.routes.prev = params.page >= 0 ? params : false;
     },
-    setNextPage() {
-      const routeParams = router.currentRoute.params;
-      const twoPages = this.computedSettings.twoPages;
-      const increment = twoPages ? 2 : 1;
-      const condition =
-        Number(routeParams.page) + increment <= this.comic.maxPage;
-      this.routes.next = getRouteParams(condition, routeParams, increment);
+    setNextRoute() {
+      const params = this._getRoutePage("next");
+      this.routes.next = params.page <= this.comic.maxPage ? params : false;
     },
     setTimestamp() {
       this.timestamp = Date.now();
@@ -192,8 +189,7 @@ export const useReaderStore = defineStore("reader", {
     },
     async setRoutesAndBookmarkPage() {
       this.setPrevRoute();
-
-      this.setNextPage();
+      this.setNextRoute();
       await this.setBookmarkPage().then(() => {
         this.bookChange = undefined;
         return true;
@@ -211,7 +207,8 @@ export const useReaderStore = defineStore("reader", {
       );
 
       if ("twoPages" in data) {
-        this.setNextPage();
+        this.setPrevRoute();
+        this.setNextRoute();
       }
     },
     async clearSettingsLocal() {
@@ -238,6 +235,12 @@ export const useReaderStore = defineStore("reader", {
         } else if (routeParams.page < 0) {
           routeParams.page = 0;
           console.warn("Tried to navigate before the beginning of the book.");
+        } else if (
+          this.computedSettings.twoPages &&
+          routeParams.page % 2 !== 0
+        ) {
+          routeParams.page = routeParams.page - 1;
+          console.warn("Requested odd page in two pages mode. Flip back one");
         }
       }
       const route = { name: "reader", params: routeParams };

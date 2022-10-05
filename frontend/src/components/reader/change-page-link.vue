@@ -11,32 +11,53 @@
   />
 </template>
 <script>
-import { mapState } from "pinia";
+import { mapGetters, mapState } from "pinia";
 
 import { getComicPageSource } from "@/api/v3/reader";
 import { useReaderStore } from "@/stores/reader";
+
+const PREFETCH_LINK = { rel: "prefetch", as: "image" };
+
 export default {
   name: "PageChangeLink",
   props: {
     direction: { type: String, required: true },
   },
   head() {
-    if (this.prefetchSrc) {
-      return { link: { rel: "prefetch", as: "image", href: this.prefetchSrc } };
+    const links = [];
+    if (this.prefetchSrc1) {
+      links.push({ ...PREFETCH_LINK, href: this.prefetchSrc1 });
+    }
+    if (this.prefetchSrc2) {
+      links.push({ ...PREFETCH_LINK, href: this.prefetchSrc2 });
+    }
+    if (links.length > 0) {
+      return { link: links };
     }
   },
   computed: {
+    ...mapGetters(useReaderStore, ["computedSettings"]),
     ...mapState(useReaderStore, {
       route(state) {
         return state.routes && state.routes[this.direction]
           ? { params: state.routes[this.direction] }
           : {};
       },
-      prefetchSrc(state) {
-        const routes = state.routes;
-        return routes[this.direction]
-          ? getComicPageSource(routes[this.direction], state.timestamp)
-          : false;
+      maxPage: (state) => state.comic.maxPage,
+      prefetchSrc1(state) {
+        const route = state.routes[this.direction];
+        return route ? getComicPageSource(route, state.timestamp) : false;
+      },
+      prefetchSrc2(state) {
+        if (!this.computedSettings.twoPages) {
+          return false;
+        }
+        const route = { ...state.routes[this.direction] };
+        if (!route || +route.page + 1 > this.maxPage) {
+          return false;
+        }
+        route.page += 1;
+        return getComicPageSource(route, state.timestamp);
       },
     }),
     label() {

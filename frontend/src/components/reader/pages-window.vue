@@ -24,29 +24,26 @@
       class="windowItem"
       disabled
       :eager="page >= activePage - 1 && page <= activePage + 2"
+      :value="page"
     >
-      <PDFPage v-if="isPDF" :pk="pk" :page="page" />
-      <ComicPage v-else :pk="pk" :page="page" />
-      <PDFPage v-if="secondPage && isPDF" :pk="pk" :page="page + 1" />
-      <ComicPage v-else-if="secondPage" :pk="pk" :page="page + 1" />
+      <BookPage :pk="pk" :page="page" />
+      <BookPage v-if="secondPage" :pk="pk" :page="page + 1" />
     </v-window-item>
   </v-window>
 </template>
 
 <script>
+import _ from "lodash";
 import { mapActions, mapGetters, mapState } from "pinia";
 
-const PDFPage = () => import("@/components/reader/pdf.vue");
-import _ from "lodash";
-
 import PageChangeLink from "@/components/reader/change-page-link.vue";
-import ComicPage from "@/components/reader/page.vue";
+import BookPage from "@/components/reader/page.vue";
 import { useReaderStore } from "@/stores/reader";
+
 export default {
   name: "PagesWindow",
   components: {
-    PDFPage,
-    ComicPage,
+    BookPage,
     PageChangeLink,
   },
   props: {
@@ -63,11 +60,10 @@ export default {
     ...mapState(useReaderStore, {
       pages(state) {
         const len = state.comic ? state.comic.maxPage + 1 : 0;
-        return _.range(len);
+        const step = state.computedSettings.twoPages ? 2 : 1;
+        return _.range(0, len, step);
       },
       maxPage: (state) => state.comic.maxPage || 0,
-      isPDF: (state) =>
-        state.comic ? state.comic.fileFormat === "pdf" : false,
       secondPage(state) {
         return (
           state.computedSettings.twoPages &&
@@ -134,6 +130,12 @@ export default {
       if (page > this.maxPage) {
         console.warn(`Page out of bounds. Redirecting to ${this.maxPage}.`);
         return this.routeToPage(this.maxPage);
+      }
+      if (this.computedSettings.twoPages && page % 2 !== 0) {
+        console.warn(
+          `Requested odd page ${page} in two pages mode. Flip back one`
+        );
+        return this.routeToPage(page - 1);
       }
       this.activePage = page;
       window.scrollTo(0, 0);

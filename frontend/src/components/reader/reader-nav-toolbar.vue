@@ -11,6 +11,7 @@
       :value="+$route.params.page"
       :min="+0"
       :max="maxPage"
+      :step="step"
       @change="routeToPage($event)"
     />
     <ReaderNavButton :value="maxPage" />
@@ -35,6 +36,9 @@ export default {
       maxPage: (state) => (state.comic ? state.comic.maxPage : 0),
       // without this the slider can fail to place right on book change
       comicLoaded: (state) => state.comicLoaded,
+      step: (state) => {
+        return state.computedSettings.twoPages ? 2 : 1;
+      },
     }),
   },
   methods: {

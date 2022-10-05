@@ -8,7 +8,7 @@
   >
     <ChangeBookDrawer direction="prev" />
     <v-window-item
-      v-for="pk in books"
+      v-for="pk of books"
       :key="`c/${pk}`"
       class="windowItem"
       disabled
@@ -44,13 +44,19 @@ export default {
         const res = [];
         const routes = state.routes;
         const series = state.comic.series;
-        if (!routes.prev && series.prev) {
+        if (routes && !routes.prev && series && series.prev) {
           res.push(series.prev.pk);
         }
         if (!res.includes(+this.$route.params.pk)) {
           res.push(+this.$route.params.pk);
         }
-        if (!routes.next && series.next && !res.includes(series.next.pk)) {
+        if (
+          routes &&
+          !routes.next &&
+          series &&
+          series.next &&
+          !res.includes(series.next.pk)
+        ) {
           res.push(series.next.pk);
         }
         return res;
