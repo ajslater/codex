@@ -230,7 +230,7 @@ export const useBrowserStore = defineStore("browser", {
       router.push(route).catch(console.debug);
     },
     handlePageError(error) {
-      console.log(error);
+      console.debug(error);
       if (error.response.status == 303) {
         const data = error.response.data;
         if (compareRouteParams(data.route.params, router.currentRoute.params)) {
