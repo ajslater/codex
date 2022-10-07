@@ -1,27 +1,36 @@
 """Views for reading comic books."""
-from django.db.models import F
+from django.db.models import F, FilteredRelation, Q
 from django.urls import reverse
 from rest_framework.exceptions import NotFound
-from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
 from codex.models import Comic
-from codex.serializers.reader import ReaderComicSerializer
+from codex.serializers.reader import ReaderInfoSerializer
 from codex.serializers.redirect import ReaderRedirectSerializer
 from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
-from codex.views.mixins import GroupACLMixin
+from codex.views.bookmark import BookmarkBaseView
 
 
 LOG = get_logger(__name__)
 PAGE_TTL = 60 * 60 * 24
 
 
-class ReaderView(GenericAPIView, GroupACLMixin):
+class ReaderView(BookmarkBaseView):
     """Get info for displaying comic pages."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
-    serializer_class = ReaderComicSerializer
+    serializer_class = ReaderInfoSerializer
+
+    SETTINGS_ATTRS = ("fit_to", "two_pages")
+
+    @classmethod
+    def _append_with_settings(cls, books, book):
+        settings = {}
+        for attr in cls.SETTINGS_ATTRS:
+            settings[attr] = book[f"settings__{attr}"]
+        book["settings"] = settings
+        books.append(book)
 
     def get_object(self):
         """
@@ -33,6 +42,8 @@ class ReaderView(GenericAPIView, GroupACLMixin):
         """
         pk = self.kwargs.get("pk")
         group_acl_filter = self.get_group_acl_filter(True)
+        bookmark_filter = self.get_bookmark_filter()
+        # get comic relations lazily. Only going to use 2-3 of them.
         comics = (
             Comic.objects.filter(group_acl_filter)
             .filter(series__comic=pk)
@@ -40,6 +51,7 @@ class ReaderView(GenericAPIView, GroupACLMixin):
                 series_name=F("series__name"),
                 volume_name=F("volume__name"),
                 issue_count=F("volume__issue_count"),
+                settings=FilteredRelation("bookmark", condition=Q(**bookmark_filter)),
             )
             .order_by(*Comic.ORDERING)
             .values(
@@ -50,25 +62,32 @@ class ReaderView(GenericAPIView, GroupACLMixin):
                 "issue_suffix",
                 "max_page",
                 "series_name",
+                "settings__fit_to",
+                "settings__two_pages",
                 "volume_name",
             )
         )
 
-        current_comic = None
-        prev_route = next_route = None
-        series_index = None
-        for index, comic in enumerate(comics):
-            if current_comic is not None:
-                next_route = {"pk": comic["pk"], "page": 0}
+        # Select the -1, +1 window around the current issue
+        # Yields 1 to 3 books
+        books = []
+        prev_book = None
+        for index, book in enumerate(comics):
+            book["series_index"] = index + 1
+            if books:
+                # after match set next comic and break
+                self._append_with_settings(books, book)
                 break
-            elif comic["pk"] == pk:
-                current_comic = comic
-                series_index = index + 1
+            elif book["pk"] == pk:
+                # first match. set previous and current comic
+                if prev_book:
+                    self._append_with_settings(books, prev_book)
+                self._append_with_settings(books, book)
             else:
                 # Haven't matched yet, so set the previous comic
-                prev_route = {"pk": comic["pk"], "page": comic["max_page"]}
+                prev_book = book
 
-        if not current_comic:
+        if not comics:
             pk = self.kwargs.get("pk")
             detail = {
                 "route": reverse("app:start"),
@@ -77,14 +96,7 @@ class ReaderView(GenericAPIView, GroupACLMixin):
             }
             raise NotFound(detail=detail)
 
-        current_comic["series"] = {
-            "prev": prev_route,
-            "next": next_route,
-            "index": series_index,
-            "count": comics.count(),
-        }
-
-        return current_comic
+        return {"books": books, "series_count": comics.count()}
 
     def get(self, request, *args, **kwargs):
         """Get the book info."""

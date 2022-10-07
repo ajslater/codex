@@ -11,7 +11,7 @@
   />
 </template>
 <script>
-import { mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import { getComicPageSource } from "@/api/v3/reader";
 import { useReaderStore } from "@/stores/reader";
@@ -36,34 +36,42 @@ export default {
     }
   },
   computed: {
-    ...mapGetters(useReaderStore, ["computedSettings"]),
     ...mapState(useReaderStore, {
-      route(state) {
-        return state.routes && state.routes[this.direction]
-          ? { params: state.routes[this.direction] }
-          : {};
+      params(state) {
+        return state.routes[this.direction];
       },
-      maxPage: (state) => state.comic.maxPage,
       prefetchSrc1(state) {
-        const route = state.routes[this.direction];
-        return route ? getComicPageSource(route, state.timestamp) : false;
+        return this.params
+          ? getComicPageSource(this.params, state.timestamp)
+          : false;
       },
       prefetchSrc2(state) {
-        if (!this.computedSettings.twoPages) {
+        const book = state.books.get(this.params.pk);
+        if (!book) {
           return false;
         }
-        const route = { ...state.routes[this.direction] };
-        if (!route || +route.page + 1 > this.maxPage) {
+        const bookSettings = book.settings || {};
+        const settings = this.getSettings(state.readerSettings, bookSettings);
+        if (!settings.twoPages) {
           return false;
         }
-        route.page += 1;
-        return getComicPageSource(route, state.timestamp);
+        const paramsPlus = { ...this.params, page: this.params.page + 1 };
+        if (paramsPlus.page > book.maxPage) {
+          return false;
+        }
+        return getComicPageSource(paramsPlus, state.timestamp);
       },
     }),
+    route() {
+      return this.params ? { params: this.params } : {};
+    },
     label() {
       const prefix = this.direction === "prev" ? "Previous" : "Next";
       return `${prefix} Page`;
     },
+  },
+  methods: {
+    ...mapActions(useReaderStore, ["getSettings"]),
   },
 };
 </script>

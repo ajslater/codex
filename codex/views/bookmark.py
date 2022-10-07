@@ -1,6 +1,5 @@
 """Bookmark views."""
 from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import ValidationError
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
@@ -20,6 +19,18 @@ class BookmarkBaseView(GenericAPIView, GroupACLMixin):
     _BOOKMARK_UPDATE_FIELDS = ["page", "finished", "fit_to", "two_pages"]
     _BOOKMARK_ONLY_FIELDS = _BOOKMARK_UPDATE_FIELDS + ["pk", "comic"]
     _COMIC_ONLY_FIELDS = ("pk", "max_page")
+
+    def get_bookmark_filter(self):
+        """Get search kwargs for the reader."""
+        search_kwargs = {}
+        if self.request.user.is_authenticated:
+            search_kwargs["bookmark__user"] = self.request.user
+        else:
+            if not self.request.session or not self.request.session.session_key:
+                LOG.verbose("no session, make one")
+                self.request.session.save()
+            search_kwargs["bookmark__session_id"] = self.request.session.session_key
+        return search_kwargs
 
     def get_bookmark_search_kwargs(self, comic_filter):
         """Get the search kwargs for a user's authentication state."""
@@ -118,7 +129,11 @@ class BookmarkView(BookmarkBaseView):
             # If the target is recursive, strip everything but finished state data.
             serializer_class = BookmarkFinishedSerializer
 
-        updates = self._validate(serializer_class)
+        try:
+            updates = self._validate(serializer_class)
+        except Exception as exc:
+            LOG.error(exc)
+            raise exc
 
         pk = self.kwargs.get("pk")
         if group == "f":
@@ -129,23 +144,3 @@ class BookmarkView(BookmarkBaseView):
 
         self.update_bookmarks(updates, comic_filter=comic_filter)
         return Response()
-
-    def get_object(self):
-        """Get the Bookmark object."""
-        group = self.kwargs.get("group")
-        if group != "c":
-            raise ValidationError(detail="Aggregate bookmarks not available.")
-        pk = self.kwargs.get("pk")
-        comic_filter = {"pk": pk}
-        search_kwargs = self.get_bookmark_search_kwargs(comic_filter)
-        try:
-            bm = Bookmark.objects.get(**search_kwargs)
-        except Bookmark.DoesNotExist:
-            bm = None
-        return bm
-
-    def get(self, request, *args, **kwargs):
-        """Get one bookmark."""
-        obj = self.get_object()
-        serializer = self.get_serializer(obj)
-        return Response(serializer.data)

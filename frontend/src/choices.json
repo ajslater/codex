@@ -147,7 +147,8 @@
       {
         "text": "Original Size",
         "value": "ORIG"
-      }
+      },
+      { "text": "", "value": "" }
     ]
   },
   "websockets": {

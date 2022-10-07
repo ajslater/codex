@@ -4,19 +4,13 @@
   </div>
 </template>
 <script>
-import { mapGetters } from "pinia";
-
 import Placeholder from "@/components/placeholder-loading.vue";
-import { useReaderStore } from "@/stores/reader";
 
 export default {
   name: "LoadingPage",
   components: { Placeholder },
-  computed: {
-    ...mapGetters(useReaderStore, ["computedSettings"]),
-    twoPages() {
-      return this.computedSettings.twoPages;
-    },
+  props: {
+    twoPages: { type: Boolean, required: true },
   },
 };
 </script>

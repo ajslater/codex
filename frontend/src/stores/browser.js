@@ -1,3 +1,4 @@
+import _ from "lodash";
 import { defineStore } from "pinia";
 
 import API from "@/api/v3/browser";
@@ -135,18 +136,18 @@ export const useBrowserStore = defineStore("browser", {
           break;
         }
       }
-      if (router.currentRoute.params.group === lowestGroup) {
+      const params = router.currentRoute.params;
+      if (params.group === lowestGroup) {
         return;
       }
-      const route = { params: { ...router.currentRoute.params } };
-      route.params.group = lowestGroup;
-      return route;
+      return { params: { ...params, group: lowestGroup } };
     },
     _validateNewTopGroupIsParent(data, redirect) {
       // If the top group changed and we're at the root group and the new top group is above the proper nav group
       const referenceRoute = redirect || router.currentRoute;
+      const params = referenceRoute.params;
       if (
-        referenceRoute.params.group !== "r" ||
+        params.group !== "r" ||
         !this.settings.topGroup ||
         GROUPS_REVERSED.indexOf(this.settings.topGroup) >=
           GROUPS_REVERSED.indexOf(data.topGroup)
@@ -154,7 +155,7 @@ export const useBrowserStore = defineStore("browser", {
         // All is well, validated.
         return redirect;
       }
-      const route = { params: { ...referenceRoute.params } };
+      const route = { params: { ...params } };
 
       let groupIndex = GROUPS_REVERSED.indexOf(this.settings.topGroup);
       const parentGroups = GROUPS_REVERSED.slice(groupIndex + 1);
@@ -223,10 +224,8 @@ export const useBrowserStore = defineStore("browser", {
     ///////////////////////////////////////////////////////////////////////////
     // ROUTE
     routeToPage(page) {
-      const route = {
-        name: router.currentRoute.name,
-        params: { ...router.currentRoute.params, page },
-      };
+      const route = _.cloneDeep(router.currentRoute);
+      route.params.page = page;
       router.push(route).catch(console.debug);
     },
     handlePageError(error) {
@@ -280,14 +279,15 @@ export const useBrowserStore = defineStore("browser", {
       if (!this.browserPageLoaded) {
         return this.loadSettings();
       }
-      await API.loadBrowserPage(router.currentRoute.params, this.settings)
+      const params = router.currentRoute.params;
+      await API.loadBrowserPage(params, this.settings)
         .then((response) => {
           const data = response.data;
           this.$patch((state) => {
             const page = { ...response.data };
             page.routes = {
               up: data.upRoute,
-              last: router.currentRoute.params,
+              last: params,
             };
             page.zeroPad = getZeroPad(data.issueMax);
             delete page.upRoute;

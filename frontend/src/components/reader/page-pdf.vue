@@ -16,7 +16,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions } from "pinia";
 import VuePdfEmbed from "vue-pdf-embed/dist/vue2-pdf-embed";
 
 import { useReaderStore } from "@/stores/reader";
@@ -25,8 +25,17 @@ export default {
   name: "PDFPage",
   components: { VuePdfEmbed },
   props: {
+    pk: { type: Number, required: true },
     src: {
       type: String,
+      required: true,
+    },
+    settings: {
+      type: Object,
+      required: true,
+    },
+    fitToClass: {
+      type: Object,
       required: true,
     },
   },
@@ -38,26 +47,21 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useReaderStore, ["fitToClass"]),
-    ...mapState(useReaderStore, {
-      width(state) {
-        // Wide PDFs will not fit to SCREEN well.
-        // vue-pdf-embed internal canvas sizing algorithm makes this difficult.
-        // Maybe not impossible but I'm lazy right now.
-        let width = ["WIDTH"].includes(state.computedSettings.fitTo)
-          ? this.innerWidth
-          : 0;
-        if (state.computedSettings.twoPages) {
-          width = width / 2;
-        }
-        return width;
-      },
-      height(state) {
-        return ["HEIGHT", "SCREEN"].includes(state.computedSettings.fitTo)
-          ? this.innerHeight
-          : 0;
-      },
-    }),
+    width() {
+      // Wide PDFs will not fit to SCREEN well.
+      // vue-pdf-embed internal canvas sizing algorithm makes this difficult.
+      // Maybe not impossible but I'm lazy right now.
+      let width = ["WIDTH"].includes(this.settings.fitTo) ? this.innerWidth : 0;
+      if (this.settings.twoPages) {
+        width = width / 2;
+      }
+      return width;
+    },
+    height() {
+      return ["HEIGHT", "SCREEN"].includes(this.settings.fitTo)
+        ? this.innerHeight
+        : 0;
+    },
   },
   mounted() {
     window.addEventListener("resize", this.onResize);

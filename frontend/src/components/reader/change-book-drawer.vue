@@ -22,7 +22,7 @@
 </template>
 <script>
 import { mdiBookArrowDown, mdiBookArrowUp } from "@mdi/js";
-import { mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import { getComicPageSource } from "@/api/v3/reader";
 import { useReaderStore } from "@/stores/reader";
@@ -56,12 +56,13 @@ export default {
     }
   },
   computed: {
-    ...mapGetters(useReaderStore, ["computedSettings"]),
     ...mapState(useReaderStore, {
       isDrawerOpen(state) {
         return state.bookChange === this.direction;
       },
-      series: (state) => state.comic.series,
+      params(state) {
+        return state.routes.books[this.direction];
+      },
       prefetchSrc1(state) {
         if (!this.isDrawerOpen || !this.params) {
           return false;
@@ -69,31 +70,29 @@ export default {
         return getComicPageSource(this.params, state.timestamp);
       },
       prefetchSrc2(state) {
-        if (
-          !this.computedSettings.twoPages ||
-          this.direction !== "next" ||
-          !this.isDrawerOpen ||
-          !this.params
-        ) {
+        const book = state.books.get(this.params.pk);
+        const bookSettings = book ? book.settings || {} : {};
+        const otherBookSettings = this.getSettings(
+          state.readerSettings,
+          bookSettings
+        );
+        if (!this.isDrawerOpen || !this.params || !otherBookSettings.twoPages) {
           return false;
         }
-        const params = { ...this.params };
-        params.page += 1;
+        const params = { pk: this.params.pk, page: this.params.page + 1 };
         return getComicPageSource(params, state.timestamp);
       },
     }),
-    params() {
-      return this.series[this.direction];
-    },
     route() {
-      return this.series && this.series[this.direction]
-        ? { params: this.params }
-        : {};
+      return this.params ? { params: this.params } : {};
     },
     label() {
       const prefix = this.direction === "prev" ? "Previous" : "Next";
       return `${prefix} Book`;
     },
+  },
+  methods: {
+    ...mapActions(useReaderStore, ["getSettings"]),
   },
 };
 </script>

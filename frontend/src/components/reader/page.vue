@@ -1,11 +1,17 @@
 <template>
   <div class="page">
-    <ErrorPage v-if="error" :type="error" />
-    <LoadingPage v-else-if="showProgress && !loaded" />
+    <ErrorPage v-if="error" :two-pages="settings.twoPages" :type="error" />
+    <LoadingPage
+      v-else-if="showProgress && !loaded"
+      :two-pages="settings.twoPages"
+    />
     <component
       :is="component"
       v-else
+      :pk="book.pk"
       :src="src"
+      :settings="settings"
+      :fit-to-class="fitToClass"
       @error="onError"
       @load="onLoad"
       @unauthorized="onUnauthorized"
@@ -14,7 +20,7 @@
 </template>
 
 <script>
-import { mapGetters, mapState } from "pinia";
+import { mapState } from "pinia";
 
 import { getComicPageSource } from "@/api/v3/reader";
 import Placeholder from "@/components/placeholder-loading.vue";
@@ -30,12 +36,20 @@ export default {
   name: "BookPage",
   components: { Placeholder, ErrorPage, LoadingPage },
   props: {
-    pk: {
-      type: Number,
+    book: {
+      type: Object,
       required: true,
     },
     page: {
       type: Number,
+      required: true,
+    },
+    settings: {
+      type: Object,
+      required: true,
+    },
+    fitToClass: {
+      type: Object,
       required: true,
     },
   },
@@ -47,17 +61,16 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useReaderStore, ["fitToClass"]),
     ...mapState(useReaderStore, {
       src(state) {
-        const params = { pk: this.pk, page: this.page };
+        const params = { pk: this.book.pk, page: this.page };
         return getComicPageSource(params, state.timestamp);
       },
-      component(state) {
-        const isPDF = state.comic ? state.comic.fileFormat === "pdf" : false;
-        return isPDF ? PDFPage : ImgPage;
-      },
     }),
+    component() {
+      const isPDF = this.book.fileFormat === "pdf";
+      return isPDF ? PDFPage : ImgPage;
+    },
   },
   mounted() {
     setTimeout(function () {

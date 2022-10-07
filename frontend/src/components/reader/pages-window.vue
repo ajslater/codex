@@ -3,13 +3,13 @@
     <div
       id="bookChangeActivatorPrev"
       class="bookChangeActivatorColumn"
-      :class="{ upArrow: series.prev }"
+      :class="{ upArrow: bookExists('prev') }"
       @click.stop="setBookChange('prev')"
     />
     <div
       id="bookChangeActivatorNext"
       class="bookChangeActivatorColumn"
-      :class="{ downArrow: series.next }"
+      :class="{ downArrow: bookExists('next') }"
       @click.stop="setBookChange('next')"
     />
     <template #prev>
@@ -20,21 +20,32 @@
     </template>
     <v-window-item
       v-for="page of pages"
-      :key="`c/${pk}/${page}`"
+      :key="`c/${book.pk}/${page}`"
       class="windowItem"
       disabled
       :eager="page >= activePage - 1 && page <= activePage + 2"
       :value="page"
     >
-      <BookPage :pk="pk" :page="page" />
-      <BookPage v-if="secondPage" :pk="pk" :page="page + 1" />
+      <BookPage
+        :book="book"
+        :settings="settings"
+        :fit-to-class="fitToClass"
+        :page="page"
+      />
+      <BookPage
+        v-if="secondPage"
+        :book="book"
+        :settings="settings"
+        :fit-to-class="fitToClass"
+        :page="page + 1"
+      />
     </v-window-item>
   </v-window>
 </template>
 
 <script>
 import _ from "lodash";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import PageChangeLink from "@/components/reader/change-page-link.vue";
 import BookPage from "@/components/reader/page.vue";
@@ -47,7 +58,7 @@ export default {
     PageChangeLink,
   },
   props: {
-    pk: { type: Number, required: true },
+    book: { type: Object, required: true },
   },
   emits: ["click"],
   data() {
@@ -56,48 +67,52 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useReaderStore, ["computedSettings"]),
     ...mapState(useReaderStore, {
-      pages(state) {
-        const len = state.comic ? state.comic.maxPage + 1 : 0;
-        const step = state.computedSettings.twoPages ? 2 : 1;
-        return _.range(0, len, step);
+      bookRoutes: (state) => state.routes.books,
+      settings(state) {
+        const bookSettings = state.books.get(this.book.pk).settings;
+        return state.getSettings(state.readerSettings, bookSettings);
       },
-      maxPage: (state) => state.comic.maxPage || 0,
-      secondPage(state) {
-        return (
-          state.computedSettings.twoPages &&
-          +this.activePage + 1 <= state.comic.maxPage
-        );
-      },
-      comicLoaded: (state) => state.comicLoaded,
-      bookChange: (state) => state.bookChange,
-      comicPk: (state) => state.comic.pk,
-      series: (state) => state.comic.series,
+      prevBookPk: (state) => state.routes.books?.prev.pk,
+      twoPages: (state) => state.activeSettings.twoPages,
     }),
+    fitToClass() {
+      return this.getFitToClass(this.settings);
+    },
+    pages() {
+      const len = this.book?.maxPage + 1 ?? 0;
+      const step = this.settings.twoPages ? 2 : 1;
+      return _.range(0, len, step);
+    },
+    secondPage() {
+      return (
+        this.settings.twoPages && +this.activePage + 1 <= this.book.maxPage
+      );
+    },
   },
   watch: {
     $route(to) {
-      if (+to.params.pk === this.pk && this.comicLoaded) {
-        this.setRoutesAndBookmarkPage();
-        this.setActivePage();
+      if (+to.params.pk === this.book.pk) {
+        this.setActivePageForRoute(+to.params.page);
       }
     },
-    comicLoaded(to) {
-      if (to) {
-        this.setActivePage();
-      }
+    twoPages() {
+      this.setActivePageForRoute(+this.$route.params.page);
     },
   },
   created() {
-    if (this.pk === +this.$route.params.pk) {
-      this.activePage = +this.$route.params.page;
-    } else if (this.bookChange === "prev") {
-      // XXX this.bookChange seems a little hacky
-      this.activePage = +this.series.prev.page;
+    let page;
+    if (this.book.pk === +this.$route.params.pk) {
+      // Active Book
+      page = +this.$route.params.page;
+    } else if (this.book.pk === this.prevBookPk) {
+      // Prev Book
+      page = this.book.maxPage;
     } else {
-      this.activePage = 0;
+      // Must be next book
+      page = 0;
     }
+    this.activePage = page;
   },
   mounted() {
     const windowContainer = this.$refs.pagesWindow.$el.children[0];
@@ -109,43 +124,41 @@ export default {
   },
   methods: {
     ...mapActions(useReaderStore, [
-      "loadBook",
       "routeToPage",
       "setBookChangeFlag",
       "setRoutesAndBookmarkPage",
+      "setRoutes",
+      "getSettings",
+      "getFitToClass",
     ]),
-    setActivePage() {
-      if (
-        !this.comicLoaded ||
-        this.pk !== +this.$route.params.pk ||
-        this.pk !== this.comicPk
-      ) {
-        return;
-      }
-      const page = +this.$route.params.page || 0;
+    setActivePageForRoute(page) {
       if (page < 0) {
         console.warn("Page out of bounds. Redirecting to 0.");
         return this.routeToPage(0);
-      }
-      if (page > this.maxPage) {
-        console.warn(`Page out of bounds. Redirecting to ${this.maxPage}.`);
-        return this.routeToPage(this.maxPage);
-      }
-      if (this.computedSettings.twoPages && page % 2 !== 0) {
+      } else if (page > this.book.maxPage) {
         console.warn(
+          `Page out of bounds. Redirecting to ${this.book.maxPage}.`
+        );
+        return this.routeToPage(this.book.maxPage);
+      } else if (this.settings.twoPages && page % 2 !== 0) {
+        console.debug(
           `Requested odd page ${page} in two pages mode. Flip back one`
         );
         return this.routeToPage(page - 1);
       }
       this.activePage = page;
+      this.setRoutesAndBookmarkPage(+this.$route.params.page);
       window.scrollTo(0, 0);
     },
     setBookChange(direction) {
-      if (this.series[direction]) {
+      if (this.bookRoutes[direction]) {
         this.setBookChangeFlag(direction);
       } else {
         this.$emit("click");
       }
+    },
+    bookExists(direction) {
+      return Boolean(this.bookRoutes[direction]);
     },
   },
 };

@@ -2,20 +2,20 @@
   <v-window
     id="booksWindow"
     ref="booksWindow"
-    :value="windowBook"
+    :value="activeBookPk"
     vertical
     touchless
   >
     <ChangeBookDrawer direction="prev" />
     <v-window-item
-      v-for="pk of books"
+      v-for="[pk, book] of books"
       :key="`c/${pk}`"
       class="windowItem"
       disabled
       :eager="eager(pk)"
       :value="pk"
     >
-      <PagesWindow :pk="pk" @click="click" />
+      <PagesWindow :book="book" @click="click" />
     </v-window-item>
     <ChangeBookDrawer direction="next" />
   </v-window>
@@ -33,43 +33,18 @@ export default {
     ChangeBookDrawer,
   },
   emits: ["click"],
-  data() {
-    return {
-      windowBook: +this.$route.params.pk,
-    };
-  },
   computed: {
     ...mapState(useReaderStore, {
-      books: function (state) {
-        const res = [];
-        const routes = state.routes;
-        const series = state.comic.series;
-        if (routes && !routes.prev && series && series.prev) {
-          res.push(series.prev.pk);
-        }
-        if (!res.includes(+this.$route.params.pk)) {
-          res.push(+this.$route.params.pk);
-        }
-        if (
-          routes &&
-          !routes.next &&
-          series &&
-          series.next &&
-          !res.includes(series.next.pk)
-        ) {
-          res.push(series.next.pk);
-        }
-        return res;
-      },
+      books: (state) => state.books,
       bookChange: (state) => state.bookChange,
-      series: (state) => state.comic.series,
+      activeBookPk: (state) => state.pk,
+      bookRoutes: (state) => state.routes.books,
     }),
   },
   watch: {
     $route(to, from) {
       if (!from || !from.params || +to.params.pk !== +from.params.pk) {
-        this.loadBook();
-        this.windowBook = +to.params.pk;
+        this.loadBooks(to.params);
       }
     },
   },
@@ -81,24 +56,20 @@ export default {
     const windowContainer = this.$refs.booksWindow.$el.children[0];
     windowContainer.removeEventListener("click", this.click);
   },
+  created() {
+    this.loadBooks(this.$route.params);
+  },
   methods: {
-    ...mapActions(useReaderStore, [
-      "routeToDirection",
-      "setBookChangeFlag",
-      "loadBook",
-    ]),
+    ...mapActions(useReaderStore, ["setBookChangeFlag", "loadBooks"]),
     click() {
       this.setBookChangeFlag();
       this.$emit("click");
     },
     eager(pk) {
       return (
-        (this.series.next &&
-          this.series.next.pk === pk &&
-          this.bookChange === "next") ||
-        (this.series.prev &&
-          this.series.prev.pk === pk &&
-          this.bookChange === "prev")
+        this.bookChange &&
+        this.bookRoutes[this.bookChange] &&
+        this.bookRoutes[this.bookChange].pk === pk
       );
     },
   },

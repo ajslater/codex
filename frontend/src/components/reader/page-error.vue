@@ -8,20 +8,15 @@
 </template>
 <script>
 import { mdiAlertCircleOutline, mdiLockOutline } from "@mdi/js";
-import { mapGetters } from "pinia";
-
-import { useReaderStore } from "@/stores/reader";
 const UNAUTHORIZED_TYPE = "unauthorized";
+
 export default {
   name: "ErrorPage",
   props: {
+    twoPages: { type: Boolean, required: true },
     type: { type: String, required: true },
   },
   computed: {
-    ...mapGetters(useReaderStore, ["computedSettings"]),
-    twoPages() {
-      return this.computedSettings.twoPages;
-    },
     text() {
       return this.type === UNAUTHORIZED_TYPE
         ? "Protected page"

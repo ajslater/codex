@@ -2,18 +2,15 @@
   <img :class="fitToClass" :src="src" v-on="$listeners" />
 </template>
 <script>
-import { mapGetters } from "pinia";
-
-import { useReaderStore } from "@/stores/reader";
 export default {
   name: "ImgPage",
   props: {
+    pk: { type: Number, required: true },
     src: { type: String, required: true },
+    settings: { type: Object, required: true },
+    fitToClass: { type: Object, required: true },
   },
   emits: ["load", "error"],
-  computed: {
-    ...mapGetters(useReaderStore, ["fitToClass"]),
-  },
 };
 </script>
 
