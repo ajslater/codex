@@ -220,7 +220,7 @@ export const useReaderStore = defineStore("reader", {
               books.set(book.pk, Vue.observable(book));
             }
             state.books = books;
-            state.seriesCount = data.count;
+            state.seriesCount = data.seriesCount;
             state.pk = params.pk;
             state.routes.books = this._getBookRoutes(
               state,

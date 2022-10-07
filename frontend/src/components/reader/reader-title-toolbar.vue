@@ -65,7 +65,7 @@ export default {
     ...mapGetters(useReaderStore, ["activeTitle", "activeBook"]),
     ...mapState(useReaderStore, {
       seriesPosition: function (state) {
-        if (this.activeBook && this.seriesCount > 1) {
+        if (this.activeBook && state.seriesCount > 1) {
           return `${this.activeBook.seriesIndex}/${state.seriesCount}`;
         }
         return "";
