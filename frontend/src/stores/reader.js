@@ -71,6 +71,23 @@ export const useReaderStore = defineStore("reader", {
       const book = state.activeBook;
       return book ? getFullComicName(book) : "";
     },
+    fitToClass(state) {
+      let classes = {};
+      const fitTo = state.computedSettings.fitTo;
+      if (fitTo) {
+        let fitToClass = "fitTo";
+        fitToClass += fitTo.charAt(0).toUpperCase();
+        fitToClass += fitTo.slice(1).toLowerCase();
+        if (state.computedSettings.twoPages) {
+          fitToClass += "Two";
+        }
+        classes[fitToClass] = true;
+      }
+      return classes;
+    },
+    title(state) {
+      return state.comic ? getFullComicName(state.comic) : "";
+    },
   },
   actions: {
     ///////////////////////////////////////////////////////////////////////////

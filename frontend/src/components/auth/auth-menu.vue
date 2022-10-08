@@ -9,6 +9,7 @@
 </template>
 
 <script>
+import { mdiLogout } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import AuthLoginDialog from "@/components/auth/login-dialog.vue";
