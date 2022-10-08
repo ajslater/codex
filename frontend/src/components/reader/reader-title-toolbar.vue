@@ -90,10 +90,10 @@ export default {
     },
   },
   mounted() {
-    window.addEventListener("keyup", this._keyListener);
+    document.addEventListener("keyup", this._keyListener);
   },
   unmounted: function () {
-    window.removeEventListener("keyup", this._keyListener);
+    document.removeEventListener("keyup", this._keyListener);
   },
   methods: {
     ...mapActions(useReaderStore, ["routeToDirection"]),
