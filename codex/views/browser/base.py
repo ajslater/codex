@@ -472,7 +472,4 @@ class BrowserBaseView(BrowserSessionViewBase, GroupACLMixin):
         except ValidationError as exc:
             LOG.error(serializer.errors)
             raise exc
-
-        # Overlay params on defaults.
-        for key, value in serializer.validated_data.items():
-            self.params[key] = value
+        self.params.update(serializer.validated_data)

@@ -1,9 +1,12 @@
 import { HTTP } from "./base";
 
+const JSON_KEYS = ["filters", "show"];
+Object.freeze(JSON_KEYS);
+
 // REST ENDPOINTS
 //
 const trimObject = (obj) => {
-  // Remove empty and undefined objects because they're just the default.
+  // Remove empty and undefined objects because they're default values.
   const isArray = Array.isArray(obj);
   const result = isArray ? [] : {};
   for (const [key, val] of Object.entries(obj)) {
@@ -23,31 +26,37 @@ const trimObject = (obj) => {
   return result;
 };
 
-const pruneParams = (data) => {
+const preSerialize = (data) => {
   const params = trimObject(data);
   if (params.q === "") {
     delete params.q;
+  }
+  // Since axios 1.0 I have manually serialize complex objects
+  for (const key of JSON_KEYS) {
+    if (params[key]) {
+      params[key] = JSON.stringify(params[key]);
+    }
   }
   return params;
 };
 
 const getAvailableFilterChoices = ({ group, pk }, data) => {
-  const params = pruneParams(data);
+  const params = preSerialize(data);
   return HTTP.get(`/${group}/${pk}/choices`, { params });
 };
 
 const getFilterChoices = ({ group, pk }, fieldName, data) => {
-  const params = pruneParams(data);
+  const params = preSerialize(data);
   return HTTP.get(`/${group}/${pk}/choices/${fieldName}`, { params });
 };
 
 const loadBrowserPage = ({ group, pk, page }, data) => {
-  const params = pruneParams(data);
+  const params = preSerialize(data);
   return HTTP.get(`/${group}/${pk}/${page}`, { params });
 };
 
 const getMetadata = ({ group, pk }, data) => {
-  const params = pruneParams(data);
+  const params = preSerialize(data);
   return HTTP.get(`/${group}/${pk}/metadata`, { params });
 };
 
