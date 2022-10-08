@@ -4,7 +4,6 @@ import pycountry
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework.serializers import (
-    BooleanField,
     IntegerField,
     ModelSerializer,
     Serializer,
@@ -309,8 +308,6 @@ class LibrarianStatusSerializer(ModelSerializer):
 
 class BookmarkSerializer(ModelSerializer):
     """Serializer Bookmark."""
-
-    two_pages = BooleanField(allow_null=True, default=None, initial=None)
 
     class Meta:
         """Configure the model."""
