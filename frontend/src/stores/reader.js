@@ -308,16 +308,19 @@ export const useReaderStore = defineStore("reader", {
       return router.push(route).catch(console.debug);
     },
     routeToDirection(direction) {
-      if (!this.routes[direction] && this.routes.books[direction]) {
+      if (this.routes[direction]) {
+        const params = this.routes[direction];
+        this._routeTo(params);
+      } else if (this.routes.books[direction]) {
         if (this.bookChange === direction) {
-          return this._routeTo(this.routes.books[direction]);
+          this._routeTo(this.routes.books[direction]);
         } else {
           // Block book change routes unless the book change flag is set.
-          return this.setBookChangeFlag(direction);
+          this.setBookChangeFlag(direction);
         }
+      } else {
+        console.debug("No route to direction", direction);
       }
-      const params = this.routes[direction];
-      this._routeTo(params);
     },
     routeToPage(page) {
       const params = { pk: this.pk, page };
