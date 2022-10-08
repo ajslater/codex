@@ -90,10 +90,10 @@ export default {
     },
   },
   mounted() {
-    window.addEventListener("keyup", this._keyListener);
+    document.addEventListener("keyup", this._keyListener);
   },
   unmounted: function () {
-    window.removeEventListener("keyup", this._keyListener);
+    document.removeEventListener("keyup", this._keyListener);
   },
   methods: {
     ...mapActions(useReaderStore, ["routeToDirection"]),
@@ -106,7 +106,8 @@ export default {
         case " ":
           if (
             !event.shiftKey &&
-            window.innerHeight + window.scrollY >= document.body.scrollHeight
+            window.innerHeight + window.scrollY + 1 >=
+              document.body.scrollHeight
           ) {
             // Spacebar goes next only at the bottom of page
             this.routeToDirection(NEXT);

@@ -283,7 +283,10 @@ export const useReaderStore = defineStore("reader", {
     // ROUTE
     _validateRoute(params) {
       const book = this.books.get(params.pk);
-      const maxPage = book?.maxPage ?? 0;
+      if (!book) {
+        return {};
+      }
+      const maxPage = book.maxPage ?? 0;
       if (params.page > maxPage) {
         params.page = maxPage;
         console.warn("Tried to navigate past the end of the book.");
@@ -305,12 +308,19 @@ export const useReaderStore = defineStore("reader", {
       return router.push(route).catch(console.debug);
     },
     routeToDirection(direction) {
-      if (this.routes.books[direction] && this.bookChange !== direction) {
-        // Block book change routes unless the book change flag is set.
-        return this.setBookChangeFlag(direction);
+      if (this.routes[direction]) {
+        const params = this.routes[direction];
+        this._routeTo(params);
+      } else if (this.routes.books[direction]) {
+        if (this.bookChange === direction) {
+          this._routeTo(this.routes.books[direction]);
+        } else {
+          // Block book change routes unless the book change flag is set.
+          this.setBookChangeFlag(direction);
+        }
+      } else {
+        console.debug("No route to direction", direction);
       }
-      const params = this.routes[direction];
-      this._routeTo(params);
     },
     routeToPage(page) {
       const params = { pk: this.pk, page };
