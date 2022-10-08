@@ -1,6 +1,5 @@
 <template>
   <v-navigation-drawer
-    v-if="display"
     class="changeBookDrawer"
     :class="classes"
     absolute
@@ -10,16 +9,25 @@
     :value="isDrawerOpen"
     width="33%"
   >
-    <router-link class="navLink" :to="route" :aria-label="label" :title="label">
+    <router-link
+      class="navLink"
+      :to="route"
+      :aria-label="label"
+      :title="label"
+      @click.native="$event.stopImmediatePropagation()"
+    >
       <v-icon class="bookChangeIcon"> {{ icon }} </v-icon>
     </router-link>
   </v-navigation-drawer>
 </template>
 <script>
 import { mdiBookArrowDown, mdiBookArrowUp } from "@mdi/js";
-import { mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
+import { getComicPageSource } from "@/api/v3/reader";
 import { useReaderStore } from "@/stores/reader";
+
+const PREFETCH_LINK = { rel: "prefetch", as: "image" };
 
 export default {
   name: "ChangeBookDrawer",
@@ -35,30 +43,56 @@ export default {
       classes: { [this.direction]: true },
     };
   },
+  head() {
+    const links = [];
+    if (this.prefetchSrc1) {
+      links.push({ ...PREFETCH_LINK, href: this.prefetchSrc1 });
+    }
+    if (this.prefetchSrc2) {
+      links.push({ ...PREFETCH_LINK, href: this.prefetchSrc2 });
+    }
+    if (links.length > 0) {
+      return { link: links };
+    }
+  },
   computed: {
     ...mapState(useReaderStore, {
-      routes: (state) => state.routes,
       isDrawerOpen(state) {
         return state.bookChange === this.direction;
       },
+      params(state) {
+        return state.routes.books[this.direction];
+      },
+      prefetchSrc1(state) {
+        if (!this.isDrawerOpen || !this.params) {
+          return false;
+        }
+        return getComicPageSource(this.params, state.timestamp);
+      },
+      prefetchSrc2(state) {
+        const book = state.books.get(this.params.pk);
+        const bookSettings = book ? book.settings || {} : {};
+        const otherBookSettings = this.getSettings(
+          state.readerSettings,
+          bookSettings
+        );
+        if (!this.isDrawerOpen || !this.params || !otherBookSettings.twoPages) {
+          return false;
+        }
+        const params = { pk: this.params.pk, page: this.params.page + 1 };
+        return getComicPageSource(params, state.timestamp);
+      },
     }),
-    display() {
-      return (
-        !this.routes[this.direction] && this.routes[this.direction + "Book"]
-      );
-    },
     route() {
-      const key = this.direction + "Book";
-      const params = this.routes[key];
-      if (!params) {
-        return false;
-      }
-      return { params };
+      return this.params ? { params: this.params } : {};
     },
     label() {
       const prefix = this.direction === "prev" ? "Previous" : "Next";
-      return prefix + " Book";
+      return `${prefix} Book`;
     },
+  },
+  methods: {
+    ...mapActions(useReaderStore, ["getSettings"]),
   },
 };
 </script>

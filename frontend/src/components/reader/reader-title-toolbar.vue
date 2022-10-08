@@ -10,7 +10,7 @@
     </v-toolbar-items>
     <v-spacer />
     <v-toolbar-title id="toolbarTitle">
-      {{ title }}
+      {{ activeTitle }}
     </v-toolbar-title>
     <v-spacer />
     <span v-if="seriesPosition" id="seriesPosition" title="Series Position">{{
@@ -62,15 +62,13 @@ export default {
     return { meta: [{ hid: "description", name: "description", content }] };
   },
   computed: {
-    ...mapGetters(useReaderStore, ["computedSettings", "title"]),
+    ...mapGetters(useReaderStore, ["activeTitle", "activeBook"]),
     ...mapState(useReaderStore, {
-      routes: (state) => state.routes,
-      timestamp: (state) => state.timestamp,
       seriesPosition: function (state) {
-        const routes = state.routes;
-        if (routes.seriesCount > 1) {
-          return `${routes.seriesIndex}/${routes.seriesCount}`;
+        if (this.activeBook && state.seriesCount > 1) {
+          return `${this.activeBook.seriesIndex}/${state.seriesCount}`;
         }
+        return "";
       },
     }),
     ...mapState(useBrowserStore, {
@@ -108,16 +106,14 @@ export default {
         case " ":
           if (
             !event.shiftKey &&
-            window.innerHeight + window.scrollY >= document.body.scrollHeight &&
-            this.routes.next
+            window.innerHeight + window.scrollY >= document.body.scrollHeight
           ) {
             // Spacebar goes next only at the bottom of page
             this.routeToDirection(NEXT);
           } else if (
             // Shift + Spacebar goes back only at the top of page
             !!event.shiftKey &&
-            window.scrollY === 0 &&
-            this.routes.prev
+            window.scrollY === 0
           ) {
             this.routeToDirection(PREV);
           }

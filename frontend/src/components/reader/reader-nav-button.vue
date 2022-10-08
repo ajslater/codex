@@ -18,6 +18,10 @@ export default {
       type: Number,
       required: true,
     },
+    twoPages: {
+      type: Boolean,
+      default: false,
+    },
   },
   computed: {
     toRoute: function () {
@@ -29,7 +33,11 @@ export default {
       };
     },
     disabled: function () {
-      return this.$route.params.page === this.value;
+      const endPages = [this.value];
+      if (this.twoPages && this.value % 2) {
+        endPages.push(this.value - 1);
+      }
+      return endPages.includes(+this.$route.params.page);
     },
   },
 };

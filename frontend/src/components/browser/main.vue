@@ -8,7 +8,7 @@
       />
     </div>
     <div v-else-if="showPlaceHolder" id="announce">
-      <PlaceholderLoading class="placeholder" :size="128" />
+      <PlaceholderLoading class="placeholder" />
     </div>
     <div v-else-if="!isCodexViewable" id="announce">
       <h1>
@@ -129,8 +129,10 @@ $card-margin: 32px;
   padding-bottom: 45px !important;
 }
 .placeholder {
-  position: absolute;
-  top: 50%;
+  position: fixed;
+  height: 50vh !important;
+  width: 50vw !important;
+  top: calc(50% + 75px);
   left: 50%;
   transform: translate(-50%, -50%);
 }
