@@ -116,7 +116,7 @@ class BookmarkView(BookmarkBaseView):
         if serializer_class:
             serializer = serializer_class(data=data)
         else:
-            serializer = self.get_serializer(data=data)
+            serializer = self.get_serializer(data=data, partial=True)
         serializer.is_valid(raise_exception=True)
         return serializer.validated_data
 
