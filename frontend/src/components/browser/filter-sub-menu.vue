@@ -155,7 +155,6 @@ export default {
       };
       this.$emit("change", data);
     },
-    isNullPk: (pk) => NULL_PKS.has(pk),
   },
 };
 </script>
