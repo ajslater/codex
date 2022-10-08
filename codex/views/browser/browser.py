@@ -588,4 +588,5 @@ class BrowserView(BrowserMetadataBaseView):
         data = self.get_object()
         serializer = self.get_serializer(data)
         self.save_params_to_session(self.params)
+        print(data)
         return Response(serializer.data)
