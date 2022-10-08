@@ -12,7 +12,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="item in flags" :key="`f:${item.id}:${item.keyHack}`">
+        <tr v-for="item in flags" :key="`f:${item.pk}:${item.keyHack}`">
           <td class="nameCol">
             <h4>{{ item.name }}</h4>
             <p class="desc">
@@ -25,10 +25,10 @@
               dense
               ripple
               hide-details="auto"
-              :error-messages="getFormErrors(item.id, 'on')"
+              :error-messages="getFormErrors(item.pk, 'on')"
               @focus="clearErrors"
               @blur="item.keyHack = Date.now()"
-              @change="changeCol(item.id, 'on', $event === true)"
+              @change="changeCol(item.pk, 'on', $event === true)"
             />
           </td>
         </tr>
@@ -59,7 +59,13 @@ const TABLE_PADDING = 24;
 const BUFFER = FIXED_TOOLBARS + TABLE_PADDING;
 
 export default {
-  name: "AdminFlagsPanel",
+  name: "AdminFlagsTab",
+  props: {
+    innerHeight: {
+      type: Number,
+      required: true,
+    },
+  },
   data() {
     return {
       lastUpdate: {
@@ -67,23 +73,21 @@ export default {
         field: undefined,
       },
       DESC,
-      tableHeight: 0,
     };
   },
   computed: {
     ...mapState(useAdminStore, {
       flags: (state) => state.flags,
     }),
+    tableHeight() {
+      return this.innerHeight - BUFFER;
+    },
   },
   mounted() {
-    this.onResize();
-    window.addEventListener("resize", this.onResize);
-  },
-  unmounted() {
-    window.removeEventListener("resize", this.onResize);
+    this.loadTables(["Flag"]);
   },
   methods: {
-    ...mapActions(useAdminStore, ["updateRow", "clearErrors"]),
+    ...mapActions(useAdminStore, ["updateRow", "clearErrors", "loadTables"]),
     changeCol(pk, field, val) {
       this.lastUpdate.pk = pk;
       this.lastUpdate.field = field;
@@ -94,9 +98,6 @@ export default {
       if (pk === this.lastUpdate.pk && field === this.lastUpdate.field) {
         return this.formErrors;
       }
-    },
-    onResize() {
-      this.tableHeight = window.innerHeight - BUFFER;
     },
   },
 };

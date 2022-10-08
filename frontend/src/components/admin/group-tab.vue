@@ -1,7 +1,11 @@
 <template>
   <div>
     <header class="tabHeader">
-      <AdminGroupCreateUpdateDialog />
+      <AdminCreateUpdateDialog
+        table="Group"
+        max-width="20em"
+        :inputs="AdminGroupCreateUpdateInputs"
+      />
     </header>
     <v-simple-table
       fixed-header
@@ -30,7 +34,12 @@
               <RelationChips :pks="item.librarySet" :map="libraryMap" />
             </td>
             <td>
-              <AdminGroupCreateUpdateDialog :update="true" :old-group="item" />
+              <AdminCreateUpdateDialog
+                table="Group"
+                :old-row="item"
+                max-width="20em"
+                :inputs="AdminGroupCreateUpdateInputs"
+              />
             </td>
             <td>
               <AdminDeleteRowDialog
@@ -62,10 +71,11 @@
 </template>
 
 <script>
-import { mapGetters, mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
+import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
 import AdminDeleteRowDialog from "@/components/admin/delete-row-dialog.vue";
-import AdminGroupCreateUpdateDialog from "@/components/admin/group-create-update-dialog.vue";
+import AdminGroupCreateUpdateInputs from "@/components/admin/group-create-update-inputs.vue";
 import RelationChips from "@/components/admin/relation-chips.vue";
 import { useAdminStore } from "@/stores/admin";
 
@@ -78,11 +88,17 @@ const TABLE_ROW_HEIGHT = 48;
 const MIN_TABLE_HEIGHT = TABLE_ROW_HEIGHT * 2;
 
 export default {
-  name: "AdminGroupsPanel",
+  name: "AdminGroupsTab",
   components: {
     AdminDeleteRowDialog,
-    AdminGroupCreateUpdateDialog,
+    AdminCreateUpdateDialog,
     RelationChips,
+  },
+  props: {
+    innerHeight: {
+      type: Number,
+      required: true,
+    },
   },
   data() {
     return {
@@ -90,7 +106,7 @@ export default {
         pk: 0,
         field: undefined,
       },
-      tableHeight: 0,
+      AdminGroupCreateUpdateInputs,
     };
   },
   computed: {
@@ -99,22 +115,18 @@ export default {
       tableMaxHeight: (state) => (state.groups.length + 1) * TABLE_ROW_HEIGHT,
     }),
     ...mapGetters(useAdminStore, ["libraryMap", "userMap"]),
+    tableHeight() {
+      const availableHeight = this.innerHeight - BUFFER;
+      return this.tableMaxHeight < availableHeight
+        ? undefined
+        : Math.max(availableHeight, MIN_TABLE_HEIGHT);
+    },
   },
   mounted() {
-    this.onResize();
-    window.addEventListener("resize", this.onResize);
-  },
-  unmounted() {
-    window.removeEventListener("resize", this.onResize);
+    this.loadTables(["User", "Library", "Group"]);
   },
   methods: {
-    onResize() {
-      const availableHeight = window.innerHeight - BUFFER;
-      this.tableHeight =
-        this.tableMaxHeight < availableHeight
-          ? undefined
-          : Math.max(availableHeight, MIN_TABLE_HEIGHT);
-    },
+    ...mapActions(useAdminStore, ["loadTables"]),
   },
 };
 </script>

@@ -8,10 +8,11 @@
     touchless
     :mobile-breakpoint="960"
   >
-    <div id="settingsDrawerContainer">
+    <div class="settingsDrawerContainer">
       <div id="topBlock">
         <AdminSettingsPanel />
-        <SettingsCommonPanel :admin="false" />
+        <v-divider />
+        <SettingsCommonPanel :admin-menu="false" />
         <v-divider />
       </div>
       <div id="footerGroup">
@@ -51,10 +52,6 @@ export default {
 </script>
 
 <style scoped lang="scss">
-#adminSetingsDrawer {
-  z-index: 20;
-}
-@import "../settings/settings-drawer.scss";
 #footerGroup {
   width: 100%;
   background-color: #272727;

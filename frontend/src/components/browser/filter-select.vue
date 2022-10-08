@@ -2,7 +2,7 @@
   <v-hover v-slot="{ hover }">
     <v-select
       ref="filterSelect"
-      v-model="bookmarkFilter"
+      :value="bookmarkFilter"
       class="toolbarSelect"
       dense
       :items="bookmarkChoices"
@@ -19,6 +19,7 @@
       @click:prepend-inner="clearFiltersAndChoices"
       @focus="focus"
       @blur="focused = false"
+      @change="change"
     >
       <template #selection="{ item }">
         {{ item.text }}
@@ -40,14 +41,14 @@
             v-for="filterName of dynamicChoiceNames"
             :key="filterName"
             :name="filterName"
-            @sub-menu-click="closeFilterSelect"
+            @change="changeFilter"
           />
         </div>
         <v-progress-linear
           v-else
-          id="subMenuProgress"
+          id="availableFiltersProgress"
           rounded
-          :indeterminate="true"
+          indeterminate
         />
       </template>
     </v-select>
@@ -75,6 +76,8 @@ export default {
   computed: {
     ...mapState(useBrowserStore, {
       bookmarkChoices: (state) => state.choices.static.bookmark,
+      bookmarkFilter: (state) =>
+        state.settings.filters.bookmark || state.choices.static.bookmark[0],
       filters: (state) => state.settings.filters,
       isDynamicFiltersSelected: function (state) {
         for (const [name, array] of Object.entries(state.settings.filters)) {
@@ -104,19 +107,16 @@ export default {
         return clsName;
       },
       dynamicChoiceNames: function (state) {
-        return Object.keys(state.choices.dynamic);
+        const names = [];
+        for (const [key, value] of Object.entries(state.choices.dynamic)) {
+          if (value) {
+            names.push(key);
+          }
+        }
+        return names;
       },
     }),
     ...mapWritableState(useBrowserStore, ["filterMode"]),
-    bookmarkFilter: {
-      get() {
-        return this.filters.bookmark || this.bookmarkChoices[0];
-      },
-      set(bookmark) {
-        const data = { filters: { bookmark } };
-        this.setSettings(data);
-      },
-    },
     filterInnerIcon: function () {
       if (this.isFiltersClearable) {
         return mdiCloseCircle;
@@ -127,18 +127,23 @@ export default {
   methods: {
     ...mapActions(useBrowserStore, [
       "clearFiltersAndChoices",
-      "loadAllFilterChoices",
+      "loadAvailableFilterChoices",
       "setSettings",
     ]),
-    closeFilterSelect: function () {
+    change(bookmark) {
+      const data = { filters: { bookmark } };
+      this.changeFilter(data);
+    },
+    changeFilter(settings) {
       // On sub-menu click, close the menu and reset the filter mode.
       this.$refs.filterSelect.blur();
+      this.setSettings(settings);
       this.filterMode = "base";
     },
     focus() {
       this.focused = true;
       if (this.dynamicChoiceNames.length === 0) {
-        this.loadAllFilterChoices();
+        this.loadAvailableFilterChoices();
       }
     },
   },
@@ -149,7 +154,7 @@ export default {
 .filterSuffix {
   margin-left: 0.25em;
 }
-#subMenuProgress {
+#availableFiltersProgress {
   margin: 10px;
   margin-bottom: 2px;
   width: 132px;

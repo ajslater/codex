@@ -8,12 +8,14 @@
     temporary
     touchless
   >
-    <div v-if="isCodexViewable" id="settingsDrawerContainer">
+    <div v-if="isCodexViewable" class="settingsDrawerContainer">
       <div id="topBlock">
         <BrowserSettingsPanel />
         <v-divider />
         <SearchHelp />
+        <v-divider />
         <SettingsCommonPanel />
+        <v-divider />
       </div>
       <SettingsFooter />
     </div>
@@ -47,18 +49,8 @@ export default {
     ...mapGetters(useAuthStore, ["isCodexViewable"]),
     ...mapWritableState(useBrowserStore, ["isSettingsDrawerOpen"]),
   },
-  mounted() {
-    this.$emit("panelMounted");
-  },
   methods: {
     ...mapActions(useBrowserStore, ["setIsSettingsDrawerOpen"]),
   },
 };
 </script>
-
-<style scoped lang="scss">
-#browserSettingsDrawer {
-  z-index: 20;
-}
-@import "../settings/settings-drawer.scss";
-</style>

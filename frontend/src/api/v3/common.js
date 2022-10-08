@@ -17,7 +17,7 @@ const downloadIOSPWAFix = (href, fileName) => {
       link.click();
       return window.URL.releaseObjectURL(response.data);
     })
-    .catch((error) => console.warn(error));
+    .catch(console.warn);
 };
 
 const getVersions = (ts) => {

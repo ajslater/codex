@@ -66,9 +66,6 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.browserNavButton {
-  z-index: -1;
-}
 .flipHoriz {
   transform: scaleX(-1);
 }

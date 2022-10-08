@@ -34,21 +34,23 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useReaderStore, ["title"]),
+    ...mapGetters(useReaderStore, ["activeTitle"]),
     ...mapState(useBrowserStore, {
-      downloadFileName: (state) => state.title + ".cbz",
       timestamp: (state) => state.timestamp,
       pageSrc: function (state) {
         return getComicPageSource(this.$route.params, state.timestamp);
-      },
-      pageName: function (state) {
-        const page = this.$route.params.page;
-        return `${state.title} - page ${page}.jpg`;
       },
       downloadURL: function (state) {
         return getDownloadURL(this.$route.params.pk, state.timestamp);
       },
     }),
+    fileName: function () {
+      return this.activeTitle + ".cbz";
+    },
+    pageName: function () {
+      const page = this.$route.params.page;
+      return `${this.activeTitle} - page ${page}.jpg`;
+    },
   },
   methods: {
     ...mapActions(useCommonStore, ["downloadIOSPWAFix"]),
@@ -56,7 +58,7 @@ export default {
       this.downloadIOSPWAFix(this.pageSrc, this.pageName);
     },
     downloadBook() {
-      this.downloadIOSPWAFix(this.downloadURL, this.downloadFileName);
+      this.downloadIOSPWAFix(this.downloadURL, this.fileName);
     },
   },
 };

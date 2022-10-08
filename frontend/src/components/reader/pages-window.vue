@@ -1,136 +1,118 @@
 <template>
-  <v-window
-    id="pagesWindow"
-    ref="pagesWindow"
-    show-arrows
-    :value="windowPage"
-    :vertical="vertical"
-  >
+  <v-window id="pagesWindow" ref="pagesWindow" show-arrows :value="activePage">
     <div
-      id="bookChangePrev"
-      class="bookChangeColumn"
-      @click.stop="bookChange('prev')"
+      id="bookChangeActivatorPrev"
+      class="bookChangeActivatorColumn"
+      :class="{ upArrow: bookExists('prev') }"
+      @click.stop="setBookChange('prev')"
     />
     <div
-      id="bookChangeNext"
-      class="bookChangeColumn"
-      @click.stop="bookChange('next')"
+      id="bookChangeActivatorNext"
+      class="bookChangeActivatorColumn"
+      :class="{ downArrow: bookExists('next') }"
+      @click.stop="setBookChange('next')"
     />
     <template #prev>
-      <div
-        class="pageChangeColumn"
-        aria-label="previous page"
-        @click.stop="pageChange('prev')"
-      />
+      <PageChangeLink direction="prev" />
     </template>
     <template #next>
-      <div
-        class="pageChangeColumn"
-        aria-label="next page"
-        @click.stop="pageChange('next')"
-      />
+      <PageChangeLink direction="next" />
     </template>
     <v-window-item
-      v-for="(_, page) in numWindowItems"
-      :key="`c/${pk}/${page}`"
+      v-for="page of pages"
+      :key="`c/${book.pk}/${page}`"
       class="windowItem"
       disabled
-      eager
+      :eager="page >= activePage - 1 && page <= activePage + 2"
+      :value="page"
     >
-      <PDFPage v-if="isPDF" :source="getSrc(page)" />
-      <img
-        v-else
-        class="page"
-        :class="fitToClass"
-        :src="getSrc(page)"
-        :alt="`Page ${page}`"
+      <BookPage
+        :book="book"
+        :settings="settings"
+        :fit-to-class="fitToClass"
+        :page="page"
       />
-      <PDFPage
-        v-if="secondPage && isPDF"
-        :source="getSrc(page + 1)"
-        :classes="fitToClass"
-      />
-      <img
-        v-else-if="secondPage"
-        class="page"
-        :class="fitToClass"
-        :src="getSrc(page + 1)"
-        :alt="`Page ${page + 1}`"
+      <BookPage
+        v-if="secondPage"
+        :book="book"
+        :settings="settings"
+        :fit-to-class="fitToClass"
+        :page="page + 1"
       />
     </v-window-item>
   </v-window>
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState, mapWritableState } from "pinia";
+import _ from "lodash";
+import { mapActions, mapState } from "pinia";
 
-import { getComicPageSource } from "@/api/v3/reader";
-const PDFPage = () => import("@/components/reader/pdf.vue");
+import PageChangeLink from "@/components/reader/change-page-link.vue";
+import BookPage from "@/components/reader/page.vue";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
   name: "PagesWindow",
   components: {
-    PDFPage,
+    BookPage,
+    PageChangeLink,
   },
+  props: {
+    book: { type: Object, required: true },
+  },
+  emits: ["click"],
   data() {
     return {
-      windowPage: 0,
+      activePage: undefined,
     };
   },
-  head() {
-    if (this.prefetchHref) {
-      return {
-        lnk: [{ rel: "prefetch", as: "image", href: this.prefetchHref }],
-      };
-    }
-  },
   computed: {
-    ...mapGetters(useReaderStore, ["computedSettings", "fitToClass"]),
     ...mapState(useReaderStore, {
-      numWindowItems: (state) => {
-        if (state.comic) {
-          return (state.comic.maxPage || 0) + 1;
-        }
-        return 0;
+      bookRoutes: (state) => state.routes.books,
+      settings(state) {
+        const bookSettings = state.books.get(this.book.pk).settings;
+        return state.getSettings(state.readerSettings, bookSettings);
       },
-      isPDF: (state) =>
-        state.comic ? state.comic.fileFormat === "pdf" : false,
-      routes: (state) => state.routes,
-      timestamp: (state) => state.timestamp,
-      secondPage(state) {
-        return (
-          state.computedSettings.twoPages &&
-          +this.windowPage + 1 <= state.comic.maxPage
-        );
-      },
-      vertical: (state) => state.bookChange !== undefined,
-      prefetchHref(state) {
-        if (!state.routes.next) {
-          return;
-        }
-        return getComicPageSource(state.routes.next, state.timestamp);
-      },
+      prevBookPk: (state) => state.routes.books?.prev.pk,
+      twoPages: (state) => state.activeSettings.twoPages,
     }),
-    ...mapWritableState(useReaderStore, ["comicLoaded"]),
-    pk() {
-      return this.$route.params.pk;
+    fitToClass() {
+      return this.getFitToClass(this.settings);
+    },
+    pages() {
+      const len = this.book?.maxPage + 1 ?? 0;
+      const step = this.settings.twoPages ? 2 : 1;
+      return _.range(0, len, step);
+    },
+    secondPage() {
+      return (
+        this.settings.twoPages && +this.activePage + 1 <= this.book.maxPage
+      );
     },
   },
   watch: {
-    $route(to, from) {
-      if (!from.params || Number(to.params.pk) !== Number(from.params.pk)) {
-        this.loadBook();
-      } else {
-        this.setRoutesAndBookmarkPage();
-        this.setPage(to.params.page);
+    $route(to) {
+      if (+to.params.pk === this.book.pk) {
+        this.setActivePageForRoute(+to.params.page);
       }
     },
-    comicLoaded(to) {
-      if (to) {
-        this.setPage(this.$route.params.page || 0);
-      }
+    twoPages() {
+      this.setActivePageForRoute(+this.$route.params.page);
     },
+  },
+  created() {
+    let page;
+    if (this.book.pk === +this.$route.params.pk) {
+      // Active Book
+      page = +this.$route.params.page;
+    } else if (this.book.pk === this.prevBookPk) {
+      // Prev Book
+      page = this.book.maxPage;
+    } else {
+      // Must be next book
+      page = 0;
+    }
+    this.activePage = page;
   },
   mounted() {
     const windowContainer = this.$refs.pagesWindow.$el.children[0];
@@ -142,84 +124,70 @@ export default {
   },
   methods: {
     ...mapActions(useReaderStore, [
-      "loadBook",
-      "routeToDirection",
+      "routeToPage",
       "setBookChangeFlag",
       "setRoutesAndBookmarkPage",
+      "setRoutes",
+      "getSettings",
+      "getFitToClass",
     ]),
-    getSrc(page) {
-      const routeParams = { ...this.$route.params, page };
-      return getComicPageSource(routeParams, this.timestamp);
-    },
-    async setPage(page) {
-      if (!this.comicLoaded) {
-        return;
+    setActivePageForRoute(page) {
+      if (page < 0) {
+        console.warn("Page out of bounds. Redirecting to 0.");
+        return this.routeToPage(0);
+      } else if (page > this.book.maxPage) {
+        console.warn(
+          `Page out of bounds. Redirecting to ${this.book.maxPage}.`
+        );
+        return this.routeToPage(this.book.maxPage);
+      } else if (this.settings.twoPages && page % 2 !== 0) {
+        console.debug(
+          `Requested odd page ${page} in two pages mode. Flip back one`
+        );
+        return this.routeToPage(page - 1);
       }
-      if (page === undefined) {
-        page = +this.$route.params.page;
-      }
-      this.windowPage = page;
+      this.activePage = page;
+      this.setRoutesAndBookmarkPage(+this.$route.params.page);
       window.scrollTo(0, 0);
     },
-    pageChange(direction) {
-      this.routeToDirection(direction);
+    setBookChange(direction) {
+      if (this.bookRoutes[direction]) {
+        this.setBookChangeFlag(direction);
+      } else {
+        this.$emit("click");
+      }
     },
-    bookChange(direction) {
-      this.setBookChangeFlag(direction);
-    },
-    click() {
-      this.$emit("click");
+    bookExists(direction) {
+      return Boolean(this.bookRoutes[direction]);
     },
   },
 };
 </script>
 
 <style scoped lang="scss">
-.pageChangeColumn {
-  width: 100%;
-  height: 100%;
-}
 .windowItem {
   /* keeps clickable area full screen when image is small */
   min-height: 100vh;
   text-align: center;
 }
-.fitToScreen,
-.fitToScreenTwo {
-  max-height: 100vh;
-}
-.fitToScreen {
-  max-width: 100vw;
-}
-.fitToHeight,
-.fitToHeightTwo {
-  height: 100vh;
-}
-.fitToWidth {
-  width: 100vw;
-}
-.fitToWidthTwo {
-  width: 50vw;
-}
-.fitToScreenTwo {
-  max-width: 50vw;
-}
-.fitToOrig,
-.fitToOrigTwo {
-  object-fit: none;
-}
-.bookChangeColumn {
+.bookChangeActivatorColumn {
   position: fixed;
   top: 48px;
   width: 33vw;
   height: calc(100vh - 96px);
   z-index: 5;
 }
-#bookChangePrev {
+#bookChangeActivatorPrev {
   left: 0px;
 }
-#bookChangeNext {
+.upArrow {
+  cursor: n-resize;
+}
+#bookChangeActivatorNext {
   right: 0px;
+}
+.downArrow {
+  cursor: s-resize;
 }
 </style>
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
@@ -232,12 +200,6 @@ export default {
   height: calc(100vh - 96px);
   border-radius: 0;
   opacity: 0;
-  z-index: 8;
-}
-#pagesWindow .v-window__prev {
-  cursor: w-resize;
-}
-#pagesWindow .v-window__next {
-  cursor: e-resize;
+  z-index: 10;
 }
 </style>

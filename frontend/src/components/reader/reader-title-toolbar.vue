@@ -1,5 +1,5 @@
 <template>
-  <v-toolbar id="readerTopToolbar" dense>
+  <v-toolbar id="readerTopToolbar" class="codexToolbar" dense>
     <v-toolbar-items>
       <v-btn id="closeBook" ref="closeBook" :to="closeBookRoute" large ripple>
         <span v-if="!$vuetify.breakpoint.mobile">close book</span>
@@ -10,7 +10,7 @@
     </v-toolbar-items>
     <v-spacer />
     <v-toolbar-title id="toolbarTitle">
-      {{ title }}
+      {{ activeTitle }}
     </v-toolbar-title>
     <v-spacer />
     <span v-if="seriesPosition" id="seriesPosition" title="Series Position">{{
@@ -62,15 +62,13 @@ export default {
     return { meta: [{ hid: "description", name: "description", content }] };
   },
   computed: {
-    ...mapGetters(useReaderStore, ["computedSettings", "title"]),
+    ...mapGetters(useReaderStore, ["activeTitle", "activeBook"]),
     ...mapState(useReaderStore, {
-      routes: (state) => state.routes,
-      timestamp: (state) => state.timestamp,
       seriesPosition: function (state) {
-        const routes = state.routes;
-        if (routes.seriesCount > 1) {
-          return `${routes.seriesIndex}/${routes.seriesCount}`;
+        if (this.activeBook && state.seriesCount > 1) {
+          return `${this.activeBook.seriesIndex}/${state.seriesCount}`;
         }
+        return "";
       },
     }),
     ...mapState(useBrowserStore, {
@@ -92,10 +90,10 @@ export default {
     },
   },
   mounted() {
-    window.addEventListener("keyup", this._keyListener);
+    document.addEventListener("keyup", this._keyListener);
   },
-  beforeDestroy: function () {
-    window.removeEventListener("keyup", this._keyListener);
+  unmounted: function () {
+    document.removeEventListener("keyup", this._keyListener);
   },
   methods: {
     ...mapActions(useReaderStore, ["routeToDirection"]),
@@ -108,16 +106,15 @@ export default {
         case " ":
           if (
             !event.shiftKey &&
-            window.innerHeight + window.scrollY >= document.body.scrollHeight &&
-            this.routes.next
+            window.innerHeight + window.scrollY + 1 >=
+              document.body.scrollHeight
           ) {
             // Spacebar goes next only at the bottom of page
             this.routeToDirection(NEXT);
           } else if (
             // Shift + Spacebar goes back only at the top of page
             !!event.shiftKey &&
-            window.scrollY === 0 &&
-            this.routes.prev
+            window.scrollY === 0
           ) {
             this.routeToDirection(PREV);
           }
@@ -131,7 +128,7 @@ export default {
         case "ArrowLeft":
           this.routeToDirection(PREV);
           break;
-        case "c":
+        case "Escape":
           this.$refs.closeBook.$el.click();
           break;
         case "m":
@@ -147,12 +144,10 @@ export default {
 <style scoped lang="scss">
 #readerTopToolbar {
   width: 100%;
-  position: fixed !important;
   top: 0px;
   padding-top: env(safe-area-inset-top);
   padding-left: calc(env(safe-area-inset-left) / 2);
   padding-right: calc(env(safe-area-inset-right) / 2);
-  z-index: 10;
 }
 #toolbarTitle {
   overflow-y: auto;

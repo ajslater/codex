@@ -34,7 +34,7 @@ export default {
   },
   computed: {
     code: function () {
-      return +this.$router.currentRoute.params.code;
+      return +this.$route.code;
     },
     title: function () {
       let title = TITLES[this.code];

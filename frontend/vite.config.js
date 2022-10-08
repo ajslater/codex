@@ -50,6 +50,7 @@ const config = defineConfig(({ mode }) => {
       manifest: PROD,
       minify: PROD,
       outDir: path.resolve("../codex/static_build"),
+      emptyOutDir: true,
       rollupOptions: {
         // No need for index.html
         input: path.resolve("./src/main.js"),

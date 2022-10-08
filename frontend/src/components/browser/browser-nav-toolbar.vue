@@ -1,5 +1,5 @@
 <template>
-  <v-toolbar v-if="numPages > 1" class="paginationToolbar" dense>
+  <v-toolbar v-if="numPages > 1" class="paginationToolbar codexToolbar" dense>
     <BrowserNavButton :back="true" />
     <PaginationSlider
       :value="+$route.params.page"
@@ -37,7 +37,6 @@ export default {
 
 <style scoped lang="scss">
 .paginationToolbar {
-  position: fixed;
   bottom: env(safe-area-inset-bottom);
   width: 100%;
   padding: 0px;

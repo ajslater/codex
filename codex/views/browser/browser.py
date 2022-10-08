@@ -429,7 +429,7 @@ class BrowserView(BrowserMetadataBaseView):
         else:
             issue_max = 0
 
-        covers_timestamp = Timestamp.get(Timestamp.COVERS)
+        covers_timestamp = int(Timestamp.get(Timestamp.COVERS))
 
         # construct final data structure
         browser_page = {

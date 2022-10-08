@@ -1,3 +1,4 @@
+import _ from "lodash";
 import { defineStore } from "pinia";
 
 import API from "@/api/v3/browser";
@@ -22,101 +23,16 @@ for (let choice of CHOICES.browser.settingsGroup) {
 }
 Object.freeze(SETTINGS_SHOW_DEFAULTS);
 
-const isRootGroupEnabled = function (state, topGroup) {
-  return topGroup === "c" || topGroup === "f"
-    ? state.page.adminFlags.enableFolderView
-    : state.settings.show[topGroup];
-};
-
 const getZeroPad = function (issueMax) {
   return !issueMax || issueMax < 1 ? 1 : Math.floor(Math.log10(issueMax)) + 1;
 };
-
-const validateFirstSearch = function (state, data) {
-  // If first search redirect to lowest group and change order
-  if (state.q || !data.q) {
-    // Not first search, validated.
-    return;
-  }
-  data.orderBy = "search_score";
-  data.orderReverse = true;
-  let lowestGroup = "r";
-  for (const key of GROUPS_REVERSED) {
-    const val = state.settings.show[key];
-    if (val) {
-      lowestGroup = key;
-      break;
-    }
-  }
-  if (router.currentRoute.params.group === lowestGroup) {
-    return;
-  }
-  const route = { params: { ...router.currentRoute.params } };
-  route.params.group = lowestGroup;
-  return route;
-};
-
-const validateNewTopGroupIsParent = function (state, data, redirect) {
-  // If the top group changed and we're at the root group and the new top group is above the proper nav group
-  const referenceRoute = redirect || router.currentRoute;
-  if (
-    referenceRoute.params.group !== "r" ||
-    !state.settings.topGroup ||
-    GROUPS_REVERSED.indexOf(state.settings.topGroup) >=
-      GROUPS_REVERSED.indexOf(data.topGroup)
-  ) {
-    // All is well, validated.
-    return redirect;
-  }
-  const route = { params: { ...referenceRoute.params } };
-
-  let groupIndex = GROUPS_REVERSED.indexOf(state.settings.topGroup);
-  const parentGroups = GROUPS_REVERSED.slice(groupIndex + 1);
-  let jumpGroup;
-  for (jumpGroup of parentGroups) {
-    if (state.settings.show[jumpGroup]) {
-      break;
-    }
-  }
-  route.params.group = jumpGroup;
-  return route;
-};
-
-const mutateSettings = function (store, data) {
-  store.$patch((state) => {
-    for (let [key, value] of Object.entries(data)) {
-      if (typeof state.settings[key] === "object") {
-        state.settings[key] = { ...state.settings[key], ...value };
-      } else {
-        state.settings[key] = value;
-      }
-    }
-  });
-};
-
-const validateAndSaveSettings = function (store, data) {
-  let redirect = validateFirstSearch(store, data);
-  redirect = validateNewTopGroupIsParent(store, data, redirect);
-
-  // Mutate settings
-  if (data) {
-    mutateSettings(store, data);
-  }
-
-  store.filterMode = "base";
-  store.setTimestamp();
-  return redirect;
-};
-
 const compareRouteParams = function (a, b) {
   return a.group === b.group && +a.pk === +b.pk && +a.page === +b.page;
 };
 
 const redirectRoute = function (route) {
   if (route.params) {
-    router.push(route).catch((error) => {
-      console.debug(error);
-    });
+    router.push(route).catch(console.debug);
   }
 };
 
@@ -167,10 +83,10 @@ export const useBrowserStore = defineStore("browser", {
     browserPageLoaded: false,
   }),
   getters: {
-    topGroupChoices(state) {
+    topGroupChoices() {
       const choices = [];
       for (const item of Object.values(CHOICES.browser.topGroup)) {
-        if (isRootGroupEnabled(state, item.value)) {
+        if (this._isRootGroupEnabled(item.value)) {
           if (item.value === "f") {
             choices.push({ divider: true });
           }
@@ -197,8 +113,87 @@ export const useBrowserStore = defineStore("browser", {
     },
   },
   actions: {
+    ////////////////////////////////////////////////////////////////////////
+    // VALIDATORS
+    _isRootGroupEnabled(topGroup) {
+      return topGroup === "c" || topGroup === "f"
+        ? this.page.adminFlags.enableFolderView
+        : this.settings.show[topGroup];
+    },
+    _validateFirstSearch(data) {
+      // If first search redirect to lowest group and change order
+      if (this.q || !data.q) {
+        // Not first search, validated.
+        return;
+      }
+      data.orderBy = "search_score";
+      data.orderReverse = true;
+      let lowestGroup = "r";
+      for (const key of GROUPS_REVERSED) {
+        const val = this.settings.show[key];
+        if (val) {
+          lowestGroup = key;
+          break;
+        }
+      }
+      const params = router.currentRoute.params;
+      if (params.group === lowestGroup) {
+        return;
+      }
+      return { params: { ...params, group: lowestGroup } };
+    },
+    _validateNewTopGroupIsParent(data, redirect) {
+      // If the top group changed and we're at the root group and the new top group is above the proper nav group
+      const referenceRoute = redirect || router.currentRoute;
+      const params = referenceRoute.params;
+      if (
+        params.group !== "r" ||
+        !this.settings.topGroup ||
+        GROUPS_REVERSED.indexOf(this.settings.topGroup) >=
+          GROUPS_REVERSED.indexOf(data.topGroup)
+      ) {
+        // All is well, validated.
+        return redirect;
+      }
+      const route = { params: { ...params } };
+
+      let groupIndex = GROUPS_REVERSED.indexOf(this.settings.topGroup);
+      const parentGroups = GROUPS_REVERSED.slice(groupIndex + 1);
+      let jumpGroup;
+      for (jumpGroup of parentGroups) {
+        if (this.settings.show[jumpGroup]) {
+          break;
+        }
+      }
+      route.params.group = jumpGroup;
+      return route;
+    },
     ///////////////////////////////////////////////////////////////////////////
     // MUTATIONS
+    _mutateSettings(data) {
+      this.$patch((state) => {
+        for (let [key, value] of Object.entries(data)) {
+          if (typeof state.settings[key] === "object") {
+            state.settings[key] = { ...state.settings[key], ...value };
+          } else {
+            state.settings[key] = value;
+          }
+        }
+      });
+    },
+    _validateAndSaveSettings(data) {
+      let redirect = this._validateFirstSearch(data);
+      redirect = this._validateNewTopGroupIsParent(data, redirect);
+
+      // Mutate settings
+      if (data) {
+        this._mutateSettings(data);
+      }
+
+      this.filterMode = "base";
+      this.setTimestamp();
+      return redirect;
+    },
     setTimestamp() {
       this.settings.ts = Date.now();
     },
@@ -213,7 +208,7 @@ export const useBrowserStore = defineStore("browser", {
     },
     async setSettings(data) {
       // Save settings to state and re-get the objects.
-      const redirect = validateAndSaveSettings(this, data);
+      const redirect = this._validateAndSaveSettings(data);
       await (redirect ? redirectRoute(redirect) : this.loadBrowserPage());
     },
     async setBookmarkFinished(params, finished) {
@@ -229,21 +224,18 @@ export const useBrowserStore = defineStore("browser", {
     ///////////////////////////////////////////////////////////////////////////
     // ROUTE
     routeToPage(page) {
-      const route = {
-        name: router.currentRoute.name,
-        params: { ...router.currentRoute.params, page },
-      };
-      router.push(route).catch((error) => {
-        console.debug(error);
-      });
+      const route = _.cloneDeep(router.currentRoute);
+      route.params.page = page;
+      router.push(route).catch(console.debug);
     },
     handlePageError(error) {
+      console.debug(error);
       if (error.response.status == 303) {
         const data = error.response.data;
         if (compareRouteParams(data.route.params, router.currentRoute.params)) {
           this.setSettings(data.settings);
         } else {
-          const redirect = validateAndSaveSettings(this, data.settings);
+          const redirect = this._validateAndSaveSettings(data.settings);
           if (redirect) {
             // ? i dunno if this is a good idea.
             data.route = redirect;
@@ -267,7 +259,7 @@ export const useBrowserStore = defineStore("browser", {
       await API.getSettings()
         .then((response) => {
           const data = response.data;
-          const redirect = validateAndSaveSettings(this, data);
+          const redirect = this._validateAndSaveSettings(data);
           this.browserPageLoaded = true;
           if (redirect) {
             return redirectRoute(redirect);
@@ -287,14 +279,15 @@ export const useBrowserStore = defineStore("browser", {
       if (!this.browserPageLoaded) {
         return this.loadSettings();
       }
-      await API.loadBrowserPage(router.currentRoute.params, this.settings)
+      const params = router.currentRoute.params;
+      await API.loadBrowserPage(params, this.settings)
         .then((response) => {
           const data = response.data;
           this.$patch((state) => {
             const page = { ...response.data };
             page.routes = {
               up: data.upRoute,
-              last: router.currentRoute.params,
+              last: params,
             };
             page.zeroPad = getZeroPad(data.issueMax);
             delete page.upRoute;
@@ -307,18 +300,28 @@ export const useBrowserStore = defineStore("browser", {
         })
         .catch(this.handlePageError);
     },
-    async loadAllFilterChoices() {
-      return await API.getAllBrowserChoices(
+    async loadAvailableFilterChoices() {
+      return await API.getAvailableFilterChoices(
         router.currentRoute.params,
         this.settings
       )
         .then((response) => {
-          this.choices.dynamic = Object.freeze(response.data);
+          this.choices.dynamic = response.data;
           return true;
         })
-        .catch((error) => {
-          console.error(error);
-        });
+        .catch(console.error);
+    },
+    async loadFilterChoices(fieldName) {
+      return await API.getFilterChoices(
+        router.currentRoute.params,
+        fieldName,
+        this.settings
+      )
+        .then((response) => {
+          this.choices.dynamic[fieldName] = Object.freeze(response.data);
+          return true;
+        })
+        .catch(console.error);
     },
   },
 });

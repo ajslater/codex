@@ -31,6 +31,7 @@
             </v-list-item-content>
           </v-list-item>
           <v-text-field
+            v-if="typeof choices === 'object'"
             v-model="query"
             placeholder="Filter"
             full-width
@@ -40,11 +41,19 @@
             hide-details="auto"
             @focus="filterMode = name"
           />
+          <v-progress-linear
+            v-else
+            class="filterValuesProgress"
+            rounded
+            indeterminate
+          />
         </header>
         <v-list-item-group
-          v-model="filter"
+          v-if="typeof choices === 'object'"
+          :value="filter"
           class="filterGroup overflow-y-auto"
           multiple
+          @change="change"
         >
           <v-list-item
             v-for="item of vuetifyItems"
@@ -93,7 +102,7 @@ export default {
       required: true,
     },
   },
-  emits: ["sub-menu-click"],
+  emits: ["change"],
   data() {
     return {
       mdiChevronLeft,
@@ -107,7 +116,7 @@ export default {
       choices: function (state) {
         return state.choices.dynamic[this.name];
       },
-      filterSetting: function (state) {
+      filter: function (state) {
         return state.settings.filters[this.name];
       },
     }),
@@ -120,18 +129,6 @@ export default {
         CHARPK_FILTERS.includes(this.name)
       );
     },
-    filter: {
-      get() {
-        return this.filterSetting;
-      },
-      set(value) {
-        const data = {
-          filters: { [this.name]: value },
-        };
-        this.setSettings(data);
-        this.$emit("sub-menu-click");
-      },
-    },
     title: function () {
       let title = this.name.replace(/[A-Z]/g, (letter) => ` ${letter}`);
       title = title.replace("Ltr", "LTR");
@@ -143,12 +140,21 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useBrowserStore, ["setSettings"]),
+    ...mapActions(useBrowserStore, ["loadFilterChoices"]),
     setUIFilterMode(mode) {
       this.filterMode = mode;
       this.query = "";
+      if (mode !== "base" && typeof this.choices !== "object") {
+        this.loadFilterChoices(mode);
+      }
     },
     isNullPk: (pk) => NULL_PKS.has(pk),
+    change(value) {
+      const data = {
+        filters: { [this.name]: value },
+      };
+      this.$emit("change", data);
+    },
   },
 };
 </script>
@@ -173,5 +179,9 @@ export default {
 }
 .noneItem {
   color: gray;
+}
+.filterValuesProgress {
+  margin: 10px;
+  width: 88%;
 }
 </style>

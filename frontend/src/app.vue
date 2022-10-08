@@ -76,6 +76,23 @@ a {
 .background-soft-highlight {
   background-color: #272727 !important;
 }
+.codexToolbar {
+  position: fixed !important;
+  z-index: 20 !important;
+}
+
+.settingsDrawer {
+  z-index: 30 !important;
+}
+
+.settingsDrawerContainer {
+  position: relative !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+
 .settingsDrawer .v-icon {
   color: gray !important;
   margin-right: 0.33em;

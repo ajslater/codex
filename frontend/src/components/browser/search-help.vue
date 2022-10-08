@@ -138,6 +138,8 @@
 <script>
 import { mdiArchiveSearchOutline, mdiOpenInNew } from "@mdi/js";
 
+import CloseButton from "@/components/close-button.vue";
+
 const FIELD_ROWS = [
   ["community_rating", "Decimal", ""],
   ["characters", "CSV", "character"],
@@ -180,7 +182,7 @@ const FIELD_ROWS = [
 
 export default {
   name: "SearchHelp",
-  components: {},
+  components: { CloseButton },
   data() {
     return {
       mdiOpenInNew,

@@ -1,10 +1,12 @@
 import { defineStore } from "pinia";
+import Vue from "vue";
 
 import BROWSER_API from "@/api/v3/browser";
 import API from "@/api/v3/reader";
 import CHOICES from "@/choices";
 import { getFullComicName } from "@/comic-name";
 import router from "@/router";
+import { useBrowserStore } from "@/stores/browser";
 
 const NULL_READER_SETTINGS = {
   // Must be null so axios doesn't throw them out when sending.
@@ -25,133 +27,161 @@ const getGlobalFitToDefault = () => {
   );
   return vw > 600 ? "HEIGHT" : "WIDTH";
 };
-const getRouteParams = function (condition, routeParams, increment) {
-  // Mutation helper
-  return condition
-    ? {
-        pk: Number(routeParams.pk),
-        page: Number(routeParams.page) + increment,
-      }
-    : false;
-};
-
-const isRouteBookChange = function (state, direction) {
-  return (
-    direction &&
-    state.routes &&
-    !state.routes[direction] &&
-    state.routes[direction + "Book"]
-  );
-};
-
-const routerPush = function (route) {
-  router.push(route).catch((error) => {
-    console.debug(error);
-  });
-};
 
 export const useReaderStore = defineStore("reader", {
   state: () => ({
+    // static
     choices: {
-      // static
       fitTo: CHOICES.reader.fitTo,
+      nullValues: SETTINGS_NULL_VALUES,
     },
-    settings: {
-      globl: {
-        fitTo: getGlobalFitToDefault(),
-        twoPages: false,
-      },
-      local: { ...NULL_READER_SETTINGS },
+
+    // server
+    readerSettings: {
+      fitTo: getGlobalFitToDefault(),
+      twoPages: false,
     },
+    books: new Map(),
+    seriesCount: 0,
+
+    // local reader
     timestamp: Date.now(),
-    comic: {
-      fileFormat: undefined,
-      issue: undefined,
-      issueSuffix: "",
-      issueCount: undefined,
-      maxPage: undefined,
-      seriesName: "",
-      volumeName: "",
-    },
+    pk: undefined,
     routes: {
-      prev: undefined,
-      next: undefined,
-      prevBook: undefined,
-      nextBook: undefined,
-      seriesIndex: undefined,
-      seriesCount: undefined,
+      prev: false,
+      next: false,
+      books: {
+        prev: false,
+        next: false,
+      },
     },
-    // LOCAL UI
-    bookChange: undefined,
     isSettingsDrawerOpen: false,
-    nullValues: SETTINGS_NULL_VALUES,
-    comicLoaded: false,
+    bookChange: undefined,
   }),
   getters: {
-    computedSettings(state) {
-      // Mask the book settings over the global settings.
-      const computedSettings = {};
-      for (const [key, globalVal] of Object.entries(state.settings.globl)) {
-        const localVal = state.settings.local[key];
-        const isLocalValSet = !SETTINGS_NULL_VALUES.has(localVal);
-        computedSettings[key] = isLocalValSet ? localVal : globalVal;
-      }
-      return computedSettings;
+    activeBook(state) {
+      return state.books.get(state.pk);
     },
-    fitToClass(state) {
+    activeSettings(state) {
+      const book = state.activeBook;
+      const bookSettings = book ? book.settings : {};
+      return this.getSettings(state.readerSettings, bookSettings);
+    },
+    activeTitle(state) {
+      const book = state.activeBook;
+      return book ? getFullComicName(book) : "";
+    },
+  },
+  actions: {
+    ///////////////////////////////////////////////////////////////////////////
+    // GETTER Algorithms
+    getSettings(readerSettings, bookSettings) {
+      // Mask the book settings over the global settings.
+      if (!bookSettings) {
+        bookSettings = {};
+      }
+      const resultSettings = {};
+      for (const [key, readerVal] of Object.entries(readerSettings)) {
+        const bookVal = bookSettings[key];
+        const val = SETTINGS_NULL_VALUES.has(bookVal) ? readerVal : bookVal;
+        resultSettings[key] = val;
+      }
+      return resultSettings;
+    },
+    getFitToClass(settings) {
       let classes = {};
-      const fitTo = state.computedSettings.fitTo;
+      const fitTo = settings.fitTo;
       if (fitTo) {
         let fitToClass = "fitTo";
-        fitToClass += fitTo.charAt(0).toUpperCase();
-        fitToClass += fitTo.slice(1).toLowerCase();
-        if (state.computedSettings.twoPages) {
+        fitToClass +=
+          fitTo.charAt(0).toUpperCase() + fitTo.slice(1).toLowerCase();
+        if (settings.twoPages) {
           fitToClass += "Two";
         }
         classes[fitToClass] = true;
       }
       return classes;
     },
-    title(state) {
-      return state.comic ? getFullComicName(state.comic) : "";
-    },
-  },
-  actions: {
     ///////////////////////////////////////////////////////////////////////////
     // UTIL
-    _updateSettings(settingsKey, updates) {
-      // Doing this with $patch breaks reactivity
-      this.settings[settingsKey] = {
-        ...this.settings[settingsKey],
-        ...updates,
-      };
+    _numericValues(obj) {
+      if (!obj) {
+        return obj;
+      }
+      const res = {};
+      for (const [key, val] of Object.entries(obj)) {
+        res[key] = +val;
+      }
+      return res;
+    },
+    _getRouteParams(activePage, direction) {
+      // get possible activeBook page
+      let delta = this.activeSettings.twoPages ? 2 : 1;
+      if (direction === "prev") {
+        delta = delta * -1;
+      }
+      const page = +activePage + delta;
+
+      let routeParams = false;
+      if (page >= 0 && page <= this.activeBook.maxPage) {
+        // make activeBook route
+        routeParams = {
+          pk: this.pk,
+          page,
+        };
+      }
+      return routeParams;
     },
     ///////////////////////////////////////////////////////////////////////////
     // MUTATIONS
-    setBookInfo(data) {
+    _updateSettings(pk, updates) {
+      // Doing this with $patch breaks reactivity
+      if (pk === 0) {
+        this.readerSettings = {
+          ...this.readerSettings,
+          ...updates,
+        };
+      } else {
+        const book = this.books.get(pk);
+        book.settings = {
+          ...book.settings,
+          ...updates,
+        };
+      }
+    },
+    _setRoutes(page) {
       this.$patch((state) => {
-        state.comic = data.comic;
-        // Only set prev/next book info do not clobber page routes.
-        state.routes.prevBook = data.routes.prevBook;
-        state.routes.nextBook = data.routes.nextBook;
-        state.routes.seriesIndex = data.routes.seriesIndex;
-        state.routes.seriesCount = data.routes.seriesCount;
-        state.updatedAt = data.updatedAt;
+        state.routes.prev = this._getRouteParams(page, "prev");
+        state.routes.next = this._getRouteParams(page, "next");
       });
     },
-    setPrevRoute() {
-      const routeParams = router.currentRoute.params;
-      const condition = Number(routeParams.page) > 0;
-      const increment = -1;
-      this.routes.prev = getRouteParams(condition, routeParams, increment);
-    },
-    setNextPage() {
-      const routeParams = router.currentRoute.params;
-      const twoPages = this.computedSettings.twoPages;
-      const increment = twoPages ? 2 : 1;
-      const condition =
-        Number(routeParams.page) + increment <= this.comic.maxPage;
-      this.routes.next = getRouteParams(condition, routeParams, increment);
+    _getBookRoutes(state, prevBookPk, nextBookPk) {
+      let prevBookRoute = false;
+      if (prevBookPk) {
+        const prevBook = state.books.get(prevBookPk);
+        const prevBookSettings = this.getSettings(
+          this.readerSettings,
+          prevBook.settings
+        );
+        const twoPagesCorrection = prevBookSettings.twoPages ? -1 : 0;
+        prevBookRoute = {
+          pk: prevBookPk,
+          page: prevBook.maxPage + twoPagesCorrection,
+        };
+      }
+
+      let nextBookRoute = false;
+      if (nextBookPk) {
+        nextBookRoute = {
+          pk: nextBookPk,
+          page: 0,
+        };
+      }
+
+      return {
+        prev: prevBookRoute,
+        next: nextBookRoute,
+      };
     },
     setTimestamp() {
       this.timestamp = Date.now();
@@ -162,119 +192,139 @@ export const useReaderStore = defineStore("reader", {
       return API.getReaderSettings()
         .then((response) => {
           const data = response.data;
-          this._updateSettings("globl", data);
+          this._updateSettings(0, data);
+          return true;
+        })
+        .catch(console.error);
+    },
+    async loadBooks(routeParams) {
+      const params = this._numericValues(routeParams);
+      await API.getReaderInfo(params.pk, this.timestamp)
+        .then((response) => {
+          const data = response.data;
+          let prevBookPk = false;
+          let nextBookPk = false;
+          this.$patch((state) => {
+            const books = new Map();
+            for (const [index, book] of data.books.entries()) {
+              if (book.pk !== params.pk) {
+                if (index === 0) {
+                  prevBookPk = book.pk;
+                } else {
+                  nextBookPk = book.pk;
+                }
+              }
+              // These aren't declared in the state so must
+              // have observablitly declared here.
+              // For when settings change.
+              books.set(book.pk, Vue.observable(book));
+            }
+            state.books = books;
+            state.seriesCount = data.seriesCount;
+            state.pk = params.pk;
+            state.routes.books = this._getBookRoutes(
+              state,
+              prevBookPk,
+              nextBookPk
+            );
+          });
+          // Would be nice to include this in the above patch
+          // but _getRoute needs a lot of computed state.
+          this._setRoutes(params.page);
           return true;
         })
         .catch((error) => {
-          return console.error(error);
+          console.debug(error);
+          const page = useBrowserStore().page;
+          const route =
+            page && page.routes ? page.routes.last : { name: "home" };
+          return router.push(route);
         });
     },
-    async _loadBookSettings() {
-      this.comicLoaded = false;
-      return API.getComicBookmark(router.currentRoute.params.pk, this.timestamp)
-        .then((response) => {
-          const data = response.data;
-          this._updateSettings("local", data);
-          this.comicLoaded = true;
-          return this.setRoutesAndBookmarkPage();
-        })
-        .catch((error) => {
-          this.comicLoaded = true;
-          return console.error(error);
-        });
-    },
-    async loadBook() {
-      await API.getReaderInfo(router.currentRoute.params.pk, this.timestamp)
-        .then((response) => {
-          const info = response.data;
-          this.setBookInfo(info);
-          return this._loadBookSettings();
-        })
-        .catch((error) => {
-          if (error.response && [303, 404].includes(error.response.status)) {
-            const data = error.response.data;
-            console.debug(`redirect: ${data.reason}`);
-            const route = { name: "browser", params: data.route };
-            return this.routerPush(route);
-          } else {
-            console.error(error);
-          }
-        });
-    },
-    async setBookmarkPage() {
-      const pk = +router.currentRoute.params.pk;
-      const params = { group: "c", pk };
-      const page = +router.currentRoute.params.page;
+    async _setBookmarkPage(page) {
+      const groupParams = { group: "c", pk: this.pk };
+      page = Math.max(Math.min(this.activeBook.maxPage, page), 0);
       const updates = { page };
-      await BROWSER_API.setGroupBookmarks(params, updates);
+      await BROWSER_API.setGroupBookmarks(groupParams, updates);
     },
-    async setRoutesAndBookmarkPage() {
-      this.setPrevRoute();
-
-      this.setNextPage();
-      await this.setBookmarkPage().then(() => {
+    async setRoutesAndBookmarkPage(page) {
+      this._setRoutes(page);
+      await this._setBookmarkPage(page).then(() => {
         this.bookChange = undefined;
         return true;
       });
     },
-    async setSettingsLocal(data) {
-      this._updateSettings("local", data);
+    async setSettingsLocal(routeParams, data) {
+      const params = this._numericValues(routeParams);
+      this._updateSettings(params.pk, data);
 
       await BROWSER_API.setGroupBookmarks(
         {
           group: "c",
-          pk: router.currentRoute.params.pk,
+          pk: params.pk,
         },
-        this.settings.local
+        this.activeBook.settings
       );
-
-      if ("twoPages" in data) {
-        this.setNextPage();
-      }
     },
-    async clearSettingsLocal() {
-      await this.setSettingsLocal(NULL_READER_SETTINGS);
+    async clearSettingsLocal(routeParams) {
+      const params = this._numericValues(routeParams);
+      await this.setSettingsLocal(params, NULL_READER_SETTINGS);
     },
-    async setSettingsGlobal(data) {
-      this._updateSettings("globl", data);
-      await API.setReaderSettings(this.settings.globl);
-      await this.clearSettingsLocal();
+    async setSettingsGlobal(routeParams, data) {
+      const params = this._numericValues(routeParams);
+      this._updateSettings(0, data);
+      await API.setReaderSettings(this.readerSettings);
+      await this.clearSettingsLocal(params);
     },
     setBookChangeFlag(direction) {
-      this.bookChange = isRouteBookChange(this, direction)
-        ? direction
-        : undefined;
+      this.bookChange = this.routes.books[direction] ? direction : undefined;
     },
     ///////////////////////////////////////////////////////////////////////////
     // ROUTE
-    routeTo(routeParams) {
-      // Validate route
-      if (routeParams.pk === router.currentRoute.params.pk) {
-        if (routeParams.page > this.comic.maxPage) {
-          routeParams.page = this.comic.maxPage;
-          console.warn("Tried to navigate past the end of the book.");
-        } else if (routeParams.page < 0) {
-          routeParams.page = 0;
-          console.warn("Tried to navigate before the beginning of the book.");
-        }
+    _validateRoute(params) {
+      const book = this.books.get(params.pk);
+      if (!book) {
+        return {};
       }
-      const route = { name: "reader", params: routeParams };
-      return routerPush(route);
+      const maxPage = book.maxPage ?? 0;
+      if (params.page > maxPage) {
+        params.page = maxPage;
+        console.warn("Tried to navigate past the end of the book.");
+      } else if (params.page < 0) {
+        params.page = 0;
+        console.warn("Tried to navigate before the beginning of the book.");
+      } else if (
+        this.getSettings(this.readerSettings, book.settings).twoPages &&
+        params.page % 2 !== 0
+      ) {
+        params.page = params.page - 1;
+        console.warn("Requested odd page in two pages mode. Flip back one");
+      }
+      return params;
+    },
+    _routeTo(params) {
+      params = this._validateRoute(params);
+      const route = { name: "reader", params };
+      return router.push(route).catch(console.debug);
     },
     routeToDirection(direction) {
-      if (isRouteBookChange(this, direction) && this.bookChange !== direction) {
-        // Block book change routes unless the book change flag is set.
-        this.setBookChangeFlag(direction);
-        return;
+      if (this.routes[direction]) {
+        const params = this.routes[direction];
+        this._routeTo(params);
+      } else if (this.routes.books[direction]) {
+        if (this.bookChange === direction) {
+          this._routeTo(this.routes.books[direction]);
+        } else {
+          // Block book change routes unless the book change flag is set.
+          this.setBookChangeFlag(direction);
+        }
+      } else {
+        console.debug("No route to direction", direction);
       }
-      // Get real route
-      const finalRouteParams = this.routes[direction];
-
-      this.routeTo(finalRouteParams);
     },
     routeToPage(page) {
-      const params = { pk: Number(router.currentRoute.params.pk), page };
-      this.routeTo(params);
+      const params = { pk: this.pk, page };
+      this._routeTo(params);
     },
   },
 });

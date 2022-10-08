@@ -8,7 +8,7 @@
     :append-icon="mdiFileTree"
     :items="folders"
     :error-messages="formErrors"
-    :menu-props="{ value: menuOpen }"
+    :menu-props="{ value: menuOpen, maxHeight: '75%' }"
     v-bind="$attrs"
     v-on="$listeners"
     @blur="toggleMenu(false)"
@@ -34,9 +34,11 @@ import { mdiFileTree, mdiFolderHidden, mdiFolderOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import { useAdminStore } from "@/stores/admin";
+import { useCommonStore } from "@/stores/common";
 
 export default {
   name: "AdminServerFolderPicker",
+  emits: ["change", "menu"],
   data() {
     return {
       path: "",
@@ -51,6 +53,8 @@ export default {
     ...mapState(useAdminStore, {
       folders: (state) => state.folderPicker.folders,
       rootFolder: (state) => state.folderPicker.rootFolder,
+    }),
+    ...mapState(useCommonStore, {
       formErrors: (state) => state.form.errors,
     }),
     appendOuterIcon: function () {
@@ -60,18 +64,24 @@ export default {
       return this.showHidden ? "Hide" : "Show";
     },
   },
+  watch: {
+    menuOpen(to) {
+      if (to) {
+        this.$emit("menu", to);
+      }
+    },
+  },
   created() {
     this.loadFolders()
       .then(() => {
         this.path = this.rootFolder;
         return true;
       })
-      .catch((error) => {
-        console.warn(error);
-      });
+      .catch(console.warn);
   },
   methods: {
-    ...mapActions(useAdminStore, ["loadFolders", "clearErrors"]),
+    ...mapActions(useAdminStore, ["loadFolders"]),
+    ...mapActions(useCommonStore, ["clearErrors"]),
     change: function (path) {
       const relativePath = !path
         ? this.rootFolder
@@ -87,9 +97,7 @@ export default {
           this.$refs.folderPicker.isMenuActive = isMenuActive;
           return this.$emit("change", this.path);
         })
-        .catch((error) => {
-          console.warn(error);
-        });
+        .catch(console.warn);
     },
     toggleMenu: function (val) {
       if (val === undefined) {

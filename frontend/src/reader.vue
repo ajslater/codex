@@ -2,9 +2,7 @@
   <div>
     <v-main id="readerWrapper">
       <div v-if="isCodexViewable" id="readerContainer">
-        <ChangeBookDrawer direction="prev" />
-        <PagesWindow @click="toggleToolbars" />
-        <ChangeBookDrawer direction="next" />
+        <BooksWindow @click="toggleToolbars" />
         <v-slide-y-transition>
           <ReaderTitleToolbar v-show="showToolbars" />
         </v-slide-y-transition>
@@ -26,8 +24,7 @@
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 
-import ChangeBookDrawer from "@/components/reader/change-book-drawer.vue";
-import PagesWindow from "@/components/reader/pages-window.vue";
+import BooksWindow from "@/components/reader/pages-window.vue";
 import ReaderNavToolbar from "@/components/reader/reader-nav-toolbar.vue";
 import ReaderSettingsDrawer from "@/components/reader/reader-settings-drawer.vue";
 import ReaderTitleToolbar from "@/components/reader/reader-title-toolbar.vue";
@@ -37,8 +34,7 @@ import { useReaderStore } from "@/stores/reader";
 export default {
   name: "MainReader",
   components: {
-    ChangeBookDrawer,
-    PagesWindow,
+    BooksWindow,
     ReaderNavToolbar,
     ReaderTitleToolbar,
     ReaderSettingsDrawer,
@@ -64,10 +60,9 @@ export default {
   },
   created() {
     this.loadReaderSettings();
-    this.loadBook();
   },
   methods: {
-    ...mapActions(useReaderStore, ["loadReaderSettings", "loadBook"]),
+    ...mapActions(useReaderStore, ["loadReaderSettings"]),
     toggleToolbars: function () {
       this.showToolbars = !this.showToolbars;
     },

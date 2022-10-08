@@ -15,7 +15,11 @@ export default {
   name: "PaginationSlider",
 };
 </script>
-
+<style scoped lang="scss">
+.paginationSlider {
+  z-index: 5;
+}
+</style>
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
 /* Custom slider with a large control. */

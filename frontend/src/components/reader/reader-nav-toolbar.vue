@@ -1,24 +1,26 @@
 <template>
   <v-toolbar
     v-if="maxPage"
-    class="readerNavToolbar"
+    class="readerNavToolbar codexToolbar"
     dense
     transform="center bottom"
   >
     <ReaderNavButton :value="0" />
     <PaginationSlider
-      :key="comicLoaded"
+      :key="$route.params.pk"
       :value="+$route.params.page"
       :min="+0"
       :max="maxPage"
+      :step="step"
+      :track-color="trackColor"
       @change="routeToPage($event)"
     />
-    <ReaderNavButton :value="maxPage" />
+    <ReaderNavButton :value="maxPage" :two-pages="twoPages" />
   </v-toolbar>
 </template>
 
 <script>
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapGetters } from "pinia";
 
 import PaginationSlider from "@/components/pagination-slider.vue";
 import ReaderNavButton from "@/components/reader/reader-nav-button.vue";
@@ -31,11 +33,22 @@ export default {
     ReaderNavButton,
   },
   computed: {
-    ...mapState(useReaderStore, {
-      maxPage: (state) => (state.comic ? state.comic.maxPage : 0),
-      // without this the slider can fail to place right on book change
-      comicLoaded: (state) => state.comicLoaded,
-    }),
+    ...mapGetters(useReaderStore, ["activeSettings", "activeBook"]),
+    maxPage() {
+      return this.activeBook ? this.activeBook.maxPage : 0;
+    },
+    twoPages() {
+      return this.activeSettings.twoPages;
+    },
+    // without this the slider can fail to place right on book change
+    step() {
+      return this.activeSettings.twoPages ? 2 : 1;
+    },
+    trackColor() {
+      return this.twoPages && +this.$route.params.page >= this.maxPage - 1
+        ? "#cc7b19"
+        : "";
+    },
   },
   methods: {
     ...mapActions(useReaderStore, ["routeToPage"]),
@@ -45,7 +58,6 @@ export default {
 
 <style scoped lang="scss">
 .readerNavToolbar {
-  position: fixed !important;
   bottom: env(safe-area-inset-bottom);
   width: 100%;
   z-index: 10;

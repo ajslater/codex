@@ -1,7 +1,8 @@
 <template>
   <div>
     <AuthMenu />
-    <component :is="adminMenuLoader" />
+    <v-divider v-if="isUserAdmin" />
+    <component :is="adminMenuLoader" :menu="adminMenu" />
   </div>
 </template>
 
@@ -12,26 +13,19 @@ import { useAuthStore } from "@/stores/auth";
 
 const AdminMenu = () => import("@/components/admin/admin-menu.vue");
 import AuthMenu from "@/components/auth/auth-menu.vue";
-import SettingsFooter from "@/components/settings/settings-footer.vue";
 
 export default {
   name: "SettingsCommonPanel",
   components: {
     AuthMenu,
-    SettingsFooter,
   },
   props: {
-    admin: { type: Boolean, default: true },
-  },
-  data() {
-    return {
-      // Could calculate this server side, but whatever
-    };
+    adminMenu: { type: Boolean, default: true },
   },
   computed: {
     ...mapGetters(useAuthStore, ["isUserAdmin"]),
     adminMenuLoader: function () {
-      return this.admin && this.isUserAdmin ? AdminMenu : undefined;
+      return this.isUserAdmin ? AdminMenu : undefined;
     },
   },
 };

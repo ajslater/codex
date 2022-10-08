@@ -8,7 +8,7 @@
     <v-radio-group
       class="displayRadioGroup"
       label="Display"
-      :value="settingsScope.fitTo"
+      :value="selectedSettings.fitTo"
       @change="settingsDialogChanged({ fitTo: $event })"
     >
       <v-radio
@@ -21,9 +21,10 @@
     <v-checkbox
       class="displayTwoPages"
       label="Two pages"
-      :input-value="settingsScope.twoPages"
+      :input-value="selectedSettings.twoPages"
       :indeterminate="
-        settingsScope.twoPages === null || settingsScope.twoPages === undefined
+        selectedSettings.twoPages === null ||
+        selectedSettings.twoPages === undefined
       "
       ripple
       @change="settingsDialogChanged({ twoPages: $event === true })"
@@ -33,7 +34,7 @@
       :class="{ invisible: isGlobalScope }"
       :disabled="isClearSettingsButtonDisabled"
       title="Use the default settings for all comics for this comic"
-      @click="clearSettingsLocal"
+      @click="clearSettingsLocal($route.params)"
     >
       Clear Comic Settings
     </v-btn>
@@ -55,18 +56,27 @@ export default {
   },
   computed: {
     ...mapState(useReaderStore, {
-      fitToChoices: (state) => state.choices.fitTo,
-      settingsScope: function (state) {
-        const scope = this.isGlobalScope ? "globl" : "local";
-        return state.settings[scope];
+      fitToChoices(state) {
+        const displayChoices = [];
+        for (const choice of state.choices.fitTo) {
+          if (choice.value) {
+            displayChoices.push(choice);
+          }
+        }
+        return displayChoices;
       },
-      nullValues: (state) => state.nullValues,
+      selectedSettings: function (state) {
+        return this.isGlobalScope || !state.activeBook
+          ? state.readerSettings
+          : state.activeBook.settings;
+      },
       isClearSettingsButtonDisabled: function (state) {
-        if (this.isGlobalScope) {
+        if (this.isGlobalScope || !state.activeBook) {
           return true;
         }
         for (const attr of ATTRS) {
-          if (!state.nullValues.has(state.settings.local[attr])) {
+          const val = state.activeBook.settings[attr];
+          if (!state.choices.nullValues.has(val)) {
             return false;
           }
         }
@@ -75,11 +85,10 @@ export default {
     }),
   },
   mounted() {
-    window.addEventListener("keyup", this._keyListener);
-    this.$emit("panelMounted");
+    document.addEventListener("keyup", this._keyListener);
   },
-  beforeDestroy: function () {
-    window.removeEventListener("keyup", this._keyListener);
+  unmounted: function () {
+    document.removeEventListener("keyup", this._keyListener);
   },
 
   methods: {
@@ -90,38 +99,42 @@ export default {
     ]),
     settingsDialogChanged: function (data) {
       if (this.isGlobalScope) {
-        this.setSettingsGlobal(data);
+        this.setSettingsGlobal(this.$route.params, data);
       } else {
-        this.setSettingsLocal(data);
+        this.setSettingsLocal(this.$route.params, data);
       }
     },
     _keyListener: function (event) {
       event.stopPropagation();
+      let updates;
       switch (event.key) {
         case "w":
-          this.setSettingsLocal({ fitTo: "WIDTH" });
+          updates = { fitTo: "WIDTH" };
           break;
 
         case "h":
-          this.setSettingsLocal({ fitTo: "HEIGHT" });
+          updates = { fitTo: "HEIGHT" };
           break;
+
         case "s":
-          this.setSettingsLocal({ fitTo: "SCREEN" });
+          updates = { fitTo: "SCREEN" };
           break;
 
         case "o":
-          this.setSettingsLocal({ fitTo: "ORIG" });
+          updates = { fitTo: "ORIG" };
           break;
 
         case "2":
-          this.setSettingsLocal({
-            twoPages: !this.settingsScope.twoPages,
-          });
+          updates = {
+            twoPages: !this.selectedSettings.twoPages,
+          };
           break;
-
-        // metadata and close are attached to to title-toolbar
-        // No default
       }
+      if (updates) {
+        this.setSettingsLocal(this.$route.params, updates);
+      }
+      // metadata and close are attached to to title-toolbar
+      // No default
     },
   },
 };

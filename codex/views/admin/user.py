@@ -2,10 +2,11 @@
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.cache import cache
-from rest_framework import status
+from django.core.exceptions import ValidationError
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
+from rest_framework.status import HTTP_202_ACCEPTED, HTTP_400_BAD_REQUEST
 from rest_framework.viewsets import ModelViewSet
 
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
@@ -59,17 +60,24 @@ class AdminUserChangePasswordView(GenericAPIView):
 
     def put(self, request, *args, **kwargs):
         """Validate and set the user password."""
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        pk = self.kwargs["pk"]
-        user = User.objects.get(pk=pk)
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            pk = self.kwargs["pk"]
+            user = User.objects.get(pk=pk)
 
-        password = serializer.validated_data["password"]
-        validate_password(password, user=user)
+            password = serializer.validated_data["password"]
+            validate_password(password, user=user)
 
-        user.set_password(password)
-        user.save()
+            user.set_password(password)
+            user.save()
+            status = HTTP_202_ACCEPTED
+            detail = "Successfully changed password"
+        except ValidationError as exc:
+            status = HTTP_400_BAD_REQUEST
+            detail = exc.error_list
+
         return Response(
-            status=status.HTTP_202_ACCEPTED,
-            data={"detail": "Successfully changed password"},
+            status=status,
+            data={"detail": detail},
         )

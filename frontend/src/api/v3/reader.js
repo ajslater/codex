@@ -8,10 +8,6 @@ const getReaderInfo = (pk, timestamp) => {
   return HTTP.get(`c/${pk}?ts=${timestamp}`);
 };
 
-const getComicBookmark = (pk, timestamp) => {
-  return HTTP.get(`c/${pk}/bookmark?ts=${timestamp}`);
-};
-
 const getReaderSettings = () => {
   return HTTP.get(`c/settings`);
 };
@@ -31,7 +27,6 @@ export const getComicPageSource = ({ pk, page }, timestamp) => {
 };
 
 export default {
-  getComicBookmark,
   getReaderBasePath,
   getReaderInfo,
   getReaderSettings,
