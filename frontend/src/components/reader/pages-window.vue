@@ -146,12 +146,6 @@ export default {
         );
         return this.routeToPage(page - 1);
       }
-      if (page < 0) {
-        return this.routeToPage(0);
-      }
-      if (page > this.maxPage) {
-        return this.routeToPage(this.maxPage);
-      }
       this.activePage = page;
       this.setRoutesAndBookmarkPage(+this.$route.params.page);
       window.scrollTo(0, 0);
