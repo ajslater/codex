@@ -49,6 +49,7 @@ export default {
     },
   },
   mounted() {
+    this.setBookChangeFlag();
     const windowContainer = this.$refs.booksWindow.$el.children[0];
     windowContainer.addEventListener("click", this.click);
   },
