@@ -66,8 +66,13 @@ import {
   mdiMenuLeft,
   mdiMenuRight,
 } from "@mdi/js";
+import { mapGetters } from "pinia";
+
+import { useCommonStore } from "@/stores/common";
 
 export default {
+  // eslint-disable-next-line no-secrets/no-secrets
+  name: "KeyboardShortcutsPanel",
   data() {
     return {
       mdiMenuLeft,
@@ -76,14 +81,8 @@ export default {
       mdiAppleKeyboardShift,
     };
   },
-  methods: {
-    isMobile: function () {
-      // Probably janky mobile detection
-      return (
-        typeof window.orientation !== "undefined" ||
-        navigator.userAgent.includes("IEMobile")
-      );
-    },
+  computed: {
+    ...mapGetters(useCommonStore, ["isMobile"]),
   },
 };
 </script>
