@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v0.14.1
+
+- Fixes
+
+  - Resolve ties in browser ordering with default comic ordering.
+  - Always close book change drawer before reader opens.
+
 ## v0.14.0
 
 ### Sliding Pages
@@ -79,7 +86,7 @@ border-radius: 128px;
 
 ## v0.11.0
 
-### Task monitor
+### Task Monitor
 
 - Features
   - Librarian tasks in progress appear in the settings side drawer for
