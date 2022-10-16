@@ -46,7 +46,10 @@ class BrowserMetadataBaseView(BrowserBaseView):
     _UNIONFIX_DEFAULT_ORDERING = tuple(
         UNIONFIX_PREFIX + field.replace("__", "_") for field in Comic.ORDERING
     )
-    _ORDER_VALUE_ORDERING = (UNIONFIX_PREFIX + "order_value", UNIONFIX_PREFIX + "pk")
+    _ORDER_VALUE_ORDERING = (
+        UNIONFIX_PREFIX + "order_value",
+        *_UNIONFIX_DEFAULT_ORDERING,
+    )
     _HALF_VALUE = Value(0.5)
     _SEP_VALUE = Value(sep)
     _ONE_INTEGERFIELD = Value(1, IntegerField())
@@ -291,11 +294,11 @@ class BrowserMetadataBaseView(BrowserBaseView):
         order_key = self.get_order_key()
         if for_cover_pk:
             prefix += "comic__"
+            ordering = []
             field = self._ORDER_BY_FIELD_ALIASES.get(order_key, order_key)
-            if field == "sort_name" or not field:
-                ordering = Comic.ORDERING
-            else:
-                ordering = (field, "pk")
+            if field and field != "sort_name":
+                ordering += [field]
+            ordering += [*Comic.ORDERING]
         elif order_key == "sort_name" or not order_key:
             # Use default sort
             if model in (Comic, Folder):
