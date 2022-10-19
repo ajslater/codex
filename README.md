@@ -130,12 +130,7 @@ and then navigate to <http://localhost:9810/>
 
 ## <a name="administration">👑 Administration</a>
 
-### Change the Admin password
-
-The first thing you should do is log in as the admin user and change the admin
-password.
-
-#### Navigate to the Admin Panel
+### Navigate to the Admin Panel
 
 - Click the hamburger menu ☰ to open the browser settings drawer.
 - Log in as the 'admin' user. The default administrator password is also
@@ -143,24 +138,26 @@ password.
 - Navigate to the Admin Panel by clicking on its link in the browser settings
   drawer after you have logged in.
 
-##### In the Admin Panel, Change the Password
+### Change the Admin password
 
-- Navigate to the AUTHENTICATION AND AUTHORIZATION Users panel.
-- Select the `admin` user.
-- Change the admin password using the small "this form" link in the password
-  section.
-- You may also change the admin user's name or anything else.
-- You may grant other users admin privileges by making them staff.
+The first thing you should do is log in as the admin user and change the admin
+password.
 
-### Adding Comic Libraries
+- Navigate to the Admin Panel as described above.
+- Select the Users tab.
+- Change the admin user's password using the small lock button.
+- You may also change the admin user's name with the edit button.
+- You may create other users and grant them admin privileges by making them
+  staff.
+
+### Add Comic Libraries
 
 The second thing you will want to do is log in as an Administrator and add one
 or more comic libraries.
 
-#### From the Admin Panel, Add Comic Libraries
-
-- Navigate to the CODEX Libraries Panel in the Admin Panel
-- Add a Library with the "ADD LIBRARY +" button in the upper right.
+- Navigate to the Admin Panel as described above.
+- Select the Libraries tab in the Admin Panel
+- Add a Library with the "+ LIBRARY" button in the upper left.
 
 ### Reset the admin password
 
