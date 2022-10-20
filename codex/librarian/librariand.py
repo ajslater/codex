@@ -1,4 +1,6 @@
 """Library process worker for background tasks."""
+import threading
+
 from multiprocessing import Process
 from time import sleep
 
@@ -91,6 +93,7 @@ class LibrarianDaemon(Process):
     def _create_threads(self):
         """Create all the threads."""
         force_darwin_multiprocessing_fork()
+        LOG.debug("Active threads before thread creation:", threading.active_count())
         self.delayed_tasks = DelayedTasksThread()
         self.cover_creator = CoverCreator()
         self.search_indexer = SearchIndexer()
