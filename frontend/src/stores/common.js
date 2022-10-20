@@ -7,7 +7,7 @@ const getErrors = (axiosError) => {
   let errors = [];
   if (axiosError && axiosError.response && axiosError.response.data) {
     const data = axiosError.response.data;
-    errors = data.flat();
+    errors = Array.isArray(data) ? data.flat() : [data];
   } else {
     console.warn("Unable to parse error", axiosError);
   }
@@ -30,6 +30,15 @@ export const useCommonStore = defineStore("common", {
     },
     timestamp: Date.now(),
   }),
+  getters: {
+    isMobile: function () {
+      // Probably janky mobile detection
+      return (
+        typeof window.orientation !== "undefined" ||
+        navigator.userAgent.includes("IEMobile")
+      );
+    },
+  },
   actions: {
     async loadVersions() {
       await API.getVersions(this.timestamp)

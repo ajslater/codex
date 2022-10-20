@@ -48,6 +48,9 @@ export default {
       }
     },
   },
+  beforeMount() {
+    this.setBookChangeFlag();
+  },
   mounted() {
     const windowContainer = this.$refs.booksWindow.$el.children[0];
     windowContainer.addEventListener("click", this.click);
@@ -92,6 +95,7 @@ export default {
   width: 33vw;
   height: calc(100vh - 96px);
   border-radius: 0;
+  margin: 0;
   opacity: 0;
   z-index: 10;
 }

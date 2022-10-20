@@ -9,3 +9,4 @@ comicbox:
   filename: True
   raw: False
   recurse: False
+  metadata: {}

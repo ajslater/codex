@@ -6,19 +6,34 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v0.14.0a7
+## v0.14.2a0
+
+- Fixes
+
+  - Fix reader keyboard shortcut help.
+  - Fix book change drawer appearing in the middle of books.
+  - Debug logging for thread start bug
+
+## v0.14.1
+
+- Fixes
+
+  - Resolve ties in browser ordering with default comic ordering.
+  - Always close book change drawer before reader opens.
+
+## v0.14.0
 
 ### Sliding Pages
 
 - Features
   - Animated sliding pages on reader.
+  - Comic & PDF pages display loading, rendering and password errors.
 - Fixes
   - Filters with compound names were not loading choices.
   - Show only usable filters for current view as filter choices.
   - Allow filtering by None values when None values exist.
   - Handle an iOS bug with downloading pages and comics inside a PWA.
   - Fixed PDF failure to render on load and after changing settings.
-  - PDF viewer shows loading, rendering and password errors.
   - Login & Change Password dialogs no longer activate Reader shortcuts by
     accident.
 
@@ -79,7 +94,7 @@ border-radius: 128px;
 
 ## v0.11.0
 
-### Task monitor
+### Task Monitor
 
 - Features
   - Librarian tasks in progress appear in the settings side drawer for
