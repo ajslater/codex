@@ -6,12 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v0.14.2
+## v0.14.2a0
 
 - Fixes
 
   - Fix reader keyboard shortcut help.
   - Fix book change drawer appearing in the middle of books.
+  - Debug logging for thread start bug
 
 ## v0.14.1
 
