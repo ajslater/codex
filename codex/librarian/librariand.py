@@ -92,16 +92,25 @@ class LibrarianDaemon(Process):
 
     def _create_threads(self):
         """Create all the threads."""
+        LOG.debug("Creating Librarian threads...")
         force_darwin_multiprocessing_fork()
-        LOG.debug("Active threads before thread creation:", threading.active_count())
+        LOG.debug(f"Active threads before thread creation: {threading.active_count()}")
         self.delayed_tasks = DelayedTasksThread()
+        LOG.debug("Created DelayedTasksThread")
         self.cover_creator = CoverCreator()
+        LOG.debug("Created CoverCreatorThread")
         self.search_indexer = SearchIndexer()
+        LOG.debug("Created SearchIndexerThread")
         self.updater = Updater()
+        LOG.debug("Created UpdaterThread")
         self.event_batcher = EventBatcher()
+        LOG.debug("Created EventBatcherThread")
         self.file_system_event_observer = LibraryEventObserver()
+        LOG.debug("Created FSEOThread")
         self.library_polling_observer = LibraryPollingObserver()
+        LOG.debug("Created PollingObserverThread")
         self.crond = Crond()
+        LOG.debug("Created CrondThread")
         self._threads = (
             self.delayed_tasks,
             self.cover_creator,
@@ -112,10 +121,12 @@ class LibrarianDaemon(Process):
             self.library_polling_observer,
             self.crond,
         )
+        LOG.debug("Created _threads tuple")
         self._observers = (
             self.file_system_event_observer,
             self.library_polling_observer,
         )
+        LOG.debug("Threads created")
 
     def _start_threads(self):
         """Start all librarian's threads."""
@@ -143,6 +154,7 @@ class LibrarianDaemon(Process):
         try:
             LOG.verbose("Started Librarian process.")
             self._create_threads()
+            LOG.debug("Created Librarian Threads, Starting.")
             self._start_threads()
             task = SearchIndexRebuildIfDBChangedTask()
             LIBRARIAN_QUEUE.put(task)
