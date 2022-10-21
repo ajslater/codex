@@ -227,7 +227,7 @@ test = ["hypothesis (>=1.11.4,!=3.79.2)", "iso8601", "pretend", "pytest (>=6.2.0
 
 [[package]]
 name = "cssbeautifier"
-version = "1.14.6"
+version = "1.14.7"
 description = "CSS unobfuscator and beautifier."
 category = "dev"
 optional = false
@@ -374,7 +374,7 @@ python-versions = ">=3.7,<4.0"
 
 [[package]]
 name = "djlint"
-version = "1.19.1"
+version = "1.19.2"
 description = "HTML Template Linter and Formatter"
 category = "dev"
 optional = false
@@ -717,7 +717,7 @@ requirements-deprecated-finder = ["pip-api", "pipreqs"]
 
 [[package]]
 name = "jsbeautifier"
-version = "1.14.6"
+version = "1.14.7"
 description = "JavaScript unobfuscator and beautifier."
 category = "dev"
 optional = false
@@ -1096,7 +1096,7 @@ testing = ["argcomplete", "hypothesis (>=3.56)", "mock", "nose", "pygments (>=2.
 
 [[package]]
 name = "pytest-asyncio"
-version = "0.19.0"
+version = "0.20.1"
 description = "Pytest support for asyncio"
 category = "dev"
 optional = false
@@ -1479,7 +1479,7 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "163e914aa19cc53fb8a5eee03bf17c291f870462bdab16e4f9bc9b1db1d3c90f"
+content-hash = "9639299319f121fee3d691c60c1672c220a2cefff86cbf2270f1d16f6ba12566"
 
 [metadata.files]
 aioquic = [
@@ -1798,7 +1798,7 @@ cryptography = [
     {file = "cryptography-38.0.1.tar.gz", hash = "sha256:1db3d807a14931fa317f96435695d9ec386be7b84b618cc61cfa5d08b0ae33d7"},
 ]
 cssbeautifier = [
-    {file = "cssbeautifier-1.14.6.tar.gz", hash = "sha256:ad77a23e842e78320655825fe48ebf9df373eb9b996858d74d96514d5dfdcd13"},
+    {file = "cssbeautifier-1.14.7.tar.gz", hash = "sha256:be7f1ea7a7b009f0172c2c0d0bebb2d136346e786f7182185ea944affb52135a"},
 ]
 deepdiff6 = [
     {file = "deepdiff6-6.2.0-py3-none-any.whl", hash = "sha256:83d8bfcdc12c3d769d3337f0e91f49cf4ba6b040706ab8698112e306f909a102"},
@@ -1846,8 +1846,8 @@ djangorestframework-types = [
     {file = "djangorestframework_types-0.8.0-py3-none-any.whl", hash = "sha256:5136212ec0df2c11d5ebcf217246f606e68f1d46a770419de84ed676bdab0113"},
 ]
 djlint = [
-    {file = "djlint-1.19.1-py3-none-any.whl", hash = "sha256:baef9d7538c84c7d559279ee54c3dc79d39e8dd225f4e873ebae7a22ea8aed24"},
-    {file = "djlint-1.19.1.tar.gz", hash = "sha256:9eba47aad5c187908ad36053ba82a41d352dd48ffe024814090059c3d8986741"},
+    {file = "djlint-1.19.2-py3-none-any.whl", hash = "sha256:2bc246654c4f24c7acc5bca1a00192ba898565b66308c1435778c2306bffeca4"},
+    {file = "djlint-1.19.2.tar.gz", hash = "sha256:2cf4fd16365a9998c21ee35446cbf46160353babd6fcc0bd0aff893d9abcbe77"},
 ]
 drf-spectacular = [
     {file = "drf-spectacular-0.24.2.tar.gz", hash = "sha256:be32417594080a52f996afd83fd47ea9c2b83cbf13f6d3fbf3de809a0dfa7ead"},
@@ -2028,7 +2028,7 @@ isort = [
     {file = "isort-5.10.1.tar.gz", hash = "sha256:e8443a5e7a020e9d7f97f1d7d9cd17c88bcb3bc7e218bf9cf5095fe550be2951"},
 ]
 jsbeautifier = [
-    {file = "jsbeautifier-1.14.6.tar.gz", hash = "sha256:0d5244851144dc473b1d1044be3dd6c56f61fd69ebdc1f93b813d8224272f06f"},
+    {file = "jsbeautifier-1.14.7.tar.gz", hash = "sha256:77993254db1ff6f84eb6e1d75e3b6b72cba2ef20813a585b2d81e8e5e3c713c6"},
 ]
 jsonschema = [
     {file = "jsonschema-4.16.0-py3-none-any.whl", hash = "sha256:9e74b8f9738d6a946d70705dc692b74b5429cd0960d58e79ffecfc43b2221eb9"},
@@ -2325,8 +2325,8 @@ pytest = [
     {file = "pytest-7.1.3.tar.gz", hash = "sha256:4f365fec2dff9c1162f834d9f18af1ba13062db0c708bf7b946f8a5c76180c39"},
 ]
 pytest-asyncio = [
-    {file = "pytest-asyncio-0.19.0.tar.gz", hash = "sha256:ac4ebf3b6207259750bc32f4c1d8fcd7e79739edbc67ad0c58dd150b1d072fed"},
-    {file = "pytest_asyncio-0.19.0-py3-none-any.whl", hash = "sha256:7a97e37cfe1ed296e2e84941384bdd37c376453912d397ed39293e0916f521fa"},
+    {file = "pytest-asyncio-0.20.1.tar.gz", hash = "sha256:626699de2a747611f3eeb64168b3575f70439b06c3d0206e6ceaeeb956e65519"},
+    {file = "pytest_asyncio-0.20.1-py3-none-any.whl", hash = "sha256:2c85a835df33fda40fe3973b451e0c194ca11bc2c007eabff90bb3d156fc172b"},
 ]
 pytest-cov = [
     {file = "pytest-cov-4.0.0.tar.gz", hash = "sha256:996b79efde6433cdbd0088872dbc5fb3ed7fe1578b68cdbba634f14bb8dd0470"},
