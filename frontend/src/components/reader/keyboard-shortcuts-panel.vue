@@ -1,5 +1,5 @@
 <template>
-  <div v-if="!isMobile()" id="readerKeyboardShortcutsDialog">
+  <div v-if="!isMobile" id="readerKeyboardShortcutsDialog">
     <h3>Keyboard Shortcuts</h3>
     <table id="readerKeyboardShortcutsTable" class="highlight-table">
       <tbody>

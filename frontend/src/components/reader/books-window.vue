@@ -95,6 +95,7 @@ export default {
   width: 33vw;
   height: calc(100vh - 96px);
   border-radius: 0;
+  margin: 0;
   opacity: 0;
   z-index: 10;
 }

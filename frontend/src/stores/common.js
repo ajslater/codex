@@ -7,7 +7,7 @@ const getErrors = (axiosError) => {
   let errors = [];
   if (axiosError && axiosError.response && axiosError.response.data) {
     const data = axiosError.response.data;
-    errors = data.flat();
+    errors = Array.isArray(data) ? data.flat() : [data];
   } else {
     console.warn("Unable to parse error", axiosError);
   }
