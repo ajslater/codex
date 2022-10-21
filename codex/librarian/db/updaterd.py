@@ -20,7 +20,8 @@ from codex.librarian.search.tasks import SearchIndexJanitorUpdateTask
 from codex.librarian.status_control import StatusControl
 from codex.models import Library
 from codex.notifier.tasks import FAILED_IMPORTS_TASK, LIBRARY_CHANGED_TASK
-from codex.settings.logging import LOG_EVERY, VERBOSE, get_logger
+from codex.settings.logging import LOG_EVERY, get_logger
+from codex.logger.log_queue import VERBOSE
 from codex.threads import QueuedThread
 
 
