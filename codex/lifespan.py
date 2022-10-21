@@ -1,8 +1,7 @@
 """Start and stop daemons."""
 import multiprocessing
 import os
-
-from time import sleep
+import time
 
 from asgiref.sync import sync_to_async
 from django.contrib.auth.models import User
@@ -12,6 +11,7 @@ from django.db.models.functions import Now
 
 from codex.darwin_mp import force_darwin_multiprocessing_fork
 from codex.librarian.librariand import LibrarianDaemon
+from codex.logger.loggerd import Logger
 from codex.models import AdminFlag, LibrarianStatus, Library, Timestamp
 from codex.notifier.notifierd import Notifier
 from codex.settings.logging import get_logger
@@ -107,16 +107,16 @@ def codex_shutdown():
     LOG.info("Codex suprocesses shutting down...")
     LibrarianDaemon.shutdown()
     Notifier.shutdown()
-    while multiprocessing.active_children():
-        procs = multiprocessing.active_children()
-        if procs:
-            LOG.debug(f"Waiting on {procs}.")
-        sleep(0.5)
+    multiprocessing.active_children()
+    time.sleep(2)
+    for child in multiprocessing.active_children():
+        child.terminate()
     LOG.info("Codex subprocesses shut down.")
 
 
 async def lifespan_application(_scope, receive, send):
     """Lifespan application."""
+    Logger.startup()
     LOG.debug("Lifespan application started.")
     while True:
         try:
@@ -145,3 +145,4 @@ async def lifespan_application(_scope, receive, send):
         except Exception as exc:
             LOG.exception(exc)
     LOG.debug("Lifespan application stopped.")
+    Logger.shutdown()

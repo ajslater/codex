@@ -6,13 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v0.14.2a0
+## v0.14.2a2
 
 - Fixes
 
+  - Fix Librarian process hanging due to logging deadlock.
   - Fix reader keyboard shortcut help.
   - Fix book change drawer appearing in the middle of books.
-  - Debug logging for thread start bug
 
 ## v0.14.1
 
