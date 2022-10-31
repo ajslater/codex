@@ -14,5 +14,6 @@ codex/static_build
 codex/static_root
 codex/templates
 comics
+dist
 frontend
 webpack-stats.json
