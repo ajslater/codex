@@ -1,6 +1,12 @@
-import Vuetify from "vuetify/lib";
+import { createVuetify } from "vuetify";
+import { aliases, mdi } from "vuetify/iconsets/mdi";
 
-export default new Vuetify({
+export default new createVuetify({
+  defaults: {
+    global: {
+      ripple: true,
+    },
+  },
   theme: {
     dark: true,
     options: {
@@ -13,6 +19,10 @@ export default new Vuetify({
     },
   },
   icons: {
-    iconfont: "mdiSvg",
+    defaultSet: "mdi",
+    aliases,
+    sets: {
+      mdi,
+    },
   },
 });

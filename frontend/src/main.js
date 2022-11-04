@@ -1,12 +1,10 @@
-import "vuetify/dist/vuetify.min.css"; // Ensure you are using css-loader
 import "@mdi/font/css/materialdesignicons.css";
+import "vuetify/styles"; // Global CSS has to be imported
 
-import { createPinia, PiniaVuePlugin } from "pinia";
-import Vue from "vue";
-import VueMeta from "vue-meta";
-import VueNativeSock from "vue-native-websocket";
-import VueRouter from "vue-router";
-import Vuetify, { VApp, VMain } from "vuetify/lib";
+import { createPinia } from "pinia";
+import { createApp } from "vue";
+import { createMetaManager } from "vue-meta";
+import VueNativeSock from "vue-native-websocket-vue3";
 
 import { SOCKET_URL } from "./api/v3/notify";
 import App from "./app.vue";
@@ -14,21 +12,16 @@ import { SOCKET_OPTIONS } from "./plugins/vue-native-sock";
 import vuetify from "./plugins/vuetify";
 import router from "./router";
 
-Vue.use(VueMeta, {
-  keyName: "head",
-});
-Vue.use(PiniaVuePlugin);
+const app = createApp(App);
+app.use(vuetify);
+const meta = createMetaManager({ keyName: "head" });
+app.use(meta);
 const pinia = createPinia();
-Vue.use(VueNativeSock, SOCKET_URL, SOCKET_OPTIONS);
-Vue.use(VueRouter);
-Vue.use(Vuetify, { components: { VApp, VMain } });
+app.use(pinia);
+app.use(VueNativeSock, SOCKET_URL, SOCKET_OPTIONS);
+app.use(router);
 
-Vue.config.performance = import.meta.env.PROD;
+app.config.performance = import.meta.env.PROD;
 
-new Vue({
-  pinia,
-  router,
-  vuetify,
-  el: "#App",
-  render: (h) => h(App),
-});
+await router.isReady();
+app.mount("#app");

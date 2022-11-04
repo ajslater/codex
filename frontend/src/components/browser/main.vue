@@ -99,6 +99,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use "vuetify/styles/settings/variables" as vuetify;
 @import "../book-cover.scss";
 $card-margin: 32px;
 #browsePane {
@@ -136,8 +137,7 @@ $card-margin: 32px;
   left: 50%;
   transform: translate(-50%, -50%);
 }
-@import "vuetify/src/styles/styles.sass";
-@media #{map-get($display-breakpoints, 'sm-and-down')} {
+@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   $small-card-margin: 16px;
   #browsePane {
     margin-left: max($small-card-margin, env(safe-area-inset-left));

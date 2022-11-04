@@ -53,6 +53,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use "vuetify/styles/settings/variables" as vuetify;
 #browserToolbar {
   padding-top: calc(6px + env(safe-area-inset-top)); /* for filter labels */
   width: 100vw;
@@ -88,8 +89,7 @@ export default {
 #searchToolbarItems {
   width: 100%;
 }
-@import "vuetify/src/styles/styles.sass";
-@media #{map-get($display-breakpoints, 'sm-and-down')} {
+@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   #browserToolbar {
     padding-left: 4px;
     padding-right: 4px;
@@ -111,6 +111,7 @@ export default {
 </style>
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
+@use "vuetify/styles/settings/variables" as vuetify;
 #browserToolbar .toolbarSelect {
   white-space: nowrap !important;
 }
@@ -144,8 +145,7 @@ export default {
   /* Counteract fake solo styling */
   top: -6px !important;
 }
-@import "vuetify/src/styles/styles.sass";
-@media #{map-get($display-breakpoints, 'sm-and-down')} {
+@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   #browserToolbar .v-toolbar__content,
   #browserToolbar .v-toolbar__extension {
     padding-right: 0px !important;

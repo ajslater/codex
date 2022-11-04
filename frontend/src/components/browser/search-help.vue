@@ -195,7 +195,6 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "vuetify/src/styles/styles.sass";
 @import "../anchors.scss";
 #searchHelp {
   max-width: 850px;

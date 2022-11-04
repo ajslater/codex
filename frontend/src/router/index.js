@@ -1,4 +1,4 @@
-import VueRouter from "vue-router";
+import { createRouter, createWebHistory } from "vue-router";
 
 import CHOICES from "@/choices.json";
 const MainAdmin = () => import("@/admin.vue");
@@ -58,11 +58,10 @@ const routes = [
     ],
   },
   { name: "error", path: "/error/:code", component: HttpError, props: true },
-  { name: "404", path: "*", redirect: "/error/404" },
+  { name: "404", path: "/:pathMatch(.*)*", redirect: "/error/404" },
 ];
 
-export default new VueRouter({
-  base: window.CODEX.APP_PATH,
-  mode: "history",
+export default new createRouter({
+  history: createWebHistory(window.CODEX.APP_PATH),
   routes,
 });

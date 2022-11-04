@@ -14,7 +14,7 @@
       :to="route"
       :aria-label="label"
       :title="label"
-      @click.native="$event.stopImmediatePropagation()"
+      @click="$event.stopImmediatePropagation()"
     >
       <v-icon class="bookChangeIcon"> {{ icon }} </v-icon>
     </router-link>

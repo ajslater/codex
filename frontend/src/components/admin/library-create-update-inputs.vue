@@ -70,6 +70,7 @@ export default {
       default: false,
     },
   },
+  emits: ["change"],
   data() {
     return {
       rules: {

@@ -161,8 +161,8 @@ export default {
   color: darkgray;
   text-align: center;
 }
-@import "vuetify/src/styles/styles.sass";
-@media #{map-get($display-breakpoints, 'sm-and-down')} {
+@use "vuetify/styles/settings/variables" as vuetify;
+@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   #closeBook {
     min-width: 32px;
   }

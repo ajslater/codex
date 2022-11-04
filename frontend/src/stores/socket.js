@@ -1,6 +1,6 @@
 // Socket pseudo module for vue-native-sockets
 import { defineStore } from "pinia";
-import Vue from "vue";
+import { getCurrentInstance } from "vue";
 
 import CHOICES from "@/choices";
 import router from "@/router";
@@ -40,7 +40,8 @@ export const useSocketStore = defineStore("socket", {
   }),
   actions: {
     SOCKET_ONOPEN(event) {
-      Vue.prototype.$socket = event.currentTarget;
+      const globals = getCurrentInstance().appContext.config.globalProperties;
+      globals.$socket = event.currentTarget;
       this.$patch((state) => {
         state.isConnected = true;
         state.reconnectError = false;
@@ -96,7 +97,8 @@ export const useSocketStore = defineStore("socket", {
       this.reconnectError = true;
     },
     sendSubscribe() {
-      const ws = Vue.prototype.$socket;
+      const globals = getCurrentInstance().appContext.config.globalProperties;
+      const ws = globals.$socket;
       if (!ws || ws.readyState !== 1) {
         console.debug("No ready socket. Not subscribing to notifications.");
         return;

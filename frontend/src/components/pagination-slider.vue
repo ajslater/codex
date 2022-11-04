@@ -6,7 +6,6 @@
     hide-details="auto"
     dense
     v-bind="$attrs"
-    v-on="$listeners"
   />
 </template>
 

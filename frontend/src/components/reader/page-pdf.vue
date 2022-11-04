@@ -17,7 +17,7 @@
 
 <script>
 import { mapActions } from "pinia";
-import VuePdfEmbed from "vue-pdf-embed/dist/vue2-pdf-embed";
+import VuePdfEmbed from "vue-pdf-embed";
 
 import { useReaderStore } from "@/stores/reader";
 

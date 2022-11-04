@@ -120,6 +120,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use "vuetify/styles/settings/variables" as vuetify;
 #titleToolbar {
   width: 100vw;
 }
@@ -150,9 +151,7 @@ $upButtonWidth: 64px;
   color: gray;
   font-size: smaller;
 }
-
-@import "vuetify/src/styles/styles.sass";
-@media #{map-get($display-breakpoints, 'sm-and-down')} {
+@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   /* eslint-disable-next-line vue-scoped-css/no-unused-selector */
   #titleToolbar .v-toolbar__title {
     font-size: 1rem;

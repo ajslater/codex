@@ -10,7 +10,6 @@
     :error-messages="formErrors"
     :menu-props="{ value: menuOpen, maxHeight: '75%' }"
     v-bind="$attrs"
-    v-on="$listeners"
     @blur="toggleMenu(false)"
     @change="change"
     @click:append="toggleMenu()"

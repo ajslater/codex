@@ -117,7 +117,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "vuetify/src/styles/styles.sass";
+@use "vuetify/styles/settings/variables" as vuetify;
 @import "../../book-cover.scss";
 .browserTile {
   display: inline-flex;
@@ -146,7 +146,7 @@ export default {
 .bookCoverProgress {
   margin-top: 1px;
 }
-@media #{map-get($display-breakpoints, 'sm-and-down')} {
+@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   .cardCoverOverlay {
     height: $small-cover-height;
     width: $small-cover-width;

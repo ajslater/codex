@@ -80,6 +80,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use "vuetify/styles/settings/variables" as vuetify;
 @import "book-cover.scss";
 .coverImgWrapper {
   height: $cover-height;
@@ -113,7 +114,6 @@ export default {
   background-color: black;
   color: white;
 }
-@import "vuetify/src/styles/styles.sass";
 .unreadFlag {
   position: absolute;
   top: 0;
@@ -143,8 +143,7 @@ export default {
     transparent 90%
   );
 }
-
-@media #{map-get($display-breakpoints, 'sm-and-down')} {
+@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   .coverImgWrapper {
     height: $small-cover-height;
     width: $small-cover-width;

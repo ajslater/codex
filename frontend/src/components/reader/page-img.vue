@@ -1,5 +1,5 @@
 <template>
-  <img :class="fitToClass" :src="src" v-on="$listeners" />
+  <img :class="fitToClass" :src="src" v-bind="$attrs" />
 </template>
 <script>
 export default {

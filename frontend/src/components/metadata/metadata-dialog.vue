@@ -393,7 +393,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "vuetify/src/styles/styles.sass";
+@use "vuetify/styles/settings/variables" as vuetify;
 #metadataContainer {
   display: flex;
   flex-direction: column;
@@ -484,8 +484,7 @@ export default {
   width: 25%;
   display: inline-flex;
 }
-
-@media #{map-get($display-breakpoints, 'sm-and-down')} {
+@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   #metadataContainer {
     font-size: 12px;
   }

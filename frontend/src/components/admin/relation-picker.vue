@@ -6,7 +6,6 @@
     :multiple="true"
     small-chips
     v-bind="$attrs"
-    v-on="$listeners"
   />
 </template>
 

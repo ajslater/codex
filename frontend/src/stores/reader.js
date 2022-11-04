@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import Vue from "vue";
+import { reactive } from "vue";
 
 import BROWSER_API from "@/api/v3/browser";
 import API from "@/api/v3/reader";
@@ -217,7 +217,7 @@ export const useReaderStore = defineStore("reader", {
               // These aren't declared in the state so must
               // have observablitly declared here.
               // For when settings change.
-              books.set(book.pk, Vue.observable(book));
+              books.set(book.pk, reactive(book));
             }
             state.books = books;
             state.seriesCount = data.seriesCount;

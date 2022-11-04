@@ -6,7 +6,6 @@
     filled
     :rules="timeRules"
     v-bind="$attrs"
-    v-on="$listeners"
   />
 </template>
 

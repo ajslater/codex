@@ -1,5 +1,5 @@
 <template>
-  <v-btn icon ripple v-bind="$attrs" v-on="$listeners">
+  <v-btn icon ripple v-bind="$attrs">
     <v-icon>{{ mdiClose }}</v-icon>
   </v-btn>
 </template>

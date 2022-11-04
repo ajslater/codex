@@ -114,7 +114,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "vuetify/src/styles/styles.sass";
+@use "vuetify/styles/settings/variables" as vuetify;
 @import "../../book-cover.scss";
 .cardSubtitle {
   margin-top: 7px;
@@ -136,7 +136,7 @@ export default {
 .orderValue {
   color: gray;
 }
-@media #{map-get($display-breakpoints, 'sm-and-down')} {
+@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   .cardSubtitle {
     width: $small-cover-width;
   }

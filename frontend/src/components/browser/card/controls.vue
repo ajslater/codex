@@ -50,7 +50,6 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "vuetify/src/styles/styles.sass";
 @import "../../book-cover.scss";
 .cardControls {
   height: 100%;
@@ -93,6 +92,4 @@ $unselected-icon-color: #a0a0a0;
   /* this selector only works on safari 2022-08 */
   color: $unselected-icon-color;
 }
-
-@import "vuetify/src/styles/styles.sass";
 </style>
