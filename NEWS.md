@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v0.14.4
+
+- Fixes
+
+  - Fixes Django Logging PicklingError bug.
+
 ## v0.14.3
 
 - Fixes
