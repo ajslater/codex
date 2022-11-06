@@ -119,6 +119,7 @@ exclude = [
 
 [tool.djlint]
 ignore = "H030,H031"
+extend_exclude = "dist"
 
 [tool.isort]
 profile = "black"
