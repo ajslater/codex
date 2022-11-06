@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v0.14.3
+
+- Fixes
+
+  - Fix root_path configuration broken since 13.0
+
 ## v0.14.2
 
 - Fixes

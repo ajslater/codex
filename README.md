@@ -102,13 +102,10 @@ Unrar as packaged for Alpine Linux v3.14 seems to work on Alpine v3.15
 
 #### Windows
 
-Codex should work on Windows, but I do not understand the binary requirements. I
-suggest using the other operating system package lists as a guide. If you get it
-working, please [help me](https://github.com/ajslater/codex/issues) replace this
-section with something useful.
+Windows users must use Docker to run Codex.
 
-In the mean time, Windows users will have the easiest experience relying on
-Docker.
+Codex does not yet install natively on Windows due to a failure to build binary
+dependencies. The blocker right now is the Xapian Search Engine bindings.
 
 #### Install Codex with pip
 
