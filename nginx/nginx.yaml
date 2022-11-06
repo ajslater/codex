@@ -1,3 +1,4 @@
+name: nginx-codex
 services:
   nginx:
     image: ajslater/nginx

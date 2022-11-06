@@ -190,4 +190,4 @@ class LibrarianDaemon(Process):
         LOG.debug(f"Waiting for {cls.NAME} to join...")
         cls.proc.join()
         cls.proc = None
-        LOG.debug(f"{cls.NAME}joined.")
+        LOG.debug(f"{cls.NAME} joined.")

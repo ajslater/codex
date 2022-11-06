@@ -107,10 +107,12 @@ def codex_shutdown():
     LOG.info("Codex suprocesses shutting down...")
     LibrarianDaemon.shutdown()
     Notifier.shutdown()
-    multiprocessing.active_children()
-    time.sleep(2)
-    for child in multiprocessing.active_children():
-        child.terminate()
+    if multiprocessing.active_children():
+        LOG.verbose("Codex suprocesses not joined...")
+        time.sleep(2)
+        for child in multiprocessing.active_children():
+            child.terminate()
+            LOG.verbose(f"Killed subprocess {child}")
     LOG.info("Codex subprocesses shut down.")
 
 
