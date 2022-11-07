@@ -8,12 +8,14 @@
     temporary
     touchless
   >
-    <div v-if="isCodexViewable" class="settingsDrawerContainer">
+    <div class="settingsDrawerContainer">
       <div id="topBlock">
-        <BrowserSettingsPanel />
-        <v-divider />
-        <SearchHelp />
-        <v-divider />
+        <div v-if="isCodexViewable">
+          <BrowserSettingsPanel />
+          <v-divider />
+          <SearchHelp />
+          <v-divider />
+        </div>
         <SettingsCommonPanel />
         <v-divider />
       </div>

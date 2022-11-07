@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v0.14.4
+
+- Fixes
+
+  - Fix login not available when AdminFlag Enable Non Users was unset.
+  - Fix server PicklingError logging bug.
+
 ## v0.14.3
 
 - Fixes

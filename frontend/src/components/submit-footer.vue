@@ -2,7 +2,7 @@
   <footer>
     <div>
       <small v-if="errors && errors.length > 0" class="errors">
-        <div v-for="error in errors" :key="error">
+        <div v-for="(error, index) in errors" :key="index">
           {{ error }}
         </div>
       </small>
