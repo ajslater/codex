@@ -3,10 +3,18 @@ import { defineStore } from "pinia";
 
 import API from "@/api/v3/common";
 
+const ERROR_KEYS = ["detail", "oldPassword", "password"];
+Object.freeze(ERROR_KEYS);
+
 const getErrors = (axiosError) => {
   let errors = [];
   if (axiosError && axiosError.response && axiosError.response.data) {
-    const data = axiosError.response.data;
+    let data = axiosError.response.data;
+    for (const key of ERROR_KEYS) {
+      if (key in data) {
+        data = data[key];
+      }
+    }
     errors = Array.isArray(data) ? data.flat() : [data];
   } else {
     console.warn("Unable to parse error", axiosError);
@@ -52,8 +60,9 @@ export const useCommonStore = defineStore("common", {
       API.downloadIOSPWAFix(href, fileName);
     },
     setErrors(axiosError) {
+      const errors = getErrors(axiosError);
       this.$patch((state) => {
-        state.form.errors = getErrors(axiosError);
+        state.form.errors = errors;
         state.form.success = "";
       });
     },
