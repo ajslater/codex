@@ -10,8 +10,8 @@ border-radius: 128px;
 
 - Fixes
 
-  - Fix Login not available when AdminFlag Enable Non Users was unset.
-  - Fix Django Logging PicklingError bug.
+  - Fix login not available when AdminFlag Enable Non Users was unset.
+  - Fix server PicklingError logging bug.
 
 ## v0.14.3
 
