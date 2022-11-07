@@ -17,7 +17,7 @@ border-radius: 128px;
 
 - Fixes
 
-  - Fix root_path configuration broken since 13.0
+  - Fix root_path configuration
 
 ## v0.14.2
 
