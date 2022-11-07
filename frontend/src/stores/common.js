@@ -3,7 +3,7 @@ import { defineStore } from "pinia";
 
 import API from "@/api/v3/common";
 
-const ERROR_KEYS = ["detail", "oldPassword", "password"];
+const ERROR_KEYS = ["detail", "oldPassword", "password", "username"];
 Object.freeze(ERROR_KEYS);
 
 const getErrors = (axiosError) => {
