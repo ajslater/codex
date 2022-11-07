@@ -5,6 +5,7 @@ import toml from "toml";
 // import { VuetifyResolver } from "unplugin-vue-components/resolvers";
 // import Components from "unplugin-vue-components/vite";
 import { defineConfig } from "vite";
+import { dynamicBase } from "vite-plugin-dynamic-base";
 import eslint from "vite-plugin-eslint";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 import vuetify from "vite-plugin-vuetify";
@@ -66,6 +67,9 @@ const config = defineConfig(({ mode }) => {
     plugins: [
       vue(),
       vuetify(),
+      dynamicBase({
+        publicPath: 'window.CODEX.APP_PATH + "static"',
+      }),
       eslint({
         lintOnStart: true,
         failOnError: false,

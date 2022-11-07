@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "0.14.2",
+  "version": "0.14.3",
   "private": true,
   "description": "ui for codex api",
   "scripts": {
@@ -44,6 +44,7 @@
     "unplugin-vue-components": "0.22.8",
     "vite": "^3.0.9",
     "vite-plugin-checker": "^0.5.0",
+    "vite-plugin-dynamic-base": "^0.4.6",
     "vite-plugin-eslint": "^1.8.1",
     "vite-plugin-static-copy": "^0.11.1",
     "vite-plugin-vuetify": "^1.0.0",
