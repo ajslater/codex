@@ -89,8 +89,8 @@ export default {
       showPlaceHolder: function (state) {
         return (
           this.enableNonUsers === undefined ||
-          this.librariesExist == undefined ||
-          (!state.browserPageLoaded && this.isCodexViewable)
+          (this.isCodexViewable &&
+            (this.librariesExist == undefined || !state.browserPageLoaded))
         );
       },
     }),

@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "0.14.3",
+  "version": "0.15.0",
   "private": true,
   "description": "ui for codex api",
   "scripts": {
@@ -34,7 +34,7 @@
     "@vitejs/plugin-vue": "^3.2.0",
     "@vue/test-utils": "^2.2.1",
     "eslint-import-resolver-alias": "^1.1.2",
-    "eslint-plugin-vitest": "^0.0.11",
+    "eslint-plugin-vitest": "^0.0.13",
     "eslint-plugin-vue": "^9.7.0",
     "eslint-plugin-vue-scoped-css": "^2.2.0",
     "jsdom-global": "^3.0.2",
@@ -48,7 +48,7 @@
     "vite-plugin-eslint": "^1.8.1",
     "vite-plugin-static-copy": "^0.11.1",
     "vite-plugin-vuetify": "^1.0.0",
-    "vitest": "^0.24.0",
+    "vitest": "^0.25.0",
     "vue-eslint-parser": "^9.0.2"
   }
 }
