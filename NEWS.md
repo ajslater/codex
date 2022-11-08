@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v0.14.5
+
+- Fixes
+
+  - Fix crash on decoding some comics metadata charset encoding.
+
 ## v0.14.4
 
 - Fixes
@@ -17,7 +23,7 @@ border-radius: 128px;
 
 - Fixes
 
-  - Fix root_path configuration broken since 13.0
+  - Fix root_path configuration
 
 ## v0.14.2
 
