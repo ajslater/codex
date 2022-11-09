@@ -40,7 +40,7 @@ import BookCover from "@/components/book-cover.vue";
 import BrowserCardControls from "@/components/browser/card/controls.vue";
 import BrowserCardSubtitle from "@/components/browser/card/subtitle.vue";
 import { IS_IOS, IS_TOUCH } from "@/platform";
-import { getReaderRoute } from "@/router/route";
+import { getReaderRoute } from "@/route";
 
 const HEADER_OFFSET = (96 + 16) * -1;
 

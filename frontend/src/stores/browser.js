@@ -3,7 +3,7 @@ import { defineStore } from "pinia";
 
 import API from "@/api/v3/browser";
 import CHOICES from "@/choices";
-import router from "@/router";
+import router from "@/plugins/router";
 import { useAuthStore } from "@/stores/auth";
 
 export const NUMERIC_FILTERS = [

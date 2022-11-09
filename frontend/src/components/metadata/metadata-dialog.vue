@@ -217,7 +217,7 @@ import MetadataCreditsTable from "@/components/metadata/credits-table.vue";
 import MetadataTags from "@/components/metadata/metadata-tags.vue";
 import MetadataText from "@/components/metadata/metadata-text.vue";
 import { DATETIME_FORMAT } from "@/datetime";
-import { getReaderRoute } from "@/router/route";
+import { getReaderRoute } from "@/route";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";

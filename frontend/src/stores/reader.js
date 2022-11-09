@@ -5,7 +5,7 @@ import BROWSER_API from "@/api/v3/browser";
 import API from "@/api/v3/reader";
 import CHOICES from "@/choices";
 import { getFullComicName } from "@/comic-name";
-import router from "@/router";
+import router from "@/plugins/router";
 import { useBrowserStore } from "@/stores/browser";
 
 const NULL_READER_SETTINGS = {

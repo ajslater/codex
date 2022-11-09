@@ -1,16 +1,19 @@
 // Socket pseudo module for vue-native-sockets
 import { defineStore } from "pinia";
-import { getCurrentInstance } from "vue";
 
 import CHOICES from "@/choices";
-import router from "@/router";
+// import app from "@/main";
+import router from "@/plugins/router";
 import { useAdminStore } from "@/stores/admin";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 import { useReaderStore } from "@/stores/reader";
+import { store } from "@/stores/store";
 
 const WS_TIMEOUT = 19 * 1000;
 
+// TODO replace with heartHearbeatTimer
+// https://github.com/likaia/vue-native-websocket-vue3/blob/master/README-EN.md
 const wsKeepAlive = function (ws) {
   if (!ws || ws.readyState !== 1) {
     console.debug("socket not ready, not sending keep-alive.");
@@ -37,11 +40,12 @@ export const useSocketStore = defineStore("socket", {
   state: () => ({
     isConnected: false,
     reconnectError: false,
+    app: undefined,
   }),
   actions: {
     SOCKET_ONOPEN(event) {
-      const globals = getCurrentInstance().appContext.config.globalProperties;
-      globals.$socket = event.currentTarget;
+      // const app = getCurrentInstance().appContext;
+      this.app.config.globalProperties.$socket = event.currentTarget;
       this.$patch((state) => {
         state.isConnected = true;
         state.reconnectError = false;
@@ -97,8 +101,8 @@ export const useSocketStore = defineStore("socket", {
       this.reconnectError = true;
     },
     sendSubscribe() {
-      const globals = getCurrentInstance().appContext.config.globalProperties;
-      const ws = globals.$socket;
+      // const app = getCurrentInstance().appContext;
+      const ws = this.app.config.globalProperties.$socket;
       if (!ws || ws.readyState !== 1) {
         console.debug("No ready socket. Not subscribing to notifications.");
         return;
@@ -113,3 +117,7 @@ export const useSocketStore = defineStore("socket", {
     },
   },
 });
+
+export function useSocketStoreWithOut() {
+  return useSocketStore(store);
+}
