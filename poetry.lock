@@ -374,7 +374,7 @@ python-versions = ">=3.7,<4.0"
 
 [[package]]
 name = "djlint"
-version = "1.19.6"
+version = "1.19.7"
 description = "HTML Template Linter and Formatter"
 category = "dev"
 optional = false
@@ -1057,7 +1057,7 @@ python-versions = "*"
 
 [[package]]
 name = "pyright"
-version = "1.1.278"
+version = "1.1.279"
 description = "Command line wrapper for pyright"
 category = "dev"
 optional = false
@@ -1100,7 +1100,7 @@ testing = ["argcomplete", "hypothesis (>=3.56)", "mock", "nose", "pygments (>=2.
 
 [[package]]
 name = "pytest-asyncio"
-version = "0.20.1"
+version = "0.20.2"
 description = "Pytest support for asyncio"
 category = "dev"
 optional = false
@@ -1285,7 +1285,7 @@ python-versions = ">=3.5"
 
 [[package]]
 name = "stevedore"
-version = "4.1.0"
+version = "4.1.1"
 description = "Manage dynamic plugins for Python applications"
 category = "dev"
 optional = false
@@ -1849,8 +1849,8 @@ djangorestframework-types = [
     {file = "djangorestframework_types-0.8.0-py3-none-any.whl", hash = "sha256:5136212ec0df2c11d5ebcf217246f606e68f1d46a770419de84ed676bdab0113"},
 ]
 djlint = [
-    {file = "djlint-1.19.6-py3-none-any.whl", hash = "sha256:e7fd305f93057cd205a29999b840210db70789e4cf277625f148447ad7de62b1"},
-    {file = "djlint-1.19.6.tar.gz", hash = "sha256:a28133317eccc3924b157c947f98f0bdc300f754f51097b5467c73e112aa9fec"},
+    {file = "djlint-1.19.7-py3-none-any.whl", hash = "sha256:517b1a2dfb943854abaf8b1ad2117d5c2e699d5916cd2621e24f8669eb564af2"},
+    {file = "djlint-1.19.7.tar.gz", hash = "sha256:7339b0e2b228655000e6bc5e85adb146e1cdad11a1a29c52c3f1e68707d02d86"},
 ]
 drf-spectacular = [
     {file = "drf-spectacular-0.24.2.tar.gz", hash = "sha256:be32417594080a52f996afd83fd47ea9c2b83cbf13f6d3fbf3de809a0dfa7ead"},
@@ -2289,8 +2289,8 @@ pyreadline3 = [
     {file = "pyreadline3-3.4.1.tar.gz", hash = "sha256:6f3d1f7b8a31ba32b73917cefc1f28cc660562f39aea8646d30bd6eff21f7bae"},
 ]
 pyright = [
-    {file = "pyright-1.1.278-py3-none-any.whl", hash = "sha256:9abaf42482ac8d42c54c91b5501943c2700bdf85289466ddb05bae000353209c"},
-    {file = "pyright-1.1.278.tar.gz", hash = "sha256:a9fd0399657ef7dadabb57f0ccb0216c39f4bfbd9e3e1c28232bf55748330880"},
+    {file = "pyright-1.1.279-py3-none-any.whl", hash = "sha256:5eaa6830c0a701dc72586277be98d35762d2c27e01a9c2fbf01ee4e84e785797"},
+    {file = "pyright-1.1.279.tar.gz", hash = "sha256:6f3ac7d12e036e0d1a57c1581d03d781e99b42408b8a6f0ef8ae85bcfe58fa57"},
 ]
 pyrsistent = [
     {file = "pyrsistent-0.19.2-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:d6982b5a0237e1b7d876b60265564648a69b14017f3b5f908c5be2de3f9abb7a"},
@@ -2321,8 +2321,8 @@ pytest = [
     {file = "pytest-7.2.0.tar.gz", hash = "sha256:c4014eb40e10f11f355ad4e3c2fb2c6c6d1919c73f3b5a433de4708202cade59"},
 ]
 pytest-asyncio = [
-    {file = "pytest-asyncio-0.20.1.tar.gz", hash = "sha256:626699de2a747611f3eeb64168b3575f70439b06c3d0206e6ceaeeb956e65519"},
-    {file = "pytest_asyncio-0.20.1-py3-none-any.whl", hash = "sha256:2c85a835df33fda40fe3973b451e0c194ca11bc2c007eabff90bb3d156fc172b"},
+    {file = "pytest-asyncio-0.20.2.tar.gz", hash = "sha256:32a87a9836298a881c0ec637ebcc952cfe23a56436bdc0d09d1511941dd8a812"},
+    {file = "pytest_asyncio-0.20.2-py3-none-any.whl", hash = "sha256:07e0abf9e6e6b95894a39f688a4a875d63c2128f76c02d03d16ccbc35bcc0f8a"},
 ]
 pytest-cov = [
     {file = "pytest-cov-4.0.0.tar.gz", hash = "sha256:996b79efde6433cdbd0088872dbc5fb3ed7fe1578b68cdbba634f14bb8dd0470"},
@@ -2506,8 +2506,8 @@ sqlparse = [
     {file = "sqlparse-0.4.3.tar.gz", hash = "sha256:69ca804846bb114d2ec380e4360a8a340db83f0ccf3afceeb1404df028f57268"},
 ]
 stevedore = [
-    {file = "stevedore-4.1.0-py3-none-any.whl", hash = "sha256:3b1cbd592a87315f000d05164941ee5e164899f8fc0ce9a00bb0f321f40ef93e"},
-    {file = "stevedore-4.1.0.tar.gz", hash = "sha256:02518a8f0d6d29be8a445b7f2ac63753ff29e8f2a2faa01777568d5500d777a6"},
+    {file = "stevedore-4.1.1-py3-none-any.whl", hash = "sha256:aa6436565c069b2946fe4ebff07f5041e0c8bf18c7376dd29edf80cf7d524e4e"},
+    {file = "stevedore-4.1.1.tar.gz", hash = "sha256:7f8aeb6e3f90f96832c301bff21a7eb5eefbe894c88c506483d355565d88cc1a"},
 ]
 toml = [
     {file = "toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b"},
