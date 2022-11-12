@@ -1,34 +1,30 @@
 <template>
   <div v-if="isUserAdmin">
-    <v-list-item-group v-if="menu">
+    <div v-if="menu">
       <v-list-item ripple @click="librarianTask('poll')">
-        <v-list-item-content>
-          <v-list-item-title
-            ><v-icon>{{ mdiDatabaseClockOutline }}</v-icon
-            >Poll All Libraries</v-list-item-title
-          >
-        </v-list-item-content>
+        <v-list-item-title
+          ><v-icon>{{ mdiDatabaseClockOutline }}</v-icon
+          >Poll All Libraries</v-list-item-title
+        >
       </v-list-item>
       <v-list-item
         :to="{ name: 'admin' }"
         ripple
         @click="unseenFailedImports = false"
       >
-        <v-list-item-content>
-          <v-list-item-title>
-            <v-icon>{{ mdiCogOutline }}</v-icon
-            >Admin Panel
-            <v-icon
-              v-if="unseenFailedImports"
-              id="failedImportsIcon"
-              title="New Failed Imports"
-            >
-              {{ mdiBookAlert }}
-            </v-icon>
-          </v-list-item-title>
-        </v-list-item-content>
+        <v-list-item-title>
+          <v-icon>{{ mdiCogOutline }}</v-icon
+          >Admin Panel
+          <v-icon
+            v-if="unseenFailedImports"
+            id="failedImportsIcon"
+            title="New Failed Imports"
+          >
+            {{ mdiBookAlert }}
+          </v-icon>
+        </v-list-item-title>
       </v-list-item>
-    </v-list-item-group>
+    </div>
     <AdminStatusList />
   </div>
 </template>

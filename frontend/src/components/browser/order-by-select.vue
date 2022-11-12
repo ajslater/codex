@@ -19,14 +19,12 @@
     >
       <template #item="data">
         <v-list-item v-bind="data.attrs" ripple v-on="data.on">
-          <v-list-item-content>
-            <v-list-item-title>
-              {{ data.item.text }}
-              <v-icon v-show="orderBy === data.item.value" class="orderIcon">
-                {{ orderIcon }}
-              </v-icon>
-            </v-list-item-title>
-          </v-list-item-content>
+          <v-list-item-title>
+            {{ data.item.text }}
+            <v-icon v-show="orderBy === data.item.value" class="orderIcon">
+              {{ orderIcon }}
+            </v-icon>
+          </v-list-item-title>
         </v-list-item>
       </template>
     </v-select>

@@ -7,11 +7,9 @@
   >
     <template #activator="{ on }">
       <v-list-item ripple v-on="on">
-        <v-list-item-content>
-          <v-list-item-title
-            ><v-icon>{{ mdiArchiveSearchOutline }}</v-icon> Search Syntax Help
-          </v-list-item-title>
-        </v-list-item-content>
+        <v-list-item-title
+          ><v-icon>{{ mdiArchiveSearchOutline }}</v-icon> Search Syntax Help
+        </v-list-item-title>
       </v-list-item>
     </template>
     <div id="searchHelp">

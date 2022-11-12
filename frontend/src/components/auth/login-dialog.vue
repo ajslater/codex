@@ -8,14 +8,12 @@
   >
     <template #activator="{ on }">
       <v-list-item ripple v-on="on">
-        <v-list-item-content>
-          <v-list-item-title
-            ><h3>
-              <v-icon>{{ mdiLogin }}</v-icon
-              >Login
-            </h3></v-list-item-title
-          >
-        </v-list-item-content>
+        <v-list-item-title
+          ><h3>
+            <v-icon>{{ mdiLogin }}</v-icon
+            >Login
+          </h3></v-list-item-title
+        >
       </v-list-item>
     </template>
     <v-form id="authDialog" ref="form">

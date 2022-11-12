@@ -7,7 +7,7 @@
         max-width="22em"
       />
     </header>
-    <v-simple-table
+    <v-table
       class="highlight-simple-table admin-table"
       fixed-header
       :height="tableHeight"
@@ -77,7 +77,7 @@
           </tr>
         </tbody>
       </template>
-    </v-simple-table>
+    </v-table>
     <v-expand-transition>
       <AdminFailedImportsPanel />
     </v-expand-transition>

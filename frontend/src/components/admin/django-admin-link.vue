@@ -1,21 +1,17 @@
 <template>
-  <v-list-item-group>
-    <v-list-item
-      id="oldDjangoAdmin"
-      :href="djangoAdminURL"
-      target="_blank"
-      ripple
-    >
-      <v-list-item-content>
-        <v-list-item-title>
-          Old Admin Panel
-          <v-icon small>
-            {{ mdiOpenInNew }}
-          </v-icon>
-        </v-list-item-title>
-      </v-list-item-content>
-    </v-list-item>
-  </v-list-item-group>
+  <v-list-item
+    id="oldDjangoAdmin"
+    :href="djangoAdminURL"
+    target="_blank"
+    ripple
+  >
+    <v-list-item-title>
+      Old Admin Panel
+      <v-icon small>
+        {{ mdiOpenInNew }}
+      </v-icon>
+    </v-list-item-title>
+  </v-list-item>
 </template>
 <script>
 import { mdiOpenInNew } from "@mdi/js";

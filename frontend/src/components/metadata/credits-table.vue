@@ -1,8 +1,5 @@
 <template>
-  <v-simple-table
-    v-if="sortedCredits && sortedCredits.length > 0"
-    id="creditsTable"
-  >
+  <v-table v-if="sortedCredits && sortedCredits.length > 0" id="creditsTable">
     <template #default>
       <h2>Credits</h2>
       <table class="highlight-table">
@@ -24,7 +21,7 @@
         </tbody>
       </table>
     </template>
-  </v-simple-table>
+  </v-table>
 </template>
 
 <script>

@@ -6,7 +6,7 @@
           <h4>Failed Imports: {{ failedImports.length }}</h4>
         </v-expansion-panel-header>
         <v-expansion-panel-content>
-          <v-simple-table class="highlight-simple-table" fixed-header>
+          <v-table class="highlight-simple-table" fixed-header>
             <template #default>
               <thead>
                 <tr>
@@ -25,7 +25,7 @@
                 </tr>
               </tbody>
             </template>
-          </v-simple-table>
+          </v-table>
           <v-expansion-panels>
             <v-expansion-panel id="failedImportsHelp">
               <v-expansion-panel-header>

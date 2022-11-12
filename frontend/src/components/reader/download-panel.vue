@@ -1,21 +1,15 @@
 <template>
-  <v-list-item-group>
-    <v-list-item ripple @click="downloadPage">
-      <v-list-item-content>
-        <v-list-item-title>
-          <v-icon>{{ mdiFileImage }}</v-icon> Download Page
-          {{ $route.params.page }}
-        </v-list-item-title>
-      </v-list-item-content>
-    </v-list-item>
-    <v-list-item ripple @click="downloadBook">
-      <v-list-item-content>
-        <v-list-item-title>
-          <v-icon>{{ mdiDownload }}</v-icon> Download Book
-        </v-list-item-title>
-      </v-list-item-content>
-    </v-list-item>
-  </v-list-item-group>
+  <v-list-item ripple @click="downloadPage">
+    <v-list-item-title>
+      <v-icon>{{ mdiFileImage }}</v-icon> Download Page
+      {{ $route.params.page }}
+    </v-list-item-title>
+  </v-list-item>
+  <v-list-item ripple @click="downloadBook">
+    <v-list-item-title>
+      <v-icon>{{ mdiDownload }}</v-icon> Download Book
+    </v-list-item-title>
+  </v-list-item>
 </template>
 <script>
 import { mdiDownload, mdiFileImage } from "@mdi/js";

@@ -7,7 +7,7 @@
         :inputs="AdminGroupCreateUpdateInputs"
       />
     </header>
-    <v-simple-table
+    <v-table
       fixed-header
       :height="tableHeight"
       class="highlight-simple-table admin-table"
@@ -51,7 +51,7 @@
           </tr>
         </tbody>
       </template>
-    </v-simple-table>
+    </v-table>
     <div id="groupHelp">
       <h3>Group Logic</h3>
       <p>

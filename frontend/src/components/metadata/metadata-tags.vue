@@ -1,20 +1,20 @@
 <template>
-  <v-item-group
+  <v-chip-group
     v-if="model && model.length > 0"
     v-model="model"
     multiple
     class="tags"
     :class="{ 'background-soft-highlight': true }"
   >
-    <v-subheader class="subheader">
+    <h3 class="subheader">
       {{ label }}
-    </v-subheader>
+    </h3>
     <v-item v-for="item in model" :key="item.name">
       <v-chip small :color="chipColor(item.pk)">
         {{ item.name }}
       </v-chip>
     </v-item>
-  </v-item-group>
+  </v-chip-group>
 </template>
 
 <script>

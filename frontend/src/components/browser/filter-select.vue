@@ -27,11 +27,9 @@
       </template>
       <template #item="data">
         <v-slide-x-transition hide-on-leave>
-          <v-list-item-content>
-            <v-list-item-title>
-              {{ data.item.text }}
-            </v-list-item-title>
-          </v-list-item-content>
+          <v-list-item-title>
+            {{ data.item.text }}
+          </v-list-item-title>
         </v-slide-x-transition>
       </template>
       <template #append-item>

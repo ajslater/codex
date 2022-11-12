@@ -12,12 +12,10 @@
         <v-icon> {{ mdiLockPlusOutline }}</v-icon>
       </v-btn>
       <v-list-item v-else ripple v-on="on">
-        <v-list-item-content>
-          <v-list-item-title
-            ><v-icon>{{ mdiLockReset }}</v-icon
-            >Change Password</v-list-item-title
-          >
-        </v-list-item-content>
+        <v-list-item-title
+          ><v-icon>{{ mdiLockReset }}</v-icon
+          >Change Password</v-list-item-title
+        >
       </v-list-item>
     </template>
     <div v-if="formSuccess" class="codexFormSuccess">

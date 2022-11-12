@@ -109,7 +109,7 @@ $task-width: 256px;
   padding: 10px;
 }
 
-/* Turn off hover highlighting on v-simple-table */
+/* Turn off hover highlighting on v-table */
 #tabItems .v-data-table > .v-data-table__wrapper > table > tbody > tr:hover {
   background-color: inherit !important;
 }

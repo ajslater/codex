@@ -14,13 +14,11 @@
         </v-icon>
       </v-btn>
     </template>
-    <v-list-item-group class="background-soft-highlight">
+    <div class="background-soft-highlight">
       <v-list-item v-if="item.group === 'c'" ripple @click="toggleRead">
-        <v-list-item-content>
-          <v-list-item-title>
-            {{ markReadText }}
-          </v-list-item-title>
-        </v-list-item-content>
+        <v-list-item-title>
+          {{ markReadText }}
+        </v-list-item-title>
       </v-list-item>
       <ConfirmDialog
         v-else
@@ -31,7 +29,7 @@
         @confirm="toggleRead"
         @cancel="showMenu = false"
       />
-    </v-list-item-group>
+    </div>
   </v-menu>
 </template>
 

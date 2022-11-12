@@ -1,47 +1,43 @@
 <template>
-  <v-list-item-group>
-    <v-divider v-if="show" />
-    <v-list-item ripple @click="load">
-      <v-list-item-content>
-        <v-expand-transition>
-          <div v-if="show">
-            <v-btn
-              id="clearButton"
-              small
-              ripple
-              icon
-              title="Clear Librarian Statuses"
-              @click="clear"
-              ><v-icon>{{ mdiCloseCircleOutline }}</v-icon></v-btn
-            >
-            <h4>Librarian Tasks</h4>
-            <v-expand-transition
-              v-for="status of librarianStatuses"
-              :key="`${status.type} ${status.name}`"
-            >
-              <div nav class="statusItem">
-                <div class="statusItemTitle">
-                  {{ status.type }} {{ status.name }}
-                  <span v-if="+status.total">
-                    {{ status.complete }}/{{ status.total }}
-                  </span>
-                </div>
-                <v-progress-linear
-                  color="#cc7b19"
-                  :indeterminate="indeterminate(status)"
-                  :value="progress(status)"
-                  bottom
-                />
-              </div>
-            </v-expand-transition>
+  <v-divider v-if="show" />
+  <v-list-item ripple @click="load">
+    <v-expand-transition>
+      <div v-if="show">
+        <v-btn
+          id="clearButton"
+          small
+          ripple
+          icon
+          title="Clear Librarian Statuses"
+          @click="clear"
+          ><v-icon>{{ mdiCloseCircleOutline }}</v-icon></v-btn
+        >
+        <h4>Librarian Tasks</h4>
+        <v-expand-transition
+          v-for="status of librarianStatuses"
+          :key="`${status.type} ${status.name}`"
+        >
+          <div nav class="statusItem">
+            <div class="statusItemTitle">
+              {{ status.type }} {{ status.name }}
+              <span v-if="+status.total">
+                {{ status.complete }}/{{ status.total }}
+              </span>
+            </div>
+            <v-progress-linear
+              color="#cc7b19"
+              :indeterminate="indeterminate(status)"
+              :value="progress(status)"
+              bottom
+            />
           </div>
-          <v-list-item-title v-else id="noTasksRunning">
-            No librarian tasks running
-          </v-list-item-title>
         </v-expand-transition>
-      </v-list-item-content>
-    </v-list-item>
-  </v-list-item-group>
+      </div>
+      <v-list-item-title v-else id="noTasksRunning">
+        No librarian tasks running
+      </v-list-item-title>
+    </v-expand-transition>
+  </v-list-item>
 </template>
 
 <script>
