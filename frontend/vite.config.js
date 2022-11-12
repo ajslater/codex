@@ -2,8 +2,8 @@ import vue from "@vitejs/plugin-vue";
 import fs from "fs";
 import path from "path";
 import toml from "toml";
-// import { VuetifyResolver } from "unplugin-vue-components/resolvers";
-// import Components from "unplugin-vue-components/vite";
+import { Vuetify3Resolver } from "unplugin-vue-components/resolvers";
+import Components from "unplugin-vue-components/vite";
 import { defineConfig } from "vite";
 import { dynamicBase } from "vite-plugin-dynamic-base";
 import eslint from "vite-plugin-eslint";
@@ -74,14 +74,12 @@ const config = defineConfig(({ mode }) => {
         lintOnStart: true,
         failOnError: false,
       }),
-      /*
       Components({
         resolvers: [
           // Vuetify
-          VuetifyResolver(),
+          Vuetify3Resolver(),
         ],
       }),
-*/
       viteStaticCopy({
         targets: [
           {
