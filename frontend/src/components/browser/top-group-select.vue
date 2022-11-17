@@ -1,22 +1,24 @@
 <template>
-  <v-hover v-slot="{ hover }">
-    <v-select
-      v-model="topGroup"
-      class="toolbarSelect topGroupSelect"
-      :items="topGroupChoices"
-      dense
-      hide-details="auto"
-      :label="focused || hover ? label : undefined"
-      :aria-label="label"
-      :menu-props="{
-        maxHeight: '80vh',
-        overflowY: false,
-      }"
-      ripple
-      @focus="focused = true"
-      @blur="focused = false"
-    />
-  </v-hover>
+  <div>
+    <v-hover v-slot="{ hover }">
+      <v-select
+        v-model="topGroup"
+        class="toolbarSelect topGroupSelect"
+        :items="topGroupChoices"
+        dense
+        hide-details="auto"
+        :label="focused || hover ? label : undefined"
+        :aria-label="label"
+        :menu-props="{
+          maxHeight: '80vh',
+          overflowY: false,
+        }"
+        ripple
+        @focus="focused = true"
+        @blur="focused = false"
+      />
+    </v-hover>
+  </div>
 </template>
 
 <script>

@@ -136,7 +136,7 @@ export const useBrowserStore = defineStore("browser", {
           break;
         }
       }
-      const params = router.currentRoute.params;
+      const params = router.currentRoute.value.params;
       if (params.group === lowestGroup) {
         return;
       }
@@ -144,7 +144,7 @@ export const useBrowserStore = defineStore("browser", {
     },
     _validateNewTopGroupIsParent(data, redirect) {
       // If the top group changed and we're at the root group and the new top group is above the proper nav group
-      const referenceRoute = redirect || router.currentRoute;
+      const referenceRoute = redirect || router.currentRoute.value;
       const params = referenceRoute.params;
       if (
         params.group !== "r" ||
@@ -224,7 +224,7 @@ export const useBrowserStore = defineStore("browser", {
     ///////////////////////////////////////////////////////////////////////////
     // ROUTE
     routeToPage(page) {
-      const route = _.cloneDeep(router.currentRoute);
+      const route = _.cloneDeep(router.currentRoute.value);
       route.params.page = page;
       router.push(route).catch(console.debug);
     },
@@ -232,7 +232,12 @@ export const useBrowserStore = defineStore("browser", {
       console.debug(error);
       if (error.response.status == 303) {
         const data = error.response.data;
-        if (compareRouteParams(data.route.params, router.currentRoute.params)) {
+        if (
+          compareRouteParams(
+            data.route.params,
+            router.currentRoute.value.params
+          )
+        ) {
           this.setSettings(data.settings);
         } else {
           const redirect = this._validateAndSaveSettings(data.settings);
@@ -279,7 +284,7 @@ export const useBrowserStore = defineStore("browser", {
       if (!this.browserPageLoaded) {
         return this.loadSettings();
       }
-      const params = router.currentRoute.params;
+      const params = router.currentRoute.value.params;
       await API.loadBrowserPage(params, this.settings)
         .then((response) => {
           const data = response.data;
@@ -302,7 +307,7 @@ export const useBrowserStore = defineStore("browser", {
     },
     async loadAvailableFilterChoices() {
       return await API.getAvailableFilterChoices(
-        router.currentRoute.params,
+        router.currentRoute.value.params,
         this.settings
       )
         .then((response) => {
@@ -313,7 +318,7 @@ export const useBrowserStore = defineStore("browser", {
     },
     async loadFilterChoices(fieldName) {
       return await API.getFilterChoices(
-        router.currentRoute.params,
+        router.currentRoute.value.params,
         fieldName,
         this.settings
       )

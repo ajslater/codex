@@ -6,8 +6,8 @@
     max-width="20em"
     overlay-opacity="0.5"
   >
-    <template #activator="{ on }">
-      <v-list-item ripple v-on="on">
+    <template #activator="{ props }">
+      <v-list-item ripple v-bind="props">
         <v-list-item-title
           ><h3>
             <v-icon>{{ mdiLogin }}</v-icon

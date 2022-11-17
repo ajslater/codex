@@ -28,9 +28,10 @@ const libraryChanged = function () {
   const readerStore = useReaderStore();
   browserStore.setTimestamp();
   readerStore.setTimestamp();
-  if (router.currentRoute.name === "browser") {
+  const route = router.currentRoute.value;
+  if (route.name === "browser") {
     browserStore.loadBrowserPage({ showProgress: false });
-  } else if (router.currentRoute.name == "admin-libraries") {
+  } else if (route.name == "admin-libraries") {
     useAdminStore().loadTables(["Library", "FailedImport"]);
   }
 };

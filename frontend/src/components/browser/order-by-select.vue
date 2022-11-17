@@ -1,34 +1,36 @@
 <template>
-  <v-hover v-slot="{ hover }">
-    <v-select
-      v-model="orderBy"
-      class="toolbarSelect orderBySelect"
-      :append-outer-icon="orderIcon"
-      dense
-      hide-details="auto"
-      :items="orderByChoices"
-      :label="focused || hover ? label : undefined"
-      :menu-props="{
-        maxHeight: '80vh',
-        overflowY: false,
-      }"
-      ripple
-      @click:append-outer="toggleOrderReverse"
-      @focus="focused = true"
-      @blur="focused = false"
-    >
-      <template #item="data">
-        <v-list-item v-bind="data.attrs" ripple v-on="data.on">
-          <v-list-item-title>
-            {{ data.item.text }}
-            <v-icon v-show="orderBy === data.item.value" class="orderIcon">
-              {{ orderIcon }}
-            </v-icon>
-          </v-list-item-title>
-        </v-list-item>
-      </template>
-    </v-select>
-  </v-hover>
+  <div>
+    <v-hover v-slot="{ hover }">
+      <v-select
+        v-model="orderBy"
+        class="toolbarSelect orderBySelect"
+        :append-outer-icon="orderIcon"
+        dense
+        hide-details="auto"
+        :items="orderByChoices"
+        :label="focused || hover ? label : undefined"
+        :menu-props="{
+          maxHeight: '80vh',
+          overflowY: false,
+        }"
+        ripple
+        @click:append-outer="toggleOrderReverse"
+        @focus="focused = true"
+        @blur="focused = false"
+      >
+        <template #item="data">
+          <v-list-item v-bind="data.attrs" ripple v-on="data.on">
+            <v-list-item-title>
+              {{ data.item.text }}
+              <v-icon v-show="orderBy === data.item.value" class="orderIcon">
+                {{ orderIcon }}
+              </v-icon>
+            </v-list-item-title>
+          </v-list-item>
+        </template>
+      </v-select>
+    </v-hover>
+  </div>
 </template>
 
 <script>

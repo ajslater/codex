@@ -10,11 +10,15 @@
 <script>
 import { mdiMenu } from "@mdi/js";
 import { mapState } from "pinia";
+import { defineAsyncComponent, markRaw } from "vue";
 
 import { useAuthStore } from "@/stores/auth";
 
-const AdminSettingsDrawerButtonIcon = () =>
-  import("@/components/admin/admin-settings-button-icon.vue");
+const AdminSettingsDrawerButtonIcon = markRaw(
+  defineAsyncComponent(() =>
+    import("@/components/admin/admin-settings-button-icon.vue")
+  )
+);
 
 export default {
   name: "SettingsDrawerButton",

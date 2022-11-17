@@ -5,8 +5,8 @@
     transition="dialog-bottom-transition"
     content-class="browserSearchHelp"
   >
-    <template #activator="{ on }">
-      <v-list-item ripple v-on="on">
+    <template #activator="{ props }">
+      <v-list-item ripple v-bind="props">
         <v-list-item-title
           ><v-icon>{{ mdiArchiveSearchOutline }}</v-icon> Search Syntax Help
         </v-list-item-title>

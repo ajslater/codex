@@ -1,56 +1,58 @@
 <template>
-  <v-hover v-slot="{ hover }">
-    <v-select
-      ref="filterSelect"
-      :value="bookmarkFilter"
-      class="toolbarSelect"
-      dense
-      :items="bookmarkChoices"
-      hide-details="auto"
-      :label="focused || hover ? LABEL : undefined"
-      :aria-label="LABEL"
-      :menu-props="{
-        maxHeight: '80vh',
-        overflowY: false,
-        contentClass: filterMenuClass,
-      }"
-      :prepend-inner-icon="filterInnerIcon"
-      ripple
-      @click:prepend-inner="clearFiltersAndChoices"
-      @focus="focus"
-      @blur="focused = false"
-      @change="change"
-    >
-      <template #selection="{ item }">
-        {{ item.text }}
-        <span v-if="isDynamicFiltersSelected" class="filterSuffix"> + </span>
-      </template>
-      <template #item="data">
-        <v-slide-x-transition hide-on-leave>
-          <v-list-item-title>
-            {{ data.item.text }}
-          </v-list-item-title>
-        </v-slide-x-transition>
-      </template>
-      <template #append-item>
-        <v-divider />
-        <div v-if="dynamicChoiceNames && dynamicChoiceNames.length > 0">
-          <BrowserFilterSubMenu
-            v-for="filterName of dynamicChoiceNames"
-            :key="filterName"
-            :name="filterName"
-            @change="changeFilter"
+  <div>
+    <v-hover v-slot="{ hover }">
+      <v-select
+        ref="filterSelect"
+        :value="bookmarkFilter"
+        class="toolbarSelect"
+        dense
+        :items="bookmarkChoices"
+        hide-details="auto"
+        :label="focused || hover ? LABEL : undefined"
+        :aria-label="LABEL"
+        :menu-props="{
+          maxHeight: '80vh',
+          overflowY: false,
+          contentClass: filterMenuClass,
+        }"
+        :prepend-inner-icon="filterInnerIcon"
+        ripple
+        @click:prepend-inner="clearFiltersAndChoices"
+        @focus="focus"
+        @blur="focused = false"
+        @change="change"
+      >
+        <template #selection="{ item }">
+          {{ item.text }}
+          <span v-if="isDynamicFiltersSelected" class="filterSuffix"> + </span>
+        </template>
+        <template #item="data">
+          <v-slide-x-transition hide-on-leave>
+            <v-list-item-title>
+              {{ data.item.text }}
+            </v-list-item-title>
+          </v-slide-x-transition>
+        </template>
+        <template #append-item>
+          <v-divider />
+          <div v-if="dynamicChoiceNames && dynamicChoiceNames.length > 0">
+            <BrowserFilterSubMenu
+              v-for="filterName of dynamicChoiceNames"
+              :key="filterName"
+              :name="filterName"
+              @change="changeFilter"
+            />
+          </div>
+          <v-progress-linear
+            v-else
+            id="availableFiltersProgress"
+            rounded
+            indeterminate
           />
-        </div>
-        <v-progress-linear
-          v-else
-          id="availableFiltersProgress"
-          rounded
-          indeterminate
-        />
-      </template>
-    </v-select>
-  </v-hover>
+        </template>
+      </v-select>
+    </v-hover>
+  </div>
 </template>
 
 <script>
@@ -116,10 +118,7 @@ export default {
     }),
     ...mapWritableState(useBrowserStore, ["filterMode"]),
     filterInnerIcon: function () {
-      if (this.isFiltersClearable) {
-        return mdiCloseCircle;
-      }
-      return " ";
+      return this.isFiltersClearable ? mdiCloseCircle : "";
     },
   },
   methods: {
