@@ -16,16 +16,16 @@
         {{ tab }}
       </v-tab>
     </v-tabs>
-    <v-tabs-items id="tabItems" v-model="activeTab" touchless>
-      <v-tab-item
+    <v-window id="tabItems" v-model="activeTab" touchless>
+      <v-window-item
         v-for="tab in tabs"
         :key="tab"
         :value="tab"
         class="tabItemContainer"
       >
         <router-view v-if="tab === activeTab" :inner-height="innerHeight" />
-      </v-tab-item>
-    </v-tabs-items>
+      </v-window-item>
+    </v-window>
     <div v-if="!librariesExist" id="noLibraries">
       Codex has no libraries. Select the Libraries tab and add a comic library.
     </div>
@@ -49,7 +49,7 @@ export default {
   computed: {
     ...mapGetters(useAdminStore, ["librariesExist"]),
     rightSpace() {
-      return this.$vuetify.breakpoint.mdAndUp;
+      return !this.$vuetify.display.mobile;
     },
   },
   watch: {

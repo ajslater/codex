@@ -25,11 +25,11 @@ export default {
   computed: {
     ...mapWritableState(useAdminStore, ["isSettingsDrawerOpen"]),
     rightSpace() {
-      return this.$vuetify.breakpoint.mdAndUp;
+      return !this.$vuetify.display.mobile;
     },
   },
   mounted() {
-    this.isSettingsDrawerOpen = !this.$vuetify.breakpoint.mobile;
+    this.isSettingsDrawerOpen = !this.$vuetify.display.mobile;
   },
 };
 </script>

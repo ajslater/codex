@@ -1,10 +1,10 @@
 <template>
   <v-slider
     class="paginationSlider"
-    ticks="always"
+    show-ticks="always"
     thumb-label="always"
     hide-details="auto"
-    dense
+    density="compact"
     v-bind="$attrs"
   />
 </template>

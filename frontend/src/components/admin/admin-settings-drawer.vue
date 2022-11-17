@@ -4,7 +4,7 @@
     v-model="isSettingsDrawerOpen"
     class="settingsDrawer"
     app
-    right
+    location="right"
     touchless
     :mobile-breakpoint="960"
   >

@@ -2,10 +2,10 @@
   <div v-if="failedImports && failedImports.length > 0" id="failedImports">
     <v-expansion-panels>
       <v-expansion-panel id="failedImportsPanel">
-        <v-expansion-panel-header>
+        <v-expansion-panel-title>
           <h4>Failed Imports: {{ failedImports.length }}</h4>
-        </v-expansion-panel-header>
-        <v-expansion-panel-content>
+        </v-expansion-panel-title>
+        <v-expansion-panel-text>
           <v-table class="highlight-simple-table" fixed-header>
             <template #default>
               <thead>
@@ -28,10 +28,10 @@
           </v-table>
           <v-expansion-panels>
             <v-expansion-panel id="failedImportsHelp">
-              <v-expansion-panel-header>
+              <v-expansion-panel-title>
                 <h4>Failed Imports Help</h4>
-              </v-expansion-panel-header>
-              <v-expansion-panel-content>
+              </v-expansion-panel-title>
+              <v-expansion-panel-text>
                 <p>
                   These are Comic archives that have failed to import. This list
                   is updated every time the library updates. You should probably
@@ -67,10 +67,10 @@
                   <code>config/logs/codex.log</code>
                   if you can.
                 </p>
-              </v-expansion-panel-content>
+              </v-expansion-panel-text>
             </v-expansion-panel>
           </v-expansion-panels>
-        </v-expansion-panel-content>
+        </v-expansion-panel-text>
       </v-expansion-panel>
     </v-expansion-panels>
   </div>
