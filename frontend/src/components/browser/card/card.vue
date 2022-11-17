@@ -67,7 +67,7 @@ export default {
     linkLabel: function () {
       let label = "";
       label += this.item.group === "c" ? "Read" : "Browse to";
-      label += " " + this.headerName;
+      label += " " + this.item.headerName;
       return label;
     },
     toRoute: function () {

@@ -1,12 +1,12 @@
 <template>
   <v-menu v-model="showMenu" offset-y top>
-    <template #activator="{ on }">
+    <template #activator="{ props }">
       <v-btn
         aria-label="action menu"
         class="browserCardMenuIcon"
         icon
         title="Action Menu"
-        v-on="on"
+        v-bind="props"
         @click.prevent
       >
         <v-icon>

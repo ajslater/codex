@@ -1,12 +1,12 @@
 <template>
   <v-dialog v-model="dialog" fullscreen transition="dialog-bottom-transition">
-    <template #activator="{ on }">
+    <template #activator="{ props }">
       <v-btn
         aria-label="tags"
         class="tagButton"
         icon
         title="Tags"
-        v-on="on"
+        v-bind="props"
         @click.prevent
       >
         <v-icon>
