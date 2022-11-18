@@ -5,11 +5,11 @@
     max-width="20em"
     overlay-opacity="0.5"
   >
-    <template #activator="{ on }">
-      <v-btn v-if="icon" icon ripple v-on="on">
+    <template #activator="{ props }">
+      <v-btn v-if="icon" icon ripple v-bind="props">
         <v-icon>{{ icon }}</v-icon>
       </v-btn>
-      <v-btn v-else block ripple v-on="on">
+      <v-btn v-else block ripple v-bind="props">
         {{ buttonText }}
       </v-btn>
     </template>

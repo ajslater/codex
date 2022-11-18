@@ -17,8 +17,8 @@
   >
     <template #append-outer>
       <v-tooltip top :open-delay="2000">
-        <template #activator="{ on, attrs }">
-          <v-icon v-bind="attrs" v-on="on" @click="toggleHidden">
+        <template #activator="{ props }">
+          <v-icon v-bind="props" @click="toggleHidden">
             {{ appendOuterIcon }}
           </v-icon>
         </template>

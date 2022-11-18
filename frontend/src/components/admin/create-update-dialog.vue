@@ -6,11 +6,11 @@
     v-bind="$attrs"
     class="cuDialog"
   >
-    <template #activator="{ on }">
+    <template #activator="{ props }">
       <AdminCreateUpdateButton
         :update="Boolean(oldRow)"
         :table="table"
-        v-on="on"
+        v-bind="props"
       />
     </template>
     <v-form ref="form" class="cuForm">
