@@ -5,7 +5,7 @@
         v-model="orderBy"
         class="toolbarSelect orderBySelect"
         :append-outer-icon="orderIcon"
-        dense
+        density="compact"
         hide-details="auto"
         :items="orderByChoices"
         :label="focused || hover ? label : undefined"

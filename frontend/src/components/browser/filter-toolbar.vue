@@ -1,5 +1,5 @@
 <template>
-  <v-toolbar id="browserToolbar" class="toolbar" dense>
+  <v-toolbar id="browserToolbar" class="toolbar" density="compact">
     <v-toolbar-items v-if="isCodexViewable" id="browserToolbarLeftItems">
       <BrowserRootGroupSelect id="topGroupSelect" />
       <BrowserOrderBySelect id="orderBySelect" />

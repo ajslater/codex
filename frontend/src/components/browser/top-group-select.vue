@@ -5,7 +5,7 @@
         v-model="topGroup"
         class="toolbarSelect topGroupSelect"
         :items="topGroupChoices"
-        dense
+        density="compact"
         hide-details="auto"
         :label="focused || hover ? label : undefined"
         :aria-label="label"

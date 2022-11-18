@@ -31,7 +31,7 @@
             v-model="query"
             placeholder="Filter"
             full-width
-            dense
+            density="compact"
             filled
             rounded
             hide-details="auto"
@@ -55,7 +55,7 @@
             v-for="item of vuetifyItems"
             :key="`${name}:${item.name}`"
             :value="item.pk"
-            dense
+            density="compact"
             ripple
           >
             <v-list-item-title v-if="isNullPk(item.pk)" class="noneItem">

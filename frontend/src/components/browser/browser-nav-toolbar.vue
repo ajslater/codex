@@ -1,5 +1,9 @@
 <template>
-  <v-toolbar v-if="numPages > 1" class="paginationToolbar codexToolbar" dense>
+  <v-toolbar
+    v-if="numPages > 1"
+    class="paginationToolbar codexToolbar"
+    density="compact"
+  >
     <BrowserNavButton :back="true" />
     <PaginationSlider
       :value="+$route.params.page"

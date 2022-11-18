@@ -2,7 +2,7 @@
   <v-toolbar
     v-if="maxPage"
     class="readerNavToolbar codexToolbar"
-    dense
+    density="compact"
     transform="center bottom"
   >
     <ReaderNavButton :value="0" />

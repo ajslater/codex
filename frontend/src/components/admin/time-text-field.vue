@@ -1,7 +1,7 @@
 <template>
   <v-text-field
     ref="timeField"
-    dense
+    density="compact"
     round
     filled
     :rules="timeRules"

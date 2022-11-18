@@ -2,7 +2,7 @@
   <v-select
     chips
     deletable-chips
-    dense
+    density="compact"
     :multiple="true"
     small-chips
     v-bind="$attrs"

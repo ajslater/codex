@@ -1,5 +1,5 @@
 <template>
-  <v-toolbar id="readerTopToolbar" class="codexToolbar" dense>
+  <v-toolbar id="readerTopToolbar" class="codexToolbar" density="compact">
     <v-toolbar-items>
       <v-btn id="closeBook" ref="closeBook" :to="closeBookRoute" large ripple>
         <span v-if="!$vuetify.display.mobile">close book</span>

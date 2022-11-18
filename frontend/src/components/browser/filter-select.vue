@@ -5,7 +5,7 @@
         ref="filterSelect"
         :value="bookmarkFilter"
         class="toolbarSelect"
-        dense
+        density="compact"
         :items="bookmarkChoices"
         hide-details="auto"
         :label="focused || hover ? LABEL : undefined"

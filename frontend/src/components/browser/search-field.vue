@@ -5,7 +5,7 @@
     :items="queries"
     autofocus
     clearable
-    dense
+    density="compact"
     aria-label="search"
     disable-lookup
     flat

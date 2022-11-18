@@ -1,5 +1,10 @@
 <template>
-  <v-toolbar id="titleBar" class="codexToolbar" :class="{ rightSpace }" dense>
+  <v-toolbar
+    id="titleBar"
+    class="codexToolbar"
+    :class="{ rightSpace }"
+    density="compact"
+  >
     <div id="buttonSpacer" />
     <v-spacer />
     <v-toolbar-title>Codex Administration</v-toolbar-title>

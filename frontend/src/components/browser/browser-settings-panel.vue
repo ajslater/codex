@@ -9,7 +9,7 @@
       :key="choice.text"
       :input-value="showSettings[choice.value]"
       :label="`Show ${choice.text}`"
-      dense
+      density="compact"
       class="settingsCheckbox"
       @change="setShow(choice.value, $event)"
     />
