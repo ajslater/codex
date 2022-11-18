@@ -22,11 +22,9 @@
           <td>
             <v-checkbox
               :input-value="item.on"
-              dense
-              ripple
+              density="compact"
               hide-details="auto"
               :error-messages="getFormErrors(item.pk, 'on')"
-              @focus="clearErrors"
               @blur="item.keyHack = Date.now()"
               @change="changeCol(item.pk, 'on', $event === true)"
             />
@@ -41,6 +39,7 @@
 import { mapActions, mapState } from "pinia";
 
 import { useAdminStore } from "@/stores/admin";
+import { useCommonStore } from "@/stores/common";
 
 const DESC = {
   "Enable Auto Update":
@@ -79,6 +78,7 @@ export default {
     ...mapState(useAdminStore, {
       flags: (state) => state.flags,
     }),
+    ...mapState(useCommonStore, ["formErrors"]),
     tableHeight() {
       return this.innerHeight - BUFFER;
     },
@@ -89,6 +89,7 @@ export default {
   methods: {
     ...mapActions(useAdminStore, ["updateRow", "clearErrors", "loadTables"]),
     changeCol(pk, field, val) {
+      console.log("changeCol:", { pk, field, val });
       this.lastUpdate.pk = pk;
       this.lastUpdate.field = field;
       const data = { [field]: val };

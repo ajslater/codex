@@ -17,14 +17,16 @@
       </v-tab>
     </v-tabs>
     <v-window id="tabItems" v-model="activeTab" touchless>
-      <v-window-item
+      <router-view
         v-for="tab in tabs"
         :key="tab"
-        :value="tab"
-        class="tabItemContainer"
+        v-slot="{ Component }"
+        :inner-height="innerHeight"
       >
-        <router-view v-if="tab === activeTab" :inner-height="innerHeight" />
-      </v-window-item>
+        <v-window-item :value="tab" class="tabItemContainer">
+          <component :is="Component" />
+        </v-window-item>
+      </router-view>
     </v-window>
     <div v-if="!librariesExist" id="noLibraries">
       Codex has no libraries. Select the Libraries tab and add a comic library.
