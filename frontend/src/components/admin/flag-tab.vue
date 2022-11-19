@@ -89,7 +89,6 @@ export default {
   methods: {
     ...mapActions(useAdminStore, ["updateRow", "clearErrors", "loadTables"]),
     changeCol(pk, field, val) {
-      console.log("changeCol:", { pk, field, val });
       this.lastUpdate.pk = pk;
       this.lastUpdate.field = field;
       const data = { [field]: val };

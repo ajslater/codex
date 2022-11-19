@@ -9,7 +9,7 @@ const warnError = (error) => console.warn(error);
 const vuetifyItems = (items, textAttr) => {
   const result = [];
   for (const item of items) {
-    result.push({ value: item.pk, text: item[textAttr] });
+    result.push({ value: item.pk, title: item[textAttr] });
   }
   return result;
 };

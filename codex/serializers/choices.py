@@ -107,7 +107,7 @@ def _parse_choices_to_dict(vuetify_key, vuetify_list):
     choices = {}
     for item in vuetify_list:
         key = item["value"]
-        choices[key] = item["text"]
+        choices[key] = item["title"]
         if item.get("default"):
             DEFAULTS[vuetify_key] = key
     return choices

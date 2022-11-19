@@ -1,10 +1,9 @@
 <template>
   <v-select
-    chips
-    deletable-chips
+    :chips="true"
+    :closable-chips="true"
     density="compact"
     :multiple="true"
-    small-chips
     v-bind="$attrs"
   />
 </template>

@@ -74,6 +74,7 @@
 
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
+import { markRaw } from "vue";
 
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
 import DateTimeColumn from "@/components/admin/datetime-column.vue";
@@ -108,7 +109,7 @@ export default {
   },
   data() {
     return {
-      AdminUserCreateUpdateInputs,
+      AdminUserCreateUpdateInputs: markRaw(AdminUserCreateUpdateInputs),
     };
   },
   computed: {

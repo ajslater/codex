@@ -4,6 +4,7 @@ const VUETIFY_NULL_CODE = CHOICES.browser.vuetifyNullCode;
 const NULL_NAME = "None";
 const NULL_ITEM = { pk: VUETIFY_NULL_CODE, name: NULL_NAME };
 
+// TODO shouldn't this be value, title not pk / name??
 const toVuetifyItem = function (item, charPk) {
   // Translates an raw value or an item item into a vuetify item.
   let vuetifyItem;

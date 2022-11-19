@@ -72,6 +72,7 @@
 
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
+import { markRaw } from "vue";
 
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
 import AdminDeleteRowDialog from "@/components/admin/delete-row-dialog.vue";
@@ -106,7 +107,7 @@ export default {
         pk: 0,
         field: undefined,
       },
-      AdminGroupCreateUpdateInputs,
+      AdminGroupCreateUpdateInputs: markRaw(AdminGroupCreateUpdateInputs),
     };
   },
   computed: {
