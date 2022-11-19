@@ -28,19 +28,19 @@
         <div class="taskBox">
           <ConfirmDialog
             v-if="item.confirm"
-            :button-text="item.text"
-            :title-text="item.text"
+            :button-text="item.title"
+            :title-text="item.title"
             :object-name="item.confirm"
             confirm-text="Confirm"
-            @confirm="librarianTask(item.value, item.text)"
+            @confirm="librarianTask(item.value, item.title)"
           />
           <v-btn
             v-else
             block
             ripple
-            @click="librarianTask(item.value, item.text)"
+            @click="librarianTask(item.value, item.title)"
           >
-            {{ item.text }}
+            {{ item.title }}
           </v-btn>
           <div class="taskDesc">
             {{ item.desc }}

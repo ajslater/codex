@@ -6,9 +6,9 @@
     </div>
     <v-checkbox
       v-for="choice of groupChoices"
-      :key="choice.text"
+      :key="choice.title"
       :input-value="showSettings[choice.value]"
-      :label="`Show ${choice.text}`"
+      :label="`Show ${choice.title}`"
       density="compact"
       class="settingsCheckbox"
       @change="setShow(choice.value, $event)"

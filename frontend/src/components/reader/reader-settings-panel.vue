@@ -14,7 +14,7 @@
       <v-radio
         v-for="item in fitToChoices"
         :key="item.value"
-        :label="item.text"
+        :label="item.title"
         :value="item.value"
       />
     </v-radio-group>

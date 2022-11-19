@@ -21,7 +21,7 @@
         <template #item="data">
           <v-list-item v-bind="data.attrs" ripple>
             <v-list-item-title>
-              {{ data.item.text }}
+              {{ data.item.title }}
               <v-icon v-show="orderBy === data.item.value" class="orderIcon">
                 {{ orderIcon }}
               </v-icon>

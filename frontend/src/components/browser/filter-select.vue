@@ -23,13 +23,13 @@
         @change="change"
       >
         <template #selection="{ item }">
-          {{ item.text }}
+          {{ item.title }}
           <span v-if="isDynamicFiltersSelected" class="filterSuffix"> + </span>
         </template>
         <template #item="data">
           <v-slide-x-transition hide-on-leave>
             <v-list-item-title>
-              {{ data.item.text }}
+              {{ data.item.title }}
             </v-list-item-title>
           </v-slide-x-transition>
         </template>
