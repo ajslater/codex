@@ -142,6 +142,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use "vuetify/styles/settings/variables" as vuetify;
 #readerTopToolbar {
   width: 100%;
   top: 0px;
@@ -161,7 +162,6 @@ export default {
   color: darkgray;
   text-align: center;
 }
-@use "vuetify/styles/settings/variables" as vuetify;
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   #closeBook {
     min-width: 32px;
