@@ -42,7 +42,7 @@ export const useCommonStore = defineStore("common", {
     isMobile: function () {
       // Probably janky mobile detection
       return (
-        typeof window.orientation !== "undefined" ||
+        window.orientation !== undefined ||
         navigator.userAgent.includes("IEMobile")
       );
     },

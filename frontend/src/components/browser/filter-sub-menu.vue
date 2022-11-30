@@ -124,7 +124,7 @@ export default {
       );
     },
     title: function () {
-      let title = this.name.replace(/[A-Z]/g, (letter) => ` ${letter}`);
+      let title = this.name.replaceAll(/[A-Z]/g, (letter) => ` ${letter}`);
       title = title.replace("Ltr", "LTR");
       title = title[0].toUpperCase() + title.slice(1);
       return title;

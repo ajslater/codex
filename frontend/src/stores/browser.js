@@ -173,11 +173,10 @@ export const useBrowserStore = defineStore("browser", {
     _mutateSettings(data) {
       this.$patch((state) => {
         for (let [key, value] of Object.entries(data)) {
-          if (typeof state.settings[key] === "object") {
-            state.settings[key] = { ...state.settings[key], ...value };
-          } else {
-            state.settings[key] = value;
-          }
+          state.settings[key] =
+            typeof state.settings[key] === "object"
+              ? { ...state.settings[key], ...value }
+              : (state.settings[key] = value);
         }
       });
     },
