@@ -32,10 +32,20 @@
               {{ item.username }}
             </td>
             <td class="buttonCol">
-              <v-checkbox :value="item.isStaff" density="compact" disabled />
+              <v-checkbox
+                class="tableCheckbox"
+                :value="item.isStaff"
+                density="compact"
+                disabled
+              />
             </td>
             <td class="buttonCol">
-              <v-checkbox :value="item.isActive" density="compact" disabled />
+              <v-checkbox
+                class="tableCheckbox"
+                :value="item.isActive"
+                density="compact"
+                disabled
+              />
             </td>
             <td class="relationCol">
               <RelationChips :pks="item.groups" :map="groupMap" />

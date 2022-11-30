@@ -1,6 +1,5 @@
 <template>
   <v-navigation-drawer
-    id="adminSetingsDrawer"
     v-model="isSettingsDrawerOpen"
     class="settingsDrawer"
     app

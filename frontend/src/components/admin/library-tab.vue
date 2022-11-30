@@ -31,10 +31,20 @@
           <tr v-for="item in libraries" :key="item.pk">
             <td>{{ item.path }}</td>
             <td>
-              <v-checkbox :value="item.events" density="compact" disabled />
+              <v-checkbox
+                class="tableCheckbox"
+                :value="item.events"
+                density="compact"
+                disabled
+              />
             </td>
             <td>
-              <v-checkbox :value="item.poll" density="compact" disabled />
+              <v-checkbox
+                class="tableCheckbox"
+                :value="item.poll"
+                density="compact"
+                disabled
+              />
             </td>
             <td class="pollEveryCol" :class="{ disabled: !item.poll }">
               {{ item.pollEvery }}

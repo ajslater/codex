@@ -129,4 +129,7 @@ $task-width: 256px;
 .admin-table {
   padding-bottom: 24px;
 }
+.tableCheckbox {
+  height: 48px;
+}
 </style>

@@ -51,6 +51,7 @@ export default {
   padding-top: env(safe-area-inset-top);
   padding-right: calc(env(safe-area-inset-right) / 2);
   padding-left: calc(env(safe-area-inset-left) / 2);
+  top: 0px;
 }
 .rightSpace {
   width: calc(100% - 256px) !important;
