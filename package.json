@@ -30,7 +30,7 @@
     "eslint-plugin-simple-import-sort": "^8.0.0",
     "eslint-plugin-sonarjs": "^0.16.0",
     "eslint-plugin-switch-case": "^1.1.2",
-    "eslint-plugin-unicorn": "^44.0.0",
+    "eslint-plugin-unicorn": "^45.0.0",
     "eslint-plugin-yaml": "^0.5.0",
     "eslint_d": "^12.0.0",
     "prettier": "^2.7.1",
