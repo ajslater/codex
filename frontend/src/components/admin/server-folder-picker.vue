@@ -82,11 +82,11 @@ export default {
     ...mapActions(useAdminStore, ["loadFolders"]),
     ...mapActions(useCommonStore, ["clearErrors"]),
     change: function (path) {
-      const relativePath = !path
-        ? this.rootFolder
-        : path.startsWith("/")
-        ? path
-        : [this.rootFolder, path].join("/");
+      const relativePath = path
+        ? path.startsWith("/")
+          ? path
+          : [this.rootFolder, path].join("/")
+        : this.rootFolder;
       const isMenuActive = this.$refs.folderPicker.isMenuActive;
       this.clearErrors();
       this.loadFolders(relativePath, this.showHidden)
