@@ -5,13 +5,13 @@ import { createApp } from "vue";
 import { createMetaManager } from "vue-meta";
 
 import App from "@/app.vue";
-// TODO move router into plugins
 import router from "@/plugins/router";
 import { setupNativeSock } from "@/plugins/vue-native-sock";
 import vuetify from "@/plugins/vuetify";
 import { setupStore } from "@/stores/store";
 
 const app = createApp(App);
+
 app.use(vuetify);
 const meta = createMetaManager({ keyName: "head" });
 app.use(meta);
