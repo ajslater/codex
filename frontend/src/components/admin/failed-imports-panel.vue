@@ -110,7 +110,7 @@ export default {
   margin-top: 60px;
 }
 #failedImportsHelp {
-  color: darkgrey;
+  color: rgb(var(--v-theme-textSecondary));
 }
 @import "../anchors.scss";
 </style>

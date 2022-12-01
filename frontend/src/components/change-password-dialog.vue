@@ -190,7 +190,7 @@ export default {
 .codexFormSuccess {
   padding: 10px;
   font-size: larger;
-  color: green;
+  color: rgb(var(--v-theme-success));
   text-align: center;
 }
 .hidden {

@@ -86,13 +86,13 @@ export default {
   margin-right: 1em;
 }
 #success {
-  color: green;
+  color: rgb(var(--v-theme-success));
 }
 #error {
-  color: red;
+  color: rgb(var(--v-theme-error));
 }
 #noRecentTask {
-  color: gray;
+  color: rgb(var(--v-theme-textDisabled));
 }
 .taskGroup {
   margin-top: 1em;
@@ -101,11 +101,11 @@ export default {
   padding: 12px;
   margin: 10px;
   border-radius: 5px;
-  background-color: #121212;
+  background-color: rgb(var(--v-theme-row));
 }
 .taskDesc {
   vertical-align: top;
-  color: darkgrey;
+  color: rgb(var(--v-theme-textSecondary));
   padding-top: 0.25em;
 }
 #tasks {

@@ -8,7 +8,7 @@
               v-if="showPlaceholder"
               indeterminate
               size="109"
-              color="#cc7b19"
+              :color="$vuetify.theme.current.colors.primary"
               aria-label="loading"
               class="coverPlaceholder"
             />
@@ -111,8 +111,8 @@ export default {
   padding: 0rem 0.25rem 0rem 0.25rem;
   text-align: center;
   border-radius: 50%;
-  background-color: black;
-  color: white;
+  background-color: rgb(var(--v-theme-background));
+  color: rbg(var(--v-theme-textPrimary));
 }
 .unreadFlag {
   position: absolute;

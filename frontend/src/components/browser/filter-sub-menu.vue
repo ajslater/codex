@@ -162,7 +162,7 @@ export default {
 }
 .filterTitle {
   font-variant: small-caps;
-  color: gray;
+  color: rbg(var(--v-theme-textDisabled));
   font-weight: bold;
   font-size: 1.6rem !important;
 }
@@ -172,7 +172,7 @@ export default {
   max-height: 80vh; /* has to be less than the menu height */
 }
 .noneItem {
-  color: gray;
+  color: rbg(var(--v-theme-textDisabled));
 }
 .filterValuesProgress {
   margin: 10px;

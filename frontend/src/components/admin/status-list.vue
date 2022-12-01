@@ -25,7 +25,7 @@
               </span>
             </div>
             <v-progress-linear
-              color="#cc7b19"
+              :color="$vuetify.theme.current.colors.primary"
               :indeterminate="indeterminate(status)"
               :value="progress(status)"
               bottom
@@ -90,14 +90,14 @@ h4 {
   padding-left: 16px;
   padding-right: 5px;
   padding-bottom: 10px;
-  color: gray;
+  color: rgb(var(--v-theme-textDisabled));
 }
 #noTasksRunning {
   margin-left: 1em;
-  color: grey;
+  color: rgb(var(--v-theme-textDisabled));
 }
 #clearButton {
   float: right;
-  color: grey;
+  color: rgb(var(--v-theme-textDisabled));
 }
 </style>

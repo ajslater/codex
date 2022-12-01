@@ -209,6 +209,6 @@ export default {
   min-width: 8em;
 }
 .disabled {
-  color: grey;
+  color: rgb(var(--v-theme-textDisabled));
 }
 </style>

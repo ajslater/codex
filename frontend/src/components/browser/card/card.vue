@@ -82,7 +82,9 @@ export default {
           };
     },
     progressBackgroundColor: function () {
-      return this.item.progress ? "grey darken-3" : "inherit";
+      return this.item.progress
+        ? this.$vuetify.theme.current.colors.row
+        : "inherit";
     },
   },
   mounted() {
@@ -137,8 +139,11 @@ export default {
   border: solid thin transparent;
 }
 .browserCardCoverWrapper:hover > .cardCoverOverlay {
-  background-color: rgba(0, 0, 0, 0.55);
-  border: solid thin #cc7b19;
+  background-color: rgba(
+    var(--v-theme-bookCoverColor),
+    var(--v-theme-bookCoverOpacity)
+  );
+  border: solid thin rbg(var(--v-theme-primary));
 }
 .browserCardCoverWrapper:hover > .cardCoverOverlay * {
   opacity: 1;

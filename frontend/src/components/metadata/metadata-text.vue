@@ -68,10 +68,13 @@ export default {
 }
 .textLabel {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgb(var(--v-theme-textSecondary));
 }
 .highlight .textContent {
-  background-color: rgba(204, 123, 25, 0.75);
+  background-color: rgba(
+    var(--v-theme-primary),
+    var(--v-theme-highlightOpactiy)
+  );
   padding: 0px 8px 0px 8px;
   border-radius: 12px;
 }

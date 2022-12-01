@@ -1,6 +1,32 @@
 import { createVuetify } from "vuetify";
 import { aliases, mdi } from "vuetify/iconsets/mdi-svg";
 
+const codexTheme = {
+  dark: true,
+  colors: {
+    // -- built in ---
+    primary: "#CC7B19", // codex orange // '#1976D2' - light blue
+    // secondary: "#424242", // grey
+    // accent: "#FF4081", // pinkish
+    // error: "#FF5252", // soft red
+    // info: "#2196F3", // lightblue (similar to primary)
+    // success: "#4CAF50", // soft green
+    // warning: "#FB8C00", // soft orange
+    // --- custom ---
+    row: "#272727",
+    bookCoverColor: "#000000",
+    bookCoverOpacity: 0.55,
+    filterSelect: "#1e1e1e",
+    highlightOpacity: 0.75,
+    textPrimary: "#FFFFFF",
+    textHeader: "#D3D3D3",
+    textSecondary: "#A9A9A9",
+    textDisabled: "#808080",
+    iconsInactive: "#808080",
+    linkHover: "#FFFFFF",
+  },
+};
+
 export default new createVuetify({
   defaults: {
     global: {
@@ -8,14 +34,12 @@ export default new createVuetify({
     },
   },
   theme: {
-    dark: true,
+    defaultTheme: "codexTheme",
     options: {
       customProperties: true,
     },
     themes: {
-      dark: {
-        primary: "#cc7b19",
-      },
+      codexTheme,
     },
   },
   icons: {

@@ -124,7 +124,7 @@ $card-margin: 32px;
 #noComicsFound {
   font-size: x-large;
   padding: 1em;
-  color: gray;
+  color: rbg(var(--v-theme-textDisabled));
 }
 .padFooter {
   padding-bottom: 45px !important;

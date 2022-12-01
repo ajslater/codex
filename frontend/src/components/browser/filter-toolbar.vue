@@ -82,7 +82,7 @@ export default {
   margin-right: 1px;
   /* Fake solo styling */
   padding-top: 8px;
-  background-color: #1e1e1e;
+  background-color: rgb(var(--theme-filterSelect));
   border-radius: 4px;
   max-height: 40px;
 }
@@ -138,7 +138,7 @@ export default {
   padding-right: 0px !important;
 }
 #filterSelect .v-input__icon--prepend-inner svg {
-  color: gray !important;
+  color: rbg(var(--v-theme-iconsInactive)) !important;
   width: 16px !important;
 }
 #filterSelect .v-label {

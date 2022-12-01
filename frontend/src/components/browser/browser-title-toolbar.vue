@@ -143,12 +143,12 @@ $upButtonWidth: 64px;
 }
 
 #titleToolbar .v-toolbar__title #titleToolbarPrefix {
-  color: gray;
+  color: rgb(var(--v-theme-textDisabled));
   font-size: smaller;
 }
 
 #titleToolbar .v-toolbar__title #titleToolbarSuffix {
-  color: gray;
+  color: rgb(var(--v-theme-textDisabled));
   font-size: smaller;
 }
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {

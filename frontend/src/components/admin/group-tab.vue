@@ -138,6 +138,6 @@ export default {
 }
 #groupHelp {
   margin-top: 2em;
-  color: darkgrey;
+  color: rgb(var(--v-theme-textSecondary));
 }
 </style>

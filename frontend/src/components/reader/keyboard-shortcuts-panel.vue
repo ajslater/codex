@@ -98,7 +98,7 @@ export default {
 #readerKeyboardShortcutsTable {
   margin-top: 10px;
   border-collapse: collapse;
-  color: gray;
+  color: rgb(var(--v-theme-textDisabled));
 }
 #readerKeyboardShortcutsTable td {
   min-width: 60px;

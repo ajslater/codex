@@ -78,18 +78,17 @@ $button-margin: 0px;
 }
 
 $browser-card-icon-size: 24px;
-$unselected-icon-color: #a0a0a0;
 #browsePaneContainer .cardControlButton .v-icon {
-  color: $unselected-icon-color !important;
+  color: rbg(var(--v-theme-textSecondary)) !important;
   width: $browser-card-icon-size;
   height: $browser-card-icon-size;
 }
 #browsePaneContainer .cardControlButton .v-icon:hover {
-  color: white !important;
+  color: rgb(var(--v-theme-textPrimary)) !important;
 }
 
 #browsePaneContainer .cardControls:has(> .cardControlButton:hover) .eye {
   /* this selector only works on safari 2022-08 */
-  color: $unselected-icon-color;
+  color: rbg(var(--v-theme-textSecondary));
 }
 </style>

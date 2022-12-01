@@ -28,19 +28,19 @@ export default {
 
 <style scoped lang="scss">
 #oldDjangoAdmin:hover {
-  color: white;
+  color: rgb(var(--v-theme-linkHover));
 }
 #oldDjangoAdmin {
-  color: grey;
+  color: rgb(var(--v-theme-textDisabled));
 }
 </style>
 
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
 #oldDjangoAdmin .v-icon {
-  color: grey;
+  color: rgb(var(--v-theme-textDisabled));
 }
 #oldDjangoAdmin:hover .v-icon {
-  color: white;
+  color: rgb(var(--v-theme-linkHover));
 }
 </style>

@@ -46,7 +46,7 @@ export default {
     },
     trackColor() {
       return this.twoPages && +this.$route.params.page >= this.maxPage - 1
-        ? "#cc7b19"
+        ? this.$vuetify.theme.current.colors.primary
         : "";
     },
   },

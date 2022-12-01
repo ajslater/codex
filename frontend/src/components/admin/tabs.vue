@@ -123,11 +123,11 @@ $task-width: 256px;
   > table
   > tbody
   > tr:nth-child(odd):hover {
-  background-color: #121212 !important;
+  background-color: rgb(var(--v-theme-background)) !important;
 }
 
 .admin-table {
-  padding-bottom: 24px;
+  margin-bottom: 24px;
 }
 .tableCheckbox {
   height: 48px;

@@ -1,10 +1,10 @@
 a:hover,
 a:hover .v-icon {
-  color: white;
+  color: rgb(var(--v-theme-textPrimary));
 }
 a > .v-icon {
-  color: #cc7b19;
+  color: rgb(var(--v-theme-primary));
 }
 a.v-btn > .v-icon {
-  color: white;
+  color: rgb(var(--v-theme-textPrimary));
 }

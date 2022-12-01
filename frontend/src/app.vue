@@ -52,29 +52,29 @@ export default {
 html {
   overflow-y: auto;
 }
-body {
-  background-color: #121212;
-}
 noscript {
   text-align: center;
   font-family: sans-serif;
-  color: darkgray;
+  color: rgb(var(--v-theme-textDisabled));
+}
+.test {
+  color: rgb(var(--v-theme-textSecondary));
 }
 a {
   text-decoration: none !important;
 }
 .v-dialog,
 .v-navigation-drawer {
-  background-color: #202020 !important;
+  background-color: rgb(var(--v-theme-background)) !important;
 }
 
 .background-highlight,
 .highlight-table tr:nth-child(even),
 .highlight-table th {
-  background-color: #121212 !important;
+  background-color: rgb(var(--v-theme-row)) !important;
 }
 .background-soft-highlight {
-  background-color: #272727 !important;
+  background-color: rgb(var(--v-theme-row)) !important;
 }
 .codexToolbar {
   position: fixed !important;
@@ -94,7 +94,7 @@ a {
 }
 
 .settingsDrawer .v-icon {
-  color: gray !important;
+  color: rgb(var(--v-theme-iconsInactive)) !important;
   margin-right: 0.33em;
 }
 </style>

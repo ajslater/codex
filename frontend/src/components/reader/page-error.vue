@@ -47,11 +47,11 @@ export default {
   position: relative;
   text-align: center;
   font-size: calc(100vw / 25);
-  color: #505050;
+  color: rgb(var(--v-theme-textDisabled));
   padding: 0.5em;
 }
 .pageErrorIcon {
-  color: darkred;
+  color: rgb(var(--v-theme-error));
 }
 .pageErrorText,
 .pageErrorIcon {

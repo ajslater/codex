@@ -52,8 +52,5 @@ export default {
 
 <style scoped lang="scss">
 #footerGroup {
-  width: 100%;
-  background-color: #272727;
-  color: grey;
 }
 </style>

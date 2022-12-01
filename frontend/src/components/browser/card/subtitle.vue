@@ -124,7 +124,7 @@ export default {
 }
 .headerName {
   padding-top: 5px;
-  color: gray;
+  color: rbg(var(--v-theme-textDisabled));
 }
 .headerName,
 .displayName {
@@ -134,7 +134,7 @@ export default {
   min-height: 1em;
 }
 .orderValue {
-  color: gray;
+  color: rbg(var(--v-theme-textDisabled));
 }
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   .cardSubtitle {

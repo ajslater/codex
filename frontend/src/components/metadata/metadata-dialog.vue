@@ -197,7 +197,7 @@
         :value="progress"
         :indeterminate="progress >= 100"
         size="256"
-        color="#cc7b19"
+        :color="$vuetify.theme.current.colors.primary"
         class="placeholder"
         aria-label="tags loading"
       />
@@ -415,7 +415,7 @@ export default {
 }
 #placeholderTitle {
   font-size: xx-large;
-  color: gray;
+  color: rgb(var(--v-theme-textDisabled));
 }
 .closeButton {
   float: right;

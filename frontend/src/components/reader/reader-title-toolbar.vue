@@ -159,7 +159,7 @@ export default {
 #seriesPosition {
   padding-left: 10px;
   padding-right: 10px;
-  color: darkgray;
+  color: rgb(var(--v-theme-textSecondary));
   text-align: center;
 }
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {

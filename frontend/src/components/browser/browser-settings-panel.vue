@@ -45,7 +45,7 @@ export default {
 }
 #settingsGroupCaption {
   padding-top: 10px;
-  color: gray;
+  color: rbg(var(--v-theme-textDisabled));
 }
 .settingsCheckbox {
   padding-left: 5px;

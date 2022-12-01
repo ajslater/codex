@@ -52,9 +52,9 @@ export default {
 
 <style scoped lang="scss">
 .errors {
-  color: red;
+  color: rgb(var(--v-theme-error));
 }
 .success {
-  color: green;
+  color: rgb(var(--v-theme-success));
 }
 </style>

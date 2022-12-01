@@ -200,12 +200,12 @@ export default {
   padding-left: 20px;
   padding-right: 20px;
   margin: auto;
-  color: grey;
+  color: rgb(var(--v-theme-textDisabled));
 }
 h1,
 h2,
 h3 {
-  color: lightgrey;
+  color: rgb(var(--v-theme-textHeader));
 }
 h1 {
   padding-bottom: 1em;
@@ -225,7 +225,7 @@ h1 {
 #fieldTable th {
   font-size: larger;
   font-weight: bold;
-  color: lightgrey;
+  color: rgb(var(--v-theme-textHeader));
 }
 #fieldTable th,
 #fieldTable td {
@@ -233,6 +233,6 @@ h1 {
 }
 code {
   width: fit-content;
-  color: lightgrey !important;
+  color: rgb(var(--v-theme-textHeader)) !important;
 }
 </style>

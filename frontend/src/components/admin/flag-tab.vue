@@ -109,6 +109,6 @@ export default {
 }
 .desc {
   margin-top: 1em;
-  color: darkgrey;
+  color: rgb(var(--v-theme-textSecondary));
 }
 </style>
