@@ -3,6 +3,7 @@
     <v-tabs
       id="tabs"
       :class="{ rightSpace: rightSpace }"
+      :color="$vuetify.theme.current.colors.primary"
       centered
       grow
       show-arrows

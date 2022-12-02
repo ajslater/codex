@@ -10,7 +10,7 @@ const codexTheme = {
     // secondary: "#03DAC5", // blue
     "secondary-darken-1": "#02a191",
     // accent: "#FF4081", // pinkish
-    // error: "#FF5252", // very pink
+    // error: "#CF6679", // very pink
     // info: "#2196F3", // lightblue (similar to primary)
     // success: "#4CAF50", // soft green
     // warning: "#FB8C00", // soft orange
