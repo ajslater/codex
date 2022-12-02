@@ -8,10 +8,10 @@
     overlay-opacity="0.5"
   >
     <template #activator="{ props }">
-      <v-btn v-if="isAdminMode" icon ripple v-bind="props">
+      <v-btn v-if="isAdminMode" icon v-bind="props">
         <v-icon> {{ mdiLockPlusOutline }}</v-icon>
       </v-btn>
-      <v-list-item v-else ripple v-bind="props">
+      <v-list-item v-else v-bind="props">
         <v-list-item-title
           ><v-icon>{{ mdiLockReset }}</v-icon
           >Change Password</v-list-item-title

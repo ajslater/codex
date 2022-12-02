@@ -1,6 +1,6 @@
 <template>
   <v-divider v-if="show" />
-  <v-list-item ripple @click="load">
+  <v-list-item @click="load">
     <v-expand-transition>
       <div v-if="show">
         <v-btn

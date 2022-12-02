@@ -1,5 +1,5 @@
 <template>
-  <v-btn v-bind="$attrs" icon ripple title="Settings">
+  <v-btn v-bind="$attrs" icon title="Settings">
     <component :is="AdminSettingsDrawerButtonIcon" v-if="isUserAdmin" />
     <v-icon v-else>
       {{ mdiMenu }}

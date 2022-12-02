@@ -1,5 +1,5 @@
 <template>
-  <v-list-item ripple @click="logout">
+  <v-list-item @click="logout">
     <v-list-item-title>
       <v-icon>{{ mdiLogout }}</v-icon
       >Logout {{ username }}

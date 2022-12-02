@@ -1,5 +1,5 @@
 <template>
-  <v-btn class="cancelButton" ripple v-bind="$attrs">Cancel</v-btn>
+  <v-btn class="cancelButton" v-bind="$attrs">Cancel</v-btn>
 </template>
 <script>
 export default {

@@ -1,10 +1,5 @@
 <template>
-  <v-list-item
-    id="oldDjangoAdmin"
-    :href="djangoAdminURL"
-    target="_blank"
-    ripple
-  >
+  <v-list-item id="oldDjangoAdmin" :href="djangoAdminURL" target="_blank">
     <v-list-item-title>
       Old Admin Panel
       <v-icon size="small">

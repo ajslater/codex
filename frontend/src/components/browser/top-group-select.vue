@@ -13,7 +13,6 @@
           maxHeight: '80vh',
           overflowY: false,
         }"
-        ripple
         @focus="focused = true"
         @blur="focused = false"
       />

@@ -6,7 +6,7 @@
     content-class="browserSearchHelp"
   >
     <template #activator="{ props }">
-      <v-list-item ripple v-bind="props">
+      <v-list-item v-bind="props">
         <v-list-item-title
           ><v-icon>{{ mdiArchiveSearchOutline }}</v-icon> Search Syntax Help
         </v-list-item-title>

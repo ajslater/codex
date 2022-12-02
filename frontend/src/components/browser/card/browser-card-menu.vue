@@ -15,7 +15,7 @@
       </v-btn>
     </template>
     <div class="background-soft-highlight">
-      <v-list-item v-if="item.group === 'c'" ripple @click="toggleRead">
+      <v-list-item v-if="item.group === 'c'" @click="toggleRead">
         <v-list-item-title>
           {{ markReadText }}
         </v-list-item-title>

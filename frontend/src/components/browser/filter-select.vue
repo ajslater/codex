@@ -16,7 +16,6 @@
           contentClass: filterMenuClass,
         }"
         :prepend-inner-icon="filterInnerIcon"
-        ripple
         @click:prepend-inner="clearFiltersAndChoices"
         @focus="focus"
         @blur="focused = false"

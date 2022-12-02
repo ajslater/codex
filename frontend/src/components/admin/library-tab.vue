@@ -56,7 +56,7 @@
               <RelationChips :pks="item.groups" :map="groupMap" />
             </td>
             <td>
-              <v-btn icon ripple @click="poll(item.pk)">
+              <v-btn icon @click="poll(item.pk)">
                 <v-icon>{{ mdiDatabaseClockOutline }}</v-icon>
               </v-btn>
             </td>

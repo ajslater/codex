@@ -1,17 +1,13 @@
 <template>
   <div v-if="isUserAdmin">
     <div v-if="menu">
-      <v-list-item ripple @click="librarianTask('poll')">
+      <v-list-item @click="librarianTask('poll')">
         <v-list-item-title
           ><v-icon>{{ mdiDatabaseClockOutline }}</v-icon
           >Poll All Libraries</v-list-item-title
         >
       </v-list-item>
-      <v-list-item
-        :to="{ name: 'admin' }"
-        ripple
-        @click="unseenFailedImports = false"
-      >
+      <v-list-item :to="{ name: 'admin' }" @click="unseenFailedImports = false">
         <v-list-item-title>
           <v-icon>{{ mdiCogOutline }}</v-icon
           >Admin Panel

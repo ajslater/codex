@@ -26,7 +26,6 @@
         selectedSettings.twoPages === null ||
         selectedSettings.twoPages === undefined
       "
-      ripple
       @change="settingsDialogChanged({ twoPages: $event === true })"
     />
     <v-btn

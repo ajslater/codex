@@ -12,14 +12,12 @@
     <v-checkbox
       v-model="row.events"
       label="Watch Filesystem Events"
-      ripple
       hint="Update Codex instantly when the filesystem changes"
       :persistent-hint="true"
     />
     <v-checkbox
       v-model="row.poll"
       label="Poll Filesystem"
-      ripple
       hint="Periodically poll the library for changes"
       :persistent-hint="true"
     />

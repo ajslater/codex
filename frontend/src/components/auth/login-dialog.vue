@@ -7,7 +7,7 @@
     overlay-opacity="0.5"
   >
     <template #activator="{ props }">
-      <v-list-item ripple v-bind="props">
+      <v-list-item v-bind="props">
         <v-list-item-title
           ><h3>
             <v-icon>{{ mdiLogin }}</v-icon
@@ -59,7 +59,6 @@
         v-if="enableRegistration"
         v-model="registerMode"
         label="Register"
-        ripple
       >
         Register
       </v-switch>

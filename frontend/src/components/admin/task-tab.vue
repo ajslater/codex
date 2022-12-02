@@ -34,12 +34,7 @@
             confirm-text="Confirm"
             @confirm="librarianTask(item.value, item.title)"
           />
-          <v-btn
-            v-else
-            block
-            ripple
-            @click="librarianTask(item.value, item.title)"
-          >
+          <v-btn v-else block @click="librarianTask(item.value, item.title)">
             {{ item.title }}
           </v-btn>
           <div class="taskDesc">

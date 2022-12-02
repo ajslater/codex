@@ -6,10 +6,10 @@
     overlay-opacity="0.5"
   >
     <template #activator="{ props }">
-      <v-btn v-if="icon" icon ripple v-bind="props">
+      <v-btn v-if="icon" icon v-bind="props">
         <v-icon>{{ icon }}</v-icon>
       </v-btn>
-      <v-btn v-else block ripple v-bind="props">
+      <v-btn v-else block v-bind="props">
         {{ buttonText }}
       </v-btn>
     </template>

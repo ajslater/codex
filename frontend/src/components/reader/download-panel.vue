@@ -1,11 +1,11 @@
 <template>
-  <v-list-item ripple @click="downloadPage">
+  <v-list-item @click="downloadPage">
     <v-list-item-title>
       <v-icon>{{ mdiFileImage }}</v-icon> Download Page
       {{ $route.params.page }}
     </v-list-item-title>
   </v-list-item>
-  <v-list-item ripple @click="downloadBook">
+  <v-list-item @click="downloadBook">
     <v-list-item-title>
       <v-icon>{{ mdiDownload }}</v-icon> Download Book
     </v-list-item-title>

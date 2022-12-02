@@ -3,7 +3,7 @@
     <header id="adminMenuHeader">
       <h3>Admin Status</h3>
     </header>
-    <v-list-item ref="browserLink" ripple :to="browserRoute">
+    <v-list-item ref="browserLink" :to="browserRoute">
       <v-list-item-title>
         <v-icon>{{ mdiBookshelf }}</v-icon
         >Browser

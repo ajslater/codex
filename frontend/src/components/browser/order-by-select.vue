@@ -13,13 +13,12 @@
           maxHeight: '80vh',
           overflowY: false,
         }"
-        ripple
         @click:append-outer="toggleOrderReverse"
         @focus="focused = true"
         @blur="focused = false"
       >
         <template #item="data">
-          <v-list-item v-bind="data.attrs" ripple>
+          <v-list-item v-bind="data.attrs">
             <v-list-item-title>
               {{ data.item.title }}
               <v-icon v-show="orderBy === data.item.value" class="orderIcon">

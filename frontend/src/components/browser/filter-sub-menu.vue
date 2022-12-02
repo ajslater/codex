@@ -1,11 +1,7 @@
 <template>
   <div>
     <v-slide-x-transition hide-on-leave>
-      <v-list-item
-        v-if="filterMode === 'base'"
-        ripple
-        @click="setUIFilterMode(name)"
-      >
+      <v-list-item v-if="filterMode === 'base'" @click="setUIFilterMode(name)">
         <v-list-item-title class="filterMenu">
           {{ title }}
           <v-icon v-if="filter && filter.length > 0" class="nameChevron">
@@ -20,7 +16,7 @@
     <v-slide-x-reverse-transition hide-on-leave>
       <div v-if="filterMode === name">
         <header class="filterHeader">
-          <v-list-item ripple @click="setUIFilterMode('base')">
+          <v-list-item @click="setUIFilterMode('base')">
             <v-list-item-title class="filterTitle">
               <v-icon>{{ mdiChevronLeft }}</v-icon
               >{{ lowerTitle }}
@@ -56,7 +52,6 @@
             :key="`${name}:${item.name}`"
             :value="item.pk"
             density="compact"
-            ripple
           >
             <v-list-item-title v-if="isNullPk(item.pk)" class="noneItem">
               None
