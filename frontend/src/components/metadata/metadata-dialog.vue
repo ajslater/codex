@@ -19,7 +19,7 @@
         <CloseButton
           class="closeButton"
           title="Close Metadata (esc)"
-          x-large
+          size="x-large"
           @click="dialog = false"
         />
         <MetadataText
@@ -180,7 +180,7 @@
           <CloseButton
             class="closeButton"
             title="Close Metadata (esc)"
-            x-large
+            size="x-large"
             @click="dialog = false"
           />
         </span>

@@ -7,7 +7,7 @@
   >
     <v-list-item-title>
       Old Admin Panel
-      <v-icon small>
+      <v-icon size="small">
         {{ mdiOpenInNew }}
       </v-icon>
     </v-list-item-title>

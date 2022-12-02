@@ -9,7 +9,7 @@
     </div>
     <a v-if="link" :href="computedValue" target="_blank">
       {{ computedValue }}
-      <v-icon small>
+      <v-icon size="small">
         {{ mdiOpenInNew }}
       </v-icon>
     </a>

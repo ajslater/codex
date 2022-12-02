@@ -3,8 +3,7 @@
     class="browserNavButton"
     :disabled="disabled"
     :title="toPage"
-    large
-    ripple
+    size="large"
     @click="routeToPage(toPage)"
   >
     <v-icon :class="{ flipHoriz: !back }">

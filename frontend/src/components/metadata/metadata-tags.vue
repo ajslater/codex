@@ -11,7 +11,7 @@
     </h3>
     <v-item-group>
       <v-item v-for="item in model" :key="item.name">
-        <v-chip small :color="chipColor(item.pk)">
+        <v-chip size="small" :color="chipColor(item.pk)">
           {{ item.name }}
         </v-chip>
       </v-item>

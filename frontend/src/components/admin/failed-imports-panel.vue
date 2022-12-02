@@ -61,7 +61,9 @@
                   <a
                     href="https://github.com/ajslater/codex/issues/"
                     target="_blank"
-                    >Issue Report<v-icon small>{{ mdiOpenInNew }}</v-icon></a
+                    >Issue Report<v-icon size="small">{{
+                      mdiOpenInNew
+                    }}</v-icon></a
                   >
                   and include the stack trace from the logs at
                   <code>config/logs/codex.log</code>

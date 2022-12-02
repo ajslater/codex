@@ -5,8 +5,7 @@
       <div v-if="show">
         <v-btn
           id="clearButton"
-          small
-          ripple
+          size="small"
           icon
           title="Clear Librarian Statuses"
           @click="clear"

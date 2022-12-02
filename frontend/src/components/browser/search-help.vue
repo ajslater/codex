@@ -16,7 +16,7 @@
       <CloseButton
         class="closeButton"
         title="Close Help (esc)"
-        x-large
+        size="x-large"
         @click="dialog = false"
       />
       <h1>Search Syntax Help</h1>
@@ -127,7 +127,7 @@
       <CloseButton
         class="closeButton"
         title="Close Help (esc)"
-        x-large
+        size="x-large"
         @click="dialog = false"
       />
     </div>

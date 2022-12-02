@@ -6,9 +6,8 @@
         :class="{ invisible: !showUpButton }"
         :to="toUpRoute"
         :disabled="!toUpRoute"
-        x-large
+        size="x-large"
         icon
-        ripple
         :title="upTitle"
       >
         <v-icon>{{ mdiArrowUp }}</v-icon>

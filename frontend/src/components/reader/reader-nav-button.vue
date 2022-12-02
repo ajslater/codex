@@ -3,8 +3,7 @@
     class="readerNavButton"
     :disabled="disabled"
     :to="toRoute"
-    ripple
-    large
+    size="large"
   >
     {{ value }}
   </v-btn>
