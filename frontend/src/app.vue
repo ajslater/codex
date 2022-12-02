@@ -71,10 +71,10 @@ a {
 .background-highlight,
 .highlight-table tr:nth-child(even),
 .highlight-table th {
-  background-color: rgb(var(--v-theme-row)) !important;
+  background-color: rgb(var(--v-theme-surface)) !important;
 }
 .background-soft-highlight {
-  background-color: rgb(var(--v-theme-row)) !important;
+  background-color: rgb(var(--v-theme-surface)) !important;
 }
 .codexToolbar {
   position: fixed !important;

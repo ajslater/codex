@@ -7,14 +7,14 @@ const codexTheme = {
     // -- built in ---
     primary: "#CC7B19", // codex orange // '#1976D2' - light blue
     "primary-darken-1": "#965B13",
-    // secondary: "#424242", // grey
+    // secondary: "#03DAC5", // blue
+    "secondary-darken-1": "#02a191",
     // accent: "#FF4081", // pinkish
-    // error: "#FF5252", // soft red
+    // error: "#FF5252", // very pink
     // info: "#2196F3", // lightblue (similar to primary)
     // success: "#4CAF50", // soft green
     // warning: "#FB8C00", // soft orange
     // --- custom ---
-    row: "#272727",
     bookCoverColor: "#000000",
     bookCoverOpacity: 0.55,
     filterSelect: "#1e1e1e",
