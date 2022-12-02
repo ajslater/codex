@@ -82,7 +82,7 @@ export default {
   margin-right: 1px;
   /* Fake solo styling */
   padding-top: 8px;
-  background-color: rgb(var(--theme-filterSelect));
+  background-color: rgb(var(--theme-surface));
   border-radius: 4px;
   max-height: 40px;
 }

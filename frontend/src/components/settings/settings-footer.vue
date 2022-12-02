@@ -100,7 +100,6 @@ export default {
 }
 #opds * {
   padding: 0px;
-  background-color: inherit;
   color: rgb(var(--v-theme-textDisabled));
 }
 #copied {

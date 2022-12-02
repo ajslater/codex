@@ -91,6 +91,7 @@ a {
   flex-direction: column;
   justify-content: space-between;
   height: 100%;
+  background-color: rgb(var(--v-theme-surface-dark));
 }
 
 .settingsDrawer .v-icon {

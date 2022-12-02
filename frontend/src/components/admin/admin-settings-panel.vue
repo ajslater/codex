@@ -39,5 +39,6 @@ export default {
 #adminMenuHeader {
   padding: 10px;
   padding-left: 15px;
+  background-color: rgb(var(--v-theme-surface));
 }
 </style>

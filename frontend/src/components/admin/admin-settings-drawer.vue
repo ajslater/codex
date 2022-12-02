@@ -52,5 +52,6 @@ export default {
 
 <style scoped lang="scss">
 #footerGroup {
+  background-color: rgb(var(--v-theme-surface));
 }
 </style>
