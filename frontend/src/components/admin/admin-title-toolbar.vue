@@ -7,7 +7,9 @@
   >
     <div id="buttonSpacer" />
     <v-spacer />
-    <v-toolbar-title>Codex Administration</v-toolbar-title>
+    <v-toolbar-title class="codexToolbarTitle"
+      >Codex Administration</v-toolbar-title
+    >
     <v-spacer />
     <SettingsDrawerButton
       :class="{ invisible: isSettingsDrawerOpen }"

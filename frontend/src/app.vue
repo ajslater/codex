@@ -80,6 +80,9 @@ a {
   position: fixed !important;
   z-index: 20 !important;
 }
+.codexToolbarTitle {
+  text-align: center;
+}
 
 .settingsDrawer {
   z-index: 30 !important;
