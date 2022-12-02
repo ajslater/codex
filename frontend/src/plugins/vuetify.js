@@ -6,6 +6,7 @@ const codexTheme = {
   colors: {
     // -- built in ---
     primary: "#CC7B19", // codex orange // '#1976D2' - light blue
+    "primary-darken-1": "#965B13",
     // secondary: "#424242", // grey
     // accent: "#FF4081", // pinkish
     // error: "#FF5252", // soft red
@@ -18,12 +19,13 @@ const codexTheme = {
     bookCoverOpacity: 0.55,
     filterSelect: "#1e1e1e",
     highlightOpacity: 0.75,
+    linkHover: "#FFFFFF",
     textPrimary: "#FFFFFF",
     textHeader: "#D3D3D3",
     textSecondary: "#A9A9A9",
     textDisabled: "#808080",
     iconsInactive: "#808080",
-    linkHover: "#FFFFFF",
+    chip: "#202020",
   },
 };
 

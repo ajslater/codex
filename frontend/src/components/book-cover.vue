@@ -124,7 +124,7 @@ export default {
   background: linear-gradient(
     45deg,
     transparent 50%,
-    rgba(0, 0, 0, 0.5) 60%,
+    rgba(var(--v-theme-bookCoverColor), var(--v-theme-bookCoverOpacity)) 60%,
     var(--v-primary-base) 60%
   );
   border-radius: 5px;
@@ -133,11 +133,11 @@ export default {
   background: linear-gradient(
     45deg,
     transparent 50%,
-    rgba(0, 0, 0, 0.5) 60%,
+    rgba(var(--v-theme-bookCoverColor), var(--v-theme-bookCoverOpacity)) 60%,
     var(--v-primary-base) 60%,
     var(--v-primary-base) 70%,
     transparent 70%,
-    rgba(0, 0, 0, 0.5) 80%,
+    rgba(var(--v-theme-bookCoverColor), var(--v-theme-bookCoverOpacity)) 60%,
     var(--v-primary-base) 80%,
     var(--v-primary-base) 90%,
     transparent 90%

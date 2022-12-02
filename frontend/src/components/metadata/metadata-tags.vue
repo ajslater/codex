@@ -63,8 +63,8 @@ export default {
   methods: {
     chipColor: function (pk) {
       return this.filterValues && this.filterValues.includes(pk)
-        ? "rgba(204, 123, 25, 0.75)"
-        : "#202020";
+        ? this.$vuetify.theme.current.colors["primary-darken-1"]
+        : this.$vuetify.theme.current.colors.chip;
     },
   },
 };
