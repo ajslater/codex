@@ -268,16 +268,15 @@ export default {
     ...mapState(useMetadataStore, {
       md: (state) => state.md,
       downloadFileName: (state) => {
-        let name;
-        name = state.md.path
-          ? state.md.path.split("/").at(-1)
+        const md = state.md;
+        return state.md.path
+          ? md.path.split("/").at(-1)
           : getFullComicName({
-              seriesName: state.md.series.name,
-              volumeName: state.md.volume.name,
-              issue: state.md.issue,
-              issueSuffix: state.md.issueSuffix,
+              seriesName: md.series.name,
+              volumeName: md.volume.name,
+              issue: md.issue,
+              issueSuffix: md.issueSuffix,
             }) + ".cbz";
-        return name;
       },
     }),
     ...mapState(useBrowserStore, {
@@ -300,8 +299,8 @@ export default {
     },
     formattedIssue: function () {
       if (
-        (this.issue === null || this.issue === undefined) &&
-        !this.issueSuffix
+        (this.md.issue === null || this.md.issue === undefined) &&
+        !this.md.issueSuffix
       ) {
         // comic-name.formattedIssue() shows 0 for null issue.
         return;

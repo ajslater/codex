@@ -9,11 +9,13 @@
     <h3 class="subheader">
       {{ label }}
     </h3>
-    <v-item v-for="item in model" :key="item.name">
-      <v-chip small :color="chipColor(item.pk)">
-        {{ item.name }}
-      </v-chip>
-    </v-item>
+    <v-item-group>
+      <v-item v-for="item in model" :key="item.name">
+        <v-chip small :color="chipColor(item.pk)">
+          {{ item.name }}
+        </v-chip>
+      </v-item>
+    </v-item-group>
   </v-chip-group>
 </template>
 
@@ -64,7 +66,7 @@ export default {
     chipColor: function (pk) {
       return this.filterValues && this.filterValues.includes(pk)
         ? this.$vuetify.theme.current.colors["primary-darken-1"]
-        : this.$vuetify.theme.current.colors.chip;
+        : "";
     },
   },
 };

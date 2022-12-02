@@ -25,7 +25,6 @@ const codexTheme = {
     textSecondary: "#A9A9A9",
     textDisabled: "#808080",
     iconsInactive: "#808080",
-    chip: "#202020",
   },
 };
 
