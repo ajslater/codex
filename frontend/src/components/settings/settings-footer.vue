@@ -1,10 +1,11 @@
 <template>
   <v-footer id="settingsFooter">
     <div id="opds" title="Copy OPDS URL to Clipboard" @click="copyToClipboard">
-      <v-icon size="x-small">{{ mdiRss }}</v-icon
+      <v-icon size="x-small" class="inlineIcon">{{ mdiRss }}</v-icon
       >OPDS
       <v-icon
         id="clipBoardIcon"
+        class="inlineIcon"
         size="x-small"
         :color="$vuetify.theme.current.colors.iconsInactive"
       >
@@ -22,9 +23,12 @@
       href="https://github.com/ajslater/codex"
       title="Codex Source Repository"
     >
-      <v-icon id="repoIcon" size="x-small">{{ mdiSourceRepository }}</v-icon>
+      <v-icon id="repoIcon" size="x-small" class="inlineIcon">{{
+        mdiSourceRepository
+      }}</v-icon>
       repository<v-icon
         :color="$vuetify.theme.current.colors.iconsInactive"
+        class="inlineIcon"
         size="x-small"
         >{{ mdiOpenInNew }}</v-icon
       >
@@ -118,6 +122,9 @@ export default {
 }
 #repoIcon {
   margin-right: 0px;
+}
+.inlineIcon {
+  width: auto !important;
 }
 </style>
 
