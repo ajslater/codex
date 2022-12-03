@@ -16,6 +16,7 @@ const codexTheme = {
     // warning: "#FB8C00", // soft orange
     // --- custom ---
     "surface-dark": "#191919",
+    "surface-light": "#2D2D2D",
     bookCoverColor: "#000000",
     bookCoverOpacity: 0.55,
     highlightOpacity: 0.75,
