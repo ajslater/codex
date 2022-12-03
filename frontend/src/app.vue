@@ -63,9 +63,13 @@ noscript {
 a {
   text-decoration: none !important;
 }
-.v-dialog,
-.v-navigation-drawer {
+
+.v-overlay__content {
   background-color: rgb(var(--v-theme-background)) !important;
+  border-radius: 5px;
+}
+.v-tabs {
+  background-color: rgb(var(--v-theme-background));
 }
 
 .background-highlight,

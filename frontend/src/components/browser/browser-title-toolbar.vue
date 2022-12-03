@@ -13,7 +13,7 @@
         <v-icon>{{ mdiArrowUp }}</v-icon>
       </v-btn>
     </v-toolbar-items>
-    <v-toolbar-title>
+    <v-toolbar-title class="codexToolbarTitle">
       <span v-if="longBrowserTitlePrefix" id="titleToolbarPrefix">
         {{ longBrowserTitlePrefix }}
         <br />

@@ -8,7 +8,6 @@
       :indeterminate="progress == null"
       :model-value="progress"
       size="32"
-      :color="$vuetify.theme.current.colors.primary"
       aria-label="`Librarian tasks in progress ${Math.round(progress)}%`"
     />
   </span>

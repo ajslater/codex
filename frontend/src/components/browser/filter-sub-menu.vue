@@ -40,7 +40,7 @@
             indeterminate
           />
         </header>
-        <v-list-item-group
+        <v-item-group
           v-if="typeof choices === 'object'"
           :value="filter"
           class="filterGroup overflow-y-auto"
@@ -60,7 +60,7 @@
               {{ item.name }}
             </v-list-item-title>
           </v-list-item>
-        </v-list-item-group>
+        </v-item-group>
       </div>
     </v-slide-x-reverse-transition>
   </div>

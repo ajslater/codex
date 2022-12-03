@@ -1,11 +1,5 @@
 <template>
-  <v-dialog
-    v-model="showDialog"
-    transition="scale-transition"
-    overlay-opacity="0.5"
-    v-bind="$attrs"
-    class="cuDialog"
-  >
+  <v-dialog v-model="showDialog" transition="scale-transition" v-bind="$attrs">
     <template #activator="{ props }">
       <AdminCreateUpdateButton
         :update="Boolean(oldRow)"
@@ -14,6 +8,7 @@
       />
     </template>
     <v-form ref="form" class="cuForm">
+      <h2>{{ table }}</h2>
       <component :is="inputs" :old-row="oldRow" @change="change" />
       <SubmitFooter
         :verb="verb"

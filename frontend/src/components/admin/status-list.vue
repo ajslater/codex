@@ -24,7 +24,6 @@
               </span>
             </div>
             <v-progress-linear
-              :color="$vuetify.theme.current.colors.primary"
               :indeterminate="indeterminate(status)"
               :model-value="progress(status)"
               bottom
