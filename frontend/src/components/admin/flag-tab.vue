@@ -71,10 +71,8 @@ export default {
     };
   },
   computed: {
-    ...mapState(useAdminStore, {
-      flags: (state) => state.flags,
-    }),
     ...mapState(useCommonStore, ["formErrors"]),
+    ...mapState(useAdminStore, ["flags"]),
     tableHeight() {
       return this.innerHeight - BUFFER;
     },
