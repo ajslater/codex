@@ -57,9 +57,6 @@ noscript {
   font-family: sans-serif;
   color: rgb(var(--v-theme-textDisabled));
 }
-.test {
-  color: rgb(var(--v-theme-textSecondary));
-}
 a {
   text-decoration: none !important;
 }

@@ -52,7 +52,6 @@
                   some imports, and Codex does not immediately detect the
                   change, poll the library which contains the fixed comics.
                 </p>
-
                 <h4>Reporting Issues</h4>
                 <p>
                   If the comic looks good to you, but still shows up as a failed
@@ -113,6 +112,9 @@ export default {
 }
 #failedImportsHelp {
   color: rgb(var(--v-theme-textSecondary));
+}
+h4 {
+  padding-top: 0.5em;
 }
 @import "../anchors.scss";
 </style>

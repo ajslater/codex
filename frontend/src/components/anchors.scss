@@ -1,9 +1,16 @@
-a:hover,
-a:hover .v-icon {
-  color: rgb(var(--v-theme-textPrimary));
-}
+a,
 a > .v-icon {
-  color: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-primary)) !important;
+}
+/*
+a:visited,
+a:visited > .v-icon {
+  color: rgb(var(--v-theme-secondary)) !important;
+}
+*/
+a:hover,
+a:hover > .v-icon {
+  color: rgb(var(--v-theme-textPrimary)) !important;
 }
 a.v-btn > .v-icon {
   color: rgb(var(--v-theme-textPrimary));
