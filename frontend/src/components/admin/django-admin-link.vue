@@ -36,6 +36,6 @@ export default {
   color: rgb(var(--v-theme-textDisabled));
 }
 #oldDjangoAdmin:hover .v-icon {
-  color: rgb(var(--v-theme-linkHover));
+  color: rgb(var(--v-theme-linkHover)) !important;
 }
 </style>
