@@ -88,6 +88,8 @@ export const useAdminStore = defineStore("admin", {
           const stateField =
             pluralTable.charAt(0).toLowerCase() + pluralTable.slice(1);
           this[stateField] = response.data;
+        console.log(stateField);
+        console.log(response.data);
           return true;
         })
         .catch(warnError);
