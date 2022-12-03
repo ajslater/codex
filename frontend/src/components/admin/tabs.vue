@@ -81,6 +81,7 @@ export default {
   width: 100%;
   top: 48px;
   z-index: 10;
+  background-color: rgb(var(--v-theme-surface));
 }
 
 $task-width: 256px;
@@ -110,22 +111,6 @@ $task-width: 256px;
 #tabs .tabHeader {
   padding: 10px;
 }
-
-/* Turn off hover highlighting on v-table */
-#tabItems .v-data-table > .v-data-table__wrapper > table > tbody > tr:hover {
-  background-color: inherit !important;
-}
-
-#tabItems .highlight-simple-table tr:nth-child(odd),
-#tabItems
-  .highlight-simple-table
-  > .v-data-table__wrapper
-  > table
-  > tbody
-  > tr:nth-child(odd):hover {
-  background-color: rgb(var(--v-theme-background)) !important;
-}
-
 .admin-table {
   margin-bottom: 24px;
 }

@@ -10,7 +10,7 @@
     <v-table
       fixed-header
       :height="tableHeight"
-      class="highlight-simple-table admin-table"
+      class="highlight-table admin-table"
     >
       <template #default>
         <thead>

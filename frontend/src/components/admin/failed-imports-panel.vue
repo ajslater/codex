@@ -6,7 +6,7 @@
           <h4>Failed Imports: {{ failedImports.length }}</h4>
         </v-expansion-panel-title>
         <v-expansion-panel-text>
-          <v-table class="highlight-simple-table" fixed-header>
+          <v-table class="highlight-table">
             <template #default>
               <thead>
                 <tr>

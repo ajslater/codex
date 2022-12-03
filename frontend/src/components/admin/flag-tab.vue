@@ -1,9 +1,5 @@
 <template>
-  <v-table
-    fixed-header
-    :height="tableHeight"
-    class="highlight-simple-table admin-tab"
-  >
+  <v-table fixed-header :height="tableHeight" class="highlight-table admin-tab">
     <template #default>
       <thead>
         <tr>
@@ -21,7 +17,7 @@
           </td>
           <td>
             <v-checkbox
-              :input-value="item.on"
+              :value="item.on"
               density="compact"
               hide-details="auto"
               :error-messages="getFormErrors(item.pk, 'on')"
@@ -109,6 +105,7 @@ export default {
 }
 .desc {
   margin-top: 1em;
+  margin-bottom: 0.5em;
   color: rgb(var(--v-theme-textSecondary));
 }
 </style>

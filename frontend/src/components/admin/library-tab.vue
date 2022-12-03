@@ -8,7 +8,7 @@
       />
     </header>
     <v-table
-      class="highlight-simple-table admin-table"
+      class="highlight-table admin-table"
       fixed-header
       :height="tableHeight"
     >

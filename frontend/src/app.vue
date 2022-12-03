@@ -69,13 +69,12 @@ a {
   background-color: rgb(var(--v-theme-background));
 }
 
-.background-highlight,
-.highlight-table tr:nth-child(even),
-.highlight-table th {
-  background-color: rgb(var(--v-theme-surface)) !important;
+.highlight-table tbody > tr > td {
+  border: 0;
 }
-.background-soft-highlight {
-  background-color: rgb(var(--v-theme-surface)) !important;
+.highlight-table thead > tr > th,
+.highlight-table tbody > tr:nth-child(even) {
+  background-color: rgb(var(--v-theme-background)) !important;
 }
 .codexToolbar {
   position: fixed !important;
