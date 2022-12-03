@@ -25,7 +25,7 @@
         <MetadataText
           v-if="q"
           id="search"
-          :value="q"
+          :model-value="q"
           label="Search Query"
           :highlight="true"
         />
@@ -39,7 +39,7 @@
           />
           <v-progress-linear
             class="bookCoverProgress"
-            :value="md.progress"
+            :model-value="md.progress"
             rounded
             background-color="inherit"
             height="2"
@@ -49,110 +49,124 @@
         <div class="headerHalfRow">
           <MetadataText
             id="publisher"
-            :value="md.publisher"
+            :model-value="md.publisher"
             label="Publisher"
             :highlight="'p' === md.group"
           />
           <MetadataText
             id="imprint"
-            :value="md.imprint"
+            :model-value="md.imprint"
             label="Imprint"
             :highlight="'i' === md.group"
           />
         </div>
         <MetadataText
           id="series"
-          :value="md.series"
+          :model-value="md.series"
           label="Series"
           :highlight="'s' === md.group"
         />
         <div class="headerQuarterRow">
           <MetadataText
             id="volume"
-            :value="md.volume"
+            :model-value="md.volume"
             label="Volume"
             :highlight="'v' === md.group"
           />
-          <MetadataText :value="md.volumeCount" label="Volume Count" />
+          <MetadataText :model-value="md.volumeCount" label="Volume Count" />
           <MetadataText
             id="issue"
-            :value="formattedIssue"
+            :model-value="formattedIssue"
             label="Issue"
             :highlight="'c' === md.group"
           />
-          <MetadataText :value="md.issueCount" label="Issue Count" />
+          <MetadataText :model-value="md.issueCount" label="Issue Count" />
         </div>
         <section class="mdSection">
-          <MetadataText :value="md.name" label="Title" />
+          <MetadataText :model-value="md.name" label="Title" />
           <div v-if="md.year || md.month || md.day" class="inlineRow">
             <MetadataText
-              :value="md.year"
+              :model-value="md.year"
               label="Year"
               class="datePicker"
               type="number"
             />
-            <MetadataText :value="md.month" label="Month" class="datePicker" />
-            <MetadataText :value="md.day" label="Day" class="datePicker" />
+            <MetadataText
+              :model-value="md.month"
+              label="Month"
+              class="datePicker"
+            />
+            <MetadataText
+              :model-value="md.day"
+              label="Day"
+              class="datePicker"
+            />
           </div>
-          <MetadataText :value="md.format" label="Format" />
+          <MetadataText :model-value="md.format" label="Format" />
         </section>
       </header>
       <div id="metadataBody">
         <section class="mdSection">
           <div class="thirdRow">
-            <MetadataText :value="pages" label="Pages" />
-            <MetadataText :value="md.finished" label="Finished" />
-            <MetadataText :value="ltrText" label="Reading Direction" />
+            <MetadataText :model-value="pages" label="Pages" />
+            <MetadataText :model-value="md.finished" label="Finished" />
+            <MetadataText :model-value="ltrText" label="Reading Direction" />
           </div>
         </section>
         <section class="mdSection">
           <div class="quarterRow">
             <MetadataText
               v-if="md.createdAt"
-              :value="formatDateTime(md.createdAt)"
+              :model-value="formatDateTime(md.createdAt)"
               label="Created at"
               class="mtime"
             />
             <MetadataText
               v-if="md.updatedAt"
-              :value="formatDateTime(md.updatedAt)"
+              :model-value="formatDateTime(md.updatedAt)"
               label="Updated at"
               class="mtime"
             />
-            <MetadataText :value="size" label="Size" />
-            <MetadataText :value="fileFormat" label="File Type" />
+            <MetadataText :model-value="size" label="Size" />
+            <MetadataText :model-value="fileFormat" label="File Type" />
           </div>
           <div class="lastSmallRow">
-            <MetadataText :value="md.path" label="Path" />
+            <MetadataText :model-value="md.path" label="Path" />
           </div>
         </section>
         <section class="halfRow mdSection">
-          <MetadataText :value="md.country" label="Country" />
-          <MetadataText :value="md.language" label="Language" />
+          <MetadataText :model-value="md.country" label="Country" />
+          <MetadataText :model-value="md.language" label="Language" />
         </section>
         <section class="mdSection">
-          <MetadataText :value="md.communityRating" label="Community Rating" />
-          <MetadataText :value="md.criticalRating" label="Critical Rating" />
-          <MetadataText :value="md.ageRating" label="Age Rating" />
+          <MetadataText
+            :model-value="md.communityRating"
+            label="Community Rating"
+          />
+          <MetadataText
+            :model-value="md.criticalRating"
+            label="Critical Rating"
+          />
+          <MetadataText :model-value="md.ageRating" label="Age Rating" />
         </section>
         <section class="mdSection">
-          <MetadataTags :values="md.genres" label="Genres" />
-          <MetadataTags :values="md.tags" label="Tags" />
-          <MetadataTags :values="md.teams" label="Teams" />
-          <MetadataTags :values="md.characters" label="Characters" />
-          <MetadataTags :values="md.locations" label="Locations" />
-          <MetadataTags :values="md.storyArcs" label="Story Arcs" />
-          <MetadataTags :values="md.seriesGroups" label="Series Groups" />
+          <MetadataTags :model-values="md.genres" label="Genres" />
+          <MetadataTags :model-values="md.tags" label="Tags" />
+          <MetadataTags :model-values="md.teams" label="Teams" />
+          <MetadataTags :model-values="md.characters" label="Characters" />
+          <MetadataTags :model-values="md.locations" label="Locations" />
+          <MetadataTags :model-values="md.storyArcs" label="Story Arcs" />
+          <MetadataTags :model-values="md.seriesGroups" label="Series Groups" />
         </section>
         <section class="mdSection">
-          <MetadataText :value="md.web" label="Web Link" :link="true" />
-          <MetadataText :value="md.summary" label="Summary" />
-          <MetadataText :value="md.comments" label="Comments" />
-          <MetadataText :value="md.notes" label="Notes" />
-          <MetadataText :value="md.scanInfo" label="Scan" />
+          <MetadataText :model-value="md.web" label="Web Link" :link="true" />
+          <MetadataText :model-value="md.summary" label="Summary" />
+          <MetadataText :model-value="md.comments" label="Comments" />
+          <MetadataText :model-value="md.notes" label="Notes" />
+          <MetadataText :model-value="md.scanInfo" label="Scan" />
         </section>
         <section class="mdSection">
-          <MetadataCreditsTable :value="md.credits" />
+          <MetadataCreditsTable :model-value="md.credits" />
         </section>
       </div>
       <footer id="footerLinks">
@@ -194,7 +208,7 @@
       />
       <div id="placeholderTitle">Tags Loading</div>
       <v-progress-circular
-        :value="progress"
+        :model-value="progress"
         :indeterminate="progress >= 100"
         size="256"
         :color="$vuetify.theme.current.colors.primary"

@@ -2,7 +2,7 @@
   <v-window
     id="booksWindow"
     ref="booksWindow"
-    :value="activeBookPk"
+    :model-value="activeBookPk"
     vertical
     touchless
   >
@@ -13,7 +13,7 @@
       class="windowItem"
       disabled
       :eager="eager(pk)"
-      :value="pk"
+      :model-value="pk"
     >
       <PagesWindow :book="book" @click="click" />
     </v-window-item>

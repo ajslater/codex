@@ -8,7 +8,7 @@
     <ReaderNavButton :value="0" />
     <PaginationSlider
       :key="$route.params.pk"
-      :value="+$route.params.page"
+      :model-value="+$route.params.page"
       :min="+0"
       :max="maxPage"
       :step="step"

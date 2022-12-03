@@ -6,7 +6,7 @@
     :left="direction === 'prev'"
     :right="direction === 'next'"
     temporarary
-    :value="isDrawerOpen"
+    :model-value="isDrawerOpen"
     width="33%"
   >
     <router-link

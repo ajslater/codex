@@ -8,13 +8,13 @@
       autofocus
     />
     <AdminRelationPicker
-      :value="row.userSet"
+      :model-value="row.userSet"
       label="Users"
       :items="vuetifyUsers"
       @change="row.userSet = $event"
     />
     <AdminRelationPicker
-      :value="row.librarySet"
+      :model-value="row.librarySet"
       label="Libraries"
       :items="vuetifyLibraries"
       @change="row.librarySet = $event"

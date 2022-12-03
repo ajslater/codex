@@ -40,7 +40,7 @@
             indeterminate
           />
         </header>
-        <div
+        <v-list-item-group
           v-if="typeof choices === 'object'"
           :value="filter"
           class="filterGroup overflow-y-auto"
@@ -50,7 +50,7 @@
           <v-list-item
             v-for="item of vuetifyItems"
             :key="`${name}:${item.name}`"
-            :value="item.pk"
+            :model-value="item.pk"
             density="compact"
           >
             <v-list-item-title v-if="isNullPk(item.pk)" class="noneItem">
@@ -60,7 +60,7 @@
               {{ item.name }}
             </v-list-item-title>
           </v-list-item>
-        </div>
+        </v-list-item-group>
       </div>
     </v-slide-x-reverse-transition>
   </div>

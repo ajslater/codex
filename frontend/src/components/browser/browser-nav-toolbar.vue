@@ -6,7 +6,7 @@
   >
     <BrowserNavButton :back="true" />
     <PaginationSlider
-      :value="+$route.params.page"
+      :model-value="+$route.params.page"
       :min="+1"
       :max="numPages"
       @change="routeToPage($event)"

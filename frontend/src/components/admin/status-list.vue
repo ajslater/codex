@@ -26,7 +26,7 @@
             <v-progress-linear
               :color="$vuetify.theme.current.colors.primary"
               :indeterminate="indeterminate(status)"
-              :value="progress(status)"
+              :model-value="progress(status)"
               bottom
             />
           </div>

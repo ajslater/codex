@@ -34,7 +34,7 @@
             <td class="buttonCol">
               <v-checkbox
                 class="tableCheckbox"
-                :value="item.isStaff"
+                :model-value="item.isStaff"
                 density="compact"
                 disabled
               />
@@ -42,7 +42,7 @@
             <td class="buttonCol">
               <v-checkbox
                 class="tableCheckbox"
-                :value="item.isActive"
+                :model-value="item.isActive"
                 density="compact"
                 disabled
               />

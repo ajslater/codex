@@ -24,10 +24,10 @@
       </div>
       <v-progress-linear
         class="bookCoverProgress"
-        :value="item.progress"
+        :background-color="progressBackgroundColor"
+        :model-value="item.progress"
         aria-label="% read"
         rounded
-        :background-color="progressBackgroundColor"
         height="2"
       />
       <BrowserCardSubtitle :item="item" />

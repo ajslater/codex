@@ -33,7 +33,7 @@
             <td>
               <v-checkbox
                 class="tableCheckbox"
-                :value="item.events"
+                :model-value="item.events"
                 density="compact"
                 disabled
               />
@@ -41,7 +41,7 @@
             <td>
               <v-checkbox
                 class="tableCheckbox"
-                :value="item.poll"
+                :model-value="item.poll"
                 density="compact"
                 disabled
               />

@@ -3,7 +3,7 @@
     <v-hover v-slot="{ hover }">
       <v-select
         ref="filterSelect"
-        :value="bookmarkFilter"
+        :model-value="bookmarkFilter"
         class="toolbarSelect"
         density="compact"
         :items="bookmarkChoices"

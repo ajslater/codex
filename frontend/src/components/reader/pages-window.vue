@@ -1,5 +1,10 @@
 <template>
-  <v-window id="pagesWindow" ref="pagesWindow" show-arrows :value="activePage">
+  <v-window
+    id="pagesWindow"
+    ref="pagesWindow"
+    show-arrows
+    :model-value="activePage"
+  >
     <div
       id="bookChangeActivatorPrev"
       class="bookChangeActivatorColumn"
@@ -24,7 +29,7 @@
       class="windowItem"
       disabled
       :eager="page >= activePage - 1 && page <= activePage + 2"
-      :value="page"
+      :model-value="page"
     >
       <BookPage
         :book="book"

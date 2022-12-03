@@ -6,7 +6,7 @@
     <v-progress-circular
       v-else
       :indeterminate="progress == null"
-      :value="progress"
+      :model-value="progress"
       size="32"
       :color="$vuetify.theme.current.colors.primary"
       aria-label="`Librarian tasks in progress ${Math.round(progress)}%`"

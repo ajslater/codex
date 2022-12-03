@@ -8,7 +8,7 @@
     <v-radio-group
       class="displayRadioGroup"
       label="Display"
-      :value="selectedSettings.fitTo"
+      :model-value="selectedSettings.fitTo"
       @change="settingsDialogChanged({ fitTo: $event })"
     >
       <v-radio
