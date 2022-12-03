@@ -9,7 +9,7 @@
       </v-btn>
     </v-toolbar-items>
     <v-spacer />
-    <v-toolbar-title id="toolbarTitle">
+    <v-toolbar-title id="toolbarTitle" class="codexToolbarTitle">
       {{ activeTitle }}
     </v-toolbar-title>
     <v-spacer />
