@@ -4,6 +4,7 @@
     class="codexToolbar"
     :class="{ rightSpace }"
     density="compact"
+    elevation="12"
   >
     <div id="buttonSpacer" />
     <v-spacer />
