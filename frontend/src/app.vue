@@ -59,6 +59,7 @@ noscript {
 }
 a {
   text-decoration: none !important;
+  color: rgb(var(--v-theme-primary));
 }
 
 .v-overlay__content {
