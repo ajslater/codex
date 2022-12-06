@@ -9,7 +9,7 @@
       class="displayRadioGroup"
       label="Display"
       :model-value="selectedSettings.fitTo"
-      @change="settingsDialogChanged({ fitTo: $event })"
+      @update:modelValue="settingsDialogChanged({ fitTo: $event })"
     >
       <v-radio
         v-for="item in fitToChoices"
@@ -21,12 +21,13 @@
     <v-checkbox
       class="displayTwoPages"
       label="Two pages"
-      :input-value="selectedSettings.twoPages"
+      :model-value="selectedSettings.twoPages"
+      :true-value="true"
       :indeterminate="
         selectedSettings.twoPages === null ||
         selectedSettings.twoPages === undefined
       "
-      @change="settingsDialogChanged({ twoPages: $event === true })"
+      @update:modelValue="settingsDialogChanged({ twoPages: $event })"
     />
     <v-btn
       id="clearSettingsButton"

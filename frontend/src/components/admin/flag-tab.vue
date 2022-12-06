@@ -8,7 +8,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="item in flags" :key="`f:${item.pk}:${item.keyHack}`">
+        <tr v-for="item in flags" :key="`f${item.pk}`">
           <td class="nameCol">
             <h4>{{ item.name }}</h4>
             <p class="desc">
@@ -17,12 +17,11 @@
           </td>
           <td>
             <v-checkbox
-              :value="item.on"
-              density="compact"
-              hide-details="auto"
+              :model-value="item.on"
+              :true-value="true"
               :error-messages="getFormErrors(item.pk, 'on')"
-              @blur="item.keyHack = Date.now()"
-              @change="changeCol(item.pk, 'on', $event === true)"
+              hide-details="auto"
+              @update:modelValue="changeCol(item.pk, 'on', $event)"
             />
           </td>
         </tr>

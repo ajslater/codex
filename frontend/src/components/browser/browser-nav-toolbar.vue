@@ -9,7 +9,7 @@
       :model-value="+$route.params.page"
       :min="+1"
       :max="numPages"
-      @change="routeToPage($event)"
+      @update:modelValue="routeToPage($event)"
     />
     <BrowserNavButton :back="false" />
   </v-toolbar>

@@ -19,7 +19,7 @@
         @click:prepend-inner="clearFiltersAndChoices"
         @focus="focus"
         @blur="focused = false"
-        @change="change"
+        @update:modelValue="change"
       >
         <template #selection="{ item }">
           {{ item.title }}

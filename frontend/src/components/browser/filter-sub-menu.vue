@@ -42,15 +42,15 @@
         </header>
         <v-item-group
           v-if="typeof choices === 'object'"
-          :value="filter"
+          :model-value="filter"
           class="filterGroup overflow-y-auto"
           multiple
-          @change="change"
+          @update:modelValue="change"
         >
           <v-list-item
             v-for="item of vuetifyItems"
             :key="`${name}:${item.name}`"
-            :model-value="item.pk"
+            :value="item.pk"
             density="compact"
           >
             <v-list-item-title v-if="isNullPk(item.pk)" class="noneItem">

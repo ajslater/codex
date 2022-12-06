@@ -11,7 +11,7 @@
     :menu-props="{ value: menuOpen, maxHeight: '75%' }"
     v-bind="$attrs"
     @blur="toggleMenu(false)"
-    @change="change"
+    @update:modelValue="change"
     @click:append="toggleMenu()"
     @focus="clearErrors"
   >

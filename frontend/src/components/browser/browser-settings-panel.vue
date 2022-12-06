@@ -7,11 +7,12 @@
     <v-checkbox
       v-for="choice of groupChoices"
       :key="choice.title"
-      :input-value="showSettings[choice.value]"
+      :model-value="showSettings[choice.value]"
+      :true-value="true"
       :label="`Show ${choice.title}`"
       density="compact"
       class="settingsCheckbox"
-      @change="setShow(choice.value, $event)"
+      @update:modelValue="setShow(choice.value, $event)"
     />
   </div>
 </template>

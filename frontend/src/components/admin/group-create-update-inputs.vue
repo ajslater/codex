@@ -11,13 +11,13 @@
       :model-value="row.userSet"
       label="Users"
       :items="vuetifyUsers"
-      @change="row.userSet = $event"
+      @update:modelValue="row.userSet = $event"
     />
     <AdminRelationPicker
       :model-value="row.librarySet"
       label="Libraries"
       :items="vuetifyLibraries"
-      @change="row.librarySet = $event"
+      @update:modelValue="row.librarySet = $event"
     />
   </div>
 </template>
