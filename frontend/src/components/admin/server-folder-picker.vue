@@ -2,27 +2,28 @@
   <v-combobox
     ref="folderPicker"
     v-model="path"
-    auto-select-first
-    filled
+    variant="filled"
     class="folderPicker"
+    v-bind="$attrs"
     :append-icon="mdiFileTree"
     :items="folders"
     :error-messages="formErrors"
-    :menu-props="{ value: menuOpen, maxHeight: '75%' }"
-    v-bind="$attrs"
+    :menu-props="{ 'model-value': menuOpen, 'max-height': '650%' }"
     @blur="toggleMenu(false)"
     @update:modelValue="change"
     @click:append="toggleMenu()"
     @focus="clearErrors"
   >
-    <template #append-outer>
+    <template #append>
       <v-tooltip top :open-delay="2000">
         <template #activator="{ props }">
           <v-icon v-bind="props" @click="toggleHidden">
             {{ appendOuterIcon }}
           </v-icon>
         </template>
-        <span>{{ showHiddenTooltipPrefix }} Hidden Folders</span>
+        <span class="tooltip"
+          >{{ showHiddenTooltipPrefix }} Hidden Folders</span
+        >
       </v-tooltip>
     </template>
   </v-combobox>
@@ -116,5 +117,8 @@ export default {
 <style scoped lang="scss">
 .showHidden {
   margin-right: auto;
+}
+.tooltip {
+  color: rgb(var(--v-theme-textPrimary));
 }
 </style>
