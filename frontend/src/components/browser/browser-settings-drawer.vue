@@ -1,6 +1,5 @@
 <template>
   <v-navigation-drawer
-    id="browserSettingsDrawer"
     v-model="isSettingsDrawerOpen"
     class="settingsDrawer"
     app
@@ -16,10 +15,15 @@
           <SearchHelp />
           <v-divider />
         </div>
+        <header v-else class="settingsHeader">
+          <h3>Login</h3>
+        </header>
         <SettingsCommonPanel />
         <v-divider />
       </div>
-      <SettingsFooter />
+      <div>
+        <SettingsFooter />
+      </div>
     </div>
     <template #append>
       <VersionFooter />

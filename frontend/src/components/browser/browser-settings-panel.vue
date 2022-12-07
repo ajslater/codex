@@ -1,6 +1,8 @@
 <template>
-  <div id="browserSettings" title="">
+  <header class="settingsHeader">
     <h3>Browser Settings</h3>
+  </header>
+  <div id="browserSettings">
     <div id="settingsGroupCaption" class="text-caption">
       Show these groups when navigating the browse tree.
     </div>
@@ -11,7 +13,7 @@
       :true-value="true"
       :label="`Show ${choice.title}`"
       density="compact"
-      class="settingsCheckbox"
+      hide-details="auto"
       @update:modelValue="setShow(choice.value, $event)"
     />
   </div>
@@ -40,15 +42,10 @@ export default {
 </script>
 <style scoped lang="scss">
 #browserSettings {
-  padding-top: 10px;
+  padding: 10px;
   padding-left: 15px;
-  padding-right: env(safe-area-inset-right);
 }
 #settingsGroupCaption {
-  padding-top: 10px;
   color: rbg(var(--v-theme-textDisabled));
-}
-.settingsCheckbox {
-  padding-left: 5px;
 }
 </style>

@@ -96,6 +96,12 @@ a {
   background-color: rgb(var(--v-theme-surface-dark));
 }
 
+.settingsDrawer .settingsHeader {
+  padding: 10px;
+  padding-left: 15px;
+  background-color: rgb(var(--v-theme-on-surface-variant));
+}
+
 .settingsDrawer .v-icon {
   color: rgb(var(--v-theme-iconsInactive)) !important;
   margin-right: 0.33em;
