@@ -115,7 +115,6 @@ $card-margin: 32px;
   display: grid;
   grid-template-columns: repeat(auto-fit, $cover-width);
   grid-gap: $card-margin;
-  justify-content: start;
   align-content: flex-start;
 }
 #announce {
