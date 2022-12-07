@@ -13,6 +13,7 @@ const getErrors = (axiosError) => {
     for (const key of ERROR_KEYS) {
       if (key in data) {
         data = data[key];
+        break;
       }
     }
     errors = Array.isArray(data) ? data.flat() : [data];

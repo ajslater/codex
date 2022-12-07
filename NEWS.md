@@ -6,6 +6,15 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.0.0
+
+### Vue3
+
+- Fixes
+  - Fix displaying error in login dialog.
+- Dev Notes
+  - Frontend is now Vuetify 3 over Vue 3. Using options API.
+
 ## v0.14.5
 
 - Fixes
