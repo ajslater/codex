@@ -4,16 +4,13 @@
     origin="center-top"
     transition="slide-y-transition"
     max-width="20em"
-    overlay-opacity="0.5"
   >
     <template #activator="{ props }">
       <v-list-item v-bind="props">
-        <v-list-item-title
-          ><h3>
-            <v-icon>{{ mdiLogin }}</v-icon
-            >Login
-          </h3></v-list-item-title
-        >
+        <v-list-item-title>
+          <v-icon>{{ mdiLogin }}</v-icon>
+          Login
+        </v-list-item-title>
       </v-list-item>
     </template>
     <v-form id="authDialog" ref="form">
