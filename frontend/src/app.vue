@@ -79,14 +79,12 @@ a {
 }
 .codexToolbar {
   position: fixed !important;
-  z-index: 20 !important;
 }
 .codexToolbarTitle {
-  text-align: center;
+  margin-left: 0 !important;
 }
-
-.settingsDrawer {
-  z-index: 30 !important;
+.codexToolbarTitle > .v-toolbar-title__placeholder {
+  text-align: center;
 }
 
 .settingsDrawerContainer {

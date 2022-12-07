@@ -4,14 +4,12 @@
     class="codexToolbar"
     :class="{ rightSpace }"
     density="compact"
-    elevation="12"
+    elevation="8"
   >
     <div id="buttonSpacer" />
-    <v-spacer />
-    <v-toolbar-title class="codexToolbarTitle"
-      >Codex Administration</v-toolbar-title
-    >
-    <v-spacer />
+    <v-toolbar-title class="codexToolbarTitle">
+      Codex Administration
+    </v-toolbar-title>
     <SettingsDrawerButton
       :class="{ invisible: isSettingsDrawerOpen }"
       :disabled="isSettingsDrawerOpen"
@@ -50,11 +48,11 @@ export default {
   visibility: hidden;
 }
 #titleBar {
+  top: 0px;
   width: 100%;
   padding-top: env(safe-area-inset-top);
   padding-right: calc(env(safe-area-inset-right) / 2);
   padding-left: calc(env(safe-area-inset-left) / 2);
-  top: 0px;
 }
 .rightSpace {
   width: calc(100% - 256px) !important;
