@@ -48,7 +48,7 @@
           users looking to understand its full power to read the
           <a href="https://xapian.org/docs/queryparser.html" target="_blank"
             >Xapian Query Parser Syntax documentation
-            <v-icon small>{{ mdiOpenInNew }}</v-icon></a
+            <v-icon size="small">{{ mdiOpenInNew }}</v-icon></a
           >.
         </p>
 
@@ -63,7 +63,7 @@
           Codex parses Dates and DateTime values liberally. If the format you
           enter fails, the
           <a href="https://en.wikipedia.org/wiki/ISO_8601" target="_blank"
-            >ISO 8601 format<v-icon small>{{ mdiOpenInNew }}</v-icon></a
+            >ISO 8601 format<v-icon size="small">{{ mdiOpenInNew }}</v-icon></a
           >
           is reliable.
         </p>
