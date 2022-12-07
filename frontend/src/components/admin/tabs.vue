@@ -35,7 +35,7 @@
 </template>
 
 <script>
-import { mapGetters } from "pinia";
+import { mapActions, mapGetters } from "pinia";
 
 import { useAdminStore } from "@/stores/admin";
 
@@ -63,11 +63,15 @@ export default {
   },
   mounted() {
     window.addEventListener("resize", this.onResize);
+    if (!this.librariesExist) {
+      this.loadTables(["Library"]);
+    }
   },
   unmounted() {
     window.removeEventListener("resize", this.onResize);
   },
   methods: {
+    ...mapActions(useAdminStore, ["loadTables"]),
     onResize() {
       this.innerHeight = window.innerHeight;
     },
