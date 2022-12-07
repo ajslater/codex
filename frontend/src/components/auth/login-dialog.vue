@@ -102,6 +102,7 @@ export default {
           (v) => v === this.credentials.password || "Passwords must match",
         ],
       },
+      formModel: {},
       credentials: {
         username: "",
         password: "",
@@ -139,7 +140,16 @@ export default {
     credentials: {
       handler() {
         const form = this.$refs.form;
-        this.submitButtonEnabled = form && form.validate();
+        if (form) {
+          form
+            .validate()
+            .then(({ valid }) => {
+              return (this.submitButtonEnabled = valid);
+            })
+            .catch(console.error);
+        } else {
+          this.submitButtonEnabled = false;
+        }
       },
       deep: true,
     },
@@ -154,14 +164,19 @@ export default {
     ...mapActions(useAuthStore, ["loadAdminFlags", "login", "register"]),
     submit: function () {
       const form = this.$refs.form;
-      if (!form.validate()) {
-        return;
-      }
-      const mode = this.registerMode ? "register" : "login";
-      this[mode](this.credentials)
-        .then(() => {
-          this.showDialog = this.formErrors && this.formErrors.length > 0;
-          return true;
+      form
+        .validate()
+        .then(({ valid }) => {
+          if (!valid) {
+            return;
+          }
+          const mode = this.registerMode ? "register" : "login";
+          return this[mode](this.credentials)
+            .then(() => {
+              return (this.showDialog =
+                this.formErrors && this.formErrors.length > 0);
+            })
+            .catch(console.error);
         })
         .catch(console.error);
     },

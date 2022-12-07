@@ -53,23 +53,10 @@ export default {
     return {
       row: {},
       showDialog: false,
+      submitButtonEnabled: false,
     };
   },
   computed: {
-    submitButtonEnabled: function () {
-      let changed = false;
-      for (const [key, value] of Object.entries(this.row)) {
-        if (!_.isEqual(this.oldRow[key], value)) {
-          changed = true;
-          break;
-        }
-      }
-      if (!changed) {
-        return false;
-      }
-      const form = this.$refs.form;
-      return form && form.validate();
-    },
     verb() {
       return this.oldRow ? "Update" : "Add";
     },
@@ -81,8 +68,33 @@ export default {
   },
   methods: {
     ...mapActions(useAdminStore, ["createRow", "updateRow"]),
+    validate() {
+      let changed = false;
+      for (const [key, value] of Object.entries(this.row)) {
+        if (!_.isEqual(this.oldRow[key], value)) {
+          changed = true;
+          break;
+        }
+      }
+      if (!changed) {
+        return false;
+      }
+      const form = this.$refs.form;
+      if (!form) {
+        return false;
+      }
+      return form
+        .validate()
+        .then(({ valid }) => {
+          return valid;
+        })
+        .catch(() => {
+          return false;
+        });
+    },
     change(event) {
       this.row = event;
+      this.submitButtonEnabled = this.validate();
     },
     getRow(show) {
       if (!show || !this.oldRow) {
@@ -119,15 +131,21 @@ export default {
     },
     submit: function () {
       const form = this.$refs.form;
-      if (!form.validate()) {
-        console.warn("submit attempted with invalid form");
+      if (!form) {
         return;
       }
-      if (this.oldRow) {
-        this.doUpdate();
-      } else {
-        this.doCreate();
-      }
+      form
+        .validate()
+        .then(({ valid }) => {
+          if (!valid) {
+            return;
+          } else if (this.oldRow) {
+            return this.doUpdate();
+          } else {
+            return this.doCreate();
+          }
+        })
+        .catch(console.warning);
     },
   },
 };

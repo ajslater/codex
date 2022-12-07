@@ -147,7 +147,18 @@ export default {
     credentials: {
       handler() {
         const form = this.$refs.form;
-        this.submitButtonEnabled = form && form.validate();
+        if (!form) {
+          this.submitButtonEnabled = false;
+          return;
+        }
+        form
+          .validate()
+          .then(({ valid }) => {
+            return (this.submitButtonEnabled = valid);
+          })
+          .catch(() => {
+            this.submitButtonEnabled = false;
+          });
       },
       deep: true,
     },
@@ -163,16 +174,23 @@ export default {
     ...mapActions(useCommonStore, ["clearErrors"]),
     submit: function () {
       const form = this.$refs.form;
-      if (!form.validate()) {
+      if (!form) {
         return;
       }
-      if (this.isAdminMode) {
-        useAdminStore()
-          .changeUserPassword(this.user.pk, this.credentials)
-          .catch(console.error);
-      } else {
-        this.changePassword(this.credentials).catch(console.error);
-      }
+      form
+        .validate()
+        .then(({ valid }) => {
+          if (!valid) {
+            return;
+          } else if (this.isAdminMode) {
+            return useAdminStore()
+              .changeUserPassword(this.user.pk, this.credentials)
+              .catch(console.error);
+          } else {
+            return this.changePassword(this.credentials).catch(console.error);
+          }
+        })
+        .catch(console.error);
     },
     _keyListener(event) {
       // stop keys from activating reader shortcuts.
