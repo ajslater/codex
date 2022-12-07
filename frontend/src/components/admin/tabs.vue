@@ -16,7 +16,7 @@
         {{ tab }}
       </v-tab>
     </v-tabs>
-    <v-window id="tabItems" v-model="activeTab" touchless>
+    <v-window id="tabItems" v-model="activeTab" :touch="false">
       <router-view
         v-for="tab in tabs"
         :key="tab"
@@ -116,6 +116,7 @@ $task-width: 256px;
   padding: 10px;
 }
 .admin-table {
+  max-width: 100vw !important;
   margin-bottom: 24px;
 }
 .tableCheckbox {
