@@ -3,7 +3,7 @@
     <h3>Browser Settings</h3>
   </header>
   <div id="browserSettings">
-    <div id="settingsGroupCaption" class="text-caption">
+    <div id="groupCaption" class="text-caption">
       Show these groups when navigating the browse tree.
     </div>
     <v-checkbox
@@ -45,7 +45,7 @@ export default {
   padding: 10px;
   padding-left: 15px;
 }
-#settingsGroupCaption {
-  color: rbg(var(--v-theme-textDisabled));
+#groupCaption {
+  color: rgb(var(--v-theme-textDisabled));
 }
 </style>
