@@ -101,8 +101,7 @@ a {
   padding-left: 15px;
   background-color: rgb(var(--v-theme-on-surface-variant));
 }
-
-.settingsDrawer .v-icon {
+.settingsDrawer .v-list-item .v-icon {
   color: rgb(var(--v-theme-iconsInactive)) !important;
   margin-right: 0.33em;
 }
