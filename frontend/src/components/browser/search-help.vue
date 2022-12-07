@@ -194,13 +194,16 @@ export default {
 
 <style scoped lang="scss">
 @import "../anchors.scss";
+.browserSearchHelp {
+  overflow-y: auto;
+}
 #searchHelp {
   max-width: 850px;
   padding: 20px;
   padding-left: 20px;
   padding-right: 20px;
   margin: auto;
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-textSecondary));
 }
 h1,
 h2,
@@ -233,6 +236,7 @@ h1 {
 }
 code {
   width: fit-content;
+  background-color: rgb(var(--v-theme-surface));
   color: rgb(var(--v-theme-textHeader)) !important;
 }
 </style>
