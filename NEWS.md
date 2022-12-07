@@ -10,6 +10,8 @@ border-radius: 128px;
 
 ### Vue3
 
+- Features
+  - Remove old django admin pages.
 - Fixes
   - Fix displaying error in login dialog.
 - Dev Notes

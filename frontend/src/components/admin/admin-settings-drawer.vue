@@ -15,7 +15,6 @@
         <v-divider />
       </div>
       <div id="footerGroup">
-        <DjangoAdminLink />
         <SettingsFooter />
       </div>
     </div>
@@ -29,7 +28,6 @@
 import { mapWritableState } from "pinia";
 
 import AdminSettingsPanel from "@/components/admin/admin-settings-panel.vue";
-import DjangoAdminLink from "@/components/admin/django-admin-link.vue";
 import SettingsCommonPanel from "@/components/settings/panel.vue";
 import SettingsFooter from "@/components/settings/settings-footer.vue";
 import VersionFooter from "@/components/settings/version-footer.vue";
@@ -39,7 +37,6 @@ export default {
   name: "AdminSettingsDrawer",
   components: {
     AdminSettingsPanel,
-    DjangoAdminLink,
     SettingsCommonPanel,
     SettingsFooter,
     VersionFooter,

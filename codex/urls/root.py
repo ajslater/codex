@@ -24,7 +24,6 @@ urlpatterns = [
     ),
     path("api/", include("codex.urls.api.root")),
     path("opds/", include("codex.urls.opds.root")),
-    path("django-admin/", admin.site.urls),  # deprecated
     path("", include("codex.urls.pwa")),
     # The app must be last because it includes a catch-all path
     path("", include("codex.urls.app")),
