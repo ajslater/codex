@@ -22,14 +22,14 @@
 import { mapWritableState } from "pinia";
 
 import SettingsDrawerButton from "@/components/settings/button.vue";
-import { useAdminStore } from "@/stores/admin";
+import { useCommonStore } from "@/stores/common";
 export default {
   name: "AdminTitleToolbar",
   components: {
     SettingsDrawerButton,
   },
   computed: {
-    ...mapWritableState(useAdminStore, ["isSettingsDrawerOpen"]),
+    ...mapWritableState(useCommonStore, ["isSettingsDrawerOpen"]),
     rightSpace() {
       return !this.$vuetify.display.mobile;
     },

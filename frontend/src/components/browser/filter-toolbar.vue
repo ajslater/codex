@@ -27,7 +27,7 @@ import BrowserSearchField from "@/components/browser/search-field.vue";
 import BrowserRootGroupSelect from "@/components/browser/top-group-select.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
 import { useAuthStore } from "@/stores/auth";
-import { useBrowserStore } from "@/stores/browser";
+import { useCommonStore } from "@/stores/common";
 
 export default {
   name: "BrowserHeader",
@@ -47,7 +47,7 @@ export default {
   },
   computed: {
     ...mapGetters(useAuthStore, ["isCodexViewable"]),
-    ...mapWritableState(useBrowserStore, ["isSettingsDrawerOpen"]),
+    ...mapWritableState(useCommonStore, ["isSettingsDrawerOpen"]),
   },
 };
 </script>

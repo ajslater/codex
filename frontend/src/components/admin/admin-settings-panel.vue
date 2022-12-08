@@ -1,7 +1,4 @@
 <template>
-  <header class="settingsHeader">
-    <h3>Admin Status</h3>
-  </header>
   <v-list-item ref="browserLink" :to="browserRoute">
     <v-list-item-title>
       <v-icon>{{ mdiBookshelf }}</v-icon

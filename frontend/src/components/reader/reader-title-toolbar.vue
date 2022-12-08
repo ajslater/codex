@@ -40,6 +40,7 @@ import CHOICES from "@/choices";
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
 import { useBrowserStore } from "@/stores/browser";
+import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
 
 const PREV = "prev";
@@ -74,7 +75,7 @@ export default {
     ...mapState(useBrowserStore, {
       lastRoute: (state) => state.page.routes.last,
     }),
-    ...mapWritableState(useReaderStore, ["isSettingsDrawerOpen"]),
+    ...mapWritableState(useCommonStore, ["isSettingsDrawerOpen"]),
     closeBookRoute: function () {
       // Choose the best route
       const route = {

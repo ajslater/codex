@@ -5,13 +5,16 @@
     app
     location="right"
     touchless
-    :mobile-breakpoint="960"
+    v-bind="$attrs"
   >
     <div class="settingsDrawerContainer">
       <div id="topBlock">
-        <AdminSettingsPanel />
+        <header class="settingsHeader">
+          <h3>{{ title }}</h3>
+        </header>
+        <component :is="panel" />
         <v-divider />
-        <SettingsCommonPanel :admin-menu="false" />
+        <SettingsCommonPanel :admin-menu="adminMenu" />
         <v-divider />
       </div>
       <div id="footerGroup">
@@ -27,22 +30,34 @@
 <script>
 import { mapWritableState } from "pinia";
 
-import AdminSettingsPanel from "@/components/admin/admin-settings-panel.vue";
 import SettingsCommonPanel from "@/components/settings/panel.vue";
 import SettingsFooter from "@/components/settings/settings-footer.vue";
 import VersionFooter from "@/components/settings/version-footer.vue";
-import { useAdminStore } from "@/stores/admin";
+import { useCommonStore } from "@/stores/common";
 
 export default {
-  name: "AdminSettingsDrawer",
+  name: "SettingsDrawer",
   components: {
-    AdminSettingsPanel,
     SettingsCommonPanel,
     SettingsFooter,
     VersionFooter,
   },
+  props: {
+    title: {
+      type: String,
+      required: true,
+    },
+    panel: {
+      type: Object,
+      required: true,
+    },
+    adminMenu: {
+      type: Boolean,
+      default: true,
+    },
+  },
   computed: {
-    ...mapWritableState(useAdminStore, ["isSettingsDrawerOpen"]),
+    ...mapWritableState(useCommonStore, ["isSettingsDrawerOpen"]),
   },
 };
 </script>

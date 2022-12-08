@@ -1,8 +1,5 @@
 <template>
-  <header class="settingsHeader">
-    <h3>Browser Settings</h3>
-  </header>
-  <div id="browserSettings">
+  <div v-if="isCodexViewable" id="browserSettings">
     <div id="groupCaption" class="text-caption">
       Show these groups when navigating the browse tree.
     </div>
@@ -17,16 +14,24 @@
       class="browserGroupCheckbox"
       @update:modelValue="setShow(choice.value, $event)"
     />
+    <v-divider />
+    <SearchHelp />
   </div>
 </template>
 <script>
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
+import SearchHelp from "@/components/browser/search-help.vue";
+import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BrowserSettingsPanel",
+  components: {
+    SearchHelp,
+  },
   computed: {
+    ...mapGetters(useAuthStore, ["isCodexViewable"]),
     ...mapState(useBrowserStore, {
       groupChoices: (state) => state.choices.static.settingsGroup,
       showSettings: (state) => state.settings.show,

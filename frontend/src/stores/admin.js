@@ -47,7 +47,6 @@ export const useAdminStore = defineStore("admin", {
       root: undefined,
       folders: [],
     },
-    isSettingsDrawerOpen: false,
   }),
   getters: {
     isUserAdmin() {

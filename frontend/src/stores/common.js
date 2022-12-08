@@ -44,6 +44,7 @@ export const useCommonStore = defineStore("common", {
       latest: undefined,
     },
     timestamp: Date.now(),
+    isSettingsDrawerOpen: false,
   }),
   getters: {
     isMobile: function () {
