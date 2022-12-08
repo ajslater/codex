@@ -55,7 +55,6 @@ export const useReaderStore = defineStore("reader", {
         next: false,
       },
     },
-    isSettingsDrawerOpen: false,
     bookChange: undefined,
   }),
   getters: {

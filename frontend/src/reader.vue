@@ -35,6 +35,7 @@ import ReaderSettingsSuperPanel from "@/components/reader/reader-settings-super-
 import ReaderTitleToolbar from "@/components/reader/reader-title-toolbar.vue";
 import SettingsDrawer from "@/components/settings/settings-drawer.vue";
 import { useAuthStore } from "@/stores/auth";
+import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
@@ -66,6 +67,7 @@ export default {
     },
   },
   created() {
+    useCommonStore().isSettingsDrawerOpen = false;
     this.loadReaderSettings();
   },
   methods: {

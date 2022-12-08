@@ -28,6 +28,7 @@ import BrowserMain from "@/components/browser/main.vue";
 import SettingsDrawer from "@/components/settings/settings-drawer.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
+import { useCommonStore } from "@/stores/common";
 
 export default {
   name: "MainBrowser",
@@ -63,7 +64,7 @@ export default {
   },
   created() {
     // mapWritableState does not work.
-    useBrowserStore().isSettingsDrawerOpen = false;
+    useCommonStore().isSettingsDrawerOpen = false;
     this.loadSettings();
   },
   methods: {

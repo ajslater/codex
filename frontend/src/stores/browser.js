@@ -78,7 +78,6 @@ export const useBrowserStore = defineStore("browser", {
     },
     // LOCAL UI
     filterMode: "base",
-    isSettingsDrawerOpen: false,
     zeroPad: 0,
     browserPageLoaded: false,
   }),
