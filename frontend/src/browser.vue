@@ -1,19 +1,17 @@
 <template>
-  <div>
-    <v-main id="browser">
-      <header class="codexToolbar">
-        <BrowserFilterToolbar />
-        <BrowserTitleToolbar />
-      </header>
-      <BrowserMain />
-      <BrowserNavToolbar />
-    </v-main>
-    <SettingsDrawer
-      title="Browser Settings"
-      :panel="BrowserSettingsPanel"
-      temporary
-    />
-  </div>
+  <v-main id="browser">
+    <header class="codexToolbar">
+      <BrowserFilterToolbar />
+      <BrowserTitleToolbar />
+    </header>
+    <BrowserMain />
+    <BrowserNavToolbar />
+  </v-main>
+  <SettingsDrawer
+    title="Browser Settings"
+    :panel="BrowserSettingsPanel"
+    temporary
+  />
 </template>
 
 <script>
@@ -82,5 +80,8 @@ export default {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+}
+.codexToolbar {
+  z-index: 100;
 }
 </style>

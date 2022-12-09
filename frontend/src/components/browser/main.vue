@@ -103,7 +103,6 @@ export default {
 @import "../book-cover.scss";
 $card-margin: 32px;
 #browsePane {
-  display: flex;
   margin-top: 160px;
   margin-left: max($card-margin, env(safe-area-inset-left));
   margin-right: max($card-margin, env(safe-area-inset-right));

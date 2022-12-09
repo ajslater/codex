@@ -121,11 +121,13 @@ export default {
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
 @import "../../book-cover.scss";
+/*
 .browserTile {
   display: inline-flex;
   flex: 1;
   margin: 0px;
 }
+*/
 .browserCardCoverWrapper {
   position: relative;
 }
