@@ -1,22 +1,20 @@
 <template>
-  <div v-if="isCodexViewable" id="browserSettings">
-    <div id="groupCaption" class="text-caption">
-      Show these groups when navigating the browse tree.
-    </div>
-    <v-checkbox
-      v-for="choice of groupChoices"
-      :key="choice.title"
-      :model-value="showSettings[choice.value]"
-      :true-value="true"
-      :label="`Show ${choice.title}`"
-      density="compact"
-      hide-details="auto"
-      class="browserGroupCheckbox"
-      @update:modelValue="setShow(choice.value, $event)"
-    />
-    <v-divider />
-    <SearchHelp />
+  <div id="groupCaption" class="text-caption">
+    Show these groups when navigating the browse tree.
   </div>
+  <v-checkbox
+    v-for="choice of groupChoices"
+    :key="choice.title"
+    :model-value="showSettings[choice.value]"
+    :true-value="true"
+    :label="`Show ${choice.title}`"
+    density="compact"
+    hide-details="auto"
+    class="browserGroupCheckbox"
+    @update:modelValue="setShow(choice.value, $event)"
+  />
+  <v-divider />
+  <SearchHelp />
 </template>
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
@@ -47,17 +45,19 @@ export default {
 };
 </script>
 <style scoped lang="scss">
-#browserSettings {
-  padding: 10px;
+#groupCaption,
+.browserGroupCheckbox {
+  padding-right: 10px;
   padding-left: 15px;
 }
 #groupCaption {
+  padding-top: 10px;
   color: rgb(var(--v-theme-textDisabled));
 }
 </style>
 <style lang="scss">
 /* v-navigation drawer imparts a lot of nonsense here messing up colors */
-#browserSettings .browserGroupCheckbox .v-label {
+.browserGroupCheckbox .v-label {
   opacity: 1.2 !important;
 }
 </style>
