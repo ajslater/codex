@@ -21,25 +21,21 @@ const routes = [
     name: "home",
     path: "/",
     redirect: LAST_ROUTE,
-    props: true,
   },
   {
     name: "reader",
     path: "/c/:pk/:page",
     component: MainReader,
-    props: true,
   },
   {
     name: "browser",
     path: "/:group/:pk/:page",
     component: MainBrowser,
-    props: true,
   },
   {
     name: "admin",
     path: "/admin",
     component: MainAdmin,
-    props: true,
     redirect: "/admin/libraries",
     children: [
       {
