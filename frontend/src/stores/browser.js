@@ -84,19 +84,21 @@ export const useBrowserStore = defineStore("browser", {
   getters: {
     topGroupChoices() {
       const choices = [];
-      for (const item of Object.values(CHOICES.browser.topGroup)) {
+      for (const item of CHOICES.browser.topGroup) {
         if (this._isRootGroupEnabled(item.value)) {
+          /* TODO: https://github.com/vuetifyjs/vuetify/issues/15721
           if (item.value === "f") {
             choices.push({ divider: true });
           }
+          */
           choices.push(item);
         }
       }
-      return Object.values(choices);
+      return choices;
     },
     orderByChoices(state) {
       const choices = [];
-      for (const item of Object.values(CHOICES.browser.orderBy)) {
+      for (const item of CHOICES.browser.orderBy) {
         if (item.value === "path") {
           if (state.page.adminFlags.enableFolderView) {
             choices.push(item);
@@ -105,7 +107,7 @@ export const useBrowserStore = defineStore("browser", {
           choices.push(item);
         }
       }
-      return Object.values(choices);
+      return choices;
     },
     isCodexViewable() {
       return useAuthStore().isCodexViewable;

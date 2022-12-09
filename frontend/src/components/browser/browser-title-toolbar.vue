@@ -1,5 +1,5 @@
 <template>
-  <v-toolbar id="titleToolbar" class="toolbar">
+  <v-toolbar id="titleToolbar" class="toolbar" elevation="8">
     <v-toolbar-items v-if="isCodexViewable">
       <v-btn
         id="upButton"
