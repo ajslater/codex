@@ -12,8 +12,8 @@
       </v-btn>
       <v-list-item v-else v-bind="props">
         <v-list-item-title>
-          <v-icon>{{ mdiLockReset }}</v-icon>
-          Change Password
+          <v-icon>{{ mdiLockReset }}</v-icon
+          >Change Password
         </v-list-item-title>
       </v-list-item>
     </template>
@@ -21,7 +21,7 @@
       {{ formSuccess }}
       <CloseButton @click="showDialog = false" />
     </div>
-    <v-form v-else ref="form" class="changePasswordDialog">
+    <v-form v-else ref="form" class="changePasswordForm">
       <h2>User {{ user.username }}</h2>
       <input
         name="username"
@@ -201,7 +201,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.changePasswordDialog {
+.changePasswordForm {
   padding: 20px;
 }
 .codexFormSuccess {

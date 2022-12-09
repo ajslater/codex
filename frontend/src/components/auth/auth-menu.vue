@@ -1,9 +1,7 @@
 <template>
-  <v-item-group>
-    <AuthLogoutItem v-if="user" />
-    <ChangePasswordDialog v-if="user" :user="user" />
-    <AuthLoginDialog v-else />
-  </v-item-group>
+  <AuthLogoutItem v-if="user" />
+  <ChangePasswordDialog v-if="user" :user="user" />
+  <AuthLoginDialog v-else />
 </template>
 
 <script>
