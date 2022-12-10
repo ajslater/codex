@@ -9,10 +9,6 @@
         hide-details="auto"
         :items="orderByChoices"
         :label="focused || hover ? label : undefined"
-        :menu-props="{
-          maxHeight: '80vh',
-          overflowY: false,
-        }"
         @click:append-outer="toggleOrderReverse"
         @focus="focused = true"
         @blur="focused = false"

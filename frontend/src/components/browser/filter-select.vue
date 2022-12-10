@@ -11,7 +11,6 @@
         :label="focused || hover ? LABEL : undefined"
         :aria-label="LABEL"
         :menu-props="{
-          maxHeight: '80vh',
           overflowY: false,
           contentClass: filterMenuClass,
         }"

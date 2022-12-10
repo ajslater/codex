@@ -9,10 +9,6 @@
         hide-details="auto"
         :label="focused || hover ? label : undefined"
         :aria-label="label"
-        :menu-props="{
-          maxHeight: '80vh',
-          overflowY: false,
-        }"
         @focus="focused = true"
         @blur="focused = false"
       />
