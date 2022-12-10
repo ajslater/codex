@@ -8,7 +8,7 @@
     :append-icon="mdiFileTree"
     :items="folders"
     :error-messages="formErrors"
-    :menu-props="{ 'model-value': menuOpen, 'max-height': '650%' }"
+    :menu-props="{ 'model-value': menuOpen }"
     @blur="toggleMenu(false)"
     @update:modelValue="change"
     @click:append="toggleMenu()"
