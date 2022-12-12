@@ -22,6 +22,7 @@ for (let choice of CHOICES.browser.settingsGroup) {
   SETTINGS_SHOW_DEFAULTS[choice.value] = choice.default === true;
 }
 Object.freeze(SETTINGS_SHOW_DEFAULTS);
+const HTTP_REDIRECT_CODES = [303, 302, 301, 307, 308];
 
 const getZeroPad = function (issueMax) {
   return !issueMax || issueMax < 1 ? 1 : Math.floor(Math.log10(issueMax)) + 1;
@@ -96,6 +97,9 @@ export const useBrowserStore = defineStore("browser", {
       }
       return choices;
     },
+    topGroupChoicesMaxLen() {
+      return this._maxLenChoices(CHOICES.browser.topGroup);
+    },
     orderByChoices(state) {
       const choices = [];
       for (const item of CHOICES.browser.orderBy) {
@@ -109,11 +113,26 @@ export const useBrowserStore = defineStore("browser", {
       }
       return choices;
     },
+    orderByChoicesMaxLen() {
+      return this._maxLenChoices(CHOICES.browser.orderBy);
+    },
+    filterByChoicesMaxLen() {
+      return this._maxLenChoices(CHOICES.browser.bookmarkFilter);
+    },
     isCodexViewable() {
       return useAuthStore().isCodexViewable;
     },
   },
   actions: {
+    _maxLenChoices(choices) {
+      let maxLen = 0;
+      for (const item of choices) {
+        if (item && item.title && item.title.length > maxLen) {
+          maxLen = item.title.length;
+        }
+      }
+      return maxLen;
+    },
     ////////////////////////////////////////////////////////////////////////
     // VALIDATORS
     _isRootGroupEnabled(topGroup) {
@@ -230,7 +249,7 @@ export const useBrowserStore = defineStore("browser", {
     },
     handlePageError(error) {
       console.debug(error);
-      if (error.response.status == 303) {
+      if (HTTP_REDIRECT_CODES.includes(error.response.status)) {
         const data = error.response.data;
         if (
           compareRouteParams(
@@ -245,7 +264,7 @@ export const useBrowserStore = defineStore("browser", {
             // ? i dunno if this is a good idea.
             data.route = redirect;
           }
-          redirectRoute(data);
+          redirectRoute(data.route);
         }
       } else {
         return console.error(error);
