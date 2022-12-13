@@ -22,7 +22,7 @@ for (let choice of CHOICES.browser.settingsGroup) {
   SETTINGS_SHOW_DEFAULTS[choice.value] = choice.default === true;
 }
 Object.freeze(SETTINGS_SHOW_DEFAULTS);
-const HTTP_REDIRECT_CODES = [303, 302, 301, 307, 308];
+const HTTP_REDIRECT_CODES = new Set([301, 302, 303, 307, 308]);
 
 const getZeroPad = function (issueMax) {
   return !issueMax || issueMax < 1 ? 1 : Math.floor(Math.log10(issueMax)) + 1;
@@ -249,7 +249,7 @@ export const useBrowserStore = defineStore("browser", {
     },
     handlePageError(error) {
       console.debug(error);
-      if (HTTP_REDIRECT_CODES.includes(error.response.status)) {
+      if (HTTP_REDIRECT_CODES.has(error.response.status)) {
         const data = error.response.data;
         if (
           compareRouteParams(
@@ -309,14 +309,13 @@ export const useBrowserStore = defineStore("browser", {
           const data = response.data;
           this.$patch((state) => {
             const page = { ...response.data };
+            delete page.upRoute;
+            delete page.issueMax;
             page.routes = {
               up: data.upRoute,
               last: params,
             };
             page.zeroPad = getZeroPad(data.issueMax);
-            delete page.upRoute;
-            delete page.issueMax;
-
             state.page = Object.freeze(page);
             state.choices.dynamic = {};
           });
