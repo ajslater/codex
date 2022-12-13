@@ -1,56 +1,37 @@
 <template>
-  <div>
-    <v-hover v-slot="{ hover }">
-      <v-select
-        v-model="orderBy"
-        class="toolbarSelect orderBySelect"
-        :append-outer-icon="orderIcon"
-        density="compact"
-        hide-details="auto"
-        :items="orderByChoices"
-        :label="focused || hover ? label : undefined"
-        @click:append-outer="toggleOrderReverse"
-        @focus="focused = true"
-        @blur="focused = false"
-      >
-        <template #item="data">
-          <v-list-item v-bind="data.attrs">
-            <v-list-item-title>
-              {{ data.item.title }}
-              <v-icon v-show="orderBy === data.item.value" class="orderIcon">
-                {{ orderIcon }}
-              </v-icon>
-            </v-list-item-title>
-          </v-list-item>
-        </template>
-      </v-select>
-    </v-hover>
-  </div>
+  <ToolbarSelect
+    v-model="orderBy"
+    class="orderBySelect"
+    select-label="order by"
+    :append-icon="orderIcon"
+    :items="orderByChoices"
+    :style="style"
+    v-bind="$attrs"
+    @click:append="toggleOrderReverse"
+  />
 </template>
 
 <script>
 import { mdiSortReverseVariant, mdiSortVariant } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
+import ToolbarSelect from "@/components/browser/toolbar-select.vue";
 import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BrowseOrderBySelect",
-  data() {
-    return {
-      focused: false,
-      mdiSortVariant,
-      label: "order by",
-    };
+  components: {
+    ToolbarSelect,
   },
+  extends: ToolbarSelect,
   computed: {
+    ...mapGetters(useBrowserStore, ["orderByChoices", "orderByChoicesMaxLen"]),
     ...mapState(useBrowserStore, {
       orderReverseSetting: (state) => state.settings.orderReverse,
       orderBySetting: (state) => state.settings.orderBy,
       orderIcon: (state) =>
         state.settings.orderReverse ? mdiSortVariant : mdiSortReverseVariant,
     }),
-    ...mapGetters(useBrowserStore, ["orderByChoices"]),
     orderBy: {
       get() {
         return this.orderBySetting;
@@ -59,6 +40,10 @@ export default {
         const data = { orderBy: value };
         this.setSettings(data);
       },
+    },
+    style() {
+      const len = this.orderByChoicesMaxLen - 1 + "em";
+      return `width: ${len}; min-width: ${len}; max-width: ${len}`;
     },
   },
   methods: {

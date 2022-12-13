@@ -40,12 +40,12 @@
             indeterminate
           />
         </header>
-        <v-item-group
+        <v-list
           v-if="typeof choices === 'object'"
           :model-value="filter"
           class="filterGroup overflow-y-auto"
           multiple
-          @update:modelValue="change"
+          @update:selected="selected"
         >
           <v-list-item
             v-for="item of vuetifyItems"
@@ -60,7 +60,7 @@
               {{ item.name }}
             </v-list-item-title>
           </v-list-item>
-        </v-item-group>
+        </v-list>
       </div>
     </v-slide-x-reverse-transition>
   </div>
@@ -91,7 +91,7 @@ export default {
       required: true,
     },
   },
-  emits: ["change"],
+  emits: ["selected"],
   data() {
     return {
       mdiChevronLeft,
@@ -138,11 +138,11 @@ export default {
       }
     },
     isNullPk: (pk) => NULL_PKS.has(pk),
-    change(value) {
+    selected(value) {
       const data = {
         filters: { [this.name]: value },
       };
-      this.$emit("change", data);
+      this.$emit("selected", data);
     },
   },
 };

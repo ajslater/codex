@@ -1,7 +1,7 @@
 <template>
   <v-toolbar id="browserToolbar" class="toolbar" density="compact">
     <v-toolbar-items v-if="isCodexViewable" id="browserToolbarLeftItems">
-      <BrowserRootGroupSelect id="topGroupSelect" />
+      <BrowserTopGroupSelect id="topGroupSelect" />
       <BrowserOrderBySelect id="orderBySelect" />
     </v-toolbar-items>
     <v-spacer />
@@ -10,7 +10,7 @@
     </v-toolbar-items>
     <template #extension>
       <v-toolbar-items v-if="isCodexViewable" id="searchToolbarItems">
-        <BrowserFilterSelect id="filterSelect" />
+        <BrowserFilterBySelect id="filterSelect" />
         <BrowserSearchField id="searchField" />
       </v-toolbar-items>
     </template>
@@ -21,10 +21,10 @@
 import { mdiFamilyTree, mdiMagnify } from "@mdi/js";
 import { mapGetters, mapWritableState } from "pinia";
 
-import BrowserFilterSelect from "@/components/browser/filter-select.vue";
+import BrowserFilterBySelect from "@/components/browser/filter-by-select.vue";
 import BrowserOrderBySelect from "@/components/browser/order-by-select.vue";
 import BrowserSearchField from "@/components/browser/search-field.vue";
-import BrowserRootGroupSelect from "@/components/browser/top-group-select.vue";
+import BrowserTopGroupSelect from "@/components/browser/top-group-select.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
@@ -32,8 +32,8 @@ import { useCommonStore } from "@/stores/common";
 export default {
   name: "BrowserHeader",
   components: {
-    BrowserFilterSelect,
-    BrowserRootGroupSelect,
+    BrowserFilterBySelect,
+    BrowserTopGroupSelect,
     BrowserSearchField,
     BrowserOrderBySelect,
     SettingsDrawerButton,
@@ -55,63 +55,80 @@ export default {
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
 #browserToolbar {
-  padding-top: calc(6px + env(safe-area-inset-top)); /* for filter labels */
-  width: 100vw;
-}
-#browserToolbarLeftItems {
-  padding-top: 10px;
+  padding-top: calc(env(safe-area-inset-top)); /* for filter labels */
   padding-left: calc(env(safe-area-inset-left) / 3);
-}
-#browserToolbarRightItems {
   padding-right: calc(env(safe-area-inset-right) / 3);
 }
-
+/*
+#browserToolbarLeftItems {
+}
+#browserToolbarRightItems {
+}
+*/
+/*
 #topGroupSelect {
   margin-left: 22px;
   width: 130px;
 }
+*/
+/*
 #orderBySelect {
   margin-left: 16px;
   width: 188px;
   margin-right: 0px;
 }
+*/
+/*
 #filterSelect {
-  max-width: 152px;
+  max-width: 152px !important;
   margin-left: 0px;
   padding-left: 0px;
   margin-right: 1px;
   /* Fake solo styling */
+/*
   padding-top: 8px;
   background-color: rgb(var(--theme-surface));
   border-radius: 4px;
   max-height: 40px;
 }
+*/
 #searchToolbarItems {
   width: 100%;
 }
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
+  /*
   #browserToolbar {
     padding-left: 4px;
     padding-right: 4px;
   }
+*/
+  /*
   #topGroupSelect {
     width: 136px;
     padding-left: 2px;
   }
+  */
+  /*
   #orderBySelect {
     margin-left: 2px;
   }
+  */
+  /*
   #filterSelect {
     width: 172px;
   }
+  */
+  /*
   #searchField {
     margin-right: 0px;
   }
+  */
 }
 </style>
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
+/*
 #browserToolbar .toolbarSelect {
   white-space: nowrap !important;
 }
@@ -121,6 +138,8 @@ export default {
 #browserToolbar .toolbarSelect .v-input__control > .v-input__slot:before {
   border: none !important;
 }
+*/
+/*
 #orderBySelect .v-select__selection--comma {
   margin-right: 0px !important;
   max-width: 100% !important;
@@ -134,6 +153,8 @@ export default {
 #orderBySelect .v-input__append-inner {
   padding: 0px !important;
 }
+*/
+/*
 #filterSelect .v-input__prepend-inner {
   padding-right: 0px !important;
 }
@@ -143,17 +164,23 @@ export default {
 }
 #filterSelect .v-label {
   /* Counteract fake solo styling */
+/*
   top: -6px !important;
 }
+*/
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
+  /*
   #browserToolbar .v-toolbar__content,
   #browserToolbar .v-toolbar__extension {
     padding-right: 0px !important;
     padding-left: 0px !important;
   }
+*/
+  /*
   #browserToolbar .toolbarSelect {
     margin-left: 0px !important;
     margin-right: 0px !important;
   }
+*/
 }
 </style>

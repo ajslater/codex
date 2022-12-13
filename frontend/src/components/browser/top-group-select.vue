@@ -1,39 +1,34 @@
 <template>
-  <div>
-    <v-hover v-slot="{ hover }">
-      <v-select
-        v-model="topGroup"
-        class="toolbarSelect topGroupSelect"
-        :items="topGroupChoices"
-        density="compact"
-        hide-details="auto"
-        :label="focused || hover ? label : undefined"
-        :aria-label="label"
-        @focus="focused = true"
-        @blur="focused = false"
-      />
-    </v-hover>
-  </div>
+  <ToolbarSelect
+    v-bind="$attrs"
+    v-model="topGroup"
+    class="topGroupSelect"
+    select-label="top group"
+    :items="topGroupChoices"
+    :style="style"
+  />
 </template>
 
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 
+import ToolbarSelect from "@/components/browser/toolbar-select.vue";
 import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BrowserTopGroupSelect",
-  data() {
-    return {
-      focused: false,
-      label: "top group",
-    };
+  components: {
+    ToolbarSelect,
   },
+  extends: ToolbarSelect,
   computed: {
     ...mapState(useBrowserStore, {
       topGroupSetting: (state) => state.settings.topGroup,
     }),
-    ...mapGetters(useBrowserStore, ["topGroupChoices"]),
+    ...mapGetters(useBrowserStore, [
+      "topGroupChoices",
+      "topGroupChoicesMaxLen",
+    ]),
     topGroup: {
       get() {
         return this.topGroupSetting;
@@ -43,12 +38,19 @@ export default {
           (this.topGroupSetting === "f" && value !== "f") ||
           (this.topGroupSetting !== "f" && value === "f")
         ) {
-          this.$router.push({ params: { group: value, pk: 0 } });
+          const topRoute = {
+            params: { group: value, pk: 0 },
+          };
+          this.$router.push(topRoute);
         }
         // This must happen after the push
         const settings = { topGroup: value };
         this.setSettings(settings);
       },
+    },
+    style() {
+      const len = this.topGroupChoicesMaxLen + -1 + "em";
+      return `width: ${len}; min-width: ${len}; max-width: ${len}`;
     },
   },
   methods: {

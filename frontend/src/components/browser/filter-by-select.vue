@@ -1,77 +1,68 @@
 <template>
-  <div>
-    <v-hover v-slot="{ hover }">
-      <v-select
-        ref="filterSelect"
-        :model-value="bookmarkFilter"
-        class="toolbarSelect"
-        density="compact"
-        :items="bookmarkChoices"
-        hide-details="auto"
-        :label="focused || hover ? LABEL : undefined"
-        :aria-label="LABEL"
-        :menu-props="{
-          overflowY: false,
-          contentClass: filterMenuClass,
-        }"
-        :prepend-inner-icon="filterInnerIcon"
-        @click:prepend-inner="clearFiltersAndChoices"
-        @focus="focus"
-        @blur="focused = false"
-        @update:modelValue="change"
-      >
-        <template #selection="{ item }">
-          {{ item.title }}
-          <span v-if="isDynamicFiltersSelected" class="filterSuffix"> + </span>
-        </template>
-        <template #item="data">
-          <v-slide-x-transition hide-on-leave>
-            <v-list-item-title>
-              {{ data.item.title }}
-            </v-list-item-title>
-          </v-slide-x-transition>
-        </template>
-        <template #append-item>
-          <v-divider />
-          <div v-if="dynamicChoiceNames && dynamicChoiceNames.length > 0">
-            <BrowserFilterSubMenu
-              v-for="filterName of dynamicChoiceNames"
-              :key="filterName"
-              :name="filterName"
-              @change="changeFilter"
-            />
-          </div>
-          <v-progress-linear
-            v-else
-            id="availableFiltersProgress"
-            rounded
-            indeterminate
-          />
-        </template>
-      </v-select>
-    </v-hover>
-  </div>
+  <ToolbarSelect
+    ref="filterSelect"
+    class="filterSelect"
+    select-label="filter by"
+    :clearable="isFiltersClearable"
+    :items="bookmarkChoices"
+    :menu-props="{
+      contentClass: mdiFilterMenuClass,
+    }"
+    :model-value="bookmarkFilter"
+    :style="style"
+    @click:clear="clearFiltersAndChoices"
+    @focus="onFocus"
+    @update:modelValue="change"
+  >
+    <template #selection="{ item }">
+      {{ item.title }}
+      <v-icon v-if="isDynamicFiltersSelected" class="filterSuffix">
+        {{ mdiFilterMultipleOutline }}
+      </v-icon>
+    </template>
+    <template #append-item>
+      <div v-if="dynamicChoiceNames && dynamicChoiceNames.length > 0">
+        <v-divider />
+        <BrowserFilterSubMenu
+          v-for="filterName of dynamicChoiceNames"
+          :key="filterName"
+          :name="filterName"
+          @selected="changeFilter"
+        />
+      </div>
+      <v-progress-linear
+        v-else
+        id="availableFiltersProgress"
+        rounded
+        indeterminate
+      />
+    </template>
+  </ToolbarSelect>
 </template>
 
 <script>
-import { mdiCloseCircle } from "@mdi/js";
-import { mapActions, mapState, mapWritableState } from "pinia";
+import { mdiCloseCircle, mdiFilterMultipleOutline } from "@mdi/js";
+import { mapActions, mapGetters, mapState, mapWritableState } from "pinia";
 
 import BrowserFilterSubMenu from "@/components/browser/filter-sub-menu.vue";
+import ToolbarSelect from "@/components/browser/toolbar-select.vue";
 import { useBrowserStore } from "@/stores/browser";
 
 export default {
-  name: "BrowserFilterSelect",
+  name: "BrowserFilterBySelect",
   components: {
     BrowserFilterSubMenu,
+    ToolbarSelect,
   },
+  extends: ToolbarSelect,
   data() {
     return {
-      focused: false,
-      LABEL: "filter by",
+      mdiFilterMultipleOutline,
     };
   },
   computed: {
+    // eslint-disable-next-line no-secrets/no-secrets
+    ...mapGetters(useBrowserStore, ["filterByChoicesMaxLen"]),
     ...mapState(useBrowserStore, {
       bookmarkChoices: (state) => state.choices.static.bookmark,
       bookmarkFilter: (state) =>
@@ -95,11 +86,11 @@ export default {
           this.isDynamicFiltersSelected
         );
       },
-      filterMenuClass: function (state) {
-        // Lets me hide bookmark menu items with css when the filterMode
+      mdiFilterMenuClass: function (state) {
+        // Lets me hide bookmark menu items with css when the mdiFilterMode
         //   changes.
-        let clsName = "filterMenu";
-        if (state.filterMode !== "base") {
+        let clsName = "mdiFilterMenu";
+        if (state.mdiFilterMode !== "base") {
           clsName += "Hidden";
         }
         return clsName;
@@ -113,8 +104,12 @@ export default {
         }
         return names;
       },
+      style() {
+        const len = this.filterByChoicesMaxLen + 2 + "em";
+        return `width: ${len}; min-width: ${len}; max-width: ${len}`;
+      },
     }),
-    ...mapWritableState(useBrowserStore, ["filterMode"]),
+    ...mapWritableState(useBrowserStore, ["mdiFilterMode"]),
     filterInnerIcon: function () {
       return this.isFiltersClearable ? mdiCloseCircle : "";
     },
@@ -131,12 +126,12 @@ export default {
     },
     changeFilter(settings) {
       // On sub-menu click, close the menu and reset the filter mode.
-      this.$refs.filterSelect.blur();
+      // this.$refs.filterSelect.blur();
+      console.log("changeFilter", settings);
       this.setSettings(settings);
-      this.filterMode = "base";
+      this.mdiFilterMode = "base";
     },
-    focus() {
-      this.focused = true;
+    onFocus() {
       if (this.dynamicChoiceNames.length === 0) {
         this.loadAvailableFilterChoices();
       }
@@ -154,5 +149,5 @@ export default {
   margin-bottom: 2px;
   width: 132px;
 }
-// #filterSelect style is handled in browser/filter-toolbar.vue
+/* #filterSelect style is handled in browser/filter-toolbar.vue */
 </style>

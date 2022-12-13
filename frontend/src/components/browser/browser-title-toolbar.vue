@@ -3,12 +3,12 @@
     <v-toolbar-items v-if="isCodexViewable">
       <v-btn
         id="upButton"
-        :class="{ invisible: !showUpButton }"
-        :to="toUpRoute"
-        :disabled="!toUpRoute"
-        size="x-large"
         icon
+        size="x-large"
+        :class="{ invisible: !showUpButton }"
+        :disabled="!showUpButton"
         :title="upTitle"
+        :to="{ params: upRoute }"
       >
         <v-icon>{{ mdiArrowUp }}</v-icon>
       </v-btn>
@@ -62,12 +62,6 @@ export default {
       upRoute: (state) => state.page.routes.up,
     }),
     ...mapGetters(useAuthStore, ["isCodexViewable", "isUserAdmin"]),
-    toUpRoute: function () {
-      if (this.showUpButton) {
-        return { name: "browser", params: this.upRoute };
-      }
-      return "";
-    },
     showUpButton: function () {
       return this.upRoute && "group" in this.upRoute;
     },
