@@ -23,6 +23,13 @@ for (let choice of CHOICES.browser.settingsGroup) {
 }
 Object.freeze(SETTINGS_SHOW_DEFAULTS);
 const HTTP_REDIRECT_CODES = new Set([301, 302, 303, 307, 308]);
+Object.freeze(HTTP_REDIRECT_CODES);
+const DEFAULT_BOOKMARK_VALUES = new Set([
+  undefined,
+  null,
+  CHOICES.browser.bookmarkFilter[0].value,
+]);
+Object.freeze(DEFAULT_BOOKMARK_VALUES);
 
 const getZeroPad = function (issueMax) {
   return !issueMax || issueMax < 1 ? 1 : Math.floor(Math.log10(issueMax)) + 1;
@@ -121,6 +128,9 @@ export const useBrowserStore = defineStore("browser", {
     },
     isCodexViewable() {
       return useAuthStore().isCodexViewable;
+    },
+    isDefaultBookmarkValueSelected(state) {
+      return DEFAULT_BOOKMARK_VALUES.has(state.settings.filters.bookmark);
     },
   },
   actions: {

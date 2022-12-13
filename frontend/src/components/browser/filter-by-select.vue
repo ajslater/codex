@@ -61,8 +61,11 @@ export default {
     };
   },
   computed: {
-    // eslint-disable-next-line no-secrets/no-secrets
-    ...mapGetters(useBrowserStore, ["filterByChoicesMaxLen"]),
+    ...mapGetters(useBrowserStore, [
+      // eslint-disable-next-line no-secrets/no-secrets
+      "filterByChoicesMaxLen",
+      "isDefaultBookmarkValueSelected",
+    ]),
     ...mapState(useBrowserStore, {
       bookmarkChoices: (state) => state.choices.static.bookmark,
       bookmarkFilter: (state) =>
@@ -76,14 +79,9 @@ export default {
         }
         return false;
       },
-      isFiltersClearable: function (state) {
-        const defaultBookmarkValues = [
-          undefined,
-          state.choices.static.bookmark[0].value,
-        ];
+      isFiltersClearable: function () {
         return (
-          !defaultBookmarkValues.includes(state.settings.filters.bookmark) ||
-          this.isDynamicFiltersSelected
+          !this.isDefaultBookmarkValueSelected || this.isDynamicFiltersSelected
         );
       },
       mdiFilterMenuClass: function (state) {
