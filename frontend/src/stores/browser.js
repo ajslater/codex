@@ -26,7 +26,7 @@ const HTTP_REDIRECT_CODES = new Set([301, 302, 303, 307, 308]);
 Object.freeze(HTTP_REDIRECT_CODES);
 const DEFAULT_BOOKMARK_VALUES = new Set([
   undefined,
-  null,
+  null, // eslint-disable-line unicorn/no-null
   CHOICES.browser.bookmarkFilter[0].value,
 ]);
 Object.freeze(DEFAULT_BOOKMARK_VALUES);
