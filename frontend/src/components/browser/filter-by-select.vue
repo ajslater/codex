@@ -121,7 +121,7 @@ export default {
     ]),
     onUpdateModelValue(bookmark) {
       const data = { filters: { bookmark } };
-      this.onSelected(data);
+      this.onSubMenuSelected(data);
     },
     onSubMenuSelected(settings) {
       // On sub-menu click, close the menu and reset the filter mode.
