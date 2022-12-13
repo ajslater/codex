@@ -1,18 +1,18 @@
 <template>
   <ToolbarSelect
-    ref="filterSelect"
-    class="filterSelect"
+    v-model:menu="menu"
+    class="filterBySelect"
     select-label="filter by"
     :clearable="isFiltersClearable"
     :items="bookmarkChoices"
     :menu-props="{
-      contentClass: mdiFilterMenuClass,
+      contentClass: filterMenuClass,
     }"
     :model-value="bookmarkFilter"
     :style="style"
-    @click:clear="clearFiltersAndChoices"
-    @focus="onFocus"
-    @update:modelValue="change"
+    @click:clear="onClear"
+    @update:modelValue="onUpdateModelValue"
+    @update:menu="onMenu"
   >
     <template #selection="{ item }">
       {{ item.title }}
@@ -27,7 +27,7 @@
           v-for="filterName of dynamicChoiceNames"
           :key="filterName"
           :name="filterName"
-          @selected="changeFilter"
+          @selected="onSubMenuSelected"
         />
       </div>
       <v-progress-linear
@@ -58,6 +58,7 @@ export default {
   data() {
     return {
       mdiFilterMultipleOutline,
+      menu: false,
     };
   },
   computed: {
@@ -84,11 +85,11 @@ export default {
           !this.isDefaultBookmarkValueSelected || this.isDynamicFiltersSelected
         );
       },
-      mdiFilterMenuClass: function (state) {
-        // Lets me hide bookmark menu items with css when the mdiFilterMode
+      filterMenuClass: function (state) {
+        // Lets me hide bookmark menu items with css when the filterMode
         //   changes.
-        let clsName = "mdiFilterMenu";
-        if (state.mdiFilterMode !== "base") {
+        let clsName = "filterMenu";
+        if (state.filterMode !== "base") {
           clsName += "Hidden";
         }
         return clsName;
@@ -107,7 +108,7 @@ export default {
         return `width: ${len}; min-width: ${len}; max-width: ${len}`;
       },
     }),
-    ...mapWritableState(useBrowserStore, ["mdiFilterMode"]),
+    ...mapWritableState(useBrowserStore, ["filterMode"]),
     filterInnerIcon: function () {
       return this.isFiltersClearable ? mdiCloseCircle : "";
     },
@@ -118,19 +119,22 @@ export default {
       "loadAvailableFilterChoices",
       "setSettings",
     ]),
-    change(bookmark) {
+    onUpdateModelValue(bookmark) {
       const data = { filters: { bookmark } };
-      this.changeFilter(data);
+      this.onSelected(data);
     },
-    changeFilter(settings) {
+    onSubMenuSelected(settings) {
       // On sub-menu click, close the menu and reset the filter mode.
-      // this.$refs.filterSelect.blur();
-      console.log("changeFilter", settings);
+      this.menu = false;
       this.setSettings(settings);
-      this.mdiFilterMode = "base";
+      this.filterMode = "base";
     },
-    onFocus() {
-      if (this.dynamicChoiceNames.length === 0) {
+    onClear() {
+      this.menu = false;
+      this.clearFiltersAndChoices();
+    },
+    onMenu(to) {
+      if (to && this.dynamicChoiceNames.length === 0) {
         this.loadAvailableFilterChoices();
       }
     },
