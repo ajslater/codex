@@ -12,7 +12,7 @@
         <header class="settingsHeader">
           <h3>{{ title }}</h3>
         </header>
-        <component :is="panel" />
+        <component :is="panel" v-if="isCodexViewable" />
         <v-divider />
         <SettingsCommonPanel :admin-menu="adminMenu" />
         <v-divider />
@@ -28,11 +28,12 @@
 </template>
 
 <script>
-import { mapWritableState } from "pinia";
+import { mapGetters, mapWritableState } from "pinia";
 
 import SettingsCommonPanel from "@/components/settings/panel.vue";
 import SettingsFooter from "@/components/settings/settings-footer.vue";
 import VersionFooter from "@/components/settings/version-footer.vue";
+import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
 
 export default {
@@ -57,6 +58,7 @@ export default {
     },
   },
   computed: {
+    ...mapGetters(useAuthStore, ["isCodexViewable"]),
     ...mapWritableState(useCommonStore, ["isSettingsDrawerOpen"]),
   },
 };
