@@ -17,9 +17,6 @@ const codexTheme = {
     // --- custom ---
     "surface-dark": "#191919",
     "surface-light": "#2D2D2D",
-    bookCoverColor: "#000000",
-    bookCoverOpacity: 0.55,
-    highlightOpacity: 0.75,
     linkHover: "#FFFFFF",
     textPrimary: "#FFFFFF",
     textHeader: "#D3D3D3",
