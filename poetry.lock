@@ -744,19 +744,19 @@ tqdm = ">=4.62.2,<5.0.0"
 
 [[package]]
 name = "drf-spectacular"
-version = "0.24.2"
+version = "0.25.0"
 description = "Sane and flexible OpenAPI 3 schema generation for Django REST framework"
 category = "main"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "drf-spectacular-0.24.2.tar.gz", hash = "sha256:be32417594080a52f996afd83fd47ea9c2b83cbf13f6d3fbf3de809a0dfa7ead"},
-    {file = "drf_spectacular-0.24.2-py3-none-any.whl", hash = "sha256:b276e6f7bda6dfb911e742dab87c6e97bc67da2dafe82d6fd8df7cec6c8b03ec"},
+    {file = "drf-spectacular-0.25.0.tar.gz", hash = "sha256:5dbda8112226e7b72e7b8039eefc955bd8f8fa429efca5407d402b0382cd1ae3"},
+    {file = "drf_spectacular-0.25.0-py3-none-any.whl", hash = "sha256:43251ffd4c0af9302fa57af9879986ed2796933f51cd392d1331dcceb3152631"},
 ]
 
 [package.dependencies]
 Django = ">=2.2"
-djangorestframework = ">=3.10"
+djangorestframework = ">=3.10.3"
 inflection = ">=0.3.1"
 jsonschema = ">=2.6.0"
 PyYAML = ">=5.1"
@@ -1235,14 +1235,14 @@ files = [
 
 [[package]]
 name = "isort"
-version = "5.11.1"
+version = "5.11.2"
 description = "A Python utility / library to sort Python imports."
 category = "dev"
 optional = false
 python-versions = ">=3.7.0"
 files = [
-    {file = "isort-5.11.1-py3-none-any.whl", hash = "sha256:bf02c95f1fe615ebbe13a619cfed1619ddfe8941274c9e3de3143adca406cb02"},
-    {file = "isort-5.11.1.tar.gz", hash = "sha256:7c5bd998504826b6f1e6f2f98b533976b066baba29b8bae83fdeefd0b89c6b70"},
+    {file = "isort-5.11.2-py3-none-any.whl", hash = "sha256:e486966fba83f25b8045f8dd7455b0a0d1e4de481e1d7ce4669902d9fb85e622"},
+    {file = "isort-5.11.2.tar.gz", hash = "sha256:dd8bbc5c0990f2a095d754e50360915f73b4c26fc82733eb5bfc6b48396af4d2"},
 ]
 
 [package.extras]
@@ -1826,14 +1826,14 @@ files = [
 
 [[package]]
 name = "pyright"
-version = "1.1.283"
+version = "1.1.284"
 description = "Command line wrapper for pyright"
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "pyright-1.1.283-py3-none-any.whl", hash = "sha256:d5b14bb50ccbfb7769e09a611960665021816ea1b0543e0ffb8c341388c73710"},
-    {file = "pyright-1.1.283.tar.gz", hash = "sha256:57dcc7abf0b764d5f587a80faf20186f5666adffe5f34afa10d471e96bbd9509"},
+    {file = "pyright-1.1.284-py3-none-any.whl", hash = "sha256:e3bfbd33c20af48eed9d20138767265161ba8a4b55c740476a36ce822bd482d1"},
+    {file = "pyright-1.1.284.tar.gz", hash = "sha256:ef7c0e46e38be95687f5a0633e55c5171ca166048b9560558168a976162e287c"},
 ]
 
 [package.dependencies]
@@ -2566,4 +2566,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "07b1303bbc3b30b0923dabfdd3a033aca33cfd4b0063274a6e6692ad64ce449f"
+content-hash = "ce572fa8c2fd46431175dad58856bdd91744f4e89f5e59ad8ca493dd9900915c"
