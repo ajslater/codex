@@ -8,7 +8,6 @@
               v-if="showPlaceholder"
               indeterminate
               size="109"
-              :color="$vuetify.theme.current.colors.primary"
               aria-label="loading"
               class="coverPlaceholder"
             />
@@ -114,6 +113,8 @@ export default {
   background-color: rgb(var(--v-theme-background));
   color: rbg(var(--v-theme-textPrimary));
 }
+$bookCoverShadow: rgba(0, 0, 0, 0.75);
+$primary: rgb(var(--v-theme-primary));
 .unreadFlag {
   position: absolute;
   top: 0;
@@ -124,22 +125,20 @@ export default {
   background: linear-gradient(
     45deg,
     transparent 50%,
-    rgba(var(--v-theme-bookCoverColor), var(--v-theme-bookCoverOpacity)) 60%,
-    var(--v-primary-base) 60%
+    $bookCoverShadow 60%,
+    $primary 60%
   );
-  border-radius: 5px;
+  border-top-right-radius: 5px;
 }
 .mixedreadFlag {
   background: linear-gradient(
     45deg,
     transparent 50%,
-    rgba(var(--v-theme-bookCoverColor), var(--v-theme-bookCoverOpacity)) 60%,
-    var(--v-primary-base) 60%,
-    var(--v-primary-base) 70%,
+    $bookCoverShadow 60%,
+    $primary 60% 70%,
     transparent 70%,
-    rgba(var(--v-theme-bookCoverColor), var(--v-theme-bookCoverOpacity)) 60%,
-    var(--v-primary-base) 80%,
-    var(--v-primary-base) 90%,
+    $bookCoverShadow 80%,
+    $primary 80% 90%,
     transparent 90%
   );
 }
