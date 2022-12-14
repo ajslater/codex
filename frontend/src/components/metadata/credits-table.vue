@@ -39,7 +39,7 @@ export default {
   computed: {
     sortedCredits: function () {
       /* eslint-disable-next-line array-func/prefer-array-from */
-      return [...this.value].sort(this.creditsCompare);
+      return this.value ? [...this.value].sort(this.creditsCompare) : [];
     },
   },
   methods: {
