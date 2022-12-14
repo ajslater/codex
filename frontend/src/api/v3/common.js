@@ -15,7 +15,7 @@ const downloadIOSPWAFix = (href, fileName) => {
       link.href = window.URL.createObjectURL(blob);
       link.download = fileName;
       link.click();
-      return window.URL.releaseObjectURL(response.data);
+      return window.URL.revokeObjectURL(response.data);
     })
     .catch(console.warn);
 };
