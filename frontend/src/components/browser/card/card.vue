@@ -135,7 +135,7 @@ export default {
 }
 
 .browserCardCoverWrapper:hover > .cardCoverOverlay {
-  background-color: rgba(var(--v-theme-bookCoverOverlayHover), 0.55);
+  background-color: rgba(0, 0, 0, 0.55);
   border: solid thin;
   border-color: rbg(var(--v-theme-primary));
 }
