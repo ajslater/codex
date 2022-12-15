@@ -38,12 +38,12 @@ export default {
     },
     style() {
       const adj = this.$vuetify.display.mobile ? -5.5 : -3;
-      const len = this.orderByChoicesMaxLen + adj + "em";
-      return `width: ${len}; min-width: ${len}; max-width: ${len}`;
+      const val = this.orderByChoicesMaxLen + adj;
+      return this.emStyle(val);
     },
   },
   methods: {
-    ...mapActions(useBrowserStore, ["setSettings"]),
+    ...mapActions(useBrowserStore, ["setSettings", "emStyle"]),
   },
 };
 </script>

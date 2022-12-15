@@ -105,8 +105,8 @@ export default {
       },
       style() {
         const adj = this.$vuetify.display.mobile ? 0 : 3;
-        const len = this.filterByChoicesMaxLen + adj + "em";
-        return `width: ${len}; min-width: ${len}; max-width: ${len}`;
+        const val = this.filterByChoicesMaxLen + adj;
+        return this.emStyle(val);
       },
     }),
     ...mapWritableState(useBrowserStore, ["filterMode"]),
@@ -119,6 +119,7 @@ export default {
       "clearFiltersAndChoices",
       "loadAvailableFilterChoices",
       "setSettings",
+      "emStyle",
     ]),
     onUpdateModelValue(bookmark) {
       const data = { filters: { bookmark } };

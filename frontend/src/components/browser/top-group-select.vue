@@ -57,12 +57,12 @@ export default {
     },
     style() {
       const adj = this.$vuetify.display.mobile ? -3.5 : -1;
-      const len = this.topGroupChoicesMaxLen + adj + "em";
-      return `width: ${len}; min-width: ${len}; max-width: ${len}`;
+      const val = this.topGroupChoicesMaxLen + adj;
+      return this.emStyle(val);
     },
   },
   methods: {
-    ...mapActions(useBrowserStore, ["setSettings"]),
+    ...mapActions(useBrowserStore, ["setSettings", "emStyle"]),
   },
 };
 </script>

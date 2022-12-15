@@ -95,6 +95,7 @@ export const useBrowserStore = defineStore("browser", {
       for (const item of CHOICES.browser.topGroup) {
         if (this._isRootGroupEnabled(item.value)) {
           if (item.value === "f") {
+            // XXX divider not implemented yet in Vuetify 3
             // choices.push({ divider: true });
             continue;
           }
@@ -133,6 +134,8 @@ export const useBrowserStore = defineStore("browser", {
     },
   },
   actions: {
+    ////////////////////////////////////////////////////////////////////////
+    // UTILITY
     _maxLenChoices(choices) {
       let maxLen = 0;
       for (const item of choices) {
@@ -141,6 +144,10 @@ export const useBrowserStore = defineStore("browser", {
         }
       }
       return maxLen;
+    },
+    emStyle(val) {
+      const len = val + "em";
+      return `width: ${len}; min-width: ${len}; max-width: ${len}`;
     },
     ////////////////////////////////////////////////////////////////////////
     // VALIDATORS
