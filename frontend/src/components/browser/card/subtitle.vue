@@ -122,9 +122,12 @@ export default {
   text-align: center;
   width: $cover-width;
 }
+/* XXX why doesn't this work? */
+/* $textDisabledColor: rbg(var(--v-theme-textDisabled)); */
+$textDisabledColor: #808080;
 .headerName {
   padding-top: 5px;
-  color: rbg(var(--v-theme-textDisabled));
+  color: $textDisabledColor;
 }
 .headerName,
 .displayName {
@@ -134,7 +137,7 @@ export default {
   min-height: 1em;
 }
 .orderValue {
-  color: rbg(var(--v-theme-textDisabled));
+  color: $textDisabledColor;
 }
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   .cardSubtitle {
