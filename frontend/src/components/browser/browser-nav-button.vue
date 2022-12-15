@@ -2,8 +2,8 @@
   <v-btn
     class="browserNavButton"
     :disabled="disabled"
-    size="large"
     :title="toPage"
+    height="100%"
     @click="routeToPage(toPage)"
   >
     <v-icon :class="{ flipHoriz: !back }">
