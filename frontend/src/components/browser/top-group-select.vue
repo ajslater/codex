@@ -49,7 +49,8 @@ export default {
       },
     },
     style() {
-      const len = this.topGroupChoicesMaxLen + -1 + "em";
+      const adj = this.$vuetify.display.mobile ? -3.5 : -1;
+      const len = this.topGroupChoicesMaxLen + adj + "em";
       return `width: ${len}; min-width: ${len}; max-width: ${len}`;
     },
   },

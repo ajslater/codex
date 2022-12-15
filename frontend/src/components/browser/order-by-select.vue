@@ -37,7 +37,8 @@ export default {
       },
     },
     style() {
-      const len = this.orderByChoicesMaxLen - 3 + "em";
+      const adj = this.$vuetify.display.mobile ? -5.5 : -3;
+      const len = this.orderByChoicesMaxLen + adj + "em";
       return `width: ${len}; min-width: ${len}; max-width: ${len}`;
     },
   },

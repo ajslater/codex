@@ -63,8 +63,7 @@ export default {
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
 #browserToolbar {
-  padding-top: calc(env(safe-area-inset-top)); /* for filter labels */
-  padding-left: calc(env(safe-area-inset-left) / 3);
+  padding-left: calc(env(safe-area-inset-left) / 2);
   padding-right: calc(env(safe-area-inset-right) / 3);
 }
 /*

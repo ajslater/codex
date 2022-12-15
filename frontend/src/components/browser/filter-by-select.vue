@@ -104,7 +104,8 @@ export default {
         return names;
       },
       style() {
-        const len = this.filterByChoicesMaxLen + 3 + "em";
+        const adj = this.$vuetify.display.mobile ? 0 : 3;
+        const len = this.filterByChoicesMaxLen + adj + "em";
         return `width: ${len}; min-width: ${len}; max-width: ${len}`;
       },
     }),
