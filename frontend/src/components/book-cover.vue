@@ -1,30 +1,13 @@
 <template>
-  <div class="bookCoverWrapper">
-    <div class="bookCover">
-      <div class="coverImgWrapper">
-        <v-img :key="coverSrc" :src="coverSrc" class="coverImg" contain>
-          <template #placeholder>
-            <v-progress-circular
-              v-if="showPlaceholder"
-              indeterminate
-              size="109"
-              aria-label="loading"
-              class="coverPlaceholder"
-            />
-          </template>
-        </v-img>
-      </div>
-      <div class="bookCoverOverlayTopRow">
-        <div
-          v-if="finished !== true"
-          :class="{ unreadFlag: true, mixedreadFlag: finished === null }"
-        />
-
-        <span v-if="group !== 'c'" class="childCount">
-          {{ childCount }}
-        </span>
-      </div>
-    </div>
+  <div class="bookCover">
+    <v-img :src="coverSrc" class="coverImg" />
+    <div
+      v-if="finished !== true"
+      :class="{ unreadFlag: true, mixedreadFlag: finished === null }"
+    />
+    <span v-if="group !== 'c'" class="childCount">
+      {{ childCount }}
+    </span>
   </div>
 </template>
 
@@ -81,27 +64,15 @@ export default {
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
 @import "book-cover.scss";
-.coverImgWrapper {
+.coverImg {
   height: $cover-height;
   width: $cover-width;
 }
 .coverImg {
-  display: block;
-  height: 100%;
-  width: 100%;
   border-radius: 5px;
 }
-.coverPlaceholder {
-  height: 100% !important;
-  width: 66% !important;
-}
 
-.bookCoverOverlayTopRow {
-  height: 15%;
-  display: flex;
-  opacity: 1;
-  width: 100%;
-}
+/* Top Row */
 .childCount {
   position: absolute;
   top: 0px;
@@ -113,6 +84,7 @@ export default {
   background-color: rgb(var(--v-theme-background));
   color: rbg(var(--v-theme-textPrimary));
 }
+/* Flags */
 $bookCoverShadow: rgba(0, 0, 0, 0.75);
 $primary: rgb(var(--v-theme-primary));
 .unreadFlag {
@@ -143,7 +115,7 @@ $primary: rgb(var(--v-theme-primary));
   );
 }
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
-  .coverImgWrapper {
+  .coverImg {
     height: $small-cover-height;
     width: $small-cover-width;
   }
@@ -151,12 +123,7 @@ $primary: rgb(var(--v-theme-primary));
 </style>
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
-#browsePaneContainer .coverImg .v-image__placeholder {
-  top: 50%;
-  left: 50%;
-  transform: translate(-33%, -50%);
-}
-#browsePaneContainer .coverImgWrapper .v-image__image {
-  background-position-y: top !important;
+.coverImg .v-img__img {
+  object-position: top;
 }
 </style>
