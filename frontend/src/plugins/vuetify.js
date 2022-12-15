@@ -14,6 +14,7 @@ const codexTheme = {
     // info: "#2196F3", // lightblue (similar to primary)
     success: "#14dc3c", // crimsongreen
     // warning: "#FB8C00", // soft orange
+    "on-surface-variant": "#2D2D2D",
     // --- custom ---
     "surface-dark": "#191919",
     "surface-light": "#2D2D2D",
