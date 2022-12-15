@@ -94,11 +94,10 @@ export const useBrowserStore = defineStore("browser", {
       const choices = [];
       for (const item of CHOICES.browser.topGroup) {
         if (this._isRootGroupEnabled(item.value)) {
-          /* TODO: https://github.com/vuetifyjs/vuetify/issues/15721
           if (item.value === "f") {
-            choices.push({ divider: true });
+            // choices.push({ divider: true });
+            continue;
           }
-          */
           choices.push(item);
         }
       }

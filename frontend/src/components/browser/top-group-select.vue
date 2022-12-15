@@ -6,7 +6,13 @@
     select-label="top group"
     :items="topGroupChoices"
     :style="style"
-  />
+  >
+    <template v-if="enableFolderView" #append-item>
+      <!-- Divider in items not implemented yet in Vuetify 3 -->
+      <v-divider />
+      <v-list-item value="f" title="Folder View" />
+    </template>
+  </ToolbarSelect>
 </template>
 
 <script>
@@ -24,6 +30,7 @@ export default {
   computed: {
     ...mapState(useBrowserStore, {
       topGroupSetting: (state) => state.settings.topGroup,
+      enableFolderView: (state) => state.page.adminFlags.enableFolderView,
     }),
     ...mapGetters(useBrowserStore, [
       "topGroupChoices",
