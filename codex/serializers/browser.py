@@ -8,6 +8,7 @@ from rest_framework.serializers import (
     CharField,
     ChoiceField,
     DecimalField,
+    FloatField,
     IntegerField,
     ListField,
     Serializer,
@@ -96,10 +97,10 @@ class FilterListField(ListField, ABC):
         )
 
 
-class DecimalListField(FilterListField):
+class FloatListField(FilterListField):
     """Decimal List Field with validation."""
 
-    CHILD_CLASS = DecimalField  # type: ignore
+    CHILD_CLASS = FloatField  # type: ignore
     VALIDATORS = (validate_int_null,)
 
 
@@ -132,17 +133,10 @@ class BrowserSettingsFilterSerializer(Serializer):
     # Dynamic filters
     age_rating = CharListField(allow_blank=True, required=False)
     characters = IntListField(required=False)
-    community_rating = DecimalListField(
-        max_digits=5,
-        decimal_places=2,
-        coerce_to_string=False,
-        required=False,
-    )
+    community_rating = FloatListField(required=False)
     country = CharListField(allow_blank=True, required=False)
     creators = IntListField(required=False)
-    critical_rating = DecimalListField(
-        max_digits=5, decimal_places=2, coerce_to_string=False, required=False
-    )
+    critical_rating = FloatListField(required=False)
     decade = DecadeListField(required=False)
     format = CharListField(required=False, allow_blank=True)
     genres = IntListField(required=False)

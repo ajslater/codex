@@ -8,12 +8,13 @@ border-radius: 128px;
 
 ## v1.0.0
 
-### Vue3
+### Vue 3
 
 - Features
-  - Remove old django admin pages.
+  - Removed old django admin pages.
 - Fixes
   - Fix displaying error in login dialog.
+  - Fix saving community & critical rating filters to session
 - Dev Notes
   - Frontend is now Vuetify 3 over Vue 3. Using options API.
 
