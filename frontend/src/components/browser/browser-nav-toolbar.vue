@@ -33,9 +33,6 @@ export default {
       numPages: (state) => state.page.numPages,
     }),
   },
-  mounted() {
-    console.log(+this.$route.params.page);
-  },
   methods: {
     ...mapActions(useBrowserStore, ["routeToPage"]),
     onUpdate($event) {
