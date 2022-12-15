@@ -1,8 +1,8 @@
 <template>
   <v-btn
     class="orderReverseButton"
+    density="compact"
     icon
-    height="46"
     variant="flat"
     v-bind="$attrs"
     @click="toggleOrderReverse"

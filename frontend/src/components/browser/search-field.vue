@@ -7,7 +7,9 @@
     autofocus
     aria-label="search"
     clearable
+    density="compact"
     full-width
+    hide-details="auto"
     hide-selected
     no-filter
     :prepend-inner-icon="mdiMagnify"
