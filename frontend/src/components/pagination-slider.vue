@@ -1,10 +1,13 @@
 <template>
   <v-slider
+    thumb-size="48"
     class="paginationSlider"
-    show-ticks="always"
-    thumb-label="always"
-    hide-details="auto"
     density="compact"
+    hide-details="auto"
+    :rounded="true"
+    show-ticks="always"
+    :step="1"
+    thumb-label="always"
     v-bind="$attrs"
   />
 </template>
@@ -14,26 +17,17 @@ export default {
   name: "PaginationSlider",
 };
 </script>
-<style scoped lang="scss">
-.paginationSlider {
-  z-index: 5;
-}
-</style>
+<style scoped lang="scss"></style>
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
 /* Custom slider with a large control. */
-.paginationSlider .v-slider__thumb {
-  height: 48px;
-  width: 48px;
-  left: -24px;
+.paginationSlider .v-slider-thumb__label {
+  bottom: 0px !important;
+  transform: translateX(-50%) translateY(150%) !important;
+  background-color: transparent;
+  color: white;
 }
-.paginationSlider .v-slider__thumb::before {
-  left: -8px;
-  top: -8px;
-  height: 64px;
-  width: 64px;
-}
-.paginationSlider .v-slider__thumb-label {
-  transform: translateY(16px) translateX(-50%) rotate(45deg) !important;
+.paginationSlider .v-slider-thumb__label:before {
+  display: none;
 }
 </style>

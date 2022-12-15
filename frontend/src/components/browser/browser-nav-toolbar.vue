@@ -9,7 +9,7 @@
       :model-value="+$route.params.page"
       :min="+1"
       :max="numPages"
-      @update:modelValue="routeToPage($event)"
+      @update:modelValue="onUpdate"
     />
     <BrowserNavButton :back="false" />
   </v-toolbar>
@@ -33,8 +33,14 @@ export default {
       numPages: (state) => state.page.numPages,
     }),
   },
+  mounted() {
+    console.log(+this.$route.params.page);
+  },
   methods: {
     ...mapActions(useBrowserStore, ["routeToPage"]),
+    onUpdate($event) {
+      this.routeToPage($event);
+    },
   },
 };
 </script>
@@ -43,13 +49,6 @@ export default {
 .paginationToolbar {
   bottom: env(safe-area-inset-bottom);
   width: 100%;
-  padding: 0px;
-}
-</style>
-
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-#browser .paginationToolbar > .v-toolbar__content {
   padding: 0px;
 }
 </style>
