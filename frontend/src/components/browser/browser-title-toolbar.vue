@@ -1,5 +1,5 @@
 <template>
-  <v-toolbar id="titleToolbar" class="toolbar" elevation="8">
+  <v-toolbar id="titleToolbar" elevation="8">
     <v-toolbar-items v-if="isCodexViewable">
       <v-btn
         id="upButton"
@@ -126,7 +126,7 @@ $upButtonWidth: 64px;
   visibility: hidden;
 }
 /* eslint-disable-next-line vue-scoped-css/no-unused-selector */
-#titleToolbar .v-toolbar__title {
+#titleToolbar .codexToolbarTitle {
   margin: auto;
   padding-right: $upButtonWidth;
   padding-top: 4px;
@@ -135,18 +135,15 @@ $upButtonWidth: 64px;
   text-overflow: clip;
 }
 
-#titleToolbar .v-toolbar__title #titleToolbarPrefix {
+#titleToolbarPrefix,
+#titleToolbarSuffix {
   color: rgb(var(--v-theme-textDisabled));
   font-size: smaller;
 }
 
-#titleToolbar .v-toolbar__title #titleToolbarSuffix {
-  color: rgb(var(--v-theme-textDisabled));
-  font-size: smaller;
-}
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   /* eslint-disable-next-line vue-scoped-css/no-unused-selector */
-  #titleToolbar .v-toolbar__title {
+  #titleToolbar .codexToolbarTitle {
     font-size: 1rem;
   }
 }

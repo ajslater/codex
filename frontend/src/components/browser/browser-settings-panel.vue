@@ -5,12 +5,12 @@
   <v-checkbox
     v-for="choice of groupChoices"
     :key="choice.title"
+    class="browserGroupCheckbox"
+    density="compact"
+    hide-details="auto"
     :model-value="showSettings[choice.value]"
     :true-value="true"
     :label="`Show ${choice.title}`"
-    density="compact"
-    hide-details="auto"
-    class="browserGroupCheckbox"
     @update:modelValue="setShow(choice.value, $event)"
   />
   <v-divider />
