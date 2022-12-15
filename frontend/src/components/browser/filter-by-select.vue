@@ -104,7 +104,7 @@ export default {
         return names;
       },
       style() {
-        const len = this.filterByChoicesMaxLen + 2 + "em";
+        const len = this.filterByChoicesMaxLen + 3 + "em";
         return `width: ${len}; min-width: ${len}; max-width: ${len}`;
       },
     }),

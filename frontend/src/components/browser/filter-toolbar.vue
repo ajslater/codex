@@ -1,8 +1,14 @@
 <template>
-  <v-toolbar id="browserToolbar" class="toolbar" density="compact">
+  <v-toolbar
+    id="browserToolbar"
+    class="toolbar"
+    density="compact"
+    extension-height="48px"
+  >
     <v-toolbar-items v-if="isCodexViewable" id="browserToolbarLeftItems">
       <BrowserTopGroupSelect id="topGroupSelect" />
       <BrowserOrderBySelect id="orderBySelect" />
+      <BrowserOrderReverseButton id="orderReverseButton" />
     </v-toolbar-items>
     <v-spacer />
     <v-toolbar-items id="browserToolbarRightItems">
@@ -23,6 +29,7 @@ import { mapGetters, mapWritableState } from "pinia";
 
 import BrowserFilterBySelect from "@/components/browser/filter-by-select.vue";
 import BrowserOrderBySelect from "@/components/browser/order-by-select.vue";
+import BrowserOrderReverseButton from "@/components/browser/order-reverse-button.vue";
 import BrowserSearchField from "@/components/browser/search-field.vue";
 import BrowserTopGroupSelect from "@/components/browser/top-group-select.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
@@ -36,6 +43,7 @@ export default {
     BrowserTopGroupSelect,
     BrowserSearchField,
     BrowserOrderBySelect,
+    BrowserOrderReverseButton,
     SettingsDrawerButton,
   },
   data() {

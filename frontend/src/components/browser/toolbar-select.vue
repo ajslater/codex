@@ -7,6 +7,7 @@
     density="compact"
     full-width
     hide-details="auto"
+    variant="solo"
   >
     <template v-for="(props, name) in $slots" #[name]="slotData">
       <slot :name="name" :props="props" v-bind="slotData" />

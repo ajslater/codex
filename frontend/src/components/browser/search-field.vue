@@ -11,6 +11,7 @@
     hide-selected
     no-filter
     :prepend-inner-icon="mdiMagnify"
+    variant="solo"
     @click:clear="doSearch"
     @click:prependInner="doSearch"
     @keydown.enter="doSearch"
