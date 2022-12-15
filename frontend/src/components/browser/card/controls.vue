@@ -3,14 +3,12 @@
     <v-icon v-if="item.group === 'c'" class="eye">
       {{ eyeIcon }}
     </v-icon>
-    <span class="cardControlButton">
-      <MetadataButton
-        :group="item.group"
-        :pk="item.pk"
-        :children="item.childCount"
-      />
-      <BrowserCardMenu :item="item" />
-    </span>
+    <MetadataButton
+      :group="item.group"
+      :pk="item.pk"
+      :children="item.childCount"
+    />
+    <BrowserCardMenu :item="item" />
   </div>
 </template>
 
@@ -56,39 +54,42 @@ export default {
   width: 100%;
   opacity: 0; // invisible by default. hover exposes it.
 }
+$buttonColor: rgb(var(--v-theme-textSecondary));
+$buttonColorHover: rgb(var(--v-theme-linkHover));
+/* EYE */
 .eye {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translateX(-50%) translateY(-50%);
+  color: $buttonColorHover;
+}
+.cardControls:hover .eye {
+  color: $buttonColorHover;
+}
+.cardControls:has(> .tagButton:hover) .eye,
+.cardControls:has(> .browserCardMenuIcon:hover) .eye {
+  color: $buttonColor;
 }
 </style>
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
-$button-margin: 0px;
-#browsePaneContainer .tagButton {
+$buttonColor: rgb(var(--v-theme-textSecondary));
+$buttonColorHover: rgb(var(--v-theme-linkHover));
+
+/* BOTTOM CONTROLS */
+#browsePaneContainer .cardControlButton {
   position: absolute !important;
-  left: $button-margin !important;
-  bottom: $button-margin !important;
+  bottom: 0px !important;
+  color: $buttonColor !important;
+}
+#browsePaneContainer .tagButton {
+  left: 0px !important;
 }
 #browsePaneContainer .browserCardMenuIcon {
-  position: absolute !important;
-  right: $button-margin !important;
-  bottom: $button-margin !important;
+  right: 0px !important;
 }
-
-$browser-card-icon-size: 24px;
-#browsePaneContainer .cardControlButton .v-icon {
-  color: rbg(var(--v-theme-textSecondary)) !important;
-  width: $browser-card-icon-size;
-  height: $browser-card-icon-size;
-}
-#browsePaneContainer .cardControlButton .v-icon:hover {
-  color: rgb(var(--v-theme-textPrimary)) !important;
-}
-
-#browsePaneContainer .cardControls:has(> .cardControlButton:hover) .eye {
-  /* this selector only works on safari 2022-08 */
-  color: rbg(var(--v-theme-textSecondary));
+#browsePaneContainer .cardControlButton:hover {
+  color: $buttonColorHover !important;
 }
 </style>

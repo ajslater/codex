@@ -3,9 +3,10 @@
     <template #activator="{ props }">
       <v-btn
         aria-label="tags"
-        class="tagButton"
+        class="tagButton cardControlButton"
         icon
         title="Tags"
+        variant="text"
         v-bind="props"
         @click.prevent
       >

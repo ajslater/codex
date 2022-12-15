@@ -3,9 +3,10 @@
     <template #activator="{ props }">
       <v-btn
         aria-label="action menu"
-        class="browserCardMenuIcon"
+        class="browserCardMenuIcon cardControlButton"
         icon
         title="Action Menu"
+        variant="text"
         v-bind="props"
         @click.prevent
       >

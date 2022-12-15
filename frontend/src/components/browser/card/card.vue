@@ -1,6 +1,6 @@
 <template>
   <v-lazy
-    :id="'card-' + item.pk"
+    :id="`card-${item.pk}`"
     transition="scale-transition"
     class="browserTile"
   >
@@ -121,13 +121,6 @@ export default {
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
 @import "../../book-cover.scss";
-/*
-.browserTile {
-  display: inline-flex;
-  flex: 1;
-  margin: 0px;
-}
-*/
 .browserCardCoverWrapper {
   position: relative;
 }
@@ -140,12 +133,11 @@ export default {
   border-radius: 5px;
   border: solid thin transparent;
 }
+
 .browserCardCoverWrapper:hover > .cardCoverOverlay {
-  background-color: rgba(
-    var(--v-theme-bookCoverColor),
-    var(--v-theme-bookCoverOpacity)
-  );
-  border: solid thin rbg(var(--v-theme-primary));
+  background-color: rgba(var(--v-theme-bookCoverOverlayHover), 0.55);
+  border: solid thin;
+  border-color: rbg(var(--v-theme-primary));
 }
 .browserCardCoverWrapper:hover > .cardCoverOverlay * {
   opacity: 1;
