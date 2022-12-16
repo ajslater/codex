@@ -30,6 +30,7 @@
       disabled
       :eager="page >= activePage - 1 && page <= activePage + 2"
       :model-value="page"
+      :transition="true"
     >
       <BookPage
         :book="book"

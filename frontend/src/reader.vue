@@ -1,28 +1,26 @@
 <template>
-  <div>
-    <v-main id="readerWrapper">
-      <div v-if="isCodexViewable" id="readerContainer">
-        <BooksWindow @click="toggleToolbars" />
-        <v-slide-y-transition>
-          <ReaderTitleToolbar v-show="showToolbars" />
-        </v-slide-y-transition>
-        <v-slide-y-reverse-transition>
-          <ReaderNavToolbar v-show="showToolbars" />
-        </v-slide-y-reverse-transition>
-      </div>
-      <div v-else id="announcement">
-        <h1>
-          <router-link :to="{ name: 'home' }"> Log in </router-link> to read
-          comics
-        </h1>
-      </div>
-    </v-main>
-    <SettingsDrawer
-      title="Reader Settings"
-      :panel="ReaderSettingsSuperPanel"
-      temporary
-    />
-  </div>
+  <v-main id="readerWrapper">
+    <div v-if="isCodexViewable" id="readerContainer">
+      <v-slide-y-transition>
+        <ReaderTitleToolbar v-show="showToolbars" />
+      </v-slide-y-transition>
+      <BooksWindow @click="toggleToolbars" />
+      <v-slide-y-reverse-transition>
+        <ReaderNavToolbar v-show="showToolbars" />
+      </v-slide-y-reverse-transition>
+    </div>
+    <div v-else id="announcement">
+      <h1>
+        <router-link :to="{ name: 'home' }"> Log in </router-link> to read
+        comics
+      </h1>
+    </div>
+  </v-main>
+  <SettingsDrawer
+    title="Reader Settings"
+    :panel="ReaderSettingsSuperPanel"
+    temporary
+  />
 </template>
 
 <script>

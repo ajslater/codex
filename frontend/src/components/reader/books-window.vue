@@ -2,9 +2,8 @@
   <v-window
     id="booksWindow"
     ref="booksWindow"
+    direction="vertical"
     :model-value="activeBookPk"
-    vertical
-    touchless
   >
     <ChangeBookDrawer direction="prev" />
     <v-window-item
@@ -13,7 +12,8 @@
       class="windowItem"
       disabled
       :eager="eager(pk)"
-      :model-value="pk"
+      :value="pk"
+      :transition="true"
     >
       <PagesWindow :book="book" @click="click" />
     </v-window-item>
