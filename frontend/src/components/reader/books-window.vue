@@ -44,16 +44,7 @@ export default {
       bookChange: (state) => state.bookChange,
       activeBookPk: (state) => state.pk,
       bookRoutes: (state) => state.routes.books,
-      showBookNext(state) {
-        const maxPage = state.activeBook ? state.activeBook.maxPage : 0;
-        const adj = state.activeSettings.twoPages ? 1 : 0;
-        const limit = maxPage + adj;
-        return +this.$route.params.page >= limit;
-      },
     }),
-    showBookPrev() {
-      return +this.$route.params.page === 0;
-    },
   },
   watch: {
     $route(to, from) {
