@@ -7,10 +7,10 @@
     @click="click"
   >
     <template #prev>
-      <BookChangeDrawer v-if="showBookPrev" direction="prev" />
+      <BookChangeDrawer direction="prev" />
     </template>
     <template #next>
-      <BookChangeDrawer v-if="showBookNext" direction="next" />
+      <BookChangeDrawer direction="next" />
     </template>
     <v-window-item
       v-for="[pk, book] of books"
@@ -27,7 +27,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import BookChangeDrawer from "@/components/reader/book-change-drawer.vue";
 import { useReaderStore } from "@/stores/reader";
@@ -39,22 +39,18 @@ export default {
   },
   emits: ["click"],
   computed: {
-    ...mapGetters(useReaderStore, ["activeBook"]),
     ...mapState(useReaderStore, {
       books: (state) => state.books,
       bookChange: (state) => state.bookChange,
       activeBookPk: (state) => state.pk,
       bookRoutes: (state) => state.routes.books,
       showBookNext(state) {
+        const maxPage = state.activeBook ? state.activeBook.maxPage : 0;
         const adj = state.activeSettings.twoPages ? 1 : 0;
-        const limit = this.maxPage + adj;
-        console.log(limit);
+        const limit = maxPage + adj;
         return +this.$route.params.page >= limit;
       },
     }),
-    maxPage() {
-      return this.activeBook ? this.activeBook.maxPage : 0;
-    },
     showBookPrev() {
       return +this.$route.params.page === 0;
     },

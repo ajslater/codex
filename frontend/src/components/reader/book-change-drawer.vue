@@ -1,27 +1,29 @@
 <template>
   <div
+    v-if="show"
     class="bookChangeColumn"
-    :class="classes"
+    :class="{ [direction]: true }"
     @click.stop="setBookChangeFlag(direction)"
-  />
-  <v-navigation-drawer
-    class="bookChangeDrawer"
-    :class="classes"
-    absolute
-    :location="direction === 'prev' ? 'left' : 'right'"
-    :model-value="isDrawerOpen"
-    temporarary
   >
-    <router-link
-      class="navLink"
-      :to="route"
-      :aria-label="label"
-      :title="label"
-      @click="$event.stopImmediatePropagation()"
+    <v-navigation-drawer
+      class="bookChangeDrawer"
+      :class="{ [direction]: true }"
+      absolute
+      :location="direction === 'prev' ? 'left' : 'right'"
+      :model-value="isDrawerOpen"
+      temporarary
     >
-      <v-icon size="x-large" class="bookChangeIcon"> {{ icon }} </v-icon>
-    </router-link>
-  </v-navigation-drawer>
+      <router-link
+        class="navLink"
+        :to="route"
+        :aria-label="label"
+        :title="label"
+        @click="$event.stopImmediatePropagation()"
+      >
+        <v-icon size="x-large" class="bookChangeIcon"> {{ icon }} </v-icon>
+      </router-link>
+    </v-navigation-drawer>
+  </div>
 </template>
 <script>
 import { mdiBookArrowDown, mdiBookArrowUp } from "@mdi/js";
@@ -40,12 +42,6 @@ export default {
       required: true,
     },
   },
-  data() {
-    return {
-      icon: this.direction === "next" ? mdiBookArrowDown : mdiBookArrowUp,
-      classes: { [this.direction]: true },
-    };
-  },
   head() {
     const links = [];
     if (this.prefetchSrc1) {
@@ -60,6 +56,16 @@ export default {
   },
   computed: {
     ...mapState(useReaderStore, {
+      show(state) {
+        if (this.direction === "prev") {
+          return +this.$route.params.page === 0;
+        }
+        // next
+        const maxPage = state.activeBook ? state.activeBook.maxPage : 0;
+        const adj = state.activeSettings.twoPages ? 1 : 0;
+        const limit = maxPage + adj;
+        return +this.$route.params.page >= limit;
+      },
       isDrawerOpen(state) {
         return state.bookChange === this.direction;
       },
@@ -85,6 +91,9 @@ export default {
         const params = { pk: this.params.pk, page: this.params.page + 1 };
         return getComicPageSource(params, state.timestamp);
       },
+      icon() {
+        return this.direction === "next" ? mdiBookArrowDown : mdiBookArrowUp;
+      },
     }),
     route() {
       return this.params ? { params: this.params } : {};
@@ -107,10 +116,11 @@ export default {
 }
 .prev {
   cursor: n-resize;
+  left: 0px;
 }
 .next {
   cursor: s-resize;
-  right: 0;
+  right: 0px;
 }
 .navLink {
   display: block;
