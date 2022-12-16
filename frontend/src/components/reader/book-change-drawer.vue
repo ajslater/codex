@@ -1,6 +1,6 @@
 <template>
   <v-navigation-drawer
-    class="changeBookDrawer"
+    class="bookChangeDrawer"
     :class="classes"
     absolute
     :location="direction === 'prev' ? 'left' : 'right'"
@@ -95,12 +95,6 @@ export default {
 };
 </script>
 <style scoped lang="scss">
-.changeBookDrawer {
-  height: 100vh;
-  width: 33vw;
-  opacity: 0.75;
-  z-index: 17;
-}
 .prev {
   cursor: n-resize;
 }
@@ -111,20 +105,20 @@ export default {
   display: block;
   height: 100%;
 }
+$iconSize: 25%;
 .bookChangeIcon {
   top: 50%;
   left: 50%;
   transform: translateX(-50%) translateY(-50%);
+  height: $iconSize;
+  width: $iconSize;
+  color: white;
 }
 </style>
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
-/*
-$iconSize: 96px;
-.bookChangeIcon svg {
-  height: $iconSize !important;
-  width: $iconSize !important;
-  font-size: $iconSize !important;
+.bookChangeDrawer {
+  width: 33vw !important;
+  opacity: 0.75 !important;
 }
-*/
 </style>
