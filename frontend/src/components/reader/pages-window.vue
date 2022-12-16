@@ -5,20 +5,6 @@
     show-arrows
     :model-value="activePage"
   >
-    <!--
-    <div
-      id="bookChangeActivatorPrev"
-      class="bookChangeActivatorColumn"
-      :class="{ upArrow: bookExists('prev') }"
-      @click.stop="setBookChange('prev')"
-    />
-    <div
-      id="bookChangeActivatorNext"
-      class="bookChangeActivatorColumn"
-      :class="{ downArrow: bookExists('next') }"
-      @click.stop="setBookChange('next')"
-    />
--->
     <template #prev>
       <PageChangeLink direction="prev" />
     </template>
@@ -125,7 +111,6 @@ export default {
   methods: {
     ...mapActions(useReaderStore, [
       "routeToPage",
-      // "setBookChangeFlag",
       "setRoutesAndBookmarkPage",
       "setRoutes",
       "getSettings",
@@ -150,18 +135,6 @@ export default {
       this.setRoutesAndBookmarkPage(+this.$route.params.page);
       window.scrollTo(0, 0);
     },
-    /*
-    setBookChange(direction) {
-      if (this.bookRoutes[direction]) {
-        this.setBookChangeFlag(direction);
-      } else {
-        this.$emit("click");
-      }
-    },
-    bookExists(direction) {
-      return Boolean(this.bookRoutes[direction]);
-    },
-    */
   },
 };
 </script>
