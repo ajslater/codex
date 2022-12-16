@@ -7,22 +7,10 @@
     @click="click"
   >
     <template #prev>
-      <div
-        v-if="showBookPrev"
-        class="upArrow bookChangeColumn"
-        @click.stop="setBookChangeFlag('prev')"
-      >
-        <BookChangeDrawer direction="prev" />
-      </div>
+      <BookChangeDrawer v-if="showBookPrev" direction="prev" />
     </template>
     <template #next>
-      <div
-        v-if="showBookNext"
-        class="downArrow bookChangeColumn"
-        @click.stop="setBookChangeFlag('next')"
-      >
-        <BookChangeDrawer direction="next" />
-      </div>
+      <BookChangeDrawer v-if="showBookNext" direction="next" />
     </template>
     <v-window-item
       v-for="[pk, book] of books"
@@ -57,16 +45,18 @@ export default {
       bookChange: (state) => state.bookChange,
       activeBookPk: (state) => state.pk,
       bookRoutes: (state) => state.routes.books,
+      showBookNext(state) {
+        const adj = state.activeSettings.twoPages ? 1 : 0;
+        const limit = this.maxPage + adj;
+        console.log(limit);
+        return +this.$route.params.page >= limit;
+      },
     }),
     maxPage() {
       return this.activeBook ? this.activeBook.maxPage : 0;
     },
     showBookPrev() {
       return +this.$route.params.page === 0;
-    },
-    showBookNext() {
-      return +this.$route.params.page === this.maxPage;
-      // TODO twopages
     },
   },
   watch: {
@@ -99,28 +89,13 @@ export default {
 };
 </script>
 
-<style scoped lang="scss">
-.windowItem {
+<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
+<style lang="scss">
+#booksWindow .windowItem {
   /* keeps clickable area full screen when image is small */
   min-height: 100vh;
   text-align: center;
 }
-.bookChangeColumn {
-  position: absolute;
-  height: 100%;
-  width: 33vw;
-  z-index: 15 !important;
-}
-#booksWindow .upArrow {
-  cursor: n-resize;
-}
-#booksWindow .downArrow {
-  cursor: s-resize;
-  right: 0 !important;
-}
-</style>
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
 #booksWindow .v-window__controls {
   position: fixed;
   top: 48px;

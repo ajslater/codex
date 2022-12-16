@@ -3,10 +3,7 @@
     class="pageChangeColumn"
     :to="route"
     :aria-label="label"
-    :class="{
-      leftArrow: direction === 'prev',
-      rightArrow: direction === 'next',
-    }"
+    :class="classes"
     @click="$event.stopImmediatePropagation()"
   />
 </template>
@@ -22,6 +19,11 @@ export default {
   name: "PageChangeLink",
   props: {
     direction: { type: String, required: true },
+  },
+  data() {
+    return {
+      classes: { [this.direction]: true },
+    };
   },
   head() {
     const links = [];
@@ -79,12 +81,11 @@ export default {
 .pageChangeColumn {
   height: 100%;
   width: 33vw;
-  z-index: 10;
 }
-.leftArrow {
+.prev {
   cursor: w-resize;
 }
-.rightArrow {
+.next {
   cursor: e-resize;
 }
 </style>

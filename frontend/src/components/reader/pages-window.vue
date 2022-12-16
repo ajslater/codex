@@ -139,19 +139,4 @@ export default {
 };
 </script>
 
-<style scoped lang="scss">
-.windowItem {
-  /* keeps clickable area full screen when image is small */
-  min-height: 100vh;
-  text-align: center;
-}
-</style>
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-#pagesWindow .v-window__controls {
-  position: fixed;
-  top: 48px;
-  height: calc(100vh - 96px);
-  padding: 0;
-}
-</style>
+/* Inherits v-window styles from books-window */

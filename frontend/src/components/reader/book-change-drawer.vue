@@ -1,4 +1,9 @@
 <template>
+  <div
+    class="bookChangeColumn"
+    :class="classes"
+    @click.stop="setBookChangeFlag(direction)"
+  />
   <v-navigation-drawer
     class="bookChangeDrawer"
     :class="classes"
@@ -90,16 +95,22 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useReaderStore, ["getSettings"]),
+    ...mapActions(useReaderStore, ["getSettings", "setBookChangeFlag"]),
   },
 };
 </script>
 <style scoped lang="scss">
+.bookChangeColumn {
+  position: absolute;
+  height: 100%;
+  width: 33vw;
+}
 .prev {
   cursor: n-resize;
 }
 .next {
   cursor: s-resize;
+  right: 0;
 }
 .navLink {
   display: block;
