@@ -9,7 +9,8 @@
       contentClass: filterMenuClass,
     }"
     :model-value="bookmarkFilter"
-    :style="style"
+    :max-select-len="filterByChoicesMaxLen + 3"
+    :mobile-len-adj="-3"
     @click:clear="onClear"
     @update:modelValue="onUpdateModelValue"
     @update:menu="onMenu"
@@ -103,11 +104,6 @@ export default {
         }
         return names;
       },
-      style() {
-        const adj = this.$vuetify.display.mobile ? 0 : 3;
-        const val = this.filterByChoicesMaxLen + adj;
-        return this.emStyle(val);
-      },
     }),
     ...mapWritableState(useBrowserStore, ["filterMode"]),
     filterInnerIcon: function () {
@@ -119,7 +115,6 @@ export default {
       "clearFiltersAndChoices",
       "loadAvailableFilterChoices",
       "setSettings",
-      "emStyle",
     ]),
     onUpdateModelValue(bookmark) {
       const data = { filters: { bookmark } };

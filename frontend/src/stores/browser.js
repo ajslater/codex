@@ -94,11 +94,11 @@ export const useBrowserStore = defineStore("browser", {
       const choices = [];
       for (const item of CHOICES.browser.topGroup) {
         if (this._isRootGroupEnabled(item.value)) {
+          /* XXX divider not implemented yet in Vuetify 3
           if (item.value === "f") {
-            // XXX divider not implemented yet in Vuetify 3
-            // choices.push({ divider: true });
-            continue;
+            choices.push({ divider: true });
           }
+          */
           choices.push(item);
         }
       }
@@ -144,10 +144,6 @@ export const useBrowserStore = defineStore("browser", {
         }
       }
       return maxLen;
-    },
-    emStyle(val) {
-      const len = val + "em";
-      return `width: ${len}; min-width: ${len}; max-width: ${len}`;
     },
     ////////////////////////////////////////////////////////////////////////
     // VALIDATORS

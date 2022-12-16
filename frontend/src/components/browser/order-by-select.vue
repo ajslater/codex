@@ -4,9 +4,9 @@
     class="orderBySelect"
     select-label="order by"
     :items="orderByChoices"
-    :style="style"
+    :max-select-len="orderByChoicesMaxLen - 1"
+    :mobile-len-adj="-4.5"
     v-bind="$attrs"
-    @click:append="toggleOrderReverse"
   />
 </template>
 
@@ -36,14 +36,9 @@ export default {
         this.setSettings(data);
       },
     },
-    style() {
-      const adj = this.$vuetify.display.mobile ? -5.5 : -3;
-      const val = this.orderByChoicesMaxLen + adj;
-      return this.emStyle(val);
-    },
   },
   methods: {
-    ...mapActions(useBrowserStore, ["setSettings", "emStyle"]),
+    ...mapActions(useBrowserStore, ["setSettings"]),
   },
 };
 </script>
