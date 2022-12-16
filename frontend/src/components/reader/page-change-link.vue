@@ -77,9 +77,9 @@ export default {
 </script>
 <style scoped lang="scss">
 .pageChangeColumn {
-  display: block;
-  width: 100%;
   height: 100%;
+  width: 33vw;
+  z-index: 10;
 }
 .leftArrow {
   cursor: w-resize;

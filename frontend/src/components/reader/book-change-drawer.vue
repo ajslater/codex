@@ -3,11 +3,9 @@
     class="changeBookDrawer"
     :class="classes"
     absolute
-    :left="direction === 'prev'"
-    :right="direction === 'next'"
-    temporarary
+    :location="direction === 'prev' ? 'left' : 'right'"
     :model-value="isDrawerOpen"
-    width="33%"
+    temporarary
   >
     <router-link
       class="navLink"
@@ -16,7 +14,7 @@
       :title="label"
       @click="$event.stopImmediatePropagation()"
     >
-      <v-icon class="bookChangeIcon"> {{ icon }} </v-icon>
+      <v-icon size="x-large" class="bookChangeIcon"> {{ icon }} </v-icon>
     </router-link>
   </v-navigation-drawer>
 </template>
@@ -30,7 +28,7 @@ import { useReaderStore } from "@/stores/reader";
 const PREFETCH_LINK = { rel: "prefetch", as: "image" };
 
 export default {
-  name: "ChangeBookDrawer",
+  name: "BookChangeDrawer",
   props: {
     direction: {
       type: String,
@@ -98,10 +96,10 @@ export default {
 </script>
 <style scoped lang="scss">
 .changeBookDrawer {
-  position: fixed;
   height: 100vh;
+  width: 33vw;
   opacity: 0.75;
-  z-index: 15;
+  z-index: 17;
 }
 .prev {
   cursor: n-resize;
@@ -121,10 +119,12 @@ export default {
 </style>
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
+/*
 $iconSize: 96px;
 .bookChangeIcon svg {
   height: $iconSize !important;
   width: $iconSize !important;
   font-size: $iconSize !important;
 }
+*/
 </style>

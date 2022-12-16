@@ -1,11 +1,29 @@
 <template>
   <v-window
     id="booksWindow"
-    ref="booksWindow"
     direction="vertical"
     :model-value="activeBookPk"
+    show-arrows
+    @click="click"
   >
-    <ChangeBookDrawer direction="prev" />
+    <template #prev>
+      <div
+        v-if="showBookPrev"
+        class="upArrow bookChangeColumn"
+        @click.stop="setBookChangeFlag('prev')"
+      >
+        <BookChangeDrawer direction="prev" />
+      </div>
+    </template>
+    <template #next>
+      <div
+        v-if="showBookNext"
+        class="downArrow bookChangeColumn"
+        @click.stop="setBookChangeFlag('next')"
+      >
+        <BookChangeDrawer direction="next" />
+      </div>
+    </template>
     <v-window-item
       v-for="[pk, book] of books"
       :key="`c/${pk}`"
@@ -17,29 +35,39 @@
     >
       <PagesWindow :book="book" @click="click" />
     </v-window-item>
-    <ChangeBookDrawer direction="next" />
   </v-window>
 </template>
 
 <script>
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
-import ChangeBookDrawer from "@/components/reader/change-book-drawer.vue";
+import BookChangeDrawer from "@/components/reader/book-change-drawer.vue";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
   name: "BooksWindow",
   components: {
-    ChangeBookDrawer,
+    BookChangeDrawer,
   },
   emits: ["click"],
   computed: {
+    ...mapGetters(useReaderStore, ["activeBook"]),
     ...mapState(useReaderStore, {
       books: (state) => state.books,
       bookChange: (state) => state.bookChange,
       activeBookPk: (state) => state.pk,
       bookRoutes: (state) => state.routes.books,
     }),
+    maxPage() {
+      return this.activeBook ? this.activeBook.maxPage : 0;
+    },
+    showBookPrev() {
+      return +this.$route.params.page === 0;
+    },
+    showBookNext() {
+      return +this.$route.params.page === this.maxPage;
+      // TODO twopages
+    },
   },
   watch: {
     $route(to, from) {
@@ -50,14 +78,6 @@ export default {
   },
   beforeMount() {
     this.setBookChangeFlag();
-  },
-  mounted() {
-    const windowContainer = this.$refs.booksWindow.$el.children[0];
-    windowContainer.addEventListener("click", this.click);
-  },
-  unmounted() {
-    const windowContainer = this.$refs.booksWindow.$el.children[0];
-    windowContainer.removeEventListener("click", this.click);
   },
   created() {
     this.loadBooks(this.$route.params);
@@ -85,24 +105,26 @@ export default {
   min-height: 100vh;
   text-align: center;
 }
+.bookChangeColumn {
+  position: absolute;
+  height: 100%;
+  width: 33vw;
+  z-index: 15 !important;
+}
+#booksWindow .upArrow {
+  cursor: n-resize;
+}
+#booksWindow .downArrow {
+  cursor: s-resize;
+  right: 0 !important;
+}
 </style>
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
-#booksWindow .v-window__prev,
-#booksWindow .v-window__next {
+#booksWindow .v-window__controls {
   position: fixed;
   top: 48px;
-  width: 33vw;
   height: calc(100vh - 96px);
-  border-radius: 0;
-  margin: 0;
-  opacity: 0;
-  z-index: 10;
-}
-#booksWindow .v-window__prev {
-  cursor: w-resize;
-}
-#booksWindow .v-window__next {
-  cursor: e-resize;
+  padding: 0;
 }
 </style>

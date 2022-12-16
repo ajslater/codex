@@ -5,6 +5,7 @@
     show-arrows
     :model-value="activePage"
   >
+    <!--
     <div
       id="bookChangeActivatorPrev"
       class="bookChangeActivatorColumn"
@@ -17,6 +18,7 @@
       :class="{ downArrow: bookExists('next') }"
       @click.stop="setBookChange('next')"
     />
+-->
     <template #prev>
       <PageChangeLink direction="prev" />
     </template>
@@ -53,8 +55,8 @@
 import _ from "lodash";
 import { mapActions, mapState } from "pinia";
 
-import PageChangeLink from "@/components/reader/change-page-link.vue";
 import BookPage from "@/components/reader/page.vue";
+import PageChangeLink from "@/components/reader/page-change-link.vue";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
@@ -120,18 +122,10 @@ export default {
     }
     this.activePage = page;
   },
-  mounted() {
-    const windowContainer = this.$refs.pagesWindow.$el.children[0];
-    windowContainer.addEventListener("click", this.click);
-  },
-  unmounted() {
-    const windowContainer = this.$refs.pagesWindow.$el.children[0];
-    windowContainer.removeEventListener("click", this.click);
-  },
   methods: {
     ...mapActions(useReaderStore, [
       "routeToPage",
-      "setBookChangeFlag",
+      // "setBookChangeFlag",
       "setRoutesAndBookmarkPage",
       "setRoutes",
       "getSettings",
@@ -156,6 +150,7 @@ export default {
       this.setRoutesAndBookmarkPage(+this.$route.params.page);
       window.scrollTo(0, 0);
     },
+    /*
     setBookChange(direction) {
       if (this.bookRoutes[direction]) {
         this.setBookChangeFlag(direction);
@@ -166,6 +161,7 @@ export default {
     bookExists(direction) {
       return Boolean(this.bookRoutes[direction]);
     },
+    */
   },
 };
 </script>
@@ -176,36 +172,13 @@ export default {
   min-height: 100vh;
   text-align: center;
 }
-.bookChangeActivatorColumn {
-  position: fixed;
-  top: 48px;
-  width: 33vw;
-  height: calc(100vh - 96px);
-  z-index: 5;
-}
-#bookChangeActivatorPrev {
-  left: 0px;
-}
-.upArrow {
-  cursor: n-resize;
-}
-#bookChangeActivatorNext {
-  right: 0px;
-}
-.downArrow {
-  cursor: s-resize;
-}
 </style>
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
-#pagesWindow .v-window__prev,
-#pagesWindow .v-window__next {
+#pagesWindow .v-window__controls {
   position: fixed;
   top: 48px;
-  width: 33vw;
   height: calc(100vh - 96px);
-  border-radius: 0;
-  opacity: 0;
-  z-index: 10;
+  padding: 0;
 }
 </style>
