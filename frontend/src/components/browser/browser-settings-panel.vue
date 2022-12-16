@@ -55,9 +55,3 @@ export default {
   color: rgb(var(--v-theme-textDisabled));
 }
 </style>
-<style lang="scss">
-/* v-navigation drawer imparts a lot of nonsense here messing up colors */
-.browserGroupCheckbox .v-label {
-  opacity: 1.2 !important;
-}
-</style>
