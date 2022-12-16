@@ -60,7 +60,7 @@ export default {
 .readerNavToolbar {
   bottom: env(safe-area-inset-bottom);
   width: 100%;
-  z-index: 10;
+  z-index: 20;
 }
 </style>
 

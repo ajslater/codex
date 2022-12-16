@@ -185,6 +185,9 @@ export default {
 
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
+#readerTopToolbar {
+  z-index: 20;
+}
 #readerTopToolbar .v-toolbar__content {
   padding: 0px;
 }
