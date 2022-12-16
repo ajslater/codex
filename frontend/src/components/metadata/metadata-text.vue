@@ -1,9 +1,5 @@
 <template>
-  <div
-    v-if="computedValue"
-    class="text background-soft-highlight"
-    :class="{ highlight }"
-  >
+  <div v-if="computedValue" class="text" :class="{ highlight }">
     <div class="textLabel">
       {{ label }}
     </div>
@@ -65,16 +61,14 @@ export default {
   padding: 10px;
   border-radius: 3px;
   max-width: 100%;
+  background-color: rgb(var(--v-theme-surface));
 }
 .textLabel {
   font-size: 12px;
   color: rgb(var(--v-theme-textSecondary));
 }
 .highlight .textContent {
-  background-color: rgba(
-    var(--v-theme-primary),
-    var(--v-theme-highlightOpactiy)
-  );
+  background-color: rgb(var(--v-theme-primary));
   padding: 0px 8px 0px 8px;
   border-radius: 12px;
 }
