@@ -9,7 +9,6 @@
         title="Admin Status"
         :admin-menu="false"
         :panel="AdminSettingsPanel"
-        :mobile-breakpoint="960"
       />
     </div>
     <div v-else id="announcement">

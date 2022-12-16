@@ -51,7 +51,7 @@ export default {
   computed: {
     ...mapGetters(useAdminStore, ["librariesExist"]),
     rightSpace() {
-      return !this.$vuetify.display.mobile;
+      return !this.$vuetify.display.smAndDown;
     },
   },
   watch: {

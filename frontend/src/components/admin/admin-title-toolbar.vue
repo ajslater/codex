@@ -31,11 +31,11 @@ export default {
   computed: {
     ...mapWritableState(useCommonStore, ["isSettingsDrawerOpen"]),
     rightSpace() {
-      return !this.$vuetify.display.mobile;
+      return !this.$vuetify.display.smAndDown;
     },
   },
   mounted() {
-    this.isSettingsDrawerOpen = !this.$vuetify.display.mobile;
+    this.isSettingsDrawerOpen = !this.$vuetify.display.smAndDown;
   },
 };
 </script>
