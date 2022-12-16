@@ -1,7 +1,8 @@
 <template>
   <v-btn
     class="orderReverseButton"
-    density="compact"
+    :density="density"
+    height="46"
     icon
     variant="flat"
     v-bind="$attrs"
@@ -25,6 +26,9 @@ export default {
       orderIcon: (state) =>
         state.settings.orderReverse ? mdiSortVariant : mdiSortReverseVariant,
     }),
+    density() {
+      return this.$vuetify.display.smAndDown ? "compact" : "default";
+    },
   },
   methods: {
     ...mapActions(useBrowserStore, ["setSettings"]),
@@ -38,4 +42,7 @@ export default {
 
 <style scoped lang="scss">
 /* #orderSelect style is handled in browser/filter-toolbar.vue */
+.orderReverseButton {
+  border-radius: 5px;
+}
 </style>
