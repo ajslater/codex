@@ -1,10 +1,5 @@
 <template>
-  <v-btn
-    class="readerNavButton"
-    :disabled="disabled"
-    :to="toRoute"
-    size="large"
-  >
+  <v-btn class="readerNavButton" :disabled="disabled" :to="toRoute" height="48">
     {{ value }}
   </v-btn>
 </template>
@@ -41,3 +36,10 @@ export default {
   },
 };
 </script>
+
+<style scoped lang="scss">
+.readerNavButton {
+  margin-inline-start: 0 !important;
+  margin-inline-end: 0 !important;
+}
+</style>
