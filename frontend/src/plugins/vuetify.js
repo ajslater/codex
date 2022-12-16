@@ -47,7 +47,7 @@ export default new createVuetify({
     VProgressCircular: {
       color: codexTheme.colors.primary,
     },
-    VRadio: {
+    VRadioGroup: {
       color: codexTheme.colors.primary,
     },
     VSelect: {

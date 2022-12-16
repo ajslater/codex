@@ -1,8 +1,8 @@
 <template>
   <div id="readerSettings">
-    <v-radio-group v-model="isGlobalScope" label="Scope">
-      <v-radio density="compact" label="Only this comic" :value="false" />
-      <v-radio density="compact" label="Default for all comics" :value="true" />
+    <v-radio-group density="compact" v-model="isGlobalScope" label="Scope">
+      <v-radio label="Only this comic" :value="false" />
+      <v-radio label="Default for all comics" :value="true" />
     </v-radio-group>
     <v-radio-group
       class="displayRadioGroup"
