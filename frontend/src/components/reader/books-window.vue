@@ -78,6 +78,7 @@ export default {
 
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
+// These window controls also cacade into the pages-window
 #booksWindow .windowItem {
   /* keeps clickable area full screen when image is small */
   min-height: 100vh;
