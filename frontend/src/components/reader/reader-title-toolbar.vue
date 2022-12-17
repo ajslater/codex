@@ -8,11 +8,9 @@
         </v-icon>
       </v-btn>
     </v-toolbar-items>
-    <v-spacer />
     <v-toolbar-title id="toolbarTitle" class="codexToolbarTitle">
       {{ activeTitle }}
     </v-toolbar-title>
-    <v-spacer />
     <span v-if="seriesPosition" id="seriesPosition" title="Series Position">{{
       seriesPosition
     }}</span>
@@ -152,10 +150,8 @@ export default {
   padding-right: calc(env(safe-area-inset-right) / 2);
 }
 #toolbarTitle {
-  overflow-y: auto;
-  text-overflow: clip;
-  white-space: normal;
   font-size: clamp(8pt, 2.5vw, 18pt);
+  line-height: normal;
 }
 #seriesPosition {
   padding-left: 10px;
@@ -190,6 +186,10 @@ export default {
 }
 #readerTopToolbar .v-toolbar__content {
   padding: 0px;
+}
+#readerTopToolbar .v-toolbar-title__placeholder {
+  text-overflow: clip;
+  white-space: normal;
 }
 #readerTopToolbar .tagButton {
   min-width: 24px;
