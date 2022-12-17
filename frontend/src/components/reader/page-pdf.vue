@@ -1,6 +1,5 @@
 <template>
   <vue-pdf-embed
-    ref="pdfembed"
     class="pdfPage"
     :class="fitToClass"
     :page="1"

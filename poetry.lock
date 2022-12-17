@@ -718,14 +718,14 @@ files = [
 
 [[package]]
 name = "djlint"
-version = "1.19.8"
+version = "1.19.9"
 description = "HTML Template Linter and Formatter"
 category = "dev"
 optional = false
 python-versions = ">=3.7.2,<4.0.0"
 files = [
-    {file = "djlint-1.19.8-py3-none-any.whl", hash = "sha256:f572abe654fcc2e44f7fbb4657260d749199d30a9c8cc9f42802a3030b55c559"},
-    {file = "djlint-1.19.8.tar.gz", hash = "sha256:ce2be7d72e765bed4e64686392e1e3ce60cb4b5f7f11ab0bb5d7dab0b9975872"},
+    {file = "djlint-1.19.9-py3-none-any.whl", hash = "sha256:154a5bdc811484c39ce2e772ae9c709752f01de12fd4dfffd6b1302fc29d2b63"},
+    {file = "djlint-1.19.9.tar.gz", hash = "sha256:91178c070c3ac2d2e9a5438181bcdcf52d45630b771eead861bc10142edd9c98"},
 ]
 
 [package.dependencies]
@@ -744,14 +744,14 @@ tqdm = ">=4.62.2,<5.0.0"
 
 [[package]]
 name = "drf-spectacular"
-version = "0.25.0"
+version = "0.25.1"
 description = "Sane and flexible OpenAPI 3 schema generation for Django REST framework"
 category = "main"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "drf-spectacular-0.25.0.tar.gz", hash = "sha256:5dbda8112226e7b72e7b8039eefc955bd8f8fa429efca5407d402b0382cd1ae3"},
-    {file = "drf_spectacular-0.25.0-py3-none-any.whl", hash = "sha256:43251ffd4c0af9302fa57af9879986ed2796933f51cd392d1331dcceb3152631"},
+    {file = "drf-spectacular-0.25.1.tar.gz", hash = "sha256:789696f9845ef2397c52f66154aec6d96411baf6aa09a5d40c5f0b0e99f6b3d8"},
+    {file = "drf_spectacular-0.25.1-py3-none-any.whl", hash = "sha256:d58684e702f5ad436c5bd1735d46df0e123e64de883092d38f1debb9fa4a03c9"},
 ]
 
 [package.dependencies]
@@ -1235,14 +1235,14 @@ files = [
 
 [[package]]
 name = "isort"
-version = "5.11.2"
+version = "5.11.3"
 description = "A Python utility / library to sort Python imports."
 category = "dev"
 optional = false
 python-versions = ">=3.7.0"
 files = [
-    {file = "isort-5.11.2-py3-none-any.whl", hash = "sha256:e486966fba83f25b8045f8dd7455b0a0d1e4de481e1d7ce4669902d9fb85e622"},
-    {file = "isort-5.11.2.tar.gz", hash = "sha256:dd8bbc5c0990f2a095d754e50360915f73b4c26fc82733eb5bfc6b48396af4d2"},
+    {file = "isort-5.11.3-py3-none-any.whl", hash = "sha256:83155ffa936239d986b0f190347a3f2285f42a9b9e1725c89d865b27dd0627e5"},
+    {file = "isort-5.11.3.tar.gz", hash = "sha256:a8ca25fbfad0f7d5d8447a4314837298d9f6b23aed8618584c894574f626b64b"},
 ]
 
 [package.extras]
