@@ -1,10 +1,5 @@
 <template>
-  <v-window
-    id="pagesWindow"
-    ref="pagesWindow"
-    show-arrows
-    :model-value="activePage"
-  >
+  <v-window show-arrows :model-value="activePage">
     <template #prev>
       <PageChangeLink direction="prev" />
     </template>
