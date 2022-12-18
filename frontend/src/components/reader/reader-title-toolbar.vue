@@ -57,8 +57,16 @@ export default {
   },
   head() {
     const page = this.$route.params.page;
-    const content = `read ${this.title} page ${page}`;
-    return { meta: [{ hid: "description", name: "description", content }] };
+    const content = `reader ${this.activeTitle} page ${page}`;
+    return {
+      meta: [
+        {
+          hid: "description",
+          name: "description",
+          content,
+        },
+      ],
+    };
   },
   computed: {
     ...mapGetters(useReaderStore, ["activeTitle", "activeBook"]),

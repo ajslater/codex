@@ -30,9 +30,8 @@ import { mdiBookArrowDown, mdiBookArrowUp } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import { getComicPageSource } from "@/api/v3/reader";
+import { linksInfo } from "@/components/reader/prefetch-links";
 import { useReaderStore } from "@/stores/reader";
-
-const PREFETCH_LINK = { rel: "prefetch", as: "image" };
 
 export default {
   name: "BookChangeDrawer",
@@ -43,16 +42,7 @@ export default {
     },
   },
   head() {
-    const links = [];
-    if (this.prefetchSrc1) {
-      links.push({ ...PREFETCH_LINK, href: this.prefetchSrc1 });
-    }
-    if (this.prefetchSrc2) {
-      links.push({ ...PREFETCH_LINK, href: this.prefetchSrc2 });
-    }
-    if (links.length > 0) {
-      return { link: links };
-    }
+    return linksInfo([this.prefetchSrc1, this.prefetchSrc2]);
   },
   computed: {
     ...mapState(useReaderStore, {
