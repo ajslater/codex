@@ -4,9 +4,8 @@
     v-model="model"
     multiple
     class="tags"
-    :class="{ 'background-soft-highlight': true }"
   >
-    <h3 class="subheader">
+    <h3 class="label">
       {{ label }}
     </h3>
     <v-item-group>
@@ -73,13 +72,11 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.subheader {
-  padding-left: 8px;
-  padding-top: 0px;
-  height: 32px;
-}
 .tags {
-  border-radius: 3px;
   padding: 10px;
+  background-color: rgb(var(--v-theme-surface));
+}
+.label {
+  padding-right: 0.5em;
 }
 </style>
