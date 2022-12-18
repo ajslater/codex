@@ -70,7 +70,7 @@ const config = defineConfig(({ mode }) => {
         output: {
           manualChunks: {
             admin: ["./src/admin.vue", ...ADMIN_COMPONENT_FNS],
-            "admin-drawer": ADMIN_DRAWER_COMPONENT_FNS,
+            "admin-drawer-panel": ADMIN_DRAWER_COMPONENT_FNS,
           },
         },
       },
