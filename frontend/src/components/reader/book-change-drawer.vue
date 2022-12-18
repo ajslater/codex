@@ -56,12 +56,6 @@ export default {
         const limit = maxPage + adj;
         return +this.$route.params.page >= limit;
       },
-      prefetchSrc1(state) {
-        if (!this.isDrawerOpen || !this.params) {
-          return false;
-        }
-        return getComicPageSource(this.params, state.timestamp);
-      },
       prefetchSrc2(state) {
         const book = state.books.get(this.params.pk);
         const bookSettings = book ? book.settings || {} : {};
@@ -73,7 +67,7 @@ export default {
           return false;
         }
         const params = { pk: this.params.pk, page: this.params.page + 1 };
-        return getComicPageSource(params, state.timestamp);
+        return getComicPageSource(params);
       },
       isDrawerOpen(state) {
         return state.bookChange === this.direction;
@@ -85,6 +79,12 @@ export default {
         return this.direction === "next" ? mdiBookArrowDown : mdiBookArrowUp;
       },
     }),
+    prefetchSrc1() {
+      if (!this.isDrawerOpen || !this.params) {
+        return false;
+      }
+      return getComicPageSource(this.params);
+    },
     route() {
       return this.params ? { params: this.params } : {};
     },

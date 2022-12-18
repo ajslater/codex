@@ -20,11 +20,16 @@ const downloadIOSPWAFix = (href, fileName) => {
     .catch(console.warn);
 };
 
+export const getReaderBasePath = (pk) => {
+  return `${window.CODEX.API_V3_PATH}c/${pk}`;
+};
+
 const getVersions = (ts) => {
   return HTTP.get(`/version?ts=${ts}`);
 };
 
 export default {
   downloadIOSPWAFix,
+  getReaderBasePath,
   getVersions,
 };

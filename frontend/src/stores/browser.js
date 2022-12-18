@@ -5,6 +5,7 @@ import API from "@/api/v3/browser";
 import CHOICES from "@/choices";
 import router from "@/plugins/router";
 import { useAuthStore } from "@/stores/auth";
+import { useCommonStore } from "@/stores/common";
 
 export const NUMERIC_FILTERS = [
   "communityRating",
@@ -61,7 +62,6 @@ export const useBrowserStore = defineStore("browser", {
       orderBy: undefined,
       orderReverse: undefined,
       show: { ...SETTINGS_SHOW_DEFAULTS },
-      ts: Date.now(),
     },
     page: {
       adminFlags: {
@@ -222,19 +222,16 @@ export const useBrowserStore = defineStore("browser", {
       }
 
       this.filterMode = "base";
-      this.setTimestamp();
+      useCommonStore().setTimestamp();
       return redirect;
-    },
-    setTimestamp() {
-      this.settings.ts = Date.now();
     },
     async clearFiltersAndChoices() {
       this.$patch((state) => {
         state.filterMode = "base";
         state.settings.filters = {};
         state.choices.dynamic = {};
-        state.settings.ts = Date.now();
       });
+      useCommonStore().setTimestamp();
       await this.loadBrowserPage();
     },
     async setSettings(data) {
@@ -247,7 +244,7 @@ export const useBrowserStore = defineStore("browser", {
         return;
       }
       await API.setGroupBookmarks(params, { finished }).then(() => {
-        this.setTimestamp();
+        useCommonStore().setTimestamp();
         this.loadBrowserPage();
         return true;
       });

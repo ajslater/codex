@@ -29,11 +29,6 @@ export default {
       params(state) {
         return state.routes[this.direction];
       },
-      prefetchSrc1(state) {
-        return this.params
-          ? getComicPageSource(this.params, state.timestamp)
-          : false;
-      },
       prefetchSrc2(state) {
         const book = state.books.get(this.params.pk);
         if (!book) {
@@ -48,9 +43,13 @@ export default {
         if (paramsPlus.page > book.maxPage) {
           return false;
         }
-        return getComicPageSource(paramsPlus, state.timestamp);
+        return getComicPageSource(paramsPlus);
       },
     }),
+    prefetchSrc1() {
+      return this.params ? getComicPageSource(this.params) : false;
+    },
+
     route() {
       return this.params ? { params: this.params } : {};
     },

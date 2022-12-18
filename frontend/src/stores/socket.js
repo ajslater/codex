@@ -7,7 +7,7 @@ import router from "@/plugins/router";
 import { useAdminStore } from "@/stores/admin";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
-import { useReaderStore } from "@/stores/reader";
+import { useCommonStore } from "@/stores/common";
 import { store } from "@/stores/store";
 
 const WS_TIMEOUT = 19 * 1000;
@@ -24,13 +24,10 @@ const wsKeepAlive = function (ws) {
 };
 
 const libraryChanged = function () {
-  const browserStore = useBrowserStore();
-  const readerStore = useReaderStore();
-  browserStore.setTimestamp();
-  readerStore.setTimestamp();
+  useCommonStore().setTimestamp();
   const route = router.currentRoute.value;
   if (route.name === "browser") {
-    browserStore.loadBrowserPage({ showProgress: false });
+    useBrowserStore().loadBrowserPage({ showProgress: false });
   } else if (route.name == "admin-libraries") {
     useAdminStore().loadTables(["Library", "FailedImport"]);
   }

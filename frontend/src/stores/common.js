@@ -86,5 +86,8 @@ export const useCommonStore = defineStore("common", {
         state.form.success = "";
       });
     },
+    setTimestamp() {
+      this.timestamp = Date.now();
+    }
   },
 });
