@@ -1,3 +1,5 @@
+import { useCommonStore } from "@/stores/common";
+
 import { HTTP } from "./base";
 
 const downloadIOSPWAFix = (href, fileName) => {
@@ -24,12 +26,17 @@ export const getReaderBasePath = (pk) => {
   return `${window.CODEX.API_V3_PATH}c/${pk}`;
 };
 
-const getVersions = (ts) => {
+export const getTSParams = () => {
+  return { ts: useCommonStore().timestamp };
+};
+
+export const getVersions = (ts) => {
   return HTTP.get(`/version?ts=${ts}`);
 };
 
 export default {
   downloadIOSPWAFix,
   getReaderBasePath,
+  getTSParams,
   getVersions,
 };

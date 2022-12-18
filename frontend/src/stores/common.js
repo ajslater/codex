@@ -88,6 +88,6 @@ export const useCommonStore = defineStore("common", {
     },
     setTimestamp() {
       this.timestamp = Date.now();
-    }
+    },
   },
 });
