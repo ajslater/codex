@@ -61,6 +61,11 @@ export default {
     ...mapGetters(useAuthStore, ["isCodexViewable"]),
     ...mapWritableState(useCommonStore, ["isSettingsDrawerOpen"]),
   },
+  mounted() {
+    if (this.adminMenu) {
+      this.isSettingsDrawerOpen = !this.$vuetify.display.smAndDown;
+    }
+  },
 };
 </script>
 

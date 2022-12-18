@@ -1,11 +1,5 @@
 <template>
-  <v-toolbar
-    id="titleBar"
-    class="codexToolbar"
-    :class="{ rightSpace }"
-    density="compact"
-    elevation="8"
-  >
+  <v-toolbar id="titleBar" class="codexToolbar" density="compact" elevation="8">
     <div id="buttonSpacer" />
     <v-toolbar-title class="codexToolbarTitle">
       Codex Administration
@@ -30,12 +24,6 @@ export default {
   },
   computed: {
     ...mapWritableState(useCommonStore, ["isSettingsDrawerOpen"]),
-    rightSpace() {
-      return !this.$vuetify.display.smAndDown;
-    },
-  },
-  mounted() {
-    this.isSettingsDrawerOpen = !this.$vuetify.display.smAndDown;
   },
 };
 </script>
@@ -53,8 +41,5 @@ export default {
   padding-top: env(safe-area-inset-top);
   padding-right: calc(env(safe-area-inset-right) / 2);
   padding-left: calc(env(safe-area-inset-left) / 2);
-}
-.rightSpace {
-  width: calc(100% - 256px) !important;
 }
 </style>

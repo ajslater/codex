@@ -1,12 +1,6 @@
 <template>
   <div id="tabContainer">
-    <v-tabs
-      id="tabs"
-      :class="{ rightSpace: rightSpace }"
-      centered
-      grow
-      show-arrows
-    >
+    <v-tabs id="tabs" centered grow show-arrows>
       <v-tab
         v-for="tab in tabs"
         :key="tab"
@@ -105,9 +99,6 @@ $task-width: 256px;
 #noLibraries {
   text-align: center;
   padding: 1em;
-}
-.rightSpace {
-  width: calc(100% - 256px) !important;
 }
 </style>
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
