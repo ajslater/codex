@@ -1,12 +1,9 @@
 """Serializer mixins."""
-from datetime import datetime
-
 from django.db.models import F, Q
 from rest_framework.serializers import (
     BooleanField,
     CharField,
     DecimalField,
-    Field,
     IntegerField,
     Serializer,
 )
@@ -28,14 +25,6 @@ COMIC_M2M_NAME_FIELDS = frozenset(
 )
 AUTHOR_ROLES = set(("Writer", "Author", "Plotter", "Scripter", "Creator"))
 AUTHOR_ROLES_QUERY = {"credits__role__name__in": AUTHOR_ROLES}
-
-
-class TimestampField(Field):
-    """Datetime Field represented as an integer."""
-
-    def to_representation(self, value: datetime):
-        """Return integer timestamp from datetime."""
-        return value.timestamp()
 
 
 class BrowserAggregateBaseSerializerMixin(Serializer):
