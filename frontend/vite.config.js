@@ -25,6 +25,12 @@ try {
 const BASE_PATH = rootPath + "/static/";
 const VITE_HMR_URL_PREFIXES = ["node_modules", "src", "@id", "@vite/client"];
 
+const ADMIN_COMPONENT_DIR = "./src/components/admin";
+const ADMIN_COMPONENT_FNS = fs
+  .readdirSync(ADMIN_COMPONENT_DIR)
+  .filter((fn) => fn.at(-1) !== "~")
+  .map((fn) => ADMIN_COMPONENT_DIR + "/" + fn);
+
 const config = defineConfig(({ mode }) => {
   const PROD = mode === "production";
   const DEV = mode === "development";
@@ -56,6 +62,11 @@ const config = defineConfig(({ mode }) => {
       rollupOptions: {
         // No need for index.html
         input: path.resolve("./src/main.js"),
+        output: {
+          manualChunks: {
+            admin: ["./src/admin.vue", ...ADMIN_COMPONENT_FNS],
+          },
+        },
       },
       sourcemap: DEV,
     },
