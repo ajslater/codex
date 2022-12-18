@@ -28,8 +28,13 @@ const VITE_HMR_URL_PREFIXES = ["node_modules", "src", "@id", "@vite/client"];
 const ADMIN_COMPONENT_DIR = "./src/components/admin";
 const ADMIN_COMPONENT_FNS = fs
   .readdirSync(ADMIN_COMPONENT_DIR)
-  .filter((fn) => fn.at(-1) !== "~")
+  .filter((fn) => fn !== "drawer" && fn.at(-1) !== "~")
   .map((fn) => ADMIN_COMPONENT_DIR + "/" + fn);
+const ADMIN_DRAWER_COMPONENT_DIR = ADMIN_COMPONENT_DIR + "/drawer";
+const ADMIN_DRAWER_COMPONENT_FNS = fs
+  .readdirSync(ADMIN_DRAWER_COMPONENT_DIR)
+  .filter((fn) => fn.at(-1) !== "~")
+  .map((fn) => ADMIN_DRAWER_COMPONENT_DIR + "/" + fn);
 
 const config = defineConfig(({ mode }) => {
   const PROD = mode === "production";
@@ -65,6 +70,7 @@ const config = defineConfig(({ mode }) => {
         output: {
           manualChunks: {
             admin: ["./src/admin.vue", ...ADMIN_COMPONENT_FNS],
+            "admin-drawer": ADMIN_DRAWER_COMPONENT_FNS,
           },
         },
       },

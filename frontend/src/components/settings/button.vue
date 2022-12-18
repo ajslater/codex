@@ -16,7 +16,7 @@ import { useAuthStore } from "@/stores/auth";
 
 const AdminSettingsDrawerButtonIcon = markRaw(
   defineAsyncComponent(() =>
-    import("@/components/admin/admin-settings-button-icon.vue")
+    import("@/components/admin/drawer/admin-settings-button-icon.vue")
   )
 );
 
