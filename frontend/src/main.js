@@ -7,8 +7,8 @@ import App from "@/app.vue";
 import router from "@/plugins/router";
 import { setupNativeSock } from "@/plugins/vue-native-sock";
 import vuetify from "@/plugins/vuetify";
-import { setupStore } from "@/stores/store";
 import { setupHead } from "@/plugins/vueuse-head";
+import { setupStore } from "@/stores/store";
 
 const app = createApp(App);
 
