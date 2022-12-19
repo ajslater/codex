@@ -14,7 +14,7 @@
             <td>
               {{ roleName(credit.role.name) }}
             </td>
-            <td :class="{ filteredOn: creditFilteredOn(credit.person.pk) }">
+            <td :class="{ filteredOn: isFilteredCreator(credit.person.pk) }">
               {{ credit.person.name }}
             </td>
           </tr>
@@ -46,8 +46,7 @@ export default {
       return this.value ? [...this.value].sort(this.creditsCompare) : [];
     },
     ...mapState(useBrowserStore, {
-      filterValues: function (state) {
-        console.log(state.settings.filters.creators);
+      filteredCreators(state) {
         return state.settings.filters.creators;
       },
     }),
@@ -79,8 +78,8 @@ export default {
       if (creditSortableA > creditSortableB) return 1;
       return 0;
     },
-    creditFilteredOn(pk) {
-      return this.filterValues && this.filterValues.includes(pk);
+    isFilteredCreator(pk) {
+      return this.filteredCreators && this.filteredCreators.includes(pk);
     },
   },
 };
