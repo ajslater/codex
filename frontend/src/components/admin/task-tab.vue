@@ -96,7 +96,7 @@ export default {
   padding: 12px;
   margin: 10px;
   border-radius: 5px;
-  background-color: rgb(var(--v-theme-surface-light));
+  background-color: rgb(var(--v-theme-on-surface-variant));
 }
 .taskDesc {
   vertical-align: top;
