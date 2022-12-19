@@ -155,5 +155,6 @@ export default {
 .cuForm {
   padding: 20px;
   max-height: 100%;
+  overflow-y: scroll;
 }
 </style>
