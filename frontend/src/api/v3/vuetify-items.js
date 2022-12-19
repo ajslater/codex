@@ -2,35 +2,34 @@
 import CHOICES from "@/choices";
 const VUETIFY_NULL_CODE = CHOICES.browser.vuetifyNullCode;
 const NULL_NAME = "None";
-const NULL_ITEM = { pk: VUETIFY_NULL_CODE, name: NULL_NAME };
+const NULL_ITEM = { value: VUETIFY_NULL_CODE, title: NULL_NAME };
 
-// TODO shouldn't this be value, title not pk / name??
 const toVuetifyItem = function (item, charPk) {
   // Translates an raw value or an item item into a vuetify item.
   let vuetifyItem;
   if (item === undefined) {
     vuetifyItem = item;
   } else if (item instanceof Object) {
-    vuetifyItem = item;
-    if (vuetifyItem.pk === null || vuetifyItem.pk === undefined) {
-      vuetifyItem.pk = VUETIFY_NULL_CODE;
+    vuetifyItem = { value: item.pk, title: item.name };
+    if (item.pk === null || item.name === undefined) {
+      vuetifyItem.value = VUETIFY_NULL_CODE;
     } else if (!charPk) {
-      vuetifyItem.pk = +vuetifyItem.pk;
+      vuetifyItem.value = +item.pk;
     }
-    if (vuetifyItem.name === null || vuetifyItem.pk === undefined) {
-      vuetifyItem.name = NULL_NAME;
+    if (vuetifyItem.title === null || vuetifyItem.value === undefined) {
+      vuetifyItem.title = NULL_NAME;
     }
   } else if (item === null) {
     vuetifyItem = NULL_ITEM;
   } else {
-    vuetifyItem = { pk: item, name: item.toString() };
+    vuetifyItem = { value: item, title: item.toString() };
   }
   return vuetifyItem;
 };
 
 const vuetifyItemCompare = function (itemA, itemB) {
-  if (itemA.name < itemB.name) return -1;
-  if (itemA.name > itemB.name) return 1;
+  if (itemA.title < itemB.title) return -1;
+  if (itemA.title > itemB.title) return 1;
   return 0;
 };
 

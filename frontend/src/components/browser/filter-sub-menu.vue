@@ -44,23 +44,11 @@
           v-if="typeof choices === 'object'"
           :model-value="filter"
           class="filterGroup overflow-y-auto"
+          density="compact"
           multiple
+          :items="vuetifyItems"
           @update:selected="selected"
-        >
-          <v-list-item
-            v-for="item of vuetifyItems"
-            :key="`${name}:${item.name}`"
-            :value="item.pk"
-            density="compact"
-          >
-            <v-list-item-title v-if="isNullPk(item.pk)" class="noneItem">
-              None
-            </v-list-item-title>
-            <v-list-item-title v-else>
-              {{ item.name }}
-            </v-list-item-title>
-          </v-list-item>
-        </v-list>
+        />
       </div>
     </v-slide-x-reverse-transition>
   </div>
@@ -110,7 +98,7 @@ export default {
       },
     }),
     ...mapWritableState(useBrowserStore, ["filterMode"]),
-    vuetifyItems: function () {
+    vuetifyItems() {
       return toVuetifyItems(
         this.choices,
         this.query,
@@ -144,6 +132,9 @@ export default {
       };
       this.$emit("selected", data);
     },
+    itemTitle(item) {
+      return this.isNullPk(item.value) ? "None" : item.title;
+    },
   },
 };
 </script>
@@ -166,8 +157,8 @@ export default {
 .filterGroup {
   max-height: 80vh; /* has to be less than the menu height */
 }
-.noneItem {
-  color: rbg(var(--v-theme-textDisabled));
+:deep(.noneItem .v-item-title) {
+  color: rbg(var(--v-theme-textDisabled)) !important;
 }
 .filterValuesProgress {
   margin: 10px;
