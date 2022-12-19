@@ -31,7 +31,8 @@ export const getTSParams = () => {
 };
 
 export const getVersions = (ts) => {
-  return HTTP.get(`/version?ts=${ts}`);
+  const params = { ts }
+  return HTTP.get("/version", { params });
 };
 
 export default {
