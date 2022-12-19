@@ -62,9 +62,8 @@ export default {
     ...mapWritableState(useCommonStore, ["isSettingsDrawerOpen"]),
   },
   mounted() {
-    if (this.adminMenu) {
-      this.isSettingsDrawerOpen = !this.$vuetify.display.smAndDown;
-    }
+    this.isSettingsDrawerOpen =
+      !this.adminMenu && !this.$vuetify.display.smAndDown;
   },
 };
 </script>
