@@ -111,7 +111,6 @@ export default {
           // For some reason with vue3 i need another delay.
           setTimeout(function () {
             window.scrollBy(0, HEADER_OFFSET);
-            console.log("after offset");
           }, 100);
         },
         // A little hacky delay makes it work even more frequently.
