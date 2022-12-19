@@ -6,6 +6,7 @@
     icon
     variant="elevated"
     v-bind="$attrs"
+    :title="title"
     @click="toggleOrderReverse"
   >
     <v-icon>{{ orderIcon }}</v-icon>
@@ -29,10 +30,13 @@ export default {
     density() {
       return this.$vuetify.display.smAndDown ? "compact" : "default";
     },
+    title() {
+      return this.orderReverseSetting ? "order descending" : "order ascending";
+    },
   },
   methods: {
     ...mapActions(useBrowserStore, ["setSettings"]),
-    toggleOrderReverse: function () {
+    toggleOrderReverse() {
       const data = { orderReverse: !this.orderReverseSetting };
       this.setSettings(data);
     },
