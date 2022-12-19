@@ -15,7 +15,9 @@
               {{ roleName(credit.role.name) }}
             </td>
             <td :class="{ filteredOn: isFilteredCreator(credit.person.pk) }">
-              {{ credit.person.name }}
+              <span class="highlight">
+                {{ credit.person.name }}
+              </span>
             </td>
           </tr>
         </tbody>
@@ -97,6 +99,13 @@ export default {
   padding: 10px;
 }
 .filteredOn {
+  padding-left: 0px !important;
+}
+.highlight {
+  border-radius: 20px;
+}
+.filteredOn .highlight {
+  padding: 10px;
   background-color: rgb(var(--v-theme-primary-darken-1));
 }
 </style>
