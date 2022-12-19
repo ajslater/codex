@@ -66,9 +66,6 @@ a {
   background-color: rgb(var(--v-theme-background)) !important;
   border-radius: 5px;
 }
-.v-tabs {
-  background-color: rgb(var(--v-theme-background));
-}
 
 .highlight-table tbody > tr > td {
   border: 0;
@@ -77,11 +74,12 @@ a {
 .highlight-table tbody > tr:nth-child(even) {
   background-color: rgb(var(--v-theme-background)) !important;
 }
+
 .codexToolbar {
   position: fixed !important;
 }
 .codexToolbarTitle {
-  margin-left: 0 !important;
+  margin-inline-start: 0 !important;
 }
 .codexToolbarTitle > .v-toolbar-title__placeholder {
   text-align: center;
