@@ -9,7 +9,7 @@
       :model-value="+$route.params.page"
       :min="+1"
       :max="numPages"
-      @update:modelValue="onUpdate"
+      @update:model-value="onUpdate"
     />
     <BrowserNavButton :back="false" />
   </v-toolbar>

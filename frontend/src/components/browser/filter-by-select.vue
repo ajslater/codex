@@ -12,7 +12,7 @@
     :max-select-len="filterByChoicesMaxLen + 3"
     :mobile-len-adj="-3"
     @click:clear="onClear"
-    @update:modelValue="onUpdateModelValue"
+    @update:model-value="onUpdateModelValue"
     @update:menu="onMenu"
   >
     <template #selection="{ item }">

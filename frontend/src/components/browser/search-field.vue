@@ -15,7 +15,7 @@
     :prepend-inner-icon="mdiMagnify"
     variant="solo"
     @click:clear="doSearch"
-    @click:prependInner="doSearch"
+    @click:prepend-inner="doSearch"
     @keydown.enter="doSearch"
     @keydown.esc="menu = false"
   />

@@ -21,7 +21,7 @@
               :true-value="true"
               :error-messages="getFormErrors(item.pk, 'on')"
               hide-details="auto"
-              @update:modelValue="changeCol(item.pk, 'on', $event)"
+              @update:model-value="changeCol(item.pk, 'on', $event)"
             />
           </td>
         </tr>

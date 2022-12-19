@@ -11,7 +11,7 @@
     :model-value="showSettings[choice.value]"
     :true-value="true"
     :label="`Show ${choice.title}`"
-    @update:modelValue="setShow(choice.value, $event)"
+    @update:model-value="setShow(choice.value, $event)"
   />
   <v-divider />
   <SearchHelp />

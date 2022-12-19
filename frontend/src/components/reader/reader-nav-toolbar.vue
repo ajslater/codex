@@ -13,7 +13,7 @@
       :max="maxPage"
       :step="step"
       :track-color="trackColor"
-      @update:modelValue="routeToPage($event)"
+      @update:model-value="routeToPage($event)"
     />
     <ReaderNavButton :value="maxPage" :two-pages="twoPages" />
   </v-toolbar>

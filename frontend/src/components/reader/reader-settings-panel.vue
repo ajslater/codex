@@ -9,7 +9,7 @@
       density="compact"
       label="Display"
       :model-value="selectedSettings.fitTo"
-      @update:modelValue="settingsDialogChanged({ fitTo: $event })"
+      @update:model-value="settingsDialogChanged({ fitTo: $event })"
     >
       <v-radio
         v-for="item in fitToChoices"
@@ -28,7 +28,7 @@
         selectedSettings.twoPages === null ||
         selectedSettings.twoPages === undefined
       "
-      @update:modelValue="settingsDialogChanged({ twoPages: $event })"
+      @update:model-value="settingsDialogChanged({ twoPages: $event })"
     />
     <v-btn
       id="clearSettingsButton"

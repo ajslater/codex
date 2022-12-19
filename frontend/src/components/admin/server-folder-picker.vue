@@ -10,7 +10,7 @@
     :error-messages="formErrors"
     :menu-props="{ 'model-value': menuOpen }"
     @blur="toggleMenu(false)"
-    @update:modelValue="change"
+    @update:model-value="change"
     @click:append="toggleMenu()"
     @focus="clearErrors"
   >
