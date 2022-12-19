@@ -10,19 +10,6 @@ import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
 import { store } from "@/stores/store";
 
-const WS_TIMEOUT = 19 * 1000;
-
-// TODO replace with heartHearbeatTimer
-// https://github.com/likaia/vue-native-websocket-vue3/blob/master/README-EN.md
-const wsKeepAlive = function (ws) {
-  if (!ws || ws.readyState !== 1) {
-    console.debug("socket not ready, not sending keep-alive.");
-    return;
-  }
-  ws.send("{}");
-  setTimeout(() => wsKeepAlive(ws), WS_TIMEOUT);
-};
-
 const libraryChanged = function () {
   useCommonStore().setTimestamp();
   const route = router.currentRoute.value;
@@ -39,24 +26,29 @@ export const useSocketStore = defineStore("socket", {
     isConnected: false,
     reconnectError: false,
     app: undefined,
+    heartBeatInterval: 5 * 1000,
+    heartBeatTimer: 0,
   }),
   actions: {
     SOCKET_ONOPEN(event) {
-      // const app = getCurrentInstance().appContext;
       this.app.config.globalProperties.$socket = event.currentTarget;
       this.$patch((state) => {
         state.isConnected = true;
         state.reconnectError = false;
       });
-      try {
-        wsKeepAlive(event.currentTarget);
-      } catch (error) {
-        // Activating the Vue dev console breaks currentTarget
-        console.warn("keep-alive", error);
-      }
+      this.heartBeatTimer = window.setInterval(() => {
+        try {
+          this.isConnected &&
+            this.app.config.globalProperties.$socket.send("{}");
+        } catch (error) {
+          console.warn("keep-alive", error);
+        }
+      }, this.heartBeatInterval);
     },
     SOCKET_ONCLOSE() {
       this.isConnected = false;
+      window.clearInterval(this.heartBeatTimer);
+      this.heartBeatTimer = 0;
     },
     SOCKET_ONERROR(event) {
       console.error("socket error", event);
