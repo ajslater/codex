@@ -162,7 +162,15 @@ export default {
   },
   methods: {
     ...mapActions(useAuthStore, ["loadAdminFlags", "login", "register"]),
-    submit: function () {
+    doAuth(mode) {
+      return this[mode](this.credentials)
+        .then(() => {
+          return (this.showDialog =
+            this.formErrors && this.formErrors.length > 0);
+        })
+        .catch(console.error);
+    },
+    submit() {
       const form = this.$refs.form;
       form
         .validate()
@@ -171,12 +179,7 @@ export default {
             return;
           }
           const mode = this.registerMode ? "register" : "login";
-          return this[mode](this.credentials)
-            .then(() => {
-              return (this.showDialog =
-                this.formErrors && this.formErrors.length > 0);
-            })
-            .catch(console.error);
+          return this.doAuth(mode);
         })
         .catch(console.error);
     },

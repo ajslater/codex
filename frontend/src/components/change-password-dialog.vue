@@ -172,7 +172,15 @@ export default {
   methods: {
     ...mapActions(useAuthStore, ["changePassword"]),
     ...mapActions(useCommonStore, ["clearErrors"]),
-    submit: function () {
+    doUserChange() {
+      return useAdminStore()
+        .changeUserPassword(this.user.pk, this.credentials)
+        .catch(console.error);
+    },
+    doSelfChange() {
+      return this.changePassword(this.credentials).catch(console.error);
+    },
+    submit() {
       const form = this.$refs.form;
       if (!form) {
         return;
@@ -183,11 +191,9 @@ export default {
           if (!valid) {
             return;
           } else if (this.isAdminMode) {
-            return useAdminStore()
-              .changeUserPassword(this.user.pk, this.credentials)
-              .catch(console.error);
+            return this.doUserChange();
           } else {
-            return this.changePassword(this.credentials).catch(console.error);
+            return this.doSelfChange();
           }
         })
         .catch(console.error);

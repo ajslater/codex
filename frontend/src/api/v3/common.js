@@ -30,8 +30,8 @@ export const getTSParams = () => {
   return { ts: useCommonStore().timestamp };
 };
 
-export const getVersions = (ts) => {
-  const params = { ts }
+const getVersions = (ts) => {
+  const params = { ts };
   return HTTP.get("/version", { params });
 };
 
