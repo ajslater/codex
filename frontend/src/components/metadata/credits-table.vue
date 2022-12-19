@@ -14,7 +14,7 @@
             <td>
               {{ roleName(credit.role.name) }}
             </td>
-            <td>
+            <td :class="{ filteredOn: creditFilteredOn(credit.person.pk) }">
               {{ credit.person.name }}
             </td>
           </tr>
@@ -25,6 +25,10 @@
 </template>
 
 <script>
+import { mapState } from "pinia";
+
+import { useBrowserStore } from "@/stores/browser";
+
 export default {
   name: "MetadataCreditsTable",
   props: {
@@ -41,6 +45,12 @@ export default {
       /* eslint-disable-next-line array-func/prefer-array-from */
       return this.value ? [...this.value].sort(this.creditsCompare) : [];
     },
+    ...mapState(useBrowserStore, {
+      filterValues: function (state) {
+        console.log(state.settings.filters.creators);
+        return state.settings.filters.creators;
+      },
+    }),
   },
   methods: {
     roleName: function (name) {
@@ -69,6 +79,9 @@ export default {
       if (creditSortableA > creditSortableB) return 1;
       return 0;
     },
+    creditFilteredOn(pk) {
+      return this.filterValues && this.filterValues.includes(pk);
+    },
   },
 };
 </script>
@@ -83,5 +96,8 @@ export default {
 #creditsTable th,
 #creditsTable td {
   padding: 10px;
+}
+.filteredOn {
+  background-color: rgb(var(--v-theme-primary-darken-1));
 }
 </style>

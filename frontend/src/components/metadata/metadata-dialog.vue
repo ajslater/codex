@@ -198,7 +198,6 @@
         :model-value="progress"
         :indeterminate="progress >= 100"
         size="256"
-        :color="$vuetify.theme.current.colors.primary"
         class="placeholder"
         aria-label="tags loading"
       />

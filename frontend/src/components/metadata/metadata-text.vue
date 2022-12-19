@@ -68,7 +68,7 @@ export default {
   color: rgb(var(--v-theme-textSecondary));
 }
 .highlight .textContent {
-  background-color: rgb(var(--v-theme-primary));
+  background-color: rgb(var(--v-theme-primary-darken-1));
   padding: 0px 8px 0px 8px;
   border-radius: 12px;
 }
