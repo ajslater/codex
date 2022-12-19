@@ -70,6 +70,23 @@ export default {
 </script>
 
 <style scoped lang="scss">
+.settingsDrawerContainer {
+  position: relative !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  background-color: rgb(var(--v-theme-surface-dark));
+}
+.settingsHeader {
+  padding: 10px;
+  padding-left: 15px;
+  background-color: rgb(var(--v-theme-on-surface-variant));
+}
+:deep(.v-list-item .v-icon) {
+  color: rgb(var(--v-theme-iconsInactive)) !important;
+  margin-right: 0.33em;
+}
 #footerGroup {
   background-color: rgb(var(--v-theme-surface));
 }

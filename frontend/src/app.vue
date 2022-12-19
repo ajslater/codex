@@ -84,23 +84,4 @@ a {
 .codexToolbarTitle > .v-toolbar-title__placeholder {
   text-align: center;
 }
-
-.settingsDrawerContainer {
-  position: relative !important;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 100%;
-  background-color: rgb(var(--v-theme-surface-dark));
-}
-
-.settingsDrawer .settingsHeader {
-  padding: 10px;
-  padding-left: 15px;
-  background-color: rgb(var(--v-theme-on-surface-variant));
-}
-.settingsDrawer .v-list-item .v-icon {
-  color: rgb(var(--v-theme-iconsInactive)) !important;
-  margin-right: 0.33em;
-}
 </style>
