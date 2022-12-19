@@ -26,11 +26,13 @@ const BASE_PATH = rootPath + "/static/";
 const VITE_HMR_URL_PREFIXES = ["node_modules", "src", "@id", "@vite/client"];
 
 const ADMIN_COMPONENT_DIR = "./src/components/admin";
+// eslint-disable-next-line security/detect-non-literal-fs-filename
 const ADMIN_COMPONENT_FNS = fs
   .readdirSync(ADMIN_COMPONENT_DIR)
   .filter((fn) => fn !== "drawer" && fn.at(-1) !== "~")
   .map((fn) => ADMIN_COMPONENT_DIR + "/" + fn);
 const ADMIN_DRAWER_COMPONENT_DIR = ADMIN_COMPONENT_DIR + "/drawer";
+// eslint-disable-next-line security/detect-non-literal-fs-filename
 const ADMIN_DRAWER_COMPONENT_FNS = fs
   .readdirSync(ADMIN_DRAWER_COMPONENT_DIR)
   .filter((fn) => fn.at(-1) !== "~")
