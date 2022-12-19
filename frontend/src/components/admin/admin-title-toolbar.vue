@@ -1,6 +1,11 @@
 <template>
-  <v-toolbar id="titleBar" class="codexToolbar" density="compact" elevation="8">
-    <div id="buttonSpacer" />
+  <v-toolbar
+    id="titleBar"
+    class="codexToolbar"
+    :class="{ drawerMargin: !$vuetify.display.mdAndDown }"
+    density="compact"
+    elevation="8"
+  >
     <v-toolbar-title class="codexToolbarTitle">
       Codex Administration
     </v-toolbar-title>
@@ -29,9 +34,6 @@ export default {
 </script>
 
 <style scoped lang="scss">
-#buttonSpacer {
-  width: 48px;
-}
 .invisible {
   visibility: hidden;
 }
@@ -40,6 +42,9 @@ export default {
   width: 100%;
   padding-top: env(safe-area-inset-top);
   padding-right: calc(env(safe-area-inset-right) / 2);
-  padding-left: calc(env(safe-area-inset-left) / 2);
+  padding-left: calc(48px + calc(env(safe-area-inset-left) / 2));
+}
+.drawerMargin {
+  width: calc(100% - 256px) !important;
 }
 </style>

@@ -1,6 +1,12 @@
 <template>
   <div id="tabContainer">
-    <v-tabs id="tabs" centered grow show-arrows>
+    <v-tabs
+      id="tabs"
+      :class="{ rightMargin: !$vuetify.display.mdAndDown }"
+      centered
+      grow
+      show-arrows
+    >
       <v-tab
         v-for="tab in tabs"
         :key="tab"
@@ -44,9 +50,6 @@ export default {
   },
   computed: {
     ...mapGetters(useAdminStore, ["librariesExist"]),
-    rightSpace() {
-      return !this.$vuetify.display.smAndDown;
-    },
   },
   watch: {
     $route(to) {
@@ -109,5 +112,8 @@ $task-width: 256px;
 #noLibraries {
   text-align: center;
   padding: 1em;
+}
+.rightMargin {
+  width: calc(100% - 256px) !important;
 }
 </style>
