@@ -71,25 +71,20 @@ $buttonColorHover: rgb(var(--v-theme-linkHover));
 .cardControls:has(> .browserCardMenuIcon:hover) .eye {
   color: $buttonColor;
 }
-</style>
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-$buttonColor: rgb(var(--v-theme-textSecondary));
-$buttonColorHover: rgb(var(--v-theme-linkHover));
 
 /* BOTTOM CONTROLS */
-#browsePaneContainer .cardControlButton {
+:deep(.cardControlButton) {
   position: absolute !important;
   bottom: 0px !important;
   color: $buttonColor !important;
 }
-#browsePaneContainer .tagButton {
+:deep(.tagButton) {
   left: 0px !important;
 }
-#browsePaneContainer .browserCardMenuIcon {
+:deep(.browserCardMenuIcon) {
   right: 0px !important;
 }
-#browsePaneContainer .cardControlButton:hover {
+:deep(.cardControlButton:hover) {
   color: $buttonColorHover !important;
 }
 </style>

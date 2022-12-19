@@ -81,6 +81,9 @@ export default {
   z-index: 10;
   background-color: rgb(var(--v-theme-surface));
 }
+:deep(.tabHeader) {
+  padding: 10px;
+}
 
 $task-width: 256px;
 #tabItems {
@@ -96,21 +99,15 @@ $task-width: 256px;
   padding-left: 10px;
   padding-right: 10px;
 }
-#noLibraries {
-  text-align: center;
-  padding: 1em;
-}
-</style>
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-#tabs .tabHeader {
-  padding: 10px;
-}
-.admin-table {
+:deep(.admin-table) {
   max-width: 100vw !important;
   margin-bottom: 24px;
 }
-.tableCheckbox {
-  height: 48px;
+:deep(.tableCheckbox) {
+  height: 40px;
+}
+#noLibraries {
+  text-align: center;
+  padding: 1em;
 }
 </style>

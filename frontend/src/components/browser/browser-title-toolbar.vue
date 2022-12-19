@@ -118,15 +118,13 @@ export default {
   width: 100vw;
 }
 $upButtonWidth: 64px;
-/* eslint-disable-next-line vue-scoped-css/no-unused-selector */
-#upButton.v-btn {
+:deep(#upButton.v-btn) {
   width: $upButtonWidth;
 }
 .invisible {
   visibility: hidden;
 }
-/* eslint-disable-next-line vue-scoped-css/no-unused-selector */
-#titleToolbar .codexToolbarTitle {
+:deep(.codexToolbarTitle) {
   margin: auto;
   padding-right: $upButtonWidth;
   padding-top: 4px;
@@ -142,8 +140,7 @@ $upButtonWidth: 64px;
 }
 
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
-  /* eslint-disable-next-line vue-scoped-css/no-unused-selector */
-  #titleToolbar .codexToolbarTitle {
+  :deep(.codexToolbarTitle) {
     font-size: 1rem;
   }
 }

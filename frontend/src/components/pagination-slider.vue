@@ -17,17 +17,16 @@ export default {
   name: "PaginationSlider",
 };
 </script>
-<style scoped lang="scss"></style>
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
+
+<style scoped lang="scss">
 /* Custom slider with a large control. */
-.paginationSlider .v-slider-thumb__label {
+:deep(.v-slider-thumb__label) {
   bottom: 0px !important;
   transform: translateX(-50%) translateY(150%) !important;
   background-color: transparent;
   color: white;
 }
-.paginationSlider .v-slider-thumb__label:before {
+:deep(.v-slider-thumb__label:before) {
   display: none;
 }
 </style>

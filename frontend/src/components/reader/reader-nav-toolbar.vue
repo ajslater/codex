@@ -62,12 +62,8 @@ export default {
   width: 100%;
   z-index: 20;
 }
-</style>
 
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-/* TOOLBARS */
-#readerContainer .readerNavToolbar .v-toolbar__content {
+:deep(.v-toolbar__content) {
   padding: 0px;
 }
 </style>

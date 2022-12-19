@@ -102,7 +102,6 @@ export default {
   display: inline;
 }
 
-/* eslint-disable-next-line vue-scoped-css/no-unused-selector */
 #opds:hover #clipBoardIcon,
 #opds:hover #opdsUrl {
   color: rgb(var(--v-theme-textPrimary));
@@ -116,17 +115,7 @@ export default {
 #repoIcon {
   margin-right: 0px;
 }
-</style>
-
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-#opds-header > .v-expansion-panel-header__icon {
-  color: rgb(var(--v-theme-textDisabled));
-}
-#opds-content > .v-expansion-panel-content__wrap {
-  padding: 0px;
-}
-#repo:hover .v-icon {
+:deep(#repo:hover .v-icon) {
   color: rgb(var(--v-theme-textPrimary)) !important;
 }
 </style>

@@ -71,6 +71,9 @@ export default {
 .coverImg {
   border-radius: 5px;
 }
+:deep(.coverImg .v-img__img) {
+  object-position: top;
+}
 
 /* Top Row */
 .childCount {
@@ -119,11 +122,5 @@ $primary: rgb(var(--v-theme-primary));
     height: $small-cover-height;
     width: $small-cover-width;
   }
-}
-</style>
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-.coverImg .v-img__img {
-  object-position: top;
 }
 </style>

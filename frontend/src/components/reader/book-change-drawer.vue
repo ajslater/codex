@@ -125,10 +125,7 @@ $iconSize: 25%;
   width: $iconSize;
   color: white;
 }
-</style>
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-.bookChangeDrawer {
+:deep(.bookChangeDrawer) {
   width: 33vw !important;
   opacity: 0.75 !important;
 }

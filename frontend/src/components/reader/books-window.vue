@@ -76,15 +76,14 @@ export default {
 };
 </script>
 
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
+<style scoped lang="scss">
 // These window controls also cacade into the pages-window
-#booksWindow .windowItem {
+:deep(.windowItem) {
   /* keeps clickable area full screen when image is small */
   min-height: 100vh;
   text-align: center;
 }
-#booksWindow .v-window__controls {
+:deep(.v-window__controls) {
   position: fixed;
   top: 48px;
   height: calc(100vh - 96px);
