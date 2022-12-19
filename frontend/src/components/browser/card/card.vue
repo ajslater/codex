@@ -42,7 +42,8 @@ import BrowserCardSubtitle from "@/components/browser/card/subtitle.vue";
 import { IS_IOS, IS_TOUCH } from "@/platform";
 import { getReaderRoute } from "@/route";
 
-const HEADER_OFFSET = 96 + 160;
+const SCROLL_DELAY = 100;
+const HEADER_OFFSET = -170;
 
 export default {
   name: "BrowserCard",
@@ -111,10 +112,10 @@ export default {
           // For some reason with vue3 i need another delay.
           setTimeout(function () {
             window.scrollBy(0, HEADER_OFFSET);
-          }, 100);
+          }, SCROLL_DELAY);
         },
         // A little hacky delay makes it work even more frequently.
-        300
+        SCROLL_DELAY
       );
     },
   },
