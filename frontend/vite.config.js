@@ -124,6 +124,7 @@ const config = defineConfig(({ mode }) => {
     },
     test: {
       environment: "jsdom",
+      deps: { inline: "element-plus" },
     },
   };
 });
