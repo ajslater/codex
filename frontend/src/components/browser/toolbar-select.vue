@@ -7,8 +7,8 @@
     density="compact"
     full-width
     hide-details="auto"
-    variant="solo"
     :style="style"
+    :variant="variant"
   >
     <template v-for="(props, name) in $slots" #[name]="slotData">
       <slot :name="name" :props="props" v-bind="slotData" />
@@ -31,6 +31,10 @@ export default {
     mobileLenAdj: {
       type: Number,
       default: 0,
+    },
+    variant: {
+      type: String,
+      default: "plain",
     },
   },
   computed: {

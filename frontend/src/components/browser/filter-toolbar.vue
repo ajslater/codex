@@ -17,7 +17,7 @@
     <template #extension>
       <v-toolbar-items v-if="isCodexViewable" id="searchToolbarItems">
         <BrowserFilterBySelect id="filterSelect" />
-        <BrowserSearchField id="searchField" />
+        <BrowserSearchCombobox id="searchField" />
       </v-toolbar-items>
     </template>
   </v-toolbar>
@@ -30,7 +30,7 @@ import { mapGetters, mapWritableState } from "pinia";
 import BrowserFilterBySelect from "@/components/browser/filter-by-select.vue";
 import BrowserOrderBySelect from "@/components/browser/order-by-select.vue";
 import BrowserOrderReverseButton from "@/components/browser/order-reverse-button.vue";
-import BrowserSearchField from "@/components/browser/search-field.vue";
+import BrowserSearchCombobox from "@/components/browser/search-combobox.vue";
 import BrowserTopGroupSelect from "@/components/browser/top-group-select.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
 import { useAuthStore } from "@/stores/auth";
@@ -41,7 +41,7 @@ export default {
   components: {
     BrowserFilterBySelect,
     BrowserTopGroupSelect,
-    BrowserSearchField,
+    BrowserSearchCombobox,
     BrowserOrderBySelect,
     BrowserOrderReverseButton,
     SettingsDrawerButton,
@@ -63,10 +63,18 @@ export default {
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
 #browserToolbar {
-  padding-left: calc(env(safe-area-inset-left) / 2);
-  padding-right: calc(env(safe-area-inset-right) / 3);
+  padding-top: calc(10px + env(safe-area-inset-top));
+  padding-left: calc(10px + env(safe-area-inset-left) / 2);
+  padding-right: calc(10px + env(safe-area-inset-right) / 3);
 }
 #searchToolbarItems {
   width: 100%;
+}
+@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
+  #browserToolbar {
+    padding-top: calc(5px + env(safe-area-inset-top));
+    padding-left: calc(5px + env(safe-area-inset-left) / 2);
+    padding-right: calc(5px + env(safe-area-inset-right) / 3);
+  }
 }
 </style>

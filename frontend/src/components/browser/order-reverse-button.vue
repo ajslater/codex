@@ -4,7 +4,7 @@
     :density="density"
     height="46"
     icon
-    variant="elevated"
+    variant="text"
     v-bind="$attrs"
     :title="title"
     @click="toggleOrderReverse"

@@ -28,7 +28,7 @@ import { mapActions, mapState } from "pinia";
 import { useBrowserStore } from "@/stores/browser";
 
 export default {
-  name: "BrowserSearchField",
+  name: "BrowserSearchCombobox",
   data() {
     return {
       mdiMagnify,

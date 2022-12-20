@@ -9,8 +9,9 @@
       contentClass: filterMenuClass,
     }"
     :model-value="bookmarkFilter"
-    :max-select-len="filterByChoicesMaxLen + 3"
-    :mobile-len-adj="-3"
+    :max-select-len="filterByChoicesMaxLen + 1"
+    :mobile-len-adj="-1.5"
+    variant="solo"
     @click:clear="onClear"
     @update:model-value="onUpdateModelValue"
     @update:menu="onMenu"
@@ -140,13 +141,22 @@ export default {
 </script>
 
 <style scoped lang="scss">
+:deep(.v-field-label) {
+  margin-left: 0;
+}
+:deep(.v-field__input) {
+  padding-left: 0;
+}
 .filterSuffix {
   margin-left: 0.25em;
+}
+:deep(.v-field__clearable) {
+  margin-inline-start: 0;
+  margin-inline-end: 0;
 }
 #availableFiltersProgress {
   margin: 10px;
   margin-bottom: 2px;
   width: 132px;
 }
-/* #filterSelect style is handled in browser/filter-toolbar.vue */
 </style>
