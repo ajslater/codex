@@ -23,8 +23,8 @@
       </v-icon>
     </template>
     <template #append-item>
+      <v-divider />
       <div v-if="dynamicChoiceNames && dynamicChoiceNames.length > 0">
-        <v-divider />
         <BrowserFilterSubMenu
           v-for="filterName of dynamicChoiceNames"
           :key="filterName"
@@ -32,12 +32,9 @@
           @selected="onSubMenuSelected"
         />
       </div>
-      <v-progress-linear
-        v-else
-        id="availableFiltersProgress"
-        rounded
-        indeterminate
-      />
+      <v-list-item v-else>
+        <v-progress-linear indeterminate rounded />
+      </v-list-item>
     </template>
   </ToolbarSelect>
 </template>
@@ -153,10 +150,5 @@ export default {
 :deep(.v-field__clearable) {
   margin-inline-start: 0;
   margin-inline-end: 0;
-}
-#availableFiltersProgress {
-  margin: 10px;
-  margin-bottom: 2px;
-  width: 132px;
 }
 </style>
