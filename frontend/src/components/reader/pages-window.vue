@@ -59,7 +59,8 @@ export default {
     ...mapState(useReaderStore, {
       bookRoutes: (state) => state.routes.books,
       settings(state) {
-        const bookSettings = state.books.get(this.book.pk).settings;
+        const book = state.books.get(this.book.pk);
+        const bookSettings = book ? book.settings : {};
         return state.getSettings(state.readerSettings, bookSettings);
       },
       prevBookPk: (state) => state.routes.books?.prev.pk,
