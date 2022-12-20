@@ -2,11 +2,11 @@
   <div v-if="failedImports && failedImports.length > 0" id="failedImports">
     <v-expansion-panels>
       <v-expansion-panel id="failedImportsPanel">
-        <v-expansion-panel-header>
+        <v-expansion-panel-title>
           <h4>Failed Imports: {{ failedImports.length }}</h4>
-        </v-expansion-panel-header>
-        <v-expansion-panel-content>
-          <v-simple-table class="highlight-simple-table" fixed-header>
+        </v-expansion-panel-title>
+        <v-expansion-panel-text>
+          <v-table class="highlight-table">
             <template #default>
               <thead>
                 <tr>
@@ -25,13 +25,13 @@
                 </tr>
               </tbody>
             </template>
-          </v-simple-table>
+          </v-table>
           <v-expansion-panels>
             <v-expansion-panel id="failedImportsHelp">
-              <v-expansion-panel-header>
+              <v-expansion-panel-title>
                 <h4>Failed Imports Help</h4>
-              </v-expansion-panel-header>
-              <v-expansion-panel-content>
+              </v-expansion-panel-title>
+              <v-expansion-panel-text>
                 <p>
                   These are Comic archives that have failed to import. This list
                   is updated every time the library updates. You should probably
@@ -52,7 +52,6 @@
                   some imports, and Codex does not immediately detect the
                   change, poll the library which contains the fixed comics.
                 </p>
-
                 <h4>Reporting Issues</h4>
                 <p>
                   If the comic looks good to you, but still shows up as a failed
@@ -61,16 +60,18 @@
                   <a
                     href="https://github.com/ajslater/codex/issues/"
                     target="_blank"
-                    >Issue Report<v-icon small>{{ mdiOpenInNew }}</v-icon></a
+                    >Issue Report<v-icon size="small">{{
+                      mdiOpenInNew
+                    }}</v-icon></a
                   >
                   and include the stack trace from the logs at
                   <code>config/logs/codex.log</code>
                   if you can.
                 </p>
-              </v-expansion-panel-content>
+              </v-expansion-panel-text>
             </v-expansion-panel>
           </v-expansion-panels>
-        </v-expansion-panel-content>
+        </v-expansion-panel-text>
       </v-expansion-panel>
     </v-expansion-panels>
   </div>
@@ -110,7 +111,10 @@ export default {
   margin-top: 60px;
 }
 #failedImportsHelp {
-  color: darkgrey;
+  color: rgb(var(--v-theme-textSecondary));
+}
+h4 {
+  padding-top: 0.5em;
 }
 @import "../anchors.scss";
 </style>

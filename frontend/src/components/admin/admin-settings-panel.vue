@@ -1,19 +1,10 @@
 <template>
-  <div>
-    <header id="adminMenuHeader">
-      <h3>Admin Status</h3>
-    </header>
-    <v-list-item-group>
-      <v-list-item ref="browserLink" ripple :to="browserRoute">
-        <v-list-item-content>
-          <v-list-item-title>
-            <v-icon>{{ mdiBookshelf }}</v-icon
-            >Browser
-          </v-list-item-title>
-        </v-list-item-content>
-      </v-list-item>
-    </v-list-item-group>
-  </div>
+  <v-list-item ref="browserLink" :to="browserRoute">
+    <v-list-item-title>
+      <v-icon>{{ mdiBookshelf }}</v-icon
+      >Browser
+    </v-list-item-title>
+  </v-list-item>
 </template>
 <script>
 import { mdiBookshelf } from "@mdi/js";
@@ -38,10 +29,3 @@ export default {
   },
 };
 </script>
-
-<style scoped lang="scss">
-#adminMenuHeader {
-  padding: 10px;
-  padding-left: 15px;
-}
-</style>

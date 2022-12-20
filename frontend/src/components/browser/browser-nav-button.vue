@@ -3,8 +3,7 @@
     class="browserNavButton"
     :disabled="disabled"
     :title="toPage"
-    large
-    ripple
+    height="100%"
     @click="routeToPage(toPage)"
   >
     <v-icon :class="{ flipHoriz: !back }">
@@ -66,6 +65,10 @@ export default {
 </script>
 
 <style scoped lang="scss">
+.browserNavButton {
+  margin-inline-start: 0 !important;
+  margin-inline-end: 0 !important;
+}
 .flipHoriz {
   transform: scaleX(-1);
 }

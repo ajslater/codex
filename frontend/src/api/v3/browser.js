@@ -1,3 +1,5 @@
+import { useCommonStore } from "@/stores/common";
+
 import { HTTP } from "./base";
 
 const JSON_KEYS = ["filters", "show"];
@@ -37,6 +39,7 @@ const preSerialize = (data) => {
       params[key] = JSON.stringify(params[key]);
     }
   }
+  params.ts = useCommonStore.timestamp;
   return params;
 };
 
@@ -61,7 +64,8 @@ const getMetadata = ({ group, pk }, data) => {
 };
 
 const getSettings = () => {
-  return HTTP.get("/r/settings");
+  const params = preSerialize({});
+  return HTTP.get("/r/settings", { params });
 };
 
 const setGroupBookmarks = ({ group, pk }, data) => {

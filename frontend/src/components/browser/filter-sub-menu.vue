@@ -1,41 +1,33 @@
 <template>
   <div>
     <v-slide-x-transition hide-on-leave>
-      <v-list-item
-        v-if="filterMode === 'base'"
-        ripple
-        @click="setUIFilterMode(name)"
-      >
-        <v-list-item-content>
-          <v-list-item-title class="filterMenu">
-            {{ title }}
-            <v-icon v-if="filter && filter.length > 0" class="nameChevron">
-              {{ mdiChevronRightCircle }}
-            </v-icon>
-            <v-icon v-else class="nameChevron">
-              {{ mdiChevronRight }}
-            </v-icon>
-          </v-list-item-title>
-        </v-list-item-content>
+      <v-list-item v-if="filterMode === 'base'" @click="setUIFilterMode(name)">
+        <v-list-item-title class="filterMenu">
+          {{ title }}
+          <v-icon v-if="filter && filter.length > 0" class="nameChevron">
+            {{ mdiChevronRightCircle }}
+          </v-icon>
+          <v-icon v-else class="nameChevron">
+            {{ mdiChevronRight }}
+          </v-icon>
+        </v-list-item-title>
       </v-list-item>
     </v-slide-x-transition>
     <v-slide-x-reverse-transition hide-on-leave>
       <div v-if="filterMode === name">
         <header class="filterHeader">
-          <v-list-item ripple @click="setUIFilterMode('base')">
-            <v-list-item-content>
-              <v-list-item-title class="filterTitle">
-                <v-icon>{{ mdiChevronLeft }}</v-icon
-                >{{ lowerTitle }}
-              </v-list-item-title>
-            </v-list-item-content>
+          <v-list-item @click="setUIFilterMode('base')">
+            <v-list-item-title class="filterTitle">
+              <v-icon>{{ mdiChevronLeft }}</v-icon
+              >{{ lowerTitle }}
+            </v-list-item-title>
           </v-list-item>
           <v-text-field
             v-if="typeof choices === 'object'"
             v-model="query"
             placeholder="Filter"
             full-width
-            dense
+            density="compact"
             filled
             rounded
             hide-details="auto"
@@ -48,30 +40,15 @@
             indeterminate
           />
         </header>
-        <v-list-item-group
+        <v-list
           v-if="typeof choices === 'object'"
-          :value="filter"
+          :model-value="filter"
           class="filterGroup overflow-y-auto"
+          density="compact"
           multiple
-          @change="change"
-        >
-          <v-list-item
-            v-for="item of vuetifyItems"
-            :key="`${name}:${item.name}`"
-            :value="item.pk"
-            dense
-            ripple
-          >
-            <v-list-item-content>
-              <v-list-item-title v-if="isNullPk(item.pk)" class="noneItem">
-                None
-              </v-list-item-title>
-              <v-list-item-title v-else>
-                {{ item.name }}
-              </v-list-item-title>
-            </v-list-item-content>
-          </v-list-item>
-        </v-list-item-group>
+          :items="vuetifyItems"
+          @update:selected="selected"
+        />
       </div>
     </v-slide-x-reverse-transition>
   </div>
@@ -102,7 +79,7 @@ export default {
       required: true,
     },
   },
-  emits: ["change"],
+  emits: ["selected"],
   data() {
     return {
       mdiChevronLeft,
@@ -121,7 +98,7 @@ export default {
       },
     }),
     ...mapWritableState(useBrowserStore, ["filterMode"]),
-    vuetifyItems: function () {
+    vuetifyItems() {
       return toVuetifyItems(
         this.choices,
         this.query,
@@ -130,7 +107,7 @@ export default {
       );
     },
     title: function () {
-      let title = this.name.replace(/[A-Z]/g, (letter) => ` ${letter}`);
+      let title = this.name.replaceAll(/[A-Z]/g, (letter) => ` ${letter}`);
       title = title.replace("Ltr", "LTR");
       title = title[0].toUpperCase() + title.slice(1);
       return title;
@@ -149,11 +126,14 @@ export default {
       }
     },
     isNullPk: (pk) => NULL_PKS.has(pk),
-    change(value) {
+    selected(value) {
       const data = {
         filters: { [this.name]: value },
       };
-      this.$emit("change", data);
+      this.$emit("selected", data);
+    },
+    itemTitle(item) {
+      return this.isNullPk(item.value) ? "None" : item.title;
     },
   },
 };
@@ -168,7 +148,7 @@ export default {
 }
 .filterTitle {
   font-variant: small-caps;
-  color: gray;
+  color: rbg(var(--v-theme-textDisabled));
   font-weight: bold;
   font-size: 1.6rem !important;
 }
@@ -177,8 +157,8 @@ export default {
 .filterGroup {
   max-height: 80vh; /* has to be less than the menu height */
 }
-.noneItem {
-  color: gray;
+:deep(.noneItem .v-item-title) {
+  color: rbg(var(--v-theme-textDisabled)) !important;
 }
 .filterValuesProgress {
   margin: 10px;

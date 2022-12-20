@@ -34,7 +34,7 @@ export default {
   },
   computed: {
     code: function () {
-      return +this.$route.code;
+      return +this.$route.params.code;
     },
     title: function () {
       let title = TITLES[this.code];
@@ -69,9 +69,9 @@ export default {
   z-index: 100;
 }
 #title {
-  color: gray;
-  stroke: gray;
-  fill: gray;
+  color: rgb(var(--v-theme-textDisabled));
+  stroke: rgb(var(--v-theme-textDisabled));
+  fill: rgb(var(--v-theme-textDisabled));
   margin: 0px;
   font-size: 6vw;
   opacity: 25%;

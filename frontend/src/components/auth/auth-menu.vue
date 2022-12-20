@@ -1,11 +1,7 @@
 <template>
-  <div>
-    <div v-if="user">
-      <AuthLogoutItem />
-      <ChangePasswordDialog :user="user" />
-    </div>
-    <AuthLoginDialog v-else />
-  </div>
+  <AuthLogoutItem v-if="user" />
+  <ChangePasswordDialog v-if="user" :user="user" />
+  <AuthLoginDialog v-else />
 </template>
 
 <script>

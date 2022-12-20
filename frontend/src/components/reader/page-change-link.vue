@@ -4,19 +4,17 @@
     :to="route"
     :aria-label="label"
     :class="{
-      leftArrow: direction === 'prev',
-      rightArrow: direction === 'next',
+      [direction]: true,
     }"
-    @click.native="$event.stopImmediatePropagation()"
+    @click="$event.stopImmediatePropagation()"
   />
 </template>
 <script>
 import { mapActions, mapState } from "pinia";
 
 import { getComicPageSource } from "@/api/v3/reader";
+import { linksInfo } from "@/components/reader/prefetch-links";
 import { useReaderStore } from "@/stores/reader";
-
-const PREFETCH_LINK = { rel: "prefetch", as: "image" };
 
 export default {
   name: "PageChangeLink",
@@ -24,26 +22,12 @@ export default {
     direction: { type: String, required: true },
   },
   head() {
-    const links = [];
-    if (this.prefetchSrc1) {
-      links.push({ ...PREFETCH_LINK, href: this.prefetchSrc1 });
-    }
-    if (this.prefetchSrc2) {
-      links.push({ ...PREFETCH_LINK, href: this.prefetchSrc2 });
-    }
-    if (links.length > 0) {
-      return { link: links };
-    }
+    return linksInfo([this.prefetchSrc1, this.prefetchSrc2]);
   },
   computed: {
     ...mapState(useReaderStore, {
       params(state) {
         return state.routes[this.direction];
-      },
-      prefetchSrc1(state) {
-        return this.params
-          ? getComicPageSource(this.params, state.timestamp)
-          : false;
       },
       prefetchSrc2(state) {
         const book = state.books.get(this.params.pk);
@@ -59,9 +43,13 @@ export default {
         if (paramsPlus.page > book.maxPage) {
           return false;
         }
-        return getComicPageSource(paramsPlus, state.timestamp);
+        return getComicPageSource(paramsPlus);
       },
     }),
+    prefetchSrc1() {
+      return this.params ? getComicPageSource(this.params) : false;
+    },
+
     route() {
       return this.params ? { params: this.params } : {};
     },
@@ -77,14 +65,15 @@ export default {
 </script>
 <style scoped lang="scss">
 .pageChangeColumn {
-  display: block;
-  width: 100%;
   height: 100%;
+  width: 33vw;
 }
-.leftArrow {
+.prev {
   cursor: w-resize;
+  left: 0px;
 }
-.rightArrow {
+.next {
   cursor: e-resize;
+  right: 0px;
 }
 </style>

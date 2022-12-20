@@ -1,6 +1,5 @@
 <template>
   <vue-pdf-embed
-    ref="pdfembed"
     class="pdfPage"
     :class="fitToClass"
     :page="1"
@@ -17,7 +16,7 @@
 
 <script>
 import { mapActions } from "pinia";
-import VuePdfEmbed from "vue-pdf-embed/dist/vue2-pdf-embed";
+import VuePdfEmbed from "vue-pdf-embed";
 
 import { useReaderStore } from "@/stores/reader";
 
@@ -83,19 +82,16 @@ export default {
 .pdfPage {
   display: inline-block;
 }
-</style>
 
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
 /* bugfixes for vue-pdf-embed */
-.vue-pdf-embed.fitToHeightTwo > div > canvas,
-.vue-pdf-embed.fitToScreenTwo > div > canvas {
+:deep(.vue-pdf-embed.fitToHeightTwo > div > canvas),
+:deep(.vue-pdf-embed.fitToScreenTwo > div > canvas) {
   width: inherit !important;
 }
-.vue-pdf-embed.fitToWidthTwo > div > canvas {
+:deep(.vue-pdf-embed.fitToWidthTwo > div > canvas) {
   height: inherit !important;
 }
-.vue-pdf-embed.fitToOrigTwo > div > canvas {
+:deep(.vue-pdf-embed.fitToOrigTwo > div > canvas) {
   height: inherit !important;
   width: inherit !important;
 }

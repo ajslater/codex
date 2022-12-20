@@ -1,11 +1,15 @@
 <template>
-  <v-toolbar v-if="numPages > 1" class="paginationToolbar codexToolbar" dense>
+  <v-toolbar
+    v-if="numPages > 1"
+    class="paginationToolbar codexToolbar"
+    density="compact"
+  >
     <BrowserNavButton :back="true" />
     <PaginationSlider
-      :value="+$route.params.page"
+      :model-value="+$route.params.page"
       :min="+1"
       :max="numPages"
-      @change="routeToPage($event)"
+      @update:model-value="onUpdate"
     />
     <BrowserNavButton :back="false" />
   </v-toolbar>
@@ -31,6 +35,9 @@ export default {
   },
   methods: {
     ...mapActions(useBrowserStore, ["routeToPage"]),
+    onUpdate($event) {
+      this.routeToPage($event);
+    },
   },
 };
 </script>
@@ -39,13 +46,6 @@ export default {
 .paginationToolbar {
   bottom: env(safe-area-inset-bottom);
   width: 100%;
-  padding: 0px;
-}
-</style>
-
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-#browser .paginationToolbar > .v-toolbar__content {
   padding: 0px;
 }
 </style>

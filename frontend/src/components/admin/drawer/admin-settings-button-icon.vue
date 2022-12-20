@@ -6,9 +6,8 @@
     <v-progress-circular
       v-else
       :indeterminate="progress == null"
-      :value="progress"
+      :model-value="progress"
       size="32"
-      color="#cc7b19"
       aria-label="`Librarian tasks in progress ${Math.round(progress)}%`"
     />
   </span>

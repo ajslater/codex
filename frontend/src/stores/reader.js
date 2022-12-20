@@ -1,11 +1,11 @@
 import { defineStore } from "pinia";
-import Vue from "vue";
+import { reactive } from "vue";
 
 import BROWSER_API from "@/api/v3/browser";
 import API from "@/api/v3/reader";
 import CHOICES from "@/choices";
 import { getFullComicName } from "@/comic-name";
-import router from "@/router";
+import router from "@/plugins/router";
 import { useBrowserStore } from "@/stores/browser";
 
 const NULL_READER_SETTINGS = {
@@ -45,7 +45,6 @@ export const useReaderStore = defineStore("reader", {
     seriesCount: 0,
 
     // local reader
-    timestamp: Date.now(),
     pk: undefined,
     routes: {
       prev: false,
@@ -55,7 +54,6 @@ export const useReaderStore = defineStore("reader", {
         next: false,
       },
     },
-    isSettingsDrawerOpen: false,
     bookChange: undefined,
   }),
   getters: {
@@ -183,9 +181,6 @@ export const useReaderStore = defineStore("reader", {
         next: nextBookRoute,
       };
     },
-    setTimestamp() {
-      this.timestamp = Date.now();
-    },
     ///////////////////////////////////////////////////////////////////////////
     // ACTIONS
     async loadReaderSettings() {
@@ -199,7 +194,7 @@ export const useReaderStore = defineStore("reader", {
     },
     async loadBooks(routeParams) {
       const params = this._numericValues(routeParams);
-      await API.getReaderInfo(params.pk, this.timestamp)
+      await API.getReaderInfo(params.pk)
         .then((response) => {
           const data = response.data;
           let prevBookPk = false;
@@ -217,7 +212,7 @@ export const useReaderStore = defineStore("reader", {
               // These aren't declared in the state so must
               // have observablitly declared here.
               // For when settings change.
-              books.set(book.pk, Vue.observable(book));
+              books.set(book.pk, reactive(book));
             }
             state.books = books;
             state.seriesCount = data.seriesCount;

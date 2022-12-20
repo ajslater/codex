@@ -1,20 +1,19 @@
 <template>
-  <v-toolbar id="titleToolbar" class="toolbar">
+  <v-toolbar id="titleToolbar" elevation="8">
     <v-toolbar-items v-if="isCodexViewable">
       <v-btn
         id="upButton"
-        :class="{ invisible: !showUpButton }"
-        :to="toUpRoute"
-        :disabled="!toUpRoute"
-        x-large
         icon
-        ripple
+        size="x-large"
+        :class="{ invisible: !showUpButton }"
+        :disabled="!showUpButton"
         :title="upTitle"
+        :to="{ params: upRoute }"
       >
         <v-icon>{{ mdiArrowUp }}</v-icon>
       </v-btn>
     </v-toolbar-items>
-    <v-toolbar-title>
+    <v-toolbar-title class="codexToolbarTitle">
       <span v-if="longBrowserTitlePrefix" id="titleToolbarPrefix">
         {{ longBrowserTitlePrefix }}
         <br />
@@ -63,12 +62,6 @@ export default {
       upRoute: (state) => state.page.routes.up,
     }),
     ...mapGetters(useAuthStore, ["isCodexViewable", "isUserAdmin"]),
-    toUpRoute: function () {
-      if (this.showUpButton) {
-        return { name: "browser", params: this.upRoute };
-      }
-      return "";
-    },
     showUpButton: function () {
       return this.upRoute && "group" in this.upRoute;
     },
@@ -120,19 +113,18 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use "vuetify/styles/settings/variables" as vuetify;
 #titleToolbar {
   width: 100vw;
 }
 $upButtonWidth: 64px;
-/* eslint-disable-next-line vue-scoped-css/no-unused-selector */
-#upButton.v-btn {
+:deep(#upButton.v-btn) {
   width: $upButtonWidth;
 }
 .invisible {
   visibility: hidden;
 }
-/* eslint-disable-next-line vue-scoped-css/no-unused-selector */
-#titleToolbar .v-toolbar__title {
+:deep(.codexToolbarTitle) {
   margin: auto;
   padding-right: $upButtonWidth;
   padding-top: 4px;
@@ -141,20 +133,14 @@ $upButtonWidth: 64px;
   text-overflow: clip;
 }
 
-#titleToolbar .v-toolbar__title #titleToolbarPrefix {
-  color: gray;
+#titleToolbarPrefix,
+#titleToolbarSuffix {
+  color: rgb(var(--v-theme-textDisabled));
   font-size: smaller;
 }
 
-#titleToolbar .v-toolbar__title #titleToolbarSuffix {
-  color: gray;
-  font-size: smaller;
-}
-
-@import "vuetify/src/styles/styles.sass";
-@media #{map-get($display-breakpoints, 'sm-and-down')} {
-  /* eslint-disable-next-line vue-scoped-css/no-unused-selector */
-  #titleToolbar .v-toolbar__title {
+@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
+  :deep(.codexToolbarTitle) {
     font-size: 1rem;
   }
 }

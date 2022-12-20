@@ -7,10 +7,10 @@
         :inputs="AdminGroupCreateUpdateInputs"
       />
     </header>
-    <v-simple-table
+    <v-table
       fixed-header
       :height="tableHeight"
-      class="highlight-simple-table admin-table"
+      class="highlight-table admin-table"
     >
       <template #default>
         <thead>
@@ -51,7 +51,7 @@
           </tr>
         </tbody>
       </template>
-    </v-simple-table>
+    </v-table>
     <div id="groupHelp">
       <h3>Group Logic</h3>
       <p>
@@ -72,6 +72,7 @@
 
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
+import { markRaw } from "vue";
 
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
 import AdminDeleteRowDialog from "@/components/admin/delete-row-dialog.vue";
@@ -106,7 +107,7 @@ export default {
         pk: 0,
         field: undefined,
       },
-      AdminGroupCreateUpdateInputs,
+      AdminGroupCreateUpdateInputs: markRaw(AdminGroupCreateUpdateInputs),
     };
   },
   computed: {
@@ -137,6 +138,6 @@ export default {
 }
 #groupHelp {
   margin-top: 2em;
-  color: darkgrey;
+  color: rgb(var(--v-theme-textSecondary));
 }
 </style>

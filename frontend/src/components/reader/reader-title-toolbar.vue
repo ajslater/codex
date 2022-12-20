@@ -1,18 +1,16 @@
 <template>
-  <v-toolbar id="readerTopToolbar" class="codexToolbar" dense>
+  <v-toolbar id="readerTopToolbar" class="codexToolbar" density="compact">
     <v-toolbar-items>
-      <v-btn id="closeBook" ref="closeBook" :to="closeBookRoute" large ripple>
-        <span v-if="!$vuetify.breakpoint.mobile">close book</span>
+      <v-btn id="closeBook" ref="closeBook" :to="closeBookRoute" size="large">
+        <span v-if="!$vuetify.display.smAndDown">close book</span>
         <v-icon v-else title="Close Book">
           {{ mdiClose }}
         </v-icon>
       </v-btn>
     </v-toolbar-items>
-    <v-spacer />
-    <v-toolbar-title id="toolbarTitle">
+    <v-toolbar-title id="toolbarTitle" class="codexToolbarTitle">
       {{ activeTitle }}
     </v-toolbar-title>
-    <v-spacer />
     <span v-if="seriesPosition" id="seriesPosition" title="Series Position">{{
       seriesPosition
     }}</span>
@@ -40,6 +38,7 @@ import CHOICES from "@/choices";
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
 import { useBrowserStore } from "@/stores/browser";
+import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
 
 const PREV = "prev";
@@ -58,8 +57,16 @@ export default {
   },
   head() {
     const page = this.$route.params.page;
-    const content = `read ${this.title} page ${page}`;
-    return { meta: [{ hid: "description", name: "description", content }] };
+    const content = `reader ${this.activeTitle} page ${page}`;
+    return {
+      meta: [
+        {
+          hid: "description",
+          name: "description",
+          content,
+        },
+      ],
+    };
   },
   computed: {
     ...mapGetters(useReaderStore, ["activeTitle", "activeBook"]),
@@ -74,7 +81,7 @@ export default {
     ...mapState(useBrowserStore, {
       lastRoute: (state) => state.page.routes.last,
     }),
-    ...mapWritableState(useReaderStore, ["isSettingsDrawerOpen"]),
+    ...mapWritableState(useCommonStore, ["isSettingsDrawerOpen"]),
     closeBookRoute: function () {
       // Choose the best route
       const route = {
@@ -142,27 +149,39 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use "vuetify/styles/settings/variables" as vuetify;
 #readerTopToolbar {
   width: 100%;
   top: 0px;
   padding-top: env(safe-area-inset-top);
   padding-left: calc(env(safe-area-inset-left) / 2);
   padding-right: calc(env(safe-area-inset-right) / 2);
+  z-index: 20;
+}
+:deep(.v-toolbar__content) {
+  padding: 0px;
 }
 #toolbarTitle {
-  overflow-y: auto;
+  font-size: clamp(8pt, 2.5vw, 18pt);
+  line-height: normal;
+}
+:deep(.v-toolbar-title__placeholder) {
   text-overflow: clip;
   white-space: normal;
-  font-size: clamp(8pt, 2.5vw, 18pt);
 }
 #seriesPosition {
   padding-left: 10px;
   padding-right: 10px;
-  color: darkgray;
+  color: rgb(var(--v-theme-textSecondary));
   text-align: center;
 }
-@import "vuetify/src/styles/styles.sass";
-@media #{map-get($display-breakpoints, 'sm-and-down')} {
+#tagButton {
+  min-width: 24px;
+  height: 24px;
+  width: 24px;
+  margin: 0px;
+}
+@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   #closeBook {
     min-width: 32px;
   }
@@ -179,18 +198,5 @@ export default {
     padding-left: 0px;
     padding-right: 0px;
   }
-}
-</style>
-
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-#readerTopToolbar .v-toolbar__content {
-  padding: 0px;
-}
-#readerTopToolbar .tagButton {
-  min-width: 24px;
-  height: 24px;
-  width: 24px;
-  margin: 0px;
 }
 </style>

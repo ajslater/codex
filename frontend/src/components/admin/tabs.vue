@@ -2,7 +2,7 @@
   <div id="tabContainer">
     <v-tabs
       id="tabs"
-      :class="{ rightSpace: rightSpace }"
+      :class="{ rightMargin: !$vuetify.display.mdAndDown }"
       centered
       grow
       show-arrows
@@ -16,16 +16,18 @@
         {{ tab }}
       </v-tab>
     </v-tabs>
-    <v-tabs-items id="tabItems" v-model="activeTab" touchless>
-      <v-tab-item
+    <v-window id="tabItems" v-model="activeTab" :touch="false">
+      <router-view
         v-for="tab in tabs"
         :key="tab"
-        :value="tab"
-        class="tabItemContainer"
+        v-slot="{ Component }"
+        :inner-height="innerHeight"
       >
-        <router-view v-if="tab === activeTab" :inner-height="innerHeight" />
-      </v-tab-item>
-    </v-tabs-items>
+        <v-window-item :value="tab" class="tabItemContainer">
+          <component :is="Component" />
+        </v-window-item>
+      </router-view>
+    </v-window>
     <div v-if="!librariesExist" id="noLibraries">
       Codex has no libraries. Select the Libraries tab and add a comic library.
     </div>
@@ -33,7 +35,7 @@
 </template>
 
 <script>
-import { mapGetters } from "pinia";
+import { mapActions, mapGetters } from "pinia";
 
 import { useAdminStore } from "@/stores/admin";
 
@@ -48,9 +50,6 @@ export default {
   },
   computed: {
     ...mapGetters(useAdminStore, ["librariesExist"]),
-    rightSpace() {
-      return this.$vuetify.breakpoint.mdAndUp;
-    },
   },
   watch: {
     $route(to) {
@@ -61,11 +60,15 @@ export default {
   },
   mounted() {
     window.addEventListener("resize", this.onResize);
+    if (!this.librariesExist) {
+      this.loadTables(["Library"]);
+    }
   },
   unmounted() {
     window.removeEventListener("resize", this.onResize);
   },
   methods: {
+    ...mapActions(useAdminStore, ["loadTables"]),
     onResize() {
       this.innerHeight = window.innerHeight;
     },
@@ -79,6 +82,10 @@ export default {
   width: 100%;
   top: 48px;
   z-index: 10;
+  background-color: rgb(var(--v-theme-surface));
+}
+:deep(.tabHeader) {
+  padding: 10px;
 }
 
 $task-width: 256px;
@@ -95,36 +102,18 @@ $task-width: 256px;
   padding-left: 10px;
   padding-right: 10px;
 }
+:deep(.admin-table) {
+  max-width: 100vw !important;
+  margin-bottom: 24px;
+}
+:deep(.tableCheckbox) {
+  height: 40px;
+}
 #noLibraries {
   text-align: center;
   padding: 1em;
 }
-.rightSpace {
+.rightMargin {
   width: calc(100% - 256px) !important;
-}
-</style>
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-#tabs .tabHeader {
-  padding: 10px;
-}
-
-/* Turn off hover highlighting on v-simple-table */
-#tabItems .v-data-table > .v-data-table__wrapper > table > tbody > tr:hover {
-  background-color: inherit !important;
-}
-
-#tabItems .highlight-simple-table tr:nth-child(odd),
-#tabItems
-  .highlight-simple-table
-  > .v-data-table__wrapper
-  > table
-  > tbody
-  > tr:nth-child(odd):hover {
-  background-color: #121212 !important;
-}
-
-.admin-table {
-  padding-bottom: 24px;
 }
 </style>

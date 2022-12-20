@@ -1,31 +1,13 @@
 <template>
-  <div class="bookCoverWrapper">
-    <div class="bookCover">
-      <div class="coverImgWrapper">
-        <v-img :key="coverSrc" :src="coverSrc" class="coverImg" contain>
-          <template #placeholder>
-            <v-progress-circular
-              v-if="showPlaceholder"
-              indeterminate
-              size="109"
-              color="#cc7b19"
-              aria-label="loading"
-              class="coverPlaceholder"
-            />
-          </template>
-        </v-img>
-      </div>
-      <div class="bookCoverOverlayTopRow">
-        <div
-          v-if="finished !== true"
-          :class="{ unreadFlag: true, mixedreadFlag: finished === null }"
-        />
-
-        <span v-if="group !== 'c'" class="childCount">
-          {{ childCount }}
-        </span>
-      </div>
-    </div>
+  <div class="bookCover">
+    <v-img :src="coverSrc" class="coverImg" />
+    <div
+      v-if="finished !== true"
+      :class="{ unreadFlag: true, mixedreadFlag: finished === null }"
+    />
+    <span v-if="group !== 'c'" class="childCount">
+      {{ childCount }}
+    </span>
   </div>
 </template>
 
@@ -80,28 +62,20 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use "vuetify/styles/settings/variables" as vuetify;
 @import "book-cover.scss";
-.coverImgWrapper {
+.coverImg {
   height: $cover-height;
   width: $cover-width;
 }
 .coverImg {
-  display: block;
-  height: 100%;
-  width: 100%;
   border-radius: 5px;
 }
-.coverPlaceholder {
-  height: 100% !important;
-  width: 66% !important;
+:deep(.coverImg .v-img__img) {
+  object-position: top;
 }
 
-.bookCoverOverlayTopRow {
-  height: 15%;
-  display: flex;
-  opacity: 1;
-  width: 100%;
-}
+/* Top Row */
 .childCount {
   position: absolute;
   top: 0px;
@@ -110,10 +84,12 @@ export default {
   padding: 0rem 0.25rem 0rem 0.25rem;
   text-align: center;
   border-radius: 50%;
-  background-color: black;
-  color: white;
+  background-color: rgb(var(--v-theme-background));
+  color: rbg(var(--v-theme-textPrimary));
 }
-@import "vuetify/src/styles/styles.sass";
+/* Flags */
+$bookCoverShadow: rgba(0, 0, 0, 0.75);
+$primary: rgb(var(--v-theme-primary));
 .unreadFlag {
   position: absolute;
   top: 0;
@@ -124,41 +100,27 @@ export default {
   background: linear-gradient(
     45deg,
     transparent 50%,
-    rgba(0, 0, 0, 0.5) 60%,
-    var(--v-primary-base) 60%
+    $bookCoverShadow 60%,
+    $primary 60%
   );
-  border-radius: 5px;
+  border-top-right-radius: 5px;
 }
 .mixedreadFlag {
   background: linear-gradient(
     45deg,
     transparent 50%,
-    rgba(0, 0, 0, 0.5) 60%,
-    var(--v-primary-base) 60%,
-    var(--v-primary-base) 70%,
+    $bookCoverShadow 60%,
+    $primary 60% 70%,
     transparent 70%,
-    rgba(0, 0, 0, 0.5) 80%,
-    var(--v-primary-base) 80%,
-    var(--v-primary-base) 90%,
+    $bookCoverShadow 80%,
+    $primary 80% 90%,
     transparent 90%
   );
 }
-
-@media #{map-get($display-breakpoints, 'sm-and-down')} {
-  .coverImgWrapper {
+@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
+  .coverImg {
     height: $small-cover-height;
     width: $small-cover-width;
   }
-}
-</style>
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-#browsePaneContainer .coverImg .v-image__placeholder {
-  top: 50%;
-  left: 50%;
-  transform: translate(-33%, -50%);
-}
-#browsePaneContainer .coverImgWrapper .v-image__image {
-  background-position-y: top !important;
 }
 </style>

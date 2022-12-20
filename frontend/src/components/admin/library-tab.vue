@@ -7,8 +7,8 @@
         max-width="22em"
       />
     </header>
-    <v-simple-table
-      class="highlight-simple-table admin-table"
+    <v-table
+      class="highlight-table admin-table"
       fixed-header
       :height="tableHeight"
     >
@@ -31,10 +31,20 @@
           <tr v-for="item in libraries" :key="item.pk">
             <td>{{ item.path }}</td>
             <td>
-              <v-simple-checkbox :value="item.events" dense disabled />
+              <v-checkbox
+                class="tableCheckbox"
+                :model-value="item.events"
+                density="compact"
+                disabled
+              />
             </td>
             <td>
-              <v-simple-checkbox :value="item.poll" dense disabled />
+              <v-checkbox
+                class="tableCheckbox"
+                :model-value="item.poll"
+                density="compact"
+                disabled
+              />
             </td>
             <td class="pollEveryCol" :class="{ disabled: !item.poll }">
               {{ item.pollEvery }}
@@ -46,7 +56,7 @@
               <RelationChips :pks="item.groups" :map="groupMap" />
             </td>
             <td>
-              <v-btn icon ripple @click="poll(item.pk)">
+              <v-btn icon @click="poll(item.pk)">
                 <v-icon>{{ mdiDatabaseClockOutline }}</v-icon>
               </v-btn>
             </td>
@@ -77,7 +87,7 @@
           </tr>
         </tbody>
       </template>
-    </v-simple-table>
+    </v-table>
     <v-expand-transition>
       <AdminFailedImportsPanel />
     </v-expand-transition>
@@ -91,6 +101,7 @@ import {
   mdiOpenInNew,
 } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
+import { markRaw } from "vue";
 
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
 import DateTimeColumn from "@/components/admin/datetime-column.vue";
@@ -135,7 +146,7 @@ export default {
       mdiDatabaseClockOutline,
       mdiDatabaseImportOutline,
       mdiOpenInNew,
-      AdminLibraryCreateUpdateInputs,
+      AdminLibraryCreateUpdateInputs: markRaw(AdminLibraryCreateUpdateInputs),
     };
   },
   computed: {
@@ -198,6 +209,6 @@ export default {
   min-width: 8em;
 }
 .disabled {
-  color: grey;
+  color: rgb(var(--v-theme-textDisabled));
 }
 </style>

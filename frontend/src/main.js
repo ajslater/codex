@@ -1,34 +1,32 @@
-import "vuetify/dist/vuetify.min.css"; // Ensure you are using css-loader
 import "@mdi/font/css/materialdesignicons.css";
+import "vuetify/styles"; // Global CSS has to be imported
 
-import { createPinia, PiniaVuePlugin } from "pinia";
-import Vue from "vue";
-import VueMeta from "vue-meta";
-import VueNativeSock from "vue-native-websocket";
-import VueRouter from "vue-router";
-import Vuetify, { VApp, VMain } from "vuetify/lib";
+import { createApp } from "vue";
 
-import { SOCKET_URL } from "./api/v3/notify";
-import App from "./app.vue";
-import { SOCKET_OPTIONS } from "./plugins/vue-native-sock";
-import vuetify from "./plugins/vuetify";
-import router from "./router";
+import App from "@/app.vue";
+import router from "@/plugins/router";
+import { setupNativeSock } from "@/plugins/vue-native-sock";
+import vuetify from "@/plugins/vuetify";
+import { setupHead } from "@/plugins/vueuse-head";
+import { setupStore } from "@/stores/store";
 
-Vue.use(VueMeta, {
-  keyName: "head",
-});
-Vue.use(PiniaVuePlugin);
-const pinia = createPinia();
-Vue.use(VueNativeSock, SOCKET_URL, SOCKET_OPTIONS);
-Vue.use(VueRouter);
-Vue.use(Vuetify, { components: { VApp, VMain } });
+const app = createApp(App);
 
-Vue.config.performance = import.meta.env.PROD;
+app.use(vuetify);
+setupHead(app);
+setupStore(app);
+setupNativeSock(app);
+app.use(router);
 
-new Vue({
-  pinia,
-  router,
-  vuetify,
-  el: "#App",
-  render: (h) => h(App),
-});
+app.config.performance = import.meta.env.PROD;
+
+router
+  .isReady()
+  .then(() => {
+    return app.mount("#App");
+  })
+  // Top level await would require a plugin
+  // eslint-disable-next-line unicorn/prefer-top-level-await
+  .catch(console.error);
+
+export default app;

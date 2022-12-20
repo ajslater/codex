@@ -1,61 +1,32 @@
 <template>
-  <v-hover v-slot="{ hover }">
-    <v-select
-      v-model="orderBy"
-      class="toolbarSelect orderBySelect"
-      :append-outer-icon="orderIcon"
-      dense
-      hide-details="auto"
-      :items="orderByChoices"
-      :label="focused || hover ? label : undefined"
-      :menu-props="{
-        maxHeight: '80vh',
-        overflowY: false,
-      }"
-      ripple
-      @click:append-outer="toggleOrderReverse"
-      @focus="focused = true"
-      @blur="focused = false"
-    >
-      <template #item="data">
-        <v-list-item v-bind="data.attrs" ripple v-on="data.on">
-          <v-list-item-content>
-            <v-list-item-title>
-              {{ data.item.text }}
-              <v-icon v-show="orderBy === data.item.value" class="orderIcon">
-                {{ orderIcon }}
-              </v-icon>
-            </v-list-item-title>
-          </v-list-item-content>
-        </v-list-item>
-      </template>
-    </v-select>
-  </v-hover>
+  <ToolbarSelect
+    v-model="orderBy"
+    class="orderBySelect"
+    select-label="order by"
+    :items="orderByChoices"
+    :max-select-len="orderByChoicesMaxLen - 3.5"
+    :mobile-len-adj="-2"
+    v-bind="$attrs"
+  />
 </template>
 
 <script>
-import { mdiSortReverseVariant, mdiSortVariant } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
+import ToolbarSelect from "@/components/browser/toolbar-select.vue";
 import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BrowseOrderBySelect",
-  data() {
-    return {
-      focused: false,
-      mdiSortVariant,
-      label: "order by",
-    };
+  components: {
+    ToolbarSelect,
   },
+  extends: ToolbarSelect,
   computed: {
+    ...mapGetters(useBrowserStore, ["orderByChoices", "orderByChoicesMaxLen"]),
     ...mapState(useBrowserStore, {
-      orderReverseSetting: (state) => state.settings.orderReverse,
       orderBySetting: (state) => state.settings.orderBy,
-      orderIcon: (state) =>
-        state.settings.orderReverse ? mdiSortVariant : mdiSortReverseVariant,
     }),
-    ...mapGetters(useBrowserStore, ["orderByChoices"]),
     orderBy: {
       get() {
         return this.orderBySetting;
@@ -68,19 +39,10 @@ export default {
   },
   methods: {
     ...mapActions(useBrowserStore, ["setSettings"]),
-    toggleOrderReverse: function () {
-      const data = { orderReverse: !this.orderReverseSetting };
-      this.setSettings(data);
-    },
   },
 };
 </script>
 
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style scoped lang="scss">
-.orderIcon {
-  float: right;
-  margin-left: 5px;
-}
 /* #orderSelect style is handled in browser/filter-toolbar.vue */
 </style>

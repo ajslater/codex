@@ -1,6 +1,6 @@
 <template>
   <span>
-    <v-chip v-for="pk in pks" :key="pk" small>
+    <v-chip v-for="pk in pks" :key="pk" size="small">
       {{ map[pk] }}
     </v-chip>
   </span>

@@ -505,7 +505,8 @@ class BrowserView(BrowserMetadataBaseView):
         # Check folder view admin flag
         if not enable_folder_view:
             reason = "folder view disabled"
-            settings_mask = {"top_group": self.ROOT_GROUP}
+            valid_top_groups = self._get_valid_top_groups()
+            settings_mask = {"top_group": valid_top_groups[0]}
             self._raise_redirect({}, reason, settings_mask)
 
         top_group = self.params["top_group"]

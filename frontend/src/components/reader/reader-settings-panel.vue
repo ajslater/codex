@@ -1,33 +1,34 @@
 <template>
   <div id="readerSettings">
-    <h3>Reader Settings</h3>
-    <v-radio-group v-model="isGlobalScope" label="Scope">
+    <v-radio-group v-model="isGlobalScope" density="compact" label="Scope">
       <v-radio label="Only this comic" :value="false" />
       <v-radio label="Default for all comics" :value="true" />
     </v-radio-group>
     <v-radio-group
       class="displayRadioGroup"
+      density="compact"
       label="Display"
-      :value="selectedSettings.fitTo"
-      @change="settingsDialogChanged({ fitTo: $event })"
+      :model-value="selectedSettings.fitTo"
+      @update:model-value="settingsDialogChanged({ fitTo: $event })"
     >
       <v-radio
         v-for="item in fitToChoices"
         :key="item.value"
-        :label="item.text"
+        :label="item.title"
         :value="item.value"
       />
     </v-radio-group>
     <v-checkbox
       class="displayTwoPages"
+      density="compact"
       label="Two pages"
-      :input-value="selectedSettings.twoPages"
+      :model-value="selectedSettings.twoPages"
+      :true-value="true"
       :indeterminate="
         selectedSettings.twoPages === null ||
         selectedSettings.twoPages === undefined
       "
-      ripple
-      @change="settingsDialogChanged({ twoPages: $event === true })"
+      @update:model-value="settingsDialogChanged({ twoPages: $event })"
     />
     <v-btn
       id="clearSettingsButton"

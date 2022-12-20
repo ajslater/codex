@@ -2,7 +2,7 @@
   <v-progress-circular
     indeterminate
     :size="size"
-    color="#cc7b19"
+    :color="$vuetify.theme.current.colors.primary"
     aria-label="loading"
   />
 </template>

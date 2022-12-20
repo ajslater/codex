@@ -7,10 +7,10 @@
         max-width="20em"
       />
     </header>
-    <v-simple-table
+    <v-table
       fixed-header
       :height="tableHeight"
-      class="highlight-simple-table admin-table"
+      class="highlight-table admin-table"
     >
       <template #default>
         <thead>
@@ -32,10 +32,20 @@
               {{ item.username }}
             </td>
             <td class="buttonCol">
-              <v-simple-checkbox :value="item.isStaff" dense disabled />
+              <v-checkbox
+                class="tableCheckbox"
+                :model-value="item.isStaff"
+                density="compact"
+                disabled
+              />
             </td>
             <td class="buttonCol">
-              <v-simple-checkbox :value="item.isActive" dense disabled />
+              <v-checkbox
+                class="tableCheckbox"
+                :model-value="item.isActive"
+                density="compact"
+                disabled
+              />
             </td>
             <td class="relationCol">
               <RelationChips :pks="item.groups" :map="groupMap" />
@@ -68,12 +78,13 @@
           </tr>
         </tbody>
       </template>
-    </v-simple-table>
+    </v-table>
   </div>
 </template>
 
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
+import { markRaw } from "vue";
 
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
 import DateTimeColumn from "@/components/admin/datetime-column.vue";
@@ -108,7 +119,7 @@ export default {
   },
   data() {
     return {
-      AdminUserCreateUpdateInputs,
+      AdminUserCreateUpdateInputs: markRaw(AdminUserCreateUpdateInputs),
     };
   },
   computed: {

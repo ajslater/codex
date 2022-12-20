@@ -5,7 +5,11 @@
         <AdminTitleToolbar />
         <AdminTabs />
       </v-main>
-      <AdminSettingsDrawer ref="settingsDrawer" />
+      <SettingsDrawer
+        title="Admin Status"
+        :admin-menu="false"
+        :panel="AdminSettingsPanel"
+      />
     </div>
     <div v-else id="announcement">
       <h1>
@@ -18,10 +22,12 @@
 
 <script>
 import { mapGetters } from "pinia";
+import { markRaw } from "vue";
 
-import AdminSettingsDrawer from "@/components/admin/admin-settings-drawer.vue";
+import AdminSettingsPanel from "@/components/admin/admin-settings-panel.vue";
 import AdminTitleToolbar from "@/components/admin/admin-title-toolbar.vue";
 import AdminTabs from "@/components/admin/tabs.vue";
+import SettingsDrawer from "@/components/settings/settings-drawer.vue";
 import { useAuthStore } from "@/stores/auth";
 
 export default {
@@ -29,7 +35,12 @@ export default {
   components: {
     AdminTitleToolbar,
     AdminTabs,
-    AdminSettingsDrawer,
+    SettingsDrawer,
+  },
+  data() {
+    return {
+      AdminSettingsPanel: markRaw(AdminSettingsPanel),
+    };
   },
   computed: {
     ...mapGetters(useAuthStore, ["isUserAdmin"]),

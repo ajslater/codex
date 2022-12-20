@@ -3,14 +3,12 @@
     <v-icon v-if="item.group === 'c'" class="eye">
       {{ eyeIcon }}
     </v-icon>
-    <span class="cardControlButton">
-      <MetadataButton
-        :group="item.group"
-        :pk="item.pk"
-        :children="item.childCount"
-      />
-      <BrowserCardMenu :item="item" />
-    </span>
+    <MetadataButton
+      :group="item.group"
+      :pk="item.pk"
+      :children="item.childCount"
+    />
+    <BrowserCardMenu :item="item" />
   </div>
 </template>
 
@@ -50,49 +48,43 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "vuetify/src/styles/styles.sass";
 @import "../../book-cover.scss";
 .cardControls {
   height: 100%;
   width: 100%;
   opacity: 0; // invisible by default. hover exposes it.
 }
+$buttonColor: rgb(var(--v-theme-textSecondary));
+$buttonColorHover: rgb(var(--v-theme-linkHover));
+/* EYE */
 .eye {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translateX(-50%) translateY(-50%);
+  color: $buttonColorHover;
 }
-</style>
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-$button-margin: 0px;
-#browsePaneContainer .tagButton {
+.cardControls:hover .eye {
+  color: $buttonColorHover;
+}
+.cardControls:has(> .tagButton:hover) .eye,
+.cardControls:has(> .browserCardMenuIcon:hover) .eye {
+  color: $buttonColor;
+}
+
+/* BOTTOM CONTROLS */
+:deep(.cardControlButton) {
   position: absolute !important;
-  left: $button-margin !important;
-  bottom: $button-margin !important;
+  bottom: 0px !important;
+  color: $buttonColor !important;
 }
-#browsePaneContainer .browserCardMenuIcon {
-  position: absolute !important;
-  right: $button-margin !important;
-  bottom: $button-margin !important;
+:deep(.tagButton) {
+  left: 0px !important;
 }
-
-$browser-card-icon-size: 24px;
-$unselected-icon-color: #a0a0a0;
-#browsePaneContainer .cardControlButton .v-icon {
-  color: $unselected-icon-color !important;
-  width: $browser-card-icon-size;
-  height: $browser-card-icon-size;
+:deep(.browserCardMenuIcon) {
+  right: 0px !important;
 }
-#browsePaneContainer .cardControlButton .v-icon:hover {
-  color: white !important;
+:deep(.cardControlButton:hover) {
+  color: $buttonColorHover !important;
 }
-
-#browsePaneContainer .cardControls:has(> .cardControlButton:hover) .eye {
-  /* this selector only works on safari 2022-08 */
-  color: $unselected-icon-color;
-}
-
-@import "vuetify/src/styles/styles.sass";
 </style>
