@@ -38,7 +38,9 @@ DEBUG = bool(os.environ.get("DEBUG", "").lower() not in ("0", "false", ""))
 #
 # Logging
 #
-LOG_DIR = CONFIG_PATH / "logs"
+LOG_TO_CONSOLE = os.environ.get("CODEX_LOG_TO_CONSOLE") != "0"
+LOG_TO_FILE = os.environ.get("CODEX_LOG_TO_FILE") != "0"
+LOG_DIR = Path(os.environ.get("CODEX_LOG_DIR", CONFIG_PATH / "logs"))
 init_logging(DEBUG)
 
 LOG = get_logger(__name__)
