@@ -138,11 +138,12 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use "vuetify/styles/settings/variables" as vuetify;
 :deep(.v-field-label) {
-  margin-left: 0;
+  margin-left: 8px;
 }
 :deep(.v-field__input) {
-  padding-left: 0;
+  padding-left: 8px;
 }
 .filterSuffix {
   margin-left: 0.25em;
@@ -150,5 +151,16 @@ export default {
 :deep(.v-field__clearable) {
   margin-inline-start: 0;
   margin-inline-end: 0;
+}
+@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
+  :deep(.v-field-label) {
+    margin-left: 0;
+  }
+  :deep(.v-field__input) {
+    padding-left: 0px;
+  }
+  :deep(.v-field__input) {
+    padding-left: 4px;
+  }
 }
 </style>
