@@ -86,8 +86,13 @@ export const useAdminStore = defineStore("admin", {
         .then((response) => {
           const stateField =
             pluralTable.charAt(0).toLowerCase() + pluralTable.slice(1);
-          this[stateField] = response.data;
-          return true;
+          if (Array.isArray(response.data)) {
+            this[stateField] = response.data;
+            return true;
+          } else {
+            console.warn(stateField, "response not an array");
+            return false;
+          }
         })
         .catch(warnError);
     },

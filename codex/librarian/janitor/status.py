@@ -9,5 +9,6 @@ class JanitorStatusTypes(StatusTypes):
     CLEANUP_FK = "Cleanup Foreign Keys"
     CODEX_UPDATE = "Update Codex"
     CODEX_RESTART = "Restart Codex"
+    CODEX_STOP = "Stop Codex"
     DB_VACUUM = "Vacuum Database"
     DB_BACKUP = "Backup Database"

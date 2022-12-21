@@ -12,6 +12,7 @@ border-radius: 128px;
 
 - Features
   - Removed old django admin pages.
+  - Shutdown task for admins.
 - Fixes
   - Fix displaying error in login dialog.
   - Fix saving community & critical rating filters to session

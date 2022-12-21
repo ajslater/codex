@@ -17,8 +17,15 @@ class JanitorBackupTask(JanitorTask):
 
 
 @dataclass
-class JanitorRestartTask:
+class JanitorRestartTask(JanitorTask):
     """for restart."""
+
+    pass
+
+
+@dataclass
+class JanitorShutdownTask(JanitorTask):
+    """for shutdown."""
 
     pass
 

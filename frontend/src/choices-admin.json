@@ -82,6 +82,12 @@
           "title": "Restart Codex Server",
           "desc": "Immediately",
           "confirm": "Are you sure?"
+        },
+        {
+          "value": "codex_shutdown",
+          "title": "Shutdown Codex Server",
+          "desc": "Immediately",
+          "confirm": "Are you sure?"
         }
       ]
     },
