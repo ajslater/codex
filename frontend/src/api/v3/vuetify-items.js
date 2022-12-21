@@ -56,7 +56,8 @@ export const toVuetifyItems = function (
     if (
       vuetifyItem &&
       (!lowerCaseFilter ||
-        vuetifyItem.title && vuetifyItem.title.toLowerCase().includes(lowerCaseFilter))
+        (vuetifyItem.title &&
+          vuetifyItem.title.toLowerCase().includes(lowerCaseFilter)))
     ) {
       computedItems.push(vuetifyItem);
     }
