@@ -6,7 +6,7 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.0.0a1
+## v1.0.0a2
 
 ### Vue 3
 
