@@ -1,13 +1,8 @@
 <template>
-  <v-toolbar
-    v-if="maxPage"
-    class="readerNavToolbar codexToolbar"
-    density="compact"
-    transform="center bottom"
-  >
+  <PaginationToolbar v-if="maxPage">
     <ReaderNavButton :value="0" />
     <PaginationSlider
-      :key="$route.params.pk"
+      :key="key"
       :model-value="+$route.params.page"
       :min="+0"
       :max="maxPage"
@@ -16,13 +11,14 @@
       @update:model-value="routeToPage($event)"
     />
     <ReaderNavButton :value="maxPage" :two-pages="twoPages" />
-  </v-toolbar>
+  </PaginationToolbar>
 </template>
 
 <script>
 import { mapActions, mapGetters } from "pinia";
 
 import PaginationSlider from "@/components/pagination-slider.vue";
+import PaginationToolbar from "@/components/pagination-toolbar.vue";
 import ReaderNavButton from "@/components/reader/reader-nav-button.vue";
 import { useReaderStore } from "@/stores/reader";
 
@@ -31,9 +27,13 @@ export default {
   components: {
     PaginationSlider,
     ReaderNavButton,
+    PaginationToolbar,
   },
   computed: {
     ...mapGetters(useReaderStore, ["activeSettings", "activeBook"]),
+    key() {
+      return `${this.$route.params.pk} - ${this.twoPages}`;
+    },
     maxPage() {
       return this.activeBook ? this.activeBook.maxPage : 0;
     },
@@ -55,15 +55,3 @@ export default {
   },
 };
 </script>
-
-<style scoped lang="scss">
-.readerNavToolbar {
-  bottom: env(safe-area-inset-bottom);
-  width: 100%;
-  z-index: 20;
-}
-
-:deep(.v-toolbar__content) {
-  padding: 0px;
-}
-</style>
