@@ -18,20 +18,18 @@ export default {
     },
   },
   computed: {
-    toRoute: function () {
-      const params = { ...this.$route.params };
-      params.page = this.value;
+    toRoute() {
       return {
-        name: this.$route.name,
-        params: params,
+        params: { ...this.$route.params, page: this.value },
       };
     },
-    disabled: function () {
-      const endPages = [this.value];
-      if (this.twoPages && this.value % 2) {
-        endPages.push(this.value - 1);
-      }
-      return endPages.includes(+this.$route.params.page);
+    disabled() {
+      return (
+        this.value === +this.$route.params.page ||
+        (this.twoPages &&
+          this.value % 2 &&
+          this.value - 1 === +this.$route.params.page)
+      );
     },
   },
 };
