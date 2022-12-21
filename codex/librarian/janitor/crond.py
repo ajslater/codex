@@ -17,10 +17,11 @@ from codex.librarian.janitor.tasks import (
     JanitorCleanSearchTask,
     JanitorClearStatusTask,
     JanitorRestartTask,
+    JanitorShutdownTask,
     JanitorUpdateTask,
     JanitorVacuumTask,
 )
-from codex.librarian.janitor.update import restart_codex, update_codex
+from codex.librarian.janitor.update import restart_codex, shutdown_codex, update_codex
 from codex.librarian.janitor.vacuum import backup_db, vacuum_db
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.librarian.search.status import SearchIndexStatusTypes
@@ -146,6 +147,8 @@ def janitor(task):
             update_codex()
         elif isinstance(task, JanitorRestartTask):
             restart_codex()
+        elif isinstance(task, JanitorShutdownTask):
+            shutdown_codex()
         elif isinstance(task, JanitorCleanSearchTask):
             clean_old_queries()
         elif isinstance(task, JanitorCleanFKsTask):

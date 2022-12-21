@@ -1,33 +1,21 @@
 // Socket pseudo module for vue-native-sockets
 import { defineStore } from "pinia";
-import Vue from "vue";
 
 import CHOICES from "@/choices";
-import router from "@/router";
+// import app from "@/main";
+import router from "@/plugins/router";
 import { useAdminStore } from "@/stores/admin";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
-import { useReaderStore } from "@/stores/reader";
-
-const WS_TIMEOUT = 19 * 1000;
-
-const wsKeepAlive = function (ws) {
-  if (!ws || ws.readyState !== 1) {
-    console.debug("socket not ready, not sending keep-alive.");
-    return;
-  }
-  ws.send("{}");
-  setTimeout(() => wsKeepAlive(ws), WS_TIMEOUT);
-};
+import { useCommonStore } from "@/stores/common";
+import { store } from "@/stores/store";
 
 const libraryChanged = function () {
-  const browserStore = useBrowserStore();
-  const readerStore = useReaderStore();
-  browserStore.setTimestamp();
-  readerStore.setTimestamp();
-  if (router.currentRoute.name === "browser") {
-    browserStore.loadBrowserPage({ showProgress: false });
-  } else if (router.currentRoute.name == "admin-libraries") {
+  useCommonStore().setTimestamp();
+  const route = router.currentRoute.value;
+  if (route.name === "browser") {
+    useBrowserStore().loadBrowserPage({ showProgress: false });
+  } else if (route.name == "admin-libraries") {
     useAdminStore().loadTables(["Library", "FailedImport"]);
   }
 };
@@ -37,23 +25,30 @@ export const useSocketStore = defineStore("socket", {
   state: () => ({
     isConnected: false,
     reconnectError: false,
+    app: undefined,
+    heartBeatInterval: 5 * 1000,
+    heartBeatTimer: 0,
   }),
   actions: {
     SOCKET_ONOPEN(event) {
-      Vue.prototype.$socket = event.currentTarget;
+      this.app.config.globalProperties.$socket = event.currentTarget;
       this.$patch((state) => {
         state.isConnected = true;
         state.reconnectError = false;
       });
-      try {
-        wsKeepAlive(event.currentTarget);
-      } catch (error) {
-        // Activating the Vue dev console breaks currentTarget
-        console.warn("keep-alive", error);
-      }
+      this.heartBeatTimer = window.setInterval(() => {
+        try {
+          this.isConnected &&
+            this.app.config.globalProperties.$socket.send("{}");
+        } catch (error) {
+          console.warn("keep-alive", error);
+        }
+      }, this.heartBeatInterval);
     },
     SOCKET_ONCLOSE() {
       this.isConnected = false;
+      window.clearInterval(this.heartBeatTimer);
+      this.heartBeatTimer = 0;
     },
     SOCKET_ONERROR(event) {
       console.error("socket error", event);
@@ -96,7 +91,8 @@ export const useSocketStore = defineStore("socket", {
       this.reconnectError = true;
     },
     sendSubscribe() {
-      const ws = Vue.prototype.$socket;
+      // const app = getCurrentInstance().appContext;
+      const ws = this.app.config.globalProperties.$socket;
       if (!ws || ws.readyState !== 1) {
         console.debug("No ready socket. Not subscribing to notifications.");
         return;
@@ -111,3 +107,7 @@ export const useSocketStore = defineStore("socket", {
     },
   },
 });
+
+export function useSocketStoreWithOut() {
+  return useSocketStore(store);
+}

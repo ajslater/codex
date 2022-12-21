@@ -65,7 +65,7 @@ export default {
   padding-bottom: calc(5px + env(safe-area-inset-bottom) * 2);
   text-align: center;
   font-size: small;
-  color: gray;
+  color: rgb(var(--v-theme-textDisabled));
 }
 #version-footer * {
   margin: auto;

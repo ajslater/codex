@@ -20,6 +20,7 @@ class ReaderSettingsSerializer(Serializer):
     fit_to = ChoiceField(
         choices=FIT_TO_CHOICES,
         allow_blank=True,
+        allow_null=True,
         required=False,
     )
     two_pages = BooleanField(allow_null=True, required=False)

@@ -52,49 +52,36 @@ export default {
 html {
   overflow-y: auto;
 }
-body {
-  background-color: #121212;
-}
 noscript {
   text-align: center;
   font-family: sans-serif;
-  color: darkgray;
+  color: rgb(var(--v-theme-textDisabled));
 }
 a {
   text-decoration: none !important;
-}
-.v-dialog,
-.v-navigation-drawer {
-  background-color: #202020 !important;
+  color: rgb(var(--v-theme-primary));
 }
 
-.background-highlight,
-.highlight-table tr:nth-child(even),
-.highlight-table th {
-  background-color: #121212 !important;
+.v-overlay__content {
+  background-color: rgb(var(--v-theme-background)) !important;
+  border-radius: 5px;
 }
-.background-soft-highlight {
-  background-color: #272727 !important;
+
+.highlight-table tbody > tr > td {
+  border: 0;
 }
+.highlight-table thead > tr > th,
+.highlight-table tbody > tr:nth-child(even) {
+  background-color: rgb(var(--v-theme-background)) !important;
+}
+
 .codexToolbar {
   position: fixed !important;
-  z-index: 20 !important;
 }
-
-.settingsDrawer {
-  z-index: 30 !important;
+.codexToolbarTitle {
+  margin-inline-start: 0 !important;
 }
-
-.settingsDrawerContainer {
-  position: relative !important;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 100%;
-}
-
-.settingsDrawer .v-icon {
-  color: gray !important;
-  margin-right: 0.33em;
+.codexToolbarTitle > .v-toolbar-title__placeholder {
+  text-align: center;
 }
 </style>

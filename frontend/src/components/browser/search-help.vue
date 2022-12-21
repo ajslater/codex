@@ -5,20 +5,19 @@
     transition="dialog-bottom-transition"
     content-class="browserSearchHelp"
   >
-    <template #activator="{ on }">
-      <v-list-item ripple v-on="on">
-        <v-list-item-content>
-          <v-list-item-title
-            ><v-icon>{{ mdiArchiveSearchOutline }}</v-icon> Search Syntax Help
-          </v-list-item-title>
-        </v-list-item-content>
+    <template #activator="{ props }">
+      <v-list-item v-bind="props">
+        <v-list-item-title
+          ><v-icon>{{ mdiArchiveSearchOutline }}</v-icon
+          >Search Syntax Help
+        </v-list-item-title>
       </v-list-item>
     </template>
     <div id="searchHelp">
       <CloseButton
         class="closeButton"
         title="Close Help (esc)"
-        x-large
+        size="x-large"
         @click="dialog = false"
       />
       <h1>Search Syntax Help</h1>
@@ -50,7 +49,7 @@
           users looking to understand its full power to read the
           <a href="https://xapian.org/docs/queryparser.html" target="_blank"
             >Xapian Query Parser Syntax documentation
-            <v-icon small>{{ mdiOpenInNew }}</v-icon></a
+            <v-icon size="small">{{ mdiOpenInNew }}</v-icon></a
           >.
         </p>
 
@@ -65,7 +64,7 @@
           Codex parses Dates and DateTime values liberally. If the format you
           enter fails, the
           <a href="https://en.wikipedia.org/wiki/ISO_8601" target="_blank"
-            >ISO 8601 format<v-icon small>{{ mdiOpenInNew }}</v-icon></a
+            >ISO 8601 format<v-icon size="small">{{ mdiOpenInNew }}</v-icon></a
           >
           is reliable.
         </p>
@@ -129,7 +128,7 @@
       <CloseButton
         class="closeButton"
         title="Close Help (esc)"
-        x-large
+        size="x-large"
         @click="dialog = false"
       />
     </div>
@@ -195,20 +194,22 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "vuetify/src/styles/styles.sass";
 @import "../anchors.scss";
+.browserSearchHelp {
+  overflow-y: auto;
+}
 #searchHelp {
   max-width: 850px;
   padding: 20px;
   padding-left: 20px;
   padding-right: 20px;
   margin: auto;
-  color: grey;
+  color: rgb(var(--v-theme-textSecondary));
 }
 h1,
 h2,
 h3 {
-  color: lightgrey;
+  color: rgb(var(--v-theme-textHeader));
 }
 h1 {
   padding-bottom: 1em;
@@ -228,7 +229,7 @@ h1 {
 #fieldTable th {
   font-size: larger;
   font-weight: bold;
-  color: lightgrey;
+  color: rgb(var(--v-theme-textHeader));
 }
 #fieldTable th,
 #fieldTable td {
@@ -236,6 +237,7 @@ h1 {
 }
 code {
   width: fit-content;
-  color: lightgrey !important;
+  background-color: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-textHeader)) !important;
 }
 </style>

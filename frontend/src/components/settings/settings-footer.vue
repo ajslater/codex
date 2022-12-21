@@ -1,9 +1,14 @@
 <template>
   <v-footer id="settingsFooter">
     <div id="opds" title="Copy OPDS URL to Clipboard" @click="copyToClipboard">
-      <v-icon x-small>{{ mdiRss }}</v-icon
+      <v-icon size="x-small" class="">{{ mdiRss }}</v-icon
       >OPDS
-      <v-icon id="clipBoardIcon" x-small color="gray">
+      <v-icon
+        id="clipBoardIcon"
+        class=""
+        size="x-small"
+        :color="$vuetify.theme.current.colors.iconsInactive"
+      >
         {{ clipBoardIcon }}
       </v-icon>
       <v-fade-transition>
@@ -18,8 +23,12 @@
       href="https://github.com/ajslater/codex"
       title="Codex Source Repository"
     >
-      <v-icon id="repoIcon" x-small>{{ mdiSourceRepository }}</v-icon>
-      repository<v-icon color="grey" x-small>{{ mdiOpenInNew }}</v-icon>
+      <v-icon id="repoIcon" size="x-small">{{ mdiSourceRepository }}</v-icon>
+      repository<v-icon
+        :color="$vuetify.theme.current.colors.iconsInactive"
+        size="x-small"
+        >{{ mdiOpenInNew }}</v-icon
+      >
     </a>
   </v-footer>
 </template>
@@ -74,54 +83,39 @@ export default {
   margin-top: auto;
   text-align: center;
   font-size: small;
-  color: gray;
-}
-#settingsFooter * {
-  width: 100%;
+  color: rgb(var(--v-theme-textDisabled));
 }
 #opds {
   font-size: smaller;
   overflow-wrap: anywhere;
-  color: grey;
+  color: rgb(var(--v-theme-textDisabled));
   text-align: left;
   padding-bottom: 5px;
 }
 #opds * {
   padding: 0px;
-  background-color: inherit;
-  color: grey;
+  color: rgb(var(--v-theme-textDisabled));
 }
 #copied {
-  color: white;
+  color: rgb(var(--v-theme-textPrimary));
   padding-left: 0.5em;
   display: inline;
 }
 
-/* eslint-disable-next-line vue-scoped-css/no-unused-selector */
 #opds:hover #clipBoardIcon,
 #opds:hover #opdsUrl {
-  color: white;
+  color: rgb(var(--v-theme-textPrimary));
 }
 #repo {
-  color: gray;
+  color: rgb(var(--v-theme-textDisabled));
 }
 #repo:hover {
-  color: white;
+  color: rgb(var(--v-theme-textPrimary));
 }
 #repoIcon {
   margin-right: 0px;
 }
-</style>
-
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-#opds-header > .v-expansion-panel-header__icon {
-  color: gray;
-}
-#opds-content > .v-expansion-panel-content__wrap {
-  padding: 0px;
-}
-#repo:hover .v-icon {
-  color: white !important;
+:deep(#repo:hover .v-icon) {
+  color: rgb(var(--v-theme-textPrimary)) !important;
 }
 </style>

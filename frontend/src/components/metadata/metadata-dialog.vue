@@ -1,12 +1,13 @@
 <template>
   <v-dialog v-model="dialog" fullscreen transition="dialog-bottom-transition">
-    <template #activator="{ on }">
+    <template #activator="{ props }">
       <v-btn
         aria-label="tags"
-        class="tagButton"
+        class="tagButton cardControlButton"
         icon
         title="Tags"
-        v-on="on"
+        variant="text"
+        v-bind="props"
         @click.prevent
       >
         <v-icon>
@@ -19,7 +20,7 @@
         <CloseButton
           class="closeButton"
           title="Close Metadata (esc)"
-          x-large
+          size="x-large"
           @click="dialog = false"
         />
         <MetadataText
@@ -39,7 +40,7 @@
           />
           <v-progress-linear
             class="bookCoverProgress"
-            :value="md.progress"
+            :model-value="md.progress"
             rounded
             background-color="inherit"
             height="2"
@@ -180,7 +181,7 @@
           <CloseButton
             class="closeButton"
             title="Close Metadata (esc)"
-            x-large
+            size="x-large"
             @click="dialog = false"
           />
         </span>
@@ -194,10 +195,9 @@
       />
       <div id="placeholderTitle">Tags Loading</div>
       <v-progress-circular
-        :value="progress"
+        :model-value="progress"
         :indeterminate="progress >= 100"
         size="256"
-        color="#cc7b19"
         class="placeholder"
         aria-label="tags loading"
       />
@@ -217,7 +217,7 @@ import MetadataCreditsTable from "@/components/metadata/credits-table.vue";
 import MetadataTags from "@/components/metadata/metadata-tags.vue";
 import MetadataText from "@/components/metadata/metadata-text.vue";
 import { DATETIME_FORMAT } from "@/datetime";
-import { getReaderRoute } from "@/router/route";
+import { getReaderRoute } from "@/route";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
@@ -268,23 +268,22 @@ export default {
     ...mapState(useMetadataStore, {
       md: (state) => state.md,
       downloadFileName: (state) => {
-        let name;
-        name = state.md.path
-          ? state.md.path.split("/").at(-1)
+        const md = state.md;
+        return state.md.path
+          ? md.path.split("/").at(-1)
           : getFullComicName({
-              seriesName: state.md.series.name,
-              volumeName: state.md.volume.name,
-              issue: state.md.issue,
-              issueSuffix: state.md.issueSuffix,
+              seriesName: md.series.name,
+              volumeName: md.volume.name,
+              issue: md.issue,
+              issueSuffix: md.issueSuffix,
             }) + ".cbz";
-        return name;
       },
     }),
     ...mapState(useBrowserStore, {
       q: (state) => state.settings.q,
     }),
     downloadURL: function () {
-      return getDownloadURL(this.pk); // browser timestamp missing.
+      return getDownloadURL(this.pk);
     },
     isReadButtonShown: function () {
       return this.group === "c" && this.$route.name != "reader";
@@ -300,8 +299,8 @@ export default {
     },
     formattedIssue: function () {
       if (
-        (this.issue === null || this.issue === undefined) &&
-        !this.issueSuffix
+        (this.md.issue === null || this.md.issue === undefined) &&
+        !this.md.issueSuffix
       ) {
         // comic-name.formattedIssue() shows 0 for null issue.
         return;
@@ -393,7 +392,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "vuetify/src/styles/styles.sass";
+@use "vuetify/styles/settings/variables" as vuetify;
 #metadataContainer {
   display: flex;
   flex-direction: column;
@@ -415,7 +414,7 @@ export default {
 }
 #placeholderTitle {
   font-size: xx-large;
-  color: gray;
+  color: rgb(var(--v-theme-textDisabled));
 }
 .closeButton {
   float: right;
@@ -484,8 +483,7 @@ export default {
   width: 25%;
   display: inline-flex;
 }
-
-@media #{map-get($display-breakpoints, 'sm-and-down')} {
+@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   #metadataContainer {
     font-size: 12px;
   }

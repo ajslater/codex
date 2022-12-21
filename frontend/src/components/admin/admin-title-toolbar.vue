@@ -1,9 +1,14 @@
 <template>
-  <v-toolbar id="titleBar" class="codexToolbar" :class="{ rightSpace }" dense>
-    <div id="buttonSpacer" />
-    <v-spacer />
-    <v-toolbar-title>Codex Administration</v-toolbar-title>
-    <v-spacer />
+  <v-toolbar
+    id="titleBar"
+    class="codexToolbar"
+    :class="{ drawerMargin: !$vuetify.display.mdAndDown }"
+    density="compact"
+    elevation="8"
+  >
+    <v-toolbar-title class="codexToolbarTitle">
+      Codex Administration
+    </v-toolbar-title>
     <SettingsDrawerButton
       :class="{ invisible: isSettingsDrawerOpen }"
       :disabled="isSettingsDrawerOpen"
@@ -16,38 +21,30 @@
 import { mapWritableState } from "pinia";
 
 import SettingsDrawerButton from "@/components/settings/button.vue";
-import { useAdminStore } from "@/stores/admin";
+import { useCommonStore } from "@/stores/common";
 export default {
   name: "AdminTitleToolbar",
   components: {
     SettingsDrawerButton,
   },
   computed: {
-    ...mapWritableState(useAdminStore, ["isSettingsDrawerOpen"]),
-    rightSpace() {
-      return this.$vuetify.breakpoint.mdAndUp;
-    },
-  },
-  mounted() {
-    this.isSettingsDrawerOpen = !this.$vuetify.breakpoint.mobile;
+    ...mapWritableState(useCommonStore, ["isSettingsDrawerOpen"]),
   },
 };
 </script>
 
 <style scoped lang="scss">
-#buttonSpacer {
-  width: 48px;
-}
 .invisible {
   visibility: hidden;
 }
 #titleBar {
+  top: 0px;
   width: 100%;
   padding-top: env(safe-area-inset-top);
   padding-right: calc(env(safe-area-inset-right) / 2);
-  padding-left: calc(env(safe-area-inset-left) / 2);
+  padding-left: calc(48px + calc(env(safe-area-inset-left) / 2));
 }
-.rightSpace {
+.drawerMargin {
   width: calc(100% - 256px) !important;
 }
 </style>

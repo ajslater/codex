@@ -3,8 +3,9 @@ import { defineStore } from "pinia";
 
 import API from "@/api/v3/browser";
 import CHOICES from "@/choices";
-import router from "@/router";
+import router from "@/plugins/router";
 import { useAuthStore } from "@/stores/auth";
+import { useCommonStore } from "@/stores/common";
 
 export const NUMERIC_FILTERS = [
   "communityRating",
@@ -22,6 +23,14 @@ for (let choice of CHOICES.browser.settingsGroup) {
   SETTINGS_SHOW_DEFAULTS[choice.value] = choice.default === true;
 }
 Object.freeze(SETTINGS_SHOW_DEFAULTS);
+const HTTP_REDIRECT_CODES = new Set([301, 302, 303, 307, 308]);
+Object.freeze(HTTP_REDIRECT_CODES);
+const DEFAULT_BOOKMARK_VALUES = new Set([
+  undefined,
+  null, // eslint-disable-line unicorn/no-null
+  CHOICES.browser.bookmarkFilter[0].value,
+]);
+Object.freeze(DEFAULT_BOOKMARK_VALUES);
 
 const getZeroPad = function (issueMax) {
   return !issueMax || issueMax < 1 ? 1 : Math.floor(Math.log10(issueMax)) + 1;
@@ -53,7 +62,6 @@ export const useBrowserStore = defineStore("browser", {
       orderBy: undefined,
       orderReverse: undefined,
       show: { ...SETTINGS_SHOW_DEFAULTS },
-      ts: Date.now(),
     },
     page: {
       adminFlags: {
@@ -78,26 +86,30 @@ export const useBrowserStore = defineStore("browser", {
     },
     // LOCAL UI
     filterMode: "base",
-    isSettingsDrawerOpen: false,
     zeroPad: 0,
     browserPageLoaded: false,
   }),
   getters: {
     topGroupChoices() {
       const choices = [];
-      for (const item of Object.values(CHOICES.browser.topGroup)) {
+      for (const item of CHOICES.browser.topGroup) {
         if (this._isRootGroupEnabled(item.value)) {
+          /* XXX divider not implemented yet in Vuetify 3
           if (item.value === "f") {
             choices.push({ divider: true });
           }
+          */
           choices.push(item);
         }
       }
-      return Object.values(choices);
+      return choices;
+    },
+    topGroupChoicesMaxLen() {
+      return this._maxLenChoices(CHOICES.browser.topGroup);
     },
     orderByChoices(state) {
       const choices = [];
-      for (const item of Object.values(CHOICES.browser.orderBy)) {
+      for (const item of CHOICES.browser.orderBy) {
         if (item.value === "path") {
           if (state.page.adminFlags.enableFolderView) {
             choices.push(item);
@@ -106,13 +118,33 @@ export const useBrowserStore = defineStore("browser", {
           choices.push(item);
         }
       }
-      return Object.values(choices);
+      return choices;
+    },
+    orderByChoicesMaxLen() {
+      return this._maxLenChoices(CHOICES.browser.orderBy);
+    },
+    filterByChoicesMaxLen() {
+      return this._maxLenChoices(CHOICES.browser.bookmarkFilter);
     },
     isCodexViewable() {
       return useAuthStore().isCodexViewable;
     },
+    isDefaultBookmarkValueSelected(state) {
+      return DEFAULT_BOOKMARK_VALUES.has(state.settings.filters.bookmark);
+    },
   },
   actions: {
+    ////////////////////////////////////////////////////////////////////////
+    // UTILITY
+    _maxLenChoices(choices) {
+      let maxLen = 0;
+      for (const item of choices) {
+        if (item && item.title && item.title.length > maxLen) {
+          maxLen = item.title.length;
+        }
+      }
+      return maxLen;
+    },
     ////////////////////////////////////////////////////////////////////////
     // VALIDATORS
     _isRootGroupEnabled(topGroup) {
@@ -136,7 +168,7 @@ export const useBrowserStore = defineStore("browser", {
           break;
         }
       }
-      const params = router.currentRoute.params;
+      const params = router.currentRoute.value.params;
       if (params.group === lowestGroup) {
         return;
       }
@@ -144,7 +176,7 @@ export const useBrowserStore = defineStore("browser", {
     },
     _validateNewTopGroupIsParent(data, redirect) {
       // If the top group changed and we're at the root group and the new top group is above the proper nav group
-      const referenceRoute = redirect || router.currentRoute;
+      const referenceRoute = redirect || router.currentRoute.value;
       const params = referenceRoute.params;
       if (
         params.group !== "r" ||
@@ -173,11 +205,10 @@ export const useBrowserStore = defineStore("browser", {
     _mutateSettings(data) {
       this.$patch((state) => {
         for (let [key, value] of Object.entries(data)) {
-          if (typeof state.settings[key] === "object") {
-            state.settings[key] = { ...state.settings[key], ...value };
-          } else {
-            state.settings[key] = value;
-          }
+          state.settings[key] =
+            typeof state.settings[key] === "object"
+              ? { ...state.settings[key], ...value }
+              : (state.settings[key] = value);
         }
       });
     },
@@ -191,19 +222,16 @@ export const useBrowserStore = defineStore("browser", {
       }
 
       this.filterMode = "base";
-      this.setTimestamp();
+      useCommonStore().setTimestamp();
       return redirect;
-    },
-    setTimestamp() {
-      this.settings.ts = Date.now();
     },
     async clearFiltersAndChoices() {
       this.$patch((state) => {
         state.filterMode = "base";
         state.settings.filters = {};
         state.choices.dynamic = {};
-        state.settings.ts = Date.now();
       });
+      useCommonStore().setTimestamp();
       await this.loadBrowserPage();
     },
     async setSettings(data) {
@@ -216,7 +244,7 @@ export const useBrowserStore = defineStore("browser", {
         return;
       }
       await API.setGroupBookmarks(params, { finished }).then(() => {
-        this.setTimestamp();
+        useCommonStore().setTimestamp();
         this.loadBrowserPage();
         return true;
       });
@@ -224,15 +252,20 @@ export const useBrowserStore = defineStore("browser", {
     ///////////////////////////////////////////////////////////////////////////
     // ROUTE
     routeToPage(page) {
-      const route = _.cloneDeep(router.currentRoute);
+      const route = _.cloneDeep(router.currentRoute.value);
       route.params.page = page;
       router.push(route).catch(console.debug);
     },
     handlePageError(error) {
       console.debug(error);
-      if (error.response.status == 303) {
+      if (HTTP_REDIRECT_CODES.has(error.response.status)) {
         const data = error.response.data;
-        if (compareRouteParams(data.route.params, router.currentRoute.params)) {
+        if (
+          compareRouteParams(
+            data.route.params,
+            router.currentRoute.value.params
+          )
+        ) {
           this.setSettings(data.settings);
         } else {
           const redirect = this._validateAndSaveSettings(data.settings);
@@ -240,7 +273,7 @@ export const useBrowserStore = defineStore("browser", {
             // ? i dunno if this is a good idea.
             data.route = redirect;
           }
-          redirectRoute(data);
+          redirectRoute(data.route);
         }
       } else {
         return console.error(error);
@@ -279,20 +312,19 @@ export const useBrowserStore = defineStore("browser", {
       if (!this.browserPageLoaded) {
         return this.loadSettings();
       }
-      const params = router.currentRoute.params;
+      const params = router.currentRoute.value.params;
       await API.loadBrowserPage(params, this.settings)
         .then((response) => {
           const data = response.data;
           this.$patch((state) => {
             const page = { ...response.data };
+            delete page.upRoute;
+            delete page.issueMax;
             page.routes = {
               up: data.upRoute,
               last: params,
             };
             page.zeroPad = getZeroPad(data.issueMax);
-            delete page.upRoute;
-            delete page.issueMax;
-
             state.page = Object.freeze(page);
             state.choices.dynamic = {};
           });
@@ -302,7 +334,7 @@ export const useBrowserStore = defineStore("browser", {
     },
     async loadAvailableFilterChoices() {
       return await API.getAvailableFilterChoices(
-        router.currentRoute.params,
+        router.currentRoute.value.params,
         this.settings
       )
         .then((response) => {
@@ -313,7 +345,7 @@ export const useBrowserStore = defineStore("browser", {
     },
     async loadFilterChoices(fieldName) {
       return await API.getFilterChoices(
-        router.currentRoute.params,
+        router.currentRoute.value.params,
         fieldName,
         this.settings
       )

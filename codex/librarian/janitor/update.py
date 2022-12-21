@@ -59,3 +59,14 @@ def restart_codex():
         os.kill(main_pid, signal.SIGUSR1)
     finally:
         StatusControl.finish(JanitorStatusTypes.CODEX_RESTART)
+
+
+def shutdown_codex():
+    """Send a system SIGTERM signal as handled in run.py."""
+    try:
+        StatusControl.start(JanitorStatusTypes.CODEX_STOP)
+        LOG.info("Sending shutdown signal.")
+        main_pid = os.getppid()
+        os.kill(main_pid, signal.SIGTERM)
+    finally:
+        StatusControl.finish(JanitorStatusTypes.CODEX_STOP)

@@ -47,25 +47,18 @@ export default {
   position: relative;
   text-align: center;
   font-size: calc(100vw / 25);
-  color: #505050;
+  color: rgb(var(--v-theme-textDisabled));
   padding: 0.5em;
 }
 .pageErrorIcon {
-  color: darkred;
+  color: rgb(var(--v-theme-error));
+  width: 75%;
+  height: 75%;
+  opacity: 0.33;
 }
 .pageErrorText,
 .pageErrorIcon {
   grid-row: 1;
   grid-column: 1;
-}
-</style>
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-$iconsize: calc(min(100vw, 100vh) / 2);
-.pageErrorIcon svg {
-  width: $iconsize;
-  height: $iconsize;
-  font-size: $iconsize;
-  opacity: 0.33;
 }
 </style>

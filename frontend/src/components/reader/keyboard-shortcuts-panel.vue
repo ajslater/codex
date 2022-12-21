@@ -5,12 +5,14 @@
       <tbody>
         <tr>
           <td>
-            <v-icon class="keyIcon"> {{ mdiMenuLeft }} </v-icon>, j,
+            <v-icon class="keyIcon" density="compact">
+              {{ mdiMenuLeft }} </v-icon
+            >, j,
             <div>
-              <v-icon class="keyIcon" dense>
+              <v-icon class="keyIcon" density="compact">
                 {{ mdiAppleKeyboardShift }}
               </v-icon>
-              <v-icon class="keyIcon" dense>
+              <v-icon class="keyIcon" density="compact">
                 {{ mdiKeyboardSpace }}
               </v-icon>
             </div>
@@ -19,8 +21,10 @@
         </tr>
         <tr>
           <td>
-            <v-icon class="keyIcon"> {{ mdiMenuRight }} </v-icon>, k,
-            <v-icon class="keyIcon" dense>
+            <v-icon class="keyIcon" density="compact">
+              {{ mdiMenuRight }} </v-icon
+            >, k,
+            <v-icon class="keyIcon" density="compact">
               {{ mdiKeyboardSpace }}
             </v-icon>
           </td>
@@ -94,7 +98,7 @@ export default {
 #readerKeyboardShortcutsTable {
   margin-top: 10px;
   border-collapse: collapse;
-  color: gray;
+  color: rgb(var(--v-theme-textDisabled));
 }
 #readerKeyboardShortcutsTable td {
   min-width: 60px;

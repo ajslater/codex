@@ -2,115 +2,115 @@
   "browser": {
     "bookmarkFilter": [
       {
-        "text": "All",
+        "title": "All",
         "value": "ALL",
         "default": true
       },
       {
-        "text": "Unread",
+        "title": "Unread",
         "value": "UNREAD"
       },
       {
-        "text": "In Progress",
+        "title": "In Progress",
         "value": "IN_PROGRESS"
       },
       {
-        "text": "Read",
+        "title": "Read",
         "value": "READ"
       }
     ],
     "q": "",
     "topGroup": [
       {
-        "text": "Publishers",
+        "title": "Publishers",
         "value": "p",
         "default": true
       },
       {
-        "text": "Imprints",
+        "title": "Imprints",
         "value": "i"
       },
       {
-        "text": "Series",
+        "title": "Series",
         "value": "s"
       },
       {
-        "text": "Volumes",
+        "title": "Volumes",
         "value": "v"
       },
       {
-        "text": "Issues",
+        "title": "Issues",
         "value": "c"
       },
       {
-        "text": "Folder View",
+        "title": "Folder View",
         "value": "f"
       }
     ],
     "settingsGroup": [
       {
-        "text": "Publishers",
+        "title": "Publishers",
         "value": "p",
         "default": true
       },
       {
-        "text": "Imprints",
+        "title": "Imprints",
         "value": "i"
       },
       {
-        "text": "Series",
+        "title": "Series",
         "value": "s",
         "default": true
       },
       {
-        "text": "Volumes",
+        "title": "Volumes",
         "value": "v"
       }
     ],
     "orderBy": [
       {
-        "text": "Name",
+        "title": "Name",
         "value": "sort_name",
         "default": true
       },
       {
-        "text": "Publish Date",
+        "title": "Publish Date",
         "value": "date"
       },
       {
-        "text": "Added Time",
+        "title": "Added Time",
         "value": "created_at"
       },
       {
-        "text": "Updated Time",
+        "title": "Updated Time",
         "value": "updated_at"
       },
       {
-        "text": "Page Count",
+        "title": "Page Count",
         "value": "page_count"
       },
       {
-        "text": "File Size",
+        "title": "File Size",
         "value": "size"
       },
       {
-        "text": "Filename",
+        "title": "Filename",
         "value": "path"
       },
       {
-        "text": "Critical Rating",
+        "title": "Critical Rating",
         "value": "critical_rating"
       },
       {
-        "text": "Community Rating",
+        "title": "Community Rating",
         "value": "community_rating"
       },
       {
-        "text": "Age Rating",
+        "title": "Age Rating",
         "value": "age_rating"
       },
       {
-        "text": "Search Score",
+        "title": "Search Score",
         "value": "search_score"
       }
     ],
@@ -132,23 +132,26 @@
   "reader": {
     "fitTo": [
       {
-        "text": "Fit to Screen",
+        "title": "Fit to Screen",
         "value": "SCREEN",
         "default": true
       },
       {
-        "text": "Fit to Width",
+        "title": "Fit to Width",
         "value": "WIDTH"
       },
       {
-        "text": "Fit to Height",
+        "title": "Fit to Height",
         "value": "HEIGHT"
       },
       {
-        "text": "Original Size",
+        "title": "Original Size",
         "value": "ORIG"
       },
-      { "text": "", "value": "" }
+      {
+        "title": "",
+        "value": ""
+      }
     ]
   },
   "websockets": {

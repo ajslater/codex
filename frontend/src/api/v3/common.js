@@ -1,3 +1,5 @@
+import { useCommonStore } from "@/stores/common";
+
 import { HTTP } from "./base";
 
 const downloadIOSPWAFix = (href, fileName) => {
@@ -15,16 +17,27 @@ const downloadIOSPWAFix = (href, fileName) => {
       link.href = window.URL.createObjectURL(blob);
       link.download = fileName;
       link.click();
-      return window.URL.releaseObjectURL(response.data);
+      return window.URL.revokeObjectURL(response.data);
     })
     .catch(console.warn);
 };
 
+export const getReaderBasePath = (pk) => {
+  return `${window.CODEX.API_V3_PATH}c/${pk}`;
+};
+
+export const getTSParams = () => {
+  return { ts: useCommonStore().timestamp };
+};
+
 const getVersions = (ts) => {
-  return HTTP.get(`/version?ts=${ts}`);
+  const params = { ts };
+  return HTTP.get("/version", { params });
 };
 
 export default {
   downloadIOSPWAFix,
+  getReaderBasePath,
+  getTSParams,
   getVersions,
 };

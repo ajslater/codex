@@ -2,7 +2,7 @@
   <footer>
     <div>
       <small v-if="errors && errors.length > 0" class="errors">
-        <div v-for="error in errors" :key="error">
+        <div v-for="(error, index) in errors" :key="index">
           {{ error }}
         </div>
       </small>
@@ -52,9 +52,9 @@ export default {
 
 <style scoped lang="scss">
 .errors {
-  color: red;
+  color: rgb(var(--v-theme-error));
 }
 .success {
-  color: green;
+  color: rgb(var(--v-theme-success));
 }
 </style>

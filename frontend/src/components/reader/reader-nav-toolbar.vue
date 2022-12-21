@@ -2,18 +2,18 @@
   <v-toolbar
     v-if="maxPage"
     class="readerNavToolbar codexToolbar"
-    dense
+    density="compact"
     transform="center bottom"
   >
     <ReaderNavButton :value="0" />
     <PaginationSlider
       :key="$route.params.pk"
-      :value="+$route.params.page"
+      :model-value="+$route.params.page"
       :min="+0"
       :max="maxPage"
       :step="step"
       :track-color="trackColor"
-      @change="routeToPage($event)"
+      @update:model-value="routeToPage($event)"
     />
     <ReaderNavButton :value="maxPage" :two-pages="twoPages" />
   </v-toolbar>
@@ -46,7 +46,7 @@ export default {
     },
     trackColor() {
       return this.twoPages && +this.$route.params.page >= this.maxPage - 1
-        ? "#cc7b19"
+        ? this.$vuetify.theme.current.colors.primary
         : "";
     },
   },
@@ -60,14 +60,10 @@ export default {
 .readerNavToolbar {
   bottom: env(safe-area-inset-bottom);
   width: 100%;
-  z-index: 10;
+  z-index: 20;
 }
-</style>
 
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-/* TOOLBARS */
-#readerContainer .readerNavToolbar .v-toolbar__content {
+:deep(.v-toolbar__content) {
   padding: 0px;
 }
 </style>

@@ -12,6 +12,7 @@ from codex.librarian.janitor.tasks import (
     JanitorCleanSearchTask,
     JanitorClearStatusTask,
     JanitorRestartTask,
+    JanitorShutdownTask,
     JanitorUpdateTask,
     JanitorVacuumTask,
 )
@@ -94,6 +95,8 @@ class AdminLibrarianTaskView(APIView):
             task = JanitorUpdateTask(False)
         elif task_name == "codex_restart":
             task = JanitorRestartTask()
+        elif task_name == "codex_shutdown":
+            task = JanitorShutdownTask()
         elif task_name == "notify_library_changed":
             task = LIBRARY_CHANGED_TASK
         elif task_name == "cleanup_queries":

@@ -1,8 +1,5 @@
 <template>
-  <v-simple-table
-    v-if="sortedCredits && sortedCredits.length > 0"
-    id="creditsTable"
-  >
+  <v-table v-if="sortedCredits && sortedCredits.length > 0" id="creditsTable">
     <template #default>
       <h2>Credits</h2>
       <table class="highlight-table">
@@ -17,17 +14,23 @@
             <td>
               {{ roleName(credit.role.name) }}
             </td>
-            <td>
-              {{ credit.person.name }}
+            <td :class="{ filteredOn: isFilteredCreator(credit.person.pk) }">
+              <span class="highlight">
+                {{ credit.person.name }}
+              </span>
             </td>
           </tr>
         </tbody>
       </table>
     </template>
-  </v-simple-table>
+  </v-table>
 </template>
 
 <script>
+import { mapState } from "pinia";
+
+import { useBrowserStore } from "@/stores/browser";
+
 export default {
   name: "MetadataCreditsTable",
   props: {
@@ -42,8 +45,13 @@ export default {
   computed: {
     sortedCredits: function () {
       /* eslint-disable-next-line array-func/prefer-array-from */
-      return [...this.value].sort(this.creditsCompare);
+      return this.value ? [...this.value].sort(this.creditsCompare) : [];
     },
+    ...mapState(useBrowserStore, {
+      filteredCreators(state) {
+        return state.settings.filters.creators;
+      },
+    }),
   },
   methods: {
     roleName: function (name) {
@@ -72,6 +80,9 @@ export default {
       if (creditSortableA > creditSortableB) return 1;
       return 0;
     },
+    isFilteredCreator(pk) {
+      return this.filteredCreators && this.filteredCreators.includes(pk);
+    },
   },
 };
 </script>
@@ -86,5 +97,15 @@ export default {
 #creditsTable th,
 #creditsTable td {
   padding: 10px;
+}
+.filteredOn {
+  padding-left: 0px !important;
+}
+.highlight {
+  border-radius: 20px;
+}
+.filteredOn .highlight {
+  padding: 10px;
+  background-color: rgb(var(--v-theme-primary-darken-1));
 }
 </style>

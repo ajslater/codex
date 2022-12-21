@@ -1,20 +1,18 @@
 <template>
-  <v-item-group
-    v-if="model && model.length > 0"
-    v-model="model"
-    multiple
-    class="tags"
-    :class="{ 'background-soft-highlight': true }"
-  >
-    <v-subheader class="subheader">
-      {{ label }}
-    </v-subheader>
-    <v-item v-for="item in model" :key="item.name">
-      <v-chip small :color="chipColor(item.pk)">
-        {{ item.name }}
-      </v-chip>
-    </v-item>
-  </v-item-group>
+  <div v-if="model && model.length > 0" class="tags">
+    <v-chip-group :value="model" multiple class="chipGroup">
+      <div class="label">
+        {{ label }}
+      </div>
+      <v-chip
+        v-for="item in model"
+        :key="`${label}/${item.value}`"
+        :color="chipColor(item.value)"
+        :value="item.value"
+        :text="item.title"
+      />
+    </v-chip-group>
+  </div>
 </template>
 
 <script>
@@ -47,7 +45,6 @@ export default {
   data() {
     return {
       mdiFilter,
-      model: undefined,
     };
   },
   computed: {
@@ -56,28 +53,30 @@ export default {
         return state.settings.filters[this.label.toLowerCase()];
       },
     }),
-  },
-  created: function () {
-    this.model = toVuetifyItems(this.values);
+    model() {
+      return toVuetifyItems(this.values);
+    },
   },
   methods: {
     chipColor: function (pk) {
       return this.filterValues && this.filterValues.includes(pk)
-        ? "rgba(204, 123, 25, 0.75)"
-        : "#202020";
+        ? this.$vuetify.theme.current.colors["primary-darken-1"]
+        : "";
     },
   },
 };
 </script>
 
 <style scoped lang="scss">
-.subheader {
-  padding-left: 8px;
-  padding-top: 0px;
-  height: 32px;
-}
 .tags {
-  border-radius: 3px;
   padding: 10px;
+  background-color: rgb(var(--v-theme-surface));
+}
+.label {
+  color: rgb(var(--v-theme-textSecondary));
+  font-size: 12px;
+}
+.chipGroup {
+  display: inline;
 }
 </style>

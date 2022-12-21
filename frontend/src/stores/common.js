@@ -3,10 +3,25 @@ import { defineStore } from "pinia";
 
 import API from "@/api/v3/common";
 
+const ERROR_KEYS = [
+  "detail",
+  "oldPassword",
+  "password",
+  "username",
+  "passwordConfirm",
+];
+Object.freeze(ERROR_KEYS);
+
 const getErrors = (axiosError) => {
   let errors = [];
   if (axiosError && axiosError.response && axiosError.response.data) {
-    const data = axiosError.response.data;
+    let data = axiosError.response.data;
+    for (const key of ERROR_KEYS) {
+      if (key in data) {
+        data = data[key];
+        break;
+      }
+    }
     errors = Array.isArray(data) ? data.flat() : [data];
   } else {
     console.warn("Unable to parse error", axiosError);
@@ -29,12 +44,13 @@ export const useCommonStore = defineStore("common", {
       latest: undefined,
     },
     timestamp: Date.now(),
+    isSettingsDrawerOpen: false,
   }),
   getters: {
     isMobile: function () {
       // Probably janky mobile detection
       return (
-        typeof window.orientation !== "undefined" ||
+        window.orientation !== undefined ||
         navigator.userAgent.includes("IEMobile")
       );
     },
@@ -52,8 +68,9 @@ export const useCommonStore = defineStore("common", {
       API.downloadIOSPWAFix(href, fileName);
     },
     setErrors(axiosError) {
+      const errors = getErrors(axiosError);
       this.$patch((state) => {
-        state.form.errors = getErrors(axiosError);
+        state.form.errors = errors;
         state.form.success = "";
       });
     },
@@ -68,6 +85,9 @@ export const useCommonStore = defineStore("common", {
         state.form.errors = [];
         state.form.success = "";
       });
+    },
+    setTimestamp() {
+      this.timestamp = Date.now();
     },
   },
 });

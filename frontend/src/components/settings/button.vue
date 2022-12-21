@@ -1,5 +1,5 @@
 <template>
-  <v-btn v-bind="$attrs" icon ripple title="Settings" v-on="$listeners">
+  <v-btn v-bind="$attrs" icon title="Settings">
     <component :is="AdminSettingsDrawerButtonIcon" v-if="isUserAdmin" />
     <v-icon v-else>
       {{ mdiMenu }}
@@ -10,11 +10,15 @@
 <script>
 import { mdiMenu } from "@mdi/js";
 import { mapState } from "pinia";
+import { defineAsyncComponent, markRaw } from "vue";
 
 import { useAuthStore } from "@/stores/auth";
 
-const AdminSettingsDrawerButtonIcon = () =>
-  import("@/components/admin/admin-settings-button-icon.vue");
+const AdminSettingsDrawerButtonIcon = markRaw(
+  defineAsyncComponent(() =>
+    import("@/components/admin/drawer/admin-settings-button-icon.vue")
+  )
+);
 
 export default {
   name: "SettingsDrawerButton",

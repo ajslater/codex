@@ -1,17 +1,5 @@
 <template>
-  <v-window id="pagesWindow" ref="pagesWindow" show-arrows :value="activePage">
-    <div
-      id="bookChangeActivatorPrev"
-      class="bookChangeActivatorColumn"
-      :class="{ upArrow: bookExists('prev') }"
-      @click.stop="setBookChange('prev')"
-    />
-    <div
-      id="bookChangeActivatorNext"
-      class="bookChangeActivatorColumn"
-      :class="{ downArrow: bookExists('next') }"
-      @click.stop="setBookChange('next')"
-    />
+  <v-window show-arrows :model-value="activePage">
     <template #prev>
       <PageChangeLink direction="prev" />
     </template>
@@ -24,7 +12,8 @@
       class="windowItem"
       disabled
       :eager="page >= activePage - 1 && page <= activePage + 2"
-      :value="page"
+      :model-value="page"
+      :transition="true"
     >
       <BookPage
         :book="book"
@@ -47,8 +36,8 @@
 import _ from "lodash";
 import { mapActions, mapState } from "pinia";
 
-import PageChangeLink from "@/components/reader/change-page-link.vue";
 import BookPage from "@/components/reader/page.vue";
+import PageChangeLink from "@/components/reader/page-change-link.vue";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
@@ -70,7 +59,8 @@ export default {
     ...mapState(useReaderStore, {
       bookRoutes: (state) => state.routes.books,
       settings(state) {
-        const bookSettings = state.books.get(this.book.pk).settings;
+        const book = state.books.get(this.book.pk);
+        const bookSettings = book ? book.settings : {};
         return state.getSettings(state.readerSettings, bookSettings);
       },
       prevBookPk: (state) => state.routes.books?.prev.pk,
@@ -114,18 +104,9 @@ export default {
     }
     this.activePage = page;
   },
-  mounted() {
-    const windowContainer = this.$refs.pagesWindow.$el.children[0];
-    windowContainer.addEventListener("click", this.click);
-  },
-  unmounted() {
-    const windowContainer = this.$refs.pagesWindow.$el.children[0];
-    windowContainer.removeEventListener("click", this.click);
-  },
   methods: {
     ...mapActions(useReaderStore, [
       "routeToPage",
-      "setBookChangeFlag",
       "setRoutesAndBookmarkPage",
       "setRoutes",
       "getSettings",
@@ -150,56 +131,8 @@ export default {
       this.setRoutesAndBookmarkPage(+this.$route.params.page);
       window.scrollTo(0, 0);
     },
-    setBookChange(direction) {
-      if (this.bookRoutes[direction]) {
-        this.setBookChangeFlag(direction);
-      } else {
-        this.$emit("click");
-      }
-    },
-    bookExists(direction) {
-      return Boolean(this.bookRoutes[direction]);
-    },
   },
 };
 </script>
 
-<style scoped lang="scss">
-.windowItem {
-  /* keeps clickable area full screen when image is small */
-  min-height: 100vh;
-  text-align: center;
-}
-.bookChangeActivatorColumn {
-  position: fixed;
-  top: 48px;
-  width: 33vw;
-  height: calc(100vh - 96px);
-  z-index: 5;
-}
-#bookChangeActivatorPrev {
-  left: 0px;
-}
-.upArrow {
-  cursor: n-resize;
-}
-#bookChangeActivatorNext {
-  right: 0px;
-}
-.downArrow {
-  cursor: s-resize;
-}
-</style>
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-#pagesWindow .v-window__prev,
-#pagesWindow .v-window__next {
-  position: fixed;
-  top: 48px;
-  width: 33vw;
-  height: calc(100vh - 96px);
-  border-radius: 0;
-  opacity: 0;
-  z-index: 10;
-}
-</style>
+/* Inherits v-window styles from books-window */

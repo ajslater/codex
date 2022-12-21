@@ -6,11 +6,39 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v0.14.3a0
+## v1.0.0a0
+
+### Vue 3
+
+- Features
+  - Removed old django admin pages.
+  - Shutdown task for admins.
+  - Configure logging with environment variables. See README.
+- Fixes
+  - Fix displaying error in login dialog.
+  - Fix saving community & critical rating filters to session
+  - Fix fit to screen not enlarging pages smaller than screen.
+- Developer
+  - Frontend is now Vuetify 3 over Vue 3. Using options API.
+
+## v0.14.5
 
 - Fixes
 
-  - Fix root_path configuration broken since 13.0
+  - Fix crash on decoding some comics metadata charset encoding.
+
+## v0.14.4
+
+- Fixes
+
+  - Fix login not available when AdminFlag Enable Non Users was unset.
+  - Fix server PicklingError logging bug.
+
+## v0.14.3
+
+- Fixes
+
+  - Fix root_path configuration
 
 ## v0.14.2
 
@@ -62,7 +90,7 @@ border-radius: 128px;
 - Fixes
   - Fixed imprints & volume levels not displaying sometimes.
   - Fix large images & downloads for some OPDS clients.
-- Dev Notes
+- Developer
   - API v3 is more restful.
   - /api/v3/ displays API documentation.
   - Vite replaces Vue CLI.

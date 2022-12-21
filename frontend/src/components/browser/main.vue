@@ -89,8 +89,8 @@ export default {
       showPlaceHolder: function (state) {
         return (
           this.enableNonUsers === undefined ||
-          this.librariesExist == undefined ||
-          (!state.browserPageLoaded && this.isCodexViewable)
+          (this.isCodexViewable &&
+            (this.librariesExist == undefined || !state.browserPageLoaded))
         );
       },
     }),
@@ -99,10 +99,10 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use "vuetify/styles/settings/variables" as vuetify;
 @import "../book-cover.scss";
 $card-margin: 32px;
 #browsePane {
-  display: flex;
   margin-top: 160px;
   margin-left: max($card-margin, env(safe-area-inset-left));
   margin-right: max($card-margin, env(safe-area-inset-right));
@@ -114,7 +114,6 @@ $card-margin: 32px;
   display: grid;
   grid-template-columns: repeat(auto-fit, $cover-width);
   grid-gap: $card-margin;
-  justify-content: start;
   align-content: flex-start;
 }
 #announce {
@@ -123,7 +122,7 @@ $card-margin: 32px;
 #noComicsFound {
   font-size: x-large;
   padding: 1em;
-  color: gray;
+  color: rbg(var(--v-theme-textDisabled));
 }
 .padFooter {
   padding-bottom: 45px !important;
@@ -136,8 +135,7 @@ $card-margin: 32px;
   left: 50%;
   transform: translate(-50%, -50%);
 }
-@import "vuetify/src/styles/styles.sass";
-@media #{map-get($display-breakpoints, 'sm-and-down')} {
+@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   $small-card-margin: 16px;
   #browsePane {
     margin-left: max($small-card-margin, env(safe-area-inset-left));
