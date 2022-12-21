@@ -10,8 +10,8 @@
     "fix": "eslint_d --cache --fix --ext .cjs,.mjs,.js,.json,.md,.vue,.yaml . && prettier --write .",
     "lint": "eslint_d --cache --ext .cjs,.mjs,.js,.json,.md,.vue,.yaml . && prettier --check .",
     "remark": "remark . --output",
-    "test": "vitest",
-    "test:ci": "vitest run"
+    "test": "vitest --reporter verbose --update",
+    "test:ci": "vitest run --reporter verbose --update"
   },
   "dependencies": {
     "@vueuse/head": "^1.0.22",
