@@ -88,6 +88,10 @@ export default {
 :deep(.vue-pdf-embed.fitToScreenTwo > div > canvas) {
   width: inherit !important;
 }
+:deep(.vue-pdf-embed.fitToScreen > div > canvas),
+:deep(.vue-pdf-embed.fitToScreenTwo > div > canvas) {
+  object-fit: contain;
+}
 :deep(.vue-pdf-embed.fitToWidthTwo > div > canvas) {
   height: inherit !important;
 }

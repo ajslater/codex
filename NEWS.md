@@ -15,6 +15,7 @@ border-radius: 128px;
 - Fixes
   - Fix displaying error in login dialog.
   - Fix saving community & critical rating filters to session
+  - Fix fit to screen not enlarging pages smaller than screen.
 - Developer
   - Frontend is now Vuetify 3 over Vue 3. Using options API.
 
