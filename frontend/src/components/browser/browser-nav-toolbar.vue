@@ -34,6 +34,9 @@ export default {
   },
   methods: {
     ...mapActions(useBrowserStore, ["routeToPage"]),
+    onUpdate($event) {
+      this.routeToPage($event);
+    },
   },
 };
 </script>

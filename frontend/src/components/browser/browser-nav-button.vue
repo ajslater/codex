@@ -55,6 +55,10 @@ export default {
 </script>
 
 <style scoped lang="scss">
+.browserNavButton {
+  margin-inline-start: 0 !important;
+  margin-inline-end: 0 !important;
+}
 .flipHoriz {
   transform: scaleX(-1);
 }
