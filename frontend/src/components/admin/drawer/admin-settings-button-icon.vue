@@ -1,13 +1,14 @@
 <template>
   <span>
-    <v-icon v-if="!progressEnabled">
+    <v-icon>
       {{ mdiMenu }}
     </v-icon>
     <v-progress-circular
-      v-else
+      v-if="progressEnabled"
       :indeterminate="progress == null"
       :model-value="progress"
-      size="32"
+      class="progress"
+      size="48"
       aria-label="`Librarian tasks in progress ${Math.round(progress)}%`"
     />
   </span>
@@ -65,3 +66,11 @@ export default {
   },
 };
 </script>
+
+<style scoped lang="scss">
+.progress {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+}
+</style>
