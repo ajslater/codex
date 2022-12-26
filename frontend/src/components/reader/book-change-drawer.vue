@@ -100,6 +100,7 @@ export default {
 </script>
 <style scoped lang="scss">
 .bookChangeColumn {
+  position: fixed;
   height: 100%;
   width: 33vw;
 }
