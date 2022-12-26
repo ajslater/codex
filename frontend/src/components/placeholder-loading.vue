@@ -1,9 +1,9 @@
 <template>
   <v-progress-circular
-    indeterminate
-    :size="size"
-    :color="$vuetify.theme.current.colors.primary"
     aria-label="loading"
+    class="codexProgressCircular"
+    :indeterminate="indeterminate"
+    v-bind="$attrs"
   />
 </template>
 
@@ -11,7 +11,17 @@
 export default {
   name: "PlaceholderLoading",
   props: {
-    size: { type: Number, default: 128 },
+    indeterminate: {
+      type: Boolean,
+      default: true,
+    },
   },
 };
 </script>
+
+<style scoped lang="scss">
+.codexProgressCircular {
+  height: 50%;
+  width: 50%;
+}
+</style>

@@ -194,12 +194,10 @@
         @click="dialog = false"
       />
       <div id="placeholderTitle">Tags Loading</div>
-      <v-progress-circular
+      <PlaceholderLoading
         :model-value="progress"
         :indeterminate="progress >= 100"
-        size="256"
         class="placeholder"
-        aria-label="tags loading"
       />
     </div>
   </v-dialog>
@@ -216,6 +214,7 @@ import CloseButton from "@/components/close-button.vue";
 import MetadataCreditsTable from "@/components/metadata/credits-table.vue";
 import MetadataTags from "@/components/metadata/metadata-tags.vue";
 import MetadataText from "@/components/metadata/metadata-text.vue";
+import PlaceholderLoading from "@/components/placeholder-loading.vue";
 import { DATETIME_FORMAT } from "@/datetime";
 import { getReaderRoute } from "@/route";
 import { useAuthStore } from "@/stores/auth";
@@ -240,6 +239,7 @@ export default {
     MetadataCreditsTable,
     MetadataTags,
     MetadataText,
+    PlaceholderLoading,
   },
   props: {
     group: {
@@ -450,17 +450,17 @@ export default {
 #bottomRightButtons {
   float: right;
 }
-.placeholder {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
 #metadataContainer,
 #placeholderContainer {
   padding-top: calc(20px + env(safe-area-inset-top));
   padding-left: calc(20px + env(safe-area-inset-left));
   padding-right: calc(20px + env(safe-area-inset-right));
+}
+.placeholder {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 .headerHalfRow > * {
   width: calc((100vw - 175px) / 2);
