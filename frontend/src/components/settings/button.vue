@@ -1,9 +1,9 @@
 <template>
   <v-btn v-bind="$attrs" icon title="Settings">
-    <component :is="AdminSettingsDrawerButtonIcon" v-if="isUserAdmin" />
-    <v-icon v-else>
+    <v-icon>
       {{ mdiMenu }}
     </v-icon>
+    <AdminSettingsButtonProgress v-if="isUserAdmin" />
   </v-btn>
 </template>
 
@@ -14,9 +14,9 @@ import { defineAsyncComponent, markRaw } from "vue";
 
 import { useAuthStore } from "@/stores/auth";
 
-const AdminSettingsDrawerButtonIcon = markRaw(
+const AdminSettingsButtonProgress = markRaw(
   defineAsyncComponent(() =>
-    import("@/components/admin/drawer/admin-settings-button-icon.vue")
+    import("@/components/admin/drawer/admin-settings-button-progress.vue")
   )
 );
 
@@ -25,13 +25,11 @@ export default {
   data() {
     return {
       mdiMenu,
-      AdminSettingsDrawerButtonIcon,
+      AdminSettingsButtonProgress,
     };
   },
   computed: {
-    ...mapState(useAuthStore, {
-      isUserAdmin: (state) => state.isUserAdmin,
-    }),
+    ...mapState(useAuthStore, ["isUserAdmin"]),
   },
 };
 </script>
