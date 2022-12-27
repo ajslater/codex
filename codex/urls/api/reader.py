@@ -10,7 +10,7 @@ from codex.views.reader.session import ReaderSessionView
 
 
 COVER_MAX_AGE = 60 * 60 * 24 * 7
-PAGE_MAX_AGE = 60 * 60 * 24 * 7
+PAGE_MAX_AGE = COVER_MAX_AGE
 TIMEOUT = 60 * 5
 
 app_name = "issue"
