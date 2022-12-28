@@ -35,10 +35,6 @@ Object.freeze(DEFAULT_BOOKMARK_VALUES);
 const getZeroPad = function (issueMax) {
   return !issueMax || issueMax < 1 ? 1 : Math.floor(Math.log10(issueMax)) + 1;
 };
-const compareRouteParams = function (a, b) {
-  return a.group === b.group && +a.pk === +b.pk && +a.page === +b.page;
-};
-
 const redirectRoute = function (route) {
   if (route.params) {
     router.push(route).catch(console.debug);
@@ -202,7 +198,7 @@ export const useBrowserStore = defineStore("browser", {
     },
     ///////////////////////////////////////////////////////////////////////////
     // MUTATIONS
-    _mutateSettings(data) {
+    _addSettings(data) {
       this.$patch((state) => {
         for (let [key, value] of Object.entries(data)) {
           state.settings[key] =
@@ -216,27 +212,21 @@ export const useBrowserStore = defineStore("browser", {
       let redirect = this._validateFirstSearch(data);
       redirect = this._validateNewTopGroupIsParent(data, redirect);
 
-      // Mutate settings
+      // Add settings
       if (data) {
-        this._mutateSettings(data);
+        this._addSettings(data);
       }
 
       this.filterMode = "base";
-      useCommonStore().setTimestamp();
       return redirect;
     },
-    async clearFiltersAndChoices() {
-      this.$patch((state) => {
-        state.filterMode = "base";
-        state.settings.filters = {};
-        state.choices.dynamic = {};
-      });
-      useCommonStore().setTimestamp();
-      await this.loadBrowserPage();
+    async clearFilters() {
+      this.settings.filters = {};
     },
     async setSettings(data) {
       // Save settings to state and re-get the objects.
       const redirect = this._validateAndSaveSettings(data);
+      useCommonStore().setTimestamp();
       await (redirect ? redirectRoute(redirect) : this.loadBrowserPage());
     },
     async setBookmarkFinished(params, finished) {
@@ -257,24 +247,10 @@ export const useBrowserStore = defineStore("browser", {
       router.push(route).catch(console.debug);
     },
     handlePageError(error) {
-      console.debug(error);
       if (HTTP_REDIRECT_CODES.has(error.response.status)) {
-        const data = error.response.data;
-        if (
-          compareRouteParams(
-            data.route.params,
-            router.currentRoute.value.params
-          )
-        ) {
-          this.setSettings(data.settings);
-        } else {
-          const redirect = this._validateAndSaveSettings(data.settings);
-          if (redirect) {
-            // ? i dunno if this is a good idea.
-            data.route = redirect;
-          }
-          redirectRoute(data.route);
-        }
+        console.debug(error);
+        const settings = error.response.data.settings;
+        this.setSettings(settings);
       } else {
         return console.error(error);
       }

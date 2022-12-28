@@ -9,7 +9,7 @@
       contentClass: filterMenuClass,
     }"
     :model-value="bookmarkFilter"
-    :max-select-len="filterByChoicesMaxLen + 1"
+    :max-select-len="filterByChoicesMaxLen + 1.5"
     :mobile-len-adj="-1.5"
     variant="solo"
     @click:clear="onClear"
@@ -110,7 +110,7 @@ export default {
   },
   methods: {
     ...mapActions(useBrowserStore, [
-      "clearFiltersAndChoices",
+      "clearFilters",
       "loadAvailableFilterChoices",
       "setSettings",
     ]),
@@ -125,8 +125,7 @@ export default {
       this.filterMode = "base";
     },
     onClear() {
-      this.menu = false;
-      this.clearFiltersAndChoices();
+      this.clearFilters();
     },
     onMenu(to) {
       if (to && this.dynamicChoiceNames.length === 0) {
