@@ -8,7 +8,7 @@
     "remark-fix": "remark . --output"
   },
   "devDependencies": {
-    "@fsouza/prettierd": "^0.22.0",
+    "@fsouza/prettierd": "^0.23.0",
     "@prettier/plugin-xml": "^2.0.1",
     "eslint": "^8.23.1",
     "eslint-config-prettier": "^8.3.0",
