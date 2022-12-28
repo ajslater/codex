@@ -7,7 +7,6 @@ import CHOICES from "@/choices";
 import { getFullComicName } from "@/comic-name";
 import router from "@/plugins/router";
 import { useBrowserStore } from "@/stores/browser";
-import { useCommonStore } from "@/stores/common";
 
 const NULL_READER_SETTINGS = {
   // Must be null so axios doesn't throw them out when sending.
@@ -241,9 +240,7 @@ export const useReaderStore = defineStore("reader", {
       const groupParams = { group: "c", pk: this.pk };
       page = Math.max(Math.min(this.activeBook.maxPage, page), 0);
       const updates = { page };
-      await BROWSER_API.setGroupBookmarks(groupParams, updates).then(() => {
-        return useCommonStore().setTimestamp();
-      });
+      await BROWSER_API.setGroupBookmarks(groupParams, updates);
     },
     async setRoutesAndBookmarkPage(page) {
       this._setRoutes(page);
