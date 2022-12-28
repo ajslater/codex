@@ -1,0 +1,12 @@
+{% load static %}
+<script>
+  var CODEX = {
+    APP_PATH: "{% url 'app:start' %}",
+    API_V3_PATH: "{% url 'api:v3:base' %}",
+    LAST_ROUTE: {{ last_route | safe }},
+    MISSING_COVER: "{% static 'img/missing-cover.webp' %}",
+    MISSING_PAGE: "{% static 'img/missing-page.svg' %}",
+    OPDS_PATH: "{% url 'opds:v1:browser' 'r' 0 1 %}",
+  };
+  Object.freeze(CODEX);
+</script>
