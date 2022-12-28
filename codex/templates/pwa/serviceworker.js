@@ -9,7 +9,7 @@ var FILES_TO_CACHE = [
   "{% static 'img/logo-maskable.svg' %}",
   "{% static 'img/logo.svg' %}",
 ];
-// Cache on install
+// Cache offline page on install
 self.addEventListener("install", (event) => {
   this.skipWaiting();
   event.waitUntil(
@@ -19,7 +19,7 @@ self.addEventListener("install", (event) => {
     })
   );
 });
-// Clear cache on activate
+// Clear old caches on activate
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
