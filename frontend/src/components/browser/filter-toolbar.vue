@@ -70,10 +70,6 @@ export default {
 #browserToolbarLeftItems {
   padding-top: 4px;
 }
-#browserToolbarLeftItems {
-  padding-top: 4px;
-  padding-left: 8px;
-}
 #searchToolbarItems {
   width: 100%;
 }
@@ -81,10 +77,6 @@ export default {
   #browserToolbar {
     padding-left: calc(5px + env(safe-area-inset-left) / 4);
     padding-right: calc(5px + env(safe-area-inset-right) / 4);
-  }
-  #browserToolbarLeftItems {
-    padding-top: 0px;
-    padding-left: 0px;
   }
 }
 </style>
