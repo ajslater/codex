@@ -77,3 +77,9 @@ export default {
   },
 };
 </script>
+
+<style scoped lang="scss">
+:deep(.v-field-label--floating) {
+  padding-left: calc(env(safe-area-inset-left) / 3);
+}
+</style>
