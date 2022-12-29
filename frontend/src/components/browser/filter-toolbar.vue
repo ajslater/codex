@@ -63,11 +63,12 @@ export default {
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
 #browserToolbar {
-  padding-top: calc(4px + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
   padding-left: calc(10px + env(safe-area-inset-left) / 2);
   padding-right: calc(10px + env(safe-area-inset-right) / 3);
 }
 #browserToolbarLeftItems {
+  padding-top: 4px;
   padding-left: 8px;
 }
 #searchToolbarItems {
@@ -75,11 +76,11 @@ export default {
 }
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   #browserToolbar {
-    padding-top: calc(0px + env(safe-area-inset-top));
     padding-left: calc(5px + env(safe-area-inset-left) / 2);
     padding-right: calc(5px + env(safe-area-inset-right) / 3);
   }
   #browserToolbarLeftItems {
+    padding-top: 0px;
     padding-left: 0px;
   }
 }
