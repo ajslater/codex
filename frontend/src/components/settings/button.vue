@@ -3,7 +3,7 @@
     <v-icon>
       {{ mdiMenu }}
     </v-icon>
-    <component :is="AdminSettingsDrawerButtonIcon" v-if="isUserAdmin" />
+    <component :is="AdminSettingsButtonProgress" v-if="isUserAdmin" />
   </v-btn>
 </template>
 
