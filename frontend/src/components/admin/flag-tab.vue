@@ -1,9 +1,5 @@
 <template>
-  <v-simple-table
-    fixed-header
-    :height="tableHeight"
-    class="highlight-simple-table admin-tab"
-  >
+  <v-table fixed-header :height="tableHeight" class="highlight-table admin-tab">
     <template #default>
       <thead>
         <tr>
@@ -12,7 +8,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="item in flags" :key="`f:${item.pk}:${item.keyHack}`">
+        <tr v-for="item in flags" :key="`f${item.pk}`">
           <td class="nameCol">
             <h4>{{ item.name }}</h4>
             <p class="desc">
@@ -21,26 +17,24 @@
           </td>
           <td>
             <v-checkbox
-              :input-value="item.on"
-              dense
-              ripple
-              hide-details="auto"
+              :model-value="item.on"
+              :true-value="true"
               :error-messages="getFormErrors(item.pk, 'on')"
-              @focus="clearErrors"
-              @blur="item.keyHack = Date.now()"
-              @change="changeCol(item.pk, 'on', $event === true)"
+              hide-details="auto"
+              @update:model-value="changeCol(item.pk, 'on', $event)"
             />
           </td>
         </tr>
       </tbody>
     </template>
-  </v-simple-table>
+  </v-table>
 </template>
 
 <script>
 import { mapActions, mapState } from "pinia";
 
 import { useAdminStore } from "@/stores/admin";
+import { useCommonStore } from "@/stores/common";
 
 const DESC = {
   "Enable Auto Update":
@@ -76,9 +70,8 @@ export default {
     };
   },
   computed: {
-    ...mapState(useAdminStore, {
-      flags: (state) => state.flags,
-    }),
+    ...mapState(useCommonStore, ["formErrors"]),
+    ...mapState(useAdminStore, ["flags"]),
     tableHeight() {
       return this.innerHeight - BUFFER;
     },
@@ -109,6 +102,7 @@ export default {
 }
 .desc {
   margin-top: 1em;
-  color: darkgrey;
+  margin-bottom: 0.5em;
+  color: rgb(var(--v-theme-textSecondary));
 }
 </style>

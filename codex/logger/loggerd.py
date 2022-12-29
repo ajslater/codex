@@ -6,7 +6,7 @@ from logging.handlers import QueueListener, RotatingFileHandler
 from colors import color
 
 from codex.logger.log_queue import LOG_QUEUE
-from codex.settings.settings import CONFIG_PATH
+from codex.settings.settings import LOG_DIR, LOG_TO_CONSOLE, LOG_TO_FILE
 
 
 class ColorFormatter(logging.Formatter):
@@ -44,14 +44,13 @@ class Logger:
     LOG_FMT = "{asctime} {levelname:8} {message}"
     DATEFMT = "%Y-%m-%d %H:%M:%S %Z"
     FORMATTER_KWARGS = {"style": "{", "datefmt": DATEFMT}
-    LOG_DIR = CONFIG_PATH / "logs"
     LOG_PATH = LOG_DIR / "codex.log"
     LOG_MAX_BYTES = 10 * 1024 * 1024
 
     @classmethod
     def _get_file_log_handler(cls):
         """Get the log handlers for initialization."""
-        cls.LOG_DIR.mkdir(exist_ok=True, parents=True)
+        LOG_DIR.mkdir(exist_ok=True, parents=True)
         file_handler = RotatingFileHandler(
             cls.LOG_PATH, maxBytes=cls.LOG_MAX_BYTES, backupCount=30
         )
@@ -70,9 +69,12 @@ class Logger:
     @classmethod
     def _get_log_handlers(cls):
         """Get handlers."""
-        log_file_handler = cls._get_file_log_handler()
-        log_console_handler = cls._get_console_handler()
-        return (log_console_handler, log_file_handler)
+        handlers = []
+        if LOG_TO_FILE:
+            handlers.append(cls._get_file_log_handler())
+        if LOG_TO_CONSOLE:
+            handlers.append(cls._get_console_handler())
+        return handlers
 
     @classmethod
     def startup(cls):

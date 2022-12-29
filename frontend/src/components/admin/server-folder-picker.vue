@@ -2,28 +2,28 @@
   <v-combobox
     ref="folderPicker"
     v-model="path"
-    auto-select-first
-    filled
+    variant="filled"
     class="folderPicker"
+    v-bind="$attrs"
     :append-icon="mdiFileTree"
     :items="folders"
     :error-messages="formErrors"
-    :menu-props="{ value: menuOpen, maxHeight: '75%' }"
-    v-bind="$attrs"
-    v-on="$listeners"
+    :menu-props="{ 'model-value': menuOpen }"
     @blur="toggleMenu(false)"
-    @change="change"
+    @update:model-value="change"
     @click:append="toggleMenu()"
     @focus="clearErrors"
   >
-    <template #append-outer>
+    <template #append>
       <v-tooltip top :open-delay="2000">
-        <template #activator="{ on, attrs }">
-          <v-icon v-bind="attrs" v-on="on" @click="toggleHidden">
+        <template #activator="{ props }">
+          <v-icon v-bind="props" @click="toggleHidden">
             {{ appendOuterIcon }}
           </v-icon>
         </template>
-        <span>{{ showHiddenTooltipPrefix }} Hidden Folders</span>
+        <span class="tooltip"
+          >{{ showHiddenTooltipPrefix }} Hidden Folders</span
+        >
       </v-tooltip>
     </template>
   </v-combobox>
@@ -83,11 +83,11 @@ export default {
     ...mapActions(useAdminStore, ["loadFolders"]),
     ...mapActions(useCommonStore, ["clearErrors"]),
     change: function (path) {
-      const relativePath = !path
-        ? this.rootFolder
-        : path.startsWith("/")
-        ? path
-        : [this.rootFolder, path].join("/");
+      const relativePath = path
+        ? path.startsWith("/")
+          ? path
+          : [this.rootFolder, path].join("/")
+        : this.rootFolder;
       const isMenuActive = this.$refs.folderPicker.isMenuActive;
       this.clearErrors();
       this.loadFolders(relativePath, this.showHidden)
@@ -117,5 +117,8 @@ export default {
 <style scoped lang="scss">
 .showHidden {
   margin-right: auto;
+}
+.tooltip {
+  color: rgb(var(--v-theme-textPrimary));
 }
 </style>

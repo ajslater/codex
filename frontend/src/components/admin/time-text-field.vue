@@ -1,12 +1,11 @@
 <template>
   <v-text-field
     ref="timeField"
-    dense
+    density="compact"
     round
     filled
     :rules="timeRules"
     v-bind="$attrs"
-    v-on="$listeners"
   />
 </template>
 

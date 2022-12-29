@@ -1,3 +1,5 @@
+import { getTSParams } from "@/api/v3/common";
+
 import { HTTP } from "./base";
 
 const getAdminFlags = async () => {
@@ -24,7 +26,8 @@ const login = async (credentials) => {
 };
 
 const getProfile = async () => {
-  return await HTTP.get("/auth/profile/");
+  const params = getTSParams();
+  return await HTTP.get("/auth/profile/", { params });
 };
 
 const logout = async () => {

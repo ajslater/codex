@@ -1,45 +1,15 @@
-import { createTestingPinia } from "@pinia/testing";
-import { createLocalVue, mount } from "@vue/test-utils";
-import { defineStore, PiniaVuePlugin } from "pinia";
-import { expect, test, vi } from "vitest";
-import VueRouter from "vue-router";
-import Vuetify from "vuetify";
+import { mount } from "@vue/test-utils";
+import { expect, test } from "vitest";
+import { createRouter, createWebHistory } from "vue-router";
 
 import ReaderNavButton from "@/components/reader/reader-nav-button.vue";
+import vuetify from "@/plugins/vuetify";
 
 const BTN_DISABLED = "v-btn--disabled";
 
-const setupVue = function (vue) {
-  vue.use(VueRouter);
-  vue.use(Vuetify);
-  vue.use(PiniaVuePlugin);
-};
-
-const setupStore = function () {
-  return defineStore("mockReader", {
-    state: () => {
-      return {
-        routes: {
-          current: {
-            pk: 2,
-            page: 5,
-          },
-        },
-      };
-    },
-    actions: {
-      setPage(state, pn) {
-        state.routes.current.page = pn;
-      },
-      routeChanged({ commit }, pn) {
-        commit("setPage", pn);
-      },
-    },
-  });
-};
-
 const setupRouter = function () {
-  return new VueRouter({
+  return createRouter({
+    history: createWebHistory(),
     routes: [
       { path: "/c/:pk/:page", name: "reader", component: ReaderNavButton },
     ],
@@ -50,39 +20,38 @@ test("reader-nav-button", async () => {
   console.log("started test");
   expect(ReaderNavButton).toBeTruthy();
 
-  const localVue = createLocalVue();
-  setupVue(localVue);
-
-  const store = setupStore();
   const router = setupRouter();
+  router.push("/c/2/0");
+  await router.isReady();
   const wrapper = mount(ReaderNavButton, {
-    store,
-    router,
-    localVue,
-    propsData: {
+    props: {
       value: 0,
+      twoPages: false,
     },
-    stubs: ["router-link", "router-view"],
     global: {
-      plugins: [createTestingPinia({ createSpy: vi.fn })],
+      plugins: [router, vuetify],
+      stubs: ["router-link", "router-view"],
     },
   });
 
-  expect(wrapper.text()).toContain("0");
+  // test initial state
   expect(wrapper.html()).toMatchSnapshot();
+  expect(wrapper.text()).toContain("0");
+
+  // push new route
   const btn = wrapper.findComponent({ name: "v-btn" });
-  expect(btn.classes(BTN_DISABLED)).toBe(false);
+  expect(btn.classes(BTN_DISABLED)).toBe(true);
   await wrapper.vm.$router.push({
-    name: "reader",
     params: { pk: 2, page: 10 },
   });
-
-  expect(btn.classes(BTN_DISABLED)).toBe(false);
-  // doesn't work
-  // await btn.trigger("click");
-  wrapper.vm.$router.push({ name: "reader", params: { pk: 2, page: 0 } });
+  // await router.isReady();
   await wrapper.vm.$nextTick();
+  expect(btn.classes(BTN_DISABLED)).toBe(false);
 
+  // push back to original state
+  await wrapper.vm.$router.push({ params: { pk: 2, page: 0 } });
+  // await router.isReady();
+  await wrapper.vm.$nextTick();
   expect(btn.classes(BTN_DISABLED)).toBe(true);
 
   expect(wrapper.text()).toContain("0");

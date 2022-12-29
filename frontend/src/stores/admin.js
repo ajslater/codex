@@ -9,7 +9,7 @@ const warnError = (error) => console.warn(error);
 const vuetifyItems = (items, textAttr) => {
   const result = [];
   for (const item of items) {
-    result.push({ value: item.pk, text: item[textAttr] });
+    result.push({ value: item.pk, title: item[textAttr] });
   }
   return result;
 };
@@ -42,12 +42,11 @@ export const useAdminStore = defineStore("admin", {
     groups: [],
     libraries: [],
     failedImports: [],
-    flags: [],
+    flags: {},
     folderPicker: {
       root: undefined,
       folders: [],
     },
-    isSettingsDrawerOpen: false,
   }),
   getters: {
     isUserAdmin() {
@@ -87,8 +86,13 @@ export const useAdminStore = defineStore("admin", {
         .then((response) => {
           const stateField =
             pluralTable.charAt(0).toLowerCase() + pluralTable.slice(1);
-          this[stateField] = response.data;
-          return true;
+          if (Array.isArray(response.data)) {
+            this[stateField] = response.data;
+            return true;
+          } else {
+            console.warn(stateField, "response not an array");
+            return false;
+          }
         })
         .catch(warnError);
     },

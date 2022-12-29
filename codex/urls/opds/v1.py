@@ -32,14 +32,14 @@ urlpatterns = [
     # Reader
     path(
         "c/<int:pk>/<int:page>/page.jpg",
-        cache_control(max_age=PAGE_MAX_AGE)(ReaderPageView.as_view()),
+        cache_control(max_age=PAGE_MAX_AGE, public=True)(ReaderPageView.as_view()),
         name="page",
     ),
     #
     # utilities
     path(
         "c/<int:pk>/cover.webp",
-        cache_control(max_age=COVER_MAX_AGE)(CoverView.as_view()),
+        cache_control(max_age=COVER_MAX_AGE, public=True)(CoverView.as_view()),
         name="cover",
     ),
     # Chunky Comc Reader requires a . suffix for download links.

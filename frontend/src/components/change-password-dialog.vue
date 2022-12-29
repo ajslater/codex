@@ -5,26 +5,23 @@
     origin="center-top"
     transition="slide-y-transition"
     max-width="22em"
-    overlay-opacity="0.5"
   >
-    <template #activator="{ on }">
-      <v-btn v-if="isAdminMode" icon ripple v-on="on">
+    <template #activator="{ props }">
+      <v-btn v-if="isAdminMode" icon v-bind="props">
         <v-icon> {{ mdiLockPlusOutline }}</v-icon>
       </v-btn>
-      <v-list-item v-else ripple v-on="on">
-        <v-list-item-content>
-          <v-list-item-title
-            ><v-icon>{{ mdiLockReset }}</v-icon
-            >Change Password</v-list-item-title
-          >
-        </v-list-item-content>
+      <v-list-item v-else v-bind="props">
+        <v-list-item-title>
+          <v-icon>{{ mdiLockReset }}</v-icon
+          >Change Password
+        </v-list-item-title>
       </v-list-item>
     </template>
     <div v-if="formSuccess" class="codexFormSuccess">
       {{ formSuccess }}
       <CloseButton @click="showDialog = false" />
     </div>
-    <v-form v-else ref="form" class="changePasswordDialog">
+    <v-form v-else ref="form" class="changePasswordForm">
       <h2>User {{ user.username }}</h2>
       <input
         name="username"
@@ -150,7 +147,18 @@ export default {
     credentials: {
       handler() {
         const form = this.$refs.form;
-        this.submitButtonEnabled = form && form.validate();
+        if (!form) {
+          this.submitButtonEnabled = false;
+          return;
+        }
+        form
+          .validate()
+          .then(({ valid }) => {
+            return (this.submitButtonEnabled = valid);
+          })
+          .catch(() => {
+            this.submitButtonEnabled = false;
+          });
       },
       deep: true,
     },
@@ -164,18 +172,31 @@ export default {
   methods: {
     ...mapActions(useAuthStore, ["changePassword"]),
     ...mapActions(useCommonStore, ["clearErrors"]),
-    submit: function () {
+    doUserChange() {
+      return useAdminStore()
+        .changeUserPassword(this.user.pk, this.credentials)
+        .catch(console.error);
+    },
+    doSelfChange() {
+      return this.changePassword(this.credentials).catch(console.error);
+    },
+    submit() {
       const form = this.$refs.form;
-      if (!form.validate()) {
+      if (!form) {
         return;
       }
-      if (this.isAdminMode) {
-        useAdminStore()
-          .changeUserPassword(this.user.pk, this.credentials)
-          .catch(console.error);
-      } else {
-        this.changePassword(this.credentials).catch(console.error);
-      }
+      form
+        .validate()
+        .then(({ valid }) => {
+          if (!valid) {
+            return;
+          } else if (this.isAdminMode) {
+            return this.doUserChange();
+          } else {
+            return this.doSelfChange();
+          }
+        })
+        .catch(console.error);
     },
     _keyListener(event) {
       // stop keys from activating reader shortcuts.
@@ -186,13 +207,13 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.changePasswordDialog {
+.changePasswordForm {
   padding: 20px;
 }
 .codexFormSuccess {
   padding: 10px;
   font-size: larger;
-  color: green;
+  color: rgb(var(--v-theme-success));
   text-align: center;
 }
 .hidden {

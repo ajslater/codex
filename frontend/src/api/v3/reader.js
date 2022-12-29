@@ -1,28 +1,30 @@
+import { getReaderBasePath, getTSParams } from "@/api/v3/common";
+
 import { HTTP } from "./base";
 
-export const getReaderBasePath = (pk) => {
-  return `${window.CODEX.API_V3_PATH}c/${pk}`;
-};
-
-const getReaderInfo = (pk, timestamp) => {
-  return HTTP.get(`c/${pk}?ts=${timestamp}`);
+const getReaderInfo = (pk) => {
+  const params = getTSParams();
+  return HTTP.get(`c/${pk}`, { params });
 };
 
 const getReaderSettings = () => {
-  return HTTP.get(`c/settings`);
+  const params = getTSParams();
+  return HTTP.get(`c/settings`, { params });
 };
 
 const setReaderSettings = (data) => {
   return HTTP.put(`c/settings`, data);
 };
 
-export const getDownloadURL = (pk, timestamp) => {
+export const getDownloadURL = (pk) => {
   const BASE_URL = getReaderBasePath(pk);
+  const timestamp = getTSParams().ts;
   return `${BASE_URL}/download.cbz?ts=${timestamp}`;
 };
 
-export const getComicPageSource = ({ pk, page }, timestamp) => {
+export const getComicPageSource = ({ pk, page }) => {
   const BASE_URL = getReaderBasePath(pk);
+  const timestamp = getTSParams().ts;
   return `${BASE_URL}/${page}/page.jpg?ts=${timestamp}`;
 };
 

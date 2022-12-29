@@ -1,5 +1,5 @@
 <template>
-  <img :class="fitToClass" :src="src" v-on="$listeners" />
+  <img :class="fitToClass" :src="src" v-bind="$attrs" />
 </template>
 <script>
 export default {
@@ -17,10 +17,11 @@ export default {
 <style scoped lang="scss">
 .fitToScreen,
 .fitToScreenTwo {
-  max-height: 100vh;
+  height: 100vh;
+  object-fit: contain;
 }
 .fitToScreen {
-  max-width: 100vw;
+  width: 100vw;
 }
 .fitToHeight,
 .fitToHeightTwo {

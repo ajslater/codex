@@ -4,18 +4,13 @@
     origin="center-top"
     transition="slide-y-transition"
     max-width="20em"
-    overlay-opacity="0.5"
   >
-    <template #activator="{ on }">
-      <v-list-item ripple v-on="on">
-        <v-list-item-content>
-          <v-list-item-title
-            ><h3>
-              <v-icon>{{ mdiLogin }}</v-icon
-              >Login
-            </h3></v-list-item-title
-          >
-        </v-list-item-content>
+    <template #activator="{ props }">
+      <v-list-item v-bind="props">
+        <v-list-item-title>
+          <v-icon>{{ mdiLogin }}</v-icon>
+          Login
+        </v-list-item-title>
       </v-list-item>
     </template>
     <v-form id="authDialog" ref="form">
@@ -61,7 +56,6 @@
         v-if="enableRegistration"
         v-model="registerMode"
         label="Register"
-        ripple
       >
         Register
       </v-switch>
@@ -108,6 +102,7 @@ export default {
           (v) => v === this.credentials.password || "Passwords must match",
         ],
       },
+      formModel: {},
       credentials: {
         username: "",
         password: "",
@@ -145,7 +140,16 @@ export default {
     credentials: {
       handler() {
         const form = this.$refs.form;
-        this.submitButtonEnabled = form && form.validate();
+        if (form) {
+          form
+            .validate()
+            .then(({ valid }) => {
+              return (this.submitButtonEnabled = valid);
+            })
+            .catch(console.error);
+        } else {
+          this.submitButtonEnabled = false;
+        }
       },
       deep: true,
     },
@@ -158,16 +162,24 @@ export default {
   },
   methods: {
     ...mapActions(useAuthStore, ["loadAdminFlags", "login", "register"]),
-    submit: function () {
-      const form = this.$refs.form;
-      if (!form.validate()) {
-        return;
-      }
-      const mode = this.registerMode ? "register" : "login";
-      this[mode](this.credentials)
+    doAuth(mode) {
+      return this[mode](this.credentials)
         .then(() => {
-          this.showDialog = this.formErrors && this.formErrors.length > 0;
-          return true;
+          return (this.showDialog =
+            this.formErrors && this.formErrors.length > 0);
+        })
+        .catch(console.error);
+    },
+    submit() {
+      const form = this.$refs.form;
+      form
+        .validate()
+        .then(({ valid }) => {
+          if (!valid) {
+            return;
+          }
+          const mode = this.registerMode ? "register" : "login";
+          return this.doAuth(mode);
         })
         .catch(console.error);
     },

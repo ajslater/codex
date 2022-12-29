@@ -232,6 +232,10 @@ index, a Django cache and comic book cover thumbnails.
   when codex starts.
 - `CODEX_SKIP_INTEGRITY_CHECK=1` will skip the database integrity repair that
   runs when codex starts.
+- `CODEX_LOG_DIR` sets a custom directory for saving logfiles. Defaults to
+  `$CODEX_CONFIG_DIR/logs`
+- `CODEX_LOG_TO_FILE=0` will not log to files.
+- `CODEX_LOG_TO_CONSOLE=0` will not log to the console.
 
 ### Reverse Proxy
 

@@ -3,7 +3,13 @@ import { defineStore } from "pinia";
 
 import API from "@/api/v3/common";
 
-const ERROR_KEYS = ["detail", "oldPassword", "password", "username"];
+const ERROR_KEYS = [
+  "detail",
+  "oldPassword",
+  "password",
+  "username",
+  "passwordConfirm",
+];
 Object.freeze(ERROR_KEYS);
 
 const getErrors = (axiosError) => {
@@ -13,6 +19,7 @@ const getErrors = (axiosError) => {
     for (const key of ERROR_KEYS) {
       if (key in data) {
         data = data[key];
+        break;
       }
     }
     errors = Array.isArray(data) ? data.flat() : [data];
@@ -37,12 +44,13 @@ export const useCommonStore = defineStore("common", {
       latest: undefined,
     },
     timestamp: Date.now(),
+    isSettingsDrawerOpen: false,
   }),
   getters: {
     isMobile: function () {
       // Probably janky mobile detection
       return (
-        typeof window.orientation !== "undefined" ||
+        window.orientation !== undefined ||
         navigator.userAgent.includes("IEMobile")
       );
     },
@@ -77,6 +85,9 @@ export const useCommonStore = defineStore("common", {
         state.form.errors = [];
         state.form.success = "";
       });
+    },
+    setTimestamp() {
+      this.timestamp = Date.now();
     },
   },
 });

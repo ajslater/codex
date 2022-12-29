@@ -1,25 +1,22 @@
 <template>
-  <v-btn
-    class="browserNavButton"
-    :disabled="disabled"
-    :title="toPage"
-    large
-    ripple
-    @click="routeToPage(toPage)"
-  >
+  <PaginationNavButton :disabled="disabled" :title="title" :to="toRoute">
     <v-icon :class="{ flipHoriz: !back }">
       {{ mdiChevronLeft }}
     </v-icon>
-  </v-btn>
+  </PaginationNavButton>
 </template>
 
 <script>
 import { mdiChevronLeft } from "@mdi/js";
-import { mapActions, mapState } from "pinia";
+import { mapState } from "pinia";
 
+import PaginationNavButton from "@/components/pagination-nav-button.vue";
 import { useBrowserStore } from "@/stores/browser";
 export default {
   name: "BrowserNavButton",
+  components: {
+    PaginationNavButton,
+  },
   props: {
     back: {
       type: Boolean,
@@ -29,37 +26,29 @@ export default {
   data() {
     return {
       mdiChevronLeft,
-      page: 1,
-      increment: this.back ? -1 : 1,
     };
   },
   computed: {
     ...mapState(useBrowserStore, {
       numPages: (state) => state.page.numPages,
     }),
-    toPage: function () {
-      return this.page + this.increment;
+    increment() {
+      return this.back ? -1 : 1;
     },
-    disabled: function () {
+    toPage() {
+      return +this.$route.params.page + this.increment;
+    },
+    title() {
+      return "to page" + this.toPage;
+    },
+    toRoute() {
+      return { params: { ...this.$route.params, page: this.toPage } };
+    },
+    disabled() {
       return (
-        (this.back && this.page <= 1) ||
-        (!this.back && this.page >= this.numPages)
+        (this.back && +this.$route.params.page <= 1) ||
+        (!this.back && +this.$route.params.page >= this.numPages)
       );
-    },
-  },
-  watch: {
-    $route: function () {
-      this.setPage();
-    },
-  },
-  created: function () {
-    this.setPage();
-  },
-  methods: {
-    ...mapActions(useBrowserStore, ["routeToPage"]),
-    setPage: function () {
-      // This cannot be computed because router params are not reactive.
-      this.page = Number(this.$route.params.page);
     },
   },
 };

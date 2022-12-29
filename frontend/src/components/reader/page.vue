@@ -20,13 +20,14 @@
 </template>
 
 <script>
-import { mapState } from "pinia";
+import { defineAsyncComponent, markRaw } from "vue";
 
 import { getComicPageSource } from "@/api/v3/reader";
 import Placeholder from "@/components/placeholder-loading.vue";
 import LoadingPage from "@/components/reader/page-loading.vue";
-import { useReaderStore } from "@/stores/reader";
-const PDFPage = () => import("@/components/reader/page-pdf.vue");
+const PDFPage = markRaw(
+  defineAsyncComponent(() => import("@/components/reader/page-pdf.vue"))
+);
 import ErrorPage from "@/components/reader/page-error.vue";
 import ImgPage from "@/components/reader/page-img.vue";
 
@@ -61,12 +62,10 @@ export default {
     };
   },
   computed: {
-    ...mapState(useReaderStore, {
-      src(state) {
-        const params = { pk: this.book.pk, page: this.page };
-        return getComicPageSource(params, state.timestamp);
-      },
-    }),
+    src() {
+      const params = { pk: this.book.pk, page: this.page };
+      return getComicPageSource(params);
+    },
     component() {
       const isPDF = this.book.fileFormat === "pdf";
       return isPDF ? PDFPage : ImgPage;

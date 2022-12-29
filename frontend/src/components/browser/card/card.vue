@@ -1,6 +1,6 @@
 <template>
   <v-lazy
-    :id="'card-' + item.pk"
+    :id="`card-${item.pk}`"
     transition="scale-transition"
     class="browserTile"
   >
@@ -24,10 +24,10 @@
       </div>
       <v-progress-linear
         class="bookCoverProgress"
-        :value="item.progress"
+        :background-color="progressBackgroundColor"
+        :model-value="item.progress"
         aria-label="% read"
         rounded
-        :background-color="progressBackgroundColor"
         height="2"
       />
       <BrowserCardSubtitle :item="item" />
@@ -40,9 +40,10 @@ import BookCover from "@/components/book-cover.vue";
 import BrowserCardControls from "@/components/browser/card/controls.vue";
 import BrowserCardSubtitle from "@/components/browser/card/subtitle.vue";
 import { IS_IOS, IS_TOUCH } from "@/platform";
-import { getReaderRoute } from "@/router/route";
+import { getReaderRoute } from "@/route";
 
-const HEADER_OFFSET = (96 + 16) * -1;
+const SCROLL_DELAY = 100;
+const HEADER_OFFSET = -170;
 
 export default {
   name: "BrowserCard",
@@ -67,7 +68,7 @@ export default {
     linkLabel: function () {
       let label = "";
       label += this.item.group === "c" ? "Read" : "Browse to";
-      label += " " + this.headerName;
+      label += " " + this.item.headerName;
       return label;
     },
     toRoute: function () {
@@ -82,7 +83,9 @@ export default {
           };
     },
     progressBackgroundColor: function () {
-      return this.item.progress ? "grey darken-3" : "inherit";
+      return this.item.progress
+        ? this.$vuetify.theme.current.colors.row
+        : "inherit";
     },
   },
   mounted() {
@@ -106,10 +109,13 @@ export default {
           // This works while nextTick() does not.
           el.scrollIntoView();
           // Adjust for toolbars
-          window.scrollBy(0, HEADER_OFFSET);
+          // For some reason with vue3 i need another delay.
+          setTimeout(function () {
+            window.scrollBy(0, HEADER_OFFSET);
+          }, SCROLL_DELAY);
         },
         // A little hacky delay makes it work even more frequently.
-        100
+        SCROLL_DELAY
       );
     },
   },
@@ -117,13 +123,8 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "vuetify/src/styles/styles.sass";
+@use "vuetify/styles/settings/variables" as vuetify;
 @import "../../book-cover.scss";
-.browserTile {
-  display: inline-flex;
-  flex: 1;
-  margin: 0px;
-}
 .browserCardCoverWrapper {
   position: relative;
 }
@@ -136,9 +137,11 @@ export default {
   border-radius: 5px;
   border: solid thin transparent;
 }
+
 .browserCardCoverWrapper:hover > .cardCoverOverlay {
   background-color: rgba(0, 0, 0, 0.55);
-  border: solid thin #cc7b19;
+  border: solid thin;
+  border-color: rbg(var(--v-theme-primary));
 }
 .browserCardCoverWrapper:hover > .cardCoverOverlay * {
   opacity: 1;
@@ -146,7 +149,7 @@ export default {
 .bookCoverProgress {
   margin-top: 1px;
 }
-@media #{map-get($display-breakpoints, 'sm-and-down')} {
+@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   .cardCoverOverlay {
     height: $small-cover-height;
     width: $small-cover-width;

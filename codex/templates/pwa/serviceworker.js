@@ -4,12 +4,12 @@ var STATIC_CACHE_NAME = CACHE_PREFIX + new Date().getSeconds();
 var OFFLINE_PATH = "{% static 'pwa/offline.html' %}";
 var FILES_TO_CACHE = [
   OFFLINE_PATH,
-  "{% static 'img/logo-maskable-180.webp' %}",
-  "{% static 'img/logo.svg' %}",
   "{% static 'img/logo-32.webp' %}",
+  "{% static 'img/logo-maskable-180.webp' %}",
   "{% static 'img/logo-maskable.svg' %}",
+  "{% static 'img/logo.svg' %}",
 ];
-// Cache on install
+// Cache offline page on install
 self.addEventListener("install", (event) => {
   this.skipWaiting();
   event.waitUntil(
@@ -19,7 +19,7 @@ self.addEventListener("install", (event) => {
     })
   );
 });
-// Clear cache on activate
+// Clear old caches on activate
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {

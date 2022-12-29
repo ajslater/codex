@@ -114,7 +114,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "vuetify/src/styles/styles.sass";
+@use "vuetify/styles/settings/variables" as vuetify;
 @import "../../book-cover.scss";
 .cardSubtitle {
   margin-top: 7px;
@@ -122,9 +122,12 @@ export default {
   text-align: center;
   width: $cover-width;
 }
+/* XXX why doesn't this work? */
+/* $textDisabledColor: rbg(var(--v-theme-textDisabled)); */
+$textDisabledColor: #808080;
 .headerName {
   padding-top: 5px;
-  color: gray;
+  color: $textDisabledColor;
 }
 .headerName,
 .displayName {
@@ -134,9 +137,9 @@ export default {
   min-height: 1em;
 }
 .orderValue {
-  color: gray;
+  color: $textDisabledColor;
 }
-@media #{map-get($display-breakpoints, 'sm-and-down')} {
+@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   .cardSubtitle {
     width: $small-cover-width;
   }

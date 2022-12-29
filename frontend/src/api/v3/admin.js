@@ -1,3 +1,5 @@
+import { getTSParams } from "@/api/v3/common";
+
 import { HTTP } from "./base";
 
 // USERS
@@ -7,7 +9,8 @@ const createUser = (data) => {
 };
 
 const getUsers = () => {
-  return HTTP.get("/admin/user");
+  const params = getTSParams();
+  return HTTP.get("/admin/user", { params });
 };
 
 const updateUser = (pk, data) => {
@@ -28,7 +31,8 @@ const createGroup = (data) => {
 };
 
 const getGroups = () => {
-  return HTTP.get("/admin/group");
+  const params = getTSParams();
+  return HTTP.get("/admin/group", { params });
 };
 
 const updateGroup = (pk, data) => {
@@ -44,7 +48,8 @@ const createLibrary = (data) => {
   return HTTP.post("/admin/library", data);
 };
 const getLibraries = () => {
-  return HTTP.get("/admin/library");
+  const params = getTSParams();
+  return HTTP.get("/admin/library", { params });
 };
 
 const updateLibrary = (pk, data) => {
@@ -58,18 +63,20 @@ const deleteLibrary = (pk) => {
 // LIBRARIES MISC
 
 const getFolders = (path, showHidden) => {
-  const params = { path, showHidden };
+  const params = { ...getTSParams(), path, showHidden };
   return HTTP.get("/admin/folders", { params });
 };
 
 const getFailedImports = () => {
-  return HTTP.get("/admin/failed-import");
+  const params = getTSParams();
+  return HTTP.get("/admin/failed-import", { params });
 };
 
 // FLAGS
 
 const getFlags = () => {
-  return HTTP.get("/admin/flag");
+  const params = getTSParams();
+  return HTTP.get("/admin/flag", { params });
 };
 
 const updateFlag = (pk, data) => {
@@ -85,8 +92,8 @@ const postLibrarianTask = async (task) => {
 // STATUSES
 
 const getLibrarianStatuses = () => {
-  const ts = Date.now();
-  return HTTP.get(`/admin/librarian/status?ts=${ts}`);
+  const params = { ts: Date.now() };
+  return HTTP.get("/admin/librarian/status", { params });
 };
 
 // TASKS

@@ -1,56 +1,74 @@
 <template>
-  <v-hover v-slot="{ hover }">
-    <v-select
-      v-model="topGroup"
-      class="toolbarSelect topGroupSelect"
-      :items="topGroupChoices"
-      dense
-      hide-details="auto"
-      :label="focused || hover ? label : undefined"
-      :aria-label="label"
-      :menu-props="{
-        maxHeight: '80vh',
-        overflowY: false,
-      }"
-      ripple
-      @focus="focused = true"
-      @blur="focused = false"
-    />
-  </v-hover>
+  <ToolbarSelect
+    v-bind="$attrs"
+    v-model="topGroup"
+    class="topGroupSelect"
+    select-label="top group"
+    :items="topGroupChoices"
+    :max-select-len="topGroupChoicesMaxLen - 1"
+    :mobile-len-adj="-2.5"
+  >
+    <template #item="{ item, props }">
+      <!-- Divider in items not implemented yet in Vuetify 3 -->
+      <v-divider v-if="item.value === 'f'" />
+      <v-list-item :value="item.value" :title="item.title" v-bind="props" />
+    </template>
+  </ToolbarSelect>
 </template>
 
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 
+import ToolbarSelect from "@/components/browser/toolbar-select.vue";
 import { useBrowserStore } from "@/stores/browser";
+
+const FOLDER_ROUTE = { params: { group: "f", pk: 0, page: 1 } };
 
 export default {
   name: "BrowserTopGroupSelect",
+  components: {
+    ToolbarSelect,
+  },
+  extends: ToolbarSelect,
   data() {
     return {
-      focused: false,
-      label: "top group",
+      FOLDER_ROUTE,
     };
   },
   computed: {
     ...mapState(useBrowserStore, {
       topGroupSetting: (state) => state.settings.topGroup,
+      enableFolderView: (state) => state.page.adminFlags.enableFolderView,
     }),
-    ...mapGetters(useBrowserStore, ["topGroupChoices"]),
+    ...mapGetters(useBrowserStore, [
+      "topGroupChoices",
+      "topGroupChoicesMaxLen",
+    ]),
     topGroup: {
       get() {
         return this.topGroupSetting;
       },
       set(value) {
+        const settings = { topGroup: value };
         if (
           (this.topGroupSetting === "f" && value !== "f") ||
           (this.topGroupSetting !== "f" && value === "f")
         ) {
-          this.$router.push({ params: { group: value, pk: 0 } });
+          // Change major views
+          const group = value === "f" ? "f" : "r";
+          const topRoute = {
+            params: { group, pk: 0, page: 1 },
+          };
+          this.$router
+            .push(topRoute)
+            .then(() => {
+              return this.setSettings(settings);
+            })
+            .catch(console.error);
+        } else {
+          // Change group style top group
+          this.setSettings(settings);
         }
-        // This must happen after the push
-        const settings = { topGroup: value };
-        this.setSettings(settings);
       },
     },
   },
@@ -60,4 +78,8 @@ export default {
 };
 </script>
 
-// #topGroupSelect style is handled in browser/filter-toolbar.vue
+<style scoped lang="scss">
+:deep(.v-field-label--floating) {
+  padding-left: calc(env(safe-area-inset-left) / 3);
+}
+</style>

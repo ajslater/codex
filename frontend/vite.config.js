@@ -1,13 +1,14 @@
-import vue from "@vitejs/plugin-vue2";
+import vue from "@vitejs/plugin-vue";
 import fs from "fs";
 import path from "path";
 import toml from "toml";
-import { VuetifyResolver } from "unplugin-vue-components/resolvers";
+import { Vuetify3Resolver } from "unplugin-vue-components/resolvers";
 import Components from "unplugin-vue-components/vite";
 import { defineConfig } from "vite";
 import { dynamicBase } from "vite-plugin-dynamic-base";
 import eslint from "vite-plugin-eslint";
 import { viteStaticCopy } from "vite-plugin-static-copy";
+import vuetify from "vite-plugin-vuetify";
 
 import package_json from "./package.json";
 
@@ -23,6 +24,19 @@ try {
 }
 const BASE_PATH = rootPath + "/static/";
 const VITE_HMR_URL_PREFIXES = ["node_modules", "src", "@id", "@vite/client"];
+
+const ADMIN_COMPONENT_DIR = "./src/components/admin";
+// eslint-disable-next-line security/detect-non-literal-fs-filename
+const ADMIN_COMPONENT_FNS = fs
+  .readdirSync(ADMIN_COMPONENT_DIR)
+  .filter((fn) => fn !== "drawer" && fn.at(-1) !== "~")
+  .map((fn) => ADMIN_COMPONENT_DIR + "/" + fn);
+const ADMIN_DRAWER_COMPONENT_DIR = ADMIN_COMPONENT_DIR + "/drawer";
+// eslint-disable-next-line security/detect-non-literal-fs-filename
+const ADMIN_DRAWER_COMPONENT_FNS = fs
+  .readdirSync(ADMIN_DRAWER_COMPONENT_DIR)
+  .filter((fn) => fn.at(-1) !== "~")
+  .map((fn) => ADMIN_DRAWER_COMPONENT_DIR + "/" + fn);
 
 const config = defineConfig(({ mode }) => {
   const PROD = mode === "production";
@@ -55,6 +69,12 @@ const config = defineConfig(({ mode }) => {
       rollupOptions: {
         // No need for index.html
         input: path.resolve("./src/main.js"),
+        output: {
+          manualChunks: {
+            admin: ["./src/admin.vue", ...ADMIN_COMPONENT_FNS],
+            "admin-drawer-panel": ADMIN_DRAWER_COMPONENT_FNS,
+          },
+        },
       },
       sourcemap: DEV,
     },
@@ -65,6 +85,7 @@ const config = defineConfig(({ mode }) => {
     },
     plugins: [
       vue(),
+      vuetify(),
       dynamicBase({
         publicPath: 'window.CODEX.APP_PATH + "static"',
       }),
@@ -75,7 +96,7 @@ const config = defineConfig(({ mode }) => {
       Components({
         resolvers: [
           // Vuetify
-          VuetifyResolver(),
+          Vuetify3Resolver(),
         ],
       }),
       viteStaticCopy({
@@ -103,6 +124,7 @@ const config = defineConfig(({ mode }) => {
     },
     test: {
       environment: "jsdom",
+      deps: { inline: ["vuetify"] },
     },
   };
 });

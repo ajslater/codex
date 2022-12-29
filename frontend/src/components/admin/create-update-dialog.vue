@@ -1,19 +1,14 @@
 <template>
-  <v-dialog
-    v-model="showDialog"
-    transition="scale-transition"
-    overlay-opacity="0.5"
-    v-bind="$attrs"
-    class="cuDialog"
-  >
-    <template #activator="{ on }">
+  <v-dialog v-model="showDialog" transition="scale-transition" v-bind="$attrs">
+    <template #activator="{ props }">
       <AdminCreateUpdateButton
         :update="Boolean(oldRow)"
         :table="table"
-        v-on="on"
+        v-bind="props"
       />
     </template>
     <v-form ref="form" class="cuForm">
+      <h2>{{ table }}</h2>
       <component :is="inputs" :old-row="oldRow" @change="change" />
       <SubmitFooter
         :verb="verb"
@@ -58,23 +53,10 @@ export default {
     return {
       row: {},
       showDialog: false,
+      submitButtonEnabled: false,
     };
   },
   computed: {
-    submitButtonEnabled: function () {
-      let changed = false;
-      for (const [key, value] of Object.entries(this.row)) {
-        if (!_.isEqual(this.oldRow[key], value)) {
-          changed = true;
-          break;
-        }
-      }
-      if (!changed) {
-        return false;
-      }
-      const form = this.$refs.form;
-      return form && form.validate();
-    },
     verb() {
       return this.oldRow ? "Update" : "Add";
     },
@@ -86,8 +68,33 @@ export default {
   },
   methods: {
     ...mapActions(useAdminStore, ["createRow", "updateRow"]),
+    validate() {
+      let changed = false;
+      for (const [key, value] of Object.entries(this.row)) {
+        if (!_.isEqual(this.oldRow[key], value)) {
+          changed = true;
+          break;
+        }
+      }
+      if (!changed) {
+        return false;
+      }
+      const form = this.$refs.form;
+      if (!form) {
+        return false;
+      }
+      return form
+        .validate()
+        .then(({ valid }) => {
+          return valid;
+        })
+        .catch(() => {
+          return false;
+        });
+    },
     change(event) {
       this.row = event;
+      this.submitButtonEnabled = this.validate();
     },
     getRow(show) {
       if (!show || !this.oldRow) {
@@ -124,15 +131,21 @@ export default {
     },
     submit: function () {
       const form = this.$refs.form;
-      if (!form.validate()) {
-        console.warn("submit attempted with invalid form");
+      if (!form) {
         return;
       }
-      if (this.oldRow) {
-        this.doUpdate();
-      } else {
-        this.doCreate();
-      }
+      form
+        .validate()
+        .then(({ valid }) => {
+          if (!valid) {
+            return;
+          } else if (this.oldRow) {
+            return this.doUpdate();
+          } else {
+            return this.doCreate();
+          }
+        })
+        .catch(console.warning);
     },
   },
 };
@@ -142,5 +155,6 @@ export default {
 .cuForm {
   padding: 20px;
   max-height: 100%;
+  overflow-y: scroll;
 }
 </style>

@@ -30,8 +30,8 @@
         type="password"
       />
     </div>
-    <v-checkbox v-model="row.isStaff" label="Is Staff" ripple />
-    <v-checkbox v-model="row.isActive" label="Is Active" ripple />
+    <v-checkbox v-model="row.isStaff" label="Is Staff" />
+    <v-checkbox v-model="row.isActive" label="Is Active" />
     <AdminRelationPicker
       v-model="row.groups"
       label="Groups"

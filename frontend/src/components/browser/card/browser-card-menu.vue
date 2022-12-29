@@ -1,12 +1,13 @@
 <template>
   <v-menu v-model="showMenu" offset-y top>
-    <template #activator="{ on }">
+    <template #activator="{ props }">
       <v-btn
         aria-label="action menu"
-        class="browserCardMenuIcon"
+        class="browserCardMenuIcon cardControlButton"
         icon
         title="Action Menu"
-        v-on="on"
+        variant="text"
+        v-bind="props"
         @click.prevent
       >
         <v-icon>
@@ -14,13 +15,11 @@
         </v-icon>
       </v-btn>
     </template>
-    <v-list-item-group class="background-soft-highlight">
-      <v-list-item v-if="item.group === 'c'" ripple @click="toggleRead">
-        <v-list-item-content>
-          <v-list-item-title>
-            {{ markReadText }}
-          </v-list-item-title>
-        </v-list-item-content>
+    <div class="background-soft-highlight">
+      <v-list-item v-if="item.group === 'c'" @click="toggleRead">
+        <v-list-item-title>
+          {{ markReadText }}
+        </v-list-item-title>
       </v-list-item>
       <ConfirmDialog
         v-else
@@ -31,7 +30,7 @@
         @confirm="toggleRead"
         @cancel="showMenu = false"
       />
-    </v-list-item-group>
+    </div>
   </v-menu>
 </template>
 

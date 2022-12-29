@@ -1,5 +1,5 @@
 <template>
-  <v-btn ripple rounded :icon="update" v-on="$listeners">
+  <v-btn rounded :icon="update" v-bind="$attrs">
     <v-icon v-if="update">{{ mdiPencil }}</v-icon>
     <span v-else>+ {{ table }}</span>
   </v-btn>

@@ -1,3 +1,5 @@
+import { useCommonStore } from "@/stores/common";
+
 import { HTTP } from "./base";
 
 const JSON_KEYS = ["filters", "show"];
@@ -31,12 +33,13 @@ const preSerialize = (data) => {
   if (params.q === "") {
     delete params.q;
   }
-  // Since axios 1.0 I have manually serialize complex objects
+  // Since axios 1.0 I have to manually serialize complex objects
   for (const key of JSON_KEYS) {
     if (params[key]) {
       params[key] = JSON.stringify(params[key]);
     }
   }
+  params.ts = useCommonStore().timestamp;
   return params;
 };
 
@@ -61,7 +64,8 @@ const getMetadata = ({ group, pk }, data) => {
 };
 
 const getSettings = () => {
-  return HTTP.get("/r/settings");
+  const params = preSerialize({});
+  return HTTP.get("/r/settings", { params });
 };
 
 const setGroupBookmarks = ({ group, pk }, data) => {

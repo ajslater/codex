@@ -1,33 +1,35 @@
 <template>
-  <v-btn v-bind="$attrs" icon ripple title="Settings" v-on="$listeners">
-    <component :is="AdminSettingsDrawerButtonIcon" v-if="isUserAdmin" />
-    <v-icon v-else>
+  <v-btn v-bind="$attrs" icon title="Settings">
+    <v-icon>
       {{ mdiMenu }}
     </v-icon>
+    <component :is="AdminSettingsButtonProgress" v-if="isUserAdmin" />
   </v-btn>
 </template>
 
 <script>
 import { mdiMenu } from "@mdi/js";
 import { mapState } from "pinia";
+import { defineAsyncComponent, markRaw } from "vue";
 
 import { useAuthStore } from "@/stores/auth";
 
-const AdminSettingsDrawerButtonIcon = () =>
-  import("@/components/admin/admin-settings-button-icon.vue");
+const AdminSettingsButtonProgress = markRaw(
+  defineAsyncComponent(() =>
+    import("@/components/admin/drawer/admin-settings-button-progress.vue")
+  )
+);
 
 export default {
   name: "SettingsDrawerButton",
   data() {
     return {
       mdiMenu,
-      AdminSettingsDrawerButtonIcon,
+      AdminSettingsButtonProgress,
     };
   },
   computed: {
-    ...mapState(useAuthStore, {
-      isUserAdmin: (state) => state.isUserAdmin,
-    }),
+    ...mapState(useAuthStore, ["isUserAdmin"]),
   },
 };
 </script>

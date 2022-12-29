@@ -28,19 +28,14 @@
         <div class="taskBox">
           <ConfirmDialog
             v-if="item.confirm"
-            :button-text="item.text"
-            :title-text="item.text"
+            :button-text="item.title"
+            :title-text="item.title"
             :object-name="item.confirm"
             confirm-text="Confirm"
-            @confirm="librarianTask(item.value, item.text)"
+            @confirm="librarianTask(item.value, item.title)"
           />
-          <v-btn
-            v-else
-            block
-            ripple
-            @click="librarianTask(item.value, item.text)"
-          >
-            {{ item.text }}
+          <v-btn v-else block @click="librarianTask(item.value, item.title)">
+            {{ item.title }}
           </v-btn>
           <div class="taskDesc">
             {{ item.desc }}
@@ -86,13 +81,13 @@ export default {
   margin-right: 1em;
 }
 #success {
-  color: green;
+  color: rgb(var(--v-theme-success));
 }
 #error {
-  color: red;
+  color: rgb(var(--v-theme-error));
 }
 #noRecentTask {
-  color: gray;
+  color: rgb(var(--v-theme-textDisabled));
 }
 .taskGroup {
   margin-top: 1em;
@@ -101,11 +96,11 @@ export default {
   padding: 12px;
   margin: 10px;
   border-radius: 5px;
-  background-color: #121212;
+  background-color: rgb(var(--v-theme-on-surface-variant));
 }
 .taskDesc {
   vertical-align: top;
-  color: darkgrey;
+  color: rgb(var(--v-theme-textSecondary));
   padding-top: 0.25em;
 }
 #tasks {

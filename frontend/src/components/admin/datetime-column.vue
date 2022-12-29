@@ -37,6 +37,6 @@ export default {
 
 <style scoped lang="scss">
 .colTime {
-  color: grey !important;
+  color: rgb(var(--v-theme-textDisabled)) !important;
 }
 </style>

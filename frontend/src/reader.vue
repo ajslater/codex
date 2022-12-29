@@ -1,34 +1,39 @@
 <template>
-  <div>
-    <v-main id="readerWrapper">
-      <div v-if="isCodexViewable" id="readerContainer">
-        <BooksWindow @click="toggleToolbars" />
-        <v-slide-y-transition>
-          <ReaderTitleToolbar v-show="showToolbars" />
-        </v-slide-y-transition>
-        <v-slide-y-reverse-transition>
-          <ReaderNavToolbar v-show="showToolbars" />
-        </v-slide-y-reverse-transition>
-      </div>
-      <div v-else id="announcement">
-        <h1>
-          <router-link :to="{ name: 'home' }"> Log in </router-link> to read
-          comics
-        </h1>
-      </div>
-    </v-main>
-    <ReaderSettingsDrawer />
-  </div>
+  <v-main id="readerWrapper">
+    <div v-if="isCodexViewable" id="readerContainer">
+      <v-slide-y-transition>
+        <ReaderTitleToolbar v-show="showToolbars" />
+      </v-slide-y-transition>
+      <BooksWindow @click="toggleToolbars" />
+      <v-slide-y-reverse-transition>
+        <ReaderNavToolbar v-show="showToolbars" />
+      </v-slide-y-reverse-transition>
+    </div>
+    <div v-else id="announcement">
+      <h1>
+        <router-link :to="{ name: 'home' }"> Log in </router-link> to read
+        comics
+      </h1>
+    </div>
+  </v-main>
+  <SettingsDrawer
+    title="Reader Settings"
+    :panel="ReaderSettingsSuperPanel"
+    temporary
+  />
 </template>
 
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
+import { markRaw } from "vue";
 
 import BooksWindow from "@/components/reader/pages-window.vue";
 import ReaderNavToolbar from "@/components/reader/reader-nav-toolbar.vue";
-import ReaderSettingsDrawer from "@/components/reader/reader-settings-drawer.vue";
+import ReaderSettingsSuperPanel from "@/components/reader/reader-settings-super-panel.vue";
 import ReaderTitleToolbar from "@/components/reader/reader-title-toolbar.vue";
+import SettingsDrawer from "@/components/settings/settings-drawer.vue";
 import { useAuthStore } from "@/stores/auth";
+import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
@@ -37,11 +42,12 @@ export default {
     BooksWindow,
     ReaderNavToolbar,
     ReaderTitleToolbar,
-    ReaderSettingsDrawer,
+    SettingsDrawer,
   },
   data() {
     return {
       showToolbars: false,
+      ReaderSettingsSuperPanel: markRaw(ReaderSettingsSuperPanel),
     };
   },
   computed: {
@@ -59,6 +65,7 @@ export default {
     },
   },
   created() {
+    useCommonStore().isSettingsDrawerOpen = false;
     this.loadReaderSettings();
   },
   methods: {

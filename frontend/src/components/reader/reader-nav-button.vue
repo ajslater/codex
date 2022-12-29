@@ -1,18 +1,16 @@
 <template>
-  <v-btn
-    class="readerNavButton"
-    :disabled="disabled"
-    :to="toRoute"
-    ripple
-    large
-  >
+  <PaginationNavButton :disabled="disabled" :title="title" :to="toRoute">
     {{ value }}
-  </v-btn>
+  </PaginationNavButton>
 </template>
 
 <script>
+import PaginationNavButton from "@/components/pagination-nav-button.vue";
 export default {
   name: "ReaderNavButton",
+  components: {
+    PaginationNavButton,
+  },
   props: {
     value: {
       type: Number,
@@ -24,20 +22,21 @@ export default {
     },
   },
   computed: {
-    toRoute: function () {
-      const params = { ...this.$route.params };
-      params.page = this.value;
+    toRoute() {
       return {
-        name: this.$route.name,
-        params: params,
+        params: { ...this.$route.params, page: this.value },
       };
     },
-    disabled: function () {
-      const endPages = [this.value];
-      if (this.twoPages && this.value % 2) {
-        endPages.push(this.value - 1);
-      }
-      return endPages.includes(+this.$route.params.page);
+    title() {
+      return "to page " + this.value;
+    },
+    disabled() {
+      return (
+        this.value === +this.$route.params.page ||
+        (this.twoPages &&
+          this.value % 2 &&
+          this.value - 1 === +this.$route.params.page)
+      );
     },
   },
 };

@@ -1,12 +1,17 @@
 <template>
   <v-window
     id="booksWindow"
-    ref="booksWindow"
-    :value="activeBookPk"
-    vertical
-    touchless
+    direction="vertical"
+    :model-value="activeBookPk"
+    show-arrows
+    @click="click"
   >
-    <ChangeBookDrawer direction="prev" />
+    <template #prev>
+      <BookChangeDrawer direction="prev" />
+    </template>
+    <template #next>
+      <BookChangeDrawer direction="next" />
+    </template>
     <v-window-item
       v-for="[pk, book] of books"
       :key="`c/${pk}`"
@@ -14,23 +19,23 @@
       disabled
       :eager="eager(pk)"
       :value="pk"
+      :transition="true"
     >
       <PagesWindow :book="book" @click="click" />
     </v-window-item>
-    <ChangeBookDrawer direction="next" />
   </v-window>
 </template>
 
 <script>
 import { mapActions, mapState } from "pinia";
 
-import ChangeBookDrawer from "@/components/reader/change-book-drawer.vue";
+import BookChangeDrawer from "@/components/reader/book-change-drawer.vue";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
   name: "BooksWindow",
   components: {
-    ChangeBookDrawer,
+    BookChangeDrawer,
   },
   emits: ["click"],
   computed: {
@@ -50,14 +55,6 @@ export default {
   },
   beforeMount() {
     this.setBookChangeFlag();
-  },
-  mounted() {
-    const windowContainer = this.$refs.booksWindow.$el.children[0];
-    windowContainer.addEventListener("click", this.click);
-  },
-  unmounted() {
-    const windowContainer = this.$refs.booksWindow.$el.children[0];
-    windowContainer.removeEventListener("click", this.click);
   },
   created() {
     this.loadBooks(this.$route.params);
@@ -80,29 +77,16 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.windowItem {
+// These window controls also cacade into the pages-window
+:deep(.windowItem) {
   /* keeps clickable area full screen when image is small */
   min-height: 100vh;
   text-align: center;
 }
-</style>
-<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
-<style lang="scss">
-#booksWindow .v-window__prev,
-#booksWindow .v-window__next {
+:deep(.v-window__controls) {
   position: fixed;
   top: 48px;
-  width: 33vw;
   height: calc(100vh - 96px);
-  border-radius: 0;
-  margin: 0;
-  opacity: 0;
-  z-index: 10;
-}
-#booksWindow .v-window__prev {
-  cursor: w-resize;
-}
-#booksWindow .v-window__next {
-  cursor: e-resize;
+  padding: 0;
 }
 </style>

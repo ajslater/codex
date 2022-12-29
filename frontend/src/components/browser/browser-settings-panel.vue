@@ -1,28 +1,35 @@
 <template>
-  <div id="browserSettings" title="">
-    <h3>Browser Settings</h3>
-    <div id="settingsGroupCaption" class="text-caption">
-      Show these groups when navigating the browse tree.
-    </div>
-    <v-checkbox
-      v-for="choice of groupChoices"
-      :key="choice.text"
-      :input-value="showSettings[choice.value]"
-      :label="`Show ${choice.text}`"
-      dense
-      class="settingsCheckbox"
-      @change="setShow(choice.value, $event)"
-    />
+  <div id="groupCaption" class="text-caption">
+    Show these groups when navigating the browse tree.
   </div>
+  <v-checkbox
+    v-for="choice of groupChoices"
+    :key="choice.title"
+    class="browserGroupCheckbox"
+    density="compact"
+    hide-details="auto"
+    :model-value="showSettings[choice.value]"
+    :true-value="true"
+    :label="`Show ${choice.title}`"
+    @update:model-value="setShow(choice.value, $event)"
+  />
+  <v-divider />
+  <SearchHelp />
 </template>
 <script>
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
+import SearchHelp from "@/components/browser/search-help.vue";
+import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "BrowserSettingsPanel",
+  components: {
+    SearchHelp,
+  },
   computed: {
+    ...mapGetters(useAuthStore, ["isCodexViewable"]),
     ...mapState(useBrowserStore, {
       groupChoices: (state) => state.choices.static.settingsGroup,
       showSettings: (state) => state.settings.show,
@@ -38,16 +45,13 @@ export default {
 };
 </script>
 <style scoped lang="scss">
-#browserSettings {
-  padding-top: 10px;
+#groupCaption,
+.browserGroupCheckbox {
+  padding-right: 10px;
   padding-left: 15px;
-  padding-right: env(safe-area-inset-right);
 }
-#settingsGroupCaption {
+#groupCaption {
   padding-top: 10px;
-  color: gray;
-}
-.settingsCheckbox {
-  padding-left: 5px;
+  color: rgb(var(--v-theme-textDisabled));
 }
 </style>

@@ -2,13 +2,12 @@
   <footer class="confirmFooter">
     <v-btn
       class="confirmButton"
-      ripple
       :disabled="disabled"
       @click="$emit('confirm')"
       >{{ confirmText }}</v-btn
     >
 
-    <v-btn class="cancelButton" ripple @click="$emit('cancel')">Cancel</v-btn>
+    <v-btn class="cancelButton" @click="$emit('cancel')">Cancel</v-btn>
   </footer>
 </template>
 <script>

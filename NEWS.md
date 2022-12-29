@@ -6,6 +6,21 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.0.0
+
+### Vue 3
+
+- Features
+  - Removed old django admin pages.
+  - Shutdown task for admins.
+  - Configure logging with environment variables. See README.
+- Fixes
+  - Fix displaying error in login dialog.
+  - Fix saving community & critical rating filters to session
+  - Fix fit to screen not enlarging pages smaller than screen.
+- Developer
+  - Frontend is now Vuetify 3 over Vue 3. Using options API.
+
 ## v0.14.5
 
 - Fixes
@@ -75,7 +90,7 @@ border-radius: 128px;
 - Fixes
   - Fixed imprints & volume levels not displaying sometimes.
   - Fix large images & downloads for some OPDS clients.
-- Dev Notes
+- Developer
   - API v3 is more restful.
   - /api/v3/ displays API documentation.
   - Vite replaces Vue CLI.

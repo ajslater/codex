@@ -1,37 +1,23 @@
 <template>
-  <span>
-    <v-icon v-if="!progressEnabled">
-      {{ mdiMenu }}
-    </v-icon>
-    <v-progress-circular
-      v-else
-      :indeterminate="progress == null"
-      :value="progress"
-      size="32"
-      color="#cc7b19"
-      aria-label="`Librarian tasks in progress ${Math.round(progress)}%`"
-    />
-  </span>
+  <v-progress-circular
+    v-if="progressEnabled"
+    :indeterminate="progress == null"
+    :model-value="progress"
+    class="progress"
+    size="36"
+    aria-label="`Librarian tasks in progress ${Math.round(progress)}%`"
+  />
 </template>
 
 <script>
-import { mdiMenu } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import { useAdminStore } from "@/stores/admin";
 
 export default {
-  // eslint-disable-next-line no-secrets/no-secrets
-  name: "AdminSettingsDrawerButtonIcon",
-  data() {
-    return {
-      mdiMenu,
-    };
-  },
+  name: "AdminSettingsButtonProgress",
   computed: {
-    ...mapState(useAdminStore, {
-      librarianStatuses: (state) => state.librarianStatuses,
-    }),
+    ...mapState(useAdminStore, ["librarianStatuses"]),
     progressEnabled: function () {
       return this.librarianStatuses.length > 0;
     },
@@ -66,3 +52,9 @@ export default {
   },
 };
 </script>
+
+<style scoped lang="scss">
+.progress {
+  position: absolute;
+}
+</style>

@@ -1,39 +1,36 @@
 <template>
-  <div id="libraryInputs" :class="{ tallForPicker: folderMenuOpen }">
-    <AdminServerFolderPicker
-      v-if="!oldRow"
-      :rules="rules.path"
-      autofocus
-      label="Library Folder"
-      @change="row.path = $event"
-      @menu="folderMenuOpen = folderMenuOpen || $event"
-    />
-    <div v-else>{{ oldRow.path }}</div>
-    <v-checkbox
-      v-model="row.events"
-      label="Watch Filesystem Events"
-      ripple
-      hint="Update Codex instantly when the filesystem changes"
-      :persistent-hint="true"
-    />
-    <v-checkbox
-      v-model="row.poll"
-      label="Poll Filesystem"
-      ripple
-      hint="Periodically poll the library for changes"
-      :persistent-hint="true"
-    />
-    <TimeTextField
-      v-model="row.pollEvery"
-      label="Poll Every"
-      :disabled="!row.poll"
-    />
-    <AdminRelationPicker
-      v-model="row.groups"
-      label="Groups"
-      :items="vuetifyGroups"
-    />
-  </div>
+  <AdminServerFolderPicker
+    v-if="!oldRow"
+    :rules="rules.path"
+    autofocus
+    label="Library Folder"
+    @change="row.path = $event"
+  />
+  <div v-else>{{ oldRow.path }}</div>
+  <v-checkbox
+    v-model="row.events"
+    density="compact"
+    hint="Update Codex instantly when the filesystem changes"
+    label="Watch Filesystem Events"
+    :persistent-hint="true"
+  />
+  <v-checkbox
+    v-model="row.poll"
+    density="compact"
+    label="Poll Filesystem"
+    hint="Periodically poll the library for changes"
+    :persistent-hint="true"
+  />
+  <TimeTextField
+    v-model="row.pollEvery"
+    label="Poll Every"
+    :disabled="!row.poll"
+  />
+  <AdminRelationPicker
+    v-model="row.groups"
+    label="Groups"
+    :items="vuetifyGroups"
+  />
 </template>
 
 <script>
@@ -70,6 +67,7 @@ export default {
       default: false,
     },
   },
+  emits: ["change"],
   data() {
     return {
       rules: {
@@ -92,7 +90,6 @@ export default {
         ],
       },
       row: _.cloneDeep(this.oldRow || EMPTY_ROW),
-      folderMenuOpen: false,
     };
   },
   computed: {
@@ -125,12 +122,3 @@ export default {
   EMPTY_ROW,
 };
 </script>
-
-<style scoped lang="scss">
-.tallForPicker {
-  height: 75vh;
-}
-#libraryInputs {
-  transition: height 0.33s;
-}
-</style>
