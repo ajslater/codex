@@ -8,7 +8,7 @@
     <v-navigation-drawer
       class="bookChangeDrawer"
       :class="{ [direction]: true }"
-      absolute
+      fixed
       :location="direction === 'prev' ? 'left' : 'right'"
       :model-value="isDrawerOpen"
       temporarary
@@ -100,7 +100,7 @@ export default {
 </script>
 <style scoped lang="scss">
 .bookChangeColumn {
-  position: absolute;
+  position: fixed;
   height: 100%;
   width: 33vw;
 }
@@ -128,5 +128,13 @@ $iconSize: 25%;
 :deep(.bookChangeDrawer) {
   width: 33vw !important;
   opacity: 0.75 !important;
+}
+</style>
+<!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
+<style lang="scss">
+.v-main {
+  /* Hack for using v-navigation drawer inside v-app */
+  --v-layout-left: 0px !important;
+  --v-layout-right: 0px !important;
 }
 </style>

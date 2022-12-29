@@ -50,6 +50,16 @@ export default {
 
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
+:deep(.v-field-label) {
+  top: 12px;
+}
+:deep(.v-label.v-field-label--floating) {
+  opacity: var(--v-disabled-opacity) !important;
+}
+:deep(.v-field:hover .v-label.v-field-label--floating),
+:deep(.v-field--focused .v-label.v-field-label--floating) {
+  opacity: var(--v-medium-emphasis-opacity) !important;
+}
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   :deep(.v-field) {
     --v-field-padding-start: 4px;

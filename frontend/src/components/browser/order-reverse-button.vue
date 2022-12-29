@@ -45,7 +45,6 @@ export default {
 </script>
 
 <style scoped lang="scss">
-/* #orderSelect style is handled in browser/filter-toolbar.vue */
 .orderReverseButton {
   border-radius: 5px;
 }

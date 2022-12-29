@@ -1,18 +1,15 @@
 <template>
-  <v-toolbar
-    v-if="numPages > 1"
-    class="paginationToolbar codexToolbar"
-    density="compact"
-  >
+  <PaginationToolbar v-if="numPages > 1">
     <BrowserNavButton :back="true" />
     <PaginationSlider
       :model-value="+$route.params.page"
       :min="+1"
       :max="numPages"
-      @update:model-value="onUpdate"
+      :step="1"
+      @update:model-value="routeToPage($event)"
     />
     <BrowserNavButton :back="false" />
-  </v-toolbar>
+  </PaginationToolbar>
 </template>
 
 <script>
@@ -20,6 +17,7 @@ import { mapActions, mapState } from "pinia";
 
 import BrowserNavButton from "@/components/browser/browser-nav-button.vue";
 import PaginationSlider from "@/components/pagination-slider.vue";
+import PaginationToolbar from "@/components/pagination-toolbar.vue";
 import { useBrowserStore } from "@/stores/browser";
 
 export default {
@@ -27,6 +25,7 @@ export default {
   components: {
     BrowserNavButton,
     PaginationSlider,
+    PaginationToolbar,
   },
   computed: {
     ...mapState(useBrowserStore, {
@@ -41,11 +40,3 @@ export default {
   },
 };
 </script>
-
-<style scoped lang="scss">
-.paginationToolbar {
-  bottom: env(safe-area-inset-bottom);
-  width: 100%;
-  padding: 0px;
-}
-</style>

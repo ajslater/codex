@@ -1,6 +1,9 @@
 import { createVuetify } from "vuetify";
 import { aliases, mdi } from "vuetify/iconsets/mdi-svg";
 
+const WHITE = "#FFFFFF";
+const DISABLED = "#808080";
+
 const codexTheme = {
   dark: true,
   colors: {
@@ -14,15 +17,14 @@ const codexTheme = {
     // info: "#2196F3", // lightblue (similar to primary)
     success: "#14dc3c", // crimsongreen
     // warning: "#FB8C00", // soft orange
-    "on-surface-variant": "#2D2D2D",
+    "on-surface-variant": "#2A2A2A",
     // --- custom ---
-    "surface-dark": "#191919",
-    linkHover: "#FFFFFF",
-    textPrimary: "#FFFFFF",
+    linkHover: WHITE,
+    textPrimary: WHITE,
     textHeader: "#D3D3D3",
     textSecondary: "#A9A9A9",
-    textDisabled: "#808080",
-    iconsInactive: "#808080",
+    textDisabled: DISABLED,
+    iconsInactive: DISABLED,
   },
 };
 

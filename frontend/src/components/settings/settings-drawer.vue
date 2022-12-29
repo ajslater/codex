@@ -75,7 +75,7 @@ export default {
   flex-direction: column;
   justify-content: space-between;
   height: 100%;
-  background-color: rgb(var(--v-theme-surface-dark));
+  background-color: rgb(var(--v-theme-background));
 }
 .settingsHeader {
   padding: 10px;

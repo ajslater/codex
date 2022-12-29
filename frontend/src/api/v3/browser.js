@@ -33,13 +33,13 @@ const preSerialize = (data) => {
   if (params.q === "") {
     delete params.q;
   }
-  // Since axios 1.0 I have manually serialize complex objects
+  // Since axios 1.0 I have to manually serialize complex objects
   for (const key of JSON_KEYS) {
     if (params[key]) {
       params[key] = JSON.stringify(params[key]);
     }
   }
-  params.ts = useCommonStore.timestamp;
+  params.ts = useCommonStore().timestamp;
   return params;
 };
 

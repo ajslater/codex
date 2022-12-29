@@ -1,4 +1,6 @@
 """Librarian Status."""
+from dataclasses import dataclass
+
 from django.db.models.functions.datetime import Now
 
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
@@ -8,6 +10,14 @@ from codex.settings.logging import get_logger
 
 
 LOG = get_logger(__name__)
+
+
+@dataclass
+class StatusControlFinishTask:
+    """Finish a status task."""
+
+    type: str
+    notify: bool = True
 
 
 class StatusControl:

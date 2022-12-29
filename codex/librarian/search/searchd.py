@@ -7,13 +7,13 @@ from uuid import uuid4
 
 from django.core.management import call_command
 
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import (
     SearchIndexJanitorUpdateTask,
     SearchIndexRebuildIfDBChangedTask,
 )
-from codex.librarian.status_control import StatusControl
+from codex.librarian.status_control import StatusControl, StatusControlFinishTask
 from codex.models import Library, SearchResult, Timestamp
 from codex.settings.logging import get_logger
 from codex.settings.settings import XAPIAN_INDEX_PATH, XAPIAN_INDEX_UUID_PATH
@@ -32,6 +32,7 @@ UPDATE_KWARGS = {
     "workers": WORKERS,
     "verbosity": VERBOSITY,
 }
+MIN_FINISHED_TIME = 1
 
 
 def set_xapian_index_version():
@@ -72,8 +73,21 @@ def _call_command(args, kwargs):
     proc.close()
 
 
+def _get_latest_index_mtime():
+    """Get the latest mtime for all files in the index dir."""
+    latest_mtime = datetime.min
+    for entry in os.scandir(XAPIAN_INDEX_PATH):
+        if not entry.is_file():
+            continue
+        mtime = datetime.fromtimestamp(entry.stat().st_mtime)
+        if mtime > latest_mtime:
+            latest_mtime = mtime
+    return latest_mtime
+
+
 def update_search_index(rebuild=False):
     """Update the search index."""
+    start_time = datetime.now()
     try:
         any_update_in_progress = Library.objects.filter(
             update_in_progress=True
@@ -91,8 +105,10 @@ def update_search_index(rebuild=False):
         else:
             status_keys["name"] = "update"
         StatusControl.start(**status_keys)
+        start_time = datetime.now()
 
         XAPIAN_INDEX_PATH.mkdir(parents=True, exist_ok=True)
+        start_index_mtime = _get_latest_index_mtime()
 
         if rebuild:
             LOG.verbose("Rebuilding search index...")
@@ -116,13 +132,24 @@ def update_search_index(rebuild=False):
             _call_command(UPDATE_ARGS, kwargs)
         Timestamp.touch(Timestamp.SEARCH_INDEX)
 
-        # Nuke the Search Result table as it's now out of date.
-        SearchResult.truncate_and_reset()
+        end_index_mtime = _get_latest_index_mtime()
+        if end_index_mtime > start_index_mtime:
+            # Nuke the Search Result table if it's out of date.
+            SearchResult.truncate_and_reset()
         LOG.verbose("Finished updating search index.")
     except Exception as exc:
         LOG.error(f"Update search index: {exc}")
     finally:
-        StatusControl.finish(SearchIndexStatusTypes.SEARCH_INDEX)
+        # XXX this may solve a timing bug that left update index status unfinished
+        elapsed = (datetime.now() - start_time).total_seconds()
+        if elapsed > MIN_FINISHED_TIME:
+            delay = 0
+        else:
+            delay = MIN_FINISHED_TIME
+        task = DelayedTasks(
+            delay, (StatusControlFinishTask(SearchIndexStatusTypes.SEARCH_INDEX),)
+        )
+        LIBRARIAN_QUEUE.put(task)
 
 
 def rebuild_search_index_if_db_changed():

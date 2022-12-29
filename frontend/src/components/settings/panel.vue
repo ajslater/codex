@@ -1,7 +1,7 @@
 <template>
   <AuthMenu />
   <v-divider v-if="isUserAdmin" />
-  <component :is="adminMenuLoader" :menu="adminMenu" />
+  <component :is="AdminMenu" v-if="isUserAdmin" :menu="adminMenu" />
 </template>
 
 <script>
@@ -23,11 +23,11 @@ export default {
   props: {
     adminMenu: { type: Boolean, default: true },
   },
+  data() {
+    return { AdminMenu };
+  },
   computed: {
     ...mapGetters(useAuthStore, ["isUserAdmin"]),
-    adminMenuLoader: function () {
-      return this.isUserAdmin ? AdminMenu : undefined;
-    },
   },
 };
 </script>

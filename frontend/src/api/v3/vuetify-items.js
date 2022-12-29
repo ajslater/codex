@@ -34,7 +34,7 @@ const vuetifyItemCompare = function (itemA, itemB) {
 };
 
 const vuetifyItemCompareNumeric = function (itemA, itemB) {
-  return Number.parseFloat(itemA.name) - Number.parseFloat(itemB.name);
+  return Number.parseFloat(itemA.title) - Number.parseFloat(itemB.title);
 };
 
 export const toVuetifyItems = function (
@@ -56,7 +56,8 @@ export const toVuetifyItems = function (
     if (
       vuetifyItem &&
       (!lowerCaseFilter ||
-        vuetifyItem.name.toLowerCase().includes(lowerCaseFilter))
+        (vuetifyItem.title &&
+          vuetifyItem.title.toLowerCase().includes(lowerCaseFilter)))
     ) {
       computedItems.push(vuetifyItem);
     }

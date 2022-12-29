@@ -1,7 +1,13 @@
 <template>
   <v-toolbar id="readerTopToolbar" class="codexToolbar" density="compact">
     <v-toolbar-items>
-      <v-btn id="closeBook" ref="closeBook" :to="closeBookRoute" size="large">
+      <v-btn
+        id="closeBook"
+        ref="closeBook"
+        :to="closeBookRoute"
+        size="large"
+        @click="onCloseBook"
+      >
         <span v-if="!$vuetify.display.smAndDown">close book</span>
         <v-icon v-else title="Close Book">
           {{ mdiClose }}
@@ -53,6 +59,7 @@ export default {
   data() {
     return {
       mdiClose,
+      routeChanged: false,
     };
   },
   head() {
@@ -96,6 +103,13 @@ export default {
       return route;
     },
   },
+  watch: {
+    $route(to, from) {
+      if (from) {
+        this.routeChanged = true;
+      }
+    },
+  },
   mounted() {
     document.addEventListener("keyup", this._keyListener);
   },
@@ -103,11 +117,17 @@ export default {
     document.removeEventListener("keyup", this._keyListener);
   },
   methods: {
+    ...mapActions(useCommonStore, ["setTimestamp"]),
     ...mapActions(useReaderStore, ["routeToDirection"]),
-    openMetadata: function () {
+    openMetadata() {
       this.$refs.metadataDialog.dialog = true;
     },
-    _keyListener: function (event) {
+    onCloseBook() {
+      if (this.routeChanged) {
+        this.setTimestamp();
+      }
+    },
+    _keyListener(event) {
       event.stopPropagation();
       switch (event.key) {
         case " ":

@@ -4,7 +4,7 @@ build-backend = ["poetry.core.masonry.api"]
 
 [tool.poetry]
 name = "codex"
-version = "1.0.0a0"
+version = "1.0.0a8"
 description = "A comic archive web server."
 license = "GPL-2.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
@@ -92,6 +92,7 @@ isort = "^5.10.1"
 pep8-naming = "^0.13"
 pyright = "^1.1.232"
 radon = "^5.1"
+tomli = "^2.0.1" # for codespell with python < 3.11
 types-python-dateutil = "^2.8.19"
 vulture = "^2.3"
 
@@ -115,6 +116,14 @@ exclude = [
   "static_build",
   "static_root",
 ]
+
+[tool.codespell]
+skip = './cache,./codex/static_build,./codex/static_root,./comics,./config/logs,./dist,./frontend/coverage,./test-results,.git,.mypy_cache,.pytest_cache,.venv,*~,_vendor/haystack,node_modules,package-lock.json,poetry.lock,run.spec'
+builtin = 'clear,rare,code'
+check-hidden = true
+ignore-words-list = 'thead,ro,jupyter,coverd'
+# Remove 'coverd' when this issue is resolved
+# https://github.com/codespell-project/codespell/issues/1212
 
 [tool.djlint]
 ignore = "H030,H031"
