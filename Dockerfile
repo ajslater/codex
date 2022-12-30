@@ -14,11 +14,13 @@ FROM ajslater/codex-base:${CODEX_BASE_VERSION}
 ARG PKG_VERSION
 LABEL maintainer="AJ Slater <aj@slater.net>"
 LABEL version=$PKG_VERSION
+
+# Create the comics directory
+RUN mkdir -p /comics && touch /comics/DOCKER_UNMOUNTED_VOLUME
+
 # The final image is the mininimal base with /usr/local copied.
 # Possibly could optimize this further to only get python and bin
 COPY --from=codex-built /usr/local /usr/local
-
-RUN mkdir -p /comics && touch /comics/DOCKER_UNMOUNTED_VOLUME
 
 VOLUME /comics
 VOLUME /config
