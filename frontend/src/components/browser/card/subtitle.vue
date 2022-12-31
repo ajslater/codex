@@ -38,7 +38,7 @@ export default {
   computed: {
     ...mapState(useBrowserStore, {
       orderBy: (state) => state.settings.orderBy,
-      zeroPad: (state) => state.zeroPad,
+      zeroPad: (state) => state.page.zeroPad,
     }),
     headerName: function () {
       let hn;
@@ -117,17 +117,14 @@ export default {
 @use "vuetify/styles/settings/variables" as vuetify;
 @import "../../book-cover.scss";
 .cardSubtitle {
+  width: $cover-width;
   margin-top: 7px;
   padding-top: 3px;
   text-align: center;
-  width: $cover-width;
 }
-/* XXX why doesn't this work? */
-/* $textDisabledColor: rbg(var(--v-theme-textDisabled)); */
-$textDisabledColor: #808080;
 .headerName {
   padding-top: 5px;
-  color: $textDisabledColor;
+  color: rgb(var(--v-theme-textDisabled));
 }
 .headerName,
 .displayName {
@@ -137,7 +134,7 @@ $textDisabledColor: #808080;
   min-height: 1em;
 }
 .orderValue {
-  color: $textDisabledColor;
+  color: rgb(var(--v-theme-textDisabled));
 }
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   .cardSubtitle {

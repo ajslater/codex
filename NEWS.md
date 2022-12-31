@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.0.1
+
+- Fixes
+
+  - Fixed zero padding on browser card issue numbers.
+
 ## v1.0.0
 
 ### Vue 3
