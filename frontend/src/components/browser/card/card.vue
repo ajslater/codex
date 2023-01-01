@@ -1,36 +1,35 @@
 <template>
-  <v-lazy
-    :id="`card-${item.pk}`"
-    transition="scale-transition"
-    class="browserTile"
-  >
+  <v-lazy :id="`card-${item.pk}`" transition="scale-transition">
     <div class="browserCardCoverWrapper" @click="doubleTapHovered = true">
-      <BookCover
-        :cover-pk="item.coverPk"
-        :group="item.group"
-        :child-count="item.childCount"
-        :finished="item.finished"
-      />
-      <router-link
-        v-if="toRoute"
-        class="cardCoverOverlay"
-        :to="toRoute"
-        :aria-label="linkLabel"
-      >
-        <BrowserCardControls :item="item" :eye-open="true" />
-      </router-link>
-      <div v-else class="cardCoverOverlay">
-        <BrowserCardControls :item="item" :eye-open="false" />
+      <div class="browserCardTop">
+        <BookCover
+          :cover-pk="item.coverPk"
+          :group="item.group"
+          :child-count="item.childCount"
+          :finished="item.finished"
+        />
+        <router-link
+          v-if="toRoute"
+          class="cardCoverOverlay"
+          :to="toRoute"
+          :aria-label="linkLabel"
+        >
+          <BrowserCardControls :item="item" :eye-open="true" />
+        </router-link>
+        <div v-else class="cardCoverOverlay">
+          <BrowserCardControls :item="item" :eye-open="false" />
+        </div>
+        <v-progress-linear
+          class="bookCoverProgress"
+          :background-color="progressBackgroundColor"
+          :model-value="item.progress"
+          :aria-label="`${item.progress}% read`"
+          rounded
+          height="2"
+        />
+        <BrowserCardSubtitle :item="item" />
       </div>
-      <v-progress-linear
-        class="bookCoverProgress"
-        :background-color="progressBackgroundColor"
-        :model-value="item.progress"
-        aria-label="% read"
-        rounded
-        height="2"
-      />
-      <BrowserCardSubtitle :item="item" />
+      <OrderByCaption :item="item" />
     </div>
   </v-lazy>
 </template>
@@ -38,6 +37,7 @@
 <script>
 import BookCover from "@/components/book-cover.vue";
 import BrowserCardControls from "@/components/browser/card/controls.vue";
+import OrderByCaption from "@/components/browser/card/order-by-caption.vue";
 import BrowserCardSubtitle from "@/components/browser/card/subtitle.vue";
 import { IS_IOS, IS_TOUCH } from "@/platform";
 import { getReaderRoute } from "@/route";
@@ -51,6 +51,7 @@ export default {
     BookCover,
     BrowserCardControls,
     BrowserCardSubtitle,
+    OrderByCaption,
   },
   props: {
     item: {
@@ -127,6 +128,10 @@ export default {
 @import "../../book-cover.scss";
 .browserCardCoverWrapper {
   position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 .cardCoverOverlay {
   position: absolute;
@@ -138,12 +143,12 @@ export default {
   border: solid thin transparent;
 }
 
-.browserCardCoverWrapper:hover > .cardCoverOverlay {
+.browserCardCoverWrapper:hover > .browserCardTop > .cardCoverOverlay {
   background-color: rgba(0, 0, 0, 0.55);
   border: solid thin;
   border-color: rbg(var(--v-theme-primary));
 }
-.browserCardCoverWrapper:hover > .cardCoverOverlay * {
+.browserCardCoverWrapper:hover > .browserCardTop > .cardCoverOverlay * {
   opacity: 1;
 }
 .bookCoverProgress {
