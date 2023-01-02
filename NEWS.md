@@ -8,8 +8,9 @@ border-radius: 128px;
 
 ## v1.0.1
 
+- Features
+  - Justify order-by field in browser cards.
 - Fixes
-
   - Fixed next book change drawer opening settings drawer.
   - Fixed zero padding on browser card issue numbers.
 
