@@ -2,8 +2,10 @@
   <v-navigation-drawer
     v-model="isSettingsDrawerOpen"
     class="settingsDrawer"
-    app
+    disable-resize-watcher
+    disable-route-watcher
     location="right"
+    temporary
     touchless
     v-bind="$attrs"
   >
@@ -13,7 +15,7 @@
           <h3>{{ title }}</h3>
         </header>
         <component :is="panel" v-if="isCodexViewable" />
-        <v-divider />
+        <v-divider v-if="isCodexViewable" />
         <SettingsCommonPanel :admin-menu="adminMenu" />
         <v-divider />
       </div>

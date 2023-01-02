@@ -6,12 +6,13 @@
     @click.stop="setBookChangeFlag(direction)"
   >
     <v-navigation-drawer
-      class="bookChangeDrawer"
-      :class="{ [direction]: true }"
-      fixed
+      v-model="isDrawerOpen"
+      :class="{ bookChangeDrawer: true, [direction]: true }"
+      disable-resize-watcher
+      disable-route-watcher
       :location="direction === 'prev' ? 'left' : 'right'"
-      :model-value="isDrawerOpen"
       temporarary
+      touchless
     >
       <router-link
         class="navLink"
