@@ -1,34 +1,29 @@
 <template>
-  <div
+  <v-navigation-drawer
     v-if="show"
-    class="bookChangeColumn"
-    :class="{ [direction]: true }"
-    @click.stop="setBookChangeFlag(direction)"
+    :class="{ bookChangeDrawer: true, [direction]: true }"
+    disable-resize-watcher
+    disable-route-watcher
+    :location="direction === 'prev' ? 'left' : 'right'"
+    :model-value="isDrawerOpen"
+    :scrim="false"
+    temporary
+    touchless
   >
-    <v-navigation-drawer
-      v-model="isDrawerOpen"
-      :class="{ bookChangeDrawer: true, [direction]: true }"
-      disable-resize-watcher
-      disable-route-watcher
-      :location="direction === 'prev' ? 'left' : 'right'"
-      temporarary
-      touchless
+    <router-link
+      class="navLink"
+      :to="route"
+      :aria-label="label"
+      :title="label"
+      @click="$event.stopImmediatePropagation()"
     >
-      <router-link
-        class="navLink"
-        :to="route"
-        :aria-label="label"
-        :title="label"
-        @click="$event.stopImmediatePropagation()"
-      >
-        <v-icon class="bookChangeIcon"> {{ icon }} </v-icon>
-      </router-link>
-    </v-navigation-drawer>
-  </div>
+      <v-icon class="bookChangeIcon"> {{ icon }} </v-icon>
+    </router-link>
+  </v-navigation-drawer>
 </template>
 <script>
 import { mdiBookArrowDown, mdiBookArrowUp } from "@mdi/js";
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import { getComicPageSource } from "@/api/v3/reader";
 import { linksInfo } from "@/components/reader/prefetch-links";
@@ -46,17 +41,8 @@ export default {
     return linksInfo([this.prefetchSrc1, this.prefetchSrc2]);
   },
   computed: {
+    ...mapGetters(useReaderStore, ["prevBookChangeShow", "nextBookChangeShow"]),
     ...mapState(useReaderStore, {
-      show(state) {
-        if (this.direction === "prev") {
-          return +this.$route.params.page === 0;
-        }
-        // next
-        const maxPage = state.activeBook ? state.activeBook.maxPage : 0;
-        const adj = state.activeSettings.twoPages ? 1 : 0;
-        const limit = maxPage + adj;
-        return +this.$route.params.page >= limit;
-      },
       prefetchSrc2(state) {
         const book = state.books.get(this.params.pk);
         const bookSettings = book ? book.settings || {} : {};
@@ -80,6 +66,10 @@ export default {
         return this.direction === "next" ? mdiBookArrowDown : mdiBookArrowUp;
       },
     }),
+    show() {
+      return this[this.direction + "BookChangeShow"];
+    },
+
     prefetchSrc1() {
       if (!this.isDrawerOpen || !this.params) {
         return false;
@@ -95,16 +85,11 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useReaderStore, ["getSettings", "setBookChangeFlag"]),
+    ...mapActions(useReaderStore, ["getSettings"]),
   },
 };
 </script>
 <style scoped lang="scss">
-.bookChangeColumn {
-  position: fixed;
-  height: 100%;
-  width: 33vw;
-}
 .prev {
   cursor: n-resize;
   left: 0px;
@@ -126,16 +111,12 @@ $iconSize: 25%;
   width: $iconSize;
   color: white;
 }
-:deep(.bookChangeDrawer) {
-  width: 33vw !important;
-  opacity: 0.75 !important;
-}
 </style>
 <!-- eslint-disable-next-line vue-scoped-css/enforce-style-type -->
 <style lang="scss">
-.v-main {
-  /* Hack for using v-navigation drawer inside v-app */
-  --v-layout-left: 0px !important;
-  --v-layout-right: 0px !important;
+.bookChangeDrawer {
+  width: 33vw !important;
+  opacity: 0.75 !important;
+  z-index: 15 !important;
 }
 </style>

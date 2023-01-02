@@ -1,13 +1,12 @@
 <template>
   <v-navigation-drawer
+    v-bind="$attrs"
     v-model="isSettingsDrawerOpen"
-    class="settingsDrawer"
     disable-resize-watcher
     disable-route-watcher
     location="right"
     temporary
     touchless
-    v-bind="$attrs"
   >
     <div class="settingsDrawerContainer">
       <div id="topBlock">
@@ -30,13 +29,14 @@
 </template>
 
 <script>
-import { mapGetters, mapWritableState } from "pinia";
+import { mapGetters, mapState, mapWritableState } from "pinia";
 
 import SettingsCommonPanel from "@/components/settings/panel.vue";
 import SettingsFooter from "@/components/settings/settings-footer.vue";
 import VersionFooter from "@/components/settings/version-footer.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
+import { useReaderStore } from "@/stores/reader";
 
 export default {
   name: "SettingsDrawer",
@@ -62,6 +62,9 @@ export default {
   computed: {
     ...mapGetters(useAuthStore, ["isCodexViewable"]),
     ...mapWritableState(useCommonStore, ["isSettingsDrawerOpen"]),
+    ...mapState(useReaderStore, {
+      invisibleHack: (state) => state.bookChange === "next",
+    }),
   },
   mounted() {
     this.isSettingsDrawerOpen =

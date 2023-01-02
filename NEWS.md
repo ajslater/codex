@@ -10,6 +10,7 @@ border-radius: 128px;
 
 - Fixes
 
+  - Fixed next book change drawer opening settings drawer.
   - Fixed zero padding on browser card issue numbers.
 
 ## v1.0.0
