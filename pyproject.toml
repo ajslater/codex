@@ -4,7 +4,7 @@ build-backend = ["poetry.core.masonry.api"]
 
 [tool.poetry]
 name = "codex"
-version = "1.0.0"
+version = "1.0.1"
 description = "A comic archive web server."
 license = "GPL-2.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
@@ -67,9 +67,8 @@ xapian-haystack = "^3.0.1"
 Pillow = "^9.1.0"
 
 [tool.poetry.group.dev.dependencies]
+neovim = "^0.3.1"
 nplusone = "^1.0.0"
-pushover-simple-cli = "^1.1.2"
-pynvim = "^0.4"
 
 [tool.poetry.group.test.dependencies]
 coverage = { extras = ["toml"], version = "^7.0" }

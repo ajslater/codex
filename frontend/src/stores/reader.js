@@ -69,6 +69,20 @@ export const useReaderStore = defineStore("reader", {
       const book = state.activeBook;
       return book ? getFullComicName(book) : "";
     },
+    prevBookChangeShow() {
+      const route = router.currentRoute.value;
+      return route && route.params && +route.params.page === 0;
+    },
+    nextBookChangeShow(state) {
+      const route = router.currentRoute.value;
+      if (!route || !route.params) {
+        return false;
+      }
+      const maxPage = state.activeBook ? state.activeBook.maxPage : 0;
+      const adj = state.activeSettings.twoPages ? 1 : 0;
+      const limit = maxPage + adj;
+      return +route.params.page >= limit;
+    },
   },
   actions: {
     ///////////////////////////////////////////////////////////////////////////

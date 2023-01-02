@@ -6,13 +6,10 @@
     <div class="displayName">
       {{ displayName }}
     </div>
-    <!-- eslint-disable-next-line vue/no-v-html -->
-    <div v-if="orderValue" class="orderValue" v-html="orderValue" />
   </div>
 </template>
 
 <script>
-import humanize from "humanize";
 import { mapState } from "pinia";
 
 import {
@@ -20,11 +17,7 @@ import {
   getFullComicName,
   getIssueName,
 } from "@/comic-name";
-import { DATE_FORMAT, DATETIME_FORMAT } from "@/datetime";
 import { useBrowserStore } from "@/stores/browser";
-const STAR_SORT_BY = new Set(["community_rating", "critical_rating"]);
-const DATE_SORT_BY = new Set(["date"]);
-const TIME_SORT_BY = new Set(["created_at", "updated_at"]);
 
 export default {
   name: "BrowserCardSubtitle",
@@ -38,7 +31,7 @@ export default {
   computed: {
     ...mapState(useBrowserStore, {
       orderBy: (state) => state.settings.orderBy,
-      zeroPad: (state) => state.zeroPad,
+      zeroPad: (state) => state.page.zeroPad,
     }),
     headerName: function () {
       let hn;
@@ -72,62 +65,19 @@ export default {
       label += " " + this.headerName;
       return label;
     },
-    orderValue: function () {
-      let ov = this.item.orderValue;
-      if (
-        this.orderByCache === undefined ||
-        this.orderByCache === null ||
-        this.orderByCache === "sort_name" ||
-        (this.orderByCache === "path" && this.item.group === "f") ||
-        ov === null ||
-        ov === undefined
-      ) {
-        ov = "";
-      } else if (this.orderByCache == "page_count") {
-        const human = humanize.numberFormat(Number.parseInt(ov, 10), 0);
-        ov = `${human} pages`;
-      } else if (this.orderByCache == "size") {
-        ov = humanize.filesize(Number.parseInt(ov, 10), 1024, 1);
-      } else if (STAR_SORT_BY.has(this.orderByCache)) {
-        ov = `★  ${ov}`;
-      } else if (DATE_SORT_BY.has(this.orderByCache)) {
-        const date = new Date(ov);
-        ov = DATE_FORMAT.format(date);
-      } else if (TIME_SORT_BY.has(this.orderByCache)) {
-        const date = new Date(ov);
-        ov = DATETIME_FORMAT.format(date).replace(", ", "<br />");
-      }
-      return ov;
-    },
-  },
-  watch: {
-    orderBy: function (to) {
-      this.orderByCache = to;
-    },
-  },
-  beforeCreate: function () {
-    // Fixes empty order cache on first load
-    // can't use computed value.
-    this.orderByCache = useBrowserStore().settings.orderBy;
   },
 };
 </script>
 
 <style scoped lang="scss">
-@use "vuetify/styles/settings/variables" as vuetify;
-@import "../../book-cover.scss";
 .cardSubtitle {
-  margin-top: 7px;
-  padding-top: 3px;
+  width: 100%;
+  margin-top: 10px;
   text-align: center;
-  width: $cover-width;
 }
-/* XXX why doesn't this work? */
-/* $textDisabledColor: rbg(var(--v-theme-textDisabled)); */
-$textDisabledColor: #808080;
 .headerName {
   padding-top: 5px;
-  color: $textDisabledColor;
+  color: rgb(var(--v-theme-textDisabled));
 }
 .headerName,
 .displayName {
@@ -135,13 +85,5 @@ $textDisabledColor: #808080;
 }
 .displayName {
   min-height: 1em;
-}
-.orderValue {
-  color: $textDisabledColor;
-}
-@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
-  .cardSubtitle {
-    width: $small-cover-width;
-  }
 }
 </style>
