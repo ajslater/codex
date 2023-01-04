@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.0.2
+
+- Fixes
+  - Fix Admin Status drawer closing at wrong time.
+
 ## v1.0.1
 
 - Features

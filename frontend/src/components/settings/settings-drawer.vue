@@ -5,7 +5,8 @@
     disable-resize-watcher
     disable-route-watcher
     location="right"
-    temporary
+    :scrim="!admin"
+    :temporary="!admin"
     touchless
   >
     <div class="settingsDrawerContainer">
@@ -15,7 +16,7 @@
         </header>
         <component :is="panel" v-if="isCodexViewable" />
         <v-divider v-if="isCodexViewable" />
-        <SettingsCommonPanel :admin-menu="adminMenu" />
+        <SettingsCommonPanel :admin-menu="!admin" />
         <v-divider />
       </div>
       <div id="footerGroup">
@@ -54,9 +55,9 @@ export default {
       type: Object,
       required: true,
     },
-    adminMenu: {
+    admin: {
       type: Boolean,
-      default: true,
+      default: false,
     },
   },
   computed: {
@@ -67,8 +68,7 @@ export default {
     }),
   },
   mounted() {
-    this.isSettingsDrawerOpen =
-      !this.adminMenu && !this.$vuetify.display.smAndDown;
+    this.isSettingsDrawerOpen = this.admin && !this.$vuetify.display.smAndDown;
   },
 };
 </script>
