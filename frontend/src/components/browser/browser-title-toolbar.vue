@@ -116,6 +116,7 @@ export default {
 @use "vuetify/styles/settings/variables" as vuetify;
 #titleToolbar {
   width: 100vw;
+  padding-left: 10px;
 }
 $upButtonWidth: 64px;
 :deep(#upButton.v-btn) {
@@ -140,6 +141,9 @@ $upButtonWidth: 64px;
 }
 
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
+  #titleToolbar {
+    padding-left: 5px;
+  }
   :deep(.codexToolbarTitle) {
     font-size: 1rem;
   }
