@@ -719,14 +719,14 @@ files = [
 
 [[package]]
 name = "djlint"
-version = "1.19.10"
+version = "1.19.11"
 description = "HTML Template Linter and Formatter"
 category = "dev"
 optional = false
 python-versions = ">=3.7.2,<4.0.0"
 files = [
-    {file = "djlint-1.19.10-py3-none-any.whl", hash = "sha256:6ab1883bcb5941b9d32180acdbe02d9b445d467efa8567483dc04d874c9dc441"},
-    {file = "djlint-1.19.10.tar.gz", hash = "sha256:bc9a7d0dd63af5a29f58a4c5fab232e9f30aed12b860a90728ac5828963299f0"},
+    {file = "djlint-1.19.11-py3-none-any.whl", hash = "sha256:c19d732c79b660f7d406517254bfd3e98f6c3c2de0cb300766b5555077d4ae08"},
+    {file = "djlint-1.19.11.tar.gz", hash = "sha256:98bbe094a6f176258a578b16c492cbbb9384e3a3b447c9241ee4a6427d703402"},
 ]
 
 [package.dependencies]
@@ -735,7 +735,7 @@ colorama = ">=0.4.4,<0.5.0"
 cssbeautifier = ">=1.14.4,<2.0.0"
 html-tag-names = ">=0.1.2,<0.2.0"
 html-void-elements = ">=0.1.0,<0.2.0"
-importlib-metadata = ">=5.0.0,<6.0.0"
+importlib-metadata = ">=6.0.0,<7.0.0"
 jsbeautifier = ">=1.14.4,<2.0.0"
 pathspec = ">=0.10.0,<0.11.0"
 PyYAML = ">=6.0,<7.0"
@@ -1163,14 +1163,14 @@ files = [
 
 [[package]]
 name = "importlib-metadata"
-version = "5.2.0"
+version = "6.0.0"
 description = "Read metadata from Python packages"
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "importlib_metadata-5.2.0-py3-none-any.whl", hash = "sha256:0eafa39ba42bf225fc00e67f701d71f85aead9f878569caf13c3724f704b970f"},
-    {file = "importlib_metadata-5.2.0.tar.gz", hash = "sha256:404d48d62bba0b7a77ff9d405efd91501bef2e67ff4ace0bed40a0cf28c3c7cd"},
+    {file = "importlib_metadata-6.0.0-py3-none-any.whl", hash = "sha256:7efb448ec9a5e313a57655d35aa54cd3e01b7e1fbcf72dce1bf06119420f5bad"},
+    {file = "importlib_metadata-6.0.0.tar.gz", hash = "sha256:e354bedeb60efa6affdcc8ae121b73544a7aa74156d047311948f6d711cd378d"},
 ]
 
 [package.dependencies]
@@ -1800,14 +1800,14 @@ files = [
 
 [[package]]
 name = "pyright"
-version = "1.1.286"
+version = "1.1.287"
 description = "Command line wrapper for pyright"
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "pyright-1.1.286-py3-none-any.whl", hash = "sha256:b80761f303bf437d764b2d194b06f07fb4ed38960d7f3a8b2f7f41da37aced70"},
-    {file = "pyright-1.1.286.tar.gz", hash = "sha256:2bbf82114ac3838c31c91d1c32abe4858259bff094465cadff55eac465250f1b"},
+    {file = "pyright-1.1.287-py3-none-any.whl", hash = "sha256:0c760edbd40eb4f763027f742de2cb29c1d8320880e5f6ad85fc89db43fe6871"},
+    {file = "pyright-1.1.287.tar.gz", hash = "sha256:806a4af328dc1f2b6688147528c71393f0cf241eb1214d6e9a7fb1ef5caa2327"},
 ]
 
 [package.dependencies]
