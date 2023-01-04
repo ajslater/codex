@@ -7,7 +7,7 @@
       </v-main>
       <SettingsDrawer
         title="Admin Status"
-        :admin-menu="false"
+        :admin="true"
         :panel="AdminSettingsPanel"
       />
     </div>

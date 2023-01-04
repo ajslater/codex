@@ -40,12 +40,17 @@ class Notifier(AggregateMessageQueuedThread):
     @staticmethod
     async def _send_msg(conns, send_msg):
         """Send message to all connections."""
+        bad_conns = set()
         for send in conns:
             try:
                 await send(send_msg)
                 await asyncio.sleep(0)
             except Exception as exc:
-                LOG.warning(f"Error in {Notifier.NAME}._send_msg {send_msg} {exc}")
+                LOG.warning(f"{Notifier.NAME}._send_msg {exc}")
+                LOG.debug(f"Message was {send_msg}")
+                bad_conns.add(send)
+        for send in bad_conns:
+            conns.discard(send)
 
     def aggregate_items(self, task):
         """Aggregate messages into cache."""

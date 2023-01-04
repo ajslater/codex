@@ -43,6 +43,7 @@ export default {
   padding-top: env(safe-area-inset-top);
   padding-right: calc(env(safe-area-inset-right) / 2);
   padding-left: calc(48px + calc(env(safe-area-inset-left) / 2));
+  z-index: 10;
 }
 .drawerMargin {
   width: calc(100% - 256px) !important;

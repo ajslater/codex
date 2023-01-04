@@ -56,9 +56,7 @@ export default {
   },
   computed: {
     ...mapGetters(useAuthStore, ["isUserAdmin"]),
-    ...mapWritableState(useAdminStore, {
-      unseenFailedImports: (state) => state.unseenFailedImports,
-    }),
+    ...mapWritableState(useAdminStore, ["unseenFailedImports"]),
   },
   methods: {
     ...mapActions(useAdminStore, ["clearFailedImports", "librarianTask"]),
@@ -68,6 +66,7 @@ export default {
 
 <style scoped lang="scss">
 #failedImportsIcon {
-  padding-left: 10px;
+  padding-left: 0.25em;
+  color: rgb(var(--v-theme-error)) !important;
 }
 </style>
