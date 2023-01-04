@@ -10,6 +10,7 @@ border-radius: 128px;
 
 - Fixes
   - Fix Failed Imports not retrying import when updated.
+  - Make db updates more durable and possibly problem comics paths in log.
   - Fix Admin Status drawer closing at wrong time.
 
 ## v1.0.1
