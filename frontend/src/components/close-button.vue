@@ -1,5 +1,5 @@
 <template>
-  <v-btn icon v-bind="$attrs">
+  <v-btn class="closeButton" icon v-bind="$attrs">
     <v-icon>{{ mdiClose }}</v-icon>
   </v-btn>
 </template>
@@ -14,3 +14,9 @@ export default {
   },
 };
 </script>
+
+<style scoped lang="scss">
+.closeButton .v-icon {
+  margin-right: 0;
+}
+</style>

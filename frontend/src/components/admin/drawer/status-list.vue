@@ -3,14 +3,12 @@
   <v-list-item @click="load">
     <v-expand-transition>
       <div v-if="show">
-        <v-btn
+        <CloseButton
           id="clearButton"
-          size="small"
-          icon
           title="Clear Librarian Statuses"
+          size="small"
           @click="clear"
-          ><v-icon>{{ mdiCloseCircleOutline }}</v-icon></v-btn
-        >
+        />
         <h4>Librarian Tasks</h4>
         <v-expand-transition
           v-for="status of librarianStatuses"
@@ -42,10 +40,14 @@
 import { mdiCloseCircleOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
+import CloseButton from "@/components/close-button.vue";
 import { useAdminStore } from "@/stores/admin";
 
 export default {
   name: "AdminStatusList",
+  components: {
+    CloseButton,
+  },
   data() {
     return { mdiCloseCircleOutline };
   },
@@ -96,6 +98,5 @@ h4 {
 }
 #clearButton {
   float: right;
-  color: rgb(var(--v-theme-textDisabled));
 }
 </style>
