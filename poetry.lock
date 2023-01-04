@@ -387,13 +387,14 @@ files = [
 
 [[package]]
 name = "comicbox"
-version = "0.6.1"
+version = "0.6.2"
 description = "An API for reading comic archives"
 category = "main"
 optional = false
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "comicbox-0.6.1-py3-none-any.whl", hash = "sha256:72efa39708ea0f09b1f6366243ebc93784cc4159c9ad3c56636f0f8d0d1c76f6"},
+    {file = "comicbox-0.6.2-py3-none-any.whl", hash = "sha256:4864df7e36a897862a336510a75ddad6f74077282972304f7703dd478420e778"},
+    {file = "comicbox-0.6.2.tar.gz", hash = "sha256:12c67d1119b2cbdea02ff095a59213df283fd9f60a3fe7b8bf6068720cd6e366"},
 ]
 
 [package.dependencies]
@@ -404,6 +405,7 @@ defusedxml = ">=0.7.1,<0.8.0"
 parse = ">=1.15,<2.0"
 pycountry = ">=22.1.3,<23.0.0"
 rarfile = ">=4.0,<5.0"
+zipfile-deflate64 = ">=0.2.0,<0.3.0"
 
 [[package]]
 name = "confuse"
@@ -2525,6 +2527,32 @@ django = ">=2.2"
 django-haystack = ">=2.8.0"
 
 [[package]]
+name = "zipfile-deflate64"
+version = "0.2.0"
+description = "Extract Deflate64 ZIP archives with Python's zipfile API."
+category = "main"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "zipfile-deflate64-0.2.0.tar.gz", hash = "sha256:875a3299de102edf1c17f8cafcc528b1ca80b62dc4814b9cb56867ec59fbfd18"},
+    {file = "zipfile_deflate64-0.2.0-cp310-cp310-macosx_10_14_x86_64.whl", hash = "sha256:5ed1c3edc08e8da8fe646b23105e2840f305ce2a75360aa0df7523c1263f43aa"},
+    {file = "zipfile_deflate64-0.2.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b1b4ab8d83bb277983ff273cbf4fcf831023abbc2303f90af9dd4bde3ab4b9c2"},
+    {file = "zipfile_deflate64-0.2.0-cp310-cp310-win_amd64.whl", hash = "sha256:f868343cd24bd3c66fbcba9316c6a970f934653bf3d0be89f25fa0335a7ea3ff"},
+    {file = "zipfile_deflate64-0.2.0-cp36-cp36m-macosx_10_14_x86_64.whl", hash = "sha256:f5313c31e92a8be7e0fed7648b553f041287715d7a28fbfbbadec1dd8e7b773b"},
+    {file = "zipfile_deflate64-0.2.0-cp36-cp36m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2096cc9c2a896436ffb27e2cfff60402ca4304b1fbe782265a8c1b2d11dc598a"},
+    {file = "zipfile_deflate64-0.2.0-cp36-cp36m-win_amd64.whl", hash = "sha256:5b9e0a0d5d742aa4006ab18d31eabc9a83809be3d27dad34707fa136cafa0950"},
+    {file = "zipfile_deflate64-0.2.0-cp37-cp37m-macosx_10_14_x86_64.whl", hash = "sha256:3f7b5f3305880a784e335c9fa1bc33a6a3a8436cdbf3e473690f4da0eb866645"},
+    {file = "zipfile_deflate64-0.2.0-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6c79e8d3356eb72b9be25bcc36ce3320cbe1f50606f355193d6ad8ead8130fd5"},
+    {file = "zipfile_deflate64-0.2.0-cp37-cp37m-win_amd64.whl", hash = "sha256:84432465d0c497c774122073b79ec7fa9ebf28cf066cce5f1a5726dad455086f"},
+    {file = "zipfile_deflate64-0.2.0-cp38-cp38-macosx_10_14_x86_64.whl", hash = "sha256:f30f7981689dcf06e2789a2adbf3ff0711e58a710780205c2747ec793373fa2e"},
+    {file = "zipfile_deflate64-0.2.0-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:cc673ff44f1e7fa673b34507d04e6e0b750be372e4f33e40a9364858ef22411f"},
+    {file = "zipfile_deflate64-0.2.0-cp38-cp38-win_amd64.whl", hash = "sha256:dadfdd07f15c0abf394e0599b06a894120ca6f40ded9720c68b267a4ecf8bf48"},
+    {file = "zipfile_deflate64-0.2.0-cp39-cp39-macosx_10_14_x86_64.whl", hash = "sha256:d6bb582256f374f5a8570616480f07df0d74460b8c80aaa5fb047a73ff38bcd2"},
+    {file = "zipfile_deflate64-0.2.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a8557a77c2b6ee8afb49759d9b4c1a9785ca05366cbc4b2c577a859ecba62b85"},
+    {file = "zipfile_deflate64-0.2.0-cp39-cp39-win_amd64.whl", hash = "sha256:a16cd144c12de642f0ace1aeab7f50e7abc7492c81381faa2b17cc36f38272c4"},
+]
+
+[[package]]
 name = "zipp"
 version = "3.11.0"
 description = "Backport of pathlib-compatible object wrapper for zip files"
@@ -2543,4 +2571,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "da25a00f49bd2fbde652d290d8074ee727fa82099fde4e18f5dae05e01f3bf24"
+content-hash = "0dbeb5641194df36af9b952e61370885158ba371244628a4034bca096db55955"
