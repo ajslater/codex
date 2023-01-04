@@ -20,6 +20,7 @@
           <BrowserCardControls :item="item" :eye-open="false" />
         </div>
         <v-progress-linear
+          v-show="item.progress"
           class="bookCoverProgress"
           :background-color="progressBackgroundColor"
           :model-value="item.progress"
