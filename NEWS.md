@@ -9,6 +9,7 @@ border-radius: 128px;
 ## v1.0.2
 
 - Fixes
+  - Fix Failed Imports not retrying import when updated.
   - Fix Admin Status drawer closing at wrong time.
 
 ## v1.0.1

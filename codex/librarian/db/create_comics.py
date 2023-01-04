@@ -66,13 +66,14 @@ def _link_comic_fks(md, library, path):
     md["parent_folder"] = Folder.objects.get(path=parent_path)
 
 
-def _update_comics(library, comic_paths, mds):
+def _update_comics(library, comic_paths, mds) -> tuple[int, frozenset]:
     """Bulk update comics."""
     if not comic_paths:
-        return 0
+        return 0, frozenset()
 
-    num_comics = len(comic_paths)
-    LOG.verbose(f"Preparing {num_comics} comics for update in library {library.path}.")
+    LOG.verbose(
+        f"Preparing {len(comic_paths)} comics for update in library {library.path}."
+    )
     # Get existing comics to update
     comics = Comic.objects.filter(library=library, path__in=comic_paths).only(
         *BULK_UPDATE_COMIC_FIELDS
@@ -82,6 +83,7 @@ def _update_comics(library, comic_paths, mds):
     update_comics = []
     now = Now()
     comic_pks = []
+    comic_update_paths = set()
     for comic in comics:
         try:
             md = mds.pop(comic.path)
@@ -93,16 +95,26 @@ def _update_comics(library, comic_paths, mds):
             comic.updated_at = now
             update_comics.append(comic)
             comic_pks.append(comic.pk)
+            comic_update_paths.add(comic.path)
         except Exception as exc:
             LOG.error(f"Error preparing {comic} for update.")
             LOG.exception(exc)
 
-    LOG.verbose(f"Bulk updating {num_comics} comics.")
+    converted_create_paths = frozenset(comic_paths - comic_update_paths)
+    LOG.verbose(
+        f"Converted {len(converted_create_paths)} update paths to create paths."
+    )
+
+    LOG.verbose(f"Bulk updating {len(update_comics)} comics.")
     count = Comic.objects.bulk_update(update_comics, BULK_UPDATE_COMIC_FIELDS)
+    if not count:
+        count = 0
+
     task = CoverRemoveTask(frozenset(comic_pks))
     LOG.verbose(f"Purging covers for {len(comic_pks)} updated comics.")
     LIBRARIAN_QUEUE.put(task)
-    return count
+
+    return (count, converted_create_paths)
 
 
 def _create_comics(library, comic_paths, mds):
@@ -252,7 +264,10 @@ def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2
                 StatusControl.start(
                     ImportStatusTypes.FILES_MODIFIED, name=f"({len(update_paths)})"
                 )
-                update_count = _update_comics(library, update_paths, all_bulk_mds)
+                update_count, converted_create_paths = _update_comics(
+                    library, update_paths, all_bulk_mds
+                )
+                create_paths.update(converted_create_paths)
             finally:
                 StatusControl.finish(ImportStatusTypes.FILES_MODIFIED)
             StatusControl.start(
@@ -282,11 +297,6 @@ def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2
                 )
     finally:
         StatusControl.finish(ImportStatusTypes.LINK_M2M_FIELDS)
-
-    if update_count is None:
-        update_count = 0
-    if create_count is None:
-        create_count = 0
 
     update_log = f"Updated {update_count} Comics."
     if update_count:
