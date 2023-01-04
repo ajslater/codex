@@ -66,7 +66,7 @@ def _link_comic_fks(md, library, path):
     md["parent_folder"] = Folder.objects.get(path=parent_path)
 
 
-def _update_comics(library, comic_paths, mds) -> tuple[int, frozenset]:
+def _update_comics(library, comic_paths: set, mds) -> tuple[int, frozenset]:
     """Bulk update comics."""
     if not comic_paths:
         return 0, frozenset()
@@ -106,13 +106,18 @@ def _update_comics(library, comic_paths, mds) -> tuple[int, frozenset]:
     )
 
     LOG.verbose(f"Bulk updating {len(update_comics)} comics.")
-    count = Comic.objects.bulk_update(update_comics, BULK_UPDATE_COMIC_FIELDS)
-    if not count:
-        count = 0
+    try:
+        count = Comic.objects.bulk_update(update_comics, BULK_UPDATE_COMIC_FIELDS)
+        if not count:
+            count = 0
 
-    task = CoverRemoveTask(frozenset(comic_pks))
-    LOG.verbose(f"Purging covers for {len(comic_pks)} updated comics.")
-    LIBRARIAN_QUEUE.put(task)
+        task = CoverRemoveTask(frozenset(comic_pks))
+        LOG.verbose(f"Purging covers for {len(comic_pks)} updated comics.")
+        LIBRARIAN_QUEUE.put(task)
+    except Exception as exc:
+        count = 0
+        LOG.error(exc)
+        LOG.error("While updating", comic_update_paths)
 
     return (count, converted_create_paths)
 
@@ -144,8 +149,15 @@ def _create_comics(library, comic_paths, mds):
 
     num_comics = len(create_comics)
     LOG.verbose(f"Bulk creating {num_comics} comics...")
-    created_comics = Comic.objects.bulk_create(create_comics)
-    return len(created_comics)
+    try:
+        created_comics = Comic.objects.bulk_create(create_comics)
+        created_count = len(created_comics)
+    except Exception as exc:
+        created_count = 0
+        LOG.error(exc)
+        LOG.error("While creating", comic_paths)
+
+    return created_count
 
 
 def _link_folders(folder_paths):
