@@ -13,6 +13,12 @@
           "title": "Update All Libraries",
           "desc": "Forcibly update all the comics in all libraries",
           "confirm": "This can take a long time"
+        },
+        {
+          "value": "force_update_all_failed_imports",
+          "title": "Update All Failed Imports",
+          "desc": "Forcibly update all failed imports in all libraries",
+          "confirm": "This can take a long time"
         }
       ]
     },

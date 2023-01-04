@@ -21,7 +21,11 @@ from codex.librarian.search.tasks import (
     SearchIndexJanitorUpdateTask,
     SearchIndexRebuildIfDBChangedTask,
 )
-from codex.librarian.watchdog.tasks import WatchdogPollLibrariesTask, WatchdogSyncTask
+from codex.librarian.watchdog.tasks import (
+    ForceUpdateAllFailedImportsTask,
+    WatchdogPollLibrariesTask,
+    WatchdogSyncTask,
+)
 from codex.models import LibrarianStatus, Library
 from codex.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.serializers.admin import AdminLibrarianTaskSerializer
@@ -107,6 +111,8 @@ class AdminLibrarianTaskView(APIView):
             task = CoverRemoveOrphansTask()
         elif task_name == "librarian_clear_status":
             task = JanitorClearStatusTask()
+        elif task_name == "force_update_all_failed_imports":
+            task = ForceUpdateAllFailedImportsTask()
 
         if task:
             LIBRARIAN_QUEUE.put(task)

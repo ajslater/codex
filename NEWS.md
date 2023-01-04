@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.0.3
+
+- Features
+  - Force update all failed imports admin task.
+
 ## v1.0.2
 
 - Features
