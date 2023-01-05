@@ -279,7 +279,7 @@ class BrowserView(BrowserMetadataBaseView):
         except self.group_class.DoesNotExist:
             group = self.kwargs.get("group")
             reason = f"{group}={pk} does not exist!"
-            self._raise_redirect({"group": group}, reason)
+            self._raise_redirect({"group": group, "pk": 0, "page": 1}, reason)
 
     def _get_browse_up_route(self):
         """Get the up route from the first valid ancestor."""

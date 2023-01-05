@@ -10,6 +10,8 @@ border-radius: 128px;
 
 - Features
   - Force update all failed imports admin task.
+- Fixes
+  - Fix id does not exist redirect.
 
 ## v1.0.2
 

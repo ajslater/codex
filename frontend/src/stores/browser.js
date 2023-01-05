@@ -249,8 +249,13 @@ export const useBrowserStore = defineStore("browser", {
     handlePageError(error) {
       if (HTTP_REDIRECT_CODES.has(error.response.status)) {
         console.debug(error);
-        const settings = error.response.data.settings;
-        this.setSettings(settings);
+        const data = error.response.data;
+        if (data.settings) {
+          this.setSettings(data.settings);
+        }
+        if (data.route) {
+          redirectRoute(data.route);
+        }
       } else {
         return console.error(error);
       }
