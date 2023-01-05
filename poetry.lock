@@ -387,14 +387,14 @@ files = [
 
 [[package]]
 name = "comicbox"
-version = "0.6.2"
+version = "0.6.3"
 description = "An API for reading comic archives"
 category = "main"
 optional = false
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "comicbox-0.6.2-py3-none-any.whl", hash = "sha256:4864df7e36a897862a336510a75ddad6f74077282972304f7703dd478420e778"},
-    {file = "comicbox-0.6.2.tar.gz", hash = "sha256:12c67d1119b2cbdea02ff095a59213df283fd9f60a3fe7b8bf6068720cd6e366"},
+    {file = "comicbox-0.6.3-py3-none-any.whl", hash = "sha256:74a7c379cf3f99da2d21c8836e25fe4bca2a132ea79f2e7010137f21a5209f48"},
+    {file = "comicbox-0.6.3.tar.gz", hash = "sha256:f9d2936def2a1bcecebf47692f0a3aec00a0fbc440154d3d9531b93cad165ee2"},
 ]
 
 [package.dependencies]
@@ -2571,4 +2571,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "0dbeb5641194df36af9b952e61370885158ba371244628a4034bca096db55955"
+content-hash = "6725de4be4661a3d5d2364225916596d320190a071924611563b591b021915e9"
