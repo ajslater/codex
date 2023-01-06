@@ -12,7 +12,7 @@ border-radius: 128px;
   - Force update all failed imports admin task.
 - Fixes
   - Fix moving folders to subfolder orphans folders bug.
-  - Fix id does not exist redirect.
+  - Fix id does not exist redirect loop.
 
 ## v1.0.2
 
