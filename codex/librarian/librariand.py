@@ -7,7 +7,7 @@ from time import sleep
 from codex.darwin_mp import force_darwin_multiprocessing_fork
 from codex.librarian.covers.coverd import CoverCreator
 from codex.librarian.covers.tasks import CoverTask
-from codex.librarian.db.tasks import UpdaterTask
+from codex.librarian.db.tasks import AdoptOrphanFoldersTask, UpdaterTask
 from codex.librarian.db.updaterd import Updater
 from codex.librarian.janitor.crond import Crond, janitor
 from codex.librarian.janitor.tasks import JanitorTask
@@ -19,11 +19,13 @@ from codex.librarian.search.tasks import (
 )
 from codex.librarian.status_control import StatusControl, StatusControlFinishTask
 from codex.librarian.watchdog.eventsd import EventBatcher
+from codex.librarian.watchdog.failed_imports import force_update_all_failed_imports
 from codex.librarian.watchdog.observers import (
     LibraryEventObserver,
     LibraryPollingObserver,
 )
 from codex.librarian.watchdog.tasks import (
+    ForceUpdateAllFailedImportsTask,
     WatchdogEventTask,
     WatchdogPollLibrariesTask,
     WatchdogSyncTask,
@@ -86,6 +88,8 @@ class LibrarianDaemon(Process):
             StatusControl.finish(task.type, task.notify)
         elif isinstance(task, DelayedTasks):
             self.delayed_tasks.queue.put(task)
+        elif isinstance(task, ForceUpdateAllFailedImportsTask):
+            force_update_all_failed_imports()
         elif task == self.SHUTDOWN_TASK:
             LOG.verbose("Shutting down Librarian...")
             run = False
@@ -181,6 +185,7 @@ class LibrarianDaemon(Process):
         """Create a new librarian daemon and run it."""
         cls.proc = LibrarianDaemon()
         cls.proc.start()
+        LIBRARIAN_QUEUE.put(AdoptOrphanFoldersTask())  # integrity
         LIBRARIAN_QUEUE.put(WatchdogSyncTask())
 
     @classmethod

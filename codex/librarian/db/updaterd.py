@@ -11,10 +11,14 @@ from codex.librarian.db.create_comics import bulk_import_comics
 from codex.librarian.db.create_fks import bulk_create_all_fks, bulk_folders_modified
 from codex.librarian.db.deleted import bulk_comics_deleted, bulk_folders_deleted
 from codex.librarian.db.failed_imports import bulk_fail_imports
-from codex.librarian.db.moved import bulk_comics_moved, bulk_folders_moved
+from codex.librarian.db.moved import (
+    adopt_orphan_folders,
+    bulk_comics_moved,
+    bulk_folders_moved,
+)
 from codex.librarian.db.query_fks import query_all_missing_fks
 from codex.librarian.db.status import ImportStatusTypes
-from codex.librarian.db.tasks import UpdaterDBDiffTask
+from codex.librarian.db.tasks import AdoptOrphanFoldersTask, UpdaterDBDiffTask
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
 from codex.librarian.search.tasks import SearchIndexJanitorUpdateTask
 from codex.librarian.status_control import StatusControl
@@ -236,5 +240,7 @@ class Updater(QueuedThread):
         """Run the updater."""
         if isinstance(task, UpdaterDBDiffTask):
             _apply(task)
+        elif isinstance(task, AdoptOrphanFoldersTask):
+            adopt_orphan_folders()
         else:
             LOG.warning(f"Bad task sent to library updater {task}")

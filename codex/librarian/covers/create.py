@@ -49,8 +49,10 @@ def create_cover(pk, cover_path):
     Return image thumb data or path to missing file thumb.
     """
     thumb_image_data = None
-    comic = Comic.objects.only("path", "file_format").get(pk=pk)
+    comic_path = None
     try:
+        comic = Comic.objects.only("path", "file_format").get(pk=pk)
+        comic_path = comic.path
         if comic.file_format == Comic.FileFormat.PDF:
             car_class = PDF
         else:
@@ -62,7 +64,9 @@ def create_cover(pk, cover_path):
         thumb_image_data = _create_cover_thumbnail(image_data)
         task = CoverCreateTask(cover_path, thumb_image_data)
     except Exception as exc:
-        LOG.warning(f"Could not create cover thumbnail for {comic.path}: {exc}")
+        if not comic_path:
+            comic_path = f"{pk=}"
+        LOG.warning(f"Could not create cover thumbnail for {comic_path}: {exc}")
         task = CoverCreateTask(cover_path, bytes())
     return task
 
