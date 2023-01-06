@@ -72,15 +72,26 @@ def bulk_comics_moved(library, moved_paths):
 
 def _get_parent_folders(library, folders_moved):
     """Get destination parent folders."""
-    library_path = Path(library.path)
     dest_folder_paths = frozenset(folders_moved.values())
+
+    # Determine parent folder paths.
     dest_parent_folder_paths = set()
     for dest_folder_path in dest_folder_paths:
         dest_parent_path = Path(dest_folder_path).parent
-        if dest_parent_path == library_path:
+        if dest_parent_path == Path(library.path):
             continue
         dest_parent_folder_paths.add(str(dest_parent_path))
 
+    # Create intermediate subfolders.
+    existing_folder_paths = Folder.objects.filter(
+        library=library, path__in=dest_parent_folder_paths
+    ).values_list("path", flat=True)
+    create_folder_paths = frozenset(
+        dest_parent_folder_paths - frozenset(existing_folder_paths)
+    )
+    bulk_folders_create(library, create_folder_paths)
+
+    # get parent folders path to model obj dict
     dest_parent_folders_objs = Folder.objects.filter(
         path__in=dest_parent_folder_paths
     ).only("path", "pk")
@@ -128,5 +139,7 @@ def _update_moved_folders(library, folders_moved, dest_parent_folders):
 
 def bulk_folders_moved(library, folders_moved):
     """Move folders in the database instead of recreating them."""
+    if not folders_moved:
+        return False
     dest_parent_folders = _get_parent_folders(library, folders_moved)
     return _update_moved_folders(library, folders_moved, dest_parent_folders)
