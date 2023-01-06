@@ -62,7 +62,7 @@ export default {
 #version-footer {
   width: 100%;
   padding-top: 5px;
-  padding-bottom: calc(5px + env(safe-area-inset-bottom) * 2);
+  padding-bottom: calc(5px + env(safe-area-inset-bottom) / 2);
   text-align: center;
   font-size: small;
   color: rgb(var(--v-theme-textDisabled));
