@@ -8,7 +8,7 @@ from codex.librarian.db.create_fks import bulk_folders_create
 from codex.librarian.db.query_fks import query_missing_folder_paths
 from codex.librarian.db.status import ImportStatusTypes
 from codex.librarian.status_control import StatusControl
-from codex.models import Comic, Folder
+from codex.models import Comic, Folder, Library
 from codex.settings.logging import get_logger
 
 
@@ -70,10 +70,8 @@ def bulk_comics_moved(library, moved_paths):
         StatusControl.finish(ImportStatusTypes.FILES_MOVED)
 
 
-def _get_parent_folders(library, folders_moved):
+def _get_parent_folders(library, dest_folder_paths):
     """Get destination parent folders."""
-    dest_folder_paths = frozenset(folders_moved.values())
-
     # Determine parent folder paths.
     dest_parent_folder_paths = set()
     for dest_folder_path in dest_folder_paths:
@@ -141,5 +139,24 @@ def bulk_folders_moved(library, folders_moved):
     """Move folders in the database instead of recreating them."""
     if not folders_moved:
         return False
-    dest_parent_folders = _get_parent_folders(library, folders_moved)
+    dest_folder_paths = frozenset(folders_moved.values())
+    dest_parent_folders = _get_parent_folders(library, dest_folder_paths)
+
     return _update_moved_folders(library, folders_moved, dest_parent_folders)
+
+
+def adopt_orphan_folders():
+    """Find orphan folders and move them into their correct place."""
+    libraries = Library.objects.only("pk", "path")
+    for library in libraries:
+        orphan_folder_paths = (
+            Folder.objects.filter(library=library, parent_folder=None)
+            .exclude(path=library.path)
+            .values_list("path", flat=True)
+        )
+
+        folders_moved = {}
+        for path in orphan_folder_paths:
+            folders_moved[path] = path
+
+        bulk_folders_moved(library, folders_moved)

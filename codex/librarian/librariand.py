@@ -7,7 +7,7 @@ from time import sleep
 from codex.darwin_mp import force_darwin_multiprocessing_fork
 from codex.librarian.covers.coverd import CoverCreator
 from codex.librarian.covers.tasks import CoverTask
-from codex.librarian.db.tasks import UpdaterTask
+from codex.librarian.db.tasks import AdoptOrphanFoldersTask, UpdaterTask
 from codex.librarian.db.updaterd import Updater
 from codex.librarian.janitor.crond import Crond, janitor
 from codex.librarian.janitor.tasks import JanitorTask
@@ -185,6 +185,7 @@ class LibrarianDaemon(Process):
         """Create a new librarian daemon and run it."""
         cls.proc = LibrarianDaemon()
         cls.proc.start()
+        LIBRARIAN_QUEUE.put(AdoptOrphanFoldersTask())  # integrity
         LIBRARIAN_QUEUE.put(WatchdogSyncTask())
 
     @classmethod
