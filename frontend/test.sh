@@ -2,6 +2,6 @@
 # Run all frontend tests
 set -euxo pipefail
 
-cd "$(dirname "$0")"/frontend
+cd "$(dirname "$0")"
 
 npm run test:ci

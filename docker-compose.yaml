@@ -30,11 +30,11 @@ services:
   codex-frontend-lint:
     <<: *codex-dist-builder
     container_name: codex-frontent-lint
-    command: ./lint-frontend.sh
+    command: ./frontend/lint.sh
   codex-frontend-test:
     <<: *codex-dist-builder
     container_name: codex-frontend-test
-    command: ./test-frontend.sh
+    command: ./frontend/test.sh
     volumes:
       - ./test-results/:/app/test-results/
   codex-frontend-build:
@@ -42,7 +42,7 @@ services:
     container_name: codex-frontend-build
     volumes:
       - ./codex/static_build:/app/codex/static_build
-    command: ./build-frontend.sh
+    command: ./frontend/build.sh
   codex-backend-test:
     <<: *codex-dist-builder
     container_name: codex-backend-test

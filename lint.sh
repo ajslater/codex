@@ -1,4 +1,4 @@
 #!/bin/bash
 set -euo pipefail
-./lint-frontend.sh
+./frontend/lint.sh
 ./lint-backend.sh

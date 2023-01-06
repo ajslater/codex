@@ -1,4 +1,4 @@
 #!/bin/bash
 set -euo pipefail
-./test-frontend.sh
+./frontend/test.sh
 ./test-backend.sh
