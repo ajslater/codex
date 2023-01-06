@@ -427,6 +427,9 @@ variable to activate debug mode: `DEBUG=1 ./run.sh`. This also lets you run the
 server without collecting static files for production and with a hot reloading
 frontend. I recommend setting `LOGLEVEL=VERBOSE` for development as well.
 
+`/codex/frontend/dev-server.sh` runs the development autoreloading frontend with
+vite.
+
 ### Links
 
 - [Docker Image](https://hub.docker.com/r/ajslater/codex)
