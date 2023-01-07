@@ -1,12 +1,6 @@
 #!/bin/bash
 # Find all shell scripts without a first line comment.
 # Created due to working with @defunctzombie
-if [ "$1" = "" ]; then
-    echo "Usage: $0 [options] <path> [path...]"
-    echo "Options:"
-    echo -e "\t-i <ignorefile>"
-    exit 1
-fi
 
 # set options
 if [ "$1" = "-i" ]; then
@@ -14,6 +8,15 @@ if [ "$1" = "-i" ]; then
     ignorefile=$1
     shift
 fi
+
+# check for paths
+if [ "$1" = "" ]; then
+    echo "Usage: $0 [options] <path> [path...]"
+    echo "Options:"
+    echo -e "\t-i <ignorefile>"
+    exit 1
+fi
+
 # get files
 fns=$(find "$@" -type f -name "*.sh")
 if [ "$ignorefile" ]; then
