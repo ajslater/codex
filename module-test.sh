@@ -1,4 +1,5 @@
 #!/bin/bash
+# Run memory_profiler on a module
 set -euxo pipefail
 THIS_DIR="$(dirname "$0")"
 cd "$THIS_DIR" || exit 1
