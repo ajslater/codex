@@ -349,30 +349,12 @@ class BrowserBaseView(BrowserSessionViewBase, GroupACLMixin):
         search_filter = Q(**query_dict)
         return search_filter, query_obj.pk
 
-    def _fix_xapian_flag_boolean_any_case(self):
-        """
-        Fix Xapian QueryParser.FLAG_BOOLEAN_ANY_CASE not working.
-
-        Also saves the query with whitespace removed.
-        """
-        autoquery_tokens_raw = self.params.get("q", "").split(" ")
-
-        autoquery_tokens = []
-        for token in autoquery_tokens_raw:
-            if not token:
-                continue
-            token_upper = token.upper()
-            if token_upper in XAPIAN_UPPERCASE_OPERATORS:
-                token = token_upper
-            autoquery_tokens.append(token)
-        return autoquery_tokens
-
     def _get_search_filter(self, is_model_comic):
         """Search filters."""
         search_filter = Q()
         autoquery_pk = None
         try:
-            autoquery_tokens = self._fix_xapian_flag_boolean_any_case()
+            autoquery_tokens = self.params.get("q", "").split(" ")
             # Parse out the bookmark filter and get the remaining tokens
             (
                 haystack_autoquery_tokens,

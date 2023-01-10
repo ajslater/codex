@@ -281,9 +281,9 @@ INTERNAL_IPS = [
     "127.0.0.1",
 ]
 
-XAPIAN_INDEX_PATH = CONFIG_PATH / "xapian_index"
-XAPIAN_INDEX_PATH.mkdir(exist_ok=True, parents=True)
-XAPIAN_INDEX_UUID_PATH = XAPIAN_INDEX_PATH / "codex_db.uuid"
+SEARCH_INDEX_PATH = CONFIG_PATH / "xapian_index"
+SEARCH_INDEX_PATH.mkdir(exist_ok=True, parents=True)
+SEARCH_INDEX_UUID_PATH = SEARCH_INDEX_PATH / "codex_db.uuid"
 _XAPIAN_FLAGS = (
     QueryParser.FLAG_BOOLEAN
     | QueryParser.FLAG_BOOLEAN_ANY_CASE
@@ -295,8 +295,8 @@ _XAPIAN_FLAGS = (
 HAYSTACK_CONNECTIONS = {
     "default": {
         "ENGINE": "codex.search_engine.CodexXapianSearchEngine",
-        "PATH": str(XAPIAN_INDEX_PATH),
-        "HAYSTACK_XAPIAN_FLAGS": _XAPIAN_FLAGS,
+        "PATH": str(SEARCH_INDEX_PATH),
+        "FLAGS": _XAPIAN_FLAGS,
     },
 }
 

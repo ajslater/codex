@@ -601,8 +601,8 @@ class Timestamp(NamedModel):
     JANITOR = "janitor"
     SEARCH_INDEX = "search_index"
     CODEX_VERSION = "codex_version"
-    XAPIAN_INDEX_UUID = "xapian_index_uuid"
-    NAMES = (COVERS, JANITOR, SEARCH_INDEX, CODEX_VERSION, XAPIAN_INDEX_UUID)
+    SEARCH_INDEX_UUID = "search_index_uuid"
+    NAMES = (COVERS, JANITOR, SEARCH_INDEX, CODEX_VERSION, SEARCH_INDEX_UUID)
 
     version = CharField(max_length=32, default="")
 

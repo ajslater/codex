@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.0.4
+
+- Fix
+  - Fix leading NOT for search
+  - Fix trailing wildarcard search
+
 ## v1.0.3
 
 - Features
