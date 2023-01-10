@@ -132,7 +132,7 @@ class SearchFilterMixin(BookmarkFilterMixin):
                 else:
                     choice = ""
 
-                bookmark_filter = self._get_bookmark_filter(is_model_comic, choice)
+                bookmark_filter = self.get_bookmark_filter(is_model_comic, choice)
                 if bookmark_filter != Q() and reverse_filter:
                     bookmark_filter = ~Q(bookmark_filter)
                 bookmark_field = True

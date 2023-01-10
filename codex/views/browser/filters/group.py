@@ -1,9 +1,12 @@
+"""Group Filters."""
 from django.db.models import Q
 
 from codex.views.mixins import GroupACLMixin
 
 
 class GroupFilterMixin(GroupACLMixin):
+    """Group Filters."""
+
     def _get_folders_filter(self):
         """Get a filter for ALL parent folders not just immediate one."""
         pk = self.kwargs.get("pk")
