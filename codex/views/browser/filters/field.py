@@ -9,7 +9,7 @@ class ComicFieldFilter(BrowserSessionViewBase):
 
     def _filter_by_comic_field(self, field, is_model_comic):
         """Filter by a comic any2many attribute."""
-        filter_list = self.params["filters"].get(field)
+        filter_list = self.params["filters"].get(field)  # type: ignore
         filter_query = Q()
         if not filter_list:
             return filter_query

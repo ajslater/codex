@@ -18,18 +18,19 @@ class BookmarkFilterMixin:
 
     def _get_my_bookmark_filter(self, bm_rel):
         """Get a filter for my session or user defined bookmarks."""
-        if self.request.user.is_authenticated:
-            my_bookmarks_kwargs = {f"{bm_rel}__user": self.request.user}
+        if self.request.user.is_authenticated:  # type: ignore
+            my_bookmarks_kwargs = {f"{bm_rel}__user": self.request.user}  # type: ignore
         else:
+            key = f"{bm_rel}__session__session_key"
             my_bookmarks_kwargs = {
-                f"{bm_rel}__session__session_key": self.request.session.session_key
+                key: self.request.session.session_key  # type: ignore
             }
         return Q(**my_bookmarks_kwargs)
 
     def get_bookmark_filter(self, is_model_comic, choice):
         """Build bookmark query."""
         if choice is None:
-            choice = self.params["filters"].get("bookmark", "ALL")
+            choice = self.params["filters"].get("bookmark", "ALL")  # type: ignore
         if choice in self._BOOKMARK_FILTERS:
             bm_rel = self.get_bm_rel(is_model_comic)
             my_bookmark_filter = self._get_my_bookmark_filter(bm_rel)

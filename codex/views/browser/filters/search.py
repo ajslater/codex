@@ -235,7 +235,7 @@ class SearchFilterMixin(BookmarkFilterMixin):
         search_filter = Q()
         autoquery_pk = None
         try:
-            autoquery_tokens = self.params.get("q", "").split(" ")
+            autoquery_tokens = self.params.get("q", "").split(" ")  # type: ignore
             # Parse out the bookmark filter and get the remaining tokens
             (
                 haystack_autoquery_tokens,
@@ -249,7 +249,7 @@ class SearchFilterMixin(BookmarkFilterMixin):
                 autoquery_pk,
             ) = self._get_search_query_filter(haystack_autoquery_tokens, is_model_comic)
             search_filter &= haystack_search_filter
-            self.params["q"] = " ".join(autoquery_tokens)
+            self.params["q"] = " ".join(autoquery_tokens)  # type: ignore
         except Exception as exc:
             LOG.warning(exc)
         return search_filter, autoquery_pk

@@ -9,7 +9,7 @@ class GroupFilterMixin(GroupACLMixin):
 
     def _get_folders_filter(self):
         """Get a filter for ALL parent folders not just immediate one."""
-        pk = self.kwargs.get("pk")
+        pk = self.kwargs.get("pk")  # type: ignore
         if pk:
             folders_filter = Q(folders__in=[pk])
         else:
@@ -22,8 +22,8 @@ class GroupFilterMixin(GroupACLMixin):
         # Get the instances that are children of the group_instance
         # And the filtered comics that are children of the group_instance
         group_filter = Q()
-        pk = self.kwargs.get("pk")
-        group = self.kwargs.get("group")
+        pk = self.kwargs.get("pk")  # type: ignore
+        group = self.kwargs.get("group")  # type: ignore
         if pk or group == self.FOLDER_GROUP:
             if not pk:
                 pk = None
@@ -34,7 +34,7 @@ class GroupFilterMixin(GroupACLMixin):
 
     def get_group_filter(self, choices):
         """Get filter for the displayed group."""
-        is_folder_view = self.kwargs.get("group") == self.FOLDER_GROUP
+        is_folder_view = self.kwargs.get("group") == self.FOLDER_GROUP  # type: ignore
         if is_folder_view and choices:
             # Choice view needs to get all descendant comic attributes
             # So filter by all the folders
