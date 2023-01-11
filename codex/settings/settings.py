@@ -294,7 +294,7 @@ _XAPIAN_FLAGS = (
 )
 HAYSTACK_CONNECTIONS = {
     "default": {
-        "ENGINE": "codex.search_engine.CodexXapianSearchEngine",
+        "ENGINE": "codex.search.search_engine.CodexXapianSearchEngine",
         "PATH": str(SEARCH_INDEX_PATH),
         "FLAGS": _XAPIAN_FLAGS,
     },

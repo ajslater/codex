@@ -4,8 +4,10 @@
 from pathlib import Path
 
 from filelock import FileLock
-from haystack.backends import BaseEngine
+from haystack.backends import BaseEngine, UnifiedIndex
 from xapian_backend import XapianSearchBackend, XapianSearchQuery
+
+from codex.search.search_indexes import ComicIndex
 
 
 def filelocked(func):
@@ -42,8 +44,17 @@ class CodexXapianSearchBackend(XapianSearchBackend):
         return super().remove(obj, commit=commit)
 
 
+class CodexUnifiedIndex(UnifiedIndex):
+    """Custom Codex Unified Index."""
+
+    def collect_indexes(self):
+        """Replace auto search_index finding with one exact instance."""
+        return [ComicIndex()]
+
+
 class CodexXapianSearchEngine(BaseEngine):
     """A search engine with a locking backend."""
 
     backend = CodexXapianSearchBackend
     query = XapianSearchQuery
+    unified_index = CodexUnifiedIndex
