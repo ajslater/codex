@@ -223,23 +223,6 @@ def _delete_bookmark_integrity_errors(apps):
     _delete_query(orphan_bms, "Bookmark", "session or user")
 
 
-def _delete_search_result_fk_errors(apps):
-    """Fix SearcResults with non valid fields."""
-    if not has_applied_migration(MIGRATION_0010):
-        return
-    comic_model = apps.get_model("codex", "comic")
-    search_query_model = apps.get_model("codex", "searchquery")
-    valid_comics = comic_model.objects.all()
-    valid_queries = search_query_model.objects.all()
-    search_result_model = apps.get_model("codex", "searchresult")
-    orphan_srs = search_result_model.objects.exclude(
-        query__in=valid_queries, comic__in=valid_comics
-    )
-    count, _ = orphan_srs.delete()
-    if count:
-        LOG.verbose(f"Deleted {count} orphan SearchResults")
-
-
 def _repair_library_groups(apps):
     """Remove non-extant groups from libraries."""
     if not has_applied_migration(MIGRATION_0011):
@@ -296,8 +279,6 @@ def _fix_db_integrity():
             else:
                 LOG.exception(exc)
     _mark_comics_with_bad_m2m_rels_for_update(comic_model, bad_comic_ids)
-
-    _delete_search_result_fk_errors(apps)
 
     _repair_library_groups(apps)
 

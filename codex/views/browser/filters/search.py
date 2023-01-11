@@ -5,15 +5,13 @@ from distutils.util import strtobool
 
 from dateutil.parser import ParserError
 from dateutil.parser import parse as du_parse
-from django.db.models import F, Q
-from django.db.models.functions import Now
+from django.db.models import Q
 from haystack.query import SearchQuerySet
 from humanfriendly import InvalidSize, parse_size
 from xapian_backend import DATETIME_FORMAT
 
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.librarian.search.tasks import SearchIndexJanitorUpdateTask
-from codex.models import Comic, SearchQuery, SearchResult
 from codex.settings.logging import get_logger
 from codex.views.browser.filters.bookmark import BookmarkFilterMixin
 
@@ -163,7 +161,10 @@ class SearchFilterMixin(BookmarkFilterMixin):
                     bookmark_filter = ~Q(bookmark_filter)
                 bookmark_field = True
 
-            token = ":".join((token_field, token_value))
+            if token_value:
+                token = ":".join((token_field, token_value))
+            else:
+                token = token_field
         except ValueError as exc:
             LOG.warning(exc)
             LOG.exception(exc)
@@ -171,15 +172,16 @@ class SearchFilterMixin(BookmarkFilterMixin):
 
         return token, bookmark_field, bookmark_filter
 
-    def _parse_unsearchable_fields(self, query_tokens, is_model_comic):
+    def _parse_unsearchable_fields(self, is_model_comic):
         """Preprocess query string by aliasing fields and extracting bookmark query."""
         bookmark_filter = Q()
-        search_query_tokens = []
+        haystack_tokens = []
 
+        query_tokens = self.params.get("q", "").split(" ")  # type: ignore
         for token in query_tokens:
-            bookmark_field = False
             if not token:
                 continue
+            bookmark_field = False
 
             if token.find(":") and not (token.startswith('"') and token.endswith('"')):
                 # is a field search token
@@ -192,92 +194,61 @@ class SearchFilterMixin(BookmarkFilterMixin):
                     bookmark_filter &= field_bookmark_filter
 
             if not bookmark_field:
-                search_query_tokens.append(token)
+                haystack_tokens.append(token)
 
-        return search_query_tokens, bookmark_filter
+        haystack_text = " ".join(haystack_tokens)
+        return haystack_text, bookmark_filter
 
-    def _cache_haystack_query(self, query_obj):
-        """Do the actual  Search."""
-        try:
-            sqs = SearchQuerySet().auto_query(query_obj.text)
-            comic_scores = sqs.values("pk", "score")
-            search_results = []
-            # Detect out of date search engine
-            sqs_pks = set()
-            for comic_score in comic_scores:
-                sqs_pks.add(comic_score["pk"])
-            # No acl filter. I don't think this is a leak because its only as a filter
-            # with other filters.
-            valid_pks = Comic.objects.filter(pk__in=sqs_pks).values_list(
-                "pk", flat=True
-            )
-            search_engine_out_of_date = False
-            for comic_score in comic_scores:
-                if comic_score["pk"] not in valid_pks:
-                    search_engine_out_of_date = True
-                    continue
-                sr = SearchResult(
-                    query_id=query_obj.pk,
-                    comic_id=comic_score["pk"],
-                    score=comic_score["score"],
-                )
-                search_results.append(sr)
-            if search_engine_out_of_date:
-                LOG.warning("Search index out of date. Scoring non-existent comics.")
-                task = SearchIndexJanitorUpdateTask(False)
-                LIBRARIAN_QUEUE.put(task)
-            SearchResult.objects.bulk_create(search_results)
-        except Exception as exc:
-            # Don't save queries with errors
-            query_obj.delete()
-            raise exc
+    def _get_search_scores(self, text):
+        sqs = SearchQuerySet().auto_query(text)
+        comic_scores = sqs.values("pk", "score")
+        search_scores = {}
+        for comic_score in comic_scores:
+            search_scores[comic_score["pk"]] = comic_score["score"]
 
-    def _get_search_query_filter(self, autoquery_tokens, is_model_comic):
+        search_engine_out_of_date = False
+        if search_engine_out_of_date:
+            LOG.warning("Search index out of date. Scoring non-existent comics.")
+            task = SearchIndexJanitorUpdateTask(False)
+            LIBRARIAN_QUEUE.put(task)
+        return search_scores
+
+    def _get_search_query_filter(self, text, is_model_comic):
         """Do the haystack query."""
         search_filter = Q()
-        autoquery_pk = None
-        if not autoquery_tokens:
-            return search_filter, autoquery_pk
+        if not text:
+            return search_filter, {}
 
-        defaults = {"used_at": Now()}
-        text = " ".join(autoquery_tokens)
-        query_obj, created = SearchQuery.objects.update_or_create(
-            defaults=defaults, text=text
-        )
-        if created or not SearchResult.objects.filter(query=query_obj).exists():
-            self._cache_haystack_query(query_obj)
+        # Get search scores
+        search_scores = self._get_search_scores(text)
 
+        # Create query
         prefix = ""
         if not is_model_comic:
             prefix = "comic__"
-
-        query_dict = {
-            f"{prefix}pk__in": F(f"{prefix}searchresult__comic_id"),
-            f"{prefix}searchresult__query": query_obj.pk,
-        }
+        query_dict = {f"{prefix}pk__in": search_scores.keys()}
         search_filter = Q(**query_dict)
-        return search_filter, query_obj.pk
+
+        return search_filter, search_scores
 
     def get_search_filter(self, is_model_comic):
         """Search filters."""
         search_filter = Q()
-        autoquery_pk = None
+        search_scores = {}
         try:
-            autoquery_tokens = self.params.get("q", "").split(" ")  # type: ignore
             # Parse out the bookmark filter and get the remaining tokens
             (
-                haystack_autoquery_tokens,
+                haystack_text,
                 bookmark_filter,
-            ) = self._parse_unsearchable_fields(autoquery_tokens, is_model_comic)
+            ) = self._parse_unsearchable_fields(is_model_comic)
             search_filter &= bookmark_filter
 
             # Query haystack
             (
                 haystack_search_filter,
-                autoquery_pk,
-            ) = self._get_search_query_filter(haystack_autoquery_tokens, is_model_comic)
+                search_scores,
+            ) = self._get_search_query_filter(haystack_text, is_model_comic)
             search_filter &= haystack_search_filter
-            self.params["q"] = " ".join(autoquery_tokens)  # type: ignore
         except Exception as exc:
             LOG.warning(exc)
-        return search_filter, autoquery_pk
+        return search_filter, search_scores

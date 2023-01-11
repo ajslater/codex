@@ -43,21 +43,22 @@ class BrowserBaseView(ComicFieldFilter, SearchFilterMixin, GroupFilterMixin):
         """Return all the filters except the group filter."""
         object_filter = self.get_group_acl_filter(is_model_comic)
 
-        search_filter, autoquery_pk = self.get_search_filter(is_model_comic)
+        search_filter, search_scores = self.get_search_filter(is_model_comic)
         object_filter &= search_filter
         object_filter &= self.get_bookmark_filter(is_model_comic, None)
         object_filter &= self.get_comic_field_filter(is_model_comic)
-        return object_filter, autoquery_pk
+        return object_filter, search_scores
 
     def get_query_filters(self, is_model_comic, choices=False):
         """Return the main object filter and the one for aggregates."""
-        object_filter, autoquery_pk = self.get_query_filters_without_group(
-            is_model_comic
-        )
+        (
+            object_filter,
+            search_scores,
+        ) = self.get_query_filters_without_group(is_model_comic)
 
         object_filter &= self.get_group_filter(choices)
 
-        return object_filter, autoquery_pk
+        return object_filter, search_scores
 
     def _parse_query_params(self, query_params):
         """Parse GET query parameters: filter object & snake case."""

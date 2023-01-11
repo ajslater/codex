@@ -15,7 +15,7 @@ from codex.librarian.search.tasks import (
     SearchIndexRebuildIfDBChangedTask,
 )
 from codex.librarian.status_control import StatusControl, StatusControlFinishTask
-from codex.models import Library, SearchResult, Timestamp
+from codex.models import Library, Timestamp
 from codex.settings.logging import get_logger
 from codex.settings.settings import SEARCH_INDEX_PATH, SEARCH_INDEX_UUID_PATH
 from codex.threads import QueuedThread
@@ -74,18 +74,6 @@ def _call_command(args, kwargs):
     proc.close()
 
 
-def _get_latest_index_mtime():
-    """Get the latest mtime for all files in the index dir."""
-    latest_mtime = datetime.min
-    for entry in os.scandir(SEARCH_INDEX_PATH):
-        if not entry.is_file():
-            continue
-        mtime = datetime.fromtimestamp(entry.stat().st_mtime)
-        if mtime > latest_mtime:
-            latest_mtime = mtime
-    return latest_mtime
-
-
 def _update_search_index(rebuild=False):
     """Update the search index."""
     start_time = django_timezone.now()
@@ -109,7 +97,6 @@ def _update_search_index(rebuild=False):
         start_time = django_timezone.now()
 
         SEARCH_INDEX_PATH.mkdir(parents=True, exist_ok=True)
-        start_index_mtime = _get_latest_index_mtime()
 
         if rebuild:
             LOG.verbose("Rebuilding search index...")
@@ -133,10 +120,6 @@ def _update_search_index(rebuild=False):
             _call_command(UPDATE_ARGS, kwargs)
         Timestamp.touch(Timestamp.SEARCH_INDEX)
 
-        end_index_mtime = _get_latest_index_mtime()
-        if end_index_mtime > start_index_mtime:
-            # Nuke the Search Result table if it's out of date.
-            SearchResult.truncate_and_reset()
         LOG.verbose("Finished updating search index.")
     except Exception as exc:
         LOG.error(f"Update search index: {exc}")

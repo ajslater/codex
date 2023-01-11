@@ -22,7 +22,6 @@ from codex.models import (
     Imprint,
     Library,
     Publisher,
-    SearchQuery,
     Series,
     Timestamp,
     Volume,
@@ -78,7 +77,7 @@ class BrowserView(BrowserMetadataBaseView):
 
     is_opds_acquisition = False
 
-    def _add_annotations(self, queryset, model, autoquery_pk):
+    def _add_annotations(self, queryset, model, search_scores):
         """
         Annotations for display and sorting.
 
@@ -89,7 +88,7 @@ class BrowserView(BrowserMetadataBaseView):
         ##############################
         # Annotate Common Aggregates #
         ##############################
-        queryset = self.annotate_common_aggregates(queryset, model)
+        queryset = self.annotate_common_aggregates(queryset, model, search_scores)
         if not is_model_comic:
             # EXTRA FILTER for empty group
             queryset = queryset.filter(child_count__gt=0)
@@ -113,7 +112,7 @@ class BrowserView(BrowserMetadataBaseView):
         # Sortable aggregates #
         #######################
         order_key = self.get_order_key()
-        order_func = self.get_aggregate_func(order_key, model, autoquery_pk)
+        order_func = self.get_aggregate_func(order_key, model)
         queryset = queryset.annotate(order_value=order_func)
 
         ########################
@@ -204,19 +203,21 @@ class BrowserView(BrowserMetadataBaseView):
         else:
             return BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP
 
-    def get_folder_queryset(self, object_filter, autoquery_pk):
+    def get_folder_queryset(self, object_filter, search_scores):
         """Create folder queryset."""
         # Create the main queries with filters
         folder_list = Folder.objects.filter(object_filter)
-        comic_object_filter, _ = self.get_query_filters(True, False)
+        comic_object_filter, _, comic_search_scores = self.get_query_filters(
+            True, False
+        )
         comic_list = Comic.objects.filter(comic_object_filter)
         if self.is_opds_acquisition:
             comic_list = comic_list.prefetch_related(*OPDS_M2M_FIELDS)
 
         # add annotations for display and sorting
         # and the comic_cover which uses a sort
-        folder_list = self._add_annotations(folder_list, Folder, autoquery_pk)
-        comic_list = self._add_annotations(comic_list, Comic, autoquery_pk)
+        folder_list = self._add_annotations(folder_list, Folder, search_scores)
+        comic_list = self._add_annotations(comic_list, Comic, comic_search_scores)
 
         # Create ordered annotated values to make union align columns correctly because
         # django lacks a way to specify values column order.
@@ -228,7 +229,7 @@ class BrowserView(BrowserMetadataBaseView):
         obj_list = folder_list.union(comic_list)
         return obj_list
 
-    def _get_browser_group_queryset(self, object_filter, autoquery_pk):
+    def _get_browser_group_queryset(self, object_filter, search_scores):
         """Create and browse queryset."""
         if not self.model:
             raise ValueError("No model set in browser")
@@ -239,7 +240,7 @@ class BrowserView(BrowserMetadataBaseView):
         # obj_list filtering done
 
         # Add annotations for display and sorting
-        obj_list = self._add_annotations(obj_list, self.model, autoquery_pk)
+        obj_list = self._add_annotations(obj_list, self.model, search_scores)
 
         # Convert to a dict because otherwise the folder/comic union blows
         # up the paginator. Use the same annotations for the serializer.
@@ -383,7 +384,7 @@ class BrowserView(BrowserMetadataBaseView):
         # Create the main query with the filters
         is_model_comic = self.model == Comic
         try:
-            object_filter, autoquery_pk = self.get_query_filters(is_model_comic, False)
+            object_filter, search_scores = self.get_query_filters(is_model_comic, False)
         except Folder.DoesNotExist:
             pk = self.kwargs.get("pk")
             self._raise_redirect(
@@ -393,9 +394,9 @@ class BrowserView(BrowserMetadataBaseView):
         group = self.kwargs.get("group")
 
         if group == self.FOLDER_GROUP:
-            queryset = self.get_folder_queryset(object_filter, autoquery_pk)
+            queryset = self.get_folder_queryset(object_filter, search_scores)
         else:
-            queryset = self._get_browser_group_queryset(object_filter, autoquery_pk)
+            queryset = self._get_browser_group_queryset(object_filter, search_scores)
 
         # Order
         queryset = self.get_order_by(self.model, queryset)

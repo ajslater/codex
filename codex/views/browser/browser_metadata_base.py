@@ -29,7 +29,6 @@ from codex.views.browser.base import BrowserBaseView
 class BrowserMetadataBaseView(BrowserBaseView):
     """Base class for views that need special metadata annotations."""
 
-    _ORDER_BY_FIELD_ALIASES = {"search_score": "searchresult__score"}
     _ORDER_AGGREGATE_FUNCS = {
         "age_rating": Avg,
         "community_rating": Avg,
@@ -40,9 +39,8 @@ class BrowserMetadataBaseView(BrowserBaseView):
         "path": Min,
         "size": Sum,
         "updated_at": Min,
-        "searchresult__score": Min,
+        "search_score": Min,
     }
-    _NO_SEARCH_SCORE = Value(None, IntegerField())
     _UNIONFIX_DEFAULT_ORDERING = tuple(
         UNIONFIX_PREFIX + field.replace("__", "_") for field in Comic.ORDERING
     )
@@ -95,6 +93,19 @@ class BrowserMetadataBaseView(BrowserBaseView):
             else:
                 order_key = "sort_name"
         return order_key
+
+    def _annotate_search_score(self, queryset, is_model_comic, search_scores):
+        """Annotate the search score for ordering by search score."""
+        order_key = self.params.get("order_by")
+        if order_key != "search_score":
+            return queryset
+        prefix = "comic__" if not is_model_comic else ""
+        whens = []
+        for pk, score in search_scores.items():
+            when = {prefix + "pk": pk, "then": score}
+            whens.append(When(**when))
+        annotate = {prefix + "search_score": Case(*whens, default=0)}
+        return queryset.annotate(**annotate)
 
     def _annotate_cover_pk(self, queryset, model):
         """Annotate the query set for the coverpath for the sort."""
@@ -196,14 +207,9 @@ class BrowserMetadataBaseView(BrowserBaseView):
             field, StrIndex(Reverse(field), cls._SEP_VALUE) - 1  # type: ignore
         )
 
-    def get_aggregate_func(self, order_key, model, autoquery_pk=None):
+    def get_aggregate_func(self, order_key, model):
         """Get a complete function for aggregating an attribute."""
-        # Get field from order_key
-        if order_key == "search_score":
-            if not autoquery_pk:
-                return self._NO_SEARCH_SCORE
-            field = "searchresult__score"
-        elif order_key == "sort_name" or not order_key:
+        if order_key == "sort_name" or not order_key:
             field = None
         else:
             field = order_key
@@ -231,13 +237,13 @@ class BrowserMetadataBaseView(BrowserBaseView):
             if field == "path":
                 full_field = self._get_path_query_func(full_field)
 
-            filters = Q(comic__searchresult__query=autoquery_pk)
-            func = agg_func(full_field, filters=filters)
+            func = agg_func(full_field)
         return func
 
-    def annotate_common_aggregates(self, qs, model):
+    def annotate_common_aggregates(self, qs, model, search_scores):
         """Annotate common aggregates between browser and metadata."""
         is_model_comic = model == Comic
+        qs = self._annotate_search_score(qs, is_model_comic, search_scores)
         qs = self._annotate_cover_pk(qs, model)
         if is_model_comic:
             child_count_sum = self._ONE_INTEGERFIELD
@@ -295,9 +301,8 @@ class BrowserMetadataBaseView(BrowserBaseView):
         if for_cover_pk:
             prefix += "comic__"
             ordering = []
-            field = self._ORDER_BY_FIELD_ALIASES.get(order_key, order_key)
-            if field and field != "sort_name":
-                ordering += [field]
+            if order_key and order_key != "sort_name":
+                ordering += [order_key]
             ordering += [*Comic.ORDERING]
         elif order_key == "sort_name" or not order_key:
             # Use default sort

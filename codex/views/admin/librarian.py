@@ -9,7 +9,6 @@ from codex.librarian.covers.tasks import CoverRemoveAllTask, CoverRemoveOrphansT
 from codex.librarian.janitor.tasks import (
     JanitorBackupTask,
     JanitorCleanFKsTask,
-    JanitorCleanSearchTask,
     JanitorClearStatusTask,
     JanitorRestartTask,
     JanitorShutdownTask,
@@ -103,8 +102,6 @@ class AdminLibrarianTaskView(APIView):
             task = JanitorShutdownTask()
         elif task_name == "notify_library_changed":
             task = LIBRARY_CHANGED_TASK
-        elif task_name == "cleanup_queries":
-            task = JanitorCleanSearchTask()
         elif task_name == "cleanup_fks":
             task = JanitorCleanFKsTask()
         elif task_name == "cleanup_covers":

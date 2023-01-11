@@ -171,7 +171,7 @@ class MetadataView(BrowserMetadataBaseView):
         if not self.is_model_comic:
             size_func = self.get_aggregate_func("size", self.is_model_comic)
             qs = qs.annotate(size=size_func)
-        qs = self.annotate_common_aggregates(qs, self.model)
+        qs = self.annotate_common_aggregates(qs, self.model, {})
         return qs
 
     def _annotate_values_and_fks(self, qs, simple_qs):
