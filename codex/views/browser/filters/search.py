@@ -105,40 +105,46 @@ class SearchFilterMixin(BookmarkFilterMixin):
         bookmark_field = False
         bookmark_filter = Q()
         try:
-            token_field, token_value = token.split(":")
+            token_parts = token.split(":")
+            token_field = token_parts[0]
+            if len(token_parts) > 1:
+                token_value = token_parts[1]
+            else:
+                token_value = ""
 
             # Alias field searches
             index_token_field = self._SEARCH_FIELD_ALIASES.get(token_field)
             if index_token_field:
                 token_field = index_token_field
 
-            # Range
-            token_value = self.RANGE_OPERATOR_LT_RE.sub(
-                self.RANGE_DELIMITER, token_value, count=1
-            )
-            token_value, number_of_subs_made = self.RANGE_OPERATOR_GT_RE.subn(
-                "", token_value, count=1
-            )
-            if number_of_subs_made:
-                token_value += self.RANGE_DELIMITER + "*"
-            # Seems to fix a haystack xapian-backend range bug?
-            # https://github.com/notanumber/xapian-haystack/issues/217
-            if token_value.endswith(self.RANGE_DELIMITER):
-                token_value += "*"
+            if token_value:
+                # Range
+                token_value = self.RANGE_OPERATOR_LT_RE.sub(
+                    self.RANGE_DELIMITER, token_value, count=1
+                )
+                token_value, number_of_subs_made = self.RANGE_OPERATOR_GT_RE.subn(
+                    "", token_value, count=1
+                )
+                if number_of_subs_made:
+                    token_value += self.RANGE_DELIMITER + "*"
+                # Seems to fix a haystack xapian-backend range bug?
+                # https://github.com/notanumber/xapian-haystack/issues/217
+                if token_value.endswith(self.RANGE_DELIMITER):
+                    token_value += "*"
 
-            # Parse Dates, Datetimes, and Integers
-            if token_field == "date":
-                token_value = self._parse_search_token_value(
-                    self._parse_date, token_value
-                )
-            elif token_field in ("updated_at", "created_at"):
-                token_value = self._parse_search_token_value(
-                    self._parse_datetime, token_value
-                )
-            elif token_field == "size":
-                token_value = self._parse_search_token_value(
-                    self._parse_size, token_value
-                )
+                # Parse Dates, Datetimes, and Integers
+                if token_field == "date":
+                    token_value = self._parse_search_token_value(
+                        self._parse_date, token_value
+                    )
+                elif token_field in ("updated_at", "created_at"):
+                    token_value = self._parse_search_token_value(
+                        self._parse_datetime, token_value
+                    )
+                elif token_field == "size":
+                    token_value = self._parse_search_token_value(
+                        self._parse_size, token_value
+                    )
 
             # bookmark fields
             if token_field in ("unread", "in_progress"):
@@ -160,6 +166,7 @@ class SearchFilterMixin(BookmarkFilterMixin):
             token = ":".join((token_field, token_value))
         except ValueError as exc:
             LOG.warning(exc)
+            LOG.exception(exc)
             pass
 
         return token, bookmark_field, bookmark_filter
