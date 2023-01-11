@@ -8,6 +8,8 @@ border-radius: 128px;
 
 ## v1.0.4
 
+- Features
+  - Add >, <, <=, >= range operators for search.
 - Fix
   - Fix leading NOT for search
   - Fix trailing wildarcard search

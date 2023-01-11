@@ -80,7 +80,9 @@
           Codex uses two dots <code>..</code> to delineate a range search in a
           field value. If you leave out the upper or lower bound, the wildcard
           <code>*</code> will tacitily take it's place. Range tokens look like
-          <code>field:lower..upper</code>
+          <code>field:lower..upper</code>, <code>field:lower..</code>,
+          <code>field:..upper</code>, <code>field:&gt;lower</code>, or
+          <code>field:&lt;upper</code>
           Be careful your range search doesn't contain three or more dots. This
           will cause codex to discard the upper bound value.
         </p>
