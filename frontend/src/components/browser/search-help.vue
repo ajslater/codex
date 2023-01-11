@@ -1,9 +1,10 @@
 <template>
   <v-dialog
     v-model="dialog"
-    fullscreen
-    transition="dialog-bottom-transition"
     content-class="browserSearchHelp"
+    fullscreen
+    :scrim="false"
+    transition="dialog-bottom-transition"
   >
     <template #activator="{ props }">
       <v-list-item v-bind="props">
@@ -62,11 +63,7 @@
         <h3>Dates and DateTimes</h3>
         <p>
           Codex parses Dates and DateTime values liberally. If the format you
-          enter fails, the
-          <a href="https://en.wikipedia.org/wiki/ISO_8601" target="_blank"
-            >ISO 8601 format<v-icon size="small">{{ mdiOpenInNew }}</v-icon></a
-          >
-          is reliable.
+          try fails, the YYYYMMDDHHmmSS format is reliable.
         </p>
         <h3>Size Byte Multipliers</h3>
         <p>
@@ -197,8 +194,8 @@ export default {
 
 <style scoped lang="scss">
 @import "../anchors.scss";
-.browserSearchHelp {
-  overflow-y: auto;
+:deep(.browserSearchHelp) {
+  overflow-y: auto !important;
 }
 #searchHelp {
   max-width: 850px;
@@ -211,6 +208,7 @@ export default {
 h1,
 h2,
 h3 {
+  margin-top: 0.25em;
   color: rgb(var(--v-theme-textHeader));
 }
 h1 {
