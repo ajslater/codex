@@ -127,6 +127,20 @@ export const useBrowserStore = defineStore("browser", {
     isDefaultBookmarkValueSelected(state) {
       return DEFAULT_BOOKMARK_VALUES.has(state.settings.filters.bookmark);
     },
+    lowestShownGroup(state) {
+      let lowestGroup = "r";
+      const topGroupIndex = GROUPS_REVERSED.indexOf(state.settings.topGroup);
+      for (const [index, group] of [...GROUPS_REVERSED].entries()) {
+        const show = state.settings.show[group];
+        if (show) {
+          if (index <= topGroupIndex) {
+            lowestGroup = group;
+          }
+          break;
+        }
+      }
+      return lowestGroup;
+    },
   },
   actions: {
     ////////////////////////////////////////////////////////////////////////
@@ -155,45 +169,36 @@ export const useBrowserStore = defineStore("browser", {
       }
       data.orderBy = "search_score";
       data.orderReverse = true;
-      let lowestGroup = "r";
-      for (const key of GROUPS_REVERSED) {
-        const val = this.settings.show[key];
-        if (val) {
-          lowestGroup = key;
-          break;
-        }
-      }
+
       const params = router.currentRoute.value.params;
-      if (params.group === lowestGroup) {
+      if (params.group === this.lowestShownGroup) {
         return;
       }
-      return { params: { ...params, group: lowestGroup } };
+      return { params: { ...params, group: this.lowestShownGroup } };
     },
     _validateNewTopGroupIsParent(data, redirect) {
       // If the top group changed and we're at the root group and the new top group is above the proper nav group
       const referenceRoute = redirect || router.currentRoute.value;
       const params = referenceRoute.params;
+      const topGroupIndex = GROUPS_REVERSED.indexOf(this.settings.topGroup);
       if (
         params.group !== "r" ||
         !this.settings.topGroup ||
-        GROUPS_REVERSED.indexOf(this.settings.topGroup) >=
-          GROUPS_REVERSED.indexOf(data.topGroup)
+        topGroupIndex >= GROUPS_REVERSED.indexOf(data.topGroup)
       ) {
         // All is well, validated.
         return redirect;
       }
-      const route = { params: { ...params } };
 
-      let groupIndex = GROUPS_REVERSED.indexOf(this.settings.topGroup);
-      const parentGroups = GROUPS_REVERSED.slice(groupIndex + 1);
-      let jumpGroup;
-      for (jumpGroup of parentGroups) {
-        if (this.settings.show[jumpGroup]) {
+      // Construct and return new redirect
+      const parentGroups = GROUPS_REVERSED.slice(topGroupIndex + 1);
+      let group;
+      for (group of parentGroups) {
+        if (this.settings.show[group]) {
           break;
         }
       }
-      route.params.group = jumpGroup;
-      return route;
+      return { params: { ...params, group } };
     },
     ///////////////////////////////////////////////////////////////////////////
     // MUTATIONS
