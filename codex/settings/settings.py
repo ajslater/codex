@@ -18,6 +18,7 @@ from pathlib import Path
 from django.contrib.staticfiles.storage import staticfiles_storage
 from tzlocal import get_localzone_name
 from xapian import QueryParser
+from xapian_backend import DEFAULT_XAPIAN_FLAGS
 
 from codex.settings.hypercorn import load_hypercorn_config
 from codex.settings.logging import get_logger, init_logging
@@ -284,14 +285,7 @@ INTERNAL_IPS = [
 SEARCH_INDEX_PATH = CONFIG_PATH / "xapian_index"
 SEARCH_INDEX_PATH.mkdir(exist_ok=True, parents=True)
 SEARCH_INDEX_UUID_PATH = SEARCH_INDEX_PATH / "codex_db.uuid"
-_XAPIAN_FLAGS = (
-    QueryParser.FLAG_BOOLEAN
-    | QueryParser.FLAG_BOOLEAN_ANY_CASE
-    | QueryParser.FLAG_PHRASE
-    | QueryParser.FLAG_LOVEHATE
-    | QueryParser.FLAG_WILDCARD
-    | QueryParser.FLAG_PURE_NOT
-)
+_XAPIAN_FLAGS = DEFAULT_XAPIAN_FLAGS | QueryParser.FLAG_BOOLEAN_ANY_CASE
 HAYSTACK_CONNECTIONS = {
     "default": {
         "ENGINE": "codex.search_engine.CodexXapianSearchEngine",
