@@ -1,11 +1,14 @@
 """Search Filters Methods."""
+import re
+
 from distutils.util import strtobool
 
+from dateutil.parser import ParserError
 from dateutil.parser import parse as du_parse
 from django.db.models import F, Q
 from django.db.models.functions import Now
 from haystack.query import SearchQuerySet
-from humanfriendly import parse_size
+from humanfriendly import InvalidSize, parse_size
 from xapian_backend import DATETIME_FORMAT
 
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
@@ -16,13 +19,15 @@ from codex.views.browser.filters.bookmark import BookmarkFilterMixin
 
 
 LOG = get_logger(__name__)
-DATE_FORMAT = DATETIME_FORMAT.removesuffix("%H%M%S")
-RANGE_DELIMITER = ".."
-XAPIAN_UPPERCASE_OPERATORS = frozenset(["AND", "OR", "XOR", "NEAR", "ADJ"])
 
 
 class SearchFilterMixin(BookmarkFilterMixin):
     """Search Filters Methods."""
+
+    DATE_FORMAT = DATETIME_FORMAT.removesuffix("%H%M%S")
+    RANGE_OPERATOR_LT_RE = re.compile("^<=?")
+    RANGE_OPERATOR_GT_RE = re.compile("^>=?")
+    RANGE_DELIMITER = ".."
 
     _SEARCH_FIELD_ALIASES = {
         "ltr": "read_ltr",
@@ -50,40 +55,45 @@ class SearchFilterMixin(BookmarkFilterMixin):
     @staticmethod
     def _parse_datetime(value, format=DATETIME_FORMAT):
         try:
-            dttm = du_parse(value)
-            if dttm:
-                value = dttm.strftime(format)
-            return value
+            dttm = du_parse(value, fuzzy=True)
+            value = dttm.strftime(format)
+        except (OverflowError, ParserError) as exc:
+            LOG.debug(exc)
+            value = ""
         except Exception as exc:
             LOG.warning(exc)
             LOG.exception(exc)
-            return ""
+            value = ""
+        return value
 
     @classmethod
     def _parse_date(cls, value):
-        return cls._parse_datetime(value, format=DATE_FORMAT)
+        return cls._parse_datetime(value, format=cls.DATE_FORMAT)
 
     @staticmethod
     def _parse_size(value):
         try:
-            size = parse_size(value)
+            size = str(parse_size(value))
+        except InvalidSize as exc:
+            LOG.debug(exc)
+            size = ""
         except Exception as exc:
             LOG.warning(exc)
             LOG.exception(exc)
             size = ""
-        return str(size)
+        return size
 
-    @staticmethod
-    def _parse_search_token_value(convert_func, token_value):
+    @classmethod
+    def _parse_search_token_value(cls, convert_func, token_value):
         try:
             token_value_bits = []
-            for token_value_bit in token_value.split(RANGE_DELIMITER):
+            for token_value_bit in token_value.split(cls.RANGE_DELIMITER):
                 if token_value_bit in ("", "*"):
                     token_value_bits.append(token_value_bit)
                     continue
                 xapian_value_str = convert_func(token_value_bit)
                 token_value_bits.append(xapian_value_str)
-            token_value = RANGE_DELIMITER.join(token_value_bits)
+            token_value = cls.RANGE_DELIMITER.join(token_value_bits)
         except Exception as exc:
             LOG.warning(exc)
             LOG.exception(exc)
@@ -91,6 +101,7 @@ class SearchFilterMixin(BookmarkFilterMixin):
 
     def _parse_search_field_token(self, token, is_model_comic):
         """Convert aliased search fields and extract the bookmark query."""
+        # TODO move into xapian engine and use their parser where i can
         bookmark_field = False
         bookmark_filter = Q()
         try:
@@ -100,6 +111,20 @@ class SearchFilterMixin(BookmarkFilterMixin):
             index_token_field = self._SEARCH_FIELD_ALIASES.get(token_field)
             if index_token_field:
                 token_field = index_token_field
+
+            # Range
+            token_value = self.RANGE_OPERATOR_LT_RE.sub(
+                self.RANGE_DELIMITER, token_value, count=1
+            )
+            token_value, number_of_subs_made = self.RANGE_OPERATOR_GT_RE.subn(
+                "", token_value, count=1
+            )
+            if number_of_subs_made:
+                token_value += self.RANGE_DELIMITER + "*"
+            # Seems to fix a haystack xapian-backend range bug?
+            # https://github.com/notanumber/xapian-haystack/issues/217
+            if token_value.endswith(self.RANGE_DELIMITER):
+                token_value += "*"
 
             # Parse Dates, Datetimes, and Integers
             if token_field == "date":
@@ -114,11 +139,6 @@ class SearchFilterMixin(BookmarkFilterMixin):
                 token_value = self._parse_search_token_value(
                     self._parse_size, token_value
                 )
-
-            # Seems to fix a haystack xapian-backend range bug?
-            # https://github.com/notanumber/xapian-haystack/issues/217
-            if token_value.endswith(".."):
-                token_value += "*"
 
             # bookmark fields
             if token_field in ("unread", "in_progress"):
@@ -138,7 +158,8 @@ class SearchFilterMixin(BookmarkFilterMixin):
                 bookmark_field = True
 
             token = ":".join((token_field, token_value))
-        except ValueError:
+        except ValueError as exc:
+            LOG.warning(exc)
             pass
 
         return token, bookmark_field, bookmark_filter
