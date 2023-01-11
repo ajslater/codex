@@ -19,8 +19,10 @@ from codex.views.browser.filters.bookmark import BookmarkFilterMixin
 LOG = get_logger(__name__)
 
 
-class SearchFilterMixin(BookmarkFilterMixin):
-    """Search Filters Methods."""
+class SearchFilterPreparserMixin(BookmarkFilterMixin):
+    """Preparse Search query text."""
+
+    # Ideally this would be part of a custom XapianBackend
 
     DATE_FORMAT = DATETIME_FORMAT.removesuffix("%H%M%S")
     RANGE_OPERATOR_LT_RE = re.compile("^<=?")
@@ -52,6 +54,7 @@ class SearchFilterMixin(BookmarkFilterMixin):
 
     @staticmethod
     def _parse_datetime(value, format=DATETIME_FORMAT):
+        """Parse liberal datetime values."""
         try:
             dttm = du_parse(value, fuzzy=True)
             value = dttm.strftime(format)
@@ -66,10 +69,12 @@ class SearchFilterMixin(BookmarkFilterMixin):
 
     @classmethod
     def _parse_date(cls, value):
+        """Parse liberal date values."""
         return cls._parse_datetime(value, format=cls.DATE_FORMAT)
 
     @staticmethod
     def _parse_size(value):
+        """Parse humanized file size values."""
         try:
             size = str(parse_size(value))
         except InvalidSize as exc:
@@ -83,6 +88,7 @@ class SearchFilterMixin(BookmarkFilterMixin):
 
     @classmethod
     def _parse_search_token_value(cls, convert_func, token_value):
+        """Parse a token value."""
         try:
             token_value_bits = []
             for token_value_bit in token_value.split(cls.RANGE_DELIMITER):
@@ -97,9 +103,8 @@ class SearchFilterMixin(BookmarkFilterMixin):
             LOG.exception(exc)
         return token_value
 
-    def _parse_search_field_token(self, token, is_model_comic):
+    def _parse_token(self, token, is_model_comic):
         """Convert aliased search fields and extract the bookmark query."""
-        # TODO move into xapian engine and use their parser where i can
         bookmark_field = False
         bookmark_filter = Q()
         try:
@@ -172,7 +177,7 @@ class SearchFilterMixin(BookmarkFilterMixin):
 
         return token, bookmark_field, bookmark_filter
 
-    def _parse_unsearchable_fields(self, is_model_comic):
+    def _preparse_query_text(self, is_model_comic):
         """Preprocess query string by aliasing fields and extracting bookmark query."""
         bookmark_filter = Q()
         haystack_tokens = []
@@ -189,7 +194,7 @@ class SearchFilterMixin(BookmarkFilterMixin):
                     token,
                     bookmark_field,
                     field_bookmark_filter,
-                ) = self._parse_search_field_token(token, is_model_comic)
+                ) = self._parse_token(token, is_model_comic)
                 if bookmark_field:
                     bookmark_filter &= field_bookmark_filter
 
@@ -199,7 +204,12 @@ class SearchFilterMixin(BookmarkFilterMixin):
         haystack_text = " ".join(haystack_tokens)
         return haystack_text, bookmark_filter
 
+
+class SearchFilterMixin(SearchFilterPreparserMixin):
+    """Search Filters Methods."""
+
     def _get_search_scores(self, text):
+        """Perform the search and return the scores as a dict."""
         sqs = SearchQuerySet().auto_query(text)
         comic_scores = sqs.values("pk", "score")
         search_scores = {}
@@ -214,7 +224,7 @@ class SearchFilterMixin(BookmarkFilterMixin):
         return search_scores
 
     def _get_search_query_filter(self, text, is_model_comic):
-        """Do the haystack query."""
+        """Get the search filter and scores."""
         search_filter = Q()
         if not text:
             return search_filter, {}
@@ -232,7 +242,7 @@ class SearchFilterMixin(BookmarkFilterMixin):
         return search_filter, search_scores
 
     def get_search_filter(self, is_model_comic):
-        """Search filters."""
+        """Preparse search, search and return the filter and scores."""
         search_filter = Q()
         search_scores = {}
         try:
@@ -240,7 +250,7 @@ class SearchFilterMixin(BookmarkFilterMixin):
             (
                 haystack_text,
                 bookmark_filter,
-            ) = self._parse_unsearchable_fields(is_model_comic)
+            ) = self._preparse_query_text(is_model_comic)
             search_filter &= bookmark_filter
 
             # Query haystack
