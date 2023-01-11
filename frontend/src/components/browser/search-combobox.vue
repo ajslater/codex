@@ -11,7 +11,6 @@
     full-width
     hide-details="auto"
     hide-selected
-    no-filter
     :prepend-inner-icon="mdiMagnify"
     variant="solo"
     @click:clear="doSearch"
