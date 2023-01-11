@@ -61,7 +61,6 @@ export default {
       this.items = updateditems.slice(0, MAX_ITEMS);
     },
     doSearch() {
-      console.log("doSearch()");
       this.menu = false;
       const q = this.query ? this.query.trim() : "";
       this.setSettings({ q });
