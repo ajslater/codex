@@ -419,10 +419,6 @@ class BrowserView(BrowserMetadataBaseView):
 
         libraries_exist = Library.objects.exists()
 
-        queries = SearchQuery.objects.order_by("-used_at").values_list(
-            "text", flat=True
-        )[: BrowserPageSerializer.NUM_AUTOCOMPLETE_QUERIES]
-
         if is_model_comic:
             # runs obj list query twice :/
             issue_max = obj_list.aggregate(Max("issue"))["issue__max"]
@@ -441,7 +437,6 @@ class BrowserView(BrowserMetadataBaseView):
             "num_pages": num_pages,
             "admin_flags": {"enable_folder_view": efv_flag.on},
             "libraries_exist": libraries_exist,
-            "queries": queries,
             "covers_timestamp": covers_timestamp,
         }
         return browser_page

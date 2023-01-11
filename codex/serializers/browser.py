@@ -218,8 +218,6 @@ class BrowserTitleSerializer(Serializer):
 class BrowserPageSerializer(Serializer):
     """The main browse list."""
 
-    NUM_AUTOCOMPLETE_QUERIES = 10
-
     admin_flags = BrowserAdminFlagsSerializer(read_only=True)
     browser_title = BrowserTitleSerializer(read_only=True)
     covers_timestamp = IntegerField(read_only=True)
@@ -233,9 +231,6 @@ class BrowserPageSerializer(Serializer):
     model_group = CharField(read_only=True)
     num_pages = IntegerField(read_only=True)
     obj_list = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
-    queries = ListField(
-        child=CharField(read_only=True), allow_empty=True, read_only=True
-    )
     up_route = BrowserRouteSerializer(allow_null=True, read_only=True)
 
 

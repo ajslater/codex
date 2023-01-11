@@ -74,7 +74,6 @@ export const useBrowserStore = defineStore("browser", {
       modelGroup: undefined,
       numPages: 1,
       objList: [],
-      queries: [],
       routes: {
         up: undefined,
         last: undefined,

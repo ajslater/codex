@@ -2,12 +2,11 @@
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.status_control import StatusControl
 from codex.models import SearchQuery
-from codex.serializers.browser import BrowserPageSerializer
 from codex.settings.logging import get_logger
 
 
 # Keep the last thousand
-LIMIT = BrowserPageSerializer.NUM_AUTOCOMPLETE_QUERIES * 100
+LIMIT = 1000
 LOG = get_logger(__name__)
 
 
