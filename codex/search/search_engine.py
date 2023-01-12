@@ -25,6 +25,28 @@ def filelocked(func):
 class CodexXapianSearchBackend(XapianSearchBackend):
     """Override methods to use locks."""
 
+    _SEARCH_FIELD_ALIASES = {
+        "ltr": "read_ltr",
+        "title": "name",
+        "scan": "scan_info",
+        "character": "characters",
+        "creator": "creators",
+        "created": "created_at",
+        "finished": "read",
+        "genre": "genres",
+        "location": "locations",
+        "reading": "in_progress",
+        "series_group": "series_groups",
+        "story_arc": "story_arcs",
+        "tag": "tags",
+        "team": "teams",
+        "updated": "updated_at",
+        # OPDS
+        "author": "creators",
+        "contributor": "creators",
+        "category": "characters",  # the most common category, probably
+    }
+
     def __init__(self, *args, **kwargs):
         """Set the lockfile."""
         super().__init__(*args, **kwargs)
@@ -42,6 +64,15 @@ class CodexXapianSearchBackend(XapianSearchBackend):
     def remove(self, obj, commit=True):
         """Use lock with remove."""
         return super().remove(obj, commit=commit)
+
+    def _database(self, writable=False):
+        """Add synonyms to writable databases."""
+        database = super()._database(writable=writable)
+        if writable:
+            # Ideally this wouldn't be called on remove() or clear()
+            for synonym, term in self._SEARCH_FIELD_ALIASES.items():
+                database.add_synonym(term, synonym)  # type: ignore
+        return database
 
 
 class CodexUnifiedIndex(UnifiedIndex):

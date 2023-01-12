@@ -27,28 +27,6 @@ class SearchFilterPreparserMixin(BookmarkFilterMixin):
     RANGE_OPERATOR_GT_RE = re.compile("^>=?")
     RANGE_DELIMITER = ".."
 
-    _SEARCH_FIELD_ALIASES = {
-        "ltr": "read_ltr",
-        "title": "name",
-        "scan": "scan_info",
-        "character": "characters",
-        "creator": "creators",
-        "created": "created_at",
-        "finished": "read",
-        "genre": "genres",
-        "location": "locations",
-        "reading": "in_progress",
-        "series_group": "series_groups",
-        "story_arc": "story_arcs",
-        "tag": "tags",
-        "team": "teams",
-        "updated": "updated_at",
-        # OPDS
-        "author": "creators",
-        "contributor": "creators",
-        "category": "characters",  # the most common category, probably
-    }
-
     @staticmethod
     def _parse_datetime(value, format=DATETIME_FORMAT):
         """Parse liberal datetime values."""
@@ -101,19 +79,10 @@ class SearchFilterPreparserMixin(BookmarkFilterMixin):
         return token_value
 
     @classmethod
-    def _alias_token_field(cls, token_field):
-        """Alias field searches."""
-        # TODO: could add to XapianSearchBackend.parse()
-        # TODO: look for how to add Synonyms
-        index_token_field = cls._SEARCH_FIELD_ALIASES.get(token_field)
-        if index_token_field:
-            token_field = index_token_field
-        return token_field
-
-    @classmethod
     def _parse_range_value(cls, token_value):
         """Parse custom range values."""
         # Range TODO: patch XHValueRangeProcessor
+        # add date type and datetime type
         token_value = cls.RANGE_OPERATOR_LT_RE.sub(
             cls.RANGE_DELIMITER, token_value, count=1
         )
@@ -154,8 +123,6 @@ class SearchFilterPreparserMixin(BookmarkFilterMixin):
                 token_value = token_parts[1]
             else:
                 token_value = ""
-
-            token_field = cls._alias_token_field(token_field)
 
             if token_value:
                 # is a field

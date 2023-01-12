@@ -291,6 +291,7 @@ _XAPIAN_FLAGS = (
     | QueryParser.FLAG_LOVEHATE
     | QueryParser.FLAG_WILDCARD
     | QueryParser.FLAG_PURE_NOT
+    | QueryParser.FLAG_AUTO_SYNONYMS
 )
 HAYSTACK_CONNECTIONS = {
     "default": {
