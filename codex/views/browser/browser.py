@@ -207,9 +207,7 @@ class BrowserView(BrowserMetadataBaseView):
         """Create folder queryset."""
         # Create the main queries with filters
         folder_list = Folder.objects.filter(object_filter)
-        comic_object_filter, _, comic_search_scores = self.get_query_filters(
-            True, False
-        )
+        comic_object_filter, comic_search_scores = self.get_query_filters(True, False)
         comic_list = Comic.objects.filter(comic_object_filter)
         if self.is_opds_acquisition:
             comic_list = comic_list.prefetch_related(*OPDS_M2M_FIELDS)
