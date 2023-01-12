@@ -1,8 +1,6 @@
 """Search Filters Methods."""
 import re
 
-from distutils.util import strtobool
-
 from dateutil.parser import ParserError
 from dateutil.parser import parse as du_parse
 from django.db.models import Q
@@ -36,10 +34,9 @@ class SearchFilterPreparserMixin(BookmarkFilterMixin):
         "character": "characters",
         "creator": "creators",
         "created": "created_at",
-        "finished": "unread",
+        "finished": "read",
         "genre": "genres",
         "location": "locations",
-        "read": "unread",
         "reading": "in_progress",
         "series_group": "series_groups",
         "story_arc": "story_arcs",
@@ -103,11 +100,54 @@ class SearchFilterPreparserMixin(BookmarkFilterMixin):
             LOG.exception(exc)
         return token_value
 
-    def _parse_token(self, token, is_model_comic):
+    @classmethod
+    def _alias_token_field(cls, token_field):
+        """Alias field searches."""
+        # TODO: could add to XapianSearchBackend.parse()
+        # TODO: look for how to add Synonyms
+        index_token_field = cls._SEARCH_FIELD_ALIASES.get(token_field)
+        if index_token_field:
+            token_field = index_token_field
+        return token_field
+
+    @classmethod
+    def _parse_range_value(cls, token_value):
+        """Parse custom range values."""
+        # Range TODO: patch XHValueRangeProcessor
+        token_value = cls.RANGE_OPERATOR_LT_RE.sub(
+            cls.RANGE_DELIMITER, token_value, count=1
+        )
+        token_value, number_of_subs_made = cls.RANGE_OPERATOR_GT_RE.subn(
+            "", token_value, count=1
+        )
+        if number_of_subs_made:
+            token_value += cls.RANGE_DELIMITER + "*"
+        # TODO: patch XHValueRangeProcessor
+        # Fix a haystack xapian-backend.XHValueRangeProcessor range bug?
+        # https://github.com/notanumber/xapian-haystack/issues/217
+        if token_value.endswith(cls.RANGE_DELIMITER):
+            token_value += "*"
+        return token_value
+
+    @classmethod
+    def _parse_special_values(cls, token_field, token_value):
+        """Parse Dates, Datetimes, and File Size."""
+        # TODO: patch xapian-backend._term_to_xapian_value
+        if token_field == "date":
+            token_value = cls._parse_search_token_value(cls._parse_date, token_value)
+        elif token_field in ("updated_at", "created_at"):
+            token_value = cls._parse_search_token_value(
+                cls._parse_datetime, token_value
+            )
+        elif token_field == "size":
+            token_value = cls._parse_search_token_value(cls._parse_size, token_value)
+        return token_value
+
+    @classmethod
+    def _parse_token(cls, token):
         """Convert aliased search fields and extract the bookmark query."""
-        bookmark_field = False
-        bookmark_filter = Q()
         try:
+            # Parse token as a field
             token_parts = token.split(":")
             token_field = token_parts[0]
             if len(token_parts) > 1:
@@ -115,58 +155,14 @@ class SearchFilterPreparserMixin(BookmarkFilterMixin):
             else:
                 token_value = ""
 
-            # Alias field searches
-            index_token_field = self._SEARCH_FIELD_ALIASES.get(token_field)
-            if index_token_field:
-                token_field = index_token_field
+            token_field = cls._alias_token_field(token_field)
 
             if token_value:
-                # Range
-                token_value = self.RANGE_OPERATOR_LT_RE.sub(
-                    self.RANGE_DELIMITER, token_value, count=1
-                )
-                token_value, number_of_subs_made = self.RANGE_OPERATOR_GT_RE.subn(
-                    "", token_value, count=1
-                )
-                if number_of_subs_made:
-                    token_value += self.RANGE_DELIMITER + "*"
-                # Seems to fix a haystack xapian-backend range bug?
-                # https://github.com/notanumber/xapian-haystack/issues/217
-                if token_value.endswith(self.RANGE_DELIMITER):
-                    token_value += "*"
+                # is a field
+                token_value = cls._parse_range_value(token_value)
+                token_value = cls._parse_special_values(token_field, token_value)
 
-                # Parse Dates, Datetimes, and Integers
-                if token_field == "date":
-                    token_value = self._parse_search_token_value(
-                        self._parse_date, token_value
-                    )
-                elif token_field in ("updated_at", "created_at"):
-                    token_value = self._parse_search_token_value(
-                        self._parse_datetime, token_value
-                    )
-                elif token_field == "size":
-                    token_value = self._parse_search_token_value(
-                        self._parse_size, token_value
-                    )
-
-            # bookmark fields
-            if token_field in ("unread", "in_progress"):
-                token_value_bool = strtobool(token_value)
-                reverse_filter = False
-                if token_field == "unread":
-                    reverse_filter = True
-                if token_field in ("unread", "in_progress"):
-                    choice = token_field.upper()
-                    reverse_filter = bool(reverse_filter * token_value_bool)
-                else:
-                    choice = ""
-
-                bookmark_filter = self.get_bookmark_filter(is_model_comic, choice)
-                if bookmark_filter != Q() and reverse_filter:
-                    bookmark_filter = ~Q(bookmark_filter)
-                bookmark_field = True
-
-            if token_value:
+            if token_field and token_value:
                 token = ":".join((token_field, token_value))
             else:
                 token = token_field
@@ -175,34 +171,26 @@ class SearchFilterPreparserMixin(BookmarkFilterMixin):
             LOG.exception(exc)
             pass
 
-        return token, bookmark_field, bookmark_filter
+        return token
 
-    def _preparse_query_text(self, is_model_comic):
+    def _preparse_query_text(self):
         """Preprocess query string by aliasing fields and extracting bookmark query."""
-        bookmark_filter = Q()
         haystack_tokens = []
 
         query_tokens = self.params.get("q", "").split(" ")  # type: ignore
         for token in query_tokens:
             if not token:
                 continue
-            bookmark_field = False
 
             if token.find(":") and not (token.startswith('"') and token.endswith('"')):
                 # is a field search token
-                (
-                    token,
-                    bookmark_field,
-                    field_bookmark_filter,
-                ) = self._parse_token(token, is_model_comic)
-                if bookmark_field:
-                    bookmark_filter &= field_bookmark_filter
+                token = self._parse_token(token)
 
-            if not bookmark_field:
+            if token:
                 haystack_tokens.append(token)
 
         haystack_text = " ".join(haystack_tokens)
-        return haystack_text, bookmark_filter
+        return haystack_text
 
 
 class SearchFilterMixin(SearchFilterPreparserMixin):
@@ -243,22 +231,18 @@ class SearchFilterMixin(SearchFilterPreparserMixin):
 
     def get_search_filter(self, is_model_comic):
         """Preparse search, search and return the filter and scores."""
-        search_filter = Q()
-        search_scores = {}
         try:
             # Parse out the bookmark filter and get the remaining tokens
-            (
-                haystack_text,
-                bookmark_filter,
-            ) = self._preparse_query_text(is_model_comic)
-            search_filter &= bookmark_filter
+            haystack_text = self._preparse_query_text()
 
             # Query haystack
             (
-                haystack_search_filter,
+                search_filter,
                 search_scores,
             ) = self._get_search_query_filter(haystack_text, is_model_comic)
-            search_filter &= haystack_search_filter
         except Exception as exc:
             LOG.warning(exc)
+            search_filter = Q()
+            search_scores = {}
+
         return search_filter, search_scores

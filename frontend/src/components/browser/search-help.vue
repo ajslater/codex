@@ -24,7 +24,7 @@
       <h1>Search Syntax Help</h1>
       <div id="fieldTableContainer">
         <h2>Search Fields</h2>
-        <table id="fieldTable" class="highlight-table">
+        <v-table id="fieldTable" class="highlight-table">
           <thead>
             <tr>
               <th>Field</th>
@@ -39,7 +39,7 @@
               <td>{{ row[2] }}</td>
             </tr>
           </tbody>
-        </table>
+        </v-table>
       </div>
       <div id="textContainer">
         <h2>Xapian Query Parser</h2>
@@ -98,7 +98,7 @@
           many features for demonstration:
         </p>
         <code>
-          Holmes AND Tesla date:1999-1-2.. size:10mib..1gb Gadzooks NEAR
+          Holmes AND Tesla date:>=1999-1-2 size:10mib..1gb Gadzooks NEAR
           "Captain Nemo" -Quartermain
         </code>
         <p style="margin-top: 1em">
@@ -152,7 +152,6 @@ const FIELD_ROWS = [
   ["format", "String", ""],
   ["genres", "CSV", "genre"],
   ["imprint", "String", ""],
-  ["in_progress", "Boolean", "reading"],
   ["issue", "Decimal", ""],
   ["language", "String", ""],
   ["locations", "CSV", "location"],
@@ -172,7 +171,6 @@ const FIELD_ROWS = [
   ["tags", "CSV", "tag"],
   ["teams", "CSV", "team"],
   ["updated_at", "Date", "updated"],
-  ["unread", "Boolean", "finished, read"],
   ["volume", "String", ""],
   ["web", "String", ""],
   ["year", "Integer", ""],

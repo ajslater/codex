@@ -11,6 +11,7 @@ border-radius: 128px;
 - Features
   - Add >, <, <=, >= range operators for search.
   - Do not store search history for combobox across sessions.
+  - Remove awkward bookmark searching from search bar.
 - Fix
   - Fix leading NOT for search
   - Fix trailing wildarcard search
