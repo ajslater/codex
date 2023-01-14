@@ -11,6 +11,7 @@ from rest_framework.exceptions import ValidationError
 
 from codex.serializers.browser import BrowserSettingsSerializer
 from codex.settings.logging import get_logger
+from codex.views.browser.filters.bookmark import BookmarkFilterMixin
 from codex.views.browser.filters.field import ComicFieldFilter
 from codex.views.browser.filters.group import GroupFilterMixin
 from codex.views.browser.filters.search import SearchFilterMixin
@@ -19,7 +20,9 @@ from codex.views.browser.filters.search import SearchFilterMixin
 LOG = get_logger(__name__)
 
 
-class BrowserBaseView(ComicFieldFilter, SearchFilterMixin, GroupFilterMixin):
+class BrowserBaseView(
+    ComicFieldFilter, BookmarkFilterMixin, GroupFilterMixin, SearchFilterMixin
+):
     """Browse comics with a variety of filters and sorts."""
 
     input_serializer_class = BrowserSettingsSerializer
