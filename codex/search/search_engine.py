@@ -1,6 +1,7 @@
-"""Locking Xapian Backend."""
+"""Locking, Aliasing Xapian Backend."""
 # Without this locking xapian throws xapian.DatabaseLockError when
 # multiple workers contend for the database.
+# File locks have been submitted upstream, awaiting a new release.
 from pathlib import Path
 
 from filelock import FileLock
@@ -23,7 +24,7 @@ def filelocked(func):
 
 
 class CodexXapianSearchBackend(XapianSearchBackend):
-    """Override methods to use locks."""
+    """Override methods to use locks and add synonyms to writable database."""
 
     _SEARCH_FIELD_ALIASES = {
         "ltr": "read_ltr",
@@ -79,7 +80,8 @@ class CodexUnifiedIndex(UnifiedIndex):
     """Custom Codex Unified Index."""
 
     def collect_indexes(self):
-        """Replace auto search_index finding with one exact instance."""
+        """Replace auto app.search_index finding with one exact instance."""
+        # Because i moved search_indexes into codex.search
         return [ComicIndex()]
 
 
