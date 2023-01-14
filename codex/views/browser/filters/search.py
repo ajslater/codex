@@ -20,12 +20,13 @@ LOG = get_logger(__name__)
 class SearchFilterPreparserMixin(BookmarkFilterMixin):
     """Preparse Search query text."""
 
-    # Ideally this would be part of a custom XapianBackend
-
     DATE_FORMAT = DATETIME_FORMAT.removesuffix("%H%M%S")
     RANGE_OPERATOR_LT_RE = re.compile("^<=?")
     RANGE_OPERATOR_GT_RE = re.compile("^>=?")
     RANGE_DELIMITER = ".."
+    DATE_FIELDS = frozenset(("date",))
+    DATETIME_FIELDS = frozenset(("created_at", "updated_at"))
+    FILESIZE_FIELDS = frozenset(("size",))
 
     @staticmethod
     def _parse_datetime(value, format=DATETIME_FORMAT):
@@ -79,10 +80,21 @@ class SearchFilterPreparserMixin(BookmarkFilterMixin):
         return token_value
 
     @classmethod
+    def _parse_special_values(cls, token_field, token_value):
+        """Parse Dates, Datetimes, and File Size."""
+        if token_field in cls.DATE_FIELDS:
+            token_value = cls._parse_search_token_value(cls._parse_date, token_value)
+        elif token_field in cls.DATETIME_FIELDS:
+            token_value = cls._parse_search_token_value(
+                cls._parse_datetime, token_value
+            )
+        elif token_field in cls.FILESIZE_FIELDS:
+            token_value = cls._parse_search_token_value(cls._parse_size, token_value)
+        return token_value
+
+    @classmethod
     def _parse_range_value(cls, token_value):
         """Parse custom range values."""
-        # Range TODO: patch XHValueRangeProcessor
-        # add date type and datetime type
         token_value = cls.RANGE_OPERATOR_LT_RE.sub(
             cls.RANGE_DELIMITER, token_value, count=1
         )
@@ -90,8 +102,7 @@ class SearchFilterPreparserMixin(BookmarkFilterMixin):
             "", token_value, count=1
         )
         if number_of_subs_made:
-            token_value += cls.RANGE_DELIMITER + "*"
-        # TODO: patch XHValueRangeProcessor
+            token_value += cls.RANGE_DELIMITER
         # Fix a haystack xapian-backend.XHValueRangeProcessor range bug?
         # https://github.com/notanumber/xapian-haystack/issues/217
         if token_value.endswith(cls.RANGE_DELIMITER):
@@ -99,22 +110,8 @@ class SearchFilterPreparserMixin(BookmarkFilterMixin):
         return token_value
 
     @classmethod
-    def _parse_special_values(cls, token_field, token_value):
-        """Parse Dates, Datetimes, and File Size."""
-        # TODO: patch xapian-backend._term_to_xapian_value
-        if token_field == "date":
-            token_value = cls._parse_search_token_value(cls._parse_date, token_value)
-        elif token_field in ("updated_at", "created_at"):
-            token_value = cls._parse_search_token_value(
-                cls._parse_datetime, token_value
-            )
-        elif token_field == "size":
-            token_value = cls._parse_search_token_value(cls._parse_size, token_value)
-        return token_value
-
-    @classmethod
     def _parse_token(cls, token):
-        """Convert aliased search fields and extract the bookmark query."""
+        """Parse special operators and tokens for field queries."""
         try:
             # Parse token as a field
             token_parts = token.split(":")
@@ -140,11 +137,11 @@ class SearchFilterPreparserMixin(BookmarkFilterMixin):
 
         return token
 
-    def _preparse_query_text(self):
+    def _preparse_query_text(self, query_string):
         """Preprocess query string by aliasing fields and extracting bookmark query."""
         haystack_tokens = []
 
-        query_tokens = self.params.get("q", "").split(" ")  # type: ignore
+        query_tokens = query_string.split(" ")  # type: ignore
         for token in query_tokens:
             if not token:
                 continue
@@ -200,7 +197,8 @@ class SearchFilterMixin(SearchFilterPreparserMixin):
         """Preparse search, search and return the filter and scores."""
         try:
             # Parse out the bookmark filter and get the remaining tokens
-            haystack_text = self._preparse_query_text()
+            query_string = self.params.get("q", "")  # type: ignore
+            haystack_text = self._preparse_query_text(query_string)
 
             # Query haystack
             (
