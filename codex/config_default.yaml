@@ -2,7 +2,7 @@ comicbox:
   comet: True
   comicbookinfo: True
   comicinfoxml: True
-  delete_rar: False
+  delete_orig: False
   delete_tags: False
   dest_path: .
   dry_run: False
