@@ -9,7 +9,6 @@ from django.conf import settings
 from django.contrib.auth.models import Group
 from django.contrib.sessions.models import Session
 from django.core.exceptions import ValidationError
-from django.db import connection
 from django.db.models import (
     CASCADE,
     BooleanField,
@@ -19,7 +18,6 @@ from django.db.models import (
     DecimalField,
     DurationField,
     ForeignKey,
-    Index,
     JSONField,
     ManyToManyField,
     Model,
@@ -533,38 +531,6 @@ class FailedImport(WatchedPath):
         unique_together = ("library", "path")
 
 
-class SearchQuery(Model):
-    """Search queries."""
-
-    QUERY_MAX_LENGTH = 256
-
-    text = CharField(db_index=True, unique=True, max_length=QUERY_MAX_LENGTH)
-    used_at = DateTimeField(auto_now_add=True, db_index=True)
-
-
-class SearchResult(Model):
-    """results model."""
-
-    query = ForeignKey(SearchQuery, on_delete=CASCADE)
-    comic = ForeignKey(Comic, on_delete=CASCADE)
-    score = PositiveSmallIntegerField()
-
-    @classmethod
-    def truncate_and_reset(cls):
-        """Nuke this table and reset the autoincrementer."""
-        cls.objects.all().delete()
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "UPDATE sqlite_sequence SET seq=1 WHERE name=%s", [cls._meta.db_table]
-            )
-
-    class Meta:
-        """These are usually looked up by comic & autoquery hash."""
-
-        unique_together = ("query", "comic")
-        indexes = [Index(fields=["comic", "query"])]
-
-
 class LibrarianStatus(NamedModel):
     """Active Library Tasks."""
 
@@ -601,8 +567,8 @@ class Timestamp(NamedModel):
     JANITOR = "janitor"
     SEARCH_INDEX = "search_index"
     CODEX_VERSION = "codex_version"
-    XAPIAN_INDEX_UUID = "xapian_index_uuid"
-    NAMES = (COVERS, JANITOR, SEARCH_INDEX, CODEX_VERSION, XAPIAN_INDEX_UUID)
+    SEARCH_INDEX_UUID = "search_index_uuid"
+    NAMES = (COVERS, JANITOR, SEARCH_INDEX, CODEX_VERSION, SEARCH_INDEX_UUID)
 
     version = CharField(max_length=32, default="")
 

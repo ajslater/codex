@@ -1,9 +1,10 @@
 <template>
   <v-dialog
     v-model="dialog"
-    fullscreen
-    transition="dialog-bottom-transition"
     content-class="browserSearchHelp"
+    fullscreen
+    :scrim="false"
+    transition="dialog-bottom-transition"
   >
     <template #activator="{ props }">
       <v-list-item v-bind="props">
@@ -23,7 +24,7 @@
       <h1>Search Syntax Help</h1>
       <div id="fieldTableContainer">
         <h2>Search Fields</h2>
-        <table id="fieldTable" class="highlight-table">
+        <v-table id="fieldTable" class="highlight-table">
           <thead>
             <tr>
               <th>Field</th>
@@ -38,7 +39,7 @@
               <td>{{ row[2] }}</td>
             </tr>
           </tbody>
-        </table>
+        </v-table>
       </div>
       <div id="textContainer">
         <h2>Xapian Query Parser</h2>
@@ -62,11 +63,7 @@
         <h3>Dates and DateTimes</h3>
         <p>
           Codex parses Dates and DateTime values liberally. If the format you
-          enter fails, the
-          <a href="https://en.wikipedia.org/wiki/ISO_8601" target="_blank"
-            >ISO 8601 format<v-icon size="small">{{ mdiOpenInNew }}</v-icon></a
-          >
-          is reliable.
+          try fails, the YYYYMMDDHHmmSS format is reliable.
         </p>
         <h3>Size Byte Multipliers</h3>
         <p>
@@ -80,7 +77,9 @@
           Codex uses two dots <code>..</code> to delineate a range search in a
           field value. If you leave out the upper or lower bound, the wildcard
           <code>*</code> will tacitily take it's place. Range tokens look like
-          <code>field:lower..upper</code>
+          <code>field:lower..upper</code>, <code>field:lower..</code>,
+          <code>field:..upper</code>, <code>field:&gt;lower</code>, or
+          <code>field:&lt;upper</code>
           Be careful your range search doesn't contain three or more dots. This
           will cause codex to discard the upper bound value.
         </p>
@@ -99,7 +98,7 @@
           many features for demonstration:
         </p>
         <code>
-          Holmes AND Tesla date:1999-1-2.. size:10mib..1gb Gadzooks NEAR
+          Holmes AND Tesla date:>=1999-1-2 size:10mib..1gb Gadzooks NEAR
           "Captain Nemo" -Quartermain
         </code>
         <p style="margin-top: 1em">
@@ -153,7 +152,6 @@ const FIELD_ROWS = [
   ["format", "String", ""],
   ["genres", "CSV", "genre"],
   ["imprint", "String", ""],
-  ["in_progress", "Boolean", "reading"],
   ["issue", "Decimal", ""],
   ["language", "String", ""],
   ["locations", "CSV", "location"],
@@ -173,7 +171,6 @@ const FIELD_ROWS = [
   ["tags", "CSV", "tag"],
   ["teams", "CSV", "team"],
   ["updated_at", "Date", "updated"],
-  ["unread", "Boolean", "finished, read"],
   ["volume", "String", ""],
   ["web", "String", ""],
   ["year", "Integer", ""],
@@ -195,8 +192,8 @@ export default {
 
 <style scoped lang="scss">
 @import "../anchors.scss";
-.browserSearchHelp {
-  overflow-y: auto;
+:deep(.browserSearchHelp) {
+  overflow-y: auto !important;
 }
 #searchHelp {
   max-width: 850px;
@@ -209,6 +206,7 @@ export default {
 h1,
 h2,
 h3 {
+  margin-top: 0.25em;
   color: rgb(var(--v-theme-textHeader));
 }
 h1 {

@@ -40,13 +40,6 @@ export default {
         ov === undefined
       ) {
         ov = "";
-      } else if (this.orderBy == "page_count") {
-        const human = humanize.numberFormat(Number.parseInt(ov, 10), 0);
-        ov = `${human} pages`;
-      } else if (this.orderBy == "size") {
-        ov = humanize.filesize(Number.parseInt(ov, 10), 1024, 1);
-      } else if (STAR_SORT_BY.has(this.orderBy)) {
-        ov = `★  ${ov}`;
       } else if (DATE_SORT_BY.has(this.orderBy)) {
         const date = new Date(ov);
         ov = DATE_FORMAT.format(date);
@@ -54,6 +47,13 @@ export default {
         const date = new Date(ov);
         // this is what needs v-html to work
         ov = DATETIME_FORMAT.format(date).replace(", ", "<br />");
+      } else if (this.orderBy == "page_count") {
+        const human = humanize.numberFormat(Number.parseInt(ov, 10), 0);
+        ov = `${human} pages`;
+      } else if (this.orderBy == "size") {
+        ov = humanize.filesize(Number.parseInt(ov, 10), 1024, 1);
+      } else if (STAR_SORT_BY.has(this.orderBy)) {
+        ov = `★  ${ov}`;
       }
       return ov;
     },

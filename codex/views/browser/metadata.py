@@ -171,7 +171,7 @@ class MetadataView(BrowserMetadataBaseView):
         if not self.is_model_comic:
             size_func = self.get_aggregate_func("size", self.is_model_comic)
             qs = qs.annotate(size=size_func)
-        qs = self.annotate_common_aggregates(qs, self.model)
+        qs = self.annotate_common_aggregates(qs, self.model, {})
         return qs
 
     def _annotate_values_and_fks(self, qs, simple_qs):
@@ -306,9 +306,14 @@ class MetadataView(BrowserMetadataBaseView):
 
         qs = self._annotate_values_and_fks(qs, simple_qs)
         m2m_intersections = self._query_m2m_intersections(simple_qs)
-        obj = qs.values()[0]
-        if not obj:
-            raise NotFound(detail=f"Metadata for {self.group}/{pk} not found")
+        try:
+            obj = qs.values()[0]
+            if not obj:
+                raise IndexError("Empty obj")
+        except IndexError as exc:
+            raise NotFound(
+                detail=f"Filtered metadata for {self.group}/{pk} not found"
+            ) from exc
 
         obj = self._copy_annotations_into_comic_fields(obj, m2m_intersections)
         return obj

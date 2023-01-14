@@ -6,6 +6,18 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.0.4
+
+- Features
+  - Add >, <, <=, >= range operators for search.
+  - Do not store search history for combobox across sessions.
+  - Remove awkward bookmark searching from search bar.
+- Fix
+  - Fix leading NOT for search
+  - Fix trailing wildcard search
+  - Don't pop out of folder mode on searches.
+  - Set id scope to all (0) on first search.
+
 ## v1.0.3
 
 - Features
