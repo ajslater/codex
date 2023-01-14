@@ -170,7 +170,7 @@ export const useBrowserStore = defineStore("browser", {
       data.orderBy = "search_score";
       data.orderReverse = true;
       const params = router.currentRoute.value.params;
-      if (["f", this.lowestShownGroup].has(params.group)) {
+      if (["f", this.lowestShownGroup].includes(params.group)) {
         return;
       }
       return { params: { group: this.lowestShownGroup, pk: 0, page: 1 } };
