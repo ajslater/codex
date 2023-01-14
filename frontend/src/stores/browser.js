@@ -169,12 +169,11 @@ export const useBrowserStore = defineStore("browser", {
       }
       data.orderBy = "search_score";
       data.orderReverse = true;
-
       const params = router.currentRoute.value.params;
-      if (params.group === this.lowestShownGroup) {
+      if (["f", this.lowestShownGroup].has(params.group)) {
         return;
       }
-      return { params: { ...params, group: this.lowestShownGroup } };
+      return { params: { group: this.lowestShownGroup, pk: 0, page: 1 } };
     },
     _validateNewTopGroupIsParent(data, redirect) {
       // If the top group changed and we're at the root group and the new top group is above the proper nav group
