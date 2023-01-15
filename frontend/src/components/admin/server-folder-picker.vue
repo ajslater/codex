@@ -1,32 +1,33 @@
 <template>
-  <v-combobox
-    ref="folderPicker"
-    v-model="path"
-    variant="filled"
-    class="folderPicker"
-    v-bind="$attrs"
-    :append-icon="mdiFileTree"
-    :items="folders"
-    :error-messages="formErrors"
-    :menu-props="{ 'model-value': menuOpen }"
-    @blur="toggleMenu(false)"
-    @update:model-value="change"
-    @click:append="toggleMenu()"
-    @focus="clearErrors"
-  >
-    <template #append>
-      <v-tooltip top :open-delay="2000">
-        <template #activator="{ props }">
-          <v-icon v-bind="props" @click="toggleHidden">
-            {{ appendOuterIcon }}
-          </v-icon>
-        </template>
-        <span class="tooltip"
-          >{{ showHiddenTooltipPrefix }} Hidden Folders</span
-        >
-      </v-tooltip>
-    </template>
-  </v-combobox>
+  <div id="folderPicker">
+    <v-combobox
+      ref="folderPicker"
+      v-model="path"
+      v-model:menu="menuOpen"
+      v-bind="$attrs"
+      aria-label="Library folder"
+      clearable
+      :error-messages="formErrors"
+      full-width
+      hide-details="auto"
+      hide-selected
+      :items="folders"
+      :menu-props="{ maxHeight: '300px' }"
+      no-filter
+      validate-on="blur"
+      variant="filled"
+      @blur="onBlur"
+      @click:clear="onClear"
+      @focus="onFocus"
+      @update:model-value="onUpdateModelValue"
+    />
+    <v-checkbox
+      v-model="showHidden"
+      class="showHidden"
+      hide-details="auto"
+      label="Show Hidden Folders"
+    />
+  </div>
 </template>
 
 <script>
@@ -42,6 +43,7 @@ export default {
   data() {
     return {
       path: "",
+      originalPath: "",
       showHidden: false,
       menuOpen: false,
       mdiFileTree,
@@ -75,6 +77,7 @@ export default {
     this.loadFolders()
       .then(() => {
         this.path = this.rootFolder;
+        this.originalPath = this.rootFolder;
         return true;
       })
       .catch(console.warn);
@@ -88,10 +91,13 @@ export default {
           ? path
           : [this.rootFolder, path].join("/")
         : this.rootFolder;
-      const isMenuActive = this.$refs.folderPicker.isMenuActive;
+      const isMenuActive = this.$refs.folderPicker.isMenuActive; // TODO try to replace without ref
       this.clearErrors();
       this.loadFolders(relativePath, this.showHidden)
         .then(() => {
+          if (this.formErrors.length > 0) {
+            return;
+          }
           this.path = this.rootFolder;
           // This keeps the menu scrolling after a menu click.
           this.$refs.folderPicker.isMenuActive = isMenuActive;
@@ -110,15 +116,36 @@ export default {
       this.showHidden = !this.showHidden;
       this.change(this.path);
     },
+    onAppend() {
+      this.toggleMenu();
+    },
+    onBlur() {
+      this.focus = false;
+      this.toggleMenu(false);
+      this.change(this.path);
+    },
+    onFocus() {
+      this.focus = true;
+    },
+    onUpdateModelValue(event) {
+      if (!this.focus) {
+        this.change(event);
+      }
+    },
+    onClear() {
+      this.clearErrors();
+      this.change(this.originalPath);
+    },
   },
 };
 </script>
 
 <style scoped lang="scss">
-.showHidden {
-  margin-right: auto;
+#folderPicker {
+  background-color: rgb(var(--v-theme-surface));
+  border-radius: 5px;
 }
-.tooltip {
-  color: rgb(var(--v-theme-textPrimary));
+:deep(.showHidden .v-label) {
+  color: rgb(var(--v-theme-textSecondary));
 }
 </style>

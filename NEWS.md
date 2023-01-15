@@ -17,6 +17,7 @@ border-radius: 128px;
   - Fix trailing wildcard search
   - Don't pop out of folder mode on searches.
   - Set id scope to all (0) on first search.
+  - Fix Admin Library folder picker getting stuck.
 
 ## v1.0.3
 
