@@ -36,4 +36,12 @@ class Migration(migrations.Migration):
         migrations.DeleteModel(
             name="SearchResult",
         ),
+        migrations.AlterModelOptions(
+            name="librarianstatus",
+            options={"verbose_name_plural": "LibrarianStatuses"},
+        ),
+        migrations.AlterModelOptions(
+            name="library",
+            options={"verbose_name_plural": "Libraries"},
+        ),
     ]

@@ -156,7 +156,7 @@ class Library(BaseModel):
     class Meta:
         """Pluralize."""
 
-        verbose_name_plural = "libraries"
+        verbose_name_plural = "Libraries"
 
 
 class NamedModel(BaseModel):
@@ -558,6 +558,7 @@ class LibrarianStatus(NamedModel):
         """Constraints."""
 
         unique_together = ("type", "name")
+        verbose_name_plural = "LibrarianStatuses"
 
 
 class Timestamp(NamedModel):
