@@ -35,7 +35,13 @@ class Notifier(AggregateMessageQueuedThread):
         if msg.get("register"):
             conns.add(send)
         else:
-            conns.discard(send)
+            cls.unsubscribe(send)
+
+    @classmethod
+    def unsubscribe(cls, send):
+        """Unsub from all conns."""
+        for conn in cls.CONNS.values():
+            conn.discard(send)
 
     @staticmethod
     async def _send_msg(conns, send_msg):
