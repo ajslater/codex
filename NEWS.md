@@ -20,6 +20,7 @@ border-radius: 128px;
   - Set id scope to all (0) on first search.
   - Fix Admin Library folder picker getting stuck.
   - Uatu does a better job of ignoring device changes.
+  - Fix showing error on unable to load comic image.
 
 ## v1.0.3
 
