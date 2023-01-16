@@ -1,7 +1,6 @@
 <template>
   <div id="folderPicker">
     <v-combobox
-      ref="folderPicker"
       v-model="path"
       v-model:menu="menuOpen"
       v-bind="$attrs"
@@ -10,19 +9,26 @@
       :error-messages="formErrors"
       full-width
       hide-details="auto"
-      hide-selected
       :items="folders"
-      :menu-props="{ maxHeight: '300px' }"
-      no-filter
+      :menu-props="{ maxHeight: '370px' }"
       validate-on="blur"
       variant="filled"
       @blur="onBlur"
       @click:clear="onClear"
-      @focus="onFocus"
-      @update:model-value="onUpdateModelValue"
-    />
+      @keydown.enter="onKeyDownEnter"
+    >
+      <template #item="{ item, props }">
+        <v-list-item
+          v-bind="props"
+          :title="item.title"
+          :value="item.value"
+          @click="onItemClick(item.value)"
+        />
+      </template>
+    </v-combobox>
     <v-checkbox
       v-model="showHidden"
+      density="compact"
       class="showHidden"
       hide-details="auto"
       label="Show Hidden Folders"
@@ -31,7 +37,6 @@
 </template>
 
 <script>
-import { mdiFileTree, mdiFolderHidden, mdiFolderOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import { useAdminStore } from "@/stores/admin";
@@ -46,9 +51,6 @@ export default {
       originalPath: "",
       showHidden: false,
       menuOpen: false,
-      mdiFileTree,
-      mdiFolderHidden,
-      mdiFolderOutline,
     };
   },
   computed: {
@@ -59,10 +61,10 @@ export default {
     ...mapState(useCommonStore, {
       formErrors: (state) => state.form.errors,
     }),
-    appendOuterIcon: function () {
+    appendOuterIcon() {
       return this.showHidden ? this.mdiFolderHidden : this.mdiFolderOutline;
     },
-    showHiddenTooltipPrefix: function () {
+    showHiddenTooltipPrefix() {
       return this.showHidden ? "Hide" : "Show";
     },
   },
@@ -83,7 +85,7 @@ export default {
       .catch(console.warn);
   },
   methods: {
-    ...mapActions(useAdminStore, ["loadFolders"]),
+    ...mapActions(useAdminStore, ["clearFolders", "loadFolders"]),
     ...mapActions(useCommonStore, ["clearErrors"]),
     change: function (path) {
       const relativePath = path
@@ -91,50 +93,37 @@ export default {
           ? path
           : [this.rootFolder, path].join("/")
         : this.rootFolder;
-      const isMenuActive = this.$refs.folderPicker.isMenuActive; // TODO try to replace without ref
+      const isMenuOpen = this.menuOpen;
       this.clearErrors();
       this.loadFolders(relativePath, this.showHidden)
         .then(() => {
-          if (this.formErrors.length > 0) {
-            return;
+          // menuProps: closeOnContentClick doesn't seem to work.
+          //  menu still flashes, not great.
+          this.menuOpen = isMenuOpen;
+          let changePath = "";
+          if (this.formErrors.length === 0) {
+            this.path = changePath = this.rootFolder;
           }
-          this.path = this.rootFolder;
-          // This keeps the menu scrolling after a menu click.
-          this.$refs.folderPicker.isMenuActive = isMenuActive;
-          return this.$emit("change", this.path);
+          return this.$emit("change", changePath);
         })
         .catch(console.warn);
     },
-    toggleMenu: function (val) {
-      if (val === undefined) {
-        val = !this.menuOpen;
-      }
-      this.menuOpen = val;
-      this.$refs.folderPicker.isMenuActive = val;
-    },
-    toggleHidden: function () {
-      this.showHidden = !this.showHidden;
-      this.change(this.path);
-    },
-    onAppend() {
-      this.toggleMenu();
-    },
     onBlur() {
-      this.focus = false;
-      this.toggleMenu(false);
+      this.menuOpen = false;
       this.change(this.path);
-    },
-    onFocus() {
-      this.focus = true;
-    },
-    onUpdateModelValue(event) {
-      if (!this.focus) {
-        this.change(event);
-      }
     },
     onClear() {
-      this.clearErrors();
-      this.change(this.originalPath);
+      this.clearFolders(this.orignalPath)
+        .then(() => {
+          return this.change(this.orginalPath);
+        })
+        .catch(console.error);
+    },
+    onKeyDownEnter() {
+      this.change(this.path);
+    },
+    onItemClick(event) {
+      this.change(event);
     },
   },
 };
@@ -142,8 +131,8 @@ export default {
 
 <style scoped lang="scss">
 #folderPicker {
-  background-color: rgb(var(--v-theme-surface));
   border-radius: 5px;
+  background-color: rgb(var(--v-theme-surface));
 }
 :deep(.showHidden .v-label) {
   color: rgb(var(--v-theme-textSecondary));
