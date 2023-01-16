@@ -10,6 +10,7 @@ border-radius: 128px;
 
 - Features
   - Add >, <, <=, >= range operators for search.
+- Removed
   - Do not store search history for combobox across sessions.
   - Remove awkward bookmark searching from search bar.
 - Fix
