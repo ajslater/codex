@@ -9,7 +9,7 @@ VERSION_VAR=${VERSION_VAR//-/_}_VERSION
 ENV_FN=$(./docker/docker-env-filename.sh)
 # shellcheck disable=SC1090
 source "$ENV_FN"
-IMAGE="${REPO}:${!VERSION_VAR}"
+IMAGE="${REPO}:${VERSION_VAR}"
 if [ "${1:-}" == "-f" ]; then
     shift
 else
