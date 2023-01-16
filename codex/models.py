@@ -519,7 +519,7 @@ class FailedImport(WatchedPath):
     def set_reason(self, exc):
         """Can't do this in save() because it breaks update_or_create."""
         reason = str(exc)
-        suffixes = (f": {self.path}", f": '{self.path}'")
+        suffixes = (f": {self.path}", f": {self.path!r}")
         for suffix in suffixes:
             reason = reason.removesuffix(suffix)
         reason = reason[:MAX_NAME_LENGTH]

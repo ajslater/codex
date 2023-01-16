@@ -32,7 +32,7 @@ def backup_db():
         StatusControl.start(JanitorStatusTypes.DB_BACKUP)
         BACKUP_DB_PATH.unlink(missing_ok=True)
         with connection.cursor() as cursor:
-            cursor.execute(f"VACUUM INTO '{BACKUP_DB_PATH}'")
+            cursor.execute(f"VACUUM INTO {BACKUP_DB_PATH!r}")
         LOG.verbose("Backed up database.")
     finally:
         StatusControl.finish(JanitorStatusTypes.DB_BACKUP)
