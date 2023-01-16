@@ -36,8 +36,8 @@ const getZeroPad = function (issueMax) {
   return !issueMax || issueMax < 1 ? 1 : Math.floor(Math.log10(issueMax)) + 1;
 };
 const redirectRoute = function (route) {
-  if (route.params) {
-    router.push(route).catch(console.debug);
+  if (route && route.params) {
+    router.push(route).catch(console.warn);
   }
 };
 
@@ -247,7 +247,7 @@ export const useBrowserStore = defineStore("browser", {
     routeToPage(page) {
       const route = _.cloneDeep(router.currentRoute.value);
       route.params.page = page;
-      router.push(route).catch(console.debug);
+      router.push(route).catch(console.warn);
     },
     handlePageError(error) {
       if (HTTP_REDIRECT_CODES.has(error.response.status)) {
