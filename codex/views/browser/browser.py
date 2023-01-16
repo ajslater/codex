@@ -38,20 +38,20 @@ from codex.serializers.opds_v1 import (
 )
 from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
-from codex.views.browser.browser_metadata_base import BrowserMetadataBaseView
+from codex.views.browser.browser_annotations import BrowserAnnotationsView
 
 
 LOG = get_logger(__name__)
 
 
-class BrowserView(BrowserMetadataBaseView):
+class BrowserView(BrowserAnnotationsView):
     """Browse comics with a variety of filters and sorts."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
     serializer_class = BrowserPageSerializer
 
     _MODEL_GROUP_MAP = {
-        v: k for k, v in BrowserMetadataBaseView.GROUP_MODEL_MAP.items()
+        v: k for k, v in BrowserAnnotationsView.GROUP_MODEL_MAP.items()
     }
     _NAV_GROUPS = "rpisv"
     MAX_OBJ_PER_PAGE = 100
@@ -575,7 +575,7 @@ class BrowserView(BrowserMetadataBaseView):
             settings_mask = {"order_by": "sort_name"}
             self._raise_redirect(route_changes, reason, settings_mask)
 
-    @extend_schema(request=BrowserMetadataBaseView.input_serializer_class)
+    @extend_schema(request=BrowserAnnotationsView.input_serializer_class)
     def get(self, _request, *args, **kwargs):
         """Get browser settings."""
         self.parse_params()

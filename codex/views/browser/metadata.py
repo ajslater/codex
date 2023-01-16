@@ -13,13 +13,13 @@ from codex.serializers.metadata import (
 )
 from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
-from codex.views.browser.browser_metadata_base import BrowserMetadataBaseView
+from codex.views.browser.browser_annotations import BrowserAnnotationsView
 
 
 LOG = get_logger(__name__)
 
 
-class MetadataView(BrowserMetadataBaseView):
+class MetadataView(BrowserAnnotationsView):
     """Comic metadata."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
@@ -331,7 +331,7 @@ class MetadataView(BrowserMetadataBaseView):
             raise NotFound(detail=f"Cannot get metadata for {self.group=}")
         self.is_model_comic = self.group == self.COMIC_GROUP
 
-    @extend_schema(request=BrowserMetadataBaseView.input_serializer_class)
+    @extend_schema(request=BrowserAnnotationsView.input_serializer_class)
     def get(self, _request, *args, **kwargs):
         """Get metadata for a filtered browse group."""
         # Init
