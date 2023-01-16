@@ -22,3 +22,10 @@ class UpdaterDBDiffTask(UpdaterTask):
     files_created: frozenset
     dirs_deleted: frozenset
     files_deleted: frozenset
+
+
+@dataclass
+class AdoptOrphanFoldersTask(UpdaterTask):
+    """Move orphaned folders into a correct tree position."""
+
+    pass

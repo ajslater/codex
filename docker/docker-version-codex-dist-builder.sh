@@ -26,11 +26,9 @@ DEPS=(
     .shellcheckrc
     dist-builder.Dockerfile
     build-dist.sh
-    build-frontend.sh
     collectstatic.sh
     lint.sh
     lint-backend.sh
-    lint-frontend.sh
     manage.py
     pm
     package.json
@@ -39,7 +37,6 @@ DEPS=(
     poetry.lock
     setup.cfg
     test-backend.sh
-    test-frontend.sh
     "${SOURCE_DEPS[@]}"
 )
 

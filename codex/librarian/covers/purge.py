@@ -52,9 +52,12 @@ def purge_comic_covers(comic_pks):
 def purge_all_comic_covers():
     """Purge every comic cover."""
     LOG.verbose("Removing entire comic cover cache.")
-    shutil.rmtree(COVER_ROOT)
+    try:
+        shutil.rmtree(COVER_ROOT)
+        LOG.info("Removed entire comic cover cache.")
+    except Exception as exc:
+        LOG.warning(exc)
     Timestamp.touch(Timestamp.COVERS)
-    LOG.info("Removed entire comic cover cache.")
     LIBRARIAN_QUEUE.put(LIBRARY_CHANGED_TASK)
 
 

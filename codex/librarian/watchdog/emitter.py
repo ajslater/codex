@@ -42,28 +42,26 @@ class CodexDatabaseSnapshot(DirectorySnapshot):
             yield model.objects.filter(library__path=root).values("path", "stat")
 
     @staticmethod
-    def _create_stat_from_db_stat(wp_path, params, stat, root_st_dev, force):
+    def _create_stat_from_db_stat(wp, stat_func, force):
         """Handle null or zeroed out database stat entries."""
-        if not params or len(params) != 10 or not params[1]:
+        stat = wp.get("stat")
+        if not stat or len(stat) != 10 or not stat[1]:
+            path = Path(wp.get("path"))
             # Ensure valid params
-            if Path(wp_path).exists():
-                LOG.debug(f"Force modify path with bad db record: {wp_path}")
-                params = list(stat(wp_path))
+            if path.exists():
+                LOG.debug(f"Force modify path with bad db record: {path}")
+                stat = list(stat_func(path))
                 # Fake mtime will trigger a modified event
-                params[8] = 0.0
+                stat[8] = 0.0
             else:
-                LOG.debug(f"Force delete path with bad db record: {wp_path}")
+                LOG.debug(f"Force delete path with bad db record: {path}")
                 # This will trigger a deleted event
-                params = Comic.ZERO_STAT
+                stat = Comic.ZERO_STAT
 
-        # Use the library's sampled st_dev. It changes every
-        # time with docker so storing it in the db would cause
-        # mass deletes.
-        params[2] = root_st_dev
         if force:
             # Fake mtime will trigger modified event
-            params[8] = 0.0
-        st = os.stat_result(tuple(params))
+            stat[8] = 0.0
+        st = os.stat_result(tuple(stat))
         return st
 
     def _set_lookups(self, path, st):
@@ -90,14 +88,10 @@ class CodexDatabaseSnapshot(DirectorySnapshot):
         # Add the library root
         root_stat = stat(path)
         self._set_lookups(path, root_stat)
-        root_st_dev = root_stat.st_dev
 
         for wp in chain.from_iterable(self._walk(path)):
-            wp_path = wp["path"]
-            st = self._create_stat_from_db_stat(
-                wp_path, wp.get("stat"), stat, root_st_dev, force
-            )
-            self._set_lookups(wp_path, st)
+            st = self._create_stat_from_db_stat(wp, stat, force)
+            self._set_lookups(wp["path"], st)
 
 
 class DatabasePollingEmitter(EventEmitter):
@@ -213,7 +207,8 @@ class DatabasePollingEmitter(EventEmitter):
             LOG.verbose(f"{dir_snapshot.paths=}")
             return
 
-        return DirectorySnapshotDiff(db_snapshot, dir_snapshot)
+        # Ignore device for docker and other complex filesystems
+        return DirectorySnapshotDiff(db_snapshot, dir_snapshot, ignore_device=True)
 
     def _queue_events(self, diff):
         """Create and queue the events from the diff."""

@@ -11,7 +11,7 @@
     <template #item="{ item, props }">
       <!-- Divider in items not implemented yet in Vuetify 3 -->
       <v-divider v-if="item.value === 'f'" />
-      <v-list-item :value="item.value" :title="item.title" v-bind="props" />
+      <v-list-item v-bind="props" :title="item.title" :value="item.value" />
     </template>
   </ToolbarSelect>
 </template>

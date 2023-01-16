@@ -1,5 +1,6 @@
 <template>
   <v-main id="readerWrapper">
+    <BookChangeDrawer direction="prev" />
     <div v-if="isCodexViewable" id="readerContainer">
       <v-slide-y-transition>
         <ReaderTitleToolbar v-show="showToolbars" />
@@ -16,6 +17,7 @@
       </h1>
     </div>
   </v-main>
+  <BookChangeDrawer direction="next" />
   <SettingsDrawer
     title="Reader Settings"
     :panel="ReaderSettingsSuperPanel"
@@ -27,6 +29,7 @@
 import { mapActions, mapGetters, mapState } from "pinia";
 import { markRaw } from "vue";
 
+import BookChangeDrawer from "@/components/reader/book-change-drawer.vue";
 import BooksWindow from "@/components/reader/pages-window.vue";
 import ReaderNavToolbar from "@/components/reader/reader-nav-toolbar.vue";
 import ReaderSettingsSuperPanel from "@/components/reader/reader-settings-super-panel.vue";
@@ -39,6 +42,7 @@ import { useReaderStore } from "@/stores/reader";
 export default {
   name: "MainReader",
   components: {
+    BookChangeDrawer,
     BooksWindow,
     ReaderNavToolbar,
     ReaderTitleToolbar,
@@ -57,10 +61,10 @@ export default {
     }),
   },
   watch: {
-    user: function () {
+    user() {
       this.loadReaderSettings();
     },
-    isCodexViewable: function () {
+    isCodexViewable() {
       this.loadReaderSettings();
     },
   },
@@ -70,7 +74,7 @@ export default {
   },
   methods: {
     ...mapActions(useReaderStore, ["loadReaderSettings"]),
-    toggleToolbars: function () {
+    toggleToolbars() {
       this.showToolbars = !this.showToolbars;
     },
   },

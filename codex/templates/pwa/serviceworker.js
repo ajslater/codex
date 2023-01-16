@@ -13,7 +13,6 @@ var FILES_TO_CACHE = [
 self.addEventListener("install", (event) => {
   this.skipWaiting();
   event.waitUntil(
-    // eslint-disable-next-line security/detect-non-literal-fs-filename
     caches.open(STATIC_CACHE_NAME).then((cache) => {
       return cache.addAll(FILES_TO_CACHE);
     })

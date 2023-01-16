@@ -9,15 +9,15 @@
   <div v-else>{{ oldRow.path }}</div>
   <v-checkbox
     v-model="row.events"
-    density="compact"
+    hide-details="auto"
     hint="Update Codex instantly when the filesystem changes"
     label="Watch Filesystem Events"
     :persistent-hint="true"
   />
   <v-checkbox
     v-model="row.poll"
-    density="compact"
     label="Poll Filesystem"
+    hide-details="auto"
     hint="Periodically poll the library for changes"
     :persistent-hint="true"
   />

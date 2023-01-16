@@ -117,14 +117,14 @@ workflows:
               only:
                 - develop
                 - pre-release
-                - release
+                - main
                 - /.*-ci/
       - build-base-arm64: &filters-release
           filters:
             branches:
               only:
                 - pre-release
-                - release
+                - main
       - build-dist:
           <<: *filters-all
           requires:

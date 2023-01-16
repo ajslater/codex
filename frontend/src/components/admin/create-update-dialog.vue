@@ -94,7 +94,12 @@ export default {
     },
     change(event) {
       this.row = event;
-      this.submitButtonEnabled = this.validate();
+      this.submitButtonEnabled = this.validate()
+        .then((valid) => {
+          this.submitButtonEnabled = valid;
+          return valid;
+        })
+        .catch(console.warn);
     },
     getRow(show) {
       if (!show || !this.oldRow) {
@@ -145,7 +150,7 @@ export default {
             return this.doCreate();
           }
         })
-        .catch(console.warning);
+        .catch(console.warn);
     },
   },
 };

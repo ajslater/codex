@@ -7,10 +7,10 @@
     @click="click"
   >
     <template #prev>
-      <BookChangeDrawer direction="prev" />
+      <BookChangeActivator direction="prev" />
     </template>
     <template #next>
-      <BookChangeDrawer direction="next" />
+      <BookChangeActivator direction="next" />
     </template>
     <v-window-item
       v-for="[pk, book] of books"
@@ -29,13 +29,15 @@
 <script>
 import { mapActions, mapState } from "pinia";
 
-import BookChangeDrawer from "@/components/reader/book-change-drawer.vue";
+import BookChangeActivator from "@/components/reader/book-change-activator.vue";
+import PagesWindow from "@/components/reader/pages-window.vue";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
   name: "BooksWindow",
   components: {
-    BookChangeDrawer,
+    BookChangeActivator,
+    PagesWindow,
   },
   emits: ["click"],
   computed: {

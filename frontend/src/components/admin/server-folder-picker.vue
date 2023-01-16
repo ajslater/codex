@@ -1,36 +1,42 @@
 <template>
-  <v-combobox
-    ref="folderPicker"
-    v-model="path"
-    variant="filled"
-    class="folderPicker"
-    v-bind="$attrs"
-    :append-icon="mdiFileTree"
-    :items="folders"
-    :error-messages="formErrors"
-    :menu-props="{ 'model-value': menuOpen }"
-    @blur="toggleMenu(false)"
-    @update:model-value="change"
-    @click:append="toggleMenu()"
-    @focus="clearErrors"
-  >
-    <template #append>
-      <v-tooltip top :open-delay="2000">
-        <template #activator="{ props }">
-          <v-icon v-bind="props" @click="toggleHidden">
-            {{ appendOuterIcon }}
-          </v-icon>
-        </template>
-        <span class="tooltip"
-          >{{ showHiddenTooltipPrefix }} Hidden Folders</span
-        >
-      </v-tooltip>
-    </template>
-  </v-combobox>
+  <div id="folderPicker">
+    <v-combobox
+      v-model="path"
+      v-model:menu="menuOpen"
+      v-bind="$attrs"
+      aria-label="Library folder"
+      clearable
+      :error-messages="formErrors"
+      full-width
+      hide-details="auto"
+      :items="folders"
+      :menu-props="{ maxHeight: '370px' }"
+      validate-on="blur"
+      variant="filled"
+      @blur="onBlur"
+      @click:clear="onClear"
+      @keydown.enter="onKeyDownEnter"
+    >
+      <template #item="{ item, props }">
+        <v-list-item
+          v-bind="props"
+          :title="item.title"
+          :value="item.value"
+          @click="onItemClick(item.value)"
+        />
+      </template>
+    </v-combobox>
+    <v-checkbox
+      v-model="showHidden"
+      density="compact"
+      class="showHidden"
+      hide-details="auto"
+      label="Show Hidden Folders"
+    />
+  </div>
 </template>
 
 <script>
-import { mdiFileTree, mdiFolderHidden, mdiFolderOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import { useAdminStore } from "@/stores/admin";
@@ -42,11 +48,9 @@ export default {
   data() {
     return {
       path: "",
+      originalPath: "",
       showHidden: false,
       menuOpen: false,
-      mdiFileTree,
-      mdiFolderHidden,
-      mdiFolderOutline,
     };
   },
   computed: {
@@ -57,10 +61,10 @@ export default {
     ...mapState(useCommonStore, {
       formErrors: (state) => state.form.errors,
     }),
-    appendOuterIcon: function () {
+    appendOuterIcon() {
       return this.showHidden ? this.mdiFolderHidden : this.mdiFolderOutline;
     },
-    showHiddenTooltipPrefix: function () {
+    showHiddenTooltipPrefix() {
       return this.showHidden ? "Hide" : "Show";
     },
   },
@@ -75,12 +79,13 @@ export default {
     this.loadFolders()
       .then(() => {
         this.path = this.rootFolder;
+        this.originalPath = this.rootFolder;
         return true;
       })
       .catch(console.warn);
   },
   methods: {
-    ...mapActions(useAdminStore, ["loadFolders"]),
+    ...mapActions(useAdminStore, ["clearFolders", "loadFolders"]),
     ...mapActions(useCommonStore, ["clearErrors"]),
     change: function (path) {
       const relativePath = path
@@ -88,37 +93,48 @@ export default {
           ? path
           : [this.rootFolder, path].join("/")
         : this.rootFolder;
-      const isMenuActive = this.$refs.folderPicker.isMenuActive;
+      const isMenuOpen = this.menuOpen;
       this.clearErrors();
       this.loadFolders(relativePath, this.showHidden)
         .then(() => {
-          this.path = this.rootFolder;
-          // This keeps the menu scrolling after a menu click.
-          this.$refs.folderPicker.isMenuActive = isMenuActive;
-          return this.$emit("change", this.path);
+          // menuProps: closeOnContentClick doesn't seem to work.
+          //  menu still flashes, not great.
+          this.menuOpen = isMenuOpen;
+          let changePath = "";
+          if (this.formErrors.length === 0) {
+            this.path = changePath = this.rootFolder;
+          }
+          return this.$emit("change", changePath);
         })
         .catch(console.warn);
     },
-    toggleMenu: function (val) {
-      if (val === undefined) {
-        val = !this.menuOpen;
-      }
-      this.menuOpen = val;
-      this.$refs.folderPicker.isMenuActive = val;
-    },
-    toggleHidden: function () {
-      this.showHidden = !this.showHidden;
+    onBlur() {
+      this.menuOpen = false;
       this.change(this.path);
+    },
+    onClear() {
+      this.clearFolders(this.orignalPath)
+        .then(() => {
+          return this.change(this.orginalPath);
+        })
+        .catch(console.error);
+    },
+    onKeyDownEnter() {
+      this.change(this.path);
+    },
+    onItemClick(event) {
+      this.change(event);
     },
   },
 };
 </script>
 
 <style scoped lang="scss">
-.showHidden {
-  margin-right: auto;
+#folderPicker {
+  border-radius: 5px;
+  background-color: rgb(var(--v-theme-surface));
 }
-.tooltip {
-  color: rgb(var(--v-theme-textPrimary));
+:deep(.showHidden .v-label) {
+  color: rgb(var(--v-theme-textSecondary));
 }
 </style>

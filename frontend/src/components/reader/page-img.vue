@@ -1,5 +1,11 @@
 <template>
-  <img :class="fitToClass" :src="src" v-bind="$attrs" />
+  <img
+    :class="fitToClass"
+    :src="src"
+    v-bind="$attrs"
+    @error="$emit('error')"
+    @load="$emit('load')"
+  />
 </template>
 <script>
 export default {

@@ -6,7 +6,49 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.0.0a8
+## v1.0.4
+
+- Features
+  - Add >, <, <=, >= range operators for search.
+- Removed
+  - Do not store search history for combobox across sessions.
+  - Remove awkward bookmark searching from search bar.
+- Fix
+  - Fix leading NOT for search
+  - Fix trailing wildcard search
+  - Don't pop out of folder mode on searches.
+  - Set id scope to all (0) on first search.
+  - Fix Admin Library folder picker getting stuck.
+  - Uatu does a better job of ignoring device changes.
+  - Fix showing error on unable to load comic image.
+
+## v1.0.3
+
+- Features
+  - Force update all failed imports admin task.
+- Fixes
+  - Fix moving folders to subfolder orphans folders bug.
+  - Fix id does not exist redirect loop.
+
+## v1.0.2
+
+- Features
+  - Support for Deflate64 zip compression algorithm.
+- Fixes
+  - Fix Failed Imports not retrying import when updated.
+  - Make db updates more durable and possibly problem comics paths in log.
+  - Discard orphan websocket connections from the connection pool.
+  - Fix Admin Status drawer closing at wrong time.
+
+## v1.0.1
+
+- Features
+  - Justify order-by field in browser cards.
+- Fixes
+  - Fixed next book change drawer opening settings drawer.
+  - Fixed zero padding on browser card issue numbers.
+
+## v1.0.0
 
 ### Vue 3
 

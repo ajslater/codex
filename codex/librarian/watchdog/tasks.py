@@ -32,3 +32,10 @@ class WatchdogSyncTask(WatchdogTask):
     """Sync watches with libraries."""
 
     pass
+
+
+@dataclass
+class ForceUpdateAllFailedImportsTask:
+    """Force update for failed imports in every library."""
+
+    pass

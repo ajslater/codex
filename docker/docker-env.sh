@@ -1,4 +1,5 @@
 #!/bin/bash
+# create the docker .env firl for this architecture
 set -euo pipefail
 cd "$(dirname "$0")/.."
 pip3 install --upgrade pip

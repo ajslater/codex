@@ -9,7 +9,6 @@ from codex.librarian.covers.tasks import CoverRemoveAllTask, CoverRemoveOrphansT
 from codex.librarian.janitor.tasks import (
     JanitorBackupTask,
     JanitorCleanFKsTask,
-    JanitorCleanSearchTask,
     JanitorClearStatusTask,
     JanitorRestartTask,
     JanitorShutdownTask,
@@ -21,7 +20,11 @@ from codex.librarian.search.tasks import (
     SearchIndexJanitorUpdateTask,
     SearchIndexRebuildIfDBChangedTask,
 )
-from codex.librarian.watchdog.tasks import WatchdogPollLibrariesTask, WatchdogSyncTask
+from codex.librarian.watchdog.tasks import (
+    ForceUpdateAllFailedImportsTask,
+    WatchdogPollLibrariesTask,
+    WatchdogSyncTask,
+)
 from codex.models import LibrarianStatus, Library
 from codex.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.serializers.admin import AdminLibrarianTaskSerializer
@@ -99,14 +102,14 @@ class AdminLibrarianTaskView(APIView):
             task = JanitorShutdownTask()
         elif task_name == "notify_library_changed":
             task = LIBRARY_CHANGED_TASK
-        elif task_name == "cleanup_queries":
-            task = JanitorCleanSearchTask()
         elif task_name == "cleanup_fks":
             task = JanitorCleanFKsTask()
         elif task_name == "cleanup_covers":
             task = CoverRemoveOrphansTask()
         elif task_name == "librarian_clear_status":
             task = JanitorClearStatusTask()
+        elif task_name == "force_update_all_failed_imports":
+            task = ForceUpdateAllFailedImportsTask()
 
         if task:
             LIBRARIAN_QUEUE.put(task)

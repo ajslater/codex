@@ -45,13 +45,6 @@ class JanitorVacuumTask(JanitorTask):
 
 
 @dataclass
-class JanitorCleanSearchTask(JanitorTask):
-    """Clean the search db."""
-
-    pass
-
-
-@dataclass
 class JanitorCleanFKsTask(JanitorTask):
     """Clean unused foreign keys."""
 
