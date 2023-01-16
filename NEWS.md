@@ -19,6 +19,7 @@ border-radius: 128px;
   - Don't pop out of folder mode on searches.
   - Set id scope to all (0) on first search.
   - Fix Admin Library folder picker getting stuck.
+  - Uatu does a better job of ignoring device changes.
 
 ## v1.0.3
 
