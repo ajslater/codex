@@ -50,9 +50,7 @@ class BrowserView(BrowserAnnotationsView):
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
     serializer_class = BrowserPageSerializer
 
-    _MODEL_GROUP_MAP = {
-        v: k for k, v in BrowserAnnotationsView.GROUP_MODEL_MAP.items()
-    }
+    _MODEL_GROUP_MAP = {v: k for k, v in BrowserAnnotationsView.GROUP_MODEL_MAP.items()}
     _NAV_GROUPS = "rpisv"
     MAX_OBJ_PER_PAGE = 100
     _ORPHANS = int(MAX_OBJ_PER_PAGE / 20)

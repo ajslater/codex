@@ -1,18 +1,7 @@
 """Base view for ordering the query."""
 from os import sep
 
-from django.db.models import (
-    Avg,
-    Case,
-    CharField,
-    F,
-    Max,
-    Min,
-    Q,
-    Sum,
-    Value,
-    When,
-)
+from django.db.models import Avg, Case, CharField, F, Max, Min, Q, Sum, Value, When
 from django.db.models.functions import Lower, Reverse, Right, StrIndex, Substr
 
 from codex.models import Comic, Folder
