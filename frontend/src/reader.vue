@@ -61,10 +61,10 @@ export default {
     }),
   },
   watch: {
-    user: function () {
+    user() {
       this.loadReaderSettings();
     },
-    isCodexViewable: function () {
+    isCodexViewable() {
       this.loadReaderSettings();
     },
   },
@@ -74,7 +74,7 @@ export default {
   },
   methods: {
     ...mapActions(useReaderStore, ["loadReaderSettings"]),
-    toggleToolbars: function () {
+    toggleToolbars() {
       this.showToolbars = !this.showToolbars;
     },
   },
