@@ -30,12 +30,14 @@
 import { mapActions, mapState } from "pinia";
 
 import BookChangeActivator from "@/components/reader/book-change-activator.vue";
+import PagesWindow from "@/components/reader/pages-window.vue";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
   name: "BooksWindow",
   components: {
     BookChangeActivator,
+    PagesWindow,
   },
   emits: ["click"],
   computed: {
