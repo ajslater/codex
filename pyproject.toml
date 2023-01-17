@@ -63,7 +63,6 @@ watchdog = "^2.0"
 websocket_client = "^1.2"
 whitenoise = { extras = ["brotli"], version = "^6.0" }
 xapian-bindings = "^0.1.0"
-sphinxcontrib-applehelp = "1.0.2" # https://github.com/ninemoreminutes/xapian-bindings/issues/10
 xapian-haystack = "^3.0.1"
 Pillow = "^9.1.0"
 
