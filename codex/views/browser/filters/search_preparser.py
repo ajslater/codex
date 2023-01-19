@@ -4,7 +4,6 @@ import re
 from dateutil.parser import ParserError
 from dateutil.parser import parse as du_parse
 from humanfriendly import InvalidSize, parse_size
-from xapian_backend import DATETIME_FORMAT
 
 from codex.settings.logging import get_logger
 
@@ -18,6 +17,7 @@ class SearchFilterPreparserMixin:
     # Preparsing is much much easier than trying to customize
     # XapianRangeProcessor and Xapian QueryParser which may be impossible
 
+    DATETIME_FORMAT = "%Y%m%d%H%M%S"
     DATE_FORMAT = DATETIME_FORMAT.removesuffix("%H%M%S")
     RANGE_OPERATOR_LT_RE = re.compile("^<=?")
     RANGE_OPERATOR_GT_RE = re.compile("^>=?")

@@ -33,7 +33,7 @@ exclude = [
   "codex/static_src/*",
   "codex/static_build/*"
 ]
-include = ["codex/static_root/**/*", "vendor/django_haystack"]
+include = ["codex/static_root/**/*"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
@@ -62,8 +62,7 @@ tzlocal = "^4.1"
 watchdog = "^2.0"
 websocket_client = "^1.2"
 whitenoise = { extras = ["brotli"], version = "^6.0" }
-xapian-bindings = "^0.1.0"
-xapian-haystack = "^3.0.1"
+whoosh = "^2.7.4"
 Pillow = "^9.1.0"
 
 [tool.poetry.group.dev.dependencies]

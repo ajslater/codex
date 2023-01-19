@@ -2548,6 +2548,19 @@ Brotli = {version = "*", optional = true, markers = "extra == \"brotli\""}
 brotli = ["Brotli"]
 
 [[package]]
+name = "whoosh"
+version = "2.7.4"
+description = "Fast, pure-Python full text indexing, search, and spell checking library."
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "Whoosh-2.7.4-py2.py3-none-any.whl", hash = "sha256:aa39c3c3426e3fd107dcb4bde64ca1e276a65a889d9085a6e4b54ba82420a852"},
+    {file = "Whoosh-2.7.4.tar.gz", hash = "sha256:7ca5633dbfa9e0e0fa400d3151a8a0c4bec53bd2ecedc0a67705b17565c31a83"},
+    {file = "Whoosh-2.7.4.zip", hash = "sha256:e0857375f63e9041e03fedd5b7541f97cf78917ac1b6b06c1fcc9b45375dda69"},
+]
+
+[[package]]
 name = "wsproto"
 version = "1.2.0"
 description = "WebSockets state-machine based protocol implementation"
@@ -2561,32 +2574,6 @@ files = [
 
 [package.dependencies]
 h11 = ">=0.9.0,<1"
-
-[[package]]
-name = "xapian-bindings"
-version = "0.1.0"
-description = "Meta-package to build and install xapian-bindings extension."
-category = "main"
-optional = false
-python-versions = "*"
-files = [
-    {file = "xapian-bindings-0.1.0.tar.gz", hash = "sha256:f2b0396082ebf4f6681ab43d6d8fd1f63b6964b18c32c91236ed067c6f62ad14"},
-]
-
-[[package]]
-name = "xapian-haystack"
-version = "3.0.1"
-description = "A Xapian backend for Haystack"
-category = "main"
-optional = false
-python-versions = "*"
-files = [
-    {file = "xapian-haystack-3.0.1.tar.gz", hash = "sha256:a5c0e1262b95008df4dfeb58d093c654acee3f2b27ea3f7d366900895cdc70f9"},
-]
-
-[package.dependencies]
-django = ">=2.2"
-django-haystack = ">=2.8.0"
 
 [[package]]
 name = "zipfile-deflate64"
@@ -2617,4 +2604,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "8a614428e81585e70f5026651e717ec8116a38c17796e0dc1612bb9e39e5bcc8"
+content-hash = "db880ae004beb55ac5611831c607cf68fe974ff4b3325f488de6b54f2e560a0b"
