@@ -34,6 +34,6 @@ def backup_db():
         path = str(BACKUP_DB_PATH)
         with connection.cursor() as cursor:
             cursor.execute(f"VACUUM INTO {path!r}")
-        LOG.verbose(f"Backed up database to {path}.")
+        LOG.verbose(f"Backed up database to {path}")
     finally:
         StatusControl.finish(JanitorStatusTypes.DB_BACKUP)
