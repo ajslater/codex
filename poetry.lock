@@ -2587,7 +2587,7 @@ h11 = ">=0.9.0,<1"
 name = "xapian-bindings-pinned-deps"
 version = "0.1.0"
 description = "Meta-package to build and install xapian-bindings extension (with safe pinned dependencies)."
-category = "main"
+category = "dev"
 optional = false
 python-versions = "*"
 files = [
@@ -2658,4 +2658,4 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "896d7ac294eedd2245c03ec796c27b0422755303dc3b1fc53c3c74d74eac5046"
+content-hash = "1edb817a81d3e7fa61ebd56e2479bda22e5e27500849e2fc08532f0f73041b4b"
