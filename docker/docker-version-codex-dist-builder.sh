@@ -37,7 +37,6 @@ DEPS=(
     poetry.lock
     setup.cfg
     test-backend.sh
-    xapian-bindings-pinned-deps-0.1.0.tar.gz
     "${SOURCE_DEPS[@]}"
 )
 

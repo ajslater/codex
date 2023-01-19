@@ -802,14 +802,14 @@ files = [
 
 [[package]]
 name = "djlint"
-version = "1.19.11"
+version = "1.19.12"
 description = "HTML Template Linter and Formatter"
 category = "dev"
 optional = false
 python-versions = ">=3.7.2,<4.0.0"
 files = [
-    {file = "djlint-1.19.11-py3-none-any.whl", hash = "sha256:c19d732c79b660f7d406517254bfd3e98f6c3c2de0cb300766b5555077d4ae08"},
-    {file = "djlint-1.19.11.tar.gz", hash = "sha256:98bbe094a6f176258a578b16c492cbbb9384e3a3b447c9241ee4a6427d703402"},
+    {file = "djlint-1.19.12-py3-none-any.whl", hash = "sha256:60f2297176dc70148c70f0536ecbbd8ad11e5e86dd1ba07e21cfad992c5c91e1"},
+    {file = "djlint-1.19.12.tar.gz", hash = "sha256:048e9f8d43918b561f31bb49e2d52e6268bc88aa8d1c929c7416de2a575f6eff"},
 ]
 
 [package.dependencies]
@@ -818,7 +818,6 @@ colorama = ">=0.4.4,<0.5.0"
 cssbeautifier = ">=1.14.4,<2.0.0"
 html-tag-names = ">=0.1.2,<0.2.0"
 html-void-elements = ">=0.1.0,<0.2.0"
-importlib-metadata = ">=6.0.0,<7.0.0"
 jsbeautifier = ">=1.14.4,<2.0.0"
 pathspec = ">=0.10.0,<0.11.0"
 PyYAML = ">=6.0,<7.0"
@@ -1243,26 +1242,6 @@ files = [
     {file = "idna-3.4-py3-none-any.whl", hash = "sha256:90b77e79eaa3eba6de819a0c442c0b4ceefc341a7a2ab77d7562bf49f425c5c2"},
     {file = "idna-3.4.tar.gz", hash = "sha256:814f528e8dead7d329833b91c5faa87d60bf71824cd12a7530b5526063d02cb4"},
 ]
-
-[[package]]
-name = "importlib-metadata"
-version = "6.0.0"
-description = "Read metadata from Python packages"
-category = "dev"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "importlib_metadata-6.0.0-py3-none-any.whl", hash = "sha256:7efb448ec9a5e313a57655d35aa54cd3e01b7e1fbcf72dce1bf06119420f5bad"},
-    {file = "importlib_metadata-6.0.0.tar.gz", hash = "sha256:e354bedeb60efa6affdcc8ae121b73544a7aa74156d047311948f6d711cd378d"},
-]
-
-[package.dependencies]
-zipp = ">=0.5"
-
-[package.extras]
-docs = ["furo", "jaraco.packaging (>=9)", "jaraco.tidelift (>=1.4)", "rst.linker (>=1.9)", "sphinx (>=3.5)", "sphinx-lint"]
-perf = ["ipython"]
-testing = ["flake8 (<5)", "flufl.flake8", "importlib-resources (>=1.3)", "packaging", "pyfakefs", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=1.3)", "pytest-flake8", "pytest-mypy (>=0.9.1)", "pytest-perf (>=0.9.2)"]
 
 [[package]]
 name = "inflection"
@@ -2584,19 +2563,15 @@ files = [
 h11 = ">=0.9.0,<1"
 
 [[package]]
-name = "xapian-bindings-pinned-deps"
+name = "xapian-bindings"
 version = "0.1.0"
-description = "Meta-package to build and install xapian-bindings extension (with safe pinned dependencies)."
-category = "dev"
+description = "Meta-package to build and install xapian-bindings extension."
+category = "main"
 optional = false
 python-versions = "*"
 files = [
-    {file = "xapian-bindings-pinned-deps-0.1.0.tar.gz", hash = "sha256:1fd4739fcb80623e537735078dccb7c74c365ed030c624acdbf6f112b06fd28a"},
+    {file = "xapian-bindings-0.1.0.tar.gz", hash = "sha256:f2b0396082ebf4f6681ab43d6d8fd1f63b6964b18c32c91236ed067c6f62ad14"},
 ]
-
-[package.source]
-type = "file"
-url = "xapian-bindings-pinned-deps-0.1.0.tar.gz"
 
 [[package]]
 name = "xapian-haystack"
@@ -2639,23 +2614,7 @@ files = [
     {file = "zipfile_deflate64-0.2.0-cp39-cp39-win_amd64.whl", hash = "sha256:a16cd144c12de642f0ace1aeab7f50e7abc7492c81381faa2b17cc36f38272c4"},
 ]
 
-[[package]]
-name = "zipp"
-version = "3.11.0"
-description = "Backport of pathlib-compatible object wrapper for zip files"
-category = "dev"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "zipp-3.11.0-py3-none-any.whl", hash = "sha256:83a28fcb75844b5c0cdaf5aa4003c2d728c77e05f5aeabe8e95e56727005fbaa"},
-    {file = "zipp-3.11.0.tar.gz", hash = "sha256:a7a22e05929290a67401440b39690ae6563279bced5f314609d9d03798f56766"},
-]
-
-[package.extras]
-docs = ["furo", "jaraco.packaging (>=9)", "jaraco.tidelift (>=1.4)", "rst.linker (>=1.9)", "sphinx (>=3.5)"]
-testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools", "more-itertools", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=1.3)", "pytest-flake8", "pytest-mypy (>=0.9.1)"]
-
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "1edb817a81d3e7fa61ebd56e2479bda22e5e27500849e2fc08532f0f73041b4b"
+content-hash = "8a614428e81585e70f5026651e717ec8116a38c17796e0dc1612bb9e39e5bcc8"

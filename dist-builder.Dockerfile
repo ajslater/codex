@@ -12,7 +12,6 @@ RUN apk add --no-cache \
 # **** install python app dependencies ****
 # hadolint ignore=DL3022
 COPY pyproject.toml poetry.lock ./
-COPY xapian-bindings-pinned-deps-0.1.0.tar.gz ./
 RUN PIP_CACHE_DIR=$(pip3 cache dir) poetry install --no-root --remove-untracked --without dev
 
 
