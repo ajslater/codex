@@ -31,8 +31,9 @@ def backup_db():
     try:
         StatusControl.start(JanitorStatusTypes.DB_BACKUP)
         BACKUP_DB_PATH.unlink(missing_ok=True)
+        path = str(BACKUP_DB_PATH)
         with connection.cursor() as cursor:
-            cursor.execute(f"VACUUM INTO {BACKUP_DB_PATH!r}")
-        LOG.verbose("Backed up database.")
+            cursor.execute(f"VACUUM INTO {path!r}")
+        LOG.verbose(f"Backed up database to {path}.")
     finally:
         StatusControl.finish(JanitorStatusTypes.DB_BACKUP)
