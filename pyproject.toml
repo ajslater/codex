@@ -62,10 +62,13 @@ tzlocal = "^4.1"
 watchdog = "^2.0"
 websocket_client = "^1.2"
 whitenoise = { extras = ["brotli"], version = "^6.0" }
-#xapian-bindings = "^0.1.0"
-xapian-bindings-pinned-deps = { path = "xapian-bindings-pinned-deps-0.1.0.tar.gz"}
 xapian-haystack = "^3.0.1"
 Pillow = "^9.1.0"
+
+[tool.poetry.group.dev.xapian]
+# Use platform prebuilt xapian-dev-bindings whenever possible.
+xapian-bindings-pinned-deps = { path = "xapian-bindings-pinned-deps-0.1.0.tar.gz"}
+#xapian-bindings = "^0.1.0"
 
 [tool.poetry.group.dev.dependencies]
 neovim = "^0.3.1"
