@@ -11,7 +11,7 @@ from codex.views.browser.filters.search_preparser import SearchFilterPreparserMi
 LOG = get_logger(__name__)
 
 
-class SearchFilterMixin(SearchFilterPreparserMixin):
+class SearchFilterMixin:  # SearchFilterPreparserMixin):
     """Search Filters Methods."""
 
     def _get_search_scores(self, text):
@@ -52,7 +52,8 @@ class SearchFilterMixin(SearchFilterPreparserMixin):
         try:
             # Parse out the bookmark filter and get the remaining tokens
             query_string = self.params.get("q", "")  # type: ignore
-            haystack_text = self._preparse_query_text(query_string)
+            # haystack_text = self._preparse_query_text(query_string)
+            haystack_text = query_string
 
             # Query haystack
             (

@@ -1,43 +1,11 @@
 """Locking, Aliasing Xapian Backend."""
+from django.utils.timezone import now
 from haystack.backends import UnifiedIndex
 from haystack.backends.whoosh_backend import WhooshEngine, WhooshSearchBackend
+from whoosh.qparser import FieldAliasPlugin, GtLtPlugin
+from whoosh.qparser.dateparse import DateParserPlugin
 
 from codex.search.search_indexes import ComicIndex
-
-
-class CodexWhooshSearchBackend(WhooshSearchBackend):
-    """Override methods to use locks and add synonyms to writable database."""
-
-    _SEARCH_FIELD_ALIASES = {
-        "ltr": "read_ltr",
-        "title": "name",
-        "scan": "scan_info",
-        "character": "characters",
-        "creator": "creators",
-        "created": "created_at",
-        "finished": "read",
-        "genre": "genres",
-        "location": "locations",
-        "reading": "in_progress",
-        "series_group": "series_groups",
-        "story_arc": "story_arcs",
-        "tag": "tags",
-        "team": "teams",
-        "updated": "updated_at",
-        # OPDS
-        "author": "creators",
-        "contributor": "creators",
-        "category": "characters",  # the most common category, probably
-    }
-
-    def _database(self, writable=False):
-        """Add synonyms to writable databases."""
-        database = super()._database(writable=writable)
-        if writable:
-            # Ideally this wouldn't be called on remove() or clear()
-            for synonym, term in self._SEARCH_FIELD_ALIASES.items():
-                database.add_synonym(term, synonym)  # type: ignore
-        return database
 
 
 class CodexUnifiedIndex(UnifiedIndex):
@@ -49,7 +17,46 @@ class CodexUnifiedIndex(UnifiedIndex):
         return [ComicIndex()]
 
 
+def gen_multipart_field_aliases(field):
+    bits = field.split("_")
+    aliases = [field[:-1]]
+    for connector in ("", "-"):
+        joined = connector.join(bits)
+        aliases += [joined, joined[:-1]]
+    return aliases
+
+
+class CodexSearchBackend(WhooshSearchBackend):
+    RESERVED_CHARACTERS = ()
+    FIELDMAP = {
+        "characters": ["category", "character"],
+        "created_at": ["created"],
+        "creators": ["author", "authors", "contributor", "contributors", "creator"],
+        "genres": ["genre"],
+        "locations": ["location"],
+        "name": ["title"],
+        "read_ltr": ["ltr"],
+        "series_groups": gen_multipart_field_aliases("series_groups"),
+        "scan_info": ["scan"],
+        "story_arcs": gen_multipart_field_aliases("story_arcs"),
+        "tags": ["tag"],
+        "teams": ["team"],
+        "updated_at": ["updated"],
+    }
+
+    def setup(self):
+        super().setup()
+        self.parser.add_plugins(
+            [
+                GtLtPlugin,
+                FieldAliasPlugin(self.FIELDMAP),
+                DateParserPlugin(basedate=now()),
+            ]
+        )
+
+
 class CodexSearchEngine(WhooshEngine):
     """A search engine with a locking backend."""
 
+    backend = CodexSearchBackend
     unified_index = CodexUnifiedIndex
