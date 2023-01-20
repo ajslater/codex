@@ -27,7 +27,6 @@ def gen_multipart_field_aliases(field):
 
 
 class CodexSearchBackend(WhooshSearchBackend):
-    RESERVED_CHARACTERS = ()
     FIELDMAP = {
         "characters": ["category", "character"],
         "created_at": ["created"],
@@ -43,6 +42,8 @@ class CodexSearchBackend(WhooshSearchBackend):
         "teams": ["team"],
         "updated_at": ["updated"],
     }
+    RESERVED_CHARACTERS = ()
+    RESERVED_WORDS = ()
 
     def setup(self):
         super().setup()
