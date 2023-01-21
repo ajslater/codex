@@ -75,6 +75,17 @@ class CodexSearchBackend(WhooshSearchBackend):
     }
     RESERVED_CHARACTERS = ()
     RESERVED_WORDS = ()
+    FIELD_ALIAS_PLUGIN = FieldAliasPlugin(FIELDMAP)
+    OPERATORS_PLUGIN = OperatorsPlugin(
+        ops=None,
+        clean=False,
+        And=r"(?i)(?<=\s)AND(?=\s)",
+        Or=r"(?i)(?<=\s)OR(?=\s)",
+        AndNot=r"(?i)(?<=\s)ANDNOT(?=\s)",
+        AndMaybe=r"(?i)(?<=\s)ANDMAYBE(?=\s)",
+        Not=r"(?i)(^|(?<=(\s|[()])))NOT(?=\s)",
+        Require=r"(?i)(^|(?<=\s))REQUIRE(?=\s)",
+    )
 
     def build_schema(self, fields):
         content_field_name, schema = super().build_schema(fields)
@@ -99,23 +110,13 @@ class CodexSearchBackend(WhooshSearchBackend):
         super().setup()
         self.parser.add_plugins(
             (
-                FieldAliasPlugin(self.FIELDMAP),
+                self.FIELD_ALIAS_PLUGIN,
                 GtLtPlugin,
-                # RegexPlugin,  # not working yet
                 DateParserPlugin(basedate=now()),
+                # RegexPlugin,  # not working yet
             )
         )
-        op = OperatorsPlugin(
-            ops=None,
-            clean=False,
-            And=r"(?i)(?<=\s)AND(?=\s)",
-            Or=r"(?i)(?<=\s)OR(?=\s)",
-            AndNot=r"(?i)(?<=\s)ANDNOT(?=\s)",
-            AndMaybe=r"(?i)(?<=\s)ANDMAYBE(?=\s)",
-            Not=r"(?i)(^|(?<=(\s|[()])))NOT(?=\s)",
-            Require=r"(?i)(^|(?<=\s))REQUIRE(?=\s)",
-        )
-        self.parser.replace_plugin(op)
+        self.parser.replace_plugin(self.OPERATORS_PLUGIN)
 
 
 class CodexSearchEngine(WhooshEngine):
