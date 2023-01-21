@@ -32,7 +32,9 @@ class CodexUnifiedIndex(UnifiedIndex):
 
 def gen_multipart_field_aliases(field):
     bits = field.split("_")
-    aliases = [field[:-1]]
+    aliases = []
+    if field.endswith("s"):
+        aliases += [field[:-1]]
     for connector in ("", "-"):
         joined = connector.join(bits)
         aliases += [joined, joined[:-1]]
@@ -67,6 +69,8 @@ class CodexSearchBackend(WhooshSearchBackend):
         "characters": ["category", "character"],
         "created_at": ["created"],
         "creators": ["author", "authors", "contributor", "contributors", "creator"],
+        "community_rating": gen_multipart_field_aliases("community_rating"),
+        "critical_rating": gen_multipart_field_aliases("critical_rating"),
         "genres": ["genre"],
         "locations": ["location"],
         "name": ["title"],

@@ -84,7 +84,7 @@
           Use <em>single</em> quotes to tell Codex that a complex or natural
           language phrase should be applied to a specific field
         </p>
-        <code> created_at:'this year' </code>
+        <code> created:'this year' </code>
         <h3>Size Byte Multipliers</h3>
         <p>
           The size field can make use of convenient byte multiplier suffixes
@@ -97,7 +97,7 @@
           Whoosh uses brackets and the <em>uppercase</em>&ensp;<code>TO</code>
           operator to delineate a range search.
         </p>
-        <code>created_at:[last sunday TO 10am]</code>.
+        <code>updated:[last sunday TO 10am]</code>.
         <p>
           You may leave out the upper or lower bound or use &gt;, &lt;, &gt;=,
           &lt;= operators.
@@ -160,12 +160,12 @@ import { mdiArchiveSearchOutline, mdiOpenInNew } from "@mdi/js";
 import CloseButton from "@/components/close-button.vue";
 
 const FIELD_ROWS = [
-  ["characters", "CSV", "character"],
-  ["community_rating", "Decimal", ""],
+  ["characters", "CSV", "category"],
+  ["community_rating", "Decimal", "communityrating"],
   ["country", "String", ""],
   ["created_at", "DateTime", "created"],
-  ["creators", "CSV", "creator"],
-  ["critical_rating", "Decimal", ""],
+  ["creators", "CSV", "authors, contributors"],
+  ["critical_rating", "Decimal", "criticalrating"],
   ["day", "Integer", ""],
   ["date", "Date", ""],
   ["decade", "Integer", ""],
@@ -175,7 +175,7 @@ const FIELD_ROWS = [
   ["imprint", "String", ""],
   ["issue", "Decimal", ""],
   ["language", "String", ""],
-  ["locations", "CSV", "location"],
+  ["location[s]", "CSV", "location"],
   ["maturity_rating", "String", ""],
   ["month", "Integer", ""],
   ["read_ltr", "Boolean", "ltr"],
@@ -185,9 +185,9 @@ const FIELD_ROWS = [
   ["publisher", "String", ""],
   ["scan_info", "String", "scan"],
   ["series", "String", ""],
-  ["series_groups", "CSV", "series_group"],
+  ["series_group[s]", "CSV", "seriesgroups"],
   ["size", "Integer", ""],
-  ["story_arcs", "CSV", "story_arc"],
+  ["story_arcs", "CSV", "storyarcs"],
   ["summary", "String", ""],
   ["tags", "CSV", "tag"],
   ["teams", "CSV", "team"],
@@ -244,6 +244,7 @@ h1 {
   text-align: left;
   margin-bottom: 1em;
   margin-right: 2em;
+  color: rgb(var(--v-theme-textSecondary));
 }
 #fieldTable th {
   font-size: larger;
