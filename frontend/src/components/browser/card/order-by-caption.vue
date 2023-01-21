@@ -44,7 +44,8 @@ export default {
         const date = new Date(ov);
         ov = DATE_FORMAT.format(date);
       } else if (this.orderBy == "search_score") {
-        ov = Number.parseFloat(ov).toFixed(2);
+        // Round Whoosh float into a two digit integer.
+        ov = Math.round(Number.parseFloat(ov) * 10);
       } else if (TIME_SORT_BY.has(this.orderBy)) {
         const date = new Date(ov);
         // this is what needs v-html to work
