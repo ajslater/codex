@@ -5,7 +5,7 @@ from haystack.backends.whoosh_backend import TEXT, WhooshEngine, WhooshSearchBac
 from humanfriendly import InvalidSize, parse_size
 from whoosh.analysis import CharsetFilter
 from whoosh.fields import NUMERIC
-from whoosh.qparser import FieldAliasPlugin, GtLtPlugin
+from whoosh.qparser import FieldAliasPlugin, GtLtPlugin, OperatorsPlugin
 from whoosh.qparser.dateparse import DateParserPlugin
 from whoosh.support.charset import accent_map
 
@@ -105,6 +105,17 @@ class CodexSearchBackend(WhooshSearchBackend):
                 DateParserPlugin(basedate=now()),
             )
         )
+        op = OperatorsPlugin(
+            ops=None,
+            clean=False,
+            And=r"(?i)(?<=\s)AND(?=\s)",
+            Or=r"(?i)(?<=\s)OR(?=\s)",
+            AndNot=r"(?i)(?<=\s)ANDNOT(?=\s)",
+            AndMaybe=r"(?i)(?<=\s)ANDMAYBE(?=\s)",
+            Not=r"(?i)(^|(?<=(\s|[()])))NOT(?=\s)",
+            Require=r"(?i)(^|(?<=\s))REQUIRE(?=\s)",
+        )
+        self.parser.replace_plugin(op)
 
 
 class CodexSearchEngine(WhooshEngine):
