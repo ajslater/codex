@@ -3,7 +3,7 @@ from django.utils.timezone import now
 from haystack.backends import UnifiedIndex
 from haystack.backends.whoosh_backend import TEXT, WhooshEngine, WhooshSearchBackend
 from humanfriendly import InvalidSize, parse_size
-from whoosh.analysis import CharsetFilter, Filter
+from whoosh.analysis import CharsetFilter
 from whoosh.fields import NUMERIC
 from whoosh.qparser import FieldAliasPlugin, GtLtPlugin
 from whoosh.qparser.dateparse import DateParserPlugin
@@ -34,54 +34,7 @@ def gen_multipart_field_aliases(field):
     return aliases
 
 
-class SizeFilter(Filter):
-
-    # is_morph = True
-
-    def __call__(self, tokens):
-        print("SIZE_FILTER", tokens)
-        for t in tokens:
-            try:
-                if t.mode == "query":
-                    t.text = str(parse_size(t.text.lower()))
-                    print("SIZE FILTER", t.original, "=>", t.text)
-            except InvalidSize as exc:
-                LOG.debug(exc)
-                t.text = ""
-            except Exception as exc:
-                LOG.exception(exc)
-                t.text = ""
-            yield t
-
-
 class FILESIZE(NUMERIC):
-    def __init__(
-        self,
-        numtype=int,
-        bits=32,
-        stored=False,
-        unique=False,
-        field_boost=1.0,
-        decimal_places=0,
-        shift_step=4,
-        signed=True,
-        sortable=False,
-        default=None,
-    ):
-        super().__init__(
-            numtype=numtype,
-            bits=bits,
-            stored=stored,
-            unique=unique,
-            field_boost=field_boost,
-            decimal_places=decimal_places,
-            shift_step=shift_step,
-            signed=signed,
-            sortable=sortable,
-            default=default,
-        )
-        self.analyzer |= SizeFilter()
-
     @staticmethod
     def _parse_size(value):
         try:
