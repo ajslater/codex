@@ -943,14 +943,14 @@ develop = ["build", "twine"]
 
 [[package]]
 name = "flake8-bugbear"
-version = "23.1.17"
+version = "23.1.20"
 description = "A plugin for flake8 finding likely bugs and design problems in your program. Contains warnings that don't belong in pyflakes and pycodestyle."
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "flake8-bugbear-23.1.17.tar.gz", hash = "sha256:4be3722cb79385684ffe375e4986495ce28dd0e1daa7affaddf3b17abdbc375b"},
-    {file = "flake8_bugbear-23.1.17-py3-none-any.whl", hash = "sha256:f26788e4573c9f2ba89c787941da77e80f7818172cc5de042029924d4c07a021"},
+    {file = "flake8-bugbear-23.1.20.tar.gz", hash = "sha256:55902ab5a48c5ea53d8689ecd146eda548e72f2724192b9c1d68f6d975d13c06"},
+    {file = "flake8_bugbear-23.1.20-py3-none-any.whl", hash = "sha256:04a115e5f9c8e87c38bdbbcdf9f58223ffe05469c07c9a7bd8633330bc4d078b"},
 ]
 
 [package.dependencies]
@@ -2248,14 +2248,14 @@ use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
 name = "setuptools"
-version = "66.0.0"
+version = "66.1.1"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
 category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "setuptools-66.0.0-py3-none-any.whl", hash = "sha256:a78d01d1e2c175c474884671dde039962c9d74c7223db7369771fcf6e29ceeab"},
-    {file = "setuptools-66.0.0.tar.gz", hash = "sha256:bd6eb2d6722568de6d14b87c44a96fac54b2a45ff5e940e639979a3d1792adb6"},
+    {file = "setuptools-66.1.1-py3-none-any.whl", hash = "sha256:6f590d76b713d5de4e49fe4fbca24474469f53c83632d5d0fd056f7ff7e8112b"},
+    {file = "setuptools-66.1.1.tar.gz", hash = "sha256:ac4008d396bc9cd983ea483cb7139c0240a07bbc74ffb6232fceffedc6cf03a8"},
 ]
 
 [package.extras]
