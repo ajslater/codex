@@ -1,7 +1,12 @@
 """Locking, Aliasing Xapian Backend."""
 from django.utils.timezone import now
 from haystack.backends import UnifiedIndex
-from haystack.backends.whoosh_backend import TEXT, WhooshEngine, WhooshSearchBackend
+from haystack.backends.whoosh_backend import (
+    TEXT,
+    WhooshEngine,
+    WhooshSearchBackend,
+    WhooshSearchQuery,
+)
 from humanfriendly import InvalidSize, parse_size
 from whoosh.analysis import CharsetFilter
 from whoosh.fields import NUMERIC
@@ -119,8 +124,14 @@ class CodexSearchBackend(WhooshSearchBackend):
         self.parser.replace_plugin(self.OPERATORS_PLUGIN)
 
 
+class CodexSearchQuery(WhooshSearchQuery):
+    def clean(self, query_fragment):
+        return query_fragment
+
+
 class CodexSearchEngine(WhooshEngine):
     """A search engine with a locking backend."""
 
     backend = CodexSearchBackend
+    query = CodexSearchQuery
     unified_index = CodexUnifiedIndex
