@@ -6,10 +6,14 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.0.4
+## v1.1.0
 
 - Features
-  - Add >, <, <=, >= range operators for search.
+  - Switch to Whoosh Search Engine.
+    - You may delete `config/xapian_index`.
+  - May run on Windows now ??.
+  - Move backups to `config/backups`.
+  - Backup database before migrations.
 - Removed
   - Do not store search history for combobox across sessions.
   - Remove awkward bookmark searching from search bar.

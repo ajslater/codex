@@ -4,16 +4,15 @@ import os
 
 from asyncio import new_event_loop
 
-import django
-
 from django.core.management import call_command
 from hypercorn.asyncio import serve
 
 from codex.asgi import application
-from codex.integrity import rebuild_db, repair_db
+from codex.integrity import has_unapplied_migrations, rebuild_db, repair_db
+from codex.librarian.janitor.vacuum import backup_db
 from codex.settings.logging import get_logger
-from codex.settings.settings import DEBUG, HYPERCORN_CONFIG
-from codex.signals import RESTART_EVENT, SHUTDOWN_EVENT, bind_signals, connect_signals
+from codex.settings.settings import BACKUP_DB_PATH, DEBUG, HYPERCORN_CONFIG
+from codex.signals import RESTART_EVENT, SHUTDOWN_EVENT, bind_signals
 from codex.version import VERSION
 
 
@@ -24,15 +23,22 @@ def set_env():
     """Set environment variables."""
     if DEBUG:
         os.environ["PYTHONDONTWRITEBYTECODE"] = "YES"
-        # Overwritten when we import settings in django.setup()
         LOG.setLevel("DEBUG")
+
+
+def backup_db_before_migration():
+    """If there are migrations to do, backup the db."""
+    if not has_unapplied_migrations():
+        return
+    suffix = f".before-v{VERSION}{BACKUP_DB_PATH.suffix}"
+    backup_path = BACKUP_DB_PATH.with_suffix(suffix)
+    backup_db(backup_path)
 
 
 def update_db():
     """Update the db to latest migrations."""
-    connect_signals()
-    django.setup()
-    call_command("makemigrations", "codex")
+    if DEBUG:
+        call_command("makemigrations", "codex")
     call_command("migrate")
 
 
@@ -67,6 +73,7 @@ def main():
     set_env()
     rebuild_db()
     repair_db()
+    backup_db_before_migration()
     update_db()
     run()
 

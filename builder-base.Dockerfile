@@ -23,8 +23,6 @@ RUN apk add --no-cache \
    poppler-utils \
    python3-dev \
    rust \
-   xapian-bindings-python3 \
-   xapian-core-dev \
    yaml-dev \
    zlib-dev
 

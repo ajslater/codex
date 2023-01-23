@@ -6,22 +6,10 @@ It exposes the ASGI callable as a module-level variable named ``DJANGO_APPLICATI
 For more information on this file, see
 https://docs.djangoproject.com/en/dev/howto/deployment/asgi/
 """
-import os
-
-import django
-
 from django.core.asgi import get_asgi_application
 
-from codex.signals import connect_signals
-
-
-# Must setup up the django environment before importing django models
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "codex.settings.settings")
-connect_signals()
-django.setup()
-
-from codex.lifespan import lifespan_application  # noqa: E402
-from codex.websocket_server import websocket_application  # noqa: E402
+from codex.lifespan import lifespan_application
+from codex.websocket_server import websocket_application
 
 
 DJANGO_APPLICATION = get_asgi_application()
