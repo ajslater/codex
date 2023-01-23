@@ -7,6 +7,7 @@
     :items="bookmarkChoices"
     :menu-props="{
       contentClass: filterMenuClass,
+      maxHeight: undefined,
     }"
     :model-value="bookmarkFilter"
     :max-select-len="filterByChoicesMaxLen + 1.5"

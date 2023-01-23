@@ -44,7 +44,7 @@ class BrowserAnnotationsView(BrowserOrderByView):
         for pk, score in search_scores.items():
             when = {prefix + "pk": pk, "then": score}
             whens.append(When(**when))
-        annotate = {prefix + "search_score": Case(*whens, default=0)}
+        annotate = {prefix + "search_score": Case(*whens, default=0.0)}
         return queryset.annotate(**annotate)
 
     def _annotate_cover_pk(self, queryset, model):

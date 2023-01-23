@@ -1,8 +1,6 @@
 """Haystack Search index updater."""
-import os
-
 from datetime import datetime, timezone
-from multiprocessing import Process
+from multiprocessing import Process, cpu_count
 from uuid import uuid4
 
 from django.core.management import call_command
@@ -23,7 +21,7 @@ from codex.threads import QueuedThread
 
 UPDATE_INDEX_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S%Z"
 LOG = get_logger(__name__)
-WORKERS = os.cpu_count()
+WORKERS = cpu_count()
 VERBOSITY = 1
 REBUILD_ARGS = ("rebuild_index",)
 REBUILD_KWARGS = {"interactive": False, "workers": WORKERS, "verbosity": VERBOSITY}

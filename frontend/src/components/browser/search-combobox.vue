@@ -11,6 +11,7 @@
     full-width
     hide-details="auto"
     hide-selected
+    :menu-props="{ maxHeight: undefined }"
     no-filter
     :prepend-inner-icon="mdiMagnify"
     variant="solo"

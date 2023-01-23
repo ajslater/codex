@@ -1,6 +1,6 @@
 #!/bin/bash
 # Combine arch specific images into a multiarch image
-set -euo pipefail
+set -euxo pipefail
 REPO=docker.io/ajslater/codex
 ARCH_REPO=docker.io/ajslater/codex-arch
 ARCHES=(x86_64 aarch64) # aarch32)

@@ -6,19 +6,20 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.0.4
+## v1.1.0
 
 - Features
-  - Add >, <, <=, >= range operators for search.
+  - Switch to Whoosh Search Engine.
+    - Old `config/xapian_index` dir may be safely deleted
+  - May run on Windows now ??.
 - Removed
   - Do not store search history for combobox across sessions.
   - Remove awkward bookmark searching from search bar.
 - Fix
+  - Fix Admin Library folder picker getting stuck.
   - Fix leading NOT for search
   - Fix trailing wildcard search
   - Don't pop out of folder mode on searches.
-  - Set id scope to all (0) on first search.
-  - Fix Admin Library folder picker getting stuck.
   - Uatu does a better job of ignoring device changes.
   - Fix showing error on unable to load comic image.
 

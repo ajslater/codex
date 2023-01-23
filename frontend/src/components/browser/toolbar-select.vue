@@ -6,6 +6,7 @@
     class="toolbarSelect"
     density="compact"
     full-width
+    :menu-props="{ maxHeight: undefined }"
     hide-details="auto"
     :style="style"
     :variant="variant"

@@ -62,17 +62,17 @@ You'll need to install these system dependencies before installing Codex.
 ##### macOS
 
 ```sh
-brew install jpeg libffi libyaml libzip openssl poppler python unrar webp xapian
+brew install jpeg libffi libyaml libzip openssl poppler python unrar webp
 ```
 
 ##### Linux
 
-###### Debian
+###### <a href="#debian">Debian</a>
 
 Like Ubuntu, Mint, MX and others.
 
 ```sh
-apt install build-essential libffi-dev libjpeg-dev libssl-dev libwebp7 libxapian30 libyaml-dev poppler-utils python3-pip python3-xapian zlib1g-dev
+apt install build-essential libffi-dev libjpeg-dev libssl-dev libwebp7 poppler-utils python3-pip zlib1g-dev
 ```
 
 older releases may use the `libweb6` package instead.
@@ -89,7 +89,7 @@ apt install cargo
 ###### Alpine
 
 ```sh
-apk add bsd-compat-headers build-base jpeg-dev libffi-dev libwebp openssl-dev poppler-utils xapian-bindings-python3 xapian-core yaml-dev zlib-dev
+apk add bsd-compat-headers build-base jpeg-dev libffi-dev libwebp openssl-dev poppler-utils yaml-dev zlib-dev
 ```
 
 ##### Install unrar Runtime Dependency on Linux
@@ -102,10 +102,40 @@ Unrar as packaged for Alpine Linux v3.14 seems to work on Alpine v3.15
 
 #### Windows
 
-Windows users must use Docker to run Codex.
+Windows users should use Docker to run Codex until this documentation section is
+complete.
 
-Codex does not yet install natively on Windows due to a failure to build binary
-dependencies. The blocker right now is the Xapian Search Engine bindings.
+Codex can _probably_ run using Cygwin or the Windows Linux Subsystem but
+I haven't done it yet. Contributions to this documentation accepted on
+[the outstanding issue](https://github.com/ajslater/codex/issues/76) or discord.
+
+##### Windows Linux Subsystem
+
+Untested. Try following the instructions for [Debian](#debian) above.
+
+##### Cygwin
+
+Untested partial instructions for the brave.
+
+1. Install [Cygwin](https://www.cygwin.com/).
+2. Install wget with cygwin.
+3. Install:
+   - python3.9+
+   - gcc
+   - gcc-g++
+   - libffi-devel
+   - libjpeg-devel
+   - libssl-devel
+   - mpfr
+   - mpc
+   - python3-devel
+   - python39-cffi
+   - python3.9-openssl with cygwin.
+4. Using a terminal:
+
+```sh
+pip install wheel
+```
 
 #### Install Codex with pip
 
@@ -216,7 +246,7 @@ max_db_ops = 100000
 
 ```
 
-The config directory also holds the main sqlite database, the Xapian search
+The config directory also holds the main sqlite database, the Whoosh search
 index, a Django cache and comic book cover thumbnails.
 
 ### Environment Variables

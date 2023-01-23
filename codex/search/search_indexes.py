@@ -1,6 +1,5 @@
 """Haystack search indexes."""
-
-from haystack.fields import CharField, DateField, MultiValueField
+from haystack.fields import CharField, MultiValueField
 from haystack.indexes import Indexable, ModelSearchIndex
 
 from codex.models import Comic
@@ -8,11 +7,6 @@ from codex.models import Comic
 
 class ComicIndex(ModelSearchIndex, Indexable):
     """Search index for the Comic model."""
-
-    # ModeSearchIndex tries to use datetime, incorrectly
-    # This seems like a haystack bug
-    # https://github.com/django-haystack/django-haystack/issues/1829
-    date = DateField(model_attr="date", null=True, default=None)
 
     # Related Fields
     publisher = CharField(model_attr="publisher__name")
