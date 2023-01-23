@@ -1,9 +1,10 @@
 """Initialize Django."""
-import os
+from os import environ
 
 from codex.signals import connect_signals
-import django
+from django import setup
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "codex.settings.settings")
+# This all happens before anything else to make django safe to use.
+environ.setdefault("DJANGO_SETTINGS_MODULE", "codex.settings.settings")
 connect_signals()
-django.setup()
+setup()
