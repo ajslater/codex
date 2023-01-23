@@ -5,7 +5,7 @@ from humanize import naturalsize
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.status_control import StatusControl
 from codex.settings.logging import get_logger
-from codex.settings.settings import BACKUP_DB_PATH, DB_PATH
+from codex.settings.settings import BACKUP_DB_DIR, BACKUP_DB_PATH, DB_PATH
 
 
 LOG = get_logger(__name__)
@@ -31,6 +31,7 @@ def backup_db(backup_path=BACKUP_DB_PATH):
     """Backup the database."""
     try:
         StatusControl.start(JanitorStatusTypes.DB_BACKUP)
+        BACKUP_DB_DIR.mkdir(exist_ok=True, parents=True)
         if backup_path.is_file():
             backup_path.replace(OLD_BACKUP_PATH)
         path = str(backup_path)
