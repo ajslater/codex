@@ -105,8 +105,8 @@ Unrar as packaged for Alpine Linux v3.14 seems to work on Alpine v3.15
 Windows users should use Docker to run Codex until this documentation section is
 complete.
 
-Codex can _probably_ run using Cygwin or the Windows Linux Subsystem but
-I haven't done it yet. Contributions to this documentation accepted on
+Codex can _probably_ run using Cygwin or the Windows Linux Subsystem but I
+haven't done it yet. Contributions to this documentation accepted on
 [the outstanding issue](https://github.com/ajslater/codex/issues/76) or discord.
 
 ##### Windows Linux Subsystem
