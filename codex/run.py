@@ -27,6 +27,7 @@ def set_env():
 
 
 def backup_db_before_migration():
+    """If there are migrations to do, backup the db."""
     if not has_unapplied_migrations():
         return
     suffix = f".before-v{VERSION}{BACKUP_DB_PATH.suffix}"
