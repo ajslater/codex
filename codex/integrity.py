@@ -12,7 +12,7 @@ from django.db.models.functions import Now
 from django.db.utils import OperationalError
 
 from codex.settings.logging import get_logger
-from codex.settings.settings import CONFIG_PATH, DB_PATH
+from codex.settings.settings import CODEX_PATH, CONFIG_PATH, DB_PATH
 
 
 NO_0005_ARG = "no_0005"
@@ -20,7 +20,7 @@ OK_EXC_ARGS = (NO_0005_ARG, "no such table: django_migrations")
 REPAIR_FLAG_PATH = CONFIG_PATH / "rebuild_db"
 DUMP_LINE_MATCHER = re.compile("TRANSACTION|ROLLBACK|COMMIT")
 REBUILT_DB_PATH = DB_PATH.parent / (DB_PATH.name + ".rebuilt")
-BACKUP_DB_PATH = DB_PATH.parent / (DB_PATH.name + ".backup")
+BACKUP_DB_PATH = DB_PATH.parent / (DB_PATH.name + ".bak")
 MIGRATION_0005 = "0005_auto_20200918_0146"
 MIGRATION_0007 = "0007_auto_20211210_1710"
 MIGRATION_0010 = "0010_haystack"
@@ -61,6 +61,7 @@ DELETE_BAD_COMIC_FOLDER_RELATIONS_SQL = (
     'OR NOT ("codex_comic_folder"."folder_id" '
     'IN (SELECT "codex_folder"."id" FROM "codex_folder")))'
 )
+MIGRATION_DIR = CODEX_PATH / "migrations"
 LOG = get_logger(__name__)
 
 
@@ -69,6 +70,21 @@ def has_applied_migration(migration_name):
     return MigrationRecorder.Migration.objects.filter(
         app="codex", name=migration_name
     ).exists()
+
+
+def has_unapplied_migrations():
+    """Check if any migrations are outstanding."""
+    db_names = frozenset(
+        MigrationRecorder.Migration.objects.filter(app="codex").values_list(
+            "name", flat=True
+        )
+    )
+    for path in MIGRATION_DIR.iterdir():
+        stem = path.stem
+        if stem[:4].isdigit() and stem not in db_names:
+            return True
+
+    return False
 
 
 def _repair_old_comic_folder_fks():

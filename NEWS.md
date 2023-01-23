@@ -10,8 +10,9 @@ border-radius: 128px;
 
 - Features
   - Switch to Whoosh Search Engine.
-    - Old `config/xapian_index` dir may be safely deleted
+    - You may delete `config/xapian_index`.
   - May run on Windows now ??.
+  - Backup database before migrations.
 - Removed
   - Do not store search history for combobox across sessions.
   - Remove awkward bookmark searching from search bar.
