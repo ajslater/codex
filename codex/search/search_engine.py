@@ -31,10 +31,15 @@ class CodexUnifiedIndex(UnifiedIndex):
 
 
 def gen_multipart_field_aliases(field):
+    """Generate aliases for fields made of snake_case words."""
     bits = field.split("_")
     aliases = []
+
+    # Singular from plural
     if field.endswith("s"):
         aliases += [field[:-1]]
+
+    # Alternate delimiters
     for connector in ("", "-"):
         joined = connector.join(bits)
         aliases += [joined, joined[:-1]]
@@ -42,8 +47,11 @@ def gen_multipart_field_aliases(field):
 
 
 class FILESIZE(NUMERIC):
+    """NUMERIC class with humanized filesize parser."""
+
     @staticmethod
     def _parse_size(value):
+        """Parse the value for size suffixes."""
         try:
             value = str(parse_size(value))
         except InvalidSize as exc:
@@ -51,10 +59,12 @@ class FILESIZE(NUMERIC):
         return value
 
     def parse_query(self, fieldname, qstring, boost=1.0):
+        """Parse one term."""
         qstring = self._parse_size(qstring)
         return super().parse_query(fieldname, qstring, boost=boost)
 
     def parse_range(self, fieldname, start, end, startexcl, endexcl, boost=1.0):
+        """Parse range terms."""
         if start:
             start = self._parse_size(start)
         if end:
@@ -65,6 +75,8 @@ class FILESIZE(NUMERIC):
 
 
 class CodexSearchBackend(WhooshSearchBackend):
+    """Custom Whoosh Backend."""
+
     FIELDMAP = {
         "characters": ["category", "character"],
         "created_at": ["created"],
@@ -97,11 +109,15 @@ class CodexSearchBackend(WhooshSearchBackend):
     )
 
     def build_schema(self, fields):
+        """Customize schema fields."""
         content_field_name, schema = super().build_schema(fields)
 
+        # Add accent leniency to all text field.
         for _, field in schema.items():
             if isinstance(field, TEXT):
                 field.analyzer |= CharsetFilter(accent_map)
+
+        # Replace size field with FILESIZE type.
         old_field = schema["size"]
         schema.remove("size")
         schema.add(
@@ -116,6 +132,7 @@ class CodexSearchBackend(WhooshSearchBackend):
         return (content_field_name, schema)
 
     def setup(self):
+        """Add extra plugins."""
         super().setup()
         self.parser.add_plugins(
             (
@@ -129,7 +146,10 @@ class CodexSearchBackend(WhooshSearchBackend):
 
 
 class CodexSearchQuery(WhooshSearchQuery):
+    """Custom search qeuery."""
+
     def clean(self, query_fragment):
+        """Optimize to noop because RESERVED_ consts are null."""
         return query_fragment
 
 
