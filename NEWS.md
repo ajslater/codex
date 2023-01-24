@@ -6,7 +6,15 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.1.1
+
+- Fix
+
+  - Fix unable to initialize database on first run
+
 ## v1.1.0
+
+### Whoosh
 
 - Features
   - Switch to Whoosh Search Engine.
