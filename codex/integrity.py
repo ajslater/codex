@@ -7,6 +7,7 @@ from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.sessions.models import Session
+from django.db import connection
 from django.db.migrations.recorder import MigrationRecorder
 from django.db.models.functions import Now
 from django.db.utils import OperationalError
@@ -74,23 +75,24 @@ def has_applied_migration(migration_name):
 
 def has_unapplied_migrations():
     """Check if any migrations are outstanding."""
-    db_names = frozenset(
-        MigrationRecorder.Migration.objects.filter(app="codex").values_list(
-            "name", flat=True
+    try:
+        db_names = frozenset(
+            MigrationRecorder.Migration.objects.filter(app="codex").values_list(
+                "name", flat=True
+            )
         )
-    )
-    for path in MIGRATION_DIR.iterdir():
-        stem = path.stem
-        if stem[:4].isdigit() and stem not in db_names:
-            return True
-
+        for path in MIGRATION_DIR.iterdir():
+            stem = path.stem
+            if stem[:4].isdigit() and stem not in db_names:
+                return True
+    except Exception as exc:
+        LOG.warning(exc)
     return False
 
 
 def _repair_old_comic_folder_fks():
     if has_applied_migration(MIGRATION_0007):
         return
-    from django.db import connection
 
     try:
         with connection.cursor() as cursor:
