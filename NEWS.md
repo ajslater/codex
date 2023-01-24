@@ -8,6 +8,8 @@ border-radius: 128px;
 
 ## v1.1.0
 
+### Whoosh
+
 - Features
   - Switch to Whoosh Search Engine.
     - You may delete `config/xapian_index`.
