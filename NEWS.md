@@ -10,7 +10,7 @@ border-radius: 128px;
 
 - Fix
 
-  - Fix unable to initialize dataabase on first run
+  - Fix unable to initialize database on first run
 
 ## v1.1.0
 
