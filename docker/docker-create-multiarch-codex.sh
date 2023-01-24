@@ -28,7 +28,7 @@ echo "Created tag: ${VERSION_TAG}."
 # cleanup main repo
 echo "$DOCKER_PASS" | hub-tool login "$DOCKER_USER"
 for tag in "${TAGS[@]}"; do
-    hub-tool tag rm "$tag"
+    "$HOME"/hub-tool tag rm "$tag"
 done
 echo "Cleaned up intermediary arch tags."
 
