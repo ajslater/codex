@@ -26,7 +26,7 @@ docker manifest push "$VERSION_TAG"
 echo "Created tag: ${VERSION_TAG}."
 
 # cleanup main repo
-echo "$DOCKER_PASS" | hub-tool login "$DOCKER_USER"
+echo "$DOCKER_PASS" | "$HOME"/hub-tool login "$DOCKER_USER"
 for tag in "${TAGS[@]}"; do
     "$HOME"/hub-tool tag rm "$tag"
 done
