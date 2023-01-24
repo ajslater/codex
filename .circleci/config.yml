@@ -99,8 +99,8 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          command: apt-get install curl jq
-          name: Install docker API tools
+          command: ./docker/docker-install-api-deps.sh
+          name: Install docker API dependencies
       - run:
           command: ./docker/docker-login.sh
           name: Login to Docker Hub
