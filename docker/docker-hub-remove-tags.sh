@@ -1,7 +1,7 @@
 #!/bin/bash
 # Use docker hub API to login & delete tags
 # Because docker/hub-tool won't do non-interactive login yet.
-set -euxo pipefail
+set -euo pipefail
 
 ORGANIZATION="ajslater"
 IMAGE="codex"

@@ -15,8 +15,9 @@ echo "Creating $VERSION_TAG"
 AMEND_TAGS=()
 RM_TAGS=()
 for arch in "${ARCHES[@]}"; do
-    TAG="$ARCH_REPO:${PKG_VERSION}-${arch}"
-    AMEND_TAGS+=("--amend" "$TAG")
+    TAG="${PKG_VERSION}-${arch}"
+    IMAGE="$ARCH_REPO:${TAG}"
+    AMEND_TAGS+=("--amend" "$IMAGE")
     RM_TAGS+=("$TAG")
 done
 
