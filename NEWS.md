@@ -11,18 +11,15 @@ border-radius: 128px;
 - Features
   - Switch to Whoosh Search Engine.
     - You may delete `config/xapian_index`.
-  - May run on Windows now ??.
-  - Move backups to `config/backups`.
+  - May run on Windows now?
+  - Moved db backups to `config/backups`.
   - Backup database before migrations.
 - Removed
   - Do not store search history for combobox across sessions.
-  - Remove awkward bookmark searching from search bar.
 - Fix
-  - Fix Admin Library folder picker getting stuck.
-  - Fix leading NOT for search
-  - Fix trailing wildcard search
-  - Don't pop out of folder mode on searches.
+  - Fix Admin Library folder picker.
   - Uatu does a better job of ignoring device changes.
+  - Don't pop out of folder mode on searches.
   - Fix showing error on unable to load comic image.
 
 ## v1.0.3
