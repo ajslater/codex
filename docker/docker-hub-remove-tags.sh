@@ -16,12 +16,9 @@ login_data() {
 EOF
 }
 
-apt get install curl jq
-
 TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d "$(login_data)" "https://hub.docker.com/v2/users/login/" | jq -r .token)
 
-URL_HEAD="https://hub.docker.com/v2/repositories/${ORGANIZATION}/${IMAGE}/tags/"
-
+URL_HEAD="https://hub.docker.com/v2/repositories/${ORGANIZATION}/${IMAGE}/tags"
 for tag in "${TAGS[@]}"; do
     curl "$URL_HEAD/${tag}/" \
         -X DELETE \
