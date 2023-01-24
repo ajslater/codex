@@ -33,5 +33,5 @@ echo "Cleaned up intermediary arch tags."
 if [[ $PKG_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]$ ]]; then
     # If the version is just numbers push it as latest
     docker/docker-tag-remote-version-as-latest.sh "$PKG_VERSION"
-    echo "Created ${LATEST_TAG}"
+    echo "Created codex:${PKG_VERSION}"
 fi
