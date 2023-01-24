@@ -26,9 +26,10 @@ docker manifest push "$VERSION_TAG"
 echo "Created tag: ${VERSION_TAG}."
 
 # cleanup main repo
-echo "$DOCKER_PASS" | "$HOME"/hub-tool login "$DOCKER_USER"
+HUB_TOOL="${HOME}/hub-tool"
+echo "$DOCKER_PASS" | "$HUB_TOOL" login "$DOCKER_USER"
 for tag in "${TAGS[@]}"; do
-    "$HOME"/hub-tool tag rm "$tag"
+    "$HUB_TOOL" tag rm "$tag"
 done
 echo "Cleaned up intermediary arch tags."
 
