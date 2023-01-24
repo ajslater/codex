@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Generic image builder script
 set -xeuo pipefail
-SERVICE=$1 # the docker compose service to build
-REPO=docker.io/ajslater/${SERVICE}
+REPO=docker.io/ajslater/$1
+SERVICE=$1${2-} # the docker compose service to build
 VERSION_VAR=${SERVICE^^}
 VERSION_VAR=${VERSION_VAR//-/_}_VERSION
 
@@ -39,6 +39,9 @@ export CODEX_WHEEL
 export PKG_VERSION
 # shellcheck disable=2068
 BAKE_ARGS=("${PLATFORM_ARG[@]}" --set "*.tags=${IMAGE}")
+# It'd be nicer if i could bake --load and --push at the same time
+# but that requires docker buildx bake to allow multiple outputs:
+# https://github.com/moby/buildkit/issues/1555
 docker buildx bake \
     "${BAKE_ARGS[@]-}" \
     --load \
@@ -49,6 +52,3 @@ docker buildx bake \
     "${BAKE_ARGS[@]-}" \
     --push \
     "$SERVICE"
-# It'd be faster if i could bake --load and then bake push instead
-# Try it
-# docker pull "$IMAGE"

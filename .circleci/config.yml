@@ -87,7 +87,7 @@ jobs:
           command: ./docker/docker-init.sh
           name: Login to Docker Hub, Install binfmt platform & Create the buildx Builder
       - run:
-          command: ./docker/docker-build-image.sh codex-arch
+          command: ./docker/docker-build-image.sh codex -arch
           name: Build Codex Runnable Image
   build-arm64:
     <<: *build
@@ -98,6 +98,9 @@ jobs:
       - checkout
       - attach_workspace:
           at: .
+      - run:
+          command: ./docker/docker-install-api-deps.sh
+          name: Install docker API dependencies
       - run:
           command: ./docker/docker-login.sh
           name: Login to Docker Hub

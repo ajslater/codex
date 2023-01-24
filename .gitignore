@@ -18,6 +18,7 @@
 .coverage
 .coverage.*
 .dmypy.json
+.docker-token
 .eggs/
 .env
 .env-*
