@@ -3,7 +3,7 @@
     ref="searchbox"
     v-model="query"
     v-model:menu="menu"
-    :items="queries"
+    :items="items"
     autofocus
     aria-label="search"
     clearable
@@ -11,6 +11,7 @@
     full-width
     hide-details="auto"
     hide-selected
+    :menu-props="{ maxHeight: undefined }"
     no-filter
     :prepend-inner-icon="mdiMagnify"
     variant="solo"
@@ -27,6 +28,8 @@ import { mapActions, mapState } from "pinia";
 
 import { useBrowserStore } from "@/stores/browser";
 
+const MAX_ITEMS = 10;
+
 export default {
   name: "BrowserSearchCombobox",
   data() {
@@ -34,30 +37,35 @@ export default {
       mdiMagnify,
       menu: false,
       query: "",
+      items: [""],
     };
   },
   computed: {
     ...mapState(useBrowserStore, {
-      queries: (state) => state.page.queries,
       stateQ: (state) => state.settings.q,
     }),
   },
   watch: {
-    menu(to) {
-      if (!to) {
-        this.doSearch(this.query);
-      }
-    },
     stateQ(to) {
       this.query = to;
+      this.addToMenu(to);
     },
   },
   methods: {
     ...mapActions(useBrowserStore, ["setSettings"]),
+    addToMenu(q) {
+      if (!q || this.items.includes(q)) {
+        return;
+      }
+      const updateditems = this.items[0] === "" ? [] : this.items;
+      updateditems.unshift(q);
+      this.items = updateditems.slice(0, MAX_ITEMS);
+    },
     doSearch() {
       this.menu = false;
       const q = this.query ? this.query.trim() : "";
       this.setSettings({ q });
+      this.addToMenu(q);
     },
   },
 };

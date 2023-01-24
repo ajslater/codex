@@ -5,7 +5,6 @@ module.exports = {
     // TEST LIBRARIES
   ],
   rules: {
-    "vitest/lower-case-title": 2,
     "vitest/max-nested-describe": [
       "error",
       {

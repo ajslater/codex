@@ -9,6 +9,7 @@
       <small v-else-if="success" class="success">
         {{ success }}
       </small>
+      <small v-else>&nbsp;</small>
     </div>
     <ConfirmFooter
       :confirm-text="`${verb} ${table}`"

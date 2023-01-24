@@ -6,13 +6,29 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.1.0
+
+- Features
+  - Switch to Whoosh Search Engine.
+    - You may delete `config/xapian_index`.
+  - May run on Windows now?
+  - Moved db backups to `config/backups`.
+  - Backup database before migrations.
+- Removed
+  - Do not store search history for combobox across sessions.
+- Fix
+  - Fix Admin Library folder picker.
+  - Uatu does a better job of ignoring device changes.
+  - Don't pop out of folder mode on searches.
+  - Fix showing error on unable to load comic image.
+
 ## v1.0.3
 
 - Features
   - Force update all failed imports admin task.
 - Fixes
   - Fix moving folders to subfolder orphans folders bug.
-  - Fix id does not exist redirect.
+  - Fix id does not exist redirect loop.
 
 ## v1.0.2
 

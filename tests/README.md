@@ -1,7 +1,5 @@
 # Codex Tests
 
-Codex is very light on tests right now :(
-
-More to come.
+Codex is light on tests right now
 
 Frontend tests live in /frontend/tests/

@@ -1,4 +1,5 @@
 #!/bin/bash
+# Run front and back end tests
 set -euo pipefail
-./test-frontend.sh
+./frontend/test.sh
 ./test-backend.sh

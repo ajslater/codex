@@ -13,13 +13,13 @@ from codex.serializers.metadata import (
 )
 from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
-from codex.views.browser.browser_metadata_base import BrowserMetadataBaseView
+from codex.views.browser.browser_annotations import BrowserAnnotationsView
 
 
 LOG = get_logger(__name__)
 
 
-class MetadataView(BrowserMetadataBaseView):
+class MetadataView(BrowserAnnotationsView):
     """Comic metadata."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
@@ -171,7 +171,7 @@ class MetadataView(BrowserMetadataBaseView):
         if not self.is_model_comic:
             size_func = self.get_aggregate_func("size", self.is_model_comic)
             qs = qs.annotate(size=size_func)
-        qs = self.annotate_common_aggregates(qs, self.model)
+        qs = self.annotate_common_aggregates(qs, self.model, {})
         return qs
 
     def _annotate_values_and_fks(self, qs, simple_qs):
@@ -306,9 +306,14 @@ class MetadataView(BrowserMetadataBaseView):
 
         qs = self._annotate_values_and_fks(qs, simple_qs)
         m2m_intersections = self._query_m2m_intersections(simple_qs)
-        obj = qs.values()[0]
-        if not obj:
-            raise NotFound(detail=f"Metadata for {self.group}/{pk} not found")
+        try:
+            obj = qs.values()[0]
+            if not obj:
+                raise IndexError("Empty obj")
+        except IndexError as exc:
+            raise NotFound(
+                detail=f"Filtered metadata for {self.group}/{pk} not found"
+            ) from exc
 
         obj = self._copy_annotations_into_comic_fields(obj, m2m_intersections)
         return obj
@@ -326,7 +331,7 @@ class MetadataView(BrowserMetadataBaseView):
             raise NotFound(detail=f"Cannot get metadata for {self.group=}")
         self.is_model_comic = self.group == self.COMIC_GROUP
 
-    @extend_schema(request=BrowserMetadataBaseView.input_serializer_class)
+    @extend_schema(request=BrowserAnnotationsView.input_serializer_class)
     def get(self, _request, *args, **kwargs):
         """Get metadata for a filtered browse group."""
         # Init

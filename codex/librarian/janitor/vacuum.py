@@ -5,10 +5,11 @@ from humanize import naturalsize
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.status_control import StatusControl
 from codex.settings.logging import get_logger
-from codex.settings.settings import BACKUP_DB_PATH, DB_PATH
+from codex.settings.settings import BACKUP_DB_DIR, BACKUP_DB_PATH, DB_PATH
 
 
 LOG = get_logger(__name__)
+OLD_BACKUP_PATH = BACKUP_DB_PATH.with_suffix(BACKUP_DB_PATH.suffix + ".old")
 
 
 def vacuum_db():
@@ -26,13 +27,20 @@ def vacuum_db():
         StatusControl.finish(JanitorStatusTypes.DB_VACUUM)
 
 
-def backup_db():
+def backup_db(backup_path=BACKUP_DB_PATH):
     """Backup the database."""
     try:
         StatusControl.start(JanitorStatusTypes.DB_BACKUP)
-        BACKUP_DB_PATH.unlink(missing_ok=True)
+        BACKUP_DB_DIR.mkdir(exist_ok=True, parents=True)
+        if backup_path.is_file():
+            backup_path.replace(OLD_BACKUP_PATH)
+        path = str(backup_path)
         with connection.cursor() as cursor:
-            cursor.execute(f"VACUUM INTO '{BACKUP_DB_PATH}'")
-        LOG.verbose("Backed up database.")
+            cursor.execute(f"VACUUM INTO {path!r}")
+        OLD_BACKUP_PATH.unlink(missing_ok=True)
+        LOG.verbose(f"Backed up database to {path}")
+    except Exception as exc:
+        LOG.error("Backing up database.")
+        LOG.exception(exc)
     finally:
         StatusControl.finish(JanitorStatusTypes.DB_BACKUP)

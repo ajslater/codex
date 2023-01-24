@@ -111,11 +111,6 @@
       "title": "Cleanup",
       "tasks": [
         {
-          "value": "cleanup_queries",
-          "title": "Clean Up Search Cache",
-          "desc": "Remove old cached search queries. Runs nightly"
-        },
-        {
           "value": "cleanup_fks",
           "title": "Remove Orphan Tags",
           "desc": "After deleting comics, unused linked objects remain in case new comics use the. Runs nightly."

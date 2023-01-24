@@ -8,12 +8,12 @@ set -euo pipefail
 DEPS_MD5=$(md5sum "${DEPS[@]}")
 ALL_MD5S=("${EXTRA_MD5S[@]}" "${DEPS_MD5[@]}")
 VERSION=$(
-    echo "${ALL_MD5S[@]}" |
-        LC_ALL=C sort -k 2 |
-        md5sum |
-        awk '{print $1}'
+    echo "${ALL_MD5S[@]}" \
+        | LC_ALL=C sort -k 2 \
+        | md5sum \
+        | awk '{print $1}'
 )
-if [[ ${CIRCLECI:-} ]]; then
+if [[ ${CIRCLECI-} ]]; then
     ARCH=$(./docker/docker-arch.sh)
     VERSION="${VERSION}-$ARCH"
 fi

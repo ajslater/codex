@@ -17,7 +17,6 @@ from pathlib import Path
 
 from django.contrib.staticfiles.storage import staticfiles_storage
 from tzlocal import get_localzone_name
-from xapian import QueryParser
 
 from codex.settings.hypercorn import load_hypercorn_config
 from codex.settings.logging import get_logger, init_logging
@@ -119,7 +118,8 @@ WSGI_APPLICATION = "codex.wsgi.application"
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 
 DB_PATH = CONFIG_PATH / "db.sqlite3"
-BACKUP_DB_PATH = DB_PATH.with_suffix(DB_PATH.suffix + ".bak")
+BACKUP_DB_DIR = CONFIG_PATH / "backups"
+BACKUP_DB_PATH = (BACKUP_DB_DIR / DB_PATH.stem).with_suffix(DB_PATH.suffix + ".bak")
 
 DATABASES = {
     "default": {
@@ -281,22 +281,13 @@ INTERNAL_IPS = [
     "127.0.0.1",
 ]
 
-XAPIAN_INDEX_PATH = CONFIG_PATH / "xapian_index"
-XAPIAN_INDEX_PATH.mkdir(exist_ok=True, parents=True)
-XAPIAN_INDEX_UUID_PATH = XAPIAN_INDEX_PATH / "codex_db.uuid"
-_XAPIAN_FLAGS = (
-    QueryParser.FLAG_BOOLEAN
-    | QueryParser.FLAG_BOOLEAN_ANY_CASE
-    | QueryParser.FLAG_PHRASE
-    | QueryParser.FLAG_LOVEHATE
-    | QueryParser.FLAG_WILDCARD
-    | QueryParser.FLAG_PURE_NOT
-)
+SEARCH_INDEX_PATH = CONFIG_PATH / "whoosh_index"
+SEARCH_INDEX_PATH.mkdir(exist_ok=True, parents=True)
+SEARCH_INDEX_UUID_PATH = SEARCH_INDEX_PATH / "codex_db.uuid"
 HAYSTACK_CONNECTIONS = {
     "default": {
-        "ENGINE": "codex.search_engine.CodexXapianSearchEngine",
-        "PATH": str(XAPIAN_INDEX_PATH),
-        "HAYSTACK_XAPIAN_FLAGS": _XAPIAN_FLAGS,
+        "ENGINE": "codex.search.search_engine.CodexSearchEngine",
+        "PATH": str(SEARCH_INDEX_PATH),
     },
 }
 

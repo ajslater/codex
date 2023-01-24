@@ -63,6 +63,7 @@ module.exports = {
     "yaml",
   ],
   rules: {
+    "array-func/prefer-array-from": "off", // for modern browsers the spread operator, as preferred by unicorn, works fine.
     "max-params": ["warn", 4],
     "no-console": process.env.NODE_ENV === "production" ? "warn" : "off",
     "no-debugger": process.env.NODE_ENV === "production" ? "warn" : "off",

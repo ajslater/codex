@@ -1,6 +1,6 @@
 #!/bin/bash
-set -euxo pipefail
 # Fix common linting errors
+set -euxo pipefail
 ####################
 ###### Python ######
 ###################

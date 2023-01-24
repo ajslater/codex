@@ -1,4 +1,5 @@
 #!/bin/bash
+# lint the frontend
 set -euo pipefail
 
 cd "$(dirname "$0")"

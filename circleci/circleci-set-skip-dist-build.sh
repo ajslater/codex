@@ -1,4 +1,5 @@
 #!/bin/bash
+# sets a circleci skip steps flag if the wheel is already built
 set -eou pipefail
 pip3 install --upgrade pip
 pip3 install --requirement builder-requirements.txt

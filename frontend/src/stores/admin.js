@@ -112,6 +112,12 @@ export const useAdminStore = defineStore("admin", {
         })
         .catch(useCommonStore().setErrors);
     },
+    async clearFolders(root) {
+      if (!this.isUserAdmin) {
+        return false;
+      }
+      this.folderPicker = { root, folders: [""] };
+    },
     async createRow(table, data) {
       if (!this.isUserAdmin) {
         return false;

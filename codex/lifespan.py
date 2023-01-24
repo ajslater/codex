@@ -42,7 +42,7 @@ def _delete_orphans(model, field, names):
     count = query.count()
     if count:
         query.delete()
-        LOG.info(f"Deleted {count} orphan {model.verbose_name_plural}.")
+        LOG.info(f"Deleted {count} orphan {model._meta.verbose_name_plural}.")
 
 
 def init_admin_flags():
@@ -130,7 +130,7 @@ async def lifespan_application(_scope, receive, send):
                     LOG.debug("Lifespan startup complete.")
                 except Exception as exc:
                     await send({"type": "lifespan.startup.failed"})
-                    LOG.error("Lfespan startup failed.")
+                    LOG.error("Lifespan startup failed.")
                     raise exc
             elif message["type"] == "lifespan.shutdown":
                 LOG.debug("Lifespan shutdown started.")

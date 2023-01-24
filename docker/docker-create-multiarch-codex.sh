@@ -1,8 +1,10 @@
 #!/bin/bash
 # Combine arch specific images into a multiarch image
-set -euo pipefail
+set -euxo pipefail
 REPO=docker.io/ajslater/codex
-ARCH_REPO=docker.io/ajslater/codex-arch
+# Don't use arch-repo anymore
+#ARCH_REPO=docker.io/ajslater/codex-arch
+ARCH_REPO=$REPO
 ARCHES=(x86_64 aarch64) # aarch32)
 
 pip3 install --upgrade pip
@@ -11,19 +13,28 @@ PKG_VERSION=$(./version.sh)
 VERSION_TAG=$REPO:$PKG_VERSION
 echo "Creating $VERSION_TAG"
 AMEND_TAGS=()
+RM_TAGS=()
 for arch in "${ARCHES[@]}"; do
-    AMEND_TAGS+=("--amend" "$ARCH_REPO:${PKG_VERSION}-${arch}")
+    TAG="${PKG_VERSION}-${arch}"
+    IMAGE="$ARCH_REPO:${TAG}"
+    AMEND_TAGS+=("--amend" "$IMAGE")
+    RM_TAGS+=("$TAG")
 done
 
 CREATE_VERSION_ARGS=("$VERSION_TAG" "${AMEND_TAGS[@]}")
 docker manifest create "${CREATE_VERSION_ARGS[@]}"
 docker manifest push "$VERSION_TAG"
+echo "Created tag: ${VERSION_TAG}."
+
+# cleanup main repo
+./docker/docker-hub-remove-tags.sh "${RM_TAGS[@]}"
+echo "Cleaned up intermediary arch tags."
 
 if [[ $PKG_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]$ ]]; then
     # If the version is just numbers push it as latest
     LATEST_TAG="$REPO:latest"
-    echo "Creating $LATEST_TAG."
     CREATE_LATEST_ARGS=("$LATEST_TAG" "${AMEND_TAGS[@]}")
     docker manifest create "${CREATE_LATEST_ARGS[@]}"
     docker manifest push "$LATEST_TAG"
+    echo "Created ${LATEST_TAG}"
 fi

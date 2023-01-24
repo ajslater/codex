@@ -45,6 +45,7 @@ async def websocket_application(_scope, receive, send):
                 await asyncio.sleep(0)
 
             if event["type"] == "websocket.disconnect":
+                Notifier.unsubscribe(send)
                 break
 
             if event["type"] == "websocket.receive":

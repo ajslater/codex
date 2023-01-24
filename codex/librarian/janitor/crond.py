@@ -9,12 +9,10 @@ from humanize import precisedelta
 from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.covers.tasks import CoverRemoveOrphansTask
 from codex.librarian.janitor.cleanup import TOTAL_CLASSES, cleanup_fks
-from codex.librarian.janitor.search import clean_old_queries
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.janitor.tasks import (
     JanitorBackupTask,
     JanitorCleanFKsTask,
-    JanitorCleanSearchTask,
     JanitorClearStatusTask,
     JanitorRestartTask,
     JanitorShutdownTask,
@@ -77,7 +75,6 @@ class Crond(NamedThread):
     def _init_librarian_status():
         types_map = {
             JanitorStatusTypes.CLEANUP_FK: {"total": TOTAL_CLASSES},
-            JanitorStatusTypes.CLEAN_SEARCH: {},
             JanitorStatusTypes.DB_VACUUM: {},
             JanitorStatusTypes.DB_BACKUP: {},
             JanitorStatusTypes.CODEX_UPDATE: {},
@@ -104,7 +101,6 @@ class Crond(NamedThread):
                     try:
                         tasks = [
                             JanitorCleanFKsTask(),
-                            JanitorCleanSearchTask(),
                             JanitorVacuumTask(),
                             JanitorBackupTask(),
                             JanitorUpdateTask(force=False),
@@ -149,8 +145,6 @@ def janitor(task):
             restart_codex()
         elif isinstance(task, JanitorShutdownTask):
             shutdown_codex()
-        elif isinstance(task, JanitorCleanSearchTask):
-            clean_old_queries()
         elif isinstance(task, JanitorCleanFKsTask):
             cleanup_fks()
         elif isinstance(task, JanitorClearStatusTask):
