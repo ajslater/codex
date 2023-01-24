@@ -33,7 +33,7 @@ echo "Cleaned up intermediary arch tags."
 if [[ $PKG_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]$ ]]; then
     # If the version is just numbers push it as latest
     LATEST_TAG="$REPO:latest"
-    CREATE_LATEST_ARGS=("$LATEST_TAG" "${AMEND_TAGS[@]}")
+    CREATE_LATEST_ARGS=("$LATEST_TAG" "--amend" "$VERSION_TAG")
     docker manifest create "${CREATE_LATEST_ARGS[@]}"
     docker manifest push "$LATEST_TAG"
     echo "Created ${LATEST_TAG}"
