@@ -26,7 +26,7 @@ docker manifest push "$VERSION_TAG"
 echo "Created tag: ${VERSION_TAG}."
 
 # cleanup main repo
-./docker/docker-hub-remove-tags.sh "${TAGS[@]}"
+./docker/docker-hub-remove-tags.sh "${RM_TAGS[@]}"
 echo "Cleaned up intermediary arch tags."
 
 if [[ $PKG_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]$ ]]; then
