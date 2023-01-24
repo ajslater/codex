@@ -1,7 +1,7 @@
 <template>
   <v-dialog max-width="30em">
     <template #activator="{ props }">
-      <v-btn id="opdsButton" icon size="small" v-bind="props">
+      <v-btn id="opdsButton" icon size="small" variant="plain" v-bind="props">
         <v-icon>{{ mdiRss }}</v-icon>
         OPDS
       </v-btn>
@@ -68,7 +68,7 @@ export default {
   padding: 20px;
 }
 #opdsButton {
-  color: rgb(var(--v-theme-textDisabled));
+  color: rgb(var(--v-theme-textSecondary));
 }
 .inline {
   display: inline-flex;
