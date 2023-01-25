@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.1.3
+
+- Fix
+
+  - Fix some OPDS browsers unable to read comics.
+
 ## v1.1.2
 
 - Fix
