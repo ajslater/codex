@@ -193,7 +193,7 @@ class CodexSearchBackend(WhooshSearchBackend):
                         "Preparing object for update",
                         extra={"data": {"index": index, "object": get_identifier(obj)}},
                     )
-        elapsed = precisedelta(datetime.now() - start)
+        elapsed = precisedelta(datetime.now() - start, minimum_unit="seconds")
         LOG.verbose(f"Search engine prepared objects for commit in {elapsed}")
 
         start = datetime.now()
@@ -203,5 +203,5 @@ class CodexSearchBackend(WhooshSearchBackend):
                 writer.commit(merge=True)
             if writer.ident is not None:
                 writer.join()
-        elapsed = precisedelta(datetime.now() - start)
+        elapsed = precisedelta(datetime.now() - start, minimum_unit="seconds")
         LOG.verbose(f"Search engine committed index in {str(elapsed)}")

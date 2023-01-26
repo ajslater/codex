@@ -1,6 +1,7 @@
 """Bulk import and move comics and folders."""
 import time
 
+from datetime import datetime
 from pathlib import Path
 
 from django.core.cache import cache
@@ -180,7 +181,7 @@ def _finish_apply(library):
 
 def _apply(task):
     """Bulk import comics."""
-    start_time = time.time()
+    start_time = datetime.now()
     library = Library.objects.get(pk=task.library_id)
     try:
         library.update_in_progress = True
@@ -218,13 +219,12 @@ def _apply(task):
 
     if changed:
         LIBRARIAN_QUEUE.put(LIBRARY_CHANGED_TASK)
-        elapsed_time = time.time() - start_time
-        LOG.info(
-            f"Updated library {library.path} in {precisedelta(int(elapsed_time))}."
-        )
+        elapsed_time = datetime.now() - start_time
+        elapsed = precisedelta(elapsed_time, minimum_unit="seconds")
+        LOG.info(f"Updated library {library.path} in {elapsed}.")
         suffix = ""
         if imported_count:
-            cps = int(imported_count / elapsed_time)
+            cps = int(imported_count / elapsed_time.total_seconds())
             suffix = f" at {cps} comics per second."
         LOG.verbose(f"Imported {imported_count} comics{suffix}.")
     if new_failed_imports:

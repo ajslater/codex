@@ -172,7 +172,7 @@ def _optimize_search_index(force=False):
             LOG.verbose(f"Search index found in {num_segments} segments.")
             writerargs = CodexSearchBackend.get_writerargs(num_docs)
             backend.index.optimize(**writerargs)
-            elapsed = precisedelta(datetime.now() - start)
+            elapsed = precisedelta(datetime.now() - start, minimum_unit="seconds")
             LOG.info(f"Optimized search index in {elapsed}")
     finally:
         StatusControl.finish(SearchIndexStatusTypes.SEARCH_INDEX)
