@@ -577,8 +577,3 @@ class Timestamp(NamedModel):
     def touch(cls, name):
         """Touch a timestamp."""
         cls.objects.get(name=name).save()
-
-    @classmethod
-    def get(cls, name):
-        """Get the timestamp."""
-        return cls.objects.get(name=name).updated_at.timestamp()

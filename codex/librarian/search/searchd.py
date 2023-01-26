@@ -1,21 +1,20 @@
 """Haystack Search index updater."""
-from datetime import datetime, timezone
+from datetime import datetime
 from multiprocessing import Process
 from uuid import uuid4
 
 from django.core.management import call_command
-from django.utils import timezone as django_timezone
 from haystack import connections as haystack_connections
 from humanize import precisedelta
 
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import (
     SearchIndexOptimizeTask,
     SearchIndexRebuildIfDBChangedTask,
     SearchIndexUpdateTask,
 )
-from codex.librarian.status_control import StatusControl, StatusControlFinishTask
+from codex.librarian.status_control import StatusControl
 from codex.models import Library, Timestamp
 from codex.search.backend import CodexSearchBackend
 from codex.settings.logging import get_logger
@@ -77,7 +76,6 @@ def _call_command(args, kwargs):
 
 def _update_search_index(rebuild=False):
     """Update the search index."""
-    start_time = django_timezone.now()
     try:
         any_update_in_progress = Library.objects.filter(
             update_in_progress=True
@@ -89,13 +87,6 @@ def _update_search_index(rebuild=False):
         if not rebuild and not _is_search_index_uuid_match():
             LOG.warning("Database does not match search index.")
             rebuild = True
-        status_keys = {"type": SearchIndexStatusTypes.SEARCH_INDEX}
-        if rebuild:
-            status_keys["name"] = "rebuild"
-        else:
-            status_keys["name"] = "update"
-        StatusControl.start(**status_keys)
-        start_time = django_timezone.now()
 
         SEARCH_INDEX_PATH.mkdir(parents=True, exist_ok=True)
 
@@ -104,14 +95,7 @@ def _update_search_index(rebuild=False):
             _call_command(REBUILD_ARGS, REBUILD_KWARGS)
             _set_search_index_version()
         else:
-            try:
-                timestamp = Timestamp.get(Timestamp.SEARCH_INDEX)
-            except FileNotFoundError:
-                timestamp = 0
-            start = datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime(
-                UPDATE_INDEX_DATETIME_FORMAT
-            )
-
+            start = Timestamp.objects.get(name=Timestamp.SEARCH_INDEX).updated_at
             LOG.verbose(f"Updating search index since {start}...")
             # Workers are only possible with fork()
             # django-haystack has a bug
@@ -124,17 +108,6 @@ def _update_search_index(rebuild=False):
         LOG.verbose("Finished updating search index.")
     except Exception as exc:
         LOG.error(f"Update search index: {exc}")
-    finally:
-        # XXX this may solve a timing bug that left update index status unfinished
-        elapsed = (django_timezone.now() - start_time).total_seconds()
-        if elapsed > MIN_FINISHED_TIME:
-            delay = 0
-        else:
-            delay = MIN_FINISHED_TIME
-        task = DelayedTasks(
-            delay, (StatusControlFinishTask(SearchIndexStatusTypes.SEARCH_INDEX),)
-        )
-        LIBRARIAN_QUEUE.put(task)
 
 
 def _rebuild_search_index_if_db_changed():
@@ -150,7 +123,7 @@ def _rebuild_search_index_if_db_changed():
 def _optimize_search_index(force=False):
     """Optimize search index."""
     try:
-        StatusControl.start(type=SearchIndexStatusTypes.SEARCH_INDEX, name="optimize")
+        StatusControl.start(type=SearchIndexStatusTypes.SEARCH_INDEX_OPTIMIZE)
         LOG.verbose("Optimizing search index...")
         start = datetime.now()
         num_segments = len(tuple(SEARCH_INDEX_PATH.glob("*.seg")))
@@ -178,7 +151,7 @@ def _optimize_search_index(force=False):
             cps = int(num_docs / elapsed_seconds)
             LOG.info(f"Optimized search index in {elapsed} at {cps} comics per second.")
     finally:
-        StatusControl.finish(SearchIndexStatusTypes.SEARCH_INDEX)
+        StatusControl.finish(SearchIndexStatusTypes.SEARCH_INDEX_OPTIMIZE)
 
 
 class SearchIndexer(QueuedThread):

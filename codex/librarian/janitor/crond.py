@@ -1,5 +1,5 @@
 """Perform maintence tasks."""
-from datetime import datetime, time, timedelta, timezone
+from datetime import datetime, time, timedelta
 from threading import Condition, Event
 from time import sleep
 
@@ -53,23 +53,18 @@ class Crond(NamedThread):
     def _get_timeout(cls):
         """Get seconds until midnight."""
         now = django_timezone.now()
-        try:
-            mtime = Timestamp.get(Timestamp.JANITOR)
-            last_cron = datetime.fromtimestamp(mtime, tz=timezone.utc)
-        except FileNotFoundError:
-            # get last midnight. Usually only on very first run.
-            last_cron = cls._get_midnight(now)
+        last_cron = Timestamp.objects.get(name=Timestamp.JANITOR).updated_at
 
         if now - last_cron < ONE_DAY:
             # wait until next midnight
             next_midnight = cls._get_midnight(now, True)
             delta = next_midnight - now
-            seconds = max(0, delta.total_seconds())
+            seconds = max(0, int(delta.total_seconds()))
         else:
             # it's been too long
             seconds = 0
 
-        return int(seconds)
+        return seconds
 
     @staticmethod
     def _init_librarian_status():
@@ -78,8 +73,9 @@ class Crond(NamedThread):
             JanitorStatusTypes.DB_VACUUM: {},
             JanitorStatusTypes.DB_BACKUP: {},
             JanitorStatusTypes.CODEX_UPDATE: {},
-            SearchIndexStatusTypes.SEARCH_INDEX: {"name": "update"},
-            SearchIndexStatusTypes.SEARCH_INDEX: {"name": "optimize"},
+            SearchIndexStatusTypes.SEARCH_INDEX_PREPARE: {},
+            SearchIndexStatusTypes.SEARCH_INDEX_COMMIT: {},
+            SearchIndexStatusTypes.SEARCH_INDEX_OPTIMIZE: {},
             CoverStatusTypes.FIND_ORPHAN: {},
         }
         StatusControl.start_many(types_map)
