@@ -64,7 +64,7 @@ class StatusControl:
     @classmethod
     def update(cls, type, complete, total, name="", notify=True, since=None):
         """Update a librarian status."""
-        if since is None or (since - datetime.now()) > cls.UPDATE_DELTA:
+        if since is None or (datetime.now() - since) > cls.UPDATE_DELTA:
             updates = {
                 "preactive": False,
                 "complete": complete,

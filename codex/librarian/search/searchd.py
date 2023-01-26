@@ -33,7 +33,10 @@ UPDATE_KWARGS = {
     "verbosity": VERBOSITY,
 }
 MIN_FINISHED_TIME = 1
-OPTIMIZE_DOC_COUNT = 10000
+# Docker constraints look like 3 comics per second.
+# Don't optimize if it might take longer than 20 minutes.
+# Can be much faster running native. 128 comics per second for instance.
+OPTIMIZE_DOC_COUNT = 20 * 60 * 3
 
 
 def _set_search_index_version():
