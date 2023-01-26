@@ -88,7 +88,7 @@ class AdminLibrarianTaskView(APIView):
         elif task_name == "search_index_rebuild":
             task = SearchIndexUpdateTask(True)
         elif task_name == "search_index_optimize":
-            task = SearchIndexOptimizeTask()
+            task = SearchIndexOptimizeTask(True)
         elif task_name == "db_vacuum":
             task = JanitorVacuumTask()
         elif task_name == "db_backup":

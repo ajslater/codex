@@ -1,4 +1,5 @@
 """Custom Haystack Search Backend."""
+from datetime import datetime
 from multiprocessing import cpu_count
 
 from django.utils.timezone import now
@@ -139,13 +140,13 @@ class CodexSearchBackend(WhooshSearchBackend):
         )
         self.parser.replace_plugin(self.OPERATORS_PLUGIN)
 
-    def _get_writerargs(self, iterable):
+    @classmethod
+    def get_writerargs(cls, num_objs):
         """Use multiproc, multisegment writing only for large loads."""
-        num_objs = len(iterable)
         writerargs = {
             "limitdb": 256,
         }
-        if num_objs > self.MULTISEGMENT_CUTOFF:
+        if num_objs > cls.MULTISEGMENT_CUTOFF:
             # Bug in Whoosh means procs > 1 needs multisegment
             # https://github.com/mchaput/whoosh/issues/35
             writerargs["procs"] = cpu_count()
@@ -159,10 +160,9 @@ class CodexSearchBackend(WhooshSearchBackend):
 
         self.index = self.index.refresh()
 
-        from datetime import datetime
-
         start = datetime.now()
-        writerargs = self._get_writerargs(iterable)
+        num_objs = len(iterable)
+        writerargs = self.get_writerargs(num_objs)
         writer = AsyncWriter(self.index, writerargs=writerargs)
 
         for obj in iterable:
@@ -200,7 +200,7 @@ class CodexSearchBackend(WhooshSearchBackend):
         if len(iterable) > 0:
             # For now, commit no matter what, as we run into locking issues otherwise.
             if commit:
-                writer.commit()
+                writer.commit(merge=True)
             if writer.ident is not None:
                 writer.join()
         elapsed = precisedelta(datetime.now() - start)

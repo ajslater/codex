@@ -17,6 +17,7 @@ from codex.librarian.search.tasks import (
 )
 from codex.librarian.status_control import StatusControl, StatusControlFinishTask
 from codex.models import Library, Timestamp
+from codex.search.backend import CodexSearchBackend
 from codex.settings.logging import get_logger
 from codex.settings.settings import SEARCH_INDEX_PATH, SEARCH_INDEX_UUID_PATH
 from codex.threads import QueuedThread
@@ -33,6 +34,7 @@ UPDATE_KWARGS = {
     "verbosity": VERBOSITY,
 }
 MIN_FINISHED_TIME = 1
+OPTIMIZE_DOC_COUNT = 10000 * cpu_count()
 
 
 def _set_search_index_version():
@@ -145,21 +147,35 @@ def _rebuild_search_index_if_db_changed():
         LOG.verbose("Database matches search index.")
 
 
-def _optimize_search_index():
+def _optimize_search_index(force=False):
     """Optimize search index."""
-    StatusControl.start(type=SearchIndexStatusTypes.SEARCH_INDEX, name="optimize")
-    LOG.verbose("Optimizing search index...")
-    start = datetime.now()
-    num_segments = len(tuple(SEARCH_INDEX_PATH.glob("*.seg")))
-    LOG.verbose(f"Search index in {num_segments} segments.")
-    if num_segments > 1:
+    try:
+        StatusControl.start(type=SearchIndexStatusTypes.SEARCH_INDEX, name="optimize")
+        LOG.verbose("Optimizing search index...")
+        start = datetime.now()
+        num_segments = len(tuple(SEARCH_INDEX_PATH.glob("*.seg")))
+        if num_segments <= 1:
+            LOG.verbose("Search index already optimized.")
+            return
         backends = haystack_connections.connections_info.keys()
         for conn_key in backends:
             backend = haystack_connections[conn_key].get_backend()
-            backend.optimize()
-    elapsed = precisedelta(datetime.now() - start)
-    LOG.info(f"Optimized search index in {elapsed}")
-    StatusControl.finish(SearchIndexStatusTypes.SEARCH_INDEX)
+            if not backend.setup_complete:
+                backend.setup()
+            backend.index = backend.index.refresh()
+            num_docs = backend.index.doc_count()
+            if num_docs > OPTIMIZE_DOC_COUNT and not force:
+                LOG.verbose(
+                    f"Search index > {OPTIMIZE_DOC_COUNT} comics. Not optimizing."
+                )
+                return
+            LOG.verbose(f"Search index found in {num_segments} segments.")
+            writerargs = CodexSearchBackend.get_writerargs(num_docs)
+            backend.index.optimize(**writerargs)
+            elapsed = precisedelta(datetime.now() - start)
+            LOG.info(f"Optimized search index in {elapsed}")
+    finally:
+        StatusControl.finish(SearchIndexStatusTypes.SEARCH_INDEX)
 
 
 class SearchIndexer(QueuedThread):
@@ -174,6 +190,6 @@ class SearchIndexer(QueuedThread):
         elif isinstance(task, SearchIndexUpdateTask):
             _update_search_index(rebuild=task.rebuild)
         elif isinstance(task, SearchIndexOptimizeTask):
-            _optimize_search_index()
+            _optimize_search_index(task.force)
         else:
             LOG.warning(f"Bad task sent to search index thread: {task}")
