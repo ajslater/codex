@@ -4,7 +4,7 @@ from threading import Condition, Event
 from time import sleep
 
 from django.utils import timezone as django_timezone
-from humanize import precisedelta
+from humanize import naturaldelta
 
 from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.covers.tasks import CoverRemoveOrphansTask
@@ -88,7 +88,7 @@ class Crond(NamedThread):
                 while not self._stop_event.is_set():
                     timeout = self._get_timeout()
                     LOG.verbose(
-                        f"Waiting {precisedelta(timeout)} until next maintenance."
+                        f"Waiting {naturaldelta(timeout)} until next maintenance."
                     )
                     self._cond.wait(timeout=timeout)
                     if self._stop_event.is_set():

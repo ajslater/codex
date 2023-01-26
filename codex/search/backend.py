@@ -7,7 +7,7 @@ from haystack.backends.whoosh_backend import TEXT, WhooshSearchBackend
 from haystack.exceptions import SkipDocument
 from haystack.utils import get_identifier
 from humanfriendly import InvalidSize, parse_size
-from humanize import precisedelta
+from humanize import naturaldelta
 from whoosh.analysis import CharsetFilter, StandardAnalyzer, StemFilter
 from whoosh.fields import NUMERIC
 from whoosh.qparser import FieldAliasPlugin, GtLtPlugin, OperatorsPlugin
@@ -220,7 +220,7 @@ class CodexSearchBackend(WhooshSearchBackend):
                 )
 
             StatusControl.finish(SearchIndexStatusTypes.SEARCH_INDEX_PREPARE)
-            elapsed = precisedelta(datetime.now() - start, minimum_unit="seconds")
+            elapsed = naturaldelta(datetime.now() - start)
             LOG.verbose(f"Search engine prepared objects for commit in {elapsed}")
 
             start = datetime.now()
@@ -231,8 +231,8 @@ class CodexSearchBackend(WhooshSearchBackend):
                     writer.commit(merge=True)
                 if writer.ident is not None:
                     writer.join()
-            elapsed = precisedelta(datetime.now() - start, minimum_unit="seconds")
-            LOG.verbose(f"Search engine committed index in {str(elapsed)}")
+            elapsed = naturaldelta(datetime.now() - start)
+            LOG.verbose(f"Search engine committed index in {elapsed}")
         finally:
             StatusControl.finish_many(self.UPDATE_FINISH_TYPES)
 

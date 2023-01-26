@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from django.core.management import call_command
 from haystack import connections as haystack_connections
-from humanize import precisedelta
+from humanize import naturaldelta
 
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.librarian.search.status import SearchIndexStatusTypes
@@ -148,9 +148,8 @@ def _optimize_search_index(force=False):
             writerargs = CodexSearchBackend.get_writerargs(num_docs)
             backend.index.optimize(**writerargs)
             elapsed_delta = datetime.now() - start
-            elapsed_seconds = int(elapsed_delta.total_seconds())
-            elapsed = precisedelta(elapsed_seconds)
-            cps = int(num_docs / elapsed_seconds)
+            elapsed = naturaldelta(elapsed_delta)
+            cps = int(num_docs / elapsed_delta.total_seconds())
             LOG.info(f"Optimized search index in {elapsed} at {cps} comics per second.")
     finally:
         StatusControl.finish(SearchIndexStatusTypes.SEARCH_INDEX_OPTIMIZE)

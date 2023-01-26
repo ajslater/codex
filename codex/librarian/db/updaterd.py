@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 
 from django.core.cache import cache
-from humanize import precisedelta
+from humanize import naturaldelta
 
 from codex.librarian.db.aggregate_metadata import get_aggregate_metadata
 from codex.librarian.db.create_comics import bulk_import_comics
@@ -229,7 +229,7 @@ def _apply(task):
     if changed:
         LIBRARIAN_QUEUE.put(LIBRARY_CHANGED_TASK)
         elapsed_time = datetime.now() - start_time
-        elapsed = precisedelta(elapsed_time, minimum_unit="seconds")
+        elapsed = naturaldelta(elapsed_time)
         LOG.info(f"Updated library {library.path} in {elapsed}.")
         suffix = ""
         if imported_count:
