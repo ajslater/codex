@@ -1,16 +1,19 @@
 """Haystack Search index updater."""
 from datetime import datetime, timezone
-from multiprocessing import Process, cpu_count
+from multiprocessing import Process
 from uuid import uuid4
 
 from django.core.management import call_command
 from django.utils import timezone as django_timezone
+from haystack import connections as haystack_connections
+from humanize import precisedelta
 
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import (
-    SearchIndexJanitorUpdateTask,
+    SearchIndexOptimizeTask,
     SearchIndexRebuildIfDBChangedTask,
+    SearchIndexUpdateTask,
 )
 from codex.librarian.status_control import StatusControl, StatusControlFinishTask
 from codex.models import Library, Timestamp
@@ -21,14 +24,12 @@ from codex.threads import QueuedThread
 
 UPDATE_INDEX_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S%Z"
 LOG = get_logger(__name__)
-WORKERS = cpu_count()
 VERBOSITY = 1
 REBUILD_ARGS = ("rebuild_index",)
-REBUILD_KWARGS = {"interactive": False, "workers": WORKERS, "verbosity": VERBOSITY}
+REBUILD_KWARGS = {"interactive": False, "verbosity": VERBOSITY}
 UPDATE_ARGS = ("update_index", "codex")
 UPDATE_KWARGS = {
     "remove": True,
-    "workers": WORKERS,
     "verbosity": VERBOSITY,
 }
 MIN_FINISHED_TIME = 1
@@ -138,10 +139,27 @@ def _rebuild_search_index_if_db_changed():
     """Rebuild the search index if the db changed."""
     if not _is_search_index_uuid_match():
         LOG.warning("Database does not match search index.")
-        task = SearchIndexJanitorUpdateTask(True)
+        task = SearchIndexUpdateTask(True)
         LIBRARIAN_QUEUE.put(task)
     else:
         LOG.verbose("Database matches search index.")
+
+
+def _optimize_search_index():
+    """Optimize search index."""
+    StatusControl.start(type=SearchIndexStatusTypes.SEARCH_INDEX, name="optimize")
+    LOG.verbose("Optimizing search index...")
+    start = datetime.now()
+    num_segments = len(tuple(SEARCH_INDEX_PATH.glob("*.seg")))
+    LOG.verbose(f"Search index in {num_segments} segments.")
+    if num_segments > 1:
+        backends = haystack_connections.connections_info.keys()
+        for conn_key in backends:
+            backend = haystack_connections[conn_key].get_backend()
+            backend.optimize()
+    elapsed = precisedelta(datetime.now() - start)
+    LOG.info(f"Optimized search index in {elapsed}")
+    StatusControl.finish(SearchIndexStatusTypes.SEARCH_INDEX)
 
 
 class SearchIndexer(QueuedThread):
@@ -153,7 +171,9 @@ class SearchIndexer(QueuedThread):
         """Run the updater."""
         if isinstance(task, SearchIndexRebuildIfDBChangedTask):
             _rebuild_search_index_if_db_changed()
-        elif isinstance(task, SearchIndexJanitorUpdateTask):
+        elif isinstance(task, SearchIndexUpdateTask):
             _update_search_index(rebuild=task.rebuild)
+        elif isinstance(task, SearchIndexOptimizeTask):
+            _optimize_search_index()
         else:
             LOG.warning(f"Bad task sent to search index thread: {task}")

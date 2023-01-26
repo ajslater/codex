@@ -46,6 +46,12 @@
           "title": "Rebuild Search Index",
           "desc": "Delete and rebuild the search index from scratch",
           "confirm": "This can take a long time"
+        },
+        {
+          "value": "search_index_optimize",
+          "title": "Optimize Search Index",
+          "desc": "Optimize a segmented search index. Runs nightly.",
+          "confirm": "This can take a long time."
         }
       ]
     },

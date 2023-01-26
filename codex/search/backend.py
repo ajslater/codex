@@ -1,33 +1,23 @@
-"""Locking, Aliasing Xapian Backend."""
+"""Custom Haystack Search Backend."""
+from multiprocessing import cpu_count
+
 from django.utils.timezone import now
-from haystack.backends import UnifiedIndex
-from haystack.backends.whoosh_backend import (
-    TEXT,
-    WhooshEngine,
-    WhooshSearchBackend,
-    WhooshSearchQuery,
-)
+from haystack.backends.whoosh_backend import TEXT, WhooshSearchBackend
+from haystack.exceptions import SkipDocument
+from haystack.utils import get_identifier
 from humanfriendly import InvalidSize, parse_size
-from whoosh.analysis import CharsetFilter
+from humanize import precisedelta
+from whoosh.analysis import CharsetFilter, StandardAnalyzer, StemFilter
 from whoosh.fields import NUMERIC
 from whoosh.qparser import FieldAliasPlugin, GtLtPlugin, OperatorsPlugin
 from whoosh.qparser.dateparse import DateParserPlugin
 from whoosh.support.charset import accent_map
+from whoosh.writing import AsyncWriter
 
-from codex.search.search_indexes import ComicIndex
 from codex.settings.logging import get_logger
 
 
 LOG = get_logger(__name__)
-
-
-class CodexUnifiedIndex(UnifiedIndex):
-    """Custom Codex Unified Index."""
-
-    def collect_indexes(self):
-        """Replace auto app.search_index finding with one exact instance."""
-        # Because i moved search_indexes into codex.search
-        return [ComicIndex()]
 
 
 def gen_multipart_field_aliases(field):
@@ -107,6 +97,7 @@ class CodexSearchBackend(WhooshSearchBackend):
         Not=r"(?i)(^|(?<=(\s|[()])))NOT(?=\s)",
         Require=r"(?i)(^|(?<=\s))REQUIRE(?=\s)",
     )
+    MULTISEGMENT_CUTOFF = 500
 
     def build_schema(self, fields):
         """Customize schema fields."""
@@ -115,7 +106,11 @@ class CodexSearchBackend(WhooshSearchBackend):
         # Add accent leniency to all text field.
         for _, field in schema.items():
             if isinstance(field, TEXT):
-                field.analyzer |= CharsetFilter(accent_map)
+                field.analyzer = (
+                    StandardAnalyzer()
+                    | CharsetFilter(accent_map)
+                    | StemFilter(cachesize=-1)
+                )
 
         # Replace size field with FILESIZE type.
         old_field = schema["size"]
@@ -144,18 +139,69 @@ class CodexSearchBackend(WhooshSearchBackend):
         )
         self.parser.replace_plugin(self.OPERATORS_PLUGIN)
 
+    def _get_writerargs(self, iterable):
+        """Use multiproc, multisegment writing only for large loads."""
+        num_objs = len(iterable)
+        writerargs = {
+            "limitdb": 256,
+        }
+        if num_objs > self.MULTISEGMENT_CUTOFF:
+            # Bug in Whoosh means procs > 1 needs multisegment
+            # https://github.com/mchaput/whoosh/issues/35
+            writerargs["procs"] = cpu_count()
+            writerargs["multisegment"] = cpu_count() > 1
+        return writerargs
 
-class CodexSearchQuery(WhooshSearchQuery):
-    """Custom search qeuery."""
+    def update(self, index, iterable, commit=True):
+        """Update index, but with writer options."""
+        if not self.setup_complete:
+            self.setup()
 
-    def clean(self, query_fragment):
-        """Optimize to noop because RESERVED_ consts are null."""
-        return query_fragment
+        self.index = self.index.refresh()
 
+        from datetime import datetime
 
-class CodexSearchEngine(WhooshEngine):
-    """A search engine with a locking backend."""
+        start = datetime.now()
+        writerargs = self._get_writerargs(iterable)
+        writer = AsyncWriter(self.index, writerargs=writerargs)
 
-    backend = CodexSearchBackend
-    query = CodexSearchQuery
-    unified_index = CodexUnifiedIndex
+        for obj in iterable:
+            try:
+                doc = index.full_prepare(obj)
+            except SkipDocument:
+                self.log.debug("Indexing for object `%s` skipped", obj)
+            else:
+                # Really make sure it's unicode, because Whoosh won't have it any
+                # other way.
+                for key in doc:
+                    doc[key] = self._from_python(doc[key])
+
+                # Document boosts aren't supported in Whoosh 2.5.0+.
+                if "boost" in doc:
+                    del doc["boost"]
+
+                try:
+                    writer.update_document(**doc)
+                except Exception:
+                    if not self.silently_fail:
+                        raise
+
+                    # We'll log the object identifier but won't include the actual
+                    # object to avoid the possibility of that generating encoding
+                    # errors while processing the log message:
+                    self.log.exception(
+                        "Preparing object for update",
+                        extra={"data": {"index": index, "object": get_identifier(obj)}},
+                    )
+        elapsed = precisedelta(datetime.now() - start)
+        LOG.verbose(f"Search engine prepared objects for commit in {elapsed}")
+
+        start = datetime.now()
+        if len(iterable) > 0:
+            # For now, commit no matter what, as we run into locking issues otherwise.
+            if commit:
+                writer.commit()
+            if writer.ident is not None:
+                writer.join()
+        elapsed = precisedelta(datetime.now() - start)
+        LOG.verbose(f"Search engine committed index in {str(elapsed)}")

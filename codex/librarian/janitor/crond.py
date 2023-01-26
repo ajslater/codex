@@ -23,7 +23,7 @@ from codex.librarian.janitor.update import restart_codex, shutdown_codex, update
 from codex.librarian.janitor.vacuum import backup_db, vacuum_db
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.librarian.search.status import SearchIndexStatusTypes
-from codex.librarian.search.tasks import SearchIndexJanitorUpdateTask
+from codex.librarian.search.tasks import SearchIndexOptimizeTask, SearchIndexUpdateTask
 from codex.librarian.status_control import StatusControl
 from codex.models import Timestamp
 from codex.settings.logging import get_logger
@@ -78,7 +78,8 @@ class Crond(NamedThread):
             JanitorStatusTypes.DB_VACUUM: {},
             JanitorStatusTypes.DB_BACKUP: {},
             JanitorStatusTypes.CODEX_UPDATE: {},
-            SearchIndexStatusTypes.SEARCH_INDEX: {},
+            SearchIndexStatusTypes.SEARCH_INDEX: {"name": "update"},
+            SearchIndexStatusTypes.SEARCH_INDEX: {"name": "optimize"},
             CoverStatusTypes.FIND_ORPHAN: {},
         }
         StatusControl.start_many(types_map)
@@ -104,7 +105,8 @@ class Crond(NamedThread):
                             JanitorVacuumTask(),
                             JanitorBackupTask(),
                             JanitorUpdateTask(force=False),
-                            SearchIndexJanitorUpdateTask(False),
+                            SearchIndexUpdateTask(False),
+                            SearchIndexOptimizeTask(),
                             CoverRemoveOrphansTask(),
                         ]
                         for task in tasks:
