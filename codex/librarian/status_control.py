@@ -50,6 +50,7 @@ class StatusControl:
                 LIBRARIAN_QUEUE.put(LIBRARIAN_STATUS_TASK)
         except Exception as exc:
             LOG.warning(exc)
+            LOG.exception(exc)
 
     @classmethod
     def start_many(cls, types_map):
@@ -79,6 +80,7 @@ class StatusControl:
                     LOG.verbose(f"{title}: {complete}/{total}")
             except Exception as exc:
                 LOG.warning(exc)
+                LOG.exception(exc)
         return since
 
     @staticmethod
@@ -91,6 +93,7 @@ class StatusControl:
                 LIBRARIAN_QUEUE.put(LIBRARIAN_STATUS_TASK)
         except Exception as exc:
             LOG.warning(exc)
+            LOG.exception(exc)
 
     @staticmethod
     def finish_many(types, notify=True):
@@ -108,3 +111,4 @@ class StatusControl:
                 LOG.info("Cleared all librarian statuses")
         except Exception as exc:
             LOG.warning(exc)
+            LOG.exception(exc)
