@@ -21,16 +21,17 @@ from codex.librarian.db.query_fks import query_all_missing_fks
 from codex.librarian.db.status import ImportStatusTypes
 from codex.librarian.db.tasks import AdoptOrphanFoldersTask, UpdaterDBDiffTask
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
+from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexUpdateTask
 from codex.librarian.status_control import StatusControl
 from codex.logger.log_queue import VERBOSE
 from codex.models import Library
 from codex.notifier.tasks import FAILED_IMPORTS_TASK, LIBRARY_CHANGED_TASK
-from codex.settings.logging import LOG_EVERY, get_logger
+from codex.settings.logging import get_logger
 from codex.threads import QueuedThread
 
 
-WRITE_WAIT_EXPIRY = LOG_EVERY
+WRITE_WAIT_EXPIRY = 5
 LOG = get_logger(__name__)
 
 
@@ -145,10 +146,13 @@ def _log_task(path, task):
 def _init_librarian_status(task, path):
     """Update the librarian status tasks."""
     types_map = {}
+    total_changes = 0
     if task.files_moved:
         types_map[ImportStatusTypes.FILES_MOVED] = {"total": len(task.files_moved)}
+        total_changes += len(task.files_moved)
     if task.files_modified or task.files_created:
         total_paths = len(task.files_modified) + len(task.files_created)
+        total_changes += total_paths
         types_map[ImportStatusTypes.AGGREGATE_TAGS] = {
             "total": total_paths,
             "name": path,
@@ -169,6 +173,11 @@ def _init_librarian_status(task, path):
         types_map[ImportStatusTypes.FILES_DELETED] = {
             "name": f"({len(task.files_deleted)})"
         }
+        total_changes += len(task.files.deleted)
+    types_map[SearchIndexStatusTypes.SEARCH_INDEX_PREPARE] = {"total": total_changes}
+    types_map[SearchIndexStatusTypes.SEARCH_INDEX_COMMIT] = {
+        "name": f"({total_changes})"
+    }
     StatusControl.start_many(types_map)
 
 

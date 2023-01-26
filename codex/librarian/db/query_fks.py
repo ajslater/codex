@@ -1,6 +1,5 @@
 """Query the missing foreign keys for comics and credits."""
-import time
-
+from datetime import datetime
 from pathlib import Path
 
 from django.db.models import Q
@@ -17,7 +16,7 @@ from codex.models import (
     Series,
     Volume,
 )
-from codex.settings.logging import LOG_EVERY, get_logger
+from codex.settings.logging import get_logger
 
 
 CREDIT_FKS = ("role", "person")
@@ -56,8 +55,7 @@ def _query_create_metadata(fk_cls, create_mds, all_filter_args):
     filter = Q()
     filter_arg_count = 0
     all_filter_args = tuple(all_filter_args)
-    last_log = time.time()
-    logged = False
+    since = datetime.now()
     ls = LibrarianStatus.objects.get(type=ImportStatusTypes.QUERY_MISSING_FKS)
     ls_complete = ls.complete
     num_filter_args_batches = len(all_filter_args)
@@ -69,28 +67,18 @@ def _query_create_metadata(fk_cls, create_mds, all_filter_args):
         if filter_arg_count >= FILTER_ARG_MAX or filter_args == all_filter_args[-1]:
             # If too many filter args in the query or we're on the last one.
             create_mds -= _query_existing_mds(fk_cls, filter)
-
-            now = time.time()
-            if now - last_log > LOG_EVERY or (
-                logged and num >= num_filter_args_batches
-            ):
-
-                StatusControl.update(
-                    ImportStatusTypes.QUERY_MISSING_FKS,
-                    ls_complete + num,
-                    ls_total,
-                )
-                log = (
-                    f"Queried for existing {fk_cls.__name__}s, batch "
-                    + f"{num}/{num_filter_args_batches}"
-                )
-                LOG.verbose(log)
-                last_log = now
-                logged = True
-
             # Reset the filter
             filter = Q()
             filter_arg_count = 0
+
+            since = StatusControl.update(
+                ImportStatusTypes.QUERY_MISSING_FKS,
+                ls_complete + num,
+                ls_total,
+                since=since,
+                name=fk_cls.__name__,
+            )
+
     return create_mds
 
 
@@ -186,8 +174,7 @@ def _query_missing_simple_models(base_cls, field, fk_field, names):
     create_names = set(names)
     num_proposed_names = len(proposed_names)
     num = 0
-    logged = False
-    last_log = time.time()
+    since = datetime.now()
 
     # Init status update.
     ls = LibrarianStatus.objects.get(type=ImportStatusTypes.QUERY_MISSING_FKS)
@@ -201,18 +188,13 @@ def _query_missing_simple_models(base_cls, field, fk_field, names):
         filter = Q(**filter_args)
         create_names -= _query_existing_mds(fk_cls, filter)
         num += len(batch_proposed_names)
-        now = time.time()
-        if now - last_log > LOG_EVERY or (logged and num >= num_proposed_names):
-            StatusControl.update(
-                ImportStatusTypes.QUERY_MISSING_FKS, ls_complete + num, ls_total
-            )
-            log = (
-                f"Queried for existing {fk_cls.__name__}s, "
-                + f"batch {num}/{num_proposed_names}"
-            )
-            LOG.verbose(log)
-            last_log = now
-            logged = True
+        since = StatusControl.update(
+            ImportStatusTypes.QUERY_MISSING_FKS,
+            ls_complete + num,
+            ls_total,
+            since=since,
+            name=fk_cls.__name__,
+        )
         offset += FILTER_ARG_MAX
 
     return fk_cls, create_names

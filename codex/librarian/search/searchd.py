@@ -95,7 +95,9 @@ def _update_search_index(rebuild=False):
             _call_command(REBUILD_ARGS, REBUILD_KWARGS)
             _set_search_index_version()
         else:
-            start = Timestamp.objects.get(name=Timestamp.SEARCH_INDEX).updated_at
+            start = Timestamp.objects.get(
+                name=Timestamp.SEARCH_INDEX
+            ).updated_at.strftime(UPDATE_INDEX_DATETIME_FORMAT)
             LOG.verbose(f"Updating search index since {start}...")
             # Workers are only possible with fork()
             # django-haystack has a bug

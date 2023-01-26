@@ -165,13 +165,13 @@ class CodexSearchBackend(WhooshSearchBackend):
     def update(self, index, iterable, commit=True):
         """Update index, but with writer options."""
         try:
-            start = datetime.now()
+            start = since = datetime.now()
             num_objs = len(iterable)
             statuses = {
                 SearchIndexStatusTypes.SEARCH_INDEX_PREPARE: {
                     "total": num_objs,
                 },
-                SearchIndexStatusTypes.SEARCH_INDEX_COMMIT: {},
+                SearchIndexStatusTypes.SEARCH_INDEX_COMMIT: {"name": f"({num_objs})"},
             }
             StatusControl.start_many(statuses)
             if not self.setup_complete:
@@ -182,9 +182,7 @@ class CodexSearchBackend(WhooshSearchBackend):
             writerargs = self.get_writerargs(num_objs)
             writer = AsyncWriter(self.index, writerargs=writerargs)
 
-            obj_count = 0
-            status_timer = start
-            for obj in iterable:
+            for obj_count, obj in enumerate(iterable):
                 try:
                     doc = index.full_prepare(obj)
                 except SkipDocument:
@@ -214,14 +212,12 @@ class CodexSearchBackend(WhooshSearchBackend):
                                 "data": {"index": index, "object": get_identifier(obj)}
                             },
                         )
-                obj_count += 1
-                if (status_timer - datetime.now()) > self.UPDATE_DELTA:
-                    StatusControl.update(
-                        SearchIndexStatusTypes.SEARCH_INDEX_PREPARE,
-                        obj_count,
-                        num_objs,
-                    )
-                    status_timer = datetime.now()
+                since = StatusControl.update(
+                    SearchIndexStatusTypes.SEARCH_INDEX_PREPARE,
+                    obj_count,
+                    num_objs,
+                    since=since,
+                )
 
             StatusControl.finish(SearchIndexStatusTypes.SEARCH_INDEX_PREPARE)
             elapsed = precisedelta(datetime.now() - start, minimum_unit="seconds")

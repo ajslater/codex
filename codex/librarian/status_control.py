@@ -1,5 +1,6 @@
 """Librarian Status."""
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 
 from django.db.models.functions.datetime import Now
 
@@ -22,6 +23,8 @@ class StatusControlFinishTask:
 
 class StatusControl:
     """Run operations on the LibrarianStatus table."""
+
+    UPDATE_DELTA = timedelta(seconds=5)
 
     @staticmethod
     def start(
@@ -57,21 +60,26 @@ class StatusControl:
             now_pad += 0.1
         LIBRARIAN_QUEUE.put(LIBRARIAN_STATUS_TASK)
 
-    @staticmethod
-    def update(type, complete, total, notify=True):
+    @classmethod
+    def update(cls, type, complete, total, name="", notify=True, since=None):
         """Update a librarian status."""
-        updates = {
-            "preactive": False,
-            "complete": complete,
-            "total": total,
-            "updated_at": Now(),
-        }
-        try:
-            LibrarianStatus.objects.filter(type=type).update(**updates)
-            if notify:
-                LIBRARIAN_QUEUE.put(LIBRARIAN_STATUS_TASK)
-        except Exception as exc:
-            LOG.warning(exc)
+        if since is None or (since - datetime.now()) > cls.UPDATE_DELTA:
+            updates = {
+                "preactive": False,
+                "complete": complete,
+                "total": total,
+                "updated_at": Now(),
+            }
+            try:
+                LibrarianStatus.objects.filter(type=type).update(**updates)
+                if notify:
+                    LIBRARIAN_QUEUE.put(LIBRARIAN_STATUS_TASK)
+                    since = datetime.now()
+                    title = " ".join((type, name)).strip()
+                    LOG.verbose(f"{title}: {complete}/{total}")
+            except Exception as exc:
+                LOG.warning(exc)
+        return since
 
     @staticmethod
     def finish(type, notify=True):

@@ -3,7 +3,7 @@ Create all missing comic foreign keys for an import.
 
 So we may safely create the comics next.
 """
-
+from datetime import datetime
 from pathlib import Path
 
 from django.db.models.functions import Now
@@ -258,11 +258,11 @@ def _init_librarian_status(
     return total_fks
 
 
-def _status_update(count, created_fks, total_fks, changed):
-    changed |= count > 0
-    created_fks += count
-    StatusControl.update(ImportStatusTypes.CREATE_FKS, created_fks, total_fks)
-    return changed, created_fks
+def _status_update(completed, total_fks, since):
+    since = StatusControl.update(
+        ImportStatusTypes.CREATE_FKS, completed, total_fks, since=since
+    )
+    return since
 
 
 def bulk_create_all_fks(
@@ -282,30 +282,27 @@ def bulk_create_all_fks(
             create_fks,
             create_credits,
         )
+        since = datetime.now()
         LOG.verbose(f"Creating comic foreign keys for {library.path}...")
-        created_fks = 0
-        changed = False
-        count = _bulk_create_or_update_groups(
+        count = 0
+        count += _bulk_create_or_update_groups(
             create_groups, _bulk_group_creator, "creation", "Created"
         )
-        changed, created_fks = _status_update(count, created_fks, total_fks, changed)
-        count = _bulk_create_or_update_groups(
+        since = _status_update(count, total_fks, since)
+        count += _bulk_create_or_update_groups(
             update_groups, _bulk_group_updater, "update", "Updated"
         )
-        changed, created_fks = _status_update(count, created_fks, total_fks, changed)
+        since = _status_update(count, total_fks, since)
 
-        count = bulk_folders_create(library, create_folder_paths)
-        changed, created_fks = _status_update(count, created_fks, total_fks, changed)
+        count += bulk_folders_create(library, create_folder_paths)
+        since = _status_update(count, total_fks, since)
 
         for cls, names in create_fks.items():
             count = _bulk_create_named_models(cls, names)
-            changed, created_fks = _status_update(
-                count, created_fks, total_fks, changed
-            )
+            since = _status_update(count, total_fks, since)
 
         # This must happen after credit_fks created by create_named_models
-        count = _bulk_create_credits(create_credits)
-        changed |= count > 0
-        return changed
+        count += _bulk_create_credits(create_credits)
+        return count > 0
     finally:
         StatusControl.finish(ImportStatusTypes.CREATE_FKS)

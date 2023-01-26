@@ -1,6 +1,5 @@
 """Create comic cover paths."""
-import time
-
+from datetime import datetime
 from io import BytesIO
 
 from comicbox.comic_archive import ComicArchive
@@ -21,7 +20,6 @@ _COVER_RATIO = 1.5372233400402415  # modal cover ratio
 _THUMBNAIL_WIDTH = 165
 _THUMBNAIL_HEIGHT = round(_THUMBNAIL_WIDTH * _COVER_RATIO)
 _THUMBNAIL_SIZE = (_THUMBNAIL_WIDTH, _THUMBNAIL_HEIGHT)
-_COVER_DB_UPDATE_INTERVAL = 10
 
 LOG = get_logger(__name__)
 
@@ -93,7 +91,7 @@ def bulk_create_comic_covers(comic_pks):
 
         # Get comic objects
         count = 0
-        last_update = start_time = time.time()
+        start_time = since = datetime.now()
 
         for pk in comic_pks:
             # Create all covers.
@@ -107,13 +105,11 @@ def bulk_create_comic_covers(comic_pks):
                 count += 1
 
             # notify the frontend every 10 seconds
-            elapsed = time.time() - last_update
-            if elapsed > _COVER_DB_UPDATE_INTERVAL:
-                LOG.verbose(f"Created {count}/{num_comics} comic covers.")
-                StatusControl.update(CoverStatusTypes.CREATE, count, num_comics)
-                last_update = time.time()
+            since = StatusControl.update(
+                CoverStatusTypes.CREATE, count, num_comics, since=since
+            )
 
-        total_elapsed = naturaldelta(time.time() - start_time)
+        total_elapsed = naturaldelta(datetime.now() - start_time)
         LOG.verbose(f"Created {count} comic covers in {total_elapsed}.")
         return count
     finally:
