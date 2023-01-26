@@ -1,23 +1,6 @@
 <template>
   <v-footer id="settingsFooter">
-    <div id="opds" title="Copy OPDS URL to Clipboard" @click="copyToClipboard">
-      <v-icon size="x-small" class="">{{ mdiRss }}</v-icon
-      >OPDS
-      <v-icon
-        id="clipBoardIcon"
-        class=""
-        size="x-small"
-        :color="$vuetify.theme.current.colors.iconsInactive"
-      >
-        {{ clipBoardIcon }}
-      </v-icon>
-      <v-fade-transition>
-        <span v-if="showTool" id="copied"> Copied </span>
-      </v-fade-transition>
-      <div id="opdsUrl">
-        {{ opdsURL }}
-      </div>
-    </div>
+    <OPDSDialog />
     <a
       id="repo"
       href="https://github.com/ajslater/codex"
@@ -34,43 +17,20 @@
 </template>
 
 <script>
-import {
-  mdiClipboardCheckOutline,
-  mdiClipboardOutline,
-  mdiOpenInNew,
-  mdiRss,
-  mdiSourceRepository,
-} from "@mdi/js";
+import { mdiOpenInNew, mdiSourceRepository } from "@mdi/js";
+
+import OPDSDialog from "@/components/settings/opds-dialog.vue";
 
 export default {
   name: "SettingsFooter",
+  components: {
+    OPDSDialog,
+  },
   data() {
     return {
       mdiOpenInNew,
-      mdiRss,
       mdiSourceRepository,
-      opdsURL: window.origin + window.CODEX.OPDS_PATH,
-      showTool: false,
     };
-  },
-  computed: {
-    clipBoardIcon() {
-      return this.showTool ? mdiClipboardCheckOutline : mdiClipboardOutline;
-    },
-  },
-  methods: {
-    copyToClipboard() {
-      navigator.clipboard
-        .writeText(this.opdsURL)
-        .then(() => {
-          this.showTool = true;
-          setTimeout(() => {
-            this.showTool = false;
-          }, 5000);
-          return true;
-        })
-        .catch(console.warn);
-    },
   },
 };
 </script>
@@ -85,28 +45,8 @@ export default {
   font-size: small;
   color: rgb(var(--v-theme-textDisabled));
 }
-#opds {
-  font-size: smaller;
-  overflow-wrap: anywhere;
-  color: rgb(var(--v-theme-textDisabled));
-  text-align: left;
-  padding-bottom: 5px;
-}
-#opds * {
-  padding: 0px;
-  color: rgb(var(--v-theme-textDisabled));
-}
-#copied {
-  color: rgb(var(--v-theme-textPrimary));
-  padding-left: 0.5em;
-  display: inline;
-}
-
-#opds:hover #clipBoardIcon,
-#opds:hover #opdsUrl {
-  color: rgb(var(--v-theme-textPrimary));
-}
 #repo {
+  display: block;
   color: rgb(var(--v-theme-textDisabled));
 }
 #repo:hover {

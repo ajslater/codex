@@ -20,7 +20,7 @@ from codex.librarian.db.query_fks import query_all_missing_fks
 from codex.librarian.db.status import ImportStatusTypes
 from codex.librarian.db.tasks import AdoptOrphanFoldersTask, UpdaterDBDiffTask
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
-from codex.librarian.search.tasks import SearchIndexJanitorUpdateTask
+from codex.librarian.search.tasks import SearchIndexUpdateTask
 from codex.librarian.status_control import StatusControl
 from codex.logger.log_queue import VERBOSE
 from codex.models import Library
@@ -213,7 +213,7 @@ def _apply(task):
     finally:
         _finish_apply(library)
     # Wait to start the search index update in case more updates are incoming.
-    delayed_search_task = DelayedTasks(2, (SearchIndexJanitorUpdateTask(False),))
+    delayed_search_task = DelayedTasks(2, (SearchIndexUpdateTask(False),))
     LIBRARIAN_QUEUE.put(delayed_search_task)
 
     if changed:

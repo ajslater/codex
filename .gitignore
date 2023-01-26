@@ -30,6 +30,7 @@
 .mypy_cache/
 .nox/
 .npm
+.pypi-token
 .pypirc
 .pyre/
 .pytest_cache/

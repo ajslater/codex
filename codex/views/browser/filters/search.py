@@ -3,7 +3,7 @@ from django.db.models import Q
 from haystack.query import SearchQuerySet
 
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
-from codex.librarian.search.tasks import SearchIndexJanitorUpdateTask
+from codex.librarian.search.tasks import SearchIndexUpdateTask
 from codex.settings.logging import get_logger
 
 
@@ -24,7 +24,7 @@ class SearchFilterMixin:  # SearchFilterPreparserMixin):
         search_engine_out_of_date = False
         if search_engine_out_of_date:
             LOG.warning("Search index out of date. Scoring non-existent comics.")
-            task = SearchIndexJanitorUpdateTask(False)
+            task = SearchIndexUpdateTask(False)
             LIBRARIAN_QUEUE.put(task)
         return search_scores
 

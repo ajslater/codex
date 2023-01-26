@@ -182,7 +182,7 @@ class OPDSEntry:
             href = staticfiles_storage.url("img/missing_cover.webp")
         else:
             return
-        return (OPDSLink(Rel.THUMBNAIL, href, "image/webp"),)
+        return OPDSLink(Rel.THUMBNAIL, href, "image/webp")
 
     def _image_link(self):
         cover_pk = self.obj.get("cover_pk")
