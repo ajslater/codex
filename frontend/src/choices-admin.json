@@ -119,7 +119,7 @@
         {
           "value": "cleanup_fks",
           "title": "Remove Orphan Tags",
-          "desc": "After deleting comics, unused linked objects remain in case new comics use the. Runs nightly."
+          "desc": "After deleting comics, unused linked objects remain in case new comics use them. Runs nightly."
         },
         {
           "value": "cleanup_covers",
