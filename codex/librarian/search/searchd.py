@@ -1,6 +1,6 @@
 """Haystack Search index updater."""
 from datetime import datetime, timezone
-from multiprocessing import Process, cpu_count
+from multiprocessing import Process
 from uuid import uuid4
 
 from django.core.management import call_command
@@ -34,7 +34,7 @@ UPDATE_KWARGS = {
     "verbosity": VERBOSITY,
 }
 MIN_FINISHED_TIME = 1
-OPTIMIZE_DOC_COUNT = 10000 * cpu_count()
+OPTIMIZE_DOC_COUNT = 10000
 
 
 def _set_search_index_version():
@@ -172,8 +172,11 @@ def _optimize_search_index(force=False):
             LOG.verbose(f"Search index found in {num_segments} segments.")
             writerargs = CodexSearchBackend.get_writerargs(num_docs)
             backend.index.optimize(**writerargs)
-            elapsed = precisedelta(datetime.now() - start, minimum_unit="seconds")
-            LOG.info(f"Optimized search index in {elapsed}")
+            elapsed_delta = datetime.now() - start
+            elapsed_seconds = int(elapsed_delta.total_seconds())
+            elapsed = precisedelta(elapsed_seconds)
+            cps = int(num_docs / elapsed_seconds)
+            LOG.info(f"Optimized search index in {elapsed} at {cps} comics per second.")
     finally:
         StatusControl.finish(SearchIndexStatusTypes.SEARCH_INDEX)
 
