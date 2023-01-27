@@ -1,22 +1,22 @@
 """Haystack Search index updater."""
-from datetime import datetime, timezone
+from datetime import datetime
 from multiprocessing import Process
 from uuid import uuid4
 
 from django.core.management import call_command
-from django.utils import timezone as django_timezone
 from haystack import connections as haystack_connections
-from humanize import precisedelta
+from humanize import naturaldelta
 
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import (
     SearchIndexOptimizeTask,
     SearchIndexRebuildIfDBChangedTask,
     SearchIndexUpdateTask,
 )
-from codex.librarian.status_control import StatusControl, StatusControlFinishTask
+from codex.librarian.status_control import StatusControl
 from codex.models import Library, Timestamp
+from codex.search.backend import CodexSearchBackend
 from codex.settings.logging import get_logger
 from codex.settings.settings import SEARCH_INDEX_PATH, SEARCH_INDEX_UUID_PATH
 from codex.threads import QueuedThread
@@ -33,6 +33,10 @@ UPDATE_KWARGS = {
     "verbosity": VERBOSITY,
 }
 MIN_FINISHED_TIME = 1
+# Docker constraints look like 3 comics per second.
+# Don't optimize if it might take longer than 20 minutes.
+# Can be much faster running native. 128 comics per second for instance.
+OPTIMIZE_DOC_COUNT = 20 * 60 * 3
 
 
 def _set_search_index_version():
@@ -75,7 +79,6 @@ def _call_command(args, kwargs):
 
 def _update_search_index(rebuild=False):
     """Update the search index."""
-    start_time = django_timezone.now()
     try:
         any_update_in_progress = Library.objects.filter(
             update_in_progress=True
@@ -87,13 +90,6 @@ def _update_search_index(rebuild=False):
         if not rebuild and not _is_search_index_uuid_match():
             LOG.warning("Database does not match search index.")
             rebuild = True
-        status_keys = {"type": SearchIndexStatusTypes.SEARCH_INDEX}
-        if rebuild:
-            status_keys["name"] = "rebuild"
-        else:
-            status_keys["name"] = "update"
-        StatusControl.start(**status_keys)
-        start_time = django_timezone.now()
 
         SEARCH_INDEX_PATH.mkdir(parents=True, exist_ok=True)
 
@@ -102,14 +98,9 @@ def _update_search_index(rebuild=False):
             _call_command(REBUILD_ARGS, REBUILD_KWARGS)
             _set_search_index_version()
         else:
-            try:
-                timestamp = Timestamp.get(Timestamp.SEARCH_INDEX)
-            except FileNotFoundError:
-                timestamp = 0
-            start = datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime(
-                UPDATE_INDEX_DATETIME_FORMAT
-            )
-
+            start = Timestamp.objects.get(
+                name=Timestamp.SEARCH_INDEX
+            ).updated_at.strftime(UPDATE_INDEX_DATETIME_FORMAT)
             LOG.verbose(f"Updating search index since {start}...")
             # Workers are only possible with fork()
             # django-haystack has a bug
@@ -123,16 +114,13 @@ def _update_search_index(rebuild=False):
     except Exception as exc:
         LOG.error(f"Update search index: {exc}")
     finally:
-        # XXX this may solve a timing bug that left update index status unfinished
-        elapsed = (django_timezone.now() - start_time).total_seconds()
-        if elapsed > MIN_FINISHED_TIME:
-            delay = 0
-        else:
-            delay = MIN_FINISHED_TIME
-        task = DelayedTasks(
-            delay, (StatusControlFinishTask(SearchIndexStatusTypes.SEARCH_INDEX),)
+        # Extra for leftovers bug
+        StatusControl.finish_many(
+            (
+                SearchIndexStatusTypes.SEARCH_INDEX_PREPARE,
+                SearchIndexStatusTypes.SEARCH_INDEX_COMMIT,
+            )
         )
-        LIBRARIAN_QUEUE.put(task)
 
 
 def _rebuild_search_index_if_db_changed():
@@ -145,21 +133,37 @@ def _rebuild_search_index_if_db_changed():
         LOG.verbose("Database matches search index.")
 
 
-def _optimize_search_index():
+def _optimize_search_index(force=False):
     """Optimize search index."""
-    StatusControl.start(type=SearchIndexStatusTypes.SEARCH_INDEX, name="optimize")
-    LOG.verbose("Optimizing search index...")
-    start = datetime.now()
-    num_segments = len(tuple(SEARCH_INDEX_PATH.glob("*.seg")))
-    LOG.verbose(f"Search index in {num_segments} segments.")
-    if num_segments > 1:
+    try:
+        StatusControl.start(type=SearchIndexStatusTypes.SEARCH_INDEX_OPTIMIZE)
+        LOG.verbose("Optimizing search index...")
+        start = datetime.now()
+        num_segments = len(tuple(SEARCH_INDEX_PATH.glob("*.seg")))
+        if num_segments <= 1:
+            LOG.verbose("Search index already optimized.")
+            return
         backends = haystack_connections.connections_info.keys()
         for conn_key in backends:
             backend = haystack_connections[conn_key].get_backend()
-            backend.optimize()
-    elapsed = precisedelta(datetime.now() - start)
-    LOG.info(f"Optimized search index in {elapsed}")
-    StatusControl.finish(SearchIndexStatusTypes.SEARCH_INDEX)
+            if not backend.setup_complete:
+                backend.setup()
+            backend.index = backend.index.refresh()
+            num_docs = backend.index.doc_count()
+            if num_docs > OPTIMIZE_DOC_COUNT and not force:
+                LOG.verbose(
+                    f"Search index > {OPTIMIZE_DOC_COUNT} comics. Not optimizing."
+                )
+                return
+            LOG.verbose(f"Search index found in {num_segments} segments.")
+            writerargs = CodexSearchBackend.get_writerargs(num_docs)
+            backend.index.optimize(**writerargs)
+            elapsed_delta = datetime.now() - start
+            elapsed = naturaldelta(elapsed_delta)
+            cps = int(num_docs / elapsed_delta.total_seconds())
+            LOG.info(f"Optimized search index in {elapsed} at {cps} comics per second.")
+    finally:
+        StatusControl.finish(SearchIndexStatusTypes.SEARCH_INDEX_OPTIMIZE)
 
 
 class SearchIndexer(QueuedThread):
@@ -174,6 +178,6 @@ class SearchIndexer(QueuedThread):
         elif isinstance(task, SearchIndexUpdateTask):
             _update_search_index(rebuild=task.rebuild)
         elif isinstance(task, SearchIndexOptimizeTask):
-            _optimize_search_index()
+            _optimize_search_index(task.force)
         else:
             LOG.warning(f"Bad task sent to search index thread: {task}")

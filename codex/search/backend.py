@@ -1,4 +1,5 @@
 """Custom Haystack Search Backend."""
+from datetime import datetime, timedelta
 from multiprocessing import cpu_count
 
 from django.utils.timezone import now
@@ -6,7 +7,7 @@ from haystack.backends.whoosh_backend import TEXT, WhooshSearchBackend
 from haystack.exceptions import SkipDocument
 from haystack.utils import get_identifier
 from humanfriendly import InvalidSize, parse_size
-from humanize import precisedelta
+from humanize import naturaldelta
 from whoosh.analysis import CharsetFilter, StandardAnalyzer, StemFilter
 from whoosh.fields import NUMERIC
 from whoosh.qparser import FieldAliasPlugin, GtLtPlugin, OperatorsPlugin
@@ -14,6 +15,8 @@ from whoosh.qparser.dateparse import DateParserPlugin
 from whoosh.support.charset import accent_map
 from whoosh.writing import AsyncWriter
 
+from codex.librarian.search.status import SearchIndexStatusTypes
+from codex.librarian.status_control import StatusControl
 from codex.settings.logging import get_logger
 
 
@@ -98,6 +101,13 @@ class CodexSearchBackend(WhooshSearchBackend):
         Require=r"(?i)(^|(?<=\s))REQUIRE(?=\s)",
     )
     MULTISEGMENT_CUTOFF = 500
+    UPDATE_DELTA = timedelta(seconds=5)
+    UPDATE_FINISH_TYPES = frozenset(
+        (
+            SearchIndexStatusTypes.SEARCH_INDEX_PREPARE,
+            SearchIndexStatusTypes.SEARCH_INDEX_COMMIT,
+        )
+    )
 
     def build_schema(self, fields):
         """Customize schema fields."""
@@ -139,13 +149,13 @@ class CodexSearchBackend(WhooshSearchBackend):
         )
         self.parser.replace_plugin(self.OPERATORS_PLUGIN)
 
-    def _get_writerargs(self, iterable):
+    @classmethod
+    def get_writerargs(cls, num_objs):
         """Use multiproc, multisegment writing only for large loads."""
-        num_objs = len(iterable)
         writerargs = {
             "limitdb": 256,
         }
-        if num_objs > self.MULTISEGMENT_CUTOFF:
+        if num_objs > cls.MULTISEGMENT_CUTOFF:
             # Bug in Whoosh means procs > 1 needs multisegment
             # https://github.com/mchaput/whoosh/issues/35
             writerargs["procs"] = cpu_count()
@@ -154,54 +164,82 @@ class CodexSearchBackend(WhooshSearchBackend):
 
     def update(self, index, iterable, commit=True):
         """Update index, but with writer options."""
-        if not self.setup_complete:
-            self.setup()
+        try:
+            start = since = datetime.now()
+            num_objs = len(iterable)
+            statuses = {
+                SearchIndexStatusTypes.SEARCH_INDEX_PREPARE: {
+                    "total": num_objs,
+                },
+                SearchIndexStatusTypes.SEARCH_INDEX_COMMIT: {"name": f"({num_objs})"},
+            }
+            StatusControl.start_many(statuses)
+            if not self.setup_complete:
+                self.setup()
 
-        self.index = self.index.refresh()
+            self.index = self.index.refresh()
 
-        from datetime import datetime
+            writerargs = self.get_writerargs(num_objs)
+            writer = AsyncWriter(self.index, writerargs=writerargs)
 
-        start = datetime.now()
-        writerargs = self._get_writerargs(iterable)
-        writer = AsyncWriter(self.index, writerargs=writerargs)
-
-        for obj in iterable:
-            try:
-                doc = index.full_prepare(obj)
-            except SkipDocument:
-                self.log.debug("Indexing for object `%s` skipped", obj)
-            else:
-                # Really make sure it's unicode, because Whoosh won't have it any
-                # other way.
-                for key in doc:
-                    doc[key] = self._from_python(doc[key])
-
-                # Document boosts aren't supported in Whoosh 2.5.0+.
-                if "boost" in doc:
-                    del doc["boost"]
-
+            for obj_count, obj in enumerate(iterable):
                 try:
-                    writer.update_document(**doc)
-                except Exception:
-                    if not self.silently_fail:
-                        raise
+                    doc = index.full_prepare(obj)
+                except SkipDocument:
+                    self.log.debug("Indexing for object `%s` skipped", obj)
+                else:
+                    # Really make sure it's unicode, because Whoosh won't have it any
+                    # other way.
+                    for key in doc:
+                        doc[key] = self._from_python(doc[key])
 
-                    # We'll log the object identifier but won't include the actual
-                    # object to avoid the possibility of that generating encoding
-                    # errors while processing the log message:
-                    self.log.exception(
-                        "Preparing object for update",
-                        extra={"data": {"index": index, "object": get_identifier(obj)}},
-                    )
-        elapsed = precisedelta(datetime.now() - start)
-        LOG.verbose(f"Search engine prepared objects for commit in {elapsed}")
+                    # Document boosts aren't supported in Whoosh 2.5.0+.
+                    if "boost" in doc:
+                        del doc["boost"]
 
-        start = datetime.now()
-        if len(iterable) > 0:
-            # For now, commit no matter what, as we run into locking issues otherwise.
-            if commit:
-                writer.commit()
-            if writer.ident is not None:
-                writer.join()
-        elapsed = precisedelta(datetime.now() - start)
-        LOG.verbose(f"Search engine committed index in {str(elapsed)}")
+                    try:
+                        writer.update_document(**doc)
+                    except Exception:
+                        if not self.silently_fail:
+                            raise
+
+                        # We'll log the object identifier but won't include the actual
+                        # object to avoid the possibility of that generating encoding
+                        # errors while processing the log message:
+                        self.log.exception(
+                            "Preparing object for update",
+                            extra={
+                                "data": {"index": index, "object": get_identifier(obj)}
+                            },
+                        )
+                since = StatusControl.update(
+                    SearchIndexStatusTypes.SEARCH_INDEX_PREPARE,
+                    obj_count,
+                    num_objs,
+                    since=since,
+                )
+
+            StatusControl.finish(SearchIndexStatusTypes.SEARCH_INDEX_PREPARE)
+            elapsed = naturaldelta(datetime.now() - start)
+            LOG.verbose(f"Search engine prepared objects for commit in {elapsed}")
+
+            start = datetime.now()
+            if len(iterable) > 0:
+                # For now, commit no matter what, as we run into locking issues
+                # otherwise.
+                if commit:
+                    writer.commit(merge=True)
+                if writer.ident is not None:
+                    writer.join()
+            elapsed = naturaldelta(datetime.now() - start)
+            LOG.verbose(f"Search engine committed index in {elapsed}")
+        finally:
+            StatusControl.finish_many(self.UPDATE_FINISH_TYPES)
+
+    def clear(self, models=None, commit=True):
+        """Clear index with codex status messages."""
+        try:
+            StatusControl.start(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
+            super().clear(models=models, commit=commit)
+        finally:
+            StatusControl.finish(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)

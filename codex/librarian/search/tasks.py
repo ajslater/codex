@@ -27,4 +27,4 @@ class SearchIndexUpdateTask(SearchIndexerTask):
 class SearchIndexOptimizeTask(SearchIndexerTask):
     """Optimize a fragmented index."""
 
-    pass
+    force: bool = False

@@ -1,4 +1,6 @@
 """Clean up the database after moves or imports."""
+from datetime import datetime
+
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.status_control import StatusControl
 from codex.models import (
@@ -43,6 +45,7 @@ LOG = get_logger(__name__)
 
 def _bulk_cleanup_fks(classes, field_name, status_count):
     """Remove foreign keys that aren't used anymore."""
+    since = datetime.now()
     for cls in classes:
         filter_dict = {f"{field_name}__isnull": True}
         query = cls.objects.filter(**filter_dict)
@@ -51,7 +54,13 @@ def _bulk_cleanup_fks(classes, field_name, status_count):
         if count:
             LOG.info(f"Deleted {count} orphan {cls.__name__}s")
         status_count += 1
-        StatusControl.update(JanitorStatusTypes.CLEANUP_FK, status_count, TOTAL_CLASSES)
+        since = StatusControl.update(
+            JanitorStatusTypes.CLEANUP_FK,
+            status_count,
+            TOTAL_CLASSES,
+            name=cls.__name__,
+            since=since,
+        )
     return status_count
 
 

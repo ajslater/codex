@@ -422,7 +422,9 @@ class BrowserView(BrowserAnnotationsView):
         else:
             issue_max = 0
 
-        covers_timestamp = int(Timestamp.get(Timestamp.COVERS))
+        covers_timestamp = int(
+            Timestamp.objects.get(name=Timestamp.COVERS).updated_at.timestamp()
+        )
 
         # construct final data structure
         browser_page = {

@@ -7,7 +7,7 @@ from threading import Condition
 
 from django.db.models.functions import Now
 from django.utils import timezone
-from humanize import precisedelta
+from humanize import naturaldelta
 from watchdog.events import (
     DirDeletedEvent,
     DirModifiedEvent,
@@ -180,7 +180,7 @@ class DatabasePollingEmitter(EventEmitter):
         with self._poll_cond:
             if timeout:
                 LOG.verbose(
-                    f"Polling {self.watch.path} again in {precisedelta(timeout)}."
+                    f"Polling {self.watch.path} again in {naturaldelta(timeout)}."
                 )
             self._poll_cond.wait(timeout)
 
