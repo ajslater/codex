@@ -12,7 +12,7 @@ from codex.integrity import has_unapplied_migrations, rebuild_db, repair_db
 from codex.librarian.janitor.vacuum import backup_db
 from codex.settings.logging import get_logger
 from codex.settings.settings import BACKUP_DB_PATH, DEBUG, HYPERCORN_CONFIG
-from codex.signals import RESTART_EVENT, SHUTDOWN_EVENT, bind_signals
+from codex.signals.os_signals import RESTART_EVENT, SHUTDOWN_EVENT, bind_signals
 from codex.version import VERSION
 
 
