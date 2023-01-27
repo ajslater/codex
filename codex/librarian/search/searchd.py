@@ -113,6 +113,14 @@ def _update_search_index(rebuild=False):
         LOG.verbose("Finished updating search index.")
     except Exception as exc:
         LOG.error(f"Update search index: {exc}")
+    finally:
+        # Extra for leftovers bug
+        StatusControl.finish_many(
+            (
+                SearchIndexStatusTypes.SEARCH_INDEX_PREPARE,
+                SearchIndexStatusTypes.SEARCH_INDEX_COMMIT,
+            )
+        )
 
 
 def _rebuild_search_index_if_db_changed():
