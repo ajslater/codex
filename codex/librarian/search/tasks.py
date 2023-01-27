@@ -17,7 +17,14 @@ class SearchIndexRebuildIfDBChangedTask(SearchIndexerTask):
 
 
 @dataclass
-class SearchIndexJanitorUpdateTask(SearchIndexerTask):
+class SearchIndexUpdateTask(SearchIndexerTask):
     """Update the search index."""
 
     rebuild: bool
+
+
+@dataclass
+class SearchIndexOptimizeTask(SearchIndexerTask):
+    """Optimize a fragmented index."""
+
+    force: bool = False

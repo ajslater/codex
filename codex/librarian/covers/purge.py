@@ -14,6 +14,7 @@ from codex.settings.logging import get_logger
 
 
 LOG = get_logger(__name__)
+CLEANUP_STATUS_MAP = {CoverStatusTypes.FIND_ORPHAN: {}, CoverStatusTypes.PURGE: {}}
 
 
 def _cleanup_cover_dirs(path):
@@ -65,8 +66,7 @@ def cleanup_orphan_covers():
     """Remove all orphan cover thumbs."""
     try:
         LOG.verbose("Removing covers from missing comics.")
-        StatusControl.start(CoverStatusTypes.FIND_ORPHAN, notify=False)
-        StatusControl.start(CoverStatusTypes.PURGE)
+        StatusControl.start_many(CLEANUP_STATUS_MAP)
         comic_pks = Comic.objects.all().values_list("pk", flat=True)
         db_cover_paths = get_cover_paths(comic_pks)
 

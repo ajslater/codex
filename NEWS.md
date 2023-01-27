@@ -6,6 +6,14 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.1.4
+
+- Fix
+
+  - Multiprocessing speedup for large search engine indexing jobs
+    - Writes search engine data in segments.
+  - Search engine segment combiner optimizer runs nightly (and manually).
+
 ## v1.1.3
 
 - Fix

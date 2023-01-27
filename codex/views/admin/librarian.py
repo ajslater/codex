@@ -17,8 +17,9 @@ from codex.librarian.janitor.tasks import (
 )
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.librarian.search.tasks import (
-    SearchIndexJanitorUpdateTask,
+    SearchIndexOptimizeTask,
     SearchIndexRebuildIfDBChangedTask,
+    SearchIndexUpdateTask,
 )
 from codex.librarian.watchdog.tasks import (
     ForceUpdateAllFailedImportsTask,
@@ -83,9 +84,11 @@ class AdminLibrarianTaskView(APIView):
         elif task_name == "purge_comic_covers":
             task = CoverRemoveAllTask()
         elif task_name == "search_index_update":
-            task = SearchIndexJanitorUpdateTask(False)
+            task = SearchIndexUpdateTask(False)
         elif task_name == "search_index_rebuild":
-            task = SearchIndexJanitorUpdateTask(True)
+            task = SearchIndexUpdateTask(True)
+        elif task_name == "search_index_optimize":
+            task = SearchIndexOptimizeTask(True)
         elif task_name == "db_vacuum":
             task = JanitorVacuumTask()
         elif task_name == "db_backup":

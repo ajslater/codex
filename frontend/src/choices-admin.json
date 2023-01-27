@@ -46,6 +46,12 @@
           "title": "Rebuild Search Index",
           "desc": "Delete and rebuild the search index from scratch",
           "confirm": "This can take a long time"
+        },
+        {
+          "value": "search_index_optimize",
+          "title": "Optimize Search Index",
+          "desc": "Optimize a segmented search index. Runs nightly.",
+          "confirm": "This can take a long time."
         }
       ]
     },
@@ -113,7 +119,7 @@
         {
           "value": "cleanup_fks",
           "title": "Remove Orphan Tags",
-          "desc": "After deleting comics, unused linked objects remain in case new comics use the. Runs nightly."
+          "desc": "After deleting comics, unused linked objects remain in case new comics use them. Runs nightly."
         },
         {
           "value": "cleanup_covers",

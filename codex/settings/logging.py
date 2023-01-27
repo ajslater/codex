@@ -7,9 +7,6 @@ from logging.handlers import QueueHandler
 from codex.logger.log_queue import LOG_QUEUE, CodexLogger
 
 
-LOG_EVERY = 5
-
-
 class CodexDjangoQueueHandler(QueueHandler):
     """Special QueueHandler that removes unpickable elements."""
 

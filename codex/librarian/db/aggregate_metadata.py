@@ -1,6 +1,5 @@
 """Aggregate metadata from comics to prepare for importing."""
-import time
-
+from datetime import datetime
 from pathlib import Path
 from zipfile import BadZipFile
 
@@ -13,7 +12,7 @@ from codex.librarian.db.status import ImportStatusTypes
 from codex.librarian.status_control import StatusControl
 from codex.models import Comic, Imprint, Publisher, Series, Volume
 from codex.pdf import PDF
-from codex.settings.logging import LOG_EVERY, get_logger
+from codex.settings.logging import get_logger
 from codex.version import COMICBOX_CONFIG
 
 
@@ -150,7 +149,7 @@ def get_aggregate_metadata(library, all_paths):
     StatusControl.start(ImportStatusTypes.AGGREGATE_TAGS, total_paths)
     try:
         LOG.info(f"Reading tags from {total_paths} comics in {library.path}...")
-        last_log_time = time.time()
+        since = datetime.now()
         for num, path in enumerate(all_paths):
             path = str(path)
             md, m2m_md, group_tree_md, failed_import = _get_path_metadata(path)
@@ -167,11 +166,9 @@ def get_aggregate_metadata(library, all_paths):
                 if group_tree_md:
                     _aggregate_group_tree_metadata(all_fks, group_tree_md)
 
-            now = time.time()
-            if now - last_log_time > LOG_EVERY:
-                StatusControl.update(ImportStatusTypes.AGGREGATE_TAGS, num, total_paths)
-                LOG.info(f"Read tags from {num}/{total_paths} comics")
-                last_log_time = now
+            since = StatusControl.update(
+                ImportStatusTypes.AGGREGATE_TAGS, num, total_paths, since=since
+            )
 
         all_fks["comic_paths"] = frozenset(all_mds.keys())
         StatusControl.update(

@@ -286,7 +286,7 @@ SEARCH_INDEX_PATH.mkdir(exist_ok=True, parents=True)
 SEARCH_INDEX_UUID_PATH = SEARCH_INDEX_PATH / "codex_db.uuid"
 HAYSTACK_CONNECTIONS = {
     "default": {
-        "ENGINE": "codex.search.search_engine.CodexSearchEngine",
+        "ENGINE": "codex.search.engine.CodexSearchEngine",
         "PATH": str(SEARCH_INDEX_PATH),
     },
 }

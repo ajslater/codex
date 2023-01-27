@@ -33,19 +33,21 @@ class Notifier(AggregateMessageQueuedThread):
             return
 
         if msg.get("register"):
+            LOG.debug("Notifier.subscribe", send)
             conns.add(send)
         else:
-            cls.unsubscribe(send)
+            sends = set((send,))
+            cls.unsubscribe(sends)
 
     @classmethod
-    def unsubscribe(cls, send):
+    def unsubscribe(cls, sends: set):
         """Unsub from all conns."""
-        LOG.debug("Notifier.unsubscribe", send)
+        LOG.debug("Notifier.unsubscribe", sends)
         for conn in cls.CONNS.values():
-            conn.discard(send)
+            conn.difference_update(sends)
 
-    @staticmethod
-    async def _send_msg(conns, send_msg):
+    @classmethod
+    async def _send_msg(cls, conns, send_msg):
         """Send message to all connections."""
         bad_conns = set()
         for send in conns:
@@ -56,8 +58,8 @@ class Notifier(AggregateMessageQueuedThread):
                 LOG.warning(f"{Notifier.NAME}._send_msg {exc}")
                 LOG.debug(f"Message was {send_msg}")
                 bad_conns.add(send)
-        for send in bad_conns:
-            conns.discard(send)
+        if bad_conns:
+            cls.unsubscribe(bad_conns)
 
     def aggregate_items(self, task):
         """Aggregate messages into cache."""
@@ -93,6 +95,6 @@ class Notifier(AggregateMessageQueuedThread):
             return
         cls.thread.stop()
         cls.thread.join()
-        for type in cls.CONNS.keys():
-            cls.CONNS[type] = set()
+        for conns in cls.CONNS.values():
+            conns.clear()
         cls.thread = None

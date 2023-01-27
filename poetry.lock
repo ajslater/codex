@@ -962,14 +962,14 @@ dev = ["coverage", "hypothesis", "hypothesmith (>=0.2)", "pre-commit", "pytest",
 
 [[package]]
 name = "flake8-docstrings"
-version = "1.6.0"
+version = "1.7.0"
 description = "Extension for flake8 which uses pydocstyle to check docstrings"
 category = "dev"
 optional = false
-python-versions = "*"
+python-versions = ">=3.7"
 files = [
-    {file = "flake8-docstrings-1.6.0.tar.gz", hash = "sha256:9fe7c6a306064af8e62a055c2f61e9eb1da55f84bb39caef2b84ce53708ac34b"},
-    {file = "flake8_docstrings-1.6.0-py2.py3-none-any.whl", hash = "sha256:99cac583d6c7e32dd28bbfbef120a7c0d1b6dde4adb5a9fd441c4227a6534bde"},
+    {file = "flake8_docstrings-1.7.0-py2.py3-none-any.whl", hash = "sha256:51f2344026da083fc084166a9353f5082b01f72901df422f74b4d953ae88ac75"},
+    {file = "flake8_docstrings-1.7.0.tar.gz", hash = "sha256:4c8cc748dc16e6869728699e5d0d685da9a10b0ea718e090b1ba088e67a941af"},
 ]
 
 [package.dependencies]
@@ -1862,14 +1862,14 @@ files = [
 
 [[package]]
 name = "pyright"
-version = "1.1.290"
+version = "1.1.291"
 description = "Command line wrapper for pyright"
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "pyright-1.1.290-py3-none-any.whl", hash = "sha256:c1a57ad812f740fc7fb6bb416cd7e3f46f4e88384c723192402a77e2e756b550"},
-    {file = "pyright-1.1.290.tar.gz", hash = "sha256:956d8efc70eb5a54da54c82feef842affd3a81719c8864769cd196e211961e3a"},
+    {file = "pyright-1.1.291-py3-none-any.whl", hash = "sha256:2dbd133ee400e81ff319d0701bc47545a7ab1cd7dcfcf46c7de37d9b0fbbb76f"},
+    {file = "pyright-1.1.291.tar.gz", hash = "sha256:3946f43f1a99f8e438eee1738ad0649d8bd7ac36dded25849245993ab02671bd"},
 ]
 
 [package.dependencies]
@@ -2514,14 +2514,14 @@ watchmedo = ["PyYAML (>=3.10)"]
 
 [[package]]
 name = "websocket-client"
-version = "1.4.2"
+version = "1.5.0"
 description = "WebSocket client for Python with low level API options"
 category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "websocket-client-1.4.2.tar.gz", hash = "sha256:d6e8f90ca8e2dd4e8027c4561adeb9456b54044312dba655e7cae652ceb9ae59"},
-    {file = "websocket_client-1.4.2-py3-none-any.whl", hash = "sha256:d6b06432f184438d99ac1f456eaf22fe1ade524c3dd16e661142dc54e9cba574"},
+    {file = "websocket-client-1.5.0.tar.gz", hash = "sha256:561ca949e5bbb5d33409a37235db55c279235c78ee407802f1d2314fff8a8536"},
+    {file = "websocket_client-1.5.0-py3-none-any.whl", hash = "sha256:fb5d81b95d350f3a54838ebcb4c68a5353bbd1412ae8f068b1e5280faeb13074"},
 ]
 
 [package.extras]

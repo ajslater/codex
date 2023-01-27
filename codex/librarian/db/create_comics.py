@@ -1,4 +1,5 @@
 """Bulk update and create comic objects and bulk update m2m fields."""
+from datetime import datetime
 from pathlib import Path
 
 from django.db.models import Q
@@ -295,8 +296,9 @@ def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2
             total_links += len(m2m_links)
         StatusControl.start(ImportStatusTypes.LINK_M2M_FIELDS, total_links)
 
+        since = datetime.now()
+        completed_links = 0
         for m2m_links in all_m2m_links.values():
-            completed_links = 0
             for field_name, m2m_links in all_m2m_links.items():
                 try:
                     bulk_recreate_m2m_field(field_name, m2m_links)
@@ -304,8 +306,11 @@ def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2
                     LOG.error(f"Error recreating m2m field: {field_name}")
                     LOG.exception(exc)
                 completed_links = len(m2m_links)
-                StatusControl.update(
-                    ImportStatusTypes.LINK_M2M_FIELDS, completed_links, total_links
+                since = StatusControl.update(
+                    ImportStatusTypes.LINK_M2M_FIELDS,
+                    completed_links,
+                    total_links,
+                    since=since,
                 )
     finally:
         StatusControl.finish(ImportStatusTypes.LINK_M2M_FIELDS)
