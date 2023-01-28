@@ -18,7 +18,7 @@ export default {
         (v) =>
           /^([01]?\d|2[0-4]):([0-5]\d)(:[0-5]\d)?:([0-5]\d)(:[0-5]\d)?$/.test(
             v
-          ) || "Invalid time format HH:mm:SS",
+          ) || "Invalid time format d:HH:mm:SS",
       ],
     };
   },
