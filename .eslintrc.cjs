@@ -92,7 +92,7 @@ module.exports = {
     "!.circleci",
     ".mypy_cache",
     ".pytest_cache",
-    ".venv",
+    ".venv*",
     "cache/*",
     "!cache/packages",
     "cache/packages/*",
