@@ -106,7 +106,7 @@ class AdminFolderListView(GenericAPIView):
         try:
             serializer = self.input_serializer_class(data=self.request.query_params)
             serializer.is_valid(raise_exception=True)
-            path = serializer.validated_data.get("path", Path("."))
+            path = Path(serializer.validated_data.get("path", "."))
             show_hidden = serializer.validated_data.get("show_hidden", False)
             root_path = path.resolve()
 
@@ -114,13 +114,17 @@ class AdminFolderListView(GenericAPIView):
             if root_path.parent != root_path:
                 dirs += [".."]
             subdirs = []
-            for fn in root_path.iterdir():
-                if fn.is_dir() and (show_hidden or not fn.name.startswith(".")):
-                    subdirs.append(fn.name)
+            for subpath in root_path.iterdir():
+                if subpath.name.startswith(".") and not show_hidden:
+                    continue
+                if subpath.resolve().is_dir():
+                    subdirs.append(subpath.name)
             dirs += sorted(subdirs)
 
             data = {"root_folder": str(root_path), "folders": dirs}
+
             serializer = self.get_serializer(data)
             return Response(serializer.data)
         except Exception as exc:
+            LOG.exception(exc)
             raise ValidationError("Server Error") from exc

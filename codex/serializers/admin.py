@@ -94,7 +94,7 @@ class LibrarySerializer(ModelSerializer):
         except Exception as exc:
             LOG.error(exc)
             raise exc
-        return str(ppath)
+        return path
 
 
 class FailedImportSerializer(ModelSerializer):
@@ -131,8 +131,8 @@ class AdminFolderSerializer(Serializer):
     def validate_path(self, path):
         """Validate the path is an existing directory."""
         try:
-            path = Path(path)
-            if not path.is_dir():
+            ppath = Path(path)
+            if not ppath.resolve().is_dir():
                 raise ValidationError("Not a directory")
         except Exception as exc:
             raise ValidationError("Not a valid path") from exc
