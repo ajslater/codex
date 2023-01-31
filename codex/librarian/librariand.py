@@ -1,10 +1,8 @@
 """Library process worker for background tasks."""
-import threading
-
 from multiprocessing import Process
+from threading import active_count
 from time import sleep
 
-from codex.darwin_mp import force_darwin_multiprocessing_fork
 from codex.librarian.covers.coverd import CoverCreator
 from codex.librarian.covers.tasks import CoverTask
 from codex.librarian.db.tasks import AdoptOrphanFoldersTask, UpdaterTask
@@ -100,8 +98,7 @@ class LibrarianDaemon(Process):
     def _create_threads(self):
         """Create all the threads."""
         LOG.debug("Creating Librarian threads...")
-        force_darwin_multiprocessing_fork()
-        LOG.debug(f"Active threads before thread creation: {threading.active_count()}")
+        LOG.debug(f"Active threads before thread creation: {active_count()}")
         self.delayed_tasks = DelayedTasksThread()
         LOG.debug("Created DelayedTasksThread")
         self.cover_creator = CoverCreator()
@@ -140,16 +137,17 @@ class LibrarianDaemon(Process):
         LOG.debug(f"Starting all {self.NAME} threads.")
         for thread in self._threads:
             thread.start()
-        LOG.debug(f"Started all {self.NAME} threads.")
+        LOG.verbose(f"Started all {self.NAME} threads.")
 
     def _stop_threads(self):
         """Stop all librarian's threads."""
         LOG.debug(f"Stopping all {self.NAME} threads...")
-        for thread in reversed(self._threads):
+        reversed_threads = reversed(self._threads)
+        for thread in reversed_threads:
             thread.stop()
-        for thread in reversed(self._threads):
+        for thread in reversed_threads:
             thread.join()
-        LOG.debug(f"Stopped all {self.NAME} threads.")
+        LOG.verbose(f"Joined all {self.NAME} threads.")
 
     def run(self):
         """
@@ -163,8 +161,6 @@ class LibrarianDaemon(Process):
             self._create_threads()
             LOG.debug("Created Librarian Threads, Starting.")
             self._start_threads()
-            task = SearchIndexRebuildIfDBChangedTask()
-            LIBRARIAN_QUEUE.put(task)
             run = True
             LOG.verbose("Librarian started threads and waiting for tasks.")
             while run:
@@ -185,8 +181,13 @@ class LibrarianDaemon(Process):
         """Create a new librarian daemon and run it."""
         cls.proc = LibrarianDaemon()
         cls.proc.start()
-        LIBRARIAN_QUEUE.put(AdoptOrphanFoldersTask())  # integrity
-        LIBRARIAN_QUEUE.put(WatchdogSyncTask())
+        startup_tasks = (
+            AdoptOrphanFoldersTask(),
+            SearchIndexRebuildIfDBChangedTask(),
+            WatchdogSyncTask(),
+        )
+        for task in startup_tasks:
+            LIBRARIAN_QUEUE.put(task)
 
     @classmethod
     def shutdown(cls):
