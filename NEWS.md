@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.2.0a0
+
+### Windows
+
+- Features
+  - Works on Windows? See README for install instructions.
+
 ## v1.1.4
 
 - Fix
