@@ -38,7 +38,7 @@ class ColorFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-class Logger:
+class Logger(QueueListener):
     """Host for logging queue listener."""
 
     LOG_FMT = "{asctime} {levelname:8} {message}"
@@ -46,6 +46,11 @@ class Logger:
     FORMATTER_KWARGS = {"style": "{", "datefmt": DATEFMT}
     LOG_PATH = LOG_DIR / "codex.log"
     LOG_MAX_BYTES = 10 * 1024 * 1024
+
+    def __init__(self):
+        """Start self with handlers."""
+        handlers = self._get_log_handlers()
+        super().__init__(LOG_QUEUE, *handlers)
 
     @classmethod
     def _get_file_log_handler(cls):
@@ -79,8 +84,7 @@ class Logger:
     @classmethod
     def startup(cls):
         """Create handlers, listener and start."""
-        handlers = cls._get_log_handlers()
-        cls._listener = QueueListener(LOG_QUEUE, *handlers)
+        cls._listener = cls()
         cls._listener.start()
 
     @classmethod
