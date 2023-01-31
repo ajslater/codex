@@ -9,7 +9,6 @@ from django.core.cache import cache
 from django.db.models import Q
 from django.db.models.functions import Now
 
-from codex.darwin_mp import force_darwin_multiprocessing_fork
 from codex.librarian.librariand import LibrarianDaemon
 from codex.logger.loggerd import Logger
 from codex.models import AdminFlag, LibrarianStatus, Library, Timestamp
@@ -96,7 +95,6 @@ def codex_startup():
     init_librarian_statuses()
     clear_library_status()
     cache.clear()
-    force_darwin_multiprocessing_fork()
 
     Notifier.startup()
     LibrarianDaemon.startup()

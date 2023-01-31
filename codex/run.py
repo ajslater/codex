@@ -3,6 +3,7 @@
 import os
 
 from asyncio import new_event_loop
+from multiprocessing import set_start_method
 
 from django.core.management import call_command
 from hypercorn.asyncio import serve
@@ -79,4 +80,5 @@ def main():
 
 
 if __name__ == "__main__":
+    set_start_method("spawn", force=True)
     main()
