@@ -1,4 +1,5 @@
 """Logging classes."""
+# TODO move to codex/logger
 import logging
 
 from logging.handlers import QueueHandler
@@ -33,6 +34,3 @@ def get_logger(name=None, queue=LOG_QUEUE):
     logger.addHandler(handler)
     logger.setLevel(LOGLEVEL)
     return logger
-
-
-# TODO move to codex/logger
