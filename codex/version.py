@@ -78,8 +78,4 @@ def is_outdated(
     latest_version = get_latest_version(package_name, repo_url_template)
 
     result = latest_version is not None and latest_version > VERSION
-    log_str = f"{latest_version=} > {VERSION=} = {result}"
-    if result:
-        LOG.verbose(log_str)
-    else:
-        LOG.debug(log_str)
+    LOG.info(f"{latest_version=} > {VERSION=} = {result}")

@@ -1,4 +1,7 @@
 """Library process worker for background tasks."""
+import logging
+import re
+
 from multiprocessing import Process
 from threading import active_count
 from time import sleep
@@ -9,7 +12,7 @@ from codex.librarian.db.tasks import AdoptOrphanFoldersTask, UpdaterTask
 from codex.librarian.db.updaterd import Updater
 from codex.librarian.janitor.crond import Crond, janitor
 from codex.librarian.janitor.tasks import JanitorTask
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
+from codex.librarian.queue_mp import DelayedTasks
 from codex.librarian.search.searchd import SearchIndexer
 from codex.librarian.search.tasks import (
     SearchIndexerTask,
@@ -34,9 +37,7 @@ from codex.settings.logging import get_logger
 from codex.threads import QueuedThread
 
 
-LOG = get_logger(__name__)
-
-
+# TODO move out of this file
 class DelayedTasksThread(QueuedThread):
     """Wait for the DB to sync before running tasks."""
 
@@ -46,7 +47,7 @@ class DelayedTasksThread(QueuedThread):
         """Sleep and then put tasks on the queue."""
         sleep(item.delay)
         for task in item.tasks:
-            LIBRARIAN_QUEUE.put(task)
+            self.librarian_queue.put(task)
 
 
 class LibrarianDaemon(Process):
@@ -56,98 +57,110 @@ class LibrarianDaemon(Process):
     SHUTDOWN_TIMEOUT = 5
     MAX_WS_ATTEMPTS = 5
     SHUTDOWN_TASK = "shutdown"
+    THREAD_CLASSES = (
+        DelayedTasksThread,
+        CoverCreator,
+        SearchIndexer,
+        Updater,
+        EventBatcher,
+        LibraryEventObserver,
+        LibraryPollingObserver,
+        Crond,
+    )
+    CAMEL_TO_SNAKE_RE = re.compile(r"(?<!^)(?=[A-Z])")
+
     proc = None
 
-    def __init__(self):
+    def __init__(self, queue, log_queue, notifier_queue):
         """Init process."""
         super().__init__(name=self.NAME, daemon=False)
+        self.queue = queue
+        self.log_queue = log_queue
+        self.notifier_queue = notifier_queue
+        self.logger = get_logger(self.NAME, log_queue)
+
+        logging.info("EXPERIMENTAL LOGGING MESSAGE")
+        self.logger.info("EXPERIMENTAL LOGGER MESSAGE")
+
+        startup_tasks = (
+            AdoptOrphanFoldersTask(),
+            SearchIndexRebuildIfDBChangedTask(),
+            WatchdogSyncTask(),
+        )
+        for task in startup_tasks:
+            self.queue.put(task)
+
+    @classmethod
+    def _camel_to_snake_case(cls, name):
+        return cls.CAMEL_TO_SNAKE_RE.sub("_", name).lower()
 
     def _process_task(self, task):
         """Process an individual task popped off the queue."""
         run = True
+        print(task)
         if isinstance(task, CoverTask):
-            self.cover_creator.queue.put(task)
+            self._threads["cover_creator"].queue.put(task)
         elif isinstance(task, WatchdogEventTask):
-            self.event_batcher.queue.put(task)
+            self._threads["event_batcher"].queue.put(task)
         elif isinstance(task, UpdaterTask):
-            self.updater.queue.put(task)
+            self._threads["updater"].queue.put(task)
         elif isinstance(task, NotifierTask) and Notifier.thread:
-            Notifier.thread.queue.put(task)
+            self.notifier_queue.put(task)
         elif isinstance(task, WatchdogSyncTask):
             for observer in self._observers:
                 observer.sync_library_watches()
         elif isinstance(task, WatchdogPollLibrariesTask):
-            self.library_polling_observer.poll(task.library_ids, task.force)
+            self._threads["library_polling_observer"].poll(task.library_ids, task.force)
         elif isinstance(task, SearchIndexerTask):
-            self.search_indexer.queue.put(task)
+            self._threads["search_indexer"].queue.put(task)
         elif isinstance(task, JanitorTask):
             janitor(task)
         elif isinstance(task, StatusControlFinishTask):
             StatusControl.finish(task.type, task.notify)
         elif isinstance(task, DelayedTasks):
-            self.delayed_tasks.queue.put(task)
+            self._threads["delayed_tasks"].queue.put(task)
         elif isinstance(task, ForceUpdateAllFailedImportsTask):
             force_update_all_failed_imports()
         elif task == self.SHUTDOWN_TASK:
-            LOG.verbose("Shutting down Librarian...")
+            self.logger.info("Shutting down Librarian...")
             run = False
         else:
-            LOG.warning(f"Unhandled Librarian task: {task}")
+            self.logger.warning(f"Unhandled Librarian task: {task}")
         return run
 
     def _create_threads(self):
         """Create all the threads."""
-        LOG.debug("Creating Librarian threads...")
-        LOG.debug(f"Active threads before thread creation: {active_count()}")
-        self.delayed_tasks = DelayedTasksThread()
-        LOG.debug("Created DelayedTasksThread")
-        self.cover_creator = CoverCreator()
-        LOG.debug("Created CoverCreatorThread")
-        self.search_indexer = SearchIndexer()
-        LOG.debug("Created SearchIndexerThread")
-        self.updater = Updater()
-        LOG.debug("Created UpdaterThread")
-        self.event_batcher = EventBatcher()
-        LOG.debug("Created EventBatcherThread")
-        self.file_system_event_observer = LibraryEventObserver()
-        LOG.debug("Created FSEOThread")
-        self.library_polling_observer = LibraryPollingObserver()
-        LOG.debug("Created PollingObserverThread")
-        self.crond = Crond()
-        LOG.debug("Created CrondThread")
-        self._threads = (
-            self.delayed_tasks,
-            self.cover_creator,
-            self.search_indexer,
-            self.updater,
-            self.event_batcher,
-            self.file_system_event_observer,
-            self.library_polling_observer,
-            self.crond,
-        )
-        LOG.debug("Created _threads tuple")
+        self.logger.debug("Creating Librarian threads...")
+        self.logger.debug(f"Active threads before thread creation: {active_count()}")
+        self._threads = {}
+        kwargs = {"librarian_queue": self.queue, "log_queue": self.log_queue}
+        for thread_class in self.THREAD_CLASSES:
+            thread = thread_class(**kwargs)
+            name = self._camel_to_snake_case(thread_class.__name__)
+            self._threads[name] = thread
+            self.logger.debug(f"Created {thread_class.__name__} thread.")
         self._observers = (
-            self.file_system_event_observer,
-            self.library_polling_observer,
+            self._threads["library_event_observer"],
+            self._threads["library_polling_observer"],
         )
-        LOG.debug("Threads created")
+        self.logger.debug("Threads created")
 
     def _start_threads(self):
         """Start all librarian's threads."""
-        LOG.debug(f"Starting all {self.NAME} threads.")
-        for thread in self._threads:
+        self.logger.debug(f"Starting all {self.NAME} threads.")
+        for thread in self._threads.values():
             thread.start()
-        LOG.verbose(f"Started all {self.NAME} threads.")
+        self.logger.info(f"Started all {self.NAME} threads.")
 
     def _stop_threads(self):
         """Stop all librarian's threads."""
-        LOG.debug(f"Stopping all {self.NAME} threads...")
-        reversed_threads = reversed(self._threads)
+        self.logger.debug(f"Stopping all {self.NAME} threads...")
+        reversed_threads = reversed(self._threads.values())
         for thread in reversed_threads:
             thread.stop()
         for thread in reversed_threads:
             thread.join()
-        LOG.verbose(f"Joined all {self.NAME} threads.")
+        self.logger.info(f"Joined all {self.NAME} threads.")
 
     def run(self):
         """
@@ -156,47 +169,52 @@ class LibrarianDaemon(Process):
         This process also runs the crond thread and the Watchdog Observer
         threads.
         """
+        print("RUN LIBRARIAN")
         try:
-            LOG.verbose("Started Librarian process.")
-            self._create_threads()
-            LOG.debug("Created Librarian Threads, Starting.")
+            self.logger.debug("Started Librarian process.")
+            self._create_threads()  # can't do this in init.
+            print("START LIBRRIAN THREADS NEXT")
             self._start_threads()
             run = True
-            LOG.verbose("Librarian started threads and waiting for tasks.")
+            self.logger.info("Librarian started threads and waiting for tasks.")
             while run:
                 try:
-                    task = LIBRARIAN_QUEUE.get()
+                    print("WAITING FOR TASK")
+                    task = self.queue.get()
+                    print(task)
                     run = self._process_task(task)
                 except Exception as exc:
-                    LOG.error(f"Error in {self.NAME}")
-                    LOG.exception(exc)
+                    self.logger.error(f"Error in {self.NAME}")
+                    self.logger.exception(exc)
             self._stop_threads()
         except Exception as exc:
-            LOG.error("Librarian crashed.")
-            LOG.exception(exc)
-        LOG.verbose("Stopped Librarian process.")
+            self.logger.error("Librarian crashed.")
+            self.logger.exception(exc)
+        self.logger.info("Stopped Librarian process.")
 
-    @classmethod
-    def startup(cls):
-        """Create a new librarian daemon and run it."""
-        cls.proc = LibrarianDaemon()
-        cls.proc.start()
-        startup_tasks = (
-            AdoptOrphanFoldersTask(),
-            SearchIndexRebuildIfDBChangedTask(),
-            WatchdogSyncTask(),
-        )
-        for task in startup_tasks:
-            LIBRARIAN_QUEUE.put(task)
+    # @classmethod
+    # def startup(cls):
+    #    """Create a new librarian daemon and run it."""
+    #    from codex.librarian.queue_mp import LIBRARIAN_QUEUE
+    #    from codex.logger.log_queue import LOG_QUEUE
+    #    from codex.notifier.mp_queue import NOTIFIER_QUEUE
 
-    @classmethod
-    def shutdown(cls):
-        """Stop the librarian process."""
-        if not cls.proc:
-            LOG.warning(f"Cannot shutdown {cls.NAME}. It hasn't started.")
-            return
-        LIBRARIAN_QUEUE.put(cls.SHUTDOWN_TASK)
-        LOG.debug(f"Waiting for {cls.NAME} to join...")
-        cls.proc.join()
-        cls.proc = None
-        LOG.debug(f"{cls.NAME} joined.")
+    #    cls.proc = LibrarianDaemon(LIBRARIAN_QUEUE, LOG_QUEUE, NOTIFIER_QUEUE)
+    #    cls.proc.start()
+
+    # @classmethod
+    # def shutdown(cls):
+    #    """Stop the librarian process."""
+    #    from codex.librarian.queue_mp import LIBRARIAN_QUEUE
+
+
+#
+#        logger = get_logger(cls.NAME)
+#        if not cls.proc:
+#            logger.warning(f"Cannot shutdown {cls.NAME}. It hasn't started.")
+#            return
+#        LIBRARIAN_QUEUE.put(cls.SHUTDOWN_TASK)
+#        logger.debug(f"Waiting for {cls.NAME} to join...")
+#        cls.proc.join()
+#        cls.proc = None
+#        logger.debug(f"{cls.NAME} joined.")

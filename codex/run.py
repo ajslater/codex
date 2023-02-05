@@ -54,6 +54,7 @@ def restart():
 def run():
     """Run Codex."""
     # configure the loop
+    LOG.info(f"root_path: {HYPERCORN_CONFIG.root_path}")
     loop = new_event_loop()
     bind_signals(loop)
     loop.run_until_complete(

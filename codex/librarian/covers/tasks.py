@@ -11,6 +11,13 @@ class CoverTask:
 
 
 @dataclass
+class NewCoverCreateTask(CoverTask):
+    """Create one comic cover."""
+
+    pk: int
+
+
+@dataclass
 class CoverCreateTask(CoverTask):
     """Create one comic cover."""
 

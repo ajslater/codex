@@ -6,7 +6,8 @@ from logging.handlers import QueueListener, RotatingFileHandler
 from colors import color
 
 from codex.logger.log_queue import LOG_QUEUE
-from codex.settings.settings import LOG_DIR, LOG_TO_CONSOLE, LOG_TO_FILE
+from codex.settings.logging import LOG_TO_CONSOLE, LOG_TO_FILE
+from codex.settings.settings import LOG_DIR
 
 
 class ColorFormatter(logging.Formatter):
@@ -17,7 +18,6 @@ class ColorFormatter(logging.Formatter):
         "ERROR": {"fg": "red"},
         "WARNING": {"fg": "yellow"},
         "INFO": {"fg": "green"},
-        "VERBOSE": {"fg": "cyan"},
         "DEBUG": {"fg": "black", "style": "bold"},
         "NOTSET": {"fg": "blue"},
     }
@@ -41,7 +41,7 @@ class ColorFormatter(logging.Formatter):
 class Logger(QueueListener):
     """Host for logging queue listener."""
 
-    LOG_FMT = "{asctime} {levelname:8} {message}"
+    LOG_FMT = "{asctime} {levelname:8} {name} {message}"
     DATEFMT = "%Y-%m-%d %H:%M:%S %Z"
     FORMATTER_KWARGS = {"style": "{", "datefmt": DATEFMT}
     LOG_PATH = LOG_DIR / "codex.log"
@@ -55,21 +55,29 @@ class Logger(QueueListener):
     @classmethod
     def _get_file_log_handler(cls):
         """Get the log handlers for initialization."""
-        LOG_DIR.mkdir(exist_ok=True, parents=True)
-        file_handler = RotatingFileHandler(
-            cls.LOG_PATH, maxBytes=cls.LOG_MAX_BYTES, backupCount=30
-        )
-        formatter = logging.Formatter(cls.LOG_FMT, **cls.FORMATTER_KWARGS)
-        file_handler.setFormatter(formatter)
-        return file_handler
+        handler = None
+        try:
+            cls.LOG_PATH.parent.mkdir(exist_ok=True, parents=True)
+            handler = RotatingFileHandler(
+                cls.LOG_PATH, maxBytes=cls.LOG_MAX_BYTES, backupCount=30
+            )
+            formatter = logging.Formatter(cls.LOG_FMT, **cls.FORMATTER_KWARGS)
+            handler.setFormatter(formatter)
+        except Exception as exc:
+            print("ERROR getting file log handler", exc)
+        return handler
 
     @classmethod
     def _get_console_handler(cls):
         """Create the console handler."""
-        log_console_handler = logging.StreamHandler()
-        log_formatter = ColorFormatter(cls.LOG_FMT, **cls.FORMATTER_KWARGS)
-        log_console_handler.setFormatter(log_formatter)
-        return log_console_handler
+        handler = None
+        try:
+            handler = logging.StreamHandler()
+            formatter = ColorFormatter(cls.LOG_FMT, **cls.FORMATTER_KWARGS)
+            handler.setFormatter(formatter)
+        except Exception as exc:
+            print("ERROR getting console log handler", exc)
+        return handler
 
     @classmethod
     def _get_log_handlers(cls):
@@ -80,14 +88,3 @@ class Logger(QueueListener):
         if LOG_TO_CONSOLE:
             handlers.append(cls._get_console_handler())
         return handlers
-
-    @classmethod
-    def startup(cls):
-        """Create handlers, listener and start."""
-        cls._listener = cls()
-        cls._listener.start()
-
-    @classmethod
-    def shutdown(cls):
-        """Stop listener."""
-        cls._listener.stop()

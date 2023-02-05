@@ -1,4 +1,6 @@
 """Bulk import and move comics and folders."""
+import logging
+
 from pathlib import Path
 
 from django.db.models.functions import Now
@@ -59,11 +61,11 @@ def bulk_comics_moved(library, moved_paths):
         # Update m2m field
         if folder_m2m_links:
             bulk_recreate_m2m_field("folders", folder_m2m_links)
-        log = f"Moved {count} comics."
         if count:
-            LOG.info(log)
+            level = logging.INFO
         else:
-            LOG.verbose(log)  # type: ignore
+            level = logging.DEBUG
+        LOG.log(level, f"Moved {count} comics.")
 
         return bool(count)
     finally:
@@ -125,11 +127,11 @@ def _update_moved_folders(library, folders_moved, dest_parent_folders):
         count = Folder.objects.bulk_update(
             update_folders, MOVED_BULK_FOLDER_UPDATE_FIELDS
         )
-        log = f"Moved {count} folders."
         if count:
-            LOG.info(log)
+            level = logging.INFO
         else:
-            LOG.verbose(log)  # type: ignore
+            level = logging.DEBUG
+        LOG.log(level, f"Moved {count} folders.")
         return bool(count)
     finally:
         StatusControl.finish(ImportStatusTypes.DIRS_MOVED)

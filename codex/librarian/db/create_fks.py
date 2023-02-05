@@ -3,6 +3,8 @@ Create all missing comic foreign keys for an import.
 
 So we may safely create the comics next.
 """
+import logging
+
 from datetime import datetime
 from pathlib import Path
 
@@ -104,17 +106,17 @@ def _bulk_create_or_update_groups(all_operation_groups, func, log_tion, log_verb
     for cls, group_tree_counts in all_operation_groups.items():
         if not group_tree_counts:
             continue
-        LOG.verbose(
+        LOG.debug(
             f"Preparing {len(group_tree_counts)} {cls.__name__}s for {log_tion}..."
         )
         count = func(group_tree_counts, cls)
 
         num_operation_groups += count
-        log = f"{log_verb} {count} {cls.__name__}s."
         if count:
-            LOG.info(log)
+            level = logging.INFO
         else:
-            LOG.verbose(log)
+            level = logging.DEBUG
+        logging.log(level, f"{log_verb} {count} {cls.__name__}s.")
 
     return num_operation_groups
 
@@ -123,7 +125,7 @@ def bulk_folders_modified(library, paths):
     """Update folders stat and nothing else."""
     if not paths:
         return False
-    LOG.verbose(f"Preparing {len(paths)} folders for modification...")
+    LOG.debug(f"Preparing {len(paths)} folders for modification...")
     folders = Folder.objects.filter(library=library, path__in=paths).only(
         "stat", "updated_at"
     )
@@ -137,12 +139,12 @@ def bulk_folders_modified(library, paths):
     count = Folder.objects.bulk_update(
         update_folders, fields=BULK_UPDATE_FOLDER_MODIFIED_FIELDS
     )
-    log = f"Modified {count} folders"
     if count:
-        LOG.info(log)
+        level = logging.INFO
     else:
         count = 0
-        LOG.verbose(log)
+        level = logging.DEBUG
+    LOG.log(level, f"Modified {count} folders")
 
     return count
 
@@ -153,7 +155,7 @@ def bulk_folders_create(library, folder_paths):
         return False
 
     num_folder_paths = len(folder_paths)
-    LOG.verbose(f"Preparing {num_folder_paths} folders for creation.")
+    LOG.debug(f"Preparing {num_folder_paths} folders for creation.")
     # group folder paths by depth
     folder_path_dict = {}
     for path_str in folder_paths:
@@ -186,11 +188,11 @@ def bulk_folders_create(library, folder_paths):
         Folder.objects.bulk_create(create_folders)
         count = len(create_folders)
         total_count += count
-        log = f"Created {total_count}/{num_folder_paths} Folders."
         if count:
-            LOG.info(log)
+            level = logging.INFO
         else:
-            LOG.verbose(log)
+            level = logging.DEBUG
+        LOG.log(level, f"Created {total_count}/{num_folder_paths} Folders.")
     return total_count
 
 
@@ -199,18 +201,18 @@ def _bulk_create_named_models(cls, names):
     if not names:
         return False
     count = len(names)
-    LOG.verbose(f"Preparing {count} {cls.__name__}s for creation...")
+    LOG.debug(f"Preparing {count} {cls.__name__}s for creation...")
     create_named_objs = []
     for name in names:
         named_obj = cls(name=name)
         create_named_objs.append(named_obj)
 
     cls.objects.bulk_create(create_named_objs)
-    log = f"Created {count} {cls.__name__}s."
     if count:
-        LOG.info(log)
+        level = logging.INFO
     else:
-        LOG.verbose(log)
+        level = logging.DEBUG
+    LOG.log(level, f"Created {count} {cls.__name__}s.")
     return count
 
 
@@ -219,7 +221,7 @@ def _bulk_create_credits(create_credit_tuples):
     if not create_credit_tuples:
         return False
 
-    LOG.verbose(f"Preparing {len(create_credit_tuples)} credits for creation...")
+    LOG.debug(f"Preparing {len(create_credit_tuples)} credits for creation...")
     create_credits = []
     for role_name, person_name in create_credit_tuples:
         if role_name:
@@ -233,11 +235,11 @@ def _bulk_create_credits(create_credit_tuples):
 
     Credit.objects.bulk_create(create_credits)
     count = len(create_credits)
-    log = f"Created {count} Credits."
     if count:
-        LOG.info(log)
+        level = logging.INFO
     else:
-        LOG.verbose(log)
+        level = logging.DEBUG
+    LOG.log(level, f"Created {count} Credits.")
 
     return count
 
@@ -283,7 +285,7 @@ def bulk_create_all_fks(
             create_credits,
         )
         since = datetime.now()
-        LOG.verbose(f"Creating comic foreign keys for {library.path}...")
+        LOG.debug(f"Creating comic foreign keys for {library.path}...")
         count = 0
         count += _bulk_create_or_update_groups(
             create_groups, _bulk_group_creator, "creation", "Created"

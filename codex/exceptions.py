@@ -22,7 +22,7 @@ class SeeOtherRedirectError(APIException):
 
     def __init__(self, detail):
         """Create a response to pass to the exception handler."""
-        LOG.verbose(f"redirect {detail.get('reason')}")
+        LOG.debug(f"redirect {detail.get('reason')}")
         serializer = BrowserRedirectSerializer(detail)
         self.detail: dict = serializer.data
         # super().__init__ converts every type into strings!

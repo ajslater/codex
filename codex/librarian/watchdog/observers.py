@@ -8,13 +8,17 @@ from codex.models import Library
 from codex.settings.logging import get_logger
 
 
-LOG = get_logger(__name__)
-
-
 class UatuMixin(BaseObserver):
     """Watch over librarys from the blue area of the moon."""
 
     ENABLE_FIELD = ""
+
+    def __init__(self, *args, **kwargs):
+        """Initialize queues."""
+        self.librarian_queue = kwargs.pop("librarian_queue")
+        self.log_queue = kwargs.pop("log_queue")
+        self.logger = get_logger(self.__class__.__name__, self.log_queue)
+        super().__init__(*args, **kwargs)
 
     def _get_watch(self, path):
         """Find the watch by path."""
@@ -28,20 +32,22 @@ class UatuMixin(BaseObserver):
         is_enabled = getattr(library, self.ENABLE_FIELD)
         watching_log = f"watching library {library.path} with {self.ENABLE_FIELD}"
         if watch and is_enabled:
-            LOG.info(f"Already {watching_log}.")
+            self.logger.info(f"Already {watching_log}.")
             return
         elif not watch and not is_enabled:
-            LOG.debug(f"Not {watching_log}, disabled.")
+            self.logger.debug(f"Not {watching_log}, disabled.")
             return
         elif watch and not is_enabled:
             self.unschedule(watch)
-            LOG.info(f"Stopped {watching_log}.")
+            self.logger.info(f"Stopped {watching_log}.")
             return
 
         # Set up the watch
-        handler = CodexLibraryEventHandler(library)
+        handler = CodexLibraryEventHandler(
+            library, librarian_queue=self.librarian_queue, log_queue=self.log_queue
+        )
         self.schedule(handler, library.path, recursive=True)
-        LOG.info(f"Started {watching_log}")
+        self.logger.info(f"Started {watching_log}")
 
     def _unschedule_orphan_watches(self, paths):
         """Unschedule lost watches."""
@@ -51,7 +57,7 @@ class UatuMixin(BaseObserver):
                 orphan_watches.add(watch)
         for watch in orphan_watches:
             self.unschedule(watch)
-            LOG.info(
+            self.logger.info(
                 f"Stopped watching orphaned library {watch.path} "
                 f"with {self.ENABLE_FIELD}"
             )
@@ -66,15 +72,15 @@ class UatuMixin(BaseObserver):
                     library_paths.add(library.path)
                     self._sync_library_watch(library)
                 except FileNotFoundError:
-                    LOG.warning(
+                    self.logger.warning(
                         f"Could not find {library.path} to watch. May be unmounted."
                     )
                 except Exception as exc:
-                    LOG.exception(exc)
+                    self.logger.exception(exc)
             self._unschedule_orphan_watches(library_paths)
         except Exception as exc:
-            LOG.error(f"Error in {self.__class__.__name__}")
-            LOG.exception(exc)
+            self.logger.error(f"Error in {self.__class__.__name__}")
+            self.logger.exception(exc)
 
     def run(self, *args, **kwargs):
         """Set thread name on thread start."""
@@ -97,9 +103,11 @@ class LibraryPollingObserver(UatuMixin):
     ENABLE_FIELD = "poll"
     _SHUTDOWN_EVENT = (None, None)
 
-    def __init__(self, timeout=DEFAULT_OBSERVER_TIMEOUT):
+    def __init__(self, *args, timeout=DEFAULT_OBSERVER_TIMEOUT, **kwargs):
         """Use the DatabasePollingEmitter."""
-        super().__init__(emitter_class=DatabasePollingEmitter, timeout=timeout)
+        super().__init__(
+            *args, emitter_class=DatabasePollingEmitter, timeout=timeout, **kwargs
+        )
 
     def poll(self, library_pks, force=False):
         """Poll each requested emitter."""
@@ -112,10 +120,10 @@ class LibraryPollingObserver(UatuMixin):
                 if emitter.watch.path in paths:
                     emitter.poll(force)
         except Exception as exc:
-            LOG.error(
+            self.logger.error(
                 f"Error in {self.__class__.__name__}.poll({library_pks}, {force})"
             )
-            LOG.exception(exc)
+            self.logger.exception(exc)
 
     def on_thread_stop(self):
         """Put a dummy event on the queue that blocks forever."""

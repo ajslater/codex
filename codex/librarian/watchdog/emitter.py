@@ -179,9 +179,7 @@ class DatabasePollingEmitter(EventEmitter):
         """Determine if we should take a snapshot."""
         with self._poll_cond:
             if timeout:
-                LOG.verbose(
-                    f"Polling {self.watch.path} again in {naturaldelta(timeout)}."
-                )
+                LOG.info(f"Polling {self.watch.path} again in {naturaldelta(timeout)}.")
             self._poll_cond.wait(timeout)
 
         if not self.should_keep_running():
@@ -204,7 +202,7 @@ class DatabasePollingEmitter(EventEmitter):
         if len(dir_snapshot.paths) <= 1:
             # Maybe overkill of caution here also
             LOG.warning(f"{self._watch_path} dir snapshot is empty. Not polling")
-            LOG.verbose(f"{dir_snapshot.paths=}")
+            LOG.debug(f"{dir_snapshot.paths=}")
             return
 
         # Ignore device for docker and other complex filesystems
@@ -212,13 +210,13 @@ class DatabasePollingEmitter(EventEmitter):
 
     def _queue_events(self, diff):
         """Create and queue the events from the diff."""
-        LOG.verbose(
+        LOG.debug(
             f"Poller sending unfiltered files: {len(diff.files_deleted)} "
             f"deleted, {len(diff.files_modified)} modified, "
             f"{len(diff.files_created)} created, "
             f"{len(diff.files_moved)} moved."
         )
-        LOG.verbose(
+        LOG.debug(
             f"Poller sending comic folders: {len(diff.dirs_deleted)} deleted,"
             f" {len(diff.dirs_modified)} modified,"
             f" {len(diff.dirs_moved)} moved."
@@ -254,7 +252,7 @@ class DatabasePollingEmitter(EventEmitter):
                 return
 
             StatusControl.start(WatchdogStatusTypes.POLL, name=self.watch.path)
-            LOG.verbose(f"Polling {self.watch.path}...")
+            LOG.debug(f"Polling {self.watch.path}...")
             diff = self._get_diff()
             if not diff:
                 return
@@ -264,7 +262,7 @@ class DatabasePollingEmitter(EventEmitter):
             library.last_poll = Now()
             library.save()
 
-            LOG.verbose(f"Polling {self.watch.path} finished.")
+            LOG.info(f"Polled {self.watch.path}")
         except Exception as exc:
             LOG.exception(exc)
             raise exc

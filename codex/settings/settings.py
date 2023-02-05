@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/dev/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/dev/ref/settings/
 """
-
+import logging
 import os
 import re
 
@@ -19,7 +19,6 @@ from django.contrib.staticfiles.storage import staticfiles_storage
 from tzlocal import get_localzone_name
 
 from codex.settings.hypercorn import load_hypercorn_config
-from codex.settings.logging import get_logger, init_logging
 from codex.settings.secret_key import get_secret_key
 
 
@@ -34,15 +33,21 @@ SECRET_KEY = get_secret_key(CONFIG_PATH)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(os.environ.get("DEBUG", "").lower() not in ("0", "false", ""))
+
 #
 # Logging
 #
-LOG_TO_CONSOLE = os.environ.get("CODEX_LOG_TO_CONSOLE") != "0"
-LOG_TO_FILE = os.environ.get("CODEX_LOG_TO_FILE") != "0"
+_loglevel = os.environ.get("LOGLEVEL")
+if _loglevel:
+    if _loglevel == "VERBOSE":
+        print("LOGLEVEL=VERBOSE has been deprecated. Use INFO (the default) or DEBUG.")
+        _loglevel = logging.INFO
+elif DEBUG:
+    _log_level = logging.DEBUG
+else:
+    _log_level = logging.INFO
+LOGLEVEL = _log_level
 LOG_DIR = Path(os.environ.get("CODEX_LOG_DIR", CONFIG_PATH / "logs"))
-init_logging(DEBUG)
-
-LOG = get_logger(__name__)
 
 ALLOWED_HOSTS = ["*"]
 
@@ -85,10 +90,10 @@ MIDDLEWARE = [
     "codex.middleware.TimezoneMiddleware",
 ]
 if DEBUG:
-    from logging import WARN
+    from logging import WARN, getLogger
 
     MIDDLEWARE += ["nplusone.ext.django.NPlusOneMiddleware"]
-    NPLUSONE_LOGGER = get_logger("nplusone")
+    NPLUSONE_LOGGER = getLogger("nplusone")
     NPLUSONE_LOG_LEVEL = WARN
 
 
@@ -171,7 +176,6 @@ HYPERCORN_CONFIG_TOML_DEFAULT = CODEX_PATH / "settings/hypercorn.toml.default"
 HYPERCORN_CONFIG, MAX_DB_OPS = load_hypercorn_config(
     HYPERCORN_CONFIG_TOML, HYPERCORN_CONFIG_TOML_DEFAULT, DEBUG
 )
-LOG.verbose(f"root_path: {HYPERCORN_CONFIG.root_path}")
 PORT = int(HYPERCORN_CONFIG.bind[0].split(":")[1])
 
 
@@ -295,5 +299,5 @@ if DEBUG:
     import socket
 
     DJANGO_VITE_DEV_MODE = DEBUG
-    DJANGO_VITE_DEV_SERVER_HOST = socket.getfqdn()
+    DJANGO_VITE_DEV_SERVER_HOST = socket.gethostname()
     DJANGO_VITE_DEV_SERVER_PORT = 5173

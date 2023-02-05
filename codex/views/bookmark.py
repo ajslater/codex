@@ -27,7 +27,7 @@ class BookmarkBaseView(GenericAPIView, GroupACLMixin):
             search_kwargs["bookmark__user"] = self.request.user
         else:
             if not self.request.session or not self.request.session.session_key:
-                LOG.verbose("no session, make one")
+                LOG.debug("no session, make one")
                 self.request.session.save()
             search_kwargs["bookmark__session_id"] = self.request.session.session_key
         return search_kwargs
@@ -42,7 +42,7 @@ class BookmarkBaseView(GenericAPIView, GroupACLMixin):
             search_kwargs["user"] = self.request.user
         else:
             if not self.request.session or not self.request.session.session_key:
-                LOG.verbose("no session, make one")
+                LOG.debug("no session, make one")
                 self.request.session.save()
             search_kwargs["session_id"] = self.request.session.session_key
         return search_kwargs

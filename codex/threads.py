@@ -9,9 +9,6 @@ from threading import Thread
 from codex.settings.logging import get_logger
 
 
-LOG = get_logger(__name__)
-
-
 class BreakLoopError(Exception):
     """Simple way to break out of function nested loop."""
 
@@ -20,6 +17,13 @@ class BreakLoopError(Exception):
 
 class NamedThread(Thread, ABC):
     """A thread that sets its name for ps."""
+
+    def __init__(self, *args, **kwargs):
+        """Initialize queues."""
+        self.librarian_queue = kwargs.pop("librarian_queue", None)
+        log_queue = kwargs.pop("log_queue")
+        self.logger = get_logger(self.NAME, log_queue)
+        super().__init__(*args, **kwargs)
 
     @property
     @classmethod
@@ -30,7 +34,7 @@ class NamedThread(Thread, ABC):
 
     def run_start(self):
         """First thing to do when running a new thread."""
-        LOG.verbose(f"Started {self.NAME} thread")
+        self.logger.info(f"Started {self.NAME} thread")
 
 
 class QueuedThread(NamedThread, ABC):
@@ -39,10 +43,10 @@ class QueuedThread(NamedThread, ABC):
     SHUTDOWN_MSG = "shutdown"
     SHUTDOWN_TIMEOUT = 5
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         """Initialize with overridden name and as a daemon thread."""
-        self.queue = Queue()
-        super().__init__(name=self.NAME, daemon=True)
+        self.queue = kwargs.pop("queue", Queue())
+        super().__init__(*args, name=self.NAME, daemon=True, **kwargs)
 
     @abstractmethod
     def process_item(self, item):
@@ -77,9 +81,9 @@ class QueuedThread(NamedThread, ABC):
             except BreakLoopError:
                 break
             except Exception as exc:
-                LOG.error(f"{self.NAME} crashed:")
-                LOG.exception(exc)
-        LOG.verbose(f"Stopped {self.NAME} thread")
+                self.logger.error(f"{self.NAME} crashed:")
+                self.logger.exception(exc)
+        self.logger.info(f"Stopped {self.NAME} thread")
 
     def stop(self):
         """Stop the thread."""
@@ -87,9 +91,9 @@ class QueuedThread(NamedThread, ABC):
 
     def join(self):
         """End the thread."""
-        LOG.debug(f"Waiting for {self.NAME} to join.")
+        self.logger.debug(f"Waiting for {self.NAME} to join.")
         super().join(self.SHUTDOWN_TIMEOUT)
-        LOG.debug(f"{self.NAME} joined.")
+        self.logger.debug(f"{self.NAME} joined.")
 
 
 class AggregateMessageQueuedThread(QueuedThread, ABC):

@@ -1,4 +1,6 @@
 """Clean up the database after moves or imports."""
+import logging
+
 from codex.librarian.covers.tasks import CoverRemoveTask
 from codex.librarian.db.status import ImportStatusTypes
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
@@ -51,11 +53,11 @@ def bulk_folders_deleted(library, delete_folder_paths=None) -> bool:
         query = Folder.objects.filter(library=library, path__in=delete_folder_paths)
         count = query.count()
         query.delete()
-        log = f"Deleted {count} folders from {library.path}"
         if count:
-            LOG.info(log)
+            level = logging.INFO
         else:
-            LOG.verbose(log)
+            level = logging.DEBUG
+        LOG.log(level, f"Deleted {count} folders from {library.path}")
         return count > 0
     finally:
         StatusControl.finish(ImportStatusTypes.DIRS_DELETED)
@@ -73,11 +75,11 @@ def bulk_comics_deleted(library, delete_comic_paths=None) -> bool:
 
         count = len(delete_comic_pks)
         query.delete()
-        log = f"Deleted {count} comics from {library.path}"
         if count:
-            LOG.info(log)
+            level = logging.INFO
         else:
-            LOG.verbose(log)
+            level = logging.DEBUG
+        LOG.log(level, f"Deleted {count} comics from {library.path}")
         return count > 0
     finally:
         StatusControl.finish(ImportStatusTypes.FILES_DELETED)

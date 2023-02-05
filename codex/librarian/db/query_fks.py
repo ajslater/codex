@@ -234,21 +234,21 @@ def _init_status(fks):
 def query_all_missing_fks(library_path, fks):
     """Get objects to create by querying existing objects for the proposed fks."""
     try:
-        LOG.verbose(f"Querying existing foreign keys for comics in {library_path}")
+        LOG.debug(f"Querying existing foreign keys for comics in {library_path}")
         _init_status(fks)
 
         create_credits = set()
         if "credits" in fks:
             credits = fks.pop("credits")
             create_credits |= _query_missing_credits(credits)
-            LOG.verbose(f"Prepared {len(create_credits)} new credits.")
+            LOG.info(f"Prepared {len(create_credits)} new credits.")
 
         if "group_trees" in fks:
             group_trees = fks.pop("group_trees")
             create_groups, update_groups, create_group_count = _query_missing_groups(
                 group_trees
             )
-            LOG.verbose(f"Prepared {create_group_count} new groups.")
+            LOG.info(f"Prepared {create_group_count} new groups.")
         else:
             create_groups = {}
             update_groups = {}
@@ -258,7 +258,7 @@ def query_all_missing_fks(library_path, fks):
             create_folder_paths |= query_missing_folder_paths(
                 library_path, fks.pop("comic_paths")
             )
-            LOG.verbose(f"Prepared {len(create_folder_paths)} new folders.")
+            LOG.info(f"Prepared {len(create_folder_paths)} new folders.")
 
         create_fks = {}
         for field in fks.keys():
@@ -270,7 +270,7 @@ def query_all_missing_fks(library_path, fks):
             cls, names = _query_missing_simple_models(base_cls, field, "name", names)
             create_fks[cls] = names
             if num_names := len(names):
-                LOG.verbose(f"Prepared {num_names} new {field}.")
+                LOG.info(f"Prepared {num_names} new {field}.")
 
         return (
             create_fks,

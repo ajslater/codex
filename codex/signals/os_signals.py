@@ -38,4 +38,4 @@ def bind_signals(loop):
                 loop.add_signal_handler(sig, _shutdown_signal_handler)
         loop.add_signal_handler(signal.SIGUSR1, _restart_signal_handler)
     except NotImplementedError:
-        LOG.verbose("Shutdown and restart signal handling not implemented on windows.")
+        LOG.info("Shutdown and restart signal handling not implemented on windows.")

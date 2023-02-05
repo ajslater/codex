@@ -1,7 +1,5 @@
 """Start and stop daemons."""
-import multiprocessing
 import os
-import time
 
 from asgiref.sync import sync_to_async
 from django.contrib.auth.models import User
@@ -10,8 +8,11 @@ from django.db.models import Q
 from django.db.models.functions import Now
 
 from codex.librarian.librariand import LibrarianDaemon
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE
+from codex.logger.log_queue import LOG_QUEUE
 from codex.logger.loggerd import Logger
 from codex.models import AdminFlag, LibrarianStatus, Library, Timestamp
+from codex.notifier.mp_queue import NOTIFIER_QUEUE
 from codex.notifier.notifierd import Notifier
 from codex.settings.logging import get_logger
 from codex.settings.patch import patch_registration_setting
@@ -86,7 +87,7 @@ def clear_library_status():
     LOG.debug(f"Reset {count} Library's update_in_progress flag")
 
 
-def codex_startup():
+def codex_startup(notifier, librarian):
     """Initialize the database and start the daemons."""
     ensure_superuser()
     init_admin_flags()
@@ -95,35 +96,34 @@ def codex_startup():
     init_librarian_statuses()
     clear_library_status()
     cache.clear()
+    notifier.start()
+    librarian.start()
+    # LibrarianDaemon.startup()
 
-    Notifier.startup()
-    LibrarianDaemon.startup()
 
-
-def codex_shutdown():
+def codex_shutdown(librarian, notifier):
     """Stop the daemons."""
     LOG.info("Codex suprocesses shutting down...")
-    LibrarianDaemon.shutdown()
-    Notifier.shutdown()
-    if multiprocessing.active_children():
-        LOG.verbose("Codex suprocesses not joined...")
-        time.sleep(2)
-        for child in multiprocessing.active_children():
-            child.terminate()
-            LOG.verbose(f"Killed subprocess {child}")
+    librarian.join(5)
+    librarian.close()
+    notifier.stop()
+    notifier.join()
     LOG.info("Codex subprocesses shut down.")
 
 
 async def lifespan_application(_scope, receive, send):
     """Lifespan application."""
-    Logger.startup()
+    logger = Logger()
+    logger.start()
+    notifier = Notifier(queue=NOTIFIER_QUEUE, log_queue=LOG_QUEUE)
+    librarian = LibrarianDaemon(LIBRARIAN_QUEUE, LOG_QUEUE, NOTIFIER_QUEUE)
     LOG.debug("Lifespan application started.")
     while True:
         try:
             message = await receive()
             if message["type"] == "lifespan.startup":
                 try:
-                    await sync_to_async(codex_startup)()
+                    await sync_to_async(codex_startup)(notifier, librarian)
                     await send({"type": "lifespan.startup.complete"})
                     LOG.debug("Lifespan startup complete.")
                 except Exception as exc:
@@ -134,7 +134,7 @@ async def lifespan_application(_scope, receive, send):
                 LOG.debug("Lifespan shutdown started.")
                 try:
                     # block on the join
-                    codex_shutdown()
+                    await sync_to_async(codex_shutdown)(librarian, notifier)
                     await send({"type": "lifespan.shutdown.complete"})
                     LOG.debug("Lifespan shutdown complete.")
                 except Exception as exc:
@@ -145,4 +145,4 @@ async def lifespan_application(_scope, receive, send):
         except Exception as exc:
             LOG.exception(exc)
     LOG.debug("Lifespan application stopped.")
-    Logger.shutdown()
+    logger.stop()

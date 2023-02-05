@@ -1,4 +1,6 @@
 """Update and create failed imports."""
+import logging
+
 from pathlib import Path
 
 from django.db.models import Q
@@ -40,11 +42,11 @@ def _bulk_update_failed_imports(library, failed_imports):
         )
     if count is None:
         count = 0
-    log = f"Updated {count} old comics in failed imports."
     if count:
-        LOG.warning(log)
+        level = logging.INFO
     else:
-        LOG.verbose(log)
+        level = logging.DEBUG
+    LOG.log(level, f"Updated {count} old comics in failed imports.")
 
 
 def _bulk_create_failed_imports(library, failed_imports) -> bool:
@@ -65,11 +67,11 @@ def _bulk_create_failed_imports(library, failed_imports) -> bool:
         if create_failed_imports:
             FailedImport.objects.bulk_create(create_failed_imports)
         count = len(create_failed_imports)
-        log = f"Added {count} comics to failed imports."
         if count:
-            LOG.warning(log)
+            level = logging.INFO
         else:
-            LOG.verbose(log)
+            level = logging.DEBUG
+        LOG.log(level, f"Added {count} comics to failed imports.")
         return bool(count)
     finally:
         StatusControl.finish(ImportStatusTypes.CREATE_FAILED_IMPORTS)
@@ -79,7 +81,7 @@ def _bulk_cleanup_failed_imports(library):
     """Remove FailedImport objects that have since succeeded."""
     try:
         StatusControl.start(ImportStatusTypes.CLEAN_FAILED_IMPORTS)
-        LOG.verbose("Cleaning up failed imports...")
+        LOG.debug("Cleaning up failed imports...")
         failed_import_paths = FailedImport.objects.filter(library=library).values_list(
             "path", flat=True
         )
@@ -108,7 +110,7 @@ def _bulk_cleanup_failed_imports(library):
         if count:
             LOG.info(f"Cleaned up {count} failed imports from {library.path}")
         else:
-            LOG.verbose("No failed imports to clean up.")
+            LOG.debug("No failed imports to clean up.")
     finally:
         StatusControl.finish(ImportStatusTypes.CLEAN_FAILED_IMPORTS)
 

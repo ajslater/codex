@@ -9,7 +9,8 @@ import json
 
 from json import JSONDecodeError
 
-from codex.notifier.notifierd import Notifier
+from codex.notifier.mp_queue import NOTIFIER_QUEUE
+from codex.notifier.tasks import NotifierSubscribeTask
 from codex.settings.logging import get_logger
 
 
@@ -26,7 +27,8 @@ def _handle_websocket_message(event, send):
 
         type = text.get("type")
         if type == "subscribe":
-            Notifier.subscribe(text, send)
+            task = NotifierSubscribeTask(text, True, send)
+            NOTIFIER_QUEUE.put(task)
         else:
             LOG.warning(f"Bad message type to websockets: {text}")
     except JSONDecodeError as exc:
@@ -45,7 +47,8 @@ async def websocket_application(_scope, receive, send):
                 await asyncio.sleep(0)
 
             if event["type"] == "websocket.disconnect":
-                Notifier.unsubscribe(set((send,)))
+                task = NotifierSubscribeTask("", False, send)
+                NOTIFIER_QUEUE.put(task)
                 break
 
             if event["type"] == "websocket.receive":

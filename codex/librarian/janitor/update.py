@@ -23,7 +23,7 @@ def update_codex(force=False):
         else:
             eau = AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_AUTO_UPDATE)
             if not eau.on or not is_outdated(PACKAGE_NAME):
-                LOG.verbose("Codex is up to date.")
+                LOG.info("Codex is up to date.")
                 return
 
             LOG.info("Codex seems outdated. Trying to update.")

@@ -19,7 +19,6 @@ from watchdog.events import (
 )
 
 from codex.librarian.db.tasks import UpdaterDBDiffTask
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.librarian.watchdog.tasks import WatchdogEventTask
 from codex.settings.logging import get_logger
 from codex.settings.settings import MAX_DB_OPS
@@ -28,7 +27,6 @@ from codex.threads import AggregateMessageQueuedThread
 
 _COMIC_REGEX = r"\.(cb[zrt]|pdf)$"
 COMIC_MATCHER = re.compile(_COMIC_REGEX, re.IGNORECASE)
-LOG = get_logger(__name__)
 
 
 class EventBatcher(AggregateMessageQueuedThread):
@@ -78,7 +76,7 @@ class EventBatcher(AggregateMessageQueuedThread):
         event = task.event
         args_field = self._args_field_by_event(task.library_id, event)
         if args_field is None:
-            LOG.debug(f"Unhandled event, not batching: {event}")
+            self.logger.debug(f"Unhandled event, not batching: {event}")
             return
 
         if event.event_type == EVENT_TYPE_MOVED:
@@ -87,7 +85,7 @@ class EventBatcher(AggregateMessageQueuedThread):
             args_field.add(event.src_path)
         self._total_items += 1
         if self._total_items > MAX_DB_OPS:
-            LOG.info("Event batcher hit max_db_ops limit.")
+            self.logger.info("Event batcher hit max_db_ops limit.")
             # Sends all items
             self.timed_out()
 
@@ -128,7 +126,7 @@ class EventBatcher(AggregateMessageQueuedThread):
         library_ids = set()
         for library_id in self.cache.keys():
             task = self._create_task(library_id)
-            LIBRARIAN_QUEUE.put(task)
+            self.librarian_queue.put(task)
             library_ids.add(library_id)
 
         # reset the event aggregates
@@ -141,8 +139,11 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
 
     def __init__(self, library, *args, **kwargs):
         """Let us send along he library id."""
-        super().__init__(*args, **kwargs)
         self.library_pk = library.pk
+        self.librarian_queue = kwargs.pop("librarian_queue")
+        log_queue = kwargs.pop("log_queue")
+        self.logger = get_logger(self.__class__.__name__, log_queue)
+        super().__init__(*args, **kwargs)
 
     def dispatch(self, event):
         """Send only valid codex events to the EventBatcher."""
@@ -169,8 +170,8 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
                     return
 
             task = WatchdogEventTask(self.library_pk, event)
-            LIBRARIAN_QUEUE.put(task)
+            self.librarian_queue.put(task)
             super().dispatch(event)
         except Exception as exc:
-            LOG.error(f"Error in {self.__class__.__name__}")
-            LOG.exception(exc)
+            self.logger.error(f"Error in {self.__class__.__name__}")
+            self.logger.exception(exc)

@@ -72,7 +72,7 @@ def _update_comics(library, comic_paths: set, mds) -> tuple[int, frozenset]:
     if not comic_paths:
         return 0, frozenset()
 
-    LOG.verbose(
+    LOG.debug(
         f"Preparing {len(comic_paths)} comics for update in library {library.path}."
     )
     # Get existing comics to update
@@ -100,20 +100,21 @@ def _update_comics(library, comic_paths: set, mds) -> tuple[int, frozenset]:
         except Exception as exc:
             LOG.error(f"Error preparing {comic} for update.")
             LOG.exception(exc)
-
-    converted_create_paths = frozenset(comic_paths - comic_update_paths)
-    LOG.verbose(
-        f"Converted {len(converted_create_paths)} update paths to create paths."
+    LOG.info(
+        f"Prepared {len(comic_paths)} comics for update in library {library.path}."
     )
 
-    LOG.verbose(f"Bulk updating {len(update_comics)} comics.")
+    converted_create_paths = frozenset(comic_paths - comic_update_paths)
+    LOG.info(f"Converted {len(converted_create_paths)} update paths to create paths.")
+
+    LOG.debug(f"Bulk updating {len(update_comics)} comics.")
     try:
         count = Comic.objects.bulk_update(update_comics, BULK_UPDATE_COMIC_FIELDS)
         if not count:
             count = 0
 
         task = CoverRemoveTask(frozenset(comic_pks))
-        LOG.verbose(f"Purging covers for {len(comic_pks)} updated comics.")
+        LOG.debug(f"Purging covers for {len(comic_pks)} updated comics.")
         LIBRARIAN_QUEUE.put(task)
     except Exception as exc:
         count = 0
@@ -129,9 +130,7 @@ def _create_comics(library, comic_paths, mds):
         return 0
 
     num_comics = len(comic_paths)
-    LOG.verbose(
-        f"Preparing {num_comics} comics for creation in library {library.path}."
-    )
+    LOG.debug(f"Preparing {num_comics} comics for creation in library {library.path}.")
     # prepare create comics
     create_comics = []
     for path in comic_paths:
@@ -149,7 +148,8 @@ def _create_comics(library, comic_paths, mds):
             LOG.exception(exc)
 
     num_comics = len(create_comics)
-    LOG.verbose(f"Bulk creating {num_comics} comics...")
+    LOG.info(f"Prepared {num_comics} comics for creation in library {library.path}.")
+    LOG.debug(f"Bulk creating {num_comics} comics...")
     try:
         created_comics = Comic.objects.bulk_create(create_comics)
         created_count = len(created_comics)
@@ -203,7 +203,7 @@ def _link_comic_m2m_fields(m2m_mds):
     """Get the complete m2m field data to create."""
     all_m2m_links = {}
     comic_paths = frozenset(m2m_mds.keys())
-    LOG.verbose(
+    LOG.debug(
         f"Preparing {len(comic_paths)} comics for many to many relation recreation."
     )
 
@@ -236,7 +236,7 @@ def bulk_recreate_m2m_field(field_name, m2m_links):
     https://stackoverflow.com/questions/6996176/how-to-create-an-object-for-a-django-model-with-a-many-to-many-field/10116452#10116452 # noqa: B950,E501
     https://docs.djangoproject.com/en/dev/ref/models/fields/#django.db.models.ManyToManyField.through # noqa: B950,E501
     """
-    LOG.verbose(f"Recreating {field_name} relations for altered comics.")
+    LOG.debug(f"Recreating {field_name} relations for altered comics.")
     field = getattr(Comic, field_name)
     ThroughModel = field.through  # noqa: N806
     model = Comic._meta.get_field(field_name).related_model
@@ -255,7 +255,7 @@ def bulk_recreate_m2m_field(field_name, m2m_links):
     #   detect, create & delete them.
     ThroughModel.objects.filter(comic_id__in=m2m_links.keys()).delete()
     ThroughModel.objects.bulk_create(tms)
-    return len(tms)
+    LOG.info(f"Recreated {len(tms)} {field_name} relations for altered comics.")
 
 
 def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2m_mds):
@@ -315,17 +315,12 @@ def bulk_import_comics(library, create_paths, update_paths, all_bulk_mds, all_m2
     finally:
         StatusControl.finish(ImportStatusTypes.LINK_M2M_FIELDS)
 
-    update_log = f"Updated {update_count} Comics."
     if update_count:
         Timestamp.touch(Timestamp.COVERS)
-        LOG.info(update_log)
-    else:
-        LOG.verbose(update_log)
+    update_log = f"Updated {update_count} Comics."
+    LOG.info(update_log)
     create_log = f"Created {create_count} Comics."
-    if create_count:
-        LOG.info(create_log)
-    else:
-        LOG.verbose(create_log)
+    LOG.info(create_log)
 
     total_count = update_count + create_count
     return total_count

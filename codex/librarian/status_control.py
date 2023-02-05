@@ -76,7 +76,7 @@ class StatusControl:
                     LIBRARIAN_QUEUE.put(LIBRARIAN_STATUS_TASK)
                     since = datetime.now()
                     title = " ".join((type, name)).strip()
-                    LOG.verbose(f"{title}: {complete}/{total}")
+                    LOG.info(f"{title}: {complete}/{total}")
             except Exception as exc:
                 LOG.warning(exc)
         return since

@@ -177,7 +177,7 @@ def get_aggregate_metadata(library, all_paths):
             len(all_failed_imports),
             notify=False,
         )
-        LOG.verbose(f"Aggregated tags from {len(all_mds)} comics.")
+        LOG.info(f"Aggregated tags from {len(all_mds)} comics.")
     finally:
         StatusControl.finish(ImportStatusTypes.AGGREGATE_TAGS)
     return all_mds, all_m2m_mds, all_fks, all_failed_imports

@@ -1,10 +1,15 @@
 """Logging classes."""
 import logging
-import os
 
 from logging.handlers import QueueHandler
+from os import environ
 
-from codex.logger.log_queue import LOG_QUEUE, CodexLogger
+from codex.logger.log_queue import LOG_QUEUE
+from codex.settings.settings import LOGLEVEL
+
+
+LOG_TO_CONSOLE = environ.get("CODEX_LOG_TO_CONSOLE") != "0"
+LOG_TO_FILE = environ.get("CODEX_LOG_TO_FILE") != "0"
 
 
 class CodexDjangoQueueHandler(QueueHandler):
@@ -21,25 +26,13 @@ class CodexDjangoQueueHandler(QueueHandler):
         super().enqueue(record)
 
 
-def _get_log_level(debug):
-    """Get the log level."""
-    environ_loglevel = os.environ.get("LOGLEVEL")
-    if environ_loglevel:
-        level = environ_loglevel
-    elif debug:
-        level = logging.DEBUG
-    else:
-        level = logging.INFO
-    return level
-
-
-def init_logging(debug):
-    """Initialize logging."""
-    level = _get_log_level(debug)
-    handlers = (CodexDjangoQueueHandler(LOG_QUEUE),)
-    logging.basicConfig(level=level, format="%(message)s", handlers=handlers)
-
-
-def get_logger(*args, **kwargs) -> CodexLogger:
+def get_logger(name=None, queue=LOG_QUEUE):
     """Pacify pyright."""
-    return logging.getLogger(*args, **kwargs)  # type: ignore
+    logger = logging.getLogger(name)
+    handler = CodexDjangoQueueHandler(queue)
+    logger.addHandler(handler)
+    logger.setLevel(LOGLEVEL)
+    return logger
+
+
+# TODO move to codex/logger

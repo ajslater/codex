@@ -22,7 +22,7 @@ def vacuum_db():
             cursor.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         new_size = DB_PATH.stat().st_size
         saved = naturalsize(old_size - new_size)
-        LOG.verbose(f"Vacuumed database. Saved {saved}.")
+        LOG.info(f"Vacuumed database. Saved {saved}.")
     finally:
         StatusControl.finish(JanitorStatusTypes.DB_VACUUM)
 
@@ -38,7 +38,7 @@ def backup_db(backup_path=BACKUP_DB_PATH):
         with connection.cursor() as cursor:
             cursor.execute(f"VACUUM INTO {path!r}")
         OLD_BACKUP_PATH.unlink(missing_ok=True)
-        LOG.verbose(f"Backed up database to {path}")
+        LOG.info(f"Backed up database to {path}")
     except Exception as exc:
         LOG.error("Backing up database.")
         LOG.exception(exc)

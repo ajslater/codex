@@ -8,14 +8,10 @@ from codex.notifier.tasks import LIBRARIAN_STATUS_TASK
 from codex.settings.logging import get_logger
 
 
-LOG = get_logger(__name__)
-
-
 def _activate_wal_journal(sender, connection, **kwargs):  # noqa: F841
     """Enable sqlite WAL journal."""
     with connection.cursor() as cursor:
         cursor.execute("PRAGMA journal_mode=wal;")
-        LOG.debug("sqlite journal_mode=wal")
 
 
 def _user_group_change(action, instance, pk_set, model, **kwargs):  # noqa: F841
@@ -33,5 +29,7 @@ def _user_group_change(action, instance, pk_set, model, **kwargs):  # noqa: F841
 
 def connect_signals():
     """Connect actions to signals."""
+    logger = get_logger(__name__)
     connection_created.connect(_activate_wal_journal)
+    logger.debug("sqlite journal_mode=wal")
     m2m_changed.connect(_user_group_change)

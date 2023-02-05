@@ -1,4 +1,6 @@
 """Clean up the database after moves or imports."""
+import logging
+
 from datetime import datetime
 
 from codex.librarian.janitor.status import JanitorStatusTypes
@@ -68,10 +70,14 @@ def cleanup_fks():
     """Clean up unused foreign keys."""
     try:
         StatusControl.start(JanitorStatusTypes.CLEANUP_FK, TOTAL_CLASSES)
-        LOG.verbose("Cleaning up unused foreign keys...")
+        LOG.debug("Cleaning up unused foreign keys...")
         status_count = 0
-        status_count = _bulk_cleanup_fks(DELETE_COMIC_FKS, "comic", status_count)
-        _bulk_cleanup_fks(DELETE_CREDIT_FKS, "credit", status_count)
-        LOG.verbose("Done cleaning up unused foreign keys.")
+        status_count += _bulk_cleanup_fks(DELETE_COMIC_FKS, "comic", status_count)
+        status_count += _bulk_cleanup_fks(DELETE_CREDIT_FKS, "credit", status_count)
+        if status_count:
+            level = logging.INFO
+        else:
+            level = logging.DEBUG
+        LOG.log(level, f"Cleaned up {status_count} unused foreign keys.")
     finally:
         StatusControl.finish(JanitorStatusTypes.CLEANUP_FK)

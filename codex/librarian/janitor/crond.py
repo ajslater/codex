@@ -87,9 +87,7 @@ class Crond(NamedThread):
             with self._cond:
                 while not self._stop_event.is_set():
                     timeout = self._get_timeout()
-                    LOG.verbose(
-                        f"Waiting {naturaldelta(timeout)} until next maintenance."
-                    )
+                    LOG.info(f"Waiting {naturaldelta(timeout)} until next maintenance.")
                     self._cond.wait(timeout=timeout)
                     if self._stop_event.is_set():
                         break
@@ -115,13 +113,13 @@ class Crond(NamedThread):
         except Exception as exc:
             LOG.error(f"Error in {self.NAME}")
             LOG.exception(exc)
-        LOG.verbose(f"Stopped {self.NAME} thread.")
+        LOG.info(f"Stopped {self.NAME} thread.")
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         """Initialize this thread with the worker."""
         self._stop_event = Event()
         self._cond = Condition()
-        super().__init__(name=self.NAME, daemon=True)
+        super().__init__(*args, name=self.NAME, daemon=True, **kwargs)
 
     def stop(self):
         """Stop the cron thread."""
