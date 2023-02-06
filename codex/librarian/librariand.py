@@ -7,10 +7,11 @@ from threading import active_count
 
 from codex.librarian.covers.coverd import CoverCreator
 from codex.librarian.covers.tasks import CoverTask
+from codex.librarian.crond import Crond
 from codex.librarian.db.tasks import AdoptOrphanFoldersTask, UpdaterTask
 from codex.librarian.db.updaterd import Updater
 from codex.librarian.delayed_taskd import DelayedTasksThread
-from codex.librarian.janitor.crond import Crond, janitor
+from codex.librarian.janitor.janitor import Janitor
 from codex.librarian.janitor.tasks import JanitorTask
 from codex.librarian.queue_mp import DelayedTasks
 from codex.librarian.search.searchd import SearchIndexer
@@ -99,7 +100,7 @@ class LibrarianDaemon(Process):
         elif isinstance(task, SearchIndexerTask):
             self._threads["search_indexer"].queue.put(task)
         elif isinstance(task, JanitorTask):
-            janitor(task)
+            self.janitor.run(task)
         elif isinstance(task, StatusControlFinishTask):
             StatusControl.finish(task.type, task.notify)
         elif isinstance(task, DelayedTasks):
@@ -157,6 +158,7 @@ class LibrarianDaemon(Process):
         print("RUN LIBRARIAN")
         try:
             self.logger.debug("Started Librarian process.")
+            self.janitor = Janitor(self.log_queue)
             self._create_threads()  # can't do this in init.
             print("START LIBRRIAN THREADS NEXT")
             self._start_threads()

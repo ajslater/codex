@@ -10,7 +10,8 @@ from hypercorn.asyncio import serve
 
 from codex.asgi import application
 from codex.integrity import has_unapplied_migrations, rebuild_db, repair_db
-from codex.librarian.janitor.vacuum import backup_db
+from codex.librarian.janitor.janitor import Janitor
+from codex.logger.log_queue import LOG_QUEUE
 from codex.settings.logging import get_logger
 from codex.settings.settings import BACKUP_DB_PATH, DEBUG, HYPERCORN_CONFIG
 from codex.signals.os_signals import RESTART_EVENT, SHUTDOWN_EVENT, bind_signals
@@ -33,7 +34,8 @@ def backup_db_before_migration():
         return
     suffix = f".before-v{VERSION}{BACKUP_DB_PATH.suffix}"
     backup_path = BACKUP_DB_PATH.with_suffix(suffix)
-    backup_db(backup_path)
+    janitor = Janitor(LOG_QUEUE)
+    janitor.backup_db(backup_path)
 
 
 def update_db():

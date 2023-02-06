@@ -8,31 +8,23 @@ from humanize import naturaldelta
 
 from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.covers.tasks import CoverRemoveOrphansTask
-from codex.librarian.janitor.cleanup import TOTAL_CLASSES, cleanup_fks
+from codex.librarian.janitor.cleanup import TOTAL_NUM_FK_CLASSES
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.janitor.tasks import (
     JanitorBackupTask,
     JanitorCleanFKsTask,
-    JanitorClearStatusTask,
-    JanitorRestartTask,
-    JanitorShutdownTask,
     JanitorUpdateTask,
     JanitorVacuumTask,
 )
-from codex.librarian.janitor.update import restart_codex, shutdown_codex, update_codex
-from codex.librarian.janitor.vacuum import backup_db, vacuum_db
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexOptimizeTask, SearchIndexUpdateTask
 from codex.librarian.status_control import StatusControl
 from codex.models import Timestamp
-from codex.settings.logging import get_logger
 from codex.threads import NamedThread
 
 
-LOG = get_logger(__name__)
-DEBOUNCE = 5
-ONE_DAY = timedelta(days=1)
+_ONE_DAY = timedelta(days=1)
 
 
 class Crond(NamedThread):
@@ -44,7 +36,7 @@ class Crond(NamedThread):
     def _get_midnight(now, tomorrow=False):
         """Get midnight relative to now."""
         if tomorrow:
-            now += ONE_DAY
+            now += _ONE_DAY
         day = now.astimezone()
         midnight = datetime.combine(day, time.min).astimezone()
         return midnight
@@ -55,7 +47,7 @@ class Crond(NamedThread):
         now = django_timezone.now()
         last_cron = Timestamp.objects.get(name=Timestamp.JANITOR).updated_at
 
-        if now - last_cron < ONE_DAY:
+        if now - last_cron < _ONE_DAY:
             # wait until next midnight
             next_midnight = cls._get_midnight(now, True)
             delta = next_midnight - now
@@ -69,7 +61,7 @@ class Crond(NamedThread):
     @staticmethod
     def _init_librarian_status():
         types_map = {
-            JanitorStatusTypes.CLEANUP_FK: {"total": TOTAL_CLASSES},
+            JanitorStatusTypes.CLEANUP_FK: {"total": TOTAL_NUM_FK_CLASSES},
             JanitorStatusTypes.DB_VACUUM: {},
             JanitorStatusTypes.DB_BACKUP: {},
             JanitorStatusTypes.CODEX_UPDATE: {},
@@ -87,7 +79,9 @@ class Crond(NamedThread):
             with self._cond:
                 while not self._stop_event.is_set():
                     timeout = self._get_timeout()
-                    LOG.info(f"Waiting {naturaldelta(timeout)} until next maintenance.")
+                    self.logger.info(
+                        f"Waiting {naturaldelta(timeout)} until next maintenance."
+                    )
                     self._cond.wait(timeout=timeout)
                     if self._stop_event.is_set():
                         break
@@ -106,14 +100,14 @@ class Crond(NamedThread):
                         for task in tasks:
                             LIBRARIAN_QUEUE.put(task)
                     except Exception as exc:
-                        LOG.error(f"Error in {self.NAME}")
-                        LOG.exception(exc)
+                        self.logger.error(f"Error in {self.NAME}")
+                        self.logger.exception(exc)
                     Timestamp.touch(Timestamp.JANITOR)
                     sleep(2)
         except Exception as exc:
-            LOG.error(f"Error in {self.NAME}")
-            LOG.exception(exc)
-        LOG.info(f"Stopped {self.NAME} thread.")
+            self.logger.error(f"Error in {self.NAME}")
+            self.logger.exception(exc)
+        self.logger.info(f"Stopped {self.NAME} thread.")
 
     def __init__(self, *args, **kwargs):
         """Initialize this thread with the worker."""
@@ -126,27 +120,3 @@ class Crond(NamedThread):
         self._stop_event.set()
         with self._cond:
             self._cond.notify()
-
-
-def janitor(task):
-    """Run Janitor tasks as the librarian process directly."""
-    try:
-        if isinstance(task, JanitorVacuumTask):
-            vacuum_db()
-        elif isinstance(task, JanitorBackupTask):
-            backup_db()
-        elif isinstance(task, JanitorUpdateTask):
-            update_codex()
-        elif isinstance(task, JanitorRestartTask):
-            restart_codex()
-        elif isinstance(task, JanitorShutdownTask):
-            shutdown_codex()
-        elif isinstance(task, JanitorCleanFKsTask):
-            cleanup_fks()
-        elif isinstance(task, JanitorClearStatusTask):
-            StatusControl.finish_many([])
-        else:
-            LOG.warning(f"Janitor received unknown task {task}")
-    except Exception as exc:
-        LOG.error("Janitor task crashed.")
-        LOG.exception(exc)

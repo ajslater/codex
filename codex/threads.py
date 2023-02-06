@@ -6,7 +6,7 @@ from multiprocessing import Queue
 from queue import Empty
 from threading import Thread
 
-from codex.settings.logging import get_logger
+from codex.logger_base import LoggerBase
 
 
 class BreakLoopError(Exception):
@@ -15,14 +15,14 @@ class BreakLoopError(Exception):
     pass
 
 
-class NamedThread(Thread, ABC):
+class NamedThread(Thread, LoggerBase, ABC):
     """A thread that sets its name for ps."""
 
     def __init__(self, *args, **kwargs):
         """Initialize queues."""
         self.librarian_queue = kwargs.pop("librarian_queue", None)
         log_queue = kwargs.pop("log_queue")
-        self.logger = get_logger(self.NAME, log_queue)
+        self.init_logger(log_queue)
         super().__init__(*args, **kwargs)
 
     @property

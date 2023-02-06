@@ -1,72 +1,73 @@
 """Update the codex python package."""
 import os
 import signal
-import subprocess  # nosec
+import subprocess
 import sys
 
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.status_control import StatusControl
+from codex.logger_base import LoggerBase
 from codex.models import AdminFlag
-from codex.settings.logging import get_logger
 from codex.version import PACKAGE_NAME, VERSION, get_version, is_outdated
 
 
-LOG = get_logger(__name__)
+class UpdateMixin(LoggerBase):
+    """Update codex methods for janitor."""
 
+    def restart_codex(self):
+        """Send a system SIGUSR1 signal as handled in run.py."""
+        try:
+            StatusControl.start(JanitorStatusTypes.CODEX_RESTART)
+            self.logger.info("Sending restart signal.")
+            main_pid = os.getppid()
+            os.kill(main_pid, signal.SIGUSR1)
+        finally:
+            StatusControl.finish(JanitorStatusTypes.CODEX_RESTART)
 
-def update_codex(force=False):
-    """Update the package and restart everything if the version changed."""
-    try:
-        StatusControl.start(JanitorStatusTypes.CODEX_UPDATE)
-        if force:
-            LOG.info("Forcing update of Codex.")
+    def update_codex(self, force=False):
+        """Update the package and restart everything if the version changed."""
+        try:
+            StatusControl.start(JanitorStatusTypes.CODEX_UPDATE)
+            if force:
+                self.logger.info("Forcing update of Codex.")
+            else:
+                eau = AdminFlag.objects.only("on").get(
+                    name=AdminFlag.ENABLE_AUTO_UPDATE
+                )
+                if not eau.on or not is_outdated(PACKAGE_NAME):
+                    self.logger.info("Codex is up to date.")
+                    return
+
+                self.logger.info("Codex seems outdated. Trying to update.")
+
+            subprocess.run(
+                (sys.executable, "-m", "pip", "install", "--upgrade", "codex"),
+                check=True,
+            )
+        except Exception as exc:
+            self.logger.error(exc)
+        finally:
+            StatusControl.finish(JanitorStatusTypes.CODEX_UPDATE)
+
+        # Restart if changed version.
+        new_version = get_version()
+        restart = VERSION != new_version
+
+        if restart:
+            self.logger.info(f"Codex was updated from {VERSION} to {new_version}.")
+            self.restart_codex()
         else:
-            eau = AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_AUTO_UPDATE)
-            if not eau.on or not is_outdated(PACKAGE_NAME):
-                LOG.info("Codex is up to date.")
-                return
+            self.logger.warning(
+                "Codex updated to the same version that was previously"
+                f" installed: {VERSION}."
+            )
 
-            LOG.info("Codex seems outdated. Trying to update.")
-
-        subprocess.run(  # nosec
-            (sys.executable, "-m", "pip", "install", "--upgrade", "codex"), check=True
-        )
-    except Exception as exc:
-        LOG.error(exc)
-    finally:
-        StatusControl.finish(JanitorStatusTypes.CODEX_UPDATE)
-
-    # Restart if changed version.
-    new_version = get_version()
-    restart = VERSION != new_version
-
-    if restart:
-        LOG.info(f"Codex was updated from {VERSION} to {new_version}.")
-        restart_codex()
-    else:
-        LOG.warning(
-            "Codex updated to the same version that was previously"
-            f" installed: {VERSION}."
-        )
-
-
-def restart_codex():
-    """Send a system SIGUSR1 signal as handled in run.py."""
-    try:
-        StatusControl.start(JanitorStatusTypes.CODEX_RESTART)
-        LOG.info("Sending restart signal.")
-        main_pid = os.getppid()
-        os.kill(main_pid, signal.SIGUSR1)
-    finally:
-        StatusControl.finish(JanitorStatusTypes.CODEX_RESTART)
-
-
-def shutdown_codex():
-    """Send a system SIGTERM signal as handled in run.py."""
-    try:
-        StatusControl.start(JanitorStatusTypes.CODEX_STOP)
-        LOG.info("Sending shutdown signal.")
-        main_pid = os.getppid()
-        os.kill(main_pid, signal.SIGTERM)
-    finally:
-        StatusControl.finish(JanitorStatusTypes.CODEX_STOP)
+    def shutdown_codex(self):
+        """Send a system SIGTERM signal as handled in run.py."""
+        try:
+            StatusControl.start(JanitorStatusTypes.CODEX_STOP)
+            self.logger.info("Sending shutdown signal.")
+            main_pid = os.getppid()
+            os.kill(main_pid, signal.SIGTERM)
+        finally:
+            StatusControl.finish(JanitorStatusTypes.CODEX_STOP)
