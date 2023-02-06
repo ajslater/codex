@@ -25,7 +25,7 @@ from codex.models import (
 from codex.settings.logging import get_logger
 
 
-DELETE_COMIC_FKS = (
+COMIC_FK_CLASSES = (
     Volume,
     Series,
     Imprint,
@@ -40,8 +40,8 @@ DELETE_COMIC_FKS = (
     StoryArc,
     Genre,
 )
-DELETE_CREDIT_FKS = (CreditRole, CreditPerson)
-TOTAL_CLASSES = len(DELETE_COMIC_FKS) + len(DELETE_CREDIT_FKS)
+CREDIT_FK_CLASSES = (CreditRole, CreditPerson)
+TOTAL_CLASSES = len(COMIC_FK_CLASSES) + len(CREDIT_FK_CLASSES)
 LOG = get_logger(__name__)
 
 
@@ -72,8 +72,8 @@ def cleanup_fks():
         StatusControl.start(JanitorStatusTypes.CLEANUP_FK, TOTAL_CLASSES)
         LOG.debug("Cleaning up unused foreign keys...")
         status_count = 0
-        status_count += _bulk_cleanup_fks(DELETE_COMIC_FKS, "comic", status_count)
-        status_count += _bulk_cleanup_fks(DELETE_CREDIT_FKS, "credit", status_count)
+        status_count += _bulk_cleanup_fks(COMIC_FK_CLASSES, "comic", status_count)
+        status_count += _bulk_cleanup_fks(CREDIT_FK_CLASSES, "credit", status_count)
         if status_count:
             level = logging.INFO
         else:
