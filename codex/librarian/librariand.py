@@ -4,12 +4,12 @@ import re
 
 from multiprocessing import Process
 from threading import active_count
-from time import sleep
 
 from codex.librarian.covers.coverd import CoverCreator
 from codex.librarian.covers.tasks import CoverTask
 from codex.librarian.db.tasks import AdoptOrphanFoldersTask, UpdaterTask
 from codex.librarian.db.updaterd import Updater
+from codex.librarian.delayed_taskd import DelayedTasksThread
 from codex.librarian.janitor.crond import Crond, janitor
 from codex.librarian.janitor.tasks import JanitorTask
 from codex.librarian.queue_mp import DelayedTasks
@@ -31,23 +31,8 @@ from codex.librarian.watchdog.tasks import (
     WatchdogPollLibrariesTask,
     WatchdogSyncTask,
 )
-from codex.notifier.notifierd import Notifier
 from codex.notifier.tasks import NotifierTask
 from codex.settings.logging import get_logger
-from codex.threads import QueuedThread
-
-
-# TODO move out of this file
-class DelayedTasksThread(QueuedThread):
-    """Wait for the DB to sync before running tasks."""
-
-    NAME = "DelayedTask"  # type: ignore
-
-    def process_item(self, item):
-        """Sleep and then put tasks on the queue."""
-        sleep(item.delay)
-        for task in item.tasks:
-            self.librarian_queue.put(task)
 
 
 class LibrarianDaemon(Process):
@@ -104,7 +89,7 @@ class LibrarianDaemon(Process):
             self._threads["event_batcher"].queue.put(task)
         elif isinstance(task, UpdaterTask):
             self._threads["updater"].queue.put(task)
-        elif isinstance(task, NotifierTask) and Notifier.thread:
+        elif isinstance(task, NotifierTask):
             self.notifier_queue.put(task)
         elif isinstance(task, WatchdogSyncTask):
             for observer in self._observers:
