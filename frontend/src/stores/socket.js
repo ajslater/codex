@@ -90,6 +90,7 @@ export const useSocketStore = defineStore("socket", {
       console.error("socket reconnect error");
       this.reconnectError = true;
     },
+    /*
     sendSubscribe() {
       // const app = getCurrentInstance().appContext;
       const ws = this.app.config.globalProperties.$socket;
@@ -105,6 +106,7 @@ export const useSocketStore = defineStore("socket", {
       };
       ws.send(JSON.stringify(msg));
     },
+    */
   },
 });
 

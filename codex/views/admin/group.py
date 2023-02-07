@@ -4,8 +4,8 @@ from django.core.cache import cache
 from rest_framework.permissions import IsAdminUser
 from rest_framework.viewsets import ModelViewSet
 
+from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
-from codex.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.serializers.admin import GroupSerializer
 from codex.settings.logging import get_logger
 

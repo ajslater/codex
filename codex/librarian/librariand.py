@@ -13,6 +13,8 @@ from codex.librarian.db.updaterd import Updater
 from codex.librarian.delayed_taskd import DelayedTasksThread
 from codex.librarian.janitor.janitor import Janitor
 from codex.librarian.janitor.tasks import JanitorTask
+from codex.librarian.notifier.notifierd import NotifierThread
+from codex.librarian.notifier.tasks import NotifierTask
 from codex.librarian.queue_mp import DelayedTasks
 from codex.librarian.search.searchd import SearchIndexer
 from codex.librarian.search.tasks import (
@@ -29,7 +31,6 @@ from codex.librarian.watchdog.tasks import (
     WatchdogPollLibrariesTask,
     WatchdogSyncTask,
 )
-from codex.notifier.tasks import NotifierTask
 from codex.settings.logging import get_logger
 
 
@@ -41,6 +42,7 @@ class LibrarianDaemon(Process):
     MAX_WS_ATTEMPTS = 5
     SHUTDOWN_TASK = "shutdown"
     THREAD_CLASSES = (
+        NotifierThread,
         DelayedTasksThread,
         CoverCreator,
         SearchIndexer,
@@ -54,12 +56,11 @@ class LibrarianDaemon(Process):
 
     proc = None
 
-    def __init__(self, queue, log_queue, notifier_queue):
+    def __init__(self, queue, log_queue):
         """Init process."""
         super().__init__(name=self.NAME, daemon=False)
         self.queue = queue
         self.log_queue = log_queue
-        self.notifier_queue = notifier_queue
         self.logger = get_logger(self.NAME, log_queue)
 
         logging.info("EXPERIMENTAL LOGGING MESSAGE")
@@ -88,7 +89,7 @@ class LibrarianDaemon(Process):
         elif isinstance(task, UpdaterTask):
             self._threads["updater"].queue.put(task)
         elif isinstance(task, NotifierTask):
-            self.notifier_queue.put(task)
+            self._threads["notifier"].queue.put(task)
         elif isinstance(task, WatchdogSyncTask):
             for observer in self._observers:
                 observer.sync_library_watches()

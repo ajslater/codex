@@ -14,11 +14,11 @@ from codex.librarian.db.failed_imports import FailedImportsMixin
 from codex.librarian.db.moved import MovedMixin
 from codex.librarian.db.status import ImportStatusTypes
 from codex.librarian.db.tasks import AdoptOrphanFoldersTask, UpdaterDBDiffTask
+from codex.librarian.notifier.tasks import FAILED_IMPORTS_TASK, LIBRARY_CHANGED_TASK
 from codex.librarian.queue_mp import DelayedTasks
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexUpdateTask
 from codex.models import Library
-from codex.notifier.tasks import FAILED_IMPORTS_TASK, LIBRARY_CHANGED_TASK
 
 
 _WRITE_WAIT_EXPIRY = 5

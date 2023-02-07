@@ -6,8 +6,8 @@ from pathlib import Path
 
 from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.covers.status import CoverStatusTypes
+from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.models import Comic, Timestamp
-from codex.notifier.tasks import LIBRARY_CHANGED_TASK
 
 
 class CoverPurgeMixin(CoverPathMixin):

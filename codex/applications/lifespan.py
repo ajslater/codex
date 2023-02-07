@@ -12,8 +12,6 @@ from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.logger.log_queue import LOG_QUEUE
 from codex.logger.loggerd import Logger
 from codex.models import AdminFlag, LibrarianStatus, Library, Timestamp
-from codex.notifier.mp_queue import NOTIFIER_QUEUE
-from codex.notifier.notifierd import Notifier
 from codex.settings.logging import get_logger
 from codex.settings.patch import patch_registration_setting
 
@@ -87,62 +85,67 @@ def clear_library_status():
     LOG.debug(f"Reset {count} Library's update_in_progress flag")
 
 
-def codex_startup(notifier, librarian):
-    """Initialize the database and start the daemons."""
-    ensure_superuser()
-    init_admin_flags()
-    patch_registration_setting()
-    init_timestamps()
-    init_librarian_statuses()
-    clear_library_status()
-    cache.clear()
-    notifier.start()
-    librarian.start()
-    # LibrarianDaemon.startup()
+class LifespanApp:
+    """Lifespan AGSI App."""
 
+    SCOPE = "lifespan"
 
-def codex_shutdown(librarian, notifier):
-    """Stop the daemons."""
-    LOG.info("Codex suprocesses shutting down...")
-    librarian.join(5)
-    librarian.close()
-    notifier.stop()
-    notifier.join()
-    LOG.info("Codex subprocesses shut down.")
+    def __init__(self):
+        """Create logger and librarian."""
+        self.logger = Logger()
+        self.librarian = LibrarianDaemon(LIBRARIAN_QUEUE, LOG_QUEUE)
+        # notifier = Notifier(queue=NOTIFIER_QUEUE, log_queue=LOG_QUEUE)
 
+    def codex_startup(self):
+        """Initialize the database and start the daemons."""
+        ensure_superuser()
+        init_admin_flags()
+        patch_registration_setting()
+        init_timestamps()
+        init_librarian_statuses()
+        clear_library_status()
+        cache.clear()
+        self.librarian.start()
+        LOG.info("Codex started up.")
 
-async def lifespan_application(_scope, receive, send):
-    """Lifespan application."""
-    logger = Logger()
-    logger.start()
-    notifier = Notifier(queue=NOTIFIER_QUEUE, log_queue=LOG_QUEUE)
-    librarian = LibrarianDaemon(LIBRARIAN_QUEUE, LOG_QUEUE, NOTIFIER_QUEUE)
-    LOG.debug("Lifespan application started.")
-    while True:
-        try:
-            message = await receive()
-            if message["type"] == "lifespan.startup":
-                try:
-                    await sync_to_async(codex_startup)(notifier, librarian)
-                    await send({"type": "lifespan.startup.complete"})
-                    LOG.debug("Lifespan startup complete.")
-                except Exception as exc:
-                    await send({"type": "lifespan.startup.failed"})
-                    LOG.error("Lifespan startup failed.")
-                    raise exc
-            elif message["type"] == "lifespan.shutdown":
-                LOG.debug("Lifespan shutdown started.")
-                try:
-                    # block on the join
-                    await sync_to_async(codex_shutdown)(librarian, notifier)
-                    await send({"type": "lifespan.shutdown.complete"})
-                    LOG.debug("Lifespan shutdown complete.")
-                except Exception as exc:
-                    await send({"type": "lifespan.startup.failed"})
-                    LOG.error("Lifespan shutdown failed.")
-                    raise exc
-                break
-        except Exception as exc:
-            LOG.exception(exc)
-    LOG.debug("Lifespan application stopped.")
-    logger.stop()
+    def codex_shutdown(self):
+        """Stop the daemons."""
+        LOG.info("Codex suprocesses shutting down...")
+        self.librarian.join(5)
+        self.librarian.close()
+        LOG.info("Codex subprocesses shut down.")
+
+    async def __call__(self, scope, receive, send):
+        """Lifespan application."""
+        if scope != self.SCOPE:
+            return
+        self.logger.start()
+        LOG.debug("Lifespan application started.")
+        while True:
+            try:
+                message = await receive()
+                if message["type"] == "lifespan.startup":
+                    try:
+                        await sync_to_async(self.codex_startup)()
+                        await send({"type": "lifespan.startup.complete"})
+                        LOG.debug("Lifespan startup complete.")
+                    except Exception as exc:
+                        await send({"type": "lifespan.startup.failed"})
+                        LOG.error("Lifespan startup failed.")
+                        raise exc
+                elif message["type"] == "lifespan.shutdown":
+                    LOG.debug("Lifespan shutdown started.")
+                    try:
+                        # block on the join
+                        await sync_to_async(self.codex_shutdown)()
+                        await send({"type": "lifespan.shutdown.complete"})
+                        LOG.debug("Lifespan shutdown complete.")
+                    except Exception as exc:
+                        await send({"type": "lifespan.startup.failed"})
+                        LOG.error("Lifespan shutdown failed.")
+                        raise exc
+                    break
+            except Exception as exc:
+                LOG.exception(exc)
+        LOG.debug("Lifespan application stopped.")
+        self.logger.stop()

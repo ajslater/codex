@@ -16,6 +16,7 @@ from codex.librarian.janitor.tasks import (
     JanitorUpdateTask,
     JanitorVacuumTask,
 )
+from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.librarian.search.tasks import (
     SearchIndexOptimizeTask,
@@ -24,7 +25,6 @@ from codex.librarian.search.tasks import (
 )
 from codex.librarian.watchdog.tasks import WatchdogPollLibrariesTask, WatchdogSyncTask
 from codex.models import LibrarianStatus, Library
-from codex.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.serializers.admin import AdminLibrarianTaskSerializer
 from codex.serializers.mixins import OKSerializer
 from codex.serializers.models import LibrarianStatusSerializer

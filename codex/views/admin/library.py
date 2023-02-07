@@ -8,10 +8,10 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
+from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
 from codex.librarian.watchdog.tasks import WatchdogPollLibrariesTask, WatchdogSyncTask
 from codex.models import FailedImport, Folder, Library
-from codex.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.serializers.admin import (
     AdminFolderListSerializer,
     AdminFolderSerializer,

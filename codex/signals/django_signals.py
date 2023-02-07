@@ -3,8 +3,8 @@ from django.core.cache import cache
 from django.db.backends.signals import connection_created
 from django.db.models.signals import m2m_changed
 
+from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
-from codex.notifier.tasks import LIBRARIAN_STATUS_TASK
 from codex.settings.logging import get_logger
 
 

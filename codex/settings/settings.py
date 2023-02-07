@@ -304,6 +304,12 @@ HAYSTACK_CONNECTIONS = {
     },
 }
 
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    },
+}
+
 if DEBUG:
     import socket
 

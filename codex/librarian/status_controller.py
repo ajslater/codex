@@ -3,9 +3,9 @@ from datetime import datetime, timedelta
 
 from django.db.models.functions.datetime import Now
 
+from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK
 from codex.logger_base import LoggerBaseMixin
 from codex.models import LibrarianStatus
-from codex.notifier.tasks import LIBRARIAN_STATUS_TASK
 
 
 class StatusController(LoggerBaseMixin):
