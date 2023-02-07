@@ -4,11 +4,11 @@ from watchdog.observers.api import DEFAULT_OBSERVER_TIMEOUT, BaseObserver
 
 from codex.librarian.watchdog.emitter import DatabasePollingEmitter
 from codex.librarian.watchdog.eventsd import CodexLibraryEventHandler
+from codex.logger_base import LoggerBase
 from codex.models import Library
-from codex.settings.logging import get_logger
 
 
-class UatuMixin(BaseObserver):
+class UatuMixin(BaseObserver, LoggerBase):
     """Watch over librarys from the blue area of the moon."""
 
     ENABLE_FIELD = ""
@@ -17,7 +17,7 @@ class UatuMixin(BaseObserver):
         """Initialize queues."""
         self.librarian_queue = kwargs.pop("librarian_queue")
         self.log_queue = kwargs.pop("log_queue")
-        self.logger = get_logger(self.__class__.__name__, self.log_queue)
+        self.init_logger(self.log_queue)
         super().__init__(*args, **kwargs)
 
     def _get_watch(self, path):

@@ -17,6 +17,8 @@ LOG = get_logger(__name__)
 class StatusControlFinishTask:
     """Finish a status task."""
 
+    # TODO is this unused?
+
     type: str
     notify: bool = True
 

@@ -21,13 +21,11 @@ from codex.librarian.search.tasks import (
 )
 from codex.librarian.status_control import StatusControl, StatusControlFinishTask
 from codex.librarian.watchdog.eventsd import EventBatcher
-from codex.librarian.watchdog.failed_imports import force_update_all_failed_imports
 from codex.librarian.watchdog.observers import (
     LibraryEventObserver,
     LibraryPollingObserver,
 )
 from codex.librarian.watchdog.tasks import (
-    ForceUpdateAllFailedImportsTask,
     WatchdogEventTask,
     WatchdogPollLibrariesTask,
     WatchdogSyncTask,
@@ -105,8 +103,6 @@ class LibrarianDaemon(Process):
             StatusControl.finish(task.type, task.notify)
         elif isinstance(task, DelayedTasks):
             self._threads["delayed_tasks"].queue.put(task)
-        elif isinstance(task, ForceUpdateAllFailedImportsTask):
-            force_update_all_failed_imports()
         elif task == self.SHUTDOWN_TASK:
             self.logger.info("Shutting down Librarian...")
             run = False
@@ -158,7 +154,7 @@ class LibrarianDaemon(Process):
         print("RUN LIBRARIAN")
         try:
             self.logger.debug("Started Librarian process.")
-            self.janitor = Janitor(self.log_queue)
+            self.janitor = Janitor(self.log_queue, self.librarian_queue)
             self._create_threads()  # can't do this in init.
             print("START LIBRRIAN THREADS NEXT")
             self._start_threads()

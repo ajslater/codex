@@ -26,7 +26,7 @@ from codex.threads import AggregateMessageQueuedThread
 
 
 _COMIC_REGEX = r"\.(cb[zrt]|pdf)$"
-COMIC_MATCHER = re.compile(_COMIC_REGEX, re.IGNORECASE)
+_COMIC_MATCHER = re.compile(_COMIC_REGEX, re.IGNORECASE)
 
 
 class EventBatcher(AggregateMessageQueuedThread):
@@ -153,11 +153,11 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
                     # Directories are only created by comics
                     return
             else:
-                source_match = COMIC_MATCHER.search(event.src_path)
+                source_match = _COMIC_MATCHER.search(event.src_path)
                 if event.event_type == EVENT_TYPE_MOVED:
                     # Some types of file moves need to be cast as other events.
 
-                    dest_match = COMIC_MATCHER.search(event.dest_path)
+                    dest_match = _COMIC_MATCHER.search(event.dest_path)
                     if source_match is None and dest_match is not None:
                         # Moved from an ignored file extension into a comic type,
                         # so create a new comic.
