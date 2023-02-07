@@ -2,8 +2,7 @@
 import time
 
 from abc import ABC, abstractmethod
-from multiprocessing import Queue
-from queue import Empty
+from queue import Empty, SimpleQueue
 from threading import Thread
 
 from codex.worker_base import WorkerBaseMixin
@@ -45,7 +44,7 @@ class QueuedThread(NamedThread, ABC):
 
     def __init__(self, *args, **kwargs):
         """Initialize with overridden name and as a daemon thread."""
-        self.queue = kwargs.pop("queue", Queue())
+        self.queue = kwargs.pop("queue", SimpleQueue())
         super().__init__(*args, name=self.NAME, daemon=True, **kwargs)
 
     @abstractmethod
