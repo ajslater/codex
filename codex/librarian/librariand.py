@@ -171,30 +171,3 @@ class LibrarianDaemon(Process):
             self.logger.error("Librarian crashed.")
             self.logger.exception(exc)
         self.logger.info("Stopped Librarian process.")
-
-    # @classmethod
-    # def startup(cls):
-    #    """Create a new librarian daemon and run it."""
-    #    from codex.librarian.queue_mp import LIBRARIAN_QUEUE
-    #    from codex.logger.log_queue import LOG_QUEUE
-    #    from codex.notifier.mp_queue import NOTIFIER_QUEUE
-
-    #    cls.proc = LibrarianDaemon(LIBRARIAN_QUEUE, LOG_QUEUE, NOTIFIER_QUEUE)
-    #    cls.proc.start()
-
-    # @classmethod
-    # def shutdown(cls):
-    #    """Stop the librarian process."""
-    #    from codex.librarian.queue_mp import LIBRARIAN_QUEUE
-
-
-#
-#        logger = get_logger(cls.NAME)
-#        if not cls.proc:
-#            logger.warning(f"Cannot shutdown {cls.NAME}. It hasn't started.")
-#            return
-#        LIBRARIAN_QUEUE.put(cls.SHUTDOWN_TASK)
-#        logger.debug(f"Waiting for {cls.NAME} to join...")
-#        cls.proc.join()
-#        cls.proc = None
-#        logger.debug(f"{cls.NAME} joined.")
