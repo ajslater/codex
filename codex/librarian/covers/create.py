@@ -63,7 +63,6 @@ class CoverCreateMixin(CoverPathMixin):
             if not comic_path:
                 comic_path = f"{pk=}"
             thumb_image_data = bytes()
-            print(exc)
             self.logger.warning(
                 f"Could not create cover thumbnail for {comic_path}: {exc}"
             )
@@ -81,7 +80,6 @@ class CoverCreateMixin(CoverPathMixin):
     def new_create_cover(self, pk):
         """Create a cover from a comic id."""
         start = time.time()
-        print(f"NEW CREATE {pk}")
         cover_path = self.get_cover_path(pk)
         data = self.create_cover(pk, cover_path)
         self.create_comic_cover(cover_path, data)
