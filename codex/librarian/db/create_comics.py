@@ -17,6 +17,7 @@ from codex.models import (
     Timestamp,
     Volume,
 )
+from codex.threads import QueuedThread
 
 
 _EXCLUDE_BULK_UPDATE_COMIC_FIELDS = set(
@@ -35,7 +36,7 @@ for field in Comic._meta.get_fields():
         _BULK_UPDATE_COMIC_FIELDS.append(field.name)
 
 
-class CreateComicsMixin:
+class CreateComicsMixin(QueuedThread):
     """Create comics methods."""
 
     @staticmethod

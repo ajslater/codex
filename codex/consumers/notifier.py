@@ -32,7 +32,10 @@ class NotifierConsumer(AsyncJsonWebsocketConsumer):
                 groups += [Channels.ADMIN.name]
 
             for group in groups:
-                await self.channel_layer.group_add(group, self.channel_name)
+                if self.channel_layer:
+                    await self.channel_layer.group_add(group, self.channel_name)
+                else:
+                    LOG.warning("NO CHANNEL LAYER")
         except AttributeError as err:
             raise InvalidChannelLayerError(
                 "BACKEND is unconfigured or doesn't support groups"

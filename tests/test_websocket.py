@@ -1,7 +1,11 @@
 """Test websockets."""
 import pytest
 
-from codex.notifier.notifierd import Notifier
+from codex.consumers.notifier import Channels
+from codex.librarian.notifier.notifierd import NotifierThread
+from codex.librarian.notifier.tasks import NotifierTask
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE
+from codex.logger.log_queue import LOG_QUEUE
 
 
 pytestmark = pytest.mark.asyncio
@@ -26,8 +30,8 @@ class TestWebsockets:
     async def test_get_send_msg(self):
         """Test the get_send_msg method."""
         global KEYS
-        sender = Sender()
-        conns = set([sender.send, sender.send])
         KEYS = set()
-        await Notifier._send_msg(conns, "hello")
+        notifier = NotifierThread(LOG_QUEUE, LIBRARIAN_QUEUE)
+        notifier.queue.put(NotifierTask("hello", Channels.ALL))
+        notifier.send_all_items()
         assert KEYS == self.COMPARE_KEYS

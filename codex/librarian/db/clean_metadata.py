@@ -8,6 +8,7 @@ from comicbox.metadata.comic_base import ComicBaseMetadata
 from django.db.models.fields import CharField, DecimalField, PositiveSmallIntegerField
 
 from codex.models import BrowserGroupModel, Comic, NamedModel
+from codex.threads import QueuedThread
 
 
 _MD_INVALID_KEYS = frozenset(
@@ -67,7 +68,7 @@ _PARSE_ISSUE_REGEX = r"(\d*\.?\d*)(.*)"
 _PARSE_ISSUE_MATCHER = re.compile(_PARSE_ISSUE_REGEX)
 
 
-class CleanMetadataMixin:
+class CleanMetadataMixin(QueuedThread):
     """Clean metadata before importing."""
 
     @staticmethod

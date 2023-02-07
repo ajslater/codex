@@ -94,28 +94,27 @@ class QueryForeignKeysMixin(QueuedThread):
 
         filter_args[key] = group_name
 
-    @classmethod
-    def _query_missing_group_type(cls, fk_cls, groups):
+    def _query_missing_group_type(self, fk_cls, groups):
         """Get missing groups from proposed groups to create."""
         # create the filters
         candidates = {}
         all_filter_args = set()
         for group_tree, count in groups.items():
             filter_args = {}
-            cls._add_parent_group_filter(filter_args, group_tree[-1], "")
+            self._add_parent_group_filter(filter_args, group_tree[-1], "")
             if fk_cls in (Imprint, Series, Volume):
-                cls._add_parent_group_filter(filter_args, group_tree[0], "publisher")
+                self._add_parent_group_filter(filter_args, group_tree[0], "publisher")
             if fk_cls in (Series, Volume):
-                cls._add_parent_group_filter(filter_args, group_tree[1], "imprint")
+                self._add_parent_group_filter(filter_args, group_tree[1], "imprint")
             if fk_cls == Volume:
-                cls._add_parent_group_filter(filter_args, group_tree[2], "series")
+                self._add_parent_group_filter(filter_args, group_tree[2], "series")
 
             all_filter_args.add(tuple(sorted(filter_args.items())))
             candidates[group_tree] = count
 
         # get the create metadata
         candidate_groups = set(candidates.keys())
-        create_group_set = cls._query_create_metadata(
+        create_group_set = self._query_create_metadata(
             fk_cls, candidate_groups, all_filter_args
         )
 
@@ -144,8 +143,7 @@ class QueryForeignKeysMixin(QueuedThread):
             count += len(create_groups)
         return all_create_groups, all_update_groups, count
 
-    @classmethod
-    def _query_missing_credits(cls, credits):
+    def _query_missing_credits(self, credits):
         """Find missing credit objects."""
         # create the filter
         comparison_credits = set()
@@ -164,7 +162,7 @@ class QueryForeignKeysMixin(QueuedThread):
             comparison_credits.add(comparison_tuple)
 
         # get the create metadata
-        return cls._query_create_metadata(Credit, comparison_credits, all_filter_args)
+        return self._query_create_metadata(Credit, comparison_credits, all_filter_args)
 
     def _query_missing_simple_models(self, base_cls, field, fk_field, names):
         """Find missing named models and folders."""
@@ -201,8 +199,7 @@ class QueryForeignKeysMixin(QueuedThread):
 
         return fk_cls, create_names
 
-    @classmethod
-    def query_missing_folder_paths(cls, library_path, comic_paths):
+    def query_missing_folder_paths(self, library_path, comic_paths):
         """Find missing folder paths."""
         # Get the proposed folder_paths
         library_path = Path(library_path)
@@ -213,7 +210,7 @@ class QueryForeignKeysMixin(QueuedThread):
                     proposed_folder_paths.add(str(path))
 
         # get the create metadata
-        _, create_folder_paths = cls._query_missing_simple_models(
+        _, create_folder_paths = self._query_missing_simple_models(
             Comic, "parent_folder", "path", proposed_folder_paths
         )
 
