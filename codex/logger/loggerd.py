@@ -58,7 +58,7 @@ class Logger(QueueListener):
             formatter = logging.Formatter(cls._LOG_FMT, **cls._FORMATTER_KWARGS)
             handler.setFormatter(formatter)
         except Exception as exc:
-            print("ERROR getting file log handler", exc)
+            print("ERROR creating file logging handler", exc)
         return handler
 
     @classmethod
@@ -70,7 +70,7 @@ class Logger(QueueListener):
             formatter = ColorFormatter(cls._LOG_FMT, **cls._FORMATTER_KWARGS)
             handler.setFormatter(formatter)
         except Exception as exc:
-            print("ERROR getting console log handler", exc)
+            print("ERROR creating console logging handler", exc)
         return handler
 
     @classmethod
