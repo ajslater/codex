@@ -171,8 +171,11 @@ class LibrarianDaemon(Process):
             self.logger.exception(exc)
         self.logger.info("Stopped Librarian process.")
 
-    @classmethod
-    def shutdown(cls):
+    def shutdown(self):
         """Send the shutdown gracefully task."""
-        LIBRARIAN_QUEUE.put(cls.SHUTDOWN_TASK)
+        self.logger.debug(f"{self.NAME} shutting down...")
+        LIBRARIAN_QUEUE.put(self.SHUTDOWN_TASK)
         LIBRARIAN_QUEUE.close()
+        self.join(8)
+        self.close()
+        self.logger.info(f"{self.NAME} stopped.")

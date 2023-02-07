@@ -107,11 +107,7 @@ class LifespanApplication:
 
     def codex_shutdown(self):
         """Stop the daemons."""
-        LOG.info("Codex suprocesses shutting down...")
         self.librarian.shutdown()
-        self.librarian.join(8)
-        self.librarian.close()
-        LOG.info("Codex subprocesses shut down.")
 
     async def __call__(self, scope, receive, send):
         """Lifespan application."""
