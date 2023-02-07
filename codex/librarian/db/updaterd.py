@@ -17,7 +17,6 @@ from codex.librarian.db.tasks import AdoptOrphanFoldersTask, UpdaterDBDiffTask
 from codex.librarian.queue_mp import DelayedTasks
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexUpdateTask
-from codex.librarian.status_control import StatusControl
 from codex.models import Library
 from codex.notifier.tasks import FAILED_IMPORTS_TASK, LIBRARY_CHANGED_TASK
 
@@ -181,13 +180,13 @@ class Updater(
         types_map[SearchIndexStatusTypes.SEARCH_INDEX_COMMIT] = {
             "name": f"({total_changes})"
         }
-        StatusControl.start_many(types_map)
+        self.status_controller.start_many(types_map)
 
     def _finish_apply(self, library):
         """Finish all librarian statuses."""
         library.update_in_progress = False
         library.save()
-        StatusControl.finish_many(ImportStatusTypes.values())
+        self.status_controller.finish_many(ImportStatusTypes.values())
 
     def _apply(self, task):
         """Bulk import comics."""

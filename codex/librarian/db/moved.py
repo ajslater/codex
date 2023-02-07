@@ -9,7 +9,6 @@ from codex.librarian.db.create_comics import CreateComicsMixin
 from codex.librarian.db.create_fks import CreateForeignKeysMixin
 from codex.librarian.db.query_fks import QueryForeignKeysMixin
 from codex.librarian.db.status import ImportStatusTypes
-from codex.librarian.status_control import StatusControl
 from codex.models import Comic, Folder, Library
 
 
@@ -23,7 +22,9 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
     def bulk_comics_moved(self, library, moved_paths):
         """Abbreviated bulk_import_comics to just change path related fields."""
         try:
-            StatusControl.start(ImportStatusTypes.FILES_MOVED, len(moved_paths))
+            self.status_controller.start(
+                ImportStatusTypes.FILES_MOVED, len(moved_paths)
+            )
             # Prepare FKs
             create_folder_paths = self.query_missing_folder_paths(
                 library.path, moved_paths.values()
@@ -70,7 +71,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
 
             return bool(count)
         finally:
-            StatusControl.finish(ImportStatusTypes.FILES_MOVED)
+            self.status_controller.finish(ImportStatusTypes.FILES_MOVED)
 
     def _get_parent_folders(self, library, dest_folder_paths):
         """Get destination parent folders."""
@@ -135,7 +136,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
             self.logger.log(level, f"Moved {count} folders.")
             return bool(count)
         finally:
-            StatusControl.finish(ImportStatusTypes.DIRS_MOVED)
+            self.status_controller.finish(ImportStatusTypes.DIRS_MOVED)
 
     def bulk_folders_moved(self, library, folders_moved):
         """Move folders in the database instead of recreating them."""

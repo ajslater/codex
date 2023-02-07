@@ -10,7 +10,6 @@ from rarfile import BadRarFile
 from codex.comic_field_names import COMIC_M2M_FIELD_NAMES
 from codex.librarian.db.clean_metadata import CleanMetadataMixin
 from codex.librarian.db.status import ImportStatusTypes
-from codex.librarian.status_control import StatusControl
 from codex.models import Comic, Imprint, Publisher, Series, Volume
 from codex.pdf import PDF
 from codex.version import COMICBOX_CONFIG
@@ -148,7 +147,7 @@ class AggregateMetadataMixin(CleanMetadataMixin):
         }
         all_failed_imports = {}
         total_paths = len(all_paths)
-        StatusControl.start(ImportStatusTypes.AGGREGATE_TAGS, total_paths)
+        self.status_controller.start(ImportStatusTypes.AGGREGATE_TAGS, total_paths)
         try:
             self.logger.info(
                 f"Reading tags from {total_paths} comics in {library.path}..."
@@ -170,12 +169,12 @@ class AggregateMetadataMixin(CleanMetadataMixin):
                     if group_tree_md:
                         self._aggregate_group_tree_metadata(all_fks, group_tree_md)
 
-                since = StatusControl.update(
+                since = self.status_controller.update(
                     ImportStatusTypes.AGGREGATE_TAGS, num, total_paths, since=since
                 )
 
             all_fks["comic_paths"] = frozenset(all_mds.keys())
-            StatusControl.update(
+            self.status_controller.update(
                 ImportStatusTypes.CREATE_FAILED_IMPORTS,
                 0,
                 len(all_failed_imports),
@@ -183,5 +182,5 @@ class AggregateMetadataMixin(CleanMetadataMixin):
             )
             self.logger.info(f"Aggregated tags from {len(all_mds)} comics.")
         finally:
-            StatusControl.finish(ImportStatusTypes.AGGREGATE_TAGS)
+            self.status_controller.finish(ImportStatusTypes.AGGREGATE_TAGS)
         return all_mds, all_m2m_mds, all_fks, all_failed_imports

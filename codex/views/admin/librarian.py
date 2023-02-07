@@ -7,6 +7,7 @@ from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from codex.librarian.covers.tasks import CoverRemoveAllTask, CoverRemoveOrphansTask
 from codex.librarian.janitor.tasks import (
+    ForceUpdateAllFailedImportsTask,
     JanitorBackupTask,
     JanitorCleanFKsTask,
     JanitorClearStatusTask,
@@ -21,11 +22,7 @@ from codex.librarian.search.tasks import (
     SearchIndexRebuildIfDBChangedTask,
     SearchIndexUpdateTask,
 )
-from codex.librarian.watchdog.tasks import (
-    ForceUpdateAllFailedImportsTask,
-    WatchdogPollLibrariesTask,
-    WatchdogSyncTask,
-)
+from codex.librarian.watchdog.tasks import WatchdogPollLibrariesTask, WatchdogSyncTask
 from codex.models import LibrarianStatus, Library
 from codex.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.serializers.admin import AdminLibrarianTaskSerializer

@@ -1,3 +1,4 @@
+"""Comics field names variable."""
 from codex.models import Comic
 
 

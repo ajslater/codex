@@ -53,7 +53,7 @@ class StatusController(LoggerBaseMixin):
 
     def update(self, type, complete, total, name="", notify=True, since=None):
         """Update a librarian status."""
-        if since is None or (datetime.now() - since) > self.UPDATE_DELTA:
+        if since is None or (datetime.now() - since) > self._UPDATE_DELTA:
             updates = {
                 "preactive": False,
                 "complete": complete,

@@ -1,3 +1,4 @@
+"""Notifier Queue."""
 from multiprocessing import Queue
 
 

@@ -7,7 +7,6 @@ from django.db.models.functions import Now
 
 from codex.librarian.covers.tasks import CoverRemoveTask
 from codex.librarian.db.status import ImportStatusTypes
-from codex.librarian.status_control import StatusControl
 from codex.models import (
     Comic,
     Credit,
@@ -37,6 +36,8 @@ for field in Comic._meta.get_fields():
 
 
 class CreateComicsMixin:
+    """Create comics methods."""
+
     @staticmethod
     def _get_group_name(group_class, md):
         """Get the name of the browse group."""
@@ -111,7 +112,7 @@ class CreateComicsMixin:
 
         self.logger.debug(f"Bulk updating {len(update_comics)} comics.")
         try:
-            count = Comic.objects.bulk_update(update_comics, BULK_UPDATE_COMIC_FIELDS)
+            count = Comic.objects.bulk_update(update_comics, _BULK_UPDATE_COMIC_FIELDS)
             if not count:
                 count = 0
 
@@ -268,7 +269,7 @@ class CreateComicsMixin:
     ):
         """Bulk import comics."""
         if not (create_paths or update_paths or all_bulk_mds or all_m2m_mds):
-            StatusControl.finish_many(
+            self.status_controller.finish_many(
                 (
                     ImportStatusTypes.FILES_MODIFIED,
                     ImportStatusTypes.FILES_CREATED,
@@ -281,7 +282,7 @@ class CreateComicsMixin:
         try:
             try:
                 try:
-                    StatusControl.start(
+                    self.status_controller.start(
                         ImportStatusTypes.FILES_MODIFIED, name=f"({len(update_paths)})"
                     )
                     update_count, converted_create_paths = self._update_comics(
@@ -289,19 +290,19 @@ class CreateComicsMixin:
                     )
                     create_paths.update(converted_create_paths)
                 finally:
-                    StatusControl.finish(ImportStatusTypes.FILES_MODIFIED)
-                StatusControl.start(
+                    self.status_controller.finish(ImportStatusTypes.FILES_MODIFIED)
+                self.status_controller.start(
                     ImportStatusTypes.FILES_CREATED, name=f"({len(create_paths)})"
                 )
                 create_count = self._create_comics(library, create_paths, all_bulk_mds)
             finally:
-                StatusControl.finish(ImportStatusTypes.FILES_CREATED)
+                self.status_controller.finish(ImportStatusTypes.FILES_CREATED)
                 # Just to be sure.
             all_m2m_links = self._link_comic_m2m_fields(all_m2m_mds)
             total_links = 0
             for m2m_links in all_m2m_links.values():
                 total_links += len(m2m_links)
-            StatusControl.start(ImportStatusTypes.LINK_M2M_FIELDS, total_links)
+            self.status_controller.start(ImportStatusTypes.LINK_M2M_FIELDS, total_links)
 
             since = datetime.now()
             completed_links = 0
@@ -313,14 +314,14 @@ class CreateComicsMixin:
                         self.logger.error(f"Error recreating m2m field: {field_name}")
                         self.logger.exception(exc)
                     completed_links = len(m2m_links)
-                    since = StatusControl.update(
+                    since = self.status_controller.update(
                         ImportStatusTypes.LINK_M2M_FIELDS,
                         completed_links,
                         total_links,
                         since=since,
                     )
         finally:
-            StatusControl.finish(ImportStatusTypes.LINK_M2M_FIELDS)
+            self.status_controller.finish(ImportStatusTypes.LINK_M2M_FIELDS)
 
         if update_count:
             Timestamp.touch(Timestamp.COVERS)

@@ -10,7 +10,6 @@ from PIL import Image
 
 from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.covers.status import CoverStatusTypes
-from codex.librarian.status_control import StatusControl
 from codex.models import Comic
 from codex.pdf import PDF
 from codex.version import COMICBOX_CONFIG
@@ -97,7 +96,7 @@ class CoverCreateMixin(CoverPathMixin):
                 return
 
             self.logger.debug(f"Creating {num_comics} comic covers...")
-            StatusControl.start(CoverStatusTypes.CREATE, num_comics)
+            self.status_controller.start(CoverStatusTypes.CREATE, num_comics)
 
             # Get comic objects
             count = 0
@@ -114,7 +113,7 @@ class CoverCreateMixin(CoverPathMixin):
                     count += 1
 
                 # notify the frontend every 10 seconds
-                since = StatusControl.update(
+                since = self.status_controller.update(
                     CoverStatusTypes.CREATE, count, num_comics, since=since
                 )
 
@@ -122,4 +121,4 @@ class CoverCreateMixin(CoverPathMixin):
             self.logger.info(f"Created {count} comic covers in {total_elapsed}.")
             return count
         finally:
-            StatusControl.finish(CoverStatusTypes.CREATE)
+            self.status_controller.finish(CoverStatusTypes.CREATE)

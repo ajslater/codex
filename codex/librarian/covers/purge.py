@@ -6,7 +6,6 @@ from pathlib import Path
 
 from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.covers.status import CoverStatusTypes
-from codex.librarian.status_control import StatusControl
 from codex.models import Comic, Timestamp
 from codex.notifier.tasks import LIBRARY_CHANGED_TASK
 
@@ -31,7 +30,7 @@ class CoverPurgeMixin(CoverPathMixin):
         """Purge a set a cover paths."""
         try:
             self.logger.debug(f"Removing {len(cover_paths)} cover thumbnails...")
-            StatusControl.start(CoverStatusTypes.PURGE, len(cover_paths))
+            self.status_controller.start(CoverStatusTypes.PURGE, len(cover_paths))
             cover_dirs = set()
             for cover_path in cover_paths:
                 cover_path.unlink(missing_ok=True)
@@ -40,7 +39,7 @@ class CoverPurgeMixin(CoverPathMixin):
                 self._cleanup_cover_dirs(cover_dir)
             self.logger.info(f"Removed {len(cover_paths)} cover thumbnails.")
         finally:
-            StatusControl.finish(CoverStatusTypes.PURGE)
+            self.status_controller.finish(CoverStatusTypes.PURGE)
 
     def purge_comic_covers(self, comic_pks):
         """Purge a set a cover paths."""
@@ -62,7 +61,7 @@ class CoverPurgeMixin(CoverPathMixin):
         """Remove all orphan cover thumbs."""
         try:
             self.logger.debug("Removing covers from missing comics.")
-            StatusControl.start_many(self._CLEANUP_STATUS_MAP)
+            self.status_controller.start_many(self._CLEANUP_STATUS_MAP)
             comic_pks = Comic.objects.all().values_list("pk", flat=True)
             db_cover_paths = self.get_cover_paths(comic_pks)
 
@@ -74,7 +73,7 @@ class CoverPurgeMixin(CoverPathMixin):
                     if fs_cover_path not in db_cover_paths:
                         orphan_cover_paths.add(fs_cover_path)
         finally:
-            StatusControl.finish(CoverStatusTypes.FIND_ORPHAN)
+            self.status_controller.finish(CoverStatusTypes.FIND_ORPHAN)
 
         self.purge_cover_paths(orphan_cover_paths)
         self.logger.info(

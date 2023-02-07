@@ -15,9 +15,11 @@ from whoosh.qparser.dateparse import DateParserPlugin
 from whoosh.support.charset import accent_map
 from whoosh.writing import AsyncWriter
 
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.librarian.search.status import SearchIndexStatusTypes
-from codex.librarian.status_control import StatusControl
+from codex.logger.log_queue import LOG_QUEUE
 from codex.settings.logging import get_logger
+from codex.worker_base import WorkerBaseMixin
 
 
 LOG = get_logger(__name__)
@@ -67,7 +69,7 @@ class FILESIZE(NUMERIC):
         )
 
 
-class CodexSearchBackend(WhooshSearchBackend):
+class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
     """Custom Whoosh Backend."""
 
     FIELDMAP = {
@@ -108,6 +110,11 @@ class CodexSearchBackend(WhooshSearchBackend):
             SearchIndexStatusTypes.SEARCH_INDEX_COMMIT,
         )
     )
+
+    def __init__(self, connection_alias, **connection_options):
+        """Init worker queues."""
+        super().__init__(connection_alias, **connection_options)
+        self.init_worker(LOG_QUEUE, LIBRARIAN_QUEUE)
 
     def build_schema(self, fields):
         """Customize schema fields."""
@@ -173,7 +180,7 @@ class CodexSearchBackend(WhooshSearchBackend):
                 },
                 SearchIndexStatusTypes.SEARCH_INDEX_COMMIT: {"name": f"({num_objs})"},
             }
-            StatusControl.start_many(statuses)
+            self.status_controler.start_many(statuses)
             if not self.setup_complete:
                 self.setup()
 
@@ -212,16 +219,16 @@ class CodexSearchBackend(WhooshSearchBackend):
                                 "data": {"index": index, "object": get_identifier(obj)}
                             },
                         )
-                since = StatusControl.update(
+                since = self.status_controller.update(
                     SearchIndexStatusTypes.SEARCH_INDEX_PREPARE,
                     obj_count,
                     num_objs,
                     since=since,
                 )
 
-            StatusControl.finish(SearchIndexStatusTypes.SEARCH_INDEX_PREPARE)
+            self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_PREPARE)
             elapsed = naturaldelta(datetime.now() - start)
-            LOG.info(f"Search engine prepared objects for commit in {elapsed}")
+            self.logger.info(f"Search engine prepared objects for commit in {elapsed}")
 
             start = datetime.now()
             if len(iterable) > 0:
@@ -232,14 +239,14 @@ class CodexSearchBackend(WhooshSearchBackend):
                 if writer.ident is not None:
                     writer.join()
             elapsed = naturaldelta(datetime.now() - start)
-            LOG.info(f"Search engine committed index in {elapsed}")
+            self.logger.info(f"Search engine committed index in {elapsed}")
         finally:
-            StatusControl.finish_many(self.UPDATE_FINISH_TYPES)
+            self.status_controller.finish_many(self.UPDATE_FINISH_TYPES)
 
     def clear(self, models=None, commit=True):
         """Clear index with codex status messages."""
         try:
-            StatusControl.start(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
+            self.status_controller.start(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
             super().clear(models=models, commit=commit)
         finally:
-            StatusControl.finish(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
+            self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)

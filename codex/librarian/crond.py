@@ -19,7 +19,6 @@ from codex.librarian.janitor.tasks import (
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexOptimizeTask, SearchIndexUpdateTask
-from codex.librarian.status_control import StatusControl
 from codex.models import Timestamp
 from codex.threads import NamedThread
 
@@ -58,8 +57,7 @@ class Crond(NamedThread):
 
         return seconds
 
-    @staticmethod
-    def _init_librarian_status():
+    def _init_librarian_status(self):
         types_map = {
             JanitorStatusTypes.CLEANUP_FK: {"total": TOTAL_NUM_FK_CLASSES},
             JanitorStatusTypes.DB_VACUUM: {},
@@ -70,7 +68,7 @@ class Crond(NamedThread):
             SearchIndexStatusTypes.SEARCH_INDEX_OPTIMIZE: {},
             CoverStatusTypes.FIND_ORPHAN: {},
         }
-        StatusControl.start_many(types_map)
+        self.status_controller.start_many(types_map)
 
     def run(self):
         """Watch a path and log the events."""

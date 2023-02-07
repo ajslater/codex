@@ -11,7 +11,6 @@ from pathlib import Path
 from django.db.models.functions import Now
 
 from codex.librarian.db.status import ImportStatusTypes
-from codex.librarian.status_control import StatusControl
 from codex.models import (
     Credit,
     CreditPerson,
@@ -250,9 +249,13 @@ class CreateForeignKeysMixin(QueuedThread):
 
         return count
 
-    @staticmethod
     def _init_librarian_status(
-        create_groups, update_groups, create_folder_paths, create_fks, create_credits
+        self,
+        create_groups,
+        update_groups,
+        create_folder_paths,
+        create_fks,
+        create_credits,
     ):
         total_fks = 0
         for groups in create_groups.values():
@@ -263,12 +266,11 @@ class CreateForeignKeysMixin(QueuedThread):
         for names in create_fks.values():
             total_fks += len(names)
         total_fks += len(create_credits)
-        StatusControl.start(ImportStatusTypes.CREATE_FKS, total_fks)
+        self.status_controller.start(ImportStatusTypes.CREATE_FKS, total_fks)
         return total_fks
 
-    @staticmethod
-    def _status_update(completed, total_fks, since):
-        since = StatusControl.update(
+    def _status_update(self, completed, total_fks, since):
+        since = self.status_controller.update(
             ImportStatusTypes.CREATE_FKS, completed, total_fks, since=since
         )
         return since
@@ -314,4 +316,4 @@ class CreateForeignKeysMixin(QueuedThread):
             count += self._bulk_create_credits(create_credits)
             return count > 0
         finally:
-            StatusControl.finish(ImportStatusTypes.CREATE_FKS)
+            self.status_controller.finish(ImportStatusTypes.CREATE_FKS)

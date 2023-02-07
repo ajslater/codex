@@ -3,7 +3,6 @@ import logging
 
 from codex.librarian.covers.tasks import CoverRemoveTask
 from codex.librarian.db.status import ImportStatusTypes
-from codex.librarian.status_control import StatusControl
 from codex.models import Comic, Folder
 from codex.threads import QueuedThread
 
@@ -26,7 +25,7 @@ class DeletedMixin(QueuedThread):
             self.logger.log(level, f"Deleted {count} folders from {library.path}")
             return count > 0
         finally:
-            StatusControl.finish(ImportStatusTypes.DIRS_DELETED)
+            self.status_controller.finish(ImportStatusTypes.DIRS_DELETED)
 
     def bulk_comics_deleted(self, library, delete_comic_paths=None) -> bool:
         """Bulk delete comics found missing from the filesystem."""
@@ -47,4 +46,4 @@ class DeletedMixin(QueuedThread):
             self.logger.log(level, f"Deleted {count} comics from {library.path}")
             return count > 0
         finally:
-            StatusControl.finish(ImportStatusTypes.FILES_DELETED)
+            self.status_controller.finish(ImportStatusTypes.FILES_DELETED)

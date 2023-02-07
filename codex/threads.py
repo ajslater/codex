@@ -20,7 +20,7 @@ class NamedThread(Thread, WorkerBaseMixin, ABC):
 
     def __init__(self, *args, **kwargs):
         """Initialize queues."""
-        librarian_queue = kwargs.pop("librarian_queue", None)
+        librarian_queue = kwargs.pop("librarian_queue")
         log_queue = kwargs.pop("log_queue")
         self.init_worker(log_queue, librarian_queue)
         super().__init__(*args, **kwargs)

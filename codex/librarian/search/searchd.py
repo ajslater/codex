@@ -13,7 +13,6 @@ from codex.librarian.search.tasks import (
     SearchIndexRebuildIfDBChangedTask,
     SearchIndexUpdateTask,
 )
-from codex.librarian.status_control import StatusControl
 from codex.models import Library, Timestamp
 from codex.search.backend import CodexSearchBackend
 from codex.settings.settings import SEARCH_INDEX_PATH, SEARCH_INDEX_UUID_PATH
@@ -119,7 +118,7 @@ class SearchIndexer(QueuedThread):
             self.logger.error(f"Update search index: {exc}")
         finally:
             # Extra for leftovers bug
-            StatusControl.finish_many(
+            self.status_controller.finish_many(
                 (
                     SearchIndexStatusTypes.SEARCH_INDEX_PREPARE,
                     SearchIndexStatusTypes.SEARCH_INDEX_COMMIT,
@@ -138,7 +137,9 @@ class SearchIndexer(QueuedThread):
     def _optimize_search_index(self, force=False):
         """Optimize search index."""
         try:
-            StatusControl.start(type=SearchIndexStatusTypes.SEARCH_INDEX_OPTIMIZE)
+            self.status_controller.start(
+                type=SearchIndexStatusTypes.SEARCH_INDEX_OPTIMIZE
+            )
             self.logger.debug("Optimizing search index...")
             start = datetime.now()
             num_segments = len(tuple(SEARCH_INDEX_PATH.glob("*.seg")))
@@ -169,7 +170,7 @@ class SearchIndexer(QueuedThread):
                     f"Optimized search index in {elapsed} at {cps} comics per second."
                 )
         finally:
-            StatusControl.finish(SearchIndexStatusTypes.SEARCH_INDEX_OPTIMIZE)
+            self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_OPTIMIZE)
 
     def process_item(self, task):
         """Run the updater."""

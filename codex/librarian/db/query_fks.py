@@ -5,7 +5,6 @@ from pathlib import Path
 from django.db.models import Q
 
 from codex.librarian.db.status import ImportStatusTypes
-from codex.librarian.status_control import StatusControl
 from codex.models import (
     Comic,
     Credit,
@@ -48,8 +47,7 @@ class QueryForeignKeysMixin(QueuedThread):
         )
         return existing_mds
 
-    @classmethod
-    def _query_create_metadata(cls, fk_cls, create_mds, all_filter_args):
+    def _query_create_metadata(self, fk_cls, create_mds, all_filter_args):
         """Get create metadata by comparing proposed meatada to existing rows."""
         # Do this in batches so as not to exceed the 1k line sqlite limit
         filter = Q()
@@ -69,12 +67,12 @@ class QueryForeignKeysMixin(QueuedThread):
                 or filter_args == all_filter_args[-1]
             ):
                 # If too many filter args in the query or we're on the last one.
-                create_mds -= cls._query_existing_mds(fk_cls, filter)
+                create_mds -= self._query_existing_mds(fk_cls, filter)
                 # Reset the filter
                 filter = Q()
                 filter_arg_count = 0
 
-                since = StatusControl.update(
+                since = self.status_controller.update(
                     ImportStatusTypes.QUERY_MISSING_FKS,
                     ls_complete + num,
                     ls_total,
@@ -168,8 +166,7 @@ class QueryForeignKeysMixin(QueuedThread):
         # get the create metadata
         return cls._query_create_metadata(Credit, comparison_credits, all_filter_args)
 
-    @classmethod
-    def _query_missing_simple_models(cls, base_cls, field, fk_field, names):
+    def _query_missing_simple_models(self, base_cls, field, fk_field, names):
         """Find missing named models and folders."""
         # Do this in batches so as not to exceed the 1k line sqlite limit
         fk_cls = base_cls._meta.get_field(field).related_model
@@ -191,9 +188,9 @@ class QueryForeignKeysMixin(QueuedThread):
             batch_proposed_names = proposed_names[offset:end]
             filter_args = {f"{fk_field}__in": batch_proposed_names}
             filter = Q(**filter_args)
-            create_names -= cls._query_existing_mds(fk_cls, filter)
+            create_names -= self._query_existing_mds(fk_cls, filter)
             num += len(batch_proposed_names)
-            since = StatusControl.update(
+            since = self.status_controller.update(
                 ImportStatusTypes.QUERY_MISSING_FKS,
                 ls_complete + num,
                 ls_total,
@@ -222,8 +219,7 @@ class QueryForeignKeysMixin(QueuedThread):
 
         return create_folder_paths
 
-    @staticmethod
-    def _init_status(fks):
+    def _init_status(self, fks):
         """Initialize Status update."""
         ls_total = 0
         for key, objs in fks.items():
@@ -233,7 +229,7 @@ class QueryForeignKeysMixin(QueuedThread):
             else:
                 ls_total += len(objs)
 
-        StatusControl.start(ImportStatusTypes.QUERY_MISSING_FKS, ls_total)
+        self.status_controller.start(ImportStatusTypes.QUERY_MISSING_FKS, ls_total)
 
     def query_all_missing_fks(self, library_path, fks):
         """Get objects to create by querying existing objects for the proposed fks."""
@@ -290,4 +286,4 @@ class QueryForeignKeysMixin(QueuedThread):
                 create_credits,
             )
         finally:
-            StatusControl.finish(ImportStatusTypes.QUERY_MISSING_FKS)
+            self.status_controller.finish(ImportStatusTypes.QUERY_MISSING_FKS)

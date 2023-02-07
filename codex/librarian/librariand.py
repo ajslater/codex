@@ -19,7 +19,6 @@ from codex.librarian.search.tasks import (
     SearchIndexerTask,
     SearchIndexRebuildIfDBChangedTask,
 )
-from codex.librarian.status_control import StatusControl, StatusControlFinishTask
 from codex.librarian.watchdog.eventsd import EventBatcher
 from codex.librarian.watchdog.observers import (
     LibraryEventObserver,
@@ -99,8 +98,6 @@ class LibrarianDaemon(Process):
             self._threads["search_indexer"].queue.put(task)
         elif isinstance(task, JanitorTask):
             self.janitor.run(task)
-        elif isinstance(task, StatusControlFinishTask):
-            StatusControl.finish(task.type, task.notify)
         elif isinstance(task, DelayedTasks):
             self._threads["delayed_tasks"].queue.put(task)
         elif task == self.SHUTDOWN_TASK:
@@ -154,7 +151,7 @@ class LibrarianDaemon(Process):
         print("RUN LIBRARIAN")
         try:
             self.logger.debug("Started Librarian process.")
-            self.janitor = Janitor(self.log_queue, self.librarian_queue)
+            self.janitor = Janitor(self.log_queue, self.queue)
             self._create_threads()  # can't do this in init.
             print("START LIBRRIAN THREADS NEXT")
             self._start_threads()

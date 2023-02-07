@@ -7,7 +7,6 @@ from django.db.models import Q
 from django.db.models.functions import Now
 
 from codex.librarian.db.status import ImportStatusTypes
-from codex.librarian.status_control import StatusControl
 from codex.models import Comic, FailedImport
 from codex.threads import QueuedThread
 
@@ -77,12 +76,12 @@ class FailedImportsMixin(QueuedThread):
             self.logger.log(level, f"Added {count} comics to failed imports.")
             return bool(count)
         finally:
-            StatusControl.finish(ImportStatusTypes.CREATE_FAILED_IMPORTS)
+            self.status_controller.finish(ImportStatusTypes.CREATE_FAILED_IMPORTS)
 
     def _bulk_cleanup_failed_imports(self, library):
         """Remove FailedImport objects that have since succeeded."""
         try:
-            StatusControl.start(ImportStatusTypes.CLEAN_FAILED_IMPORTS)
+            self.status_controller.start(ImportStatusTypes.CLEAN_FAILED_IMPORTS)
             self.logger.debug("Cleaning up failed imports...")
             failed_import_paths = FailedImport.objects.filter(
                 library=library
@@ -118,7 +117,7 @@ class FailedImportsMixin(QueuedThread):
             else:
                 self.logger.debug("No failed imports to clean up.")
         finally:
-            StatusControl.finish(ImportStatusTypes.CLEAN_FAILED_IMPORTS)
+            self.status_controller.finish(ImportStatusTypes.CLEAN_FAILED_IMPORTS)
 
     def bulk_fail_imports(self, library, failed_imports) -> bool:
         """Handle failed imports."""

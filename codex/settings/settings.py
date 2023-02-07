@@ -34,19 +34,28 @@ SECRET_KEY = get_secret_key(CONFIG_PATH)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(os.environ.get("DEBUG", "").lower() not in ("0", "false", ""))
 
+
 #
 # Logging
 #
-_loglevel = os.environ.get("LOGLEVEL")
-if _loglevel:
-    if _loglevel == "VERBOSE":
-        print("LOGLEVEL=VERBOSE has been deprecated. Use INFO (the default) or DEBUG.")
-        _loglevel = logging.INFO
-elif DEBUG:
-    _log_level = logging.DEBUG
-else:
-    _log_level = logging.INFO
-LOGLEVEL = _log_level
+def get_loglevel():
+    """Get the loglevel for the environment."""
+    loglevel = os.environ.get("LOGLEVEL")
+    if loglevel:
+        if loglevel == "VERBOSE":
+            print(
+                "LOGLEVEL=VERBOSE has been deprecated. Use INFO (the default) or DEBUG."
+            )
+            loglevel = logging.INFO
+        return loglevel
+    elif DEBUG:
+        log_level = logging.DEBUG
+    else:
+        log_level = logging.INFO
+    return log_level
+
+
+LOGLEVEL = get_loglevel()
 LOG_DIR = Path(os.environ.get("CODEX_LOG_DIR", CONFIG_PATH / "logs"))
 
 ALLOWED_HOSTS = ["*"]
