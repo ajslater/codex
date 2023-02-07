@@ -108,13 +108,13 @@ class LifespanApplication:
     def codex_shutdown(self):
         """Stop the daemons."""
         LOG.info("Codex suprocesses shutting down...")
-        self.librarian.join(5)
+        self.librarian.shutdown()
+        self.librarian.join(8)
         self.librarian.close()
         LOG.info("Codex subprocesses shut down.")
 
     async def __call__(self, scope, receive, send):
         """Lifespan application."""
-        print("__call__", scope)
         if scope["type"] != self.SCOPE_TYPE:
             return
         self.logger.start()
@@ -134,12 +134,11 @@ class LifespanApplication:
                 elif message["type"] == "lifespan.shutdown":
                     LOG.debug("Lifespan shutdown started.")
                     try:
-                        # block on the join
                         await sync_to_async(self.codex_shutdown)()
                         await send({"type": "lifespan.shutdown.complete"})
                         LOG.debug("Lifespan shutdown complete.")
                     except Exception as exc:
-                        await send({"type": "lifespan.startup.failed"})
+                        await send({"type": "lifespan.shutdown.failed"})
                         LOG.error("Lifespan shutdown failed.")
                         raise exc
                     break

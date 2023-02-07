@@ -15,7 +15,7 @@ from codex.librarian.janitor.janitor import Janitor
 from codex.librarian.janitor.tasks import JanitorTask
 from codex.librarian.notifier.notifierd import NotifierThread
 from codex.librarian.notifier.tasks import NotifierTask
-from codex.librarian.queue_mp import DelayedTasks
+from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
 from codex.librarian.search.searchd import SearchIndexer
 from codex.librarian.search.tasks import (
     SearchIndexerTask,
@@ -138,6 +138,8 @@ class LibrarianDaemon(Process):
         reversed_threads = reversed(self._threads.values())
         for thread in reversed_threads:
             thread.stop()
+        self.logger.debug(f"Stopped all {self.NAME} threads.")
+        self.logger.debug(f"Joining all {self.NAME} threads...")
         for thread in reversed_threads:
             thread.join()
         self.logger.info(f"Joined all {self.NAME} threads.")
@@ -168,3 +170,9 @@ class LibrarianDaemon(Process):
             self.logger.error("Librarian crashed.")
             self.logger.exception(exc)
         self.logger.info("Stopped Librarian process.")
+
+    @classmethod
+    def shutdown(cls):
+        """Send the shutdown gracefully task."""
+        LIBRARIAN_QUEUE.put(cls.SHUTDOWN_TASK)
+        LIBRARIAN_QUEUE.close()
