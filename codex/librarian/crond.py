@@ -16,7 +16,6 @@ from codex.librarian.janitor.tasks import (
     JanitorUpdateTask,
     JanitorVacuumTask,
 )
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexOptimizeTask, SearchIndexUpdateTask
 from codex.models import Timestamp
@@ -96,7 +95,7 @@ class Crond(NamedThread):
                             CoverRemoveOrphansTask(),
                         ]
                         for task in tasks:
-                            LIBRARIAN_QUEUE.put(task)
+                            self.librarian_queue.put(task)
                     except Exception as exc:
                         self.logger.error(f"Error in {self.NAME}")
                         self.logger.exception(exc)
