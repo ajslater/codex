@@ -20,8 +20,7 @@ class Janitor(CleanupMixin, UpdateMixin, VacuumMixin, UpdateFailedImportsMixin):
 
     def __init__(self, log_queue, librarian_queue):
         """Init logger."""
-        self.init_logger(log_queue)
-        self.librarian_queue = librarian_queue
+        self.init_worker(log_queue, librarian_queue)
 
     def run(self, task):
         """Run Janitor tasks as the librarian process directly."""
