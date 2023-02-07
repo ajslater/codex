@@ -5,29 +5,28 @@ import subprocess
 import sys
 
 from codex.librarian.janitor.status import JanitorStatusTypes
-from codex.librarian.status_control import StatusControl
-from codex.logger_base import LoggerBase
 from codex.models import AdminFlag
 from codex.version import PACKAGE_NAME, VERSION, get_version, is_outdated
+from codex.worker_base import WorkerBaseMixin
 
 
-class UpdateMixin(LoggerBase):
+class UpdateMixin(WorkerBaseMixin):
     """Update codex methods for janitor."""
 
     def restart_codex(self):
         """Send a system SIGUSR1 signal as handled in run.py."""
         try:
-            StatusControl.start(JanitorStatusTypes.CODEX_RESTART)
+            self.status_controller.start(JanitorStatusTypes.CODEX_RESTART)
             self.logger.info("Sending restart signal.")
             main_pid = os.getppid()
             os.kill(main_pid, signal.SIGUSR1)
         finally:
-            StatusControl.finish(JanitorStatusTypes.CODEX_RESTART)
+            self.status_controller.finish(JanitorStatusTypes.CODEX_RESTART)
 
     def update_codex(self, force=False):
         """Update the package and restart everything if the version changed."""
         try:
-            StatusControl.start(JanitorStatusTypes.CODEX_UPDATE)
+            self.status_controller.start(JanitorStatusTypes.CODEX_UPDATE)
             if force:
                 self.logger.info("Forcing update of Codex.")
             else:
@@ -47,7 +46,7 @@ class UpdateMixin(LoggerBase):
         except Exception as exc:
             self.logger.error(exc)
         finally:
-            StatusControl.finish(JanitorStatusTypes.CODEX_UPDATE)
+            self.status_controller.finish(JanitorStatusTypes.CODEX_UPDATE)
 
         # Restart if changed version.
         new_version = get_version()
@@ -65,9 +64,9 @@ class UpdateMixin(LoggerBase):
     def shutdown_codex(self):
         """Send a system SIGTERM signal as handled in run.py."""
         try:
-            StatusControl.start(JanitorStatusTypes.CODEX_STOP)
+            self.status_controller.start(JanitorStatusTypes.CODEX_STOP)
             self.logger.info("Sending shutdown signal.")
             main_pid = os.getppid()
             os.kill(main_pid, signal.SIGTERM)
         finally:
-            StatusControl.finish(JanitorStatusTypes.CODEX_STOP)
+            self.status_controller.finish(JanitorStatusTypes.CODEX_STOP)

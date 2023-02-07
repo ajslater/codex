@@ -2,11 +2,13 @@
 from watchdog.events import FileModifiedEvent
 
 from codex.librarian.watchdog.tasks import WatchdogEventTask
-from codex.logger_base import LoggerBase
 from codex.models import FailedImport, Library
+from codex.worker_base import WorkerBaseMixin
 
 
-class UpdateFailedImportsMixin(LoggerBase):
+class UpdateFailedImportsMixin(WorkerBaseMixin):
+    """Methods for updating failed imports."""
+
     def _force_update_failed_imports(self, library_id):
         """Force update events for failed imports in a library."""
         failed_import_paths = FailedImport.objects.filter(

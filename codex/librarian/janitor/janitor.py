@@ -2,6 +2,7 @@
 from codex.librarian.janitor.cleanup import CleanupMixin
 from codex.librarian.janitor.failed_imports import UpdateFailedImportsMixin
 from codex.librarian.janitor.tasks import (
+    ForceUpdateAllFailedImportsTask,
     JanitorBackupTask,
     JanitorCleanFKsTask,
     JanitorClearStatusTask,
@@ -9,11 +10,9 @@ from codex.librarian.janitor.tasks import (
     JanitorShutdownTask,
     JanitorUpdateTask,
     JanitorVacuumTask,
-    ForceUpdateAllFailedImportsTask,
 )
 from codex.librarian.janitor.update import UpdateMixin
 from codex.librarian.janitor.vacuum import VacuumMixin
-from codex.librarian.status_control import StatusControl
 
 
 class Janitor(CleanupMixin, UpdateMixin, VacuumMixin, UpdateFailedImportsMixin):
@@ -40,7 +39,7 @@ class Janitor(CleanupMixin, UpdateMixin, VacuumMixin, UpdateFailedImportsMixin):
             elif isinstance(task, JanitorCleanFKsTask):
                 self.cleanup_fks()
             elif isinstance(task, JanitorClearStatusTask):
-                StatusControl.finish_many([])
+                self.status_controller.finish_many([])
             elif isinstance(task, ForceUpdateAllFailedImportsTask):
                 self.force_update_all_failed_imports()
             else:

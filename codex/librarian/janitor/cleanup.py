@@ -4,8 +4,6 @@ import logging
 from datetime import datetime
 
 from codex.librarian.janitor.status import JanitorStatusTypes
-from codex.librarian.status_control import StatusControl
-from codex.logger_base import LoggerBase
 from codex.models import (
     Character,
     Credit,
@@ -23,6 +21,7 @@ from codex.models import (
     Team,
     Volume,
 )
+from codex.worker_base import WorkerBaseMixin
 
 
 _COMIC_FK_CLASSES = (
@@ -44,7 +43,7 @@ _CREDIT_FK_CLASSES = (CreditRole, CreditPerson)
 TOTAL_NUM_FK_CLASSES = len(_COMIC_FK_CLASSES) + len(_CREDIT_FK_CLASSES)
 
 
-class CleanupMixin(LoggerBase):
+class CleanupMixin(WorkerBaseMixin):
     """Cleanup methods for Janitor."""
 
     def _bulk_cleanup_fks(self, classes, field_name, status_count):
@@ -58,7 +57,7 @@ class CleanupMixin(LoggerBase):
             if count:
                 self.logger.info(f"Deleted {count} orphan {cls.__name__}s")
             status_count += 1
-            since = StatusControl.update(
+            since = self.status_controller.update(
                 JanitorStatusTypes.CLEANUP_FK,
                 status_count,
                 TOTAL_NUM_FK_CLASSES,
@@ -70,7 +69,9 @@ class CleanupMixin(LoggerBase):
     def cleanup_fks(self):
         """Clean up unused foreign keys."""
         try:
-            StatusControl.start(JanitorStatusTypes.CLEANUP_FK, TOTAL_NUM_FK_CLASSES)
+            self.status_controller.start(
+                JanitorStatusTypes.CLEANUP_FK, TOTAL_NUM_FK_CLASSES
+            )
             self.logger.debug("Cleaning up unused foreign keys...")
             status_count = 0
             status_count += self._bulk_cleanup_fks(
@@ -85,4 +86,4 @@ class CleanupMixin(LoggerBase):
                 level = logging.DEBUG
             self.logger.log(level, f"Cleaned up {status_count} unused foreign keys.")
         finally:
-            StatusControl.finish(JanitorStatusTypes.CLEANUP_FK)
+            self.status_controller.finish(JanitorStatusTypes.CLEANUP_FK)

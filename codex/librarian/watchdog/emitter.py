@@ -20,16 +20,16 @@ from watchdog.events import (
 from watchdog.observers.api import EventEmitter
 from watchdog.utils.dirsnapshot import DirectorySnapshot, DirectorySnapshotDiff
 
-from codex.librarian.status_control import StatusControl
 from codex.librarian.watchdog.status import WatchdogStatusTypes
-from codex.logger_base import LoggerBase
+from codex.logger_base import LoggerBaseMixin
 from codex.models import Comic, FailedImport, Folder, Library
+from codex.worker_base import WorkerBaseMixin
 
 
 _DOCKER_UNMOUNTED_FN = "DOCKER_UNMOUNTED_VOLUME"
 
 
-class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBase):
+class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
     """Take snapshots from the Codex database."""
 
     MODELS = (Folder, Comic, FailedImport)
@@ -94,17 +94,16 @@ class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBase):
             self._set_lookups(wp["path"], st)
 
 
-class DatabasePollingEmitter(EventEmitter, LoggerBase):
+class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
     """Use DatabaseSnapshots to compare against the DirectorySnapshots."""
 
-    DIR_NOT_FOUND_TIMEOUT = 15 * 60
+    _DIR_NOT_FOUND_TIMEOUT = 15 * 60
 
     def __init__(
-        self, event_queue, watch, timeout=None, log_queue=None, status_controller=None
+        self, event_queue, watch, timeout=None, log_queue=None, librarian_queue=None
     ):
         """Initialize snapshot methods."""
-        self.init_logger(log_queue)
-        self.status_controller = status_controller
+        self.init_worker(log_queue, librarian_queue)
         self._poll_cond = Condition()
         self._force = False
         self._watch_path = Path(watch.path)
@@ -167,7 +166,7 @@ class DatabasePollingEmitter(EventEmitter, LoggerBase):
             if ok is False:
                 return 0
             elif ok is None:
-                return self.DIR_NOT_FOUND_TIMEOUT
+                return self._DIR_NOT_FOUND_TIMEOUT
 
             if library.last_poll:
                 since_last_poll = timezone.now() - library.last_poll
@@ -261,7 +260,7 @@ class DatabasePollingEmitter(EventEmitter, LoggerBase):
             if not library:
                 return
 
-            StatusControl.start(WatchdogStatusTypes.POLL, name=self.watch.path)
+            self.status_controller.start(WatchdogStatusTypes.POLL, name=self.watch.path)
             self.logger.debug(f"Polling {self.watch.path}...")
             diff = self._get_diff()
             if not diff:
@@ -277,7 +276,7 @@ class DatabasePollingEmitter(EventEmitter, LoggerBase):
             self.logger.exception(exc)
             raise exc
         finally:
-            StatusControl.finish(WatchdogStatusTypes.POLL)
+            self.status_controller.finish(WatchdogStatusTypes.POLL)
 
     def on_thread_stop(self):
         """Send the poller as well."""
