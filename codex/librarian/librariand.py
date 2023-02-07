@@ -1,5 +1,4 @@
 """Library process worker for background tasks."""
-import logging
 import re
 
 from multiprocessing import Process
@@ -31,10 +30,10 @@ from codex.librarian.watchdog.tasks import (
     WatchdogPollLibrariesTask,
     WatchdogSyncTask,
 )
-from codex.settings.logging import get_logger
+from codex.logger_base import LoggerBaseMixin
 
 
-class LibrarianDaemon(Process):
+class LibrarianDaemon(Process, LoggerBaseMixin):
     """Librarian Process."""
 
     NAME = "Librarian"
@@ -59,13 +58,8 @@ class LibrarianDaemon(Process):
     def __init__(self, queue, log_queue):
         """Init process."""
         super().__init__(name=self.NAME, daemon=False)
+        self.init_logger(log_queue)
         self.queue = queue
-        self.log_queue = log_queue
-        self.logger = get_logger(self.NAME, log_queue)
-
-        logging.info("EXPERIMENTAL LOGGING MESSAGE")
-        self.logger.info("EXPERIMENTAL LOGGER MESSAGE")
-
         startup_tasks = (
             AdoptOrphanFoldersTask(),
             SearchIndexRebuildIfDBChangedTask(),
