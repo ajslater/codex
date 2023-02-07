@@ -5,14 +5,17 @@ from channels.security.websocket import AllowedHostsOriginValidator
 from django.urls import path
 
 from codex.consumers.notifier import NotifierConsumer
+from codex.settings.settings import HYPERCORN_CONFIG
 
+
+# https://github.com/django/channels/issues/1973
+_PREFIX = HYPERCORN_CONFIG.root_path[1:] + "/" if HYPERCORN_CONFIG.root_path else ""
 
 websocket_application = AllowedHostsOriginValidator(
     AuthMiddlewareStack(
         URLRouter(
             [
-                # TODO figure out root_path
-                path("codex/api/v3/ws", NotifierConsumer.as_asgi()),
+                path(f"{_PREFIX}api/v3/ws", NotifierConsumer.as_asgi()),
             ]
         )
     )
