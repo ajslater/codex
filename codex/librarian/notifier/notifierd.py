@@ -1,5 +1,5 @@
 """Sends notifications to connections, reading from a queue."""
-from asgiref.sync import sync_to_async
+from channels.generic.websocket import async_to_sync
 from channels.layers import get_channel_layer
 
 from codex.serializers.choices import WEBSOCKET_MESSAGES as WS_MSGS
@@ -28,6 +28,6 @@ class NotifierThread(AggregateMessageQueuedThread):
             if not msg:
                 return
             send_msg = {"text": msg}
-            sync_to_async(layer.group_send)(task.type.name, send_msg)
+            async_to_sync(layer.group_send)(task.type.name, send_msg)
             sent_keys.add(task.text)
         self.cleanup_cache(sent_keys)
