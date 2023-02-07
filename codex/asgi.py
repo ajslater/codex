@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/dev/howto/deployment/asgi/
 from channels.routing import ProtocolTypeRouter
 from django.core.asgi import get_asgi_application
 
-from codex.applications.lifespan import LifespanApp
+from codex.applications.lifespan import LifespanApplication
 from codex.applications.websocket import websocket_application
 
 
@@ -17,6 +17,6 @@ application = ProtocolTypeRouter(
     {
         "http": get_asgi_application(),
         "websocket": websocket_application,
-        "lifespan": LifespanApp(),
+        "lifespan": LifespanApplication(),
     }
 )

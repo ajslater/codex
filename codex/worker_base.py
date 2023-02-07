@@ -12,4 +12,4 @@ class WorkerBaseMixin(LoggerBaseMixin):
         """Initialize queues."""
         self.init_logger(log_queue)
         self.librarian_queue = librarian_queue
-        self.status_controler = StatusController(log_queue, librarian_queue)
+        self.status_controller = StatusController(log_queue, librarian_queue)

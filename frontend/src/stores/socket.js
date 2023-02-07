@@ -5,7 +5,7 @@ import CHOICES from "@/choices";
 // import app from "@/main";
 import router from "@/plugins/router";
 import { useAdminStore } from "@/stores/admin";
-import { useAuthStore } from "@/stores/auth";
+// import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
 import { store } from "@/stores/store";

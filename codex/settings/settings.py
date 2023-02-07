@@ -34,6 +34,8 @@ SECRET_KEY = get_secret_key(CONFIG_PATH)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = bool(os.environ.get("DEBUG", "").lower() not in ("0", "false", ""))
 
+RESET_ADMIN = bool(os.environ.get("CODEX_RESET_ADMIN"))
+
 
 #
 # Logging
@@ -305,9 +307,7 @@ HAYSTACK_CONNECTIONS = {
 }
 
 CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer"
-    },
+    "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"},
 }
 
 if DEBUG:

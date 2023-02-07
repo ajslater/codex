@@ -88,6 +88,8 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
 
         https://pythonhosted.org/watchdog/_modules/watchdog/observers/api.html#BaseObserver
         """
+        if self._emitter_class != DatabasePollingEmitter:
+            return super().schedule(event_handler, path, recursive)
         with self._lock:
             watch = ObservedWatch(path, recursive)
             self._add_handler_for_watch(event_handler, watch)

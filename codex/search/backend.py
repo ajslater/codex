@@ -180,7 +180,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                 },
                 SearchIndexStatusTypes.SEARCH_INDEX_COMMIT: {"name": f"({num_objs})"},
             }
-            self.status_controler.start_many(statuses)
+            self.status_controller.start_many(statuses)
             if not self.setup_complete:
                 self.setup()
 

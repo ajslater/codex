@@ -81,7 +81,6 @@ class LibrarianDaemon(Process):
     def _process_task(self, task):
         """Process an individual task popped off the queue."""
         run = True
-        print(task)
         if isinstance(task, CoverTask):
             self._threads["cover_creator"].queue.put(task)
         elif isinstance(task, WatchdogEventTask):
@@ -115,10 +114,11 @@ class LibrarianDaemon(Process):
         self._threads = {}
         kwargs = {"librarian_queue": self.queue, "log_queue": self.log_queue}
         for thread_class in self.THREAD_CLASSES:
+            name = getattr(thread_class, "NAME", thread_class.__name__)
             thread = thread_class(**kwargs)
-            name = self._camel_to_snake_case(thread_class.__name__)
+            name = self._camel_to_snake_case(name)
             self._threads[name] = thread
-            self.logger.debug(f"Created {thread_class.__name__} thread.")
+            self.logger.debug(f"Created {name} thread.")
         self._observers = (
             self._threads["library_event_observer"],
             self._threads["library_polling_observer"],
@@ -149,20 +149,16 @@ class LibrarianDaemon(Process):
         This process also runs the crond thread and the Watchdog Observer
         threads.
         """
-        print("RUN LIBRARIAN")
         try:
             self.logger.debug("Started Librarian process.")
             self.janitor = Janitor(self.log_queue, self.queue)
             self._create_threads()  # can't do this in init.
-            print("START LIBRRIAN THREADS NEXT")
             self._start_threads()
             run = True
             self.logger.info("Librarian started threads and waiting for tasks.")
             while run:
                 try:
-                    print("WAITING FOR TASK")
                     task = self.queue.get()
-                    print(task)
                     run = self._process_task(task)
                 except Exception as exc:
                     self.logger.error(f"Error in {self.NAME}")

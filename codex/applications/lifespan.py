@@ -1,6 +1,4 @@
 """Start and stop daemons."""
-import os
-
 from asgiref.sync import sync_to_async
 from django.contrib.auth.models import User
 from django.core.cache import cache
@@ -14,9 +12,9 @@ from codex.logger.loggerd import Logger
 from codex.models import AdminFlag, LibrarianStatus, Library, Timestamp
 from codex.settings.logging import get_logger
 from codex.settings.patch import patch_registration_setting
+from codex.settings.settings import RESET_ADMIN
 
 
-RESET_ADMIN = bool(os.environ.get("CODEX_RESET_ADMIN"))
 LOG = get_logger(__name__)
 
 
@@ -85,16 +83,15 @@ def clear_library_status():
     LOG.debug(f"Reset {count} Library's update_in_progress flag")
 
 
-class LifespanApp:
+class LifespanApplication:
     """Lifespan AGSI App."""
 
-    SCOPE = "lifespan"
+    SCOPE_TYPE = "lifespan"
 
     def __init__(self):
         """Create logger and librarian."""
-        self.logger = Logger()
+        self.logger = Logger(LOG_QUEUE)
         self.librarian = LibrarianDaemon(LIBRARIAN_QUEUE, LOG_QUEUE)
-        # notifier = Notifier(queue=NOTIFIER_QUEUE, log_queue=LOG_QUEUE)
 
     def codex_startup(self):
         """Initialize the database and start the daemons."""
@@ -117,7 +114,8 @@ class LifespanApp:
 
     async def __call__(self, scope, receive, send):
         """Lifespan application."""
-        if scope != self.SCOPE:
+        print("__call__", scope)
+        if scope["type"] != self.SCOPE_TYPE:
             return
         self.logger.start()
         LOG.debug("Lifespan application started.")
