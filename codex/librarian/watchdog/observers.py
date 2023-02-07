@@ -1,23 +1,23 @@
 """The Codex Library Watchdog Observer threads."""
 from watchdog.observers import Observer
-from watchdog.observers.api import DEFAULT_OBSERVER_TIMEOUT, BaseObserver
+from watchdog.observers.api import DEFAULT_OBSERVER_TIMEOUT, BaseObserver, ObservedWatch
 
 from codex.librarian.watchdog.emitter import DatabasePollingEmitter
 from codex.librarian.watchdog.eventsd import CodexLibraryEventHandler
-from codex.logger_base import LoggerBase
 from codex.models import Library
+from codex.worker_base import WorkerBaseMixin
 
 
-class UatuMixin(BaseObserver, LoggerBase):
+class UatuMixin(BaseObserver, WorkerBaseMixin):
     """Watch over librarys from the blue area of the moon."""
 
     ENABLE_FIELD = ""
 
     def __init__(self, *args, **kwargs):
         """Initialize queues."""
-        self.librarian_queue = kwargs.pop("librarian_queue")
-        self.log_queue = kwargs.pop("log_queue")
-        self.init_logger(self.log_queue)
+        log_queue = kwargs.pop("log_queue")
+        librarian_queue = kwargs.pop("librarian_queue")
+        self.init_worker(log_queue, librarian_queue)
         super().__init__(*args, **kwargs)
 
     def _get_watch(self, path):
@@ -82,9 +82,30 @@ class UatuMixin(BaseObserver, LoggerBase):
             self.logger.error(f"Error in {self.__class__.__name__}")
             self.logger.exception(exc)
 
-    def run(self, *args, **kwargs):
-        """Set thread name on thread start."""
-        super().run(*args, **kwargs)
+    def schedule(self, event_handler, path, recursive=False):
+        """
+        Override BaseObserver for Codex emitter class.
+
+        https://pythonhosted.org/watchdog/_modules/watchdog/observers/api.html#BaseObserver
+        """
+        with self._lock:
+            watch = ObservedWatch(path, recursive)
+            self._add_handler_for_watch(event_handler, watch)
+
+            # If we don't have an emitter for this watch already, create it.
+            if self._emitter_for_watch.get(watch) is None:
+                emitter = self._emitter_class(
+                    event_queue=self.event_queue,
+                    watch=watch,
+                    timeout=self.timeout,
+                    log_queue=self.log_queue,
+                    librarian_queue=self.librarian_queue,
+                )
+                self._add_emitter(emitter)
+                if self.is_alive():
+                    emitter.start()
+            self._watches.add(watch)
+        return watch
 
 
 # It would be best for Codex to have one observer with multiple emitters, but the
