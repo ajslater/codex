@@ -2,7 +2,7 @@
 from django.db.models import Q
 from haystack.query import SearchQuerySet
 
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE
+from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.search.tasks import SearchIndexUpdateTask
 from codex.logger.logging import get_logger
 

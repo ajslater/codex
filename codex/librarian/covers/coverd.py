@@ -13,8 +13,6 @@ from codex.librarian.covers.tasks import (
 class CoverCreator(CoverCreateMixin, CoverPurgeMixin):
     """Create comic covers in it's own thread."""
 
-    NAME = "CoverCreator"  # type: ignore
-
     def process_item(self, task):
         """Run the creator."""
         if isinstance(task, CoverCreateTask):
@@ -28,4 +26,4 @@ class CoverCreator(CoverCreateMixin, CoverPurgeMixin):
         elif isinstance(task, CoverRemoveOrphansTask):
             self.cleanup_orphan_covers()
         else:
-            self.log.error(f"Bad task sent to {self.NAME}: {task}")
+            self.log.error(f"Bad task sent to {self.__class__.__name__}: {task}")

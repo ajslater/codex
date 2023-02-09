@@ -9,13 +9,12 @@ https://docs.djangoproject.com/en/dev/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/dev/ref/settings/
 """
-
 from os import environ
 from pathlib import Path
 
 from django.contrib.staticfiles.storage import staticfiles_storage
 
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE
+from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.mp_queue import LOG_QUEUE
 from codex.settings.hypercorn import load_hypercorn_config
 from codex.settings.logging import get_loglevel

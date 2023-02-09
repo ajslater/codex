@@ -24,16 +24,9 @@ class NamedThread(Thread, WorkerBaseMixin, ABC):
         self.init_worker(log_queue, librarian_queue)
         super().__init__(*args, **kwargs)
 
-    @property
-    @classmethod
-    @abstractmethod
-    def NAME(cls):  # noqa: N802
-        """Name the thread."""
-        raise NotImplementedError()
-
     def run_start(self):
         """First thing to do when running a new thread."""
-        self.log.info(f"Started {self.NAME} thread")
+        self.log.info(f"Started {self.__class__.__name__}")
 
 
 class QueuedThread(NamedThread, ABC):
@@ -45,7 +38,7 @@ class QueuedThread(NamedThread, ABC):
     def __init__(self, *args, **kwargs):
         """Initialize with overridden name and as a daemon thread."""
         self.queue = kwargs.pop("queue", SimpleQueue())
-        super().__init__(*args, name=self.NAME, daemon=True, **kwargs)
+        super().__init__(*args, name=self.__class__.__name__, daemon=True, **kwargs)
 
     @abstractmethod
     def process_item(self, item):
@@ -80,9 +73,9 @@ class QueuedThread(NamedThread, ABC):
             except BreakLoopError:
                 break
             except Exception as exc:
-                self.log.error(f"{self.NAME} crashed:")
+                self.log.error(f"{self.__class__.__name__} crashed:")
                 self.log.exception(exc)
-        self.log.info(f"Stopped {self.NAME} thread")
+        self.log.info(f"Stopped {self.__class__.__name__} thread")
 
     def stop(self):
         """Stop the thread."""
@@ -90,9 +83,9 @@ class QueuedThread(NamedThread, ABC):
 
     def join(self):
         """End the thread."""
-        self.log.debug(f"Waiting for {self.NAME} to join.")
+        self.log.debug(f"Waiting for {self.__class__.__name__} to join.")
         super().join(self.SHUTDOWN_TIMEOUT)
-        self.log.debug(f"{self.NAME} joined.")
+        self.log.debug(f"{self.__class__.__name__} joined.")
 
 
 class AggregateMessageQueuedThread(QueuedThread, ABC):

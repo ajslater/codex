@@ -38,8 +38,6 @@ OPTIMIZE_DOC_COUNT = 20 * 60 * 3
 class SearchIndexer(QueuedThread):
     """A worker to handle search index update tasks."""
 
-    NAME = "SearchIndexer"  # type: ignore
-
     def _set_search_index_version(self):
         """Set the codex db to search index matching id."""
         version = str(uuid4())

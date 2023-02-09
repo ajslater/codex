@@ -15,9 +15,9 @@ from codex.librarian.db.moved import MovedMixin
 from codex.librarian.db.status import ImportStatusTypes
 from codex.librarian.db.tasks import AdoptOrphanFoldersTask, UpdaterDBDiffTask
 from codex.librarian.notifier.tasks import FAILED_IMPORTS_TASK, LIBRARY_CHANGED_TASK
-from codex.librarian.queue_mp import DelayedTasks
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexUpdateTask
+from codex.librarian.tasks import DelayedTasks
 from codex.models import Library
 
 
@@ -31,8 +31,6 @@ class Updater(
     MovedMixin,
 ):
     """A worker to handle all bulk database updates."""
-
-    NAME = "Updater"  # type: ignore
 
     def _wait_for_filesystem_ops_to_finish(self, task: UpdaterDBDiffTask) -> bool:
         """Watchdog sends events before filesystem events finish, so wait for them."""

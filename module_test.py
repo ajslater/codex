@@ -2,7 +2,7 @@
 import sys
 
 from codex.librarian.covers.coverd import CoverCreator
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE
+from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.mp_queue import LOG_QUEUE
 from codex.models import Comic
 

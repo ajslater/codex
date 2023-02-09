@@ -11,8 +11,6 @@ from codex.threads import AggregateMessageQueuedThread
 class NotifierThread(AggregateMessageQueuedThread):
     """Aggregates messages preventing floods and sends messages to clients."""
 
-    NAME = "Notifier"  # type: ignore
-
     @staticmethod
     def _get_bridge_url():
         """Determine the channels http bridge url."""

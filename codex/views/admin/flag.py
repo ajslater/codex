@@ -2,8 +2,8 @@
 from rest_framework.permissions import IsAdminUser
 from rest_framework.viewsets import ModelViewSet
 
+from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag
 from codex.serializers.admin import AdminFlagSerializer

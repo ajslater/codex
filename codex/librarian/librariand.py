@@ -12,14 +12,15 @@ from codex.librarian.db.updaterd import Updater
 from codex.librarian.delayed_taskd import DelayedTasksThread
 from codex.librarian.janitor.janitor import Janitor
 from codex.librarian.janitor.tasks import JanitorTask
+from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.notifierd import NotifierThread
 from codex.librarian.notifier.tasks import NotifierTask
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
 from codex.librarian.search.searchd import SearchIndexer
 from codex.librarian.search.tasks import (
     SearchIndexerTask,
     SearchIndexRebuildIfDBChangedTask,
 )
+from codex.librarian.tasks import DelayedTasks
 from codex.librarian.watchdog.eventsd import EventBatcher
 from codex.librarian.watchdog.observers import (
     LibraryEventObserver,
@@ -36,7 +37,6 @@ from codex.logger_base import LoggerBaseMixin
 class LibrarianDaemon(Process, LoggerBaseMixin):
     """Librarian Process."""
 
-    NAME = "Librarian"
     SHUTDOWN_TIMEOUT = 5
     MAX_WS_ATTEMPTS = 5
     SHUTDOWN_TASK = "shutdown"
@@ -57,7 +57,8 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
 
     def __init__(self, queue, log_queue):
         """Init process."""
-        super().__init__(name=self.NAME, daemon=False)
+        name = self.__class__.__name__
+        super().__init__(name=name, daemon=False)
         self.init_logger(log_queue)
         self.queue = queue
         startup_tasks = (
@@ -82,7 +83,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         elif isinstance(task, UpdaterTask):
             self._threads["updater"].queue.put(task)
         elif isinstance(task, NotifierTask):
-            self._threads["notifier"].queue.put(task)
+            self._threads["notifier_thread"].queue.put(task)
         elif isinstance(task, WatchdogSyncTask):
             for observer in self._observers:
                 observer.sync_library_watches()
@@ -93,7 +94,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         elif isinstance(task, JanitorTask):
             self.janitor.run(task)
         elif isinstance(task, DelayedTasks):
-            self._threads["delayed_tasks"].queue.put(task)
+            self._threads["delayed_tasks_thread"].queue.put(task)
         elif task == self.SHUTDOWN_TASK:
             self.log.info("Shutting down Librarian...")
             run = False
@@ -121,22 +122,22 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
 
     def _start_threads(self):
         """Start all librarian's threads."""
-        self.log.debug(f"Starting all {self.NAME} threads.")
+        self.log.debug(f"Starting all {self.__class__.__name__} threads.")
         for thread in self._threads.values():
             thread.start()
-        self.log.info(f"Started all {self.NAME} threads.")
+        self.log.info(f"Started all {self.__class__.__name__} threads.")
 
     def _stop_threads(self):
         """Stop all librarian's threads."""
-        self.log.debug(f"Stopping all {self.NAME} threads...")
+        self.log.debug(f"Stopping all {self.__class__.__name__} threads...")
         reversed_threads = reversed(self._threads.values())
         for thread in reversed_threads:
             thread.stop()
-        self.log.debug(f"Stopped all {self.NAME} threads.")
-        self.log.debug(f"Joining all {self.NAME} threads...")
+        self.log.debug(f"Stopped all {self.__class__.__name__} threads.")
+        self.log.debug(f"Joining all {self.__class__.__name__} threads...")
         for thread in reversed_threads:
             thread.join()
-        self.log.info(f"Joined all {self.NAME} threads.")
+        self.log.info(f"Joined all {self.__class__.__name__} threads.")
 
     def run(self):
         """
@@ -157,7 +158,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
                     task = self.queue.get()
                     run = self._process_task(task)
                 except Exception as exc:
-                    self.log.error(f"Error in {self.NAME}")
+                    self.log.error(f"Error in {self.__class__.__name__}")
                     self.log.exception(exc)
             self._stop_threads()
         except Exception as exc:
@@ -167,9 +168,9 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
 
     def shutdown(self):
         """Send the shutdown gracefully task."""
-        self.log.debug(f"{self.NAME} shutting down...")
+        self.log.debug(f"{self.__class__.__name__} shutting down...")
         LIBRARIAN_QUEUE.put(self.SHUTDOWN_TASK)
-        LIBRARIAN_QUEUE.close()
+        # LIBRARIAN_QUEUE.close()
         self.join(8)
         self.close()
-        self.log.info(f"{self.NAME} stopped.")
+        self.log.info(f"{self.__class__.__name__} stopped.")

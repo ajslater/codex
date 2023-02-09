@@ -16,8 +16,8 @@ from codex.librarian.janitor.tasks import (
     JanitorUpdateTask,
     JanitorVacuumTask,
 )
+from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.librarian.search.tasks import (
     SearchIndexOptimizeTask,
     SearchIndexRebuildIfDBChangedTask,

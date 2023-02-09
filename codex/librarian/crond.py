@@ -28,8 +28,6 @@ _ONE_DAY = timedelta(days=1)
 class Crond(NamedThread):
     """Run a scheduled service for codex."""
 
-    NAME = "Cron"  # type: ignore
-
     @staticmethod
     def _get_midnight(now, tomorrow=False):
         """Get midnight relative to now."""
@@ -60,7 +58,7 @@ class Crond(NamedThread):
         """Initialize this thread with the worker."""
         self._stop_event = Event()
         self._cond = Condition()
-        super().__init__(*args, name=self.NAME, daemon=True, **kwargs)
+        super().__init__(*args, name=self.__class__.__name__, daemon=True, **kwargs)
 
     def _init_librarian_status(self):
         types_map = {
@@ -103,14 +101,14 @@ class Crond(NamedThread):
                         for task in tasks:
                             self.librarian_queue.put(task)
                     except Exception as exc:
-                        self.log.error(f"Error in {self.NAME}")
+                        self.log.error(f"Error in {self.__class__.__name__}")
                         self.log.exception(exc)
                     Timestamp.touch(Timestamp.JANITOR)
                     sleep(2)
         except Exception as exc:
-            self.log.error(f"Error in {self.NAME}")
+            self.log.error(f"Error in {self.__class__.__name__}")
             self.log.exception(exc)
-        self.log.info(f"Stopped {self.NAME} thread.")
+        self.log.info(f"Stopped {self.__class__.__name__} thread.")
 
     def stop(self):
         """Stop the cron thread."""

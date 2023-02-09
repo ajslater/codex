@@ -11,7 +11,7 @@ from rest_framework.views import APIView
 
 from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.covers.tasks import CoverCreateTask
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE
+from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.views.mixins import GroupACLMixin
 
 

@@ -32,7 +32,6 @@ _COMIC_MATCHER = re.compile(_COMIC_REGEX, re.IGNORECASE)
 class EventBatcher(AggregateMessageQueuedThread):
     """Batch watchdog events into bulk database tasks."""
 
-    NAME = "WatchdogEventBatcher"  # type: ignore
     CLS_SUFFIX = -len("Event")
     DBDIFF_TASK_PARAMS = {
         "library_id": None,

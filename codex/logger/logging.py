@@ -8,7 +8,7 @@ from codex.logger.mp_queue import LOG_QUEUE
 from codex.settings.settings import LOGLEVEL
 
 
-class CodexDjangoQueueHandler(QueueHandler):
+class CodexQueueHandler(QueueHandler):
     """Special QueueHandler that removes unpickable elements."""
 
     def enqueue(self, record):
@@ -22,17 +22,28 @@ class CodexDjangoQueueHandler(QueueHandler):
         super().enqueue(record)
 
 
+LOG_HANDLER = CodexQueueHandler(LOG_QUEUE)
+
+
 def get_logger(name=None, queue=LOG_QUEUE):
-    """Pacify pyright."""
+    """Get the logger with only one handler."""
     logger = logging.getLogger(name)
-    if len(logger.handlers) == 1:
-        handler = logger.handlers[0]
-        if isinstance(handler, QueueHandler) and handler.queue != queue:
-            logger.handlers.clear()
-    elif len(logger.handlers) > 1:
-        logger.handlers.clear()
-    if not logger.handlers:
-        handler = CodexDjangoQueueHandler(queue)
-        logger.addHandler(handler)
     logger.setLevel(LOGLEVEL)
+
+    keep = None
+    for handler in logger.handlers:
+        if getattr(handler, "queue", None) == queue:
+            keep = handler
+            break
+
+    for handler in logger.handlers:
+        if handler != keep:
+            logger.removeHandler(handler)
+
+    if not logger.handlers:
+        if queue == LOG_QUEUE:
+            handler = LOG_HANDLER
+        else:
+            handler = CodexQueueHandler(queue)
+        logger.addHandler(handler)
     return logger
