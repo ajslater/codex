@@ -6,26 +6,17 @@ It exposes the ASGI callable as a module-level variable named ``DJANGO_APPLICATI
 For more information on this file, see
 https://docs.djangoproject.com/en/dev/howto/deployment/asgi/
 """
-from channels.routing import ProtocolTypeRouter, URLRouter
-from django.core.asgi import get_asgi_application
-from django.urls import path, re_path
+from channels.routing import ProtocolTypeRouter
 
+from codex.applications.http import HTTP_APPLICATION
 from codex.applications.lifespan import LifespanApplication
-from codex.applications.websocket import ROOT_PREFIX, websocket_application
-from codex.consumers.send import SendConsumer
+from codex.applications.websocket import WEBSOCKET_APPLICATION
 
 
 application = ProtocolTypeRouter(
     {
-        "http": URLRouter(
-            [
-                # TODO root_path
-                # TODO can i use path?
-                re_path(rf"^{ROOT_PREFIX}send", SendConsumer().as_asgi()),
-                re_path(r"", get_asgi_application()),
-            ]
-        ),
-        "websocket": websocket_application,
+        "http": HTTP_APPLICATION,
+        "websocket": WEBSOCKET_APPLICATION,
         "lifespan": LifespanApplication(),
     }
 )

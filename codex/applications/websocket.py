@@ -13,7 +13,7 @@ from codex.settings.settings import HYPERCORN_CONFIG
 ROOT_PREFIX = HYPERCORN_CONFIG.root_path[1:] + "/" if HYPERCORN_CONFIG.root_path else ""
 
 
-websocket_application = AllowedHostsOriginValidator(
+WEBSOCKET_APPLICATION = AllowedHostsOriginValidator(
     AuthMiddlewareStack(
         URLRouter(
             [
