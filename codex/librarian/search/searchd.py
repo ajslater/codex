@@ -51,9 +51,7 @@ class SearchIndexer(QueuedThread):
             with SEARCH_INDEX_UUID_PATH.open("w") as uuid_file:
                 uuid_file.write(version)
         except Exception as exc:
-            self.logger.error(
-                f"Setting search index to db synchronization token: {exc}"
-            )
+            self.log.error(f"Setting search index to db synchronization token: {exc}")
 
     def _is_search_index_uuid_match(self):
         """Is this search index for this database."""
@@ -67,7 +65,7 @@ class SearchIndexer(QueuedThread):
         except (FileNotFoundError, Timestamp.DoesNotExist):
             pass
         except Exception as exc:
-            self.logger.exception(exc)
+            self.log.exception(exc)
         return result
 
     @staticmethod
@@ -85,26 +83,26 @@ class SearchIndexer(QueuedThread):
                 update_in_progress=True
             ).exists()
             if any_update_in_progress:
-                self.logger.debug(
+                self.log.debug(
                     "Database update in progress, not updating search index yet."
                 )
                 return
 
             if not rebuild and not self._is_search_index_uuid_match():
-                self.logger.warning("Database does not match search index.")
+                self.log.warning("Database does not match search index.")
                 rebuild = True
 
             SEARCH_INDEX_PATH.mkdir(parents=True, exist_ok=True)
 
             if rebuild:
-                self.logger.info("Rebuilding search index...")
+                self.log.info("Rebuilding search index...")
                 self._call_command(REBUILD_ARGS, REBUILD_KWARGS)
                 self._set_search_index_version()
             else:
                 start = Timestamp.objects.get(
                     name=Timestamp.SEARCH_INDEX
                 ).updated_at.strftime(UPDATE_INDEX_DATETIME_FORMAT)
-                self.logger.info(f"Updating search index since {start}...")
+                self.log.info(f"Updating search index since {start}...")
                 # Workers are only possible with fork()
                 # django-haystack has a bug
                 # https://github.com/django-haystack/django-haystack/issues/1650
@@ -113,9 +111,9 @@ class SearchIndexer(QueuedThread):
                 self._call_command(UPDATE_ARGS, kwargs)
             Timestamp.touch(Timestamp.SEARCH_INDEX)
 
-            self.logger.info("Finished updating search index.")
+            self.log.info("Finished updating search index.")
         except Exception as exc:
-            self.logger.error(f"Update search index: {exc}")
+            self.log.error(f"Update search index: {exc}")
         finally:
             # Extra for leftovers bug
             self.status_controller.finish_many(
@@ -128,11 +126,11 @@ class SearchIndexer(QueuedThread):
     def _rebuild_search_index_if_db_changed(self):
         """Rebuild the search index if the db changed."""
         if not self._is_search_index_uuid_match():
-            self.logger.warning("Database does not match search index.")
+            self.log.warning("Database does not match search index.")
             task = SearchIndexUpdateTask(True)
             self.librarian_queue.put(task)
         else:
-            self.logger.info("Database matches search index.")
+            self.log.info("Database matches search index.")
 
     def _optimize_search_index(self, force=False):
         """Optimize search index."""
@@ -140,11 +138,11 @@ class SearchIndexer(QueuedThread):
             self.status_controller.start(
                 type=SearchIndexStatusTypes.SEARCH_INDEX_OPTIMIZE
             )
-            self.logger.debug("Optimizing search index...")
+            self.log.debug("Optimizing search index...")
             start = datetime.now()
             num_segments = len(tuple(SEARCH_INDEX_PATH.glob("*.seg")))
             if num_segments <= 1:
-                self.logger.info("Search index already optimized.")
+                self.log.info("Search index already optimized.")
                 return
             backends = haystack_connections.connections_info.keys()
             for conn_key in backends:
@@ -154,11 +152,11 @@ class SearchIndexer(QueuedThread):
                 backend.index = backend.index.refresh()
                 num_docs = backend.index.doc_count()
                 if num_docs > OPTIMIZE_DOC_COUNT and not force:
-                    self.logger.info(
+                    self.log.info(
                         f"Search index > {OPTIMIZE_DOC_COUNT} comics. Not optimizing."
                     )
                     return
-                self.logger.info(
+                self.log.info(
                     f"Search index found in {num_segments} segments, optmizing..."
                 )
                 writerargs = CodexSearchBackend.get_writerargs(num_docs)
@@ -166,7 +164,7 @@ class SearchIndexer(QueuedThread):
                 elapsed_delta = datetime.now() - start
                 elapsed = naturaldelta(elapsed_delta)
                 cps = int(num_docs / elapsed_delta.total_seconds())
-                self.logger.info(
+                self.log.info(
                     f"Optimized search index in {elapsed} at {cps} comics per second."
                 )
         finally:
@@ -181,4 +179,4 @@ class SearchIndexer(QueuedThread):
         elif isinstance(task, SearchIndexOptimizeTask):
             self._optimize_search_index(task.force)
         else:
-            self.logger.warning(f"Bad task sent to search index thread: {task}")
+            self.log.warning(f"Bad task sent to search index thread: {task}")

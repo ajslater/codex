@@ -76,7 +76,7 @@ class Crond(NamedThread):
             with self._cond:
                 while not self._stop_event.is_set():
                     timeout = self._get_timeout()
-                    self.logger.info(
+                    self.log.info(
                         f"Waiting {naturaldelta(timeout)} until next maintenance."
                     )
                     self._cond.wait(timeout=timeout)
@@ -97,14 +97,14 @@ class Crond(NamedThread):
                         for task in tasks:
                             self.librarian_queue.put(task)
                     except Exception as exc:
-                        self.logger.error(f"Error in {self.NAME}")
-                        self.logger.exception(exc)
+                        self.log.error(f"Error in {self.NAME}")
+                        self.log.exception(exc)
                     Timestamp.touch(Timestamp.JANITOR)
                     sleep(2)
         except Exception as exc:
-            self.logger.error(f"Error in {self.NAME}")
-            self.logger.exception(exc)
-        self.logger.info(f"Stopped {self.NAME} thread.")
+            self.log.error(f"Error in {self.NAME}")
+            self.log.exception(exc)
+        self.log.info(f"Stopped {self.NAME} thread.")
 
     def __init__(self, *args, **kwargs):
         """Initialize this thread with the worker."""

@@ -28,7 +28,7 @@ class NotifierThread(AggregateMessageQueuedThread):
         data = self._render_message(group, text)
         rq = request.Request(self.URL, data=data)
         with request.urlopen(rq) as response:
-            self.logger.debug(
+            self.log.debug(
                 f"NotifierThread HTTP Response: {response.status} {response.reason}"
             )
 
@@ -41,7 +41,7 @@ class NotifierThread(AggregateMessageQueuedThread):
             try:
                 self._send_http(task.type, task.text)
             except Exception as exc:
-                self.logger.exception(exc)
+                self.log.exception(exc)
 
             sent_keys.add(task.text)
         self.cleanup_cache(sent_keys)

@@ -55,7 +55,7 @@ class CleanupMixin(WorkerBaseMixin):
             count = query.count()
             query.delete()
             if count:
-                self.logger.info(f"Deleted {count} orphan {cls.__name__}s")
+                self.log.info(f"Deleted {count} orphan {cls.__name__}s")
             status_count += 1
             since = self.status_controller.update(
                 JanitorStatusTypes.CLEANUP_FK,
@@ -72,7 +72,7 @@ class CleanupMixin(WorkerBaseMixin):
             self.status_controller.start(
                 JanitorStatusTypes.CLEANUP_FK, TOTAL_NUM_FK_CLASSES
             )
-            self.logger.debug("Cleaning up unused foreign keys...")
+            self.log.debug("Cleaning up unused foreign keys...")
             status_count = 0
             status_count += self._bulk_cleanup_fks(
                 _COMIC_FK_CLASSES, "comic", status_count
@@ -84,6 +84,6 @@ class CleanupMixin(WorkerBaseMixin):
                 level = logging.INFO
             else:
                 level = logging.DEBUG
-            self.logger.log(level, f"Cleaned up {status_count} unused foreign keys.")
+            self.log.log(level, f"Cleaned up {status_count} unused foreign keys.")
         finally:
             self.status_controller.finish(JanitorStatusTypes.CLEANUP_FK)

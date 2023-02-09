@@ -22,7 +22,7 @@ class DeletedMixin(QueuedThread):
                 level = logging.INFO
             else:
                 level = logging.DEBUG
-            self.logger.log(level, f"Deleted {count} folders from {library.path}")
+            self.log.log(level, f"Deleted {count} folders from {library.path}")
             return count > 0
         finally:
             self.status_controller.finish(ImportStatusTypes.DIRS_DELETED)
@@ -43,7 +43,7 @@ class DeletedMixin(QueuedThread):
                 level = logging.INFO
             else:
                 level = logging.DEBUG
-            self.logger.log(level, f"Deleted {count} comics from {library.path}")
+            self.log.log(level, f"Deleted {count} comics from {library.path}")
             return count > 0
         finally:
             self.status_controller.finish(ImportStatusTypes.FILES_DELETED)

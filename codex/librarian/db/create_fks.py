@@ -111,7 +111,7 @@ class CreateForeignKeysMixin(QueuedThread):
         for group_class, group_tree_counts in all_operation_groups.items():
             if not group_tree_counts:
                 continue
-            self.logger.debug(
+            self.log.debug(
                 f"Preparing {len(group_tree_counts)} "
                 f"{group_class.__name__}s for {log_tion}..."
             )
@@ -122,7 +122,7 @@ class CreateForeignKeysMixin(QueuedThread):
                 level = logging.INFO
             else:
                 level = logging.DEBUG
-            self.logger.log(level, f"{log_verb} {count} {group_class.__name__}s.")
+            self.log.log(level, f"{log_verb} {count} {group_class.__name__}s.")
 
         return num_operation_groups
 
@@ -130,7 +130,7 @@ class CreateForeignKeysMixin(QueuedThread):
         """Update folders stat and nothing else."""
         if not paths:
             return False
-        self.logger.debug(f"Preparing {len(paths)} folders for modification...")
+        self.log.debug(f"Preparing {len(paths)} folders for modification...")
         folders = Folder.objects.filter(library=library, path__in=paths).only(
             "stat", "updated_at"
         )
@@ -149,7 +149,7 @@ class CreateForeignKeysMixin(QueuedThread):
         else:
             count = 0
             level = logging.DEBUG
-        self.logger.log(level, f"Modified {count} folders")
+        self.log.log(level, f"Modified {count} folders")
 
         return count
 
@@ -159,7 +159,7 @@ class CreateForeignKeysMixin(QueuedThread):
             return False
 
         num_folder_paths = len(folder_paths)
-        self.logger.debug(f"Preparing {num_folder_paths} folders for creation.")
+        self.log.debug(f"Preparing {num_folder_paths} folders for creation.")
         # group folder paths by depth
         folder_path_dict = {}
         for path_str in folder_paths:
@@ -180,7 +180,7 @@ class CreateForeignKeysMixin(QueuedThread):
                     parent = Folder.objects.get(path=parent_path)
                 except Folder.DoesNotExist:
                     if parent_path != library.path:
-                        self.logger.error(
+                        self.log.error(
                             f"Can't find parent folder {parent_path} for {path}"
                         )
                 folder = Folder(
@@ -198,7 +198,7 @@ class CreateForeignKeysMixin(QueuedThread):
                 level = logging.INFO
             else:
                 level = logging.DEBUG
-            self.logger.log(level, f"Created {total_count}/{num_folder_paths} Folders.")
+            self.log.log(level, f"Created {total_count}/{num_folder_paths} Folders.")
         return total_count
 
     def _bulk_create_named_models(self, group_class, names):
@@ -206,7 +206,7 @@ class CreateForeignKeysMixin(QueuedThread):
         if not names:
             return False
         count = len(names)
-        self.logger.debug(f"Preparing {count} {group_class.__name__}s for creation...")
+        self.log.debug(f"Preparing {count} {group_class.__name__}s for creation...")
         create_named_objs = []
         for name in names:
             named_obj = group_class(name=name)
@@ -217,7 +217,7 @@ class CreateForeignKeysMixin(QueuedThread):
             level = logging.INFO
         else:
             level = logging.DEBUG
-        self.logger.log(level, f"Created {count} {group_class.__name__}s.")
+        self.log.log(level, f"Created {count} {group_class.__name__}s.")
         return count
 
     def _bulk_create_credits(self, create_credit_tuples):
@@ -225,9 +225,7 @@ class CreateForeignKeysMixin(QueuedThread):
         if not create_credit_tuples:
             return False
 
-        self.logger.debug(
-            f"Preparing {len(create_credit_tuples)} credits for creation..."
-        )
+        self.log.debug(f"Preparing {len(create_credit_tuples)} credits for creation...")
         create_credits = []
         for role_name, person_name in create_credit_tuples:
             if role_name:
@@ -245,7 +243,7 @@ class CreateForeignKeysMixin(QueuedThread):
             level = logging.INFO
         else:
             level = logging.DEBUG
-        self.logger.log(level, f"Created {count} Credits.")
+        self.log.log(level, f"Created {count} Credits.")
 
         return count
 
@@ -294,7 +292,7 @@ class CreateForeignKeysMixin(QueuedThread):
                 create_credits,
             )
             since = datetime.now()
-            self.logger.debug(f"Creating comic foreign keys for {library.path}...")
+            self.log.debug(f"Creating comic foreign keys for {library.path}...")
             count = 0
             count += self._bulk_create_or_update_groups(
                 create_groups, self._bulk_group_creator, "creation", "Created"

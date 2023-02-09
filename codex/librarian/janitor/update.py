@@ -17,7 +17,7 @@ class UpdateMixin(WorkerBaseMixin):
         """Send a system SIGUSR1 signal as handled in run.py."""
         try:
             self.status_controller.start(JanitorStatusTypes.CODEX_RESTART)
-            self.logger.info("Sending restart signal.")
+            self.log.info("Sending restart signal.")
             main_pid = os.getppid()
             os.kill(main_pid, signal.SIGUSR1)
         finally:
@@ -28,23 +28,23 @@ class UpdateMixin(WorkerBaseMixin):
         try:
             self.status_controller.start(JanitorStatusTypes.CODEX_UPDATE)
             if force:
-                self.logger.info("Forcing update of Codex.")
+                self.log.info("Forcing update of Codex.")
             else:
                 eau = AdminFlag.objects.only("on").get(
                     name=AdminFlag.ENABLE_AUTO_UPDATE
                 )
                 if not eau.on or not is_outdated(PACKAGE_NAME):
-                    self.logger.info("Codex is up to date.")
+                    self.log.info("Codex is up to date.")
                     return
 
-                self.logger.info("Codex seems outdated. Trying to update.")
+                self.log.info("Codex seems outdated. Trying to update.")
 
             subprocess.run(
                 (sys.executable, "-m", "pip", "install", "--upgrade", "codex"),
                 check=True,
             )
         except Exception as exc:
-            self.logger.error(exc)
+            self.log.error(exc)
         finally:
             self.status_controller.finish(JanitorStatusTypes.CODEX_UPDATE)
 
@@ -53,10 +53,10 @@ class UpdateMixin(WorkerBaseMixin):
         restart = VERSION != new_version
 
         if restart:
-            self.logger.info(f"Codex was updated from {VERSION} to {new_version}.")
+            self.log.info(f"Codex was updated from {VERSION} to {new_version}.")
             self.restart_codex()
         else:
-            self.logger.warning(
+            self.log.warning(
                 "Codex updated to the same version that was previously"
                 f" installed: {VERSION}."
             )
@@ -65,7 +65,7 @@ class UpdateMixin(WorkerBaseMixin):
         """Send a system SIGTERM signal as handled in run.py."""
         try:
             self.status_controller.start(JanitorStatusTypes.CODEX_STOP)
-            self.logger.info("Sending shutdown signal.")
+            self.log.info("Sending shutdown signal.")
             main_pid = os.getppid()
             os.kill(main_pid, signal.SIGTERM)
         finally:

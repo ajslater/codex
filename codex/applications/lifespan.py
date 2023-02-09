@@ -36,7 +36,7 @@ class LifespanApplication(LoggerBaseMixin):
             admin_user.set_password("admin")
             admin_user.save()
             prefix = "Cre" if created else "Upd"
-            self.logger.info(f"{prefix}ated admin user.")
+            self.log.info(f"{prefix}ated admin user.")
 
     def _delete_orphans(self, model, field, names):
         """Delete orphans for declared models."""
@@ -45,9 +45,7 @@ class LifespanApplication(LoggerBaseMixin):
         count = query.count()
         if count:
             query.delete()
-            self.logger.info(
-                f"Deleted {count} orphan {model._meta.verbose_name_plural}."
-            )
+            self.log.info(f"Deleted {count} orphan {model._meta.verbose_name_plural}.")
 
     def init_admin_flags(self):
         """Init admin flag rows."""
@@ -59,7 +57,7 @@ class LifespanApplication(LoggerBaseMixin):
                 defaults=defaults, name=name
             )
             if created:
-                self.logger.info(f"Created AdminFlag: {flag.name} = {flag.on}")
+                self.log.info(f"Created AdminFlag: {flag.name} = {flag.on}")
 
     def init_timestamps(self):
         """Init timestamps."""
@@ -68,7 +66,7 @@ class LifespanApplication(LoggerBaseMixin):
         for name in Timestamp.NAMES:
             _, created = Timestamp.objects.get_or_create(name=name)
             if created:
-                self.logger.info(f"Created {name} timestamp.")
+                self.log.info(f"Created {name} timestamp.")
 
     def init_librarian_statuses(self):
         """Init librarian statuses."""
@@ -80,14 +78,14 @@ class LifespanApplication(LoggerBaseMixin):
                 type=type, defaults=defaults
             )
             if created:
-                self.logger.info(f"Created {type} LibrarianStatus.")
+                self.log.info(f"Created {type} LibrarianStatus.")
 
     def clear_library_status(self):
         """Unset the update_in_progress flag for all libraries."""
         count = Library.objects.filter(update_in_progress=True).update(
             update_in_progress=False, updated_at=Now()
         )
-        self.logger.debug(f"Reset {count} Library's update_in_progress flag")
+        self.log.debug(f"Reset {count} Library's update_in_progress flag")
 
     def codex_startup(self):
         """Initialize the database and start the daemons."""
@@ -109,7 +107,7 @@ class LifespanApplication(LoggerBaseMixin):
         if scope["type"] != self.SCOPE_TYPE:
             return
         self.loggerd.start()
-        self.logger.debug("Lifespan application started.")
+        self.log.debug("Lifespan application started.")
         while True:
             try:
                 message = await receive()
@@ -117,23 +115,23 @@ class LifespanApplication(LoggerBaseMixin):
                     try:
                         await sync_to_async(self.codex_startup)()
                         await send({"type": "lifespan.startup.complete"})
-                        self.logger.debug("Lifespan startup complete.")
+                        self.log.debug("Lifespan startup complete.")
                     except Exception as exc:
                         await send({"type": "lifespan.startup.failed"})
-                        self.logger.error("Lifespan startup failed.")
+                        self.log.error("Lifespan startup failed.")
                         raise exc
                 elif message["type"] == "lifespan.shutdown":
-                    self.logger.debug("Lifespan shutdown started.")
+                    self.log.debug("Lifespan shutdown started.")
                     try:
                         await sync_to_async(self.codex_shutdown)()
                         await send({"type": "lifespan.shutdown.complete"})
-                        self.logger.debug("Lifespan shutdown complete.")
+                        self.log.debug("Lifespan shutdown complete.")
                     except Exception as exc:
                         await send({"type": "lifespan.shutdown.failed"})
-                        self.logger.error("Lifespan shutdown failed.")
+                        self.log.error("Lifespan shutdown failed.")
                         raise exc
                     break
             except Exception as exc:
-                self.logger.exception(exc)
-        self.logger.debug("Lifespan application stopped.")
+                self.log.exception(exc)
+        self.log.debug("Lifespan application stopped.")
         self.loggerd.stop()

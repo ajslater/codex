@@ -56,7 +56,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
                     ).values_list("pk", flat=True)
                     comic_pks.append(comic.pk)
                 except Exception as exc:
-                    self.logger.error(f"moving {comic.path}: {exc}")
+                    self.log.error(f"moving {comic.path}: {exc}")
 
             count = Comic.objects.bulk_update(comics, MOVED_BULK_COMIC_UPDATE_FIELDS)
 
@@ -67,7 +67,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
                 level = logging.INFO
             else:
                 level = logging.DEBUG
-            self.logger.log(level, f"Moved {count} comics.")
+            self.log.log(level, f"Moved {count} comics.")
 
             return bool(count)
         finally:
@@ -133,7 +133,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
                 level = logging.INFO
             else:
                 level = logging.DEBUG
-            self.logger.log(level, f"Moved {count} folders.")
+            self.log.log(level, f"Moved {count} folders.")
             return bool(count)
         finally:
             self.status_controller.finish(ImportStatusTypes.DIRS_MOVED)

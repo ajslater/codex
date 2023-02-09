@@ -41,7 +41,7 @@ class StatusController(LoggerBaseMixin):
             if notify:
                 self.librarian_queue.put(LIBRARIAN_STATUS_TASK)
         except Exception as exc:
-            self.logger.warning(exc)
+            self.log.warning(exc)
 
     def start_many(self, types_map):
         """Start many librarian statuses."""
@@ -66,9 +66,9 @@ class StatusController(LoggerBaseMixin):
                     self.librarian_queue.put(LIBRARIAN_STATUS_TASK)
                     since = datetime.now()
                     title = " ".join((type, name)).strip()
-                    self.logger.info(f"{title}: {complete}/{total}")
+                    self.log.info(f"{title}: {complete}/{total}")
             except Exception as exc:
-                self.logger.warning(exc)
+                self.log.warning(exc)
         return since
 
     def finish(self, type, notify=True):
@@ -79,7 +79,7 @@ class StatusController(LoggerBaseMixin):
             if notify:
                 self.librarian_queue.put(LIBRARIAN_STATUS_TASK)
         except Exception as exc:
-            self.logger.warning(exc)
+            self.log.warning(exc)
 
     def finish_many(self, types, notify=True):
         """Finish all librarian statuses."""
@@ -93,6 +93,6 @@ class StatusController(LoggerBaseMixin):
             if notify:
                 self.librarian_queue.put(LIBRARIAN_STATUS_TASK)
             if not filter:
-                self.logger.info("Cleared all librarian statuses")
+                self.log.info("Cleared all librarian statuses")
         except Exception as exc:
-            self.logger.warning(exc)
+            self.log.warning(exc)

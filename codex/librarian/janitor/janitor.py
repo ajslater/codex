@@ -42,7 +42,7 @@ class Janitor(CleanupMixin, UpdateMixin, VacuumMixin, UpdateFailedImportsMixin):
             elif isinstance(task, ForceUpdateAllFailedImportsTask):
                 self.force_update_all_failed_imports()
             else:
-                self.logger.warning(f"Janitor received unknown task {task}")
+                self.log.warning(f"Janitor received unknown task {task}")
         except Exception as exc:
-            self.logger.error("Janitor task crashed.")
-            self.logger.exception(exc)
+            self.log.error("Janitor task crashed.")
+            self.log.exception(exc)

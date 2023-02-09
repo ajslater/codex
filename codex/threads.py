@@ -33,7 +33,7 @@ class NamedThread(Thread, WorkerBaseMixin, ABC):
 
     def run_start(self):
         """First thing to do when running a new thread."""
-        self.logger.info(f"Started {self.NAME} thread")
+        self.log.info(f"Started {self.NAME} thread")
 
 
 class QueuedThread(NamedThread, ABC):
@@ -80,9 +80,9 @@ class QueuedThread(NamedThread, ABC):
             except BreakLoopError:
                 break
             except Exception as exc:
-                self.logger.error(f"{self.NAME} crashed:")
-                self.logger.exception(exc)
-        self.logger.info(f"Stopped {self.NAME} thread")
+                self.log.error(f"{self.NAME} crashed:")
+                self.log.exception(exc)
+        self.log.info(f"Stopped {self.NAME} thread")
 
     def stop(self):
         """Stop the thread."""
@@ -90,9 +90,9 @@ class QueuedThread(NamedThread, ABC):
 
     def join(self):
         """End the thread."""
-        self.logger.debug(f"Waiting for {self.NAME} to join.")
+        self.log.debug(f"Waiting for {self.NAME} to join.")
         super().join(self.SHUTDOWN_TIMEOUT)
-        self.logger.debug(f"{self.NAME} joined.")
+        self.log.debug(f"{self.NAME} joined.")
 
 
 class AggregateMessageQueuedThread(QueuedThread, ABC):

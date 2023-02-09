@@ -227,7 +227,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
 
             self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_PREPARE)
             elapsed = naturaldelta(datetime.now() - start)
-            self.logger.info(f"Search engine prepared objects for commit in {elapsed}")
+            self.log.info(f"Search engine prepared objects for commit in {elapsed}")
 
             start = datetime.now()
             if len(iterable) > 0:
@@ -238,7 +238,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                 if writer.ident is not None:
                     writer.join()
             elapsed = naturaldelta(datetime.now() - start)
-            self.logger.info(f"Search engine committed index in {elapsed}")
+            self.log.info(f"Search engine committed index in {elapsed}")
         finally:
             self.status_controller.finish_many(self.UPDATE_FINISH_TYPES)
 

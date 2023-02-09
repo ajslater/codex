@@ -99,7 +99,7 @@ class CleanMetadataMixin(QueuedThread):
                 issue_suffix, Comic._meta.get_field("issue_suffix")  # type: ignore
             )
         except Exception as exc:
-            self.logger.warning(f"parsing issue failed: {issue_str} {exc}")
+            self.log.warning(f"parsing issue failed: {issue_str} {exc}")
             md["issue"] = None
             md["issue_suffix"] = issue_str
 

@@ -74,7 +74,7 @@ class CreateComicsMixin(QueuedThread):
         if not comic_paths:
             return 0, frozenset()
 
-        self.logger.debug(
+        self.log.debug(
             f"Preparing {len(comic_paths)} comics for update in library {library.path}."
         )
         # Get existing comics to update
@@ -100,30 +100,30 @@ class CreateComicsMixin(QueuedThread):
                 comic_pks.append(comic.pk)
                 comic_update_paths.add(comic.path)
             except Exception as exc:
-                self.logger.error(f"Error preparing {comic} for update.")
-                self.logger.exception(exc)
-        self.logger.info(
+                self.log.error(f"Error preparing {comic} for update.")
+                self.log.exception(exc)
+        self.log.info(
             f"Prepared {len(comic_paths)} comics for update in library {library.path}."
         )
 
         converted_create_paths = frozenset(comic_paths - comic_update_paths)
-        self.logger.info(
+        self.log.info(
             f"Converted {len(converted_create_paths)} update paths to create paths."
         )
 
-        self.logger.debug(f"Bulk updating {len(update_comics)} comics.")
+        self.log.debug(f"Bulk updating {len(update_comics)} comics.")
         try:
             count = Comic.objects.bulk_update(update_comics, _BULK_UPDATE_COMIC_FIELDS)
             if not count:
                 count = 0
 
             task = CoverRemoveTask(frozenset(comic_pks))
-            self.logger.debug(f"Purging covers for {len(comic_pks)} updated comics.")
+            self.log.debug(f"Purging covers for {len(comic_pks)} updated comics.")
             self.librarian_queue.put(task)
         except Exception as exc:
             count = 0
-            self.logger.error(exc)
-            self.logger.error("While updating", comic_update_paths)
+            self.log.error(exc)
+            self.log.error("While updating", comic_update_paths)
 
         return (count, converted_create_paths)
 
@@ -133,7 +133,7 @@ class CreateComicsMixin(QueuedThread):
             return 0
 
         num_comics = len(comic_paths)
-        self.logger.debug(
+        self.log.debug(
             f"Preparing {num_comics} comics for creation in library {library.path}."
         )
         # prepare create comics
@@ -147,23 +147,23 @@ class CreateComicsMixin(QueuedThread):
                 comic.set_stat()
                 create_comics.append(comic)
             except KeyError:
-                self.logger.warning(f"No comic metadata for {path}")
+                self.log.warning(f"No comic metadata for {path}")
             except Exception as exc:
-                self.logger.error(f"Error preparing {path} for create.")
-                self.logger.exception(exc)
+                self.log.error(f"Error preparing {path} for create.")
+                self.log.exception(exc)
 
         num_comics = len(create_comics)
-        self.logger.info(
+        self.log.info(
             f"Prepared {num_comics} comics for creation in library {library.path}."
         )
-        self.logger.debug(f"Bulk creating {num_comics} comics...")
+        self.log.debug(f"Bulk creating {num_comics} comics...")
         try:
             created_comics = Comic.objects.bulk_create(create_comics)
             created_count = len(created_comics)
         except Exception as exc:
             created_count = 0
-            self.logger.error(exc)
-            self.logger.error("While creating", comic_paths)
+            self.log.error(exc)
+            self.log.error("While creating", comic_paths)
 
         return created_count
 
@@ -197,7 +197,7 @@ class CreateComicsMixin(QueuedThread):
         for field, names in md.items():
             related_model = Comic._meta.get_field(field).related_model
             if related_model is None:
-                self.logger.error(f"No related class found for Comic.{field}")
+                self.log.error(f"No related class found for Comic.{field}")
                 continue
             pks = related_model.objects.filter(name__in=names).values_list(
                 "pk", flat=True
@@ -210,7 +210,7 @@ class CreateComicsMixin(QueuedThread):
         """Get the complete m2m field data to create."""
         all_m2m_links = {}
         comic_paths = frozenset(m2m_mds.keys())
-        self.logger.debug(
+        self.log.debug(
             f"Preparing {len(comic_paths)} comics for many to many relation recreation."
         )
 
@@ -242,7 +242,7 @@ class CreateComicsMixin(QueuedThread):
         https://stackoverflow.com/questions/6996176/how-to-create-an-object-for-a-django-model-with-a-many-to-many-field/10116452#10116452 # noqa: B950,E501
         https://docs.djangoproject.com/en/dev/ref/models/fields/#django.db.models.ManyToManyField.through # noqa: B950,E501
         """
-        self.logger.debug(f"Recreating {field_name} relations for altered comics.")
+        self.log.debug(f"Recreating {field_name} relations for altered comics.")
         field = getattr(Comic, field_name)
         ThroughModel = field.through  # noqa: N806
         model = Comic._meta.get_field(field_name).related_model
@@ -261,7 +261,7 @@ class CreateComicsMixin(QueuedThread):
         #   detect, create & delete them.
         ThroughModel.objects.filter(comic_id__in=m2m_links.keys()).delete()
         ThroughModel.objects.bulk_create(tms)
-        self.logger.info(
+        self.log.info(
             f"Recreated {len(tms)} {field_name} relations for altered comics."
         )
 
@@ -312,8 +312,8 @@ class CreateComicsMixin(QueuedThread):
                     try:
                         self.bulk_recreate_m2m_field(field_name, m2m_links)
                     except Exception as exc:
-                        self.logger.error(f"Error recreating m2m field: {field_name}")
-                        self.logger.exception(exc)
+                        self.log.error(f"Error recreating m2m field: {field_name}")
+                        self.log.exception(exc)
                     completed_links = len(m2m_links)
                     since = self.status_controller.update(
                         ImportStatusTypes.LINK_M2M_FIELDS,
@@ -327,9 +327,9 @@ class CreateComicsMixin(QueuedThread):
         if update_count:
             Timestamp.touch(Timestamp.COVERS)
         update_log = f"Updated {update_count} Comics."
-        self.logger.info(update_log)
+        self.log.info(update_log)
         create_log = f"Created {create_count} Comics."
-        self.logger.info(create_log)
+        self.log.info(create_log)
 
         total_count = update_count + create_count
         return total_count

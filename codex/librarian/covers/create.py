@@ -63,7 +63,7 @@ class CoverCreateMixin(CoverPathMixin):
             if not comic_path:
                 comic_path = f"{pk=}"
             thumb_image_data = bytes()
-            self.logger.warning(
+            self.log.warning(
                 f"Could not create cover thumbnail for {comic_path}: {exc}"
             )
         return thumb_image_data
@@ -93,7 +93,7 @@ class CoverCreateMixin(CoverPathMixin):
             if not num_comics:
                 return
 
-            self.logger.debug(f"Creating {num_comics} comic covers...")
+            self.log.debug(f"Creating {num_comics} comic covers...")
             self.status_controller.start(CoverStatusTypes.CREATE, num_comics)
 
             # Get comic objects
@@ -116,7 +116,7 @@ class CoverCreateMixin(CoverPathMixin):
                 )
 
             total_elapsed = naturaldelta(datetime.now() - start_time)
-            self.logger.info(f"Created {count} comic covers in {total_elapsed}.")
+            self.log.info(f"Created {count} comic covers in {total_elapsed}.")
             return count
         finally:
             self.status_controller.finish(CoverStatusTypes.CREATE)

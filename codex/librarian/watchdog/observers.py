@@ -32,14 +32,14 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
         is_enabled = getattr(library, self.ENABLE_FIELD)
         watching_log = f"watching library {library.path} with {self.ENABLE_FIELD}"
         if watch and is_enabled:
-            self.logger.info(f"Already {watching_log}.")
+            self.log.info(f"Already {watching_log}.")
             return
         elif not watch and not is_enabled:
-            self.logger.debug(f"Not {watching_log}, disabled.")
+            self.log.debug(f"Not {watching_log}, disabled.")
             return
         elif watch and not is_enabled:
             self.unschedule(watch)
-            self.logger.info(f"Stopped {watching_log}.")
+            self.log.info(f"Stopped {watching_log}.")
             return
 
         # Set up the watch
@@ -47,7 +47,7 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
             library, librarian_queue=self.librarian_queue, log_queue=self.log_queue
         )
         self.schedule(handler, library.path, recursive=True)
-        self.logger.info(f"Started {watching_log}")
+        self.log.info(f"Started {watching_log}")
 
     def _unschedule_orphan_watches(self, paths):
         """Unschedule lost watches."""
@@ -57,7 +57,7 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
                 orphan_watches.add(watch)
         for watch in orphan_watches:
             self.unschedule(watch)
-            self.logger.info(
+            self.log.info(
                 f"Stopped watching orphaned library {watch.path} "
                 f"with {self.ENABLE_FIELD}"
             )
@@ -72,15 +72,15 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
                     library_paths.add(library.path)
                     self._sync_library_watch(library)
                 except FileNotFoundError:
-                    self.logger.warning(
+                    self.log.warning(
                         f"Could not find {library.path} to watch. May be unmounted."
                     )
                 except Exception as exc:
-                    self.logger.exception(exc)
+                    self.log.exception(exc)
             self._unschedule_orphan_watches(library_paths)
         except Exception as exc:
-            self.logger.error(f"Error in {self.__class__.__name__}")
-            self.logger.exception(exc)
+            self.log.error(f"Error in {self.__class__.__name__}")
+            self.log.exception(exc)
 
     def schedule(self, event_handler, path, recursive=False):
         """
@@ -143,10 +143,10 @@ class LibraryPollingObserver(UatuMixin):
                 if emitter.watch.path in paths:
                     emitter.poll(force)
         except Exception as exc:
-            self.logger.error(
+            self.log.error(
                 f"Error in {self.__class__.__name__}.poll({library_pks}, {force})"
             )
-            self.logger.exception(exc)
+            self.log.exception(exc)
 
     def on_thread_stop(self):
         """Put a dummy event on the queue that blocks forever."""

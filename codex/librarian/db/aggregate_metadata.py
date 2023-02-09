@@ -65,11 +65,11 @@ class AggregateMetadataMixin(CleanMetadataMixin):
             m2m_md["folders"] = Path(path).parents
 
         except (UnsupportedArchiveTypeError, BadRarFile, BadZipFile, OSError) as exc:
-            self.logger.warning(f"Failed to import {path}: {exc}")
+            self.log.warning(f"Failed to import {path}: {exc}")
             failed_import = {path: exc}
         except Exception as exc:
-            self.logger.warning(f"Failed to import: {path}")
-            self.logger.exception(exc)
+            self.log.warning(f"Failed to import: {path}")
+            self.log.exception(exc)
             failed_import = {path: exc}
         return md, m2m_md, group_tree_md, failed_import
 
@@ -149,7 +149,7 @@ class AggregateMetadataMixin(CleanMetadataMixin):
         total_paths = len(all_paths)
         self.status_controller.start(ImportStatusTypes.AGGREGATE_TAGS, total_paths)
         try:
-            self.logger.info(
+            self.log.info(
                 f"Reading tags from {total_paths} comics in {library.path}..."
             )
             since = datetime.now()
@@ -180,7 +180,7 @@ class AggregateMetadataMixin(CleanMetadataMixin):
                 len(all_failed_imports),
                 notify=False,
             )
-            self.logger.info(f"Aggregated tags from {len(all_mds)} comics.")
+            self.log.info(f"Aggregated tags from {len(all_mds)} comics.")
         finally:
             self.status_controller.finish(ImportStatusTypes.AGGREGATE_TAGS)
         return all_mds, all_m2m_mds, all_fks, all_failed_imports

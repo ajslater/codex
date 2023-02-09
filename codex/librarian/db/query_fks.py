@@ -231,7 +231,7 @@ class QueryForeignKeysMixin(QueuedThread):
     def query_all_missing_fks(self, library_path, fks):
         """Get objects to create by querying existing objects for the proposed fks."""
         try:
-            self.logger.debug(
+            self.log.debug(
                 f"Querying existing foreign keys for comics in {library_path}"
             )
             self._init_status(fks)
@@ -240,7 +240,7 @@ class QueryForeignKeysMixin(QueuedThread):
             if "credits" in fks:
                 credits = fks.pop("credits")
                 create_credits |= self._query_missing_credits(credits)
-                self.logger.info(f"Prepared {len(create_credits)} new credits.")
+                self.log.info(f"Prepared {len(create_credits)} new credits.")
 
             if "group_trees" in fks:
                 group_trees = fks.pop("group_trees")
@@ -249,7 +249,7 @@ class QueryForeignKeysMixin(QueuedThread):
                     update_groups,
                     create_group_count,
                 ) = self._query_missing_groups(group_trees)
-                self.logger.info(f"Prepared {create_group_count} new groups.")
+                self.log.info(f"Prepared {create_group_count} new groups.")
             else:
                 create_groups = {}
                 update_groups = {}
@@ -259,7 +259,7 @@ class QueryForeignKeysMixin(QueuedThread):
                 create_folder_paths |= self.query_missing_folder_paths(
                     library_path, fks.pop("comic_paths")
                 )
-                self.logger.info(f"Prepared {len(create_folder_paths)} new folders.")
+                self.log.info(f"Prepared {len(create_folder_paths)} new folders.")
 
             create_fks = {}
             for field in fks.keys():
@@ -273,7 +273,7 @@ class QueryForeignKeysMixin(QueuedThread):
                 )
                 create_fks[cls] = names
                 if num_names := len(names):
-                    self.logger.info(f"Prepared {num_names} new {field}.")
+                    self.log.info(f"Prepared {num_names} new {field}.")
 
             return (
                 create_fks,

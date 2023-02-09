@@ -95,16 +95,16 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         elif isinstance(task, DelayedTasks):
             self._threads["delayed_tasks"].queue.put(task)
         elif task == self.SHUTDOWN_TASK:
-            self.logger.info("Shutting down Librarian...")
+            self.log.info("Shutting down Librarian...")
             run = False
         else:
-            self.logger.warning(f"Unhandled Librarian task: {task}")
+            self.log.warning(f"Unhandled Librarian task: {task}")
         return run
 
     def _create_threads(self):
         """Create all the threads."""
-        self.logger.debug("Creating Librarian threads...")
-        self.logger.debug(f"Active threads before thread creation: {active_count()}")
+        self.log.debug("Creating Librarian threads...")
+        self.log.debug(f"Active threads before thread creation: {active_count()}")
         self._threads = {}
         kwargs = {"librarian_queue": self.queue, "log_queue": self.log_queue}
         for thread_class in self.THREAD_CLASSES:
@@ -112,31 +112,31 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
             thread = thread_class(**kwargs)
             name = self._camel_to_snake_case(name)
             self._threads[name] = thread
-            self.logger.debug(f"Created {name} thread.")
+            self.log.debug(f"Created {name} thread.")
         self._observers = (
             self._threads["library_event_observer"],
             self._threads["library_polling_observer"],
         )
-        self.logger.debug("Threads created")
+        self.log.debug("Threads created")
 
     def _start_threads(self):
         """Start all librarian's threads."""
-        self.logger.debug(f"Starting all {self.NAME} threads.")
+        self.log.debug(f"Starting all {self.NAME} threads.")
         for thread in self._threads.values():
             thread.start()
-        self.logger.info(f"Started all {self.NAME} threads.")
+        self.log.info(f"Started all {self.NAME} threads.")
 
     def _stop_threads(self):
         """Stop all librarian's threads."""
-        self.logger.debug(f"Stopping all {self.NAME} threads...")
+        self.log.debug(f"Stopping all {self.NAME} threads...")
         reversed_threads = reversed(self._threads.values())
         for thread in reversed_threads:
             thread.stop()
-        self.logger.debug(f"Stopped all {self.NAME} threads.")
-        self.logger.debug(f"Joining all {self.NAME} threads...")
+        self.log.debug(f"Stopped all {self.NAME} threads.")
+        self.log.debug(f"Joining all {self.NAME} threads...")
         for thread in reversed_threads:
             thread.join()
-        self.logger.info(f"Joined all {self.NAME} threads.")
+        self.log.info(f"Joined all {self.NAME} threads.")
 
     def run(self):
         """
@@ -146,30 +146,30 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         threads.
         """
         try:
-            self.logger.debug("Started Librarian process.")
+            self.log.debug("Started Librarian process.")
             self.janitor = Janitor(self.log_queue, self.queue)
             self._create_threads()  # can't do this in init.
             self._start_threads()
             run = True
-            self.logger.info("Librarian started threads and waiting for tasks.")
+            self.log.info("Librarian started threads and waiting for tasks.")
             while run:
                 try:
                     task = self.queue.get()
                     run = self._process_task(task)
                 except Exception as exc:
-                    self.logger.error(f"Error in {self.NAME}")
-                    self.logger.exception(exc)
+                    self.log.error(f"Error in {self.NAME}")
+                    self.log.exception(exc)
             self._stop_threads()
         except Exception as exc:
-            self.logger.error("Librarian crashed.")
-            self.logger.exception(exc)
-        self.logger.info("Stopped Librarian process.")
+            self.log.error("Librarian crashed.")
+            self.log.exception(exc)
+        self.log.info("Stopped Librarian process.")
 
     def shutdown(self):
         """Send the shutdown gracefully task."""
-        self.logger.debug(f"{self.NAME} shutting down...")
+        self.log.debug(f"{self.NAME} shutting down...")
         LIBRARIAN_QUEUE.put(self.SHUTDOWN_TASK)
         LIBRARIAN_QUEUE.close()
         self.join(8)
         self.close()
-        self.logger.info(f"{self.NAME} stopped.")
+        self.log.info(f"{self.NAME} stopped.")

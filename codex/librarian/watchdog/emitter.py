@@ -47,12 +47,12 @@ class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
             path = Path(wp.get("path"))
             # Ensure valid params
             if path.exists():
-                self.logger.debug(f"Force modify path with bad db record: {path}")
+                self.log.debug(f"Force modify path with bad db record: {path}")
                 stat = list(stat_func(path))
                 # Fake mtime will trigger a modified event
                 stat[8] = 0.0
             else:
-                self.logger.debug(f"Force delete path with bad db record: {path}")
+                self.log.debug(f"Force delete path with bad db record: {path}")
                 # This will trigger a deleted event
                 stat = Comic.ZERO_STAT
 
@@ -82,7 +82,7 @@ class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
         self._stat_info = {}
         self._inode_to_path = {}
         if not Path(path).is_dir():
-            self.logger.warning(f"{path} not found, cannot snapshot.")
+            self.log.warning(f"{path} not found, cannot snapshot.")
             return
 
         # Add the library root
@@ -133,21 +133,21 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
     def _is_watch_path_ok(self, library):
         """Return a special timeout value if there's a problem with the watch dir."""
         if not library.poll:
-            self.logger.warning(f"Library {self._watch_path} not poll enabled.")
+            self.log.warning(f"Library {self._watch_path} not poll enabled.")
             self._stopped_event.set()
             return False
         if not self._watch_path.is_dir():
-            self.logger.warning(f"Library {self._watch_path} not found.")
+            self.log.warning(f"Library {self._watch_path} not found.")
             return
         if self._watch_path_unmounted.exists():
             # Maybe overkill of caution here
-            self.logger.warning(
+            self.log.warning(
                 f"Library {self._watch_path} looks like an unmounted docker volume."
             )
             return
         if not tuple(self._watch_path.iterdir()):
             # Maybe overkill of caution here too
-            self.logger.warning(
+            self.log.warning(
                 f"{self._watch_path} is empty. Suspect it may be unmounted."
             )
             return
@@ -176,15 +176,15 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
                     - since_last_poll.total_seconds(),
                 )
         except Exception as exc:
-            self.logger.error(f"Getting timeout for {self.watch.path}")
-            self.logger.exception(exc)
+            self.log.error(f"Getting timeout for {self.watch.path}")
+            self.log.exception(exc)
         return timeout
 
     def _is_take_snapshot(self, timeout):
         """Determine if we should take a snapshot."""
         with self._poll_cond:
             if timeout:
-                self.logger.info(
+                self.log.info(
                     f"Polling {self.watch.path} again in {naturaldelta(timeout)}."
                 )
             self._poll_cond.wait(timeout)
@@ -195,7 +195,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
         library = Library.objects.get(path=self.watch.path)
         ok = self._is_watch_path_ok(library)
         if not ok:
-            self.logger.warning("Not Polling.")
+            self.log.warning("Not Polling.")
             return
         return library
 
@@ -208,10 +208,8 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
 
         if len(dir_snapshot.paths) <= 1:
             # Maybe overkill of caution here also
-            self.logger.warning(
-                f"{self._watch_path} dir snapshot is empty. Not polling"
-            )
-            self.logger.debug(f"{dir_snapshot.paths=}")
+            self.log.warning(f"{self._watch_path} dir snapshot is empty. Not polling")
+            self.log.debug(f"{dir_snapshot.paths=}")
             return
 
         # Ignore device for docker and other complex filesystems
@@ -219,13 +217,13 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
 
     def _queue_events(self, diff):
         """Create and queue the events from the diff."""
-        self.logger.debug(
+        self.log.debug(
             f"Poller sending unfiltered files: {len(diff.files_deleted)} "
             f"deleted, {len(diff.files_modified)} modified, "
             f"{len(diff.files_created)} created, "
             f"{len(diff.files_moved)} moved."
         )
-        self.logger.debug(
+        self.log.debug(
             f"Poller sending comic folders: {len(diff.dirs_deleted)} deleted,"
             f" {len(diff.dirs_modified)} modified,"
             f" {len(diff.dirs_moved)} moved."
@@ -261,7 +259,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
                 return
 
             self.status_controller.start(WatchdogStatusTypes.POLL, name=self.watch.path)
-            self.logger.debug(f"Polling {self.watch.path}...")
+            self.log.debug(f"Polling {self.watch.path}...")
             diff = self._get_diff()
             if not diff:
                 return
@@ -271,9 +269,9 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
             library.last_poll = Now()
             library.save()
 
-            self.logger.info(f"Polled {self.watch.path}")
+            self.log.info(f"Polled {self.watch.path}")
         except Exception as exc:
-            self.logger.exception(exc)
+            self.log.exception(exc)
             raise exc
         finally:
             self.status_controller.finish(WatchdogStatusTypes.POLL)

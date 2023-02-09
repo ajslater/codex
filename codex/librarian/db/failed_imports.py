@@ -34,8 +34,8 @@ class FailedImportsMixin(QueuedThread):
                 fi.set_stat()
                 fi.updated_at = now
             except Exception as exc:
-                self.logger.error(f"Error preparing failed import update for {fi.path}")
-                self.logger.exception(exc)
+                self.log.error(f"Error preparing failed import update for {fi.path}")
+                self.log.exception(exc)
 
         if update_failed_imports:
             count = FailedImport.objects.bulk_update(
@@ -47,7 +47,7 @@ class FailedImportsMixin(QueuedThread):
             level = logging.INFO
         else:
             level = logging.DEBUG
-        self.logger.log(level, f"Updated {count} old comics in failed imports.")
+        self.log.log(level, f"Updated {count} old comics in failed imports.")
 
     def _bulk_create_failed_imports(self, library, failed_imports) -> bool:
         """Bulk create failed imports."""
@@ -62,10 +62,8 @@ class FailedImportsMixin(QueuedThread):
                     fi.set_stat()
                     create_failed_imports.append(fi)
                 except Exception as exc:
-                    self.logger.error(
-                        f"Error preparing failed import create for {path}"
-                    )
-                    self.logger.exception(exc)
+                    self.log.error(f"Error preparing failed import create for {path}")
+                    self.log.exception(exc)
             if create_failed_imports:
                 FailedImport.objects.bulk_create(create_failed_imports)
             count = len(create_failed_imports)
@@ -73,7 +71,7 @@ class FailedImportsMixin(QueuedThread):
                 level = logging.INFO
             else:
                 level = logging.DEBUG
-            self.logger.log(level, f"Added {count} comics to failed imports.")
+            self.log.log(level, f"Added {count} comics to failed imports.")
             return bool(count)
         finally:
             self.status_controller.finish(ImportStatusTypes.CREATE_FAILED_IMPORTS)
@@ -82,7 +80,7 @@ class FailedImportsMixin(QueuedThread):
         """Remove FailedImport objects that have since succeeded."""
         try:
             self.status_controller.start(ImportStatusTypes.CLEAN_FAILED_IMPORTS)
-            self.logger.debug("Cleaning up failed imports...")
+            self.log.debug("Cleaning up failed imports...")
             failed_import_paths = FailedImport.objects.filter(
                 library=library
             ).values_list("path", flat=True)
@@ -111,11 +109,9 @@ class FailedImportsMixin(QueuedThread):
                 .delete()
             )
             if count:
-                self.logger.info(
-                    f"Cleaned up {count} failed imports from {library.path}"
-                )
+                self.log.info(f"Cleaned up {count} failed imports from {library.path}")
             else:
-                self.logger.debug("No failed imports to clean up.")
+                self.log.debug("No failed imports to clean up.")
         finally:
             self.status_controller.finish(ImportStatusTypes.CLEAN_FAILED_IMPORTS)
 
@@ -129,5 +125,5 @@ class FailedImportsMixin(QueuedThread):
             )
             self._bulk_cleanup_failed_imports(library)
         except Exception as exc:
-            self.logger.exception(exc)
+            self.log.exception(exc)
         return new_failed_imports

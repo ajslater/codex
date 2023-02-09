@@ -20,7 +20,7 @@ from watchdog.events import (
 
 from codex.librarian.db.tasks import UpdaterDBDiffTask
 from codex.librarian.watchdog.tasks import WatchdogEventTask
-from codex.settings.logging import get_logger
+from codex.logger_base import LoggerBaseMixin
 from codex.settings.settings import MAX_DB_OPS
 from codex.threads import AggregateMessageQueuedThread
 
@@ -76,7 +76,7 @@ class EventBatcher(AggregateMessageQueuedThread):
         event = task.event
         args_field = self._args_field_by_event(task.library_id, event)
         if args_field is None:
-            self.logger.debug(f"Unhandled event, not batching: {event}")
+            self.log.debug(f"Unhandled event, not batching: {event}")
             return
 
         if event.event_type == EVENT_TYPE_MOVED:
@@ -85,7 +85,7 @@ class EventBatcher(AggregateMessageQueuedThread):
             args_field.add(event.src_path)
         self._total_items += 1
         if self._total_items > MAX_DB_OPS:
-            self.logger.info("Event batcher hit max_db_ops limit.")
+            self.log.info("Event batcher hit max_db_ops limit.")
             # Sends all items
             self.timed_out()
 
@@ -134,7 +134,7 @@ class EventBatcher(AggregateMessageQueuedThread):
         self._total_items = 0
 
 
-class CodexLibraryEventHandler(FileSystemEventHandler):
+class CodexLibraryEventHandler(FileSystemEventHandler, LoggerBaseMixin):
     """Handle watchdog events for comics in a library."""
 
     def __init__(self, library, *args, **kwargs):
@@ -142,7 +142,7 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
         self.library_pk = library.pk
         self.librarian_queue = kwargs.pop("librarian_queue")
         log_queue = kwargs.pop("log_queue")
-        self.logger = get_logger(self.__class__.__name__, log_queue)
+        self.init_logger(log_queue)
         super().__init__(*args, **kwargs)
 
     def dispatch(self, event):
@@ -173,5 +173,5 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
             self.librarian_queue.put(task)
             super().dispatch(event)
         except Exception as exc:
-            self.logger.error(f"Error in {self.__class__.__name__}")
-            self.logger.exception(exc)
+            self.log.error(f"Error in {self.__class__.__name__}")
+            self.log.exception(exc)

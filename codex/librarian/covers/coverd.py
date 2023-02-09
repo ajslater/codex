@@ -31,4 +31,4 @@ class CoverCreator(CoverCreateMixin, CoverPurgeMixin):
         elif isinstance(task, CoverRemoveOrphansTask):
             self.cleanup_orphan_covers()
         else:
-            self.logger.error(f"Bad task sent to {self.NAME}: {task}")
+            self.log.error(f"Bad task sent to {self.NAME}: {task}")

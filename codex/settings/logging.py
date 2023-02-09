@@ -30,7 +30,14 @@ class CodexDjangoQueueHandler(QueueHandler):
 def get_logger(name=None, queue=LOG_QUEUE):
     """Pacify pyright."""
     logger = logging.getLogger(name)
-    handler = CodexDjangoQueueHandler(queue)
-    logger.addHandler(handler)
+    if len(logger.handlers) == 1:
+        handler = logger.handlers[0]
+        if isinstance(handler, QueueHandler) and handler.queue != queue:
+            logger.handlers.clear()
+    elif len(logger.handlers) > 1:
+        logger.handlers.clear()
+    if not logger.handlers:
+        handler = CodexDjangoQueueHandler(queue)
+        logger.addHandler(handler)
     logger.setLevel(LOGLEVEL)
     return logger

@@ -56,7 +56,7 @@ class Updater(
                 # second time around or more
                 time.sleep(wait_time)
                 wait_time = wait_time**2
-                self.logger.debug(
+                self.log.debug(
                     f"Waiting for files to copy before import: "
                     f"{old_total_size} != {total_size}"
                 )
@@ -114,7 +114,7 @@ class Updater(
         return changed, imported_count, bool(new_failed_imports)
 
     def _log_task(self, path, task):
-        if self.logger.getEffectiveLevel() < logging.DEBUG:
+        if self.log.getEffectiveLevel() < logging.DEBUG:
             return
         dirs_log = []
         if task.dirs_moved:
@@ -133,15 +133,15 @@ class Updater(
         if task.files_deleted:
             comics_log += [f"{len(task.files_deleted)} deleted"]
 
-        self.logger.debug(f"Updating library {path}...")
+        self.log.debug(f"Updating library {path}...")
         if comics_log:
             log = "Comics: "
             log += ", ".join(comics_log)
-            self.logger.debug("  " + log)
+            self.log.debug("  " + log)
         if dirs_log:
             log = "Folders: "
             log += ", ".join(dirs_log)
-            self.logger.debug("  " + log)
+            self.log.debug("  " + log)
 
     def _init_librarian_status(self, task, path):
         """Update the librarian status tasks."""
@@ -197,7 +197,7 @@ class Updater(
             library.save()
             too_long = self._wait_for_filesystem_ops_to_finish(task)
             if too_long:
-                self.logger.warning(
+                self.log.warning(
                     "Import apply waited for the filesystem to stop changing too long. "
                     "Try polling again once files have finished copying."
                 )
@@ -230,12 +230,12 @@ class Updater(
             self.librarian_queue.put(LIBRARY_CHANGED_TASK)
             elapsed_time = datetime.now() - start_time
             elapsed = naturaldelta(elapsed_time)
-            self.logger.info(f"Updated library {library.path} in {elapsed}.")
+            self.log.info(f"Updated library {library.path} in {elapsed}.")
             suffix = ""
             if imported_count:
                 cps = int(imported_count / elapsed_time.total_seconds())
                 suffix = f" at {cps} comics per second."
-            self.logger.info(f"Imported {imported_count} comics{suffix}.")
+            self.log.info(f"Imported {imported_count} comics{suffix}.")
         if new_failed_imports:
             self.librarian_queue.put(
                 FAILED_IMPORTS_TASK
@@ -248,4 +248,4 @@ class Updater(
         elif isinstance(task, AdoptOrphanFoldersTask):
             self.adopt_orphan_folders()
         else:
-            self.logger.warning(f"Bad task sent to library updater {task}")
+            self.log.warning(f"Bad task sent to library updater {task}")
