@@ -10,7 +10,6 @@ from channels.routing import ProtocolTypeRouter, URLRouter
 from django.core.asgi import get_asgi_application
 from django.urls import path, re_path
 
-from codex.applications.channel import channel_application
 from codex.applications.lifespan import LifespanApplication
 from codex.applications.websocket import ROOT_PREFIX, websocket_application
 from codex.consumers.send import SendConsumer
@@ -28,6 +27,5 @@ application = ProtocolTypeRouter(
         ),
         "websocket": websocket_application,
         "lifespan": LifespanApplication(),
-        "channel": channel_application,
     }
 )
