@@ -25,19 +25,12 @@ class CodexQueueHandler(QueueHandler):
 LOG_HANDLER = CodexQueueHandler(LOG_QUEUE)
 
 
-def get_logger(name=None, queue=LOG_QUEUE):
-    """Get the logger with only one handler."""
-    logger = logging.getLogger(name)
-    logger.setLevel(LOGLEVEL)
-
-    keep = None
-    for handler in logger.handlers:
-        if getattr(handler, "queue", None) == queue:
-            keep = handler
-            break
-
-    for handler in logger.handlers:
-        if handler != keep:
+def _ensure_proper_handler(logger, queue):
+    """Ensure we only have one correct handler."""
+    # keep = None
+    old_handlers = logger.handlers
+    for handler in old_handlers:
+        if getattr(handler, "queue", None) != queue:
             logger.removeHandler(handler)
 
     if not logger.handlers:
@@ -46,4 +39,12 @@ def get_logger(name=None, queue=LOG_QUEUE):
         else:
             handler = CodexQueueHandler(queue)
         logger.addHandler(handler)
+
+
+def get_logger(name=None, queue=LOG_QUEUE):
+    """Get the logger with only one handler."""
+    logger = logging.getLogger(name)
+    logger.setLevel(LOGLEVEL)
+    logger.propagate = False
+    _ensure_proper_handler(logger, queue)
     return logger
