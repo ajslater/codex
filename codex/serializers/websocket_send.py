@@ -1,4 +1,9 @@
-from rest_framework.serializers import CharField, ChoiceField, Serializer, ValidationError
+from rest_framework.serializers import (
+    CharField,
+    ChoiceField,
+    Serializer,
+    ValidationError,
+)
 
 from codex.consumers.notifier import Channels
 from codex.serializers.choices import WEBSOCKET_MESSAGES
