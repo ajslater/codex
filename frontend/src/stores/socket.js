@@ -39,7 +39,7 @@ export const useSocketStore = defineStore("socket", {
       this.heartBeatTimer = window.setInterval(() => {
         try {
           this.isConnected &&
-            this.app.config.globalProperties.$socket.send("{}");
+            this.app.config.globalProperties.$socket.send("");
         } catch (error) {
           console.warn("keep-alive", error);
         }
@@ -90,23 +90,6 @@ export const useSocketStore = defineStore("socket", {
       console.error("socket reconnect error");
       this.reconnectError = true;
     },
-    /*
-    sendSubscribe() {
-      // const app = getCurrentInstance().appContext;
-      const ws = this.app.config.globalProperties.$socket;
-      if (!ws || ws.readyState !== 1) {
-        console.debug("No ready socket. Not subscribing to notifications.");
-        return;
-      }
-      const authStore = useAuthStore();
-      const msg = {
-        type: "subscribe",
-        register: authStore.isCodexViewable,
-        admin: authStore.isUserAdmin,
-      };
-      ws.send(JSON.stringify(msg));
-    },
-    */
   },
 });
 
