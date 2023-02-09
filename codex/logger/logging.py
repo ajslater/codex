@@ -1,5 +1,4 @@
 """Logging classes."""
-# TODO move to codex/logger
 import logging
 
 from logging.handlers import QueueHandler
