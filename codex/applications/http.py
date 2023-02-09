@@ -9,7 +9,7 @@ from codex.consumers.send import SendConsumer
 
 HTTP_APPLICATION = URLRouter(
     [
-        path(f"{ROOT_PREFIX}send", SendConsumer().as_asgi()),  # type: ignore
+        path(f"{ROOT_PREFIX}channels", SendConsumer().as_asgi()),  # type: ignore
         re_path(r"", get_asgi_application()),  # type: ignore
     ]
 )

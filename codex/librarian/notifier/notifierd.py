@@ -12,7 +12,27 @@ class NotifierThread(AggregateMessageQueuedThread):
     """Aggregates messages preventing floods and sends messages to clients."""
 
     NAME = "Notifier"  # type: ignore
-    URL = f"http://localhost:9810{HYPERCORN_CONFIG.root_path}/send"
+
+    @staticmethod
+    def _get_bridge_url():
+        """Determine the channels http bridge url."""
+        host = "localhost"
+        port = "9180"
+        for bind in HYPERCORN_CONFIG.bind:
+            host, port = bind.split(":")
+            if host == "0.0.0.0":
+                host = "localhost"
+            if host != "localhost":
+                # use the first non-localhost bind
+                # but if there's only one bind, then use that.
+                break
+        prefix = HYPERCORN_CONFIG.root_path
+        return f"http://{host}:{port}{prefix}/channels"
+
+    def __init__(self, *args, **kwargs):
+        """Initialize local send url."""
+        super().__init__(*args, **kwargs)
+        self._BRIDGE_URL = self._get_bridge_url()
 
     def aggregate_items(self, task):
         """Aggregate messages into cache."""
@@ -26,7 +46,7 @@ class NotifierThread(AggregateMessageQueuedThread):
 
     def _send_http(self, group, text):
         data = self._render_message(group, text)
-        rq = request.Request(self.URL, data=data)
+        rq = request.Request(self._BRIDGE_URL, data=data)
         with request.urlopen(rq) as response:
             self.log.debug(
                 f"NotifierThread HTTP Response: {response.status} {response.reason}"
