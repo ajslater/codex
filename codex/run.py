@@ -14,20 +14,12 @@ from codex.librarian.janitor.janitor import Janitor
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.logger.log_queue import LOG_QUEUE
 from codex.settings.logging import get_logger
-from codex.settings.settings import BACKUP_DB_PATH, DEBUG, HYPERCORN_CONFIG
+from codex.settings.settings import BACKUP_DB_PATH, HYPERCORN_CONFIG
 from codex.signals.os_signals import RESTART_EVENT, SHUTDOWN_EVENT, bind_signals
 from codex.version import VERSION
 
 
 LOG = get_logger(__name__)
-
-
-def set_env():
-    """Set environment variables."""
-    # TODO move this away
-    if DEBUG:
-        os.environ["PYTHONDONTWRITEBYTECODE"] = "YES"
-        LOG.setLevel("DEBUG")
 
 
 def backup_db_before_migration():
@@ -70,7 +62,6 @@ def run():
 def main():
     """Set up and run Codex."""
     LOG.info(f"Running Codex v{VERSION}")
-    set_env()
     rebuild_db()
     repair_db()
     backup_db_before_migration()
