@@ -20,7 +20,7 @@ class CoverCreator(CoverCreateMixin, CoverPurgeMixin):
         """Run the creator."""
         if isinstance(task, NewCoverCreateTask):
             self.new_create_cover(task.pk)
-        if isinstance(task, CoverCreateTask):
+        elif isinstance(task, CoverCreateTask):  # TODO does not exist anymore?
             self.create_comic_cover(task.path, task.data)
         elif isinstance(task, CoverBulkCreateTask):
             self.bulk_create_comic_covers(task.comic_pks)
