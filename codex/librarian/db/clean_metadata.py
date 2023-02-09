@@ -212,7 +212,7 @@ class CleanMetadataMixin(QueuedThread):
                 cleaned_name = cls._clean_charfield(name, field)
                 if cleaned_name:
                     cleaned_names.append(cleaned_name)
-            return cleaned_names
+            md[key] = cleaned_names
 
     @staticmethod
     def _allowed_keys(dirty_md: dict[str, Any]) -> dict[str, Any]:
