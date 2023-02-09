@@ -19,7 +19,7 @@ from django.contrib.staticfiles.storage import staticfiles_storage
 from tzlocal import get_localzone_name
 
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
-from codex.logger.log_queue import LOG_QUEUE
+from codex.logger.mp_queue import LOG_QUEUE
 from codex.settings.hypercorn import load_hypercorn_config
 from codex.settings.secret_key import get_secret_key
 

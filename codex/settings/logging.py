@@ -5,7 +5,7 @@ import logging
 from logging.handlers import QueueHandler
 from os import environ
 
-from codex.logger.log_queue import LOG_QUEUE
+from codex.logger.mp_queue import LOG_QUEUE
 from codex.settings.settings import LOGLEVEL
 
 
