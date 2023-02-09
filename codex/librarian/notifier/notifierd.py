@@ -4,7 +4,7 @@ from urllib import request
 from rest_framework.renderers import JSONRenderer
 
 from codex.serializers.websocket_send import SendSerializer
-from codex.settings.settings import HYPERCORN_CONFIG
+from codex.settings.settings import HYPERCORN_CONFIG, SECRET_KEY
 from codex.threads import AggregateMessageQueuedThread
 
 
@@ -20,7 +20,7 @@ class NotifierThread(AggregateMessageQueuedThread):
 
     @staticmethod
     def _render_message(group, text):
-        data_dict = {"group": group.value, "text": text}
+        data_dict = {"group": group.value, "text": text, "secret_key": SECRET_KEY}
         serializer = SendSerializer(data_dict)
         return JSONRenderer().render(serializer.data)
 
