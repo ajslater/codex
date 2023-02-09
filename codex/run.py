@@ -24,6 +24,7 @@ LOG = get_logger(__name__)
 
 def set_env():
     """Set environment variables."""
+    # TODO move this away
     if DEBUG:
         os.environ["PYTHONDONTWRITEBYTECODE"] = "YES"
         LOG.setLevel("DEBUG")
@@ -39,13 +40,6 @@ def backup_db_before_migration():
     janitor.backup_db(backup_path)
 
 
-def update_db():
-    """Update the db to latest migrations."""
-    if DEBUG:
-        call_command("makemigrations", "codex")
-    call_command("migrate")
-
-
 def restart():
     """Restart this process."""
     import sys
@@ -58,6 +52,7 @@ def run():
     """Run Codex."""
     # configure the loop
     LOG.info(f"root_path: {HYPERCORN_CONFIG.root_path}")
+    # TODO try to replace with wrapping serve in a bind, then serve coroutine.
     loop = new_event_loop()
     bind_signals(loop)
     loop.run_until_complete(
@@ -79,7 +74,7 @@ def main():
     rebuild_db()
     repair_db()
     backup_db_before_migration()
-    update_db()
+    call_command("migrate")
     run()
 
 
