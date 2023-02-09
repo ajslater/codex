@@ -1,6 +1,5 @@
 """Covers Tasks."""
 from dataclasses import dataclass
-from pathlib import Path
 
 
 @dataclass
@@ -11,18 +10,10 @@ class CoverTask:
 
 
 @dataclass
-class NewCoverCreateTask(CoverTask):
-    """Create one comic cover."""
-
-    pk: int
-
-
-@dataclass
 class CoverCreateTask(CoverTask):
     """Create one comic cover."""
 
-    path: Path
-    data: bytes
+    pk: int
 
 
 @dataclass

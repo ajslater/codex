@@ -10,7 +10,7 @@ from rest_framework.renderers import BaseRenderer
 from rest_framework.views import APIView
 
 from codex.librarian.covers.path import CoverPathMixin
-from codex.librarian.covers.tasks import NewCoverCreateTask
+from codex.librarian.covers.tasks import CoverCreateTask
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.views.mixins import GroupACLMixin
 
@@ -33,8 +33,9 @@ class CoverView(APIView, GroupACLMixin):
 
     renderer_classes = (WEBPRenderer,)
     content_type = "image/webp"
-    RENDER_WAIT_TIME = 0.002
-    WAIT_BACKOFF_POWER = math.log(2)
+    _RENDER_WAIT_TIME = 0.002
+    _WAIT_BACKOFF_POWER = math.log(2)
+    _COVER_TIMEOUT = 90
 
     @extend_schema(responses={(200, content_type): OpenApiTypes.BINARY})
     def get(self, request, *args, **kwargs):
@@ -44,22 +45,22 @@ class CoverView(APIView, GroupACLMixin):
         cover_path = CoverPathMixin.get_cover_path(pk)
         if not cover_path.exists():
             # task, exc = create_cover(pk, cover_path)
-            task = NewCoverCreateTask(pk)
+            task = CoverCreateTask(pk)
             LIBRARIAN_QUEUE.put(task)
             # TODO best thing to here would be to wait and call back when it's written.
             # launch checker tasks with browser and metadata. not this.
             #   browser sends bulk create to librarian.
             # TODO for now just wait:
             elapsed = 0
-            wait_time = self.RENDER_WAIT_TIME
+            wait_time = self._RENDER_WAIT_TIME
             start = time()
             while not cover_path.exists():
                 sleep(wait_time)  # TODO time the average and minimum
                 # TODO try again with browser pre-job?
                 elapsed = time() - start
-                if elapsed >= 3:
+                if elapsed >= self._COVER_TIMEOUT:
                     cover_path = CoverPathMixin.MISSING_COVER_PATH
-                wait_time = wait_time**self.WAIT_BACKOFF_POWER
+                wait_time = wait_time**self._WAIT_BACKOFF_POWER
             print(f"cover view {pk} took {elapsed} seconds")
 
         # if not thumb_image_data:

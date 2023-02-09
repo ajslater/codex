@@ -39,55 +39,48 @@ class CoverCreateMixin(CoverPathMixin):
             thumb_image_data = cover_thumb_buffer.getvalue()
         return thumb_image_data
 
-    def create_cover(self, pk):
+    def _get_comic_cover_image(self, comic):
         """
         Create comic cover if none exists.
 
         Return image thumb data or path to missing file thumb.
         """
-        thumb_image_data = None
-        comic_path = None
+        if comic.file_format == Comic.FileFormat.PDF:
+            car_class = PDF
+        else:
+            car_class = ComicArchive
+        with car_class(comic.path, config=COMICBOX_CONFIG) as car:
+            image_data = car.get_cover_image()
+        if not image_data:
+            raise ValueError("Read empty cover.")
+        return image_data
+
+    def create_cover(self, pk):
+        """Create a cover from a comic id."""
+        start = time.time()
+        cover_path = self.get_cover_path(pk)
+        comic = None
         try:
             comic = Comic.objects.only("path", "file_format").get(pk=pk)
-            comic_path = comic.path
-            if comic.file_format == Comic.FileFormat.PDF:
-                car_class = PDF
-            else:
-                car_class = ComicArchive
-            with car_class(comic.path, config=COMICBOX_CONFIG) as car:
-                image_data = car.get_cover_image()
-            if not image_data:
-                raise ValueError("Read empty cover.")
-            thumb_image_data = self._create_cover_thumbnail(image_data)
+            cover_image = self._get_comic_cover_image(comic)
+            data = self._create_cover_thumbnail(cover_image)
         except Exception as exc:
-            if not comic_path:
-                comic_path = f"{pk=}"
-            thumb_image_data = bytes()
-            self.log.warning(
-                f"Could not create cover thumbnail for {comic_path}: {exc}"
-            )
-        return thumb_image_data
+            data = bytes()
+            comic_str = comic.path if comic else f"{pk=}"
+            self.log.warning(f"Could not create cover thumbnail for {comic_str}: {exc}")
 
-    def create_comic_cover(self, cover_path, data):
-        """Save image data to a cover path."""
         cover_path.parent.mkdir(exist_ok=True, parents=True)
         if data:
             with cover_path.open("wb") as cover_file:
                 cover_file.write(data)
         else:
             cover_path.symlink_to(self.MISSING_COVER_PATH)
-
-    def new_create_cover(self, pk):
-        """Create a cover from a comic id."""
-        start = time.time()
-        cover_path = self.get_cover_path(pk)
-        data = self.create_cover(pk)
-        self.create_comic_cover(cover_path, data)
         elapsed = time.time() - start
         print(f"CREATED {pk} in {elapsed} seconds")
 
     def bulk_create_comic_covers(self, comic_pks):
         """Create bulk comic covers."""
+        # XXX Unused
         try:
             num_comics = len(comic_pks)
             if not num_comics:
@@ -107,7 +100,7 @@ class CoverCreateMixin(CoverPathMixin):
                     num_comics -= 1
                 else:
                     # bulk creator creates covers inline
-                    self.new_create_cover(pk)
+                    self.create_cover(pk)
                     count += 1
 
                 # notify the frontend every 10 seconds

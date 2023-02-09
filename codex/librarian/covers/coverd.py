@@ -7,7 +7,6 @@ from codex.librarian.covers.tasks import (
     CoverRemoveAllTask,
     CoverRemoveOrphansTask,
     CoverRemoveTask,
-    NewCoverCreateTask,
 )
 
 
@@ -18,10 +17,8 @@ class CoverCreator(CoverCreateMixin, CoverPurgeMixin):
 
     def process_item(self, task):
         """Run the creator."""
-        if isinstance(task, NewCoverCreateTask):
-            self.new_create_cover(task.pk)
-        elif isinstance(task, CoverCreateTask):  # TODO does not exist anymore?
-            self.create_comic_cover(task.path, task.data)
+        if isinstance(task, CoverCreateTask):
+            self.create_cover(task.pk)
         elif isinstance(task, CoverBulkCreateTask):
             self.bulk_create_comic_covers(task.comic_pks)
         elif isinstance(task, CoverRemoveAllTask):
