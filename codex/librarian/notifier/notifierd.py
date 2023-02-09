@@ -3,9 +3,9 @@ from urllib import request
 
 from rest_framework.renderers import JSONRenderer
 
+from codex.serializers.websocket_send import SendSerializer
 from codex.settings.settings import HYPERCORN_CONFIG
 from codex.threads import AggregateMessageQueuedThread
-from codex.serializers.websocket_send import SendSerializer
 
 
 class NotifierThread(AggregateMessageQueuedThread):
@@ -18,16 +18,19 @@ class NotifierThread(AggregateMessageQueuedThread):
         """Aggregate messages into cache."""
         self.cache[task.text] = task
 
-    def _send_http(self, group, text):
+    @staticmethod
+    def _render_message(group, text):
         data_dict = {"group": group.value, "text": text}
         serializer = SendSerializer(data_dict)
-        data = JSONRenderer().render(serializer.data)
-        print("Notifier._send_http:", data)
-        # TODO root_path
+        return JSONRenderer().render(serializer.data)
 
+    def _send_http(self, group, text):
+        data = self._render_message(group, text)
         rq = request.Request(self.URL, data=data)
         with request.urlopen(rq) as response:
-            print("NotifierThread HTTP Response:", response.status, response.reason)
+            self.logger.debug(
+                f"NotifierThread HTTP Response: {response.status} {response.reason}"
+            )
 
     def send_all_items(self):
         """Send all messages waiting in the message cache to client."""
@@ -35,7 +38,10 @@ class NotifierThread(AggregateMessageQueuedThread):
             return
         sent_keys = set()
         for task in self.cache.values():
-            self._send_http(task.type, task.text)
+            try:
+                self._send_http(task.type, task.text)
+            except Exception as exc:
+                self.logger.exception(exc)
 
             sent_keys.add(task.text)
         self.cleanup_cache(sent_keys)
