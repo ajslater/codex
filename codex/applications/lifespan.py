@@ -7,8 +7,8 @@ from django.db.models.functions import Now
 
 from codex.librarian.librariand import LibrarianDaemon
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
-from codex.logger.mp_queue import LOG_QUEUE
 from codex.logger.loggerd import Logger
+from codex.logger.mp_queue import LOG_QUEUE
 from codex.logger_base import LoggerBaseMixin
 from codex.models import AdminFlag, LibrarianStatus, Library, Timestamp
 from codex.settings.patch import patch_registration_setting

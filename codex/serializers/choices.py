@@ -11,7 +11,7 @@ import re
 
 from pathlib import Path
 
-from codex.settings.logging import get_logger
+from codex.logger.logging import get_logger
 from codex.settings.settings import BUILD, DEBUG, STATIC_ROOT
 
 

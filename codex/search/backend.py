@@ -16,7 +16,7 @@ from whoosh.support.charset import accent_map
 from whoosh.writing import AsyncWriter
 
 from codex.librarian.search.status import SearchIndexStatusTypes
-from codex.settings.logging import get_logger
+from codex.logger.logging import get_logger
 from codex.worker_base import WorkerBaseMixin
 
 

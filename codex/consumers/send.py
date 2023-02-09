@@ -7,8 +7,8 @@ from rest_framework.exceptions import NotAuthenticated, ValidationError
 from rest_framework.parsers import JSONParser
 
 from codex.consumers.notifier import Channels
+from codex.logger.logging import get_logger
 from codex.serializers.websocket_send import SendSerializer
-from codex.settings.logging import get_logger
 
 
 LOG = get_logger(__name__)

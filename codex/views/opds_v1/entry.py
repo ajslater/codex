@@ -7,7 +7,7 @@ from decimal import Decimal
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import reverse
 
-from codex.settings.logging import get_logger
+from codex.logger.logging import get_logger
 from codex.views.opds_v1.util import (
     BLANK_TITLE,
     MimeType,

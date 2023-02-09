@@ -13,9 +13,9 @@ from rest_framework.serializers import (
     ValidationError,
 )
 
+from codex.logger.logging import get_logger
 from codex.models import AdminFlag, FailedImport, Library
 from codex.serializers.choices import CHOICES
-from codex.settings.logging import get_logger
 
 
 LOG = get_logger(__name__)

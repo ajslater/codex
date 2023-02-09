@@ -9,8 +9,8 @@ import requests
 from comicbox.config import get_config
 from django.utils import timezone
 
+from codex.logger.logging import get_logger
 from codex.models import Timestamp
-from codex.settings.logging import get_logger
 
 
 PACKAGE_NAME = "codex"

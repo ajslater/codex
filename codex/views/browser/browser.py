@@ -15,6 +15,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
 from codex.exceptions import SeeOtherRedirectError
+from codex.logger.logging import get_logger
 from codex.models import (
     AdminFlag,
     Comic,
@@ -36,7 +37,6 @@ from codex.serializers.opds_v1 import (
     OPDS_FOLDERS_ORDERED_UNIONFIX_VALUES_MAP,
     OPDS_M2M_FIELDS,
 )
-from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_annotations import BrowserAnnotationsView
 

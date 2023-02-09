@@ -6,13 +6,13 @@ from djangorestframework_camel_case.util import camel_to_underscore
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
+from codex.logger.logging import get_logger
 from codex.models import Comic, CreditPerson
 from codex.serializers.browser import (
     BrowserChoicesSerializer,
     BrowserFilterChoicesSerializer,
 )
 from codex.serializers.models import PyCountrySerializer
-from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.base import BrowserBaseView
 

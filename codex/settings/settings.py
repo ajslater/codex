@@ -9,58 +9,40 @@ https://docs.djangoproject.com/en/dev/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/dev/ref/settings/
 """
-import logging
-import os
-import re
 
+from os import environ
 from pathlib import Path
 
 from django.contrib.staticfiles.storage import staticfiles_storage
-from tzlocal import get_localzone_name
 
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.logger.mp_queue import LOG_QUEUE
 from codex.settings.hypercorn import load_hypercorn_config
+from codex.settings.logging import get_loglevel
 from codex.settings.secret_key import get_secret_key
+from codex.settings.timezone import get_time_zone
+from codex.settings.whitenoise import immutable_file_test
 
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+# Base paths
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 CODEX_PATH = BASE_DIR / "codex"
-CONFIG_PATH = Path(os.environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
+CONFIG_PATH = Path(environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
 CONFIG_PATH.mkdir(exist_ok=True, parents=True)
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = get_secret_key(CONFIG_PATH)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = bool(os.environ.get("DEBUG", "").lower() not in ("0", "false", ""))
+DEBUG = bool(environ.get("DEBUG", "").lower() not in ("0", "false", ""))
 
-RESET_ADMIN = bool(os.environ.get("CODEX_RESET_ADMIN"))
+RESET_ADMIN = bool(environ.get("CODEX_RESET_ADMIN"))
 
-
-#
 # Logging
-#
-def get_loglevel():
-    """Get the loglevel for the environment."""
-    loglevel = os.environ.get("LOGLEVEL")
-    if loglevel:
-        if loglevel == "VERBOSE":
-            print(
-                "LOGLEVEL=VERBOSE has been deprecated. Use INFO (the default) or DEBUG."
-            )
-            loglevel = logging.INFO
-        return loglevel
-    elif DEBUG:
-        log_level = logging.DEBUG
-    else:
-        log_level = logging.INFO
-    return log_level
-
-
-LOGLEVEL = get_loglevel()
-LOG_DIR = Path(os.environ.get("CODEX_LOG_DIR", CONFIG_PATH / "logs"))
+LOGLEVEL = get_loglevel(DEBUG)
+LOG_DIR = Path(environ.get("CODEX_LOG_DIR", CONFIG_PATH / "logs"))
+LOG_TO_CONSOLE = environ.get("CODEX_LOG_TO_CONSOLE") != "0"
+LOG_TO_FILE = environ.get("CODEX_LOG_TO_FILE") != "0"
 
 ALLOWED_HOSTS = ["*"]
 
@@ -175,13 +157,8 @@ AUTH_PASSWORD_VALIDATORS = [
 LANGUAGE_CODE = "en-us"
 USE_I18N = True
 USE_TZ = True
-TZ = os.environ.get("TIMEZONE", os.environ.get("TZ"))
-if TZ and not TZ.startswith(":") and "etc/localtime" not in TZ and "/" in TZ:
-    TIME_ZONE = TZ
-elif get_localzone_name():
-    TIME_ZONE = get_localzone_name()
-else:
-    TIME_ZONE = "Etc/UTC"
+TZ = environ.get("TIMEZONE", environ.get("TZ"))
+TIME_ZONE = get_time_zone(TZ)
 
 # Hypercorn
 HYPERCORN_CONFIG_TOML = CONFIG_PATH / "hypercorn.toml"
@@ -192,18 +169,10 @@ HYPERCORN_CONFIG, MAX_DB_OPS = load_hypercorn_config(
 PORT = int(HYPERCORN_CONFIG.bind[0].split(":")[1])
 
 
-def immutable_file_test(_path, url):
-    """For django-vite."""
-    # Match filename with 12 hex digits before the extension
-    # e.g. app.db8f2edc0c8a.js
-    return re.match(r"^.+\.[0-9a-f]{8,12}\..+$", url)
-
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/dev/howto/static-files/
 # WHITENOISE_KEEP_ONLY_HASHED_FILES is not usable with vite chunking
 WHITENOISE_STATIC_PREFIX = "static/"
-
 WHITENOISE_IMMUTABLE_FILE_TEST = immutable_file_test
 STATIC_ROOT = CODEX_PATH / "static_root"
 if HYPERCORN_CONFIG.root_path:
@@ -212,7 +181,7 @@ else:
     STATIC_URL = WHITENOISE_STATIC_PREFIX
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 STATICFILES_DIRS = []
-BUILD = os.environ.get("BUILD", False)
+BUILD = environ.get("BUILD", False)
 if DEBUG or BUILD:
     STATIC_SRC = CODEX_PATH / "static_src"
     STATIC_SRC.mkdir(exist_ok=True, parents=True)

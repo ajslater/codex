@@ -5,8 +5,7 @@ from logging.handlers import QueueListener, RotatingFileHandler
 
 from colors import color
 
-from codex.settings.logging import LOG_TO_CONSOLE, LOG_TO_FILE
-from codex.settings.settings import LOG_DIR
+from codex.settings.settings import LOG_DIR, LOG_TO_CONSOLE, LOG_TO_FILE
 
 
 class ColorFormatter(logging.Formatter):

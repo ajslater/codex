@@ -24,11 +24,11 @@ from codex.librarian.search.tasks import (
     SearchIndexUpdateTask,
 )
 from codex.librarian.watchdog.tasks import WatchdogPollLibrariesTask, WatchdogSyncTask
+from codex.logger.logging import get_logger
 from codex.models import LibrarianStatus, Library
 from codex.serializers.admin import AdminLibrarianTaskSerializer
 from codex.serializers.mixins import OKSerializer
 from codex.serializers.models import LibrarianStatusSerializer
-from codex.settings.logging import get_logger
 
 
 LOG = get_logger(__name__)

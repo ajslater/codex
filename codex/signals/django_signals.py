@@ -5,7 +5,7 @@ from django.db.models.signals import m2m_changed
 
 from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
-from codex.settings.logging import get_logger
+from codex.logger.logging import get_logger
 
 
 def _activate_wal_journal(sender, connection, **kwargs):  # noqa: F841

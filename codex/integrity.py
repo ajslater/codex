@@ -12,7 +12,7 @@ from django.db.migrations.recorder import MigrationRecorder
 from django.db.models.functions import Now
 from django.db.utils import OperationalError
 
-from codex.settings.logging import get_logger
+from codex.logger.logging import get_logger
 from codex.settings.settings import CODEX_PATH, CONFIG_PATH, DB_PATH
 
 

@@ -3,9 +3,9 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
+from codex.logger.logging import get_logger
 from codex.models import Bookmark, Comic
 from codex.serializers.models import BookmarkFinishedSerializer, BookmarkSerializer
-from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.mixins import GroupACLMixin
 

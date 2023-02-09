@@ -1,43 +1,21 @@
-"""Logging classes."""
-# TODO move to codex/logger
+"""Logging settings functions."""
 import logging
 
-from logging.handlers import QueueHandler
 from os import environ
 
-from codex.logger.mp_queue import LOG_QUEUE
-from codex.settings.settings import LOGLEVEL
 
-
-LOG_TO_CONSOLE = environ.get("CODEX_LOG_TO_CONSOLE") != "0"
-LOG_TO_FILE = environ.get("CODEX_LOG_TO_FILE") != "0"
-
-
-class CodexDjangoQueueHandler(QueueHandler):
-    """Special QueueHandler that removes unpickable elements."""
-
-    def enqueue(self, record):
-        """Remove unserializable element before queueing."""
-        try:
-            # Fixes _pickle.PicklingError: Cannot pickle ResolverMatch.
-            # Somewhere inside request is this unpicklable object.
-            record.__dict__["request"].resolver_match = None
-        except KeyError:
-            pass
-        super().enqueue(record)
-
-
-def get_logger(name=None, queue=LOG_QUEUE):
-    """Pacify pyright."""
-    logger = logging.getLogger(name)
-    if len(logger.handlers) == 1:
-        handler = logger.handlers[0]
-        if isinstance(handler, QueueHandler) and handler.queue != queue:
-            logger.handlers.clear()
-    elif len(logger.handlers) > 1:
-        logger.handlers.clear()
-    if not logger.handlers:
-        handler = CodexDjangoQueueHandler(queue)
-        logger.addHandler(handler)
-    logger.setLevel(LOGLEVEL)
-    return logger
+def get_loglevel(debug):
+    """Get the loglevel for the environment."""
+    loglevel = environ.get("LOGLEVEL")
+    if loglevel:
+        if loglevel == "VERBOSE":
+            print(
+                "LOGLEVEL=VERBOSE has been deprecated. Use INFO (the default) or DEBUG."
+            )
+            loglevel = logging.INFO
+        return loglevel
+    elif debug:
+        log_level = logging.DEBUG
+    else:
+        log_level = logging.INFO
+    return log_level

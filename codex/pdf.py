@@ -11,7 +11,7 @@ from pdf2image.exceptions import PDFInfoNotInstalledError
 from pdfrw import PdfReader, PdfWriter
 from pdfrw.errors import log as pdfrw_log
 
-from codex.settings.logging import get_logger
+from codex.logger.logging import get_logger
 
 
 LOG = get_logger(__name__)

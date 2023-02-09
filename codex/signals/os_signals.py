@@ -3,7 +3,7 @@ import signal
 
 from asyncio import Event
 
-from codex.settings.logging import get_logger
+from codex.logger.logging import get_logger
 
 
 LOG = get_logger(__name__)

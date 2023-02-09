@@ -5,9 +5,9 @@ from django.utils.http import urlencode
 from rest_framework.exceptions import APIException
 from rest_framework.status import HTTP_303_SEE_OTHER
 
+from codex.logger.logging import get_logger
 from codex.serializers.choices import DEFAULTS
 from codex.serializers.redirect import BrowserRedirectSerializer
-from codex.settings.logging import get_logger
 
 
 LOG = get_logger(__name__)

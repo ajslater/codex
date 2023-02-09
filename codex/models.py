@@ -34,8 +34,8 @@ from codex.librarian.db.status import ImportStatusTypes
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.watchdog.status import WatchdogStatusTypes
+from codex.logger.logging import get_logger
 from codex.serializers.choices import CHOICES
-from codex.settings.logging import get_logger
 
 
 LOG = get_logger(__name__)

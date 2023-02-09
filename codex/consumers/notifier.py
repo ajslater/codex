@@ -8,7 +8,7 @@ from channels.exceptions import (
 )
 from channels.generic.websocket import AsyncWebsocketConsumer
 
-from codex.settings.logging import get_logger
+from codex.logger.logging import get_logger
 
 
 Channels = Enum("Channels", "ALL ADMIN")

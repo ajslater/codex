@@ -11,6 +11,7 @@ from rest_framework.viewsets import ModelViewSet
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
 from codex.librarian.watchdog.tasks import WatchdogPollLibrariesTask, WatchdogSyncTask
+from codex.logger.logging import get_logger
 from codex.models import FailedImport, Folder, Library
 from codex.serializers.admin import (
     AdminFolderListSerializer,
@@ -18,7 +19,6 @@ from codex.serializers.admin import (
     FailedImportSerializer,
     LibrarySerializer,
 )
-from codex.settings.logging import get_logger
 
 
 LOG = get_logger(__name__)
