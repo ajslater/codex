@@ -15,14 +15,9 @@ from whoosh.qparser.dateparse import DateParserPlugin
 from whoosh.support.charset import accent_map
 from whoosh.writing import AsyncWriter
 
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.librarian.search.status import SearchIndexStatusTypes
-from codex.logger.log_queue import LOG_QUEUE
 from codex.settings.logging import get_logger
 from codex.worker_base import WorkerBaseMixin
-
-
-LOG = get_logger(__name__)
 
 
 def gen_multipart_field_aliases(field):
@@ -44,13 +39,15 @@ def gen_multipart_field_aliases(field):
 class FILESIZE(NUMERIC):
     """NUMERIC class with humanized filesize parser."""
 
+    LOG = get_logger("FILESIZE")
+
     @staticmethod
     def _parse_size(value):
         """Parse the value for size suffixes."""
         try:
             value = str(parse_size(value))
         except InvalidSize as exc:
-            LOG.debug(exc)
+            FILESIZE.LOG.debug(exc)
         return value
 
     def parse_query(self, fieldname, qstring, boost=1.0):
@@ -113,8 +110,10 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
 
     def __init__(self, connection_alias, **connection_options):
         """Init worker queues."""
+        log_queue = connection_options.get("LOG_QUEUE")
+        librarian_queue = connection_options.get("LIBRARIAN_QUEUE")
+        self.init_worker(log_queue, librarian_queue)
         super().__init__(connection_alias, **connection_options)
-        self.init_worker(LOG_QUEUE, LIBRARIAN_QUEUE)
 
     def build_schema(self, fields):
         """Customize schema fields."""
