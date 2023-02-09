@@ -39,7 +39,7 @@ class CoverCreateMixin(CoverPathMixin):
             thumb_image_data = cover_thumb_buffer.getvalue()
         return thumb_image_data
 
-    def create_cover(self, pk, cover_path):
+    def create_cover(self, pk):
         """
         Create comic cover if none exists.
 
@@ -81,7 +81,7 @@ class CoverCreateMixin(CoverPathMixin):
         """Create a cover from a comic id."""
         start = time.time()
         cover_path = self.get_cover_path(pk)
-        data = self.create_cover(pk, cover_path)
+        data = self.create_cover(pk)
         self.create_comic_cover(cover_path, data)
         elapsed = time.time() - start
         print(f"CREATED {pk} in {elapsed} seconds")
