@@ -10,14 +10,15 @@ from codex.settings.settings import HYPERCORN_CONFIG
 
 # channels is ignorant of root_path
 # https://github.com/django/channels/issues/1973
-_PREFIX = HYPERCORN_CONFIG.root_path[1:] + "/" if HYPERCORN_CONFIG.root_path else ""
+ROOT_PREFIX = HYPERCORN_CONFIG.root_path[1:] + "/" if HYPERCORN_CONFIG.root_path else ""
+
 
 websocket_application = AllowedHostsOriginValidator(
     AuthMiddlewareStack(
         URLRouter(
             [
                 path(
-                    f"{_PREFIX}api/v3/ws",
+                    f"{ROOT_PREFIX}api/v3/ws",
                     NotifierConsumer.as_asgi(),  # type: ignore
                     name="websocket",
                 ),

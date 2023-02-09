@@ -16,6 +16,7 @@ Channels = Enum("Channels", "ALL ADMIN")
 LOG = get_logger(__name__)
 
 
+# TODO change to AsyncWebsockerConsumer
 class NotifierConsumer(AsyncJsonWebsocketConsumer):
     """Base Notifier Consumer."""
 
@@ -31,11 +32,12 @@ class NotifierConsumer(AsyncJsonWebsocketConsumer):
             if user.is_staff:
                 groups += [Channels.ADMIN.name]
 
+            print(f"Notifier Consumer: Connect to {groups}", self.channel_layer)
             for group in groups:
                 if self.channel_layer:
                     await self.channel_layer.group_add(group, self.channel_name)
                 else:
-                    LOG.warning("NO CHANNEL LAYER")
+                    LOG.warning("No channel_layer found")
         except AttributeError as err:
             raise InvalidChannelLayerError(
                 "BACKEND is unconfigured or doesn't support groups"
@@ -47,14 +49,8 @@ class NotifierConsumer(AsyncJsonWebsocketConsumer):
         except DenyConnection:
             await self.close()
 
-    async def websocket_receive(self, message):
-        """Receive websocket message with auth."""
-        user = self.scope.get("user")
-        if not user:
-            return
-        await super().websocket_receive(message)
-
     async def send_message(self, event):
         """Send message to client."""
-        message = event["message"]
-        await self.send_json({"text": message})
+        print("NotifierConsumer.send_message:", event)
+        text = event["text"]
+        await self.send(text)
