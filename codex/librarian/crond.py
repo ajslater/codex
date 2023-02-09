@@ -56,6 +56,12 @@ class Crond(NamedThread):
 
         return seconds
 
+    def __init__(self, *args, **kwargs):
+        """Initialize this thread with the worker."""
+        self._stop_event = Event()
+        self._cond = Condition()
+        super().__init__(*args, name=self.NAME, daemon=True, **kwargs)
+
     def _init_librarian_status(self):
         types_map = {
             JanitorStatusTypes.CLEANUP_FK: {"total": TOTAL_NUM_FK_CLASSES},
@@ -105,12 +111,6 @@ class Crond(NamedThread):
             self.log.error(f"Error in {self.NAME}")
             self.log.exception(exc)
         self.log.info(f"Stopped {self.NAME} thread.")
-
-    def __init__(self, *args, **kwargs):
-        """Initialize this thread with the worker."""
-        self._stop_event = Event()
-        self._cond = Condition()
-        super().__init__(*args, name=self.NAME, daemon=True, **kwargs)
 
     def stop(self):
         """Stop the cron thread."""
