@@ -1,5 +1,4 @@
 """Repair Database Integrity Errors."""
-import os
 import re
 import sqlite3
 
@@ -13,7 +12,12 @@ from django.db.models.functions import Now
 from django.db.utils import OperationalError
 
 from codex.logger.logging import get_logger
-from codex.settings.settings import CODEX_PATH, CONFIG_PATH, DB_PATH
+from codex.settings.settings import (
+    CODEX_PATH,
+    CONFIG_PATH,
+    DB_PATH,
+    SKIP_INTEGRITY_CHECK,
+)
 
 
 NO_0005_ARG = "no_0005"
@@ -304,7 +308,7 @@ def _fix_db_integrity():
 def repair_db():
     """Fix the db but trap errors if it goes wrong."""
     try:
-        if os.environ.get("CODEX_SKIP_INTEGRITY_CHECK"):
+        if SKIP_INTEGRITY_CHECK:
             LOG.info("Skipping integrity check")
             return
 

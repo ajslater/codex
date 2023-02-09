@@ -37,6 +37,7 @@ SECRET_KEY = get_secret_key(CONFIG_PATH)
 DEBUG = bool(environ.get("DEBUG", "").lower() not in ("0", "false", ""))
 
 RESET_ADMIN = bool(environ.get("CODEX_RESET_ADMIN"))
+SKIP_INTEGRITY_CHECK = bool(environ.get("CODEX_SKIP_INTEGRITY_CHECK"))
 
 # Logging
 LOGLEVEL = get_loglevel(DEBUG)
