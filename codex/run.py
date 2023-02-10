@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """The main runnable for codex. Sets up codex and runs hypercorn."""
-import os
-
 from asyncio import new_event_loop
 from multiprocessing import set_start_method
+from os import execv
 
 from django.core.management import call_command
 from hypercorn.asyncio import serve
@@ -37,12 +36,11 @@ def restart():
     import sys
 
     LOG.info("Restarting Codex. Hold on to your butts...")
-    os.execv(__file__, sys.argv)  # nosec
+    execv(__file__, sys.argv)  # nosec
 
 
 def run():
     """Run Codex."""
-    # configure the loop
     LOG.info(f"root_path: {HYPERCORN_CONFIG.root_path}")
     # TODO try to replace with wrapping serve in a bind, then serve coroutine.
     loop = new_event_loop()
