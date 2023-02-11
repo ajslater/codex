@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.1.5
+
+- Fix
+
+  - Crash when removing comics.
+
 ## v1.1.4
 
 - Fix
