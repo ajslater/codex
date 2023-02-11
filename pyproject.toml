@@ -65,6 +65,7 @@ whitenoise = { extras = ["brotli"], version = "^6.0" }
 whoosh = "^2.7.4"
 Pillow = "^9.1.0"
 channels = "^4.0.0"
+aioprocessing = "^2.0.1"
 
 [tool.poetry.group.dev.dependencies]
 neovim = "^0.3.1"

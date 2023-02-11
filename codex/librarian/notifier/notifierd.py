@@ -1,6 +1,8 @@
 """Sends notifications to connections, reading from a queue."""
+from time import time
 from urllib import request
 
+from asgiref.sync import async_to_sync, sync_to_async
 from rest_framework.renderers import JSONRenderer
 
 from codex.serializers.websocket_send import SendSerializer
@@ -27,10 +29,11 @@ class NotifierThread(AggregateMessageQueuedThread):
         prefix = HYPERCORN_CONFIG.root_path
         return f"http://{host}:{port}{prefix}/channels"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, broadcast_queue, *args, **kwargs):
         """Initialize local send url."""
         super().__init__(*args, **kwargs)
         self._BRIDGE_URL = self._get_bridge_url()
+        self.broadcast_queue = broadcast_queue
 
     def aggregate_items(self, task):
         """Aggregate messages into cache."""
@@ -50,6 +53,13 @@ class NotifierThread(AggregateMessageQueuedThread):
                 f"NotifierThread HTTP Response: {response.status} {response.reason}"
             )
 
+    def _send_channel(self, group, text):
+        expiry = time() + 60
+        message = {"type": "broadcast", "group": group.name, "text": text}
+        item = (expiry, message)
+        print("NotifierThread.put", item)
+        self.broadcast_queue.put(item)
+
     def send_all_items(self):
         """Send all messages waiting in the message cache to client."""
         if not self.cache:
@@ -57,7 +67,9 @@ class NotifierThread(AggregateMessageQueuedThread):
         sent_keys = set()
         for task in self.cache.values():
             try:
-                self._send_http(task.type, task.text)
+                # self._send_http(task.type, task.text)
+                print("ABOUT TO SEND", task, flush=True)
+                self._send_channel(task.type, task.text)
             except Exception as exc:
                 self.log.exception(exc)
 

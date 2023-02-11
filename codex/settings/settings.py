@@ -280,7 +280,7 @@ HAYSTACK_CONNECTIONS = {
 }
 
 CHANNEL_LAYERS = {
-    "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"},
+    "default": {"BACKEND": "codex.channel_layer.CodexChannelLayer"},
 }
 
 if DEBUG:

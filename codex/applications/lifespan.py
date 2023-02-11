@@ -1,12 +1,20 @@
 """Start and stop daemons."""
+import asyncio
+
+from multiprocessing import Queue
+
+from aioprocessing import AioQueue
 from asgiref.sync import sync_to_async
+from channels.layers import get_channel_layer
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.db.models import Q
 from django.db.models.functions import Now
 
+from codex.channel_layer import CodexChannelLayer
 from codex.librarian.librariand import LibrarianDaemon
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.librarian.notifier.notifierd import NotifierThread
 from codex.logger.loggerd import Logger
 from codex.logger.mp_queue import LOG_QUEUE
 from codex.logger_base import LoggerBaseMixin
@@ -24,7 +32,24 @@ class LifespanApplication(LoggerBaseMixin):
         """Create logger and librarian."""
         self.init_logger(LOG_QUEUE)
         self.loggerd = Logger(self.log_queue)
-        self.librarian = LibrarianDaemon(LIBRARIAN_QUEUE, self.log_queue)
+        self.notifier_queue = Queue()
+        self.librarian = LibrarianDaemon(
+            LIBRARIAN_QUEUE, self.log_queue, self.notifier_queue
+        )
+
+    async def init_notifier(self):
+        broadcast_queue = AioQueue()
+        channel_layer = get_channel_layer()
+        channel_layer.channels[
+            CodexChannelLayer.BROADCAST_CHANNEL_NAME
+        ] = broadcast_queue
+        self.notifier = NotifierThread(
+            broadcast_queue,
+            queue=self.notifier_queue,
+            librarian_queue=LIBRARIAN_QUEUE,
+            log_queue=LOG_QUEUE,
+        )
+        self.notifier.start()
 
     def ensure_superuser(self):
         """Ensure there is a valid superuser."""
@@ -101,6 +126,7 @@ class LifespanApplication(LoggerBaseMixin):
     def codex_shutdown(self):
         """Stop the daemons."""
         self.librarian.shutdown()
+        self.notifier.join()
 
     async def __call__(self, scope, receive, send):
         """Lifespan application."""
@@ -114,6 +140,7 @@ class LifespanApplication(LoggerBaseMixin):
                 if message["type"] == "lifespan.startup":
                     try:
                         await sync_to_async(self.codex_startup)()
+                        await self.init_notifier()
                         await send({"type": "lifespan.startup.complete"})
                         self.log.debug("Lifespan startup complete.")
                     except Exception as exc:

@@ -41,7 +41,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
     MAX_WS_ATTEMPTS = 5
     SHUTDOWN_TASK = "shutdown"
     THREAD_CLASSES = (
-        NotifierThread,
+        # NotifierThread,
         DelayedTasksThread,
         CoverCreator,
         SearchIndexer,
@@ -55,12 +55,13 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
 
     proc = None
 
-    def __init__(self, queue, log_queue):
+    def __init__(self, queue, log_queue, notifier_queue):
         """Init process."""
         name = self.__class__.__name__
         super().__init__(name=name, daemon=False)
         self.init_logger(log_queue)
         self.queue = queue
+        self.notifier_queue = notifier_queue
         startup_tasks = (
             AdoptOrphanFoldersTask(),
             SearchIndexRebuildIfDBChangedTask(),
@@ -83,7 +84,8 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         elif isinstance(task, UpdaterTask):
             self._threads["updater"].queue.put(task)
         elif isinstance(task, NotifierTask):
-            self._threads["notifier_thread"].queue.put(task)
+            # self._threads["notifier_thread"].queue.put(task)
+            self.notifier_queue.put(task)
         elif isinstance(task, WatchdogSyncTask):
             for observer in self._observers:
                 observer.sync_library_watches()
@@ -110,7 +112,10 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         kwargs = {"librarian_queue": self.queue, "log_queue": self.log_queue}
         for thread_class in self.THREAD_CLASSES:
             name = getattr(thread_class, "NAME", thread_class.__name__)
-            thread = thread_class(**kwargs)
+            if thread_class == NotifierThread:
+                thread = thread_class(self.notifier_queue, **kwargs)
+            else:
+                thread = thread_class(**kwargs)
             name = self._camel_to_snake_case(name)
             self._threads[name] = thread
             self.log.debug(f"Created {name} thread.")
