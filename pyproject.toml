@@ -103,12 +103,13 @@ codex = "codex.run:main"
 "Issues" = "https://github.com/ajslater/codex/issues"
 
 [tool.black]
-exclude = "/(.git|.mypy_cache|.pytest_cache|.venv|__pycache__|cache|codex/_vendor/haystack|codex/static_build|codex/static_root|comics|dist|frontend|node_modules|test-results|typings)/"
+#exclude = "/(.git|.mypy_cache|.pytest_cache|.venv*|__pycache__|cache|codex/_vendor/haystack|codex/static_build|codex/static_root|comics|dist|frontend|node_modules|test-results|typings)/"
+extend_exclude = "/(_vendor/haystack)/"
 
 [tool.bandit]
 # most options must be on the command line
 exclude = [
-  ".venv",
+  ".venv*",
   "node_modules",
   "**/__pycache__",
   "_vendor/haystack",
@@ -117,7 +118,7 @@ exclude = [
 ]
 
 [tool.codespell]
-skip = './cache,./codex/static_build,./codex/static_root,./comics,./config/logs,./dist,./frontend/coverage,./test-results,.git,.mypy_cache,.pytest_cache,.venv,*~,_vendor/haystack,node_modules,package-lock.json,poetry.lock,run.spec'
+skip = './cache,./codex/static_build,./codex/static_root,./comics,./config/logs,./dist,./frontend/coverage,./test-results,.git,.mypy_cache,.pytest_cache,.venv*,*~,_vendor/haystack,node_modules,package-lock.json,poetry.lock,run.spec'
 builtin = 'clear,rare,code'
 check-hidden = true
 ignore-words-list = 'thead,ro,jupyter,coverd'
@@ -134,7 +135,8 @@ atomic = true
 lines_after_imports = 2
 lines_between_types = 1
 multi_line_output = 3
-skip = ".git,.mypy_cache,.pytest_cache,.venv,__pycache__,cache,codex/_vendor/haystack,codex/static_build,codex/static_root,comics,config,dist,frontend,node_modules,test-results,typings"
+#extend_skip_glob = ".git,.mypy_cache,.pytest_cache,.venv*,__pycache__,cache,codex/_vendor/haystack,codex/static_build,codex/static_root,comics,config,dist,frontend,node_modules,test-results,typings"
+skip_gitignore = true
 color_output = true
 
 [tool.pyright]
@@ -144,7 +146,7 @@ exclude = [
   ".git",
   ".mypy_cache",
   ".pytest_cache",
-  ".venv",
+  ".venv*",
   "cache",
   "codex/_vendor/haystack",
   "codex/static_build",
@@ -167,7 +169,7 @@ exclude = [
   ".git/",
   ".mypy_cache/",
   ".pytest_cache/",
-  ".venv/",
+  "*.venv*",
   "*__pycache__*",
   "cache/",
   "codex/_vendor/haystack/",
@@ -215,7 +217,7 @@ omit = [
   ".git/*",
   ".mypy_cache/*",
   ".pytest_cache/*",
-  ".venv/*",
+  ".venv*/*",
   "*__pycache__*",
   "cache/*",
   "codex/_vendor/haystack/*",

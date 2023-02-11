@@ -11,7 +11,7 @@
 .picopt_timestamp
 .pytest_cache
 .ropeproject
-.venv
+.venv*
 /codex/static_build
 /codex/static_root
 /config
