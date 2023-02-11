@@ -166,7 +166,6 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
         return self.request.query_params.get(facet_group.query_param) in compare
 
     def _facet_or_facet_entry(self, facet_group, facet, entries):
-
         # This logic preempts facet:activeFacet but no one uses it.
         # don't add default facets if in default mode.
         if self._is_facet_active(facet_group, facet):
