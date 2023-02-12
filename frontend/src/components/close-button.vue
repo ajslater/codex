@@ -17,6 +17,6 @@ export default {
 
 <style scoped lang="scss">
 .closeButton .v-icon {
-  margin-right: 0;
+  margin-right: 0 !important;
 }
 </style>
