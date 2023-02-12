@@ -8,8 +8,9 @@ border-radius: 128px;
 
 ## v1.1.5
 
+- Features
+  - Libraries can have a poll delay longer than 1 day.
 - Fix
-
   - Crash when removing comics.
 
 ## v1.1.4
