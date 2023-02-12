@@ -12,6 +12,7 @@ border-radius: 128px;
   - Libraries can have a poll delay longer than 1 day.
 - Fix
   - Crash when removing comics.
+  - Admin Create & Update dialogs would get stuck open on submit.
 
 ## v1.1.4
 
