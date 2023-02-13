@@ -80,35 +80,6 @@ class CodexDatabaseSnapshot(DirectorySnapshot):
 class CodexDirectorySnapshotDiff(DirectorySnapshotDiff):
     """Custom Diff allows inode only changes to be 'modified'."""
 
-    # def __init__(self, ref, snapshot, ignore_device=False, inode_only_modified=False):
-    #    super().__init__(ref, snapshot, ignore_device=ignore_device)
-    #    if not inode_only_modified:
-    #        return
-    #    old_dirs_created = set(self._dirs_created)
-    #    old_dirs_deleted = set(self._dirs_deleted)
-    #    new_dirs_modified = old_dirs_created & old_dirs_deleted
-    #    if new_dirs_modified:
-    #        self._dirs_created = list(old_dirs_created - new_dirs_modified)
-    #        self._dirs_deleted = list(old_dirs_deleted - new_dirs_modified)
-    #        self._dirs_modified = list(set(self._dirs_modified) | new_dirs_modified)
-    #        LOG.warning(
-    #            f"Transformed {len(new_dirs_modified)} dirs from delete/create "
-    #            "to modified."
-    #        )
-    #
-    #        old_files_created = set(self._files_created)
-    #        old_files_deleted = set(self._files_deleted)
-    #        new_files_modified = old_files_created & old_files_deleted
-    #        if new_files_modified:
-    #            self._files_created = list(old_files_created - new_files_modified)
-    #            self._files_deleted = list(old_files_deleted - new_files_modified)
-    #            self._files_modified = list(set(self._files_modified) |
-    #                                   new_files_modified)
-    #            LOG.warning(
-    #                f"Transformed {len(new_files_modified)} files from delete/create "
-    #                "to modified."
-    #            )
-
     def __init__(self, ref, snapshot, ignore_device=False, inode_only_modified=False):
         """Create diff object."""
         created = snapshot.paths - ref.paths
