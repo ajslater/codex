@@ -103,7 +103,6 @@ codex = "codex.run:main"
 "Issues" = "https://github.com/ajslater/codex/issues"
 
 [tool.black]
-#exclude = "/(.git|.mypy_cache|.pytest_cache|.venv*|__pycache__|cache|codex/_vendor/haystack|codex/static_build|codex/static_root|comics|dist|frontend|node_modules|test-results|typings)/"
 extend_exclude = "/(_vendor/haystack)/"
 
 [tool.bandit]
@@ -135,7 +134,6 @@ atomic = true
 lines_after_imports = 2
 lines_between_types = 1
 multi_line_output = 3
-#extend_skip_glob = ".git,.mypy_cache,.pytest_cache,.venv*,__pycache__,cache,codex/_vendor/haystack,codex/static_build,codex/static_root,comics,config,dist,frontend,node_modules,test-results,typings"
 skip_gitignore = true
 color_output = true
 
