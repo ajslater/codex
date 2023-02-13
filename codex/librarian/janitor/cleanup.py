@@ -1,6 +1,9 @@
 """Clean up the database after moves or imports."""
 from datetime import datetime
 
+from django.contrib.sessions.models import Session
+from django.utils.timezone import now
+
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.status_control import StatusControl
 from codex.models import (
@@ -40,6 +43,7 @@ DELETE_COMIC_FKS = (
 )
 DELETE_CREDIT_FKS = (CreditRole, CreditPerson)
 TOTAL_CLASSES = len(DELETE_COMIC_FKS) + len(DELETE_CREDIT_FKS)
+DELAY = 3
 LOG = get_logger(__name__)
 
 
@@ -75,3 +79,28 @@ def cleanup_fks():
         LOG.verbose("Done cleaning up unused foreign keys.")
     finally:
         StatusControl.finish(JanitorStatusTypes.CLEANUP_FK)
+
+
+def cleanup_sessions():
+    """Delete corrupt sessions."""
+    start = now()
+    StatusControl.start(JanitorStatusTypes.CLEANUP_SESSIONS)
+    count, _ = Session.objects.filter(expire_date__lt=now()).delete()
+    if count:
+        LOG.info(f"Deleted {count} expired sessions.")
+
+    bad_session_keys = set()
+    for encoded_session in Session.objects.all():
+        session = encoded_session.get_decoded()
+        if not session:
+            bad_session_keys.add(encoded_session.session_key)
+
+    if not bad_session_keys:
+        return
+
+    bad_sessions = Session.objects.filter(session_key__in=bad_session_keys)
+    count, _ = bad_sessions.delete()
+    LOG.info(f"Deleted {count} corrupt sessions.")
+    elapsed = now() - start
+    delay = max(0, DELAY - elapsed.total_seconds())
+    StatusControl.finish(JanitorStatusTypes.CLEANUP_SESSIONS)

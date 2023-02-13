@@ -8,11 +8,12 @@ from humanize import naturaldelta
 
 from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.covers.tasks import CoverRemoveOrphansTask
-from codex.librarian.janitor.cleanup import TOTAL_CLASSES, cleanup_fks
+from codex.librarian.janitor.cleanup import TOTAL_CLASSES, cleanup_fks, cleanup_sessions
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.janitor.tasks import (
     JanitorBackupTask,
     JanitorCleanFKsTask,
+    JanitorCleanupSessionsTask,
     JanitorClearStatusTask,
     JanitorRestartTask,
     JanitorShutdownTask,
@@ -70,6 +71,7 @@ class Crond(NamedThread):
     def _init_librarian_status():
         types_map = {
             JanitorStatusTypes.CLEANUP_FK: {"total": TOTAL_CLASSES},
+            JanitorStatusTypes.CLEANUP_SESSIONS: {},
             JanitorStatusTypes.DB_VACUUM: {},
             JanitorStatusTypes.DB_BACKUP: {},
             JanitorStatusTypes.CODEX_UPDATE: {},
@@ -98,6 +100,7 @@ class Crond(NamedThread):
                     try:
                         tasks = [
                             JanitorCleanFKsTask(),
+                            JanitorCleanupSessionsTask(),
                             JanitorVacuumTask(),
                             JanitorBackupTask(),
                             JanitorUpdateTask(force=False),
@@ -145,6 +148,8 @@ def janitor(task):
             shutdown_codex()
         elif isinstance(task, JanitorCleanFKsTask):
             cleanup_fks()
+        elif isinstance(task, JanitorCleanupSessionsTask):
+            cleanup_sessions()
         elif isinstance(task, JanitorClearStatusTask):
             StatusControl.finish_many([])
         else:

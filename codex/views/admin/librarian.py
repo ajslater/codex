@@ -9,6 +9,7 @@ from codex.librarian.covers.tasks import CoverRemoveAllTask, CoverRemoveOrphansT
 from codex.librarian.janitor.tasks import (
     JanitorBackupTask,
     JanitorCleanFKsTask,
+    JanitorCleanupSessionsTask,
     JanitorClearStatusTask,
     JanitorRestartTask,
     JanitorShutdownTask,
@@ -107,6 +108,8 @@ class AdminLibrarianTaskView(APIView):
             task = LIBRARY_CHANGED_TASK
         elif task_name == "cleanup_fks":
             task = JanitorCleanFKsTask()
+        elif task_name == "cleanup_sessions":
+            task = JanitorCleanupSessionsTask()
         elif task_name == "cleanup_covers":
             task = CoverRemoveOrphansTask()
         elif task_name == "librarian_clear_status":
