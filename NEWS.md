@@ -14,6 +14,7 @@ border-radius: 128px;
 - Fix
   - Crash when removing comics.
   - Admin Create & Update dialogs would get stuck open on submit.
+  - Delete expired and corrupt sessions every night.
 
 ## v1.1.4
 
