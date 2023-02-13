@@ -17,6 +17,7 @@ export const IS_IOS = IOS_PLATFORMS.has(navigator.platform);
 export const IS_TOUCH =
   "ontouchstart" in window ||
   navigator.maxTouchPoints > 0 ||
-  navigator.msMaxTouchPoints > 0;
+  navigator.msMaxTouchPoints > 0 ||
+  window.matchMedia("(hover: hover)").matches;
 
 export default { IS_IOS, IS_TOUCH };
