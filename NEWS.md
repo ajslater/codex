@@ -15,6 +15,7 @@ border-radius: 128px;
   - Crash when removing comics.
   - Admin Create & Update dialogs would get stuck open on submit.
   - Delete expired and corrupt sessions every night.
+  - More liberal touch detection for more devices.
 
 ## v1.1.4
 
