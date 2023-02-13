@@ -44,7 +44,7 @@ export default {
   data() {
     return {
       activeTab: "Libraries",
-      tabs: ["Users", "Groups", "Libraries", "Flags", "Tasks"],
+      tabs: ["Users", "Groups", "Libraries", "Flags", "Tasks", "Stats"],
       innerHeight: window.innerHeight,
     };
   },

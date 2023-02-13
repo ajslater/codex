@@ -13,6 +13,7 @@ from codex.views.admin.library import (
     AdminFolderListView,
     AdminLibraryViewSet,
 )
+from codex.views.admin.stats import AdminStatsView
 from codex.views.admin.user import AdminUserChangePasswordView, AdminUserViewSet
 
 
@@ -74,4 +75,5 @@ urlpatterns = [
         name="librarian_status",
     ),
     path("librarian/task", AdminLibrarianTaskView.as_view(), name="librarian_task"),
+    path("stats", AdminStatsView.as_view(), name="stats"),
 ]

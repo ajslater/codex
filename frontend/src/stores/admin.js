@@ -47,6 +47,7 @@ export const useAdminStore = defineStore("admin", {
       root: undefined,
       folders: [],
     },
+    stats: undefined,
   }),
   getters: {
     isUserAdmin() {
@@ -188,6 +189,15 @@ export const useAdminStore = defineStore("admin", {
         }
       }
       return names;
+    },
+    async loadStats() {
+      await API.getStats()
+        .then((response) => {
+          console.log(response.data);
+          this.stats = response.data;
+          return true;
+        })
+        .catch(console.warn);
     },
   },
 });

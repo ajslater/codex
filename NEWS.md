@@ -9,6 +9,7 @@ border-radius: 128px;
 ## v1.1.5
 
 - Features
+  - Admin Stats tab
   - Libraries can have a poll delay longer than 1 day.
 - Fix
   - Crash when removing comics.
