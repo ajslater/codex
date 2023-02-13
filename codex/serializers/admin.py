@@ -144,3 +144,62 @@ class AdminFolderSerializer(Serializer):
             show_hidden == "true"
             or self.initial_data.get("showHidden", False) == "true"
         )
+
+
+class AdminGroupSerializer(Serializer):
+    """Group Counts."""
+
+    publisher_count = IntegerField()
+    imprint_count = IntegerField()
+    series_count = IntegerField()
+    volume_count = IntegerField()
+    comic_count = IntegerField()
+    folder_count = IntegerField()
+    pdf_count = IntegerField()
+    comic_archive_count = IntegerField()
+
+
+class AdminComicMetadataSerializer(Serializer):
+    """Metadata Counts."""
+
+    character_count = IntegerField()
+    credit_count = IntegerField()
+    credit_person_count = IntegerField()
+    credit_role_count = IntegerField()
+    genre_count = IntegerField()
+    location_count = IntegerField()
+    series_group_count = IntegerField()
+    story_arc_count = IntegerField()
+    tag_count = IntegerField()
+    team_count = IntegerField()
+
+
+class AdminConfigSerializer(Serializer):
+    """Config Information."""
+
+    library_count = IntegerField()
+    user_count = IntegerField()
+    group_count = IntegerField()
+    session_count = IntegerField()
+    session_anon_count = IntegerField()
+    api_key = CharField()
+
+
+class AdminPlatformSerializer(Serializer):
+    """Platform Information."""
+
+    docker = BooleanField()
+    machine = CharField()
+    system = CharField()
+    system_release = CharField()
+    python = CharField()
+    codex = CharField()
+
+
+class AdminStatsSerializer(Serializer):
+    """Admin Stats Tab."""
+
+    platform = AdminPlatformSerializer()
+    config = AdminConfigSerializer()
+    groups = AdminGroupSerializer()
+    metadata = AdminComicMetadataSerializer()

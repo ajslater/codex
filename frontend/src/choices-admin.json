@@ -122,6 +122,11 @@
           "desc": "After deleting comics, unused linked objects remain in case new comics use them. Runs nightly."
         },
         {
+          "value": "cleanup_sessions",
+          "title": "Cleanup Sessions",
+          "desc": "Remove corrupt and expired sessoions. Runs nightly."
+        },
+        {
           "value": "cleanup_covers",
           "title": "Remove Orphan Covers",
           "desc": "from comics that no longer exist. Runs nightly."

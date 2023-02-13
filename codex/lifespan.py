@@ -61,7 +61,9 @@ def init_timestamps():
     _delete_orphans(Timestamp, "name", Timestamp.NAMES)
 
     for name in Timestamp.NAMES:
-        _, created = Timestamp.objects.get_or_create(name=name)
+        ts, created = Timestamp.objects.get_or_create(name=name)
+        if name == Timestamp.API_KEY and not ts.version:
+            ts.save_uuid_version()
         if created:
             LOG.info(f"Created {name} timestamp.")
 

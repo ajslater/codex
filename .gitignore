@@ -40,7 +40,7 @@
 .spyderproject
 .spyproject
 .tox/
-.venv
+.venv*
 .webassets-cache
 /site
 ENV/
