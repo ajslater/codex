@@ -582,6 +582,7 @@ class Timestamp(NamedModel):
         cls.objects.get(name=name).save()
 
     def save_uuid_version(self):
+        """Create base64 uuid."""
         uuid_bytes = uuid.uuid4().bytes
         b64_bytes = base64.urlsafe_b64encode(uuid_bytes)
         self.version = b64_bytes.decode("utf-8").replace("=", "")

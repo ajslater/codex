@@ -83,7 +83,7 @@ def cleanup_fks():
 
 def cleanup_sessions():
     """Delete corrupt sessions."""
-    start = now()
+    # start = now()
     StatusControl.start(JanitorStatusTypes.CLEANUP_SESSIONS)
     count, _ = Session.objects.filter(expire_date__lt=now()).delete()
     if count:
@@ -101,6 +101,6 @@ def cleanup_sessions():
     bad_sessions = Session.objects.filter(session_key__in=bad_session_keys)
     count, _ = bad_sessions.delete()
     LOG.info(f"Deleted {count} corrupt sessions.")
-    elapsed = now() - start
-    delay = max(0, DELAY - elapsed.total_seconds())
+    # elapsed = now() - start
+    # delay = max(0, DELAY - elapsed.total_seconds())
     StatusControl.finish(JanitorStatusTypes.CLEANUP_SESSIONS)
