@@ -324,6 +324,11 @@ To preserve these settings across browsers and after sessions expire, you may
 register an account with a username and password. You will have to contact your
 administrator to reset your password if you forget it.
 
+### API with Key Access
+
+Codex has a limited number of API endpoints available with API Key Access. The
+API Key is available on the admin/stats tab.
+
 ### ᯤ OPDS
 
 Codex supports OPDS syndication and OPDS streaming. You may find the OPDS url in
