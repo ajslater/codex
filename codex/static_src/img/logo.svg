@@ -5,7 +5,7 @@
   width="512"
   height="512"
   class="snail_eye"
-  style="background-color:#1e1e1e"
+  style="background-color:transparent"
 >
     <defs>
         <linearGradient id="b">
