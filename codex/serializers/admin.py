@@ -182,6 +182,7 @@ class AdminConfigSerializer(Serializer):
     group_count = IntegerField()
     session_count = IntegerField()
     anon_session_count = IntegerField()
+    api_key = CharField()
 
 
 class AdminPlatformSerializer(Serializer):
@@ -192,6 +193,7 @@ class AdminPlatformSerializer(Serializer):
     system = CharField()
     system_release = CharField()
     python = CharField()
+    codex = CharField()
 
 
 class AdminStatsSerializer(Serializer):

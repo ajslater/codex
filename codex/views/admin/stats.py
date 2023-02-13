@@ -26,9 +26,11 @@ from codex.models import (
     StoryArc,
     Tag,
     Team,
+    Timestamp,
     Volume,
 )
 from codex.serializers.admin import AdminStatsSerializer
+from codex.version import VERSION
 
 
 class AdminStatsView(GenericAPIView):
@@ -96,11 +98,13 @@ class AdminStatsView(GenericAPIView):
             "system": system(),
             "system_release": release(),
             "python": python_version(),
+            "codex": VERSION,
         }
 
         config = cls._get_model_counts(cls._CONFIG_MODELS)
         # config["anon_session_count"] = Session.objects.filter(user=None).count()
         config["anon_session_count"] = 0
+        config["api_key"] = Timestamp.objects.get(name=Timestamp.API_KEY).version
 
         groups = cls._get_model_counts(cls._GROUP_MODELS)
         groups["pdf_count"] = pdf_count = Comic.objects.filter(

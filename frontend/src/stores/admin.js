@@ -193,8 +193,14 @@ export const useAdminStore = defineStore("admin", {
     async loadStats() {
       await API.getStats()
         .then((response) => {
-          console.log(response.data);
           this.stats = response.data;
+          return true;
+        })
+        .catch(console.warn);
+    },
+    async updateAPIKey() {
+      await API.updateAPIKey()
+        .then(() => {
           return true;
         })
         .catch(console.warn);

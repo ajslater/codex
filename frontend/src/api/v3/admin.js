@@ -106,6 +106,10 @@ const getStats = () => {
   return HTTP.get("/admin/stats");
 };
 
+const updateAPIKey = () => {
+  return HTTP.post("/admin/api_key");
+};
+
 export default {
   changeUserPassword,
   createGroup,
@@ -124,6 +128,7 @@ export default {
   getUsers,
   librarianTask,
   postLibrarianTask,
+  updateAPIKey,
   updateFlag,
   updateGroup,
   updateLibrary,

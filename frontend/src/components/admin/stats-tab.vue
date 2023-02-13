@@ -22,6 +22,10 @@
             <td>Python</td>
             <td>{{ stats.platform.python }}</td>
           </tr>
+          <tr>
+            <td>Codex</td>
+            <td>{{ stats.platform.codex }}</td>
+          </tr>
         </tbody>
       </v-table>
     </div>
@@ -48,6 +52,20 @@
         <td>{{ stats.anon_sessionCount }}</td>
       </tr>
       -->
+          <tr>
+            <td>API Key</td>
+            <td>{{ stats.config.apiKey }}</td>
+          </tr>
+          <tr>
+            <td colspan="2">
+              <ConfirmDialog
+                button-text="Regenerate API Key"
+                object-name="API Key"
+                confirm-text="Regenerate"
+                @confirm="regenAPIKey"
+              />
+            </td>
+          </tr>
         </tbody>
       </v-table>
     </div>
@@ -145,11 +163,15 @@
 <script>
 import { mapActions, mapState } from "pinia";
 
+import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
 export default {
   name: "AdminTasksTab",
+  components: {
+    ConfirmDialog,
+  },
   computed: {
     ...mapState(useCommonStore, {}),
     ...mapState(useAdminStore, {
@@ -162,7 +184,10 @@ export default {
     console.log(this.stats);
   },
   methods: {
-    ...mapActions(useAdminStore, ["loadStats"]),
+    ...mapActions(useAdminStore, ["loadStats", "updateAPIKey"]),
+    regenAPIKey() {
+      this.updateAPIKey().then(this.loadStats).catch(console.warn);
+    },
   },
 };
 </script>
