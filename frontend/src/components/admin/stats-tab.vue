@@ -39,6 +39,10 @@
             <td>{{ stats.config.libraryCount }}</td>
           </tr>
           <tr>
+            <td>Anonymous Users</td>
+            <td>{{ stats.config.sessionAnonCount }}</td>
+          </tr>
+          <tr>
             <td>Registered Users</td>
             <td>{{ stats.config.userCount }}</td>
           </tr>
@@ -46,12 +50,6 @@
             <td>Groups</td>
             <td>{{ stats.config.groupCount }}</td>
           </tr>
-          <!--
-      <tr>
-        <td>Anonymous Users</td>
-        <td>{{ stats.anon_sessionCount }}</td>
-      </tr>
-      -->
           <tr>
             <td>API Key</td>
             <td>{{ stats.config.apiKey }}</td>

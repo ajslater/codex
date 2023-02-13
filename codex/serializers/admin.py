@@ -181,7 +181,7 @@ class AdminConfigSerializer(Serializer):
     user_count = IntegerField()
     group_count = IntegerField()
     session_count = IntegerField()
-    anon_session_count = IntegerField()
+    session_anon_count = IntegerField()
     api_key = CharField()
 
 

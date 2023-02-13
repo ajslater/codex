@@ -89,6 +89,17 @@ class AdminStatsView(GenericAPIView):
             obj[key] = model.objects.count()
         return obj
 
+    @staticmethod
+    def _get_anon_sessions():
+        sessions = Session.objects.all()
+        anon_sessions = 0
+        for encoded_session in sessions:
+            session = encoded_session.get_decoded()
+            if not session.get("_auth_user_id"):
+                anon_sessions += 1
+
+        return anon_sessions
+
     @classmethod
     def get_object(cls):
         """Construct the stats object."""
@@ -102,8 +113,7 @@ class AdminStatsView(GenericAPIView):
         }
 
         config = cls._get_model_counts(cls._CONFIG_MODELS)
-        # config["anon_session_count"] = Session.objects.filter(user=None).count()
-        config["anon_session_count"] = 0
+        config["session_anon_count"] = cls._get_anon_sessions()
         config["api_key"] = Timestamp.objects.get(name=Timestamp.API_KEY).version
 
         groups = cls._get_model_counts(cls._GROUP_MODELS)
