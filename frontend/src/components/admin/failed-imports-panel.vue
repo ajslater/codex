@@ -1,9 +1,19 @@
 <template>
   <div v-if="failedImports && failedImports.length > 0" id="failedImports">
     <v-expansion-panels>
-      <v-expansion-panel id="failedImportsPanel">
+      <v-expansion-panel
+        id="failedImportsPanel"
+        @click="unseenFailedImports = false"
+      >
         <v-expansion-panel-title>
           <h4>Failed Imports: {{ failedImports.length }}</h4>
+          <v-icon
+            v-if="unseenFailedImports"
+            id="failedImportsIcon"
+            title="New Failed Imports"
+          >
+            {{ mdiBookAlert }}
+          </v-icon>
         </v-expansion-panel-title>
         <v-expansion-panel-text>
           <v-table class="highlight-table">
@@ -78,8 +88,8 @@
 </template>
 
 <script>
-import { mdiOpenInNew } from "@mdi/js";
-import { mapState } from "pinia";
+import { mdiBookAlert, mdiOpenInNew } from "@mdi/js";
+import { mapState, mapWritableState } from "pinia";
 
 import DateTimeColumn from "@/components/admin/datetime-column.vue";
 import { useAdminStore } from "@/stores/admin";
@@ -91,13 +101,16 @@ export default {
   },
   data() {
     return {
+      mdiBookAlert,
       mdiOpenInNew,
     };
   },
   computed: {
-    ...mapState(useAdminStore, {
-      failedImports: (state) => state.failedImports,
-    }),
+    ...mapState(useAdminStore, ["failedImports"]),
+    ...mapWritableState(useAdminStore, ["unseenFailedImports"]),
+  },
+  created() {
+    this.unseenFailedImports = true;
   },
 };
 </script>
@@ -109,6 +122,10 @@ export default {
 }
 #failedImports {
   margin-top: 60px;
+}
+#failedImportsIcon {
+  padding-left: 0.25em;
+  color: rgb(var(--v-theme-error)) !important;
 }
 #failedImportsHelp {
   color: rgb(var(--v-theme-textSecondary));

@@ -1,7 +1,4 @@
 """A Codex database event emitter for use by the observer."""
-import os
-
-from itertools import chain
 from pathlib import Path
 from threading import Condition
 
@@ -18,80 +15,20 @@ from watchdog.events import (
     FileMovedEvent,
 )
 from watchdog.observers.api import EventEmitter
-from watchdog.utils.dirsnapshot import DirectorySnapshot, DirectorySnapshotDiff
+from watchdog.utils.dirsnapshot import DirectorySnapshot
 
 from codex.librarian.status_control import StatusControl
+from codex.librarian.watchdog.dirsnapshot import (
+    CodexDatabaseSnapshot,
+    CodexDirectorySnapshotDiff,
+)
 from codex.librarian.watchdog.status import WatchdogStatusTypes
-from codex.models import Comic, FailedImport, Folder, Library
+from codex.models import Library
 from codex.settings.logging import get_logger
 
 
 LOG = get_logger(__name__)
 DOCKER_UNMOUNTED_FN = "DOCKER_UNMOUNTED_VOLUME"
-
-
-class CodexDatabaseSnapshot(DirectorySnapshot):
-    """Take snapshots from the Codex database."""
-
-    MODELS = (Folder, Comic, FailedImport)
-
-    @classmethod
-    def _walk(cls, root):
-        """Populate the DirectorySnapshot structures from the database."""
-        for model in cls.MODELS:
-            yield model.objects.filter(library__path=root).values("path", "stat")
-
-    @staticmethod
-    def _create_stat_from_db_stat(wp, stat_func, force):
-        """Handle null or zeroed out database stat entries."""
-        stat = wp.get("stat")
-        if not stat or len(stat) != 10 or not stat[1]:
-            path = Path(wp.get("path"))
-            # Ensure valid params
-            if path.exists():
-                LOG.debug(f"Force modify path with bad db record: {path}")
-                stat = list(stat_func(path))
-                # Fake mtime will trigger a modified event
-                stat[8] = 0.0
-            else:
-                LOG.debug(f"Force delete path with bad db record: {path}")
-                # This will trigger a deleted event
-                stat = Comic.ZERO_STAT
-
-        if force:
-            # Fake mtime will trigger modified event
-            stat[8] = 0.0
-        st = os.stat_result(tuple(stat))
-        return st
-
-    def _set_lookups(self, path, st):
-        """Populate the lookup dirs."""
-        self._stat_info[path] = st
-        i = (st.st_ino, st.st_dev)
-        self._inode_to_path[i] = path
-
-    def __init__(
-        self,
-        path,
-        _recursive=True,  # unused, always recursive
-        stat=os.stat,
-        _listdir=os.listdir,  # unused for database
-        force=False,
-    ):
-        """Initialize like DirectorySnapshot but use a database walk."""
-        self._stat_info = {}
-        self._inode_to_path = {}
-        if not Path(path).is_dir():
-            LOG.warning(f"{path} not found, cannot snapshot.")
-            return
-
-        # Add the library root
-        root_stat = stat(path)
-        self._set_lookups(path, root_stat)
-
-        for wp in chain.from_iterable(self._walk(path)):
-            st = self._create_stat_from_db_stat(wp, stat, force)
-            self._set_lookups(wp["path"], st)
 
 
 class DatabasePollingEmitter(EventEmitter):
@@ -208,7 +145,9 @@ class DatabasePollingEmitter(EventEmitter):
             return
 
         # Ignore device for docker and other complex filesystems
-        return DirectorySnapshotDiff(db_snapshot, dir_snapshot, ignore_device=True)
+        return CodexDirectorySnapshotDiff(
+            db_snapshot, dir_snapshot, ignore_device=True, inode_only_modified=True
+        )
 
     def _queue_events(self, diff):
         """Create and queue the events from the diff."""
