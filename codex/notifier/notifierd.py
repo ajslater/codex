@@ -42,7 +42,7 @@ class Notifier(AggregateMessageQueuedThread):
     @classmethod
     def unsubscribe(cls, sends: set):
         """Unsub from all conns."""
-        LOG.debug("Notifier.unsubscribe", sends)
+        LOG.debug(f"Notifier.unsubscribe {sends}")
         for conn in cls.CONNS.values():
             conn.difference_update(sends)
 
