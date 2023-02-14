@@ -56,3 +56,10 @@ class JanitorClearStatusTask(JanitorTask):
     """Clear all librarian statuses."""
 
     pass
+
+
+@dataclass
+class JanitorCleanupSessionsTask(JanitorTask):
+    """Cleanup Session table."""
+
+    pass

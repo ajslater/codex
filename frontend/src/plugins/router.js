@@ -10,6 +10,7 @@ const AdminUsersTab = () => import("@/components/admin/user-tab.vue");
 const AdminGroupsTab = () => import("@/components/admin/group-tab.vue");
 const AdminLibrariesTab = () => import("@/components/admin/library-tab.vue");
 const AdminTasksTab = () => import("@/components/admin/task-tab.vue");
+const AdminStatsTab = () => import("@/components/admin/stats-tab.vue");
 
 const LAST_ROUTE = {
   name: "browser",
@@ -51,6 +52,7 @@ const routes = [
       },
       { name: "admin-flags", path: "flags", component: AdminFlagsTab },
       { name: "admin-tasks", path: "tasks", component: AdminTasksTab },
+      { name: "admin-stats", path: "stats", component: AdminStatsTab },
     ],
   },
   { name: "error", path: "/error/:code", component: HttpError, props: true },

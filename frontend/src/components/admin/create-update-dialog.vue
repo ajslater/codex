@@ -94,12 +94,7 @@ export default {
     },
     change(event) {
       this.row = event;
-      this.submitButtonEnabled = this.validate()
-        .then((valid) => {
-          this.submitButtonEnabled = valid;
-          return valid;
-        })
-        .catch(console.warn);
+      this.submitButtonEnabled = this.validate();
     },
     getRow(show) {
       if (!show || !this.oldRow) {

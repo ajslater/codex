@@ -11,3 +11,4 @@ class JanitorStatusTypes(StatusTypes):
     CODEX_STOP = "Stop Codex"
     DB_VACUUM = "Vacuum Database"
     DB_BACKUP = "Backup Database"
+    CLEANUP_SESSIONS = "Cleanup Sessions"

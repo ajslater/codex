@@ -33,7 +33,7 @@ class Notifier(AggregateMessageQueuedThread):
             return
 
         if msg.get("register"):
-            LOG.debug("Notifier.subscribe", send)
+            LOG.debug(f"Notifier.subscribe {send}")
             conns.add(send)
         else:
             sends = set((send,))

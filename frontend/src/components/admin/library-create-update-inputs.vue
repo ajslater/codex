@@ -104,12 +104,14 @@ export default {
   watch: {
     row: {
       handler(to) {
+        console.log("watch row emit change.", to);
         this.$emit("change", to);
       },
       deep: true,
     },
     oldRow: {
       handler(to) {
+        console.log("watch oldRow.");
         this.row = _.cloneDeep(to);
       },
       deep: true,

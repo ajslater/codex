@@ -7,7 +7,7 @@
           >Poll All Libraries</v-list-item-title
         >
       </v-list-item>
-      <v-list-item :to="{ name: 'admin' }" @click="unseenFailedImports = false">
+      <v-list-item :to="{ name: 'admin' }">
         <v-list-item-title>
           <v-icon>{{ mdiCogOutline }}</v-icon
           >Admin Panel
@@ -32,7 +32,7 @@ import {
   mdiDatabaseClockOutline,
   mdiOpenInNew,
 } from "@mdi/js";
-import { mapActions, mapGetters, mapWritableState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import AdminStatusList from "@/components/admin/drawer/status-list.vue";
 import { useAdminStore } from "@/stores/admin";
@@ -56,7 +56,7 @@ export default {
   },
   computed: {
     ...mapGetters(useAuthStore, ["isUserAdmin"]),
-    ...mapWritableState(useAdminStore, ["unseenFailedImports"]),
+    ...mapState(useAdminStore, ["unseenFailedImports"]),
   },
   methods: {
     ...mapActions(useAdminStore, ["clearFailedImports", "librarianTask"]),

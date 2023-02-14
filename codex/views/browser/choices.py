@@ -110,7 +110,6 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
 
         data = {}
         for field_name in self.serializer_class().get_fields():  # type: ignore
-
             rel, m2m_model = self._get_rel_and_model(field_name)
 
             if m2m_model:
