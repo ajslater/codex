@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.1.6
+
+- Fix
+  - Fix rare deletion and recreation of all comics when inodes changed.
+
 ## v1.1.5
 
 - Features
