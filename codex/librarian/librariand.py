@@ -186,8 +186,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
 
     def stop(self):
         """Close up the librarian process."""
-        while not self.queue.empty():
-            self.queue.get_nowait()
+        self.queue.put(LIBRARIAN_SHUTDOWN_TASK)
         self.queue.close()
         self.queue.join_thread()
         self.join()
