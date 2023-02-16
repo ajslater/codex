@@ -1,7 +1,6 @@
 """Start and stop daemons."""
 from wsproto.frame_protocol import CloseReason
 
-from codex.librarian.librariand import LIBRARIAN_SHUTDOWN_TASK
 from codex.logger_base import LoggerBaseMixin
 from codex.signals.os_signals import bind_signals_to_loop
 
@@ -17,25 +16,9 @@ class LifespanApplication(LoggerBaseMixin):
 
     SCOPE_TYPE = "lifespan"
 
-    def __init__(self, log_queue, librarian_queue, broadcast_queue):
+    def __init__(self, log_queue):
         """Create logger and librarian."""
         self.init_logger(log_queue)
-        self.librarian_queue = librarian_queue
-        self.broadcast_queue = broadcast_queue
-
-    async def codex_shutdown(self):
-        """Send stop signals to daemon & consumers."""
-        # item = NotifierConsumer.create_broadcast_group_item(
-        #    ChannelGroups.ALL, WS_DISCONNECT_MESSAGE
-        # )
-        # self.broadcast_queue.coro_put(item)
-        self.librarian_queue.put(LIBRARIAN_SHUTDOWN_TASK)
-        print("SHUTDOWN")
-        import threading
-
-        for thread in threading.enumerate():
-            if thread.name != "MainThread":
-                print(thread.name, thread.is_alive())
 
     async def __call__(self, scope, receive, send):
         """Lifespan application."""
@@ -57,7 +40,6 @@ class LifespanApplication(LoggerBaseMixin):
                 elif message["type"] == "lifespan.shutdown":
                     self.log.debug("Lifespan shutdown started.")
                     try:
-                        await self.codex_shutdown()
                         await send({"type": "lifespan.shutdown.complete"})
                         self.log.debug("Lifespan shutdown complete.")
                     except Exception as exc:
