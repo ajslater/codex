@@ -18,7 +18,7 @@ from watchdog.events import (
     FileSystemEventHandler,
 )
 
-from codex.librarian.db.tasks import UpdaterDBDiffTask
+from codex.librarian.importer.tasks import UpdaterDBDiffTask
 from codex.librarian.watchdog.tasks import WatchdogEventTask
 from codex.logger_base import LoggerBaseMixin
 from codex.settings.settings import MAX_DB_OPS
@@ -29,7 +29,7 @@ _COMIC_REGEX = r"\.(cb[zrt]|pdf)$"
 _COMIC_MATCHER = re.compile(_COMIC_REGEX, re.IGNORECASE)
 
 
-class EventBatcher(AggregateMessageQueuedThread):
+class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
     """Batch watchdog events into bulk database tasks."""
 
     CLS_SUFFIX = -len("Event")

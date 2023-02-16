@@ -4,7 +4,7 @@ from channels.routing import URLRouter
 from channels.security.websocket import AllowedHostsOriginValidator
 from django.urls import path
 
-from codex.consumers.notifier import NotifierConsumer
+from codex.django_channels.consumers import NotifierConsumer
 from codex.settings.settings import HYPERCORN_CONFIG
 
 

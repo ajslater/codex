@@ -18,11 +18,7 @@ def load_hypercorn_config(hypercorn_config_toml, hypercorn_config_toml_default, 
     """Load the hypercorn config."""
     _ensure_config(hypercorn_config_toml, hypercorn_config_toml_default)
     config = Config.from_toml(hypercorn_config_toml)
-    # logger.info(f"Loaded config from {hypercorn_config_toml}")
     if debug:
         config.use_reloader = True
-        # logger.info("Will reload hypercorn if files change")
-        print("Will reload hypercorn if files change")
     max_db_ops = max(1, int(getattr(config, "max_db_ops", MAX_DB_OPS_DEFAULT)))
-    print(f"max_db_ops limit is {max_db_ops}")
     return config, max_db_ops

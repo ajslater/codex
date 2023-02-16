@@ -62,6 +62,8 @@ export const useSocketStore = defineStore("socket", {
       const message = event.data;
       console.debug(message);
 
+      // Cannot instantiate store outside of case blocks.
+
       switch (message) {
         case CHOICES.websockets.LIBRARY_CHANGED:
           libraryChanged();

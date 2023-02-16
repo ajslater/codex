@@ -13,6 +13,7 @@ from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.janitor.tasks import (
     JanitorBackupTask,
     JanitorCleanFKsTask,
+    JanitorCleanupSessionsTask,
     JanitorUpdateTask,
     JanitorVacuumTask,
 )
@@ -25,8 +26,8 @@ from codex.threads import NamedThread
 _ONE_DAY = timedelta(days=1)
 
 
-class Crond(NamedThread):
-    """Run a scheduled service for codex."""
+class JanitorThread(NamedThread):
+    """Run nightly cleanups."""
 
     @staticmethod
     def _get_midnight(now, tomorrow=False):
@@ -63,6 +64,7 @@ class Crond(NamedThread):
     def _init_librarian_status(self):
         types_map = {
             JanitorStatusTypes.CLEANUP_FK: {"total": TOTAL_NUM_FK_CLASSES},
+            JanitorStatusTypes.CLEANUP_SESSIONS: {},
             JanitorStatusTypes.DB_VACUUM: {},
             JanitorStatusTypes.DB_BACKUP: {},
             JanitorStatusTypes.CODEX_UPDATE: {},
@@ -91,6 +93,7 @@ class Crond(NamedThread):
                     try:
                         tasks = [
                             JanitorCleanFKsTask(),
+                            JanitorCleanupSessionsTask(),
                             JanitorVacuumTask(),
                             JanitorBackupTask(),
                             JanitorUpdateTask(force=False),
@@ -108,7 +111,7 @@ class Crond(NamedThread):
         except Exception as exc:
             self.log.error(f"Error in {self.__class__.__name__}")
             self.log.exception(exc)
-        self.log.info(f"Stopped {self.__class__.__name__} thread.")
+        self.log.debug(f"Stopped {self.__class__.__name__}.")
 
     def stop(self):
         """Stop the cron thread."""

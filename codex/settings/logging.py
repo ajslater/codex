@@ -10,7 +10,9 @@ def get_loglevel(debug):
     if loglevel:
         if loglevel == "VERBOSE":
             print(
-                "LOGLEVEL=VERBOSE has been deprecated. Use INFO (the default) or DEBUG."
+                "LOGLEVEL=VERBOSE has been deprecated."
+                " Setting LOGLEVEL to INFO (the default)."
+                " Use DEBUG for more verbose logging."
             )
             loglevel = logging.INFO
         return loglevel

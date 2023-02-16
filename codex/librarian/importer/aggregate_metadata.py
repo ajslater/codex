@@ -1,6 +1,6 @@
 """Aggregate metadata from comics to prepare for importing."""
-from datetime import datetime
 from pathlib import Path
+from time import time
 from zipfile import BadZipFile
 
 from comicbox.comic_archive import ComicArchive
@@ -8,8 +8,8 @@ from comicbox.exceptions import UnsupportedArchiveTypeError
 from rarfile import BadRarFile
 
 from codex.comic_field_names import COMIC_M2M_FIELD_NAMES
-from codex.librarian.db.clean_metadata import CleanMetadataMixin
-from codex.librarian.db.status import ImportStatusTypes
+from codex.librarian.importer.clean_metadata import CleanMetadataMixin
+from codex.librarian.importer.status import ImportStatusTypes
 from codex.models import Comic, Imprint, Publisher, Series, Volume
 from codex.pdf import PDF
 from codex.version import COMICBOX_CONFIG
@@ -152,7 +152,7 @@ class AggregateMetadataMixin(CleanMetadataMixin):
             self.log.info(
                 f"Reading tags from {total_paths} comics in {library.path}..."
             )
-            since = datetime.now()
+            since = time()
             for num, path in enumerate(all_paths):
                 path = str(path)
                 md, m2m_md, group_tree_md, failed_import = self._get_path_metadata(path)

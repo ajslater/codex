@@ -6,5 +6,5 @@ from dataclasses import dataclass
 class DelayedTasks:
     """A list of tasks to start on a delay."""
 
-    delay: int
+    until: float
     tasks: tuple

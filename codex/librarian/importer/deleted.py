@@ -2,7 +2,7 @@
 import logging
 
 from codex.librarian.covers.tasks import CoverRemoveTask
-from codex.librarian.db.status import ImportStatusTypes
+from codex.librarian.importer.status import ImportStatusTypes
 from codex.models import Comic, Folder
 from codex.threads import QueuedThread
 

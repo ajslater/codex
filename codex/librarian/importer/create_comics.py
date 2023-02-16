@@ -1,12 +1,12 @@
 """Bulk update and create comic objects and bulk update m2m fields."""
-from datetime import datetime
 from pathlib import Path
+from time import time
 
 from django.db.models import Q
 from django.db.models.functions import Now
 
 from codex.librarian.covers.tasks import CoverRemoveTask
-from codex.librarian.db.status import ImportStatusTypes
+from codex.librarian.importer.status import ImportStatusTypes
 from codex.models import (
     Comic,
     Credit,
@@ -305,7 +305,7 @@ class CreateComicsMixin(QueuedThread):
                 total_links += len(m2m_links)
             self.status_controller.start(ImportStatusTypes.LINK_M2M_FIELDS, total_links)
 
-            since = datetime.now()
+            since = time()
             completed_links = 0
             for m2m_links in all_m2m_links.values():
                 for field_name, m2m_links in all_m2m_links.items():

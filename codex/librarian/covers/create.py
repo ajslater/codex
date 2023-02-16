@@ -1,8 +1,6 @@
 """Create comic cover paths."""
-import time
-
-from datetime import datetime
 from io import BytesIO
+from time import time
 
 from comicbox.comic_archive import ComicArchive
 from humanize import naturaldelta
@@ -10,6 +8,7 @@ from PIL import Image
 
 from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.covers.status import CoverStatusTypes
+from codex.librarian.covers.tasks import CoverSaveToCache
 from codex.models import Comic
 from codex.pdf import PDF
 from codex.version import COMICBOX_CONFIG
@@ -39,7 +38,8 @@ class CoverCreateMixin(CoverPathMixin):
             thumb_image_data = cover_thumb_buffer.getvalue()
         return thumb_image_data
 
-    def _get_comic_cover_image(self, comic):
+    @classmethod
+    def _get_comic_cover_image(cls, comic):
         """
         Create comic cover if none exists.
 
@@ -55,28 +55,45 @@ class CoverCreateMixin(CoverPathMixin):
             raise ValueError("Read empty cover.")
         return image_data
 
-    def create_cover(self, pk):
-        """Create a cover from a comic id."""
-        start = time.time()
-        cover_path = self.get_cover_path(pk)
+    @classmethod
+    def create_cover_from_path(cls, pk, cover_path, log, librarian_queue):
+        """
+        Create cover for path.
+
+        Called from views/cover.
+        """
         comic = None
         try:
             comic = Comic.objects.only("path", "file_format").get(pk=pk)
-            cover_image = self._get_comic_cover_image(comic)
-            data = self._create_cover_thumbnail(cover_image)
+            cover_image = cls._get_comic_cover_image(comic)
+            data = cls._create_cover_thumbnail(cover_image)
         except Exception as exc:
             data = bytes()
             comic_str = comic.path if comic else f"{pk=}"
-            self.log.warning(f"Could not create cover thumbnail for {comic_str}: {exc}")
+            log.warning(f"Could not create cover thumbnail for {comic_str}: {exc}")
 
+        task = CoverSaveToCache(cover_path, data)
+        librarian_queue.put(task)
+        return data
+
+    def save_cover_to_cache(self, cover_path, data):
+        """Save cover thumb image to the disk cache."""
         cover_path.parent.mkdir(exist_ok=True, parents=True)
         if data:
             with cover_path.open("wb") as cover_file:
                 cover_file.write(data)
         else:
             cover_path.symlink_to(self.MISSING_COVER_PATH)
-        elapsed = time.time() - start
-        print(f"CREATED {pk} in {elapsed} seconds")
+
+    #####################
+    # UNUSED BELOW HERE #
+    #####################
+
+    def create_cover(self, pk):
+        """Create a cover from a comic id."""
+        # XXX Unused.
+        cover_path = self.get_cover_path(pk)
+        self.create_cover_from_path(pk, cover_path, self.log, self.librarian_queue)
 
     def bulk_create_comic_covers(self, comic_pks):
         """Create bulk comic covers."""
@@ -91,7 +108,7 @@ class CoverCreateMixin(CoverPathMixin):
 
             # Get comic objects
             count = 0
-            start_time = since = datetime.now()
+            start_time = since = time()
 
             for pk in comic_pks:
                 # Create all covers.
@@ -108,7 +125,7 @@ class CoverCreateMixin(CoverPathMixin):
                     CoverStatusTypes.CREATE, count, num_comics, since=since
                 )
 
-            total_elapsed = naturaldelta(datetime.now() - start_time)
+            total_elapsed = naturaldelta(time() - start_time)
             self.log.info(f"Created {count} comic covers in {total_elapsed}.")
             return count
         finally:

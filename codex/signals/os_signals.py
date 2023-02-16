@@ -1,4 +1,5 @@
 """OS Signal actions."""
+import asyncio
 import signal
 
 from asyncio import Event
@@ -29,9 +30,10 @@ def _restart_signal_handler():
     _shutdown_signal_handler()
 
 
-def bind_signals(loop):
+def bind_signals_to_loop():
     """Binds signals to the handlers."""
     try:
+        loop = asyncio.get_running_loop()
         for signal_name in SIGNAL_NAMES:
             sig = getattr(signal, signal_name, None)
             if sig:

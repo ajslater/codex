@@ -83,7 +83,7 @@ def _parse_choices(module_name):
                 ) as choices_mmap_file:
                     json_str = choices_mmap_file.read()
                     data_dict = json.loads(json_str)
-                    LOG.info(f"Loaded json choices from {js_root} {module_name}")
+                    LOG.debug(f"Loaded json choices from {js_root} {module_name}")
                     break
         except Exception as exc:
             LOG.exception(exc)
@@ -133,7 +133,7 @@ def _load_json():
     """Load values from the vuetify formatted json into python dicts."""
     global WEBSOCKET_MESSAGES
     if DEFAULTS and VUETIFY_NULL_CODE and CHOICES and WEBSOCKET_MESSAGES:
-        LOG.info("choices already loaded")
+        LOG.warning("choices already loaded")
         return
     data_dict = _parse_choices(_CHOICES_MODULE_NAME)
     for key, value in data_dict.items():

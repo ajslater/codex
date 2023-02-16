@@ -6,7 +6,7 @@ from pathlib import Path
 from django.db.models import Q
 from django.db.models.functions import Now
 
-from codex.librarian.db.status import ImportStatusTypes
+from codex.librarian.importer.status import ImportStatusTypes
 from codex.models import Comic, FailedImport
 from codex.threads import QueuedThread
 

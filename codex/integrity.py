@@ -256,7 +256,7 @@ def _repair_library_groups(apps):
 
 def _fix_db_integrity():
     """Fix most of the Codex model integrity errors we can."""
-    LOG.info("Reparing database integrity...")
+    LOG.debug("Reparing database integrity...")
     # DELETE things we can't fix
     for host_model_name in HAVE_LIBRARY_FKS:
         _delete_fk_integrity_errors(apps, host_model_name, "Library", "library")
@@ -302,7 +302,7 @@ def _fix_db_integrity():
 
     _repair_library_groups(apps)
 
-    LOG.info("Done with database integrity check.")
+    LOG.info("Database integrity confirmed.")
 
 
 def repair_db():

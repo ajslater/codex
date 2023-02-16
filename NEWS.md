@@ -13,6 +13,22 @@ border-radius: 128px;
 - Features
   - Works on Windows? See README for install instructions.
 
+## v1.1.6
+
+- Fix
+  - Fix rare deletion and recreation of all comics when inodes changed.
+
+## v1.1.5
+
+- Features
+  - Admin Stats tab
+  - Libraries can have a poll delay longer than 1 day.
+- Fix
+  - Crash when removing comics.
+  - Admin Create & Update dialogs would get stuck open on submit.
+  - Delete expired and corrupt sessions every night.
+  - More liberal touch detection for more devices.
+
 ## v1.1.4
 
 - Fix

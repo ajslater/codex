@@ -35,7 +35,7 @@ MIN_FINISHED_TIME = 1
 OPTIMIZE_DOC_COUNT = 20 * 60 * 3
 
 
-class SearchIndexer(QueuedThread):
+class SearchIndexerThread(QueuedThread):
     """A worker to handle search index update tasks."""
 
     def _set_search_index_version(self):

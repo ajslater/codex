@@ -2,6 +2,7 @@
 from django.urls import path
 from django.views.decorators.cache import never_cache
 
+from codex.views.admin.api_key import AdminAPIKey
 from codex.views.admin.flag import AdminFlagViewSet
 from codex.views.admin.group import AdminGroupViewSet
 from codex.views.admin.librarian import (
@@ -13,6 +14,7 @@ from codex.views.admin.library import (
     AdminFolderListView,
     AdminLibraryViewSet,
 )
+from codex.views.admin.stats import AdminStatsView
 from codex.views.admin.user import AdminUserChangePasswordView, AdminUserViewSet
 
 
@@ -74,4 +76,6 @@ urlpatterns = [
         name="librarian_status",
     ),
     path("librarian/task", AdminLibrarianTaskView.as_view(), name="librarian_task"),
+    path("stats", AdminStatsView.as_view(), name="stats"),
+    path("api_key", AdminAPIKey.as_view(), name="api_key"),
 ]

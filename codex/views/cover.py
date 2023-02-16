@@ -1,18 +1,18 @@
 """Comic cover thumbnail view."""
-import math
-
-from time import sleep, time
-
 from django.http import HttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework.renderers import BaseRenderer
 from rest_framework.views import APIView
 
+from codex.librarian.covers.create import CoverCreateMixin
 from codex.librarian.covers.path import CoverPathMixin
-from codex.librarian.covers.tasks import CoverCreateTask
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.logger.logging import get_logger
 from codex.views.mixins import GroupACLMixin
+
+
+LOG = get_logger(__name__)
 
 
 class WEBPRenderer(BaseRenderer):
@@ -33,9 +33,6 @@ class CoverView(APIView, GroupACLMixin):
 
     renderer_classes = (WEBPRenderer,)
     content_type = "image/webp"
-    _RENDER_WAIT_TIME = 0.002
-    _WAIT_BACKOFF_POWER = math.log(2)
-    _COVER_TIMEOUT = 90
 
     @extend_schema(responses={(200, content_type): OpenApiTypes.BINARY})
     def get(self, request, *args, **kwargs):
@@ -43,28 +40,17 @@ class CoverView(APIView, GroupACLMixin):
         # thumb_image_data = None
         pk = self.kwargs.get("pk")
         cover_path = CoverPathMixin.get_cover_path(pk)
+        thumb_image_data = None
         if not cover_path.exists():
-            # task, exc = create_cover(pk, cover_path)
-            task = CoverCreateTask(pk)
-            LIBRARIAN_QUEUE.put(task)
-            # TODO best thing to here would be to wait and call back when it's written.
-            # launch checker tasks with browser and metadata. not this.
-            #   browser sends bulk create to librarian.
-            # TODO for now just wait:
-            elapsed = 0
-            wait_time = self._RENDER_WAIT_TIME
-            start = time()
-            while not cover_path.exists():
-                sleep(wait_time)  # TODO time the average and minimum
-                # TODO try again with browser pre-job?
-                elapsed = time() - start
-                if elapsed >= self._COVER_TIMEOUT:
-                    cover_path = CoverPathMixin.MISSING_COVER_PATH
-                wait_time = wait_time**self._WAIT_BACKOFF_POWER
-            print(f"cover view {pk} took {elapsed} seconds")
+            thumb_image_data = CoverCreateMixin.create_cover_from_path(
+                pk, cover_path, LOG, LIBRARIAN_QUEUE
+            )
+            if not thumb_image_data:
+                cover_path = CoverPathMixin.MISSING_COVER_PATH
 
-        # if not thumb_image_data:
-        with cover_path.open("rb") as f:
-            thumb_image_data = f.read()
+        if not thumb_image_data:
+            # if not thumb_image_data:
+            with cover_path.open("rb") as f:
+                thumb_image_data = f.read()
 
         return HttpResponse(thumb_image_data, content_type=self.content_type)

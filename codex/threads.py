@@ -26,7 +26,7 @@ class NamedThread(Thread, WorkerBaseMixin, ABC):
 
     def run_start(self):
         """First thing to do when running a new thread."""
-        self.log.info(f"Started {self.__class__.__name__}")
+        self.log.debug(f"Started {self.__class__.__name__}")
 
 
 class QueuedThread(NamedThread, ABC):
@@ -75,7 +75,7 @@ class QueuedThread(NamedThread, ABC):
             except Exception as exc:
                 self.log.error(f"{self.__class__.__name__} crashed:")
                 self.log.exception(exc)
-        self.log.info(f"Stopped {self.__class__.__name__} thread")
+        self.log.debug(f"Stopped {self.__class__.__name__}")
 
     def stop(self):
         """Stop the thread."""

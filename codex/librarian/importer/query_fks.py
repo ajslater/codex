@@ -1,10 +1,10 @@
 """Query the missing foreign keys for comics and credits."""
-from datetime import datetime
 from pathlib import Path
+from time import time
 
 from django.db.models import Q
 
-from codex.librarian.db.status import ImportStatusTypes
+from codex.librarian.importer.status import ImportStatusTypes
 from codex.models import (
     Comic,
     Credit,
@@ -53,7 +53,7 @@ class QueryForeignKeysMixin(QueuedThread):
         filter = Q()
         filter_arg_count = 0
         all_filter_args = tuple(all_filter_args)
-        since = datetime.now()
+        since = time()
         ls = LibrarianStatus.objects.get(type=ImportStatusTypes.QUERY_MISSING_FKS)
         ls_complete = ls.complete
         num_filter_args_batches = len(all_filter_args)
@@ -129,17 +129,18 @@ class QueryForeignKeysMixin(QueuedThread):
                 update_groups[group_tree] = count_dict
         return create_groups, update_groups
 
-    @classmethod
-    def _query_missing_groups(cls, group_trees_md):
+    def _query_missing_groups(self, group_trees_md):
         """Get missing groups from proposed groups to create."""
         all_create_groups = {}
         all_update_groups = {}
         count = 0
-        for cls, groups in group_trees_md.items():
-            create_groups, update_groups = cls._query_missing_group_type(cls, groups)
-            all_create_groups[cls] = create_groups
+        for group_class, groups in group_trees_md.items():
+            create_groups, update_groups = self._query_missing_group_type(
+                group_class, groups
+            )
+            all_create_groups[group_class] = create_groups
             if update_groups:
-                all_update_groups[cls] = update_groups
+                all_update_groups[group_class] = update_groups
             count += len(create_groups)
         return all_create_groups, all_update_groups, count
 
@@ -174,7 +175,7 @@ class QueryForeignKeysMixin(QueuedThread):
         create_names = set(names)
         num_proposed_names = len(proposed_names)
         num = 0
-        since = datetime.now()
+        since = time()
 
         # Init status update.
         ls = LibrarianStatus.objects.get(type=ImportStatusTypes.QUERY_MISSING_FKS)
@@ -268,10 +269,10 @@ class QueryForeignKeysMixin(QueuedThread):
                     base_cls = Credit
                 else:
                     base_cls = Comic
-                cls, names = self._query_missing_simple_models(
+                model, names = self._query_missing_simple_models(
                     base_cls, field, "name", names
                 )
-                create_fks[cls] = names
+                create_fks[model] = names
                 if num_names := len(names):
                     self.log.info(f"Prepared {num_names} new {field}.")
 

@@ -5,6 +5,7 @@ from codex.librarian.janitor.tasks import (
     ForceUpdateAllFailedImportsTask,
     JanitorBackupTask,
     JanitorCleanFKsTask,
+    JanitorCleanupSessionsTask,
     JanitorClearStatusTask,
     JanitorRestartTask,
     JanitorShutdownTask,
@@ -37,6 +38,8 @@ class Janitor(CleanupMixin, UpdateMixin, VacuumMixin, UpdateFailedImportsMixin):
                 self.shutdown_codex()
             elif isinstance(task, JanitorCleanFKsTask):
                 self.cleanup_fks()
+            elif isinstance(task, JanitorCleanupSessionsTask):
+                self.cleanup_sessions()
             elif isinstance(task, JanitorClearStatusTask):
                 self.status_controller.finish_many([])
             elif isinstance(task, ForceUpdateAllFailedImportsTask):

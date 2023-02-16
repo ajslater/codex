@@ -1,6 +1,6 @@
 """Custom Haystack Search Backend."""
-from datetime import datetime, timedelta
 from multiprocessing import cpu_count
+from time import time
 
 from django.utils.timezone import now
 from haystack.backends.whoosh_backend import TEXT, WhooshSearchBackend
@@ -100,7 +100,6 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         Require=r"(?i)(^|(?<=\s))REQUIRE(?=\s)",
     )
     MULTISEGMENT_CUTOFF = 500
-    UPDATE_DELTA = timedelta(seconds=5)
     UPDATE_FINISH_TYPES = frozenset(
         (
             SearchIndexStatusTypes.SEARCH_INDEX_PREPARE,
@@ -170,8 +169,8 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
 
     def update(self, index, iterable, commit=True):
         """Update index, but with writer options."""
+        start = since = time()
         try:
-            start = since = datetime.now()
             num_objs = len(iterable)
             statuses = {
                 SearchIndexStatusTypes.SEARCH_INDEX_PREPARE: {
@@ -225,11 +224,15 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                     since=since,
                 )
 
-            self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_PREPARE)
-            elapsed = naturaldelta(datetime.now() - start)
+            elapsed_time = time() - start
+            until = start + 1
+            self.status_controller.finish(
+                SearchIndexStatusTypes.SEARCH_INDEX_PREPARE, until=until
+            )
+            elapsed = naturaldelta(elapsed_time)
             self.log.info(f"Search engine prepared objects for commit in {elapsed}")
 
-            start = datetime.now()
+            prepare_start = time()
             if len(iterable) > 0:
                 # For now, commit no matter what, as we run into locking issues
                 # otherwise.
@@ -237,15 +240,20 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                     writer.commit(merge=True)
                 if writer.ident is not None:
                     writer.join()
-            elapsed = naturaldelta(datetime.now() - start)
+            elapsed = naturaldelta(time() - prepare_start)
             self.log.info(f"Search engine committed index in {elapsed}")
         finally:
-            self.status_controller.finish_many(self.UPDATE_FINISH_TYPES)
+            until = start + 2
+            self.status_controller.finish_many(self.UPDATE_FINISH_TYPES, until=until)
 
     def clear(self, models=None, commit=True):
         """Clear index with codex status messages."""
+        start = time()
         try:
             self.status_controller.start(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
             super().clear(models=models, commit=commit)
         finally:
-            self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
+            until = start + 1
+            self.status_controller.finish(
+                SearchIndexStatusTypes.SEARCH_INDEX_CLEAR, until=until
+            )

@@ -1,7 +1,9 @@
 """Codex Django Models."""
+import base64
 import calendar
 import datetime
 import os
+import uuid
 
 from pathlib import Path
 
@@ -30,7 +32,7 @@ from django.db.models.enums import TextChoices
 from django.utils.translation import gettext_lazy as _
 
 from codex.librarian.covers.status import CoverStatusTypes
-from codex.librarian.db.status import ImportStatusTypes
+from codex.librarian.importer.status import ImportStatusTypes
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.watchdog.status import WatchdogStatusTypes
@@ -569,7 +571,8 @@ class Timestamp(NamedModel):
     SEARCH_INDEX = "search_index"
     CODEX_VERSION = "codex_version"
     SEARCH_INDEX_UUID = "search_index_uuid"
-    NAMES = (COVERS, JANITOR, SEARCH_INDEX, CODEX_VERSION, SEARCH_INDEX_UUID)
+    API_KEY = "api_key"
+    NAMES = (COVERS, JANITOR, SEARCH_INDEX, CODEX_VERSION, SEARCH_INDEX_UUID, API_KEY)
 
     version = CharField(max_length=32, default="")
 
@@ -577,3 +580,10 @@ class Timestamp(NamedModel):
     def touch(cls, name):
         """Touch a timestamp."""
         cls.objects.get(name=name).save()
+
+    def save_uuid_version(self):
+        """Create base64 uuid."""
+        uuid_bytes = uuid.uuid4().bytes
+        b64_bytes = base64.urlsafe_b64encode(uuid_bytes)
+        self.version = b64_bytes.decode("utf-8").replace("=", "")
+        self.save()

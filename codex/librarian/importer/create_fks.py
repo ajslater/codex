@@ -5,12 +5,12 @@ So we may safely create the comics next.
 """
 import logging
 
-from datetime import datetime
 from pathlib import Path
+from time import time
 
 from django.db.models.functions import Now
 
-from codex.librarian.db.status import ImportStatusTypes
+from codex.librarian.importer.status import ImportStatusTypes
 from codex.models import (
     Credit,
     CreditPerson,
@@ -247,7 +247,7 @@ class CreateForeignKeysMixin(QueuedThread):
 
         return count
 
-    def _init_librarian_status(
+    def _init_create_fk_librarian_status(
         self,
         create_groups,
         update_groups,
@@ -284,14 +284,14 @@ class CreateForeignKeysMixin(QueuedThread):
     ) -> bool:
         """Bulk create all foreign keys."""
         try:
-            total_fks = self._init_librarian_status(
+            total_fks = self._init_create_fk_librarian_status(
                 create_groups,
                 update_groups,
                 create_folder_paths,
                 create_fks,
                 create_credits,
             )
-            since = datetime.now()
+            since = time()
             self.log.debug(f"Creating comic foreign keys for {library.path}...")
             count = 0
             count += self._bulk_create_or_update_groups(

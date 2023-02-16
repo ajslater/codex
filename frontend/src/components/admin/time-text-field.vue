@@ -15,10 +15,13 @@ export default {
   data() {
     return {
       timeRules: [
+        /* eslint-disable unicorn/no-unsafe-regex */
+        /* eslint-disable security/detect-unsafe-regex */
         (v) =>
-          /^([01]?\d|2[0-4]):([0-5]\d)(:[0-5]\d)?:([0-5]\d)(:[0-5]\d)?$/.test(
-            v
-          ) || "Invalid time format d:HH:mm:SS",
+          /^(\d{1,3}\s)?([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/.test(v) ||
+          "Invalid time format DDD HH:mm:SS",
+        /* eslint-enable unicorn/no-unsafe-regex */
+        /* eslint-enable security/detect-unsafe-regex */
       ],
     };
   },

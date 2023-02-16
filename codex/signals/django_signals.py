@@ -1,4 +1,6 @@
 """Django signal actions."""
+from time import time
+
 from django.core.cache import cache
 from django.db.backends.signals import connection_created
 from django.db.models.signals import m2m_changed
@@ -17,15 +19,16 @@ def _activate_wal_journal(sender, connection, **kwargs):  # noqa: F841
 
 def _user_group_change(action, instance, pk_set, model, **kwargs):  # noqa: F841
     """Clear cache and send update signals when groups change."""
-    if model.__name__ == "Group" and action in (
+    if model.__name__ != "Group" or action not in (
         "post_add",
         "post_remove",
         "post_clear",
     ):
-        cache.clear()
-        tasks = (LIBRARIAN_STATUS_TASK,)
-        task = DelayedTasks(2, tasks)
-        LIBRARIAN_QUEUE.put(task)
+        return
+    cache.clear()
+    tasks = (LIBRARIAN_STATUS_TASK,)
+    task = DelayedTasks(time() + 2, tasks)
+    LIBRARIAN_QUEUE.put(task)
 
 
 def connect_signals():

@@ -280,7 +280,7 @@ HAYSTACK_CONNECTIONS = {
 }
 
 CHANNEL_LAYERS = {
-    "default": {"BACKEND": "codex.channel_layer.CodexChannelLayer"},
+    "default": {"BACKEND": "codex.django_channels.layers.CodexChannelLayer"},
 }
 
 if DEBUG:

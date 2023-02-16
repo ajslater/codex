@@ -1,7 +1,7 @@
 """Test websockets."""
 import pytest
 
-from codex.consumers.notifier import Channels
+from codex.django_channels.consumers import ChannelGroups
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.notifierd import NotifierThread
 from codex.librarian.notifier.tasks import NotifierTask
@@ -32,6 +32,6 @@ class TestWebsockets:
         global KEYS
         KEYS = set()
         notifier = NotifierThread(LOG_QUEUE, LIBRARIAN_QUEUE)
-        notifier.queue.put(NotifierTask("hello", Channels.ALL))
+        notifier.queue.put(NotifierTask("hello", ChannelGroups.ALL))
         notifier.send_all_items()
         assert KEYS == self.COMPARE_KEYS

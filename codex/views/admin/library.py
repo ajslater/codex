@@ -1,5 +1,6 @@
 """Admin Library Views."""
 from pathlib import Path
+from time import time
 
 from django.core.cache import cache
 from rest_framework.exceptions import ValidationError
@@ -44,8 +45,7 @@ class AdminLibraryViewSet(ModelViewSet):
 
     @staticmethod
     def _sync_watchdog():
-        tasks = (WatchdogSyncTask(),)
-        task = DelayedTasks(2, tasks)
+        task = DelayedTasks(time() + 2, (WatchdogSyncTask(),))
         LIBRARIAN_QUEUE.put(task)
 
     @staticmethod

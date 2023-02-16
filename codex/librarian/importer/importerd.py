@@ -1,19 +1,18 @@
 """Bulk import and move comics and folders."""
 import logging
-import time
 
-from datetime import datetime
 from pathlib import Path
+from time import time
 
 from django.core.cache import cache
 from humanize import naturaldelta
 
-from codex.librarian.db.aggregate_metadata import AggregateMetadataMixin
-from codex.librarian.db.deleted import DeletedMixin
-from codex.librarian.db.failed_imports import FailedImportsMixin
-from codex.librarian.db.moved import MovedMixin
-from codex.librarian.db.status import ImportStatusTypes
-from codex.librarian.db.tasks import AdoptOrphanFoldersTask, UpdaterDBDiffTask
+from codex.librarian.importer.aggregate_metadata import AggregateMetadataMixin
+from codex.librarian.importer.deleted import DeletedMixin
+from codex.librarian.importer.failed_imports import FailedImportsMixin
+from codex.librarian.importer.moved import MovedMixin
+from codex.librarian.importer.status import ImportStatusTypes
+from codex.librarian.importer.tasks import AdoptOrphanFoldersTask, UpdaterDBDiffTask
 from codex.librarian.notifier.tasks import FAILED_IMPORTS_TASK, LIBRARY_CHANGED_TASK
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexUpdateTask
@@ -24,7 +23,7 @@ from codex.models import Library
 _WRITE_WAIT_EXPIRY = 5
 
 
-class Updater(
+class ComicImporterThread(
     AggregateMetadataMixin,
     DeletedMixin,
     FailedImportsMixin,
@@ -34,7 +33,7 @@ class Updater(
 
     def _wait_for_filesystem_ops_to_finish(self, task: UpdaterDBDiffTask) -> bool:
         """Watchdog sends events before filesystem events finish, so wait for them."""
-        started_checking = time.time()
+        started_checking = time()
 
         # Don't wait for deletes to complete.
         # Do wait for move, modified, create files before import.
@@ -58,7 +57,7 @@ class Updater(
                     f"Waiting for files to copy before import: "
                     f"{old_total_size} != {total_size}"
                 )
-            if time.time() - started_checking > _WRITE_WAIT_EXPIRY:
+            if time() - started_checking > _WRITE_WAIT_EXPIRY:
                 return True
 
             old_total_size = total_size
@@ -188,7 +187,7 @@ class Updater(
 
     def _apply(self, task):
         """Bulk import comics."""
-        start_time = datetime.now()
+        start_time = time()
         library = Library.objects.get(pk=task.library_id)
         try:
             library.update_in_progress = True
@@ -221,23 +220,23 @@ class Updater(
         finally:
             self._finish_apply(library)
         # Wait to start the search index update in case more updates are incoming.
-        delayed_search_task = DelayedTasks(2, (SearchIndexUpdateTask(False),))
+        delayed_search_task = DelayedTasks(
+            start_time + 2, (SearchIndexUpdateTask(False),)
+        )
         self.librarian_queue.put(delayed_search_task)
 
         if changed:
             self.librarian_queue.put(LIBRARY_CHANGED_TASK)
-            elapsed_time = datetime.now() - start_time
+            elapsed_time = time() - start_time
             elapsed = naturaldelta(elapsed_time)
             self.log.info(f"Updated library {library.path} in {elapsed}.")
             suffix = ""
             if imported_count:
-                cps = int(imported_count / elapsed_time.total_seconds())
+                cps = round(imported_count / elapsed_time, 1)
                 suffix = f" at {cps} comics per second."
             self.log.info(f"Imported {imported_count} comics{suffix}.")
         if new_failed_imports:
-            self.librarian_queue.put(
-                FAILED_IMPORTS_TASK
-            )  # TODO does this trigger a refresh like CHANGED?
+            self.librarian_queue.put(FAILED_IMPORTS_TASK)
 
     def process_item(self, task):
         """Run the updater."""

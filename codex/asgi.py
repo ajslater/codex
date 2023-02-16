@@ -7,16 +7,19 @@ For more information on this file, see
 https://docs.djangoproject.com/en/dev/howto/deployment/asgi/
 """
 from channels.routing import ProtocolTypeRouter
+from django.core.asgi import get_asgi_application
 
-from codex.applications.http import HTTP_APPLICATION
 from codex.applications.lifespan import LifespanApplication
 from codex.applications.websocket import WEBSOCKET_APPLICATION
+from codex.django_channels.broadcast_queue import BROADCAST_QUEUE
+from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.logger.mp_queue import LOG_QUEUE
 
 
 application = ProtocolTypeRouter(
     {
-        "http": HTTP_APPLICATION,
+        "http": get_asgi_application(),
         "websocket": WEBSOCKET_APPLICATION,
-        "lifespan": LifespanApplication(),
+        "lifespan": LifespanApplication(LOG_QUEUE, LIBRARIAN_QUEUE, BROADCAST_QUEUE),
     }
 )

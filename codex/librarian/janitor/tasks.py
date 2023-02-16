@@ -59,6 +59,13 @@ class JanitorClearStatusTask(JanitorTask):
 
 
 @dataclass
+class JanitorCleanupSessionsTask(JanitorTask):
+    """Cleanup Session table."""
+
+    pass
+
+
+@dataclass
 class ForceUpdateAllFailedImportsTask(JanitorTask):
     """Force update for failed imports in every library."""
 

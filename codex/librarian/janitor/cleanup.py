@@ -1,7 +1,10 @@
 """Clean up the database after moves or imports."""
 import logging
 
-from datetime import datetime
+from time import time
+
+from django.contrib.sessions.models import Session
+from django.utils.timezone import now
 
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.models import (
@@ -41,6 +44,7 @@ _COMIC_FK_CLASSES = (
 )
 _CREDIT_FK_CLASSES = (CreditRole, CreditPerson)
 TOTAL_NUM_FK_CLASSES = len(_COMIC_FK_CLASSES) + len(_CREDIT_FK_CLASSES)
+DELAY = 3
 
 
 class CleanupMixin(WorkerBaseMixin):
@@ -48,7 +52,7 @@ class CleanupMixin(WorkerBaseMixin):
 
     def _bulk_cleanup_fks(self, classes, field_name, status_count):
         """Remove foreign keys that aren't used anymore."""
-        since = datetime.now()
+        since = time()
         for cls in classes:
             filter_dict = {f"{field_name}__isnull": True}
             query = cls.objects.filter(**filter_dict)
@@ -87,3 +91,26 @@ class CleanupMixin(WorkerBaseMixin):
             self.log.log(level, f"Cleaned up {status_count} unused foreign keys.")
         finally:
             self.status_controller.finish(JanitorStatusTypes.CLEANUP_FK)
+
+    def cleanup_sessions(self):
+        """Delete corrupt sessions."""
+        start = time()
+        self.status_controller.start(JanitorStatusTypes.CLEANUP_SESSIONS)
+        count, _ = Session.objects.filter(expire_date__lt=now()).delete()
+        if count:
+            self.log.info(f"Deleted {count} expired sessions.")
+
+        bad_session_keys = set()
+        for encoded_session in Session.objects.all():
+            session = encoded_session.get_decoded()
+            if not session:
+                bad_session_keys.add(encoded_session.session_key)
+
+        if not bad_session_keys:
+            return
+
+        bad_sessions = Session.objects.filter(session_key__in=bad_session_keys)
+        count, _ = bad_sessions.delete()
+        self.log.info(f"Deleted {count} corrupt sessions.")
+        until = start + 2
+        self.status_controller.finish(JanitorStatusTypes.CLEANUP_SESSIONS, until=until)

@@ -102,6 +102,14 @@ const librarianTask = (task, library_id) => {
   return HTTP.post("/admin/librarian/task", { task, library_id });
 };
 
+const getStats = () => {
+  return HTTP.get("/admin/stats");
+};
+
+const updateAPIKey = () => {
+  return HTTP.post("/admin/api_key");
+};
+
 export default {
   changeUserPassword,
   createGroup,
@@ -116,9 +124,11 @@ export default {
   getGroups,
   getLibrarianStatuses,
   getLibraries,
+  getStats,
   getUsers,
   librarianTask,
   postLibrarianTask,
+  updateAPIKey,
   updateFlag,
   updateGroup,
   updateLibrary,
