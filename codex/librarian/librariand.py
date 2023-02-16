@@ -82,7 +82,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         if isinstance(task, CoverTask):
             self._threads.cover_creator_thread.queue.put(task)
         elif isinstance(task, WatchdogEventTask):
-            self._threads.event_batcher_thread.queue.put(task)
+            self._threads.watchdog_event_batcher_thread.queue.put(task)
         elif isinstance(task, UpdaterTask):
             self._threads.comic_importer_thread.queue.put(task)
         elif isinstance(task, NotifierTask):
