@@ -59,22 +59,6 @@ class NotifierConsumer(AsyncWebsocketConsumer):
         except StopConsumer:
             # Exit cleanly
             pass
-        except ValueError as exc:
-            print(self.channel_name, exc)
-
-        self.scope = None
-        self.base_send = None
-        self.broadcast_receive = None
-        self.channel_receive = None
-        queue = self.channel_layer.channels.get(self.channel_name)
-        if queue:
-            # XXX This never runs
-            print(self.channel_name, "close queue")
-            while not queue.empty():
-                queue.get_nowait()
-            queue.close()
-            queue.join_thread()
-        print(self.channel_name, "end of __call__")
 
     async def websocket_connect(self, message):
         """Authorize with user and connect websocket to groups."""
@@ -93,10 +77,6 @@ class NotifierConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, code):
         """Close channels after WebSocket disconnect."""
         await self.close(code)
-        print(self.channel_name, "disconnect")
-        if not self.channel_layer:
-            LOG.warning("No channel layer found when closing broadcast queue")
-            return
 
     async def send_text(self, event):
         """Send message to client."""
@@ -113,5 +93,4 @@ class NotifierConsumer(AsyncWebsocketConsumer):
 
         group = event["group"]
         message = event["message"]
-        print(message, flush=True)
         await self.channel_layer.group_send(group, message)
