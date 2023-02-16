@@ -17,7 +17,6 @@ border-radius: 128px;
   - Multiprocessing method is now spawn on all platforms.
   - Websockets handled by customized Django channels
     - aioprocessing Queue communicates between librarian and channels.
-  
 
 ## v1.1.6
 
