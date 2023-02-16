@@ -6,6 +6,9 @@ from time import time
 from django.contrib.sessions.models import Session
 from django.utils.timezone import now
 
+from django.contrib.sessions.models import Session
+from django.utils.timezone import now
+
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.models import (
     Character,
