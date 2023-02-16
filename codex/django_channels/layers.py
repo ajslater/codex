@@ -1,6 +1,7 @@
 """Custom channel layer."""
 from asyncio import Queue
 from queue import Empty
+from time import time
 
 from channels.layers import InMemoryChannelLayer
 
@@ -41,6 +42,47 @@ class CodexChannelLayer(InMemoryChannelLayer):
                     del self.channels[channel]
 
         return message
+
+    @staticmethod
+    def _queue_peek_expired(channel, queue):
+        """Peek for expired message by queue type."""
+        if channel == BROADCAST_CHANNEL_NAME:
+            private_queue = queue.queue
+        else:
+            private_queue = queue._queue
+
+        return private_queue[0][0] >= time()
+
+    def _clean_expired(self):
+        """
+        Goes through all messages and groups and removes those that are expired.
+
+        Any channel with an expired message is removed from all groups.
+        """
+        # Channel cleanup
+        for channel, queue in list(self.channels.items()):
+            # See if it's expired
+            while not queue.empty():
+                if self._queue_peek_expired(channel, queue):
+                    break
+                queue.get_nowait()
+                # Any removal prompts group discard
+                self._remove_from_groups(channel)
+                # Is the channel now empty and needs deleting?
+                if queue.empty():
+                    del self.channels[channel]
+
+        # Group Expiration
+        timeout = int(time()) - self.group_expiry
+        for group in self.groups:
+            for channel in list(self.groups.get(group, set())):
+                # If join time is older than group_expiry end the group membership
+                if (
+                    self.groups[group][channel]
+                    and int(self.groups[group][channel]) < timeout
+                ):
+                    # Delete from group
+                    del self.groups[group][channel]
 
     @staticmethod
     def close_broadcast_queue():
