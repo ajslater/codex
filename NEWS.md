@@ -12,6 +12,12 @@ border-radius: 128px;
 
 - Features
   - Works on Windows? See README for install instructions.
+  - LOGLEVEL=VERBOSE deprecated in favor of DEBUG
+- Development
+  - Multiprocessing method is now spawn on all platforms.
+  - Websockets handled by customized Django channels
+    - aioprocessing Queue communicates between librarian and channels.
+  
 
 ## v1.1.6
 
