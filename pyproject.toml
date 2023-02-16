@@ -123,9 +123,9 @@ exclude = [
 skip = './cache,./codex/static_build,./codex/static_root,./comics,./config/logs,./dist,./frontend/coverage,./test-results,.git,.mypy_cache,.pytest_cache,.venv*,*~,_vendor/haystack,node_modules,package-lock.json,poetry.lock,run.spec'
 builtin = 'clear,rare,code'
 check-hidden = true
-ignore-words-list = 'thead,ro,jupyter,coverd'
 # Remove 'coverd' when this issue is resolved
 # https://github.com/codespell-project/codespell/issues/1212
+ignore-words-list = 'thead,ro,jupyter,coverd'
 
 [tool.djlint]
 ignore = "H030,H031"
