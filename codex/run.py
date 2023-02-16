@@ -56,19 +56,14 @@ def _release_thread_locks():
     a thread deadlocking situation. The threads hang and prevent codex
     from exiting.
     """
-    current_thread = threading.current_thread()
     released = 0
     for thread in threading.enumerate():
-        if thread != current_thread:
-            lock = thread.__dict__.get("_tstate_lock")
-            if lock:
-                lock.release()
-                released += 1
+        if thread.name.startswith("ThreadPoolExecutor"):
+            thread._tstate_lock.release()  # type: ignore
+            thread._stop()  # type: ignore
+            released += 1
     if released:
-        import logging
-
-        logging.root.debug(f"Released {released} locked threads.")
-        print(f"Released {released} locked threads.")
+        LOG.debug(f"Released {released} locked threads.")
 
 
 def main():
@@ -78,9 +73,9 @@ def main():
     LOG.info(f"Running Codex v{VERSION}")
     codex_init()
     run()
+    _release_thread_locks()
     LOG.info("Goodbye.")
     loggerd.stop()
-    _release_thread_locks()
     if RESTART_EVENT.is_set():
         restart()
 
