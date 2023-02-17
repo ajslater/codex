@@ -6,7 +6,7 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.2.0a0
+## v1.2.0a1
 
 ### Spawn
 
