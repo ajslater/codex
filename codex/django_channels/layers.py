@@ -4,7 +4,6 @@ from copy import deepcopy
 from queue import Empty
 from time import time
 
-from aioprocessing import AioQueue
 from channels.layers import ChannelFull, InMemoryChannelLayer
 
 from codex.django_channels.broadcast_queue import BROADCAST_QUEUE
@@ -76,7 +75,8 @@ class CodexChannelLayer(InMemoryChannelLayer):
     @staticmethod
     def _queue_peek_expired(channel, queue):
         """Peek for expired message by queue type."""
-        if isinstance(AioQueue, channel):
+        is_aio_queue = channel == BROADCAST_CHANNEL_NAME
+        if is_aio_queue:
             private_queue = queue.queue
         else:
             private_queue = queue._queue
