@@ -170,7 +170,7 @@ class ComicImporterThread(
             types_map[ImportStatusTypes.FILES_DELETED] = {
                 "name": f"({len(task.files_deleted)})"
             }
-            total_changes += len(task.files.deleted)
+            total_changes += len(task.files_deleted)
         types_map[SearchIndexStatusTypes.SEARCH_INDEX_PREPARE] = {
             "total": total_changes
         }
