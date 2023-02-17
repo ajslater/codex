@@ -41,7 +41,15 @@ LOGLEVEL = get_loglevel(DEBUG)
 LOG_DIR = Path(environ.get("CODEX_LOG_DIR", CONFIG_PATH / "logs"))
 LOG_TO_CONSOLE = environ.get("CODEX_LOG_TO_CONSOLE") != "0"
 LOG_TO_FILE = environ.get("CODEX_LOG_TO_FILE") != "0"
-
+if not DEBUG:
+    LOGGING = {
+        "version": 1,
+        "loggers": {
+            "asyncio": {
+                "level": "INFO",
+            },
+        },
+    }
 ALLOWED_HOSTS = ["*"]
 
 
