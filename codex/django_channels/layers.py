@@ -1,9 +1,11 @@
 """Custom channel layer."""
 from asyncio import Queue
+from copy import deepcopy
 from queue import Empty
 from time import time
 
-from channels.layers import InMemoryChannelLayer
+from aioprocessing import AioQueue
+from channels.layers import ChannelFull, InMemoryChannelLayer
 
 from codex.django_channels.broadcast_queue import BROADCAST_QUEUE
 
@@ -18,6 +20,32 @@ class CodexChannelLayer(InMemoryChannelLayer):
     Works with a special AioQueue broadcast channel.
     """
 
+    async def send(self, channel, message):
+        """Send a message onto a (general or specific) channel."""
+        # Typecheck
+        assert isinstance(message, dict), "message is not a dict"
+        assert self.valid_channel_name(channel), "Channel name not valid"
+        # If it's a process-local channel, strip off local part and stick full
+        # name in message
+        assert "__asgi_channel__" not in message
+
+        is_aio_queue = channel == BROADCAST_CHANNEL_NAME
+
+        if is_aio_queue:
+            queue = self.channels.setdefault(channel, BROADCAST_QUEUE)
+        else:
+            queue = self.channels.setdefault(channel, Queue())
+        # Are we full
+        if queue.qsize() >= self.capacity:
+            raise ChannelFull(channel)
+
+        # Add message
+        item = (time() + self.expiry, deepcopy(message))
+        if is_aio_queue:
+            await queue.coro_put(item)
+        else:
+            await queue.put(item)
+
     async def receive(self, channel):
         """
         Receive the first message that arrives on the channel.
@@ -28,8 +56,10 @@ class CodexChannelLayer(InMemoryChannelLayer):
         assert self.valid_channel_name(channel)
         self._clean_expired()
 
+        is_aio_queue = channel == BROADCAST_CHANNEL_NAME
+
         # Do a plain direct receive
-        if channel == BROADCAST_CHANNEL_NAME:
+        if is_aio_queue:
             # broadcast channel uses the singleton AioQueue
             queue = self.channels.setdefault(channel, BROADCAST_QUEUE)
             _, message = await queue.coro_get()  # type: ignore
@@ -46,7 +76,7 @@ class CodexChannelLayer(InMemoryChannelLayer):
     @staticmethod
     def _queue_peek_expired(channel, queue):
         """Peek for expired message by queue type."""
-        if channel == BROADCAST_CHANNEL_NAME:
+        if isinstance(AioQueue, channel):
             private_queue = queue.queue
         else:
             private_queue = queue._queue
