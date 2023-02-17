@@ -6,8 +6,8 @@ from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag
+from codex.registration import patch_registration_setting
 from codex.serializers.admin import AdminFlagSerializer
-from codex.settings.patch import patch_registration_setting
 
 
 LOG = get_logger(__name__)

@@ -10,7 +10,7 @@ from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
 from codex.logger.mp_queue import LOG_QUEUE
 from codex.models import AdminFlag, LibrarianStatus, Library, Timestamp
-from codex.settings.patch import patch_registration_setting
+from codex.registration import patch_registration_setting
 from codex.settings.settings import (
     BACKUP_DB_PATH,
     HYPERCORN_CONFIG,
