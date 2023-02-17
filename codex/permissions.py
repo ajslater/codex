@@ -13,5 +13,5 @@ class HasAPIKey(BasePermission):
             data = request.GET
         else:
             data = request.POST
-        key = data.get("api_key")
+        key = data.get("apiKey")
         return Timestamp.objects.filter(name=Timestamp.API_KEY, version=key).exists()
