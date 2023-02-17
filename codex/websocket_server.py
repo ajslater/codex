@@ -30,7 +30,7 @@ def _handle_websocket_message(event, send):
         else:
             LOG.warning(f"Bad message type to websockets: {text}")
     except JSONDecodeError as exc:
-        LOG.error(exc)
+        LOG.warning(f"decoding websocket message: {event.get('text')} {exc}")
 
 
 async def websocket_application(_scope, receive, send):

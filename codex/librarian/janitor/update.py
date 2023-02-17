@@ -32,7 +32,7 @@ def update_codex(force=False):
             (sys.executable, "-m", "pip", "install", "--upgrade", "codex"), check=True
         )
     except Exception as exc:
-        LOG.error(exc)
+        LOG.error(f"update codex software: {exc}")
     finally:
         StatusControl.finish(JanitorStatusTypes.CODEX_UPDATE)
 
