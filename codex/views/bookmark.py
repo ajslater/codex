@@ -133,7 +133,7 @@ class BookmarkView(BookmarkBaseView):
         try:
             updates = self._validate(serializer_class)
         except Exception as exc:
-            LOG.error(exc)
+            LOG.error(f"update bookmark: {exc}")
             raise exc
 
         pk = self.kwargs.get("pk")

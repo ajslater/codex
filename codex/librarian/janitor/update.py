@@ -44,7 +44,7 @@ class UpdateMixin(WorkerBaseMixin):
                 check=True,
             )
         except Exception as exc:
-            self.log.error(exc)
+            self.log.error(f"upadting codex software: {exc}")
         finally:
             self.status_controller.finish(JanitorStatusTypes.CODEX_UPDATE)
 

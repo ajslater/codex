@@ -1613,15 +1613,15 @@ files = [
 pillow = "*"
 
 [[package]]
-name = "pdfrw"
-version = "0.4"
+name = "pdfrw2"
+version = "0.5.0"
 description = "PDF file reader/writer library"
 category = "main"
 optional = false
 python-versions = "*"
 files = [
-    {file = "pdfrw-0.4-py2.py3-none-any.whl", hash = "sha256:758289edaa3b672e9a1a67504be73c18ec668d4e5b9d5ac9cbc0dc753d8d196b"},
-    {file = "pdfrw-0.4.tar.gz", hash = "sha256:0dc0494a0e6561b268542b28ede2280387c2728114f117d3bb5d8e4787b93ef4"},
+    {file = "pdfrw2-0.5.0-py2.py3-none-any.whl", hash = "sha256:16aea0be23a19aa5fe5ae57ad3bbaac97b76c3a5b6eacd14cbfa54442c37a21b"},
+    {file = "pdfrw2-0.5.0.tar.gz", hash = "sha256:e6a9ccab83e769a7a8bfe2dbddf0f49dd7ebe52032e929574f01bbbfa21971ed"},
 ]
 
 [[package]]
@@ -2670,4 +2670,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "8affe3de32fe485e276b9ec0a556888be0a1d6404d6518f1be40d663ed994e2d"
+content-hash = "183300ca4d3b3377ea5094a67ca185f1da0b9c45688ea8d2b8f0edfb1a665276"

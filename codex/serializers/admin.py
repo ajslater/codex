@@ -92,7 +92,7 @@ class LibrarySerializer(ModelSerializer):
                 if ppath.is_relative_to(existing_path):
                     raise ValueError("Child of existing library path")
         except Exception as exc:
-            LOG.error(exc)
+            LOG.error(f"validate library path: {exc}")
             raise exc
         return path
 
