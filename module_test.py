@@ -1,20 +1,17 @@
 """Test harness for running individual modules."""
-import os
 import sys
 
-import django
-
-
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "codex.settings.settings")
-django.setup()
-from codex.librarian.covers.create import bulk_create_comic_covers  # noqa: E402
-from codex.models import Comic  # noqa: E402
+from codex.librarian.covers.coverd import CoverCreatorThread
+from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.logger.mp_queue import LOG_QUEUE
+from codex.models import Comic
 
 
 def _test(limit):
     """Recreate all covers."""
     all_pks = Comic.objects.all().values_list("pk", flat=True)[:limit]
-    bulk_create_comic_covers(all_pks)
+    cc = CoverCreatorThread(LOG_QUEUE, LIBRARIAN_QUEUE)
+    cc.bulk_create_comic_covers(all_pks)
 
 
 def main():

@@ -9,8 +9,8 @@ from djangorestframework_camel_case.settings import api_settings
 from djangorestframework_camel_case.util import underscoreize
 from rest_framework.exceptions import ValidationError
 
+from codex.logger.logging import get_logger
 from codex.serializers.browser import BrowserSettingsSerializer
-from codex.settings.logging import get_logger
 from codex.views.browser.filters.bookmark import BookmarkFilterMixin
 from codex.views.browser.filters.field import ComicFieldFilter
 from codex.views.browser.filters.group import GroupFilterMixin

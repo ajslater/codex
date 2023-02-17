@@ -6,9 +6,9 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import NotFound
 from rest_framework.negotiation import BaseContentNegotiation
 
+from codex.logger.logging import get_logger
 from codex.models import Comic
 from codex.pdf import PDF
-from codex.settings.logging import get_logger
 from codex.version import COMICBOX_CONFIG
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.bookmark import BookmarkBaseView

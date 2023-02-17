@@ -1,6 +1,5 @@
-"""Admin Flag View."""
-
-from djangorestframework_camel_case.util import camel_to_underscore
+"""Specialized Homepage API."""
+from caseconverter import snakecase
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
@@ -26,8 +25,7 @@ class HomepageStatsView(GenericAPIView):
         """Get database counts of each model group."""
         obj = {}
         for model in models:
-            key = camel_to_underscore(model.__name__)
-            key = key[1:] + "_count"
+            key = snakecase(model.__name__) + "_count"
             obj[key] = model.objects.count()
         return obj
 

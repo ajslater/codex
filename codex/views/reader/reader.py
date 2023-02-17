@@ -4,10 +4,10 @@ from django.urls import reverse
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
+from codex.logger.logging import get_logger
 from codex.models import Comic
 from codex.serializers.reader import ReaderInfoSerializer
 from codex.serializers.redirect import ReaderRedirectSerializer
-from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.bookmark import BookmarkBaseView
 

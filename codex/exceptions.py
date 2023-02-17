@@ -5,9 +5,9 @@ from django.utils.http import urlencode
 from rest_framework.exceptions import APIException
 from rest_framework.status import HTTP_303_SEE_OTHER
 
+from codex.logger.logging import get_logger
 from codex.serializers.choices import DEFAULTS
 from codex.serializers.redirect import BrowserRedirectSerializer
-from codex.settings.logging import get_logger
 
 
 LOG = get_logger(__name__)
@@ -22,7 +22,7 @@ class SeeOtherRedirectError(APIException):
 
     def __init__(self, detail):
         """Create a response to pass to the exception handler."""
-        LOG.verbose(f"redirect {detail.get('reason')}")
+        LOG.debug(f"redirect {detail.get('reason')}")
         serializer = BrowserRedirectSerializer(detail)
         self.detail: dict = serializer.data
         # super().__init__ converts every type into strings!

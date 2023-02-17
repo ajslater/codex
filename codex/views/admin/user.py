@@ -9,10 +9,10 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_202_ACCEPTED, HTTP_400_BAD_REQUEST
 from rest_framework.viewsets import ModelViewSet
 
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE
-from codex.notifier.tasks import LIBRARY_CHANGED_TASK
+from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
+from codex.logger.logging import get_logger
 from codex.serializers.admin import UserChangePasswordSerializer, UserSerializer
-from codex.settings.logging import get_logger
 
 
 LOG = get_logger(__name__)

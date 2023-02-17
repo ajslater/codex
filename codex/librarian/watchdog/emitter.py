@@ -17,31 +17,32 @@ from watchdog.events import (
 from watchdog.observers.api import EventEmitter
 from watchdog.utils.dirsnapshot import DirectorySnapshot
 
-from codex.librarian.status_control import StatusControl
 from codex.librarian.watchdog.dirsnapshot import (
     CodexDatabaseSnapshot,
     CodexDirectorySnapshotDiff,
 )
 from codex.librarian.watchdog.status import WatchdogStatusTypes
 from codex.models import Library
-from codex.settings.logging import get_logger
+from codex.worker_base import WorkerBaseMixin
 
 
-LOG = get_logger(__name__)
-DOCKER_UNMOUNTED_FN = "DOCKER_UNMOUNTED_VOLUME"
+_DOCKER_UNMOUNTED_FN = "DOCKER_UNMOUNTED_VOLUME"
 
 
-class DatabasePollingEmitter(EventEmitter):
+class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
     """Use DatabaseSnapshots to compare against the DirectorySnapshots."""
 
-    DIR_NOT_FOUND_TIMEOUT = 15 * 60
+    _DIR_NOT_FOUND_TIMEOUT = 15 * 60
 
-    def __init__(self, event_queue, watch, timeout=None):
+    def __init__(
+        self, event_queue, watch, timeout=None, log_queue=None, librarian_queue=None
+    ):
         """Initialize snapshot methods."""
+        self.init_worker(log_queue, librarian_queue)
         self._poll_cond = Condition()
         self._force = False
         self._watch_path = Path(watch.path)
-        self._watch_path_unmounted = self._watch_path / DOCKER_UNMOUNTED_FN
+        self._watch_path_unmounted = self._watch_path / _DOCKER_UNMOUNTED_FN
         super().__init__(event_queue, watch)
 
         self._take_dir_snapshot = lambda: DirectorySnapshot(
@@ -67,21 +68,23 @@ class DatabasePollingEmitter(EventEmitter):
     def _is_watch_path_ok(self, library):
         """Return a special timeout value if there's a problem with the watch dir."""
         if not library.poll:
-            LOG.warning(f"Library {self._watch_path} not poll enabled.")
+            self.log.warning(f"Library {self._watch_path} not poll enabled.")
             self._stopped_event.set()
             return False
         if not self._watch_path.is_dir():
-            LOG.warning(f"Library {self._watch_path} not found.")
+            self.log.warning(f"Library {self._watch_path} not found.")
             return
         if self._watch_path_unmounted.exists():
             # Maybe overkill of caution here
-            LOG.warning(
+            self.log.warning(
                 f"Library {self._watch_path} looks like an unmounted docker volume."
             )
             return
         if not tuple(self._watch_path.iterdir()):
             # Maybe overkill of caution here too
-            LOG.warning(f"{self._watch_path} is empty. Suspect it may be unmounted.")
+            self.log.warning(
+                f"{self._watch_path} is empty. Suspect it may be unmounted."
+            )
             return
 
         return True
@@ -98,7 +101,7 @@ class DatabasePollingEmitter(EventEmitter):
             if ok is False:
                 return 0
             elif ok is None:
-                return self.DIR_NOT_FOUND_TIMEOUT
+                return self._DIR_NOT_FOUND_TIMEOUT
 
             if library.last_poll:
                 since_last_poll = timezone.now() - library.last_poll
@@ -108,15 +111,15 @@ class DatabasePollingEmitter(EventEmitter):
                     - since_last_poll.total_seconds(),
                 )
         except Exception as exc:
-            LOG.error(f"Getting timeout for {self.watch.path}")
-            LOG.exception(exc)
+            self.log.error(f"Getting timeout for {self.watch.path}")
+            self.log.exception(exc)
         return timeout
 
     def _is_take_snapshot(self, timeout):
         """Determine if we should take a snapshot."""
         with self._poll_cond:
             if timeout:
-                LOG.verbose(
+                self.log.info(
                     f"Polling {self.watch.path} again in {naturaldelta(timeout)}."
                 )
             self._poll_cond.wait(timeout)
@@ -127,7 +130,7 @@ class DatabasePollingEmitter(EventEmitter):
         library = Library.objects.get(path=self.watch.path)
         ok = self._is_watch_path_ok(library)
         if not ok:
-            LOG.warning("Not Polling.")
+            self.log.warning("Not Polling.")
             return
         return library
 
@@ -140,8 +143,8 @@ class DatabasePollingEmitter(EventEmitter):
 
         if len(dir_snapshot.paths) <= 1:
             # Maybe overkill of caution here also
-            LOG.warning(f"{self._watch_path} dir snapshot is empty. Not polling")
-            LOG.verbose(f"{dir_snapshot.paths=}")
+            self.log.warning(f"{self._watch_path} dir snapshot is empty. Not polling")
+            self.log.debug(f"{dir_snapshot.paths=}")
             return
 
         # Ignore device for docker and other complex filesystems
@@ -151,13 +154,13 @@ class DatabasePollingEmitter(EventEmitter):
 
     def _queue_events(self, diff):
         """Create and queue the events from the diff."""
-        LOG.verbose(
+        self.log.debug(
             f"Poller sending unfiltered files: {len(diff.files_deleted)} "
             f"deleted, {len(diff.files_modified)} modified, "
             f"{len(diff.files_created)} created, "
             f"{len(diff.files_moved)} moved."
         )
-        LOG.verbose(
+        self.log.debug(
             f"Poller sending comic folders: {len(diff.dirs_deleted)} deleted,"
             f" {len(diff.dirs_modified)} modified,"
             f" {len(diff.dirs_moved)} moved."
@@ -192,8 +195,8 @@ class DatabasePollingEmitter(EventEmitter):
             if not library:
                 return
 
-            StatusControl.start(WatchdogStatusTypes.POLL, name=self.watch.path)
-            LOG.verbose(f"Polling {self.watch.path}...")
+            self.status_controller.start(WatchdogStatusTypes.POLL, name=self.watch.path)
+            self.log.debug(f"Polling {self.watch.path}...")
             diff = self._get_diff()
             if not diff:
                 return
@@ -203,12 +206,12 @@ class DatabasePollingEmitter(EventEmitter):
             library.last_poll = Now()
             library.save()
 
-            LOG.verbose(f"Polling {self.watch.path} finished.")
+            self.log.info(f"Polled {self.watch.path}")
         except Exception as exc:
-            LOG.exception(exc)
+            self.log.exception(exc)
             raise exc
         finally:
-            StatusControl.finish(WatchdogStatusTypes.POLL)
+            self.status_controller.finish(WatchdogStatusTypes.POLL)
 
     def on_thread_stop(self):
         """Send the poller as well."""

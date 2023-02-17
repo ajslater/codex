@@ -8,44 +8,32 @@ from humanize import naturaldelta
 
 from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.covers.tasks import CoverRemoveOrphansTask
-from codex.librarian.janitor.cleanup import TOTAL_CLASSES, cleanup_fks, cleanup_sessions
+from codex.librarian.janitor.cleanup import TOTAL_NUM_FK_CLASSES
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.janitor.tasks import (
     JanitorBackupTask,
     JanitorCleanFKsTask,
     JanitorCleanupSessionsTask,
-    JanitorClearStatusTask,
-    JanitorRestartTask,
-    JanitorShutdownTask,
     JanitorUpdateTask,
     JanitorVacuumTask,
 )
-from codex.librarian.janitor.update import restart_codex, shutdown_codex, update_codex
-from codex.librarian.janitor.vacuum import backup_db, vacuum_db
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexOptimizeTask, SearchIndexUpdateTask
-from codex.librarian.status_control import StatusControl
 from codex.models import Timestamp
-from codex.settings.logging import get_logger
 from codex.threads import NamedThread
 
 
-LOG = get_logger(__name__)
-DEBOUNCE = 5
-ONE_DAY = timedelta(days=1)
+_ONE_DAY = timedelta(days=1)
 
 
-class Crond(NamedThread):
-    """Run a scheduled service for codex."""
-
-    NAME = "Cron"  # type: ignore
+class JanitorThread(NamedThread):
+    """Run nightly cleanups."""
 
     @staticmethod
     def _get_midnight(now, tomorrow=False):
         """Get midnight relative to now."""
         if tomorrow:
-            now += ONE_DAY
+            now += _ONE_DAY
         day = now.astimezone()
         midnight = datetime.combine(day, time.min).astimezone()
         return midnight
@@ -56,7 +44,7 @@ class Crond(NamedThread):
         now = django_timezone.now()
         last_cron = Timestamp.objects.get(name=Timestamp.JANITOR).updated_at
 
-        if now - last_cron < ONE_DAY:
+        if now - last_cron < _ONE_DAY:
             # wait until next midnight
             next_midnight = cls._get_midnight(now, True)
             delta = next_midnight - now
@@ -67,10 +55,15 @@ class Crond(NamedThread):
 
         return seconds
 
-    @staticmethod
-    def _init_librarian_status():
+    def __init__(self, *args, **kwargs):
+        """Initialize this thread with the worker."""
+        self._stop_event = Event()
+        self._cond = Condition()
+        super().__init__(*args, name=self.__class__.__name__, daemon=True, **kwargs)
+
+    def _init_librarian_status(self):
         types_map = {
-            JanitorStatusTypes.CLEANUP_FK: {"total": TOTAL_CLASSES},
+            JanitorStatusTypes.CLEANUP_FK: {"total": TOTAL_NUM_FK_CLASSES},
             JanitorStatusTypes.CLEANUP_SESSIONS: {},
             JanitorStatusTypes.DB_VACUUM: {},
             JanitorStatusTypes.DB_BACKUP: {},
@@ -80,7 +73,7 @@ class Crond(NamedThread):
             SearchIndexStatusTypes.SEARCH_INDEX_OPTIMIZE: {},
             CoverStatusTypes.FIND_ORPHAN: {},
         }
-        StatusControl.start_many(types_map)
+        self.status_controller.start_many(types_map)
 
     def run(self):
         """Watch a path and log the events."""
@@ -89,7 +82,7 @@ class Crond(NamedThread):
             with self._cond:
                 while not self._stop_event.is_set():
                     timeout = self._get_timeout()
-                    LOG.verbose(
+                    self.log.info(
                         f"Waiting {naturaldelta(timeout)} until next maintenance."
                     )
                     self._cond.wait(timeout=timeout)
@@ -109,51 +102,19 @@ class Crond(NamedThread):
                             CoverRemoveOrphansTask(),
                         ]
                         for task in tasks:
-                            LIBRARIAN_QUEUE.put(task)
+                            self.librarian_queue.put(task)
                     except Exception as exc:
-                        LOG.error(f"Error in {self.NAME}")
-                        LOG.exception(exc)
+                        self.log.error(f"Error in {self.__class__.__name__}")
+                        self.log.exception(exc)
                     Timestamp.touch(Timestamp.JANITOR)
                     sleep(2)
         except Exception as exc:
-            LOG.error(f"Error in {self.NAME}")
-            LOG.exception(exc)
-        LOG.verbose(f"Stopped {self.NAME} thread.")
-
-    def __init__(self):
-        """Initialize this thread with the worker."""
-        self._stop_event = Event()
-        self._cond = Condition()
-        super().__init__(name=self.NAME, daemon=True)
+            self.log.error(f"Error in {self.__class__.__name__}")
+            self.log.exception(exc)
+        self.log.debug(f"Stopped {self.__class__.__name__}.")
 
     def stop(self):
         """Stop the cron thread."""
         self._stop_event.set()
         with self._cond:
             self._cond.notify()
-
-
-def janitor(task):
-    """Run Janitor tasks as the librarian process directly."""
-    try:
-        if isinstance(task, JanitorVacuumTask):
-            vacuum_db()
-        elif isinstance(task, JanitorBackupTask):
-            backup_db()
-        elif isinstance(task, JanitorUpdateTask):
-            update_codex()
-        elif isinstance(task, JanitorRestartTask):
-            restart_codex()
-        elif isinstance(task, JanitorShutdownTask):
-            shutdown_codex()
-        elif isinstance(task, JanitorCleanFKsTask):
-            cleanup_fks()
-        elif isinstance(task, JanitorCleanupSessionsTask):
-            cleanup_sessions()
-        elif isinstance(task, JanitorClearStatusTask):
-            StatusControl.finish_many([])
-        else:
-            LOG.warning(f"Janitor received unknown task {task}")
-    except Exception as exc:
-        LOG.error("Janitor task crashed.")
-        LOG.exception(exc)

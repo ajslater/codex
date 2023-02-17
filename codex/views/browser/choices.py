@@ -1,18 +1,17 @@
 """View for marking comics read and unread."""
 import pycountry
 
-from djangorestframework_camel_case.settings import api_settings
-from djangorestframework_camel_case.util import camel_to_underscore
+from caseconverter import snakecase
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
+from codex.logger.logging import get_logger
 from codex.models import Comic, CreditPerson
 from codex.serializers.browser import (
     BrowserChoicesSerializer,
     BrowserFilterChoicesSerializer,
 )
 from codex.serializers.models import PyCountrySerializer
-from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.base import BrowserBaseView
 
@@ -158,7 +157,7 @@ class BrowserChoicesView(BrowserChoicesViewBase):
 
         # Detect if there are null choices.
         # Regretabbly with another query, but doing a forward query
-        # on the comic above restricts all results to only the filtered
+        # on the comic above restrcts all results to only the filtered
         # rows. :(
         if cls.does_m2m_null_exist(comic_qs, rel):
             choices = list(qs)
@@ -172,8 +171,7 @@ class BrowserChoicesView(BrowserChoicesViewBase):
         """Return all choices with more than one choice."""
         self.parse_params()
 
-        field_name = self.kwargs.get("field_name")
-        field_name = camel_to_underscore(field_name, **api_settings.JSON_UNDERSCOREIZE)
+        field_name = snakecase(self.kwargs["field_name"])
 
         rel, m2m_model = self._get_rel_and_model(field_name)
 

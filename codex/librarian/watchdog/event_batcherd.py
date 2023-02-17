@@ -18,23 +18,20 @@ from watchdog.events import (
     FileSystemEventHandler,
 )
 
-from codex.librarian.db.tasks import UpdaterDBDiffTask
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE
+from codex.librarian.importer.tasks import UpdaterDBDiffTask
 from codex.librarian.watchdog.tasks import WatchdogEventTask
-from codex.settings.logging import get_logger
+from codex.logger_base import LoggerBaseMixin
 from codex.settings.settings import MAX_DB_OPS
 from codex.threads import AggregateMessageQueuedThread
 
 
 _COMIC_REGEX = r"\.(cb[zrt]|pdf)$"
-COMIC_MATCHER = re.compile(_COMIC_REGEX, re.IGNORECASE)
-LOG = get_logger(__name__)
+_COMIC_MATCHER = re.compile(_COMIC_REGEX, re.IGNORECASE)
 
 
-class EventBatcher(AggregateMessageQueuedThread):
+class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
     """Batch watchdog events into bulk database tasks."""
 
-    NAME = "WatchdogEventBatcher"  # type: ignore
     CLS_SUFFIX = -len("Event")
     DBDIFF_TASK_PARAMS = {
         "library_id": None,
@@ -78,7 +75,7 @@ class EventBatcher(AggregateMessageQueuedThread):
         event = task.event
         args_field = self._args_field_by_event(task.library_id, event)
         if args_field is None:
-            LOG.debug(f"Unhandled event, not batching: {event}")
+            self.log.debug(f"Unhandled event, not batching: {event}")
             return
 
         if event.event_type == EVENT_TYPE_MOVED:
@@ -87,7 +84,7 @@ class EventBatcher(AggregateMessageQueuedThread):
             args_field.add(event.src_path)
         self._total_items += 1
         if self._total_items > MAX_DB_OPS:
-            LOG.info("Event batcher hit max_db_ops limit.")
+            self.log.info("Event batcher hit max_db_ops limit.")
             # Sends all items
             self.timed_out()
 
@@ -128,7 +125,7 @@ class EventBatcher(AggregateMessageQueuedThread):
         library_ids = set()
         for library_id in self.cache.keys():
             task = self._create_task(library_id)
-            LIBRARIAN_QUEUE.put(task)
+            self.librarian_queue.put(task)
             library_ids.add(library_id)
 
         # reset the event aggregates
@@ -136,13 +133,16 @@ class EventBatcher(AggregateMessageQueuedThread):
         self._total_items = 0
 
 
-class CodexLibraryEventHandler(FileSystemEventHandler):
+class CodexLibraryEventHandler(FileSystemEventHandler, LoggerBaseMixin):
     """Handle watchdog events for comics in a library."""
 
     def __init__(self, library, *args, **kwargs):
         """Let us send along he library id."""
-        super().__init__(*args, **kwargs)
         self.library_pk = library.pk
+        self.librarian_queue = kwargs.pop("librarian_queue")
+        log_queue = kwargs.pop("log_queue")
+        self.init_logger(log_queue)
+        super().__init__(*args, **kwargs)
 
     def dispatch(self, event):
         """Send only valid codex events to the EventBatcher."""
@@ -152,11 +152,11 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
                     # Directories are only created by comics
                     return
             else:
-                source_match = COMIC_MATCHER.search(event.src_path)
+                source_match = _COMIC_MATCHER.search(event.src_path)
                 if event.event_type == EVENT_TYPE_MOVED:
                     # Some types of file moves need to be cast as other events.
 
-                    dest_match = COMIC_MATCHER.search(event.dest_path)
+                    dest_match = _COMIC_MATCHER.search(event.dest_path)
                     if source_match is None and dest_match is not None:
                         # Moved from an ignored file extension into a comic type,
                         # so create a new comic.
@@ -169,8 +169,8 @@ class CodexLibraryEventHandler(FileSystemEventHandler):
                     return
 
             task = WatchdogEventTask(self.library_pk, event)
-            LIBRARIAN_QUEUE.put(task)
+            self.librarian_queue.put(task)
             super().dispatch(event)
         except Exception as exc:
-            LOG.error(f"Error in {self.__class__.__name__}")
-            LOG.exception(exc)
+            self.log.error(f"Error in {self.__class__.__name__}")
+            self.log.exception(exc)

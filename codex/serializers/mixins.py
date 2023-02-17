@@ -8,21 +8,11 @@ from rest_framework.serializers import (
     Serializer,
 )
 
+from codex.comic_field_names import COMIC_M2M_FIELD_NAMES
 from codex.db_functions import GroupConcat
 
 
 UNIONFIX_PREFIX = "unionfix_"
-COMIC_M2M_NAME_FIELDS = frozenset(
-    (
-        "characters",
-        "genres",
-        "locations",
-        "series_groups",
-        "story_arcs",
-        "tags",
-        "teams",
-    )
-)
 AUTHOR_ROLES = set(("Writer", "Author", "Plotter", "Scripter", "Creator"))
 AUTHOR_ROLES_QUERY = {"credits__role__name__in": AUTHOR_ROLES}
 
@@ -100,7 +90,7 @@ def get_serializer_values_map(serializers, copy_only=False, folders=False):
         if copy_only:
             val = field
         else:
-            if field in COMIC_M2M_NAME_FIELDS and not folders:
+            if field in COMIC_M2M_FIELD_NAMES and not folders:
                 val = GroupConcat(f"{field}__name", distinct=True)
             elif field in ("contributors", "authors"):
                 if folders:

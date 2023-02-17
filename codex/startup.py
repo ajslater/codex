@@ -1,29 +1,54 @@
-"""Start and stop daemons."""
-import multiprocessing
-import os
-import time
-
-from asgiref.sync import sync_to_async
-from django.contrib.auth.models import User
+"""Initialize Codex Dataabse before running."""
 from django.core.cache import cache
+from django.core.management import call_command
 from django.db.models import Q
 from django.db.models.functions import Now
 
-from codex.darwin_mp import force_darwin_multiprocessing_fork
-from codex.librarian.librariand import LibrarianDaemon
-from codex.logger.loggerd import Logger
+from codex.integrity import has_unapplied_migrations, rebuild_db, repair_db
+from codex.librarian.janitor.janitor import Janitor
+from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.logger.logging import get_logger
+from codex.logger.mp_queue import LOG_QUEUE
 from codex.models import AdminFlag, LibrarianStatus, Library, Timestamp
-from codex.notifier.notifierd import Notifier
-from codex.settings.logging import get_logger
-from codex.settings.patch import patch_registration_setting
+from codex.registration import patch_registration_setting
+from codex.settings.settings import (
+    BACKUP_DB_PATH,
+    HYPERCORN_CONFIG,
+    HYPERCORN_CONFIG_TOML,
+    MAX_DB_OPS,
+    RESET_ADMIN,
+)
+from codex.version import VERSION
 
 
-RESET_ADMIN = bool(os.environ.get("CODEX_RESET_ADMIN"))
 LOG = get_logger(__name__)
+
+
+def backup_db_before_migration():
+    """If there are migrations to do, backup the db."""
+    suffix = f".before-v{VERSION}{BACKUP_DB_PATH.suffix}"
+    backup_path = BACKUP_DB_PATH.with_suffix(suffix)
+    janitor = Janitor(LOG_QUEUE, LIBRARIAN_QUEUE)
+    janitor.backup_db(backup_path)
+
+
+def ensure_db_schema():
+    """Ensure the db is good and up to date."""
+    LOG.debug("Ensuring db is good and up to date...")
+    rebuild_db()
+    repair_db()
+    if has_unapplied_migrations():
+        backup_db_before_migration()
+        call_command("migrate")
+    else:
+        LOG.info("Database up to date.")
+    LOG.info("Database ready.")
 
 
 def ensure_superuser():
     """Ensure there is a valid superuser."""
+    from django.contrib.auth.models import User
+
     if RESET_ADMIN or not User.objects.filter(is_superuser=True).exists():
         admin_user, created = User.objects.update_or_create(
             username="admin",
@@ -89,64 +114,22 @@ def clear_library_status():
     LOG.debug(f"Reset {count} Library's update_in_progress flag")
 
 
-def codex_startup():
-    """Initialize the database and start the daemons."""
+def ensure_db_rows():
+    """Ensure database content is good."""
     ensure_superuser()
     init_admin_flags()
-    patch_registration_setting()
     init_timestamps()
     init_librarian_statuses()
     clear_library_status()
+
+
+def codex_init():
+    """Initialize the database and start the daemons."""
+    ensure_db_schema()
+    ensure_db_rows()
+    patch_registration_setting()
     cache.clear()
-    force_darwin_multiprocessing_fork()
-
-    Notifier.startup()
-    LibrarianDaemon.startup()
-
-
-def codex_shutdown():
-    """Stop the daemons."""
-    LOG.info("Codex suprocesses shutting down...")
-    LibrarianDaemon.shutdown()
-    Notifier.shutdown()
-    if multiprocessing.active_children():
-        LOG.verbose("Codex suprocesses not joined...")
-        time.sleep(2)
-        for child in multiprocessing.active_children():
-            child.terminate()
-            LOG.verbose(f"Killed subprocess {child}")
-    LOG.info("Codex subprocesses shut down.")
-
-
-async def lifespan_application(_scope, receive, send):
-    """Lifespan application."""
-    Logger.startup()
-    LOG.debug("Lifespan application started.")
-    while True:
-        try:
-            message = await receive()
-            if message["type"] == "lifespan.startup":
-                try:
-                    await sync_to_async(codex_startup)()
-                    await send({"type": "lifespan.startup.complete"})
-                    LOG.debug("Lifespan startup complete.")
-                except Exception as exc:
-                    await send({"type": "lifespan.startup.failed"})
-                    LOG.error("Lifespan startup failed.")
-                    raise exc
-            elif message["type"] == "lifespan.shutdown":
-                LOG.debug("Lifespan shutdown started.")
-                try:
-                    # block on the join
-                    codex_shutdown()
-                    await send({"type": "lifespan.shutdown.complete"})
-                    LOG.debug("Lifespan shutdown complete.")
-                except Exception as exc:
-                    await send({"type": "lifespan.startup.failed"})
-                    LOG.error("Lifespan shutdown failed.")
-                    raise exc
-                break
-        except Exception as exc:
-            LOG.exception(exc)
-    LOG.debug("Lifespan application stopped.")
-    Logger.shutdown()
+    LOG.debug(f"max_db_ops: {MAX_DB_OPS}")
+    LOG.info(f"root_path: {HYPERCORN_CONFIG.root_path}")
+    if HYPERCORN_CONFIG.use_reloader:
+        LOG.info(f"Will reload hypercorn if {HYPERCORN_CONFIG_TOML} changes")

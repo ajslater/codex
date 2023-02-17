@@ -6,6 +6,24 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.2.0a0
+
+### Windows
+
+- Features
+  - Works on Windows? See README for install instructions.
+  - LOGLEVEL=VERBOSE deprecated in favor of DEBUG
+- Development
+  - Multiprocessing method is now spawn on all platforms.
+  - Websockets handled by customized Django channels
+    - aioprocessing Queue communicates between librarian and channels.
+
+## v1.1.7
+
+- Features
+  - Faster and more robust PDF support. Codex no longer depends on the poppler
+    library.
+
 ## v1.1.6
 
 - Fix

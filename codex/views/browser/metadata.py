@@ -6,17 +6,14 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
+from codex.comic_field_names import COMIC_M2M_FIELD_NAMES
 from codex.models import AdminFlag, Comic
 from codex.serializers.metadata import (
     METADATA_ORDERED_UNIONFIX_VALUES_MAP,
     MetadataSerializer,
 )
-from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_annotations import BrowserAnnotationsView
-
-
-LOG = get_logger(__name__)
 
 
 class MetadataView(BrowserAnnotationsView):
@@ -79,18 +76,6 @@ class MetadataView(BrowserAnnotationsView):
         "imprint": ("volume_count", "fk_series_volume_count"),
         "series": ("issue_count", "fk_volume_issue_count"),
     }
-    _COMIC_M2M_FIELDS = set(
-        (
-            "characters",
-            "credits",
-            "genres",
-            "locations",
-            "series_groups",
-            "story_arcs",
-            "tags",
-            "teams",
-        )
-    )
     _PATH_GROUPS = ("c", "f")
     _CREDIT_RELATIONS = ("role", "person")
 
@@ -219,7 +204,7 @@ class MetadataView(BrowserAnnotationsView):
         else:
             pk_field = "comic__pk"
         comic_pks = simple_qs.values_list(pk_field, flat=True)
-        for field_name in self._COMIC_M2M_FIELDS:
+        for field_name in COMIC_M2M_FIELD_NAMES:
             model = Comic._meta.get_field(field_name).related_model
             if not model:
                 raise ValueError(f"No model found for comic field: {field_name}")

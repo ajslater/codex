@@ -15,6 +15,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
 from codex.exceptions import SeeOtherRedirectError
+from codex.logger.logging import get_logger
 from codex.models import (
     AdminFlag,
     Comic,
@@ -36,7 +37,6 @@ from codex.serializers.opds_v1 import (
     OPDS_FOLDERS_ORDERED_UNIONFIX_VALUES_MAP,
     OPDS_M2M_FIELDS,
 )
-from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_annotations import BrowserAnnotationsView
 
@@ -357,7 +357,7 @@ class BrowserView(BrowserAnnotationsView):
             new_page = 1
         route_changes = {"group": group, "pk": pk, "page": new_page}
         reason = f"{page=} does not exist!"
-        LOG.verbose(f"{reason} redirect to page {new_page}.")
+        LOG.debug(f"{reason} redirect to page {new_page}.")
         self._raise_redirect(route_changes, reason)
 
     def _paginate(self, queryset):
@@ -530,7 +530,7 @@ class BrowserView(BrowserAnnotationsView):
                 valid_top_group = valid_top_groups[0]
                 reason += "first valid top group "
             reason += valid_top_group
-            LOG.verbose(reason)
+            LOG.debug(reason)
             page = self.kwargs["page"]
             route = {"group": nav_group, "pk": pk, "page": page}
             settings_mask = {"top_group": valid_top_group}

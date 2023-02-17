@@ -13,9 +13,9 @@ from rest_framework.serializers import (
     ValidationError,
 )
 
+from codex.logger.logging import get_logger
 from codex.models import AdminFlag, FailedImport, Library
 from codex.serializers.choices import CHOICES
-from codex.settings.logging import get_logger
 
 
 LOG = get_logger(__name__)
@@ -92,9 +92,9 @@ class LibrarySerializer(ModelSerializer):
                 if ppath.is_relative_to(existing_path):
                     raise ValueError("Child of existing library path")
         except Exception as exc:
-            LOG.error(exc)
+            LOG.error(f"validate library path: {exc}")
             raise exc
-        return str(ppath)
+        return path
 
 
 class FailedImportSerializer(ModelSerializer):
@@ -131,8 +131,8 @@ class AdminFolderSerializer(Serializer):
     def validate_path(self, path):
         """Validate the path is an existing directory."""
         try:
-            path = Path(path)
-            if not path.is_dir():
+            ppath = Path(path)
+            if not ppath.resolve().is_dir():
                 raise ValidationError("Not a directory")
         except Exception as exc:
             raise ValidationError("Not a valid path") from exc

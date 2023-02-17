@@ -8,12 +8,12 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication
 from rest_framework.response import Response
 
+from codex.logger.logging import get_logger
 from codex.serializers.opds_v1 import (
     OPDSAcquisitionEntrySerializer,
     OPDSEntrySerializer,
     OPDSTemplateSerializer,
 )
-from codex.settings.logging import get_logger
 from codex.views.browser.browser import BrowserView
 from codex.views.opds_v1.entry import OPDSEntry
 from codex.views.opds_v1.util import (

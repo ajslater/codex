@@ -1,5 +1,4 @@
 """Repair Database Integrity Errors."""
-import os
 import re
 import sqlite3
 
@@ -12,8 +11,13 @@ from django.db.migrations.recorder import MigrationRecorder
 from django.db.models.functions import Now
 from django.db.utils import OperationalError
 
-from codex.settings.logging import get_logger
-from codex.settings.settings import CODEX_PATH, CONFIG_PATH, DB_PATH
+from codex.logger.logging import get_logger
+from codex.settings.settings import (
+    CODEX_PATH,
+    CONFIG_PATH,
+    DB_PATH,
+    SKIP_INTEGRITY_CHECK,
+)
 
 
 NO_0005_ARG = "no_0005"
@@ -97,7 +101,7 @@ def _repair_old_comic_folder_fks():
     try:
         with connection.cursor() as cursor:
             cursor.execute(DELETE_BAD_COMIC_FOLDER_RELATIONS_SQL)
-        LOG.verbose("Deleted old comic_folder relations with bad integrity.")
+        LOG.info("Deleted old comic_folder relations with bad integrity.")
     except Exception as exc:
         LOG.exception(exc)
 
@@ -123,7 +127,7 @@ def _fix_comic_m2m_integrity_errors(apps, comic_model, m2m_model_name, field_nam
     count_m2m, _ = m2m_rels_with_bad_m2m_ids.delete()
     count = count_comic + count_m2m
     if count:
-        LOG.verbose(f"Deleted {count} orphan relations to {field_name}")
+        LOG.info(f"Deleted {count} orphan relations to {field_name}")
     return bad_comics
 
 
@@ -174,7 +178,7 @@ def _find_fk_integrity_errors_with_models(
 
     count = invalid_host_objs.count()
     if count and log:
-        LOG.verbose(f"Found {host_model.__name__}s with bad {fk_field_name}: {count}")
+        LOG.info(f"Found {host_model.__name__}s with bad {fk_field_name}: {count}")
     return invalid_host_objs
 
 
@@ -221,9 +225,7 @@ def _null_missing_fk(host_model, fk_model, fk_field_name):
     if count:
         update_dict = {fk_field_name: None, "updated_at": Now()}
         query_missing_fks.update(**update_dict)
-        LOG.verbose(
-            f"Fixed {count} {host_model.__name__}s with missing {fk_field_name}"
-        )
+        LOG.info(f"Fixed {count} {host_model.__name__}s with missing {fk_field_name}")
 
 
 def _delete_bookmark_integrity_errors(apps):
@@ -254,7 +256,7 @@ def _repair_library_groups(apps):
 
 def _fix_db_integrity():
     """Fix most of the Codex model integrity errors we can."""
-    LOG.verbose("Reparing database integrity...")
+    LOG.debug("Reparing database integrity...")
     # DELETE things we can't fix
     for host_model_name in HAVE_LIBRARY_FKS:
         _delete_fk_integrity_errors(apps, host_model_name, "Library", "library")
@@ -290,7 +292,7 @@ def _fix_db_integrity():
                 if arg in OPERATIONAL_ERRORS_BEFORE_MIGRATIONS:
                     ok = True
             if ok:
-                LOG.verbose(
+                LOG.info(
                     "Couldn't look for comics with folder integrity problems before "
                     "migration 0007. We'll get them on the next restart."
                 )
@@ -300,13 +302,13 @@ def _fix_db_integrity():
 
     _repair_library_groups(apps)
 
-    LOG.verbose("Done with database integrity check.")
+    LOG.info("Database integrity confirmed.")
 
 
 def repair_db():
     """Fix the db but trap errors if it goes wrong."""
     try:
-        if os.environ.get("CODEX_SKIP_INTEGRITY_CHECK"):
+        if SKIP_INTEGRITY_CHECK:
             LOG.info("Skipping integrity check")
             return
 
@@ -318,7 +320,7 @@ def repair_db():
         for arg in exc.args:
             if arg in OK_EXC_ARGS:
                 ok = True
-                LOG.verbose(
+                LOG.info(
                     f"Not running integrity checks until migration {MIGRATION_0005}"
                     " has been applied."
                 )

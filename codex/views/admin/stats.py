@@ -2,9 +2,9 @@
 from pathlib import Path
 from platform import machine, python_version, release, system
 
+from caseconverter import snakecase
 from django.contrib.auth.models import Group, User
 from django.contrib.sessions.models import Session
-from djangorestframework_camel_case.util import camel_to_underscore
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
@@ -84,8 +84,8 @@ class AdminStatsView(GenericAPIView):
         """Get database counts of each model group."""
         obj = {}
         for model in models:
-            key = camel_to_underscore(model.__name__)
-            key = key[1:] + "_count"
+            key = snakecase(model.__name__)
+            key += "_count"
             obj[key] = model.objects.count()
         return obj
 

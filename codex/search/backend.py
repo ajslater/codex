@@ -1,6 +1,7 @@
 """Custom Haystack Search Backend."""
 from datetime import datetime, timedelta
 from multiprocessing import cpu_count
+from time import time
 
 from django.utils.timezone import now
 from haystack.backends.whoosh_backend import TEXT, WhooshSearchBackend
@@ -16,11 +17,8 @@ from whoosh.support.charset import accent_map
 from whoosh.writing import AsyncWriter
 
 from codex.librarian.search.status import SearchIndexStatusTypes
-from codex.librarian.status_control import StatusControl
-from codex.settings.logging import get_logger
-
-
-LOG = get_logger(__name__)
+from codex.logger.logging import get_logger
+from codex.worker_base import WorkerBaseMixin
 
 
 def gen_multipart_field_aliases(field):
@@ -42,13 +40,15 @@ def gen_multipart_field_aliases(field):
 class FILESIZE(NUMERIC):
     """NUMERIC class with humanized filesize parser."""
 
+    LOG = get_logger("FILESIZE")
+
     @staticmethod
     def _parse_size(value):
         """Parse the value for size suffixes."""
         try:
             value = str(parse_size(value))
         except InvalidSize as exc:
-            LOG.debug(exc)
+            FILESIZE.LOG.debug(exc)
         return value
 
     def parse_query(self, fieldname, qstring, boost=1.0):
@@ -67,7 +67,7 @@ class FILESIZE(NUMERIC):
         )
 
 
-class CodexSearchBackend(WhooshSearchBackend):
+class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
     """Custom Whoosh Backend."""
 
     FIELDMAP = {
@@ -101,13 +101,19 @@ class CodexSearchBackend(WhooshSearchBackend):
         Require=r"(?i)(^|(?<=\s))REQUIRE(?=\s)",
     )
     MULTISEGMENT_CUTOFF = 500
-    UPDATE_DELTA = timedelta(seconds=5)
     UPDATE_FINISH_TYPES = frozenset(
         (
             SearchIndexStatusTypes.SEARCH_INDEX_PREPARE,
             SearchIndexStatusTypes.SEARCH_INDEX_COMMIT,
         )
     )
+
+    def __init__(self, connection_alias, **connection_options):
+        """Init worker queues."""
+        log_queue = connection_options.get("LOG_QUEUE")
+        librarian_queue = connection_options.get("LIBRARIAN_QUEUE")
+        self.init_worker(log_queue, librarian_queue)
+        super().__init__(connection_alias, **connection_options)
 
     def build_schema(self, fields):
         """Customize schema fields."""
@@ -164,8 +170,8 @@ class CodexSearchBackend(WhooshSearchBackend):
 
     def update(self, index, iterable, commit=True):
         """Update index, but with writer options."""
+        start = since = time()
         try:
-            start = since = datetime.now()
             num_objs = len(iterable)
             statuses = {
                 SearchIndexStatusTypes.SEARCH_INDEX_PREPARE: {
@@ -173,7 +179,7 @@ class CodexSearchBackend(WhooshSearchBackend):
                 },
                 SearchIndexStatusTypes.SEARCH_INDEX_COMMIT: {"name": f"({num_objs})"},
             }
-            StatusControl.start_many(statuses)
+            self.status_controller.start_many(statuses)
             if not self.setup_complete:
                 self.setup()
 
@@ -212,18 +218,22 @@ class CodexSearchBackend(WhooshSearchBackend):
                                 "data": {"index": index, "object": get_identifier(obj)}
                             },
                         )
-                since = StatusControl.update(
+                since = self.status_controller.update(
                     SearchIndexStatusTypes.SEARCH_INDEX_PREPARE,
                     obj_count,
                     num_objs,
                     since=since,
                 )
 
-            StatusControl.finish(SearchIndexStatusTypes.SEARCH_INDEX_PREPARE)
-            elapsed = naturaldelta(datetime.now() - start)
-            LOG.verbose(f"Search engine prepared objects for commit in {elapsed}")
+            elapsed_time = time() - start
+            until = start + 1
+            self.status_controller.finish(
+                SearchIndexStatusTypes.SEARCH_INDEX_PREPARE, until=until
+            )
+            elapsed = naturaldelta(elapsed_time)
+            self.log.info(f"Search engine prepared objects for commit in {elapsed}")
 
-            start = datetime.now()
+            prepare_start = time()
             if len(iterable) > 0:
                 # For now, commit no matter what, as we run into locking issues
                 # otherwise.
@@ -231,15 +241,20 @@ class CodexSearchBackend(WhooshSearchBackend):
                     writer.commit(merge=True)
                 if writer.ident is not None:
                     writer.join()
-            elapsed = naturaldelta(datetime.now() - start)
-            LOG.verbose(f"Search engine committed index in {elapsed}")
+            elapsed = naturaldelta(time() - prepare_start)
+            self.log.info(f"Search engine committed index in {elapsed}")
         finally:
-            StatusControl.finish_many(self.UPDATE_FINISH_TYPES)
+            until = start + 2
+            self.status_controller.finish_many(self.UPDATE_FINISH_TYPES, until=until)
 
     def clear(self, models=None, commit=True):
         """Clear index with codex status messages."""
+        start = time()
         try:
-            StatusControl.start(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
+            self.status_controller.start(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
             super().clear(models=models, commit=commit)
         finally:
-            StatusControl.finish(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
+            until = start + 1
+            self.status_controller.finish(
+                SearchIndexStatusTypes.SEARCH_INDEX_CLEAR, until=until
+            )
