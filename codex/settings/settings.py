@@ -48,8 +48,12 @@ if not DEBUG:
             "asyncio": {
                 "level": "INFO",
             },
+            "PIL": {
+                "level": "INFO",
+            },
         },
     }
+
 ALLOWED_HOSTS = ["*"]
 
 
