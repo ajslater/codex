@@ -21,7 +21,8 @@ border-radius: 128px;
 ## v1.1.7
 
 - Features
-  - Faster and more robust PDF support without external binary dependency
+  - Faster and more robust PDF support. Codex no longer depends on the poppler
+    library.
 
 ## v1.1.6
 
