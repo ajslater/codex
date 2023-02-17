@@ -62,7 +62,7 @@ You'll need to install these system dependencies before installing Codex.
 ##### macOS
 
 ```sh
-brew install jpeg libffi libyaml libzip openssl poppler python unrar webp
+brew install jpeg libffi libyaml libzip openssl python unrar webp
 ```
 
 ##### Linux
@@ -72,7 +72,7 @@ brew install jpeg libffi libyaml libzip openssl poppler python unrar webp
 Like Ubuntu, Mint, MX and others.
 
 ```sh
-apt install build-essential libffi-dev libjpeg-dev libssl-dev libwebp7 poppler-utils python3-pip zlib1g-dev
+apt install build-essential libffi-dev libjpeg-dev libssl-dev libwebp7 python3-pip zlib1g-dev
 ```
 
 older releases may use the `libweb6` package instead.
@@ -89,7 +89,7 @@ apt install cargo
 ###### Alpine
 
 ```sh
-apk add bsd-compat-headers build-base jpeg-dev libffi-dev libwebp openssl-dev poppler-utils yaml-dev zlib-dev
+apk add bsd-compat-headers build-base jpeg-dev libffi-dev libwebp openssl-dev yaml-dev zlib-dev
 ```
 
 ##### Install unrar Runtime Dependency on Linux
