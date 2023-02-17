@@ -8,7 +8,7 @@ border-radius: 128px;
 
 ## v1.2.0a1
 
-### Al Simmons
+### What kind of Heaven uses bounty hunters?
 
 - Features
   - Faster and more robust PDF support. Codex no longer depends on the poppler
@@ -16,7 +16,7 @@ border-radius: 128px;
   - LOGLEVEL=VERBOSE deprecated in favor of DEBUG
   - Stats page API accessible via API key as well as admin login.
 - Development
-  - The multiprocessing method is now spawn on all platforms.
+  - The multiprocessing method is now S P A W N on all platforms.
   - Websockets are now handled by customized Django channels
     - aioprocessing Queue communicates between librarian and channels.
 
