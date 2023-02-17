@@ -1,5 +1,4 @@
 """Custom Haystack Search Backend."""
-from datetime import datetime, timedelta
 from multiprocessing import cpu_count
 from time import time
 
