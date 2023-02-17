@@ -75,9 +75,12 @@ class CodexChannelLayer(InMemoryChannelLayer):
     @staticmethod
     def _queue_peek_expired(channel, queue):
         """Peek for expired message by queue type."""
+        if queue.empty():
+            return False
+
         is_aio_queue = channel == BROADCAST_CHANNEL_NAME
         if is_aio_queue:
-            private_queue = queue._obj._queue
+            private_queue = queue._obj._buffer
         else:
             private_queue = queue._queue
 
@@ -92,9 +95,7 @@ class CodexChannelLayer(InMemoryChannelLayer):
         # Channel cleanup
         for channel, queue in list(self.channels.items()):
             # See if it's expired
-            while not queue.empty():
-                if self._queue_peek_expired(channel, queue):
-                    break
+            while self._queue_peek_expired(channel, queue):
                 queue.get_nowait()
                 # Any removal prompts group discard
                 self._remove_from_groups(channel)
