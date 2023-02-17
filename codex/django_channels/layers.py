@@ -77,7 +77,7 @@ class CodexChannelLayer(InMemoryChannelLayer):
         """Peek for expired message by queue type."""
         is_aio_queue = channel == BROADCAST_CHANNEL_NAME
         if is_aio_queue:
-            private_queue = queue.queue
+            private_queue = queue._obj._queue
         else:
             private_queue = queue._queue
 
