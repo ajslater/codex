@@ -8,7 +8,7 @@ border-radius: 128px;
 
 ## v1.2.0a1
 
-### Spawn
+### Al Simmons
 
 - Features
   - Faster and more robust PDF support. Codex no longer depends on the poppler
