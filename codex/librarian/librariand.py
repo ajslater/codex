@@ -158,7 +158,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         self._create_threads()  # can't do this in init.
         self._start_threads()
         self.run_loop = True
-        self.log.info("Librarian ready for tasks.")
+        self.log.info(f"{self.__class__.__name__} ready for tasks.")
         try:
             while self.run_loop:
                 try:
