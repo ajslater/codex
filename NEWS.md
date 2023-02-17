@@ -18,6 +18,11 @@ border-radius: 128px;
   - Websockets handled by customized Django channels
     - aioprocessing Queue communicates between librarian and channels.
 
+## v1.1.7
+
+- Features
+  - Faster and more robust PDF support without external binary dependency
+
 ## v1.1.6
 
 - Fix
