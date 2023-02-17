@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """The main runnable for codex. Sets up codex and runs hypercorn."""
 import asyncio
-import threading
 
 from multiprocessing import set_start_method
 from os import execv
@@ -48,24 +47,6 @@ def run():
     librarian.stop()
 
 
-def _release_thread_locks():
-    """
-    Release leaked, stuck thread locks.
-
-    For an unknown reason more than one simultaneous consumer leads to
-    a thread deadlocking situation. The threads hang and prevent codex
-    from exiting.
-    """
-    released = 0
-    for thread in threading.enumerate():
-        if thread.name.startswith("ThreadPoolExecutor"):
-            thread._tstate_lock.release()  # type: ignore
-            thread._stop()  # type: ignore
-            released += 1
-    if released:
-        LOG.debug(f"Released {released} locked threads.")
-
-
 def main():
     """Set up and run Codex."""
     loggerd = CodexLogQueueListener(LOG_QUEUE)
@@ -73,7 +54,6 @@ def main():
     LOG.info(f"Running Codex v{VERSION}")
     codex_init()
     run()
-    _release_thread_locks()
     LOG.info("Goodbye.")
     loggerd.stop()
     if RESTART_EVENT.is_set():
