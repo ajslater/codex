@@ -1,10 +1,10 @@
 """Codex drf permissions."""
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import BasePermission, IsAdminUser
 
 from codex.models import Timestamp
 
 
-class HasAPIKey(BasePermission):
+class HasAPIKeyOrIsAdminUser(BasePermission):
     """Does the request have the current api key."""
 
     def has_permission(self, request, view):
@@ -14,4 +14,6 @@ class HasAPIKey(BasePermission):
         else:
             data = request.POST
         key = data.get("apiKey")
+        if not key:
+            return IsAdminUser().has_permission(request, view)
         return Timestamp.objects.filter(name=Timestamp.API_KEY, version=key).exists()

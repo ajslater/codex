@@ -149,40 +149,40 @@ class AdminFolderSerializer(Serializer):
 class AdminGroupSerializer(Serializer):
     """Group Counts."""
 
-    publisher_count = IntegerField()
-    imprint_count = IntegerField()
-    series_count = IntegerField()
-    volume_count = IntegerField()
-    comic_count = IntegerField()
-    folder_count = IntegerField()
-    pdf_count = IntegerField()
-    comic_archive_count = IntegerField()
+    publisher_count = IntegerField(required=False)
+    imprint_count = IntegerField(required=False)
+    series_count = IntegerField(required=False)
+    volume_count = IntegerField(required=False)
+    comic_count = IntegerField(required=False)
+    folder_count = IntegerField(required=False)
+    pdf_count = IntegerField(required=False)
+    comic_archive_count = IntegerField(required=False)
 
 
 class AdminComicMetadataSerializer(Serializer):
     """Metadata Counts."""
 
-    character_count = IntegerField()
-    credit_count = IntegerField()
-    credit_person_count = IntegerField()
-    credit_role_count = IntegerField()
-    genre_count = IntegerField()
-    location_count = IntegerField()
-    series_group_count = IntegerField()
-    story_arc_count = IntegerField()
-    tag_count = IntegerField()
-    team_count = IntegerField()
+    character_count = IntegerField(required=False)
+    credit_count = IntegerField(required=False)
+    credit_person_count = IntegerField(required=False)
+    credit_role_count = IntegerField(required=False)
+    genre_count = IntegerField(required=False)
+    location_count = IntegerField(required=False)
+    series_group_count = IntegerField(required=False)
+    story_arc_count = IntegerField(required=False)
+    tag_count = IntegerField(required=False)
+    team_count = IntegerField(required=False)
 
 
 class AdminConfigSerializer(Serializer):
     """Config Information."""
 
-    library_count = IntegerField()
-    user_count = IntegerField()
-    group_count = IntegerField()
-    session_count = IntegerField()
-    session_anon_count = IntegerField()
-    api_key = CharField()
+    library_count = IntegerField(required=False)
+    user_count = IntegerField(required=False)
+    group_count = IntegerField(required=False)
+    session_count = IntegerField(required=False)
+    session_anon_count = IntegerField(required=False)
+    api_key = CharField(required=False)
 
 
 class AdminPlatformSerializer(Serializer):
@@ -199,7 +199,7 @@ class AdminPlatformSerializer(Serializer):
 class AdminStatsSerializer(Serializer):
     """Admin Stats Tab."""
 
-    platform = AdminPlatformSerializer()
-    config = AdminConfigSerializer()
-    groups = AdminGroupSerializer()
-    metadata = AdminComicMetadataSerializer()
+    platform = AdminPlatformSerializer(required=False)
+    config = AdminConfigSerializer(required=False)
+    groups = AdminGroupSerializer(required=False)
+    metadata = AdminComicMetadataSerializer(required=False)
