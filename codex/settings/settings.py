@@ -12,8 +12,6 @@ https://docs.djangoproject.com/en/dev/ref/settings/
 from os import environ
 from pathlib import Path
 
-from django.contrib.staticfiles.storage import staticfiles_storage
-
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.mp_queue import LOG_QUEUE
 from codex.settings.hypercorn import load_hypercorn_config
@@ -191,13 +189,6 @@ if DEBUG or BUILD:
         STATIC_SRC,
         STATIC_BUILD,
     ]
-    DJANGO_VITE_ASSETS_PATH = STATIC_BUILD
-else:
-    DJANGO_VITE_ASSETS_PATH = STATIC_ROOT
-    DJANGO_VITE_MANIFEST_PATH = STATIC_ROOT / staticfiles_storage.stored_name(
-        "manifest.json"
-    )
-
 
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 60  # 60 days
 
@@ -283,9 +274,12 @@ CHANNEL_LAYERS = {
     "default": {"BACKEND": "codex.django_channels.layers.CodexChannelLayer"},
 }
 
+DJANGO_VITE_DEV_MODE = DEBUG
 if DEBUG:
     import socket
 
-    DJANGO_VITE_DEV_MODE = DEBUG
+    DJANGO_VITE_ASSETS_PATH = STATIC_BUILD  # type: ignore
     DJANGO_VITE_DEV_SERVER_HOST = socket.gethostname()
     DJANGO_VITE_DEV_SERVER_PORT = 5173
+else:
+    DJANGO_VITE_ASSETS_PATH = STATIC_ROOT
