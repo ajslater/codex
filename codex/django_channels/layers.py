@@ -81,7 +81,13 @@ class CodexChannelLayer(InMemoryChannelLayer):
         else:
             private_queue = queue._queue
 
-        return private_queue[0][0] >= time()
+        expired = False
+        try:
+            expired = private_queue[0][0] >= time()
+        except Exception:
+            # TODO Fix
+            print("PEEK EXCEPTION", channel, private_queue[0])
+        return expired
 
     def _clean_expired(self):
         """Goes through all messages and groups and removes those that are expired.
