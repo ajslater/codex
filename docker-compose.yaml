@@ -48,14 +48,15 @@ services:
     container_name: codex-backend-test
     volumes:
       - ./codex/static_build:/app/codex/static_build:ro
-      - ./codex/static_root:/app/codex/static_root
+      #- ./codex/static_root:/app/codex/static_root
       - ./test-results/:/app/test-results/
     command: ./test-backend.sh
   codex-build-dist:
     <<: *codex-dist-builder
     container_name: codex-build-dist
     volumes:
-      - ./codex/static_root:/app/codex/static_root:ro
+      - ./codex/static_build:/app/codex/static_build:ro
+      - ./codex/static_root:/app/codex/static_root
       - ./dist/:/app/dist/
     command: ./build-dist.sh
   codex-arch:

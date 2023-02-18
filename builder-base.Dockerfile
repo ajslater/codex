@@ -20,9 +20,9 @@ RUN apk add --no-cache \
    musl-dev \
    npm \
    openssl-dev \
-   poppler-utils \
    python3-dev \
    rust \
+   swig \
    yaml-dev \
    zlib-dev
 

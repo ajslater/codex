@@ -19,15 +19,12 @@ from codex.models import (
 )
 from codex.threads import QueuedThread
 
-
-_EXCLUDE_BULK_UPDATE_COMIC_FIELDS = set(
-    (
-        "created_at",
-        "searchresult",
-        "id",
-        "bookmark",
-    )
-)
+_EXCLUDE_BULK_UPDATE_COMIC_FIELDS = {
+    "created_at",
+    "searchresult",
+    "id",
+    "bookmark",
+}
 _BULK_UPDATE_COMIC_FIELDS = []
 for field in Comic._meta.get_fields():
     if (not field.many_to_many) and (
@@ -239,8 +236,8 @@ class CreateComicsMixin(QueuedThread):
 
         Since we can't bulk_update or bulk_create m2m fields use a trick.
         bulk_create() on the through table:
-        https://stackoverflow.com/questions/6996176/how-to-create-an-object-for-a-django-model-with-a-many-to-many-field/10116452#10116452 # noqa: B950,E501
-        https://docs.djangoproject.com/en/dev/ref/models/fields/#django.db.models.ManyToManyField.through # noqa: B950,E501
+        https://stackoverflow.com/questions/6996176/how-to-create-an-object-for-a-django-model-with-a-many-to-many-field/10116452#10116452
+        https://docs.djangoproject.com/en/dev/ref/models/fields/#django.db.models.ManyToManyField.through
         """
         self.log.debug(f"Recreating {field_name} relations for altered comics.")
         field = getattr(Comic, field_name)

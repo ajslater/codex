@@ -10,7 +10,6 @@ from codex.models import AdminFlag
 from codex.serializers.auth import AuthAdminFlagsSerializer, TimezoneSerializer
 from codex.serializers.mixins import OKSerializer
 
-
 LOG = get_logger(__name__)
 NULL_USER = {"pk": None, "username": None, "is_staff": False}
 

@@ -11,7 +11,6 @@ from codex.views.opds_v1.opensearch import OpenSearchView
 from codex.views.opds_v1.start import opds_start_view
 from codex.views.reader.page import ReaderPageView
 
-
 TIMEOUT = 60 * 60
 PAGE_MAX_AGE = 60 * 60 * 24 * 7
 COVER_MAX_AGE = PAGE_MAX_AGE

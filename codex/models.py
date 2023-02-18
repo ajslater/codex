@@ -4,7 +4,6 @@ import calendar
 import datetime
 import os
 import uuid
-
 from pathlib import Path
 
 from django.conf import settings
@@ -38,7 +37,6 @@ from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.watchdog.status import WatchdogStatusTypes
 from codex.logger.logging import get_logger
 from codex.serializers.choices import CHOICES
-
 
 LOG = get_logger(__name__)
 
@@ -454,8 +452,7 @@ class AdminFlag(NamedModel):
 
 
 def cascade_if_user_null(collector, field, sub_objs, _using):
-    """
-    Cascade only if the user field is null.
+    """Cascade only if the user field is null.
 
     Do this to keep deleting ephemeral session data from Bookmark table.
     Adapted from:

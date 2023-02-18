@@ -1,6 +1,5 @@
 """Logging classes."""
 import logging
-
 from logging.handlers import QueueHandler
 
 from codex.logger.mp_queue import LOG_QUEUE

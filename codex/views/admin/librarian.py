@@ -31,7 +31,6 @@ from codex.serializers.admin import AdminLibrarianTaskSerializer
 from codex.serializers.mixins import OKSerializer
 from codex.serializers.models import LibrarianStatusSerializer
 
-
 LOG = get_logger(__name__)
 
 

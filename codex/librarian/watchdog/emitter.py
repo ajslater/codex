@@ -25,7 +25,6 @@ from codex.librarian.watchdog.status import WatchdogStatusTypes
 from codex.models import Library
 from codex.worker_base import WorkerBaseMixin
 
-
 _DOCKER_UNMOUNTED_FN = "DOCKER_UNMOUNTED_VOLUME"
 
 

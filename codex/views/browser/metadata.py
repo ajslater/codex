@@ -23,45 +23,39 @@ class MetadataView(BrowserAnnotationsView):
     serializer_class = MetadataSerializer
 
     # DO NOT USE BY ITSELF. USE _get_comic_value_fields() instead.
-    _COMIC_VALUE_FIELDS = set(
-        (
-            "age_rating",
-            "comments",
-            "community_rating",
-            "country",
-            "critical_rating",
-            "day",
-            "file_format",
-            "format",
-            "issue",
-            "issue_suffix",
-            "language",
-            "month",
-            "notes",
-            "read_ltr",
-            "scan_info",
-            "summary",
-            "web",
-            "year",
-        )
-    )
-    _ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS = set(("path",))
-    _COMIC_VALUE_FIELDS_CONFLICTING = set(
-        (
-            "name",
-            "updated_at",
-            "created_at",
-        )
-    )
+    _COMIC_VALUE_FIELDS = {
+        "age_rating",
+        "comments",
+        "community_rating",
+        "country",
+        "critical_rating",
+        "day",
+        "file_format",
+        "format",
+        "issue",
+        "issue_suffix",
+        "language",
+        "month",
+        "notes",
+        "read_ltr",
+        "scan_info",
+        "summary",
+        "web",
+        "year",
+    }
+    _ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS = {"path"}
+    _COMIC_VALUE_FIELDS_CONFLICTING = {
+        "name",
+        "updated_at",
+        "created_at",
+    }
     _COMIC_VALUE_FIELDS_CONFLICTING_PREFIX = "conflict_"
-    _COMIC_FK_FIELDS = set(
-        (
-            "publisher",
-            "imprint",
-            "series",
-            "volume",
-        )
-    )
+    _COMIC_FK_FIELDS = {
+        "publisher",
+        "imprint",
+        "series",
+        "volume",
+    }
     _COMIC_FK_FIELDS_MAP = {
         "f": _COMIC_FK_FIELDS,
         "p": _COMIC_FK_FIELDS.difference(frozenset(["publisher"])),
@@ -71,7 +65,7 @@ class MetadataView(BrowserAnnotationsView):
         "c": _COMIC_FK_FIELDS,
     }
     _COMIC_FK_ANNOTATION_PREFIX = "fk_"
-    _COMIC_RELATED_VALUE_FIELDS = set(("series__volume_count", "volume__issue_count"))
+    _COMIC_RELATED_VALUE_FIELDS = {"series__volume_count", "volume__issue_count"}
     _COUNT_FIELD_MAP = {
         "imprint": ("volume_count", "fk_series_volume_count"),
         "series": ("issue_count", "fk_volume_issue_count"),

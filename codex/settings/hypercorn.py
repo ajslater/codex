@@ -3,7 +3,6 @@ import shutil
 
 from hypercorn.config import Config
 
-
 MAX_DB_OPS_DEFAULT = 100000
 
 

@@ -33,7 +33,6 @@ from codex.librarian.watchdog.tasks import (
 )
 from codex.logger_base import LoggerBaseMixin
 
-
 LIBRARIAN_SHUTDOWN_TASK = "shutdown"
 
 
@@ -51,13 +50,10 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         LibraryPollingObserver,
         JanitorThread,
     )
-    _THREAD_CLASS_MAP = dict(
-        (
-            snakecase(thread_class.__name__),
-            thread_class,
-        )
+    _THREAD_CLASS_MAP = {
+        snakecase(thread_class.__name__): thread_class
         for thread_class in _THREAD_CLASSES
-    )
+    }
     LibrarianThreads = namedtuple("LibrarianThreads", _THREAD_CLASS_MAP.keys())
 
     proc = None
@@ -146,8 +142,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         self.log.info(f"{self.__class__.__name__} joined all threads.")
 
     def run(self):
-        """
-        Process tasks from the queue.
+        """Process tasks from the queue.
 
         This process also runs the crond thread and the Watchdog Observer
         threads.

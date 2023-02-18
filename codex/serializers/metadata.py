@@ -5,7 +5,6 @@ from codex.serializers.mixins import (
 )
 from codex.serializers.models import ComicSerializer
 
-
 METADATA_ORDERED_UNIONFIX_VALUES_MAP = get_serializer_values_map(
     [BrowserAggregateSerializerMixin], True
 )

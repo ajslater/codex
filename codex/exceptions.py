@@ -9,7 +9,6 @@ from codex.logger.logging import get_logger
 from codex.serializers.choices import DEFAULTS
 from codex.serializers.redirect import BrowserRedirectSerializer
 
-
 LOG = get_logger(__name__)
 
 

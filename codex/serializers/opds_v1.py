@@ -20,7 +20,6 @@ from codex.serializers.mixins import (
 )
 from codex.serializers.models import LanguageSerializer
 
-
 UTC_TZ = ZoneInfo("UTC")
 
 

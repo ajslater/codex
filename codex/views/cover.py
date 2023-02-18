@@ -11,6 +11,8 @@ from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
 from codex.views.mixins import GroupACLMixin
 
+LOG = get_logger(__name__)
+
 
 LOG = get_logger(__name__)
 

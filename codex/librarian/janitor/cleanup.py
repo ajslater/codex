@@ -1,6 +1,5 @@
 """Clean up the database after moves or imports."""
 import logging
-
 from time import time
 
 from django.contrib.sessions.models import Session
@@ -25,7 +24,6 @@ from codex.models import (
     Volume,
 )
 from codex.worker_base import WorkerBaseMixin
-
 
 _COMIC_FK_CLASSES = (
     Volume,
@@ -112,5 +110,5 @@ class CleanupMixin(WorkerBaseMixin):
         bad_sessions = Session.objects.filter(session_key__in=bad_session_keys)
         count, _ = bad_sessions.delete()
         self.log.info(f"Deleted {count} corrupt sessions.")
-        until = start + 2
+        until = start + 3
         self.status_controller.finish(JanitorStatusTypes.CLEANUP_SESSIONS, until=until)

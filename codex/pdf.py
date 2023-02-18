@@ -4,12 +4,10 @@ from pathlib import Path
 from typing import Union
 
 import fitz
-
 from comicbox.metadata.filename import FilenameMetadata
 from filetype import guess
 
 from codex.logger.logging import get_logger
-
 
 LOG = get_logger(__name__)
 

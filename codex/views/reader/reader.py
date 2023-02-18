@@ -11,7 +11,6 @@ from codex.serializers.redirect import ReaderRedirectSerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.bookmark import BookmarkBaseView
 
-
 LOG = get_logger(__name__)
 PAGE_TTL = 60 * 60 * 24
 
@@ -33,8 +32,7 @@ class ReaderView(BookmarkBaseView):
         books.append(book)
 
     def get_object(self):
-        """
-        Get the previous and next comics in a series.
+        """Get the previous and next comics in a series.
 
         Uses iteration in python. There are some complicated ways of
         doing this with __gt[0] & __lt[0] in the db, but I think they

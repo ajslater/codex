@@ -19,7 +19,6 @@ from codex.settings.settings import (
     SKIP_INTEGRITY_CHECK,
 )
 
-
 NO_0005_ARG = "no_0005"
 OK_EXC_ARGS = (NO_0005_ARG, "no such table: django_migrations")
 REPAIR_FLAG_PATH = CONFIG_PATH / "rebuild_db"

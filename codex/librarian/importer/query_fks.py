@@ -17,7 +17,6 @@ from codex.models import (
 )
 from codex.threads import QueuedThread
 
-
 _CREDIT_FK_NAMES = ("role", "person")
 _CLASS_QUERY_FIELDS_MAP = {
     Credit: ("role__name", "person__name"),

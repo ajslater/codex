@@ -1,6 +1,5 @@
 """Views for browsing comic library."""
 import json
-
 from copy import deepcopy
 from urllib.parse import unquote_plus
 
@@ -15,7 +14,6 @@ from codex.views.browser.filters.bookmark import BookmarkFilterMixin
 from codex.views.browser.filters.field import ComicFieldFilter
 from codex.views.browser.filters.group import GroupFilterMixin
 from codex.views.browser.filters.search import SearchFilterMixin
-
 
 LOG = get_logger(__name__)
 

@@ -14,7 +14,6 @@ from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.logger.logging import get_logger
 from codex.serializers.admin import UserChangePasswordSerializer, UserSerializer
 
-
 LOG = get_logger(__name__)
 
 

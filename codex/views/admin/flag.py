@@ -9,7 +9,6 @@ from codex.models import AdminFlag
 from codex.registration import patch_registration_setting
 from codex.serializers.admin import AdminFlagSerializer
 
-
 LOG = get_logger(__name__)
 
 

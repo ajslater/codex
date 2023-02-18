@@ -1,6 +1,5 @@
 """Bulk import and move comics and folders."""
 import logging
-
 from pathlib import Path
 
 from django.db.models.functions import Now
@@ -10,7 +9,6 @@ from codex.librarian.importer.create_fks import CreateForeignKeysMixin
 from codex.librarian.importer.query_fks import QueryForeignKeysMixin
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.models import Comic, Folder, Library
-
 
 MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder")
 MOVED_BULK_FOLDER_UPDATE_FIELDS = ("path", "parent_folder", "name")

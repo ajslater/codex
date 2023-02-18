@@ -1,7 +1,6 @@
 """Purge comic covers."""
 import os
 import shutil
-
 from pathlib import Path
 
 from codex.librarian.covers.path import CoverPathMixin

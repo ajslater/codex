@@ -1,6 +1,5 @@
 """Clean metadata before importing."""
 import re
-
 from decimal import Decimal
 from typing import Any, Optional
 
@@ -9,7 +8,6 @@ from django.db.models.fields import CharField, DecimalField, PositiveSmallIntege
 
 from codex.models import BrowserGroupModel, Comic, NamedModel
 from codex.threads import QueuedThread
-
 
 _MD_INVALID_KEYS = frozenset(
     (
@@ -179,7 +177,7 @@ class CleanMetadataMixin(QueuedThread):
     @classmethod
     def _clean_comic_credits(cls, md) -> None:
         if credits := md.get("credits"):
-            good_credits = list()
+            good_credits = []
             field: CharField = NamedModel._meta.get_field("name")  # type:ignore
             for credit in credits:
                 person = cls._clean_charfield(credit.get("person"), field)

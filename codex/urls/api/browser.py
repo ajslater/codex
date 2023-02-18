@@ -8,7 +8,6 @@ from codex.views.browser.choices import BrowserChoicesAvailableView, BrowserChoi
 from codex.views.browser.metadata import MetadataView
 from codex.views.browser.session import BrowserSessionView
 
-
 TIMEOUT = 60 * 5
 
 

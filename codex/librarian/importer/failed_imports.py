@@ -1,6 +1,5 @@
 """Update and create failed imports."""
 import logging
-
 from pathlib import Path
 
 from django.db.models import Q
@@ -9,7 +8,6 @@ from django.db.models.functions import Now
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.models import Comic, FailedImport
 from codex.threads import QueuedThread
-
 
 _BULK_UPDATE_FAILED_IMPORT_FIELDS = ("name", "stat", "updated_at")
 

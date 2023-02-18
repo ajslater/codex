@@ -1,8 +1,6 @@
 """Find the cache path for this architecture."""
 import platform
-
 from pathlib import Path
-
 
 LINUX_CACHE_PATH = ".cache"
 MACOS_CACHE_PATH = "Library/Caches"

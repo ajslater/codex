@@ -6,13 +6,10 @@ cd "$(dirname "$0")"
 ####################
 ###### Python ######
 ####################
-poetry run flake8 .
+poetry run ruff .
 poetry run black --check .
-poetry run isort --check-only .
 poetry run pyright
-poetry run bandit -r -c "pyproject.toml" --confidence-level=medium --severity-level=medium codex
 poetry run vulture .
-# poetry run eradicate --recursive .
 if [ "$(uname)" = "Darwin" ]; then
     # Radon is only of interest to development
     poetry run radon mi --min B .

@@ -1,6 +1,5 @@
 """View for marking comics read and unread."""
 import pycountry
-
 from caseconverter import snakecase
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
@@ -14,7 +13,6 @@ from codex.serializers.browser import (
 from codex.serializers.models import PyCountrySerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.base import BrowserBaseView
-
 
 LOG = get_logger(__name__)
 

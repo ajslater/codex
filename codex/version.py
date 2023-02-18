@@ -1,17 +1,14 @@
 """Hold the current codex version."""
 import json
-
 from datetime import timedelta
 from importlib.metadata import PackageNotFoundError, version
 
 import requests
-
 from comicbox.config import get_config
 from django.utils import timezone
 
 from codex.logger.logging import get_logger
 from codex.models import Timestamp
-
 
 PACKAGE_NAME = "codex"
 PYPI_URL_TEMPLATE = "https://pypi.python.org/pypi/%s/json"

@@ -22,7 +22,6 @@ from codex.serializers.admin import (
     LibrarySerializer,
 )
 
-
 LOG = get_logger(__name__)
 
 
@@ -35,7 +34,7 @@ class AdminLibraryViewSet(ModelViewSet):
     )
     serializer_class = LibrarySerializer
 
-    WATCHDOG_SYNC_FIELDS = set(("events", "poll", "pollEvery"))
+    WATCHDOG_SYNC_FIELDS = {"events", "poll", "pollEvery"}
 
     def _create_library_folder(self, library):
         folder = Folder(

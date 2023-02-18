@@ -1,11 +1,9 @@
 """OS Signal actions."""
 import asyncio
 import signal
-
 from asyncio import Event
 
 from codex.logger.logging import get_logger
-
 
 LOG = get_logger(__name__)
 SIGNAL_NAMES = {"SIGINT", "SIGTERM", "SIGBREAK"}
