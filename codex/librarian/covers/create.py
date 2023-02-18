@@ -40,8 +40,7 @@ class CoverCreateMixin(CoverPathMixin):
 
     @classmethod
     def _get_comic_cover_image(cls, comic):
-        """
-        Create comic cover if none exists.
+        """Create comic cover if none exists.
 
         Return image thumb data or path to missing file thumb.
         """
@@ -57,8 +56,7 @@ class CoverCreateMixin(CoverPathMixin):
 
     @classmethod
     def create_cover_from_path(cls, pk, cover_path, log, librarian_queue):
-        """
-        Create cover for path.
+        """Create cover for path.
 
         Called from views/cover.
         """

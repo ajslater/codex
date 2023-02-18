@@ -5,7 +5,6 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from codex.urls.converters import GroupConverter
 from codex.views.version import VersionView
 
-
 register_converter(GroupConverter, "group")
 
 

@@ -1,12 +1,10 @@
-"""
-Codex URL Configuration.
+"""Codex URL Configuration.
 
 https://docs.djangoproject.com/en/dev/topics/http/urls/
 """
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import include, path
 from django.views.generic.base import RedirectView
-
 
 TIMEOUT = 60 * 60
 

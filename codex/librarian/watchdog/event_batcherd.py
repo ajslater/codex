@@ -1,5 +1,4 @@
-"""
-Batch watchdog events into bulk database tasks.
+"""Batch watchdog events into bulk database tasks.
 
 Watchdog actually starts events as bulk events with the DirSnapshotDiff
 but the built-in filesystem event emitters serialize them, so the most
@@ -7,7 +6,6 @@ consistent thing is for the DBEmitter to serialize them in the same way
 and then re-serialize everything in this batcher and the event Handler
 """
 import re
-
 from copy import deepcopy
 
 from watchdog.events import (
@@ -23,7 +21,6 @@ from codex.librarian.watchdog.tasks import WatchdogEventTask
 from codex.logger_base import LoggerBaseMixin
 from codex.settings.settings import MAX_DB_OPS
 from codex.threads import AggregateMessageQueuedThread
-
 
 _COMIC_REGEX = r"\.(cb[zrt]|pdf)$"
 _COMIC_MATCHER = re.compile(_COMIC_REGEX, re.IGNORECASE)

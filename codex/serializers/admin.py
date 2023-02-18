@@ -17,7 +17,6 @@ from codex.logger.logging import get_logger
 from codex.models import AdminFlag, FailedImport, Library
 from codex.serializers.choices import CHOICES
 
-
 LOG = get_logger(__name__)
 
 

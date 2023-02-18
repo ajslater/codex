@@ -20,7 +20,6 @@ from codex.settings.settings import (
 )
 from codex.version import VERSION
 
-
 LOG = get_logger(__name__)
 
 

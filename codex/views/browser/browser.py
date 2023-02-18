@@ -40,7 +40,6 @@ from codex.serializers.opds_v1 import (
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_annotations import BrowserAnnotationsView
 
-
 LOG = get_logger(__name__)
 
 
@@ -76,8 +75,7 @@ class BrowserView(BrowserAnnotationsView):
     is_opds_acquisition = False
 
     def _add_annotations(self, queryset, model, search_scores):
-        """
-        Annotations for display and sorting.
+        """Annotations for display and sorting.
 
         model is neccissary because this gets called twice by folder
         view. once for folders, once for the comics.
@@ -441,8 +439,7 @@ class BrowserView(BrowserAnnotationsView):
         return browser_page
 
     def _get_valid_top_groups(self):
-        """
-        Get valid top groups for the current settings.
+        """Get valid top groups for the current settings.
 
         Valid top groups are determined by the Browser Settings.
         """
@@ -457,8 +454,7 @@ class BrowserView(BrowserAnnotationsView):
         return valid_top_groups
 
     def _set_valid_browse_nav_groups(self, valid_top_groups):
-        """
-        Get valid nav groups for the current settings.
+        """Get valid nav groups for the current settings.
 
         Valid nav groups are the top group and below that are also
         enabled in browser settings.
@@ -558,8 +554,8 @@ class BrowserView(BrowserAnnotationsView):
                     .get(name=AdminFlag.ENABLE_FOLDER_VIEW)
                     .on
                 )
-            except Exception:
-                pass
+            except Exception as err:
+                LOG.warning(f"Getting ENABLE_FOLDER_VIEW AdminFlag: {err}")
 
         if group == self.FOLDER_GROUP:
             self._validate_folder_settings(enable_folder_view)

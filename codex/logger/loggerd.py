@@ -1,6 +1,5 @@
 """Central Logging Thread."""
 import logging
-
 from logging.handlers import QueueListener, RotatingFileHandler
 
 from colors import color

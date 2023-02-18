@@ -17,7 +17,6 @@ from codex.views.admin.library import (
 from codex.views.admin.stats import AdminStatsView
 from codex.views.admin.user import AdminUserChangePasswordView, AdminUserViewSet
 
-
 READ = {"get": "list"}
 CREATE = {"post": "create"}
 UPDATE = {"put": "partial_update"}

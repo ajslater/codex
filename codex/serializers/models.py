@@ -1,6 +1,5 @@
 """Serializers for codex models."""
 import pycountry
-
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework.serializers import (
@@ -32,8 +31,7 @@ from codex.models import (
 
 
 class PyCountrySerializer(Serializer):
-    """
-    PyCountry tag serializer to include long names.
+    """PyCountry tag serializer to include long names.
 
     Takes a single string value and serializes the value to
     a pk attribute and a pycountry long name lookup of that value to

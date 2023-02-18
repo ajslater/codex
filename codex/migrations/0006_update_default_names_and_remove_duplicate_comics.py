@@ -3,7 +3,6 @@
 from django.db import migrations
 from django.db.models.functions import Now
 
-
 MODEL_NAMES = {
     "Series": "Default Series",
     "Imprint": "Main Imprint",

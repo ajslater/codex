@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """The main runnable for codex. Sets up codex and runs hypercorn."""
 import asyncio
-
 from multiprocessing import set_start_method
 from os import execv
 
@@ -19,7 +18,6 @@ from codex.settings.settings import HYPERCORN_CONFIG
 from codex.signals.os_signals import RESTART_EVENT, SHUTDOWN_EVENT
 from codex.startup import codex_init
 from codex.version import VERSION
-
 
 LOG = get_logger(__name__)
 

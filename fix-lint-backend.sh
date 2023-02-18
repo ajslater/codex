@@ -4,7 +4,7 @@ set -euxo pipefail
 ####################
 ###### Python ######
 ###################
-poetry run isort --color .
+poetry run ruff --fix .
 poetry run black .
 poetry run djlint codex/templates --profile=django --reformat
 

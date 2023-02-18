@@ -3,7 +3,6 @@ from django.urls import include, path, re_path
 
 from codex.views.opds_v1.start import opds_start_view
 
-
 app_name = "opds"
 
 urlpatterns = [

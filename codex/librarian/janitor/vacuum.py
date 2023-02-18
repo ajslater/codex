@@ -6,7 +6,6 @@ from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.settings.settings import BACKUP_DB_DIR, BACKUP_DB_PATH, DB_PATH
 from codex.worker_base import WorkerBaseMixin
 
-
 _OLD_BACKUP_PATH = BACKUP_DB_PATH.with_suffix(BACKUP_DB_PATH.suffix + ".old")
 
 

@@ -8,13 +8,11 @@ from channels.layers import ChannelFull, InMemoryChannelLayer
 
 from codex.django_channels.broadcast_queue import BROADCAST_QUEUE
 
-
 BROADCAST_CHANNEL_NAME = "broadcast"
 
 
 class CodexChannelLayer(InMemoryChannelLayer):
-    """
-    Codex In-memory channel layer implementation.
+    """Codex In-memory channel layer implementation.
 
     Works with a special AioQueue broadcast channel.
     """
@@ -46,8 +44,7 @@ class CodexChannelLayer(InMemoryChannelLayer):
             await queue.put(item)
 
     async def receive(self, channel):
-        """
-        Receive the first message that arrives on the channel.
+        """Receive the first message that arrives on the channel.
 
         If more than one coroutine waits on the same channel, a random one
         of the waiting coroutines will get the result.
@@ -87,8 +84,7 @@ class CodexChannelLayer(InMemoryChannelLayer):
         return private_queue[0][0] >= time()
 
     def _clean_expired(self):
-        """
-        Goes through all messages and groups and removes those that are expired.
+        """Goes through all messages and groups and removes those that are expired.
 
         Any channel with an expired message is removed from all groups.
         """

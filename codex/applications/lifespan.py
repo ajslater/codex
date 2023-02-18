@@ -15,8 +15,7 @@ class LifespanApplication(LoggerBaseMixin):
         self.init_logger(log_queue)
 
     def release_thread_locks(self):
-        """
-        Release leaked, stuck thread locks.
+        """Release leaked, stuck thread locks.
 
         For an unknown reason more than one simultaneous consumer leads to
         a thread hanging and prevent codex from exiting. I'm not cleaning up

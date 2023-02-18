@@ -1,5 +1,4 @@
-"""
-Static choices that aren't derived from models.
+"""Static choices that aren't derived from models.
 
 Extract the same json the frontend uses for the values so they're always
 in sync.
@@ -8,12 +7,10 @@ Which is a little bit of overengineering.
 import json
 import mmap
 import re
-
 from pathlib import Path
 
 from codex.logger.logging import get_logger
 from codex.settings.settings import BUILD, DEBUG, STATIC_ROOT
-
 
 LOG = get_logger(__name__)
 

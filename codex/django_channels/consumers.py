@@ -1,6 +1,5 @@
 """Notifier ChannelGroups Consumer."""
 import functools
-
 from enum import Enum
 
 from channels.exceptions import InvalidChannelLayerError, StopConsumer
@@ -10,7 +9,6 @@ from channels.utils import await_many_dispatch
 
 from codex.django_channels.layers import BROADCAST_CHANNEL_NAME
 from codex.logger.logging import get_logger
-
 
 ChannelGroups = Enum("ChannelGroups", "ALL ADMIN")
 
@@ -29,8 +27,7 @@ class NotifierConsumer(AsyncWebsocketConsumer):
         return groups
 
     async def __call__(self, scope, receive, send):
-        """
-        Dispatches incoming messages to type-based handlers asynchronously.
+        """Dispatches incoming messages to type-based handlers asynchronously.
 
         Also waits on special AioQueue broadcast channel.
         """

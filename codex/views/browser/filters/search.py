@@ -6,7 +6,6 @@ from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.search.tasks import SearchIndexUpdateTask
 from codex.logger.logging import get_logger
 
-
 LOG = get_logger(__name__)
 
 

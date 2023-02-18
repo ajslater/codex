@@ -13,7 +13,6 @@ from codex.version import COMICBOX_CONFIG
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.bookmark import BookmarkBaseView
 
-
 LOG = get_logger(__name__)
 
 
@@ -33,7 +32,7 @@ class ReaderPageView(BookmarkBaseView):
     """Display a comic page from the archive itself."""
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
-    X_MOZ_PRE_HEADERS = set(("prefetch", "preload", "prerender", "subresource"))
+    X_MOZ_PRE_HEADERS = {"prefetch", "preload", "prerender", "subresource"}
     content_type = "image/jpeg"
     content_negotiation_class = IgnoreClientContentNegotiation  # type: ignore
 

@@ -7,7 +7,6 @@ from django.urls import path
 from codex.django_channels.consumers import NotifierConsumer
 from codex.settings.settings import HYPERCORN_CONFIG
 
-
 # channels is ignorant of root_path
 # https://github.com/django/channels/issues/1973
 ROOT_PREFIX = HYPERCORN_CONFIG.root_path[1:] + "/" if HYPERCORN_CONFIG.root_path else ""

@@ -1,6 +1,5 @@
 """Clean up the database after moves or imports."""
 import logging
-
 from time import time
 
 from django.contrib.sessions.models import Session
@@ -25,7 +24,6 @@ from codex.models import (
     Volume,
 )
 from codex.worker_base import WorkerBaseMixin
-
 
 _COMIC_FK_CLASSES = (
     Volume,

@@ -11,9 +11,8 @@ from rest_framework.serializers import (
 from codex.comic_field_names import COMIC_M2M_FIELD_NAMES
 from codex.db_functions import GroupConcat
 
-
 UNIONFIX_PREFIX = "unionfix_"
-AUTHOR_ROLES = set(("Writer", "Author", "Plotter", "Scripter", "Creator"))
+AUTHOR_ROLES = {"Writer", "Author", "Plotter", "Scripter", "Creator"}
 AUTHOR_ROLES_QUERY = {"credits__role__name__in": AUTHOR_ROLES}
 
 

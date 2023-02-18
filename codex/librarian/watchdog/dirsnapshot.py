@@ -1,6 +1,5 @@
 """Custom directory snapshots."""
 import os
-
 from itertools import chain
 from pathlib import Path
 

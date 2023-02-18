@@ -7,7 +7,7 @@ from codex.serializers.choices import CHOICES
 class BookmarkFilterMixin:
     """BookmarkFilter view methods."""
 
-    _BOOKMARK_FILTERS = frozenset(set(CHOICES["bookmarkFilter"].keys()) - set(("ALL",)))
+    _BOOKMARK_FILTERS = frozenset(set(CHOICES["bookmarkFilter"].keys()) - {"ALL"})
 
     def get_bm_rel(self, is_model_comic):
         """Create bookmark relation."""

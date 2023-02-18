@@ -18,7 +18,6 @@ from codex.search.backend import CodexSearchBackend
 from codex.settings.settings import SEARCH_INDEX_PATH, SEARCH_INDEX_UUID_PATH
 from codex.threads import QueuedThread
 
-
 UPDATE_INDEX_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S%Z"
 VERBOSITY = 1
 REBUILD_ARGS = ("rebuild_index",)

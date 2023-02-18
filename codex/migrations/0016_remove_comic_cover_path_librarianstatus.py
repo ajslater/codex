@@ -2,11 +2,9 @@
 
 import os
 import shutil
-
 from pathlib import Path
 
 from django.db import migrations, models
-
 
 CONFIG_PATH = Path(os.environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
 OLD_COVER_CACHE = CONFIG_PATH / "static"

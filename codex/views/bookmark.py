@@ -9,7 +9,6 @@ from codex.serializers.models import BookmarkFinishedSerializer, BookmarkSeriali
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.mixins import GroupACLMixin
 
-
 LOG = get_logger(__name__)
 
 

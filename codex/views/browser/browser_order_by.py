@@ -134,8 +134,7 @@ class BrowserOrderByView(BrowserBaseView):
         return queryset, ordering
 
     def get_order_by(self, model, queryset, for_cover_pk=False):
-        """
-        Create the order_by list.
+        """Create the order_by list.
 
         Order on pk to give duplicates a consistent position.
         """

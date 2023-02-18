@@ -1,6 +1,5 @@
 """Logging settings functions."""
 import logging
-
 from os import environ
 
 

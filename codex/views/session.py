@@ -10,7 +10,6 @@ from codex.logger.logging import get_logger
 from codex.serializers.choices import DEFAULTS
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 
-
 LOG = get_logger(__name__)
 
 

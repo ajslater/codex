@@ -1,10 +1,8 @@
-"""
-Create all missing comic foreign keys for an import.
+"""Create all missing comic foreign keys for an import.
 
 So we may safely create the comics next.
 """
 import logging
-
 from pathlib import Path
 from time import time
 
@@ -22,7 +20,6 @@ from codex.models import (
     Volume,
 )
 from codex.threads import QueuedThread
-
 
 _BULK_UPDATE_FOLDER_MODIFIED_FIELDS = ("stat", "updated_at")
 _COUNT_FIELDS = {Series: "volume_count", Volume: "issue_count"}

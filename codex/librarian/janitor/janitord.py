@@ -22,7 +22,6 @@ from codex.librarian.search.tasks import SearchIndexOptimizeTask, SearchIndexUpd
 from codex.models import Timestamp
 from codex.threads import NamedThread
 
-
 _ONE_DAY = timedelta(days=1)
 
 

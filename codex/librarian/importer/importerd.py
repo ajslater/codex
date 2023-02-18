@@ -1,6 +1,5 @@
 """Bulk import and move comics and folders."""
 import logging
-
 from pathlib import Path
 from time import time
 
@@ -18,7 +17,6 @@ from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexUpdateTask
 from codex.librarian.tasks import DelayedTasks
 from codex.models import Library
-
 
 _WRITE_WAIT_EXPIRY = 5
 
