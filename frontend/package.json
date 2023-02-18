@@ -34,7 +34,7 @@
     "@vitejs/plugin-vue": "^4.0.0",
     "@vue/test-utils": "^2.2.1",
     "eslint-import-resolver-alias": "^1.1.2",
-    "eslint-plugin-vitest": "^0.0.34",
+    "eslint-plugin-vitest": "^0.0.42",
     "eslint-plugin-vue": "^9.7.0",
     "eslint-plugin-vue-scoped-css": "^2.2.0",
     "jsdom-global": "^3.0.2",
