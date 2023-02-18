@@ -281,7 +281,7 @@ HAYSTACK_CONNECTIONS = {
 }
 
 CHANNEL_LAYERS = {
-    "default": {"BACKEND": "codex.django_channels.layers.CodexChannelLayer"},
+    "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"},
 }
 
 DJANGO_VITE_DEV_MODE = DEBUG

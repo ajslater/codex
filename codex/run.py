@@ -7,8 +7,6 @@ from os import execv
 from hypercorn.asyncio import serve
 
 from codex.asgi import application
-from codex.django_channels.broadcast_queue import BROADCAST_QUEUE
-from codex.django_channels.layers import CodexChannelLayer
 from codex.librarian.librariand import LibrarianDaemon
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.loggerd import CodexLogQueueListener
@@ -18,6 +16,7 @@ from codex.settings.settings import HYPERCORN_CONFIG
 from codex.signals.os_signals import RESTART_EVENT, SHUTDOWN_EVENT
 from codex.startup import codex_init
 from codex.version import VERSION
+from codex.websockets.aio_queue import BROADCAST_QUEUE
 
 LOG = get_logger(__name__)
 
@@ -41,7 +40,6 @@ def run():
             shutdown_trigger=SHUTDOWN_EVENT.wait,  # type: ignore
         )
     )
-    CodexChannelLayer.close_broadcast_queue()
     librarian.stop()
 
 
