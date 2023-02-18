@@ -1,1 +1,0 @@
-"""Django Channels for Codex."""

@@ -8,5 +8,4 @@ cd "$(dirname "$0")"
 echo "*** build and package application ***"
 PIP_CACHE_DIR=$(pip3 cache dir)
 export PIP_CACHE_DIR
-./collectstatic.sh
 poetry build
