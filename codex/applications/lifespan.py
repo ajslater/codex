@@ -1,6 +1,5 @@
 """Start and stop daemons."""
 import asyncio
-import threading
 
 from codex.logger_base import LoggerBaseMixin
 from codex.signals.os_signals import bind_signals_to_loop
@@ -16,22 +15,6 @@ class LifespanApplication(LoggerBaseMixin):
         """Create logger and librarian."""
         self.init_logger(log_queue)
         self.broadcast_listener = BroadcastListener(broadcast_queue, log_queue)
-
-    def release_thread_locks(self):
-        """Release leaked, stuck thread locks."""
-        # TODO unused remove :) :) :)
-        released = 0
-        for thread in threading.enumerate():
-            if thread.name.startswith("ThreadPoolExecutor"):
-                lock = getattr(thread, "_tstate_lock", None)
-                if lock:
-                    lock.release()  # type: ignore
-                    thread._stop()  # type: ignore
-                    released += 1
-        if released:
-            self.log.debug(f"Released {released} locked threads.")
-        else:
-            self.log.info("No locked threads to clean up :)")
 
     async def _event(self, event, send):
         """Process a lifespan event."""
