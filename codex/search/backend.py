@@ -225,7 +225,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                 )
 
             elapsed_time = time() - start
-            until = start + 1
+            until = start + 2
             self.status_controller.finish(
                 SearchIndexStatusTypes.SEARCH_INDEX_PREPARE, until=until
             )
@@ -243,7 +243,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             elapsed = naturaldelta(time() - prepare_start)
             self.log.info(f"Search engine committed index in {elapsed}")
         finally:
-            until = start + 2
+            until = start + 3
             self.status_controller.finish_many(self.UPDATE_FINISH_TYPES, until=until)
 
     def clear(self, models=None, commit=True):
