@@ -93,7 +93,7 @@ def has_unapplied_migrations():
     return False
 
 
-def _repair_old_comic_folder_fks():
+def _delete_old_comic_folder_fks():
     if has_applied_migration(MIGRATION_0007):
         return
 
@@ -253,10 +253,8 @@ def _repair_library_groups(apps):
     bad_relations.delete()
 
 
-def _fix_db_integrity():
-    """Fix most of the Codex model integrity errors we can."""
-    LOG.debug("Reparing database integrity...")
-    # DELETE things we can't fix
+def _delete_errors():
+    """DELETE things we can't fix."""
     for host_model_name in HAVE_LIBRARY_FKS:
         _delete_fk_integrity_errors(apps, host_model_name, "Library", "library")
 
@@ -275,9 +273,11 @@ def _fix_db_integrity():
 
     _delete_bookmark_integrity_errors(apps)
 
-    _repair_old_comic_folder_fks()
+    _delete_old_comic_folder_fks()
 
-    # REPAIR the objects that are left
+
+def _repair_integrity():
+    """REPAIR the objects that are left."""
     comic_model = apps.get_model("codex", "Comic")
     bad_comic_ids = comic_model.objects.none()
     for m2m2_model_name, field_name in M2M_NAMES.items():
@@ -301,8 +301,6 @@ def _fix_db_integrity():
 
     _repair_library_groups(apps)
 
-    LOG.info("Database integrity confirmed.")
-
 
 def repair_db():
     """Fix the db but trap errors if it goes wrong."""
@@ -313,7 +311,11 @@ def repair_db():
 
         if not has_applied_migration(MIGRATION_0005):
             raise OperationalError(NO_0005_ARG)
-        _fix_db_integrity()
+
+        LOG.debug("Reparing database integrity...")
+        _delete_errors()
+        _repair_integrity()
+        LOG.info("Database integrity confirmed.")
     except OperationalError as exc:
         ok = False
         for arg in exc.args:
