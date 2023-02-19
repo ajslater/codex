@@ -67,7 +67,7 @@ class SearchIndexerThread(QueuedThread):
 
     @staticmethod
     def _call_command(args, kwargs):
-        """Call a command in a process to trap its zombies and errors."""
+        """Call a command in a process to trap any zombies."""
         proc = Process(target=call_command, args=args, kwargs=kwargs)
         proc.start()
         proc.join()
@@ -107,18 +107,9 @@ class SearchIndexerThread(QueuedThread):
                 kwargs.update(UPDATE_KWARGS)
                 self._call_command(UPDATE_ARGS, kwargs)
             Timestamp.touch(Timestamp.SEARCH_INDEX)
-
-            self.log.info("Finished updating search index.")
+            self.log.info("Search index updated.")
         except Exception as exc:
             self.log.error(f"Update search index: {exc}")
-        finally:
-            # Extra for leftovers bug
-            self.status_controller.finish_many(
-                (
-                    SearchIndexStatusTypes.SEARCH_INDEX_PREPARE,
-                    SearchIndexStatusTypes.SEARCH_INDEX_COMMIT,
-                )
-            )
 
     def _rebuild_search_index_if_db_changed(self):
         """Rebuild the search index if the db changed."""
