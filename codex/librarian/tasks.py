@@ -1,10 +1,10 @@
-"""Tasks."""
-from dataclasses import dataclass
+"""Librarian Tasks."""
+from dataclasses import dataclass, field
 
 
-@dataclass
+@dataclass(order=True)
 class DelayedTasks:
     """A list of tasks to start on a delay."""
 
     until: float
-    tasks: tuple
+    tasks: tuple = field(compare=False)

@@ -1,4 +1,5 @@
 """Delay tasks."""
+from queue import PriorityQueue
 from time import sleep, time
 
 from codex.threads import QueuedThread
@@ -6,6 +7,10 @@ from codex.threads import QueuedThread
 
 class DelayedTasksThread(QueuedThread):
     """Wait for the something before running tasks."""
+
+    def __init__(self, *args, **kwargs):
+        """Use a priority queue."""
+        super().__init__(*args, queue=PriorityQueue(), **kwargs)
 
     def process_item(self, item):
         """Sleep and then put tasks on the queue."""
