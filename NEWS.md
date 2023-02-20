@@ -6,7 +6,7 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.2.0a3
+## v1.2.0
 
 ### What kind of Heaven uses bounty hunters?
 
@@ -15,6 +15,8 @@ border-radius: 128px;
     library.
   - LOGLEVEL=VERBOSE deprecated in favor of DEBUG
   - Stats page API accessible via API key as well as admin login.
+- Fix
+  - Some Librarian Status messages would appear never to finish.
 - Development
   - The multiprocessing method is now S P A W N 💀 on all platforms.
   - Websockets are now handled by customized Django channels
