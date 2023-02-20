@@ -16,6 +16,7 @@ class PDF:
     """PDF class."""
 
     COVER_PAGE_INDEX = 1
+    _SUFFIX = ".pdf"
     MIME_TYPE = "application/pdf"
     _METADATA_KEY_MAP = {
         "tags": "keywords",
@@ -26,6 +27,8 @@ class PDF:
     @classmethod
     def is_pdf(cls, path):
         """Is the path a pdf."""
+        if Path(path).suffix.lower() == cls._SUFFIX:
+            return True
         kind = guess(path)
         return kind and kind.mime == cls.MIME_TYPE
 
@@ -106,3 +109,8 @@ class PDF:
     def close(self):
         """Get rid of the reader."""
         self._reader = None
+
+if __name__ == "__main__":
+    import sys
+    pdf = PDF(sys.argv[0])
+    print(pdf.get_metadata())
