@@ -10,6 +10,7 @@ border-radius: 128px;
 
 - Fix
   - Disabling Library Poll prevented manual polling.
+  - More explicit Poll Every hints in edit dialog.
   - Repository link didn't open a new window.
 
 ## v1.2.0
