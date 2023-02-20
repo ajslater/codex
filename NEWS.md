@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.2.1
+
+- Fix
+  - Repository link didn't open a new window.
+
 ## v1.2.0
 
 ### What kind of Heaven uses bounty hunters?

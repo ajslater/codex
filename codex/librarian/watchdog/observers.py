@@ -3,7 +3,7 @@ from watchdog.observers import Observer
 from watchdog.observers.api import DEFAULT_OBSERVER_TIMEOUT, BaseObserver, ObservedWatch
 
 from codex.librarian.watchdog.emitter import DatabasePollingEmitter
-from codex.librarian.watchdog.event_batcherd import CodexLibraryEventHandler
+from codex.librarian.watchdog.events import CodexLibraryEventHandler
 from codex.models import Library
 from codex.worker_base import WorkerBaseMixin
 
