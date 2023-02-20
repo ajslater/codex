@@ -17,12 +17,12 @@
           <tr>
             <th>Path</th>
             <th>Watch Filesystem Events</th>
-            <th>Poll Filesystem</th>
+            <th>Poll Filesystem Periodically</th>
             <th>Poll Every</th>
             <th>Last Poll</th>
             <th>Groups</th>
             <th>Poll for Updates Now</th>
-            <th>Force Update</th>
+            <th>Force Reimport</th>
             <th>Edit</th>
             <th>Delete</th>
           </tr>
@@ -63,9 +63,9 @@
             <td>
               <ConfirmDialog
                 :icon="mdiDatabaseImportOutline"
-                title-text="Force Update Library"
+                title-text="Force Reimport of Entire Library"
                 :object-name="item.path"
-                confirm-text="Force Update"
+                confirm-text="Force Reimport"
                 @confirm="forcePoll(item.pk)"
               />
             </td>

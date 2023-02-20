@@ -16,7 +16,7 @@
   />
   <v-checkbox
     v-model="row.poll"
-    label="Poll Filesystem"
+    label="Poll Filesystem Periodically"
     hide-details="auto"
     hint="Periodically poll the library for changes"
     :persistent-hint="true"

@@ -9,6 +9,7 @@ border-radius: 128px;
 ## v1.2.1
 
 - Fix
+  - Disabling Library Poll prevented manual polling.
   - Repository link didn't open a new window.
 
 ## v1.2.0

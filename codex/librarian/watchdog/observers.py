@@ -12,6 +12,7 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
     """Watch over librarys from the blue area of the moon."""
 
     ENABLE_FIELD = ""
+    ALWAYS_WATCH = False
 
     def __init__(self, *args, **kwargs):
         """Initialize queues."""
@@ -29,7 +30,7 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
     def _sync_library_watch(self, library):
         """Start a library watching process."""
         watch = self._get_watch(library.path)
-        is_enabled = getattr(library, self.ENABLE_FIELD)
+        is_enabled = self.ALWAYS_WATCH or getattr(library, self.ENABLE_FIELD, False)
         watching_log = f"watching library {library.path} with {self.ENABLE_FIELD}"
         if watch and is_enabled:
             self.log.info(f"Already {watching_log}.")
@@ -123,6 +124,7 @@ class LibraryPollingObserver(UatuMixin):
     """An Observer that polls using the DatabasePollingEmitter."""
 
     ENABLE_FIELD = "poll"
+    ALWAYS_WATCH = True  # In the emitter, timeout=None for forever
     _SHUTDOWN_EVENT = (None, None)
 
     def __init__(self, *args, timeout=DEFAULT_OBSERVER_TIMEOUT, **kwargs):
@@ -137,7 +139,7 @@ class LibraryPollingObserver(UatuMixin):
             qs = Library.objects
             if library_pks:
                 qs = qs.filter(pk__in=library_pks)
-            paths = qs.values_list("path", flat=True)
+            paths = frozenset(qs.values_list("path", flat=True))
 
             for emitter in self.emitters:
                 if emitter.watch.path in paths:
