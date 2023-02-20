@@ -42,7 +42,6 @@ _COMIC_FK_CLASSES = (
 )
 _CREDIT_FK_CLASSES = (CreditRole, CreditPerson)
 TOTAL_NUM_FK_CLASSES = len(_COMIC_FK_CLASSES) + len(_CREDIT_FK_CLASSES)
-DELAY = 3
 
 
 class CleanupMixin(WorkerBaseMixin):
@@ -104,11 +103,9 @@ class CleanupMixin(WorkerBaseMixin):
             if not session:
                 bad_session_keys.add(encoded_session.session_key)
 
-        if not bad_session_keys:
-            return
-
-        bad_sessions = Session.objects.filter(session_key__in=bad_session_keys)
-        count, _ = bad_sessions.delete()
-        self.log.info(f"Deleted {count} corrupt sessions.")
-        until = start + 3
+        if bad_session_keys:
+            bad_sessions = Session.objects.filter(session_key__in=bad_session_keys)
+            count, _ = bad_sessions.delete()
+            self.log.info(f"Deleted {count} corrupt sessions.")
+        until = start + 2
         self.status_controller.finish(JanitorStatusTypes.CLEANUP_SESSIONS, until=until)

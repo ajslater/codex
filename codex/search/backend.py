@@ -102,6 +102,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
     MULTISEGMENT_CUTOFF = 500
     UPDATE_FINISH_TYPES = frozenset(
         (
+            SearchIndexStatusTypes.SEARCH_INDEX_CLEAR,
             SearchIndexStatusTypes.SEARCH_INDEX_PREPARE,
             SearchIndexStatusTypes.SEARCH_INDEX_COMMIT,
         )
@@ -243,7 +244,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             elapsed = naturaldelta(time() - prepare_start)
             self.log.info(f"Search engine committed index in {elapsed}")
         finally:
-            until = start + 2
+            until = start + 1
             self.status_controller.finish_many(self.UPDATE_FINISH_TYPES, until=until)
 
     def clear(self, models=None, commit=True):

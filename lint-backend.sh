@@ -13,6 +13,7 @@ poetry run vulture .
 if [ "$(uname)" = "Darwin" ]; then
     # Radon is only of interest to development
     poetry run radon mi --min B .
+    poetry run radon cc --min C .
 fi
 poetry run djlint codex/templates --profile=django --lint
 

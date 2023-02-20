@@ -12,13 +12,12 @@ from codex.librarian.janitor.tasks import (
     JanitorCleanFKsTask,
     JanitorCleanupSessionsTask,
     JanitorClearStatusTask,
-    JanitorRestartTask,
     JanitorShutdownTask,
     JanitorUpdateTask,
     JanitorVacuumTask,
 )
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
+from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK, LIBRARY_CHANGED_TASK
 from codex.librarian.search.tasks import (
     SearchIndexOptimizeTask,
     SearchIndexRebuildIfDBChangedTask,
@@ -26,7 +25,7 @@ from codex.librarian.search.tasks import (
 )
 from codex.librarian.watchdog.tasks import WatchdogPollLibrariesTask, WatchdogSyncTask
 from codex.logger.logging import get_logger
-from codex.models import LibrarianStatus, Library
+from codex.models import LibrarianStatus
 from codex.serializers.admin import AdminLibrarianTaskSerializer
 from codex.serializers.mixins import OKSerializer
 from codex.serializers.models import LibrarianStatusSerializer
@@ -51,19 +50,27 @@ class AdminLibrarianTaskView(APIView):
     input_serializer_class = AdminLibrarianTaskSerializer
     serializer_class = OKSerializer
 
-    @staticmethod
-    def _get_all_library_pks():
-        queryset = Library.objects.all()
-        return frozenset(queryset.values_list("pk", flat=True))
-
-    @classmethod
-    def _poll_libraries(cls, force, pk=None):
-        """Queue a poll task for the library."""
-        if pk:
-            pks = frozenset((pk,))
-        else:
-            pks = cls._get_all_library_pks()
-        return WatchdogPollLibrariesTask(pks, force)
+    _TASK_MAP = {
+        "purge_comic_covers": CoverRemoveAllTask(),
+        "search_index_update": SearchIndexUpdateTask(False),
+        "search_index_rebuild": SearchIndexUpdateTask(True),
+        "search_index_optimize": SearchIndexOptimizeTask(True),
+        "db_vacuum": JanitorVacuumTask(),
+        "db_backup": JanitorBackupTask(),
+        "db_search_sync": SearchIndexRebuildIfDBChangedTask(),
+        "watchdog_sync": WatchdogSyncTask(),
+        "codex_update": JanitorUpdateTask(False),
+        "codex_shutdown": JanitorShutdownTask(),
+        "notify_library_changed": LIBRARY_CHANGED_TASK,
+        "notify_librarian_status": LIBRARIAN_STATUS_TASK,
+        "cleanup_fks": JanitorCleanFKsTask(),
+        "cleanup_sessions": JanitorCleanupSessionsTask(),
+        "cleanup_covers": CoverRemoveOrphansTask(),
+        "librarian_clear_status": JanitorClearStatusTask(),
+        "force_update_all_failed_imports": ForceUpdateAllFailedImportsTask(),
+        "poll": WatchdogPollLibrariesTask(frozenset(), False),
+        "poll_force": WatchdogPollLibrariesTask(frozenset(), True),
+    }
 
     @extend_schema(request=input_serializer_class)
     def post(self, request, *args, **kwargs):
@@ -71,48 +78,7 @@ class AdminLibrarianTaskView(APIView):
         serializer = self.input_serializer_class(data=self.request.data)
         serializer.is_valid(raise_exception=True)
         task_name = serializer.validated_data.get("task")
-        task = None
-        if task_name == "poll":
-            pk = serializer.validated_data.get("library_id")
-            task = self._poll_libraries(False, pk)
-        elif task_name == "poll_force":
-            pk = serializer.validated_data.get("library_id")
-            task = self._poll_libraries(True, pk)
-        elif task_name == "purge_comic_covers":
-            task = CoverRemoveAllTask()
-        elif task_name == "search_index_update":
-            task = SearchIndexUpdateTask(False)
-        elif task_name == "search_index_rebuild":
-            task = SearchIndexUpdateTask(True)
-        elif task_name == "search_index_optimize":
-            task = SearchIndexOptimizeTask(True)
-        elif task_name == "db_vacuum":
-            task = JanitorVacuumTask()
-        elif task_name == "db_backup":
-            task = JanitorBackupTask()
-        elif task_name == "db_search_sync":
-            task = SearchIndexRebuildIfDBChangedTask()
-        elif task_name == "watchdog_sync":
-            task = WatchdogSyncTask()
-        elif task_name == "codex_update":
-            task = JanitorUpdateTask(False)
-        elif task_name == "codex_restart":
-            task = JanitorRestartTask()
-        elif task_name == "codex_shutdown":
-            task = JanitorShutdownTask()
-        elif task_name == "notify_library_changed":
-            task = LIBRARY_CHANGED_TASK
-        elif task_name == "cleanup_fks":
-            task = JanitorCleanFKsTask()
-        elif task_name == "cleanup_sessions":
-            task = JanitorCleanupSessionsTask()
-        elif task_name == "cleanup_covers":
-            task = CoverRemoveOrphansTask()
-        elif task_name == "librarian_clear_status":
-            task = JanitorClearStatusTask()
-        elif task_name == "force_update_all_failed_imports":
-            task = ForceUpdateAllFailedImportsTask()
-
+        task = self._TASK_MAP.get(task_name)
         if task:
             LIBRARIAN_QUEUE.put(task)
         else:

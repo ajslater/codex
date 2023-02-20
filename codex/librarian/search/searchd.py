@@ -1,6 +1,7 @@
 """Haystack Search index updater."""
 from datetime import datetime
 from multiprocessing import Process
+from time import time
 from uuid import uuid4
 
 from django.core.management import call_command
@@ -67,7 +68,7 @@ class SearchIndexerThread(QueuedThread):
 
     @staticmethod
     def _call_command(args, kwargs):
-        """Call a command in a process to trap its zombies and errors."""
+        """Call a command in a process to trap any zombies."""
         proc = Process(target=call_command, args=args, kwargs=kwargs)
         proc.start()
         proc.join()
@@ -75,6 +76,7 @@ class SearchIndexerThread(QueuedThread):
 
     def _update_search_index(self, rebuild=False):
         """Update the search index."""
+        until_start = time()
         try:
             any_update_in_progress = Library.objects.filter(
                 update_in_progress=True
@@ -91,11 +93,24 @@ class SearchIndexerThread(QueuedThread):
 
             SEARCH_INDEX_PATH.mkdir(parents=True, exist_ok=True)
 
+            until_start = time()
             if rebuild:
+                statuses = {
+                    SearchIndexStatusTypes.SEARCH_INDEX_CLEAR: {},
+                    SearchIndexStatusTypes.SEARCH_INDEX_PREPARE: {},
+                    SearchIndexStatusTypes.SEARCH_INDEX_COMMIT: {},
+                }
+                self.status_controller.start_many(statuses)
                 self.log.info("Rebuilding search index...")
                 self._call_command(REBUILD_ARGS, REBUILD_KWARGS)
                 self._set_search_index_version()
             else:
+                statuses = {
+                    SearchIndexStatusTypes.SEARCH_INDEX_PREPARE: {},
+                    SearchIndexStatusTypes.SEARCH_INDEX_COMMIT: {},
+                }
+                self.status_controller.start_many(statuses)
+
                 start = Timestamp.objects.get(
                     name=Timestamp.SEARCH_INDEX
                 ).updated_at.strftime(UPDATE_INDEX_DATETIME_FORMAT)
@@ -107,17 +122,15 @@ class SearchIndexerThread(QueuedThread):
                 kwargs.update(UPDATE_KWARGS)
                 self._call_command(UPDATE_ARGS, kwargs)
             Timestamp.touch(Timestamp.SEARCH_INDEX)
-
-            self.log.info("Finished updating search index.")
+            self.log.info("Search index updated.")
         except Exception as exc:
             self.log.error(f"Update search index: {exc}")
         finally:
-            # Extra for leftovers bug
+            # Finishing these tasks inside the command process leads to a timing
+            # misalignment. Finish it here works.
+            until = until_start + 1
             self.status_controller.finish_many(
-                (
-                    SearchIndexStatusTypes.SEARCH_INDEX_PREPARE,
-                    SearchIndexStatusTypes.SEARCH_INDEX_COMMIT,
-                )
+                CodexSearchBackend.UPDATE_FINISH_TYPES, until=until
             )
 
     def _rebuild_search_index_if_db_changed(self):

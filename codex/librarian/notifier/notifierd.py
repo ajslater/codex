@@ -16,13 +16,19 @@ class NotifierThread(AggregateMessageQueuedThread):
         """Aggregate messages into cache."""
         self.cache[task.text] = task
 
-    def _group_send(self, group, message):
+    def _send_task(self, task):
         """Send a group_send message to the mulitprocess broadcast channel.
 
         A random consumer awaiting the broadcast channel will consume it,
         and do a group_send with it's message.
         """
-        item = {"group": group.name, "message": message}
+        item = {
+            "group": task.type.name,
+            "message": {
+                "type": "send_text",
+                "text": task.text,
+            },
+        }
         self.broadcast_queue.put(item)
 
     def send_all_items(self):
@@ -32,12 +38,7 @@ class NotifierThread(AggregateMessageQueuedThread):
         sent_keys = set()
         for task in self.cache.values():
             try:
-                group = task.type
-                message = {
-                    "type": "send_text",
-                    "text": task.text,
-                }
-                self._group_send(group, message)
+                self._send_task(task)
             except Exception as exc:
                 self.log.exception(exc)
 
@@ -46,8 +47,7 @@ class NotifierThread(AggregateMessageQueuedThread):
 
     def stop(self):
         """Send the consumer stop broadcast and stop the thread."""
-        item = None
-        self.broadcast_queue.put(item)
+        self.broadcast_queue.put(None)
         self.broadcast_queue.close()
         self.broadcast_queue.join_thread()
         super().stop()

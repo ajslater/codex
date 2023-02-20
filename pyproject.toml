@@ -164,6 +164,8 @@ exclude = [
 useLibraryCodeForTypes = true
 reportMissingImports = true
 reportImportCycles = true
+pythonVersion = "3.9"
+pythonPlatform = "All"
 
 [tool.vulture]
 exclude = [

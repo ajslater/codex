@@ -90,8 +90,8 @@ class QueuedThread(NamedThread, ABC):
 class AggregateMessageQueuedThread(QueuedThread, ABC):
     """Abstract Thread worker for buffering and aggregating messages."""
 
-    FLOOD_DELAY = 1
-    MAX_DELAY = 5
+    FLOOD_DELAY = 1.0
+    MAX_DELAY = 5.0
 
     def __init__(self, *args, **kwargs):
         """Initialize the cache."""

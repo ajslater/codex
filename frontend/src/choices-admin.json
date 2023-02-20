@@ -110,6 +110,11 @@
           "value": "notify_library_changed",
           "title": "Notify Library Changed ",
           "desc": "Signal all clients that the libraries have changed and the browser should fetch new data."
+        },
+        {
+          "value": "notify_librarian_status",
+          "title": "Notify Librarian Status",
+          "desc": "Signal Admin clients to fetch librarian status."
         }
       ]
     },
