@@ -3,9 +3,7 @@ from django.urls import include, path, register_converter
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 from codex.urls.converters import GroupConverter
-from codex.views.homepage import HomepageStatsView
 from codex.views.version import VersionView
-
 
 register_converter(GroupConverter, "group")
 
@@ -19,7 +17,6 @@ urlpatterns = [
     path("version", VersionView.as_view(), name="version"),
     path("admin/", include("codex.urls.api.admin")),
     path("schema", SpectacularAPIView.as_view(), name="schema"),
-    path("homepage", HomepageStatsView.as_view(), name="homepage"),
     path(
         "",
         SpectacularSwaggerView.as_view(url_name="api:v3:schema"),

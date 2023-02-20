@@ -4,12 +4,10 @@ from pathlib import Path
 from typing import Union
 
 import fitz
-
 from comicbox.metadata.filename import FilenameMetadata
 from filetype import guess
 
-from codex.settings.logging import get_logger
-
+from codex.logger.logging import get_logger
 
 LOG = get_logger(__name__)
 
@@ -18,6 +16,7 @@ class PDF:
     """PDF class."""
 
     COVER_PAGE_INDEX = 1
+    _SUFFIX = ".pdf"
     MIME_TYPE = "application/pdf"
     _METADATA_KEY_MAP = {
         "tags": "keywords",
@@ -28,6 +27,8 @@ class PDF:
     @classmethod
     def is_pdf(cls, path):
         """Is the path a pdf."""
+        if Path(path).suffix.lower() == cls._SUFFIX:
+            return True
         kind = guess(path)
         return kind and kind.mime == cls.MIME_TYPE
 

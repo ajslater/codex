@@ -2,13 +2,11 @@
 
 import os
 import shutil
-
 from pathlib import Path
 
 from django.db import migrations, models
 
 import codex.models
-
 
 CONFIG_PATH = Path(os.environ.get("CODEX_CONFIG_DIR", Path.cwd() / "config"))
 COVER_ROOT = CONFIG_PATH / "cache" / "covers"

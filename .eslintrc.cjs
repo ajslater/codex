@@ -100,7 +100,7 @@ module.exports = {
     "codex/_vendor/haystack",
     "codex/static_build",
     "codex/static_root",
-    "codex/templates/**/*.html",
+    "codex/templates/**/*.html", // Handled by djlint
     "comics",
     "config",
     "dist",

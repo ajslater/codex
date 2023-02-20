@@ -2,11 +2,10 @@
 from pathlib import Path
 from platform import machine, python_version, release, system
 
+from caseconverter import snakecase
 from django.contrib.auth.models import Group, User
 from django.contrib.sessions.models import Session
-from djangorestframework_camel_case.util import camel_to_underscore
 from rest_framework.generics import GenericAPIView
-from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
 from codex.models import (
@@ -29,6 +28,7 @@ from codex.models import (
     Timestamp,
     Volume,
 )
+from codex.permissions import HasAPIKeyOrIsAdminUser
 from codex.serializers.admin import AdminStatsSerializer
 from codex.version import VERSION
 
@@ -36,7 +36,7 @@ from codex.version import VERSION
 class AdminStatsView(GenericAPIView):
     """Admin Flag Viewset."""
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [HasAPIKeyOrIsAdminUser]
     serializer_class = AdminStatsSerializer
 
     _GROUP_MODELS = (
@@ -65,6 +65,11 @@ class AdminStatsView(GenericAPIView):
         Group,
         Session,
     )
+    _KEY_MODELS_MAP = {
+        "config": _CONFIG_MODELS,
+        "groups": _GROUP_MODELS,
+        "metadata": _METADATA_MODELS,
+    }
     _DOCKERENV_PATH = Path("/.dockerenv")
     _CGROUP_PATH = Path("/proc/self/cgroup")
 
@@ -79,18 +84,42 @@ class AdminStatsView(GenericAPIView):
         except Exception:
             return False
 
-    @staticmethod
-    def _get_model_counts(models):
+    def _get_request_counts(self, key):
+        """Get lowercase names of requested fields."""
+        request_count_list = self.request.GET.get(key, "")
+        request_counts = set()
+        for name in request_count_list.split(","):
+            if name:
+                request_counts.add(name.lower())
+        return request_counts
+
+    def _get_models(self, key):
+        """Get models from request params."""
+        request_model_list = self.request.GET.get(key)
+        all_models = self._KEY_MODELS_MAP[key]
+        if request_model_list:
+            models = []
+            for model_name in request_model_list.split(","):
+                for model in all_models:
+                    if model.__name__.lower() == model_name.lower():
+                        models.append(model)
+        else:
+            models = all_models
+        return models
+
+    def _get_model_counts(self, key):
         """Get database counts of each model group."""
+        models = self._get_models(key)
         obj = {}
         for model in models:
-            key = camel_to_underscore(model.__name__)
-            key = key[1:] + "_count"
-            obj[key] = model.objects.count()
+            model_name = snakecase(model.__name__)
+            model_name += "_count"
+            obj[model_name] = model.objects.count()
         return obj
 
     @staticmethod
     def _get_anon_sessions():
+        """Return the number of anonymous sessions."""
         sessions = Session.objects.all()
         anon_sessions = 0
         for encoded_session in sessions:
@@ -100,41 +129,73 @@ class AdminStatsView(GenericAPIView):
 
         return anon_sessions
 
-    @classmethod
-    def get_object(cls):
-        """Construct the stats object."""
+    def _get_platform(self, obj):
+        """Add dict of platform information to object."""
         platform = {
-            "docker": cls._is_docker(),
+            "docker": self._is_docker(),
             "machine": machine(),
             "system": system(),
             "system_release": release(),
             "python": python_version(),
             "codex": VERSION,
         }
+        obj["platform"] = platform
 
-        config = cls._get_model_counts(cls._CONFIG_MODELS)
-        config["session_anon_count"] = cls._get_anon_sessions()
-        config["api_key"] = Timestamp.objects.get(name=Timestamp.API_KEY).version
+    def _get_config(self, obj):
+        """Add dict of config informaation to object."""
+        config = self._get_model_counts("config")
+        request_counts = self._get_request_counts("config")
+        if not request_counts or "sessionanon" in request_counts:
+            config["session_anon_count"] = self._get_anon_sessions()
+        if not request_counts or "apikey" in request_counts:
+            config["api_key"] = Timestamp.objects.get(name=Timestamp.API_KEY).version
+        obj["config"] = config
 
-        groups = cls._get_model_counts(cls._GROUP_MODELS)
-        groups["pdf_count"] = pdf_count = Comic.objects.filter(
-            file_format=Comic.FileFormat.PDF
-        ).count()
-        groups["comic_archive_count"] = groups["comic_count"] - pdf_count
+    def _get_groups(self, obj):
+        """Add dict of groups information to object."""
+        groups = self._get_model_counts("groups")
+        request_counts = self._get_request_counts("groups")
+        if not request_counts or "pdf" in request_counts:
+            groups["pdf_count"] = pdf_count = Comic.objects.filter(
+                file_format=Comic.FileFormat.PDF
+            ).count()
+        if not request_counts or "comicarchive" in request_counts:
+            comic_count = groups.get("comic_count")
+            pdf_count = groups.get("pdf_count")
+            if comic_count is None or pdf_count is None:
+                groups["comic_archive_count"] = Comic.objects.exclude(
+                    file_format=Comic.FileFormat.PDF
+                ).count()
+            else:
+                groups["comic_archive_count"] = groups["comic_count"] - pdf_count
+        obj["groups"] = groups
 
-        metadata = cls._get_model_counts(cls._METADATA_MODELS)
+    def _get_metadata(self, obj):
+        """Add dict of metadata counts to object."""
+        metadata = self._get_model_counts("metadata")
+        obj["metadata"] = metadata
 
-        obj = {
-            "platform": platform,
-            "config": config,
-            "groups": groups,
-            "metadata": metadata,
-        }
-
+    def get_object(self):
+        """Construct the stats object."""
+        obj = {}
+        if not self.params or "platform" in self.params:
+            self._get_platform(obj)
+        if not self.params or "config" in self.params:
+            self._get_config(obj)
+        if not self.params or "groups" in self.params:
+            self._get_groups(obj)
+        if not self.params or "metadata" in self.params:
+            self._get_metadata(obj)
         return obj
 
     def get(self, request, *args, **kwargs):
         """Get the stats object and serialize it."""
+        params = self.request.GET.get("params")
+        if params:
+            self.params = set(params.split(","))
+        else:
+            self.params = None
+
         obj = self.get_object()
         serializer = self.get_serializer(obj)
         return Response(serializer.data)

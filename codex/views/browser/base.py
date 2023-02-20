@@ -1,6 +1,5 @@
 """Views for browsing comic library."""
 import json
-
 from copy import deepcopy
 from urllib.parse import unquote_plus
 
@@ -9,13 +8,12 @@ from djangorestframework_camel_case.settings import api_settings
 from djangorestframework_camel_case.util import underscoreize
 from rest_framework.exceptions import ValidationError
 
+from codex.logger.logging import get_logger
 from codex.serializers.browser import BrowserSettingsSerializer
-from codex.settings.logging import get_logger
 from codex.views.browser.filters.bookmark import BookmarkFilterMixin
 from codex.views.browser.filters.field import ComicFieldFilter
 from codex.views.browser.filters.group import GroupFilterMixin
 from codex.views.browser.filters.search import SearchFilterMixin
-
 
 LOG = get_logger(__name__)
 

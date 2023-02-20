@@ -6,10 +6,9 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
+from codex.logger.logging import get_logger
 from codex.serializers.choices import DEFAULTS
-from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
-
 
 LOG = get_logger(__name__)
 

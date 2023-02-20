@@ -1,17 +1,14 @@
 """Hold the current codex version."""
 import json
-
 from datetime import timedelta
 from importlib.metadata import PackageNotFoundError, version
 
 import requests
-
 from comicbox.config import get_config
 from django.utils import timezone
 
+from codex.logger.logging import get_logger
 from codex.models import Timestamp
-from codex.settings.logging import get_logger
-
 
 PACKAGE_NAME = "codex"
 PYPI_URL_TEMPLATE = "https://pypi.python.org/pypi/%s/json"
@@ -78,8 +75,4 @@ def is_outdated(
     latest_version = get_latest_version(package_name, repo_url_template)
 
     result = latest_version is not None and latest_version > VERSION
-    log_str = f"{latest_version=} > {VERSION=} = {result}"
-    if result:
-        LOG.verbose(log_str)
-    else:
-        LOG.debug(log_str)
+    LOG.info(f"{latest_version=} > {VERSION=} = {result}")

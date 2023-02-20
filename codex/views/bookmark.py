@@ -3,12 +3,11 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
+from codex.logger.logging import get_logger
 from codex.models import Bookmark, Comic
 from codex.serializers.models import BookmarkFinishedSerializer, BookmarkSerializer
-from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.mixins import GroupACLMixin
-
 
 LOG = get_logger(__name__)
 
@@ -27,7 +26,7 @@ class BookmarkBaseView(GenericAPIView, GroupACLMixin):
             search_kwargs["bookmark__user"] = self.request.user
         else:
             if not self.request.session or not self.request.session.session_key:
-                LOG.verbose("no session, make one")
+                LOG.debug("no session, make one")
                 self.request.session.save()
             search_kwargs["bookmark__session_id"] = self.request.session.session_key
         return search_kwargs
@@ -42,7 +41,7 @@ class BookmarkBaseView(GenericAPIView, GroupACLMixin):
             search_kwargs["user"] = self.request.user
         else:
             if not self.request.session or not self.request.session.session_key:
-                LOG.verbose("no session, make one")
+                LOG.debug("no session, make one")
                 self.request.session.save()
             search_kwargs["session_id"] = self.request.session.session_key
         return search_kwargs

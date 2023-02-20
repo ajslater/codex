@@ -4,7 +4,6 @@ from django.urls import path, re_path, register_converter
 from codex.urls.converters import GroupConverter
 from codex.views.frontend import IndexView
 
-
 app_name = "app"
 
 register_converter(GroupConverter, "group")

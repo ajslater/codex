@@ -5,11 +5,10 @@ from rest_framework.mixins import RetrieveModelMixin
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from codex.logger.logging import get_logger
 from codex.models import AdminFlag
 from codex.serializers.auth import AuthAdminFlagsSerializer, TimezoneSerializer
 from codex.serializers.mixins import OKSerializer
-from codex.settings.logging import get_logger
-
 
 LOG = get_logger(__name__)
 NULL_USER = {"pk": None, "username": None, "is_staff": False}

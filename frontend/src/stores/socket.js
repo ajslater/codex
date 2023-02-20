@@ -5,7 +5,7 @@ import CHOICES from "@/choices";
 // import app from "@/main";
 import router from "@/plugins/router";
 import { useAdminStore } from "@/stores/admin";
-import { useAuthStore } from "@/stores/auth";
+// import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
 import { store } from "@/stores/store";
@@ -38,8 +38,7 @@ export const useSocketStore = defineStore("socket", {
       });
       this.heartBeatTimer = window.setInterval(() => {
         try {
-          this.isConnected &&
-            this.app.config.globalProperties.$socket.send("{}");
+          this.isConnected && this.app.config.globalProperties.$socket.send("");
         } catch (error) {
           console.warn("keep-alive", error);
         }
@@ -62,6 +61,8 @@ export const useSocketStore = defineStore("socket", {
       // Would be nicer if components could add their own listeners.
       const message = event.data;
       console.debug(message);
+
+      // Cannot instantiate store outside of case blocks.
 
       switch (message) {
         case CHOICES.websockets.LIBRARY_CHANGED:
@@ -89,21 +90,6 @@ export const useSocketStore = defineStore("socket", {
     SOCKET_RECONNECT_ERROR() {
       console.error("socket reconnect error");
       this.reconnectError = true;
-    },
-    sendSubscribe() {
-      // const app = getCurrentInstance().appContext;
-      const ws = this.app.config.globalProperties.$socket;
-      if (!ws || ws.readyState !== 1) {
-        console.debug("No ready socket. Not subscribing to notifications.");
-        return;
-      }
-      const authStore = useAuthStore();
-      const msg = {
-        type: "subscribe",
-        register: authStore.isCodexViewable,
-        admin: authStore.isUserAdmin,
-      };
-      ws.send(JSON.stringify(msg));
     },
   },
 });

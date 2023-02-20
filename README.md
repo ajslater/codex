@@ -252,7 +252,7 @@ index, a Django cache and comic book cover thumbnails.
 ### Environment Variables
 
 - `LOGLEVEL` will change how verbose codex's logging is. Valid values are
-  `ERROR`, `WARNING`, `INFO`, `VERBOSE`, `DEBUG`. The default is `INFO`.
+  `ERROR`, `WARNING`, `INFO`, `DEBUG`. The default is `INFO`.
 - `TIMEZONE` or `TZ` will explicitly the timezone in long format (e.g.
   `"America/Los Angeles"`). This is useful inside Docker because codex cannot
   automatically detect the host machine's timezone.
@@ -369,13 +369,8 @@ Codex collects its logs in the `config/logs` directory. Take a look to see what
 th e server is doing.
 
 You can change how much codex logs by setting the `LOGLEVEL` environment
-variable. By default this level is `INFO`. To see more messages run codex like:
-
-```bash
-LOGLEVEL=VERBOSE codex
-```
-
-To see a great deal of noisy messages from dependencies try:
+variable. By default this level is `INFO`. To see more verbose messages, run
+codex like:
 
 ```bash
 LOGLEVEL=DEBUG codex
@@ -460,7 +455,7 @@ for development in terminal tabs.
 `/codex/dev-codex.sh` runs the main Django server. Set the `DEBUG` environment
 variable to activate debug mode: `DEBUG=1 ./run.sh`. This also lets you run the
 server without collecting static files for production and with a hot reloading
-frontend. I recommend setting `LOGLEVEL=VERBOSE` for development as well.
+frontend.
 
 `/codex/frontend/dev-server.sh` runs the development autoreloading frontend with
 vite.
