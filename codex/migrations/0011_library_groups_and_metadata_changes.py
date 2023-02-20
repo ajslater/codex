@@ -15,8 +15,11 @@ def critical_rating_to_decimal(apps, _schema_editor):
         try:
             comic.critical_rating_decimal = Decimal(comic.critical_rating)
             update_comics.append(comic)
-        except Exception:
-            pass
+        except Exception as err:
+            print(
+                f"WARNING: comic {comic.pk} {comic.path} failed converting "
+                f"critical_rating to Decimal {err}"
+            )
     comic_model.objects.bulk_update(update_comics, ("critical_rating_decimal",))
 
 

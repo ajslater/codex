@@ -1,18 +1,13 @@
 """Mimic comicbox.ComicArchive functions for PDFs."""
 from io import BytesIO
-from logging import CRITICAL
 from pathlib import Path
-from typing import Optional, Union
+from typing import Union
 
+import fitz
 from comicbox.metadata.filename import FilenameMetadata
 from filetype import guess
-from pdf2image import convert_from_path
-from pdf2image.exceptions import PDFInfoNotInstalledError
-from pdfrw import PdfReader, PdfWriter
-from pdfrw.errors import log as pdfrw_log
 
-from codex.settings.logging import get_logger
-
+from codex.logger.logging import get_logger
 
 LOG = get_logger(__name__)
 
@@ -21,18 +16,26 @@ class PDF:
     """PDF class."""
 
     COVER_PAGE_INDEX = 1
+    _SUFFIX = ".pdf"
     MIME_TYPE = "application/pdf"
+    _METADATA_KEY_MAP = {
+        "tags": "keywords",
+        "name": "title",
+        "": "subject",
+    }
 
     @classmethod
     def is_pdf(cls, path):
         """Is the path a pdf."""
+        if Path(path).suffix.lower() == cls._SUFFIX:
+            return True
         kind = guess(path)
         return kind and kind.mime == cls.MIME_TYPE
 
     def __init__(self, path: Union[Path, str], **_kwargs):
         """Initialize."""
         self._path: Path = Path(path)
-        self._reader: Optional[PdfReader] = None
+        self._doc = None
         self._metadata: dict = {}
 
     def __enter__(self):
@@ -43,15 +46,27 @@ class PDF:
         """Context exit."""
         self.close()
 
-    def _get_reader(self) -> PdfReader:
-        """Lazily get the pdfrw reader."""
-        if not self._reader:
-            # Turn off error logging for pdfrw
-            loglevel = pdfrw_log.getEffectiveLevel()
-            pdfrw_log.setLevel(CRITICAL)
-            self._reader = PdfReader(self._path)
-            pdfrw_log.setLevel(loglevel)
-        return self._reader
+    def _get_doc(self):
+        if not self._doc:
+            self._doc = fitz.Document(self._path)
+        return self._doc
+
+    def _set_metadata_key(self, comicbox_key, pdf_key):
+        metadata = self._get_doc().metadata
+        if not metadata:
+            return
+        value = metadata.get(pdf_key)
+        if value:
+            if comicbox_key == "writer":
+                if "credits" not in self._metadata:
+                    self._metadata["credits"] = []
+                credit = {
+                    "role": comicbox_key,
+                    "person": value,
+                }
+                self._metadata["credits"].append(credit)
+            else:
+                self._metadata[comicbox_key] = value
 
     def get_metadata(self) -> dict:
         """Get metadata from pdf."""
@@ -63,46 +78,32 @@ class PDF:
             except Exception as exc:
                 LOG.warning(f"Error reading filename metadata for {self._path}: {exc}")
             try:
-                root = self._get_reader().Root
-                self._metadata["page_count"] = root.Pages.Count  # type: ignore
+                doc = self._get_doc()
+                self._metadata["page_count"] = doc.page_count
+                for comicbox_key, pdf_key in self._METADATA_KEY_MAP.items():
+                    self._set_metadata_key(comicbox_key, pdf_key)
             except Exception as exc:
-                LOG.warning(f"Error reading number of pages for {self._path}: {exc}")
+                LOG.warning(f"Error reading metadata for {self._path}: {exc}")
                 self._metadata["page_count"] = 100
 
         return self._metadata
 
     def get_page_by_index(self, index) -> bytes:
         """Get the page bytestream by index."""
-        page = self._get_reader().getPage(index)
-        writer = PdfWriter()
-        writer.addpage(page)
+        doc = self._get_doc()
+        doc.select((index,))
         buffer = BytesIO()
-        writer.write(buffer)
+        doc.save(buffer)
+        self._doc = None
         return buffer.getvalue()
 
     def get_cover_image(self) -> bytes:
         """Get the first page as a image data."""
-        image_data = b""
-        try:
-            images = convert_from_path(
-                self._path,
-                first_page=self.COVER_PAGE_INDEX,
-                last_page=self.COVER_PAGE_INDEX,
-                thread_count=4,
-                fmt="tiff",  # tiff is fastest.
-                use_pdftocairo=True,
-            )
-            # pdf2image returns PIL Images :/
-            with BytesIO() as buf:
-                if images:
-                    image = images[0]
-                    image.save(buf, image.format)
-                    for image in images:
-                        image.close()
-                image_data = buf.getvalue()
-        except PDFInfoNotInstalledError as exc:
-            raise FileNotFoundError(str(exc)) from exc
-
+        # image_data = b""
+        doc = self._get_doc()
+        page = doc.load_page(0)
+        pix = page.get_pixmap()
+        image_data = pix.tobytes(output="ppm")
         return image_data
 
     def close(self):

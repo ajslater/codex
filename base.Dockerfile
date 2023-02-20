@@ -10,7 +10,6 @@ RUN echo "@old http://dl-cdn.alpinelinux.org/alpine/v3.14/main" >> /etc/apk/repo
     libffi \
     libwebp \
     openssl \
-    poppler-utils \
     unrar@old \
     yaml \
     zlib

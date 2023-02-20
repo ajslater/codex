@@ -6,17 +6,14 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
+from codex.comic_field_names import COMIC_M2M_FIELD_NAMES
 from codex.models import AdminFlag, Comic
 from codex.serializers.metadata import (
     METADATA_ORDERED_UNIONFIX_VALUES_MAP,
     MetadataSerializer,
 )
-from codex.settings.logging import get_logger
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_annotations import BrowserAnnotationsView
-
-
-LOG = get_logger(__name__)
 
 
 class MetadataView(BrowserAnnotationsView):
@@ -26,45 +23,39 @@ class MetadataView(BrowserAnnotationsView):
     serializer_class = MetadataSerializer
 
     # DO NOT USE BY ITSELF. USE _get_comic_value_fields() instead.
-    _COMIC_VALUE_FIELDS = set(
-        (
-            "age_rating",
-            "comments",
-            "community_rating",
-            "country",
-            "critical_rating",
-            "day",
-            "file_format",
-            "format",
-            "issue",
-            "issue_suffix",
-            "language",
-            "month",
-            "notes",
-            "read_ltr",
-            "scan_info",
-            "summary",
-            "web",
-            "year",
-        )
-    )
-    _ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS = set(("path",))
-    _COMIC_VALUE_FIELDS_CONFLICTING = set(
-        (
-            "name",
-            "updated_at",
-            "created_at",
-        )
-    )
+    _COMIC_VALUE_FIELDS = {
+        "age_rating",
+        "comments",
+        "community_rating",
+        "country",
+        "critical_rating",
+        "day",
+        "file_format",
+        "format",
+        "issue",
+        "issue_suffix",
+        "language",
+        "month",
+        "notes",
+        "read_ltr",
+        "scan_info",
+        "summary",
+        "web",
+        "year",
+    }
+    _ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS = {"path"}
+    _COMIC_VALUE_FIELDS_CONFLICTING = {
+        "name",
+        "updated_at",
+        "created_at",
+    }
     _COMIC_VALUE_FIELDS_CONFLICTING_PREFIX = "conflict_"
-    _COMIC_FK_FIELDS = set(
-        (
-            "publisher",
-            "imprint",
-            "series",
-            "volume",
-        )
-    )
+    _COMIC_FK_FIELDS = {
+        "publisher",
+        "imprint",
+        "series",
+        "volume",
+    }
     _COMIC_FK_FIELDS_MAP = {
         "f": _COMIC_FK_FIELDS,
         "p": _COMIC_FK_FIELDS.difference(frozenset(["publisher"])),
@@ -74,23 +65,11 @@ class MetadataView(BrowserAnnotationsView):
         "c": _COMIC_FK_FIELDS,
     }
     _COMIC_FK_ANNOTATION_PREFIX = "fk_"
-    _COMIC_RELATED_VALUE_FIELDS = set(("series__volume_count", "volume__issue_count"))
+    _COMIC_RELATED_VALUE_FIELDS = {"series__volume_count", "volume__issue_count"}
     _COUNT_FIELD_MAP = {
         "imprint": ("volume_count", "fk_series_volume_count"),
         "series": ("issue_count", "fk_volume_issue_count"),
     }
-    _COMIC_M2M_FIELDS = set(
-        (
-            "characters",
-            "credits",
-            "genres",
-            "locations",
-            "series_groups",
-            "story_arcs",
-            "tags",
-            "teams",
-        )
-    )
     _PATH_GROUPS = ("c", "f")
     _CREDIT_RELATIONS = ("role", "person")
 
@@ -219,7 +198,7 @@ class MetadataView(BrowserAnnotationsView):
         else:
             pk_field = "comic__pk"
         comic_pks = simple_qs.values_list(pk_field, flat=True)
-        for field_name in self._COMIC_M2M_FIELDS:
+        for field_name in COMIC_M2M_FIELD_NAMES:
             model = Comic._meta.get_field(field_name).related_model
             if not model:
                 raise ValueError(f"No model found for comic field: {field_name}")

@@ -8,7 +8,6 @@ from codex.views.pwa import (
     WebManifestView,
 )
 
-
 TIMEOUT = 60 * 60
 app_name = "pwa"
 

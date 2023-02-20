@@ -13,10 +13,9 @@ from rest_framework.serializers import (
     ValidationError,
 )
 
+from codex.logger.logging import get_logger
 from codex.models import AdminFlag, FailedImport, Library
 from codex.serializers.choices import CHOICES
-from codex.settings.logging import get_logger
-
 
 LOG = get_logger(__name__)
 
@@ -92,9 +91,9 @@ class LibrarySerializer(ModelSerializer):
                 if ppath.is_relative_to(existing_path):
                     raise ValueError("Child of existing library path")
         except Exception as exc:
-            LOG.error(exc)
+            LOG.error(f"validate library path: {exc}")
             raise exc
-        return str(ppath)
+        return path
 
 
 class FailedImportSerializer(ModelSerializer):
@@ -131,8 +130,8 @@ class AdminFolderSerializer(Serializer):
     def validate_path(self, path):
         """Validate the path is an existing directory."""
         try:
-            path = Path(path)
-            if not path.is_dir():
+            ppath = Path(path)
+            if not ppath.resolve().is_dir():
                 raise ValidationError("Not a directory")
         except Exception as exc:
             raise ValidationError("Not a valid path") from exc
@@ -149,40 +148,40 @@ class AdminFolderSerializer(Serializer):
 class AdminGroupSerializer(Serializer):
     """Group Counts."""
 
-    publisher_count = IntegerField()
-    imprint_count = IntegerField()
-    series_count = IntegerField()
-    volume_count = IntegerField()
-    comic_count = IntegerField()
-    folder_count = IntegerField()
-    pdf_count = IntegerField()
-    comic_archive_count = IntegerField()
+    publisher_count = IntegerField(required=False)
+    imprint_count = IntegerField(required=False)
+    series_count = IntegerField(required=False)
+    volume_count = IntegerField(required=False)
+    comic_count = IntegerField(required=False)
+    folder_count = IntegerField(required=False)
+    pdf_count = IntegerField(required=False)
+    comic_archive_count = IntegerField(required=False)
 
 
 class AdminComicMetadataSerializer(Serializer):
     """Metadata Counts."""
 
-    character_count = IntegerField()
-    credit_count = IntegerField()
-    credit_person_count = IntegerField()
-    credit_role_count = IntegerField()
-    genre_count = IntegerField()
-    location_count = IntegerField()
-    series_group_count = IntegerField()
-    story_arc_count = IntegerField()
-    tag_count = IntegerField()
-    team_count = IntegerField()
+    character_count = IntegerField(required=False)
+    credit_count = IntegerField(required=False)
+    credit_person_count = IntegerField(required=False)
+    credit_role_count = IntegerField(required=False)
+    genre_count = IntegerField(required=False)
+    location_count = IntegerField(required=False)
+    series_group_count = IntegerField(required=False)
+    story_arc_count = IntegerField(required=False)
+    tag_count = IntegerField(required=False)
+    team_count = IntegerField(required=False)
 
 
 class AdminConfigSerializer(Serializer):
     """Config Information."""
 
-    library_count = IntegerField()
-    user_count = IntegerField()
-    group_count = IntegerField()
-    session_count = IntegerField()
-    session_anon_count = IntegerField()
-    api_key = CharField()
+    library_count = IntegerField(required=False)
+    user_count = IntegerField(required=False)
+    group_count = IntegerField(required=False)
+    session_count = IntegerField(required=False)
+    session_anon_count = IntegerField(required=False)
+    api_key = CharField(required=False)
 
 
 class AdminPlatformSerializer(Serializer):
@@ -199,7 +198,7 @@ class AdminPlatformSerializer(Serializer):
 class AdminStatsSerializer(Serializer):
     """Admin Stats Tab."""
 
-    platform = AdminPlatformSerializer()
-    config = AdminConfigSerializer()
-    groups = AdminGroupSerializer()
-    metadata = AdminComicMetadataSerializer()
+    platform = AdminPlatformSerializer(required=False)
+    config = AdminConfigSerializer(required=False)
+    groups = AdminGroupSerializer(required=False)
+    metadata = AdminComicMetadataSerializer(required=False)

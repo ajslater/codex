@@ -3,12 +3,10 @@
 import os
 import subprocess
 import sys
-
 from pathlib import Path
 from shutil import copytree
 
 from cache_paths import PIP_CACHE_PATH, POETRY_ARTIFACTS_PATH, POETRY_CACHE_PATH
-
 
 CACHE_PATH = Path("./cache/packages")
 

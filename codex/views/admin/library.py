@@ -1,5 +1,6 @@
 """Admin Library Views."""
 from pathlib import Path
+from time import time
 
 from django.core.cache import cache
 from rest_framework.exceptions import ValidationError
@@ -8,18 +9,18 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from codex.librarian.queue_mp import LIBRARIAN_QUEUE, DelayedTasks
+from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
+from codex.librarian.tasks import DelayedTasks
 from codex.librarian.watchdog.tasks import WatchdogPollLibrariesTask, WatchdogSyncTask
+from codex.logger.logging import get_logger
 from codex.models import FailedImport, Folder, Library
-from codex.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.serializers.admin import (
     AdminFolderListSerializer,
     AdminFolderSerializer,
     FailedImportSerializer,
     LibrarySerializer,
 )
-from codex.settings.logging import get_logger
-
 
 LOG = get_logger(__name__)
 
@@ -33,7 +34,7 @@ class AdminLibraryViewSet(ModelViewSet):
     )
     serializer_class = LibrarySerializer
 
-    WATCHDOG_SYNC_FIELDS = set(("events", "poll", "pollEvery"))
+    WATCHDOG_SYNC_FIELDS = {"events", "poll", "pollEvery"}
 
     def _create_library_folder(self, library):
         folder = Folder(
@@ -43,8 +44,7 @@ class AdminLibraryViewSet(ModelViewSet):
 
     @staticmethod
     def _sync_watchdog():
-        tasks = (WatchdogSyncTask(),)
-        task = DelayedTasks(2, tasks)
+        task = DelayedTasks(time() + 2, (WatchdogSyncTask(),))
         LIBRARIAN_QUEUE.put(task)
 
     @staticmethod
@@ -106,7 +106,7 @@ class AdminFolderListView(GenericAPIView):
         try:
             serializer = self.input_serializer_class(data=self.request.query_params)
             serializer.is_valid(raise_exception=True)
-            path = serializer.validated_data.get("path", Path("."))
+            path = Path(serializer.validated_data.get("path", "."))
             show_hidden = serializer.validated_data.get("show_hidden", False)
             root_path = path.resolve()
 
@@ -114,13 +114,17 @@ class AdminFolderListView(GenericAPIView):
             if root_path.parent != root_path:
                 dirs += [".."]
             subdirs = []
-            for fn in root_path.iterdir():
-                if fn.is_dir() and (show_hidden or not fn.name.startswith(".")):
-                    subdirs.append(fn.name)
+            for subpath in root_path.iterdir():
+                if subpath.name.startswith(".") and not show_hidden:
+                    continue
+                if subpath.resolve().is_dir():
+                    subdirs.append(subpath.name)
             dirs += sorted(subdirs)
 
             data = {"root_folder": str(root_path), "folders": dirs}
+
             serializer = self.get_serializer(data)
             return Response(serializer.data)
         except Exception as exc:
+            LOG.exception(exc)
             raise ValidationError("Server Error") from exc

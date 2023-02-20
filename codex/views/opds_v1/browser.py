@@ -8,12 +8,12 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication
 from rest_framework.response import Response
 
+from codex.logger.logging import get_logger
 from codex.serializers.opds_v1 import (
     OPDSAcquisitionEntrySerializer,
     OPDSEntrySerializer,
     OPDSTemplateSerializer,
 )
-from codex.settings.logging import get_logger
 from codex.views.browser.browser import BrowserView
 from codex.views.opds_v1.entry import OPDSEntry
 from codex.views.opds_v1.util import (
@@ -31,7 +31,6 @@ from codex.views.opds_v1.util import (
 )
 from codex.views.template import CodexXMLTemplateView
 
-
 LOG = get_logger(__name__)
 
 
@@ -42,7 +41,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
     template_name = "opds/index.xml"
     serializer_class = OPDSTemplateSerializer
 
-    AQUISITION_GROUPS = set(("s", "f"))
+    AQUISITION_GROUPS = {"s", "f"}
 
     @property
     def opds_ns(self):

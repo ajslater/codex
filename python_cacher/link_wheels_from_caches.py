@@ -2,12 +2,10 @@
 """Harvest wheels from pip & poetry caches and create a repo from them."""
 import os
 import sys
-
 from pathlib import Path
 from shutil import copy
 
 from cache_paths import PIP_WHEELS_PATH, POETRY_ARTIFACTS_PATH
-
 
 CACHE_WHEELS_PATH = Path("./cache/packages/wheels")
 

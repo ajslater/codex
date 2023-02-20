@@ -3,7 +3,6 @@
 import string
 import time
 import zipfile
-
 from io import BytesIO
 from pathlib import Path
 from random import choices, randint, random
@@ -12,7 +11,6 @@ from xml.etree.ElementTree import Element, SubElement, tostringlist
 from comicbox.metadata.comicinfoxml import ComicInfoXml
 from fnvhash import fnv1a_32
 from PIL import Image
-
 
 GROUPS = ("publisher", "imprint", "series")
 M2MS = ("characters", "genres", "locations", "tags", "teams")

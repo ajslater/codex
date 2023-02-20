@@ -1,13 +1,12 @@
 """OPDS Entry."""
 import math
-
 from datetime import datetime, timezone
 from decimal import Decimal
 
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import reverse
 
-from codex.settings.logging import get_logger
+from codex.logger.logging import get_logger
 from codex.views.opds_v1.util import (
     BLANK_TITLE,
     MimeType,
@@ -15,7 +14,6 @@ from codex.views.opds_v1.util import (
     Rel,
     update_href_query_params,
 )
-
 
 LOG = get_logger(__name__)
 

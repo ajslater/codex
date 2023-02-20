@@ -1,15 +1,10 @@
 """Abstract Thread worker for doing queued tasks."""
 import time
-
 from abc import ABC, abstractmethod
-from multiprocessing import Queue
-from queue import Empty
+from queue import Empty, SimpleQueue
 from threading import Thread
 
-from codex.settings.logging import get_logger
-
-
-LOG = get_logger(__name__)
+from codex.worker_base import WorkerBaseMixin
 
 
 class BreakLoopError(Exception):
@@ -18,19 +13,19 @@ class BreakLoopError(Exception):
     pass
 
 
-class NamedThread(Thread, ABC):
+class NamedThread(Thread, WorkerBaseMixin, ABC):
     """A thread that sets its name for ps."""
 
-    @property
-    @classmethod
-    @abstractmethod
-    def NAME(cls):  # noqa: N802
-        """Name the thread."""
-        raise NotImplementedError()
+    def __init__(self, *args, **kwargs):
+        """Initialize queues."""
+        librarian_queue = kwargs.pop("librarian_queue")
+        log_queue = kwargs.pop("log_queue")
+        self.init_worker(log_queue, librarian_queue)
+        super().__init__(*args, **kwargs)
 
     def run_start(self):
         """First thing to do when running a new thread."""
-        LOG.verbose(f"Started {self.NAME} thread")
+        self.log.debug(f"Started {self.__class__.__name__}")
 
 
 class QueuedThread(NamedThread, ABC):
@@ -39,10 +34,10 @@ class QueuedThread(NamedThread, ABC):
     SHUTDOWN_MSG = "shutdown"
     SHUTDOWN_TIMEOUT = 5
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         """Initialize with overridden name and as a daemon thread."""
-        self.queue = Queue()
-        super().__init__(name=self.NAME, daemon=True)
+        self.queue = kwargs.pop("queue", SimpleQueue())
+        super().__init__(*args, name=self.__class__.__name__, daemon=True, **kwargs)
 
     @abstractmethod
     def process_item(self, item):
@@ -77,9 +72,9 @@ class QueuedThread(NamedThread, ABC):
             except BreakLoopError:
                 break
             except Exception as exc:
-                LOG.error(f"{self.NAME} crashed:")
-                LOG.exception(exc)
-        LOG.verbose(f"Stopped {self.NAME} thread")
+                self.log.error(f"{self.__class__.__name__} crashed:")
+                self.log.exception(exc)
+        self.log.debug(f"Stopped {self.__class__.__name__}")
 
     def stop(self):
         """Stop the thread."""
@@ -87,16 +82,16 @@ class QueuedThread(NamedThread, ABC):
 
     def join(self):
         """End the thread."""
-        LOG.debug(f"Waiting for {self.NAME} to join.")
+        self.log.debug(f"Waiting for {self.__class__.__name__} to join.")
         super().join(self.SHUTDOWN_TIMEOUT)
-        LOG.debug(f"{self.NAME} joined.")
+        self.log.debug(f"{self.__class__.__name__} joined.")
 
 
 class AggregateMessageQueuedThread(QueuedThread, ABC):
     """Abstract Thread worker for buffering and aggregating messages."""
 
-    FLOOD_DELAY = 1
-    MAX_DELAY = 5
+    FLOOD_DELAY = 1.0
+    MAX_DELAY = 5.0
 
     def __init__(self, *args, **kwargs):
         """Initialize the cache."""

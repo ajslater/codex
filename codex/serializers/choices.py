@@ -1,5 +1,4 @@
-"""
-Static choices that aren't derived from models.
+"""Static choices that aren't derived from models.
 
 Extract the same json the frontend uses for the values so they're always
 in sync.
@@ -8,12 +7,10 @@ Which is a little bit of overengineering.
 import json
 import mmap
 import re
-
 from pathlib import Path
 
-from codex.settings.logging import get_logger
+from codex.logger.logging import get_logger
 from codex.settings.settings import BUILD, DEBUG, STATIC_ROOT
-
 
 LOG = get_logger(__name__)
 
@@ -83,7 +80,7 @@ def _parse_choices(module_name):
                 ) as choices_mmap_file:
                     json_str = choices_mmap_file.read()
                     data_dict = json.loads(json_str)
-                    LOG.verbose(f"Loaded json choices from {js_root} {module_name}")
+                    LOG.debug(f"Loaded json choices from {js_root} {module_name}")
                     break
         except Exception as exc:
             LOG.exception(exc)
@@ -133,7 +130,7 @@ def _load_json():
     """Load values from the vuetify formatted json into python dicts."""
     global WEBSOCKET_MESSAGES
     if DEFAULTS and VUETIFY_NULL_CODE and CHOICES and WEBSOCKET_MESSAGES:
-        LOG.verbose("choices already loaded")
+        LOG.warning("choices already loaded")
         return
     data_dict = _parse_choices(_CHOICES_MODULE_NAME)
     for key, value in data_dict.items():

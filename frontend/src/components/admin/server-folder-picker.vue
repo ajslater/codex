@@ -92,7 +92,7 @@ export default {
     ...mapActions(useCommonStore, ["clearErrors"]),
     change: function (path) {
       const relativePath = path
-        ? path.startsWith("/")
+        ? path.startsWith("/") || path.startsWith("\\")
           ? path
           : [this.rootFolder, path].join("/")
         : this.rootFolder;

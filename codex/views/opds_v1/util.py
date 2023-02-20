@@ -6,7 +6,6 @@ from typing import Union
 from comicbox.metadata.comic_json import json
 from django.utils.http import urlencode
 
-
 BLANK_TITLE = "Unknown"
 
 

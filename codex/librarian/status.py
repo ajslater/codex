@@ -1,6 +1,5 @@
 """Librarian Status."""
-from codex.settings.logging import get_logger
-
+from codex.logger.logging import get_logger
 
 LOG = get_logger(__name__)
 

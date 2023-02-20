@@ -10,7 +10,6 @@ from rest_framework.serializers import (
 
 from codex.serializers.choices import CHOICES
 
-
 FIT_TO_CHOICES = tuple(CHOICES["fitTo"].keys())
 
 

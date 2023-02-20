@@ -21,7 +21,6 @@ from codex.serializers.mixins import (
     get_serializer_values_map,
 )
 
-
 VUETIFY_NULL_CODE_STR = str(VUETIFY_NULL_CODE)
 
 
@@ -41,8 +40,7 @@ def validate_decades(decades):
 
 
 def validate_int_null(values):
-    """
-    Use a special code for null.
+    """Use a special code for null.
 
     Because if a vuetify component has a null key it changes it to the
     array index.
@@ -54,8 +52,7 @@ def validate_int_null(values):
 
 
 def validate_str_null(values):
-    """
-    Use a special code for null.
+    """Use a special code for null.
 
     Because if a vuetify component has a null key it changes it to the
     array index. This is the version for CharFields.
@@ -85,7 +82,7 @@ class FilterListField(ListField, ABC):
         """Child field class."""
         raise NotImplementedError()
 
-    VALIDATORS = tuple()
+    VALIDATORS = ()
 
     def __init__(self, *args, **kwargs):
         """Apply the subclass's arguments."""
@@ -151,8 +148,7 @@ class BrowserSettingsFilterSerializer(Serializer):
 
 
 class BrowserSettingsSerializer(Serializer):
-    """
-    Browser Settings that the user can change.
+    """Browser Settings that the user can change.
 
     This is the only browse serializer that's submitted.
     It is also sent to the browser as part of BrowserOpenedSerializer.
