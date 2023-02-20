@@ -16,7 +16,7 @@ border-radius: 128px;
   - LOGLEVEL=VERBOSE deprecated in favor of DEBUG
   - Stats page API accessible via API key as well as admin login.
 - Development
-  - The multiprocessing method is now S P A W N on all platforms.
+  - The multiprocessing method is now S P A W N 💀 on all platforms.
   - Websockets are now handled by customized Django channels
     - aioprocessing Queue communicates between librarian and channels.
 
