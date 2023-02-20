@@ -1,7 +1,7 @@
 """Bulk import and move comics and folders."""
 import logging
 from pathlib import Path
-from time import time
+from time import time, sleep
 
 from django.core.cache import cache
 from humanize import naturaldelta
@@ -49,7 +49,7 @@ class ComicImporterThread(
         while old_total_size != total_size:
             if old_total_size > 0:
                 # second time around or more
-                time.sleep(wait_time)
+                sleep(wait_time)
                 wait_time = wait_time**2
                 self.log.debug(
                     f"Waiting for files to copy before import: "
