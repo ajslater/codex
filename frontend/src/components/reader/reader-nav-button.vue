@@ -34,7 +34,7 @@ export default {
       return (
         this.value === +this.$route.params.page ||
         (this.twoPages &&
-          this.value % 2 &&
+          Boolean(this.value % 2) &&
           this.value - 1 === +this.$route.params.page)
       );
     },
