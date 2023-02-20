@@ -109,8 +109,3 @@ class PDF:
     def close(self):
         """Get rid of the reader."""
         self._reader = None
-
-if __name__ == "__main__":
-    import sys
-    pdf = PDF(sys.argv[0])
-    print(pdf.get_metadata())
