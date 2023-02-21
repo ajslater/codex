@@ -9,6 +9,7 @@ border-radius: 128px;
 ## v1.2.1
 
 - Fix
+  - Fixed an importer crash when it tried to wait for changing files.
   - Disabling Library Poll prevented manual polling.
   - More explicit Poll Every hints in edit dialog.
   - Repository link didn't open a new window.
