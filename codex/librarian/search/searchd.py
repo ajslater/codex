@@ -20,13 +20,19 @@ from codex.settings.settings import SEARCH_INDEX_PATH, SEARCH_INDEX_UUID_PATH
 from codex.threads import QueuedThread
 
 UPDATE_INDEX_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S%Z"
-VERBOSITY = 1
+VERBOSITY = 2  # 1
 REBUILD_ARGS = ("rebuild_index",)
-REBUILD_KWARGS = {"interactive": False, "verbosity": VERBOSITY}
+BATCH_SIZE = 1000000
+REBUILD_KWARGS = {
+    "interactive": False,
+    "verbosity": VERBOSITY,
+    "batch_size": BATCH_SIZE,
+}
 UPDATE_ARGS = ("update_index", "codex")
 UPDATE_KWARGS = {
     "remove": True,
     "verbosity": VERBOSITY,
+    "batch_size": BATCH_SIZE,
 }
 MIN_FINISHED_TIME = 1
 # Docker constraints look like 3 comics per second.
@@ -76,7 +82,7 @@ class SearchIndexerThread(QueuedThread):
 
     def _update_search_index(self, rebuild=False):
         """Update the search index."""
-        until_start = time()
+        start = time()
         try:
             any_update_in_progress = Library.objects.filter(
                 update_in_progress=True
@@ -93,7 +99,6 @@ class SearchIndexerThread(QueuedThread):
 
             SEARCH_INDEX_PATH.mkdir(parents=True, exist_ok=True)
 
-            until_start = time()
             if rebuild:
                 statuses = {
                     SearchIndexStatusTypes.SEARCH_INDEX_CLEAR: {},
@@ -111,24 +116,25 @@ class SearchIndexerThread(QueuedThread):
                 }
                 self.status_controller.start_many(statuses)
 
-                start = Timestamp.objects.get(
+                update_start = Timestamp.objects.get(
                     name=Timestamp.SEARCH_INDEX
                 ).updated_at.strftime(UPDATE_INDEX_DATETIME_FORMAT)
-                self.log.info(f"Updating search index since {start}...")
+                self.log.info(f"Updating search index since {update_start}...")
                 # Workers are only possible with fork()
                 # django-haystack has a bug
                 # https://github.com/django-haystack/django-haystack/issues/1650
-                kwargs = {"start": start}
+                kwargs = {"start": update_start}
                 kwargs.update(UPDATE_KWARGS)
                 self._call_command(UPDATE_ARGS, kwargs)
             Timestamp.touch(Timestamp.SEARCH_INDEX)
-            self.log.info("Search index updated.")
+            elapsed = naturaldelta(time() - start)
+            self.log.info(f"Search index updated in {elapsed}.")
         except Exception as exc:
             self.log.error(f"Update search index: {exc}")
         finally:
             # Finishing these tasks inside the command process leads to a timing
             # misalignment. Finish it here works.
-            until = until_start + 1
+            until = start + 1
             self.status_controller.finish_many(
                 CodexSearchBackend.UPDATE_FINISH_TYPES, until=until
             )

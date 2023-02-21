@@ -1,5 +1,6 @@
 """Custom Haystack Search Backend."""
 from multiprocessing import cpu_count
+from sys import maxsize
 from time import time
 
 from django.utils.timezone import now
@@ -159,7 +160,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
     def get_writerargs(cls, num_objs):
         """Use multiproc, multisegment writing only for large loads."""
         writerargs = {
-            "limitdb": 256,
+            "limitmb": maxsize,
         }
         if num_objs > cls.MULTISEGMENT_CUTOFF:
             # Bug in Whoosh means procs > 1 needs multisegment
@@ -231,7 +232,11 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                 SearchIndexStatusTypes.SEARCH_INDEX_PREPARE, until=until
             )
             elapsed = naturaldelta(elapsed_time)
-            self.log.info(f"Search engine prepared objects for commit in {elapsed}")
+            cps = int(num_objs / elapsed_time)
+            self.log.info(
+                f"Search engine prepared {num_objs} comics for commit"
+                f" in {elapsed} at {cps} comics per second."
+            )
 
             prepare_start = time()
             if len(iterable) > 0:
@@ -241,8 +246,13 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                     writer.commit(merge=True)
                 if writer.ident is not None:
                     writer.join()
-            elapsed = naturaldelta(time() - prepare_start)
-            self.log.info(f"Search engine committed index in {elapsed}")
+            elapsed_time = time() - prepare_start
+            elapsed = naturaldelta(elapsed_time)
+            cps = int(num_objs / elapsed_time)
+            self.log.info(
+                f"Search engine committed index segment of {num_objs} comics"
+                f" in {elapsed} at {cps} comics per second."
+            )
         finally:
             until = start + 1
             self.status_controller.finish_many(self.UPDATE_FINISH_TYPES, until=until)
