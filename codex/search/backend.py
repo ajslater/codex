@@ -14,7 +14,7 @@ from whoosh.fields import NUMERIC
 from whoosh.qparser import FieldAliasPlugin, GtLtPlugin, OperatorsPlugin
 from whoosh.qparser.dateparse import DateParserPlugin
 from whoosh.support.charset import accent_map
-from whoosh.writing import AsyncWriter
+from whoosh.writing import BufferedWriter
 
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.logger.logging import get_logger
@@ -187,7 +187,8 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             self.index = self.index.refresh()
 
             writerargs = self.get_writerargs(num_objs)
-            writer = AsyncWriter(self.index, writerargs=writerargs)
+            # writer = AsyncWriter(self.index, writerargs=writerargs)
+            writer = BufferedWriter(self.index, limit=1000, writerargs=writerargs)
 
             for obj_count, obj in enumerate(iterable):
                 try:
@@ -239,13 +240,14 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             )
 
             prepare_start = time()
-            if len(iterable) > 0:
-                # For now, commit no matter what, as we run into locking issues
-                # otherwise.
-                if commit:
-                    writer.commit(merge=True)
-                if writer.ident is not None:
-                    writer.join()
+            # if len(iterable) > 0:
+            #    # For now, commit no matter what, as we run into locking issues
+            #    # otherwise.
+            #    if commit:
+            #        writer.commit(merge=True)
+            #    if writer.ident is not None:
+            #        writer.join()
+            writer.close()
             elapsed_time = time() - prepare_start
             elapsed = naturaldelta(elapsed_time)
             cps = int(num_objs / elapsed_time)
