@@ -58,6 +58,7 @@
             <td colspan="2">
               <ConfirmDialog
                 button-text="Regenerate API Key"
+                title-text="Regenerate"
                 object-name="API Key"
                 confirm-text="Regenerate"
                 @confirm="regenAPIKey"
