@@ -29,3 +29,9 @@ class CodexSearchEngine(WhooshEngine):
     backend = CodexSearchBackend
     query = CodexSearchQuery
     unified_index = CodexUnifiedIndex
+
+    def __init__(self, using=None, queue_kwargs=None):
+        super().__init__(using=using)
+        if not queue_kwargs:
+            queue_kwargs = {}
+        self.options.update(queue_kwargs)

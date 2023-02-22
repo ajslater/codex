@@ -1,11 +1,10 @@
 """Haystack Search index updater."""
 from datetime import datetime
-from multiprocessing import Process
 from time import time
 from uuid import uuid4
 
-from django.core.management import call_command
 from haystack import connections as haystack_connections
+from haystack.query import SearchQuerySet
 from humanize import naturaldelta
 
 from codex.librarian.search.status import SearchIndexStatusTypes
@@ -14,12 +13,12 @@ from codex.librarian.search.tasks import (
     SearchIndexRebuildIfDBChangedTask,
     SearchIndexUpdateTask,
 )
-from codex.models import Library, Timestamp
+from codex.models import Comic, Library, Timestamp
 from codex.search.backend import CodexSearchBackend
+from codex.search.engine import CodexSearchEngine
 from codex.settings.settings import SEARCH_INDEX_PATH, SEARCH_INDEX_UUID_PATH
 from codex.threads import QueuedThread
 
-UPDATE_INDEX_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S%Z"
 VERBOSITY = 2  # 1
 REBUILD_ARGS = ("rebuild_index",)
 BATCH_SIZE = 1000000
@@ -43,6 +42,14 @@ OPTIMIZE_DOC_COUNT = 20 * 60 * 3
 
 class SearchIndexerThread(QueuedThread):
     """A worker to handle search index update tasks."""
+
+    STATUS_FINISH_TYPES = frozenset(
+        (
+            SearchIndexStatusTypes.SEARCH_INDEX_CLEAR,
+            SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
+            SearchIndexStatusTypes.SEARCH_INDEX_REMOVE,
+        )
+    )
 
     def _set_search_index_version(self):
         """Set the codex db to search index matching id."""
@@ -72,13 +79,61 @@ class SearchIndexerThread(QueuedThread):
             self.log.exception(exc)
         return result
 
-    @staticmethod
-    def _call_command(args, kwargs):
+    def _remove_stale_records(self, qs, backend, model):
+        start = time()
+        try:
+            database_pks = qs.values_list("pk", flat=True)
+            index_pks = (
+                SearchQuerySet(using=backend.connection_alias)
+                .models(model)
+                .exclude(pk__in=database_pks)
+            )
+            index_pks = tuple(index_pks.values_list("id", flat=True))
+            num_stale_records = len(index_pks)
+            self.status_controller.start(
+                SearchIndexStatusTypes.SEARCH_INDEX_REMOVE, num_stale_records
+            )
+            since = time()
+            count = 0
+            for count, id in enumerate(index_pks):
+                backend.remove(id, commit=True)
+                since = self.status_controller.update(
+                    SearchIndexStatusTypes.SEARCH_INDEX_REMOVE,
+                    count,
+                    num_stale_records,
+                    since=since,
+                )
+            self.log.info(f"Removed {count} stale records.")
+        finally:
+            until = start + 1
+            self.status_controller.finish(
+                SearchIndexStatusTypes.SEARCH_INDEX_REMOVE, until=until
+            )
+
+    def _call_command(self, args, kwargs, clear=False, start_date=None):
         """Call a command in a process to trap any zombies."""
-        proc = Process(target=call_command, args=args, kwargs=kwargs)
-        proc.start()
-        proc.join()
-        proc.close()
+        kwargs["log_queue"] = self.log_queue
+        kwargs["librarian_queue"] = self.librarian_queue
+        engine = CodexSearchEngine(queue_kwargs=kwargs)
+        backend = engine.get_backend()
+
+        unified_index = engine.get_unified_index()
+        index = unified_index.get_index(Comic)
+
+        if clear:
+            backend.clear(index, commit=True)
+            self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
+
+        qs = index.build_queryset(
+            using=backend, start_date=start_date
+        )  # , end_date=None)
+        current_qs = qs.all().order_by("pk")
+
+        try:
+            backend.update(index, current_qs, commit=True)
+        except Exception as exc:
+            self.log.exception(exc)
+        self._remove_stale_records(qs, backend, Comic)
 
     def _update_search_index(self, rebuild=False):
         """Update the search index."""
@@ -98,46 +153,39 @@ class SearchIndexerThread(QueuedThread):
                 rebuild = True
 
             SEARCH_INDEX_PATH.mkdir(parents=True, exist_ok=True)
-
+            statuses = {}
             if rebuild:
-                statuses = {
-                    SearchIndexStatusTypes.SEARCH_INDEX_CLEAR: {},
-                    SearchIndexStatusTypes.SEARCH_INDEX_PREPARE: {},
-                    SearchIndexStatusTypes.SEARCH_INDEX_COMMIT: {},
+                statuses[SearchIndexStatusTypes.SEARCH_INDEX_CLEAR] = {}
+            statuses.update(
+                {
+                    SearchIndexStatusTypes.SEARCH_INDEX_UPDATE: {},
+                    SearchIndexStatusTypes.SEARCH_INDEX_REMOVE: {},
                 }
-                self.status_controller.start_many(statuses)
+            )
+            self.status_controller.start_many(statuses)
+            if rebuild:
                 self.log.info("Rebuilding search index...")
                 self._call_command(REBUILD_ARGS, REBUILD_KWARGS)
                 self._set_search_index_version()
             else:
-                statuses = {
-                    SearchIndexStatusTypes.SEARCH_INDEX_PREPARE: {},
-                    SearchIndexStatusTypes.SEARCH_INDEX_COMMIT: {},
-                }
-                self.status_controller.start_many(statuses)
-
                 update_start = Timestamp.objects.get(
                     name=Timestamp.SEARCH_INDEX
-                ).updated_at.strftime(UPDATE_INDEX_DATETIME_FORMAT)
-                self.log.info(f"Updating search index since {update_start}...")
-                # Workers are only possible with fork()
-                # django-haystack has a bug
-                # https://github.com/django-haystack/django-haystack/issues/1650
+                ).updated_at
                 kwargs = {"start": update_start}
                 kwargs.update(UPDATE_KWARGS)
-                self._call_command(UPDATE_ARGS, kwargs)
+                self.log.info(f"Updating search index since {update_start}...")
+                self._call_command(UPDATE_ARGS, kwargs, start_date=update_start)
             Timestamp.touch(Timestamp.SEARCH_INDEX)
             elapsed = naturaldelta(time() - start)
             self.log.info(f"Search index updated in {elapsed}.")
         except Exception as exc:
             self.log.error(f"Update search index: {exc}")
+            self.log.exception(exc)
         finally:
             # Finishing these tasks inside the command process leads to a timing
             # misalignment. Finish it here works.
             until = start + 1
-            self.status_controller.finish_many(
-                CodexSearchBackend.UPDATE_FINISH_TYPES, until=until
-            )
+            self.status_controller.finish_many(self.STATUS_FINISH_TYPES, until=until)
 
     def _rebuild_search_index_if_db_changed(self):
         """Rebuild the search index if the db changed."""
@@ -175,7 +223,7 @@ class SearchIndexerThread(QueuedThread):
                 self.log.info(
                     f"Search index found in {num_segments} segments, optmizing..."
                 )
-                writerargs = CodexSearchBackend.get_writerargs(num_docs)
+                writerargs = CodexSearchBackend.WRITERARGS
                 backend.index.optimize(**writerargs)
                 elapsed_delta = datetime.now() - start
                 elapsed = naturaldelta(elapsed_delta)
