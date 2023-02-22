@@ -10,6 +10,7 @@ https://docs.djangoproject.com/en/dev/ref/settings/
 """
 from os import environ
 from pathlib import Path
+from sys import maxsize
 
 from codex.settings.hypercorn import load_hypercorn_config
 from codex.settings.logging import get_loglevel
@@ -273,7 +274,7 @@ HAYSTACK_CONNECTIONS = {
     "default": {
         "ENGINE": "codex.search.engine.CodexSearchEngine",
         "PATH": str(SEARCH_INDEX_PATH),
-        "BATCH_SIZE": 1000000,
+        "BATCH_SIZE": maxsize,  # use whoosh multiprocessing not haystack's
     },
 }
 
