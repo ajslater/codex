@@ -11,8 +11,6 @@ https://docs.djangoproject.com/en/dev/ref/settings/
 from os import environ
 from pathlib import Path
 
-from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.logger.mp_queue import LOG_QUEUE
 from codex.settings.hypercorn import load_hypercorn_config
 from codex.settings.logging import get_loglevel
 from codex.settings.secret_key import get_secret_key
