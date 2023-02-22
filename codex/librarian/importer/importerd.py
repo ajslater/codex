@@ -1,7 +1,7 @@
 """Bulk import and move comics and folders."""
 import logging
 from pathlib import Path
-from time import time, sleep
+from time import sleep, time
 
 from django.core.cache import cache
 from humanize import naturaldelta

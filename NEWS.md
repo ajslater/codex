@@ -9,6 +9,7 @@ border-radius: 128px;
 ## v1.2.1
 
 - Fix
+  - Crash on building a fresh database.
   - Fixed an importer crash when it tried to wait for changing files.
   - Disabling Library Poll prevented manual polling.
   - More explicit Poll Every hints in edit dialog.
