@@ -82,46 +82,39 @@ class SearchIndexerThread(QueuedThread):
             self.log.exception(exc)
         return result
 
-    def _get_stale_doc_ids(self, qs, index, backend, start_date):
+    def _get_stale_doc_ids(self, qs, backend, start_date):
         """Get the stale search index pks that are no longer in the database."""
-        self.status_controller.start(SearchIndexStatusTypes.SEARCH_INDEX_FIND_REMOVE, 0)
-        self.log.debug("Looking for stale records...")
-
-        if start_date:
-            # if start date then use the entire index.
-            qs = index.index_queryset(using=backend.connection_alias)
-
-        database_pks = qs.values_list("pk", flat=True)
-        mask = Or([Term(DJANGO_ID, str(pk)) for pk in database_pks])
-
-        backend.index.refresh()
-        with backend.index.searcher() as searcher:
-            results = searcher.search(Every(), limit=None, mask=mask)  # WORKS
-            doc_ids = results.docs()
-
-        if doc_ids:
-            print(f"{len(doc_ids)=}")
-        else:
-            print(doc_ids)
-            doc_ids = set()
-        self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_FIND_REMOVE)
-        return doc_ids
-
-    def _remove_stale_records(self, qs, index, backend, start_date):
-        """Remove records not in the database from the index."""
         start = time()
+        self.status_controller.start(SearchIndexStatusTypes.SEARCH_INDEX_FIND_REMOVE, 0)
         try:
-            stale_doc_ids = self._get_stale_doc_ids(qs, index, backend, start_date)
-            print("Here we go")
+            self.log.debug("Looking for stale records...")
+
+            if start_date:
+                # if start date then use the entire index.
+                qs = Comic.objects
+
+            database_pks = qs.values_list("pk", flat=True)
+            mask = Or([Term(DJANGO_ID, str(pk)) for pk in database_pks])
+
+            backend.index.refresh()
+            with backend.index.searcher() as searcher:
+                results = searcher.search(Every(), limit=None, mask=mask)
+                doc_ids = results.docs()
+            return doc_ids
+        finally:
+            until = start + 1
+            self.status_controller.finish(
+                SearchIndexStatusTypes.SEARCH_INDEX_FIND_REMOVE, until=until
+            )
+
+    def _remove_stale_records(self, qs, backend, start_date):
+        """Remove records not in the database from the index."""
+        try:
+            stale_doc_ids = self._get_stale_doc_ids(qs, backend, start_date)
             backend.remove_batch(stale_doc_ids)
         except Exception as exc:
             self.log.error("While removing stale records:")
             self.log.exception(exc)
-        finally:
-            until = start + 1
-            self.status_controller.finish(
-                SearchIndexStatusTypes.SEARCH_INDEX_REMOVE, until=until
-            )
 
     def _update_search_index(self, rebuild=False):
         """Update or Rebuild the search index."""
@@ -185,7 +178,7 @@ class SearchIndexerThread(QueuedThread):
             if rebuild:
                 self._set_search_index_version()
             else:
-                self._remove_stale_records(qs, index, backend, start_date)
+                self._remove_stale_records(qs, backend, start_date)
 
             elapsed = naturaldelta(time() - start)
             self.log.info(f"Search index updated in {elapsed}.")

@@ -308,7 +308,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             cps = int(count / elapsed_time)
             self.log.info(
                 f"Search engine removed {count} ghosts from the index"
-                f" in {elapsed} at {cps} spectral remnants per second."
+                f" in {elapsed} at {cps} per second."
             )
         finally:
             until = start + 1
