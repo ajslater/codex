@@ -10,9 +10,8 @@ https://docs.djangoproject.com/en/dev/ref/settings/
 """
 from os import environ
 from pathlib import Path
+from sys import maxsize
 
-from codex.librarian.mp_queue import LIBRARIAN_QUEUE
-from codex.logger.mp_queue import LOG_QUEUE
 from codex.settings.hypercorn import load_hypercorn_config
 from codex.settings.logging import get_loglevel
 from codex.settings.secret_key import get_secret_key
@@ -275,8 +274,7 @@ HAYSTACK_CONNECTIONS = {
     "default": {
         "ENGINE": "codex.search.engine.CodexSearchEngine",
         "PATH": str(SEARCH_INDEX_PATH),
-        "LOG_QUEUE": LOG_QUEUE,
-        "LIBRARIAN_QUEUE": LIBRARIAN_QUEUE,
+        "BATCH_SIZE": maxsize,  # use whoosh multiprocessing not haystack's
     },
 }
 

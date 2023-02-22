@@ -1,12 +1,13 @@
 """Haystack Search index updater."""
 from datetime import datetime
-from multiprocessing import Process
 from time import time
 from uuid import uuid4
 
-from django.core.management import call_command
 from haystack import connections as haystack_connections
+from haystack.constants import DJANGO_ID
 from humanize import naturaldelta
+from whoosh.query import Every, Or
+from whoosh.query.terms import Term
 
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import (
@@ -14,12 +15,12 @@ from codex.librarian.search.tasks import (
     SearchIndexRebuildIfDBChangedTask,
     SearchIndexUpdateTask,
 )
-from codex.models import Library, Timestamp
+from codex.models import Comic, Library, Timestamp
 from codex.search.backend import CodexSearchBackend
+from codex.search.engine import CodexSearchEngine
 from codex.settings.settings import SEARCH_INDEX_PATH, SEARCH_INDEX_UUID_PATH
 from codex.threads import QueuedThread
 
-UPDATE_INDEX_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S%Z"
 VERBOSITY = 2  # 1
 REBUILD_ARGS = ("rebuild_index",)
 BATCH_SIZE = 1000000
@@ -43,6 +44,15 @@ OPTIMIZE_DOC_COUNT = 20 * 60 * 3
 
 class SearchIndexerThread(QueuedThread):
     """A worker to handle search index update tasks."""
+
+    STATUS_FINISH_TYPES = frozenset(
+        (
+            SearchIndexStatusTypes.SEARCH_INDEX_CLEAR,
+            SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
+            SearchIndexStatusTypes.SEARCH_INDEX_FIND_REMOVE,
+            SearchIndexStatusTypes.SEARCH_INDEX_REMOVE,
+        )
+    )
 
     def _set_search_index_version(self):
         """Set the codex db to search index matching id."""
@@ -72,16 +82,42 @@ class SearchIndexerThread(QueuedThread):
             self.log.exception(exc)
         return result
 
-    @staticmethod
-    def _call_command(args, kwargs):
-        """Call a command in a process to trap any zombies."""
-        proc = Process(target=call_command, args=args, kwargs=kwargs)
-        proc.start()
-        proc.join()
-        proc.close()
+    def _get_stale_doc_ids(self, qs, backend, start_date):
+        """Get the stale search index pks that are no longer in the database."""
+        start = time()
+        self.status_controller.start(SearchIndexStatusTypes.SEARCH_INDEX_FIND_REMOVE, 0)
+        try:
+            self.log.debug("Looking for stale records...")
+
+            if start_date:
+                # if start date then use the entire index.
+                qs = Comic.objects
+
+            database_pks = qs.values_list("pk", flat=True)
+            mask = Or([Term(DJANGO_ID, str(pk)) for pk in database_pks])
+
+            backend.index.refresh()
+            with backend.index.searcher() as searcher:
+                results = searcher.search(Every(), limit=None, mask=mask)
+                doc_ids = results.docs()
+            return doc_ids
+        finally:
+            until = start + 1
+            self.status_controller.finish(
+                SearchIndexStatusTypes.SEARCH_INDEX_FIND_REMOVE, until=until
+            )
+
+    def _remove_stale_records(self, qs, backend, start_date):
+        """Remove records not in the database from the index."""
+        try:
+            stale_doc_ids = self._get_stale_doc_ids(qs, backend, start_date)
+            backend.remove_batch(stale_doc_ids)
+        except Exception as exc:
+            self.log.error("While removing stale records:")
+            self.log.exception(exc)
 
     def _update_search_index(self, rebuild=False):
-        """Update the search index."""
+        """Update or Rebuild the search index."""
         start = time()
         try:
             any_update_in_progress = Library.objects.filter(
@@ -97,47 +133,63 @@ class SearchIndexerThread(QueuedThread):
                 self.log.warning("Database does not match search index.")
                 rebuild = True
 
+            statuses = {}
+            if rebuild:
+                statuses[SearchIndexStatusTypes.SEARCH_INDEX_CLEAR] = {}
+            statuses.update(
+                {
+                    SearchIndexStatusTypes.SEARCH_INDEX_UPDATE: {},
+                    SearchIndexStatusTypes.SEARCH_INDEX_FIND_REMOVE: {},
+                    SearchIndexStatusTypes.SEARCH_INDEX_REMOVE: {},
+                }
+            )
+            self.status_controller.start_many(statuses)
+
             SEARCH_INDEX_PATH.mkdir(parents=True, exist_ok=True)
 
+            queue_kwargs = {
+                "log_queue": self.log_queue,
+                "librarian_queue": self.librarian_queue,
+            }
+            engine = CodexSearchEngine(queue_kwargs=queue_kwargs)
+            backend = engine.get_backend()
+
+            unified_index = engine.get_unified_index()
+            index = unified_index.get_index(Comic)
+
             if rebuild:
-                statuses = {
-                    SearchIndexStatusTypes.SEARCH_INDEX_CLEAR: {},
-                    SearchIndexStatusTypes.SEARCH_INDEX_PREPARE: {},
-                    SearchIndexStatusTypes.SEARCH_INDEX_COMMIT: {},
-                }
-                self.status_controller.start_many(statuses)
                 self.log.info("Rebuilding search index...")
-                self._call_command(REBUILD_ARGS, REBUILD_KWARGS)
+                backend.clear(models=[Comic], commit=True)
+                self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
+                start_date = None
+            else:
+                start_date = Timestamp.objects.get(
+                    name=Timestamp.SEARCH_INDEX
+                ).updated_at
+                self.log.info(f"Updating search index since {start_date}...")
+
+            qs = index.build_queryset(using=backend, start_date=start_date).order_by(
+                "pk"
+            )
+
+            backend.update(index, qs, commit=True)
+
+            Timestamp.touch(Timestamp.SEARCH_INDEX)
+            if rebuild:
                 self._set_search_index_version()
             else:
-                statuses = {
-                    SearchIndexStatusTypes.SEARCH_INDEX_PREPARE: {},
-                    SearchIndexStatusTypes.SEARCH_INDEX_COMMIT: {},
-                }
-                self.status_controller.start_many(statuses)
+                self._remove_stale_records(qs, backend, start_date)
 
-                update_start = Timestamp.objects.get(
-                    name=Timestamp.SEARCH_INDEX
-                ).updated_at.strftime(UPDATE_INDEX_DATETIME_FORMAT)
-                self.log.info(f"Updating search index since {update_start}...")
-                # Workers are only possible with fork()
-                # django-haystack has a bug
-                # https://github.com/django-haystack/django-haystack/issues/1650
-                kwargs = {"start": update_start}
-                kwargs.update(UPDATE_KWARGS)
-                self._call_command(UPDATE_ARGS, kwargs)
-            Timestamp.touch(Timestamp.SEARCH_INDEX)
             elapsed = naturaldelta(time() - start)
             self.log.info(f"Search index updated in {elapsed}.")
         except Exception as exc:
             self.log.error(f"Update search index: {exc}")
+            self.log.exception(exc)
         finally:
             # Finishing these tasks inside the command process leads to a timing
             # misalignment. Finish it here works.
             until = start + 1
-            self.status_controller.finish_many(
-                CodexSearchBackend.UPDATE_FINISH_TYPES, until=until
-            )
+            self.status_controller.finish_many(self.STATUS_FINISH_TYPES, until=until)
 
     def _rebuild_search_index_if_db_changed(self):
         """Rebuild the search index if the db changed."""
@@ -175,7 +227,7 @@ class SearchIndexerThread(QueuedThread):
                 self.log.info(
                     f"Search index found in {num_segments} segments, optmizing..."
                 )
-                writerargs = CodexSearchBackend.get_writerargs(num_docs)
+                writerargs = CodexSearchBackend.WRITERARGS
                 backend.index.optimize(**writerargs)
                 elapsed_delta = datetime.now() - start
                 elapsed = naturaldelta(elapsed_delta)

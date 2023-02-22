@@ -169,12 +169,8 @@ class ComicImporterThread(
                 "name": f"({len(task.files_deleted)})"
             }
             total_changes += len(task.files_deleted)
-        types_map[SearchIndexStatusTypes.SEARCH_INDEX_PREPARE] = {
-            "total": total_changes
-        }
-        types_map[SearchIndexStatusTypes.SEARCH_INDEX_COMMIT] = {
-            "name": f"({total_changes})"
-        }
+        types_map[SearchIndexStatusTypes.SEARCH_INDEX_UPDATE] = {"total": total_changes}
+        types_map[SearchIndexStatusTypes.SEARCH_INDEX_REMOVE] = {}
         self.status_controller.start_many(types_map)
 
     def _finish_apply(self, library):

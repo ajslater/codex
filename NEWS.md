@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.2.2
+
+- Fix
+  - Fix all items removed from search index after update.
+  - Speedups to cleaning up search engine ghosts.
+
 ## v1.2.1
 
 - Fix
