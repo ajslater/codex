@@ -1,6 +1,7 @@
 """Initialize Codex Dataabse before running."""
 from django.core.cache import cache
 from django.core.management import call_command
+from django.db import connection
 from django.db.models import Q
 from django.db.models.functions import Now
 
@@ -34,10 +35,14 @@ def backup_db_before_migration():
 def ensure_db_schema():
     """Ensure the db is good and up to date."""
     LOG.debug("Ensuring db is good and up to date...")
-    rebuild_db()
-    repair_db()
-    if has_unapplied_migrations():
-        backup_db_before_migration()
+    table_names = connection.introspection.table_names()
+    db_exists = "django_migrations" in table_names
+    if db_exists:
+        rebuild_db()
+        repair_db()
+    if not db_exists or has_unapplied_migrations():
+        if db_exists:
+            backup_db_before_migration()
         call_command("migrate")
     else:
         LOG.info("Database up to date.")
