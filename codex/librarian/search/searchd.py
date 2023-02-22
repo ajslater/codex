@@ -4,8 +4,10 @@ from time import time
 from uuid import uuid4
 
 from haystack import connections as haystack_connections
-from haystack.query import SearchQuerySet
+from haystack.constants import DJANGO_ID
 from humanize import naturaldelta
+from whoosh.query import Every, Or
+from whoosh.query.terms import Term
 
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import (
@@ -47,6 +49,7 @@ class SearchIndexerThread(QueuedThread):
         (
             SearchIndexStatusTypes.SEARCH_INDEX_CLEAR,
             SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
+            SearchIndexStatusTypes.SEARCH_INDEX_FIND_REMOVE,
             SearchIndexStatusTypes.SEARCH_INDEX_REMOVE,
         )
     )
@@ -79,64 +82,49 @@ class SearchIndexerThread(QueuedThread):
             self.log.exception(exc)
         return result
 
-    def _remove_stale_records(self, qs, backend, model):
+    def _get_stale_doc_ids(self, qs, index, backend, start_date):
+        """Get the stale search index pks that are no longer in the database."""
+        self.status_controller.start(SearchIndexStatusTypes.SEARCH_INDEX_FIND_REMOVE, 0)
+        self.log.debug("Looking for stale records...")
+
+        if start_date:
+            # if start date then use the entire index.
+            qs = index.index_queryset(using=backend.connection_alias)
+
+        database_pks = qs.values_list("pk", flat=True)
+        mask = Or([Term(DJANGO_ID, str(pk)) for pk in database_pks])
+
+        backend.index.refresh()
+        with backend.index.searcher() as searcher:
+            results = searcher.search(Every(), limit=None, mask=mask)  # WORKS
+            doc_ids = results.docs()
+
+        if doc_ids:
+            print(f"{len(doc_ids)=}")
+        else:
+            print(doc_ids)
+            doc_ids = set()
+        self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_FIND_REMOVE)
+        return doc_ids
+
+    def _remove_stale_records(self, qs, index, backend, start_date):
+        """Remove records not in the database from the index."""
         start = time()
         try:
-            database_pks = qs.values_list("pk", flat=True)
-            index_pks = (
-                SearchQuerySet(using=backend.connection_alias)
-                .models(model)
-                .exclude(pk__in=database_pks)
-            )
-            index_pks = tuple(index_pks.values_list("id", flat=True))
-            num_stale_records = len(index_pks)
-            self.status_controller.start(
-                SearchIndexStatusTypes.SEARCH_INDEX_REMOVE, num_stale_records
-            )
-            since = time()
-            count = 0
-            for count, id in enumerate(index_pks):
-                backend.remove(id, commit=True)
-                since = self.status_controller.update(
-                    SearchIndexStatusTypes.SEARCH_INDEX_REMOVE,
-                    count,
-                    num_stale_records,
-                    since=since,
-                )
-            self.log.info(f"Removed {count} stale records.")
+            stale_doc_ids = self._get_stale_doc_ids(qs, index, backend, start_date)
+            print("Here we go")
+            backend.remove_batch(stale_doc_ids)
+        except Exception as exc:
+            self.log.error("While removing stale records:")
+            self.log.exception(exc)
         finally:
             until = start + 1
             self.status_controller.finish(
                 SearchIndexStatusTypes.SEARCH_INDEX_REMOVE, until=until
             )
 
-    def _call_command(self, args, kwargs, clear=False, start_date=None):
-        """Call a command in a process to trap any zombies."""
-        kwargs["log_queue"] = self.log_queue
-        kwargs["librarian_queue"] = self.librarian_queue
-        engine = CodexSearchEngine(queue_kwargs=kwargs)
-        backend = engine.get_backend()
-
-        unified_index = engine.get_unified_index()
-        index = unified_index.get_index(Comic)
-
-        if clear:
-            backend.clear(index, commit=True)
-            self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
-
-        qs = index.build_queryset(
-            using=backend, start_date=start_date
-        )  # , end_date=None)
-        current_qs = qs.all().order_by("pk")
-
-        try:
-            backend.update(index, current_qs, commit=True)
-        except Exception as exc:
-            self.log.exception(exc)
-        self._remove_stale_records(qs, backend, Comic)
-
     def _update_search_index(self, rebuild=False):
-        """Update the search index."""
+        """Update or Rebuild the search index."""
         start = time()
         try:
             any_update_in_progress = Library.objects.filter(
@@ -152,30 +140,53 @@ class SearchIndexerThread(QueuedThread):
                 self.log.warning("Database does not match search index.")
                 rebuild = True
 
-            SEARCH_INDEX_PATH.mkdir(parents=True, exist_ok=True)
             statuses = {}
             if rebuild:
                 statuses[SearchIndexStatusTypes.SEARCH_INDEX_CLEAR] = {}
             statuses.update(
                 {
                     SearchIndexStatusTypes.SEARCH_INDEX_UPDATE: {},
+                    SearchIndexStatusTypes.SEARCH_INDEX_FIND_REMOVE: {},
                     SearchIndexStatusTypes.SEARCH_INDEX_REMOVE: {},
                 }
             )
             self.status_controller.start_many(statuses)
+
+            SEARCH_INDEX_PATH.mkdir(parents=True, exist_ok=True)
+
+            queue_kwargs = {
+                "log_queue": self.log_queue,
+                "librarian_queue": self.librarian_queue,
+            }
+            engine = CodexSearchEngine(queue_kwargs=queue_kwargs)
+            backend = engine.get_backend()
+
+            unified_index = engine.get_unified_index()
+            index = unified_index.get_index(Comic)
+
             if rebuild:
                 self.log.info("Rebuilding search index...")
-                self._call_command(REBUILD_ARGS, REBUILD_KWARGS)
-                self._set_search_index_version()
+                backend.clear(models=[Comic], commit=True)
+                self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
+                start_date = None
             else:
-                update_start = Timestamp.objects.get(
+                start_date = Timestamp.objects.get(
                     name=Timestamp.SEARCH_INDEX
                 ).updated_at
-                kwargs = {"start": update_start}
-                kwargs.update(UPDATE_KWARGS)
-                self.log.info(f"Updating search index since {update_start}...")
-                self._call_command(UPDATE_ARGS, kwargs, start_date=update_start)
+                self.log.info(f"Updating search index since {start_date}...")
+
+            qs = index.build_queryset(using=backend, start_date=start_date).order_by(
+                "pk"
+            )
+
+            backend.update(index, qs, commit=True)
+
             Timestamp.touch(Timestamp.SEARCH_INDEX)
+            if rebuild:
+                self._set_search_index_version()
+            else:
+                self._remove_stale_records(qs, index, backend, start_date)
+
             elapsed = naturaldelta(time() - start)
             self.log.info(f"Search index updated in {elapsed}.")
         except Exception as exc:

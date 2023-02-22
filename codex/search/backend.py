@@ -125,7 +125,8 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         if log_queue and librarian_queue:
             self.init_worker(log_queue, librarian_queue)
         else:
-            self.log = getLogger(__name__)
+            self.log = getLogger(self.__class__.__name__)
+            self.log.propagate = False
             self.status_controller = StatusController(SimpleQueue(), SimpleQueue())
         super().__init__(connection_alias, **connection_options)
 
@@ -178,7 +179,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                 SearchIndexStatusTypes.SEARCH_INDEX_UPDATE: {
                     "total": num_objs,
                 },
-                # SearchIndexStatusTypes.SEARCH_INDEX_COMMIT: {"name": f"({num_objs})"},
+                # SearchIndexStatusTypes.SEARCH_INDEX_COMMIT: {},
             }
             self.status_controller.start_many(statuses)
             if not self.setup_complete:
@@ -231,7 +232,6 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                     num_objs,
                     since=since,
                 )
-
             prepare_start = time()
             if len(iterable) > 1:
                 writer.commit()
@@ -265,4 +265,53 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             until = start + 1
             self.status_controller.finish(
                 SearchIndexStatusTypes.SEARCH_INDEX_CLEAR, until=until
+            )
+
+    def remove_batch(self, doc_ids):
+        """Remove a large batch of doc ids from the index."""
+        num_doc_ids = len(doc_ids)
+        self.status_controller.start(
+            SearchIndexStatusTypes.SEARCH_INDEX_REMOVE, num_doc_ids
+        )
+        start = since = time()
+        try:
+            if not self.setup_complete:
+                self.setup()
+
+            self.index = self.index.refresh()
+            writer = BufferedWriter(
+                self.index,
+                limit=maxsize,
+                period=60 * 5,
+                writerargs=self.WRITERARGS,
+                commitargs=self.COMMITARGS,
+            )
+            count = 0
+            for count, doc_id in enumerate(doc_ids):
+                writer.delete_document(doc_id)
+                since = self.status_controller.update(
+                    SearchIndexStatusTypes.SEARCH_INDEX_REMOVE,
+                    count,
+                    num_doc_ids,
+                    since=since,
+                )
+
+            if len(doc_ids) > 1:
+                writer.commit()
+            else:
+                writer.cancel()
+            writer.close()
+
+            elapsed_time = time() - start
+
+            elapsed = naturaldelta(elapsed_time)
+            cps = int(count / elapsed_time)
+            self.log.info(
+                f"Search engine removed {count} ghosts from the index"
+                f" in {elapsed} at {cps} spectral remnants per second."
+            )
+        finally:
+            until = start + 1
+            self.status_controller.finish(
+                SearchIndexStatusTypes.SEARCH_INDEX_REMOVE, until=until
             )

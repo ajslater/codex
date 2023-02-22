@@ -276,8 +276,6 @@ HAYSTACK_CONNECTIONS = {
         "ENGINE": "codex.search.engine.CodexSearchEngine",
         "PATH": str(SEARCH_INDEX_PATH),
         "BATCH_SIZE": 1000000,
-        #"LOG_QUEUE": LOG_QUEUE,
-        #"LIBRARIAN_QUEUE": LIBRARIAN_QUEUE,
     },
 }
 
