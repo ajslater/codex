@@ -8,6 +8,7 @@ const downloadIOSPWAFix = (href, fileName) => {
   // https://developer.apple.com/forums/thread/95911
   // This works around that by creating temporary blob link which
   // makes the PWA display browser back controls
+  console.log({href})
   HTTP.get(href, { responseType: "blob" })
     .then((response) => {
       const link = document.createElement("a");
@@ -22,8 +23,13 @@ const downloadIOSPWAFix = (href, fileName) => {
     .catch(console.warn);
 };
 
+export const getReaderPath = (pk) => {
+   return `c/${pk}`;
+};
+
 export const getReaderBasePath = (pk) => {
-  return `${window.CODEX.API_V3_PATH}c/${pk}`;
+  const path = window.CODEX.API_V3_PATH + getReaderPath(pk);
+  return path;
 };
 
 export const getTSParams = () => {
@@ -38,6 +44,7 @@ const getVersions = (ts) => {
 export default {
   downloadIOSPWAFix,
   getReaderBasePath,
+  getReaderPath,
   getTSParams,
   getVersions,
 };

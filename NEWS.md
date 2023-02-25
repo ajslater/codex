@@ -10,7 +10,9 @@ border-radius: 128px;
 
 - Fix
   - Prevent search indexing starting over from nothing if it encounters errors.
+  - Fix download buttons.
   - Fix scroll bars showing inapproporately on admin tables.
+  - Fix admin settings drawer obscuring smalls screens.
 
 ## v1.2.2
 
