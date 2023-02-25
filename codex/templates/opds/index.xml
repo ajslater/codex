@@ -85,7 +85,7 @@
     <content type="text">{{ entry.summary }}</content>
   {% endif %}
   {% for author in entry.authors %}
-    <author><name>{{ author }}i</name></author>
+    <author><name>{{ author }}</name></author>
   {% endfor %}
   {% for contributor in entry.contributors %}
     <contributor><name>{{ contributor }}</name></contributor>

@@ -13,6 +13,7 @@ border-radius: 128px;
   - Fix download buttons.
   - Fix scroll bars showing inapproporately on admin tables.
   - Fix admin settings drawer obscuring smalls screens.
+  - Fix OPDS authors having 'i' appended.
 
 ## v1.2.2
 
