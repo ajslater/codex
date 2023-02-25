@@ -41,7 +41,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
     template_name = "opds/index.xml"
     serializer_class = OPDSTemplateSerializer
 
-    AQUISITION_GROUPS = {}#{"s", "f"}
+    AQUISITION_GROUPS = {"s", "f"}
 
     @property
     def opds_ns(self):
