@@ -45,6 +45,9 @@ if not DEBUG:
             "asyncio": {
                 "level": "INFO",
             },
+            "watchdog": {
+                "level": "INFO",
+            },
             "PIL": {
                 "level": "INFO",
             },
