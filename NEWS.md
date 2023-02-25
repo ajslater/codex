@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.2.4
+
+- Fix
+  - Fixed noop poll event happening on comic cover creation.
+
 ## v1.2.3
 
 - Fix
