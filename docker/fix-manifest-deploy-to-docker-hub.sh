@@ -1,6 +1,6 @@
 #!/bin/bash
 # Fix pushing final manifest for deploy because docker hub doesn't generate manifests now.
-set -euo pipefail
+set -euxo pipefail
 
 VERSION=$1
 
@@ -13,7 +13,7 @@ LOCAL_AMD_TAG=localhost/${HUB_AMD_TAG}
 
 # pull arch images locally from docker hub
 docker pull "$HUB_ARM_TAG"
-docker pull –platform=amd64 "$HUB_AMD_TAG"
+docker pull --platform=amd64 "$HUB_AMD_TAG"
 
 # tag both images for local registry
 docker tag "$HUB_ARM_TAG" "$LOCAL_ARM_TAG"
