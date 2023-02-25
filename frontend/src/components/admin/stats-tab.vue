@@ -36,19 +36,19 @@
         <tbody>
           <tr>
             <td>Libraries</td>
-            <td>{{ stats.config.libraryCount }}</td>
+            <td>{{ nf(stats.config.libraryCount) }}</td>
           </tr>
           <tr>
             <td>Anonymous Users</td>
-            <td>{{ stats.config.sessionAnonCount }}</td>
+            <td>{{ nf(stats.config.sessionAnonCount) }}</td>
           </tr>
           <tr>
             <td>Registered Users</td>
-            <td>{{ stats.config.userCount }}</td>
+            <td>{{ nf(stats.config.userCount) }}</td>
           </tr>
           <tr>
             <td>Groups</td>
-            <td>{{ stats.config.groupCount }}</td>
+            <td>{{ nf(stats.config.groupCount) }}</td>
           </tr>
           <tr>
             <td>API Key</td>
@@ -74,37 +74,37 @@
         <tbody>
           <tr>
             <td>Folders</td>
-            <td>{{ stats.groups.folderCount }}</td>
+            <td>{{ nf(stats.groups.folderCount) }}</td>
           </tr>
           <tr>
             <td>Publishers</td>
-            <td>{{ stats.groups.publisherCount }}</td>
+            <td>{{ nf(stats.groups.publisherCount) }}</td>
           </tr>
           <tr>
             <td>Imprints</td>
-            <td>{{ stats.groups.imprintCount }}</td>
+            <td>{{ nf(stats.groups.imprintCount) }}</td>
           </tr>
           <tr>
             <td>Series</td>
-            <td>{{ stats.groups.seriesCount }}</td>
+            <td>{{ nf(stats.groups.seriesCount) }}</td>
           </tr>
           <tr>
             <td>Volumes</td>
-            <td>{{ stats.groups.volumeCount }}</td>
+            <td>{{ nf(stats.groups.volumeCount) }}</td>
           </tr>
           <tr>
             <td>Issues</td>
             <td>
-              {{ stats.groups.comicCount }}
+              {{ nf(stats.groups.comicCount) }}
             </td>
           </tr>
           <tr>
             <td>Comics</td>
-            <td>{{ stats.groups.comicArchiveCount }}</td>
+            <td>{{ nf(stats.groups.comicArchiveCount) }}</td>
           </tr>
           <tr>
             <td>PDFs</td>
-            <td>{{ stats.groups.pdfCount }}</td>
+            <td>{{ nf(stats.groups.pdfCount) }}</td>
           </tr>
         </tbody>
       </v-table>
@@ -115,43 +115,43 @@
         <tbody>
           <tr>
             <td>Characters</td>
-            <td>{{ stats.metadata.characterCount }}</td>
+            <td>{{ nf(stats.metadata.characterCount) }}</td>
           </tr>
           <tr>
             <td>Credits</td>
-            <td>{{ stats.metadata.creditCount }}</td>
+            <td>{{ nf(stats.metadata.creditCount) }}</td>
           </tr>
           <tr>
             <td>Roles</td>
-            <td>{{ stats.metadata.creditRoleCount }}</td>
+            <td>{{ nf(stats.metadata.creditRoleCount) }}</td>
           </tr>
           <tr>
             <td>Creators</td>
-            <td>{{ stats.metadata.creditPersonCount }}</td>
+            <td>{{ nf(stats.metadata.creditPersonCount) }}</td>
           </tr>
           <tr>
             <td>Genres</td>
-            <td>{{ stats.metadata.genreCount }}</td>
+            <td>{{ nf(stats.metadata.genreCount) }}</td>
           </tr>
           <tr>
             <td>Locations</td>
-            <td>{{ stats.metadata.locationCount }}</td>
+            <td>{{ nf(stats.metadata.locationCount) }}</td>
           </tr>
           <tr>
             <td>Series Groups</td>
-            <td>{{ stats.metadata.seriesGroupCount }}</td>
+            <td>{{ nf(stats.metadata.seriesGroupCount) }}</td>
           </tr>
           <tr>
             <td>Story Arcs</td>
-            <td>{{ stats.metadata.storyArcCount }}</td>
+            <td>{{ nf(stats.metadata.storyArcCount) }}</td>
           </tr>
           <tr>
             <td>Tags</td>
-            <td>{{ stats.metadata.tagCount }}</td>
+            <td>{{ nf(stats.metadata.tagCount) }}</td>
           </tr>
           <tr>
             <td>Teams</td>
-            <td>{{ stats.metadata.teamCount }}</td>
+            <td>{{ nf(stats.metadata.teamCount) }}</td>
           </tr>
         </tbody>
       </v-table>
@@ -160,6 +160,7 @@
 </template>
 
 <script>
+import { numberFormat } from "humanize";
 import { mapActions, mapState } from "pinia";
 
 import ConfirmDialog from "@/components/confirm-dialog.vue";
@@ -184,6 +185,9 @@ export default {
     ...mapActions(useAdminStore, ["loadStats", "updateAPIKey"]),
     regenAPIKey() {
       this.updateAPIKey().then(this.loadStats).catch(console.warn);
+    },
+    nf(val) {
+      return numberFormat(val, 0);
     },
   },
 };
