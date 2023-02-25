@@ -391,6 +391,7 @@ class BrowserView(BrowserAnnotationsView):
             queryset = self.get_folder_queryset(object_filter, search_scores)
         else:
             queryset = self._get_browser_group_queryset(object_filter, search_scores)
+        print(queryset.query)
 
         # Order
         queryset = self.get_order_by(self.model, queryset)
