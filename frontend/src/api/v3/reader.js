@@ -22,11 +22,11 @@ export const getDownloadURL = (pk) => {
   return `${READER_PATH}/download.cbz?ts=${timestamp}`;
 };
 
-export const getDownloadPageURL = ({ pk, page}) => {
+export const getDownloadPageURL = ({ pk, page }) => {
   const READER_PATH = getReaderPath(pk);
   const timestamp = getTSParams().ts;
   return `${READER_PATH}/${page}/page.jpg?ts=${timestamp}`;
-}
+};
 
 export const getComicPageSource = ({ pk, page }) => {
   const BASE_URL = getReaderBasePath(pk);
