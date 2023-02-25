@@ -8,7 +8,9 @@ and then re-serialize everything in this batcher and the event Handler
 from copy import deepcopy
 
 from watchdog.events import (
+    EVENT_TYPE_CLOSED,
     EVENT_TYPE_MOVED,
+    EVENT_TYPE_OPENED,
 )
 
 from codex.librarian.importer.tasks import UpdaterDBDiffTask
@@ -31,6 +33,7 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         "files_deleted": set(),
     }
     MAX_DELAY = 60
+    IGNORED_EVENTS = {EVENT_TYPE_CLOSED, EVENT_TYPE_OPENED}
 
     def __init__(self, *args, **kwargs):
         """Set the total items for limiting db ops per batch."""
@@ -62,7 +65,8 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         event = task.event
         args_field = self._args_field_by_event(task.library_id, event)
         if args_field is None:
-            self.log.debug(f"Unhandled event, not batching: {event}")
+            if event.event_type not in self.IGNORED_EVENTS:
+                self.log.debug(f"Unhandled event, not batching: {event}")
             return
 
         if event.event_type == EVENT_TYPE_MOVED:
