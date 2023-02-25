@@ -172,7 +172,7 @@ class SearchIndexerThread(QueuedThread):
                 self.log.info(f"Updating search index since {start_date}...")
 
             qs = index.build_queryset(using=backend, start_date=start_date).order_by(
-                "updated_at"
+                "updated_at", "pk"
             )
             search_index_timestamp = now()
 
