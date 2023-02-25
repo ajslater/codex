@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.2.3
+
+- Fix
+  - Prevent search indexing starting over from nothing if it encounters errors.
+  - Fix scroll bars showing inapproporately on admin tables.
+
 ## v1.2.2
 
 - Fix

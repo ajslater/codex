@@ -27,7 +27,7 @@
             <th>Delete</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody :style="tbodyStyle">
           <tr v-for="item in libraries" :key="item.pk">
             <td>{{ item.path }}</td>
             <td>
@@ -120,6 +120,7 @@ const FAILED_IMPORTS = 60 + 48 + 64;
 const BUFFER = FIXED_TOOLBARS + ADD_HEADER + FAILED_IMPORTS + TABLE_PADDING;
 const TABLE_ROW_HEIGHT = 48;
 const MIN_TABLE_HEIGHT = TABLE_ROW_HEIGHT * 2;
+const ROW_HEIGHT = 84;
 
 export default {
   name: "AdminLibrariesTab",
@@ -162,6 +163,11 @@ export default {
       return this.tableMaxHeight < availableHeight
         ? undefined
         : Math.max(availableHeight, MIN_TABLE_HEIGHT);
+    },
+    tbodyStyle() {
+      return this.libraries
+        ? { height: ROW_HEIGHT * this.libraries.length + "px" }
+        : {};
     },
   },
   mounted() {
