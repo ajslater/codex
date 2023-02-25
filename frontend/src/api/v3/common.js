@@ -22,8 +22,12 @@ const downloadIOSPWAFix = (href, fileName) => {
     .catch(console.warn);
 };
 
+export const getReaderPath = (pk) => {
+  return `c/${pk}`;
+};
+
 export const getReaderBasePath = (pk) => {
-  return `${window.CODEX.API_V3_PATH}c/${pk}`;
+  return window.CODEX.API_V3_PATH + getReaderPath(pk);
 };
 
 export const getTSParams = () => {
@@ -38,6 +42,7 @@ const getVersions = (ts) => {
 export default {
   downloadIOSPWAFix,
   getReaderBasePath,
+  getReaderPath,
   getTSParams,
   getVersions,
 };

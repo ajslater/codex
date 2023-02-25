@@ -3,6 +3,7 @@ from datetime import datetime
 from time import time
 from uuid import uuid4
 
+from django.utils.timezone import now
 from haystack import connections as haystack_connections
 from haystack.constants import DJANGO_ID
 from humanize import naturaldelta
@@ -110,6 +111,8 @@ class SearchIndexerThread(QueuedThread):
     def _remove_stale_records(self, qs, backend, start_date):
         """Remove records not in the database from the index."""
         try:
+            if not backend.setup_complete:
+                backend.setup()
             stale_doc_ids = self._get_stale_doc_ids(qs, backend, start_date)
             backend.remove_batch(stale_doc_ids)
         except Exception as exc:
@@ -169,12 +172,20 @@ class SearchIndexerThread(QueuedThread):
                 self.log.info(f"Updating search index since {start_date}...")
 
             qs = index.build_queryset(using=backend, start_date=start_date).order_by(
-                "pk"
+                "updated_at", "pk"
             )
+            search_index_timestamp = now()
 
-            backend.update(index, qs, commit=True)
+            try:
+                backend.update(index, qs, commit=True)
+            except Exception as exc:
+                self.log.error(f"Update search index via backend: {exc}")
+                self.log.exception(exc)
+            finally:
+                Timestamp.objects.filter(name=Timestamp.SEARCH_INDEX).update(
+                    updated_at=search_index_timestamp
+                )
 
-            Timestamp.touch(Timestamp.SEARCH_INDEX)
             if rebuild:
                 self._set_search_index_version()
             else:
@@ -235,6 +246,9 @@ class SearchIndexerThread(QueuedThread):
                 self.log.info(
                     f"Optimized search index in {elapsed} at {cps} comics per second."
                 )
+        except Exception as exc:
+            self.log.error("Search index optimize.")
+            self.log.exception(exc)
         finally:
             self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_OPTIMIZE)
 

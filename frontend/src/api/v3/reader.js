@@ -1,4 +1,4 @@
-import { getReaderBasePath, getTSParams } from "@/api/v3/common";
+import { getReaderBasePath, getReaderPath, getTSParams } from "@/api/v3/common";
 
 import { HTTP } from "./base";
 
@@ -17,9 +17,15 @@ const setReaderSettings = (data) => {
 };
 
 export const getDownloadURL = (pk) => {
-  const BASE_URL = getReaderBasePath(pk);
+  const READER_PATH = getReaderPath(pk);
   const timestamp = getTSParams().ts;
-  return `${BASE_URL}/download.cbz?ts=${timestamp}`;
+  return `${READER_PATH}/download.cbz?ts=${timestamp}`;
+};
+
+export const getDownloadPageURL = ({ pk, page }) => {
+  const READER_PATH = getReaderPath(pk);
+  const timestamp = getTSParams().ts;
+  return `${READER_PATH}/${page}/page.jpg?ts=${timestamp}`;
 };
 
 export const getComicPageSource = ({ pk, page }) => {

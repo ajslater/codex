@@ -104,6 +104,7 @@ module.exports = {
     "comics",
     "config",
     "dist",
+    "docker/registry.yaml", // breaks prettier plugin idk why
     "package-lock.json",
     "test-results",
     "typings",

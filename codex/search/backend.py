@@ -8,7 +8,6 @@ from time import time
 from django.utils.timezone import now
 from haystack.backends.whoosh_backend import TEXT, WhooshSearchBackend
 from haystack.exceptions import SkipDocument
-from haystack.utils import get_identifier
 from humanfriendly import InvalidSize, parse_size
 from humanize import naturaldelta
 from whoosh.analysis import CharsetFilter, StandardAnalyzer, StemFilter
@@ -175,6 +174,10 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         start = since = time()
         try:
             num_objs = len(iterable)
+            if num_objs < 1:
+                self.log.debug("Search index nothing to update.")
+                return
+
             statuses = {
                 SearchIndexStatusTypes.SEARCH_INDEX_UPDATE: {
                     "total": num_objs,
@@ -196,6 +199,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                 commitargs=self.COMMITARGS,
             )
 
+            obj_count = 0
             for obj_count, obj in enumerate(iterable):
                 try:
                     doc = index.full_prepare(obj)
@@ -213,18 +217,15 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
 
                     try:
                         writer.update_document(**doc)
-                    except Exception:
+                    except Exception as exc:
                         if not self.silently_fail:
                             raise
 
                         # We'll log the object identifier but won't include the actual
                         # object to avoid the possibility of that generating encoding
                         # errors while processing the log message:
-                        self.log.exception(
-                            "Preparing object for update",
-                            extra={
-                                "data": {"index": index, "object": get_identifier(obj)}
-                            },
+                        self.log.warning(
+                            f"Search index updating document {exc} pk:{obj.pk}",
                         )
                 since = self.status_controller.update(
                     SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
@@ -233,13 +234,20 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                     since=since,
                 )
             prepare_start = time()
-            if len(iterable) > 1:
-                writer.commit()
-            else:
-                writer.cancel()
+            try:
+                if obj_count > 1:
+                    self.log.debug("Search index beginning final commit.")
+                    writer.commit()
+                else:
+                    self.log.debug("Search index update cancelling nothing to update.")
+                    writer.cancel()
+            except Exception as exc:
+                self.log.error("During search index writer final commit or cancel.")
+                self.log.exception(exc)
+
             writer.close()
 
-            elapsed_time = time() - prepare_start
+            elapsed_time = time() - start
             elapsed = naturaldelta(elapsed_time)
             cps = int(num_objs / elapsed_time)
             self.log.info(
