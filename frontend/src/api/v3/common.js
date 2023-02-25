@@ -8,7 +8,6 @@ const downloadIOSPWAFix = (href, fileName) => {
   // https://developer.apple.com/forums/thread/95911
   // This works around that by creating temporary blob link which
   // makes the PWA display browser back controls
-  console.log({href})
   HTTP.get(href, { responseType: "blob" })
     .then((response) => {
       const link = document.createElement("a");

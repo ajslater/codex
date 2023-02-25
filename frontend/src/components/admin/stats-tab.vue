@@ -178,9 +178,7 @@ export default {
     }),
   },
   created() {
-    console.log("CREATED");
     this.loadStats();
-    console.log(this.stats);
   },
   methods: {
     ...mapActions(useAdminStore, ["loadStats", "updateAPIKey"]),
