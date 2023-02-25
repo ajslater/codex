@@ -9,10 +9,10 @@ border-radius: 128px;
 ## v1.2.3
 
 - Fix
-  - Prevent search indexing starting over from nothing if it encounters errors.
+  - Prevent search indexing starting over if it encounters errors.
   - Fix download buttons.
+  - Fix admin settings drawer obscuring small screens.
   - Fix scroll bars showing inapproporately on admin tables.
-  - Fix admin settings drawer obscuring smalls screens.
   - Fix OPDS authors having 'i' appended.
 
 ## v1.2.2
