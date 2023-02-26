@@ -71,8 +71,7 @@ export default {
     },
     pages() {
       const len = this.book?.maxPage + 1 ?? 0;
-      const step = this.settings.twoPages ? 2 : 1;
-      return _.range(0, len, step);
+      return _.range(0, len);
     },
     secondPage() {
       return (
