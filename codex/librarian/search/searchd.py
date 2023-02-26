@@ -3,8 +3,6 @@ from datetime import datetime
 from time import time
 from uuid import uuid4
 
-from django.utils.timezone import now
-from haystack import connections as haystack_connections
 from haystack.constants import DJANGO_ID
 from humanize import naturaldelta
 from whoosh.query import Every, Or
@@ -17,7 +15,6 @@ from codex.librarian.search.tasks import (
     SearchIndexUpdateTask,
 )
 from codex.models import Comic, Library, Timestamp
-from codex.search.backend import CodexSearchBackend
 from codex.search.engine import CodexSearchEngine
 from codex.settings.settings import SEARCH_INDEX_PATH, SEARCH_INDEX_UUID_PATH
 from codex.threads import QueuedThread
@@ -55,6 +52,15 @@ class SearchIndexerThread(QueuedThread):
         )
     )
 
+    def __init__(self, *args, **kwargs):
+        """Initialize search engine."""
+        super().__init__(*args, **kwargs)
+        queue_kwargs = {
+            "log_queue": self.log_queue,
+            "librarian_queue": self.librarian_queue,
+        }
+        self.engine = CodexSearchEngine(queue_kwargs=queue_kwargs)
+
     def _set_search_index_version(self):
         """Set the codex db to search index matching id."""
         version = str(uuid4())
@@ -83,12 +89,26 @@ class SearchIndexerThread(QueuedThread):
             self.log.exception(exc)
         return result
 
+    def _get_search_index_latest_updated_at(self, backend):
+        if not backend.setup_complete:
+            backend.setup()
+        backend.index = backend.index.refresh()
+        with backend.index.searcher() as searcher:
+            results = searcher.search(
+                Every(), sortedby="updated_at", reverse=True, limit=1
+            )
+            if not len(results):
+                return None
+            return results[0].get("updated_at")
+
     def _get_stale_doc_ids(self, qs, backend, start_date):
         """Get the stale search index pks that are no longer in the database."""
         start = time()
         self.status_controller.start(SearchIndexStatusTypes.SEARCH_INDEX_FIND_REMOVE, 0)
         try:
             self.log.debug("Looking for stale records...")
+
+            self._get_search_index_latest_updated_at(backend)
 
             if start_date:
                 # if start date then use the entire index.
@@ -97,7 +117,7 @@ class SearchIndexerThread(QueuedThread):
             database_pks = qs.values_list("pk", flat=True)
             mask = Or([Term(DJANGO_ID, str(pk)) for pk in database_pks])
 
-            backend.index.refresh()
+            backend.index = backend.index.refresh()
             with backend.index.searcher() as searcher:
                 results = searcher.search(Every(), limit=None, mask=mask)
                 doc_ids = results.docs()
@@ -150,14 +170,9 @@ class SearchIndexerThread(QueuedThread):
 
             SEARCH_INDEX_PATH.mkdir(parents=True, exist_ok=True)
 
-            queue_kwargs = {
-                "log_queue": self.log_queue,
-                "librarian_queue": self.librarian_queue,
-            }
-            engine = CodexSearchEngine(queue_kwargs=queue_kwargs)
-            backend = engine.get_backend()
+            backend = self.engine.get_backend()
 
-            unified_index = engine.get_unified_index()
+            unified_index = self.engine.get_unified_index()
             index = unified_index.get_index(Comic)
 
             if rebuild:
@@ -166,25 +181,18 @@ class SearchIndexerThread(QueuedThread):
                 self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
                 start_date = None
             else:
-                start_date = Timestamp.objects.get(
-                    name=Timestamp.SEARCH_INDEX
-                ).updated_at
+                start_date = self._get_search_index_latest_updated_at(backend)
                 self.log.info(f"Updating search index since {start_date}...")
 
             qs = index.build_queryset(using=backend, start_date=start_date).order_by(
                 "updated_at", "pk"
             )
-            search_index_timestamp = now()
 
             try:
                 backend.update(index, qs, commit=True)
             except Exception as exc:
                 self.log.error(f"Update search index via backend: {exc}")
                 self.log.exception(exc)
-            finally:
-                Timestamp.objects.filter(name=Timestamp.SEARCH_INDEX).update(
-                    updated_at=search_index_timestamp
-                )
 
             if rebuild:
                 self._set_search_index_version()
@@ -223,29 +231,28 @@ class SearchIndexerThread(QueuedThread):
             if num_segments <= 1:
                 self.log.info("Search index already optimized.")
                 return
-            backends = haystack_connections.connections_info.keys()
-            for conn_key in backends:
-                backend = haystack_connections[conn_key].get_backend()
-                if not backend.setup_complete:
-                    backend.setup()
-                backend.index = backend.index.refresh()
-                num_docs = backend.index.doc_count()
-                if num_docs > OPTIMIZE_DOC_COUNT and not force:
-                    self.log.info(
-                        f"Search index > {OPTIMIZE_DOC_COUNT} comics. Not optimizing."
-                    )
-                    return
+
+            backend = self.engine.get_backend()
+            if not backend.setup_complete:
+                backend.setup()
+            backend.index = backend.index.refresh()
+            num_docs = backend.index.doc_count()
+            if num_docs > OPTIMIZE_DOC_COUNT and not force:
                 self.log.info(
-                    f"Search index found in {num_segments} segments, optmizing..."
+                    f"Search index > {OPTIMIZE_DOC_COUNT} comics. Not optimizing."
                 )
-                writerargs = CodexSearchBackend.WRITERARGS
-                backend.index.optimize(**writerargs)
-                elapsed_delta = datetime.now() - start
-                elapsed = naturaldelta(elapsed_delta)
-                cps = int(num_docs / elapsed_delta.total_seconds())
-                self.log.info(
-                    f"Optimized search index in {elapsed} at {cps} comics per second."
-                )
+                return
+            self.log.info(
+                f"Search index found in {num_segments} segments, optmizing..."
+            )
+            backend.optimize()
+
+            elapsed_delta = datetime.now() - start
+            elapsed = naturaldelta(elapsed_delta)
+            cps = int(num_docs / elapsed_delta.total_seconds())
+            self.log.info(
+                f"Optimized search index in {elapsed} at {cps} comics per second."
+            )
         except Exception as exc:
             self.log.error("Search index optimize.")
             self.log.exception(exc)

@@ -565,7 +565,7 @@ class Timestamp(NamedModel):
 
     COVERS = "covers"
     JANITOR = "janitor"
-    SEARCH_INDEX = "search_index"
+    SEARCH_INDEX = "search_index" # TODO remove
     CODEX_VERSION = "codex_version"
     SEARCH_INDEX_UUID = "search_index_uuid"
     API_KEY = "api_key"
