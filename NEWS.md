@@ -16,6 +16,7 @@ border-radius: 128px;
     - Show series name in comic title.
     - Experiment: don't show top links or entry facets on pages > 1
   - Fixed noop poll event happening on comic cover creation.
+  - Fix occasional error setting reader settings.
 
 ## v1.2.3
 

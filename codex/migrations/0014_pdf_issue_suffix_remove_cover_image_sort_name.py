@@ -3,8 +3,6 @@ from pathlib import Path
 
 from django.db import migrations, models
 
-import codex.models
-
 
 def add_library_folders(apps, _schema_editor):
     """Add library folders if they're missing."""
@@ -152,7 +150,8 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 default="comic",
                 max_length=5,
-                validators=[codex.models.validate_file_format_choice],
+                # Removed in the future
+                # validators=[codex.models.validate_file_format_choice],
             ),
         ),
         migrations.AddField(

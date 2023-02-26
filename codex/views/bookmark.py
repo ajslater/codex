@@ -113,7 +113,7 @@ class BookmarkView(BookmarkBaseView):
         """Validate and translate the submitted data."""
         data = self.request.data
         if serializer_class:
-            serializer = serializer_class(data=data)
+            serializer = serializer_class(data=data, partial=True)
         else:
             serializer = self.get_serializer(data=data, partial=True)
         serializer.is_valid(raise_exception=True)

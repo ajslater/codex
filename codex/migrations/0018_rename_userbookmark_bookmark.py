@@ -3,8 +3,6 @@
 from django.conf import settings
 from django.db import migrations, models
 
-import codex.models
-
 
 class Migration(migrations.Migration):
     """Rename Bookmark table & use '' for CharField nulls."""
@@ -30,7 +28,8 @@ class Migration(migrations.Migration):
                 blank=True,
                 default="",
                 max_length=6,
-                validators=[codex.models.validate_fit_to_choice],
+                # removed in the future
+                # validators=[codex.models.validate_fit_to_choice],
             ),
         ),
         migrations.AlterField(
