@@ -176,10 +176,10 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
             kwargs = self.kwargs
 
         qps = {facet_group.query_param: facet.value}
-        if not entries:
-            facet = self._facet(kwargs, facet_group, facet.title, qps)
-        else:
+        if entries and self.kwargs.get("page") == 1:
             facet = self._facet_entry(kwargs, facet_group, facet, qps)
+        else:
+            facet = self._facet(kwargs, facet_group, facet.title, qps)
         return facet
 
     def _facet_group(self, facet_group, entries):
@@ -285,7 +285,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
         """Create all the entries."""
         entries = []
         try:
-            if not self.use_facets:
+            if not self.use_facets and self.kwargs.get("page") == 1:
                 for tl in TopLinks.ALL:
                     if not self.is_top_link_displayed(tl):
                         entries += [self._top_link_entry(tl)]

@@ -12,6 +12,7 @@ border-radius: 128px;
   - Fix OPDS acquistion feed timeouts on large libraries by removing most m2m
     fields that populated OPDS categories
   - Fix OPDS pagination
+  - OPDS Experiment: don't show top links or entry facets on pages > 1
   - Fixed noop poll event happening on comic cover creation.
 
 ## v1.2.3
