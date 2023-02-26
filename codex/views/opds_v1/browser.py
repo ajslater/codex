@@ -73,12 +73,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
                 if not parent_name and self.kwargs.get("pk") == 0:
                     parent_name = "All"
                 group_name = browser_title.get("group_name")
-                names = []
-                for name in (parent_name, group_name):
-                    if name:
-                        names.append(name)
-
-                result = " ".join(names).strip()
+                result = " ".join(filter(None, (parent_name, group_name))).strip()
 
             if not result:
                 result = BLANK_TITLE
@@ -134,7 +129,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
             href, self.request.query_params, new_query_params
         )
 
-        title = " ".join((facet_group.title_prefix, facet_title)).strip()
+        title = " ".join(filter(None, (facet_group.title_prefix, facet_title))).strip()
         link = OPDSLink(
             Rel.FACET,
             href,
@@ -147,7 +142,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
 
     def _facet_entry(self, item, facet_group, facet, query_params):
         name = " ".join(
-            (facet_group.glyph, facet_group.title_prefix, facet.title)
+            filter(None, (facet_group.glyph, facet_group.title_prefix, facet.title))
         ).strip()
         obj = {
             "group": item.get("group"),
@@ -278,7 +273,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
         """Create a entry instead of a facet."""
         entry_obj = {
             **top_link.kwargs,
-            "name": " ".join((top_link.glyph, top_link.title)),
+            "name": " ".join((filter(None, (top_link.glyph, top_link.title)))),
             "query_params": top_link.query_params,
             "summary": top_link.desc,
         }
