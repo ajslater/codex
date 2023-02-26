@@ -27,12 +27,12 @@ class OPDSEntry:
     DATE_FORMATS = (DATE_FORMAT_MS, DATE_FORMAT)
     CATEGORY_KEYS = (
         "characters",
-        "genres",
-        "locations",
-        "series_groups",
+        # "genres",
+        # "locations",
+        # "series_groups",
         "story_arcs",
-        "tags",
-        "teams",
+        # "tags",
+        # "teams",
     )
 
     def __init__(self, obj, valid_nav_groups, query_params, at_top=False):

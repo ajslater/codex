@@ -10,6 +10,8 @@ border-radius: 128px;
 
 - Fix
   - Fixed noop poll event happening on comic cover creation.
+  - Fix OPDS acquistion feed timeouts on large libraries by removing most m2m
+    fields that populated OPDS categories
 
 ## v1.2.3
 
