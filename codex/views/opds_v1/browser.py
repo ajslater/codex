@@ -202,7 +202,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
         return facets
 
     def _nav_link(self, kwargs, rel):
-        href = reverse("opds:v1:browser", kwargs={**kwargs, "page": 1})
+        href = reverse("opds:v1:browser", kwargs={**kwargs})
         return OPDSLink(rel, href, MimeType.NAV)
 
     def _top_link(self, top_link):
@@ -216,7 +216,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
         links = []
         if route := self.obj.get("up_route"):
             links += [self._nav_link(route, Rel.UP)]
-        page = self.obj.get("page", 1)
+        page = self.kwargs.get("page", 1)
         if page > 1:
             route = {**self.kwargs, "page": page - 1}
             links += [self._nav_link(route, Rel.PREV)]
