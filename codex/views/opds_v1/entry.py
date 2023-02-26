@@ -35,12 +35,11 @@ class OPDSEntry:
         # "teams",
     )
 
-    def __init__(self, obj, valid_nav_groups, query_params, at_top=False):
+    def __init__(self, obj, valid_nav_groups, query_params):
         """Initialize params."""
         self.obj = obj
         self.valid_nav_groups = valid_nav_groups
         self.query_params = query_params
-        self.at_top = at_top
 
     @staticmethod
     def _compute_zero_pad(issue_max):
@@ -73,8 +72,7 @@ class OPDSEntry:
             elif group == "v":
                 parts.append(self.obj.get("series_name"))
             elif group == "c":
-                if self.at_top:
-                    parts.append(self.obj.get("series_name"))
+                parts.append(self.obj.get("series_name"))
 
                 issue_max = self.obj.get("issue_max")
                 zero_pad = self._compute_zero_pad(issue_max)

@@ -292,14 +292,12 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
                 entries += self._facets(entries=True)
 
             if obj_list := self.obj.get("obj_list"):
-                at_top = self.kwargs.get("pk") == 0
                 for entry_obj in obj_list:
                     entries += [
                         OPDSEntry(
                             entry_obj,
                             self.valid_nav_groups,
                             self.request.query_params,
-                            at_top,
                         )
                     ]
         except Exception as exc:
