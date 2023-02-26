@@ -50,7 +50,7 @@
         {
           "value": "search_index_optimize",
           "title": "Optimize Search Index",
-          "desc": "Optimize a segmented search index. Runs nightly.",
+          "desc": "Optimize a segmented search index even if your index is too big for the nightly auto-optimizer.",
           "confirm": "This can take a long time."
         }
       ]
