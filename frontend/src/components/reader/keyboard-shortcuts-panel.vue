@@ -2,7 +2,7 @@
   <div v-if="!isMobile" id="readerKeyboardShortcutsDialog">
     <h3>Keyboard Shortcuts</h3>
     <h4>Navigation</h4>
-    <table id="readerKeyboardShortcutsTable" class="highlight-table">
+    <table class="highlight-table">
       <tbody>
         <tr>
           <td>
