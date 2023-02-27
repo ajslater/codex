@@ -54,7 +54,7 @@
     <v-checkbox
       v-if="isGlobalScope"
       :model-value="selectedSettings.readRtlInReverse"
-      class="readInReverse"
+      class="readRtlInReverse"
       density="compact"
       label="Read RTL comics in Reverse"
       hide-details="auto"
@@ -62,8 +62,8 @@
       @update:model-value="settingsDialogChanged({ readRtlInReverse: $event })"
     />
     <v-btn
+      v-if="!isGlobalScope"
       id="clearSettingsButton"
-      :class="{ invisible: isGlobalScope }"
       :disabled="isClearSettingsButtonDisabled"
       title="Use the default settings for all comics for this comic"
       @click="clearSettingsLocal($route.params)"
@@ -192,11 +192,11 @@ export default {
   margin-top: 5px;
   margin-bottom: 10px;
 }
-#clearSettingsButton {
+.readRtlInReverse {
   transition: visibility 0.25s, opacity 0.25s;
 }
-.invisible {
-  visibility: hidden;
-  opacity: 0;
+#clearSettingsButton {
+  margin-bottom: 4px;
+  transition: visibility 0.25s, opacity 0.25s;
 }
 </style>
