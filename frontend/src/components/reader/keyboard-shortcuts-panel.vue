@@ -31,6 +31,14 @@
           <td>Next page</td>
         </tr>
         <tr>
+          <td>,</td>
+          <td>Next <em>only</em> one page in two page mode.</td>
+        </tr>
+        <tr>
+          <td>.</td>
+          <td>Previous <em>only</em> one page in two page mode.</td>
+        </tr>
+        <tr>
           <td>h</td>
           <td>Fit page to screen height</td>
         </tr>

@@ -34,7 +34,7 @@
 
 <script>
 import _ from "lodash";
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import BookPage from "@/components/reader/page.vue";
 import PageChangeLink from "@/components/reader/page-change-link.vue";
@@ -56,6 +56,7 @@ export default {
     };
   },
   computed: {
+    ...mapGetters(useReaderStore, ["isOnCoverPage"]),
     ...mapState(useReaderStore, {
       bookRoutes: (state) => state.routes.books,
       settings(state) {
@@ -75,7 +76,9 @@ export default {
     },
     secondPage() {
       return (
-        this.settings.twoPages && +this.activePage + 1 <= this.book.maxPage
+        this.settings.twoPages &&
+        !this.isOnCoverPage &&
+        +this.activePage + 1 <= this.book.maxPage
       );
     },
   },
@@ -120,11 +123,6 @@ export default {
           `Page out of bounds. Redirecting to ${this.book.maxPage}.`
         );
         return this.routeToPage(this.book.maxPage);
-      } else if (this.settings.twoPages && page % 2 !== 0) {
-        console.debug(
-          `Requested odd page ${page} in two pages mode. Flip back one`
-        );
-        return this.routeToPage(page - 1);
       }
       this.activePage = page;
       this.setRoutesAndBookmarkPage(+this.$route.params.page);

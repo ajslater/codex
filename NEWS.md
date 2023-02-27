@@ -8,6 +8,9 @@ border-radius: 128px;
 
 ## v1.2.4
 
+- Feature:
+  - Reader displays covers as one page even in two page mode.
+  - Reader keymaps for adjusting page by one page in two page mode.
 - Fix
   - OPDS:
     - Fix acquistion feed timeouts on large libraries by removing most m2m

@@ -83,6 +83,12 @@ export const useReaderStore = defineStore("reader", {
       const limit = maxPage + adj;
       return +route.params.page >= limit;
     },
+    isOnCoverPage(state) {
+      const book = state.activeBook;
+      const route = router.currentRoute.value;
+      const page = +route.params.page;
+      return this._isCoverPage(book, page);
+    },
   },
   actions: {
     ///////////////////////////////////////////////////////////////////////////
@@ -116,6 +122,12 @@ export const useReaderStore = defineStore("reader", {
     },
     ///////////////////////////////////////////////////////////////////////////
     // UTIL
+    _isCoverPage(book, page) {
+      return (
+        (book.readLtr !== false && page === 0) ||
+        (book.readLtr && page === book.maxPage)
+      );
+    },
     _numericValues(obj) {
       if (!obj) {
         return obj;
@@ -128,10 +140,15 @@ export const useReaderStore = defineStore("reader", {
     },
     _getRouteParams(activePage, direction) {
       // get possible activeBook page
-      let delta = this.activeSettings.twoPages ? 2 : 1;
-      if (direction === "prev") {
-        delta = delta * -1;
+      const deltaModifier = direction === "prev" ? -1 : 1;
+      let delta = 1;
+      if (
+        this.activeSettings.twoPages &&
+        !this._isCoverPage(this.activeBook, activePage + deltaModifier)
+      ) {
+        delta = 2;
       }
+      delta = delta * deltaModifier;
       const page = +activePage + delta;
 
       let routeParams = false;
@@ -316,12 +333,6 @@ export const useReaderStore = defineStore("reader", {
       } else if (params.page < 0) {
         params.page = 0;
         console.warn("Tried to navigate before the beginning of the book.");
-      } else if (
-        this.getSettings(this.readerSettings, book.settings).twoPages &&
-        params.page % 2 !== 0
-      ) {
-        params.page = params.page - 1;
-        console.warn("Requested odd page in two pages mode. Flip back one");
       }
       return params;
     },
@@ -329,6 +340,19 @@ export const useReaderStore = defineStore("reader", {
       params = this._validateRoute(params);
       const route = { name: "reader", params };
       return router.push(route).catch(console.debug);
+    },
+    routeToDirectionOne(direction) {
+      // Special two page adjuster
+      const delta = direction === "prev" ? -1 : 1;
+      const route = router.currentRoute.value;
+      const params = { ...route.params };
+      const page = +params["page"] + delta;
+      if (page < 0 || page > this.activeBook.maxPage) {
+        return;
+      }
+      params["pk"] = +params["pk"];
+      params["page"] = page;
+      this._routeTo(params);
     },
     routeToDirection(direction) {
       if (this.routes[direction]) {
