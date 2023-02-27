@@ -140,7 +140,7 @@ export default {
     },
     tbodyStyle() {
       return this.users
-        ? { height: ROW_HEIGHT * this.libraries.length + "px" }
+        ? { height: ROW_HEIGHT * this.users.length + "px" }
         : {};
     },
   },
