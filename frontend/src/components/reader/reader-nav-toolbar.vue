@@ -1,5 +1,6 @@
 <template>
   <PaginationToolbar v-if="maxPage">
+    <ReaderBookChangeNavButton direction="prev" />
     <ReaderNavButton :value="0" />
     <PaginationSlider
       :key="key"
@@ -11,6 +12,7 @@
       @update:model-value="routeToPage($event)"
     />
     <ReaderNavButton :value="maxPage" :two-pages="twoPages" />
+    <ReaderBookChangeNavButton direction="next" />
   </PaginationToolbar>
 </template>
 
@@ -19,6 +21,7 @@ import { mapActions, mapGetters } from "pinia";
 
 import PaginationSlider from "@/components/pagination-slider.vue";
 import PaginationToolbar from "@/components/pagination-toolbar.vue";
+import ReaderBookChangeNavButton from "@/components/reader/reader-book-change-nav-button.vue";
 import ReaderNavButton from "@/components/reader/reader-nav-button.vue";
 import { useReaderStore } from "@/stores/reader";
 
@@ -28,6 +31,7 @@ export default {
     PaginationSlider,
     ReaderNavButton,
     PaginationToolbar,
+    ReaderBookChangeNavButton,
   },
   computed: {
     ...mapGetters(useReaderStore, ["activeSettings", "activeBook"]),

@@ -22,7 +22,7 @@
         :page="page"
       />
       <BookPage
-        v-if="secondPage"
+        v-if="secondPage && page < book.maxPage"
         :book="book"
         :settings="settings"
         :fit-to-class="fitToClass"
@@ -75,11 +75,7 @@ export default {
       return _.range(0, len);
     },
     secondPage() {
-      return (
-        this.settings.twoPages &&
-        !this.isOnCoverPage &&
-        +this.activePage + 1 <= this.book.maxPage
-      );
+      return this.settings.twoPages && !this.isOnCoverPage;
     },
   },
   watch: {

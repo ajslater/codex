@@ -39,6 +39,14 @@
           <td>Previous <em>only</em> one page in two page mode.</td>
         </tr>
         <tr>
+          <td>p</td>
+          <td>Previous Book</td>
+        </tr>
+        <tr>
+          <td>n</td>
+          <td>Next Book</td>
+        </tr>
+        <tr>
           <td>h</td>
           <td>Fit page to screen height</td>
         </tr>
