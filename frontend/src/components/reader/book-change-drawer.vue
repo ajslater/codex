@@ -48,12 +48,7 @@ export default {
           return false;
         }
         const book = state.books.get(this.params.pk);
-        const bookSettings = book ? book.settings || {} : {};
-        const otherBookSettings = this.getSettings(
-          state.readerSettings,
-          bookSettings,
-          book.readLtr
-        );
+        const otherBookSettings = this.getSettings(state.readerSettings, book);
         if (!this.isDrawerOpen || !this.params || !otherBookSettings.twoPages) {
           return false;
         }

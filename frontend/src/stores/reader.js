@@ -70,9 +70,7 @@ export const useReaderStore = defineStore("reader", {
       return state.books.get(state.pk);
     },
     activeSettings(state) {
-      const book = state.activeBook;
-      const bookSettings = book ? book.settings : {};
-      return this.getSettings(state.readerSettings, bookSettings, book.readLtr);
+      return this.getSettings(state.readerSettings, state.activeBook);
     },
     activeTitle(state) {
       const book = state.activeBook;
@@ -102,18 +100,20 @@ export const useReaderStore = defineStore("reader", {
   actions: {
     ///////////////////////////////////////////////////////////////////////////
     // GETTER Algorithms
-    getSettings(readerSettings, bookSettings, bookLtr) {
+    getSettings(readerSettings, book) {
       // Mask the book settings over the global settings.
-      if (!bookSettings) {
-        bookSettings = {};
-      }
+      const bookSettings = book ? book.settings : {};
       const resultSettings = {};
       for (const [key, readerVal] of Object.entries(readerSettings)) {
         const bookVal = bookSettings[key];
         const val = SETTINGS_NULL_VALUES.has(bookVal) ? readerVal : bookVal;
         resultSettings[key] = val;
       }
-      if (!bookLtr && SETTINGS_NULL_VALUES.has(resultSettings.readInReverse)) {
+      const bookLtr = book ? book.readLtr : undefined;
+      if (
+        bookLtr === false &&
+        SETTINGS_NULL_VALUES.has(resultSettings.readInReverse)
+      ) {
         // special setting for rtl books
         resultSettings.readInReverse = readerSettings.readRtlInReverse;
       }
@@ -205,11 +205,7 @@ export const useReaderStore = defineStore("reader", {
         (isPrev && book.readLtr !== false) ||
         (!isPrev && book.readLtr === false)
       ) {
-        const bookSettings = this.getSettings(
-          this.readerSettings,
-          book.settings,
-          book.readLtr
-        );
+        const bookSettings = this.getSettings(this.readerSettings, book);
 
         const bookTwoPagesCorrection = bookSettings.twoPages ? -1 : 0;
         bookPage = book.maxPage + bookTwoPagesCorrection;

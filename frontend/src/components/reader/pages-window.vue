@@ -63,12 +63,7 @@ export default {
       bookRoutes: (state) => state.routes.books,
       settings(state) {
         const book = state.books.get(this.book.pk);
-        const bookSettings = book ? book.settings : {};
-        return state.getSettings(
-          state.readerSettings,
-          bookSettings,
-          book.readLtr
-        );
+        return state.getSettings(state.readerSettings, book);
       },
       prevBookPk: (state) => state.routes.books?.prev.pk,
       twoPages: (state) => state.activeSettings.twoPages,

@@ -34,12 +34,7 @@ export default {
         if (!book) {
           return false;
         }
-        const bookSettings = book.settings || {};
-        const settings = this.getSettings(
-          state.readerSettings,
-          bookSettings,
-          book.readLtr
-        );
+        const settings = this.getSettings(state.readerSettings, book);
         if (!settings.twoPages) {
           return false;
         }
