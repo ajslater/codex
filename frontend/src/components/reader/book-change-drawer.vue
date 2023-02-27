@@ -4,7 +4,7 @@
     :class="{ bookChangeDrawer: true, [direction]: true }"
     disable-resize-watcher
     disable-route-watcher
-    :location="direction === 'prev' ? 'left' : 'right'"
+    :location="computedDirection === 'prev' ? 'left' : 'right'"
     :model-value="isDrawerOpen"
     :scrim="false"
     temporary
@@ -44,11 +44,15 @@ export default {
     ...mapGetters(useReaderStore, ["prevBookChangeShow", "nextBookChangeShow"]),
     ...mapState(useReaderStore, {
       prefetchSrc2(state) {
+        if (!this.params) {
+          return false;
+        }
         const book = state.books.get(this.params.pk);
         const bookSettings = book ? book.settings || {} : {};
         const otherBookSettings = this.getSettings(
           state.readerSettings,
-          bookSettings
+          bookSettings,
+          book.readLtr
         );
         if (!this.isDrawerOpen || !this.params || !otherBookSettings.twoPages) {
           return false;
@@ -57,17 +61,19 @@ export default {
         return getComicPageSource(params);
       },
       isDrawerOpen(state) {
-        return state.bookChange === this.direction;
+        return state.bookChange === this.computedDirection;
       },
       params(state) {
-        return state.routes.books[this.direction];
+        return state.routes.books[this.computedDirection];
       },
       icon() {
-        return this.direction === "next" ? mdiBookArrowDown : mdiBookArrowUp;
+        return this.computedDirection === "next"
+          ? mdiBookArrowDown
+          : mdiBookArrowUp;
       },
     }),
     show() {
-      return this[this.direction + "BookChangeShow"];
+      return this[this.computedDirection + "BookChangeShow"];
     },
     prefetchSrc1() {
       if (!this.isDrawerOpen || !this.params) {
@@ -79,12 +85,15 @@ export default {
       return this.params ? { params: this.params } : {};
     },
     label() {
-      const prefix = this.direction === "prev" ? "Previous" : "Next";
+      const prefix = this.computedDirection === "prev" ? "Previous" : "Next";
       return `${prefix} Book`;
+    },
+    computedDirection() {
+      return this.normalizeDirection(this.direction);
     },
   },
   methods: {
-    ...mapActions(useReaderStore, ["getSettings"]),
+    ...mapActions(useReaderStore, ["getSettings", "normalizeDirection"]),
   },
 };
 </script>

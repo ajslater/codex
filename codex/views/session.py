@@ -104,7 +104,12 @@ class ReaderSessionViewBase(SessionViewBaseBase):
     """Reader session base."""
 
     SESSION_KEY = "reader"  # type: ignore
-    SESSION_DEFAULTS = {"fit_to": DEFAULTS["fitTo"], "two_pages": False}
+    SESSION_DEFAULTS = {
+        "fit_to": DEFAULTS["fitTo"],
+        "two_pages": False,
+        "read_in_reverse": False,
+        "read_rtl_in_reverse": False,
+    }
 
 
 class SessionViewBase(SessionViewBaseBase, ABC):

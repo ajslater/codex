@@ -494,6 +494,7 @@ class Bookmark(BaseModel):
         choices=FitTo.choices, blank=True, default="", max_length=len(FitTo.SCREEN)
     )
     two_pages = BooleanField(default=None, null=True)
+    read_in_reverse = BooleanField(default=None, null=True)
 
     class Meta:
         """Constraints."""

@@ -27,7 +27,7 @@ export default {
   computed: {
     ...mapState(useReaderStore, {
       params(state) {
-        return state.routes[this.direction];
+        return state.routes[this.computedDirection];
       },
       prefetchSrc2(state) {
         const book = state.books.get(this.params.pk);
@@ -35,7 +35,11 @@ export default {
           return false;
         }
         const bookSettings = book.settings || {};
-        const settings = this.getSettings(state.readerSettings, bookSettings);
+        const settings = this.getSettings(
+          state.readerSettings,
+          bookSettings,
+          book.readLtr
+        );
         if (!settings.twoPages) {
           return false;
         }
@@ -46,20 +50,22 @@ export default {
         return getComicPageSource(paramsPlus);
       },
     }),
+    computedDirection() {
+      return this.normalizeDirection(this.direction);
+    },
     prefetchSrc1() {
       return this.params ? getComicPageSource(this.params) : false;
     },
-
     route() {
       return this.params ? { params: this.params } : {};
     },
     label() {
-      const prefix = this.direction === "prev" ? "Previous" : "Next";
+      const prefix = this.computedDirection === "prev" ? "Previous" : "Next";
       return `${prefix} Page`;
     },
   },
   methods: {
-    ...mapActions(useReaderStore, ["getSettings"]),
+    ...mapActions(useReaderStore, ["getSettings", "normalizeDirection"]),
   },
 };
 </script>

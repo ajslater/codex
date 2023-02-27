@@ -21,7 +21,7 @@ class ReaderView(BookmarkBaseView):
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
     serializer_class = ReaderInfoSerializer
 
-    SETTINGS_ATTRS = ("fit_to", "two_pages")
+    SETTINGS_ATTRS = ("fit_to", "two_pages", "read_in_reverse")
 
     @classmethod
     def _append_with_settings(cls, books, book):
@@ -63,6 +63,7 @@ class ReaderView(BookmarkBaseView):
                 "series_name",
                 "settings__fit_to",
                 "settings__two_pages",
+                "settings__read_in_reverse",
                 "volume_name",
             )
         )

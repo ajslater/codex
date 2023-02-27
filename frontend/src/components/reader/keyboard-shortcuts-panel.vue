@@ -4,6 +4,9 @@
     <table id="readerKeyboardShortcutsTable" class="highlight-table">
       <tbody>
         <tr>
+          <th colspan="2">Navigation</th>
+        </tr>
+        <tr>
           <td>
             <v-icon class="keyIcon" density="compact">
               {{ mdiMenuLeft }} </v-icon
@@ -47,16 +50,19 @@
           <td>Next Book</td>
         </tr>
         <tr>
-          <td>h</td>
-          <td>Fit page to screen height</td>
-        </tr>
-        <tr>
-          <td>w</td>
-          <td>Fit page to screen width</td>
+          <th colspan="2">Fit Page To</th>
         </tr>
         <tr>
           <td>s</td>
-          <td>Fit page to screen</td>
+          <td>screen</td>
+        </tr>
+        <tr>
+          <td>h</td>
+          <td>screen height</td>
+        </tr>
+        <tr>
+          <td>w</td>
+          <td>screen width</td>
         </tr>
         <tr>
           <td>o</td>
@@ -65,6 +71,10 @@
         <tr>
           <td>2</td>
           <td>Toggle two page view</td>
+        </tr>
+        <tr>
+          <td>r</td>
+          <td>Toggle Read in Reverse</td>
         </tr>
         <tr>
           <td>m</td>
@@ -117,10 +127,13 @@ export default {
   border-collapse: collapse;
   color: rgb(var(--v-theme-textDisabled));
 }
+#readerKeyboardShortcutsTable th {
+  padding-left: 1em;
+  text-align: left;
+}
 #readerKeyboardShortcutsTable tr:nth-child(odd) {
   background-color: rgb(var(--v-theme-surface)) !important;
 }
-
 #readerKeyboardShortcutsTable td {
   min-width: 60px;
 }

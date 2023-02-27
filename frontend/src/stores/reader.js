@@ -12,12 +12,19 @@ const NULL_READER_SETTINGS = {
   // Must be null so axios doesn't throw them out when sending.
   fitTo: "",
   twoPages: null, // eslint-disable-line unicorn/no-null
+  readInReverse: null, // eslint-disable-line unicorn/no-null
 };
 Object.freeze(NULL_READER_SETTINGS);
 
 // eslint-disable-next-line unicorn/no-null
 const SETTINGS_NULL_VALUES = new Set(["", null, undefined]);
 Object.freeze(SETTINGS_NULL_VALUES);
+
+const DIRECTION_REVERSE_MAP = {
+  prev: "next",
+  next: "prev",
+};
+Object.freeze(DIRECTION_REVERSE_MAP);
 
 const getGlobalFitToDefault = () => {
   // Big screens default to fit by HEIGHT, small to WIDTH;
@@ -40,6 +47,8 @@ export const useReaderStore = defineStore("reader", {
     readerSettings: {
       fitTo: getGlobalFitToDefault(),
       twoPages: false,
+      readInReverse: false, // TODO get from backend.
+      readRtlInReverse: false,
     },
     books: new Map(),
     seriesCount: 0,
@@ -63,7 +72,7 @@ export const useReaderStore = defineStore("reader", {
     activeSettings(state) {
       const book = state.activeBook;
       const bookSettings = book ? book.settings : {};
-      return this.getSettings(state.readerSettings, bookSettings);
+      return this.getSettings(state.readerSettings, bookSettings, book.readLtr);
     },
     activeTitle(state) {
       const book = state.activeBook;
@@ -93,7 +102,7 @@ export const useReaderStore = defineStore("reader", {
   actions: {
     ///////////////////////////////////////////////////////////////////////////
     // GETTER Algorithms
-    getSettings(readerSettings, bookSettings) {
+    getSettings(readerSettings, bookSettings, bookLtr) {
       // Mask the book settings over the global settings.
       if (!bookSettings) {
         bookSettings = {};
@@ -103,6 +112,10 @@ export const useReaderStore = defineStore("reader", {
         const bookVal = bookSettings[key];
         const val = SETTINGS_NULL_VALUES.has(bookVal) ? readerVal : bookVal;
         resultSettings[key] = val;
+      }
+      if (!bookLtr && SETTINGS_NULL_VALUES.has(resultSettings.readInReverse)) {
+        // special setting for rtl books
+        resultSettings.readInReverse = readerSettings.readRtlInReverse;
       }
       return resultSettings;
     },
@@ -194,7 +207,8 @@ export const useReaderStore = defineStore("reader", {
       ) {
         const bookSettings = this.getSettings(
           this.readerSettings,
-          book.settings
+          book.settings,
+          book.readLtr
         );
 
         const bookTwoPagesCorrection = bookSettings.twoPages ? -1 : 0;
@@ -311,16 +325,23 @@ export const useReaderStore = defineStore("reader", {
       await this.setSettingsLocal(params, NULL_READER_SETTINGS);
     },
     async setSettingsGlobal(routeParams, data) {
+      console.log("global", { data });
       const params = this._numericValues(routeParams);
       this._updateSettings(0, data);
       await API.setReaderSettings(this.readerSettings);
       await this.clearSettingsLocal(params);
     },
     setBookChangeFlag(direction) {
+      // direction = this.normalizeDirection(direction);
       this.bookChange = this.routes.books[direction] ? direction : undefined;
     },
     ///////////////////////////////////////////////////////////////////////////
     // ROUTE
+    normalizeDirection(direction) {
+      return this.activeSettings.readInReverse
+        ? DIRECTION_REVERSE_MAP[direction]
+        : direction;
+    },
     _validateRoute(params) {
       const book = this.books.get(params.pk);
       if (!book) {
@@ -343,6 +364,7 @@ export const useReaderStore = defineStore("reader", {
     },
     routeToDirectionOne(direction) {
       // Special two page adjuster
+      direction = this.normalizeDirection(direction);
       const delta = direction === "prev" ? -1 : 1;
       const route = router.currentRoute.value;
       const params = { ...route.params };
@@ -355,6 +377,7 @@ export const useReaderStore = defineStore("reader", {
       this._routeTo(params);
     },
     routeToDirection(direction) {
+      direction = this.normalizeDirection(direction);
       if (this.routes[direction]) {
         const params = this.routes[direction];
         this._routeTo(params);

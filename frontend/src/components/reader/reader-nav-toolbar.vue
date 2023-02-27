@@ -1,7 +1,7 @@
 <template>
   <PaginationToolbar v-if="maxPage">
-    <ReaderBookChangeNavButton direction="prev" />
-    <ReaderNavButton :value="0" />
+    <ReaderBookChangeNavButton :direction="bookPrev" />
+    <ReaderNavButton :value="min" :two-pages="twoPages" />
     <PaginationSlider
       :key="key"
       :model-value="+$route.params.page"
@@ -9,10 +9,11 @@
       :max="maxPage"
       :step="step"
       :track-color="trackColor"
+      :reverse="readInReverse"
       @update:model-value="routeToPage($event)"
     />
-    <ReaderNavButton :value="maxPage" :two-pages="twoPages" />
-    <ReaderBookChangeNavButton direction="next" />
+    <ReaderNavButton :value="max" :two-pages="twoPages" />
+    <ReaderBookChangeNavButton :direction="bookNext" />
   </PaginationToolbar>
 </template>
 
@@ -52,6 +53,21 @@ export default {
       return this.twoPages && +this.$route.params.page >= this.maxPage - 1
         ? this.$vuetify.theme.current.colors.primary
         : "";
+    },
+    readInReverse() {
+      return this.activeSettings.readInReverse;
+    },
+    min() {
+      return this.readInReverse ? this.maxPage : 0;
+    },
+    max() {
+      return this.readInReverse ? 0 : this.maxPage;
+    },
+    bookPrev() {
+      return this.readInReverse ? "next" : "prev";
+    },
+    bookNext() {
+      return this.readInReverse ? "prev" : "next";
     },
   },
   methods: {

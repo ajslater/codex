@@ -12,6 +12,7 @@ border-radius: 128px;
   - User configurable 24 hour time format.
   - Reader
     - Displays covers as one page even in two page mode.
+    - Read in Reverse mode.
     - Keymaps for adjusting page by one page in two page mode.
     - Previous and Next book navigation buttons and keymaps.
 - Fix

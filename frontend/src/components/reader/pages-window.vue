@@ -14,19 +14,21 @@
       :eager="page >= activePage - 1 && page <= activePage + 2"
       :model-value="page"
       :transition="true"
+      :reverse-transition="readInReverse"
     >
       <BookPage
+        v-if="!readInReverse || (secondPage && page < book.maxPage)"
         :book="book"
         :settings="settings"
         :fit-to-class="fitToClass"
-        :page="page"
+        :page="readInReverse ? page + 1 : page"
       />
       <BookPage
-        v-if="secondPage && page < book.maxPage"
+        v-if="readInReverse || (secondPage && page < book.maxPage)"
         :book="book"
         :settings="settings"
         :fit-to-class="fitToClass"
-        :page="page + 1"
+        :page="readInReverse ? page : page + 1"
       />
     </v-window-item>
   </v-window>
@@ -62,10 +64,15 @@ export default {
       settings(state) {
         const book = state.books.get(this.book.pk);
         const bookSettings = book ? book.settings : {};
-        return state.getSettings(state.readerSettings, bookSettings);
+        return state.getSettings(
+          state.readerSettings,
+          bookSettings,
+          book.readLtr
+        );
       },
       prevBookPk: (state) => state.routes.books?.prev.pk,
       twoPages: (state) => state.activeSettings.twoPages,
+      readInReverse: (state) => state.activeSettings.readInReverse,
     }),
     fitToClass() {
       return this.getFitToClass(this.settings);

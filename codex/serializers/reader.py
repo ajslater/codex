@@ -20,6 +20,8 @@ class ReaderSettingsSerializer(Serializer):
         required=False,
     )
     two_pages = BooleanField(allow_null=True, required=False)
+    read_in_reverse = BooleanField(allow_null=True, required=False)
+    read_rtl_in_reverse = BooleanField(allow_null=True, required=False)
 
 
 class ReaderComicSerializer(Serializer):

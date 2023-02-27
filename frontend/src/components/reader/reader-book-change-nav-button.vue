@@ -31,14 +31,11 @@ export default {
   },
   computed: {
     ...mapState(useReaderStore, {
-      books: (state) => state.routes.books,
+      bookRoutes: (state) => state.routes.books,
     }),
     toRoute() {
-      const params = this.books[this.direction];
-      if (params) {
-        return { params };
-      }
-      return "";
+      const params = this.bookRoutes[this.direction];
+      return params ? { params } : "";
     },
     title() {
       const prefix = this.direction === "prev" ? "Previous" : "Next";

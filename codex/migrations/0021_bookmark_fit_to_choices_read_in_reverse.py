@@ -34,4 +34,9 @@ class Migration(migrations.Migration):
                 max_length=6,
             ),
         ),
+        migrations.AddField(
+            model_name="bookmark",
+            name="read_in_reverse",
+            field=models.BooleanField(default=None, null=True),
+        ),
     ]
