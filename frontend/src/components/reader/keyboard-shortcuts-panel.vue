@@ -1,11 +1,9 @@
 <template>
   <div v-if="!isMobile" id="readerKeyboardShortcutsDialog">
     <h3>Keyboard Shortcuts</h3>
+    <h4>Navigation</h4>
     <table id="readerKeyboardShortcutsTable" class="highlight-table">
       <tbody>
-        <tr>
-          <th colspan="2">Navigation</th>
-        </tr>
         <tr>
           <td>
             <v-icon class="keyIcon" density="compact">
@@ -49,9 +47,11 @@
           <td>n</td>
           <td>Next Book</td>
         </tr>
-        <tr>
-          <th colspan="2">Fit Page To</th>
-        </tr>
+      </tbody>
+    </table>
+    <h4>Fit Page To</h4>
+    <table class="highlight-table">
+      <tbody>
         <tr>
           <td>s</td>
           <td>screen</td>
@@ -76,6 +76,11 @@
           <td>r</td>
           <td>Toggle Read in Reverse</td>
         </tr>
+      </tbody>
+    </table>
+    <h4>Other</h4>
+    <table class="highlight-table">
+      <tbody>
         <tr>
           <td>m</td>
           <td>Show comic's metadata</td>
@@ -122,25 +127,23 @@ export default {
   padding: 15px;
   background-color: rgb(var(--v-theme-background));
 }
-#readerKeyboardShortcutsTable {
+.highlight-table {
   margin-top: 10px;
   border-collapse: collapse;
   color: rgb(var(--v-theme-textDisabled));
 }
-#readerKeyboardShortcutsTable th {
-  padding-left: 1em;
-  text-align: left;
+h4 {
+  padding-left: 0.5em;
+  color: rgb(var(--v-theme-textSecondary));
 }
-#readerKeyboardShortcutsTable tr:nth-child(odd) {
+.highlight-table tr:nth-child(odd) {
   background-color: rgb(var(--v-theme-surface)) !important;
 }
-#readerKeyboardShortcutsTable td {
+.highlight-table td {
   min-width: 60px;
-}
-#readerKeyboardShortcutsTable td {
   padding: 5px;
 }
-#readerKeyboardShortcutsTable td:first-child {
+.highlight-table td:first-child {
   text-align: center;
 }
 .keyIcon {
