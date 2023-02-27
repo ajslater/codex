@@ -110,12 +110,17 @@ export default {
 <style scoped lang="scss">
 #readerKeyboardShortcutsDialog {
   padding: 15px;
+  background-color: rgb(var(--v-theme-background));
 }
 #readerKeyboardShortcutsTable {
   margin-top: 10px;
   border-collapse: collapse;
   color: rgb(var(--v-theme-textDisabled));
 }
+#readerKeyboardShortcutsTable tr:nth-child(odd) {
+  background-color: rgb(var(--v-theme-surface)) !important;
+}
+
 #readerKeyboardShortcutsTable td {
   min-width: 60px;
 }

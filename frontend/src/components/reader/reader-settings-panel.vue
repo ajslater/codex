@@ -146,6 +146,7 @@ export default {
   padding-left: 15px;
   padding-right: env(safe-area-inset-right);
   padding-bottom: 10px;
+  background-color: inherit;
 }
 .displayRadioGroup,
 .displayTwoPages {
