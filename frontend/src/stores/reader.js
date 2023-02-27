@@ -167,26 +167,40 @@ export const useReaderStore = defineStore("reader", {
         state.routes.next = this._getRouteParams(page, "next");
       });
     },
+    _getBookRoutePage(state, pk, isPrev) {
+      const book = state.books.get(pk);
+
+      let bookPage = 0;
+      if (
+        (isPrev && book.readLtr !== false) ||
+        (!isPrev && book.readLtr === false)
+      ) {
+        const bookSettings = this.getSettings(
+          this.readerSettings,
+          book.settings
+        );
+
+        const bookTwoPagesCorrection = bookSettings.twoPages ? -1 : 0;
+        bookPage = book.maxPage + bookTwoPagesCorrection;
+      }
+      return bookPage;
+    },
     _getBookRoutes(state, prevBookPk, nextBookPk) {
       let prevBookRoute = false;
       if (prevBookPk) {
-        const prevBook = state.books.get(prevBookPk);
-        const prevBookSettings = this.getSettings(
-          this.readerSettings,
-          prevBook.settings
-        );
-        const twoPagesCorrection = prevBookSettings.twoPages ? -1 : 0;
+        const prevBookPage = this._getBookRoutePage(state, prevBookPk, true);
         prevBookRoute = {
           pk: prevBookPk,
-          page: prevBook.maxPage + twoPagesCorrection,
+          page: prevBookPage,
         };
       }
 
       let nextBookRoute = false;
       if (nextBookPk) {
+        const nextBookPage = this._getBookRoutePage(state, nextBookPk, false);
         nextBookRoute = {
           pk: nextBookPk,
-          page: 0,
+          page: nextBookPage,
         };
       }
 

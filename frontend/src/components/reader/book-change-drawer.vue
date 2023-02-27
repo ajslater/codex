@@ -69,7 +69,6 @@ export default {
     show() {
       return this[this.direction + "BookChangeShow"];
     },
-
     prefetchSrc1() {
       if (!this.isDrawerOpen || !this.params) {
         return false;

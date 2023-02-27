@@ -36,6 +36,7 @@ class ReaderComicSerializer(Serializer):
     series_name = CharField(read_only=True)
     volume_name = CharField(read_only=True)
     series_index = IntegerField(read_only=True)
+    read_ltr = BooleanField(allow_null=True, read_only=True)
     settings = ReaderSettingsSerializer(read_only=True)
 
 

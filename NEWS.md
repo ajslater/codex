@@ -16,8 +16,9 @@ border-radius: 128px;
     - Show series name in comic title.
     - Experiment: don't show top links or entry facets on pages > 1
   - Reader in two pages mode would skip pages.
-  - Fixed noop poll event happening on comic cover creation.
+  - Reader next/prev book goes to correct page for Right To Left tagged books.
   - Fix occasional error setting reader settings.
+  - Fixed noop poll event happening on comic cover creation.
 
 ## v1.2.3
 

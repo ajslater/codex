@@ -59,6 +59,7 @@ class ReaderView(BookmarkBaseView):
                 "issue_count",
                 "issue_suffix",
                 "max_page",
+                "read_ltr",
                 "series_name",
                 "settings__fit_to",
                 "settings__two_pages",
