@@ -110,8 +110,9 @@ import AdminFailedImportsPanel from "@/components/admin/failed-imports-panel.vue
 import AdminLibraryCreateUpdateInputs from "@/components/admin/library-create-update-inputs.vue";
 import RelationChips from "@/components/admin/relation-chips.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
-import { DATETIME_FORMAT } from "@/datetime";
+import { getDateTime } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
+import { useBrowserStore } from "@/stores/browser";
 
 const FIXED_TOOLBARS = 96 + 16;
 const ADD_HEADER = 36;
@@ -158,6 +159,9 @@ export default {
       tableMaxHeight: (state) =>
         (state.libraries.length + 1) * TABLE_ROW_HEIGHT,
     }),
+    ...mapState(useBrowserStore, {
+      twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
+    }),
     tableHeight() {
       const availableHeight = this.innerHeight - BUFFER;
       return this.tableMaxHeight < availableHeight
@@ -184,7 +188,7 @@ export default {
       if (!dttm) {
         return "";
       }
-      return DATETIME_FORMAT.format(new Date(dttm));
+      return getDateTime(dttm, this.twentyFourHourTime);
     },
     changeCol(pk, field, val) {
       this.lastUpdate.pk = pk;

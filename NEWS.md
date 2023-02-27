@@ -9,6 +9,7 @@ border-radius: 128px;
 ## v1.2.4
 
 - Feature:
+  - User configurable 24 hour time format.
   - Reader
     - Displays covers as one page even in two page mode.
     - Keymaps for adjusting page by one page in two page mode.

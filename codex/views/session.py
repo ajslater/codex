@@ -95,6 +95,7 @@ class BrowserSessionViewBase(SessionViewBaseBase):
         "q": DEFAULTS["q"],
         "route": DEFAULTS["route"],
         "show": DEFAULTS["show"],
+        "twenty_four_hour_time": False,
         "top_group": DEFAULTS["topGroup"],
     }
 
