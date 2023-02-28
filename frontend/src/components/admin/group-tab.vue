@@ -7,51 +7,45 @@
         :inputs="AdminGroupCreateUpdateInputs"
       />
     </header>
-    <v-table
-      fixed-header
-      :height="tableHeight"
-      class="highlight-table admin-table"
-    >
-      <template #default>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Users</th>
-            <th>Libraries</th>
-            <th>Edit</th>
-            <th>Delete</th>
-          </tr>
-        </thead>
-        <tbody :style="tbodyStyle">
-          <tr v-for="item in groups" :key="`g:${item.pk}:${item.keyHack}`">
-            <td class="nameCol">
-              {{ item.name }}
-            </td>
-            <td>
-              <RelationChips :pks="item.userSet" :map="userMap" />
-            </td>
-            <td>
-              <RelationChips :pks="item.librarySet" :map="libraryMap" />
-            </td>
-            <td>
-              <AdminCreateUpdateDialog
-                table="Group"
-                :old-row="item"
-                max-width="20em"
-                :inputs="AdminGroupCreateUpdateInputs"
-              />
-            </td>
-            <td>
-              <AdminDeleteRowDialog
-                table="Group"
-                :pk="item.pk"
-                :name="item.name"
-              />
-            </td>
-          </tr>
-        </tbody>
+    <AdminTable :items="groups" :extra-height="GROUP_HELP_HEIGHT">
+      <template #thead>
+        <tr>
+          <th>Name</th>
+          <th>Users</th>
+          <th>Libraries</th>
+          <th>Edit</th>
+          <th>Delete</th>
+        </tr>
       </template>
-    </v-table>
+      <template #tbody>
+        <tr v-for="item in groups" :key="`g:${item.pk}:${item.keyHack}`">
+          <td class="nameCol">
+            {{ item.name }}
+          </td>
+          <td>
+            <RelationChips :pks="item.userSet" :map="userMap" />
+          </td>
+          <td>
+            <RelationChips :pks="item.librarySet" :map="libraryMap" />
+          </td>
+          <td>
+            <AdminCreateUpdateDialog
+              table="Group"
+              :old-row="item"
+              max-width="20em"
+              :inputs="AdminGroupCreateUpdateInputs"
+            />
+          </td>
+          <td>
+            <AdminDeleteRowDialog
+              table="Group"
+              :pk="item.pk"
+              :name="item.name"
+            />
+          </td>
+        </tr>
+      </template>
+    </AdminTable>
     <div id="groupHelp">
       <h3>Group Logic</h3>
       <p>
@@ -74,33 +68,22 @@
 import { mapActions, mapGetters, mapState } from "pinia";
 import { markRaw } from "vue";
 
+import AdminTable from "@/components/admin/admin-table.vue";
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
 import AdminDeleteRowDialog from "@/components/admin/delete-row-dialog.vue";
 import AdminGroupCreateUpdateInputs from "@/components/admin/group-create-update-inputs.vue";
 import RelationChips from "@/components/admin/relation-chips.vue";
 import { useAdminStore } from "@/stores/admin";
 
-const FIXED_TOOLBARS = 96 + 16;
-const ADD_HEADER = 36;
-const GROUP_HELP = 180;
-const TABLE_PADDING = 24;
-const BUFFER = FIXED_TOOLBARS + ADD_HEADER + GROUP_HELP + TABLE_PADDING;
-const TABLE_ROW_HEIGHT = 48;
-const MIN_TABLE_HEIGHT = TABLE_ROW_HEIGHT * 2;
-const ROW_HEIGHT = 84;
+const GROUP_HELP_HEIGHT = 180;
 
 export default {
   name: "AdminGroupsTab",
   components: {
+    AdminTable,
     AdminDeleteRowDialog,
     AdminCreateUpdateDialog,
     RelationChips,
-  },
-  props: {
-    innerHeight: {
-      type: Number,
-      required: true,
-    },
   },
   data() {
     return {
@@ -109,25 +92,14 @@ export default {
         field: undefined,
       },
       AdminGroupCreateUpdateInputs: markRaw(AdminGroupCreateUpdateInputs),
+      GROUP_HELP_HEIGHT,
     };
   },
   computed: {
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,
-      tableMaxHeight: (state) => (state.groups.length + 1) * TABLE_ROW_HEIGHT,
     }),
     ...mapGetters(useAdminStore, ["libraryMap", "userMap"]),
-    tableHeight() {
-      const availableHeight = this.innerHeight - BUFFER;
-      return this.tableMaxHeight < availableHeight
-        ? undefined
-        : Math.max(availableHeight, MIN_TABLE_HEIGHT);
-    },
-    tbodyStyle() {
-      return this.groups
-        ? { height: ROW_HEIGHT * this.groups.length + "px" }
-        : {};
-    },
   },
   mounted() {
     this.loadTables(["User", "Library", "Group"]);

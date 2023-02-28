@@ -7,78 +7,72 @@
         max-width="20em"
       />
     </header>
-    <v-table
-      fixed-header
-      :height="tableHeight"
-      class="highlight-table admin-table"
-    >
-      <template #default>
-        <thead>
-          <tr>
-            <th>Username</th>
-            <th>Staff</th>
-            <th>Active</th>
-            <th>Groups</th>
-            <th>Last Login</th>
-            <th>Joined</th>
-            <th>Edit</th>
-            <th>Change Password</th>
-            <th>Delete</th>
-          </tr>
-        </thead>
-        <tbody :style="tbodyStyle">
-          <tr v-for="item in users" :key="`u:${item.pk}:${item.keyHack}`">
-            <td class="usernameCol">
-              {{ item.username }}
-            </td>
-            <td class="buttonCol">
-              <v-checkbox
-                class="tableCheckbox"
-                :model-value="item.isStaff"
-                density="compact"
-                disabled
-              />
-            </td>
-            <td class="buttonCol">
-              <v-checkbox
-                class="tableCheckbox"
-                :model-value="item.isActive"
-                density="compact"
-                disabled
-              />
-            </td>
-            <td class="relationCol">
-              <RelationChips :pks="item.groups" :map="groupMap" />
-            </td>
-            <td class="dttmCol">
-              <DateTimeColumn :dttm="item.lastLogin" />
-            </td>
-            <td class="dttmCol">
-              <DateTimeColumn :dttm="item.dateJoined" />
-            </td>
-            <td class="buttonCol">
-              <AdminCreateUpdateDialog
-                table="User"
-                :inputs="AdminUserCreateUpdateInputs"
-                :old-row="item"
-                max-width="20em"
-              />
-            </td>
-            <td class="buttonCol">
-              <ChangePasswordDialog :user="item" :is-admin-mode="true" />
-            </td>
-            <td class="buttonCol">
-              <AdminDeleteRowDialog
-                v-if="me.id !== item.pk"
-                table="User"
-                :pk="item.pk"
-                :name="item.username"
-              />
-            </td>
-          </tr>
-        </tbody>
+    <AdminTable :items="users">
+      <template #thead>
+        <tr>
+          <th>Username</th>
+          <th>Staff</th>
+          <th>Active</th>
+          <th>Groups</th>
+          <th>Last Login</th>
+          <th>Joined</th>
+          <th>Edit</th>
+          <th>Change Password</th>
+          <th>Delete</th>
+        </tr>
       </template>
-    </v-table>
+      <template #tbody>
+        <tr v-for="item in users" :key="`u:${item.pk}:${item.keyHack}`">
+          <td class="usernameCol">
+            {{ item.username }}
+          </td>
+          <td class="buttonCol">
+            <v-checkbox
+              class="tableCheckbox"
+              :model-value="item.isStaff"
+              density="compact"
+              disabled
+            />
+          </td>
+          <td class="buttonCol">
+            <v-checkbox
+              class="tableCheckbox"
+              :model-value="item.isActive"
+              density="compact"
+              disabled
+            />
+          </td>
+          <td class="relationCol">
+            <RelationChips :pks="item.groups" :map="groupMap" />
+          </td>
+          <td class="dttmCol">
+            <DateTimeColumn :dttm="item.lastLogin" />
+          </td>
+          <td class="dttmCol">
+            <DateTimeColumn :dttm="item.dateJoined" />
+          </td>
+          <td class="buttonCol">
+            <AdminCreateUpdateDialog
+              table="User"
+              :inputs="AdminUserCreateUpdateInputs"
+              :old-row="item"
+              max-width="20em"
+            />
+          </td>
+          <td class="buttonCol">
+            <ChangePasswordDialog :user="item" :is-admin-mode="true" />
+          </td>
+          <td class="buttonCol">
+            <AdminDeleteRowDialog
+              v-if="me.id !== item.pk"
+              table="User"
+              :pk="item.pk"
+              :name="item.username"
+            />
+          </td>
+        </tr>
+      </template>
+    </AdminTable>
   </div>
 </template>
 
@@ -86,6 +80,7 @@
 import { mapActions, mapGetters, mapState } from "pinia";
 import { markRaw } from "vue";
 
+import AdminTable from "@/components/admin/admin-table.vue";
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
 import DateTimeColumn from "@/components/admin/datetime-column.vue";
 import AdminDeleteRowDialog from "@/components/admin/delete-row-dialog.vue";
@@ -95,28 +90,15 @@ import ChangePasswordDialog from "@/components/change-password-dialog.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useAuthStore } from "@/stores/auth";
 
-const FIXED_TOOLBARS = 96 + 16;
-const ADD_HEADER = 36;
-const TABLE_PADDING = 24;
-const BUFFER = FIXED_TOOLBARS + ADD_HEADER + TABLE_PADDING;
-const TABLE_ROW_HEIGHT = 48;
-const MIN_TABLE_HEIGHT = TABLE_ROW_HEIGHT * 2;
-const ROW_HEIGHT = 84;
-
 export default {
   name: "AdminUsersTab",
   components: {
+    AdminTable,
     AdminDeleteRowDialog,
     ChangePasswordDialog,
     AdminCreateUpdateDialog,
     DateTimeColumn,
     RelationChips,
-  },
-  props: {
-    innerHeight: {
-      type: Number,
-      required: true,
-    },
   },
   data() {
     return {
@@ -127,22 +109,10 @@ export default {
     ...mapGetters(useAdminStore, ["groupMap"]),
     ...mapState(useAdminStore, {
       users: (state) => state.users,
-      tableMaxHeight: (state) => (state.users.length + 1) * TABLE_ROW_HEIGHT,
     }),
     ...mapState(useAuthStore, {
       me: (state) => state.user,
     }),
-    tableHeight() {
-      const availableHeight = this.innerHeight - BUFFER;
-      return this.tableMaxHeight < availableHeight
-        ? undefined
-        : Math.max(availableHeight, MIN_TABLE_HEIGHT);
-    },
-    tbodyStyle() {
-      return this.users
-        ? { height: ROW_HEIGHT * this.users.length + "px" }
-        : {};
-    },
   },
   mounted() {
     this.loadTables(["Group", "User"]);
