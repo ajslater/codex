@@ -10,6 +10,7 @@ from codex.serializers.reader import ReaderInfoSerializer
 from codex.serializers.redirect import ReaderRedirectSerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.bookmark import BookmarkBaseView
+from codex.views.session import BrowserSessionViewBase
 
 LOG = get_logger(__name__)
 PAGE_TTL = 60 * 60 * 24
@@ -31,6 +32,18 @@ class ReaderView(BookmarkBaseView):
         book["settings"] = settings
         books.append(book)
 
+    def _get_nav_group_filter(self, pk):
+        """Get the reader naviation group filter."""
+        session = self.request.session.get(BrowserSessionViewBase.SESSION_KEY, {})
+        top_group = session.get("top_group")
+
+        if top_group == "f":
+            rel = "parent_folder__comic"
+        else:
+            rel = "series__comic"
+
+        return {rel: pk}
+
     def get_object(self):
         """Get the previous and next comics in a series.
 
@@ -41,10 +54,12 @@ class ReaderView(BookmarkBaseView):
         pk = self.kwargs.get("pk")
         group_acl_filter = self.get_group_acl_filter(True)
         bookmark_filter = self.get_bookmark_filter()
+        group_nav_filter = self._get_nav_group_filter(pk)
+
         # get comic relations lazily. Only going to use 2-3 of them.
         comics = (
             Comic.objects.filter(group_acl_filter)
-            .filter(series__comic=pk)
+            .filter(**group_nav_filter)
             .annotate(
                 series_name=F("series__name"),
                 volume_name=F("volume__name"),

@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.2.5
+
+- Features:
+  - In Folder View the reader navigates by folder instead of series.
+
 ## v1.2.4
 
 - Features:
