@@ -8,7 +8,7 @@ border-radius: 128px;
 
 ## v1.2.4
 
-- Feature:
+- Features:
   - User configurable 24 hour time format.
   - Reader
     - Displays covers as one page even in two page mode.
@@ -22,10 +22,11 @@ border-radius: 128px;
     - Fix pagination
     - Show series name in comic title.
     - Experiment: don't show top links or entry facets on pages > 1
-  - Reader in two pages mode would skip pages.
-  - Reader next/prev book goes to correct page for Right To Left tagged books.
-  - Fix occasional error setting reader settings.
-  - Fixed noop poll event happening on comic cover creation.
+  - Reader:
+    - Two pages mode would skip pages.
+    - Next/prev book goes to correct page for Right To Left tagged books.
+    - Fix occasional error setting reader settings.
+    - Fixed noop poll event happening on comic cover creation.
 
 ## v1.2.3
 

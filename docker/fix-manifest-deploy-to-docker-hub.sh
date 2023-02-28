@@ -39,7 +39,9 @@ docker pull "$LOCAL_MULTI_TAG"
 docker buildx imagetools create -t "$HUB_MULTI_TAG" "$LOCAL_MULTI_TAG"
 
 # promote pushed to latest
-./docker-tag-remote-version-as-latest.sh "$VERSION"
+if [ "${2:-}" = "latest" ]; then
+    ./docker-tag-remote-version-as-latest.sh "$VERSION"
+fi
 
 # remove old tags from repository
 ./docker-hub-remove-tags.sh "$HUB_ARM_TAG" "$HUB_AMD_TAG"
