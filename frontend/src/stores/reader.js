@@ -12,12 +12,19 @@ const NULL_READER_SETTINGS = {
   // Must be null so axios doesn't throw them out when sending.
   fitTo: "",
   twoPages: null, // eslint-disable-line unicorn/no-null
+  readInReverse: null, // eslint-disable-line unicorn/no-null
 };
 Object.freeze(NULL_READER_SETTINGS);
 
 // eslint-disable-next-line unicorn/no-null
 const SETTINGS_NULL_VALUES = new Set(["", null, undefined]);
 Object.freeze(SETTINGS_NULL_VALUES);
+
+const DIRECTION_REVERSE_MAP = {
+  prev: "next",
+  next: "prev",
+};
+Object.freeze(DIRECTION_REVERSE_MAP);
 
 const getGlobalFitToDefault = () => {
   // Big screens default to fit by HEIGHT, small to WIDTH;
@@ -40,6 +47,8 @@ export const useReaderStore = defineStore("reader", {
     readerSettings: {
       fitTo: getGlobalFitToDefault(),
       twoPages: false,
+      readInReverse: false, // TODO get from backend.
+      readRtlInReverse: false,
     },
     books: new Map(),
     seriesCount: 0,
@@ -61,9 +70,7 @@ export const useReaderStore = defineStore("reader", {
       return state.books.get(state.pk);
     },
     activeSettings(state) {
-      const book = state.activeBook;
-      const bookSettings = book ? book.settings : {};
-      return this.getSettings(state.readerSettings, bookSettings);
+      return this.getSettings(state.readerSettings, state.activeBook);
     },
     activeTitle(state) {
       const book = state.activeBook;
@@ -83,20 +90,32 @@ export const useReaderStore = defineStore("reader", {
       const limit = maxPage + adj;
       return +route.params.page >= limit;
     },
+    isOnCoverPage(state) {
+      const book = state.activeBook;
+      const route = router.currentRoute.value;
+      const page = +route.params.page;
+      return this._isCoverPage(book, page);
+    },
   },
   actions: {
     ///////////////////////////////////////////////////////////////////////////
     // GETTER Algorithms
-    getSettings(readerSettings, bookSettings) {
+    getSettings(readerSettings, book) {
       // Mask the book settings over the global settings.
-      if (!bookSettings) {
-        bookSettings = {};
-      }
+      const bookSettings = book ? book.settings : {};
       const resultSettings = {};
       for (const [key, readerVal] of Object.entries(readerSettings)) {
         const bookVal = bookSettings[key];
         const val = SETTINGS_NULL_VALUES.has(bookVal) ? readerVal : bookVal;
         resultSettings[key] = val;
+      }
+      const bookLtr = book ? book.readLtr : undefined;
+      if (
+        bookLtr === false &&
+        SETTINGS_NULL_VALUES.has(resultSettings.readInReverse)
+      ) {
+        // special setting for rtl books
+        resultSettings.readInReverse = readerSettings.readRtlInReverse;
       }
       return resultSettings;
     },
@@ -116,6 +135,12 @@ export const useReaderStore = defineStore("reader", {
     },
     ///////////////////////////////////////////////////////////////////////////
     // UTIL
+    _isCoverPage(book, page) {
+      return (
+        (book.readLtr !== false && page === 0) ||
+        (book.readLtr && page === book.maxPage)
+      );
+    },
     _numericValues(obj) {
       if (!obj) {
         return obj;
@@ -128,10 +153,15 @@ export const useReaderStore = defineStore("reader", {
     },
     _getRouteParams(activePage, direction) {
       // get possible activeBook page
-      let delta = this.activeSettings.twoPages ? 2 : 1;
-      if (direction === "prev") {
-        delta = delta * -1;
+      const deltaModifier = direction === "prev" ? -1 : 1;
+      let delta = 1;
+      if (
+        this.activeSettings.twoPages &&
+        !this._isCoverPage(this.activeBook, activePage + deltaModifier)
+      ) {
+        delta = 2;
       }
+      delta = delta * deltaModifier;
       const page = +activePage + delta;
 
       let routeParams = false;
@@ -167,26 +197,37 @@ export const useReaderStore = defineStore("reader", {
         state.routes.next = this._getRouteParams(page, "next");
       });
     },
+    _getBookRoutePage(state, pk, isPrev) {
+      const book = state.books.get(pk);
+
+      let bookPage = 0;
+      if (
+        (isPrev && book.readLtr !== false) ||
+        (!isPrev && book.readLtr === false)
+      ) {
+        const bookSettings = this.getSettings(this.readerSettings, book);
+
+        const bookTwoPagesCorrection = bookSettings.twoPages ? -1 : 0;
+        bookPage = book.maxPage + bookTwoPagesCorrection;
+      }
+      return bookPage;
+    },
     _getBookRoutes(state, prevBookPk, nextBookPk) {
       let prevBookRoute = false;
       if (prevBookPk) {
-        const prevBook = state.books.get(prevBookPk);
-        const prevBookSettings = this.getSettings(
-          this.readerSettings,
-          prevBook.settings
-        );
-        const twoPagesCorrection = prevBookSettings.twoPages ? -1 : 0;
+        const prevBookPage = this._getBookRoutePage(state, prevBookPk, true);
         prevBookRoute = {
           pk: prevBookPk,
-          page: prevBook.maxPage + twoPagesCorrection,
+          page: prevBookPage,
         };
       }
 
       let nextBookRoute = false;
       if (nextBookPk) {
+        const nextBookPage = this._getBookRoutePage(state, nextBookPk, false);
         nextBookRoute = {
           pk: nextBookPk,
-          page: 0,
+          page: nextBookPage,
         };
       }
 
@@ -280,16 +321,23 @@ export const useReaderStore = defineStore("reader", {
       await this.setSettingsLocal(params, NULL_READER_SETTINGS);
     },
     async setSettingsGlobal(routeParams, data) {
+      console.log("global", { data });
       const params = this._numericValues(routeParams);
       this._updateSettings(0, data);
       await API.setReaderSettings(this.readerSettings);
       await this.clearSettingsLocal(params);
     },
     setBookChangeFlag(direction) {
+      // direction = this.normalizeDirection(direction);
       this.bookChange = this.routes.books[direction] ? direction : undefined;
     },
     ///////////////////////////////////////////////////////////////////////////
     // ROUTE
+    normalizeDirection(direction) {
+      return this.activeSettings.readInReverse
+        ? DIRECTION_REVERSE_MAP[direction]
+        : direction;
+    },
     _validateRoute(params) {
       const book = this.books.get(params.pk);
       if (!book) {
@@ -302,12 +350,6 @@ export const useReaderStore = defineStore("reader", {
       } else if (params.page < 0) {
         params.page = 0;
         console.warn("Tried to navigate before the beginning of the book.");
-      } else if (
-        this.getSettings(this.readerSettings, book.settings).twoPages &&
-        params.page % 2 !== 0
-      ) {
-        params.page = params.page - 1;
-        console.warn("Requested odd page in two pages mode. Flip back one");
       }
       return params;
     },
@@ -316,7 +358,22 @@ export const useReaderStore = defineStore("reader", {
       const route = { name: "reader", params };
       return router.push(route).catch(console.debug);
     },
+    routeToDirectionOne(direction) {
+      // Special two page adjuster
+      direction = this.normalizeDirection(direction);
+      const delta = direction === "prev" ? -1 : 1;
+      const route = router.currentRoute.value;
+      const params = { ...route.params };
+      const page = +params["page"] + delta;
+      if (page < 0 || page > this.activeBook.maxPage) {
+        return;
+      }
+      params["pk"] = +params["pk"];
+      params["page"] = page;
+      this._routeTo(params);
+    },
     routeToDirection(direction) {
+      direction = this.normalizeDirection(direction);
       if (this.routes[direction]) {
         const params = this.routes[direction];
         this._routeTo(params);

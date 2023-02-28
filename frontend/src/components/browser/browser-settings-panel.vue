@@ -14,6 +14,16 @@
     @update:model-value="setShow(choice.value, $event)"
   />
   <v-divider />
+  <v-checkbox
+    class="browserGroupCheckbox"
+    density="compact"
+    hide-details="auto"
+    :model-value="twentyFourHourTime"
+    :true-value="true"
+    label="24 Hour Time"
+    @update:model-value="set24HourTime($event)"
+  />
+  <v-divider />
   <SearchHelp />
 </template>
 <script>
@@ -32,13 +42,20 @@ export default {
     ...mapGetters(useAuthStore, ["isCodexViewable"]),
     ...mapState(useBrowserStore, {
       groupChoices: (state) => state.choices.static.settingsGroup,
+      twentyFourHourTimeTitle: (state) =>
+        state.choices.static.twentyFourHourTime.title,
       showSettings: (state) => state.settings.show,
+      twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
     }),
   },
   methods: {
     ...mapActions(useBrowserStore, ["setSettings"]),
-    setShow: function (group, value) {
+    setShow(group, value) {
       const data = { show: { [group]: value === true } };
+      this.setSettings(data);
+    },
+    set24HourTime(value) {
+      const data = { twentyFourHourTime: value === true };
       this.setSettings(data);
     },
   },

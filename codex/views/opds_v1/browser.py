@@ -73,12 +73,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
                 if not parent_name and self.kwargs.get("pk") == 0:
                     parent_name = "All"
                 group_name = browser_title.get("group_name")
-                names = []
-                for name in (parent_name, group_name):
-                    if name:
-                        names.append(name)
-
-                result = " ".join(names).strip()
+                result = " ".join(filter(None, (parent_name, group_name))).strip()
 
             if not result:
                 result = BLANK_TITLE
@@ -134,7 +129,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
             href, self.request.query_params, new_query_params
         )
 
-        title = " ".join((facet_group.title_prefix, facet_title)).strip()
+        title = " ".join(filter(None, (facet_group.title_prefix, facet_title))).strip()
         link = OPDSLink(
             Rel.FACET,
             href,
@@ -147,7 +142,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
 
     def _facet_entry(self, item, facet_group, facet, query_params):
         name = " ".join(
-            (facet_group.glyph, facet_group.title_prefix, facet.title)
+            filter(None, (facet_group.glyph, facet_group.title_prefix, facet.title))
         ).strip()
         obj = {
             "group": item.get("group"),
@@ -181,10 +176,10 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
             kwargs = self.kwargs
 
         qps = {facet_group.query_param: facet.value}
-        if not entries:
-            facet = self._facet(kwargs, facet_group, facet.title, qps)
-        else:
+        if entries and self.kwargs.get("page") == 1:
             facet = self._facet_entry(kwargs, facet_group, facet, qps)
+        else:
+            facet = self._facet(kwargs, facet_group, facet.title, qps)
         return facet
 
     def _facet_group(self, facet_group, entries):
@@ -207,7 +202,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
         return facets
 
     def _nav_link(self, kwargs, rel):
-        href = reverse("opds:v1:browser", kwargs={**kwargs, "page": 1})
+        href = reverse("opds:v1:browser", kwargs={**kwargs})
         return OPDSLink(rel, href, MimeType.NAV)
 
     def _top_link(self, top_link):
@@ -221,7 +216,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
         links = []
         if route := self.obj.get("up_route"):
             links += [self._nav_link(route, Rel.UP)]
-        page = self.obj.get("page", 1)
+        page = self.kwargs.get("page", 1)
         if page > 1:
             route = {**self.kwargs, "page": page - 1}
             links += [self._nav_link(route, Rel.PREV)]
@@ -278,7 +273,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
         """Create a entry instead of a facet."""
         entry_obj = {
             **top_link.kwargs,
-            "name": " ".join((top_link.glyph, top_link.title)),
+            "name": " ".join((filter(None, (top_link.glyph, top_link.title)))),
             "query_params": top_link.query_params,
             "summary": top_link.desc,
         }
@@ -290,21 +285,19 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
         """Create all the entries."""
         entries = []
         try:
-            if not self.use_facets:
+            if not self.use_facets and self.kwargs.get("page") == 1:
                 for tl in TopLinks.ALL:
                     if not self.is_top_link_displayed(tl):
                         entries += [self._top_link_entry(tl)]
                 entries += self._facets(entries=True)
 
             if obj_list := self.obj.get("obj_list"):
-                at_top = self.kwargs.get("pk") == 0
                 for entry_obj in obj_list:
                     entries += [
                         OPDSEntry(
                             entry_obj,
                             self.valid_nav_groups,
                             self.request.query_params,
-                            at_top,
                         )
                     ]
         except Exception as exc:

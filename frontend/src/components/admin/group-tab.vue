@@ -125,7 +125,7 @@ export default {
     },
     tbodyStyle() {
       return this.groups
-        ? { height: ROW_HEIGHT * this.libraries.length + "px" }
+        ? { height: ROW_HEIGHT * this.groups.length + "px" }
         : {};
     },
   },

@@ -36,7 +36,6 @@ from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.watchdog.status import WatchdogStatusTypes
 from codex.logger.logging import get_logger
-from codex.serializers.choices import CHOICES
 
 LOG = get_logger(__name__)
 
@@ -280,13 +279,6 @@ class Folder(WatchedPath):
     """File system folder."""
 
 
-def validate_file_format_choice(choice):
-    """Validate file format."""
-    values = Comic.FileFormat.values
-    if choice not in values:
-        raise ValidationError(_(f"{choice} is not one of {values}"))
-
-
 class Comic(WatchedPath):
     """Comic metadata."""
 
@@ -478,16 +470,16 @@ def cascade_if_user_null(collector, field, sub_objs, _using):
         collector.add_field_update(field, None, sub_objs)
 
 
-def validate_fit_to_choice(choice):
-    """Validate fit to choice."""
-    # Choices is loaded after migration time and after definition time.
-    values = frozenset((None, *CHOICES["fitTo"]))
-    if choice not in values:
-        raise ValidationError(_(f"{choice} is not one of {values}"))
-
-
 class Bookmark(BaseModel):
     """Persist user's bookmarks and settings."""
+
+    class FitTo(TextChoices):
+        """Identifiers for Readder fit_to choices."""
+
+        SCREEN = "SCREEN"
+        WIDTH = "WIDTH"
+        HEIGHT = "HEIGHT"
+        ORIG = "ORIG"
 
     user = ForeignKey(
         settings.AUTH_USER_MODEL, db_index=True, on_delete=CASCADE, null=True
@@ -499,12 +491,10 @@ class Bookmark(BaseModel):
     page = PositiveSmallIntegerField(db_index=True, null=True)
     finished = BooleanField(default=False, db_index=True)
     fit_to = CharField(
-        validators=[validate_fit_to_choice],
-        default="",
-        blank=True,
-        max_length=len("SCREEN"),
+        choices=FitTo.choices, blank=True, default="", max_length=len(FitTo.SCREEN)
     )
     two_pages = BooleanField(default=None, null=True)
+    read_in_reverse = BooleanField(default=None, null=True)
 
     class Meta:
         """Constraints."""
@@ -565,7 +555,7 @@ class Timestamp(NamedModel):
 
     COVERS = "covers"
     JANITOR = "janitor"
-    SEARCH_INDEX = "search_index"
+    SEARCH_INDEX = "search_index"  # TODO remove
     CODEX_VERSION = "codex_version"
     SEARCH_INDEX_UUID = "search_index_uuid"
     API_KEY = "api_key"

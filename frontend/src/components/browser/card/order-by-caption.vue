@@ -11,7 +11,7 @@
 import humanize from "humanize";
 import { mapState } from "pinia";
 
-import { DATE_FORMAT, DATETIME_FORMAT } from "@/datetime";
+import { DATE_FORMAT, getDateTime } from "@/datetime";
 import { useBrowserStore } from "@/stores/browser";
 const STAR_SORT_BY = new Set(["community_rating", "critical_rating"]);
 const DATE_SORT_BY = new Set(["date"]);
@@ -28,6 +28,7 @@ export default {
   computed: {
     ...mapState(useBrowserStore, {
       orderBy: (state) => state.settings.orderBy,
+      twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
     }),
     orderValue() {
       let ov = this.item.orderValue;
@@ -47,9 +48,8 @@ export default {
         // Round Whoosh float into a two digit integer.
         ov = Math.round(Number.parseFloat(ov) * 10);
       } else if (TIME_SORT_BY.has(this.orderBy)) {
-        const date = new Date(ov);
-        // this is what needs v-html to work
-        ov = DATETIME_FORMAT.format(date).replace(", ", "<br />");
+        // this is what needs v-html to work with the embedded break.
+        ov = getDateTime(ov, this.twentyFourHourTime, true);
       } else if (this.orderBy == "page_count") {
         const human = humanize.numberFormat(Number.parseInt(ov, 10), 0);
         ov = `${human} pages`;

@@ -8,7 +8,10 @@
 </template>
 
 <script>
-import { DATE_FORMAT, TIME_FORMAT } from "@/datetime";
+import { mapState } from "pinia";
+
+import { DATE_FORMAT, getTimeFormat } from "@/datetime";
+import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "DateTimeColumn",
@@ -24,11 +27,15 @@ export default {
     };
   },
   computed: {
+    ...mapState(useBrowserStore, {
+      twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
+    }),
     formattedDate: function () {
       return DATE_FORMAT.format(this.date);
     },
     formattedTime: function () {
-      return TIME_FORMAT.format(this.date);
+      const timeFormat = getTimeFormat(this.twentyFourHourTime);
+      return timeFormat.format(this.date);
     },
   },
   created() {},

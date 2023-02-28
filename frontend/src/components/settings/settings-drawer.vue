@@ -83,7 +83,7 @@ export default {
   flex-direction: column;
   justify-content: space-between;
   height: 100%;
-  background-color: rgb(var(--v-theme-background));
+  background-color: rgb(var(--v-theme-background)) !important;
 }
 .settingsHeader {
   padding: 10px;

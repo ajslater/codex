@@ -6,6 +6,28 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.2.4
+
+- Features:
+  - User configurable 24 hour time format.
+  - Reader
+    - Displays covers as one page even in two page mode.
+    - Read in Reverse mode.
+    - Keymaps for adjusting page by one page in two page mode.
+    - Previous and Next book navigation buttons and keymaps.
+- Fix
+  - OPDS:
+    - Fix acquisition feed timeouts on large libraries by removing most m2m
+      fields that populated OPDS categories
+    - Fix pagination
+    - Show series name in comic title.
+    - Experiment: don't show top links or entry facets on pages > 1
+  - Reader:
+    - Two pages mode would skip pages.
+    - Next/prev book goes to correct page for Right To Left tagged books.
+    - Fix occasional error setting reader settings.
+    - Fixed noop poll event happening on comic cover creation.
+
 ## v1.2.3
 
 - Fix

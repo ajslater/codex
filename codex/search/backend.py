@@ -323,3 +323,10 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             self.status_controller.finish(
                 SearchIndexStatusTypes.SEARCH_INDEX_REMOVE, until=until
             )
+
+    def optimize(self):
+        """Optimize the index."""
+        if not self.setup_complete:
+            self.setup()
+        self.index = self.index.refresh()
+        self.index.optimize(**self.WRITERARGS)

@@ -1,7 +1,8 @@
 <template>
   <div v-if="!isMobile" id="readerKeyboardShortcutsDialog">
     <h3>Keyboard Shortcuts</h3>
-    <table id="readerKeyboardShortcutsTable" class="highlight-table">
+    <h4>Navigation</h4>
+    <table class="highlight-table">
       <tbody>
         <tr>
           <td>
@@ -31,16 +32,37 @@
           <td>Next page</td>
         </tr>
         <tr>
+          <td>,</td>
+          <td>Next <em>only</em> one page in two page mode.</td>
+        </tr>
+        <tr>
+          <td>.</td>
+          <td>Previous <em>only</em> one page in two page mode.</td>
+        </tr>
+        <tr>
+          <td>p</td>
+          <td>Previous Book</td>
+        </tr>
+        <tr>
+          <td>n</td>
+          <td>Next Book</td>
+        </tr>
+      </tbody>
+    </table>
+    <h4>Fit Page To</h4>
+    <table class="highlight-table">
+      <tbody>
+        <tr>
+          <td>s</td>
+          <td>screen</td>
+        </tr>
+        <tr>
           <td>h</td>
-          <td>Fit page to screen height</td>
+          <td>screen height</td>
         </tr>
         <tr>
           <td>w</td>
-          <td>Fit page to screen width</td>
-        </tr>
-        <tr>
-          <td>s</td>
-          <td>Fit page to screen</td>
+          <td>screen width</td>
         </tr>
         <tr>
           <td>o</td>
@@ -50,6 +72,15 @@
           <td>2</td>
           <td>Toggle two page view</td>
         </tr>
+        <tr>
+          <td>r</td>
+          <td>Toggle Read in Reverse</td>
+        </tr>
+      </tbody>
+    </table>
+    <h4>Other</h4>
+    <table class="highlight-table">
+      <tbody>
         <tr>
           <td>m</td>
           <td>Show comic's metadata</td>
@@ -94,19 +125,25 @@ export default {
 <style scoped lang="scss">
 #readerKeyboardShortcutsDialog {
   padding: 15px;
+  background-color: rgb(var(--v-theme-background));
 }
-#readerKeyboardShortcutsTable {
+.highlight-table {
   margin-top: 10px;
   border-collapse: collapse;
   color: rgb(var(--v-theme-textDisabled));
 }
-#readerKeyboardShortcutsTable td {
-  min-width: 60px;
+h4 {
+  padding-left: 0.5em;
+  color: rgb(var(--v-theme-textSecondary));
 }
-#readerKeyboardShortcutsTable td {
+.highlight-table tr:nth-child(odd) {
+  background-color: rgb(var(--v-theme-surface)) !important;
+}
+.highlight-table td {
+  min-width: 60px;
   padding: 5px;
 }
-#readerKeyboardShortcutsTable td:first-child {
+.highlight-table td:first-child {
   text-align: center;
 }
 .keyIcon {

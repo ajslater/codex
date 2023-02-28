@@ -215,7 +215,7 @@ import MetadataCreditsTable from "@/components/metadata/credits-table.vue";
 import MetadataTags from "@/components/metadata/metadata-tags.vue";
 import MetadataText from "@/components/metadata/metadata-text.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
-import { DATETIME_FORMAT } from "@/datetime";
+import { getDateTime } from "@/datetime";
 import { getReaderRoute } from "@/route";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
@@ -265,6 +265,9 @@ export default {
   },
   computed: {
     ...mapGetters(useAuthStore, ["isUserAdmin"]),
+    ...mapState(useBrowserStore, {
+      twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
+    }),
     ...mapState(useMetadataStore, {
       md: (state) => state.md,
       downloadFileName: (state) => {
@@ -375,8 +378,7 @@ export default {
       }, UPDATE_INTERVAL);
     },
     formatDateTime: function (ds) {
-      const dt = new Date(ds);
-      return DATETIME_FORMAT.format(dt).replace(",", "");
+      return getDateTime(ds, this.twentyFourHourTime);
     },
     download() {
       this.downloadIOSPWAFix(this.downloadURL, this.downloadFileName);

@@ -2,8 +2,10 @@
 import re
 
 from watchdog.events import (
+    EVENT_TYPE_CLOSED,
     EVENT_TYPE_CREATED,
     EVENT_TYPE_MOVED,
+    EVENT_TYPE_OPENED,
     FileCreatedEvent,
     FileDeletedEvent,
     FileSystemEventHandler,
@@ -19,6 +21,8 @@ _COMIC_MATCHER = re.compile(_COMIC_REGEX, re.IGNORECASE)
 class CodexLibraryEventHandler(FileSystemEventHandler, LoggerBaseMixin):
     """Handle watchdog events for comics in a library."""
 
+    IGNORED_EVENTS = {EVENT_TYPE_CLOSED, EVENT_TYPE_OPENED}
+
     def __init__(self, library, *args, **kwargs):
         """Let us send along he library id."""
         self.library_pk = library.pk
@@ -30,7 +34,9 @@ class CodexLibraryEventHandler(FileSystemEventHandler, LoggerBaseMixin):
     def dispatch(self, event):
         """Send only valid codex events to the EventBatcher."""
         try:
-            if event.is_directory:
+            if event.event_type in self.IGNORED_EVENTS:
+                return
+            elif event.is_directory:
                 if event.event_type == EVENT_TYPE_CREATED:
                     # Directories are only created by comics
                     return

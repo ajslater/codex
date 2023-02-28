@@ -1,6 +1,11 @@
 <template>
   <div id="readerSettings">
-    <v-radio-group v-model="isGlobalScope" density="compact" label="Scope">
+    <v-radio-group
+      v-model="isGlobalScope"
+      density="compact"
+      label="Scope"
+      hide-details="auto"
+    >
       <v-radio label="Only this comic" :value="false" />
       <v-radio label="Default for all comics" :value="true" />
     </v-radio-group>
@@ -8,6 +13,7 @@
       class="displayRadioGroup"
       density="compact"
       label="Display"
+      hide-details="auto"
       :model-value="selectedSettings.fitTo"
       @update:model-value="settingsDialogChanged({ fitTo: $event })"
     >
@@ -22,6 +28,7 @@
       class="displayTwoPages"
       density="compact"
       label="Two pages"
+      hide-details="auto"
       :model-value="selectedSettings.twoPages"
       :true-value="true"
       :indeterminate="
@@ -30,9 +37,33 @@
       "
       @update:model-value="settingsDialogChanged({ twoPages: $event })"
     />
+    <v-label>Reading Direction</v-label>
+    <v-checkbox
+      class="readInReverse"
+      density="compact"
+      label="Read in Reverse"
+      hide-details="auto"
+      :model-value="selectedSettings.readInReverse"
+      :true-value="true"
+      :indeterminate="
+        selectedSettings.readInReverse === null ||
+        selectedSettings.readInReverse === undefined
+      "
+      @update:model-value="settingsDialogChanged({ readInReverse: $event })"
+    />
+    <v-checkbox
+      v-if="isGlobalScope"
+      :model-value="selectedSettings.readRtlInReverse"
+      class="readRtlInReverse"
+      density="compact"
+      label="Read RTL comics in Reverse"
+      hide-details="auto"
+      :true-value="true"
+      @update:model-value="settingsDialogChanged({ readRtlInReverse: $event })"
+    />
     <v-btn
+      v-if="!isGlobalScope"
       id="clearSettingsButton"
-      :class="{ invisible: isGlobalScope }"
       :disabled="isClearSettingsButtonDisabled"
       title="Use the default settings for all comics for this comic"
       @click="clearSettingsLocal($route.params)"
@@ -42,7 +73,7 @@
   </div>
 </template>
 <script>
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapState, mapWritableState } from "pinia";
 
 import { useReaderStore } from "@/stores/reader";
 
@@ -84,6 +115,7 @@ export default {
         return true;
       },
     }),
+    ...mapWritableState(useReaderStore, ["readRTLInReverse"]),
   },
   mounted() {
     document.addEventListener("keyup", this._keyListener);
@@ -130,6 +162,11 @@ export default {
             twoPages: !this.selectedSettings.twoPages,
           };
           break;
+        case "r":
+          updates = {
+            readInReverse: !this.selectedSettings.readInReverse,
+          };
+          break;
       }
       if (updates) {
         this.setSettingsLocal(this.$route.params, updates);
@@ -146,19 +183,20 @@ export default {
   padding-left: 15px;
   padding-right: env(safe-area-inset-right);
   padding-bottom: 10px;
+  background-color: inherit;
 }
-.displayRadioGroup,
+.displayRadioGroup {
+  margin-top: 15px;
+}
 .displayTwoPages {
-  margin-top: 0px;
+  margin-top: 5px;
+  margin-bottom: 10px;
 }
-.displayTwoPages {
-  padding-top: 0px;
-}
-#clearSettingsButton {
+.readRtlInReverse {
   transition: visibility 0.25s, opacity 0.25s;
 }
-.invisible {
-  visibility: hidden;
-  opacity: 0;
+#clearSettingsButton {
+  margin-bottom: 4px;
+  transition: visibility 0.25s, opacity 0.25s;
 }
 </style>

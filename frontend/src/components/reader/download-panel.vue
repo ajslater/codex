@@ -1,15 +1,17 @@
 <template>
-  <v-list-item @click="downloadPage">
-    <v-list-item-title>
-      <v-icon>{{ mdiFileImage }}</v-icon> Download Page
-      {{ $route.params.page }}
-    </v-list-item-title>
-  </v-list-item>
-  <v-list-item @click="downloadBook">
-    <v-list-item-title>
-      <v-icon>{{ mdiDownload }}</v-icon> Download Book
-    </v-list-item-title>
-  </v-list-item>
+  <div id="downloadPanel">
+    <v-list-item @click="downloadPage">
+      <v-list-item-title>
+        <v-icon>{{ mdiFileImage }}</v-icon> Download Page
+        {{ $route.params.page }}
+      </v-list-item-title>
+    </v-list-item>
+    <v-list-item @click="downloadBook">
+      <v-list-item-title>
+        <v-icon>{{ mdiDownload }}</v-icon> Download Book
+      </v-list-item-title>
+    </v-list-item>
+  </div>
 </template>
 <script>
 import { mdiDownload, mdiFileImage } from "@mdi/js";
@@ -53,3 +55,8 @@ export default {
   },
 };
 </script>
+<style scoped lang="scss">
+#downloadPanel {
+  background-color: rgb(var(--v-theme-background));
+}
+</style>

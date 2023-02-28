@@ -14,19 +14,21 @@
       :eager="page >= activePage - 1 && page <= activePage + 2"
       :model-value="page"
       :transition="true"
+      :reverse-transition="readInReverse"
     >
       <BookPage
+        v-if="!readInReverse || (secondPage && page < book.maxPage)"
         :book="book"
         :settings="settings"
         :fit-to-class="fitToClass"
-        :page="page"
+        :page="readInReverse ? page + 1 : page"
       />
       <BookPage
-        v-if="secondPage"
+        v-if="readInReverse || (secondPage && page < book.maxPage)"
         :book="book"
         :settings="settings"
         :fit-to-class="fitToClass"
-        :page="page + 1"
+        :page="readInReverse ? page : page + 1"
       />
     </v-window-item>
   </v-window>
@@ -34,7 +36,7 @@
 
 <script>
 import _ from "lodash";
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import BookPage from "@/components/reader/page.vue";
 import PageChangeLink from "@/components/reader/page-change-link.vue";
@@ -56,28 +58,26 @@ export default {
     };
   },
   computed: {
+    ...mapGetters(useReaderStore, ["isOnCoverPage"]),
     ...mapState(useReaderStore, {
       bookRoutes: (state) => state.routes.books,
       settings(state) {
         const book = state.books.get(this.book.pk);
-        const bookSettings = book ? book.settings : {};
-        return state.getSettings(state.readerSettings, bookSettings);
+        return state.getSettings(state.readerSettings, book);
       },
       prevBookPk: (state) => state.routes.books?.prev.pk,
       twoPages: (state) => state.activeSettings.twoPages,
+      readInReverse: (state) => state.activeSettings.readInReverse,
     }),
     fitToClass() {
       return this.getFitToClass(this.settings);
     },
     pages() {
       const len = this.book?.maxPage + 1 ?? 0;
-      const step = this.settings.twoPages ? 2 : 1;
-      return _.range(0, len, step);
+      return _.range(0, len);
     },
     secondPage() {
-      return (
-        this.settings.twoPages && +this.activePage + 1 <= this.book.maxPage
-      );
+      return this.settings.twoPages && !this.isOnCoverPage;
     },
   },
   watch: {
@@ -121,11 +121,6 @@ export default {
           `Page out of bounds. Redirecting to ${this.book.maxPage}.`
         );
         return this.routeToPage(this.book.maxPage);
-      } else if (this.settings.twoPages && page % 2 !== 0) {
-        console.debug(
-          `Requested odd page ${page} in two pages mode. Flip back one`
-        );
-        return this.routeToPage(page - 1);
       }
       this.activePage = page;
       this.setRoutesAndBookmarkPage(+this.$route.params.page);

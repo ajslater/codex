@@ -15,7 +15,13 @@ LOG = get_logger(__name__)
 class BookmarkBaseView(GenericAPIView, GroupACLMixin):
     """Bookmark Updater."""
 
-    _BOOKMARK_UPDATE_FIELDS = ["page", "finished", "fit_to", "two_pages"]
+    _BOOKMARK_UPDATE_FIELDS = [
+        "page",
+        "finished",
+        "fit_to",
+        "two_pages",
+        "read_in_reverse",
+    ]
     _BOOKMARK_ONLY_FIELDS = _BOOKMARK_UPDATE_FIELDS + ["pk", "comic"]
     _COMIC_ONLY_FIELDS = ("pk", "max_page")
 
@@ -113,7 +119,7 @@ class BookmarkView(BookmarkBaseView):
         """Validate and translate the submitted data."""
         data = self.request.data
         if serializer_class:
-            serializer = serializer_class(data=data)
+            serializer = serializer_class(data=data, partial=True)
         else:
             serializer = self.get_serializer(data=data, partial=True)
         serializer.is_valid(raise_exception=True)

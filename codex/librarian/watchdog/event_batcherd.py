@@ -64,7 +64,6 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         if args_field is None:
             self.log.debug(f"Unhandled event, not batching: {event}")
             return
-
         if event.event_type == EVENT_TYPE_MOVED:
             args_field[event.src_path] = event.dest_path
         else:
