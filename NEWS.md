@@ -17,7 +17,7 @@ border-radius: 128px;
     - Previous and Next book navigation buttons and keymaps.
 - Fix
   - OPDS:
-    - Fix acquistion feed timeouts on large libraries by removing most m2m
+    - Fix acquisition feed timeouts on large libraries by removing most m2m
       fields that populated OPDS categories
     - Fix pagination
     - Show series name in comic title.
