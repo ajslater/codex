@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.2.5
+
+- Features:
+  - In Folder View the reader navigates by folder instead of series.
+- Fix:
+  - OPDS crash on missing 24 hour time setting input required.
+
 ## v1.2.4
 
 - Features:
