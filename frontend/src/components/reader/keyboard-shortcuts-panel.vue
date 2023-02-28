@@ -145,6 +145,9 @@ export default {
   margin-right: 0.33em !important;
   color: rgb(var(--v-theme-textDisabled));
 }
+:deep(.v-expansion-panel-title--active) {
+  min-height: 48px !important;
+}
 :deep(.v-expansion-panel-text__wrapper) {
   padding-left: 10px;
   padding-right: 10px;
