@@ -67,8 +67,8 @@ class JanitorThread(NamedThread):
             JanitorStatusTypes.DB_VACUUM: {},
             JanitorStatusTypes.DB_BACKUP: {},
             JanitorStatusTypes.CODEX_UPDATE: {},
-            SearchIndexStatusTypes.SEARCH_INDEX_PREPARE: {},
-            SearchIndexStatusTypes.SEARCH_INDEX_COMMIT: {},
+            SearchIndexStatusTypes.SEARCH_INDEX_UPDATE: {},
+            SearchIndexStatusTypes.SEARCH_INDEX_REMOVE: {},
             SearchIndexStatusTypes.SEARCH_INDEX_OPTIMIZE: {},
             CoverStatusTypes.FIND_ORPHAN: {},
         }

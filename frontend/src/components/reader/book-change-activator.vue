@@ -22,11 +22,14 @@ export default {
   computed: {
     ...mapGetters(useReaderStore, ["prevBookChangeShow", "nextBookChangeShow"]),
     show() {
-      return this[this.direction + "BookChangeShow"];
+      return this[this.computedDirection + "BookChangeShow"];
+    },
+    computedDirection() {
+      return this.normalizeDirection(this.direction);
     },
   },
   methods: {
-    ...mapActions(useReaderStore, ["setBookChangeFlag"]),
+    ...mapActions(useReaderStore, ["setBookChangeFlag", "normalizeDirection"]),
   },
 };
 </script>

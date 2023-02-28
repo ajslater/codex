@@ -1,7 +1,7 @@
 """Bulk import and move comics and folders."""
 import logging
 from pathlib import Path
-from time import time
+from time import sleep, time
 
 from django.core.cache import cache
 from humanize import naturaldelta
@@ -49,7 +49,7 @@ class ComicImporterThread(
         while old_total_size != total_size:
             if old_total_size > 0:
                 # second time around or more
-                time.sleep(wait_time)
+                sleep(wait_time)
                 wait_time = wait_time**2
                 self.log.debug(
                     f"Waiting for files to copy before import: "
@@ -169,12 +169,8 @@ class ComicImporterThread(
                 "name": f"({len(task.files_deleted)})"
             }
             total_changes += len(task.files_deleted)
-        types_map[SearchIndexStatusTypes.SEARCH_INDEX_PREPARE] = {
-            "total": total_changes
-        }
-        types_map[SearchIndexStatusTypes.SEARCH_INDEX_COMMIT] = {
-            "name": f"({total_changes})"
-        }
+        types_map[SearchIndexStatusTypes.SEARCH_INDEX_UPDATE] = {"total": total_changes}
+        types_map[SearchIndexStatusTypes.SEARCH_INDEX_REMOVE] = {}
         self.status_controller.start_many(types_map)
 
     def _finish_apply(self, library):

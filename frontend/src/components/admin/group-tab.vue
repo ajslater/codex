@@ -22,7 +22,7 @@
             <th>Delete</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody :style="tbodyStyle">
           <tr v-for="item in groups" :key="`g:${item.pk}:${item.keyHack}`">
             <td class="nameCol">
               {{ item.name }}
@@ -87,6 +87,7 @@ const TABLE_PADDING = 24;
 const BUFFER = FIXED_TOOLBARS + ADD_HEADER + GROUP_HELP + TABLE_PADDING;
 const TABLE_ROW_HEIGHT = 48;
 const MIN_TABLE_HEIGHT = TABLE_ROW_HEIGHT * 2;
+const ROW_HEIGHT = 84;
 
 export default {
   name: "AdminGroupsTab",
@@ -121,6 +122,11 @@ export default {
       return this.tableMaxHeight < availableHeight
         ? undefined
         : Math.max(availableHeight, MIN_TABLE_HEIGHT);
+    },
+    tbodyStyle() {
+      return this.groups
+        ? { height: ROW_HEIGHT * this.groups.length + "px" }
+        : {};
     },
   },
   mounted() {

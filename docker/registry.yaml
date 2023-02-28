@@ -1,0 +1,8 @@
+name: registry
+services:
+  registry:
+    image: registry
+    container_name: registry
+    ports:
+      - "80:5000"
+      - "443:5000"

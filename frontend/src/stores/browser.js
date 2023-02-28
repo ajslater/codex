@@ -58,6 +58,7 @@ export const useBrowserStore = defineStore("browser", {
       orderBy: undefined,
       orderReverse: undefined,
       show: { ...SETTINGS_SHOW_DEFAULTS },
+      twentyFourHourTime: undefined,
     },
     page: {
       adminFlags: {

@@ -1,12 +1,12 @@
 <template>
   <div v-if="isUserAdmin">
+    <v-list-item @click="librarianTask('poll')">
+      <v-list-item-title
+        ><v-icon>{{ mdiDatabaseClockOutline }}</v-icon
+        >Poll All Libraries</v-list-item-title
+      >
+    </v-list-item>
     <div v-if="menu">
-      <v-list-item @click="librarianTask('poll')">
-        <v-list-item-title
-          ><v-icon>{{ mdiDatabaseClockOutline }}</v-icon
-          >Poll All Libraries</v-list-item-title
-        >
-      </v-list-item>
       <v-list-item :to="{ name: 'admin' }">
         <v-list-item-title>
           <v-icon>{{ mdiCogOutline }}</v-icon

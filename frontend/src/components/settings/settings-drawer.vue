@@ -5,8 +5,8 @@
     disable-resize-watcher
     disable-route-watcher
     location="right"
-    :scrim="!admin"
-    :temporary="!admin"
+    :scrim="!adminAndNotSmall"
+    :temporary="!adminAndNotSmall"
     touchless
   >
     <div class="settingsDrawerContainer">
@@ -66,9 +66,12 @@ export default {
     ...mapState(useReaderStore, {
       invisibleHack: (state) => state.bookChange === "next",
     }),
+    adminAndNotSmall() {
+      return this.admin && !this.$vuetify.display.smAndDown;
+    },
   },
   mounted() {
-    this.isSettingsDrawerOpen = this.admin && !this.$vuetify.display.smAndDown;
+    this.isSettingsDrawerOpen = this.adminAndNotSmall;
   },
 };
 </script>
@@ -80,7 +83,7 @@ export default {
   flex-direction: column;
   justify-content: space-between;
   height: 100%;
-  background-color: rgb(var(--v-theme-background));
+  background-color: rgb(var(--v-theme-background)) !important;
 }
 .settingsHeader {
   padding: 10px;

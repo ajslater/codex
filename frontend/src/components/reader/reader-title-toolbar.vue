@@ -118,7 +118,11 @@ export default {
   },
   methods: {
     ...mapActions(useCommonStore, ["setTimestamp"]),
-    ...mapActions(useReaderStore, ["routeToDirection"]),
+    ...mapActions(useReaderStore, [
+      "routeToDirection",
+      "routeToDirectionOne",
+      "setBookChangeFlag",
+    ]),
     openMetadata() {
       this.$refs.metadataDialog.dialog = true;
     },
@@ -154,6 +158,12 @@ export default {
         case "k":
         case "ArrowLeft":
           this.routeToDirection(PREV);
+          break;
+        case ",":
+          this.routeToDirectionOne(PREV);
+          break;
+        case ".":
+          this.routeToDirectionOne(NEXT);
           break;
         case "Escape":
           this.$refs.closeBook.$el.click();

@@ -8,21 +8,20 @@ from rest_framework.serializers import (
     Serializer,
 )
 
-from codex.serializers.choices import CHOICES
-
-FIT_TO_CHOICES = tuple(CHOICES["fitTo"].keys())
+from codex.models import Bookmark
 
 
 class ReaderSettingsSerializer(Serializer):
     """Reader settings the user can change."""
 
     fit_to = ChoiceField(
-        choices=FIT_TO_CHOICES,
+        choices=Bookmark.FitTo.choices,
         allow_blank=True,
-        allow_null=True,
         required=False,
     )
     two_pages = BooleanField(allow_null=True, required=False)
+    read_in_reverse = BooleanField(allow_null=True, required=False)
+    read_rtl_in_reverse = BooleanField(allow_null=True, required=False)
 
 
 class ReaderComicSerializer(Serializer):
@@ -39,6 +38,7 @@ class ReaderComicSerializer(Serializer):
     series_name = CharField(read_only=True)
     volume_name = CharField(read_only=True)
     series_index = IntegerField(read_only=True)
+    read_ltr = BooleanField(allow_null=True, read_only=True)
     settings = ReaderSettingsSerializer(read_only=True)
 
 

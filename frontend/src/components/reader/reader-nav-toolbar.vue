@@ -1,6 +1,7 @@
 <template>
   <PaginationToolbar v-if="maxPage">
-    <ReaderNavButton :value="0" />
+    <ReaderBookChangeNavButton :direction="bookPrev" />
+    <ReaderNavButton :value="min" :two-pages="twoPages" />
     <PaginationSlider
       :key="key"
       :model-value="+$route.params.page"
@@ -8,9 +9,11 @@
       :max="maxPage"
       :step="step"
       :track-color="trackColor"
+      :reverse="readInReverse"
       @update:model-value="routeToPage($event)"
     />
-    <ReaderNavButton :value="maxPage" :two-pages="twoPages" />
+    <ReaderNavButton :value="max" :two-pages="twoPages" />
+    <ReaderBookChangeNavButton :direction="bookNext" />
   </PaginationToolbar>
 </template>
 
@@ -19,6 +22,7 @@ import { mapActions, mapGetters } from "pinia";
 
 import PaginationSlider from "@/components/pagination-slider.vue";
 import PaginationToolbar from "@/components/pagination-toolbar.vue";
+import ReaderBookChangeNavButton from "@/components/reader/reader-book-change-nav-button.vue";
 import ReaderNavButton from "@/components/reader/reader-nav-button.vue";
 import { useReaderStore } from "@/stores/reader";
 
@@ -28,6 +32,7 @@ export default {
     PaginationSlider,
     ReaderNavButton,
     PaginationToolbar,
+    ReaderBookChangeNavButton,
   },
   computed: {
     ...mapGetters(useReaderStore, ["activeSettings", "activeBook"]),
@@ -48,6 +53,21 @@ export default {
       return this.twoPages && +this.$route.params.page >= this.maxPage - 1
         ? this.$vuetify.theme.current.colors.primary
         : "";
+    },
+    readInReverse() {
+      return this.activeSettings.readInReverse;
+    },
+    min() {
+      return this.readInReverse ? this.maxPage : 0;
+    },
+    max() {
+      return this.readInReverse ? 0 : this.maxPage;
+    },
+    bookPrev() {
+      return this.readInReverse ? "next" : "prev";
+    },
+    bookNext() {
+      return this.readInReverse ? "prev" : "next";
     },
   },
   methods: {

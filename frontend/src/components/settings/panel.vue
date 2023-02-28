@@ -1,7 +1,9 @@
 <template>
-  <AuthMenu />
-  <v-divider v-if="isUserAdmin" />
-  <component :is="AdminMenu" v-if="isUserAdmin" :menu="adminMenu" />
+  <div id="commonPanel">
+    <AuthMenu />
+    <v-divider v-if="isUserAdmin" />
+    <component :is="AdminMenu" v-if="isUserAdmin" :menu="adminMenu" />
+  </div>
 </template>
 
 <script>
@@ -31,3 +33,8 @@ export default {
   },
 };
 </script>
+<style scoped lang="scss">
+#commonPanel {
+  background-color: rgb(var(--v-theme-background));
+}
+</style>

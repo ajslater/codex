@@ -67,24 +67,23 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
     def _is_watch_path_ok(self, library):
         """Return a special timeout value if there's a problem with the watch dir."""
         if not library.poll:
-            self.log.warning(f"Library {self._watch_path} not poll enabled.")
-            self._stopped_event.set()
-            return False
+            # Wait forever. Manual poll only
+            return None
         if not self._watch_path.is_dir():
             self.log.warning(f"Library {self._watch_path} not found.")
-            return
+            return False
         if self._watch_path_unmounted.exists():
             # Maybe overkill of caution here
             self.log.warning(
                 f"Library {self._watch_path} looks like an unmounted docker volume."
             )
-            return
+            return False
         if not tuple(self._watch_path.iterdir()):
             # Maybe overkill of caution here too
             self.log.warning(
                 f"{self._watch_path} is empty. Suspect it may be unmounted."
             )
-            return
+            return False
 
         return True
 
@@ -97,9 +96,10 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
         try:
             library = Library.objects.get(path=self.watch.path)
             ok = self._is_watch_path_ok(library)
-            if ok is False:
-                return 0
-            elif ok is None:
+            if ok is None:
+                self.log.info(f"Library {self._watch_path} waiting for manual poll.")
+                return None
+            elif ok is False:
                 return self._DIR_NOT_FOUND_TIMEOUT
 
             if library.last_poll:
@@ -110,6 +110,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
                     - since_last_poll.total_seconds(),
                 )
         except Exception as exc:
+            timeout = None
             self.log.error(f"Getting timeout for {self.watch.path}")
             self.log.exception(exc)
         return timeout
@@ -128,7 +129,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
 
         library = Library.objects.get(path=self.watch.path)
         ok = self._is_watch_path_ok(library)
-        if not ok:
+        if ok is False:
             self.log.warning("Not Polling.")
             return
         return library

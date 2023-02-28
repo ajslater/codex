@@ -26,7 +26,7 @@
             <th>Delete</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody :style="tbodyStyle">
           <tr v-for="item in users" :key="`u:${item.pk}:${item.keyHack}`">
             <td class="usernameCol">
               {{ item.username }}
@@ -101,6 +101,7 @@ const TABLE_PADDING = 24;
 const BUFFER = FIXED_TOOLBARS + ADD_HEADER + TABLE_PADDING;
 const TABLE_ROW_HEIGHT = 48;
 const MIN_TABLE_HEIGHT = TABLE_ROW_HEIGHT * 2;
+const ROW_HEIGHT = 84;
 
 export default {
   name: "AdminUsersTab",
@@ -136,6 +137,11 @@ export default {
       return this.tableMaxHeight < availableHeight
         ? undefined
         : Math.max(availableHeight, MIN_TABLE_HEIGHT);
+    },
+    tbodyStyle() {
+      return this.users
+        ? { height: ROW_HEIGHT * this.users.length + "px" }
+        : {};
     },
   },
   mounted() {

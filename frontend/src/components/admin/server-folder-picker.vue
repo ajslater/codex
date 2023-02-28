@@ -82,10 +82,7 @@ export default {
         this.originalPath = this.rootFolder;
         return true;
       })
-      .catch((error) => {
-        console.log("created loadFolders");
-        console.warn(error);
-      });
+      .catch(console.warn);
   },
   methods: {
     ...mapActions(useAdminStore, ["clearFolders", "loadFolders"]),
@@ -109,11 +106,7 @@ export default {
           }
           return this.$emit("change", changePath);
         })
-        // .catch(console.warn);
-        .catch((error) => {
-          console.log("created loadFolders");
-          console.warn(error);
-        });
+        .catch(console.warn);
     },
     onBlur() {
       this.menuOpen = false;

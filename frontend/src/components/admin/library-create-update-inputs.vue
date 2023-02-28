@@ -16,7 +16,7 @@
   />
   <v-checkbox
     v-model="row.poll"
-    label="Poll Filesystem"
+    label="Poll Filesystem Periodically"
     hide-details="auto"
     hint="Periodically poll the library for changes"
     :persistent-hint="true"
@@ -104,14 +104,12 @@ export default {
   watch: {
     row: {
       handler(to) {
-        console.log("watch row emit change.", to);
         this.$emit("change", to);
       },
       deep: true,
     },
     oldRow: {
       handler(to) {
-        console.log("watch oldRow.");
         this.row = _.cloneDeep(to);
       },
       deep: true,

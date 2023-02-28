@@ -304,7 +304,7 @@ class CreateForeignKeysMixin(QueuedThread):
             since = self._status_update(count, total_fks, since)
 
             for cls, names in create_fks.items():
-                count = self._bulk_create_named_models(cls, names)
+                count += self._bulk_create_named_models(cls, names)
                 since = self._status_update(count, total_fks, since)
 
             # This must happen after credit_fks created by create_named_models

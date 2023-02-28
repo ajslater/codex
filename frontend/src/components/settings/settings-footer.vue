@@ -5,6 +5,7 @@
       id="repo"
       href="https://github.com/ajslater/codex"
       title="Codex Source Repository"
+      target="_blank"
     >
       <v-icon id="repoIcon" size="x-small">{{ mdiSourceRepository }}</v-icon>
       repository<v-icon

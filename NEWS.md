@@ -6,6 +6,51 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.2.4
+
+- Feature:
+  - User configurable 24 hour time format.
+  - Reader
+    - Displays covers as one page even in two page mode.
+    - Read in Reverse mode.
+    - Keymaps for adjusting page by one page in two page mode.
+    - Previous and Next book navigation buttons and keymaps.
+- Fix
+  - OPDS:
+    - Fix acquistion feed timeouts on large libraries by removing most m2m
+      fields that populated OPDS categories
+    - Fix pagination
+    - Show series name in comic title.
+    - Experiment: don't show top links or entry facets on pages > 1
+  - Reader in two pages mode would skip pages.
+  - Reader next/prev book goes to correct page for Right To Left tagged books.
+  - Fix occasional error setting reader settings.
+  - Fixed noop poll event happening on comic cover creation.
+
+## v1.2.3
+
+- Fix
+  - Prevent search indexing starting over if it encounters errors.
+  - Fix download buttons.
+  - Fix admin settings drawer obscuring small screens.
+  - Fix scroll bars showing inapproporately on admin tables.
+  - Fix OPDS authors having 'i' appended.
+
+## v1.2.2
+
+- Fix
+  - Fix all items removed from search index after update.
+  - Speedups to cleaning up search engine ghosts.
+
+## v1.2.1
+
+- Fix
+  - Crash on building a fresh database.
+  - Fixed an importer crash when it tried to wait for changing files.
+  - Disabling Library Poll prevented manual polling.
+  - More explicit Poll Every hints in edit dialog.
+  - Repository link didn't open a new window.
+
 ## v1.2.0
 
 ### What kind of Heaven uses bounty hunters?

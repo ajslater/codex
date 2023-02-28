@@ -1,11 +1,13 @@
 """Custom Haystack Search Backend."""
+from logging import getLogger
 from multiprocessing import cpu_count
+from queue import SimpleQueue
+from sys import maxsize
 from time import time
 
 from django.utils.timezone import now
 from haystack.backends.whoosh_backend import TEXT, WhooshSearchBackend
 from haystack.exceptions import SkipDocument
-from haystack.utils import get_identifier
 from humanfriendly import InvalidSize, parse_size
 from humanize import naturaldelta
 from whoosh.analysis import CharsetFilter, StandardAnalyzer, StemFilter
@@ -13,10 +15,11 @@ from whoosh.fields import NUMERIC
 from whoosh.qparser import FieldAliasPlugin, GtLtPlugin, OperatorsPlugin
 from whoosh.qparser.dateparse import DateParserPlugin
 from whoosh.support.charset import accent_map
-from whoosh.writing import AsyncWriter
+from whoosh.writing import MERGE_SMALL, BufferedWriter
 
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.logger.logging import get_logger
+from codex.status_controller import StatusController
 from codex.worker_base import WorkerBaseMixin
 
 
@@ -99,20 +102,31 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         Not=r"(?i)(^|(?<=(\s|[()])))NOT(?=\s)",
         Require=r"(?i)(^|(?<=\s))REQUIRE(?=\s)",
     )
-    MULTISEGMENT_CUTOFF = 500
-    UPDATE_FINISH_TYPES = frozenset(
+    STATUS_FINISH_TYPES = frozenset(
         (
             SearchIndexStatusTypes.SEARCH_INDEX_CLEAR,
-            SearchIndexStatusTypes.SEARCH_INDEX_PREPARE,
-            SearchIndexStatusTypes.SEARCH_INDEX_COMMIT,
+            SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
         )
     )
+    WRITERARGS = {
+        "limitmb": maxsize,
+        "procs": cpu_count(),
+        # Bug in Whoosh means procs > 1 needs multisegment
+        # https://github.com/mchaput/whoosh/issues/35
+        "multisegement": True,
+    }
+    COMMITARGS = {"merge": True, "mergetype": MERGE_SMALL}
 
     def __init__(self, connection_alias, **connection_options):
         """Init worker queues."""
-        log_queue = connection_options.get("LOG_QUEUE")
-        librarian_queue = connection_options.get("LIBRARIAN_QUEUE")
-        self.init_worker(log_queue, librarian_queue)
+        log_queue = connection_options.pop("log_queue", None)
+        librarian_queue = connection_options.pop("librarian_queue", None)
+        if log_queue and librarian_queue:
+            self.init_worker(log_queue, librarian_queue)
+        else:
+            self.log = getLogger(self.__class__.__name__)
+            self.log.propagate = False
+            self.status_controller = StatusController(SimpleQueue(), SimpleQueue())
         super().__init__(connection_alias, **connection_options)
 
     def build_schema(self, fields):
@@ -155,29 +169,20 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         )
         self.parser.replace_plugin(self.OPERATORS_PLUGIN)
 
-    @classmethod
-    def get_writerargs(cls, num_objs):
-        """Use multiproc, multisegment writing only for large loads."""
-        writerargs = {
-            "limitdb": 256,
-        }
-        if num_objs > cls.MULTISEGMENT_CUTOFF:
-            # Bug in Whoosh means procs > 1 needs multisegment
-            # https://github.com/mchaput/whoosh/issues/35
-            writerargs["procs"] = cpu_count()
-            writerargs["multisegment"] = cpu_count() > 1
-        return writerargs
-
     def update(self, index, iterable, commit=True):
         """Update index, but with writer options."""
         start = since = time()
         try:
             num_objs = len(iterable)
+            if num_objs < 1:
+                self.log.debug("Search index nothing to update.")
+                return
+
             statuses = {
-                SearchIndexStatusTypes.SEARCH_INDEX_PREPARE: {
+                SearchIndexStatusTypes.SEARCH_INDEX_UPDATE: {
                     "total": num_objs,
                 },
-                SearchIndexStatusTypes.SEARCH_INDEX_COMMIT: {"name": f"({num_objs})"},
+                # SearchIndexStatusTypes.SEARCH_INDEX_COMMIT: {},
             }
             self.status_controller.start_many(statuses)
             if not self.setup_complete:
@@ -185,9 +190,16 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
 
             self.index = self.index.refresh()
 
-            writerargs = self.get_writerargs(num_objs)
-            writer = AsyncWriter(self.index, writerargs=writerargs)
+            # writer = AsyncWriter(self.index, writerargs=self.WRITERARGS)
+            writer = BufferedWriter(
+                self.index,
+                limit=maxsize,
+                period=60 * 5,
+                writerargs=self.WRITERARGS,
+                commitargs=self.COMMITARGS,
+            )
 
+            obj_count = 0
             for obj_count, obj in enumerate(iterable):
                 try:
                     doc = index.full_prepare(obj)
@@ -205,47 +217,51 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
 
                     try:
                         writer.update_document(**doc)
-                    except Exception:
+                    except Exception as exc:
                         if not self.silently_fail:
                             raise
 
                         # We'll log the object identifier but won't include the actual
                         # object to avoid the possibility of that generating encoding
                         # errors while processing the log message:
-                        self.log.exception(
-                            "Preparing object for update",
-                            extra={
-                                "data": {"index": index, "object": get_identifier(obj)}
-                            },
+                        self.log.warning(
+                            f"Search index updating document {exc} pk:{obj.pk}",
                         )
                 since = self.status_controller.update(
-                    SearchIndexStatusTypes.SEARCH_INDEX_PREPARE,
+                    SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
                     obj_count,
                     num_objs,
                     since=since,
                 )
+            prepare_start = time()
+            try:
+                if obj_count > 1:
+                    self.log.debug("Search index beginning final commit.")
+                    writer.commit()
+                else:
+                    self.log.debug("Search index update cancelling nothing to update.")
+                    writer.cancel()
+            except Exception as exc:
+                self.log.error("During search index writer final commit or cancel.")
+                self.log.exception(exc)
+
+            writer.close()
 
             elapsed_time = time() - start
-            until = start + 1
-            self.status_controller.finish(
-                SearchIndexStatusTypes.SEARCH_INDEX_PREPARE, until=until
-            )
             elapsed = naturaldelta(elapsed_time)
-            self.log.info(f"Search engine prepared objects for commit in {elapsed}")
+            cps = int(num_objs / elapsed_time)
+            self.log.info(
+                f"Search engine updated {num_objs} comics"
+                f" in {elapsed} at {cps} comics per second."
+            )
+            until = prepare_start + 1
+            self.status_controller.finish(
+                SearchIndexStatusTypes.SEARCH_INDEX_UPDATE, until=until
+            )
 
-            prepare_start = time()
-            if len(iterable) > 0:
-                # For now, commit no matter what, as we run into locking issues
-                # otherwise.
-                if commit:
-                    writer.commit(merge=True)
-                if writer.ident is not None:
-                    writer.join()
-            elapsed = naturaldelta(time() - prepare_start)
-            self.log.info(f"Search engine committed index in {elapsed}")
         finally:
             until = start + 1
-            self.status_controller.finish_many(self.UPDATE_FINISH_TYPES, until=until)
+            self.status_controller.finish_many(self.STATUS_FINISH_TYPES, until=until)
 
     def clear(self, models=None, commit=True):
         """Clear index with codex status messages."""
@@ -258,3 +274,59 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             self.status_controller.finish(
                 SearchIndexStatusTypes.SEARCH_INDEX_CLEAR, until=until
             )
+
+    def remove_batch(self, doc_ids):
+        """Remove a large batch of doc ids from the index."""
+        num_doc_ids = len(doc_ids)
+        self.status_controller.start(
+            SearchIndexStatusTypes.SEARCH_INDEX_REMOVE, num_doc_ids
+        )
+        start = since = time()
+        try:
+            if not self.setup_complete:
+                self.setup()
+
+            self.index = self.index.refresh()
+            writer = BufferedWriter(
+                self.index,
+                limit=maxsize,
+                period=60 * 5,
+                writerargs=self.WRITERARGS,
+                commitargs=self.COMMITARGS,
+            )
+            count = 0
+            for count, doc_id in enumerate(doc_ids):
+                writer.delete_document(doc_id)
+                since = self.status_controller.update(
+                    SearchIndexStatusTypes.SEARCH_INDEX_REMOVE,
+                    count,
+                    num_doc_ids,
+                    since=since,
+                )
+
+            if len(doc_ids) > 1:
+                writer.commit()
+            else:
+                writer.cancel()
+            writer.close()
+
+            elapsed_time = time() - start
+
+            elapsed = naturaldelta(elapsed_time)
+            cps = int(count / elapsed_time)
+            self.log.info(
+                f"Search engine removed {count} ghosts from the index"
+                f" in {elapsed} at {cps} per second."
+            )
+        finally:
+            until = start + 1
+            self.status_controller.finish(
+                SearchIndexStatusTypes.SEARCH_INDEX_REMOVE, until=until
+            )
+
+    def optimize(self):
+        """Optimize the index."""
+        if not self.setup_complete:
+            self.setup()
+        self.index = self.index.refresh()
+        self.index.optimize(**self.WRITERARGS)

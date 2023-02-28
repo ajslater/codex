@@ -17,17 +17,17 @@
           <tr>
             <th>Path</th>
             <th>Watch Filesystem Events</th>
-            <th>Poll Filesystem</th>
+            <th>Poll Filesystem Periodically</th>
             <th>Poll Every</th>
             <th>Last Poll</th>
             <th>Groups</th>
             <th>Poll for Updates Now</th>
-            <th>Force Update</th>
+            <th>Force Reimport</th>
             <th>Edit</th>
             <th>Delete</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody :style="tbodyStyle">
           <tr v-for="item in libraries" :key="item.pk">
             <td>{{ item.path }}</td>
             <td>
@@ -63,9 +63,9 @@
             <td>
               <ConfirmDialog
                 :icon="mdiDatabaseImportOutline"
-                title-text="Force Update Library"
+                title-text="Force Reimport of Entire Library"
                 :object-name="item.path"
-                confirm-text="Force Update"
+                confirm-text="Force Reimport"
                 @confirm="forcePoll(item.pk)"
               />
             </td>
@@ -110,8 +110,9 @@ import AdminFailedImportsPanel from "@/components/admin/failed-imports-panel.vue
 import AdminLibraryCreateUpdateInputs from "@/components/admin/library-create-update-inputs.vue";
 import RelationChips from "@/components/admin/relation-chips.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
-import { DATETIME_FORMAT } from "@/datetime";
+import { getDateTime } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
+import { useBrowserStore } from "@/stores/browser";
 
 const FIXED_TOOLBARS = 96 + 16;
 const ADD_HEADER = 36;
@@ -120,6 +121,7 @@ const FAILED_IMPORTS = 60 + 48 + 64;
 const BUFFER = FIXED_TOOLBARS + ADD_HEADER + FAILED_IMPORTS + TABLE_PADDING;
 const TABLE_ROW_HEIGHT = 48;
 const MIN_TABLE_HEIGHT = TABLE_ROW_HEIGHT * 2;
+const ROW_HEIGHT = 84;
 
 export default {
   name: "AdminLibrariesTab",
@@ -157,11 +159,19 @@ export default {
       tableMaxHeight: (state) =>
         (state.libraries.length + 1) * TABLE_ROW_HEIGHT,
     }),
+    ...mapState(useBrowserStore, {
+      twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
+    }),
     tableHeight() {
       const availableHeight = this.innerHeight - BUFFER;
       return this.tableMaxHeight < availableHeight
         ? undefined
         : Math.max(availableHeight, MIN_TABLE_HEIGHT);
+    },
+    tbodyStyle() {
+      return this.libraries
+        ? { height: ROW_HEIGHT * this.libraries.length + "px" }
+        : {};
     },
   },
   mounted() {
@@ -178,7 +188,7 @@ export default {
       if (!dttm) {
         return "";
       }
-      return DATETIME_FORMAT.format(new Date(dttm));
+      return getDateTime(dttm, this.twentyFourHourTime);
     },
     changeCol(pk, field, val) {
       this.lastUpdate.pk = pk;

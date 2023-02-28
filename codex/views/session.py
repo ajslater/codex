@@ -95,6 +95,7 @@ class BrowserSessionViewBase(SessionViewBaseBase):
         "q": DEFAULTS["q"],
         "route": DEFAULTS["route"],
         "show": DEFAULTS["show"],
+        "twenty_four_hour_time": False,
         "top_group": DEFAULTS["topGroup"],
     }
 
@@ -103,7 +104,12 @@ class ReaderSessionViewBase(SessionViewBaseBase):
     """Reader session base."""
 
     SESSION_KEY = "reader"  # type: ignore
-    SESSION_DEFAULTS = {"fit_to": DEFAULTS["fitTo"], "two_pages": False}
+    SESSION_DEFAULTS = {
+        "fit_to": DEFAULTS["fitTo"],
+        "two_pages": False,
+        "read_in_reverse": False,
+        "read_rtl_in_reverse": False,
+    }
 
 
 class SessionViewBase(SessionViewBaseBase, ABC):
