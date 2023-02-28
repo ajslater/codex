@@ -159,7 +159,7 @@ class BrowserSettingsSerializer(Serializer):
     order_reverse = BooleanField(required=False)
     q = CharField(allow_blank=True, required=False)
     show = BrowserSettingsShowGroupFlagsSerializer(required=False)
-    twenty_four_hour_time = BooleanField()
+    twenty_four_hour_time = BooleanField(required=False)
     top_group = ChoiceField(choices=tuple(CHOICES["topGroup"].keys()), required=False)
 
 
