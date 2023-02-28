@@ -190,7 +190,8 @@ class ComicImporterThread(
             if too_long:
                 self.log.warning(
                     "Import apply waited for the filesystem to stop changing too long. "
-                    "Try polling again once files have finished copying."
+                    "Try polling again once files have finished copying"
+                    f" in library: {library.path}"
                 )
                 return
             self._log_task(library.path, task)
