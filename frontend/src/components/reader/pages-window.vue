@@ -131,3 +131,9 @@ export default {
 </script>
 
 /* Inherits v-window styles from books-window */
+<style scoped lang="scss">
+.windowItem {
+  /* prevents inline images from padding and producing scroll bars */
+  font-size: 0;
+}
+</style>
