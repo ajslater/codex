@@ -14,6 +14,11 @@ from codex.settings.settings import SEARCH_INDEX_PATH
 class UpdateMixin(VersionMixin, RemoveMixin):
     """Search Index update methods."""
 
+    _STATUS_UPDATE_START_TYPES = {
+        SearchIndexStatusTypes.SEARCH_INDEX_UPDATE: {},
+        SearchIndexStatusTypes.SEARCH_INDEX_FIND_REMOVE: {},
+        SearchIndexStatusTypes.SEARCH_INDEX_REMOVE: {},
+    }
     _STATUS_FINISH_TYPES = frozenset(
         (
             SearchIndexStatusTypes.SEARCH_INDEX_CLEAR,
@@ -56,13 +61,7 @@ class UpdateMixin(VersionMixin, RemoveMixin):
             statuses = {}
             if rebuild:
                 statuses[SearchIndexStatusTypes.SEARCH_INDEX_CLEAR] = {}
-            statuses.update(
-                {
-                    SearchIndexStatusTypes.SEARCH_INDEX_UPDATE: {},
-                    SearchIndexStatusTypes.SEARCH_INDEX_FIND_REMOVE: {},
-                    SearchIndexStatusTypes.SEARCH_INDEX_REMOVE: {},
-                }
-            )
+            statuses.update(self._STATUS_UPDATE_START_TYPES)
             self.status_controller.start_many(statuses)
 
             SEARCH_INDEX_PATH.mkdir(parents=True, exist_ok=True)
