@@ -6,6 +6,14 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.2.6
+
+- Fix
+  - Impose memory limits on search index writers.
+  - Impose items before write limits search index writer.
+  - Sort comics by path for the reader navigation when in Folder View.
+  - Remove inappropriate vertical scroll bars from page images.
+
 ## v1.2.5
 
 - Features:

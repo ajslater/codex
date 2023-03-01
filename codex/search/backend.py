@@ -2,7 +2,6 @@
 from logging import getLogger
 from multiprocessing import cpu_count
 from queue import SimpleQueue
-from sys import maxsize
 from time import time
 
 from django.utils.timezone import now
@@ -109,12 +108,14 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         )
     )
     WRITERARGS = {
-        "limitmb": maxsize,
+        "limitmb": 512,
         "procs": cpu_count(),
         # Bug in Whoosh means procs > 1 needs multisegment
         # https://github.com/mchaput/whoosh/issues/35
         "multisegement": True,
     }
+    WRITER_PERIOD = 60 * 5
+    WRITER_LIMIT = 10000
     COMMITARGS = {"merge": True, "mergetype": MERGE_SMALL}
 
     def __init__(self, connection_alias, **connection_options):
@@ -193,8 +194,8 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             # writer = AsyncWriter(self.index, writerargs=self.WRITERARGS)
             writer = BufferedWriter(
                 self.index,
-                limit=maxsize,
-                period=60 * 5,
+                limit=self.WRITER_LIMIT,
+                period=self.WRITER_PERIOD,
                 writerargs=self.WRITERARGS,
                 commitargs=self.COMMITARGS,
             )
@@ -289,8 +290,8 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             self.index = self.index.refresh()
             writer = BufferedWriter(
                 self.index,
-                limit=maxsize,
-                period=60 * 5,
+                limit=self.WRITER_LIMIT,
+                period=self.WRITER_PERIOD,
                 writerargs=self.WRITERARGS,
                 commitargs=self.COMMITARGS,
             )

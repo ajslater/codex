@@ -32,17 +32,19 @@ class ReaderView(BookmarkBaseView):
         book["settings"] = settings
         books.append(book)
 
-    def _get_nav_group_filter(self, pk):
+    def _get_comic_query_params(self, pk):
         """Get the reader naviation group filter."""
         session = self.request.session.get(BrowserSessionViewBase.SESSION_KEY, {})
         top_group = session.get("top_group")
 
         if top_group == "f":
             rel = "parent_folder__comic"
+            ordering = ("path", "pk")
         else:
             rel = "series__comic"
+            ordering = Comic.ORDERING
 
-        return {rel: pk}
+        return {rel: pk}, ordering
 
     def get_object(self):
         """Get the previous and next comics in a series.
@@ -54,7 +56,7 @@ class ReaderView(BookmarkBaseView):
         pk = self.kwargs.get("pk")
         group_acl_filter = self.get_group_acl_filter(True)
         bookmark_filter = self.get_bookmark_filter()
-        group_nav_filter = self._get_nav_group_filter(pk)
+        group_nav_filter, ordering = self._get_comic_query_params(pk)
 
         # get comic relations lazily. Only going to use 2-3 of them.
         comics = (
@@ -66,7 +68,7 @@ class ReaderView(BookmarkBaseView):
                 issue_count=F("volume__issue_count"),
                 settings=FilteredRelation("bookmark", condition=Q(**bookmark_filter)),
             )
-            .order_by(*Comic.ORDERING)
+            .order_by(*ordering)
             .values(
                 "pk",
                 "file_format",

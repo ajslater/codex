@@ -1,38 +1,37 @@
 <template>
-  <v-table fixed-header :height="tableHeight" class="highlight-table admin-tab">
-    <template #default>
-      <thead>
-        <tr>
-          <th>Description</th>
-          <th>Enabled</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="item in flags" :key="`f${item.pk}`">
-          <td class="nameCol">
-            <h4>{{ item.name }}</h4>
-            <p class="desc">
-              {{ DESC[item.name] }}
-            </p>
-          </td>
-          <td>
-            <v-checkbox
-              :model-value="item.on"
-              :true-value="true"
-              :error-messages="getFormErrors(item.pk, 'on')"
-              hide-details="auto"
-              @update:model-value="changeCol(item.pk, 'on', $event)"
-            />
-          </td>
-        </tr>
-      </tbody>
+  <AdminTable :items="flags">
+    <template #thead>
+      <tr>
+        <th>Description</th>
+        <th>Enabled</th>
+      </tr>
     </template>
-  </v-table>
+    <template #tbody>
+      <tr v-for="item in flags" :key="`f${item.pk}`">
+        <td class="nameCol">
+          <h4>{{ item.name }}</h4>
+          <p class="desc">
+            {{ DESC[item.name] }}
+          </p>
+        </td>
+        <td>
+          <v-checkbox
+            :model-value="item.on"
+            :true-value="true"
+            :error-messages="getFormErrors(item.pk, 'on')"
+            hide-details="auto"
+            @update:model-value="changeCol(item.pk, 'on', $event)"
+          />
+        </td>
+      </tr>
+    </template>
+  </AdminTable>
 </template>
 
 <script>
 import { mapActions, mapState } from "pinia";
 
+import AdminTable from "@/components/admin/admin-table.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
@@ -48,17 +47,10 @@ const DESC = {
 };
 Object.freeze(DESC);
 
-const FIXED_TOOLBARS = 96 + 16;
-const TABLE_PADDING = 24;
-const BUFFER = FIXED_TOOLBARS + TABLE_PADDING;
-
 export default {
   name: "AdminFlagsTab",
-  props: {
-    innerHeight: {
-      type: Number,
-      required: true,
-    },
+  components: {
+    AdminTable,
   },
   data() {
     return {
@@ -72,9 +64,6 @@ export default {
   computed: {
     ...mapState(useCommonStore, ["formErrors"]),
     ...mapState(useAdminStore, ["flags"]),
-    tableHeight() {
-      return this.innerHeight - BUFFER;
-    },
   },
   mounted() {
     this.loadTables(["Flag"]);
