@@ -114,7 +114,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         # https://github.com/mchaput/whoosh/issues/35
         "multisegement": True,
     }
-    WRITER_PERIOD = 60 *5
+    WRITER_PERIOD = 60 * 5
     WRITER_LIMIT = 10000
     COMMITARGS = {"merge": True, "mergetype": MERGE_SMALL}
 
