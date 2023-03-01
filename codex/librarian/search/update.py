@@ -31,9 +31,10 @@ class UpdateMixin(VersionMixin, RemoveMixin):
             results = searcher.search(
                 Every(), sortedby="updated_at", reverse=True, limit=1
             )
-            if not len(results):
+            if len(results):
+                return results[0].get("updated_at")
+            else:
                 return None
-            return results[0].get("updated_at")
 
     def _update_search_index(self, rebuild=False):
         """Update or Rebuild the search index."""
