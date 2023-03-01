@@ -41,38 +41,38 @@ class UpdateMixin(VersionMixin, RemoveMixin):
         if not backend.setup_complete:
             backend.setup()
         backend.index = backend.index.refresh()
+
         with backend.index.searcher() as searcher:
             results = searcher.search(
                 Every(), sortedby="updated_at", reverse=True, limit=1
             )
             if len(results):
-                return results[0].get("updated_at")
-            else:
-                return None
+                latest_doc = results[0]
+                return latest_doc.get("updated_at")
+        return None
 
     def _prepare_for_update(self, rebuild):
-        # Rebuild or set up update
+        """Rebuild or set up update."""
         backend = self.engine.get_backend()
-
-        if rebuild:
-            self.log.info("Rebuilding search index...")
-            backend.clear(models=[Comic], commit=True)
-            self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
-            start_date = None
-        else:
-            start_date = self._get_search_index_latest_updated_at(backend)
-            self.log.info(f"Updating search index since {start_date}...")
 
         unified_index = self.engine.get_unified_index()
         index = unified_index.get_index(Comic)
-        # build_queryset does __gte not __gt
-        #qs = index.build_queryset(using=backend, start_date=start_date).order_by(
+
         qs = Comic.objects.all()
-        if start_date:
-            qs = qs.filter(updated_at__gt=start_date)
+
+        if not rebuild:
+            last_updated_at = self._get_search_index_latest_updated_at(backend)
+            # index.build_queryset() like in the haystack command does
+            #   __gte not __gt
+            if last_updated_at:
+                qs = qs.filter(updated_at__gt=last_updated_at)
+            else:
+                last_updated_at= "the beginning of time"
+            self.log.info(f"Updating search index since {last_updated_at}...")
+
         qs = qs.order_by("updated_at", "pk")
 
-        return backend, start_date, index, qs
+        return backend, index, qs
 
     def _update_search_index(self, rebuild=False):
         """Update or Rebuild the search index."""
@@ -93,7 +93,13 @@ class UpdateMixin(VersionMixin, RemoveMixin):
 
             self._init_statuses(rebuild)
 
-            backend, start_date, index, qs = self._prepare_for_update(rebuild)
+            backend, index, qs = self._prepare_for_update(rebuild)
+
+            # Clear
+            if rebuild:
+                self.log.info("Rebuilding search index...")
+                backend.clear(models=[Comic], commit=True)
+                self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
 
             # Update
             try:
@@ -106,7 +112,7 @@ class UpdateMixin(VersionMixin, RemoveMixin):
             if rebuild:
                 self._set_search_index_version()
             else:
-                self._remove_stale_records(qs, backend, start_date)
+                self._remove_stale_records(backend)
 
             elapsed = naturaldelta(time() - start)
             self.log.info(f"Search index updated in {elapsed}.")
