@@ -237,19 +237,23 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             prepare_start = time()
             try:
                 if obj_count > 1:
-                    self.log.debug("Search index beginning final commit.")
-                    writer.commit()
+                    self.log.debug("Search index starting final commit.")
                 else:
                     self.log.debug("Search index update cancelling nothing to update.")
                     writer.cancel()
 
                 writer.close()
             except Exception as exc:
-                self.log.error("During search index writer final commit or cancel.")
+                self.log.warning("Exception during search index writer final commit "
+                                 "or cancel.")
                 self.log.exception(exc)
                 try:
                     self.log.info("Turning off merging and trying once more...")
                     writer.commitargs = {"merge": False}
+                    try:
+                        writer.lock.release()
+                    except RuntimeError:
+                        pass
                     writer.close()
                 except Exception as exc:
                     self.log.error(
