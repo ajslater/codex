@@ -244,8 +244,9 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
 
                 writer.close()
             except Exception as exc:
-                self.log.warning("Exception during search index writer final commit "
-                                 "or cancel.")
+                self.log.warning(
+                    "Exception during search index writer final commit or cancel."
+                )
                 self.log.exception(exc)
                 try:
                     self.log.info("Turning off merging and trying once more...")
