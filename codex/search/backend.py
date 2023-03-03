@@ -242,11 +242,21 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                 else:
                     self.log.debug("Search index update cancelling nothing to update.")
                     writer.cancel()
+
+                writer.close()
             except Exception as exc:
                 self.log.error("During search index writer final commit or cancel.")
                 self.log.exception(exc)
-
-            writer.close()
+                try:
+                    self.log.info("Turning off merging and trying once more...")
+                    writer.commitargs = {"merge": False}
+                    writer.close()
+                except Exception as exc:
+                    self.log.error(
+                        "During search index writer final commit or cancel "
+                        "without merge."
+                    )
+                    self.log.exception(exc)
 
             elapsed_time = time() - start
             elapsed = naturaldelta(elapsed_time)
