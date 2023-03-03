@@ -19,9 +19,9 @@ class RemoveMixin(WorkerBaseMixin):
         try:
             self.log.debug("Looking for stale records...")
 
-            database_pks = (Comic.objects.all()
-                .order_by("pk")
-                .values_list("pk", flat=True))
+            database_pks = (
+                Comic.objects.all().order_by("pk").values_list("pk", flat=True)
+            )
 
             mask = Or([Term(DJANGO_ID, str(pk)) for pk in database_pks])
 

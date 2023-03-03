@@ -31,11 +31,9 @@ class OptimizeMixin(VersionMixin):
         backend.index = backend.index.refresh()
         num_docs = backend.index.doc_count()
         if num_docs > self._OPTIMIZE_DOC_COUNT:
-            self.log.info(
-                f"Search index > {self._OPTIMIZE_DOC_COUNT} comics.")
+            self.log.info(f"Search index > {self._OPTIMIZE_DOC_COUNT} comics.")
             return True
         return False
-
 
     def _optimize_search_index(self, force=False):
         """Optimize search index."""
@@ -57,7 +55,7 @@ class OptimizeMixin(VersionMixin):
 
             # Optimize
             self.log.info(
-               f"Search index found in {num_segments} segments, optmizing..."
+                f"Search index found in {num_segments} segments, optmizing..."
             )
             backend.optimize()
 

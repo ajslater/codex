@@ -35,7 +35,6 @@ class UpdateMixin(VersionMixin, RemoveMixin):
         statuses.update(self._STATUS_UPDATE_START_TYPES)
         self.status_controller.start_many(statuses)
 
-
     def _get_search_index_latest_updated_at(self, backend):
         """Get the date of the last updated item in the search index."""
         if not backend.setup_complete:
@@ -67,7 +66,7 @@ class UpdateMixin(VersionMixin, RemoveMixin):
             if last_updated_at:
                 qs = qs.filter(updated_at__gt=last_updated_at)
             else:
-                last_updated_at= "the beginning of time"
+                last_updated_at = "the beginning of time"
             self.log.info(f"Updating search index since {last_updated_at}...")
 
         qs = qs.order_by("updated_at", "pk")
