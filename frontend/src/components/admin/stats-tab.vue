@@ -50,9 +50,17 @@
             <td>Groups</td>
             <td>{{ nf(stats.config.groupCount) }}</td>
           </tr>
-          <tr>
-            <td>API Key</td>
-            <td>{{ stats.config.apiKey }}</td>
+          <tr id="apiKeyRow" @click="copyToClipboard()">
+            <td>
+              API Key
+              <v-icon class="clipBoardIcon" size="small">{{
+                clipBoardIcon
+              }}</v-icon>
+              <v-fade-transition>
+                <span v-show="showTool" class="copied">Copied</span>
+              </v-fade-transition>
+            </td>
+            <td id="apiKey">{{ stats.config.apiKey }}</td>
           </tr>
           <tr>
             <td colspan="2">
@@ -160,6 +168,7 @@
 </template>
 
 <script>
+import { mdiClipboardCheckOutline, mdiClipboardOutline } from "@mdi/js";
 import { numberFormat } from "humanize";
 import { mapActions, mapState } from "pinia";
 
@@ -172,11 +181,19 @@ export default {
   components: {
     ConfirmDialog,
   },
+  data() {
+    return {
+      showTool: false,
+    };
+  },
   computed: {
     ...mapState(useCommonStore, {}),
     ...mapState(useAdminStore, {
       stats: (state) => state.stats,
     }),
+    clipBoardIcon() {
+      return this.showTool ? mdiClipboardCheckOutline : mdiClipboardOutline;
+    },
   },
   created() {
     this.loadStats();
@@ -188,6 +205,18 @@ export default {
     },
     nf(val) {
       return numberFormat(val, 0);
+    },
+    copyToClipboard() {
+      navigator.clipboard
+        .writeText(this.stats.config.apiKey)
+        .then(() => {
+          this.showTool = true;
+          setTimeout(() => {
+            this.showTool = false;
+          }, 5000);
+          return true;
+        })
+        .catch(console.warn);
     },
   },
 };
@@ -208,5 +237,20 @@ h3 {
 }
 tr td:nth-child(2) {
   text-align: right;
+}
+.copied {
+  font-size: small;
+  font-weight: normal;
+  color: rgb(var(--v-theme-textSecondary));
+}
+.clipBoardIcon {
+  color: rgb(var(--v-theme-iconsInactive));
+}
+#apiKeyRow:hover {
+  background-color: rgb(var(--v-theme-surface));
+}
+#apiKeyRow:hover .clipBoardIcon,
+#apiKeyRow:hover #apiKey {
+  color: rgb(var(--v-theme-textPrimary));
 }
 </style>
