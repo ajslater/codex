@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.2.7
+
+- Fix
+  - Trap final search index commit errors and try again without merging
+    segments.
+  - Fix moving folders assigned no parent folder, displaying them in root.
+
 ## v1.2.6
 
 - Fix

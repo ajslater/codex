@@ -1,5 +1,5 @@
 <template>
-  <v-window show-arrows :model-value="activePage">
+  <v-window show-arrows :model-value="activePage" :reverse="readInReverse">
     <template #prev>
       <PageChangeLink direction="prev" />
     </template>
@@ -14,7 +14,6 @@
       :eager="page >= activePage - 1 && page <= activePage + 2"
       :model-value="page"
       :transition="true"
-      :reverse-transition="readInReverse"
     >
       <BookPage
         v-if="!readInReverse || (secondPage && page < book.maxPage)"
