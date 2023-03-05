@@ -99,7 +99,6 @@ class CodexWriter(BufferedWriter):
     def add_reader(self, reader):
         """Do a commit with the supplied reader."""
         # Pass through to the underlying on-disk index
-        print("ADD READER", reader, flush=True)
         self.commit(reader=reader)
 
     def add_document(self, **fields):
