@@ -120,8 +120,7 @@ class CodexWriter(BufferedWriter):
             if docnum < base:
                 writer = self.get_writer("delete_document")
                 writer.delete_document(docnum, delete=delete)
-                # XXX Do not commit delete immediately.
-                # writer.commit(**self.commitargs)
+                writer.commit(**self.commitargs)
             else:
                 ramsegment = self.codec.segment
                 ramsegment.delete_document(docnum - base, delete=delete)
