@@ -24,7 +24,8 @@ class SearchIndexUpdateTask(SearchIndexerTask):
 
 
 @dataclass
-class SearchIndexOptimizeTask(SearchIndexerTask):
+class SearchIndexMergeTask(SearchIndexerTask):
     """Optimize a fragmented index."""
 
+    optimize: bool = False
     force: bool = False

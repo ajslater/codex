@@ -76,7 +76,7 @@ class UpdateMixin(VersionMixin, RemoveMixin):
 
     def _mp_update(self, backend, index, qs):
         # Init
-        start = time()
+        start_time = time()
         since = time()
         num_comics = qs.count()
         self.status_controller.start(
@@ -84,7 +84,6 @@ class UpdateMixin(VersionMixin, RemoveMixin):
         )
         num_cpus = cpu_count()
         batch_size = int(max(10, min(num_comics / num_cpus, 10000)))
-        # batch_size = num_comics
         num_procs = int(min(max(1, num_comics / batch_size), num_cpus))
         pool = Pool(num_procs)
 
@@ -92,13 +91,12 @@ class UpdateMixin(VersionMixin, RemoveMixin):
         start = 0
         end = batch_size - 1
         results = []
-        print(f"{num_cpus=} {num_comics=} {batch_size=} {num_procs=}")
         while start < num_comics:
-            print(f"{start=} {end=}")
             batch_qs = qs[start:end]
 
             result = pool.apply_async(backend.update, (index, batch_qs))
             results.append(result)
+
             start = end + 1
             end = start + batch_size
         pool.close()
@@ -115,7 +113,7 @@ class UpdateMixin(VersionMixin, RemoveMixin):
                 since=since,
             )
         pool.join()
-        elapsed_time = time() - start
+        elapsed_time = time() - start_time
         elapsed = naturaldelta(elapsed_time)
         cps = int(num_comics / elapsed_time)
         self.log.info(
@@ -129,7 +127,7 @@ class UpdateMixin(VersionMixin, RemoveMixin):
 
     def _update_search_index(self, rebuild=False):
         """Update or Rebuild the search index."""
-        start = time()
+        start_time = time()
         try:
             any_update_in_progress = Library.objects.filter(
                 update_in_progress=True
@@ -168,7 +166,8 @@ class UpdateMixin(VersionMixin, RemoveMixin):
             else:
                 self._remove_stale_records(backend)
 
-            elapsed = naturaldelta(time() - start)
+            elapsed_time = time() - start_time
+            elapsed = naturaldelta(elapsed_time)
             self.log.info(f"Search index updated in {elapsed}.")
         except Exception as exc:
             self.log.error(f"Update search index: {exc}")
@@ -176,5 +175,5 @@ class UpdateMixin(VersionMixin, RemoveMixin):
         finally:
             # Finishing these tasks inside the command process leads to a timing
             # misalignment. Finish it here works.
-            until = start + 1
+            until = start_time + 1
             self.status_controller.finish_many(self._STATUS_FINISH_TYPES, until=until)

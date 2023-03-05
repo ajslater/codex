@@ -2,6 +2,7 @@
 from time import time
 
 from haystack.constants import DJANGO_ID
+from humanize import naturaldelta
 from whoosh.query import Every, Or, Term
 
 from codex.librarian.search.status import SearchIndexStatusTypes
@@ -39,10 +40,20 @@ class RemoveMixin(WorkerBaseMixin):
     def _remove_stale_records(self, backend):
         """Remove records not in the database from the index."""
         try:
+            start_time = time()
             if not backend.setup_complete:
                 backend.setup()
             stale_doc_ids = self._get_stale_doc_ids(backend)
+            num_doc_ids = len(stale_doc_ids)
             backend.remove_batch(stale_doc_ids)
+
+            elapsed_time = time() - start_time
+            elapsed = naturaldelta(elapsed_time)
+            cps = int(num_doc_ids / elapsed_time)
+            self.log.info(
+                f"Search engine removed {num_doc_ids} ghosts from the index"
+                f" in {elapsed} at {cps} per second."
+            )
         except Exception as exc:
             self.log.error("While removing stale records:")
             self.log.exception(exc)

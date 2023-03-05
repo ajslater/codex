@@ -1,4 +1,4 @@
-"""Search Index Optimization."""
+"""Search Index Merging for Read Optimization."""
 from time import time
 
 from humanize import naturaldelta
@@ -9,8 +9,8 @@ from codex.search.backend import CodexSearchBackend
 from codex.settings.settings import SEARCH_INDEX_PATH
 
 
-class OptimizeMixin(VersionMixin):
-    """Search Index Optimization Methods."""
+class MergeMixin(VersionMixin):
+    """Search Index Merge Methods."""
 
     # Docker constraints look like 3 comics per second.
     # Don't optimize if it might take longer than 20 minutes.
@@ -35,7 +35,7 @@ class OptimizeMixin(VersionMixin):
             return True
         return False
 
-    def _optimize_search_index(self, force=False):
+    def _merge_search_index(self, optimize=False, force=False):
         """Optimize search index."""
         try:
             self.status_controller.start(
@@ -49,15 +49,22 @@ class OptimizeMixin(VersionMixin):
                 return
 
             backend: CodexSearchBackend = self.engine.get_backend()  # type: ignore
-            if self._is_too_big_to_optimize(backend) and not force:
+            if optimize and self._is_too_big_to_optimize(backend) and not force:
                 self.log.info("Not optimizing.")
                 return
 
             # Optimize
+            if optimize:
+                method = "into one"
+            else:
+                method = "small segments"
             self.log.info(
-                f"Search index found in {num_segments} segments, optmizing..."
+                f"Search index found in {num_segments} segments, merging {method}..."
             )
-            backend.optimize()
+            if optimize:
+                backend.optimize()
+            else:
+                backend.merge_small()
 
             # Finish
             elapsed_time = time() - start
@@ -65,10 +72,10 @@ class OptimizeMixin(VersionMixin):
             num_docs = backend.index.doc_count()
             cps = int(num_docs / elapsed_time)
             self.log.info(
-                f"Optimized search index in {elapsed} at {cps} comics per second."
+                f"Merged search index in {elapsed} at {cps} comics per second."
             )
         except Exception as exc:
-            self.log.error("Search index optimize.")
+            self.log.error("Search index merge.")
             self.log.exception(exc)
         finally:
             self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_OPTIMIZE)

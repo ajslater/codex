@@ -48,9 +48,15 @@
           "confirm": "This can take a long time"
         },
         {
+          "value": "search_index_merge_small",
+          "title": "Defragment Search Index",
+          "desc": "Merge small segments of your search index. Runs nightly.",
+          "confirm": "This can take a long time."
+        },
+        {
           "value": "search_index_optimize",
-          "title": "Optimize Search Index",
-          "desc": "Optimize a segmented search index even if your index is too big for the nightly auto-optimizer.",
+          "title": "Fully Optimize Search Index",
+          "desc": "Merge your search index into one segment.",
           "confirm": "This can take a long time."
         }
       ]

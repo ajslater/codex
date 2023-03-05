@@ -18,7 +18,7 @@ from codex.librarian.janitor.tasks import (
     JanitorVacuumTask,
 )
 from codex.librarian.search.status import SearchIndexStatusTypes
-from codex.librarian.search.tasks import SearchIndexOptimizeTask, SearchIndexUpdateTask
+from codex.librarian.search.tasks import SearchIndexMergeTask, SearchIndexUpdateTask
 from codex.models import Timestamp
 from codex.threads import NamedThread
 
@@ -97,7 +97,7 @@ class JanitorThread(NamedThread):
                             JanitorBackupTask(),
                             JanitorUpdateTask(force=False),
                             SearchIndexUpdateTask(False),
-                            SearchIndexOptimizeTask(),
+                            SearchIndexMergeTask(),
                             CoverRemoveOrphansTask(),
                         ]
                         for task in tasks:

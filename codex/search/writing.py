@@ -136,29 +136,3 @@ class CodexWriter(BufferedWriter):
             return is_deleted
         else:
             return self._get_ram_reader().is_deleted(docnum - base)
-
-    # TODO Delete this
-    def close(self):
-        """Close but print lock time metrics."""
-        super().close()
-        from pprint import pprint
-
-        pprint(self._time_sleeping)
-
-    # TODO Probably can delete this
-    def update_document(self, **fields):
-        """Update a document."""
-        with self.lock:
-            try:
-                unique_fields = self._unique_fields(fields)
-                if unique_fields:
-                    with self.searcher() as s:
-                        uniqueterms = [(name, fields[name]) for name in unique_fields]
-                        docs = s._find_unique(uniqueterms)
-                        for docnum in docs:
-                            self.delete_document(docnum)
-            except Exception as exc:
-                print(exc)
-
-            # Add the given fields
-            self.add_document(**fields)
