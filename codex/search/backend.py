@@ -203,7 +203,10 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                     del doc["boost"]
 
                 try:
-                    writer.update_document(**doc)
+                    # The parent writer calls update_document every time.
+                    # But this neccessitates a commit per updated doc.
+                    # Adding and then batch removing seems to be faster.
+                    writer.add_document(**doc)
                 except Exception as exc:
                     if not self.silently_fail:
                         raise
@@ -255,6 +258,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         self.index = self.index.refresh()
         writer = self.get_writer()
         for doc_id in doc_ids:
+            # TODO delete by query?
             writer.delete_document(doc_id)
 
         writer.commit()
