@@ -280,6 +280,7 @@ HAYSTACK_CONNECTIONS = {
         "BATCH_SIZE": maxsize,  # use whoosh multiprocessing not haystack's
     },
 }
+HAYSTACK_LOGGING = False
 
 CHANNEL_LAYERS = {
     "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"},

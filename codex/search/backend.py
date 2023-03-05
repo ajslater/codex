@@ -1,10 +1,8 @@
 """Custom Haystack Search Backend."""
 from logging import getLogger
 from multiprocessing import cpu_count
-from queue import SimpleQueue
 from time import time
 
-from django.utils.timezone import now
 from haystack.backends.whoosh_backend import TEXT, WhooshSearchBackend
 from haystack.exceptions import SkipDocument
 from humanfriendly import InvalidSize, parse_size
@@ -12,13 +10,13 @@ from humanize import naturaldelta
 from whoosh.analysis import CharsetFilter, StandardAnalyzer, StemFilter
 from whoosh.fields import NUMERIC
 from whoosh.qparser import FieldAliasPlugin, GtLtPlugin, OperatorsPlugin
-from whoosh.qparser.dateparse import DateParserPlugin
 from whoosh.support.charset import accent_map
-from whoosh.writing import MERGE_SMALL, BufferedWriter
+from whoosh.writing import MERGE_SMALL
 
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.logger.logging import get_logger
-from codex.status_controller import StatusController
+from codex.search.indexes import ComicIndex
+from codex.search.writing import CodexWriter
 from codex.worker_base import WorkerBaseMixin
 
 
@@ -122,12 +120,13 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         """Init worker queues."""
         log_queue = connection_options.pop("log_queue", None)
         librarian_queue = connection_options.pop("librarian_queue", None)
-        if log_queue and librarian_queue:
+        # TODO Fix
+        if False and log_queue and librarian_queue:
             self.init_worker(log_queue, librarian_queue)
         else:
             self.log = getLogger(self.__class__.__name__)
             self.log.propagate = False
-            self.status_controller = StatusController(SimpleQueue(), SimpleQueue())
+            # self.status_controller = StatusController(SimpleQueue(), SimpleQueue())
         super().__init__(connection_alias, **connection_options)
 
     def build_schema(self, fields):
@@ -164,7 +163,8 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             (
                 self.FIELD_ALIAS_PLUGIN,
                 GtLtPlugin,
-                DateParserPlugin(basedate=now()),
+                # TODO fix later
+                # DateParserPlugin(basedate=now()),
                 # RegexPlugin,  # not working yet
             )
         )
@@ -172,36 +172,45 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
 
     def update(self, index, iterable, commit=True):
         """Update index, but with writer options."""
-        start = since = time()
+        start = time()
         try:
             num_objs = len(iterable)
             if num_objs < 1:
                 self.log.debug("Search index nothing to update.")
                 return
 
-            statuses = {
-                SearchIndexStatusTypes.SEARCH_INDEX_UPDATE: {
-                    "total": num_objs,
-                },
-                # SearchIndexStatusTypes.SEARCH_INDEX_COMMIT: {},
-            }
-            self.status_controller.start_many(statuses)
+            # statuses = {
+            #    SearchIndexStatusTypes.SEARCH_INDEX_UPDATE: {
+            #        "total": num_objs,
+            #    },
+            #    # SearchIndexStatusTypes.SEARCH_INDEX_COMMIT: {},
+            # }
+            # self.status_controller.start_many(statuses)
             if not self.setup_complete:
                 self.setup()
+
+            # engine = CodexUnifiedIndex()
+            # unified_index = engine.get_unified_index()
+            # index = unified_index.get_index(Comic)
+            if not index:
+                index = ComicIndex()
 
             self.index = self.index.refresh()
 
             # writer = AsyncWriter(self.index, writerargs=self.WRITERARGS)
-            writer = BufferedWriter(
+            if num_objs > 3600:
+                commitargs = {"merge": False}
+            else:
+                commitargs = self.COMMITARGS
+            writer = CodexWriter(
                 self.index,
                 limit=self.WRITER_LIMIT,
                 period=self.WRITER_PERIOD,
                 writerargs=self.WRITERARGS,
-                commitargs=self.COMMITARGS,
+                commitargs=commitargs,
             )
 
-            obj_count = 0
-            for obj_count, obj in enumerate(iterable):
+            for obj in iterable:
                 try:
                     doc = index.full_prepare(obj)
                 except SkipDocument:
@@ -228,15 +237,15 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                         self.log.warning(
                             f"Search index updating document {exc} pk:{obj.pk}",
                         )
-                since = self.status_controller.update(
-                    SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
-                    obj_count,
-                    num_objs,
-                    since=since,
-                )
-            prepare_start = time()
+                # since = self.status_controller.update(
+                #    SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
+                #    obj_count,
+                #    num_objs,
+                #    since=since,
+                # )
+            # prepare_start = time()
             try:
-                if obj_count > 1:
+                if num_objs > 1:
                     self.log.debug("Search index starting final commit.")
                 else:
                     self.log.debug("Search index update cancelling nothing to update.")
@@ -270,55 +279,59 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                 f"Search engine updated {num_objs} comics"
                 f" in {elapsed} at {cps} comics per second."
             )
-            until = prepare_start + 1
-            self.status_controller.finish(
-                SearchIndexStatusTypes.SEARCH_INDEX_UPDATE, until=until
-            )
+            # until = prepare_start + 1
+            # self.status_controller.finish(
+            #    SearchIndexStatusTypes.SEARCH_INDEX_UPDATE, until=until
+            # )
 
+            return num_objs
         finally:
-            until = start + 1
-            self.status_controller.finish_many(self.STATUS_FINISH_TYPES, until=until)
+            pass
+            # until = start + 1
+            # self.status_controller.finish_many(self.STATUS_FINISH_TYPES, until=until)
 
     def clear(self, models=None, commit=True):
         """Clear index with codex status messages."""
-        start = time()
+        time()
         try:
-            self.status_controller.start(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
+            # self.status_controller.start(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
             super().clear(models=models, commit=commit)
         finally:
-            until = start + 1
-            self.status_controller.finish(
-                SearchIndexStatusTypes.SEARCH_INDEX_CLEAR, until=until
-            )
+            pass
+            # until = start + 1
+            # self.status_controller.finish(
+            #    SearchIndexStatusTypes.SEARCH_INDEX_CLEAR, until=until
+            # )
 
     def remove_batch(self, doc_ids):
         """Remove a large batch of doc ids from the index."""
         num_doc_ids = len(doc_ids)
-        self.status_controller.start(
-            SearchIndexStatusTypes.SEARCH_INDEX_REMOVE, num_doc_ids
-        )
-        start = since = time()
+        if not num_doc_ids:
+            return
+        # self.status_controller.start(
+        #    SearchIndexStatusTypes.SEARCH_INDEX_REMOVE, num_doc_ids
+        # )
+        start = time()
         try:
             if not self.setup_complete:
                 self.setup()
 
             self.index = self.index.refresh()
-            writer = BufferedWriter(
+            writer = CodexWriter(
                 self.index,
                 limit=self.WRITER_LIMIT,
                 period=self.WRITER_PERIOD,
                 writerargs=self.WRITERARGS,
                 commitargs=self.COMMITARGS,
             )
-            count = 0
-            for count, doc_id in enumerate(doc_ids):
+            for doc_id in doc_ids:
                 writer.delete_document(doc_id)
-                since = self.status_controller.update(
-                    SearchIndexStatusTypes.SEARCH_INDEX_REMOVE,
-                    count,
-                    num_doc_ids,
-                    since=since,
-                )
+                # since = self.status_controller.update(
+                #    SearchIndexStatusTypes.SEARCH_INDEX_REMOVE,
+                #    count,
+                #    num_doc_ids,
+                #    since=since,
+                # )
 
             if len(doc_ids) > 1:
                 writer.commit()
@@ -329,16 +342,17 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             elapsed_time = time() - start
 
             elapsed = naturaldelta(elapsed_time)
-            cps = int(count / elapsed_time)
+            cps = int(num_doc_ids / elapsed_time)
             self.log.info(
-                f"Search engine removed {count} ghosts from the index"
+                f"Search engine removed {num_doc_ids} ghosts from the index"
                 f" in {elapsed} at {cps} per second."
             )
         finally:
-            until = start + 1
-            self.status_controller.finish(
-                SearchIndexStatusTypes.SEARCH_INDEX_REMOVE, until=until
-            )
+            pass
+            # until = start + 1
+            # self.status_controller.finish(
+            #    SearchIndexStatusTypes.SEARCH_INDEX_REMOVE, until=until
+            # )
 
     def optimize(self):
         """Optimize the index."""
