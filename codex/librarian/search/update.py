@@ -51,13 +51,8 @@ class UpdateMixin(VersionMixin, RemoveMixin):
                 return latest_doc.get("updated_at")
         return None
 
-    def _prepare_for_update(self, rebuild):
+    def _get_queryset(self, backend, rebuild):
         """Rebuild or set up update."""
-        backend = self.engine.get_backend()
-
-        unified_index = self.engine.get_unified_index()
-        index = unified_index.get_index(Comic)
-
         qs = Comic.objects.all()
 
         if not rebuild:
@@ -72,7 +67,7 @@ class UpdateMixin(VersionMixin, RemoveMixin):
 
         qs = qs.order_by("updated_at", "pk")
 
-        return backend, index, qs
+        return qs
 
     def _mp_update(self, backend, index, qs):
         # Init
@@ -144,7 +139,8 @@ class UpdateMixin(VersionMixin, RemoveMixin):
 
             self._init_statuses(rebuild)
 
-            backend, index, qs = self._prepare_for_update(rebuild)
+            backend = self.engine.get_backend()
+            qs = self._get_queryset(backend, rebuild)
 
             # Clear
             if rebuild:
