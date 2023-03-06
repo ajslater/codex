@@ -100,7 +100,6 @@ class UpdateMixin(VersionMixin, RemoveMixin):
         complete = 0
         for result in results:
             complete += result.get()
-            print(f"search index update {complete}/{num_comics}")
             since = self.status_controller.update(
                 SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
                 complete,
