@@ -39,7 +39,7 @@ class UpdateMixin(VersionMixin, RemoveMixin):
     def _get_search_index_latest_updated_at(self, backend):
         """Get the date of the last updated item in the search index."""
         if not backend.setup_complete:
-            backend.setup()
+            backend.setup(False)
         backend.index = backend.index.refresh()
 
         with backend.index.searcher() as searcher:

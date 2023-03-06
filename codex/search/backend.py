@@ -2,12 +2,14 @@
 from logging import getLogger
 from multiprocessing import cpu_count
 
+from django.utils.timezone import now
 from haystack.backends.whoosh_backend import TEXT, WhooshSearchBackend
 from haystack.exceptions import SkipDocument
 from humanfriendly import InvalidSize, parse_size
 from whoosh.analysis import CharsetFilter, StandardAnalyzer, StemFilter
 from whoosh.fields import NUMERIC
 from whoosh.qparser import FieldAliasPlugin, GtLtPlugin, OperatorsPlugin
+from whoosh.qparser.dateparse import DateParserPlugin
 from whoosh.support.charset import accent_map
 
 from codex.librarian.search.status import SearchIndexStatusTypes
@@ -146,19 +148,16 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
 
         return (content_field_name, schema)
 
-    def setup(self):
+    def setup(self, dateparser=True):
         """Add extra plugins."""
         super().setup()
-        self.parser.add_plugins(
-            (
-                self.FIELD_ALIAS_PLUGIN,
-                GtLtPlugin,
-                # TODO fix later
-                # DateParserPlugin(basedate=now()),
-                # RegexPlugin,  # not working yet
-            )
-        )
         self.parser.replace_plugin(self.OPERATORS_PLUGIN)
+        plugins = [self.FIELD_ALIAS_PLUGIN, GtLtPlugin]
+        if dateparser:
+            plugins += [
+                DateParserPlugin(basedate=now())
+            ]
+        self.parser.add_plugins(plugins)
 
     def get_writer(self, commitargs=COMMITARGS):
         """Get a writer."""
