@@ -48,6 +48,11 @@
           "confirm": "This can take a long time"
         },
         {
+          "value": "search_index_remove_stale",
+          "title": "Remove ghost index entries",
+          "desc": "Remove search index entries that are no longer in the library."
+        },
+        {
           "value": "search_index_merge_small",
           "title": "Defragment Search Index",
           "desc": "Merge small segments of your search index. Runs nightly.",

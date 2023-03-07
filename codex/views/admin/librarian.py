@@ -21,6 +21,7 @@ from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK, LIBRARY_CHANGE
 from codex.librarian.search.tasks import (
     SearchIndexMergeTask,
     SearchIndexRebuildIfDBChangedTask,
+    SearchIndexRemoveStaleTask,
     SearchIndexUpdateTask,
 )
 from codex.librarian.watchdog.tasks import WatchdogPollLibrariesTask, WatchdogSyncTask
@@ -54,6 +55,7 @@ class AdminLibrarianTaskView(APIView):
         "purge_comic_covers": CoverRemoveAllTask(),
         "search_index_update": SearchIndexUpdateTask(False),
         "search_index_rebuild": SearchIndexUpdateTask(True),
+        "search_index_remove_stale": SearchIndexRemoveStaleTask(),
         "search_index_merge_small": SearchIndexMergeTask(False, True),
         "search_index_optimize": SearchIndexMergeTask(True, True),
         "db_vacuum": JanitorVacuumTask(),

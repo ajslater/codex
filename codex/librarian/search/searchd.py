@@ -3,6 +3,7 @@ from codex.librarian.search.merge import MergeMixin
 from codex.librarian.search.tasks import (
     SearchIndexMergeTask,
     SearchIndexRebuildIfDBChangedTask,
+    SearchIndexRemoveStaleTask,
     SearchIndexUpdateTask,
 )
 from codex.librarian.search.update import UpdateMixin
@@ -19,5 +20,7 @@ class SearchIndexerThread(UpdateMixin, MergeMixin):
             self._update_search_index(rebuild=task.rebuild)
         elif isinstance(task, SearchIndexMergeTask):
             self._merge_search_index(task.optimize, task.force)
+        elif isinstance(task, SearchIndexRemoveStaleTask):
+            self._remove_stale_records()
         else:
             self.log.warning(f"Bad task sent to search index thread: {task}")

@@ -4,12 +4,14 @@ from multiprocessing import cpu_count
 
 from django.utils.timezone import now
 from haystack.backends.whoosh_backend import TEXT, WhooshSearchBackend
+from haystack.constants import DJANGO_ID
 from haystack.exceptions import SkipDocument
 from humanfriendly import InvalidSize, parse_size
 from whoosh.analysis import CharsetFilter, StandardAnalyzer, StemFilter
 from whoosh.fields import NUMERIC
 from whoosh.qparser import FieldAliasPlugin, GtLtPlugin, OperatorsPlugin
 from whoosh.qparser.dateparse import DateParserPlugin
+from whoosh.query import Or, Term
 from whoosh.support.charset import accent_map
 
 from codex.librarian.search.status import SearchIndexStatusTypes
@@ -113,7 +115,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
     }
     WRITER_PERIOD = 60 * 5
     WRITER_LIMIT = 10000
-    COMMITARGS = {"merge": False }
+    COMMITARGS = {"merge": False}
 
     def __init__(self, connection_alias, **connection_options):
         """Init worker queues."""
@@ -154,9 +156,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         self.parser.replace_plugin(self.OPERATORS_PLUGIN)
         plugins = [self.FIELD_ALIAS_PLUGIN, GtLtPlugin]
         if dateparser:
-            plugins += [
-                DateParserPlugin(basedate=now())
-            ]
+            plugins += [DateParserPlugin(basedate=now())]
         self.parser.add_plugins(plugins)
 
     def get_writer(self, commitargs=COMMITARGS):
@@ -179,12 +179,16 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             return 0
 
         if not self.setup_complete:
-            self.setup()
+            self.setup(False)
 
         if not index:
             index = ComicIndex()
 
+        # batch remove before update
+        remove_pks = iterable.values_list("pk", flat=True)
+
         writer = self.get_writer()
+        self.remove_batch_pks(remove_pks, writer)
 
         for obj in iterable:
             try:
@@ -246,34 +250,46 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                 self.log.exception(exc)
         return num_objs
 
-    def remove_batch(self, doc_ids):
-        """Remove a large batch of doc ids from the index."""
-        num_doc_ids = len(doc_ids)
-        if not num_doc_ids:
-            return
+    def remove_batch_pks(self, pks, writer=None):
+        """Remove a large batch of docs by pk from the index."""
         if not self.setup_complete:
-            self.setup()
+            self.setup(False)
+        close = writer is None
+        if close:
+            writer = self.get_writer()
 
+        query = Or([Term(DJANGO_ID, str(pk)) for pk in pks])
+        count = writer.delete_by_query(query)
+        writer.commit()
+        if close:
+            writer.close()
+        return count
+
+    def remove_batch_docnums(self, docnums):
+        """Remove a large batch of docs from the index."""
+        if not self.setup_complete:
+            self.setup(False)
         self.index = self.index.refresh()
         writer = self.get_writer()
-        for doc_id in doc_ids:
-            # TODO delete by query?
-            writer.delete_document(doc_id)
-
+        count = 0
+        for docnum in docnums:
+            writer.delete_document(docnum)
+            count += 1
         writer.commit()
         writer.close()
+        return count
 
     def optimize(self):
         """Optimize the index."""
         if not self.setup_complete:
-            self.setup()
+            self.setup(False)
         self.index = self.index.refresh()
         self.index.optimize(**self.WRITERARGS)
 
     def merge_small(self):
         """Merge small segments of the index."""
         if not self.setup_complete:
-            self.setup()
+            self.setup(False)
         self.index = self.index.refresh()
         writer = self.index.writer(**self.WRITERARGS)
         writer.commit(merge=True)

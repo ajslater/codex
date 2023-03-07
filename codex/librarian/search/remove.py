@@ -1,16 +1,18 @@
 """Search Index cleanup."""
 from time import time
+from typing import Optional
 
 from haystack.constants import DJANGO_ID
 from humanize import naturaldelta
 from whoosh.query import Every, Or, Term
 
 from codex.librarian.search.status import SearchIndexStatusTypes
+from codex.librarian.search.version import VersionMixin
 from codex.models import Comic
-from codex.worker_base import WorkerBaseMixin
+from codex.search.backend import CodexSearchBackend
 
 
-class RemoveMixin(WorkerBaseMixin):
+class RemoveMixin(VersionMixin):
     """Search Index cleanup methods."""
 
     def _get_stale_doc_ids(self, backend):
@@ -28,7 +30,9 @@ class RemoveMixin(WorkerBaseMixin):
 
             backend.index = backend.index.refresh()
             with backend.index.searcher() as searcher:
-                results = searcher.search(Every(), limit=None, mask=mask)
+                results = searcher.search(
+                    Every(), limit=None, mask=mask, scored=False, sortedby=None
+                )
                 stale_doc_ids = results.docs()
             return stale_doc_ids
         finally:
@@ -37,15 +41,22 @@ class RemoveMixin(WorkerBaseMixin):
                 SearchIndexStatusTypes.SEARCH_INDEX_FIND_REMOVE, until=until
             )
 
-    def _remove_stale_records(self, backend):
+    def _remove_stale_records(
+        self, backend: Optional[CodexSearchBackend] = None  # type: ignore
+    ):
         """Remove records not in the database from the index."""
         try:
             start_time = time()
+            if not backend:
+                backend: CodexSearchBackend = self.engine.get_backend()  # type: ignore
             if not backend.setup_complete:
-                backend.setup()
+                backend.setup(False)
             stale_doc_ids = self._get_stale_doc_ids(backend)
             num_doc_ids = len(stale_doc_ids)
-            backend.remove_batch(stale_doc_ids)
+            self.status_controller.start(
+                SearchIndexStatusTypes.SEARCH_INDEX_REMOVE, num_doc_ids
+            )
+            backend.remove_batch_docnums(stale_doc_ids)
 
             elapsed_time = time() - start_time
             elapsed = naturaldelta(elapsed_time)
@@ -57,3 +68,5 @@ class RemoveMixin(WorkerBaseMixin):
         except Exception as exc:
             self.log.error("While removing stale records:")
             self.log.exception(exc)
+        finally:
+            self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE)

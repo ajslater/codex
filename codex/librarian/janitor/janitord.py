@@ -69,7 +69,7 @@ class JanitorThread(NamedThread):
             JanitorStatusTypes.CODEX_UPDATE: {},
             SearchIndexStatusTypes.SEARCH_INDEX_UPDATE: {},
             SearchIndexStatusTypes.SEARCH_INDEX_REMOVE: {},
-            SearchIndexStatusTypes.SEARCH_INDEX_OPTIMIZE: {},
+            SearchIndexStatusTypes.SEARCH_INDEX_MERGE: {},
             CoverStatusTypes.FIND_ORPHAN: {},
         }
         self.status_controller.start_many(types_map)

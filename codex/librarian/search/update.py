@@ -1,17 +1,19 @@
 """Search Index update."""
+from datetime import datetime
 from multiprocessing import Pool, cpu_count
 from time import time
+from zoneinfo import ZoneInfo
 
 from humanize import naturaldelta
 from whoosh.query import Every
 
 from codex.librarian.search.remove import RemoveMixin
 from codex.librarian.search.status import SearchIndexStatusTypes
-from codex.librarian.search.version import VersionMixin
 from codex.models import Comic, Library
+from codex.search.backend import CodexSearchBackend
 
 
-class UpdateMixin(VersionMixin, RemoveMixin):
+class UpdateMixin(RemoveMixin):
     """Search Index update methods."""
 
     _STATUS_UPDATE_START_TYPES = {
@@ -27,6 +29,7 @@ class UpdateMixin(VersionMixin, RemoveMixin):
             SearchIndexStatusTypes.SEARCH_INDEX_REMOVE,
         )
     )
+    _MIN_UTC_DATE = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
 
     def _init_statuses(self, rebuild):
         """Initialize all statuses order before starting."""
@@ -43,13 +46,20 @@ class UpdateMixin(VersionMixin, RemoveMixin):
         backend.index = backend.index.refresh()
 
         with backend.index.searcher() as searcher:
-            results = searcher.search(
-                Every(), sortedby="updated_at", reverse=True, limit=1
-            )
-            if len(results):
-                latest_doc = results[0]
-                return latest_doc.get("updated_at")
-        return None
+            # XXX idk why but sorting by 'updated_at' removes the latest and most valuable result
+            results = searcher.search(Every(), reverse=True, scored=False)
+            if results.scored_length():
+                # Can't use the search index to find the lowest date. Use python.
+                # SAD PANDA. :(
+                index_latest_updated_at = self._MIN_UTC_DATE
+                for result in results:
+                    result_updated_at = result.get("updated_at")
+                    if result_updated_at > index_latest_updated_at:
+                        index_latest_updated_at = result_updated_at
+            else:
+                index_latest_updated_at = None
+
+        return index_latest_updated_at
 
     def _get_queryset(self, backend, rebuild):
         """Rebuild or set up update."""
@@ -66,10 +76,9 @@ class UpdateMixin(VersionMixin, RemoveMixin):
             self.log.info(f"Updating search index since {last_updated_at}...")
 
         qs = qs.order_by("updated_at", "pk")
-
         return qs
 
-    def _mp_update(self, backend, index, qs):
+    def _mp_update(self, backend, qs):
         # Init
         start_time = time()
         since = time()
@@ -88,8 +97,8 @@ class UpdateMixin(VersionMixin, RemoveMixin):
         results = []
         while start < num_comics:
             batch_qs = qs[start:end]
-
-            result = pool.apply_async(backend.update, (index, batch_qs))
+            args = (None, batch_qs)
+            result = pool.apply_async(backend.update, args)
             results.append(result)
 
             start = end + 1
@@ -138,7 +147,7 @@ class UpdateMixin(VersionMixin, RemoveMixin):
 
             self._init_statuses(rebuild)
 
-            backend = self.engine.get_backend()
+            backend: CodexSearchBackend = self.engine.get_backend()  # type: ignore
             qs = self._get_queryset(backend, rebuild)
 
             # Clear
@@ -150,7 +159,7 @@ class UpdateMixin(VersionMixin, RemoveMixin):
             # Update
             try:
                 # backend.update(index, qs, commit=True)
-                self._mp_update(backend, None, qs)
+                self._mp_update(backend, qs)
             except Exception as exc:
                 self.log.error(f"Update search index via backend: {exc}")
                 self.log.exception(exc)

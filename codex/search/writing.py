@@ -70,7 +70,7 @@ class CodexWriter(BufferedWriter):
             if reader.is_atomic():
                 reader = MultiReader([reader, ramreader])
             else:
-                reader.add_reader(ramreader)
+                reader.add_reader(ramreader)  # type: ignore
 
         return reader
 
@@ -112,14 +112,16 @@ class CodexWriter(BufferedWriter):
             if self.bufferedcount >= self.limit:
                 self.commit()
 
-    def delete_document(self, docnum, delete=True):
+    def delete_document(self, docnum, delete=True, writer=None, commit=True):
         """Delete a document by getting the writer."""
         with self.lock:
             base = self.index.doc_count_all()
             if docnum < base:
-                writer = self.get_writer("delete_document")
+                if not writer:
+                    writer = self.get_writer("delete_document")
                 writer.delete_document(docnum, delete=delete)
-                writer.commit(**self.commitargs)
+                if commit:
+                    writer.commit(**self.commitargs)
             else:
                 ramsegment = self.codec.segment
                 ramsegment.delete_document(docnum - base, delete=delete)

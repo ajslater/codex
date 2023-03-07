@@ -25,7 +25,14 @@ class SearchIndexUpdateTask(SearchIndexerTask):
 
 @dataclass
 class SearchIndexMergeTask(SearchIndexerTask):
-    """Optimize a fragmented index."""
+    """Merge a fragmented index."""
 
     optimize: bool = False
     force: bool = False
+
+
+@dataclass
+class SearchIndexRemoveStaleTask(SearchIndexerTask):
+    """Remove stale records."""
+
+    pass
