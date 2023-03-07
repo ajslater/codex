@@ -56,12 +56,18 @@ class CodexWriter(BufferedWriter):
         """Get the reader without locking the writer."""
         from whoosh.reading import MultiReader
 
+
+        with self.lock:
+            ramreader = self._get_ram_reader()
+
         info = self.index._read_toc()
         generation = info.generation + 1
+        # using the ram index for reuse massively reduces duplication, but is a hack.
         reader = FileIndex._reader(
-            self.index.storage, info.schema, info.segments, generation, reuse=None
+            self.index.storage, info.schema, info.segments, generation, reuse=ramreader
         )
 
+        # Reopen the ram index
         with self.lock:
             ramreader = self._get_ram_reader()
 
