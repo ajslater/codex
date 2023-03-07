@@ -56,7 +56,10 @@ class MergeMixin(VersionMixin):
             diff = old_num_segments - new_num_segments
             elapsed_time = time() - start
             elapsed = naturaldelta(elapsed_time)
-            self.log.info(f"Merged {diff} search index segments in {elapsed}.")
+            if diff:
+                self.log.info(f"Merged {diff} search index segments in {elapsed}.")
+            else:
+                self.log.info("No small search index segments found.")
         except Exception as exc:
             self.log.error("Search index merge.")
             self.log.exception(exc)
