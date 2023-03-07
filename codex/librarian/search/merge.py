@@ -30,7 +30,6 @@ class MergeMixin(VersionMixin):
             self.status_controller.start(
                 type=SearchIndexStatusTypes.SEARCH_INDEX_MERGE, name=name
             )
-            self.log.debug("Optimizing search index...")
             start = time()
 
             old_num_segments = len(tuple(SEARCH_INDEX_PATH.glob("*.seg")))
