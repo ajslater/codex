@@ -165,17 +165,17 @@ class UpdateMixin(RemoveMixin):
             self._init_statuses(rebuild)
 
             backend: CodexSearchBackend = self.engine.get_backend()  # type: ignore
-            backend.setup(False)
             qs = self._get_queryset(backend, rebuild)
 
             # Clear
             if rebuild:
                 self.log.info("Rebuilding search index...")
-                backend.clear(models=[Comic], commit=True)
+                backend.clear(commit=True)
                 self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
                 self.log.info("Old search index cleared.")
 
             # Update
+            backend.setup(False)
             self._mp_update(backend, qs)
 
             # Finish
