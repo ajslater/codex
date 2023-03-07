@@ -34,7 +34,7 @@
       ]
     },
     {
-      "title": "Search",
+      "title": "Search Index",
       "tasks": [
         {
           "value": "search_index_update",
