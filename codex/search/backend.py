@@ -187,10 +187,10 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         if not index:
             index = ComicIndex()
 
+        writer = self.get_writer()
+
         # batch remove before update
         remove_pks = iterable.values_list("pk", flat=True)
-
-        writer = self.get_writer()
         self.remove_batch_pks(remove_pks, writer)
 
         for obj in iterable:
