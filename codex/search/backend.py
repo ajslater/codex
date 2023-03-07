@@ -115,7 +115,8 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
     }
     WRITER_PERIOD = 60 * 5
     WRITER_LIMIT = 10000
-    COMMITARGS = {"merge": False}
+    COMMITARGS_MERGE_SMALL = {"merge": True}
+    COMMITARGS_NO_MERGE = {"merge": False }
 
     def __init__(self, connection_alias, **connection_options):
         """Init worker queues."""
@@ -161,7 +162,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             plugins += [DateParserPlugin(basedate=now())]
         self.parser.add_plugins(plugins)
 
-    def get_writer(self, commitargs=COMMITARGS):
+    def get_writer(self, commitargs=COMMITARGS_MERGE_SMALL):
         """Get a writer."""
         self.index = self.index.refresh()
         writer = CodexWriter(
@@ -236,9 +237,8 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             )
             self.log.exception(exc)
             try:
-                # TODO if i turn merging off entirely cancel this.
                 self.log.info("Turning off merging and trying once more...")
-                writer.commitargs = {"merge": False}
+                writer.commitargs = self.COMMITARGS_NO_MERGE
                 try:
                     writer.lock.release()
                 except RuntimeError:

@@ -172,7 +172,6 @@ class UpdateMixin(RemoveMixin):
             # Finish
             if rebuild:
                 self._set_search_index_version()
-                # self._merge_search_index() # TODO maybe take the speed hit and do merge small always.
             else:
                 self._remove_stale_records(backend)
 
