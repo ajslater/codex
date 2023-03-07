@@ -19,7 +19,7 @@ class SearchIndexerThread(UpdateMixin, MergeMixin):
         elif isinstance(task, SearchIndexUpdateTask):
             self._update_search_index(rebuild=task.rebuild)
         elif isinstance(task, SearchIndexMergeTask):
-            self._merge_search_index(task.optimize, task.force)
+            self._merge_search_index(task.optimize)
         elif isinstance(task, SearchIndexRemoveStaleTask):
             self._remove_stale_records()
         else:

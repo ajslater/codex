@@ -56,8 +56,10 @@ class AdminLibrarianTaskView(APIView):
         "search_index_update": SearchIndexUpdateTask(False),
         "search_index_rebuild": SearchIndexUpdateTask(True),
         "search_index_remove_stale": SearchIndexRemoveStaleTask(),
-        "search_index_merge_small": SearchIndexMergeTask(False, True),
-        "search_index_optimize": SearchIndexMergeTask(True, True),
+        "search_index_merge_small": SearchIndexMergeTask(
+            False,
+        ),
+        "search_index_optimize": SearchIndexMergeTask(True),
         "db_vacuum": JanitorVacuumTask(),
         "db_backup": JanitorBackupTask(),
         "db_search_sync": SearchIndexRebuildIfDBChangedTask(),

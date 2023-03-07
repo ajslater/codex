@@ -28,7 +28,6 @@ class SearchIndexMergeTask(SearchIndexerTask):
     """Merge a fragmented index."""
 
     optimize: bool = False
-    force: bool = False
 
 
 @dataclass

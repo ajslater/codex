@@ -19,8 +19,7 @@ class MergeMixin(VersionMixin):
             return True
         return False
 
-
-    def _merge_search_index(self, optimize=False, force=False):
+    def _merge_search_index(self, optimize=False):
         """Optimize search index."""
         try:
             if optimize:
@@ -34,8 +33,8 @@ class MergeMixin(VersionMixin):
             self.log.debug("Optimizing search index...")
             start = time()
 
-            num_segments = len(tuple(SEARCH_INDEX_PATH.glob("*.seg")))
-            if self._is_index_optimized(num_segments):
+            old_num_segments = len(tuple(SEARCH_INDEX_PATH.glob("*.seg")))
+            if self._is_index_optimized(old_num_segments):
                 return
 
             # Optimize
@@ -44,7 +43,8 @@ class MergeMixin(VersionMixin):
             else:
                 method = "small segments"
             self.log.info(
-                f"Search index found in {num_segments} segments, merging {method}..."
+                f"Search index found in {old_num_segments} segments,"
+                f" merging {method}..."
             )
             backend: CodexSearchBackend = self.engine.get_backend()  # type: ignore
             if optimize:
@@ -53,13 +53,11 @@ class MergeMixin(VersionMixin):
                 backend.merge_small()
 
             # Finish
+            new_num_segments = len(tuple(SEARCH_INDEX_PATH.glob("*.seg")))
+            diff = old_num_segments - new_num_segments
             elapsed_time = time() - start
             elapsed = naturaldelta(elapsed_time)
-            num_docs = backend.index.doc_count()
-            cps = int(num_docs / elapsed_time)
-            self.log.info(
-                f"Merged search index in {elapsed} at {cps} comics per second."
-            )
+            self.log.info(f"Merged {diff} search index segments in {elapsed}.")
         except Exception as exc:
             self.log.error("Search index merge.")
             self.log.exception(exc)

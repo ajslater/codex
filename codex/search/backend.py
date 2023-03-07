@@ -291,5 +291,6 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         if not self.setup_complete:
             self.setup(False)
         self.index = self.index.refresh()
-        writer = self.index.writer(**self.WRITERARGS)
-        writer.commit(merge=True)
+        writer = self.get_writer({"merge": True})
+        writer.commit()
+        writer.close()
