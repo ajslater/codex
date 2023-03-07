@@ -12,11 +12,6 @@ from codex.settings.settings import SEARCH_INDEX_PATH
 class MergeMixin(VersionMixin):
     """Search Index Merge Methods."""
 
-    # Docker constraints look like 3 comics per second.
-    # Don't optimize if it might take longer than 20 minutes.
-    # Can be much faster running native. 128 comics per second for instance.
-    _MERGE_DOC_COUNT = 20 * 60 * 3
-
     def _is_index_optimized(self, num_segments):
         """Is the index already in one segment."""
         if num_segments <= 1:
@@ -24,16 +19,6 @@ class MergeMixin(VersionMixin):
             return True
         return False
 
-    def _is_too_big_to_optimize(self, backend):
-        """Auto optimize limiter."""
-        if not backend.setup_complete:
-            backend.setup()
-        backend.index = backend.index.refresh()
-        num_docs = backend.index.doc_count()
-        if num_docs > self._MERGE_DOC_COUNT:
-            self.log.info(f"Search index > {self._MERGE_DOC_COUNT} comics.")
-            return True
-        return False
 
     def _merge_search_index(self, optimize=False, force=False):
         """Optimize search index."""
@@ -53,11 +38,6 @@ class MergeMixin(VersionMixin):
             if self._is_index_optimized(num_segments):
                 return
 
-            backend: CodexSearchBackend = self.engine.get_backend()  # type: ignore
-            if optimize and self._is_too_big_to_optimize(backend) and not force:
-                self.log.info("Not optimizing.")
-                return
-
             # Optimize
             if optimize:
                 method = "into one"
@@ -66,6 +46,7 @@ class MergeMixin(VersionMixin):
             self.log.info(
                 f"Search index found in {num_segments} segments, merging {method}..."
             )
+            backend: CodexSearchBackend = self.engine.get_backend()  # type: ignore
             if optimize:
                 backend.optimize()
             else:
