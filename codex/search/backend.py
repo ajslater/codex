@@ -156,6 +156,8 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         self.parser.replace_plugin(self.OPERATORS_PLUGIN)
         plugins = [self.FIELD_ALIAS_PLUGIN, GtLtPlugin]
         if dateparser:
+            # the dateparser plugin won't pickle for
+            # multiprocessing
             plugins += [DateParserPlugin(basedate=now())]
         self.parser.add_plugins(plugins)
 

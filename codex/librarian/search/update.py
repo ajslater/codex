@@ -148,6 +148,7 @@ class UpdateMixin(RemoveMixin):
             self._init_statuses(rebuild)
 
             backend: CodexSearchBackend = self.engine.get_backend()  # type: ignore
+            backend.setup(False)
             qs = self._get_queryset(backend, rebuild)
 
             # Clear
