@@ -266,6 +266,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             self.log.warning(
                 f"Search index removing documents about to be updated {exc}"
             )
+            self.log.exception(exc)
         writer.close()
         return count
 
@@ -283,7 +284,8 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                 writer.delete_document(docnum)
                 count += 1
             except Exception as exc:
-                self.log.warning(f"Search index remoivng document #{docnum} {exc}")
+                self.log.warning(f"Search index removing document #{docnum} {exc}")
+                self.log.exception(exc)
         writer.close()
         return count
 
