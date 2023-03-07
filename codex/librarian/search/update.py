@@ -81,52 +81,60 @@ class UpdateMixin(RemoveMixin):
     def _mp_update(self, backend, qs):
         # Init
         start_time = time()
-        since = time()
-        num_comics = qs.count()
-        self.status_controller.start(
-            SearchIndexStatusTypes.SEARCH_INDEX_UPDATE, total=num_comics
-        )
-        num_cpus = cpu_count()
-        batch_size = int(max(10, min(num_comics / num_cpus, 10000)))
-        num_procs = int(min(max(1, num_comics / batch_size), num_cpus))
-        pool = Pool(num_procs)
-
-        # Run Loop
-        start = 0
-        end = batch_size - 1
-        results = []
-        while start < num_comics:
-            batch_qs = qs[start:end]
-            args = (None, batch_qs)
-            result = pool.apply_async(backend.update, args)
-            results.append(result)
-
-            start = end + 1
-            end = start + batch_size
-        pool.close()
-
-        # Get results
-        complete = 0
-        for result in results:
-            complete += result.get()
-            since = self.status_controller.update(
-                SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
-                complete,
-                num_comics,
-                since=since,
+        try:
+            since = start_time
+            num_comics = qs.count()
+            self.status_controller.start(
+                SearchIndexStatusTypes.SEARCH_INDEX_UPDATE, total=num_comics
             )
-        pool.join()
-        elapsed_time = time() - start_time
-        elapsed = naturaldelta(elapsed_time)
-        cps = int(num_comics / elapsed_time)
-        self.log.info(
-            f"Search engine updated {num_comics} comics"
-            f" in {elapsed} at {cps} comics per second."
-        )
-        until = start + 1
-        self.status_controller.finish(
-            SearchIndexStatusTypes.SEARCH_INDEX_UPDATE, until=until
-        )
+            num_cpus = cpu_count()
+            batch_size = int(max(10, min(num_comics / num_cpus, 10000)))
+            num_procs = int(min(max(1, num_comics / batch_size), num_cpus))
+            pool = Pool(num_procs)
+            self.log.debug(f"Updating search index with {num_comics} comics,"
+                        f" using {num_procs} processes in batches of {batch_size}...")
+
+            # Run Loop
+            start = 0
+            end = batch_size - 1
+            results = []
+            while start < num_comics:
+                batch_qs = qs[start:end]
+                args = (None, batch_qs)
+                result = pool.apply_async(backend.update, args)
+                results.append(result)
+
+                start = end + 1
+                end = start + batch_size
+            pool.close()
+            self.log.debug(f"{len(results)} search index update batches queued...")
+
+            # Get results
+            complete = 0
+            for result in results:
+                complete += result.get()
+                since = self.status_controller.update(
+                    SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
+                    complete,
+                    num_comics,
+                    since=since,
+                )
+            pool.join()
+            elapsed_time = time() - start_time
+            elapsed = naturaldelta(elapsed_time)
+            cps = int(num_comics / elapsed_time)
+            self.log.info(
+                f"Search engine updated {num_comics} comics"
+                f" in {elapsed} at {cps} comics per second."
+            )
+        except Exception as exc:
+            self.log.error(f"Update search index via backend: {exc}")
+            self.log.exception(exc)
+        finally:
+            until = start_time + 1
+            self.status_controller.finish(
+                SearchIndexStatusTypes.SEARCH_INDEX_UPDATE, until=until
+            )
 
     def _update_search_index(self, rebuild=False):
         """Update or Rebuild the search index."""
@@ -156,20 +164,18 @@ class UpdateMixin(RemoveMixin):
                 self.log.info("Rebuilding search index...")
                 backend.clear(models=[Comic], commit=True)
                 self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
+                self.log.info("Old search index cleared.")
 
             # Update
-            try:
-                # backend.update(index, qs, commit=True)
-                self._mp_update(backend, qs)
-            except Exception as exc:
-                self.log.error(f"Update search index via backend: {exc}")
-                self.log.exception(exc)
+            self._mp_update(backend, qs)
 
             # Finish
             if rebuild:
                 self._set_search_index_version()
+                # self._merge_search_index() # TODO maybe take the speed hit and do merge small always.
             else:
                 self._remove_stale_records(backend)
+
 
             elapsed_time = time() - start_time
             elapsed = naturaldelta(elapsed_time)
