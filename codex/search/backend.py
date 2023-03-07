@@ -177,7 +177,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
     def update(self, index, iterable, commit=True):
         """Update index, but with writer options."""
         num_objs = len(iterable)
-        if num_objs < 1:
+        if not num_objs:
             self.log.debug("Search index nothing to update.")
             return 0
 
@@ -224,7 +224,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                         f"Search index updating document {exc} pk:{obj.pk}",
                     )
         try:
-            if num_objs > 1:
+            if num_objs:
                 self.log.debug("Search index starting final commit.")
             else:
                 self.log.debug("Search index update cancelling nothing to update.")
