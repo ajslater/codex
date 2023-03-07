@@ -39,6 +39,17 @@ class UpdateMixin(RemoveMixin):
         statuses.update(self._STATUS_UPDATE_START_TYPES)
         self.status_controller.start_many(statuses)
 
+    @classmethod
+    def _get_latest_update_at_from_results(cls, results):
+        """Can't use the search index to find the lowest date. Use python."""
+        # SAD PANDA. :(
+        index_latest_updated_at = cls._MIN_UTC_DATE
+        for result in results:
+            result_updated_at = result.get("updated_at")
+            if result_updated_at > index_latest_updated_at:
+                index_latest_updated_at = result_updated_at
+        return index_latest_updated_at
+
     def _get_search_index_latest_updated_at(self, backend):
         """Get the date of the last updated item in the search index."""
         if not backend.setup_complete:
@@ -49,13 +60,8 @@ class UpdateMixin(RemoveMixin):
             # XXX idk why but sorting by 'updated_at' removes the latest and most valuable result
             results = searcher.search(Every(), reverse=True, scored=False)
             if results.scored_length():
-                # Can't use the search index to find the lowest date. Use python.
-                # SAD PANDA. :(
-                index_latest_updated_at = self._MIN_UTC_DATE
-                for result in results:
-                    result_updated_at = result.get("updated_at")
-                    if result_updated_at > index_latest_updated_at:
-                        index_latest_updated_at = result_updated_at
+                index_latest_updated_at = self._get_latest_update_at_from_results(
+                    results)
             else:
                 index_latest_updated_at = None
 
