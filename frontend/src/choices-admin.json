@@ -49,19 +49,18 @@
         },
         {
           "value": "search_index_remove_stale",
-          "title": "Remove ghost index entries",
+          "title": "Remove Ghost Index Entries",
           "desc": "Remove search index entries that are no longer in the library."
         },
         {
           "value": "search_index_merge_small",
-          "title": "Defragment Search Index",
-          "desc": "Merge small segments of your search index. Runs nightly.",
-          "confirm": "This can take a long time."
+          "title": "Merge Small Search Index Segments",
+          "desc": "Improves search lookup times. Runs nightly."
         },
         {
           "value": "search_index_optimize",
-          "title": "Fully Optimize Search Index",
-          "desc": "Merge your search index into one segment.",
+          "title": "Merge Search Index Into One Segment",
+          "desc": "Probably only useful to run rarely if your library doesn't change much.",
           "confirm": "This can take a long time."
         }
       ]
