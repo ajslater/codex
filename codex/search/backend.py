@@ -116,7 +116,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
     WRITER_PERIOD = 60 * 5
     WRITER_LIMIT = 10000
     COMMITARGS_MERGE_SMALL = {"merge": True}
-    COMMITARGS_NO_MERGE = {"merge": False }
+    COMMITARGS_NO_MERGE = {"merge": False}
 
     def __init__(self, connection_alias, **connection_options):
         """Init worker queues."""
@@ -187,11 +187,11 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         if not index:
             index = ComicIndex()
 
-        writer = self.get_writer()
-
         # batch remove before update
         remove_pks = iterable.values_list("pk", flat=True)
-        self.remove_batch_pks(remove_pks, writer)
+        self.remove_batch_pks(remove_pks)
+
+        writer = self.get_writer()
 
         for obj in iterable:
             try:
@@ -209,9 +209,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                     del doc["boost"]
 
                 try:
-                    # The parent writer calls update_document every time.
-                    # But this neccessitates a commit per updated doc.
-                    # Adding and then batch removing seems to be faster.
+                    # add instead of update because of above batch remove
                     writer.add_document(**doc)
                 except Exception as exc:
                     if not self.silently_fail:
@@ -221,7 +219,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                     # object to avoid the possibility of that generating encoding
                     # errors while processing the log message:
                     self.log.warning(
-                        f"Search index updating document {exc} pk:{obj.pk}",
+                        f"Search index adding document {exc} pk:{obj.pk}",
                     )
         try:
             if num_objs:
@@ -252,32 +250,40 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                 self.log.exception(exc)
         return num_objs
 
-    def remove_batch_pks(self, pks, writer=None):
+    def remove_batch_pks(self, pks):
         """Remove a large batch of docs by pk from the index."""
+        if not pks:
+            return
         if not self.setup_complete:
             self.setup(False)
-        close = writer is None
-        if close:
-            writer = self.get_writer()
 
-        query = Or([Term(DJANGO_ID, str(pk)) for pk in pks])
-        count = writer.delete_by_query(query)
-        writer.commit()
-        if close:
-            writer.close()
+        writer = self.get_writer()
+        try:
+            query = Or([Term(DJANGO_ID, str(pk)) for pk in pks])
+            count = writer.delete_by_query(query)
+        except Exception as exc:
+            count = 0
+            self.log.warning(
+                f"Search index removing documents about to be updated {exc}"
+            )
+        writer.close()
         return count
 
     def remove_batch_docnums(self, docnums):
         """Remove a large batch of docs from the index."""
+        if not docnums:
+            return
         if not self.setup_complete:
             self.setup(False)
-        self.index = self.index.refresh()
+
         writer = self.get_writer()
         count = 0
         for docnum in docnums:
-            writer.delete_document(docnum)
-            count += 1
-        writer.commit()
+            try:
+                writer.delete_document(docnum)
+                count += 1
+            except Exception as exc:
+                self.log.warning(f"Search index remoivng document #{docnum} {exc}")
         writer.close()
         return count
 

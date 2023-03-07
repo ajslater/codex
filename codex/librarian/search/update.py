@@ -61,7 +61,8 @@ class UpdateMixin(RemoveMixin):
             results = searcher.search(Every(), reverse=True, scored=False)
             if results.scored_length():
                 index_latest_updated_at = self._get_latest_update_at_from_results(
-                    results)
+                    results
+                )
             else:
                 index_latest_updated_at = None
 
@@ -97,8 +98,10 @@ class UpdateMixin(RemoveMixin):
             batch_size = int(max(10, min(num_comics / num_cpus, 10000)))
             num_procs = int(min(max(1, num_comics / batch_size), num_cpus))
             pool = Pool(num_procs)
-            self.log.debug(f"Updating search index with {num_comics} comics,"
-                        f" using {num_procs} processes in batches of {batch_size}...")
+            self.log.debug(
+                f"Updating search index with {num_comics} comics,"
+                f" using {num_procs} processes in batches of {batch_size}..."
+            )
 
             # Run Loop
             start = 0
@@ -180,7 +183,6 @@ class UpdateMixin(RemoveMixin):
                 self._set_search_index_version()
             else:
                 self._remove_stale_records(backend)
-
 
             elapsed_time = time() - start_time
             elapsed = naturaldelta(elapsed_time)
