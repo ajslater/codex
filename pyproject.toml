@@ -103,7 +103,7 @@ codex = "codex.run:main"
 extend_exclude = "/(_vendor/haystack)/"
 
 [tool.codespell]
-skip = './cache,./codex/static_build,./codex/static_root,./comics,./config/logs,./dist,./frontend/coverage,./test-results,.git,.mypy_cache,.pytest_cache,.venv*,*~,_vendor/haystack,node_modules,package-lock.json,poetry.lock,run.spec'
+skip = './cache,./codex/static_build,./codex/static_root,./comics,./config,./dist,./frontend/coverage,./test-results,.git,.mypy_cache,.pytest_cache,.venv*,*~,_vendor/haystack,node_modules,package-lock.json,poetry.lock,run.spec'
 builtin = 'clear,rare,code'
 check-hidden = true
 # Remove 'coverd' when this issue is resolved
