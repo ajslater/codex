@@ -60,7 +60,7 @@
         {
           "value": "search_index_optimize",
           "title": "Merge Search Index Into One Segment",
-          "desc": "Probably only useful to run rarely if your library doesn't change much.",
+          "desc": "Probably only useful to run if your library doesn't change much.",
           "confirm": "This can take a long time."
         }
       ]
