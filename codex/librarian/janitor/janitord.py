@@ -88,6 +88,8 @@ class JanitorThread(NamedThread):
                     if self._stop_event.is_set():
                         break
 
+                    optimize = True  # TODO use AdminFlag
+
                     self._init_librarian_status()
                     try:
                         tasks = [
@@ -97,7 +99,7 @@ class JanitorThread(NamedThread):
                             JanitorBackupTask(),
                             JanitorUpdateTask(force=False),
                             SearchIndexUpdateTask(False),
-                            SearchIndexMergeTask(),
+                            SearchIndexMergeTask(optimize),
                             CoverRemoveOrphansTask(),
                         ]
                         for task in tasks:
