@@ -238,7 +238,6 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
 
         return True
 
-
     @property
     def links(self):
         """Create all the links."""
