@@ -111,9 +111,9 @@ class TopLinks:
         TopRoutes.SERIES,
         Rel.SORT_NEW,
         MimeType.ACQUISITION,
-        defaultdict(None, {"orderBy": "date", "orderReverse": True}),
+        defaultdict(None, {"orderBy": "created_at", "orderReverse": True}),
         "📥",
-        "Newest Issues",
+        "Recently Added",
         "",
     )
     FEATURED = TopLink(
@@ -125,7 +125,7 @@ class TopLinks:
         ),
         "📚",
         "Oldest Unread",
-        "Unread issues, oldest first",
+        "Unread issues, oldest published first",
     )
     ALL = (START, NEW, FEATURED)
 

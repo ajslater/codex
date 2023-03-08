@@ -8,6 +8,9 @@ border-radius: 128px;
 
 ## v1.2.9
 
+- Features
+  - OPDS
+    - "Newest Issues" Link replaced by "Recently Added" after user feedback.
 - Fix
   - OPDS
     - Fix navigation links not inheriting view settings of current page.
