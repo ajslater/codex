@@ -15,7 +15,6 @@ border-radius: 128px;
   - OPDS
     - "Newest Issues" Link replaced by "Recently Added" after user feedback.
 - Fix
-
   - Volume tags were often not scanned. Recommend using Force Reimport on all
     libraries.
   - OPDS
