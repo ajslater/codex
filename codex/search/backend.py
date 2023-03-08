@@ -11,7 +11,7 @@ from whoosh.analysis import CharsetFilter, StandardAnalyzer, StemFilter
 from whoosh.fields import NUMERIC
 from whoosh.qparser import FieldAliasPlugin, GtLtPlugin, OperatorsPlugin
 from whoosh.qparser.dateparse import DateParserPlugin
-from whoosh.query import Or, Term
+from whoosh.query import Not, Or, Term
 from whoosh.support.charset import accent_map
 
 from codex.librarian.search.status import SearchIndexStatusTypes
@@ -236,42 +236,26 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             self.log.exception(exc)
         return num_objs
 
-    def remove_batch_pks(self, pks):
+    def remove_batch_pks(self, pks, inverse=False):
         """Remove a large batch of docs by pk from the index."""
-        if not pks.count():
+        if not pks.count() and not inverse:
             return
         if not self.setup_complete:
             self.setup(False)
 
         writer = self.get_writer()
         try:
-            query = Or([Term(DJANGO_ID, str(pk)) for pk in pks])
+            pk_terms = [Term(DJANGO_ID, str(pk)) for pk in pks]
+            query = Or(pk_terms)
+            if inverse:
+                query = Not(query)
             count = writer.delete_by_query(query)
         except Exception as exc:
-            count = 0
             self.log.warning(
-                f"Search index removing documents about to be updated {exc}"
+                f"Search index removing documents by query {inverse=} {exc}"
             )
             self.log.exception(exc)
-        writer.close()
-        return count
-
-    def remove_batch_docnums(self, docnums):
-        """Remove a large batch of docs from the index."""
-        if not docnums:
-            return
-        if not self.setup_complete:
-            self.setup(False)
-        # TODO single threaded add progress
-        writer = self.get_writer()
-        count = 0
-        for docnum in docnums:
-            try:
-                writer.delete_document(docnum)
-                count += 1
-            except Exception as exc:
-                self.log.warning(f"Search index removing document #{docnum} {exc}")
-                self.log.exception(exc)
+            count = 0
         writer.close()
         return count
 
@@ -288,5 +272,4 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             self.setup(False)
         self.index = self.index.refresh()
         writer = self.get_writer({"merge": True})
-        writer.commit()
         writer.close()
