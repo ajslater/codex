@@ -170,7 +170,7 @@ class CodexWriter(BufferedWriter):
                         SearchIndexStatusTypes.SEARCH_INDEX_REMOVE,
                         complete=count,
                         total=0,
-                        since=since, # type: ignore
+                        since=since,  # type: ignore
                     )
         finally:
             if not searcher:

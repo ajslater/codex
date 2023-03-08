@@ -282,7 +282,7 @@ class CreateComicsMixin(QueuedThread):
                 try:
                     self.status_controller.start(
                         ImportStatusTypes.FILES_MODIFIED,
-                        name=f"? / {len(update_paths)}" # TODO fix in db
+                        name=f"? / {len(update_paths)}",  # TODO fix in db
                     )
                     update_count, converted_create_paths = self._update_comics(
                         library, update_paths, all_bulk_mds
@@ -292,7 +292,7 @@ class CreateComicsMixin(QueuedThread):
                     self.status_controller.finish(ImportStatusTypes.FILES_MODIFIED)
                 self.status_controller.start(
                     ImportStatusTypes.FILES_CREATED,
-                    name=f"? / {len(create_paths)}" # TODO fix in db
+                    name=f"? / {len(create_paths)}",  # TODO fix in db
                 )
                 create_count = self._create_comics(library, create_paths, all_bulk_mds)
             finally:
