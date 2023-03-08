@@ -236,7 +236,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             self.log.exception(exc)
         return num_objs
 
-    def remove_batch_pks(self, pks, inverse=False):
+    def remove_batch_pks(self, pks, inverse=False, sc=None):
         """Remove a large batch of docs by pk from the index."""
         if not pks.count() and not inverse:
             return
@@ -249,7 +249,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             query = Or(pk_terms)
             if inverse:
                 query = Not(query)
-            count = writer.delete_by_query(query)
+            count = writer.delete_by_query(query, sc=sc)
         except Exception as exc:
             self.log.warning(
                 f"Search index removing documents by query {inverse=} {exc}"

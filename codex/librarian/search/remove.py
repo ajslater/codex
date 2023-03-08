@@ -19,8 +19,9 @@ class RemoveMixin(VersionMixin):
         """Remove records not in the database from the index."""
         try:
             start_time = time()
-            self.status_controller.start(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE,
-                                         total=0)
+            self.status_controller.start(
+                SearchIndexStatusTypes.SEARCH_INDEX_REMOVE, total=0
+            )
             if not backend:
                 backend: CodexSearchBackend = self.engine.get_backend()  # type: ignore
             if not backend.setup_complete:
@@ -29,7 +30,9 @@ class RemoveMixin(VersionMixin):
             database_pks = (
                 Comic.objects.all().order_by("pk").values_list("pk", flat=True)
             )
-            count = backend.remove_batch_pks(database_pks, inverse=True)
+            count = backend.remove_batch_pks(
+                database_pks, inverse=True, sc=self.status_controller
+            )
 
             if count:
                 elapsed_time = time() - start_time

@@ -20,6 +20,9 @@
               <span v-if="+status.total">
                 {{ nf(status.complete) }} / {{ nf(status.total) }}
               </span>
+              <span v-else-if="+status.complete">
+                {{ nf(status.complete) }} / ?
+              </span>
             </div>
             <v-progress-linear
               :indeterminate="indeterminate(status)"

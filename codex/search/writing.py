@@ -1,9 +1,11 @@
 """Custom Codex Writer."""
 from threading import RLock, Timer
-from time import sleep
+from time import sleep, time
 
 from whoosh.index import FileIndex, LockError
 from whoosh.writing import BufferedWriter
+
+from codex.librarian.search.status import SearchIndexStatusTypes
 
 
 class CodexWriter(BufferedWriter):
@@ -141,3 +143,37 @@ class CodexWriter(BufferedWriter):
             return is_deleted
         else:
             return self._get_ram_reader().is_deleted(docnum - base)
+
+    def delete_by_query(self, q, searcher=None, sc=None):
+        """Delete any documents matching a query object.
+
+        :returns: the number of documents deleted.
+
+        Special codex version with progress updates.
+        """
+        if searcher:
+            s = searcher
+        else:
+            s = self.searcher()
+
+        try:
+            count = 0
+            docnums = s.docs_for_query(q, for_deletion=True)
+            if sc:
+                since = time()
+                sc.start(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE)
+            for docnum in docnums:
+                self.delete_document(docnum)
+                count += 1
+                if sc:
+                    since = sc.update(
+                        SearchIndexStatusTypes.SEARCH_INDEX_REMOVE,
+                        complete=count,
+                        total=0,
+                        since=since, # type: ignore
+                    )
+        finally:
+            if not searcher:
+                s.close()
+
+        return count
