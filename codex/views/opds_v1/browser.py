@@ -260,7 +260,8 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
             links += self._root_nav_links()
             if self.use_facets:
                 for top_link in TopLinks.ALL:
-                    links += [self._top_link(top_link)]
+                    if not self.is_top_link_displayed(top_link):
+                        links += [self._top_link(top_link)]
                 if facets := self._facets():
                     links += facets
         except Exception as exc:
