@@ -55,12 +55,12 @@
         {
           "value": "search_index_merge_small",
           "title": "Merge Small Search Index Segments",
-          "desc": "Improves search lookup times. Runs nightly."
+          "desc": "Improves search lookup times. Runs nightly if the Optimize Admin Flag is off."
         },
         {
           "value": "search_index_optimize",
           "title": "Merge Search Index Into One Segment",
-          "desc": "Probably only useful to run if your library doesn't change much.",
+          "desc": "Reduces disk space and improves search lookup times. Runs nightly if the Optimize Admin Flag is on.",
           "confirm": "This can take a long time."
         }
       ]
