@@ -557,11 +557,10 @@ class Timestamp(NamedModel):
 
     COVERS = "covers"
     JANITOR = "janitor"
-    SEARCH_INDEX = "search_index"  # TODO remove
     CODEX_VERSION = "codex_version"
     SEARCH_INDEX_UUID = "search_index_uuid"
     API_KEY = "api_key"
-    NAMES = (COVERS, JANITOR, SEARCH_INDEX, CODEX_VERSION, SEARCH_INDEX_UUID, API_KEY)
+    NAMES = (COVERS, JANITOR, CODEX_VERSION, SEARCH_INDEX_UUID, API_KEY)
 
     version = CharField(max_length=32, default="")
 
