@@ -10,7 +10,7 @@ border-radius: 128px;
 
 - Features
   - Improved search indexing times.
-  - Admin Flag to turn off nightly full optimization.
+  - Admin Flag to adjust nightly full optimization.
 - Fix
   - Block library polling during database updates, fixes reindexing.
   - Fix OPDS pse lastRead tag.
