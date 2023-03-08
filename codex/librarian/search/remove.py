@@ -56,18 +56,21 @@ class RemoveMixin(VersionMixin):
             num_doc_ids = len(stale_doc_ids)
             self.status_controller.start(
                 SearchIndexStatusTypes.SEARCH_INDEX_REMOVE,
-                name=str(num_doc_ids),
+                name=f"({num_doc_ids})",
                 total=0,
             )
             backend.remove_batch_docnums(stale_doc_ids)
 
-            elapsed_time = time() - start_time
-            elapsed = naturaldelta(elapsed_time)
-            cps = int(num_doc_ids / elapsed_time)
-            self.log.info(
-                f"Search engine removed {num_doc_ids} ghosts from the index"
-                f" in {elapsed} at {cps} per second."
-            )
+            if num_doc_ids:
+                elapsed_time = time() - start_time
+                elapsed = naturaldelta(elapsed_time)
+                cps = int(num_doc_ids / elapsed_time)
+                self.log.info(
+                    f"Removed {num_doc_ids} ghosts from the search index"
+                    f" in {elapsed} at {cps} per second."
+                )
+            else:
+                self.log.debug("No ghosts to remove the search index.")
         except Exception as exc:
             self.log.error("While removing stale records:")
             self.log.exception(exc)
