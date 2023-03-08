@@ -32,7 +32,7 @@ class RemoveMixin(VersionMixin):
             if count:
                 elapsed_time = time() - start_time
                 elapsed = naturaldelta(elapsed_time)
-                cps = int(count/ elapsed_time)
+                cps = int(count / elapsed_time)
                 self.log.info(
                     f"Removed {count} ghosts from the search index"
                     f" in {elapsed} at {cps} per second."
