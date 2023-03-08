@@ -18,8 +18,8 @@ from codex.librarian.janitor.tasks import (
     JanitorVacuumTask,
 )
 from codex.librarian.search.status import SearchIndexStatusTypes
-from codex.librarian.search.tasks import SearchIndexOptimizeTask, SearchIndexUpdateTask
-from codex.models import Timestamp
+from codex.librarian.search.tasks import SearchIndexMergeTask, SearchIndexUpdateTask
+from codex.models import AdminFlag, Timestamp
 from codex.threads import NamedThread
 
 _ONE_DAY = timedelta(days=1)
@@ -69,7 +69,7 @@ class JanitorThread(NamedThread):
             JanitorStatusTypes.CODEX_UPDATE: {},
             SearchIndexStatusTypes.SEARCH_INDEX_UPDATE: {},
             SearchIndexStatusTypes.SEARCH_INDEX_REMOVE: {},
-            SearchIndexStatusTypes.SEARCH_INDEX_OPTIMIZE: {},
+            SearchIndexStatusTypes.SEARCH_INDEX_MERGE: {},
             CoverStatusTypes.FIND_ORPHAN: {},
         }
         self.status_controller.start_many(types_map)
@@ -88,6 +88,10 @@ class JanitorThread(NamedThread):
                     if self._stop_event.is_set():
                         break
 
+                    optimize = AdminFlag.objects.get(
+                        name=AdminFlag.ENABLE_SEARCH_INDEX_OPTIMIZE
+                    ).on
+
                     self._init_librarian_status()
                     try:
                         tasks = [
@@ -97,7 +101,7 @@ class JanitorThread(NamedThread):
                             JanitorBackupTask(),
                             JanitorUpdateTask(force=False),
                             SearchIndexUpdateTask(False),
-                            SearchIndexOptimizeTask(),
+                            SearchIndexMergeTask(optimize),
                             CoverRemoveOrphansTask(),
                         ]
                         for task in tasks:

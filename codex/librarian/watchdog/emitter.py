@@ -84,6 +84,9 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
                 f"{self._watch_path} is empty. Suspect it may be unmounted."
             )
             return False
+        if library.update_in_progress:
+            self.log.warning(f"Library {library.path} update in progress.")
+            return False
 
         return True
 

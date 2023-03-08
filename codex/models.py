@@ -433,11 +433,13 @@ class AdminFlag(NamedModel):
     ENABLE_REGISTRATION = "Enable Registration"
     ENABLE_NON_USERS = "Enable Non Users"
     ENABLE_AUTO_UPDATE = "Enable Auto Update"
+    ENABLE_SEARCH_INDEX_OPTIMIZE = "Enable Search Index Full Optimization"
     FLAG_NAMES = {
         ENABLE_FOLDER_VIEW: True,
         ENABLE_REGISTRATION: True,
         ENABLE_NON_USERS: True,
         ENABLE_AUTO_UPDATE: False,
+        ENABLE_SEARCH_INDEX_OPTIMIZE: True,
     }
 
     on = BooleanField(default=True)

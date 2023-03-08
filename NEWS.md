@@ -6,6 +6,15 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.2.8
+
+- Features
+  - Improved search indexing times.
+  - Admin Flag to adjust nightly full optimization.
+- Fix
+  - Block library polling during database updates, fixes reindexing.
+  - Fix OPDS pse lastRead tag.
+
 ## v1.2.7
 
 - Fix
