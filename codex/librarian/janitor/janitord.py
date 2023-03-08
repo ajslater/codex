@@ -19,7 +19,7 @@ from codex.librarian.janitor.tasks import (
 )
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexMergeTask, SearchIndexUpdateTask
-from codex.models import Timestamp
+from codex.models import AdminFlag, Timestamp
 from codex.threads import NamedThread
 
 _ONE_DAY = timedelta(days=1)
@@ -88,7 +88,9 @@ class JanitorThread(NamedThread):
                     if self._stop_event.is_set():
                         break
 
-                    optimize = True  # TODO use AdminFlag
+                    optimize = AdminFlag.objects.get(
+                        name=AdminFlag.ENABLE_SEARCH_INDEX_OPTIMIZE
+                    ).on
 
                     self._init_librarian_status()
                     try:
