@@ -553,7 +553,7 @@ class LibrarianStatus(NamedModel):
 
 
 class Timestamp(NamedModel):
-    """Timestamp."""
+    """Timestamped Named Strings."""
 
     COVERS = "covers"
     JANITOR = "janitor"
