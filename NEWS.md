@@ -12,7 +12,7 @@ border-radius: 128px;
   - Improved search indexing times.
   - Admin Flag to turn off nightly full optimization.
 - Fix
-  - Block library polling during search index updates, fixes reindexing.
+  - Block library polling during database updates, fixes reindexing.
 
 ## v1.2.7
 
