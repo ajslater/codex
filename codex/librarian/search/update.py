@@ -18,14 +18,12 @@ class UpdateMixin(RemoveMixin):
 
     _STATUS_UPDATE_START_TYPES = {
         SearchIndexStatusTypes.SEARCH_INDEX_UPDATE: {},
-        SearchIndexStatusTypes.SEARCH_INDEX_FIND_REMOVE: {},
         SearchIndexStatusTypes.SEARCH_INDEX_REMOVE: {},
     }
     _STATUS_FINISH_TYPES = frozenset(
         (
             SearchIndexStatusTypes.SEARCH_INDEX_CLEAR,
             SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
-            SearchIndexStatusTypes.SEARCH_INDEX_FIND_REMOVE,
             SearchIndexStatusTypes.SEARCH_INDEX_REMOVE,
         )
     )
