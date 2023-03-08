@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.2.8
+
+- Features
+  - Improved search indexing times.
+- Fix
+  - Block library polling during search index updates, fixes reindexing.
+
 ## v1.2.7
 
 - Fix
