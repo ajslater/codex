@@ -30,6 +30,8 @@ class UpdateMixin(RemoveMixin):
         )
     )
     _MIN_UTC_DATE = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
+    _MIN_BATCH_SIZE = 200
+    _MAX_BATCH_SIZE = 1000
 
     def _init_statuses(self, rebuild):
         """Initialize all statuses order before starting."""
@@ -95,7 +97,12 @@ class UpdateMixin(RemoveMixin):
                 SearchIndexStatusTypes.SEARCH_INDEX_UPDATE, total=num_comics
             )
             num_cpus = cpu_count()
-            batch_size = int(max(10, min(num_comics / num_cpus, 10000)))
+            batch_size = int(
+                max(
+                    self._MIN_BATCH_SIZE,
+                    min(num_comics / num_cpus, self._MAX_BATCH_SIZE),
+                )
+            )
             num_procs = int(min(max(1, num_comics / batch_size), num_cpus))
             pool = Pool(num_procs)
             self.log.debug(
