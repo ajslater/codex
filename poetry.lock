@@ -486,14 +486,14 @@ colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
 name = "codespell"
-version = "2.2.3"
+version = "2.2.4"
 description = "Codespell"
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "codespell-2.2.3-py3-none-any.whl", hash = "sha256:3bcd358acca67acbfc8f65f196527744681561808f2adfae53e304540e2cf8b2"},
-    {file = "codespell-2.2.3.tar.gz", hash = "sha256:5f4eb2b11fb848f00c03b2a35457730ba8f8c5d728d75275c1b4758014379db4"},
+    {file = "codespell-2.2.4-py3-none-any.whl", hash = "sha256:7d984b8130108e6f82524b7d09f8b7bf2fb1e398c5d4b37d9e2bd310145b3e29"},
+    {file = "codespell-2.2.4.tar.gz", hash = "sha256:0b4620473c257d9cde1ff8998b26b2bb209a35c2b7489f5dc3436024298ce83a"},
 ]
 
 [package.extras]
