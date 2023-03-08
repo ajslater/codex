@@ -29,6 +29,9 @@ class UpdateMixin(RemoveMixin):
     )
     _MIN_UTC_DATE = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
     _MIN_BATCH_SIZE = 200
+    # A larger batch size of might be slightly faster for very large
+    # indexes and require less optimization later, but steady progress
+    # beats are better UX.
     _MAX_BATCH_SIZE = 1000
 
     def _init_statuses(self, rebuild):
