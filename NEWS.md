@@ -14,6 +14,7 @@ border-radius: 128px;
 - Fix
   - OPDS
     - Fix navigation links not inheriting view settings of current page.
+    - Removed populating categories in OPDS to experiment with performance issues.
 
 ## v1.2.8
 
