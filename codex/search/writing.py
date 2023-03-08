@@ -119,13 +119,16 @@ class CodexWriter(BufferedWriter):
             if self.bufferedcount >= self.limit:
                 self.commit()
 
-    def delete_document(self, docnum, delete=True, writer=None, commit=True):
+    def delete_document(self, docnum, delete=True, writer=None):
         """Delete a document by getting the writer."""
         with self.lock:
             base = self.index.doc_count_all()
             if docnum < base:
-                if not writer:
+                if writer:
+                    commit = False
+                else:
                     writer = self.get_writer("delete_document")
+                    commit = True
                 writer.delete_document(docnum, delete=delete)
                 if commit:
                     writer.commit(**self.commitargs)
@@ -156,6 +159,8 @@ class CodexWriter(BufferedWriter):
         else:
             s = self.searcher()
 
+        writer = self.get_writer("delete_by_query")
+
         try:
             count = 0
             docnums = s.docs_for_query(q, for_deletion=True)
@@ -163,7 +168,7 @@ class CodexWriter(BufferedWriter):
                 since = time()
                 sc.start(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE)
             for docnum in docnums:
-                self.delete_document(docnum)
+                self.delete_document(docnum, writer=writer)
                 count += 1
                 if sc:
                     since = sc.update(
@@ -175,5 +180,6 @@ class CodexWriter(BufferedWriter):
         finally:
             if not searcher:
                 s.close()
+            writer.commit(**self.commitargs)
 
         return count
