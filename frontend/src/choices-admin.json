@@ -34,7 +34,7 @@
       ]
     },
     {
-      "title": "Search",
+      "title": "Search Index",
       "tasks": [
         {
           "value": "search_index_update",
@@ -48,9 +48,19 @@
           "confirm": "This can take a long time"
         },
         {
+          "value": "search_index_remove_stale",
+          "title": "Remove Ghost Index Entries",
+          "desc": "Remove search index entries that are no longer in the library."
+        },
+        {
+          "value": "search_index_merge_small",
+          "title": "Merge Small Search Index Segments",
+          "desc": "Improves search lookup times. Runs nightly if the Optimize Admin Flag is off."
+        },
+        {
           "value": "search_index_optimize",
-          "title": "Optimize Search Index",
-          "desc": "Optimize a segmented search index even if your index is too big for the nightly auto-optimizer.",
+          "title": "Merge Search Index Into One Segment",
+          "desc": "Reduces disk space and improves search lookup times. Runs nightly if the Optimize Admin Flag is on.",
           "confirm": "This can take a long time."
         }
       ]

@@ -6,6 +6,24 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.2.8
+
+- Features
+  - Search Index
+    - Improved search indexing times.
+    - Admin Flag to adjust nightly full optimization.
+  - OPDS
+    - "Newest Issues" Link replaced by "Recently Added" after user feedback.
+- Fix
+  - Volume tags were often not scanned. Recommend using Force Reimport on all
+    libraries.
+  - OPDS
+    - Fix navigation links not inheriting view settings of current page.
+    - Removed populating categories in OPDS to experiment with performance
+      issues.
+    - Fix OPDS pse lastRead tag.
+  - Block library polling during database updates, fixes reindexing.
+
 ## v1.2.7
 
 - Fix

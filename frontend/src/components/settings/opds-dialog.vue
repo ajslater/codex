@@ -18,11 +18,11 @@
       >
         <h3>
           v1.2
-          <v-icon id="clipBoardIcon" size="small">
+          <v-icon class="clipBoardIcon" size="small">
             {{ clipBoardIcon }}
           </v-icon>
           <v-fade-transition>
-            <span v-show="showTool" id="copied"> Copied </span>
+            <span v-show="showTool" class="copied">Copied</span>
           </v-fade-transition>
         </h3>
         <div id="opdsUrl">{{ opdsURL }}</div>
@@ -73,12 +73,12 @@ export default {
 .inline {
   display: inline-flex;
 }
-#copied {
+.copied {
   font-size: small;
   font-weight: normal;
   color: rgb(var(--v-theme-textSecondary));
 }
-#clipBoardIcon {
+.clipBoardIcon {
   color: rgb(var(--v-theme-iconsInactive));
 }
 #opdsv1 {
@@ -87,7 +87,7 @@ export default {
 #opdsv1:hover {
   background-color: rgb(var(--v-theme-surface));
 }
-#opdsv1:hover #clipBoardIcon,
+#opdsv1:hover .clipBoardIcon,
 #opdsv1:hover #opdsUrl {
   color: rgb(var(--v-theme-textPrimary));
 }

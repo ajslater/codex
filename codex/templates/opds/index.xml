@@ -61,7 +61,7 @@
         pse:count="{{ link.pse_count }}"
       {% endif %}
       {% if link.pse_last_read %}
-        pse:last_read="{{ link.pse_last_read }}"
+        pse:lastRead="{{ link.pse_last_read }}"
       {% endif %}
       />
   {% endfor %}

@@ -26,11 +26,11 @@ class OPDSEntry:
     DATE_FORMAT = _DATE_FORMAT_BASE + "%z"
     DATE_FORMATS = (DATE_FORMAT_MS, DATE_FORMAT)
     CATEGORY_KEYS = (
-        "characters",
+        # "characters",
         # "genres",
         # "locations",
         # "series_groups",
-        "story_arcs",
+        # "story_arcs",
         # "tags",
         # "teams",
     )

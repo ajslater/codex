@@ -1,24 +1,23 @@
 """Custom Haystack Search Backend."""
 from logging import getLogger
 from multiprocessing import cpu_count
-from queue import SimpleQueue
-from time import time
 
 from django.utils.timezone import now
 from haystack.backends.whoosh_backend import TEXT, WhooshSearchBackend
+from haystack.constants import DJANGO_ID
 from haystack.exceptions import SkipDocument
 from humanfriendly import InvalidSize, parse_size
-from humanize import naturaldelta
 from whoosh.analysis import CharsetFilter, StandardAnalyzer, StemFilter
 from whoosh.fields import NUMERIC
 from whoosh.qparser import FieldAliasPlugin, GtLtPlugin, OperatorsPlugin
 from whoosh.qparser.dateparse import DateParserPlugin
+from whoosh.query import Not, Or, Term
 from whoosh.support.charset import accent_map
-from whoosh.writing import MERGE_SMALL, BufferedWriter
 
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.logger.logging import get_logger
-from codex.status_controller import StatusController
+from codex.search.indexes import ComicIndex
+from codex.search.writing import CodexWriter
 from codex.worker_base import WorkerBaseMixin
 
 
@@ -116,19 +115,14 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
     }
     WRITER_PERIOD = 60 * 5
     WRITER_LIMIT = 10000
-    COMMITARGS = {"merge": True, "mergetype": MERGE_SMALL}
+    COMMITARGS_MERGE_SMALL = {"merge": True}
+    COMMITARGS_NO_MERGE = {"merge": False}
 
     def __init__(self, connection_alias, **connection_options):
         """Init worker queues."""
-        log_queue = connection_options.pop("log_queue", None)
-        librarian_queue = connection_options.pop("librarian_queue", None)
-        if log_queue and librarian_queue:
-            self.init_worker(log_queue, librarian_queue)
-        else:
-            self.log = getLogger(self.__class__.__name__)
-            self.log.propagate = False
-            self.status_controller = StatusController(SimpleQueue(), SimpleQueue())
         super().__init__(connection_alias, **connection_options)
+        self.log = getLogger(self.__class__.__name__)
+        self.log.propagate = False
 
     def build_schema(self, fields):
         """Customize schema fields."""
@@ -157,192 +151,125 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
 
         return (content_field_name, schema)
 
-    def setup(self):
+    def setup(self, dateparser=True):
         """Add extra plugins."""
         super().setup()
-        self.parser.add_plugins(
-            (
-                self.FIELD_ALIAS_PLUGIN,
-                GtLtPlugin,
-                DateParserPlugin(basedate=now()),
-                # RegexPlugin,  # not working yet
-            )
-        )
         self.parser.replace_plugin(self.OPERATORS_PLUGIN)
+        plugins = [self.FIELD_ALIAS_PLUGIN, GtLtPlugin]
+        if dateparser:
+            # the dateparser plugin won't pickle for
+            # multiprocessing
+            plugins += [DateParserPlugin(basedate=now())]
+        self.parser.add_plugins(plugins)
+
+    def get_writer(self, commitargs=COMMITARGS_NO_MERGE):
+        """Get a writer."""
+        self.index = self.index.refresh()
+        writer = CodexWriter(
+            self.index,
+            limit=self.WRITER_LIMIT,
+            period=self.WRITER_PERIOD,
+            writerargs=self.WRITERARGS,
+            commitargs=commitargs,
+        )
+        return writer
 
     def update(self, index, iterable, commit=True):
         """Update index, but with writer options."""
-        start = since = time()
-        try:
-            num_objs = len(iterable)
-            if num_objs < 1:
-                self.log.debug("Search index nothing to update.")
-                return
+        num_objs = len(iterable)
+        if not num_objs:
+            self.log.debug("Search index nothing to update.")
+            return 0
 
-            statuses = {
-                SearchIndexStatusTypes.SEARCH_INDEX_UPDATE: {
-                    "total": num_objs,
-                },
-                # SearchIndexStatusTypes.SEARCH_INDEX_COMMIT: {},
-            }
-            self.status_controller.start_many(statuses)
-            if not self.setup_complete:
-                self.setup()
+        if not self.setup_complete:
+            self.setup(False)
 
-            self.index = self.index.refresh()
+        if not index:
+            index = ComicIndex()
 
-            # writer = AsyncWriter(self.index, writerargs=self.WRITERARGS)
-            writer = BufferedWriter(
-                self.index,
-                limit=self.WRITER_LIMIT,
-                period=self.WRITER_PERIOD,
-                writerargs=self.WRITERARGS,
-                commitargs=self.COMMITARGS,
-            )
+        # batch remove before update
+        remove_pks = iterable.values_list("pk", flat=True)
+        self.remove_batch_pks(remove_pks)
 
-            obj_count = 0
-            for obj_count, obj in enumerate(iterable):
-                try:
-                    doc = index.full_prepare(obj)
-                except SkipDocument:
-                    self.log.debug("Indexing for object `%s` skipped", obj)
-                else:
-                    # Really make sure it's unicode, because Whoosh won't have it any
-                    # other way.
-                    for key in doc:
-                        doc[key] = self._from_python(doc[key])
+        writer = self.get_writer()
 
-                    # Document boosts aren't supported in Whoosh 2.5.0+.
-                    if "boost" in doc:
-                        del doc["boost"]
-
-                    try:
-                        writer.update_document(**doc)
-                    except Exception as exc:
-                        if not self.silently_fail:
-                            raise
-
-                        # We'll log the object identifier but won't include the actual
-                        # object to avoid the possibility of that generating encoding
-                        # errors while processing the log message:
-                        self.log.warning(
-                            f"Search index updating document {exc} pk:{obj.pk}",
-                        )
-                since = self.status_controller.update(
-                    SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
-                    obj_count,
-                    num_objs,
-                    since=since,
-                )
-            prepare_start = time()
+        for obj in iterable:
             try:
-                if obj_count > 1:
-                    self.log.debug("Search index starting final commit.")
-                else:
-                    self.log.debug("Search index update cancelling nothing to update.")
-                    writer.cancel()
-
-                writer.close()
-            except Exception as exc:
-                self.log.warning(
-                    "Exception during search index writer final commit or cancel."
-                )
-                self.log.exception(exc)
-                try:
-                    self.log.info("Turning off merging and trying once more...")
-                    writer.commitargs = {"merge": False}
-                    try:
-                        writer.lock.release()
-                    except RuntimeError:
-                        pass
-                    writer.close()
-                except Exception as exc:
-                    self.log.error(
-                        "During search index writer final commit or cancel "
-                        "without merge."
-                    )
-                    self.log.exception(exc)
-
-            elapsed_time = time() - start
-            elapsed = naturaldelta(elapsed_time)
-            cps = int(num_objs / elapsed_time)
-            self.log.info(
-                f"Search engine updated {num_objs} comics"
-                f" in {elapsed} at {cps} comics per second."
-            )
-            until = prepare_start + 1
-            self.status_controller.finish(
-                SearchIndexStatusTypes.SEARCH_INDEX_UPDATE, until=until
-            )
-
-        finally:
-            until = start + 1
-            self.status_controller.finish_many(self.STATUS_FINISH_TYPES, until=until)
-
-    def clear(self, models=None, commit=True):
-        """Clear index with codex status messages."""
-        start = time()
-        try:
-            self.status_controller.start(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
-            super().clear(models=models, commit=commit)
-        finally:
-            until = start + 1
-            self.status_controller.finish(
-                SearchIndexStatusTypes.SEARCH_INDEX_CLEAR, until=until
-            )
-
-    def remove_batch(self, doc_ids):
-        """Remove a large batch of doc ids from the index."""
-        num_doc_ids = len(doc_ids)
-        self.status_controller.start(
-            SearchIndexStatusTypes.SEARCH_INDEX_REMOVE, num_doc_ids
-        )
-        start = since = time()
-        try:
-            if not self.setup_complete:
-                self.setup()
-
-            self.index = self.index.refresh()
-            writer = BufferedWriter(
-                self.index,
-                limit=self.WRITER_LIMIT,
-                period=self.WRITER_PERIOD,
-                writerargs=self.WRITERARGS,
-                commitargs=self.COMMITARGS,
-            )
-            count = 0
-            for count, doc_id in enumerate(doc_ids):
-                writer.delete_document(doc_id)
-                since = self.status_controller.update(
-                    SearchIndexStatusTypes.SEARCH_INDEX_REMOVE,
-                    count,
-                    num_doc_ids,
-                    since=since,
-                )
-
-            if len(doc_ids) > 1:
-                writer.commit()
+                doc = index.full_prepare(obj)
+            except SkipDocument:
+                self.log.debug("Indexing for object `%s` skipped", obj)
             else:
+                # Really make sure it's unicode, because Whoosh won't have it any
+                # other way.
+                for key in doc:
+                    doc[key] = self._from_python(doc[key])
+
+                # Document boosts aren't supported in Whoosh 2.5.0+.
+                if "boost" in doc:
+                    del doc["boost"]
+
+                try:
+                    # add instead of update because of above batch remove
+                    writer.add_document(**doc)
+                except Exception as exc:
+                    if not self.silently_fail:
+                        raise
+
+                    # We'll log the object identifier but won't include the actual
+                    # object to avoid the possibility of that generating encoding
+                    # errors while processing the log message:
+                    self.log.warning(
+                        f"Search index adding document {exc} pk:{obj.pk}",
+                    )
+        try:
+            if num_objs:
+                self.log.debug("Search index starting final commit.")
+            else:
+                self.log.debug("Search index update cancelling nothing to update.")
                 writer.cancel()
+
             writer.close()
-
-            elapsed_time = time() - start
-
-            elapsed = naturaldelta(elapsed_time)
-            cps = int(count / elapsed_time)
-            self.log.info(
-                f"Search engine removed {count} ghosts from the index"
-                f" in {elapsed} at {cps} per second."
+        except Exception as exc:
+            self.log.warning(
+                "Exception during search index writer final commit or cancel."
             )
-        finally:
-            until = start + 1
-            self.status_controller.finish(
-                SearchIndexStatusTypes.SEARCH_INDEX_REMOVE, until=until
+            self.log.exception(exc)
+        return num_objs
+
+    def remove_batch_pks(self, pks, inverse=False, sc=None):
+        """Remove a large batch of docs by pk from the index."""
+        if not pks.count() and not inverse:
+            return
+        if not self.setup_complete:
+            self.setup(False)
+
+        writer = self.get_writer()
+        try:
+            pk_terms = [Term(DJANGO_ID, str(pk)) for pk in pks]
+            query = Or(pk_terms)
+            if inverse:
+                query = Not(query)
+            count = writer.delete_by_query(query, sc=sc)
+        except Exception as exc:
+            self.log.warning(
+                f"Search index removing documents by query {inverse=} {exc}"
             )
+            self.log.exception(exc)
+            count = 0
+        writer.close()
+        return count
 
     def optimize(self):
         """Optimize the index."""
         if not self.setup_complete:
-            self.setup()
+            self.setup(False)
         self.index = self.index.refresh()
         self.index.optimize(**self.WRITERARGS)
+
+    def merge_small(self):
+        """Merge small segments of the index."""
+        if not self.setup_complete:
+            self.setup(False)
+        self.index = self.index.refresh()
+        writer = self.get_writer({"merge": True})
+        writer.close()

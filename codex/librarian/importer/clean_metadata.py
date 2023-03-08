@@ -150,6 +150,7 @@ class CleanMetadataMixin(QueuedThread):
         try:
             if value is None:
                 raise ValueError()
+            value = str(value)
             value = value[: field.max_length].strip()
         except Exception:
             if field.null:

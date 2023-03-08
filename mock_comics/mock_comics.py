@@ -106,8 +106,9 @@ def create_str(md, key, limit):
     """Add random string to the metadata."""
     if is_valid() is None:
         return
-    length = randint(0, round(limit * 1.2))
-    md[key] = rand_string(length)
+    prefix = key + "_"
+    length = randint(0, round(limit * 1.2)) - len(prefix)
+    md[key] = prefix + rand_string(length)
 
 
 def create_name_list(md, key):
@@ -115,8 +116,9 @@ def create_name_list(md, key):
     if is_valid() is None:
         return
     m2m = []
+    prefix = key + "_"
     for _ in range(randint(0, 10)):
-        name = rand_string(64)
+        name = prefix + rand_string(64 - len(prefix))
         m2m.append(name)
     md[key] = ",".join(m2m)
 
