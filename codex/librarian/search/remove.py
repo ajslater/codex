@@ -26,6 +26,7 @@ class RemoveMixin(VersionMixin):
                 Comic.objects.all().order_by("pk").values_list("pk", flat=True)
             )
 
+            # TODO make this a Not() wrapped delete_by_query
             mask = Or([Term(DJANGO_ID, str(pk)) for pk in database_pks])
 
             backend.index = backend.index.refresh()
@@ -54,7 +55,9 @@ class RemoveMixin(VersionMixin):
             stale_doc_ids = self._get_stale_doc_ids(backend)
             num_doc_ids = len(stale_doc_ids)
             self.status_controller.start(
-                SearchIndexStatusTypes.SEARCH_INDEX_REMOVE, num_doc_ids
+                SearchIndexStatusTypes.SEARCH_INDEX_REMOVE,
+                name=str(num_doc_ids),
+                total=0,
             )
             backend.remove_batch_docnums(stale_doc_ids)
 
