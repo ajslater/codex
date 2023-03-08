@@ -47,7 +47,7 @@ export const useReaderStore = defineStore("reader", {
     readerSettings: {
       fitTo: getGlobalFitToDefault(),
       twoPages: false,
-      readInReverse: false, // TODO get from backend.
+      readInReverse: false,
       readRtlInReverse: false,
     },
     books: new Map(),
