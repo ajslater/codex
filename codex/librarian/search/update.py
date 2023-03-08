@@ -112,7 +112,7 @@ class UpdateMixin(RemoveMixin):
 
             # Run Loop
             start = 0
-            end = batch_size - 1
+            end = start + batch_size
             results = []
             while start < num_comics:
                 batch_qs = qs[start:end]
