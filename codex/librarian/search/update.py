@@ -50,6 +50,8 @@ class UpdateMixin(RemoveMixin):
             result_updated_at = result.get("updated_at")
             if result_updated_at > index_latest_updated_at:
                 index_latest_updated_at = result_updated_at
+        if index_latest_updated_at == cls._MIN_UTC_DATE:
+            index_latest_updated_at = None
         return index_latest_updated_at
 
     def _get_search_index_latest_updated_at(self, backend):
