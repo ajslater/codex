@@ -162,7 +162,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             plugins += [DateParserPlugin(basedate=now())]
         self.parser.add_plugins(plugins)
 
-    def get_writer(self, commitargs=COMMITARGS_MERGE_SMALL):
+    def get_writer(self, commitargs=COMMITARGS_NO_MERGE):
         """Get a writer."""
         self.index = self.index.refresh()
         writer = CodexWriter(
@@ -234,20 +234,6 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                 "Exception during search index writer final commit or cancel."
             )
             self.log.exception(exc)
-            try:
-                self.log.info("Turning off merging and trying once more...")
-                writer.commitargs = self.COMMITARGS_NO_MERGE
-                try:
-                    writer.lock.release()
-                except RuntimeError:
-                    pass
-                writer.close()
-            except Exception as exc:
-                self.log.error(
-                    "During search index writer final commit or cancel "
-                    "without merge."
-                )
-                self.log.exception(exc)
         return num_objs
 
     def remove_batch_pks(self, pks):
@@ -276,7 +262,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             return
         if not self.setup_complete:
             self.setup(False)
-
+        # TODO single threaded add progress
         writer = self.get_writer()
         count = 0
         for docnum in docnums:

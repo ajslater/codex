@@ -56,7 +56,6 @@ class CodexWriter(BufferedWriter):
         """Get the reader without locking the writer."""
         from whoosh.reading import MultiReader
 
-
         with self.lock:
             ramreader = self._get_ram_reader()
 
