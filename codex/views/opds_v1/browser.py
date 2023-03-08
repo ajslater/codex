@@ -203,6 +203,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
 
     def _nav_link(self, kwargs, rel):
         href = reverse("opds:v1:browser", kwargs={**kwargs})
+        href = update_href_query_params(href, self.request.query_params)
         return OPDSLink(rel, href, MimeType.NAV)
 
     def _top_link(self, top_link):

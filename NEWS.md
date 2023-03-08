@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.2.9
+
+- Fix
+  - OPDS
+    - Fix navigation links not inheriting view settings of current page.
+
 ## v1.2.8
 
 - Features
