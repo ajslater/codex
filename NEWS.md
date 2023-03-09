@@ -10,6 +10,7 @@ border-radius: 128px;
 
 - Features
   - OPDSE PSE 1.2 extension for Panels `pse:lastReadDate`
+  - Faster search index removes
 
 ## v1.2.8
 

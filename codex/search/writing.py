@@ -156,6 +156,7 @@ class CodexWriter(BufferedWriter):
         :returns: the number of documents deleted.
 
         Special codex version with progress updates.
+        Not mp safe.
         """
         if searcher:
             s = searcher
