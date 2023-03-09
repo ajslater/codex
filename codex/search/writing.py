@@ -121,6 +121,8 @@ class CodexWriter(BufferedWriter):
 
     def delete_document(self, docnum, delete=True, writer=None):
         """Delete a document by getting the writer."""
+        # Also count deletes as bufferedcounts as they're batched
+        # and not matched to every add.
         with self.lock:
             base = self.index.doc_count_all()
             if docnum < base:
@@ -130,7 +132,8 @@ class CodexWriter(BufferedWriter):
                     writer = self.get_writer("delete_document")
                     commit = True
                 writer.delete_document(docnum, delete=delete)
-                if commit:
+                self.bufferedcount += 1
+                if commit or self.bufferedcount >= self.limit:
                     writer.commit(**self.commitargs)
             else:
                 ramsegment = self.codec.segment
