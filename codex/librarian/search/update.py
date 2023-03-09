@@ -97,7 +97,7 @@ class UpdateMixin(RemoveMixin):
             since = start_time
             num_comics = qs.count()
             self.status_controller.start(
-                SearchIndexStatusTypes.SEARCH_INDEX_UPDATE, total=num_comics
+                SearchIndexStatusTypes.SEARCH_INDEX_UPDATE, complete=0, total=num_comics
             )
             num_cpus = cpu_count()
             batch_size = int(

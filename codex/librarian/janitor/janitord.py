@@ -62,7 +62,10 @@ class JanitorThread(NamedThread):
 
     def _init_librarian_status(self):
         types_map = {
-            JanitorStatusTypes.CLEANUP_FK: {"total": TOTAL_NUM_FK_CLASSES},
+            JanitorStatusTypes.CLEANUP_FK: {
+                "complete": 0,
+                "total": TOTAL_NUM_FK_CLASSES,
+            },
             JanitorStatusTypes.CLEANUP_SESSIONS: {},
             JanitorStatusTypes.DB_VACUUM: {},
             JanitorStatusTypes.DB_BACKUP: {},

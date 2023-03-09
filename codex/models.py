@@ -528,8 +528,8 @@ class LibrarianStatus(NamedModel):
     DEFAULT_PARAMS = {
         "name": "",
         "preactive": False,
-        "complete": 0,
-        "total": 0,
+        "complete": None,
+        "total": None,
         "active": None,
     }
     TYPES = (
@@ -541,8 +541,8 @@ class LibrarianStatus(NamedModel):
     )
     type = CharField(db_index=True, max_length=32)
     preactive = BooleanField(default=False)
-    complete = PositiveSmallIntegerField(default=0)
-    total = PositiveSmallIntegerField(default=0)
+    complete = PositiveSmallIntegerField(null=True, default=None)
+    total = PositiveSmallIntegerField(null=True, default=None)
     active = DateTimeField(null=True, default=None)
 
     class Meta:

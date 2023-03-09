@@ -29,7 +29,7 @@ class CoverPurgeMixin(CoverPathMixin):
         """Purge a set a cover paths."""
         try:
             self.log.debug(f"Removing {len(cover_paths)} cover thumbnails...")
-            self.status_controller.start(CoverStatusTypes.PURGE, len(cover_paths))
+            self.status_controller.start(CoverStatusTypes.PURGE, 0, len(cover_paths))
             cover_dirs = set()
             for cover_path in cover_paths:
                 cover_path.unlink(missing_ok=True)

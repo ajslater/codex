@@ -173,8 +173,8 @@ class CodexWriter(BufferedWriter):
                 if sc:
                     since = sc.update(
                         SearchIndexStatusTypes.SEARCH_INDEX_REMOVE,
-                        complete=count,
-                        total=0,
+                        count,
+                        None,
                         since=since,  # type: ignore
                     )
         finally:
