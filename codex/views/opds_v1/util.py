@@ -1,7 +1,8 @@
 """OPDS Utility classes."""
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Union
+from datetime import datetime
+from typing import Optional, Union
 
 from comicbox.metadata.comic_json import json
 from django.utils.http import urlencode
@@ -178,6 +179,7 @@ class OPDSLink:
     thr_count: int = 0
     pse_count: int = 0
     pse_last_read: int = 0
+    pse_last_read_date: Optional[datetime] = None
 
 
 def update_href_query_params(href, old_query_params, new_query_params=None):

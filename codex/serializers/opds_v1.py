@@ -118,6 +118,7 @@ class OPDSTemplateLinkSerializer(Serializer):
     thr_count = IntegerField(read_only=True, required=False)
     pse_count = IntegerField(read_only=True, required=False)
     pse_last_read = IntegerField(read_only=True, required=False)
+    pse_last_read_date = DateTimeField(read_only=True, required=False)
 
 
 class OPDSTemplateEntrySerializer(Serializer):

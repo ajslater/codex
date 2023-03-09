@@ -3,6 +3,7 @@ from django.db.models import (
     BooleanField,
     Case,
     Count,
+    DateTimeField,
     F,
     OuterRef,
     Q,
@@ -33,6 +34,7 @@ class BrowserAnnotationsView(BrowserOrderByView):
         BrowserBaseView.COMIC_GROUP: Comic,
         BrowserBaseView.FOLDER_GROUP: Folder,
     }
+    _NONE_DATETIMEFIELD = Value(None, DateTimeField())
 
     def _annotate_search_score(self, queryset, is_model_comic, search_scores):
         """Annotate the search score for ordering by search score."""
@@ -69,13 +71,14 @@ class BrowserAnnotationsView(BrowserOrderByView):
         obj_list = obj_list.annotate(page_count=page_count_sum)
         return obj_list
 
-    def _annotate_bookmarks(self, obj_list, is_model_comic):
+    def _annotate_bookmarks(self, obj_list, is_model_comic, is_opds_acquisition=False):
         """Hoist up bookmark annoations."""
         bm_rel = self.get_bm_rel(is_model_comic)
         bm_filter = self._get_my_bookmark_filter(bm_rel)
 
         page_rel = f"{bm_rel}__page"
         finished_rel = f"{bm_rel}__finished"
+        updated_at_rel = f"{bm_rel}__updated_at"
 
         if is_model_comic:
             # Hoist up the bookmark and finished states
@@ -91,6 +94,10 @@ class BrowserAnnotationsView(BrowserOrderByView):
                 filter=bm_filter,
                 output_field=BooleanField(),
             )
+            if is_opds_acquisition:
+                bookmark_updated_at = F(updated_at_rel)
+            else:
+                bookmark_updated_at = self._NONE_DATETIMEFIELD
         else:
             # Aggregate bookmark and finished states
             bookmark_page = Sum(
@@ -104,6 +111,7 @@ class BrowserAnnotationsView(BrowserOrderByView):
                 filter=bm_filter,
                 output_field=PositiveSmallIntegerField(),
             )
+
             finished_count = Sum(
                 finished_rel,
                 default=0,
@@ -120,10 +128,12 @@ class BrowserAnnotationsView(BrowserOrderByView):
                 default=None,
                 output_field=BooleanField(),
             )
+            bookmark_updated_at = self._NONE_DATETIMEFIELD
 
         obj_list = obj_list.annotate(
             page=bookmark_page,
             finished=finished_aggregate,
+            bookmark_updated_at=bookmark_updated_at,
         )
 
         return obj_list
@@ -140,7 +150,9 @@ class BrowserAnnotationsView(BrowserOrderByView):
         queryset = queryset.annotate(progress=progress)
         return queryset
 
-    def annotate_common_aggregates(self, qs, model, search_scores):
+    def annotate_common_aggregates(
+        self, qs, model, search_scores, is_opds_acquisition=False
+    ):
         """Annotate common aggregates between browser and metadata."""
         is_model_comic = model == Comic
         qs = self._annotate_search_score(qs, is_model_comic, search_scores)
@@ -151,6 +163,6 @@ class BrowserAnnotationsView(BrowserOrderByView):
             qs = self._annotate_page_count(qs)
             child_count_sum = Count("comic__pk", distinct=True)
         qs = qs.annotate(child_count=child_count_sum)
-        qs = self._annotate_bookmarks(qs, is_model_comic)
+        qs = self._annotate_bookmarks(qs, is_model_comic, is_opds_acquisition)
         qs = self._annotate_progress(qs)
         return qs

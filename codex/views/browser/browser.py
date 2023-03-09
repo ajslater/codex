@@ -84,7 +84,9 @@ class BrowserView(BrowserAnnotationsView):
         ##############################
         # Annotate Common Aggregates #
         ##############################
-        queryset = self.annotate_common_aggregates(queryset, model, search_scores)
+        queryset = self.annotate_common_aggregates(
+            queryset, model, search_scores, self.is_opds_acquisition
+        )
         if not is_model_comic:
             # EXTRA FILTER for empty group
             queryset = queryset.filter(child_count__gt=0)
