@@ -25,6 +25,7 @@
       />
     </v-radio-group>
     <v-checkbox
+      :disabled="selectedSettings.vertical"
       class="displayTwoPages"
       density="compact"
       label="Two pages"
@@ -38,6 +39,19 @@
       @update:model-value="settingsDialogChanged({ twoPages: $event })"
     />
     <v-label>Reading Direction</v-label>
+    <v-switch
+      class="vertical"
+      density="compact"
+      :label="verticalLabel"
+      hide-details="auto"
+      :model-value="selectedSettings.vertical"
+      :true-value="true"
+      :indeterminate="
+        selectedSettings.vertical === null ||
+        selectedSettings.vertical === undefined
+      "
+      @update:model-value="settingsDialogChanged({ vertical: $event })"
+    />
     <v-checkbox
       class="readInReverse"
       density="compact"
@@ -66,7 +80,7 @@
       id="clearSettingsButton"
       :disabled="isClearSettingsButtonDisabled"
       title="Use the default settings for all comics for this comic"
-      @click="clearSettingsLocal($route.params)"
+      @click="clearSettingsLocal(params)"
     >
       Clear Comic Settings
     </v-btn>
@@ -77,7 +91,7 @@ import { mapActions, mapState, mapWritableState } from "pinia";
 
 import { useReaderStore } from "@/stores/reader";
 
-const ATTRS = ["fitTo", "twoPages"];
+const ATTRS = ["fitTo", "twoPages", "vertical", "readInReverse"];
 
 export default {
   name: "ReaderSettingsPanel",
@@ -114,6 +128,22 @@ export default {
         }
         return true;
       },
+      verticalLabel(state) {
+        const vertical =
+          state.activeBook && state.activeBook.settings
+            ? state.activeBook.settings.vertical
+            : undefined;
+        if (vertical === undefined || vertical === null) {
+          return "Inherit Page Turning";
+        } else if (vertical) {
+          return "Scroll Pages Vertically";
+        } else {
+          return "Turn Pages Horizontally";
+        }
+      },
+      params(state) {
+        return { pk: state.pk, page: state.page };
+      },
     }),
     ...mapWritableState(useReaderStore, ["readRTLInReverse"]),
   },
@@ -132,9 +162,9 @@ export default {
     ]),
     settingsDialogChanged: function (data) {
       if (this.isGlobalScope) {
-        this.setSettingsGlobal(this.$route.params, data);
+        this.setSettingsGlobal(this.params, data);
       } else {
-        this.setSettingsLocal(this.$route.params, data);
+        this.setSettingsLocal(this.params, data);
       }
     },
     _keyListener: function (event) {
@@ -167,9 +197,13 @@ export default {
             readInReverse: !this.selectedSettings.readInReverse,
           };
           break;
+        case "v":
+          updates = {
+            vertical: !this.selectedSettings.vertical,
+          };
       }
       if (updates) {
-        this.setSettingsLocal(this.$route.params, updates);
+        this.setSettingsLocal(this.params, updates);
       }
       // metadata and close are attached to to title-toolbar
       // No default

@@ -1,10 +1,10 @@
 <template>
   <router-link
-    class="pageChangeColumn"
     :to="route"
     :aria-label="label"
     :class="{
-      [direction]: true,
+      [pageChangeClass]: true,
+      [directionClass]: true,
     }"
     @click="$event.stopImmediatePropagation()"
   />
@@ -34,7 +34,7 @@ export default {
         if (!book) {
           return false;
         }
-        const settings = this.getSettings(state.readerSettings, book);
+        const settings = this.getSettings(book);
         if (!settings.twoPages) {
           return false;
         }
@@ -43,6 +43,18 @@ export default {
           return false;
         }
         return getComicPageSource(paramsPlus);
+      },
+      directionClass(state) {
+        let dc = this.direction;
+        if (state.activeSettings.vertical) {
+          dc += "Vertical";
+        }
+        return dc;
+      },
+      pageChangeClass(state) {
+        let pcc = "pageChange";
+        pcc += state.activeSettings.vertical ? "Row" : "Column";
+        return pcc;
       },
     }),
     computedDirection() {
@@ -66,15 +78,29 @@ export default {
 </script>
 <style scoped lang="scss">
 .pageChangeColumn {
+  position: fixed;
   height: 100%;
   width: 33vw;
 }
+.pageChangeRow {
+  position: fixed;
+  height: 33vh;
+  width: 100%;
+}
 .prev {
-  cursor: w-resize;
   left: 0px;
+  cursor: w-resize;
+}
+.prevVertical {
+  top: 0px;
+  cursor: n-resize;
 }
 .next {
-  cursor: e-resize;
   right: 0px;
+  cursor: e-resize;
+}
+.nextVertical {
+  bottom: 0px;
+  cursor: s-resize;
 }
 </style>

@@ -36,6 +36,17 @@ const ADMIN_DRAWER_COMPONENT_FNS = fs
   .filter((fn) => fn.at(-1) !== "~")
   .map((fn) => ADMIN_DRAWER_COMPONENT_DIR + "/" + fn);
 
+const Vuetify3LabsResolver = function () {
+  // For VVirtualScroll. Remove when that graduates.
+  return {
+    type: "component",
+    resolve: (name) => {
+      if (/^V[A-Z]/.test(name))
+        return { name, from: "vuetify/labs/components" };
+    },
+  };
+};
+
 const config = defineConfig(({ mode }) => {
   const PROD = mode === "production";
   const DEV = mode === "development";
@@ -94,6 +105,7 @@ const config = defineConfig(({ mode }) => {
       Components({
         resolvers: [
           // Vuetify
+          Vuetify3LabsResolver(),
           Vuetify3Resolver(),
         ],
       }),

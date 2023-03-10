@@ -311,7 +311,14 @@ class BookmarkSerializer(ModelSerializer):
         """Configure the model."""
 
         model = Bookmark
-        fields = ("finished", "fit_to", "page", "two_pages", "read_in_reverse")
+        fields = (
+            "finished",
+            "fit_to",
+            "page",
+            "two_pages",
+            "read_in_reverse",
+            "vertical",
+        )
 
 
 class BookmarkFinishedSerializer(ModelSerializer):

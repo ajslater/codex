@@ -14,6 +14,7 @@
         </v-icon>
       </v-btn>
     </v-toolbar-items>
+    {{ bookChange }}
     <v-toolbar-title id="toolbarTitle" class="codexToolbarTitle">
       {{ activeTitle }}
     </v-toolbar-title>
@@ -22,11 +23,7 @@
     }}</span>
     <v-toolbar-items>
       <v-btn id="tagButton" @click.stop="openMetadata">
-        <MetadataDialog
-          ref="metadataDialog"
-          group="c"
-          :pk="Number($route.params.pk)"
-        />
+        <MetadataDialog ref="metadataDialog" group="c" :pk="pk" />
       </v-btn>
       <SettingsDrawerButton
         id="settingsButton"
@@ -63,8 +60,7 @@ export default {
     };
   },
   head() {
-    const page = this.$route.params.page;
-    const content = `reader ${this.activeTitle} page ${page}`;
+    const content = `reader ${this.activeTitle} page ${this.storePage}`;
     return {
       meta: [
         {
@@ -78,12 +74,15 @@ export default {
   computed: {
     ...mapGetters(useReaderStore, ["activeTitle", "activeBook"]),
     ...mapState(useReaderStore, {
+      bookChange: (state) => state.bookChange,
       seriesPosition: function (state) {
         if (this.activeBook && state.seriesCount > 1) {
           return `${this.activeBook.seriesIndex}/${state.seriesCount}`;
         }
         return "";
       },
+      vertical: (state) => state.activeSettings.vertical,
+      pk: (state) => state.pk || 0,
     }),
     ...mapState(useBrowserStore, {
       lastRoute: (state) => state.page.routes.last,
@@ -96,7 +95,7 @@ export default {
         params: this.lastRoute,
       };
       if (route.params) {
-        route.hash = `#card-${this.$route.params.pk}`;
+        route.hash = `#card-${this.pk}`;
       } else {
         route.params = window.CODEX.LAST_ROUTE || CHOICES.browser.route;
       }
@@ -121,6 +120,7 @@ export default {
     ...mapActions(useReaderStore, [
       "routeToDirection",
       "routeToDirectionOne",
+      "routeToBook",
       "setBookChangeFlag",
     ]),
     openMetadata() {
@@ -154,7 +154,6 @@ export default {
         case "ArrowRight":
           this.routeToDirection(NEXT);
           break;
-
         case "k":
         case "ArrowLeft":
           this.routeToDirection(PREV);
@@ -164,6 +163,12 @@ export default {
           break;
         case ".":
           this.routeToDirectionOne(NEXT);
+          break;
+        case "n":
+          this.routeToBook(NEXT);
+          break;
+        case "p":
+          this.routeToBook(PREV);
           break;
         case "Escape":
           this.$refs.closeBook.$el.click();

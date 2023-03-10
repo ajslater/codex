@@ -498,6 +498,7 @@ class Bookmark(BaseModel):
     )
     two_pages = BooleanField(default=None, null=True)
     read_in_reverse = BooleanField(default=None, null=True)
+    vertical = BooleanField(default=None, null=True)
 
     class Meta:
         """Constraints."""

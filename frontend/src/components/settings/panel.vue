@@ -21,6 +21,7 @@ export default {
   name: "SettingsCommonPanel",
   components: {
     AuthMenu,
+    AdminMenu,
   },
   props: {
     adminMenu: { type: Boolean, default: true },
