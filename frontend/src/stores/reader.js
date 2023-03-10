@@ -252,7 +252,7 @@ export const useReaderStore = defineStore("reader", {
         // And then align it.
         const y = window.innerHeight * page;
         el = document.querySelector("#verticalScroll");
-        el.scroll(0, y);
+        el.scroll(0, y); // could be ref.scrollToIndex()?
         _scrollToPageRetry(page);
       }
     },
