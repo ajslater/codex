@@ -14,6 +14,8 @@ border-radius: 128px;
   - OPDSE PSE 1.2 extension for Panels `pse:lastReadDate`
 - Fix
   - Fixed next and previous book keyboard shortcuts.
+  - Improved OPDS acquistion page performance by removing more "categories"
+    metadata.
 
 ## v1.2.8
 
