@@ -47,6 +47,7 @@ export default {
   props: {
     book: { type: Object, required: true },
   },
+  emits: ["click"],
   data() {
     return {
       activePage: 0,

@@ -19,6 +19,7 @@ export default {
   props: {
     book: { type: Object, required: true },
   },
+  emits: ["click"],
   computed: {
     ...mapState(useReaderStore, {
       storePk: (state) => state.pk,
