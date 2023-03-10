@@ -87,6 +87,10 @@ export default {
   },
   mounted() {
     this.mountedTime = Date.now();
+    window.addEventListener("resize", this.onResize);
+  },
+  beforeUnmount() {
+    window.removeEventListener("resize", this.onResize);
   },
   methods: {
     ...mapActions(useReaderStore, [
@@ -97,6 +101,7 @@ export default {
     onIntersect(isIntersecting, entries) {
       if (this.vertical && isIntersecting) {
         const page = +entries[0].target.dataset.page;
+        console.log("intersect", page);
         this.setActivePage(page);
       }
     },
@@ -113,6 +118,10 @@ export default {
       ) {
         this.setBookChangeFlag("next");
       }
+    },
+    onResize() {
+      this.innerHeight = window.innerHeight;
+      this.innerWidth = window.innerWidth;
     },
   },
 };

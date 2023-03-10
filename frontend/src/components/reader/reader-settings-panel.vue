@@ -150,7 +150,7 @@ export default {
   mounted() {
     document.addEventListener("keyup", this._keyListener);
   },
-  unmounted: function () {
+  beforeUnmount() {
     document.removeEventListener("keyup", this._keyListener);
   },
 

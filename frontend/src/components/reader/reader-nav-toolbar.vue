@@ -26,6 +26,9 @@ import ReaderBookChangeNavButton from "@/components/reader/reader-book-change-na
 import ReaderNavButton from "@/components/reader/reader-nav-button.vue";
 import { useReaderStore } from "@/stores/reader";
 
+const PREV = "prev";
+const NEXT = "next";
+
 export default {
   name: "ReaderNavToolbar",
   components: {
@@ -73,6 +76,12 @@ export default {
       return this.readInReverse ? "prev" : "next";
     },
   },
+  mounted() {
+    document.addEventListener("keyup", this._keyListener);
+  },
+  beforeUnmount() {
+    document.removeEventListener("keyup", this._keyListener);
+  },
   methods: {
     ...mapActions(useReaderStore, ["routeToPage", "setPage"]),
     onSliderUpdate(page) {
@@ -80,6 +89,48 @@ export default {
         this.setPage(page, true);
       } else {
         this.routeToPage(page);
+      }
+    },
+    _keyListener(event) {
+      event.stopPropagation();
+      switch (event.key) {
+        case " ":
+          if (
+            !event.shiftKey &&
+            window.innerHeight + window.scrollY + 1 >=
+              document.body.scrollHeight
+          ) {
+            // Spacebar goes next only at the bottom of page
+            this.routeToDirection(NEXT);
+          } else if (
+            // Shift + Spacebar goes back only at the top of page
+            !!event.shiftKey &&
+            window.scrollY === 0
+          ) {
+            this.routeToDirection(PREV);
+          }
+          break;
+        case "j":
+        case "ArrowRight":
+          this.routeToDirection(NEXT);
+          break;
+        case "k":
+        case "ArrowLeft":
+          this.routeToDirection(PREV);
+          break;
+        case ",":
+          this.routeToDirectionOne(PREV);
+          break;
+        case ".":
+          this.routeToDirectionOne(NEXT);
+          break;
+        case "n":
+          this.routeToBook(NEXT);
+          break;
+        case "p":
+          this.routeToBook(PREV);
+          break;
+        // No default
       }
     },
   },

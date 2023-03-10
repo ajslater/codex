@@ -65,6 +65,9 @@ export default {
   mounted() {
     window.addEventListener("resize", this.onResize);
   },
+  beforeUnmount() {
+    window.removeEventListener("resize", this.onResize);
+  },
   methods: {
     onResize() {
       this.innerHeight = window.innerHeight;

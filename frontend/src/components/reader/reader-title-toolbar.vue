@@ -44,9 +44,6 @@ import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
 
-const PREV = "prev";
-const NEXT = "next";
-
 export default {
   name: "ReaderTitleToolbar",
   components: {
@@ -112,7 +109,7 @@ export default {
   mounted() {
     document.addEventListener("keyup", this._keyListener);
   },
-  unmounted: function () {
+  beforeUnmount() {
     document.removeEventListener("keyup", this._keyListener);
   },
   methods: {
@@ -134,42 +131,6 @@ export default {
     _keyListener(event) {
       event.stopPropagation();
       switch (event.key) {
-        case " ":
-          if (
-            !event.shiftKey &&
-            window.innerHeight + window.scrollY + 1 >=
-              document.body.scrollHeight
-          ) {
-            // Spacebar goes next only at the bottom of page
-            this.routeToDirection(NEXT);
-          } else if (
-            // Shift + Spacebar goes back only at the top of page
-            !!event.shiftKey &&
-            window.scrollY === 0
-          ) {
-            this.routeToDirection(PREV);
-          }
-          break;
-        case "j":
-        case "ArrowRight":
-          this.routeToDirection(NEXT);
-          break;
-        case "k":
-        case "ArrowLeft":
-          this.routeToDirection(PREV);
-          break;
-        case ",":
-          this.routeToDirectionOne(PREV);
-          break;
-        case ".":
-          this.routeToDirectionOne(NEXT);
-          break;
-        case "n":
-          this.routeToBook(NEXT);
-          break;
-        case "p":
-          this.routeToBook(PREV);
-          break;
         case "Escape":
           this.$refs.closeBook.$el.click();
           break;
