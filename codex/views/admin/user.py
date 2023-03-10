@@ -53,8 +53,7 @@ class AdminUserViewSet(ModelViewSet):
 
     def get_queryset(self):
         """Annotate last active."""
-        qs = super().get_queryset()
-        qs = qs.annotate(last_active=F("useractive__updated_at"))
+        qs = self.queryset.annotate(last_active=F("useractive__updated_at"))
         return qs
 
 

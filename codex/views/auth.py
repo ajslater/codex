@@ -1,4 +1,5 @@
 """Views authorization."""
+from django.conf import settings
 from drf_spectacular.utils import extend_schema
 from rest_framework.generics import GenericAPIView
 from rest_framework.mixins import RetrieveModelMixin
@@ -33,6 +34,8 @@ class TimezoneView(GenericAPIView):
     input_serializer_class = TimezoneSerializer
     serializer_class = OKSerializer
 
+    _AUTH_USER_MODEL_TYPE = type(settings.AUTH_USER_MODEL)
+
     @extend_schema(request=input_serializer_class)
     def post(self, request, *args, **kwargs):
         """Get the user info for the current user."""
@@ -40,7 +43,9 @@ class TimezoneView(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         request.session["django_timezone"] = serializer.validated_data["timezone"]
         request.session.save()
-        UserActive.objects.update_or_create(user=self.request.user)
+        user = self.request.user
+        if user.is_authenticated:
+            UserActive.objects.update_or_create(user=user)
         serializer = self.get_serializer()
         return Response(serializer.data)
 
