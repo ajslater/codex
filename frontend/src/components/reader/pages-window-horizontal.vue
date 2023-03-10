@@ -114,7 +114,6 @@ export default {
     ...mapActions(useReaderStore, [
       "getSettings",
       "setBookChangeFlag",
-      "setPage",
       "setActivePage",
     ]),
   },
