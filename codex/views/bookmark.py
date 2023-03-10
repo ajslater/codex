@@ -20,6 +20,7 @@ class BookmarkBaseView(GenericAPIView, GroupACLMixin):
         "finished",
         "fit_to",
         "two_pages",
+        "vertical",
         "read_in_reverse",
     ]
     _BOOKMARK_ONLY_FIELDS = _BOOKMARK_UPDATE_FIELDS + ["pk", "comic"]
@@ -139,6 +140,7 @@ class BookmarkView(BookmarkBaseView):
             updates = self._validate(serializer_class)
         except Exception as exc:
             LOG.error(f"update bookmark: {exc}")
+            LOG.exception(exc)
             raise exc
 
         pk = self.kwargs.get("pk")

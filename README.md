@@ -357,7 +357,7 @@ authentication. In that case the OPDS url will look like:
 #### Supported OPDS Specifications
 
 - OPDS 1.2
-- OPDS-PSE 1.1
+- OPDS-PSE 1.2
 - OPDS Authentication 1.0
 - OpenSearch
 

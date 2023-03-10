@@ -24,13 +24,8 @@ export default {
   name: "PDFPage",
   components: { VuePdfEmbed },
   props: {
-    pk: { type: Number, required: true },
     src: {
       type: String,
-      required: true,
-    },
-    settings: {
-      type: Object,
       required: true,
     },
     fitToClass: {
@@ -46,26 +41,33 @@ export default {
     };
   },
   computed: {
+    settings() {
+      return this.getSettings(this.book);
+    },
     width() {
       // Wide PDFs will not fit to SCREEN well.
       // vue-pdf-embed internal canvas sizing algorithm makes this difficult.
       // Maybe not impossible but I'm lazy right now.
       let width = ["WIDTH"].includes(this.settings.fitTo) ? this.innerWidth : 0;
-      if (this.settings.twoPages) {
+      if (!this.settings.vertical && this.settings.twoPages) {
         width = width / 2;
       }
       return width;
     },
     height() {
-      return ["HEIGHT", "SCREEN"].includes(this.settings.fitTo)
+      let height = ["HEIGHT", "SCREEN"].includes(this.settings.fitTo)
         ? this.innerHeight
         : 0;
+      if (this.settings.vertical) {
+        height = height / 2;
+      }
+      return height;
     },
   },
   mounted() {
     window.addEventListener("resize", this.onResize);
   },
-  unmounted() {
+  beforeUnmount() {
     window.removeEventListener("resize", this.onResize);
   },
   methods: {

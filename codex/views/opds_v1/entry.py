@@ -26,11 +26,11 @@ class OPDSEntry:
     DATE_FORMAT = _DATE_FORMAT_BASE + "%z"
     DATE_FORMATS = (DATE_FORMAT_MS, DATE_FORMAT)
     CATEGORY_KEYS = (
-        "characters",
+        # "characters",
         # "genres",
         # "locations",
         # "series_groups",
-        "story_arcs",
+        # "story_arcs",
         # "tags",
         # "teams",
     )
@@ -238,12 +238,14 @@ class OPDSEntry:
         href = f"{base_url}c/{pk}/" + "{pageNumber}/page.jpg?bookmark=1"
         count = self.obj.get("page_count")
         page = self.obj.get("page", 0)
+        bookmark_updated_at = self.obj.get("bookmark_updated_at")
         return OPDSLink(
             Rel.STREAM,
             href,
             MimeType.STREAM,
             pse_count=count,
             pse_last_read=page,
+            pse_last_read_date=bookmark_updated_at,
         )
 
     @property

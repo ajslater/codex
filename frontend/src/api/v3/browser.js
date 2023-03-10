@@ -69,6 +69,9 @@ const getSettings = () => {
 };
 
 const setGroupBookmarks = ({ group, pk }, data) => {
+  if (data.fitTo === null) {
+    data.fitTo = "";
+  }
   return HTTP.patch(`${group}/${pk}/bookmark`, data);
 };
 

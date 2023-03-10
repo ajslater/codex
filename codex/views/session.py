@@ -109,6 +109,7 @@ class ReaderSessionViewBase(SessionViewBaseBase):
         "two_pages": False,
         "read_in_reverse": False,
         "read_rtl_in_reverse": False,
+        "vertical": False,
     }
 
 

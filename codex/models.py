@@ -22,6 +22,7 @@ from django.db.models import (
     JSONField,
     ManyToManyField,
     Model,
+    OneToOneField,
     PositiveIntegerField,
     PositiveSmallIntegerField,
     TextField,
@@ -433,11 +434,13 @@ class AdminFlag(NamedModel):
     ENABLE_REGISTRATION = "Enable Registration"
     ENABLE_NON_USERS = "Enable Non Users"
     ENABLE_AUTO_UPDATE = "Enable Auto Update"
+    ENABLE_SEARCH_INDEX_OPTIMIZE = "Enable Search Index Full Optimization"
     FLAG_NAMES = {
         ENABLE_FOLDER_VIEW: True,
         ENABLE_REGISTRATION: True,
         ENABLE_NON_USERS: True,
         ENABLE_AUTO_UPDATE: False,
+        ENABLE_SEARCH_INDEX_OPTIMIZE: True,
     }
 
     on = BooleanField(default=True)
@@ -495,6 +498,7 @@ class Bookmark(BaseModel):
     )
     two_pages = BooleanField(default=None, null=True)
     read_in_reverse = BooleanField(default=None, null=True)
+    vertical = BooleanField(default=None, null=True)
 
     class Meta:
         """Constraints."""
@@ -526,8 +530,8 @@ class LibrarianStatus(NamedModel):
     DEFAULT_PARAMS = {
         "name": "",
         "preactive": False,
-        "complete": 0,
-        "total": 0,
+        "complete": None,
+        "total": None,
         "active": None,
     }
     TYPES = (
@@ -539,8 +543,8 @@ class LibrarianStatus(NamedModel):
     )
     type = CharField(db_index=True, max_length=32)
     preactive = BooleanField(default=False)
-    complete = PositiveSmallIntegerField(default=0)
-    total = PositiveSmallIntegerField(default=0)
+    complete = PositiveSmallIntegerField(null=True, default=None)
+    total = PositiveSmallIntegerField(null=True, default=None)
     active = DateTimeField(null=True, default=None)
 
     class Meta:
@@ -551,15 +555,14 @@ class LibrarianStatus(NamedModel):
 
 
 class Timestamp(NamedModel):
-    """Timestamp."""
+    """Timestamped Named Strings."""
 
     COVERS = "covers"
     JANITOR = "janitor"
-    SEARCH_INDEX = "search_index"  # TODO remove
     CODEX_VERSION = "codex_version"
     SEARCH_INDEX_UUID = "search_index_uuid"
     API_KEY = "api_key"
-    NAMES = (COVERS, JANITOR, SEARCH_INDEX, CODEX_VERSION, SEARCH_INDEX_UUID, API_KEY)
+    NAMES = (COVERS, JANITOR, CODEX_VERSION, SEARCH_INDEX_UUID, API_KEY)
 
     version = CharField(max_length=32, default="")
 
@@ -574,3 +577,9 @@ class Timestamp(NamedModel):
         b64_bytes = base64.urlsafe_b64encode(uuid_bytes)
         self.version = b64_bytes.decode("utf-8").replace("=", "")
         self.save()
+
+
+class UserActive(BaseModel):
+    """User last active record."""
+
+    user = OneToOneField(settings.AUTH_USER_MODEL, db_index=True, on_delete=CASCADE)

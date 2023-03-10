@@ -147,7 +147,7 @@ class AggregateMetadataMixin(CleanMetadataMixin):
         }
         all_failed_imports = {}
         total_paths = len(all_paths)
-        self.status_controller.start(ImportStatusTypes.AGGREGATE_TAGS, total_paths)
+        self.status_controller.start(ImportStatusTypes.AGGREGATE_TAGS, 0, total_paths)
         try:
             self.log.info(
                 f"Reading tags from {total_paths} comics in {library.path}..."

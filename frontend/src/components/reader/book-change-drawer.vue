@@ -48,7 +48,7 @@ export default {
           return false;
         }
         const book = state.books.get(this.params.pk);
-        const otherBookSettings = this.getSettings(state.readerSettings, book);
+        const otherBookSettings = this.getSettings(book);
         if (!this.isDrawerOpen || !this.params || !otherBookSettings.twoPages) {
           return false;
         }

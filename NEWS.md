@@ -6,6 +6,58 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.2.9
+
+- Features
+  - Vertical scroll option for reader.
+  - Faster search index removes.
+  - Admin Users tab shows last user activity date.
+  - OPDSE PSE 1.2 extension for Panels `pse:lastReadDate`
+- Fix
+  - Fixed next and previous book keyboard shortcuts.
+  - Improved OPDS acquisition page performance by removing more "categories"
+    metadata.
+
+## v1.2.8
+
+- Features
+  - Search Index
+    - Improved search indexing times.
+    - Admin Flag to adjust nightly full optimization.
+  - OPDS
+    - "Newest Issues" Link replaced by "Recently Added" after user feedback.
+- Fix
+  - Volume tags were often not scanned. Recommend using Force Reimport on all
+    libraries.
+  - OPDS
+    - Fix navigation links not inheriting view settings of current page.
+    - Removed populating categories in OPDS to experiment with performance
+      issues.
+    - Fix OPDS pse lastRead tag.
+  - Block library polling during database updates, fixes reindexing.
+
+## v1.2.7
+
+- Fix
+  - Trap final search index commit errors and try again without merging
+    segments.
+  - Fix moving folders assigned no parent folder, displaying them in root.
+
+## v1.2.6
+
+- Fix
+  - Impose memory limits on search index writers.
+  - Impose items before write limits search index writer.
+  - Sort comics by path for the reader navigation when in Folder View.
+  - Remove inappropriate vertical scroll bars from page images.
+
+## v1.2.5
+
+- Features:
+  - In Folder View the reader navigates by folder instead of series.
+- Fix:
+  - OPDS crash on missing 24 hour time setting input required.
+
 ## v1.2.4
 
 - Features:
@@ -17,7 +69,7 @@ border-radius: 128px;
     - Previous and Next book navigation buttons and keymaps.
 - Fix
   - OPDS:
-    - Fix acquistion feed timeouts on large libraries by removing most m2m
+    - Fix acquisition feed timeouts on large libraries by removing most m2m
       fields that populated OPDS categories
     - Fix pagination
     - Show series name in comic title.

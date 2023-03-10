@@ -281,7 +281,7 @@ class CreateComicsMixin(QueuedThread):
             try:
                 try:
                     self.status_controller.start(
-                        ImportStatusTypes.FILES_MODIFIED, name=f"({len(update_paths)})"
+                        ImportStatusTypes.FILES_MODIFIED, total=len(update_paths)
                     )
                     update_count, converted_create_paths = self._update_comics(
                         library, update_paths, all_bulk_mds
@@ -290,7 +290,7 @@ class CreateComicsMixin(QueuedThread):
                 finally:
                     self.status_controller.finish(ImportStatusTypes.FILES_MODIFIED)
                 self.status_controller.start(
-                    ImportStatusTypes.FILES_CREATED, name=f"({len(create_paths)})"
+                    ImportStatusTypes.FILES_CREATED, total=len(create_paths)
                 )
                 create_count = self._create_comics(library, create_paths, all_bulk_mds)
             finally:
@@ -300,7 +300,9 @@ class CreateComicsMixin(QueuedThread):
             total_links = 0
             for m2m_links in all_m2m_links.values():
                 total_links += len(m2m_links)
-            self.status_controller.start(ImportStatusTypes.LINK_M2M_FIELDS, total_links)
+            self.status_controller.start(
+                ImportStatusTypes.LINK_M2M_FIELDS, 0, total_links
+            )
 
             since = time()
             completed_links = 0

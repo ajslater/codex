@@ -21,7 +21,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
         """Abbreviated bulk_import_comics to just change path related fields."""
         try:
             self.status_controller.start(
-                ImportStatusTypes.FILES_MOVED, len(moved_paths)
+                ImportStatusTypes.FILES_MOVED, 0, len(moved_paths)
             )
             # Prepare FKs
             create_folder_paths = self.query_missing_folder_paths(
@@ -74,12 +74,11 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
     def _get_parent_folders(self, library, dest_folder_paths):
         """Get destination parent folders."""
         # Determine parent folder paths.
+        print(f"{dest_folder_paths}")
         dest_parent_folder_paths = set()
         for dest_folder_path in dest_folder_paths:
-            dest_parent_path = Path(dest_folder_path).parent
-            if dest_parent_path == Path(library.path):
-                continue
-            dest_parent_folder_paths.add(str(dest_parent_path))
+            dest_parent_path = str(Path(dest_folder_path).parent)
+            dest_parent_folder_paths.add(dest_parent_path)
 
         # Create intermediate subfolders.
         existing_folder_paths = Folder.objects.filter(
@@ -111,11 +110,8 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
                 new_path = folders_moved[folder.path]
                 folder.name = Path(new_path).name
                 folder.path = new_path
-                parent_path = str(Path(new_path).parent)
-                if parent_path == library.path:
-                    folder.parent_folder = None
-                else:
-                    folder.parent_folder = dest_parent_folders.get(parent_path)
+                parent_path_str = str(Path(new_path).parent)
+                folder.parent_folder = dest_parent_folders.get(parent_path_str)
                 folder.set_stat()
                 folder.updated_at = now  # type: ignore
                 update_folders.append(folder)

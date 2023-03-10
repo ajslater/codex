@@ -1,38 +1,37 @@
 <template>
-  <v-table fixed-header :height="tableHeight" class="highlight-table admin-tab">
-    <template #default>
-      <thead>
-        <tr>
-          <th>Description</th>
-          <th>Enabled</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="item in flags" :key="`f${item.pk}`">
-          <td class="nameCol">
-            <h4>{{ item.name }}</h4>
-            <p class="desc">
-              {{ DESC[item.name] }}
-            </p>
-          </td>
-          <td>
-            <v-checkbox
-              :model-value="item.on"
-              :true-value="true"
-              :error-messages="getFormErrors(item.pk, 'on')"
-              hide-details="auto"
-              @update:model-value="changeCol(item.pk, 'on', $event)"
-            />
-          </td>
-        </tr>
-      </tbody>
+  <AdminTable :items="flags">
+    <template #thead>
+      <tr>
+        <th>Description</th>
+        <th>Enabled</th>
+      </tr>
     </template>
-  </v-table>
+    <template #tbody>
+      <tr v-for="item in flags" :key="`f${item.pk}`">
+        <td class="nameCol">
+          <h4>{{ item.name }}</h4>
+          <p class="desc">
+            {{ DESC[item.name] }}
+          </p>
+        </td>
+        <td>
+          <v-checkbox
+            :model-value="item.on"
+            :true-value="true"
+            :error-messages="getFormErrors(item.pk, 'on')"
+            hide-details="auto"
+            @update:model-value="changeCol(item.pk, 'on', $event)"
+          />
+        </td>
+      </tr>
+    </template>
+  </AdminTable>
 </template>
 
 <script>
 import { mapActions, mapState } from "pinia";
 
+import AdminTable from "@/components/admin/admin-table.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
@@ -45,20 +44,15 @@ const DESC = {
     "By default users' bookmarks and preferences are saved in an anonymous browser session. Users can create a username and password to save their bookmarks between browsers. You may disable this feature. Admins may still create users.",
   "Enable Folder View":
     'By default, codex provides a "Folder View" which mimics the directory hierarchy of the libraries that you\'ve added to Codex. You may disable this feature. The database style browser view is always available. This flag also enables and disables the "Filename" sort option.',
+  "Enable Search Index Full Optimization":
+    "Fully optimize the search index each night. Disabling this flag will instead run a partial optimization which only merges small files. You should only disable this if the nightly optimization stresses your system too much.",
 };
 Object.freeze(DESC);
 
-const FIXED_TOOLBARS = 96 + 16;
-const TABLE_PADDING = 24;
-const BUFFER = FIXED_TOOLBARS + TABLE_PADDING;
-
 export default {
   name: "AdminFlagsTab",
-  props: {
-    innerHeight: {
-      type: Number,
-      required: true,
-    },
+  components: {
+    AdminTable,
   },
   data() {
     return {
@@ -72,9 +66,6 @@ export default {
   computed: {
     ...mapState(useCommonStore, ["formErrors"]),
     ...mapState(useAdminStore, ["flags"]),
-    tableHeight() {
-      return this.innerHeight - BUFFER;
-    },
   },
   mounted() {
     this.loadTables(["Flag"]);

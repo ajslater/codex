@@ -22,6 +22,9 @@ const AdminSettingsButtonProgress = markRaw(
 
 export default {
   name: "SettingsDrawerButton",
+  components: {
+    AdminSettingsButtonProgress,
+  },
   data() {
     return {
       mdiMenu,

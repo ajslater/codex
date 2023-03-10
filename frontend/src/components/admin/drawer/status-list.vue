@@ -17,8 +17,19 @@
           <div nav class="statusItem">
             <div class="statusItemTitle">
               {{ status.type }} {{ status.name }}
-              <span v-if="+status.total">
-                {{ status.complete }}/{{ status.total }}
+              <span
+                v-if="
+                  Number.isInteger(status.complete) ||
+                  Number.isInteger(status.total)
+                "
+              >
+                <span>
+                  {{ nf(status.complete) }}
+                </span>
+                /
+                <span>
+                  {{ nf(status.total) }}
+                </span>
               </span>
             </div>
             <v-progress-linear
@@ -38,6 +49,7 @@
 
 <script>
 import { mdiCloseCircleOutline } from "@mdi/js";
+import { numberFormat } from "humanize";
 import { mapActions, mapState } from "pinia";
 
 import CloseButton from "@/components/close-button.vue";
@@ -74,6 +86,9 @@ export default {
     },
     clear() {
       this.librarianTask("librarian_clear_status", "");
+    },
+    nf(val) {
+      return Number.isInteger(val) ? numberFormat(val, 0) : "?";
     },
   },
 };

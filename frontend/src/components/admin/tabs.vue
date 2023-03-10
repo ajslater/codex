@@ -17,12 +17,7 @@
       </v-tab>
     </v-tabs>
     <v-window id="tabItems" v-model="activeTab" :touch="false">
-      <router-view
-        v-for="tab in tabs"
-        :key="tab"
-        v-slot="{ Component }"
-        :inner-height="innerHeight"
-      >
+      <router-view v-for="tab in tabs" :key="tab" v-slot="{ Component }">
         <v-window-item :value="tab" class="tabItemContainer">
           <component :is="Component" />
         </v-window-item>
@@ -45,7 +40,6 @@ export default {
     return {
       activeTab: "Libraries",
       tabs: ["Users", "Groups", "Libraries", "Flags", "Tasks", "Stats"],
-      innerHeight: window.innerHeight,
     };
   },
   computed: {
@@ -59,19 +53,12 @@ export default {
     },
   },
   mounted() {
-    window.addEventListener("resize", this.onResize);
     if (!this.librariesExist) {
       this.loadTables(["Library"]);
     }
   },
-  unmounted() {
-    window.removeEventListener("resize", this.onResize);
-  },
   methods: {
     ...mapActions(useAdminStore, ["loadTables"]),
-    onResize() {
-      this.innerHeight = window.innerHeight;
-    },
   },
 };
 </script>
@@ -87,7 +74,6 @@ export default {
 :deep(.tabHeader) {
   padding: 10px;
 }
-
 $task-width: 256px;
 #tabItems {
   margin-top: 96px;
@@ -101,13 +87,6 @@ $task-width: 256px;
   margin-right: auto;
   padding-left: 10px;
   padding-right: 10px;
-}
-:deep(.admin-table) {
-  max-width: 100vw !important;
-  margin-bottom: 24px;
-}
-:deep(.tableCheckbox) {
-  height: 40px;
 }
 #noLibraries {
   text-align: center;

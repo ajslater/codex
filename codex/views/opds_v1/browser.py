@@ -203,6 +203,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
 
     def _nav_link(self, kwargs, rel):
         href = reverse("opds:v1:browser", kwargs={**kwargs})
+        href = update_href_query_params(href, self.request.query_params)
         return OPDSLink(rel, href, MimeType.NAV)
 
     def _top_link(self, top_link):
@@ -227,19 +228,15 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
 
     def is_top_link_displayed(self, top_link):
         """Determine if this top link should be displayed."""
-        is_displayed = True
-        for key, val in top_link.kwargs.items():
-            if key == "page":
-                continue
-            if self.kwargs.get(key) != val:
-                is_displayed = False
-                break
-        if not is_displayed:
-            for key, val in top_link.query_params.items():
-                if self.request.query_params.get(key) != val:
-                    is_displayed = False
-                    break
-        return is_displayed
+        for key, value in top_link.kwargs.items():
+            if str(self.kwargs.get(key)) != str(value):
+                return False
+
+        for key, value in top_link.query_params.items():
+            if str(self.request.query_params.get(key)) != str(value):
+                return False
+
+        return True
 
     @property
     def links(self):
@@ -262,7 +259,8 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
             links += self._root_nav_links()
             if self.use_facets:
                 for top_link in TopLinks.ALL:
-                    links += [self._top_link(top_link)]
+                    if not self.is_top_link_displayed(top_link):
+                        links += [self._top_link(top_link)]
                 if facets := self._facets():
                     links += facets
         except Exception as exc:

@@ -1,7 +1,8 @@
 """OPDS Utility classes."""
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Union
+from datetime import datetime
+from typing import Optional, Union
 
 from comicbox.metadata.comic_json import json
 from django.utils.http import urlencode
@@ -111,9 +112,9 @@ class TopLinks:
         TopRoutes.SERIES,
         Rel.SORT_NEW,
         MimeType.ACQUISITION,
-        defaultdict(None, {"orderBy": "date", "orderReverse": True}),
+        defaultdict(None, {"orderBy": "created_at", "orderReverse": True}),
         "📥",
-        "Newest Issues",
+        "Recently Added",
         "",
     )
     FEATURED = TopLink(
@@ -125,7 +126,7 @@ class TopLinks:
         ),
         "📚",
         "Oldest Unread",
-        "Unread issues, oldest first",
+        "Unread issues, oldest published first",
     )
     ALL = (START, NEW, FEATURED)
 
@@ -178,9 +179,10 @@ class OPDSLink:
     thr_count: int = 0
     pse_count: int = 0
     pse_last_read: int = 0
+    pse_last_read_date: Optional[datetime] = None
 
 
-def update_href_query_params(href, old_query_params, new_query_params):
+def update_href_query_params(href, old_query_params, new_query_params=None):
     """Update an href by masking query params on top of the ones it has."""
     query_params = {}
     for key, value in old_query_params.items():
@@ -190,7 +192,8 @@ def update_href_query_params(href, old_query_params, new_query_params):
                 query_params[key] = value[0]
         else:
             query_params[key] = value
-    query_params.update(new_query_params)
+    if new_query_params:
+        query_params.update(new_query_params)
     if query_params:
         href += "?" + urlencode(query_params, doseq=True)
     return href

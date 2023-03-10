@@ -54,9 +54,9 @@ class QueryForeignKeysMixin(QueuedThread):
         all_filter_args = tuple(all_filter_args)
         since = time()
         ls = LibrarianStatus.objects.get(type=ImportStatusTypes.QUERY_MISSING_FKS)
-        ls_complete = ls.complete
+        ls_complete = 0 if ls.complete is None else ls.complete
         num_filter_args_batches = len(all_filter_args)
-        ls_total = ls.total
+        ls_total = 0 if ls.total is None else ls.total
         ls_total += num_filter_args_batches
         for num, filter_args in enumerate(all_filter_args):
             filter = filter | Q(**dict(filter_args))
@@ -178,7 +178,7 @@ class QueryForeignKeysMixin(QueuedThread):
 
         # Init status update.
         ls = LibrarianStatus.objects.get(type=ImportStatusTypes.QUERY_MISSING_FKS)
-        ls_complete = ls.complete
+        ls_complete = 0 if ls.complete is None else ls.complete
         ls_total = ls.total
 
         while offset < num_proposed_names:

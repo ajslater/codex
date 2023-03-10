@@ -44,16 +44,16 @@ class OPDSAcquisitionEntrySerializer(BrowserCardSerializer):
 
     # ManyToMany
     ## Categories
-    characters = CharField(source=UNIONFIX_PREFIX + "characters")
+    # characters = CharField(source=UNIONFIX_PREFIX + "characters")
     # genres = CharField(source=UNIONFIX_PREFIX + "genres")
     # locations = CharField(source=UNIONFIX_PREFIX + "locations")
     # series_groups = CharField(source=UNIONFIX_PREFIX + "series_groups")
-    story_arcs = CharField(source=UNIONFIX_PREFIX + "story_arcs")
+    # story_arcs = CharField(source=UNIONFIX_PREFIX + "story_arcs")
     # tags = CharField(source=UNIONFIX_PREFIX + "tags")
     # teams = CharField(source=UNIONFIX_PREFIX + "teams")
     ## Contributors
     authors = CharField(source=UNIONFIX_PREFIX + "authors")
-    contributors = CharField(source=UNIONFIX_PREFIX + "contributors")
+    # contributors = CharField(source=UNIONFIX_PREFIX + "contributors")
 
 
 OPDS_COMICS_ORDERED_UNIONFIX_VALUES_MAP = get_serializer_values_map(
@@ -62,14 +62,12 @@ OPDS_COMICS_ORDERED_UNIONFIX_VALUES_MAP = get_serializer_values_map(
 OPDS_FOLDERS_ORDERED_UNIONFIX_VALUES_MAP = get_serializer_values_map(
     [OPDSAcquisitionEntrySerializer], folders=True
 )
-
-
 OPDS_M2M_FIELDS = (
-    "characters",
+    # "characters",
     # "genres",
     # "locations",
     # "series_groups",
-    "story_arcs",
+    # "story_arcs",
     # "tags",
     # "teams",
     "credits",
@@ -118,6 +116,7 @@ class OPDSTemplateLinkSerializer(Serializer):
     thr_count = IntegerField(read_only=True, required=False)
     pse_count = IntegerField(read_only=True, required=False)
     pse_last_read = IntegerField(read_only=True, required=False)
+    pse_last_read_date = DateTimeField(read_only=True, required=False)
 
 
 class OPDSTemplateEntrySerializer(Serializer):

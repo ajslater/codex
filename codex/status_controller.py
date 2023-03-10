@@ -1,4 +1,5 @@
 """Librarian Status."""
+from logging import DEBUG, INFO
 from time import time
 
 from django.db.models.functions.datetime import Now
@@ -28,10 +29,18 @@ class StatusController(LoggerBaseMixin):
             task = LIBRARIAN_STATUS_TASK
         self.librarian_queue.put(task)
 
+    def loggit(self, level, type, name, complete, total):
+        """Log with a ? in place of none."""
+        title = " ".join((type, name)).strip()
+        complete = "?" if complete is None else complete
+        total = "?" if total is None else total
+        self.log.log(level, f"{title}: {complete}/{total}")
+
     def start(
         self,
         type,
-        total=0,
+        complete=None,
+        total=None,
         name="",
         notify=True,
         now_pad=0.0,
@@ -42,13 +51,14 @@ class StatusController(LoggerBaseMixin):
             updates = {
                 "name": name,
                 "preactive": preactive,
-                "complete": 0,
+                "complete": complete,
                 "total": total,
                 "active": Now() + now_pad,
                 "updated_at": Now(),
             }
             LibrarianStatus.objects.filter(type=type).update(**updates)
             self._enqueue_notifier_task(notify)
+            self.loggit(DEBUG, type, name, complete, total)
         except Exception as exc:
             self.log.warning(exc)
 
@@ -73,9 +83,8 @@ class StatusController(LoggerBaseMixin):
                 LibrarianStatus.objects.filter(type=type).update(**updates)
                 self._enqueue_notifier_task(notify)
                 if notify:
+                    self.loggit(INFO, type, name, complete, total)
                     since = time()
-                    title = " ".join((type, name)).strip()
-                    self.log.info(f"{title}: {complete}/{total}")
             except Exception as exc:
                 self.log.warning(exc)
         return since
