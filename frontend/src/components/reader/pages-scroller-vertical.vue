@@ -4,7 +4,7 @@
     id="verticalScroll"
     v-scroll#target="onScroll"
     :items="items"
-    :visible-items="6"
+    :visible-items="items.length"
     :height="innerHeight"
     :width="innerWidth"
     :item-height="innerHeight"
