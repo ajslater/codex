@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from codex.logger.logging import get_logger
-from codex.models import AdminFlag
+from codex.models import AdminFlag, UserActive
 from codex.serializers.auth import AuthAdminFlagsSerializer, TimezoneSerializer
 from codex.serializers.mixins import OKSerializer
 
@@ -40,6 +40,7 @@ class TimezoneView(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         request.session["django_timezone"] = serializer.validated_data["timezone"]
         request.session.save()
+        UserActive.objects.update_or_create(user=self.request.user)
         serializer = self.get_serializer()
         return Response(serializer.data)
 

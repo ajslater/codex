@@ -6,6 +6,7 @@ from rest_framework.serializers import (
     BooleanField,
     CharField,
     ChoiceField,
+    DateTimeField,
     IntegerField,
     ListField,
     ModelSerializer,
@@ -23,6 +24,8 @@ LOG = get_logger(__name__)
 class UserSerializer(ModelSerializer):
     """User Serializer."""
 
+    last_active = DateTimeField(read_only=True, allow_null=True)
+
     class Meta:
         """Specify Model."""
 
@@ -33,10 +36,11 @@ class UserSerializer(ModelSerializer):
             "groups",
             "is_staff",
             "is_active",
+            "last_active",
             "last_login",
             "date_joined",
         )
-        read_only_fields = ("pk", "last_login", "date_joined")
+        read_only_fields = ("pk", "last_active", "last_login", "date_joined")
 
 
 class UserChangePasswordSerializer(Serializer):

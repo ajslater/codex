@@ -22,6 +22,7 @@ from django.db.models import (
     JSONField,
     ManyToManyField,
     Model,
+    OneToOneField,
     PositiveIntegerField,
     PositiveSmallIntegerField,
     TextField,
@@ -575,3 +576,9 @@ class Timestamp(NamedModel):
         b64_bytes = base64.urlsafe_b64encode(uuid_bytes)
         self.version = b64_bytes.decode("utf-8").replace("=", "")
         self.save()
+
+
+class UserActive(BaseModel):
+    """User last active record."""
+
+    user = OneToOneField(settings.AUTH_USER_MODEL, db_index=True, on_delete=CASCADE)
