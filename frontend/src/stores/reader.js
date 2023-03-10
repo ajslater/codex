@@ -37,6 +37,9 @@ const getGlobalFitToDefault = () => {
 };
 
 const _scrollToPageRetry = (page, tries = 10, sleep = 0) => {
+  // $vuetify.goTo not yet implemented
+  // https://vuetifyjs.com/en/features/scrolling/
+  // https://github.com/vuetifyjs/vuetify/issues/16471
   const el = document.querySelector(`#page${page}`);
   if (el) {
     el.scrollIntoView();
@@ -71,9 +74,6 @@ export const useReaderStore = defineStore("reader", {
 
     // local reader
     pk: undefined,
-    /// TODO
-    // currently page is only used for vertical.
-    // maybe change to be the source of truth and replace activePage and route.page as well.
     page: undefined,
     routes: {
       prev: false,
@@ -263,7 +263,7 @@ export const useReaderStore = defineStore("reader", {
         return true;
       });
     },
-    setActivePage(page) {
+    setActivePage(page, scroll = false) {
       console.log("setActivePage", page);
       if (page < 0) {
         console.warn("Page out of bounds. Redirecting to 0.");
@@ -274,7 +274,7 @@ export const useReaderStore = defineStore("reader", {
         );
         return this.routeToPage(this.activeBook.maxPage);
       }
-      this.setPage(page);
+      this.setPage(page, scroll);
       this.setRoutesAndBookmarkPage(page);
       if (this.activeSettings.vertical) {
         const route = { params: { pk: this.pk, page } };
@@ -381,7 +381,6 @@ export const useReaderStore = defineStore("reader", {
       if (!book) {
         return {};
       }
-
       const maxPage = book.maxPage ?? 0;
       if (params.page > maxPage) {
         params.page = maxPage;
@@ -395,7 +394,7 @@ export const useReaderStore = defineStore("reader", {
     _routeTo(params) {
       params = this._validateRoute(params);
       if (this.activeSettings.vertical && +params.pk === this.pk) {
-        this._scrollToPage(+params.page);
+        this.setActivePage(+params.page, true);
       } else {
         const route = { name: "reader", params };
         router.push(route).catch(console.debug);

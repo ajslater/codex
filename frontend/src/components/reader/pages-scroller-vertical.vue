@@ -81,22 +81,24 @@ export default {
   watch: {
     vertical(to) {
       if (to) {
-        this.setActivePage(this.storePage);
+        this.setActivePage(this.storePage, true);
       }
     },
   },
   mounted() {
-    this.mountedTime = Date.now();
     window.addEventListener("resize", this.onResize);
+    this.setPage(this.storePage, true);
+    this.mountedTime = Date.now();
   },
   beforeUnmount() {
     window.removeEventListener("resize", this.onResize);
   },
   methods: {
     ...mapActions(useReaderStore, [
-      "getSettings",
-      "setBookChangeFlag",
       "setActivePage",
+      "setBookChangeFlag",
+      "setPage",
+      "getSettings",
     ]),
     onIntersect(isIntersecting, entries) {
       if (this.vertical && isIntersecting) {

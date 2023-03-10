@@ -34,7 +34,7 @@ export default {
   watch: {
     $route(to) {
       if (+to.params.pk === this.book.pk) {
-        this.setActivePage(+to.params.page);
+        this.setActivePage(+to.params.page, true);
       }
     },
   },
