@@ -36,15 +36,16 @@ const getGlobalFitToDefault = () => {
   return vw > 600 ? "HEIGHT" : "WIDTH";
 };
 
-const _scrollToPageRetry = (page, tries) => {
+const _scrollToPageRetry = (page, tries = 10, sleep = 0) => {
   const el = document.querySelector(`#page${page}`);
   if (el) {
     el.scrollIntoView();
   } else {
     if (tries > 0) {
+      console.log("sleep", sleep);
       setTimeout(function () {
-        _scrollToPageRetry(page, tries - 1);
-      }, 500);
+        _scrollToPageRetry(page, tries - 1, sleep + 50);
+      }, sleep);
     }
   }
 };
@@ -234,9 +235,36 @@ export const useReaderStore = defineStore("reader", {
         next: nextBookRoute,
       };
     },
+    setPage(page, scroll = false) {
+      this.page = +page;
+      if (scroll && this.activeSettings.vertical) {
+        this._scrollToPage(this.page);
+      }
+    },
     ///////////////////////////////////////////////////////////////////////////
     // ACTIONS
+    _scrollToPage(page) {
+      let el = document.querySelector(`#page${page}`);
+      if (el) {
+        el.scrollIntoView();
+      } else {
+        // Get close to the page, wait for the html to appear,
+        // And then align it.
+        const y = window.innerHeight * page;
+        el = document.querySelector("#verticalScroll");
+        el.scroll(0, y);
+        _scrollToPageRetry(page);
+      }
+    },
+    async setRoutesAndBookmarkPage(page) {
+      this._setRoutes(page);
+      await this._setBookmarkPage(page).then(() => {
+        this.bookChange = undefined;
+        return true;
+      });
+    },
     setActivePage(page) {
+      console.log("setActivePage", page);
       if (page < 0) {
         console.warn("Page out of bounds. Redirecting to 0.");
         return this.routeToPage(0);
@@ -254,26 +282,6 @@ export const useReaderStore = defineStore("reader", {
         window.history.pushState({}, undefined, href);
       } else {
         window.scrollTo(0, 0);
-      }
-    },
-    _scrollToPage(page) {
-      let el = document.querySelector(`#page${page}`);
-      if (el) {
-        el.scrollIntoView();
-      } else {
-        // Get close to the page, wait for the html to appear,
-        // And then align it.
-        const y = window.innerHeight * page;
-        el = document.querySelector("#verticalScroll");
-        el.scroll(0, y);
-        _scrollToPageRetry(page, 10);
-      }
-      this.setActivePage(page);
-    },
-    setPage(page, scroll = false) {
-      this.page = +page;
-      if (scroll && this.activeSettings.vertical) {
-        this._scrollToPage(this.page);
       }
     },
     async loadReaderSettings() {
@@ -334,13 +342,6 @@ export const useReaderStore = defineStore("reader", {
       page = Math.max(Math.min(this.activeBook.maxPage, page), 0);
       const updates = { page };
       await BROWSER_API.setGroupBookmarks(groupParams, updates);
-    },
-    async setRoutesAndBookmarkPage(page) {
-      this._setRoutes(page);
-      await this._setBookmarkPage(page).then(() => {
-        this.bookChange = undefined;
-        return true;
-      });
     },
     async setSettingsLocal(routeParams, data) {
       const params = this._numericValues(routeParams);
