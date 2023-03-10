@@ -86,6 +86,7 @@ export default {
     ...mapActions(useReaderStore, [
       "routeToBook",
       "routeToDirection",
+      "routeToDirectionOne",
       "routeToPage",
       "setPage",
     ]),
