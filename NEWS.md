@@ -10,7 +10,7 @@ border-radius: 128px;
 
 - Features
   - Vertical scroll option for reader.
-  - Faster search index removes
+  - Faster search index removes.
   - OPDSE PSE 1.2 extension for Panels `pse:lastReadDate`
 - Fix
   - Fixed next and previous book keyboard shortcuts.
