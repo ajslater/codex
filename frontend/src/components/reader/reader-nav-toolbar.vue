@@ -83,7 +83,12 @@ export default {
     document.removeEventListener("keyup", this._keyListener);
   },
   methods: {
-    ...mapActions(useReaderStore, ["routeToPage", "setPage"]),
+    ...mapActions(useReaderStore, [
+      "routeToBook",
+      "routeToDirection",
+      "routeToPage",
+      "setPage",
+    ]),
     onSliderUpdate(page) {
       if (this.activeSettings.vertical) {
         this.setPage(page, true);
