@@ -225,8 +225,8 @@ class ComicImporterThread(
         finally:
             self._finish_apply(library)
         # Wait to start the search index update in case more updates are incoming.
-        delayed_search_task = DelayedTasks(
-            start_time + 2, (SearchIndexUpdateTask(False),)
+        until = time() + 3
+        delayed_search_task = DelayedTasks(until, (SearchIndexUpdateTask(False),)
         )
         self.librarian_queue.put(delayed_search_task)
 
