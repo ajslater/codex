@@ -4,84 +4,68 @@
       <AdminCreateUpdateDialog
         table="Library"
         :inputs="AdminLibraryCreateUpdateInputs"
-        max-width="22em"
+        width="100%"
       />
     </header>
-    <AdminTable :items="libraries" :extra-height="FAILED_IMPORTS_HEIGHT">
-      <template #thead>
-        <tr>
-          <th>Path</th>
-          <th>Watch Filesystem Events</th>
-          <th>Poll Filesystem Periodically</th>
-          <th>Poll Every</th>
-          <th>Last Poll</th>
-          <th>Groups</th>
-          <th>Poll for Updates Now</th>
-          <th>Force Reimport</th>
-          <th>Edit</th>
-          <th>Delete</th>
-        </tr>
+    <VDataTableVirtual
+      fixed-headers
+      item-value="pk"
+      item-title="path"
+      multi-sort
+      :headers="headers"
+      :items="libraries"
+      :sort-by="[{ key: 'path', order: 'asc' }]"
+    >
+      <template #no-data> Add a Library to start using Codex </template>
+      <template #[`item.events`]="{ item }">
+        <v-checkbox-btn :model-value="item.raw.events" disabled />
       </template>
-      <template #tbody>
-        <tr v-for="item in libraries" :key="item.pk">
-          <td>{{ item.path }}</td>
-          <td>
-            <v-checkbox
-              class="tableCheckbox"
-              :model-value="item.events"
-              density="compact"
-              disabled
-            />
-          </td>
-          <td>
-            <v-checkbox
-              class="tableCheckbox"
-              :model-value="item.poll"
-              density="compact"
-              disabled
-            />
-          </td>
-          <td class="pollEveryCol" :class="{ disabled: !item.poll }">
-            {{ item.pollEvery }}
-          </td>
-          <td class="dateCol">
-            <DateTimeColumn :dttm="item.lastPoll" />
-          </td>
-          <td>
-            <RelationChips :pks="item.groups" :map="groupMap" />
-          </td>
-          <td>
-            <v-btn icon @click="poll(item.pk)">
-              <v-icon>{{ mdiDatabaseClockOutline }}</v-icon>
-            </v-btn>
-          </td>
-          <td>
-            <ConfirmDialog
-              :icon="mdiDatabaseImportOutline"
-              title-text="Force Reimport of Entire Library"
-              :object-name="item.path"
-              confirm-text="Force Reimport"
-              @confirm="forcePoll(item.pk)"
-            />
-          </td>
-          <td>
-            <AdminCreateUpdateDialog
-              table="Library"
-              :old-row="item"
-              :inputs="AdminLibraryCreateUpdateInputs"
-              max-width="22em"
-            />
-          </td>
-          <td>
-            <AdminDeleteRowDialog
-              table="Library"
-              :pk="item.pk"
-              :name="item.path"
-            />
-          </td>
-        </tr>
+      <template #[`item.poll`]="{ item }">
+        <v-checkbox-btn :model-value="item.raw.poll" disabled />
       </template>
-    </AdminTable>
+      <template #[`item.lastPoll`]="{ item }">
+        <DateTimeColumn :dttm="item.raw.lastPoll" />
+      </template>
+      <template #[`item.groups`]="{ item }">
+        <RelationChips :pks="item.raw.groups" :map="groupMap" />
+      </template>
+      <template #[`item.actions`]="{ item }">
+        <v-btn
+          rounded
+          icon
+          density="compact"
+          size="small"
+          title="Poll Library Now"
+          @click="poll(item.raw.pk)"
+        >
+          <v-icon>{{ mdiDatabaseClockOutline }}</v-icon>
+        </v-btn>
+        <ConfirmDialog
+          :icon="mdiDatabaseImportOutline"
+          title-text="Force Reimport of Entire Library"
+          :object-name="item.raw.path"
+          confirm-text="Force Reimport"
+          size="small"
+          density="compact"
+          @confirm="forcePoll(item.raw.pk)"
+        />
+        <AdminCreateUpdateDialog
+          table="Library"
+          :old-row="item.raw"
+          :inputs="AdminLibraryCreateUpdateInputs"
+          max-width="22em"
+          size="small"
+          density="compact"
+        />
+        <AdminDeleteRowDialog
+          table="Library"
+          :pk="item.raw.pk"
+          :name="item.raw.path"
+          size="small"
+          density="compact"
+        />
+      </template>
+    </VDataTableVirtual>
     <v-expand-transition>
       <AdminFailedImportsPanel />
     </v-expand-transition>
@@ -96,8 +80,8 @@ import {
 } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 import { markRaw } from "vue";
+import { VDataTableVirtual } from "vuetify/labs/components";
 
-import AdminTable from "@/components/admin/admin-table.vue";
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
 import DateTimeColumn from "@/components/admin/datetime-column.vue";
 import AdminDeleteRowDialog from "@/components/admin/delete-row-dialog.vue";
@@ -114,7 +98,7 @@ const FAILED_IMPORTS_HEIGHT = 60 + 48 + 64;
 export default {
   name: "AdminLibrariesTab",
   components: {
-    AdminTable,
+    VDataTableVirtual,
     AdminDeleteRowDialog,
     AdminFailedImportsPanel,
     AdminCreateUpdateDialog,
@@ -133,6 +117,15 @@ export default {
       mdiDatabaseImportOutline,
       mdiOpenInNew,
       AdminLibraryCreateUpdateInputs: markRaw(AdminLibraryCreateUpdateInputs),
+      headers: [
+        { title: "Path", key: "path", align: "start" },
+        { title: "Watch Filesystem Events", key: "events", width: 130 },
+        { title: "Poll Filesystem Periodically", key: "poll", width: 130 },
+        { title: "Poll Every", key: "pollEvery", width: 110 },
+        { title: "Last Poll", key: "lastPoll", width: 120 },
+        { title: "Groups", key: "groups" },
+        { title: "Actions", key: "actions", width: 112, sortable: false },
+      ],
     };
   },
   computed: {
@@ -181,15 +174,3 @@ export default {
   },
 };
 </script>
-
-<style scoped lang="scss">
-.pollEveryCol {
-  min-width: 9em;
-}
-.dateCol {
-  min-width: 8em;
-}
-.disabled {
-  color: rgb(var(--v-theme-textDisabled));
-}
-</style>
