@@ -16,10 +16,22 @@
       class="adminTable"
     >
       <template #no-data>
-        No Users. <br />This is an error. There should always be at least one
-        Staff user.<br />
-        You should restart Codex with the CODEX_RESET_ADMIN=1 variable set. See
-        the README.
+        <td class="adminNoData" colspan="100%">
+          No Users.
+          <div>
+            This is an error. There should always be at least one Staff user.<br />
+            You should not be able to see this page<br />
+            You should restart Codex with the CODEX_RESET_ADMIN=1 variable
+            set.<br />
+            See the
+            <a
+              href="https://github.com/ajslater/codex#reset-the-admin-password"
+              target="_blank"
+            >
+              README
+            </a>
+          </div>
+        </td>
       </template>
       <template #[`item.isStaff`]="{ item }">
         <v-checkbox-btn :model-value="item.raw.isStaff" disabled />

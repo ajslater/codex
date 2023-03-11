@@ -98,4 +98,8 @@ $task-width: 256px;
   /* Lets data table contents overflow scroll */
   max-width: 100vw;
 }
+:deep(.adminNoData) {
+  padding: 1em;
+  text-align: center;
+}
 </style>

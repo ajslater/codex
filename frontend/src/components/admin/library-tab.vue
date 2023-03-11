@@ -15,7 +15,11 @@
       :items="libraries"
       :sort-by="[{ key: 'path', order: 'asc' }]"
     >
-      <template #no-data> Add a Library to start using Codex </template>
+      <template #no-data>
+        <td class="adminNoData" colspan="100%">
+          Add a Library to start using Codex
+        </td>
+      </template>
       <template #[`item.events`]="{ item }">
         <v-checkbox-btn :model-value="item.raw.events" disabled />
       </template>

@@ -15,7 +15,9 @@
       :headers="headers"
       :items="groups"
     >
-      <template #no-data> No groups found </template>
+      <template #no-data>
+        <td class="adminNoData" colspan="100%">No groups</td>
+      </template>
       <template #[`item.userSet`]="{ item }">
         <RelationChips :pks="item.raw.userSet" :map="userMap" />
       </template>
