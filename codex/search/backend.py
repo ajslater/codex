@@ -196,14 +196,15 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         for obj in iterable:
             try:
                 doc = index.full_prepare(obj)
-            except SkipDocument:
-                self.log.debug("Indexing for object `%s` skipped", obj)
-            else:
                 # Really make sure it's unicode, because Whoosh won't have it any
                 # other way.
                 for key in doc:
                     doc[key] = self._from_python(doc[key])
-
+            except SkipDocument:
+                self.log.debug(f"Indexing for object {obj} skipped")
+            except Exception as exc:
+                self.log.warning(f"Preparing object for indexing: {exc} {obj.path}")
+            else:
                 # Document boosts aren't supported in Whoosh 2.5.0+.
                 if "boost" in doc:
                     del doc["boost"]
@@ -219,7 +220,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                     # object to avoid the possibility of that generating encoding
                     # errors while processing the log message:
                     self.log.warning(
-                        f"Search index adding document {exc} pk:{obj.pk}",
+                        f"Search index adding document {exc} {obj.path}",
                     )
         try:
             if num_objs:
