@@ -135,6 +135,7 @@ const config = defineConfig(({ mode }) => {
     test: {
       environment: "jsdom",
       deps: { inline: ["vuetify"] },
+      globals: true,
     },
   };
 });

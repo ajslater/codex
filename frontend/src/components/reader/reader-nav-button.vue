@@ -35,7 +35,7 @@ export default {
   computed: {
     ...mapState(useReaderStore, {
       storePage: (state) => state.page,
-      vertical: (state) => state.activeSettings.vertical,
+      vertical: (state) => state.activeSettings?.vertical,
       toRoute(state) {
         return {
           params: { pk: state.pk, page: this.value },
