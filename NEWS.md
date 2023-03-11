@@ -8,6 +8,8 @@ border-radius: 128px;
 
 ## v1.2.10
 
+- Features
+  - Fancier sortable admin tables.
 - Fix
   - Made search indexer more robust against bad data.
 
