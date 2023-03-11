@@ -107,11 +107,11 @@
             </td>
           </tr>
           <tr>
-            <td>Comics</td>
+            <td class="indent">Comics</td>
             <td>{{ nf(stats.groups.comicArchiveCount) }}</td>
           </tr>
           <tr>
-            <td>PDFs</td>
+            <td class="indent">PDFs</td>
             <td>{{ nf(stats.groups.pdfCount) }}</td>
           </tr>
         </tbody>
@@ -124,18 +124,6 @@
           <tr>
             <td>Characters</td>
             <td>{{ nf(stats.metadata.characterCount) }}</td>
-          </tr>
-          <tr>
-            <td>Credits</td>
-            <td>{{ nf(stats.metadata.creditCount) }}</td>
-          </tr>
-          <tr>
-            <td>Roles</td>
-            <td>{{ nf(stats.metadata.creditRoleCount) }}</td>
-          </tr>
-          <tr>
-            <td>Creators</td>
-            <td>{{ nf(stats.metadata.creditPersonCount) }}</td>
           </tr>
           <tr>
             <td>Genres</td>
@@ -160,6 +148,18 @@
           <tr>
             <td>Teams</td>
             <td>{{ nf(stats.metadata.teamCount) }}</td>
+          </tr>
+          <tr>
+            <td>Credits</td>
+            <td>{{ nf(stats.metadata.creditCount) }}</td>
+          </tr>
+          <tr>
+            <td class="indent">Roles</td>
+            <td>{{ nf(stats.metadata.creditRoleCount) }}</td>
+          </tr>
+          <tr>
+            <td class="indent">Creators</td>
+            <td>{{ nf(stats.metadata.creditPersonCount) }}</td>
           </tr>
         </tbody>
       </v-table>
@@ -237,6 +237,9 @@ h3 {
 }
 tr td:nth-child(2) {
   text-align: right;
+}
+.indent {
+  padding-left: 2em !important;
 }
 .copied {
   font-size: small;
