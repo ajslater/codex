@@ -121,7 +121,7 @@ export default {
         { title: "Path", key: "path", align: "start" },
         { title: "Watch Filesystem Events", key: "events", width: 130 },
         { title: "Poll Filesystem Periodically", key: "poll", width: 130 },
-        { title: "Poll Every", key: "pollEvery", width: 110 },
+        { title: "Poll Every", key: "pollEvery", width: 130 },
         { title: "Last Poll", key: "lastPoll", width: 120 },
         { title: "Groups", key: "groups" },
         { title: "Actions", key: "actions", width: 112, sortable: false },
