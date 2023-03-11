@@ -356,10 +356,10 @@ authentication. In that case the OPDS url will look like:
 
 #### Supported OPDS Specifications
 
-- OPDS 1.2
-- OPDS-PSE 1.2
-- OPDS Authentication 1.0
-- OpenSearch
+- [OPDS 1.2](https://specs.opds.io/opds-1.2.html)
+- [OPDS-PSE 1.2](https://github.com/anansi-project/opds-pse/blob/master/v1.2.md)
+- [OPDS Authentication 1.0](https://drafts.opds.io/authentication-for-opds-1.0.html)
+- [OpenSearch 1.1](https://github.com/dewitt/opensearch)
 
 ## <a name="troubleshooting">🩺 Troubleshooting</a>
 
