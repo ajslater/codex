@@ -14,6 +14,7 @@
           <th>Staff</th>
           <th>Active</th>
           <th>Groups</th>
+          <th>Last Active</th>
           <th>Last Login</th>
           <th>Joined</th>
           <th>Edit</th>
@@ -44,6 +45,9 @@
           </td>
           <td class="relationCol">
             <RelationChips :pks="item.groups" :map="groupMap" />
+          </td>
+          <td class="dttmCol">
+            <DateTimeColumn :dttm="item.lastActive" />
           </td>
           <td class="dttmCol">
             <DateTimeColumn :dttm="item.lastLogin" />

@@ -1,5 +1,5 @@
 <template>
-  <div class="page">
+  <div :id="`page${page}`" :data-page="page" :class="pageClass">
     <ErrorPage v-if="error" :two-pages="settings.twoPages" :type="error" />
     <LoadingPage
       v-else-if="showProgress && !loaded"
@@ -8,9 +8,7 @@
     <component
       :is="component"
       v-else
-      :pk="book.pk"
       :src="src"
-      :settings="settings"
       :fit-to-class="fitToClass"
       @error="onError"
       @load="onLoad"
@@ -20,11 +18,13 @@
 </template>
 
 <script>
+import { mapActions } from "pinia";
 import { defineAsyncComponent, markRaw } from "vue";
 
 import { getComicPageSource } from "@/api/v3/reader";
 import Placeholder from "@/components/placeholder-loading.vue";
 import LoadingPage from "@/components/reader/page-loading.vue";
+import { useReaderStore } from "@/stores/reader";
 const PDFPage = markRaw(
   defineAsyncComponent(() => import("@/components/reader/page-pdf.vue"))
 );
@@ -35,7 +35,7 @@ const PROGRESSS_DELAY_MS = 333;
 
 export default {
   name: "BookPage",
-  components: { Placeholder, ErrorPage, LoadingPage },
+  components: { Placeholder, ErrorPage, LoadingPage, PDFPage, ImgPage },
   props: {
     book: {
       type: Object,
@@ -43,14 +43,6 @@ export default {
     },
     page: {
       type: Number,
-      required: true,
-    },
-    settings: {
-      type: Object,
-      required: true,
-    },
-    fitToClass: {
-      type: Object,
       required: true,
     },
   },
@@ -62,6 +54,26 @@ export default {
     };
   },
   computed: {
+    pageClass() {
+      return this.settings.vertical ? "pageVertical" : "pageHorizontal";
+    },
+    fitToClass() {
+      let classes = {};
+      const fitTo = this.settings.fitTo;
+      if (fitTo) {
+        let fitToClass = "fitTo";
+        fitToClass +=
+          fitTo.charAt(0).toUpperCase() + fitTo.slice(1).toLowerCase();
+        if (this.settings.twoPages) {
+          fitToClass += "Two";
+          if (this.settings.vertical) {
+            fitToClass += "Vertical";
+          }
+        }
+        classes[fitToClass] = true;
+      }
+      return classes;
+    },
     src() {
       const params = { pk: this.book.pk, page: this.page };
       return getComicPageSource(params);
@@ -69,6 +81,9 @@ export default {
     component() {
       const isPDF = this.book.fileFormat === "pdf";
       return isPDF ? PDFPage : ImgPage;
+    },
+    settings() {
+      return this.getSettings(this.book);
     },
   },
   mounted() {
@@ -79,6 +94,7 @@ export default {
     }, PROGRESSS_DELAY_MS);
   },
   methods: {
+    ...mapActions(useReaderStore, ["getSettings"]),
     onLoad() {
       this.showProgress = false;
       this.loaded = true;
@@ -97,7 +113,10 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.page {
+.pageHorizontal {
   display: inline;
+}
+.pageVertical {
+  display: block;
 }
 </style>

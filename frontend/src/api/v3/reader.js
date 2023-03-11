@@ -13,7 +13,6 @@ const getReaderSettings = () => {
 };
 
 const setReaderSettings = (data) => {
-  console.log("setReaderSettings", data);
   return HTTP.put(`c/settings`, data);
 };
 

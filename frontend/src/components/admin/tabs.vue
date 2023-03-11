@@ -57,9 +57,6 @@ export default {
       this.loadTables(["Library"]);
     }
   },
-  unmounted() {
-    window.removeEventListener("resize", this.onResize);
-  },
   methods: {
     ...mapActions(useAdminStore, ["loadTables"]),
   },

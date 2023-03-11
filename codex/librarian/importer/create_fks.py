@@ -261,7 +261,7 @@ class CreateForeignKeysMixin(QueuedThread):
         for names in create_fks.values():
             total_fks += len(names)
         total_fks += len(create_credits)
-        self.status_controller.start(ImportStatusTypes.CREATE_FKS, total_fks)
+        self.status_controller.start(ImportStatusTypes.CREATE_FKS, 0, total_fks)
         return total_fks
 
     def _status_update(self, completed, total_fks, since):

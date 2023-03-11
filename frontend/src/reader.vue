@@ -30,7 +30,7 @@ import { mapActions, mapGetters, mapState } from "pinia";
 import { markRaw } from "vue";
 
 import BookChangeDrawer from "@/components/reader/book-change-drawer.vue";
-import BooksWindow from "@/components/reader/pages-window.vue";
+import BooksWindow from "@/components/reader/books-window.vue";
 import ReaderNavToolbar from "@/components/reader/reader-nav-toolbar.vue";
 import ReaderSettingsSuperPanel from "@/components/reader/reader-settings-super-panel.vue";
 import ReaderTitleToolbar from "@/components/reader/reader-title-toolbar.vue";

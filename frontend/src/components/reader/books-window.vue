@@ -21,7 +21,7 @@
       :value="pk"
       :transition="true"
     >
-      <PagesWindow :book="book" @click="click" />
+      <PagesView :book="book" @click="click" />
     </v-window-item>
   </v-window>
 </template>
@@ -30,14 +30,14 @@
 import { mapActions, mapState } from "pinia";
 
 import BookChangeActivator from "@/components/reader/book-change-activator.vue";
-import PagesWindow from "@/components/reader/pages-window.vue";
+import PagesView from "@/components/reader/pages-view.vue";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
   name: "BooksWindow",
   components: {
     BookChangeActivator,
-    PagesWindow,
+    PagesView,
   },
   emits: ["click"],
   computed: {

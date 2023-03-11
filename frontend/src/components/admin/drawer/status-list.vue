@@ -17,11 +17,19 @@
           <div nav class="statusItem">
             <div class="statusItemTitle">
               {{ status.type }} {{ status.name }}
-              <span v-if="+status.total">
-                {{ nf(status.complete) }} / {{ nf(status.total) }}
-              </span>
-              <span v-else-if="+status.complete">
-                {{ nf(status.complete) }} / ?
+              <span
+                v-if="
+                  Number.isInteger(status.complete) ||
+                  Number.isInteger(status.total)
+                "
+              >
+                <span>
+                  {{ nf(status.complete) }}
+                </span>
+                /
+                <span>
+                  {{ nf(status.total) }}
+                </span>
               </span>
             </div>
             <v-progress-linear
@@ -80,7 +88,7 @@ export default {
       this.librarianTask("librarian_clear_status", "");
     },
     nf(val) {
-      return numberFormat(val, 0);
+      return Number.isInteger(val) ? numberFormat(val, 0) : "?";
     },
   },
 };

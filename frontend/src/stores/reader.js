@@ -12,6 +12,7 @@ const NULL_READER_SETTINGS = {
   // Must be null so axios doesn't throw them out when sending.
   fitTo: "",
   twoPages: null, // eslint-disable-line unicorn/no-null
+  vertical: null, // eslint-disable-line unicorn/no-null
   readInReverse: null, // eslint-disable-line unicorn/no-null
 };
 Object.freeze(NULL_READER_SETTINGS);
@@ -35,6 +36,23 @@ const getGlobalFitToDefault = () => {
   return vw > 600 ? "HEIGHT" : "WIDTH";
 };
 
+const _scrollToPageRetry = (page, tries = 10, sleep = 0) => {
+  // $vuetify.goTo not yet implemented
+  // https://vuetifyjs.com/en/features/scrolling/
+  // https://github.com/vuetifyjs/vuetify/issues/16471
+  const el = document.querySelector(`#page${page}`);
+  if (el) {
+    el.scrollIntoView();
+  } else {
+    if (tries > 0) {
+      console.log("sleep", sleep);
+      setTimeout(function () {
+        _scrollToPageRetry(page, tries - 1, sleep + 50);
+      }, sleep);
+    }
+  }
+};
+
 export const useReaderStore = defineStore("reader", {
   state: () => ({
     // static
@@ -49,12 +67,14 @@ export const useReaderStore = defineStore("reader", {
       twoPages: false,
       readInReverse: false,
       readRtlInReverse: false,
+      vertical: true,
     },
     books: new Map(),
     seriesCount: 0,
 
     // local reader
     pk: undefined,
+    page: undefined,
     routes: {
       prev: false,
       next: false,
@@ -70,41 +90,34 @@ export const useReaderStore = defineStore("reader", {
       return state.books.get(state.pk);
     },
     activeSettings(state) {
-      return this.getSettings(state.readerSettings, state.activeBook);
+      return this.getSettings(state.activeBook);
     },
     activeTitle(state) {
       const book = state.activeBook;
       return book ? getFullComicName(book) : "";
     },
-    prevBookChangeShow() {
-      const route = router.currentRoute.value;
-      return route && route.params && +route.params.page === 0;
+    prevBookChangeShow(state) {
+      return state.page === 0;
     },
     nextBookChangeShow(state) {
-      const route = router.currentRoute.value;
-      if (!route || !route.params) {
-        return false;
-      }
       const maxPage = state.activeBook ? state.activeBook.maxPage : 0;
-      const adj = state.activeSettings.twoPages ? 1 : 0;
+      const adj =
+        state.activeSettings.twoPages && !state.activeSettings.vertical ? 1 : 0;
       const limit = maxPage + adj;
-      return +route.params.page >= limit;
+      return state.page >= limit;
     },
     isOnCoverPage(state) {
-      const book = state.activeBook;
-      const route = router.currentRoute.value;
-      const page = +route.params.page;
-      return this._isCoverPage(book, page);
+      return this._isCoverPage(state.activeBook, state.page);
     },
   },
   actions: {
     ///////////////////////////////////////////////////////////////////////////
     // GETTER Algorithms
-    getSettings(readerSettings, book) {
+    getSettings(book) {
       // Mask the book settings over the global settings.
       const bookSettings = book ? book.settings : {};
       const resultSettings = {};
-      for (const [key, readerVal] of Object.entries(readerSettings)) {
+      for (const [key, readerVal] of Object.entries(this.readerSettings)) {
         const bookVal = bookSettings[key];
         const val = SETTINGS_NULL_VALUES.has(bookVal) ? readerVal : bookVal;
         resultSettings[key] = val;
@@ -115,23 +128,9 @@ export const useReaderStore = defineStore("reader", {
         SETTINGS_NULL_VALUES.has(resultSettings.readInReverse)
       ) {
         // special setting for rtl books
-        resultSettings.readInReverse = readerSettings.readRtlInReverse;
+        resultSettings.readInReverse = this.readerSettings.readRtlInReverse;
       }
       return resultSettings;
-    },
-    getFitToClass(settings) {
-      let classes = {};
-      const fitTo = settings.fitTo;
-      if (fitTo) {
-        let fitToClass = "fitTo";
-        fitToClass +=
-          fitTo.charAt(0).toUpperCase() + fitTo.slice(1).toLowerCase();
-        if (settings.twoPages) {
-          fitToClass += "Two";
-        }
-        classes[fitToClass] = true;
-      }
-      return classes;
     },
     ///////////////////////////////////////////////////////////////////////////
     // UTIL
@@ -157,7 +156,7 @@ export const useReaderStore = defineStore("reader", {
       let delta = 1;
       if (
         this.activeSettings.twoPages &&
-        !this._isCoverPage(this.activeBook, activePage + deltaModifier)
+        !this._isCoverPage(this.activeBook, +activePage + deltaModifier)
       ) {
         delta = 2;
       }
@@ -205,7 +204,7 @@ export const useReaderStore = defineStore("reader", {
         (isPrev && book.readLtr !== false) ||
         (!isPrev && book.readLtr === false)
       ) {
-        const bookSettings = this.getSettings(this.readerSettings, book);
+        const bookSettings = this.getSettings(book);
 
         const bookTwoPagesCorrection = bookSettings.twoPages ? -1 : 0;
         bookPage = book.maxPage + bookTwoPagesCorrection;
@@ -236,8 +235,55 @@ export const useReaderStore = defineStore("reader", {
         next: nextBookRoute,
       };
     },
+    setPage(page, scroll = false) {
+      this.page = +page;
+      if (scroll && this.activeSettings.vertical) {
+        this._scrollToPage(this.page);
+      }
+    },
     ///////////////////////////////////////////////////////////////////////////
     // ACTIONS
+    _scrollToPage(page) {
+      let el = document.querySelector(`#page${page}`);
+      if (el) {
+        el.scrollIntoView();
+      } else {
+        // Get close to the page, wait for the html to appear,
+        // And then align it.
+        const y = window.innerHeight * page;
+        el = document.querySelector("#verticalScroll");
+        el.scroll(0, y); // could be ref.scrollToIndex()?
+        _scrollToPageRetry(page);
+      }
+    },
+    async setRoutesAndBookmarkPage(page) {
+      this._setRoutes(page);
+      await this._setBookmarkPage(page).then(() => {
+        this.bookChange = undefined;
+        return true;
+      });
+    },
+    setActivePage(page, scroll = false) {
+      console.log("setActivePage", page);
+      if (page < 0) {
+        console.warn("Page out of bounds. Redirecting to 0.");
+        return this.routeToPage(0);
+      } else if (page > this.activeBook.maxPage) {
+        console.warn(
+          `Page out of bounds. Redirecting to ${this.activeBook.maxPage}.`
+        );
+        return this.routeToPage(this.activeBook.maxPage);
+      }
+      this.setPage(page, scroll);
+      this.setRoutesAndBookmarkPage(page);
+      if (this.activeSettings.vertical) {
+        const route = { params: { pk: this.pk, page } };
+        const { href } = router.resolve(route);
+        window.history.pushState({}, undefined, href);
+      } else {
+        window.scrollTo(0, 0);
+      }
+    },
     async loadReaderSettings() {
       return API.getReaderSettings()
         .then((response) => {
@@ -297,13 +343,6 @@ export const useReaderStore = defineStore("reader", {
       const updates = { page };
       await BROWSER_API.setGroupBookmarks(groupParams, updates);
     },
-    async setRoutesAndBookmarkPage(page) {
-      this._setRoutes(page);
-      await this._setBookmarkPage(page).then(() => {
-        this.bookChange = undefined;
-        return true;
-      });
-    },
     async setSettingsLocal(routeParams, data) {
       const params = this._numericValues(routeParams);
       this._updateSettings(params.pk, data);
@@ -321,7 +360,6 @@ export const useReaderStore = defineStore("reader", {
       await this.setSettingsLocal(params, NULL_READER_SETTINGS);
     },
     async setSettingsGlobal(routeParams, data) {
-      console.log("global", { data });
       const params = this._numericValues(routeParams);
       this._updateSettings(0, data);
       await API.setReaderSettings(this.readerSettings);
@@ -355,21 +393,25 @@ export const useReaderStore = defineStore("reader", {
     },
     _routeTo(params) {
       params = this._validateRoute(params);
-      const route = { name: "reader", params };
-      return router.push(route).catch(console.debug);
+      if (this.activeSettings.vertical && +params.pk === this.pk) {
+        this.setActivePage(+params.page, true);
+      } else {
+        const route = { name: "reader", params };
+        router.push(route).catch(console.debug);
+      }
     },
     routeToDirectionOne(direction) {
       // Special two page adjuster
       direction = this.normalizeDirection(direction);
       const delta = direction === "prev" ? -1 : 1;
-      const route = router.currentRoute.value;
-      const params = { ...route.params };
-      const page = +params["page"] + delta;
+      const page = (this.page += delta);
       if (page < 0 || page > this.activeBook.maxPage) {
         return;
       }
-      params["pk"] = +params["pk"];
-      params["page"] = page;
+      const params = {
+        pk: this.pk,
+        page: page,
+      };
       this._routeTo(params);
     },
     routeToDirection(direction) {
@@ -391,6 +433,9 @@ export const useReaderStore = defineStore("reader", {
     routeToPage(page) {
       const params = { pk: this.pk, page };
       this._routeTo(params);
+    },
+    routeToBook(direction) {
+      this._routeTo(this.routes.books[direction]);
     },
   },
 });

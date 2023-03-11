@@ -3,6 +3,7 @@ from django.db.models import F, Q
 from rest_framework.serializers import (
     BooleanField,
     CharField,
+    DateTimeField,
     DecimalField,
     IntegerField,
     Serializer,
@@ -27,6 +28,9 @@ class BrowserAggregateBaseSerializerMixin(Serializer):
 
     # Bookmark annotations
     page = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "page")
+    bookmark_updated_at = DateTimeField(
+        read_only=True, allow_null=True, source=UNIONFIX_PREFIX + "bookmark_updated_at"
+    )
 
 
 class BrowserAggregateSerializerMixin(BrowserAggregateBaseSerializerMixin):

@@ -4,7 +4,7 @@
       <v-list-item-title>
         <v-icon>{{ mdiFileImage }}</v-icon
         >Download Page
-        {{ $route.params.page }}
+        {{ storePage }}
       </v-list-item-title>
     </v-list-item>
     <v-list-item @click="downloadBook">
@@ -17,7 +17,7 @@
 </template>
 <script>
 import { mdiDownload, mdiFileImage } from "@mdi/js";
-import { mapActions, mapGetters } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import { getDownloadPageURL, getDownloadURL } from "@/api/v3/reader";
 import { useCommonStore } from "@/stores/common";
@@ -32,18 +32,21 @@ export default {
   },
   computed: {
     ...mapGetters(useReaderStore, ["activeTitle"]),
-    pageSrc: function () {
-      return getDownloadPageURL(this.$route.params);
-    },
-    downloadURL: function () {
-      return getDownloadURL(this.$route.params.pk);
-    },
+    ...mapState(useReaderStore, {
+      storePage: (state) => state.page,
+      pageSrc(state) {
+        const params = { pk: state.pk, page: state.page };
+        return getDownloadPageURL(params);
+      },
+      downloadURL(state) {
+        return getDownloadURL(state.pk);
+      },
+    }),
     fileName: function () {
       return this.activeTitle + ".cbz";
     },
     pageName: function () {
-      const page = this.$route.params.page;
-      return `${this.activeTitle} - page ${page}.jpg`;
+      return `${this.activeTitle} - page ${this.storePage}.jpg`;
     },
   },
   methods: {

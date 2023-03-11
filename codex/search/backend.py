@@ -238,6 +238,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
 
     def remove_batch_pks(self, pks, inverse=False, sc=None):
         """Remove a large batch of docs by pk from the index."""
+        # Does not benefit from multiprocessing.
         if not pks.count() and not inverse:
             return
         if not self.setup_complete:

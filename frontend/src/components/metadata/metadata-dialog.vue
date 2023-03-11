@@ -348,7 +348,7 @@ export default {
   mounted() {
     window.addEventListener("keyup", this._keyListener);
   },
-  unmounted() {
+  beforeUnmount() {
     window.removeEventListener("keyup", this._keyListener);
   },
   methods: {

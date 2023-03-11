@@ -21,7 +21,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
         """Abbreviated bulk_import_comics to just change path related fields."""
         try:
             self.status_controller.start(
-                ImportStatusTypes.FILES_MOVED, len(moved_paths)
+                ImportStatusTypes.FILES_MOVED, 0, len(moved_paths)
             )
             # Prepare FKs
             create_folder_paths = self.query_missing_folder_paths(

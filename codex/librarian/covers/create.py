@@ -102,7 +102,7 @@ class CoverCreateMixin(CoverPathMixin):
                 return
 
             self.log.debug(f"Creating {num_comics} comic covers...")
-            self.status_controller.start(CoverStatusTypes.CREATE, num_comics)
+            self.status_controller.start(CoverStatusTypes.CREATE, 0, num_comics)
 
             # Get comic objects
             count = 0

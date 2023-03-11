@@ -14,6 +14,7 @@
         </v-icon>
       </v-btn>
     </v-toolbar-items>
+    {{ bookChange }}
     <v-toolbar-title id="toolbarTitle" class="codexToolbarTitle">
       {{ activeTitle }}
     </v-toolbar-title>
@@ -22,11 +23,7 @@
     }}</span>
     <v-toolbar-items>
       <v-btn id="tagButton" @click.stop="openMetadata">
-        <MetadataDialog
-          ref="metadataDialog"
-          group="c"
-          :pk="Number($route.params.pk)"
-        />
+        <MetadataDialog ref="metadataDialog" group="c" :pk="pk" />
       </v-btn>
       <SettingsDrawerButton
         id="settingsButton"
@@ -47,9 +44,6 @@ import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
 
-const PREV = "prev";
-const NEXT = "next";
-
 export default {
   name: "ReaderTitleToolbar",
   components: {
@@ -63,8 +57,7 @@ export default {
     };
   },
   head() {
-    const page = this.$route.params.page;
-    const content = `reader ${this.activeTitle} page ${page}`;
+    const content = `reader ${this.activeTitle} page ${this.storePage}`;
     return {
       meta: [
         {
@@ -78,12 +71,15 @@ export default {
   computed: {
     ...mapGetters(useReaderStore, ["activeTitle", "activeBook"]),
     ...mapState(useReaderStore, {
+      bookChange: (state) => state.bookChange,
       seriesPosition: function (state) {
         if (this.activeBook && state.seriesCount > 1) {
           return `${this.activeBook.seriesIndex}/${state.seriesCount}`;
         }
         return "";
       },
+      vertical: (state) => state.activeSettings.vertical,
+      pk: (state) => state.pk || 0,
     }),
     ...mapState(useBrowserStore, {
       lastRoute: (state) => state.page.routes.last,
@@ -96,7 +92,7 @@ export default {
         params: this.lastRoute,
       };
       if (route.params) {
-        route.hash = `#card-${this.$route.params.pk}`;
+        route.hash = `#card-${this.pk}`;
       } else {
         route.params = window.CODEX.LAST_ROUTE || CHOICES.browser.route;
       }
@@ -113,7 +109,7 @@ export default {
   mounted() {
     document.addEventListener("keyup", this._keyListener);
   },
-  unmounted: function () {
+  beforeUnmount() {
     document.removeEventListener("keyup", this._keyListener);
   },
   methods: {
@@ -121,6 +117,7 @@ export default {
     ...mapActions(useReaderStore, [
       "routeToDirection",
       "routeToDirectionOne",
+      "routeToBook",
       "setBookChangeFlag",
     ]),
     openMetadata() {
@@ -134,37 +131,6 @@ export default {
     _keyListener(event) {
       event.stopPropagation();
       switch (event.key) {
-        case " ":
-          if (
-            !event.shiftKey &&
-            window.innerHeight + window.scrollY + 1 >=
-              document.body.scrollHeight
-          ) {
-            // Spacebar goes next only at the bottom of page
-            this.routeToDirection(NEXT);
-          } else if (
-            // Shift + Spacebar goes back only at the top of page
-            !!event.shiftKey &&
-            window.scrollY === 0
-          ) {
-            this.routeToDirection(PREV);
-          }
-          break;
-        case "j":
-        case "ArrowRight":
-          this.routeToDirection(NEXT);
-          break;
-
-        case "k":
-        case "ArrowLeft":
-          this.routeToDirection(PREV);
-          break;
-        case ",":
-          this.routeToDirectionOne(PREV);
-          break;
-        case ".":
-          this.routeToDirectionOne(NEXT);
-          break;
         case "Escape":
           this.$refs.closeBook.$el.click();
           break;

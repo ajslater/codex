@@ -143,12 +143,16 @@ class ComicImporterThread(
         types_map = {}
         total_changes = 0
         if task.files_moved:
-            types_map[ImportStatusTypes.FILES_MOVED] = {"total": len(task.files_moved)}
+            types_map[ImportStatusTypes.FILES_MOVED] = {
+                "complete": 0,
+                "total": len(task.files_moved),
+            }
             total_changes += len(task.files_moved)
         if task.files_modified or task.files_created:
             total_paths = len(task.files_modified) + len(task.files_created)
             total_changes += total_paths
             types_map[ImportStatusTypes.AGGREGATE_TAGS] = {
+                "complete": 0,
                 "total": total_paths,
                 "name": path,
             }
@@ -156,20 +160,26 @@ class ComicImporterThread(
             types_map[ImportStatusTypes.CREATE_FKS] = {}
             if task.files_modified:
                 types_map[ImportStatusTypes.FILES_MODIFIED] = {
-                    "name": f"({len(task.files_modified)})"
+                    "complete": 0,
+                    "total": len(task.files_modified),
                 }
             if task.files_created:
                 types_map[ImportStatusTypes.FILES_CREATED] = {
-                    "name": f"({len(task.files_created)})"
+                    "complete": 0,
+                    "total": len(task.files_created),
                 }
             if task.files_modified or task.files_created:
                 types_map[ImportStatusTypes.LINK_M2M_FIELDS] = {}
         if task.files_deleted:
             types_map[ImportStatusTypes.FILES_DELETED] = {
-                "name": f"({len(task.files_deleted)})"
+                "complete": 0,
+                "total": len(task.files_deleted),
             }
             total_changes += len(task.files_deleted)
-        types_map[SearchIndexStatusTypes.SEARCH_INDEX_UPDATE] = {"total": total_changes}
+        types_map[SearchIndexStatusTypes.SEARCH_INDEX_UPDATE] = {
+            "complete": 0,
+            "total": total_changes,
+        }
         types_map[SearchIndexStatusTypes.SEARCH_INDEX_REMOVE] = {}
         self.status_controller.start_many(types_map)
 
