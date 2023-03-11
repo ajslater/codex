@@ -1,12 +1,12 @@
 <template>
-  <AdminTable :items="flags">
-    <template #thead>
+  <v-table class="highlight-table flags-table" :items="flags" fixed-header>
+    <thead>
       <tr>
         <th>Description</th>
         <th>Enabled</th>
       </tr>
-    </template>
-    <template #tbody>
+    </thead>
+    <tbody>
       <tr v-for="item in flags" :key="`f${item.pk}`">
         <td class="nameCol">
           <h4>{{ item.name }}</h4>
@@ -24,14 +24,13 @@
           />
         </td>
       </tr>
-    </template>
-  </AdminTable>
+    </tbody>
+  </v-table>
 </template>
 
 <script>
 import { mapActions, mapState } from "pinia";
 
-import AdminTable from "@/components/admin/admin-table.vue";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
@@ -51,9 +50,7 @@ Object.freeze(DESC);
 
 export default {
   name: "AdminFlagsTab",
-  components: {
-    AdminTable,
-  },
+  components: {},
   data() {
     return {
       lastUpdate: {
@@ -88,6 +85,13 @@ export default {
 </script>
 
 <style scoped lang="scss">
+.flags-table {
+  max-width: 100vw !important;
+  margin-bottom: 24px;
+}
+:deep(.tableCheckbox) {
+  height: 40px;
+}
 .nameCol {
   padding-top: 0.5em !important;
 }
