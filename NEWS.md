@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.2.10
+
+- Fix
+  - Made search indexer more robust against bad data.
+
 ## v1.2.9
 
 - Features
