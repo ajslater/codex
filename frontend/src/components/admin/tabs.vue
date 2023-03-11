@@ -82,7 +82,6 @@ $task-width: 256px;
   padding-right: env(safe-area-inset-right);
 }
 .tabItemContainer {
-  max-width: 1200px;
   margin-left: auto;
   margin-right: auto;
   padding-left: 10px;
