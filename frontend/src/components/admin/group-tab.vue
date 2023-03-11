@@ -8,6 +8,7 @@
       />
     </header>
     <v-data-table-virtual
+      class="adminTable"
       fixed-headers
       item-value="pk"
       item-title="name"
@@ -90,7 +91,7 @@ export default {
         { title: "Name", key: "name", align: "start" },
         { title: "Users", key: "userSet" },
         { title: "Libraries", key: "librarySet" },
-        { title: "Actions", key: "actions", minWidth: 100 },
+        { title: "Actions", key: "actions", sortable: false },
       ],
     };
   },

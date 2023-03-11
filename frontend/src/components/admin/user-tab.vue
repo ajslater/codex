@@ -13,6 +13,7 @@
       item-title="username"
       :headers="headers"
       :items="users"
+      class="adminTable"
     >
       <template #no-data>
         No Users. <br />This is an error. There should always be at least one
@@ -98,10 +99,10 @@ export default {
         { title: "Staff", key: "isStaff" },
         { title: "Active", key: "isActive" },
         { title: "Groups", key: "groups" },
-        { title: "Last Active", key: "lastActive", minWidth: 120 },
-        { title: "Last Login", key: "lastLogin", minWidth: 120 },
-        { title: "Joined", key: "dateJoined", minWidth: 120 },
-        { title: "Actions", key: "actions", minWidth: 100, sortable: false },
+        { title: "Last Active", key: "lastActive" },
+        { title: "Last Login", key: "lastLogin" },
+        { title: "Joined", key: "dateJoined" },
+        { title: "Actions", key: "actions", sortable: false },
       ],
     };
   },

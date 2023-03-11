@@ -4,15 +4,10 @@
       <AdminCreateUpdateDialog
         table="Library"
         :inputs="AdminLibraryCreateUpdateInputs"
-        width="100%"
       />
     </header>
-    <VDataTableVirtual
-      :style="{
-        maxWidth: innerWidth,
-        maxHeight: innerHeight,
-        overflow: 'auto',
-      }"
+    <v-data-table-virtual
+      class="adminTable"
       fixed-headers
       item-value="pk"
       item-title="path"
@@ -68,7 +63,7 @@
           density="compact"
         />
       </template>
-    </VDataTableVirtual>
+    </v-data-table-virtual>
     <v-expand-transition>
       <AdminFailedImportsPanel />
     </v-expand-transition>
@@ -119,15 +114,19 @@ export default {
       AdminLibraryCreateUpdateInputs: markRaw(AdminLibraryCreateUpdateInputs),
       headers: [
         { title: "Path", key: "path", align: "start" },
-        { title: "Watch Filesystem Events", key: "events", width: 130 },
-        { title: "Poll Filesystem Periodically", key: "poll", width: 130 },
-        { title: "Poll Every", key: "pollEvery", minWidth: 120 },
-        { title: "Last Poll", key: "lastPoll", minWidth: 120 },
+        {
+          title: "Watch File Events",
+          key: "events",
+        },
+        {
+          title: "Poll Files Periodically",
+          key: "poll",
+        },
+        { title: "Poll Every", key: "pollEvery" },
+        { title: "Last Poll", key: "lastPoll" },
         { title: "Groups", key: "groups" },
-        { title: "Actions", key: "actions", width: 112, sortable: false },
+        { title: "Actions", key: "actions", sortable: false },
       ],
-      innerWidth: window.innerWidth,
-      innerHeight: window.innerHeight,
     };
   },
   computed: {

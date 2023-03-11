@@ -94,4 +94,8 @@ $task-width: 256px;
 .rightMargin {
   width: calc(100% - 256px) !important;
 }
+:deep(.adminTable) {
+  /* Lets data table contents overflow scroll */
+  max-width: 100vw;
+}
 </style>
