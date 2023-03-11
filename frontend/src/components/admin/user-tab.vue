@@ -11,7 +11,6 @@
       fixed-headers
       item-value="pk"
       item-title="username"
-      multi-sort
       :headers="headers"
       :items="users"
     >
@@ -102,7 +101,7 @@ export default {
         { title: "Last Active", key: "lastActive", width: 120 },
         { title: "Last Login", key: "lastLogin", width: 120 },
         { title: "Joined", key: "dateJoined", width: 120 },
-        { title: "Actions", key: "actions", width: 90, sortable: false },
+        { title: "Actions", key: "actions", width: 100, sortable: false },
       ],
     };
   },

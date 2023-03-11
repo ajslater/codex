@@ -11,7 +11,6 @@
       fixed-headers
       item-value="pk"
       item-title="path"
-      multi-sort
       :headers="headers"
       :items="libraries"
       :sort-by="[{ key: 'path', order: 'asc' }]"

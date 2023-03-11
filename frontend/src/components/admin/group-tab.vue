@@ -11,7 +11,6 @@
       fixed-headers
       item-value="pk"
       item-title="name"
-      multi-sort
       :headers="headers"
       :items="groups"
     >
