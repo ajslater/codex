@@ -8,6 +8,11 @@
       />
     </header>
     <VDataTableVirtual
+      :style="{
+        maxWidth: innerWidth,
+        maxHeight: innerHeight,
+        overflow: 'auto',
+      }"
       fixed-headers
       item-value="pk"
       item-title="path"
@@ -29,21 +34,20 @@
         <RelationChips :pks="item.raw.groups" :map="groupMap" />
       </template>
       <template #[`item.actions`]="{ item }">
-        <v-btn
-          rounded
-          icon
-          density="compact"
+        <ConfirmDialog
+          :icon="mdiDatabaseClockOutline"
+          title-text="Poll for updated comics in"
+          :object-name="item.raw.path"
+          confirm-text="Poll Library"
           size="small"
-          title="Poll Library Now"
-          @click="poll(item.raw.pk)"
-        >
-          <v-icon>{{ mdiDatabaseClockOutline }}</v-icon>
-        </v-btn>
+          density="compact"
+          @confirm="poll(item.raw.pk)"
+        />
         <ConfirmDialog
           :icon="mdiDatabaseImportOutline"
-          title-text="Force Reimport of Entire Library"
+          title-text="Force update every comic in"
           :object-name="item.raw.path"
-          confirm-text="Force Reimport"
+          confirm-text="Force Update"
           size="small"
           density="compact"
           @confirm="forcePoll(item.raw.pk)"
@@ -92,8 +96,6 @@ import { getDateTime } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
 import { useBrowserStore } from "@/stores/browser";
 
-const FAILED_IMPORTS_HEIGHT = 60 + 48 + 64;
-
 export default {
   name: "AdminLibrariesTab",
   components: {
@@ -107,7 +109,6 @@ export default {
   },
   data() {
     return {
-      FAILED_IMPORTS_HEIGHT,
       lastUpdate: {
         pk: 0,
         field: undefined,
@@ -120,11 +121,13 @@ export default {
         { title: "Path", key: "path", align: "start" },
         { title: "Watch Filesystem Events", key: "events", width: 130 },
         { title: "Poll Filesystem Periodically", key: "poll", width: 130 },
-        { title: "Poll Every", key: "pollEvery", width: 130 },
-        { title: "Last Poll", key: "lastPoll", width: 120 },
+        { title: "Poll Every", key: "pollEvery", minWidth: 120 },
+        { title: "Last Poll", key: "lastPoll", minWidth: 120 },
         { title: "Groups", key: "groups" },
         { title: "Actions", key: "actions", width: 112, sortable: false },
       ],
+      innerWidth: window.innerWidth,
+      innerHeight: window.innerHeight,
     };
   },
   computed: {

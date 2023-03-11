@@ -90,7 +90,7 @@ export default {
         { title: "Name", key: "name", align: "start" },
         { title: "Users", key: "userSet" },
         { title: "Libraries", key: "librarySet" },
-        { title: "Actions", key: "actions", width: 100 },
+        { title: "Actions", key: "actions", minWidth: 100 },
       ],
     };
   },
