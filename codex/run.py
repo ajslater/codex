@@ -29,6 +29,7 @@ def codex_startup():
     loggerd.start()
     LOG.info(f"Running Codex v{VERSION}")
     codex_init()
+    return loggerd
 
 
 def database_checkpoint():
@@ -44,6 +45,7 @@ def restart():
 
     print("Restarting Codex. Hold on to your butts...", flush=True)
     execv(__file__, argv)  # nosec
+
 def codex_shutdown(loggerd):
     """Shutdown for codex."""
     database_checkpoint()
