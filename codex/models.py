@@ -123,6 +123,17 @@ class Volume(BrowserGroupModel):
 
         unique_together = ("name", "series")
 
+    def __str__(self):
+        """Represent volume as a string."""
+        if not self.name:
+            vol = ""
+        elif len(self.name) == 4:
+            vol = f"({self.name})"
+        else:
+            vol = "v" + self.name
+        return vol
+
+
 
 def validate_dir_exists(path):
     """Validate that a library exists."""
@@ -425,6 +436,29 @@ class Comic(WatchedPath):
         if self.name:
             names.append(self.name)
         return " ".join(names).strip()
+
+    def filename(self):
+        """Create a filename for download."""
+        names = []
+        if self.series.name:
+            names.append(self.series.name)
+        if self.volume.name:
+            names.append(str(self.volume))
+        if self.issue is not None:
+            issue = "#"
+            if self.issue % 1 == 0:
+                issue += f"{self.issue:05.0f}"
+            else:
+                issue += f"{self.issue:06.1f}"
+            if self.issue_suffix:
+                issue += self.issue_suffix
+            names.append(issue)
+        if self.name:
+            names.append(self.name)
+
+        fn = " ".join(names).strip()
+        fn += "." + Path(self.path).suffix
+        return fn
 
 
 class AdminFlag(NamedModel):

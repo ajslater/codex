@@ -14,6 +14,7 @@ border-radius: 128px;
   - Made search indexer more robust against bad data.
   - Fix codex backing up on every startup.
   - Fix Reader vertical scroll losing its place in Fit To Width or Orig mode.
+  - Fix OPDS downloaded files all having the same name.
 
 ## v1.2.9
 
