@@ -34,7 +34,7 @@ class CoverPurgeMixin(CoverPathMixin):
             count = 0
             for cover_path in cover_paths:
                 try:
-                    cover_path.unlink(missing_ok=True)
+                    cover_path.unlink()
                     count +=1
                 except FileNotFoundError:
                     pass
