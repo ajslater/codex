@@ -28,15 +28,20 @@ class CoverPurgeMixin(CoverPathMixin):
     def purge_cover_paths(self, cover_paths):
         """Purge a set a cover paths."""
         try:
-            self.log.debug(f"Removing {len(cover_paths)} cover thumbnails...")
+            self.log.debug(f"Removing {len(cover_paths)} possible cover thumbnails...")
             self.status_controller.start(CoverStatusTypes.PURGE, 0, len(cover_paths))
             cover_dirs = set()
+            count = 0
             for cover_path in cover_paths:
-                cover_path.unlink(missing_ok=True)
+                try:
+                    cover_path.unlink(missing_ok=True)
+                    count +=1
+                except FileNotFoundError:
+                    pass
                 cover_dirs.add(cover_path.parent)
             for cover_dir in cover_dirs:
                 self._cleanup_cover_dirs(cover_dir)
-            self.log.info(f"Removed {len(cover_paths)} cover thumbnails.")
+            self.log.info(f"Removed {count} cover thumbnails.")
         finally:
             self.status_controller.finish(CoverStatusTypes.PURGE)
 
