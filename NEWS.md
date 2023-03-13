@@ -12,6 +12,7 @@ border-radius: 128px;
   - Fancier sortable admin tables.
 - Fix
   - Made search indexer more robust against bad data.
+  - Fix Reader vertical scroll losing its place in Fit To Width or Orig mode.
 
 ## v1.2.9
 
