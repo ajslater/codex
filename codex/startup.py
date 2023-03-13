@@ -40,6 +40,7 @@ def ensure_db_schema():
     if db_exists:
         rebuild_db()
         repair_db()
+
     if not db_exists or has_unapplied_migrations():
         if db_exists:
             backup_db_before_migration()
