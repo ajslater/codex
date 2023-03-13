@@ -134,7 +134,7 @@ export default {
             ? state.activeBook.settings.vertical
             : undefined;
         if (vertical === undefined || vertical === null) {
-          return "Inherit Page Turning";
+          return "Horizontal or Vertical";
         } else if (vertical) {
           return "Scroll Pages Vertically";
         } else {
