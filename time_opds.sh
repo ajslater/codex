@@ -1,4 +1,5 @@
 #!/bin/bash
+# benchmark opds url times
 set -euo pipefail
 
 BASE_URL="http://localhost:9810"
