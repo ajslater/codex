@@ -50,29 +50,6 @@
             <td>Groups</td>
             <td>{{ nf(stats.config.groupCount) }}</td>
           </tr>
-          <tr id="apiKeyRow" @click="copyToClipboard()">
-            <td>
-              API Key
-              <v-icon class="clipBoardIcon" size="small">{{
-                clipBoardIcon
-              }}</v-icon>
-              <v-fade-transition>
-                <span v-show="showTool" class="copied">Copied</span>
-              </v-fade-transition>
-            </td>
-            <td id="apiKey">{{ stats.config.apiKey }}</td>
-          </tr>
-          <tr>
-            <td colspan="2">
-              <ConfirmDialog
-                button-text="Regenerate API Key"
-                title-text="Regenerate"
-                object-name="API Key"
-                confirm-text="Regenerate"
-                @confirm="regenAPIKey"
-              />
-            </td>
-          </tr>
         </tbody>
       </v-table>
     </div>
@@ -164,6 +141,47 @@
         </tbody>
       </v-table>
     </div>
+    <div class="statBlock">
+      <h3>API</h3>
+      <v-table class="highlight-table">
+        <tbody>
+          <tr>
+            <td>Schema Documentation:</td>
+            <td>
+              The only endpoint accessible with API Key access is
+              <a
+                :href="`${apiSchemaURL}#/api/api_v3_admin_stats_retrieve`"
+                target="_blank"
+                >/admin/stats</a
+              >
+            </td>
+          </tr>
+          <tr id="apiKeyRow" @click="copyToClipboard()">
+            <td>
+              API Key
+              <v-icon class="clipBoardIcon" size="small">{{
+                clipBoardIcon
+              }}</v-icon>
+              <v-fade-transition>
+                <span v-show="showTool" class="copied">Copied</span>
+              </v-fade-transition>
+            </td>
+            <td id="apiKey">{{ stats.config.apiKey }}</td>
+          </tr>
+          <tr>
+            <td colspan="2">
+              <ConfirmDialog
+                button-text="Regenerate API Key"
+                title-text="Regenerate"
+                object-name="API Key"
+                confirm-text="Regenerate"
+                @confirm="regenAPIKey"
+              />
+            </td>
+          </tr>
+        </tbody>
+      </v-table>
+    </div>
   </div>
 </template>
 
@@ -184,6 +202,7 @@ export default {
   data() {
     return {
       showTool: false,
+      apiSchemaURL: window.CODEX.API_V3_PATH,
     };
   },
   computed: {
