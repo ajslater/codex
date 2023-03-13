@@ -16,6 +16,7 @@ from whoosh.support.charset import accent_map
 
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.logger.logging import get_logger
+from codex.memory import get_mem_limit
 from codex.search.indexes import ComicIndex
 from codex.search.writing import CodexWriter
 from codex.worker_base import WorkerBaseMixin
@@ -106,23 +107,33 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
         )
     )
-    WRITERARGS = {
-        "limitmb": 512,
-        "procs": cpu_count(),
-        # Bug in Whoosh means procs > 1 needs multisegment
-        # https://github.com/mchaput/whoosh/issues/35
-        "multisegement": True,
-    }
     WRITER_PERIOD = 60 * 5
     WRITER_LIMIT = 10000
     COMMITARGS_MERGE_SMALL = {"merge": True}
     COMMITARGS_NO_MERGE = {"merge": False}
+    _ONEMB = 1024 ** 2
 
     def __init__(self, connection_alias, **connection_options):
         """Init worker queues."""
         super().__init__(connection_alias, **connection_options)
         self.log = getLogger(self.__class__.__name__)
         self.log.propagate = False
+        self.writerargs = self._get_writerargs()
+
+    def _get_writerargs(self):
+        """Get writerargs for this machine's cpu & memory config."""
+        mem_limit = get_mem_limit()
+        procs = cpu_count()
+        limitb = mem_limit / procs
+        limitb = limitb * 0.9
+        limitmb = int(limitb / self._ONEMB)
+        self.log.debug(f"Search Index writer {limitmb=} {procs=}")
+        print(f"Search Index writer {limitmb=} {procs=}", flush=True)
+        return  {
+            "limitmb": limitmb,
+            "procs": procs,
+            "multisegment": True
+        }
 
     def build_schema(self, fields):
         """Customize schema fields."""
@@ -169,7 +180,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             self.index,
             limit=self.WRITER_LIMIT,
             period=self.WRITER_PERIOD,
-            writerargs=self.WRITERARGS,
+            writerargs=self.writerargs,
             commitargs=commitargs,
         )
         return writer
@@ -266,7 +277,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         if not self.setup_complete:
             self.setup(False)
         self.index = self.index.refresh()
-        self.index.optimize(**self.WRITERARGS)
+        self.index.optimize(**self.writerargs)
 
     def merge_small(self):
         """Merge small segments of the index."""
