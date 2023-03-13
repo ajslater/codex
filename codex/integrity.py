@@ -6,7 +6,8 @@ from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.sessions.models import Session
-from django.db import connection
+from django.db import DEFAULT_DB_ALIAS, connection, connections
+from django.db.migrations.executor import MigrationExecutor
 from django.db.migrations.recorder import MigrationRecorder
 from django.db.models.functions import Now
 from django.db.utils import OperationalError
@@ -79,17 +80,16 @@ def has_applied_migration(migration_name):
 def has_unapplied_migrations():
     """Check if any migrations are outstanding."""
     try:
-        db_names = frozenset(
-            MigrationRecorder.Migration.objects.filter(app="codex").values_list(
-                "name", flat=True
-            )
-        )
-        for path in MIGRATION_DIR.iterdir():
-            stem = path.stem
-            if stem[:4].isdigit() and stem not in db_names:
-                return True
+        connection = connections[DEFAULT_DB_ALIAS]
+        connection.prepare_database()
+        executor = MigrationExecutor(connection)
+        targets = [
+                key for key in executor.loader.graph.leaf_nodes() if key[0] == "codex"
+            ]
+        plan = executor.migration_plan(targets)
+        return bool(plan)
     except Exception as exc:
-        LOG.warning(exc)
+        LOG.warning("has_unapplied_migrations()", exc)
     return False
 
 
