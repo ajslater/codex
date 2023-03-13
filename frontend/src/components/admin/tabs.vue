@@ -98,6 +98,9 @@ $task-width: 256px;
   /* Lets data table contents overflow scroll */
   max-width: 100vw;
 }
+:deep(.adminTable thead > tr > th, .adminTable tbody > tr:nth-child(even)) {
+  background-color: rgb(var(--v-theme-background)) !important;
+}
 :deep(.adminNoData) {
   padding: 1em;
   text-align: center;
