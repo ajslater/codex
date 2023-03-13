@@ -60,7 +60,8 @@ FIELDS = {
 }
 BOOL_VALUES = ("yes", "no")
 MANGA_VALUES = (*BOOL_VALUES, "yesandrighttoleft", "yesrtl")
-
+NUM_M2M_NAMES = 20
+NUM_CREDITS = 15
 
 def is_valid():
     """Determine if to make the tag null or the wrong type."""
@@ -117,7 +118,7 @@ def create_name_list(md, key):
         return
     m2m = []
     prefix = key + "_"
-    for _ in range(randint(0, 10)):
+    for _ in range(randint(0, NUM_M2M_NAMES)):
         name = prefix + rand_string(64 - len(prefix))
         m2m.append(name)
     md[key] = ",".join(m2m)
@@ -152,7 +153,7 @@ def create_credits(md):
     v = is_valid()
     if v is None:
         return
-    for _ in range(0, randint(0, 7)):
+    for _ in range(0, randint(0, NUM_CREDITS)):
         role = choices(CREDIT_TAGS, k=1)[0]
         person = rand_string(round(64 * 1.1))
         md[role] = person
