@@ -224,7 +224,7 @@ good results:
 
 `{series} v{volume} #{issue} {title} ({year}) {ignored}.pdf`
 
-## <a name="configuration">⚙️ Configuration</a>
+## <a name="configuration">🎛️ Configuration</a>
 
 ### Config Dir
 
@@ -315,7 +315,7 @@ article.
 
 ## <a name="usage">📖 Usage</a>
 
-### Sessions & Accounts
+### 👤 Sessions & Accounts
 
 Once your administrator has added some comic libraries, you may browse and read
 comics. Codex will remember your preferences, bookmarks and progress in the
@@ -324,7 +324,7 @@ To preserve these settings across browsers and after sessions expire, you may
 register an account with a username and password. You will have to contact your
 administrator to reset your password if you forget it.
 
-### API with Key Access
+### 🗝️ API with Key Access
 
 Codex has a limited number of API endpoints available with API Key Access. The
 API Key is available on the admin/stats tab.
@@ -363,7 +363,7 @@ authentication. In that case the OPDS url will look like:
 
 ## <a name="troubleshooting">🩺 Troubleshooting</a>
 
-### Logs
+### 📒 Logs
 
 Codex collects its logs in the `config/logs` directory. Take a look to see what
 th e server is doing.
@@ -411,7 +411,7 @@ that updating large batches of comics are failing, consider setting a the
 `max_db_ops` value in `hypercorn.toml` to a lower value. 1000 will probably
 still be pretty fast, for instance.
 
-### 🐛 Bug Reports
+## <a name="bug_reports>🐛 Bug Reports</a>
 
 Issues and feature requests are best filed on the
 [Github issue tracker](https://github.com/ajslater/codex/issues).
@@ -460,7 +460,7 @@ frontend.
 `/codex/frontend/dev-server.sh` runs the development autoreloading frontend with
 vite.
 
-### Links
+## <a name="links>🔗 Links</a>
 
 - [Docker Image](https://hub.docker.com/r/ajslater/codex)
 - [PyPi Package](https://pypi.org/project/codex/)
