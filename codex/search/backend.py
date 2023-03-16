@@ -200,7 +200,6 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
     def get_writer(self, commitargs=COMMITARGS_NO_MERGE):
         """Get a writer."""
         self.index = self.index.refresh()
-        # TODO this is more like AsyncWriter now than Bufferedwriter
         writer = CodexWriter(
             self.index,
             limit=self.WRITER_LIMIT,

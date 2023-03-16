@@ -9,7 +9,13 @@ from codex.librarian.search.status import SearchIndexStatusTypes
 
 
 class CodexWriter(BufferedWriter):
-    """MP safe Buffered Writer that locks the index writer much more granularly."""
+    """MP safe Buffered Writer that locks the index writer much more granularly.
+
+    XXX The Codex backend currently sets the period and limit args to where
+    they're ignored and this writer behaves more like the AsycnWriter. The
+    AsyncWriter could possibly be extended to not lock until commit time like this one
+    and use less code.
+    """
 
     # For waiting for the writer lock
     _DELAY = 0.25

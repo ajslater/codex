@@ -41,7 +41,6 @@ class QueryForeignKeysMixin(QueuedThread):
         fields = _CLASS_QUERY_FIELDS_MAP.get(fk_cls, _DEFAULT_QUERY_FIELDS)
         flat = len(fields) == 1 and fk_cls != Publisher
 
-        # TODO could this be iterated?
         existing_mds = set(
             fk_cls.objects.filter(filter).order_by("pk").values_list(*fields, flat=flat)
         )

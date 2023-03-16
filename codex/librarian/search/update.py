@@ -213,7 +213,7 @@ class UpdateMixin(RemoveMixin):
             f"Search index updating {num_batches} batches, attempt {attempt}"
         )
         procs = min(num_procs, num_batches)
-        pool = Pool(procs, maxtasksperchild=1)  # TODO try to open this up for himem
+        pool = Pool(procs, maxtasksperchild=1)
         results = self._apply_batches(pool, batches, backend)
         retry_batches, complete = self._collect_results(
             results, complete, num_comics, since
@@ -332,9 +332,6 @@ class UpdateMixin(RemoveMixin):
             # Update
             backend.setup(False)
 
-            # num_procs = 2 # TODO: hack
-            # if num_procs > 0:
-            #    close_old_connections() # TODO see comment in haystack
             qs = self._get_queryset(backend, rebuild)
             self._mp_update(backend, qs)
 
