@@ -35,7 +35,7 @@ class CoverPurgeMixin(CoverPathMixin):
             for cover_path in cover_paths:
                 try:
                     cover_path.unlink()
-                    count +=1
+                    count += 1
                 except FileNotFoundError:
                     pass
                 cover_dirs.add(cover_path.parent)
