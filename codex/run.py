@@ -44,6 +44,7 @@ def restart():
     print("Restarting Codex. Hold on to your butts...", flush=True)
     execv(__file__, argv)  # nosec
 
+
 def codex_shutdown(loggerd):
     """Shutdown for codex."""
     database_checkpoint()
@@ -66,11 +67,13 @@ def run():
     )
     librarian.stop()
 
+
 def main():
     """Set up and run Codex."""
     loggerd = codex_startup()
     run()
     codex_shutdown(loggerd)
+
 
 if __name__ == "__main__":
     main()
