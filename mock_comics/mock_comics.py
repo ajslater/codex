@@ -63,6 +63,7 @@ MANGA_VALUES = (*BOOL_VALUES, "yesandrighttoleft", "yesrtl")
 NUM_M2M_NAMES = 20
 NUM_CREDITS = 15
 
+
 def is_valid():
     """Determine if to make the tag null or the wrong type."""
     n = random()
