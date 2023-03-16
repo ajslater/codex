@@ -83,7 +83,7 @@ services:
       context: .
       dockerfile: dev.Dockerfile
     image: codex-dev
-    mem_limit: 1g
+    #mem_limit: 4g
     container_name: codex-dev
     ports:
       - "9810:9810"
