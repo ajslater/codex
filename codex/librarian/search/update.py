@@ -4,6 +4,7 @@ from multiprocessing import Pool, cpu_count
 from time import time
 from zoneinfo import ZoneInfo
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import DatabaseError
 from haystack.exceptions import SearchFieldError
 from humanize import naturaldelta
@@ -31,12 +32,13 @@ class UpdateMixin(RemoveMixin):
         )
     )
     _MIN_UTC_DATE = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
-    _MIN_BATCH_SIZE = 10
+    _MIN_BATCH_SIZE = 1
     # A larger batch size of might be slightly faster for very large
     # indexes and require less optimization later, but steady progress
-    # beats are better UX.
-    _MAX_BATCH_SIZE = 600
-    _MAX_RETRIES = 10
+    # updates are better UX.
+    _MAX_BATCH_SIZE_32GB = 640
+    _EXPECTED_EXCEPTIONS = (DatabaseError, SearchFieldError, ObjectDoesNotExist)
+    _MAX_RETRIES = 8
 
     def _init_statuses(self, rebuild):
         """Initialize all statuses order before starting."""
@@ -66,7 +68,8 @@ class UpdateMixin(RemoveMixin):
         backend.index = backend.index.refresh()
 
         with backend.index.searcher() as searcher:
-            # XXX idk why but sorting by 'updated_at' removes the latest and most valuable result
+            # XXX IDK why but sorting by 'updated_at' removes the latest and most valuable result
+            #     So I have to do it in my own method.
             results = searcher.search(Every(), reverse=True, scored=False)
             if results.scored_length():
                 index_latest_updated_at = self._get_latest_update_at_from_results(
@@ -92,25 +95,52 @@ class UpdateMixin(RemoveMixin):
         return qs
 
     def _get_throttle_params(self, num_comics):
-        """Get params based on memory and total number of comics."""
-        num_cpus = cpu_count()
+        """Get params based on memory and total number of comics.
+
+        >4GB is normal.
+        <=2GB is constrained.
+        """
         mem_limit_gb = get_mem_limit("g")
-        if mem_limit_gb >= 2:
-            procs = num_cpus
+
+        # max procs
+        # throttle multiprocessing in lomem environments.
+        # each process running has significant memory overhead.
+        if mem_limit_gb <= 1:
+            throttle_max = 2
+        elif mem_limit_gb <= 2:
+            throttle_max = 4
+        elif mem_limit_gb <= 4:
+            throttle_max = 6
         else:
-            procs = max(num_cpus, 6)
+            throttle_max = 128
+        max_procs = min(cpu_count(), throttle_max)
+
+
+        # divisor = mem_limit_gb / 32
+        # if mem_limit_gb <= 4:
+        # smaller batches under 4
+        #    divisor /= 2
+        # if mem_limit_gb <= 2:
+        #    divisor /= 2
+        divisor = 1
+        max_batch_size = self._MAX_BATCH_SIZE_32GB * divisor
+
         batch_size = int(
             max(
                 self._MIN_BATCH_SIZE,
-                min(num_comics / procs, self._MAX_BATCH_SIZE),
+                min(num_comics / max_procs, max_batch_size),
             )
         )
-        procs_mem_limit = int(6 * mem_limit_gb)  # special case for very low mem env.
-        num_procs = int(min(max(1, num_comics / batch_size), num_cpus, procs_mem_limit))
-        self.log.debug(
-            f"Updating search index: {num_comics=}"
-            f" mem={mem_limit_gb:.1f}gb {num_procs=} {batch_size=}"
-        )
+
+        num_procs = int(min(max(1, num_comics / batch_size), max_procs))
+
+        opts = {
+            "comics": num_comics,
+            "memgb": mem_limit_gb,
+            "procs": num_procs,
+            "batch_size": batch_size,
+        }
+        self.log.debug(f"Search Index update opts: {opts}")
         return num_procs, batch_size
 
     def _halve_batches(self, batches):
@@ -150,20 +180,21 @@ class UpdateMixin(RemoveMixin):
         for batch_num, (result, batch_pks) in results.items():
             try:
                 complete += result.get()
+                print(f"{batch_num} {complete=}")
                 since = self.status_controller.update(
                     SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
                     complete,
                     num_comics,
                     since=since,
                 )
-            except (DatabaseError, SearchFieldError):
+            except Exception as exc:
+                print("collection", exc, flush=True)
                 self.log.warning(
                     f"Search index update needs to retry batch {batch_num}"
                 )
                 retry_batches[batch_num] = batch_pks
-            except Exception as exc:
-                self.log.error(f"Search index update batch failed: {batch_num} {exc}")
-                self.log.exception(exc)
+                if not isinstance(exc, self._EXPECTED_EXCEPTIONS):
+                    self.log.exception(exc)
         return retry_batches, complete
 
     def _try_update_batch(
@@ -178,13 +209,15 @@ class UpdateMixin(RemoveMixin):
             f"Search index updating {len(batches)} batches, attempt {attempt}"
         )
         procs = min(num_procs, len(batches))
-        pool = Pool(procs, maxtasksperchild=1)
+        pool = Pool(procs, maxtasksperchild=1)  # TODO try to open this up for himem
         results = self._apply_batches(pool, batches, backend)
         retry_batches, complete = self._collect_results(
             results, complete, num_comics, since
         )
         pool.join()
 
+        ratio = int((len(batches) - len(retry_batches) / len(batches)) * 100)
+        self.log.debug(f"Search Index attempt {attempt} batch success ratio: {ratio}%")
         if not retry_batches:
             return
 
@@ -206,23 +239,28 @@ class UpdateMixin(RemoveMixin):
             )
 
     @staticmethod
-    def _get_update_batches(qs, batch_size, num_comics, num_procs):
+    def _get_update_batch_end_index(start, batch_size, batch_num, procs):
+        if batch_num < procs:
+            # Gets early results to the status update
+            # by making small batches in the beginning.
+            end = start + int(batch_size * (batch_num / procs))
+        else:
+            end = start + batch_size
+        return end
+
+    @classmethod
+    def _get_update_batches(cls, qs, batch_size, num_comics):
         all_pks = qs.order_by("updated_at", "pk").values_list("pk", flat=True)
-        start = 0
-        end = start
         batch_num = 0
-        procs = int(min(num_procs, num_comics / batch_size))
-        using_more_than_half_procs = procs * 2 > num_procs
+        start = 0
+        end = start + batch_size - 1
 
         batches = {}
         while start < num_comics:
-            if batch_num < procs and using_more_than_half_procs:
-                # XXX hack to avoid first batch retries
-                end = int(end / 2)
             batches[batch_num] = all_pks[start:end]
-            start = end + 1
-            end = start + batch_size
             batch_num += 1
+            start = end + 1
+            end = start + batch_size - 1
         return batches
 
     def _mp_update(self, backend, qs):
@@ -235,7 +273,7 @@ class UpdateMixin(RemoveMixin):
             )
 
             num_procs, batch_size = self._get_throttle_params(num_comics)
-            batches = self._get_update_batches(qs, batch_size, num_comics, num_procs)
+            batches = self._get_update_batches(qs, batch_size, num_comics)
             self._try_update_batch(
                 backend, batches, num_procs, num_comics, batch_size, 0, 1
             )

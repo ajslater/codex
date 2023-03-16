@@ -146,7 +146,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             "limit": self.writer_limit,
             "chunk_size": self.chunk_size,
         }
-        self.log.debug(f"Search Index opts: {opts}")
+        self.log.debug(f"Search Index worker opts: {opts}")
 
     def _get_iterator_chunk_size(self):
         # mem_limit_gb = get_mem_limit("g")
@@ -156,7 +156,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
 
     def _get_writer_limit(self):
         # mem_limit_gb = get_mem_limit("g")
-        # if mem_limit_gb < 2:
+        # if mem_limit_gb <= 2:
         #    # TODO actually iterator mode
         #    writer_limit = 1
         # else:
@@ -168,8 +168,17 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
     def _get_writerargs(self):
         """Get writerargs for this machine's cpu & memory config."""
         mem_limit_mb = get_mem_limit("m")
-        procs = cpu_count()
-        limitmb = mem_limit_mb / procs
+        mem_limit_gb = mem_limit_mb / 1024
+        if mem_limit_gb <= 1:
+            throttle_max = 2
+        elif mem_limit_gb <= 2:
+            throttle_max = 4
+        elif mem_limit_gb <= 4:
+            throttle_max = 6
+        else:
+            throttle_max = 128
+        procs = min(cpu_count(), throttle_max)
+        limitmb = mem_limit_mb * 0.8 / procs
         limitmb = int(limitmb)
         writerargs = {"limitmb": limitmb, "procs": procs, "multisegment": True}
         return writerargs
@@ -311,9 +320,9 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         except Exception as exc:
             self.log.warning(
                 "Exception during search index writer final commit or cancel"
-                f" for batch {batch_num}."
+                f" for batch {batch_num}: {exc}."
             )
-            self.log.exception(exc)
+            # self.log.exception(exc)
             writer.cancel()
         return count
 
@@ -336,7 +345,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             self.log.warning(
                 f"Search index removing documents by query {inverse=} {exc}"
             )
-            self.log.exception(exc)
+            # self.log.exception(exc)
             writer.cancel()
             count = 0
         writer.close()
