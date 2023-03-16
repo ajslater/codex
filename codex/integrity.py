@@ -84,8 +84,8 @@ def has_unapplied_migrations():
         connection.prepare_database()
         executor = MigrationExecutor(connection)
         targets = [
-                key for key in executor.loader.graph.leaf_nodes() if key[0] == "codex"
-            ]
+            key for key in executor.loader.graph.leaf_nodes() if key[0] == "codex"
+        ]
         plan = executor.migration_plan(targets)
         return bool(plan)
     except Exception as exc:
