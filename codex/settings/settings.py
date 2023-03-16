@@ -288,8 +288,9 @@ CHANNEL_LAYERS = {
 
 DJANGO_VITE_DEV_MODE = DEBUG
 if DEBUG:
+    import socket
     DJANGO_VITE_ASSETS_PATH = STATIC_BUILD  # type: ignore
-    DJANGO_VITE_DEV_SERVER_HOST = "localhost"  # socket.gethostname()
+    DJANGO_VITE_DEV_SERVER_HOST = environ.get("VITE_HOST", socket.gethostname())
     DJANGO_VITE_DEV_SERVER_PORT = 5173
 else:
     DJANGO_VITE_ASSETS_PATH = STATIC_ROOT
