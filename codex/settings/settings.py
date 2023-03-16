@@ -173,7 +173,7 @@ TIME_ZONE = get_time_zone(TZ)
 # Hypercorn
 HYPERCORN_CONFIG_TOML = CONFIG_PATH / "hypercorn.toml"
 HYPERCORN_CONFIG_TOML_DEFAULT = CODEX_PATH / "settings/hypercorn.toml.default"
-HYPERCORN_CONFIG, MAX_DB_OPS = load_hypercorn_config(
+HYPERCORN_CONFIG, MAX_IMPORT_BATCH_SIZE = load_hypercorn_config(
     HYPERCORN_CONFIG_TOML, HYPERCORN_CONFIG_TOML_DEFAULT, DEBUG
 )
 PORT = int(HYPERCORN_CONFIG.bind[0].split(":")[1])

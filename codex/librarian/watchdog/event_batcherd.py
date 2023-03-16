@@ -7,13 +7,12 @@ and then re-serialize everything in this batcher and the event Handler
 """
 from copy import deepcopy
 
-from watchdog.events import (
-    EVENT_TYPE_MOVED,
-)
+from watchdog.events import EVENT_TYPE_MOVED
 
 from codex.librarian.importer.tasks import UpdaterDBDiffTask
 from codex.memory import get_mem_limit
-from codex.settings.settings import MAX_DB_OPS
+from codex.settings.hypercorn import AUTO_IMPORT_BATCH_SIZE
+from codex.settings.settings import MAX_IMPORT_BATCH_SIZE
 from codex.threads import AggregateMessageQueuedThread
 
 
@@ -41,10 +40,10 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         self._set_max_items()
 
     def _set_max_items(self):
-        if MAX_DB_OPS == "auto":  # TODO make a const
+        if MAX_IMPORT_BATCH_SIZE == AUTO_IMPORT_BATCH_SIZE:
             self.max_items = 5000 * int(self.mem_limit_gb)
         else:
-            self.max_items = MAX_DB_OPS
+            self.max_items = MAX_IMPORT_BATCH_SIZE
         print(f"{self.max_items=}")
 
     def _ensure_library_args(self, library_id):
@@ -81,7 +80,7 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         self._total_items += 1
         if self._total_items > self.max_items:
             self.log.info(
-                "Event batcher hit max_db_ops limit, "
+                "Event batcher hit size limit, "
                 f"sending batch of {self.max_items}, to importer"
             )
             # Sends all items

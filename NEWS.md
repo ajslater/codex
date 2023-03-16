@@ -10,7 +10,10 @@ border-radius: 128px;
 
 - Features
   - Fancier sortable admin tables.
+  - Replace `max_db_ops` config variable with `max_import_batch_size`. Defaults
+    to "auto".
 - Fix
+  - Made search indexer stable in lower memory environments.
   - Made search indexer more robust against bad data.
   - Fix codex backing up on every startup.
   - Fix Reader vertical scroll losing its place in Fit To Width or Orig mode.
