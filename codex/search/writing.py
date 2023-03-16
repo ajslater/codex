@@ -47,7 +47,7 @@ class CodexWriter(BufferedWriter):
         writer = None
         while writer is None:
             try:
-                writer = self.index.writer(**self.writerargs)
+                writer = self.index.refresh().writer(**self.writerargs)
             except LockError:
                 sleep(self._DELAY)
                 if caller not in self._time_sleeping:
@@ -59,21 +59,29 @@ class CodexWriter(BufferedWriter):
     def schema(self):
         """Get a cached schema."""
         if not self._schema:
-            self._schema = self.index._read_toc().schema
+            self._schema = self.index.refresh()._read_toc().schema
         return self._schema
 
     def reader(self, **kwargs):
-        """Get the reader without locking the writer."""
+        """Get the reader without locking the writer.
+
+        XXX Runs the risk of being slightly out of date if it's actively being
+        written by other procs.
+        """
         from whoosh.reading import MultiReader
 
         with self.lock:
             ramreader = self._get_ram_reader()
 
-        info = self.index._read_toc()
+        info = self.index.refresh()._read_toc()
         generation = info.generation + 1
         # using the ram index for reuse massively reduces duplication, but is a hack.
         reader = FileIndex._reader(
-            self.index.storage, info.schema, info.segments, generation, reuse=ramreader
+            self.index.refresh().storage,
+            info.schema,
+            info.segments,
+            generation,
+            reuse=ramreader,
         )
 
         # Reopen the ram index
@@ -132,7 +140,7 @@ class CodexWriter(BufferedWriter):
         # Also count deletes as bufferedcounts as they're batched
         # and not matched to every add.
         with self.lock:
-            base = self.index.doc_count_all()
+            base = self.index.refresh().doc_count_all()
             if docnum < base:
                 if writer:
                     commit = False
@@ -149,7 +157,7 @@ class CodexWriter(BufferedWriter):
 
     def is_deleted(self, docnum):
         """Check if document is deleted with temporary writer."""
-        base = self.index.doc_count_all()
+        base = self.index.refresh().doc_count_all()
         if docnum < base:
             writer = self.get_writer("is_deleted")
             is_deleted = writer.is_deleted(docnum)
@@ -192,6 +200,18 @@ class CodexWriter(BufferedWriter):
         finally:
             if not searcher:
                 s.close()
-            writer.commit(**self.commitargs)
+            with self.lock:
+                try:
+                    writer.commit(**self.commitargs)
+                except (FileNotFoundError, NameError):
+                    # XXX This is a multiprocessing error.
+                    # either the toc fragment we're looking for doesn't exist
+                    # or the one we're trying to write already exists.
+                    writer.cancel()
+                    count = 0
+                except Exception as exc:
+                    print(type(exc))
+                    writer.cancel()
+                    raise exc
 
         return count

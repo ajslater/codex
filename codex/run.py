@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 """The main runnable for codex. Sets up codex and runs hypercorn."""
 import asyncio
-from multiprocessing import set_start_method
 from os import execv
-from platform import system
 
 from django.db import connection
 from hypercorn.asyncio import serve
@@ -14,7 +12,7 @@ from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.loggerd import CodexLogQueueListener
 from codex.logger.logging import get_logger
 from codex.logger.mp_queue import LOG_QUEUE
-from codex.settings.settings import DEBUG, HYPERCORN_CONFIG
+from codex.settings.settings import HYPERCORN_CONFIG
 from codex.signals.os_signals import RESTART_EVENT, SHUTDOWN_EVENT
 from codex.startup import codex_init
 from codex.version import VERSION
@@ -75,7 +73,4 @@ def main():
     codex_shutdown(loggerd)
 
 if __name__ == "__main__":
-    # Why does this break on linux in dev mode?
-    if not (system() == "Linux" and DEBUG):
-        set_start_method("spawn", force=True)
     main()

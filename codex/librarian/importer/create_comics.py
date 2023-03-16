@@ -84,7 +84,7 @@ class CreateComicsMixin(QueuedThread):
         now = Now()
         comic_pks = []
         comic_update_paths = set()
-        for comic in comics:
+        for comic in comics.iterator():
             try:
                 md = mds.pop(comic.path)
                 self._link_comic_fks(md, library, comic.path)
