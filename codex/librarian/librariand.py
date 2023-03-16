@@ -73,8 +73,9 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         for task in startup_tasks:
             self.queue.put(task)
 
-    def _process_task(self, task):
+    def _process_task(self, task):  # noqa: C901
         """Process an individual task popped off the queue."""
+        # XXX good candidate for match case in python 3.10
         if isinstance(task, CoverTask):
             self._threads.cover_creator_thread.queue.put(task)
         elif isinstance(task, WatchdogEventTask):

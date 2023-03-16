@@ -23,8 +23,9 @@ class Janitor(CleanupMixin, UpdateMixin, VacuumMixin, UpdateFailedImportsMixin):
         """Init logger."""
         self.init_worker(log_queue, librarian_queue)
 
-    def run(self, task):
+    def run(self, task):  # noqa: C901
         """Run Janitor tasks as the librarian process directly."""
+        # XXX good candidate for match case in python3.10
         try:
             if isinstance(task, JanitorVacuumTask):
                 self.vacuum_db()
