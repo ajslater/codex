@@ -108,10 +108,10 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         )
     )
     WRITER_PERIOD = 0  # No period timer.
-    MAX_WRITER_LIMIT = 1000
+    CHUNK_SIZE = 1000
+    WRITER_LIMIT = 1000
     COMMITARGS_MERGE_SMALL = {"merge": True}
     COMMITARGS_NO_MERGE = {"merge": False}
-    _ONEMB = 1024**2
     _SELECT_RELATED_FIELDS = ("publisher", "imprint", "series", "volume")
     _PREFETCH_RELATED_FIELDS = (
         "characters",
@@ -139,31 +139,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         self.log = get_logger(self.__class__.__name__)
         self.log.propagate = False
         self.writerargs = self._get_writerargs()
-        self.chunk_size = self._get_iterator_chunk_size()
-        self.writer_limit = self._get_writer_limit()
-        opts = {
-            **self.writerargs,
-            "limit": self.writer_limit,
-            "chunk_size": self.chunk_size,
-        }
-        self.log.debug(f"Search Index worker opts: {opts}")
-
-    def _get_iterator_chunk_size(self):
-        # mem_limit_gb = get_mem_limit("g")
-        # chunk_size=max(1, int(mem_limit_gb *32))
-        chunk_size = 1000
-        return chunk_size
-
-    def _get_writer_limit(self):
-        # mem_limit_gb = get_mem_limit("g")
-        # if mem_limit_gb <= 2:
-        #    # TODO actually iterator mode
-        #    writer_limit = 1
-        # else:
-        writer_limit = int(self.chunk_size)
-        # int(mem_limit_gb * ) # well in excess of the batch limit.
-        writer_limit = min(writer_limit, self.MAX_WRITER_LIMIT)
-        return writer_limit
+        self.log.debug(f"Search Index worker writerargs: {self.writerargs}")
 
     def _get_writerargs(self):
         """Get writerargs for this machine's cpu & memory config."""
@@ -224,9 +200,10 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
     def get_writer(self, commitargs=COMMITARGS_NO_MERGE):
         """Get a writer."""
         self.index = self.index.refresh()
+        # TODO this is more like AsyncWriter now than Bufferedwriter
         writer = CodexWriter(
             self.index,
-            limit=self.writer_limit,
+            limit=self.WRITER_LIMIT,
             period=self.WRITER_PERIOD,
             writerargs=self.writerargs,
             commitargs=commitargs,
@@ -297,7 +274,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             .defer(*self._DEFERRED_FIELDS)
             .select_related(*self._SELECT_RELATED_FIELDS)
             .prefetch_related(*self._PREFETCH_RELATED_FIELDS)
-            .iterator(chunk_size=self.chunk_size)
+            .iterator(chunk_size=self.CHUNK_SIZE)
         )
 
         writer = self.get_writer()

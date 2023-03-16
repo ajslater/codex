@@ -115,7 +115,6 @@ class UpdateMixin(RemoveMixin):
             throttle_max = 128
         max_procs = min(cpu_count(), throttle_max)
 
-
         # divisor = mem_limit_gb / 32
         # if mem_limit_gb <= 4:
         # smaller batches under 4
@@ -181,6 +180,10 @@ class UpdateMixin(RemoveMixin):
         for batch_num, (result, batch_pks) in results.items():
             try:
                 complete += result.get()
+                self.log.debug(
+                    f"Search index batch {batch_num} complete "
+                    f"{complete}/{num_comics}"
+                )
                 since = self.status_controller.update(
                     SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
                     complete,
@@ -220,8 +223,9 @@ class UpdateMixin(RemoveMixin):
         num_successful_batches = num_batches - len(retry_batches)
 
         ratio = 100 * (num_successful_batches / num_batches)
-        self.log.debug(f"Search Index attempt {attempt} batch success ratio:"
-                       f"{round(ratio)}%")
+        self.log.debug(
+            f"Search Index attempt {attempt} batch success ratio:" f"{round(ratio)}%"
+        )
         if not retry_batches:
             return
 
