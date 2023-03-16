@@ -177,10 +177,10 @@ class UpdateMixin(RemoveMixin):
     def _collect_results(self, results, complete, num_comics, since):
         """Collect results from the process pool."""
         retry_batches = {}
+        retry_batch_num = 0
         for batch_num, (result, batch_pks) in results.items():
             try:
                 complete += result.get()
-                print(f"{batch_num} {complete=}")
                 since = self.status_controller.update(
                     SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
                     complete,
@@ -188,11 +188,11 @@ class UpdateMixin(RemoveMixin):
                     since=since,
                 )
             except Exception as exc:
-                print("collection", exc, flush=True)
                 self.log.warning(
                     f"Search index update needs to retry batch {batch_num}"
                 )
-                retry_batches[batch_num] = batch_pks
+                retry_batches[retry_batch_num] = batch_pks
+                retry_batch_num += 1
                 if not isinstance(exc, self._EXPECTED_EXCEPTIONS):
                     self.log.exception(exc)
         return retry_batches, complete
@@ -205,10 +205,11 @@ class UpdateMixin(RemoveMixin):
         if attempt > 1:
             batches = self._halve_batches(batches)
 
+        num_batches = len(batches)
         self.log.debug(
-            f"Search index updating {len(batches)} batches, attempt {attempt}"
+            f"Search index updating {num_batches} batches, attempt {attempt}"
         )
-        procs = min(num_procs, len(batches))
+        procs = min(num_procs, num_batches)
         pool = Pool(procs, maxtasksperchild=1)  # TODO try to open this up for himem
         results = self._apply_batches(pool, batches, backend)
         retry_batches, complete = self._collect_results(
@@ -216,8 +217,11 @@ class UpdateMixin(RemoveMixin):
         )
         pool.join()
 
-        ratio = int((len(batches) - len(retry_batches) / len(batches)) * 100)
-        self.log.debug(f"Search Index attempt {attempt} batch success ratio: {ratio}%")
+        num_successful_batches = num_batches - len(retry_batches)
+
+        ratio = 100 * (num_successful_batches / num_batches)
+        self.log.debug(f"Search Index attempt {attempt} batch success ratio:"
+                       f"{round(ratio)}%")
         if not retry_batches:
             return
 
