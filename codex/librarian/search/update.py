@@ -35,8 +35,7 @@ class UpdateMixin(RemoveMixin):
     # A larger batch size of might be slightly faster for very large
     # indexes and require less optimization later, but steady progress
     # beats are better UX.
-    _MAX_BATCH_SIZE = 300
-    _ONEGB = 1024**3
+    _MAX_BATCH_SIZE = 600
     _MAX_RETRIES = 10
 
     def _init_statuses(self, rebuild):
@@ -93,6 +92,7 @@ class UpdateMixin(RemoveMixin):
         return qs
 
     def _get_throttle_params(self, num_comics):
+        """Get params based on memory and total number of comics."""
         num_cpus = cpu_count()
         mem_limit_gb = get_mem_limit("g")
         if mem_limit_gb >= 2:
@@ -107,11 +107,15 @@ class UpdateMixin(RemoveMixin):
         )
         procs_mem_limit = int(6 * mem_limit_gb)  # special case for very low mem env.
         num_procs = int(min(max(1, num_comics / batch_size), num_cpus, procs_mem_limit))
+        self.log.debug(
+            f"Updating search index: {num_comics=}"
+            f" mem={mem_limit_gb:.1f}gb {num_procs=} {batch_size=}"
+        )
         return num_procs, batch_size
 
-    @staticmethod
-    def _halve_batches(batches):
+    def _halve_batches(self, batches):
         """Half the size of retried batches."""
+        old_num_batches = len(batches)
         half_batches = {}
         for batch_num, batch_pks in batches.items():
             if not batch_pks:
@@ -125,22 +129,11 @@ class UpdateMixin(RemoveMixin):
             batch_num_b = batch_num_a + 1
             half_batches[batch_num_b] = batch_pks[halfway:]
         batches = half_batches
+        self.log.debug(f"Split {old_num_batches} batches into {len(batches)}.")
         return batches
 
-    def _try_update_batch(
-        self, backend, batches, num_procs, num_comics, batch_size, complete, attempt
-    ):
-        since = time()
-        self.log.debug(
-            f"Search index updating {len(batches)} batches, attempt {attempt}"
-        )
-        procs = min(num_procs, len(batches))
-        pool = Pool(procs, maxtasksperchild=1)
-
-        if attempt > 1:
-            batches = self._halve_batches(batches)
-            self.log.debug("Split all batches in half.")
-
+    def _apply_batches(self, pool, batches, backend):
+        """Apply the batches to the process pool."""
         results = {}
         for batch_num, batch_pks in batches.items():
             args = (None, batch_pks)
@@ -149,8 +142,11 @@ class UpdateMixin(RemoveMixin):
             results[batch_num] = (result, batch_pks)
         pool.close()
         self.log.debug(f"Search index update queued {len(results)} batches...")
+        return results
 
-        retries = {}
+    def _collect_results(self, results, complete, num_comics, since):
+        """Collect results from the process pool."""
+        retry_batches = {}
         for batch_num, (result, batch_pks) in results.items():
             try:
                 complete += result.get()
@@ -164,29 +160,70 @@ class UpdateMixin(RemoveMixin):
                 self.log.warning(
                     f"Search index update needs to retry batch {batch_num}"
                 )
-                retries[batch_num] = batch_pks
+                retry_batches[batch_num] = batch_pks
             except Exception as exc:
                 self.log.error(f"Search index update batch failed: {batch_num} {exc}")
                 self.log.exception(exc)
+        return retry_batches, complete
+
+    def _try_update_batch(
+        self, backend, batches, num_procs, num_comics, batch_size, complete, attempt
+    ):
+        """Attempt to update batches, with reursive retry."""
+        since = time()
+        if attempt > 1:
+            batches = self._halve_batches(batches)
+
+        self.log.debug(
+            f"Search index updating {len(batches)} batches, attempt {attempt}"
+        )
+        procs = min(num_procs, len(batches))
+        pool = Pool(procs, maxtasksperchild=1)
+        results = self._apply_batches(pool, batches, backend)
+        retry_batches, complete = self._collect_results(
+            results, complete, num_comics, since
+        )
         pool.join()
 
-        if retries:
-            if attempt < self._MAX_RETRIES:
-                self._try_update_batch(
-                    backend,
-                    retries,
-                    num_procs,
-                    num_comics,
-                    batch_size,
-                    complete,
-                    attempt + 1,
-                )
-            else:
-                total = len(retries) * batch_size
-                self.log.error(
-                    f"Search Indexer failed to update {total} comics"
-                    f"in {len(retries)} batches."
-                )
+        if not retry_batches:
+            return
+
+        if attempt < self._MAX_RETRIES:
+            self._try_update_batch(
+                backend,
+                retry_batches,
+                num_procs,
+                num_comics,
+                batch_size,
+                complete,
+                attempt + 1,
+            )
+        else:
+            total = len(retry_batches) * batch_size
+            self.log.error(
+                f"Search Indexer failed to update {total} comics"
+                f"in {len(retry_batches)} batches."
+            )
+
+    @staticmethod
+    def _get_update_batches(qs, batch_size, num_comics, num_procs):
+        all_pks = qs.order_by("updated_at", "pk").values_list("pk", flat=True)
+        start = 0
+        end = start
+        batch_num = 0
+        procs = int(min(num_procs, num_comics / batch_size))
+        using_more_than_half_procs = procs * 2 > num_procs
+
+        batches = {}
+        while start < num_comics:
+            if batch_num < procs and using_more_than_half_procs:
+                # XXX hack to avoid first batch retries
+                end = int(end / 2)
+            batches[batch_num] = all_pks[start:end]
+            start = end + 1
+            end = start + batch_size
+            batch_num += 1
+        return batches
 
     def _mp_update(self, backend, qs):
         # Init
@@ -198,26 +235,7 @@ class UpdateMixin(RemoveMixin):
             )
 
             num_procs, batch_size = self._get_throttle_params(num_comics)
-
-            mem_limit_gb = get_mem_limit("g")
-            self.log.debug(
-                f"Updating search index: {num_comics=}"
-                f" mem={mem_limit_gb:.1f}gb {num_procs=} {batch_size=}"
-            )
-
-            all_pks = qs.order_by("updated_at", "pk").values_list("pk", flat=True)
-            start = 0
-            end = start + batch_size
-            batch_num = 0
-
-            batches = {}
-            while start < num_comics:
-                batches[batch_num] = all_pks[start:end]
-                start = end + 1
-                end = start + batch_size
-                batch_num += 1
-
-            # Run Loop
+            batches = self._get_update_batches(qs, batch_size, num_comics, num_procs)
             self._try_update_batch(
                 backend, batches, num_procs, num_comics, batch_size, 0, 1
             )

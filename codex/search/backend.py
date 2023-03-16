@@ -107,7 +107,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
         )
     )
-    WRITER_PERIOD = 60 * 60  # TODO forever right now. For consistency
+    WRITER_PERIOD = 0  # No period timer.
     MAX_WRITER_LIMIT = 1000
     COMMITARGS_MERGE_SMALL = {"merge": True}
     COMMITARGS_NO_MERGE = {"merge": False}
