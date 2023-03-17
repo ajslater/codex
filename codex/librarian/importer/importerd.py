@@ -392,12 +392,15 @@ class ComicImporterThread(
             self.librarian_queue.put(LIBRARY_CHANGED_TASK)
             elapsed_time = time() - start_time
             elapsed = naturaldelta(elapsed_time)
-            self.log.info(f"Updated library {library.path} in {elapsed}.")
-            suffix = ""
+            log_txt = f"Updated library {library.path} in {elapsed}."
             if imported_count:
                 cps = round(imported_count / elapsed_time, 1)
-                suffix = f" at {cps} comics per second."
-            self.log.info(f"Imported {imported_count} comics{suffix}.")
+                log_txt += (
+                    f" Imported {imported_count} comics" f" at {cps} comics per second."
+                )
+            else:
+                log_txt += "No comics to import."
+            self.log.info(log_txt)
         if new_failed_imports:
             self.librarian_queue.put(FAILED_IMPORTS_TASK)
 
