@@ -36,7 +36,7 @@ class UpdateMixin(RemoveMixin):
     # A larger batch size of might be slightly faster for very large
     # indexes and require less optimization later, but steady progress
     # updates are better UX.
-    _MAX_BATCH_SIZE_32GB = 640
+    _MAX_BATCH_SIZE = 640
     _EXPECTED_EXCEPTIONS = (DatabaseError, SearchFieldError, ObjectDoesNotExist)
     _MAX_RETRIES = 8
 
@@ -115,19 +115,10 @@ class UpdateMixin(RemoveMixin):
             throttle_max = 128
         max_procs = min(cpu_count(), throttle_max)
 
-        # divisor = mem_limit_gb / 32
-        # if mem_limit_gb <= 4:
-        # smaller batches under 4
-        #    divisor /= 2
-        # if mem_limit_gb <= 2:
-        #    divisor /= 2
-        divisor = 1
-        max_batch_size = self._MAX_BATCH_SIZE_32GB * divisor
-
         batch_size = int(
             max(
                 self._MIN_BATCH_SIZE,
-                min(num_comics / max_procs, max_batch_size),
+                min(num_comics / max_procs, self._MAX_BATCH_SIZE),
             )
         )
 
