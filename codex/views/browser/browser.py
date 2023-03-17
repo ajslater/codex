@@ -313,7 +313,7 @@ class BrowserView(BrowserAnnotationsView):
 
     def _get_folder_parent_name(self):
         """Get title for a folder browser page."""
-        group_instance: Folder = self.group_instance # type: ignore
+        group_instance: Folder = self.group_instance  # type: ignore
         folder_path = group_instance.path
         if not folder_path:
             return ""
@@ -328,7 +328,6 @@ class BrowserView(BrowserAnnotationsView):
         suffix = "/" + group_instance.name
         parent_name = parent_name.removesuffix(suffix)
         return parent_name
-
 
     def _get_browser_page_title(self):
         """Get the proper title for this browse level."""

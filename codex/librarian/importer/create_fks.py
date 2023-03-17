@@ -133,7 +133,7 @@ class CreateForeignKeysMixin(QueuedThread):
         )
         update_folders = []
         now = Now()
-        for folder in folders:
+        for folder in folders.iterator():
             if Path(folder.path).exists():
                 folder.set_stat()
                 folder.updated_at = now

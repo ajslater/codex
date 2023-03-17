@@ -1,5 +1,4 @@
 """Custom Haystack Search Backend."""
-from logging import getLogger
 from multiprocessing import cpu_count
 
 from django.utils.timezone import now
@@ -17,6 +16,7 @@ from whoosh.support.charset import accent_map
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.logger.logging import get_logger
 from codex.memory import get_mem_limit
+from codex.models import Comic
 from codex.search.indexes import ComicIndex
 from codex.search.writing import CodexWriter
 from codex.worker_base import WorkerBaseMixin
@@ -107,33 +107,57 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
         )
     )
-    WRITER_PERIOD = 60 * 5
-    WRITER_LIMIT = 10000
+    WRITER_PERIOD = 0  # No period timer.
+    CHUNK_SIZE = 1000
+    WRITER_LIMIT = 1000
     COMMITARGS_MERGE_SMALL = {"merge": True}
     COMMITARGS_NO_MERGE = {"merge": False}
-    _ONEMB = 1024 ** 2
+    _SELECT_RELATED_FIELDS = ("publisher", "imprint", "series", "volume")
+    _PREFETCH_RELATED_FIELDS = (
+        "characters",
+        "credits",
+        "genres",
+        "locations",
+        "series_groups",
+        "story_arcs",
+        "tags",
+        "teams",
+        "credits__person",
+    )
+    _DEFERRED_FIELDS = (
+        "parent_folder",
+        "library",
+        "path",
+        "stat",
+        "folders",
+        "max_page",
+    )
 
     def __init__(self, connection_alias, **connection_options):
         """Init worker queues."""
         super().__init__(connection_alias, **connection_options)
-        self.log = getLogger(self.__class__.__name__)
+        self.log = get_logger(self.__class__.__name__)
         self.log.propagate = False
         self.writerargs = self._get_writerargs()
+        self.log.debug(f"Search Index worker writerargs: {self.writerargs}")
 
     def _get_writerargs(self):
         """Get writerargs for this machine's cpu & memory config."""
-        mem_limit = get_mem_limit()
-        procs = cpu_count()
-        limitb = mem_limit / procs
-        limitb = limitb * 0.9
-        limitmb = int(limitb / self._ONEMB)
-        self.log.debug(f"Search Index writer {limitmb=} {procs=}")
-        print(f"Search Index writer {limitmb=} {procs=}", flush=True)
-        return  {
-            "limitmb": limitmb,
-            "procs": procs,
-            "multisegment": True
-        }
+        mem_limit_mb = get_mem_limit("m")
+        mem_limit_gb = mem_limit_mb / 1024
+        if mem_limit_gb <= 1:
+            throttle_max = 2
+        elif mem_limit_gb <= 2:
+            throttle_max = 4
+        elif mem_limit_gb <= 4:
+            throttle_max = 6
+        else:
+            throttle_max = 128
+        procs = min(cpu_count(), throttle_max)
+        limitmb = mem_limit_mb * 0.8 / procs
+        limitmb = int(limitmb)
+        writerargs = {"limitmb": limitmb, "procs": procs, "multisegment": True}
+        return writerargs
 
     def build_schema(self, fields):
         """Customize schema fields."""
@@ -185,12 +209,54 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         )
         return writer
 
-    def update(self, index, iterable, commit=True):
+    def _update_obj(self, index, writer, batch_num, obj):
+        """Update one object."""
+        try:
+            doc = index.full_prepare(obj)
+            # Really make sure it's unicode, because Whoosh won't have it any
+            # other way.
+            for key in doc:
+                doc[key] = self._from_python(doc[key])
+        except SkipDocument:
+            self.log.debug(
+                f"Indexing for object {obj} skipped" f" in batch {batch_num}"
+            )
+        except Exception as exc:
+            self.log.warning(
+                f"Preparing object for indexing: {exc}"
+                f" in batch {batch_num}: {obj.path}"
+            )
+            raise
+        else:
+            # Document boosts aren't supported in Whoosh 2.5.0+.
+            if "boost" in doc:
+                del doc["boost"]
+
+            try:
+                # add instead of update because of above batch remove
+                writer.add_document(**doc)
+                return 1
+            except Exception as exc:
+                if not self.silently_fail:
+                    raise
+
+                # We'll log the object identifier but won't include the actual
+                # object to avoid the possibility of that generating encoding
+                # errors while processing the log message:
+                self.log.warning(
+                    f"Search index adding document {exc}"
+                    f" in batch {batch_num}: {obj.path}",
+                )
+                raise
+        return 0
+
+    def update(self, index, batch_pks, commit=True, batch_num=0):
         """Update index, but with writer options."""
-        num_objs = len(iterable)
+        count = 0
+        num_objs = len(batch_pks)
         if not num_objs:
             self.log.debug("Search index nothing to update.")
-            return 0
+            return count
 
         if not self.setup_complete:
             self.setup(False)
@@ -199,59 +265,47 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             index = ComicIndex()
 
         # batch remove before update
-        remove_pks = iterable.values_list("pk", flat=True)
-        self.remove_batch_pks(remove_pks)
+        self.remove_batch_pks(batch_pks)
+
+        # prefetch is not pickleable, create the query here from pks.
+        iterable = (
+            Comic.objects.filter(pk__in=batch_pks)
+            .defer(*self._DEFERRED_FIELDS)
+            .select_related(*self._SELECT_RELATED_FIELDS)
+            .prefetch_related(*self._PREFETCH_RELATED_FIELDS)
+            .iterator(chunk_size=self.CHUNK_SIZE)
+        )
 
         writer = self.get_writer()
 
         for obj in iterable:
-            try:
-                doc = index.full_prepare(obj)
-                # Really make sure it's unicode, because Whoosh won't have it any
-                # other way.
-                for key in doc:
-                    doc[key] = self._from_python(doc[key])
-            except SkipDocument:
-                self.log.debug(f"Indexing for object {obj} skipped")
-            except Exception as exc:
-                self.log.warning(f"Preparing object for indexing: {exc} {obj.path}")
-            else:
-                # Document boosts aren't supported in Whoosh 2.5.0+.
-                if "boost" in doc:
-                    del doc["boost"]
-
-                try:
-                    # add instead of update because of above batch remove
-                    writer.add_document(**doc)
-                except Exception as exc:
-                    if not self.silently_fail:
-                        raise
-
-                    # We'll log the object identifier but won't include the actual
-                    # object to avoid the possibility of that generating encoding
-                    # errors while processing the log message:
-                    self.log.warning(
-                        f"Search index adding document {exc} {obj.path}",
-                    )
+            count += self._update_obj(index, writer, batch_num, obj)
         try:
-            if num_objs:
-                self.log.debug("Search index starting final commit.")
+            if count:
+                self.log.debug(
+                    "Search index starting final commit" f" for batch {batch_num}."
+                )
             else:
-                self.log.debug("Search index update cancelling nothing to update.")
+                self.log.debug(
+                    "Search index update cancelling"
+                    f" batch {batch_num} nothing to update."
+                )
                 writer.cancel()
 
             writer.close()
         except Exception as exc:
             self.log.warning(
-                "Exception during search index writer final commit or cancel."
+                "Exception during search index writer final commit or cancel"
+                f" for batch {batch_num}: {exc}."
             )
-            self.log.exception(exc)
-        return num_objs
+            # self.log.exception(exc)
+            writer.cancel()
+        return count
 
     def remove_batch_pks(self, pks, inverse=False, sc=None):
         """Remove a large batch of docs by pk from the index."""
         # Does not benefit from multiprocessing.
-        if not pks.count() and not inverse:
+        if not len(pks) and not inverse:
             return
         if not self.setup_complete:
             self.setup(False)
@@ -267,7 +321,8 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             self.log.warning(
                 f"Search index removing documents by query {inverse=} {exc}"
             )
-            self.log.exception(exc)
+            # self.log.exception(exc)
+            writer.cancel()
             count = 0
         writer.close()
         return count

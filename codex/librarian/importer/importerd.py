@@ -18,7 +18,7 @@ from codex.librarian.search.tasks import SearchIndexUpdateTask
 from codex.librarian.tasks import DelayedTasks
 from codex.models import Library
 
-_WRITE_WAIT_EXPIRY = 100
+_WRITE_WAIT_EXPIRY = 60
 
 
 class ComicImporterThread(
