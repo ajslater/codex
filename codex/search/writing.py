@@ -216,7 +216,6 @@ class CodexWriter(BufferedWriter):
                     writer.cancel()
                     count = 0
                 except Exception as exc:
-                    print(type(exc))
                     writer.cancel()
                     raise exc
 

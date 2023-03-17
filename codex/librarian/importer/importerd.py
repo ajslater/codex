@@ -18,7 +18,7 @@ from codex.librarian.search.tasks import SearchIndexUpdateTask
 from codex.librarian.tasks import DelayedTasks
 from codex.models import Library
 
-_WRITE_WAIT_EXPIRY = 100
+_WRITE_WAIT_EXPIRY = 60
 
 
 class ComicImporterThread(
@@ -56,7 +56,6 @@ class ComicImporterThread(
                     f"{old_total_size} != {total_size}"
                 )
             if time() - started_checking > _WRITE_WAIT_EXPIRY:
-                print(time() - started_checking, "expiry after")
                 return True
 
             old_total_size = total_size
@@ -65,7 +64,6 @@ class ComicImporterThread(
                 path = Path(path_str)
                 if path.exists():
                     total_size += Path(path).stat().st_size
-            print(f"{old_total_size=} {total_size=}")
         return False
 
     def _bulk_create_comic_relations(self, library, fks) -> bool:

@@ -44,7 +44,6 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
             self.max_items = 5000 * int(self.mem_limit_gb)
         else:
             self.max_items = MAX_IMPORT_BATCH_SIZE
-        print(f"{self.max_items=}")
 
     def _ensure_library_args(self, library_id):
         if library_id in self.cache:
