@@ -19,6 +19,8 @@ border-radius: 128px;
   - Fix codex backing up on every startup.
   - Fix Reader vertical scroll losing its place in Fit To Width or Orig mode.
   - Fix OPDS downloaded files all having the same name.
+  - Status for batched imports (large imports or low memory) now reflects total
+    instead of single batch.
 
 ## v1.2.9
 
