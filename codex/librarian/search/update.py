@@ -200,6 +200,9 @@ class UpdateMixin(RemoveMixin):
             batches = self._halve_batches(batches)
 
         num_batches = len(batches)
+        if not num_batches:
+            self.log.debug("Search index nothing to update.")
+            return
         self.log.debug(
             f"Search index updating {num_batches} batches, attempt {attempt}"
         )
