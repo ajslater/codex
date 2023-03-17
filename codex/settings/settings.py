@@ -173,7 +173,7 @@ TIME_ZONE = get_time_zone(TZ)
 # Hypercorn
 HYPERCORN_CONFIG_TOML = CONFIG_PATH / "hypercorn.toml"
 HYPERCORN_CONFIG_TOML_DEFAULT = CODEX_PATH / "settings/hypercorn.toml.default"
-HYPERCORN_CONFIG, MAX_DB_OPS = load_hypercorn_config(
+HYPERCORN_CONFIG, MAX_IMPORT_BATCH_SIZE = load_hypercorn_config(
     HYPERCORN_CONFIG_TOML, HYPERCORN_CONFIG_TOML_DEFAULT, DEBUG
 )
 PORT = int(HYPERCORN_CONFIG.bind[0].split(":")[1])
@@ -291,7 +291,7 @@ if DEBUG:
     import socket
 
     DJANGO_VITE_ASSETS_PATH = STATIC_BUILD  # type: ignore
-    DJANGO_VITE_DEV_SERVER_HOST = socket.gethostname()
+    DJANGO_VITE_DEV_SERVER_HOST = environ.get("VITE_HOST", socket.gethostname())
     DJANGO_VITE_DEV_SERVER_PORT = 5173
 else:
     DJANGO_VITE_ASSETS_PATH = STATIC_ROOT

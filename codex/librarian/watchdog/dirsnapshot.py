@@ -18,6 +18,7 @@ class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
     def _walk(cls, root):
         """Populate the DirectorySnapshot structures from the database."""
         for model in cls.MODELS:
+            # TODO replace values with only, use iterator
             yield model.objects.filter(library__path=root).values("path", "stat")
 
     def _create_stat_from_db_stat(self, wp, stat_func, force):
@@ -77,20 +78,27 @@ class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
 class CodexDirectorySnapshotDiff(DirectorySnapshotDiff):
     """Custom Diff allows inode only changes to be 'modified'."""
 
-    def __init__(self, ref, snapshot, ignore_device=False, inode_only_modified=False):
-        """Create diff object."""
+    @staticmethod
+    def _get_inode(directory, full_path):
+        return directory.inode(full_path)
+
+    @classmethod
+    def _get_inode_ignore_device(cls, directory, full_path):
+        return cls._get_inode(directory, full_path)[0]
+
+    @classmethod
+    def _select_get_inode(cls, ignore_device):
+        if ignore_device:
+            get_inode = cls._get_inode_ignore_device
+        else:
+            get_inode = cls._get_inode
+        return get_inode
+
+    @staticmethod
+    def _init_inode_sets(get_inode, snapshot, ref, inode_only_modified):
+        """Initialize the created, modified, & deleted sets."""
         created = snapshot.paths - ref.paths
         deleted = ref.paths - snapshot.paths
-
-        if ignore_device:
-
-            def get_inode(directory, full_path):
-                return directory.inode(full_path)[0]
-
-        else:
-
-            def get_inode(directory, full_path):
-                return directory.inode(full_path)
 
         # check that all unchanged paths have the same inode
         modified = set()
@@ -101,8 +109,11 @@ class CodexDirectorySnapshotDiff(DirectorySnapshotDiff):
                 else:
                     created.add(path)
                     deleted.add(path)
+        return created, modified, deleted
 
-        # find moved paths
+    @staticmethod
+    def _find_moved_paths(snapshot, ref, created, deleted):
+        """Find moved paths from the created & deleted paths."""
         moved = set()
         for path in set(deleted):
             inode = ref.inode(path)
@@ -118,8 +129,11 @@ class CodexDirectorySnapshotDiff(DirectorySnapshotDiff):
             if old_path:
                 created.remove(path)
                 moved.add((old_path, path))
+        return moved
 
-        # find modified paths
+    @staticmethod
+    def _find_modified_paths(snapshot, ref, get_inode, modified, moved):
+        """Add modified paths to set."""
         # first check paths that have not moved
         for path in ref.paths & snapshot.paths:
             if get_inode(ref, path) == get_inode(snapshot, path):
@@ -128,11 +142,23 @@ class CodexDirectorySnapshotDiff(DirectorySnapshotDiff):
                 ) != snapshot.size(path):
                     modified.add(path)
 
+        # then check moved paths.
         for old_path, new_path in moved:
             if ref.mtime(old_path) != snapshot.mtime(new_path) or ref.size(
                 old_path
             ) != snapshot.size(new_path):
                 modified.add(old_path)
+
+    def __init__(self, ref, snapshot, ignore_device=False, inode_only_modified=False):
+        """Create diff object."""
+        get_inode = self._select_get_inode(ignore_device)
+
+        created, modified, deleted = self._init_inode_sets(
+            get_inode, snapshot, ref, inode_only_modified
+        )
+        moved = self._find_moved_paths(snapshot, ref, created, deleted)
+
+        self._find_modified_paths(snapshot, ref, get_inode, modified, moved)
 
         self._dirs_created = [path for path in created if snapshot.isdir(path)]
         self._dirs_deleted = [path for path in deleted if ref.isdir(path)]

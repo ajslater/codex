@@ -134,7 +134,6 @@ class Volume(BrowserGroupModel):
         return vol
 
 
-
 def validate_dir_exists(path):
     """Validate that a library exists."""
     if not Path(path).is_dir():

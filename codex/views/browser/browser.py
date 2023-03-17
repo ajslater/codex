@@ -303,6 +303,32 @@ class BrowserView(BrowserAnnotationsView):
 
         return up_group, up_pk
 
+    def _get_root_group_name(self):
+        if not self.model:
+            raise ValueError("No model set in browser")
+        plural = self.model._meta.verbose_name_plural
+        if not plural:
+            raise ValueError(f"No plural name for {self.model}")
+        return plural.capitalize()
+
+    def _get_folder_parent_name(self):
+        """Get title for a folder browser page."""
+        group_instance: Folder = self.group_instance  # type: ignore
+        folder_path = group_instance.path
+        if not folder_path:
+            return ""
+
+        parent_name = folder_path
+        prefix = group_instance.library.path
+        if prefix[-1] != "/":
+            prefix += "/"
+        if not self.is_admin():
+            # remove library path for not admins
+            parent_name = parent_name.removeprefix(prefix)
+        suffix = "/" + group_instance.name
+        parent_name = parent_name.removesuffix(suffix)
+        return parent_name
+
     def _get_browser_page_title(self):
         """Get the proper title for this browse level."""
         pk = self.kwargs.get("pk")
@@ -310,12 +336,7 @@ class BrowserView(BrowserAnnotationsView):
         group_count = 0
         group_name = ""
         if pk == 0:
-            if not self.model:
-                raise ValueError("No model set in browser")
-            plural = self.model._meta.verbose_name_plural
-            if not plural:
-                raise ValueError(f"No plural name for {self.model}")
-            group_name = plural.capitalize()
+            group_name = self._get_root_group_name()
         elif self.group_instance:
             if isinstance(self.group_instance, Imprint):
                 parent_name = self.group_instance.publisher.name
@@ -325,18 +346,7 @@ class BrowserView(BrowserAnnotationsView):
             elif isinstance(self.group_instance, Comic):
                 group_count = self.group_instance.volume.issue_count
             elif isinstance(self.group_instance, Folder):
-                folder_path = self.group_instance.path
-                if folder_path:
-                    parent_name = folder_path
-                    prefix = self.group_instance.library.path
-                    if prefix[-1] != "/":
-                        prefix += "/"
-                    if not self.is_admin():
-                        # remove library path for not admins
-                        parent_name = parent_name.removeprefix(prefix)
-                    suffix = "/" + self.group_instance.name
-                    parent_name = parent_name.removesuffix(suffix)
-
+                parent_name = self._get_folder_parent_name()
             group_name = self.group_instance.name
 
         browser_page_title = {

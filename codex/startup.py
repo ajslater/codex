@@ -16,7 +16,7 @@ from codex.settings.settings import (
     BACKUP_DB_PATH,
     HYPERCORN_CONFIG,
     HYPERCORN_CONFIG_TOML,
-    MAX_DB_OPS,
+    MAX_IMPORT_BATCH_SIZE,
     RESET_ADMIN,
 )
 from codex.version import VERSION
@@ -134,7 +134,7 @@ def codex_init():
     ensure_db_rows()
     patch_registration_setting()
     cache.clear()
-    LOG.debug(f"max_db_ops: {MAX_DB_OPS}")
+    LOG.debug(f"max_import_batch_size: {MAX_IMPORT_BATCH_SIZE}")
     LOG.info(f"root_path: {HYPERCORN_CONFIG.root_path}")
     if HYPERCORN_CONFIG.use_reloader:
         LOG.info(f"Will reload hypercorn if {HYPERCORN_CONFIG_TOML} changes")

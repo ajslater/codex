@@ -18,7 +18,7 @@ from codex.librarian.search.tasks import SearchIndexUpdateTask
 from codex.librarian.tasks import DelayedTasks
 from codex.models import Library
 
-_WRITE_WAIT_EXPIRY = 5
+_WRITE_WAIT_EXPIRY = 60
 
 
 class ComicImporterThread(
@@ -108,9 +108,8 @@ class ComicImporterThread(
         changed |= imported_count > 0
         return changed, imported_count, bool(new_failed_imports)
 
-    def _log_task(self, path, task):
-        if self.log.getEffectiveLevel() < logging.DEBUG:
-            return
+    def _log_task_construct_dirs_log(self, task):
+        """Construct dirs log line."""
         dirs_log = []
         if task.dirs_moved:
             dirs_log += [f"{len(task.dirs_moved)} moved"]
@@ -118,6 +117,10 @@ class ComicImporterThread(
             dirs_log += [f"{len(task.dirs_modified)} modified"]
         if task.dirs_deleted:
             dirs_log += [f"{len(task.dirs_deleted)} deleted"]
+        return dirs_log
+
+    def _log_task_construct_comics_log(self, task):
+        """Construct comcis log line."""
         comics_log = []
         if task.files_moved:
             comics_log += [f"{len(task.files_moved)} moved"]
@@ -127,12 +130,20 @@ class ComicImporterThread(
             comics_log += [f"{len(task.files_created)} created"]
         if task.files_deleted:
             comics_log += [f"{len(task.files_deleted)} deleted"]
+        return comics_log
+
+    def _log_task(self, path, task):
+        if self.log.getEffectiveLevel() < logging.DEBUG:
+            return
 
         self.log.debug(f"Updating library {path}...")
+        comics_log = self._log_task_construct_comics_log(task)
         if comics_log:
             log = "Comics: "
             log += ", ".join(comics_log)
             self.log.debug("  " + log)
+
+        dirs_log = self._log_task_construct_dirs_log(task)
         if dirs_log:
             log = "Folders: "
             log += ", ".join(dirs_log)

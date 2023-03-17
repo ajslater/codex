@@ -37,7 +37,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
             folder_m2m_links = {}
             now = Now()
             comic_pks = []
-            for comic in comics:
+            for comic in comics.iterator():
                 try:
                     comic.path = moved_paths[comic.path]
                     new_path = Path(comic.path)
@@ -74,7 +74,6 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
     def _get_parent_folders(self, library, dest_folder_paths):
         """Get destination parent folders."""
         # Determine parent folder paths.
-        print(f"{dest_folder_paths}")
         dest_parent_folder_paths = set()
         for dest_folder_path in dest_folder_paths:
             dest_parent_path = str(Path(dest_folder_path).parent)
@@ -94,7 +93,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
             path__in=dest_parent_folder_paths
         ).only("path", "pk")
         dest_parent_folders = {}
-        for folder in dest_parent_folders_objs:
+        for folder in dest_parent_folders_objs.iterator():
             dest_parent_folders[folder.path] = folder
         return dest_parent_folders
 
@@ -106,7 +105,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
 
             update_folders = []
             now = Now()
-            for folder in folders:
+            for folder in folders.iterator():
                 new_path = folders_moved[folder.path]
                 folder.name = Path(new_path).name
                 folder.path = new_path
@@ -144,7 +143,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
     def adopt_orphan_folders(self):
         """Find orphan folders and move them into their correct place."""
         libraries = Library.objects.only("pk", "path")
-        for library in libraries:
+        for library in libraries.iterator():
             orphan_folder_paths = (
                 Folder.objects.filter(library=library, parent_folder=None)
                 .exclude(path=library.path)

@@ -26,12 +26,19 @@ class DownloadView(APIView, GroupACLMixin):
         pk = kwargs.get("pk")
         try:
             group_acl_filter = self.get_group_acl_filter(True)
-            comic = Comic.objects.filter(group_acl_filter).select_related(
-                *self._DOWNLOAD_SELECT_RELATED).only(*self._DOWNLOAD_FIELDS).get(pk=pk)
+            comic = (
+                Comic.objects.filter(group_acl_filter)
+                .select_related(*self._DOWNLOAD_SELECT_RELATED)
+                .only(*self._DOWNLOAD_FIELDS)
+                .get(pk=pk)
+            )
         except Comic.DoesNotExist as err:
             raise Http404(f"Comic {pk} not not found.") from err
 
-        comic_file = open(comic.path, 'rb')
-        return FileResponse(comic_file, as_attachment=True,
-                                content_type=self.content_type,
-                                filename=comic.filename())
+        comic_file = open(comic.path, "rb")
+        return FileResponse(
+            comic_file,
+            as_attachment=True,
+            content_type=self.content_type,
+            filename=comic.filename(),
+        )
