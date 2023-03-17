@@ -60,7 +60,6 @@ class ComicImporterThread(
                     f"{old_total_size} != {total_size}"
                 )
             if time() - started_checking > _WRITE_WAIT_EXPIRY:
-                print(time() - started_checking, "expiry after")
                 return True
 
             old_total_size = total_size
@@ -69,7 +68,6 @@ class ComicImporterThread(
                 path = Path(path_str)
                 if path.exists():
                     total_size += Path(path).stat().st_size
-            print(f"{old_total_size=} {total_size=}")
         return False
 
     def status_op(self, function, library, status):
@@ -84,9 +82,11 @@ class ComicImporterThread(
         """Run a function batched for memory contrainsts bracketed by status changes."""
         count = 0
         num_elements = len(data)
-        if not num_elements:
-            return count
         try:
+            print(func.__name__, num_elements)
+            print(data)
+            if not num_elements:
+                return count
             if updates:
                 complete = 0
             else:
@@ -171,7 +171,6 @@ class ComicImporterThread(
         """Bulk import comics."""
         # TODO move to big function for refactor
         update_count = create_count = 0
-        # all bulk comic mds are keyed on comic paths so can separate them there.
 
         update_count = self.batch_db_op(
             library,
@@ -199,8 +198,9 @@ class ComicImporterThread(
             updates=True,
         )
 
-        self.log.info(f"Updated {update_count} and created {create_count} comics.")
         total_count = update_count + create_count
+        if total_count:
+            self.log.info(f"Updated {update_count} and created {create_count} comics.")
         return total_count
 
     def _batch_modified_and_created(
@@ -275,6 +275,11 @@ class ComicImporterThread(
         """Update the librarian status tasks."""
         types_map = {}
         total_changes = 0
+        if task.dirs_moved:
+            types_map[ImportStatusTypes.DIRS_MOVED] = {
+                "complete": 0,
+                "total": len(task.dirs_moved),
+            }
         if task.files_moved:
             types_map[ImportStatusTypes.FILES_MOVED] = {
                 "complete": 0,
@@ -295,6 +300,11 @@ class ComicImporterThread(
                 types_map[ImportStatusTypes.FILES_MODIFIED] = {
                     "complete": 0,
                     "total": len(task.files_modified),
+                }
+            if task.files_modified:
+                types_map[ImportStatusTypes.DIRS_MODIFIED] = {
+                    "complete": 0,
+                    "total": len(task.dirs_modified),
                 }
             if task.files_created:
                 types_map[ImportStatusTypes.FILES_CREATED] = {
@@ -353,7 +363,6 @@ class ComicImporterThread(
                 self.bulk_comics_moved,
                 ImportStatusTypes.FILES_MOVED,
             )
-            changed |= self.bulk_comics_moved(library, task.files_moved)
             changed |= self.batch_db_op(
                 library,
                 task.dirs_modified,

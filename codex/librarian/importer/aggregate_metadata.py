@@ -141,14 +141,19 @@ class AggregateMetadataMixin(CleanMetadataMixin):
         """Get aggregated metatada for the paths given."""
         all_mds = {}
         all_m2m_mds = {}
-        all_fks = {
-            "group_trees": {Publisher: {}, Imprint: {}, Series: {}, Volume: {}},
-            "comic_paths": set(),
-        }
+        all_fks = {}
         all_failed_imports = {}
         total_paths = len(all_paths)
-        self.status_controller.start(ImportStatusTypes.AGGREGATE_TAGS, 0, total_paths)
         try:
+            if not total_paths:
+                return all_mds, all_m2m_mds, all_fks, all_failed_imports
+            all_fks = {
+                "group_trees": {Publisher: {}, Imprint: {}, Series: {}, Volume: {}},
+                "comic_paths": set(),
+            }
+            self.status_controller.start(
+                ImportStatusTypes.AGGREGATE_TAGS, 0, total_paths
+            )
             self.log.info(
                 f"Reading tags from {total_paths} comics in {library.path}..."
             )
