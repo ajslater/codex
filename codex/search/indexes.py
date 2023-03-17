@@ -38,7 +38,6 @@ class ComicIndex(ModelSearchIndex, Indexable):
             "day",
             "date",
             "decade",
-            "file_format",
             "format",
             "issue",
             "issue_suffix",
