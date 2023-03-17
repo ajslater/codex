@@ -11,8 +11,6 @@ from watchdog.events import EVENT_TYPE_MOVED
 
 from codex.librarian.importer.tasks import UpdaterDBDiffTask
 from codex.memory import get_mem_limit
-from codex.settings.hypercorn import AUTO_IMPORT_BATCH_SIZE
-from codex.settings.settings import MAX_IMPORT_BATCH_SIZE
 from codex.threads import AggregateMessageQueuedThread
 
 
@@ -37,13 +35,6 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         super().__init__(*args, **kwargs)
         self._total_items = 0
         self.mem_limit_gb = get_mem_limit("g")
-        self._set_max_items()
-
-    def _set_max_items(self):
-        if MAX_IMPORT_BATCH_SIZE == AUTO_IMPORT_BATCH_SIZE:
-            self.max_items = 5000 * int(self.mem_limit_gb)
-        else:
-            self.max_items = MAX_IMPORT_BATCH_SIZE
 
     def _ensure_library_args(self, library_id):
         if library_id in self.cache:
@@ -77,13 +68,6 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         else:
             args_field.add(event.src_path)
         self._total_items += 1
-        if self._total_items > self.max_items:
-            self.log.info(
-                "Event batcher hit size limit, "
-                f"sending batch of {self.max_items}, to importer"
-            )
-            # Sends all items
-            self.timed_out()
 
     def _deduplicate_events(self, library_id):
         """Prune different event types on the same paths."""
