@@ -9,12 +9,13 @@ border-radius: 128px;
 ## v1.2.10
 
 - Features
-  - Fancier sortable admin tables.
   - Replace `max_db_ops` config variable with `max_import_batch_size`. Defaults
     to "auto".
+  - Fancier sortable admin tables.
+  - Sped up comic import.
 - Fix
-  - Made search indexer stable in lower memory environments.
-  - Made search indexer more robust against bad data.
+  - Search indexer stable in lower memory environments.
+  - Search indexer more robust against bad data.
   - Fix codex backing up on every startup.
   - Fix Reader vertical scroll losing its place in Fit To Width or Orig mode.
   - Fix OPDS downloaded files all having the same name.

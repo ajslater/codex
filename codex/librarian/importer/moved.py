@@ -7,7 +7,6 @@ from django.db.models.functions import Now
 from codex.librarian.importer.create_comics import CreateComicsMixin
 from codex.librarian.importer.create_fks import CreateForeignKeysMixin
 from codex.librarian.importer.query_fks import QueryForeignKeysMixin
-from codex.librarian.importer.status import ImportStatusTypes
 from codex.models import Comic, Folder, Library
 
 MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder")
@@ -18,58 +17,52 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
     """Methods for moving comics and folders."""
 
     def bulk_comics_moved(self, library, moved_paths):
-        """Abbreviated bulk_import_comics to just change path related fields."""
-        try:
-            self.status_controller.start(
-                ImportStatusTypes.FILES_MOVED, 0, len(moved_paths)
-            )
-            # Prepare FKs
-            create_folder_paths = self.query_missing_folder_paths(
-                library.path, moved_paths.values()
-            )
-            self.bulk_folders_create(library, create_folder_paths)
+        """Move comcis."""
+        # Prepare FKs
+        create_folder_paths = self.query_missing_folder_paths(
+            library.path, moved_paths.values()
+        )
+        self.bulk_folders_create(library, create_folder_paths)
 
-            # Update Comics
-            comics = Comic.objects.filter(
-                library=library, path__in=moved_paths.keys()
-            ).only("pk", "path", "parent_folder", "folders")
+        # Update Comics
+        comics = Comic.objects.filter(
+            library=library, path__in=moved_paths.keys()
+        ).only("pk", "path", "parent_folder", "folders")
 
-            folder_m2m_links = {}
-            now = Now()
-            comic_pks = []
-            for comic in comics.iterator():
-                try:
-                    comic.path = moved_paths[comic.path]
-                    new_path = Path(comic.path)
-                    if new_path.parent == Path(library.path):
-                        comic.parent_folder = None
-                    else:
-                        comic.parent_folder = Folder.objects.get(  # type: ignore
-                            path=new_path.parent
-                        )
-                    comic.updated_at = now
-                    comic.set_stat()
-                    folder_m2m_links[comic.pk] = Folder.objects.filter(
-                        path__in=new_path.parents
-                    ).values_list("pk", flat=True)
-                    comic_pks.append(comic.pk)
-                except Exception as exc:
-                    self.log.error(f"moving {comic.path}: {exc}")
+        folder_m2m_links = {}
+        now = Now()
+        comic_pks = []
+        for comic in comics.iterator():
+            try:
+                comic.path = moved_paths[comic.path]
+                new_path = Path(comic.path)
+                if new_path.parent == Path(library.path):
+                    comic.parent_folder = None
+                else:
+                    comic.parent_folder = Folder.objects.get(  # type: ignore
+                        path=new_path.parent
+                    )
+                comic.updated_at = now
+                comic.set_stat()
+                folder_m2m_links[comic.pk] = Folder.objects.filter(
+                    path__in=new_path.parents
+                ).values_list("pk", flat=True)
+                comic_pks.append(comic.pk)
+            except Exception as exc:
+                self.log.error(f"moving {comic.path}: {exc}")
 
-            count = Comic.objects.bulk_update(comics, MOVED_BULK_COMIC_UPDATE_FIELDS)
+        count = Comic.objects.bulk_update(comics, MOVED_BULK_COMIC_UPDATE_FIELDS)
 
-            # Update m2m field
-            if folder_m2m_links:
-                self.bulk_recreate_m2m_field("folders", folder_m2m_links)
-            if count:
-                level = logging.INFO
-            else:
-                level = logging.DEBUG
-            self.log.log(level, f"Moved {count} comics.")
+        # Update m2m field
+        if folder_m2m_links:
+            self.bulk_recreate_m2m_field("folders", folder_m2m_links)
+        if count:
+            level = logging.INFO
+        else:
+            level = logging.DEBUG
+        self.log.log(level, f"Moved {count} comics.")
 
-            return bool(count)
-        finally:
-            self.status_controller.finish(ImportStatusTypes.FILES_MOVED)
+        return bool(count)
 
     def _get_parent_folders(self, library, dest_folder_paths):
         """Get destination parent folders."""
@@ -99,45 +92,37 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
 
     def _update_moved_folders(self, library, folders_moved, dest_parent_folders):
         """Move folders."""
-        try:
-            src_folder_paths = frozenset(folders_moved.keys())
-            folders = Folder.objects.filter(library=library, path__in=src_folder_paths)
+        src_folder_paths = frozenset(folders_moved.keys())
+        folders = Folder.objects.filter(library=library, path__in=src_folder_paths)
 
-            update_folders = []
-            now = Now()
-            for folder in folders.iterator():
-                new_path = folders_moved[folder.path]
-                folder.name = Path(new_path).name
-                folder.path = new_path
-                parent_path_str = str(Path(new_path).parent)
-                folder.parent_folder = dest_parent_folders.get(parent_path_str)
-                folder.set_stat()
-                folder.updated_at = now  # type: ignore
-                update_folders.append(folder)
+        update_folders = []
+        now = Now()
+        for folder in folders.iterator():
+            new_path = folders_moved[folder.path]
+            folder.name = Path(new_path).name
+            folder.path = new_path
+            parent_path_str = str(Path(new_path).parent)
+            folder.parent_folder = dest_parent_folders.get(parent_path_str)
+            folder.set_stat()
+            folder.updated_at = now  # type: ignore
+            update_folders.append(folder)
 
-            update_folders = sorted(
-                update_folders, key=lambda x: len(Path(x.path).parts)
-            )
+        update_folders = sorted(update_folders, key=lambda x: len(Path(x.path).parts))
 
-            count = Folder.objects.bulk_update(
-                update_folders, MOVED_BULK_FOLDER_UPDATE_FIELDS
-            )
-            if count:
-                level = logging.INFO
-            else:
-                level = logging.DEBUG
-            self.log.log(level, f"Moved {count} folders.")
-            return bool(count)
-        finally:
-            self.status_controller.finish(ImportStatusTypes.DIRS_MOVED)
+        count = Folder.objects.bulk_update(
+            update_folders, MOVED_BULK_FOLDER_UPDATE_FIELDS
+        )
+        if count:
+            level = logging.INFO
+        else:
+            level = logging.DEBUG
+        self.log.log(level, f"Moved {count} folders.")
+        return bool(count)
 
     def bulk_folders_moved(self, library, folders_moved):
         """Move folders in the database instead of recreating them."""
-        if not folders_moved:
-            return False
         dest_folder_paths = frozenset(folders_moved.values())
         dest_parent_folders = self._get_parent_folders(library, dest_folder_paths)
-
         return self._update_moved_folders(library, folders_moved, dest_parent_folders)
 
     def adopt_orphan_folders(self):

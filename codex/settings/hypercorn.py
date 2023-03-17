@@ -28,7 +28,6 @@ def _get_max_import_batch_size(config):
     return max_items
 
 
-
 def load_hypercorn_config(hypercorn_config_toml, hypercorn_config_toml_default, debug):
     """Load the hypercorn config."""
     _ensure_config(hypercorn_config_toml, hypercorn_config_toml_default)

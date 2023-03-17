@@ -1,5 +1,6 @@
 """Bulk import and move comics and folders."""
 import logging
+from itertools import islice
 from pathlib import Path
 from time import sleep, time
 
@@ -12,11 +13,13 @@ from codex.librarian.importer.failed_imports import FailedImportsMixin
 from codex.librarian.importer.moved import MovedMixin
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.librarian.importer.tasks import AdoptOrphanFoldersTask, UpdaterDBDiffTask
+from codex.librarian.importer.update_comics import UpdateComicsMixin
 from codex.librarian.notifier.tasks import FAILED_IMPORTS_TASK, LIBRARY_CHANGED_TASK
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexUpdateTask
 from codex.librarian.tasks import DelayedTasks
 from codex.models import Library
+from codex.settings.settings import MAX_IMPORT_BATCH_SIZE
 
 _WRITE_WAIT_EXPIRY = 60
 
@@ -24,6 +27,7 @@ _WRITE_WAIT_EXPIRY = 60
 class ComicImporterThread(
     AggregateMetadataMixin,
     DeletedMixin,
+    UpdateComicsMixin,
     FailedImportsMixin,
     MovedMixin,
 ):
@@ -68,6 +72,49 @@ class ComicImporterThread(
             print(f"{old_total_size=} {total_size=}")
         return False
 
+    def status_op(self, function, library, status):
+        """Run a function for a library bracketed by status changes."""
+        try:
+            self.status_controller.start(status)
+            function(library)
+        finally:
+            self.status_controller.finish(status)
+
+    def batch_db_op(self, library, data, func, status, args=None, updates=False):
+        """Run a function batched for memory contrainsts bracketed by status changes."""
+        count = 0
+        num_elements = len(data)
+        if not num_elements:
+            return count
+        try:
+            if updates:
+                complete = 0
+            else:
+                complete = None
+            self.status_controller.start(status, complete, num_elements)
+            batch_size = min(num_elements, MAX_IMPORT_BATCH_SIZE)
+            start = 0
+            end = start + batch_size
+            is_dict = isinstance(data, dict)
+            if not is_dict:
+                data = list(data)
+            if args is None:
+                args = ()
+
+            while start < num_elements:
+                if is_dict:
+                    batch = dict(islice(data.items(), start, end))  # type: ignore
+                else:
+                    batch = set(data[start:end])
+                all_args = (library, batch, *args)
+                count += int(func(*all_args))
+                start = end + 1
+                end = start + batch_size
+        finally:
+            self.status_controller.finish(status)
+
+        return count
+
     def _bulk_create_comic_relations(self, library, fks) -> bool:
         """Query all foreign keys to determine what needs creating, then create them."""
         if not fks:
@@ -91,24 +138,97 @@ class ComicImporterThread(
         )
         return changed
 
+    def _bulk_fail_imports(self, library, failed_imports):
+        """Handle failed imports."""
+        is_new_failed_imports = 0
+        try:
+            self.batch_db_op(
+                library,
+                failed_imports,
+                self.bulk_update_failed_imports,
+                ImportStatusTypes.FAILED_IMPORTS_MODIFIED,
+            )
+
+            is_new_failed_imports = self.batch_db_op(
+                library,
+                failed_imports,
+                self.bulk_create_failed_imports,
+                ImportStatusTypes.CREATE_FAILED_IMPORTS,
+            )
+
+            self.status_op(
+                self.bulk_cleanup_failed_imports,
+                library,
+                ImportStatusTypes.CLEAN_FAILED_IMPORTS,
+            )
+        except Exception as exc:
+            self.log.exception(exc)
+        return is_new_failed_imports
+
+    def _bulk_import_comics(
+        self, library, create_paths, update_paths, all_bulk_mds, all_m2m_mds
+    ):
+        """Bulk import comics."""
+        # TODO move to big function for refactor
+        update_count = create_count = 0
+        # all bulk comic mds are keyed on comic paths so can separate them there.
+
+        update_count = self.batch_db_op(
+            library,
+            update_paths,
+            self.bulk_update_comics,
+            ImportStatusTypes.FILES_MODIFIED,
+            args=(create_paths, all_bulk_mds),
+            updates=True,
+        )
+
+        create_count = self.batch_db_op(
+            library,
+            create_paths,
+            self.bulk_create_comics,
+            ImportStatusTypes.FILES_CREATED,
+            args=(all_bulk_mds,),
+            updates=True,
+        )
+
+        self.batch_db_op(
+            library,
+            all_m2m_mds,
+            self.bulk_query_and_link_comic_m2m_fields,
+            ImportStatusTypes.LINK_M2M_FIELDS,
+            updates=True,
+        )
+
+        self.log.info(f"Updated {update_count} and created {create_count} comics.")
+        total_count = update_count + create_count
+        return total_count
+
     def _batch_modified_and_created(
         self, library, modified_paths, created_paths
-    ) -> tuple[bool, int, bool]:
+    ) -> tuple[int, int, int]:
         """Perform one batch of imports."""
+        # TODO maybe move to big function for refactor
         mds, m2m_mds, fks, fis = self.get_aggregate_metadata(
             library, modified_paths | created_paths
         )
         modified_paths -= fis.keys()
         created_paths -= fis.keys()
 
-        changed = self._bulk_create_comic_relations(library, fks)
+        changed = self.batch_db_op(
+            library,
+            fks,
+            self._bulk_create_comic_relations,
+            ImportStatusTypes.CREATE_FKS,
+            updates=True,
+        )
 
-        imported_count = self.bulk_import_comics(
+        imported_count = self._bulk_import_comics(
             library, created_paths, modified_paths, mds, m2m_mds
         )
-        new_failed_imports = self.bulk_fail_imports(library, fis)
         changed |= imported_count > 0
-        return changed, imported_count, bool(new_failed_imports)
+
+        is_new_failed_imports = self._bulk_fail_imports(library, fis)
+        return changed, imported_count, is_new_failed_imports
 
     def _log_task_construct_dirs_log(self, task):
         """Construct dirs log line."""
@@ -221,9 +341,25 @@ class ComicImporterThread(
             self._init_librarian_status(task, library.path)
 
             changed = False
-            changed |= self.bulk_folders_moved(library, task.dirs_moved)
+            changed |= self.batch_db_op(
+                library,
+                task.dirs_moved,
+                self.bulk_folders_moved,
+                ImportStatusTypes.DIRS_MOVED,
+            )
+            changed |= self.batch_db_op(
+                library,
+                task.files_moved,
+                self.bulk_comics_moved,
+                ImportStatusTypes.FILES_MOVED,
+            )
             changed |= self.bulk_comics_moved(library, task.files_moved)
-            changed |= self.bulk_folders_modified(library, task.dirs_modified)
+            changed |= self.batch_db_op(
+                library,
+                task.dirs_modified,
+                self.bulk_folders_modified,
+                ImportStatusTypes.DIRS_MODIFIED,
+            )
             (
                 changed_comics,
                 imported_count,
@@ -232,8 +368,18 @@ class ComicImporterThread(
                 library, task.files_modified, task.files_created
             )
             changed |= changed_comics
-            changed |= self.bulk_folders_deleted(library, task.dirs_deleted)
-            changed |= self.bulk_comics_deleted(library, task.files_deleted)
+            changed |= self.batch_db_op(
+                library,
+                task.dirs_deleted,
+                self.bulk_folders_deleted,
+                ImportStatusTypes.DIRS_DELETED,
+            )
+            changed |= self.batch_db_op(
+                library,
+                task.files_deleted,
+                self.bulk_comics_deleted,
+                ImportStatusTypes.FILES_DELETED,
+            )
             cache.clear()
         finally:
             self._finish_apply(library)
