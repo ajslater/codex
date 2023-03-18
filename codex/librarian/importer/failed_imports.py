@@ -2,11 +2,9 @@
 import logging
 from pathlib import Path
 
-from django.db.models import Q
 from django.db.models.functions import Now
 
-from codex.librarian.importer.status import ImportStatusTypes
-from codex.models import Comic, FailedImport
+from codex.models import FailedImport
 from codex.threads import QueuedThread
 
 _BULK_UPDATE_FAILED_IMPORT_FIELDS = ("name", "stat", "updated_at")
@@ -15,18 +13,69 @@ _BULK_UPDATE_FAILED_IMPORT_FIELDS = ("name", "stat", "updated_at")
 class FailedImportsMixin(QueuedThread):
     """Methods for failed imports."""
 
-    def bulk_update_failed_imports(self, library, failed_imports, count, _total):
-        """Bulk update failed imports."""
+    def query_failed_imports(self, library, failed_imports):
+        """Determine what to do with failed imports."""
+        update_failed_imports = {}
+        create_failed_imports = {}
+        delete_failed_import_paths = set()
         if not failed_imports:
-            return
-        update_failed_imports = FailedImport.objects.filter(
-            library=library, path__in=failed_imports.keys()
+            return (
+                update_failed_imports,
+                create_failed_imports,
+                delete_failed_import_paths,
+            )
+
+        existing_failed_import_paths = set(
+            FailedImport.objects.filter(library=library).values_list("path", flat=True)
         )
 
+        for path, exc in failed_imports.items():
+            if path in existing_failed_import_paths:
+                update_failed_imports[path] = exc
+            else:
+                create_failed_imports[path] = exc
+
+        untouched_failed_import_paths = existing_failed_import_paths - set(
+            failed_imports.keys()
+        )
+
+        possibly_succeeed_failed_import_paths = set()
+        succeeded_failed_imports = set(
+            FailedImport.objects.filter(
+                library=library, path__in=possibly_succeeed_failed_import_paths
+            ).values_list("path", flat=True)
+        )
+
+        possibly_missing_failed_import_paths = (
+            untouched_failed_import_paths - succeeded_failed_imports
+        )
+
+        missing_failed_imports = set()
+        for path in possibly_missing_failed_import_paths:
+            if not Path(path).exists():
+                missing_failed_imports.add(path)
+
+        delete_failed_import_paths = succeeded_failed_imports | missing_failed_imports
+
+        return (
+            update_failed_imports,
+            create_failed_imports,
+            delete_failed_import_paths,
+        )
+
+    def bulk_update_failed_imports(self, library, update_failed_imports, count, _total):
+        """Bulk update failed imports."""
+        if not update_failed_imports:
+            return
+        update_failed_import_objs = FailedImport.objects.filter(
+            library=library, path__in=update_failed_imports.keys()
+        ).only(*_BULK_UPDATE_FAILED_IMPORT_FIELDS)
+        if not update_failed_imports:
+            return count
         now = Now()
-        for fi in update_failed_imports:
+        for fi in update_failed_import_objs:
             try:
-                exc = failed_imports.pop(fi.path)
+                exc = update_failed_imports.pop(fi.path)
                 fi.set_reason(exc)
                 fi.set_stat()
                 fi.updated_at = now
@@ -34,39 +83,33 @@ class FailedImportsMixin(QueuedThread):
                 self.log.error(f"Error preparing failed import update for {fi.path}")
                 self.log.exception(exc)
 
-        if update_failed_imports:
-            count += FailedImport.objects.bulk_update(
-                update_failed_imports, fields=_BULK_UPDATE_FAILED_IMPORT_FIELDS
-            )
-            if count:
-                level = logging.INFO
-            else:
-                level = logging.DEBUG
-            self.log.log(level, f"Updated {count} old comics in failed imports.")
+        count += FailedImport.objects.bulk_update(
+            update_failed_import_objs, fields=_BULK_UPDATE_FAILED_IMPORT_FIELDS
+        )
+        if count:
+            level = logging.INFO
+        else:
+            level = logging.DEBUG
+        self.log.log(level, f"Updated {count} old failed imports.")
         return count
 
-    def bulk_create_failed_imports(self, library, failed_imports, count, total):
+    def bulk_create_failed_imports(self, library, create_failed_imports, count, _total):
         """Bulk create failed imports."""
-        if not failed_imports:
+        if not create_failed_imports:
             return False
-        create_failed_imports = []
-        existing_failed_import_paths = FailedImport.objects.filter(
-            library=library
-        ).values_list("path", flat=True)
-        for path, exc in failed_imports.items():
+        create_objs = []
+        for path, exc in create_failed_imports.items():
             try:
-                if path in existing_failed_import_paths:
-                    continue
                 fi = FailedImport(library=library, path=path, parent_folder=None)
                 fi.set_reason(exc)
                 fi.set_stat()
-                create_failed_imports.append(fi)
+                create_objs.append(fi)
             except Exception as exc:
                 self.log.error(f"Error preparing failed import create for {path}")
                 self.log.exception(exc)
-        if create_failed_imports:
+        if create_objs:
             created_objs = FailedImport.objects.bulk_create(
-                create_failed_imports,
+                create_objs,
                 update_conflicts=True,
                 update_fields=_BULK_UPDATE_FAILED_IMPORT_FIELDS,
                 unique_fields=FailedImport.Meta.unique_together,
@@ -79,35 +122,16 @@ class FailedImportsMixin(QueuedThread):
             self.log.log(level, f"Added {count} comics to failed imports.")
         return count
 
-    def bulk_cleanup_failed_imports(self, library):
+    def bulk_cleanup_failed_imports(
+        self, library, delete_failed_imports_paths, count, _total
+    ):
         """Remove FailedImport objects that have since succeeded."""
-        self.status_controller.start(ImportStatusTypes.FAILED_IMPORTS_CLEAN)
-        self.log.debug("Cleaning up failed imports...")
-        failed_import_paths = FailedImport.objects.filter(library=library).values_list(
-            "path", flat=True
-        )
-
         # Cleanup FailedImports that were actually successful
-        succeeded_imports = Comic.objects.filter(
-            library=library, path__in=failed_import_paths
-        ).values_list("path", flat=True)
-
-        # Cleanup FailedImports that aren't on the filesystem anymore.
-        didnt_succeed_paths = (
-            FailedImport.objects.filter(library=library)
-            .exclude(path__in=succeeded_imports)
-            .values_list("path", flat=True)
+        qs = FailedImport.objects.filter(library=library).filter(
+            path__in=delete_failed_imports_paths
         )
-        missing_failed_imports = set()
-        for path in didnt_succeed_paths:
-            if not Path(path).exists():
-                missing_failed_imports.add(path)
-
-        count, _ = (
-            FailedImport.objects.filter(library=library.pk)
-            .filter(Q(path__in=succeeded_imports) | Q(path__in=missing_failed_imports))
-            .delete()
-        )
+        qs.delete()
+        count += len(delete_failed_imports_paths)
         if count:
             self.log.info(f"Cleaned up {count} failed imports from {library.path}")
         else:

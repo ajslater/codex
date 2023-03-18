@@ -70,14 +70,6 @@ class ComicImporterThread(
                     total_size += Path(path).stat().st_size
         return False
 
-    def status_op(self, function, library, status):
-        """Run a function for a library bracketed by status changes."""
-        try:
-            self.status_controller.start(status)
-            function(library)
-        finally:
-            self.status_controller.finish(status)
-
     def batch_db_op(self, library, data, func, status, args=None, updates=True):
         """Run a function batched for memory contrainsts bracketed by status changes."""
         count = 0
@@ -143,28 +135,28 @@ class ComicImporterThread(
         """Handle failed imports."""
         is_new_failed_imports = 0
         try:
-            # TODO restructure so updates could theoretically work
-            # TODO status op is only used once.
-            # query everything, then do ops.
+            update_fis, create_fis, delete_fi_paths = self.query_failed_imports(
+                library, failed_imports
+            )
+
             self.batch_db_op(
                 library,
-                failed_imports,
+                update_fis,
                 self.bulk_update_failed_imports,
                 ImportStatusTypes.FAILED_IMPORTS_MODIFIED,
-                updates=False,
             )
 
             is_new_failed_imports = self.batch_db_op(
                 library,
-                failed_imports,
+                create_fis,
                 self.bulk_create_failed_imports,
                 ImportStatusTypes.FAILED_IMPORTS_CREATE,
-                updates=False,
             )
 
-            self.status_op(
-                self.bulk_cleanup_failed_imports,
+            self.batch_db_op(
                 library,
+                delete_fi_paths,
+                self.bulk_cleanup_failed_imports,
                 ImportStatusTypes.FAILED_IMPORTS_CLEAN,
             )
         except Exception as exc:
