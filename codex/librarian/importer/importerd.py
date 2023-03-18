@@ -590,7 +590,7 @@ class ComicImporterThread(
                 library, modified_paths, created_paths, mds, m2m_mds
             )
             changed += imported_count
-            modified_paths = created_paths = None
+            modified_paths = created_paths = mds = m2m_mds = None
 
             new_failed_imports = self._bulk_fail_imports(library, fis)
 
