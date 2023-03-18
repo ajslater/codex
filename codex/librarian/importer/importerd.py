@@ -315,6 +315,7 @@ class ComicImporterThread(
                 failed_imports,
                 self.query_failed_imports,
                 ImportStatusTypes.FAILED_IMPORTS_QUERY,
+                args=(update_fis, create_fis, delete_fi_paths)
             )
 
             self.batch_db_op(
@@ -401,7 +402,7 @@ class ComicImporterThread(
             changed += self._move_and_modify_dirs(library, task)
 
             modified_paths = task.files_modified
-            created_paths = task.created_paths
+            created_paths = task.files_created
             mds, m2m_mds, fks, fis = self.get_aggregate_metadata(
                 library, modified_paths | created_paths
             )
