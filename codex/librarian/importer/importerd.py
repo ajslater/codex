@@ -250,6 +250,18 @@ class ComicImporterThread(
         task.dirs_modified = None
         return changed
 
+    @staticmethod
+    def _get_query_fks_totals(fks):
+        """Get the query foreign keys totals."""
+        fks_total = 0
+        for key, objs in fks.items():
+            if key == "group_trees":
+                for trees in objs.values():
+                    fks_total += len(trees)
+            else:
+                fks_total += len(objs)
+        return fks_total
+
     def query_all_missing_fks(self, library, fks):
         """Get objects to create by querying existing objects for the proposed fks."""
         create_credits = set()
@@ -262,13 +274,7 @@ class ComicImporterThread(
                 f"Querying existing foreign keys for comics in {library.path}"
             )
             count = 0
-            fks_total = 0
-            for key, objs in fks.items():
-                if key == "group_trees":
-                    for trees in objs.values():
-                        fks_total += len(trees)
-                else:
-                    fks_total += len(objs)
+            fks_total = self._get_query_fks_totals(fks)
             self.status_controller.start(
                 ImportStatusTypes.QUERY_MISSING_FKS, 0, fks_total
             )
@@ -338,6 +344,21 @@ class ComicImporterThread(
             create_credits,
         )
 
+    @staticmethod
+    def _get_create_fks_totals(
+        create_groups, update_groups, create_folder_paths, create_fks, create_credits
+    ):
+        total_fks = 0
+        for groups in create_groups.values():
+            total_fks += len(groups)
+        for groups in update_groups.values():
+            total_fks += len(groups)
+        total_fks += len(create_folder_paths)
+        for names in create_fks.values():
+            total_fks += len(names)
+        total_fks += len(create_credits)
+        return total_fks
+
     def bulk_create_all_fks(
         self,
         library,
@@ -350,15 +371,13 @@ class ComicImporterThread(
         """Bulk create all foreign keys."""
         try:
             count = 0
-            total_fks = 0
-            for groups in create_groups.values():
-                total_fks += len(groups)
-            for groups in update_groups.values():
-                total_fks += len(groups)
-            total_fks += len(create_folder_paths)
-            for names in create_fks.values():
-                total_fks += len(names)
-            total_fks += len(create_credits)
+            total_fks = self._get_create_fks_totals(
+                create_groups,
+                update_groups,
+                create_folder_paths,
+                create_fks,
+                create_credits,
+            )
             status = ImportStatusTypes.CREATE_FKS
             self.status_controller.start(status, 0, total_fks)
 
