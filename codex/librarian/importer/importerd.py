@@ -95,6 +95,7 @@ class ComicImporterThread(
         return comics_log
 
     def _log_task(self, path, task):
+        """Log the watchdog event task."""
         if self.log.getEffectiveLevel() < logging.DEBUG:
             return
 
@@ -167,6 +168,7 @@ class ComicImporterThread(
         self.status_controller.start_many(types_map)
 
     def _init_apply(self, library, task):
+        """Initialize the library and status flags."""
         library.update_in_progress = True
         library.save()
         too_long = self._wait_for_filesystem_ops_to_finish(task)
@@ -218,6 +220,7 @@ class ComicImporterThread(
         return count
 
     def _move_and_modify_dirs(self, library, task):
+        """Move files and dirs and modify dirs."""
         changed = self.batch_db_op(
             library,
             task.dirs_moved,
@@ -265,6 +268,7 @@ class ComicImporterThread(
     def _update_create_and_link_comics(
         self, library, modified_paths, created_paths, mds, m2m_mds
     ):
+        """Update, create and link comics."""
         update_count = create_count = 0
 
         update_count = self.batch_db_op(
@@ -331,6 +335,7 @@ class ComicImporterThread(
         return is_new_failed_imports
 
     def _delete(self, library, task):
+        """Delete files and folders."""
         changed = self.batch_db_op(
             library,
             task.dirs_deleted,
@@ -354,6 +359,7 @@ class ComicImporterThread(
     def _finish_apply(
         self, library, changed, start_time, imported_count, new_failed_imports
     ):
+        """Perform final tasks when the apply is done."""
         if changed:
             self.librarian_queue.put(LIBRARY_CHANGED_TASK)
             elapsed_time = time() - start_time
