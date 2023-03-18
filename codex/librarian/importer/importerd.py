@@ -364,7 +364,6 @@ class ComicImporterThread(
 
             self.log.debug(f"Creating comic foreign keys for {library.path}...")
 
-            # TODO BATCH MORE?
             self.log.debug(f"Preparing {len(create_groups)} groups for creation..")
             for group_class, group_tree_counts in create_groups.items():
                 count += self.batch_db_op(
