@@ -20,7 +20,7 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
     ):
         """Run a function batched for memory contrainsts bracketed by status changes."""
         num_elements = len(data)
-        finish = bool(total)
+        finish = total == 0
         try:
             if not num_elements:
                 return count
@@ -40,9 +40,10 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
 
             if not total:
                 total = num_elements
+            print(f"{func.__name__} {total=}, {num_elements=}")
             while start < num_elements:
                 if updates:
-                    self.status_controller.update(status, count, num_elements)
+                    self.status_controller.update(status, count, total)
                 if is_dict:
                     batch = dict(islice(data.items(), start, end))  # type: ignore
                 else:
@@ -54,7 +55,6 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
         finally:
             if finish:
                 self.status_controller.finish(status)
-
         return count
 
     def _move_and_modify_dirs(self, library, task):
@@ -241,7 +241,7 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
 
             count += self.batch_db_op(
                 library,
-                create_folder_paths,
+                sorted(create_folder_paths),
                 self.bulk_folders_create,
                 status,
                 count=count,

@@ -95,6 +95,8 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
 
     def _update_moved_folders(self, library, folders_moved, dest_parent_folders, count):
         """Move folders."""
+        if not folders_moved:
+            return
         src_folder_paths = frozenset(folders_moved.keys())
         folders = Folder.objects.filter(library=library, path__in=src_folder_paths)
 
@@ -115,11 +117,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
         count += Folder.objects.bulk_update(
             update_folders, MOVED_BULK_FOLDER_UPDATE_FIELDS
         )
-        if count:
-            level = logging.INFO
-        else:
-            level = logging.DEBUG
-        self.log.log(level, f"Moved {count} folders.")
+        self.log.info(f"Moved {count} folders.")
         return count
 
     def bulk_folders_moved(self, library, folders_moved, count, _total):

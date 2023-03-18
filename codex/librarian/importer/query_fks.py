@@ -10,7 +10,6 @@ from codex.models import (
     Credit,
     Folder,
     Imprint,
-    LibrarianStatus,
     Publisher,
     Series,
     Volume,
@@ -52,10 +51,6 @@ class QueryForeignKeysMixin(QueuedThread):
         filter_arg_count = 0
         all_filter_args = tuple(all_filter_args)
         since = time()
-        ls = LibrarianStatus.objects.get(type=ImportStatusTypes.QUERY_MISSING_FKS)
-        num_filter_args_batches = len(all_filter_args)
-        ls_total = 0 if ls.total is None else ls.total
-        ls_total += num_filter_args_batches
         for num, filter_args in enumerate(all_filter_args):
             filter = filter | Q(**dict(filter_args))
             filter_arg_count += len(filter_args)
@@ -140,9 +135,7 @@ class QueryForeignKeysMixin(QueuedThread):
                     if group_tree not in update_groups:
                         update_groups[group_tree] = {}
                     update_groups[group_tree].update(count_dict)
-                this_count += len(count_dict)
-            else:
-                this_count = 0
+            this_count += 1
             since = self.status_controller.update(
                 ImportStatusTypes.QUERY_MISSING_FKS,
                 count + this_count,
@@ -210,6 +203,7 @@ class QueryForeignKeysMixin(QueuedThread):
         num = 0
         since = time()
 
+        this_count = 0
         while offset < num_proposed_names:
             end = offset + _SQLITE_FILTER_ARG_MAX
             batch_proposed_names = proposed_names[offset:end]
@@ -217,10 +211,10 @@ class QueryForeignKeysMixin(QueuedThread):
             filter = Q(**filter_args)
             create_names -= self._query_existing_mds(fk_cls, filter)
             num += len(batch_proposed_names)
-            count += num
+            this_count += num
             since = self.status_controller.update(
                 ImportStatusTypes.QUERY_MISSING_FKS,
-                count,
+                count + this_count,
                 total,
                 since=since,
                 name=fk_cls.__name__,
@@ -228,9 +222,9 @@ class QueryForeignKeysMixin(QueuedThread):
             offset += _SQLITE_FILTER_ARG_MAX
 
         if fk_cls not in create_fks:
-            create_fks[fk_cls] = {}
+            create_fks[fk_cls] = set()
         create_fks[fk_cls].update(create_names)
-        return len(names)
+        return this_count
 
     def query_missing_folder_paths(
         self, library, comic_paths, count, total, create_folder_paths

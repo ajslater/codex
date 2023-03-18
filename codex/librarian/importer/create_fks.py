@@ -126,7 +126,7 @@ class CreateForeignKeysMixin(QueuedThread):
             self.log.info(f"Updated {this_count} {group_class.__name__}s.")
         return this_count
 
-    def bulk_folders_modified(self, library, paths, count, _total):
+    def bulk_folders_modified(self, library, paths, count, total):
         """Update folders stat and nothing else."""
         if not paths:
             return False
@@ -141,16 +141,12 @@ class CreateForeignKeysMixin(QueuedThread):
                 folder.set_stat()
                 folder.updated_at = now
                 update_folders.append(folder)
-        count += Folder.objects.bulk_update(
+        this_count = Folder.objects.bulk_update(
             update_folders, fields=_BULK_UPDATE_FOLDER_MODIFIED_FIELDS
         )
-        if count:
-            level = logging.INFO
-        else:
-            level = logging.DEBUG
-        self.log.log(level, f"Modified {count} folders")
-
-        return count
+        count += this_count
+        self.log.info(f"Modified {count}/{total} folders")
+        return this_count
 
     def bulk_folders_create(self, library, folder_paths, count, total):
         """Create folders breadth first."""
