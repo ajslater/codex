@@ -82,12 +82,15 @@ class CreateForeignKeysMixin(QueuedThread):
             obj = None
         return obj
 
-    @classmethod
-    def _bulk_group_creator(cls, group_tree_counts, group_class):
+    def bulk_group_creator(
+        self, _library, group_tree_counts, _count, _total, group_class
+    ):
         """Bulk creates groups."""
+        if not group_tree_counts:
+            return 0
         create_groups = []
-        for group_param_tuple, count in group_tree_counts.items():
-            obj = cls._create_group_obj(group_class, group_param_tuple, count)
+        for group_param_tuple, count_dict in group_tree_counts.items():
+            obj = self._create_group_obj(group_class, group_param_tuple, count_dict)
             create_groups.append(obj)
         update_fields = _GROUP_UPDATE_FIELDS[group_class]
         group_class.objects.bulk_create(
@@ -96,59 +99,32 @@ class CreateForeignKeysMixin(QueuedThread):
             update_fields=update_fields,
             unique_fields=group_class.Meta.unique_together,
         )
-        return len(create_groups)
+        this_count = len(create_groups)
+        if this_count:
+            self.log.info(f"Created {this_count} {group_class.__name__}s.")
 
-    @classmethod
-    def _bulk_group_updater(cls, group_tree_counts, group_class):
+        return this_count
+
+    def bulk_group_updater(
+        self, _library, group_tree_counts, _count, _total, group_class
+    ):
         """Bulk update groups."""
+        if not group_tree_counts:
+            return 0
         update_groups = []
         count_field = _COUNT_FIELDS[group_class]
-        for group_param_tuple, count in group_tree_counts.items():
-            obj = cls._update_group_obj(
-                group_class, group_param_tuple, count, count_field
+        for group_param_tuple, count_dict in group_tree_counts.items():
+            obj = self._update_group_obj(
+                group_class, group_param_tuple, count_dict, count_field
             )
             if obj:
                 update_groups.append(obj)
-        count = group_class.objects.bulk_update(update_groups, fields=[count_field])
-        return count
-
-    def bulk_create_or_update_groups(
-        self, _library, all_operation_groups, count, total, update
-    ):
-        """Create missing groups breadth first."""
-        if not all_operation_groups:
-            return False
-        since = time()
-        if update:
-            func = self._bulk_group_updater
-            log_tion = "creation"
-            log_verb = "Created"
-        else:
-            func = self._bulk_group_creator
-            log_tion = "update"
-            log_verb = "Updated"
-
-        num_operation_groups = 0
-        for group_class, group_tree_counts in all_operation_groups.items():
-            if not group_tree_counts:
-                continue
-            self.log.debug(
-                f"Preparing {len(group_tree_counts)} "
-                f"{group_class.__name__}s for {log_tion}..."
-            )
-            updated_or_created = func(group_tree_counts, group_class)
-            count += updated_or_created
-            num_operation_groups += updated_or_created
-            if count:
-                level = logging.INFO
-            else:
-                level = logging.DEBUG
-            self.log.log(level, f"{log_verb} {count} {group_class.__name__}s.")
-            since = self.status_controller.update(
-                ImportStatusTypes.CREATE_FKS, count, total, since=since
-            )
-
-        return num_operation_groups
+        this_count = group_class.objects.bulk_update(
+            update_groups, fields=[count_field]
+        )
+        if this_count:
+            self.log.info(f"Updated {this_count} {group_class.__name__}s.")
+        return this_count
 
     def bulk_folders_modified(self, library, paths, count, _total):
         """Update folders stat and nothing else."""

@@ -285,17 +285,17 @@ class ComicImporterThread(
                 )
                 self.log.info(f"Prepared {len(create_credits)} new credits.")
 
-            # TODO maybe batch even more
             if "group_trees" in fks:
-                count += self.batch_db_op(
-                    library,
-                    fks.pop("group_trees"),
-                    self.query_missing_groups,
-                    ImportStatusTypes.QUERY_MISSING_FKS,
-                    args=(create_groups, update_groups),
-                    count=count,
-                    total=fks_total,
-                )
+                for group_class, groups in fks.pop("group_trees").items():
+                    count += self.batch_db_op(
+                        library,
+                        groups,
+                        self.query_missing_group_type,
+                        ImportStatusTypes.QUERY_MISSING_FKS,
+                        args=(group_class, create_groups, update_groups),
+                        count=count,
+                        total=fks_total,
+                    )
                 self.log.info(f"Prepared {len(create_groups)} new groups.")
 
             if "comic_paths" in fks:
@@ -363,25 +363,31 @@ class ComicImporterThread(
             self.status_controller.start(status, 0, total_fks)
 
             self.log.debug(f"Creating comic foreign keys for {library.path}...")
+
             # TODO BATCH MORE?
-            count += self.batch_db_op(
-                library,
-                create_groups,
-                self.bulk_create_or_update_groups,
-                status,
-                args=(False,),
-                count=count,
-                total=total_fks,
-            )
-            count += self.batch_db_op(
-                library,
-                update_groups,
-                self.bulk_create_or_update_groups,
-                status,
-                args=(True,),
-                count=count,
-                total=total_fks,
-            )
+            self.log.debug(f"Preparing {len(create_groups)} groups for creation..")
+            for group_class, group_tree_counts in create_groups.items():
+                count += self.batch_db_op(
+                    library,
+                    group_tree_counts,
+                    self.bulk_group_creator,
+                    status,
+                    args=(group_class,),
+                    count=count,
+                    total=total_fks,
+                )
+
+            self.log.debug(f"Preparing {len(update_groups)} groups for update...")
+            for group_class, group_tree_counts in update_groups.items():
+                count += self.batch_db_op(
+                    library,
+                    group_tree_counts,
+                    self.bulk_group_updater,
+                    status,
+                    args=(group_class,),
+                    count=count,
+                    total=total_fks,
+                )
 
             count += self.batch_db_op(
                 library,
