@@ -7,6 +7,7 @@ from time import sleep, time
 from django.core.cache import cache
 from humanize import naturaldelta
 
+from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.importer.aggregate_metadata import AggregateMetadataMixin
 from codex.librarian.importer.deleted import DeletedMixin
 from codex.librarian.importer.failed_imports import FailedImportsMixin
@@ -78,17 +79,15 @@ class ComicImporterThread(
         finally:
             self.status_controller.finish(status)
 
-    def batch_db_op(self, library, data, func, status, args=None, updates=False):
+    def batch_db_op(self, library, data, func, status, args=None, updates=True):
         """Run a function batched for memory contrainsts bracketed by status changes."""
         count = 0
         num_elements = len(data)
         try:
-            print(func.__name__, num_elements)
-            print(data)
             if not num_elements:
                 return count
             if updates:
-                complete = 0
+                complete = count
             else:
                 complete = None
             self.status_controller.start(status, complete, num_elements)
@@ -102,11 +101,13 @@ class ComicImporterThread(
                 args = ()
 
             while start < num_elements:
+                if updates:
+                    self.status_controller.update(status, count, num_elements)
                 if is_dict:
                     batch = dict(islice(data.items(), start, end))  # type: ignore
                 else:
                     batch = set(data[start:end])
-                all_args = (library, batch, *args)
+                all_args = (library, batch, count, num_elements, *args)
                 count += int(func(*all_args))
                 start = end + 1
                 end = start + batch_size
@@ -115,10 +116,11 @@ class ComicImporterThread(
 
         return count
 
-    def _bulk_create_comic_relations(self, library, fks) -> bool:
+    def _bulk_create_comic_relations(self, library, fks):
         """Query all foreign keys to determine what needs creating, then create them."""
+        # XXX Danger this is not batched.
         if not fks:
-            return False
+            return 0
 
         (
             create_fks,
@@ -128,7 +130,7 @@ class ComicImporterThread(
             create_credits,
         ) = self.query_all_missing_fks(library.path, fks)
 
-        changed = self.bulk_create_all_fks(
+        count = self.bulk_create_all_fks(
             library,
             create_fks,
             create_groups,
@@ -136,17 +138,21 @@ class ComicImporterThread(
             create_paths,
             create_credits,
         )
-        return changed
+        return count
 
     def _bulk_fail_imports(self, library, failed_imports):
         """Handle failed imports."""
         is_new_failed_imports = 0
         try:
+            # TODO restructure so updates could theoretically work
+            # TODO status op is only used once.
+            # query everything, then do ops.
             self.batch_db_op(
                 library,
                 failed_imports,
                 self.bulk_update_failed_imports,
                 ImportStatusTypes.FAILED_IMPORTS_MODIFIED,
+                updates=False,
             )
 
             is_new_failed_imports = self.batch_db_op(
@@ -154,6 +160,7 @@ class ComicImporterThread(
                 failed_imports,
                 self.bulk_create_failed_imports,
                 ImportStatusTypes.CREATE_FAILED_IMPORTS,
+                updates=False,
             )
 
             self.status_op(
@@ -178,7 +185,6 @@ class ComicImporterThread(
             self.bulk_update_comics,
             ImportStatusTypes.FILES_MODIFIED,
             args=(create_paths, all_bulk_mds),
-            updates=True,
         )
 
         create_count = self.batch_db_op(
@@ -187,16 +193,16 @@ class ComicImporterThread(
             self.bulk_create_comics,
             ImportStatusTypes.FILES_CREATED,
             args=(all_bulk_mds,),
-            updates=True,
         )
 
-        self.batch_db_op(
+        linked_count = self.batch_db_op(
             library,
             all_m2m_mds,
             self.bulk_query_and_link_comic_m2m_fields,
             ImportStatusTypes.LINK_M2M_FIELDS,
-            updates=True,
         )
+        if linked_count:
+            self.log.info(f"Relinked {linked_count} comics to tags.")
 
         total_count = update_count + create_count
         if total_count:
@@ -205,7 +211,7 @@ class ComicImporterThread(
 
     def _batch_modified_and_created(
         self, library, modified_paths, created_paths
-    ) -> tuple[int, int, int]:
+    ) -> tuple[int, int]:
         """Perform one batch of imports."""
         # TODO maybe move to big function for refactor
         mds, m2m_mds, fks, fis = self.get_aggregate_metadata(
@@ -214,21 +220,14 @@ class ComicImporterThread(
         modified_paths -= fis.keys()
         created_paths -= fis.keys()
 
-        changed = self.batch_db_op(
-            library,
-            fks,
-            self._bulk_create_comic_relations,
-            ImportStatusTypes.CREATE_FKS,
-            updates=True,
-        )
+        self._bulk_create_comic_relations(library, fks)
 
         imported_count = self._bulk_import_comics(
             library, created_paths, modified_paths, mds, m2m_mds
         )
-        changed |= imported_count > 0
 
         is_new_failed_imports = self._bulk_fail_imports(library, fis)
-        return changed, imported_count, is_new_failed_imports
+        return imported_count, is_new_failed_imports
 
     def _log_task_construct_dirs_log(self, task):
         """Construct dirs log line."""
@@ -274,7 +273,7 @@ class ComicImporterThread(
     def _init_librarian_status(self, task, path):
         """Update the librarian status tasks."""
         types_map = {}
-        total_changes = 0
+        search_index_updates = 0
         if task.dirs_moved:
             types_map[ImportStatusTypes.DIRS_MOVED] = {
                 "complete": 0,
@@ -285,10 +284,15 @@ class ComicImporterThread(
                 "complete": 0,
                 "total": len(task.files_moved),
             }
-            total_changes += len(task.files_moved)
+            search_index_updates += len(task.files_moved)
+        if task.files_modified:
+            types_map[ImportStatusTypes.DIRS_MODIFIED] = {
+                "complete": 0,
+                "total": len(task.dirs_modified),
+            }
         if task.files_modified or task.files_created:
             total_paths = len(task.files_modified) + len(task.files_created)
-            total_changes += total_paths
+            search_index_updates += total_paths
             types_map[ImportStatusTypes.AGGREGATE_TAGS] = {
                 "complete": 0,
                 "total": total_paths,
@@ -300,11 +304,6 @@ class ComicImporterThread(
                 types_map[ImportStatusTypes.FILES_MODIFIED] = {
                     "complete": 0,
                     "total": len(task.files_modified),
-                }
-            if task.files_modified:
-                types_map[ImportStatusTypes.DIRS_MODIFIED] = {
-                    "complete": 0,
-                    "total": len(task.dirs_modified),
                 }
             if task.files_created:
                 types_map[ImportStatusTypes.FILES_CREATED] = {
@@ -318,10 +317,15 @@ class ComicImporterThread(
                 "complete": 0,
                 "total": len(task.files_deleted),
             }
-            total_changes += len(task.files_deleted)
+            search_index_updates += len(task.files_deleted)
+        if task.files_modified or task.files_deleted:
+            types_map[CoverStatusTypes.PURGE] = {
+                "complete": 0,
+                "total": len(task.files_modified) + len(task.files_deleted),
+            }
         types_map[SearchIndexStatusTypes.SEARCH_INDEX_UPDATE] = {
             "complete": 0,
-            "total": total_changes,
+            "total": search_index_updates,
         }
         types_map[SearchIndexStatusTypes.SEARCH_INDEX_REMOVE] = {}
         self.status_controller.start_many(types_map)
@@ -350,40 +354,39 @@ class ComicImporterThread(
             self._log_task(library.path, task)
             self._init_librarian_status(task, library.path)
 
-            changed = False
-            changed |= self.batch_db_op(
+            changed = 0
+            changed += self.batch_db_op(
                 library,
                 task.dirs_moved,
                 self.bulk_folders_moved,
                 ImportStatusTypes.DIRS_MOVED,
             )
-            changed |= self.batch_db_op(
+            changed += self.batch_db_op(
                 library,
                 task.files_moved,
                 self.bulk_comics_moved,
                 ImportStatusTypes.FILES_MOVED,
             )
-            changed |= self.batch_db_op(
+            changed += self.batch_db_op(
                 library,
                 task.dirs_modified,
                 self.bulk_folders_modified,
                 ImportStatusTypes.DIRS_MODIFIED,
             )
             (
-                changed_comics,
-                imported_count,
+                changed_count,
                 new_failed_imports,
             ) = self._batch_modified_and_created(
                 library, task.files_modified, task.files_created
             )
-            changed |= changed_comics
-            changed |= self.batch_db_op(
+            changed += changed_count
+            changed += self.batch_db_op(
                 library,
                 task.dirs_deleted,
                 self.bulk_folders_deleted,
                 ImportStatusTypes.DIRS_DELETED,
             )
-            changed |= self.batch_db_op(
+            changed += self.batch_db_op(
                 library,
                 task.files_deleted,
                 self.bulk_comics_deleted,
@@ -402,14 +405,16 @@ class ComicImporterThread(
             elapsed_time = time() - start_time
             elapsed = naturaldelta(elapsed_time)
             log_txt = f"Updated library {library.path} in {elapsed}."
-            if imported_count:
-                cps = round(imported_count / elapsed_time, 1)
+            if changed_count:
+                cps = round(changed_count / elapsed_time, 1)
                 log_txt += (
-                    f" Imported {imported_count} comics" f" at {cps} comics per second."
+                    f" Imported {changed_count} comics" f" at {cps} comics per second."
                 )
             else:
                 log_txt += "No comics to import."
             self.log.info(log_txt)
+        else:
+            self.log.info("No updates neccissary.")
         if new_failed_imports:
             self.librarian_queue.put(FAILED_IMPORTS_TASK)
 

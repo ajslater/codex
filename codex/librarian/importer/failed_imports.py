@@ -15,7 +15,7 @@ _BULK_UPDATE_FAILED_IMPORT_FIELDS = ("name", "stat", "updated_at")
 class FailedImportsMixin(QueuedThread):
     """Methods for failed imports."""
 
-    def bulk_update_failed_imports(self, library, failed_imports):
+    def bulk_update_failed_imports(self, library, failed_imports, count, _total):
         """Bulk update failed imports."""
         if not failed_imports:
             return
@@ -23,7 +23,6 @@ class FailedImportsMixin(QueuedThread):
             library=library, path__in=failed_imports.keys()
         )
 
-        count = 0
         now = Now()
         for fi in update_failed_imports:
             try:
@@ -36,19 +35,17 @@ class FailedImportsMixin(QueuedThread):
                 self.log.exception(exc)
 
         if update_failed_imports:
-            count = FailedImport.objects.bulk_update(
+            count += FailedImport.objects.bulk_update(
                 update_failed_imports, fields=_BULK_UPDATE_FAILED_IMPORT_FIELDS
             )
-        if count is None:
-            count = 0
-        if count:
-            level = logging.INFO
-        else:
-            level = logging.DEBUG
-        self.log.log(level, f"Updated {count} old comics in failed imports.")
+            if count:
+                level = logging.INFO
+            else:
+                level = logging.DEBUG
+            self.log.log(level, f"Updated {count} old comics in failed imports.")
         return count
 
-    def bulk_create_failed_imports(self, library, failed_imports):
+    def bulk_create_failed_imports(self, library, failed_imports, count, total):
         """Bulk create failed imports."""
         if not failed_imports:
             return False
@@ -68,13 +65,13 @@ class FailedImportsMixin(QueuedThread):
                 self.log.error(f"Error preparing failed import create for {path}")
                 self.log.exception(exc)
         if create_failed_imports:
-            FailedImport.objects.bulk_create(create_failed_imports)
-        count = len(create_failed_imports)
-        if count:
-            level = logging.INFO
-        else:
-            level = logging.DEBUG
-        self.log.log(level, f"Added {count} comics to failed imports.")
+            created_objs = FailedImport.objects.bulk_create(create_failed_imports)
+            count += len(created_objs)
+            if count:
+                level = logging.INFO
+            else:
+                level = logging.DEBUG
+            self.log.log(level, f"Added {count} comics to failed imports.")
         return count
 
     def bulk_cleanup_failed_imports(self, library):

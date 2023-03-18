@@ -123,7 +123,7 @@ class CreateForeignKeysMixin(QueuedThread):
 
         return num_operation_groups
 
-    def bulk_folders_modified(self, library, paths):
+    def bulk_folders_modified(self, library, paths, count, total):
         """Update folders stat and nothing else."""
         if not paths:
             return False
@@ -138,13 +138,12 @@ class CreateForeignKeysMixin(QueuedThread):
                 folder.set_stat()
                 folder.updated_at = now
                 update_folders.append(folder)
-        count = Folder.objects.bulk_update(
+        count += Folder.objects.bulk_update(
             update_folders, fields=_BULK_UPDATE_FOLDER_MODIFIED_FIELDS
         )
         if count:
             level = logging.INFO
         else:
-            count = 0
             level = logging.DEBUG
         self.log.log(level, f"Modified {count} folders")
 
@@ -265,10 +264,9 @@ class CreateForeignKeysMixin(QueuedThread):
         return total_fks
 
     def _status_update(self, completed, total_fks, since):
-        since = self.status_controller.update(
+        return self.status_controller.update(
             ImportStatusTypes.CREATE_FKS, completed, total_fks, since=since
         )
-        return since
 
     def bulk_create_all_fks(
         self,
@@ -278,7 +276,7 @@ class CreateForeignKeysMixin(QueuedThread):
         update_groups,
         create_folder_paths,
         create_credits,
-    ) -> bool:
+    ):
         """Bulk create all foreign keys."""
         try:
             total_fks = self._init_create_fk_librarian_status(
@@ -309,6 +307,6 @@ class CreateForeignKeysMixin(QueuedThread):
 
             # This must happen after credit_fks created by create_named_models
             count += self._bulk_create_credits(create_credits)
-            return count > 0
+            return count
         finally:
             self.status_controller.finish(ImportStatusTypes.CREATE_FKS)

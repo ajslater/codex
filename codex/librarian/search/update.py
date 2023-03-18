@@ -5,7 +5,7 @@ from time import time
 from zoneinfo import ZoneInfo
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.db import DatabaseError
+from django.db import DatabaseError, reset_queries
 from haystack.exceptions import SearchFieldError
 from humanize import naturaldelta
 from whoosh.query import Every
@@ -326,6 +326,9 @@ class UpdateMixin(RemoveMixin):
             # Update
             backend.setup(False)
 
+            # after a big import the database cache is very full
+            # nuke it. especially in a lomem environment.
+            reset_queries()
             qs = self._get_queryset(backend, rebuild)
             self._mp_update(backend, qs)
 

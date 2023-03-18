@@ -9,21 +9,21 @@ from codex.threads import QueuedThread
 class DeletedMixin(QueuedThread):
     """Clean up database methods."""
 
-    def bulk_folders_deleted(self, library, delete_folder_paths=None) -> bool:
+    def bulk_folders_deleted(self, library, delete_folder_paths, count, _total):
         """Bulk delete folders."""
         if not delete_folder_paths:
             return False
         query = Folder.objects.filter(library=library, path__in=delete_folder_paths)
-        count = query.count()
-        query.delete()
+        (num_del, _) = query.delete()
+        count += num_del
         if count:
             level = logging.INFO
         else:
             level = logging.DEBUG
         self.log.log(level, f"Deleted {count} folders from {library.path}")
-        return count > 0
+        return count
 
-    def bulk_comics_deleted(self, library, delete_comic_paths) -> bool:
+    def bulk_comics_deleted(self, library, delete_comic_paths, count, _total):
         """Bulk delete comics found missing from the filesystem."""
         if not delete_comic_paths:
             return False
@@ -32,11 +32,11 @@ class DeletedMixin(QueuedThread):
         task = CoverRemoveTask(delete_comic_pks)
         self.librarian_queue.put(task)
 
-        count = len(delete_comic_pks)
-        query.delete()
+        (num_del, _) = query.delete()
+        count += num_del
         if count:
             level = logging.INFO
         else:
             level = logging.DEBUG
         self.log.log(level, f"Deleted {count} comics from {library.path}")
-        return count > 0
+        return count

@@ -1,10 +1,8 @@
 """Bulk update m2m fields."""
 from pathlib import Path
-from time import time
 
 from django.db.models import Q
 
-from codex.librarian.importer.status import ImportStatusTypes
 from codex.models import (
     Comic,
     Credit,
@@ -117,6 +115,59 @@ class LinkComicsMixin(QueuedThread):
             self._link_named_m2ms(all_m2m_links, comic_pk, md)
         return all_m2m_links
 
+    def bulk_fix_comic_m2m_field(self, field_name, m2m_links):
+        """Recreate an m2m field for a set of comics.
+
+        Since we can't bulk_update or bulk_create m2m fields use a trick.
+        bulk_create() on the through table:
+        https://stackoverflow.com/questions/6996176/how-to-create-an-object-for-a-django-model-with-a-many-to-many-field/10116452#10116452
+        https://docs.djangoproject.com/en/dev/ref/models/fields/#django.db.models.ManyToManyField.through
+
+        TODO: EXPERIMENTAL
+        """
+        self.log.debug(
+            f"Determining {field_name} relation adjustments for altered comics."
+        )
+        field = getattr(Comic, field_name)
+        ThroughModel = field.through  # noqa: N806
+        model = Comic._meta.get_field(field_name).related_model
+        if model is None:
+            raise ValueError(f"Bad model from {field_name}")
+        link_name = model.__name__.lower()
+        through_field_id_name = f"{link_name}_id"
+
+        all_del_pks = set()
+        tms = []
+        for comic_pk, pks in m2m_links.items():
+            del_query = ~Q(**{through_field_id_name + "__in": pks})
+            del_pks = (
+                ThroughModel.objects.filter(comic_id=comic_pk)
+                .filter(del_query)
+                .values_list("pk", flat=True)
+            )
+            all_del_pks |= set(del_pks)
+            extant_pks = set(
+                ThroughModel.objects.filter(comic_id=comic_pk).values_list(
+                    through_field_id_name, flat=True
+                )
+            )
+            missing_pks = set(pks) - extant_pks
+            for pk in missing_pks:
+                defaults = {"comic_id": comic_pk, through_field_id_name: pk}
+                tm = ThroughModel(**defaults)
+                tms.append(tm)
+
+        self.log.debug(f"Ajdusting comic {field_name} relations...")
+        (created_count, _) = ThroughModel.objects.bulk_create(tms)
+        self.log.info(
+            f"Created {created_count} new {field_name} relations for altered comics."
+        )
+        del_count = ThroughModel.objects.filter(comic_id__in=all_del_pks).delete()
+        self.log.info(
+            f"Deleted {del_count} stale {field_name} relations for altered comics."
+        )
+        return created_count + del_count
+
     def bulk_recreate_m2m_field(self, field_name, m2m_links):
         """Recreate an m2m field for a set of comics.
 
@@ -134,6 +185,8 @@ class LinkComicsMixin(QueuedThread):
         link_name = model.__name__.lower()
         through_field_id_name = f"{link_name}_id"
         tms = []
+        # TODO try to actually read in all the links and only create the new ones.
+        # TODO in a lowmem environment.
         for comic_pk, pks in m2m_links.items():
             for pk in pks:
                 defaults = {"comic_id": comic_pk, through_field_id_name: pk}
@@ -144,36 +197,26 @@ class LinkComicsMixin(QueuedThread):
         #   detect, create & delete them.
         ThroughModel.objects.filter(comic_id__in=m2m_links.keys()).delete()
         ThroughModel.objects.bulk_create(tms)
-        self.log.info(
-            f"Recreated {len(tms)} {field_name} relations for altered comics."
-        )
+        count = len(tms)
+        self.log.info(f"Recreated {count} {field_name} relations for altered comics.")
+        return count
 
     def bulk_link_comic_m2m_fields(self, all_m2m_links):
         """Create and recreate links to m2m fields in bulk."""
-        total_links = 0
-        for m2m_links in all_m2m_links.values():
-            total_links += len(m2m_links)
-
-        since = time()
-        completed_links = 0
         for field_name, m2m_links in all_m2m_links.items():
             try:
                 self.bulk_recreate_m2m_field(field_name, m2m_links)
+                # self.bulk_fix_comic_m2m_field(field_name, m2m_links)
             except Exception as exc:
                 self.log.error(f"Error recreating m2m field: {field_name}")
                 self.log.exception(exc)
-            completed_links = len(m2m_links)
-            since = self.status_controller.update(
-                ImportStatusTypes.LINK_M2M_FIELDS,
-                completed_links,
-                total_links,
-                since=since,
-            )
-        return completed_links
 
-    def bulk_query_and_link_comic_m2m_fields(self, _libarary, m2m_mds):
+    def bulk_query_and_link_comic_m2m_fields(
+        self, _library, all_m2m_mds, count, _total
+    ):
         """Combine query and bulk link into a batch."""
-        # TODO try to figure a way to ad a QUERY_M2M_FIELDS status update
-        m2m_links = self._link_comic_m2m_fields(m2m_mds)
-        self.bulk_link_comic_m2m_fields(m2m_links)
-        return 0
+        count = len(all_m2m_mds)
+        # TODO: could get all the data first, and count it before sending it to the linker.
+        all_m2m_links = self._link_comic_m2m_fields(all_m2m_mds)
+        self.bulk_link_comic_m2m_fields(all_m2m_links)
+        return count

@@ -8,7 +8,7 @@ from codex.models import (
 class CreateComicsMixin(LinkComicsMixin):
     """Create comics methods."""
 
-    def _create_comics(self, library, comic_paths, mds):
+    def _create_comics(self, library, comic_paths, mds, count):
         """Bulk create comics."""
         if not comic_paths:
             return 0
@@ -40,16 +40,15 @@ class CreateComicsMixin(LinkComicsMixin):
         self.log.debug(f"Bulk creating {num_comics} comics...")
         try:
             created_comics = Comic.objects.bulk_create(create_comics)
-            created_count = len(created_comics)
+            count += len(created_comics)
         except Exception as exc:
-            created_count = 0
             self.log.error(exc)
             self.log.error("While creating", comic_paths)
 
-        return created_count
+        return count
 
-    def bulk_create_comics(self, library, create_paths, all_bulk_mds):
+    def bulk_create_comics(self, library, create_paths, count, _total, all_bulk_mds):
         """Bulk create comics."""
         # TODO simplify
-        create_count = self._create_comics(library, create_paths, all_bulk_mds)
+        create_count = self._create_comics(library, create_paths, all_bulk_mds, count)
         return create_count

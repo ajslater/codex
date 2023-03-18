@@ -26,7 +26,9 @@ for field in Comic._meta.get_fields():
 class UpdateComicsMixin(LinkComicsMixin):
     """Create comics methods."""
 
-    def _update_comics(self, library, comic_paths: set, mds) -> tuple[int, frozenset]:
+    def _update_comics(
+        self, library, comic_paths: set, mds, count
+    ) -> tuple[int, frozenset]:
         """Bulk update comics."""
         if not comic_paths:
             return 0, frozenset()
@@ -70,15 +72,12 @@ class UpdateComicsMixin(LinkComicsMixin):
 
         self.log.debug(f"Bulk updating {len(update_comics)} comics.")
         try:
-            count = Comic.objects.bulk_update(update_comics, _BULK_UPDATE_COMIC_FIELDS)
-            if not count:
-                count = 0
+            count += Comic.objects.bulk_update(update_comics, _BULK_UPDATE_COMIC_FIELDS)
 
             task = CoverRemoveTask(frozenset(comic_pks))
             self.log.debug(f"Purging covers for {len(comic_pks)} updated comics.")
             self.librarian_queue.put(task)
         except Exception as exc:
-            count = 0
             self.log.error(exc)
             self.log.error("While updating", comic_update_paths)
 
@@ -87,11 +86,13 @@ class UpdateComicsMixin(LinkComicsMixin):
 
         return (count, converted_create_paths)
 
-    def bulk_update_comics(self, library, update_paths, create_paths, all_bulk_mds):
+    def bulk_update_comics(
+        self, library, update_paths, count, _total, create_paths, all_bulk_mds
+    ):
         """Bulk update comics, and move nonextant comics into create job.."""
         # TODO try to simplify
         update_count, converted_create_paths = self._update_comics(
-            library, update_paths, all_bulk_mds
+            library, update_paths, all_bulk_mds, count
         )
         create_paths.update(converted_create_paths)
         return update_count
