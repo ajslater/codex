@@ -228,9 +228,10 @@ class CreateForeignKeysMixin(QueuedThread):
             else:
                 level = logging.DEBUG
             self.log.log(level, f"Created {total_count}/{num_folder_paths} Folders.")
-            since = self.status_controller.update(
-                ImportStatusTypes.CREATE_FKS, count, total, since=since
-            )
+            if total:
+                since = self.status_controller.update(
+                    ImportStatusTypes.CREATE_FKS, count, total, since=since
+                )
         return total_count
 
     def bulk_create_named_models(self, _library, names, count, total, named_class):
