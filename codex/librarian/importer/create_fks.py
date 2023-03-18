@@ -112,12 +112,22 @@ class CreateForeignKeysMixin(QueuedThread):
         count = group_class.objects.bulk_update(update_groups, fields=[count_field])
         return count
 
-    def _bulk_create_or_update_groups(
-        self, all_operation_groups, func, log_tion, log_verb
+    def bulk_create_or_update_groups(
+        self, _library, all_operation_groups, count, total, update
     ):
         """Create missing groups breadth first."""
         if not all_operation_groups:
             return False
+        since = time()
+        if update:
+            func = self._bulk_group_updater
+            log_tion = "creation"
+            log_verb = "Created"
+        else:
+            func = self._bulk_group_creator
+            log_tion = "update"
+            log_verb = "Updated"
+
         num_operation_groups = 0
         for group_class, group_tree_counts in all_operation_groups.items():
             if not group_tree_counts:
@@ -126,18 +136,21 @@ class CreateForeignKeysMixin(QueuedThread):
                 f"Preparing {len(group_tree_counts)} "
                 f"{group_class.__name__}s for {log_tion}..."
             )
-            count = func(group_tree_counts, group_class)
-
-            num_operation_groups += count
+            updated_or_created = func(group_tree_counts, group_class)
+            count += updated_or_created
+            num_operation_groups += updated_or_created
             if count:
                 level = logging.INFO
             else:
                 level = logging.DEBUG
             self.log.log(level, f"{log_verb} {count} {group_class.__name__}s.")
+            since = self.status_controller.update(
+                ImportStatusTypes.CREATE_FKS, count, total, since=since
+            )
 
         return num_operation_groups
 
-    def bulk_folders_modified(self, library, paths, count, total):
+    def bulk_folders_modified(self, library, paths, count, _total):
         """Update folders stat and nothing else."""
         if not paths:
             return False
@@ -163,11 +176,11 @@ class CreateForeignKeysMixin(QueuedThread):
 
         return count
 
-    def bulk_folders_create(self, library, folder_paths):
+    def bulk_folders_create(self, library, folder_paths, count, total):
         """Create folders breadth first."""
         if not folder_paths:
             return False
-
+        since = time()
         num_folder_paths = len(folder_paths)
         self.log.debug(f"Preparing {num_folder_paths} folders for creation.")
         # group folder paths by depth
@@ -207,16 +220,20 @@ class CreateForeignKeysMixin(QueuedThread):
                 update_fields=_BULK_UPDATE_FOLDER_MODIFIED_FIELDS,
                 unique_fields=Folder.Meta.unique_together,
             )
-            count = len(create_folders)
-            total_count += count
-            if count:
+            batch_count = len(create_folders)
+            count += batch_count
+            total_count += batch_count
+            if batch_count:
                 level = logging.INFO
             else:
                 level = logging.DEBUG
             self.log.log(level, f"Created {total_count}/{num_folder_paths} Folders.")
+            since = self.status_controller.update(
+                ImportStatusTypes.CREATE_FKS, count, total, since=since
+            )
         return total_count
 
-    def _bulk_create_named_models(self, named_class, names):
+    def bulk_create_named_models(self, _library, names, count, total, named_class):
         """Bulk create named models."""
         if not names:
             return False
@@ -233,14 +250,10 @@ class CreateForeignKeysMixin(QueuedThread):
             update_fields=_NAMED_MODEL_UPDATE_FIELDS,
             unique_fields=named_class.Meta.unique_together,
         )
-        if count:
-            level = logging.INFO
-        else:
-            level = logging.DEBUG
-        self.log.log(level, f"Created {count} {named_class.__name__}s.")
+        self.log.info(f"Created {count} {named_class.__name__}s.")
         return count
 
-    def _bulk_create_credits(self, create_credit_tuples):
+    def bulk_create_credits(self, _library, create_credit_tuples, _count, _total):
         """Bulk create credits."""
         if not create_credit_tuples:
             return False
@@ -263,79 +276,6 @@ class CreateForeignKeysMixin(QueuedThread):
             update_fields=_CREDIT_UPDATE_FIELDS,
             unique_fields=Credit.Meta.unique_together,
         )
-        count = len(create_credits)
-        if count:
-            level = logging.INFO
-        else:
-            level = logging.DEBUG
-        self.log.log(level, f"Created {count} Credits.")
-
-        return count
-
-    def _init_create_fk_librarian_status(
-        self,
-        create_groups,
-        update_groups,
-        create_folder_paths,
-        create_fks,
-        create_credits,
-    ):
-        total_fks = 0
-        for groups in create_groups.values():
-            total_fks += len(groups)
-        for groups in update_groups.values():
-            total_fks += len(groups)
-        total_fks += len(create_folder_paths)
-        for names in create_fks.values():
-            total_fks += len(names)
-        total_fks += len(create_credits)
-        self.status_controller.start(ImportStatusTypes.CREATE_FKS, 0, total_fks)
-        return total_fks
-
-    def _status_update(self, completed, total_fks, since):
-        return self.status_controller.update(
-            ImportStatusTypes.CREATE_FKS, completed, total_fks, since=since
-        )
-
-    def bulk_create_all_fks(
-        self,
-        library,
-        create_fks,
-        create_groups,
-        update_groups,
-        create_folder_paths,
-        create_credits,
-    ):
-        """Bulk create all foreign keys."""
-        try:
-            total_fks = self._init_create_fk_librarian_status(
-                create_groups,
-                update_groups,
-                create_folder_paths,
-                create_fks,
-                create_credits,
-            )
-            since = time()
-            self.log.debug(f"Creating comic foreign keys for {library.path}...")
-            count = 0
-            count += self._bulk_create_or_update_groups(
-                create_groups, self._bulk_group_creator, "creation", "Created"
-            )
-            since = self._status_update(count, total_fks, since)
-            count += self._bulk_create_or_update_groups(
-                update_groups, self._bulk_group_updater, "update", "Updated"
-            )
-            since = self._status_update(count, total_fks, since)
-
-            count += self.bulk_folders_create(library, create_folder_paths)
-            since = self._status_update(count, total_fks, since)
-
-            for cls, names in create_fks.items():
-                count += self._bulk_create_named_models(cls, names)
-                since = self._status_update(count, total_fks, since)
-
-            # This must happen after credit_fks created by create_named_models
-            count += self._bulk_create_credits(create_credits)
-            return count
-        finally:
-            self.status_controller.finish(ImportStatusTypes.CREATE_FKS)
+        create_count = len(create_credits)
+        self.log.info(f"Created {create_count} Credits.")
+        return create_count

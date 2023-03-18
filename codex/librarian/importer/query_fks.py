@@ -17,7 +17,6 @@ from codex.models import (
 )
 from codex.threads import QueuedThread
 
-_CREDIT_FK_NAMES = ("role", "person")
 _CLASS_QUERY_FIELDS_MAP = {
     Credit: ("role__name", "person__name"),
     Folder: ("path",),
@@ -46,7 +45,7 @@ class QueryForeignKeysMixin(QueuedThread):
         )
         return existing_mds
 
-    def _query_create_metadata(self, fk_cls, create_mds, all_filter_args):
+    def _query_create_metadata(self, fk_cls, create_mds, all_filter_args, count, total):
         """Get create metadata by comparing proposed meatada to existing rows."""
         # Do this in batches so as not to exceed the 1k line sqlite limit
         filter = Q()
@@ -54,7 +53,6 @@ class QueryForeignKeysMixin(QueuedThread):
         all_filter_args = tuple(all_filter_args)
         since = time()
         ls = LibrarianStatus.objects.get(type=ImportStatusTypes.QUERY_MISSING_FKS)
-        ls_complete = 0 if ls.complete is None else ls.complete
         num_filter_args_batches = len(all_filter_args)
         ls_total = 0 if ls.total is None else ls.total
         ls_total += num_filter_args_batches
@@ -71,10 +69,11 @@ class QueryForeignKeysMixin(QueuedThread):
                 filter = Q()
                 filter_arg_count = 0
 
+                count += num
                 since = self.status_controller.update(
                     ImportStatusTypes.QUERY_MISSING_FKS,
-                    ls_complete + num,
-                    ls_total,
+                    count,
+                    total,
                     since=since,
                     name=fk_cls.__name__,
                 )
@@ -93,12 +92,12 @@ class QueryForeignKeysMixin(QueuedThread):
 
         filter_args[key] = group_name
 
-    def _query_missing_group_type(self, fk_cls, groups):
+    def _query_missing_group_type(self, fk_cls, groups, count, total):
         """Get missing groups from proposed groups to create."""
         # create the filters
         candidates = {}
         all_filter_args = set()
-        for group_tree, count in groups.items():
+        for group_tree, count_dict in groups.items():
             filter_args = {}
             self._add_parent_group_filter(filter_args, group_tree[-1], "")
             if fk_cls in (Imprint, Series, Volume):
@@ -109,12 +108,12 @@ class QueryForeignKeysMixin(QueuedThread):
                 self._add_parent_group_filter(filter_args, group_tree[2], "series")
 
             all_filter_args.add(tuple(sorted(filter_args.items())))
-            candidates[group_tree] = count
+            candidates[group_tree] = count_dict
 
         # get the create metadata
         candidate_groups = set(candidates.keys())
         create_group_set = self._query_create_metadata(
-            fk_cls, candidate_groups, all_filter_args
+            fk_cls, candidate_groups, all_filter_args, count, total
         )
 
         # Append the count metadata to the create_groups
@@ -128,22 +127,31 @@ class QueryForeignKeysMixin(QueuedThread):
                 update_groups[group_tree] = count_dict
         return create_groups, update_groups
 
-    def _query_missing_groups(self, group_trees_md):
+    def query_missing_groups(
+        self,
+        _library,
+        group_trees_md,
+        count,
+        total,
+        all_create_groups,
+        all_update_groups,
+    ):
         """Get missing groups from proposed groups to create."""
-        all_create_groups = {}
-        all_update_groups = {}
-        count = 0
         for group_class, groups in group_trees_md.items():
             create_groups, update_groups = self._query_missing_group_type(
-                group_class, groups
+                group_class, groups, count, total
             )
-            all_create_groups[group_class] = create_groups
+            if group_class not in all_create_groups:
+                all_create_groups[group_class] = {}
+            all_create_groups[group_class].update(create_groups)
             if update_groups:
-                all_update_groups[group_class] = update_groups
-            count += len(create_groups)
-        return all_create_groups, all_update_groups, count
+                if group_class not in all_update_groups:
+                    all_update_groups[group_class] = {}
+                all_update_groups[group_class].update(update_groups)
+            count += len(groups)
+        return count
 
-    def _query_missing_credits(self, credits):
+    def query_missing_credits(self, _library, credits, count, total, create_credits):
         """Find missing credit objects."""
         # create the filter
         comparison_credits = set()
@@ -162,9 +170,15 @@ class QueryForeignKeysMixin(QueuedThread):
             comparison_credits.add(comparison_tuple)
 
         # get the create metadata
-        return self._query_create_metadata(Credit, comparison_credits, all_filter_args)
+        new_create_credits = self._query_create_metadata(
+            Credit, comparison_credits, all_filter_args, count, total
+        )
+        create_credits.update(new_create_credits)
+        return len(credits)
 
-    def _query_missing_simple_models(self, base_cls, field, fk_field, names):
+    def query_missing_simple_models(
+        self, library, names, count, total, create_fks, base_cls, field, fk_field
+    ):
         """Find missing named models and folders."""
         # Do this in batches so as not to exceed the 1k line sqlite limit
         fk_cls = base_cls._meta.get_field(field).related_model
@@ -176,11 +190,6 @@ class QueryForeignKeysMixin(QueuedThread):
         num = 0
         since = time()
 
-        # Init status update.
-        ls = LibrarianStatus.objects.get(type=ImportStatusTypes.QUERY_MISSING_FKS)
-        ls_complete = 0 if ls.complete is None else ls.complete
-        ls_total = ls.total
-
         while offset < num_proposed_names:
             end = offset + _SQLITE_FILTER_ARG_MAX
             batch_proposed_names = proposed_names[offset:end]
@@ -188,21 +197,27 @@ class QueryForeignKeysMixin(QueuedThread):
             filter = Q(**filter_args)
             create_names -= self._query_existing_mds(fk_cls, filter)
             num += len(batch_proposed_names)
+            count += num
             since = self.status_controller.update(
                 ImportStatusTypes.QUERY_MISSING_FKS,
-                ls_complete + num,
-                ls_total,
+                count,
+                total,
                 since=since,
                 name=fk_cls.__name__,
             )
             offset += _SQLITE_FILTER_ARG_MAX
 
-        return fk_cls, create_names
+        if fk_cls not in create_fks:
+            create_fks[fk_cls] = {}
+        create_fks[fk_cls].update(create_names)
+        return len(names)
 
-    def query_missing_folder_paths(self, library_path, comic_paths):
+    def query_missing_folder_paths(
+        self, library, comic_paths, count, total, create_folder_paths
+    ):
         """Find missing folder paths."""
         # Get the proposed folder_paths
-        library_path = Path(library_path)
+        library_path = Path(library.path)
         proposed_folder_paths = set()
         for comic_path in comic_paths:
             for path in Path(comic_path).parents:
@@ -210,77 +225,16 @@ class QueryForeignKeysMixin(QueuedThread):
                     proposed_folder_paths.add(str(path))
 
         # get the create metadata
-        _, create_folder_paths = self._query_missing_simple_models(
-            Comic, "parent_folder", "path", proposed_folder_paths
+        create_folder_paths_dict = {}
+        count = self.query_missing_simple_models(
+            library,
+            proposed_folder_paths,
+            count,
+            total,
+            create_folder_paths_dict,
+            Comic,
+            "parent_folder",
+            "path",
         )
-
-        return create_folder_paths
-
-    def _init_status(self, fks):
-        """Initialize Status update."""
-        ls_total = 0
-        for key, objs in fks.items():
-            if key == "group_trees":
-                for trees in objs.values():
-                    ls_total += len(trees)
-            else:
-                ls_total += len(objs)
-
-        self.status_controller.start(ImportStatusTypes.QUERY_MISSING_FKS, ls_total)
-
-    def query_all_missing_fks(self, library_path, fks):
-        """Get objects to create by querying existing objects for the proposed fks."""
-        try:
-            self.log.debug(
-                f"Querying existing foreign keys for comics in {library_path}"
-            )
-            self._init_status(fks)
-
-            create_credits = set()
-            if "credits" in fks:
-                credits = fks.pop("credits")
-                create_credits |= self._query_missing_credits(credits)
-                self.log.info(f"Prepared {len(create_credits)} new credits.")
-
-            if "group_trees" in fks:
-                group_trees = fks.pop("group_trees")
-                (
-                    create_groups,
-                    update_groups,
-                    create_group_count,
-                ) = self._query_missing_groups(group_trees)
-                self.log.info(f"Prepared {create_group_count} new groups.")
-            else:
-                create_groups = {}
-                update_groups = {}
-
-            create_folder_paths = set()
-            if "comic_paths" in fks:
-                create_folder_paths |= self.query_missing_folder_paths(
-                    library_path, fks.pop("comic_paths")
-                )
-                self.log.info(f"Prepared {len(create_folder_paths)} new folders.")
-
-            create_fks = {}
-            for field in fks.keys():
-                names = fks.get(field)
-                if field in _CREDIT_FK_NAMES:
-                    base_cls = Credit
-                else:
-                    base_cls = Comic
-                model, names = self._query_missing_simple_models(
-                    base_cls, field, "name", names
-                )
-                create_fks[model] = names
-                if num_names := len(names):
-                    self.log.info(f"Prepared {num_names} new {field}.")
-
-            return (
-                create_fks,
-                create_groups,
-                update_groups,
-                create_folder_paths,
-                create_credits,
-            )
-        finally:
-            self.status_controller.finish(ImportStatusTypes.QUERY_MISSING_FKS)
+        create_folder_paths.update(create_folder_paths_dict.get(Folder, set()))
+        return count

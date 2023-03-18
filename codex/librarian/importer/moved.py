@@ -82,7 +82,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
         create_folder_paths = frozenset(
             dest_parent_folder_paths - frozenset(existing_folder_paths)
         )
-        self.bulk_folders_create(library, create_folder_paths)
+        self.bulk_folders_create(library, create_folder_paths, 0, 0)
 
         # get parent folders path to model obj dict
         dest_parent_folders_objs = Folder.objects.filter(

@@ -18,10 +18,11 @@ from codex.librarian.notifier.tasks import FAILED_IMPORTS_TASK, LIBRARY_CHANGED_
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexUpdateTask
 from codex.librarian.tasks import DelayedTasks
-from codex.models import Library
+from codex.models import Comic, Credit, Library
 from codex.settings.settings import MAX_IMPORT_BATCH_SIZE
 
 _WRITE_WAIT_EXPIRY = 60
+_CREDIT_FK_NAMES = ("role", "person")
 
 
 class ComicImporterThread(
@@ -182,10 +183,12 @@ class ComicImporterThread(
         self._log_task(library.path, task)
         self._init_librarian_status(task, library.path)
 
-    def batch_db_op(self, library, data, func, status, args=None, updates=True):
+    def batch_db_op(
+        self, library, data, func, status, args=None, updates=True, count=0, total=0
+    ):
         """Run a function batched for memory contrainsts bracketed by status changes."""
-        count = 0
         num_elements = len(data)
+        finish = bool(total)
         try:
             if not num_elements:
                 return count
@@ -203,6 +206,8 @@ class ComicImporterThread(
             if args is None:
                 args = ()
 
+            if not total:
+                total = num_elements
             while start < num_elements:
                 if updates:
                     self.status_controller.update(status, count, num_elements)
@@ -210,12 +215,13 @@ class ComicImporterThread(
                     batch = dict(islice(data.items(), start, end))  # type: ignore
                 else:
                     batch = set(data[start:end])
-                all_args = (library, batch, count, num_elements, *args)
+                all_args = (library, batch, count, total, *args)
                 count += int(func(*all_args))
                 start = end + 1
                 end = start + batch_size
         finally:
-            self.status_controller.finish(status)
+            if finish:
+                self.status_controller.finish(status)
 
         return count
 
@@ -241,22 +247,187 @@ class ComicImporterThread(
         )
         return changed
 
+    def query_all_missing_fks(self, library, fks):
+        """Get objects to create by querying existing objects for the proposed fks."""
+        create_credits = set()
+        create_groups = {}
+        update_groups = {}
+        create_folder_paths = set()
+        create_fks = {}
+        try:
+            self.log.debug(
+                f"Querying existing foreign keys for comics in {library.path}"
+            )
+            count = 0
+            fks_total = 0
+            for key, objs in fks.items():
+                if key == "group_trees":
+                    for trees in objs.values():
+                        fks_total += len(trees)
+                else:
+                    fks_total += len(objs)
+            self.status_controller.start(
+                ImportStatusTypes.QUERY_MISSING_FKS, 0, fks_total
+            )
+
+            if "credits" in fks:
+                # TODO pass in larger count and total
+                count += self.batch_db_op(
+                    library,
+                    fks.pop("credits"),
+                    self.query_missing_credits,
+                    ImportStatusTypes.QUERY_MISSING_FKS,
+                    args=(create_credits,),
+                    count=count,
+                    total=fks_total,
+                )
+                self.log.info(f"Prepared {len(create_credits)} new credits.")
+
+            # TODO maybe batch even more
+            if "group_trees" in fks:
+                count += self.batch_db_op(
+                    library,
+                    fks.pop("group_trees"),
+                    self.query_missing_groups,
+                    ImportStatusTypes.QUERY_MISSING_FKS,
+                    args=(create_groups, update_groups),
+                    count=count,
+                    total=fks_total,
+                )
+                self.log.info(f"Prepared {len(create_groups)} new groups.")
+
+            if "comic_paths" in fks:
+                count += self.batch_db_op(
+                    library,
+                    fks.pop("comic_paths"),
+                    self.query_missing_folder_paths,
+                    ImportStatusTypes.QUERY_MISSING_FKS,
+                    args=(create_folder_paths,),
+                    count=count,
+                    total=fks_total,
+                )
+                self.log.info(f"Prepared {len(create_folder_paths)} new folders.")
+
+            for fk_field in tuple(fks.keys()):
+                names = fks.pop(fk_field)
+                if fk_field in _CREDIT_FK_NAMES:
+                    base_cls = Credit
+                else:
+                    base_cls = Comic
+                count += self.batch_db_op(
+                    library,
+                    names,
+                    self.query_missing_simple_models,
+                    ImportStatusTypes.QUERY_MISSING_FKS,
+                    args=(create_fks, base_cls, fk_field, "name"),
+                    count=count,
+                    total=fks_total,
+                )
+                if num_names := len(names):
+                    self.log.info(f"Prepared {num_names} new {fk_field}.")
+        finally:
+            self.status_controller.finish(ImportStatusTypes.QUERY_MISSING_FKS)
+
+        return (
+            create_fks,
+            create_groups,
+            update_groups,
+            create_folder_paths,
+            create_credits,
+        )
+
+    def bulk_create_all_fks(
+        self,
+        library,
+        create_fks,
+        create_groups,
+        update_groups,
+        create_folder_paths,
+        create_credits,
+    ):
+        """Bulk create all foreign keys."""
+        try:
+            count = 0
+            total_fks = 0
+            for groups in create_groups.values():
+                total_fks += len(groups)
+            for groups in update_groups.values():
+                total_fks += len(groups)
+            total_fks += len(create_folder_paths)
+            for names in create_fks.values():
+                total_fks += len(names)
+            total_fks += len(create_credits)
+            status = ImportStatusTypes.CREATE_FKS
+            self.status_controller.start(status, 0, total_fks)
+
+            self.log.debug(f"Creating comic foreign keys for {library.path}...")
+            # TODO BATCH MORE?
+            count += self.batch_db_op(
+                library,
+                create_groups,
+                self.bulk_create_or_update_groups,
+                status,
+                args=(False,),
+                count=count,
+                total=total_fks,
+            )
+            count += self.batch_db_op(
+                library,
+                update_groups,
+                self.bulk_create_or_update_groups,
+                status,
+                args=(True,),
+                count=count,
+                total=total_fks,
+            )
+
+            count += self.batch_db_op(
+                library,
+                create_folder_paths,
+                self.bulk_folders_create,
+                status,
+                count=count,
+                total=total_fks,
+            )
+
+            for named_cls, names in create_fks.items():
+                count += self.batch_db_op(
+                    library,
+                    names,
+                    self.bulk_create_named_models,
+                    status,
+                    args=(named_cls,),
+                    count=count,
+                    total=total_fks,
+                )
+
+            # This must happen after credit_fks created by create_named_models
+            count += self.batch_db_op(
+                library,
+                create_credits,
+                self.bulk_create_credits,
+                status,
+                count=count,
+                total=total_fks,
+            )
+            return count
+        finally:
+            self.status_controller.finish(ImportStatusTypes.CREATE_FKS)
+
     def _create_comic_relations(self, library, fks):
         """Query all foreign keys to determine what needs creating, then create them."""
-        # TODO batch
         if not fks:
             return 0
 
-        # fks is a multilayered dict
-        #   so hard to batch with db_ops
         (
             create_fks,
             create_groups,
             update_groups,
             create_paths,
             create_credits,
-        ) = self.query_all_missing_fks(library.path, fks)
+        ) = self.query_all_missing_fks(library, fks)
 
+        # TODO batch
         count = self.bulk_create_all_fks(
             library,
             create_fks,
@@ -315,7 +486,7 @@ class ComicImporterThread(
                 failed_imports,
                 self.query_failed_imports,
                 ImportStatusTypes.FAILED_IMPORTS_QUERY,
-                args=(update_fis, create_fis, delete_fi_paths)
+                args=(update_fis, create_fis, delete_fi_paths),
             )
 
             self.batch_db_op(
