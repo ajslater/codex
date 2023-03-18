@@ -4,4 +4,4 @@ set -euxo pipefail
 # for benchmarking memory intese query opterations
 export DEBUG=0
 export LOGLEVEL=DEBUG
-./dev-codex.sh
+VITE_SERVER=localhost ./dev-codex.sh
