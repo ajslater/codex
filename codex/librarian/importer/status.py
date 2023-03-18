@@ -5,7 +5,6 @@ from codex.librarian.status import StatusTypes
 class ImportStatusTypes(StatusTypes):
     """Keys for Import tasks."""
 
-    # TODO rename consistently
     DIRS_MOVED = "Move folders"
     FILES_MOVED = "Move books"
     AGGREGATE_TAGS = "Read tags"
@@ -20,4 +19,4 @@ class ImportStatusTypes(StatusTypes):
     FILES_DELETED = "Delete books"
     FAILED_IMPORTS_MODIFIED = "Update old failed imports"
     FAILED_IMPORTS_CLEAN = "Remove succeeded failed imports"
-    FAILED_IMPORTS_CREATE= "Record Failed Imports"
+    FAILED_IMPORTS_CREATE = "Record Failed Imports"

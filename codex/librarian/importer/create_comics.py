@@ -9,7 +9,7 @@ from codex.models import (
 class CreateComicsMixin(LinkComicsMixin):
     """Create comics methods."""
 
-    def _create_comics(self, library, comic_paths, mds, count):
+    def bulk_create_comics(self, library, comic_paths, count, _total, mds):
         """Bulk create comics."""
         if not comic_paths:
             return 0
@@ -52,9 +52,3 @@ class CreateComicsMixin(LinkComicsMixin):
             self.log.error("While creating", comic_paths)
 
         return count
-
-    def bulk_create_comics(self, library, create_paths, count, _total, all_bulk_mds):
-        """Bulk create comics."""
-        # TODO simplify
-        create_count = self._create_comics(library, create_paths, all_bulk_mds, count)
-        return create_count

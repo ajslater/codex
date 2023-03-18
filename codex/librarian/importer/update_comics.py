@@ -26,12 +26,18 @@ for field in Comic._meta.get_fields():
 class UpdateComicsMixin(LinkComicsMixin):
     """Create comics methods."""
 
-    def _update_comics(
-        self, library, comic_paths: set, mds, count
-    ) -> tuple[int, frozenset, list]:
-        """Bulk update comics."""
+    def bulk_update_comics(
+        self,
+        library,
+        comic_paths,
+        count,
+        _total,
+        create_paths,
+        mds,
+    ):
+        """Bulk update comics, and move nonextant comics into create job.."""
         if not comic_paths:
-            return 0, frozenset(), []
+            return count
 
         self.log.debug(
             f"Preparing {len(comic_paths)} comics for update in library {library.path}."
@@ -66,6 +72,7 @@ class UpdateComicsMixin(LinkComicsMixin):
         )
 
         converted_create_paths = frozenset(comic_paths - comic_update_paths)
+        create_paths.update(converted_create_paths)
         self.log.info(
             f"Converted {len(converted_create_paths)} update paths to create paths."
         )
@@ -84,15 +91,4 @@ class UpdateComicsMixin(LinkComicsMixin):
         if count:
             Timestamp.touch(Timestamp.COVERS)
 
-        return count, converted_create_paths, comic_pks
-
-    def bulk_update_comics(
-        self, library, update_paths, count, _total, create_paths, all_bulk_mds
-    ):
-        """Bulk update comics, and move nonextant comics into create job.."""
-        # TODO try to simplify
-        update_count, converted_create_paths, comic_pks = self._update_comics(
-            library, update_paths, all_bulk_mds, count
-        )
-        create_paths.update(converted_create_paths)
-        return update_count
+        return count
