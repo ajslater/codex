@@ -233,18 +233,21 @@ class ComicImporterThread(
             self.bulk_folders_moved,
             ImportStatusTypes.DIRS_MOVED,
         )
+        task.dirs_moved = None
         changed += self.batch_db_op(
             library,
             task.files_moved,
             self.bulk_comics_moved,
             ImportStatusTypes.FILES_MOVED,
         )
+        task.files_moved = None
         changed += self.batch_db_op(
             library,
             task.dirs_modified,
             self.bulk_folders_modified,
             ImportStatusTypes.DIRS_MODIFIED,
         )
+        task.dirs_modified = None
         return changed
 
     def query_all_missing_fks(self, library, fks):
@@ -271,7 +274,6 @@ class ComicImporterThread(
             )
 
             if "credits" in fks:
-                # TODO pass in larger count and total
                 count += self.batch_db_op(
                     library,
                     fks.pop("credits"),
@@ -427,7 +429,6 @@ class ComicImporterThread(
             create_credits,
         ) = self.query_all_missing_fks(library, fks)
 
-        # TODO batch
         count = self.bulk_create_all_fks(
             library,
             create_fks,
@@ -521,12 +522,14 @@ class ComicImporterThread(
             self.bulk_folders_deleted,
             ImportStatusTypes.DIRS_DELETED,
         )
+        task.dirs_deleted = None
         changed += self.batch_db_op(
             library,
             task.files_deleted,
             self.bulk_comics_deleted,
             ImportStatusTypes.FILES_DELETED,
         )
+        task.files_deleted = None
         return changed
 
     def _finish_apply_status(self, library):
@@ -574,6 +577,7 @@ class ComicImporterThread(
 
             modified_paths = task.files_modified
             created_paths = task.files_created
+            task.files_modified = task.files_created = None
             mds, m2m_mds, fks, fis = self.get_aggregate_metadata(
                 library, modified_paths | created_paths
             )
@@ -586,6 +590,7 @@ class ComicImporterThread(
                 library, modified_paths, created_paths, mds, m2m_mds
             )
             changed += imported_count
+            modified_paths = created_paths = None
 
             new_failed_imports = self._bulk_fail_imports(library, fis)
 
