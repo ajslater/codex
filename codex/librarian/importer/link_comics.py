@@ -199,7 +199,6 @@ class LinkComicsMixin(QueuedThread):
     ):
         """Combine query and bulk link into a batch."""
         count = len(all_m2m_mds)
-        # TODO: could get all the data first, and count it before sending it to the linker.
         all_m2m_links = self._link_comic_m2m_fields(all_m2m_mds)
         self.bulk_link_comic_m2m_fields(all_m2m_links)
         return count

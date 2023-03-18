@@ -7,7 +7,6 @@ from time import sleep, time
 from django.core.cache import cache
 from humanize import naturaldelta
 
-from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.importer.aggregate_metadata import AggregateMetadataMixin
 from codex.librarian.importer.deleted import DeletedMixin
 from codex.librarian.importer.failed_imports import FailedImportsMixin
@@ -318,11 +317,6 @@ class ComicImporterThread(
                 "total": len(task.files_deleted),
             }
             search_index_updates += len(task.files_deleted)
-        if task.files_modified or task.files_deleted:
-            types_map[CoverStatusTypes.PURGE] = {
-                "complete": 0,
-                "total": len(task.files_modified) + len(task.files_deleted),
-            }
         types_map[SearchIndexStatusTypes.SEARCH_INDEX_UPDATE] = {
             "complete": 0,
             "total": search_index_updates,
