@@ -117,8 +117,8 @@ class LinkComicsMixin(QueuedThread):
         return all_m2m_links
 
     def _query_relation_adjustments(
-            self, field_name, m2m_links, ThroughModel # noqa: N803
-        ):
+        self, field_name, m2m_links, ThroughModel  # noqa: N803
+    ):
         self.log.debug(
             f"Determining {field_name} relation adjustments for altered comics."
         )
@@ -171,8 +171,9 @@ class LinkComicsMixin(QueuedThread):
             level = INFO
         else:
             level = DEBUG
-        self.log.log(level,
-            f"Created {created_count} new {field_name} relations for altered comics."
+        self.log.log(
+            level,
+            f"Created {created_count} new {field_name} relations for altered comics.",
         )
 
         (del_count, _) = ThroughModel.objects.filter(comic_id__in=all_del_pks).delete()
@@ -180,8 +181,9 @@ class LinkComicsMixin(QueuedThread):
             level = INFO
         else:
             level = DEBUG
-        self.log.log(level,
-            f"Deleted {del_count} stale {field_name} relations for altered comics."
+        self.log.log(
+            level,
+            f"Deleted {del_count} stale {field_name} relations for altered comics.",
         )
         return created_count + del_count
 
