@@ -247,6 +247,8 @@ class ComicImporterThread(
         if not fks:
             return 0
 
+        # fks is a multilayered dict
+        #   so hard to batch with db_ops
         (
             create_fks,
             create_groups,
@@ -305,9 +307,14 @@ class ComicImporterThread(
         """Handle failed imports."""
         is_new_failed_imports = 0
         try:
-            # TODO batch
-            update_fis, create_fis, delete_fi_paths = self.query_failed_imports(
-                library, failed_imports
+            update_fis = {}
+            create_fis = {}
+            delete_fi_paths = set()
+            self.batch_db_op(
+                library,
+                failed_imports,
+                self.query_failed_imports,
+                ImportStatusTypes.FAILED_IMPORTS_QUERY,
             )
 
             self.batch_db_op(

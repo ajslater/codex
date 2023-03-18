@@ -17,6 +17,7 @@ class ImportStatusTypes(StatusTypes):
     LINK_M2M_FIELDS = "Link books to tags"
     DIRS_DELETED = "Delete folders"
     FILES_DELETED = "Delete books"
+    FAILED_IMPORTS_QUERY = "Discover failed import statuses"
     FAILED_IMPORTS_MODIFIED = "Update old failed imports"
     FAILED_IMPORTS_CLEAN = "Remove succeeded failed imports"
     FAILED_IMPORTS_CREATE = "Record Failed Imports"

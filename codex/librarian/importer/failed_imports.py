@@ -13,28 +13,35 @@ _BULK_UPDATE_FAILED_IMPORT_FIELDS = ("name", "stat", "updated_at")
 class FailedImportsMixin(QueuedThread):
     """Methods for failed imports."""
 
-    def query_failed_imports(self, library, failed_imports):
+    def query_failed_imports(
+        self,
+        library,
+        failed_imports,
+        count,
+        _total,
+        update_failed_imports,
+        create_failed_imports,
+        delete_failed_import_paths,
+    ):
         """Determine what to do with failed imports."""
         update_failed_imports = {}
         create_failed_imports = {}
         delete_failed_import_paths = set()
         if not failed_imports:
-            return (
-                update_failed_imports,
-                create_failed_imports,
-                delete_failed_import_paths,
-            )
+            return count
 
         existing_failed_import_paths = set(
             FailedImport.objects.filter(library=library).values_list("path", flat=True)
         )
 
+        # Calculate creates and updates
         for path, exc in failed_imports.items():
             if path in existing_failed_import_paths:
                 update_failed_imports[path] = exc
             else:
                 create_failed_imports[path] = exc
 
+        # Calculate Deletes
         untouched_failed_import_paths = existing_failed_import_paths - set(
             failed_imports.keys()
         )
@@ -55,12 +62,12 @@ class FailedImportsMixin(QueuedThread):
             if not Path(path).exists():
                 missing_failed_imports.add(path)
 
-        delete_failed_import_paths = succeeded_failed_imports | missing_failed_imports
-
+        delete_failed_import_paths |= succeeded_failed_imports | missing_failed_imports
         return (
-            update_failed_imports,
-            create_failed_imports,
-            delete_failed_import_paths,
+            count
+            + len(update_failed_imports)
+            + len(create_failed_imports)
+            + len(delete_failed_import_paths)
         )
 
     def bulk_update_failed_imports(self, library, update_failed_imports, count, _total):
