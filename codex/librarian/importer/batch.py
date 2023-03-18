@@ -28,7 +28,10 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
                 complete = count
             else:
                 complete = None
-            self.status_controller.start(status, complete, num_elements)
+
+            if not total:
+                total = num_elements
+            self.status_controller.start(status, complete, total)
             batch_size = min(num_elements, MAX_IMPORT_BATCH_SIZE)
             start = 0
             end = start + batch_size
@@ -37,10 +40,6 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
                 data = list(data)
             if args is None:
                 args = ()
-
-            if not total:
-                total = num_elements
-            print(f"{func.__name__} {total=}, {num_elements=}")
             while start < num_elements:
                 if updates:
                     self.status_controller.update(status, count, total)
