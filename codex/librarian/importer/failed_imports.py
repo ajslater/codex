@@ -65,7 +65,12 @@ class FailedImportsMixin(QueuedThread):
                 self.log.error(f"Error preparing failed import create for {path}")
                 self.log.exception(exc)
         if create_failed_imports:
-            created_objs = FailedImport.objects.bulk_create(create_failed_imports)
+            created_objs = FailedImport.objects.bulk_create(
+                create_failed_imports,
+                update_conflicts=True,
+                update_fields=_BULK_UPDATE_FAILED_IMPORT_FIELDS,
+                unique_fields=FailedImport.Meta.unique_together,
+            )
             count += len(created_objs)
             if count:
                 level = logging.INFO

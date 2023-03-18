@@ -101,7 +101,11 @@ class BookmarkBaseView(GenericAPIView, GroupACLMixin):
                 # This almost never happens. Possibly never.
                 bm.finished = True
             create_bookmarks.append(bm)
-        Bookmark.objects.bulk_create(create_bookmarks)
+        Bookmark.objects.bulk_create(
+            create_bookmarks,
+            update_fields=self._BOOKMARK_UPDATE_FIELDS,
+            unique_fields=Bookmark.Meta.unique_together,
+        )
 
     def update_bookmarks(self, updates, comic_filter):
         """Update a user bookmark."""

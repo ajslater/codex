@@ -117,17 +117,11 @@ class LinkComicsMixin(QueuedThread):
         return all_m2m_links
 
     def _query_relation_adjustments(
-        self, field_name, m2m_links, ThroughModel  # noqa: N803
+        self, field_name, m2m_links, ThroughModel, through_field_id_name  # noqa: N803
     ):
         self.log.debug(
             f"Determining {field_name} relation adjustments for altered comics."
         )
-        model = Comic._meta.get_field(field_name).related_model
-        if model is None:
-            raise ValueError(f"Bad model from {field_name}")
-        link_name = model.__name__.lower()
-        through_field_id_name = f"{link_name}_id"
-
         all_del_pks = set()
         tms = []
         for comic_pk, pks in m2m_links.items():
@@ -161,11 +155,23 @@ class LinkComicsMixin(QueuedThread):
         field = getattr(Comic, field_name)
         ThroughModel = field.through  # noqa: N806
 
+        model = Comic._meta.get_field(field_name).related_model
+        if model is None:
+            raise ValueError(f"Bad model from {field_name}")
+        link_name = model.__name__.lower()
+        through_field_id_name = f"{link_name}_id"
+
         tms, all_del_pks = self._query_relation_adjustments(
-            field_name, m2m_links, ThroughModel
+            field_name, m2m_links, ThroughModel, through_field_id_name
         )
 
-        created_objs = ThroughModel.objects.bulk_create(tms)
+        update_fields = ("comic_id", through_field_id_name)
+        created_objs = ThroughModel.objects.bulk_create(
+            tms,
+            update_conflicts=True,
+            update_fields=update_fields,
+            unique_fields=update_fields,
+        )
         created_count = len(created_objs)
         if created_count:
             level = INFO

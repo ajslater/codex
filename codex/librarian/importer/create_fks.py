@@ -23,6 +23,14 @@ from codex.threads import QueuedThread
 
 _BULK_UPDATE_FOLDER_MODIFIED_FIELDS = ("stat", "updated_at")
 _COUNT_FIELDS = {Series: "volume_count", Volume: "issue_count"}
+_GROUP_UPDATE_FIELDS = {
+    Publisher: ("name",),
+    Imprint: ("name", "publisher"),
+    Series: ("name", "imprint"),
+    Volume: ("name", "publisher", "imprint", "series"),
+}
+_NAMED_MODEL_UPDATE_FIELDS = ("name",)
+_CREDIT_UPDATE_FIELDS = ("person", "role")
 
 
 class CreateForeignKeysMixin(QueuedThread):
@@ -81,7 +89,13 @@ class CreateForeignKeysMixin(QueuedThread):
         for group_param_tuple, count in group_tree_counts.items():
             obj = cls._create_group_obj(group_class, group_param_tuple, count)
             create_groups.append(obj)
-        group_class.objects.bulk_create(create_groups)
+        update_fields = _GROUP_UPDATE_FIELDS[group_class]
+        group_class.objects.bulk_create(
+            create_groups,
+            update_conflicts=True,
+            update_fields=update_fields,
+            unique_fields=group_class.Meta.unique_together,
+        )
         return len(create_groups)
 
     @classmethod
@@ -187,7 +201,12 @@ class CreateForeignKeysMixin(QueuedThread):
                 )
                 folder.set_stat()
                 create_folders.append(folder)
-            Folder.objects.bulk_create(create_folders)
+            Folder.objects.bulk_create(
+                create_folders,
+                update_conflicts=True,
+                update_fields=_BULK_UPDATE_FOLDER_MODIFIED_FIELDS,
+                unique_fields=Folder.Meta.unique_together,
+            )
             count = len(create_folders)
             total_count += count
             if count:
@@ -197,23 +216,28 @@ class CreateForeignKeysMixin(QueuedThread):
             self.log.log(level, f"Created {total_count}/{num_folder_paths} Folders.")
         return total_count
 
-    def _bulk_create_named_models(self, group_class, names):
+    def _bulk_create_named_models(self, named_class, names):
         """Bulk create named models."""
         if not names:
             return False
         count = len(names)
-        self.log.debug(f"Preparing {count} {group_class.__name__}s for creation...")
+        self.log.debug(f"Preparing {count} {named_class.__name__}s for creation...")
         create_named_objs = []
         for name in names:
-            named_obj = group_class(name=name)
+            named_obj = named_class(name=name)
             create_named_objs.append(named_obj)
 
-        group_class.objects.bulk_create(create_named_objs)
+        named_class.objects.bulk_create(
+            create_named_objs,
+            update_conflicts=True,
+            update_fields=_NAMED_MODEL_UPDATE_FIELDS,
+            unique_fields=named_class.Meta.unique_together,
+        )
         if count:
             level = logging.INFO
         else:
             level = logging.DEBUG
-        self.log.log(level, f"Created {count} {group_class.__name__}s.")
+        self.log.log(level, f"Created {count} {named_class.__name__}s.")
         return count
 
     def _bulk_create_credits(self, create_credit_tuples):
@@ -233,7 +257,12 @@ class CreateForeignKeysMixin(QueuedThread):
 
             create_credits.append(credit)
 
-        Credit.objects.bulk_create(create_credits)
+        Credit.objects.bulk_create(
+            create_credits,
+            update_conflicts=True,
+            update_fields=_CREDIT_UPDATE_FIELDS,
+            unique_fields=Credit.Meta.unique_together,
+        )
         count = len(create_credits)
         if count:
             level = logging.INFO

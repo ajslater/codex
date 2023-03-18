@@ -9,18 +9,18 @@ from codex.models import (
     Timestamp,
 )
 
-_EXCLUDE_BULK_UPDATE_COMIC_FIELDS = {
+_EXCLUDEBULK_UPDATE_COMIC_FIELDS = {
     "created_at",
     "searchresult",
     "id",
     "bookmark",
 }
-_BULK_UPDATE_COMIC_FIELDS = []
+BULK_UPDATE_COMIC_FIELDS = []
 for field in Comic._meta.get_fields():
     if (not field.many_to_many) and (
-        field.name not in _EXCLUDE_BULK_UPDATE_COMIC_FIELDS
+        field.name not in _EXCLUDEBULK_UPDATE_COMIC_FIELDS
     ):
-        _BULK_UPDATE_COMIC_FIELDS.append(field.name)
+        BULK_UPDATE_COMIC_FIELDS.append(field.name)
 
 
 class UpdateComicsMixin(LinkComicsMixin):
@@ -28,17 +28,17 @@ class UpdateComicsMixin(LinkComicsMixin):
 
     def _update_comics(
         self, library, comic_paths: set, mds, count
-    ) -> tuple[int, frozenset]:
+    ) -> tuple[int, frozenset, list]:
         """Bulk update comics."""
         if not comic_paths:
-            return 0, frozenset()
+            return 0, frozenset(), []
 
         self.log.debug(
             f"Preparing {len(comic_paths)} comics for update in library {library.path}."
         )
         # Get existing comics to update
         comics = Comic.objects.filter(library=library, path__in=comic_paths).only(
-            *_BULK_UPDATE_COMIC_FIELDS
+            *BULK_UPDATE_COMIC_FIELDS
         )
 
         # set attributes for each comic
@@ -72,7 +72,7 @@ class UpdateComicsMixin(LinkComicsMixin):
 
         self.log.debug(f"Bulk updating {len(update_comics)} comics.")
         try:
-            count += Comic.objects.bulk_update(update_comics, _BULK_UPDATE_COMIC_FIELDS)
+            count += Comic.objects.bulk_update(update_comics, BULK_UPDATE_COMIC_FIELDS)
 
             task = CoverRemoveTask(frozenset(comic_pks))
             self.log.debug(f"Purging covers for {len(comic_pks)} updated comics.")
@@ -84,14 +84,14 @@ class UpdateComicsMixin(LinkComicsMixin):
         if count:
             Timestamp.touch(Timestamp.COVERS)
 
-        return (count, converted_create_paths)
+        return count, converted_create_paths, comic_pks
 
     def bulk_update_comics(
         self, library, update_paths, count, _total, create_paths, all_bulk_mds
     ):
         """Bulk update comics, and move nonextant comics into create job.."""
         # TODO try to simplify
-        update_count, converted_create_paths = self._update_comics(
+        update_count, converted_create_paths, comic_pks = self._update_comics(
             library, update_paths, all_bulk_mds, count
         )
         create_paths.update(converted_create_paths)

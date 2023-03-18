@@ -1,5 +1,6 @@
 """Bulk update and create comic objects and bulk update m2m fields."""
 from codex.librarian.importer.link_comics import LinkComicsMixin
+from codex.librarian.importer.update_comics import BULK_UPDATE_COMIC_FIELDS
 from codex.models import (
     Comic,
 )
@@ -39,7 +40,12 @@ class CreateComicsMixin(LinkComicsMixin):
         )
         self.log.debug(f"Bulk creating {num_comics} comics...")
         try:
-            created_comics = Comic.objects.bulk_create(create_comics)
+            created_comics = Comic.objects.bulk_create(
+                create_comics,
+                update_conflicts=True,
+                update_fields=BULK_UPDATE_COMIC_FIELDS,
+                unique_fields=Comic.Meta.unique_together,
+            )
             count += len(created_comics)
         except Exception as exc:
             self.log.error(exc)

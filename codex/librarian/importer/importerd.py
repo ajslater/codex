@@ -201,7 +201,7 @@ class ComicImporterThread(
             ImportStatusTypes.LINK_M2M_FIELDS,
         )
         if linked_count:
-            self.log.info(f"Relinked {linked_count} comics to tags.")
+            self.log.info(f"Linked {linked_count} comics to tags.")
 
         total_count = update_count + create_count
         if total_count:
