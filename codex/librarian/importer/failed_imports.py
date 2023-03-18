@@ -81,7 +81,7 @@ class FailedImportsMixin(QueuedThread):
 
     def bulk_cleanup_failed_imports(self, library):
         """Remove FailedImport objects that have since succeeded."""
-        self.status_controller.start(ImportStatusTypes.CLEAN_FAILED_IMPORTS)
+        self.status_controller.start(ImportStatusTypes.FAILED_IMPORTS_CLEAN)
         self.log.debug("Cleaning up failed imports...")
         failed_import_paths = FailedImport.objects.filter(library=library).values_list(
             "path", flat=True

@@ -180,7 +180,7 @@ class AggregateMetadataMixin(CleanMetadataMixin):
 
             all_fks["comic_paths"] = frozenset(all_mds.keys())
             self.status_controller.update(
-                ImportStatusTypes.CREATE_FAILED_IMPORTS,
+                ImportStatusTypes.FAILED_IMPORTS_CREATE,
                 0,
                 len(all_failed_imports),
                 notify=False,

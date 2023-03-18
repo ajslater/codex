@@ -158,14 +158,14 @@ class ComicImporterThread(
                 library,
                 failed_imports,
                 self.bulk_create_failed_imports,
-                ImportStatusTypes.CREATE_FAILED_IMPORTS,
+                ImportStatusTypes.FAILED_IMPORTS_CREATE,
                 updates=False,
             )
 
             self.status_op(
                 self.bulk_cleanup_failed_imports,
                 library,
-                ImportStatusTypes.CLEAN_FAILED_IMPORTS,
+                ImportStatusTypes.FAILED_IMPORTS_CLEAN,
             )
         except Exception as exc:
             self.log.exception(exc)
