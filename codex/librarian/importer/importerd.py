@@ -411,10 +411,10 @@ class ComicImporterThread(
                     f" Imported {changed_count} comics" f" at {cps} comics per second."
                 )
             else:
-                log_txt += "No comics to import."
+                log_txt += " No comics to import."
             self.log.info(log_txt)
         else:
-            self.log.info("No updates neccissary.")
+            self.log.info(" No updates neccissary.")
         if new_failed_imports:
             self.librarian_queue.put(FAILED_IMPORTS_TASK)
 
