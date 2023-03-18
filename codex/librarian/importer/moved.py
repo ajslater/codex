@@ -18,6 +18,9 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
 
     def bulk_comics_moved(self, library, moved_paths, count, _total):
         """Move comcis."""
+        if not moved_paths:
+            return count
+
         # Prepare FKs
         create_folder_paths = self.query_missing_folder_paths(
             library.path, moved_paths.values()
@@ -55,7 +58,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
 
         # Update m2m field
         if folder_m2m_links:
-            self.bulk_recreate_m2m_field("folders", folder_m2m_links)
+            self.bulk_fix_comic_m2m_field("folders", folder_m2m_links)
         if count:
             level = logging.INFO
         else:
