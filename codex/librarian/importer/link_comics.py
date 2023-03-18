@@ -1,4 +1,5 @@
 """Bulk update m2m fields."""
+from logging import DEBUG, INFO
 from pathlib import Path
 
 from django.db.models import Q
@@ -115,21 +116,12 @@ class LinkComicsMixin(QueuedThread):
             self._link_named_m2ms(all_m2m_links, comic_pk, md)
         return all_m2m_links
 
-    def bulk_fix_comic_m2m_field(self, field_name, m2m_links):
-        """Recreate an m2m field for a set of comics.
-
-        Since we can't bulk_update or bulk_create m2m fields use a trick.
-        bulk_create() on the through table:
-        https://stackoverflow.com/questions/6996176/how-to-create-an-object-for-a-django-model-with-a-many-to-many-field/10116452#10116452
-        https://docs.djangoproject.com/en/dev/ref/models/fields/#django.db.models.ManyToManyField.through
-
-        TODO: EXPERIMENTAL
-        """
+    def _query_relation_adjustments(
+            self, field_name, m2m_links, ThroughModel # noqa: N803
+        ):
         self.log.debug(
             f"Determining {field_name} relation adjustments for altered comics."
         )
-        field = getattr(Comic, field_name)
-        ThroughModel = field.through  # noqa: N806
         model = Comic._meta.get_field(field_name).related_model
         if model is None:
             raise ValueError(f"Bad model from {field_name}")
@@ -156,19 +148,9 @@ class LinkComicsMixin(QueuedThread):
                 defaults = {"comic_id": comic_pk, through_field_id_name: pk}
                 tm = ThroughModel(**defaults)
                 tms.append(tm)
+        return tms, all_del_pks
 
-        self.log.debug(f"Ajdusting comic {field_name} relations...")
-        (created_count, _) = ThroughModel.objects.bulk_create(tms)
-        self.log.info(
-            f"Created {created_count} new {field_name} relations for altered comics."
-        )
-        del_count = ThroughModel.objects.filter(comic_id__in=all_del_pks).delete()
-        self.log.info(
-            f"Deleted {del_count} stale {field_name} relations for altered comics."
-        )
-        return created_count + del_count
-
-    def bulk_recreate_m2m_field(self, field_name, m2m_links):
+    def bulk_fix_comic_m2m_field(self, field_name, m2m_links):
         """Recreate an m2m field for a set of comics.
 
         Since we can't bulk_update or bulk_create m2m fields use a trick.
@@ -176,37 +158,38 @@ class LinkComicsMixin(QueuedThread):
         https://stackoverflow.com/questions/6996176/how-to-create-an-object-for-a-django-model-with-a-many-to-many-field/10116452#10116452
         https://docs.djangoproject.com/en/dev/ref/models/fields/#django.db.models.ManyToManyField.through
         """
-        self.log.debug(f"Recreating {field_name} relations for altered comics.")
         field = getattr(Comic, field_name)
         ThroughModel = field.through  # noqa: N806
-        model = Comic._meta.get_field(field_name).related_model
-        if model is None:
-            raise ValueError(f"Bad model from {field_name}")
-        link_name = model.__name__.lower()
-        through_field_id_name = f"{link_name}_id"
-        tms = []
-        # TODO try to actually read in all the links and only create the new ones.
-        # TODO in a lowmem environment.
-        for comic_pk, pks in m2m_links.items():
-            for pk in pks:
-                defaults = {"comic_id": comic_pk, through_field_id_name: pk}
-                tm = ThroughModel(**defaults)
-                tms.append(tm)
 
-        # It is simpler to just nuke and recreate all links than
-        #   detect, create & delete them.
-        ThroughModel.objects.filter(comic_id__in=m2m_links.keys()).delete()
-        ThroughModel.objects.bulk_create(tms)
-        count = len(tms)
-        self.log.info(f"Recreated {count} {field_name} relations for altered comics.")
-        return count
+        tms, all_del_pks = self._query_relation_adjustments(
+            field_name, m2m_links, ThroughModel
+        )
+
+        created_objs = ThroughModel.objects.bulk_create(tms)
+        created_count = len(created_objs)
+        if created_count:
+            level = INFO
+        else:
+            level = DEBUG
+        self.log.log(level,
+            f"Created {created_count} new {field_name} relations for altered comics."
+        )
+
+        (del_count, _) = ThroughModel.objects.filter(comic_id__in=all_del_pks).delete()
+        if del_count:
+            level = INFO
+        else:
+            level = DEBUG
+        self.log.log(level,
+            f"Deleted {del_count} stale {field_name} relations for altered comics."
+        )
+        return created_count + del_count
 
     def bulk_link_comic_m2m_fields(self, all_m2m_links):
         """Create and recreate links to m2m fields in bulk."""
         for field_name, m2m_links in all_m2m_links.items():
             try:
-                self.bulk_recreate_m2m_field(field_name, m2m_links)
-                # self.bulk_fix_comic_m2m_field(field_name, m2m_links)
+                self.bulk_fix_comic_m2m_field(field_name, m2m_links)
             except Exception as exc:
                 self.log.error(f"Error recreating m2m field: {field_name}")
                 self.log.exception(exc)
