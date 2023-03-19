@@ -16,6 +16,39 @@ _CREDIT_FK_NAMES = ("role", "person")
 class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin):
     """Methods that are batched."""
 
+    def _run_one_db_op_batch(
+        self,
+        func,
+        data,
+        args,
+        status_args,
+        batch_size,
+        start,
+        end,
+        this_count,
+        status,
+        is_dict,
+    ):
+        """Run one batch of data with the designated function."""
+        if status_args.total and start > 0:
+            status_args.count += this_count
+            status_args.since = self.status_controller.update(
+                status,
+                status_args.count,
+                status_args.total,
+                since=status_args.since,
+            )
+        if is_dict:
+            batch = dict(islice(data.items(), start, end))  # type: ignore
+        else:
+            batch = data[start:end]
+        all_args = (batch, status_args, *args)
+        this_count += int(func(*all_args))
+        start = end
+        end = start + batch_size
+
+        return this_count, start, end
+
     def batch_db_op(self, func, data, status, status_args=None, args=None):
         """Run a function batched for memory contrainsts bracketed by status changes."""
         num_elements = len(data)
@@ -42,22 +75,18 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
             if args is None:
                 args = ()
             while start < num_elements:
-                if status_args.total and start > 0:
-                    status_args.count += this_count
-                    status_args.since = self.status_controller.update(
-                        status,
-                        status_args.count,
-                        status_args.total,
-                        since=status_args.since,
-                    )
-                if is_dict:
-                    batch = dict(islice(data.items(), start, end))  # type: ignore
-                else:
-                    batch = data[start:end]
-                all_args = (batch, status_args, *args)
-                this_count += int(func(*all_args))
-                start = end
-                end = start + batch_size
+                this_count, start, end = self._run_one_db_op_batch(
+                    func,
+                    data,
+                    args,
+                    status_args,
+                    batch_size,
+                    start,
+                    end,
+                    this_count,
+                    status,
+                    is_dict,
+                )
 
         finally:
             if status_args is None:
@@ -104,6 +133,22 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
             else:
                 fks_total += len(objs)
         return fks_total
+
+    def _batch_query_one_simple_model(self, fk_field, names, create_fks, status_args):
+        """Batch query one simple model name."""
+        if fk_field in _CREDIT_FK_NAMES:
+            base_cls = Credit
+        else:
+            base_cls = Comic
+        status_args.count += self.batch_db_op(
+            self.query_missing_simple_models,
+            names,
+            ImportStatusTypes.QUERY_MISSING_FKS,
+            args=(create_fks, base_cls, fk_field, "name"),
+            status_args=status_args,
+        )
+        if num_names := len(names):
+            self.log.info(f"Prepared {num_names} new {fk_field}.")
 
     def query_all_missing_fks(self, library, fks):
         """Get objects to create by querying existing objects for the proposed fks."""
@@ -159,20 +204,9 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
                     self.log.info(f"Prepared {num_create_folder_paths} new folders.")
 
             for fk_field in sorted(fks.keys()):
-                names = fks.pop(fk_field)
-                if fk_field in _CREDIT_FK_NAMES:
-                    base_cls = Credit
-                else:
-                    base_cls = Comic
-                status_args.count += self.batch_db_op(
-                    self.query_missing_simple_models,
-                    names,
-                    ImportStatusTypes.QUERY_MISSING_FKS,
-                    args=(create_fks, base_cls, fk_field, "name"),
-                    status_args=status_args,
+                self._batch_query_one_simple_model(
+                    fk_field, fks.pop(fk_field), create_fks, status_args
                 )
-                if num_names := len(names):
-                    self.log.info(f"Prepared {num_names} new {fk_field}.")
         finally:
             self.status_controller.finish(ImportStatusTypes.QUERY_MISSING_FKS)
 

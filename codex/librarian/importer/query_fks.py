@@ -86,17 +86,8 @@ class QueryForeignKeysMixin(QueuedThread):
 
         filter_args[key] = group_name
 
-    def query_missing_group(
-        self,
-        groups,
-        status_args,
-        group_cls,
-        create_groups,
-        update_groups,
-    ):
-        """Get missing groups from proposed groups to create."""
-        this_count = 0
-
+    def _get_create_group_set(self, groups, group_cls, status_args):
+        """Create the create group set."""
         all_filter_args = set()
         for group_tree in groups.keys():
             filter_args = {}
@@ -111,9 +102,24 @@ class QueryForeignKeysMixin(QueuedThread):
             all_filter_args.add(tuple(sorted(filter_args.items())))
 
         candidate_groups = set(groups.keys())
-        create_group_set = self._query_create_metadata(
+        return self._query_create_metadata(
             group_cls, candidate_groups, all_filter_args, status_args
         )
+
+    def query_missing_group(
+        self,
+        groups,
+        status_args,
+        group_cls,
+        create_groups,
+        update_groups,
+    ):
+        """Get missing groups from proposed groups to create."""
+        this_count = 0
+        if not groups:
+            return this_count
+
+        create_group_set = self._get_create_group_set(groups, group_cls, status_args)
 
         for group_tree, count_dict in groups.items():
             if count_dict is None:
