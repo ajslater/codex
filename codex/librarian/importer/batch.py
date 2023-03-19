@@ -51,21 +51,19 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
 
     def batch_db_op(self, func, data, status, status_args=None, args=None):
         """Run a function batched for memory contrainsts bracketed by status changes."""
-        num_elements = len(data)
         this_count = 0
-        if not status_args:
-            status_args = StatusArgs(0, 0, time())
+        num_elements = len(data)
+        start_and_finish = status_args is not None
         try:
             if not num_elements:
                 return this_count
-            if status_args.total:
-                complete = status_args.count
-            else:
-                complete = None
+            if not status_args:
+                status_args = StatusArgs(0, num_elements, time())
+            if start_and_finish:
+                self.status_controller.start(
+                    status, status_args.count, status_args.total
+                )
 
-            if not status_args.total:
-                status_args.total = num_elements
-                self.status_controller.start(status, complete, status_args.total)
             batch_size = min(num_elements, MAX_IMPORT_BATCH_SIZE)
             start = 0
             end = start + batch_size
@@ -89,7 +87,7 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
                 )
 
         finally:
-            if status_args is None:
+            if start_and_finish:
                 self.status_controller.finish(status)
 
         return this_count
