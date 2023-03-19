@@ -191,10 +191,10 @@ class LinkComicsMixin(QueuedThread):
             level,
             f"Deleted {del_count} stale {field_name} relations for altered comics.",
         )
-        return created_count + del_count
 
-    def bulk_link_comic_m2m_fields(self, all_m2m_links):
-        """Create and recreate links to m2m fields in bulk."""
+    def bulk_query_and_link_comic_m2m_fields(self, all_m2m_mds, _status_args):
+        """Combine query and bulk link into a batch."""
+        all_m2m_links = self._link_comic_m2m_fields(all_m2m_mds)
         for field_name, m2m_links in all_m2m_links.items():
             try:
                 self.bulk_fix_comic_m2m_field(field_name, m2m_links)
@@ -202,11 +202,4 @@ class LinkComicsMixin(QueuedThread):
                 self.log.error(f"Error recreating m2m field: {field_name}")
                 self.log.exception(exc)
 
-    def bulk_query_and_link_comic_m2m_fields(
-        self, _library, all_m2m_mds, count, _total, _since
-    ):
-        """Combine query and bulk link into a batch."""
-        count = len(all_m2m_mds)
-        all_m2m_links = self._link_comic_m2m_fields(all_m2m_mds)
-        self.bulk_link_comic_m2m_fields(all_m2m_links)
-        return count
+        return len(all_m2m_links)

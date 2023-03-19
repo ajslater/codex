@@ -5,7 +5,7 @@ from time import time
 from codex.librarian.importer.deleted import DeletedMixin
 from codex.librarian.importer.failed_imports import FailedImportsMixin
 from codex.librarian.importer.moved import MovedMixin
-from codex.librarian.importer.status import ImportStatusTypes
+from codex.librarian.importer.status import ImportStatusTypes, StatusArgs
 from codex.librarian.importer.update_comics import UpdateComicsMixin
 from codex.models import Comic, Credit
 from codex.settings.settings import MAX_IMPORT_BATCH_SIZE
@@ -16,26 +16,23 @@ _CREDIT_FK_NAMES = ("role", "person")
 class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin):
     """Methods that are batched."""
 
-    def batch_db_op(
-        self, library, data, func, status, args=None, count=0, total=0, since=None
-    ):
+    def batch_db_op(self, func, data, status, status_args=None, args=None):
         """Run a function batched for memory contrainsts bracketed by status changes."""
         num_elements = len(data)
-        finish = total == 0
         this_count = 0
-        if since is None:
-            since = time()
+        if not status_args:
+            status_args = StatusArgs(0, 0, time())
         try:
             if not num_elements:
-                return count
-            if total:
-                complete = count
+                return this_count
+            if status_args.total:
+                complete = status_args.count
             else:
                 complete = None
 
-            if not total:
-                total = num_elements
-                self.status_controller.start(status, complete, total)
+            if not status_args.total:
+                status_args.total = num_elements
+                self.status_controller.start(status, complete, status_args.total)
             batch_size = min(num_elements, MAX_IMPORT_BATCH_SIZE)
             start = 0
             end = start + batch_size
@@ -45,21 +42,25 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
             if args is None:
                 args = ()
             while start < num_elements:
-                if total and start > 0:
-                    since = self.status_controller.update(
-                        status, count + this_count, total, since=since
+                if status_args.total and start > 0:
+                    status_args.count += this_count
+                    status_args.since = self.status_controller.update(
+                        status,
+                        status_args.count,
+                        status_args.total,
+                        since=status_args.since,
                     )
                 if is_dict:
                     batch = dict(islice(data.items(), start, end))  # type: ignore
                 else:
                     batch = data[start:end]
-                all_args = (library, batch, count, total, since, *args)
+                all_args = (batch, status_args, *args)
                 this_count += int(func(*all_args))
                 start = end
                 end = start + batch_size
 
         finally:
-            if finish:
+            if status_args is None:
                 self.status_controller.finish(status)
 
         return this_count
@@ -67,26 +68,29 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
     def _move_and_modify_dirs(self, library, task):
         """Move files and dirs and modify dirs."""
         changed = self.batch_db_op(
-            library,
-            task.dirs_moved,
             self.bulk_folders_moved,
+            task.dirs_moved,
             ImportStatusTypes.DIRS_MOVED,
+            args=(library,),
         )
         task.dirs_moved = None
+
         changed += self.batch_db_op(
-            library,
-            task.files_moved,
             self.bulk_comics_moved,
+            task.files_moved,
             ImportStatusTypes.FILES_MOVED,
+            args=(library,),
         )
         task.files_moved = None
+
         changed += self.batch_db_op(
-            library,
-            task.dirs_modified,
             self.bulk_folders_modified,
+            task.dirs_modified,
             ImportStatusTypes.DIRS_MODIFIED,
+            args=(library,),
         )
         task.dirs_modified = None
+
         return changed
 
     @staticmethod
@@ -112,48 +116,44 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
             self.log.debug(
                 f"Querying existing foreign keys for comics in {library.path}"
             )
-            count = 0
             fks_total = self._get_query_fks_totals(fks)
+            status_args = StatusArgs(0, fks_total, time())
             self.status_controller.start(
-                ImportStatusTypes.QUERY_MISSING_FKS, 0, fks_total
+                ImportStatusTypes.QUERY_MISSING_FKS,
+                status_args.count,
+                status_args.total,
             )
 
             if "credits" in fks:
-                count += self.batch_db_op(
-                    library,
-                    fks.pop("credits"),
+                status_args.count += self.batch_db_op(
                     self.query_missing_credits,
+                    fks.pop("credits"),
                     ImportStatusTypes.QUERY_MISSING_FKS,
                     args=(create_credits,),
-                    count=count,
-                    total=fks_total,
+                    status_args=status_args,
                 )
                 if num_create_credits := len(create_credits):
                     self.log.info(f"Prepared {num_create_credits} new credits.")
 
             if "group_trees" in fks:
                 for group_class, groups in fks.pop("group_trees").items():
-                    count += self.batch_db_op(
-                        library,
-                        groups,
+                    status_args.count += self.batch_db_op(
                         self.query_missing_group,
+                        groups,
                         ImportStatusTypes.QUERY_MISSING_FKS,
                         args=(group_class, create_groups, update_groups),
-                        count=count,
-                        total=fks_total,
+                        status_args=status_args,
                     )
                 if num_create_groups := len(create_groups):
                     self.log.info(f"Prepared {num_create_groups} new groups.")
 
             if "comic_paths" in fks:
-                count += self.batch_db_op(
-                    library,
-                    fks.pop("comic_paths"),
+                status_args.count += self.batch_db_op(
                     self.query_missing_folder_paths,
+                    fks.pop("comic_paths"),
                     ImportStatusTypes.QUERY_MISSING_FKS,
-                    args=(create_folder_paths,),
-                    count=count,
-                    total=fks_total,
+                    args=(library.path, create_folder_paths),
+                    status_args=status_args,
                 )
                 if num_create_folder_paths := len(create_folder_paths):
                     self.log.info(f"Prepared {num_create_folder_paths} new folders.")
@@ -164,14 +164,12 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
                     base_cls = Credit
                 else:
                     base_cls = Comic
-                count += self.batch_db_op(
-                    library,
-                    names,
+                status_args.count += self.batch_db_op(
                     self.query_missing_simple_models,
+                    names,
                     ImportStatusTypes.QUERY_MISSING_FKS,
                     args=(create_fks, base_cls, fk_field, "name"),
-                    count=count,
-                    total=fks_total,
+                    status_args=status_args,
                 )
                 if num_names := len(names):
                     self.log.info(f"Prepared {num_names} new {fk_field}.")
@@ -212,7 +210,6 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
     ):
         """Bulk create all foreign keys."""
         try:
-            count = 0
             total_fks = self._get_create_fks_totals(
                 create_groups,
                 update_groups,
@@ -221,64 +218,56 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
                 create_credits,
             )
             status = ImportStatusTypes.CREATE_FKS
-            self.status_controller.start(status, 0, total_fks)
+            status_args = StatusArgs(0, total_fks, time())
+            self.status_controller.start(status, status_args.count, status_args.total)
 
             self.log.debug(f"Creating comic foreign keys for {library.path}...")
 
             self.log.debug(f"Creating {len(create_groups)} groups...")
             for group_class, group_tree_counts in create_groups.items():
-                count += self.batch_db_op(
-                    library,
-                    group_tree_counts,
+                status_args.count += self.batch_db_op(
                     self.bulk_group_creator,
+                    group_tree_counts,
                     status,
                     args=(group_class,),
-                    count=count,
-                    total=total_fks,
+                    status_args=status_args,
                 )
 
             self.log.debug(f"Updating {len(update_groups)} groups...")
             for group_class, group_tree_counts in update_groups.items():
-                count += self.batch_db_op(
-                    library,
-                    group_tree_counts,
+                status_args.count += self.batch_db_op(
                     self.bulk_group_updater,
+                    group_tree_counts,
                     status,
                     args=(group_class,),
-                    count=count,
-                    total=total_fks,
+                    status_args=status_args,
                 )
 
-            count += self.batch_db_op(
-                library,
-                sorted(create_folder_paths),
+            status_args.count += self.batch_db_op(
                 self.bulk_folders_create,
+                sorted(create_folder_paths),
                 status,
-                count=count,
-                total=total_fks,
+                args=(library,),
+                status_args=status_args,
             )
 
-            for named_cls, names in create_fks.items():
-                count += self.batch_db_op(
-                    library,
-                    names,
+            for named_class, names in create_fks.items():
+                status_args.count += self.batch_db_op(
                     self.bulk_create_named_models,
+                    names,
                     status,
-                    args=(named_cls,),
-                    count=count,
-                    total=total_fks,
+                    args=(named_class,),
+                    status_args=status_args,
                 )
 
             # This must happen after credit_fks created by create_named_models
-            count += self.batch_db_op(
-                library,
-                create_credits,
+            status_args.count += self.batch_db_op(
                 self.bulk_create_credits,
+                create_credits,
                 status,
-                count=count,
-                total=total_fks,
+                status_args=status_args,
             )
-            return count
+            return status_args.count
         finally:
             self.status_controller.finish(ImportStatusTypes.CREATE_FKS)
 
@@ -312,25 +301,25 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
         update_count = create_count = 0
 
         update_count = self.batch_db_op(
-            library,
-            modified_paths,
             self.bulk_update_comics,
+            modified_paths,
             ImportStatusTypes.FILES_MODIFIED,
-            args=(created_paths, mds),
+            args=(library, created_paths, mds),
         )
 
         create_count = self.batch_db_op(
-            library,
-            created_paths,
             self.bulk_create_comics,
+            created_paths,
             ImportStatusTypes.FILES_CREATED,
-            args=(mds,),
+            args=(
+                library,
+                mds,
+            ),
         )
 
         linked_count = self.batch_db_op(
-            library,
-            m2m_mds,
             self.bulk_query_and_link_comic_m2m_fields,
+            m2m_mds,
             ImportStatusTypes.LINK_M2M_FIELDS,
         )
         if linked_count:
@@ -349,32 +338,32 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
             create_fis = {}
             delete_fi_paths = set()
             self.batch_db_op(
-                library,
-                failed_imports,
                 self.query_failed_imports,
+                failed_imports,
                 ImportStatusTypes.FAILED_IMPORTS_QUERY,
-                args=(update_fis, create_fis, delete_fi_paths),
+                args=(library, update_fis, create_fis, delete_fi_paths),
             )
 
+            # TODO reduce following to one status type.
             self.batch_db_op(
-                library,
-                update_fis,
                 self.bulk_update_failed_imports,
+                update_fis,
                 ImportStatusTypes.FAILED_IMPORTS_MODIFIED,
+                args=(library,),
             )
 
             is_new_failed_imports = self.batch_db_op(
-                library,
-                create_fis,
                 self.bulk_create_failed_imports,
+                create_fis,
                 ImportStatusTypes.FAILED_IMPORTS_CREATE,
+                args=(library,),
             )
 
             self.batch_db_op(
-                library,
-                delete_fi_paths,
                 self.bulk_cleanup_failed_imports,
+                delete_fi_paths,
                 ImportStatusTypes.FAILED_IMPORTS_CLEAN,
+                args=(library,),
             )
         except Exception as exc:
             self.log.exception(exc)
@@ -383,17 +372,17 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
     def _delete(self, library, task):
         """Delete files and folders."""
         changed = self.batch_db_op(
-            library,
-            task.dirs_deleted,
             self.bulk_folders_deleted,
+            task.dirs_deleted,
             ImportStatusTypes.DIRS_DELETED,
+            args=(library,),
         )
         task.dirs_deleted = None
         changed += self.batch_db_op(
-            library,
-            task.files_deleted,
             self.bulk_comics_deleted,
+            task.files_deleted,
             ImportStatusTypes.FILES_DELETED,
+            args=(library,),
         )
         task.files_deleted = None
         return changed

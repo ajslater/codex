@@ -28,17 +28,16 @@ class UpdateComicsMixin(LinkComicsMixin):
 
     def bulk_update_comics(
         self,
-        library,
         comic_paths,
-        count,
-        _total,
-        _since,
+        _status_args,
+        library,
         create_paths,
         mds,
     ):
         """Bulk update comics, and move nonextant comics into create job.."""
+        this_count = 0
         if not comic_paths:
-            return count
+            return this_count
 
         self.log.debug(
             f"Preparing {len(comic_paths)} comics for update in library {library.path}."
@@ -80,7 +79,9 @@ class UpdateComicsMixin(LinkComicsMixin):
 
         self.log.debug(f"Bulk updating {len(update_comics)} comics.")
         try:
-            count += Comic.objects.bulk_update(update_comics, BULK_UPDATE_COMIC_FIELDS)
+            this_count = Comic.objects.bulk_update(
+                update_comics, BULK_UPDATE_COMIC_FIELDS
+            )
 
             task = CoverRemoveTask(frozenset(comic_pks))
             self.log.debug(f"Purging covers for {len(comic_pks)} updated comics.")
@@ -89,7 +90,7 @@ class UpdateComicsMixin(LinkComicsMixin):
             self.log.error(exc)
             self.log.error("While updating", comic_update_paths)
 
-        if count:
+        if this_count:
             Timestamp.touch(Timestamp.COVERS)
 
-        return count
+        return this_count

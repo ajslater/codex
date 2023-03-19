@@ -43,13 +43,12 @@ class QueryForeignKeysMixin(QueuedThread):
         )
         return existing_mds
 
-    def _query_create_metadata(
-        self, fk_cls, create_mds, all_filter_args, count, total, since
-    ):
+    def _query_create_metadata(self, fk_cls, create_mds, all_filter_args, status_args):
         """Get create metadata by comparing proposed meatada to existing rows."""
         # Do this in batches so as not to exceed the 1k line sqlite limit
         filter = Q()
         filter_arg_count = 0
+        this_count = 0
         all_filter_args = tuple(all_filter_args)
         for num, filter_args in enumerate(all_filter_args):
             filter = filter | Q(**dict(filter_args))
@@ -64,12 +63,12 @@ class QueryForeignKeysMixin(QueuedThread):
                 filter = Q()
                 filter_arg_count = 0
 
-                count += num
-                since = self.status_controller.update(
+                this_count += num
+                status_args.since = self.status_controller.update(
                     ImportStatusTypes.QUERY_MISSING_FKS,
-                    count,
-                    total,
-                    since=since,
+                    status_args.count + this_count,
+                    status_args.total,
+                    since=status_args.since,
                     name=fk_cls.__name__,
                 )
 
@@ -89,11 +88,8 @@ class QueryForeignKeysMixin(QueuedThread):
 
     def query_missing_group(
         self,
-        _library,
         groups,
-        count,
-        total,
-        since,
+        status_args,
         group_cls,
         create_groups,
         update_groups,
@@ -116,7 +112,7 @@ class QueryForeignKeysMixin(QueuedThread):
 
         candidate_groups = set(groups.keys())
         create_group_set = self._query_create_metadata(
-            group_cls, candidate_groups, all_filter_args, count, total, since
+            group_cls, candidate_groups, all_filter_args, status_args
         )
 
         for group_tree, count_dict in groups.items():
@@ -136,17 +132,15 @@ class QueryForeignKeysMixin(QueuedThread):
                     update_groups[group_cls][group_tree] = {}
                 update_groups[group_cls][group_tree].update(count_dict)
             this_count += 1
-            since = self.status_controller.update(
+            status_args.since = self.status_controller.update(
                 ImportStatusTypes.QUERY_MISSING_FKS,
-                count + this_count,
-                total,
-                since=since,
+                status_args.count + this_count,
+                status_args.total,
+                since=status_args.since,
             )
         return this_count
 
-    def query_missing_credits(
-        self, _library, credits, count, total, since, create_credits
-    ):
+    def query_missing_credits(self, credits, status_args, create_credits):
         """Find missing credit objects."""
         # create the filter
         comparison_credits = set()
@@ -166,18 +160,15 @@ class QueryForeignKeysMixin(QueuedThread):
 
         # get the create metadata
         new_create_credits = self._query_create_metadata(
-            Credit, comparison_credits, all_filter_args, count, total, since
+            Credit, comparison_credits, all_filter_args, status_args
         )
         create_credits.update(new_create_credits)
         return len(credits)
 
     def query_missing_simple_models(
         self,
-        _library,
         names,
-        count,
-        total,
-        since,
+        status_args,
         create_fks,
         base_cls,
         field,
@@ -200,11 +191,11 @@ class QueryForeignKeysMixin(QueuedThread):
             filter = Q(**filter_args)
             create_names -= self._query_existing_mds(fk_cls, filter)
             this_count += len(batch_proposed_names)
-            since = self.status_controller.update(
+            status_args.since = self.status_controller.update(
                 ImportStatusTypes.QUERY_MISSING_FKS,
-                count + this_count,
-                total,
-                since=since,
+                status_args.count + this_count,
+                status_args.total,
+                since=status_args.since,
                 name=fk_cls.__name__,
             )
             start += _SQLITE_FILTER_ARG_MAX
@@ -215,11 +206,11 @@ class QueryForeignKeysMixin(QueuedThread):
         return this_count
 
     def query_missing_folder_paths(
-        self, library, comic_paths, count, total, since, create_folder_paths
+        self, comic_paths, status_args, library_path, create_folder_paths
     ):
         """Find missing folder paths."""
         # Get the proposed folder_paths
-        library_path = Path(library.path)
+        library_path = Path(library_path)
         proposed_folder_paths = set()
         for comic_path in comic_paths:
             for path in Path(comic_path).parents:
@@ -229,11 +220,8 @@ class QueryForeignKeysMixin(QueuedThread):
         # get the create metadata
         create_folder_paths_dict = {}
         self.query_missing_simple_models(
-            library,
             proposed_folder_paths,
-            count,
-            total,
-            since,
+            status_args,
             create_folder_paths_dict,
             Comic,
             "parent_folder",

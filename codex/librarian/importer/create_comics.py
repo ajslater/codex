@@ -9,10 +9,11 @@ from codex.models import (
 class CreateComicsMixin(LinkComicsMixin):
     """Create comics methods."""
 
-    def bulk_create_comics(self, library, comic_paths, count, _total, _since, mds):
+    def bulk_create_comics(self, comic_paths, _status_args, library, mds):
         """Bulk create comics."""
+        this_count = 0
         if not comic_paths:
-            return 0
+            return this_count
 
         num_comics = len(comic_paths)
         self.log.debug(
@@ -46,9 +47,9 @@ class CreateComicsMixin(LinkComicsMixin):
                 update_fields=BULK_UPDATE_COMIC_FIELDS,
                 unique_fields=Comic._meta.unique_together[0],
             )
-            count += len(created_comics)
+            this_count += len(created_comics)
         except Exception as exc:
             self.log.error(exc)
             self.log.error("While creating", comic_paths)
 
-        return count
+        return this_count

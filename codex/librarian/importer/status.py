@@ -1,4 +1,6 @@
 """Librarian Status for imports."""
+from dataclasses import dataclass
+
 from codex.librarian.status import StatusTypes
 
 
@@ -21,3 +23,13 @@ class ImportStatusTypes(StatusTypes):
     FAILED_IMPORTS_MODIFIED = "Update old failed imports"
     FAILED_IMPORTS_CLEAN = "Remove succeeded failed imports"
     FAILED_IMPORTS_CREATE = "Record Failed Imports"
+
+
+@dataclass
+class StatusArgs:
+    """Args for passing into import functions."""
+
+    count: int = 0
+    total: int = 0
+    since: float = 0
+    status: str = ""  # TODO? use this?

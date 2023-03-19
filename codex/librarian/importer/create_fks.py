@@ -2,7 +2,6 @@
 
 So we may safely create the comics next.
 """
-import logging
 from pathlib import Path
 
 from django.db.models.functions import Now
@@ -85,9 +84,7 @@ class CreateForeignKeysMixin(QueuedThread):
             obj = None
         return obj
 
-    def bulk_group_creator(
-        self, _library, group_tree_counts, _count, _total, _since, group_class
-    ):
+    def bulk_group_creator(self, group_tree_counts, _status_args, group_class):
         """Bulk creates groups."""
         if not group_tree_counts:
             return 0
@@ -108,9 +105,7 @@ class CreateForeignKeysMixin(QueuedThread):
 
         return this_count
 
-    def bulk_group_updater(
-        self, _library, group_tree_counts, _count, _total, _since, group_class
-    ):
+    def bulk_group_updater(self, group_tree_counts, _status_args, group_class):
         """Bulk update groups."""
         if not group_tree_counts:
             return 0
@@ -129,7 +124,7 @@ class CreateForeignKeysMixin(QueuedThread):
             self.log.info(f"Updated {this_count} {group_class.__name__}s.")
         return this_count
 
-    def bulk_folders_modified(self, library, paths, count, total, since):
+    def bulk_folders_modified(self, paths, status_args, library):
         """Update folders stat and nothing else."""
         if not paths:
             return False
@@ -147,11 +142,10 @@ class CreateForeignKeysMixin(QueuedThread):
         this_count = Folder.objects.bulk_update(
             update_folders, fields=_BULK_UPDATE_FOLDER_MODIFIED_FIELDS
         )
-        count += this_count
-        self.log.info(f"Modified {count}/{total} folders")
+        self.log.info(f"Modified {this_count}/{status_args.total} folders")
         return this_count
 
-    def bulk_folders_create(self, library, folder_paths, count, total, since):
+    def bulk_folders_create(self, folder_paths, status_args, library):
         """Create folders breadth first."""
         if not folder_paths:
             return False
@@ -194,23 +188,18 @@ class CreateForeignKeysMixin(QueuedThread):
                 update_fields=_BULK_UPDATE_FOLDER_MODIFIED_FIELDS,
                 unique_fields=Folder._meta.unique_together[0],
             )
-            batch_count = len(create_folders)
-            count += batch_count
-            total_count += batch_count
-            if batch_count:
-                level = logging.INFO
-            else:
-                level = logging.DEBUG
-            self.log.log(level, f"Created {total_count}/{num_folder_paths} Folders.")
-            if total:
-                since = self.status_controller.update(
-                    ImportStatusTypes.CREATE_FKS, count, total, since=since
+            total_count += len(create_folders)
+            if status_args and status_args.total:
+                status_args.since = self.status_controller.update(
+                    ImportStatusTypes.CREATE_FKS,
+                    status_args.count + total_count,
+                    status_args.total,
+                    since=status_args.since,
                 )
+        self.log.info(f"Created {total_count} Folders.")
         return total_count
 
-    def bulk_create_named_models(
-        self, _library, names, count, total, _since, named_class
-    ):
+    def bulk_create_named_models(self, names, _status_args, named_class):
         """Bulk create named models."""
         if not names:
             return False
@@ -230,9 +219,7 @@ class CreateForeignKeysMixin(QueuedThread):
         self.log.info(f"Created {count} {named_class.__name__}s.")
         return count
 
-    def bulk_create_credits(
-        self, _library, create_credit_tuples, _count, _total, _since
-    ):
+    def bulk_create_credits(self, create_credit_tuples, _status_args):
         """Bulk create credits."""
         if not create_credit_tuples:
             return False
