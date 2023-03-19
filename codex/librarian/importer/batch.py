@@ -1,5 +1,6 @@
 """Batched jobs for import."""
 from itertools import islice
+from time import time
 
 from codex.librarian.importer.deleted import DeletedMixin
 from codex.librarian.importer.failed_imports import FailedImportsMixin
@@ -16,7 +17,7 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
     """Methods that are batched."""
 
     def batch_db_op(
-        self, library, data, func, status, args=None, updates=True, count=0, total=0
+        self, library, data, func, status, args=None, count=0, total=0, since=None
     ):
         """Run a function batched for memory contrainsts bracketed by status changes."""
         num_elements = len(data)
@@ -24,14 +25,14 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
         try:
             if not num_elements:
                 return count
-            if updates:
+            if total:
                 complete = count
             else:
                 complete = None
 
             if not total:
                 total = num_elements
-            self.status_controller.start(status, complete, total)
+                self.status_controller.start(status, complete, total)
             batch_size = min(num_elements, MAX_IMPORT_BATCH_SIZE)
             start = 0
             end = start + batch_size
@@ -40,21 +41,26 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
                 data = list(data)
             if args is None:
                 args = ()
+            this_count = 0
+            if since is None:
+                since = time()
             while start < num_elements:
-                if updates:
-                    self.status_controller.update(status, count, total)
+                if total:
+                    since = self.status_controller.update(
+                        status, count + this_count, total, since=since
+                    )
                 if is_dict:
                     batch = dict(islice(data.items(), start, end))  # type: ignore
                 else:
-                    batch = set(data[start:end])
+                    batch = data[start:end]
                 all_args = (library, batch, count, total, *args)
-                count += int(func(*all_args))
-                start = end + 1
+                this_count += int(func(*all_args))
+                start = end
                 end = start + batch_size
         finally:
             if finish:
                 self.status_controller.finish(status)
-        return count
+        return this_count
 
     def _move_and_modify_dirs(self, library, task):
         """Move files and dirs and modify dirs."""
@@ -87,8 +93,8 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
         fks_total = 0
         for key, objs in fks.items():
             if key == "group_trees":
-                for trees in objs.values():
-                    fks_total += len(trees)
+                for groups in objs.values():
+                    fks_total += len(groups)
             else:
                 fks_total += len(objs)
         return fks_total
@@ -120,20 +126,22 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
                     count=count,
                     total=fks_total,
                 )
-                self.log.info(f"Prepared {len(create_credits)} new credits.")
+                if num_create_credits := len(create_credits):
+                    self.log.info(f"Prepared {num_create_credits} new credits.")
 
             if "group_trees" in fks:
                 for group_class, groups in fks.pop("group_trees").items():
                     count += self.batch_db_op(
                         library,
                         groups,
-                        self.query_missing_group_type,
+                        self.query_missing_group,
                         ImportStatusTypes.QUERY_MISSING_FKS,
                         args=(group_class, create_groups, update_groups),
                         count=count,
                         total=fks_total,
                     )
-                self.log.info(f"Prepared {len(create_groups)} new groups.")
+                if num_create_groups := len(create_groups):
+                    self.log.info(f"Prepared {num_create_groups} new groups.")
 
             if "comic_paths" in fks:
                 count += self.batch_db_op(
@@ -145,9 +153,10 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
                     count=count,
                     total=fks_total,
                 )
-                self.log.info(f"Prepared {len(create_folder_paths)} new folders.")
+                if num_create_folder_paths := len(create_folder_paths):
+                    self.log.info(f"Prepared {num_create_folder_paths} new folders.")
 
-            for fk_field in tuple(fks.keys()):
+            for fk_field in sorted(fks.keys()):
                 names = fks.pop(fk_field)
                 if fk_field in _CREDIT_FK_NAMES:
                     base_cls = Credit
