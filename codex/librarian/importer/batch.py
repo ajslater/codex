@@ -340,16 +340,17 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
             ImportStatusTypes.FILES_MODIFIED,
             args=(library, created_paths, mds),
         )
+        if update_count:
+            self.log.info(f"Updated {update_count} comics.")
 
         create_count = self.batch_db_op(
             self.bulk_create_comics,
             created_paths,
             ImportStatusTypes.FILES_CREATED,
-            args=(
-                library,
-                mds,
-            ),
+            args=(library, mds),
         )
+        if create_count:
+            self.log.info(f"Created {update_count} comics.")
 
         linked_count = self.batch_db_op(
             self.bulk_query_and_link_comic_m2m_fields,
