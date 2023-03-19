@@ -32,6 +32,7 @@ class UpdateComicsMixin(LinkComicsMixin):
         comic_paths,
         count,
         _total,
+        _since,
         create_paths,
         mds,
     ):

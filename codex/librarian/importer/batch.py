@@ -53,7 +53,7 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
                     batch = dict(islice(data.items(), start, end))  # type: ignore
                 else:
                     batch = data[start:end]
-                all_args = (library, batch, count, total, *args)
+                all_args = (library, batch, count, total, since, *args)
                 this_count += int(func(*all_args))
                 start = end
                 end = start + batch_size

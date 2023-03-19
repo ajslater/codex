@@ -9,7 +9,7 @@ from codex.models import (
 class CreateComicsMixin(LinkComicsMixin):
     """Create comics methods."""
 
-    def bulk_create_comics(self, library, comic_paths, count, _total, mds):
+    def bulk_create_comics(self, library, comic_paths, count, _total, _since, mds):
         """Bulk create comics."""
         if not comic_paths:
             return 0

@@ -9,7 +9,7 @@ from codex.threads import QueuedThread
 class DeletedMixin(QueuedThread):
     """Clean up database methods."""
 
-    def bulk_folders_deleted(self, library, delete_folder_paths, count, _total):
+    def bulk_folders_deleted(self, library, delete_folder_paths, count, _total, _since):
         """Bulk delete folders."""
         if not delete_folder_paths:
             return count
@@ -23,7 +23,7 @@ class DeletedMixin(QueuedThread):
         self.log.log(level, f"Deleted {count} folders from {library.path}")
         return count
 
-    def bulk_comics_deleted(self, library, delete_comic_paths, count, _total):
+    def bulk_comics_deleted(self, library, delete_comic_paths, count, _total, _since):
         """Bulk delete comics found missing from the filesystem."""
         if not delete_comic_paths:
             return count

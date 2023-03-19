@@ -203,7 +203,7 @@ class LinkComicsMixin(QueuedThread):
                 self.log.exception(exc)
 
     def bulk_query_and_link_comic_m2m_fields(
-        self, _library, all_m2m_mds, count, _total
+        self, _library, all_m2m_mds, count, _total, _since
     ):
         """Combine query and bulk link into a batch."""
         count = len(all_m2m_mds)

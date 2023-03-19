@@ -16,16 +16,16 @@ MOVED_BULK_FOLDER_UPDATE_FIELDS = ("path", "parent_folder", "name")
 class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixin):
     """Methods for moving comics and folders."""
 
-    def bulk_comics_moved(self, library, moved_paths, count, _total):
+    def bulk_comics_moved(self, library, moved_paths, count, total, since):
         """Move comcis."""
         if not moved_paths:
             return count
 
         # Prepare FKs
         create_folder_paths = self.query_missing_folder_paths(
-            library.path, moved_paths.values()
+            library.path, moved_paths.values(), count, total, since, {}
         )
-        self.bulk_folders_create(library, create_folder_paths)
+        self.bulk_folders_create(library, create_folder_paths, count, total, since)
 
         # Update Comics
         comics = Comic.objects.filter(
@@ -82,7 +82,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
         create_folder_paths = frozenset(
             dest_parent_folder_paths - frozenset(existing_folder_paths)
         )
-        self.bulk_folders_create(library, create_folder_paths, 0, 0)
+        self.bulk_folders_create(library, create_folder_paths, 0, 0, 0)
 
         # get parent folders path to model obj dict
         dest_parent_folders_objs = Folder.objects.filter(
@@ -120,7 +120,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
         self.log.info(f"Moved {count} folders.")
         return count
 
-    def bulk_folders_moved(self, library, folders_moved, count, _total):
+    def bulk_folders_moved(self, library, folders_moved, count, _total, _since):
         """Move folders in the database instead of recreating them."""
         dest_folder_paths = frozenset(folders_moved.values())
         dest_parent_folders = self._get_parent_folders(library, dest_folder_paths)
@@ -142,4 +142,4 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
             for path in orphan_folder_paths:
                 folders_moved[path] = path
 
-            self.bulk_folders_moved(library, folders_moved, 0, len(folders_moved))
+            self.bulk_folders_moved(library, folders_moved, 0, 0, len(folders_moved))

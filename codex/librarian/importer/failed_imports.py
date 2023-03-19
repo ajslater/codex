@@ -19,6 +19,7 @@ class FailedImportsMixin(QueuedThread):
         failed_imports,
         count,
         _total,
+        _since,
         update_failed_imports,
         create_failed_imports,
         delete_failed_import_paths,
@@ -70,7 +71,9 @@ class FailedImportsMixin(QueuedThread):
             + len(delete_failed_import_paths)
         )
 
-    def bulk_update_failed_imports(self, library, update_failed_imports, count, _total):
+    def bulk_update_failed_imports(
+        self, library, update_failed_imports, count, _total, _since
+    ):
         """Bulk update failed imports."""
         if not update_failed_imports:
             return
@@ -130,7 +133,7 @@ class FailedImportsMixin(QueuedThread):
         return count
 
     def bulk_cleanup_failed_imports(
-        self, library, delete_failed_imports_paths, count, _total
+        self, library, delete_failed_imports_paths, count, _total, _since
     ):
         """Remove FailedImport objects that have since succeeded."""
         # Cleanup FailedImports that were actually successful

@@ -4,7 +4,6 @@ So we may safely create the comics next.
 """
 import logging
 from pathlib import Path
-from time import time
 
 from django.db.models.functions import Now
 
@@ -87,7 +86,7 @@ class CreateForeignKeysMixin(QueuedThread):
         return obj
 
     def bulk_group_creator(
-        self, _library, group_tree_counts, _count, _total, group_class
+        self, _library, group_tree_counts, _count, _total, _since, group_class
     ):
         """Bulk creates groups."""
         if not group_tree_counts:
@@ -110,7 +109,7 @@ class CreateForeignKeysMixin(QueuedThread):
         return this_count
 
     def bulk_group_updater(
-        self, _library, group_tree_counts, _count, _total, group_class
+        self, _library, group_tree_counts, _count, _total, _since, group_class
     ):
         """Bulk update groups."""
         if not group_tree_counts:
@@ -130,7 +129,7 @@ class CreateForeignKeysMixin(QueuedThread):
             self.log.info(f"Updated {this_count} {group_class.__name__}s.")
         return this_count
 
-    def bulk_folders_modified(self, library, paths, count, total):
+    def bulk_folders_modified(self, library, paths, count, total, since):
         """Update folders stat and nothing else."""
         if not paths:
             return False
@@ -152,11 +151,10 @@ class CreateForeignKeysMixin(QueuedThread):
         self.log.info(f"Modified {count}/{total} folders")
         return this_count
 
-    def bulk_folders_create(self, library, folder_paths, count, total):
+    def bulk_folders_create(self, library, folder_paths, count, total, since):
         """Create folders breadth first."""
         if not folder_paths:
             return False
-        since = time()
         num_folder_paths = len(folder_paths)
         self.log.debug(f"Preparing {num_folder_paths} folders for creation.")
         # group folder paths by depth
@@ -210,7 +208,9 @@ class CreateForeignKeysMixin(QueuedThread):
                 )
         return total_count
 
-    def bulk_create_named_models(self, _library, names, count, total, named_class):
+    def bulk_create_named_models(
+        self, _library, names, count, total, _since, named_class
+    ):
         """Bulk create named models."""
         if not names:
             return False
@@ -230,7 +230,9 @@ class CreateForeignKeysMixin(QueuedThread):
         self.log.info(f"Created {count} {named_class.__name__}s.")
         return count
 
-    def bulk_create_credits(self, _library, create_credit_tuples, _count, _total):
+    def bulk_create_credits(
+        self, _library, create_credit_tuples, _count, _total, _since
+    ):
         """Bulk create credits."""
         if not create_credit_tuples:
             return False
