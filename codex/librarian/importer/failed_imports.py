@@ -119,7 +119,7 @@ class FailedImportsMixin(QueuedThread):
                 create_objs,
                 update_conflicts=True,
                 update_fields=_BULK_UPDATE_FAILED_IMPORT_FIELDS,
-                unique_fields=FailedImport.Meta.unique_together,
+                unique_fields=FailedImport._meta.unique_together[0],
             )
             count += len(created_objs)
             if count:

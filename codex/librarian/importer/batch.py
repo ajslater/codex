@@ -45,6 +45,10 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
             if args is None:
                 args = ()
             while start < num_elements:
+                if total and start > 0:
+                    since = self.status_controller.update(
+                        status, count + this_count, total, since=since
+                    )
                 if is_dict:
                     batch = dict(islice(data.items(), start, end))  # type: ignore
                 else:
@@ -53,10 +57,6 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
                 this_count += int(func(*all_args))
                 start = end
                 end = start + batch_size
-                if total:
-                    since = self.status_controller.update(
-                        status, count + this_count, total, since=since
-                    )
 
         finally:
             if finish:
@@ -225,7 +225,7 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
 
             self.log.debug(f"Creating comic foreign keys for {library.path}...")
 
-            self.log.debug(f"Preparing {len(create_groups)} groups for creation..")
+            self.log.debug(f"Creating {len(create_groups)} groups...")
             for group_class, group_tree_counts in create_groups.items():
                 count += self.batch_db_op(
                     library,
@@ -237,7 +237,7 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
                     total=total_fks,
                 )
 
-            self.log.debug(f"Preparing {len(update_groups)} groups for update...")
+            self.log.debug(f"Updating {len(update_groups)} groups...")
             for group_class, group_tree_counts in update_groups.items():
                 count += self.batch_db_op(
                     library,

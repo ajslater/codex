@@ -44,7 +44,7 @@ class CreateComicsMixin(LinkComicsMixin):
                 create_comics,
                 update_conflicts=True,
                 update_fields=BULK_UPDATE_COMIC_FIELDS,
-                unique_fields=Comic.Meta.unique_together,
+                unique_fields=Comic._meta.unique_together[0],
             )
             count += len(created_comics)
         except Exception as exc:

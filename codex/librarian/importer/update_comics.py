@@ -71,7 +71,7 @@ class UpdateComicsMixin(LinkComicsMixin):
             f"Prepared {len(comic_paths)} comics for update in library {library.path}."
         )
 
-        converted_create_paths = frozenset(comic_paths - comic_update_paths)
+        converted_create_paths = frozenset(set(comic_paths) - comic_update_paths)
         create_paths.update(converted_create_paths)
         self.log.info(
             f"Converted {len(converted_create_paths)} update paths to create paths."

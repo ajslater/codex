@@ -37,7 +37,7 @@ class CreateForeignKeysMixin(QueuedThread):
     """Methods for creating foreign keys."""
 
     @staticmethod
-    def _create_group_obj(group_class, group_param_tuple, count):
+    def _create_group_obj(group_class, group_param_tuple, count_dict):
         """Create a set of browser group objects."""
         defaults = {"name": group_param_tuple[-1]}
         if group_class in (Imprint, Series, Volume):
@@ -49,22 +49,25 @@ class CreateForeignKeysMixin(QueuedThread):
             )
 
         if group_class is Series:
-            defaults["volume_count"] = count
+            count_field = _COUNT_FIELDS[group_class]
+            defaults["volume_count"] = count_dict.get(count_field)
         elif group_class is Volume:
             defaults["series"] = Series.objects.get(
                 publisher=defaults["publisher"],
                 imprint=defaults["imprint"],
                 name=group_param_tuple[2],
             )
-            defaults["issue_count"] = count
+            count_field = _COUNT_FIELDS[group_class]
+            defaults["issue_count"] = count_dict.get(count_field)
 
         group_obj = group_class(**defaults)
         return group_obj
 
     @staticmethod
-    def _update_group_obj(group_class, group_param_tuple, count, count_field):
+    def _update_group_obj(group_class, group_param_tuple, count_dict, count_field):
         """Update group counts for a Series or Volume."""
-        if count is None:
+        if count_dict is None:
+            # TODO this is never none now.
             return None
         search_kwargs = {
             "publisher__name": group_param_tuple[0],
@@ -76,6 +79,7 @@ class CreateForeignKeysMixin(QueuedThread):
 
         obj = group_class.objects.get(**search_kwargs)
         obj_count = getattr(obj, count_field)
+        count = count_dict.get(count_field)
         if obj_count is None or obj_count < count:
             setattr(obj, count_field, count)
         else:
@@ -97,7 +101,7 @@ class CreateForeignKeysMixin(QueuedThread):
             create_groups,
             update_conflicts=True,
             update_fields=update_fields,
-            unique_fields=group_class.Meta.unique_together,
+            unique_fields=group_class._meta.unique_together[0],
         )
         this_count = len(create_groups)
         if this_count:
@@ -190,7 +194,7 @@ class CreateForeignKeysMixin(QueuedThread):
                 create_folders,
                 update_conflicts=True,
                 update_fields=_BULK_UPDATE_FOLDER_MODIFIED_FIELDS,
-                unique_fields=Folder.Meta.unique_together,
+                unique_fields=Folder._meta.unique_together[0],
             )
             batch_count = len(create_folders)
             count += batch_count
@@ -221,7 +225,7 @@ class CreateForeignKeysMixin(QueuedThread):
             create_named_objs,
             update_conflicts=True,
             update_fields=_NAMED_MODEL_UPDATE_FIELDS,
-            unique_fields=named_class.Meta.unique_together,
+            unique_fields=named_class._meta.unique_together[0],
         )
         self.log.info(f"Created {count} {named_class.__name__}s.")
         return count
@@ -247,7 +251,7 @@ class CreateForeignKeysMixin(QueuedThread):
             create_credits,
             update_conflicts=True,
             update_fields=_CREDIT_UPDATE_FIELDS,
-            unique_fields=Credit.Meta.unique_together,
+            unique_fields=Credit._meta.unique_together[0],
         )
         create_count = len(create_credits)
         self.log.info(f"Created {create_count} Credits.")

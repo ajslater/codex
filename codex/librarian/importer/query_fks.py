@@ -88,7 +88,7 @@ class QueryForeignKeysMixin(QueuedThread):
         filter_args[key] = group_name
 
     def query_missing_group(
-        self, _library, groups, count, total, fk_cls, create_groups, update_groups
+        self, _library, groups, count, total, group_cls, create_groups, update_groups
     ):
         """Get missing groups from proposed groups to create."""
         since = time()
@@ -98,30 +98,36 @@ class QueryForeignKeysMixin(QueuedThread):
         for group_tree in groups.keys():
             filter_args = {}
             self._add_parent_group_filter(filter_args, group_tree[-1], "")
-            if fk_cls in (Imprint, Series, Volume):
+            if group_cls in (Imprint, Series, Volume):
                 self._add_parent_group_filter(filter_args, group_tree[0], "publisher")
-            if fk_cls in (Series, Volume):
+            if group_cls in (Series, Volume):
                 self._add_parent_group_filter(filter_args, group_tree[1], "imprint")
-            if fk_cls == Volume:
+            if group_cls == Volume:
                 self._add_parent_group_filter(filter_args, group_tree[2], "series")
 
             all_filter_args.add(tuple(sorted(filter_args.items())))
 
+        candidate_groups = set(groups.keys())
         create_group_set = self._query_create_metadata(
-            fk_cls, groups.keys(), all_filter_args, count, total
+            group_cls, candidate_groups, all_filter_args, count, total
         )
 
         for group_tree, count_dict in groups.items():
-            if count_dict:
-                if group_tree in create_group_set:
-                    if group_tree not in create_groups:
-                        create_groups[group_tree] = {}
-                    create_groups[group_tree].update(count_dict)
-                elif fk_cls in (Series, Volume):
-                    # If Series or Volume in group tree
-                    if group_tree not in update_groups:
-                        update_groups[group_tree] = {}
-                    update_groups[group_tree].update(count_dict)
+            if count_dict is None:
+                count_dict = {}
+            if group_tree in create_group_set:
+                if group_cls not in create_groups:
+                    create_groups[group_cls] = {}
+                if group_tree not in create_groups[group_cls]:
+                    create_groups[group_cls][group_tree] = {}
+                create_groups[group_cls][group_tree].update(count_dict)
+            elif group_cls in (Series, Volume):
+                # If Series or Volume in group tree
+                if group_cls not in update_groups:
+                    update_groups[group_cls] = {}
+                if group_tree not in update_groups[group_cls]:
+                    update_groups[group_cls][group_tree] = {}
+                update_groups[group_cls][group_tree].update(count_dict)
             this_count += 1
             since = self.status_controller.update(
                 ImportStatusTypes.QUERY_MISSING_FKS,
