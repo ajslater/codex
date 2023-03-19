@@ -366,42 +366,47 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
 
     def _bulk_fail_imports(self, library, failed_imports):
         """Handle failed imports."""
-        is_new_failed_imports = 0
+        created_count = 0
         try:
             update_fis = {}
             create_fis = {}
             delete_fi_paths = set()
+            status_args = StatusArgs(0, len(failed_imports), time())
             self.batch_db_op(
                 self.query_failed_imports,
                 failed_imports,
-                ImportStatusTypes.FAILED_IMPORTS_QUERY,
+                ImportStatusTypes.FAILED_IMPORTS,
                 args=(library, update_fis, create_fis, delete_fi_paths),
+                status_args=status_args,
             )
+            status_args.total = len(update_fis) + len(create_fis) + len(delete_fi_paths)
 
-            # TODO reduce following to one status type.
-            self.batch_db_op(
+            status_args.count += self.batch_db_op(
                 self.bulk_update_failed_imports,
                 update_fis,
-                ImportStatusTypes.FAILED_IMPORTS_MODIFIED,
+                ImportStatusTypes.FAILED_IMPORTS,
                 args=(library,),
+                status_args=status_args,
             )
 
-            is_new_failed_imports = self.batch_db_op(
+            created_count = self.batch_db_op(
                 self.bulk_create_failed_imports,
                 create_fis,
-                ImportStatusTypes.FAILED_IMPORTS_CREATE,
+                ImportStatusTypes.FAILED_IMPORTS,
                 args=(library,),
+                status_args=status_args,
             )
+            status_args.count += created_count
 
-            self.batch_db_op(
+            status_args.count += self.batch_db_op(
                 self.bulk_cleanup_failed_imports,
                 delete_fi_paths,
-                ImportStatusTypes.FAILED_IMPORTS_CLEAN,
+                ImportStatusTypes.FAILED_IMPORTS,
                 args=(library,),
             )
         except Exception as exc:
             self.log.exception(exc)
-        return is_new_failed_imports
+        return bool(created_count)
 
     def _delete(self, library, task):
         """Delete files and folders."""

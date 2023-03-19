@@ -114,7 +114,7 @@ class FailedImportsMixin(QueuedThread):
             )
             count = len(created_objs)
             self.log.info(f"Added {count} comics to failed imports.")
-        return bool(count)
+        return count
 
     def bulk_cleanup_failed_imports(
         self, delete_failed_imports_paths, _status_args, library
