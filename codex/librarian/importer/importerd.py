@@ -6,9 +6,8 @@ from time import sleep, time
 from django.core.cache import cache
 from humanize import naturaldelta
 
-from codex.librarian.importer.aggregate_metadata import AggregateMetadataMixin
-from codex.librarian.importer.batch import BatchMixin
 from codex.librarian.importer.status import ImportStatusTypes
+from codex.librarian.importer.status_wrapper import StatusWrapperMixin
 from codex.librarian.importer.tasks import AdoptOrphanFoldersTask, UpdaterDBDiffTask
 from codex.librarian.notifier.tasks import FAILED_IMPORTS_TASK, LIBRARY_CHANGED_TASK
 from codex.librarian.search.status import SearchIndexStatusTypes
@@ -19,7 +18,7 @@ from codex.models import Library
 _WRITE_WAIT_EXPIRY = 60
 
 
-class ComicImporterThread(AggregateMetadataMixin, BatchMixin):
+class ComicImporterThread(StatusWrapperMixin):
     """A worker to handle all bulk database updates."""
 
     def _wait_for_filesystem_ops_to_finish(self, task: UpdaterDBDiffTask) -> bool:
@@ -212,28 +211,32 @@ class ComicImporterThread(AggregateMetadataMixin, BatchMixin):
             self._init_apply(library, task)
 
             changed = 0
-            changed += self.batch_move_and_modify_dirs(library, task)
+            changed += self.move_and_modify_dirs(library, task)
 
             modified_paths = task.files_modified
             created_paths = task.files_created
             task.files_modified = task.files_created = None
-            mds, m2m_mds, fks, fis = self.get_aggregate_metadata(
-                library, modified_paths | created_paths
+            mds = {}
+            m2m_mds = {}
+            fks = {}
+            fis = {}
+            self.read_metadata(
+                library, modified_paths | created_paths, mds, m2m_mds, fks, fis
             )
             modified_paths -= fis.keys()
             created_paths -= fis.keys()
 
-            changed += self.batch_create_comic_relations(library, fks)
+            changed += self.create_comic_relations(library, fks)
 
-            imported_count = self.batch_update_create_and_link_comics(
+            imported_count = self.update_create_and_link_comics(
                 library, modified_paths, created_paths, mds, m2m_mds
             )
             changed += imported_count
             modified_paths = created_paths = mds = m2m_mds = None
 
-            new_failed_imports = self.batch_fail_imports(library, fis)
+            new_failed_imports = self.fail_imports(library, fis)
 
-            changed += self.batch_delete(library, task)
+            changed += self.delete(library, task)
             cache.clear()
         finally:
             self._finish_apply_status(library)

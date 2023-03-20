@@ -1,6 +1,5 @@
 """Aggregate metadata from comics to prepare for importing."""
 from pathlib import Path
-from time import time
 from zipfile import BadZipFile
 
 from comicbox.comic_archive import ComicArchive
@@ -137,55 +136,57 @@ class AggregateMetadataMixin(CleanMetadataMixin):
                 all_fks, group_tree, group_md, Volume, 4, "issue_count"
             )
 
-    def get_aggregate_metadata(self, library, all_paths):
+    def get_aggregate_metadata(
+        self,
+        all_paths,
+        status_args,
+        library,
+        all_mds,
+        all_m2m_mds,
+        all_fks,
+        all_failed_imports,
+    ):
         """Get aggregated metatada for the paths given."""
-        all_mds = {}
-        all_m2m_mds = {}
-        all_fks = {}
-        all_failed_imports = {}
         total_paths = len(all_paths)
-        try:
-            if not total_paths:
-                return all_mds, all_m2m_mds, all_fks, all_failed_imports
-            all_fks = {
-                "group_trees": {Publisher: {}, Imprint: {}, Series: {}, Volume: {}},
-                "comic_paths": set(),
-            }
-            self.status_controller.start(
-                ImportStatusTypes.AGGREGATE_TAGS, 0, total_paths
+        if not total_paths:
+            return 0
+        if not total_paths:
+            return all_mds, all_m2m_mds, all_fks, all_failed_imports
+        all_fks = {
+            "group_trees": {Publisher: {}, Imprint: {}, Series: {}, Volume: {}},
+            "comic_paths": set(),
+        }
+        self.log.info(f"Reading tags from {total_paths} comics in {library.path}...")
+        for num, path in enumerate(all_paths):
+            path = str(path)
+            md, m2m_md, group_tree_md, failed_import = self._get_path_metadata(path)
+
+            if failed_import:
+                all_failed_imports.update(failed_import)
+            else:
+                if md:
+                    all_mds[path] = md
+
+                if m2m_md:
+                    self._aggregate_m2m_metadata(all_m2m_mds, m2m_md, all_fks, path)
+
+                if group_tree_md:
+                    self._aggregate_group_tree_metadata(all_fks, group_tree_md)
+
+            status_args.since = self.status_controller.update(
+                ImportStatusTypes.AGGREGATE_TAGS,
+                status_args.count + num,
+                status_args.total,
+                since=status_args.since,
             )
-            self.log.info(
-                f"Reading tags from {total_paths} comics in {library.path}..."
-            )
-            since = time()
-            for num, path in enumerate(all_paths):
-                path = str(path)
-                md, m2m_md, group_tree_md, failed_import = self._get_path_metadata(path)
 
-                if failed_import:
-                    all_failed_imports.update(failed_import)
-                else:
-                    if md:
-                        all_mds[path] = md
-
-                    if m2m_md:
-                        self._aggregate_m2m_metadata(all_m2m_mds, m2m_md, all_fks, path)
-
-                    if group_tree_md:
-                        self._aggregate_group_tree_metadata(all_fks, group_tree_md)
-
-                since = self.status_controller.update(
-                    ImportStatusTypes.AGGREGATE_TAGS, num, total_paths, since=since
-                )
-
-            all_fks["comic_paths"] = frozenset(all_mds.keys())
-            self.status_controller.update(
-                ImportStatusTypes.FAILED_IMPORTS,
-                0,
-                len(all_failed_imports),
-                notify=False,
-            )
-            self.log.info(f"Aggregated tags from {len(all_mds)} comics.")
-        finally:
-            self.status_controller.finish(ImportStatusTypes.AGGREGATE_TAGS)
-        return all_mds, all_m2m_mds, all_fks, all_failed_imports
+        all_fks["comic_paths"] = frozenset(all_mds.keys())
+        self.status_controller.update(
+            ImportStatusTypes.FAILED_IMPORTS,
+            0,
+            len(all_failed_imports),
+            notify=False,
+        )
+        count = len(all_mds)
+        self.log.info(f"Aggregated tags from {count} comics.")
+        return count
