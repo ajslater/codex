@@ -74,9 +74,13 @@ export default {
   },
   methods: {
     ...mapActions(useAdminStore, ["loadTable", "librarianTask"]),
-    indeterminate: (status) => !status.preactive && +status.total === 0,
+    indeterminate: (status) =>
+      !status.preactive &&
+      (!status.total ||
+        status.complete === null ||
+        status.complete === undefined),
     progress(status) {
-      if (status.preactive || +status.total === 0) {
+      if (status.preactive || self.indeterminate) {
         return 0;
       }
       return (100 * +status.complete) / +status.total;
