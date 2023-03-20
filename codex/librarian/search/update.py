@@ -1,5 +1,6 @@
 """Search Index update."""
 from datetime import datetime
+from math import ceil
 from multiprocessing import Pool, cpu_count
 from time import time
 from zoneinfo import ZoneInfo
@@ -65,9 +66,8 @@ class UpdateMixin(RemoveMixin):
         """Get the date of the last updated item in the search index."""
         if not backend.setup_complete:
             backend.setup(False)
-        backend.index = backend.index.refresh()
 
-        with backend.index.searcher() as searcher:
+        with backend.index.refresh().searcher() as searcher:
             # XXX IDK why but sorting by 'updated_at' removes the latest and most valuable result
             #     So I have to do it in my own method.
             results = searcher.search(Every(), reverse=True, scored=False)
@@ -105,15 +105,8 @@ class UpdateMixin(RemoveMixin):
         # max procs
         # throttle multiprocessing in lomem environments.
         # each process running has significant memory overhead.
-        if mem_limit_gb <= 1:
-            throttle_max = 2
-        elif mem_limit_gb <= 2:
-            throttle_max = 4
-        elif mem_limit_gb <= 4:
-            throttle_max = 6
-        else:
-            throttle_max = 128
-        max_procs = min(cpu_count(), throttle_max)
+        cpu_max = ceil(mem_limit_gb * 4/3 + 2/3)
+        max_procs = min(cpu_count(), cpu_max)
 
         batch_size = int(
             max(
@@ -268,8 +261,10 @@ class UpdateMixin(RemoveMixin):
     def _mp_update(self, backend, qs):
         # Init
         start_time = time()
+        num_comics = qs.count()
+        if not num_comics:
+            return
         try:
-            num_comics = qs.count()
             self.status_controller.start(
                 SearchIndexStatusTypes.SEARCH_INDEX_UPDATE, complete=0, total=num_comics
             )
@@ -280,6 +275,7 @@ class UpdateMixin(RemoveMixin):
                 backend, batches, num_procs, num_comics, batch_size, 0, 1
             )
 
+            # Log performance
             elapsed_time = time() - start_time
             elapsed = naturaldelta(elapsed_time)
             cps = int(num_comics / elapsed_time)
@@ -326,8 +322,6 @@ class UpdateMixin(RemoveMixin):
             # Update
             backend.setup(False)
 
-            # after a big import the database cache is very full
-            # nuke it. especially in a lomem environment.
             qs = self._get_queryset(backend, rebuild)
             self._mp_update(backend, qs)
 

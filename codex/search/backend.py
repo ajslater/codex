@@ -1,4 +1,5 @@
 """Custom Haystack Search Backend."""
+from math import ceil
 from multiprocessing import cpu_count
 
 from django.utils.timezone import now
@@ -138,22 +139,13 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         super().__init__(connection_alias, **connection_options)
         self.log = get_logger(self.__class__.__name__)
         self.log.propagate = False
-        self.writerargs = self._get_writerargs()
-        self.log.debug(f"Search Index worker writerargs: {self.writerargs}")
 
     def _get_writerargs(self):
         """Get writerargs for this machine's cpu & memory config."""
         mem_limit_mb = get_mem_limit("m")
         mem_limit_gb = mem_limit_mb / 1024
-        if mem_limit_gb <= 1:
-            throttle_max = 2
-        elif mem_limit_gb <= 2:
-            throttle_max = 4
-        elif mem_limit_gb <= 4:
-            throttle_max = 6
-        else:
-            throttle_max = 128
-        procs = min(cpu_count(), throttle_max)
+        cpu_max = ceil(mem_limit_gb * 4/3 + 2/3)
+        procs = min(cpu_count(), cpu_max)
         limitmb = mem_limit_mb * 0.8 / procs
         limitmb = int(limitmb)
         writerargs = {"limitmb": limitmb, "procs": procs, "multisegment": True}
@@ -199,12 +191,13 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
 
     def get_writer(self, commitargs=COMMITARGS_NO_MERGE):
         """Get a writer."""
-        self.index = self.index.refresh()
+        writerargs = self._get_writerargs()
+        self.log.debug(f"Search Index writerargs: {writerargs} {commitargs}")
         writer = CodexWriter(
-            self.index,
+            self.index.refresh(),
             limit=self.WRITER_LIMIT,
             period=self.WRITER_PERIOD,
-            writerargs=self.writerargs,
+            writerargs=writerargs,
             commitargs=commitargs,
         )
         return writer
@@ -261,6 +254,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         if not self.setup_complete:
             self.setup(False)
 
+        # TODO try replaceing with self.index.refresh()
         if not index:
             index = ComicIndex()
 
@@ -331,13 +325,13 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         """Optimize the index."""
         if not self.setup_complete:
             self.setup(False)
-        self.index = self.index.refresh()
-        self.index.optimize(**self.writerargs)
+        writerargs = self._get_writerargs()
+        self.log.debug(f"Search Index optimizer writerargs: {writerargs}")
+        self.index.refresh().optimize(**writerargs)
 
     def merge_small(self):
         """Merge small segments of the index."""
         if not self.setup_complete:
             self.setup(False)
-        self.index = self.index.refresh()
         writer = self.get_writer({"merge": True})
         writer.close()
