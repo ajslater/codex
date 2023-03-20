@@ -85,7 +85,8 @@ class UpdateMixin(RemoveMixin):
             start_date = "the beginning of time"
         else:
             start_date = self._get_search_index_latest_updated_at(backend)
-            qs = qs.filter(updated_at__gt=start_date)
+            if start_date:
+                qs = qs.filter(updated_at__gt=start_date)
 
         self.log.info(f"Updating search index since {start_date}...")
 
