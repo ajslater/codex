@@ -29,12 +29,14 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         "files_deleted": set(),
     }
     MAX_DELAY = 60
+    MAX_ITEMS_PER_GB = 50000
 
     def __init__(self, *args, **kwargs):
         """Set the total items for limiting db ops per batch."""
         super().__init__(*args, **kwargs)
         self._total_items = 0
-        self.mem_limit_gb = get_mem_limit("g")
+        mem_limit_gb = get_mem_limit("g")
+        self.max_items = int(self.MAX_ITEMS_PER_GB * mem_limit_gb)
 
     def _ensure_library_args(self, library_id):
         if library_id in self.cache:
@@ -68,6 +70,13 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         else:
             args_field.add(event.src_path)
         self._total_items += 1
+        if self._total_items > self.max_items:
+            self.log.info(
+                "Event batcher hit size limit."
+                f" Sending batch of {self._total_items} to importer."
+            )
+            # Seall items
+            self.timed_out()
 
     def _deduplicate_events(self, library_id):
         """Prune different event types on the same paths."""
