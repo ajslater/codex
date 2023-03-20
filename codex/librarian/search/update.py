@@ -331,6 +331,8 @@ class UpdateMixin(RemoveMixin):
             elapsed_time = time() - start_time
             elapsed = naturaldelta(elapsed_time)
             self.log.info(f"Search index updated in {elapsed}.")
+        except MemoryError:
+            self.log.warning("Search index needs more memory to update :(.")
         except Exception as exc:
             self.log.error(f"Update search index: {exc}")
             self.log.exception(exc)

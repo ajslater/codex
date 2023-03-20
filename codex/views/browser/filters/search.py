@@ -18,7 +18,7 @@ class SearchFilterMixin:
             for comic_score in comic_scores:
                 search_scores[comic_score["pk"]] = comic_score["score"]
         except MemoryError:
-            LOG.warning("Search engine memory error.")
+            LOG.warning("Search engine needs more memory, results truncated.")
         except Exception as exc:
             LOG.warning("While searching:")
             LOG.exception(exc)
