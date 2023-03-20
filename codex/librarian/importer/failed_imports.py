@@ -84,12 +84,13 @@ class FailedImportsMixin(QueuedThread):
                 self.log.error(f"Error preparing failed import update for {fi.path}")
                 self.log.exception(exc)
 
-        this_count = FailedImport.objects.bulk_update(
+        FailedImport.objects.bulk_update(
             update_failed_import_objs, fields=_BULK_UPDATE_FAILED_IMPORT_FIELDS
         )
-        if this_count:
-            self.log.info(f"Updated {this_count} old failed imports.")
-        return this_count
+        count = len(update_failed_import_objs)
+        if count:
+            self.log.info(f"Updated {count} old failed imports.")
+        return count
 
     def bulk_create_failed_imports(self, create_failed_imports, _status_args, library):
         """Bulk create failed imports."""

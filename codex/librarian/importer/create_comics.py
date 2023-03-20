@@ -44,6 +44,7 @@ class CreateComicsMixin(LinkComicsMixin):
                 unique_fields=Comic._meta.unique_together[0],
             )
             this_count += num_comics
+            print(f"bcc {this_count=}")
         except Exception as exc:
             self.log.error(exc)
             self.log.error("While creating", comic_paths)

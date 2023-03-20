@@ -17,9 +17,9 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
 
     def bulk_comics_moved(self, moved_paths, status_args, library):
         """Move comcis."""
-        this_count = 0
+        count = 0
         if not moved_paths:
-            return this_count
+            return count
 
         # Prepare FKs
         create_folder_paths = {}
@@ -55,14 +55,15 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
             except Exception as exc:
                 self.log.error(f"moving {comic.path}: {exc}")
 
-        this_count = Comic.objects.bulk_update(comics, MOVED_BULK_COMIC_UPDATE_FIELDS)
+        Comic.objects.bulk_update(comics, MOVED_BULK_COMIC_UPDATE_FIELDS)
 
         # Update m2m field
+        count = len(comics)
         if folder_m2m_links:
             self.bulk_fix_comic_m2m_field("folders", folder_m2m_links)
-        self.log.debug(f"Moved {this_count} comics.")
+        self.log.debug(f"Moved {count} comics.")
 
-        return this_count
+        return count
 
     def _get_parent_folders(self, library, dest_folder_paths):
         """Get destination parent folders."""
@@ -115,11 +116,10 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
 
         update_folders = sorted(update_folders, key=lambda x: len(Path(x.path).parts))
 
-        this_count = Folder.objects.bulk_update(
-            update_folders, MOVED_BULK_FOLDER_UPDATE_FIELDS
-        )
-        self.log.debug(f"Moved {this_count} folders.")
-        return this_count
+        Folder.objects.bulk_update(update_folders, MOVED_BULK_FOLDER_UPDATE_FIELDS)
+        count = len(update_folders)
+        self.log.debug(f"Moved {count} folders.")
+        return count
 
     def adopt_orphan_folders(self):
         """Find orphan folders and move them into their correct place."""

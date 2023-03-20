@@ -35,7 +35,7 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
             if args is None:
                 args = ()
             all_args = (data, status_args, *args)
-            count = int(func(*all_args))
+            count = func(*all_args)
         finally:
             if start_and_finish:
                 self.status_controller.finish(status)
@@ -324,7 +324,7 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
             updates=False,
         )
         if create_count:
-            self.log.info(f"Created {update_count} comics.")
+            self.log.info(f"Created {create_count} comics.")
 
         linked_count = self.batch_db_op(
             self.bulk_query_and_link_comic_m2m_fields,
@@ -397,6 +397,7 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
                 task.dirs_deleted,
                 ImportStatusTypes.DIRS_DELETED,
                 args=(library,),
+                updates=False,
             )
             task.dirs_deleted = None
             self.log.info(f"Deleted {num_dirs_deleted} folders.")
@@ -407,6 +408,7 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
                 task.files_deleted,
                 ImportStatusTypes.FILES_DELETED,
                 args=(library,),
+                updates=False,
             )
             task.files_deleted = None
             self.log.info(f"Deleted {num_files_deleted} comics.")
