@@ -126,6 +126,7 @@ class FailedImportsMixin(QueuedThread):
         qs = FailedImport.objects.filter(library=library).filter(
             path__in=delete_failed_imports_paths
         )
-        (count, _) = qs.delete()
+        qs.delete()
+        count = len(delete_failed_imports_paths)
         self.log.info(f"Cleaned up {count} failed imports from {library.path}")
         return count

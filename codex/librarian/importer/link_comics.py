@@ -1,5 +1,4 @@
 """Bulk update m2m fields."""
-from logging import DEBUG, INFO
 from pathlib import Path
 
 from django.db.models import Q
@@ -172,25 +171,17 @@ class LinkComicsMixin(QueuedThread):
             update_fields=update_fields,
             unique_fields=update_fields,
         )
-        created_count = len(created_objs)
-        if created_count:
-            level = INFO
-        else:
-            level = DEBUG
-        self.log.log(
-            level,
-            f"Created {created_count} new {field_name} relations for altered comics.",
-        )
+        if created_count := len(created_objs):
+            self.log.info(
+                f"Created {created_count} new {field_name}"
+                "relations for altered comics."
+            )
 
-        (del_count, _) = ThroughModel.objects.filter(comic_id__in=all_del_pks).delete()
-        if del_count:
-            level = INFO
-        else:
-            level = DEBUG
-        self.log.log(
-            level,
-            f"Deleted {del_count} stale {field_name} relations for altered comics.",
-        )
+        if del_count := len(all_del_pks):
+            ThroughModel.objects.filter(comic_id__in=all_del_pks).delete()
+            self.log.info(
+                f"Deleted {del_count} stale {field_name} relations for altered comics.",
+            )
 
     def bulk_query_and_link_comic_m2m_fields(self, all_m2m_mds, _status_args):
         """Combine query and bulk link into a batch."""

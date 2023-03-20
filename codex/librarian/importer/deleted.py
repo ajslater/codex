@@ -13,7 +13,8 @@ class DeletedMixin(QueuedThread):
         if not delete_folder_paths:
             return 0
         query = Folder.objects.filter(library=library, path__in=delete_folder_paths)
-        (count, _) = query.delete()
+        query.delete()
+        count = len(delete_folder_paths)
         self.log.info(f"Deleted {count} folders from {library.path}")
         return count
 
@@ -26,6 +27,7 @@ class DeletedMixin(QueuedThread):
         task = CoverRemoveTask(delete_comic_pks)
         self.librarian_queue.put(task)
 
-        (count, _) = query.delete()
+        query.delete()
+        count = len(delete_comic_paths)
         self.log.info(f"Deleted {count} comics from {library.path}")
         return count
