@@ -7,14 +7,32 @@ from codex.librarian.importer.failed_imports import FailedImportsMixin
 from codex.librarian.importer.moved import MovedMixin
 from codex.librarian.importer.status import ImportStatusTypes, StatusArgs
 from codex.librarian.importer.update_comics import UpdateComicsMixin
+from codex.memory import get_mem_limit
 from codex.models import Comic, Credit
-from codex.settings.settings import MAX_IMPORT_BATCH_SIZE
 
+_MAX_IMPORT_BATCH_SIZE = int(100000 * get_mem_limit("g"))
 _CREDIT_FK_NAMES = ("role", "person")
 
 
 class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin):
     """Methods that are batched."""
+
+    class BatchArgs:
+        """Keep track of batch arguments."""
+
+        def __init__(self, num_elements):
+            """Initialize batch args."""
+            self.batch_size = min(num_elements, _MAX_IMPORT_BATCH_SIZE)
+            self.start = 0
+            self.end = self.batch_size
+            self.count = 0
+
+        def increment(self, count):
+            """Increment for the next batch."""
+            if self.count is not None:
+                self.count += count
+            self.start = self.end
+            self.end = self.start + self.batch_size
 
     def _run_one_db_op_batch(
         self,
@@ -22,16 +40,13 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
         data,
         args,
         status_args,
-        batch_size,
-        start,
-        end,
-        this_count,
+        batch_args,
         status,
         is_dict,
     ):
         """Run one batch of data with the designated function."""
-        if status_args.total and start > 0:
-            status_args.count += this_count
+        if status_args.total and batch_args.start > 0:
+            status_args.count += batch_args.count
             status_args.since = self.status_controller.update(
                 status,
                 status_args.count,
@@ -39,17 +54,17 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
                 since=status_args.since,
             )
         if is_dict:
-            batch = dict(islice(data.items(), start, end))  # type: ignore
+            batch = dict(islice(data.items(), batch_args.start, batch_args.end))
         else:
-            batch = data[start:end]
+            batch = data[batch_args.start : batch_args.end]
         all_args = (batch, status_args, *args)
-        this_count += int(func(*all_args))
-        start = end
-        end = start + batch_size
+        count = int(func(*all_args))
+        batch_args.increment(count)
+        return count
 
-        return this_count, start, end
-
-    def batch_db_op(self, func, data, status, status_args=None, args=None):
+    def batch_db_op(
+        self, func, data, status, status_args=None, args=None, updates=True
+    ):
         """Run a function batched for memory contrainsts bracketed by status changes."""
         this_count = 0
         num_elements = len(data)
@@ -58,30 +73,26 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
             if not num_elements:
                 return this_count
             if not status_args:
-                status_args = StatusArgs(0, num_elements, time())
+                complete = 0 if updates else None
+                status_args = StatusArgs(complete, num_elements, time())
             if start_and_finish:
                 self.status_controller.start(
                     status, status_args.count, status_args.total
                 )
 
-            batch_size = min(num_elements, MAX_IMPORT_BATCH_SIZE)
-            start = 0
-            end = start + batch_size
+            batch_args = self.BatchArgs(num_elements)
             is_dict = isinstance(data, dict)
             if not is_dict:
                 data = list(data)
             if args is None:
                 args = ()
-            while start < num_elements:
-                this_count, start, end = self._run_one_db_op_batch(
+            while batch_args.start < num_elements:
+                this_count += self._run_one_db_op_batch(
                     func,
                     data,
                     args,
                     status_args,
-                    batch_size,
-                    start,
-                    end,
-                    this_count,
+                    batch_args,
                     status,
                     is_dict,
                 )
@@ -94,29 +105,39 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
 
     def batch_move_and_modify_dirs(self, library, task):
         """Move files and dirs and modify dirs."""
-        changed = self.batch_db_op(
+        changed = 0
+        folders_moved_count = self.batch_db_op(
             self.bulk_folders_moved,
             task.dirs_moved,
             ImportStatusTypes.DIRS_MOVED,
             args=(library,),
         )
         task.dirs_moved = None
+        if folders_moved_count:
+            changed += folders_moved_count
+            self.log.info(f"Moved {folders_moved_count} Folders.")
 
-        changed += self.batch_db_op(
+        comics_moved_count = self.batch_db_op(
             self.bulk_comics_moved,
             task.files_moved,
             ImportStatusTypes.FILES_MOVED,
             args=(library,),
         )
         task.files_moved = None
+        if comics_moved_count:
+            changed += comics_moved_count
+            self.log.info(f"Moved {comics_moved_count} Comics.")
 
-        changed += self.batch_db_op(
+        folders_modified_count = self.batch_db_op(
             self.bulk_folders_modified,
             task.dirs_modified,
             ImportStatusTypes.DIRS_MODIFIED,
             args=(library,),
         )
         task.dirs_modified = None
+        if folders_modified_count:
+            changed += folders_modified_count
+            self.log.info(f"Modified {folders_modified_count} Folders.")
 
         return changed
 
@@ -253,52 +274,66 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
             status_args = StatusArgs(0, total_fks, time())
             self.status_controller.start(status, status_args.count, status_args.total)
 
-            self.log.debug(f"Creating comic foreign keys for {library.path}...")
-
-            self.log.debug(f"Creating {len(create_groups)} groups...")
             for group_class, group_tree_counts in create_groups.items():
-                status_args.count += self.batch_db_op(
+                group_count = self.batch_db_op(
                     self.bulk_group_creator,
                     group_tree_counts,
                     status,
                     args=(group_class,),
                     status_args=status_args,
                 )
+                if group_count:
+                    status_args.count += group_count
+                    self.log.info(f"Created {group_count} {group_class.__name__}s.")
 
-            self.log.debug(f"Updating {len(update_groups)} groups...")
             for group_class, group_tree_counts in update_groups.items():
-                status_args.count += self.batch_db_op(
+                group_count = self.batch_db_op(
                     self.bulk_group_updater,
                     group_tree_counts,
                     status,
                     args=(group_class,),
                     status_args=status_args,
                 )
+                if group_count:
+                    status_args.count += group_count
+                    self.log.info(f"Updated {group_count} {group_class.__name__}s.")
 
-            status_args.count += self.batch_db_op(
+            folder_count = self.batch_db_op(
                 self.bulk_folders_create,
                 sorted(create_folder_paths),
                 status,
                 args=(library,),
                 status_args=status_args,
             )
+            if folder_count:
+                status_args.count += folder_count
+                self.log.debug(f"Created {folder_count} Folders.")
 
             for named_class, names in create_fks.items():
-                status_args.count += self.batch_db_op(
+                create_fks_count = self.batch_db_op(
                     self.bulk_create_named_models,
                     names,
                     status,
                     args=(named_class,),
                     status_args=status_args,
                 )
+                if create_fks_count:
+                    status_args.count += create_fks_count
+                    self.log.info(
+                        f"Created {create_fks_count} {named_class.__name__}s."
+                    )
 
             # This must happen after credit_fks created by create_named_models
-            status_args.count += self.batch_db_op(
+            credits_count = self.batch_db_op(
                 self.bulk_create_credits,
                 create_credits,
                 status,
                 status_args=status_args,
             )
+            if credits_count:
+                status_args.count += credits_count
+                self.log.info(f"Created {credits_count} Credits.")
+
             return status_args.count
         finally:
             self.status_controller.finish(ImportStatusTypes.CREATE_FKS)
@@ -337,6 +372,7 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
             modified_paths,
             ImportStatusTypes.FILES_MODIFIED,
             args=(library, created_paths, mds),
+            updates=False,
         )
         if update_count:
             self.log.info(f"Updated {update_count} comics.")
@@ -346,6 +382,7 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
             created_paths,
             ImportStatusTypes.FILES_CREATED,
             args=(library, mds),
+            updates=False,
         )
         if create_count:
             self.log.info(f"Created {update_count} comics.")

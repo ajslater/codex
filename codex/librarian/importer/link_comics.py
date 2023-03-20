@@ -91,10 +91,6 @@ class LinkComicsMixin(QueuedThread):
         """Get the complete m2m field data to create."""
         all_m2m_links = {}
         comic_paths = frozenset(m2m_mds.keys())
-        self.log.debug(
-            f"Preparing {len(comic_paths)} comics for many to many relation recreation."
-        )
-
         comics = Comic.objects.filter(path__in=comic_paths).values_list("pk", "path")
         for comic_pk, comic_path in comics:
             md = m2m_mds[comic_path]
@@ -118,9 +114,6 @@ class LinkComicsMixin(QueuedThread):
     def _query_relation_adjustments(
         self, field_name, m2m_links, ThroughModel, through_field_id_name  # noqa: N803
     ):
-        self.log.debug(
-            f"Determining {field_name} relation adjustments for altered comics."
-        )
         all_del_pks = set()
         tms = []
         for comic_pk, pks in m2m_links.items():
@@ -165,16 +158,16 @@ class LinkComicsMixin(QueuedThread):
         )
 
         update_fields = ("comic_id", through_field_id_name)
-        created_objs = ThroughModel.objects.bulk_create(
+        ThroughModel.objects.bulk_create(
             tms,
             update_conflicts=True,
             update_fields=update_fields,
             unique_fields=update_fields,
         )
-        if created_count := len(created_objs):
+        if created_count := len(tms):
             self.log.info(
                 f"Created {created_count} new {field_name}"
-                "relations for altered comics."
+                " relations for altered comics."
             )
 
         if del_count := len(all_del_pks):

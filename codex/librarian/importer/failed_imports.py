@@ -87,7 +87,8 @@ class FailedImportsMixin(QueuedThread):
         this_count = FailedImport.objects.bulk_update(
             update_failed_import_objs, fields=_BULK_UPDATE_FAILED_IMPORT_FIELDS
         )
-        self.log.info(f"Updated {this_count} old failed imports.")
+        if this_count:
+            self.log.info(f"Updated {this_count} old failed imports.")
         return this_count
 
     def bulk_create_failed_imports(self, create_failed_imports, _status_args, library):
@@ -104,15 +105,14 @@ class FailedImportsMixin(QueuedThread):
             except Exception as exc:
                 self.log.error(f"Error preparing failed import create for {path}")
                 self.log.exception(exc)
-        count = 0
-        if create_objs:
-            created_objs = FailedImport.objects.bulk_create(
-                create_objs,
-                update_conflicts=True,
-                update_fields=_BULK_UPDATE_FAILED_IMPORT_FIELDS,
-                unique_fields=FailedImport._meta.unique_together[0],
-            )
-            count = len(created_objs)
+        FailedImport.objects.bulk_create(
+            create_objs,
+            update_conflicts=True,
+            update_fields=_BULK_UPDATE_FAILED_IMPORT_FIELDS,
+            unique_fields=FailedImport._meta.unique_together[0],
+        )
+        count = len(create_objs)
+        if count:
             self.log.info(f"Added {count} comics to failed imports.")
         return count
 

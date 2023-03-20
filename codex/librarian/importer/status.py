@@ -1,5 +1,6 @@
 """Librarian Status for imports."""
 from dataclasses import dataclass
+from typing import Optional
 
 from codex.librarian.status import StatusTypes
 
@@ -26,7 +27,7 @@ class ImportStatusTypes(StatusTypes):
 class StatusArgs:
     """Args for passing into import functions."""
 
-    count: int = 0
-    total: int = 0
+    count: Optional[int] = None
+    total: Optional[int] = None
     since: float = 0
     status: str = ""  # TODO? use this?

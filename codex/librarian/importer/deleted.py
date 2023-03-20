@@ -15,7 +15,7 @@ class DeletedMixin(QueuedThread):
         query = Folder.objects.filter(library=library, path__in=delete_folder_paths)
         query.delete()
         count = len(delete_folder_paths)
-        self.log.info(f"Deleted {count} folders from {library.path}")
+        self.log.debug(f"Deleted {count} folders from {library.path}")
         return count
 
     def bulk_comics_deleted(self, delete_comic_paths, _status_args, library):
@@ -29,5 +29,5 @@ class DeletedMixin(QueuedThread):
 
         query.delete()
         count = len(delete_comic_paths)
-        self.log.info(f"Deleted {count} comics from {library.path}")
+        self.log.debug(f"Deleted {count} comics from {library.path}")
         return count

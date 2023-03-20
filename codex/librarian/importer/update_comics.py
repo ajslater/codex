@@ -67,9 +67,6 @@ class UpdateComicsMixin(LinkComicsMixin):
             except Exception as exc:
                 self.log.error(f"Error preparing {comic} for update.")
                 self.log.exception(exc)
-        self.log.info(
-            f"Prepared {len(comic_paths)} comics for update in library {library.path}."
-        )
 
         converted_create_paths = frozenset(set(comic_paths) - comic_update_paths)
         create_paths.update(converted_create_paths)

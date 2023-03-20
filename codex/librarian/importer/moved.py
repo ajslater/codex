@@ -60,7 +60,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
         # Update m2m field
         if folder_m2m_links:
             self.bulk_fix_comic_m2m_field("folders", folder_m2m_links)
-        self.log.info(f"Moved {this_count} comics.")
+        self.log.debug(f"Moved {this_count} comics.")
 
         return this_count
 
@@ -118,7 +118,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
         this_count = Folder.objects.bulk_update(
             update_folders, MOVED_BULK_FOLDER_UPDATE_FIELDS
         )
-        self.log.info(f"Moved {this_count} folders.")
+        self.log.debug(f"Moved {this_count} folders.")
         return this_count
 
     def adopt_orphan_folders(self):

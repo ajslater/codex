@@ -69,7 +69,7 @@ class QueryForeignKeysMixin(QueuedThread):
                     status_args.count + this_count,
                     status_args.total,
                     since=status_args.since,
-                    name=fk_cls.__name__,
+                    name=f"({fk_cls.__name__})",
                 )
 
         return create_mds
@@ -143,6 +143,7 @@ class QueryForeignKeysMixin(QueuedThread):
                 status_args.count + this_count,
                 status_args.total,
                 since=status_args.since,
+                name=f"({group_cls.__name__})",
             )
         return this_count
 
@@ -202,7 +203,7 @@ class QueryForeignKeysMixin(QueuedThread):
                 status_args.count + this_count,
                 status_args.total,
                 since=status_args.since,
-                name=fk_cls.__name__,
+                name=f"({fk_cls.__name__})",
             )
             start += _SQLITE_FILTER_ARG_MAX
 

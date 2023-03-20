@@ -14,12 +14,12 @@ class CreateComicsMixin(LinkComicsMixin):
         this_count = 0
         if not comic_paths:
             return this_count
-
         num_comics = len(comic_paths)
+
+        # prepare create comics
         self.log.debug(
             f"Preparing {num_comics} comics for creation in library {library.path}."
         )
-        # prepare create comics
         create_comics = []
         for path in comic_paths:
             try:
@@ -35,19 +35,15 @@ class CreateComicsMixin(LinkComicsMixin):
                 self.log.error(f"Error preparing {path} for create.")
                 self.log.exception(exc)
 
-        num_comics = len(create_comics)
-        self.log.info(
-            f"Prepared {num_comics} comics for creation in library {library.path}."
-        )
         self.log.debug(f"Bulk creating {num_comics} comics...")
         try:
-            created_comics = Comic.objects.bulk_create(
+            Comic.objects.bulk_create(
                 create_comics,
                 update_conflicts=True,
                 update_fields=BULK_UPDATE_COMIC_FIELDS,
                 unique_fields=Comic._meta.unique_together[0],
             )
-            this_count += len(created_comics)
+            this_count += num_comics
         except Exception as exc:
             self.log.error(exc)
             self.log.error("While creating", comic_paths)
