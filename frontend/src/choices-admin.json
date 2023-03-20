@@ -10,8 +10,8 @@
         },
         {
           "value": "poll_force",
-          "title": "Update All Libraries",
-          "desc": "Forcibly update all the comics in all libraries",
+          "title": "Force Update All Libraries",
+          "desc": "Forcibly update all comics in all libraries",
           "confirm": "This can take a long time"
         },
         {
