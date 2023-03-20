@@ -9,7 +9,12 @@ from haystack.exceptions import SkipDocument
 from humanfriendly import InvalidSize, parse_size
 from whoosh.analysis import CharsetFilter, StandardAnalyzer, StemFilter
 from whoosh.fields import NUMERIC
-from whoosh.qparser import FieldAliasPlugin, GtLtPlugin, OperatorsPlugin
+from whoosh.qparser import (
+    FieldAliasPlugin,
+    GtLtPlugin,
+    OperatorsPlugin,
+    WhitespacePlugin,
+)
 from whoosh.qparser.dateparse import DateParserPlugin
 from whoosh.query import Not, Or, Term
 from whoosh.support.charset import accent_map
@@ -180,15 +185,19 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
 
         return (content_field_name, schema)
 
-    def setup(self, dateparser=True):
+    def setup(self, add_plugins=True):
         """Add extra plugins."""
         super().setup()
-        self.parser.replace_plugin(self.OPERATORS_PLUGIN)
-        plugins = [self.FIELD_ALIAS_PLUGIN, GtLtPlugin]
-        if dateparser:
-            # the dateparser plugin won't pickle for
+        # Fix duplicate plugin bug:
+        # https://github.com/mchaput/whoosh/pull/11
+        if not add_plugins:
+            # XXX the dateparser plugin won't pickle for
             # multiprocessing
-            plugins += [DateParserPlugin(basedate=now())]
+            return
+        self.parser.remove_plugin_class(WhitespacePlugin)
+        self.parser.replace_plugin(self.OPERATORS_PLUGIN)
+        plugins = [WhitespacePlugin, self.FIELD_ALIAS_PLUGIN, GtLtPlugin]
+        plugins += [DateParserPlugin(basedate=now())]
         self.parser.add_plugins(plugins)
 
     def get_writer(self, commitargs=COMMITARGS_NO_MERGE):
