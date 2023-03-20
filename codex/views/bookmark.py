@@ -104,7 +104,7 @@ class BookmarkBaseView(GenericAPIView, GroupACLMixin):
         Bookmark.objects.bulk_create(
             create_bookmarks,
             update_fields=self._BOOKMARK_UPDATE_FIELDS,
-            unique_fields=Bookmark._meta.unique_together[0],
+            unique_fields=Bookmark._meta.unique_together[0],  # type: ignore
         )
 
     def update_bookmarks(self, updates, comic_filter):

@@ -12,75 +12,36 @@ from codex.models import Comic, Credit
 _CREDIT_FK_NAMES = ("role", "person")
 
 
-class StatusWrapperMixin(
+class ApplyDBOpsMixin(
     AggregateMetadataMixin,
     DeletedMixin,
     UpdateComicsMixin,
     FailedImportsMixin,
     MovedMixin,
 ):
-    """Methods that are batched."""
-
-    def status_wrapper(
-        self, func, data, status, status_args=None, args=None, updates=True
-    ):
-        """Run a function bracketed by status changes."""
-        num_elements = len(data)
-        if not num_elements:
-            return 0
-        if status_args:
-            finish = False
-        else:
-            complete = 0 if updates else None
-            status_args = StatusArgs(complete, num_elements, time())
-            self.status_controller.start(status, status_args.count, status_args.total)
-            finish = True
-
-        if args is None:
-            args = ()
-        all_args = (data, status_args, *args)
-        try:
-            count = func(*all_args)
-        finally:
-            if finish:
-                self.status_controller.finish(status)
-
-        return count
+    """Apply db ops, wrapped in statuses."""
 
     def read_metadata(self, library_path, all_paths, mds, m2m_mds, fks, fis):
         """Aggregate Metadata."""
-        return self.status_wrapper(
-            self.get_aggregate_metadata,
+        return self.get_aggregate_metadata(
             all_paths,
-            ImportStatusTypes.AGGREGATE_TAGS,
-            args=(library_path, mds, m2m_mds, fks, fis),
+            library_path,
+            mds,
+            m2m_mds,
+            fks,
+            fis,
         )
 
     def move_and_modify_dirs(self, library, task):
         """Move files and dirs and modify dirs."""
         changed = 0
-        changed += self.status_wrapper(
-            self.bulk_folders_moved,
-            task.dirs_moved,
-            ImportStatusTypes.DIRS_MOVED,
-            args=(library,),
-        )
+        changed += self.bulk_folders_moved(task.dirs_moved, library)
         task.dirs_moved = None
 
-        changed += self.status_wrapper(
-            self.bulk_comics_moved,
-            task.files_moved,
-            ImportStatusTypes.FILES_MOVED,
-            args=(library,),
-        )
+        changed += self.bulk_comics_moved(task.files_moved, library)
         task.files_moved = None
 
-        changed += self.status_wrapper(
-            self.bulk_folders_modified,
-            task.dirs_modified,
-            ImportStatusTypes.DIRS_MODIFIED,
-            args=(library,),
-        )
+        changed += self.bulk_folders_modified(task.dirs_modified, library)
         task.dirs_modified = None
 
         return changed
@@ -103,11 +64,12 @@ class StatusWrapperMixin(
             base_cls = Credit
         else:
             base_cls = Comic
-        status_args.count += self.status_wrapper(
-            self.query_missing_simple_models,
+        status_args.count += self.query_missing_simple_models(
             names,
-            ImportStatusTypes.QUERY_MISSING_FKS,
-            args=(create_fks, base_cls, fk_field, "name"),
+            create_fks,
+            base_cls,
+            fk_field,
+            "name",
             status_args=status_args,
         )
 
@@ -123,35 +85,37 @@ class StatusWrapperMixin(
                 f"Querying existing foreign keys for comics in {library_path}"
             )
             fks_total = self._get_query_fks_totals(fks)
-            status_args = StatusArgs(0, fks_total, time())
-            self.status_controller.start(
+            status_args = StatusArgs(
+                0,
+                fks_total,
+                time(),
                 ImportStatusTypes.QUERY_MISSING_FKS,
+            )
+            self.status_controller.start(
+                status_args.status,
                 status_args.count,
                 status_args.total,
             )
 
-            status_args.count += self.status_wrapper(
-                self.query_missing_credits,
+            status_args.count += self.query_missing_credits(  # type: ignore
                 fks.pop("credits", {}),
-                ImportStatusTypes.QUERY_MISSING_FKS,
-                args=(create_credits,),
+                create_credits,
                 status_args=status_args,
             )
 
             for group_class, groups in fks.pop("group_trees", {}).items():
-                status_args.count += self.status_wrapper(
-                    self.query_missing_group,
+                status_args.count += self.query_missing_group(
                     groups,
-                    ImportStatusTypes.QUERY_MISSING_FKS,
-                    args=(group_class, create_groups, update_groups),
+                    group_class,
+                    create_groups,
+                    update_groups,
                     status_args=status_args,
                 )
 
-            status_args.count += self.status_wrapper(
-                self.query_missing_folder_paths,
+            status_args.count += self.query_missing_folder_paths(
                 fks.pop("comic_paths", ()),
-                ImportStatusTypes.QUERY_MISSING_FKS,
-                args=(library_path, create_folder_paths),
+                library_path,
+                create_folder_paths,
                 status_args=status_args,
             )
 
@@ -203,50 +167,41 @@ class StatusWrapperMixin(
                 create_fks,
                 create_credits,
             )
-            status = ImportStatusTypes.CREATE_FKS
-            status_args = StatusArgs(0, total_fks, time())
-            self.status_controller.start(status, status_args.count, status_args.total)
+            status_args = StatusArgs(0, total_fks, time(), ImportStatusTypes.CREATE_FKS)
+            self.status_controller.start(
+                status_args.status, status_args.count, status_args.total
+            )
 
             for group_class, group_tree_counts in create_groups.items():
-                status_args.count += self.status_wrapper(
-                    self.bulk_group_creator,
+                status_args.count += self.bulk_group_creator(  # type: ignore
                     group_tree_counts,
-                    status,
-                    args=(group_class,),
+                    group_class,
                     status_args=status_args,
                 )
 
             for group_class, group_tree_counts in update_groups.items():
-                status_args.count += self.status_wrapper(
-                    self.bulk_group_updater,
+                status_args.count += self.bulk_group_updater(  # type: ignore
                     group_tree_counts,
-                    status,
-                    args=(group_class,),
+                    group_class,
                     status_args=status_args,
                 )
 
-            status_args.count += self.status_wrapper(
-                self.bulk_folders_create,
+            status_args.count += self.bulk_folders_create(  # type: ignore
                 sorted(create_folder_paths),
-                status,
-                args=(library,),
+                library,
                 status_args=status_args,
             )
 
             for named_class, names in create_fks.items():
-                status_args.count += self.status_wrapper(
-                    self.bulk_create_named_models,
+                status_args.count += self.bulk_create_named_models(
                     names,
-                    status,
-                    args=(named_class,),
+                    named_class,
                     status_args=status_args,
                 )
 
             # This must happen after credit_fks created by create_named_models
-            status_args.count += self.status_wrapper(
-                self.bulk_create_credits,
+            status_args.count += self.bulk_create_credits(
                 create_credits,
-                status,
                 status_args=status_args,
             )
 
@@ -281,27 +236,14 @@ class StatusWrapperMixin(
         self, library, modified_paths, created_paths, mds, m2m_mds
     ):
         """Update, create and link comics."""
-        imported_count = self.status_wrapper(
-            self.bulk_update_comics,
+        imported_count = self.bulk_update_comics(
             modified_paths,
-            ImportStatusTypes.FILES_MODIFIED,
-            args=(library, created_paths, mds),
-            updates=False,
-        )
-
-        imported_count += self.status_wrapper(
-            self.bulk_create_comics,
+            library,
             created_paths,
-            ImportStatusTypes.FILES_CREATED,
-            args=(library, mds),
-            updates=False,
+            mds,
         )
-
-        self.status_wrapper(
-            self.bulk_query_and_link_comic_m2m_fields,
-            m2m_mds,
-            ImportStatusTypes.LINK_M2M_FIELDS,
-        )
+        imported_count += self.bulk_create_comics(created_paths, library, mds)
+        self.bulk_query_and_link_comic_m2m_fields(m2m_mds)
 
         return imported_count
 
@@ -312,38 +254,38 @@ class StatusWrapperMixin(
             update_fis = {}
             create_fis = {}
             delete_fi_paths = set()
-            status_args = StatusArgs(0, len(failed_imports), time())
-            self.status_wrapper(
-                self.query_failed_imports,
-                failed_imports,
+            status_args = StatusArgs(
+                0,
+                len(failed_imports),
+                time(),
                 ImportStatusTypes.FAILED_IMPORTS,
-                args=(library, update_fis, create_fis, delete_fi_paths),
+            )
+            self.query_failed_imports(
+                failed_imports,
+                library,
+                update_fis,
+                create_fis,
+                delete_fi_paths,
                 status_args=status_args,
             )
             status_args.total = len(update_fis) + len(create_fis) + len(delete_fi_paths)
 
-            status_args.count += self.status_wrapper(
-                self.bulk_update_failed_imports,
+            status_args.count += self.bulk_update_failed_imports(  # type: ignore
                 update_fis,
-                ImportStatusTypes.FAILED_IMPORTS,
-                args=(library,),
+                library,
                 status_args=status_args,
             )
 
-            created_count = self.status_wrapper(
-                self.bulk_create_failed_imports,
+            created_count = self.bulk_create_failed_imports(
                 create_fis,
-                ImportStatusTypes.FAILED_IMPORTS,
-                args=(library,),
+                library,
                 status_args=status_args,
             )
             status_args.count += created_count
 
-            status_args.count += self.status_wrapper(
-                self.bulk_cleanup_failed_imports,
+            status_args.count += self.bulk_cleanup_failed_imports(
                 delete_fi_paths,
-                ImportStatusTypes.FAILED_IMPORTS,
-                args=(library,),
+                library,
             )
         except Exception as exc:
             self.log.exception(exc)
@@ -351,21 +293,9 @@ class StatusWrapperMixin(
 
     def delete(self, library, task):
         """Delete files and folders."""
-        count = self.status_wrapper(
-            self.bulk_folders_deleted,
-            task.dirs_deleted,
-            ImportStatusTypes.DIRS_DELETED,
-            args=(library,),
-            updates=False,
-        )
+        count = self.bulk_folders_deleted(task.dirs_deleted, library)
         task.dirs_deleted = None
 
-        count += self.status_wrapper(
-            self.bulk_comics_deleted,
-            task.files_deleted,
-            ImportStatusTypes.FILES_DELETED,
-            args=(library,),
-            updates=False,
-        )
+        count += self.bulk_comics_deleted(task.files_deleted, library)
         task.files_deleted = None
         return count

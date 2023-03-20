@@ -1,5 +1,6 @@
 """Bulk update and create comic objects and bulk update m2m fields."""
 from codex.librarian.importer.link_comics import LinkComicsMixin
+from codex.librarian.importer.status import ImportStatusTypes, status
 from codex.librarian.importer.update_comics import BULK_UPDATE_COMIC_FIELDS
 from codex.models import (
     Comic,
@@ -9,7 +10,8 @@ from codex.models import (
 class CreateComicsMixin(LinkComicsMixin):
     """Create comics methods."""
 
-    def bulk_create_comics(self, comic_paths, _status_args, library, mds):
+    @status(status=ImportStatusTypes.FILES_CREATED, updates=False)
+    def bulk_create_comics(self, comic_paths, library, mds, status_args=None):
         """Bulk create comics."""
         if not comic_paths:
             return 0
@@ -41,7 +43,7 @@ class CreateComicsMixin(LinkComicsMixin):
                 create_comics,
                 update_conflicts=True,
                 update_fields=BULK_UPDATE_COMIC_FIELDS,
-                unique_fields=Comic._meta.unique_together[0],
+                unique_fields=Comic._meta.unique_together[0],  # type: ignore
             )
             count = len(create_comics)
             self.log.info(f"Created {count} comics.")

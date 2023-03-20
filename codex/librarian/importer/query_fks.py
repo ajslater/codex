@@ -3,7 +3,7 @@ from pathlib import Path
 
 from django.db.models import Q
 
-from codex.librarian.importer.status import ImportStatusTypes
+from codex.librarian.importer.status import status
 from codex.models import (
     Comic,
     Credit,
@@ -65,7 +65,7 @@ class QueryForeignKeysMixin(QueuedThread):
 
                 this_count += num
                 status_args.since = self.status_controller.update(
-                    ImportStatusTypes.QUERY_MISSING_FKS,
+                    status_args.status,
                     status_args.count + this_count,
                     status_args.total,
                     since=status_args.since,
@@ -124,13 +124,14 @@ class QueryForeignKeysMixin(QueuedThread):
             update_groups[group_cls][group_tree] = {}
         update_groups[group_cls][group_tree].update(count_dict)
 
+    @status()
     def query_missing_group(
         self,
         groups,
-        status_args,
         group_cls,
         create_groups,
         update_groups,
+        status_args=None,
     ):
         """Get missing groups from proposed groups to create."""
         count = 0
@@ -151,19 +152,24 @@ class QueryForeignKeysMixin(QueuedThread):
                     group_cls, update_groups, group_tree, count_dict
                 )
             count += 1
-            status_args.since = self.status_controller.update(
-                ImportStatusTypes.QUERY_MISSING_FKS,
-                status_args.count + count,
-                status_args.total,
-                since=status_args.since,
-                name=f"({group_cls.__name__})",
-            )
+            if status_args:
+                status_args.since = self.status_controller.update(
+                    status_args.status,
+                    status_args.count + count,
+                    status_args.total,
+                    since=status_args.since,
+                    name=f"({group_cls.__name__})",
+                )
         if count:
             self.log.info(f"Prepared {count} new {group_cls.__name__}s.")
         return count
 
-    def query_missing_credits(self, credits, status_args, create_credits):
+    @status()
+    def query_missing_credits(self, credits, create_credits, status_args=None):
         """Find missing credit objects."""
+        count = 0
+        if not credits:
+            return count
         # create the filter
         comparison_credits = set()
         all_filter_args = set()
@@ -190,14 +196,9 @@ class QueryForeignKeysMixin(QueuedThread):
             self.log.info(f"Prepared {count} new credits.")
         return count
 
+    @status()
     def query_missing_simple_models(
-        self,
-        names,
-        status_args,
-        create_fks,
-        base_cls,
-        field,
-        fk_field,
+        self, names, create_fks, base_cls, field, fk_field, status_args=None
     ):
         """Find missing named models and folders."""
         count = 0
@@ -218,13 +219,14 @@ class QueryForeignKeysMixin(QueuedThread):
             filter = Q(**filter_args)
             create_names -= self._query_existing_mds(fk_cls, filter)
             count += len(batch_proposed_names)
-            status_args.since = self.status_controller.update(
-                ImportStatusTypes.QUERY_MISSING_FKS,
-                status_args.count + count,
-                status_args.total,
-                since=status_args.since,
-                name=f"({fk_cls.__name__})",
-            )
+            if status_args:
+                status_args.since = self.status_controller.update(
+                    status_args.status,
+                    status_args.count + count,
+                    status_args.total,
+                    since=status_args.since,
+                    name=f"({fk_cls.__name__})",
+                )
             start += _SQLITE_FILTER_ARG_MAX
 
         if fk_cls not in create_fks:
@@ -233,8 +235,9 @@ class QueryForeignKeysMixin(QueuedThread):
         self.log.info(f"Prepared {count} new {fk_field}.")
         return count
 
+    @status()
     def query_missing_folder_paths(
-        self, comic_paths, status_args, library_path, create_folder_paths
+        self, comic_paths, library_path, create_folder_paths, status_args=None
     ):
         """Find missing folder paths."""
         # Get the proposed folder_paths
@@ -249,11 +252,11 @@ class QueryForeignKeysMixin(QueuedThread):
         create_folder_paths_dict = {}
         self.query_missing_simple_models(
             proposed_folder_paths,
-            status_args,
             create_folder_paths_dict,
             Comic,
             "parent_folder",
             "path",
+            status_args=status_args,
         )
         create_folder_paths.update(create_folder_paths_dict.get(Folder, set()))
         count = len(comic_paths)

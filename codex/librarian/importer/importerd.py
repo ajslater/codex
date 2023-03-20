@@ -6,8 +6,8 @@ from time import sleep, time
 from django.core.cache import cache
 from humanize import naturaldelta
 
+from codex.librarian.importer.db_ops import ApplyDBOpsMixin
 from codex.librarian.importer.status import ImportStatusTypes
-from codex.librarian.importer.status_wrapper import StatusWrapperMixin
 from codex.librarian.importer.tasks import AdoptOrphanFoldersTask, UpdaterDBDiffTask
 from codex.librarian.notifier.tasks import FAILED_IMPORTS_TASK, LIBRARY_CHANGED_TASK
 from codex.librarian.search.status import SearchIndexStatusTypes
@@ -18,7 +18,7 @@ from codex.models import Library
 _WRITE_WAIT_EXPIRY = 60
 
 
-class ComicImporterThread(StatusWrapperMixin):
+class ComicImporterThread(ApplyDBOpsMixin):
     """A worker to handle all bulk database updates."""
 
     def _wait_for_filesystem_ops_to_finish(self, task: UpdaterDBDiffTask) -> bool:

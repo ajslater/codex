@@ -3,6 +3,7 @@ from pathlib import Path
 
 from django.db.models import Q
 
+from codex.librarian.importer.status import ImportStatusTypes, status
 from codex.models import (
     Comic,
     Credit,
@@ -112,7 +113,7 @@ class LinkComicsMixin(QueuedThread):
         return all_m2m_links
 
     def _query_relation_adjustments(
-        self, field_name, m2m_links, ThroughModel, through_field_id_name  # noqa: N803
+        self, m2m_links, ThroughModel, through_field_id_name  # noqa: N803
     ):
         all_del_pks = set()
         tms = []
@@ -154,7 +155,7 @@ class LinkComicsMixin(QueuedThread):
         through_field_id_name = f"{link_name}_id"
 
         tms, all_del_pks = self._query_relation_adjustments(
-            field_name, m2m_links, ThroughModel, through_field_id_name
+            m2m_links, ThroughModel, through_field_id_name
         )
 
         update_fields = ("comic_id", through_field_id_name)
@@ -176,7 +177,8 @@ class LinkComicsMixin(QueuedThread):
                 f"Deleted {del_count} stale {field_name} relations for altered comics.",
             )
 
-    def bulk_query_and_link_comic_m2m_fields(self, all_m2m_mds, _status_args):
+    @status(status=ImportStatusTypes.LINK_M2M_FIELDS)
+    def bulk_query_and_link_comic_m2m_fields(self, all_m2m_mds, status_args=None):
         """Combine query and bulk link into a batch."""
         all_m2m_links = self._link_comic_m2m_fields(all_m2m_mds)
         for field_name, m2m_links in all_m2m_links.items():

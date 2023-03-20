@@ -4,6 +4,7 @@ from django.db.models.functions import Now
 
 from codex.librarian.covers.tasks import CoverRemoveTask
 from codex.librarian.importer.link_comics import LinkComicsMixin
+from codex.librarian.importer.status import ImportStatusTypes, status
 from codex.models import (
     Comic,
     Timestamp,
@@ -26,13 +27,14 @@ for field in Comic._meta.get_fields():
 class UpdateComicsMixin(LinkComicsMixin):
     """Create comics methods."""
 
+    @status(status=ImportStatusTypes.FILES_MODIFIED, updates=False)
     def bulk_update_comics(
         self,
         comic_paths,
-        _status_args,
         library,
         create_paths,
         mds,
+        status_args=None,
     ):
         """Bulk update comics, and move nonextant comics into create job.."""
         count = 0

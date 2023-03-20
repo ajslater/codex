@@ -1,6 +1,7 @@
 """Clean up the database after moves or imports."""
 
 from codex.librarian.covers.tasks import CoverRemoveTask
+from codex.librarian.importer.status import ImportStatusTypes, status
 from codex.models import Comic, Folder
 from codex.threads import QueuedThread
 
@@ -8,7 +9,8 @@ from codex.threads import QueuedThread
 class DeletedMixin(QueuedThread):
     """Clean up database methods."""
 
-    def bulk_folders_deleted(self, delete_folder_paths, _status_args, library):
+    @status(status=ImportStatusTypes.DIRS_DELETED, updates=False)
+    def bulk_folders_deleted(self, delete_folder_paths, library, status_args=None):
         """Bulk delete folders."""
         if not delete_folder_paths:
             return 0
@@ -18,7 +20,8 @@ class DeletedMixin(QueuedThread):
         self.log.info(f"Deleted {count} folders from {library.path}")
         return count
 
-    def bulk_comics_deleted(self, delete_comic_paths, _status_args, library):
+    @status(status=ImportStatusTypes.FILES_DELETED, updates=False)
+    def bulk_comics_deleted(self, delete_comic_paths, library, status_args=None):
         """Bulk delete comics found missing from the filesystem."""
         if not delete_comic_paths:
             return 0

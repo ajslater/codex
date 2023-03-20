@@ -6,6 +6,7 @@ from django.db.models.functions import Now
 from codex.librarian.importer.create_comics import CreateComicsMixin
 from codex.librarian.importer.create_fks import CreateForeignKeysMixin
 from codex.librarian.importer.query_fks import QueryForeignKeysMixin
+from codex.librarian.importer.status import ImportStatusTypes, status
 from codex.models import Comic, Folder, Library
 
 MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder")
@@ -15,7 +16,8 @@ MOVED_BULK_FOLDER_UPDATE_FIELDS = ("path", "parent_folder", "name")
 class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixin):
     """Methods for moving comics and folders."""
 
-    def bulk_comics_moved(self, moved_paths, status_args, library):
+    @status(status=ImportStatusTypes.FILES_MOVED)
+    def bulk_comics_moved(self, moved_paths, library, status_args=None):
         """Move comcis."""
         count = 0
         if not moved_paths:
@@ -91,10 +93,11 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
             dest_parent_folders[folder.path] = folder
         return dest_parent_folders
 
-    def bulk_folders_moved(self, folders_moved, _status_args, library):
+    @status(status=ImportStatusTypes.DIRS_MOVED)
+    def bulk_folders_moved(self, folders_moved, library, status_args=None):
         """Move folders in the database instead of recreating them."""
         if not folders_moved:
-            return
+            return 0
 
         dest_folder_paths = frozenset(folders_moved.values())
         dest_parent_folders = self._get_parent_folders(library, dest_folder_paths)
@@ -135,4 +138,4 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
             for path in orphan_folder_paths:
                 folders_moved[path] = path
 
-            self.bulk_folders_moved(folders_moved, None, library)
+            self.bulk_folders_moved(folders_moved, library)

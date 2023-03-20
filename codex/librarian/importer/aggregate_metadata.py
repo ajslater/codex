@@ -8,7 +8,7 @@ from rarfile import BadRarFile
 
 from codex.comic_field_names import COMIC_M2M_FIELD_NAMES
 from codex.librarian.importer.clean_metadata import CleanMetadataMixin
-from codex.librarian.importer.status import ImportStatusTypes
+from codex.librarian.importer.status import ImportStatusTypes, status
 from codex.models import Comic, Imprint, Publisher, Series, Volume
 from codex.pdf import PDF
 from codex.version import COMICBOX_CONFIG
@@ -141,15 +141,16 @@ class AggregateMetadataMixin(CleanMetadataMixin):
                 all_fks, group_tree, group_md, Volume, 4, "issue_count"
             )
 
+    @status(status=ImportStatusTypes.AGGREGATE_TAGS)
     def get_aggregate_metadata(
         self,
         all_paths,
-        status_args,
         library_path,
         all_mds,
         all_m2m_mds,
         all_fks,
         all_failed_imports,
+        status_args=None,
     ):
         """Get aggregated metatada for the paths given."""
         total_paths = len(all_paths)
@@ -172,12 +173,13 @@ class AggregateMetadataMixin(CleanMetadataMixin):
                 if group_tree_md:
                     self._aggregate_group_tree_metadata(all_fks, group_tree_md)
 
-            status_args.since = self.status_controller.update(
-                ImportStatusTypes.AGGREGATE_TAGS,
-                status_args.count + num,
-                status_args.total,
-                since=status_args.since,
-            )
+            if status_args:
+                status_args.since = self.status_controller.update(
+                    status_args.status,
+                    status_args.count + num,
+                    status_args.total,
+                    since=status_args.since,
+                )
 
         all_fks["comic_paths"] = frozenset(all_mds.keys())
         self.status_controller.update(
