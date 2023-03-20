@@ -106,6 +106,24 @@ class QueryForeignKeysMixin(QueuedThread):
             group_cls, candidate_groups, all_filter_args, status_args
         )
 
+    @staticmethod
+    def _update_create_group(group_cls, create_groups, group_tree, count_dict):
+        """Update the create group dict with the count dict."""
+        if group_cls not in create_groups:
+            create_groups[group_cls] = {}
+        if group_tree not in create_groups[group_cls]:
+            create_groups[group_cls][group_tree] = {}
+        create_groups[group_cls][group_tree].update(count_dict)
+
+    @staticmethod
+    def _update_update_group(group_cls, update_groups, group_tree, count_dict):
+        """Update the update group dict with the count dict."""
+        if group_cls not in update_groups:
+            update_groups[group_cls] = {}
+        if group_tree not in update_groups[group_cls]:
+            update_groups[group_cls][group_tree] = {}
+        update_groups[group_cls][group_tree].update(count_dict)
+
     def query_missing_group(
         self,
         groups,
@@ -115,9 +133,9 @@ class QueryForeignKeysMixin(QueuedThread):
         update_groups,
     ):
         """Get missing groups from proposed groups to create."""
-        this_count = 0
+        count = 0
         if not groups:
-            return this_count
+            return count
 
         create_group_set = self._get_create_group_set(groups, group_cls, status_args)
 
@@ -125,27 +143,24 @@ class QueryForeignKeysMixin(QueuedThread):
             if count_dict is None:
                 count_dict = {}
             if group_tree in create_group_set:
-                if group_cls not in create_groups:
-                    create_groups[group_cls] = {}
-                if group_tree not in create_groups[group_cls]:
-                    create_groups[group_cls][group_tree] = {}
-                create_groups[group_cls][group_tree].update(count_dict)
+                self._update_create_group(
+                    group_cls, create_groups, group_tree, count_dict
+                )
             elif group_cls in (Series, Volume):
-                # If Series or Volume in group tree
-                if group_cls not in update_groups:
-                    update_groups[group_cls] = {}
-                if group_tree not in update_groups[group_cls]:
-                    update_groups[group_cls][group_tree] = {}
-                update_groups[group_cls][group_tree].update(count_dict)
-            this_count += 1
+                self._update_update_group(
+                    group_cls, update_groups, group_tree, count_dict
+                )
+            count += 1
             status_args.since = self.status_controller.update(
                 ImportStatusTypes.QUERY_MISSING_FKS,
-                status_args.count + this_count,
+                status_args.count + count,
                 status_args.total,
                 since=status_args.since,
                 name=f"({group_cls.__name__})",
             )
-        return this_count
+        if count:
+            self.log.info(f"Prepared {count} new {group_cls.__name__}s.")
+        return count
 
     def query_missing_credits(self, credits, status_args, create_credits):
         """Find missing credit objects."""
@@ -170,7 +185,10 @@ class QueryForeignKeysMixin(QueuedThread):
             Credit, comparison_credits, all_filter_args, status_args
         )
         create_credits.update(new_create_credits)
-        return len(credits)
+        count = len(new_create_credits)
+        if count:
+            self.log.info(f"Prepared {count} new credits.")
+        return count
 
     def query_missing_simple_models(
         self,
@@ -182,25 +200,27 @@ class QueryForeignKeysMixin(QueuedThread):
         fk_field,
     ):
         """Find missing named models and folders."""
-        # Do this in batches so as not to exceed the 1k line sqlite limit
+        count = 0
+        if not names:
+            return count
         fk_cls = base_cls._meta.get_field(field).related_model
 
         start = 0
         proposed_names = list(names)
         create_names = set(names)
         num_proposed_names = len(proposed_names)
-        this_count = 0
 
         while start < num_proposed_names:
+            # Do this in batches so as not to exceed the 1k line sqlite limit
             end = start + _SQLITE_FILTER_ARG_MAX
             batch_proposed_names = proposed_names[start:end]
             filter_args = {f"{fk_field}__in": batch_proposed_names}
             filter = Q(**filter_args)
             create_names -= self._query_existing_mds(fk_cls, filter)
-            this_count += len(batch_proposed_names)
+            count += len(batch_proposed_names)
             status_args.since = self.status_controller.update(
                 ImportStatusTypes.QUERY_MISSING_FKS,
-                status_args.count + this_count,
+                status_args.count + count,
                 status_args.total,
                 since=status_args.since,
                 name=f"({fk_cls.__name__})",
@@ -210,7 +230,8 @@ class QueryForeignKeysMixin(QueuedThread):
         if fk_cls not in create_fks:
             create_fks[fk_cls] = set()
         create_fks[fk_cls].update(create_names)
-        return this_count
+        self.log.info(f"Prepared {count} new {fk_field}.")
+        return count
 
     def query_missing_folder_paths(
         self, comic_paths, status_args, library_path, create_folder_paths
@@ -235,4 +256,6 @@ class QueryForeignKeysMixin(QueuedThread):
             "path",
         )
         create_folder_paths.update(create_folder_paths_dict.get(Folder, set()))
-        return len(comic_paths)
+        count = len(comic_paths)
+        self.log.info(f"Prepared {count} new Folders.")
+        return count

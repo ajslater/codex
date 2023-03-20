@@ -186,4 +186,6 @@ class LinkComicsMixin(QueuedThread):
                 self.log.error(f"Error recreating m2m field: {field_name}")
                 self.log.exception(exc)
 
-        return len(all_m2m_links)
+        count = len(all_m2m_links)
+        self.log.info(f"Linked {count} comics to tags.")
+        return count

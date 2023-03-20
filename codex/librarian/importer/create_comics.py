@@ -11,9 +11,8 @@ class CreateComicsMixin(LinkComicsMixin):
 
     def bulk_create_comics(self, comic_paths, _status_args, library, mds):
         """Bulk create comics."""
-        this_count = 0
         if not comic_paths:
-            return this_count
+            return 0
         num_comics = len(comic_paths)
 
         # prepare create comics
@@ -36,6 +35,7 @@ class CreateComicsMixin(LinkComicsMixin):
                 self.log.exception(exc)
 
         self.log.debug(f"Bulk creating {num_comics} comics...")
+        count = 0
         try:
             Comic.objects.bulk_create(
                 create_comics,
@@ -43,10 +43,10 @@ class CreateComicsMixin(LinkComicsMixin):
                 update_fields=BULK_UPDATE_COMIC_FIELDS,
                 unique_fields=Comic._meta.unique_together[0],
             )
-            this_count += num_comics
-            print(f"bcc {this_count=}")
+            count = len(create_comics)
+            self.log.info(f"Created {count} comics.")
         except Exception as exc:
             self.log.error(exc)
             self.log.error("While creating", comic_paths)
 
-        return this_count
+        return count

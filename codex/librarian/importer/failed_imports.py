@@ -95,7 +95,7 @@ class FailedImportsMixin(QueuedThread):
     def bulk_create_failed_imports(self, create_failed_imports, _status_args, library):
         """Bulk create failed imports."""
         if not create_failed_imports:
-            return False
+            return 0
         create_objs = []
         for path, exc in create_failed_imports.items():
             try:

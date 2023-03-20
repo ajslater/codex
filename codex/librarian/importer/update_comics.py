@@ -83,6 +83,7 @@ class UpdateComicsMixin(LinkComicsMixin):
             task = CoverRemoveTask(frozenset(comic_pks))
             self.log.debug(f"Purging covers for {len(comic_pks)} updated comics.")
             self.librarian_queue.put(task)
+            self.log.info(f"Updated {count} comics.")
         except Exception as exc:
             self.log.error(exc)
             self.log.error("While updating", comic_update_paths)
