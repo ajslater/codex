@@ -139,6 +139,8 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         super().__init__(connection_alias, **connection_options)
         self.log = get_logger(self.__class__.__name__)
         self.log.propagate = False
+        self.writerargs = self._get_writerargs()
+        # self.log.debug(f"Search Index writerargs: {self.writerargs}")
 
     def _get_writerargs(self):
         """Get writerargs for this machine's cpu & memory config."""
@@ -191,13 +193,11 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
 
     def get_writer(self, commitargs=COMMITARGS_NO_MERGE):
         """Get a writer."""
-        writerargs = self._get_writerargs()
-        self.log.debug(f"Search Index writerargs: {writerargs} {commitargs}")
         writer = CodexWriter(
             self.index.refresh(),
             limit=self.WRITER_LIMIT,
             period=self.WRITER_PERIOD,
-            writerargs=writerargs,
+            writerargs=self.writerargs,
             commitargs=commitargs,
         )
         return writer
@@ -325,9 +325,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         """Optimize the index."""
         if not self.setup_complete:
             self.setup(False)
-        writerargs = self._get_writerargs()
-        self.log.debug(f"Search Index optimizer writerargs: {writerargs}")
-        self.index.refresh().optimize(**writerargs)
+        self.index.refresh().optimize(**self.writerargs)
 
     def merge_small(self):
         """Merge small segments of the index."""
