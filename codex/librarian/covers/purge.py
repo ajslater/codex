@@ -2,6 +2,7 @@
 import os
 import shutil
 from pathlib import Path
+from time import time
 
 from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.covers.status import CoverStatusTypes
@@ -28,8 +29,11 @@ class CoverPurgeMixin(CoverPathMixin):
     def purge_cover_paths(self, cover_paths):
         """Purge a set a cover paths."""
         try:
+            since = time()
             self.log.debug(f"Removing {len(cover_paths)} possible cover thumbnails...")
-            self.status_controller.start(CoverStatusTypes.PURGE, 0, len(cover_paths))
+            self.status_controller.start(
+                CoverStatusTypes.PURGE, None, total=len(cover_paths)
+            )
             cover_dirs = set()
             count = 0
             for cover_path in cover_paths:
@@ -39,6 +43,9 @@ class CoverPurgeMixin(CoverPathMixin):
                 except FileNotFoundError:
                     pass
                 cover_dirs.add(cover_path.parent)
+                since = self.status_controller.update(
+                    CoverStatusTypes.PURGE, count, total=len(cover_paths), since=since
+                )
             for cover_dir in cover_dirs:
                 self._cleanup_cover_dirs(cover_dir)
             self.log.info(f"Removed {count} cover thumbnails.")

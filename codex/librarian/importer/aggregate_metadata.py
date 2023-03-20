@@ -1,6 +1,5 @@
 """Aggregate metadata from comics to prepare for importing."""
 from pathlib import Path
-from time import time
 from zipfile import BadZipFile
 
 from comicbox.comic_archive import ComicArchive
@@ -9,7 +8,7 @@ from rarfile import BadRarFile
 
 from codex.comic_field_names import COMIC_M2M_FIELD_NAMES
 from codex.librarian.importer.clean_metadata import CleanMetadataMixin
-from codex.librarian.importer.status import ImportStatusTypes
+from codex.librarian.importer.status import ImportStatusTypes, status
 from codex.models import Comic, Imprint, Publisher, Series, Volume
 from codex.pdf import PDF
 from codex.version import COMICBOX_CONFIG
@@ -127,6 +126,11 @@ class AggregateMetadataMixin(CleanMetadataMixin):
     @classmethod
     def _aggregate_group_tree_metadata(cls, all_fks, group_tree_md):
         """Aggregate group tree data by class."""
+        all_fks.update(
+            {
+                "group_trees": {Publisher: {}, Imprint: {}, Series: {}, Volume: {}},
+            }
+        )
         for group_tree, group_md in group_tree_md.items():
             all_fks["group_trees"][Publisher][group_tree[0:1]] = None
             all_fks["group_trees"][Imprint][group_tree[0:2]] = None
@@ -137,50 +141,53 @@ class AggregateMetadataMixin(CleanMetadataMixin):
                 all_fks, group_tree, group_md, Volume, 4, "issue_count"
             )
 
-    def get_aggregate_metadata(self, library, all_paths):
+    @status(status=ImportStatusTypes.AGGREGATE_TAGS)
+    def get_aggregate_metadata(
+        self,
+        all_paths,
+        library_path,
+        all_mds,
+        all_m2m_mds,
+        all_fks,
+        all_failed_imports,
+        status_args=None,
+    ):
         """Get aggregated metatada for the paths given."""
-        all_mds = {}
-        all_m2m_mds = {}
-        all_fks = {
-            "group_trees": {Publisher: {}, Imprint: {}, Series: {}, Volume: {}},
-            "comic_paths": set(),
-        }
-        all_failed_imports = {}
         total_paths = len(all_paths)
-        self.status_controller.start(ImportStatusTypes.AGGREGATE_TAGS, 0, total_paths)
-        try:
-            self.log.info(
-                f"Reading tags from {total_paths} comics in {library.path}..."
-            )
-            since = time()
-            for num, path in enumerate(all_paths):
-                path = str(path)
-                md, m2m_md, group_tree_md, failed_import = self._get_path_metadata(path)
+        if not total_paths:
+            return 0
+        self.log.info(f"Reading tags from {total_paths} comics in {library_path}...")
+        for num, path in enumerate(all_paths):
+            path = str(path)
+            md, m2m_md, group_tree_md, failed_import = self._get_path_metadata(path)
 
-                if failed_import:
-                    all_failed_imports.update(failed_import)
-                else:
-                    if md:
-                        all_mds[path] = md
+            if failed_import:
+                all_failed_imports.update(failed_import)
+            else:
+                if md:
+                    all_mds[path] = md
 
-                    if m2m_md:
-                        self._aggregate_m2m_metadata(all_m2m_mds, m2m_md, all_fks, path)
+                if m2m_md:
+                    self._aggregate_m2m_metadata(all_m2m_mds, m2m_md, all_fks, path)
 
-                    if group_tree_md:
-                        self._aggregate_group_tree_metadata(all_fks, group_tree_md)
+                if group_tree_md:
+                    self._aggregate_group_tree_metadata(all_fks, group_tree_md)
 
-                since = self.status_controller.update(
-                    ImportStatusTypes.AGGREGATE_TAGS, num, total_paths, since=since
+            if status_args:
+                status_args.since = self.status_controller.update(
+                    status_args.status,
+                    status_args.count + num,
+                    status_args.total,
+                    since=status_args.since,
                 )
 
-            all_fks["comic_paths"] = frozenset(all_mds.keys())
-            self.status_controller.update(
-                ImportStatusTypes.CREATE_FAILED_IMPORTS,
-                0,
-                len(all_failed_imports),
-                notify=False,
-            )
-            self.log.info(f"Aggregated tags from {len(all_mds)} comics.")
-        finally:
-            self.status_controller.finish(ImportStatusTypes.AGGREGATE_TAGS)
-        return all_mds, all_m2m_mds, all_fks, all_failed_imports
+        all_fks["comic_paths"] = frozenset(all_mds.keys())
+        self.status_controller.update(
+            ImportStatusTypes.FAILED_IMPORTS,
+            0,
+            len(all_failed_imports),
+            notify=False,
+        )
+        count = len(all_mds)
+        self.log.info(f"Aggregated tags from {count} comics.")
+        return count

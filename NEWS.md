@@ -9,15 +9,17 @@ border-radius: 128px;
 ## v1.2.10
 
 - Features
+  - Sped up comic import.
   - Fancier sortable admin tables.
-  - Replace `max_db_ops` config variable with `max_import_batch_size`. Defaults
-    to "auto".
+  - Remove `max_db_ops` config variable. Now auto shifts by memory available.
 - Fix
-  - Made search indexer stable in lower memory environments.
-  - Made search indexer more robust against bad data.
+  - Search indexer stable in lower memory environments.
+  - Search indexer more robust against bad data.
   - Fix codex backing up on every startup.
   - Fix Reader vertical scroll losing its place in Fit To Width or Orig mode.
   - Fix OPDS downloaded files all having the same name.
+  - Status for batched imports (large imports or low memory) now reflects total
+    instead of single batch.
 
 ## v1.2.9
 

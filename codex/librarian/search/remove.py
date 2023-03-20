@@ -13,7 +13,7 @@ from codex.search.backend import CodexSearchBackend
 class RemoveMixin(VersionMixin):
     """Search Index cleanup methods."""
 
-    def _remove_stale_records(
+    def remove_stale_records(
         self, backend: Optional[CodexSearchBackend] = None  # type: ignore
     ):
         """Remove records not in the database from the index."""
