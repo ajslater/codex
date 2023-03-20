@@ -18,14 +18,13 @@ class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
     def _walk(cls, root):
         """Populate the DirectorySnapshot structures from the database."""
         for model in cls.MODELS:
-            # TODO replace values with only, use iterator
-            yield model.objects.filter(library__path=root).values("path", "stat")
+            yield model.objects.filter(
+                library__path=root).only("path", "stat").iterator()
 
     def _create_stat_from_db_stat(self, wp, stat_func, force):
         """Handle null or zeroed out database stat entries."""
-        stat = wp.get("stat")
-        if not stat or len(stat) != 10 or not stat[1]:
-            path = Path(wp.get("path"))
+        if not wp.stat or len(wp.stat) != 10 or not wp.stat[1]:
+            path = Path(wp.path)
             # Ensure valid params
             if path.exists():
                 self.log.debug(f"Force modify path with bad db record: {path}")
@@ -39,8 +38,8 @@ class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
 
         if force:
             # Fake mtime will trigger modified event
-            stat[8] = 0.0
-        st = os.stat_result(tuple(stat))
+            wp.stat[8] = 0.0
+        st = os.stat_result(tuple(wp.stat))
         return st
 
     def _set_lookups(self, path, st):
@@ -72,7 +71,7 @@ class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
 
         for wp in chain.from_iterable(self._walk(path)):
             st = self._create_stat_from_db_stat(wp, stat, force)
-            self._set_lookups(wp["path"], st)
+            self._set_lookups(wp.path, st)
 
 
 class CodexDirectorySnapshotDiff(DirectorySnapshotDiff):
