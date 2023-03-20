@@ -9,10 +9,9 @@ border-radius: 128px;
 ## v1.2.10
 
 - Features
-  - Replace `max_db_ops` config variable with `max_import_batch_size`. Defaults
-    to "auto".
-  - Fancier sortable admin tables.
   - Sped up comic import.
+  - Fancier sortable admin tables.
+  - Remove `max_db_ops` config variable. Now auto shifts by memory available.
 - Fix
   - Search indexer stable in lower memory environments.
   - Search indexer more robust against bad data.
