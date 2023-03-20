@@ -1,5 +1,4 @@
 """Batched jobs for import."""
-from itertools import islice
 from time import time
 
 from codex.librarian.importer.deleted import DeletedMixin
@@ -7,71 +6,24 @@ from codex.librarian.importer.failed_imports import FailedImportsMixin
 from codex.librarian.importer.moved import MovedMixin
 from codex.librarian.importer.status import ImportStatusTypes, StatusArgs
 from codex.librarian.importer.update_comics import UpdateComicsMixin
-from codex.memory import get_mem_limit
 from codex.models import Comic, Credit
 
-_MAX_IMPORT_BATCH_SIZE = int(100000 * get_mem_limit("g"))
 _CREDIT_FK_NAMES = ("role", "person")
 
 
 class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin):
     """Methods that are batched."""
 
-    class BatchArgs:
-        """Keep track of batch arguments."""
-
-        def __init__(self, num_elements):
-            """Initialize batch args."""
-            self.batch_size = min(num_elements, _MAX_IMPORT_BATCH_SIZE)
-            self.start = 0
-            self.end = self.batch_size
-            self.count = 0
-
-        def increment(self, count):
-            """Increment for the next batch."""
-            if self.count is not None:
-                self.count += count
-            self.start = self.end
-            self.end = self.start + self.batch_size
-
-    def _run_one_db_op_batch(
-        self,
-        func,
-        data,
-        args,
-        status_args,
-        batch_args,
-        status,
-        is_dict,
-    ):
-        """Run one batch of data with the designated function."""
-        if status_args.total and batch_args.start > 0:
-            status_args.count += batch_args.count
-            status_args.since = self.status_controller.update(
-                status,
-                status_args.count,
-                status_args.total,
-                since=status_args.since,
-            )
-        if is_dict:
-            batch = dict(islice(data.items(), batch_args.start, batch_args.end))
-        else:
-            batch = data[batch_args.start : batch_args.end]
-        all_args = (batch, status_args, *args)
-        count = int(func(*all_args))
-        batch_args.increment(count)
-        return count
-
     def batch_db_op(
         self, func, data, status, status_args=None, args=None, updates=True
     ):
         """Run a function batched for memory contrainsts bracketed by status changes."""
-        this_count = 0
+        count = 0
         num_elements = len(data)
         start_and_finish = status_args is not None
         try:
             if not num_elements:
-                return this_count
+                return count
             if not status_args:
                 complete = 0 if updates else None
                 status_args = StatusArgs(complete, num_elements, time())
@@ -80,28 +32,15 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
                     status, status_args.count, status_args.total
                 )
 
-            batch_args = self.BatchArgs(num_elements)
-            is_dict = isinstance(data, dict)
-            if not is_dict:
-                data = list(data)
             if args is None:
                 args = ()
-            while batch_args.start < num_elements:
-                this_count += self._run_one_db_op_batch(
-                    func,
-                    data,
-                    args,
-                    status_args,
-                    batch_args,
-                    status,
-                    is_dict,
-                )
-
+            all_args = (data, status_args, *args)
+            count = int(func(*all_args))
         finally:
             if start_and_finish:
                 self.status_controller.finish(status)
 
-        return this_count
+        return count
 
     def batch_move_and_modify_dirs(self, library, task):
         """Move files and dirs and modify dirs."""
