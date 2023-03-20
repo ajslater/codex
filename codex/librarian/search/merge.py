@@ -19,7 +19,7 @@ class MergeMixin(VersionMixin):
             return True
         return False
 
-    def _merge_search_index(self, optimize=False):
+    def merge_search_index(self, optimize=False):
         """Optimize search index."""
         try:
             if optimize:

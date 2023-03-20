@@ -144,7 +144,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         """Get writerargs for this machine's cpu & memory config."""
         mem_limit_mb = get_mem_limit("m")
         mem_limit_gb = mem_limit_mb / 1024
-        cpu_max = ceil(mem_limit_gb * 4/3 + 2/3)
+        cpu_max = ceil(mem_limit_gb * 4 / 3 + 2 / 3)
         procs = min(cpu_count(), cpu_max)
         limitmb = mem_limit_mb * 0.8 / procs
         limitmb = int(limitmb)

@@ -64,9 +64,6 @@ class UpdateMixin(RemoveMixin):
 
     def _get_search_index_latest_updated_at(self, backend):
         """Get the date of the last updated item in the search index."""
-        if not backend.setup_complete:
-            backend.setup(False)
-
         with backend.index.refresh().searcher() as searcher:
             # XXX IDK why but sorting by 'updated_at' removes the latest and most valuable result
             #     So I have to do it in my own method.
@@ -105,7 +102,7 @@ class UpdateMixin(RemoveMixin):
         # max procs
         # throttle multiprocessing in lomem environments.
         # each process running has significant memory overhead.
-        cpu_max = ceil(mem_limit_gb * 4/3 + 2/3)
+        cpu_max = ceil(mem_limit_gb * 4 / 3 + 2 / 3)
         max_procs = min(cpu_count(), cpu_max)
 
         batch_size = int(
@@ -292,7 +289,7 @@ class UpdateMixin(RemoveMixin):
                 SearchIndexStatusTypes.SEARCH_INDEX_UPDATE, until=until
             )
 
-    def _update_search_index(self, rebuild=False):
+    def update_search_index(self, rebuild=False):
         """Update or Rebuild the search index."""
         start_time = time()
         try:
@@ -305,7 +302,7 @@ class UpdateMixin(RemoveMixin):
                 )
                 return
 
-            if not rebuild and not self._is_search_index_uuid_match():
+            if not rebuild and not self.is_search_index_uuid_match():
                 self.log.warning("Database does not match search index.")
                 rebuild = True
 
@@ -327,9 +324,9 @@ class UpdateMixin(RemoveMixin):
 
             # Finish
             if rebuild:
-                self._set_search_index_version()
+                self.set_search_index_version()
             else:
-                self._remove_stale_records(backend)
+                self.remove_stale_records(backend)
 
             elapsed_time = time() - start_time
             elapsed = naturaldelta(elapsed_time)

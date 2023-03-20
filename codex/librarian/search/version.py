@@ -20,7 +20,7 @@ class VersionMixin(QueuedThread):
         }
         self.engine = CodexSearchEngine(queue_kwargs=queue_kwargs)
 
-    def _set_search_index_version(self):
+    def set_search_index_version(self):
         """Set the codex db to search index matching id."""
         version = str(uuid4())
         try:
@@ -33,7 +33,7 @@ class VersionMixin(QueuedThread):
         except Exception as exc:
             self.log.error(f"Setting search index to db synchronization token: {exc}")
 
-    def _is_search_index_uuid_match(self):
+    def is_search_index_uuid_match(self):
         """Is this search index for this database."""
         result = False
         try:
@@ -48,9 +48,9 @@ class VersionMixin(QueuedThread):
             self.log.exception(exc)
         return result
 
-    def _rebuild_search_index_if_db_changed(self):
+    def rebuild_search_index_if_db_changed(self):
         """Rebuild the search index if the db changed."""
-        if not self._is_search_index_uuid_match():
+        if not self.is_search_index_uuid_match():
             self.log.warning("Database does not match search index.")
             task = SearchIndexUpdateTask(True)
             self.librarian_queue.put(task)
