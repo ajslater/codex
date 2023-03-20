@@ -212,7 +212,7 @@ class ComicImporterThread(AggregateMetadataMixin, BatchMixin):
             self._init_apply(library, task)
 
             changed = 0
-            changed += self._move_and_modify_dirs(library, task)
+            changed += self.batch_move_and_modify_dirs(library, task)
 
             modified_paths = task.files_modified
             created_paths = task.files_created
@@ -223,17 +223,17 @@ class ComicImporterThread(AggregateMetadataMixin, BatchMixin):
             modified_paths -= fis.keys()
             created_paths -= fis.keys()
 
-            changed += self._create_comic_relations(library, fks)
+            changed += self.batch_create_comic_relations(library, fks)
 
-            imported_count = self._update_create_and_link_comics(
+            imported_count = self.batch_update_create_and_link_comics(
                 library, modified_paths, created_paths, mds, m2m_mds
             )
             changed += imported_count
             modified_paths = created_paths = mds = m2m_mds = None
 
-            new_failed_imports = self._bulk_fail_imports(library, fis)
+            new_failed_imports = self.batch_fail_imports(library, fis)
 
-            changed += self._delete(library, task)
+            changed += self.batch_delete(library, task)
             cache.clear()
         finally:
             self._finish_apply_status(library)

@@ -92,7 +92,7 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
 
         return this_count
 
-    def _move_and_modify_dirs(self, library, task):
+    def batch_move_and_modify_dirs(self, library, task):
         """Move files and dirs and modify dirs."""
         changed = self.batch_db_op(
             self.bulk_folders_moved,
@@ -148,7 +148,7 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
         if num_names := len(names):
             self.log.info(f"Prepared {num_names} new {fk_field}.")
 
-    def query_all_missing_fks(self, library, fks):
+    def batch_query_all_missing_fks(self, library, fks):
         """Get objects to create by querying existing objects for the proposed fks."""
         create_credits = set()
         create_groups = {}
@@ -231,7 +231,7 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
         total_fks += len(create_credits)
         return total_fks
 
-    def bulk_create_all_fks(
+    def batch_create_all_fks(
         self,
         library,
         create_fks,
@@ -303,7 +303,7 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
         finally:
             self.status_controller.finish(ImportStatusTypes.CREATE_FKS)
 
-    def _create_comic_relations(self, library, fks):
+    def batch_create_comic_relations(self, library, fks):
         """Query all foreign keys to determine what needs creating, then create them."""
         if not fks:
             return 0
@@ -314,9 +314,9 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
             update_groups,
             create_paths,
             create_credits,
-        ) = self.query_all_missing_fks(library, fks)
+        ) = self.batch_query_all_missing_fks(library, fks)
 
-        count = self.bulk_create_all_fks(
+        count = self.batch_create_all_fks(
             library,
             create_fks,
             create_groups,
@@ -326,7 +326,7 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
         )
         return count
 
-    def _update_create_and_link_comics(
+    def batch_update_create_and_link_comics(
         self, library, modified_paths, created_paths, mds, m2m_mds
     ):
         """Update, create and link comics."""
@@ -363,7 +363,7 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
             self.log.info(f"Updated {update_count} and created {create_count} comics.")
         return imported_count
 
-    def _bulk_fail_imports(self, library, failed_imports):
+    def batch_fail_imports(self, library, failed_imports):
         """Handle failed imports."""
         created_count = 0
         try:
@@ -412,7 +412,7 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
             self.log.exception(exc)
         return bool(created_count)
 
-    def _delete(self, library, task):
+    def batch_delete(self, library, task):
         """Delete files and folders."""
         changed = 0
         if num_dirs_deleted := len(task.dirs_deleted):
