@@ -380,47 +380,58 @@ class BatchMixin(DeletedMixin, UpdateComicsMixin, FailedImportsMixin, MovedMixin
             )
             status_args.total = len(update_fis) + len(create_fis) + len(delete_fi_paths)
 
-            status_args.count += self.batch_db_op(
-                self.bulk_update_failed_imports,
-                update_fis,
-                ImportStatusTypes.FAILED_IMPORTS,
-                args=(library,),
-                status_args=status_args,
-            )
+            if update_fis:
+                status_args.count += self.batch_db_op(
+                    self.bulk_update_failed_imports,
+                    update_fis,
+                    ImportStatusTypes.FAILED_IMPORTS,
+                    args=(library,),
+                    status_args=status_args,
+                )
 
-            created_count = self.batch_db_op(
-                self.bulk_create_failed_imports,
-                create_fis,
-                ImportStatusTypes.FAILED_IMPORTS,
-                args=(library,),
-                status_args=status_args,
-            )
-            status_args.count += created_count
+            if create_fis:
+                created_count = self.batch_db_op(
+                    self.bulk_create_failed_imports,
+                    create_fis,
+                    ImportStatusTypes.FAILED_IMPORTS,
+                    args=(library,),
+                    status_args=status_args,
+                )
+                status_args.count += created_count
+            else:
+                created_count = 0
 
-            status_args.count += self.batch_db_op(
-                self.bulk_cleanup_failed_imports,
-                delete_fi_paths,
-                ImportStatusTypes.FAILED_IMPORTS,
-                args=(library,),
-            )
+            if delete_fi_paths:
+                status_args.count += self.batch_db_op(
+                    self.bulk_cleanup_failed_imports,
+                    delete_fi_paths,
+                    ImportStatusTypes.FAILED_IMPORTS,
+                    args=(library,),
+                )
         except Exception as exc:
             self.log.exception(exc)
         return bool(created_count)
 
     def _delete(self, library, task):
         """Delete files and folders."""
-        changed = self.batch_db_op(
-            self.bulk_folders_deleted,
-            task.dirs_deleted,
-            ImportStatusTypes.DIRS_DELETED,
-            args=(library,),
-        )
-        task.dirs_deleted = None
-        changed += self.batch_db_op(
-            self.bulk_comics_deleted,
-            task.files_deleted,
-            ImportStatusTypes.FILES_DELETED,
-            args=(library,),
-        )
-        task.files_deleted = None
+        changed = 0
+        if num_dirs_deleted := len(task.dirs_deleted):
+            changed += self.batch_db_op(
+                self.bulk_folders_deleted,
+                task.dirs_deleted,
+                ImportStatusTypes.DIRS_DELETED,
+                args=(library,),
+            )
+            task.dirs_deleted = None
+            self.log.info(f"Deleted {num_dirs_deleted} folders.")
+
+        if num_files_deleted := len(task.files_deleted):
+            changed += self.batch_db_op(
+                self.bulk_comics_deleted,
+                task.files_deleted,
+                ImportStatusTypes.FILES_DELETED,
+                args=(library,),
+            )
+            task.files_deleted = None
+            self.log.info(f"Deleted {num_files_deleted} comics.")
         return changed
