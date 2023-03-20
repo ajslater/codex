@@ -1,4 +1,4 @@
-# Codex
+Codex
 
 A comic archive browser and reader.
 
@@ -242,7 +242,6 @@ The default values for the config options are:
 bind = ["0.0.0.0:9810"]
 quick_bind = ["0.0.0.0:9810"]
 root_path = "/codex"
-max_import_batch_size = "auto"
 ```
 
 The config directory also holds the main sqlite database, the Whoosh search
@@ -401,16 +400,6 @@ The next time Codex starts it will back up the existing database and try to
 rebuild it. The database lives in the config directory as the file
 `config/db.sqlite3`. If this procedure goes kablooey, you may recover the
 original database at `config/db.sqlite3.backup`.
-
-### Bulk Database Updates Fail
-
-If importing large batches of comics fails, particularly in a memory constrained
-enviroment, try manually adjusting the `max_import_batch_size` option in the
-`hypercorn.toml` config file. The default is for codex to examine available
-memory and try to guess a stable value that still provides performance. This is
-5000 per available gigabyte of memory. If your updates fail and you think it
-might be a memory problem, replace "auto" with an integer lower that the auto
-formula specifies. Try half.
 
 ## <a name="bug_reports>🐛 Bug Reports</a>
 
