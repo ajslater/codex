@@ -100,6 +100,31 @@ class ComicImporterThread(ApplyDBOpsMixin):
             log += ", ".join(dirs_log)
             self.log.debug("  " + log)
 
+    @staticmethod
+    def _init_if_modified_or_created(task, path, types_map):
+        """Initialize librarian statuses for modified or created ops."""
+        total_paths = len(task.files_modified) + len(task.files_created)
+        types_map[ImportStatusTypes.AGGREGATE_TAGS] = {
+            "complete": 0,
+            "total": total_paths,
+            "name": path,
+        }
+        types_map[ImportStatusTypes.QUERY_MISSING_FKS] = {}
+        types_map[ImportStatusTypes.CREATE_FKS] = {}
+        if task.files_modified:
+            types_map[ImportStatusTypes.FILES_MODIFIED] = {
+                "complete": 0,
+                "total": len(task.files_modified),
+            }
+        if task.files_created:
+            types_map[ImportStatusTypes.FILES_CREATED] = {
+                "complete": 0,
+                "total": len(task.files_created),
+            }
+        if task.files_modified or task.files_created:
+            types_map[ImportStatusTypes.LINK_M2M_FIELDS] = {}
+        return total_paths
+
     def _init_librarian_status(self, task, path):
         """Update the librarian status tasks."""
         types_map = {}
@@ -121,27 +146,9 @@ class ComicImporterThread(ApplyDBOpsMixin):
                 "total": len(task.dirs_modified),
             }
         if task.files_modified or task.files_created:
-            total_paths = len(task.files_modified) + len(task.files_created)
-            search_index_updates += total_paths
-            types_map[ImportStatusTypes.AGGREGATE_TAGS] = {
-                "complete": 0,
-                "total": total_paths,
-                "name": path,
-            }
-            types_map[ImportStatusTypes.QUERY_MISSING_FKS] = {}
-            types_map[ImportStatusTypes.CREATE_FKS] = {}
-            if task.files_modified:
-                types_map[ImportStatusTypes.FILES_MODIFIED] = {
-                    "complete": 0,
-                    "total": len(task.files_modified),
-                }
-            if task.files_created:
-                types_map[ImportStatusTypes.FILES_CREATED] = {
-                    "complete": 0,
-                    "total": len(task.files_created),
-                }
-            if task.files_modified or task.files_created:
-                types_map[ImportStatusTypes.LINK_M2M_FIELDS] = {}
+            search_index_updates += self._init_if_modified_or_created(
+                task, path, types_map
+            )
         if task.files_deleted:
             types_map[ImportStatusTypes.FILES_DELETED] = {
                 "complete": 0,
