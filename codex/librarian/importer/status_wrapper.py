@@ -47,13 +47,13 @@ class StatusWrapperMixin(
 
         return count
 
-    def read_metadata(self, library, all_paths, mds, m2m_mds, fks, fis):
+    def read_metadata(self, library_path, all_paths, mds, m2m_mds, fks, fis):
         """Aggregate Metadata."""
-        self.status_wrapper(
+        return self.status_wrapper(
             self.get_aggregate_metadata,
             all_paths,
             ImportStatusTypes.AGGREGATE_TAGS,
-            args=(library, mds, m2m_mds, fks, fis),
+            args=(library_path, mds, m2m_mds, fks, fis),
         )
 
     def move_and_modify_dirs(self, library, task):
@@ -111,7 +111,7 @@ class StatusWrapperMixin(
             status_args=status_args,
         )
 
-    def query_all_missing_fks(self, library, fks):
+    def query_all_missing_fks(self, library_path, fks):
         """Get objects to create by querying existing objects for the proposed fks."""
         create_credits = set()
         create_groups = {}
@@ -120,7 +120,7 @@ class StatusWrapperMixin(
         create_fks = {}
         try:
             self.log.debug(
-                f"Querying existing foreign keys for comics in {library.path}"
+                f"Querying existing foreign keys for comics in {library_path}"
             )
             fks_total = self._get_query_fks_totals(fks)
             status_args = StatusArgs(0, fks_total, time())
@@ -151,7 +151,7 @@ class StatusWrapperMixin(
                 self.query_missing_folder_paths,
                 fks.pop("comic_paths", ()),
                 ImportStatusTypes.QUERY_MISSING_FKS,
-                args=(library.path, create_folder_paths),
+                args=(library_path, create_folder_paths),
                 status_args=status_args,
             )
 
@@ -265,7 +265,7 @@ class StatusWrapperMixin(
             update_groups,
             create_paths,
             create_credits,
-        ) = self.query_all_missing_fks(library, fks)
+        ) = self.query_all_missing_fks(library.path, fks)
 
         count = self.create_all_fks(
             library,

@@ -221,7 +221,7 @@ class ComicImporterThread(StatusWrapperMixin):
             fks = {}
             fis = {}
             self.read_metadata(
-                library, modified_paths | created_paths, mds, m2m_mds, fks, fis
+                library.path, modified_paths | created_paths, mds, m2m_mds, fks, fis
             )
             modified_paths -= fis.keys()
             created_paths -= fis.keys()
