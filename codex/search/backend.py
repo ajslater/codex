@@ -86,6 +86,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         "genres": ["genre"],
         "locations": ["location"],
         "name": ["title"],
+        "page_count": ["pages"],
         "read_ltr": ["ltr"],
         "series_groups": gen_multipart_field_aliases("series_groups"),
         "scan_info": ["scan"],
