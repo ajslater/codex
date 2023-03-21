@@ -18,8 +18,9 @@ class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
     def _walk(cls, root):
         """Populate the DirectorySnapshot structures from the database."""
         for model in cls.MODELS:
-            yield model.objects.filter(
-                library__path=root).only("path", "stat").iterator()
+            yield model.objects.filter(library__path=root).only(
+                "path", "stat"
+            ).iterator()
 
     def _create_stat_from_db_stat(self, wp, stat_func, force):
         """Handle null or zeroed out database stat entries."""
