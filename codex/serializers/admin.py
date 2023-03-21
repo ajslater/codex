@@ -206,3 +206,9 @@ class AdminStatsSerializer(Serializer):
     config = AdminConfigSerializer(required=False)
     groups = AdminGroupSerializer(required=False)
     metadata = AdminComicMetadataSerializer(required=False)
+
+
+class APIKeySerializer(Serializer):
+    """API Key."""
+
+    api_key = CharField(source="name")
