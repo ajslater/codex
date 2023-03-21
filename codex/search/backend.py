@@ -49,13 +49,13 @@ class FILESIZE(NUMERIC):
 
     LOG = get_logger("FILESIZE")
 
-    @staticmethod
-    def _parse_size(value):
+    @classmethod
+    def _parse_size(cls, value):
         """Parse the value for size suffixes."""
         try:
             value = str(parse_size(value))
         except InvalidSize as exc:
-            FILESIZE.LOG.debug(exc)
+            cls.LOG.debug(exc)
         return value
 
     def parse_query(self, fieldname, qstring, boost=1.0):
@@ -142,6 +142,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
     def __init__(self, connection_alias, **connection_options):
         """Init worker queues."""
         super().__init__(connection_alias, **connection_options)
+        # XXX will only connect to the log listener on Linux with fork
         self.log = get_logger(self.__class__.__name__)
         self.log.propagate = False
         self.writerargs = self._get_writerargs()
