@@ -1,58 +1,78 @@
 """Haystack search indexes."""
-from haystack.fields import CharField, MultiValueField
+from haystack.fields import CharField
 from haystack.indexes import Indexable, ModelSearchIndex
+from whoosh.analysis import CharsetFilter, StandardAnalyzer, StemFilter
+from whoosh.support.charset import accent_map
 
 from codex.models import Comic
+
+
+class CCharField(CharField):
+    """A Charfield that uses codex's specific text analyzer."""
+
+    TEXT_ANALYZER = (
+        StandardAnalyzer() | CharsetFilter(accent_map) | StemFilter(cachesize=-1)
+    )
+
+    def __init__(self, *args, **kwargs):
+        """Initialize with the analyzer param."""
+        super().__init__(*args, analyzer=self.TEXT_ANALYZER, **kwargs)
 
 
 class ComicIndex(ModelSearchIndex, Indexable):
     """Search index for the Comic model."""
 
+    # Char fields
+    comments = CCharField(model_attr="comments", null=True)
+    country = CCharField(model_attr="country", null=True)
+    format = CCharField(model_attr="format", null=True)
+    language = CCharField(model_attr="language", null=True)
+    name = CCharField(model_attr="name", null=True)
+    notes = CCharField(model_attr="notes", null=True)
+    summary = CCharField(model_attr="summary", null=True)
+    scan_info = CCharField(model_attr="scan_info", null=True)
+    web = CCharField(model_attr="web", null=True)
+
     # Related Fields
-    publisher = CharField(model_attr="publisher__name")
-    imprint = CharField(model_attr="imprint__name")
-    series = CharField(model_attr="series__name", boost=1.125)
-    volume = CharField(model_attr="volume__name")
+    publisher = CCharField(model_attr="publisher__name")
+    imprint = CCharField(model_attr="imprint__name")
+    series = CCharField(model_attr="series__name", boost=1.125)
+    volume = CCharField(model_attr="volume__name")
 
     # Many to Many Fields
-    characters = MultiValueField(model_attr="characters__name", null=True)
-    creators = MultiValueField(model_attr="credits__person__name", null=True)
-    genres = MultiValueField(model_attr="genres__name", null=True)
-    locations = MultiValueField(model_attr="locations__name", null=True)
-    series_groups = MultiValueField(model_attr="series_groups__name", null=True)
-    story_arcs = MultiValueField(model_attr="story_arcs__name", null=True)
-    tags = MultiValueField(model_attr="tags__name", null=True)
-    teams = MultiValueField(model_attr="teams__name", null=True)
+    characters = CCharField(model_attr="characters__name", null=True)
+    creators = CCharField(model_attr="credits__person__name", null=True)
+    genres = CCharField(model_attr="genres__name", null=True)
+    locations = CCharField(model_attr="locations__name", null=True)
+    series_groups = CCharField(model_attr="series_groups__name", null=True)
+    story_arcs = CCharField(
+        model_attr="story_arcs__name",
+        null=True,
+    )
+    tags = CCharField(model_attr="tags__name", null=True)
+    teams = CCharField(model_attr="teams__name", null=True)
 
     class Meta:
         """Model & field include list."""
 
         model = Comic
+        # Numeric, Bookean & Date fields.
         fields = (
             "age_rating",
-            "comments",
             "community_rating",
-            "country",
             "created_at",
             "critical_rating",
             "day",
             "date",
             "decade",
-            "format",
             "issue",
             "issue_suffix",
-            "language",
             "month",
             "read_ltr",
-            "name",
-            "notes",
-            "page_count",
-            "scan_info",
             "size",
-            "summary",
+            "page_count",
             "updated_at",
             "user_rating",
-            "web",
             "year",
         )
 

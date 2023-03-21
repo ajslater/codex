@@ -3,11 +3,13 @@ from math import ceil
 from multiprocessing import cpu_count
 
 from django.utils.timezone import now
-from haystack.backends.whoosh_backend import KEYWORD, TEXT, WhooshSearchBackend
+from haystack.backends.whoosh_backend import (
+    WhooshSearchBackend,
+)
 from haystack.constants import DJANGO_ID
 from haystack.exceptions import SkipDocument
 from humanfriendly import InvalidSize, parse_size
-from whoosh.analysis import CharsetFilter, KeywordAnalyzer, StandardAnalyzer, StemFilter
+from whoosh.analysis import CharsetFilter, StandardAnalyzer, StemFilter
 from whoosh.fields import NUMERIC
 from whoosh.qparser import (
     FieldAliasPlugin,
@@ -80,7 +82,15 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
     FIELDMAP = {
         "characters": ["category", "character"],
         "created_at": ["created"],
-        "creators": ["author", "authors", "contributor", "contributors", "creator"],
+        "creators": [
+            "author",
+            "authors",
+            "contributor",
+            "contributors",
+            "creator",
+            "credit",
+            "credits",
+        ],
         "community_rating": gen_multipart_field_aliases("community_rating"),
         "critical_rating": gen_multipart_field_aliases("critical_rating"),
         "genres": ["genre"],
@@ -160,38 +170,23 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         writerargs = {"limitmb": limitmb, "procs": procs, "multisegment": True}
         return writerargs
 
+    @staticmethod
+    def _get_text_analyzer():
+        return StandardAnalyzer() | CharsetFilter(accent_map) | StemFilter(cachesize=-1)
+
     def build_schema(self, fields):
-        """Customize schema fields."""
+        """Add the custom FILESIZE field to the schema."""
         content_field_name, schema = super().build_schema(fields)
 
-        # Add accent leniency to all text field.
-        for _, field in schema.items():
-            if isinstance(field, TEXT):
-                field.analyzer = (
-                    StandardAnalyzer()
-                    | CharsetFilter(accent_map)
-                    | StemFilter(cachesize=-1)
-                )
-            elif isinstance(field, KEYWORD):
-                field.analyzer = (
-                    KeywordAnalyzer(lowercase=True, commas=True)
-                    | CharsetFilter(accent_map)
-                    | StemFilter(cachesize=-1)
-                )
-
-        # Replace size field with FILESIZE type.
-        old_field = schema["size"]
-        schema.remove("size")
         schema.add(
             "size",
             FILESIZE(
-                stored=old_field.stored,
-                numtype=old_field.numtype,
-                field_boost=old_field.format.field_boost,
+                stored=True,
+                numtype=int,
+                field_boost=1,
             ),
         )
-
-        return (content_field_name, schema)
+        return content_field_name, schema
 
     def setup(self, add_plugins=True):
         """Add extra plugins."""
