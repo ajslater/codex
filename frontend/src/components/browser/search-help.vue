@@ -164,7 +164,7 @@ const FIELD_ROWS = [
   ["community_rating", "Decimal", "communityrating"],
   ["country", "String", ""],
   ["created_at", "DateTime", "created"],
-  ["creators", "CSV", "authors, contributors"],
+  ["creators", "CSV", "authors, contributors, credits"],
   ["critical_rating", "Decimal", "criticalrating"],
   ["day", "Integer", ""],
   ["date", "Date", ""],
