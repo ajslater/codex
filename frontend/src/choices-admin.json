@@ -70,8 +70,8 @@
       "tasks": [
         {
           "value": "db_vacuum",
-          "title": "Compact Database",
-          "desc": "Run the sqlite3 vacuum pragma. Runs nightly"
+          "title": "Optimize & Compact Database",
+          "desc": "Run the sqlite3 optimize & vacuum and pragmas. Runs nightly"
         },
         {
           "value": "db_backup",
