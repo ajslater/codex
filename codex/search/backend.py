@@ -3,11 +3,11 @@ from math import ceil
 from multiprocessing import cpu_count
 
 from django.utils.timezone import now
-from haystack.backends.whoosh_backend import TEXT, WhooshSearchBackend
+from haystack.backends.whoosh_backend import KEYWORD, TEXT, WhooshSearchBackend
 from haystack.constants import DJANGO_ID
 from haystack.exceptions import SkipDocument
 from humanfriendly import InvalidSize, parse_size
-from whoosh.analysis import CharsetFilter, StandardAnalyzer, StemFilter
+from whoosh.analysis import CharsetFilter, KeywordAnalyzer, StandardAnalyzer, StemFilter
 from whoosh.fields import NUMERIC
 from whoosh.qparser import (
     FieldAliasPlugin,
@@ -169,6 +169,12 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             if isinstance(field, TEXT):
                 field.analyzer = (
                     StandardAnalyzer()
+                    | CharsetFilter(accent_map)
+                    | StemFilter(cachesize=-1)
+                )
+            elif isinstance(field, KEYWORD):
+                field.analyzer = (
+                    KeywordAnalyzer(lowercase=True, commas=True)
                     | CharsetFilter(accent_map)
                     | StemFilter(cachesize=-1)
                 )

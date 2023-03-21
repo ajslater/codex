@@ -15,6 +15,7 @@ border-radius: 128px;
 - Fix
   - Search indexer stable in lower memory environments.
   - Search indexer more robust against bad data.
+  - Some search fields were case sensitive.
   - Fix codex backing up on every startup.
   - Fix Reader vertical scroll losing its place in Fit To Width or Orig mode.
   - Fix OPDS downloaded files all having the same name.
