@@ -10,15 +10,22 @@ border-radius: 128px;
 
 - Features
   - Sped up comic import.
-  - Fancier sortable admin tables.
-  - Remove `max_db_ops` config variable. Now auto shifts by memory available.
+  - OPDS
+    - Top links display only at catalog root.
+    - Extended metadata moved to `rel='alternate'` links.
+      - Speeds up acquistion feeds and makes all metadata optionally available
+        to clients which support the spec.
+  - Admin
+    - Fancier sortable admin tables.
+    - Remove `max_db_ops` config variable. Now auto shifts by memory available.
 - Fix
-  - Search indexer stable in lower memory environments.
-  - Search indexer more robust against bad data.
-  - Some search fields were case sensitive.
-  - Fix codex backing up on every startup.
-  - Fix Reader vertical scroll losing its place in Fit To Width or Orig mode.
-  - Fix OPDS downloaded files all having the same name.
+  - Search Indexer
+    - Stable in lower memory environments.
+    - More robust against bad data.
+    - Some search fields were case sensitive.
+  - Codex was backing up on every startup.
+  - Reader vertical scroll lost its place in Fit To Width or Orig mode.
+  - OPDS downloaded files all had the same name.
   - Status for batched imports (large imports or low memory) now reflects total
     instead of single batch.
 

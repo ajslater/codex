@@ -161,6 +161,7 @@ class BrowserSettingsSerializer(Serializer):
     show = BrowserSettingsShowGroupFlagsSerializer(required=False)
     twenty_four_hour_time = BooleanField(required=False)
     top_group = ChoiceField(choices=tuple(CHOICES["topGroup"].keys()), required=False)
+    opds_metadata = BooleanField(required=False)
 
 
 class BrowserCardSerializer(BrowserCardOPDSBaseSerializer):

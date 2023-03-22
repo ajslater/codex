@@ -33,7 +33,9 @@ from codex.serializers.browser import (
 )
 from codex.serializers.choices import DEFAULTS
 from codex.serializers.opds_v1 import (
+    OPDS_COMICS_METADATA_ORDERED_UNIONFIX_VALUES_MAP,
     OPDS_COMICS_ORDERED_UNIONFIX_VALUES_MAP,
+    OPDS_FOLDERS_METADATA_ORDERED_UNIONFIX_VALUES_MAP,
     OPDS_FOLDERS_ORDERED_UNIONFIX_VALUES_MAP,
     OPDS_M2M_FIELDS,
 )
@@ -73,6 +75,7 @@ class BrowserView(BrowserAnnotationsView):
     }
 
     is_opds_acquisition = False
+    is_opds_metadata = False
 
     def _add_annotations(self, queryset, model, search_scores):
         """Annotations for display and sorting.
@@ -150,12 +153,14 @@ class BrowserView(BrowserAnnotationsView):
             if self.is_opds_acquisition:
                 # This is for opds folder view.
                 queryset = queryset.annotate(
+                    # fields
                     size=self._ZERO_INTEGERFIELD,
                     date=self._NONE_DATEFIELD,
                     summary=self._EMPTY_CHARFIELD,
                     comments=self._EMPTY_CHARFIELD,
                     notes=self._EMPTY_CHARFIELD,
                     language=self._EMPTY_CHARFIELD,
+                    # m2m rels
                     characters=self._EMPTY_CHARFIELD,
                     genres=self._EMPTY_CHARFIELD,
                     locations=self._EMPTY_CHARFIELD,
@@ -194,10 +199,16 @@ class BrowserView(BrowserAnnotationsView):
 
     def _get_unionfix_values_map(self, folders=False):
         if self.is_opds_acquisition:
-            if folders:
-                return OPDS_FOLDERS_ORDERED_UNIONFIX_VALUES_MAP
+            if self.is_opds_metadata:
+                if folders:
+                    return OPDS_FOLDERS_METADATA_ORDERED_UNIONFIX_VALUES_MAP
+                else:
+                    return OPDS_COMICS_METADATA_ORDERED_UNIONFIX_VALUES_MAP
             else:
-                return OPDS_COMICS_ORDERED_UNIONFIX_VALUES_MAP
+                if folders:
+                    return OPDS_FOLDERS_ORDERED_UNIONFIX_VALUES_MAP
+                else:
+                    return OPDS_COMICS_ORDERED_UNIONFIX_VALUES_MAP
         else:
             return BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP
 
@@ -207,7 +218,7 @@ class BrowserView(BrowserAnnotationsView):
         folder_list = Folder.objects.filter(object_filter)
         comic_object_filter, comic_search_scores = self.get_query_filters(True, False)
         comic_list = Comic.objects.filter(comic_object_filter)
-        if self.is_opds_acquisition:
+        if self.is_opds_metadata:
             comic_list = comic_list.prefetch_related(*OPDS_M2M_FIELDS)
 
         # add annotations for display and sorting
@@ -231,7 +242,7 @@ class BrowserView(BrowserAnnotationsView):
             raise ValueError("No model set in browser")
 
         obj_list = self.model.objects.filter(object_filter)
-        if self.is_opds_acquisition:
+        if self.is_opds_metadata:
             obj_list = obj_list.prefetch_related(*OPDS_M2M_FIELDS)
         # obj_list filtering done
 
@@ -479,8 +490,9 @@ class BrowserView(BrowserAnnotationsView):
 
         for possible_index, possible_nav_group in enumerate(valid_top_groups):
             if top_group == possible_nav_group:
-                # all the nav groups past this point, but not 'c' the last one
-                tail_top_groups = valid_top_groups[possible_index:-1]
+                # all the nav groups past this point,
+                # 'c' is obscured by the web reader url, but valid for opds
+                tail_top_groups = valid_top_groups[possible_index:]
 
                 self.valid_nav_groups = (*self.valid_nav_groups, *tail_top_groups)
                 if nav_group not in self.valid_nav_groups:

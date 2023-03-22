@@ -9,6 +9,7 @@ from django.urls import reverse
 from codex.logger.logging import get_logger
 from codex.views.opds_v1.util import (
     BLANK_TITLE,
+    FALSY,
     MimeType,
     OPDSLink,
     Rel,
@@ -26,13 +27,13 @@ class OPDSEntry:
     DATE_FORMAT = _DATE_FORMAT_BASE + "%z"
     DATE_FORMATS = (DATE_FORMAT_MS, DATE_FORMAT)
     CATEGORY_KEYS = (
-        # "characters",
-        # "genres",
-        # "locations",
-        # "series_groups",
-        # "story_arcs",
-        # "tags",
-        # "teams",
+        "characters",
+        "genres",
+        "locations",
+        "series_groups",
+        "story_arcs",
+        "tags",
+        "teams",
     )
 
     def __init__(self, obj, valid_nav_groups, query_params):
@@ -98,7 +99,7 @@ class OPDSEntry:
             if name := self.obj.get("name"):
                 parts.append(name)
 
-            result = " ".join(parts)
+            result = " ".join(filter(None, parts))
         except Exception as exc:
             LOG.exception(exc)
 
@@ -193,7 +194,7 @@ class OPDSEntry:
             return
         return OPDSLink(Rel.IMAGE, href, mime_type)
 
-    def _nav_link(self):
+    def _nav_link(self, metadata=False):
         group = self.obj.get("group")
         pk = self.obj.get("pk")
         kwargs = {"group": group, "pk": pk, "page": 1}
@@ -204,17 +205,24 @@ class OPDSEntry:
         except Exception:
             aq_link = False
 
-        if aq_link:
-            mime_type = MimeType.ACQUISITION
+        if aq_link or group == "c":
+            if metadata:
+                mime_type = MimeType.ENTRY_CATALOG
+            else:
+                mime_type = MimeType.ACQUISITION
         else:
             mime_type = MimeType.NAV
 
         href = reverse("opds:v1:browser", kwargs=kwargs)
-        href = update_href_query_params(
-            href, self.query_params, self.obj.get("query_params", {})
-        )
+        qps = self.obj.get("query_params", {})
+        if metadata:
+            qps.update({"opdsMetadata": 1})
+        href = update_href_query_params(href, self.query_params, qps)
         thr_count = self.obj.get("child_count")
-        rel = self.obj.get("nav_link_rel", "subsection")
+        if metadata:
+            rel = Rel.ALTERNATE
+        else:
+            rel = self.obj.get("nav_link_rel", "subsection")
 
         return OPDSLink(rel, href, mime_type, thr_count=thr_count)
 
@@ -262,6 +270,9 @@ class OPDSEntry:
                 result += [download]
             if stream := self._stream_link():
                 result += [stream]
+            if not self.query_params.get("opdsMetadata", "").lower() not in FALSY:
+                if metadata := self._nav_link(metadata=True):
+                    result += [metadata]
         else:
             if nav := self._nav_link():
                 result += [nav]

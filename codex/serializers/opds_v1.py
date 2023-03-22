@@ -42,18 +42,22 @@ class OPDSAcquisitionEntrySerializer(BrowserCardSerializer):
     )
     language = CharField(read_only=True, source=UNIONFIX_PREFIX + "language")
 
+
+class OPDSMetadataEntrySerializer(OPDSAcquisitionEntrySerializer):
+    """Comic OPDS Metadata Entry Serializer."""
+
     # ManyToMany
     ## Categories
-    # characters = CharField(source=UNIONFIX_PREFIX + "characters")
-    # genres = CharField(source=UNIONFIX_PREFIX + "genres")
-    # locations = CharField(source=UNIONFIX_PREFIX + "locations")
-    # series_groups = CharField(source=UNIONFIX_PREFIX + "series_groups")
-    # story_arcs = CharField(source=UNIONFIX_PREFIX + "story_arcs")
-    # tags = CharField(source=UNIONFIX_PREFIX + "tags")
-    # teams = CharField(source=UNIONFIX_PREFIX + "teams")
+    characters = CharField(source=UNIONFIX_PREFIX + "characters")
+    genres = CharField(source=UNIONFIX_PREFIX + "genres")
+    locations = CharField(source=UNIONFIX_PREFIX + "locations")
+    series_groups = CharField(source=UNIONFIX_PREFIX + "series_groups")
+    story_arcs = CharField(source=UNIONFIX_PREFIX + "story_arcs")
+    tags = CharField(source=UNIONFIX_PREFIX + "tags")
+    teams = CharField(source=UNIONFIX_PREFIX + "teams")
     ## Contributors
     authors = CharField(source=UNIONFIX_PREFIX + "authors")
-    # contributors = CharField(source=UNIONFIX_PREFIX + "contributors")
+    contributors = CharField(source=UNIONFIX_PREFIX + "contributors")
 
 
 OPDS_COMICS_ORDERED_UNIONFIX_VALUES_MAP = get_serializer_values_map(
@@ -62,14 +66,22 @@ OPDS_COMICS_ORDERED_UNIONFIX_VALUES_MAP = get_serializer_values_map(
 OPDS_FOLDERS_ORDERED_UNIONFIX_VALUES_MAP = get_serializer_values_map(
     [OPDSAcquisitionEntrySerializer], folders=True
 )
+
+OPDS_COMICS_METADATA_ORDERED_UNIONFIX_VALUES_MAP = get_serializer_values_map(
+    [OPDSMetadataEntrySerializer],
+)
+OPDS_FOLDERS_METADATA_ORDERED_UNIONFIX_VALUES_MAP = get_serializer_values_map(
+    [OPDSMetadataEntrySerializer], folders=True
+)
+
 OPDS_M2M_FIELDS = (
-    # "characters",
-    # "genres",
-    # "locations",
-    # "series_groups",
-    # "story_arcs",
-    # "tags",
-    # "teams",
+    "characters",
+    "genres",
+    "locations",
+    "series_groups",
+    "story_arcs",
+    "tags",
+    "teams",
     "credits",
     "credits__role__name",
     "credits__person__name",
