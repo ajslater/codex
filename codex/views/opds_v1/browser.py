@@ -283,6 +283,14 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
 
         return OPDSEntry(entry_obj, self.valid_nav_groups, {})
 
+    def _add_top_links(self, top_links):
+        """Add a list of top links as entries if they should be enabled."""
+        entries = []
+        for tl in top_links:
+            if not self.is_top_link_displayed(tl):
+                entries += [self._top_link_entry(tl)]
+        return entries
+
     @property
     def entries(self):
         """Create all the entries."""
@@ -290,13 +298,9 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
         try:
             at_root = self.kwargs.get("pk") == 0
             if not self.use_facets and self.kwargs.get("page") == 1:
-                for tl in TopLinks.ALL:
-                    if not self.is_top_link_displayed(tl):
-                        entries += [self._top_link_entry(tl)]
+                entries += self._add_top_links(TopLinks.ALL)
                 if at_root:
-                    for tl in RootTopLinks.ALL:
-                        if not self.is_top_link_displayed(tl):
-                            entries += [self._top_link_entry(tl)]
+                    entries += self._add_top_links(RootTopLinks.ALL)
                 entries += self._facets(entries=True, root=at_root)
 
             if obj_list := self.obj.get("obj_list"):
