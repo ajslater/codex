@@ -4,4 +4,3 @@ set -euo pipefail
 docker rm -f codex-dev || true
 docker compose down
 docker compose up codex-dev -d
-docker exec -ti codex-dev sh -c 'poetry update; sh'

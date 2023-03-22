@@ -90,5 +90,8 @@ services:
     volumes:
       - .:/app
       - /Users/aj/Comics:/comics
+    #init: true
     command: tail -f /dev/null
+    #command: ./dev-codex-container.sh
+    #entrypoint: ["/sbin/tini", "--"]
 version: "3.8"
