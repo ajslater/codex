@@ -267,12 +267,8 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         if not self.setup_complete:
             self.setup(False)
 
-        # TODO try replaceing with self.index.refresh()
         if not index:
             index = ComicIndex()
-
-        # batch remove before update
-        self.remove_batch_pks(batch_pks)
 
         # prefetch is not pickleable, create the query here from pks.
         iterable = (
@@ -285,6 +281,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
 
         writer = self.get_writer()
 
+        self.remove_batch_pks(batch_pks, writer=writer)
         for obj in iterable:
             count += self._update_obj(index, writer, batch_num, obj)
         try:
@@ -309,7 +306,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             writer.cancel()
         return count
 
-    def remove_batch_pks(self, pks, inverse=False, sc=None):
+    def remove_batch_pks(self, pks, inverse=False, sc=None, writer=None):
         """Remove a large batch of docs by pk from the index."""
         # Does not benefit from multiprocessing.
         if not len(pks) and not inverse:
@@ -317,7 +314,8 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         if not self.setup_complete:
             self.setup(False)
 
-        writer = self.get_writer()
+        if not writer:
+            writer = self.get_writer()
         try:
             pk_terms = [Term(DJANGO_ID, str(pk)) for pk in pks]
             query = Or(pk_terms)
