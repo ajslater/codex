@@ -126,11 +126,6 @@ class AggregateMetadataMixin(CleanMetadataMixin):
     @classmethod
     def _aggregate_group_tree_metadata(cls, all_fks, group_tree_md):
         """Aggregate group tree data by class."""
-        all_fks.update(
-            {
-                "group_trees": {Publisher: {}, Imprint: {}, Series: {}, Volume: {}},
-            }
-        )
         for group_tree, group_md in group_tree_md.items():
             all_fks["group_trees"][Publisher][group_tree[0:1]] = None
             all_fks["group_trees"][Imprint][group_tree[0:2]] = None
@@ -157,6 +152,11 @@ class AggregateMetadataMixin(CleanMetadataMixin):
         if not total_paths:
             return 0
         self.log.info(f"Reading tags from {total_paths} comics in {library_path}...")
+        all_fks.update(
+            {
+                "group_trees": {Publisher: {}, Imprint: {}, Series: {}, Volume: {}},
+            }
+        )
         for num, path in enumerate(all_paths):
             path = str(path)
             md, m2m_md, group_tree_md, failed_import = self._get_path_metadata(path)
