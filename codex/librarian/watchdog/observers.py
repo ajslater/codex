@@ -1,7 +1,11 @@
 """The Codex Library Watchdog Observer threads."""
-from watchdog.observers import Observer
-from watchdog.observers.api import DEFAULT_OBSERVER_TIMEOUT, BaseObserver, ObservedWatch
+from watchdog.observers.api import (
+    DEFAULT_OBSERVER_TIMEOUT,
+    BaseObserver,
+    ObservedWatch,
+)
 
+from watchdog.observers import Observer
 from codex.librarian.watchdog.emitter import DatabasePollingEmitter
 from codex.librarian.watchdog.events import CodexLibraryEventHandler
 from codex.models import Library
@@ -112,7 +116,6 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
 
 # It would be best for Codex to have one observer with multiple emitters, but the
 #     watchdog class structure doesn't work that way.
-
 
 class LibraryEventObserver(UatuMixin, Observer):
     """Regular observer."""
