@@ -117,7 +117,8 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
 # It would be best for Codex to have one observer with multiple emitters, but the
 #     watchdog class structure doesn't work that way.
 
-class LibraryEventObserver(UatuMixin, Observer): # type: ignore
+
+class LibraryEventObserver(UatuMixin, Observer):  # type: ignore
     """Regular observer."""
 
     ENABLE_FIELD = "events"
