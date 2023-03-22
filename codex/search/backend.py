@@ -178,6 +178,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         """Add the custom FILESIZE field to the schema."""
         content_field_name, schema = super().build_schema(fields)
 
+        schema.remove("size")
         schema.add(
             "size",
             FILESIZE(
