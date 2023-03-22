@@ -10,6 +10,7 @@
       v-else
       :src="src"
       :fit-to-class="fitToClass"
+      :book="book"
       @error="onError"
       @load="onLoad"
       @unauthorized="onUnauthorized"
