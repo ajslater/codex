@@ -156,14 +156,14 @@
               >
             </td>
           </tr>
-          <tr id="apiKeyRow" @click="copyToClipboard()">
+          <tr id="apiKeyRow" @click="onClickAPIKey">
             <td>
               API Key
               <v-icon class="clipBoardIcon" size="small">{{
                 clipBoardIcon
               }}</v-icon>
               <v-fade-transition>
-                <span v-show="showTool" class="copied">Copied</span>
+                <span v-show="showTooltip.show" class="copied">Copied</span>
               </v-fade-transition>
             </td>
             <td id="apiKey">{{ stats.config.apiKey }}</td>
@@ -191,6 +191,7 @@ import { numberFormat } from "humanize";
 import { mapActions, mapState } from "pinia";
 
 import ConfirmDialog from "@/components/confirm-dialog.vue";
+import { copyToClipboard } from "@/copy-to-clipboard";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
@@ -201,7 +202,7 @@ export default {
   },
   data() {
     return {
-      showTool: false,
+      showTooltip: { show: false },
       apiSchemaURL: window.CODEX.API_V3_PATH,
     };
   },
@@ -225,17 +226,8 @@ export default {
     nf(val) {
       return numberFormat(val, 0);
     },
-    copyToClipboard() {
-      navigator.clipboard
-        .writeText(this.stats.config.apiKey)
-        .then(() => {
-          this.showTool = true;
-          setTimeout(() => {
-            this.showTool = false;
-          }, 5000);
-          return true;
-        })
-        .catch(console.warn);
+    onClickAPIKey() {
+      copyToClipboard(this.stats.config.apiKey, this.showTooltip);
     },
   },
 };
