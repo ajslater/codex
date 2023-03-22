@@ -10,6 +10,7 @@ from django.utils.http import urlencode
 BLANK_TITLE = "Unknown"
 FALSY = {"", "false", "0"}
 
+
 class OpdsNs:
     """xml namespaces."""
 
@@ -50,7 +51,7 @@ class Rel:
     UP = "up"
     PREV = "prev"
     NEXT = "next"
-    ALTERNATE="alternate"
+    ALTERNATE = "alternate"
 
 
 class MimeType:
@@ -112,6 +113,7 @@ class TopLinks:
     )
     ALL = (START,)
 
+
 class RootTopLinks:
     """Top Links that only appear at the root."""
 
@@ -157,6 +159,7 @@ class FacetGroups:
         (Facet("false", "Ascending"), Facet("true", "Descending")),
     )
     ALL = (ORDER_BY, ORDER_REVERSE)
+
 
 class RootFacetGroups:
     """Facet Groups that only appear at the root."""
