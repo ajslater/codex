@@ -246,14 +246,14 @@ class UpdateMixin(RemoveMixin):
         all_pks = qs.order_by("updated_at", "pk").values_list("pk", flat=True)
         batch_num = 0
         start = 0
-        end = start + batch_size - 1
+        end = start + batch_size
 
         batches = {}
         while start < num_comics:
             batches[batch_num] = all_pks[start:end]
             batch_num += 1
-            start = end + 1
-            end = start + batch_size - 1
+            start = end
+            end = start + batch_size
         return batches
 
     def _mp_update(self, backend, qs):
