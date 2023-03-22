@@ -232,7 +232,7 @@ class QueryForeignKeysMixin(QueuedThread):
         if fk_cls not in create_fks:
             create_fks[fk_cls] = set()
         create_fks[fk_cls].update(create_names)
-        self.log.info(f"Prepared {count} new {fk_field}.")
+        self.log.info(f"Prepared {count} new {field}.")
         return count
 
     @status()
