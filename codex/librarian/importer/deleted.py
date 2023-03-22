@@ -47,8 +47,6 @@ class DeletedMixin(QueuedThread):
         self._remove_covers(delete_comic_pks)
 
         count = len(delete_comic_paths)
-        self.log.info(
-            f"Deleted {count} comics from {library.path}"
-        )
+        self.log.info(f"Deleted {count} comics from {library.path}")
 
         return count

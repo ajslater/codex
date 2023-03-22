@@ -18,6 +18,7 @@ def _shutdown_signal_handler(*args):
     LOG.info("Asking hypercorn to shut down gracefully. Could take 10 seconds...")
     SHUTDOWN_EVENT.set()
 
+
 def _restart_signal_handler(*args):
     global RESTART_EVENT
     if RESTART_EVENT.is_set():
@@ -25,6 +26,7 @@ def _restart_signal_handler(*args):
     LOG.info("Restart signal received.")
     RESTART_EVENT.set()
     _shutdown_signal_handler()
+
 
 def bind_signals_to_loop():
     """Binds signals to the handlers."""
