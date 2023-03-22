@@ -28,6 +28,7 @@ border-radius: 128px;
   - OPDS downloaded files all had the same name.
   - Status for batched imports (large imports or low memory) now reflects total
     instead of single batch.
+  - Fix graceful shutdown from TERM signal on Linux.
 
 ## v1.2.9
 

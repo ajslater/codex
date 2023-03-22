@@ -14,6 +14,7 @@ class LifespanApplication(LoggerBaseMixin):
     def __init__(self, log_queue, broadcast_queue):
         """Create logger and librarian."""
         self.init_logger(log_queue)
+        self.broadcast_queue = broadcast_queue
         self.broadcast_listener = BroadcastListener(broadcast_queue, log_queue)
 
     async def _event(self, event, send):
@@ -38,6 +39,7 @@ class LifespanApplication(LoggerBaseMixin):
 
     async def _shutdown(self):
         """Shutdown tasks."""
+        self.broadcast_queue.put(None)
         await self.broadcast_listener_task
 
     async def __call__(self, scope, receive, send):
