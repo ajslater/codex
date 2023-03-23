@@ -191,10 +191,16 @@ addopts = """
 [tool.ruff]
 extend-exclude = ["cache", "codex/_vendor_haystack", "frontend", "typings"]
 extend-ignore = ["S101", "D203", "D213"]
-extend-select = ["B", "B9", "C", "D", "I", "N", "S", "W"]
+extend-select = ["A", "ARG", "B", "B9", "C", "C4", "C90", "D", "DJ","DTZ",
+  "E", "EM", "EXE", "F", "G", "I", "ICN", "INP", "ISC", "PIE", "PL",
+  "PT", "PTH", "PYI", "Q", "N", "RET", "RSE", "RUF", "S", "SIM", "SLF", "UP",
+  "T10", "T20", "TCH", "TID","W", "YTT"
+]
+# extend-select = ["ANN", "ERA", "COM"]
 # external = ["V101"]
 # format = "grouped"
 # show-source = true
+show-fixes = true
 target-version = "py39"
 task-tags = ["TODO", "FIXME", "XXX", "http", "HACK"]
 

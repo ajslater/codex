@@ -18,7 +18,7 @@ from whoosh.qparser import (
     WhitespacePlugin,
 )
 from whoosh.qparser.dateparse import DateParserPlugin
-from whoosh.query import Not, Or, Term
+from whoosh.query import Or, Term
 from whoosh.support.charset import accent_map
 
 from codex.librarian.search.status import SearchIndexStatusTypes
@@ -157,7 +157,6 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         self.log = get_logger(self.__class__.__name__)
         self.log.propagate = False
         self.writerargs = self._get_writerargs()
-        # self.log.debug(f"Search Index writerargs: {self.writerargs}")
 
     def _get_writerargs(self):
         """Get writerargs for this machine's cpu & memory config."""
@@ -281,7 +280,15 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
 
         writer = self.get_writer()
 
-        self.remove_batch_pks(batch_pks, writer=writer)
+        try:
+            self.remove_django_ids(batch_pks, writer=writer)
+        except Exception as exc:
+            self.log.warning(
+                f"couldn't delete search index records before replacing: {exc}"
+            )
+            writer.cancel()
+            writer = self.get_writer()
+
         for obj in iterable:
             count += self._update_obj(index, writer, batch_num, obj)
         try:
@@ -302,33 +309,27 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                 "Exception during search index writer final commit or cancel"
                 f" for batch {batch_num}: {exc}."
             )
-            # self.log.exception(exc)
             writer.cancel()
+            raise
         return count
 
-    def remove_batch_pks(self, pks, inverse=False, sc=None, writer=None):
+    def remove_django_ids(self, pks, writer):
         """Remove a large batch of docs by pk from the index."""
         # Does not benefit from multiprocessing.
-        if not len(pks) and not inverse:
-            return
-        if not self.setup_complete:
-            self.setup(False)
+        if not len(pks):
+            return 0
+        query = Or([Term(DJANGO_ID, str(pk)) for pk in pks])
+        return writer.delete_by_query(query)
 
-        if not writer:
-            writer = self.get_writer()
+    def remove_docnums(self, docnums, sc=None):
+        """Remove a batch of docnums from the index.."""
+        writer = self.get_writer()
+        count = 0
         try:
-            pk_terms = [Term(DJANGO_ID, str(pk)) for pk in pks]
-            query = Or(pk_terms)
-            if inverse:
-                query = Not(query)
-            count = writer.delete_by_query(query, sc=sc)
+            count = writer.delete_docnums(docnums, sc=sc)
         except Exception as exc:
-            self.log.warning(
-                f"Search index removing documents by query {inverse=} {exc}"
-            )
-            # self.log.exception(exc)
+            self.log.warning(f"Search index removing documents by docnums {exc}")
             writer.cancel()
-            count = 0
         writer.close()
         return count
 

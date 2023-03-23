@@ -38,7 +38,12 @@ class UpdateMixin(RemoveMixin):
     # indexes and require less optimization later, but steady progress
     # updates are better UX.
     _MAX_BATCH_SIZE = 640
-    _EXPECTED_EXCEPTIONS = (DatabaseError, SearchFieldError, ObjectDoesNotExist)
+    _EXPECTED_EXCEPTIONS = (
+        DatabaseError,
+        IndexError,
+        ObjectDoesNotExist,
+        SearchFieldError,
+    )
     _MAX_RETRIES = 8
 
     def _init_statuses(self, rebuild):
@@ -209,7 +214,7 @@ class UpdateMixin(RemoveMixin):
 
         ratio = 100 * (num_successful_batches / num_batches)
         self.log.debug(
-            f"Search Index attempt {attempt} batch success ratio:" f"{round(ratio)}%"
+            f"Search Index attempt {attempt} batch success ratio: {round(ratio)}%"
         )
         if not retry_batches:
             return
@@ -283,7 +288,6 @@ class UpdateMixin(RemoveMixin):
             )
         except Exception as exc:
             self.log.error(f"Update search index with multiprocessing: {exc}")
-            self.log.exception(exc)
         finally:
             until = start_time + 1
             self.status_controller.finish(

@@ -1,5 +1,5 @@
 """Custom Codex Writer."""
-from threading import RLock, Timer
+from threading import RLock
 from time import sleep, time
 
 from whoosh.index import FileIndex, LockError
@@ -20,7 +20,7 @@ class CodexWriter(BufferedWriter):
     # For waiting for the writer lock
     _DELAY = 0.25
 
-    def __init__(self, index, period=60, limit=10, writerargs=None, commitargs=None):
+    def __init__(self, index, period=0, limit=10, writerargs=None, commitargs=None):
         """Initialize with special values."""
         # Same as BufferedWriter init without caching the index.writer() as self.writer
         self.index = index
@@ -30,15 +30,14 @@ class CodexWriter(BufferedWriter):
         self.commitargs = commitargs or {}
 
         self.lock = RLock()
-        # self.writer = None #self.index.writer(**self.writerargs)
 
         self._make_ram_index()
-        self.bufferedcount = 0
+        # self.bufferedcount = 0
 
         # Start timer
-        if self.period:
-            self.timer = Timer(self.period, self.commit)
-            self.timer.start()
+        # if self.period:
+        #    self.timer = Timer(self.period, self.commit)
+        #    self.timer.start()
 
         #######################
         # Codex specific init #
@@ -105,25 +104,24 @@ class CodexWriter(BufferedWriter):
 
     def commit(self, restart=True, reader=None):
         """Commit with a writer we get now."""
-        if self.period:
-            self.timer.cancel()
+        # if self.period:
+        #    self.timer.cancel()
 
-        with self.lock:
-            ramreader = self._get_ram_reader()
-            self._make_ram_index()
+        # with self.lock:
+        #    ramreader = self._get_ram_reader()
+        #    self._make_ram_index()
 
         writer = self.get_writer("commit")
         if reader:
             writer.add_reader(reader)
-        if self.bufferedcount:
-            writer.add_reader(ramreader)
+        # if self.bufferedcount:
+        #    writer.add_reader(ramreader)
         writer.commit(**self.commitargs)
-        self.bufferedcount = 0
+        # self.bufferedcount = 0
 
-        if restart:
-            if self.period:
-                self.timer = Timer(self.period, self.commit)
-                self.timer.start()
+        # if restart and self.period:
+        #    self.timer = Timer(self.period, self.commit)
+        #    self.timer.start()
 
     def add_reader(self, reader):
         """Do a commit with the supplied reader."""
@@ -137,9 +135,9 @@ class CodexWriter(BufferedWriter):
             with self.codec.writer(self.schema) as w:
                 w.add_document(**fields)
 
-            self.bufferedcount += 1
-            if self.bufferedcount >= self.limit:
-                self.commit()
+            # self.bufferedcount += 1
+            # if self.bufferedcount >= self.limit:
+            #    self.commit()
 
     def delete_document(self, docnum, delete=True, writer=None):
         """Delete a document by getting the writer."""
@@ -148,15 +146,13 @@ class CodexWriter(BufferedWriter):
         with self.lock:
             base = self.index.refresh().doc_count_all()
             if docnum < base:
-                if writer:
-                    commit = False
-                else:
+                # commit = writer is None
+                if not writer:
                     writer = self.get_writer("delete_document")
-                    commit = True
                 writer.delete_document(docnum, delete=delete)
-                self.bufferedcount += 1
-                if commit or self.bufferedcount >= self.limit:
-                    writer.commit(**self.commitargs)
+                # self.bufferedcount += 1
+                # if self.bufferedcount >= self.limit:
+                #    writer.commit(**self.commitargs)
             else:
                 ramsegment = self.codec.segment
                 ramsegment.delete_document(docnum - base, delete=delete)
@@ -172,37 +168,21 @@ class CodexWriter(BufferedWriter):
         else:
             return self._get_ram_reader().is_deleted(docnum - base)
 
-    def delete_by_query(self, q, searcher=None, sc=None):
+    def delete_by_query(self, q, searcher=None):
         """Delete any documents matching a query object.
 
         :returns: the number of documents deleted.
-
-        Special codex version with progress updates.
-        Not mp safe.
+        Called by multiprocessing.
         """
-        if searcher:
-            s = searcher
-        else:
-            s = self.searcher()
+        s = searcher if searcher else self.searcher()
 
-        writer = self.get_writer("delete_by_query")
-
+        count = 0
+        writer = self.get_writer("delete_by_query")  # LOCKS WRITING
         try:
-            count = 0
             docnums = s.docs_for_query(q, for_deletion=True)
-            if sc:
-                since = time()
-                sc.start(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE)
             for docnum in docnums:
                 self.delete_document(docnum, writer=writer)
                 count += 1
-                if sc:
-                    since = sc.update(
-                        SearchIndexStatusTypes.SEARCH_INDEX_REMOVE,
-                        count,
-                        None,
-                        since=since,  # type: ignore
-                    )
         finally:
             if not searcher:
                 s.close()
@@ -219,4 +199,28 @@ class CodexWriter(BufferedWriter):
                     writer.cancel()
                     raise exc
 
+        return count
+
+    def delete_docnums(self, docnums, sc=None):
+        """Delete all docunums.
+
+        :returns: the number of documents deleted.
+        Single threaded.
+        """
+        count = 0
+        num_docnums = len(docnums)
+        since = time()
+        writer = self.get_writer("delete_docnums")
+        for docnum in docnums:
+            self.delete_document(docnum, writer=writer)
+            count += 1
+            if sc:
+                since = sc.update(
+                    SearchIndexStatusTypes.SEARCH_INDEX_REMOVE,
+                    count,
+                    num_docnums,
+                    since=since,
+                )
+        with self.lock:
+            writer.commit(**self.commitargs)
         return count
