@@ -115,13 +115,13 @@ class ComicImporterThread(ApplyDBOpsMixin):
         if task.files_modified:
             status_list += [
                 Status(
-                    ImportStatusTypes.FILES_MODIFIED.value, 0, len(task.files_modified)
+                    ImportStatusTypes.FILES_MODIFIED.value, None, len(task.files_modified)
                 )
             ]
         if task.files_created:
             status_list += [
                 Status(
-                    ImportStatusTypes.FILES_CREATED.value, 0, len(task.files_created)
+                    ImportStatusTypes.FILES_CREATED.value, None, len(task.files_created)
                 )
             ]
         if task.files_modified or task.files_created:
@@ -134,17 +134,17 @@ class ComicImporterThread(ApplyDBOpsMixin):
         search_index_updates = 0
         if task.dirs_moved:
             status_list += [
-                Status(ImportStatusTypes.DIRS_MOVED.value, 0, len(task.dirs_moved))
+                Status(ImportStatusTypes.DIRS_MOVED.value, None, len(task.dirs_moved))
             ]
         if task.files_moved:
             status_list += [
-                Status(ImportStatusTypes.FILES_MOVED.value, 0, len(task.files_moved))
+                Status(ImportStatusTypes.FILES_MOVED.value, None, len(task.files_moved))
             ]
             search_index_updates += len(task.files_moved)
         if task.files_modified:
             status_list += [
                 Status(
-                    ImportStatusTypes.DIRS_MODIFIED.value, 0, len(task.dirs_modified)
+                    ImportStatusTypes.DIRS_MODIFIED.value, None, len(task.dirs_modified)
                 )
             ]
         if task.files_modified or task.files_created:
@@ -154,7 +154,7 @@ class ComicImporterThread(ApplyDBOpsMixin):
         if task.files_deleted:
             status_list += [
                 Status(
-                    ImportStatusTypes.FILES_DELETED.value, 0, len(task.files_deleted)
+                    ImportStatusTypes.FILES_DELETED.value, None, len(task.files_deleted)
                 )
             ]
             search_index_updates += len(task.files_deleted)

@@ -123,7 +123,7 @@ class CreateForeignKeysMixin(QueuedThread):
         self.log.info(f"Updated {count} {group_class.__name__}s.")
         return count
 
-    @status_notify(status_type=ImportStatusTypes.DIRS_MODIFIED.value)
+    @status_notify(status_type=ImportStatusTypes.DIRS_MODIFIED.value, updates=False)
     def bulk_folders_modified(self, paths, library, **kwargs):
         """Update folders stat and nothing else."""
         count = 0
