@@ -18,6 +18,9 @@ border-radius: 128px;
   - Admin
     - Fancier sortable admin tables.
     - Remove `max_db_ops` config variable. Now auto shifts by memory available.
+  - Search Indexer
+    - Long running remove stale records interruptible by other search engine
+      tasks.
 - Fix
   - Search Indexer
     - Stable in lower memory environments.
