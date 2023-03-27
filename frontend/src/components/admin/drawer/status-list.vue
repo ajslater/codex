@@ -17,22 +17,16 @@
           <div nav class="statusItem">
             <div class="statusItemTitle">
               {{ title(status) }}
-              <span v-if="status.subtitle" class="statusItemSubtitle"
-                >({{ status.subtitle }})</span
-              >
+              <span v-if="status.subtitle" class="statusItemSubtitle">
+                ({{ status.subtitle }})
+              </span>
               <span
-                v-if="
-                  Number.isInteger(status.complete) ||
-                  Number.isInteger(status.total)
-                "
+                v-if="showComplete(status) || Number.isInteger(status.total)"
               >
-                <span>
-                  {{ nf(status.complete) }}
+                <span v-if="showComplete(status)">
+                  {{ nf(status.complete) }} /
                 </span>
-                /
-                <span>
-                  {{ nf(status.total) }}
-                </span>
+                {{ nf(status.total) }}
               </span>
             </div>
             <v-progress-linear
@@ -78,11 +72,10 @@ export default {
   },
   methods: {
     ...mapActions(useAdminStore, ["loadTable", "librarianTask"]),
+    showComplete: (status) => Number.isInteger(status.complete),
     indeterminate: (status) =>
       !status.preactive &&
-      (!status.total ||
-        status.complete === null ||
-        status.complete === undefined),
+      (!status.total || !Number.isInteger(status.complete)),
     progress(status) {
       if (status.preactive || self.indeterminate) {
         return 0;
