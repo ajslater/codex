@@ -79,7 +79,7 @@
         },
         {
           "value": "search_index_remove_stale",
-          "title": "Remove Ghost Index Entries",
+          "title": "Remove Stale Index Entries",
           "desc": "Remove search index entries that are no longer in the library."
         },
         {

@@ -26,7 +26,7 @@ from codex.logger.logging import get_logger
 from codex.memory import get_mem_limit
 from codex.models import Comic
 from codex.search.indexes import ComicIndex
-from codex.search.writing import CodexWriter
+from codex.search.writing import AbortOperationError, CodexWriter
 from codex.worker_base import WorkerBaseMixin
 
 
@@ -317,12 +317,14 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         query = Or([Term(DJANGO_ID, str(pk)) for pk in pks])
         return writer.delete_by_query(query)
 
-    def remove_docnums(self, docnums, sc=None):
+    def remove_docnums(self, docnums, sc=None, queue=None):
         """Remove a batch of docnums from the index.."""
         writer = self.get_writer()
         count = 0
         try:
-            count = writer.delete_docnums(docnums, sc=sc)
+            count = writer.delete_docnums(docnums, sc=sc, queue=queue)
+        except AbortOperationError:
+            raise
         except Exception as exc:
             self.log.warning(f"Search index removing documents by docnums {exc}")
             writer.cancel()

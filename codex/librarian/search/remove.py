@@ -7,9 +7,11 @@ from humanize import naturaldelta
 from whoosh.query import Every
 
 from codex.librarian.search.status import SearchIndexStatusTypes
+from codex.librarian.search.tasks import SearchIndexRemoveStaleTask
 from codex.librarian.search.version import VersionMixin
 from codex.models import Comic
 from codex.search.backend import CodexSearchBackend
+from codex.search.writing import AbortOperationError
 from codex.status import Status
 
 
@@ -35,6 +37,9 @@ class RemoveMixin(VersionMixin):
         """Remove records not in the database from the index."""
         status = Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value, 0)
         try:
+            if not self.queue.empty():
+                # don't even start if something else is waiting
+                raise AbortOperationError
             start_time = time()
             self.status_controller.start(status)
             if not backend:
@@ -49,7 +54,7 @@ class RemoveMixin(VersionMixin):
                 status.total = num_delete_docnums
                 self.status_controller.update(status)
                 count = backend.remove_docnums(
-                    delete_docnums, sc=self.status_controller
+                    delete_docnums, sc=self.status_controller, queue=self.queue
                 )
 
             # Finish
@@ -58,11 +63,14 @@ class RemoveMixin(VersionMixin):
                 elapsed = naturaldelta(elapsed_time)
                 cps = int(count / elapsed_time)
                 self.log.info(
-                    f"Removed {count} ghosts from the search index"
+                    f"Removed {count} stale records from the search index"
                     f" in {elapsed} at {cps} per second."
                 )
             else:
-                self.log.debug("No ghosts to remove from the search index.")
+                self.log.debug("No stale records to remove from the search index.")
+        except AbortOperationError:
+            task = SearchIndexRemoveStaleTask()
+            self.queue.put(task)
         except Exception:
             self.log.exception("Removing stale records:")
         finally:

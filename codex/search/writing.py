@@ -5,6 +5,9 @@ from time import sleep
 from whoosh.index import FileIndex, LockError
 from whoosh.writing import BufferedWriter
 
+class AbortOperationError(Exception):
+    """Interrupt the operation because something more important happened."""
+
 
 class CodexWriter(BufferedWriter):
     """MP safe Buffered Writer that locks the index writer much more granularly.
@@ -164,7 +167,7 @@ class CodexWriter(BufferedWriter):
 
         return count
 
-    def delete_docnums(self, docnums, sc=None, status=None):
+    def delete_docnums(self, docnums, sc=None, status=None, queue=None):
         """Delete all docunums.
 
         :returns: the number of documents deleted.
@@ -173,6 +176,8 @@ class CodexWriter(BufferedWriter):
         count = 0
         writer = self.get_writer("delete_docnums")
         for docnum in docnums:
+            if queue and not queue.empty():
+                raise AbortOperationError()
             self.delete_document(docnum, writer=writer)
             count += 1
             if sc and status:
