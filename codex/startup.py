@@ -19,6 +19,7 @@ from codex.settings.settings import (
     HYPERCORN_CONFIG_TOML,
     RESET_ADMIN,
 )
+from codex.status_controller import STATUS_DEFAULTS
 from codex.version import VERSION
 
 LOG = get_logger(__name__)
@@ -100,18 +101,19 @@ def init_timestamps():
             ts.save_uuid_version()
         if created:
             label = Timestamp.TimestampChoices(ts.key).label
-            LOG.info(f"Created {label} timestamp.")
+            LOG.debug(f"Created {label} timestamp.")
 
 
 def init_librarian_statuses():
     """Init librarian statuses."""
-    _delete_orphans(LibrarianStatus, "status_type", LibrarianStatus.CHOICES)
+    status_types = [choice[0] for choice in LibrarianStatus.CHOICES]
+    _delete_orphans(LibrarianStatus, "status_type", status_types)
 
-    for status_type, _ in LibrarianStatus.CHOICES:
-        _, created = LibrarianStatus.objects.update_or_create(status_type=status_type)
+    for status_type in status_types:
+        _, created = LibrarianStatus.objects.update_or_create(defaults=STATUS_DEFAULTS, status_type=status_type)
         if created:
             title = CHOICES["admin"]["statusTitles"][status_type]
-            LOG.info(f"Created {title} LibrarianStatus.")
+            LOG.debug(f"Created {title} LibrarianStatus.")
 
 
 def clear_library_status():
