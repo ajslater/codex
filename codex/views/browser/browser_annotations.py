@@ -61,15 +61,13 @@ class BrowserAnnotationsView(BrowserOrderByView):
             qs = queryset.filter(pk=OuterRef("pk"))
             cover_comics = self.get_order_by(Comic, qs, for_cover_pk=True)
             cover_pk = Subquery(cover_comics.values("comic__pk")[:1])
-        queryset = queryset.annotate(cover_pk=cover_pk)
-        return queryset
+        return queryset.annotate(cover_pk=cover_pk)
 
     def _annotate_page_count(self, obj_list):
         """Hoist up total page_count of children."""
         # Used for sorting and progress
         page_count_sum = Sum("comic__page_count")
-        obj_list = obj_list.annotate(page_count=page_count_sum)
-        return obj_list
+        return obj_list.annotate(page_count=page_count_sum)
 
     def _annotate_bookmarks(self, obj_list, is_model_comic, is_opds_acquisition=False):
         """Hoist up bookmark annoations."""
@@ -147,8 +145,7 @@ class BrowserAnnotationsView(BrowserOrderByView):
         # invalid high values
         then = Least(F("page") * 100.0 / F("page_count"), Value(100.0))
         progress = Case(When(page_count__gt=0, then=then), default=0.0)
-        queryset = queryset.annotate(progress=progress)
-        return queryset
+        return queryset.annotate(progress=progress)
 
     def annotate_common_aggregates(
         self, qs, model, search_scores, is_opds_acquisition=False

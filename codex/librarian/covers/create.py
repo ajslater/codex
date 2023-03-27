@@ -11,6 +11,7 @@ from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.covers.tasks import CoverSaveToCache
 from codex.models import Comic
 from codex.pdf import PDF
+from codex.status import Status
 from codex.version import COMICBOX_CONFIG
 
 
@@ -35,8 +36,7 @@ class CoverCreateMixin(CoverPathMixin):
                     )
                     cover_image.save(cover_thumb_buffer, "WEBP", method=6)
                 cover_image.close()  # extra close for animated sequences
-            thumb_image_data = cover_thumb_buffer.getvalue()
-        return thumb_image_data
+            return cover_thumb_buffer.getvalue()
 
     @classmethod
     def _get_comic_cover_image(cls, comic):
@@ -44,14 +44,12 @@ class CoverCreateMixin(CoverPathMixin):
 
         Return image thumb data or path to missing file thumb.
         """
-        if comic.file_format == Comic.FileFormat.PDF:
-            car_class = PDF
-        else:
-            car_class = ComicArchive
+        car_class = PDF if comic.file_type == Comic.FileType.PDF else ComicArchive
         with car_class(comic.path, config=COMICBOX_CONFIG) as car:
             image_data = car.get_cover_image()
         if not image_data:
-            raise ValueError("Read empty cover.")
+            reason = "Read empty cover"
+            raise ValueError(reason)
         return image_data
 
     @classmethod
@@ -62,11 +60,11 @@ class CoverCreateMixin(CoverPathMixin):
         """
         comic = None
         try:
-            comic = Comic.objects.only("path", "file_format").get(pk=pk)
+            comic = Comic.objects.only("path", "file_type").get(pk=pk)
             cover_image = cls._get_comic_cover_image(comic)
             data = cls._create_cover_thumbnail(cover_image)
         except Exception as exc:
-            data = bytes()
+            data = b""
             comic_str = comic.path if comic else f"{pk=}"
             log.warning(f"Could not create cover thumbnail for {comic_str}: {exc}")
 
@@ -96,35 +94,29 @@ class CoverCreateMixin(CoverPathMixin):
     def bulk_create_comic_covers(self, comic_pks):
         """Create bulk comic covers."""
         # XXX Unused
+        num_comics = len(comic_pks)
+        if not num_comics:
+            return None
+        status = Status(CoverStatusTypes.CREATE_COVERS.value, 0, num_comics)
         try:
-            num_comics = len(comic_pks)
-            if not num_comics:
-                return
-
+            start_time = time()
             self.log.debug(f"Creating {num_comics} comic covers...")
-            self.status_controller.start(CoverStatusTypes.CREATE, 0, num_comics)
+            self.status_controller.start(status)
 
             # Get comic objects
-            count = 0
-            start_time = since = time()
-
             for pk in comic_pks:
                 # Create all covers.
                 cover_path = self.get_cover_path(pk)
                 if cover_path.exists():
-                    num_comics -= 1
+                    status.decrement_total()
                 else:
                     # bulk creator creates covers inline
                     self.create_cover(pk)
-                    count += 1
-
-                # notify the frontend every 10 seconds
-                since = self.status_controller.update(
-                    CoverStatusTypes.CREATE, count, num_comics, since=since
-                )
+                    status.increment_complete()
+                self.status_controller.update(status)
 
             total_elapsed = naturaldelta(time() - start_time)
-            self.log.info(f"Created {count} comic covers in {total_elapsed}.")
-            return count
+            self.log.info(f"Created {status.complete} comic covers in {total_elapsed}.")
         finally:
-            self.status_controller.finish(CoverStatusTypes.CREATE)
+            self.status_controller.finish(status)
+        return status.complete

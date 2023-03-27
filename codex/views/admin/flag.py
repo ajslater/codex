@@ -18,11 +18,12 @@ class AdminFlagViewSet(ModelViewSet):
     permission_classes = [IsAdminUser]
     queryset = AdminFlag.objects.all()
     serializer_class = AdminFlagSerializer
+    lookup_field = "key"
 
     def _on_change(self):
         """Signal UI that its out of date."""
-        pk = self.kwargs.get("pk")
-        if AdminFlag.objects.filter(pk=pk, name=AdminFlag.ENABLE_REGISTRATION).exists():
+        key = self.kwargs.get("key")
+        if key == AdminFlag.FlagChoices.REGISTRATION.value:
             patch_registration_setting()
         # Heavy handed refresh everything, but simple.
         # Folder View could only change the group view and let the ui decide

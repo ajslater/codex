@@ -101,7 +101,7 @@ class AdminFolderListView(GenericAPIView):
     serializer_class = AdminFolderListSerializer
     input_serializer_class = AdminFolderSerializer
 
-    def get(self, request, *args, **kwargs):
+    def get(self, *args, **kwargs):
         """Get subdirectories for a path."""
         try:
             serializer = self.input_serializer_class(data=self.request.query_params)
@@ -122,9 +122,10 @@ class AdminFolderListView(GenericAPIView):
             dirs += sorted(subdirs)
 
             data = {"root_folder": str(root_path), "folders": dirs}
-
             serializer = self.get_serializer(data)
-            return Response(serializer.data)
         except Exception as exc:
             LOG.exception(exc)
-            raise ValidationError("Server Error") from exc
+            reason = "Server Error"
+            raise ValidationError(reason) from exc
+        else:
+            return Response(serializer.data)

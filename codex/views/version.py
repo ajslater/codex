@@ -14,10 +14,9 @@ class VersionView(GenericAPIView):
     def get_object(self):
         """Get the versions."""
         latest_version = get_latest_version(PACKAGE_NAME)
-        obj = {"installed": VERSION, "latest": latest_version}
-        return obj
+        return {"installed": VERSION, "latest": latest_version}
 
-    def get(self, request, *args, **kwargs):
+    def get(self, *args, **kwargs):
         """Get Versions."""
         obj = self.get_object()
         serializer = self.get_serializer(obj)

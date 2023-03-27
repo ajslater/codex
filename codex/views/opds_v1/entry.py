@@ -50,12 +50,12 @@ class OPDSEntry:
         return math.floor(math.log10(issue_max)) + 1
 
     @property
-    def id(self):
+    def id_tag(self):
         """GUID is a nav url."""
         try:
             group = self.obj.get("group")
             pk = self.obj.get("pk")
-            return reverse(
+            return reverse(  # noqa R300
                 "opds:v1:browser", kwargs={"group": group, "pk": pk, "page": 1}
             )
         except Exception as exc:
@@ -118,18 +118,15 @@ class OPDSEntry:
     @property
     def publisher(self):
         """Return the publisher."""
-        try:
-            return self.obj.get("publisher_name")
-        except Exception as exc:
-            LOG.exception(exc)
+        return self.obj.get("publisher_name")
 
     def _get_datefield(self, key):
         try:
             if value := self.obj.get(key):
                 result = None
-                for format in self.DATE_FORMATS:
+                for date_format in self.DATE_FORMATS:
                     try:
-                        result = datetime.strptime(value, format).astimezone(
+                        result = datetime.strptime(value, date_format).astimezone(
                             timezone.utc
                         )
                         break
@@ -152,23 +149,19 @@ class OPDSEntry:
     @property
     def language(self):
         """Return the entry language."""
-        try:
-            return self.obj.get("language")
-        except Exception as exc:
-            LOG.exception(exc)
+        return self.obj.get("language")
 
     @property
     def summary(self):
         """Return a child count or comic summary."""
         try:
             desc = self.obj.get("summary")
-            if not desc:
-                if children := self.obj.get("child_count"):
-                    desc = f"{children} issues"
-
+            if not desc and (children := self.obj.get("child_count")):
+                desc = f"{children} issues"
+        except Exception:
+            LOG.exception("get summary")
+        else:
             return desc
-        except Exception as exc:
-            LOG.exception(exc)
 
     def _thumb_link(self):
         cover_pk = self.obj.get("cover_pk")
@@ -178,7 +171,7 @@ class OPDSEntry:
         elif cover_pk == 0:
             href = staticfiles_storage.url("img/missing_cover.webp")
         else:
-            return
+            return None
         return OPDSLink(Rel.THUMBNAIL, href, "image/webp")
 
     def _image_link(self):
@@ -191,7 +184,7 @@ class OPDSEntry:
             href = staticfiles_storage.url("img/missing_cover.webp")
             mime_type = "image/webp"
         else:
-            return
+            return None
         return OPDSLink(Rel.IMAGE, href, mime_type)
 
     def _nav_link(self, metadata=False):
@@ -206,10 +199,7 @@ class OPDSEntry:
             aq_link = False
 
         if aq_link or group == "c":
-            if metadata:
-                mime_type = MimeType.ENTRY_CATALOG
-            else:
-                mime_type = MimeType.ACQUISITION
+            mime_type = MimeType.ENTRY_CATALOG if metadata else MimeType.ACQUISITION
         else:
             mime_type = MimeType.NAV
 
@@ -219,17 +209,14 @@ class OPDSEntry:
             qps.update({"opdsMetadata": 1})
         href = update_href_query_params(href, self.query_params, qps)
         thr_count = self.obj.get("child_count")
-        if metadata:
-            rel = Rel.ALTERNATE
-        else:
-            rel = self.obj.get("nav_link_rel", "subsection")
+        rel = Rel.ALTERNATE if metadata else self.obj.get("nav_link_rel", "subsection")
 
         return OPDSLink(rel, href, mime_type, thr_count=thr_count)
 
     def _download_link(self):
         pk = self.obj.get("pk")
         if not pk:
-            return
+            return None
         kwargs = {"pk": pk}
         return OPDSLink(
             Rel.ACQUISITION,
@@ -241,9 +228,10 @@ class OPDSEntry:
     def _stream_link(self):
         pk = self.obj.get("pk")
         if not pk:
-            return
+            return None
         base_url = reverse("opds:v1:start")
-        href = f"{base_url}c/{pk}/" + "{pageNumber}/page.jpg?bookmark=1"
+        href = f"{base_url}c/{pk}/"
+        href += "{pageNumber}/page.jpg?bookmark=1"
         count = self.obj.get("page_count")
         page = self.obj.get("page", 0)
         bookmark_updated_at = self.obj.get("bookmark_updated_at")
@@ -270,12 +258,12 @@ class OPDSEntry:
                 result += [download]
             if stream := self._stream_link():
                 result += [stream]
-            if not self.query_params.get("opdsMetadata", "").lower() not in FALSY:
-                if metadata := self._nav_link(metadata=True):
-                    result += [metadata]
-        else:
-            if nav := self._nav_link():
-                result += [nav]
+            if (
+                not self.query_params.get("opdsMetadata", "").lower() not in FALSY
+            ) and (metadata := self._nav_link(metadata=True)):
+                result += [metadata]
+        elif nav := self._nav_link():
+            result += [nav]
 
         return result
 
@@ -285,7 +273,7 @@ class OPDSEntry:
         try:
             for key in keys:
                 if val := self.obj.get(key):
-                    names |= set((val.split(",")))
+                    names |= set(val.split(","))
         except Exception as exc:
             LOG.exception(exc)
         return names

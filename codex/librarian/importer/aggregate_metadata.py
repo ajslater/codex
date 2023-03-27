@@ -8,10 +8,14 @@ from rarfile import BadRarFile
 
 from codex.comic_field_names import COMIC_M2M_FIELD_NAMES
 from codex.librarian.importer.clean_metadata import CleanMetadataMixin
-from codex.librarian.importer.status import ImportStatusTypes, status
+from codex.librarian.importer.status import ImportStatusTypes, status_notify
 from codex.models import Comic, Imprint, Publisher, Series, Volume
 from codex.pdf import PDF
+from codex.serializers.choices import CHOICES
+from codex.status import Status
 from codex.version import COMICBOX_CONFIG
+
+FILE_TYPES = dict(reversed(list(CHOICES["fileTypes"].items())))
 
 
 class AggregateMetadataMixin(CleanMetadataMixin):
@@ -28,16 +32,18 @@ class AggregateMetadataMixin(CleanMetadataMixin):
         failed_import = {}
         try:
             if PDF.is_pdf(path):
-                file_format = Comic.FileFormat.PDF
+                file_type = Comic.FileType.PDF
                 car_class = PDF
             else:
-                file_format = Comic.FileFormat.COMIC
                 car_class = ComicArchive
+                suffix = Path(path).suffix
+                suffix_type = suffix[1:].upper() if suffix else ""
+                file_type = FILE_TYPES.get(suffix_type, "")
             with car_class(path, config=COMICBOX_CONFIG, closefd=False) as car:
                 md = car.get_metadata()
 
             md["path"] = path
-            md["file_format"] = file_format
+            md["file_type"] = file_type
             md = self.clean_md(md)
 
             # Create group tree
@@ -67,8 +73,7 @@ class AggregateMetadataMixin(CleanMetadataMixin):
             self.log.warning(f"Failed to import {path}: {exc}")
             failed_import = {path: exc}
         except Exception as exc:
-            self.log.warning(f"Failed to import: {path}")
-            self.log.exception(exc)
+            self.log.exception(f"Failed to import: {path}")
             failed_import = {path: exc}
         return md, m2m_md, group_tree_md, failed_import
 
@@ -79,21 +84,21 @@ class AggregateMetadataMixin(CleanMetadataMixin):
         all_m2m_mds[path] = m2m_md
         # aggregate fks
         for field, names in m2m_md.items():
-            if field == "credits":
-                if names and "credits" not in all_fks:
-                    all_fks["credits"] = set()
+            if field == "creators":
+                if names and "creators" not in all_fks:
+                    all_fks["creators"] = set()
 
-                # for credits add the credit fks to fks
-                for credit_dict in names:
-                    for field, name in credit_dict.items():
-                        # These fields are ambiguous because they're fks to Credit
+                # for creators add the creator fks to fks
+                for creator_dict in names:
+                    for creator_field, name in creator_dict.items():
+                        # These fields are ambiguous because they're fks to creator
                         #   but aren't ever in Comic so query_fks.py can
                         #   disambiguate with special code
-                        if field not in all_fks:
-                            all_fks[field] = set()
-                        all_fks[field].add(name)
-                    credit_tuple = tuple(sorted(credit_dict.items()))
-                    all_fks["credits"].add(credit_tuple)
+                        if creator_field not in all_fks:
+                            all_fks[creator_field] = set()
+                        all_fks[creator_field].add(name)
+                    creator_tuple = tuple(sorted(creator_dict.items()))
+                    all_fks["creators"].add(creator_tuple)
             elif field != "folders":
                 if field not in all_fks:
                     all_fks[field] = set()
@@ -109,10 +114,9 @@ class AggregateMetadataMixin(CleanMetadataMixin):
         return a
 
     @classmethod
-    def _set_max_group_count(
-        cls, all_fks, group_tree, group_md, group_class, index, count_key
-    ):
+    def _set_max_group_count(cls, common_args, group_class, index, count_key):
         """Assign the maximum group count number."""
+        all_fks, group_tree, group_md = common_args
         group_name = group_tree[0:index]
         try:
             count = cls._none_max(
@@ -129,65 +133,60 @@ class AggregateMetadataMixin(CleanMetadataMixin):
         for group_tree, group_md in group_tree_md.items():
             all_fks["group_trees"][Publisher][group_tree[0:1]] = None
             all_fks["group_trees"][Imprint][group_tree[0:2]] = None
-            cls._set_max_group_count(
-                all_fks, group_tree, group_md, Series, 3, "volume_count"
-            )
-            cls._set_max_group_count(
-                all_fks, group_tree, group_md, Volume, 4, "issue_count"
-            )
+            common_args = (all_fks, group_tree, group_md)
+            cls._set_max_group_count(common_args, Series, 3, "volume_count")
+            cls._set_max_group_count(common_args, Volume, 4, "issue_count")
 
-    @status(status=ImportStatusTypes.AGGREGATE_TAGS)
+    @status_notify(status_type=ImportStatusTypes.AGGREGATE_TAGS.value)
     def get_aggregate_metadata(
         self,
         all_paths,
         library_path,
-        all_mds,
-        all_m2m_mds,
-        all_fks,
-        all_failed_imports,
-        status_args=None,
+        metadata,
+        status=None,
     ):
         """Get aggregated metatada for the paths given."""
         total_paths = len(all_paths)
         if not total_paths:
             return 0
         self.log.info(f"Reading tags from {total_paths} comics in {library_path}...")
+        all_mds = metadata["mds"]
+        all_m2m_mds = metadata["m2m_mds"]
+        all_fks = metadata["fks"]
+        all_failed_imports = metadata["fis"]
         all_fks.update(
             {
                 "group_trees": {Publisher: {}, Imprint: {}, Series: {}, Volume: {}},
             }
         )
-        for num, path in enumerate(all_paths):
-            path = str(path)
-            md, m2m_md, group_tree_md, failed_import = self._get_path_metadata(path)
+        for path in all_paths:
+            path_str = str(path)
+            md, m2m_md, group_tree_md, failed_import = self._get_path_metadata(path_str)
 
             if failed_import:
                 all_failed_imports.update(failed_import)
             else:
                 if md:
-                    all_mds[path] = md
+                    all_mds[path_str] = md
 
                 if m2m_md:
-                    self._aggregate_m2m_metadata(all_m2m_mds, m2m_md, all_fks, path)
+                    self._aggregate_m2m_metadata(all_m2m_mds, m2m_md, all_fks, path_str)
 
                 if group_tree_md:
                     self._aggregate_group_tree_metadata(all_fks, group_tree_md)
 
-            if status_args:
-                status_args.since = self.status_controller.update(
-                    status_args.status,
-                    status_args.count + num,
-                    status_args.total,
-                    since=status_args.since,
-                )
+            if status:
+                status.complete += 1
+                self.status_controller.update(status)
 
         all_fks["comic_paths"] = frozenset(all_mds.keys())
+        fi_status = Status(
+            ImportStatusTypes.FAILED_IMPORTS.value, 0, len(all_failed_imports)
+        )
         self.status_controller.update(
-            ImportStatusTypes.FAILED_IMPORTS,
-            0,
-            len(all_failed_imports),
+            fi_status,
             notify=False,
         )
-        count = len(all_mds)
+        count = status.complete if status else 0
         self.log.info(f"Aggregated tags from {count} comics.")
         return count

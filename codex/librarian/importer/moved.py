@@ -6,7 +6,7 @@ from django.db.models.functions import Now
 from codex.librarian.importer.create_comics import CreateComicsMixin
 from codex.librarian.importer.create_fks import CreateForeignKeysMixin
 from codex.librarian.importer.query_fks import QueryForeignKeysMixin
-from codex.librarian.importer.status import ImportStatusTypes, status
+from codex.librarian.importer.status import ImportStatusTypes, status_notify
 from codex.models import Comic, Folder, Library
 
 MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder")
@@ -16,8 +16,8 @@ MOVED_BULK_FOLDER_UPDATE_FIELDS = ("path", "parent_folder", "name")
 class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixin):
     """Methods for moving comics and folders."""
 
-    @status(status=ImportStatusTypes.FILES_MOVED)
-    def bulk_comics_moved(self, moved_paths, library, status_args=None):
+    @status_notify(status_type=ImportStatusTypes.FILES_MOVED.value)
+    def bulk_comics_moved(self, moved_paths, library, status=None):
         """Move comcis."""
         count = 0
         if not moved_paths:
@@ -26,9 +26,9 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
         # Prepare FKs
         create_folder_paths = {}
         self.query_missing_folder_paths(
-            moved_paths.values(), status_args, library.path, create_folder_paths
+            moved_paths.values(), status, library.path, create_folder_paths
         )
-        self.bulk_folders_create(create_folder_paths, status_args, library)
+        self.bulk_folders_create(create_folder_paths, status, library)
 
         # Update Comics
         comics = Comic.objects.filter(
@@ -54,8 +54,8 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
                     path__in=new_path.parents
                 ).values_list("pk", flat=True)
                 comic_pks.append(comic.pk)
-            except Exception as exc:
-                self.log.error(f"moving {comic.path}: {exc}")
+            except Exception:
+                self.log.exception(f"moving {comic.path}")
 
         Comic.objects.bulk_update(comics, MOVED_BULK_COMIC_UPDATE_FIELDS)
 
@@ -93,8 +93,8 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
             dest_parent_folders[folder.path] = folder
         return dest_parent_folders
 
-    @status(status=ImportStatusTypes.DIRS_MOVED)
-    def bulk_folders_moved(self, folders_moved, library, status_args=None):
+    @status_notify(status_type=ImportStatusTypes.DIRS_MOVED.value)
+    def bulk_folders_moved(self, folders_moved, library, **kwargs):
         """Move folders in the database instead of recreating them."""
         if not folders_moved:
             return 0

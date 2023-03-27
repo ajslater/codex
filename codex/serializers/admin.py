@@ -67,8 +67,8 @@ class AdminFlagSerializer(ModelSerializer):
         """Specify Model."""
 
         model = AdminFlag
-        fields = ("pk", "name", "on")
-        read_only_fields = ("name", "pk")
+        fields = ("key", "on")
+        read_only_fields = ("key",)
 
 
 class LibrarySerializer(ModelSerializer):
@@ -83,20 +83,19 @@ class LibrarySerializer(ModelSerializer):
 
     def validate_path(self, path):
         """Validate new library paths."""
-        try:
-            ppath = Path(path).resolve()
-            if not ppath.is_dir():
-                raise ValueError("Not a valid folder on this server")
-            existing_paths = Library.objects.values_list("path", flat=True)
-            for existing_path in existing_paths:
-                existing_path = Path(existing_path)
-                if existing_path.is_relative_to(ppath):
-                    raise ValueError("Parent of existing library path")
-                if ppath.is_relative_to(existing_path):
-                    raise ValueError("Child of existing library path")
-        except Exception as exc:
-            LOG.error(f"validate library path: {exc}")
-            raise exc
+        ppath = Path(path).resolve()
+        if not ppath.is_dir():
+            reason = "Not a valid folder on this server"
+            raise ValidationError(reason)
+        existing_path_strs = Library.objects.values_list("path", flat=True)
+        for existing_path_str in existing_path_strs:
+            existing_path = Path(existing_path_str)
+            if existing_path.is_relative_to(ppath):
+                reason = "Parent of existing library path"
+                raise ValidationError(reason)
+            if ppath.is_relative_to(existing_path):
+                reason = "Child of existing library path"
+                raise ValidationError(reason)
         return path
 
 
@@ -108,13 +107,13 @@ class FailedImportSerializer(ModelSerializer):
 
         model = FailedImport
         fields = ("pk", "path", "created_at")
-        read_only_fields = ("pk, " "path", "created_at")
+        read_only_fields = ("pk", "path", "created_at")
 
 
 class AdminLibrarianTaskSerializer(Serializer):
     """Get tasks from front end."""
 
-    task = ChoiceField(choices=CHOICES["admin_tasks"])
+    task = ChoiceField(choices=CHOICES["admin"]["tasks"])
     library_id = IntegerField(required=False)
 
 
@@ -133,12 +132,10 @@ class AdminFolderSerializer(Serializer):
 
     def validate_path(self, path):
         """Validate the path is an existing directory."""
-        try:
-            ppath = Path(path)
-            if not ppath.resolve().is_dir():
-                raise ValidationError("Not a directory")
-        except Exception as exc:
-            raise ValidationError("Not a valid path") from exc
+        ppath = Path(path)
+        if not ppath.resolve().is_dir():
+            reason = "Not a directory"
+            raise ValidationError(reason)
         return path
 
     def validate_show_hidden(self, show_hidden):
@@ -152,23 +149,32 @@ class AdminFolderSerializer(Serializer):
 class AdminGroupSerializer(Serializer):
     """Group Counts."""
 
-    publisher_count = IntegerField(required=False)
+    publisher_count = IntegerField(required=False, read_only=True)
     imprint_count = IntegerField(required=False)
     series_count = IntegerField(required=False)
     volume_count = IntegerField(required=False)
     comic_count = IntegerField(required=False)
     folder_count = IntegerField(required=False)
+
+
+class AdminFileTypeSerializer(Serializer):
+    """File Type Counts."""
+
     pdf_count = IntegerField(required=False)
-    comic_archive_count = IntegerField(required=False)
+    cbz_count = IntegerField(required=False)
+    cbr_count = IntegerField(required=False)
+    cbt_count = IntegerField(required=False)
+    cbx_count = IntegerField(required=False)
+    unknown_count = IntegerField(required=False)
 
 
 class AdminComicMetadataSerializer(Serializer):
     """Metadata Counts."""
 
     character_count = IntegerField(required=False)
-    credit_count = IntegerField(required=False)
-    credit_person_count = IntegerField(required=False)
-    credit_role_count = IntegerField(required=False)
+    creator_count = IntegerField(required=False)
+    creator_person_count = IntegerField(required=False)
+    creator_role_count = IntegerField(required=False)
     genre_count = IntegerField(required=False)
     location_count = IntegerField(required=False)
     series_group_count = IntegerField(required=False)
@@ -205,6 +211,7 @@ class AdminStatsSerializer(Serializer):
     platform = AdminPlatformSerializer(required=False)
     config = AdminConfigSerializer(required=False)
     groups = AdminGroupSerializer(required=False)
+    file_types = AdminFileTypeSerializer(required=False)
     metadata = AdminComicMetadataSerializer(required=False)
 
 

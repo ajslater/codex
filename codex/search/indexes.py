@@ -25,7 +25,7 @@ class ComicIndex(ModelSearchIndex, Indexable):
     # Char fields
     comments = CCharField(model_attr="comments", null=True)
     country = CCharField(model_attr="country", null=True)
-    format = CCharField(model_attr="format", null=True)
+    original_format = CCharField(model_attr="original_format", null=True)
     language = CCharField(model_attr="language", null=True)
     name = CCharField(model_attr="name", null=True)
     notes = CCharField(model_attr="notes", null=True)
@@ -41,7 +41,7 @@ class ComicIndex(ModelSearchIndex, Indexable):
 
     # Many to Many Fields
     characters = CCharField(model_attr="characters__name", null=True)
-    creators = CCharField(model_attr="credits__person__name", null=True)
+    creators = CCharField(model_attr="creators__person__name", null=True)
     genres = CCharField(model_attr="genres__name", null=True)
     locations = CCharField(model_attr="locations__name", null=True)
     series_groups = CCharField(model_attr="series_groups__name", null=True)

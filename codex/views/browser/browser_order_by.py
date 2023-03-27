@@ -55,10 +55,7 @@ class BrowserOrderByView(BrowserBaseView):
         order_key = self.params.get("order_by")
         if not order_key:
             group = self.kwargs.get("group")
-            if group == self.FOLDER_GROUP:
-                order_key = "path"
-            else:
-                order_key = "sort_name"
+            order_key = "path" if group == self.FOLDER_GROUP else "sort_name"
         return order_key
 
     @classmethod
@@ -70,10 +67,7 @@ class BrowserOrderByView(BrowserBaseView):
 
     def get_aggregate_func(self, order_key, model):
         """Get a complete function for aggregating an attribute."""
-        if order_key == "sort_name" or not order_key:
-            field = None
-        else:
-            field = order_key
+        field = None if order_key == "sort_name" or not order_key else order_key
 
         # Determine order func
         if not field:

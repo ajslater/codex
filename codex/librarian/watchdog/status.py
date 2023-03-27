@@ -1,8 +1,8 @@
 """Watchdog Status Types."""
-from codex.librarian.status import StatusTypes
+from django.db.models import Choices
 
 
-class WatchdogStatusTypes(StatusTypes):
+class WatchdogStatusTypes(Choices):
     """Watchdog Status Types."""
 
-    POLL = "Poll"
+    POLL = "WPO"

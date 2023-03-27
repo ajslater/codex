@@ -2,18 +2,21 @@
 import os
 import shutil
 from pathlib import Path
-from time import time
 
 from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.models import Comic, Timestamp
+from codex.status import Status
 
 
 class CoverPurgeMixin(CoverPathMixin):
     """Cover Purge methods."""
 
-    _CLEANUP_STATUS_MAP = {CoverStatusTypes.FIND_ORPHAN: {}, CoverStatusTypes.PURGE: {}}
+    _CLEANUP_STATUS_MAP = {
+        CoverStatusTypes.FIND_ORPHAN: {},
+        CoverStatusTypes.PURGE_COVERS: {},
+    }
 
     @classmethod
     def _cleanup_cover_dirs(cls, path):
@@ -28,34 +31,30 @@ class CoverPurgeMixin(CoverPathMixin):
 
     def purge_cover_paths(self, cover_paths):
         """Purge a set a cover paths."""
+        self.log.debug(f"Removing {len(cover_paths)} possible cover thumbnails...")
+        status = Status(CoverStatusTypes.PURGE_COVERS.value, 0, len(cover_paths))
         try:
-            since = time()
-            self.log.debug(f"Removing {len(cover_paths)} possible cover thumbnails...")
-            self.status_controller.start(
-                CoverStatusTypes.PURGE, None, total=len(cover_paths)
-            )
+            self.status_controller.start(status)
             cover_dirs = set()
-            count = 0
             for cover_path in cover_paths:
                 try:
                     cover_path.unlink()
-                    count += 1
+                    status.increment_complete()
                 except FileNotFoundError:
-                    pass
+                    status.decrement_total()
                 cover_dirs.add(cover_path.parent)
-                since = self.status_controller.update(
-                    CoverStatusTypes.PURGE, count, total=len(cover_paths), since=since
-                )
+                self.status_controller.update(status)
             for cover_dir in cover_dirs:
                 self._cleanup_cover_dirs(cover_dir)
-            self.log.info(f"Removed {count} cover thumbnails.")
+            self.log.info(f"Removed {status.complete} cover thumbnails.")
         finally:
-            self.status_controller.finish(CoverStatusTypes.PURGE)
+            self.status_controller.finish(status)
+        return status.complete
 
     def purge_comic_covers(self, comic_pks):
         """Purge a set a cover paths."""
         cover_paths = self.get_cover_paths(comic_pks)
-        self.purge_cover_paths(cover_paths)
+        return self.purge_cover_paths(cover_paths)
 
     def purge_all_comic_covers(self, librarian_queue):
         """Purge every comic cover."""
@@ -65,7 +64,7 @@ class CoverPurgeMixin(CoverPathMixin):
             self.log.info("Removed entire comic cover cache.")
         except Exception as exc:
             self.log.warning(exc)
-        Timestamp.touch(Timestamp.COVERS)
+        Timestamp.touch(Timestamp.TimestampChoices.COVERS)
         librarian_queue.put(LIBRARY_CHANGED_TASK)
 
     def cleanup_orphan_covers(self):
@@ -86,5 +85,6 @@ class CoverPurgeMixin(CoverPathMixin):
         finally:
             self.status_controller.finish(CoverStatusTypes.FIND_ORPHAN)
 
-        self.purge_cover_paths(orphan_cover_paths)
-        self.log.info(f"Removed {len(orphan_cover_paths)} covers for missing comics.")
+        count = self.purge_cover_paths(orphan_cover_paths)
+        self.log.info(f"Removed {count} covers for missing comics.")
+        return count

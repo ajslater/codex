@@ -1,5 +1,5 @@
 """Download a comic archive."""
-
+from pathlib import Path
 
 from django.http import FileResponse, Http404
 from drf_spectacular.types import OpenApiTypes
@@ -21,7 +21,7 @@ class DownloadView(APIView, GroupACLMixin):
     _DOWNLOAD_FIELDS = ("path", "series", "volume", "issue", "issue_suffix", "name")
 
     @extend_schema(responses={(200, content_type): OpenApiTypes.BINARY})
-    def get(self, request, *args, **kwargs):
+    def get(self, *args, **kwargs):
         """Download a comic archive."""
         pk = kwargs.get("pk")
         try:
@@ -33,9 +33,10 @@ class DownloadView(APIView, GroupACLMixin):
                 .get(pk=pk)
             )
         except Comic.DoesNotExist as err:
-            raise Http404(f"Comic {pk} not not found.") from err
+            reason = f"Comic {pk} not not found."
+            raise Http404(reason) from err
 
-        comic_file = open(comic.path, "rb")
+        comic_file = Path(comic.path).open("rb")
         return FileResponse(
             comic_file,
             as_attachment=True,

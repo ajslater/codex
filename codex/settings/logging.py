@@ -16,8 +16,4 @@ def get_loglevel(debug):
                 " Use DEBUG for more verbose logging."
             )
         return loglevel
-    elif debug:
-        log_level = logging.DEBUG
-    else:
-        log_level = logging.INFO
-    return log_level
+    return logging.DEBUG if debug else logging.INFO

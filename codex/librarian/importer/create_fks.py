@@ -6,11 +6,11 @@ from pathlib import Path
 
 from django.db.models.functions import Now
 
-from codex.librarian.importer.status import ImportStatusTypes, status
+from codex.librarian.importer.status import ImportStatusTypes, status_notify
 from codex.models import (
-    Credit,
-    CreditPerson,
-    CreditRole,
+    Creator,
+    CreatorPerson,
+    CreatorRole,
     Folder,
     Imprint,
     Publisher,
@@ -28,7 +28,7 @@ _GROUP_UPDATE_FIELDS = {
     Volume: ("name", "publisher", "imprint", "series"),
 }
 _NAMED_MODEL_UPDATE_FIELDS = ("name",)
-_CREDIT_UPDATE_FIELDS = ("person", "role")
+_CREATOR_UPDATE_FIELDS = ("person", "role")
 
 
 class CreateForeignKeysMixin(QueuedThread):
@@ -58,8 +58,7 @@ class CreateForeignKeysMixin(QueuedThread):
             count_field = _COUNT_FIELDS[group_class]
             defaults["issue_count"] = count_dict.get(count_field)
 
-        group_obj = group_class(**defaults)
-        return group_obj
+        return group_class(**defaults)
 
     @staticmethod
     def _update_group_obj(group_class, group_param_tuple, count_dict, count_field):
@@ -84,8 +83,8 @@ class CreateForeignKeysMixin(QueuedThread):
             obj = None
         return obj
 
-    @status()
-    def bulk_group_creator(self, group_tree_counts, group_class, status_args=None):
+    @status_notify()
+    def bulk_group_creator(self, group_tree_counts, group_class, **kwargs):
         """Bulk creates groups."""
         count = 0
         if not group_tree_counts:
@@ -105,8 +104,8 @@ class CreateForeignKeysMixin(QueuedThread):
         self.log.info(f"Created {count} {group_class.__name__}s.")
         return count
 
-    @status()
-    def bulk_group_updater(self, group_tree_counts, group_class, status_args=None):
+    @status_notify()
+    def bulk_group_updater(self, group_tree_counts, group_class, **kwargs):
         """Bulk update groups."""
         count = 0
         if not group_tree_counts:
@@ -124,8 +123,8 @@ class CreateForeignKeysMixin(QueuedThread):
         self.log.info(f"Updated {count} {group_class.__name__}s.")
         return count
 
-    @status(status=ImportStatusTypes.DIRS_MODIFIED)
-    def bulk_folders_modified(self, paths, library, status_args=None):
+    @status_notify(status_type=ImportStatusTypes.DIRS_MODIFIED.value)
+    def bulk_folders_modified(self, paths, library, **kwargs):
         """Update folders stat and nothing else."""
         count = 0
         if not paths:
@@ -147,8 +146,8 @@ class CreateForeignKeysMixin(QueuedThread):
         self.log.info(f"Modified {count} folders")
         return count
 
-    @status()
-    def bulk_folders_create(self, folder_paths, library, status_args=None):
+    @status_notify()
+    def bulk_folders_create(self, folder_paths, library, status=None):
         """Create folders breadth first."""
         count = 0
         if not folder_paths:
@@ -172,7 +171,7 @@ class CreateForeignKeysMixin(QueuedThread):
                     parent = Folder.objects.get(path=parent_path)
                 except Folder.DoesNotExist:
                     if parent_path != library.path:
-                        self.log.error(
+                        self.log.exception(
                             f"Can't find parent folder {parent_path} for {path}"
                         )
                 folder = Folder(
@@ -190,18 +189,14 @@ class CreateForeignKeysMixin(QueuedThread):
                 unique_fields=Folder._meta.unique_together[0],  # type: ignore
             )
             count += len(create_folders)
-            if status_args and status_args.total:
-                status_args.since = self.status_controller.update(
-                    status_args.status,
-                    status_args.count + count,
-                    status_args.total,
-                    since=status_args.since,
-                )
+            if status:
+                status.complete = count
+                self.status_controller.update(status)
         self.log.info(f"Created {count} Folders.")
         return count
 
-    @status()
-    def bulk_create_named_models(self, names, named_class, status_args=None):
+    @status_notify()
+    def bulk_create_named_models(self, names, named_class, **kwargs):
         """Bulk create named models."""
         count = len(names)
         if not count:
@@ -220,29 +215,26 @@ class CreateForeignKeysMixin(QueuedThread):
         self.log.info(f"Created {count} {named_class.__name__}s.")
         return count
 
-    @status()
-    def bulk_create_credits(self, create_credit_tuples, status_args=None):
-        """Bulk create credits."""
-        if not create_credit_tuples:
+    @status_notify()
+    def bulk_create_creators(self, create_creator_tuples, **kwargs):
+        """Bulk create creators."""
+        if not create_creator_tuples:
             return 0
 
-        create_credits = []
-        for role_name, person_name in create_credit_tuples:
-            if role_name:
-                role = CreditRole.objects.get(name=role_name)
-            else:
-                role = None
-            person = CreditPerson.objects.get(name=person_name)
-            credit = Credit(role=role, person=person)
+        create_creators = []
+        for role_name, person_name in create_creator_tuples:
+            role = CreatorRole.objects.get(name=role_name) if role_name else None
+            person = CreatorPerson.objects.get(name=person_name)
+            creator = Creator(role=role, person=person)
 
-            create_credits.append(credit)
+            create_creators.append(creator)
 
-        Credit.objects.bulk_create(
-            create_credits,
+        Creator.objects.bulk_create(
+            create_creators,
             update_conflicts=True,
-            update_fields=_CREDIT_UPDATE_FIELDS,
-            unique_fields=Credit._meta.unique_together[0],  # type: ignore
+            update_fields=_CREATOR_UPDATE_FIELDS,
+            unique_fields=creator._meta.unique_together[0],  # type: ignore
         )
-        count = len(create_credits)
-        self.log.info(f"Created {count} Credits.")
+        count = len(create_creators)
+        self.log.info(f"Created {count} creators.")
         return count

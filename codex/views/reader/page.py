@@ -55,7 +55,7 @@ class ReaderPageView(BookmarkBaseView):
         pk = self.kwargs.get("pk")
         comic = Comic.objects.filter(group_acl_filter).only("path").get(pk=pk)
         page = self.kwargs.get("page")
-        if comic.file_format == Comic.FileFormat.PDF:
+        if comic.file_type == Comic.FileType.PDF:
             car = PDF(comic.path)
             content_type = PDF.MIME_TYPE
         else:
@@ -70,22 +70,20 @@ class ReaderPageView(BookmarkBaseView):
             (200, PDF.MIME_TYPE): OpenApiTypes.BINARY,
         }
     )
-    def get(self, request, *args, **kwargs):
+    def get(self, *args, **kwargs):
         """Get the comic page from the archive."""
         pk = self.kwargs.get("pk")
         comic = None
         try:
             page_image, content_type = self._get_page_image()
             self._update_bookmark()
-            return HttpResponse(page_image, content_type=content_type)
         except Comic.DoesNotExist as exc:
             raise NotFound(detail=f"comic {pk} not found in db.") from exc
         except FileNotFoundError as exc:
-            if comic:
-                path = comic.path
-            else:
-                path = f"path for {pk}"
+            path = comic.path if comic else f"path for {pk}"
             raise NotFound(detail=f"comic {path} not found.") from exc
         except Exception as exc:
             LOG.warning(exc)
             raise NotFound(detail="comic page not found") from exc
+        else:
+            return HttpResponse(page_image, content_type=content_type)

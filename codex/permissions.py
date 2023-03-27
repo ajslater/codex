@@ -9,11 +9,10 @@ class HasAPIKeyOrIsAdminUser(BasePermission):
 
     def has_permission(self, request, view):
         """Test the request api key against the database."""
-        if request.method == "GET":
-            data = request.GET
-        else:
-            data = request.POST
-        key = data.get("apiKey")
-        if not key:
+        data = request.GET if request.method == "GET" else request.POST
+        api_key = data.get("apiKey")
+        if not api_key:
             return IsAdminUser().has_permission(request, view)
-        return Timestamp.objects.filter(name=Timestamp.API_KEY, version=key).exists()
+        return Timestamp.objects.filter(
+            key=Timestamp.TimestampChoices.API_KEY.value, version=api_key
+        ).exists()

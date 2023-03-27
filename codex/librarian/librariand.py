@@ -160,12 +160,10 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
                 try:
                     task = self.queue.get()
                     self._process_task(task)
-                except Exception as exc:
-                    self.log.error(f"Error in {self.__class__.__name__} loop")
-                    self.log.exception(exc)
-        except Exception as exc:
-            self.log.error(f"{self.__class__.__name__} crashed.")
-            self.log.exception(exc)
+                except Exception:
+                    self.log.exception(f"In {self.__class__.__name__} loop")
+        except Exception:
+            self.log.exception(f"{self.__class__.__name__} crashed.")
         except KeyboardInterrupt:
             self.log.debug(f"{self.__class__.__name__} Keyboard interrupt")
         finally:

@@ -20,7 +20,6 @@ export default {
       mdiOpenInNew,
       opdsURL: window.origin + window.CODEX.OPDS_PATH,
       mdiContentCopy,
-      showTool: false,
     };
   },
   computed: {

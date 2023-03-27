@@ -51,16 +51,12 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
     def opds_ns(self):
         """Dynamic opds namespace."""
         try:
-            if self.is_aq_feed:
-                ns = OpdsNs.ACQUISITION
-            else:
-                ns = OpdsNs.CATALOG
-            return ns
+            return OpdsNs.ACQUISITION if self.is_aq_feed else OpdsNs.CATALOG
         except Exception as exc:
             LOG.exception(exc)
 
     @property
-    def id(self):
+    def id_tag(self):
         """Feed id is the url."""
         try:
             return self.request.build_absolute_uri()
@@ -134,7 +130,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
         )
 
         title = " ".join(filter(None, (facet_group.title_prefix, facet_title))).strip()
-        link = OPDSLink(
+        return OPDSLink(
             Rel.FACET,
             href,
             MimeType.NAV,
@@ -142,7 +138,6 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
             facet_group=facet_group.query_param,
             facet_active=facet_active,
         )
-        return link
 
     def _facet_entry(self, item, facet_group, facet, query_params):
         name = " ".join(
@@ -167,7 +162,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
         # This logic preempts facet:activeFacet but no one uses it.
         # don't add default facets if in default mode.
         if self._is_facet_active(facet_group, facet):
-            return
+            return None
 
         group = self.kwargs.get("group")
         if (
@@ -248,10 +243,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
         """Create all the links."""
         links = []
         try:
-            if self.is_aq_feed:
-                mime_type = MimeType.ACQUISITION
-            else:
-                mime_type = MimeType.NAV
+            mime_type = MimeType.ACQUISITION if self.is_aq_feed else MimeType.NAV
             links += [
                 OPDSLink("self", self.request.get_full_path(), mime_type),
                 OPDSLink(
@@ -276,7 +268,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
         """Create a entry instead of a facet."""
         entry_obj = {
             **top_link.kwargs,
-            "name": " ".join((filter(None, (top_link.glyph, top_link.title)))),
+            "name": " ".join(filter(None, (top_link.glyph, top_link.title))),
             "query_params": top_link.query_params,
             "summary": top_link.desc,
         }
@@ -356,7 +348,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
                 break
 
     @extend_schema(request=BrowserView.input_serializer_class)
-    def get(self, request, *args, **kwargs):
+    def get(self, *args, **kwargs):
         """Get the feed."""
         self.parse_params()
         self.validate_settings()

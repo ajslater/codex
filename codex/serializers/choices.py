@@ -60,12 +60,13 @@ def _find_filename_regex(js_root, module_name):
     """Find a filename in a dir that matches the regex."""
     if not js_root.is_dir():
         LOG.warning(f"Not a directory: {js_root}")
-        return
+        return None
     matcher = _CHOICES_FN_RE[module_name][js_root]
     for path in js_root.iterdir():
         if matcher.match(path.name):
             return path
-    raise FileNotFoundError(f"Could not find {js_root} {module_name}")
+    reason = f"Could not find {js_root} {module_name}"
+    raise FileNotFoundError(reason)
 
 
 def _parse_choices(module_name):
@@ -74,14 +75,15 @@ def _parse_choices(module_name):
     for js_root in _JS_ROOTS:
         try:
             path = _find_filename_regex(js_root, module_name)
-            if path:
-                with path.open("r") as choices_file, mmap.mmap(
-                    choices_file.fileno(), 0, access=mmap.ACCESS_READ
-                ) as choices_mmap_file:
-                    json_str = choices_mmap_file.read()
-                    data_dict = json.loads(json_str)
-                    LOG.debug(f"Loaded json choices from {js_root} {module_name}")
-                    break
+            if not path:
+                continue
+            with path.open("r") as choices_file, mmap.mmap(
+                choices_file.fileno(), 0, access=mmap.ACCESS_READ
+            ) as choices_mmap_file:
+                json_str = choices_mmap_file.read()
+                data_dict = json.loads(json_str)
+                LOG.debug(f"Loaded json choices from {js_root} {module_name}")
+                break
         except Exception as exc:
             LOG.exception(exc)
     if not data_dict:
@@ -112,7 +114,7 @@ def _parse_choices_to_dict(vuetify_key, vuetify_list):
 
 def _build_choices_and_defaults(data_dict):
     """Transform the vuetify choice formatted data to key:value dicts."""
-    global DEFAULTS, VUETIFY_NULL_CODE, CHOICES
+    global VUETIFY_NULL_CODE  # noqa PLW0603
     for vuetify_key, vuetify_list in data_dict.items():
         if vuetify_key == "settingsGroup":
             DEFAULTS["show"] = _build_show_defaults(vuetify_list)
@@ -123,12 +125,13 @@ def _build_choices_and_defaults(data_dict):
         if vuetify_key in ("q", "route"):
             DEFAULTS[vuetify_key] = vuetify_list
             continue
+
         CHOICES[vuetify_key] = _parse_choices_to_dict(vuetify_key, vuetify_list)
 
 
-def _load_json():
+def _load_choices_json():
     """Load values from the vuetify formatted json into python dicts."""
-    global WEBSOCKET_MESSAGES
+    global WEBSOCKET_MESSAGES  # noqa PLW0603
     if DEFAULTS and VUETIFY_NULL_CODE and CHOICES and WEBSOCKET_MESSAGES:
         LOG.warning("choices already loaded")
         return
@@ -136,20 +139,31 @@ def _load_json():
     for key, value in data_dict.items():
         if key == "websockets":
             WEBSOCKET_MESSAGES = value
+        elif key == "fileTypes":
+            CHOICES[key] = value
         else:
             if key == "browser":
                 del value["groupNames"]
             _build_choices_and_defaults(value)
         LOG.debug(f"Parsed {key} choices")
 
-    data_dict = _parse_choices(_ADMIN_CHOICES_MODULE_NAME)
+
+def _load_admin_choices_json():
+    """Load admin json into python dicts."""
+    CHOICES["admin"] = _parse_choices(_ADMIN_CHOICES_MODULE_NAME)
     admin_tasks = set()
-    for group in data_dict["tasks"]:
+    for group in CHOICES["admin"]["tasks"]:
         for item in group["tasks"]:
             admin_tasks.add(item["value"])
-    CHOICES["admin_tasks"] = frozenset(admin_tasks)
+    CHOICES["admin"]["tasks"] = frozenset(admin_tasks)
+
+
+def main():
+    """Load both json files."""
+    _load_choices_json()
+    _load_admin_choices_json()
 
 
 if not BUILD:
     # Run if not running collectstatic
-    _load_json()
+    main()

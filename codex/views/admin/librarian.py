@@ -78,7 +78,7 @@ class AdminLibrarianTaskView(APIView):
     }
 
     @extend_schema(request=input_serializer_class)
-    def post(self, request, *args, **kwargs):
+    def post(self, *args, **kwargs):
         """Download a comic archive."""
         serializer = self.input_serializer_class(data=self.request.data)
         serializer.is_valid(raise_exception=True)
@@ -87,8 +87,9 @@ class AdminLibrarianTaskView(APIView):
         if task:
             LIBRARIAN_QUEUE.put(task)
         else:
-            LOG.warning(f"Unknown admin library task_name: {task_name}")
-            raise ValueError(f"Unknown admin library task_name: {task_name}")
+            reason = f"Unknown admin library task_name: {task_name}"
+            LOG.warning(reason)
+            raise ValueError(reason)
 
         serializer = self.serializer_class()
         return Response(serializer.data)

@@ -23,6 +23,7 @@ from codex.librarian.watchdog.dirsnapshot import (
 )
 from codex.librarian.watchdog.status import WatchdogStatusTypes
 from codex.models import Library
+from codex.status import Status
 from codex.worker_base import WorkerBaseMixin
 
 _DOCKER_UNMOUNTED_FN = "DOCKER_UNMOUNTED_VOLUME"
@@ -33,8 +34,13 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
 
     _DIR_NOT_FOUND_TIMEOUT = 15 * 60
 
-    def __init__(
-        self, event_queue, watch, timeout=None, log_queue=None, librarian_queue=None
+    def __init__(  # noqa PLR0913
+        self,
+        event_queue,
+        watch,
+        timeout=None,  # noqa ARG002
+        log_queue=None,
+        librarian_queue=None,
     ):
         """Initialize snapshot methods."""
         self.init_worker(log_queue, librarian_queue)
@@ -59,7 +65,10 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
     def _take_db_snapshot(self):
         """Get a database snapshot with optional force argument."""
         db_snapshot = CodexDatabaseSnapshot(
-            self.watch.path, self.watch.is_recursive, force=self._force
+            self.watch.path,
+            self.watch.is_recursive,
+            force=self._force,
+            log_queue=self.log_queue,
         )
         self._force = False
         return db_snapshot
@@ -102,7 +111,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
             if ok is None:
                 self.log.info(f"Library {self._watch_path} waiting for manual poll.")
                 return None
-            elif ok is False:
+            if ok is False:
                 return self._DIR_NOT_FOUND_TIMEOUT
 
             if library.last_poll:
@@ -112,10 +121,9 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
                     library.poll_every.total_seconds()
                     - since_last_poll.total_seconds(),
                 )
-        except Exception as exc:
+        except Exception:
             timeout = None
-            self.log.error(f"Getting timeout for {self.watch.path}")
-            self.log.exception(exc)
+            self.log.exception(f"Getting timeout for {self.watch.path}")
         return timeout
 
     def _is_take_snapshot(self, timeout):
@@ -128,13 +136,13 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
             self._poll_cond.wait(timeout)
 
         if not self.should_keep_running():
-            return
+            return None
 
         library = Library.objects.get(path=self.watch.path)
         ok = self._is_watch_path_ok(library)
         if ok is False:
             self.log.warning("Not Polling.")
-            return
+            return None
         return library
 
     def _get_diff(self):
@@ -148,7 +156,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
             # Maybe overkill of caution here also
             self.log.warning(f"{self._watch_path} dir snapshot is empty. Not polling")
             self.log.debug(f"{dir_snapshot.paths=}")
-            return
+            return None
 
         # Ignore device for docker and other complex filesystems
         return CodexDirectorySnapshotDiff(
@@ -193,12 +201,12 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
         """Queue events like PollingEmitter but always use a fresh db snapshot."""
         # We don't want to hit the disk continuously.
         # timeout behaves like an interval for polling emitters.
+        library = self._is_take_snapshot(timeout)
+        if not library:
+            return
+        status = Status(WatchdogStatusTypes.POLL.value, subtitle=self.watch.path)
         try:
-            library = self._is_take_snapshot(timeout)
-            if not library:
-                return
-
-            self.status_controller.start(WatchdogStatusTypes.POLL, name=self.watch.path)
+            self.status_controller.start(status)
             self.log.debug(f"Polling {self.watch.path}...")
             diff = self._get_diff()
             if not diff:
@@ -210,11 +218,11 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
             library.save()
 
             self.log.info(f"Polled {self.watch.path}")
-        except Exception as exc:
-            self.log.exception(exc)
-            raise exc
+        except Exception:
+            self.log.exception("poll for watchdog events and queue them")
+            raise
         finally:
-            self.status_controller.finish(WatchdogStatusTypes.POLL)
+            self.status_controller.finish(status)
 
     def on_thread_stop(self):
         """Send the poller as well."""

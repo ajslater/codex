@@ -63,7 +63,7 @@ export const useBrowserStore = defineStore("browser", {
     page: {
       adminFlags: {
         // determined by api
-        enableFolderView: undefined,
+        folderView: undefined,
       },
       browserTitle: {
         parentName: undefined,
@@ -107,7 +107,7 @@ export const useBrowserStore = defineStore("browser", {
       const choices = [];
       for (const item of CHOICES.browser.orderBy) {
         if (item.value === "path") {
-          if (state.page.adminFlags.enableFolderView) {
+          if (state.page.adminFlags.folderView) {
             choices.push(item);
           }
         } else {
@@ -159,7 +159,7 @@ export const useBrowserStore = defineStore("browser", {
     // VALIDATORS
     _isRootGroupEnabled(topGroup) {
       return topGroup === "c" || topGroup === "f"
-        ? this.page.adminFlags.enableFolderView
+        ? this.page.adminFlags.folderView
         : this.settings.show[topGroup];
     },
     _validateFirstSearch(data) {

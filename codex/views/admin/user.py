@@ -43,7 +43,8 @@ class AdminUserViewSet(ModelViewSet):
         """Destroy with guard for logged in user."""
         instance = self.get_object()
         if instance == request.user:
-            raise ValueError("Cannot delete logged in user.")
+            reason = "Cannot delete logged in user."
+            raise ValueError(reason)
         return super().destroy(request, *args, **kwargs)
 
     def perform_update(self, serializer):
@@ -53,8 +54,7 @@ class AdminUserViewSet(ModelViewSet):
 
     def get_queryset(self):
         """Annotate last active."""
-        qs = self.queryset.annotate(last_active=F("useractive__updated_at"))
-        return qs
+        return self.queryset.annotate(last_active=F("useractive__updated_at"))
 
 
 class AdminUserChangePasswordView(GenericAPIView):

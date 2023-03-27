@@ -1,4 +1,5 @@
 #!/bin/bash
+# Run dev codex inside docker.
 set -euxo pipefail
 # DEBUG mode in django caches every query and so isn't good 
 # for benchmarking memory intese query opterations

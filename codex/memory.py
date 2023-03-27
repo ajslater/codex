@@ -16,8 +16,8 @@ def get_mem_limit(divisor="b"):
     If we're in an alpine container set the limit too.
     """
     mem_limit = 0
-    for path in LINUX_MEMORY_LIMIT_PATHS:
-        path = Path(path)
+    for path_str in LINUX_MEMORY_LIMIT_PATHS:
+        path = Path(path_str)
         try:
             if path.is_file():
                 with path.open("r") as limit:

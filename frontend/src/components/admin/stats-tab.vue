@@ -83,13 +83,29 @@
               {{ nf(stats.groups.comicCount) }}
             </td>
           </tr>
-          <tr>
-            <td class="indent">Comics</td>
-            <td>{{ nf(stats.groups.comicArchiveCount) }}</td>
+          <tr v-if="stats.fileTypes.cbzCount">
+            <td class="indent">CBZ</td>
+            <td>{{ nf(stats.fileTypes.cbzCount) }}</td>
           </tr>
-          <tr>
-            <td class="indent">PDFs</td>
-            <td>{{ nf(stats.groups.pdfCount) }}</td>
+          <tr v-if="stats.fileTypes.cbrCount">
+            <td class="indent">CBR</td>
+            <td>{{ nf(stats.fileTypes.cbrCount) }}</td>
+          </tr>
+          <tr v-if="stats.fileTypes.cbxCount">
+            <td class="indent">CBX</td>
+            <td>{{ nf(stats.fileTypes.cbxCount) }}</td>
+          </tr>
+          <tr v-if="stats.fileTypes.cbtCount">
+            <td class="indent">CBT</td>
+            <td>{{ nf(stats.fileTypes.cbtCount) }}</td>
+          </tr>
+          <tr v-if="stats.fileTypes.pdfCount">
+            <td class="indent">PDF</td>
+            <td>{{ nf(stats.fileTypes.pdfCount) }}</td>
+          </tr>
+          <tr v-if="stats.fileTypes.unknownCount">
+            <td class="indent">Unknown</td>
+            <td>{{ nf(stats.fileTypes.unknownCount) }}</td>
           </tr>
         </tbody>
       </v-table>
@@ -127,16 +143,16 @@
             <td>{{ nf(stats.metadata.teamCount) }}</td>
           </tr>
           <tr>
-            <td>Credits</td>
-            <td>{{ nf(stats.metadata.creditCount) }}</td>
+            <td>Creators</td>
+            <td>{{ nf(stats.metadata.creatorCount) }}</td>
           </tr>
           <tr>
             <td class="indent">Roles</td>
-            <td>{{ nf(stats.metadata.creditRoleCount) }}</td>
+            <td>{{ nf(stats.metadata.creatorRoleCount) }}</td>
           </tr>
           <tr>
             <td class="indent">Creators</td>
-            <td>{{ nf(stats.metadata.creditPersonCount) }}</td>
+            <td>{{ nf(stats.metadata.creatorPersonCount) }}</td>
           </tr>
         </tbody>
       </v-table>
@@ -212,7 +228,7 @@ export default {
       stats: (state) => state.stats,
     }),
     clipBoardIcon() {
-      return this.showTool ? mdiClipboardCheckOutline : mdiClipboardOutline;
+      return this.showTooltip ? mdiClipboardCheckOutline : mdiClipboardOutline;
     },
   },
   created() {

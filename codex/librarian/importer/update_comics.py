@@ -4,7 +4,7 @@ from django.db.models.functions import Now
 
 from codex.librarian.covers.tasks import CoverRemoveTask
 from codex.librarian.importer.link_comics import LinkComicsMixin
-from codex.librarian.importer.status import ImportStatusTypes, status
+from codex.librarian.importer.status import ImportStatusTypes, status_notify
 from codex.models import (
     Comic,
     Timestamp,
@@ -27,15 +27,8 @@ for field in Comic._meta.get_fields():
 class UpdateComicsMixin(LinkComicsMixin):
     """Create comics methods."""
 
-    @status(status=ImportStatusTypes.FILES_MODIFIED, updates=False)
-    def bulk_update_comics(
-        self,
-        comic_paths,
-        library,
-        create_paths,
-        mds,
-        status_args=None,
-    ):
+    @status_notify(status_type=ImportStatusTypes.FILES_MODIFIED.value, updates=False)
+    def bulk_update_comics(self, comic_paths, library, create_paths, mds, **kwargs):
         """Bulk update comics, and move nonextant comics into create job.."""
         count = 0
         if not comic_paths:
@@ -66,9 +59,8 @@ class UpdateComicsMixin(LinkComicsMixin):
                 update_comics.append(comic)
                 comic_pks.append(comic.pk)
                 comic_update_paths.add(comic.path)
-            except Exception as exc:
-                self.log.error(f"Error preparing {comic} for update.")
-                self.log.exception(exc)
+            except Exception:
+                self.log.exception(f"Error preparing {comic} for update.")
 
         converted_create_paths = frozenset(set(comic_paths) - comic_update_paths)
         create_paths.update(converted_create_paths)
@@ -79,15 +71,14 @@ class UpdateComicsMixin(LinkComicsMixin):
         self.log.debug(f"Bulk updating {len(update_comics)} comics.")
         try:
             Comic.objects.bulk_update(update_comics, BULK_UPDATE_COMIC_FIELDS)
-            Timestamp.touch(Timestamp.COVERS)
+            Timestamp.touch(Timestamp.TimestampChoices.COVERS)
             count = len(update_comics)
 
             task = CoverRemoveTask(frozenset(comic_pks))
             self.log.debug(f"Purging covers for {len(comic_pks)} updated comics.")
             self.librarian_queue.put(task)
             self.log.info(f"Updated {count} comics.")
-        except Exception as exc:
-            self.log.error(exc)
-            self.log.error("While updating", comic_update_paths)
+        except Exception:
+            self.log.exception(f"While updating {comic_update_paths}")
 
         return count

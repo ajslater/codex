@@ -18,7 +18,7 @@ class WEBPRenderer(BaseRenderer):
     """Render WEBP images."""
 
     media_type = "image/webp"
-    format = "webp"
+    format = "webp"  # noqa A003
     charset = None
     render_style = "binary"
 
@@ -34,7 +34,7 @@ class CoverView(APIView, GroupACLMixin):
     content_type = "image/webp"
 
     @extend_schema(responses={(200, content_type): OpenApiTypes.BINARY})
-    def get(self, request, *args, **kwargs):
+    def get(self, *args, **kwargs):
         """Get comic cover."""
         # thumb_image_data = None
         pk = self.kwargs.get("pk")

@@ -5,6 +5,7 @@ but the built-in filesystem event emitters serialize them, so the most
 consistent thing is for the DBEmitter to serialize them in the same way
 and then re-serialize everything in this batcher and the event Handler
 """
+from contextlib import suppress
 from copy import deepcopy
 
 from watchdog.events import EVENT_TYPE_MOVED
@@ -49,14 +50,10 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         """Translate event class names into field names."""
         self._ensure_library_args(library_id)
 
-        if event.is_directory:
-            prefix = "dir"
-        else:
-            prefix = "file"
+        prefix = "dir" if event.is_directory else "file"
         field = f"{prefix}s_{event.event_type}"
 
-        args_field = self.cache[library_id].get(field)
-        return args_field
+        return self.cache[library_id].get(field)
 
     def aggregate_items(self, task):
         """Aggregate events into cache by library."""
@@ -84,15 +81,11 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
 
         # deleted
         for src_path in args["dirs_deleted"]:
-            try:
+            with suppress(KeyError):
                 del args["dirs_moved"][src_path]
-            except KeyError:
-                pass
         for src_path in args["files_deleted"]:
-            try:
+            with suppress(KeyError):
                 del args["files_moved"][src_path]
-            except KeyError:
-                pass
         # created
         args["files_created"] -= args["files_deleted"]
         files_dest_paths = set(args["files_moved"].values())
@@ -113,7 +106,7 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
     def send_all_items(self):
         """Send all tasks to library queue and reset events cache."""
         library_ids = set()
-        for library_id in self.cache.keys():
+        for library_id in self.cache:
             task = self._create_task(library_id)
             self.librarian_queue.put(task)
             library_ids.add(library_id)

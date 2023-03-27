@@ -12,11 +12,14 @@
         <h4>Librarian Tasks</h4>
         <v-expand-transition
           v-for="status of librarianStatuses"
-          :key="`${status.type} ${status.name}`"
+          :key="status.statusType"
         >
           <div nav class="statusItem">
             <div class="statusItemTitle">
-              {{ status.type }} {{ status.name }}
+              {{ title(status) }}
+              <span v-if="status.subtitle" class="statusItemSubtitle"
+                >({{ status.subtitle }})</span
+              >
               <span
                 v-if="
                   Number.isInteger(status.complete) ||
@@ -52,6 +55,7 @@ import { mdiCloseCircleOutline } from "@mdi/js";
 import { numberFormat } from "humanize";
 import { mapActions, mapState } from "pinia";
 
+import { statusTitles } from "@/choices-admin.json";
 import CloseButton from "@/components/close-button.vue";
 import { useAdminStore } from "@/stores/admin";
 
@@ -90,6 +94,9 @@ export default {
     },
     clear() {
       this.librarianTask("librarian_clear_status", "");
+    },
+    title(status) {
+      return statusTitles[status.statusType];
     },
     nf(val) {
       return Number.isInteger(val) ? numberFormat(val, 0) : "?";

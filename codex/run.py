@@ -41,7 +41,7 @@ def restart():
     """Restart this process."""
     from sys import argv
 
-    print("Restarting Codex. Hold on to your butts...", flush=True)
+    print("Restarting Codex. Hold on to your butts...", flush=True)  # noqa: T201
     execv(__file__, argv)  # nosec
 
 

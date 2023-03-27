@@ -1,5 +1,6 @@
 """Start and stop daemons."""
 import asyncio
+from contextlib import suppress
 
 from codex.logger_base import LoggerBaseMixin
 from codex.signals.os_signals import bind_signals_to_loop
@@ -25,10 +26,10 @@ class LifespanApplication(LoggerBaseMixin):
             await func()
             await send({"type": f"lifespan.{event}.complete"})
             self.log.debug(f"Lifespan {event} complete.")
-        except Exception as exc:
+        except Exception:
             await send({"type": f"lifespan.{event}.failed"})
-            self.log.error(f"Lifespan {event} failed.")
-            raise exc
+            self.log.exception(f"Lifespan {event} failed.")
+            raise
 
     async def _startup(self):
         """Startup tasks."""
@@ -39,7 +40,9 @@ class LifespanApplication(LoggerBaseMixin):
 
     async def _shutdown(self):
         """Shutdown tasks."""
-        self.broadcast_queue.put(None)
+        with suppress(ValueError):
+            # Depending on timing this can be closed already
+            self.broadcast_queue.put(None)
         await self.broadcast_listener_task
 
     async def __call__(self, scope, receive, send):
@@ -55,6 +58,6 @@ class LifespanApplication(LoggerBaseMixin):
                 elif message["type"] == "lifespan.shutdown":
                     await self._event("shutdown", send)
                     break
-            except Exception as exc:
-                self.log.exception(exc)
+            except Exception:
+                self.log.exception("Lifespan application")
         self.log.debug("Lifespan application stopped.")

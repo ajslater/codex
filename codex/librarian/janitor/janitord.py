@@ -20,6 +20,7 @@ from codex.librarian.janitor.tasks import (
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexMergeTask, SearchIndexUpdateTask
 from codex.models import AdminFlag, Timestamp
+from codex.status import Status
 from codex.threads import NamedThread
 
 _ONE_DAY = timedelta(days=1)
@@ -34,14 +35,15 @@ class JanitorThread(NamedThread):
         if tomorrow:
             now += _ONE_DAY
         day = now.astimezone()
-        midnight = datetime.combine(day, time.min).astimezone()
-        return midnight
+        return datetime.combine(day, time.min).astimezone()
 
     @classmethod
     def _get_timeout(cls):
         """Get seconds until midnight."""
         now = django_timezone.now()
-        last_cron = Timestamp.objects.get(name=Timestamp.JANITOR).updated_at
+        last_cron = Timestamp.objects.get(
+            key=Timestamp.TimestampChoices.JANITOR.value
+        ).updated_at
 
         if now - last_cron < _ONE_DAY:
             # wait until next midnight
@@ -61,21 +63,18 @@ class JanitorThread(NamedThread):
         super().__init__(*args, name=self.__class__.__name__, daemon=True, **kwargs)
 
     def _init_librarian_status(self):
-        types_map = {
-            JanitorStatusTypes.CLEANUP_FK: {
-                "complete": 0,
-                "total": TOTAL_NUM_FK_CLASSES,
-            },
-            JanitorStatusTypes.CLEANUP_SESSIONS: {},
-            JanitorStatusTypes.DB_VACUUM: {},
-            JanitorStatusTypes.DB_BACKUP: {},
-            JanitorStatusTypes.CODEX_UPDATE: {},
-            SearchIndexStatusTypes.SEARCH_INDEX_UPDATE: {},
-            SearchIndexStatusTypes.SEARCH_INDEX_REMOVE: {},
-            SearchIndexStatusTypes.SEARCH_INDEX_MERGE: {},
-            CoverStatusTypes.FIND_ORPHAN: {},
-        }
-        self.status_controller.start_many(types_map)
+        status_list = (
+            Status(JanitorStatusTypes.CLEANUP_FK.value, 0, TOTAL_NUM_FK_CLASSES),
+            Status(JanitorStatusTypes.CLEANUP_SESSIONS.value),
+            Status(JanitorStatusTypes.DB_OPTIMIZE.value),
+            Status(JanitorStatusTypes.DB_BACKUP.value),
+            Status(JanitorStatusTypes.CODEX_UPDATE.value),
+            Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE.value),
+            Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value),
+            Status(SearchIndexStatusTypes.SEARCH_INDEX_MERGE.value),
+            Status(CoverStatusTypes.FIND_ORPHAN.value),
+        )
+        self.status_controller.start_many(status_list)
 
     def run(self):
         """Watch a path and log the events."""
@@ -92,7 +91,7 @@ class JanitorThread(NamedThread):
                         break
 
                     optimize = AdminFlag.objects.get(
-                        name=AdminFlag.ENABLE_SEARCH_INDEX_OPTIMIZE
+                        key=AdminFlag.FlagChoices.SEARCH_INDEX_OPTIMIZE.value
                     ).on
 
                     self._init_librarian_status()
@@ -109,14 +108,12 @@ class JanitorThread(NamedThread):
                         ]
                         for task in tasks:
                             self.librarian_queue.put(task)
-                    except Exception as exc:
-                        self.log.error(f"Error in {self.__class__.__name__}")
-                        self.log.exception(exc)
-                    Timestamp.touch(Timestamp.JANITOR)
+                    except Exception:
+                        self.log.exception(f"In {self.__class__.__name__}")
+                    Timestamp.touch(Timestamp.TimestampChoices.JANITOR)
                     sleep(2)
-        except Exception as exc:
-            self.log.error(f"Error in {self.__class__.__name__}")
-            self.log.exception(exc)
+        except Exception:
+            self.log.exception(f"In {self.__class__.__name__}")
         self.log.debug(f"Stopped {self.__class__.__name__}.")
 
     def stop(self):

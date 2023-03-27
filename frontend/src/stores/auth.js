@@ -6,15 +6,15 @@ import { useCommonStore } from "@/stores/common";
 export const useAuthStore = defineStore("auth", {
   state: () => ({
     adminFlags: {
-      enableRegistration: undefined,
-      enableNonUsers: undefined,
+      registration: undefined,
+      nonUsers: undefined,
     },
     user: undefined,
     MIN_PASSWORD_LENGTH: 4,
   }),
   getters: {
     isCodexViewable() {
-      return Boolean(this.user || this.adminFlags.enableNonUsers);
+      return Boolean(this.user || this.adminFlags.nonUsers);
     },
     isUserAdmin() {
       return this.user && (this.user.isStaff || this.user.isSuperuser);

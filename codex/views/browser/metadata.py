@@ -30,7 +30,7 @@ class MetadataView(BrowserAnnotationsView):
         "country",
         "critical_rating",
         "day",
-        "file_format",
+        "file_type",
         "format",
         "issue",
         "issue_suffix",
@@ -71,7 +71,7 @@ class MetadataView(BrowserAnnotationsView):
         "series": ("issue_count", "fk_volume_issue_count"),
     }
     _PATH_GROUPS = ("c", "f")
-    _CREDIT_RELATIONS = ("role", "person")
+    _CREATOR_RELATIONS = ("role", "person")
 
     def _get_comic_value_fields(self):
         """Include the path field for staff."""
@@ -83,22 +83,19 @@ class MetadataView(BrowserAnnotationsView):
 
     def _intersection_annotate(
         self,
-        simple_qs,
-        qs,
+        querysets,
         fields,
         related_suffix="",
         annotation_prefix="",
     ):
         """Annotate the intersection of value and fk fields."""
+        (simple_qs, qs) = querysets
         for field in fields:
             # Annotate variant counts
             # Have to use simple_qs because every annotation in the loop
             # corrupts the the main qs
             # If 1 variant, annotate value, otherwise None
-            if self.is_model_comic:
-                full_field = field
-            else:
-                full_field = "comic__" + field
+            full_field = field if self.is_model_comic else "comic__" + field
 
             sq = (
                 simple_qs.values("id")
@@ -114,10 +111,7 @@ class MetadataView(BrowserAnnotationsView):
             # which leads to multiple query results instead of null or one result.
             # The query only version of this from 0.9.14 worked in most cases, but
             # fractured on the language tag for some reason.
-            if len(sq) != 1:
-                val = Value(None, IntegerField())
-            else:
-                val = Subquery(sq)
+            val = Value(None, IntegerField()) if len(sq) != 1 else Subquery(sq)
 
             ann_field = (annotation_prefix + field).replace("__", "_")
             qs = qs.annotate(**{ann_field: val})
@@ -156,14 +150,14 @@ class MetadataView(BrowserAnnotationsView):
     def _annotate_values_and_fks(self, qs, simple_qs):
         """Annotate comic values and comic foreign key values."""
         # Simple Values
+        querysets = (simple_qs, qs)
         if not self.is_model_comic:
             comic_value_fields = self._get_comic_value_fields()
-            qs = self._intersection_annotate(simple_qs, qs, comic_value_fields)
+            qs = self._intersection_annotate(querysets, comic_value_fields)
 
             # Conflicting Simple Values
             qs = self._intersection_annotate(
-                simple_qs,
-                qs,
+                querysets,
                 self._COMIC_VALUE_FIELDS_CONFLICTING,
                 annotation_prefix=self._COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
             )
@@ -173,8 +167,7 @@ class MetadataView(BrowserAnnotationsView):
         # Foreign Keys
         fk_fields = copy(self._COMIC_FK_FIELDS_MAP[self.group])
         qs = self._intersection_annotate(
-            simple_qs,
-            qs,
+            querysets,
             fk_fields,
             related_suffix="__name",
             annotation_prefix=self._COMIC_FK_ANNOTATION_PREFIX,
@@ -182,8 +175,7 @@ class MetadataView(BrowserAnnotationsView):
 
         # Foreign Keys with special count values
         qs = self._intersection_annotate(
-            simple_qs,
-            qs,
+            querysets,
             self._COMIC_RELATED_VALUE_FIELDS,
             annotation_prefix=self._COMIC_FK_ANNOTATION_PREFIX,
         )
@@ -193,22 +185,20 @@ class MetadataView(BrowserAnnotationsView):
         """Query the through models to figure out m2m intersections."""
         # Speed ok, but still does a query per m2m model
         m2m_intersections = {}
-        if self.is_model_comic:
-            pk_field = "pk"
-        else:
-            pk_field = "comic__pk"
+        pk_field = "pk" if self.is_model_comic else "comic__pk"
         comic_pks = simple_qs.values_list(pk_field, flat=True)
         for field_name in COMIC_M2M_FIELD_NAMES:
             model = Comic._meta.get_field(field_name).related_model
             if not model:
-                raise ValueError(f"No model found for comic field: {field_name}")
+                reason = f"No model found for comic field: {field_name}"
+                raise ValueError(reason)
 
             intersection_qs = model.objects.filter(comic__pk__in=comic_pks)
-            if field_name == "credits":
+            if field_name == "creator":
                 intersection_qs = intersection_qs.select_related(
-                    *self._CREDIT_RELATIONS
+                    *self._CREATOR_RELATIONS
                 )
-                values = self._CREDIT_RELATIONS
+                values = self._CREATOR_RELATIONS
             else:
                 values = ("name",)
 
@@ -225,7 +215,8 @@ class MetadataView(BrowserAnnotationsView):
     def _copy_annotations_into_comic_fields(self, obj, m2m_intersections):
         """Copy a bunch of values that i couldn't fit cleanly in the main queryset."""
         if self.model is None:
-            raise ValueError(f"Cannot get metadata for {self.group=}")
+            reason = f"Cannot get metadata for {self.group=}"
+            raise ValueError(reason)
         group_field = self.model.__name__.lower()
         obj[group_field] = {"name": obj["name"]}
         comic_fk_fields = copy(self._COMIC_FK_FIELDS_MAP[self.group])
@@ -288,8 +279,9 @@ class MetadataView(BrowserAnnotationsView):
         try:
             obj = qs.values()[0]
             if not obj:
-                raise IndexError("Empty obj")
-        except IndexError as exc:
+                reason = "Empty obj"
+                raise ValueError(reason)  # noqa TRY301
+        except (IndexError, ValueError) as exc:
             raise NotFound(
                 detail=f"Filtered metadata for {self.group}/{pk} not found"
             ) from exc
@@ -300,7 +292,9 @@ class MetadataView(BrowserAnnotationsView):
     def _is_enabled_folder_view(self):
         if self._efv_flag is None:
             self._efv_flag = (
-                AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_FOLDER_VIEW).on
+                AdminFlag.objects.only("on")
+                .get(key=AdminFlag.FlagChoices.FOLDER_VIEW.value)
+                .on
             )
         return self._efv_flag
 
@@ -311,7 +305,7 @@ class MetadataView(BrowserAnnotationsView):
         self.is_model_comic = self.group == self.COMIC_GROUP
 
     @extend_schema(request=BrowserAnnotationsView.input_serializer_class)
-    def get(self, _request, *args, **kwargs):
+    def get(self, *args, **kwargs):
         """Get metadata for a filtered browse group."""
         # Init
         self._efv_flag = None

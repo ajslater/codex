@@ -1,6 +1,6 @@
 """Bulk update and create comic objects and bulk update m2m fields."""
 from codex.librarian.importer.link_comics import LinkComicsMixin
-from codex.librarian.importer.status import ImportStatusTypes, status
+from codex.librarian.importer.status import ImportStatusTypes, status_notify
 from codex.librarian.importer.update_comics import BULK_UPDATE_COMIC_FIELDS
 from codex.models import (
     Comic,
@@ -10,8 +10,8 @@ from codex.models import (
 class CreateComicsMixin(LinkComicsMixin):
     """Create comics methods."""
 
-    @status(status=ImportStatusTypes.FILES_CREATED, updates=False)
-    def bulk_create_comics(self, comic_paths, library, mds, status_args=None):
+    @status_notify(status_type=ImportStatusTypes.FILES_CREATED.value, updates=False)
+    def bulk_create_comics(self, comic_paths, library, mds, **kwargs):
         """Bulk create comics."""
         if not comic_paths:
             return 0
@@ -32,9 +32,8 @@ class CreateComicsMixin(LinkComicsMixin):
                 create_comics.append(comic)
             except KeyError:
                 self.log.warning(f"No comic metadata for {path}")
-            except Exception as exc:
-                self.log.error(f"Error preparing {path} for create.")
-                self.log.exception(exc)
+            except Exception:
+                self.log.exception(f"Error preparing {path} for create.")
 
         self.log.debug(f"Bulk creating {num_comics} comics...")
         count = 0
@@ -47,8 +46,7 @@ class CreateComicsMixin(LinkComicsMixin):
             )
             count = len(create_comics)
             self.log.info(f"Created {count} comics.")
-        except Exception as exc:
-            self.log.error(exc)
-            self.log.error("While creating", comic_paths)
+        except Exception:
+            self.log.exception(f"While creating {comic_paths}")
 
         return count

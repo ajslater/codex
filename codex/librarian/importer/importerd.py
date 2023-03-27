@@ -14,6 +14,7 @@ from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexUpdateTask
 from codex.librarian.tasks import DelayedTasks
 from codex.models import Library
+from codex.status import Status
 
 _WRITE_WAIT_EXPIRY = 60
 
@@ -101,66 +102,71 @@ class ComicImporterThread(ApplyDBOpsMixin):
             self.log.debug("  " + log)
 
     @staticmethod
-    def _init_if_modified_or_created(task, path, types_map):
+    def _init_if_modified_or_created(task, path, status_list):
         """Initialize librarian statuses for modified or created ops."""
         total_paths = len(task.files_modified) + len(task.files_created)
-        types_map[ImportStatusTypes.AGGREGATE_TAGS] = {
-            "complete": 0,
-            "total": total_paths,
-            "name": path,
-        }
-        types_map[ImportStatusTypes.QUERY_MISSING_FKS] = {}
-        types_map[ImportStatusTypes.CREATE_FKS] = {}
+        status_list += [
+            Status(
+                ImportStatusTypes.AGGREGATE_TAGS.value, 0, total_paths, subtitle=path
+            ),
+            Status(ImportStatusTypes.QUERY_MISSING_FKS.value),
+            Status(ImportStatusTypes.CREATE_FKS.value),
+        ]
         if task.files_modified:
-            types_map[ImportStatusTypes.FILES_MODIFIED] = {
-                "complete": 0,
-                "total": len(task.files_modified),
-            }
+            status_list += [
+                Status(
+                    ImportStatusTypes.FILES_MODIFIED.value, 0, len(task.files_modified)
+                )
+            ]
         if task.files_created:
-            types_map[ImportStatusTypes.FILES_CREATED] = {
-                "complete": 0,
-                "total": len(task.files_created),
-            }
+            status_list += [
+                Status(
+                    ImportStatusTypes.FILES_CREATED.value, 0, len(task.files_created)
+                )
+            ]
         if task.files_modified or task.files_created:
-            types_map[ImportStatusTypes.LINK_M2M_FIELDS] = {}
+            status_list += [Status(ImportStatusTypes.LINK_M2M_FIELDS.value)]
         return total_paths
 
     def _init_librarian_status(self, task, path):
         """Update the librarian status tasks."""
-        types_map = {}
+        status_list = []
         search_index_updates = 0
         if task.dirs_moved:
-            types_map[ImportStatusTypes.DIRS_MOVED] = {
-                "complete": 0,
-                "total": len(task.dirs_moved),
-            }
+            status_list += [
+                Status(ImportStatusTypes.DIRS_MOVED.value, 0, len(task.dirs_moved))
+            ]
         if task.files_moved:
-            types_map[ImportStatusTypes.FILES_MOVED] = {
-                "complete": 0,
-                "total": len(task.files_moved),
-            }
+            status_list += [
+                Status(ImportStatusTypes.FILES_MOVED.value, 0, len(task.files_moved))
+            ]
             search_index_updates += len(task.files_moved)
         if task.files_modified:
-            types_map[ImportStatusTypes.DIRS_MODIFIED] = {
-                "complete": 0,
-                "total": len(task.dirs_modified),
-            }
+            status_list += [
+                Status(
+                    ImportStatusTypes.DIRS_MODIFIED.value, 0, len(task.dirs_modified)
+                )
+            ]
         if task.files_modified or task.files_created:
             search_index_updates += self._init_if_modified_or_created(
-                task, path, types_map
+                task, path, status_list
             )
         if task.files_deleted:
-            types_map[ImportStatusTypes.FILES_DELETED] = {
-                "complete": 0,
-                "total": len(task.files_deleted),
-            }
+            status_list += [
+                Status(
+                    ImportStatusTypes.FILES_DELETED.value, 0, len(task.files_deleted)
+                )
+            ]
             search_index_updates += len(task.files_deleted)
-        types_map[SearchIndexStatusTypes.SEARCH_INDEX_UPDATE] = {
-            "complete": 0,
-            "total": search_index_updates,
-        }
-        types_map[SearchIndexStatusTypes.SEARCH_INDEX_REMOVE] = {}
-        self.status_controller.start_many(types_map)
+        status_list += [
+            Status(
+                SearchIndexStatusTypes.SEARCH_INDEX_UPDATE.value,
+                0,
+                search_index_updates,
+            ),
+            Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value),
+        ]
+        self.status_controller.start_many(status_list)
 
     def _init_apply(self, library, task):
         """Initialize the library and status flags."""
@@ -181,13 +187,12 @@ class ComicImporterThread(ApplyDBOpsMixin):
         """Finish all librarian statuses."""
         library.update_in_progress = False
         library.save()
-        self.status_controller.finish_many(ImportStatusTypes.values())
+        self.status_controller.finish_many(ImportStatusTypes.values)
 
-    def _finish_apply(
-        self, library, changed, start_time, imported_count, new_failed_imports
-    ):
+    def _finish_apply(self, changed, new_failed_imports, changed_args):
         """Perform final tasks when the apply is done."""
         if changed:
+            library, start_time, imported_count = changed_args
             self.librarian_queue.put(LIBRARY_CHANGED_TASK)
             elapsed_time = time() - start_time
             elapsed = naturaldelta(elapsed_time)
@@ -195,7 +200,7 @@ class ComicImporterThread(ApplyDBOpsMixin):
             if imported_count:
                 cps = round(imported_count / elapsed_time, 1)
                 log_txt += (
-                    f" Imported {imported_count} comics" f" at {cps} comics per second."
+                    f" Imported {imported_count} comics at {cps} comics per second."
                 )
             else:
                 log_txt += " No comics to import."
@@ -227,19 +232,28 @@ class ComicImporterThread(ApplyDBOpsMixin):
             m2m_mds = {}
             fks = {}
             fis = {}
+            all_metadata = {
+                "mds": mds,
+                "m2m_mds": m2m_mds,
+                "fks": fks,
+                "fis": fis,
+            }
             self.read_metadata(
-                library.path, modified_paths | created_paths, mds, m2m_mds, fks, fis
+                library.path, modified_paths | created_paths, all_metadata
             )
             modified_paths -= fis.keys()
             created_paths -= fis.keys()
 
             changed += self.create_comic_relations(library, fks)
 
+            simple_metadata = {"mds": mds, "m2m_mds": m2m_mds}
             imported_count = self.update_create_and_link_comics(
-                library, modified_paths, created_paths, mds, m2m_mds
+                library, modified_paths, created_paths, simple_metadata
             )
             changed += imported_count
-            modified_paths = created_paths = mds = m2m_mds = None
+            all_metadata = (
+                simple_metadata
+            ) = modified_paths = created_paths = mds = m2m_mds = fks = None
 
             new_failed_imports = self.fail_imports(library, fis)
 
@@ -248,9 +262,8 @@ class ComicImporterThread(ApplyDBOpsMixin):
         finally:
             self._finish_apply_status(library)
 
-        self._finish_apply(
-            library, changed, start_time, imported_count, new_failed_imports
-        )
+        changed_args = (library, start_time, imported_count)
+        self._finish_apply(changed, new_failed_imports, changed_args)
 
     def process_item(self, task):
         """Run the updater."""

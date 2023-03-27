@@ -12,6 +12,7 @@ from codex.logger.logging import get_logger
 from codex.logger.mp_queue import LOG_QUEUE
 from codex.models import AdminFlag, LibrarianStatus, Library, Timestamp
 from codex.registration import patch_registration_setting
+from codex.serializers.choices import CHOICES
 from codex.settings.settings import (
     BACKUP_DB_PATH,
     HYPERCORN_CONFIG,
@@ -28,7 +29,8 @@ def backup_db_before_migration():
     suffix = f".before-v{VERSION}{BACKUP_DB_PATH.suffix}"
     backup_path = BACKUP_DB_PATH.with_suffix(suffix)
     janitor = Janitor(LOG_QUEUE, LIBRARIAN_QUEUE)
-    janitor.backup_db(backup_path)
+    janitor.backup_db(backup_path, show_status=False)
+    LOG.info("Backed up database before migrations")
 
 
 def ensure_db_schema():
@@ -76,38 +78,40 @@ def _delete_orphans(model, field, names):
 
 def init_admin_flags():
     """Init admin flag rows."""
-    _delete_orphans(AdminFlag, "name", AdminFlag.FLAG_NAMES.keys())
+    _delete_orphans(AdminFlag, "key", AdminFlag.FlagChoices.values)
 
-    for name, on in AdminFlag.FLAG_NAMES.items():
-        defaults = {"on": on}
-        flag, created = AdminFlag.objects.get_or_create(defaults=defaults, name=name)
+    for key in AdminFlag.FlagChoices.values:
+        defaults = {}
+        if key in AdminFlag.FALSE_DEFAULTS:
+            defaults["on"] = False
+        flag, created = AdminFlag.objects.get_or_create(defaults=defaults, key=key)
         if created:
-            LOG.info(f"Created AdminFlag: {flag.name} = {flag.on}")
+            title = CHOICES["admin"]["adminFlags"][flag.key]
+            LOG.info(f"Created AdminFlag: {title} = {flag.on}")
 
 
 def init_timestamps():
     """Init timestamps."""
-    _delete_orphans(Timestamp, "name", Timestamp.NAMES)
+    _delete_orphans(Timestamp, "key", Timestamp.TimestampChoices.values)
 
-    for name in Timestamp.NAMES:
-        ts, created = Timestamp.objects.get_or_create(name=name)
-        if name == Timestamp.API_KEY and not ts.version:
+    for key in Timestamp.TimestampChoices.values:
+        ts, created = Timestamp.objects.get_or_create(key=key)
+        if key == Timestamp.TimestampChoices.API_KEY.value and not ts.version:
             ts.save_uuid_version()
         if created:
-            LOG.info(f"Created {name} timestamp.")
+            label = Timestamp.TimestampChoices(ts.key).label
+            LOG.info(f"Created {label} timestamp.")
 
 
 def init_librarian_statuses():
     """Init librarian statuses."""
-    _delete_orphans(LibrarianStatus, "type", LibrarianStatus.TYPES)
+    _delete_orphans(LibrarianStatus, "status_type", LibrarianStatus.CHOICES)
 
-    defaults = {**LibrarianStatus.DEFAULT_PARAMS, "updated_at": Now()}
-    for type in LibrarianStatus.TYPES:
-        _, created = LibrarianStatus.objects.update_or_create(
-            type=type, defaults=defaults
-        )
+    for status_type, _ in LibrarianStatus.CHOICES:
+        _, created = LibrarianStatus.objects.update_or_create(status_type=status_type)
         if created:
-            LOG.info(f"Created {type} LibrarianStatus.")
+            title = CHOICES["admin"]["statusTitles"][status_type]
+            LOG.info(f"Created {title} LibrarianStatus.")
 
 
 def clear_library_status():

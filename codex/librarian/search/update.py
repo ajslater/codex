@@ -1,8 +1,10 @@
 """Search Index update."""
+from copy import deepcopy
 from datetime import datetime
 from math import ceil
 from multiprocessing import Pool, cpu_count
 from time import time
+from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from django.core.exceptions import ObjectDoesNotExist
@@ -15,22 +17,23 @@ from codex.librarian.search.remove import RemoveMixin
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.memory import get_mem_limit
 from codex.models import Comic, Library
-from codex.search.backend import CodexSearchBackend
+from codex.status import Status
+
+if TYPE_CHECKING:
+    from codex.search.backend import CodexSearchBackend
 
 
 class UpdateMixin(RemoveMixin):
     """Search Index update methods."""
 
-    _STATUS_UPDATE_START_TYPES = {
-        SearchIndexStatusTypes.SEARCH_INDEX_UPDATE: {},
-        SearchIndexStatusTypes.SEARCH_INDEX_REMOVE: {},
-    }
-    _STATUS_FINISH_TYPES = frozenset(
-        (
-            SearchIndexStatusTypes.SEARCH_INDEX_CLEAR,
-            SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
-            SearchIndexStatusTypes.SEARCH_INDEX_REMOVE,
-        )
+    _STATUS_UPDATE_START_TYPES = [
+        Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE.value),
+        Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value),
+    ]
+    _STATUS_FINISH_TYPES = (
+        SearchIndexStatusTypes.SEARCH_INDEX_CLEAR.value,
+        SearchIndexStatusTypes.SEARCH_INDEX_UPDATE.value,
+        SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value,
     )
     _MIN_UTC_DATE = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
     _MIN_BATCH_SIZE = 1
@@ -48,10 +51,10 @@ class UpdateMixin(RemoveMixin):
 
     def _init_statuses(self, rebuild):
         """Initialize all statuses order before starting."""
-        statuses = {}
+        statuses = []
         if rebuild:
-            statuses[SearchIndexStatusTypes.SEARCH_INDEX_CLEAR] = {}
-        statuses.update(self._STATUS_UPDATE_START_TYPES)
+            statuses += [Status(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR.value)]
+        statuses += deepcopy(self._STATUS_UPDATE_START_TYPES)
         self.status_controller.start_many(statuses)
 
     @classmethod
@@ -160,7 +163,7 @@ class UpdateMixin(RemoveMixin):
         self.log.debug(f"Search index update queued {len(results)} batches...")
         return results
 
-    def _collect_results(self, results, complete, num_comics, since):
+    def _collect_results(self, results, complete, status):
         """Collect results from the process pool."""
         retry_batches = {}
         retry_batch_num = 0
@@ -169,14 +172,10 @@ class UpdateMixin(RemoveMixin):
                 complete += result.get()
                 self.log.debug(
                     f"Search index batch {batch_num} complete "
-                    f"{complete}/{num_comics}"
+                    f"{status.complete}/{status.total}"
                 )
-                since = self.status_controller.update(
-                    SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
-                    complete,
-                    num_comics,
-                    since=since,
-                )
+                status.complete = complete
+                self.status_controller.update(status)
             except Exception as exc:
                 self.log.warning(
                     f"Search index update needs to retry batch {batch_num}"
@@ -184,14 +183,20 @@ class UpdateMixin(RemoveMixin):
                 retry_batches[retry_batch_num] = batch_pks
                 retry_batch_num += 1
                 if not isinstance(exc, self._EXPECTED_EXCEPTIONS):
-                    self.log.exception(exc)
+                    self.log.exception("Search index update - collect batch results")
         return retry_batches, complete
 
-    def _try_update_batch(
-        self, backend, batches, num_procs, num_comics, batch_size, complete, attempt
-    ):
+    def _try_update_batch(self, backend, batch_info, status):
         """Attempt to update batches, with reursive retry."""
-        since = time()
+        (
+            batches,
+            num_procs,
+            num_comics,
+            batch_size,
+            complete,
+            attempt,
+        ) = batch_info
+
         if attempt > 1:
             batches = self._halve_batches(batches)
 
@@ -205,9 +210,7 @@ class UpdateMixin(RemoveMixin):
         procs = min(num_procs, num_batches)
         pool = Pool(procs, maxtasksperchild=1)
         results = self._apply_batches(pool, batches, backend)
-        retry_batches, complete = self._collect_results(
-            results, complete, num_comics, since
-        )
+        retry_batches, complete = self._collect_results(results, complete, status)
         pool.join()
 
         num_successful_batches = num_batches - len(retry_batches)
@@ -220,8 +223,7 @@ class UpdateMixin(RemoveMixin):
             return
 
         if attempt < self._MAX_RETRIES:
-            self._try_update_batch(
-                backend,
+            batch_info = (
                 retry_batches,
                 num_procs,
                 num_comics,
@@ -229,6 +231,7 @@ class UpdateMixin(RemoveMixin):
                 complete,
                 attempt + 1,
             )
+            self._try_update_batch(backend, batch_info, status)
         else:
             total = len(retry_batches) * batch_size
             self.log.error(
@@ -267,15 +270,17 @@ class UpdateMixin(RemoveMixin):
         num_comics = qs.count()
         if not num_comics:
             return
+        status = Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE.value, 0, num_comics)
         try:
-            self.status_controller.start(
-                SearchIndexStatusTypes.SEARCH_INDEX_UPDATE, complete=0, total=num_comics
-            )
+            self.status_controller.start(status)
 
             num_procs, batch_size = self._get_throttle_params(num_comics)
             batches = self._get_update_batches(qs, batch_size, num_comics)
+            batch_info = (batches, num_procs, num_comics, batch_size, 0, 1)
             self._try_update_batch(
-                backend, batches, num_procs, num_comics, batch_size, 0, 1
+                backend,
+                batch_info,
+                status,
             )
 
             # Log performance
@@ -286,13 +291,11 @@ class UpdateMixin(RemoveMixin):
                 f"Search engine updated {num_comics} comics"
                 f" in {elapsed} at {cps} comics per second."
             )
-        except Exception as exc:
-            self.log.error(f"Update search index with multiprocessing: {exc}")
+        except Exception:
+            self.log.exception("Update search index with multiprocessing")
         finally:
             until = start_time + 1
-            self.status_controller.finish(
-                SearchIndexStatusTypes.SEARCH_INDEX_UPDATE, until=until
-            )
+            self.status_controller.finish(status, until=until)
 
     def update_search_index(self, rebuild=False):
         """Update or Rebuild the search index."""
@@ -338,9 +341,8 @@ class UpdateMixin(RemoveMixin):
             self.log.info(f"Search index updated in {elapsed}.")
         except MemoryError:
             self.log.warning("Search index needs more memory to update.")
-        except Exception as exc:
-            self.log.error(f"Update search index: {exc}")
-            self.log.exception(exc)
+        except Exception:
+            self.log.exception("Update search index")
         finally:
             # Finishing these tasks inside the command process leads to a timing
             # misalignment. Finish it here works.

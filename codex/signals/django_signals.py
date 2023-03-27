@@ -11,13 +11,13 @@ from codex.librarian.tasks import DelayedTasks
 from codex.logger.logging import get_logger
 
 
-def _activate_wal_journal(sender, connection, **kwargs):  # noqa: F841
+def _activate_wal_journal(sender, connection, **kwargs):  # noqa: ARG001,F841,RUF100
     """Enable sqlite WAL journal."""
     with connection.cursor() as cursor:
         cursor.execute("PRAGMA journal_mode=wal;")
 
 
-def _user_group_change(action, instance, pk_set, model, **kwargs):  # noqa: F841
+def _user_group_change(action, _instance, _pk_set, model, **kwargs):
     """Clear cache and send update signals when groups change."""
     if model.__name__ != "Group" or action not in (
         "post_add",

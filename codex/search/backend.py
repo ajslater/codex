@@ -65,7 +65,9 @@ class FILESIZE(NUMERIC):
         qstring = self._parse_size(qstring)
         return super().parse_query(fieldname, qstring, boost=boost)
 
-    def parse_range(self, fieldname, start, end, startexcl, endexcl, boost=1.0):
+    def parse_range(  # noqa PLR0913
+        self, fieldname, start, end, startexcl, endexcl, boost=1.0
+    ):
         """Parse range terms."""
         if start:
             start = self._parse_size(start)
@@ -88,8 +90,8 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             "contributor",
             "contributors",
             "creator",
-            "credit",
-            "credits",
+            "creator",
+            "creators",
         ],
         "community_rating": gen_multipart_field_aliases("community_rating"),
         "critical_rating": gen_multipart_field_aliases("critical_rating"),
@@ -132,14 +134,14 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
     _SELECT_RELATED_FIELDS = ("publisher", "imprint", "series", "volume")
     _PREFETCH_RELATED_FIELDS = (
         "characters",
-        "credits",
+        "creators",
         "genres",
         "locations",
         "series_groups",
         "story_arcs",
         "tags",
         "teams",
-        "credits__person",
+        "creators__person",
     )
     _DEFERRED_FIELDS = (
         "parent_folder",
@@ -166,8 +168,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         procs = min(cpu_count(), cpu_max)
         limitmb = mem_limit_mb * 0.8 / procs
         limitmb = int(limitmb)
-        writerargs = {"limitmb": limitmb, "procs": procs, "multisegment": True}
-        return writerargs
+        return {"limitmb": limitmb, "procs": procs, "multisegment": True}
 
     @staticmethod
     def _get_text_analyzer():
@@ -205,14 +206,11 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
 
     def get_writer(self, commitargs=COMMITARGS_NO_MERGE):
         """Get a writer."""
-        writer = CodexWriter(
+        return CodexWriter(
             self.index.refresh(),
-            limit=self.WRITER_LIMIT,
-            period=self.WRITER_PERIOD,
             writerargs=self.writerargs,
             commitargs=commitargs,
         )
-        return writer
 
     def _update_obj(self, index, writer, batch_num, obj):
         """Update one object."""
@@ -223,9 +221,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             for key in doc:
                 doc[key] = self._from_python(doc[key])
         except SkipDocument:
-            self.log.debug(
-                f"Indexing for object {obj} skipped" f" in batch {batch_num}"
-            )
+            self.log.debug(f"Indexing for object {obj} skipped in batch {batch_num}")
         except Exception as exc:
             self.log.warning(
                 f"Preparing object for indexing: {exc}"
@@ -240,7 +236,6 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             try:
                 # add instead of update because of above batch remove
                 writer.add_document(**doc)
-                return 1
             except Exception as exc:
                 if not self.silently_fail:
                     raise
@@ -253,9 +248,11 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                     f" in batch {batch_num}: {obj.path}",
                 )
                 raise
+            else:
+                return 1
         return 0
 
-    def update(self, index, batch_pks, commit=True, batch_num=0):
+    def update(self, index, batch_pks, batch_num=0, **kwargs):
         """Update index, but with writer options."""
         count = 0
         num_objs = len(batch_pks)
@@ -293,15 +290,14 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             count += self._update_obj(index, writer, batch_num, obj)
         try:
             if count:
-                self.log.debug(
-                    "Search index starting final commit" f" for batch {batch_num}."
-                )
+                msg = f"Search index starting final commit for batch {batch_num}."
             else:
-                self.log.debug(
-                    "Search index update cancelling"
-                    f" batch {batch_num} nothing to update."
+                msg = (
+                    "Search index update cancelling batch"
+                    f" {batch_num} nothing to update."
                 )
                 writer.cancel()
+            self.log.debug(msg)
 
             writer.close()
         except Exception as exc:

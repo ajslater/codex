@@ -186,7 +186,7 @@ class OPDSLink:
 
     rel: str
     href: str
-    type: str
+    mime_type: str
     title: str = ""
     length: int = 0
     facet_group: str = ""

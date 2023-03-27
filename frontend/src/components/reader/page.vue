@@ -80,7 +80,7 @@ export default {
       return getComicPageSource(params);
     },
     component() {
-      const isPDF = this.book.fileFormat === "pdf";
+      const isPDF = this.book.fileType === "p";
       return isPDF ? PDFPage : ImgPage;
     },
     settings() {

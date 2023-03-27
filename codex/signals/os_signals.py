@@ -12,7 +12,7 @@ SHUTDOWN_EVENT = Event()
 
 
 def _shutdown_signal_handler(*args):
-    global SHUTDOWN_EVENT
+    """Initiate Codex Shutdown."""
     if SHUTDOWN_EVENT.is_set():
         return
     LOG.info("Asking hypercorn to shut down gracefully. Could take 10 seconds...")
@@ -20,7 +20,7 @@ def _shutdown_signal_handler(*args):
 
 
 def _restart_signal_handler(*args):
-    global RESTART_EVENT
+    """Initaite Codex Restart."""
     if RESTART_EVENT.is_set():
         return
     LOG.info("Restart signal received.")

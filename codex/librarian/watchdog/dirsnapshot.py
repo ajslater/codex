@@ -13,6 +13,7 @@ class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
     """Take snapshots from the Codex database."""
 
     MODELS = (Folder, Comic, FailedImport)
+    _STAT_LEN = 10
 
     @classmethod
     def _walk(cls, root):
@@ -24,7 +25,9 @@ class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
 
     def _create_stat_from_db_stat(self, wp, stat_func, force):
         """Handle null or zeroed out database stat entries."""
-        if not wp.stat or len(wp.stat) != 10 or not wp.stat[1]:
+        if wp.stat and len(wp.stat) == self._STAT_LEN and wp.stat[1]:
+            stat = wp.stat
+        else:
             path = Path(wp.path)
             # Ensure valid params
             if path.exists():
@@ -39,9 +42,8 @@ class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
 
         if force:
             # Fake mtime will trigger modified event
-            wp.stat[8] = 0.0
-        st = os.stat_result(tuple(wp.stat))
-        return st
+            stat[8] = 0.0
+        return os.stat_result(tuple(stat))
 
     def _set_lookups(self, path, st):
         """Populate the lookup dirs."""
@@ -88,11 +90,7 @@ class CodexDirectorySnapshotDiff(DirectorySnapshotDiff):
 
     @classmethod
     def _select_get_inode(cls, ignore_device):
-        if ignore_device:
-            get_inode = cls._get_inode_ignore_device
-        else:
-            get_inode = cls._get_inode
-        return get_inode
+        return cls._get_inode_ignore_device if ignore_device else cls._get_inode
 
     @staticmethod
     def _init_inode_sets(get_inode, snapshot, ref, inode_only_modified):
@@ -136,11 +134,11 @@ class CodexDirectorySnapshotDiff(DirectorySnapshotDiff):
         """Add modified paths to set."""
         # first check paths that have not moved
         for path in ref.paths & snapshot.paths:
-            if get_inode(ref, path) == get_inode(snapshot, path):
-                if ref.mtime(path) != snapshot.mtime(path) or ref.size(
-                    path
-                ) != snapshot.size(path):
-                    modified.add(path)
+            if get_inode(ref, path) == get_inode(snapshot, path) and (
+                ref.mtime(path) != snapshot.mtime(path)
+                or ref.size(path) != snapshot.size(path)
+            ):
+                modified.add(path)
 
         # then check moved paths.
         for old_path, new_path in moved:

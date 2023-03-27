@@ -49,7 +49,7 @@ urlpatterns = [
     # AdminLibraryViewSet.as_view() and not the other.
     path("flag", AdminFlagViewSet.as_view(READ), name="flag"),  # type: ignore
     path(
-        "flag/<int:pk>/",
+        "flag/<str:key>/",
         AdminFlagViewSet.as_view(UPDATE),  # type: ignore
         name="flag_update",
     ),

@@ -3,10 +3,10 @@ from pathlib import Path
 
 from django.db.models import Q
 
-from codex.librarian.importer.status import ImportStatusTypes, status
+from codex.librarian.importer.status import ImportStatusTypes, status_notify
 from codex.models import (
     Comic,
-    Credit,
+    Creator,
     Folder,
     Imprint,
     Publisher,
@@ -60,19 +60,21 @@ class LinkComicsMixin(QueuedThread):
         return frozenset(folder_pks)
 
     @staticmethod
-    def _link_credits(credits):
-        """Get the ids of all credits to link."""
-        if not credits:
+    def _link_creators(creators_md):
+        """Get the ids of all creators to link."""
+        if not creators_md:
             return set()
-        filter = Q()
-        for credit in credits:
+        creators_filter = Q()
+        for creator in creators_md:
             filter_dict = {
-                "role__name": credit.get("role"),
-                "person__name": credit["person"],
+                "role__name": creator.get("role"),
+                "person__name": creator["person"],
             }
-            filter = filter | Q(**filter_dict)
-        credit_pks = Credit.objects.filter(filter).values_list("pk", flat=True)
-        return frozenset(credit_pks)
+            creators_filter |= Q(**filter_dict)
+        creator_pks = Creator.objects.filter(creators_filter).values_list(
+            "pk", flat=True
+        )
+        return frozenset(creator_pks)
 
     def _link_named_m2ms(self, all_m2m_links, comic_pk, md):
         """Set the ids of all named m2m fields into the comic dict."""
@@ -102,13 +104,10 @@ class LinkComicsMixin(QueuedThread):
             except KeyError:
                 folder_paths = []
             all_m2m_links["folders"][comic_pk] = self._link_folders(folder_paths)
-            if "credits" not in all_m2m_links:
-                all_m2m_links["credits"] = {}
-            try:
-                credits = md.pop("credits")
-            except KeyError:
-                credits = None
-            all_m2m_links["credits"][comic_pk] = self._link_credits(credits)
+            if "creators" not in all_m2m_links:
+                all_m2m_links["creators"] = {}
+            creators_md = md.pop("creators", None)
+            all_m2m_links["creators"][comic_pk] = self._link_creators(creators_md)
             self._link_named_m2ms(all_m2m_links, comic_pk, md)
         return all_m2m_links
 
@@ -150,7 +149,8 @@ class LinkComicsMixin(QueuedThread):
 
         model = Comic._meta.get_field(field_name).related_model
         if model is None:
-            raise ValueError(f"Bad model from {field_name}")
+            reason = f"Bad model from {field_name}"
+            raise ValueError(reason)
         link_name = model.__name__.lower()
         through_field_id_name = f"{link_name}_id"
 
@@ -177,16 +177,15 @@ class LinkComicsMixin(QueuedThread):
                 f"Deleted {del_count} stale {field_name} relations for altered comics.",
             )
 
-    @status(status=ImportStatusTypes.LINK_M2M_FIELDS)
-    def bulk_query_and_link_comic_m2m_fields(self, all_m2m_mds, status_args=None):
+    @status_notify(status_type=ImportStatusTypes.LINK_M2M_FIELDS.value)
+    def bulk_query_and_link_comic_m2m_fields(self, all_m2m_mds, **kwargs):
         """Combine query and bulk link into a batch."""
         all_m2m_links = self._link_comic_m2m_fields(all_m2m_mds)
         for field_name, m2m_links in all_m2m_links.items():
             try:
                 self.bulk_fix_comic_m2m_field(field_name, m2m_links)
-            except Exception as exc:
-                self.log.error(f"Error recreating m2m field: {field_name}")
-                self.log.exception(exc)
+            except Exception:
+                self.log.exception(f"Error recreating m2m field: {field_name}")
 
         count = len(all_m2m_links)
         self.log.info(f"Linked {count} comics to tags.")

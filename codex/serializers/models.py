@@ -13,9 +13,9 @@ from codex.models import (
     Bookmark,
     Character,
     Comic,
-    Credit,
-    CreditPerson,
-    CreditRole,
+    Creator,
+    CreatorPerson,
+    CreatorRole,
     Genre,
     Imprint,
     LibrarianStatus,
@@ -39,6 +39,7 @@ class PyCountrySerializer(Serializer):
     """
 
     LOOKUP_MODULE = pycountry.countries
+    _ALPHA_2_LEN = 2
 
     pk = SerializerMethodField()
     name = SerializerMethodField()
@@ -53,22 +54,19 @@ class PyCountrySerializer(Serializer):
         """Return submitted value as the key."""
         return pk
 
-    @staticmethod
-    def lookup_name(lookup_module, name):
+    @classmethod
+    def lookup_name(cls, lookup_module, name):
         """Lookup the name with pycountry, just copy the key on fail."""
         if not name:
             return ""
-        if len(name) == 2:
-            # fix for https://github.com/flyingcircusio/pycountry/issues/41
-            lookup_obj = lookup_module.get(alpha_2=name)
-        else:
-            lookup_obj = lookup_module.lookup(name)
-        if lookup_obj:
-            value = lookup_obj.name
-        else:
-            # If lookup fails, return the key as the name
-            value = name
-        return value
+        # fix for https://github.com/flyingcircusio/pycountry/issues/41
+        lookup_obj = (
+            lookup_module.get(alpha_2=name)
+            if len(name) == cls._ALPHA_2_LEN
+            else lookup_module.lookup(name)
+        )
+        # If lookup fails, return the key as the name
+        return lookup_obj.name if lookup_obj else name
 
     @extend_schema_field(OpenApiTypes.STR)
     def get_name(self, name):
@@ -84,8 +82,6 @@ class LanguageSerializer(PyCountrySerializer):
 
 class CountrySerializer(PyCountrySerializer):
     """Pycountry serializer for country field."""
-
-    pass
 
 
 class NamedModelMeta:
@@ -158,34 +154,34 @@ class VolumeSerializer(GroupModelSerializer):
 ##############
 
 
-class CreditPersonSerializer(NamedModelSerializer):
-    """CreditPerson model."""
+class CreatorPersonSerializer(NamedModelSerializer):
+    """CreatorPerson model."""
 
     class Meta(NamedModelMeta):
         """Configure model."""
 
-        model = CreditPerson
+        model = CreatorPerson
 
 
-class CreditRoleSerializer(NamedModelSerializer):
-    """CreditRole model."""
+class CreatorRoleSerializer(NamedModelSerializer):
+    """CreatorRole model."""
 
     class Meta(NamedModelMeta):
         """Configure model."""
 
-        model = CreditRole
+        model = CreatorRole
 
 
-class CreditSerializer(ModelSerializer):
-    """Credit model serializer."""
+class CreatorSerializer(ModelSerializer):
+    """Creator model serializer."""
 
-    role = CreditRoleSerializer()
-    person = CreditPersonSerializer()
+    role = CreatorRoleSerializer()
+    person = CreatorPersonSerializer()
 
     class Meta:
         """Model spec."""
 
-        model = Credit
+        model = Creator
         fields = ("pk", "person", "role")
         depth = 1
 
@@ -284,7 +280,7 @@ class ComicSerializer(ModelSerializer):
     )
     tags = TagSerializer(many=True, allow_null=True)
     teams = TeamSerializer(many=True, allow_null=True)
-    credits = CreditSerializer(many=True, allow_null=True)
+    creators = CreatorSerializer(many=True, allow_null=True)
 
     class Meta:
         """Configure the model."""

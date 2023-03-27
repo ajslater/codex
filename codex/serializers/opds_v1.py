@@ -82,16 +82,16 @@ OPDS_M2M_FIELDS = (
     "story_arcs",
     "tags",
     "teams",
-    "credits",
-    "credits__role__name",
-    "credits__person__name",
+    "creators",
+    "creators__role__name",
+    "creators__person__name",
 )
 
 
 class AuthenticationTypeSerializer(Serializer):
     """OPDS Authentication Type."""
 
-    type = CharField(read_only=True)
+    type = CharField(read_only=True)  # noqa: A003
     labels = JSONField(read_only=True)
 
 
@@ -100,7 +100,7 @@ class AuthLinksSerializer(Serializer):
 
     rel = CharField(read_only=True)
     href = CharField(read_only=True)
-    type = CharField(read_only=True)
+    type = CharField(read_only=True)  # noqa: A003
     width = IntegerField(read_only=True, required=False)
     height = IntegerField(read_only=True, required=False)
 
@@ -108,7 +108,7 @@ class AuthLinksSerializer(Serializer):
 class AuthenticationSerializer(Serializer):
     """OPDS Authentication Document."""
 
-    id = CharField(read_only=True)
+    id = CharField(read_only=True)  # noqa: A003
     title = CharField(read_only=True)
     description = CharField(read_only=True)
     links = AuthLinksSerializer(many=True, read_only=True)
@@ -120,7 +120,7 @@ class OPDSTemplateLinkSerializer(Serializer):
 
     href = CharField(read_only=True)
     rel = CharField(read_only=True)
-    type = CharField(read_only=True)
+    mime_type = CharField(read_only=True)
     title = CharField(read_only=True, required=False)
     length = IntegerField(read_only=True, required=False)
     facet_group = CharField(read_only=True, required=False)
@@ -134,7 +134,7 @@ class OPDSTemplateLinkSerializer(Serializer):
 class OPDSTemplateEntrySerializer(Serializer):
     """OPDS Entry Template Serializer."""
 
-    id = CharField(read_only=True)
+    id_tag = CharField(read_only=True)
     title = CharField(read_only=True)
     links = OPDSTemplateLinkSerializer(many=True, read_only=True)
     issued = DateField(read_only=True, required=False)
@@ -152,7 +152,7 @@ class OPDSTemplateSerializer(Serializer):
     """OPDS Browser Template Serializer."""
 
     opds_ns = CharField(read_only=True)
-    id = CharField(read_only=True)
+    id_tag = CharField(read_only=True)
     title = CharField(read_only=True)
     updated = DateTimeField(read_only=True, default_timezone=UTC_TZ)
     links = OPDSTemplateLinkSerializer(many=True, read_only=True)

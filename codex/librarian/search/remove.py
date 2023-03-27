@@ -10,6 +10,7 @@ from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.version import VersionMixin
 from codex.models import Comic
 from codex.search.backend import CodexSearchBackend
+from codex.status import Status
 
 
 class RemoveMixin(VersionMixin):
@@ -32,9 +33,10 @@ class RemoveMixin(VersionMixin):
         self, backend: Optional[CodexSearchBackend] = None  # type: ignore
     ):
         """Remove records not in the database from the index."""
+        status = Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value, 0)
         try:
             start_time = time()
-            self.status_controller.start(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE, 0)
+            self.status_controller.start(status)
             if not backend:
                 backend: CodexSearchBackend = self.engine.get_backend()  # type: ignore
             if not backend.setup_complete:
@@ -44,9 +46,8 @@ class RemoveMixin(VersionMixin):
             num_delete_docnums = len(delete_docnums)
             count = 0
             if num_delete_docnums:
-                self.status_controller.update(
-                    SearchIndexStatusTypes.SEARCH_INDEX_REMOVE, 0, num_delete_docnums
-                )
+                status.total = num_delete_docnums
+                self.status_controller.update(status)
                 count = backend.remove_docnums(
                     delete_docnums, sc=self.status_controller
                 )
@@ -62,8 +63,7 @@ class RemoveMixin(VersionMixin):
                 )
             else:
                 self.log.debug("No ghosts to remove from the search index.")
-        except Exception as exc:
-            self.log.error("While removing stale records:")
-            self.log.exception(exc)
+        except Exception:
+            self.log.exception("Removing stale records:")
         finally:
-            self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE)
+            self.status_controller.finish(status)

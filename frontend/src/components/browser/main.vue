@@ -12,11 +12,11 @@
     </div>
     <div v-else-if="!isCodexViewable" id="announce">
       <h1>
-        You may log in <span v-if="enableRegister">or register</span> with the
-        top right&emsp;<v-icon>{{ mdiMenu }}</v-icon
+        You may log in <span v-if="adminFlags.register">or register</span> with
+        the top right&emsp;<v-icon>{{ mdiMenu }}</v-icon
         >&emsp;menu
       </h1>
-      <h1 v-if="!enableRegister">Registration is disabled</h1>
+      <h1 v-if="!adminFlags.register">Registration is disabled</h1>
     </div>
     <div v-else-if="librariesExist" id="announce">
       <div id="noComicsFound">No comics found for these filters</div>
@@ -70,8 +70,7 @@ export default {
   },
   computed: {
     ...mapState(useAuthStore, {
-      enableNonUsers: (state) => state.adminFlags.enableNonUsers,
-      enableRegister: (state) => state.adminFlags.enableRegistration,
+      adminFlags: (state) => state.adminFlags,
     }),
     ...mapGetters(useAuthStore, ["isUserAdmin", "isCodexViewable"]),
     ...mapState(useBrowserStore, {
@@ -88,7 +87,7 @@ export default {
       },
       showPlaceHolder: function (state) {
         return (
-          this.enableNonUsers === undefined ||
+          this.adminFlags.nonUsers === undefined ||
           (this.isCodexViewable &&
             (this.librariesExist == undefined || !state.browserPageLoaded))
         );

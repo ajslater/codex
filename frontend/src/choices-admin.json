@@ -1,4 +1,34 @@
 {
+  "statusTitles": {
+    "CCC": "Create Covers",
+    "CCD": "Remove Covers",
+    "CFO": "Find Orphan Covers",
+    "IDM": "Move Folders",
+    "IFM": "Move Books",
+    "ITR": "Read tags",
+    "ITQ": "Discover Missing Tags",
+    "ITC": "Create Missing Tags",
+    "IDU": "Modify Folders",
+    "IFU": "Modify Books",
+    "IFC": "Create Books",
+    "IMQ": "Prepare Tags for Linking",
+    "IMC": "Link Books to Tags",
+    "IDD": "Remove Folders",
+    "IFD": "Remove Books",
+    "IFI": "Record Failed Imports",
+    "JTD": "Cleanup Stale Tags",
+    "JCU": "Update Codex Software",
+    "JCR": "Restart Codex",
+    "JCS": "Stop Codex",
+    "JDO": "Optimize Database",
+    "JDB": "Backup Database",
+    "JSD": "Cleanup Expired Sessions",
+    "SIX": "Search Index Clear",
+    "SIU": "Search Index Update",
+    "SID": "Search Index Remove Stale Records",
+    "SIM": "Search Index Optimize",
+    "WPO": "Poll Library"
+  },
   "tasks": [
     {
       "title": "Libraries",
@@ -153,5 +183,12 @@
         }
       ]
     }
-  ]
+  ],
+  "adminFlags": {
+    "FV": "Folder View",
+    "RG": "Registration",
+    "NU": "Non Users",
+    "AU": "Auto Update",
+    "SO": "Search Index Full Optimization"
+  }
 }
