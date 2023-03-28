@@ -155,7 +155,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         "max_page",
     )
     _ONEMB = 1024**2
-    _MMAP_RATIO = 500  # at least 312
+    _MMAP_RATIO = 256 # TODO less?
 
     def __init__(self, connection_alias, **connection_options):
         """Init worker queues."""
