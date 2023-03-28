@@ -39,7 +39,7 @@ class RemoveMixin(VersionMixin):
         try:
             if not self.queue.empty():
                 # don't even start if something else is waiting
-                raise AbortOperationError
+                raise AbortOperationError()  # noqa TRY301
             start_time = time()
             self.status_controller.start(status)
             if not backend:

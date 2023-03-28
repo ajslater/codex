@@ -115,7 +115,9 @@ class ComicImporterThread(ApplyDBOpsMixin):
         if task.files_modified:
             status_list += [
                 Status(
-                    ImportStatusTypes.FILES_MODIFIED.value, None, len(task.files_modified)
+                    ImportStatusTypes.FILES_MODIFIED.value,
+                    None,
+                    len(task.files_modified),
                 )
             ]
         if task.files_created:

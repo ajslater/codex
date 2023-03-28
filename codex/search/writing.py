@@ -5,6 +5,7 @@ from time import sleep
 from whoosh.index import FileIndex, LockError
 from whoosh.writing import BufferedWriter
 
+
 class AbortOperationError(Exception):
     """Interrupt the operation because something more important happened."""
 
@@ -177,7 +178,7 @@ class CodexWriter(BufferedWriter):
         writer = self.get_writer("delete_docnums")
         for docnum in docnums:
             if queue and not queue.empty():
-                raise AbortOperationError()
+                raise AbortOperationError
             self.delete_document(docnum, writer=writer)
             count += 1
             if sc and status:

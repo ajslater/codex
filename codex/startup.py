@@ -110,7 +110,9 @@ def init_librarian_statuses():
     _delete_orphans(LibrarianStatus, "status_type", status_types)
 
     for status_type in status_types:
-        _, created = LibrarianStatus.objects.update_or_create(defaults=STATUS_DEFAULTS, status_type=status_type)
+        _, created = LibrarianStatus.objects.update_or_create(
+            defaults=STATUS_DEFAULTS, status_type=status_type
+        )
         if created:
             title = CHOICES["admin"]["statusTitles"][status_type]
             LOG.debug(f"Created {title} LibrarianStatus.")

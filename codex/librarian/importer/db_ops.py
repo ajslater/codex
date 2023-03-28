@@ -125,7 +125,9 @@ class ApplyDBOpsMixin(
             create_creators,
         ) = create_data
         total_fks = 0
-        for data_group in chain(create_groups.values(), update_groups.values(), create_fks.values()):
+        for data_group in chain(
+            create_groups.values(), update_groups.values(), create_fks.values()
+        ):
             total_fks += len(data_group)
         total_fks += len(create_folder_paths) + len(create_creators)
         return total_fks

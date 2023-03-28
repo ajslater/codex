@@ -158,7 +158,7 @@ class LinkComicsMixin(QueuedThread):
             m2m_links, ThroughModel, through_field_id_name
         )
         if status:
-            # XXX for better numbers but worse memory performance 
+            # XXX for better numbers but worse memory performance
             # could do all queries first.
             status.total += len(tms) + len(all_del_pks)
             self.status_controller.update(status)
