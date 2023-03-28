@@ -1,4 +1,5 @@
 """Custom Codex Writer."""
+from whoosh.reading import MultiReader
 from threading import RLock
 from time import sleep
 
@@ -58,29 +59,32 @@ class CodexWriter(BufferedWriter):
             self._schema = info.schema
         return self._schema
 
-    def reader(self, **kwargs):
-        """Get the reader without locking the writer.
+    def _get_non_locking_writer_reader(self):
+        """Get self.writer.reader() without locking.
+
+        Copied from SegmentWriter.reader()
 
         XXX Runs the risk of being slightly out of date if it's actively being
         written by other procs.
         """
-        from whoosh.reading import MultiReader
-
         with self.lock:
             ramreader = self._get_ram_reader()
 
         index = self.index.refresh()
         info = index._read_toc()  # noqa SLF001
-        # using the ram index for reuse massively reduces duplication, but is a hack.
-        reader = FileIndex._reader(  # noqa SLF001
+        return FileIndex._reader(  # noqa SLF001
             index.storage,
             info.schema,
             info.segments,
             info.generation + 1,
+            # using the ram index for reuse massively reduces duplication, but is a hack.
             reuse=ramreader,
         )
 
-        # Reopen the ram index
+    def reader(self, **kwargs):
+        """Get the reader without locking the writer."""
+        reader = self._get_non_locking_writer_reader()
+
         with self.lock:
             ramreader = self._get_ram_reader()
 
@@ -97,14 +101,13 @@ class CodexWriter(BufferedWriter):
         """Commit with a writer we get now."""
         with self.lock:
             ramreader = self._get_ram_reader()
-            self._make_ram_index()
+        self._make_ram_index()
 
-            writer = self.get_writer("commit")
-            if reader:
-                writer.add_reader(reader)
-            writer.add_reader(ramreader)
-
-            writer.commit(**self.commitargs)
+        writer = self.get_writer("commit")
+        if reader:
+            writer.add_reader(reader)
+        writer.add_reader(ramreader)
+        writer.commit(**self.commitargs)
 
     def add_reader(self, reader):
         """Do a commit with the supplied reader."""
