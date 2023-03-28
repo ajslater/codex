@@ -185,8 +185,7 @@ class CodexWriter(BufferedWriter):
         try:
             for docnum in docnums:
                 if queue and not queue.empty():
-                    print("abort because queue is size:", queue.qsize())
-                    raise AbortOperationError
+                    raise AbortOperationError()  # noqa TRY301
                 self.delete_document(docnum, writer=writer)
                 count += 1
                 if sc and status:

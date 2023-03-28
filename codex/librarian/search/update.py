@@ -13,8 +13,10 @@ from haystack.exceptions import SearchFieldError
 from humanize import naturaldelta
 from whoosh.query import Every
 
+from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.search.remove import RemoveMixin
 from codex.librarian.search.status import SearchIndexStatusTypes
+from codex.librarian.search.tasks import SearchIndexRemoveStaleTask
 from codex.memory import get_mem_limit
 from codex.models import Comic, Library
 from codex.status import Status
@@ -334,7 +336,7 @@ class UpdateMixin(RemoveMixin):
             if rebuild:
                 self.set_search_index_version()
             else:
-                self.remove_stale_records(backend)
+                LIBRARIAN_QUEUE.put(SearchIndexRemoveStaleTask())
 
             elapsed_time = time() - start_time
             elapsed = naturaldelta(elapsed_time)

@@ -7,7 +7,6 @@ from humanize import naturaldelta
 from whoosh.query import Every
 
 from codex.librarian.search.status import SearchIndexStatusTypes
-from codex.librarian.search.tasks import SearchIndexRemoveStaleTask
 from codex.librarian.search.version import VersionMixin
 from codex.models import Comic
 from codex.search.backend import CodexSearchBackend
@@ -35,7 +34,7 @@ class RemoveMixin(VersionMixin):
         self, backend: Optional[CodexSearchBackend] = None  # type: ignore
     ):
         """Remove records not in the database from the index."""
-        status = Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value, 0)
+        status = Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value)
         try:
             if not self.queue.empty():
                 # don't even start if something else is waiting
@@ -51,10 +50,14 @@ class RemoveMixin(VersionMixin):
             num_delete_docnums = len(delete_docnums)
             count = 0
             if num_delete_docnums:
+                status.complete = count
                 status.total = num_delete_docnums
-                self.status_controller.update(status)
+                self.status_controller.start(status)
                 count = backend.remove_docnums(
-                    delete_docnums, sc=self.status_controller, queue=self.queue
+                    delete_docnums,
+                    sc=self.status_controller,
+                    status=status,
+                    queue=self.queue,
                 )
 
             # Finish
@@ -69,8 +72,9 @@ class RemoveMixin(VersionMixin):
             else:
                 self.log.debug("No stale records to remove from the search index.")
         except AbortOperationError:
-            task = SearchIndexRemoveStaleTask()
-            self.queue.put(task)
+            # update kicks off a remove stale operations when it's done.
+            # rebuild doesn't need one.
+            self.log.debug("Search Index Remove Stale Records aborted.")
         except Exception:
             self.log.exception("Removing stale records:")
         finally:

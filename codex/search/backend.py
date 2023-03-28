@@ -179,7 +179,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         content_field_name, schema = super().build_schema(fields)
 
         # Boost series field
-        series_field = schema._fields["series"]
+        series_field = schema._fields["series"]  # noqa SFL001
         series_field.format = series_field.format.__class__(field_boost=1.25)
 
         # Replace size field
@@ -323,12 +323,12 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         query = Or([Term(DJANGO_ID, str(pk)) for pk in pks])
         return writer.delete_by_query(query)
 
-    def remove_docnums(self, docnums, sc=None, queue=None):
+    def remove_docnums(self, docnums, sc=None, status=None, queue=None):
         """Remove a batch of docnums from the index.."""
         writer = self.get_writer()
         count = 0
         try:
-            count = writer.delete_docnums(docnums, sc=sc, queue=queue)
+            count = writer.delete_docnums(docnums, sc=sc, status=status, queue=queue)
         except AbortOperationError:
             raise
         except Exception as exc:
