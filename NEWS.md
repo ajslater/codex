@@ -8,6 +8,8 @@ border-radius: 128px;
 
 ## v1.3.0
 
+### I remember... my whole life. Everything
+
 - Features
   - Sped up comic import.
   - OPDS
@@ -22,8 +24,8 @@ border-radius: 128px;
     - Long running remove stale records interruptible by other search engine
       tasks.
 - Fix
-  - Search Indexer
-    - Stable in lower memory environments.
+  - Search Index
+    - Now works in lower memory environments.
     - More robust against bad data.
     - Some search fields were case sensitive.
   - Codex was backing up on every startup.
