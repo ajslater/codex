@@ -136,7 +136,7 @@ class LinkComicsMixin(QueuedThread):
                 tms.append(tm)
         return tms, all_del_pks
 
-    def bulk_fix_comic_m2m_field(self, field_name, m2m_links):
+    def bulk_fix_comic_m2m_field(self, field_name, m2m_links, status):
         """Recreate an m2m field for a set of comics.
 
         Since we can't bulk_update or bulk_create m2m fields use a trick.
@@ -157,6 +157,11 @@ class LinkComicsMixin(QueuedThread):
         tms, all_del_pks = self._query_relation_adjustments(
             m2m_links, ThroughModel, through_field_id_name
         )
+        if status:
+            # XXX for better numbers but worse memory performance 
+            # could do all queries first.
+            status.total += len(tms) + len(all_del_pks)
+            self.status_controller.update(status)
 
         update_fields = ("comic_id", through_field_id_name)
         ThroughModel.objects.bulk_create(
@@ -176,14 +181,21 @@ class LinkComicsMixin(QueuedThread):
             self.log.info(
                 f"Deleted {del_count} stale {field_name} relations for altered comics.",
             )
+        if status:
+            status.complete = created_count + del_count
+            self.status_controller.update(status)
 
     @status_notify(status_type=ImportStatusTypes.LINK_M2M_FIELDS.value)
-    def bulk_query_and_link_comic_m2m_fields(self, all_m2m_mds, **kwargs):
+    def bulk_query_and_link_comic_m2m_fields(self, all_m2m_mds, status=None):
         """Combine query and bulk link into a batch."""
         all_m2m_links = self._link_comic_m2m_fields(all_m2m_mds)
+        if status:
+            status.complete = 0
+            status.total = 0
+            self.status_controller.update(status)
         for field_name, m2m_links in all_m2m_links.items():
             try:
-                self.bulk_fix_comic_m2m_field(field_name, m2m_links)
+                self.bulk_fix_comic_m2m_field(field_name, m2m_links, status)
             except Exception:
                 self.log.exception(f"Error recreating m2m field: {field_name}")
 

@@ -1,4 +1,6 @@
 """Wrap jobs in statuses."""
+from itertools import chain
+
 from codex.librarian.importer.aggregate_metadata import AggregateMetadataMixin
 from codex.librarian.importer.deleted import DeletedMixin
 from codex.librarian.importer.failed_imports import FailedImportsMixin
@@ -123,14 +125,9 @@ class ApplyDBOpsMixin(
             create_creators,
         ) = create_data
         total_fks = 0
-        for groups in create_groups.values():
-            total_fks += len(groups)
-        for groups in update_groups.values():
-            total_fks += len(groups)
-        total_fks += len(create_folder_paths)
-        for names in create_fks.values():
-            total_fks += len(names)
-        total_fks += len(create_creators)
+        for data_group in chain(create_groups.values(), update_groups.values(), create_fks.values()):
+            total_fks += len(data_group)
+        total_fks += len(create_folder_paths) + len(create_creators)
         return total_fks
 
     def create_all_fks(self, library, create_data):
