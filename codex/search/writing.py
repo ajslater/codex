@@ -182,14 +182,17 @@ class CodexWriter(BufferedWriter):
         """
         count = 0
         writer = self.get_writer("delete_docnums")
-        for docnum in docnums:
-            if queue and not queue.empty():
-                raise AbortOperationError
-            self.delete_document(docnum, writer=writer)
-            count += 1
-            if sc and status:
-                status.complete = count
-                sc.update(status)
-        with self.lock:
-            writer.commit(**self.commitargs)
+        try:
+            for docnum in docnums:
+                if queue and not queue.empty():
+                    print("abort because queue is size:", queue.qsize())
+                    raise AbortOperationError
+                self.delete_document(docnum, writer=writer)
+                count += 1
+                if sc and status:
+                    status.complete = count
+                    sc.update(status)
+        finally:
+            with self.lock:
+                writer.commit(**self.commitargs)
         return count

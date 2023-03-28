@@ -334,7 +334,8 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         except Exception as exc:
             self.log.warning(f"Search index removing documents by docnums {exc}")
             writer.cancel()
-        writer.close()
+        finally:
+            writer.close()
         return count
 
     def optimize(self):
