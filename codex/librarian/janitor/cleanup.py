@@ -69,7 +69,7 @@ class CleanupMixin(WorkerBaseMixin):
             self.status_controller.start(status)
             self.log.debug("Cleaning up unused foreign keys...")
             self._bulk_cleanup_fks(_COMIC_FK_CLASSES, "comic", status)
-            self._bulk_cleanup_fks(_CREATOR_FK_CLASSES, "credit", status)
+            self._bulk_cleanup_fks(_CREATOR_FK_CLASSES, "creator", status)
             level = logging.INFO if status.complete else logging.DEBUG
             self.log.log(level, f"Cleaned up {status.complete} unused foreign keys.")
         finally:
