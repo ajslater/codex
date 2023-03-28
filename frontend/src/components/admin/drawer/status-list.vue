@@ -17,17 +17,18 @@
           <div nav class="statusItem">
             <div class="statusItemTitle">
               {{ title(status) }}
-              <span v-if="status.subtitle" class="statusItemSubtitle">
-                ({{ status.subtitle }})
-              </span>
-              <span
+              <div v-if="status.subtitle" class="statusItemSubtitle">
+                {{ status.subtitle }}
+              </div>
+              <div
                 v-if="showComplete(status) || Number.isInteger(status.total)"
+                class="statusItemSubtitle"
               >
                 <span v-if="showComplete(status)">
                   {{ nf(status.complete) }} /
                 </span>
                 {{ nf(status.total) }}
-              </span>
+              </div>
             </div>
             <v-progress-linear
               :indeterminate="indeterminate(status)"
@@ -110,6 +111,10 @@ h4 {
   padding-right: 5px;
   padding-bottom: 10px;
   color: rgb(var(--v-theme-textDisabled));
+}
+.statusItemSubtitle {
+  padding-left: 1rem;
+  opacity: 0.75;
 }
 #noTasksRunning {
   margin-left: 1em;
