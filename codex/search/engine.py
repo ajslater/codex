@@ -11,7 +11,7 @@ class CodexUnifiedIndex(UnifiedIndex):
 
     def collect_indexes(self):
         """Replace auto app.search_index finding with one exact instance."""
-        # Because i moved search_indexes into codex.search
+        # Because I moved search_indexes into codex.search
         return [ComicIndex()]
 
 
