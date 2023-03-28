@@ -1,6 +1,7 @@
 """Custom Haystack Search Backend."""
 from math import ceil
 from multiprocessing import cpu_count
+from pathlib import Path
 
 from django.utils.timezone import now
 from haystack.backends.whoosh_backend import (
@@ -11,6 +12,8 @@ from haystack.exceptions import SkipDocument
 from humanfriendly import InvalidSize, parse_size
 from whoosh.analysis import CharsetFilter, StandardAnalyzer, StemFilter
 from whoosh.fields import NUMERIC
+from whoosh.filedb.filestore import FileStorage
+from whoosh.index import EmptyIndexError
 from whoosh.qparser import (
     FieldAliasPlugin,
     GtLtPlugin,
@@ -151,6 +154,8 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         "folders",
         "max_page",
     )
+    _ONEMB = 1024**2
+    _MMAP_RATIO = 500  # at least 312
 
     def __init__(self, connection_alias, **connection_options):
         """Init worker queues."""
@@ -195,20 +200,53 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
 
         return content_field_name, schema
 
-    def setup(self, add_plugins=True):
-        """Add extra plugins."""
-        super().setup()
+    def _setup_storage_patch(self):
+        """Adapt FileStorage to not use mmap in low memory environements."""
+        if not self.use_file_storage:
+            return
+
+        # Get sizes
+        total_size = 0
+        if self.path:
+            for path in Path(self.path).glob("*.seg"):
+                total_size += path.stat().st_size
+        total_size_mb = total_size / self._ONEMB
+        mem_limit_gb = get_mem_limit("g")
+
+        # Decide
+        ratio = total_size_mb / mem_limit_gb
+        use_mmap = ratio > self._MMAP_RATIO
+
+        if use_mmap:
+            # Don't replace storage and index.
+            return
+
+        # Replace storage and index disabling mmap
+        self.storage = FileStorage(self.path, supports_mmap=use_mmap)
+        try:
+            self.index = self.storage.open_index(schema=self.schema)
+        except EmptyIndexError:
+            self.index = self.storage.create_index(self.schema)
+        self.log.debug("Memory limited. Disabled search index mmap")
+
+    def _setup_parser_plugin_patch(self):
+        """Setup codex plugins."""
         # Fix duplicate plugin bug:
         # https://github.com/mchaput/whoosh/pull/11
-        if not add_plugins:
-            # XXX the dateparser plugin won't pickle for
-            # multiprocessing
-            return
         self.parser.remove_plugin_class(WhitespacePlugin)
         self.parser.replace_plugin(self.OPERATORS_PLUGIN)
         plugins = [WhitespacePlugin, self.FIELD_ALIAS_PLUGIN, GtLtPlugin]
         plugins += [DateParserPlugin(basedate=now())]
         self.parser.add_plugins(plugins)
+
+    def setup(self, patch_plugins=True):
+        """Add extra plugins."""
+        super().setup()
+        self._setup_storage_patch()
+        if patch_plugins:
+            # The dateparser plugin won't pickle for
+            # multiprocessing
+            self._setup_parser_plugin_patch()
 
     def get_writer(self, commitargs=COMMITARGS_NO_MERGE):
         """Get a writer."""
