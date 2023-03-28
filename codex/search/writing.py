@@ -95,10 +95,16 @@ class CodexWriter(BufferedWriter):
 
     def commit(self, reader=None, **kwargs):
         """Commit with a writer we get now."""
-        writer = self.get_writer("commit")
-        if reader:
-            writer.add_reader(reader)
-        writer.commit(**self.commitargs)
+        with self.lock:
+            ramreader = self._get_ram_reader()
+            self._make_ram_index()
+
+            writer = self.get_writer("commit")
+            if reader:
+                writer.add_reader(reader)
+            writer.add_reader(ramreader)
+
+            writer.commit(**self.commitargs)
 
     def add_reader(self, reader):
         """Do a commit with the supplied reader."""
