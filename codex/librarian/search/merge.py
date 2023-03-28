@@ -30,7 +30,11 @@ class MergeMixin(VersionMixin):
         name = "all segments" if optimize else "small segments"
         status = Status(SearchIndexStatusTypes.SEARCH_INDEX_MERGE.value, subtitle=name)
         try:
-            self.status_controller.start(status)
+            statii = (
+                status,
+                Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value),
+            )
+            self.status_controller.start_many(statii)
             start = time()
 
             old_num_segments = len(tuple(SEARCH_INDEX_PATH.glob("*.seg")))
@@ -61,5 +65,8 @@ class MergeMixin(VersionMixin):
             LIBRARIAN_QUEUE.put(SearchIndexRemoveStaleTask())
         except Exception:
             self.log.exception("Search index merge.")
+            self.status_controller.finish(
+                SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value, notify=False
+            )
         finally:
             self.status_controller.finish(status)

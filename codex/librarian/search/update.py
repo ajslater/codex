@@ -28,14 +28,13 @@ if TYPE_CHECKING:
 class UpdateMixin(RemoveMixin):
     """Search Index update methods."""
 
-    _STATUS_UPDATE_START_TYPES = [
+    _STATUS_UPDATE_START_TYPES = (
         Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE.value),
         Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value),
-    ]
+    )
     _STATUS_FINISH_TYPES = (
         SearchIndexStatusTypes.SEARCH_INDEX_CLEAR.value,
         SearchIndexStatusTypes.SEARCH_INDEX_UPDATE.value,
-        SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value,
     )
     _MIN_UTC_DATE = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
     _MIN_BATCH_SIZE = 1
@@ -343,8 +342,14 @@ class UpdateMixin(RemoveMixin):
             self.log.info(f"Search index updated in {elapsed}.")
         except MemoryError:
             self.log.warning("Search index needs more memory to update.")
+            self.status_controller.finish(
+                SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value
+            )
         except Exception:
             self.log.exception("Update search index")
+            self.status_controller.finish(
+                SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value
+            )
         finally:
             # Finishing these tasks inside the command process leads to a timing
             # misalignment. Finish it here works.
