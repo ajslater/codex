@@ -13,10 +13,10 @@ from codex.status import Status
 class CoverPurgeMixin(CoverPathMixin):
     """Cover Purge methods."""
 
-    _CLEANUP_STATUS_MAP = {
-        CoverStatusTypes.FIND_ORPHAN: {},
-        CoverStatusTypes.PURGE_COVERS: {},
-    }
+    _CLEANUP_STATUS_MAP = (
+        Status(CoverStatusTypes.FIND_ORPHAN.value),
+        Status(CoverStatusTypes.PURGE_COVERS.value),
+    )
 
     @classmethod
     def _cleanup_cover_dirs(cls, path):
@@ -83,7 +83,7 @@ class CoverPurgeMixin(CoverPathMixin):
                     if fs_cover_path not in db_cover_paths:
                         orphan_cover_paths.add(fs_cover_path)
         finally:
-            self.status_controller.finish(CoverStatusTypes.FIND_ORPHAN)
+            self.status_controller.finish(CoverStatusTypes.FIND_ORPHAN.value)
 
         count = self.purge_cover_paths(orphan_cover_paths)
         self.log.info(f"Removed {count} covers for missing comics.")
