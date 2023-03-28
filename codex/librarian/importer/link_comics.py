@@ -192,7 +192,6 @@ class LinkComicsMixin(QueuedThread):
         if status:
             status.complete = 0
             status.total = 0
-            self.status_controller.update(status, notify=False)
         for field_name, m2m_links in all_m2m_links.items():
             try:
                 self.bulk_fix_comic_m2m_field(field_name, m2m_links, status)
