@@ -84,7 +84,7 @@ class CreateForeignKeysMixin(QueuedThread):
         return obj
 
     @status_notify()
-    def bulk_group_creator(self, group_tree_counts, group_class, **kwargs):
+    def bulk_group_creator(self, group_tree_counts, group_class, status=None):
         """Bulk creates groups."""
         count = 0
         if not group_tree_counts:
@@ -102,10 +102,13 @@ class CreateForeignKeysMixin(QueuedThread):
         )
         count += len(create_groups)
         self.log.info(f"Created {count} {group_class.__name__}s.")
+        if status:
+            status.complete += count
+            self.status_controller.update(status)
         return count
 
     @status_notify()
-    def bulk_group_updater(self, group_tree_counts, group_class, **kwargs):
+    def bulk_group_updater(self, group_tree_counts, group_class, status=None):
         """Bulk update groups."""
         count = 0
         if not group_tree_counts:
@@ -121,6 +124,9 @@ class CreateForeignKeysMixin(QueuedThread):
         group_class.objects.bulk_update(update_groups, fields=[count_field])
         count += len(update_groups)
         self.log.info(f"Updated {count} {group_class.__name__}s.")
+        if status:
+            status.complete += count
+            self.status_controller.update(status)
         return count
 
     @status_notify(status_type=ImportStatusTypes.DIRS_MODIFIED.value, updates=False)
@@ -190,13 +196,14 @@ class CreateForeignKeysMixin(QueuedThread):
             )
             count += len(create_folders)
             if status:
-                status.complete = count
+                status.complete = len(create_folders)
                 self.status_controller.update(status)
+
         self.log.info(f"Created {count} Folders.")
         return count
 
     @status_notify()
-    def bulk_create_named_models(self, names, named_class, **kwargs):
+    def bulk_create_named_models(self, names, named_class, status=None):
         """Bulk create named models."""
         count = len(names)
         if not count:
@@ -213,10 +220,13 @@ class CreateForeignKeysMixin(QueuedThread):
             unique_fields=named_class._meta.unique_together[0],
         )
         self.log.info(f"Created {count} {named_class.__name__}s.")
+        if status:
+            status.complete += count
+            status.update(status)
         return count
 
     @status_notify()
-    def bulk_create_creators(self, create_creator_tuples, **kwargs):
+    def bulk_create_creators(self, create_creator_tuples, status=None):
         """Bulk create creators."""
         if not create_creator_tuples:
             return 0
@@ -237,4 +247,7 @@ class CreateForeignKeysMixin(QueuedThread):
         )
         count = len(create_creators)
         self.log.info(f"Created {count} creators.")
+        if status:
+            status.complete += count
+            status.update(status)
         return count
