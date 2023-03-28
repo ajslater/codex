@@ -315,13 +315,13 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             raise
         return count
 
-    def remove_django_ids(self, pks, writer):
+    def remove_django_ids(self, pks, writer, searcher=None):
         """Remove a large batch of docs by pk from the index."""
         # Does not benefit from multiprocessing.
         if not len(pks):
             return 0
         query = Or([Term(DJANGO_ID, str(pk)) for pk in pks])
-        return writer.delete_by_query(query)
+        return writer.delete_by_query(query, searcher=searcher)
 
     def remove_docnums(self, docnums, sc=None, status=None, queue=None):
         """Remove a batch of docnums from the index.."""
