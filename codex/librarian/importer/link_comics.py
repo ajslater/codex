@@ -185,7 +185,7 @@ class LinkComicsMixin(QueuedThread):
             status.complete = created_count + del_count
             self.status_controller.update(status)
 
-    @status_notify(status_type=ImportStatusTypes.LINK_M2M_FIELDS.value)
+    @status_notify(status_type=ImportStatusTypes.LINK_M2M_FIELDS.value, updates=False)
     def bulk_query_and_link_comic_m2m_fields(self, all_m2m_mds, status=None):
         """Combine query and bulk link into a batch."""
         all_m2m_links = self._link_comic_m2m_fields(all_m2m_mds)
