@@ -178,6 +178,11 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         """Add the custom FILESIZE field to the schema."""
         content_field_name, schema = super().build_schema(fields)
 
+        # Boost series field
+        series_field = schema._fields["series"]
+        series_field.format = series_field.format.__class__(field_boost=1.25)
+
+        # Replace size field
         schema.remove("size")
         schema.add(
             "size",
@@ -187,6 +192,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                 field_boost=1,
             ),
         )
+
         return content_field_name, schema
 
     def setup(self, add_plugins=True):
