@@ -21,6 +21,7 @@ border-radius: 128px;
 - Private Libraries accessible only to certain groups of users.
 - Reads CBZ, CBR, CBT, and PDF formatted comics.
 - Syndication with OPDS, streaming, search and authentication.
+- Runs in 1GB of RAM, faster with more.
 
 ### Examples
 
