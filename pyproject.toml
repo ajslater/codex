@@ -56,6 +56,7 @@ fnvhash = "^0.1"
 humanfriendly = "^10.0"
 humanize = "^4.0.0"
 hypercorn = { extras = ["h3"], version = "^0.14.1" }
+psutil = "^5.9.4"
 pycountry = "^22.1"
 pymupdf = "^1.21.1"
 python-dateutil = "^2.8.2"
@@ -66,7 +67,6 @@ websocket_client = "^1.2"
 whitenoise = { extras = ["brotli"], version = "^6.0" }
 whoosh = "^2.7.4"
 Pillow = "^9.1.0"
-psutil = "^5.9.4"
 
 [tool.poetry.group.dev.dependencies]
 neovim = "^0.3.1"
