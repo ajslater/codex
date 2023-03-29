@@ -11,22 +11,18 @@ border-radius: 128px;
 ### I remember... my whole life. Everything
 
 - Features
-  - Sped up comic import.
+  - Codex stable in 1GB RAM environments. Faster with more.
+  - Browser navigate to top button.
   - OPDS
     - Top links display only at catalog root.
-    - Extended metadata moved to `rel='alternate'` links.
-      - Speeds up acquistion feeds and makes all metadata optionally available
-        to clients which support the spec.
+    - Extended metadata moved to alternate links.
   - Admin
+    - Search Indexer Remove Stale Records task much faster
+    - Comic import speedups.
     - Fancier sortable admin tables.
-    - Remove `max_db_ops` config variable. Now auto shifts by memory available.
-  - Search Indexer
-    - Long running remove stale records interruptible by other search engine
-      tasks.
-  - Browser navigate to top button.
+    - Removed `max_db_ops` config variable.
 - Fix
   - Search Index
-    - Now works in lower memory environments.
     - More robust against bad data.
     - Some search fields were case sensitive.
   - Codex was backing up on every startup.

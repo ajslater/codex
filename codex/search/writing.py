@@ -121,19 +121,41 @@ class CodexWriter(BufferedWriter):
             # Hijack a writer to make the calls into the codec
             w.add_document(**fields)
 
-    def delete_document(self, docnum, delete=True, writer=None):
-        """Delete a document by getting the writer."""
-        # Also count deletes as bufferedcounts as they're batched
-        # and not matched to every add.
+    def _stage_segment_deletes(self, writer, docnums):
+        """Get the deletes to perform."""
+        base = self.index.refresh().doc_count_all()
         with self.lock:
-            base = self.index.refresh().doc_count_all()
-            if docnum < base:
-                if not writer:
-                    writer = self.get_writer("delete_document")
-                writer.delete_document(docnum, delete=delete)
-            else:
-                ramsegment = self.codec.segment
-                ramsegment.delete_document(docnum - base, delete=delete)
+            for docnum in sorted(docnums):
+                if docnum < base:
+                    segment, segdocnum = writer._segment_and_docnum(
+                        docnum
+                    )  # noqa SLF001
+                else:
+                    segment = self.codec.segment
+                    segdocnum = docnum - base
+                segment.delete_document(segdocnum, delete=True)
+        return len(docnums)
+
+    def delete_batch_documents(self, docnums):
+        """Delete multiple documents very quickly."""
+        count = 0
+        writer = self.get_writer("delete_batch_docnums")
+        count = self._stage_segment_deletes(writer, docnums)
+
+        # Commit
+        with self.lock:
+            try:
+                writer.commit(**self.commitargs)
+            except (FileNotFoundError, NameError):
+                # XXX This is a multiprocessing error.
+                # either the toc fragment we're looking for doesn't exist
+                # or the one we're trying to write already exists.
+                writer.cancel()
+                count = 0
+            except Exception:
+                writer.cancel()
+                raise
+        return count
 
     def is_deleted(self, docnum):
         """Check if document is deleted with temporary writer."""
@@ -154,48 +176,10 @@ class CodexWriter(BufferedWriter):
         s = searcher if searcher else self.searcher()
 
         count = 0
-        writer = self.get_writer("delete_by_query")  # LOCKS WRITING
         try:
             docnums = s.docs_for_query(q, for_deletion=True)
-            for docnum in docnums:
-                self.delete_document(docnum, writer=writer)
-                count += 1
+            self.delete_batch_documents(docnums)
         finally:
             if not searcher:
                 s.close()
-            with self.lock:
-                try:
-                    writer.commit(**self.commitargs)
-                except (FileNotFoundError, NameError):
-                    # XXX This is a multiprocessing error.
-                    # either the toc fragment we're looking for doesn't exist
-                    # or the one we're trying to write already exists.
-                    writer.cancel()
-                    count = 0
-                except Exception:
-                    writer.cancel()
-                    raise
-
-        return count
-
-    def delete_docnums(self, docnums, sc=None, status=None, queue=None):
-        """Delete all docunums.
-
-        :returns: the number of documents deleted.
-        Single threaded.
-        """
-        count = 0
-        writer = self.get_writer("delete_docnums")
-        try:
-            for docnum in docnums:
-                if queue and not queue.empty():
-                    raise AbortOperationError()  # noqa TRY301
-                self.delete_document(docnum, writer=writer)
-                count += 1
-                if sc and status:
-                    status.complete = count
-                    sc.update(status)
-        finally:
-            with self.lock:
-                writer.commit(**self.commitargs)
         return count
