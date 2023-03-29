@@ -127,9 +127,9 @@ class CodexWriter(BufferedWriter):
         with self.lock:
             for docnum in sorted(docnums):
                 if docnum < base:
-                    segment, segdocnum = writer._segment_and_docnum(
+                    segment, segdocnum = writer._segment_and_docnum(  # noqa SLF001
                         docnum
-                    )  # noqa SLF001
+                    )
                 else:
                     segment = self.codec.segment
                     segdocnum = docnum - base
