@@ -1,5 +1,4 @@
 """Search Index update."""
-from copy import deepcopy
 from datetime import datetime
 from math import ceil
 from multiprocessing import Pool, cpu_count
@@ -13,7 +12,6 @@ from haystack.exceptions import SearchFieldError
 from humanize import naturaldelta
 from whoosh.query import Every
 
-from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.search.remove import RemoveMixin
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexRemoveStaleTask
@@ -28,10 +26,6 @@ if TYPE_CHECKING:
 class UpdateMixin(RemoveMixin):
     """Search Index update methods."""
 
-    _STATUS_UPDATE_START_TYPES = (
-        Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE.value),
-        Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value),
-    )
     _STATUS_FINISH_TYPES = (
         SearchIndexStatusTypes.SEARCH_INDEX_CLEAR.value,
         SearchIndexStatusTypes.SEARCH_INDEX_UPDATE.value,
@@ -52,11 +46,13 @@ class UpdateMixin(RemoveMixin):
 
     def _init_statuses(self, rebuild):
         """Initialize all statuses order before starting."""
-        statuses = []
+        statii = []
         if rebuild:
-            statuses += [Status(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR.value)]
-        statuses += deepcopy(self._STATUS_UPDATE_START_TYPES)
-        self.status_controller.start_many(statuses)
+            statii += [Status(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR.value)]
+        statii += [Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE.value)]
+        if not rebuild:
+            statii += [Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value)]
+        self.status_controller.start_many(statii)
 
     @classmethod
     def _get_latest_update_at_from_results(cls, results):
@@ -321,25 +317,22 @@ class UpdateMixin(RemoveMixin):
             # Clear
             if rebuild:
                 self.log.info("Rebuilding search index...")
+                self.status_controller.start(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
                 backend.clear(commit=True)
                 self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
                 self.log.info("Old search index cleared.")
 
             # Update
             backend.setup(False)
-
             qs = self._get_queryset(backend, rebuild)
             self._mp_update(backend, qs)
 
             # Finish
             if rebuild:
                 self.set_search_index_version()
-                self.status_controller.finish(
-                    SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value, notify=False
-                )
-
             else:
-                LIBRARIAN_QUEUE.put(SearchIndexRemoveStaleTask())
+                task = SearchIndexRemoveStaleTask()
+                self.librarian_queue.put(task)
 
             elapsed_time = time() - start_time
             elapsed = naturaldelta(elapsed_time)
