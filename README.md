@@ -117,21 +117,21 @@ Untested. Try following the instructions for [Debian](#debian) above.
 
 Untested partial instructions for the brave.
 
-1. Install [Cygwin](https://www.cygwin.com/).
-2. Install wget with cygwin.
-3. Install:
-   - python3.9+
-   - gcc
-   - gcc-g++
-   - libffi-devel
-   - libjpeg-devel
-   - libssl-devel
-   - mpfr
-   - mpc
-   - python3-devel
-   - python39-cffi
-   - python3.9-openssl with cygwin.
-4. Using a terminal:
+1.  Install [Cygwin](https://www.cygwin.com/).
+2.  Install wget with cygwin.
+3.  Install:
+    - python3.9+
+    - gcc
+    - gcc-g++
+    - libffi-devel
+    - libjpeg-devel
+    - libssl-devel
+    - mpfr
+    - mpc
+    - python3-devel
+    - python39-cffi
+    - python3.9-openssl with cygwin.
+4.  Using a terminal:
 
 ```sh
 pip install wheel
@@ -311,11 +311,17 @@ recreate. See this
 [nginx with dynamix upstreams](https://tenzer.dk/nginx-with-dynamic-upstreams/)
 article.
 
-### Restricted Memory Environments.
+### Restricted Memory Environments
 
-Codex can run with as little as 1GB available RAM. Large batch jobs –like importing and indexing tens of thousands of comics at once– will run faster the more memory is available to Codex. The biggest gains in speed happen when you increase memory up to about 6GB. Codex batch jobs do get faster the more memory you give it above 6GB, but there are diminishing returns.
+Codex can run with as little as 1GB available RAM. Large batch jobs –like
+importing and indexing tens of thousands of comics at once– will run faster the
+more memory is available to Codex. The biggest gains in speed happen when you
+increase memory up to about 6GB. Codex batch jobs do get faster the more memory
+you give it above 6GB, but there are diminishing returns.
 
-If you run Codex in an admin restricted memory environment you might want to temporarily give codex a lot of memory to run a very large batch job and then restrict it for normal operation.
+If you run Codex in an admin restricted memory environment you might want to
+temporarily give codex a lot of memory to run a very large batch job and then
+restrict it for normal operation.
 
 ## <a name="usage">📖 Usage</a>
 
@@ -407,7 +413,7 @@ rebuild it. The database lives in the config directory as the file
 `config/db.sqlite3`. If this procedure goes kablooey, you may recover the
 original database at `config/db.sqlite3.backup`.
 
-## <a name="bug_reports>🐛 Bug Reports</a>
+## \<a name="bug_reports>🐛 Bug Reports</a>
 
 Issues and feature requests are best filed on the
 [Github issue tracker](https://github.com/ajslater/codex/issues).
@@ -456,7 +462,7 @@ frontend.
 `/codex/frontend/dev-server.sh` runs the development autoreloading frontend with
 vite.
 
-## <a name="links>🔗 Links</a>
+## \<a name="links>🔗 Links</a>
 
 - [Docker Image](https://hub.docker.com/r/ajslater/codex)
 - [PyPi Package](https://pypi.org/project/codex/)

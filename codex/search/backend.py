@@ -232,7 +232,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         self.log.debug("Memory limited. Disabled search index mmap")
 
     def _setup_parser_plugin_patch(self):
-        """Setup codex plugins."""
+        """Set up codex plugins."""
         # Fix duplicate plugin bug:
         # https://github.com/mchaput/whoosh/pull/11
         self.parser.remove_plugin_class(WhitespacePlugin)

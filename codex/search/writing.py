@@ -1,9 +1,9 @@
 """Custom Codex Writer."""
-from whoosh.reading import MultiReader
 from threading import RLock
 from time import sleep
 
 from whoosh.index import FileIndex, LockError
+from whoosh.reading import MultiReader
 from whoosh.writing import BufferedWriter
 
 
@@ -77,7 +77,8 @@ class CodexWriter(BufferedWriter):
             info.schema,
             info.segments,
             info.generation + 1,
-            # using the ram index for reuse massively reduces duplication, but is a hack.
+            # using the ram index for reuse massively reduces
+            # duplication, but is a hack.
             reuse=ramreader,
         )
 

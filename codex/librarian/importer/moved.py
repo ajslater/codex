@@ -62,7 +62,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
         # Update m2m field
         count = len(comics)
         if folder_m2m_links:
-            self.bulk_fix_comic_m2m_field("folders", folder_m2m_links)
+            self.bulk_fix_comic_m2m_field("folders", folder_m2m_links, None)
         self.log.info(f"Moved {count} comics.")
 
         return count
