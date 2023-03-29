@@ -5,7 +5,6 @@ So we may safely create the comics next.
 from pathlib import Path
 
 from django.db.models.functions import Now
-from codex import status_controller
 
 from codex.librarian.importer.status import ImportStatusTypes, status_notify
 from codex.models import (
