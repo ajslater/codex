@@ -34,7 +34,7 @@ class RemoveMixin(VersionMixin):
         self, backend: Optional[CodexSearchBackend] = None  # type: ignore
     ):
         """Remove records not in the database from the index."""
-        status = Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value)
+        status = Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE)
         try:
             if not self.queue.empty():
                 # don't even start if something else is waiting

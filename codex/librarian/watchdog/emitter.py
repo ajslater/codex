@@ -204,7 +204,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
         library = self._is_take_snapshot(timeout)
         if not library:
             return
-        status = Status(WatchdogStatusTypes.POLL.value, subtitle=self.watch.path)
+        status = Status(WatchdogStatusTypes.POLL, subtitle=self.watch.path)
         try:
             self.status_controller.start(status)
             self.log.debug(f"Polling {self.watch.path}...")

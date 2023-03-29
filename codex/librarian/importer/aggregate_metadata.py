@@ -137,7 +137,7 @@ class AggregateMetadataMixin(CleanMetadataMixin):
             cls._set_max_group_count(common_args, Series, 3, "volume_count")
             cls._set_max_group_count(common_args, Volume, 4, "issue_count")
 
-    @status_notify(status_type=ImportStatusTypes.AGGREGATE_TAGS.value)
+    @status_notify(status_type=ImportStatusTypes.AGGREGATE_TAGS)
     def get_aggregate_metadata(
         self,
         all_paths,
@@ -180,9 +180,7 @@ class AggregateMetadataMixin(CleanMetadataMixin):
                 self.status_controller.update(status)
 
         all_fks["comic_paths"] = frozenset(all_mds.keys())
-        fi_status = Status(
-            ImportStatusTypes.FAILED_IMPORTS.value, 0, len(all_failed_imports)
-        )
+        fi_status = Status(ImportStatusTypes.FAILED_IMPORTS, 0, len(all_failed_imports))
         self.status_controller.update(
             fi_status,
             notify=False,

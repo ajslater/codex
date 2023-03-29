@@ -27,7 +27,7 @@ for field in Comic._meta.get_fields():
 class UpdateComicsMixin(LinkComicsMixin):
     """Create comics methods."""
 
-    @status_notify(status_type=ImportStatusTypes.FILES_MODIFIED.value, updates=False)
+    @status_notify(status_type=ImportStatusTypes.FILES_MODIFIED, updates=False)
     def bulk_update_comics(self, comic_paths, library, create_paths, mds, **kwargs):
         """Bulk update comics, and move nonextant comics into create job.."""
         count = 0

@@ -14,8 +14,8 @@ class CoverPurgeMixin(CoverPathMixin):
     """Cover Purge methods."""
 
     _CLEANUP_STATUS_MAP = (
-        Status(CoverStatusTypes.FIND_ORPHAN.value),
-        Status(CoverStatusTypes.PURGE_COVERS.value),
+        Status(CoverStatusTypes.FIND_ORPHAN),
+        Status(CoverStatusTypes.PURGE_COVERS),
     )
 
     @classmethod
@@ -32,7 +32,7 @@ class CoverPurgeMixin(CoverPathMixin):
     def purge_cover_paths(self, cover_paths):
         """Purge a set a cover paths."""
         self.log.debug(f"Removing {len(cover_paths)} possible cover thumbnails...")
-        status = Status(CoverStatusTypes.PURGE_COVERS.value, 0, len(cover_paths))
+        status = Status(CoverStatusTypes.PURGE_COVERS, 0, len(cover_paths))
         try:
             self.status_controller.start(status)
             cover_dirs = set()
@@ -83,7 +83,7 @@ class CoverPurgeMixin(CoverPathMixin):
                     if fs_cover_path not in db_cover_paths:
                         orphan_cover_paths.add(fs_cover_path)
         finally:
-            self.status_controller.finish(CoverStatusTypes.FIND_ORPHAN.value)
+            self.status_controller.finish(CoverStatusTypes.FIND_ORPHAN)
 
         count = self.purge_cover_paths(orphan_cover_paths)
         self.log.info(f"Removed {count} covers for missing comics.")

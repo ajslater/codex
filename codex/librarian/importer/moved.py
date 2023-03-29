@@ -16,7 +16,7 @@ MOVED_BULK_FOLDER_UPDATE_FIELDS = ("path", "parent_folder", "name")
 class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixin):
     """Methods for moving comics and folders."""
 
-    @status_notify(status_type=ImportStatusTypes.FILES_MOVED.value, updates=False)
+    @status_notify(status_type=ImportStatusTypes.FILES_MOVED, updates=False)
     def bulk_comics_moved(self, moved_paths, library, status=None):
         """Move comcis."""
         count = 0
@@ -93,7 +93,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
             dest_parent_folders[folder.path] = folder
         return dest_parent_folders
 
-    @status_notify(status_type=ImportStatusTypes.DIRS_MOVED.value, updates=False)
+    @status_notify(status_type=ImportStatusTypes.DIRS_MOVED, updates=False)
     def bulk_folders_moved(self, folders_moved, library, **kwargs):
         """Move folders in the database instead of recreating them."""
         if not folders_moved:

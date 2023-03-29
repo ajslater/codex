@@ -62,7 +62,7 @@ class CleanupMixin(WorkerBaseMixin):
 
     def cleanup_fks(self):
         """Clean up unused foreign keys."""
-        status = Status(JanitorStatusTypes.CLEANUP_FK.value, 0, TOTAL_NUM_FK_CLASSES)
+        status = Status(JanitorStatusTypes.CLEANUP_FK, 0, TOTAL_NUM_FK_CLASSES)
         try:
             self.status_controller.start(status)
             self.log.debug("Cleaning up unused foreign keys...")
@@ -76,7 +76,7 @@ class CleanupMixin(WorkerBaseMixin):
     def cleanup_sessions(self):
         """Delete corrupt sessions."""
         start = time()
-        status = Status(JanitorStatusTypes.CLEANUP_SESSIONS.value)
+        status = Status(JanitorStatusTypes.CLEANUP_SESSIONS)
         try:
             self.status_controller.start(status)
             count, _ = Session.objects.filter(expire_date__lt=now()).delete()

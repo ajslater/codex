@@ -29,11 +29,11 @@ class MergeMixin(VersionMixin):
         """Optimize search index."""
         verb = "All" if optimize else "Small"
         name = f"Merge {verb} Segments"
-        status = Status(SearchIndexStatusTypes.SEARCH_INDEX_MERGE.value, subtitle=name)
+        status = Status(SearchIndexStatusTypes.SEARCH_INDEX_MERGE, subtitle=name)
         try:
             statii = (
                 status,
-                Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value),
+                Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE),
             )
             self.status_controller.start_many(statii)
             start = time()

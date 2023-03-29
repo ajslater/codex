@@ -10,7 +10,7 @@ from codex.models import (
 class CreateComicsMixin(LinkComicsMixin):
     """Create comics methods."""
 
-    @status_notify(status_type=ImportStatusTypes.FILES_CREATED.value, updates=False)
+    @status_notify(status_type=ImportStatusTypes.FILES_CREATED, updates=False)
     def bulk_create_comics(self, comic_paths, library, mds, **kwargs):
         """Bulk create comics."""
         if not comic_paths:

@@ -15,7 +15,7 @@ class VacuumMixin(WorkerBaseMixin):
 
     def vacuum_db(self):
         """Vacuum the database and report on savings."""
-        status = Status(JanitorStatusTypes.DB_OPTIMIZE.value)
+        status = Status(JanitorStatusTypes.DB_OPTIMIZE)
         try:
             self.status_controller.start(status)
             old_size = DB_PATH.stat().st_size
@@ -32,7 +32,7 @@ class VacuumMixin(WorkerBaseMixin):
 
     def backup_db(self, backup_path=BACKUP_DB_PATH, show_status=True):
         """Backup the database."""
-        status = Status(JanitorStatusTypes.DB_BACKUP.value) if show_status else ""
+        status = Status(JanitorStatusTypes.DB_BACKUP) if show_status else ""
         try:
             if show_status:
                 self.status_controller.start(status)

@@ -1,4 +1,5 @@
 """Librarian Status."""
+from enum import Enum
 from logging import DEBUG, INFO
 from time import time
 
@@ -49,6 +50,15 @@ class StatusController(LoggerBaseMixin):
         count = "?" if status.complete is None else status.complete
         total = "?" if status.total is None else status.total
         self.log.log(level, f"{title}: {count}/{total}")
+
+    @staticmethod
+    def _to_status_type_value(status):
+        """Convert Status and Enums to str types."""
+        if isinstance(status, Status):
+            status = status.status_type
+        elif isinstance(status, Enum):
+            status = status.value
+        return status
 
     def start(
         self,
@@ -114,7 +124,7 @@ class StatusController(LoggerBaseMixin):
         try:
             types = []
             for status in statii:
-                types += [status.status_type if isinstance(status, Status) else status]
+                types += [self._to_status_type_value(status)]
             ls_filter = {"status_type__in": types} if types else {}
             updates = {**STATUS_DEFAULTS, "updated_at": Now()}
             LibrarianStatus.objects.filter(**ls_filter).update(**updates)

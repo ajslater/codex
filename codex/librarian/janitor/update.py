@@ -16,7 +16,7 @@ class UpdateMixin(WorkerBaseMixin):
 
     def restart_codex(self):
         """Send a system SIGUSR1 signal as handled in run.py."""
-        status = Status(JanitorStatusTypes.CODEX_RESTART.value)
+        status = Status(JanitorStatusTypes.CODEX_RESTART)
         try:
             self.status_controller.start(status)
             self.log.info("Sending restart signal.")
@@ -27,7 +27,7 @@ class UpdateMixin(WorkerBaseMixin):
 
     def update_codex(self, force=False):
         """Update the package and restart everything if the version changed."""
-        status = Status(JanitorStatusTypes.CODEX_UPDATE.value)
+        status = Status(JanitorStatusTypes.CODEX_UPDATE)
         try:
             self.status_controller.start(status)
             if force:
@@ -66,7 +66,7 @@ class UpdateMixin(WorkerBaseMixin):
 
     def shutdown_codex(self):
         """Send a system SIGTERM signal as handled in run.py."""
-        status = Status(JanitorStatusTypes.CODEX_STOP.value)
+        status = Status(JanitorStatusTypes.CODEX_STOP)
         try:
             self.status_controller.start(status)
             self.log.info("Sending shutdown signal.")

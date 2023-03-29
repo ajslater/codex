@@ -71,7 +71,7 @@ class ApplyDBOpsMixin(
         create_fks = {}
         self.log.debug(f"Querying existing foreign keys for comics in {library_path}")
         fks_total = self._get_query_fks_totals(fks)
-        status = Status(ImportStatusTypes.QUERY_MISSING_FKS.value, 0, fks_total)
+        status = Status(ImportStatusTypes.QUERY_MISSING_FKS, 0, fks_total)
         try:
             self.status_controller.start(status)
 
@@ -135,7 +135,7 @@ class ApplyDBOpsMixin(
     def create_all_fks(self, library, create_data):
         """Bulk create all foreign keys."""
         total_fks = self._get_create_fks_totals(create_data)
-        status = Status(ImportStatusTypes.CREATE_FKS.value, 0, total_fks)
+        status = Status(ImportStatusTypes.CREATE_FKS, 0, total_fks)
         try:
             self.status_controller.start(status)
             (
@@ -211,9 +211,7 @@ class ApplyDBOpsMixin(
         created_count = 0
         try:
             fis = {"update_fis": {}, "create_fis": {}, "delete_fi_paths": set()}
-            status = Status(
-                ImportStatusTypes.FAILED_IMPORTS.value, 0, len(failed_imports)
-            )
+            status = Status(ImportStatusTypes.FAILED_IMPORTS, 0, len(failed_imports))
             status.total = self.query_failed_imports(
                 failed_imports,
                 library,

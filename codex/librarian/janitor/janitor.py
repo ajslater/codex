@@ -24,16 +24,16 @@ from codex.models import AdminFlag, Timestamp
 from codex.status import Status
 
 _JANITOR_STATII = (
-    Status(JanitorStatusTypes.CLEANUP_FK.value, 0, TOTAL_NUM_FK_CLASSES),
-    Status(JanitorStatusTypes.CLEANUP_SESSIONS.value),
-    Status(JanitorStatusTypes.DB_OPTIMIZE.value),
-    Status(JanitorStatusTypes.DB_BACKUP.value),
-    Status(JanitorStatusTypes.CODEX_UPDATE.value),
-    Status(CoverStatusTypes.FIND_ORPHAN.value),
-    Status(CoverStatusTypes.PURGE_COVERS.value),
-    Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE.value),
-    Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value),
-    Status(SearchIndexStatusTypes.SEARCH_INDEX_MERGE.value),
+    Status(JanitorStatusTypes.CLEANUP_FK, 0, TOTAL_NUM_FK_CLASSES),
+    Status(JanitorStatusTypes.CLEANUP_SESSIONS),
+    Status(JanitorStatusTypes.DB_OPTIMIZE),
+    Status(JanitorStatusTypes.DB_BACKUP),
+    Status(JanitorStatusTypes.CODEX_UPDATE),
+    Status(CoverStatusTypes.FIND_ORPHAN),
+    Status(CoverStatusTypes.PURGE_COVERS),
+    Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE),
+    Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE),
+    Status(SearchIndexStatusTypes.SEARCH_INDEX_MERGE),
 )
 
 

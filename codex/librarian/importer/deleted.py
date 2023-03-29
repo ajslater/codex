@@ -13,7 +13,7 @@ class DeletedMixin(QueuedThread):
         task = CoverRemoveTask(delete_comic_pks)
         self.librarian_queue.put(task)
 
-    @status_notify(status_type=ImportStatusTypes.DIRS_DELETED.value, updates=False)
+    @status_notify(status_type=ImportStatusTypes.DIRS_DELETED, updates=False)
     def bulk_folders_deleted(self, delete_folder_paths, library, **kwargs):
         """Bulk delete folders."""
         if not delete_folder_paths:
@@ -35,7 +35,7 @@ class DeletedMixin(QueuedThread):
         )
         return count
 
-    @status_notify(status_type=ImportStatusTypes.FILES_DELETED.value, updates=False)
+    @status_notify(status_type=ImportStatusTypes.FILES_DELETED, updates=False)
     def bulk_comics_deleted(self, delete_comic_paths, library, **kwargs):
         """Bulk delete comics found missing from the filesystem."""
         if not delete_comic_paths:

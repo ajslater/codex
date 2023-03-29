@@ -97,7 +97,7 @@ class CoverCreateMixin(CoverPathMixin):
         num_comics = len(comic_pks)
         if not num_comics:
             return None
-        status = Status(CoverStatusTypes.CREATE_COVERS.value, 0, num_comics)
+        status = Status(CoverStatusTypes.CREATE_COVERS, 0, num_comics)
         try:
             start_time = time()
             self.log.debug(f"Creating {num_comics} comic covers...")

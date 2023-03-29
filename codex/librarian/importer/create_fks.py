@@ -129,7 +129,7 @@ class CreateForeignKeysMixin(QueuedThread):
             self.status_controller.update(status)
         return count
 
-    @status_notify(status_type=ImportStatusTypes.DIRS_MODIFIED.value, updates=False)
+    @status_notify(status_type=ImportStatusTypes.DIRS_MODIFIED, updates=False)
     def bulk_folders_modified(self, paths, library, **kwargs):
         """Update folders stat and nothing else."""
         count = 0

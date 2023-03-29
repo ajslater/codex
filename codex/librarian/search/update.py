@@ -27,8 +27,8 @@ class UpdateMixin(RemoveMixin):
     """Search Index update methods."""
 
     _STATUS_FINISH_TYPES = (
-        SearchIndexStatusTypes.SEARCH_INDEX_CLEAR.value,
-        SearchIndexStatusTypes.SEARCH_INDEX_UPDATE.value,
+        SearchIndexStatusTypes.SEARCH_INDEX_CLEAR,
+        SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
     )
     _MIN_UTC_DATE = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
     _MIN_BATCH_SIZE = 1
@@ -48,10 +48,10 @@ class UpdateMixin(RemoveMixin):
         """Initialize all statuses order before starting."""
         statii = []
         if rebuild:
-            statii += [Status(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR.value)]
-        statii += [Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE.value)]
+            statii += [Status(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)]
+        statii += [Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE)]
         if not rebuild:
-            statii += [Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value)]
+            statii += [Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE)]
         self.status_controller.start_many(statii)
 
     @classmethod
@@ -267,7 +267,7 @@ class UpdateMixin(RemoveMixin):
         num_comics = qs.count()
         if not num_comics:
             return
-        status = Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE.value, 0, num_comics)
+        status = Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE, 0, num_comics)
         try:
             self.status_controller.start(status)
 
@@ -340,14 +340,10 @@ class UpdateMixin(RemoveMixin):
             self.log.info(f"Search index updated in {elapsed}.")
         except MemoryError:
             self.log.warning("Search index needs more memory to update.")
-            self.status_controller.finish(
-                SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value
-            )
+            self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE)
         except Exception:
             self.log.exception("Update search index")
-            self.status_controller.finish(
-                SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value
-            )
+            self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE)
         finally:
             # Finishing these tasks inside the command process leads to a timing
             # misalignment. Finish it here works.

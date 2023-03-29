@@ -106,28 +106,24 @@ class ComicImporterThread(ApplyDBOpsMixin):
         """Initialize librarian statuses for modified or created ops."""
         total_paths = len(task.files_modified) + len(task.files_created)
         status_list += [
-            Status(
-                ImportStatusTypes.AGGREGATE_TAGS.value, 0, total_paths, subtitle=path
-            ),
-            Status(ImportStatusTypes.QUERY_MISSING_FKS.value),
-            Status(ImportStatusTypes.CREATE_FKS.value),
+            Status(ImportStatusTypes.AGGREGATE_TAGS, 0, total_paths, subtitle=path),
+            Status(ImportStatusTypes.QUERY_MISSING_FKS),
+            Status(ImportStatusTypes.CREATE_FKS),
         ]
         if task.files_modified:
             status_list += [
                 Status(
-                    ImportStatusTypes.FILES_MODIFIED.value,
+                    ImportStatusTypes.FILES_MODIFIED,
                     None,
                     len(task.files_modified),
                 )
             ]
         if task.files_created:
             status_list += [
-                Status(
-                    ImportStatusTypes.FILES_CREATED.value, None, len(task.files_created)
-                )
+                Status(ImportStatusTypes.FILES_CREATED, None, len(task.files_created))
             ]
         if task.files_modified or task.files_created:
-            status_list += [Status(ImportStatusTypes.LINK_M2M_FIELDS.value)]
+            status_list += [Status(ImportStatusTypes.LINK_M2M_FIELDS)]
         return total_paths
 
     def _init_librarian_status(self, task, path):
@@ -136,18 +132,16 @@ class ComicImporterThread(ApplyDBOpsMixin):
         search_index_updates = 0
         if task.dirs_moved:
             status_list += [
-                Status(ImportStatusTypes.DIRS_MOVED.value, None, len(task.dirs_moved))
+                Status(ImportStatusTypes.DIRS_MOVED, None, len(task.dirs_moved))
             ]
         if task.files_moved:
             status_list += [
-                Status(ImportStatusTypes.FILES_MOVED.value, None, len(task.files_moved))
+                Status(ImportStatusTypes.FILES_MOVED, None, len(task.files_moved))
             ]
             search_index_updates += len(task.files_moved)
         if task.files_modified:
             status_list += [
-                Status(
-                    ImportStatusTypes.DIRS_MODIFIED.value, None, len(task.dirs_modified)
-                )
+                Status(ImportStatusTypes.DIRS_MODIFIED, None, len(task.dirs_modified))
             ]
         if task.files_modified or task.files_created:
             search_index_updates += self._init_if_modified_or_created(
@@ -155,18 +149,16 @@ class ComicImporterThread(ApplyDBOpsMixin):
             )
         if task.files_deleted:
             status_list += [
-                Status(
-                    ImportStatusTypes.FILES_DELETED.value, None, len(task.files_deleted)
-                )
+                Status(ImportStatusTypes.FILES_DELETED, None, len(task.files_deleted))
             ]
             search_index_updates += len(task.files_deleted)
         status_list += [
             Status(
-                SearchIndexStatusTypes.SEARCH_INDEX_UPDATE.value,
+                SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
                 0,
                 search_index_updates,
             ),
-            Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value),
+            Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE),
         ]
         self.status_controller.start_many(status_list)
 
