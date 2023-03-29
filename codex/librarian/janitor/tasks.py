@@ -52,3 +52,8 @@ class JanitorCleanupSessionsTask(JanitorTask):
 @dataclass
 class ForceUpdateAllFailedImportsTask(JanitorTask):
     """Force update for failed imports in every library."""
+
+
+@dataclass
+class JanitorNightlyTask(JanitorTask):
+    """Submit all janitor nightly tasks to the queue."""

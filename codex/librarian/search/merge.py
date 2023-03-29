@@ -27,7 +27,8 @@ class MergeMixin(VersionMixin):
 
     def merge_search_index(self, optimize=False):
         """Optimize search index."""
-        name = "all segments" if optimize else "small segments"
+        verb = "All" if optimize else "Small"
+        name = f"Merge {verb} Segments"
         status = Status(SearchIndexStatusTypes.SEARCH_INDEX_MERGE.value, subtitle=name)
         try:
             statii = (
@@ -40,12 +41,11 @@ class MergeMixin(VersionMixin):
             old_num_segments = len(tuple(SEARCH_INDEX_PATH.glob("*.seg")))
             if self._is_index_optimized(old_num_segments):
                 return
-
+            self.status_controller.start(status)
             # Optimize
-            method = "into one" if optimize else "small segments"
             self.log.info(
                 f"Search index found in {old_num_segments} segments,"
-                f" merging {method}..."
+                f" merging {name}..."
             )
             backend: CodexSearchBackend = self.engine.get_backend()  # type: ignore
             if optimize:
@@ -65,8 +65,5 @@ class MergeMixin(VersionMixin):
             LIBRARIAN_QUEUE.put(SearchIndexRemoveStaleTask())
         except Exception:
             self.log.exception("Search index merge.")
-            self.status_controller.finish(
-                SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value, notify=False
-            )
         finally:
             self.status_controller.finish(status)

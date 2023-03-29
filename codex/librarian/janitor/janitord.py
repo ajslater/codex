@@ -6,21 +6,8 @@ from time import sleep
 from django.utils import timezone as django_timezone
 from humanize import naturaldelta
 
-from codex.librarian.covers.status import CoverStatusTypes
-from codex.librarian.covers.tasks import CoverRemoveOrphansTask
-from codex.librarian.janitor.cleanup import TOTAL_NUM_FK_CLASSES
-from codex.librarian.janitor.status import JanitorStatusTypes
-from codex.librarian.janitor.tasks import (
-    JanitorBackupTask,
-    JanitorCleanFKsTask,
-    JanitorCleanupSessionsTask,
-    JanitorUpdateTask,
-    JanitorVacuumTask,
-)
-from codex.librarian.search.status import SearchIndexStatusTypes
-from codex.librarian.search.tasks import SearchIndexMergeTask, SearchIndexUpdateTask
-from codex.models import AdminFlag, Timestamp
-from codex.status import Status
+from codex.librarian.janitor.tasks import JanitorNightlyTask
+from codex.models import Timestamp
 from codex.threads import NamedThread
 
 _ONE_DAY = timedelta(days=1)
@@ -62,20 +49,6 @@ class JanitorThread(NamedThread):
         self._cond = Condition()
         super().__init__(*args, name=self.__class__.__name__, daemon=True, **kwargs)
 
-    def _init_librarian_status(self):
-        status_list = (
-            Status(JanitorStatusTypes.CLEANUP_FK.value, 0, TOTAL_NUM_FK_CLASSES),
-            Status(JanitorStatusTypes.CLEANUP_SESSIONS.value),
-            Status(JanitorStatusTypes.DB_OPTIMIZE.value),
-            Status(JanitorStatusTypes.DB_BACKUP.value),
-            Status(JanitorStatusTypes.CODEX_UPDATE.value),
-            Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE.value),
-            Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value),
-            Status(SearchIndexStatusTypes.SEARCH_INDEX_MERGE.value),
-            Status(CoverStatusTypes.FIND_ORPHAN.value),
-        )
-        self.status_controller.start_many(status_list)
-
     def run(self):
         """Watch a path and log the events."""
         try:
@@ -89,28 +62,7 @@ class JanitorThread(NamedThread):
                     self._cond.wait(timeout=timeout)
                     if self._stop_event.is_set():
                         break
-
-                    optimize = AdminFlag.objects.get(
-                        key=AdminFlag.FlagChoices.SEARCH_INDEX_OPTIMIZE.value
-                    ).on
-
-                    self._init_librarian_status()
-                    try:
-                        tasks = [
-                            JanitorCleanFKsTask(),
-                            JanitorCleanupSessionsTask(),
-                            JanitorVacuumTask(),
-                            JanitorBackupTask(),
-                            JanitorUpdateTask(force=False),
-                            SearchIndexUpdateTask(False),
-                            SearchIndexMergeTask(optimize),
-                            CoverRemoveOrphansTask(),
-                        ]
-                        for task in tasks:
-                            self.librarian_queue.put(task)
-                    except Exception:
-                        self.log.exception(f"In {self.__class__.__name__}")
-                    Timestamp.touch(Timestamp.TimestampChoices.JANITOR)
+                    self.librarian_queue.put(JanitorNightlyTask())
                     sleep(2)
         except Exception:
             self.log.exception(f"In {self.__class__.__name__}")

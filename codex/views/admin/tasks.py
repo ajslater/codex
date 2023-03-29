@@ -12,6 +12,7 @@ from codex.librarian.janitor.tasks import (
     JanitorCleanFKsTask,
     JanitorCleanupSessionsTask,
     JanitorClearStatusTask,
+    JanitorNightlyTask,
     JanitorShutdownTask,
     JanitorUpdateTask,
     JanitorVacuumTask,
@@ -75,6 +76,7 @@ class AdminLibrarianTaskView(APIView):
         "force_update_all_failed_imports": ForceUpdateAllFailedImportsTask(),
         "poll": WatchdogPollLibrariesTask(frozenset(), False),
         "poll_force": WatchdogPollLibrariesTask(frozenset(), True),
+        "janitor_nightly": JanitorNightlyTask(),
     }
 
     @extend_schema(request=input_serializer_class)

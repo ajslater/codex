@@ -58,9 +58,7 @@ class CleanupMixin(WorkerBaseMixin):
             if count:
                 self.log.info(f"Deleted {count} orphan {cls.__name__}s")
             status.complete += 1
-            status.subtitle = cls.__name__
             self.status_controller.update(status)
-        status.subtitle = ""
 
     def cleanup_fks(self):
         """Clean up unused foreign keys."""
