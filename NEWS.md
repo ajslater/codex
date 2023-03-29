@@ -23,6 +23,7 @@ border-radius: 128px;
   - Search Indexer
     - Long running remove stale records interruptible by other search engine
       tasks.
+  - Browser navigate to top button.
 - Fix
   - Search Index
     - Now works in lower memory environments.
