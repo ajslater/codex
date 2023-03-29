@@ -6,21 +6,21 @@ from asyncio import Event
 from codex.logger.logging import get_logger
 
 LOG = get_logger(__name__)
-SIGNAL_NAMES = {"SIGINT", "SIGTERM", "SIGBREAK"}
+STOP_SIGNAL_NAMES = ("SIGABRT", "SIGBREAK", "SIGHUP", "SIGINT", "SIGSEGV", "SIGTERM")
 RESTART_EVENT = Event()
 SHUTDOWN_EVENT = Event()
 
 
-def _shutdown_signal_handler():
-    global SHUTDOWN_EVENT
+def _shutdown_signal_handler(*args):
+    """Initiate Codex Shutdown."""
     if SHUTDOWN_EVENT.is_set():
         return
     LOG.info("Asking hypercorn to shut down gracefully. Could take 10 seconds...")
     SHUTDOWN_EVENT.set()
 
 
-def _restart_signal_handler():
-    global RESTART_EVENT
+def _restart_signal_handler(*args):
+    """Initaite Codex Restart."""
     if RESTART_EVENT.is_set():
         return
     LOG.info("Restart signal received.")
@@ -32,9 +32,8 @@ def bind_signals_to_loop():
     """Binds signals to the handlers."""
     try:
         loop = asyncio.get_running_loop()
-        for signal_name in SIGNAL_NAMES:
-            sig = getattr(signal, signal_name, None)
-            if sig:
+        for name in STOP_SIGNAL_NAMES:
+            if sig := getattr(signal, name, None):
                 loop.add_signal_handler(sig, _shutdown_signal_handler)
         loop.add_signal_handler(signal.SIGUSR1, _restart_signal_handler)
     except NotImplementedError:

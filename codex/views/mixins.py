@@ -20,10 +20,7 @@ class GroupACLMixin:
     def get_group_acl_filter(self, is_comic_model):
         """Generate the group acl filter for comics."""
         # The rel prefix
-        if is_comic_model:
-            prefix = ""
-        else:
-            prefix = "comic__"
+        prefix = "" if is_comic_model else "comic__"
         groups_rel = f"{prefix}library__groups"
 
         # Libraries with no groups are always visible

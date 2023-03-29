@@ -10,6 +10,7 @@
       v-else
       :src="src"
       :fit-to-class="fitToClass"
+      :book="book"
       @error="onError"
       @load="onLoad"
       @unauthorized="onUnauthorized"
@@ -79,7 +80,7 @@ export default {
       return getComicPageSource(params);
     },
     component() {
-      const isPDF = this.book.fileFormat === "pdf";
+      const isPDF = this.book.fileType === "p";
       return isPDF ? PDFPage : ImgPage;
     },
     settings() {

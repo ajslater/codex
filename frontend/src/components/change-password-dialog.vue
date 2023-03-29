@@ -7,7 +7,14 @@
     max-width="22em"
   >
     <template #activator="{ props }">
-      <v-btn v-if="isAdminMode" icon v-bind="props">
+      <v-btn
+        v-if="isAdminMode"
+        icon
+        v-bind="props"
+        :size="size"
+        :density="density"
+        title="Change Password"
+      >
         <v-icon> {{ mdiLockPlusOutline }}</v-icon>
       </v-btn>
       <v-list-item v-else v-bind="props">
@@ -93,6 +100,14 @@ export default {
   props: {
     user: { type: Object, required: true },
     isAdminMode: { type: Boolean, default: false },
+    size: {
+      type: String,
+      default: "default",
+    },
+    density: {
+      type: String,
+      default: "default",
+    },
   },
   data() {
     return {

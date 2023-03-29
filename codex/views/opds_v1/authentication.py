@@ -27,12 +27,12 @@ class AuthenticationView(GenericAPIView):
             {
                 "rel": "help",
                 "href": "https://github.com/ajslater/codex",
-                "type": "text/hml",
+                "type": "text/html",
             },
             {
                 "rel": "register",
                 "href": reverse_lazy("app:start"),
-                "type": "text/hml",
+                "type": "text/html",
             },
         ],
         "authentication": [
@@ -43,7 +43,7 @@ class AuthenticationView(GenericAPIView):
         ],
     }
 
-    def get(self, request, *args, **kwargs):
+    def get(self, *args, **kwargs):
         """Fill in the authentication dict."""
         serializer = self.get_serializer(self.DOC)
         return Response(serializer.data)

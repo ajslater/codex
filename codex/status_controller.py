@@ -1,4 +1,5 @@
 """Librarian Status."""
+from enum import Enum
 from logging import DEBUG, INFO
 from time import time
 
@@ -8,6 +9,18 @@ from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK
 from codex.librarian.tasks import DelayedTasks
 from codex.logger_base import LoggerBaseMixin
 from codex.models import LibrarianStatus
+from codex.serializers.choices import CHOICES
+from codex.status import Status
+
+
+def get_default(field):
+    """Get the default value for the model field."""
+    return LibrarianStatus._meta.get_field(field).get_default()
+
+
+DEFAULT_FIELDS = ("preactive", "complete", "total", "active", "subtitle")
+STATUS_DEFAULTS = {field: get_default(field) for field in DEFAULT_FIELDS}
+STATUS_TITLES = CHOICES["admin"]["statusTitles"]
 
 
 class StatusController(LoggerBaseMixin):
@@ -21,6 +34,7 @@ class StatusController(LoggerBaseMixin):
         self.librarian_queue = librarian_queue
 
     def _enqueue_notifier_task(self, notify=True, until=0.0):
+        """Notify the status has changed."""
         if not notify:
             return
         if until:
@@ -29,86 +43,100 @@ class StatusController(LoggerBaseMixin):
             task = LIBRARIAN_STATUS_TASK
         self.librarian_queue.put(task)
 
-    def loggit(self, level, type, name, complete, total):
+    def _loggit(self, level, status):
         """Log with a ? in place of none."""
-        title = " ".join((type, name)).strip()
-        complete = "?" if complete is None else complete
-        total = "?" if total is None else total
-        self.log.log(level, f"{title}: {complete}/{total}")
+        type_title = STATUS_TITLES[status.status_type]
+        title = " ".join((type_title, status.subtitle)).strip()
+        count = "?" if status.complete is None else status.complete
+        total = "?" if status.total is None else status.total
+        self.log.log(level, f"{title}: {count}/{total}")
+
+    @staticmethod
+    def _to_status_type_value(status):
+        """Convert Status and Enums to str types."""
+        if isinstance(status, Status):
+            status = status.status_type
+        elif isinstance(status, Enum):
+            status = status.value
+        return status
 
     def start(
         self,
-        type,
-        complete=None,
-        total=None,
-        name="",
+        status,
         notify=True,
         now_pad=0.0,
         preactive=False,
     ):
         """Start a librarian status."""
         try:
+            if not status.status_type:
+                reason = f"Bad status type: {status.status_type}"
+                raise ValueError(reason)  # noqa: TRY301
             updates = {
-                "name": name,
                 "preactive": preactive,
-                "complete": complete,
-                "total": total,
+                "complete": status.complete,
+                "total": status.total,
                 "active": Now() + now_pad,
+                "subtitle": status.subtitle,
                 "updated_at": Now(),
             }
-            LibrarianStatus.objects.filter(type=type).update(**updates)
+            LibrarianStatus.objects.filter(status_type=status.status_type).update(
+                **updates
+            )
             self._enqueue_notifier_task(notify)
-            self.loggit(DEBUG, type, name, complete, total)
-        except Exception as exc:
-            self.log.warning(exc)
+            self._loggit(DEBUG, status)
+            status.since = time()
+        except Exception:
+            title = STATUS_TITLES[status.status_type]
+            self.log.exception(f"Start status: {title}")
 
-    def start_many(self, types_map):
+    def start_many(self, status_iterable):
         """Start many librarian statuses."""
         now_pad = 0.0  # a little hack to order these things
-        for type, values in types_map.items():
-            self.start(type, **values, notify=False, now_pad=now_pad, preactive=True)
+        for status in status_iterable:
+            self.start(status, notify=False, now_pad=now_pad, preactive=True)
             now_pad += 0.1
         self._enqueue_notifier_task()
 
-    def update(self, type, complete, total, name="", notify=True, since=0.0):
+    def update(self, status, notify=True):
         """Update a librarian status."""
-        if time() - since > self._UPDATE_DELTA:
+        if time() - status.since > self._UPDATE_DELTA:
             updates = {
                 "preactive": False,
-                "complete": complete,
-                "total": total,
+                "complete": status.complete,
+                "total": status.total,
                 "updated_at": Now(),
             }
             try:
-                LibrarianStatus.objects.filter(type=type).update(**updates)
+                LibrarianStatus.objects.filter(status_type=status.status_type).update(
+                    **updates
+                )
                 self._enqueue_notifier_task(notify)
                 if notify:
-                    self.loggit(INFO, type, name, complete, total)
-                    since = time()
+                    self._loggit(INFO, status)
+                    status.since = time()
             except Exception as exc:
-                self.log.warning(exc)
-        return since
+                title = STATUS_TITLES[status.status_type]
+                self.log.warning(f"Update status {title}: {exc}")
 
-    def finish(self, type, notify=True, until=0.0):
-        """Finish a librarian status."""
-        try:
-            updates = {**LibrarianStatus.DEFAULT_PARAMS, "updated_at": Now()}
-            LibrarianStatus.objects.filter(type=type).update(**updates)
-            self._enqueue_notifier_task(notify, until)
-        except Exception as exc:
-            self.log.warning(exc)
-
-    def finish_many(self, types, notify=True, until=0.0):
+    def finish_many(self, statii, notify=True, until=0.0):
         """Finish all librarian statuses."""
         try:
-            if types:
-                filter = {"type__in": types}
-            else:
-                filter = {}
-            updates = {**LibrarianStatus.DEFAULT_PARAMS, "updated_at": Now()}
-            LibrarianStatus.objects.filter(**filter).update(**updates)
+            types = []
+            for status in statii:
+                types += [self._to_status_type_value(status)]
+            ls_filter = {"status_type__in": types} if types else {}
+            updates = {**STATUS_DEFAULTS, "updated_at": Now()}
+            LibrarianStatus.objects.filter(**ls_filter).update(**updates)
             self._enqueue_notifier_task(notify, until)
             if not filter:
                 self.log.info("Cleared all librarian statuses")
+        except Exception as exc:
+            self.log.warning(f"Finish status {statii}: {exc}")
+
+    def finish(self, status, notify=True, until=0.0):
+        """Finish a librarian status."""
+        try:
+            self.finish_many((status,), notify=notify, until=until)
         except Exception as exc:
             self.log.warning(exc)

@@ -3,7 +3,7 @@ from copy import deepcopy
 from typing import Optional, Union
 
 from django.core.paginator import EmptyPage, Paginator
-from django.db.models import F, Max, Value
+from django.db.models import F, Max, Q, Value
 from django.db.models.fields import (
     BooleanField,
     CharField,
@@ -31,9 +31,11 @@ from codex.serializers.browser import (
     BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP,
     BrowserPageSerializer,
 )
-from codex.serializers.choices import DEFAULTS
+from codex.serializers.choices import CHOICES, DEFAULTS
 from codex.serializers.opds_v1 import (
+    OPDS_COMICS_METADATA_ORDERED_UNIONFIX_VALUES_MAP,
     OPDS_COMICS_ORDERED_UNIONFIX_VALUES_MAP,
+    OPDS_FOLDERS_METADATA_ORDERED_UNIONFIX_VALUES_MAP,
     OPDS_FOLDERS_ORDERED_UNIONFIX_VALUES_MAP,
     OPDS_M2M_FIELDS,
 )
@@ -73,6 +75,7 @@ class BrowserView(BrowserAnnotationsView):
     }
 
     is_opds_acquisition = False
+    is_opds_metadata = False
 
     def _add_annotations(self, queryset, model, search_scores):
         """Annotations for display and sorting.
@@ -150,12 +153,14 @@ class BrowserView(BrowserAnnotationsView):
             if self.is_opds_acquisition:
                 # This is for opds folder view.
                 queryset = queryset.annotate(
+                    # fields
                     size=self._ZERO_INTEGERFIELD,
                     date=self._NONE_DATEFIELD,
                     summary=self._EMPTY_CHARFIELD,
                     comments=self._EMPTY_CHARFIELD,
                     notes=self._EMPTY_CHARFIELD,
                     language=self._EMPTY_CHARFIELD,
+                    # m2m rels
                     characters=self._EMPTY_CHARFIELD,
                     genres=self._EMPTY_CHARFIELD,
                     locations=self._EMPTY_CHARFIELD,
@@ -163,7 +168,7 @@ class BrowserView(BrowserAnnotationsView):
                     story_arcs=self._EMPTY_CHARFIELD,
                     tags=self._EMPTY_CHARFIELD,
                     teams=self._EMPTY_CHARFIELD,
-                    credits=self._EMPTY_CHARFIELD,
+                    creators=self._EMPTY_CHARFIELD,
                 )
 
         return queryset
@@ -179,10 +184,7 @@ class BrowserView(BrowserAnnotationsView):
         if group == self.valid_nav_groups[-1]:
             # special case for lowest valid group
             return self.COMIC_GROUP
-        next_valid_nav_group = self.valid_nav_groups[
-            self.valid_nav_groups.index(group) + 1
-        ]
-        return next_valid_nav_group
+        return self.valid_nav_groups[self.valid_nav_groups.index(group) + 1]
 
     def _set_browse_model(self):
         """Set the model for the browse list."""
@@ -194,12 +196,14 @@ class BrowserView(BrowserAnnotationsView):
 
     def _get_unionfix_values_map(self, folders=False):
         if self.is_opds_acquisition:
+            if self.is_opds_metadata:
+                if folders:
+                    return OPDS_FOLDERS_METADATA_ORDERED_UNIONFIX_VALUES_MAP
+                return OPDS_COMICS_METADATA_ORDERED_UNIONFIX_VALUES_MAP
             if folders:
                 return OPDS_FOLDERS_ORDERED_UNIONFIX_VALUES_MAP
-            else:
-                return OPDS_COMICS_ORDERED_UNIONFIX_VALUES_MAP
-        else:
-            return BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP
+            return OPDS_COMICS_ORDERED_UNIONFIX_VALUES_MAP
+        return BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP
 
     def get_folder_queryset(self, object_filter, search_scores):
         """Create folder queryset."""
@@ -207,7 +211,7 @@ class BrowserView(BrowserAnnotationsView):
         folder_list = Folder.objects.filter(object_filter)
         comic_object_filter, comic_search_scores = self.get_query_filters(True, False)
         comic_list = Comic.objects.filter(comic_object_filter)
-        if self.is_opds_acquisition:
+        if self.is_opds_metadata:
             comic_list = comic_list.prefetch_related(*OPDS_M2M_FIELDS)
 
         # add annotations for display and sorting
@@ -222,16 +226,16 @@ class BrowserView(BrowserAnnotationsView):
         values_map = self._get_unionfix_values_map()
         comic_list = comic_list.values(**values_map)
 
-        obj_list = folder_list.union(comic_list)
-        return obj_list
+        return folder_list.union(comic_list)
 
     def _get_browser_group_queryset(self, object_filter, search_scores):
         """Create and browse queryset."""
         if not self.model:
-            raise ValueError("No model set in browser")
+            reason = "No model set in browser"
+            raise ValueError(reason)
 
         obj_list = self.model.objects.filter(object_filter)
-        if self.is_opds_acquisition:
+        if self.is_opds_metadata:
             obj_list = obj_list.prefetch_related(*OPDS_M2M_FIELDS)
         # obj_list filtering done
 
@@ -303,6 +307,34 @@ class BrowserView(BrowserAnnotationsView):
 
         return up_group, up_pk
 
+    def _get_root_group_name(self):
+        if not self.model:
+            reason = "No model set in browser"
+            raise ValueError(reason)
+        plural = self.model._meta.verbose_name_plural
+        if not plural:
+            reason = f"No plural name for {self.model}"
+            raise ValueError(reason)
+        return plural.capitalize()
+
+    def _get_folder_parent_name(self):
+        """Get title for a folder browser page."""
+        group_instance: Folder = self.group_instance  # type: ignore
+        folder_path = group_instance.path
+        if not folder_path:
+            return ""
+
+        parent_name = folder_path
+        prefix = group_instance.library.path
+        if prefix[-1] != "/":
+            prefix += "/"
+        if not self.is_admin():
+            # remove library path for not admins
+            parent_name = parent_name.removeprefix(prefix)
+        suffix = "/" + group_instance.name
+        parent_name = parent_name.removesuffix(suffix)
+        return parent_name
+
     def _get_browser_page_title(self):
         """Get the proper title for this browse level."""
         pk = self.kwargs.get("pk")
@@ -310,12 +342,7 @@ class BrowserView(BrowserAnnotationsView):
         group_count = 0
         group_name = ""
         if pk == 0:
-            if not self.model:
-                raise ValueError("No model set in browser")
-            plural = self.model._meta.verbose_name_plural
-            if not plural:
-                raise ValueError(f"No plural name for {self.model}")
-            group_name = plural.capitalize()
+            group_name = self._get_root_group_name()
         elif self.group_instance:
             if isinstance(self.group_instance, Imprint):
                 parent_name = self.group_instance.publisher.name
@@ -325,36 +352,20 @@ class BrowserView(BrowserAnnotationsView):
             elif isinstance(self.group_instance, Comic):
                 group_count = self.group_instance.volume.issue_count
             elif isinstance(self.group_instance, Folder):
-                folder_path = self.group_instance.path
-                if folder_path:
-                    parent_name = folder_path
-                    prefix = self.group_instance.library.path
-                    if prefix[-1] != "/":
-                        prefix += "/"
-                    if not self.is_admin():
-                        # remove library path for not admins
-                        parent_name = parent_name.removeprefix(prefix)
-                    suffix = "/" + self.group_instance.name
-                    parent_name = parent_name.removesuffix(suffix)
-
+                parent_name = self._get_folder_parent_name()
             group_name = self.group_instance.name
 
-        browser_page_title = {
+        return {
             "parent_name": parent_name,
             "group_name": group_name,
             "group_count": group_count,
         }
 
-        return browser_page_title
-
     def _page_out_out_bounds(self, page, num_pages):
         """Redirect page out of bounds."""
         group = self.kwargs.get("group")
         pk = self.kwargs.get("pk", 1)
-        if page > num_pages:
-            new_page = num_pages
-        else:
-            new_page = 1
+        new_page = num_pages if page > num_pages else 1
         route_changes = {"group": group, "pk": pk, "page": new_page}
         reason = f"{page=} does not exist!"
         LOG.debug(f"{reason} redirect to page {new_page}.")
@@ -387,6 +398,8 @@ class BrowserView(BrowserAnnotationsView):
                 {"group": self.FOLDER_GROUP},
                 f"folder {pk} Does not exist! Redirect to root folder.",
             )
+            object_filter = Q()
+            search_scores = {}
         group = self.kwargs.get("group")
 
         if group == self.FOLDER_GROUP:
@@ -412,7 +425,9 @@ class BrowserView(BrowserAnnotationsView):
         else:
             up_route = {}
 
-        efv_flag = AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_FOLDER_VIEW)
+        efv_flag = AdminFlag.objects.only("on").get(
+            key=AdminFlag.FlagChoices.FOLDER_VIEW.value
+        )
 
         libraries_exist = Library.objects.exists()
 
@@ -423,22 +438,23 @@ class BrowserView(BrowserAnnotationsView):
             issue_max = 0
 
         covers_timestamp = int(
-            Timestamp.objects.get(name=Timestamp.COVERS).updated_at.timestamp()
+            Timestamp.objects.get(
+                key=Timestamp.TimestampChoices.COVERS.value
+            ).updated_at.timestamp()
         )
 
         # construct final data structure
-        browser_page = {
+        return {
             "up_route": up_route,
             "browser_title": browser_page_title,
             "model_group": self.model_group,
             "obj_list": obj_list,
             "issue_max": issue_max,
             "num_pages": num_pages,
-            "admin_flags": {"enable_folder_view": efv_flag.on},
+            "admin_flags": {"folder_view": efv_flag.on},
             "libraries_exist": libraries_exist,
             "covers_timestamp": covers_timestamp,
         }
-        return browser_page
 
     def _get_valid_top_groups(self):
         """Get valid top groups for the current settings.
@@ -469,8 +485,9 @@ class BrowserView(BrowserAnnotationsView):
 
         for possible_index, possible_nav_group in enumerate(valid_top_groups):
             if top_group == possible_nav_group:
-                # all the nav groups past this point, but not 'c' the last one
-                tail_top_groups = valid_top_groups[possible_index:-1]
+                # all the nav groups past this point,
+                # 'c' is obscured by the web reader url, but valid for opds
+                tail_top_groups = valid_top_groups[possible_index:]
 
                 self.valid_nav_groups = (*self.valid_nav_groups, *tail_top_groups)
                 if nav_group not in self.valid_nav_groups:
@@ -550,14 +567,12 @@ class BrowserView(BrowserAnnotationsView):
         order_key = self.get_order_key()
         enable_folder_view = False
         if group == self.FOLDER_GROUP or order_key == "path":
+            key = AdminFlag.FlagChoices.FOLDER_VIEW.value
             try:
-                enable_folder_view = (
-                    AdminFlag.objects.only("on")
-                    .get(name=AdminFlag.ENABLE_FOLDER_VIEW)
-                    .on
-                )
+                enable_folder_view = AdminFlag.objects.only("on").get(key=key).on
             except Exception as err:
-                LOG.warning(f"Getting ENABLE_FOLDER_VIEW AdminFlag: {err}")
+                title = CHOICES["admin"]["adminFlags"].get(key)
+                LOG.warning(f"Getting {title} AdminFlag: {err}")
 
         if group == self.FOLDER_GROUP:
             self._validate_folder_settings(enable_folder_view)
@@ -574,7 +589,7 @@ class BrowserView(BrowserAnnotationsView):
             self._raise_redirect(route_changes, reason, settings_mask)
 
     @extend_schema(request=BrowserAnnotationsView.input_serializer_class)
-    def get(self, _request, *args, **kwargs):
+    def get(self, *args, **kwargs):
         """Get browser settings."""
         self.parse_params()
         self.validate_settings()

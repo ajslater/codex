@@ -24,8 +24,7 @@ class CoverPathMixin(QueuedThread):
         parts = []
         for i in range(0, len(hex_str), cls._PATH_STEP):
             parts.append(hex_str[i : i + cls._PATH_STEP])
-        path = Path("/".join(parts))
-        return path
+        return Path("/".join(parts))
 
     @classmethod
     def get_cover_path(cls, pk):

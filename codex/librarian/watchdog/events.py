@@ -31,35 +31,51 @@ class CodexLibraryEventHandler(FileSystemEventHandler, LoggerBaseMixin):
         self.init_logger(log_queue)
         super().__init__(*args, **kwargs)
 
+    @staticmethod
+    def _transform_file_event(event):
+        """Transform file events into other events."""
+        source_match = _COMIC_MATCHER.search(event.src_path)
+        if event.event_type == EVENT_TYPE_MOVED:
+            # Some types of file moves need to be cast as other events.
+
+            dest_match = _COMIC_MATCHER.search(event.dest_path)
+            if source_match is None and dest_match is not None:
+                # Moved from an ignored file extension into a comic type,
+                # so create a new comic.
+                event = FileCreatedEvent(event.dest_path)
+            elif source_match is not None and dest_match is None:
+                # moved into something that's not a comic name so delete
+                event = FileDeletedEvent(event.src_path)
+        elif source_match is None:
+            # Don't process non-moved, non-comic files at all
+            return None
+        return event
+
+    @classmethod
+    def _transform_event(cls, event):
+        """Transform events into other events."""
+        if event.event_type in cls.IGNORED_EVENTS:
+            event = None
+        elif event.is_directory:
+            if event.event_type == EVENT_TYPE_CREATED:
+                # Directories are only created by comics
+                event = None
+        else:
+            event = cls._transform_file_event(event)
+        return event
+
     def dispatch(self, event):
         """Send only valid codex events to the EventBatcher."""
         try:
-            if event.event_type in self.IGNORED_EVENTS:
+            event = self._transform_event(event)
+            if not event:
                 return
-            elif event.is_directory:
-                if event.event_type == EVENT_TYPE_CREATED:
-                    # Directories are only created by comics
-                    return
-            else:
-                source_match = _COMIC_MATCHER.search(event.src_path)
-                if event.event_type == EVENT_TYPE_MOVED:
-                    # Some types of file moves need to be cast as other events.
 
-                    dest_match = _COMIC_MATCHER.search(event.dest_path)
-                    if source_match is None and dest_match is not None:
-                        # Moved from an ignored file extension into a comic type,
-                        # so create a new comic.
-                        event = FileCreatedEvent(event.dest_path)
-                    elif source_match is not None and dest_match is None:
-                        # moved into something that's not a comic name so delete
-                        event = FileDeletedEvent(event.src_path)
-                elif source_match is None:
-                    # Don't process non-moved, non-comic files at all
-                    return
-
+            # Send it to the EventBatcher
             task = WatchdogEventTask(self.library_pk, event)
             self.librarian_queue.put(task)
-            super().dispatch(event)
-        except Exception as exc:
-            self.log.error(f"Error in {self.__class__.__name__}")
-            self.log.exception(exc)
+
+            # Calls stub event dispatchers
+            # super().dispatch(event)
+        except Exception:
+            self.log.exception(f"{self.__class__.__name__} dispatch")

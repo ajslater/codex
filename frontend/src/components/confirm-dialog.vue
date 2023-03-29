@@ -6,7 +6,14 @@
     overlay-opacity="0.5"
   >
     <template #activator="{ props }">
-      <v-btn v-if="icon" icon v-bind="props">
+      <v-btn
+        v-if="icon"
+        icon
+        v-bind="props"
+        :size="size"
+        :density="density"
+        :title="titleText"
+      >
         <v-icon>{{ icon }}</v-icon>
       </v-btn>
       <v-btn v-else block v-bind="props">
@@ -43,6 +50,14 @@ export default {
     confirmText: {
       type: String,
       required: true,
+    },
+    size: {
+      type: String,
+      default: "default",
+    },
+    density: {
+      type: String,
+      default: "default",
     },
   },
   data() {

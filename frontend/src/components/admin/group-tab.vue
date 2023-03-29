@@ -7,45 +7,41 @@
         :inputs="AdminGroupCreateUpdateInputs"
       />
     </header>
-    <AdminTable :items="groups" :extra-height="GROUP_HELP_HEIGHT">
-      <template #thead>
-        <tr>
-          <th>Name</th>
-          <th>Users</th>
-          <th>Libraries</th>
-          <th>Edit</th>
-          <th>Delete</th>
-        </tr>
+    <v-data-table-virtual
+      class="adminTable"
+      fixed-headers
+      item-value="pk"
+      item-title="name"
+      :headers="headers"
+      :items="groups"
+    >
+      <template #no-data>
+        <td class="adminNoData" colspan="100%">No groups</td>
       </template>
-      <template #tbody>
-        <tr v-for="item in groups" :key="`g:${item.pk}:${item.keyHack}`">
-          <td class="nameCol">
-            {{ item.name }}
-          </td>
-          <td>
-            <RelationChips :pks="item.userSet" :map="userMap" />
-          </td>
-          <td>
-            <RelationChips :pks="item.librarySet" :map="libraryMap" />
-          </td>
-          <td>
-            <AdminCreateUpdateDialog
-              table="Group"
-              :old-row="item"
-              max-width="20em"
-              :inputs="AdminGroupCreateUpdateInputs"
-            />
-          </td>
-          <td>
-            <AdminDeleteRowDialog
-              table="Group"
-              :pk="item.pk"
-              :name="item.name"
-            />
-          </td>
-        </tr>
+      <template #[`item.userSet`]="{ item }">
+        <RelationChips :pks="item.raw.userSet" :map="userMap" />
       </template>
-    </AdminTable>
+      <template #[`item.librarySet`]="{ item }">
+        <RelationChips :pks="item.raw.librarySet" :map="libraryMap" />
+      </template>
+      <template #[`item.actions`]="{ item }">
+        <AdminCreateUpdateDialog
+          table="Group"
+          :old-row="item.raw"
+          max-width="20em"
+          :inputs="AdminGroupCreateUpdateInputs"
+          size="small"
+          density="compact"
+        />
+        <AdminDeleteRowDialog
+          table="Group"
+          :pk="item.raw.pk"
+          :name="item.raw.name"
+          size="small"
+          density="compact"
+        />
+      </template>
+    </v-data-table-virtual>
     <div id="groupHelp">
       <h3>Group Logic</h3>
       <p>
@@ -67,6 +63,7 @@
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 import { markRaw } from "vue";
+import { VDataTableVirtual } from "vuetify/labs/components";
 
 import AdminTable from "@/components/admin/admin-table.vue";
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
@@ -84,6 +81,7 @@ export default {
     AdminDeleteRowDialog,
     AdminCreateUpdateDialog,
     RelationChips,
+    VDataTableVirtual,
   },
   data() {
     return {
@@ -93,6 +91,12 @@ export default {
       },
       AdminGroupCreateUpdateInputs: markRaw(AdminGroupCreateUpdateInputs),
       GROUP_HELP_HEIGHT,
+      headers: [
+        { title: "Name", key: "name", align: "start" },
+        { title: "Users", key: "userSet" },
+        { title: "Libraries", key: "librarySet" },
+        { title: "Actions", key: "actions", sortable: false },
+      ],
     };
   },
   computed: {
@@ -111,9 +115,6 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.nameCol {
-  min-width: 10em;
-}
 #groupHelp {
   margin-top: 2em;
   color: rgb(var(--v-theme-textSecondary));

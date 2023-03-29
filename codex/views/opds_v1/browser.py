@@ -12,6 +12,7 @@ from codex.logger.logging import get_logger
 from codex.serializers.opds_v1 import (
     OPDSAcquisitionEntrySerializer,
     OPDSEntrySerializer,
+    OPDSMetadataEntrySerializer,
     OPDSTemplateSerializer,
 )
 from codex.views.browser.browser import BrowserView
@@ -19,12 +20,15 @@ from codex.views.opds_v1.entry import OPDSEntry
 from codex.views.opds_v1.util import (
     BLANK_TITLE,
     DEFAULT_FACETS,
+    FALSY,
     Facet,
     FacetGroups,
     MimeType,
     OPDSLink,
     OpdsNs,
     Rel,
+    RootFacetGroups,
+    RootTopLinks,
     TopLinks,
     UserAgents,
     update_href_query_params,
@@ -41,22 +45,18 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
     template_name = "opds/index.xml"
     serializer_class = OPDSTemplateSerializer
 
-    AQUISITION_GROUPS = {"s", "f"}
+    AQUISITION_GROUPS = {"s", "f", "c"}
 
     @property
     def opds_ns(self):
         """Dynamic opds namespace."""
         try:
-            if self.is_aq_feed:
-                ns = OpdsNs.ACQUISITION
-            else:
-                ns = OpdsNs.CATALOG
-            return ns
+            return OpdsNs.ACQUISITION if self.is_aq_feed else OpdsNs.CATALOG
         except Exception as exc:
             LOG.exception(exc)
 
     @property
-    def id(self):
+    def id_tag(self):
         """Feed id is the url."""
         try:
             return self.request.build_absolute_uri()
@@ -130,7 +130,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
         )
 
         title = " ".join(filter(None, (facet_group.title_prefix, facet_title))).strip()
-        link = OPDSLink(
+        return OPDSLink(
             Rel.FACET,
             href,
             MimeType.NAV,
@@ -138,7 +138,6 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
             facet_group=facet_group.query_param,
             facet_active=facet_active,
         )
-        return link
 
     def _facet_entry(self, item, facet_group, facet, query_params):
         name = " ".join(
@@ -163,7 +162,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
         # This logic preempts facet:activeFacet but no one uses it.
         # don't add default facets if in default mode.
         if self._is_facet_active(facet_group, facet):
-            return
+            return None
 
         group = self.kwargs.get("group")
         if (
@@ -189,16 +188,17 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
                 facets += [facet_obj]
         return facets
 
-    def _facets(self, entries=False):
+    def _facets(self, entries=False, root=True):
         facets = []
         if not self.skip_order_facets:
             facets += self._facet_group(FacetGroups.ORDER_BY, entries)
             facets += self._facet_group(FacetGroups.ORDER_REVERSE, entries)
-        facets += self._facet_group(FacetGroups.TOP_GROUP, entries)
-        if facet_obj := self._facet_or_facet_entry(
-            FacetGroups.TOP_GROUP, Facet("f", "Folder View"), entries
-        ):
-            facets += [facet_obj]
+        if root:
+            facets += self._facet_group(RootFacetGroups.TOP_GROUP, entries)
+            if facet_obj := self._facet_or_facet_entry(
+                RootFacetGroups.TOP_GROUP, Facet("f", "Folder View"), entries
+            ):
+                facets += [facet_obj]
         return facets
 
     def _nav_link(self, kwargs, rel):
@@ -243,10 +243,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
         """Create all the links."""
         links = []
         try:
-            if self.is_aq_feed:
-                mime_type = MimeType.ACQUISITION
-            else:
-                mime_type = MimeType.NAV
+            mime_type = MimeType.ACQUISITION if self.is_aq_feed else MimeType.NAV
             links += [
                 OPDSLink("self", self.request.get_full_path(), mime_type),
                 OPDSLink(
@@ -258,7 +255,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
             ]
             links += self._root_nav_links()
             if self.use_facets:
-                for top_link in TopLinks.ALL:
+                for top_link in TopLinks.ALL + RootTopLinks.ALL:
                     if not self.is_top_link_displayed(top_link):
                         links += [self._top_link(top_link)]
                 if facets := self._facets():
@@ -271,23 +268,32 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
         """Create a entry instead of a facet."""
         entry_obj = {
             **top_link.kwargs,
-            "name": " ".join((filter(None, (top_link.glyph, top_link.title)))),
+            "name": " ".join(filter(None, (top_link.glyph, top_link.title))),
             "query_params": top_link.query_params,
             "summary": top_link.desc,
         }
 
         return OPDSEntry(entry_obj, self.valid_nav_groups, {})
 
+    def _add_top_links(self, top_links):
+        """Add a list of top links as entries if they should be enabled."""
+        entries = []
+        for tl in top_links:
+            if not self.is_top_link_displayed(tl):
+                entries += [self._top_link_entry(tl)]
+        return entries
+
     @property
     def entries(self):
         """Create all the entries."""
         entries = []
         try:
+            at_root = self.kwargs.get("pk") == 0
             if not self.use_facets and self.kwargs.get("page") == 1:
-                for tl in TopLinks.ALL:
-                    if not self.is_top_link_displayed(tl):
-                        entries += [self._top_link_entry(tl)]
-                entries += self._facets(entries=True)
+                entries += self._add_top_links(TopLinks.ALL)
+                if at_root:
+                    entries += self._add_top_links(RootTopLinks.ALL)
+                entries += self._facets(entries=True, root=at_root)
 
             if obj_list := self.obj.get("obj_list"):
                 for entry_obj in obj_list:
@@ -305,13 +311,17 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
     def get_object(self):
         """Get the browser page and serialize it for this subclass."""
         group = self.kwargs.get("group")
-        if group in self.AQUISITION_GROUPS:
-            self.is_opds_acquisition = True
+        self.is_opds_acquisition = group in self.AQUISITION_GROUPS
+        self.is_opds_metadata = (
+            self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
+        )
         browser_page = super().get_object()
         # this serialization fixes the unionfix prefixes
         obj_list = browser_page.get("obj_list")
         model_group = browser_page.get("model_group")
-        if model_group == "c":
+        if self.is_opds_metadata:
+            serializer_class = OPDSMetadataEntrySerializer
+        elif model_group == "c":
             serializer_class = OPDSAcquisitionEntrySerializer
         else:
             serializer_class = OPDSEntrySerializer
@@ -338,7 +348,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
                 break
 
     @extend_schema(request=BrowserView.input_serializer_class)
-    def get(self, request, *args, **kwargs):
+    def get(self, *args, **kwargs):
         """Get the feed."""
         self.parse_params()
         self.validate_settings()

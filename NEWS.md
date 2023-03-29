@@ -6,6 +6,32 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.3.0
+
+### I remember... my whole life. Everything
+
+- Features
+  - Codex stable in 1GB RAM environments. Faster with more.
+  - Browser navigate to top button.
+  - OPDS
+    - Top links display only at catalog root.
+    - Extended metadata moved to alternate links.
+  - Admin
+    - Search Indexer Remove Stale Records task much faster
+    - Comic import speedups.
+    - Fancier sortable admin tables.
+    - Removed `max_db_ops` config variable.
+- Fix
+  - Search Index
+    - More robust against bad data.
+    - Some search fields were case sensitive.
+  - Codex was backing up on every startup.
+  - Reader vertical scroll lost its place in Fit To Width or Orig mode.
+  - OPDS downloaded files all had the same name.
+  - Status for batched imports (large imports or low memory) now reflects total
+    instead of single batch.
+  - Fix graceful shutdown from TERM signal on Linux.
+
 ## v1.2.9
 
 - Features

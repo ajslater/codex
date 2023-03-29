@@ -50,29 +50,6 @@
             <td>Groups</td>
             <td>{{ nf(stats.config.groupCount) }}</td>
           </tr>
-          <tr id="apiKeyRow" @click="copyToClipboard()">
-            <td>
-              API Key
-              <v-icon class="clipBoardIcon" size="small">{{
-                clipBoardIcon
-              }}</v-icon>
-              <v-fade-transition>
-                <span v-show="showTool" class="copied">Copied</span>
-              </v-fade-transition>
-            </td>
-            <td id="apiKey">{{ stats.config.apiKey }}</td>
-          </tr>
-          <tr>
-            <td colspan="2">
-              <ConfirmDialog
-                button-text="Regenerate API Key"
-                title-text="Regenerate"
-                object-name="API Key"
-                confirm-text="Regenerate"
-                @confirm="regenAPIKey"
-              />
-            </td>
-          </tr>
         </tbody>
       </v-table>
     </div>
@@ -106,13 +83,29 @@
               {{ nf(stats.groups.comicCount) }}
             </td>
           </tr>
-          <tr>
-            <td>Comics</td>
-            <td>{{ nf(stats.groups.comicArchiveCount) }}</td>
+          <tr v-if="stats.fileTypes.cbzCount">
+            <td class="indent">CBZ</td>
+            <td>{{ nf(stats.fileTypes.cbzCount) }}</td>
           </tr>
-          <tr>
-            <td>PDFs</td>
-            <td>{{ nf(stats.groups.pdfCount) }}</td>
+          <tr v-if="stats.fileTypes.cbrCount">
+            <td class="indent">CBR</td>
+            <td>{{ nf(stats.fileTypes.cbrCount) }}</td>
+          </tr>
+          <tr v-if="stats.fileTypes.cbxCount">
+            <td class="indent">CBX</td>
+            <td>{{ nf(stats.fileTypes.cbxCount) }}</td>
+          </tr>
+          <tr v-if="stats.fileTypes.cbtCount">
+            <td class="indent">CBT</td>
+            <td>{{ nf(stats.fileTypes.cbtCount) }}</td>
+          </tr>
+          <tr v-if="stats.fileTypes.pdfCount">
+            <td class="indent">PDF</td>
+            <td>{{ nf(stats.fileTypes.pdfCount) }}</td>
+          </tr>
+          <tr v-if="stats.fileTypes.unknownCount">
+            <td class="indent">Unknown</td>
+            <td>{{ nf(stats.fileTypes.unknownCount) }}</td>
           </tr>
         </tbody>
       </v-table>
@@ -124,18 +117,6 @@
           <tr>
             <td>Characters</td>
             <td>{{ nf(stats.metadata.characterCount) }}</td>
-          </tr>
-          <tr>
-            <td>Credits</td>
-            <td>{{ nf(stats.metadata.creditCount) }}</td>
-          </tr>
-          <tr>
-            <td>Roles</td>
-            <td>{{ nf(stats.metadata.creditRoleCount) }}</td>
-          </tr>
-          <tr>
-            <td>Creators</td>
-            <td>{{ nf(stats.metadata.creditPersonCount) }}</td>
           </tr>
           <tr>
             <td>Genres</td>
@@ -161,6 +142,59 @@
             <td>Teams</td>
             <td>{{ nf(stats.metadata.teamCount) }}</td>
           </tr>
+          <tr>
+            <td>Creators</td>
+            <td>{{ nf(stats.metadata.creatorCount) }}</td>
+          </tr>
+          <tr>
+            <td class="indent">Roles</td>
+            <td>{{ nf(stats.metadata.creatorRoleCount) }}</td>
+          </tr>
+          <tr>
+            <td class="indent">Creators</td>
+            <td>{{ nf(stats.metadata.creatorPersonCount) }}</td>
+          </tr>
+        </tbody>
+      </v-table>
+    </div>
+    <div class="statBlock">
+      <h3>API</h3>
+      <v-table class="highlight-table">
+        <tbody>
+          <tr>
+            <td>Schema Documentation:</td>
+            <td>
+              The only endpoint accessible with API Key access is
+              <a
+                :href="`${apiSchemaURL}#/api/api_v3_admin_stats_retrieve`"
+                target="_blank"
+                >/admin/stats</a
+              >
+            </td>
+          </tr>
+          <tr id="apiKeyRow" @click="onClickAPIKey">
+            <td>
+              API Key
+              <v-icon class="clipBoardIcon" size="small">{{
+                clipBoardIcon
+              }}</v-icon>
+              <v-fade-transition>
+                <span v-show="showTooltip.show" class="copied">Copied</span>
+              </v-fade-transition>
+            </td>
+            <td id="apiKey">{{ stats.config.apiKey }}</td>
+          </tr>
+          <tr>
+            <td colspan="2">
+              <ConfirmDialog
+                button-text="Regenerate API Key"
+                title-text="Regenerate"
+                object-name="API Key"
+                confirm-text="Regenerate"
+                @confirm="regenAPIKey"
+              />
+            </td>
+          </tr>
         </tbody>
       </v-table>
     </div>
@@ -173,6 +207,7 @@ import { numberFormat } from "humanize";
 import { mapActions, mapState } from "pinia";
 
 import ConfirmDialog from "@/components/confirm-dialog.vue";
+import { copyToClipboard } from "@/copy-to-clipboard";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
@@ -183,7 +218,8 @@ export default {
   },
   data() {
     return {
-      showTool: false,
+      showTooltip: { show: false },
+      apiSchemaURL: window.CODEX.API_V3_PATH,
     };
   },
   computed: {
@@ -192,7 +228,7 @@ export default {
       stats: (state) => state.stats,
     }),
     clipBoardIcon() {
-      return this.showTool ? mdiClipboardCheckOutline : mdiClipboardOutline;
+      return this.showTooltip ? mdiClipboardCheckOutline : mdiClipboardOutline;
     },
   },
   created() {
@@ -206,17 +242,8 @@ export default {
     nf(val) {
       return numberFormat(val, 0);
     },
-    copyToClipboard() {
-      navigator.clipboard
-        .writeText(this.stats.config.apiKey)
-        .then(() => {
-          this.showTool = true;
-          setTimeout(() => {
-            this.showTool = false;
-          }, 5000);
-          return true;
-        })
-        .catch(console.warn);
+    onClickAPIKey() {
+      copyToClipboard(this.stats.config.apiKey, this.showTooltip);
     },
   },
 };
@@ -237,6 +264,9 @@ h3 {
 }
 tr td:nth-child(2) {
   text-align: right;
+}
+.indent {
+  padding-left: 2em !important;
 }
 .copied {
   font-size: small;

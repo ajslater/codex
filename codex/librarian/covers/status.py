@@ -1,10 +1,10 @@
 """Cover status types."""
-from codex.librarian.status import StatusTypes
+from django.db.models import Choices
 
 
-class CoverStatusTypes(StatusTypes):
+class CoverStatusTypes(Choices):
     """Cover Types."""
 
-    CREATE = "Create Covers"
-    PURGE = "Remove Covers"
-    FIND_ORPHAN = "Find Orphan Covers"
+    CREATE_COVERS = "CCC"
+    PURGE_COVERS = "CCD"
+    FIND_ORPHAN = "CFO"

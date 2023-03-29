@@ -6,7 +6,6 @@ from urllib.parse import unquote_plus
 from django.contrib.auth.models import User
 from djangorestframework_camel_case.settings import api_settings
 from djangorestframework_camel_case.util import underscoreize
-from rest_framework.exceptions import ValidationError
 
 from codex.logger.logging import get_logger
 from codex.serializers.browser import BrowserSettingsSerializer
@@ -66,8 +65,8 @@ class BrowserBaseView(
         result = {}
         for key, val in query_params.items():
             if key in self._GET_JSON_KEYS:
-                val = unquote_plus(val)  # for pocketbooks reader
-                parsed_val = json.loads(val)
+                unquoted_val = unquote_plus(val)  # for pocketbooks reader
+                parsed_val = json.loads(unquoted_val)
                 if not parsed_val:
                     continue
             else:
@@ -90,9 +89,5 @@ class BrowserBaseView(
 
         serializer = self.input_serializer_class(data=data)
 
-        try:
-            serializer.is_valid(raise_exception=True)
-        except ValidationError as exc:
-            LOG.error(serializer.errors)
-            raise exc
+        serializer.is_valid(raise_exception=True)
         self.params.update(serializer.validated_data)

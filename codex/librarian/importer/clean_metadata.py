@@ -1,5 +1,6 @@
 """Clean metadata before importing."""
 import re
+from contextlib import suppress
 from decimal import Decimal
 from typing import Any, Optional
 
@@ -37,7 +38,7 @@ _MD_CHAR_KEYS = frozenset(
         "age_rating",
         "country",
         "cover_pk",
-        "file_format",
+        "file_type",
         "format",
         "issue_suffix",
         "language",
@@ -80,10 +81,7 @@ class CleanMetadataMixin(QueuedThread):
             decimal_max = Decimal(10 ** (field.max_digits - 2) - 1)
             value = value.min(decimal_max)
         except Exception:
-            if field.null:
-                value = None
-            else:
-                value = _DECIMAL_ZERO
+            value = None if field.null else _DECIMAL_ZERO
         return value
 
     def _parse_comic_issue(self, md: dict[str, Any]):
@@ -121,10 +119,7 @@ class CleanMetadataMixin(QueuedThread):
                 value = max(0, value)
                 value = min(value, _PSI_MAX)
             except Exception:
-                if field.null:
-                    value = None
-                else:
-                    value = 0
+                value = None if field.null else 0
             md[key] = value
 
     @staticmethod
@@ -140,23 +135,18 @@ class CleanMetadataMixin(QueuedThread):
     @staticmethod
     def _title_to_name(md):
         """Convert title to name for comics."""
-        try:
+        with suppress(KeyError):
             md["name"] = md.pop("title")
-        except KeyError:
-            pass
 
     @staticmethod
     def _clean_charfield(value: Optional[str], field: CharField) -> Optional[str]:
         try:
             if value is None:
-                raise ValueError()
+                raise ValueError  # noqa TRY301
             value = str(value)
             value = value[: field.max_length].strip()
         except Exception:
-            if field.null:
-                value = None
-            else:
-                value = ""
+            value = None if field.null else ""
         return value
 
     @classmethod
@@ -176,17 +166,18 @@ class CleanMetadataMixin(QueuedThread):
             md[key] = cls._clean_charfield(md[key], field)
 
     @classmethod
-    def _clean_comic_credits(cls, md) -> None:
-        if credits := md.get("credits"):
-            good_credits = []
+    def _clean_comic_creators(cls, md) -> None:
+        """Replace credits with good creators."""
+        if creators := md.pop("credits", None):
+            good_creators = []
             field: CharField = NamedModel._meta.get_field("name")  # type:ignore
-            for credit in credits:
-                person = cls._clean_charfield(credit.get("person"), field)
+            for creator in creators:
+                person = cls._clean_charfield(creator.get("person"), field)
                 if person:
-                    role = cls._clean_charfield(credit.get("role"), field)
-                    good_credit = {"role": role, "person": person}
-                    good_credits.append(good_credit)
-            md["credits"] = good_credits
+                    role = cls._clean_charfield(creator.get("role"), field)
+                    good_creator = {"role": role, "person": person}
+                    good_creators.append(good_creator)
+            md["creators"] = good_creators
 
     @staticmethod
     def _clean_comic_web(md):
@@ -235,6 +226,6 @@ class CleanMetadataMixin(QueuedThread):
         self._clean_comic_charfields(md, md_keys)
         self._clean_comic_web(md)
         self._append_description(md)
-        self._clean_comic_credits(md)
+        self._clean_comic_creators(md)
         self._clean_comic_m2m_named(md, md_keys)
         return md

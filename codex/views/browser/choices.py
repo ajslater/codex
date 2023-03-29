@@ -5,7 +5,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
 from codex.logger.logging import get_logger
-from codex.models import Comic, CreditPerson
+from codex.models import Comic, CreatorPerson
 from codex.serializers.browser import (
     BrowserChoicesSerializer,
     BrowserFilterChoicesSerializer,
@@ -22,7 +22,7 @@ class BrowserChoicesViewBase(BrowserBaseView):
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
 
-    CREDITS_PERSON_REL = "credits__person"
+    CREATORS_PERSON_REL = "creators__person"
     NULL_NAMED_ROW = {"pk": -1, "name": "_none_"}
 
     @staticmethod
@@ -33,10 +33,7 @@ class BrowserChoicesViewBase(BrowserBaseView):
     @classmethod
     def get_m2m_field_query(cls, rel, comic_qs, model):
         """Get distinct m2m value objects for the relation."""
-        if rel == cls.CREDITS_PERSON_REL:
-            comic_rel = "credit__comic"
-        else:
-            comic_rel = "comic"
+        comic_rel = "creator__comic" if rel == cls.CREATORS_PERSON_REL else "comic"
         return (
             model.objects.filter(**{f"{comic_rel}__in": comic_qs})
             .prefetch_related(comic_rel)
@@ -52,18 +49,15 @@ class BrowserChoicesViewBase(BrowserBaseView):
     @classmethod
     def _get_rel_and_model(cls, field_name):
         """Return the relation and model for the field name."""
-        if field_name == cls.CREDIT_PERSON_UI_FIELD:
-            rel = cls.CREDITS_PERSON_REL
-            model = CreditPerson
+        if field_name == cls.CREATOR_PERSON_UI_FIELD:
+            rel = cls.CREATORS_PERSON_REL
+            model = CreatorPerson
         else:
             remote_field = getattr(
                 Comic._meta.get_field(field_name), "remote_field", None
             )
             rel = field_name
-            if remote_field:
-                model = remote_field.model
-            else:
-                model = None
+            model = remote_field.model if remote_field else None
 
         return rel, model
 
@@ -78,7 +72,7 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
 
     serializer_class = BrowserFilterChoicesSerializer
 
-    CREDITS_PERSON_REL = "credits__person"
+    CREATORS_PERSON_REL = "creators__person"
 
     @classmethod
     def _get_field_choices_count(cls, field_name, comic_qs):
@@ -100,7 +94,7 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
         return count
 
     @extend_schema(request=BrowserBaseView.input_serializer_class)
-    def get(self, request, *args, **kwargs):
+    def get(self, *args, **kwargs):
         """Return all choices with more than one choice."""
         self.parse_params()
         comic_qs = self.get_object()
@@ -140,10 +134,7 @@ class BrowserChoicesView(BrowserChoicesViewBase):
 
         choices = []
         for val in qs:
-            if lookup:
-                name = PyCountrySerializer.lookup_name(lookup, val)
-            else:
-                name = val
+            name = PyCountrySerializer.lookup_name(lookup, val) if lookup else val
             choices.append({"pk": val, "name": name})
 
         return choices
@@ -165,7 +156,7 @@ class BrowserChoicesView(BrowserChoicesViewBase):
         return choices
 
     @extend_schema(request=BrowserBaseView.input_serializer_class)
-    def get(self, request, *args, **kwargs):
+    def get(self, *args, **kwargs):
         """Return all choices with more than one choice."""
         self.parse_params()
 

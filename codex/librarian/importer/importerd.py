@@ -6,10 +6,7 @@ from time import sleep, time
 from django.core.cache import cache
 from humanize import naturaldelta
 
-from codex.librarian.importer.aggregate_metadata import AggregateMetadataMixin
-from codex.librarian.importer.deleted import DeletedMixin
-from codex.librarian.importer.failed_imports import FailedImportsMixin
-from codex.librarian.importer.moved import MovedMixin
+from codex.librarian.importer.db_ops import ApplyDBOpsMixin
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.librarian.importer.tasks import AdoptOrphanFoldersTask, UpdaterDBDiffTask
 from codex.librarian.notifier.tasks import FAILED_IMPORTS_TASK, LIBRARY_CHANGED_TASK
@@ -17,16 +14,12 @@ from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexUpdateTask
 from codex.librarian.tasks import DelayedTasks
 from codex.models import Library
+from codex.status import Status
 
-_WRITE_WAIT_EXPIRY = 5
+_WRITE_WAIT_EXPIRY = 60
 
 
-class ComicImporterThread(
-    AggregateMetadataMixin,
-    DeletedMixin,
-    FailedImportsMixin,
-    MovedMixin,
-):
+class ComicImporterThread(ApplyDBOpsMixin):
     """A worker to handle all bulk database updates."""
 
     def _wait_for_filesystem_ops_to_finish(self, task: UpdaterDBDiffTask) -> bool:
@@ -66,51 +59,8 @@ class ComicImporterThread(
                     total_size += Path(path).stat().st_size
         return False
 
-    def _bulk_create_comic_relations(self, library, fks) -> bool:
-        """Query all foreign keys to determine what needs creating, then create them."""
-        if not fks:
-            return False
-
-        (
-            create_fks,
-            create_groups,
-            update_groups,
-            create_paths,
-            create_credits,
-        ) = self.query_all_missing_fks(library.path, fks)
-
-        changed = self.bulk_create_all_fks(
-            library,
-            create_fks,
-            create_groups,
-            update_groups,
-            create_paths,
-            create_credits,
-        )
-        return changed
-
-    def _batch_modified_and_created(
-        self, library, modified_paths, created_paths
-    ) -> tuple[bool, int, bool]:
-        """Perform one batch of imports."""
-        mds, m2m_mds, fks, fis = self.get_aggregate_metadata(
-            library, modified_paths | created_paths
-        )
-        modified_paths -= fis.keys()
-        created_paths -= fis.keys()
-
-        changed = self._bulk_create_comic_relations(library, fks)
-
-        imported_count = self.bulk_import_comics(
-            library, created_paths, modified_paths, mds, m2m_mds
-        )
-        new_failed_imports = self.bulk_fail_imports(library, fis)
-        changed |= imported_count > 0
-        return changed, imported_count, bool(new_failed_imports)
-
-    def _log_task(self, path, task):
-        if self.log.getEffectiveLevel() < logging.DEBUG:
-            return
+    def _log_task_construct_dirs_log(self, task):
+        """Construct dirs log line."""
         dirs_log = []
         if task.dirs_moved:
             dirs_log += [f"{len(task.dirs_moved)} moved"]
@@ -118,6 +68,10 @@ class ComicImporterThread(
             dirs_log += [f"{len(task.dirs_modified)} modified"]
         if task.dirs_deleted:
             dirs_log += [f"{len(task.dirs_deleted)} deleted"]
+        return dirs_log
+
+    def _log_task_construct_comics_log(self, task):
+        """Construct comcis log line."""
         comics_log = []
         if task.files_moved:
             comics_log += [f"{len(task.files_moved)} moved"]
@@ -127,121 +81,183 @@ class ComicImporterThread(
             comics_log += [f"{len(task.files_created)} created"]
         if task.files_deleted:
             comics_log += [f"{len(task.files_deleted)} deleted"]
+        return comics_log
+
+    def _log_task(self, path, task):
+        """Log the watchdog event task."""
+        if self.log.getEffectiveLevel() < logging.DEBUG:
+            return
 
         self.log.debug(f"Updating library {path}...")
+        comics_log = self._log_task_construct_comics_log(task)
         if comics_log:
             log = "Comics: "
             log += ", ".join(comics_log)
             self.log.debug("  " + log)
+
+        dirs_log = self._log_task_construct_dirs_log(task)
         if dirs_log:
             log = "Folders: "
             log += ", ".join(dirs_log)
             self.log.debug("  " + log)
 
+    @staticmethod
+    def _init_if_modified_or_created(task, path, status_list):
+        """Initialize librarian statuses for modified or created ops."""
+        total_paths = len(task.files_modified) + len(task.files_created)
+        status_list += [
+            Status(ImportStatusTypes.AGGREGATE_TAGS, 0, total_paths, subtitle=path),
+            Status(ImportStatusTypes.QUERY_MISSING_FKS),
+            Status(ImportStatusTypes.CREATE_FKS),
+        ]
+        if task.files_modified:
+            status_list += [
+                Status(
+                    ImportStatusTypes.FILES_MODIFIED,
+                    None,
+                    len(task.files_modified),
+                )
+            ]
+        if task.files_created:
+            status_list += [
+                Status(ImportStatusTypes.FILES_CREATED, None, len(task.files_created))
+            ]
+        if task.files_modified or task.files_created:
+            status_list += [Status(ImportStatusTypes.LINK_M2M_FIELDS)]
+        return total_paths
+
     def _init_librarian_status(self, task, path):
         """Update the librarian status tasks."""
-        types_map = {}
-        total_changes = 0
+        status_list = []
+        search_index_updates = 0
+        if task.dirs_moved:
+            status_list += [
+                Status(ImportStatusTypes.DIRS_MOVED, None, len(task.dirs_moved))
+            ]
         if task.files_moved:
-            types_map[ImportStatusTypes.FILES_MOVED] = {
-                "complete": 0,
-                "total": len(task.files_moved),
-            }
-            total_changes += len(task.files_moved)
+            status_list += [
+                Status(ImportStatusTypes.FILES_MOVED, None, len(task.files_moved))
+            ]
+            search_index_updates += len(task.files_moved)
+        if task.files_modified:
+            status_list += [
+                Status(ImportStatusTypes.DIRS_MODIFIED, None, len(task.dirs_modified))
+            ]
         if task.files_modified or task.files_created:
-            total_paths = len(task.files_modified) + len(task.files_created)
-            total_changes += total_paths
-            types_map[ImportStatusTypes.AGGREGATE_TAGS] = {
-                "complete": 0,
-                "total": total_paths,
-                "name": path,
-            }
-            types_map[ImportStatusTypes.QUERY_MISSING_FKS] = {}
-            types_map[ImportStatusTypes.CREATE_FKS] = {}
-            if task.files_modified:
-                types_map[ImportStatusTypes.FILES_MODIFIED] = {
-                    "complete": 0,
-                    "total": len(task.files_modified),
-                }
-            if task.files_created:
-                types_map[ImportStatusTypes.FILES_CREATED] = {
-                    "complete": 0,
-                    "total": len(task.files_created),
-                }
-            if task.files_modified or task.files_created:
-                types_map[ImportStatusTypes.LINK_M2M_FIELDS] = {}
+            search_index_updates += self._init_if_modified_or_created(
+                task, path, status_list
+            )
         if task.files_deleted:
-            types_map[ImportStatusTypes.FILES_DELETED] = {
-                "complete": 0,
-                "total": len(task.files_deleted),
-            }
-            total_changes += len(task.files_deleted)
-        types_map[SearchIndexStatusTypes.SEARCH_INDEX_UPDATE] = {
-            "complete": 0,
-            "total": total_changes,
-        }
-        types_map[SearchIndexStatusTypes.SEARCH_INDEX_REMOVE] = {}
-        self.status_controller.start_many(types_map)
+            status_list += [
+                Status(ImportStatusTypes.FILES_DELETED, None, len(task.files_deleted))
+            ]
+            search_index_updates += len(task.files_deleted)
+        status_list += [
+            Status(
+                SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
+                0,
+                search_index_updates,
+            ),
+            Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE),
+        ]
+        self.status_controller.start_many(status_list)
 
-    def _finish_apply(self, library):
+    def _init_apply(self, library, task):
+        """Initialize the library and status flags."""
+        library.update_in_progress = True
+        library.save()
+        too_long = self._wait_for_filesystem_ops_to_finish(task)
+        if too_long:
+            self.log.warning(
+                "Import apply waited for the filesystem to stop changing too long. "
+                "Try polling again once files have finished copying"
+                f" in library: {library.path}"
+            )
+            return
+        self._log_task(library.path, task)
+        self._init_librarian_status(task, library.path)
+
+    def _finish_apply_status(self, library):
         """Finish all librarian statuses."""
         library.update_in_progress = False
         library.save()
-        self.status_controller.finish_many(ImportStatusTypes.values())
+        self.status_controller.finish_many(ImportStatusTypes.values)
+
+    def _finish_apply(self, changed, new_failed_imports, changed_args):
+        """Perform final tasks when the apply is done."""
+        if changed:
+            library, start_time, imported_count = changed_args
+            self.librarian_queue.put(LIBRARY_CHANGED_TASK)
+            elapsed_time = time() - start_time
+            elapsed = naturaldelta(elapsed_time)
+            log_txt = f"Updated library {library.path} in {elapsed}."
+            if imported_count:
+                cps = round(imported_count / elapsed_time, 1)
+                log_txt += (
+                    f" Imported {imported_count} comics at {cps} comics per second."
+                )
+            else:
+                log_txt += " No comics to import."
+            self.log.info(log_txt)
+
+            # Wait to start the search index update in case more updates are incoming.
+            until = time() + 3
+            delayed_search_task = DelayedTasks(until, (SearchIndexUpdateTask(False),))
+            self.librarian_queue.put(delayed_search_task)
+        else:
+            self.log.info("No updates neccissary.")
+        if new_failed_imports:
+            self.librarian_queue.put(FAILED_IMPORTS_TASK)
 
     def _apply(self, task):
         """Bulk import comics."""
         start_time = time()
         library = Library.objects.get(pk=task.library_id)
         try:
-            library.update_in_progress = True
-            library.save()
-            too_long = self._wait_for_filesystem_ops_to_finish(task)
-            if too_long:
-                self.log.warning(
-                    "Import apply waited for the filesystem to stop changing too long. "
-                    "Try polling again once files have finished copying"
-                    f" in library: {library.path}"
-                )
-                return
-            self._log_task(library.path, task)
-            self._init_librarian_status(task, library.path)
+            self._init_apply(library, task)
 
-            changed = False
-            changed |= self.bulk_folders_moved(library, task.dirs_moved)
-            changed |= self.bulk_comics_moved(library, task.files_moved)
-            changed |= self.bulk_folders_modified(library, task.dirs_modified)
-            (
-                changed_comics,
-                imported_count,
-                new_failed_imports,
-            ) = self._batch_modified_and_created(
-                library, task.files_modified, task.files_created
+            changed = 0
+            changed += self.move_and_modify_dirs(library, task)
+
+            modified_paths = task.files_modified
+            created_paths = task.files_created
+            task.files_modified = task.files_created = None
+            mds = {}
+            m2m_mds = {}
+            fks = {}
+            fis = {}
+            all_metadata = {
+                "mds": mds,
+                "m2m_mds": m2m_mds,
+                "fks": fks,
+                "fis": fis,
+            }
+            self.read_metadata(
+                library.path, modified_paths | created_paths, all_metadata
             )
-            changed |= changed_comics
-            changed |= self.bulk_folders_deleted(library, task.dirs_deleted)
-            changed |= self.bulk_comics_deleted(library, task.files_deleted)
+            modified_paths -= fis.keys()
+            created_paths -= fis.keys()
+
+            changed += self.create_comic_relations(library, fks)
+
+            simple_metadata = {"mds": mds, "m2m_mds": m2m_mds}
+            imported_count = self.update_create_and_link_comics(
+                library, modified_paths, created_paths, simple_metadata
+            )
+            changed += imported_count
+            all_metadata = (
+                simple_metadata
+            ) = modified_paths = created_paths = mds = m2m_mds = fks = None
+
+            new_failed_imports = self.fail_imports(library, fis)
+
+            changed += self.delete(library, task)
             cache.clear()
         finally:
-            self._finish_apply(library)
-        # Wait to start the search index update in case more updates are incoming.
-        delayed_search_task = DelayedTasks(
-            start_time + 2, (SearchIndexUpdateTask(False),)
-        )
-        self.librarian_queue.put(delayed_search_task)
+            self._finish_apply_status(library)
 
-        if changed:
-            self.librarian_queue.put(LIBRARY_CHANGED_TASK)
-            elapsed_time = time() - start_time
-            elapsed = naturaldelta(elapsed_time)
-            self.log.info(f"Updated library {library.path} in {elapsed}.")
-            suffix = ""
-            if imported_count:
-                cps = round(imported_count / elapsed_time, 1)
-                suffix = f" at {cps} comics per second."
-            self.log.info(f"Imported {imported_count} comics{suffix}.")
-        if new_failed_imports:
-            self.librarian_queue.put(FAILED_IMPORTS_TASK)
+        changed_args = (library, start_time, imported_count)
+        self._finish_apply(changed, new_failed_imports, changed_args)
 
     def process_item(self, task):
         """Run the updater."""

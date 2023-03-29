@@ -80,7 +80,7 @@ class FilterListField(ListField, ABC):
     @abstractmethod
     def CHILD_CLASS(cls):  # noqa: N802
         """Child field class."""
-        raise NotImplementedError()
+        raise NotImplementedError
 
     VALIDATORS = ()
 
@@ -135,7 +135,7 @@ class BrowserSettingsFilterSerializer(Serializer):
     creators = IntListField(required=False)
     critical_rating = FloatListField(required=False)
     decade = DecadeListField(required=False)
-    format = CharListField(required=False, allow_blank=True)
+    original_format = CharListField(required=False, allow_blank=True)
     genres = IntListField(required=False)
     language = CharListField(allow_blank=True, required=False)
     locations = IntListField()
@@ -161,6 +161,7 @@ class BrowserSettingsSerializer(Serializer):
     show = BrowserSettingsShowGroupFlagsSerializer(required=False)
     twenty_four_hour_time = BooleanField(required=False)
     top_group = ChoiceField(choices=tuple(CHOICES["topGroup"].keys()), required=False)
+    opds_metadata = BooleanField(required=False)
 
 
 class BrowserCardSerializer(BrowserCardOPDSBaseSerializer):
@@ -201,7 +202,7 @@ class BrowserRouteSerializer(Serializer):
 class BrowserAdminFlagsSerializer(Serializer):
     """These choices change with browse context."""
 
-    enable_folder_view = BooleanField(read_only=True)
+    folder_view = BooleanField(read_only=True)
 
 
 class BrowserTitleSerializer(Serializer):
@@ -248,7 +249,7 @@ class BrowserFilterChoicesSerializer(Serializer):
     critical_rating = BooleanField(read_only=True)
     creators = BooleanField(read_only=True)
     decade = BooleanField(read_only=True)
-    format = BooleanField(read_only=True)
+    original_format = BooleanField(read_only=True)
     genres = BooleanField(read_only=True)
     language = BooleanField(read_only=True)
     locations = BooleanField(read_only=True)

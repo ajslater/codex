@@ -19,7 +19,7 @@ PATH_STEP = 2
 CHANCE_OF_NULL = 0.1
 CHANCE_OF_BAD_TYPE = 0.2
 CHOICES_STR = string.ascii_uppercase + string.digits
-CREDIT_TAGS = (
+CREATOR_TAGS = (
     "Colorist",
     "CoverArtist",
     "Editor",
@@ -56,10 +56,13 @@ FIELDS = {
         "StoryArc",
         "SeriesGroup",
     ),
-    "CREDITS": ("Colorist", "CoverArtist", "Editor", "Letterer", "Inker"),
+    "creatorS": ("Colorist", "CoverArtist", "Editor", "Letterer", "Inker"),
 }
 BOOL_VALUES = ("yes", "no")
 MANGA_VALUES = (*BOOL_VALUES, "yesandrighttoleft", "yesrtl")
+NUM_M2M_NAMES = 20
+NUM_creatorS = 15
+STATUS_DELAY = 5
 
 
 def is_valid():
@@ -82,7 +85,7 @@ def create_int(md, key, limit):
     v = is_valid()
     if v is None:
         return
-    elif not v:
+    if not v:
         value = rand_string(5)
     else:
         limit = round(limit * 1.2)
@@ -95,10 +98,7 @@ def create_float(md, key, limit):
     v = is_valid()
     if v is None:
         return
-    elif not v:
-        value = rand_string(5)
-    else:
-        value = random() * limit * 1.1
+    value = rand_string(5) if not v else random() * limit * 1.1
     md[key] = value
 
 
@@ -117,7 +117,7 @@ def create_name_list(md, key):
         return
     m2m = []
     prefix = key + "_"
-    for _ in range(randint(0, 10)):
+    for _ in range(randint(0, NUM_M2M_NAMES)):
         name = prefix + rand_string(64 - len(prefix))
         m2m.append(name)
     md[key] = ",".join(m2m)
@@ -128,10 +128,7 @@ def create_bool(md, key):
     v = is_valid()
     if v is None:
         return
-    elif not v:
-        value = rand_string(5)
-    else:
-        value = BOOL_VALUES[randint(0, 1)]
+    value = rand_string(5) if not v else BOOL_VALUES[randint(0, 1)]
     md[key] = value
 
 
@@ -140,20 +137,17 @@ def create_manga(md):
     v = is_valid()
     if v is None:
         return
-    elif not v:
-        value = rand_string(5)
-    else:
-        value = MANGA_VALUES[randint(0, 3)]
+    value = rand_string(5) if not v else MANGA_VALUES[randint(0, 3)]
     md["Manga"] = value
 
 
-def create_credits(md):
-    """Add credits to the metadata."""
+def create_creators(md):
+    """Add creators to the metadata."""
     v = is_valid()
     if v is None:
         return
-    for _ in range(0, randint(0, 7)):
-        role = choices(CREDIT_TAGS, k=1)[0]
+    for _ in range(0, randint(0, NUM_creatorS)):
+        role = choices(CREATOR_TAGS, k=1)[0]
         person = rand_string(round(64 * 1.1))
         md[role] = person
 
@@ -179,7 +173,7 @@ def create_metadata():
 
     create_bool(md, "BlackAndWhite")
     create_manga(md)
-    create_credits(md)
+    create_creators(md)
 
     root = Element(ComicInfoXml.ROOT_TAG)
     root.attrib["xmlns:xsi"] = "http://www.w3.org/2001/XMLSchema-instance"
@@ -241,7 +235,7 @@ def main(args):
     for index in range(num_comics):
         create_file(root, index)
         now = time.time()
-        if now - since > 10:
+        if now - since > STATUS_DELAY:
             print(f"{index+1}/{num_comics}")
             since = now
     print(f"{index+1}/{num_comics}")

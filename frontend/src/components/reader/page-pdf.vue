@@ -24,6 +24,7 @@ export default {
   name: "PDFPage",
   components: { VuePdfEmbed },
   props: {
+    book: { type: Object, required: true },
     src: {
       type: String,
       required: true,
@@ -71,7 +72,7 @@ export default {
     window.removeEventListener("resize", this.onResize);
   },
   methods: {
-    ...mapActions(useReaderStore, ["routeToPage"]),
+    ...mapActions(useReaderStore, ["getSettings", "routeToPage"]),
     onResize() {
       this.innerHeight = window.innerHeight;
       this.innerWidth = window.innerWidth;

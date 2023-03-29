@@ -10,8 +10,6 @@ from codex.worker_base import WorkerBaseMixin
 class BreakLoopError(Exception):
     """Simple way to break out of function nested loop."""
 
-    pass
-
 
 class NamedThread(Thread, WorkerBaseMixin, ABC):
     """A thread that sets its name for ps."""
@@ -42,15 +40,14 @@ class QueuedThread(NamedThread, ABC):
     @abstractmethod
     def process_item(self, item):
         """Process one item from the queue."""
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def get_timeout(self):
         """Set no timeout by default."""
-        return None
+        return
 
     def timed_out(self):
         """Override to things on queue timeout."""
-        pass
 
     def _check_item(self):
         """Get items, with timeout. Check for shutdown and Empty."""
@@ -58,7 +55,7 @@ class QueuedThread(NamedThread, ABC):
         try:
             item = self.queue.get(timeout=timeout)
             if item == self.SHUTDOWN_MSG:
-                raise BreakLoopError()
+                raise BreakLoopError  # noqa TRY301
             self.process_item(item)
         except Empty:
             self.timed_out()
@@ -71,9 +68,8 @@ class QueuedThread(NamedThread, ABC):
                 self._check_item()
             except BreakLoopError:
                 break
-            except Exception as exc:
-                self.log.error(f"{self.__class__.__name__} crashed:")
-                self.log.exception(exc)
+            except Exception:
+                self.log.exception(f"{self.__class__.__name__} crashed:")
         self.log.debug(f"Stopped {self.__class__.__name__}")
 
     def stop(self):
@@ -106,12 +102,12 @@ class AggregateMessageQueuedThread(QueuedThread, ABC):
     @abstractmethod
     def aggregate_items(self, item):
         """Abstract method for aggregating items."""
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @abstractmethod
     def send_all_items(self):
         """Abstract method for sending all items."""
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def cleanup_cache(self, keys):
         """Remove sent messages from the cache and record send times."""

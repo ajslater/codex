@@ -5,15 +5,16 @@ from platform import machine, python_version, release, system
 from caseconverter import snakecase
 from django.contrib.auth.models import Group, User
 from django.contrib.sessions.models import Session
+from django.db.models import Count
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
 from codex.models import (
     Character,
     Comic,
-    Credit,
-    CreditPerson,
-    CreditRole,
+    Creator,
+    CreatorPerson,
+    CreatorRole,
     Folder,
     Genre,
     Imprint,
@@ -30,6 +31,7 @@ from codex.models import (
 )
 from codex.permissions import HasAPIKeyOrIsAdminUser
 from codex.serializers.admin import AdminStatsSerializer
+from codex.serializers.choices import CHOICES
 from codex.version import VERSION
 
 
@@ -55,9 +57,9 @@ class AdminStatsView(GenericAPIView):
         Team,
         Tag,
         Genre,
-        Credit,
-        CreditPerson,
-        CreditRole,
+        Creator,
+        CreatorPerson,
+        CreatorRole,
     )
     _CONFIG_MODELS = (
         Library,
@@ -148,27 +150,35 @@ class AdminStatsView(GenericAPIView):
         if not request_counts or "sessionanon" in request_counts:
             config["session_anon_count"] = self._get_anon_sessions()
         if not request_counts or "apikey" in request_counts:
-            config["api_key"] = Timestamp.objects.get(name=Timestamp.API_KEY).version
+            config["api_key"] = Timestamp.objects.get(
+                key=Timestamp.TimestampChoices.API_KEY.value
+            ).version
         obj["config"] = config
+
+    def _get_file_types(self):
+        """Query for file types."""
+        file_types = {}
+        qs = (
+            Comic.objects.values("file_type")
+            .annotate(count=Count("file_type"))
+            .order_by()
+        )
+        for query_group in qs:
+            value = query_group["file_type"]
+            name = CHOICES["fileTypes"].get(value, "unknown").lower()
+            field = f"{name}_count"
+            file_types[field] = query_group["count"]
+        return file_types
 
     def _get_groups(self, obj):
         """Add dict of groups information to object."""
-        groups = self._get_model_counts("groups")
-        request_counts = self._get_request_counts("groups")
-        if not request_counts or "pdf" in request_counts:
-            groups["pdf_count"] = pdf_count = Comic.objects.filter(
-                file_format=Comic.FileFormat.PDF
-            ).count()
-        if not request_counts or "comicarchive" in request_counts:
-            comic_count = groups.get("comic_count")
-            pdf_count = groups.get("pdf_count")
-            if comic_count is None or pdf_count is None:
-                groups["comic_archive_count"] = Comic.objects.exclude(
-                    file_format=Comic.FileFormat.PDF
-                ).count()
-            else:
-                groups["comic_archive_count"] = groups["comic_count"] - pdf_count
-        obj["groups"] = groups
+        if not self.params or "groups" in self.params:
+            groups = self._get_model_counts("groups")
+            obj["groups"] = groups
+
+        if not self.params or "fileTypes" in self.params:
+            file_types = self._get_file_types()
+            obj["file_types"] = file_types
 
     def _get_metadata(self, obj):
         """Add dict of metadata counts to object."""
@@ -188,7 +198,7 @@ class AdminStatsView(GenericAPIView):
             self._get_metadata(obj)
         return obj
 
-    def get(self, request, *args, **kwargs):
+    def get(self, *args, **kwargs):
         """Get the stats object and serialize it."""
         params = self.request.GET.get("params")
         if params:

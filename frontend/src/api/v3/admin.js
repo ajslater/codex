@@ -79,8 +79,8 @@ const getFlags = () => {
   return HTTP.get("/admin/flag", { params });
 };
 
-const updateFlag = (pk, data) => {
-  return HTTP.put(`/admin/flag/${pk}/`, data);
+const updateFlag = (key, data) => {
+  return HTTP.put(`/admin/flag/${key}/`, data);
 };
 
 // TASKS

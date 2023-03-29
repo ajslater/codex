@@ -1,7 +1,10 @@
 <template>
-  <v-table v-if="sortedCredits && sortedCredits.length > 0" id="creditsTable">
+  <v-table
+    v-if="sortedcreators && sortedcreators.length > 0"
+    id="creatorsTable"
+  >
     <template #default>
-      <h2>Credits</h2>
+      <h2>creators</h2>
       <table class="highlight-table">
         <thead>
           <tr>
@@ -10,13 +13,13 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="credit in sortedCredits" :key="credit.pk">
+          <tr v-for="creator in sortedcreators" :key="creator.pk">
             <td>
-              {{ roleName(credit.role.name) }}
+              {{ roleName(creator.role.name) }}
             </td>
-            <td :class="{ filteredOn: isFilteredCreator(credit.person.pk) }">
+            <td :class="{ filteredOn: isFilteredCreator(creator.person.pk) }">
               <span class="highlight">
-                {{ credit.person.name }}
+                {{ creator.person.name }}
               </span>
             </td>
           </tr>
@@ -32,7 +35,7 @@ import { mapState } from "pinia";
 import { useBrowserStore } from "@/stores/browser";
 
 export default {
-  name: "MetadataCreditsTable",
+  name: "MetadatacreatorsTable",
   props: {
     value: {
       type: Array,
@@ -43,8 +46,8 @@ export default {
     return {};
   },
   computed: {
-    sortedCredits: function () {
-      return this.value ? [...this.value].sort(this.creditsCompare) : [];
+    sortedcreators: function () {
+      return this.value ? [...this.value].sort(this.creatorsCompare) : [];
     },
     ...mapState(useBrowserStore, {
       filteredCreators(state) {
@@ -59,8 +62,8 @@ export default {
       }
       return name;
     },
-    creditSortable: function (credit) {
-      const names = credit.person.name.split(" ");
+    creatorSortable: function (creator) {
+      const names = creator.person.name.split(" ");
       let sortArray = [];
       if (names) {
         sortArray.push(names.slice(-1));
@@ -68,15 +71,15 @@ export default {
           sortArray.push(names.slice(0, -1));
         }
       }
-      sortArray.push(credit.role.name);
+      sortArray.push(creator.role.name);
 
       return sortArray.join(" ");
     },
-    creditsCompare: function (creditA, creditB) {
-      const creditSortableA = this.creditSortable(creditA);
-      const creditSortableB = this.creditSortable(creditB);
-      if (creditSortableA < creditSortableB) return -1;
-      if (creditSortableA > creditSortableB) return 1;
+    creatorsCompare: function (creatorA, creatorB) {
+      const creatorSortableA = this.creatorSortable(creatorA);
+      const creatorSortableB = this.creatorSortable(creatorB);
+      if (creatorSortableA < creatorSortableB) return -1;
+      if (creatorSortableA > creatorSortableB) return 1;
       return 0;
     },
     isFilteredCreator(pk) {
@@ -87,14 +90,14 @@ export default {
 </script>
 
 <style scoped lang="scss">
-#creditsTable {
+#creatorsTable {
   padding: 10px;
 }
-#creditsTable table {
+#creatorsTable table {
   width: 100%;
 }
-#creditsTable th,
-#creditsTable td {
+#creatorsTable th,
+#creatorsTable td {
   padding: 10px;
 }
 .filteredOn {

@@ -7,82 +7,82 @@
         max-width="20em"
       />
     </header>
-    <AdminTable :items="users">
-      <template #thead>
-        <tr>
-          <th>Username</th>
-          <th>Staff</th>
-          <th>Active</th>
-          <th>Groups</th>
-          <th>Last Active</th>
-          <th>Last Login</th>
-          <th>Joined</th>
-          <th>Edit</th>
-          <th>Change Password</th>
-          <th>Delete</th>
-        </tr>
+    <v-data-table-virtual
+      fixed-headers
+      item-value="pk"
+      item-title="username"
+      :headers="headers"
+      :items="users"
+      class="adminTable"
+    >
+      <template #no-data>
+        <td class="adminNoData" colspan="100%">
+          No Users.
+          <div>
+            This is an error. There should always be at least one Staff user.<br />
+            You should not be able to see this page<br />
+            You should restart Codex with the CODEX_RESET_ADMIN=1 variable
+            set.<br />
+            See the
+            <a
+              href="https://github.com/ajslater/codex#reset-the-admin-password"
+              target="_blank"
+            >
+              README
+            </a>
+          </div>
+        </td>
       </template>
-      <template #tbody>
-        <tr v-for="item in users" :key="`u:${item.pk}:${item.keyHack}`">
-          <td class="usernameCol">
-            {{ item.username }}
-          </td>
-          <td class="buttonCol">
-            <v-checkbox
-              class="tableCheckbox"
-              :model-value="item.isStaff"
-              density="compact"
-              disabled
-            />
-          </td>
-          <td class="buttonCol">
-            <v-checkbox
-              class="tableCheckbox"
-              :model-value="item.isActive"
-              density="compact"
-              disabled
-            />
-          </td>
-          <td class="relationCol">
-            <RelationChips :pks="item.groups" :map="groupMap" />
-          </td>
-          <td class="dttmCol">
-            <DateTimeColumn :dttm="item.lastActive" />
-          </td>
-          <td class="dttmCol">
-            <DateTimeColumn :dttm="item.lastLogin" />
-          </td>
-          <td class="dttmCol">
-            <DateTimeColumn :dttm="item.dateJoined" />
-          </td>
-          <td class="buttonCol">
-            <AdminCreateUpdateDialog
-              table="User"
-              :inputs="AdminUserCreateUpdateInputs"
-              :old-row="item"
-              max-width="20em"
-            />
-          </td>
-          <td class="buttonCol">
-            <ChangePasswordDialog :user="item" :is-admin-mode="true" />
-          </td>
-          <td class="buttonCol">
-            <AdminDeleteRowDialog
-              v-if="me.id !== item.pk"
-              table="User"
-              :pk="item.pk"
-              :name="item.username"
-            />
-          </td>
-        </tr>
+      <template #[`item.isStaff`]="{ item }">
+        <v-checkbox-btn :model-value="item.raw.isStaff" disabled />
       </template>
-    </AdminTable>
+      <template #[`item.isActive`]="{ item }">
+        <v-checkbox-btn :model-value="item.raw.isActive" disabled />
+      </template>
+      <template #[`item.groups`]="{ item }">
+        <RelationChips :pks="item.raw.groups" :map="groupMap" />
+      </template>
+      <template #[`item.lastActive`]="{ item }">
+        <DateTimeColumn :dttm="item.raw.lastActive" />
+      </template>
+      <template #[`item.lastLogin`]="{ item }">
+        <DateTimeColumn :dttm="item.raw.lastLogin" />
+      </template>
+      <template #[`item.dateJoined`]="{ item }">
+        <DateTimeColumn :dttm="item.raw.dateJoined" />
+      </template>
+      <template #[`item.actions`]="{ item }">
+        <AdminCreateUpdateDialog
+          table="User"
+          :inputs="AdminUserCreateUpdateInputs"
+          :old-row="item.raw"
+          max-width="20em"
+          size="small"
+          density="compact"
+        />
+        <ChangePasswordDialog
+          :user="item.raw"
+          :is-admin-mode="true"
+          size="small"
+          density="compact"
+        />
+        <AdminDeleteRowDialog
+          v-if="me.id !== item.raw.pk"
+          table="User"
+          :pk="item.raw.pk"
+          :name="item.raw.username"
+          size="small"
+          density="compact"
+        />
+      </template>
+    </v-data-table-virtual>
   </div>
 </template>
 
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 import { markRaw } from "vue";
+import { VDataTableVirtual } from "vuetify/labs/components";
 
 import AdminTable from "@/components/admin/admin-table.vue";
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
@@ -103,10 +103,21 @@ export default {
     AdminCreateUpdateDialog,
     DateTimeColumn,
     RelationChips,
+    VDataTableVirtual,
   },
   data() {
     return {
       AdminUserCreateUpdateInputs: markRaw(AdminUserCreateUpdateInputs),
+      headers: [
+        { title: "Username", key: "username", align: "start" },
+        { title: "Staff", key: "isStaff" },
+        { title: "Active", key: "isActive" },
+        { title: "Groups", key: "groups" },
+        { title: "Last Active", key: "lastActive" },
+        { title: "Last Login", key: "lastLogin" },
+        { title: "Joined", key: "dateJoined" },
+        { title: "Actions", key: "actions", sortable: false },
+      ],
     };
   },
   computed: {
@@ -126,15 +137,3 @@ export default {
   },
 };
 </script>
-
-<style scoped lang="scss">
-.usernameCol {
-  min-width: 11em;
-}
-.dttmCol {
-  min-width: 9em;
-}
-.buttonCol {
-  width: 24px;
-}
-</style>

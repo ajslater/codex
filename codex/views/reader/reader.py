@@ -71,7 +71,7 @@ class ReaderView(BookmarkBaseView):
             .order_by(*ordering)
             .values(
                 "pk",
-                "file_format",
+                "file_type",
                 "issue",
                 "issue_count",
                 "issue_suffix",
@@ -96,7 +96,7 @@ class ReaderView(BookmarkBaseView):
                 # after match set next comic and break
                 self._append_with_settings(books, book)
                 break
-            elif book["pk"] == pk:
+            if book["pk"] == pk:
                 # first match. set previous and current comic
                 if prev_book:
                     self._append_with_settings(books, prev_book)
@@ -116,7 +116,7 @@ class ReaderView(BookmarkBaseView):
 
         return {"books": books, "series_count": comics.count()}
 
-    def get(self, request, *args, **kwargs):
+    def get(self, *args, **kwargs):
         """Get the book info."""
         obj = self.get_object()
         serializer = self.get_serializer(obj)

@@ -6,21 +6,15 @@ from dataclasses import dataclass
 class CoverTask:
     """Handle with the CoverCreator."""
 
-    pass
-
 
 @dataclass
 class CoverRemoveAllTask(CoverTask):
     """Remove all comic covers."""
 
-    pass
-
 
 @dataclass
 class CoverRemoveOrphansTask(CoverTask):
     """Clean up covers from missing comics."""
-
-    pass
 
 
 @dataclass

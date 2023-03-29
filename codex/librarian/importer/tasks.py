@@ -6,8 +6,6 @@ from dataclasses import dataclass
 class UpdaterTask:
     """Tasks for the updater."""
 
-    pass
-
 
 @dataclass
 class UpdaterDBDiffTask(UpdaterTask):
@@ -27,5 +25,3 @@ class UpdaterDBDiffTask(UpdaterTask):
 @dataclass
 class AdoptOrphanFoldersTask(UpdaterTask):
     """Move orphaned folders into a correct tree position."""
-
-    pass

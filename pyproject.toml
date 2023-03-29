@@ -4,9 +4,9 @@ build-backend = ["poetry.core.masonry.api"]
 
 [tool.poetry]
 name = "codex"
-version = "1.2.9a0"
+version = "1.3.0"
 description = "A comic archive web server."
-license = "GPL-2.0-only"
+license = "GPL-3.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
 readme = "README.md"
 homepage = "https://github.com/ajslater/codex"
@@ -56,12 +56,13 @@ fnvhash = "^0.1"
 humanfriendly = "^10.0"
 humanize = "^4.0.0"
 hypercorn = { extras = ["h3"], version = "^0.14.1" }
+psutil = "^5.9.4"
 pycountry = "^22.1"
 pymupdf = "^1.21.1"
 python-dateutil = "^2.8.2"
 requests = "^2.24"
 tzlocal = "^4.1"
-watchdog = "^2.0"
+watchdog = "^3.0"
 websocket_client = "^1.2"
 whitenoise = { extras = ["brotli"], version = "^6.0" }
 whoosh = "^2.7.4"
@@ -73,7 +74,7 @@ nplusone = "^1.0.0"
 
 [tool.poetry.group.test.dependencies]
 coverage = { extras = ["toml"], version = "^7.0" }
-pytest-asyncio = "^0.20.1"
+pytest-asyncio = "^0.21.0"
 pytest-cov = "^4.0"
 pytest-django = "^4.1"
 pytest-gitignore = "^1.3"
@@ -85,9 +86,8 @@ djangorestframework-types = "^0.8.0"
 django-types = "^0.17.0"
 djlint = "^1.2.1"
 pyright = "^1.1.232"
-radon = "^5.1"
-ruff = "^0.0.254"
-tomli = "^2.0.1" # for codespell with python < 3.11
+radon = { extras = ["toml"], version =  "^6.0.1" }
+ruff = ">=0.0.256"
 types-python-dateutil = "^2.8.19"
 vulture = "^2.3"
 
@@ -108,7 +108,7 @@ builtin = 'clear,rare,code'
 check-hidden = true
 # Remove 'coverd' when this issue is resolved
 # https://github.com/codespell-project/codespell/issues/1212
-ignore-words-list = 'thead,ro,jupyter,coverd,searchd,ws'
+ignore-words-list = 'thead,ro,jupyter,coverd,searchd,ws,falsy'
 
 [tool.coverage.html]
 directory = "test-results/coverage"
@@ -187,18 +187,43 @@ addopts = """
     --ignore=typings
 """
 
+[tool.radon]
+exclude = """\
+  *~,.git/*,.mypy_cache/*,.pytest_cache/*,.venv*,__pycache__/*\
+  ,cache/*,codex/_vendor/haystack/*,codex/static_build/*,codex/static_root/*\
+  ,config/*,dist/*,frontend/*,node_modules/*,test-results/*,typings/*\
+  """
+
 [tool.ruff]
 extend-exclude = ["cache", "codex/_vendor_haystack", "frontend", "typings"]
 extend-ignore = ["S101", "D203", "D213"]
-extend-select = ["B", "B9", "C", "D", "I", "N", "S", "W"]
-# external = ["V101"]
-# format = "grouped"
-# show-source = true
+extend-select = ["A", "ARG", "B", "B9", "C", "C4", "C90", "D", "DJ",
+  "DTZ", "E", "EM", "EXE", "F", "I", "ICN", "INP", "ISC", "PIE", "PL",
+  "PT", "PTH", "PYI", "Q", "N", "RET", "RSE", "RUF", "S", "SIM", "SLF",
+  "T10", "T20", "TCH", "TID", "TRY", "UP", "W", "YTT"
+  # "ANN", "ERA", "COM"
+]
+external = ["V101"]
+format = "grouped"
+show-fixes = true
 target-version = "py39"
 task-tags = ["TODO", "FIXME", "XXX", "http", "HACK"]
 
+[tool.ruff.flake8-self]
+ignore-names = ["_meta"]
+
+[tool.ruff.flake8-unused-arguments]
+ignore-variadic-names = true
+
 [tool.ruff.pycodestyle]
 ignore-overlong-task-comments = true
+
+[tool.ruff.per-file-ignores]
+"codex/logger/*" = ["T201"]
+"codex/migrations/*" = ["T201"]
+"codex/settings/*" = ["T201"]
+"mock_comics/*" = ["S311","T201"]
+
 
 [tool.vulture]
 exclude = [

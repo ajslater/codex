@@ -1,5 +1,6 @@
 """Logging classes."""
 import logging
+from contextlib import suppress
 from logging.handlers import QueueHandler
 
 from codex.logger.mp_queue import LOG_QUEUE
@@ -11,12 +12,10 @@ class CodexQueueHandler(QueueHandler):
 
     def enqueue(self, record):
         """Remove unserializable element before queueing."""
-        try:
+        with suppress(KeyError):
             # Fixes _pickle.PicklingError: Cannot pickle ResolverMatch.
             # Somewhere inside request is this unpicklable object.
             record.__dict__["request"].resolver_match = None
-        except KeyError:
-            pass
         super().enqueue(record)
 
 
@@ -33,10 +32,7 @@ def _ensure_handler(logger, queue):
             logger.removeHandler(handler)
 
     if not logger.handlers:
-        if queue == LOG_QUEUE:
-            handler = LOG_HANDLER
-        else:
-            handler = CodexQueueHandler(queue)
+        handler = LOG_HANDLER if queue == LOG_QUEUE else CodexQueueHandler(queue)
         logger.addHandler(handler)
 
 

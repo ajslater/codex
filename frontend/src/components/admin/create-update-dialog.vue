@@ -5,6 +5,9 @@
         :update="Boolean(oldRow)"
         :table="table"
         v-bind="props"
+        :size="size"
+        :density="density"
+        :title="title"
       />
     </template>
     <v-form ref="form" class="cuForm">
@@ -48,6 +51,14 @@ export default {
       type: Object,
       required: true,
     },
+    size: {
+      type: String,
+      default: "default",
+    },
+    density: {
+      type: String,
+      default: "default",
+    },
   },
   data() {
     return {
@@ -59,6 +70,10 @@ export default {
   computed: {
     verb() {
       return this.oldRow ? "Update" : "Add";
+    },
+    title() {
+      const verb = this.oldRow ? "Edit" : "Add";
+      return verb + " " + this.table;
     },
   },
   watch: {

@@ -15,12 +15,12 @@ class SearchIndexerThread(UpdateMixin, MergeMixin):
     def process_item(self, task):
         """Run the updater."""
         if isinstance(task, SearchIndexRebuildIfDBChangedTask):
-            self._rebuild_search_index_if_db_changed()
+            self.rebuild_search_index_if_db_changed()
         elif isinstance(task, SearchIndexUpdateTask):
-            self._update_search_index(rebuild=task.rebuild)
+            self.update_search_index(rebuild=task.rebuild)
         elif isinstance(task, SearchIndexMergeTask):
-            self._merge_search_index(task.optimize)
+            self.merge_search_index(task.optimize)
         elif isinstance(task, SearchIndexRemoveStaleTask):
-            self._remove_stale_records()
+            self.remove_stale_records()
         else:
             self.log.warning(f"Bad task sent to search index thread: {task}")

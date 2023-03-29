@@ -6,7 +6,8 @@ from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.contrib.sessions.models import Session
-from django.db import connection
+from django.db import DEFAULT_DB_ALIAS, connection, connections
+from django.db.migrations.executor import MigrationExecutor
 from django.db.migrations.recorder import MigrationRecorder
 from django.db.models.functions import Now
 from django.db.utils import OperationalError
@@ -19,8 +20,7 @@ from codex.settings.settings import (
     SKIP_INTEGRITY_CHECK,
 )
 
-NO_0005_ARG = "no_0005"
-OK_EXC_ARGS = (NO_0005_ARG, "no such table: django_migrations")
+NO_MIGRATIONS_TABLE_ERROR = "no such table: django_migrations"
 REPAIR_FLAG_PATH = CONFIG_PATH / "rebuild_db"
 DUMP_LINE_MATCHER = re.compile("TRANSACTION|ROLLBACK|COMMIT")
 REBUILT_DB_PATH = DB_PATH.parent / (DB_PATH.name + ".rebuilt")
@@ -30,9 +30,10 @@ MIGRATION_0007 = "0007_auto_20211210_1710"
 MIGRATION_0010 = "0010_haystack"
 MIGRATION_0011 = "0010_library_groups_and_metadata_changes"
 MIGRATION_0018 = "0018_rename_userbookmark_bookmark"
+MIGRATION_0023 = "0023_rename_credit_creator_and_more"
 M2M_NAMES = {
     "Character": "characters",
-    "Credit": "credits",
+    "Creator": "creators",
     "Genre": "genres",
     "Location": "locations",
     "SeriesGroup": "series_groups",
@@ -50,12 +51,13 @@ GROUP_HOSTS = {
     "Comic": ("Publisher", "Imprint", "Series", "Volume"),
 }
 WATCHED_PATHS = ("Comic", "Folder")
-CREDIT_FIELDS = {"CreditRole": "role", "CreditPerson": "person"}
+CREATOR_FIELDS = {"CreatorRole": "role", "CreatorPerson": "person"}
 OPERATIONAL_ERRORS_BEFORE_MIGRATIONS = (
     "no such column: codex_comic.name",
     "no such column: codex_comic.stat",
     "no such column: codex_folder.stat",
     "no such table: codex_comic_folders",
+    # "no such table: codex_comic_creators",
     "'QuerySet' object has no attribute 'stat'",
 )
 DELETE_BAD_COMIC_FOLDER_RELATIONS_SQL = (
@@ -79,18 +81,18 @@ def has_applied_migration(migration_name):
 def has_unapplied_migrations():
     """Check if any migrations are outstanding."""
     try:
-        db_names = frozenset(
-            MigrationRecorder.Migration.objects.filter(app="codex").values_list(
-                "name", flat=True
-            )
-        )
-        for path in MIGRATION_DIR.iterdir():
-            stem = path.stem
-            if stem[:4].isdigit() and stem not in db_names:
-                return True
+        connection = connections[DEFAULT_DB_ALIAS]
+        connection.prepare_database()
+        executor = MigrationExecutor(connection)
+        targets = [
+            key for key in executor.loader.graph.leaf_nodes() if key[0] == "codex"
+        ]
+        plan = executor.migration_plan(targets)
     except Exception as exc:
-        LOG.warning(exc)
-    return False
+        LOG.warning("has_unapplied_migrations()", exc)
+        return False
+    else:
+        return bool(plan)
 
 
 def _delete_old_comic_folder_fks():
@@ -110,7 +112,7 @@ def _fix_comic_m2m_integrity_errors(apps, comic_model, m2m_model_name, field_nam
     """Delete relations to comics that don't exist and m2ms that don't exist."""
     m2m_model = apps.get_model("codex", m2m_model_name)
     field = getattr(comic_model, field_name)
-    through_model = field.through  # noqa: N806
+    through_model = field.through
     link_col = field_name[:-1].replace("_", "") + "_id"
 
     m2m_rels_with_bad_comic_ids = through_model.objects.exclude(
@@ -198,6 +200,17 @@ def _delete_query(query, host_model_name, fk_model_name):
 def _delete_fk_integrity_errors(apps, host_model_name, fk_model_name, fk_field_name):
     """Delete objects with bad integrity."""
     try:
+        if not has_applied_migration(MIGRATION_0023) and (
+            host_model_name == "Creator"
+            or fk_model_name == "Creator"
+            or fk_field_name == "creators"
+        ):
+            LOG.debug(
+                "Skipping Creator integrity check until"
+                f"migration {MIGRATION_0023} applied."
+            )
+            return
+
         bad_host_objs = _find_fk_integrity_errors(
             apps, host_model_name, fk_model_name, fk_field_name
         )
@@ -268,8 +281,8 @@ def _delete_errors():
                 apps, host_model_name, group_model_name, group_field_name
             )
 
-    for fk_model_name, fk_field_name in CREDIT_FIELDS.items():
-        _delete_fk_integrity_errors(apps, "Credit", fk_model_name, fk_field_name)
+    for fk_model_name, fk_field_name in CREATOR_FIELDS.items():
+        _delete_fk_integrity_errors(apps, "Creator", fk_model_name, fk_field_name)
 
     _delete_bookmark_integrity_errors(apps)
 
@@ -280,10 +293,16 @@ def _repair_integrity():
     """REPAIR the objects that are left."""
     comic_model = apps.get_model("codex", "Comic")
     bad_comic_ids = comic_model.objects.none()
-    for m2m2_model_name, field_name in M2M_NAMES.items():
+    for m2m_model_name, field_name in M2M_NAMES.items():
+        if m2m_model_name == "Creator" and not has_applied_migration(MIGRATION_0023):
+            LOG.debug(
+                "Skipping Creator integrity check until"
+                f"migration {MIGRATION_0023} applied."
+            )
+            continue
         try:
             bad_comic_ids |= _fix_comic_m2m_integrity_errors(
-                apps, comic_model, m2m2_model_name, field_name
+                apps, comic_model, m2m_model_name, field_name
             )
         except OperationalError as exc:
             ok = False
@@ -310,24 +329,21 @@ def repair_db():
             return
 
         if not has_applied_migration(MIGRATION_0005):
-            raise OperationalError(NO_0005_ARG)
+            LOG.info(
+                "Not running integrity checks until migration"
+                f"{MIGRATION_0005} has been applied."
+            )
+            return
 
         LOG.debug("Reparing database integrity...")
         _delete_errors()
         _repair_integrity()
         LOG.info("Database integrity confirmed.")
     except OperationalError as exc:
-        ok = False
-        for arg in exc.args:
-            if arg in OK_EXC_ARGS:
-                ok = True
-                LOG.info(
-                    f"Not running integrity checks until migration {MIGRATION_0005}"
-                    " has been applied."
-                )
-                break
-        if not ok:
-            LOG.exception(exc)
+        if NO_MIGRATIONS_TABLE_ERROR in exc.args:
+            LOG.debug("Database not constructed yet, skipping integrity check.")
+        else:
+            raise
     except Exception as exc:
         LOG.exception(exc)
 

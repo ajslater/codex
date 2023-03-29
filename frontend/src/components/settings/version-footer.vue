@@ -20,7 +20,6 @@ export default {
       mdiOpenInNew,
       opdsURL: window.origin + window.CODEX.OPDS_PATH,
       mdiContentCopy,
-      showTool: false,
     };
   },
   computed: {
@@ -42,18 +41,6 @@ export default {
   },
   methods: {
     ...mapActions(useCommonStore, ["loadVersions"]),
-    copyToClipboard() {
-      navigator.clipboard
-        .writeText(this.opdsURL)
-        .then(() => {
-          this.showTool = true;
-          setTimeout(() => {
-            this.showTool = false;
-          }, 5000);
-          return true;
-        })
-        .catch(console.warn);
-    },
   },
 };
 </script>

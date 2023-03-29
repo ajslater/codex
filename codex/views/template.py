@@ -9,7 +9,7 @@ class TemplateXMLRenderer(TemplateHTMLRenderer):
     """Template rendeerer for xml."""
 
     media_type = "text/xml"
-    format = "xml"
+    format = "xml"  # noqa: A003
 
 
 class SimpleAPIView(APIView):
@@ -18,7 +18,7 @@ class SimpleAPIView(APIView):
     content_type = "application/json"
     status_code = status.HTTP_200_OK
 
-    def get(self, request, *args, **kwargs):
+    def get(self, *args, **kwargs):
         """Render the template with correct content_type."""
         return Response(
             data={}, status=self.status_code, content_type=self.content_type

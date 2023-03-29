@@ -13,13 +13,10 @@ class ComicFieldFilter(BrowserSessionViewBase):
         filter_query = Q()
         if not filter_list:
             return filter_query
-        if is_model_comic:
-            query_prefix = ""
-        else:
-            query_prefix = "comic__"
+        query_prefix = "" if is_model_comic else "comic__"
 
-        if field == self.CREDIT_PERSON_UI_FIELD:
-            rel = f"{query_prefix}credits__person"
+        if field == self.CREATOR_PERSON_UI_FIELD:
+            rel = f"{query_prefix}creators__person"
         else:
             rel = f"{query_prefix}{field}"
 

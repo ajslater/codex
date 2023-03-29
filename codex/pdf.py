@@ -58,13 +58,13 @@ class PDF:
         value = metadata.get(pdf_key)
         if value:
             if comicbox_key == "writer":
-                if "credits" not in self._metadata:
-                    self._metadata["credits"] = []
-                credit = {
+                if "creators" not in self._metadata:
+                    self._metadata["creators"] = []
+                creator = {
                     "role": comicbox_key,
                     "person": value,
                 }
-                self._metadata["credits"].append(credit)
+                self._metadata["creators"].append(creator)
             else:
                 self._metadata[comicbox_key] = value
 
@@ -103,8 +103,7 @@ class PDF:
         doc = self._get_doc()
         page = doc.load_page(0)
         pix = page.get_pixmap()
-        image_data = pix.tobytes(output="ppm")
-        return image_data
+        return pix.tobytes(output="ppm")
 
     def close(self):
         """Get rid of the reader."""

@@ -2,7 +2,6 @@
 import base64
 import calendar
 import datetime
-import os
 import uuid
 from pathlib import Path
 
@@ -14,6 +13,7 @@ from django.db.models import (
     CASCADE,
     BooleanField,
     CharField,
+    Choices,
     DateField,
     DateTimeField,
     DecimalField,
@@ -25,10 +25,10 @@ from django.db.models import (
     OneToOneField,
     PositiveIntegerField,
     PositiveSmallIntegerField,
+    TextChoices,
     TextField,
     URLField,
 )
-from django.db.models.enums import TextChoices
 from django.utils.translation import gettext_lazy as _
 
 from codex.librarian.covers.status import CoverStatusTypes
@@ -41,8 +41,9 @@ from codex.logger.logging import get_logger
 LOG = get_logger(__name__)
 
 
-MAX_PATH_LENGTH = 4095
-MAX_NAME_LENGTH = 128
+MAX_PATH_LEN = 4095
+MAX_NAME_LEN = 128
+MAX_FIELD_LEN = 32
 
 
 class BaseModel(Model):
@@ -64,7 +65,7 @@ class BrowserGroupModel(BaseModel):
     DEFAULT_NAME = ""
     ORDERING = ("name", "pk")
 
-    name = CharField(db_index=True, max_length=MAX_NAME_LENGTH, default=DEFAULT_NAME)
+    name = CharField(db_index=True, max_length=MAX_NAME_LEN, default=DEFAULT_NAME)
 
     class Meta:
         """Without this a real table is created and joined to."""
@@ -112,6 +113,7 @@ class Volume(BrowserGroupModel):
     """The volume of the series the comic belongs to."""
 
     ORDERING = ("series__name", "name", "pk")
+    YEAR_LEN = 4
 
     publisher = ForeignKey(Publisher, on_delete=CASCADE)
     imprint = ForeignKey(Imprint, on_delete=CASCADE)
@@ -122,6 +124,16 @@ class Volume(BrowserGroupModel):
         """Constraints."""
 
         unique_together = ("name", "series")
+
+    def __str__(self):
+        """Represent volume as a string."""
+        if not self.name:
+            vol = ""
+        elif len(self.name) == self.YEAR_LEN:
+            vol = f"({self.name})"
+        else:
+            vol = "v" + self.name
+        return vol
 
 
 def validate_dir_exists(path):
@@ -139,7 +151,7 @@ class Library(BaseModel):
     path = CharField(
         unique=True,
         db_index=True,
-        max_length=MAX_PATH_LENGTH,
+        max_length=MAX_PATH_LEN,
         validators=[validate_dir_exists],
     )
     events = BooleanField(db_index=True, default=True)
@@ -162,7 +174,7 @@ class Library(BaseModel):
 class NamedModel(BaseModel):
     """A for simple named tables."""
 
-    name = CharField(db_index=True, max_length=MAX_NAME_LENGTH)
+    name = CharField(db_index=True, max_length=MAX_NAME_LEN)
 
     class Meta:
         """Defaults to uniquely named, must be overridden."""
@@ -178,13 +190,9 @@ class NamedModel(BaseModel):
 class SeriesGroup(NamedModel):
     """A series group the series is part of."""
 
-    pass
-
 
 class StoryArc(NamedModel):
     """A story arc the comic is part of."""
-
-    pass
 
 
 class Location(NamedModel):
@@ -194,44 +202,32 @@ class Location(NamedModel):
 class Character(NamedModel):
     """A character that appears in the comic."""
 
-    pass
-
 
 class Team(NamedModel):
     """A team that appears in the comic."""
-
-    pass
 
 
 class Tag(NamedModel):
     """Arbitrary Metadata Tag."""
 
-    pass
-
 
 class Genre(NamedModel):
     """The genre the comic belongs to."""
 
-    pass
 
-
-class CreditPerson(NamedModel):
+class CreatorPerson(NamedModel):
     """Credited persons."""
 
-    pass
 
-
-class CreditRole(NamedModel):
+class CreatorRole(NamedModel):
     """A role for the credited person. Writer, Inker, etc."""
 
-    pass
 
-
-class Credit(BaseModel):
+class Creator(BaseModel):
     """A creator credit."""
 
-    person = ForeignKey(CreditPerson, on_delete=CASCADE)
-    role = ForeignKey(CreditRole, on_delete=CASCADE, null=True)
+    person = ForeignKey(CreatorPerson, on_delete=CASCADE)
+    role = ForeignKey(CreatorRole, on_delete=CASCADE, null=True)
 
     class Meta:
         """Constraints."""
@@ -243,7 +239,7 @@ class WatchedPath(BrowserGroupModel):
     """A filesystem path with data for Watchdog."""
 
     library = ForeignKey(Library, on_delete=CASCADE, db_index=True)
-    path = CharField(max_length=MAX_PATH_LENGTH, db_index=True)
+    path = CharField(max_length=MAX_PATH_LEN, db_index=True)
     stat = JSONField(null=True)
     parent_folder = ForeignKey(
         "Folder",
@@ -254,7 +250,7 @@ class WatchedPath(BrowserGroupModel):
 
     def set_stat(self):
         """Set select stat params from the filesystem."""
-        st_record = os.stat(self.path)
+        st_record = Path(self.path).stat()
         # Converting os.stat directly to a list or tuple saves
         # mtime as an int and causes problems.
         st = self.ZERO_STAT.copy()
@@ -283,12 +279,16 @@ class Folder(WatchedPath):
 class Comic(WatchedPath):
     """Comic metadata."""
 
-    class FileFormat(TextChoices):
+    class FileType(Choices):
         """Identifiers for file formats."""
 
-        COMIC = "comic"
-        PDF = "pdf"
+        CBZ = "Z"
+        CBR = "R"
+        CBT = "T"
+        CBX = "X"
+        PDF = "P"
 
+    COMIC_FILE_TYPES = frozenset(("z", "r", "t", "x"))
     ORDERING = ("series__name", "volume__name", "issue", "issue_suffix", "name", "pk")
 
     # From BaseModel, but Comics are sorted by these so index them
@@ -312,9 +312,9 @@ class Comic(WatchedPath):
     month = PositiveSmallIntegerField(null=True)
     day = PositiveSmallIntegerField(null=True)
     # Summary
-    comments = TextField(null=True)
-    notes = TextField(null=True)
-    summary = TextField(null=True)
+    comments = TextField(default="")
+    notes = TextField(default="")
+    summary = TextField(default="")
     # Ratings
     community_rating = DecimalField(
         db_index=True, decimal_places=2, max_digits=5, default=None, null=True
@@ -322,19 +322,19 @@ class Comic(WatchedPath):
     critical_rating = DecimalField(
         db_index=True, decimal_places=2, max_digits=5, default=None, null=True
     )
-    age_rating = CharField(db_index=True, max_length=32, default="")
+    age_rating = CharField(db_index=True, max_length=MAX_FIELD_LEN, default="")
     # alpha2 fields for countries
-    country = CharField(db_index=True, max_length=32, default="")
-    language = CharField(db_index=True, max_length=32, default="")
+    country = CharField(db_index=True, max_length=MAX_FIELD_LEN, default="")
+    language = CharField(db_index=True, max_length=MAX_FIELD_LEN, default="")
     # misc
-    format = CharField(db_index=True, max_length=32, default="")
+    original_format = CharField(db_index=True, max_length=MAX_FIELD_LEN, default="")
     page_count = PositiveSmallIntegerField(db_index=True, default=0)
     read_ltr = BooleanField(db_index=True, default=True)
-    scan_info = CharField(max_length=MAX_NAME_LENGTH, default="")
+    scan_info = CharField(max_length=MAX_NAME_LEN, default="")
     web = URLField(default="")
     # ManyToMany
     characters = ManyToManyField(Character)
-    credits = ManyToManyField(Credit)
+    creators = ManyToManyField(Creator)
     genres = ManyToManyField(Genre)
     locations = ManyToManyField(Location)
     series_groups = ManyToManyField(SeriesGroup)
@@ -361,10 +361,11 @@ class Comic(WatchedPath):
     folders = ManyToManyField(Folder)
     max_page = PositiveSmallIntegerField(default=0)
     size = PositiveIntegerField(db_index=True)
-    file_format = CharField(
-        choices=FileFormat.choices,
-        max_length=max((len(val) for val in FileFormat.values)),
-        default=FileFormat.COMIC.value,
+    file_type = CharField(
+        choices=FileType.choices,
+        max_length=1,
+        blank=True,
+        default="",
     )
 
     class Meta:
@@ -379,10 +380,7 @@ class Comic(WatchedPath):
             year = datetime.MINYEAR
         else:
             year = min(max(self.year, datetime.MINYEAR), datetime.MAXYEAR)
-        if self.month is None:
-            month = 1
-        else:
-            month = min(max(self.month, 1), 12)
+        month = 1 if self.month is None else min(max(self.month, 1), 12)
 
         if self.day is None:
             day = 1
@@ -426,24 +424,51 @@ class Comic(WatchedPath):
             names.append(self.name)
         return " ".join(names).strip()
 
+    def filename(self):
+        """Create a filename for download."""
+        names = []
+        if self.series.name:
+            names.append(self.series.name)
+        if self.volume.name:
+            names.append(str(self.volume))
+        if self.issue is not None:
+            issue = "#"
+            if self.issue % 1 == 0:
+                issue += f"{self.issue:05.0f}"
+            else:
+                issue += f"{self.issue:06.1f}"
+            if self.issue_suffix:
+                issue += self.issue_suffix
+            names.append(issue)
+        if self.name:
+            names.append(self.name)
 
-class AdminFlag(NamedModel):
+        fn = " ".join(names).strip()
+        fn += "." + Path(self.path).suffix
+        return fn
+
+
+class AdminFlag(BaseModel):
     """Flags set by administrators."""
 
-    ENABLE_FOLDER_VIEW = "Enable Folder View"
-    ENABLE_REGISTRATION = "Enable Registration"
-    ENABLE_NON_USERS = "Enable Non Users"
-    ENABLE_AUTO_UPDATE = "Enable Auto Update"
-    ENABLE_SEARCH_INDEX_OPTIMIZE = "Enable Search Index Full Optimization"
-    FLAG_NAMES = {
-        ENABLE_FOLDER_VIEW: True,
-        ENABLE_REGISTRATION: True,
-        ENABLE_NON_USERS: True,
-        ENABLE_AUTO_UPDATE: False,
-        ENABLE_SEARCH_INDEX_OPTIMIZE: True,
-    }
+    class FlagChoices(Choices):
+        """Choices for Admin Flags."""
 
+        FOLDER_VIEW = "FV"
+        REGISTRATION = "RG"
+        NON_USERS = "NU"
+        AUTO_UPDATE = "AU"
+        SEARCH_INDEX_OPTIMIZE = "SO"
+
+    FALSE_DEFAULTS = frozenset((FlagChoices.AUTO_UPDATE,))
+
+    key = CharField(db_index=True, max_length=2, choices=FlagChoices.choices)
     on = BooleanField(default=True)
+
+    class Meta:
+        """Constraints."""
+
+        unique_together = ("key",)
 
 
 def cascade_if_user_null(collector, field, sub_objs, _using):
@@ -476,13 +501,13 @@ def cascade_if_user_null(collector, field, sub_objs, _using):
 class Bookmark(BaseModel):
     """Persist user's bookmarks and settings."""
 
-    class FitTo(TextChoices):
+    class FitTo(Choices):
         """Identifiers for Readder fit_to choices."""
 
-        SCREEN = "SCREEN"
-        WIDTH = "WIDTH"
-        HEIGHT = "HEIGHT"
-        ORIG = "ORIG"
+        SCREEN = "S"
+        WIDTH = "W"
+        HEIGHT = "H"
+        ORIG = "O"
 
     user = ForeignKey(
         settings.AUTH_USER_MODEL, db_index=True, on_delete=CASCADE, null=True
@@ -494,7 +519,10 @@ class Bookmark(BaseModel):
     page = PositiveSmallIntegerField(db_index=True, null=True)
     finished = BooleanField(default=False, db_index=True)
     fit_to = CharField(
-        choices=FitTo.choices, blank=True, default="", max_length=len(FitTo.SCREEN)
+        choices=FitTo.choices,
+        blank=True,
+        default="",
+        max_length=1,
     )
     two_pages = BooleanField(default=None, null=True)
     read_in_reverse = BooleanField(default=None, null=True)
@@ -515,7 +543,7 @@ class FailedImport(WatchedPath):
         suffixes = (f": {self.path}", f": {self.path!r}")
         for suffix in suffixes:
             reason = reason.removesuffix(suffix)
-        reason = reason[:MAX_NAME_LENGTH]
+        reason = reason[:MAX_NAME_LEN]
         self.name = reason.strip()
 
     class Meta:
@@ -524,52 +552,50 @@ class FailedImport(WatchedPath):
         unique_together = ("library", "path")
 
 
-class LibrarianStatus(NamedModel):
+class LibrarianStatus(BaseModel):
     """Active Library Tasks."""
 
-    DEFAULT_PARAMS = {
-        "name": "",
-        "preactive": False,
-        "complete": None,
-        "total": None,
-        "active": None,
-    }
-    TYPES = (
-        *CoverStatusTypes.values(),
-        *ImportStatusTypes.values(),
-        *JanitorStatusTypes.values(),
-        *SearchIndexStatusTypes.values(),
-        *WatchdogStatusTypes.values(),
+    CHOICES = (
+        CoverStatusTypes.choices
+        + ImportStatusTypes.choices
+        + JanitorStatusTypes.choices
+        + SearchIndexStatusTypes.choices
+        + WatchdogStatusTypes.choices
     )
-    type = CharField(db_index=True, max_length=32)
+
+    status_type = CharField(db_index=True, max_length=3, choices=CHOICES)
     preactive = BooleanField(default=False)
     complete = PositiveSmallIntegerField(null=True, default=None)
     total = PositiveSmallIntegerField(null=True, default=None)
     active = DateTimeField(null=True, default=None)
+    subtitle = CharField(db_index=True, max_length=MAX_NAME_LEN)
 
     class Meta:
         """Constraints."""
 
-        unique_together = ("type", "name")
+        unique_together = ("status_type", "subtitle")
         verbose_name_plural = "LibrarianStatuses"
 
 
-class Timestamp(NamedModel):
+class Timestamp(BaseModel):
     """Timestamped Named Strings."""
 
-    COVERS = "covers"
-    JANITOR = "janitor"
-    CODEX_VERSION = "codex_version"
-    SEARCH_INDEX_UUID = "search_index_uuid"
-    API_KEY = "api_key"
-    NAMES = (COVERS, JANITOR, CODEX_VERSION, SEARCH_INDEX_UUID, API_KEY)
+    class TimestampChoices(TextChoices):
+        """Choices for Timestamps."""
 
-    version = CharField(max_length=32, default="")
+        COVERS = "CV", _("Covers")
+        JANITOR = "JA", _("Janitor")
+        CODEX_VERSION = "VR", _("Codex Version")
+        SEARCH_INDEX_UUID = "SI", _("Search Index UUID")
+        API_KEY = "AP", _("API Key")
+
+    key = CharField(db_index=True, max_length=2, choices=TimestampChoices.choices)
+    version = CharField(max_length=MAX_FIELD_LEN, default="")
 
     @classmethod
-    def touch(cls, name):
+    def touch(cls, choice):
         """Touch a timestamp."""
-        cls.objects.get(name=name).save()
+        cls.objects.get(key=choice.value).save()
 
     def save_uuid_version(self):
         """Create base64 uuid."""
@@ -577,6 +603,15 @@ class Timestamp(NamedModel):
         b64_bytes = base64.urlsafe_b64encode(uuid_bytes)
         self.version = b64_bytes.decode("utf-8").replace("=", "")
         self.save()
+
+    class Meta:
+        """Constraints."""
+
+        unique_together = ("key",)
+
+    def __str__(self):
+        """Print name for choice."""
+        return self.TimestampChoices(self.key).name
 
 
 class UserActive(BaseModel):

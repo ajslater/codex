@@ -181,7 +181,7 @@ const FIELD_ROWS = [
   ["read_ltr", "Boolean", "ltr"],
   ["name", "String", "title"],
   ["notes", "String", ""],
-  ["page_count", "Integer", ""],
+  ["page_count", "Integer", "pages"],
   ["publisher", "String", ""],
   ["scan_info", "String", "scan"],
   ["series", "String", ""],

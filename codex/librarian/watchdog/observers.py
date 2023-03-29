@@ -1,6 +1,10 @@
 """The Codex Library Watchdog Observer threads."""
 from watchdog.observers import Observer
-from watchdog.observers.api import DEFAULT_OBSERVER_TIMEOUT, BaseObserver, ObservedWatch
+from watchdog.observers.api import (
+    DEFAULT_OBSERVER_TIMEOUT,
+    BaseObserver,
+    ObservedWatch,
+)
 
 from codex.librarian.watchdog.emitter import DatabasePollingEmitter
 from codex.librarian.watchdog.events import CodexLibraryEventHandler
@@ -26,6 +30,7 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
         for watch in self._watches:
             if watch.path == path:
                 return watch
+        return None
 
     def _sync_library_watch(self, library):
         """Start a library watching process."""
@@ -35,10 +40,10 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
         if watch and is_enabled:
             self.log.info(f"Already {watching_log}.")
             return
-        elif not watch and not is_enabled:
+        if not watch and not is_enabled:
             self.log.debug(f"Not {watching_log}, disabled.")
             return
-        elif watch and not is_enabled:
+        if watch and not is_enabled:
             self.unschedule(watch)
             self.log.info(f"Stopped {watching_log}.")
             return
@@ -76,12 +81,11 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
                     self.log.warning(
                         f"Could not find {library.path} to watch. May be unmounted."
                     )
-                except Exception as exc:
-                    self.log.exception(exc)
+                except Exception:
+                    self.log.exception(f"sync library watch for {library.path}")
             self._unschedule_orphan_watches(library_paths)
-        except Exception as exc:
-            self.log.error(f"Error in {self.__class__.__name__}")
-            self.log.exception(exc)
+        except Exception:
+            self.log.exception(f"{self.__class__.__name__} sync library watches")
 
     def schedule(self, event_handler, path, recursive=False):
         """Override BaseObserver for Codex emitter class.
@@ -114,7 +118,7 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
 #     watchdog class structure doesn't work that way.
 
 
-class LibraryEventObserver(UatuMixin, Observer):
+class LibraryEventObserver(UatuMixin, Observer):  # type: ignore
     """Regular observer."""
 
     ENABLE_FIELD = "events"
@@ -144,11 +148,10 @@ class LibraryPollingObserver(UatuMixin):
             for emitter in self.emitters:
                 if emitter.watch.path in paths:
                     emitter.poll(force)
-        except Exception as exc:
-            self.log.error(
-                f"Error in {self.__class__.__name__}.poll({library_pks}, {force})"
+        except Exception:
+            self.log.exception(
+                f"{self.__class__.__name__}.poll({library_pks}, {force})"
             )
-            self.log.exception(exc)
 
     def on_thread_stop(self):
         """Put a dummy event on the queue that blocks forever."""

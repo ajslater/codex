@@ -1,14 +1,14 @@
 """Janitor Status Types."""
-from codex.librarian.status import StatusTypes
+from django.db.models import Choices
 
 
-class JanitorStatusTypes(StatusTypes):
+class JanitorStatusTypes(Choices):
     """Janitor Status Types."""
 
-    CLEANUP_FK = "Cleanup Foreign Keys"
-    CODEX_UPDATE = "Update Codex"
-    CODEX_RESTART = "Restart Codex"
-    CODEX_STOP = "Stop Codex"
-    DB_VACUUM = "Vacuum Database"
-    DB_BACKUP = "Backup Database"
-    CLEANUP_SESSIONS = "Cleanup Sessions"
+    CLEANUP_FK = "JTD"
+    CODEX_UPDATE = "JCU"
+    CODEX_RESTART = "JCR"
+    CODEX_STOP = "JCS"
+    DB_OPTIMIZE = "JDO"
+    DB_BACKUP = "JDB"
+    CLEANUP_SESSIONS = "JSD"

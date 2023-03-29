@@ -1,11 +1,11 @@
 """Search Index Status Types."""
-from codex.librarian.status import StatusTypes
+from django.db.models import Choices
 
 
-class SearchIndexStatusTypes(StatusTypes):
+class SearchIndexStatusTypes(Choices):
     """Search Index Status Types."""
 
-    SEARCH_INDEX_CLEAR = "Search index clear"
-    SEARCH_INDEX_UPDATE = "Search index update"
-    SEARCH_INDEX_REMOVE = "Search index remove ghosts"
-    SEARCH_INDEX_MERGE = "Search index merge"
+    SEARCH_INDEX_CLEAR = "SIX"
+    SEARCH_INDEX_UPDATE = "SIU"
+    SEARCH_INDEX_REMOVE = "SID"
+    SEARCH_INDEX_MERGE = "SIM"

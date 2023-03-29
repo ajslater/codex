@@ -133,20 +133,20 @@
     "fitTo": [
       {
         "title": "Fit to Screen",
-        "value": "SCREEN",
+        "value": "S",
         "default": true
       },
       {
         "title": "Fit to Width",
-        "value": "WIDTH"
+        "value": "W"
       },
       {
         "title": "Fit to Height",
-        "value": "HEIGHT"
+        "value": "H"
       },
       {
         "title": "Original Size",
-        "value": "ORIG"
+        "value": "O"
       },
       {
         "title": "",
@@ -158,5 +158,12 @@
     "LIBRARY_CHANGED": "LIBRARY_CHANGED",
     "LIBRARIAN_STATUS": "LIBRARIAN_STATUS",
     "FAILED_IMPORTS": "FAILED_IMPORTS"
+  },
+  "fileTypes": {
+    "Z": "CBZ",
+    "R": "CBR",
+    "T": "CBT",
+    "X": "CBX",
+    "P": "PDF"
   }
 }

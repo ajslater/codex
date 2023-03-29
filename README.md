@@ -1,4 +1,4 @@
-# Codex
+Codex
 
 A comic archive browser and reader.
 
@@ -21,6 +21,7 @@ border-radius: 128px;
 - Private Libraries accessible only to certain groups of users.
 - Reads CBZ, CBR, CBT, and PDF formatted comics.
 - Syndication with OPDS, streaming, search and authentication.
+- Runs in 1GB of RAM, faster with more.
 
 ### Examples
 
@@ -117,21 +118,21 @@ Untested. Try following the instructions for [Debian](#debian) above.
 
 Untested partial instructions for the brave.
 
-1. Install [Cygwin](https://www.cygwin.com/).
-2. Install wget with cygwin.
-3. Install:
-   - python3.9+
-   - gcc
-   - gcc-g++
-   - libffi-devel
-   - libjpeg-devel
-   - libssl-devel
-   - mpfr
-   - mpc
-   - python3-devel
-   - python39-cffi
-   - python3.9-openssl with cygwin.
-4. Using a terminal:
+1.  Install [Cygwin](https://www.cygwin.com/).
+2.  Install wget with cygwin.
+3.  Install:
+    - python3.9+
+    - gcc
+    - gcc-g++
+    - libffi-devel
+    - libjpeg-devel
+    - libssl-devel
+    - mpfr
+    - mpc
+    - python3-devel
+    - python39-cffi
+    - python3.9-openssl with cygwin.
+4.  Using a terminal:
 
 ```sh
 pip install wheel
@@ -224,7 +225,7 @@ good results:
 
 `{series} v{volume} #{issue} {title} ({year}) {ignored}.pdf`
 
-## <a name="configuration">⚙️ Configuration</a>
+## <a name="configuration">🎛️ Configuration</a>
 
 ### Config Dir
 
@@ -242,8 +243,6 @@ The default values for the config options are:
 bind = ["0.0.0.0:9810"]
 quick_bind = ["0.0.0.0:9810"]
 root_path = "/codex"
-max_db_ops = 100000
-
 ```
 
 The config directory also holds the main sqlite database, the Whoosh search
@@ -313,9 +312,21 @@ recreate. See this
 [nginx with dynamix upstreams](https://tenzer.dk/nginx-with-dynamic-upstreams/)
 article.
 
+### Restricted Memory Environments
+
+Codex can run with as little as 1GB available RAM. Large batch jobs –like
+importing and indexing tens of thousands of comics at once– will run faster the
+more memory is available to Codex. The biggest gains in speed happen when you
+increase memory up to about 6GB. Codex batch jobs do get faster the more memory
+you give it above 6GB, but there are diminishing returns.
+
+If you run Codex in an admin restricted memory environment you might want to
+temporarily give codex a lot of memory to run a very large batch job and then
+restrict it for normal operation.
+
 ## <a name="usage">📖 Usage</a>
 
-### Sessions & Accounts
+### 👤 Sessions & Accounts
 
 Once your administrator has added some comic libraries, you may browse and read
 comics. Codex will remember your preferences, bookmarks and progress in the
@@ -324,7 +335,7 @@ To preserve these settings across browsers and after sessions expire, you may
 register an account with a username and password. You will have to contact your
 administrator to reset your password if you forget it.
 
-### API with Key Access
+### 🗝️ API with Key Access
 
 Codex has a limited number of API endpoints available with API Key Access. The
 API Key is available on the admin/stats tab.
@@ -356,14 +367,14 @@ authentication. In that case the OPDS url will look like:
 
 #### Supported OPDS Specifications
 
-- OPDS 1.2
-- OPDS-PSE 1.2
-- OPDS Authentication 1.0
-- OpenSearch
+- [OPDS 1.2](https://specs.opds.io/opds-1.2.html)
+- [OPDS-PSE 1.2](https://github.com/anansi-project/opds-pse/blob/master/v1.2.md)
+- [OPDS Authentication 1.0](https://drafts.opds.io/authentication-for-opds-1.0.html)
+- [OpenSearch 1.1](https://github.com/dewitt/opensearch)
 
 ## <a name="troubleshooting">🩺 Troubleshooting</a>
 
-### Logs
+### 📒 Logs
 
 Codex collects its logs in the `config/logs` directory. Take a look to see what
 th e server is doing.
@@ -403,15 +414,7 @@ rebuild it. The database lives in the config directory as the file
 `config/db.sqlite3`. If this procedure goes kablooey, you may recover the
 original database at `config/db.sqlite3.backup`.
 
-### Bulk Database Updates Fail
-
-I've tested Codex's bulk database updater to batch 100,000 filesystem events at
-a time. With enough RAM Codex could probably batch much more. But if you find
-that updating large batches of comics are failing, consider setting a the
-`max_db_ops` value in `hypercorn.toml` to a lower value. 1000 will probably
-still be pretty fast, for instance.
-
-### 🐛 Bug Reports
+## \<a name="bug_reports>🐛 Bug Reports</a>
 
 Issues and feature requests are best filed on the
 [Github issue tracker](https://github.com/ajslater/codex/issues).
@@ -460,7 +463,7 @@ frontend.
 `/codex/frontend/dev-server.sh` runs the development autoreloading frontend with
 vite.
 
-### Links
+## \<a name="links>🔗 Links</a>
 
 - [Docker Image](https://hub.docker.com/r/ajslater/codex)
 - [PyPi Package](https://pypi.org/project/codex/)

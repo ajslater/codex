@@ -1,46 +1,58 @@
 """Search Index update."""
 from datetime import datetime
+from math import ceil
 from multiprocessing import Pool, cpu_count
 from time import time
+from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
+from django.core.exceptions import ObjectDoesNotExist
+from django.db import DatabaseError
+from haystack.exceptions import SearchFieldError
 from humanize import naturaldelta
 from whoosh.query import Every
 
 from codex.librarian.search.remove import RemoveMixin
 from codex.librarian.search.status import SearchIndexStatusTypes
+from codex.librarian.search.tasks import SearchIndexRemoveStaleTask
+from codex.memory import get_mem_limit
 from codex.models import Comic, Library
-from codex.search.backend import CodexSearchBackend
+from codex.status import Status
+
+if TYPE_CHECKING:
+    from codex.search.backend import CodexSearchBackend
 
 
 class UpdateMixin(RemoveMixin):
     """Search Index update methods."""
 
-    _STATUS_UPDATE_START_TYPES = {
-        SearchIndexStatusTypes.SEARCH_INDEX_UPDATE: {},
-        SearchIndexStatusTypes.SEARCH_INDEX_REMOVE: {},
-    }
-    _STATUS_FINISH_TYPES = frozenset(
-        (
-            SearchIndexStatusTypes.SEARCH_INDEX_CLEAR,
-            SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
-            SearchIndexStatusTypes.SEARCH_INDEX_REMOVE,
-        )
+    _STATUS_FINISH_TYPES = (
+        SearchIndexStatusTypes.SEARCH_INDEX_CLEAR,
+        SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
     )
     _MIN_UTC_DATE = datetime.min.replace(tzinfo=ZoneInfo("UTC"))
-    _MIN_BATCH_SIZE = 200
-    # A larger batch size of might be slightly faster for very large
+    _MIN_BATCH_SIZE = 1
+    # A larger batch size might be slightly faster for very large
     # indexes and require less optimization later, but steady progress
-    # beats are better UX.
-    _MAX_BATCH_SIZE = 1000
+    # updates are better UX.
+    _MAX_BATCH_SIZE = 640
+    _EXPECTED_EXCEPTIONS = (
+        DatabaseError,
+        IndexError,
+        ObjectDoesNotExist,
+        SearchFieldError,
+    )
+    _MAX_RETRIES = 8
 
     def _init_statuses(self, rebuild):
         """Initialize all statuses order before starting."""
-        statuses = {}
+        statii = []
         if rebuild:
-            statuses[SearchIndexStatusTypes.SEARCH_INDEX_CLEAR] = {}
-        statuses.update(self._STATUS_UPDATE_START_TYPES)
-        self.status_controller.start_many(statuses)
+            statii += [Status(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)]
+        statii += [Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE)]
+        if not rebuild:
+            statii += [Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE)]
+        self.status_controller.start_many(statii)
 
     @classmethod
     def _get_latest_update_at_from_results(cls, results):
@@ -57,12 +69,9 @@ class UpdateMixin(RemoveMixin):
 
     def _get_search_index_latest_updated_at(self, backend):
         """Get the date of the last updated item in the search index."""
-        if not backend.setup_complete:
-            backend.setup(False)
-        backend.index = backend.index.refresh()
-
-        with backend.index.searcher() as searcher:
-            # XXX idk why but sorting by 'updated_at' removes the latest and most valuable result
+        with backend.index.refresh().searcher() as searcher:
+            # XXX IDK why but sorting by 'updated_at' removes the latest and most valuable result
+            #     So I have to do it in my own method.
             results = searcher.search(Every(), reverse=True, scored=False)
             if results.scored_length():
                 index_latest_updated_at = self._get_latest_update_at_from_results(
@@ -77,68 +86,201 @@ class UpdateMixin(RemoveMixin):
         """Rebuild or set up update."""
         qs = Comic.objects.all()
 
-        if not rebuild:
-            last_updated_at = self._get_search_index_latest_updated_at(backend)
-            # index.build_queryset() like in the haystack command does
-            #   __gte not __gt
-            if last_updated_at:
-                qs = qs.filter(updated_at__gt=last_updated_at)
-            else:
-                last_updated_at = "the beginning of time"
-            self.log.info(f"Updating search index since {last_updated_at}...")
+        if rebuild:
+            start_date = "the beginning of time"
+        else:
+            start_date = self._get_search_index_latest_updated_at(backend)
+            if start_date:
+                qs = qs.filter(updated_at__gt=start_date)
 
-        qs = qs.order_by("updated_at", "pk")
+        self.log.info(f"Updating search index since {start_date}...")
+
         return qs
+
+    def _get_throttle_params(self, num_comics):
+        """Get params based on memory and total number of comics.
+
+        >4GB is normal.
+        <=2GB is constrained.
+        """
+        mem_limit_gb = get_mem_limit("g")
+
+        # max procs
+        # throttle multiprocessing in lomem environments.
+        # each process running has significant memory overhead.
+        cpu_max = ceil(mem_limit_gb * 4 / 3 + 2 / 3)
+        max_procs = min(cpu_count(), cpu_max)
+
+        batch_size = int(
+            max(
+                self._MIN_BATCH_SIZE,
+                min(num_comics / max_procs, self._MAX_BATCH_SIZE),
+            )
+        )
+
+        num_procs = int(min(max(1, num_comics / batch_size), max_procs))
+
+        opts = {
+            "comics": num_comics,
+            "memgb": mem_limit_gb,
+            "procs": num_procs,
+            "batch_size": batch_size,
+        }
+        self.log.debug(f"Search Index update opts: {opts}")
+        return num_procs, batch_size
+
+    def _halve_batches(self, batches):
+        """Half the size of retried batches."""
+        old_num_batches = len(batches)
+        half_batches = {}
+        for batch_num, batch_pks in batches.items():
+            if not batch_pks:
+                continue
+            batch_num_a = batch_num * 2
+            if len(batch_pks) == 1:
+                half_batches[batch_num_a] = batch_pks
+                continue
+            halfway = int(len(batch_pks) / 2)
+            half_batches[batch_num_a] = batch_pks[:halfway]
+            batch_num_b = batch_num_a + 1
+            half_batches[batch_num_b] = batch_pks[halfway:]
+        batches = half_batches
+        self.log.debug(f"Split {old_num_batches} batches into {len(batches)}.")
+        return batches
+
+    def _apply_batches(self, pool, batches, backend):
+        """Apply the batches to the process pool."""
+        results = {}
+        for batch_num, batch_pks in batches.items():
+            args = (None, batch_pks)
+            kwd = {"batch_num": batch_num}
+            result = pool.apply_async(backend.update, args, kwd)
+            results[batch_num] = (result, batch_pks)
+        pool.close()
+        self.log.debug(f"Search index update queued {len(results)} batches...")
+        return results
+
+    def _collect_results(self, results, complete, status):
+        """Collect results from the process pool."""
+        retry_batches = {}
+        retry_batch_num = 0
+        for batch_num, (result, batch_pks) in results.items():
+            try:
+                complete += result.get()
+                self.log.debug(
+                    f"Search index batch {batch_num} complete "
+                    f"{status.complete}/{status.total}"
+                )
+                status.complete = complete
+                self.status_controller.update(status)
+            except Exception as exc:
+                self.log.warning(
+                    f"Search index update needs to retry batch {batch_num}"
+                )
+                retry_batches[retry_batch_num] = batch_pks
+                retry_batch_num += 1
+                if not isinstance(exc, self._EXPECTED_EXCEPTIONS):
+                    self.log.exception("Search index update - collect batch results")
+        return retry_batches, complete
+
+    def _try_update_batch(self, backend, batch_info, status):
+        """Attempt to update batches, with reursive retry."""
+        (
+            batches,
+            num_procs,
+            num_comics,
+            batch_size,
+            complete,
+            attempt,
+        ) = batch_info
+
+        if attempt > 1:
+            batches = self._halve_batches(batches)
+
+        num_batches = len(batches)
+        if not num_batches:
+            self.log.debug("Search index nothing to update.")
+            return
+        self.log.debug(
+            f"Search index updating {num_batches} batches, attempt {attempt}"
+        )
+        procs = min(num_procs, num_batches)
+        pool = Pool(procs, maxtasksperchild=1)
+        results = self._apply_batches(pool, batches, backend)
+        retry_batches, complete = self._collect_results(results, complete, status)
+        pool.join()
+
+        num_successful_batches = num_batches - len(retry_batches)
+
+        ratio = 100 * (num_successful_batches / num_batches)
+        self.log.debug(
+            f"Search Index attempt {attempt} batch success ratio: {round(ratio)}%"
+        )
+        if not retry_batches:
+            return
+
+        if attempt < self._MAX_RETRIES:
+            batch_info = (
+                retry_batches,
+                num_procs,
+                num_comics,
+                batch_size,
+                complete,
+                attempt + 1,
+            )
+            self._try_update_batch(backend, batch_info, status)
+        else:
+            total = len(retry_batches) * batch_size
+            self.log.error(
+                f"Search Indexer failed to update {total} comics"
+                f"in {len(retry_batches)} batches."
+            )
+
+    @staticmethod
+    def _get_update_batch_end_index(start, batch_size, batch_num, procs):
+        if batch_num < procs:
+            # Gets early results to the status update
+            # by making small batches in the beginning.
+            end = start + int(batch_size * (batch_num / procs))
+        else:
+            end = start + batch_size
+        return end
+
+    @classmethod
+    def _get_update_batches(cls, qs, batch_size, num_comics):
+        all_pks = qs.order_by("updated_at", "pk").values_list("pk", flat=True)
+        batch_num = 0
+        start = 0
+        end = start + batch_size
+
+        batches = {}
+        while start < num_comics:
+            batches[batch_num] = all_pks[start:end]
+            batch_num += 1
+            start = end
+            end = start + batch_size
+        return batches
 
     def _mp_update(self, backend, qs):
         # Init
         start_time = time()
+        num_comics = qs.count()
+        if not num_comics:
+            return
+        status = Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE, 0, num_comics)
         try:
-            since = start_time
-            num_comics = qs.count()
-            self.status_controller.start(
-                SearchIndexStatusTypes.SEARCH_INDEX_UPDATE, complete=0, total=num_comics
-            )
-            num_cpus = cpu_count()
-            batch_size = int(
-                max(
-                    self._MIN_BATCH_SIZE,
-                    min(num_comics / num_cpus, self._MAX_BATCH_SIZE),
-                )
-            )
-            num_procs = int(min(max(1, num_comics / batch_size), num_cpus))
-            pool = Pool(num_procs)
-            self.log.debug(
-                f"Updating search index with {num_comics} comics,"
-                f" using {num_procs} processes in batches of {batch_size}..."
+            self.status_controller.start(status)
+
+            num_procs, batch_size = self._get_throttle_params(num_comics)
+            batches = self._get_update_batches(qs, batch_size, num_comics)
+            batch_info = (batches, num_procs, num_comics, batch_size, 0, 1)
+            self._try_update_batch(
+                backend,
+                batch_info,
+                status,
             )
 
-            # Run Loop
-            start = 0
-            end = start + batch_size
-            results = []
-            while start < num_comics:
-                batch_qs = qs[start:end]
-                args = (None, batch_qs)
-                result = pool.apply_async(backend.update, args)
-                results.append(result)
-
-                start = end + 1
-                end = start + batch_size
-            pool.close()
-            self.log.debug(f"{len(results)} search index update batches queued...")
-
-            # Get results
-            complete = 0
-            for result in results:
-                complete += result.get()
-                since = self.status_controller.update(
-                    SearchIndexStatusTypes.SEARCH_INDEX_UPDATE,
-                    complete,
-                    num_comics,
-                    since=since,
-                )
-            pool.join()
+            # Log performance
             elapsed_time = time() - start_time
             elapsed = naturaldelta(elapsed_time)
             cps = int(num_comics / elapsed_time)
@@ -146,16 +288,13 @@ class UpdateMixin(RemoveMixin):
                 f"Search engine updated {num_comics} comics"
                 f" in {elapsed} at {cps} comics per second."
             )
-        except Exception as exc:
-            self.log.error(f"Update search index via backend: {exc}")
-            self.log.exception(exc)
+        except Exception:
+            self.log.exception("Update search index with multiprocessing")
         finally:
             until = start_time + 1
-            self.status_controller.finish(
-                SearchIndexStatusTypes.SEARCH_INDEX_UPDATE, until=until
-            )
+            self.status_controller.finish(status, until=until)
 
-    def _update_search_index(self, rebuild=False):
+    def update_search_index(self, rebuild=False):
         """Update or Rebuild the search index."""
         start_time = time()
         try:
@@ -168,38 +307,43 @@ class UpdateMixin(RemoveMixin):
                 )
                 return
 
-            if not rebuild and not self._is_search_index_uuid_match():
+            if not rebuild and not self.is_search_index_uuid_match():
                 self.log.warning("Database does not match search index.")
                 rebuild = True
 
             self._init_statuses(rebuild)
 
             backend: CodexSearchBackend = self.engine.get_backend()  # type: ignore
-            qs = self._get_queryset(backend, rebuild)
-
             # Clear
             if rebuild:
                 self.log.info("Rebuilding search index...")
+                clear_status = Status(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
+                self.status_controller.start(clear_status)
                 backend.clear(commit=True)
-                self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
+                self.status_controller.finish(clear_status)
                 self.log.info("Old search index cleared.")
 
             # Update
             backend.setup(False)
+            qs = self._get_queryset(backend, rebuild)
             self._mp_update(backend, qs)
 
             # Finish
             if rebuild:
-                self._set_search_index_version()
+                self.set_search_index_version()
             else:
-                self._remove_stale_records(backend)
+                task = SearchIndexRemoveStaleTask()
+                self.librarian_queue.put(task)
 
             elapsed_time = time() - start_time
             elapsed = naturaldelta(elapsed_time)
             self.log.info(f"Search index updated in {elapsed}.")
-        except Exception as exc:
-            self.log.error(f"Update search index: {exc}")
-            self.log.exception(exc)
+        except MemoryError:
+            self.log.warning("Search index needs more memory to update.")
+            self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE)
+        except Exception:
+            self.log.exception("Update search index")
+            self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE)
         finally:
             # Finishing these tasks inside the command process leads to a timing
             # misalignment. Finish it here works.

@@ -22,7 +22,7 @@ class SessionViewBaseBase(GenericAPIView, ABC):
     @abstractmethod
     def SESSION_KEY(cls):  # noqa: N802, type: ignore
         """Implement the session key string."""
-        raise NotImplementedError()
+        raise NotImplementedError
 
     SESSION_DEFAULTS = {}
 
@@ -44,8 +44,7 @@ class SessionViewBaseBase(GenericAPIView, ABC):
     def get_from_session(self, key):  # only used by frontend
         """Get one key from the session or its default."""
         session = self.request.session.get(self.SESSION_KEY, self.SESSION_DEFAULTS)
-        value = session.get(key, self.SESSION_DEFAULTS[key])
-        return value
+        return session.get(key, self.SESSION_DEFAULTS[key])
 
     def save_params_to_session(self, params):  # reader session & browser final
         """Save the session from params with defaults for missing values."""
@@ -63,12 +62,12 @@ class BrowserSessionViewBase(SessionViewBaseBase):
     """Browser session base."""
 
     SESSION_KEY = "browser"  # type: ignore
-    CREDIT_PERSON_UI_FIELD = "creators"
+    CREATOR_PERSON_UI_FIELD = "creators"
     _DYNAMIC_FILTER_DEFAULTS = {
         "age_rating": [],
         "characters": [],
         "country": [],
-        CREDIT_PERSON_UI_FIELD: [],
+        CREATOR_PERSON_UI_FIELD: [],
         "community_rating": [],
         "critical_rating": [],
         "decade": [],
@@ -123,7 +122,7 @@ class SessionViewBase(SessionViewBaseBase, ABC):
     @abstractmethod
     def serializer_class(cls):
         """Define the output serializer class."""
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def load_params_from_session(self):
         """Set the params from view session, creating missing values from defaults."""
@@ -132,19 +131,19 @@ class SessionViewBase(SessionViewBaseBase, ABC):
             self.SESSION_DEFAULTS, session, {}
         )
 
-    def get(self, request, *args, **kwargs):
+    def get(self, *args, **kwargs):
         """Get session settings."""
         params = self.load_params_from_session()
         data = {}
-        for key, filter in params.get("filters", {}).items():
-            if filter:
-                data[key] = filter
+        for key, filter_name in params.get("filters", {}).items():
+            if filter_name:
+                data[key] = filter_name
         params["filters"] = data
         serializer = self.get_serializer(params)
         return Response(serializer.data)
 
     @extend_schema(responses=None)
-    def put(self, request, *args, **kwargs):
+    def put(self, *args, **kwargs):
         """Update session settings."""
         serializer = self.get_serializer(data=self.request.data)
         serializer.is_valid(raise_exception=True)

@@ -1,20 +1,14 @@
 <template>
   <v-main id="main">
-    <div id="httpCodeWrapper">
-      <h1 id="httpCode">
-        {{ code }}
-      </h1>
-    </div>
-    <div id="foreground">
-      <h1 id="title">
-        {{ title }}
-      </h1>
-      <div>
-        <router-link :to="{ name: 'home' }">
-          <h2>Codex Home</h2>
-        </router-link>
-      </div>
-    </div>
+    <h1 id="httpCode">
+      {{ code }}
+    </h1>
+    <h1 id="title">
+      {{ title }}
+    </h1>
+    <router-link id="link" :to="{ name: 'home' }">
+      <h2>Codex Home</h2>
+    </router-link>
   </v-main>
 </template>
 
@@ -48,32 +42,36 @@ export default {
 </script>
 
 <style scoped lang="scss">
-#main,
-#httpCodeWrapper {
-  width: 100vw;
-  height: 100vh;
-}
+@use "vuetify/styles/settings/variables" as vuetify;
 #httpCode,
-#foreground {
+#title,
+#link {
   position: absolute;
-  top: 25%;
   left: 50%;
   transform: translateX(-50%) translateY(-25%);
 }
-#httpCode {
-  padding-top: 2rem;
+#httpCode,
+#title {
+  top: 25%;
 }
-
-#foreground {
-  text-align: center;
+#httpCode {
   z-index: 100;
+  padding-top: 1em;
 }
 #title {
+  text-align: center;
+  font-size: 6vw;
   color: rgb(var(--v-theme-textDisabled));
   stroke: rgb(var(--v-theme-textDisabled));
   fill: rgb(var(--v-theme-textDisabled));
-  margin: 0px;
-  font-size: 6vw;
   opacity: 25%;
+}
+#link {
+  bottom: 50%;
+}
+@media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
+  #title {
+    font-size: 32vw;
+  }
 }
 </style>

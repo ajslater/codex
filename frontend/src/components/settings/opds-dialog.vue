@@ -11,18 +11,14 @@
         <v-icon size="x=small" class="inline">{{ mdiRss }}</v-icon>
         OPDS
       </h2>
-      <div
-        id="opdsv1"
-        title="Copy OPDS URL to Clipboard"
-        @click="copyToClipboard"
-      >
+      <div id="opdsv1" title="Copy OPDS URL to Clipboard" @click="onClickURL">
         <h3>
           v1.2
           <v-icon class="clipBoardIcon" size="small">
             {{ clipBoardIcon }}
           </v-icon>
           <v-fade-transition>
-            <span v-show="showTool" class="copied">Copied</span>
+            <span v-show="showTooltip.show" class="copied">Copied</span>
           </v-fade-transition>
         </h3>
         <div id="opdsUrl">{{ opdsURL }}</div>
@@ -33,32 +29,27 @@
 <script>
 import { mdiClipboardCheckOutline, mdiClipboardOutline, mdiRss } from "@mdi/js";
 
+import { copyToClipboard } from "@/copy-to-clipboard";
+
 export default {
   name: "OPDSDialog",
   data() {
     return {
       mdiRss,
       opdsURL: window.origin + window.CODEX.OPDS_PATH,
-      showTool: false,
+      showTooltip: { show: false },
     };
   },
   computed: {
     clipBoardIcon() {
-      return this.showTool ? mdiClipboardCheckOutline : mdiClipboardOutline;
+      return this.showTooltip.show
+        ? mdiClipboardCheckOutline
+        : mdiClipboardOutline;
     },
   },
   methods: {
-    copyToClipboard() {
-      navigator.clipboard
-        .writeText(this.opdsURL)
-        .then(() => {
-          this.showTool = true;
-          setTimeout(() => {
-            this.showTool = false;
-          }, 5000);
-          return true;
-        })
-        .catch(console.warn);
+    onClickURL() {
+      copyToClipboard(this.opdsURL, this.showTooltip);
     },
   },
 };
