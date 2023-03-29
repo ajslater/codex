@@ -85,6 +85,8 @@ services:
     image: codex-dev
     mem_limit: 1g
     container_name: codex-dev
+    environment:
+      - VITE_HOST=localhost
     ports:
       - "9810:9810"
     volumes:
@@ -92,6 +94,5 @@ services:
       - /Users/aj/Comics:/comics
     #init: true
     command: tail -f /dev/null
-    #command: ./dev-codex-container.sh
     #entrypoint: ["/sbin/tini", "--"]
 version: "3.8"
