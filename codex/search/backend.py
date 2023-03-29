@@ -155,7 +155,9 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         "max_page",
     )
     _ONEMB = 1024**2
-    _MMAP_RATIO = 256 # TODO less?
+    # Magic number determined by tests
+    # The perfect number may be larger than this but is below 369
+    _MMAP_RATIO = 320
 
     def __init__(self, connection_alias, **connection_options):
         """Init worker queues."""
@@ -215,7 +217,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
 
         # Decide
         ratio = total_size_mb / mem_limit_gb
-        use_mmap = ratio > self._MMAP_RATIO
+        use_mmap = ratio < self._MMAP_RATIO
 
         if use_mmap:
             # Don't replace storage and index.
