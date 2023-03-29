@@ -5,6 +5,7 @@ So we may safely create the comics next.
 from pathlib import Path
 
 from django.db.models.functions import Now
+from codex import status_controller
 
 from codex.librarian.importer.status import ImportStatusTypes, status_notify
 from codex.models import (
@@ -222,7 +223,7 @@ class CreateForeignKeysMixin(QueuedThread):
         self.log.info(f"Created {count} {named_class.__name__}s.")
         if status:
             status.complete += count
-            status.update(status)
+            self.status_controller.update(status)
         return count
 
     @status_notify()
