@@ -334,6 +334,10 @@ class UpdateMixin(RemoveMixin):
             # Finish
             if rebuild:
                 self.set_search_index_version()
+                self.status_controller.finish(
+                    SearchIndexStatusTypes.SEARCH_INDEX_REMOVE.value, notify=False
+                )
+
             else:
                 LIBRARIAN_QUEUE.put(SearchIndexRemoveStaleTask())
 
