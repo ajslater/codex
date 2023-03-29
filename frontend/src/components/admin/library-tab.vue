@@ -84,7 +84,6 @@ import { mapActions, mapGetters, mapState } from "pinia";
 import { markRaw } from "vue";
 import { VDataTableVirtual } from "vuetify/labs/components";
 
-import AdminTable from "@/components/admin/admin-table.vue";
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
 import DateTimeColumn from "@/components/admin/datetime-column.vue";
 import AdminDeleteRowDialog from "@/components/admin/delete-row-dialog.vue";
@@ -109,7 +108,6 @@ export default {
   },
   data() {
     return {
-      FAILED_IMPORTS_HEIGHT,
       lastUpdate: {
         pk: 0,
         field: undefined,

@@ -57,7 +57,7 @@ class OPDSMetadataEntrySerializer(OPDSAcquisitionEntrySerializer):
     teams = CharField(source=UNIONFIX_PREFIX + "teams")
     ## Contributors
     authors = CharField(source=UNIONFIX_PREFIX + "authors")
-    # contributors = CharField(source=UNIONFIX_PREFIX + "contributors")
+    contributors = CharField(source=UNIONFIX_PREFIX + "contributors")
 
 
 OPDS_COMICS_ORDERED_UNIONFIX_VALUES_MAP = get_serializer_values_map(

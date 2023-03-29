@@ -65,7 +65,6 @@ import { mapActions, mapGetters, mapState } from "pinia";
 import { markRaw } from "vue";
 import { VDataTableVirtual } from "vuetify/labs/components";
 
-import AdminTable from "@/components/admin/admin-table.vue";
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
 import AdminDeleteRowDialog from "@/components/admin/delete-row-dialog.vue";
 import AdminGroupCreateUpdateInputs from "@/components/admin/group-create-update-inputs.vue";
@@ -77,7 +76,6 @@ const GROUP_HELP_HEIGHT = 180;
 export default {
   name: "AdminGroupsTab",
   components: {
-    AdminTable,
     AdminDeleteRowDialog,
     AdminCreateUpdateDialog,
     RelationChips,

@@ -70,7 +70,6 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
     def _get_parent_folders(self, library, dest_folder_paths):
         """Get destination parent folders."""
         # Determine parent folder paths.
-        print(f"{dest_folder_paths}")
         dest_parent_folder_paths = set()
         for dest_folder_path in dest_folder_paths:
             dest_parent_path = str(Path(dest_folder_path).parent)
