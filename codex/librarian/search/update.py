@@ -317,9 +317,10 @@ class UpdateMixin(RemoveMixin):
             # Clear
             if rebuild:
                 self.log.info("Rebuilding search index...")
-                self.status_controller.start(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
+                clear_status = Status(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
+                self.status_controller.start(clear_status)
                 backend.clear(commit=True)
-                self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
+                self.status_controller.finish(clear_status)
                 self.log.info("Old search index cleared.")
 
             # Update
