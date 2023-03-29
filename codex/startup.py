@@ -36,7 +36,7 @@ def backup_db_before_migration():
 
 def ensure_db_schema():
     """Ensure the db is good and up to date."""
-    LOG.debug("Ensuring db is good and up to date...")
+    LOG.info("Ensuring database is correct and up to date...")
     table_names = connection.introspection.table_names()
     db_exists = "django_migrations" in table_names
     if db_exists:
