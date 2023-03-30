@@ -9,7 +9,7 @@ NEW_FILE_TYPE_SUFFIXES = frozenset(("cbz", "cbr", "cbt", "cbx"))
 def prepare_librarianstatus(apps, _schema_editor):
     """Delete all librarian statuses for re-creation."""
     ls_model = apps.get_model("codex", "librarianstatus")
-    ls_model.model.objects.all().delete()
+    ls_model.objects.all().delete()
     with connection.cursor() as cursor:
         cursor.execute(
             'UPDATE sqlite_sequence SET seq = 0 WHERE sqlite_sequence.name = "codex_librarianstatus"'
@@ -32,7 +32,7 @@ def prepare_comics(apps, _schema_editor):
     ## Comic.file_type
     comics = comic_model.objects.filter().only("path", "file_format")
     for comic in comics:
-        if comic.file_format == "PDF":
+        if comic.file_format.lower() == "pdf":
             comic.file_format = "P"
             continue
         suffix = Path(comic.path).suffix[1:].lower() if comic.path else ""
@@ -102,6 +102,7 @@ class Migration(migrations.Migration):
 
     operations = [
         # PREPARE
+        migrations.RunPython(prepare_librarianstatus),
         migrations.RunPython(prepare_adminflags),
         migrations.RunPython(prepare_timestamps),
         migrations.RunPython(prepare_bookmarks),
