@@ -12,12 +12,14 @@ border-radius: 128px;
 
 - Features
   - Codex stable in 1GB RAM environments. Faster with more.
-  - Browser navigate to top button.
+  - Browser
+    - Navigate to top button.
+    - Filter by File Type.
   - OPDS
     - Top links display only at catalog root.
     - Extended metadata moved to alternate links.
   - Admin
-    - Search Indexer Remove Stale Records task much faster
+    - Search Indexer Remove Stale Records task much faster.
     - Comic import speedups.
     - Fancier sortable admin tables.
     - Removed `max_db_ops` config variable.
