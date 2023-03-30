@@ -70,6 +70,7 @@ class PDF:
                 self._metadata[comicbox_key] = value
 
     def get_file_type(self):
+        """Return the file type like comicbox."""
         return self._FILE_TYPE
 
     def get_metadata(self) -> dict:
