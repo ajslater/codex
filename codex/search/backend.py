@@ -99,8 +99,10 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         "community_rating": gen_multipart_field_aliases("community_rating"),
         "critical_rating": gen_multipart_field_aliases("critical_rating"),
         "genres": ["genre"],
+        "file_type": ["type"],
         "locations": ["location"],
         "name": ["title"],
+        "original_format": ["format"],
         "page_count": ["pages"],
         "read_ltr": ["ltr"],
         "series_groups": gen_multipart_field_aliases("series_groups"),
@@ -329,6 +331,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             self.log.warning(
                 f"couldn't delete search index records before replacing: {exc}"
             )
+            self.log.exception("DEBUG")
             writer.cancel()
             writer = self.get_writer()
 
@@ -351,6 +354,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                 "Exception during search index writer final commit or cancel"
                 f" for batch {batch_num}: {exc}."
             )
+            self.log.exception("DEBUG")
             writer.cancel()
             raise
         return count
