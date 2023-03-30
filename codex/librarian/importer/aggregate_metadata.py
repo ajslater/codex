@@ -15,8 +15,7 @@ from codex.serializers.choices import CHOICES
 from codex.status import Status
 from codex.version import COMICBOX_CONFIG
 
-FILE_TYPES = dict(reversed(list(CHOICES["fileTypes"].items())))
-
+FILE_TYPES = dict([(value, key) for key, value in CHOICES["fileTypes"].items()])
 
 class AggregateMetadataMixin(CleanMetadataMixin):
     """Aggregate metadata from comics to prepare for importing."""
