@@ -17,6 +17,7 @@ class PDF:
 
     COVER_PAGE_INDEX = 1
     _SUFFIX = ".pdf"
+    _FILE_TYPE = "PDF"
     MIME_TYPE = "application/pdf"
     _METADATA_KEY_MAP = {
         "tags": "keywords",
@@ -67,6 +68,9 @@ class PDF:
                 self._metadata["creators"].append(creator)
             else:
                 self._metadata[comicbox_key] = value
+
+    def get_file_type(self):
+        return self._FILE_TYPE
 
     def get_metadata(self) -> dict:
         """Get metadata from pdf."""

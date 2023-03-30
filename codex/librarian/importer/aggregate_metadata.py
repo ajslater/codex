@@ -21,6 +21,17 @@ class AggregateMetadataMixin(CleanMetadataMixin):
     _BROWSER_GROUPS = (Publisher, Imprint, Series, Volume)
     _BROWSER_GROUP_TREE_COUNT_FIELDS = frozenset(["volume_count", "issue_count"])
 
+    @staticmethod
+    def _get_file_type(path):
+        """Get the file type by path."""
+        file_type = ""
+        suffix = Path(path).suffix
+        if suffix:
+            suffix = suffix[1:].upper()
+            if suffix in Comic.FileType.values:
+                file_type = suffix
+        return file_type
+
     def _get_path_metadata(self, path):
         """Get the metatada from comicbox and munge it a little."""
         md = {}
@@ -28,18 +39,12 @@ class AggregateMetadataMixin(CleanMetadataMixin):
         group_tree_md = {}
         failed_import = {}
         try:
-            if PDF.is_pdf(path):
-                file_type = Comic.FileType.PDF.value
-                car_class = PDF
-            else:
-                car_class = ComicArchive
-                suffix = Path(path).suffix
-                file_type = Comic.FileType(suffix.upper()) if suffix else ""
+            car_class = PDF if PDF.is_pdf(path) else ComicArchive
             with car_class(path, config=COMICBOX_CONFIG, closefd=False) as car:
                 md = car.get_metadata()
+                md["file_type"] = car.get_file_type()
 
             md["path"] = path
-            md["file_type"] = file_type
             md = self.clean_md(md)
 
             # Create group tree

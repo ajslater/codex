@@ -164,7 +164,6 @@ class AdminFileTypeSerializer(Serializer):
     cbz_count = IntegerField(required=False)
     cbr_count = IntegerField(required=False)
     cbt_count = IntegerField(required=False)
-    cbx_count = IntegerField(required=False)
     unknown_count = IntegerField(required=False)
 
 

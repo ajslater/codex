@@ -516,14 +516,14 @@ files = [
 
 [[package]]
 name = "comicbox"
-version = "0.6.5"
+version = "0.6.6"
 description = "An API for reading comic archives"
 category = "main"
 optional = false
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "comicbox-0.6.5-py3-none-any.whl", hash = "sha256:8a2080d1bcb064bdb34519e88cbabc2e1575adabb8098cd710a71a5b7906b9fe"},
-    {file = "comicbox-0.6.5.tar.gz", hash = "sha256:490dd9225c217b5feed118a5fd97a63aaa9a27a541e5f2191d2abed88d81ef20"},
+    {file = "comicbox-0.6.6-py3-none-any.whl", hash = "sha256:074fdabc221a4927da3b03c5e68ad904635cd60c7abd4b2e0586d5328089c119"},
+    {file = "comicbox-0.6.6.tar.gz", hash = "sha256:0d6353d9a21c03283beebcbfaec9a0fa5e759a6c2e55c6fb3201d565952db993"},
 ]
 
 [package.dependencies]
@@ -534,6 +534,7 @@ defusedxml = ">=0.7.1,<0.8.0"
 parse = ">=1.15,<2.0"
 pycountry = ">=22.1.3,<23.0.0"
 rarfile = ">=4.0,<5.0"
+unrar-cffi = ">=0.2.2,<0.3.0"
 zipfile-deflate64 = ">=0.2.0,<0.3.0"
 
 [[package]]
@@ -2325,6 +2326,38 @@ tzdata = {version = "*", markers = "platform_system == \"Windows\""}
 devenv = ["black", "check-manifest", "flake8", "pyroma", "pytest (>=4.3)", "pytest-cov", "pytest-mock (>=3.3)", "zest.releaser"]
 
 [[package]]
+name = "unrar-cffi"
+version = "0.2.2"
+description = "Read RAR file from python -- cffi edition"
+category = "main"
+optional = false
+python-versions = ">=3.4"
+files = [
+    {file = "unrar-cffi-0.2.2.tar.gz", hash = "sha256:9de6d907c0728724be07acfcb479eadf2692f1039ca7cf2df268abb5dfaf4b5d"},
+    {file = "unrar_cffi-0.2.2-cp35-cp35m-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:1a63510b9d20ba54061a8f261ac7e5e209656e9439c7852c8e5d82510d3f107c"},
+    {file = "unrar_cffi-0.2.2-cp35-cp35m-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:6a0ac9b2aad4576cd2621806896619727b2362c96beabc62fa1027915a7590be"},
+    {file = "unrar_cffi-0.2.2-cp36-cp36m-macosx_10_12_x86_64.whl", hash = "sha256:b06be02128974f53846ecee62f1e812ea4189acd711d3ecd6aad03f02aa121d0"},
+    {file = "unrar_cffi-0.2.2-cp36-cp36m-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:fc3f22f2816594c4b3ca47a11fad3f09ef22a035ce33296a0648b4c3ad8b2214"},
+    {file = "unrar_cffi-0.2.2-cp36-cp36m-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:04757483c727cc4006594d4d1cf0a982294522f2d0c6654dfbd7f655d0cbc584"},
+    {file = "unrar_cffi-0.2.2-cp36-cp36m-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:5033d417fd0e00719e0a9d6179eff8f24445061723d02a0f5ee750bdb70e0122"},
+    {file = "unrar_cffi-0.2.2-cp37-cp37m-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:77a58b469a8166eec671f6d86365f8b8e039fe2fde658272a6be07b8a1c98556"},
+    {file = "unrar_cffi-0.2.2-cp37-cp37m-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:6acc7b6f20116b66df11e57fd9a0905e4db0e8468f2b5a64571c526ef0487304"},
+    {file = "unrar_cffi-0.2.2-cp37-cp37m-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:e3605fcd65c1c045e1a35c4d017492ecd3d6fbb182b43bf35a94bc826e52b4a9"},
+    {file = "unrar_cffi-0.2.2-cp37-cp37m-win_amd64.whl", hash = "sha256:9907f973561df85f0c69e14fe1ddf0dcbccc4b6679570842ae5358dfda75c024"},
+    {file = "unrar_cffi-0.2.2-cp38-cp38-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:f64b7cf3def3674de2cc77ab301cbaf1e4d2feedee6ee2b68c464deee0aad461"},
+    {file = "unrar_cffi-0.2.2-cp38-cp38-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:66fa34e5889913b1615177094e5936103486f784240c6c58a813b9280f4776e4"},
+    {file = "unrar_cffi-0.2.2-cp38-cp38-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:ff49b48adfab3b847b8c0b5b34c5195e7bfcc7f77e8398870faf863108fa6f88"},
+    {file = "unrar_cffi-0.2.2-cp38-cp38-win_amd64.whl", hash = "sha256:7986bf7931a6eb4fb241ef99dcf95c51567a6237eccf06c17bdf4c2797ab02a2"},
+    {file = "unrar_cffi-0.2.2-cp39-cp39-manylinux_2_12_x86_64.manylinux2010_x86_64.whl", hash = "sha256:52e4d9c930893ac297c8b657c3d93b30c1f8a68a22f88aa56c5bc18c27314221"},
+    {file = "unrar_cffi-0.2.2-cp39-cp39-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:97d47ee108601ec0fbe89aba18a208a57dc9f319830162ecccdc9763a24be540"},
+    {file = "unrar_cffi-0.2.2-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.whl", hash = "sha256:4f27aca951c34312e9b5038835a344c2cee37345492e7283d7385ec67a37e791"},
+    {file = "unrar_cffi-0.2.2-cp39-cp39-win_amd64.whl", hash = "sha256:e4c00b0ce1532aea581236445e7c854f5af0166577402e3cef7710d0b91ab4af"},
+]
+
+[package.dependencies]
+cffi = "*"
+
+[[package]]
 name = "uritemplate"
 version = "4.1.1"
 description = "Implementation of RFC 6570 URI Templates"
@@ -2500,4 +2533,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "07625348179e49ae6ce2994b4690bdab44382e0f420e98317a185f1f162af15e"
+content-hash = "9b2ac90dc746580b9737a6c5ad5e7807524ad9e189dbbb80733151a79545df91"

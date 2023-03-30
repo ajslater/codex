@@ -3,7 +3,7 @@ from pathlib import Path
 
 from django.db import connection, migrations, models
 
-NEW_FILE_TYPE_SUFFIXES = frozenset(("cbz", "cbr", "cbt", "cbx", "pdf"))
+NEW_FILE_TYPE_SUFFIXES = frozenset(("cbz", "cbr", "cbt", "pdf"))
 
 
 def prepare_librarianstatus(apps, _schema_editor):
@@ -260,7 +260,6 @@ class Migration(migrations.Migration):
                     ("CBZ", "Cbz"),
                     ("CBR", "Cbr"),
                     ("CBT", "Cbt"),
-                    ("CBX", "Cbx"),
                     ("PDF", "Pdf"),
                 ],
                 default="",

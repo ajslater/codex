@@ -285,7 +285,6 @@ class Comic(WatchedPath):
         CBZ = "CBZ"
         CBR = "CBR"
         CBT = "CBT"
-        CBX = "CBX"
         PDF = "PDF"
 
     ORDERING = ("series__name", "volume__name", "issue", "issue_suffix", "name", "pk")
