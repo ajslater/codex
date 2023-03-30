@@ -164,21 +164,23 @@ class UpdateMixin(RemoveMixin):
         """Collect results from the process pool."""
         retry_batches = {}
         retry_batch_num = 0
+        num_results = len(results)
         for batch_num, (result, batch_pks) in results.items():
             try:
                 complete += result.get()
                 self.log.debug(
-                    f"Search index batch {batch_num} complete "
-                    f"{status.complete}/{status.total}"
+                    f"Search index batch {batch_num}/{num_results} complete: "
+                    f"{status.complete}/{status.total} comics"
                 )
                 status.complete = complete
                 self.status_controller.update(status)
             except Exception as exc:
-                self.log.warning(
-                    f"Search index update needs to retry batch {batch_num}"
-                )
                 retry_batches[retry_batch_num] = batch_pks
                 retry_batch_num += 1
+                self.log.warning(
+                    f"Search index update will retry batch {batch_num}"
+                    f"as new batch {retry_batch_num}."
+                )
                 if not isinstance(exc, self._EXPECTED_EXCEPTIONS):
                     self.log.exception("Search index update - collect batch results")
         return retry_batches, complete
