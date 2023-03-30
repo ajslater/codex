@@ -310,7 +310,6 @@ class UpdateMixin(RemoveMixin):
                 return
 
             if not rebuild and not self.is_search_index_uuid_match():
-                self.log.warning("Database does not match search index.")
                 rebuild = True
 
             self._init_statuses(rebuild)
