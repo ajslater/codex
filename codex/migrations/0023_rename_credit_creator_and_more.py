@@ -12,7 +12,8 @@ def prepare_librarianstatus(apps, _schema_editor):
     ls_model.objects.all().delete()
     with connection.cursor() as cursor:
         cursor.execute(
-            'UPDATE sqlite_sequence SET seq = 0 WHERE sqlite_sequence.name = "codex_librarianstatus"'
+            "UPDATE sqlite_sequence SET seq = 0"
+            ' WHERE sqlite_sequence.name = "codex_librarianstatus"'
         )
 
 
