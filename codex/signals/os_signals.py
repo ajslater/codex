@@ -6,7 +6,7 @@ from asyncio import Event
 from codex.logger.logging import get_logger
 
 LOG = get_logger(__name__)
-STOP_SIGNAL_NAMES = ("SIGABRT", "SIGBREAK", "SIGHUP", "SIGINT", "SIGSEGV", "SIGTERM")
+STOP_SIGNAL_NAMES = ("SIGABRT", "SIGBREAK", "SIGBUS", "SIGHUP", "SIGINT", "SIGQUIT", "SIGSEGV", "SIGTERM", "SIGUSR1", "SIGUSR2")
 RESTART_EVENT = Event()
 SHUTDOWN_EVENT = Event()
 
