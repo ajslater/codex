@@ -11,11 +11,8 @@ from codex.librarian.importer.clean_metadata import CleanMetadataMixin
 from codex.librarian.importer.status import ImportStatusTypes, status_notify
 from codex.models import Comic, Imprint, Publisher, Series, Volume
 from codex.pdf import PDF
-from codex.serializers.choices import CHOICES
 from codex.status import Status
 from codex.version import COMICBOX_CONFIG
-
-FILE_TYPES = {value: key for key, value in CHOICES["fileTypes"].items()}
 
 
 class AggregateMetadataMixin(CleanMetadataMixin):
@@ -32,13 +29,12 @@ class AggregateMetadataMixin(CleanMetadataMixin):
         failed_import = {}
         try:
             if PDF.is_pdf(path):
-                file_type = Comic.FileType.PDF
+                file_type = Comic.FileType.PDF.value
                 car_class = PDF
             else:
                 car_class = ComicArchive
                 suffix = Path(path).suffix
-                suffix_type = suffix[1:].upper() if suffix else ""
-                file_type = FILE_TYPES.get(suffix_type, "")
+                file_type = Comic.FileType(suffix.upper()) if suffix else ""
             with car_class(path, config=COMICBOX_CONFIG, closefd=False) as car:
                 md = car.get_metadata()
 

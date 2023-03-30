@@ -55,7 +55,7 @@ class ReaderPageView(BookmarkBaseView):
         pk = self.kwargs.get("pk")
         comic = Comic.objects.filter(group_acl_filter).only("path").get(pk=pk)
         page = self.kwargs.get("page")
-        if comic.file_type == Comic.FileType.PDF:
+        if comic.file_type == Comic.FileType.PDF.value:
             car = PDF(comic.path)
             content_type = PDF.MIME_TYPE
         else:

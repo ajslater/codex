@@ -3,7 +3,7 @@ from pathlib import Path
 
 from django.db import connection, migrations, models
 
-NEW_FILE_TYPE_SUFFIXES = frozenset(("cbz", "cbr", "cbt", "cbx"))
+NEW_FILE_TYPE_SUFFIXES = frozenset(("cbz", "cbr", "cbt", "cbx", "pdf"))
 
 
 def prepare_librarianstatus(apps, _schema_editor):
@@ -34,11 +34,11 @@ def prepare_comics(apps, _schema_editor):
     comics = comic_model.objects.filter().only("path", "file_format")
     for comic in comics:
         if comic.file_format.lower() == "pdf":
-            comic.file_format = "P"
+            comic.file_format = "PDF"
             continue
         suffix = Path(comic.path).suffix[1:].lower() if comic.path else ""
         if suffix in NEW_FILE_TYPE_SUFFIXES:
-            comic.file_format = suffix[-1].upper()
+            comic.file_format = suffix.upper()
         else:
             comic.file_format = ""
     comic_model.objects.bulk_update(comics, fields=["file_format"])
@@ -257,14 +257,14 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 blank=True,
                 choices=[
-                    ("Z", "Cbz"),
-                    ("R", "Cbr"),
-                    ("T", "Cbt"),
-                    ("X", "Cbx"),
-                    ("P", "Pdf"),
+                    ("CBZ", "Cbz"),
+                    ("CBR", "Cbr"),
+                    ("CBT", "Cbt"),
+                    ("CBX", "Cbx"),
+                    ("PDF", "Pdf"),
                 ],
                 default="",
-                max_length=1,
+                max_length=3,
             ),
         ),
         migrations.AlterField(

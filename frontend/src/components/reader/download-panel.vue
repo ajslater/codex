@@ -20,7 +20,6 @@ import { mdiDownload, mdiFileImage } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import { getDownloadPageURL, getDownloadURL } from "@/api/v3/reader";
-import { fileTypes } from "@/choices";
 import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
 
@@ -44,11 +43,9 @@ export default {
         return getDownloadURL(state.pk);
       },
     }),
-    fileType() {
-      return this.activeBook.fileType;
-    },
     fileName: function () {
-      const suffix = fileTypes.get(this.fileType, "cbz").toLower();
+      let suffix = this.activeBook.fileType;
+      suffix = suffix.lower() ? suffix : "unknown";
       return this.activeTitle + "." + suffix;
     },
     pageName: function () {

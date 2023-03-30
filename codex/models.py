@@ -282,13 +282,12 @@ class Comic(WatchedPath):
     class FileType(Choices):
         """Identifiers for file formats."""
 
-        CBZ = "Z"
-        CBR = "R"
-        CBT = "T"
-        CBX = "X"
-        PDF = "P"
+        CBZ = "CBZ"
+        CBR = "CBR"
+        CBT = "CBT"
+        CBX = "CBX"
+        PDF = "PDF"
 
-    COMIC_FILE_TYPES = frozenset(("z", "r", "t", "x"))
     ORDERING = ("series__name", "volume__name", "issue", "issue_suffix", "name", "pk")
 
     # From BaseModel, but Comics are sorted by these so index them
@@ -363,7 +362,7 @@ class Comic(WatchedPath):
     size = PositiveIntegerField(db_index=True)
     file_type = CharField(
         choices=FileType.choices,
-        max_length=1,
+        max_length=3,
         blank=True,
         default="",
     )

@@ -71,6 +71,7 @@ class BrowserSessionViewBase(SessionViewBaseBase):
         "community_rating": [],
         "critical_rating": [],
         "decade": [],
+        "file_type": [],
         "genres": [],
         "language": [],
         "locations": [],

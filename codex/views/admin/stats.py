@@ -31,7 +31,6 @@ from codex.models import (
 )
 from codex.permissions import HasAPIKeyOrIsAdminUser
 from codex.serializers.admin import AdminStatsSerializer
-from codex.serializers.choices import CHOICES
 from codex.version import VERSION
 
 
@@ -165,7 +164,7 @@ class AdminStatsView(GenericAPIView):
         )
         for query_group in qs:
             value = query_group["file_type"]
-            name = CHOICES["fileTypes"].get(value, "unknown").lower()
+            name = value.lower() if value else "unknown"
             field = f"{name}_count"
             file_types[field] = query_group["count"]
         return file_types
