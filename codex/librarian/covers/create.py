@@ -44,7 +44,7 @@ class CoverCreateMixin(CoverPathMixin):
 
         Return image thumb data or path to missing file thumb.
         """
-        car_class = PDF if comic.file_type == Comic.FileType.PDF else ComicArchive
+        car_class = PDF if comic.file_type == Comic.FileType.PDF.value else ComicArchive
         with car_class(comic.path, config=COMICBOX_CONFIG) as car:
             image_data = car.get_cover_image()
         if not image_data:

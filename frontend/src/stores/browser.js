@@ -14,7 +14,13 @@ export const NUMERIC_FILTERS = [
   "year",
 ];
 Object.freeze(NUMERIC_FILTERS);
-export const CHARPK_FILTERS = ["ageRating", "country", "format", "language"];
+export const CHARPK_FILTERS = [
+  "ageRating",
+  "country",
+  "fileType",
+  "language",
+  "originalFormat",
+];
 Object.freeze(CHARPK_FILTERS);
 const GROUPS = "rpisvc";
 Object.freeze(GROUPS);
@@ -244,6 +250,7 @@ export const useBrowserStore = defineStore("browser", {
     },
     async clearFilters() {
       this.settings.filters = {};
+      await this.setSettings({});
     },
     async setSettings(data) {
       // Save settings to state and re-get the objects.

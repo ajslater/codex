@@ -95,7 +95,7 @@
             <MetadataText :value="md.month" label="Month" class="datePicker" />
             <MetadataText :value="md.day" label="Day" class="datePicker" />
           </div>
-          <MetadataText :value="md.format" label="Format" />
+          <MetadataText :value="md.original_format" label="Original Format" />
         </section>
       </header>
       <div id="metadataBody">
@@ -121,7 +121,7 @@
               class="mtime"
             />
             <MetadataText :value="size" label="Size" />
-            <MetadataText :value="fileType(fileType)" label="File Type" />
+            <MetadataText :value="fileType" label="File Type" />
           </div>
           <div class="lastSmallRow">
             <MetadataText :value="md.path" label="Path" />
@@ -278,7 +278,7 @@ export default {
               issueSuffix: md.issueSuffix,
             }) +
               "." +
-              this.fileType().toLowerCase();
+              this.fileType.toLowerCase();
       },
     }),
     ...mapState(useBrowserStore, {
@@ -332,7 +332,7 @@ export default {
       return humanize.filesize(this.md.size);
     },
     fileType: function () {
-      return fileTypes.get(this.md.fileFormat, "Unknown");
+      return this.md.fileType || "Unknown";
     },
   },
   watch: {

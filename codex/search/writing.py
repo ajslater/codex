@@ -101,14 +101,12 @@ class CodexWriter(BufferedWriter):
     def commit(self, reader=None, **kwargs):
         """Commit with a writer we get now."""
         with self.lock:
+            writer = self.get_writer("commit")
+            if reader:
+                writer.add_reader(reader)
             ramreader = self._get_ram_reader()
-        self._make_ram_index()
-
-        writer = self.get_writer("commit")
-        if reader:
-            writer.add_reader(reader)
-        writer.add_reader(ramreader)
-        writer.commit(**self.commitargs)
+            writer.add_reader(ramreader)
+            writer.commit(**self.commitargs)
 
     def add_reader(self, reader):
         """Do a commit with the supplied reader."""
@@ -118,12 +116,13 @@ class CodexWriter(BufferedWriter):
     def add_document(self, **fields):
         """Add a document with the cached schema."""
         with self.lock, self.codec.writer(self.schema) as w:
-            # Hijack a writer to make the calls into the codec
+            # Hijack a writer to make the calls into the ram index.
             w.add_document(**fields)
 
     def _stage_segment_deletes(self, writer, docnums):
         """Get the deletes to perform."""
         base = self.index.refresh().doc_count_all()
+        count = 0
         with self.lock:
             for docnum in sorted(docnums):
                 if docnum < base:
@@ -134,7 +133,8 @@ class CodexWriter(BufferedWriter):
                     segment = self.codec.segment
                     segdocnum = docnum - base
                 segment.delete_document(segdocnum, delete=True)
-        return len(docnums)
+                count += 1
+        return count
 
     def delete_batch_documents(self, docnums):
         """Delete multiple documents very quickly."""
@@ -143,18 +143,12 @@ class CodexWriter(BufferedWriter):
         count = self._stage_segment_deletes(writer, docnums)
 
         # Commit
-        with self.lock:
-            try:
-                writer.commit(**self.commitargs)
-            except (FileNotFoundError, NameError):
-                # XXX This is a multiprocessing error.
-                # either the toc fragment we're looking for doesn't exist
-                # or the one we're trying to write already exists.
+        try:
+            writer.commit(**self.commitargs)
+        except Exception:
+            with self.lock:
                 writer.cancel()
-                count = 0
-            except Exception:
-                writer.cancel()
-                raise
+            raise
         return count
 
     def is_deleted(self, docnum):

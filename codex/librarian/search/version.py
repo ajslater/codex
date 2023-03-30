@@ -48,12 +48,13 @@ class VersionMixin(QueuedThread):
             pass
         except Exception:
             self.log.exception("Does search index match database uuid")
+        if not result:
+            self.log.warning("Database does not match search index.")
         return result
 
     def rebuild_search_index_if_db_changed(self):
         """Rebuild the search index if the db changed."""
         if not self.is_search_index_uuid_match():
-            self.log.warning("Database does not match search index.")
             task = SearchIndexUpdateTask(True)
             self.librarian_queue.put(task)
         else:

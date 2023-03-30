@@ -31,12 +31,12 @@ class MetadataView(BrowserAnnotationsView):
         "critical_rating",
         "day",
         "file_type",
-        "format",
         "issue",
         "issue_suffix",
         "language",
         "month",
         "notes",
+        "original_format",
         "read_ltr",
         "scan_info",
         "summary",
@@ -116,7 +116,7 @@ class MetadataView(BrowserAnnotationsView):
             ann_field = (annotation_prefix + field).replace("__", "_")
             qs = qs.annotate(**{ann_field: val})
 
-        return qs
+        return simple_qs, qs
 
     @classmethod
     def _field_copy_fk_count(cls, field_name, obj, val):
@@ -153,20 +153,21 @@ class MetadataView(BrowserAnnotationsView):
         querysets = (simple_qs, qs)
         if not self.is_model_comic:
             comic_value_fields = self._get_comic_value_fields()
-            qs = self._intersection_annotate(querysets, comic_value_fields)
+            querysets = self._intersection_annotate(querysets, comic_value_fields)
 
             # Conflicting Simple Values
-            qs = self._intersection_annotate(
+            querysets = self._intersection_annotate(
                 querysets,
                 self._COMIC_VALUE_FIELDS_CONFLICTING,
                 annotation_prefix=self._COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
             )
         elif self.is_admin() or self._is_enabled_folder_view():
             qs = qs.annotate(library_path=F("library__path"))
+            querysets = (simple_qs, qs)
 
         # Foreign Keys
         fk_fields = copy(self._COMIC_FK_FIELDS_MAP[self.group])
-        qs = self._intersection_annotate(
+        querysets = self._intersection_annotate(
             querysets,
             fk_fields,
             related_suffix="__name",
@@ -174,7 +175,7 @@ class MetadataView(BrowserAnnotationsView):
         )
 
         # Foreign Keys with special count values
-        qs = self._intersection_annotate(
+        _, qs = self._intersection_annotate(
             querysets,
             self._COMIC_RELATED_VALUE_FIELDS,
             annotation_prefix=self._COMIC_FK_ANNOTATION_PREFIX,
@@ -194,7 +195,7 @@ class MetadataView(BrowserAnnotationsView):
                 raise ValueError(reason)
 
             intersection_qs = model.objects.filter(comic__pk__in=comic_pks)
-            if field_name == "creator":
+            if field_name == "creators":
                 intersection_qs = intersection_qs.select_related(
                     *self._CREATOR_RELATIONS
                 )

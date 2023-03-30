@@ -99,8 +99,10 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         "community_rating": gen_multipart_field_aliases("community_rating"),
         "critical_rating": gen_multipart_field_aliases("critical_rating"),
         "genres": ["genre"],
+        "file_type": ["type"],
         "locations": ["location"],
         "name": ["title"],
+        "original_format": ["format"],
         "page_count": ["pages"],
         "read_ltr": ["ltr"],
         "series_groups": gen_multipart_field_aliases("series_groups"),
@@ -327,7 +329,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             self.remove_django_ids(batch_pks, writer=writer)
         except Exception as exc:
             self.log.warning(
-                f"couldn't delete search index records before replacing: {exc}"
+                f"Couldn't delete search index records before replacing: {exc}"
             )
             writer.cancel()
             writer = self.get_writer()
@@ -347,10 +349,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
 
             writer.close()
         except Exception as exc:
-            self.log.warning(
-                "Exception during search index writer final commit or cancel"
-                f" for batch {batch_num}: {exc}."
-            )
+            self.log.debug(f"Writing batch {batch_num} failed: {exc}")
             writer.cancel()
             raise
         return count

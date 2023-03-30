@@ -1,4 +1,4 @@
-FROM ajslater/codex-builder-base:f316b80100df28f87f16b7411ecbbc58-aarch64
+FROM ajslater/codex-builder-base:8e320d67331fd02a2a1caf2b8f222d2f-aarch64
 LABEL maintainer="AJ Slater <aj@slater.net>"
 LABEL version=dev
 
