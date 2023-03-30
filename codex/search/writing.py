@@ -124,6 +124,7 @@ class CodexWriter(BufferedWriter):
     def _stage_segment_deletes(self, writer, docnums):
         """Get the deletes to perform."""
         base = self.index.refresh().doc_count_all()
+        count = 0
         with self.lock:
             for docnum in sorted(docnums):
                 if docnum < base:
@@ -134,7 +135,8 @@ class CodexWriter(BufferedWriter):
                     segment = self.codec.segment
                     segdocnum = docnum - base
                 segment.delete_document(segdocnum, delete=True)
-        return len(docnums)
+                count += 1
+        return count
 
     def delete_batch_documents(self, docnums):
         """Delete multiple documents very quickly."""
