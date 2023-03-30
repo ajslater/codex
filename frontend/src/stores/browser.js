@@ -14,7 +14,13 @@ export const NUMERIC_FILTERS = [
   "year",
 ];
 Object.freeze(NUMERIC_FILTERS);
-export const CHARPK_FILTERS = ["ageRating", "country", "fileType", "language", "originalFormat"];
+export const CHARPK_FILTERS = [
+  "ageRating",
+  "country",
+  "fileType",
+  "language",
+  "originalFormat",
+];
 Object.freeze(CHARPK_FILTERS);
 const GROUPS = "rpisvc";
 Object.freeze(GROUPS);
