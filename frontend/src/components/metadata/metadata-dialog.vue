@@ -208,7 +208,6 @@ import humanize from "humanize";
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import { getDownloadURL } from "@/api/v3/reader";
-import { fileTypes } from "@/choices";
 import { formattedIssue, getFullComicName } from "@/comic-name";
 import BookCover from "@/components/book-cover.vue";
 import CloseButton from "@/components/close-button.vue";

@@ -55,7 +55,7 @@ class OPDSEntry:
         try:
             group = self.obj.get("group")
             pk = self.obj.get("pk")
-            return reverse(  # noqa R300
+            return reverse(
                 "opds:v1:browser", kwargs={"group": group, "pk": pk, "page": 1}
             )
         except Exception as exc:

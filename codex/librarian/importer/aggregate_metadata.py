@@ -14,8 +14,6 @@ from codex.pdf import PDF
 from codex.status import Status
 from codex.version import COMICBOX_CONFIG
 
-FILE_TYPES = dict(reversed(list(CHOICES["fileTypes"].items())))
-
 
 class AggregateMetadataMixin(CleanMetadataMixin):
     """Aggregate metadata from comics to prepare for importing."""

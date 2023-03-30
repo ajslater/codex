@@ -287,7 +287,6 @@ class Comic(WatchedPath):
         CBT = "CBT"
         PDF = "PDF"
 
-    COMIC_FILE_TYPES = frozenset(("z", "r", "t", "x"))
     ORDERING = ("series__name", "volume__name", "issue", "issue_suffix", "name", "pk")
 
     # From BaseModel, but Comics are sorted by these so index them

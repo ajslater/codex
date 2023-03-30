@@ -20,7 +20,6 @@ import { mdiDownload, mdiFileImage } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import { getDownloadPageURL, getDownloadURL } from "@/api/v3/reader";
-import { fileTypes } from "@/choices";
 import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
 

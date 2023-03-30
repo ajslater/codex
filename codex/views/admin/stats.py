@@ -31,7 +31,6 @@ from codex.models import (
 )
 from codex.permissions import HasAPIKeyOrIsAdminUser
 from codex.serializers.admin import AdminStatsSerializer
-from codex.serializers.choices import CHOICES
 from codex.version import VERSION
 
 

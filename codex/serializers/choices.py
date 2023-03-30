@@ -139,8 +139,6 @@ def _load_choices_json():
     for key, value in data_dict.items():
         if key == "websockets":
             WEBSOCKET_MESSAGES = value
-        elif key == "fileTypes":
-            CHOICES[key] = value
         else:
             if key == "browser":
                 del value["groupNames"]

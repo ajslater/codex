@@ -158,12 +158,5 @@
     "LIBRARY_CHANGED": "LIBRARY_CHANGED",
     "LIBRARIAN_STATUS": "LIBRARIAN_STATUS",
     "FAILED_IMPORTS": "FAILED_IMPORTS"
-  },
-  "fileTypes": {
-    "Z": "CBZ",
-    "R": "CBR",
-    "T": "CBT",
-    "X": "CBX",
-    "P": "PDF"
   }
 }
