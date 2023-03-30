@@ -250,6 +250,7 @@ export const useBrowserStore = defineStore("browser", {
     },
     async clearFilters() {
       this.settings.filters = {};
+      await this.setSettings({});
     },
     async setSettings(data) {
       // Save settings to state and re-get the objects.
