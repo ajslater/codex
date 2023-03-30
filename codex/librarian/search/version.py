@@ -48,7 +48,7 @@ class VersionMixin(QueuedThread):
             pass
         except Exception:
             self.log.exception("Does search index match database uuid")
-        if result:
+        if not result:
             self.log.warning("Database does not match search index.")
         return result
 
