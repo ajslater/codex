@@ -12,6 +12,7 @@ border-radius: 128px;
 
 - Features
   - Codex stable in 1GB RAM environments. Faster with more.
+  - Codex uses unrar-cffi if available. Not required.
   - Browser
     - Navigate to top button.
     - Filter by File Type.
