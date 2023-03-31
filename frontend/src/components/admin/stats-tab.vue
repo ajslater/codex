@@ -143,7 +143,7 @@
             <td>{{ nf(stats.metadata.teamCount) }}</td>
           </tr>
           <tr>
-            <td>Creators</td>
+            <td>Credits</td>
             <td>{{ nf(stats.metadata.creatorCount) }}</td>
           </tr>
           <tr>
