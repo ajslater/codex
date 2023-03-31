@@ -10,7 +10,7 @@ LOCAL_ARM_TAG=localhost/${HUB_ARM_TAG}
 LOCAL_AMD_TAG=localhost/${HUB_AMD_TAG}
 
 # pull arch images locally from docker hub
-docker pull "$HUB_ARM_TAG"
+docker pull --platform=arm64 "$HUB_ARM_TAG"
 docker pull --platform=amd64 "$HUB_AMD_TAG"
 
 # tag both images for local registry
