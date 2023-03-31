@@ -35,6 +35,7 @@ class OPDSEntry:
         "tags",
         "teams",
     )
+    ACQUISTION_GROUPS = frozenset(("f", "s", "c"))
 
     def __init__(self, obj, valid_nav_groups, query_params):
         """Initialize params."""
@@ -53,11 +54,10 @@ class OPDSEntry:
     def id_tag(self):
         """GUID is a nav url."""
         try:
-            group = self.obj.get("group")
-            pk = self.obj.get("pk")
-            return reverse(
-                "opds:v1:browser", kwargs={"group": group, "pk": pk, "page": 1}
-            )
+            metadata = self.query_params.get("opdsMetadata", "").lower() not in FALSY
+            # Id top links by query params but not regular entries.
+            query_params = not bool(self.obj.get("cover_pk"))
+            return self._nav_href(metadata=metadata, query_params=query_params)
         except Exception as exc:
             LOG.exception(exc)
 
@@ -187,27 +187,26 @@ class OPDSEntry:
             return None
         return OPDSLink(Rel.IMAGE, href, mime_type)
 
-    def _nav_link(self, metadata=False):
+    def _nav_href(self, metadata=False, query_params=False):
         group = self.obj.get("group")
         pk = self.obj.get("pk")
         kwargs = {"group": group, "pk": pk, "page": 1}
+        href = reverse("opds:v1:browser", kwargs=kwargs)
+        qps = self.obj.get("query_params", {}) if query_params else {}
 
-        try:
-            group_index = self.valid_nav_groups.index(group)
-            aq_link = group_index + 1 >= len(self.valid_nav_groups)
-        except Exception:
-            aq_link = False
+        if metadata:
+            qps.update({"opdsMetadata": 1})
+        return update_href_query_params(href, self.query_params, qps)
 
-        if aq_link or group == "c":
+    def _nav_link(self, metadata=False):
+        group = self.obj.get("group")
+
+        if group in self.ACQUISTION_GROUPS:
             mime_type = MimeType.ENTRY_CATALOG if metadata else MimeType.ACQUISITION
         else:
             mime_type = MimeType.NAV
 
-        href = reverse("opds:v1:browser", kwargs=kwargs)
-        qps = self.obj.get("query_params", {})
-        if metadata:
-            qps.update({"opdsMetadata": 1})
-        href = update_href_query_params(href, self.query_params, qps)
+        href = self._nav_href(metadata)
         thr_count = self.obj.get("child_count")
         rel = Rel.ALTERNATE if metadata else self.obj.get("nav_link_rel", "subsection")
 

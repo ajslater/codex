@@ -1,0 +1,9 @@
+services:
+  codex-dev-old:
+    image: ajslater/codex:1.2.9
+    container_name: codex-dev-old
+    ports:
+      - "9810:9810"
+    volumes:
+      - ./config/old/:/config
+      - /Users/aj/Comics:/comics
