@@ -300,28 +300,12 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                 return 1
         return 0
 
-    def update(self, index, batch_pks, batch_num=0, **kwargs):
-        """Update index, but with writer options."""
-        count = 0
-        num_objs = len(batch_pks)
-        if not num_objs:
-            self.log.debug("Search index nothing to update.")
-            return count
-
+    def _update_init(self, index, batch_pks):
         if not self.setup_complete:
             self.setup(False)
 
         if not index:
             index = ComicIndex()
-
-        # prefetch is not pickleable, create the query here from pks.
-        iterable = (
-            Comic.objects.filter(pk__in=batch_pks)
-            .defer(*self._DEFERRED_FIELDS)
-            .select_related(*self._SELECT_RELATED_FIELDS)
-            .prefetch_related(*self._PREFETCH_RELATED_FIELDS)
-            .iterator(chunk_size=self.CHUNK_SIZE)
-        )
 
         writer = self.get_writer()
 
@@ -334,8 +318,18 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             writer.cancel()
             writer = self.get_writer()
 
-        for obj in iterable:
-            count += self._update_obj(index, writer, batch_num, obj)
+        # prefetch is not pickleable, create the query here from pks.
+        iterable = (
+            Comic.objects.filter(pk__in=batch_pks)
+            .defer(*self._DEFERRED_FIELDS)
+            .select_related(*self._SELECT_RELATED_FIELDS)
+            .prefetch_related(*self._PREFETCH_RELATED_FIELDS)
+            .iterator(chunk_size=self.CHUNK_SIZE)
+        )
+        return index, writer, iterable
+
+    def _update_finish(self, count, batch_num, writer):
+        """Finish the update by committing or canceling."""
         try:
             if count:
                 msg = f"Search index starting final commit for batch {batch_num}."
@@ -353,6 +347,37 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             writer.cancel()
             raise
         return count
+
+    def update(self, index, batch_pks, batch_num=0, abort_event=None, **kwargs):
+        """Update index, but with writer options."""
+        count = 0
+        if abort_event and abort_event.is_set():
+            self.log.debug(
+                f"Stopped search index update batch {batch_num} before it started."
+            )
+            return count
+        num_objs = len(batch_pks)
+        if not num_objs:
+            self.log.debug("Search index nothing to update.")
+            return count
+
+        index, writer, iterable = self._update_init(index, batch_pks)
+
+        if abort_event and abort_event.is_set():
+            self.log.debug(
+                f"Stopped search index update batch {batch_num}"
+                " after removing old records."
+            )
+            return count
+
+        for obj in iterable:
+            if abort_event and abort_event.is_set():
+                self.log.debug(
+                    f"Stopped search index update batch {batch_num} at {count} updates."
+                )
+                break
+            count += self._update_obj(index, writer, batch_num, obj)
+        return self._update_finish(count, batch_num, writer)
 
     def remove_django_ids(self, pks, writer, searcher=None):
         """Remove a large batch of docs by pk from the index."""

@@ -29,3 +29,8 @@ class SearchIndexMergeTask(SearchIndexerTask):
 @dataclass
 class SearchIndexRemoveStaleTask(SearchIndexerTask):
     """Remove stale records."""
+
+
+@dataclass
+class SearchIndexAbortTask(SearchIndexerTask):
+    """Abort current search index task."""

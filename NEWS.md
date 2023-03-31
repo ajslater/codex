@@ -25,15 +25,16 @@ border-radius: 128px;
     - Fancier sortable admin tables.
     - Removed `max_db_ops` config variable.
 - Fix
+  - Reader vertical scroll lost its place in Fit To Width or Orig mode.
+  - OPDS downloaded files all had the same name.
   - Search Index
     - More robust against bad data.
     - Some search fields were case sensitive.
-  - Codex was backing up on every startup.
-  - Reader vertical scroll lost its place in Fit To Width or Orig mode.
-  - OPDS downloaded files all had the same name.
-  - Status for batched imports (large imports or low memory) now reflects total
-    instead of single batch.
-  - Fix graceful shutdown from TERM signal on Linux.
+  - Admin
+    - Graceful shutdown when Docker container stops.
+    - Codex was backing up on every startup.
+    - Status for batched imports (large imports or low memory) now reflects
+      total instead of single batch.
 
 ## v1.2.9
 

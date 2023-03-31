@@ -16,23 +16,33 @@ from codex.status import Status
 class RemoveMixin(VersionMixin):
     """Search Index cleanup methods."""
 
-    @staticmethod
-    def _get_delete_docnums(backend):
+    def _get_delete_docnums(self, backend):
         """Get all the docunums that have pks that are *not* in the database."""
-        database_pks = frozenset(Comic.objects.all().values_list("pk", flat=True))
         delete_docnums = []
+        if self.abort_event.is_set():
+            self.log.debug(
+                "Stopped search index remove stale records before it started."
+            )
+            return delete_docnums
+        database_pks = frozenset(Comic.objects.all().values_list("pk", flat=True))
         with backend.index.refresh().searcher() as searcher:
             results = searcher.search(Every(), scored=False)
             for result in results:
                 index_pk = int(result.get(DJANGO_ID, 0))
                 if index_pk not in database_pks:
                     delete_docnums.append(result.docnum)
+                if self.abort_event.is_set():
+                    self.log.debug(
+                        "Search index remove stale records will do a partial remove."
+                    )
+                    return delete_docnums
         return delete_docnums
 
     def remove_stale_records(
         self, backend: Optional[CodexSearchBackend] = None  # type: ignore
     ):
         """Remove records not in the database from the index."""
+        self.abort_event.clear()
         status = Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE)
         try:
             start_time = time()

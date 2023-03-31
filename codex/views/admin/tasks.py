@@ -20,6 +20,7 @@ from codex.librarian.janitor.tasks import (
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK, LIBRARY_CHANGED_TASK
 from codex.librarian.search.tasks import (
+    SearchIndexAbortTask,
     SearchIndexMergeTask,
     SearchIndexRebuildIfDBChangedTask,
     SearchIndexRemoveStaleTask,
@@ -60,6 +61,7 @@ class AdminLibrarianTaskView(APIView):
         "search_index_merge_small": SearchIndexMergeTask(
             False,
         ),
+        "search_index_abort": SearchIndexAbortTask(),
         "search_index_optimize": SearchIndexMergeTask(True),
         "db_vacuum": JanitorVacuumTask(),
         "db_backup": JanitorBackupTask(),

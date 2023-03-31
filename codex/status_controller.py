@@ -100,24 +100,26 @@ class StatusController(LoggerBaseMixin):
 
     def update(self, status, notify=True):
         """Update a librarian status."""
-        if time() - status.since > self._UPDATE_DELTA:
-            updates = {
-                "preactive": False,
-                "complete": status.complete,
-                "total": status.total,
-                "updated_at": Now(),
-            }
-            try:
-                LibrarianStatus.objects.filter(status_type=status.status_type).update(
-                    **updates
-                )
-                self._enqueue_notifier_task(notify)
-                if notify:
-                    self._loggit(INFO, status)
-                    status.since = time()
-            except Exception as exc:
-                title = STATUS_TITLES[status.status_type]
-                self.log.warning(f"Update status {title}: {exc}")
+        if time() - status.since < self._UPDATE_DELTA:
+            # noop unless time has expired.
+            return
+        updates = {
+            "preactive": False,
+            "complete": status.complete,
+            "total": status.total,
+            "updated_at": Now(),
+        }
+        try:
+            LibrarianStatus.objects.filter(status_type=status.status_type).update(
+                **updates
+            )
+            self._enqueue_notifier_task(notify)
+            if notify:
+                self._loggit(INFO, status)
+                status.since = time()
+        except Exception as exc:
+            title = STATUS_TITLES[status.status_type]
+            self.log.warning(f"Update status {title}: {exc}")
 
     def finish_many(self, statii, notify=True, until=0.0):
         """Finish all librarian statuses."""
