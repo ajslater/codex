@@ -41,9 +41,9 @@ docker buildx imagetools create -t "$HUB_MULTI_TAG" "$LOCAL_MULTI_TAG"
 docker compose -f "$REGISTRY_YAML" down
 
 # promote pushed to latest
-if [ "${2-}" = "latest" ]; then
-    ./docker/docker-tag-remote-version-as-latest.sh "$VERSION"
-fi
-
+#if [ "${2-}" = "latest" ]; then
+#    ./docker/docker-tag-remote-version-as-latest.sh "$VERSION"
+#fi
+#
 # remove old tags from repository
-./docker/docker-hub-remove-tags.sh "$HUB_ARM_TAG" "$HUB_AMD_TAG"
+#./docker/docker-hub-remove-tags.sh "$HUB_ARM_TAG" "$HUB_AMD_TAG"
