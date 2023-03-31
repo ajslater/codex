@@ -5,13 +5,14 @@ from pathlib import Path
 
 from django.utils.timezone import now
 from haystack.backends.whoosh_backend import (
+    WHOOSH_ID,
     WhooshSearchBackend,
 )
-from haystack.constants import DJANGO_ID
-from haystack.exceptions import SkipDocument
+from haystack.constants import DJANGO_CT, DJANGO_ID, ID
+from haystack.exceptions import SearchBackendError, SkipDocument
 from humanfriendly import InvalidSize, parse_size
 from whoosh.analysis import CharsetFilter, StandardAnalyzer, StemFilter
-from whoosh.fields import NUMERIC
+from whoosh.fields import BOOLEAN, DATETIME, NUMERIC, TEXT, FieldType, Schema
 from whoosh.filedb.filestore import FileStorage
 from whoosh.index import EmptyIndexError
 from whoosh.qparser import (
@@ -79,6 +80,11 @@ class FILESIZE(NUMERIC):
         return super().parse_range(
             fieldname, start, end, startexcl, endexcl, boost=boost
         )
+
+
+TEXT_ANALYZER = (
+    StandardAnalyzer() | CharsetFilter(accent_map) | StemFilter(cachesize=-1)
+)
 
 
 class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
@@ -184,25 +190,73 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         return StandardAnalyzer() | CharsetFilter(accent_map) | StemFilter(cachesize=-1)
 
     def build_schema(self, fields):
-        """Add the custom FILESIZE field to the schema."""
-        content_field_name, schema = super().build_schema(fields)
+        """Customize Codex Schema.
 
-        # Boost series field
-        series_field = schema._fields["series"]  # noqa SFL001
-        series_field.format = series_field.format.__class__(field_boost=1.25)
+        custom size field,
+        64 bit unsigned ints.
+        16 bit unsigned flaots.
+        unsortable text and datetime fields.
+        """
+        schema_fields: dict[str, FieldType] = {
+            ID: WHOOSH_ID(stored=True, unique=True),
+            DJANGO_CT: WHOOSH_ID(stored=True),
+            DJANGO_ID: WHOOSH_ID(stored=True),
+        }
 
-        # Replace size field
-        schema.remove("size")
-        schema.add(
-            "size",
-            FILESIZE(
-                stored=True,
-                numtype=int,
-                field_boost=1,
-            ),
-        )
+        initial_key_count = len(schema_fields)
+        content_field_name = ""
 
-        return content_field_name, schema
+        for field_class in fields.values():
+            index_fieldname = field_class.index_fieldname
+            if field_class.field_type == "integer":
+                schema_field_class = FILESIZE if index_fieldname == "size" else NUMERIC
+                schema_fields[index_fieldname] = schema_field_class(
+                    numtype=int,
+                    bits=64,
+                    field_boost=field_class.boost,
+                    signed=False,
+                    stored=field_class.stored,
+                )
+            elif field_class.field_type == "float":
+                # my only floats are small decimals.
+                schema_fields[index_fieldname] = NUMERIC(
+                    numtype=int,  # Decimal is converted to int in NUMERIC
+                    bits=16,
+                    field_boost=field_class.boost,
+                    signed=False,
+                    decimal_places=2,
+                    stored=field_class.stored,
+                )
+            elif field_class.field_type in ["date", "datetime"]:
+                schema_fields[index_fieldname] = DATETIME(
+                    stored=field_class.stored,
+                    # sortable=True  # index_fieldname == "updated_at"
+                )
+            elif field_class.field_type == "boolean":
+                # Field boost isn't supported on BOOLEAN as of 1.8.2.
+                schema_fields[index_fieldname] = BOOLEAN(stored=field_class.stored)
+            else:
+                schema_fields[index_fieldname] = TEXT(
+                    stored=True,
+                    analyzer=TEXT_ANALYZER,
+                    # analyzer=field_class.analyzer  or StemmingAnalyzer(),
+                    field_boost=field_class.boost,
+                    # sortable=True,
+                    spelling=field_class.document is True,
+                )
+                if field_class.document:
+                    content_field_name = index_fieldname
+
+        # Fail more gracefully than relying on the backend to die if no fields
+        # are found.
+        if len(schema_fields) <= initial_key_count:
+            reason = (
+                "No fields were found in any search_indexes."
+                " Please correct this before attempting to search."
+            )
+            raise SearchBackendError(reason)
+
+        return (content_field_name, Schema(**schema_fields))
 
     def _setup_storage_patch(self):
         """Adapt FileStorage to not use mmap in low memory environements."""
