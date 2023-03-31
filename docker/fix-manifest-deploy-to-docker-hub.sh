@@ -34,11 +34,11 @@ docker manifest push --insecure "$LOCAL_MULTI_TAG"
 #pull combined image
 docker pull "$LOCAL_MULTI_TAG"
 
-# Shut down registry
-docker compose -f "$REGISTRY_YAML" down
-
 # Final push
 docker buildx imagetools create -t "$HUB_MULTI_TAG" "$LOCAL_MULTI_TAG"
+
+# Shut down registry
+docker compose -f "$REGISTRY_YAML" down
 
 # promote pushed to latest
 if [ "${2-}" = "latest" ]; then
