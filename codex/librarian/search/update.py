@@ -180,10 +180,12 @@ class UpdateMixin(RemoveMixin):
             except Exception as exc:
                 retry_batches[retry_batch_num] = batch_pks
                 # XXX It would be best to fix these collisions
+                if not isinstance(exc, self._EXPECTED_EXCEPTIONS):
+                    reason = f"Search Index Update collect result batch {batch_num}"
+                    self.log.exception(reason)
                 self.log.debug(f"Search index update will retry batch {batch_num}")
                 retry_batch_num += 1
-                if not isinstance(exc, self._EXPECTED_EXCEPTIONS):
-                    self.log.exception("Search index update - collect batch results")
+
         return retry_batches, complete
 
     def _try_update_batch(self, backend, batch_info, status):
