@@ -77,7 +77,7 @@ class CreateForeignKeysMixin(QueuedThread):
         obj = group_class.objects.get(**search_kwargs)
         obj_count = getattr(obj, count_field)
         count = count_dict.get(count_field)
-        if obj_count is None or obj_count < count:
+        if obj_count is None or (count is not None and obj_count < count):
             setattr(obj, count_field, count)
         else:
             obj = None

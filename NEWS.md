@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v.1.3.1
+
+- Fix
+  - An import crash in create foreign keys.
+
 ## v1.3.0
 
 ### I remember... my whole life. Everything
