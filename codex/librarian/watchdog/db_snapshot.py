@@ -13,26 +13,33 @@ class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
     """Take snapshots from the Codex database."""
 
     MODELS = (Folder, Comic, FailedImport)
+    _STAT_LEN = 10
 
     @classmethod
     def _walk(cls, root):
         """Populate the DirectorySnapshot structures from the database."""
         for model in cls.MODELS:
-            yield model.objects.filter(library__path=root).values("path", "stat")
+            yield model.objects.filter(library__path=root).order_by("path").values(
+                "path", "stat"
+            )
 
     def _create_stat_from_db_stat(self, wp, stat_func, force):
-        """Handle null or zeroed out database stat entries."""
-        stat = wp.get("stat")
-        if not stat or len(stat) != 10 or not stat[1]:  # noqa PLR2004
-            path = Path(wp.get("path"))
+        """Turn database JSON array into python stat_result."""
+        stat = wp["stat"]
+        if not stat or len(stat) != self._STAT_LEN or not stat[1]:
+            # Handle null or zeroed out database stat entries.
+            # 1 is the inode stat field.
+            path = Path(wp["path"])
             # Ensure valid params
             if path.exists():
-                self.log.debug(f"Force modify path with bad db record: {path}")
+                self.log.debug(f"Force modify path with missing db stat: {path}")
                 stat = list(stat_func(path))
                 # Fake mtime will trigger a modified event
                 stat[8] = 0.0
             else:
-                self.log.debug(f"Force delete path with bad db record: {path}")
+                self.log.debug(
+                    f"Force delete missing path with missing db stat: {path}"
+                )
                 # This will trigger a deleted event
                 stat = Comic.ZERO_STAT
 

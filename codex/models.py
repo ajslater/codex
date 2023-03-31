@@ -257,7 +257,11 @@ class WatchedPath(BrowserGroupModel):
         st[0] = st_record.st_mode
         st[1] = st_record.st_ino
         # st[2] = st_record.st_dev is ignored by diff
+        # st[3] = st_record.st_nlink
+        # st[4] = st_record.st_uid
+        # st[5] = st_record.st_gid
         st[6] = st_record.st_size
+        # st[7] = st_record.st_atime
         st[8] = st_record.st_mtime
         self.stat = st
 
