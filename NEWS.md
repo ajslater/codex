@@ -11,6 +11,7 @@ border-radius: 128px;
 - Fix
   - Number out of range errors when search indexing.
   - Possible Search Index Remove Stale and Abort jobs not scheduled properly.
+  - OPDS missing entry ids rejected by Panels reader.
 
 ## v1.3.2
 
