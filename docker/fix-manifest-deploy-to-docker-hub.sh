@@ -18,7 +18,8 @@ docker tag "$HUB_ARM_TAG" "$LOCAL_ARM_TAG"
 docker tag "$HUB_AMD_TAG" "$LOCAL_AMD_TAG"
 
 # run local registry
-docker compose -f registry.yaml up -d
+REGISTRY_YAML=docker/registry.yaml
+docker compose -f "$REGISTRY_YAML" up -d
 
 # push both images into local registry
 docker push "$LOCAL_ARM_TAG"
@@ -34,7 +35,7 @@ docker manifest push --insecure "$LOCAL_MULTI_TAG"
 docker pull "$LOCAL_MULTI_TAG"
 
 # Shut down registry
-docker compose -f registry.yaml down
+docker compose -f "$REGISTRY_YAML" down
 
 # Final push
 docker buildx imagetools create -t "$HUB_MULTI_TAG" "$LOCAL_MULTI_TAG"
