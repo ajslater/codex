@@ -10,6 +10,7 @@ border-radius: 128px;
 
 - Fix
   - Reader Fit To settings broken
+  - Possible files marked modified too often.
 
 ## v1.3.1
 
