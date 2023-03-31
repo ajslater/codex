@@ -264,7 +264,6 @@ export const useReaderStore = defineStore("reader", {
       });
     },
     setActivePage(page, scroll = false) {
-      console.log("setActivePage", page);
       if (page < 0) {
         console.warn("Page out of bounds. Redirecting to 0.");
         return this.routeToPage(0);
