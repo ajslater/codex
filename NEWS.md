@@ -6,7 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v.1.3.1
+## v1.3.2
+
+- Fix
+  - Reader Fit To settings broken
+
+## v1.3.1
 
 - Fix
   - An import crash in create foreign keys.
