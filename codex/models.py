@@ -445,8 +445,8 @@ class Comic(WatchedPath):
         if self.name:
             names.append(self.name)
 
-        fn = " ".join(names).strip()
-        fn += "." + Path(self.path).suffix
+        fn = " ".join(names).strip(" .")
+        fn += Path(self.path).suffix
         return fn
 
 
