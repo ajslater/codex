@@ -34,6 +34,8 @@ import ImgPage from "@/components/reader/page-img.vue";
 
 const PROGRESSS_DELAY_MS = 333;
 
+const FIT_TO_CHOICES = { S: "Screen", W: "Width", H: "Height", O: "Original" };
+
 export default {
   name: "BookPage",
   components: { Placeholder, ErrorPage, LoadingPage, PDFPage, ImgPage },
@@ -60,7 +62,7 @@ export default {
     },
     fitToClass() {
       let classes = {};
-      const fitTo = this.settings.fitTo;
+      const fitTo = FIT_TO_CHOICES[this.settings.fitTo];
       if (fitTo) {
         let fitToClass = "fitTo";
         fitToClass +=
