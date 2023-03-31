@@ -112,7 +112,7 @@ class LinkComicsMixin(QueuedThread):
         return all_m2m_links
 
     def _query_relation_adjustments(
-        self, m2m_links, ThroughModel, through_field_id_name  # noqa: N803
+        self, m2m_links, ThroughModel, through_field_id_name, status  # noqa: N803
     ):
         all_del_pks = set()
         tms = []
@@ -124,12 +124,19 @@ class LinkComicsMixin(QueuedThread):
                 .values_list("pk", flat=True)
             )
             all_del_pks |= set(del_pks)
+            if status:
+                status.total += len(del_pks)
+                self.status_controller.update(status)
+
             extant_pks = set(
                 ThroughModel.objects.filter(comic_id=comic_pk).values_list(
                     through_field_id_name, flat=True
                 )
             )
             missing_pks = set(pks) - extant_pks
+            if status:
+                status.total += len(missing_pks)
+                self.status_controller.update(status)
             for pk in missing_pks:
                 defaults = {"comic_id": comic_pk, through_field_id_name: pk}
                 tm = ThroughModel(**defaults)
@@ -155,11 +162,9 @@ class LinkComicsMixin(QueuedThread):
         through_field_id_name = f"{link_name}_id"
 
         tms, all_del_pks = self._query_relation_adjustments(
-            m2m_links, ThroughModel, through_field_id_name
+            m2m_links, ThroughModel, through_field_id_name, status
         )
         if status:
-            # XXX for better numbers but worse memory performance
-            # could do all queries first.
             status.total += len(tms) + len(all_del_pks)
             self.status_controller.update(status)
 
@@ -175,6 +180,9 @@ class LinkComicsMixin(QueuedThread):
                 f"Created {created_count} new {field_name}"
                 " relations for altered comics."
             )
+        if status:
+            status.complete += created_count
+            self.status_controller.update(status)
 
         if del_count := len(all_del_pks):
             ThroughModel.objects.filter(comic_id__in=all_del_pks).delete()
@@ -182,16 +190,16 @@ class LinkComicsMixin(QueuedThread):
                 f"Deleted {del_count} stale {field_name} relations for altered comics.",
             )
         if status:
-            status.complete = created_count + del_count
+            status.complete += del_count
             self.status_controller.update(status)
 
     @status_notify(status_type=ImportStatusTypes.LINK_M2M_FIELDS, updates=False)
     def bulk_query_and_link_comic_m2m_fields(self, all_m2m_mds, status=None):
         """Combine query and bulk link into a batch."""
-        all_m2m_links = self._link_comic_m2m_fields(all_m2m_mds)
         if status:
             status.complete = 0
             status.total = 0
+        all_m2m_links = self._link_comic_m2m_fields(all_m2m_mds)
         for field_name, m2m_links in all_m2m_links.items():
             try:
                 self.bulk_fix_comic_m2m_field(field_name, m2m_links, status)
