@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING
 
 from humanize import naturaldelta
 
-from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexRemoveStaleTask
 from codex.librarian.search.version import VersionMixin
@@ -62,7 +61,7 @@ class MergeMixin(VersionMixin):
                 self.log.info(f"Merged {diff} search index segments in {elapsed}.")
             else:
                 self.log.info("No small search index segments found.")
-            LIBRARIAN_QUEUE.put(SearchIndexRemoveStaleTask())
+            self.librarian_queue.put(SearchIndexRemoveStaleTask())
         except Exception:
             self.log.exception("Search index merge.")
         finally:

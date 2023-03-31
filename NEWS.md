@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.3.3
+
+- Fix
+  - Possible Search Index Remove Stale and Abort jobs not scheduled properly.
+
 ## v1.3.2
 
 - Fix
