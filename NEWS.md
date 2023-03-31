@@ -10,6 +10,7 @@ border-radius: 128px;
 
 - Fix
   - An import crash in create foreign keys.
+  - Admin table dates were always in UTC so sometime off by a day.
 
 ## v1.3.0
 

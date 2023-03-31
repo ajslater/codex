@@ -3,9 +3,7 @@
 // but en-CA has p.m. as a 12hr suffix.
 const TWELVE_HOUR_LOCALE = "en-NZ";
 const TWENTY_FOUR_HOUR_LOCALE = "sv-SE";
-export const DATE_FORMAT = new Intl.DateTimeFormat(TWENTY_FOUR_HOUR_LOCALE, {
-  timeZone: "UTC",
-}); // prevents off by one error using browser tz
+export const DATE_FORMAT = new Intl.DateTimeFormat(TWENTY_FOUR_HOUR_LOCALE);
 export const getTimeFormat = function (twentyFourHourTime) {
   const locale = twentyFourHourTime
     ? TWENTY_FOUR_HOUR_LOCALE
