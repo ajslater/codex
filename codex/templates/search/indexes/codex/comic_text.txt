@@ -1,9 +1,9 @@
 {{ object.publisher.name }}
 {{ object.imprint.name }}
-{{ object.series.name }} {{ object.series.name }}
+{{ object.series.name }}
 {{ object.volume.name }}
 {{ object.issue_suffix }}
-{{ object.name }} {{ object.name }}
+{{ object.name }}
 {{ object.comments }}
 {{ object.country }}
 {{ object.format }}
@@ -15,8 +15,11 @@
 {% for character in object.characters.all %}
   {{ character.name }}
 {% endfor %}
-{% for credit in object.credits.all %}
-  {{ credit.person.name }}
+{% for creator in object.creators.all %}
+  {{ creator.person.name }}
+{% endfor %}
+{% for genre in object.genres.all %}
+  {{ genre.name }}
 {% endfor %}
 {% for location in object.locations.all %}
   {{ location.name }}

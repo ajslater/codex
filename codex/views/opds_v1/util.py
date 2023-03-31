@@ -8,6 +8,7 @@ from comicbox.metadata.comic_json import json
 from django.utils.http import urlencode
 
 BLANK_TITLE = "Unknown"
+FALSY = {"", "false", "0"}
 
 
 class OpdsNs:
@@ -50,6 +51,7 @@ class Rel:
     UP = "up"
     PREV = "prev"
     NEXT = "next"
+    ALTERNATE = "alternate"
 
 
 class MimeType:
@@ -59,6 +61,7 @@ class MimeType:
     _PROFILE_CATALOG = "profile=opds-catalog"
     NAV = ";".join((ATOM, _PROFILE_CATALOG, "kind=navigation"))
     ACQUISITION = ";".join((ATOM, _PROFILE_CATALOG, "kind=acquisition"))
+    ENTRY_CATALOG = ";".join((ATOM, "type=entry", _PROFILE_CATALOG))
     AUTHENTICATION = "application/opds-authentication+json"
     OPENSEARCH = "application/opensearchdescription+xml"
     DOWNLOAD = "application/zip"  # PocketBooks needs app/zip
@@ -108,6 +111,12 @@ class TopLinks:
         "Start of the catalog",
         "",
     )
+    ALL = (START,)
+
+
+class RootTopLinks:
+    """Top Links that only appear at the root."""
+
     NEW = TopLink(
         TopRoutes.SERIES,
         Rel.SORT_NEW,
@@ -128,7 +137,7 @@ class TopLinks:
         "Oldest Unread",
         "Unread issues, oldest published first",
     )
-    ALL = (START, NEW, FEATURED)
+    ALL = (NEW, FEATURED)
 
 
 class FacetGroups:
@@ -143,19 +152,25 @@ class FacetGroups:
             Facet("sort_name", "Name"),
         ),
     )
-    TOP_GROUP = FacetGroup(
-        "",
-        "topGroup",
-        "⊙",
-        (Facet("p", "Publishers View"), Facet("s", "Series View")),
-    )
     ORDER_REVERSE = FacetGroup(
         "Order",
         "orderReverse",
         "⇕",
         (Facet("false", "Ascending"), Facet("true", "Descending")),
     )
-    ALL = (ORDER_BY, TOP_GROUP, ORDER_REVERSE)
+    ALL = (ORDER_BY, ORDER_REVERSE)
+
+
+class RootFacetGroups:
+    """Facet Groups that only appear at the root."""
+
+    TOP_GROUP = FacetGroup(
+        "",
+        "topGroup",
+        "⊙",
+        (Facet("p", "Publishers View"), Facet("s", "Series View")),
+    )
+    ALL = (TOP_GROUP,)
 
 
 DEFAULT_FACETS = {
@@ -171,7 +186,7 @@ class OPDSLink:
 
     rel: str
     href: str
-    type: str
+    mime_type: str
     title: str = ""
     length: int = 0
     facet_group: str = ""

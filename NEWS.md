@@ -6,6 +6,36 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.3.0
+
+### I remember... my whole life. Everything
+
+- Features
+  - Codex stable in 1GB RAM environments. Faster with more.
+  - Codex uses unrar-cffi if available. Not required.
+  - Browser
+    - Navigate to top button.
+    - Filter by File Type.
+  - OPDS
+    - Top links display only at catalog root.
+    - Extended metadata moved to alternate links.
+  - Admin
+    - Search Indexer Remove Stale Records task much faster.
+    - Comic import speedups.
+    - Fancier sortable admin tables.
+    - Removed `max_db_ops` config variable.
+- Fix
+  - Reader vertical scroll lost its place in Fit To Width or Orig mode.
+  - OPDS downloaded files all had the same name.
+  - Search Index
+    - More robust against bad data.
+    - Some search fields were case sensitive.
+  - Admin
+    - Graceful shutdown when Docker container stops.
+    - Codex was backing up on every startup.
+    - Status for batched imports (large imports or low memory) now reflects
+      total instead of single batch.
+
 ## v1.2.9
 
 - Features

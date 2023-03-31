@@ -1,4 +1,34 @@
 {
+  "statusTitles": {
+    "CCC": "Create Covers",
+    "CCD": "Remove Covers",
+    "CFO": "Find Orphan Covers",
+    "IDM": "Move Folders",
+    "IFM": "Move Books",
+    "ITR": "Read Book Tags",
+    "ITQ": "Discover Missing Tags",
+    "ITC": "Create Missing Tags",
+    "IDU": "Modify Folders",
+    "IFU": "Modify Books",
+    "IFC": "Create Books",
+    "IMQ": "Prepare Tags for Linking",
+    "IMC": "Link Books to Tags",
+    "IDD": "Remove Folders",
+    "IFD": "Remove Books",
+    "IFI": "Record Failed Imports",
+    "JTD": "Cleanup Stale Tags",
+    "JCU": "Update Codex Software",
+    "JCR": "Restart Codex",
+    "JCS": "Stop Codex",
+    "JDO": "Optimize Database",
+    "JDB": "Backup Database",
+    "JSD": "Cleanup Expired Sessions",
+    "SIX": "Search Index Clear",
+    "SIU": "Search Index Update",
+    "SID": "Search Index Remove Stale Records",
+    "SIM": "Search Index Optimize",
+    "WPO": "Poll Library"
+  },
   "tasks": [
     {
       "title": "Libraries",
@@ -10,8 +40,8 @@
         },
         {
           "value": "poll_force",
-          "title": "Update All Libraries",
-          "desc": "Forcibly update all the comics in all libraries",
+          "title": "Force Update All Libraries",
+          "desc": "Forcibly update all comics in all libraries",
           "confirm": "This can take a long time"
         },
         {
@@ -49,7 +79,7 @@
         },
         {
           "value": "search_index_remove_stale",
-          "title": "Remove Ghost Index Entries",
+          "title": "Remove Stale Index Entries",
           "desc": "Remove search index entries that are no longer in the library."
         },
         {
@@ -62,6 +92,11 @@
           "title": "Merge Search Index Into One Segment",
           "desc": "Reduces disk space and improves search lookup times. Runs nightly if the Optimize Admin Flag is on.",
           "confirm": "This can take a long time."
+        },
+        {
+          "value": "search_index_abort",
+          "title": "Abort Search Indexing",
+          "desc": "Aborts search index update and remove tasks."
         }
       ]
     },
@@ -70,8 +105,8 @@
       "tasks": [
         {
           "value": "db_vacuum",
-          "title": "Compact Database",
-          "desc": "Run the sqlite3 vacuum pragma. Runs nightly"
+          "title": "Optimize & Compact Database",
+          "desc": "Run the sqlite3 optimize & vacuum and pragmas. Runs nightly"
         },
         {
           "value": "db_backup",
@@ -150,8 +185,21 @@
           "value": "librarian_clear_status",
           "title": "Clear Librarian Statuses",
           "desc": "Mark all Librarian tasks finished."
+        },
+        {
+          "value": "janitor_nightly",
+          "title": "Run Nightly Maintenance",
+          "desc": "Runs several tasks above that also run nightly.",
+          "confirm": "Launches several tasks that run nightly anyway."
         }
       ]
     }
-  ]
+  ],
+  "adminFlags": {
+    "FV": "Folder View",
+    "RG": "Registration",
+    "NU": "Non Users",
+    "AU": "Auto Update",
+    "SO": "Search Index Full Optimization"
+  }
 }

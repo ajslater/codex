@@ -20,16 +20,16 @@ class ColorFormatter(logging.Formatter):
     }
     FORMATTERS = {}
 
-    def __init__(self, format, **kwargs):
+    def __init__(self, fmt, **kwargs):
         """Set up the FORMATS dict."""
         super().__init__(**kwargs)
         for level_name, args in self.FORMAT_COLORS.items():
             levelno = getattr(logging, level_name)
-            template = color(format, **args)
+            template = color(fmt, **args)
             formatter = logging.Formatter(fmt=template, **kwargs)
             self.FORMATTERS[levelno] = formatter
 
-    def format(self, record):
+    def format(self, record):  # noqa A003
         """Format each log message."""
         formatter = self.FORMATTERS[record.levelno]
         return formatter.format(record)
@@ -76,10 +76,7 @@ class CodexLogQueueListener(QueueListener):
     def _get_log_handlers(cls):
         """Get handlers."""
         handlers = []
-        if DEBUG:
-            fmt = cls._DEBUG_LOG_FMT
-        else:
-            fmt = cls._LOG_FMT
+        fmt = cls._DEBUG_LOG_FMT if DEBUG else cls._LOG_FMT
 
         if LOG_TO_FILE:
             handlers.append(cls._get_file_log_handler(fmt))

@@ -21,10 +21,12 @@ for arch in "${ARCHES[@]}"; do
     RM_TAGS+=("$TAG")
 done
 
-CREATE_VERSION_ARGS=("$VERSION_TAG" "${AMEND_TAGS[@]}")
-docker manifest create "${CREATE_VERSION_ARGS[@]}"
-docker manifest push "$VERSION_TAG"
-echo "Created tag: ${VERSION_TAG}."
+#CREATE_VERSION_ARGS=("$VERSION_TAG" "${AMEND_TAGS[@]}")
+#docker manifest create "${CREATE_VERSION_ARGS[@]}"
+#docker manifest push "$VERSION_TAG"
+#echo "Created tag: ${VERSION_TAG}."
+
+./docker/fix-manifest-deploy-to-docker-hub.sh "$VERSION_TAG" latest
 
 # cleanup main repo
 ./docker/docker-hub-remove-tags.sh "${RM_TAGS[@]}"

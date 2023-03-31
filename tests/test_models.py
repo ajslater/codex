@@ -56,6 +56,6 @@ class ComicTestCase(TestCase):
     def test_comic_save(self):
         """Test comic model save method."""
         comic = Comic.objects.get(path=self.COMIC_PATH)
-        self.assertEqual(comic.name, self.NAME)
-        self.assertEqual(comic.decade, self.DECADE)
-        self.assertEqual(comic.date, self.DATE)
+        assert comic.name == self.NAME
+        assert comic.decade == self.DECADE
+        assert comic.date == self.DATE

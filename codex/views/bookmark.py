@@ -23,7 +23,7 @@ class BookmarkBaseView(GenericAPIView, GroupACLMixin):
         "vertical",
         "read_in_reverse",
     ]
-    _BOOKMARK_ONLY_FIELDS = _BOOKMARK_UPDATE_FIELDS + ["pk", "comic"]
+    _BOOKMARK_ONLY_FIELDS = [*_BOOKMARK_UPDATE_FIELDS, "pk", "comic"]
     _COMIC_ONLY_FIELDS = ("pk", "max_page")
 
     def get_bookmark_filter(self):
@@ -101,7 +101,11 @@ class BookmarkBaseView(GenericAPIView, GroupACLMixin):
                 # This almost never happens. Possibly never.
                 bm.finished = True
             create_bookmarks.append(bm)
-        Bookmark.objects.bulk_create(create_bookmarks)
+        Bookmark.objects.bulk_create(
+            create_bookmarks,
+            update_fields=self._BOOKMARK_UPDATE_FIELDS,
+            unique_fields=Bookmark._meta.unique_together[0],  # type: ignore
+        )
 
     def update_bookmarks(self, updates, comic_filter):
         """Update a user bookmark."""
@@ -127,21 +131,13 @@ class BookmarkView(BookmarkBaseView):
         return serializer.validated_data
 
     @extend_schema(request=serializer_class, responses=None)
-    def patch(self, request, *args, **kwargs):
+    def patch(self, *args, **kwargs):
         """Update bookmarks recursively."""
         group = self.kwargs.get("group")
-        if group == "c":
-            serializer_class = None
-        else:
-            # If the target is recursive, strip everything but finished state data.
-            serializer_class = BookmarkFinishedSerializer
+        # If the target is recursive, strip everything but finished state data.
+        serializer_class = None if group == "c" else BookmarkFinishedSerializer
 
-        try:
-            updates = self._validate(serializer_class)
-        except Exception as exc:
-            LOG.error(f"update bookmark: {exc}")
-            LOG.exception(exc)
-            raise exc
+        updates = self._validate(serializer_class)
 
         pk = self.kwargs.get("pk")
         if group == "f":

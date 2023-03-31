@@ -29,7 +29,8 @@ class BroadcastListener(LoggerBaseMixin):
     async def broadcast_group(self, event):
         """Broadcast message to a group of channels.."""
         if not self.channel_layer:
-            raise InvalidChannelLayerError("No channel layer found.")
+            reason = "No channel layer found"
+            raise InvalidChannelLayerError(reason)
         group = event["group"]
         message = event["message"]
         await self.channel_layer.group_send(group, message)

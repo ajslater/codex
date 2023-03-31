@@ -6,14 +6,10 @@ from dataclasses import dataclass
 class SearchIndexerTask:
     """Tasks for the search indexer."""
 
-    pass
-
 
 @dataclass
 class SearchIndexRebuildIfDBChangedTask(SearchIndexerTask):
     """Task to check if the db is changed and schedule an update task."""
-
-    pass
 
 
 @dataclass
@@ -34,4 +30,7 @@ class SearchIndexMergeTask(SearchIndexerTask):
 class SearchIndexRemoveStaleTask(SearchIndexerTask):
     """Remove stale records."""
 
-    pass
+
+@dataclass
+class SearchIndexAbortTask(SearchIndexerTask):
+    """Abort current search index task."""

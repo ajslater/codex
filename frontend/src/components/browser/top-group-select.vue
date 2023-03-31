@@ -38,7 +38,6 @@ export default {
   computed: {
     ...mapState(useBrowserStore, {
       topGroupSetting: (state) => state.settings.topGroup,
-      enableFolderView: (state) => state.page.adminFlags.enableFolderView,
     }),
     ...mapGetters(useBrowserStore, [
       "topGroupChoices",

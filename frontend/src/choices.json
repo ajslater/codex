@@ -133,20 +133,20 @@
     "fitTo": [
       {
         "title": "Fit to Screen",
-        "value": "SCREEN",
+        "value": "S",
         "default": true
       },
       {
         "title": "Fit to Width",
-        "value": "WIDTH"
+        "value": "W"
       },
       {
         "title": "Fit to Height",
-        "value": "HEIGHT"
+        "value": "H"
       },
       {
         "title": "Original Size",
-        "value": "ORIG"
+        "value": "O"
       },
       {
         "title": "",

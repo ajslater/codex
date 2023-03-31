@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag, UserActive
 from codex.serializers.auth import AuthAdminFlagsSerializer, TimezoneSerializer
+from codex.serializers.choices import CHOICES
 from codex.serializers.mixins import OKSerializer
 
 LOG = get_logger(__name__)
@@ -22,7 +23,9 @@ class IsAuthenticatedOrEnabledNonUsers(IsAuthenticated):
 
     def has_permission(self, request, view):
         """Return True if ENABLE_NON_USERS is true or user authenticated."""
-        enu_flag = AdminFlag.objects.only("on").get(name=AdminFlag.ENABLE_NON_USERS)
+        enu_flag = AdminFlag.objects.only("on").get(
+            key=AdminFlag.FlagChoices.NON_USERS.value
+        )
         if enu_flag.on:
             return True
         return super().has_permission(request, view)
@@ -53,20 +56,22 @@ class TimezoneView(GenericAPIView):
 class AdminFlagsView(GenericAPIView, RetrieveModelMixin):
     """Get admin flags relevant to auth."""
 
-    _ADMIN_FLAG_NAMES = frozenset(
-        (AdminFlag.ENABLE_NON_USERS, AdminFlag.ENABLE_REGISTRATION)
+    _ADMIN_FLAG_KEYS = frozenset(
+        (
+            AdminFlag.FlagChoices.NON_USERS.value,
+            AdminFlag.FlagChoices.REGISTRATION.value,
+        )
     )
 
     serializer_class = AuthAdminFlagsSerializer
-    queryset = AdminFlag.objects.filter(name__in=_ADMIN_FLAG_NAMES).only("name", "on")
+    queryset = AdminFlag.objects.filter(key__in=_ADMIN_FLAG_KEYS).only("key", "on")
 
     def get_object(self):
         """Get admin flags."""
         flags = {}
         for obj in self.get_queryset():  # type: ignore
-            # XXX this key munging is a hack AdminFlags should be a TextChoices
-            key = obj.name.lower().replace(" ", "_")
-            flags[key] = obj.on
+            name = CHOICES["admin"]["adminFlags"][obj.key].lower().replace(" ", "_")
+            flags[name] = obj.on
         return flags
 
     def get(self, request, *args, **kwargs):

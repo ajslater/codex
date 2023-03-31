@@ -82,7 +82,6 @@ $task-width: 256px;
   padding-right: env(safe-area-inset-right);
 }
 .tabItemContainer {
-  max-width: 1200px;
   margin-left: auto;
   margin-right: auto;
   padding-left: 10px;
@@ -94,5 +93,16 @@ $task-width: 256px;
 }
 .rightMargin {
   width: calc(100% - 256px) !important;
+}
+:deep(.adminTable) {
+  /* Lets data table contents overflow scroll */
+  max-width: 100vw;
+}
+:deep(.adminTable thead > tr > th, .adminTable tbody > tr:nth-child(even)) {
+  background-color: rgb(var(--v-theme-background)) !important;
+}
+:deep(.adminNoData) {
+  padding: 1em;
+  text-align: center;
 }
 </style>

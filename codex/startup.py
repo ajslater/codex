@@ -12,13 +12,14 @@ from codex.logger.logging import get_logger
 from codex.logger.mp_queue import LOG_QUEUE
 from codex.models import AdminFlag, LibrarianStatus, Library, Timestamp
 from codex.registration import patch_registration_setting
+from codex.serializers.choices import CHOICES
 from codex.settings.settings import (
     BACKUP_DB_PATH,
     HYPERCORN_CONFIG,
     HYPERCORN_CONFIG_TOML,
-    MAX_DB_OPS,
     RESET_ADMIN,
 )
+from codex.status_controller import STATUS_DEFAULTS
 from codex.version import VERSION
 
 LOG = get_logger(__name__)
@@ -29,17 +30,19 @@ def backup_db_before_migration():
     suffix = f".before-v{VERSION}{BACKUP_DB_PATH.suffix}"
     backup_path = BACKUP_DB_PATH.with_suffix(suffix)
     janitor = Janitor(LOG_QUEUE, LIBRARIAN_QUEUE)
-    janitor.backup_db(backup_path)
+    janitor.backup_db(backup_path, show_status=False)
+    LOG.info("Backed up database before migrations")
 
 
 def ensure_db_schema():
     """Ensure the db is good and up to date."""
-    LOG.debug("Ensuring db is good and up to date...")
+    LOG.info("Ensuring database is correct and up to date...")
     table_names = connection.introspection.table_names()
     db_exists = "django_migrations" in table_names
     if db_exists:
         rebuild_db()
         repair_db()
+
     if not db_exists or has_unapplied_migrations():
         if db_exists:
             backup_db_before_migration()
@@ -76,38 +79,43 @@ def _delete_orphans(model, field, names):
 
 def init_admin_flags():
     """Init admin flag rows."""
-    _delete_orphans(AdminFlag, "name", AdminFlag.FLAG_NAMES.keys())
+    _delete_orphans(AdminFlag, "key", AdminFlag.FlagChoices.values)
 
-    for name, on in AdminFlag.FLAG_NAMES.items():
-        defaults = {"on": on}
-        flag, created = AdminFlag.objects.get_or_create(defaults=defaults, name=name)
+    for key in AdminFlag.FlagChoices.values:
+        defaults = {}
+        if key in AdminFlag.FALSE_DEFAULTS:
+            defaults["on"] = False
+        flag, created = AdminFlag.objects.get_or_create(defaults=defaults, key=key)
         if created:
-            LOG.info(f"Created AdminFlag: {flag.name} = {flag.on}")
+            title = CHOICES["admin"]["adminFlags"][flag.key]
+            LOG.info(f"Created AdminFlag: {title} = {flag.on}")
 
 
 def init_timestamps():
     """Init timestamps."""
-    _delete_orphans(Timestamp, "name", Timestamp.NAMES)
+    _delete_orphans(Timestamp, "key", Timestamp.TimestampChoices.values)
 
-    for name in Timestamp.NAMES:
-        ts, created = Timestamp.objects.get_or_create(name=name)
-        if name == Timestamp.API_KEY and not ts.version:
+    for key in Timestamp.TimestampChoices.values:
+        ts, created = Timestamp.objects.get_or_create(key=key)
+        if key == Timestamp.TimestampChoices.API_KEY.value and not ts.version:
             ts.save_uuid_version()
         if created:
-            LOG.info(f"Created {name} timestamp.")
+            label = Timestamp.TimestampChoices(ts.key).label
+            LOG.debug(f"Created {label} timestamp.")
 
 
 def init_librarian_statuses():
     """Init librarian statuses."""
-    _delete_orphans(LibrarianStatus, "type", LibrarianStatus.TYPES)
+    status_types = [choice[0] for choice in LibrarianStatus.CHOICES]
+    _delete_orphans(LibrarianStatus, "status_type", status_types)
 
-    defaults = {**LibrarianStatus.DEFAULT_PARAMS, "updated_at": Now()}
-    for type in LibrarianStatus.TYPES:
+    for status_type in status_types:
         _, created = LibrarianStatus.objects.update_or_create(
-            type=type, defaults=defaults
+            defaults=STATUS_DEFAULTS, status_type=status_type
         )
         if created:
-            LOG.info(f"Created {type} LibrarianStatus.")
+            title = CHOICES["admin"]["statusTitles"][status_type]
+            LOG.debug(f"Created {title} LibrarianStatus.")
 
 
 def clear_library_status():
@@ -133,7 +141,6 @@ def codex_init():
     ensure_db_rows()
     patch_registration_setting()
     cache.clear()
-    LOG.debug(f"max_db_ops: {MAX_DB_OPS}")
     LOG.info(f"root_path: {HYPERCORN_CONFIG.root_path}")
     if HYPERCORN_CONFIG.use_reloader:
         LOG.info(f"Will reload hypercorn if {HYPERCORN_CONFIG_TOML} changes")

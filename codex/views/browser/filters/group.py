@@ -10,12 +10,7 @@ class GroupFilterMixin(GroupACLMixin):
     def _get_folders_filter(self):
         """Get a filter for ALL parent folders not just immediate one."""
         pk = self.kwargs.get("pk")  # type: ignore
-        if pk:
-            folders_filter = Q(folders__in=[pk])
-        else:
-            folders_filter = Q()
-
-        return folders_filter
+        return Q(folders__in=[pk]) if pk else Q()
 
     def _get_browser_group_filter(self):
         """Get the objects we'll be displaying."""

@@ -4,6 +4,7 @@ from humanize import naturalsize
 
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.settings.settings import BACKUP_DB_DIR, BACKUP_DB_PATH, DB_PATH
+from codex.status import Status
 from codex.worker_base import WorkerBaseMixin
 
 _OLD_BACKUP_PATH = BACKUP_DB_PATH.with_suffix(BACKUP_DB_PATH.suffix + ".old")
@@ -14,22 +15,27 @@ class VacuumMixin(WorkerBaseMixin):
 
     def vacuum_db(self):
         """Vacuum the database and report on savings."""
+        status = Status(JanitorStatusTypes.DB_OPTIMIZE)
         try:
-            self.status_controller.start(JanitorStatusTypes.DB_VACUUM)
+            self.status_controller.start(status)
             old_size = DB_PATH.stat().st_size
             with connection.cursor() as cursor:
+                cursor.execute("PRAGMA analysis_limit=400;")
+                cursor.execute("PRAGMA optimize;")
                 cursor.execute("VACUUM")
                 cursor.execute("PRAGMA wal_checkpoint(TRUNCATE)")
             new_size = DB_PATH.stat().st_size
             saved = naturalsize(old_size - new_size)
             self.log.info(f"Vacuumed database. Saved {saved}.")
         finally:
-            self.status_controller.finish(JanitorStatusTypes.DB_VACUUM)
+            self.status_controller.finish(status)
 
-    def backup_db(self, backup_path=BACKUP_DB_PATH):
+    def backup_db(self, backup_path=BACKUP_DB_PATH, show_status=True):
         """Backup the database."""
+        status = Status(JanitorStatusTypes.DB_BACKUP) if show_status else ""
         try:
-            self.status_controller.start(JanitorStatusTypes.DB_BACKUP)
+            if show_status:
+                self.status_controller.start(status)
             BACKUP_DB_DIR.mkdir(exist_ok=True, parents=True)
             if backup_path.is_file():
                 backup_path.replace(_OLD_BACKUP_PATH)
@@ -38,8 +44,8 @@ class VacuumMixin(WorkerBaseMixin):
                 cursor.execute(f"VACUUM INTO {path!r}")
             _OLD_BACKUP_PATH.unlink(missing_ok=True)
             self.log.info(f"Backed up database to {path}")
-        except Exception as exc:
-            self.log.error("Backing up database.")
-            self.log.exception(exc)
+        except Exception:
+            self.log.exception("Backing up database.")
         finally:
-            self.status_controller.finish(JanitorStatusTypes.DB_BACKUP)
+            if show_status:
+                self.status_controller.finish(status)

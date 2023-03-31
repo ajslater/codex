@@ -14,9 +14,17 @@ export const NUMERIC_FILTERS = [
   "year",
 ];
 Object.freeze(NUMERIC_FILTERS);
-export const CHARPK_FILTERS = ["ageRating", "country", "format", "language"];
+export const CHARPK_FILTERS = [
+  "ageRating",
+  "country",
+  "fileType",
+  "language",
+  "originalFormat",
+];
 Object.freeze(CHARPK_FILTERS);
-const GROUPS_REVERSED = "cvsipr";
+const GROUPS = "rpisvc";
+Object.freeze(GROUPS);
+const GROUPS_REVERSED = [...GROUPS].reverse().join("");
 Object.freeze(GROUPS_REVERSED);
 const SETTINGS_SHOW_DEFAULTS = {};
 for (let choice of CHOICES.browser.settingsGroup) {
@@ -63,7 +71,7 @@ export const useBrowserStore = defineStore("browser", {
     page: {
       adminFlags: {
         // determined by api
-        enableFolderView: undefined,
+        folderView: undefined,
       },
       browserTitle: {
         parentName: undefined,
@@ -107,7 +115,7 @@ export const useBrowserStore = defineStore("browser", {
       const choices = [];
       for (const item of CHOICES.browser.orderBy) {
         if (item.value === "path") {
-          if (state.page.adminFlags.enableFolderView) {
+          if (state.page.adminFlags.folderView) {
             choices.push(item);
           }
         } else {
@@ -142,6 +150,22 @@ export const useBrowserStore = defineStore("browser", {
       }
       return lowestGroup;
     },
+    parentModelGroup(state) {
+      let group = "";
+      if (!state.page || !state.page.routes || !state.page.routes.up) {
+        return group;
+      }
+      const upGroup = state.page.routes.up.group;
+      const index = GROUPS.indexOf(upGroup) + 1;
+      const childGroups = GROUPS.slice(index);
+      for (group of childGroups) {
+        const show = state.settings.show[group];
+        if (show) {
+          break;
+        }
+      }
+      return group;
+    },
   },
   actions: {
     ////////////////////////////////////////////////////////////////////////
@@ -159,7 +183,7 @@ export const useBrowserStore = defineStore("browser", {
     // VALIDATORS
     _isRootGroupEnabled(topGroup) {
       return topGroup === "c" || topGroup === "f"
-        ? this.page.adminFlags.enableFolderView
+        ? this.page.adminFlags.folderView
         : this.settings.show[topGroup];
     },
     _validateFirstSearch(data) {
@@ -226,6 +250,7 @@ export const useBrowserStore = defineStore("browser", {
     },
     async clearFilters() {
       this.settings.filters = {};
+      await this.setSettings({});
     },
     async setSettings(data) {
       // Save settings to state and re-get the objects.

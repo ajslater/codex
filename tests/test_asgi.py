@@ -9,11 +9,9 @@ class EnvironTestCase(TestCase):
 
     def receive(self):
         """Do nothing."""
-        pass
 
     def send(self):
         """Do nothing."""
-        pass
 
     async def test_application(self):
         """Don't even test application, yet."""

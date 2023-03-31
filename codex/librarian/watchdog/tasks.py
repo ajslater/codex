@@ -8,8 +8,6 @@ from watchdog.events import FileSystemEvent
 class WatchdogTask:
     """Watchdog tasks."""
 
-    pass
-
 
 @dataclass
 class WatchdogPollLibrariesTask(WatchdogTask):
@@ -30,5 +28,3 @@ class WatchdogEventTask(WatchdogTask):
 @dataclass
 class WatchdogSyncTask(WatchdogTask):
     """Sync watches with libraries."""
-
-    pass

@@ -17,6 +17,7 @@ class PDF:
 
     COVER_PAGE_INDEX = 1
     _SUFFIX = ".pdf"
+    _FILE_TYPE = "PDF"
     MIME_TYPE = "application/pdf"
     _METADATA_KEY_MAP = {
         "tags": "keywords",
@@ -58,15 +59,19 @@ class PDF:
         value = metadata.get(pdf_key)
         if value:
             if comicbox_key == "writer":
-                if "credits" not in self._metadata:
-                    self._metadata["credits"] = []
-                credit = {
+                if "creators" not in self._metadata:
+                    self._metadata["creators"] = []
+                creator = {
                     "role": comicbox_key,
                     "person": value,
                 }
-                self._metadata["credits"].append(credit)
+                self._metadata["creators"].append(creator)
             else:
                 self._metadata[comicbox_key] = value
+
+    def get_file_type(self):
+        """Return the file type like comicbox."""
+        return self._FILE_TYPE
 
     def get_metadata(self) -> dict:
         """Get metadata from pdf."""
@@ -103,8 +108,7 @@ class PDF:
         doc = self._get_doc()
         page = doc.load_page(0)
         pix = page.get_pixmap()
-        image_data = pix.tobytes(output="ppm")
-        return image_data
+        return pix.tobytes(output="ppm")
 
     def close(self):
         """Get rid of the reader."""

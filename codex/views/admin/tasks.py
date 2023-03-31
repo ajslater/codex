@@ -12,6 +12,7 @@ from codex.librarian.janitor.tasks import (
     JanitorCleanFKsTask,
     JanitorCleanupSessionsTask,
     JanitorClearStatusTask,
+    JanitorNightlyTask,
     JanitorShutdownTask,
     JanitorUpdateTask,
     JanitorVacuumTask,
@@ -19,6 +20,7 @@ from codex.librarian.janitor.tasks import (
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK, LIBRARY_CHANGED_TASK
 from codex.librarian.search.tasks import (
+    SearchIndexAbortTask,
     SearchIndexMergeTask,
     SearchIndexRebuildIfDBChangedTask,
     SearchIndexRemoveStaleTask,
@@ -59,6 +61,7 @@ class AdminLibrarianTaskView(APIView):
         "search_index_merge_small": SearchIndexMergeTask(
             False,
         ),
+        "search_index_abort": SearchIndexAbortTask(),
         "search_index_optimize": SearchIndexMergeTask(True),
         "db_vacuum": JanitorVacuumTask(),
         "db_backup": JanitorBackupTask(),
@@ -75,10 +78,11 @@ class AdminLibrarianTaskView(APIView):
         "force_update_all_failed_imports": ForceUpdateAllFailedImportsTask(),
         "poll": WatchdogPollLibrariesTask(frozenset(), False),
         "poll_force": WatchdogPollLibrariesTask(frozenset(), True),
+        "janitor_nightly": JanitorNightlyTask(),
     }
 
     @extend_schema(request=input_serializer_class)
-    def post(self, request, *args, **kwargs):
+    def post(self, *args, **kwargs):
         """Download a comic archive."""
         serializer = self.input_serializer_class(data=self.request.data)
         serializer.is_valid(raise_exception=True)
@@ -87,8 +91,9 @@ class AdminLibrarianTaskView(APIView):
         if task:
             LIBRARIAN_QUEUE.put(task)
         else:
-            LOG.warning(f"Unknown admin library task_name: {task_name}")
-            raise ValueError(f"Unknown admin library task_name: {task_name}")
+            reason = f"Unknown admin library task_name: {task_name}"
+            LOG.warning(reason)
+            raise ValueError(reason)
 
         serializer = self.serializer_class()
         return Response(serializer.data)

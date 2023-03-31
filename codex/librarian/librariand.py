@@ -1,6 +1,6 @@
 """Library process worker for background tasks."""
 from collections import namedtuple
-from multiprocessing import Process
+from multiprocessing import Manager, Process
 from threading import active_count
 
 from caseconverter import snakecase
@@ -17,6 +17,7 @@ from codex.librarian.notifier.notifierd import NotifierThread
 from codex.librarian.notifier.tasks import NotifierTask
 from codex.librarian.search.searchd import SearchIndexerThread
 from codex.librarian.search.tasks import (
+    SearchIndexAbortTask,
     SearchIndexerTask,
     SearchIndexRebuildIfDBChangedTask,
 )
@@ -67,14 +68,16 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         self.broadcast_queue = broadcast_queue
         startup_tasks = (
             AdoptOrphanFoldersTask(),
-            SearchIndexRebuildIfDBChangedTask(),
             WatchdogSyncTask(),
+            SearchIndexRebuildIfDBChangedTask(),
         )
         for task in startup_tasks:
             self.queue.put(task)
+        self.search_indexer_abort_event = Manager().Event()
 
-    def _process_task(self, task):
+    def _process_task(self, task):  # noqa: C901, PLR0912
         """Process an individual task popped off the queue."""
+        # XXX good candidate for match case in python 3.10
         if isinstance(task, CoverTask):
             self._threads.cover_creator_thread.queue.put(task)
         elif isinstance(task, WatchdogEventTask):
@@ -89,7 +92,11 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         elif isinstance(task, WatchdogPollLibrariesTask):
             self._threads.library_polling_observer.poll(task.library_ids, task.force)
         elif isinstance(task, SearchIndexerTask):
-            self._threads.search_indexer_thread.queue.put(task)
+            if isinstance(task, SearchIndexAbortTask):
+                self.search_indexer_abort_event.set()
+                self.log.debug("Told search indexers to stop for db updates.")
+            else:
+                self._threads.search_indexer_thread.queue.put(task)
         elif isinstance(task, JanitorTask):
             self.janitor.run(task)
         elif isinstance(task, DelayedTasks):
@@ -109,6 +116,8 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         for name, thread_class in self._THREAD_CLASS_MAP.items():
             if thread_class == NotifierThread:
                 thread = thread_class(self.broadcast_queue, **kwargs)
+            elif thread_class == SearchIndexerThread:
+                thread = thread_class(self.search_indexer_abort_event, **kwargs)
             else:
                 thread = thread_class(**kwargs)
             threads[name] = thread
@@ -159,12 +168,10 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
                 try:
                     task = self.queue.get()
                     self._process_task(task)
-                except Exception as exc:
-                    self.log.error(f"Error in {self.__class__.__name__} loop")
-                    self.log.exception(exc)
-        except Exception as exc:
-            self.log.error(f"{self.__class__.__name__} crashed.")
-            self.log.exception(exc)
+                except Exception:
+                    self.log.exception(f"In {self.__class__.__name__} loop")
+        except Exception:
+            self.log.exception(f"{self.__class__.__name__} crashed.")
         except KeyboardInterrupt:
             self.log.debug(f"{self.__class__.__name__} Keyboard interrupt")
         finally:

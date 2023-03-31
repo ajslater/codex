@@ -95,7 +95,7 @@
             <MetadataText :value="md.month" label="Month" class="datePicker" />
             <MetadataText :value="md.day" label="Day" class="datePicker" />
           </div>
-          <MetadataText :value="md.format" label="Format" />
+          <MetadataText :value="md.original_format" label="Original Format" />
         </section>
       </header>
       <div id="metadataBody">
@@ -121,7 +121,7 @@
               class="mtime"
             />
             <MetadataText :value="size" label="Size" />
-            <MetadataText :value="fileFormat" label="File Type" />
+            <MetadataText :value="fileType" label="File Type" />
           </div>
           <div class="lastSmallRow">
             <MetadataText :value="md.path" label="Path" />
@@ -153,7 +153,7 @@
           <MetadataText :value="md.scanInfo" label="Scan" />
         </section>
         <section class="mdSection">
-          <MetadataCreditsTable :value="md.credits" />
+          <MetadatacreatorsTable :value="md.creators" />
         </section>
       </div>
       <footer id="footerLinks">
@@ -211,7 +211,7 @@ import { getDownloadURL } from "@/api/v3/reader";
 import { formattedIssue, getFullComicName } from "@/comic-name";
 import BookCover from "@/components/book-cover.vue";
 import CloseButton from "@/components/close-button.vue";
-import MetadataCreditsTable from "@/components/metadata/credits-table.vue";
+import MetadatacreatorsTable from "@/components/metadata/creators-table.vue";
 import MetadataTags from "@/components/metadata/metadata-tags.vue";
 import MetadataText from "@/components/metadata/metadata-text.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
@@ -226,17 +226,13 @@ import { useMetadataStore } from "@/stores/metadata";
 const CHILDREN_PER_SECOND = 1160;
 const MIN_SECS = 0.05;
 const UPDATE_INTERVAL = 250;
-const FILE_FORMATS = {
-  comic: "Comic Archive",
-  pdf: "PDF",
-};
 
 export default {
   name: "MetadataButton",
   components: {
     BookCover,
     CloseButton,
-    MetadataCreditsTable,
+    MetadatacreatorsTable,
     MetadataTags,
     MetadataText,
     PlaceholderLoading,
@@ -279,7 +275,9 @@ export default {
               volumeName: md.volume.name,
               issue: md.issue,
               issueSuffix: md.issueSuffix,
-            }) + ".cbz";
+            }) +
+              "." +
+              this.fileType.toLowerCase();
       },
     }),
     ...mapState(useBrowserStore, {
@@ -332,8 +330,8 @@ export default {
     size: function () {
       return humanize.filesize(this.md.size);
     },
-    fileFormat: function () {
-      return FILE_FORMATS[this.md.fileFormat] || this.md.fileFormat;
+    fileType: function () {
+      return this.md.fileType || "Unknown";
     },
   },
   watch: {

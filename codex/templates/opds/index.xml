@@ -9,7 +9,7 @@
   xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/"
   xmlns:pse="http://vaemendis.net/opds-pse/ns"
   >
-<id>{{ id }}</id>
+<id>{{ id_tag }}</id>
 <icon>{% static 'img/logo-32.webp' %}</icon>
 <title>{{ title }}</title>
 <author>
@@ -30,7 +30,7 @@
   {% endif %}
   rel="{{ link.rel }}"
   href="{{ link.href }}"
-  type="{{ link.type }}"
+  type="{{ link.mime_type }}"
   {% if link.facet_group %}
     opds:facetGroup="{{ link.facet_group }}"
   {% endif %}
@@ -50,7 +50,7 @@
     <link 
       rel="{{ link.rel }}"
       href="{{ link.href }}"
-      type="{{ link.type }}"
+      type="{{ link.mime_type }}"
       {% if link.thr_count %}
         thr:count="{{ link.thr_count }}"
       {% endif %}

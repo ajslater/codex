@@ -5,16 +5,16 @@ from django.views.decorators.cache import never_cache
 from codex.views.admin.api_key import AdminAPIKey
 from codex.views.admin.flag import AdminFlagViewSet
 from codex.views.admin.group import AdminGroupViewSet
-from codex.views.admin.librarian import (
-    AdminLibrarianStatusViewSet,
-    AdminLibrarianTaskView,
-)
 from codex.views.admin.library import (
     AdminFailedImportViewSet,
     AdminFolderListView,
     AdminLibraryViewSet,
 )
 from codex.views.admin.stats import AdminStatsView
+from codex.views.admin.tasks import (
+    AdminLibrarianStatusViewSet,
+    AdminLibrarianTaskView,
+)
 from codex.views.admin.user import AdminUserChangePasswordView, AdminUserViewSet
 
 READ = {"get": "list"}
@@ -49,7 +49,7 @@ urlpatterns = [
     # AdminLibraryViewSet.as_view() and not the other.
     path("flag", AdminFlagViewSet.as_view(READ), name="flag"),  # type: ignore
     path(
-        "flag/<int:pk>/",
+        "flag/<str:key>/",
         AdminFlagViewSet.as_view(UPDATE),  # type: ignore
         name="flag_update",
     ),

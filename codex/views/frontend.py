@@ -12,7 +12,7 @@ class IndexView(BrowserSessionViewBase):
     template_name = "index.html"
     main_urls = {}
 
-    def get(self, request, *args, **kwargs):
+    def get(self, *args, **kwargs):
         """Get the app index page."""
         extra_context = {
             "last_route": self.get_from_session("route"),

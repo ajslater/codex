@@ -23,7 +23,7 @@ class NotifierThread(AggregateMessageQueuedThread):
         and do a group_send with it's message.
         """
         item = {
-            "group": task.type.name,
+            "group": task.group.name,
             "message": {
                 "type": "send_text",
                 "text": task.text,
@@ -39,8 +39,8 @@ class NotifierThread(AggregateMessageQueuedThread):
         for task in self.cache.values():
             try:
                 self._send_task(task)
-            except Exception as exc:
-                self.log.exception(exc)
+            except Exception:
+                self.log.exception("Notifier send task")
 
             sent_keys.add(task.text)
         self.cleanup_cache(sent_keys)

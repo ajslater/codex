@@ -53,7 +53,7 @@
         />
       </v-expand-transition>
       <v-switch
-        v-if="enableRegistration"
+        v-if="adminFlags.registration"
         v-model="registerMode"
         label="Register"
       >
@@ -120,7 +120,7 @@ export default {
       formSuccess: (state) => state.form.success,
     }),
     ...mapState(useAuthStore, {
-      enableRegistration: (state) => state.adminFlags.enableRegistration,
+      adminFlags: (state) => state.adminFlags,
       MIN_PASSWORD_LEN: (state) => state.MIN_PASSWORD_LEN,
     }),
     submitButtonLabel: function () {

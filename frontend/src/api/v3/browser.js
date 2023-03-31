@@ -45,7 +45,7 @@ const preSerialize = (data) => {
 
 const getAvailableFilterChoices = ({ group, pk }, data) => {
   const params = preSerialize(data);
-  return HTTP.get(`/${group}/${pk}/choices`, { params });
+  return HTTP.get(`/${group}/${pk}/choices_available`, { params });
 };
 
 const getFilterChoices = ({ group, pk }, fieldName, data) => {

@@ -9,7 +9,7 @@ class NotifierTask:
     """Handle with the Notifier."""
 
     text: str
-    type: ChannelGroups
+    group: ChannelGroups
 
 
 LIBRARY_CHANGED_TASK = NotifierTask("LIBRARY_CHANGED", ChannelGroups.ALL)

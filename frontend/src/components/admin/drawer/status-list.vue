@@ -12,25 +12,23 @@
         <h4>Librarian Tasks</h4>
         <v-expand-transition
           v-for="status of librarianStatuses"
-          :key="`${status.type} ${status.name}`"
+          :key="status.statusType"
         >
           <div nav class="statusItem">
             <div class="statusItemTitle">
-              {{ status.type }} {{ status.name }}
-              <span
-                v-if="
-                  Number.isInteger(status.complete) ||
-                  Number.isInteger(status.total)
-                "
+              {{ title(status) }}
+              <div v-if="status.subtitle" class="statusItemSubtitle">
+                {{ status.subtitle }}
+              </div>
+              <div
+                v-if="showComplete(status) || Number.isInteger(status.total)"
+                class="statusItemSubtitle"
               >
-                <span>
-                  {{ nf(status.complete) }}
+                <span v-if="showComplete(status)">
+                  {{ nf(status.complete) }} /
                 </span>
-                /
-                <span>
-                  {{ nf(status.total) }}
-                </span>
-              </span>
+                {{ nf(status.total) }}
+              </div>
             </div>
             <v-progress-linear
               :indeterminate="indeterminate(status)"
@@ -52,6 +50,7 @@ import { mdiCloseCircleOutline } from "@mdi/js";
 import { numberFormat } from "humanize";
 import { mapActions, mapState } from "pinia";
 
+import { statusTitles } from "@/choices-admin.json";
 import CloseButton from "@/components/close-button.vue";
 import { useAdminStore } from "@/stores/admin";
 
@@ -74,9 +73,12 @@ export default {
   },
   methods: {
     ...mapActions(useAdminStore, ["loadTable", "librarianTask"]),
-    indeterminate: (status) => !status.preactive && +status.total === 0,
+    showComplete: (status) => Number.isInteger(status.complete),
+    indeterminate: (status) =>
+      !status.preactive &&
+      (!status.total || !Number.isInteger(status.complete)),
     progress(status) {
-      if (status.preactive || +status.total === 0) {
+      if (status.preactive || self.indeterminate) {
         return 0;
       }
       return (100 * +status.complete) / +status.total;
@@ -86,6 +88,9 @@ export default {
     },
     clear() {
       this.librarianTask("librarian_clear_status", "");
+    },
+    title(status) {
+      return statusTitles[status.statusType];
     },
     nf(val) {
       return Number.isInteger(val) ? numberFormat(val, 0) : "?";
@@ -106,6 +111,10 @@ h4 {
   padding-right: 5px;
   padding-bottom: 10px;
   color: rgb(var(--v-theme-textDisabled));
+}
+.statusItemSubtitle {
+  padding-left: 1rem;
+  opacity: 0.75;
 }
 #noTasksRunning {
   margin-left: 1em;

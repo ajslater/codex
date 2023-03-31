@@ -24,12 +24,12 @@ urlpatterns = [
     path(
         "<int:pk>/choices/<str:field_name>",
         cache_page(TIMEOUT)(BrowserChoicesView.as_view()),
-        name="choices",
+        name="choices_field",
     ),
     path(
-        "<int:pk>/choices",
+        "<int:pk>/choices_available",
         cache_page(TIMEOUT)(BrowserChoicesAvailableView.as_view()),
-        name="choices",
+        name="choices_available",
     ),
     path(
         "<int:pk>/metadata",

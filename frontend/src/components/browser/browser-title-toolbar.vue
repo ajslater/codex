@@ -1,18 +1,17 @@
 <template>
   <v-toolbar id="titleToolbar" elevation="8">
-    <v-toolbar-items v-if="isCodexViewable">
-      <v-btn
-        id="upButton"
-        icon
-        size="x-large"
-        :class="{ invisible: !showUpButton }"
-        :disabled="!showUpButton"
-        :title="upTitle"
-        :to="{ params: upRoute }"
-      >
-        <v-icon>{{ mdiArrowUp }}</v-icon>
-      </v-btn>
-    </v-toolbar-items>
+    <v-btn
+      v-if="isCodexViewable"
+      id="upButton"
+      icon
+      size="x-large"
+      :class="{ invisible: !showUpButton }"
+      :disabled="!showUpButton"
+      :title="upTitle"
+      :to="{ params: upRoute }"
+    >
+      <v-icon>{{ mdiArrowUp }}</v-icon>
+    </v-btn>
     <v-toolbar-title class="codexToolbarTitle">
       <span v-if="longBrowserTitlePrefix" id="titleToolbarPrefix">
         {{ longBrowserTitlePrefix }}
@@ -26,11 +25,23 @@
         {{ longBrowseTitleSuffix }}
       </span>
     </v-toolbar-title>
+    <v-btn
+      v-if="isCodexViewable"
+      id="topButton"
+      icon
+      size="x-large"
+      :class="{ invisible: !showUpButton }"
+      :disabled="!showUpButton"
+      :title="topTitle"
+      :to="{ params: topRoute }"
+    >
+      <v-icon>{{ mdiFormatVerticalAlignTop }}</v-icon>
+    </v-btn>
   </v-toolbar>
 </template>
 
 <script>
-import { mdiArrowUp } from "@mdi/js";
+import { mdiArrowUp, mdiFormatVerticalAlignTop } from "@mdi/js";
 import { mapGetters, mapState } from "pinia";
 
 import { formattedVolumeName } from "@/comic-name";
@@ -42,6 +53,8 @@ export default {
   data() {
     return {
       mdiArrowUp,
+      mdiFormatVerticalAlignTop,
+      topRoute: { group: "r", pk: 0 },
     };
   },
   head() {
@@ -60,11 +73,33 @@ export default {
       browserTitle: (state) => state.page.browserTitle,
       modelGroup: (state) => state.page.modelGroup,
       upRoute: (state) => state.page.routes.up,
+      topTitle(state) {
+        const group = state.settings.topGroup;
+        return this.upToTitle(group);
+      },
     }),
     ...mapGetters(useAuthStore, ["isCodexViewable", "isUserAdmin"]),
-    showUpButton: function () {
+    ...mapGetters(useBrowserStore, ["parentModelGroup"]),
+    upTitle() {
+      const group = this.parentModelGroup;
+      return this.upToTitle(group);
+    },
+    showUpButton() {
       return this.upRoute && "group" in this.upRoute;
     },
+    /*
+    showTopButton() {
+      let show =
+        this.showUpButton &&
+        this.upRoute.group !== "r" &&
+        +this.$route.params.pk !== 0;
+      if (show) {
+        const group = this.$route.params.group;
+        show |= !["r", "f"].includes(group);
+      }
+      return show;
+    },
+    */
     longBrowserTitlePrefix: function () {
       if (this.$route.params.group === "f") {
         return this.browserTitle.parentName;
@@ -103,8 +138,9 @@ export default {
       }
       return this.groupNames[this.modelGroup];
     },
-    upTitle() {
-      const group = this.$route.params.group || "";
+  },
+  methods: {
+    upToTitle(group) {
       const name = this.groupNames[group] || "All";
       return `Up to ${name}`;
     },

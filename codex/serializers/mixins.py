@@ -14,7 +14,7 @@ from codex.db_functions import GroupConcat
 
 UNIONFIX_PREFIX = "unionfix_"
 AUTHOR_ROLES = {"Writer", "Author", "Plotter", "Scripter", "Creator"}
-AUTHOR_ROLES_QUERY = {"credits__role__name__in": AUTHOR_ROLES}
+AUTHOR_ROLES_QUERY = {"creators__role__name__in": AUTHOR_ROLES}
 
 
 class BrowserAggregateBaseSerializerMixin(Serializer):
@@ -68,14 +68,11 @@ class BrowserCardOPDSBaseSerializer(BrowserAggregateSerializerMixin):
     page_count = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "page_count")
 
 
-def _get_credit_persons(authors=False):
-    """Get credit persons as a csv."""
-    if authors:
-        filter = Q(**AUTHOR_ROLES_QUERY)
-    else:
-        filter = ~Q(**AUTHOR_ROLES_QUERY)
+def _get_creator_persons(authors=False):
+    """Get creator persons as a csv."""
+    roles_filter = Q(**AUTHOR_ROLES_QUERY) if authors else ~Q(**AUTHOR_ROLES_QUERY)
 
-    return GroupConcat("credits__person__name", distinct=True, filter=filter)
+    return GroupConcat("creators__person__name", distinct=True, filter=roles_filter)
 
 
 def get_serializer_values_map(serializers, copy_only=False, folders=False):
@@ -92,16 +89,12 @@ def get_serializer_values_map(serializers, copy_only=False, folders=False):
     for field in fields:
         if copy_only:
             val = field
+        elif field in COMIC_M2M_FIELD_NAMES and not folders:
+            val = GroupConcat(f"{field}__name", distinct=True)
+        elif field in ("contributors", "authors"):
+            val = F("creators") if folders else _get_creator_persons(field == "authors")
         else:
-            if field in COMIC_M2M_FIELD_NAMES and not folders:
-                val = GroupConcat(f"{field}__name", distinct=True)
-            elif field in ("contributors", "authors"):
-                if folders:
-                    val = F("credits")
-                else:
-                    val = _get_credit_persons(field == "authors")
-            else:
-                val = F(field)
+            val = F(field)
         result[UNIONFIX_PREFIX + field] = val
     return result
 

@@ -14,7 +14,8 @@
         v-intersect.quiet="{
           handler: onIntersect,
           options: {
-            threshold: 0.9,
+            threshold: [0.01],
+            rootMargin: '-40%',
           },
         }"
         :book="book"
@@ -102,7 +103,9 @@ export default {
     ]),
     onIntersect(isIntersecting, entries) {
       if (this.vertical && isIntersecting) {
-        const page = +entries[0].target.dataset.page;
+        const entry = entries[0];
+        // console.debug(entry.intersectionRatio);
+        const page = +entry.target.dataset.page;
         console.log("intersect", page);
         this.setActivePage(page);
       }

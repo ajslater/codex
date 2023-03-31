@@ -22,6 +22,7 @@ import { mapActions, mapGetters, mapState } from "pinia";
 import { getDownloadPageURL, getDownloadURL } from "@/api/v3/reader";
 import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
+
 export default {
   name: "DownloadPanel",
   data() {
@@ -43,7 +44,9 @@ export default {
       },
     }),
     fileName: function () {
-      return this.activeTitle + ".cbz";
+      let suffix = this.activeBook.fileType;
+      suffix = suffix.lower() ? suffix : "unknown";
+      return this.activeTitle + "." + suffix;
     },
     pageName: function () {
       return `${this.activeTitle} - page ${this.storePage}.jpg`;
@@ -51,6 +54,7 @@ export default {
   },
   methods: {
     ...mapActions(useCommonStore, ["downloadIOSPWAFix"]),
+    ...mapActions(useReaderStore, ["activeBook"]),
     downloadPage() {
       this.downloadIOSPWAFix(this.pageSrc, this.pageName);
     },

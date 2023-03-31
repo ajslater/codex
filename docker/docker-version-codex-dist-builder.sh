@@ -35,7 +35,6 @@ DEPS=(
     package-lock.json
     pyproject.toml
     poetry.lock
-    setup.cfg
     test-backend.sh
     "${SOURCE_DEPS[@]}"
 )

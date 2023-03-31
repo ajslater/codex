@@ -14,7 +14,7 @@ def opds_start_view(request):
     path = request.get_full_path()
     if path:
         parts = path.split("?")
-        if len(parts) >= 2:
+        if len(parts) >= 2:  # noqa PLR2004
             parts[0] = url
             url = "?".join(parts)
 

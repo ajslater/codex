@@ -8,12 +8,6 @@ const IOS_PLATFORMS = new Set([
   "iPod Simulator",
 ]);
 export const IS_IOS = IOS_PLATFORMS.has(navigator.platform);
-/*
-* Removed to test if KDE browser sets this off
-  ||
-  // iPad on iOS 13 detection
-  (navigator.userAgent.includes("Mac") && "ontouchend" in document);
-*/
 export const IS_TOUCH =
   "ontouchstart" in window ||
   navigator.maxTouchPoints > 0 ||

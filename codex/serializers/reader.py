@@ -15,7 +15,7 @@ class ReaderSettingsSerializer(Serializer):
     """Reader settings the user can change."""
 
     fit_to = ChoiceField(
-        choices=Bookmark.FitTo.choices,
+        choices=Bookmark.FitTo.values,
         allow_blank=True,
         required=False,
     )
@@ -29,7 +29,7 @@ class ReaderComicSerializer(Serializer):
     """Components for constructing the title."""
 
     pk = IntegerField(read_only=True)
-    file_format = CharField(read_only=True)
+    file_type = CharField(read_only=True)
     issue = DecimalField(
         max_digits=None, decimal_places=3, read_only=True, coerce_to_string=False
     )

@@ -12,5 +12,3 @@ METADATA_ORDERED_UNIONFIX_VALUES_MAP = get_serializer_values_map(
 
 class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
     """Aggregate stats for the comics selected in the metadata dialog."""
-
-    pass

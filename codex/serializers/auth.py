@@ -14,13 +14,16 @@ from codex.models import AdminFlag
 class UserSerializer(ModelSerializer):
     """Serialize User model for UI."""
 
-    _ADMIN_FLAG_NAMES = (AdminFlag.ENABLE_NON_USERS, AdminFlag.ENABLE_REGISTRATION)
+    _ADMIN_FLAG_KEYS = (
+        AdminFlag.FlagChoices.NON_USERS.value,
+        AdminFlag.FlagChoices.REGISTRATION.value,
+    )
 
     admin_flags = SerializerMethodField()
 
-    def get_admin_flags(self, obj):
+    def get_admin_flags(self, *args):
         """Piggyback admin flags on the user object."""
-        flags = AdminFlag.objects.filter(name__in=self._ADMIN_FLAG_NAMES).values(
+        flags = AdminFlag.objects.filter(key__in=self._ADMIN_FLAG_KEYS).values(
             "name", "on"
         )
         admin_flags = {}
@@ -70,14 +73,8 @@ class UserLoginSerializer(UserCreateSerializer):
         """Explicit meta inheritance required."""
 
 
-class RegistrationEnabledSerializer(Serializer):
-    """Serialize one admin flag."""
-
-    enable_registration = BooleanField(read_only=True)
-
-
 class AuthAdminFlagsSerializer(Serializer):
     """Admin flags related to auth."""
 
-    enable_non_users = BooleanField(read_only=True)
-    enable_registration = BooleanField(read_only=True)
+    non_users = BooleanField(read_only=True)
+    registration = BooleanField(read_only=True)
