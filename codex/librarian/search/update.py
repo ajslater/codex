@@ -179,7 +179,8 @@ class UpdateMixin(RemoveMixin):
                 self.status_controller.update(status)
             except Exception as exc:
                 retry_batches[retry_batch_num] = batch_pks
-                self.log.warning(f"Search index update will retry batch {batch_num}")
+                # XXX It would be best to fix these collisions
+                self.log.debug(f"Search index update will retry batch {batch_num}")
                 retry_batch_num += 1
                 if not isinstance(exc, self._EXPECTED_EXCEPTIONS):
                     self.log.exception("Search index update - collect batch results")
