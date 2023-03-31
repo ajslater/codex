@@ -61,7 +61,7 @@ dev-frontend:
 
 ## Show recent NEWS
 news:
-	head -30 NEWS.md
+	head -40 NEWS.md
 
 .DEFAULT_GOAL := show-help
 # See <https://gist.github.com/klmr/575726c7e05d8780505a> for explanation.
