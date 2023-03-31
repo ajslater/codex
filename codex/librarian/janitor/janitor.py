@@ -19,7 +19,11 @@ from codex.librarian.janitor.tasks import (
 from codex.librarian.janitor.update import UpdateMixin
 from codex.librarian.janitor.vacuum import VacuumMixin
 from codex.librarian.search.status import SearchIndexStatusTypes
-from codex.librarian.search.tasks import SearchIndexMergeTask, SearchIndexUpdateTask
+from codex.librarian.search.tasks import (
+    SearchIndexAbortTask,
+    SearchIndexMergeTask,
+    SearchIndexUpdateTask,
+)
 from codex.models import AdminFlag, Timestamp
 from codex.status import Status
 
@@ -52,6 +56,7 @@ class Janitor(CleanupMixin, UpdateMixin, VacuumMixin, UpdateFailedImportsMixin):
             ).on
             self.status_controller.start_many(_JANITOR_STATII)
             tasks = (
+                SearchIndexAbortTask(),
                 JanitorCleanFKsTask(),
                 JanitorCleanupSessionsTask(),
                 JanitorVacuumTask(),

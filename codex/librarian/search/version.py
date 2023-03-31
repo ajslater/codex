@@ -11,8 +11,9 @@ from codex.threads import QueuedThread
 class VersionMixin(QueuedThread):
     """Search Engine to database matching methods."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, abort_event, *args, **kwargs):
         """Initialize search engine."""
+        self.abort_event = abort_event
         super().__init__(*args, **kwargs)
         queue_kwargs = {
             "log_queue": self.log_queue,

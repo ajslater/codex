@@ -153,7 +153,7 @@ class UpdateMixin(RemoveMixin):
         results = {}
         for batch_num, batch_pks in batches.items():
             args = (None, batch_pks)
-            kwd = {"batch_num": batch_num}
+            kwd = {"batch_num": batch_num, "abort_event": self.abort_event}
             result = pool.apply_async(backend.update, args, kwd)
             results[batch_num] = (result, batch_pks)
         pool.close()
@@ -164,6 +164,9 @@ class UpdateMixin(RemoveMixin):
         """Collect results from the process pool."""
         retry_batches = {}
         retry_batch_num = 0
+        if self.abort_event.is_set():
+            return retry_batches, retry_batch_num
+
         num_results = len(results)
         for batch_num, (result, batch_pks) in results.items():
             try:
@@ -176,10 +179,7 @@ class UpdateMixin(RemoveMixin):
                 self.status_controller.update(status)
             except Exception as exc:
                 retry_batches[retry_batch_num] = batch_pks
-                self.log.warning(
-                    f"Search index update will retry batch {batch_num}"
-                    f" as new batch {retry_batch_num}."
-                )
+                self.log.warning(f"Search index update will retry batch {batch_num}")
                 retry_batch_num += 1
                 if not isinstance(exc, self._EXPECTED_EXCEPTIONS):
                     self.log.exception("Search index update - collect batch results")
@@ -195,6 +195,8 @@ class UpdateMixin(RemoveMixin):
             complete,
             attempt,
         ) = batch_info
+        if self.abort_event.is_set():
+            return complete
 
         if attempt > 1:
             batches = self._halve_batches(batches)
@@ -202,7 +204,7 @@ class UpdateMixin(RemoveMixin):
         num_batches = len(batches)
         if not num_batches:
             self.log.debug("Search index nothing to update.")
-            return
+            return complete
         self.log.debug(
             f"Search index updating {num_batches} batches, attempt {attempt}"
         )
@@ -219,7 +221,7 @@ class UpdateMixin(RemoveMixin):
             f"Search Index attempt {attempt} batch success ratio: {round(ratio)}%"
         )
         if not retry_batches:
-            return
+            return complete
 
         if attempt < self._MAX_RETRIES:
             batch_info = (
@@ -230,13 +232,14 @@ class UpdateMixin(RemoveMixin):
                 complete,
                 attempt + 1,
             )
-            self._try_update_batch(backend, batch_info, status)
+            complete = self._try_update_batch(backend, batch_info, status)
         else:
             total = len(retry_batches) * batch_size
             self.log.error(
                 f"Search Indexer failed to update {total} comics"
                 f"in {len(retry_batches)} batches."
             )
+        return complete
 
     @staticmethod
     def _get_update_batch_end_index(start, batch_size, batch_num, procs):
@@ -267,7 +270,7 @@ class UpdateMixin(RemoveMixin):
         # Init
         start_time = time()
         num_comics = qs.count()
-        if not num_comics:
+        if not num_comics or self.abort_event.is_set():
             return
         status = Status(SearchIndexStatusTypes.SEARCH_INDEX_UPDATE, 0, num_comics)
         try:
@@ -276,7 +279,7 @@ class UpdateMixin(RemoveMixin):
             num_procs, batch_size = self._get_throttle_params(num_comics)
             batches = self._get_update_batches(qs, batch_size, num_comics)
             batch_info = (batches, num_procs, num_comics, batch_size, 0, 1)
-            self._try_update_batch(
+            complete = self._try_update_batch(
                 backend,
                 batch_info,
                 status,
@@ -285,9 +288,9 @@ class UpdateMixin(RemoveMixin):
             # Log performance
             elapsed_time = time() - start_time
             elapsed = naturaldelta(elapsed_time)
-            cps = int(num_comics / elapsed_time)
+            cps = int(complete / elapsed_time)
             self.log.info(
-                f"Search engine updated {num_comics} comics"
+                f"Search engine updated {complete} comics"
                 f" in {elapsed} at {cps} comics per second."
             )
         except Exception:
@@ -299,6 +302,7 @@ class UpdateMixin(RemoveMixin):
     def update_search_index(self, rebuild=False):
         """Update or Rebuild the search index."""
         start_time = time()
+        self.abort_event.clear()
         try:
             any_update_in_progress = Library.objects.filter(
                 update_in_progress=True
@@ -326,6 +330,8 @@ class UpdateMixin(RemoveMixin):
 
             # Update
             backend.setup(False)
+            if self.abort_event.is_set():
+                return
             qs = self._get_queryset(backend, rebuild)
             self._mp_update(backend, qs)
 

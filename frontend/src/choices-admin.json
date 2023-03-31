@@ -92,6 +92,11 @@
           "title": "Merge Search Index Into One Segment",
           "desc": "Reduces disk space and improves search lookup times. Runs nightly if the Optimize Admin Flag is on.",
           "confirm": "This can take a long time."
+        },
+        {
+          "value": "search_index_abort",
+          "title": "Abort Search Indexing",
+          "desc": "Aborts search index update and remove tasks."
         }
       ]
     },
