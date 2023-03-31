@@ -31,12 +31,12 @@ class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
             path = Path(wp.path)
             # Ensure valid params
             if path.exists():
-                self.log.debug(f"Force modify path with bad db record: {path}")
+                self.log.debug(f"Force modify path without a db stat: {path}")
                 stat = list(stat_func(path))
                 # Fake mtime will trigger a modified event
                 stat[8] = 0.0
             else:
-                self.log.debug(f"Force delete path with bad db record: {path}")
+                self.log.debug(f"Force delete path without a db stat: {path}")
                 # This will trigger a deleted event
                 stat = Comic.ZERO_STAT
 
