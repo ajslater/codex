@@ -2,9 +2,7 @@
 # Fix pushing final manifest for deploy because docker hub doesn't generate manifests now.
 set -euxo pipefail
 
-VERSION=$1
-
-HUB_MULTI_TAG="ajslater/codex:${VERSION}"
+HUB_MULTI_TAG=$1
 HUB_ARM_TAG="${HUB_MULTI_TAG}-aarch64"
 HUB_AMD_TAG="${HUB_MULTI_TAG}-x86_64"
 LOCAL_MULTI_TAG=localhost/$HUB_MULTI_TAG
@@ -35,13 +33,16 @@ docker manifest push --insecure "$LOCAL_MULTI_TAG"
 #pull combined image
 docker pull "$LOCAL_MULTI_TAG"
 
+# Shut down registry
+docker compose -f registry.yaml down
+
 # Final push
 docker buildx imagetools create -t "$HUB_MULTI_TAG" "$LOCAL_MULTI_TAG"
 
 # promote pushed to latest
-if [ "${2:-}" = "latest" ]; then
-    ./docker-tag-remote-version-as-latest.sh "$VERSION"
+if [ "${2-}" = "latest" ]; then
+    ./docker/docker-tag-remote-version-as-latest.sh "$VERSION"
 fi
 
 # remove old tags from repository
-./docker-hub-remove-tags.sh "$HUB_ARM_TAG" "$HUB_AMD_TAG"
+./docker/docker-hub-remove-tags.sh "$HUB_ARM_TAG" "$HUB_AMD_TAG"
