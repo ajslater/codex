@@ -10,6 +10,8 @@ border-radius: 128px;
 
 - Fix
   - Number out of range errors for issue when search indexing.
+  - Total child pages of folders and groups sometimes overcounted, displaying
+    half unread folders.
 
 ## v1.3.3
 

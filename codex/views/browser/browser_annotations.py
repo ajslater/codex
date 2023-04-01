@@ -66,7 +66,7 @@ class BrowserAnnotationsView(BrowserOrderByView):
     def _annotate_page_count(self, obj_list):
         """Hoist up total page_count of children."""
         # Used for sorting and progress
-        page_count_sum = Sum("comic__page_count")
+        page_count_sum = Sum("comic__page_count", distinct=True)
         return obj_list.annotate(page_count=page_count_sum)
 
     def _annotate_bookmarks(self, obj_list, is_model_comic, is_opds_acquisition=False):
@@ -108,6 +108,7 @@ class BrowserAnnotationsView(BrowserOrderByView):
                 default=0,
                 filter=bm_filter,
                 output_field=PositiveSmallIntegerField(),
+                distinct=True
             )
 
             finished_count = Sum(
@@ -115,6 +116,7 @@ class BrowserAnnotationsView(BrowserOrderByView):
                 default=0,
                 filter=bm_filter,
                 output_field=PositiveSmallIntegerField(),
+                distinct=True
             )
             obj_list = obj_list.annotate(finished_count=finished_count)
             finished_aggregate = Case(
