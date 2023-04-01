@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.3.4
+
+- Fix
+  - Number out of range errors for issue when search indexing.
+
 ## v1.3.3
 
 - Fix
