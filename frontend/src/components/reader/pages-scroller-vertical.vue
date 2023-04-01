@@ -4,7 +4,7 @@
     id="verticalScroll"
     v-scroll#target="onScroll"
     :items="items"
-    :visible-items="items.length"
+    :visible-items="visibleItems"
     :height="innerHeight"
     :width="innerWidth"
     :item-height="innerHeight"
@@ -26,7 +26,7 @@
 </template>
 
 <script>
-// 6 is the magic number to avoid disappearing items at the midpoint.
+// 5 is the magic number to avoid disappearing items at the midpoint.
 import _ from "lodash";
 import { mapActions, mapGetters, mapState } from "pinia";
 import { VVirtualScroll } from "vuetify/labs/VVirtualScroll";
@@ -78,6 +78,9 @@ export default {
       }
       return pages;
     },
+    visibleItems() {
+      return Math.min(this.book?.maxPage ?? 0, 5);
+    },
   },
   watch: {
     vertical(to) {
@@ -104,9 +107,7 @@ export default {
     onIntersect(isIntersecting, entries) {
       if (this.vertical && isIntersecting) {
         const entry = entries[0];
-        // console.debug(entry.intersectionRatio);
         const page = +entry.target.dataset.page;
-        console.log("intersect", page);
         this.setActivePage(page);
       }
     },

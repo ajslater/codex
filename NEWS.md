@@ -12,7 +12,9 @@ border-radius: 128px;
   - Number out of range errors for issue when search indexing.
   - Total child pages of folders and groups sometimes overcounted, displaying
     half unread folders.
-  - Remove black margin from images in vertical scroll reader.
+  - Reader: Vertical Scroll
+    - Remove black bottom margin from images.
+    - Was loading every page in a comic at once.
 
 ## v1.3.3
 
