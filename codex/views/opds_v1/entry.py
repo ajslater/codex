@@ -8,7 +8,6 @@ from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import reverse
 
 from codex.logger.logging import get_logger
-from codex.models import Comic
 from codex.views.opds_v1.util import (
     BLANK_TITLE,
     FALSY,
@@ -216,7 +215,9 @@ class OPDSEntry:
         pk = self.obj.get("pk")
         if not pk:
             return None
-        fn = Comic.objects.get(pk=pk).filename()
+        fn = self.obj.get("filename")
+        if not fn:
+            fn = f"comic-{pk}.cbz"
         fn = quote_plus(fn)
         kwargs = {"pk": pk, "filename": fn}
         href = reverse("opds:v1:download", kwargs=kwargs)
