@@ -56,51 +56,44 @@ class UpdateMixin(RemoveMixin):
             statii += [Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE)]
         self.status_controller.start_many(statii)
 
-    @classmethod
-    def _get_latest_update_at_from_results(cls, results):
-        """Can't use the search index to find the lowest date. Use python."""
-        # SAD PANDA. :(
+    def _get_queryset_from_search_results(self, results, qs, suffix):
+        """Use python to find the lowest date and any missing rows."""
         all_index_pks = []
-        index_latest_updated_at = cls._MIN_UTC_DATE
+        index_latest_updated_at = self._MIN_UTC_DATE
         for result in results:
             all_index_pks.append(result.get(DJANGO_ID))
             result_updated_at = result.get("updated_at")
             if result_updated_at > index_latest_updated_at:
                 index_latest_updated_at = result_updated_at
-        if index_latest_updated_at == cls._MIN_UTC_DATE:
-            index_latest_updated_at = None
-        return index_latest_updated_at, all_index_pks
+        if index_latest_updated_at > self._MIN_UTC_DATE:
+            qs = qs.filter(
+                Q(updated_at__gt=index_latest_updated_at) | ~Q(pk__in=all_index_pks)
+            )
+            suffix = f"since {index_latest_updated_at}"
 
-    def _get_search_index_latest_updated_at(self, backend):
+        return qs, suffix
+
+    def _get_queryset_from_search_index(self, backend, qs, suffix):
         """Get the date of the last updated item in the search index."""
         with backend.index.refresh().searcher() as searcher:
             # XXX IDK why but sorting by 'updated_at' removes the latest and most valuable result
             #     So I have to do it in my own method.
+            #     Because of this I've turned of sortable in the schema.
             results = searcher.search(Every(), reverse=True, scored=False)
             if results.scored_length():
-                index_latest_updated_at, all_index_pks = self._get_latest_update_at_from_results(
-                    results
-                )
-            else:
-                index_latest_updated_at = None
-                all_index_pks = []
+                qs, suffix = self._get_queryset_from_search_results(results, qs, suffix)
 
-        return index_latest_updated_at, all_index_pks
+        return qs, suffix
 
     def _get_queryset(self, backend, rebuild):
         """Rebuild or set up update."""
         qs = Comic.objects.all()
 
-        if rebuild:
-            start_date = "the beginning of time"
-        else:
-            start_date, all_index_pks = self._get_search_index_latest_updated_at(backend)
-            if start_date:
-                # Get comics updated after the index was build AND not in the index.
-                qs = qs.filter(Q(updated_at__gt=start_date) | ~Q(pk__in=all_index_pks))
+        suffix = "with all comics"
+        if not rebuild:
+            qs, suffix = self._get_queryset_from_search_index(backend, qs, suffix)
 
-        self.log.info(f"Updating search index since {start_date}...")
-
+        self.log.info(f"Updating search index {suffix}...")
         return qs
 
     def _get_throttle_params(self, num_comics):
@@ -201,7 +194,6 @@ class UpdateMixin(RemoveMixin):
             retry_batches[retry_batch_num] = batch_pks
             retry_batch_num += 1
 
-
         return retry_batches, complete
 
     def _try_update_batch(self, backend, batch_info, status):
@@ -270,8 +262,8 @@ class UpdateMixin(RemoveMixin):
             end = start + batch_size
         return end
 
-    @classmethod
-    def _get_update_batches(cls, qs, batch_size, num_comics):
+    @staticmethod
+    def _get_update_batches(qs, batch_size, num_comics):
         all_pks = qs.order_by("updated_at", "pk").values_list("pk", flat=True)
         batch_num = 0
         start = 0
