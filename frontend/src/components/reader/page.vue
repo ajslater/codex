@@ -118,8 +118,10 @@ export default {
 <style scoped lang="scss">
 .pageHorizontal {
   display: inline;
+  font-size: 0;
 }
 .pageVertical {
   display: block;
+  font-size: 0;
 }
 </style>

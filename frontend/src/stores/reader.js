@@ -45,7 +45,7 @@ const _scrollToPageRetry = (page, tries = 10, sleep = 0) => {
     el.scrollIntoView();
   } else {
     if (tries > 0) {
-      console.log("sleep", sleep);
+      //console.debug("sleep", sleep);
       setTimeout(function () {
         _scrollToPageRetry(page, tries - 1, sleep + 50);
       }, sleep);

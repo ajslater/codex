@@ -221,7 +221,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                 # my only floats are small decimals.
                 schema_fields[index_fieldname] = NUMERIC(
                     numtype=int,  # Decimal is converted to int in NUMERIC
-                    bits=16,
+                    bits=64,
                     field_boost=field_class.boost,
                     signed=False,
                     decimal_places=2,

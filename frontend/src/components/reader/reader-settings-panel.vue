@@ -172,19 +172,19 @@ export default {
       let updates;
       switch (event.key) {
         case "w":
-          updates = { fitTo: "WIDTH" };
+          updates = { fitTo: "W" };
           break;
 
         case "h":
-          updates = { fitTo: "HEIGHT" };
+          updates = { fitTo: "H" };
           break;
 
         case "s":
-          updates = { fitTo: "SCREEN" };
+          updates = { fitTo: "S" };
           break;
 
         case "o":
-          updates = { fitTo: "ORIG" };
+          updates = { fitTo: "O" };
           break;
 
         case "2":
