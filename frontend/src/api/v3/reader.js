@@ -16,10 +16,11 @@ const setReaderSettings = (data) => {
   return HTTP.put(`c/settings`, data);
 };
 
-export const getDownloadURL = (pk) => {
+export const getDownloadURL = (pk, fileName) => {
   const READER_PATH = getReaderPath(pk);
   const timestamp = getTSParams().ts;
-  return `${READER_PATH}/download.cbz?ts=${timestamp}`;
+  fileName = encodeURIComponent(fileName);
+  return `${READER_PATH}/download/${fileName}?ts=${timestamp}`;
 };
 
 export const getDownloadPageURL = ({ pk, page }) => {

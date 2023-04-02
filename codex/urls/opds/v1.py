@@ -41,8 +41,8 @@ urlpatterns = [
         cache_control(max_age=COVER_MAX_AGE, public=True)(CoverView.as_view()),
         name="cover",
     ),
-    # Chunky Comc Reader requires a . suffix for download links.
-    path("c/<int:pk>/download.cbz", DownloadView.as_view(), name="download"),
+    # Chunky Comc Reader requires a full filename for download links.
+    path("c/<int:pk>/download/<str:filename>", DownloadView.as_view(), name="download"),
     #
     # definition documents
     path(
