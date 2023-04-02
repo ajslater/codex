@@ -1,36 +1,37 @@
 <template>
   <v-virtual-scroll
     id="verticalScroll"
-    v-scroll#target="onScroll"
+    ref="verticalScroll"
+    v-scroll:#verticalScroll="onScroll"
     :items="items"
     :visible-items="visibleItems"
     :height="innerHeight"
     :width="innerWidth"
+    :item-height="itemHeight"
   >
     <template #default="{ item }">
-      <BookPage
+      <BookPage :book="book" :page="item" />
+      <div
         v-intersect.quiet="{
           handler: onIntersect,
-          options: {
-            threshold: [0.01],
-            rootMargin: '-40%',
-          },
+          options: intersectOptions,
         }"
-        :book="book"
-        :page="item"
+        class="pageTracker"
+        :data-page="item"
       />
     </template>
   </v-virtual-scroll>
 </template>
 
 <script>
-// 5 is the magic number to avoid disappearing items at the midpoint.
 import _ from "lodash";
 import { mapActions, mapGetters, mapState } from "pinia";
 import { VVirtualScroll } from "vuetify/labs/VVirtualScroll";
 
 import BookPage from "@/components/reader/page.vue";
 import { useReaderStore } from "@/stores/reader";
+
+const MODAL_COMIC_RATIO = 1.537_223_340_040_241_5;
 
 export default {
   name: "PagesScrollerVertical",
@@ -74,7 +75,31 @@ export default {
       return pages;
     },
     visibleItems() {
+      // 5 is the magic number to avoid disappearing items at the midpoint.
       return Math.min(this.book?.maxPage ?? 0, 5);
+    },
+    itemHeight() {
+      const fitTo = this.settings.fitTo;
+      let height = window.innerHeight;
+      if (fitTo === "W") {
+        height = height * MODAL_COMIC_RATIO;
+      } else if (fitTo == "O") {
+        height = height * 2;
+      }
+      return height;
+    },
+    intersectOptions() {
+      const fitTo = this.settings.fitTo;
+      let options;
+      options =
+        fitTo === "S" || fitTo === "H"
+          ? {
+              threshold: [0.75],
+            }
+          : {
+              rootMargin: "-40%",
+            };
+      return options;
     },
   },
   mounted() {
@@ -104,13 +129,17 @@ export default {
         // Don't show scrolly book change drawers immediately on load.
         return;
       }
-      if (this.storePage === 0 && window.scrollY === 0) {
+
+      const el = this.$refs.verticalScroll.$el;
+      const scrollTop = el.scrollTop;
+      if (this.storePage === 0 && scrollTop === 0) {
         this.setBookChangeFlag("prev");
-      } else if (
-        this.storePage === this.book.maxPage &&
-        window.innerHeight + window.scrollY + 1 >= document.body.scrollHeight
-      ) {
-        this.setBookChangeFlag("next");
+      } else if (this.storePage === this.book.maxPage) {
+        const scrollTopMax = el.scrollTopMax || el.scrollHeight - el.clientTop;
+
+        if (window.innerHeight + scrollTop + 1 >= scrollTopMax) {
+          this.setBookChangeFlag("next");
+        }
       }
     },
     onResize() {
@@ -120,3 +149,21 @@ export default {
   },
 };
 </script>
+<style scoped lang="scss">
+:deep(.v-virtual-scroll__item) {
+  position: relative;
+}
+.pageTracker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 15;
+  width: 100vw;
+  height: 100%;
+  // TODO, somehow get it horizontally fixed.
+  /*
+  background-color: green;
+  opacity: 0.25;
+  */
+}
+</style>
