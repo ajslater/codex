@@ -15,6 +15,7 @@ border-radius: 128px;
   - Reader: Vertical Scroll
     - Remove black bottom margin from images.
     - Was loading every page in a comic at once.
+    - Page tracking did not work with images larger than viewport width.
 
 ## v1.3.3
 
