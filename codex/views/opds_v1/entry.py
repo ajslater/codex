@@ -37,12 +37,11 @@ class OPDSEntry:
         "tags",
         "teams",
     )
-    ACQUISTION_GROUPS = frozenset(("f", "s", "c"))
 
-    def __init__(self, obj, valid_nav_groups, query_params):
+    def __init__(self, obj, acquisition_groups, query_params):
         """Initialize params."""
         self.obj = obj
-        self.valid_nav_groups = valid_nav_groups
+        self.acquision_groups = acquisition_groups
         self.query_params = query_params
 
     @staticmethod
@@ -58,8 +57,7 @@ class OPDSEntry:
         try:
             metadata = self.query_params.get("opdsMetadata", "").lower() not in FALSY
             # Id top links by query params but not regular entries.
-            query_params = not bool(self.obj.get("cover_pk"))
-            return self._nav_href(metadata=metadata, query_params=query_params)
+            return self._nav_href(metadata=metadata)
         except Exception as exc:
             LOG.exception(exc)
 
@@ -189,12 +187,12 @@ class OPDSEntry:
             return None
         return OPDSLink(Rel.IMAGE, href, mime_type)
 
-    def _nav_href(self, metadata=False, query_params=False):
+    def _nav_href(self, metadata=False):
         group = self.obj.get("group")
         pk = self.obj.get("pk")
         kwargs = {"group": group, "pk": pk, "page": 1}
         href = reverse("opds:v1:browser", kwargs=kwargs)
-        qps = self.obj.get("query_params", {}) if query_params else {}
+        qps = {} if group == "c" else self.obj.get("query_params", {})
 
         if metadata:
             qps.update({"opdsMetadata": 1})
@@ -203,7 +201,7 @@ class OPDSEntry:
     def _nav_link(self, metadata=False):
         group = self.obj.get("group")
 
-        if group in self.ACQUISTION_GROUPS:
+        if group in self.acquision_groups:
             mime_type = MimeType.ENTRY_CATALOG if metadata else MimeType.ACQUISITION
         else:
             mime_type = MimeType.NAV

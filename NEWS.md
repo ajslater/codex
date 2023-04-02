@@ -9,8 +9,8 @@ border-radius: 128px;
 ## v1.3.5
 
 - Fix
-  - Download File
-    - Fixed download urls for clients that ignore headers like Chunky.
+  - OPDS sorting and filtering broke.
+  - Fixed Download URLs for clients that ignore headers like Chunky.
 
 ## v1.3.4
 

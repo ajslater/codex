@@ -149,7 +149,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
             "name": name,
             "query_params": query_params,
         }
-        return OPDSEntry(obj, self.valid_nav_groups, {**self.request.query_params})
+        return OPDSEntry(obj, self.acquisition_groups, {**self.request.query_params})
 
     def _is_facet_active(self, facet_group, facet):
         compare = [facet.value]
@@ -273,7 +273,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
             "summary": top_link.desc,
         }
 
-        return OPDSEntry(entry_obj, self.valid_nav_groups, {})
+        return OPDSEntry(entry_obj, self.acquisition_groups, {})
 
     def _add_top_links(self, top_links):
         """Add a list of top links as entries if they should be enabled."""
@@ -287,6 +287,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
     def entries(self):
         """Create all the entries."""
         entries = []
+        self.acquisition_groups = frozenset(self.valid_nav_groups[-2:])
         try:
             at_root = self.kwargs.get("pk") == 0
             if not self.use_facets and self.kwargs.get("page") == 1:
@@ -300,7 +301,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
                     entries += [
                         OPDSEntry(
                             entry_obj,
-                            self.valid_nav_groups,
+                            self.acquisition_groups,
                             self.request.query_params,
                         )
                     ]
