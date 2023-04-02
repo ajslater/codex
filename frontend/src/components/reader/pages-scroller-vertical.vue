@@ -6,7 +6,6 @@
     :visible-items="visibleItems"
     :height="innerHeight"
     :width="innerWidth"
-    :item-height="innerHeight"
   >
     <template #default="{ item }">
       <BookPage
