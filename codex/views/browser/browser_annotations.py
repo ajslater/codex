@@ -108,7 +108,7 @@ class BrowserAnnotationsView(BrowserOrderByView):
                 default=0,
                 filter=bm_filter,
                 output_field=PositiveSmallIntegerField(),
-                distinct=True
+                distinct=True,
             )
 
             finished_count = Sum(
@@ -116,7 +116,7 @@ class BrowserAnnotationsView(BrowserOrderByView):
                 default=0,
                 filter=bm_filter,
                 output_field=PositiveSmallIntegerField(),
-                distinct=True
+                distinct=True,
             )
             obj_list = obj_list.annotate(finished_count=finished_count)
             finished_aggregate = Case(
