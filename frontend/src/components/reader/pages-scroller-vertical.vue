@@ -1,6 +1,5 @@
 <template>
   <v-virtual-scroll
-    v-if="settings.vertical"
     id="verticalScroll"
     v-scroll#target="onScroll"
     :items="items"
@@ -64,9 +63,6 @@ export default {
     settings() {
       return this.getSettings(this.book);
     },
-    vertical() {
-      return this.settings.vertical;
-    },
     readInReverse() {
       return this.settings.readInReverse;
     },
@@ -80,13 +76,6 @@ export default {
     },
     visibleItems() {
       return Math.min(this.book?.maxPage ?? 0, 5);
-    },
-  },
-  watch: {
-    vertical(to) {
-      if (to) {
-        this.setActivePage(this.storePage, true);
-      }
     },
   },
   mounted() {
@@ -105,14 +94,14 @@ export default {
       "getSettings",
     ]),
     onIntersect(isIntersecting, entries) {
-      if (this.vertical && isIntersecting) {
+      if (isIntersecting) {
         const entry = entries[0];
         const page = +entry.target.dataset.page;
         this.setActivePage(page);
       }
     },
     onScroll() {
-      if (!this.vertical || Date.now() - this.mountedTime < 2) {
+      if (Date.now() - this.mountedTime < 2) {
         // Don't show scrolly book change drawers immediately on load.
         return;
       }
