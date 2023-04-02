@@ -11,6 +11,7 @@ border-radius: 128px;
 - Fix
   - OPDS sorting and filtering broke.
   - Fixed Download URLs for clients that ignore headers like Chunky.
+  - Update Search Index now checks for more missing entries.
 
 ## v1.3.4
 

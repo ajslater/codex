@@ -8,7 +8,9 @@ from zoneinfo import ZoneInfo
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import DatabaseError
+from django.db.models import Q
 from haystack.exceptions import SearchFieldError
+from haystack.indexes import DJANGO_ID
 from humanize import naturaldelta
 from whoosh.query import Every
 
@@ -58,14 +60,16 @@ class UpdateMixin(RemoveMixin):
     def _get_latest_update_at_from_results(cls, results):
         """Can't use the search index to find the lowest date. Use python."""
         # SAD PANDA. :(
+        all_index_pks = []
         index_latest_updated_at = cls._MIN_UTC_DATE
         for result in results:
+            all_index_pks.append(result.get(DJANGO_ID))
             result_updated_at = result.get("updated_at")
             if result_updated_at > index_latest_updated_at:
                 index_latest_updated_at = result_updated_at
         if index_latest_updated_at == cls._MIN_UTC_DATE:
             index_latest_updated_at = None
-        return index_latest_updated_at
+        return index_latest_updated_at, all_index_pks
 
     def _get_search_index_latest_updated_at(self, backend):
         """Get the date of the last updated item in the search index."""
@@ -74,13 +78,14 @@ class UpdateMixin(RemoveMixin):
             #     So I have to do it in my own method.
             results = searcher.search(Every(), reverse=True, scored=False)
             if results.scored_length():
-                index_latest_updated_at = self._get_latest_update_at_from_results(
+                index_latest_updated_at, all_index_pks = self._get_latest_update_at_from_results(
                     results
                 )
             else:
                 index_latest_updated_at = None
+                all_index_pks = []
 
-        return index_latest_updated_at
+        return index_latest_updated_at, all_index_pks
 
     def _get_queryset(self, backend, rebuild):
         """Rebuild or set up update."""
@@ -89,9 +94,10 @@ class UpdateMixin(RemoveMixin):
         if rebuild:
             start_date = "the beginning of time"
         else:
-            start_date = self._get_search_index_latest_updated_at(backend)
+            start_date, all_index_pks = self._get_search_index_latest_updated_at(backend)
             if start_date:
-                qs = qs.filter(updated_at__gt=start_date)
+                # Get comics updated after the index was build AND not in the index.
+                qs = qs.filter(Q(updated_at__gt=start_date) | ~Q(pk__in=all_index_pks))
 
         self.log.info(f"Updating search index since {start_date}...")
 
