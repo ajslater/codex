@@ -45,8 +45,6 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
     template_name = "opds/index.xml"
     serializer_class = OPDSTemplateSerializer
 
-    AQUISITION_GROUPS = {"s", "f", "c"}
-
     @property
     def opds_ns(self):
         """Dynamic opds namespace."""
@@ -287,7 +285,6 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
     def entries(self):
         """Create all the entries."""
         entries = []
-        self.acquisition_groups = frozenset(self.valid_nav_groups[-2:])
         try:
             at_root = self.kwargs.get("pk") == 0
             if not self.use_facets and self.kwargs.get("page") == 1:
@@ -312,7 +309,8 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
     def get_object(self):
         """Get the browser page and serialize it for this subclass."""
         group = self.kwargs.get("group")
-        self.is_opds_acquisition = group in self.AQUISITION_GROUPS
+        self.acquisition_groups = frozenset(self.valid_nav_groups[-2:])
+        self.is_opds_acquisition = group in self.acquisition_groups
         self.is_opds_metadata = (
             self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
         )
