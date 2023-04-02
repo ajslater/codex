@@ -40,12 +40,13 @@ export default {
         return getDownloadPageURL(params);
       },
       downloadURL(state) {
-        return getDownloadURL(state.pk);
+        return getDownloadURL(state.pk, this.fileName);
       },
     }),
+    ...mapGetters(useReaderStore, ["activeBook"]),
     fileName: function () {
-      let suffix = this.activeBook.fileType;
-      suffix = suffix.lower() ? suffix : "unknown";
+      let suffix = this.activeBook?.fileType;
+      suffix = suffix ? suffix.toLowerCase() : "unknown";
       return this.activeTitle + "." + suffix;
     },
     pageName: function () {
@@ -54,7 +55,6 @@ export default {
   },
   methods: {
     ...mapActions(useCommonStore, ["downloadIOSPWAFix"]),
-    ...mapActions(useReaderStore, ["activeBook"]),
     downloadPage() {
       this.downloadIOSPWAFix(this.pageSrc, this.pageName);
     },

@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.3.5
+
+- Fix
+  - Download File
+    - Fixed download urls for clients that ignore headers like Chunky.
+
 ## v1.3.4
 
 - Fix
