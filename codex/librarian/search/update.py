@@ -130,7 +130,11 @@ class UpdateMixin(RemoveMixin):
         return num_procs, batch_size
 
     def _halve_batches(self, batches):
-        """Half the size of retried batches."""
+        """Half the size of retried batches.
+
+        Helps if it was a memory issue.
+        If it's a data issue then it binary searches down to the real problem.
+        """
         old_num_batches = len(batches)
         half_batches = {}
         for batch_num, batch_pks in batches.items():
@@ -177,14 +181,20 @@ class UpdateMixin(RemoveMixin):
                 )
                 status.complete = complete
                 self.status_controller.update(status)
-            except Exception as exc:
-                retry_batches[retry_batch_num] = batch_pks
-                # XXX It would be best to fix these collisions
-                if not isinstance(exc, self._EXPECTED_EXCEPTIONS):
-                    reason = f"Search Index Update collect result batch {batch_num}"
-                    self.log.exception(reason)
-                self.log.debug(f"Search index update will retry batch {batch_num}")
-                retry_batch_num += 1
+            except self._EXPECTED_EXCEPTIONS:
+                pass
+            except Exception:
+                reason = f"Search Index Update collect result batch {batch_num}"
+                self.log.exception(reason)
+            else:
+                # success
+                continue
+
+            # failure
+            self.log.debug(f"Search index update will retry batch {batch_num}")
+            retry_batches[retry_batch_num] = batch_pks
+            retry_batch_num += 1
+
 
         return retry_batches, complete
 
@@ -348,14 +358,8 @@ class UpdateMixin(RemoveMixin):
             elapsed_time = time() - start_time
             elapsed = naturaldelta(elapsed_time)
             self.log.info(f"Search index updated in {elapsed}.")
-        except MemoryError:
-            self.log.warning("Search index needs more memory to update.")
-            self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE)
         except Exception:
             self.log.exception("Update search index")
-            self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE)
         finally:
-            # Finishing these tasks inside the command process leads to a timing
-            # misalignment. Finish it here works.
             until = start_time + 1
             self.status_controller.finish_many(self._STATUS_FINISH_TYPES, until=until)
