@@ -8,7 +8,9 @@ from zoneinfo import ZoneInfo
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import DatabaseError
+from django.db.models import Q
 from haystack.exceptions import SearchFieldError
+from haystack.indexes import DJANGO_ID
 from humanize import naturaldelta
 from whoosh.query import Every
 
@@ -54,47 +56,44 @@ class UpdateMixin(RemoveMixin):
             statii += [Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE)]
         self.status_controller.start_many(statii)
 
-    @classmethod
-    def _get_latest_update_at_from_results(cls, results):
-        """Can't use the search index to find the lowest date. Use python."""
-        # SAD PANDA. :(
-        index_latest_updated_at = cls._MIN_UTC_DATE
+    def _get_queryset_from_search_results(self, results, qs, suffix):
+        """Use python to find the lowest date and any missing rows."""
+        all_index_pks = []
+        index_latest_updated_at = self._MIN_UTC_DATE
         for result in results:
+            all_index_pks.append(result.get(DJANGO_ID))
             result_updated_at = result.get("updated_at")
             if result_updated_at > index_latest_updated_at:
                 index_latest_updated_at = result_updated_at
-        if index_latest_updated_at == cls._MIN_UTC_DATE:
-            index_latest_updated_at = None
-        return index_latest_updated_at
+        if index_latest_updated_at > self._MIN_UTC_DATE:
+            qs = qs.filter(
+                Q(updated_at__gt=index_latest_updated_at) | ~Q(pk__in=all_index_pks)
+            )
+            suffix = f"since {index_latest_updated_at}"
 
-    def _get_search_index_latest_updated_at(self, backend):
+        return qs, suffix
+
+    def _get_queryset_from_search_index(self, backend, qs, suffix):
         """Get the date of the last updated item in the search index."""
         with backend.index.refresh().searcher() as searcher:
             # XXX IDK why but sorting by 'updated_at' removes the latest and most valuable result
             #     So I have to do it in my own method.
+            #     Because of this I've turned of sortable in the schema.
             results = searcher.search(Every(), reverse=True, scored=False)
             if results.scored_length():
-                index_latest_updated_at = self._get_latest_update_at_from_results(
-                    results
-                )
-            else:
-                index_latest_updated_at = None
+                qs, suffix = self._get_queryset_from_search_results(results, qs, suffix)
 
-        return index_latest_updated_at
+        return qs, suffix
 
     def _get_queryset(self, backend, rebuild):
         """Rebuild or set up update."""
         qs = Comic.objects.all()
 
-        if rebuild:
-            start_date = "the beginning of time"
-        else:
-            start_date = self._get_search_index_latest_updated_at(backend)
-            if start_date:
-                qs = qs.filter(updated_at__gt=start_date)
+        suffix = "with all comics"
+        if not rebuild:
+            qs, suffix = self._get_queryset_from_search_index(backend, qs, suffix)
 
-        self.log.info(f"Updating search index since {start_date}...")
-
+        self.log.info(f"Updating search index {suffix}...")
         return qs
 
     def _get_throttle_params(self, num_comics):
@@ -130,7 +129,11 @@ class UpdateMixin(RemoveMixin):
         return num_procs, batch_size
 
     def _halve_batches(self, batches):
-        """Half the size of retried batches."""
+        """Half the size of retried batches.
+
+        Helps if it was a memory issue.
+        If it's a data issue then it binary searches down to the real problem.
+        """
         old_num_batches = len(batches)
         half_batches = {}
         for batch_num, batch_pks in batches.items():
@@ -177,14 +180,19 @@ class UpdateMixin(RemoveMixin):
                 )
                 status.complete = complete
                 self.status_controller.update(status)
-            except Exception as exc:
-                retry_batches[retry_batch_num] = batch_pks
-                # XXX It would be best to fix these collisions
-                if not isinstance(exc, self._EXPECTED_EXCEPTIONS):
-                    reason = f"Search Index Update collect result batch {batch_num}"
-                    self.log.exception(reason)
-                self.log.debug(f"Search index update will retry batch {batch_num}")
-                retry_batch_num += 1
+            except self._EXPECTED_EXCEPTIONS:
+                pass
+            except Exception:
+                reason = f"Search Index Update collect result batch {batch_num}"
+                self.log.exception(reason)
+            else:
+                # success
+                continue
+
+            # failure
+            self.log.debug(f"Search index update will retry batch {batch_num}")
+            retry_batches[retry_batch_num] = batch_pks
+            retry_batch_num += 1
 
         return retry_batches, complete
 
@@ -254,8 +262,8 @@ class UpdateMixin(RemoveMixin):
             end = start + batch_size
         return end
 
-    @classmethod
-    def _get_update_batches(cls, qs, batch_size, num_comics):
+    @staticmethod
+    def _get_update_batches(qs, batch_size, num_comics):
         all_pks = qs.order_by("updated_at", "pk").values_list("pk", flat=True)
         batch_num = 0
         start = 0
@@ -348,14 +356,8 @@ class UpdateMixin(RemoveMixin):
             elapsed_time = time() - start_time
             elapsed = naturaldelta(elapsed_time)
             self.log.info(f"Search index updated in {elapsed}.")
-        except MemoryError:
-            self.log.warning("Search index needs more memory to update.")
-            self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE)
         except Exception:
             self.log.exception("Update search index")
-            self.status_controller.finish(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE)
         finally:
-            # Finishing these tasks inside the command process leads to a timing
-            # misalignment. Finish it here works.
             until = start_time + 1
             self.status_controller.finish_many(self._STATUS_FINISH_TYPES, until=until)

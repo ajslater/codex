@@ -9,6 +9,7 @@ from rest_framework.authentication import BasicAuthentication, SessionAuthentica
 from rest_framework.response import Response
 
 from codex.logger.logging import get_logger
+from codex.models import Comic
 from codex.serializers.opds_v1 import (
     OPDSAcquisitionEntrySerializer,
     OPDSEntrySerializer,
@@ -44,8 +45,6 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
     authentication_classes = (SessionAuthentication, BasicAuthentication)
     template_name = "opds/index.xml"
     serializer_class = OPDSTemplateSerializer
-
-    AQUISITION_GROUPS = {"s", "f", "c"}
 
     @property
     def opds_ns(self):
@@ -149,7 +148,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
             "name": name,
             "query_params": query_params,
         }
-        return OPDSEntry(obj, self.valid_nav_groups, {**self.request.query_params})
+        return OPDSEntry(obj, self.acquisition_groups, {**self.request.query_params})
 
     def _is_facet_active(self, facet_group, facet):
         compare = [facet.value]
@@ -273,7 +272,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
             "summary": top_link.desc,
         }
 
-        return OPDSEntry(entry_obj, self.valid_nav_groups, {})
+        return OPDSEntry(entry_obj, self.acquisition_groups, {})
 
     def _add_top_links(self, top_links):
         """Add a list of top links as entries if they should be enabled."""
@@ -282,6 +281,24 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
             if not self.is_top_link_displayed(tl):
                 entries += [self._top_link_entry(tl)]
         return entries
+
+    def _hydrate_filenames(self, objs):
+        """Get all filenames with one query."""
+        if not self.is_opds_acquisition:
+            return
+        comic_pks = []
+        for obj in objs:
+            if obj["group"] == "c":
+                comic_pks.append(obj["pk"])
+        comics = (
+            Comic.objects.filter(pk__in=comic_pks)
+            .select_related("series", "volume")
+            .only("series__name", "volume__name", "issue", "issue_suffix", "name")
+        )
+        for comic in comics:
+            for obj in objs:
+                if obj["pk"] == comic.pk:
+                    obj["filename"] = comic.filename()
 
     @property
     def entries(self):
@@ -296,11 +313,13 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
                 entries += self._facets(entries=True, root=at_root)
 
             if obj_list := self.obj.get("obj_list"):
+                self._hydrate_filenames(obj_list)
+
                 for entry_obj in obj_list:
                     entries += [
                         OPDSEntry(
                             entry_obj,
-                            self.valid_nav_groups,
+                            self.acquisition_groups,
                             self.request.query_params,
                         )
                     ]
@@ -311,7 +330,8 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
     def get_object(self):
         """Get the browser page and serialize it for this subclass."""
         group = self.kwargs.get("group")
-        self.is_opds_acquisition = group in self.AQUISITION_GROUPS
+        self.acquisition_groups = frozenset(self.valid_nav_groups[-2:])
+        self.is_opds_acquisition = group in self.acquisition_groups
         self.is_opds_metadata = (
             self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
         )

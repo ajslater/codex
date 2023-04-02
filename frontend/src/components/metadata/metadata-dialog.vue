@@ -284,7 +284,7 @@ export default {
       q: (state) => state.settings.q,
     }),
     downloadURL: function () {
-      return getDownloadURL(this.pk);
+      return getDownloadURL(this.pk, this.downloadFileName);
     },
     isReadButtonShown: function () {
       return this.group === "c" && this.$route.name != "reader";
