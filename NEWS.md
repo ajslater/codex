@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.3.6
+
+- Fix
+  - Much lower memory tuning. Environment variables control tuning.
+  - Possible fix for vertical scroller page tracking for tall images.
+
 ## v1.3.5
 
 - Fix

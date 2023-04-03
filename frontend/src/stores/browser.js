@@ -57,7 +57,7 @@ export const useBrowserStore = defineStore("browser", {
         groupNames: CHOICES.browser.groupNames,
         settingsGroup: CHOICES.browser.settingsGroup,
       }),
-      dynamic: {},
+      dynamic: undefined,
     },
     settings: {
       filters: {},
@@ -297,7 +297,7 @@ export const useBrowserStore = defineStore("browser", {
       }
       this.$patch((state) => {
         state.browserPageLoaded = false;
-        state.choices.dynamic = {};
+        state.choices.dynamic = undefined;
       });
       await API.getSettings()
         .then((response) => {
@@ -336,7 +336,7 @@ export const useBrowserStore = defineStore("browser", {
             };
             page.zeroPad = getZeroPad(data.issueMax);
             state.page = Object.freeze(page);
-            state.choices.dynamic = {};
+            state.choices.dynamic = undefined;
           });
           return true;
         })

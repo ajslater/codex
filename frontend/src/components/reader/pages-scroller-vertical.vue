@@ -96,9 +96,7 @@ export default {
           ? {
               threshold: [0.75],
             }
-          : {
-              rootMargin: "-40%",
-            };
+          : {};
       return options;
     },
   },
@@ -129,7 +127,6 @@ export default {
         // Don't show scrolly book change drawers immediately on load.
         return;
       }
-
       const el = this.$refs.verticalScroll.$el;
       const scrollTop = el.scrollTop;
       if (this.storePage === 0 && scrollTop === 0) {

@@ -284,7 +284,7 @@ export default {
       q: (state) => state.settings.q,
     }),
     downloadURL: function () {
-      return getDownloadURL(this.pk, this.downloadFileName);
+      return getDownloadURL(this.pk);
     },
     isReadButtonShown: function () {
       return this.group === "c" && this.$route.name != "reader";
@@ -379,7 +379,7 @@ export default {
       return getDateTime(ds, this.twentyFourHourTime);
     },
     download() {
-      this.downloadIOSPWAFix(this.downloadURL, this.downloadFileName);
+      this.downloadIOSPWAFix(this.downloadURL, this.md.filename);
     },
     _keyListener(event) {
       event.stopImmediatePropagation();
