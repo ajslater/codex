@@ -19,6 +19,7 @@ from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexRemoveStaleTask
 from codex.memory import get_mem_limit
 from codex.models import Comic, Library
+from codex.settings.settings import CPU_MULTIPLIER
 from codex.status import Status
 
 if TYPE_CHECKING:
@@ -45,6 +46,7 @@ class UpdateMixin(RemoveMixin):
         SearchFieldError,
     )
     _MAX_RETRIES = 8
+    _CPU_MULTIPLIER = CPU_MULTIPLIER
 
     def _init_statuses(self, rebuild):
         """Initialize all statuses order before starting."""
@@ -107,7 +109,7 @@ class UpdateMixin(RemoveMixin):
         # max procs
         # throttle multiprocessing in lomem environments.
         # each process running has significant memory overhead.
-        cpu_max = ceil(mem_limit_gb * 4 / 3 + 2 / 3)
+        cpu_max = ceil(mem_limit_gb * self._CPU_MULTIPLIER)
         max_procs = min(cpu_count(), cpu_max)
 
         batch_size = int(

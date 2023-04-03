@@ -31,6 +31,7 @@ from codex.memory import get_mem_limit
 from codex.models import Comic
 from codex.search.indexes import ComicIndex
 from codex.search.writing import CodexWriter
+from codex.settings.settings import CPU_MULTIPLIER, MMAP_RATIO, WRITER_MEMORY_PERCENT
 from codex.worker_base import WorkerBaseMixin
 
 
@@ -163,9 +164,14 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         "max_page",
     )
     _ONEMB = 1024**2
+    ###################
+    # MEMORY CONTROLS #
+    ###################
     # Magic number determined by tests
     # The perfect number may be larger than this but is below 369
-    _MMAP_RATIO = 320
+    _MMAP_RATIO = MMAP_RATIO # 320
+    _WRITER_MEMORY_PERCENT = WRITER_MEMORY_PERCENT
+    _CPU_MULTIPLIER = CPU_MULTIPLIER
 
     def __init__(self, connection_alias, **connection_options):
         """Init worker queues."""
@@ -179,9 +185,9 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         """Get writerargs for this machine's cpu & memory config."""
         mem_limit_mb = get_mem_limit("m")
         mem_limit_gb = mem_limit_mb / 1024
-        cpu_max = ceil(mem_limit_gb * 4 / 3 + 2 / 3)
+        cpu_max = ceil(mem_limit_gb * self._CPU_MULTIPLIER)
         procs = min(cpu_count(), cpu_max)
-        limitmb = mem_limit_mb * 0.8 / procs
+        limitmb = mem_limit_mb * self._WRITER_MEMORY_PERCENT / procs
         limitmb = int(limitmb)
         return {"limitmb": limitmb, "procs": procs, "multisegment": True}
 
