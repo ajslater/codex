@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.3.6
+
+- Fix
+  - Much lower memory tuning. Environment variables control tuning.
+
 ## v1.3.5
 
 - Fix
