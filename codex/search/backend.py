@@ -169,7 +169,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
     ###################
     # Magic number determined by tests
     # The perfect number may be larger than this but is below 369
-    _MMAP_RATIO = MMAP_RATIO # 320
+    _MMAP_RATIO = MMAP_RATIO  # 320
     _WRITER_MEMORY_PERCENT = WRITER_MEMORY_PERCENT
     _CPU_MULTIPLIER = CPU_MULTIPLIER
 
