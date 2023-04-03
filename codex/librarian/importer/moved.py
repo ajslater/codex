@@ -26,9 +26,9 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
         # Prepare FKs
         create_folder_paths = {}
         self.query_missing_folder_paths(
-            moved_paths.values(), status, library.path, create_folder_paths
-        )
-        self.bulk_folders_create(create_folder_paths, status, library)
+            moved_paths.values(), library.path, create_folder_paths,
+            status=status)
+        self.bulk_folders_create(create_folder_paths, library, status=status)
 
         # Update Comics
         comics = Comic.objects.filter(
@@ -82,7 +82,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
         create_folder_paths = frozenset(
             dest_parent_folder_paths - frozenset(existing_folder_paths)
         )
-        self.bulk_folders_create(create_folder_paths, None, library)
+        self.bulk_folders_create(create_folder_paths, library)
 
         # get parent folders path to model obj dict
         dest_parent_folders_objs = Folder.objects.filter(
