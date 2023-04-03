@@ -9,6 +9,7 @@ border-radius: 128px;
 ## v1.3.7
 
 - Fix
+  - Container memory limits weren't detected in Linux kernels before 4.5
   - Crash when moving comics.
 
 ## v1.3.6
