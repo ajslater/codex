@@ -182,6 +182,12 @@ class MetadataView(BrowserAnnotationsView):
         )
         return qs
 
+    def _annotate_for_filename(self, qs):
+        """Annotate for the filename function."""
+        if not self.is_model_comic:
+            return qs
+        return qs.annotate(series_name=F("series__name"), volume_name=F("volume__name"))
+
     def _query_m2m_intersections(self, simple_qs):
         """Query the through models to figure out m2m intersections."""
         # Speed ok, but still does a query per m2m model
@@ -257,6 +263,7 @@ class MetadataView(BrowserAnnotationsView):
         for unionfix_field, field in METADATA_ORDERED_UNIONFIX_VALUES_MAP.items():
             obj[unionfix_field] = obj.get(field)
 
+        obj["filename"] = Comic.get_filename(obj)
         return obj
 
     def get_object(self):
@@ -276,6 +283,7 @@ class MetadataView(BrowserAnnotationsView):
         simple_qs = qs
 
         qs = self._annotate_values_and_fks(qs, simple_qs)
+        qs = self._annotate_for_filename(qs)
         m2m_intersections = self._query_m2m_intersections(simple_qs)
         try:
             obj = qs.values()[0]

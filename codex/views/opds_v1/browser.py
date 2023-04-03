@@ -9,7 +9,6 @@ from rest_framework.authentication import BasicAuthentication, SessionAuthentica
 from rest_framework.response import Response
 
 from codex.logger.logging import get_logger
-from codex.models import Comic
 from codex.serializers.opds_v1 import (
     OPDSAcquisitionEntrySerializer,
     OPDSEntrySerializer,
@@ -282,24 +281,6 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
                 entries += [self._top_link_entry(tl)]
         return entries
 
-    def _hydrate_filenames(self, objs):
-        """Get all filenames with one query."""
-        if not self.is_opds_acquisition:
-            return
-        comic_pks = []
-        for obj in objs:
-            if obj["group"] == "c":
-                comic_pks.append(obj["pk"])
-        comics = (
-            Comic.objects.filter(pk__in=comic_pks)
-            .select_related("series", "volume")
-            .only("series__name", "volume__name", "issue", "issue_suffix", "name")
-        )
-        for comic in comics:
-            for obj in objs:
-                if obj["pk"] == comic.pk:
-                    obj["filename"] = comic.filename()
-
     @property
     def entries(self):
         """Create all the entries."""
@@ -313,8 +294,6 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
                 entries += self._facets(entries=True, root=at_root)
 
             if obj_list := self.obj.get("obj_list"):
-                self._hydrate_filenames(obj_list)
-
                 for entry_obj in obj_list:
                     entries += [
                         OPDSEntry(
