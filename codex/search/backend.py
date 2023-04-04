@@ -165,7 +165,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         "library",
         "path",
         "stat",
-        "folders",
+        # "folders", # don't explicitly defer m2m
         "max_page",
     )
     _ONEMB = 1024**2
@@ -197,7 +197,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         limitmb = mem_limit_mb * self._WRITER_MEMORY_PERCENT / procs
         limitmb = int(limitmb)
         self.writerargs = {"limitmb": limitmb, "procs": procs, "multisegment": True}
-        self.chunk_size = max(
+        self.chunk_size = min(
             int(mem_limit_gb * self._CHUNK_PER_GB), self._MAX_CHUNK_SIZE
         )
 

@@ -189,7 +189,11 @@ if HYPERCORN_CONFIG.root_path:
     STATIC_URL = HYPERCORN_CONFIG.root_path + "/" + WHITENOISE_STATIC_PREFIX
 else:
     STATIC_URL = WHITENOISE_STATIC_PREFIX
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    }
+}
 STATICFILES_DIRS = []
 BUILD = environ.get("BUILD", False)
 if DEBUG or BUILD:

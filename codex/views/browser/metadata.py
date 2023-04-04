@@ -160,7 +160,7 @@ class MetadataView(BrowserAnnotationsView):
             querysets = (simple_qs, qs)
 
         # Foreign Keys
-        fk_fields = copy(self._COMIC_FK_FIELDS_MAP[self.group])
+        fk_fields = copy(self._COMIC_FK_FIELDS)
         querysets = self._intersection_annotate(
             querysets,
             fk_fields,
@@ -221,7 +221,7 @@ class MetadataView(BrowserAnnotationsView):
             raise ValueError(reason)
         group_field = self.model.__name__.lower()
         obj[group_field] = {"pk": obj["id"], "name": obj["name"]}
-        comic_fk_fields = copy(self._COMIC_FK_FIELDS_MAP[self.group])
+        comic_fk_fields = copy(self._COMIC_FK_FIELDS)
         self._field_copy(
             obj,
             comic_fk_fields,
