@@ -31,7 +31,13 @@ from codex.memory import get_mem_limit
 from codex.models import Comic
 from codex.search.indexes import ComicIndex
 from codex.search.writing import CodexWriter
-from codex.settings.settings import CPU_MULTIPLIER, MMAP_RATIO, WRITER_MEMORY_PERCENT
+from codex.settings.settings import (
+    CHUNK_PER_GB,
+    CPU_MULTIPLIER,
+    MAX_CHUNK_SIZE,
+    MMAP_RATIO,
+    WRITER_MEMORY_PERCENT,
+)
 from codex.worker_base import WorkerBaseMixin
 
 
@@ -139,7 +145,6 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         )
     )
     WRITER_PERIOD = 0  # No period timer.
-    CHUNK_SIZE = 1000
     WRITER_LIMIT = 1000
     COMMITARGS_MERGE_SMALL = {"merge": True}
     COMMITARGS_NO_MERGE = {"merge": False}
@@ -169,9 +174,11 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
     ###################
     # Magic number determined by tests
     # The perfect number may be larger than this but is below 369
-    _MMAP_RATIO = MMAP_RATIO  # 320
+    _MMAP_RATIO = MMAP_RATIO
     _WRITER_MEMORY_PERCENT = WRITER_MEMORY_PERCENT
     _CPU_MULTIPLIER = CPU_MULTIPLIER
+    _CHUNK_PER_GB = CHUNK_PER_GB
+    _MAX_CHUNK_SIZE = MAX_CHUNK_SIZE
 
     def __init__(self, connection_alias, **connection_options):
         """Init worker queues."""
@@ -179,7 +186,6 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         # XXX will only connect to the log listener on Linux with fork
         self.log = get_logger(self.__class__.__name__)
         self.log.propagate = False
-        self.writerargs = self._get_writerargs()
 
     def _get_writerargs(self):
         """Get writerargs for this machine's cpu & memory config."""
@@ -189,7 +195,10 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         procs = min(cpu_count(), cpu_max)
         limitmb = mem_limit_mb * self._WRITER_MEMORY_PERCENT / procs
         limitmb = int(limitmb)
-        return {"limitmb": limitmb, "procs": procs, "multisegment": True}
+        self.writerargs = {"limitmb": limitmb, "procs": procs, "multisegment": True}
+        self.chunk_size = max(
+            int(mem_limit_gb * self._CHUNK_PER_GB), self._MAX_CHUNK_SIZE
+        )
 
     @staticmethod
     def _get_text_analyzer():
@@ -384,7 +393,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             .defer(*self._DEFERRED_FIELDS)
             .select_related(*self._SELECT_RELATED_FIELDS)
             .prefetch_related(*self._PREFETCH_RELATED_FIELDS)
-            .iterator(chunk_size=self.CHUNK_SIZE)
+            .iterator(chunk_size=self.chunk_size)
         )
         return index, writer, iterable
 
