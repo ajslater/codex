@@ -53,14 +53,14 @@
             :value="md.publisher"
             group="p"
             label="Publisher"
-            :highlight="'p' === md.group"
+            :obj="{ pk: md.id, group: md.group }"
           />
           <MetadataText
             id="imprint"
             :value="md.imprint"
             group="i"
             label="Imprint"
-            :highlight="'i' === md.group"
+            :obj="{ pk: md.id, group: md.group }"
           />
         </div>
         <MetadataText
@@ -68,7 +68,7 @@
           :value="md.series"
           label="Series"
           group="s"
-          :highlight="'s' === md.group"
+          :obj="{ pk: md.id, group: md.group }"
         />
         <div class="headerQuarterRow">
           <MetadataText
@@ -76,14 +76,15 @@
             :value="md.volume"
             label="Volume"
             group="v"
-            :highlight="'v' === md.group"
+            :obj="{ pk: md.id, group: md.group }"
           />
           <MetadataText :value="md.volumeCount" label="Volume Count" />
           <MetadataText
             id="issue"
             :value="formattedIssue"
             label="Issue"
-            :highlight="'c' === md.group"
+            group="c"
+            :obj="{ pk: md.id, group: md.group }"
           />
           <MetadataText :value="md.issueCount" label="Issue Count" />
         </div>
@@ -132,7 +133,6 @@
               group="f"
               :value="{ pk: md.parentFolderPk, name: md.path }"
               label="Path"
-              :group-link="true"
             />
           </div>
         </section>

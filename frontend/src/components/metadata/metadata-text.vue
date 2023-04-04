@@ -11,7 +11,12 @@
         title="Browse Folder"
         >{{ folderPath }}/</router-link
       >
-      <router-link v-else-if="groupTo" :to="groupTo" :title="`Browse ${label}`">
+      <router-link
+        v-else-if="groupTo"
+        class="textContent"
+        :to="groupTo"
+        :title="`Browse ${label}`"
+      >
         {{ computedValue }}
       </router-link>
       <a v-else-if="link" :href="computedValue" target="_blank">
@@ -52,9 +57,9 @@ export default {
       type: String,
       default: "",
     },
-    highlight: {
-      type: Boolean,
-      default: false,
+    obj: {
+      type: Object,
+      default: undefined,
     },
   },
   data() {
@@ -67,6 +72,9 @@ export default {
       return this.value != undefined && this.value instanceof Object
         ? this.value.name
         : this.value;
+    },
+    highlight() {
+      return this.obj?.group === this.group;
     },
     pathArray() {
       if (!this.computedValue) {
@@ -94,8 +102,14 @@ export default {
       ) {
         return;
       }
-      const pk = this.value.pk;
+      let pk;
+      pk =
+        this.obj && this.obj.group == this.group ? this.obj.pk : this.value.pk;
       if (!pk) {
+        return;
+      }
+      const params = this.$router.currentRoute.value.params;
+      if (params.group === this.group && +params.pk === pk) {
         return;
       }
       return { name: "browser", params: { group: this.group, pk } };
@@ -122,7 +136,15 @@ export default {
   background-color: rgb(var(--v-theme-primary-darken-1));
   padding: 0px 8px 0px 8px;
   border-radius: 12px;
+  border: solid transparent;
 }
-#basePath {
+// eslint-disable-next-line vue-scoped-css/no-unused-selector
+.highlight a.textContent {
+  color: rgb(var(--v-theme-textPrimary)) !important;
+  background-color: rgb(var(--v-theme-primary-darken-1));
+}
+// eslint-disable-next-line vue-scoped-css/no-unused-selector
+.highlight a.textContent:hover {
+  border: solid rgb(var(--v-theme-textPrimary));
 }
 </style>
