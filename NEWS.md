@@ -16,6 +16,8 @@ border-radius: 128px;
   - Reader
     - Horizontal Reader was slow for comics with high page counts.
     - Vertical scroller was not tracking pages in fitTo Width or Orig modes.
+  - Dev
+    - Django 4.2
 
 ## v1.3.6
 
