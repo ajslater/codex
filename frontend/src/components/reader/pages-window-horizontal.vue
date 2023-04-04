@@ -84,9 +84,7 @@ export default {
     },
     windowIndex() {
       const val = this.activePage - this.pages[0];
-      const wmv = Math.min(Math.max(0, val), this.book.maxPage);
-      console.log(this.activePage, wmv);
-      return wmv;
+      return Math.min(Math.max(0, val), this.book.maxPage);
     },
   },
   watch: {
@@ -98,7 +96,6 @@ export default {
         this.activePage = to;
         const backLimit = this.pages.at(0);
         const foreLimit = this.pages.at(-1);
-        console.log(`${backLimit} : ${to} : ${foreLimit}`);
         if (to < backLimit || to > foreLimit) {
           this.setPages();
         }
