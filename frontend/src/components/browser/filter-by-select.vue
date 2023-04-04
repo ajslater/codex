@@ -25,7 +25,10 @@
     </template>
     <template #append-item>
       <v-divider />
-      <div v-if="dynamicChoiceNames && dynamicChoiceNames.length > 0">
+      <v-list-item v-if="dynamicChoiceNames === undefined">
+        <v-progress-linear indeterminate rounded />
+      </v-list-item>
+      <div v-else-if="dynamicChoiceNames.length > 0">
         <BrowserFilterSubMenu
           v-for="filterName of dynamicChoiceNames"
           :key="filterName"
@@ -33,9 +36,7 @@
           @selected="onSubMenuSelected"
         />
       </div>
-      <v-list-item v-else>
-        <v-progress-linear indeterminate rounded />
-      </v-list-item>
+      <v-list-item v-else class="noChoices"> No filters available </v-list-item>
     </template>
   </ToolbarSelect>
 </template>
@@ -95,6 +96,9 @@ export default {
         return clsName;
       },
       dynamicChoiceNames: function (state) {
+        if (state.choices.dynamic === undefined) {
+          return;
+        }
         const names = [];
         for (const [key, value] of Object.entries(state.choices.dynamic)) {
           if (value) {
@@ -129,7 +133,7 @@ export default {
       this.clearFilters();
     },
     onMenu(to) {
-      if (to && this.dynamicChoiceNames.length === 0) {
+      if (to && this.dynamicChoiceNames === undefined) {
         this.loadAvailableFilterChoices();
       }
     },
@@ -151,6 +155,9 @@ export default {
 :deep(.v-field__clearable) {
   margin-inline-start: 0;
   margin-inline-end: 0;
+}
+.noChoices {
+  color: rgb(var(--v-theme-textDisabled));
 }
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   :deep(.v-field-label) {

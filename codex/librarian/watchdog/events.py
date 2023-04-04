@@ -1,5 +1,6 @@
 """Watchdog Event Handlers."""
 import re
+from os import fsdecode
 
 from watchdog.events import (
     EVENT_TYPE_CLOSED,
@@ -32,23 +33,32 @@ class CodexLibraryEventHandler(FileSystemEventHandler, LoggerBaseMixin):
         super().__init__(*args, **kwargs)
 
     @staticmethod
-    def _transform_file_event(event):
+    def _match_comic_suffix(path):
+        """Match a supported comic suffix."""
+        if not path:
+            return False
+        # We don't care about general suffixes. Only length four.
+        suffix = path[-4:]
+        suffix = fsdecode(suffix)
+        return _COMIC_MATCHER.match(suffix) is not None
+
+    @classmethod
+    def _transform_file_event(cls, event):
         """Transform file events into other events."""
-        source_match = _COMIC_MATCHER.search(event.src_path)
+        source_match = cls._match_comic_suffix(event.src_path)
         if event.event_type == EVENT_TYPE_MOVED:
             # Some types of file moves need to be cast as other events.
-
-            dest_match = _COMIC_MATCHER.search(event.dest_path)
-            if source_match is None and dest_match is not None:
+            dest_match = cls._match_comic_suffix(event.dest_path)
+            if not source_match and dest_match:
                 # Moved from an ignored file extension into a comic type,
                 # so create a new comic.
                 event = FileCreatedEvent(event.dest_path)
-            elif source_match is not None and dest_match is None:
+            elif source_match and not dest_match:
                 # moved into something that's not a comic name so delete
                 event = FileDeletedEvent(event.src_path)
-        elif source_match is None:
+        elif not source_match:
             # Don't process non-moved, non-comic files at all
-            return None
+            event = None
         return event
 
     @classmethod

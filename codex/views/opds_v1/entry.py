@@ -2,11 +2,13 @@
 import math
 from datetime import datetime, timezone
 from decimal import Decimal
+from urllib.parse import quote_plus
 
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import reverse
 
 from codex.logger.logging import get_logger
+from codex.models import Comic
 from codex.views.opds_v1.util import (
     BLANK_TITLE,
     FALSY,
@@ -36,10 +38,10 @@ class OPDSEntry:
         "teams",
     )
 
-    def __init__(self, obj, valid_nav_groups, query_params):
+    def __init__(self, obj, acquisition_groups, query_params):
         """Initialize params."""
         self.obj = obj
-        self.valid_nav_groups = valid_nav_groups
+        self.acquision_groups = acquisition_groups
         self.query_params = query_params
 
     @staticmethod
@@ -53,11 +55,9 @@ class OPDSEntry:
     def id_tag(self):
         """GUID is a nav url."""
         try:
-            group = self.obj.get("group")
-            pk = self.obj.get("pk")
-            return reverse(
-                "opds:v1:browser", kwargs={"group": group, "pk": pk, "page": 1}
-            )
+            metadata = self.query_params.get("opdsMetadata", "").lower() not in FALSY
+            # Id top links by query params but not regular entries.
+            return self._nav_href(metadata=metadata)
         except Exception as exc:
             LOG.exception(exc)
 
@@ -187,27 +187,26 @@ class OPDSEntry:
             return None
         return OPDSLink(Rel.IMAGE, href, mime_type)
 
-    def _nav_link(self, metadata=False):
+    def _nav_href(self, metadata=False):
         group = self.obj.get("group")
         pk = self.obj.get("pk")
         kwargs = {"group": group, "pk": pk, "page": 1}
+        href = reverse("opds:v1:browser", kwargs=kwargs)
+        qps = {} if group == "c" else self.obj.get("query_params", {})
 
-        try:
-            group_index = self.valid_nav_groups.index(group)
-            aq_link = group_index + 1 >= len(self.valid_nav_groups)
-        except Exception:
-            aq_link = False
+        if metadata:
+            qps.update({"opdsMetadata": 1})
+        return update_href_query_params(href, self.query_params, qps)
 
-        if aq_link or group == "c":
+    def _nav_link(self, metadata=False):
+        group = self.obj.get("group")
+
+        if group in self.acquision_groups:
             mime_type = MimeType.ENTRY_CATALOG if metadata else MimeType.ACQUISITION
         else:
             mime_type = MimeType.NAV
 
-        href = reverse("opds:v1:browser", kwargs=kwargs)
-        qps = self.obj.get("query_params", {})
-        if metadata:
-            qps.update({"opdsMetadata": 1})
-        href = update_href_query_params(href, self.query_params, qps)
+        href = self._nav_href(metadata)
         thr_count = self.obj.get("child_count")
         rel = Rel.ALTERNATE if metadata else self.obj.get("nav_link_rel", "subsection")
 
@@ -217,10 +216,13 @@ class OPDSEntry:
         pk = self.obj.get("pk")
         if not pk:
             return None
-        kwargs = {"pk": pk}
+        fn = Comic.get_filename(self.obj)
+        fn = quote_plus(fn)
+        kwargs = {"pk": pk, "filename": fn}
+        href = reverse("opds:v1:download", kwargs=kwargs)
         return OPDSLink(
             Rel.ACQUISITION,
-            reverse("opds:v1:download", kwargs=kwargs),
+            href,
             MimeType.DOWNLOAD,
             length=self.obj.get("size", 1),
         )

@@ -2,6 +2,7 @@
 import base64
 import calendar
 import datetime
+import re
 import uuid
 from pathlib import Path
 
@@ -125,15 +126,20 @@ class Volume(BrowserGroupModel):
 
         unique_together = ("name", "series")
 
+    @classmethod
+    def to_str(cls, name):
+        """Represent volume as a string."""
+        if not name:
+            vol = ""
+        elif len(name) == cls.YEAR_LEN:
+            vol = f"({name})"
+        else:
+            vol = "v" + name
+        return vol
+
     def __str__(self):
         """Represent volume as a string."""
-        if not self.name:
-            vol = ""
-        elif len(self.name) == self.YEAR_LEN:
-            vol = f"({self.name})"
-        else:
-            vol = "v" + self.name
-        return vol
+        return self.to_str(self.name)
 
 
 def validate_dir_exists(path):
@@ -257,7 +263,11 @@ class WatchedPath(BrowserGroupModel):
         st[0] = st_record.st_mode
         st[1] = st_record.st_ino
         # st[2] = st_record.st_dev is ignored by diff
+        # st[3] = st_record.st_nlink
+        # st[4] = st_record.st_uid
+        # st[5] = st_record.st_gid
         st[6] = st_record.st_size
+        # st[7] = st_record.st_atime
         st[8] = st_record.st_mtime
         self.stat = st
 
@@ -288,6 +298,7 @@ class Comic(WatchedPath):
         PDF = "PDF"
 
     ORDERING = ("series__name", "volume__name", "issue", "issue_suffix", "name", "pk")
+    _RE_COMBINE_WHITESPACE = re.compile(r"\s+")
 
     # From BaseModel, but Comics are sorted by these so index them
     created_at = DateTimeField(auto_now_add=True, db_index=True)
@@ -407,43 +418,50 @@ class Comic(WatchedPath):
         self.presave()
         super().save(*args, **kwargs)
 
+    @classmethod
+    def get_filename(cls, obj, ext=True):
+        """Get the fileaname from dict."""
+        names = []
+        if sn := obj.get("series_name"):
+            names.append(sn)
+        if vn := obj.get("volume_name"):
+            vn = Volume.to_str(vn)
+            names.append(vn)
+        issue = obj.get("issue")
+        if issue is not None:
+            issue_str = "#"
+            if issue % 1 == 0:
+                issue_str += f"{issue:05.0f}"
+            else:
+                issue_str += f"{issue:06.1f}"
+            if issue_suffix := obj.get("issue_suffix"):
+                issue_str += issue_suffix
+            names.append(issue_str)
+        if name := obj.get("name"):
+            names.append(name)
+
+        fn = " ".join(names).strip(" .")
+        fn = cls._RE_COMBINE_WHITESPACE.sub(" ", fn).strip()
+        if ext:
+            ft = obj.get("file_type", "cbz")
+            fn += "." + ft.lower()
+        return fn
+
+    def filename(self, ext=True):
+        """Create a filename for download."""
+        obj = {
+            "series_name": self.series.name,
+            "volume_name": self.volume.name,
+            "issue": self.issue,
+            "issue_suffix": self.issue_suffix,
+        }
+        if ext:
+            obj["file_type"] = self.file_type
+        return self.get_filename(obj, ext=ext)
+
     def __str__(self):
         """Most common text representation for logging."""
-        names = []
-        if self.series.name:
-            names.append(self.series.name)
-        if self.volume.name:
-            names.append(self.volume.name)
-        if self.issue is not None:
-            names.append(f"#{self.issue:06.1f}")
-        if self.issue_suffix:
-            names.append(self.issue_suffix)
-        if self.name:
-            names.append(self.name)
-        return " ".join(names).strip()
-
-    def filename(self):
-        """Create a filename for download."""
-        names = []
-        if self.series.name:
-            names.append(self.series.name)
-        if self.volume.name:
-            names.append(str(self.volume))
-        if self.issue is not None:
-            issue = "#"
-            if self.issue % 1 == 0:
-                issue += f"{self.issue:05.0f}"
-            else:
-                issue += f"{self.issue:06.1f}"
-            if self.issue_suffix:
-                issue += self.issue_suffix
-            names.append(issue)
-        if self.name:
-            names.append(self.name)
-
-        fn = " ".join(names).strip()
-        fn += "." + Path(self.path).suffix
-        return fn
+        return self.filename(ext=False)
 
 
 class AdminFlag(BaseModel):

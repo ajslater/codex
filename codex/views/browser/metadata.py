@@ -50,20 +50,13 @@ class MetadataView(BrowserAnnotationsView):
         "created_at",
     }
     _COMIC_VALUE_FIELDS_CONFLICTING_PREFIX = "conflict_"
-    _COMIC_FK_FIELDS = {
-        "publisher",
-        "imprint",
-        "series",
-        "volume",
-    }
     _COMIC_FK_FIELDS_MAP = {
-        "f": _COMIC_FK_FIELDS,
-        "p": _COMIC_FK_FIELDS.difference(frozenset(["publisher"])),
-        "i": _COMIC_FK_FIELDS.difference(frozenset(["imprint"])),
-        "s": _COMIC_FK_FIELDS.difference(frozenset(["series"])),
-        "v": _COMIC_FK_FIELDS.difference(frozenset(["volume"])),
-        "c": _COMIC_FK_FIELDS,
+        "p": "publisher",
+        "i": "imprint",
+        "s": "series",
+        "v": "volume",
     }
+    _COMIC_FK_FIELDS = frozenset(_COMIC_FK_FIELDS_MAP.values())
     _COMIC_FK_ANNOTATION_PREFIX = "fk_"
     _COMIC_RELATED_VALUE_FIELDS = {"series__volume_count", "volume__issue_count"}
     _COUNT_FIELD_MAP = {
@@ -127,16 +120,17 @@ class MetadataView(BrowserAnnotationsView):
         count_field, count_src_field_name = op_field_names
         val[count_field] = obj[count_src_field_name]
 
-    @classmethod
-    def _field_copy(cls, obj, fields, prefix, fk_field=None):
+    def _field_copy(self, obj, fields, prefix, fk_field=None):
         """Copy annotation fields into comic type fields."""
         for field_name in fields:
             src_field_name = f"{prefix}{field_name}"
             val = obj[src_field_name]
             if fk_field:
                 val = {fk_field: val}
+                if pk := obj.get(field_name + "_id"):
+                    val["pk"] = pk
                 # Add special count fields
-                cls._field_copy_fk_count(field_name, obj, val)
+                self._field_copy_fk_count(field_name, obj, val)
             obj[field_name] = val
 
     def _annotate_aggregates(self, qs):
@@ -166,7 +160,7 @@ class MetadataView(BrowserAnnotationsView):
             querysets = (simple_qs, qs)
 
         # Foreign Keys
-        fk_fields = copy(self._COMIC_FK_FIELDS_MAP[self.group])
+        fk_fields = copy(self._COMIC_FK_FIELDS)
         querysets = self._intersection_annotate(
             querysets,
             fk_fields,
@@ -181,6 +175,13 @@ class MetadataView(BrowserAnnotationsView):
             annotation_prefix=self._COMIC_FK_ANNOTATION_PREFIX,
         )
         return qs
+
+    def _annotate_for_filename(self, qs):
+        """Annotate for the filename function."""
+        if not self.is_model_comic:
+            return qs
+        qs = qs.annotate(parent_folder_pk=F("parent_folder_id"))
+        return qs.annotate(series_name=F("series__name"), volume_name=F("volume__name"))
 
     def _query_m2m_intersections(self, simple_qs):
         """Query the through models to figure out m2m intersections."""
@@ -219,8 +220,8 @@ class MetadataView(BrowserAnnotationsView):
             reason = f"Cannot get metadata for {self.group=}"
             raise ValueError(reason)
         group_field = self.model.__name__.lower()
-        obj[group_field] = {"name": obj["name"]}
-        comic_fk_fields = copy(self._COMIC_FK_FIELDS_MAP[self.group])
+        obj[group_field] = {"pk": obj["id"], "name": obj["name"]}
+        comic_fk_fields = copy(self._COMIC_FK_FIELDS)
         self._field_copy(
             obj,
             comic_fk_fields,
@@ -257,6 +258,7 @@ class MetadataView(BrowserAnnotationsView):
         for unionfix_field, field in METADATA_ORDERED_UNIONFIX_VALUES_MAP.items():
             obj[unionfix_field] = obj.get(field)
 
+        obj["filename"] = Comic.get_filename(obj)
         return obj
 
     def get_object(self):
@@ -276,6 +278,7 @@ class MetadataView(BrowserAnnotationsView):
         simple_qs = qs
 
         qs = self._annotate_values_and_fks(qs, simple_qs)
+        qs = self._annotate_for_filename(qs)
         m2m_intersections = self._query_m2m_intersections(simple_qs)
         try:
             obj = qs.values()[0]

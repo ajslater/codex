@@ -10,19 +10,30 @@ from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK
 from codex.librarian.tasks import DelayedTasks
 from codex.logger.logging import get_logger
 
+GROUP_CHANGE_MODEL_NAMES = frozenset(("User", "Library"))
+GROUP_CHANGE_ACTIONS = frozenset(
+    (
+        "post_add",
+        "post_remove",
+        "post_clear",
+    )
+)
 
-def _activate_wal_journal(sender, connection, **kwargs):  # noqa: ARG001,F841,RUF100
+
+def _activate_wal_journal(**kwargs):
     """Enable sqlite WAL journal."""
+    connection = kwargs["connection"]
     with connection.cursor() as cursor:
         cursor.execute("PRAGMA journal_mode=wal;")
 
 
-def _user_group_change(action, _instance, _pk_set, model, **kwargs):
+def _user_group_change(**kwargs):
     """Clear cache and send update signals when groups change."""
-    if model.__name__ != "Group" or action not in (
-        "post_add",
-        "post_remove",
-        "post_clear",
+    model = kwargs["model"]
+    action = kwargs["action"]
+    if (
+        model.__name__ not in GROUP_CHANGE_MODEL_NAMES
+        or action not in GROUP_CHANGE_ACTIONS
     ):
         return
     cache.clear()

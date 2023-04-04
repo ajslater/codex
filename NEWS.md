@@ -6,6 +6,63 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.3.7
+
+- Feature
+  - Metadata page links to groups to browse to.
+- Fix
+  - Crash when moving comics.
+  - Container memory limits weren't detected for Linux kernels before 4.5
+  - Reader
+    - Horizontal Reader was slow for comics with high page counts.
+    - Vertical scroller was not tracking pages in fitTo Width or Orig modes.
+  - Dev
+    - Django 4.2
+
+## v1.3.6
+
+- Fix
+  - Much lower memory tuning. Environment variables control tuning.
+  - Possible fix for vertical scroller page tracking for tall images.
+
+## v1.3.5
+
+- Fix
+  - OPDS sorting and filtering broke.
+  - Fixed Download URLs for clients that ignore headers like Chunky.
+  - Update Search Index now checks for more missing entries.
+
+## v1.3.4
+
+- Fix
+  - Number out of range errors for issue when search indexing.
+  - Total child pages of folders and groups sometimes overcounted, displaying
+    half unread folders.
+  - Reader: Vertical Scroll
+    - Remove black bottom margin from images.
+    - Was loading every page in a comic at once.
+    - Page tracking did not work with images larger than viewport width.
+
+## v1.3.3
+
+- Fix
+  - Number out of range errors when search indexing.
+  - Possible Search Index Remove Stale and Abort jobs not scheduled properly.
+  - OPDS missing entry ids rejected by Panels reader.
+  - Downloads had an extra period in the suffix.
+
+## v1.3.2
+
+- Fix
+  - Reader Fit To settings broken
+  - Possible files marked modified too often.
+
+## v1.3.1
+
+- Fix
+  - An import crash in create foreign keys.
+  - Admin table dates were always in UTC so sometime off by a day.
+
 ## v1.3.0
 
 ### I remember... my whole life. Everything

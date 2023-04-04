@@ -45,8 +45,6 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
     template_name = "opds/index.xml"
     serializer_class = OPDSTemplateSerializer
 
-    AQUISITION_GROUPS = {"s", "f", "c"}
-
     @property
     def opds_ns(self):
         """Dynamic opds namespace."""
@@ -149,7 +147,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
             "name": name,
             "query_params": query_params,
         }
-        return OPDSEntry(obj, self.valid_nav_groups, {**self.request.query_params})
+        return OPDSEntry(obj, self.acquisition_groups, {**self.request.query_params})
 
     def _is_facet_active(self, facet_group, facet):
         compare = [facet.value]
@@ -273,7 +271,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
             "summary": top_link.desc,
         }
 
-        return OPDSEntry(entry_obj, self.valid_nav_groups, {})
+        return OPDSEntry(entry_obj, self.acquisition_groups, {})
 
     def _add_top_links(self, top_links):
         """Add a list of top links as entries if they should be enabled."""
@@ -300,7 +298,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
                     entries += [
                         OPDSEntry(
                             entry_obj,
-                            self.valid_nav_groups,
+                            self.acquisition_groups,
                             self.request.query_params,
                         )
                     ]
@@ -311,7 +309,8 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
     def get_object(self):
         """Get the browser page and serialize it for this subclass."""
         group = self.kwargs.get("group")
-        self.is_opds_acquisition = group in self.AQUISITION_GROUPS
+        self.acquisition_groups = frozenset(self.valid_nav_groups[-2:])
+        self.is_opds_acquisition = group in self.acquisition_groups
         self.is_opds_metadata = (
             self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
         )

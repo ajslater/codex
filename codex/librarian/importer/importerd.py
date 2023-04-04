@@ -213,7 +213,7 @@ class ComicImporterThread(ApplyDBOpsMixin):
     def _apply(self, task):
         """Bulk import comics."""
         start_time = time()
-        LIBRARIAN_QUEUE.put(SearchIndexAbortTask())
+        self.librarian_queue.put(SearchIndexAbortTask())
         library = Library.objects.get(pk=task.library_id)
         try:
             self._init_apply(library, task)

@@ -15,7 +15,7 @@
         </v-icon>
       </v-btn>
     </template>
-    <div v-if="md" id="metadataContainer">
+    <div v-if="md" id="metadataContainer" @keyup.esc="dialog = false">
       <header id="metadataHeader">
         <CloseButton
           class="closeButton"
@@ -51,35 +51,40 @@
           <MetadataText
             id="publisher"
             :value="md.publisher"
+            group="p"
             label="Publisher"
-            :highlight="'p' === md.group"
+            :obj="{ pk: md.id, group: md.group }"
           />
           <MetadataText
             id="imprint"
             :value="md.imprint"
+            group="i"
             label="Imprint"
-            :highlight="'i' === md.group"
+            :obj="{ pk: md.id, group: md.group }"
           />
         </div>
         <MetadataText
           id="series"
           :value="md.series"
           label="Series"
-          :highlight="'s' === md.group"
+          group="s"
+          :obj="{ pk: md.id, group: md.group }"
         />
         <div class="headerQuarterRow">
           <MetadataText
             id="volume"
             :value="md.volume"
             label="Volume"
-            :highlight="'v' === md.group"
+            group="v"
+            :obj="{ pk: md.id, group: md.group }"
           />
           <MetadataText :value="md.volumeCount" label="Volume Count" />
           <MetadataText
             id="issue"
             :value="formattedIssue"
             label="Issue"
-            :highlight="'c' === md.group"
+            group="c"
+            :obj="{ pk: md.id, group: md.group }"
           />
           <MetadataText :value="md.issueCount" label="Issue Count" />
         </div>
@@ -124,7 +129,11 @@
             <MetadataText :value="fileType" label="File Type" />
           </div>
           <div class="lastSmallRow">
-            <MetadataText :value="md.path" label="Path" />
+            <MetadataText
+              group="f"
+              :value="{ pk: md.parentFolderPk, name: md.path }"
+              label="Path"
+            />
           </div>
         </section>
         <section class="halfRow mdSection">
@@ -343,12 +352,6 @@ export default {
       }
     },
   },
-  mounted() {
-    window.addEventListener("keyup", this._keyListener);
-  },
-  beforeUnmount() {
-    window.removeEventListener("keyup", this._keyListener);
-  },
   methods: {
     ...mapActions(useMetadataStore, ["clearMetadata", "loadMetadata"]),
     ...mapActions(useCommonStore, ["downloadIOSPWAFix"]),
@@ -379,13 +382,7 @@ export default {
       return getDateTime(ds, this.twentyFourHourTime);
     },
     download() {
-      this.downloadIOSPWAFix(this.downloadURL, this.downloadFileName);
-    },
-    _keyListener(event) {
-      event.stopImmediatePropagation();
-      if (event.key === "Escape") {
-        this.dialog = false;
-      }
+      this.downloadIOSPWAFix(this.downloadURL, this.md.filename);
     },
   },
 };

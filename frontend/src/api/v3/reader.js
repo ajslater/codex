@@ -19,7 +19,7 @@ const setReaderSettings = (data) => {
 export const getDownloadURL = (pk) => {
   const READER_PATH = getReaderPath(pk);
   const timestamp = getTSParams().ts;
-  return `${READER_PATH}/download.cbz?ts=${timestamp}`;
+  return `${READER_PATH}/download/comic-${pk}.cbz?ts=${timestamp}`;
 };
 
 export const getDownloadPageURL = ({ pk, page }) => {

@@ -43,23 +43,18 @@ export default {
         return getDownloadURL(state.pk);
       },
     }),
-    fileName: function () {
-      let suffix = this.activeBook.fileType;
-      suffix = suffix.lower() ? suffix : "unknown";
-      return this.activeTitle + "." + suffix;
-    },
+    ...mapGetters(useReaderStore, ["activeBook"]),
     pageName: function () {
       return `${this.activeTitle} - page ${this.storePage}.jpg`;
     },
   },
   methods: {
     ...mapActions(useCommonStore, ["downloadIOSPWAFix"]),
-    ...mapActions(useReaderStore, ["activeBook"]),
     downloadPage() {
       this.downloadIOSPWAFix(this.pageSrc, this.pageName);
     },
     downloadBook() {
-      this.downloadIOSPWAFix(this.downloadURL, this.fileName);
+      this.downloadIOSPWAFix(this.downloadURL, this.activeBook.filename);
     },
   },
 };

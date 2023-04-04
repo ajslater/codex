@@ -30,6 +30,7 @@ class ReaderView(BookmarkBaseView):
         for attr in cls.SETTINGS_ATTRS:
             settings[attr] = book[f"settings__{attr}"]
         book["settings"] = settings
+        book["filename"] = Comic.get_filename(book)
         books.append(book)
 
     def _get_comic_query_params(self, pk):

@@ -45,7 +45,7 @@ const _scrollToPageRetry = (page, tries = 10, sleep = 0) => {
     el.scrollIntoView();
   } else {
     if (tries > 0) {
-      console.log("sleep", sleep);
+      //console.debug("sleep", sleep);
       setTimeout(function () {
         _scrollToPageRetry(page, tries - 1, sleep + 50);
       }, sleep);
@@ -264,7 +264,6 @@ export const useReaderStore = defineStore("reader", {
       });
     },
     setActivePage(page, scroll = false) {
-      console.log("setActivePage", page);
       if (page < 0) {
         console.warn("Page out of bounds. Redirecting to 0.");
         return this.routeToPage(0);

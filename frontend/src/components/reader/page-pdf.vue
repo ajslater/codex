@@ -49,14 +49,14 @@ export default {
       // Wide PDFs will not fit to SCREEN well.
       // vue-pdf-embed internal canvas sizing algorithm makes this difficult.
       // Maybe not impossible but I'm lazy right now.
-      let width = ["WIDTH"].includes(this.settings.fitTo) ? this.innerWidth : 0;
+      let width = ["W"].includes(this.settings.fitTo) ? this.innerWidth : 0;
       if (!this.settings.vertical && this.settings.twoPages) {
         width = width / 2;
       }
       return width;
     },
     height() {
-      let height = ["HEIGHT", "SCREEN"].includes(this.settings.fitTo)
+      let height = ["H", "S"].includes(this.settings.fitTo)
         ? this.innerHeight
         : 0;
       if (this.settings.vertical) {

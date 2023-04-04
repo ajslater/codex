@@ -44,7 +44,7 @@
 {% endfor %}
 {% for entry in entries %}
 <entry>
-  <id>{{ entry.id }}</id>
+  <id>{{ entry.id_tag }}</id>
   <title>{{ entry.title }}</title>
   {% for link in entry.links %}
     <link 
