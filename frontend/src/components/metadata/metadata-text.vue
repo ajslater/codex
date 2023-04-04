@@ -3,20 +3,35 @@
     <div class="textLabel">
       {{ label }}
     </div>
-    <a v-if="link" :href="computedValue" target="_blank">
-      {{ computedValue }}
-      <v-icon size="small">
-        {{ mdiOpenInNew }}
-      </v-icon>
-    </a>
-    <div v-else class="textContent">
-      {{ computedValue }}
+    <div class="textValue">
+      <router-link
+        v-if="groupTo && group === 'f'"
+        id="folderPath"
+        :to="groupTo"
+        title="Browse Folder"
+        >{{ folderPath }}/</router-link
+      >
+      <router-link v-else-if="groupTo" :to="groupTo" :title="`Browse ${label}`">
+        {{ computedValue }}
+      </router-link>
+      <a v-else-if="link" :href="computedValue" target="_blank">
+        {{ computedValue }}
+        <v-icon size="small">
+          {{ mdiOpenInNew }}
+        </v-icon>
+      </a>
+      <div v-else class="textContent">
+        {{ computedValue }}
+      </div>
+      <span v-if="groupTo && group === 'f'" id="basePath">{{ basePath }} </span>
     </div>
   </div>
 </template>
 
 <script>
 import { mdiOpenInNew } from "@mdi/js";
+
+import { useBrowserStore } from "@/stores/browser";
 
 export default {
   name: "MetadataTextBox",
@@ -33,6 +48,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    group: {
+      type: String,
+      default: "",
+    },
     highlight: {
       type: Boolean,
       default: false,
@@ -44,10 +63,42 @@ export default {
     };
   },
   computed: {
-    computedValue: function () {
+    computedValue() {
       return this.value != undefined && this.value instanceof Object
         ? this.value.name
         : this.value;
+    },
+    pathArray() {
+      if (!this.computedValue) {
+        return;
+      }
+      return this.computedValue.split("/");
+    },
+    folderPath() {
+      if (!this.pathArray) {
+        return;
+      }
+      return this.pathArray.slice(0, -1).join("/");
+    },
+    basePath() {
+      if (!this.pathArray) {
+        return;
+      }
+      return this.pathArray.at(-1);
+    },
+    groupTo() {
+      const browserStore = useBrowserStore();
+      if (
+        (this.group !== "f" && !browserStore.settings.show[this.group]) ||
+        (this.group === "f" && !browserStore.page.adminFlags.folderView)
+      ) {
+        return;
+      }
+      const pk = this.value.pk;
+      if (!pk) {
+        return;
+      }
+      return { name: "browser", params: { group: this.group, pk } };
     },
   },
 };
@@ -71,5 +122,7 @@ export default {
   background-color: rgb(var(--v-theme-primary-darken-1));
   padding: 0px 8px 0px 8px;
   border-radius: 12px;
+}
+#basePath {
 }
 </style>

@@ -8,6 +8,8 @@ border-radius: 128px;
 
 ## v1.3.7
 
+- Feature
+  - Metadata page links to groups to browse to.
 - Fix
   - Crash when moving comics.
   - Container memory limits weren't detected in Linux kernels before 4.5

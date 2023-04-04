@@ -15,7 +15,7 @@
         </v-icon>
       </v-btn>
     </template>
-    <div v-if="md" id="metadataContainer">
+    <div v-if="md" id="metadataContainer" @keyup.esc="dialog = false">
       <header id="metadataHeader">
         <CloseButton
           class="closeButton"
@@ -51,12 +51,14 @@
           <MetadataText
             id="publisher"
             :value="md.publisher"
+            group="p"
             label="Publisher"
             :highlight="'p' === md.group"
           />
           <MetadataText
             id="imprint"
             :value="md.imprint"
+            group="i"
             label="Imprint"
             :highlight="'i' === md.group"
           />
@@ -65,6 +67,7 @@
           id="series"
           :value="md.series"
           label="Series"
+          group="s"
           :highlight="'s' === md.group"
         />
         <div class="headerQuarterRow">
@@ -72,6 +75,7 @@
             id="volume"
             :value="md.volume"
             label="Volume"
+            group="v"
             :highlight="'v' === md.group"
           />
           <MetadataText :value="md.volumeCount" label="Volume Count" />
@@ -124,7 +128,12 @@
             <MetadataText :value="fileType" label="File Type" />
           </div>
           <div class="lastSmallRow">
-            <MetadataText :value="md.path" label="Path" />
+            <MetadataText
+              group="f"
+              :value="{ pk: md.parentFolderPk, name: md.path }"
+              label="Path"
+              :group-link="true"
+            />
           </div>
         </section>
         <section class="halfRow mdSection">
@@ -343,12 +352,6 @@ export default {
       }
     },
   },
-  mounted() {
-    window.addEventListener("keyup", this._keyListener);
-  },
-  beforeUnmount() {
-    window.removeEventListener("keyup", this._keyListener);
-  },
   methods: {
     ...mapActions(useMetadataStore, ["clearMetadata", "loadMetadata"]),
     ...mapActions(useCommonStore, ["downloadIOSPWAFix"]),
@@ -380,12 +383,6 @@ export default {
     },
     download() {
       this.downloadIOSPWAFix(this.downloadURL, this.md.filename);
-    },
-    _keyListener(event) {
-      event.stopImmediatePropagation();
-      if (event.key === "Escape") {
-        this.dialog = false;
-      }
     },
   },
 };
