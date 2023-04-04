@@ -12,7 +12,7 @@ border-radius: 128px;
   - Metadata page links to groups to browse to.
 - Fix
   - Crash when moving comics.
-  - Container memory limits weren't detected in Linux kernels before 4.5
+  - Container memory limits weren't detected for Linux kernels before 4.5
   - Reader
     - Horizontal Reader was slow for comics with high page counts.
     - Vertical scroller was not tracking pages in fitTo Width or Orig modes.
