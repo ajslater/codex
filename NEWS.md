@@ -9,8 +9,11 @@ border-radius: 128px;
 ## v1.3.7
 
 - Fix
-  - Container memory limits weren't detected in Linux kernels before 4.5
   - Crash when moving comics.
+  - Container memory limits weren't detected in Linux kernels before 4.5
+  - Reader
+    - Horizontal Reader was slow for comics with high page counts.
+    - Vertical scroller was not tracking pages in fitTo Width or Orig modes.
 
 ## v1.3.6
 

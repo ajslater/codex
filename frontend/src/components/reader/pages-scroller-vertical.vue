@@ -7,8 +7,10 @@
     :visible-items="visibleItems"
     :height="innerHeight"
     :width="innerWidth"
-    :item-height="itemHeight"
   >
+    <!--
+    :item-height="itemHeight"
+    -->
     <template #default="{ item }">
       <BookPage :book="book" :page="item" />
       <div
@@ -31,7 +33,8 @@ import { VVirtualScroll } from "vuetify/labs/VVirtualScroll";
 import BookPage from "@/components/reader/page.vue";
 import { useReaderStore } from "@/stores/reader";
 
-const MODAL_COMIC_RATIO = 1.537_223_340_040_241_5;
+// const MODAL_COMIC_RATIO = 1.537_223_340_040_241_5;
+const MAX_VISIBLE_PAGES = 8;
 
 export default {
   name: "PagesScrollerVertical",
@@ -75,9 +78,9 @@ export default {
       return pages;
     },
     visibleItems() {
-      // 5 is the magic number to avoid disappearing items at the midpoint.
-      return Math.min(this.book?.maxPage ?? 0, 5);
+      return Math.min(this.book?.maxPage ?? 0, MAX_VISIBLE_PAGES);
     },
+    /*
     itemHeight() {
       const fitTo = this.settings.fitTo;
       let height = window.innerHeight;
@@ -88,6 +91,7 @@ export default {
       }
       return height;
     },
+    */
     intersectOptions() {
       const fitTo = this.settings.fitTo;
       let options;
@@ -96,7 +100,7 @@ export default {
           ? {
               threshold: [0.75],
             }
-          : {};
+          : undefined;
       return options;
     },
   },
@@ -120,6 +124,7 @@ export default {
         const entry = entries[0];
         const page = +entry.target.dataset.page;
         this.setActivePage(page);
+        // console.log(isIntersecting, page, entries[0].intersectionRatio);
       }
     },
     onScroll() {
@@ -155,12 +160,14 @@ export default {
   top: 0;
   left: 0;
   z-index: 15;
-  width: 100vw;
+  width: 90vw;
   height: 100%;
   // TODO, somehow get it horizontally fixed.
   /*
+  // For debugging
   background-color: green;
   opacity: 0.25;
+  border: dashed 10px red;
   */
 }
 </style>
