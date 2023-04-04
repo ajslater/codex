@@ -1,6 +1,6 @@
 <template>
-  <PagesScrollerVertical v-if="vertical" :book="book" />
-  <PagesWindowHorizontal v-else :book="book" />
+  <PagesScrollerVertical v-if="vertical" :book="book" @click="$emit['click']" />
+  <PagesWindowHorizontal v-else :book="book" @click="$emit['click']" />
 </template>
 
 <script>

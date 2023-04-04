@@ -33,7 +33,7 @@ import { VVirtualScroll } from "vuetify/labs/VVirtualScroll";
 import BookPage from "@/components/reader/page.vue";
 import { useReaderStore } from "@/stores/reader";
 
-// const MODAL_COMIC_RATIO = 1.537_223_340_040_241_5;
+const MODAL_COMIC_RATIO = 1.537_223_340_040_241_5;
 const MAX_VISIBLE_PAGES = 8;
 
 export default {
@@ -45,7 +45,6 @@ export default {
   props: {
     book: { type: Object, required: true },
   },
-  emits: ["click"],
   data() {
     return {
       mountedTime: 0,
@@ -80,7 +79,6 @@ export default {
     visibleItems() {
       return Math.min(this.book?.maxPage ?? 0, MAX_VISIBLE_PAGES);
     },
-    /*
     itemHeight() {
       const fitTo = this.settings.fitTo;
       let height = window.innerHeight;
@@ -91,7 +89,6 @@ export default {
       }
       return height;
     },
-    */
     intersectOptions() {
       const fitTo = this.settings.fitTo;
       let options;
