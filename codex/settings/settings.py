@@ -285,8 +285,8 @@ HAYSTACK_LOGGING = False
 MMAP_RATIO = int(environ.get("MMAP_RATIO", 320))
 WRITER_MEMORY_PERCENT = float(environ.get("WRITER_MEMORY_PERCENT", 0.8))
 CPU_MULTIPLIER = float(environ.get("CPU_MULTIPLIER", 1.5))
-CHUNK_PER_GB =  int(environ.get("CHUNK_PER_GB", 250))
-MAX_CHUNK_SIZE =  int(environ.get("MAX_CHUNK_SIZE", 1000))
+CHUNK_PER_GB = int(environ.get("CHUNK_PER_GB", 250))
+MAX_CHUNK_SIZE = int(environ.get("MAX_CHUNK_SIZE", 1000))
 
 CHANNEL_LAYERS = {
     "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"},

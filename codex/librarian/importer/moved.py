@@ -26,8 +26,8 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
         # Prepare FKs
         create_folder_paths = {}
         self.query_missing_folder_paths(
-            moved_paths.values(), library.path, create_folder_paths,
-            status=status)
+            moved_paths.values(), library.path, create_folder_paths, status=status
+        )
         self.bulk_folders_create(create_folder_paths, library, status=status)
 
         # Update Comics

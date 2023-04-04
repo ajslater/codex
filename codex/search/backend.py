@@ -31,7 +31,13 @@ from codex.memory import get_mem_limit
 from codex.models import Comic
 from codex.search.indexes import ComicIndex
 from codex.search.writing import CodexWriter
-from codex.settings.settings import CHUNK_PER_GB, CPU_MULTIPLIER, MAX_CHUNK_SIZE, MMAP_RATIO, WRITER_MEMORY_PERCENT
+from codex.settings.settings import (
+    CHUNK_PER_GB,
+    CPU_MULTIPLIER,
+    MAX_CHUNK_SIZE,
+    MMAP_RATIO,
+    WRITER_MEMORY_PERCENT,
+)
 from codex.worker_base import WorkerBaseMixin
 
 
@@ -189,8 +195,10 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         procs = min(cpu_count(), cpu_max)
         limitmb = mem_limit_mb * self._WRITER_MEMORY_PERCENT / procs
         limitmb = int(limitmb)
-        self.writerargs =  {"limitmb": limitmb, "procs": procs, "multisegment": True}
-        self.chunk_size = max(int(mem_limit_gb * self._CHUNK_PER_GB), self._MAX_CHUNK_SIZE)
+        self.writerargs = {"limitmb": limitmb, "procs": procs, "multisegment": True}
+        self.chunk_size = max(
+            int(mem_limit_gb * self._CHUNK_PER_GB), self._MAX_CHUNK_SIZE
+        )
 
     @staticmethod
     def _get_text_analyzer():
