@@ -186,8 +186,9 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         # XXX will only connect to the log listener on Linux with fork
         self.log = get_logger(self.__class__.__name__)
         self.log.propagate = False
+        self._set_writerargs()
 
-    def _get_writerargs(self):
+    def _set_writerargs(self):
         """Get writerargs for this machine's cpu & memory config."""
         mem_limit_mb = get_mem_limit("m")
         mem_limit_gb = mem_limit_mb / 1024
