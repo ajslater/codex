@@ -9,7 +9,6 @@ from humanize import naturaldelta
 from codex.librarian.importer.db_ops import ApplyDBOpsMixin
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.librarian.importer.tasks import AdoptOrphanFoldersTask, UpdaterDBDiffTask
-from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import FAILED_IMPORTS_TASK, LIBRARY_CHANGED_TASK
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexAbortTask, SearchIndexUpdateTask
