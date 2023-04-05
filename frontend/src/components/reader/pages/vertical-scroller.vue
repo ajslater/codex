@@ -9,7 +9,6 @@
     :width="innerWidth"
   >
     <!--
-
     :item-height="itemHeight"
     dynamic itemHeight solves the jumpy scroll issue,
     but throws a recursive warning.
