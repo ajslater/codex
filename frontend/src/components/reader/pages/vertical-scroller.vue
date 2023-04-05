@@ -55,7 +55,7 @@ export default {
       innerHeight: window.innerHeight,
       innerWidth: window.innerWidth,
       intersectorOn: false,
-      programatticScroll: false,
+      programmaticScroll: false,
     };
   },
   computed: {
@@ -125,7 +125,7 @@ export default {
       }
     },
     onScroll() {
-      if (this.programatticScroll) {
+      if (this.programmaticScroll) {
         return;
       }
       this.intersectorOn = true;
@@ -143,10 +143,10 @@ export default {
     },
     scrollToPage(page) {
       this.intersectorOn = false;
-      this.programatticScroll = true;
+      this.programmaticScroll = true;
       this.$refs.verticalScroll.scrollToIndex(page);
       setTimeout(() => {
-        this.programatticScroll = false;
+        this.programmaticScroll = false;
       }, 250);
       this.scrolled = true;
     },
