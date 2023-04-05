@@ -57,7 +57,7 @@ export default {
   methods: {
     ...mapActions(useReaderStore, ["setPage"]),
     onClick() {
-      this.setPage(this.value, true);
+      this.setPage(this.value, false);
     },
   },
 };

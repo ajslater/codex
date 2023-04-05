@@ -92,7 +92,7 @@ export default {
     ]),
     onSliderUpdate(page) {
       if (this.activeSettings.vertical) {
-        this.setPage(page, true);
+        this.setPage(page, false);
       } else {
         this.routeToPage(page);
       }

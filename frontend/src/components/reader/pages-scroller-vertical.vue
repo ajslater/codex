@@ -7,9 +7,10 @@
     :visible-items="visibleItems"
     :height="innerHeight"
     :width="innerWidth"
-    :item-height="itemHeight"
   >
     <!--
+
+    :item-height="itemHeight"
     dynamic itemHeight solves the jumpy scroll issue,
     but throws a recursive warning.
     -->
@@ -29,14 +30,13 @@
 
 <script>
 import _ from "lodash";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState, mapWritableState } from "pinia";
 import { VVirtualScroll } from "vuetify/labs/VVirtualScroll";
 
 import BookPage from "@/components/reader/page.vue";
 import { useReaderStore } from "@/stores/reader";
 
-const MODAL_COMIC_RATIO = 1.537_223_340_040_241_5;
-const MAX_VISIBLE_PAGES = 8;
+const MAX_VISIBLE_PAGES = 48;
 
 export default {
   name: "PagesScrollerVertical",
@@ -54,16 +54,15 @@ export default {
       // goes crazy and scrolls to 0.
       innerHeight: window.innerHeight,
       innerWidth: window.innerWidth,
+      intersectorOn: false,
+      programatticScroll: false,
     };
   },
   computed: {
-    ...mapGetters(useReaderStore, ["isOnCoverPage"]),
     ...mapState(useReaderStore, {
-      prevBook: (state) => state.routes.books?.prev,
-      nextBook: (state) => state.routes.books?.next,
       storePage: (state) => state.page,
-      storePk: (state) => state.pk,
     }),
+    ...mapWritableState(useReaderStore, ["scrolled"]),
     settings() {
       return this.getSettings(this.book);
     },
@@ -81,16 +80,6 @@ export default {
     visibleItems() {
       return Math.min(this.book?.maxPage ?? 0, MAX_VISIBLE_PAGES);
     },
-    itemHeight() {
-      const fitTo = this.settings.fitTo;
-      let height = window.innerHeight;
-      if (fitTo === "W") {
-        height = height * MODAL_COMIC_RATIO;
-      } else if (fitTo == "O") {
-        height = height * 2;
-      }
-      return height;
-    },
     intersectOptions() {
       const fitTo = this.settings.fitTo;
       let options;
@@ -103,10 +92,20 @@ export default {
       return options;
     },
   },
+  watch: {
+    storePage(to) {
+      if (!this.scrolled) {
+        this.scrollToPage(to);
+      }
+    },
+  },
   mounted() {
     window.addEventListener("resize", this.onResize);
-    this.setPage(this.storePage, true);
     this.mountedTime = Date.now();
+    this.setActivePage(this.storePage);
+    setTimeout(() => {
+      this.scrollToPage(this.storePage);
+    }, 250);
   },
   beforeUnmount() {
     window.removeEventListener("resize", this.onResize);
@@ -119,18 +118,17 @@ export default {
       "getSettings",
     ]),
     onIntersect(isIntersecting, entries) {
-      if (isIntersecting) {
+      if (isIntersecting && this.intersectorOn) {
         const entry = entries[0];
         const page = +entry.target.dataset.page;
-        this.setActivePage(page);
-        // console.log(isIntersecting, page, entries[0].intersectionRatio);
+        this.setActivePage(page, true);
       }
     },
     onScroll() {
-      if (Date.now() - this.mountedTime < 2) {
-        // Don't show scrolly book change drawers immediately on load.
+      if (this.programatticScroll) {
         return;
       }
+      this.intersectorOn = true;
       const el = this.$refs.verticalScroll.$el;
       const scrollTop = el.scrollTop;
       if (this.storePage === 0 && scrollTop === 0) {
@@ -142,6 +140,15 @@ export default {
           this.setBookChangeFlag("next");
         }
       }
+    },
+    scrollToPage(page) {
+      this.intersectorOn = false;
+      this.programatticScroll = true;
+      this.$refs.verticalScroll.scrollToIndex(page);
+      setTimeout(() => {
+        this.programatticScroll = false;
+      }, 250);
+      this.scrolled = true;
     },
     onResize() {
       this.innerHeight = window.innerHeight;
@@ -159,7 +166,7 @@ export default {
   top: 0;
   left: 0;
   z-index: 15;
-  width: 90vw;
+  width: 95vw;
   height: 100%;
   // TODO, somehow get it horizontally fixed.
   /*
