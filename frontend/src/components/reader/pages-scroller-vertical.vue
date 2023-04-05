@@ -7,9 +7,11 @@
     :visible-items="visibleItems"
     :height="innerHeight"
     :width="innerWidth"
+    :item-height="itemHeight"
   >
     <!--
-    :item-height="itemHeight"
+    dynamic itemHeight solves the jumpy scroll issue,
+    but throws a recursive warning.
     -->
     <template #default="{ item }">
       <BookPage :book="book" :page="item" />
