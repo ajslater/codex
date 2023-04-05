@@ -22,8 +22,8 @@ import { mapActions, mapGetters, mapState } from "pinia";
 
 import PaginationSlider from "@/components/pagination-slider.vue";
 import PaginationToolbar from "@/components/pagination-toolbar.vue";
-import ReaderBookChangeNavButton from "@/components/reader/reader-book-change-nav-button.vue";
-import ReaderNavButton from "@/components/reader/reader-nav-button.vue";
+import ReaderBookChangeNavButton from "@/components/reader/toolbars/reader-book-change-nav-button.vue";
+import ReaderNavButton from "@/components/reader/toolbars/reader-nav-button.vue";
 import { useReaderStore } from "@/stores/reader";
 
 const PREV = "prev";
