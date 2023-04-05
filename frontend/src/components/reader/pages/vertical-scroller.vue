@@ -33,13 +33,13 @@ import _ from "lodash";
 import { mapActions, mapState, mapWritableState } from "pinia";
 import { VVirtualScroll } from "vuetify/labs/VVirtualScroll";
 
-import BookPage from "@/components/reader/page.vue";
+import BookPage from "@/components/reader/pages/page/page.vue";
 import { useReaderStore } from "@/stores/reader";
 
 const MAX_VISIBLE_PAGES = 48;
 
 export default {
-  name: "PagesScrollerVertical",
+  name: "PagesVerticalScroller",
   components: {
     BookPage,
     VVirtualScroll,
