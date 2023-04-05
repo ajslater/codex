@@ -37,6 +37,8 @@ import BookPage from "@/components/reader/pages/page/page.vue";
 import { useReaderStore } from "@/stores/reader";
 
 const MAX_VISIBLE_PAGES = 48;
+const TIMEOUT = 250;
+const INTERSECT_OPTIONS_USE_THRESHOLD = new Set(["S", "H"]);
 
 export default {
   name: "PagesVerticalScroller",
@@ -83,12 +85,11 @@ export default {
     intersectOptions() {
       const fitTo = this.settings.fitTo;
       let options;
-      options =
-        fitTo === "S" || fitTo === "H"
-          ? {
-              threshold: [0.75],
-            }
-          : undefined;
+      options = INTERSECT_OPTIONS_USE_THRESHOLD.has(fitTo)
+        ? {
+            threshold: [0.75],
+          }
+        : undefined;
       return options;
     },
   },
@@ -105,7 +106,7 @@ export default {
     this.setActivePage(this.storePage);
     setTimeout(() => {
       this.scrollToPage(this.storePage);
-    }, 250);
+    }, TIMEOUT);
   },
   beforeUnmount() {
     window.removeEventListener("resize", this.onResize);
@@ -147,7 +148,7 @@ export default {
       this.$refs.verticalScroll.scrollToIndex(page);
       setTimeout(() => {
         this.programmaticScroll = false;
-      }, 250);
+      }, TIMEOUT);
       this.scrolled = true;
     },
     onResize() {
