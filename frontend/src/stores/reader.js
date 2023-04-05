@@ -222,7 +222,6 @@ export const useReaderStore = defineStore("reader", {
     setPage(page, scrolled = true) {
       this.page = +page;
       this.scrolled = scrolled;
-      console.log("setPage", this.page, this.scrolled);
     },
     ///////////////////////////////////////////////////////////////////////////
     // ACTIONS

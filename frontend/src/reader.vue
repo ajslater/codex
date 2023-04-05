@@ -31,8 +31,8 @@ import { markRaw } from "vue";
 
 import BookChangeDrawer from "@/components/reader/book-change-drawer.vue";
 import BooksWindow from "@/components/reader/books-window.vue";
+import ReaderSettingsSuperPanel from "@/components/reader/drawer/reader-settings-super-panel.vue";
 import ReaderNavToolbar from "@/components/reader/reader-nav-toolbar.vue";
-import ReaderSettingsSuperPanel from "@/components/reader/reader-settings-super-panel.vue";
 import ReaderTitleToolbar from "@/components/reader/reader-title-toolbar.vue";
 import SettingsDrawer from "@/components/settings/settings-drawer.vue";
 import { useAuthStore } from "@/stores/auth";
