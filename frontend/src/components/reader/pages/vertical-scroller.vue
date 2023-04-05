@@ -83,14 +83,11 @@ export default {
       return Math.min(this.book?.maxPage ?? 0, MAX_VISIBLE_PAGES);
     },
     intersectOptions() {
-      const fitTo = this.settings.fitTo;
-      let options;
-      options = INTERSECT_OPTIONS_USE_THRESHOLD.has(fitTo)
+      return INTERSECT_OPTIONS_USE_THRESHOLD.has(this.settings.fitTo)
         ? {
             threshold: [0.75],
           }
         : undefined;
-      return options;
     },
   },
   watch: {
