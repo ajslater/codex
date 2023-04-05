@@ -38,7 +38,11 @@ import { useReaderStore } from "@/stores/reader";
 
 const MAX_VISIBLE_PAGES = 48;
 const TIMEOUT = 250;
-const INTERSECT_OPTIONS_USE_THRESHOLD = new Set(["S", "H"]);
+const INTERECT_OPTIONS_FIT_TO_HEIGHT = { threshold: [0.75] };
+const INTERSECT_OPTIONS = {
+  S: INTERECT_OPTIONS_FIT_TO_HEIGHT,
+  H: INTERECT_OPTIONS_FIT_TO_HEIGHT,
+};
 
 export default {
   name: "PagesVerticalScroller",
@@ -83,11 +87,7 @@ export default {
       return Math.min(this.book?.maxPage ?? 0, MAX_VISIBLE_PAGES);
     },
     intersectOptions() {
-      return INTERSECT_OPTIONS_USE_THRESHOLD.has(this.settings.fitTo)
-        ? {
-            threshold: [0.75],
-          }
-        : undefined;
+      return INTERSECT_OPTIONS[this.settings.fitTo];
     },
   },
   watch: {
