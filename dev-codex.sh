@@ -7,6 +7,5 @@ export PYTHONPATH="${PYTHONPATH:-}:$THIS_DIR"
 export DEBUG="${DEBUG:-1}"
 export PYTHONDEVMODE="$DEBUG"
 export PYTHONDONTWRITEBYTECODE=1
-kill % || true
-./kill-codex.sh || true
+make kill
 poetry run python3 ./codex/run.py

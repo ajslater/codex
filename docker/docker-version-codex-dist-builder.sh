@@ -27,16 +27,16 @@ DEPS=(
     .shellcheckrc
     dist-builder.Dockerfile
     bin/build-dist.sh
-    collectstatic.sh
-    lint.sh
-    lint-backend.sh
+    bin/collectstatic.sh
+    bin/lint.sh
+    bin/lint-backend.sh
     manage.py
     pm
     package.json
     package-lock.json
     pyproject.toml
     poetry.lock
-    test-backend.sh
+    bin/test-backend.sh
     "${SOURCE_DEPS[@]}"
 )
 

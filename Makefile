@@ -1,19 +1,37 @@
+## Upgrade pip and poetry
+install-backend-common:
+	pip install --upgrade pip
+	pip install --upgrade poetry
+	npm install
+	BREW_PREFIX=$(brew --prefix)
+	export LDFLAGS="-L${BREW_PREFIX}/opt/openssl@3/lib"
+	export CPPFLAGS="-I${BREW_PREFIX}/opt/openssl@3/include"
+	export PKG_CONFIG_PATH="${BREW_PREFIX}/opt/openssl@3/lib/pkgconfig"
+
+
+## Install frontend
+install-frontend:
+	bash -c "cd frontend && npm install"
+
 ## Install for production
-install:
-	pip install --update pip
-	poetry install --no-root
+install: install-backend-common install-frontend
+	poetry install --no-root --sync
 
 ## Install dev requirements
-install-dev:
-	poetry install  --no-root --extras=dev
+install-dev: install-backend-common install-frontend
+	poetry install  --no-root --extras=dev --sync
 
 ## Install all extras
-install-all:
-	poetry install --no-root --all-extras
+install-all: install-backend-common install-frontend
+	poetry install --no-root --all-extras --sync
 
 ## Build package
 build:
 	poetry build
+
+## Build frontend
+build-frontend:
+	bash -c "cd frontend && npm run build"
 
 ## Publish package to pypi
 publish:
@@ -77,6 +95,10 @@ dev-server:
 dev-frontend:
 	frontend/dev-server.sh
 
+## Collect static files for django
+collectstatic: build-frontend
+	bin/collectstatic.sh
+
 ## Show recent NEWS
 news:
 	head -40 NEWS.md
@@ -84,6 +106,19 @@ news:
 ## Build all icons from source
 icons:
 	bin/create-icons.sh
+
+## Time opds requests
+benchmark-opds:
+	bin/benchmark-opds.sh
+
+## Kill lingering codex processes
+kill:
+	kill %
+	bin/kill-codex.sh
+
+## Kill eslint daemon
+kill-eslint_d:
+	bin/kill-eslint_d.sh
 
 .DEFAULT_GOAL := show-help
 # See <https://gist.github.com/klmr/575726c7e05d8780505a> for explanation.
