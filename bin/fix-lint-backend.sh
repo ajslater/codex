@@ -16,4 +16,4 @@ npm run fix
 ###################
 ###### Shell ######
 ###################
-shellharden --replace ./*.sh ./**/*.sh
+shellharden --replace ./*.sh ./**/*.sh ./.*/*.sh

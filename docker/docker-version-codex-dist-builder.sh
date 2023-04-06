@@ -26,7 +26,7 @@ DEPS=(
     .remarkignore
     .shellcheckrc
     dist-builder.Dockerfile
-    build-dist.sh
+    bin/build-dist.sh
     collectstatic.sh
     lint.sh
     lint-backend.sh

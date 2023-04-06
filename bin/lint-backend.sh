@@ -30,11 +30,12 @@ if [ "$(uname)" = "Darwin" ]; then
     # Hadolint & shfmt are difficult to install on linux
     # shellcheck disable=2035
     hadolint *Dockerfile
-    shellharden ./*.sh ./**/*.sh
+    shellharden ./*.sh ./**/*.sh ./.*/*.sh
     # subdirs aren't copied into docker builder
     # .env files aren't copied into docker
-    shellcheck --external-sources ./**/*.sh .env.platforms
+    shellcheck --external-sources ./**/*.sh ./.*/*.sh .env.platforms
     circleci config check .circleci/config.yml
 fi
 shellcheck --external-sources ./*.sh
+./bin/roman.sh -i .gitignore .
 poetry run codespell .

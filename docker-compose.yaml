@@ -58,7 +58,7 @@ services:
       - ./codex/static_build:/app/codex/static_build:ro
       - ./codex/static_root:/app/codex/static_root
       - ./dist/:/app/dist/
-    command: ./build-dist.sh
+    command: ./bin/build-dist.sh
   codex-arch:
     build:
       context: .

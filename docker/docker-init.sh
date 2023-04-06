@@ -1,7 +1,7 @@
 #!/bin/bash
 # initiallize docker builder with correct emulators for this arch
 set -euo pipefail
-./circleci/circleci-step-halt.sh
+./.circleci/circleci-step-halt.sh
 export DOCKER_CLI_EXPERIMENTAL=enabled
 export DOCKER_BUILDKIT=1
 # login to docker using environment variables

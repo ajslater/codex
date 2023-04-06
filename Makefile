@@ -17,19 +17,23 @@ build:
 
 ## Publish package to pypi
 publish:
-	poetry publish
+	./bin/pypi-deploy.sh
 
 ## Update dependencies
 update:
-	./update-deps.sh
+	./bin/update-deps.sh
+
+## Update builder requirements
+update-builder:
+	./bin/update-builder-requirement.sh
 
 ## Fix front and back end lint errors
 fix:
-	./fix-lint.sh
+	./bin/fix-lint.sh
 
 ## Fix only backend lint errors
 fix-backend:
-	./fix-lint-backend.sh
+	./bin/fix-lint-backend.sh
 
 ## Fix only frontend lint errors
 fix-frontend:
@@ -37,19 +41,33 @@ fix-frontend:
 
 ## Lint front and back end
 lint:
-	./lint.sh
+	./bin/lint.sh
 
 ## Lint the backend
 lint-backend:
-	./lint-backend.sh
+	./bin/lint-backend.sh
 
 ## Lint the frontend
 lint-frontend:
 	./frontend/lint.sh
 
-## Run Tests
+## Clean pycaches
+clean:
+.PHONY: clean
+	./bin/clean-pycache.sh
+
+## Run All Tests
 test:
-	./test.sh
+.PHONY: test
+	./bin/test.sh
+
+## Run backend tests
+test-backend:
+	./bin/test-backend.sh
+
+## Run frontend tests
+test-frontend:
+	./frontend/test.sh
 
 ## Run the dev webserver
 dev-server:
@@ -62,6 +80,10 @@ dev-frontend:
 ## Show recent NEWS
 news:
 	head -40 NEWS.md
+
+## Build all icons from source
+icons:
+	bin/create-icons.sh
 
 .DEFAULT_GOAL := show-help
 # See <https://gist.github.com/klmr/575726c7e05d8780505a> for explanation.
