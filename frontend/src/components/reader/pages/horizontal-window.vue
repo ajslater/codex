@@ -88,7 +88,7 @@ export default {
   },
   watch: {
     twoPages() {
-      this.setActivePage(this.storePage);
+      this.setActivePage(this.storePage, true);
     },
     storePage(to) {
       if (this.book.pk === this.storePk) {

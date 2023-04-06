@@ -55,9 +55,9 @@ export default {
     },
   },
   methods: {
-    ...mapActions(useReaderStore, ["setPage"]),
+    ...mapActions(useReaderStore, ["setActivePage"]),
     onClick() {
-      this.setPage(this.value, false);
+      this.setActivePage(this.value, true);
     },
   },
 };

@@ -88,11 +88,11 @@ export default {
       "routeToDirection",
       "routeToDirectionOne",
       "routeToPage",
-      "setPage",
+      "setActivePage",
     ]),
     onSliderUpdate(page) {
       if (this.activeSettings.vertical) {
-        this.setPage(page, false);
+        this.setActivePage(page, true);
       } else {
         this.routeToPage(page);
       }

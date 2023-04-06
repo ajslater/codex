@@ -54,7 +54,6 @@ export default {
   },
   data() {
     return {
-      mountedTime: 0,
       // If the window is small on mount, the intersection observer
       // goes crazy and scrolls to 0.
       innerHeight: window.innerHeight,
@@ -67,7 +66,7 @@ export default {
     ...mapState(useReaderStore, {
       storePage: (state) => state.page,
     }),
-    ...mapWritableState(useReaderStore, ["scrolled"]),
+    ...mapWritableState(useReaderStore, ["reactWithScroll"]),
     settings() {
       return this.getSettings(this.book);
     },
@@ -91,15 +90,13 @@ export default {
   },
   watch: {
     storePage(to) {
-      if (!this.scrolled) {
+      if (this.reactWithScroll) {
         this.scrollToPage(to);
       }
     },
   },
   mounted() {
     window.addEventListener("resize", this.onResize);
-    this.mountedTime = Date.now();
-    this.setActivePage(this.storePage);
     setTimeout(() => {
       this.scrollToPage(this.storePage);
     }, TIMEOUT);
@@ -111,14 +108,13 @@ export default {
     ...mapActions(useReaderStore, [
       "setActivePage",
       "setBookChangeFlag",
-      "setPage",
       "getSettings",
     ]),
     onIntersect(isIntersecting, entries) {
       if (isIntersecting && this.intersectorOn) {
         const entry = entries[0];
         const page = +entry.target.dataset.page;
-        this.setActivePage(page, true);
+        this.setActivePage(page, false);
       }
     },
     onScroll() {
@@ -145,7 +141,6 @@ export default {
       setTimeout(() => {
         this.programmaticScroll = false;
       }, TIMEOUT);
-      this.scrolled = true;
     },
     onResize() {
       this.innerHeight = window.innerHeight;

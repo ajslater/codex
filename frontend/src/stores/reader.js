@@ -67,7 +67,7 @@ export const useReaderStore = defineStore("reader", {
       },
     },
     bookChange: undefined,
-    scrolled: false,
+    reactWithScroll: false,
   }),
   getters: {
     activeBook(state) {
@@ -114,6 +114,9 @@ export const useReaderStore = defineStore("reader", {
         // special setting for rtl books
         resultSettings.readInReverse = this.readerSettings.readRtlInReverse;
       }
+      // No two pages with vertical
+      resultSettings.twoPages =
+        resultSettings.twoPages && resultSettings.vertical;
       return resultSettings;
     },
     ///////////////////////////////////////////////////////////////////////////
@@ -219,10 +222,6 @@ export const useReaderStore = defineStore("reader", {
         next: nextBookRoute,
       };
     },
-    setPage(page, scrolled = true) {
-      this.page = +page;
-      this.scrolled = scrolled;
-    },
     ///////////////////////////////////////////////////////////////////////////
     // ACTIONS
     async setRoutesAndBookmarkPage(page) {
@@ -232,7 +231,7 @@ export const useReaderStore = defineStore("reader", {
         return true;
       });
     },
-    setActivePage(page, scrolled = true) {
+    setActivePage(page, reactWithScroll = true) {
       if (page < 0) {
         console.warn("Page out of bounds. Redirecting to 0.");
         return this.routeToPage(0);
@@ -242,7 +241,8 @@ export const useReaderStore = defineStore("reader", {
         );
         return this.routeToPage(this.activeBook.maxPage);
       }
-      this.setPage(page, scrolled);
+      this.reactWithScroll = Boolean(reactWithScroll);
+      this.page = +page;
       this.setRoutesAndBookmarkPage(page);
       if (this.activeSettings.vertical) {
         const route = { params: { pk: this.pk, page } };

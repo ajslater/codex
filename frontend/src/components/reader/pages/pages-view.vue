@@ -41,7 +41,7 @@ export default {
   created() {
     if (this.book.pk === this.storePk) {
       // Active Book
-      this.setActivePage(+this.$route.params.page);
+      this.setActivePage(+this.$route.params.page, true);
     }
   },
   methods: {
