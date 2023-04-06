@@ -87,7 +87,7 @@ export default {
   methods: {
     ...mapActions(useAdminStore, ["clearFolders", "loadFolders"]),
     ...mapActions(useCommonStore, ["clearErrors"]),
-    change: function (path) {
+    change(path) {
       const relativePath = path
         ? path.startsWith("/") || path.startsWith("\\")
           ? path
