@@ -10,6 +10,8 @@
   >
     <!--
     :item-height="itemHeight"
+    dynamic itemHeight solves the jumpy scroll issue,
+    but throws a recursive warning.
     -->
     <template #default="{ item }">
       <BookPage :book="book" :page="item" />
@@ -27,17 +29,22 @@
 
 <script>
 import _ from "lodash";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState, mapWritableState } from "pinia";
 import { VVirtualScroll } from "vuetify/labs/VVirtualScroll";
 
-import BookPage from "@/components/reader/page.vue";
+import BookPage from "@/components/reader/pages/page/page.vue";
 import { useReaderStore } from "@/stores/reader";
 
-// const MODAL_COMIC_RATIO = 1.537_223_340_040_241_5;
-const MAX_VISIBLE_PAGES = 8;
+const MAX_VISIBLE_PAGES = 12;
+const TIMEOUT = 250;
+const INTERECT_OPTIONS_FIT_TO_HEIGHT = { threshold: [0.75] };
+const INTERSECT_OPTIONS = {
+  S: INTERECT_OPTIONS_FIT_TO_HEIGHT,
+  H: INTERECT_OPTIONS_FIT_TO_HEIGHT,
+};
 
 export default {
-  name: "PagesScrollerVertical",
+  name: "PagesVerticalScroller",
   components: {
     BookPage,
     VVirtualScroll,
@@ -45,24 +52,21 @@ export default {
   props: {
     book: { type: Object, required: true },
   },
-  emits: ["click"],
   data() {
     return {
-      mountedTime: 0,
       // If the window is small on mount, the intersection observer
       // goes crazy and scrolls to 0.
       innerHeight: window.innerHeight,
       innerWidth: window.innerWidth,
+      intersectorOn: false,
+      programmaticScroll: false,
     };
   },
   computed: {
-    ...mapGetters(useReaderStore, ["isOnCoverPage"]),
     ...mapState(useReaderStore, {
-      prevBook: (state) => state.routes.books?.prev,
-      nextBook: (state) => state.routes.books?.next,
       storePage: (state) => state.page,
-      storePk: (state) => state.pk,
     }),
+    ...mapWritableState(useReaderStore, ["reactWithScroll"]),
     settings() {
       return this.getSettings(this.book);
     },
@@ -80,34 +84,22 @@ export default {
     visibleItems() {
       return Math.min(this.book?.maxPage ?? 0, MAX_VISIBLE_PAGES);
     },
-    /*
-    itemHeight() {
-      const fitTo = this.settings.fitTo;
-      let height = window.innerHeight;
-      if (fitTo === "W") {
-        height = height * MODAL_COMIC_RATIO;
-      } else if (fitTo == "O") {
-        height = height * 2;
-      }
-      return height;
-    },
-    */
     intersectOptions() {
-      const fitTo = this.settings.fitTo;
-      let options;
-      options =
-        fitTo === "S" || fitTo === "H"
-          ? {
-              threshold: [0.75],
-            }
-          : undefined;
-      return options;
+      return INTERSECT_OPTIONS[this.settings.fitTo];
+    },
+  },
+  watch: {
+    storePage(to) {
+      if (this.reactWithScroll) {
+        this.scrollToPage(to);
+      }
     },
   },
   mounted() {
     window.addEventListener("resize", this.onResize);
-    this.setPage(this.storePage, true);
-    this.mountedTime = Date.now();
+    setTimeout(() => {
+      this.scrollToPage(this.storePage);
+    }, TIMEOUT);
   },
   beforeUnmount() {
     window.removeEventListener("resize", this.onResize);
@@ -116,22 +108,20 @@ export default {
     ...mapActions(useReaderStore, [
       "setActivePage",
       "setBookChangeFlag",
-      "setPage",
       "getSettings",
     ]),
     onIntersect(isIntersecting, entries) {
-      if (isIntersecting) {
+      if (isIntersecting && this.intersectorOn) {
         const entry = entries[0];
         const page = +entry.target.dataset.page;
-        this.setActivePage(page);
-        // console.log(isIntersecting, page, entries[0].intersectionRatio);
+        this.setActivePage(page, false);
       }
     },
     onScroll() {
-      if (Date.now() - this.mountedTime < 2) {
-        // Don't show scrolly book change drawers immediately on load.
+      if (this.programmaticScroll) {
         return;
       }
+      this.intersectorOn = true;
       const el = this.$refs.verticalScroll.$el;
       const scrollTop = el.scrollTop;
       if (this.storePage === 0 && scrollTop === 0) {
@@ -143,6 +133,14 @@ export default {
           this.setBookChangeFlag("next");
         }
       }
+    },
+    scrollToPage(page) {
+      this.intersectorOn = false;
+      this.programmaticScroll = true;
+      this.$refs.verticalScroll.scrollToIndex(page);
+      setTimeout(() => {
+        this.programmaticScroll = false;
+      }, TIMEOUT);
     },
     onResize() {
       this.innerHeight = window.innerHeight;
@@ -160,7 +158,7 @@ export default {
   top: 0;
   left: 0;
   z-index: 15;
-  width: 90vw;
+  width: 95vw;
   height: 100%;
   // TODO, somehow get it horizontally fixed.
   /*

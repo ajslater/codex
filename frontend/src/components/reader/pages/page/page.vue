@@ -23,14 +23,15 @@ import { mapActions } from "pinia";
 import { defineAsyncComponent, markRaw } from "vue";
 
 import { getComicPageSource } from "@/api/v3/reader";
-import Placeholder from "@/components/placeholder-loading.vue";
-import LoadingPage from "@/components/reader/page-loading.vue";
+import LoadingPage from "@/components/reader/pages/page/page-loading.vue";
 import { useReaderStore } from "@/stores/reader";
 const PDFPage = markRaw(
-  defineAsyncComponent(() => import("@/components/reader/page-pdf.vue"))
+  defineAsyncComponent(() =>
+    import("@/components/reader/pages/page/page-pdf.vue")
+  )
 );
-import ErrorPage from "@/components/reader/page-error.vue";
-import ImgPage from "@/components/reader/page-img.vue";
+import ErrorPage from "@/components/reader/pages/page/page-error.vue";
+import ImgPage from "@/components/reader/pages/page/page-img.vue";
 
 const PROGRESSS_DELAY_MS = 333;
 
@@ -38,7 +39,7 @@ const FIT_TO_CHOICES = { S: "Screen", W: "Width", H: "Height", O: "Original" };
 
 export default {
   name: "BookPage",
-  components: { Placeholder, ErrorPage, LoadingPage, PDFPage, ImgPage },
+  components: { ErrorPage, LoadingPage, PDFPage, ImgPage },
   props: {
     book: {
       type: Object,

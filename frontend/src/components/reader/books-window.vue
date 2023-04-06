@@ -30,7 +30,7 @@
 import { mapActions, mapState } from "pinia";
 
 import BookChangeActivator from "@/components/reader/book-change-activator.vue";
-import PagesView from "@/components/reader/pages-view.vue";
+import PagesView from "@/components/reader/pages/pages-view.vue";
 import { useReaderStore } from "@/stores/reader";
 
 export default {

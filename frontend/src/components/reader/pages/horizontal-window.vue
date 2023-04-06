@@ -39,15 +39,15 @@
 import _ from "lodash";
 import { mapActions, mapGetters, mapState } from "pinia";
 
-import BookPage from "@/components/reader/page.vue";
-import PageChangeLink from "@/components/reader/page-change-link.vue";
+import BookPage from "@/components/reader/pages/page/page.vue";
+import PageChangeLink from "@/components/reader/pages/page-change-link.vue";
 import { useReaderStore } from "@/stores/reader";
 
 const WINDOW_BACK_BOUND = 48;
 const WINDOW_FORE_BOUND = 48;
 
 export default {
-  name: "PagesWindowHorizontal",
+  name: "PagesHorizontalWindow",
   components: {
     BookPage,
     PageChangeLink,
@@ -55,7 +55,6 @@ export default {
   props: {
     book: { type: Object, required: true },
   },
-  emits: ["click"],
   data() {
     return {
       activePage: 0,
@@ -89,7 +88,7 @@ export default {
   },
   watch: {
     twoPages() {
-      this.setActivePage(this.storePage);
+      this.setActivePage(this.storePage, true);
     },
     storePage(to) {
       if (this.book.pk === this.storePk) {

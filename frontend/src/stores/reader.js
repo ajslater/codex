@@ -36,23 +36,6 @@ const getGlobalFitToDefault = () => {
   return vw > 600 ? "HEIGHT" : "WIDTH";
 };
 
-const _scrollToPageRetry = (page, tries = 10, sleep = 0) => {
-  // $vuetify.goTo not yet implemented
-  // https://vuetifyjs.com/en/features/scrolling/
-  // https://github.com/vuetifyjs/vuetify/issues/16471
-  const el = document.querySelector(`#page${page}`);
-  if (el) {
-    el.scrollIntoView();
-  } else {
-    if (tries > 0) {
-      //console.debug("sleep", sleep);
-      setTimeout(function () {
-        _scrollToPageRetry(page, tries - 1, sleep + 50);
-      }, sleep);
-    }
-  }
-};
-
 export const useReaderStore = defineStore("reader", {
   state: () => ({
     // static
@@ -84,6 +67,7 @@ export const useReaderStore = defineStore("reader", {
       },
     },
     bookChange: undefined,
+    reactWithScroll: false,
   }),
   getters: {
     activeBook(state) {
@@ -130,6 +114,9 @@ export const useReaderStore = defineStore("reader", {
         // special setting for rtl books
         resultSettings.readInReverse = this.readerSettings.readRtlInReverse;
       }
+      // No two pages with vertical
+      resultSettings.twoPages =
+        resultSettings.twoPages && resultSettings.vertical;
       return resultSettings;
     },
     ///////////////////////////////////////////////////////////////////////////
@@ -235,27 +222,8 @@ export const useReaderStore = defineStore("reader", {
         next: nextBookRoute,
       };
     },
-    setPage(page, scroll = false) {
-      this.page = +page;
-      if (scroll && this.activeSettings.vertical) {
-        this._scrollToPage(this.page);
-      }
-    },
     ///////////////////////////////////////////////////////////////////////////
     // ACTIONS
-    _scrollToPage(page) {
-      let el = document.querySelector(`#page${page}`);
-      if (el) {
-        el.scrollIntoView();
-      } else {
-        // Get close to the page, wait for the html to appear,
-        // And then align it.
-        const y = window.innerHeight * page;
-        el = document.querySelector("#verticalScroll");
-        el.scroll(0, y); // could be ref.scrollToIndex()?
-        _scrollToPageRetry(page);
-      }
-    },
     async setRoutesAndBookmarkPage(page) {
       this._setRoutes(page);
       await this._setBookmarkPage(page).then(() => {
@@ -263,7 +231,7 @@ export const useReaderStore = defineStore("reader", {
         return true;
       });
     },
-    setActivePage(page, scroll = false) {
+    setActivePage(page, reactWithScroll = true) {
       if (page < 0) {
         console.warn("Page out of bounds. Redirecting to 0.");
         return this.routeToPage(0);
@@ -273,7 +241,8 @@ export const useReaderStore = defineStore("reader", {
         );
         return this.routeToPage(this.activeBook.maxPage);
       }
-      this.setPage(page, scroll);
+      this.reactWithScroll = Boolean(reactWithScroll);
+      this.page = +page;
       this.setRoutesAndBookmarkPage(page);
       if (this.activeSettings.vertical) {
         const route = { params: { pk: this.pk, page } };
