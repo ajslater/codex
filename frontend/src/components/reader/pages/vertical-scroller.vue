@@ -35,7 +35,7 @@ import { VVirtualScroll } from "vuetify/labs/VVirtualScroll";
 import BookPage from "@/components/reader/pages/page/page.vue";
 import { useReaderStore } from "@/stores/reader";
 
-const MAX_VISIBLE_PAGES = 48;
+const MAX_VISIBLE_PAGES = 12;
 const TIMEOUT = 250;
 const INTERECT_OPTIONS_FIT_TO_HEIGHT = { threshold: [0.75] };
 const INTERSECT_OPTIONS = {
