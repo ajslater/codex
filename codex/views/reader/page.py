@@ -38,10 +38,11 @@ class ReaderPageView(BookmarkBaseView):
 
     def _update_bookmark(self):
         """Update the bookmark if the bookmark param was passed."""
-        if (
-            not self.request.GET.get("bookmark")
-            or self.request.headers.get("X-moz") in self.X_MOZ_PRE_HEADERS
-        ):
+        do_bookmark = bool(
+            self.request.GET.get("bookmark")
+            and self.request.headers.get("X-moz") not in self.X_MOZ_PRE_HEADERS
+        )
+        if not do_bookmark:
             return
         page = self.kwargs.get("page")
         updates = {"page": page}

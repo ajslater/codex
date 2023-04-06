@@ -6,6 +6,20 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.3.7
+
+- Feature
+  - Metadata page links to groups to browse to.
+- Fix
+  - Crash when moving comics.
+  - Container memory limits weren't detected for Linux kernels before 4.5
+  - Reader
+    - Horizontal Reader was slow for comics with high page counts.
+    - Vertical scroller was not tracking pages in fitTo Width or Orig modes.
+  - Validation error detecting child and parent library paths incorrectly.
+  - Dev
+    - Django 4.2
+
 ## v1.3.6
 
 - Fix

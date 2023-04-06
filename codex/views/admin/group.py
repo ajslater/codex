@@ -16,9 +16,7 @@ class AdminGroupViewSet(ModelViewSet):
     """Admin Group Viewset."""
 
     permission_classes = [IsAdminUser]
-    queryset = Group.objects.prefetch_related("user_set", "library_set").defer(
-        "permissions"
-    )
+    queryset = Group.objects.prefetch_related("user_set", "library_set")
     serializer_class = GroupSerializer
 
     CHANGE_FIELDS = frozenset(("librarySet", "userSet"))

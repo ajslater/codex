@@ -1,5 +1,10 @@
 <template>
-  <v-window show-arrows :model-value="storePage" :reverse="readInReverse">
+  <v-window
+    show-arrows
+    continuous
+    :model-value="windowIndex"
+    :reverse="readInReverse"
+  >
     <template #prev>
       <PageChangeLink direction="prev" />
     </template>
@@ -34,12 +39,15 @@
 import _ from "lodash";
 import { mapActions, mapGetters, mapState } from "pinia";
 
-import BookPage from "@/components/reader/page.vue";
-import PageChangeLink from "@/components/reader/page-change-link.vue";
+import BookPage from "@/components/reader/pages/page/page.vue";
+import PageChangeLink from "@/components/reader/pages/page-change-link.vue";
 import { useReaderStore } from "@/stores/reader";
 
+const WINDOW_BACK_BOUND = 48;
+const WINDOW_FORE_BOUND = 48;
+
 export default {
-  name: "PagesWindowHorizontal",
+  name: "PagesHorizontalWindow",
   components: {
     BookPage,
     PageChangeLink,
@@ -47,10 +55,10 @@ export default {
   props: {
     book: { type: Object, required: true },
   },
-  emits: ["click"],
   data() {
     return {
       activePage: 0,
+      pages: [],
     };
   },
   computed: {
@@ -73,18 +81,23 @@ export default {
     secondPage() {
       return this.settings.twoPages && !this.isOnCoverPage;
     },
-    pages() {
-      const len = this.book?.maxPage + 1 ?? 0;
-      return _.range(0, len);
+    windowIndex() {
+      const val = this.activePage - this.pages[0];
+      return Math.min(Math.max(0, val), this.book.maxPage);
     },
   },
   watch: {
     twoPages() {
-      this.setActivePage(this.storePage);
+      this.setActivePage(this.storePage, true);
     },
     storePage(to) {
       if (this.book.pk === this.storePk) {
         this.activePage = to;
+        const backLimit = this.pages.at(0);
+        const foreLimit = this.pages.at(-1);
+        if (to < backLimit || to > foreLimit) {
+          this.setPages();
+        }
       }
     },
     prevBook(to) {
@@ -109,6 +122,7 @@ export default {
       // Must be next book
       this.activePage = 0;
     }
+    this.setPages();
   },
   methods: {
     ...mapActions(useReaderStore, [
@@ -116,6 +130,15 @@ export default {
       "setBookChangeFlag",
       "setActivePage",
     ]),
+    setPages() {
+      const backPages = Math.max(this.activePage - WINDOW_BACK_BOUND, 0);
+      const forePages = Math.min(
+        this.activePage + WINDOW_FORE_BOUND,
+        this.book.maxPage
+      );
+      const range = _.range(backPages, forePages + 1);
+      this.pages = range;
+    },
   },
 };
 </script>

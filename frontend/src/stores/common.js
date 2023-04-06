@@ -9,6 +9,7 @@ const ERROR_KEYS = [
   "password",
   "username",
   "passwordConfirm",
+  "path",
 ];
 Object.freeze(ERROR_KEYS);
 

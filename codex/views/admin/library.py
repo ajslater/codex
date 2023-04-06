@@ -123,6 +123,8 @@ class AdminFolderListView(GenericAPIView):
 
             data = {"root_folder": str(root_path), "folders": dirs}
             serializer = self.get_serializer(data)
+        except ValidationError:
+            raise
         except Exception as exc:
             LOG.exception(exc)
             reason = "Server Error"

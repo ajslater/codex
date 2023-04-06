@@ -53,6 +53,23 @@ const EMPTY_ROW = {
 };
 Object.freeze(EMPTY_ROW);
 
+const isPathParent = (path, potentialChildPath) => {
+  // Normalize the paths to avoid issues with different directory separator characters
+  path = path.replaceAll("\\", "/");
+  potentialChildPath = potentialChildPath.replaceAll("\\", "/");
+
+  // Ensure that both paths end with a slash to avoid false positives
+  if (!path.endsWith("/")) {
+    path += "/";
+  }
+  if (!potentialChildPath.endsWith("/")) {
+    potentialChildPath += "/";
+  }
+
+  // Check if the potential child path starts with the parent path
+  return potentialChildPath.startsWith(path);
+};
+
 export default {
   // eslint-disable-next-line no-secrets/no-secrets
   name: "AdminLibraryCreateUpdateInputs",
@@ -78,10 +95,10 @@ export default {
               return false;
             }
             for (const path of this.paths) {
-              if (v.startsWith(path)) {
+              if (isPathParent(path, v)) {
                 return "Path is a child of an existing library";
               }
-              if (path.startsWith(v)) {
+              if (isPathParent(v, path)) {
                 return "Path is a parent of an existing library";
               }
             }
