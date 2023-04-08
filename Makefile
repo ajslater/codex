@@ -111,10 +111,37 @@ test: test-frontend test-backend
 dev-server:
 	./bin/dev-codex.sh
 
+.PHONY: dev-prod-server
+## Run a bundled production webserver
+dev-prod-server: collectstatic
+	./bin/dev-prod-server.sh
+
 .PHONY: dev-frontend-server
 ## Run the vite dev frontend
 dev-frontend-server:
 	frontend/dev-server.sh
+
+.PHONY: dev-ttabs
+## Run the vite dev frontend and dev-server in ttabs
+dev-ttabs:
+	./bin/dev-ttabs.sh
+
+.PHONY: dev-reverse-proxy
+## Run an nginx reverse proxy to codex in docker
+dev-reverse-proxy:
+	./bin/dev-reverse-proxy.sh
+
+.PHONY: dev-docker
+## Restart codex in docker
+dev-docker:
+	./bin/dev-docker.sh
+
+## Module to run
+M := 
+.PHONY: dev-module
+## Run a single codex module in dev mode
+dev-module:
+	./bin/dev-module.sh $(M)
 
 .PHONY: collectstatic
 ## Collect static files for django
