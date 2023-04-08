@@ -142,6 +142,13 @@ kill:
 	kill %
 	bin/kill-codex.sh
 
+## version
+V := 
+.PHONY: version
+## Show or set project version
+version:
+	bin/version.sh $(V)
+
 .PHONY: kill-eslint_d
 ## Kill eslint daemon
 kill-eslint_d:
