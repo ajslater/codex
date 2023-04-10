@@ -385,7 +385,6 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             self.log.warning(
                 f"Couldn't delete search index records before replacing: {exc}"
             )
-            self.log.exception("DRROON")
             writer.cancel()
             writer = self.get_writer()
 
