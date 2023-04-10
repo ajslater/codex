@@ -127,11 +127,17 @@ test-frontend:
 ## @category Test
 test: test-frontend test-backend
 
+.PHONY: kill
+## Kill lingering codex processes
+## @category Run Server
+kill:
+	bin/kill-codex.sh || true
+
 .PHONY: dev-server
 ## Run the dev webserver
 ## @category Run Server
-dev-server:
-	./bin/dev-codex.sh
+dev-server: kill
+	./bin/dev-server.sh
 
 .PHONY: dev-prod-server
 ## Run a bundled production webserver
@@ -195,13 +201,6 @@ icons:
 ## @category Test
 benchmark-opds:
 	bin/benchmark-opds.sh
-
-.PHONY: kill
-## Kill lingering codex processes
-## @category Run Server
-kill:
-	kill %
-	bin/kill-codex.sh
 
 ## version
 ## @category Update
