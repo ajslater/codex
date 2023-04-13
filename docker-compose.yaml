@@ -62,6 +62,7 @@ services:
   codex-arch:
     build:
       context: .
+      dockerile: bin/docker/Dockerfile
       args:
         CODEX_BUILDER_BASE_VERSION:
         CODEX_BASE_VERSION:
