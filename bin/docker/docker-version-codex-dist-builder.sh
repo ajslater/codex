@@ -28,11 +28,10 @@ DEPS=(
     bin/docker/dist-builder.Dockerfile
     bin/build-dist.sh
     bin/collectstatic.sh
-    bin/lint.sh
     bin/lint-backend.sh
+    bin/manage.py
     bin/pm
     bin/test-backend.sh
-    manage.py
     package.json
     package-lock.json
     pyproject.toml
