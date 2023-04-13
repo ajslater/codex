@@ -1,7 +1,6 @@
 #!/bin/bash
 # Lint checks
 set -euxo pipefail
-cd "$(dirname "$0")"
 
 ####################
 ###### Python ######
@@ -36,6 +35,5 @@ if [ "$(uname)" = "Darwin" ]; then
     shellcheck --external-sources ./**/*.sh ./.*/*.sh .env.platforms
     circleci config check .circleci/config.yml
 fi
-shellcheck --external-sources ./*.sh
 ./bin/roman.sh -i .gitignore .
 poetry run codespell .
