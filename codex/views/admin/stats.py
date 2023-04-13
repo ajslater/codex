@@ -6,6 +6,7 @@ from caseconverter import snakecase
 from django.contrib.auth.models import Group, User
 from django.contrib.sessions.models import Session
 from django.db.models import Count
+from drf_spectacular.utils import extend_schema
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
@@ -30,7 +31,7 @@ from codex.models import (
     Volume,
 )
 from codex.permissions import HasAPIKeyOrIsAdminUser
-from codex.serializers.admin import AdminStatsSerializer
+from codex.serializers.admin import AdminStatsRequestSerializer, AdminStatsSerializer
 from codex.version import VERSION
 
 
@@ -39,6 +40,7 @@ class AdminStatsView(GenericAPIView):
 
     permission_classes = [HasAPIKeyOrIsAdminUser]
     serializer_class = AdminStatsSerializer
+    input_serializer_class = AdminStatsRequestSerializer
 
     _GROUP_MODELS = (
         Publisher,
@@ -197,11 +199,23 @@ class AdminStatsView(GenericAPIView):
             self._get_metadata(obj)
         return obj
 
+    @extend_schema(
+        parameters=[
+            input_serializer_class,
+        ],
+        description="""
+        'params' is a comma separated list of stats group names or individual stat names
+        from the response schema to return. The default is to return all.
+    """,
+        request=input_serializer_class,
+    )
     def get(self, *args, **kwargs):
         """Get the stats object and serialize it."""
-        params = self.request.GET.get("params")
+        input_serializer = self.input_serializer_class(data=self.request.GET)
+        input_serializer.is_valid()
+        params = input_serializer.validated_data
         if params:
-            self.params = set(params.split(","))
+            self.params = frozenset(params.split(","))
         else:
             self.params = None
 
