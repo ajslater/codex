@@ -52,6 +52,12 @@ clean-frontend:
 build-frontend: clean-frontend
 	bash -c "cd frontend && make build"
 
+.PHONY: collectstatic
+## Collect static files for django
+## @category Build
+collectstatic:
+	bin/collectstatic.sh
+
 .PHONY: check
 ## Check django is ok
 ## @category lint
@@ -183,12 +189,6 @@ M :=
 ## @category Run Server
 dev-module:
 	./bin/dev-module.sh $(M)
-
-.PHONY: collectstatic
-## Collect static files for django
-## @category Build
-collectstatic: build-frontend
-	bin/collectstatic.sh
 
 .PHONY: news
 ## Show recent NEWS
