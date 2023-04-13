@@ -1,70 +1,223 @@
+.PHONY: install-backend-common
+## Upgrade pip and poetry
+## @category Install
+install-backend-common:
+	pip install --upgrade pip
+	pip install --upgrade poetry
+	npm install
+	BREW_PREFIX=$(brew --prefix)
+	export LDFLAGS="-L${BREW_PREFIX}/opt/openssl@3/lib"
+	export CPPFLAGS="-I${BREW_PREFIX}/opt/openssl@3/include"
+	export PKG_CONFIG_PATH="${BREW_PREFIX}/opt/openssl@3/lib/pkgconfig"
+
+.PHONY: install-frontend
+## Install frontend
+## @category Install
+install-frontend:
+	bash -c "cd frontend && make install"
+
+.PHONY: install
 ## Install for production
-install:
-	pip install --update pip
-	poetry install --no-root
+## @category Install
+install: install-backend-common install-frontend
+	poetry install --no-root --sync
 
+.PHONY: install-dev
 ## Install dev requirements
-install-dev:
-	poetry install  --no-root --extras=dev
+## @category Install
+install-dev: install-backend-common install-frontend
+	poetry install  --no-root --extras=dev --sync
 
+.PHONY: install-all
 ## Install all extras
-install-all:
-	poetry install --no-root --all-extras
+## @category Install
+install-all: install-backend-common install-frontend
+	poetry install --no-root --all-extras --sync
 
-## Build package
-build:
+.PHONY: clean
+## Clean pycaches
+## @category Build
+clean:
+	./bin/clean-pycache.sh
+
+.PHONY: clean-frontend
+## Clean static_build
+## @category Build
+clean-frontend:
+	bash -c "cd frontend && make clean"
+
+.PHONY: build-frontend
+## Build frontend
+## @category Build
+build-frontend: clean-frontend
+	bash -c "cd frontend && make build"
+
+.PHONY: build
+## Build python package
+## @category Build
+build: collectstatic
+	./pm check
 	poetry build
 
+.PHONY: publish
 ## Publish package to pypi
+## @category Deploy
 publish:
-	poetry publish
+	./bin/pypi-deploy.sh
 
+.PHONY: update
 ## Update dependencies
+## @category Update
 update:
-	./update-deps.sh
+	./bin/update-deps.sh
 
-## Fix front and back end lint errors
-fix:
-	./fix-lint.sh
+.PHONY: update-builder
+## Update builder requirements
+## @category Update
+update-builder:
+	./bin/update-builder-requirement.sh
 
+.PHONY: fix-backend
 ## Fix only backend lint errors
+## @category Lint
 fix-backend:
-	./fix-lint-backend.sh
+	./bin/fix-lint-backend.sh
 
+.PHONY: fix-frontend
 ## Fix only frontend lint errors
+## @category Lint
 fix-frontend:
-	./frontend/fix-lint.sh
+	bash -c "cd frontend && make fix"
 
-## Lint front and back end
-lint:
-	./lint.sh
+.PHONY: fix
+## Fix front and back end lint errors
+## @category Lint
+fix: fix-frontend fix-backend
 
+.PHONY: lint-backend
 ## Lint the backend
+## @category Lint
 lint-backend:
-	./lint-backend.sh
+	./bin/lint-backend.sh
 
+.PHONY: lint-frontend
 ## Lint the frontend
+## @category Lint
 lint-frontend:
-	./frontend/lint.sh
+	bash -c "cd frontend && make lint"
 
-## Run Tests
-test:
-	./test.sh
+.PHONY: lint
+## Lint front and back end
+## @category Lint
+lint: lint-frontend lint-backend
 
+.PHONY: test-backend
+## Run backend tests
+## @category Test
+test-backend:
+	./bin/test-backend.sh
+
+.PHONY: test-frontend
+## Run frontend tests
+## @category Test
+test-frontend:
+	bash -c "cd frontend && make test"
+
+.PHONY: test
+## Run All Tests
+## @category Test
+test: test-frontend test-backend
+
+.PHONY: kill
+## Kill lingering codex processes
+## @category Run Server
+kill:
+	bin/kill-codex.sh || true
+
+.PHONY: dev-server
 ## Run the dev webserver
-dev-server:
-	./dev-codex.sh
+## @category Run Server
+dev-server: kill
+	./bin/dev-server.sh
 
+.PHONY: dev-prod-server
+## Run a bundled production webserver
+## @category Run Server
+dev-prod-server: collectstatic
+	./bin/dev-prod-server.sh
+
+.PHONY: dev-frontend-server
 ## Run the vite dev frontend
-dev-frontend:
+## @category Run Server
+dev-frontend-server:
 	frontend/dev-server.sh
 
+.PHONY: dev-ttabs
+## Run the vite dev frontend and dev-server in ttabs
+## @category Run Server
+dev-ttabs:
+	./bin/dev-ttabs.sh
+
+.PHONY: dev-reverse-proxy
+## Run an nginx reverse proxy to codex in docker
+## @category Run Server
+dev-reverse-proxy:
+	./bin/dev-reverse-proxy.sh
+
+.PHONY: dev-docker
+## Restart codex in docker
+## @category Run Server
+dev-docker:
+	./bin/dev-docker.sh
+
+## Module to run
+## @category Run Server
+M := 
+.PHONY: dev-module
+## Run a single codex module in dev mode
+## @category Run Server
+dev-module:
+	./bin/dev-module.sh $(M)
+
+.PHONY: collectstatic
+## Collect static files for django
+## @category Build
+collectstatic: build-frontend
+	bin/collectstatic.sh
+
+.PHONY: news
 ## Show recent NEWS
+## @category Deploy
 news:
 	head -40 NEWS.md
 
-.DEFAULT_GOAL := show-help
-# See <https://gist.github.com/klmr/575726c7e05d8780505a> for explanation.
-.PHONY: show-help
-show-help:
-	@echo "$$(tput bold)Available rules:$$(tput sgr0)";echo;sed -ne"/^## /{h;s/.*//;:d" -e"H;n;s/^## //;td" -e"s/:.*//;G;s/\\n## /---/;s/\\n/ /g;p;}" ${MAKEFILE_LIST}|LC_ALL='C' sort -f|awk -F --- -v n=$$(tput cols) -v i=19 -v a="$$(tput setaf 6)" -v z="$$(tput sgr0)" '{printf"%s%*s%s ",a,-i,$$1,z;m=split($$2,w," ");l=n-i;for(j=1;j<=m;j++){l-=length(w[j])+1;if(l<= 0){l=n-i-length(w[j])-1;printf"\n%*s ",-i," ";}printf"%s ",w[j];}printf"\n";}'|more $(shell test $(shell uname) == Darwin && echo '-Xr')
+.PHONY: icons
+## Build all icons from source
+## @category Build
+icons:
+	bin/create-icons.sh
+
+.PHONY: benchmark-opds
+## Time opds requests
+## @category Test
+benchmark-opds:
+	bin/benchmark-opds.sh
+
+## version
+## @category Update
+V := 
+.PHONY: version
+## Show or set project version
+## @category Update
+version:
+	bin/version.sh $(V)
+
+.PHONY: kill-eslint_d
+## Kill eslint daemon
+## @category Lint
+kill-eslint_d:
+	bin/kill-eslint_d.sh
+
+.PHONY: all
+
+include bin/makefile-help.mk

@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.3.8a0
+
+- Dev
+  - Use makefile and moved most scripts into bin.
+
 ## v1.3.7
 
 - Feature

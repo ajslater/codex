@@ -172,7 +172,7 @@ class CodexWriter(BufferedWriter):
         count = 0
         try:
             docnums = s.docs_for_query(q, for_deletion=True)
-            self.delete_batch_documents(docnums)
+            count = self.delete_batch_documents(docnums)
         finally:
             if not searcher:
                 s.close()

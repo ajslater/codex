@@ -108,7 +108,7 @@ jobs:
           command: ./docker/docker-create-multiarch-codex.sh
           name: Create multi-arch images
       - run:
-          command: ./pypi-deploy.sh
+          command: make publish
           name: Publish Codex Package to PyPi
 version: 2.1
 workflows:

@@ -163,7 +163,7 @@
         <tbody>
           <tr>
             <td>Schema Documentation:</td>
-            <td>
+            <td id="schemaDocValue">
               The only endpoint accessible with API Key access is
               <a
                 :href="`${apiSchemaURL}#/api/api_v3_admin_stats_retrieve`"
@@ -282,5 +282,8 @@ tr td:nth-child(2) {
 #apiKeyRow:hover .clipBoardIcon,
 #apiKeyRow:hover #apiKey {
   color: rgb(var(--v-theme-textPrimary));
+}
+#schemaDocValue {
+  max-width: 15em;
 }
 </style>

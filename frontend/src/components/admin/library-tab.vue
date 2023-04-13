@@ -26,6 +26,11 @@
       <template #[`item.poll`]="{ item }">
         <v-checkbox-btn :model-value="item.raw.poll" disabled />
       </template>
+      <template #[`item.pollEvery`]="{ item }">
+        <span :class="{ disabled: !item.raw.poll }">
+          {{ item.raw.pollEvery }}
+        </span>
+      </template>
       <template #[`item.lastPoll`]="{ item }">
         <DateTimeColumn :dttm="item.raw.lastPoll" />
       </template>
@@ -179,3 +184,8 @@ export default {
   },
 };
 </script>
+<style scoped lang="scss">
+.disabled {
+  color: rgb(var(--v-theme-textDisabled)) !important;
+}
+</style>

@@ -2,14 +2,14 @@ services:
   codex-base:
     build:
       context: .
-      dockerfile: base.Dockerfile
+      dockerfile: bin/docker/base.Dockerfile
       args:
         CODEX_BASE_VERSION:
     image: docker.io/ajslater/codex-base
   codex-builder-base:
     build:
       context: .
-      dockerfile: builder-base.Dockerfile
+      dockerfile: bin/docker/builder-base.Dockerfile
       args:
         CODEX_BASE_VERSION:
         CODEX_BUILDER_BASE_VERSION:
@@ -17,7 +17,7 @@ services:
   codex-dist-builder: &codex-dist-builder
     build:
       context: .
-      dockerfile: dist-builder.Dockerfile
+      dockerfile: bin/docker/dist-builder.Dockerfile
       args:
         CODEX_BUILDER_BASE_VERSION:
         CODEX_DIST_BUILDER_VERSION:
@@ -26,15 +26,15 @@ services:
   codex-backend-lint:
     <<: *codex-dist-builder
     container_name: codex-backend-lint
-    command: ./lint-backend.sh
+    command: make lint-backend
   codex-frontend-lint:
     <<: *codex-dist-builder
     container_name: codex-frontent-lint
-    command: ./frontend/lint.sh
+    command: make lint-frontend
   codex-frontend-test:
     <<: *codex-dist-builder
     container_name: codex-frontend-test
-    command: ./frontend/test.sh
+    command: make test-frontend
     volumes:
       - ./test-results/:/app/test-results/
   codex-frontend-build:
@@ -42,7 +42,7 @@ services:
     container_name: codex-frontend-build
     volumes:
       - ./codex/static_build:/app/codex/static_build
-    command: ./frontend/build.sh
+    command: make build-frontend
   codex-backend-test:
     <<: *codex-dist-builder
     container_name: codex-backend-test
@@ -50,7 +50,7 @@ services:
       - ./codex/static_build:/app/codex/static_build:ro
       #- ./codex/static_root:/app/codex/static_root
       - ./test-results/:/app/test-results/
-    command: ./test-backend.sh
+    command: make test-backend
   codex-build-dist:
     <<: *codex-dist-builder
     container_name: codex-build-dist
@@ -58,7 +58,7 @@ services:
       - ./codex/static_build:/app/codex/static_build:ro
       - ./codex/static_root:/app/codex/static_root
       - ./dist/:/app/dist/
-    command: ./build-dist.sh
+    command: make build
   codex-arch:
     build:
       context: .
@@ -81,7 +81,7 @@ services:
   codex-dev:
     build:
       context: .
-      dockerfile: dev.Dockerfile
+      dockerfile: bin/docker/dev.Dockerfile
     image: codex-dev
     mem_limit: 1g
     container_name: codex-dev
@@ -95,4 +95,12 @@ services:
     #init: true
     command: tail -f /dev/null
     #entrypoint: ["/sbin/tini", "--"]
+  codex-dev-old:
+    image: ajslater/codex:1.2.9
+    container_name: codex-dev-old
+    ports:
+      - "9810:9810"
+    volumes:
+      - ./config/old/:/config
+      - ./comics:/comics
 version: "3.8"
