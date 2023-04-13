@@ -14,7 +14,7 @@ VERSION=$(
         | awk '{print $1}'
 )
 if [[ ${CIRCLECI-} ]]; then
-    ARCH=$(./docker/docker-arch.sh)
+    ARCH=$(./bin/docker/docker-arch.sh)
     VERSION="${VERSION}-$ARCH"
 fi
 echo "$VERSION"

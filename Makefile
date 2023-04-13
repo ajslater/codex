@@ -55,7 +55,8 @@ build-frontend: clean-frontend
 .PHONY: build
 ## Build python package
 ## @category Build
-build:  build-frontend
+build: collectstatic
+	./pm check
 	poetry build
 
 .PHONY: publish

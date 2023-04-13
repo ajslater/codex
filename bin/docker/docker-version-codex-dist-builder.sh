@@ -2,7 +2,7 @@
 # Compute the version tag for ajslater/codex-dist-builder
 set -euo pipefail
 
-ENV_FN=$(./docker/docker-env-filename.sh)
+ENV_FN=$(./bin/docker/docker-env-filename.sh)
 # shellcheck disable=SC1090
 source "$ENV_FN"
 EXTRA_MD5S=("$CODEX_BUILDER_BASE_VERSION  codex-builder-base-version")
@@ -25,7 +25,7 @@ DEPS=(
     .prettierignore
     .remarkignore
     .shellcheckrc
-    dist-builder.Dockerfile
+    bin/docker/dist-builder.Dockerfile
     bin/build-dist.sh
     bin/collectstatic.sh
     bin/lint.sh
@@ -40,4 +40,4 @@ DEPS=(
     "${SOURCE_DEPS[@]}"
 )
 
-source ./docker/docker-version-checksum.sh
+source ./bin/docker/docker-version-checksum.sh

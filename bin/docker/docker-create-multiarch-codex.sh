@@ -9,7 +9,7 @@ ARCHES=(x86_64 aarch64) # aarch32)
 
 pip3 install --upgrade pip
 pip3 install --requirement builder-requirements.txt
-PKG_VERSION=$(./version.sh)
+PKG_VERSION=$(./bin/version.sh)
 VERSION_TAG=$REPO:$PKG_VERSION
 echo "Creating $VERSION_TAG"
 AMEND_TAGS=()
@@ -26,14 +26,14 @@ done
 #docker manifest push "$VERSION_TAG"
 #echo "Created tag: ${VERSION_TAG}."
 
-./docker/fix-manifest-deploy-to-docker-hub.sh "$VERSION_TAG" latest
+./bin/docker/fix-manifest-deploy-to-docker-hub.sh "$VERSION_TAG" latest
 
 # cleanup main repo
-./docker/docker-hub-remove-tags.sh "${RM_TAGS[@]}"
+./bin/docker/docker-hub-remove-tags.sh "${RM_TAGS[@]}"
 echo "Cleaned up intermediary arch tags."
 
 if [[ $PKG_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]$ ]]; then
     # If the version is just numbers push it as latest
-    docker/docker-tag-remote-version-as-latest.sh "$PKG_VERSION"
+    ./bin/docker/docker-tag-remote-version-as-latest.sh "$PKG_VERSION"
     echo "Created codex:${PKG_VERSION}"
 fi

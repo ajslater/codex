@@ -1,7 +1,7 @@
 #!/bin/bash
 # Run a docker compose service and return its exit code
 set -euo pipefail
-ENV_FN=$(./docker/docker-env-filename.sh)
+ENV_FN=$(./bin/docker/docker-env-filename.sh)
 # shellcheck disable=SC1090
 source "$ENV_FN"
 export DOCKER_CLI_EXPERIMENTAL=enabled

@@ -42,8 +42,8 @@ docker compose -f "$REGISTRY_YAML" down
 
 # promote pushed to latest
 #if [ "${2-}" = "latest" ]; then
-#    ./docker/docker-tag-remote-version-as-latest.sh "$VERSION"
+#    ./bin/docker/docker-tag-remote-version-as-latest.sh "$VERSION"
 #fi
 #
 # remove old tags from repository
-#./docker/docker-hub-remove-tags.sh "$HUB_ARM_TAG" "$HUB_AMD_TAG"
+#./bin/docker/docker-hub-remove-tags.sh "$HUB_ARM_TAG" "$HUB_AMD_TAG"
