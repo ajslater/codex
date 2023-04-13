@@ -91,7 +91,7 @@ fix-frontend:
 .PHONY: fix
 ## Fix front and back end lint errors
 ## @category Lint
-fix: fix-fronted fix-backend
+fix: fix-frontend fix-backend
 
 .PHONY: lint-backend
 ## Lint the backend
