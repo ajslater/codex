@@ -120,7 +120,7 @@ test-backend:
 ## Run frontend tests
 ## @category Test
 test-frontend:
-	./frontend/test.sh
+	bash -c "cd frontend && make test"
 
 .PHONY: test
 ## Run All Tests
