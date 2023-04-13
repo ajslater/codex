@@ -19,7 +19,13 @@ from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexRemoveStaleTask
 from codex.memory import get_mem_limit
 from codex.models import Comic, Library
-from codex.settings.settings import CHUNK_PER_GB, CPU_MULTIPLIER, MAX_CHUNK_SIZE, MMAP_RATIO, WRITER_MEMORY_PERCENT
+from codex.settings.settings import (
+    CHUNK_PER_GB,
+    CPU_MULTIPLIER,
+    MAX_CHUNK_SIZE,
+    MMAP_RATIO,
+    WRITER_MEMORY_PERCENT,
+)
 from codex.status import Status
 
 if TYPE_CHECKING:
@@ -127,8 +133,10 @@ class UpdateMixin(RemoveMixin):
             "procs": num_procs,
             "batch_size": batch_size,
         }
-        self.log.debug(f"{MMAP_RATIO=}, {WRITER_MEMORY_PERCENT=}, {CPU_MULTIPLIER=},"
-                       f" {CHUNK_PER_GB=}, {MAX_CHUNK_SIZE=}")
+        self.log.debug(
+            f"{MMAP_RATIO=}, {WRITER_MEMORY_PERCENT=}, {CPU_MULTIPLIER=},"
+            f" {CHUNK_PER_GB=}, {MAX_CHUNK_SIZE=}"
+        )
         self.log.debug(f"Search Index update opts: {opts}")
         return num_procs, batch_size
 
