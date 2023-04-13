@@ -30,13 +30,14 @@ DEPS=(
     bin/collectstatic.sh
     bin/lint.sh
     bin/lint-backend.sh
+    bin/pm
+    bin/test-backend.sh
     manage.py
-    pm
     package.json
     package-lock.json
     pyproject.toml
     poetry.lock
-    bin/test-backend.sh
+    Makefile
     "${SOURCE_DEPS[@]}"
 )
 

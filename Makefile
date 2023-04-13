@@ -52,11 +52,16 @@ clean-frontend:
 build-frontend: clean-frontend
 	bash -c "cd frontend && make build"
 
+.PHONY: check
+## Check django is ok
+## @category lint
+check:
+	./bin/pm check
+
 .PHONY: build
 ## Build python package
 ## @category Build
-build: collectstatic
-	./pm check
+build: collectstatic check
 	poetry build
 
 .PHONY: publish
