@@ -4,7 +4,7 @@ set -euxo pipefail
 cd "$(dirname "$0")"
 
 make collectstatic
-./pm check
+./bin/pm check
 echo "*** build and package application ***"
 PIP_CACHE_DIR=$(pip3 cache dir)
 export PIP_CACHE_DIR

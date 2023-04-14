@@ -1,14 +1,35 @@
+.PHONY: update
+## Update dependencies
+## @category Update
+update:
+	./bin/update-deps.sh
+
+.PHONY: update-builder
+## Update builder requirements
+## @category Update
+update-builder:
+	./bin/update-builder-requirement.sh
+
+## version
+## @category Update
+V := 
+.PHONY: version
+## Show or set project version
+## @category Update
+version:
+	bin/version.sh $(V)
+
 .PHONY: install-backend-common
 ## Upgrade pip and poetry
 ## @category Install
 install-backend-common:
-	pip install --upgrade pip
-	pip install --upgrade poetry
-	npm install
 	BREW_PREFIX=$(brew --prefix)
 	export LDFLAGS="-L${BREW_PREFIX}/opt/openssl@3/lib"
 	export CPPFLAGS="-I${BREW_PREFIX}/opt/openssl@3/include"
 	export PKG_CONFIG_PATH="${BREW_PREFIX}/opt/openssl@3/lib/pkgconfig"
+	pip install --upgrade pip
+	pip install --upgrade poetry
+	npm install
 
 .PHONY: install-frontend
 ## Install frontend
@@ -33,49 +54,6 @@ install-dev: install-backend-common install-frontend
 ## @category Install
 install-all: install-backend-common install-frontend
 	poetry install --no-root --all-extras --sync
-
-.PHONY: clean
-## Clean pycaches
-## @category Build
-clean:
-	./bin/clean-pycache.sh
-
-.PHONY: clean-frontend
-## Clean static_build
-## @category Build
-clean-frontend:
-	bash -c "cd frontend && make clean"
-
-.PHONY: build-frontend
-## Build frontend
-## @category Build
-build-frontend: clean-frontend
-	bash -c "cd frontend && make build"
-
-.PHONY: build
-## Build python package
-## @category Build
-build: collectstatic
-	./pm check
-	poetry build
-
-.PHONY: publish
-## Publish package to pypi
-## @category Deploy
-publish:
-	./bin/pypi-deploy.sh
-
-.PHONY: update
-## Update dependencies
-## @category Update
-update:
-	./bin/update-deps.sh
-
-.PHONY: update-builder
-## Update builder requirements
-## @category Update
-update-builder:
-	./bin/update-builder-requirement.sh
 
 .PHONY: fix-backend
 ## Fix only backend lint errors
@@ -111,6 +89,18 @@ lint-frontend:
 ## @category Lint
 lint: lint-frontend lint-backend
 
+.PHONY: kill-eslint_d
+## Kill eslint daemon
+## @category Lint
+kill-eslint_d:
+	bin/kill-eslint_d.sh
+
+.PHONY: check
+## Check django is ok
+## @category Lint
+check:
+	./bin/pm check
+
 .PHONY: test-backend
 ## Run backend tests
 ## @category Test
@@ -127,6 +117,48 @@ test-frontend:
 ## Run All Tests
 ## @category Test
 test: test-frontend test-backend
+
+.PHONY: benchmark-opds
+## Time opds requests
+## @category Test
+benchmark-opds:
+	bin/benchmark-opds.sh
+
+.PHONY: clean
+## Clean pycaches
+## @category Build
+clean:
+	./bin/clean-pycache.sh
+
+.PHONY: clean-frontend
+## Clean static_build
+## @category Build
+clean-frontend:
+	bash -c "cd frontend && make clean"
+
+.PHONY: build-frontend
+## Build frontend
+## @category Build
+build-frontend: clean-frontend
+	bash -c "cd frontend && make build"
+
+.PHONY: icons
+## Build all icons from source
+## @category Build
+icons:
+	bin/create-icons.sh
+
+.PHONY: collectstatic
+## Collect static files for django
+## @category Build
+collectstatic:
+	bin/collectstatic.sh
+
+.PHONY: build
+## Build python package
+## @category Build
+build: collectstatic check
+	poetry build
 
 .PHONY: kill
 ## Kill lingering codex processes
@@ -179,44 +211,17 @@ M :=
 dev-module:
 	./bin/dev-module.sh $(M)
 
-.PHONY: collectstatic
-## Collect static files for django
-## @category Build
-collectstatic: build-frontend
-	bin/collectstatic.sh
+.PHONY: publish
+## Publish package to pypi
+## @category Deploy
+publish:
+	./bin/pypi-deploy.sh
 
 .PHONY: news
 ## Show recent NEWS
 ## @category Deploy
 news:
 	head -40 NEWS.md
-
-.PHONY: icons
-## Build all icons from source
-## @category Build
-icons:
-	bin/create-icons.sh
-
-.PHONY: benchmark-opds
-## Time opds requests
-## @category Test
-benchmark-opds:
-	bin/benchmark-opds.sh
-
-## version
-## @category Update
-V := 
-.PHONY: version
-## Show or set project version
-## @category Update
-version:
-	bin/version.sh $(V)
-
-.PHONY: kill-eslint_d
-## Kill eslint daemon
-## @category Lint
-kill-eslint_d:
-	bin/kill-eslint_d.sh
 
 .PHONY: all
 

@@ -62,6 +62,7 @@ services:
   codex-arch:
     build:
       context: .
+      dockerfile: bin/docker/Dockerfile
       args:
         CODEX_BUILDER_BASE_VERSION:
         CODEX_BASE_VERSION:
@@ -71,6 +72,9 @@ services:
     image: docker.io/ajslater/codex-arch
     container_name: codex-arch
   codex:
+    build:
+      context: .
+      dockerfile: bin/docker/Dockerfile
     image: docker.io/ajslater/codex
     container_name: codex
     ports:
