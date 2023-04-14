@@ -18,7 +18,7 @@ docker tag "$HUB_ARM_TAG" "$LOCAL_ARM_TAG"
 docker tag "$HUB_AMD_TAG" "$LOCAL_AMD_TAG"
 
 # run local registry
-REGISTRY_YAML=docker/registry.yaml
+REGISTRY_YAML=bin/docker/registry.yaml
 docker compose -f "$REGISTRY_YAML" up -d
 
 # push both images into local registry
