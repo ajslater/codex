@@ -28,15 +28,15 @@ DEPS=(
     bin/docker/dist-builder.Dockerfile
     bin/build-dist.sh
     bin/collectstatic.sh
-    bin/lint.sh
     bin/lint-backend.sh
-    manage.py
-    pm
+    bin/manage.py
+    bin/pm
+    bin/test-backend.sh
     package.json
     package-lock.json
     pyproject.toml
     poetry.lock
-    bin/test-backend.sh
+    Makefile
     "${SOURCE_DEPS[@]}"
 )
 

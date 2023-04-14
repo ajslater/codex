@@ -3,4 +3,4 @@
 # locations specified in settings.STATIC_DIRS and place them in
 # settings.STATIC_ROOT for production builds.
 set -euo pipefail
-BUILD=1 ./pm collectstatic --clear --no-input
+BUILD=1 ./bin/pm collectstatic --clear --no-input
