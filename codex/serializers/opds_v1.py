@@ -23,11 +23,11 @@ from codex.serializers.models import LanguageSerializer
 UTC_TZ = ZoneInfo("UTC")
 
 
-class OPDSEntrySerializer(BrowserCardOPDSBaseSerializer):
+class OPDS1EntrySerializer(BrowserCardOPDSBaseSerializer):
     """Group OPDS Entry Serializer."""
 
 
-class OPDSAcquisitionEntrySerializer(BrowserCardSerializer):
+class OPDS1AcquisitionEntrySerializer(BrowserCardSerializer):
     """Comic OPDS Entry Serializer."""
 
     size = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "size")
@@ -43,7 +43,7 @@ class OPDSAcquisitionEntrySerializer(BrowserCardSerializer):
     language = CharField(read_only=True, source=UNIONFIX_PREFIX + "language")
 
 
-class OPDSMetadataEntrySerializer(OPDSAcquisitionEntrySerializer):
+class OPDS1MetadataEntrySerializer(OPDS1AcquisitionEntrySerializer):
     """Comic OPDS Metadata Entry Serializer."""
 
     # ManyToMany
@@ -61,17 +61,17 @@ class OPDSMetadataEntrySerializer(OPDSAcquisitionEntrySerializer):
 
 
 OPDS_COMICS_ORDERED_UNIONFIX_VALUES_MAP = get_serializer_values_map(
-    [OPDSAcquisitionEntrySerializer],
+    [OPDS1AcquisitionEntrySerializer],
 )
 OPDS_FOLDERS_ORDERED_UNIONFIX_VALUES_MAP = get_serializer_values_map(
-    [OPDSAcquisitionEntrySerializer], folders=True
+    [OPDS1AcquisitionEntrySerializer], folders=True
 )
 
 OPDS_COMICS_METADATA_ORDERED_UNIONFIX_VALUES_MAP = get_serializer_values_map(
-    [OPDSMetadataEntrySerializer],
+    [OPDS1MetadataEntrySerializer],
 )
 OPDS_FOLDERS_METADATA_ORDERED_UNIONFIX_VALUES_MAP = get_serializer_values_map(
-    [OPDSMetadataEntrySerializer], folders=True
+    [OPDS1MetadataEntrySerializer], folders=True
 )
 
 OPDS_M2M_FIELDS = (
@@ -115,7 +115,7 @@ class AuthenticationSerializer(Serializer):
     authentication = AuthenticationTypeSerializer(many=True, read_only=True)
 
 
-class OPDSTemplateLinkSerializer(Serializer):
+class OPDS1TemplateLinkSerializer(Serializer):
     """OPDS Link Template Serializer."""
 
     href = CharField(read_only=True)
@@ -131,12 +131,12 @@ class OPDSTemplateLinkSerializer(Serializer):
     pse_last_read_date = DateTimeField(read_only=True, required=False)
 
 
-class OPDSTemplateEntrySerializer(Serializer):
+class OPDS1TemplateEntrySerializer(Serializer):
     """OPDS Entry Template Serializer."""
 
     id_tag = CharField(read_only=True)
     title = CharField(read_only=True)
-    links = OPDSTemplateLinkSerializer(many=True, read_only=True)
+    links = OPDS1TemplateLinkSerializer(many=True, read_only=True)
     issued = DateField(read_only=True, required=False)
     updated = DateTimeField(read_only=True, required=False, default_timezone=UTC_TZ)
     published = DateTimeField(read_only=True, required=False, default_timezone=UTC_TZ)
@@ -148,14 +148,14 @@ class OPDSTemplateEntrySerializer(Serializer):
     language = LanguageSerializer(read_only=True, required=False)
 
 
-class OPDSTemplateSerializer(Serializer):
+class OPDS1TemplateSerializer(Serializer):
     """OPDS Browser Template Serializer."""
 
     opds_ns = CharField(read_only=True)
     id_tag = CharField(read_only=True)
     title = CharField(read_only=True)
     updated = DateTimeField(read_only=True, default_timezone=UTC_TZ)
-    links = OPDSTemplateLinkSerializer(many=True, read_only=True)
-    entries = OPDSTemplateEntrySerializer(many=True, read_only=True)
+    links = OPDS1TemplateLinkSerializer(many=True, read_only=True)
+    entries = OPDS1TemplateEntrySerializer(many=True, read_only=True)
     items_per_page = IntegerField(read_only=True)
     total_results = IntegerField(read_only=True)

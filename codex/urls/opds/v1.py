@@ -6,9 +6,9 @@ from codex.urls.converters import GroupConverter
 from codex.views.cover import CoverView
 from codex.views.download import DownloadView
 from codex.views.opds_v1.authentication import AuthenticationView
-from codex.views.opds_v1.browser import OPDSBrowserView
+from codex.views.opds_v1.browser import OPDS1BrowserView
 from codex.views.opds_v1.opensearch import OpenSearchView
-from codex.views.opds_v1.start import opds_start_view
+from codex.views.opds_v1.start import opds_1_start_view
 from codex.views.reader.page import ReaderPageView
 
 TIMEOUT = 60 * 60
@@ -24,7 +24,7 @@ urlpatterns = [
     # Browser
     path(
         "<group:group>/<int:pk>/<int:page>",
-        OPDSBrowserView.as_view(),
+        OPDS1BrowserView.as_view(),
         name="browser",
     ),
     #
@@ -55,5 +55,5 @@ urlpatterns = [
         cache_page(TIMEOUT)(AuthenticationView.as_view()),
         name="authentication",
     ),
-    path("", opds_start_view, name="start"),
+    path("", opds_1_start_view, name="start"),
 ]
