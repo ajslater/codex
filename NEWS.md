@@ -6,8 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.3.8a0
+## v1.3.8
 
+- Fix
+  - Fix Basic Authentication not enabled for OPDS Cover, Page, and Download
+    views.
 - Dev
   - Use makefile and moved most scripts into bin.
 

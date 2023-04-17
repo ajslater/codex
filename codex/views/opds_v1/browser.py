@@ -41,7 +41,7 @@ LOG = get_logger(__name__)
 class OPDS1BrowserView(BrowserView, CodexXMLTemplateView):
     """The main opds browser."""
 
-    authentication_classes = (SessionAuthentication, BasicAuthentication)
+    authentication_classes = (BasicAuthentication, SessionAuthentication)
     template_name = "opds/index.xml"
     serializer_class = OPDS1TemplateSerializer
 
