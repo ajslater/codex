@@ -11,6 +11,7 @@ border-radius: 128px;
 - Fix
   - Fix Basic Authentication not enabled for OPDS Cover, Page, and Download
     views.
+  - Tune low memory algorithm slightly lower for memory constrained systems.
 - Dev
   - Use makefile and moved most scripts into bin.
 
