@@ -9,6 +9,7 @@ from codex.librarian.covers.create import CoverCreateMixin
 from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
+from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.mixins import GroupACLMixin
 
 LOG = get_logger(__name__)
@@ -30,6 +31,7 @@ class WEBPRenderer(BaseRenderer):
 class CoverView(APIView, GroupACLMixin):
     """ComicCover View."""
 
+    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
     renderer_classes = (WEBPRenderer,)
     content_type = "image/webp"
 

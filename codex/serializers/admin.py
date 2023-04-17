@@ -214,6 +214,12 @@ class AdminStatsSerializer(Serializer):
     metadata = AdminComicMetadataSerializer(required=False)
 
 
+class AdminStatsRequestSerializer(Serializer):
+    """Admin Stats Tab Request."""
+
+    params = CharField(required=False)
+
+
 class APIKeySerializer(Serializer):
     """API Key."""
 

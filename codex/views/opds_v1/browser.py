@@ -10,13 +10,13 @@ from rest_framework.response import Response
 
 from codex.logger.logging import get_logger
 from codex.serializers.opds_v1 import (
-    OPDSAcquisitionEntrySerializer,
-    OPDSEntrySerializer,
-    OPDSMetadataEntrySerializer,
-    OPDSTemplateSerializer,
+    OPDS1AcquisitionEntrySerializer,
+    OPDS1EntrySerializer,
+    OPDS1MetadataEntrySerializer,
+    OPDS1TemplateSerializer,
 )
 from codex.views.browser.browser import BrowserView
-from codex.views.opds_v1.entry import OPDSEntry
+from codex.views.opds_v1.entry import OPDS1Entry
 from codex.views.opds_v1.util import (
     BLANK_TITLE,
     DEFAULT_FACETS,
@@ -38,12 +38,12 @@ from codex.views.template import CodexXMLTemplateView
 LOG = get_logger(__name__)
 
 
-class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
+class OPDS1BrowserView(BrowserView, CodexXMLTemplateView):
     """The main opds browser."""
 
-    authentication_classes = (SessionAuthentication, BasicAuthentication)
+    authentication_classes = (BasicAuthentication, SessionAuthentication)
     template_name = "opds/index.xml"
-    serializer_class = OPDSTemplateSerializer
+    serializer_class = OPDS1TemplateSerializer
 
     @property
     def opds_ns(self):
@@ -147,7 +147,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
             "name": name,
             "query_params": query_params,
         }
-        return OPDSEntry(obj, self.acquisition_groups, {**self.request.query_params})
+        return OPDS1Entry(obj, self.acquisition_groups, {**self.request.query_params})
 
     def _is_facet_active(self, facet_group, facet):
         compare = [facet.value]
@@ -271,7 +271,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
             "summary": top_link.desc,
         }
 
-        return OPDSEntry(entry_obj, self.acquisition_groups, {})
+        return OPDS1Entry(entry_obj, self.acquisition_groups, {})
 
     def _add_top_links(self, top_links):
         """Add a list of top links as entries if they should be enabled."""
@@ -296,7 +296,7 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
             if obj_list := self.obj.get("obj_list"):
                 for entry_obj in obj_list:
                     entries += [
-                        OPDSEntry(
+                        OPDS1Entry(
                             entry_obj,
                             self.acquisition_groups,
                             self.request.query_params,
@@ -319,11 +319,11 @@ class OPDSBrowserView(BrowserView, CodexXMLTemplateView):
         obj_list = browser_page.get("obj_list")
         model_group = browser_page.get("model_group")
         if self.is_opds_metadata:
-            serializer_class = OPDSMetadataEntrySerializer
+            serializer_class = OPDS1MetadataEntrySerializer
         elif model_group == "c":
-            serializer_class = OPDSAcquisitionEntrySerializer
+            serializer_class = OPDS1AcquisitionEntrySerializer
         else:
-            serializer_class = OPDSEntrySerializer
+            serializer_class = OPDS1EntrySerializer
         serializer = serializer_class(obj_list, many=True)
         browser_page["obj_list"] = serializer.data
         self.obj = browser_page

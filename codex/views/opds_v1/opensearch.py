@@ -11,7 +11,7 @@ from codex.views.template import CodexXMLTemplateView
 class OpenSearchView(CodexXMLTemplateView):
     """OpenSearchView."""
 
-    authentication_classes = (SessionAuthentication, BasicAuthentication)
+    authentication_classes = (BasicAuthentication, SessionAuthentication)
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
     template_name = "opds/opensearch.xml"
     content_type = "application/xml"

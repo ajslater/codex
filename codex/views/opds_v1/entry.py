@@ -21,7 +21,7 @@ from codex.views.opds_v1.util import (
 LOG = get_logger(__name__)
 
 
-class OPDSEntry:
+class OPDS1Entry:
     """An OPDS entry object."""
 
     _DATE_FORMAT_BASE = "%Y-%m-%dT%H:%M:%S"

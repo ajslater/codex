@@ -5,7 +5,7 @@ from django.urls import reverse
 from codex.serializers.choices import DEFAULTS
 
 
-def opds_start_view(request):
+def opds_1_start_view(request):
     """Redirect to start view, forwarding query strings and auth."""
     kwargs = DEFAULTS["route"]
     url = reverse("opds:v1:browser", kwargs=kwargs)

@@ -19,8 +19,8 @@ import { mapActions, mapGetters, mapState } from "pinia";
 import { markRaw } from "vue";
 
 import BrowserNavToolbar from "@/components/browser/browser-nav-toolbar.vue";
-import BrowserSettingsPanel from "@/components/browser/browser-settings-panel.vue";
 import BrowserTitleToolbar from "@/components/browser/browser-title-toolbar.vue";
+import BrowserSettingsPanel from "@/components/browser/drawer/browser-settings-panel.vue";
 import BrowserFilterToolbar from "@/components/browser/filter-toolbar.vue";
 import BrowserMain from "@/components/browser/main.vue";
 import SettingsDrawer from "@/components/settings/settings-drawer.vue";

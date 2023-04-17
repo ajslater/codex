@@ -453,18 +453,8 @@ database.
 
 `/codex/frontend/` is where the vuejs frontend lives.
 
-`/codex/dev-env-setup.sh` will install development dependencies.
-
-`/codex/dev-ttabs.sh` will run the three or four different servers recommended
-for development in terminal tabs.
-
-`/codex/dev-codex.sh` runs the main Django server. Set the `DEBUG` environment
-variable to activate debug mode: `DEBUG=1 ./run.sh`. This also lets you run the
-server without collecting static files for production and with a hot reloading
-frontend.
-
-`/codex/frontend/dev-server.sh` runs the development autoreloading frontend with
-vite.
+Most of Codex development is now controlled through the Makefile. Type `make`
+for a list of commands.
 
 ## \<a name="links>🔗 Links</a>
 
