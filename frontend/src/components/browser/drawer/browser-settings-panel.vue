@@ -29,7 +29,7 @@
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 
-import SearchHelp from "@/components/browser/search-help.vue";
+import SearchHelp from "@/components/browser/drawer/search-help.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 

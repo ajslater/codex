@@ -213,7 +213,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-@import "../anchors.scss";
+@import "../../anchors.scss";
 :deep(.browserSearchHelp) {
   overflow-y: auto !important;
 }
