@@ -10,7 +10,6 @@ from codex.logger.logging import get_logger
 from codex.models import Comic
 from codex.pdf import PDF
 from codex.version import COMICBOX_CONFIG
-from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.bookmark import BookmarkBaseView
 
 LOG = get_logger(__name__)
@@ -31,7 +30,6 @@ class IgnoreClientContentNegotiation(BaseContentNegotiation):
 class ReaderPageView(BookmarkBaseView):
     """Display a comic page from the archive itself."""
 
-    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
     X_MOZ_PRE_HEADERS = {"prefetch", "preload", "prerender", "subresource"}
     content_type = "image/jpeg"
     content_negotiation_class = IgnoreClientContentNegotiation  # type: ignore

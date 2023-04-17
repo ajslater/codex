@@ -15,6 +15,7 @@ LOG = get_logger(__name__)
 class BookmarkBaseView(GenericAPIView, GroupACLMixin):
     """Bookmark Updater."""
 
+    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
     _BOOKMARK_UPDATE_FIELDS = [
         "page",
         "finished",
@@ -117,7 +118,6 @@ class BookmarkBaseView(GenericAPIView, GroupACLMixin):
 class BookmarkView(BookmarkBaseView):
     """User Bookmark View."""
 
-    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
     serializer_class = BookmarkSerializer
 
     def _validate(self, serializer_class):

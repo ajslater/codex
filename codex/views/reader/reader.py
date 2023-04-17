@@ -8,7 +8,6 @@ from codex.logger.logging import get_logger
 from codex.models import Comic
 from codex.serializers.reader import ReaderInfoSerializer
 from codex.serializers.redirect import ReaderRedirectSerializer
-from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.bookmark import BookmarkBaseView
 from codex.views.session import BrowserSessionViewBase
 
@@ -19,7 +18,6 @@ PAGE_TTL = 60 * 60 * 24
 class ReaderView(BookmarkBaseView):
     """Get info for displaying comic pages."""
 
-    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
     serializer_class = ReaderInfoSerializer
 
     SETTINGS_ATTRS = ("fit_to", "two_pages", "read_in_reverse", "vertical")
