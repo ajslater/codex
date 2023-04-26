@@ -6,13 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.3.9
+## v1.4.0
 
 - Features
-  - OPDS 2.0 Support.
+  - Experimental OPDS 2.0 Support.
 - Fix
-  - Faster Metadata pages.
-  - Fix Credits not imported.
+  - Faster Metadata pages for web and OPDS.
+  - Fix Credits not imported bug.
 
 ## v1.3.8
 

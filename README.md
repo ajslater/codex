@@ -439,8 +439,8 @@ original database at `config/db.sqlite3.backup`.
 
 ### <a name="bug_reports">🐛 Bug Reports</a>
 
-Issues and feature requests are best filed on the [Github issue tracker](https://github.com/ajslater/codex/issues).
-
+Issues and feature requests are best filed on the
+[Github issue tracker](https://github.com/ajslater/codex/issues).
 
 ### <a name="out-of-scope">🚫 Out of Scope</a>
 
@@ -466,7 +466,6 @@ By the generosity of the good people of
 [Mylar](https://github.com/mylar3/mylar3), I and other Codex users answer
 questions on the [Mylar Discord](https://discord.gg/6UG94R7E8T). Please use the
 `#codex-support` channel to ask for help with Codex.
-
 
 ## <a name="links">🔗 Links</a>
 
