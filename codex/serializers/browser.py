@@ -16,7 +16,7 @@ from rest_framework.serializers import (
 
 from codex.serializers.choices import CHOICES, VUETIFY_NULL_CODE
 from codex.serializers.mixins import (
-    BrowserCardOPDSBaseSerializer,
+    BrowserAggregateSerializerMixin,
 )
 
 VUETIFY_NULL_CODE_STR = str(VUETIFY_NULL_CODE)
@@ -164,9 +164,10 @@ class BrowserSettingsSerializer(Serializer):
     opds_metadata = BooleanField(required=False)
 
 
-class BrowserCardSerializer(BrowserCardOPDSBaseSerializer):
+class BrowserCardSerializer(BrowserAggregateSerializerMixin):
     """Browse card displayed in the browser."""
 
+    pk = IntegerField(read_only=True)
     publisher_name = CharField(read_only=True)
     series_name = CharField(read_only=True)
     volume_name = CharField(read_only=True)
