@@ -8,10 +8,7 @@ from rest_framework.response import Response
 
 from codex.comic_field_names import COMIC_M2M_FIELD_NAMES
 from codex.models import AdminFlag, Comic
-from codex.serializers.metadata import (
-    METADATA_ORDERED_UNIONFIX_VALUES_MAP,
-    MetadataSerializer,
-)
+from codex.serializers.metadata import MetadataSerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_annotations import BrowserAnnotationsView
 
@@ -56,13 +53,7 @@ class MetadataView(BrowserAnnotationsView):
         "s": "series",
         "v": "volume",
     }
-    _COMIC_FK_FIELDS = frozenset(_COMIC_FK_FIELDS_MAP.values())
-    _COMIC_FK_ANNOTATION_PREFIX = "fk_"
     _COMIC_RELATED_VALUE_FIELDS = {"series__volume_count", "volume__issue_count"}
-    _COUNT_FIELD_MAP = {
-        "imprint": ("volume_count", "fk_series_volume_count"),
-        "series": ("issue_count", "fk_volume_issue_count"),
-    }
     _PATH_GROUPS = ("c", "f")
     _CREATOR_RELATIONS = ("role", "person")
 
@@ -111,28 +102,6 @@ class MetadataView(BrowserAnnotationsView):
 
         return simple_qs, qs
 
-    @classmethod
-    def _field_copy_fk_count(cls, field_name, obj, val):
-        """Copy those pesky fk count fields from annotations."""
-        op_field_names = cls._COUNT_FIELD_MAP.get(field_name)
-        if not op_field_names:
-            return
-        count_field, count_src_field_name = op_field_names
-        val[count_field] = obj[count_src_field_name]
-
-    def _field_copy(self, obj, fields, prefix, fk_field=None):
-        """Copy annotation fields into comic type fields."""
-        for field_name in fields:
-            src_field_name = f"{prefix}{field_name}"
-            val = obj[src_field_name]
-            if fk_field:
-                val = {fk_field: val}
-                if pk := obj.get(field_name + "_id"):
-                    val["pk"] = pk
-                # Add special count fields
-                self._field_copy_fk_count(field_name, obj, val)
-            obj[field_name] = val
-
     def _annotate_aggregates(self, qs):
         """Annotate aggregate values."""
         if not self.is_model_comic:
@@ -159,20 +128,10 @@ class MetadataView(BrowserAnnotationsView):
             qs = qs.annotate(library_path=F("library__path"))
             querysets = (simple_qs, qs)
 
-        # Foreign Keys
-        fk_fields = copy(self._COMIC_FK_FIELDS)
-        querysets = self._intersection_annotate(
-            querysets,
-            fk_fields,
-            related_suffix="__name",
-            annotation_prefix=self._COMIC_FK_ANNOTATION_PREFIX,
-        )
-
         # Foreign Keys with special count values
         _, qs = self._intersection_annotate(
             querysets,
             self._COMIC_RELATED_VALUE_FIELDS,
-            annotation_prefix=self._COMIC_FK_ANNOTATION_PREFIX,
         )
         return qs
 
@@ -214,51 +173,56 @@ class MetadataView(BrowserAnnotationsView):
             m2m_intersections[field_name] = intersection_qs
         return m2m_intersections
 
+    def _path_security(self, obj):
+        """Secure filesystem information for acl situation."""
+        if self.is_admin():
+            return
+        if self._is_enabled_folder_view():
+            library_path = obj.get("library_path", "")
+            obj.path = obj.path.removeprefix(library_path)
+        else:
+            obj.path = ""
+
+    def _highlight_current_group(self, obj):
+        """Values for highlighting the current group."""
+        obj.group = self.group
+        if not self.is_model_comic:
+            # move the name of the group to the correct field
+            group_field = self.model.__name__.lower()
+            group_obj = {"pk": obj.pk, "name": obj.name}
+            setattr(obj, group_field, group_obj)
+            obj.name = None
+
+    @staticmethod
+    def _copy_m2m_intersections(obj, m2m_intersections):
+        """Copy the m2m intersections into the object."""
+        for key, value in m2m_intersections.items():
+            if hasattr(obj, key):
+                # db set objects use their special method
+                getattr(obj, key).set(value)
+            else:
+                setattr(obj, key, value)
+
+    @classmethod
+    def _copy_conflicting_simple_fields(cls, obj):
+        for field in cls._COMIC_VALUE_FIELDS_CONFLICTING:
+            """Copy conflicting fields over naturral fields."""
+            conflict_field = cls._COMIC_VALUE_FIELDS_CONFLICTING_PREFIX + field
+            val = getattr(obj, conflict_field)
+            setattr(obj, field, val)
+
     def _copy_annotations_into_comic_fields(self, obj, m2m_intersections):
         """Copy a bunch of values that i couldn't fit cleanly in the main queryset."""
-        if self.model is None:
-            reason = f"Cannot get metadata for {self.group=}"
-            raise ValueError(reason)
-        group_field = self.model.__name__.lower()
-        obj[group_field] = {"pk": obj["id"], "name": obj["name"]}
-        comic_fk_fields = copy(self._COMIC_FK_FIELDS)
-        self._field_copy(
-            obj,
-            comic_fk_fields,
-            self._COMIC_FK_ANNOTATION_PREFIX,
-            "name",
-        )
-
+        self._path_security(obj)
+        self._highlight_current_group(obj)
+        self._copy_m2m_intersections(obj, m2m_intersections)
         if not self.is_model_comic:
-            # this must come after fk_fields copy because of name
-            # for fk models
-            self._field_copy(
-                obj,
-                self._COMIC_VALUE_FIELDS_CONFLICTING,
-                self._COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
-            )
+            self._copy_conflicting_simple_fields(obj)
 
-        obj.update(m2m_intersections)
+        # filename
+        if self.model == Comic:
+            obj.filename = Comic.get_filename(obj)
 
-        # path security
-        if not self.is_admin():
-            if self._is_enabled_folder_view():
-                library_path = obj.get("library_path")
-                if library_path:
-                    obj["path"] = obj["path"].removeprefix(library_path)
-                else:
-                    obj["path"] = ""
-            else:
-                obj["path"] = ""
-
-        # For highlighting the current group
-        obj["group"] = self.group
-
-        # copy into unionfix fields for serializer
-        for unionfix_field, field in METADATA_ORDERED_UNIONFIX_VALUES_MAP.items():
-            obj[unionfix_field] = obj.get(field)
-
-        obj["filename"] = Comic.get_filename(obj)
         return obj
 
     def get_object(self):
@@ -279,9 +243,10 @@ class MetadataView(BrowserAnnotationsView):
 
         qs = self._annotate_values_and_fks(qs, simple_qs)
         qs = self._annotate_for_filename(qs)
-        m2m_intersections = self._query_m2m_intersections(simple_qs)
+
         try:
-            obj = qs.values()[0]
+            # obj = qs.values()[0]
+            obj = qs.first()
             if not obj:
                 reason = "Empty obj"
                 raise ValueError(reason)  # noqa TRY301
@@ -290,6 +255,7 @@ class MetadataView(BrowserAnnotationsView):
                 detail=f"Filtered metadata for {self.group}/{pk} not found"
             ) from exc
 
+        m2m_intersections = self._query_m2m_intersections(simple_qs)
         obj = self._copy_annotations_into_comic_fields(obj, m2m_intersections)
         return obj
 

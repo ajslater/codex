@@ -63,13 +63,13 @@ class BrowserAnnotationsView(BrowserOrderByView):
             cover_pk = Subquery(cover_comics.values("comic__pk")[:1])
         return queryset.annotate(cover_pk=cover_pk)
 
-    def _annotate_page_count(self, obj_list):
+    def _annotate_page_count(self, qs):
         """Hoist up total page_count of children."""
         # Used for sorting and progress
         page_count_sum = Sum("comic__page_count", distinct=True)
-        return obj_list.annotate(page_count=page_count_sum)
+        return qs.annotate(page_count=page_count_sum)
 
-    def _annotate_bookmarks(self, obj_list, is_model_comic, is_opds_acquisition=False):
+    def _annotate_bookmarks(self, qs, is_model_comic, is_opds_acquisition=False):
         """Hoist up bookmark annoations."""
         bm_rel = self.get_bm_rel(is_model_comic)
         bm_filter = self._get_my_bookmark_filter(bm_rel)
@@ -118,7 +118,7 @@ class BrowserAnnotationsView(BrowserOrderByView):
                 output_field=PositiveSmallIntegerField(),
                 distinct=True,
             )
-            obj_list = obj_list.annotate(finished_count=finished_count)
+            qs = qs.annotate(finished_count=finished_count)
             finished_aggregate = Case(
                 When(
                     Q(finished_count=F("child_count")) | Q(page=F("page_count")),
@@ -130,13 +130,13 @@ class BrowserAnnotationsView(BrowserOrderByView):
             )
             bookmark_updated_at = self._NONE_DATETIMEFIELD
 
-        obj_list = obj_list.annotate(
+        qs = qs.annotate(
             page=bookmark_page,
             finished=finished_aggregate,
             bookmark_updated_at=bookmark_updated_at,
         )
 
-        return obj_list
+        return qs
 
     @staticmethod
     def _annotate_progress(queryset):

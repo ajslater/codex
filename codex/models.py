@@ -2,8 +2,10 @@
 import base64
 import calendar
 import datetime
+import math
 import re
 import uuid
+from decimal import Decimal
 from pathlib import Path
 
 from django.conf import settings
@@ -418,50 +420,67 @@ class Comic(WatchedPath):
         self.presave()
         super().save(*args, **kwargs)
 
+    @staticmethod
+    def _compute_zero_pad(issue_max):
+        """Compute zero padding for issues."""
+        if issue_max is None:
+            issue_max = 100
+        if issue_max < 1:
+            return 1
+        return math.floor(math.log10(issue_max)) + 1
+
     @classmethod
-    def get_filename(cls, obj, ext=True):
-        """Get the fileaname from dict."""
+    def get_title(cls, obj, volume=True, issue_max=None, name=True):
+        """Create the comic title for display."""
         names = []
-        if sn := obj.get("series_name"):
+
+        # Series
+        if sn := obj.series_name:
             names.append(sn)
-        if vn := obj.get("volume_name"):
+
+        # Volume
+        if volume and (vn := obj.volume_name):
             vn = Volume.to_str(vn)
             names.append(vn)
-        issue = obj.get("issue")
-        if issue is not None:
-            issue_str = "#"
-            if issue % 1 == 0:
-                issue_str += f"{issue:05.0f}"
-            else:
-                issue_str += f"{issue:06.1f}"
-            if issue_suffix := obj.get("issue_suffix"):
-                issue_str += issue_suffix
-            names.append(issue_str)
-        if name := obj.get("name"):
-            names.append(name)
 
-        fn = " ".join(names).strip(" .")
-        fn = cls._RE_COMBINE_WHITESPACE.sub(" ", fn).strip()
-        if ext:
-            ft = obj.get("file_type", "cbz")
-            fn += "." + ft.lower()
+        # Issue
+        issue = obj.issue.normalize() if obj.issue else Decimal(0)
+        zero_pad = cls._compute_zero_pad(issue_max)
+        if issue % 1 == 0:
+            precision = 0
+        else:
+            precision = 1
+            zero_pad += 2
+        issue_str = f"#{issue:0{zero_pad}.{precision}f}"
+        if issue_suffix := obj.issue_suffix:
+            issue_str += issue_suffix
+        names.append(issue_str)
+
+        # Title
+        if name and obj.name:
+            names.append(obj.name)
+
+        title = " ".join(filter(None, names)).strip(" .")
+        title = cls._RE_COMBINE_WHITESPACE.sub(" ", title).strip()
+        return title
+
+    @classmethod
+    def get_filename(cls, obj, issue_max=None):
+        """Get the fileaname from dict."""
+        fn = cls.get_title(obj, issue_max=issue_max)
+        ft = obj.file_type or "cbz"
+        fn += "." + ft.lower()
         return fn
 
-    def filename(self, ext=True):
+    def filename(self, issue_max=None):
         """Create a filename for download."""
-        obj = {
-            "series_name": self.series.name,
-            "volume_name": self.volume.name,
-            "issue": self.issue,
-            "issue_suffix": self.issue_suffix,
-        }
-        if ext:
-            obj["file_type"] = self.file_type
-        return self.get_filename(obj, ext=ext)
+        self.series_name = self.series.name
+        self.volume_name = self.volume.name
+        return self.get_filename(self, issue_max)
 
     def __str__(self):
         """Most common text representation for logging."""
-        return self.filename(ext=False)
+        return self.get_title(self)
 
 
 class AdminFlag(BaseModel):

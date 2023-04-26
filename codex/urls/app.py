@@ -1,12 +1,9 @@
 """codex:app URL Configuration."""
-from django.urls import path, re_path, register_converter
+from django.urls import path, re_path
 
-from codex.urls.converters import GroupConverter
 from codex.views.frontend import IndexView
 
 app_name = "app"
-
-register_converter(GroupConverter, "group")
 
 urlpatterns = [
     path("<group:group>/<int:pk>/<int:page>", IndexView.as_view(), name="route"),

@@ -7,16 +7,13 @@ from rest_framework.serializers import (
     DateField,
     DateTimeField,
     IntegerField,
-    JSONField,
     ListField,
     Serializer,
 )
 
 from codex.serializers.browser import BrowserCardSerializer
 from codex.serializers.mixins import (
-    UNIONFIX_PREFIX,
     BrowserCardOPDSBaseSerializer,
-    get_serializer_values_map,
 )
 from codex.serializers.models import LanguageSerializer
 
@@ -30,17 +27,15 @@ class OPDS1EntrySerializer(BrowserCardOPDSBaseSerializer):
 class OPDS1AcquisitionEntrySerializer(BrowserCardSerializer):
     """Comic OPDS Entry Serializer."""
 
-    size = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "size")
-    date = DateField(read_only=True, source=UNIONFIX_PREFIX + "date")
-    updated_at = DateTimeField(read_only=True, source=UNIONFIX_PREFIX + "updated_at")
-    created_at = DateTimeField(read_only=True, source=UNIONFIX_PREFIX + "created_at")
-    summary = CharField(read_only=True, source=UNIONFIX_PREFIX + "summary")
-    comments = CharField(read_only=True, source=UNIONFIX_PREFIX + "comments")
-    notes = CharField(read_only=True, source=UNIONFIX_PREFIX + "notes")
-    publisher_name = CharField(
-        read_only=True, source=UNIONFIX_PREFIX + "publisher_name"
-    )
-    language = CharField(read_only=True, source=UNIONFIX_PREFIX + "language")
+    size = IntegerField(read_only=True)
+    date = DateField(read_only=True)
+    updated_at = DateTimeField(read_only=True)
+    created_at = DateTimeField(read_only=True)
+    summary = CharField(read_only=True)
+    comments = CharField(read_only=True)
+    notes = CharField(read_only=True)
+    publisher_name = CharField(read_only=True)
+    language = CharField(read_only=True)
 
 
 class OPDS1MetadataEntrySerializer(OPDS1AcquisitionEntrySerializer):
@@ -48,71 +43,16 @@ class OPDS1MetadataEntrySerializer(OPDS1AcquisitionEntrySerializer):
 
     # ManyToMany
     ## Categories
-    characters = CharField(source=UNIONFIX_PREFIX + "characters")
-    genres = CharField(source=UNIONFIX_PREFIX + "genres")
-    locations = CharField(source=UNIONFIX_PREFIX + "locations")
-    series_groups = CharField(source=UNIONFIX_PREFIX + "series_groups")
-    story_arcs = CharField(source=UNIONFIX_PREFIX + "story_arcs")
-    tags = CharField(source=UNIONFIX_PREFIX + "tags")
-    teams = CharField(source=UNIONFIX_PREFIX + "teams")
+    characters = CharField(read_only=True)
+    genres = CharField(read_only=True)
+    locations = CharField(read_only=True)
+    series_groups = CharField(read_only=True)
+    story_arcs = CharField(read_only=True)
+    tags = CharField(read_only=True)
+    teams = CharField(read_only=True)
     ## Contributors
-    authors = CharField(source=UNIONFIX_PREFIX + "authors")
-    contributors = CharField(source=UNIONFIX_PREFIX + "contributors")
-
-
-OPDS_COMICS_ORDERED_UNIONFIX_VALUES_MAP = get_serializer_values_map(
-    [OPDS1AcquisitionEntrySerializer],
-)
-OPDS_FOLDERS_ORDERED_UNIONFIX_VALUES_MAP = get_serializer_values_map(
-    [OPDS1AcquisitionEntrySerializer], folders=True
-)
-
-OPDS_COMICS_METADATA_ORDERED_UNIONFIX_VALUES_MAP = get_serializer_values_map(
-    [OPDS1MetadataEntrySerializer],
-)
-OPDS_FOLDERS_METADATA_ORDERED_UNIONFIX_VALUES_MAP = get_serializer_values_map(
-    [OPDS1MetadataEntrySerializer], folders=True
-)
-
-OPDS_M2M_FIELDS = (
-    "characters",
-    "genres",
-    "locations",
-    "series_groups",
-    "story_arcs",
-    "tags",
-    "teams",
-    "creators",
-    "creators__role__name",
-    "creators__person__name",
-)
-
-
-class AuthenticationTypeSerializer(Serializer):
-    """OPDS Authentication Type."""
-
-    type = CharField(read_only=True)  # noqa: A003
-    labels = JSONField(read_only=True)
-
-
-class AuthLinksSerializer(Serializer):
-    """OPDS Authentication Links."""
-
-    rel = CharField(read_only=True)
-    href = CharField(read_only=True)
-    type = CharField(read_only=True)  # noqa: A003
-    width = IntegerField(read_only=True, required=False)
-    height = IntegerField(read_only=True, required=False)
-
-
-class AuthenticationSerializer(Serializer):
-    """OPDS Authentication Document."""
-
-    id = CharField(read_only=True)  # noqa: A003
-    title = CharField(read_only=True)
-    description = CharField(read_only=True)
-    links = AuthLinksSerializer(many=True, read_only=True)
-    authentication = AuthenticationTypeSerializer(many=True, read_only=True)
+    authors = CharField(read_only=True)
+    contributors = CharField(read_only=True)
 
 
 class OPDS1TemplateLinkSerializer(Serializer):

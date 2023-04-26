@@ -78,7 +78,7 @@
             group="v"
             :obj="{ pk: md.id, group: md.group }"
           />
-          <MetadataText :value="md.volumeCount" label="Volume Count" />
+          <MetadataText :value="md.seriesVolumeCount" label="Volume Count" />
           <MetadataText
             id="issue"
             :value="formattedIssue"
@@ -86,7 +86,7 @@
             group="c"
             :obj="{ pk: md.id, group: md.group }"
           />
-          <MetadataText :value="md.issueCount" label="Issue Count" />
+          <MetadataText :value="md.volumeIssueCount" label="Issue Count" />
         </div>
         <section class="mdSection">
           <MetadataText :value="md.name" label="Title" />

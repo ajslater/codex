@@ -1,5 +1,4 @@
 """Serializer mixins."""
-from django.db.models import F, Q
 from rest_framework.serializers import (
     BooleanField,
     CharField,
@@ -9,94 +8,47 @@ from rest_framework.serializers import (
     Serializer,
 )
 
-from codex.comic_field_names import COMIC_M2M_FIELD_NAMES
-from codex.db_functions import GroupConcat
-
-UNIONFIX_PREFIX = "unionfix_"
-AUTHOR_ROLES = {"Writer", "Author", "Plotter", "Scripter", "Creator"}
-AUTHOR_ROLES_QUERY = {"creators__role__name__in": AUTHOR_ROLES}
-
 
 class BrowserAggregateBaseSerializerMixin(Serializer):
     """Mixin for browser, opds & metadata serializers."""
 
-    group = CharField(read_only=True, max_length=1, source=UNIONFIX_PREFIX + "group")
+    group = CharField(read_only=True, max_length=1)
 
     # Aggregate Annotations
-    child_count = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "child_count")
-    cover_pk = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "cover_pk")
+    child_count = IntegerField(read_only=True)
+    cover_pk = IntegerField(read_only=True)
 
     # Bookmark annotations
-    page = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "page")
-    bookmark_updated_at = DateTimeField(
-        read_only=True, allow_null=True, source=UNIONFIX_PREFIX + "bookmark_updated_at"
-    )
+    page = IntegerField(read_only=True)
+    bookmark_updated_at = DateTimeField(read_only=True, allow_null=True)
 
 
 class BrowserAggregateSerializerMixin(BrowserAggregateBaseSerializerMixin):
     """Mixin for browser & metadata serializers."""
 
-    finished = BooleanField(read_only=True, source=UNIONFIX_PREFIX + "finished")
+    finished = BooleanField(read_only=True)
     progress = DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        read_only=True,
-        coerce_to_string=False,
-        source=UNIONFIX_PREFIX + "progress",
+        max_digits=5, decimal_places=2, read_only=True, coerce_to_string=False
     )
 
 
 class BrowserCardOPDSBaseSerializer(BrowserAggregateSerializerMixin):
     """Common base for Browser Card and OPDS serializer."""
 
-    pk = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "pk")
-    publisher_name = CharField(
-        read_only=True, source=UNIONFIX_PREFIX + "publisher_name"
-    )
-    series_name = CharField(read_only=True, source=UNIONFIX_PREFIX + "series_name")
-    volume_name = CharField(read_only=True, source=UNIONFIX_PREFIX + "volume_name")
-    name = CharField(read_only=True, source=UNIONFIX_PREFIX + "name")
+    pk = IntegerField(read_only=True)
+    publisher_name = CharField(read_only=True)
+    series_name = CharField(read_only=True)
+    volume_name = CharField(read_only=True)
+    name = CharField(read_only=True)
     issue = DecimalField(
         max_digits=16,
         decimal_places=3,
         read_only=True,
         coerce_to_string=False,
-        source=UNIONFIX_PREFIX + "issue",
     )
-    issue_suffix = CharField(read_only=True, source=UNIONFIX_PREFIX + "issue_suffix")
-    order_value = CharField(read_only=True, source=UNIONFIX_PREFIX + "order_value")
-    page_count = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "page_count")
-
-
-def _get_creator_persons(authors=False):
-    """Get creator persons as a csv."""
-    roles_filter = Q(**AUTHOR_ROLES_QUERY) if authors else ~Q(**AUTHOR_ROLES_QUERY)
-
-    return GroupConcat("creators__person__name", distinct=True, filter=roles_filter)
-
-
-def get_serializer_values_map(serializers, copy_only=False, folders=False):
-    """Create map for ordering values() properly with the UNIONFIX_PREFIX."""
-    # Fixes Django's requirement that unions have the same field order, but Django
-    # provides no mechanism to actually order fields.
-    # copy_only is for metadata view.
-    # folders is for OPDS folders view.
-    fields = {}
-    for serializer in serializers:
-        fields.update(serializer().get_fields())
-    fields = sorted(fields)
-    result = {}
-    for field in fields:
-        if copy_only:
-            val = field
-        elif field in COMIC_M2M_FIELD_NAMES and not folders:
-            val = GroupConcat(f"{field}__name", distinct=True)
-        elif field in ("contributors", "authors"):
-            val = F("creators") if folders else _get_creator_persons(field == "authors")
-        else:
-            val = F(field)
-        result[UNIONFIX_PREFIX + field] = val
-    return result
+    issue_suffix = CharField(read_only=True)
+    order_value = CharField(read_only=True)
+    page_count = IntegerField(read_only=True)
 
 
 class OKSerializer(Serializer):

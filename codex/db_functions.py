@@ -3,6 +3,7 @@ from django.db.models import Aggregate
 from django.db.models.fields import CharField
 
 
+# TODO unused
 class GroupConcat(Aggregate):
     """Sqlite3 group_concat() function."""
 

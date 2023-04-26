@@ -18,7 +18,6 @@ export default {
   data() {
     return {
       mdiOpenInNew,
-      opdsURL: window.origin + window.CODEX.OPDS_PATH,
       mdiContentCopy,
     };
   },

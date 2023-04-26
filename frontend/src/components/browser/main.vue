@@ -2,7 +2,7 @@
   <v-main id="browsePane" :class="{ padFooter: padFooter }">
     <div v-if="showBrowseItems" id="browsePaneContainer">
       <BrowserCard
-        v-for="item in objList"
+        v-for="item in cards"
         :key="`${item.group}${item.pk}`"
         :item="item"
       />
@@ -74,17 +74,7 @@ export default {
     }),
     ...mapGetters(useAuthStore, ["isUserAdmin", "isCodexViewable"]),
     ...mapState(useBrowserStore, {
-      objList: (state) => state.page.objList,
       librariesExist: (state) => state.page.librariesExist,
-      padFooter: (state) => state.page.numPages > 1,
-      showBrowseItems: function (state) {
-        return (
-          state.page.objList &&
-          state.page.objList.length > 0 &&
-          this.isCodexViewable &&
-          !this.showPlaceHolder
-        );
-      },
       showPlaceHolder: function (state) {
         return (
           this.adminFlags.nonUsers === undefined ||
@@ -92,7 +82,20 @@ export default {
             (this.librariesExist == undefined || !state.browserPageLoaded))
         );
       },
+      cards: (state) => [
+        ...(state.page.groups ?? []),
+        ...(state.page.books ?? []),
+      ],
+      padFooter: (state) => state.page.numPages > 1,
     }),
+    showBrowseItems() {
+      return (
+        this.cards &&
+        this.cards.length > 0 &&
+        this.isCodexViewable &&
+        !this.showPlaceHolder
+      );
+    },
   },
 };
 </script>

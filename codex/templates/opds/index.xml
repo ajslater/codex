@@ -80,21 +80,28 @@
   {% if entry.publisher %}
     <dc:publisher>{{ entry.publisher }}</dc:publisher>
   {% endif %}
-  {% if entry.language %}
+  {% if entry.language and entry.language.name %}
     <dc:language>{{ entry.language.name }}</dc:language>
   {% endif %}
   {% if entry.summary %}
     {# pocketbooks supports content but not summary #}
     <content type="text">{{ entry.summary }}</content>
   {% endif %}
-  {% for author in entry.authors %}
-    <author><name>{{ author }}</name></author>
+  {% for name in entry.authors %}
+    <author>
+      <name>{{ name }}</name>
+    </author>
   {% endfor %}
-  {% for contributor in entry.contributors %}
-    <contributor><name>{{ contributor }}</name></contributor>
+  {% for name in entry.contributors %}
+    <contributor>
+      <name>{{ name }}</name>
+    </contributor>
   {% endfor %}
-  {% for category in entry.categories %}
-    <category label="{{ category }}" />
+  {% for name in entry.categories %}
+      <category
+        term="{{ name }}" 
+        label="{{ name }}" 
+      />
   {% endfor %}
 </entry>
 {% endfor %}

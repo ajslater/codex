@@ -6,19 +6,19 @@ from codex.views.download import DownloadView
 from codex.views.reader.page import ReaderPageView
 
 
-class OPDS1AuthMixin:
+class OPDSAuthMixin:
     """Add Basic Auth."""
 
     authentication_classes = (BasicAuthentication, SessionAuthentication)
 
 
-class OPDS1CoverView(OPDS1AuthMixin, CoverView):
+class OPDSCoverView(OPDSAuthMixin, CoverView):
     """Cover View with Basic Auth."""
 
 
-class OPDS1DownloadView(OPDS1AuthMixin, DownloadView):
+class OPDSDownloadView(OPDSAuthMixin, DownloadView):
     """Download View with Basic Auth."""
 
 
-class OPDS1PageView(OPDS1AuthMixin, ReaderPageView):
+class OPDSPageView(OPDSAuthMixin, ReaderPageView):
     """Page View with Basic Auth."""

@@ -16,9 +16,7 @@ from rest_framework.serializers import (
 
 from codex.serializers.choices import CHOICES, VUETIFY_NULL_CODE
 from codex.serializers.mixins import (
-    UNIONFIX_PREFIX,
     BrowserCardOPDSBaseSerializer,
-    get_serializer_values_map,
 )
 
 VUETIFY_NULL_CODE_STR = str(VUETIFY_NULL_CODE)
@@ -159,6 +157,7 @@ class BrowserSettingsSerializer(Serializer):
     order_by = ChoiceField(choices=tuple(CHOICES["orderBy"].keys()), required=False)
     order_reverse = BooleanField(required=False)
     q = CharField(allow_blank=True, required=False)
+    query = CharField(allow_blank=True, required=False)  # OPDS 2.0
     show = BrowserSettingsShowGroupFlagsSerializer(required=False)
     twenty_four_hour_time = BooleanField(required=False)
     top_group = ChoiceField(choices=tuple(CHOICES["topGroup"].keys()), required=False)
@@ -168,28 +167,20 @@ class BrowserSettingsSerializer(Serializer):
 class BrowserCardSerializer(BrowserCardOPDSBaseSerializer):
     """Browse card displayed in the browser."""
 
-    publisher_name = CharField(
-        read_only=True, source=UNIONFIX_PREFIX + "publisher_name"
-    )
-    series_name = CharField(read_only=True, source=UNIONFIX_PREFIX + "series_name")
-    volume_name = CharField(read_only=True, source=UNIONFIX_PREFIX + "volume_name")
-    name = CharField(read_only=True, source=UNIONFIX_PREFIX + "name")
+    publisher_name = CharField(read_only=True)
+    series_name = CharField(read_only=True)
+    volume_name = CharField(read_only=True)
+    name = CharField(read_only=True)
     issue = DecimalField(
         max_digits=16,
         decimal_places=3,
         read_only=True,
         coerce_to_string=False,
-        source=UNIONFIX_PREFIX + "issue",
     )
-    issue_suffix = CharField(read_only=True, source=UNIONFIX_PREFIX + "issue_suffix")
-    order_value = CharField(read_only=True, source=UNIONFIX_PREFIX + "order_value")
-    page_count = IntegerField(read_only=True, source=UNIONFIX_PREFIX + "page_count")
-    read_ltr = BooleanField(read_only=True, source=UNIONFIX_PREFIX + "read_ltr")
-
-
-BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP = get_serializer_values_map(
-    [BrowserCardSerializer]
-)
+    issue_suffix = CharField(read_only=True)
+    order_value = CharField(read_only=True)
+    page_count = IntegerField(read_only=True)
+    read_ltr = BooleanField(read_only=True)
 
 
 class BrowserRouteSerializer(Serializer):
@@ -229,7 +220,8 @@ class BrowserPageSerializer(Serializer):
     libraries_exist = BooleanField(read_only=True)
     model_group = CharField(read_only=True)
     num_pages = IntegerField(read_only=True)
-    obj_list = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
+    groups = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
+    books = BrowserCardSerializer(allow_empty=True, read_only=True, many=True)
     up_route = BrowserRouteSerializer(allow_null=True, read_only=True)
 
 

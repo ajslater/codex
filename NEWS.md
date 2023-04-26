@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.3.9
+
+- Fix
+  - Faster Metadata pages.
+  - Fix Credits not imported.
+
 ## v1.3.8
 
 - Fix
