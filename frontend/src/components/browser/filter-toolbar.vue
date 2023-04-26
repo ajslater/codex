@@ -4,6 +4,7 @@
     class="toolbar"
     density="compact"
     extension-height="48px"
+    :class="{ emptyToolbar: !isCodexViewable }"
   >
     <v-toolbar-items v-if="isCodexViewable" id="browserToolbarLeftItems">
       <BrowserTopGroupSelect id="topGroupSelect" />
@@ -11,7 +12,7 @@
       <BrowserOrderReverseButton id="orderReverseButton" />
     </v-toolbar-items>
     <v-spacer />
-    <v-toolbar-items id="browserToolbarRightItems">
+    <v-toolbar-items>
       <SettingsDrawerButton @click="isSettingsDrawerOpen = true" />
     </v-toolbar-items>
     <template #extension>
@@ -72,6 +73,9 @@ export default {
 }
 #searchToolbarItems {
   width: 100%;
+}
+.emptyToolbar {
+  position: fixed;
 }
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   #browserToolbar {
