@@ -87,21 +87,29 @@
     {# pocketbooks supports content but not summary #}
     <content type="text">{{ entry.summary }}</content>
   {% endif %}
-  {% for name in entry.authors %}
+  {% for author in entry.authors %}
     <author>
-      <name>{{ name }}</name>
+      <name>{{ author.name }}</name>
+      {% if author.url %}
+        <url>{{ author.url }}</url>
+      {% endif %}
     </author>
   {% endfor %}
-  {% for name in entry.contributors %}
+  {% for cont in entry.contributors %}
     <contributor>
-      <name>{{ name }}</name>
+      <name>{{ cont.name }}</name>
+      {% if cont.url %}
+        <url>{{ cont.url }}</url>
+      {% endif %}
     </contributor>
   {% endfor %}
-  {% for name in entry.categories %}
+  {% for term_key, categories in entry.category_groups.items %}
+    {% for category in categories %}
       <category
-        term="{{ name }}" 
-        label="{{ name }}" 
+        term="{{ term_key }}-{{ category.pk }}" 
+        label="{{ category.name }}" 
       />
+    {% endfor %}
   {% endfor %}
 </entry>
 {% endfor %}

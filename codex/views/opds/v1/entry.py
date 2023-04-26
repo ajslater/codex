@@ -1,7 +1,8 @@
 """OPDS Entry."""
+import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlencode
 
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import reverse
@@ -241,16 +242,17 @@ class OPDS1Entry:
         return result
 
     @staticmethod
-    def _template_names_hack(objs):
-        """Extract names from a list of objects.
-
-        XXX I have no idea why i can't iterate over a dict
-            or dereference object attributes in the template.
-        """
-        names = set()
+    def _add_url_to_obj(objs, filter_key):
+        """Add filter urls to objects."""
+        kwargs = {"group": "s", "pk": 0, "page": 1}
+        url_base = reverse("opds:v1:browser", kwargs=kwargs)
+        result = []
         for obj in objs:
-            names.add(obj.name)
-        return sorted(names)
+            qp = {"filters": json.dumps({filter_key: [obj.pk]})}
+            qp = urlencode(qp)
+            obj.url = url_base + "?" + qp
+            result.append(obj)
+        return result
 
     @property
     def authors(self):
@@ -258,7 +260,7 @@ class OPDS1Entry:
         if not self.metadata:
             return []
         people = get_creator_people(self.obj.pk, AUTHOR_ROLES)
-        return self._template_names_hack(people)
+        return self._add_url_to_obj(people, "creators")
 
     @property
     def contributors(self):
@@ -266,15 +268,11 @@ class OPDS1Entry:
         if not self.metadata:
             return []
         people = get_creator_people(self.obj.pk, AUTHOR_ROLES, exclude=True)
-        return self._template_names_hack(people)
+        return self._add_url_to_obj(people, "creators")
 
     @property
-    def categories(self):
+    def category_groups(self):
         """Get Category labels."""
         if not self.metadata:
-            return []
-        cats = get_m2m_objects(self.obj.pk)
-        names = []
-        for vals in cats.values():
-            names += self._template_names_hack(vals)
-        return names
+            return {}
+        return get_m2m_objects(self.obj.pk)
