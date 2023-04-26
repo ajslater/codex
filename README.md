@@ -20,7 +20,7 @@ border-radius: 128px;
 - Watches the filesystem and automatically imports new or changed comics.
 - Private Libraries accessible only to certain groups of users.
 - Reads CBZ, CBR, CBT, and PDF formatted comics.
-- Syndication with OPDS, streaming, search and authentication.
+- Syndication with OPDS 1 & 2, streaming, search and authentication.
 - Runs in 1GB of RAM, faster with more.
 
 ### Examples
@@ -349,6 +349,13 @@ Codex supports OPDS syndication and OPDS streaming. You may find the OPDS url in
 the side drawer. It should take the form:
 
 `http(s)://host.tld(:9810)(/root_path)/opds/v1.2/`
+
+or
+
+`http(s)://host.tld(:9810)(/root_path)/opds/v2.0/`
+
+OPDS 2.0 support is experimental and not widely or well supported by clients.
+OPDS 2.0 book readers exist, but I am not yet aware of an OPDS 2.0 comic reader.
 
 #### Clients
 

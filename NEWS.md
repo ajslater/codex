@@ -8,6 +8,8 @@ border-radius: 128px;
 
 ## v1.3.9
 
+- Features
+  - OPDS 2.0 Support.
 - Fix
   - Faster Metadata pages.
   - Fix Credits not imported.
