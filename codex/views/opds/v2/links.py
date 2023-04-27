@@ -43,19 +43,15 @@ class LinksMixin(BrowserView):
 
     num_pages = 0  # For pyright. Overwritten every run.
 
-    def _href(self, data):
-        """Create an href."""
-        url_name = data.url_name if data.url_name else "opds:v2:feed"
-        kwargs = data.kwargs if data.kwargs is not None else self.kwargs
+    def _href_page_validate(self, kwargs, data):
+        """Validate the page bounds."""
+        min_page = 1 if data.min_page is None else data.min_page
+        max_page = self.num_pages if data.max_page is None else data.max_page
+        page = int(kwargs["page"])
+        return page >= min_page and page <= max_page
 
-        if "page" in kwargs:
-            min_page = 1 if data.min_page is None else data.min_page
-            max_page = self.num_pages if data.max_page is None else data.max_page
-            page = int(kwargs["page"])
-            if page < min_page or page > max_page:
-                return None
-
-        href = reverse(url_name, kwargs=kwargs)
+    def _href_update_query_params(self, href, data):
+        """Update the query params."""
         if data.absolute_query_params and data.query_params:
             href = update_href_query_params(href, data.query_params)
         elif hasattr(self, "request"):
@@ -64,6 +60,16 @@ class LinksMixin(BrowserView):
                 href, self.request.query_params, new_query_params=data.query_params
             )
         return href
+
+    def _href(self, data):
+        """Create an href."""
+        url_name = data.url_name if data.url_name else "opds:v2:feed"
+        kwargs = data.kwargs if data.kwargs is not None else self.kwargs
+        if "page" in kwargs and not self._href_page_validate(kwargs, data):
+            return None
+
+        href = reverse(url_name, kwargs=kwargs)
+        return self._href_update_query_params(href, data)
 
     def link(self, data):
         """Create a link element."""
