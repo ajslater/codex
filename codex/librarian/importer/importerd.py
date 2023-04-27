@@ -250,7 +250,9 @@ class ComicImporterThread(ApplyDBOpsMixin):
                 simple_metadata
             ) = modified_paths = created_paths = mds = m2m_mds = fks = None
 
-            new_failed_imports = self.fail_imports(library, fis)
+            new_failed_imports = self.fail_imports(
+                library, fis, bool(task.files_deleted)
+            )
 
             changed += self.delete(library, task)
             cache.clear()

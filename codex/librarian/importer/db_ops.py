@@ -206,11 +206,14 @@ class ApplyDBOpsMixin(
 
         return imported_count
 
-    def fail_imports(self, library, failed_imports):
+    def fail_imports(self, library, failed_imports, is_files_deleted):
         """Handle failed imports."""
         created_count = 0
         try:
             fis = {"update_fis": {}, "create_fis": {}, "delete_fi_paths": set()}
+            if is_files_deleted:
+                # if any files were deleted. Run the failed import check
+                failed_imports["files_deleted"] = True
             status = Status(ImportStatusTypes.FAILED_IMPORTS, 0, len(failed_imports))
             status.total = self.query_failed_imports(
                 failed_imports,
