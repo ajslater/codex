@@ -6,7 +6,8 @@
     LAST_ROUTE: {{ last_route | safe }},
     MISSING_COVER: "{% static 'img/missing-cover.webp' %}",
     MISSING_PAGE: "{% static 'img/missing-page.svg' %}",
-    OPDS_PATH: "{% url 'opds:v1:browser' 'r' 0 1 %}",
+    OPDS_V1_PATH: "{% url 'opds:v1:browser' 'r' 0 1 %}",
+    OPDS_V2_PATH: "{% url 'opds:v2:feed' 'r' 0 1 %}",
   };
   Object.freeze(CODEX);
 </script>

@@ -1,14 +1,14 @@
-"""OPDS start view."""
+"""OPDS 2 start view."""
 from django.http.response import HttpResponseRedirect
 from django.urls import reverse
 
 from codex.serializers.choices import DEFAULTS
 
 
-def opds_start_view(request):
+def opds_2_start_view(request):
     """Redirect to start view, forwarding query strings and auth."""
     kwargs = DEFAULTS["route"]
-    url = reverse("opds:v1:browser", kwargs=kwargs)
+    url = reverse("opds:v2:feed", kwargs=kwargs)
 
     # Forward the query string.
     path = request.get_full_path()

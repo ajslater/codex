@@ -4,16 +4,16 @@ from django.urls import reverse_lazy
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
-from codex.serializers.opds_v1 import AuthenticationSerializer
+from codex.serializers.opds.authentication import OPDSAuthentication1Serializer
 
 
-class AuthenticationView(GenericAPIView):
+class OPDSAuthentication1View(GenericAPIView):
     """Authentication document."""
 
-    serializer_class = AuthenticationSerializer
+    serializer_class = OPDSAuthentication1Serializer
 
     DOC = {
-        "id": reverse_lazy("opds:v1:authentication"),
+        "id": reverse_lazy("opds:authentication:v1"),
         "title": "Codex",
         "description": "Codex OPDS Syndication",
         "links": [
@@ -39,7 +39,18 @@ class AuthenticationView(GenericAPIView):
             {
                 "type": "http://opds-spec.org/auth/basic",
                 "labels": {"login": "Username", "password": "Password"},
-            }
+            },
+            {
+                # XXX Out of spec type
+                "type": "cookie",
+                "links": [
+                    {
+                        "rel": "authenticate",
+                        "href": reverse_lazy("app:start"),
+                        "type": "text/html",
+                    }
+                ],
+            },
         ],
     }
 

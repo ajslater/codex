@@ -6,8 +6,20 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.3.8a0
+## v1.4.0
 
+- Features
+  - Experimental OPDS 2.0 Support.
+- Fix
+  - Faster Metadata pages for web and OPDS.
+  - Fix Credits not imported bug.
+
+## v1.3.8
+
+- Fix
+  - Fix Basic Authentication not enabled for OPDS Cover, Page, and Download
+    views.
+  - Tune low memory algorithm slightly lower for memory constrained systems.
 - Dev
   - Use makefile and moved most scripts into bin.
 

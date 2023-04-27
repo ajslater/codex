@@ -10,7 +10,6 @@ from codex.logger.logging import get_logger
 from codex.models import Comic
 from codex.pdf import PDF
 from codex.version import COMICBOX_CONFIG
-from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.bookmark import BookmarkBaseView
 
 LOG = get_logger(__name__)
@@ -31,7 +30,6 @@ class IgnoreClientContentNegotiation(BaseContentNegotiation):
 class ReaderPageView(BookmarkBaseView):
     """Display a comic page from the archive itself."""
 
-    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
     X_MOZ_PRE_HEADERS = {"prefetch", "preload", "prerender", "subresource"}
     content_type = "image/jpeg"
     content_negotiation_class = IgnoreClientContentNegotiation  # type: ignore
@@ -79,10 +77,12 @@ class ReaderPageView(BookmarkBaseView):
             page_image, content_type = self._get_page_image()
             self._update_bookmark()
         except Comic.DoesNotExist as exc:
-            raise NotFound(detail=f"comic {pk} not found in db.") from exc
+            detail = f"comic {pk} not found in db."
+            raise NotFound(detail=detail) from exc
         except FileNotFoundError as exc:
             path = comic.path if comic else f"path for {pk}"
-            raise NotFound(detail=f"comic {path} not found.") from exc
+            detail = f"comic {path} not found."
+            raise NotFound(detail=detail) from exc
         except Exception as exc:
             LOG.warning(exc)
             raise NotFound(detail="comic page not found") from exc

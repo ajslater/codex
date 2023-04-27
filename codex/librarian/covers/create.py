@@ -19,9 +19,9 @@ class CoverCreateMixin(CoverPathMixin):
     """Create methods for covers."""
 
     _COVER_RATIO = 1.5372233400402415  # modal cover ratio
-    _THUMBNAIL_WIDTH = 165
-    _THUMBNAIL_HEIGHT = round(_THUMBNAIL_WIDTH * _COVER_RATIO)
-    _THUMBNAIL_SIZE = (_THUMBNAIL_WIDTH, _THUMBNAIL_HEIGHT)
+    THUMBNAIL_WIDTH = 165
+    THUMBNAIL_HEIGHT = round(THUMBNAIL_WIDTH * _COVER_RATIO)
+    _THUMBNAIL_SIZE = (THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT)
 
     @classmethod
     def _create_cover_thumbnail(cls, cover_image_data):

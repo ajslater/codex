@@ -15,6 +15,7 @@ LOG = get_logger(__name__)
 class BookmarkBaseView(GenericAPIView, GroupACLMixin):
     """Bookmark Updater."""
 
+    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
     _BOOKMARK_UPDATE_FIELDS = [
         "page",
         "finished",
@@ -30,12 +31,12 @@ class BookmarkBaseView(GenericAPIView, GroupACLMixin):
         """Get search kwargs for the reader."""
         search_kwargs = {}
         if self.request.user.is_authenticated:
-            search_kwargs["bookmark__user"] = self.request.user
+            search_kwargs["user"] = self.request.user
         else:
             if not self.request.session or not self.request.session.session_key:
                 LOG.debug("no session, make one")
                 self.request.session.save()
-            search_kwargs["bookmark__session_id"] = self.request.session.session_key
+            search_kwargs["session_id"] = self.request.session.session_key
         return search_kwargs
 
     def get_bookmark_search_kwargs(self, comic_filter):
@@ -117,7 +118,6 @@ class BookmarkBaseView(GenericAPIView, GroupACLMixin):
 class BookmarkView(BookmarkBaseView):
     """User Bookmark View."""
 
-    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
     serializer_class = BookmarkSerializer
 
     def _validate(self, serializer_class):

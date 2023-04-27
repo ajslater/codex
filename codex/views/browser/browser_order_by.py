@@ -5,7 +5,6 @@ from django.db.models import Avg, Case, CharField, F, Max, Min, Q, Sum, Value, W
 from django.db.models.functions import Lower, Reverse, Right, StrIndex, Substr
 
 from codex.models import Comic, Folder
-from codex.serializers.mixins import UNIONFIX_PREFIX
 from codex.views.browser.base import BrowserBaseView
 
 
@@ -24,13 +23,6 @@ class BrowserOrderByView(BrowserBaseView):
         "updated_at": Min,
         "search_score": Min,
     }
-    _UNIONFIX_DEFAULT_ORDERING = tuple(
-        UNIONFIX_PREFIX + field.replace("__", "_") for field in Comic.ORDERING
-    )
-    _ORDER_VALUE_ORDERING = (
-        UNIONFIX_PREFIX + "order_value",
-        *_UNIONFIX_DEFAULT_ORDERING,
-    )
     _SEP_VALUE = Value(sep)
     _ARTICLES = frozenset(
         ("a", "an", "the")  # en
@@ -144,19 +136,14 @@ class BrowserOrderByView(BrowserBaseView):
                 ordering += [order_key]
             ordering += [*Comic.ORDERING]
         elif order_key == "sort_name" or not order_key:
-            # Use default sort
-            if model in (Comic, Folder):
-                ordering = self._UNIONFIX_DEFAULT_ORDERING
-            else:
-                ordering = model.ORDERING
-
+            ordering = model.ORDERING
             group = self.kwargs.get("group")
             if group != self.FOLDER_GROUP:
                 # Can't annotate after union
                 queryset, ordering = self._order_without_articles(queryset, ordering)
         else:
             # Use annotated order_value
-            ordering = self._ORDER_VALUE_ORDERING
+            ordering = ("order_value", *model.ordering)
 
         # order_by
         # add prefixes to all order_by fields

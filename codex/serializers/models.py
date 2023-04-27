@@ -138,6 +138,7 @@ class SeriesSerializer(GroupModelSerializer):
         """Configure model."""
 
         model = Series
+        # fields = (*NamedModelMeta.fields, "volume_count")
 
 
 class VolumeSerializer(GroupModelSerializer):
@@ -147,6 +148,7 @@ class VolumeSerializer(GroupModelSerializer):
         """Configure model."""
 
         model = Volume
+        # fields = (*NamedModelMeta.fields, "issue_count")
 
 
 ##############
@@ -256,8 +258,8 @@ class ComicSerializer(ModelSerializer):
     pk = IntegerField(source="id")
 
     # Annotations
-    issue_count = IntegerField(allow_null=True)
-    volume_count = IntegerField(allow_null=True)
+    # issue_count = IntegerField(allow_null=True)
+    # volume_count = IntegerField(allow_null=True)
 
     # Special Serialization with pycountry
     country = CountrySerializer(allow_null=True)

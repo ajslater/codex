@@ -43,7 +43,14 @@ class UpdateMixin(WorkerBaseMixin):
                 self.log.info("Codex seems outdated. Trying to update.")
 
             subprocess.run(
-                (sys.executable, "-m", "pip", "install", "--upgrade", "codex"),
+                (  # noqa: S603
+                    sys.executable,
+                    "-m",
+                    "pip",
+                    "install",
+                    "--upgrade",
+                    "codex",
+                ),
                 check=True,
             )
         except Exception:

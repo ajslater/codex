@@ -4,12 +4,12 @@
     id="creatorsTable"
   >
     <template #default>
-      <h2>creators</h2>
+      <h2>Credits</h2>
       <table class="highlight-table">
         <thead>
           <tr>
             <th class="text-left">Role</th>
-            <th class="text-left">Creator</th>
+            <th class="text-left">Person</th>
           </tr>
         </thead>
         <tbody>

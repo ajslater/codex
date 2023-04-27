@@ -5,11 +5,7 @@ from typing import Optional, Union
 from django.core.paginator import EmptyPage, Paginator
 from django.db.models import F, Max, Q, Value
 from django.db.models.fields import (
-    BooleanField,
     CharField,
-    DateField,
-    DecimalField,
-    IntegerField,
 )
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
@@ -27,18 +23,8 @@ from codex.models import (
     Timestamp,
     Volume,
 )
-from codex.serializers.browser import (
-    BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP,
-    BrowserPageSerializer,
-)
+from codex.serializers.browser import BrowserPageSerializer
 from codex.serializers.choices import CHOICES, DEFAULTS
-from codex.serializers.opds_v1 import (
-    OPDS_COMICS_METADATA_ORDERED_UNIONFIX_VALUES_MAP,
-    OPDS_COMICS_ORDERED_UNIONFIX_VALUES_MAP,
-    OPDS_FOLDERS_METADATA_ORDERED_UNIONFIX_VALUES_MAP,
-    OPDS_FOLDERS_ORDERED_UNIONFIX_VALUES_MAP,
-    OPDS_M2M_FIELDS,
-)
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_annotations import BrowserAnnotationsView
 
@@ -51,15 +37,10 @@ class BrowserView(BrowserAnnotationsView):
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
     serializer_class = BrowserPageSerializer
 
+    MAX_OBJ_PER_PAGE = 100
     _MODEL_GROUP_MAP = {v: k for k, v in BrowserAnnotationsView.GROUP_MODEL_MAP.items()}
     _NAV_GROUPS = "rpisv"
-    MAX_OBJ_PER_PAGE = 100
     _ORPHANS = int(MAX_OBJ_PER_PAGE / 20)
-    _NONE_DECIMALFIELD = Value(None, DecimalField())
-    _EMPTY_CHARFIELD = Value("", CharField())
-    _ZERO_INTEGERFIELD = Value(0, IntegerField())
-    _NONE_BOOLFIELD = Value(None, BooleanField())
-    _NONE_DATEFIELD = Value(None, DateField())
 
     _GROUP_INSTANCE_SELECT_RELATED = {
         Comic: ("series", "volume"),
@@ -73,9 +54,38 @@ class BrowserView(BrowserAnnotationsView):
         "name": "browser",
         "params": deepcopy(DEFAULTS["route"]),
     }
+    _OPDS_M2M_RELS = (
+        "characters",
+        "genres",
+        "locations",
+        "series_groups",
+        "story_arcs",
+        "tags",
+        "teams",
+        "creators",
+        "creators__role",
+        "creators__person",
+    )
 
-    is_opds_acquisition = False
-    is_opds_metadata = False
+    is_opds_2_acquisition = False
+
+    def _annotate_group_names(self, queryset, model):
+        """Annotate name fields."""
+        # Optimized to only lookup what is used on the frontend
+        group_names = {}
+        if model == Comic:
+            group_names = {
+                "publisher_name": F("publisher__name"),
+                "series_name": F("series__name"),
+                "volume_name": F("volume__name"),
+            }
+            if self.is_opds_2_acquisition:
+                group_names["imprint_name"] = F("imprint__name")
+        elif model == Volume:
+            group_names["series_name"] = F("series__name")
+        elif model == Imprint:
+            group_names["publisher_name"] = F("publisher__name")
+        return queryset.annotate(**group_names)
 
     def _add_annotations(self, queryset, model, search_scores):
         """Annotations for display and sorting.
@@ -87,9 +97,7 @@ class BrowserView(BrowserAnnotationsView):
         ##############################
         # Annotate Common Aggregates #
         ##############################
-        queryset = self.annotate_common_aggregates(
-            queryset, model, search_scores, self.is_opds_acquisition
-        )
+        queryset = self.annotate_common_aggregates(queryset, model, search_scores)
         if not is_model_comic:
             # EXTRA FILTER for empty group
             queryset = queryset.filter(child_count__gt=0)
@@ -103,74 +111,13 @@ class BrowserView(BrowserAnnotationsView):
         )
 
         #######################
-        # Annotate Library Id #
-        #######################
-        if model not in (Folder, Comic):
-            # For folder view stability sorting compatibility
-            queryset = queryset.annotate(library=self._ZERO_INTEGERFIELD)
-
-        #######################
         # Sortable aggregates #
         #######################
         order_key = self.get_order_key()
         order_func = self.get_aggregate_func(order_key, model)
         queryset = queryset.annotate(order_value=order_func)
 
-        ########################
-        # Annotate name fields #
-        ########################
-        # Optimized to only lookup what is used on the frontend
-        publisher_name = self.NONE_CHARFIELD
-        series_name = self.NONE_CHARFIELD
-        volume_name = self.NONE_CHARFIELD
-
-        if is_model_comic:
-            publisher_name = F("publisher__name")
-            series_name = F("series__name")
-            volume_name = F("volume__name")
-        elif model == Volume:
-            series_name = F("series__name")
-        elif model == Imprint:
-            publisher_name = F("publisher__name")
-
-        queryset = queryset.annotate(
-            publisher_name=publisher_name,
-            series_name=series_name,
-            volume_name=volume_name,
-        )
-        if not is_model_comic:
-            queryset = queryset.annotate(
-                issue=self._NONE_DECIMALFIELD,
-                issue_suffix=self._EMPTY_CHARFIELD,
-            )
-        if model not in (Folder, Comic):
-            queryset = queryset.annotate(path=self.NONE_CHARFIELD)
-
-        if not is_model_comic:
-            queryset = queryset.annotate(
-                read_ltr=self._NONE_BOOLFIELD,
-            )
-            if self.is_opds_acquisition:
-                # This is for opds folder view.
-                queryset = queryset.annotate(
-                    # fields
-                    size=self._ZERO_INTEGERFIELD,
-                    date=self._NONE_DATEFIELD,
-                    summary=self._EMPTY_CHARFIELD,
-                    comments=self._EMPTY_CHARFIELD,
-                    notes=self._EMPTY_CHARFIELD,
-                    language=self._EMPTY_CHARFIELD,
-                    # m2m rels
-                    characters=self._EMPTY_CHARFIELD,
-                    genres=self._EMPTY_CHARFIELD,
-                    locations=self._EMPTY_CHARFIELD,
-                    series_groups=self._EMPTY_CHARFIELD,
-                    story_arcs=self._EMPTY_CHARFIELD,
-                    tags=self._EMPTY_CHARFIELD,
-                    teams=self._EMPTY_CHARFIELD,
-                    creators=self._EMPTY_CHARFIELD,
-                )
-
+        queryset = self._annotate_group_names(queryset, model)
         return queryset
 
     def _get_model_group(self):
@@ -194,60 +141,35 @@ class BrowserView(BrowserAnnotationsView):
         model_group = self._get_model_group()
         self.model = self.GROUP_MODEL_MAP[model_group]
 
-    def _get_unionfix_values_map(self, folders=False):
-        if self.is_opds_acquisition:
-            if self.is_opds_metadata:
-                if folders:
-                    return OPDS_FOLDERS_METADATA_ORDERED_UNIONFIX_VALUES_MAP
-                return OPDS_COMICS_METADATA_ORDERED_UNIONFIX_VALUES_MAP
-            if folders:
-                return OPDS_FOLDERS_ORDERED_UNIONFIX_VALUES_MAP
-            return OPDS_COMICS_ORDERED_UNIONFIX_VALUES_MAP
-        return BROWSER_CARD_ORDERED_UNIONFIX_VALUES_MAP
+    def _get_queryset(self, object_filter, search_scores):
+        """Create queryset."""
+        # GROUP QS
+        if self.model != Comic:
+            group_filter = object_filter
+            group_qs = self.model.objects.filter(group_filter)
+            group_qs = self._add_annotations(group_qs, self.model, search_scores)
+            group_qs = self.get_order_by(self.model, group_qs)
+        else:
+            group_qs = self.model.objects.none()
 
-    def get_folder_queryset(self, object_filter, search_scores):
-        """Create folder queryset."""
-        # Create the main queries with filters
-        folder_list = Folder.objects.filter(object_filter)
-        comic_object_filter, comic_search_scores = self.get_query_filters(True, False)
-        comic_list = Comic.objects.filter(comic_object_filter)
-        if self.is_opds_metadata:
-            comic_list = comic_list.prefetch_related(*OPDS_M2M_FIELDS)
+        # BOOK QS
+        group = self.kwargs.get("group")
+        if self.model == Comic or group == self.FOLDER_GROUP:
+            if group == self.FOLDER_GROUP:
+                comic_object_filter, comic_search_scores = self.get_query_filters(
+                    True, False
+                )
+            else:
+                comic_object_filter = object_filter
+                comic_search_scores = search_scores
 
-        # add annotations for display and sorting
-        # and the comic_cover which uses a sort
-        folder_list = self._add_annotations(folder_list, Folder, search_scores)
-        comic_list = self._add_annotations(comic_list, Comic, comic_search_scores)
+            book_qs = Comic.objects.filter(comic_object_filter)
+            book_qs = self._add_annotations(book_qs, Comic, comic_search_scores)
+            book_qs = self.get_order_by(Comic, book_qs)
+        else:
+            book_qs = Comic.objects.none()
 
-        # Create ordered annotated values to make union align columns correctly because
-        # django lacks a way to specify values column order.
-        values_map = self._get_unionfix_values_map(True)
-        folder_list = folder_list.values(**values_map)
-        values_map = self._get_unionfix_values_map()
-        comic_list = comic_list.values(**values_map)
-
-        return folder_list.union(comic_list)
-
-    def _get_browser_group_queryset(self, object_filter, search_scores):
-        """Create and browse queryset."""
-        if not self.model:
-            reason = "No model set in browser"
-            raise ValueError(reason)
-
-        obj_list = self.model.objects.filter(object_filter)
-        if self.is_opds_metadata:
-            obj_list = obj_list.prefetch_related(*OPDS_M2M_FIELDS)
-        # obj_list filtering done
-
-        # Add annotations for display and sorting
-        obj_list = self._add_annotations(obj_list, self.model, search_scores)
-
-        # Convert to a dict because otherwise the folder/comic union blows
-        # up the paginator. Use the same annotations for the serializer.
-        values_map = self._get_unionfix_values_map()
-        obj_list = obj_list.values(**values_map)
-
-        return obj_list
+        return group_qs, book_qs
 
     def _get_folder_up_route(self):
         """Get out parent's pk."""
@@ -371,18 +293,42 @@ class BrowserView(BrowserAnnotationsView):
         LOG.debug(f"{reason} redirect to page {new_page}.")
         self._raise_redirect(route_changes, reason)
 
-    def _paginate(self, queryset):
-        """Paginate the queryset into a final object list."""
-        paginator = Paginator(queryset, self.MAX_OBJ_PER_PAGE, orphans=self._ORPHANS)
+    def _paginate_section(self, qs, max_obj_per_page, page_counts):
+        """Paginate a group or Comic section."""
+        num_pages, total_count, model = page_counts
+        paginator = Paginator(qs, max_obj_per_page, orphans=self._ORPHANS)
         page = self.kwargs.get("page", 1)
         try:
-            obj_list = paginator.page(page).object_list
+            qs = paginator.page(page).object_list
+            num_pages = max(num_pages, paginator.num_pages)
+            total_count += paginator.count
         except EmptyPage:
             if page < 1 or page > paginator.num_pages:
                 self._page_out_out_bounds(page, paginator.num_pages)
-            LOG.warning(f"No items on page {page}")
-            obj_list = self.model.objects.filter(pk=-1)  # paginator.page(1).object_list
-        return obj_list, paginator.num_pages
+            LOG.warning(f"No {self.model.__class__.__name__}s on page {page}")
+            model.objects.none()
+
+        return qs, num_pages, total_count
+
+    def _paginate(self, group_qs, book_qs):
+        """Paginate the queryset into a final object list."""
+        num_pages = 0
+        total_count = 0
+
+        if group_qs.count():
+            page_counts = (num_pages, total_count, self.model)
+            group_qs, num_pages, total_count = self._paginate_section(
+                group_qs, self.MAX_OBJ_PER_PAGE, page_counts
+            )
+
+        if book_qs.count():
+            book_max_obj_per_page = self.MAX_OBJ_PER_PAGE - group_qs.count()
+            page_counts = (num_pages, total_count, Comic)
+            group_qs, num_pages, total_count = self._paginate_section(
+                group_qs, book_max_obj_per_page, page_counts
+            )
+
+        return group_qs, book_qs, num_pages, total_count
 
     def get_object(self):
         """Validate settings and get the querysets."""
@@ -402,16 +348,10 @@ class BrowserView(BrowserAnnotationsView):
             search_scores = {}
         group = self.kwargs.get("group")
 
-        if group == self.FOLDER_GROUP:
-            queryset = self.get_folder_queryset(object_filter, search_scores)
-        else:
-            queryset = self._get_browser_group_queryset(object_filter, search_scores)
-
-        # Order
-        queryset = self.get_order_by(self.model, queryset)
+        group_qs, book_qs = self._get_queryset(object_filter, search_scores)
 
         # Paginate
-        obj_list, num_pages = self._paginate(queryset)
+        group_qs, book_qs, num_pages, total_count = self._paginate(group_qs, book_qs)
 
         # get additional context
         if group == self.FOLDER_GROUP:
@@ -431,11 +371,8 @@ class BrowserView(BrowserAnnotationsView):
 
         libraries_exist = Library.objects.exists()
 
-        if is_model_comic:
-            # runs obj list query twice :/
-            issue_max = obj_list.aggregate(Max("issue"))["issue__max"]
-        else:
-            issue_max = 0
+        # runs obj list query twice :/
+        issue_max = book_qs.only("issue").aggregate(Max("issue"))["issue__max"]
 
         covers_timestamp = int(
             Timestamp.objects.get(
@@ -448,9 +385,11 @@ class BrowserView(BrowserAnnotationsView):
             "up_route": up_route,
             "browser_title": browser_page_title,
             "model_group": self.model_group,
-            "obj_list": obj_list,
+            "groups": group_qs,
+            "books": book_qs,
             "issue_max": issue_max,
             "num_pages": num_pages,
+            "total_count": total_count,
             "admin_flags": {"folder_view": efv_flag.on},
             "libraries_exist": libraries_exist,
             "covers_timestamp": covers_timestamp,
