@@ -42,7 +42,7 @@ def restart():
     from sys import argv
 
     print("Restarting Codex. Hold on to your butts...", flush=True)  # noqa: T201
-    execv(__file__, argv)  # nosec
+    execv(__file__, argv)  # noqa: S606
 
 
 def codex_shutdown(loggerd):

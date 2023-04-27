@@ -41,6 +41,9 @@ class SearchFilterMixin:
         search_scores = {}
         try:
             query_string = self.params.get("q", "")  # type: ignore
+            if not query_string:
+                # for opds 2
+                query_string = self.params.get("query", "")  # type: ignore
 
             if query_string:
                 # Query haystack

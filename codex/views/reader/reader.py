@@ -1,11 +1,11 @@
 """Views for reading comic books."""
-from django.db.models import F, FilteredRelation, Q
+from django.db.models import F
 from django.urls import reverse
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
 from codex.logger.logging import get_logger
-from codex.models import Comic
+from codex.models import Bookmark, Comic
 from codex.serializers.reader import ReaderInfoSerializer
 from codex.serializers.redirect import ReaderRedirectSerializer
 from codex.views.bookmark import BookmarkBaseView
@@ -21,14 +21,24 @@ class ReaderView(BookmarkBaseView):
     serializer_class = ReaderInfoSerializer
 
     SETTINGS_ATTRS = ("fit_to", "two_pages", "read_in_reverse", "vertical")
+    _COMIC_FIELDS = (
+        "file_type",
+        "issue",
+        "issue_suffix",
+        "max_page",
+        "series",
+        "volume",
+        "read_ltr",
+    )
 
-    @classmethod
-    def _append_with_settings(cls, books, book):
-        settings = {}
-        for attr in cls.SETTINGS_ATTRS:
-            settings[attr] = book[f"settings__{attr}"]
-        book["settings"] = settings
-        book["filename"] = Comic.get_filename(book)
+    def _append_with_settings(self, books, book, bookmark_filter):
+        """Get bookmarks and filename and append to book list."""
+        book.settings = (
+            Bookmark.objects.filter(**bookmark_filter, comic=book)
+            .only(*self.SETTINGS_ATTRS)
+            .first()
+        )
+        book.filename = book.filename()
         books.append(book)
 
     def _get_comic_query_params(self, pk):
@@ -36,14 +46,49 @@ class ReaderView(BookmarkBaseView):
         session = self.request.session.get(BrowserSessionViewBase.SESSION_KEY, {})
         top_group = session.get("top_group")
 
+        select_related_fields = ["series", "volume"]
         if top_group == "f":
             rel = "parent_folder__comic"
             ordering = ("path", "pk")
+            select_related_fields += ["parent_folder"]
         else:
             rel = "series__comic"
             ordering = Comic.ORDERING
 
-        return {rel: pk}, ordering
+        return {rel: pk}, ordering, select_related_fields
+
+    def _get_group_comics(self):
+        """Get comics for the series or folder."""
+        pk = self.kwargs.get("pk")
+        group_acl_filter = self.get_group_acl_filter(True)
+        (
+            group_nav_filter,
+            ordering,
+            select_related_fields,
+        ) = self._get_comic_query_params(pk)
+
+        return (
+            Comic.objects.filter(group_acl_filter)
+            .filter(**group_nav_filter)
+            .select_related(*select_related_fields)
+            .only(*self._COMIC_FIELDS)
+            .annotate(
+                series_name=F("series__name"),
+                volume_name=F("volume__name"),
+                issue_count=F("volume__issue_count"),
+            )
+            .order_by(*ordering)
+        )
+
+    def _raise_not_found(self):
+        """Raise not found exception."""
+        pk = self.kwargs.get("pk")
+        detail = {
+            "route": reverse("app:start"),
+            "reason": f"comic {pk} not found",
+            "serializer": ReaderRedirectSerializer,
+        }
+        raise NotFound(detail=detail)
 
     def get_object(self):
         """Get the previous and next comics in a series.
@@ -52,66 +97,31 @@ class ReaderView(BookmarkBaseView):
         doing this with __gt[0] & __lt[0] in the db, but I think they
         might be even more expensive.
         """
-        pk = self.kwargs.get("pk")
-        group_acl_filter = self.get_group_acl_filter(True)
+        comics = self._get_group_comics()
         bookmark_filter = self.get_bookmark_filter()
-        group_nav_filter, ordering = self._get_comic_query_params(pk)
-
-        # get comic relations lazily. Only going to use 2-3 of them.
-        comics = (
-            Comic.objects.filter(group_acl_filter)
-            .filter(**group_nav_filter)
-            .annotate(
-                series_name=F("series__name"),
-                volume_name=F("volume__name"),
-                issue_count=F("volume__issue_count"),
-                settings=FilteredRelation("bookmark", condition=Q(**bookmark_filter)),
-            )
-            .order_by(*ordering)
-            .values(
-                "pk",
-                "file_type",
-                "issue",
-                "issue_count",
-                "issue_suffix",
-                "max_page",
-                "read_ltr",
-                "series_name",
-                "settings__fit_to",
-                "settings__two_pages",
-                "settings__vertical",
-                "settings__read_in_reverse",
-                "volume_name",
-            )
-        )
 
         # Select the -1, +1 window around the current issue
         # Yields 1 to 3 books
         books = []
         prev_book = None
+        pk = self.kwargs.get("pk")
         for index, book in enumerate(comics):
-            book["series_index"] = index + 1
+            book.series_index = index + 1  # type: ignore
             if books:
                 # after match set next comic and break
-                self._append_with_settings(books, book)
+                self._append_with_settings(books, book, bookmark_filter)
                 break
-            if book["pk"] == pk:
+            if book.pk == pk:
                 # first match. set previous and current comic
                 if prev_book:
-                    self._append_with_settings(books, prev_book)
-                self._append_with_settings(books, book)
+                    self._append_with_settings(books, prev_book, bookmark_filter)
+                self._append_with_settings(books, book, bookmark_filter)
             else:
                 # Haven't matched yet, so set the previous comic
                 prev_book = book
 
-        if not comics:
-            pk = self.kwargs.get("pk")
-            detail = {
-                "route": reverse("app:start"),
-                "reason": f"comic {pk} not found",
-                "serializer": ReaderRedirectSerializer,
-            }
-            raise NotFound(detail=detail)
+        if not books:
+            self._raise_not_found()
 
         return {"books": books, "series_count": comics.count()}
 

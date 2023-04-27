@@ -11,46 +11,31 @@
         <v-icon size="x=small" class="inline">{{ mdiRss }}</v-icon>
         OPDS
       </h2>
-      <div id="opdsv1" title="Copy OPDS URL to Clipboard" @click="onClickURL">
-        <h3>
-          v1.2
-          <v-icon class="clipBoardIcon" size="small">
-            {{ clipBoardIcon }}
-          </v-icon>
-          <v-fade-transition>
-            <span v-show="showTooltip.show" class="copied">Copied</span>
-          </v-fade-transition>
-        </h3>
-        <div id="opdsUrl">{{ opdsURL }}</div>
-      </div>
+      <OPDSUrl title="v1.2" :url="opdsV1URL" />
+      <OPDSUrl
+        title="v2.0"
+        :url="opdsV2URL"
+        subtitle="OPDS v2 is experimental and not widely or well supported by clients"
+      />
     </div>
   </v-dialog>
 </template>
 <script>
-import { mdiClipboardCheckOutline, mdiClipboardOutline, mdiRss } from "@mdi/js";
+import { mdiRss } from "@mdi/js";
 
-import { copyToClipboard } from "@/copy-to-clipboard";
+import OPDSUrl from "@/components/settings/opds-url.vue";
 
 export default {
   name: "OPDSDialog",
+  components: {
+    OPDSUrl,
+  },
   data() {
     return {
       mdiRss,
-      opdsURL: window.origin + window.CODEX.OPDS_PATH,
-      showTooltip: { show: false },
+      opdsV1URL: window.origin + window.CODEX.OPDS_V1_PATH,
+      opdsV2URL: window.origin + window.CODEX.OPDS_V2_PATH,
     };
-  },
-  computed: {
-    clipBoardIcon() {
-      return this.showTooltip.show
-        ? mdiClipboardCheckOutline
-        : mdiClipboardOutline;
-    },
-  },
-  methods: {
-    onClickURL() {
-      copyToClipboard(this.opdsURL, this.showTooltip);
-    },
   },
 };
 </script>
@@ -63,26 +48,5 @@ export default {
 }
 .inline {
   display: inline-flex;
-}
-.copied {
-  font-size: small;
-  font-weight: normal;
-  color: rgb(var(--v-theme-textSecondary));
-}
-.clipBoardIcon {
-  color: rgb(var(--v-theme-iconsInactive));
-}
-#opdsv1 {
-  padding: 5px;
-}
-#opdsv1:hover {
-  background-color: rgb(var(--v-theme-surface));
-}
-#opdsv1:hover .clipBoardIcon,
-#opdsv1:hover #opdsUrl {
-  color: rgb(var(--v-theme-textPrimary));
-}
-#opdsUrl {
-  color: rgb(var(--v-theme-textSecondary));
 }
 </style>

@@ -1,4 +1,4 @@
-window.CODEX = { API_V3_PATH: "dummy" }; // TODO: figure out how to set for all tests.
+/* Simple test just to play with vitest. */
 import { createTestingPinia } from "@pinia/testing";
 import { mount } from "@vue/test-utils";
 import { expect, test } from "vitest";

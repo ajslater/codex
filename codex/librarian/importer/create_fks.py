@@ -249,5 +249,5 @@ class CreateForeignKeysMixin(QueuedThread):
         self.log.info(f"Created {count} creators.")
         if status:
             status.complete += count
-            status.update(status)
+            self.status_controller.update(status)
         return count

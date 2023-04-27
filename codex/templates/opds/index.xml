@@ -80,7 +80,7 @@
   {% if entry.publisher %}
     <dc:publisher>{{ entry.publisher }}</dc:publisher>
   {% endif %}
-  {% if entry.language %}
+  {% if entry.language and entry.language.name %}
     <dc:language>{{ entry.language.name }}</dc:language>
   {% endif %}
   {% if entry.summary %}
@@ -88,13 +88,28 @@
     <content type="text">{{ entry.summary }}</content>
   {% endif %}
   {% for author in entry.authors %}
-    <author><name>{{ author }}</name></author>
+    <author>
+      <name>{{ author.name }}</name>
+      {% if author.url %}
+        <url>{{ author.url }}</url>
+      {% endif %}
+    </author>
   {% endfor %}
-  {% for contributor in entry.contributors %}
-    <contributor><name>{{ contributor }}</name></contributor>
+  {% for cont in entry.contributors %}
+    <contributor>
+      <name>{{ cont.name }}</name>
+      {% if cont.url %}
+        <url>{{ cont.url }}</url>
+      {% endif %}
+    </contributor>
   {% endfor %}
-  {% for category in entry.categories %}
-    <category label="{{ category }}" />
+  {% for term_key, categories in entry.category_groups.items %}
+    {% for category in categories %}
+      <category
+        term="{{ term_key }}-{{ category.pk }}" 
+        label="{{ category.name }}" 
+      />
+    {% endfor %}
   {% endfor %}
 </entry>
 {% endfor %}

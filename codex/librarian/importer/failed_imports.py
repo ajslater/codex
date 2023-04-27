@@ -49,6 +49,9 @@ class FailedImportsMixin(QueuedThread):
         if not failed_imports:
             return 0
 
+        # Remove the files deleted hack thing.
+        failed_imports.pop("files_deleted", None)
+
         existing_failed_import_paths = set(
             FailedImport.objects.filter(library=library).values_list("path", flat=True)
         )

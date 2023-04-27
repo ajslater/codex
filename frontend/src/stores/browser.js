@@ -82,7 +82,8 @@ export const useBrowserStore = defineStore("browser", {
       librariesExist: undefined,
       modelGroup: undefined,
       numPages: 1,
-      objList: [],
+      groups: [],
+      books: [],
       routes: {
         up: undefined,
         last: undefined,

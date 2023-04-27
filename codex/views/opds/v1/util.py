@@ -1,14 +1,12 @@
-"""OPDS Utility classes."""
+"""OPDS 1 Utility classes."""
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, Union
 
 from comicbox.metadata.comic_json import json
-from django.utils.http import urlencode
 
-BLANK_TITLE = "Unknown"
-FALSY = {"", "false", "0"}
+from codex.views.opds.const import MimeType, Rel
 
 
 class OpdsNs:
@@ -33,39 +31,6 @@ class TopRoutes:
     SERIES = {"group": "s", "pk": 0}
     FOLDER = {"group": "f", "pk": 0}
     ROOT = {"group": "r", "pk": 0}
-
-
-class Rel:
-    """Link rel strings."""
-
-    AUTHENTICATION = "http://opds-spec.org/auth/document"
-    FACET = "http://opds-spec.org/facet"
-    ACQUISITION = "http://opds-spec.org/acquisition"
-    THUMBNAIL = "http://opds-spec.org/image/thumbnail"
-    IMAGE = "http://opds-spec.org/image"
-    STREAM = "http://vaemendis.net/opds-pse/stream"
-    SORT_NEW = "http://opds-spec.org/sort/new"
-    FEATURED = "http://opds-spec.org/featured"
-    SELF = "self"
-    START = "start"
-    UP = "up"
-    PREV = "prev"
-    NEXT = "next"
-    ALTERNATE = "alternate"
-
-
-class MimeType:
-    """Mime Types."""
-
-    ATOM = "application/atom+xml"
-    _PROFILE_CATALOG = "profile=opds-catalog"
-    NAV = ";".join((ATOM, _PROFILE_CATALOG, "kind=navigation"))
-    ACQUISITION = ";".join((ATOM, _PROFILE_CATALOG, "kind=acquisition"))
-    ENTRY_CATALOG = ";".join((ATOM, "type=entry", _PROFILE_CATALOG))
-    AUTHENTICATION = "application/opds-authentication+json"
-    OPENSEARCH = "application/opensearchdescription+xml"
-    DOWNLOAD = "application/zip"  # PocketBooks needs app/zip
-    STREAM = "image/jpeg"
 
 
 @dataclass
@@ -195,20 +160,3 @@ class OPDSLink:
     pse_count: int = 0
     pse_last_read: int = 0
     pse_last_read_date: Optional[datetime] = None
-
-
-def update_href_query_params(href, old_query_params, new_query_params=None):
-    """Update an href by masking query params on top of the ones it has."""
-    query_params = {}
-    for key, value in old_query_params.items():
-        # qps are sometimes encapsulated in a list for when there's mutiples.
-        if isinstance(value, list):
-            if len(value):
-                query_params[key] = value[0]
-        else:
-            query_params[key] = value
-    if new_query_params:
-        query_params.update(new_query_params)
-    if query_params:
-        href += "?" + urlencode(query_params, doseq=True)
-    return href

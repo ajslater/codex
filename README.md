@@ -20,7 +20,7 @@ border-radius: 128px;
 - Watches the filesystem and automatically imports new or changed comics.
 - Private Libraries accessible only to certain groups of users.
 - Reads CBZ, CBR, CBT, and PDF formatted comics.
-- Syndication with OPDS, streaming, search and authentication.
+- Syndication with OPDS 1 & 2, streaming, search and authentication.
 - Runs in 1GB of RAM, faster with more.
 
 ### Examples
@@ -350,6 +350,13 @@ the side drawer. It should take the form:
 
 `http(s)://host.tld(:9810)(/root_path)/opds/v1.2/`
 
+or
+
+`http(s)://host.tld(:9810)(/root_path)/opds/v2.0/`
+
+OPDS 2.0 support is experimental and not widely or well supported by clients.
+OPDS 2.0 book readers exist, but I am not yet aware of an OPDS 2.0 comic reader.
+
 #### Clients
 
 - iOS has [Panels](https://panels.app/), [KYBook 3](http://kybook-reader.com/),
@@ -417,22 +424,6 @@ rebuild it. The database lives in the config directory as the file
 `config/db.sqlite3`. If this procedure goes kablooey, you may recover the
 original database at `config/db.sqlite3.backup`.
 
-## \<a name="bug_reports>🐛 Bug Reports</a>
-
-Issues and feature requests are best filed on the
-[Github issue tracker](https://github.com/ajslater/codex/issues).
-
-By the generosity of the good people of
-[Mylar](https://github.com/mylar3/mylar3), I and other Codex users may be found
-answering questions on the [Mylar Discord](https://discord.gg/6UG94R7E8T).
-Please use the `#codex-support` channel to ask for help with Codex.
-
-## <a name="out-of-scope">🚫 Out of Scope</a>
-
-- I have no intention of making this an eBook reader.
-- I think metadata editing would be better placed in a comic manager than a
-  reader.
-
 ## <a name="alternatives-to-codex">📚Alternatives</a>
 
 - [Kavita](https://www.kavitareader.com/) has light metadata filtering/editing,
@@ -444,7 +435,20 @@ Please use the `#codex-support` channel to ask for help with Codex.
 - [Comictagger](https://github.com/comictagger/comictagger) is a comic metadata
   editor. It comes with a powerful command line and desktop GUI.
 
-## <a name="develop-codex">🛠 Develop</a>
+## <a name="contributing">🤝 Contributing</a>
+
+### <a name="bug_reports">🐛 Bug Reports</a>
+
+Issues and feature requests are best filed on the
+[Github issue tracker](https://github.com/ajslater/codex/issues).
+
+### <a name="out-of-scope">🚫 Out of Scope</a>
+
+- I have no intention of making this an eBook reader.
+- I think metadata editing would be better placed in a comic manager than a
+  reader.
+
+### <a name="develop-codex">🛠 Develop</a>
 
 Codex is a Django Python webserver with a VueJS front end.
 
@@ -456,7 +460,14 @@ database.
 Most of Codex development is now controlled through the Makefile. Type `make`
 for a list of commands.
 
-## \<a name="links>🔗 Links</a>
+## <a name="discord">💬 Support</a>
+
+By the generosity of the good people of
+[Mylar](https://github.com/mylar3/mylar3), I and other Codex users answer
+questions on the [Mylar Discord](https://discord.gg/6UG94R7E8T). Please use the
+`#codex-support` channel to ask for help with Codex.
+
+## <a name="links">🔗 Links</a>
 
 - [Docker Image](https://hub.docker.com/r/ajslater/codex)
 - [PyPi Package](https://pypi.org/project/codex/)

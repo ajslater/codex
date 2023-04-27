@@ -4,7 +4,6 @@
     ref="verticalScroll"
     v-scroll:#verticalScroll="onScroll"
     :items="items"
-    :visible-items="visibleItems"
     :height="innerHeight"
     :width="innerWidth"
   >
@@ -30,7 +29,6 @@
 <script>
 import _ from "lodash";
 import { mapActions, mapState, mapWritableState } from "pinia";
-import { VVirtualScroll } from "vuetify/labs/VVirtualScroll";
 
 import BookPage from "@/components/reader/pages/page/page.vue";
 import { useReaderStore } from "@/stores/reader";
@@ -47,7 +45,6 @@ export default {
   name: "PagesVerticalScroller",
   components: {
     BookPage,
-    VVirtualScroll,
   },
   props: {
     book: { type: Object, required: true },

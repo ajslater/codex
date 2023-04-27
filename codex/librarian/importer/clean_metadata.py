@@ -21,8 +21,10 @@ _MD_INVALID_KEYS = frozenset(
         "updated_at",
     )
 )
+_MD_TRANFORMED_KEYS = frozenset(("credits",))
 _MD_VALID_KEYS = (
     frozenset([field.name for field in Comic._meta.get_fields()]) - _MD_INVALID_KEYS
+    | _MD_TRANFORMED_KEYS
 )
 _MD_DECIMAL_KEYS = frozenset(("community_rating", "critical_rating"))
 _MD_PSI_KEYS = frozenset(

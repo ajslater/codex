@@ -35,9 +35,18 @@ const ADMIN_DRAWER_COMPONENT_FNS = fs
   .readdirSync(ADMIN_DRAWER_COMPONENT_DIR)
   .filter((fn) => fn.at(-1) !== "~")
   .map((fn) => ADMIN_DRAWER_COMPONENT_DIR + "/" + fn);
+const IS_TEST_ENV = process.env.NODE_ENV === "test";
+const defineObj = {
+  CODEX_PACKAGE_VERSION: JSON.stringify(package_json.version),
+};
+if (IS_TEST_ENV) {
+  defineObj["window.CODEX"] = {
+    API_V3_PATH: JSON.stringify("dummy"),
+  };
+}
 
 const Vuetify3LabsResolver = function () {
-  // For VVirtualScroll. Remove when that graduates.
+  // For VDataTables
   return {
     type: "component",
     resolve: (name) => {
@@ -128,10 +137,7 @@ const config = defineConfig(({ mode }) => {
     css: {
       devSourcemap: DEV,
     },
-    define: {
-      CODEX_PACKAGE_VERSION: JSON.stringify(package_json.version),
-      "import.meta.vitest": "undefined",
-    },
+    define: defineObj,
     test: {
       environment: "jsdom",
       deps: { inline: ["vuetify"] },

@@ -77,10 +77,12 @@ class ReaderPageView(BookmarkBaseView):
             page_image, content_type = self._get_page_image()
             self._update_bookmark()
         except Comic.DoesNotExist as exc:
-            raise NotFound(detail=f"comic {pk} not found in db.") from exc
+            detail = f"comic {pk} not found in db."
+            raise NotFound(detail=detail) from exc
         except FileNotFoundError as exc:
             path = comic.path if comic else f"path for {pk}"
-            raise NotFound(detail=f"comic {path} not found.") from exc
+            detail = f"comic {path} not found."
+            raise NotFound(detail=detail) from exc
         except Exception as exc:
             LOG.warning(exc)
             raise NotFound(detail="comic page not found") from exc
