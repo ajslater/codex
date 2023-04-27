@@ -60,6 +60,12 @@
           "title": "Remove Comic Covers",
           "desc": "from every library",
           "confirm": "Are you sure?"
+        },
+        {
+          "value": "create_all_comic_covers",
+          "title": "Create All Comic Covers",
+          "desc": "Pre-generate covers for every comic in every library",
+          "confirm": "Are you sure?"
         }
       ]
     },

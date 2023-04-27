@@ -81,19 +81,8 @@ class CoverCreateMixin(CoverPathMixin):
         else:
             cover_path.symlink_to(self.MISSING_COVER_PATH)
 
-    #####################
-    # UNUSED BELOW HERE #
-    #####################
-
-    def create_cover(self, pk):
-        """Create a cover from a comic id."""
-        # XXX Unused.
-        cover_path = self.get_cover_path(pk)
-        self.create_cover_from_path(pk, cover_path, self.log, self.librarian_queue)
-
-    def bulk_create_comic_covers(self, comic_pks):
+    def _bulk_create_comic_covers(self, comic_pks):
         """Create bulk comic covers."""
-        # XXX Unused
         num_comics = len(comic_pks)
         if not num_comics:
             return None
@@ -111,7 +100,9 @@ class CoverCreateMixin(CoverPathMixin):
                     status.decrement_total()
                 else:
                     # bulk creator creates covers inline
-                    self.create_cover(pk)
+                    self.create_cover_from_path(
+                        pk, cover_path, self.log, self.librarian_queue
+                    )
                     status.increment_complete()
                 self.status_controller.update(status)
 
@@ -120,3 +111,8 @@ class CoverCreateMixin(CoverPathMixin):
         finally:
             self.status_controller.finish(status)
         return status.complete
+
+    def create_all_covers(self):
+        """Create all covers for all libraries."""
+        pks = Comic.objects.values_list("pk", flat=True)
+        self._bulk_create_comic_covers(pks)

@@ -175,7 +175,7 @@ dev-server: kill
 .PHONY: dev-prod-server
 ## Run a bundled production webserver
 ## @category Run Server
-dev-prod-server: collectstatic
+dev-prod-server: build-frontend collectstatic
 	./bin/dev-prod-server.sh
 
 .PHONY: dev-frontend-server

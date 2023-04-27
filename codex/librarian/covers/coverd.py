@@ -2,8 +2,7 @@
 from codex.librarian.covers.create import CoverCreateMixin
 from codex.librarian.covers.purge import CoverPurgeMixin
 from codex.librarian.covers.tasks import (
-    CoverBulkCreateTask,
-    CoverCreateTask,
+    CoverCreateAllTask,
     CoverRemoveAllTask,
     CoverRemoveOrphansTask,
     CoverRemoveTask,
@@ -24,14 +23,7 @@ class CoverCreatorThread(CoverCreateMixin, CoverPurgeMixin):
             self.purge_comic_covers(task.comic_pks)
         elif isinstance(task, CoverRemoveOrphansTask):
             self.cleanup_orphan_covers()
-
-        #####################
-        # UNUSED BELOW HERE #
-        #####################
-
-        elif isinstance(task, CoverCreateTask):
-            self.create_cover(task.pk)
-        elif isinstance(task, CoverBulkCreateTask):
-            self.bulk_create_comic_covers(task.comic_pks)
+        elif isinstance(task, CoverCreateAllTask):
+            self.create_all_covers()
         else:
             self.log.error(f"Bad task sent to {self.__class__.__name__}: {task}")

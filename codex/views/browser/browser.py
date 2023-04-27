@@ -141,18 +141,18 @@ class BrowserView(BrowserAnnotationsView):
         model_group = self._get_model_group()
         self.model = self.GROUP_MODEL_MAP[model_group]
 
-    def _get_queryset(self, object_filter, search_scores):
-        """Create queryset."""
-        # GROUP QS
-        if self.model != Comic:
-            group_filter = object_filter
-            group_qs = self.model.objects.filter(group_filter)
-            group_qs = self._add_annotations(group_qs, self.model, search_scores)
-            group_qs = self.get_order_by(self.model, group_qs)
+    def _get_group_queryset(self, object_filter, search_scores):
+        """Create group queryset."""
+        if self.model == Comic:
+            qs = self.model.objects.none()
         else:
-            group_qs = self.model.objects.none()
+            qs = self.model.objects.filter(object_filter)
+            qs = self._add_annotations(qs, self.model, search_scores)
+            qs = self.get_order_by(self.model, qs)
+        return qs
 
-        # BOOK QS
+    def _get_book_queryset(self, object_filter, search_scores):
+        """Create book queryset."""
         group = self.kwargs.get("group")
         if self.model == Comic or group == self.FOLDER_GROUP:
             if group == self.FOLDER_GROUP:
@@ -163,13 +163,12 @@ class BrowserView(BrowserAnnotationsView):
                 comic_object_filter = object_filter
                 comic_search_scores = search_scores
 
-            book_qs = Comic.objects.filter(comic_object_filter)
-            book_qs = self._add_annotations(book_qs, Comic, comic_search_scores)
-            book_qs = self.get_order_by(Comic, book_qs)
+            qs = Comic.objects.filter(comic_object_filter)
+            qs = self._add_annotations(qs, Comic, comic_search_scores)
+            qs = self.get_order_by(Comic, qs)
         else:
-            book_qs = Comic.objects.none()
-
-        return group_qs, book_qs
+            qs = Comic.objects.none()
+        return qs
 
     def _get_folder_up_route(self):
         """Get out parent's pk."""
@@ -348,7 +347,8 @@ class BrowserView(BrowserAnnotationsView):
             search_scores = {}
         group = self.kwargs.get("group")
 
-        group_qs, book_qs = self._get_queryset(object_filter, search_scores)
+        group_qs = self._get_group_queryset(object_filter, search_scores)
+        book_qs = self._get_book_queryset(object_filter, search_scores)
 
         # Paginate
         group_qs, book_qs, num_pages, total_count = self._paginate(group_qs, book_qs)
