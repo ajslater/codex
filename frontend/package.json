@@ -24,13 +24,13 @@
     "vue-native-websocket-vue3": "^3.1.6",
     "vue-pdf-embed": "^1.1.1",
     "vue-router": "^4.1.6",
-    "vuetify": "^3.1.1"
+    "vuetify": "^3.2.1"
   },
   "devDependencies": {
     "@mdi/font": "^7.0.96",
     "@mdi/js": "^7.0.96",
     "@pinia/testing": "^0.0.16",
-    "@types/node": "^18.7.13",
+    "@types/node": "^18.16.2",
     "@vitejs/plugin-vue": "^4.0.0",
     "@vue/test-utils": "^2.2.1",
     "eslint-import-resolver-alias": "^1.1.2",

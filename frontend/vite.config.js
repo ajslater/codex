@@ -45,8 +45,8 @@ if (IS_TEST_ENV) {
   };
 }
 
+/* No current labs components
 const Vuetify3LabsResolver = function () {
-  // For VVirtualScroll. Remove when that graduates.
   return {
     type: "component",
     resolve: (name) => {
@@ -55,6 +55,7 @@ const Vuetify3LabsResolver = function () {
     },
   };
 };
+*/
 
 const config = defineConfig(({ mode }) => {
   const PROD = mode === "production";
@@ -114,7 +115,7 @@ const config = defineConfig(({ mode }) => {
       Components({
         resolvers: [
           // Vuetify
-          Vuetify3LabsResolver(),
+          // Vuetify3LabsResolver(),
           Vuetify3Resolver(),
         ],
       }),
