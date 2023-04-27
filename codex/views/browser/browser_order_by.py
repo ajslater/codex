@@ -88,13 +88,15 @@ class BrowserOrderByView(BrowserBaseView):
         return func
 
     @classmethod
-    def _order_without_articles(cls, queryset, ordering):
-        """Sort by name ignoring articles."""
-        first_field = ordering[0]
+    def _order_without_articles(cls, queryset, model):
+        """Sort groups by name ignoring articles."""
+        # first_space_index
+        first_field = model.ORDERING[0]
         queryset = queryset.annotate(
             first_space_index=StrIndex(first_field, Value(" "))
         )
 
+        # lowercase_first_word
         lowercase_first_word = Lower(
             Substr(first_field, 1, length=(F("first_space_index") - 1))  # type: ignore
         )
@@ -105,6 +107,7 @@ class BrowserOrderByView(BrowserBaseView):
             default=Value(""),
         )
 
+        # sort_name
         queryset = queryset.annotate(
             sort_name=Case(
                 When(
@@ -116,36 +119,35 @@ class BrowserOrderByView(BrowserBaseView):
                 default=first_field,
             )
         )
-        ordering = ("sort_name", *ordering[1:])
+
+        # final ordering
+        ordering = ("sort_name", *model.ORDERING[1:])
         return queryset, ordering
 
     def get_order_by(self, model, queryset, for_cover_pk=False):
-        """Create the order_by list.
-
-        Order on pk to give duplicates a consistent position.
-        """
-        # order_prefix
-        prefix = "-" if self.params.get("order_reverse") else ""
-
+        """Create the order_by list."""
         # order_fields
+        comic_rel = ""
         order_key = self.get_order_key()
         if for_cover_pk:
-            prefix += "comic__"
+            comic_rel = "comic__"
             ordering = []
             if order_key and order_key != "sort_name":
                 ordering += [order_key]
             ordering += [*Comic.ORDERING]
         elif order_key == "sort_name" or not order_key:
-            ordering = model.ORDERING
             group = self.kwargs.get("group")
             if group != self.FOLDER_GROUP:
-                # Can't annotate after union
-                queryset, ordering = self._order_without_articles(queryset, ordering)
+                # special annotations for ordering in browser mode
+                queryset, ordering = self._order_without_articles(queryset, model)
+            else:
+                ordering = model.ORDERING
         else:
             # Use annotated order_value
-            ordering = ("order_value", *model.ordering)
+            ordering = ("order_value", *model.ORDERING)
 
-        # order_by
         # add prefixes to all order_by fields
+        neg_prefix = "-" if self.params.get("order_reverse") else ""
+        prefix = neg_prefix + comic_rel
         ordering = (prefix + field for field in ordering)
         return queryset.order_by(*ordering)
