@@ -61,7 +61,11 @@ class ReaderView(BookmarkBaseView):
         """Get comics for the series or folder."""
         pk = self.kwargs.get("pk")
         group_acl_filter = self.get_group_acl_filter(True)
-        group_nav_filter, ordering, select_related_fields = self._get_comic_query_params(pk)
+        (
+            group_nav_filter,
+            ordering,
+            select_related_fields,
+        ) = self._get_comic_query_params(pk)
 
         return (
             Comic.objects.filter(group_acl_filter)

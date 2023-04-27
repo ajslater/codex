@@ -2,8 +2,19 @@
 from django.db.models import F
 from django.utils.http import urlencode
 
-from codex.models import Creator, CreatorPerson
-from codex.views.opds.const import OPDS_M2M_MODELS
+from codex.models import (
+    Character,
+    Creator,
+    CreatorPerson,
+    Genre,
+    Location,
+    SeriesGroup,
+    StoryArc,
+    Tag,
+    Team,
+)
+
+OPDS_M2M_MODELS = (Character, Genre, Location, SeriesGroup, StoryArc, Tag, Team)
 
 
 def update_href_query_params(href, old_query_params, new_query_params=None):
@@ -37,14 +48,12 @@ def get_creator_people(comic_pk, roles, exclude=False):
 
 def get_creators(comic_pk, roles, exclude=False):
     """Get credits that are not part of other roles."""
-    creators = Creator.objects.filter(comic=comic_pk).select_related("role", "person")
+    creators = Creator.objects.filter(comic=comic_pk)
     if exclude:
         creators = creators.exclude(role__name__in=roles)
     else:
         creators = creators.filter(role__name__in=roles)
-    return creators.annotate(name=F("person__name"), role_name=F("role__name")).defer(
-        "updated_at", "created_at"
-    )
+    return creators.annotate(name=F("person__name"), role_name=F("role__name"))
 
 
 def get_m2m_objects(pk) -> dict:
@@ -52,6 +61,6 @@ def get_m2m_objects(pk) -> dict:
     cats = {}
     for model in OPDS_M2M_MODELS:
         table = model.__name__.lower()
-        qs = model.objects.filter(comic=pk).order_by("name")
+        qs = model.objects.filter(comic=pk).order_by("name").only("name")
         cats[table] = qs
     return cats

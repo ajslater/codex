@@ -118,11 +118,10 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
         """Get the browser page and serialize it for this subclass."""
         group = self.kwargs.get("group")
         self.acquisition_groups = frozenset(self.valid_nav_groups[-2:])
-        self.is_opds_acquisition = group in self.acquisition_groups
+        self.is_opds_2_acquisition = group in self.acquisition_groups
         self.is_opds_metadata = (
             self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
         )
-        self.is_opds_2_metadata = self.is_opds_metadata
         browser_page = super().get_object()
         groups = browser_page.get("groups")
         books = browser_page.get("books")

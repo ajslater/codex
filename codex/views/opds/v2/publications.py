@@ -25,6 +25,7 @@ class PublicationMixin(LinksMixin):
         "inker": {"Inker"},
     }
     _CONTRIBUTOR_ROLES = {x for s in _MD_CONTRIBUTOR_MAP.values() for x in s}
+    is_opds_metadata = False
 
     def _get_big_image_link(self, obj, cover_pk):
         if cover_pk:

@@ -309,7 +309,7 @@ class OPDS1BrowserView(BrowserView, CodexXMLTemplateView):
         """Get the browser page and serialize it for this subclass."""
         group = self.kwargs.get("group")
         self.acquisition_groups = frozenset(self.valid_nav_groups[-2:])
-        self.is_opds_acquisition = group in self.acquisition_groups
+        self.is_opds_1_acquisition = group in self.acquisition_groups
         self.is_opds_metadata = (
             self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
         )

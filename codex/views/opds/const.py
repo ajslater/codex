@@ -1,10 +1,7 @@
 """OPDS Common consts."""
 
-from codex.models import Character, Genre, Location, SeriesGroup, StoryArc, Tag, Team
-
 BLANK_TITLE = "Unknown"
 FALSY = {"", "false", "0"}
-OPDS_M2M_MODELS = (Character, Genre, Location, SeriesGroup, StoryArc, Tag, Team)
 AUTHOR_ROLES = {"Writer"}
 
 

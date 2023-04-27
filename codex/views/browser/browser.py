@@ -67,9 +67,7 @@ class BrowserView(BrowserAnnotationsView):
         "creators__person",
     )
 
-    is_opds_acquisition = False
-    is_opds_metadata = False
-    is_opds_2_metadata = False
+    is_opds_2_acquisition = False
 
     def _annotate_group_names(self, queryset, model):
         """Annotate name fields."""
@@ -81,7 +79,7 @@ class BrowserView(BrowserAnnotationsView):
                 "series_name": F("series__name"),
                 "volume_name": F("volume__name"),
             }
-            if self.is_opds_acquisition:
+            if self.is_opds_2_acquisition:
                 group_names["imprint_name"] = F("imprint__name")
         elif model == Volume:
             group_names["series_name"] = F("series__name")
@@ -99,9 +97,7 @@ class BrowserView(BrowserAnnotationsView):
         ##############################
         # Annotate Common Aggregates #
         ##############################
-        queryset = self.annotate_common_aggregates(
-            queryset, model, search_scores, self.is_opds_acquisition
-        )
+        queryset = self.annotate_common_aggregates(queryset, model, search_scores)
         if not is_model_comic:
             # EXTRA FILTER for empty group
             queryset = queryset.filter(child_count__gt=0)
@@ -168,8 +164,6 @@ class BrowserView(BrowserAnnotationsView):
                 comic_search_scores = search_scores
 
             book_qs = Comic.objects.filter(comic_object_filter)
-            if self.is_opds_metadata:
-                book_qs = book_qs.prefetch_related(*self._OPDS_M2M_RELS)
             book_qs = self._add_annotations(book_qs, Comic, comic_search_scores)
             book_qs = self.get_order_by(Comic, book_qs)
         else:
@@ -202,11 +196,6 @@ class BrowserView(BrowserAnnotationsView):
             return
         try:
             select_related = self._GROUP_INSTANCE_SELECT_RELATED[self.group_class]
-            if self.group_class == Comic:
-                if self.is_opds_acquisition:
-                    select_related += ("publisher",)
-                if self.is_opds_2_metadata:
-                    select_related += ("imprint",)
             self.group_instance = self.group_class.objects.select_related(
                 *select_related
             ).get(pk=pk)
