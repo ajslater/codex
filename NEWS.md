@@ -6,14 +6,14 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.4.0
+## v1.3.9
 
 - Features
   - Experimental OPDS 2.0 Support.
   - Create all comic covers admin task.
   - Faster Metadata pages for web and OPDS.
 - Fix
-  - Two pages mode turned off permanently.
+  - Two pages mode broken.
   - Credits not imported bug.
   - Failed imports not removed when file removed bug.
 
