@@ -13,6 +13,7 @@ border-radius: 128px;
 - Fix
   - Faster Metadata pages for web and OPDS.
   - Fix Credits not imported bug.
+  - Fix two pages mode turned off permanently.
 
 ## v1.3.8
 
