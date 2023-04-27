@@ -46,26 +46,27 @@ class ReaderView(BookmarkBaseView):
         session = self.request.session.get(BrowserSessionViewBase.SESSION_KEY, {})
         top_group = session.get("top_group")
 
+        select_related_fields = ["series", "volume"]
         if top_group == "f":
             rel = "parent_folder__comic"
             ordering = ("path", "pk")
+            select_related_fields += ["parent_folder"]
         else:
             rel = "series__comic"
             ordering = Comic.ORDERING
 
-        return {rel: pk}, ordering
+        return {rel: pk}, ordering, select_related_fields
 
     def _get_group_comics(self):
         """Get comics for the series or folder."""
         pk = self.kwargs.get("pk")
         group_acl_filter = self.get_group_acl_filter(True)
-        group_nav_filter, ordering = self._get_comic_query_params(pk)
+        group_nav_filter, ordering, select_related_fields = self._get_comic_query_params(pk)
 
-        # get comic relations lazily. Only going to use 3 of them.
-        # No select related. no bookmarks except for the 3.
         return (
             Comic.objects.filter(group_acl_filter)
             .filter(**group_nav_filter)
+            .select_related(*select_related_fields)
             .only(*self._COMIC_FIELDS)
             .annotate(
                 series_name=F("series__name"),
