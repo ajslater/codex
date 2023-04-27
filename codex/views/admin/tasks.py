@@ -5,7 +5,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
-from codex.librarian.covers.tasks import CoverRemoveAllTask, CoverRemoveOrphansTask
+from codex.librarian.covers.tasks import (
+    CoverCreateAllTask,
+    CoverRemoveAllTask,
+    CoverRemoveOrphansTask,
+)
 from codex.librarian.janitor.tasks import (
     ForceUpdateAllFailedImportsTask,
     JanitorBackupTask,
@@ -55,6 +59,7 @@ class AdminLibrarianTaskView(APIView):
 
     _TASK_MAP = {
         "purge_comic_covers": CoverRemoveAllTask(),
+        "create_all_comic_covers": CoverCreateAllTask(),
         "search_index_update": SearchIndexUpdateTask(False),
         "search_index_rebuild": SearchIndexUpdateTask(True),
         "search_index_remove_stale": SearchIndexRemoveStaleTask(),

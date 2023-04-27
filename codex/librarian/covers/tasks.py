@@ -39,20 +39,6 @@ class CoverSaveToCache(CoverTask):
     data: bytes
 
 
-#####################
-# UNUSED BELOW HERE #
-#####################
-
-
 @dataclass
-class CoverCreateTask(CoverTask):
-    """Create one comic cover."""
-
-    pk: int
-
-
-@dataclass
-class CoverBulkCreateTask(CoverTask):
-    """A list of comic src and dest paths."""
-
-    comic_pks: frozenset
+class CoverCreateAllTask(CoverTask):
+    """A create all comic covers."""
