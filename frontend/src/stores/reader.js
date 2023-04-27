@@ -116,7 +116,7 @@ export const useReaderStore = defineStore("reader", {
       }
       // No two pages with vertical
       resultSettings.twoPages =
-        resultSettings.twoPages && resultSettings.vertical;
+        resultSettings.twoPages && !resultSettings.vertical;
       return resultSettings;
     },
     ///////////////////////////////////////////////////////////////////////////
