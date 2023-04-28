@@ -1,9 +1,9 @@
 <template>
   <v-footer id="version-footer" :title="versionTitle">
-    <div id="version" :class="{ outdated: outdated }">
-      codex v{{ versions.installed }}
+    <div id="version">codex v{{ versions.installed }}</div>
+    <div v-if="outdated" id="latest">
+      codex v{{ versions.latest }} is available
     </div>
-    <div v-if="outdated">codex v{{ versions.latest }} is available</div>
   </v-footer>
 </template>
 
@@ -27,7 +27,10 @@ export default {
     }),
     ...mapGetters(useAuthStore, ["isUserAdmin"]),
     outdated: function () {
-      return this.isUserAdmin && this.versions.latest > this.versions.installed;
+      return (
+        this.isUserAdmin &&
+        this.semverGreaterThan(this.versions.latest > this.versions.installed)
+      );
     },
     versionTitle: function () {
       return this.outdated
@@ -40,12 +43,31 @@ export default {
   },
   methods: {
     ...mapActions(useCommonStore, ["loadVersions"]),
+    semverGreaterThan(a, b) {
+      try {
+        if (!a || !b) {
+          return false;
+        }
+        const aParts = a.split(".");
+        const bParts = b.split(".");
+
+        for (const [i, aPart] of aParts.entries()) {
+          if (+aPart > +bParts[i]) {
+            return true;
+          }
+        }
+      } catch (error) {
+        console.debug("compare codex versions", a, ">", b, error);
+      }
+      return false;
+    },
   },
 };
 </script>
 
 <style scoped lang="scss">
 #version-footer {
+  display: block;
   width: 100%;
   padding-top: 5px;
   padding-bottom: calc(5px + env(safe-area-inset-bottom) / 2);
@@ -53,10 +75,7 @@ export default {
   font-size: small;
   color: rgb(var(--v-theme-textDisabled));
 }
-#version-footer * {
-  margin: auto;
-}
-.outdated {
-  font-style: italic;
+#latest {
+  color: rgb(var(--v-theme-textSecondary));
 }
 </style>
