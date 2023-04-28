@@ -21,6 +21,7 @@ class ReaderView(BookmarkBaseView):
     serializer_class = ReaderInfoSerializer
 
     SETTINGS_ATTRS = ("fit_to", "two_pages", "read_in_reverse", "vertical")
+    _SELECT_RELATED_FIELDS = ("series", "volume")
     _COMIC_FIELDS = (
         "file_type",
         "issue",
@@ -46,16 +47,23 @@ class ReaderView(BookmarkBaseView):
         session = self.request.session.get(BrowserSessionViewBase.SESSION_KEY, {})
         top_group = session.get("top_group")
 
-        select_related_fields = ["series", "volume"]
+        select_related_fields = self._SELECT_RELATED_FIELDS
+        fields = self._COMIC_FIELDS
         if top_group == "f":
             rel = "parent_folder__comic"
             ordering = ("path", "pk")
-            select_related_fields += ["parent_folder"]
+            select_related_fields = (*select_related_fields, "parent_folder")
+            fields = (*fields, "parent_folder")
         else:
             rel = "series__comic"
             ordering = Comic.ORDERING
 
-        return {rel: pk}, ordering, select_related_fields
+        return (
+            {rel: pk},
+            select_related_fields,
+            fields,
+            ordering,
+        )
 
     def _get_group_comics(self):
         """Get comics for the series or folder."""
@@ -63,15 +71,16 @@ class ReaderView(BookmarkBaseView):
         group_acl_filter = self.get_group_acl_filter(True)
         (
             group_nav_filter,
-            ordering,
             select_related_fields,
+            fields,
+            ordering,
         ) = self._get_comic_query_params(pk)
 
         return (
             Comic.objects.filter(group_acl_filter)
             .filter(**group_nav_filter)
             .select_related(*select_related_fields)
-            .only(*self._COMIC_FIELDS)
+            .only(*fields)
             .annotate(
                 series_name=F("series__name"),
                 volume_name=F("volume__name"),
