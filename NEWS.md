@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.3.10
+
+- Fix
+  - Crash when reading from folder view.
+
 ## v1.3.9
 
 - Features
