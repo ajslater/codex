@@ -11,8 +11,7 @@ border-radius: 128px;
 - Features
   - Last Read Order By option.
   - Some Order By options now have a default descending order.
-  - OPDS 1 special top links limited to 100 entries to accommodate greedy
-    clients.
+  - OPDS 1 special top links limited to 100 entries.
 - Fix
   - OPDS 1 links did not include filters or order information.
   - OPDS 1 page streaming broke.
