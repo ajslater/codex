@@ -87,7 +87,6 @@ GROUPS = (
                 "s",
                 {"orderBy": "bookmark_updated_at", "orderReverse": True},
             ),
-
         ),
     ),
     NavigationGroup(
