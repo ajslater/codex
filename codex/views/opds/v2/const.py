@@ -81,6 +81,13 @@ GROUPS = (
                 "s",
                 {"orderBy": "date", "orderReverse": False},
             ),
+            NavigationLink(
+                Rel.POPULAR,
+                "Last Read",
+                "s",
+                {"orderBy": "bookmark_updated_at", "orderReverse": True},
+            ),
+
         ),
     ),
     NavigationGroup(
