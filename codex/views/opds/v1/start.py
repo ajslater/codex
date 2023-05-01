@@ -8,7 +8,7 @@ from codex.serializers.choices import DEFAULTS
 def opds_1_start_view(request):
     """Redirect to start view, forwarding query strings and auth."""
     kwargs = DEFAULTS["route"]
-    url = reverse("opds:v1:browser", kwargs=kwargs)
+    url = reverse("opds:v1:feed", kwargs=kwargs)
 
     # Forward the query string.
     path = request.get_full_path()

@@ -20,8 +20,7 @@ from codex.views.opds.const import (
     Rel,
 )
 from codex.views.opds.util import update_href_query_params
-from codex.views.opds.v1.entry import OPDS1Entry, OPDS1EntryObject
-from codex.views.opds.v1.util import (
+from codex.views.opds.v1.const import (
     DEFAULT_FACETS,
     Facet,
     FacetGroups,
@@ -32,12 +31,13 @@ from codex.views.opds.v1.util import (
     TopLinks,
     UserAgents,
 )
+from codex.views.opds.v1.entry import OPDS1Entry, OPDS1EntryObject
 from codex.views.template import CodexXMLTemplateView
 
 LOG = get_logger(__name__)
 
 
-class OPDS1BrowserView(BrowserView, CodexXMLTemplateView):
+class OPDS1FeedView(BrowserView, CodexXMLTemplateView):
     """The main opds browser."""
 
     authentication_classes = (BasicAuthentication, SessionAuthentication)
@@ -106,7 +106,7 @@ class OPDS1BrowserView(BrowserView, CodexXMLTemplateView):
             LOG.exception(exc)
 
     def _facet(self, kwargs, facet_group, facet_title, new_query_params):
-        href = reverse("opds:v1:browser", kwargs=kwargs)
+        href = reverse("opds:v1:feed", kwargs=kwargs)
         facet_active = False
         for key, val in new_query_params.items():
             if self.request.query_params.get(key) == val:
@@ -134,11 +134,12 @@ class OPDS1BrowserView(BrowserView, CodexXMLTemplateView):
             group=item.get("group"),
             pk=item.get("pk"),
             name=name,
-            query_params=query_params,
         )
         issue_max = self.obj.get("issue_max")
         data = (self.acquisition_groups, issue_max, False)
-        return OPDS1Entry(entry_obj, {**self.request.query_params}, data)
+        qps = {**self.request.query_params}
+        qps.update(query_params)
+        return OPDS1Entry(entry_obj, qps, data)
 
     def _is_facet_active(self, facet_group, facet):
         compare = [facet.value]
@@ -191,12 +192,12 @@ class OPDS1BrowserView(BrowserView, CodexXMLTemplateView):
         return facets
 
     def _nav_link(self, kwargs, rel):
-        href = reverse("opds:v1:browser", kwargs={**kwargs})
+        href = reverse("opds:v1:feed", kwargs={**kwargs})
         href = update_href_query_params(href, self.request.query_params)
         return OPDSLink(rel, href, MimeType.NAV)
 
     def _top_link(self, top_link):
-        href = reverse("opds:v1:browser", kwargs={**top_link.kwargs, "page": 1})
+        href = reverse("opds:v1:feed", kwargs={**top_link.kwargs, "page": 1})
         if top_link.query_params:
             href += "?" + urlencode(top_link.query_params, doseq=True)
         return OPDSLink(top_link.rel, href, top_link.mime_type)
@@ -259,12 +260,11 @@ class OPDS1BrowserView(BrowserView, CodexXMLTemplateView):
         entry_obj = OPDS1EntryObject(
             **top_link.kwargs,
             name=name,
-            query_params=top_link.query_params,
             summary=top_link.desc,
         )
         issue_max = self.obj.get("issue_max")
         data = (self.acquisition_groups, issue_max, False)
-        return OPDS1Entry(entry_obj, {}, data)
+        return OPDS1Entry(entry_obj, top_link.query_params, data)
 
     def _add_top_links(self, top_links):
         """Add a list of top links as entries if they should be enabled."""

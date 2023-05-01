@@ -15,6 +15,7 @@ class Rel:
     IMAGE = "http://opds-spec.org/image"
     STREAM = "http://vaemendis.net/opds-pse/stream"
     SORT_NEW = "http://opds-spec.org/sort/new"
+    POPULAR = "http://opds-spec.org/sort/popular"
     FEATURED = "http://opds-spec.org/featured"
     SELF = "self"
     START = "start"
