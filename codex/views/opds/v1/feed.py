@@ -41,7 +41,7 @@ class OPDS1FeedView(BrowserView, CodexXMLTemplateView):
     """The main opds browser."""
 
     authentication_classes = (BasicAuthentication, SessionAuthentication)
-    template_name = "opds/index.xml"
+    template_name = "opds_v1/index.xml"
     serializer_class = OPDS1TemplateSerializer
 
     @property
@@ -241,7 +241,9 @@ class OPDS1FeedView(BrowserView, CodexXMLTemplateView):
                     reverse("opds:authentication:v1"),
                     MimeType.AUTHENTICATION,
                 ),
-                OPDSLink("search", reverse("opds:opensearch:1.1"), MimeType.OPENSEARCH),
+                OPDSLink(
+                    "search", reverse("opds:v1:opensearch_v1"), MimeType.OPENSEARCH
+                ),
             ]
             links += self._root_nav_links()
             if self.use_facets:
