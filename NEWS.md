@@ -9,10 +9,9 @@ border-radius: 128px;
 ## v1.3.11
 
 - Features
-  - Last Read Order By option.
+  - Last Read Order By option for web and OPDS.
   - Some Order By options now have a default descending order.
   - OPDS 1 special top links limited to 100 entries.
-  - OPDS Last Read top link.
 - Fix
   - OPDS 1 links did not include filters or order information.
   - OPDS 1 page streaming broke.
