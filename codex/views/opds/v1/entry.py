@@ -20,9 +20,7 @@ from codex.views.opds.util import (
     get_m2m_objects,
     update_href_query_params,
 )
-from codex.views.opds.v1.util import (
-    OPDSLink,
-)
+from codex.views.opds.v1.const import OPDSLink
 
 LOG = get_logger(__name__)
 
@@ -31,7 +29,6 @@ LOG = get_logger(__name__)
 class OPDS1EntryObject:
     """Fake entry db object for top link & facet entries."""
 
-    query_params: dict
     group: str = ""
     pk: int = 0
     name: str = ""
@@ -43,9 +40,9 @@ class OPDS1Entry:
     """An OPDS entry object."""
 
     _DATE_FORMAT_BASE = "%Y-%m-%dT%H:%M:%S"
-    DATE_FORMAT_MS = _DATE_FORMAT_BASE + ".%f%z"
-    DATE_FORMAT = _DATE_FORMAT_BASE + "%z"
-    DATE_FORMATS = (DATE_FORMAT_MS, DATE_FORMAT)
+    _DATE_FORMAT_MS = _DATE_FORMAT_BASE + ".%f%z"
+    _DATE_FORMAT = _DATE_FORMAT_BASE + "%z"
+    _DATE_FORMATS = (_DATE_FORMAT_MS, _DATE_FORMAT)
 
     def __init__(self, obj, query_params, extra_data):
         """Initialize params."""
@@ -102,7 +99,7 @@ class OPDS1Entry:
     def _get_datefield(self, key):
         result = None
         if not self.fake and (value := getattr(self.obj, key, None)):
-            for date_format in self.DATE_FORMATS:
+            for date_format in self._DATE_FORMATS:
                 try:
                     if isinstance(value, str):
                         result = datetime.strptime(value, date_format).astimezone(
@@ -170,9 +167,8 @@ class OPDS1Entry:
 
     def _nav_href(self, metadata=False):
         kwargs = {"group": self.obj.group, "pk": self.obj.pk, "page": 1}
-        href = reverse("opds:v1:browser", kwargs=kwargs)
-        qps = {} if self.fake or self.obj.group == "c" else self.query_params
-
+        href = reverse("opds:v1:feed", kwargs=kwargs)
+        qps = {}
         if metadata:
             qps.update({"opdsMetadata": 1})
         return update_href_query_params(href, self.query_params, qps)
@@ -205,11 +201,13 @@ class OPDS1Entry:
         pk = self.obj.pk
         if not pk:
             return None
-        base_url = reverse("opds:v1:start")
-        href = f"{base_url}c/{pk}/"
-        href += "{pageNumber}/page.jpg?bookmark=1"
-        count = self.obj.page_count
+        kwargs = {"pk": pk, "page": 0}
+        qps = {"bookmark": 1}
+        href = reverse("opds:bin:page", kwargs=kwargs)
+        href = update_href_query_params(href, {}, qps)
+        href = href.replace("0/page.jpg", "{pageNumber}/page.jpg")
         page = self.obj.page
+        count = self.obj.page_count
         bookmark_updated_at = self.obj.bookmark_updated_at
         return OPDSLink(
             Rel.STREAM,
@@ -245,7 +243,7 @@ class OPDS1Entry:
     def _add_url_to_obj(objs, filter_key):
         """Add filter urls to objects."""
         kwargs = {"group": "s", "pk": 0, "page": 1}
-        url_base = reverse("opds:v1:browser", kwargs=kwargs)
+        url_base = reverse("opds:v1:feed", kwargs=kwargs)
         result = []
         for obj in objs:
             qp = {"filters": json.dumps({filter_key: [obj.pk]})}

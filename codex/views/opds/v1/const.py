@@ -58,7 +58,7 @@ class TopLink:
     kwargs: dict
     rel: str
     mime_type: str
-    query_params: defaultdict[str, Union[str, bool]]
+    query_params: defaultdict[str, Union[str, bool, int]]
     glyph: str
     title: str
     desc: str
@@ -86,7 +86,9 @@ class RootTopLinks:
         TopRoutes.SERIES,
         Rel.SORT_NEW,
         MimeType.ACQUISITION,
-        defaultdict(None, {"orderBy": "created_at", "orderReverse": True}),
+        defaultdict(
+            None, {"orderBy": "created_at", "orderReverse": True, "limit": 100}
+        ),
         "📥",
         "Recently Added",
         "",
@@ -96,13 +98,29 @@ class RootTopLinks:
         Rel.FEATURED,
         MimeType.NAV,
         defaultdict(
-            None, {"orderBy": "date", "filters": json.dumps({"bookmark": "UNREAD"})}
+            None,
+            {
+                "orderBy": "date",
+                "filters": json.dumps({"bookmark": "UNREAD"}),
+                "limit": 100,
+            },
         ),
         "📚",
         "Oldest Unread",
         "Unread issues, oldest published first",
     )
-    ALL = (NEW, FEATURED)
+    LAST_READ = TopLink(
+        TopRoutes.SERIES,
+        Rel.POPULAR,
+        MimeType.NAV,
+        defaultdict(
+            None, {"orderBy": "bookmark_updated_at", "orderReverse": True, "limit": 100}
+        ),
+        "👀",
+        "Last Read",
+        "Last Read issues, recently read first.",
+    )
+    ALL = (NEW, FEATURED, LAST_READ)
 
 
 class FacetGroups:

@@ -79,19 +79,28 @@
       },
       {
         "title": "Added Time",
-        "value": "created_at"
+        "value": "created_at",
+        "reverse": true
+      },
+      {
+        "title": "Last Read",
+        "value": "bookmark_updated_at",
+        "reverse": true
       },
       {
         "title": "Updated Time",
-        "value": "updated_at"
+        "value": "updated_at",
+        "reverse": true
       },
       {
         "title": "Page Count",
-        "value": "page_count"
+        "value": "page_count",
+        "reverse": true
       },
       {
         "title": "File Size",
-        "value": "size"
+        "value": "size",
+        "reverse": true
       },
       {
         "title": "Filename",
@@ -99,11 +108,13 @@
       },
       {
         "title": "Critical Rating",
-        "value": "critical_rating"
+        "value": "critical_rating",
+        "reverse": true
       },
       {
         "title": "Community Rating",
-        "value": "community_rating"
+        "value": "community_rating",
+        "reverse": true
       },
       {
         "title": "Age Rating",
@@ -111,7 +122,8 @@
       },
       {
         "title": "Search Score",
-        "value": "search_score"
+        "value": "search_score",
+        "reverse": true
       }
     ],
     "vuetifyNullCode": -1,

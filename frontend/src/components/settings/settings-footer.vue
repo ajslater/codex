@@ -1,6 +1,6 @@
 <template>
   <v-footer id="settingsFooter">
-    <OPDSDialog />
+    <OPDSDialog v-if="isCodexViewable" />
     <a
       id="repo"
       href="https://github.com/ajslater/codex"
@@ -19,8 +19,10 @@
 
 <script>
 import { mdiOpenInNew, mdiSourceRepository } from "@mdi/js";
+import { mapGetters } from "pinia";
 
 import OPDSDialog from "@/components/settings/opds-dialog.vue";
+import { useAuthStore } from "@/stores/auth";
 
 export default {
   name: "SettingsFooter",
@@ -32,6 +34,9 @@ export default {
       mdiOpenInNew,
       mdiSourceRepository,
     };
+  },
+  computed: {
+    ...mapGetters(useAuthStore, ["isCodexViewable"]),
   },
 };
 </script>
