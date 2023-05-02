@@ -8,6 +8,8 @@ border-radius: 128px;
 
 ## v1.3.12
 
+- Features
+  - OPDS 2 Last Read link.
 - Fix
   - Books without bookmarks could break parts of the reader.
   - Remove clipboard UI hints when clipboard isn't available.
