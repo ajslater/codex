@@ -1,17 +1,15 @@
 <template>
-  <div
-    class="opdsVersion"
-    title="Copy OPDS URL to Clipboard"
-    @click="onClickURL"
-  >
+  <div class="opdsVersion" :title="tooltip" @click="onClickURL">
     <h3>
       {{ title }}
-      <v-icon class="clipBoardIcon" size="small">
-        {{ clipBoardIcon }}
-      </v-icon>
-      <v-fade-transition>
-        <span v-show="showTooltip.show" class="copied">Copied</span>
-      </v-fade-transition>
+      <span v-if="clipBoardEnabled">
+        <v-icon class="clipBoardIcon" size="small">
+          {{ clipBoardIcon }}
+        </v-icon>
+        <v-fade-transition>
+          <span v-show="showTooltip.show" class="copied">Copied</span>
+        </v-fade-transition>
+      </span>
     </h3>
     <div v-if="subtitle" class="subtitle">
       {{ subtitle }}
@@ -23,6 +21,8 @@
 import { mdiClipboardCheckOutline, mdiClipboardOutline, mdiRss } from "@mdi/js";
 
 import { copyToClipboard } from "@/copy-to-clipboard";
+
+const TOOLTIP = "Copy OPDS URL to clipboard";
 
 export default {
   name: "OPDSUrl",
@@ -47,14 +47,23 @@ export default {
     };
   },
   computed: {
+    clipBoardEnabled() {
+      return location.protocol == "https:";
+    },
     clipBoardIcon() {
       return this.showTooltip.show
         ? mdiClipboardCheckOutline
         : mdiClipboardOutline;
     },
+    tooltip() {
+      return TOOLTIP ? this.clipBoardEnabled : undefined;
+    },
   },
   methods: {
     onClickURL() {
+      if (!this.clipBoardEnabled) {
+        return;
+      }
       copyToClipboard(this.url, this.showTooltip);
     },
   },

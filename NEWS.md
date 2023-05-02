@@ -10,6 +10,7 @@ border-radius: 128px;
 
 - Fix
   - Books without bookmarks could break parts of the reader.
+  - Remove clipboard UI hints when clipboard isn't available.
 
 ## v1.3.11
 
