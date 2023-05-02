@@ -9,8 +9,8 @@ border-radius: 128px;
 ## v1.3.13
 
 - Fix
-  - Fix group cover sometimes showing wrong cover for order.
-  - Fix rare import crash.
+  - Group cover sometimes showing wrong cover for order.
+  - Rare import crash.
 
 ## v1.3.12
 
