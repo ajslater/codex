@@ -160,6 +160,8 @@ class AggregateMetadataMixin(CleanMetadataMixin):
                 "group_trees": {Publisher: {}, Imprint: {}, Series: {}, Volume: {}},
             }
         )
+        if status and status.complete is None:
+            status.complete = 0
         for path in all_paths:
             path_str = str(path)
             md, m2m_md, group_tree_md, failed_import = self._get_path_metadata(path_str)
