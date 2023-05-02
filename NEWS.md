@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.3.13
+
+- Fix
+  - Fix group cover sometimes showing wrong cover for order.
+
 ## v1.3.12
 
 - Features
