@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.3.12
+
+- Fix
+  - Books without bookmarks could break parts of the reader.
+
 ## v1.3.11
 
 - Features
