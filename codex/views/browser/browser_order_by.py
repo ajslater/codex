@@ -68,20 +68,27 @@ class BrowserOrderByView(BrowserBaseView):
             func = self.get_aggregate_func(self.order_key)
         return func
 
-    def add_order_by(self, queryset, model):
+    def add_order_by(self, queryset, model, for_cover=False):
         """Create the order_by list."""
-        # prefix
         prefix = ""
         if self.params.get("order_reverse"):
             prefix += "-"
 
-        if self.order_key == "sort_name":
-            order_fields = (self._ORDER_FIELDS[0], *model.ORDERING[1:])
+        if for_cover:
+            prefix += "comic__"
+            # Cover Comic subquery has no order_value or sort_name
+            if self.order_key == "sort_name":
+                order_fields = Comic.ORDERING
+            else:
+                order_fields = (self.order_key, "pk")
         else:
-            order_fields = self._ORDER_FIELDS
+            if self.order_key == "sort_name":  # noqa PLR5501
+                order_fields = (self._ORDER_FIELDS[0], *model.ORDERING[1:])
+            else:
+                order_fields = self._ORDER_FIELDS
 
-        ordering = []
+        order_by = []
         for field in order_fields:
-            ordering.append(prefix + field)
+            order_by.append(prefix + field)
 
-        return queryset.order_by(*ordering)
+        return queryset.order_by(*order_by)

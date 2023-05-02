@@ -162,6 +162,7 @@ class QueryForeignKeysMixin(QueuedThread):
                 )
             count += 1
             if status:
+                status.complete = status.complete or 0
                 status.complete += 1
                 self.status_controller.update(status)
 
@@ -201,6 +202,7 @@ class QueryForeignKeysMixin(QueuedThread):
         if count:
             self.log.info(f"Prepared {count} new creators.")
         if status:
+            status.complete = status.complete or 0
             status.complete += count
         return count
 
@@ -231,6 +233,7 @@ class QueryForeignKeysMixin(QueuedThread):
             num_in_batch = len(batch_proposed_names)
             count += num_in_batch
             if status:
+                status.complete = status.complete or 0
                 status.complete += num_in_batch
                 self.status_controller.update(status)
             start += _SQLITE_FILTER_ARG_MAX

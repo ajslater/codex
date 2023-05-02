@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.3.13
+
+- Fix
+  - Group cover sometimes showing wrong cover for order.
+  - Rare import crash.
+
 ## v1.3.12
 
 - Features

@@ -103,6 +103,7 @@ class CreateForeignKeysMixin(QueuedThread):
         count += len(create_groups)
         self.log.info(f"Created {count} {group_class.__name__}s.")
         if status:
+            status.complete = status.complete or 0
             status.complete += count
             self.status_controller.update(status)
         return count
@@ -125,6 +126,7 @@ class CreateForeignKeysMixin(QueuedThread):
         count += len(update_groups)
         self.log.info(f"Updated {count} {group_class.__name__}s.")
         if status:
+            status.complete = status.complete or 0
             status.complete += count
             self.status_controller.update(status)
         return count
@@ -196,7 +198,8 @@ class CreateForeignKeysMixin(QueuedThread):
             )
             count += len(create_folders)
             if status:
-                status.complete = len(create_folders)
+                status.complete = status.complete or 0
+                status.complete += len(create_folders)
                 self.status_controller.update(status)
 
         self.log.info(f"Created {count} Folders.")
@@ -221,6 +224,7 @@ class CreateForeignKeysMixin(QueuedThread):
         )
         self.log.info(f"Created {count} {named_class.__name__}s.")
         if status:
+            status.complete = status.complete or 0
             status.complete += count
             self.status_controller.update(status)
         return count
@@ -248,6 +252,7 @@ class CreateForeignKeysMixin(QueuedThread):
         count = len(create_creators)
         self.log.info(f"Created {count} creators.")
         if status:
+            status.complete = status.complete or 0
             status.complete += count
             self.status_controller.update(status)
         return count
