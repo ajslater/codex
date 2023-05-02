@@ -6,10 +6,18 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.3.12
+
+- Features
+  - OPDS 2 Last Read link.
+- Fix
+  - Books without bookmarks could break parts of the reader.
+  - Remove clipboard UI hints when clipboard isn't available.
+
 ## v1.3.11
 
 - Features
-  - Last Read Order By option.
+  - Last Read Order By option for web and OPDS.
   - Some Order By options now have a default descending order.
   - OPDS 1 special top links limited to 100 entries.
 - Fix

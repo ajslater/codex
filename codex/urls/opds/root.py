@@ -12,11 +12,6 @@ urlpatterns = [
         include("codex.urls.opds.authentication"),
         name="authentication",
     ),
-    path(
-        "opensearch",
-        include("codex.urls.opds.opensearch"),
-        name="opensearch",
-    ),
     path("bin/", include("codex.urls.opds.binary")),
     path("v1.2/", include("codex.urls.opds.v1")),
     path("v1/", opds_1_start_view, name="v1_start"),

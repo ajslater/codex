@@ -278,6 +278,10 @@ export const useReaderStore = defineStore("reader", {
                   nextBookPk = book.pk;
                 }
               }
+              if (!book.settings) {
+                // Undefined settings breaks code.
+                book.settings = {};
+              }
               // These aren't declared in the state so must
               // have observablitly declared here.
               // For when settings change.

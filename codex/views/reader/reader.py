@@ -47,16 +47,16 @@ class ReaderView(BookmarkBaseView):
         session = self.request.session.get(BrowserSessionViewBase.SESSION_KEY, {})
         top_group = session.get("top_group")
 
-        select_related_fields = self._SELECT_RELATED_FIELDS
-        fields = self._COMIC_FIELDS
         if top_group == "f":
             rel = "parent_folder__comic"
             ordering = ("path", "pk")
-            select_related_fields = (*select_related_fields, "parent_folder")
-            fields = (*fields, "parent_folder")
+            select_related_fields = (*self._SELECT_RELATED_FIELDS, "parent_folder")
+            fields = (*self._COMIC_FIELDS, "parent_folder")
         else:
             rel = "series__comic"
             ordering = Comic.ORDERING
+            select_related_fields = self._SELECT_RELATED_FIELDS
+            fields = self._COMIC_FIELDS
 
         return (
             {rel: pk},
