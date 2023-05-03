@@ -11,7 +11,7 @@ from codex.views.opds.v1.const import (
     OPDSLink,
     RootFacetGroups,
 )
-from codex.views.opds.v1.entry import OPDS1Entry, OPDS1EntryObject
+from codex.views.opds.v1.entry import OPDS1Entry, OPDS1EntryData, OPDS1EntryObject
 
 
 class FacetsMixin(BrowserView):
@@ -21,6 +21,7 @@ class FacetsMixin(BrowserView):
     use_facets = False
     skip_order_facets = False
     acquisition_groups = frozenset()
+    mime_type_map = MimeType.FILE_TYPE_MAP
     obj = {}
 
     def _facet(self, kwargs, facet_group, facet_title, new_query_params):
@@ -53,10 +54,12 @@ class FacetsMixin(BrowserView):
             pk=item.get("pk"),
             name=name,
         )
-        issue_max = self.obj.get("issue_max")
-        data = (self.acquisition_groups, issue_max, False)
         qps = {**self.request.query_params}
         qps.update(query_params)
+        issue_max = self.obj.get("issue_max", 0)
+        data = OPDS1EntryData(
+            self.acquisition_groups, issue_max, False, self.mime_type_map
+        )
         return OPDS1Entry(entry_obj, qps, data)
 
     def _is_facet_active(self, facet_group, facet):

@@ -36,6 +36,16 @@ class OPDS1EntryObject:
     fake: bool = True
 
 
+@dataclass
+class OPDS1EntryData:
+    """Entry Data class to avoid to many args."""
+
+    acquisition_groups: frozenset
+    issue_max: int
+    metadata: bool
+    mime_type_map: dict
+
+
 class OPDS1Entry:
     """An OPDS entry object."""
 
@@ -44,12 +54,15 @@ class OPDS1Entry:
     _DATE_FORMAT = _DATE_FORMAT_BASE + "%z"
     _DATE_FORMATS = (_DATE_FORMAT_MS, _DATE_FORMAT)
 
-    def __init__(self, obj, query_params, extra_data):
+    def __init__(self, obj, query_params, data: OPDS1EntryData):
         """Initialize params."""
         self.obj = obj
         self.fake = isinstance(self.obj, OPDS1EntryObject)
         self.query_params = query_params
-        self.acquision_groups, self.issue_max, self.metadata = extra_data
+        self.acquision_groups = data.acquisition_groups
+        self.issue_max = data.issue_max
+        self.metadata = data.metadata
+        self.mime_type_map = data.mime_type_map
 
     @property
     def id_tag(self):
@@ -195,7 +208,8 @@ class OPDS1Entry:
         fn = quote_plus(fn)
         kwargs = {"pk": pk, "filename": fn}
         href = reverse("opds:bin:download", kwargs=kwargs)
-        return OPDSLink(Rel.ACQUISITION, href, MimeType.DOWNLOAD, length=self.obj.size)
+        mime_type = self.mime_type_map.get(self.obj.file_type, MimeType.OCTET)
+        return OPDSLink(Rel.ACQUISITION, href, mime_type, length=self.obj.size)
 
     def _stream_link(self):
         pk = self.obj.pk

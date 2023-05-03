@@ -21,6 +21,7 @@ class UserAgents:
 
     CLIENT_REORDERS = ("Chunky",)
     FACET_SUPPORT = ("yar",)  # kybooks
+    SIMPLE_DOWNLOAD_MIME_TYPES = ("PocketBook",)
     # NO_FACET_SUPPORT "Panels", "Chunky", "PocketBook"
 
 

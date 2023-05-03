@@ -13,6 +13,7 @@ from codex.views.browser.browser import BrowserView
 from codex.views.opds.const import (
     BLANK_TITLE,
     FALSY,
+    MimeType,
 )
 from codex.views.opds.v1.const import (
     OpdsNs,
@@ -20,7 +21,7 @@ from codex.views.opds.v1.const import (
     TopLinks,
     UserAgents,
 )
-from codex.views.opds.v1.entry import OPDS1Entry
+from codex.views.opds.v1.entry import OPDS1Entry, OPDS1EntryData
 from codex.views.opds.v1.links import LinksMixin
 from codex.views.template import CodexXMLTemplateView
 
@@ -98,8 +99,10 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
     def _get_entries_section(self, key, metadata):
         """Get entries by key section."""
         entries = []
-        issue_max = self.obj.get("issue_max")
-        data = (self.acquisition_groups, issue_max, metadata)
+        issue_max = self.obj.get("issue_max", 0)
+        data = OPDS1EntryData(
+            self.acquisition_groups, issue_max, metadata, self.mime_type_map
+        )
         if objs := self.obj.get(key):
             for obj in objs:
                 entries += [OPDS1Entry(obj, self.request.query_params, data)]
@@ -151,6 +154,10 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
         for prefix in UserAgents.CLIENT_REORDERS:
             if user_agent.startswith(prefix):
                 self.skip_order_facets = True
+                break
+        for prefix in UserAgents.SIMPLE_DOWNLOAD_MIME_TYPES:
+            if user_agent.startswith(prefix):
+                self.mime_type_map = MimeType.SIMPLE_FILE_TYPE_MAP
                 break
 
     @extend_schema(request=BrowserView.input_serializer_class)

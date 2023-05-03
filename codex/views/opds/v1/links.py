@@ -10,7 +10,7 @@ from codex.views.opds.v1.const import (  # TODO move here?
     RootTopLinks,
     TopLinks,
 )
-from codex.views.opds.v1.entry import OPDS1Entry, OPDS1EntryObject
+from codex.views.opds.v1.entry import OPDS1Entry, OPDS1EntryData, OPDS1EntryObject
 from codex.views.opds.v1.facets import FacetsMixin
 
 LOG = get_logger(__name__)
@@ -95,8 +95,10 @@ class LinksMixin(FacetsMixin):
             name=name,
             summary=top_link.desc,
         )
-        issue_max = self.obj.get("issue_max")
-        data = (self.acquisition_groups, issue_max, False)
+        issue_max = self.obj.get("issue_max", 0)
+        data = OPDS1EntryData(
+            self.acquisition_groups, issue_max, False, self.mime_type_map
+        )
         return OPDS1Entry(entry_obj, top_link.query_params, data)
 
     def add_top_links(self, top_links):
