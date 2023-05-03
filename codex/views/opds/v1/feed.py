@@ -15,17 +15,33 @@ from codex.views.opds.const import (
     FALSY,
     MimeType,
 )
-from codex.views.opds.v1.const import (
-    OpdsNs,
+from codex.views.opds.v1.entry.data import OPDS1EntryData
+from codex.views.opds.v1.entry.entry import OPDS1Entry
+from codex.views.opds.v1.links import (
+    LinksMixin,
     RootTopLinks,
     TopLinks,
-    UserAgents,
 )
-from codex.views.opds.v1.entry import OPDS1Entry, OPDS1EntryData
-from codex.views.opds.v1.links import LinksMixin
 from codex.views.template import CodexXMLTemplateView
 
 LOG = get_logger(__name__)
+
+
+class OpdsNs:
+    """XML Namespaces."""
+
+    CATALOG = "http://opds-spec.org/2010/catalog"
+    ACQUISITION = "http://opds-spec.org/2010/acquisition"
+
+
+class UserAgentPrefixes:
+    """Control whether to hack in facets with nav links."""
+
+    CLIENT_REORDERS = ("Chunky",)
+    FACET_SUPPORT = ("yar",)  # kybooks
+    SIMPLE_DOWNLOAD_MIME_TYPES = ("PocketBook",)
+    # Other known valid  prefixes:
+    # "Panels", "Chunky"
 
 
 class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
@@ -146,21 +162,21 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
         self.is_aq_feed = self.obj.get("model_group") == "c"
         return self
 
-    def _detect_user_agent(self):
+    def _set_user_agent_variables(self):
         """Set User Agent variables."""
         # defaults in FacetsMixin
         user_agent = self.request.headers.get("User-Agent")
         if not user_agent:
             return
-        for prefix in UserAgents.FACET_SUPPORT:
+        for prefix in UserAgentPrefixes.FACET_SUPPORT:
             if user_agent.startswith(prefix):
                 self.use_facets = True
                 break
-        for prefix in UserAgents.CLIENT_REORDERS:
+        for prefix in UserAgentPrefixes.CLIENT_REORDERS:
             if user_agent.startswith(prefix):
                 self.skip_order_facets = True
                 break
-        for prefix in UserAgents.SIMPLE_DOWNLOAD_MIME_TYPES:
+        for prefix in UserAgentPrefixes.SIMPLE_DOWNLOAD_MIME_TYPES:
             if user_agent.startswith(prefix):
                 self.mime_type_map = MimeType.SIMPLE_FILE_TYPE_MAP
                 break
@@ -170,7 +186,7 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
         """Get the feed."""
         self.parse_params()
         self.validate_settings()
-        self._detect_user_agent()
+        self._set_user_agent_variables()
         self.skip_order_facets |= self.kwargs.get("group") == "c"
 
         obj = self.get_object()

@@ -1,17 +1,101 @@
 """OPDS v1 Links methods."""
+from collections import defaultdict
+from dataclasses import dataclass
+from typing import Union
+
+from comicbox.metadata.comic_json import json
 from django.urls import reverse
 from django.utils.http import urlencode
 
 from codex.logger.logging import get_logger
 from codex.views.opds.const import MimeType, Rel
 from codex.views.opds.util import update_href_query_params
-from codex.views.opds.v1.const import (  # TODO move here?
-    OPDSLink,
-    RootTopLinks,
-    TopLinks,
-)
-from codex.views.opds.v1.entry import OPDS1Entry, OPDS1EntryData, OPDS1EntryObject
+from codex.views.opds.v1.data import OPDS1Link
+from codex.views.opds.v1.entry.data import OPDS1EntryData, OPDS1EntryObject
+from codex.views.opds.v1.entry.entry import OPDS1Entry
 from codex.views.opds.v1.facets import FacetsMixin
+
+
+class TopRoutes:
+    """Routes for top groups."""
+
+    PUBLISHER = {"group": "p", "pk": 0}
+    SERIES = {"group": "s", "pk": 0}
+    FOLDER = {"group": "f", "pk": 0}
+    ROOT = {"group": "r", "pk": 0}
+
+
+@dataclass
+class TopLink:
+    """A non standard root link when facets are unsupported."""
+
+    kwargs: dict
+    rel: str
+    mime_type: str
+    query_params: defaultdict[str, Union[str, bool, int]]
+    glyph: str
+    title: str
+    desc: str
+
+
+class TopLinks:
+    """Top link definitions."""
+
+    START = TopLink(
+        TopRoutes.ROOT,
+        Rel.START,
+        MimeType.NAV,
+        defaultdict(),
+        "⌂",
+        "Start of the catalog",
+        "",
+    )
+    ALL = (START,)
+
+
+class RootTopLinks:
+    """Top Links that only appear at the root."""
+
+    NEW = TopLink(
+        TopRoutes.SERIES,
+        Rel.SORT_NEW,
+        MimeType.ACQUISITION,
+        defaultdict(
+            None, {"orderBy": "created_at", "orderReverse": True, "limit": 100}
+        ),
+        "📥",
+        "Recently Added",
+        "",
+    )
+    FEATURED = TopLink(
+        TopRoutes.SERIES,
+        Rel.FEATURED,
+        MimeType.NAV,
+        defaultdict(
+            None,
+            {
+                "orderBy": "date",
+                "filters": json.dumps({"bookmark": "UNREAD"}),
+                "limit": 100,
+            },
+        ),
+        "📚",
+        "Oldest Unread",
+        "Unread issues, oldest published first",
+    )
+    LAST_READ = TopLink(
+        TopRoutes.SERIES,
+        Rel.POPULAR,
+        MimeType.NAV,
+        defaultdict(
+            None, {"orderBy": "bookmark_updated_at", "orderReverse": True, "limit": 100}
+        ),
+        "👀",
+        "Last Read",
+        "Last Read issues, recently read first.",
+    )
+    ALL = (NEW, FEATURED, LAST_READ)
+
 
 LOG = get_logger(__name__)
 
@@ -25,13 +109,13 @@ class LinksMixin(FacetsMixin):
     def _nav_link(self, kwargs, rel):
         href = reverse("opds:v1:feed", kwargs={**kwargs})
         href = update_href_query_params(href, self.request.query_params)
-        return OPDSLink(rel, href, MimeType.NAV)
+        return OPDS1Link(rel, href, MimeType.NAV)
 
     def _top_link(self, top_link):
         href = reverse("opds:v1:feed", kwargs={**top_link.kwargs, "page": 1})
         if top_link.query_params:
             href += "?" + urlencode(top_link.query_params, doseq=True)
-        return OPDSLink(top_link.rel, href, top_link.mime_type)
+        return OPDS1Link(top_link.rel, href, top_link.mime_type)
 
     def _root_nav_links(self):
         """Navigation Root Links."""
@@ -66,13 +150,13 @@ class LinksMixin(FacetsMixin):
         try:
             mime_type = MimeType.ACQUISITION if self.is_aq_feed else MimeType.NAV
             links += [
-                OPDSLink("self", self.request.get_full_path(), mime_type),
-                OPDSLink(
+                OPDS1Link("self", self.request.get_full_path(), mime_type),
+                OPDS1Link(
                     Rel.AUTHENTICATION,
                     reverse("opds:authentication:v1"),
                     MimeType.AUTHENTICATION,
                 ),
-                OPDSLink(
+                OPDS1Link(
                     "search", reverse("opds:v1:opensearch_v1"), MimeType.OPENSEARCH
                 ),
             ]
