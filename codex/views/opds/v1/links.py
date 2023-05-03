@@ -1,4 +1,4 @@
-"""OPDS 1 Links methods."""
+"""OPDS v1 Links methods."""
 from django.urls import reverse
 from django.utils.http import urlencode
 

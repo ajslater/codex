@@ -1,4 +1,4 @@
-"""OPDS Entry."""
+"""OPDS v1 Entry."""
 import json
 from dataclasses import dataclass
 from datetime import datetime, timezone

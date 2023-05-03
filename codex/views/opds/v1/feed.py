@@ -1,4 +1,4 @@
-"""OPDS 1 feed."""
+"""OPDS v1 feed."""
 from datetime import datetime, timezone
 
 from drf_spectacular.utils import extend_schema

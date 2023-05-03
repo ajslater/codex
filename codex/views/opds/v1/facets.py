@@ -1,4 +1,4 @@
-"""OPDS 1 Facets methods."""
+"""OPDS v1 Facets methods."""
 from django.urls import reverse
 
 from codex.views.browser.browser import BrowserView
