@@ -1,8 +1,8 @@
 """codex:opds:v1 URL Configuration."""
 from django.urls import path
 
+from codex.views.opds.util import full_redirect_view
 from codex.views.opds.v2.feed import OPDS2FeedView
-from codex.views.opds.v2.start import opds_2_start_view
 
 app_name = "v2"
 
@@ -16,5 +16,5 @@ urlpatterns = [
     ),
     #
     # Catch All
-    path("", opds_2_start_view, name="start"),
+    path("", full_redirect_view("opds:v2:feed"), name="start"),
 ]
