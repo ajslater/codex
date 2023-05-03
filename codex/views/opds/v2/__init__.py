@@ -1,1 +1,1 @@
-"""OPDS 2 Views."""
+"""OPDS v2 Views."""

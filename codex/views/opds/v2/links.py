@@ -1,4 +1,4 @@
-"""Links methods for OPDS 2.0 Feed."""
+"""Links methods for OPDS v2.0 Feed."""
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Optional

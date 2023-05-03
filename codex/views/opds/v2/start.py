@@ -1,4 +1,4 @@
-"""OPDS 2 start view."""
+"""OPDS v2.0 start view."""
 from django.http.response import HttpResponseRedirect
 from django.urls import reverse
 

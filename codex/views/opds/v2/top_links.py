@@ -1,4 +1,4 @@
-"""OPDS 2.0 top links section methods."""
+"""OPDS v2.0 top links section methods."""
 from codex.views.opds.const import MimeType, Rel
 from codex.views.opds.v2.links import HrefData, LinkData, LinksMixin
 
