@@ -126,6 +126,34 @@ class QueryForeignKeysMixin(QueuedThread):
             update_groups[group_cls][group_tree] = {}
         update_groups[group_cls][group_tree].update(count_dict)
 
+    def _query_group_tree(self, data, group_tree, count_dict):
+        """Query missing groups for one group tree depth."""
+        (
+            create_group_set,
+            group_cls,
+            create_and_update_groups,
+            status,
+        ) = data
+        apply_count_dict = count_dict if count_dict else {}
+        if group_tree in create_group_set:
+            self._update_create_group(
+                group_cls,
+                create_and_update_groups["create_groups"],
+                group_tree,
+                apply_count_dict,
+            )
+        elif group_cls in (Series, Volume):
+            self._update_update_group(
+                group_cls,
+                create_and_update_groups["update_groups"],
+                group_tree,
+                apply_count_dict,
+            )
+        if status:
+            status.complete = status.complete or 0
+            status.complete += 1
+            self.status_controller.update(status)
+
     @status_notify()
     def query_missing_group(
         self,
@@ -144,30 +172,14 @@ class QueryForeignKeysMixin(QueuedThread):
 
         if status:
             status.subtitle = group_cls.__name__
+
+        data = (create_group_set, group_cls, create_and_update_groups, status)
         for group_tree, count_dict in groups.items():
-            apply_count_dict = count_dict if count_dict else {}
-            if group_tree in create_group_set:
-                self._update_create_group(
-                    group_cls,
-                    create_and_update_groups["create_groups"],
-                    group_tree,
-                    apply_count_dict,
-                )
-            elif group_cls in (Series, Volume):
-                self._update_update_group(
-                    group_cls,
-                    create_and_update_groups["update_groups"],
-                    group_tree,
-                    apply_count_dict,
-                )
-            count += 1
-            if status:
-                status.complete = status.complete or 0
-                status.complete += 1
-                self.status_controller.update(status)
+            self._query_group_tree(data, group_tree, count_dict)
 
         if status:
             status.subtitle = ""
+        count = len(groups)
         if count:
             self.log.info(f"Prepared {count} new {group_cls.__name__}s.")
         return count

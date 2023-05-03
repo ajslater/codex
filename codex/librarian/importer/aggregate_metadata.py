@@ -20,6 +20,9 @@ class AggregateMetadataMixin(CleanMetadataMixin):
 
     _BROWSER_GROUPS = (Publisher, Imprint, Series, Volume)
     _BROWSER_GROUP_TREE_COUNT_FIELDS = frozenset(["volume_count", "issue_count"])
+    _GROUP_TREES_INIT = {
+        "group_trees": {Publisher: {}, Imprint: {}, Series: {}, Volume: {}},
+    }
 
     @staticmethod
     def _get_file_type(path):
@@ -138,6 +141,28 @@ class AggregateMetadataMixin(CleanMetadataMixin):
             cls._set_max_group_count(common_args, Series, 3, "volume_count")
             cls._set_max_group_count(common_args, Volume, 4, "issue_count")
 
+    def _aggregate_path(self, data, path):
+        """Aggregate metadata for one path."""
+        path_str = str(path)
+        md, m2m_md, group_tree_md, failed_import = self._get_path_metadata(path_str)
+
+        all_failed_imports, all_mds, all_m2m_mds, all_fks, status = data
+        if failed_import:
+            all_failed_imports.update(failed_import)
+        else:
+            if md:
+                all_mds[path_str] = md
+
+            if m2m_md:
+                self._aggregate_m2m_metadata(all_m2m_mds, m2m_md, all_fks, path_str)
+
+            if group_tree_md:
+                self._aggregate_group_tree_metadata(all_fks, group_tree_md)
+
+        if status:
+            status.complete += 1
+            self.status_controller.update(status)
+
     @status_notify(status_type=ImportStatusTypes.AGGREGATE_TAGS)
     def get_aggregate_metadata(
         self,
@@ -155,32 +180,13 @@ class AggregateMetadataMixin(CleanMetadataMixin):
         all_m2m_mds = metadata["m2m_mds"]
         all_fks = metadata["fks"]
         all_failed_imports = metadata["fis"]
-        all_fks.update(
-            {
-                "group_trees": {Publisher: {}, Imprint: {}, Series: {}, Volume: {}},
-            }
-        )
+        all_fks.update(self._GROUP_TREES_INIT)
+
         if status and status.complete is None:
             status.complete = 0
+        data = (all_failed_imports, all_mds, all_m2m_mds, all_fks, status)
         for path in all_paths:
-            path_str = str(path)
-            md, m2m_md, group_tree_md, failed_import = self._get_path_metadata(path_str)
-
-            if failed_import:
-                all_failed_imports.update(failed_import)
-            else:
-                if md:
-                    all_mds[path_str] = md
-
-                if m2m_md:
-                    self._aggregate_m2m_metadata(all_m2m_mds, m2m_md, all_fks, path_str)
-
-                if group_tree_md:
-                    self._aggregate_group_tree_metadata(all_fks, group_tree_md)
-
-            if status:
-                status.complete += 1
-                self.status_controller.update(status)
+            self._aggregate_path(data, path)
 
         all_fks["comic_paths"] = frozenset(all_mds.keys())
         fi_status = Status(ImportStatusTypes.FAILED_IMPORTS, 0, len(all_failed_imports))
