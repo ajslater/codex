@@ -1,5 +1,7 @@
 """OPDS Utility classes."""
 from django.db.models import F
+from django.http.response import HttpResponseRedirect
+from django.urls import reverse
 from django.utils.http import urlencode
 
 from codex.models import (
@@ -13,6 +15,7 @@ from codex.models import (
     Tag,
     Team,
 )
+from codex.serializers.choices import DEFAULTS
 
 OPDS_M2M_MODELS = (Character, Genre, Location, SeriesGroup, StoryArc, Tag, Team)
 
@@ -64,3 +67,31 @@ def get_m2m_objects(pk) -> dict:
         qs = model.objects.filter(comic=pk).order_by("name").only("name")
         cats[table] = qs
     return cats
+
+
+def full_redirect_view(url_name):
+    """Redirect to view, for a url name."""
+
+    def func(request):
+        """Redirect to view, forwarding query strings and auth."""
+        kwargs = DEFAULTS["route"]
+        url = reverse(url_name, kwargs=kwargs)
+
+        # Forward the query string.
+        path = request.get_full_path()
+        if path:
+            parts = path.split("?")
+            if len(parts) >= 2:  # noqa PLR2004
+                parts[0] = url
+                url = "?".join(parts)
+
+        response = HttpResponseRedirect(url)
+
+        # Forward authorization.
+        auth_header = request.META.get("HTTP_AUTHORIZATION")
+        if auth_header:
+            response["HTTP_AUTHORIZATION"] = auth_header
+
+        return response
+
+    return func
