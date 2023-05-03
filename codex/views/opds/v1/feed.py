@@ -44,6 +44,11 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
             LOG.exception(exc)
 
     @property
+    def is_acquisition(self):
+        """Is acquisition."""
+        return self.is_aq_feed
+
+    @property
     def id_tag(self):
         """Feed id is the url."""
         try:
@@ -142,9 +147,9 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
         return self
 
     def _detect_user_agent(self):
-        # Hacks for clients that don't support facets
-        user_agent = self.request.headers.get("User-Agent")
+        """Set User Agent variables."""
         # defaults in FacetsMixin
+        user_agent = self.request.headers.get("User-Agent")
         if not user_agent:
             return
         for prefix in UserAgents.FACET_SUPPORT:
