@@ -124,6 +124,10 @@
         "title": "Search Score",
         "value": "search_score",
         "reverse": true
+      },
+      {
+        "title": "Story Arc Number",
+        "value": "story_arc_number"
       }
     ],
     "vuetifyNullCode": -1,

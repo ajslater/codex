@@ -516,14 +516,14 @@ files = [
 
 [[package]]
 name = "comicbox"
-version = "0.6.7"
+version = "0.7.0"
 description = "An API for reading comic archives"
 category = "main"
 optional = false
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "comicbox-0.6.7-py3-none-any.whl", hash = "sha256:4e792b7b460e3fb0a9a3a4c559027102fcdbb8166b389a82b00641005eb446e8"},
-    {file = "comicbox-0.6.7.tar.gz", hash = "sha256:bc69a8c0c4de041c37f158c69c381c1964f2253db3755482c3dcf281b2e79082"},
+    {file = "comicbox-0.7.0-py3-none-any.whl", hash = "sha256:8a4f09d9ad325a1e064e9c1ac75758acde653f1c69029b44727ebd4b466853cd"},
+    {file = "comicbox-0.7.0.tar.gz", hash = "sha256:c7e7e6da2e2ed2f99eba72a18e7e065509edf3019b32d627d700b7fbe0d4898f"},
 ]
 
 [package.dependencies]
@@ -534,6 +534,7 @@ defusedxml = ">=0.7.1,<0.8.0"
 parse = ">=1.15,<2.0"
 pycountry = ">=22.1.3,<23.0.0"
 rarfile = ">=4.0,<5.0"
+stringcase = ">=1.2.0,<2.0.0"
 zipfile-deflate64 = ">=0.2.0,<0.3.0"
 
 [[package]]
@@ -2246,6 +2247,17 @@ doc = ["sphinx"]
 test = ["pytest", "pytest-cov"]
 
 [[package]]
+name = "stringcase"
+version = "1.2.0"
+description = "String case converter."
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "stringcase-1.2.0.tar.gz", hash = "sha256:48a06980661908efe8d9d34eab2b6c13aefa2163b3ced26972902e3bdfd87008"},
+]
+
+[[package]]
 name = "toml"
 version = "0.10.2"
 description = "Python Library for Tom's Obvious, Minimal Language"
@@ -2522,4 +2534,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "fe80084435b9ce978fabc2eef9a43b2d0614a59cfb6e54d3b66ed0663ac14e9c"
+content-hash = "77e75ef98320c065714693a761cbb7eba666c5d21a79cc597f5db4b4f28e4c36"

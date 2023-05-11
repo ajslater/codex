@@ -6,6 +6,16 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.3.14
+
+- Features
+  - Better metadata extraction for PDFs.
+  - Support for ComicInfo StoryArcNumber, Review and GTIN tags.
+  - Order by Story Arc Number
+- Fix
+  - Import of ComicInfo Tags metadata.
+  - Never removed old missing metadata when updated.
+
 ## v1.3.13
 
 - Fix

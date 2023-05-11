@@ -22,6 +22,7 @@ class BrowserOrderByView(BrowserBaseView):
         "size": Sum,
         "updated_at": Min,
         "search_score": Min,
+        "story_arc_number": Min,
     }
     _SEP_VALUE = Value(sep)
     _ORDER_FIELDS = ("order_value", "pk")

@@ -19,10 +19,10 @@ class PDF:
     _SUFFIX = ".pdf"
     _FILE_TYPE = "PDF"
     MIME_TYPE = "application/pdf"
-    _METADATA_KEY_MAP = {
+    _METADATA_KEY_MAP = {"name": "title", "writer": "author", "scan_info": "creator"}
+    _METADATA_M2M_KEY_MAP = {
         "tags": "keywords",
-        "name": "title",
-        "": "subject",
+        "genres": "subject",
     }
 
     @classmethod
@@ -57,17 +57,28 @@ class PDF:
         if not metadata:
             return
         value = metadata.get(pdf_key)
-        if value:
-            if comicbox_key == "writer":
-                if "creators" not in self._metadata:
-                    self._metadata["creators"] = []
-                creator = {
-                    "role": comicbox_key,
-                    "person": value,
-                }
-                self._metadata["creators"].append(creator)
-            else:
-                self._metadata[comicbox_key] = value
+        if not value:
+            return
+        if comicbox_key == "writer":
+            if "creators" not in self._metadata:
+                self._metadata["creators"] = []
+            creator = {
+                "role": comicbox_key,
+                "person": value,
+            }
+            self._metadata["creators"].append(creator)
+        else:
+            self._metadata[comicbox_key] = value
+
+    def _set_metadata_m2m_key(self, comicbox_key, pdf_key):
+        metadata = self._get_doc().metadata
+        if not metadata:
+            return
+        value = metadata.get(pdf_key)
+        if not value:
+            return
+        tags = value.split(" ,;")
+        self._metadata[comicbox_key] = tags
 
     def get_file_type(self):
         """Return the file type like comicbox."""
@@ -87,6 +98,8 @@ class PDF:
                 self._metadata["page_count"] = doc.page_count
                 for comicbox_key, pdf_key in self._METADATA_KEY_MAP.items():
                     self._set_metadata_key(comicbox_key, pdf_key)
+                for comicbox_key, pdf_key in self._METADATA_M2M_KEY_MAP.items():
+                    self._set_metadata_m2m_key(comicbox_key, pdf_key)
             except Exception as exc:
                 LOG.warning(f"Error reading metadata for {self._path}: {exc}")
                 self._metadata["page_count"] = 100
