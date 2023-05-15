@@ -8,7 +8,6 @@ from codex.librarian.importer.create_fks import CreateForeignKeysMixin
 from codex.librarian.importer.query_fks import QueryForeignKeysMixin
 from codex.librarian.importer.status import ImportStatusTypes, status_notify
 from codex.models import Comic, Folder, Library
-from codex.status import Status
 
 MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder")
 MOVED_BULK_FOLDER_UPDATE_FIELDS = ("path", "parent_folder", "name")
@@ -102,7 +101,9 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
 
         dest_folder_paths = frozenset(folders_moved.values())
         status = kwargs.get("status")
-        dest_parent_folders = self._get_parent_folders(library, dest_folder_paths, status)
+        dest_parent_folders = self._get_parent_folders(
+            library, dest_folder_paths, status
+        )
 
         src_folder_paths = frozenset(folders_moved.keys())
         folders = Folder.objects.filter(library=library, path__in=src_folder_paths)

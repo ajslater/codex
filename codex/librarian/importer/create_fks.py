@@ -180,7 +180,8 @@ class CreateForeignKeysMixin(QueuedThread):
                 except Folder.DoesNotExist:
                     if path.parent != Path(library.path):
                         self.log.exception(
-                            f"Can't find parent folder {parent_path} for {path} in library {library.path}"
+                            f"Can't find parent folder {parent_path}"
+                            f" for {path} in library {library.path}"
                         )
                 folder = Folder(
                     library=library,

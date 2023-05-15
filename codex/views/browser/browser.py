@@ -486,7 +486,7 @@ class BrowserView(BrowserAnnotationsView):
         group = self.kwargs.get("group", "r")
         pk = self.kwargs.get("pk", 0)
         page = self.kwargs.get("page", 1)
-        self.params['route'] = { "group": group, "pk": pk, "page": page}
+        self.params["route"] = {"group": group, "pk": pk, "page": page}
 
     def validate_settings(self):
         """Validate group and top group settings."""
