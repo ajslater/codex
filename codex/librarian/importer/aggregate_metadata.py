@@ -4,6 +4,7 @@ from zipfile import BadZipFile
 
 from comicbox.comic_archive import ComicArchive
 from comicbox.exceptions import UnsupportedArchiveTypeError
+from confuse import AttrDict
 from rarfile import BadRarFile
 
 from codex.comic_field_names import COMIC_M2M_FIELD_NAMES
@@ -23,6 +24,7 @@ class AggregateMetadataMixin(CleanMetadataMixin):
     _GROUP_TREES_INIT = {
         "group_trees": {Publisher: {}, Imprint: {}, Series: {}, Volume: {}},
     }
+    _AGGREGATE_COMICBOX_CONFIG = AttrDict({**COMICBOX_CONFIG, "close_fd": False})
 
     @staticmethod
     def _get_file_type(path):
@@ -43,7 +45,7 @@ class AggregateMetadataMixin(CleanMetadataMixin):
         failed_import = {}
         try:
             car_class = PDF if PDF.is_pdf(path) else ComicArchive
-            with car_class(path, config=COMICBOX_CONFIG, closefd=False) as car:
+            with car_class(path, config=self._AGGREGATE_COMICBOX_CONFIG) as car:
                 md = car.get_metadata()
                 md["file_type"] = car.get_file_type()
 

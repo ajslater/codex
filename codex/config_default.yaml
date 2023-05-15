@@ -10,3 +10,5 @@ comicbox:
   raw: False
   recurse: False
   metadata: {}
+  close_fd: True
+  check_unrar: False

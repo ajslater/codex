@@ -516,14 +516,14 @@ files = [
 
 [[package]]
 name = "comicbox"
-version = "0.7.1"
+version = "0.8.0"
 description = "An API for reading comic archives"
 category = "main"
 optional = false
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "comicbox-0.7.1-py3-none-any.whl", hash = "sha256:9835e7ce8b3f2aceec2a28fa96d5e3823f3ed9c9bd0bb4585547a3e91f1809b1"},
-    {file = "comicbox-0.7.1.tar.gz", hash = "sha256:60300f949803fbfabd6e29a816be51fe05dc9ef2d4a8a2ae41d27553ab103439"},
+    {file = "comicbox-0.8.0-py3-none-any.whl", hash = "sha256:336ef1282abeda193cb462cd7317826e5786267b55f4d5d9781e523d320eb1fa"},
+    {file = "comicbox-0.8.0.tar.gz", hash = "sha256:83c6d5d49fdec738f3fa90e718ad81436988a6089c194b71520b9f50c0d1e395"},
 ]
 
 [package.dependencies]
@@ -1220,14 +1220,14 @@ six = ">=1.13.0"
 
 [[package]]
 name = "json5"
-version = "0.9.11"
+version = "0.9.14"
 description = "A Python implementation of the JSON5 data format."
 category = "dev"
 optional = false
 python-versions = "*"
 files = [
-    {file = "json5-0.9.11-py2.py3-none-any.whl", hash = "sha256:1aa54b80b5e507dfe31d12b7743a642e2ffa6f70bf73b8e3d7d1d5fba83d99bd"},
-    {file = "json5-0.9.11.tar.gz", hash = "sha256:4f1e196acc55b83985a51318489f345963c7ba84aa37607e49073066c562e99b"},
+    {file = "json5-0.9.14-py2.py3-none-any.whl", hash = "sha256:740c7f1b9e584a468dbb2939d8d458db3427f2c93ae2139d05f47e453eae964f"},
+    {file = "json5-0.9.14.tar.gz", hash = "sha256:9ed66c3a6ca3510a976a9ef9b8c0787de24802724ab1860bc0153c7fdd589b02"},
 ]
 
 [package.extras]
@@ -2325,14 +2325,14 @@ files = [
 
 [[package]]
 name = "tzlocal"
-version = "5.0"
+version = "5.0.1"
 description = "tzinfo object for the local timezone"
 category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "tzlocal-5.0-py3-none-any.whl", hash = "sha256:c640e3fdccbb6fee1172ce211cefd3c3c04eaf2b0fbf676f0ac7958c41f373e4"},
-    {file = "tzlocal-5.0.tar.gz", hash = "sha256:f96e29a599ef562233cec21ef0d6f7065c3050d0221293e839d1ede093ab1755"},
+    {file = "tzlocal-5.0.1-py3-none-any.whl", hash = "sha256:f3596e180296aaf2dbd97d124fe76ae3a0e3d32b258447de7b939b3fd4be992f"},
+    {file = "tzlocal-5.0.1.tar.gz", hash = "sha256:46eb99ad4bdb71f3f72b7d24f4267753e240944ecfc16f25d2719ba89827a803"},
 ]
 
 [package.dependencies]
@@ -2518,4 +2518,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "0ad830782e8a7536f58aee0a095ddc73a39dcd454674388f620e4d75f18c9511"
+content-hash = "14ddc2b4cabccb9728149cecde3687c1600b19011de4bc4a695615df1f39cf18"
