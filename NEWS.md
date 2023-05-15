@@ -12,14 +12,15 @@ border-radius: 128px;
   - Better metadata extraction for PDFs.
   - Support for ComicInfo StoryArcNumber, Review and GTIN tags.
   - Order by Story Arc Number
-  - Remove support for unrar.cffi
   - Do not detect .cbr files if unrar is not on the path.
 - Fix
   - Import of ComicInfo Tags metadata.
   - Never removed old missing metadata when updated.
-  - Better error messages if unrar is not on the path.
   - Error on moving folders.
   - Fix saving last route between sessions.
+  - Better error messages if unrar is not on the path.
+- Removed
+  - Remove support for unrar.cffi
 
 ## v1.3.13
 
