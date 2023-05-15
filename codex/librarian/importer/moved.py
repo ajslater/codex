@@ -8,6 +8,7 @@ from codex.librarian.importer.create_fks import CreateForeignKeysMixin
 from codex.librarian.importer.query_fks import QueryForeignKeysMixin
 from codex.librarian.importer.status import ImportStatusTypes, status_notify
 from codex.models import Comic, Folder, Library
+from codex.status import Status
 
 MOVED_BULK_COMIC_UPDATE_FIELDS = ("path", "parent_folder")
 MOVED_BULK_FOLDER_UPDATE_FIELDS = ("path", "parent_folder", "name")
@@ -67,7 +68,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
 
         return count
 
-    def _get_parent_folders(self, library, dest_folder_paths):
+    def _get_parent_folders(self, library, dest_folder_paths, status):
         """Get destination parent folders."""
         # Determine parent folder paths.
         dest_parent_folder_paths = set()
@@ -82,7 +83,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
         create_folder_paths = frozenset(
             dest_parent_folder_paths - frozenset(existing_folder_paths)
         )
-        self.bulk_folders_create(create_folder_paths, library)
+        self.bulk_folders_create(create_folder_paths, library, status=status)
 
         # get parent folders path to model obj dict
         dest_parent_folders_objs = Folder.objects.filter(
@@ -100,7 +101,8 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
             return 0
 
         dest_folder_paths = frozenset(folders_moved.values())
-        dest_parent_folders = self._get_parent_folders(library, dest_folder_paths)
+        status = kwargs.get("status")
+        dest_parent_folders = self._get_parent_folders(library, dest_folder_paths, status)
 
         src_folder_paths = frozenset(folders_moved.keys())
         folders = Folder.objects.filter(library=library, path__in=src_folder_paths)
