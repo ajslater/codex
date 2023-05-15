@@ -18,6 +18,7 @@ border-radius: 128px;
   - Import of ComicInfo Tags metadata.
   - Never removed old missing metadata when updated.
   - Better error messages if unrar is not on the path.
+  - Error on moving folders.
 
 ## v1.3.13
 
