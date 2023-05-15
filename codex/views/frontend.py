@@ -14,7 +14,6 @@ class IndexView(BrowserSessionViewBase):
 
     def get(self, *args, **kwargs):
         """Get the app index page."""
-        extra_context = {
-            "last_route": self.get_from_session("route"),
-        }
+        last_route = self.get_from_session("route")
+        extra_context = {"last_route": last_route}
         return Response(extra_context)

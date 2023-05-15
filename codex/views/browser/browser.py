@@ -481,6 +481,13 @@ class BrowserView(BrowserAnnotationsView):
             reason = f"Redirect r with {pk=} to pk 0"
             self._raise_redirect({"pk": 0}, reason)
 
+    def _set_route_param(self):
+        """Set the route param."""
+        group = self.kwargs.get("group", "r")
+        pk = self.kwargs.get("pk", 0)
+        page = self.kwargs.get("page", 1)
+        self.params['route'] = { "group": group, "pk": pk, "page": page}
+
     def validate_settings(self):
         """Validate group and top group settings."""
         group = self.kwargs.get("group")
@@ -513,6 +520,7 @@ class BrowserView(BrowserAnnotationsView):
         """Get browser settings."""
         self.parse_params()
         self.validate_settings()
+        self._set_route_param()
         data = self.get_object()
         serializer = self.get_serializer(data)
         self.save_params_to_session(self.params)
