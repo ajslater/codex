@@ -101,9 +101,6 @@ packaged for Linux, but here are some instructions:
 
 Unrar as packaged for Alpine Linux v3.14 seems to work on Alpine v3.15
 
-Codex will also prefer to use the `unrar-cffi` package it finds it installed,
-this is not required.
-
 #### Windows
 
 Windows users should use Docker to run Codex until this documentation section is
