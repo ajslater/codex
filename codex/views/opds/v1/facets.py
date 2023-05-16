@@ -1,17 +1,72 @@
-"""OPDS 1 Facets methods."""
+"""OPDS v1 Facets methods."""
+from dataclasses import dataclass
+
 from django.urls import reverse
 
 from codex.views.browser.browser import BrowserView
 from codex.views.opds.const import MimeType, Rel
 from codex.views.opds.util import update_href_query_params
-from codex.views.opds.v1.const import (
-    DEFAULT_FACETS,
-    Facet,
-    FacetGroups,
-    OPDSLink,
-    RootFacetGroups,
-)
-from codex.views.opds.v1.entry import OPDS1Entry, OPDS1EntryObject
+from codex.views.opds.v1.data import OPDS1Link
+from codex.views.opds.v1.entry.data import OPDS1EntryData, OPDS1EntryObject
+from codex.views.opds.v1.entry.entry import OPDS1Entry
+
+
+@dataclass
+class FacetGroup:
+    """An opds:facetGroup."""
+
+    title_prefix: str
+    query_param: str
+    glyph: str
+    facets: tuple
+
+
+@dataclass
+class Facet:
+    """An OPDS facet."""
+
+    value: str
+    title: str
+
+
+class FacetGroups:
+    """Facet Group definitions."""
+
+    ORDER_BY = FacetGroup(
+        "Order By",
+        "orderBy",
+        "➠",
+        (
+            Facet("date", "Date"),
+            Facet("sort_name", "Name"),
+        ),
+    )
+    ORDER_REVERSE = FacetGroup(
+        "Order",
+        "orderReverse",
+        "⇕",
+        (Facet("false", "Ascending"), Facet("true", "Descending")),
+    )
+    ALL = (ORDER_BY, ORDER_REVERSE)
+
+
+class RootFacetGroups:
+    """Facet Groups that only appear at the root."""
+
+    TOP_GROUP = FacetGroup(
+        "",
+        "topGroup",
+        "⊙",
+        (Facet("p", "Publishers View"), Facet("s", "Series View")),
+    )
+    ALL = (TOP_GROUP,)
+
+
+DEFAULT_FACETS = {
+    "topGroup": "p",
+    "orderBy": "sort_name",
+    "orderReverse": "false",
+}
 
 
 class FacetsMixin(BrowserView):
@@ -21,6 +76,7 @@ class FacetsMixin(BrowserView):
     use_facets = False
     skip_order_facets = False
     acquisition_groups = frozenset()
+    mime_type_map = MimeType.FILE_TYPE_MAP
     obj = {}
 
     def _facet(self, kwargs, facet_group, facet_title, new_query_params):
@@ -35,7 +91,7 @@ class FacetsMixin(BrowserView):
         )
 
         title = " ".join(filter(None, (facet_group.title_prefix, facet_title))).strip()
-        return OPDSLink(
+        return OPDS1Link(
             Rel.FACET,
             href,
             MimeType.NAV,
@@ -53,10 +109,12 @@ class FacetsMixin(BrowserView):
             pk=item.get("pk"),
             name=name,
         )
-        issue_max = self.obj.get("issue_max")
-        data = (self.acquisition_groups, issue_max, False)
         qps = {**self.request.query_params}
         qps.update(query_params)
+        issue_max = self.obj.get("issue_max", 0)
+        data = OPDS1EntryData(
+            self.acquisition_groups, issue_max, False, self.mime_type_map
+        )
         return OPDS1Entry(entry_obj, qps, data)
 
     def _is_facet_active(self, facet_group, facet):

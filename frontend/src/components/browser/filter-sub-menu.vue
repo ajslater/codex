@@ -48,7 +48,15 @@
           multiple
           :items="vuetifyItems"
           @update:selected="selected"
-        />
+        >
+          <v-list-item
+            v-for="item of vuetifyItems"
+            :key="item.pk"
+            :title="item.title"
+            :value="item.value"
+            :class="{ noneItem: +item.value == nullCode }"
+          />
+        </v-list>
       </div>
     </v-slide-x-reverse-transition>
   </div>
@@ -63,13 +71,14 @@ import {
 import { mapActions, mapState, mapWritableState } from "pinia";
 
 import { toVuetifyItems } from "@/api/v3/vuetify-items";
+import CHOICES from "@/choices";
 import {
   CHARPK_FILTERS,
   NUMERIC_FILTERS,
   useBrowserStore,
 } from "@/stores/browser";
 
-const NULL_PKS = new Set(["", -1]);
+const VUETIFY_NULL_CODE = CHOICES.browser.vuetifyNullCode;
 
 export default {
   name: "BrowserFilterSubMenu",
@@ -86,6 +95,7 @@ export default {
       mdiChevronRight,
       mdiChevronRightCircle,
       query: "",
+      nullCode: VUETIFY_NULL_CODE,
     };
   },
   computed: {
@@ -125,15 +135,11 @@ export default {
         this.loadFilterChoices(mode);
       }
     },
-    isNullPk: (pk) => NULL_PKS.has(pk),
     selected(value) {
       const data = {
         filters: { [this.name]: value },
       };
       this.$emit("selected", data);
-    },
-    itemTitle(item) {
-      return this.isNullPk(item.value) ? "None" : item.title;
     },
   },
 };
@@ -163,5 +169,8 @@ export default {
 .filterValuesProgress {
   margin: 10px;
   width: 88%;
+}
+.noneItem {
+  opacity: 0.5;
 }
 </style>

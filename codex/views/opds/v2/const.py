@@ -1,4 +1,4 @@
-"""OPDS Common consts."""
+"""OPDS v2 consts."""
 from dataclasses import dataclass
 from typing import Optional, Union
 

@@ -7,7 +7,9 @@
   xmlns:dc="http://purl.org/dc/terms/"
   xmlns:thr="http://purl.org/syndication/thread/1.0"
   xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/"
-  xmlns:pse="http://vaemendis.net/opds-pse/ns"
+  {% if is_acquisition %}
+    xmlns:pse="http://vaemendis.net/opds-pse/ns"
+  {% endif %}
   >
 <id>{{ id_tag }}</id>
 <icon>{% static 'img/logo-32.webp' %}</icon>

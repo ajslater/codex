@@ -2,6 +2,7 @@
 from django.db.models import (
     BooleanField,
     Case,
+    CharField,
     Count,
     DateTimeField,
     F,
@@ -14,7 +15,7 @@ from django.db.models import (
     When,
 )
 from django.db.models.fields import PositiveSmallIntegerField
-from django.db.models.functions import Least, Lower, StrIndex, Substr
+from django.db.models.functions import Least, Lower, Reverse, Right, StrIndex, Substr
 
 from codex.models import Comic, Folder, Imprint, Publisher, Series, Volume
 from codex.views.browser.base import BrowserBaseView
@@ -127,6 +128,21 @@ class BrowserAnnotationsView(BrowserOrderByView):
         """Sort groups by name ignoring articles."""
         if self.order_key != "sort_name":
             return queryset
+
+        if self.kwargs.get("group") == self.FOLDER_GROUP and model == Comic:
+            # File View Filename
+            queryset = queryset.annotate(
+                sort_name=Right(
+                    "path",
+                    StrIndex(Reverse(F("path")), Value("/")) - 1,  # type: ignore
+                    output_field=CharField(),
+                )
+            )
+            return queryset
+
+        ##################################################
+        # Otherwise Remove articles from the browse name #
+        ##################################################
 
         # first_space_index
         first_field = model.ORDERING[0]

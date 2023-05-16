@@ -60,6 +60,7 @@ class OPDS1TemplateSerializer(Serializer):
     """OPDS Browser Template Serializer."""
 
     opds_ns = CharField(read_only=True)
+    is_acquisition = BooleanField(read_only=True)
     id_tag = CharField(read_only=True)
     title = CharField(read_only=True)
     updated = DateTimeField(read_only=True, default_timezone=UTC_TZ)

@@ -189,7 +189,8 @@ class LinkComicsMixin(QueuedThread):
             self.status_controller.update(status)
 
         if del_count := len(all_del_pks):
-            ThroughModel.objects.filter(comic_id__in=all_del_pks).delete()
+            del_qs = ThroughModel.objects.filter(pk__in=all_del_pks)
+            del_qs.delete()
             self.log.info(
                 f"Deleted {del_count} stale {field_name} relations for altered comics.",
             )

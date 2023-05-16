@@ -2,9 +2,9 @@
 from django.urls import path
 from django.views.decorators.cache import cache_page
 
+from codex.views.opds.util import full_redirect_view
 from codex.views.opds.v1.feed import OPDS1FeedView
 from codex.views.opds.v1.opensearch_v1 import OpenSearch1View
-from codex.views.opds.v1.start import opds_1_start_view
 
 TIMEOUT = 60 * 60
 
@@ -26,5 +26,5 @@ urlpatterns = [
     ),
     #
     # Catch All
-    path("", opds_1_start_view, name="start"),
+    path("", full_redirect_view("opds:v1:feed"), name="start"),
 ]

@@ -11,7 +11,7 @@ app_name = "authentication"
 
 urlpatterns = [
     path(
-        "/v1",
+        "v1",
         cache_page(TIMEOUT)(OPDSAuthentication1View.as_view()),
         name="v1",
     ),
