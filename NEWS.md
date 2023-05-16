@@ -13,6 +13,7 @@ border-radius: 128px;
   - Support for ComicInfo StoryArcNumber, Review and GTIN tags.
   - Order by Story Arc Number
   - Do not detect .cbr files if unrar is not on the path.
+  - Display filename for comics in browser file view.
 - Fix
   - Import of ComicInfo Tags metadata.
   - Never removed old missing metadata when updated.

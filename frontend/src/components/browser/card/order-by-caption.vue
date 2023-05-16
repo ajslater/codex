@@ -33,14 +33,15 @@ export default {
     ...mapState(useBrowserStore, {
       orderBy: (state) => state.settings.orderBy,
       twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
+      topGroup: (state) => state.settings.topGroup,
     }),
     orderValue() {
       let ov = this.item.orderValue;
       if (
         this.orderBy === undefined ||
         this.orderBy === null ||
-        this.orderBy === "sort_name" ||
-        (this.orderBy === "path" && this.item.group === "f") ||
+        (this.orderBy === "sort_name" &&
+          (this.item.group !== "c" || this.topGroup !== "f")) ||
         ov === null ||
         ov === undefined
       ) {
