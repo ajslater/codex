@@ -28,6 +28,7 @@ class MetadataView(BrowserAnnotationsView):
         "critical_rating",
         "day",
         "file_type",
+        "gtin",
         "issue",
         "issue_suffix",
         "language",
@@ -36,6 +37,7 @@ class MetadataView(BrowserAnnotationsView):
         "original_format",
         "read_ltr",
         "scan_info",
+        "story_arc_number",
         "summary",
         "web",
         "year",
@@ -105,7 +107,7 @@ class MetadataView(BrowserAnnotationsView):
     def _annotate_aggregates(self, qs):
         """Annotate aggregate values."""
         if not self.is_model_comic:
-            size_func = self.get_aggregate_func("size", self.is_model_comic)
+            size_func = self.get_aggregate_func("size")
             qs = qs.annotate(size=size_func)
         qs = self.annotate_common_aggregates(qs, self.model, {})
         return qs
@@ -245,7 +247,6 @@ class MetadataView(BrowserAnnotationsView):
         qs = self._annotate_for_filename(qs)
 
         try:
-            # obj = qs.values()[0]
             obj = qs.first()
             if not obj:
                 reason = "Empty obj"
@@ -280,6 +281,7 @@ class MetadataView(BrowserAnnotationsView):
         # Init
         self._efv_flag = None
         self.parse_params()
+        self.set_order_key()
         self.group = self.kwargs["group"]
         self._validate()
 

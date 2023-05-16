@@ -27,12 +27,24 @@ export default {
     ...mapState(useBrowserStore, {
       orderBySetting: (state) => state.settings.orderBy,
     }),
+    reverseValues() {
+      const set = new Set();
+      for (const choice of this.orderByChoices) {
+        if (choice.reverse) {
+          set.add(choice.value);
+        }
+      }
+      return set;
+    },
     orderBy: {
       get() {
         return this.orderBySetting;
       },
       set(value) {
-        const data = { orderBy: value };
+        const data = {
+          orderBy: value,
+          orderReverse: this.reverseValues.has(value),
+        };
         this.setSettings(data);
       },
     },

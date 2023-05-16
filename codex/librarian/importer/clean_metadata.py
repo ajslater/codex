@@ -33,6 +33,7 @@ _MD_PSI_KEYS = frozenset(
         "month",
         "day",
         "page_count",
+        "story_arc_number",
     )  # computed by presave: ("decade", "max_page", "size")
 )
 _MD_CHAR_KEYS = frozenset(
@@ -42,6 +43,7 @@ _MD_CHAR_KEYS = frozenset(
         "cover_pk",
         "file_type",
         "format",
+        "gtin",
         "issue_suffix",
         "language",
         "name",
@@ -132,6 +134,16 @@ class CleanMetadataMixin(QueuedThread):
             if summary:
                 summary += "\n"
             summary += description
+            md["summary"] = summary
+
+    @staticmethod
+    def _append_review(md) -> None:
+        """Append the CIX review to the CIX summary."""
+        if review := md.get("review", ""):
+            summary: str = md.get("summary", "")
+            if summary:
+                summary += "\n"
+            summary += review
             md["summary"] = summary
 
     @staticmethod
@@ -228,6 +240,7 @@ class CleanMetadataMixin(QueuedThread):
         self._clean_comic_charfields(md, md_keys)
         self._clean_comic_web(md)
         self._append_description(md)
+        self._append_review(md)
         self._clean_comic_creators(md)
         self._clean_comic_m2m_named(md, md_keys)
         return md

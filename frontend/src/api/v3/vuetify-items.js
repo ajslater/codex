@@ -1,8 +1,14 @@
 // Shared functions for most metadata components.
 import CHOICES from "@/choices";
 const VUETIFY_NULL_CODE = CHOICES.browser.vuetifyNullCode;
-const NULL_NAME = "None";
+const NULL_NAME = ".None.";
 const NULL_ITEM = { value: VUETIFY_NULL_CODE, title: NULL_NAME };
+const NULL_PKS = new Set([
+  "",
+  VUETIFY_NULL_CODE,
+  VUETIFY_NULL_CODE.toString(),
+  undefined,
+]);
 
 const toVuetifyItem = function (item, charPk) {
   // Translates an raw value or an item item into a vuetify item.
@@ -11,13 +17,10 @@ const toVuetifyItem = function (item, charPk) {
     vuetifyItem = item;
   } else if (item instanceof Object) {
     vuetifyItem = { value: item.pk, title: item.name };
-    if (item.pk === null || item.name === undefined) {
-      vuetifyItem.value = VUETIFY_NULL_CODE;
+    if (NULL_PKS.has(vuetifyItem.value) || !vuetifyItem.title) {
+      vuetifyItem = NULL_ITEM;
     } else if (!charPk) {
       vuetifyItem.value = +item.pk;
-    }
-    if (vuetifyItem.title === null || vuetifyItem.value === undefined) {
-      vuetifyItem.title = NULL_NAME;
     }
   } else if (item === null) {
     vuetifyItem = NULL_ITEM;

@@ -6,14 +6,60 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.4.0
+## v1.3.14
+
+- Features
+  - Better metadata extraction for PDFs.
+  - Support for ComicInfo StoryArcNumber, Review and GTIN tags.
+  - Order by Story Arc Number
+  - Do not detect .cbr files if unrar is not on the path.
+  - Display filename for comics in browser file view.
+- Fix
+  - Import of ComicInfo Tags metadata.
+  - Never removed old missing metadata when updated.
+  - Error on moving folders.
+  - Fix saving last route between sessions.
+  - Better error messages if unrar is not on the path.
+- Removed
+  - Remove support for unrar.cffi
+
+## v1.3.13
+
+- Fix
+  - Group cover sometimes showing wrong cover for order.
+  - Rare import crash.
+
+## v1.3.12
+
+- Features
+  - OPDS 2 Last Read link.
+- Fix
+  - Books without bookmarks could break parts of the reader.
+  - Remove clipboard UI hints when clipboard isn't available.
+
+## v1.3.11
+
+- Features
+  - Last Read Order By option for web and OPDS.
+  - Some Order By options now have a default descending order.
+  - OPDS 1 special top links limited to 100 entries.
+- Fix
+  - OPDS 1 links did not include filters or order information.
+  - OPDS 1 page streaming broke.
+
+## v1.3.10
+
+- Fix
+  - Crash when reading from folder view.
+
+## v1.3.9
 
 - Features
   - Experimental OPDS 2.0 Support.
   - Create all comic covers admin task.
   - Faster Metadata pages for web and OPDS.
 - Fix
-  - Two pages mode turned off permanently.
+  - Two pages mode broken.
   - Credits not imported bug.
   - Failed imports not removed when file removed bug.
 

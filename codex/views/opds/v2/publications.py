@@ -1,4 +1,4 @@
-"""Publication Methods for OPDS 2.0 feed."""
+"""Publication Methods for OPDS v2.0 feed."""
 from urllib.parse import quote_plus
 
 from django.contrib.staticfiles.storage import staticfiles_storage

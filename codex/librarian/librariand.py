@@ -4,6 +4,8 @@ from multiprocessing import Manager, Process
 from threading import active_count
 
 from caseconverter import snakecase
+from comicbox.comic_archive import ComicArchive
+from comicbox.exceptions import UnsupportedArchiveTypeError
 
 from codex.librarian.covers.coverd import CoverCreatorThread
 from codex.librarian.covers.tasks import CoverTask
@@ -113,11 +115,19 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         self.log.debug(f"Active threads before thread creation: {active_count()}")
         threads = {}
         kwargs = {"librarian_queue": self.queue, "log_queue": self.log_queue}
+        try:
+            ComicArchive.check_unrar_executable()
+            unrar = True
+        except UnsupportedArchiveTypeError as exc:
+            self.log.warn(f"{exc}. Not detecting .cbr archives.")
+            unrar = False
         for name, thread_class in self._THREAD_CLASS_MAP.items():
             if thread_class == NotifierThread:
                 thread = thread_class(self.broadcast_queue, **kwargs)
             elif thread_class == SearchIndexerThread:
                 thread = thread_class(self.search_indexer_abort_event, **kwargs)
+            elif thread_class in (LibraryEventObserver, LibraryPollingObserver):
+                thread = thread_class(unrar=unrar, **kwargs)
             else:
                 thread = thread_class(**kwargs)
             threads[name] = thread

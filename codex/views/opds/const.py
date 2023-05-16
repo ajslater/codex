@@ -15,6 +15,7 @@ class Rel:
     IMAGE = "http://opds-spec.org/image"
     STREAM = "http://vaemendis.net/opds-pse/stream"
     SORT_NEW = "http://opds-spec.org/sort/new"
+    POPULAR = "http://opds-spec.org/sort/popular"
     FEATURED = "http://opds-spec.org/featured"
     SELF = "self"
     START = "start"
@@ -40,7 +41,6 @@ class MimeType:
     ENTRY_CATALOG = ";".join((ATOM, "type=entry", _PROFILE_CATALOG))
     AUTHENTICATION = "application/opds-authentication+json"
     OPENSEARCH = "application/opensearchdescription+xml"
-    DOWNLOAD = "application/zip"  # PocketBooks needs app/zip
     STREAM = "image/jpeg"
     OPDS_JSON = "application/opds+json"
     OPDS_PUB = "application/opds-publication+json"
@@ -55,6 +55,13 @@ class MimeType:
         "CBZ": "application/vnd.comicbook+zip",
         "CBR": "application/vnd.comicbook+rar",
         "CBT": "application/vnd.comicbook+tar",
+        "PDF": "application/pdf",
+    }
+    SIMPLE_FILE_TYPE_MAP = {
+        # PocketBooks needs app/zip
+        "CBZ": "application/zip",
+        "CBR": "application/x-rar-compressed",
+        "CBT": "application/x-tar",
         "PDF": "application/pdf",
     }
     OCTET = "application/octet-stream"

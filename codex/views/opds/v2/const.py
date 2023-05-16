@@ -1,4 +1,4 @@
-"""OPDS Common consts."""
+"""OPDS v2 consts."""
 from dataclasses import dataclass
 from typing import Optional, Union
 
@@ -80,6 +80,12 @@ GROUPS = (
                 "Oldest Unread",
                 "s",
                 {"orderBy": "date", "orderReverse": False},
+            ),
+            NavigationLink(
+                Rel.POPULAR,
+                "Last Read",
+                "s",
+                {"orderBy": "bookmark_updated_at", "orderReverse": True},
             ),
         ),
     ),

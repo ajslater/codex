@@ -88,37 +88,16 @@ class BrowserView(BrowserAnnotationsView):
         return queryset.annotate(**group_names)
 
     def _add_annotations(self, queryset, model, search_scores):
-        """Annotations for display and sorting.
-
-        model is neccissary because this gets called twice by folder
-        view. once for folders, once for the comics.
-        """
-        is_model_comic = model == Comic
-        ##############################
-        # Annotate Common Aggregates #
-        ##############################
+        """Annotations for display and sorting."""
         queryset = self.annotate_common_aggregates(queryset, model, search_scores)
-        if not is_model_comic:
-            # EXTRA FILTER for empty group
-            queryset = queryset.filter(child_count__gt=0)
 
-        ##################
-        # Annotate Group #
-        ##################
+        # Annotate Group
         self.model_group = self._MODEL_GROUP_MAP[model]
         queryset = queryset.annotate(
             group=Value(self.model_group, CharField(max_length=1))
         )
-
-        #######################
-        # Sortable aggregates #
-        #######################
-        order_key = self.get_order_key()
-        order_func = self.get_aggregate_func(order_key, model)
-        queryset = queryset.annotate(order_value=order_func)
-
-        queryset = self._annotate_group_names(queryset, model)
-        return queryset
+        # Hoist Group Names
+        return self._annotate_group_names(queryset, model)
 
     def _get_model_group(self):
         """Get the group of the models to browse."""
@@ -148,7 +127,7 @@ class BrowserView(BrowserAnnotationsView):
         else:
             qs = self.model.objects.filter(object_filter)
             qs = self._add_annotations(qs, self.model, search_scores)
-            qs = self.get_order_by(self.model, qs)
+            qs = self.add_order_by(qs, self.model)
         return qs
 
     def _get_book_queryset(self, object_filter, search_scores):
@@ -165,7 +144,9 @@ class BrowserView(BrowserAnnotationsView):
 
             qs = Comic.objects.filter(comic_object_filter)
             qs = self._add_annotations(qs, Comic, comic_search_scores)
-            qs = self.get_order_by(Comic, qs)
+            qs = self.add_order_by(qs, Comic)
+            if limit := self.params.get("limit"):
+                qs = qs[:limit]
         else:
             qs = Comic.objects.none()
         return qs
@@ -321,7 +302,7 @@ class BrowserView(BrowserAnnotationsView):
             )
 
         if book_qs.count():
-            book_max_obj_per_page = self.MAX_OBJ_PER_PAGE - group_qs.count()
+            book_max_obj_per_page = max(0, self.MAX_OBJ_PER_PAGE - group_qs.count())
             page_counts = (num_pages, total_count, Comic)
             group_qs, num_pages, total_count = self._paginate_section(
                 group_qs, book_max_obj_per_page, page_counts
@@ -500,12 +481,19 @@ class BrowserView(BrowserAnnotationsView):
             reason = f"Redirect r with {pk=} to pk 0"
             self._raise_redirect({"pk": 0}, reason)
 
+    def _set_route_param(self):
+        """Set the route param."""
+        group = self.kwargs.get("group", "r")
+        pk = self.kwargs.get("pk", 0)
+        page = self.kwargs.get("page", 1)
+        self.params["route"] = {"group": group, "pk": pk, "page": page}
+
     def validate_settings(self):
         """Validate group and top group settings."""
         group = self.kwargs.get("group")
-        order_key = self.get_order_key()
+        self.set_order_key()
         enable_folder_view = False
-        if group == self.FOLDER_GROUP or order_key == "path":
+        if group == self.FOLDER_GROUP or self.order_key == "path":
             key = AdminFlag.FlagChoices.FOLDER_VIEW.value
             try:
                 enable_folder_view = AdminFlag.objects.only("on").get(key=key).on
@@ -519,7 +507,7 @@ class BrowserView(BrowserAnnotationsView):
             self._validate_browser_group_settings()
 
         # Validate path sort
-        if order_key == "path" and not enable_folder_view:
+        if self.order_key == "path" and not enable_folder_view:
             pk = self.kwargs("pk")
             page = self.kwargs("page")
             route_changes = {"group": group, "pk": pk, "page": page}
@@ -532,6 +520,7 @@ class BrowserView(BrowserAnnotationsView):
         """Get browser settings."""
         self.parse_params()
         self.validate_settings()
+        self._set_route_param()
         data = self.get_object()
         serializer = self.get_serializer(data)
         self.save_params_to_session(self.params)

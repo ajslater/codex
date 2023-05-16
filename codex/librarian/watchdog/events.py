@@ -15,9 +15,6 @@ from watchdog.events import (
 from codex.librarian.watchdog.tasks import WatchdogEventTask
 from codex.logger_base import LoggerBaseMixin
 
-_COMIC_REGEX = r"\.(cb[zrt]|pdf)$"
-_COMIC_MATCHER = re.compile(_COMIC_REGEX, re.IGNORECASE)
-
 
 class CodexLibraryEventHandler(FileSystemEventHandler, LoggerBaseMixin):
     """Handle watchdog events for comics in a library."""
@@ -30,25 +27,26 @@ class CodexLibraryEventHandler(FileSystemEventHandler, LoggerBaseMixin):
         self.librarian_queue = kwargs.pop("librarian_queue")
         log_queue = kwargs.pop("log_queue")
         self.init_logger(log_queue)
+        unrar = kwargs.pop("unrar", False)
+        comic_regex = r"\.(cb[zrt]|pdf)$" if unrar else r"\.(cb[zt]|pdf)$"
+        self._comic_matcher = re.compile(comic_regex, re.IGNORECASE)
         super().__init__(*args, **kwargs)
 
-    @staticmethod
-    def _match_comic_suffix(path):
+    def _match_comic_suffix(self, path):
         """Match a supported comic suffix."""
         if not path:
             return False
         # We don't care about general suffixes. Only length four.
         suffix = path[-4:]
         suffix = fsdecode(suffix)
-        return _COMIC_MATCHER.match(suffix) is not None
+        return self._comic_matcher.match(suffix) is not None
 
-    @classmethod
-    def _transform_file_event(cls, event):
+    def _transform_file_event(self, event):
         """Transform file events into other events."""
-        source_match = cls._match_comic_suffix(event.src_path)
+        source_match = self._match_comic_suffix(event.src_path)
         if event.event_type == EVENT_TYPE_MOVED:
             # Some types of file moves need to be cast as other events.
-            dest_match = cls._match_comic_suffix(event.dest_path)
+            dest_match = self._match_comic_suffix(event.dest_path)
             if not source_match and dest_match:
                 # Moved from an ignored file extension into a comic type,
                 # so create a new comic.
@@ -61,17 +59,16 @@ class CodexLibraryEventHandler(FileSystemEventHandler, LoggerBaseMixin):
             event = None
         return event
 
-    @classmethod
-    def _transform_event(cls, event):
+    def _transform_event(self, event):
         """Transform events into other events."""
-        if event.event_type in cls.IGNORED_EVENTS:
+        if event.event_type in self.IGNORED_EVENTS:
             event = None
         elif event.is_directory:
             if event.event_type == EVENT_TYPE_CREATED:
                 # Directories are only created by comics
                 event = None
         else:
-            event = cls._transform_file_event(event)
+            event = self._transform_file_event(event)
         return event
 
     def dispatch(self, event):

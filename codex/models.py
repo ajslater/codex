@@ -343,6 +343,9 @@ class Comic(WatchedPath):
     read_ltr = BooleanField(db_index=True, default=True)
     scan_info = CharField(max_length=MAX_NAME_LEN, default="")
     web = URLField(default="")
+    story_arc_number = PositiveSmallIntegerField(db_index=True, null=True)
+    gtin = CharField(db_index=True, max_length=MAX_FIELD_LEN, default="")
+
     # ManyToMany
     characters = ManyToManyField(Character)
     creators = ManyToManyField(Creator)

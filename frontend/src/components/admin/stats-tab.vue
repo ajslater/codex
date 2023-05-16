@@ -172,15 +172,17 @@
               >
             </td>
           </tr>
-          <tr id="apiKeyRow" @click="onClickAPIKey">
+          <tr id="apiKeyRow" :title="apiTooltip" @click="onClickAPIKey">
             <td>
               API Key
-              <v-icon class="clipBoardIcon" size="small">{{
-                clipBoardIcon
-              }}</v-icon>
-              <v-fade-transition>
-                <span v-show="showTooltip.show" class="copied">Copied</span>
-              </v-fade-transition>
+              <span v-if="clipBoardEnabled">
+                <v-icon class="clipBoardIcon" size="small">{{
+                  clipBoardIcon
+                }}</v-icon>
+                <v-fade-transition>
+                  <span v-show="showTooltip.show" class="copied">Copied</span>
+                </v-fade-transition>
+              </span>
             </td>
             <td id="apiKey">{{ stats.config.apiKey }}</td>
           </tr>
@@ -211,6 +213,8 @@ import { copyToClipboard } from "@/copy-to-clipboard";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
+const API_TOOLTIP = "Copy API Key to clipboard";
+
 export default {
   name: "AdminTasksTab",
   components: {
@@ -227,6 +231,12 @@ export default {
     ...mapState(useAdminStore, {
       stats: (state) => state.stats,
     }),
+    clipBoardEnabled() {
+      return location.prototcal == "https:";
+    },
+    apiTooltip() {
+      return API_TOOLTIP ? this.clipBoardEnabled : undefined;
+    },
     clipBoardIcon() {
       return this.showTooltip ? mdiClipboardCheckOutline : mdiClipboardOutline;
     },
@@ -243,6 +253,9 @@ export default {
       return numberFormat(val, 0);
     },
     onClickAPIKey() {
+      if (!this.clipBoardEnabled) {
+        return;
+      }
       copyToClipboard(this.stats.config.apiKey, this.showTooltip);
     },
   },

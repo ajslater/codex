@@ -15,7 +15,11 @@ import { DATE_FORMAT, getDateTime } from "@/datetime";
 import { useBrowserStore } from "@/stores/browser";
 const STAR_SORT_BY = new Set(["community_rating", "critical_rating"]);
 const DATE_SORT_BY = new Set(["date"]);
-const TIME_SORT_BY = new Set(["created_at", "updated_at"]);
+const TIME_SORT_BY = new Set([
+  "bookmark_updated_at",
+  "created_at",
+  "updated_at",
+]);
 
 export default {
   name: "OrderByCaption",
@@ -29,14 +33,15 @@ export default {
     ...mapState(useBrowserStore, {
       orderBy: (state) => state.settings.orderBy,
       twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
+      topGroup: (state) => state.settings.topGroup,
     }),
     orderValue() {
       let ov = this.item.orderValue;
       if (
         this.orderBy === undefined ||
         this.orderBy === null ||
-        this.orderBy === "sort_name" ||
-        (this.orderBy === "path" && this.item.group === "f") ||
+        (this.orderBy === "sort_name" &&
+          (this.item.group !== "c" || this.topGroup !== "f")) ||
         ov === null ||
         ov === undefined
       ) {

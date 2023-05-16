@@ -125,6 +125,7 @@ class LinkComicsMixin(QueuedThread):
             )
             all_del_pks |= set(del_pks)
             if status:
+                status.total = status.total or 0
                 status.total += len(del_pks)
                 self.status_controller.update(status)
 
@@ -135,6 +136,7 @@ class LinkComicsMixin(QueuedThread):
             )
             missing_pks = set(pks) - extant_pks
             if status:
+                status.total = status.total or 0
                 status.total += len(missing_pks)
                 self.status_controller.update(status)
             for pk in missing_pks:
@@ -165,6 +167,7 @@ class LinkComicsMixin(QueuedThread):
             m2m_links, ThroughModel, through_field_id_name, status
         )
         if status:
+            status.total = status.total or 0
             status.total += len(tms) + len(all_del_pks)
             self.status_controller.update(status)
 
@@ -181,15 +184,18 @@ class LinkComicsMixin(QueuedThread):
                 " relations for altered comics."
             )
         if status:
+            status.complete = status.complete or 0
             status.complete += created_count
             self.status_controller.update(status)
 
         if del_count := len(all_del_pks):
-            ThroughModel.objects.filter(comic_id__in=all_del_pks).delete()
+            del_qs = ThroughModel.objects.filter(pk__in=all_del_pks)
+            del_qs.delete()
             self.log.info(
                 f"Deleted {del_count} stale {field_name} relations for altered comics.",
             )
         if status:
+            status.complete = status.complete or 0
             status.complete += del_count
             self.status_controller.update(status)
 

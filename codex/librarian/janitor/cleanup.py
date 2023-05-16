@@ -57,7 +57,7 @@ class CleanupMixin(WorkerBaseMixin):
             query.delete()
             if count:
                 self.log.info(f"Deleted {count} orphan {cls.__name__}s")
-            status.complete += 1
+            status.complete += count
             self.status_controller.update(status)
 
     def cleanup_fks(self):

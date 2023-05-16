@@ -100,6 +100,7 @@
             <MetadataText :value="md.month" label="Month" class="datePicker" />
             <MetadataText :value="md.day" label="Day" class="datePicker" />
           </div>
+          <MetadataText :value="md.gtin" label="GTIN" />
           <MetadataText :value="md.original_format" label="Original Format" />
         </section>
       </header>
@@ -147,12 +148,13 @@
         </section>
         <section class="mdSection">
           <MetadataTags :values="md.genres" label="Genres" />
-          <MetadataTags :values="md.tags" label="Tags" />
-          <MetadataTags :values="md.teams" label="Teams" />
           <MetadataTags :values="md.characters" label="Characters" />
+          <MetadataTags :values="md.teams" label="Teams" />
           <MetadataTags :values="md.locations" label="Locations" />
-          <MetadataTags :values="md.storyArcs" label="Story Arcs" />
           <MetadataTags :values="md.seriesGroups" label="Series Groups" />
+          <MetadataTags :values="md.storyArcs" label="Story Arcs" />
+          <MetadataText :value="md.story_arc_number" label="Story Arc Number" />
+          <MetadataTags :values="md.tags" label="Tags" />
         </section>
         <section class="mdSection">
           <MetadataText :value="md.web" label="Web Link" :link="true" />

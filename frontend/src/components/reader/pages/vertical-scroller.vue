@@ -134,7 +134,12 @@ export default {
     scrollToPage(page) {
       this.intersectorOn = false;
       this.programmaticScroll = true;
-      this.$refs.verticalScroll.scrollToIndex(page);
+      const vs = this.$refs.verticalScroll;
+      if (vs) {
+        vs.scrollToIndex(page);
+      } else {
+        console.debug("Can't find vertcalScroll component.");
+      }
       setTimeout(() => {
         this.programmaticScroll = false;
       }, TIMEOUT);
