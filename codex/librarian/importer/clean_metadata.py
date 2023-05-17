@@ -21,10 +21,10 @@ _MD_INVALID_KEYS = frozenset(
         "updated_at",
     )
 )
-_MD_TRANFORMED_KEYS = frozenset(("credits",))
+_MD_TRANSFORMED_KEYS = frozenset(("credits",))
 _MD_VALID_KEYS = (
     frozenset([field.name for field in Comic._meta.get_fields()]) - _MD_INVALID_KEYS
-    | _MD_TRANFORMED_KEYS
+    | _MD_TRANSFORMED_KEYS
 )
 _MD_DECIMAL_KEYS = frozenset(("community_rating", "critical_rating"))
 _MD_PSI_KEYS = frozenset(
@@ -210,6 +210,11 @@ class CleanMetadataMixin(QueuedThread):
             names = md.get(key)
             if not names:
                 continue
+            if key == "story_arcs":
+                # XXX hack story_arcs dict into current codex data model.
+                first_sa_number = tuple(names.values())[0]
+                md["story_arc_number"] = first_sa_number
+                names = names.keys()
             cleaned_names = []
             field: CharField = NamedModel._meta.get_field("name")  # type:ignore
             for name in names:
