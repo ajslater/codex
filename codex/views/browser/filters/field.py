@@ -17,6 +17,8 @@ class ComicFieldFilter(BrowserSessionViewBase):
 
         if field == self.CREATOR_PERSON_UI_FIELD:
             rel = f"{query_prefix}creators__person"
+        elif field == self.STORY_ARC_UI_FIELD:
+            rel = f"{query_prefix}story_arc_numbers__story_arc"
         else:
             rel = f"{query_prefix}{field}"
 

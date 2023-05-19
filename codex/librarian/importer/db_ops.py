@@ -7,7 +7,7 @@ from codex.librarian.importer.failed_imports import FailedImportsMixin
 from codex.librarian.importer.moved import MovedMixin
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.librarian.importer.update_comics import UpdateComicsMixin
-from codex.models import Comic, Creator
+from codex.models import Comic, Creator, StoryArcNumber
 from codex.status import Status
 
 _CREATOR_FK_NAMES = ("role", "person")
@@ -54,7 +54,12 @@ class ApplyDBOpsMixin(
 
     def _query_one_simple_model(self, fk_field, names, create_fks, status):
         """Batch query one simple model name."""
-        base_cls = Creator if fk_field in _CREATOR_FK_NAMES else Comic
+        if fk_field in _CREATOR_FK_NAMES:
+            base_cls = Creator
+        elif fk_field == "story_arc":
+            base_cls = StoryArcNumber
+        else:
+            base_cls = Comic
         fk_data = create_fks, base_cls, fk_field, "name"
         status.complete += self.query_missing_simple_models(
             names,
@@ -65,6 +70,7 @@ class ApplyDBOpsMixin(
     def query_all_missing_fks(self, library_path, fks):
         """Get objects to create by querying existing objects for the proposed fks."""
         create_creators = set()
+        create_story_arc_numbers = set()
         create_groups = {}
         update_groups = {}
         create_folder_paths = set()
@@ -75,9 +81,15 @@ class ApplyDBOpsMixin(
         try:
             self.status_controller.start(status)
 
-            self.query_missing_creators(  # type: ignore
+            self.query_missing_creators(
                 fks.pop("creators", {}),
                 create_creators,
+                status=status,
+            )
+
+            self.query_missing_story_arc_numbers(
+                fks.pop("story_arc_numbers", {}),
+                create_story_arc_numbers,
                 status=status,
             )
 
@@ -113,6 +125,7 @@ class ApplyDBOpsMixin(
             create_folder_paths,
             create_fks,
             create_creators,
+            create_story_arc_numbers,
         )
 
     @staticmethod
@@ -123,13 +136,18 @@ class ApplyDBOpsMixin(
             create_folder_paths,
             create_fks,
             create_creators,
+            create_story_arc_numbers,
         ) = create_data
         total_fks = 0
         for data_group in chain(
             create_groups.values(), update_groups.values(), create_fks.values()
         ):
             total_fks += len(data_group)
-        total_fks += len(create_folder_paths) + len(create_creators)
+        total_fks += (
+            len(create_folder_paths)
+            + len(create_creators)
+            + len(create_story_arc_numbers)
+        )
         return total_fks
 
     def create_all_fks(self, library, create_data):
@@ -144,6 +162,7 @@ class ApplyDBOpsMixin(
                 create_folder_paths,
                 create_fks,
                 create_creators,
+                create_story_arc_numbers,
             ) = create_data
 
             for group_class, group_tree_counts in create_groups.items():
@@ -178,6 +197,13 @@ class ApplyDBOpsMixin(
                 create_creators,
                 status=status,
             )
+
+            # This must happen after story_arc_fks created by create_named_models
+            status.complete += self.bulk_create_story_arc_numbers(
+                create_story_arc_numbers,
+                status=status,
+            )
+
         finally:
             self.status_controller.finish(status)
         return status.complete

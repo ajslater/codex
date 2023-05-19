@@ -203,6 +203,18 @@ class StoryArc(NamedModel):
     """A story arc the comic is part of."""
 
 
+class StoryArcNumber(BaseModel):
+    """A story arc number the comic represents."""
+
+    story_arc = ForeignKey(StoryArc, db_index=True, on_delete=CASCADE)
+    number = PositiveIntegerField(null=True, default=None)
+
+    class Meta:
+        """Declare constraints and indexes."""
+
+        unique_together = ("story_arc", "number")
+
+
 class Location(NamedModel):
     """A location that appears in the comic."""
 
@@ -343,7 +355,6 @@ class Comic(WatchedPath):
     read_ltr = BooleanField(db_index=True, default=True)
     scan_info = CharField(max_length=MAX_NAME_LEN, default="")
     web = URLField(default="")
-    story_arc_number = PositiveSmallIntegerField(db_index=True, null=True)
     gtin = CharField(db_index=True, max_length=MAX_FIELD_LEN, default="")
 
     # ManyToMany
@@ -352,7 +363,7 @@ class Comic(WatchedPath):
     genres = ManyToManyField(Genre)
     locations = ManyToManyField(Location)
     series_groups = ManyToManyField(SeriesGroup)
-    story_arcs = ManyToManyField(StoryArc)
+    story_arc_numbers = ManyToManyField(StoryArcNumber)
     tags = ManyToManyField(Tag)
     teams = ManyToManyField(Team)
     # Ignore these, they seem useless:

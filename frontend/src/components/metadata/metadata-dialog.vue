@@ -152,8 +152,7 @@
           <MetadataTags :values="md.teams" label="Teams" />
           <MetadataTags :values="md.locations" label="Locations" />
           <MetadataTags :values="md.seriesGroups" label="Series Groups" />
-          <MetadataTags :values="md.storyArcs" label="Story Arcs" />
-          <MetadataText :value="md.story_arc_number" label="Story Arc Number" />
+          <MetadataTags :values="storyArcs" label="Story Arcs" />
           <MetadataTags :values="md.tags" label="Tags" />
         </section>
         <section class="mdSection">
@@ -343,6 +342,26 @@ export default {
     },
     fileType: function () {
       return this.md.fileType || "Unknown";
+    },
+    storyArcs() {
+      // Append the storyArcNumber number to story arcs if it exists.
+      const sans = [];
+      for (const storyArc of this.md.storyArcs) {
+        const displayStoryArc = { ...storyArc };
+        for (const storyArcNumber of this.md.storyArcNumbers) {
+          const number = storyArcNumber.number;
+          if (
+            number !== null &&
+            number !== undefined &&
+            storyArcNumber.storyArc.pk === displayStoryArc.pk
+          ) {
+            displayStoryArc.name = displayStoryArc.name + `: ${number}`;
+            break;
+          }
+        }
+        sans.push(displayStoryArc);
+      }
+      return sans;
     },
   },
   watch: {

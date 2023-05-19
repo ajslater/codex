@@ -1,4 +1,5 @@
 """Query the missing foreign keys for comics and creators."""
+from collections.abc import Iterable
 from pathlib import Path
 
 from django.db.models import Q
@@ -11,6 +12,7 @@ from codex.models import (
     Imprint,
     Publisher,
     Series,
+    StoryArcNumber,
     Volume,
 )
 from codex.threads import QueuedThread
@@ -44,7 +46,13 @@ class QueryForeignKeysMixin(QueuedThread):
             .values_list(*fields, flat=flat)
         )
 
-    def _query_create_metadata(self, fk_cls, create_mds, all_filter_args, status):
+    def _query_create_metadata(
+        self,
+        fk_cls,
+        create_mds,
+        all_filter_args: Iterable[tuple[tuple[str, str], ...]],
+        status,
+    ):
         """Get create metadata by comparing proposed meatada to existing rows."""
         # Do this in batches so as not to exceed the 1k line sqlite limit
         fk_filter = Q()
@@ -78,7 +86,9 @@ class QueryForeignKeysMixin(QueuedThread):
         return count
 
     @staticmethod
-    def _add_parent_group_filter(filter_args, group_name, field_name):
+    def _add_parent_group_filter(
+        filter_args: dict[str, str], group_name: str, field_name: str
+    ):
         """Get the parent group filter by name."""
         key = f"{field_name}__" if field_name else ""
 
@@ -88,9 +98,9 @@ class QueryForeignKeysMixin(QueuedThread):
 
     def _get_create_group_set(self, groups, group_cls, create_group_set, status):
         """Create the create group set."""
-        all_filter_args = set()
+        all_filter_args: set[tuple[tuple[str, str], ...]] = set()
         for group_tree in groups:
-            filter_args = {}
+            filter_args: dict[str, str] = {}
             self._add_parent_group_filter(filter_args, group_tree[-1], "")
             if group_cls in (Imprint, Series, Volume):
                 self._add_parent_group_filter(filter_args, group_tree[0], "publisher")
@@ -99,7 +109,10 @@ class QueryForeignKeysMixin(QueuedThread):
             if group_cls == Volume:
                 self._add_parent_group_filter(filter_args, group_tree[2], "series")
 
-            all_filter_args.add(tuple(sorted(filter_args.items())))
+            serialized_filter_args: tuple[tuple[str, str], ...] = tuple(
+                sorted(filter_args.items())
+            )
+            all_filter_args.add(serialized_filter_args)
 
         candidate_groups = set(groups.keys())
         count = self._query_create_metadata(
@@ -213,6 +226,40 @@ class QueryForeignKeysMixin(QueuedThread):
         create_creators.update(comparison_creators)
         if count:
             self.log.info(f"Prepared {count} new creators.")
+        if status:
+            status.complete = status.complete or 0
+            status.complete += count
+        return count
+
+    @status_notify()
+    def query_missing_story_arc_numbers(
+        self, story_arc_numbers, create_story_arc_numbers, status=None
+    ):
+        """Find missing story arc number objects."""
+        # TODO combine parts of this with query_missing_creators above, very similar.
+        count = 0
+        if not story_arc_numbers:
+            return count
+        # create the filter
+        comparison_story_arc_numbers = set()
+        all_filter_args = set()
+        for story_arc, number in story_arc_numbers.items():
+            filter_args = {
+                "story_arc__name": story_arc,
+                "number": number,
+            }
+            all_filter_args.add(tuple(sorted(filter_args.items())))
+
+            comparison_tuple = (story_arc, number)
+            comparison_story_arc_numbers.add(comparison_tuple)
+
+        # get the create metadata
+        count = self._query_create_metadata(  # TODO fix
+            StoryArcNumber, comparison_story_arc_numbers, all_filter_args, status
+        )
+        create_story_arc_numbers.update(comparison_story_arc_numbers)
+        if count:
+            self.log.info(f"Prepared {count} new StoryArcNumbers.")
         if status:
             status.complete = status.complete or 0
             status.complete += count

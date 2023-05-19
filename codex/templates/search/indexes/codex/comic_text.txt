@@ -27,8 +27,8 @@
 {% for series_group in object.series_groups.all %}
   {{ series_group.name }}
 {% endfor %}
-{% for story_arc in object.story_arcs.all %}
-  {{ story_arc.name }}
+{% for story_arc_number in object.story_arc_numbers.all %}
+  {{ story_arc_number.story_arc.name }}
 {% endfor %}
 {% for tag in object.tags.all %}
   {{ tag.name }}

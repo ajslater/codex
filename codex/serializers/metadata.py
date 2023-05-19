@@ -2,7 +2,7 @@
 from rest_framework.serializers import CharField, IntegerField
 
 from codex.serializers.mixins import BrowserAggregateSerializerMixin
-from codex.serializers.models import ComicSerializer
+from codex.serializers.models import ComicSerializer, StoryArcSerializer
 
 
 class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
@@ -12,3 +12,7 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
     parent_folder_pk = IntegerField(read_only=True, required=False)
     series_volume_count = IntegerField(read_only=True)
     volume_issue_count = IntegerField(read_only=True)
+    story_arcs = StoryArcSerializer(
+        many=True,
+        allow_null=True,
+    )

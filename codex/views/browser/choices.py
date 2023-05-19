@@ -5,7 +5,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
 from codex.logger.logging import get_logger
-from codex.models import Comic, CreatorPerson
+from codex.models import Comic, CreatorPerson, StoryArc
 from codex.serializers.browser import (
     BrowserChoicesSerializer,
     BrowserFilterChoicesSerializer,
@@ -22,8 +22,9 @@ class BrowserChoicesViewBase(BrowserBaseView):
 
     permission_classes = [IsAuthenticatedOrEnabledNonUsers]
 
-    CREATORS_PERSON_REL = "creators__person"
-    NULL_NAMED_ROW = {"pk": -1, "name": "_none_"}
+    _CREATORS_PERSON_REL = "creators__person"
+    _STORY_ARC_REL = "story_arc_numbers__story_arc"
+    _NULL_NAMED_ROW = {"pk": -1, "name": "_none_"}
 
     @staticmethod
     def get_field_choices_query(field_name, comic_qs):
@@ -33,7 +34,12 @@ class BrowserChoicesViewBase(BrowserBaseView):
     @classmethod
     def get_m2m_field_query(cls, rel, comic_qs, model):
         """Get distinct m2m value objects for the relation."""
-        comic_rel = "creator__comic" if rel == cls.CREATORS_PERSON_REL else "comic"
+        if rel == cls._CREATORS_PERSON_REL:
+            comic_rel = "creator__comic"
+        elif rel == cls._STORY_ARC_REL:
+            comic_rel = "storyarcnumber__comic"
+        else:
+            comic_rel = "comic"
         return (
             model.objects.filter(**{f"{comic_rel}__in": comic_qs})
             .prefetch_related(comic_rel)
@@ -50,8 +56,11 @@ class BrowserChoicesViewBase(BrowserBaseView):
     def _get_rel_and_model(cls, field_name):
         """Return the relation and model for the field name."""
         if field_name == cls.CREATOR_PERSON_UI_FIELD:
-            rel = cls.CREATORS_PERSON_REL
+            rel = cls._CREATORS_PERSON_REL
             model = CreatorPerson
+        elif field_name == cls.STORY_ARC_UI_FIELD:
+            rel = cls._STORY_ARC_REL
+            model = StoryArc
         else:
             remote_field = getattr(
                 Comic._meta.get_field(field_name), "remote_field", None
@@ -150,7 +159,7 @@ class BrowserChoicesView(BrowserChoicesViewBase):
         # rows. :(
         if cls.does_m2m_null_exist(comic_qs, rel):
             choices = list(qs)
-            choices.append(cls.NULL_NAMED_ROW)
+            choices.append(cls._NULL_NAMED_ROW)
         else:
             choices = qs
         return choices

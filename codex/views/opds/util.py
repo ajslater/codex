@@ -64,8 +64,13 @@ def get_m2m_objects(pk) -> dict:
     cats = {}
     for model in OPDS_M2M_MODELS:
         table = model.__name__.lower()
-        qs = model.objects.filter(comic=pk).order_by("name").only("name")
+        rel = "comic"
+        if model == StoryArc:
+            rel = "storyarcnumber__" + rel
+        comic_filter = {rel: pk}
+        qs = model.objects.filter(**comic_filter).order_by("name").only("name")
         cats[table] = qs
+
     return cats
 
 

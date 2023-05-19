@@ -7,7 +7,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
 from codex.comic_field_names import COMIC_M2M_FIELD_NAMES
-from codex.models import AdminFlag, Comic
+from codex.models import AdminFlag, Comic, StoryArc
 from codex.serializers.metadata import MetadataSerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_annotations import BrowserAnnotationsView
@@ -37,7 +37,6 @@ class MetadataView(BrowserAnnotationsView):
         "original_format",
         "read_ltr",
         "scan_info",
-        "story_arc_number",
         "summary",
         "web",
         "year",
@@ -58,6 +57,7 @@ class MetadataView(BrowserAnnotationsView):
     _COMIC_RELATED_VALUE_FIELDS = {"series__volume_count", "volume__issue_count"}
     _PATH_GROUPS = ("c", "f")
     _CREATOR_RELATIONS = ("role", "person")
+    _STORY_ARC_NUMBER_RELATIONS = ("story_arc",)
 
     def _get_comic_value_fields(self):
         """Include the path field for staff."""
@@ -144,6 +144,27 @@ class MetadataView(BrowserAnnotationsView):
         qs = qs.annotate(parent_folder_pk=F("parent_folder_id"))
         return qs.annotate(series_name=F("series__name"), volume_name=F("volume__name"))
 
+    @staticmethod
+    def _get_intersection_queryset(qs, values, count_rel, comic_pks):
+        """Create an intersection queryset."""
+        return (
+            qs.only(*values)
+            .annotate(count=Count(count_rel))
+            .order_by()
+            .filter(count=comic_pks.count())
+        )
+
+    @classmethod
+    def _get_story_arc_intersection_queryset(cls, comic_pks):
+        """Hoist Story Arc intersections up from StoryArcNumber."""
+        qs = StoryArc.objects.filter(storyarcnumber__comic__pk__in=comic_pks)
+        return cls._get_intersection_queryset(
+            qs,
+            ("name",),
+            "storyarcnumber__comic",
+            comic_pks,
+        )
+
     def _query_m2m_intersections(self, simple_qs):
         """Query the through models to figure out m2m intersections."""
         # Speed ok, but still does a query per m2m model
@@ -158,19 +179,24 @@ class MetadataView(BrowserAnnotationsView):
 
             intersection_qs = model.objects.filter(comic__pk__in=comic_pks)
             if field_name == "creators":
-                intersection_qs = intersection_qs.select_related(
+                intersection_qs = intersection_qs.prefetch_related(
                     *self._CREATOR_RELATIONS
                 )
                 values = self._CREATOR_RELATIONS
+            elif field_name == "story_arc_numbers":
+                intersection_qs = intersection_qs.prefetch_related(
+                    *self._STORY_ARC_NUMBER_RELATIONS
+                )
+                values = self._STORY_ARC_NUMBER_RELATIONS
+                m2m_intersections[
+                    "story_arcs"
+                ] = self._get_story_arc_intersection_queryset(comic_pks)
             else:
                 values = ("name",)
 
             # order_by() is very important for grouping
-            intersection_qs = (
-                intersection_qs.only(*values)
-                .annotate(count=Count("comic"))
-                .order_by()
-                .filter(count=comic_pks.count())
+            intersection_qs = self._get_intersection_queryset(
+                intersection_qs, values, "comic", comic_pks
             )
             m2m_intersections[field_name] = intersection_qs
         return m2m_intersections

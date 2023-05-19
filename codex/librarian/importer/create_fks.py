@@ -15,6 +15,8 @@ from codex.models import (
     Imprint,
     Publisher,
     Series,
+    StoryArc,
+    StoryArcNumber,
     Volume,
 )
 from codex.threads import QueuedThread
@@ -29,6 +31,7 @@ _GROUP_UPDATE_FIELDS = {
 }
 _NAMED_MODEL_UPDATE_FIELDS = ("name",)
 _CREATOR_UPDATE_FIELDS = ("person", "role")
+_STORY_ARC_NUMBER_UPDATE_FIELDS = ("story_arc", "number")
 
 
 class CreateForeignKeysMixin(QueuedThread):
@@ -252,6 +255,36 @@ class CreateForeignKeysMixin(QueuedThread):
         )
         count = len(create_creators)
         self.log.info(f"Created {count} creators.")
+        if status:
+            status.complete = status.complete or 0
+            status.complete += count
+            self.status_controller.update(status)
+        return count
+
+    @status_notify()
+    def bulk_create_story_arc_numbers(
+        self, create_story_arc_number_tuples, status=None
+    ):
+        """Bulk create story_arc_numbers."""
+        # TODO consider combining with bulk_create_creators.
+        if not create_story_arc_number_tuples:
+            return 0
+
+        create_story_arc_numbers = []
+        for name, number in create_story_arc_number_tuples:
+            story_arc = StoryArc.objects.get(name=name)
+            story_arc_number = StoryArcNumber(story_arc=story_arc, number=number)
+
+            create_story_arc_numbers.append(story_arc_number)
+
+        StoryArcNumber.objects.bulk_create(
+            create_story_arc_numbers,
+            update_conflicts=True,
+            update_fields=_STORY_ARC_NUMBER_UPDATE_FIELDS,
+            unique_fields=story_arc._meta.unique_together[0],  # type: ignore
+        )
+        count = len(create_story_arc_numbers)
+        self.log.info(f"Created {count} StoryArcNumbers.")
         if status:
             status.complete = status.complete or 0
             status.complete += count

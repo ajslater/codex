@@ -11,6 +11,7 @@ from codex.models import (
     Imprint,
     Publisher,
     Series,
+    StoryArcNumber,
     Volume,
 )
 from codex.threads import QueuedThread
@@ -76,6 +77,21 @@ class LinkComicsMixin(QueuedThread):
         )
         return frozenset(creator_pks)
 
+    @staticmethod
+    def _link_story_arc_numbers(story_arc_numbers_md):
+        """Get the ids of all story_arc_numbers to link."""
+        # TODO consider combining with link creators above
+        if not story_arc_numbers_md:
+            return set()
+        story_arc_numbers_filter = Q()
+        for name, number in story_arc_numbers_md.items():
+            filter_dict = {"story_arc__name": name, "number": number}
+            story_arc_numbers_filter |= Q(**filter_dict)
+        story_arc_number_pks = StoryArcNumber.objects.filter(
+            story_arc_numbers_filter
+        ).values_list("pk", flat=True)
+        return frozenset(story_arc_number_pks)
+
     def _link_named_m2ms(self, all_m2m_links, comic_pk, md):
         """Set the ids of all named m2m fields into the comic dict."""
         for field, names in md.items():
@@ -97,17 +113,21 @@ class LinkComicsMixin(QueuedThread):
         comics = Comic.objects.filter(path__in=comic_paths).values_list("pk", "path")
         for comic_pk, comic_path in comics:
             md = m2m_mds[comic_path]
+            # TODO consolidate?
             if "folders" not in all_m2m_links:
                 all_m2m_links["folders"] = {}
-            try:
-                folder_paths = md.pop("folders")
-            except KeyError:
-                folder_paths = []
+            folder_paths = md.pop("folders", [])
             all_m2m_links["folders"][comic_pk] = self._link_folders(folder_paths)
             if "creators" not in all_m2m_links:
                 all_m2m_links["creators"] = {}
             creators_md = md.pop("creators", None)
             all_m2m_links["creators"][comic_pk] = self._link_creators(creators_md)
+            story_arc_numbers_md = md.pop("story_arc_numbers", None)
+            if "story_arc_numbers" not in all_m2m_links:
+                all_m2m_links["story_arc_numbers"] = {}
+            all_m2m_links["story_arc_numbers"][comic_pk] = self._link_story_arc_numbers(
+                story_arc_numbers_md
+            )
             self._link_named_m2ms(all_m2m_links, comic_pk, md)
         return all_m2m_links
 

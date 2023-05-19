@@ -84,27 +84,43 @@ class AggregateMetadataMixin(CleanMetadataMixin):
         return md, m2m_md, group_tree_md, failed_import
 
     @staticmethod
-    def _aggregate_m2m_metadata(all_m2m_mds, m2m_md, all_fks, path):
+    def _aggregate_m2m_metadata_creators(names, all_fks):
+        """Aggregate creators metadata."""
+        if names and "creators" not in all_fks:
+            all_fks["creators"] = set()
+
+        # for creators add the creator fks to fks
+        for creator_dict in names:
+            for creator_field, name in creator_dict.items():
+                # These fields are ambiguous because they're fks to creator
+                #   but aren't ever in Comic so query_fks.py can
+                #   disambiguate with special code
+                if creator_field not in all_fks:
+                    all_fks[creator_field] = set()
+                all_fks[creator_field].add(name)
+            creator_tuple = tuple(sorted(creator_dict.items()))
+            all_fks["creators"].add(creator_tuple)
+
+    @staticmethod
+    def _aggregate_m2m_metadata_story_arc_numbers(names, all_fks):
+        """Aggregate story arc numbers."""
+        if not names:
+            return
+        if "story_arc" not in all_fks:
+            all_fks["story_arc"] = set()
+        all_fks["story_arc"] |= frozenset(names.keys())
+
+    @classmethod
+    def _aggregate_m2m_metadata(cls, all_m2m_mds, m2m_md, all_fks, path):
         """Aggregate many to many metadata by ."""
         # m2m fields and fks
         all_m2m_mds[path] = m2m_md
         # aggregate fks
         for field, names in m2m_md.items():
             if field == "creators":
-                if names and "creators" not in all_fks:
-                    all_fks["creators"] = set()
-
-                # for creators add the creator fks to fks
-                for creator_dict in names:
-                    for creator_field, name in creator_dict.items():
-                        # These fields are ambiguous because they're fks to creator
-                        #   but aren't ever in Comic so query_fks.py can
-                        #   disambiguate with special code
-                        if creator_field not in all_fks:
-                            all_fks[creator_field] = set()
-                        all_fks[creator_field].add(name)
-                    creator_tuple = tuple(sorted(creator_dict.items()))
-                    all_fks["creators"].add(creator_tuple)
+                cls._aggregate_m2m_metadata_creators(names, all_fks)
+            elif field == "story_arc_numbers":
+                cls._aggregate_m2m_metadata_story_arc_numbers(names, all_fks)
             elif field != "folders":
                 if field not in all_fks:
                     all_fks[field] = set()
