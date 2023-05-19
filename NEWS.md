@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.4.0
+
+- Features
+  - Support multiple Story Arcs per comic.
+    - Supports Mylar CSV StoryArc / StoryArcNumber extension to ComicInfo.xml
+
 ## v1.3.14
 
 - Features
