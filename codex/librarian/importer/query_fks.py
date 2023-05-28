@@ -4,7 +4,7 @@ from pathlib import Path
 
 from django.db.models import Q
 
-from codex.librarian.importer.status import status_notify
+from codex.librarian.importer.status import ImportStatusTypes, status_notify
 from codex.models import (
     Comic,
     Creator,
@@ -15,10 +15,12 @@ from codex.models import (
     StoryArcNumber,
     Volume,
 )
+from codex.status import Status
 from codex.threads import QueuedThread
 
 _CLASS_QUERY_FIELDS_MAP = {
     Creator: ("role__name", "person__name"),
+    StoryArcNumber: ("story_arc__name", "number"),
     Folder: ("path",),
     Imprint: ("publisher__name", "name"),
     Series: ("publisher__name", "imprint__name", "name"),
@@ -29,6 +31,7 @@ _DEFAULT_QUERY_FIELDS = ("name",)
 # fixes this in the bulk_create & bulk_update functions. So for complicated
 # queries I gotta batch them myself. Filter arg count is a proxy, but it works.
 _SQLITE_FILTER_ARG_MAX = 990
+_CREATOR_FK_NAMES = ("role", "person")
 
 
 class QueryForeignKeysMixin(QueuedThread):
@@ -168,7 +171,7 @@ class QueryForeignKeysMixin(QueuedThread):
             self.status_controller.update(status)
 
     @status_notify()
-    def query_missing_group(
+    def _query_missing_group(
         self,
         groups,
         group_cls,
@@ -197,76 +200,85 @@ class QueryForeignKeysMixin(QueuedThread):
             self.log.info(f"Prepared {count} new {group_cls.__name__}s.")
         return count
 
-    @status_notify()
-    def query_missing_creators(self, creators, create_creators, status=None):
-        """Find missing creator objects."""
+    @staticmethod
+    def _get_query_filter_creators(creator_tuple):
+        """Get serialized comparison object data for Creators."""
+        creator_dict = dict(creator_tuple)
+        role = creator_dict.get("role")
+        person = creator_dict["person"]
+        filter_args = {
+            "person__name": person,
+            "role__name": role,
+        }
+        comparison_tuple = (role, person)
+        return filter_args, comparison_tuple
+
+    @staticmethod
+    def _get_query_filter_story_arc_numbers(story_arc_number_tuple):
+        """Get serialized comparison object data for StoryArcNumbers."""
+        story_arc, number = story_arc_number_tuple
+        filter_args = {
+            "story_arc__name": story_arc,
+            "number": number,
+        }
+        comparison_tuple = (story_arc, number)
+        return filter_args, comparison_tuple
+
+    def _query_missing_dict_model(self, possible_objs, model_data, create_objs, status):
+        """Find missing dict type m2m models with a supplied filter method."""
         count = 0
-        if not creators:
+        if not possible_objs:
             return count
         # create the filter
-        comparison_creators = set()
+        (get_query_filter_method, model) = model_data
+        comparison_objs = set()
         all_filter_args = set()
-        for creator_tuple in creators:
-            creator_dict = dict(creator_tuple)
-            role = creator_dict.get("role")
-            person = creator_dict["person"]
-            filter_args = {
-                "person__name": person,
-                "role__name": role,
-            }
+        for obj_tuple in possible_objs:
+            filter_args, comparison_tuple = get_query_filter_method(obj_tuple)
             all_filter_args.add(tuple(sorted(filter_args.items())))
+            comparison_objs.add(comparison_tuple)
 
-            comparison_tuple = (role, person)
-            comparison_creators.add(comparison_tuple)
-
-        # get the create metadata
+        # get the obj metadata
         count = self._query_create_metadata(
-            Creator, comparison_creators, all_filter_args, status
+            model, comparison_objs, all_filter_args, status
         )
-        create_creators.update(comparison_creators)
+        create_objs.update(comparison_objs)
         if count:
-            self.log.info(f"Prepared {count} new creators.")
+            self.log.info(f"Prepared {count} new {model.__class__.__name__}s.")
         if status:
             status.complete = status.complete or 0
             status.complete += count
         return count
 
     @status_notify()
-    def query_missing_story_arc_numbers(
+    def _query_missing_creators(self, creators, create_creators, status=None):
+        """Find missing creator objects."""
+        model_data = (self._get_query_filter_creators, Creator)
+        return self._query_missing_dict_model(
+            creators,
+            model_data,
+            create_creators,
+            status,
+        )
+
+    @status_notify()
+    def _query_missing_story_arc_numbers(
         self, story_arc_numbers, create_story_arc_numbers, status=None
     ):
         """Find missing story arc number objects."""
-        # TODO combine parts of this with query_missing_creators above, very similar.
-        count = 0
-        if not story_arc_numbers:
-            return count
-        # create the filter
-        comparison_story_arc_numbers = set()
-        all_filter_args = set()
-        for story_arc, number in story_arc_numbers.items():
-            filter_args = {
-                "story_arc__name": story_arc,
-                "number": number,
-            }
-            all_filter_args.add(tuple(sorted(filter_args.items())))
-
-            comparison_tuple = (story_arc, number)
-            comparison_story_arc_numbers.add(comparison_tuple)
-
-        # get the create metadata
-        count = self._query_create_metadata(  # TODO fix
-            StoryArcNumber, comparison_story_arc_numbers, all_filter_args, status
+        model_data = (
+            self._get_query_filter_story_arc_numbers,
+            StoryArcNumber,
         )
-        create_story_arc_numbers.update(comparison_story_arc_numbers)
-        if count:
-            self.log.info(f"Prepared {count} new StoryArcNumbers.")
-        if status:
-            status.complete = status.complete or 0
-            status.complete += count
-        return count
+        return self._query_missing_dict_model(
+            story_arc_numbers,
+            model_data,
+            create_story_arc_numbers,
+            status,
+        )
 
     @status_notify()
-    def query_missing_simple_models(self, names, fk_data, status=None):
+    def _query_missing_simple_models(self, names, fk_data, status=None):
         """Find missing named models and folders."""
         count = 0
         if not names:
@@ -322,7 +334,7 @@ class QueryForeignKeysMixin(QueuedThread):
         # get the create metadata
         create_folder_paths_dict = {}
         fk_data = (create_folder_paths_dict, Comic, "parent_folder", "path")
-        self.query_missing_simple_models(
+        self._query_missing_simple_models(
             proposed_folder_paths,
             fk_data,
             status=status,
@@ -331,3 +343,91 @@ class QueryForeignKeysMixin(QueuedThread):
         count = len(comic_paths)
         self.log.info(f"Prepared {count} new Folders.")
         return count
+
+    @staticmethod
+    def _get_query_fks_totals(fks):
+        """Get the query foreign keys totals."""
+        fks_total = 0
+        for key, objs in fks.items():
+            if key == "group_trees":
+                for groups in objs.values():
+                    fks_total += len(groups)
+            else:
+                fks_total += len(objs)
+        return fks_total
+
+    def _query_one_simple_model(self, fk_field, names, create_fks, status):
+        """Batch query one simple model name."""
+        if fk_field in _CREATOR_FK_NAMES:
+            base_cls = Creator
+        elif fk_field == "story_arc":
+            base_cls = StoryArcNumber
+        else:
+            base_cls = Comic
+        fk_data = create_fks, base_cls, fk_field, "name"
+        status.complete += self._query_missing_simple_models(
+            names,
+            fk_data,
+            status=status,
+        )
+
+    def query_all_missing_fks(self, library_path, fks):
+        """Get objects to create by querying existing objects for the proposed fks."""
+        create_creators = set()
+        create_story_arc_numbers = set()
+        create_groups = {}
+        update_groups = {}
+        create_folder_paths = set()
+        create_fks = {}
+        self.log.debug(f"Querying existing foreign keys for comics in {library_path}")
+        fks_total = self._get_query_fks_totals(fks)
+        status = Status(ImportStatusTypes.QUERY_MISSING_FKS, 0, fks_total)
+        try:
+            self.status_controller.start(status)
+
+            self._query_missing_creators(
+                fks.pop("creators", {}),
+                create_creators,
+                status=status,
+            )
+
+            self._query_missing_story_arc_numbers(
+                fks.pop("story_arc_numbers", {}),
+                create_story_arc_numbers,
+                status=status,
+            )
+
+            create_and_update_groups = {
+                "create_groups": create_groups,
+                "update_groups": update_groups,
+            }
+            for group_class, groups in fks.pop("group_trees", {}).items():
+                self._query_missing_group(
+                    groups,
+                    group_class,
+                    create_and_update_groups,
+                    status=status,
+                )
+
+            self.query_missing_folder_paths(
+                fks.pop("comic_paths", ()),
+                library_path,
+                create_folder_paths,
+                status=status,
+            )
+
+            for fk_field in sorted(fks.keys()):
+                self._query_one_simple_model(
+                    fk_field, fks.pop(fk_field), create_fks, status
+                )
+        finally:
+            self.status_controller.finish(status)
+
+        return (
+            create_groups,
+            update_groups,
+            create_folder_paths,
+            create_fks,
+            create_creators,
+            create_story_arc_numbers,
+        )

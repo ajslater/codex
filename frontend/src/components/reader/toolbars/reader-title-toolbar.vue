@@ -14,14 +14,11 @@
         </v-icon>
       </v-btn>
     </v-toolbar-items>
-    {{ bookChange }}
     <v-toolbar-title id="toolbarTitle" class="codexToolbarTitle">
       {{ activeTitle }}
     </v-toolbar-title>
-    <span v-if="seriesPosition" id="seriesPosition" title="Series Position">{{
-      seriesPosition
-    }}</span>
     <v-toolbar-items>
+      <ReaderArcSelect />
       <v-btn id="tagButton" @click.stop="openMetadata">
         <MetadataDialog ref="metadataDialog" group="c" :pk="pk" />
       </v-btn>
@@ -39,6 +36,7 @@ import { mapActions, mapGetters, mapState, mapWritableState } from "pinia";
 
 import CHOICES from "@/choices";
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
+import ReaderArcSelect from "@/components/reader/toolbars/reader-arc-select.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
@@ -48,6 +46,7 @@ export default {
   name: "ReaderTitleToolbar",
   components: {
     MetadataDialog,
+    ReaderArcSelect,
     SettingsDrawerButton,
   },
   data() {
@@ -69,17 +68,10 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useReaderStore, ["activeTitle", "activeBook"]),
+    ...mapGetters(useReaderStore, ["activeTitle"]),
     ...mapState(useReaderStore, {
-      bookChange: (state) => state.bookChange,
-      seriesPosition: function (state) {
-        if (this.activeBook && state.seriesCount > 1) {
-          return `${this.activeBook.seriesIndex}/${state.seriesCount}`;
-        }
-        return "";
-      },
       vertical: (state) => state.activeSettings.vertical,
-      pk: (state) => state.pk || 0,
+      pk: (state) => state.books?.current?.pk || 0,
     }),
     ...mapState(useBrowserStore, {
       lastRoute: (state) => state.page.routes.last,
@@ -165,12 +157,6 @@ export default {
   text-overflow: clip;
   white-space: normal;
 }
-#seriesPosition {
-  padding-left: 10px;
-  padding-right: 10px;
-  color: rgb(var(--v-theme-textSecondary));
-  text-align: center;
-}
 #tagButton {
   min-width: 24px;
   height: 24px;
@@ -189,10 +175,6 @@ export default {
   #settingsButton {
     padding-left: 2px;
     padding-right: 2px;
-  }
-  #seriesPosition {
-    padding-left: 0px;
-    padding-right: 0px;
   }
 }
 </style>

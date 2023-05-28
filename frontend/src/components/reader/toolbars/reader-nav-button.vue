@@ -38,7 +38,7 @@ export default {
       vertical: (state) => state.activeSettings?.vertical,
       toRoute(state) {
         return {
-          params: { pk: state.pk, page: this.value },
+          params: { pk: state.books.current.pk, page: this.value },
         };
       },
     }),

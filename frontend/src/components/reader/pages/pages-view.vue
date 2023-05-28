@@ -22,7 +22,7 @@ export default {
   emits: ["click"],
   computed: {
     ...mapState(useReaderStore, {
-      storePk: (state) => state.pk,
+      storePk: (state) => state.books?.current?.pk || 0,
     }),
     settings() {
       return this.getSettings(this.book);

@@ -84,13 +84,16 @@ class AggregateMetadataMixin(CleanMetadataMixin):
         return md, m2m_md, group_tree_md, failed_import
 
     @staticmethod
-    def _aggregate_m2m_metadata_creators(names, all_fks):
+    def _aggregate_m2m_metadata_creators(creator_dict_list, all_fks):
         """Aggregate creators metadata."""
-        if names and "creators" not in all_fks:
+        if not creator_dict_list:
+            return
+
+        if "creators" not in all_fks:
             all_fks["creators"] = set()
 
-        # for creators add the creator fks to fks
-        for creator_dict in names:
+        for creator_dict in creator_dict_list:
+            # add the fk relations to fks to query.
             for creator_field, name in creator_dict.items():
                 # These fields are ambiguous because they're fks to creator
                 #   but aren't ever in Comic so query_fks.py can
@@ -98,17 +101,24 @@ class AggregateMetadataMixin(CleanMetadataMixin):
                 if creator_field not in all_fks:
                     all_fks[creator_field] = set()
                 all_fks[creator_field].add(name)
+
+            # Add creators to the all_fks list as well.
             creator_tuple = tuple(sorted(creator_dict.items()))
             all_fks["creators"].add(creator_tuple)
 
     @staticmethod
-    def _aggregate_m2m_metadata_story_arc_numbers(names, all_fks):
+    def _aggregate_m2m_metadata_story_arc_numbers(story_arc_numbers_dict, all_fks):
         """Aggregate story arc numbers."""
-        if not names:
+        if not story_arc_numbers_dict:
             return
+
         if "story_arc" not in all_fks:
             all_fks["story_arc"] = set()
-        all_fks["story_arc"] |= frozenset(names.keys())
+        all_fks["story_arc"] |= frozenset(story_arc_numbers_dict.keys())
+
+        if "story_arc_numbers" not in all_fks:
+            all_fks["story_arc_numbers"] = set()
+        all_fks["story_arc_numbers"] |= frozenset(story_arc_numbers_dict.items())
 
     @classmethod
     def _aggregate_m2m_metadata(cls, all_m2m_mds, m2m_md, all_fks, path):

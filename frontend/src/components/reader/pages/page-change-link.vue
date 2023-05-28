@@ -12,8 +12,6 @@
 <script>
 import { mapActions, mapState } from "pinia";
 
-import { getComicPageSource } from "@/api/v3/reader";
-import { linksInfo } from "@/components/reader/prefetch-links";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
@@ -22,27 +20,15 @@ export default {
     direction: { type: String, required: true },
   },
   head() {
-    return linksInfo([this.prefetchSrc1, this.prefetchSrc2]);
+    return this.prefetchLinks(this.params, this.computedDirection);
   },
   computed: {
     ...mapState(useReaderStore, {
+      computedDirection() {
+        return this.normalizeDirection(this.direction);
+      },
       params(state) {
         return state.routes[this.computedDirection];
-      },
-      prefetchSrc2(state) {
-        const book = state.books.get(this.params.pk);
-        if (!book) {
-          return false;
-        }
-        const settings = this.getSettings(book);
-        if (!settings.twoPages) {
-          return false;
-        }
-        const paramsPlus = { ...this.params, page: this.params.page + 1 };
-        if (paramsPlus.page > book.maxPage) {
-          return false;
-        }
-        return getComicPageSource(paramsPlus);
       },
       directionClass(state) {
         let dc = this.direction;
@@ -57,22 +43,21 @@ export default {
         return pcc;
       },
     }),
-    computedDirection() {
-      return this.normalizeDirection(this.direction);
-    },
-    prefetchSrc1() {
-      return this.params ? getComicPageSource(this.params) : false;
-    },
     route() {
-      return this.params ? { params: this.params } : {};
+      return this.toRoute(this.params);
     },
     label() {
-      const prefix = this.computedDirection === "prev" ? "Previous" : "Next";
-      return `${prefix} Page`;
+      return this.linkLabel(this.computedDirection, "Page");
     },
   },
   methods: {
-    ...mapActions(useReaderStore, ["getSettings", "normalizeDirection"]),
+    ...mapActions(useReaderStore, [
+      "getSettings",
+      "linkLabel",
+      "normalizeDirection",
+      "prefetchLinks",
+      "toRoute",
+    ]),
   },
 };
 </script>

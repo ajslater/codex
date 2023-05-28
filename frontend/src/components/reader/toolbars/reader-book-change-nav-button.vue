@@ -32,11 +32,7 @@ export default {
   computed: {
     ...mapState(useReaderStore, {
       toRoute(state) {
-        const books = state.routes.books;
-        if (!books) {
-          return "";
-        }
-        const params = books[this.direction];
+        const params = state?.routes?.books[this.direction];
         return params ? { params: { ...params } } : "";
       },
     }),

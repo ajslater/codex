@@ -137,13 +137,6 @@ class MetadataView(BrowserAnnotationsView):
         )
         return qs
 
-    def _annotate_for_filename(self, qs):
-        """Annotate for the filename function."""
-        if not self.is_model_comic:
-            return qs
-        qs = qs.annotate(parent_folder_pk=F("parent_folder_id"))
-        return qs.annotate(series_name=F("series__name"), volume_name=F("volume__name"))
-
     @staticmethod
     def _get_intersection_queryset(qs, values, count_rel, comic_pks):
         """Create an intersection queryset."""
@@ -179,15 +172,19 @@ class MetadataView(BrowserAnnotationsView):
 
             intersection_qs = model.objects.filter(comic__pk__in=comic_pks)
             if field_name == "creators":
-                intersection_qs = intersection_qs.prefetch_related(
+                # XXX This doesn't prevent an n+1 warning
+                intersection_qs = intersection_qs.select_related(
                     *self._CREATOR_RELATIONS
                 )
                 values = self._CREATOR_RELATIONS
             elif field_name == "story_arc_numbers":
-                intersection_qs = intersection_qs.prefetch_related(
+                # XXX This doesn't prevent an n+1 warning
+                intersection_qs = intersection_qs.select_related(
                     *self._STORY_ARC_NUMBER_RELATIONS
                 )
                 values = self._STORY_ARC_NUMBER_RELATIONS
+
+                # Extra add on m2m
                 m2m_intersections[
                     "story_arcs"
                 ] = self._get_story_arc_intersection_queryset(comic_pks)
@@ -249,7 +246,7 @@ class MetadataView(BrowserAnnotationsView):
 
         # filename
         if self.model == Comic:
-            obj.filename = Comic.get_filename(obj)
+            obj.filename = obj.filename()
 
         return obj
 
@@ -270,7 +267,6 @@ class MetadataView(BrowserAnnotationsView):
         simple_qs = qs
 
         qs = self._annotate_values_and_fks(qs, simple_qs)
-        qs = self._annotate_for_filename(qs)
 
         try:
             obj = qs.first()

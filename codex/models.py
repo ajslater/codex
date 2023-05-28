@@ -479,18 +479,14 @@ class Comic(WatchedPath):
         return title
 
     @classmethod
-    def get_filename(cls, obj, issue_max=None):
+    def get_filename(cls, obj):
         """Get the fileaname from dict."""
-        fn = cls.get_title(obj, issue_max=issue_max)
-        ft = obj.file_type or "cbz"
-        fn += "." + ft.lower()
-        return fn
+        path = Path(obj.path)
+        return path.stem + path.suffix
 
-    def filename(self, issue_max=None):
+    def filename(self):
         """Create a filename for download."""
-        self.series_name = self.series.name
-        self.volume_name = self.volume.name
-        return self.get_filename(self, issue_max)
+        return self.get_filename(self)
 
     def __str__(self):
         """Most common text representation for logging."""

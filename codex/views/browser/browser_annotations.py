@@ -1,4 +1,6 @@
 """Base view for metadata annotations."""
+from os.path import sep
+
 from django.db.models import (
     BooleanField,
     Case,
@@ -134,7 +136,7 @@ class BrowserAnnotationsView(BrowserOrderByView):
             queryset = queryset.annotate(
                 sort_name=Right(
                     "path",
-                    StrIndex(Reverse(F("path")), Value("/")) - 1,  # type: ignore
+                    StrIndex(Reverse(F("path")), Value(sep)) - 1,  # type: ignore
                     output_field=CharField(),
                 )
             )
