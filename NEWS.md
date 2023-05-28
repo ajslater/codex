@@ -11,9 +11,10 @@ border-radius: 128px;
 - Features
   - Support multiple Story Arcs per comic.
     - Supports Mylar CSV StoryArc / StoryArcNumber extension to ComicInfo.xml
-  - Reader shows filename instead of metadtata title if you've been browsing in
+  - Reader has a Series/Folder/Story Arc order selector.
+  - Reader shows filename instead of metadata title if you've been browsing in
     File View
-  - Downloads now use the original unmunged filename from disk.
+  - Downloads now use the original filename from disk.
 
 ## v1.3.14
 
