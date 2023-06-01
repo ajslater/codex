@@ -153,8 +153,13 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
     def get_object(self):
         """Get the browser page and serialize it for this subclass."""
         group = self.kwargs.get("group")
-        self.acquisition_groups = frozenset(self.valid_nav_groups[-2:])
-        self.is_opds_1_acquisition = group in self.acquisition_groups
+        if group == "a":
+            self.acquisition_groups = frozenset(["a"])
+            pk = self.kwargs.get("pk")
+            self.is_opds_1_acquisition = group in self.acquisition_groups and pk
+        else:
+            self.acquisition_groups = frozenset(self.valid_nav_groups[-2:])
+            self.is_opds_1_acquisition = group in self.acquisition_groups
         self.is_opds_metadata = (
             self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
         )

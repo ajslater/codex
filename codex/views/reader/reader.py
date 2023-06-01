@@ -29,6 +29,7 @@ class ReaderView(BookmarkBaseView):
         "volume",
         "read_ltr",
     )
+    _VALID_ARC_GROUPS = frozenset(("f", "s", "a"))
 
     def _get_comics_list(self):
         """Get the reader naviation group filter."""
@@ -59,7 +60,7 @@ class ReaderView(BookmarkBaseView):
             arc_index = Value(None, IntegerField())
             ordering = Comic.ORDERING
 
-        group_acl_filter = self.get_group_acl_filter(True)
+        group_acl_filter = self.get_group_acl_filter(Comic)
         arc_pk = self.params.get("arc_pk")
         if not arc_pk:
             rel += "__comic"
@@ -236,12 +237,15 @@ class ReaderView(BookmarkBaseView):
         if not arc_group:
             arc_group = top_group
 
-        if arc_group not in frozenset(("f", "s", "a")):
+        if arc_group not in self._VALID_ARC_GROUPS:
             arc_group = "s"
 
         arc_pk = data.get("arcPk")
         if arc_pk is not None:
             arc_pk = int(arc_pk)
+        elif top_group == "a":
+            last_route = session.get("route", {})
+            arc_pk = last_route.get("pk")
 
         params = {
             "arc_group": arc_group,

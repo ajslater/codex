@@ -26,40 +26,27 @@ class BrowserChoicesViewBase(BrowserBaseView):
     _STORY_ARC_REL = "story_arc_numbers__story_arc"
     _NULL_NAMED_ROW = {"pk": -1, "name": "_none_"}
 
-    @staticmethod
-    def get_field_choices_query(field_name, comic_qs):
+    def get_field_choices_query(self, field_name, comic_qs):
         """Get distinct values for the field."""
         return comic_qs.values_list(field_name, flat=True).distinct()
 
     @classmethod
-    def get_m2m_field_query(cls, rel, comic_qs, model):
+    def get_m2m_field_query(cls, comic_qs, model):
         """Get distinct m2m value objects for the relation."""
-        if rel == cls._CREATORS_PERSON_REL:
-            comic_rel = "creator__comic"
-        elif rel == cls._STORY_ARC_REL:
-            comic_rel = "storyarcnumber__comic"
-        else:
-            comic_rel = "comic"
-        return (
-            model.objects.filter(**{f"{comic_rel}__in": comic_qs})
-            .prefetch_related(comic_rel)
-            .values("pk", "name")
-            .distinct()
-        )
+        return model.objects.filter(pk__in=comic_qs).values("pk", "name").distinct()
 
     @staticmethod
     def does_m2m_null_exist(comic_qs, rel):
         """Get if null values exists for an m2m field."""
         return comic_qs.filter(**{f"{rel}__isnull": True}).exists()
 
-    @classmethod
-    def _get_rel_and_model(cls, field_name):
+    def _get_rel_and_model(self, field_name):
         """Return the relation and model for the field name."""
-        if field_name == cls.CREATOR_PERSON_UI_FIELD:
-            rel = cls._CREATORS_PERSON_REL
+        if field_name == self.CREATOR_PERSON_UI_FIELD:
+            rel = self._CREATORS_PERSON_REL
             model = CreatorPerson
-        elif field_name == cls.STORY_ARC_UI_FIELD:
-            rel = cls._STORY_ARC_REL
+        elif field_name == self.STORY_ARC_UI_FIELD:
+            rel = self._STORY_ARC_REL
             model = StoryArc
         else:
             remote_field = getattr(
@@ -68,12 +55,19 @@ class BrowserChoicesViewBase(BrowserBaseView):
             rel = field_name
             model = remote_field.model if remote_field else None
 
+        rel = self.rel_prefix + rel
+
         return rel, model
 
     def get_object(self):
         """Get the comic subquery use for the choices."""
-        object_filter, _ = self.get_query_filters(True, True)
-        return Comic.objects.filter(object_filter)
+        object_filter, _ = self.get_query_filters(self.model, True)
+        return self.model.objects.filter(object_filter)
+
+    def _set_model(self):
+        """Set the model to query."""
+        group = self.kwargs["group"]
+        self.model = self.GROUP_MODEL_MAP[group]
 
 
 class BrowserChoicesAvailableView(BrowserChoicesViewBase):
@@ -81,17 +75,14 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
 
     serializer_class = BrowserFilterChoicesSerializer
 
-    CREATORS_PERSON_REL = "creators__person"
-
-    @classmethod
-    def _get_field_choices_count(cls, field_name, comic_qs):
+    def _get_field_choices_count(self, field_name, comic_qs):
         """Create a pk:name object for fields without tables."""
-        return cls.get_field_choices_query(field_name, comic_qs).count()
+        return self.get_field_choices_query(field_name, comic_qs).count()
 
     @classmethod
     def _get_m2m_field_choices_count(cls, rel, comic_qs, model):
         """Get choices with nulls where there are nulls."""
-        count = cls.get_m2m_field_query(rel, comic_qs, model).count()
+        count = cls.get_m2m_field_query(comic_qs, model).count()
 
         # Detect if there are null choices.
         # Regretabbly with another query, but doing a forward query
@@ -106,10 +97,15 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
     def get(self, *args, **kwargs):
         """Return all choices with more than one choice."""
         self.parse_params()
+        self._set_model()
+        self.set_rel_prefix(self.model)
         comic_qs = self.get_object()
 
         data = {}
         for field_name in self.serializer_class().get_fields():  # type: ignore
+            if field_name == "story_arcs" and self.model == StoryArc:
+                # don't allow filtering on story arc in story arc view.
+                continue
             rel, m2m_model = self._get_rel_and_model(field_name)
 
             if m2m_model:
@@ -129,10 +125,9 @@ class BrowserChoicesView(BrowserChoicesViewBase):
 
     serializer_class = BrowserChoicesSerializer
 
-    @classmethod
-    def _get_field_choices(cls, field_name, comic_qs):
+    def _get_field_choices(self, field_name, comic_qs):
         """Create a pk:name object for fields without tables."""
-        qs = cls.get_field_choices_query(field_name, comic_qs)
+        qs = self.get_field_choices_query(field_name, comic_qs)
 
         if field_name == "country":
             lookup = pycountry.countries
@@ -151,7 +146,7 @@ class BrowserChoicesView(BrowserChoicesViewBase):
     @classmethod
     def _get_m2m_field_choices(cls, rel, comic_qs, model):
         """Get choices with nulls where there are nulls."""
-        qs = cls.get_m2m_field_query(rel, comic_qs, model)
+        qs = cls.get_m2m_field_query(comic_qs, model)
 
         # Detect if there are null choices.
         # Regretabbly with another query, but doing a forward query
@@ -168,6 +163,8 @@ class BrowserChoicesView(BrowserChoicesViewBase):
     def get(self, *args, **kwargs):
         """Return all choices with more than one choice."""
         self.parse_params()
+        self._set_model()
+        self.set_rel_prefix(self.model)
 
         field_name = snakecase(self.kwargs["field_name"])
 

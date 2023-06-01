@@ -41,6 +41,7 @@ FACETS = (
             Facet("p", "Publishers View"),
             Facet("s", "Series View"),
             Facet("f", "Folder View"),
+            Facet("a", "Story Arc View"),
         ),
     )
     # Could add Filters as well.
@@ -95,7 +96,8 @@ GROUPS = (
             NavigationLink(Rel.SUB, "Root", "r", None),
             NavigationLink(Rel.SUB, "Publishers", "p", None),
             NavigationLink(Rel.SUB, "Series", "s", None),
-            NavigationLink(Rel.SUB, "Folders", "f", None),
+            NavigationLink(Rel.SUB, "Folders", "f", {"topGroup": "f"}),
+            NavigationLink(Rel.SUB, "Story Arcs", "a", {"topGroup": "a"}),
         ),
     ),
 )

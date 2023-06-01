@@ -56,7 +56,7 @@ class BookmarkBaseView(GenericAPIView, GroupACLMixin):
 
     def _update_bookmarks(self, search_kwargs, updates):
         """Update existing bookmarks."""
-        group_acl_filter = self.get_group_acl_filter(False)
+        group_acl_filter = self.get_group_acl_filter(Bookmark)
         existing_bookmarks = (
             Bookmark.objects.filter(group_acl_filter)
             .filter(**search_kwargs)
@@ -82,7 +82,7 @@ class BookmarkBaseView(GenericAPIView, GroupACLMixin):
     ):
         """Create new bookmarks for comics that don't exist yet."""
         create_bookmarks = []
-        group_acl_filter = self.get_group_acl_filter(True)
+        group_acl_filter = self.get_group_acl_filter(Comic)
         create_bookmark_comics = (
             Comic.objects.filter(group_acl_filter)
             .filter(**comic_filter)

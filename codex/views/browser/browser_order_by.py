@@ -4,7 +4,7 @@ from os import sep
 from django.db.models import Avg, F, Max, Min, Sum, Value
 from django.db.models.functions import Reverse, Right, StrIndex
 
-from codex.models import Comic, Folder
+from codex.models import Comic, Folder, StoryArc
 from codex.views.browser.base import BrowserBaseView
 
 
@@ -25,7 +25,7 @@ class BrowserOrderByView(BrowserBaseView):
         "story_arc_number": Min,
     }
     _SEP_VALUE = Value(sep)
-    _ORDER_FIELDS = ("order_value", "pk")
+    _ANNOTATED_ORDER_FIELDS = frozenset(("sort_name", "bookmark_updated_at"))
 
     def set_order_key(self):
         """Get the default order key for the view."""
@@ -42,7 +42,7 @@ class BrowserOrderByView(BrowserBaseView):
             field, StrIndex(Reverse(field), cls._SEP_VALUE) - 1  # type: ignore
         )
 
-    def get_aggregate_func(self, field):
+    def get_aggregate_func(self, model, field):
         """Order by aggregate."""
         # get agg_func
         agg_func = self._ORDER_AGGREGATE_FUNCS[field]
@@ -50,7 +50,13 @@ class BrowserOrderByView(BrowserBaseView):
             agg_func = Max
 
         # get full_field
-        full_field = "comic__" + field
+        self.kwargs.get("group")
+        if model == StoryArc and field == "story_arc_number":
+            full_field = "storyarcnumber__number"
+        else:
+            if self.order_key == "story_arc_number":
+                field = "story_arc_numbers__number"
+            full_field = self.rel_prefix + field
         if field == "path":
             full_field = self._get_path_query_func(full_field)
 
@@ -62,31 +68,27 @@ class BrowserOrderByView(BrowserBaseView):
         if self.order_key == "path" and model in (Comic, Folder):
             # special path sorting.
             func = self._get_path_query_func(self.order_key)
-        elif model == Comic or self.order_key in ("sort_name", "bookmark_updated_at"):
+        elif model == Comic or self.order_key in self._ANNOTATED_ORDER_FIELDS:
             # agg_none uses group fields not comic fields.
             func = F(self.order_key)
         else:
-            func = self.get_aggregate_func(self.order_key)
+            func = self.get_aggregate_func(model, self.order_key)
         return func
 
-    def add_order_by(self, queryset, model, for_cover=False):
+    def add_order_by(self, queryset, model):
         """Create the order_by list."""
         prefix = ""
         if self.params.get("order_reverse"):
             prefix += "-"
 
-        if for_cover:
-            prefix += "comic__"
-            # Cover Comic subquery has no order_value or sort_name
-            if self.order_key == "sort_name":
-                order_fields = Comic.ORDERING
-            else:
-                order_fields = (self.order_key, "pk")
+        if self.order_key == "sort_name":
+            order_fields = ("order_value", *model.ORDERING[1:])
+        elif self.order_key == "bookmark_updated_at":
+            order_fields = ("order_value", "updated_at", "created_at", "pk")
+        elif self.order_key == "story_arc_number" and model == Comic:
+            order_fields = ("order_value", "date", *model.ORDERING)
         else:
-            if self.order_key == "sort_name":  # noqa PLR5501
-                order_fields = (self._ORDER_FIELDS[0], *model.ORDERING[1:])
-            else:
-                order_fields = self._ORDER_FIELDS
+            order_fields = ("order_value", *model.ORDERING)
 
         order_by = []
         for field in order_fields:

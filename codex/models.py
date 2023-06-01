@@ -199,7 +199,7 @@ class SeriesGroup(NamedModel):
     """A series group the series is part of."""
 
 
-class StoryArc(NamedModel):
+class StoryArc(NamedModel, BrowserGroupModel):
     """A story arc the comic is part of."""
 
 

@@ -15,6 +15,8 @@ border-radius: 128px;
   - Reader shows filename instead of metadata title if you've been browsing in
     File View
   - Downloads now use the original filename from disk.
+- Fix
+  - Folder view offered and crashed in OPDS even if disabled by admin.
 
 ## v1.3.14
 

@@ -25,7 +25,7 @@ class DownloadView(APIView, GroupACLMixin):
         """Download a comic archive."""
         pk = kwargs.get("pk")
         try:
-            group_acl_filter = self.get_group_acl_filter(True)
+            group_acl_filter = self.get_group_acl_filter(Comic)
             comic = (
                 Comic.objects.filter(group_acl_filter)
                 .select_related(*self._DOWNLOAD_SELECT_RELATED)

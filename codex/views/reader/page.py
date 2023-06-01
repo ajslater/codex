@@ -50,7 +50,7 @@ class ReaderPageView(BookmarkBaseView):
 
     def _get_page_image(self):
         """Get the image data and content type."""
-        group_acl_filter = self.get_group_acl_filter(True)
+        group_acl_filter = self.get_group_acl_filter(Comic)
         pk = self.kwargs.get("pk")
         comic = Comic.objects.filter(group_acl_filter).only("path").get(pk=pk)
         page = self.kwargs.get("page")

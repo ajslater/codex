@@ -81,7 +81,7 @@ class MetadataView(BrowserAnnotationsView):
             # Have to use simple_qs because every annotation in the loop
             # corrupts the the main qs
             # If 1 variant, annotate value, otherwise None
-            full_field = field if self.is_model_comic else "comic__" + field
+            full_field = self.rel_prefix + field
 
             sq = (
                 simple_qs.values("id")
@@ -107,7 +107,7 @@ class MetadataView(BrowserAnnotationsView):
     def _annotate_aggregates(self, qs):
         """Annotate aggregate values."""
         if not self.is_model_comic:
-            size_func = self.get_aggregate_func("size")
+            size_func = self.get_aggregate_func(self.model, "size")
             qs = qs.annotate(size=size_func)
         qs = self.annotate_common_aggregates(qs, self.model, {})
         return qs
@@ -162,7 +162,7 @@ class MetadataView(BrowserAnnotationsView):
         """Query the through models to figure out m2m intersections."""
         # Speed ok, but still does a query per m2m model
         m2m_intersections = {}
-        pk_field = "pk" if self.is_model_comic else "comic__pk"
+        pk_field = self.rel_prefix + "pk"
         comic_pks = simple_qs.values_list(pk_field, flat=True)
         for field_name in COMIC_M2M_FIELD_NAMES:
             model = Comic._meta.get_field(field_name).related_model
@@ -259,7 +259,7 @@ class MetadataView(BrowserAnnotationsView):
         if self.model is None:
             raise NotFound(detail=f"Cannot get metadata for {self.group=}")
 
-        object_filter, _ = self.get_query_filters_without_group(self.is_model_comic)
+        object_filter, _ = self.get_query_filters_without_group(self.model)
         pk = self.kwargs["pk"]
         qs = self.model.objects.filter(object_filter, pk=pk)
 
@@ -303,9 +303,10 @@ class MetadataView(BrowserAnnotationsView):
         # Init
         self._efv_flag = None
         self.parse_params()
-        self.set_order_key()
         self.group = self.kwargs["group"]
         self._validate()
+        self.rel_prefix = self.get_rel_prefix(self.model)
+        self.set_order_key()
 
         obj = self.get_object()
 

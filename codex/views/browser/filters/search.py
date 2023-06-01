@@ -23,19 +23,14 @@ class SearchFilterMixin:
             LOG.warning("While searching:")
             LOG.exception(exc)
 
-    def _get_search_query_filter(self, text, is_model_comic, search_scores):
+    def _get_search_query_filter(self, text, search_scores):
         """Get the search filter and scores."""
-        # Get search scores
+        rel = self.rel_prefix + "pk__in"  # type: ignore
         self._get_search_scores(text, search_scores)
-
-        # Create query
-        prefix = ""
-        if not is_model_comic:
-            prefix = "comic__"
-        query_dict = {f"{prefix}pk__in": search_scores.keys()}
+        query_dict = {rel: search_scores.keys()}
         return Q(**query_dict)
 
-    def get_search_filter(self, is_model_comic):
+    def get_search_filter(self):
         """Preparse search, search and return the filter and scores."""
         search_filter = Q()
         search_scores = {}
@@ -48,7 +43,7 @@ class SearchFilterMixin:
             if query_string:
                 # Query haystack
                 search_filter = self._get_search_query_filter(
-                    query_string, is_model_comic, search_scores
+                    query_string, search_scores
                 )
         except Exception as exc:
             LOG.warning(exc)

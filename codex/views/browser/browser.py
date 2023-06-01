@@ -20,6 +20,7 @@ from codex.models import (
     Library,
     Publisher,
     Series,
+    StoryArc,
     Timestamp,
     Volume,
 )
@@ -49,9 +50,11 @@ class BrowserView(BrowserAnnotationsView):
         Imprint: ("publisher",),
         Publisher: (None,),
         Folder: ("parent_folder",),
+        StoryArc: (None,),
     }
+    DEFAULT_ROUTE_NAME = "browser"
     _DEFAULT_ROUTE = {
-        "name": "browser",
+        "name": DEFAULT_ROUTE_NAME,
         "params": deepcopy(DEFAULTS["route"]),
     }
     _OPDS_M2M_RELS = (
@@ -107,7 +110,10 @@ class BrowserView(BrowserAnnotationsView):
         #   the child of the current nav group or 'c'
         group = self.kwargs["group"]
         if group == self.FOLDER_GROUP:
-            return self.FOLDER_GROUP
+            return group
+        if group == self.STORY_ARC_GROUP:
+            pk = self.kwargs["pk"]
+            return self.COMIC_GROUP if pk else group
         if group == self.valid_nav_groups[-1]:
             # special case for lowest valid group
             return self.COMIC_GROUP
@@ -137,7 +143,7 @@ class BrowserView(BrowserAnnotationsView):
         if self.model == Comic or group == self.FOLDER_GROUP:
             if group == self.FOLDER_GROUP:
                 comic_object_filter, comic_search_scores = self.get_query_filters(
-                    True, False
+                    self.model, False
                 )
             else:
                 comic_object_filter = object_filter
@@ -167,11 +173,17 @@ class BrowserView(BrowserAnnotationsView):
 
         return up_group, up_pk
 
+    def _get_story_arc_up_route(self):
+        """Get one level hierarchy."""
+        up_group = self.STORY_ARC_GROUP
+        up_group = 0 if self.group_instance else None
+        return self.STORY_ARC_GROUP, up_group
+
     def _set_group_instance(self):
         """Create group_class instance."""
         pk = self.kwargs.get("pk")
         self.group_instance: Optional[
-            Union[Folder, Publisher, Imprint, Series, Volume]
+            Union[Folder, Publisher, Imprint, Series, Volume, StoryArc]
         ] = None
         if not pk:
             return
@@ -314,11 +326,11 @@ class BrowserView(BrowserAnnotationsView):
     def get_object(self):
         """Validate settings and get the querysets."""
         self._set_browse_model()
+        self.set_rel_prefix(self.model)
         self._set_group_instance()  # Placed up here to invalidate earlier
         # Create the main query with the filters
-        is_model_comic = self.model == Comic
         try:
-            object_filter, search_scores = self.get_query_filters(is_model_comic, False)
+            object_filter, search_scores = self.get_query_filters(self.model, False)
         except Folder.DoesNotExist:
             pk = self.kwargs.get("pk")
             self._raise_redirect(
@@ -338,6 +350,8 @@ class BrowserView(BrowserAnnotationsView):
         # get additional context
         if group == self.FOLDER_GROUP:
             up_group, up_pk = self._get_folder_up_route()
+        elif group == self.STORY_ARC_GROUP:
+            up_group, up_pk = self._get_story_arc_up_route()
         else:
             up_group, up_pk = self._get_browse_up_route()
         browser_page_title = self._get_browser_page_title()
@@ -482,6 +496,9 @@ class BrowserView(BrowserAnnotationsView):
             reason = f"Redirect r with {pk=} to pk 0"
             self._raise_redirect({"pk": 0}, reason)
 
+    def _validate_story_arc_settings(self):
+        pass
+
     def _set_route_param(self):
         """Set the route param."""
         group = self.kwargs.get("group", "r")
@@ -504,6 +521,8 @@ class BrowserView(BrowserAnnotationsView):
 
         if group == self.FOLDER_GROUP:
             self._validate_folder_settings(enable_folder_view)
+        elif group == self.STORY_ARC_GROUP:
+            self._validate_story_arc_settings()
         else:
             self._validate_browser_group_settings()
 
