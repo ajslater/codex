@@ -205,11 +205,11 @@
 
 <script>
 import { mdiClipboardCheckOutline, mdiClipboardOutline } from "@mdi/js";
-import { numberFormat } from "humanize";
 import { mapActions, mapState } from "pinia";
 
 import ConfirmDialog from "@/components/confirm-dialog.vue";
 import { copyToClipboard } from "@/copy-to-clipboard";
+import { NUMBER_FORMAT } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
@@ -250,7 +250,7 @@ export default {
       this.updateAPIKey().then(this.loadStats).catch(console.warn);
     },
     nf(val) {
-      return numberFormat(val, 0);
+      return NUMBER_FORMAT.format(val);
     },
     onClickAPIKey() {
       if (!this.clipBoardEnabled) {

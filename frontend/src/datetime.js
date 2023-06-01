@@ -4,6 +4,7 @@
 const TWELVE_HOUR_LOCALE = "en-NZ";
 const TWENTY_FOUR_HOUR_LOCALE = "sv-SE";
 export const DATE_FORMAT = new Intl.DateTimeFormat(TWENTY_FOUR_HOUR_LOCALE);
+export const NUMBER_FORMAT = new Intl.NumberFormat("en-US");
 export const getTimeFormat = function (twentyFourHourTime) {
   const locale = twentyFourHourTime
     ? TWENTY_FOUR_HOUR_LOCALE
@@ -24,6 +25,7 @@ export const getDateTime = function (dttm, twentyFourHourTime, br = false) {
 
 export default {
   DATE_FORMAT,
+  NUMBER_FORMAT,
   getDateTime,
   getTimeFormat,
 };

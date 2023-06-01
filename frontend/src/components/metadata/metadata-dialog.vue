@@ -214,8 +214,8 @@
 </template>
 <script>
 import { mdiDownload, mdiEye, mdiEyeOff, mdiTagOutline } from "@mdi/js";
-import humanize from "humanize";
 import { mapActions, mapGetters, mapState } from "pinia";
+import prettyBytes from "pretty-bytes";
 
 import { getDownloadURL } from "@/api/v3/reader";
 import { formattedIssue, getFullComicName } from "@/comic-name";
@@ -225,7 +225,7 @@ import MetadatacreatorsTable from "@/components/metadata/creators-table.vue";
 import MetadataTags from "@/components/metadata/metadata-tags.vue";
 import MetadataText from "@/components/metadata/metadata-text.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
-import { getDateTime } from "@/datetime";
+import { getDateTime, NUMBER_FORMAT } from "@/datetime";
 import { getReaderRoute } from "@/route";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
@@ -327,10 +327,10 @@ export default {
     pages: function () {
       let pages = "";
       if (this.md.page) {
-        const humanBookmark = humanize.numberFormat(this.md.page, 0);
+        const humanBookmark = NUMBER_FORMAT.format(this.md.page);
         pages += `Read ${humanBookmark} of `;
       }
-      const humanPages = humanize.numberFormat(this.md.pageCount, 0);
+      const humanPages = NUMBER_FORMAT.format(this.md.pageCount);
       pages += `${humanPages} pages`;
       if (this.md.progress > 0) {
         pages += ` (${Math.round(this.md.progress)}%)`;
@@ -338,7 +338,7 @@ export default {
       return pages;
     },
     size: function () {
-      return humanize.filesize(this.md.size);
+      return prettyBytes(this.md.size);
     },
     fileType: function () {
       return this.md.fileType || "Unknown";
