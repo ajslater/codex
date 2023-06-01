@@ -9,6 +9,7 @@ border-radius: 128px;
 ## v1.4.0
 
 - Features
+  - Story Arc Top Group in Web & OPDS Browsers
   - Support multiple Story Arcs per comic.
     - Supports Mylar CSV StoryArc / StoryArcNumber extension to ComicInfo.xml
   - Reader has a Series/Folder/Story Arc order selector.
