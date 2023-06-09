@@ -20,7 +20,8 @@
     hide-details="auto"
     :model-value="twentyFourHourTime"
     :true-value="true"
-    label="24 Hour Time"
+    indeterminate
+    label="Force 24 Hour Time"
     @update:model-value="set24HourTime($event)"
   />
   <v-divider />

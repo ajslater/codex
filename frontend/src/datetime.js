@@ -1,13 +1,13 @@
 // Date & time formats
-// ISO 8601, en-CA has a comma for time delimiter, sv-SE does not.
-// but en-CA has p.m. as a 12hr suffix.
-const TWELVE_HOUR_LOCALE = "en-NZ";
+// Date is forced to YYYY-MM-DD with sv-SE
+// Time is by default undefined and browser based but can be forced to sv-SE 24 HR.
+// XXX Force to 24 hr is probably superfluous at this point
+// const TWELVE_HOUR_LOCALE = "en-NZ";
 const TWENTY_FOUR_HOUR_LOCALE = "sv-SE";
 export const DATE_FORMAT = new Intl.DateTimeFormat(TWENTY_FOUR_HOUR_LOCALE);
+export const NUMBER_FORMAT = new Intl.NumberFormat();
 export const getTimeFormat = function (twentyFourHourTime) {
-  const locale = twentyFourHourTime
-    ? TWENTY_FOUR_HOUR_LOCALE
-    : TWELVE_HOUR_LOCALE;
+  const locale = twentyFourHourTime ? TWENTY_FOUR_HOUR_LOCALE : undefined;
   return new Intl.DateTimeFormat(locale, {
     timeStyle: "medium",
   });
@@ -24,6 +24,7 @@ export const getDateTime = function (dttm, twentyFourHourTime, br = false) {
 
 export default {
   DATE_FORMAT,
+  NUMBER_FORMAT,
   getDateTime,
   getTimeFormat,
 };

@@ -29,11 +29,13 @@ class GroupFilterMixin(GroupACLMixin):
 
     def get_group_filter(self, choices):
         """Get filter for the displayed group."""
-        is_folder_view = self.kwargs.get("group") == self.FOLDER_GROUP  # type: ignore
-        if is_folder_view and choices:
+        group = self.kwargs.get("group")  # type: ignore
+        if group == self.FOLDER_GROUP and choices:
             # Choice view needs to get all descendant comic attributes
             # So filter by all the folders
             group_filter = self._get_folders_filter()
+        elif choices:
+            group_filter = Q()
         else:
             # The browser filter is the same for all views
             group_filter = self._get_browser_group_filter()

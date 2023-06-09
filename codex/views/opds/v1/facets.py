@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 from django.urls import reverse
 
+from codex.models import AdminFlag
 from codex.views.browser.browser import BrowserView
 from codex.views.opds.const import MimeType, Rel
 from codex.views.opds.util import update_href_query_params
@@ -57,7 +58,12 @@ class RootFacetGroups:
         "",
         "topGroup",
         "⊙",
-        (Facet("p", "Publishers View"), Facet("s", "Series View")),
+        (
+            Facet("p", "Publishers View"),
+            Facet("s", "Series View"),
+            Facet("f", "Folder View"),
+            Facet("a", "Story Arc View"),
+        ),
     )
     ALL = (TOP_GROUP,)
 
@@ -124,6 +130,19 @@ class FacetsMixin(BrowserView):
             compare += [None]
         return self.request.query_params.get(facet_group.query_param) in compare
 
+    @staticmethod
+    def _did_special_group_change(group, facet_group):
+        """Test if one of the special groups changed."""
+        for test_group in ("f", "a"):
+            if (
+                group == test_group
+                and facet_group != test_group
+                or group != test_group
+                and facet_group == test_group
+            ):
+                return True
+        return False
+
     def _facet_or_facet_entry(self, facet_group, facet, entries):
         # This logic preempts facet:activeFacet but no one uses it.
         # don't add default facets if in default mode.
@@ -131,10 +150,8 @@ class FacetsMixin(BrowserView):
             return None
 
         group = self.kwargs.get("group")
-        if (
-            facet_group.query_param == "topGroup"
-            and (group == "f" and facet.value != "f")
-            or (group != "f" and facet.value == "f")
+        if facet_group.query_param == "topGroup" and self._did_special_group_change(
+            group, facet.value
         ):
             kwargs = {"group": facet.value, "pk": 0, "page": 1}
         else:
@@ -150,6 +167,14 @@ class FacetsMixin(BrowserView):
     def _facet_group(self, facet_group, entries):
         facets = []
         for facet in facet_group.facets:
+            if facet.value == "f":
+                efv_flag = (
+                    AdminFlag.objects.only("on")
+                    .get(key=AdminFlag.FlagChoices.FOLDER_VIEW.value)
+                    .on
+                )
+                if not efv_flag:
+                    continue
             if facet_obj := self._facet_or_facet_entry(facet_group, facet, entries):
                 facets += [facet_obj]
         return facets
@@ -162,8 +187,4 @@ class FacetsMixin(BrowserView):
             facets += self._facet_group(FacetGroups.ORDER_REVERSE, entries)
         if root:
             facets += self._facet_group(RootFacetGroups.TOP_GROUP, entries)
-            if facet_obj := self._facet_or_facet_entry(
-                RootFacetGroups.TOP_GROUP, Facet("f", "Folder View"), entries
-            ):
-                facets += [facet_obj]
         return facets

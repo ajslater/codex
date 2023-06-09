@@ -8,10 +8,10 @@
   <!--eslint-enable-->
 </template>
 <script>
-import humanize from "humanize";
 import { mapState } from "pinia";
+import prettyBytes from "pretty-bytes";
 
-import { DATE_FORMAT, getDateTime } from "@/datetime";
+import { DATE_FORMAT, getDateTime, NUMBER_FORMAT } from "@/datetime";
 import { useBrowserStore } from "@/stores/browser";
 const STAR_SORT_BY = new Set(["community_rating", "critical_rating"]);
 const DATE_SORT_BY = new Set(["date"]);
@@ -51,15 +51,15 @@ export default {
         ov = DATE_FORMAT.format(date);
       } else if (this.orderBy == "search_score") {
         // Round Whoosh float into a two digit integer.
-        ov = Math.round(Number.parseFloat(ov) * 10);
+        ov = NUMBER_FORMAT.format(Math.round(Number.parseFloat(ov) * 10));
       } else if (TIME_SORT_BY.has(this.orderBy)) {
         // this is what needs v-html to work with the embedded break.
         ov = getDateTime(ov, this.twentyFourHourTime, true);
       } else if (this.orderBy == "page_count") {
-        const human = humanize.numberFormat(Number.parseInt(ov, 10), 0);
+        const human = NUMBER_FORMAT.format(ov);
         ov = `${human} pages`;
       } else if (this.orderBy == "size") {
-        ov = humanize.filesize(Number.parseInt(ov, 10), 1024, 1);
+        ov = prettyBytes(Number.parseInt(ov, 10));
       } else if (STAR_SORT_BY.has(this.orderBy)) {
         ov = `★  ${ov}`;
       }

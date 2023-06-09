@@ -1,8 +1,8 @@
 import { defineStore } from "pinia";
-import { reactive } from "vue";
 
+// import { reactive } from "vue";
 import BROWSER_API from "@/api/v3/browser";
-import API from "@/api/v3/reader";
+import API, { getComicPageSource } from "@/api/v3/reader";
 import CHOICES from "@/choices";
 import { getFullComicName } from "@/comic-name";
 import router from "@/plugins/router";
@@ -26,6 +26,8 @@ const DIRECTION_REVERSE_MAP = {
   next: "prev",
 };
 Object.freeze(DIRECTION_REVERSE_MAP);
+const PREFETCH_LINK = { rel: "prefetch", as: "image" };
+Object.freeze(PREFETCH_LINK);
 
 const getGlobalFitToDefault = () => {
   // Big screens default to fit by HEIGHT, small to WIDTH;
@@ -52,11 +54,15 @@ export const useReaderStore = defineStore("reader", {
       readRtlInReverse: false,
       vertical: true,
     },
-    books: new Map(),
-    seriesCount: 0,
+    books: {
+      current: undefined,
+      prev: false,
+      next: false,
+    },
+    arcs: [],
+    arc: {},
 
     // local reader
-    pk: undefined,
     page: undefined,
     routes: {
       prev: false,
@@ -70,28 +76,48 @@ export const useReaderStore = defineStore("reader", {
     reactWithScroll: false,
   }),
   getters: {
-    activeBook(state) {
-      return state.books.get(state.pk);
+    groupBooks(state) {
+      const books = [];
+      if (state.books.prev[0]) {
+        books.push[state.books.prev[0]];
+      }
+      books.push[state.books.current];
+      if (state.books.next[0]) {
+        books.push[state.books.next[0]];
+      }
+      return books;
     },
     activeSettings(state) {
-      return this.getSettings(state.activeBook);
+      return this.getSettings(state.books.current);
     },
     activeTitle(state) {
-      const book = state.activeBook;
-      return book ? getFullComicName(book) : "";
+      const book = state.books.current;
+      let title;
+      if (state.arcs[0]?.group === "f") {
+        // this 0 index will break if we start including series
+        //  with file group.
+        title = book?.filename;
+      }
+      if (!title) {
+        title = book ? getFullComicName(book) : "";
+      }
+      return title;
     },
     prevBookChangeShow(state) {
       return state.page === 0;
     },
     nextBookChangeShow(state) {
-      const maxPage = state.activeBook ? state.activeBook.maxPage : 0;
+      const maxPage = state.books.current ? state.books.current.maxPage : 0;
       const adj =
         state.activeSettings.twoPages && !state.activeSettings.vertical ? 1 : 0;
       const limit = maxPage + adj;
       return state.page >= limit;
     },
     isOnCoverPage(state) {
-      return this._isCoverPage(state.activeBook, state.page);
+      return this._isCoverPage(state.books.current, state.page);
+    },
+    routeParams(state) {
+      return { pk: +state.books.current.pk, page: +state.page };
     },
   },
   actions: {
@@ -127,23 +153,13 @@ export const useReaderStore = defineStore("reader", {
         (book.readLtr && page === book.maxPage)
       );
     },
-    _numericValues(obj) {
-      if (!obj) {
-        return obj;
-      }
-      const res = {};
-      for (const [key, val] of Object.entries(obj)) {
-        res[key] = +val;
-      }
-      return res;
-    },
-    _getRouteParams(activePage, direction) {
-      // get possible activeBook page
+    _getRouteParams(book, activePage, direction) {
       const deltaModifier = direction === "prev" ? -1 : 1;
       let delta = 1;
+      const settings = this.getSettings(book);
       if (
-        this.activeSettings.twoPages &&
-        !this._isCoverPage(this.activeBook, +activePage + deltaModifier)
+        settings.twoPages &&
+        !this._isCoverPage(book, +activePage + deltaModifier)
       ) {
         delta = 2;
       }
@@ -151,10 +167,10 @@ export const useReaderStore = defineStore("reader", {
       const page = +activePage + delta;
 
       let routeParams = false;
-      if (page >= 0 && page <= this.activeBook.maxPage) {
-        // make activeBook route
+      if (page >= 0 && page <= book.maxPage) {
+        // make current book route
         routeParams = {
-          pk: this.pk,
+          pk: book.pk,
           page,
         };
       }
@@ -162,30 +178,23 @@ export const useReaderStore = defineStore("reader", {
     },
     ///////////////////////////////////////////////////////////////////////////
     // MUTATIONS
-    _updateSettings(pk, updates) {
+    _updateSettings(updates, local) {
       // Doing this with $patch breaks reactivity
-      if (pk === 0) {
+      if (local) {
+        this.books.current.settings = {
+          ...this.books.current.settings,
+          ...updates,
+        };
+      } else {
         this.readerSettings = {
           ...this.readerSettings,
           ...updates,
         };
-      } else {
-        const book = this.books.get(pk);
-        book.settings = {
-          ...book.settings,
-          ...updates,
-        };
       }
     },
-    _setRoutes(page) {
-      this.$patch((state) => {
-        state.routes.prev = this._getRouteParams(page, "prev");
-        state.routes.next = this._getRouteParams(page, "next");
-      });
-    },
-    _getBookRoutePage(state, pk, isPrev) {
-      const book = state.books.get(pk);
-
+    ///////////////////////////////////////////////////////////////////////////
+    // ACTIONS
+    _getBookRoutePage(book, isPrev) {
       let bookPage = 0;
       if (
         (isPrev && book.readLtr !== false) ||
@@ -198,34 +207,28 @@ export const useReaderStore = defineStore("reader", {
       }
       return bookPage;
     },
-    _getBookRoutes(state, prevBookPk, nextBookPk) {
-      let prevBookRoute = false;
-      if (prevBookPk) {
-        const prevBookPage = this._getBookRoutePage(state, prevBookPk, true);
-        prevBookRoute = {
-          pk: prevBookPk,
-          page: prevBookPage,
-        };
+    _getBookRoute(book, isPrev) {
+      if (!book) {
+        return false;
       }
-
-      let nextBookRoute = false;
-      if (nextBookPk) {
-        const nextBookPage = this._getBookRoutePage(state, nextBookPk, false);
-        nextBookRoute = {
-          pk: nextBookPk,
-          page: nextBookPage,
-        };
-      }
-
+      const page = this._getBookRoutePage(book, isPrev);
       return {
-        prev: prevBookRoute,
-        next: nextBookRoute,
+        pk: book.pk,
+        page,
       };
     },
-    ///////////////////////////////////////////////////////////////////////////
-    // ACTIONS
+    _getBookRoutes(prevBook, nextBook) {
+      return {
+        prev: this._getBookRoute(prevBook, true),
+        next: this._getBookRoute(nextBook, false),
+      };
+    },
     async setRoutesAndBookmarkPage(page) {
-      this._setRoutes(page);
+      const book = this.books.current;
+      this.$patch((state) => {
+        state.routes.prev = this._getRouteParams(book, page, "prev");
+        state.routes.next = this._getRouteParams(book, page, "next");
+      });
       await this._setBookmarkPage(page).then(() => {
         this.bookChange = undefined;
         return true;
@@ -235,17 +238,17 @@ export const useReaderStore = defineStore("reader", {
       if (page < 0) {
         console.warn("Page out of bounds. Redirecting to 0.");
         return this.routeToPage(0);
-      } else if (page > this.activeBook.maxPage) {
+      } else if (page > this.books.current.maxPage) {
         console.warn(
-          `Page out of bounds. Redirecting to ${this.activeBook.maxPage}.`
+          `Page out of bounds. Redirecting to ${this.books.current.maxPage}.`
         );
-        return this.routeToPage(this.activeBook.maxPage);
+        return this.routeToPage(this.books.current.maxPage);
       }
       this.reactWithScroll = Boolean(reactWithScroll);
       this.page = +page;
       this.setRoutesAndBookmarkPage(page);
       if (this.activeSettings.vertical) {
-        const route = { params: { pk: this.pk, page } };
+        const route = { params: { pk: this.books.current.pk, page } };
         const { href } = router.resolve(route);
         window.history.pushState({}, undefined, href);
       } else {
@@ -256,49 +259,51 @@ export const useReaderStore = defineStore("reader", {
       return API.getReaderSettings()
         .then((response) => {
           const data = response.data;
-          this._updateSettings(0, data);
+          this._updateSettings(data, false);
           return true;
         })
         .catch(console.error);
     },
-    async loadBooks(routeParams) {
-      const params = this._numericValues(routeParams);
-      await API.getReaderInfo(params.pk)
+    async loadBooks(params) {
+      await API.getReaderInfo(params)
         .then((response) => {
           const data = response.data;
-          let prevBookPk = false;
-          let nextBookPk = false;
-          this.$patch((state) => {
-            const books = new Map();
-            for (const [index, book] of data.books.entries()) {
-              if (book.pk !== params.pk) {
-                if (index === 0) {
-                  prevBookPk = book.pk;
-                } else {
-                  nextBookPk = book.pk;
-                }
-              }
-              if (!book.settings) {
-                // Undefined settings breaks code.
-                book.settings = {};
-              }
-              // These aren't declared in the state so must
-              // have observablitly declared here.
-              // For when settings change.
-              books.set(book.pk, reactive(book));
+
+          // Undefined settings breaks code.
+          const allBooks = [
+            data.books.prevBook,
+            data.books.current,
+            data.books.nextBook,
+          ];
+          for (const book of allBooks) {
+            if (book && !book.settings) {
+              book.settings = {};
             }
-            state.books = books;
-            state.seriesCount = data.seriesCount;
-            state.pk = params.pk;
-            state.routes.books = this._getBookRoutes(
-              state,
-              prevBookPk,
-              nextBookPk
+          }
+          // Generate routes.
+          const routesBooks = this._getBookRoutes(
+            data.books.prevBook,
+            data.books.nextBook
+          );
+
+          this.$patch((state) => {
+            state.books.current = data.books.current;
+            state.books.prev = data.books.prevBook;
+            state.books.next = data.books.nextBook;
+            state.arcs = data.arcs;
+            state.arc = data.arc;
+            state.routes.prev = this._getRouteParams(
+              state.books.current,
+              params.page,
+              "prev"
             );
+            state.routes.next = this._getRouteParams(
+              state.books.current,
+              params.page,
+              "next"
+            );
+            state.routes.books = routesBooks;
           });
-          // Would be nice to include this in the above patch
-          // but _getRoute needs a lot of computed state.
-          this._setRoutes(params.page);
           return true;
         })
         .catch((error) => {
@@ -310,32 +315,29 @@ export const useReaderStore = defineStore("reader", {
         });
     },
     async _setBookmarkPage(page) {
-      const groupParams = { group: "c", pk: this.pk };
-      page = Math.max(Math.min(this.activeBook.maxPage, page), 0);
+      const groupParams = { group: "c", pk: this.books.current.pk };
+      page = Math.max(Math.min(this.books.current.maxPage, page), 0);
       const updates = { page };
       await BROWSER_API.setGroupBookmarks(groupParams, updates);
     },
-    async setSettingsLocal(routeParams, data) {
-      const params = this._numericValues(routeParams);
-      this._updateSettings(params.pk, data);
+    async setSettingsLocal(data) {
+      this._updateSettings(data, true);
 
       await BROWSER_API.setGroupBookmarks(
         {
           group: "c",
-          pk: params.pk,
+          pk: +this.books.current.pk,
         },
-        this.activeBook.settings
+        this.books.current.settings
       );
     },
-    async clearSettingsLocal(routeParams) {
-      const params = this._numericValues(routeParams);
-      await this.setSettingsLocal(params, NULL_READER_SETTINGS);
+    async clearSettingsLocal() {
+      await this.setSettingsLocal(NULL_READER_SETTINGS);
     },
-    async setSettingsGlobal(routeParams, data) {
-      const params = this._numericValues(routeParams);
-      this._updateSettings(0, data);
+    async setSettingsGlobal(data) {
+      this._updateSettings(data, false);
       await API.setReaderSettings(this.readerSettings);
-      await this.clearSettingsLocal(params);
+      await this.clearSettingsLocal();
     },
     setBookChangeFlag(direction) {
       // direction = this.normalizeDirection(direction);
@@ -348,8 +350,10 @@ export const useReaderStore = defineStore("reader", {
         ? DIRECTION_REVERSE_MAP[direction]
         : direction;
     },
-    _validateRoute(params) {
-      const book = this.books.get(params.pk);
+    _validateRoute(params, book) {
+      if (!book) {
+        book = this.books.current;
+      }
       if (!book) {
         return {};
       }
@@ -363,9 +367,12 @@ export const useReaderStore = defineStore("reader", {
       }
       return params;
     },
-    _routeTo(params) {
-      params = this._validateRoute(params);
-      if (this.activeSettings.vertical && +params.pk === this.pk) {
+    _routeTo(params, book) {
+      params = this._validateRoute(params, book);
+      if (
+        this.activeSettings.vertical &&
+        +params.pk === this.books.current.pk
+      ) {
         this.setActivePage(+params.page, true);
       } else {
         const route = { name: "reader", params };
@@ -377,11 +384,11 @@ export const useReaderStore = defineStore("reader", {
       direction = this.normalizeDirection(direction);
       const delta = direction === "prev" ? -1 : 1;
       const page = (this.page += delta);
-      if (page < 0 || page > this.activeBook.maxPage) {
+      if (page < 0 || page > this.books.current.maxPage) {
         return;
       }
       const params = {
-        pk: this.pk,
+        pk: this.books.current.pk,
         page: page,
       };
       this._routeTo(params);
@@ -393,7 +400,7 @@ export const useReaderStore = defineStore("reader", {
         this._routeTo(params);
       } else if (this.routes.books[direction]) {
         if (this.bookChange === direction) {
-          this._routeTo(this.routes.books[direction]);
+          this._routeTo(this.routes.books[direction], this.books[direction]);
         } else {
           // Block book change routes unless the book change flag is set.
           this.setBookChangeFlag(direction);
@@ -403,11 +410,53 @@ export const useReaderStore = defineStore("reader", {
       }
     },
     routeToPage(page) {
-      const params = { pk: this.pk, page };
+      const params = { pk: this.books.current.pk, page };
       this._routeTo(params);
     },
     routeToBook(direction) {
-      this._routeTo(this.routes.books[direction]);
+      this._routeTo(this.routes.books[direction], this.books[direction]);
+    },
+    _prefetchSrc(params, direction, bookChange = false, secondPage = false) {
+      if (!params) {
+        return false;
+      }
+      const book = bookChange ? this.books[direction] : this.books.current;
+      if (!book) {
+        return false;
+      }
+      let page = params.page;
+      if (secondPage) {
+        const settings = this.getSettings(book);
+        if (!settings.twoPages) {
+          return false;
+        }
+        page += 1;
+      }
+      if (page > book.maxPage) {
+        return false;
+      }
+      const paramsPlus = { pk: params.pk, page };
+      return getComicPageSource(paramsPlus);
+    },
+    prefetchLinks(params, direction, bookChange = false) {
+      const sources = [
+        this._prefetchSrc(params, direction, bookChange, false),
+        this._prefetchSrc(params, direction, bookChange, true),
+      ];
+      const link = [];
+      for (const href of sources) {
+        if (href) {
+          link.push({ ...PREFETCH_LINK, href });
+        }
+      }
+      return { link };
+    },
+    toRoute(params) {
+      return params ? { params } : {};
+    },
+    linkLabel(direction, suffix) {
+      const prefix = direction === "prev" ? "Previous" : "Next";
+      return `${prefix} ${suffix}`;
     },
   },
 });

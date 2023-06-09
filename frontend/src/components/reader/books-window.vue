@@ -2,7 +2,7 @@
   <v-window
     id="booksWindow"
     direction="vertical"
-    :model-value="activeBookPk"
+    :model-value="currentBookPk"
     show-arrows
     @click="click"
   >
@@ -13,12 +13,12 @@
       <BookChangeActivator direction="next" />
     </template>
     <v-window-item
-      v-for="[pk, book] of books"
-      :key="`c/${pk}`"
+      v-for="book of books"
+      :key="`c/${book.pk}`"
       class="windowItem"
       disabled
-      :eager="eager(pk)"
-      :value="pk"
+      :eager="eager(book.pk)"
+      :value="book.pk"
       :transition="true"
     >
       <PagesView :book="book" @click="click" />
@@ -42,9 +42,12 @@ export default {
   emits: ["click"],
   computed: {
     ...mapState(useReaderStore, {
-      books: (state) => state.books,
+      books: (state) =>
+        [state.books.prev, state.books.current, state.books.next].filter(
+          Boolean
+        ),
       bookChange: (state) => state.bookChange,
-      activeBookPk: (state) => state.pk,
+      currentBookPk: (state) => state.books?.current?.pk || 0,
       bookRoutes: (state) => state.routes.books,
     }),
   },

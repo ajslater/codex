@@ -2,8 +2,11 @@ import { getReaderBasePath, getReaderPath, getTSParams } from "@/api/v3/common";
 
 import { HTTP } from "./base";
 
-const getReaderInfo = (pk) => {
-  const params = getTSParams();
+const getReaderInfo = (params) => {
+  const pk = params.pk;
+  const tsParams = getTSParams();
+  params = { ...params, ...tsParams };
+  delete params.pk;
   return HTTP.get(`c/${pk}`, { params });
 };
 

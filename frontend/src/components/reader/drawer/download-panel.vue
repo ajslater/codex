@@ -32,19 +32,18 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useReaderStore, ["activeTitle"]),
+    ...mapGetters(useReaderStore, ["activeTitle", "routeParams"]),
     ...mapState(useReaderStore, {
       storePage: (state) => state.page,
-      pageSrc(state) {
-        const params = { pk: state.pk, page: state.page };
-        return getDownloadPageURL(params);
-      },
+      filename: (state) => state.books?.current?.filename,
       downloadURL(state) {
-        return getDownloadURL(state.pk);
+        return getDownloadURL(state.books.current.pk);
       },
     }),
-    ...mapGetters(useReaderStore, ["activeBook"]),
-    pageName: function () {
+    pageSrc() {
+      return getDownloadPageURL(this.routeParams);
+    },
+    pageName() {
       return `${this.activeTitle} - page ${this.storePage}.jpg`;
     },
   },
@@ -54,7 +53,7 @@ export default {
       this.downloadIOSPWAFix(this.pageSrc, this.pageName);
     },
     downloadBook() {
-      this.downloadIOSPWAFix(this.downloadURL, this.activeBook.filename);
+      this.downloadIOSPWAFix(this.downloadURL, this.filename);
     },
   },
 };

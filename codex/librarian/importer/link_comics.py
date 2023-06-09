@@ -11,6 +11,7 @@ from codex.models import (
     Imprint,
     Publisher,
     Series,
+    StoryArcNumber,
     Volume,
 )
 from codex.threads import QueuedThread
@@ -50,31 +51,31 @@ class LinkComicsMixin(QueuedThread):
         md["parent_folder"] = Folder.objects.get(path=parent_path)
 
     @staticmethod
-    def _link_folders(folder_paths):
+    def _get_link_folders_filter(folder_paths):
         """Get the ids of all folders to link."""
-        if not folder_paths:
-            return set()
-        folder_pks = Folder.objects.filter(path__in=folder_paths).values_list(
-            "pk", flat=True
-        )
-        return frozenset(folder_pks)
+        return Q(path__in=folder_paths)
 
     @staticmethod
-    def _link_creators(creators_md):
+    def _get_link_creators_filter(creators_md):
         """Get the ids of all creators to link."""
-        if not creators_md:
-            return set()
         creators_filter = Q()
         for creator in creators_md:
-            filter_dict = {
-                "role__name": creator.get("role"),
-                "person__name": creator["person"],
-            }
-            creators_filter |= Q(**filter_dict)
-        creator_pks = Creator.objects.filter(creators_filter).values_list(
-            "pk", flat=True
-        )
-        return frozenset(creator_pks)
+            creators_filter |= Q(
+                role__name=creator.get("role"),
+                person__name=creator["person"],
+            )
+        return creators_filter
+
+    @staticmethod
+    def _get_link_story_arc_numbers_filter(story_arc_numbers_md):
+        """Get the ids of all story_arc_numbers to link."""
+        story_arc_numbers_filter = Q()
+        for name, number in story_arc_numbers_md.items():
+            story_arc_numbers_filter |= Q(
+                story_arc__name=name,
+                number=number,
+            )
+        return story_arc_numbers_filter
 
     def _link_named_m2ms(self, all_m2m_links, comic_pk, md):
         """Set the ids of all named m2m fields into the comic dict."""
@@ -90,6 +91,20 @@ class LinkComicsMixin(QueuedThread):
                 all_m2m_links[field] = {}
             all_m2m_links[field][comic_pk] = frozenset(pks)
 
+    def _link_prepare_special_m2ms(self, link_data, key, model, get_link_filter_method):
+        """Prepare special m2m for linking."""
+        (all_m2m_links, md, comic_pk) = link_data
+        values = md.pop(key, [])
+        if not values:
+            return
+        if key not in all_m2m_links:
+            all_m2m_links[key] = {}
+
+        m2m_filter = get_link_filter_method(values)
+        pks = model.objects.filter(m2m_filter).values_list("pk", flat=True)
+        result = frozenset(pks)
+        all_m2m_links[key][comic_pk] = result
+
     def _link_comic_m2m_fields(self, m2m_mds):
         """Get the complete m2m field data to create."""
         all_m2m_links = {}
@@ -97,17 +112,19 @@ class LinkComicsMixin(QueuedThread):
         comics = Comic.objects.filter(path__in=comic_paths).values_list("pk", "path")
         for comic_pk, comic_path in comics:
             md = m2m_mds[comic_path]
-            if "folders" not in all_m2m_links:
-                all_m2m_links["folders"] = {}
-            try:
-                folder_paths = md.pop("folders")
-            except KeyError:
-                folder_paths = []
-            all_m2m_links["folders"][comic_pk] = self._link_folders(folder_paths)
-            if "creators" not in all_m2m_links:
-                all_m2m_links["creators"] = {}
-            creators_md = md.pop("creators", None)
-            all_m2m_links["creators"][comic_pk] = self._link_creators(creators_md)
+            link_data = (all_m2m_links, md, comic_pk)
+            self._link_prepare_special_m2ms(
+                link_data, "folders", Folder, self._get_link_folders_filter
+            )
+            self._link_prepare_special_m2ms(
+                link_data, "creators", Creator, self._get_link_creators_filter
+            )
+            self._link_prepare_special_m2ms(
+                link_data,
+                "story_arc_numbers",
+                StoryArcNumber,
+                self._get_link_story_arc_numbers_filter,
+            )
             self._link_named_m2ms(all_m2m_links, comic_pk, md)
         return all_m2m_links
 

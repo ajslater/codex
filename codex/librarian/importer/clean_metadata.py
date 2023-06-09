@@ -21,10 +21,10 @@ _MD_INVALID_KEYS = frozenset(
         "updated_at",
     )
 )
-_MD_TRANFORMED_KEYS = frozenset(("credits",))
+_MD_TRANSFORMED_KEYS = frozenset(("credits", "story_arcs"))
 _MD_VALID_KEYS = (
     frozenset([field.name for field in Comic._meta.get_fields()]) - _MD_INVALID_KEYS
-    | _MD_TRANFORMED_KEYS
+    | _MD_TRANSFORMED_KEYS
 )
 _MD_DECIMAL_KEYS = frozenset(("community_rating", "critical_rating"))
 _MD_PSI_KEYS = frozenset(
@@ -61,7 +61,6 @@ _M2M_NAMED_KEYS = frozenset(
         "genres",
         "locations",
         "series_groups",
-        "story_arcs",
         "tags",
         "teams",
     )
@@ -186,12 +185,22 @@ class CleanMetadataMixin(QueuedThread):
             good_creators = []
             field: CharField = NamedModel._meta.get_field("name")  # type:ignore
             for creator in creators:
-                person = cls._clean_charfield(creator.get("person"), field)
-                if person:
+                if person := cls._clean_charfield(creator.get("person"), field):
                     role = cls._clean_charfield(creator.get("role"), field)
                     good_creator = {"role": role, "person": person}
                     good_creators.append(good_creator)
             md["creators"] = good_creators
+
+    @classmethod
+    def _clean_comic_story_arcs(cls, md):
+        """Replace story_arcs with good story_arc_numbers."""
+        if story_arc_numbers := md.pop("story_arcs", None):
+            good_story_arc_numbers = {}
+            field: CharField = NamedModel._meta.get_field("name")  # type:ignore
+            for story_arc_name, number in story_arc_numbers.items():
+                if good_story_arc_name := cls._clean_charfield(story_arc_name, field):
+                    good_story_arc_numbers[good_story_arc_name] = number
+            md["story_arc_numbers"] = good_story_arc_numbers
 
     @staticmethod
     def _clean_comic_web(md):
@@ -206,14 +215,14 @@ class CleanMetadataMixin(QueuedThread):
     @classmethod
     def _clean_comic_m2m_named(cls, md: dict[str, Any], md_keys: frozenset[str]):
         """Clean the named models in the m2m fields."""
+        named_field: CharField = NamedModel._meta.get_field("name")  # type:ignore
         for key in _M2M_NAMED_KEYS.intersection(md_keys):
             names = md.get(key)
             if not names:
                 continue
             cleaned_names = []
-            field: CharField = NamedModel._meta.get_field("name")  # type:ignore
             for name in names:
-                cleaned_name = cls._clean_charfield(name, field)
+                cleaned_name = cls._clean_charfield(name, named_field)
                 if cleaned_name:
                     cleaned_names.append(cleaned_name)
             md[key] = cleaned_names
@@ -242,5 +251,6 @@ class CleanMetadataMixin(QueuedThread):
         self._append_description(md)
         self._append_review(md)
         self._clean_comic_creators(md)
+        self._clean_comic_story_arcs(md)
         self._clean_comic_m2m_named(md, md_keys)
         return md

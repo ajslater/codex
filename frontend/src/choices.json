@@ -45,6 +45,10 @@
       {
         "title": "Folder View",
         "value": "f"
+      },
+      {
+        "title": "Story Arc View",
+        "value": "a"
       }
     ],
     "settingsGroup": [

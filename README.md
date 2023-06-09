@@ -106,37 +106,12 @@ Unrar as packaged for Alpine Linux v3.14 seems to work on Alpine v3.15
 Windows users should use Docker to run Codex until this documentation section is
 complete.
 
-Codex can _probably_ run using Cygwin or the Windows Linux Subsystem but I
-haven't done it yet. Contributions to this documentation accepted on
+Codex can _probably_ Windows Linux Subsystem but I haven't done personally
+tested it yet. Try following the instructions for [Debian](#debian) above. There
+may be outstanding platform related bugs.
+
+Contributions to this documentation accepted on
 [the outstanding issue](https://github.com/ajslater/codex/issues/76) or discord.
-
-##### Windows Linux Subsystem
-
-Untested. Try following the instructions for [Debian](#debian) above.
-
-##### Cygwin
-
-Untested partial instructions for the brave.
-
-1.  Install [Cygwin](https://www.cygwin.com/).
-2.  Install wget with cygwin.
-3.  Install:
-    - python3.9+
-    - gcc
-    - gcc-g++
-    - libffi-devel
-    - libjpeg-devel
-    - libssl-devel
-    - mpfr
-    - mpc
-    - python3-devel
-    - python39-cffi
-    - python3.9-openssl with cygwin.
-4.  Using a terminal:
-
-```sh
-pip install wheel
-```
 
 #### Install Codex with pip
 

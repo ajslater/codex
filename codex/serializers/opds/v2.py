@@ -118,7 +118,8 @@ class OPDS2PublicationMetadataSerializer(OPDS2MetadataSerializer):
     https://readium.org/webpub-manifest/schema/metadata.schema.json
     """
 
-    # type = CharField(read_only=True, required=False) # TODO @type
+    # possibly change to @ on output if this is really needed
+    # @type = CharField(read_only=True, required=False)
     publisher = CharField(read_only=True, required=False)
     imprint = CharField(read_only=True, required=False)
     language = CharField(read_only=True, required=False)

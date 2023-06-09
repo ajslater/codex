@@ -6,6 +6,19 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.4.0
+
+- Features
+  - Story Arc Top Group in Web & OPDS Browsers
+  - Support multiple Story Arcs per comic.
+    - Supports Mylar CSV StoryArc / StoryArcNumber extension to ComicInfo.xml
+  - Reader has a Series/Folder/Story Arc order selector.
+  - Reader shows filename instead of metadata title if you've been browsing in
+    File View
+  - Downloads now use the original filename from disk.
+- Fix
+  - Folder view offered and crashed in OPDS even if disabled by admin.
+
 ## v1.3.14
 
 - Features

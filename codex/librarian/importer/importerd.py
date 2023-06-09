@@ -6,9 +6,13 @@ from time import sleep, time
 from django.core.cache import cache
 from humanize import naturaldelta
 
-from codex.librarian.importer.db_ops import ApplyDBOpsMixin
+from codex.librarian.importer.aggregate_metadata import AggregateMetadataMixin
+from codex.librarian.importer.deleted import DeletedMixin
+from codex.librarian.importer.failed_imports import FailedImportsMixin
+from codex.librarian.importer.moved import MovedMixin
 from codex.librarian.importer.status import ImportStatusTypes
 from codex.librarian.importer.tasks import AdoptOrphanFoldersTask, UpdaterDBDiffTask
+from codex.librarian.importer.update_comics import UpdateComicsMixin
 from codex.librarian.notifier.tasks import FAILED_IMPORTS_TASK, LIBRARY_CHANGED_TASK
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexAbortTask, SearchIndexUpdateTask
@@ -19,7 +23,13 @@ from codex.status import Status
 _WRITE_WAIT_EXPIRY = 60
 
 
-class ComicImporterThread(ApplyDBOpsMixin):
+class ComicImporterThread(
+    AggregateMetadataMixin,
+    DeletedMixin,
+    UpdateComicsMixin,
+    FailedImportsMixin,
+    MovedMixin,
+):
     """A worker to handle all bulk database updates."""
 
     def _wait_for_filesystem_ops_to_finish(self, task: UpdaterDBDiffTask) -> bool:
@@ -177,6 +187,13 @@ class ComicImporterThread(ApplyDBOpsMixin):
         self._log_task(library.path, task)
         self._init_librarian_status(task, library.path)
 
+    def _create_comic_relations(self, library, fks):
+        """Query all foreign keys to determine what needs creating, then create them."""
+        if not fks:
+            return 0
+        create_data = self.query_all_missing_fks(library.path, fks)
+        return self.create_all_fks(library, create_data)
+
     def _finish_apply_status(self, library):
         """Finish all librarian statuses."""
         library.update_in_progress = False
@@ -233,22 +250,28 @@ class ComicImporterThread(ApplyDBOpsMixin):
                 "fks": fks,
                 "fis": fis,
             }
-            self.read_metadata(
-                library.path, modified_paths | created_paths, all_metadata
+            self.get_aggregate_metadata(
+                modified_paths | created_paths, library.path, all_metadata
             )
+            all_metadata = None
             modified_paths -= fis.keys()
             created_paths -= fis.keys()
 
-            changed += self.create_comic_relations(library, fks)
+            changed += self._create_comic_relations(library, fks)
+            fks = None
 
-            simple_metadata = {"mds": mds, "m2m_mds": m2m_mds}
-            imported_count = self.update_create_and_link_comics(
-                library, modified_paths, created_paths, simple_metadata
+            imported_count = self.bulk_update_comics(
+                modified_paths,
+                library,
+                created_paths,
+                mds,
             )
+            modified_paths = None
+            imported_count += self.bulk_create_comics(created_paths, library, mds)
+            created_paths = mds = None
+            self.bulk_query_and_link_comic_m2m_fields(m2m_mds)
+            m2m_mds = None
             changed += imported_count
-            all_metadata = (
-                simple_metadata
-            ) = modified_paths = created_paths = mds = m2m_mds = fks = None
 
             new_failed_imports = self.fail_imports(
                 library, fis, bool(task.files_deleted)

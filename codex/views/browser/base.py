@@ -8,6 +8,7 @@ from djangorestframework_camel_case.settings import api_settings
 from djangorestframework_camel_case.util import underscoreize
 
 from codex.logger.logging import get_logger
+from codex.models import Comic, Folder, Imprint, Publisher, Series, StoryArc, Volume
 from codex.serializers.browser import BrowserSettingsSerializer
 from codex.views.browser.filters.bookmark import BookmarkFilterMixin
 from codex.views.browser.filters.field import ComicFieldFilter
@@ -24,6 +25,17 @@ class BrowserBaseView(
 
     input_serializer_class = BrowserSettingsSerializer
 
+    GROUP_MODEL_MAP = {
+        GroupFilterMixin.ROOT_GROUP: None,
+        "p": Publisher,
+        "i": Imprint,
+        "s": Series,
+        "v": Volume,
+        GroupFilterMixin.COMIC_GROUP: Comic,
+        GroupFilterMixin.FOLDER_GROUP: Folder,
+        GroupFilterMixin.STORY_ARC_GROUP: StoryArc,
+    }
+
     _GET_JSON_KEYS = frozenset(("filters", "show"))
 
     def __init__(self, *args, **kwargs):
@@ -39,22 +51,22 @@ class BrowserBaseView(
             self._is_admin = user and isinstance(user, User) and user.is_staff
         return self._is_admin
 
-    def get_query_filters_without_group(self, is_model_comic):
+    def get_query_filters_without_group(self, model):
         """Return all the filters except the group filter."""
-        object_filter = self.get_group_acl_filter(is_model_comic)
+        object_filter = self.get_group_acl_filter(model)
 
-        search_filter, search_scores = self.get_search_filter(is_model_comic)
+        search_filter, search_scores = self.get_search_filter()
         object_filter &= search_filter
-        object_filter &= self.get_bookmark_filter(is_model_comic, None)
-        object_filter &= self.get_comic_field_filter(is_model_comic)
+        object_filter &= self.get_bookmark_filter(model)
+        object_filter &= self.get_comic_field_filter()
         return object_filter, search_scores
 
-    def get_query_filters(self, is_model_comic, choices=False):
+    def get_query_filters(self, model, choices=False):
         """Return the main object filter and the one for aggregates."""
         (
             object_filter,
             search_scores,
-        ) = self.get_query_filters_without_group(is_model_comic)
+        ) = self.get_query_filters_without_group(model)
 
         object_filter &= self.get_group_filter(choices)
 
@@ -91,3 +103,7 @@ class BrowserBaseView(
 
         serializer.is_valid(raise_exception=True)
         self.params.update(serializer.validated_data)
+
+    def set_rel_prefix(self, model):
+        """Set the relation prefix for most fields."""
+        self.rel_prefix = self.get_rel_prefix(model)

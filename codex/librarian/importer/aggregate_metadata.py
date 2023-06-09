@@ -11,7 +11,6 @@ from codex.comic_field_names import COMIC_M2M_FIELD_NAMES
 from codex.librarian.importer.clean_metadata import CleanMetadataMixin
 from codex.librarian.importer.status import ImportStatusTypes, status_notify
 from codex.models import Comic, Imprint, Publisher, Series, Volume
-from codex.pdf import PDF
 from codex.status import Status
 from codex.version import COMICBOX_CONFIG
 
@@ -44,8 +43,7 @@ class AggregateMetadataMixin(CleanMetadataMixin):
         group_tree_md = {}
         failed_import = {}
         try:
-            car_class = PDF if PDF.is_pdf(path) else ComicArchive
-            with car_class(path, config=self._AGGREGATE_COMICBOX_CONFIG) as car:
+            with ComicArchive(path, config=self._AGGREGATE_COMICBOX_CONFIG) as car:
                 md = car.get_metadata()
                 md["file_type"] = car.get_file_type()
 
@@ -84,27 +82,53 @@ class AggregateMetadataMixin(CleanMetadataMixin):
         return md, m2m_md, group_tree_md, failed_import
 
     @staticmethod
-    def _aggregate_m2m_metadata(all_m2m_mds, m2m_md, all_fks, path):
+    def _aggregate_m2m_metadata_creators(creator_dict_list, all_fks):
+        """Aggregate creators metadata."""
+        if not creator_dict_list:
+            return
+
+        if "creators" not in all_fks:
+            all_fks["creators"] = set()
+
+        for creator_dict in creator_dict_list:
+            # add the fk relations to fks to query.
+            for creator_field, name in creator_dict.items():
+                # These fields are ambiguous because they're fks to creator
+                #   but aren't ever in Comic so query_fks.py can
+                #   disambiguate with special code
+                if creator_field not in all_fks:
+                    all_fks[creator_field] = set()
+                all_fks[creator_field].add(name)
+
+            # Add creators to the all_fks list as well.
+            creator_tuple = tuple(sorted(creator_dict.items()))
+            all_fks["creators"].add(creator_tuple)
+
+    @staticmethod
+    def _aggregate_m2m_metadata_story_arc_numbers(story_arc_numbers_dict, all_fks):
+        """Aggregate story arc numbers."""
+        if not story_arc_numbers_dict:
+            return
+
+        if "story_arc" not in all_fks:
+            all_fks["story_arc"] = set()
+        all_fks["story_arc"] |= frozenset(story_arc_numbers_dict.keys())
+
+        if "story_arc_numbers" not in all_fks:
+            all_fks["story_arc_numbers"] = set()
+        all_fks["story_arc_numbers"] |= frozenset(story_arc_numbers_dict.items())
+
+    @classmethod
+    def _aggregate_m2m_metadata(cls, all_m2m_mds, m2m_md, all_fks, path):
         """Aggregate many to many metadata by ."""
         # m2m fields and fks
         all_m2m_mds[path] = m2m_md
         # aggregate fks
         for field, names in m2m_md.items():
             if field == "creators":
-                if names and "creators" not in all_fks:
-                    all_fks["creators"] = set()
-
-                # for creators add the creator fks to fks
-                for creator_dict in names:
-                    for creator_field, name in creator_dict.items():
-                        # These fields are ambiguous because they're fks to creator
-                        #   but aren't ever in Comic so query_fks.py can
-                        #   disambiguate with special code
-                        if creator_field not in all_fks:
-                            all_fks[creator_field] = set()
-                        all_fks[creator_field].add(name)
-                    creator_tuple = tuple(sorted(creator_dict.items()))
-                    all_fks["creators"].add(creator_tuple)
+                cls._aggregate_m2m_metadata_creators(names, all_fks)
+            elif field == "story_arc_numbers":
+                cls._aggregate_m2m_metadata_story_arc_numbers(names, all_fks)
             elif field != "folders":
                 if field not in all_fks:
                     all_fks[field] = set()

@@ -7,7 +7,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
 from codex.comic_field_names import COMIC_M2M_FIELD_NAMES
-from codex.models import AdminFlag, Comic
+from codex.models import AdminFlag, Comic, StoryArc
 from codex.serializers.metadata import MetadataSerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_annotations import BrowserAnnotationsView
@@ -37,7 +37,6 @@ class MetadataView(BrowserAnnotationsView):
         "original_format",
         "read_ltr",
         "scan_info",
-        "story_arc_number",
         "summary",
         "web",
         "year",
@@ -58,6 +57,7 @@ class MetadataView(BrowserAnnotationsView):
     _COMIC_RELATED_VALUE_FIELDS = {"series__volume_count", "volume__issue_count"}
     _PATH_GROUPS = ("c", "f")
     _CREATOR_RELATIONS = ("role", "person")
+    _STORY_ARC_NUMBER_RELATIONS = ("story_arc",)
 
     def _get_comic_value_fields(self):
         """Include the path field for staff."""
@@ -81,7 +81,7 @@ class MetadataView(BrowserAnnotationsView):
             # Have to use simple_qs because every annotation in the loop
             # corrupts the the main qs
             # If 1 variant, annotate value, otherwise None
-            full_field = field if self.is_model_comic else "comic__" + field
+            full_field = self.rel_prefix + field
 
             sq = (
                 simple_qs.values("id")
@@ -107,7 +107,7 @@ class MetadataView(BrowserAnnotationsView):
     def _annotate_aggregates(self, qs):
         """Annotate aggregate values."""
         if not self.is_model_comic:
-            size_func = self.get_aggregate_func("size")
+            size_func = self.get_aggregate_func(self.model, "size")
             qs = qs.annotate(size=size_func)
         qs = self.annotate_common_aggregates(qs, self.model, {})
         return qs
@@ -137,18 +137,32 @@ class MetadataView(BrowserAnnotationsView):
         )
         return qs
 
-    def _annotate_for_filename(self, qs):
-        """Annotate for the filename function."""
-        if not self.is_model_comic:
-            return qs
-        qs = qs.annotate(parent_folder_pk=F("parent_folder_id"))
-        return qs.annotate(series_name=F("series__name"), volume_name=F("volume__name"))
+    @staticmethod
+    def _get_intersection_queryset(qs, values, count_rel, comic_pks):
+        """Create an intersection queryset."""
+        return (
+            qs.only(*values)
+            .annotate(count=Count(count_rel))
+            .order_by()
+            .filter(count=comic_pks.count())
+        )
+
+    @classmethod
+    def _get_story_arc_intersection_queryset(cls, comic_pks):
+        """Hoist Story Arc intersections up from StoryArcNumber."""
+        qs = StoryArc.objects.filter(storyarcnumber__comic__pk__in=comic_pks)
+        return cls._get_intersection_queryset(
+            qs,
+            ("name",),
+            "storyarcnumber__comic",
+            comic_pks,
+        )
 
     def _query_m2m_intersections(self, simple_qs):
         """Query the through models to figure out m2m intersections."""
         # Speed ok, but still does a query per m2m model
         m2m_intersections = {}
-        pk_field = "pk" if self.is_model_comic else "comic__pk"
+        pk_field = self.rel_prefix + "pk"
         comic_pks = simple_qs.values_list(pk_field, flat=True)
         for field_name in COMIC_M2M_FIELD_NAMES:
             model = Comic._meta.get_field(field_name).related_model
@@ -158,19 +172,28 @@ class MetadataView(BrowserAnnotationsView):
 
             intersection_qs = model.objects.filter(comic__pk__in=comic_pks)
             if field_name == "creators":
+                # XXX This doesn't prevent an n+1 warning
                 intersection_qs = intersection_qs.select_related(
                     *self._CREATOR_RELATIONS
                 )
                 values = self._CREATOR_RELATIONS
+            elif field_name == "story_arc_numbers":
+                # XXX This doesn't prevent an n+1 warning
+                intersection_qs = intersection_qs.select_related(
+                    *self._STORY_ARC_NUMBER_RELATIONS
+                )
+                values = self._STORY_ARC_NUMBER_RELATIONS
+
+                # Extra add on m2m
+                m2m_intersections[
+                    "story_arcs"
+                ] = self._get_story_arc_intersection_queryset(comic_pks)
             else:
                 values = ("name",)
 
             # order_by() is very important for grouping
-            intersection_qs = (
-                intersection_qs.only(*values)
-                .annotate(count=Count("comic"))
-                .order_by()
-                .filter(count=comic_pks.count())
+            intersection_qs = self._get_intersection_queryset(
+                intersection_qs, values, "comic", comic_pks
             )
             m2m_intersections[field_name] = intersection_qs
         return m2m_intersections
@@ -223,7 +246,7 @@ class MetadataView(BrowserAnnotationsView):
 
         # filename
         if self.model == Comic:
-            obj.filename = Comic.get_filename(obj)
+            obj.filename = obj.filename()
 
         return obj
 
@@ -236,7 +259,7 @@ class MetadataView(BrowserAnnotationsView):
         if self.model is None:
             raise NotFound(detail=f"Cannot get metadata for {self.group=}")
 
-        object_filter, _ = self.get_query_filters_without_group(self.is_model_comic)
+        object_filter, _ = self.get_query_filters_without_group(self.model)
         pk = self.kwargs["pk"]
         qs = self.model.objects.filter(object_filter, pk=pk)
 
@@ -244,7 +267,6 @@ class MetadataView(BrowserAnnotationsView):
         simple_qs = qs
 
         qs = self._annotate_values_and_fks(qs, simple_qs)
-        qs = self._annotate_for_filename(qs)
 
         try:
             obj = qs.first()
@@ -281,9 +303,10 @@ class MetadataView(BrowserAnnotationsView):
         # Init
         self._efv_flag = None
         self.parse_params()
-        self.set_order_key()
         self.group = self.kwargs["group"]
         self._validate()
+        self.rel_prefix = self.get_rel_prefix(self.model)
+        self.set_order_key()
 
         obj = self.get_object()
 
