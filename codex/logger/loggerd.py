@@ -41,7 +41,7 @@ class CodexLogQueueListener(QueueListener):
     _LOG_FMT = "{asctime} {levelname:7} {message}"
     _DEBUG_LOG_FMT = "{asctime} {levelname:7} {name:25} {message}"
     _DATEFMT = "%Y-%m-%d %H:%M:%S %Z"
-    _FORMATTER_KWARGS = {"style": "{", "datefmt": _DATEFMT}
+    _FORMATTER_STYLE = "{"
     _LOG_PATH = LOG_DIR / "codex.log"
     _LOG_MAX_BYTES = 10 * 1024 * 1024
 
@@ -54,7 +54,9 @@ class CodexLogQueueListener(QueueListener):
             handler = RotatingFileHandler(
                 cls._LOG_PATH, maxBytes=cls._LOG_MAX_BYTES, backupCount=30, delay=True
             )
-            formatter = logging.Formatter(fmt, **cls._FORMATTER_KWARGS)
+            formatter = logging.Formatter(
+                fmt, style=cls._FORMATTER_STYLE, datefmt=cls._DATEFMT
+            )
             handler.setFormatter(formatter)
         except Exception as exc:
             print("ERROR creating file logging handler", exc)
@@ -66,7 +68,9 @@ class CodexLogQueueListener(QueueListener):
         handler = None
         try:
             handler = logging.StreamHandler()
-            formatter = ColorFormatter(fmt, **cls._FORMATTER_KWARGS)
+            formatter = ColorFormatter(
+                fmt, style=cls._FORMATTER_STYLE, datefmt=cls._DATEFMT
+            )
             handler.setFormatter(formatter)
         except Exception as exc:
             print("ERROR creating console logging handler", exc)
