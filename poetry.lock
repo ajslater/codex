@@ -779,13 +779,13 @@ files = [
 
 [[package]]
 name = "django-vite"
-version = "2.1.2"
+version = "2.1.1"
 description = "Integration of ViteJS in a Django project."
 optional = false
 python-versions = "*"
 files = [
-    {file = "django-vite-2.1.2.tar.gz", hash = "sha256:a1dcbf49e7df27b22b34401ccccbf12b243cc8f303bd9e873c27d310a3985822"},
-    {file = "django_vite-2.1.2-py3-none-any.whl", hash = "sha256:412838f0ac933397b35150af4a5759ebfa84cb68cd4d15ee439705e5a2ca6039"},
+    {file = "django-vite-2.1.1.tar.gz", hash = "sha256:d095722f9d67aafbe13fabab881f3d1966099d52284570541c359fd84522c4c5"},
+    {file = "django_vite-2.1.1-py3-none-any.whl", hash = "sha256:d291dff661ad28e1380fa1e962ea9f9f9c94be793c3e3a403c8af8b8edcc5bab"},
 ]
 
 [package.dependencies]
@@ -2408,4 +2408,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "1d8933c0c51c70ff5fd8d39bc2e3528656b6cd4646840ba461a7ff9f806bba27"
+content-hash = "34267457ff0638e20257e05263d810379328819909dff96fddb88e896cb338a0"
