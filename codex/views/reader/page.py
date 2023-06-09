@@ -55,11 +55,10 @@ class ReaderPageView(BookmarkBaseView):
         comic = Comic.objects.filter(group_acl_filter).only("path").get(pk=pk)
         page = self.kwargs.get("page")
         if comic.file_type == Comic.FileType.PDF.value:
-            car = ComicArchive(comic.path)
             content_type = PDF_MIME_TYPE
         else:
-            car = ComicArchive(comic.path, config=COMICBOX_CONFIG)
             content_type = self.content_type
+        car = ComicArchive(comic.path, config=COMICBOX_CONFIG)
         page_image = car.get_page_by_index(page)
         return page_image, content_type
 
