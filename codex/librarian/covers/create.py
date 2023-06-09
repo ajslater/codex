@@ -10,7 +10,6 @@ from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.covers.tasks import CoverSaveToCache
 from codex.models import Comic
-from codex.pdf import PDF
 from codex.status import Status
 from codex.version import COMICBOX_CONFIG
 
@@ -44,8 +43,7 @@ class CoverCreateMixin(CoverPathMixin):
 
         Return image thumb data or path to missing file thumb.
         """
-        car_class = PDF if comic.file_type == Comic.FileType.PDF.value else ComicArchive
-        with car_class(comic.path, config=COMICBOX_CONFIG) as car:
+        with ComicArchive(comic.path, config=COMICBOX_CONFIG) as car:
             image_data = car.get_cover_image()
         if not image_data:
             reason = "Read empty cover"

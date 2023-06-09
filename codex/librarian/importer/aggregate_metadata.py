@@ -11,7 +11,6 @@ from codex.comic_field_names import COMIC_M2M_FIELD_NAMES
 from codex.librarian.importer.clean_metadata import CleanMetadataMixin
 from codex.librarian.importer.status import ImportStatusTypes, status_notify
 from codex.models import Comic, Imprint, Publisher, Series, Volume
-from codex.pdf import PDF
 from codex.status import Status
 from codex.version import COMICBOX_CONFIG
 
@@ -44,8 +43,7 @@ class AggregateMetadataMixin(CleanMetadataMixin):
         group_tree_md = {}
         failed_import = {}
         try:
-            car_class = PDF if PDF.is_pdf(path) else ComicArchive
-            with car_class(path, config=self._AGGREGATE_COMICBOX_CONFIG) as car:
+            with ComicArchive(path, config=self._AGGREGATE_COMICBOX_CONFIG) as car:
                 md = car.get_metadata()
                 md["file_type"] = car.get_file_type()
 

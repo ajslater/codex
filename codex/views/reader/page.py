@@ -8,11 +8,11 @@ from rest_framework.negotiation import BaseContentNegotiation
 
 from codex.logger.logging import get_logger
 from codex.models import Comic
-from codex.pdf import PDF
 from codex.version import COMICBOX_CONFIG
 from codex.views.bookmark import BookmarkBaseView
 
 LOG = get_logger(__name__)
+PDF_MIME_TYPE = "application/pdf"
 
 
 class IgnoreClientContentNegotiation(BaseContentNegotiation):
@@ -55,8 +55,8 @@ class ReaderPageView(BookmarkBaseView):
         comic = Comic.objects.filter(group_acl_filter).only("path").get(pk=pk)
         page = self.kwargs.get("page")
         if comic.file_type == Comic.FileType.PDF.value:
-            car = PDF(comic.path)
-            content_type = PDF.MIME_TYPE
+            car = ComicArchive(comic.path)
+            content_type = PDF_MIME_TYPE
         else:
             car = ComicArchive(comic.path, config=COMICBOX_CONFIG)
             content_type = self.content_type
@@ -66,7 +66,7 @@ class ReaderPageView(BookmarkBaseView):
     @extend_schema(
         responses={
             (200, content_type): OpenApiTypes.BINARY,
-            (200, PDF.MIME_TYPE): OpenApiTypes.BINARY,
+            (200, PDF_MIME_TYPE): OpenApiTypes.BINARY,
         }
     )
     def get(self, *args, **kwargs):
