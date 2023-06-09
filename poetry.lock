@@ -503,13 +503,13 @@ files = [
 
 [[package]]
 name = "comicbox"
-version = "0.10.0"
+version = "0.10.1"
 description = "An API for reading comic archives"
 optional = false
 python-versions = ">=3.9,<4.0"
 files = [
-    {file = "comicbox-0.10.0-py3-none-any.whl", hash = "sha256:80a1360d8ced4729ca68c950af319b91ee76ea633c596a7c42d60eec35a85093"},
-    {file = "comicbox-0.10.0.tar.gz", hash = "sha256:c0e9713bddb2ae080db1d267c176f08027d52cf80631b8171f7a25a21330270f"},
+    {file = "comicbox-0.10.1-py3-none-any.whl", hash = "sha256:6ebea2212d46a898091122cc9ee20f7a0cd7337d368191b7fd262834c34f4337"},
+    {file = "comicbox-0.10.1.tar.gz", hash = "sha256:c469a2b710c806d1669c7f745379975c32dce9cce90533b73c64c9b0f9b83330"},
 ]
 
 [package.dependencies]
