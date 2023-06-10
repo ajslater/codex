@@ -67,8 +67,9 @@ class BrowserChoicesViewBase(BrowserBaseView):
     def _set_model(self):
         """Set the model to query."""
         group = self.kwargs["group"]
+        if group == self.ROOT_GROUP:
+            group = self.params.get("top_group", "p")
         self.model = self.GROUP_MODEL_MAP[group]
-
 
 class BrowserChoicesAvailableView(BrowserChoicesViewBase):
     """Get choices for filter dialog."""
