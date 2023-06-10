@@ -89,7 +89,7 @@ class BrowserAnnotationsView(BrowserOrderByView):
         if model == Comic:
             child_count_sum = self._ONE_INTEGERFIELD
         else:
-            child_count_sum = Count(self.rel_prefix + "pk", distince=True)
+            child_count_sum = Count(self.rel_prefix + "pk", distinct=True)
         qs = qs.annotate(child_count=child_count_sum)
         if model != Comic:
             # XXX Extra filter for empty groups
