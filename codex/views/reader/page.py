@@ -1,6 +1,6 @@
 """Views for reading comic books."""
 from comicbox.comic_archive import ComicArchive
-from django.http import HttpResponse, StreamingHttpResponse
+from django.http import HttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import NotFound
