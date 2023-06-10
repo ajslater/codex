@@ -1,5 +1,6 @@
 """OPDS 2 Serializers."""
 from typing import Optional
+
 from rest_framework.fields import (
     BooleanField,
     CharField,

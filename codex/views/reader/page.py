@@ -1,6 +1,6 @@
 """Views for reading comic books."""
 from comicbox.comic_archive import ComicArchive
-from django.http import HttpResponse
+from django.http import StreamingHttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import NotFound
@@ -58,8 +58,8 @@ class ReaderPageView(BookmarkBaseView):
             content_type = PDF_MIME_TYPE
         else:
             content_type = self.content_type
-        car = ComicArchive(comic.path, config=COMICBOX_CONFIG)
-        page_image = car.get_page_by_index(page)
+        with ComicArchive(comic.path, config=COMICBOX_CONFIG) as car:
+            page_image = car.get_page_by_index(page)
         return page_image, content_type
 
     @extend_schema(
@@ -86,4 +86,4 @@ class ReaderPageView(BookmarkBaseView):
             LOG.warning(exc)
             raise NotFound(detail="comic page not found") from exc
         else:
-            return HttpResponse(page_image, content_type=content_type)
+            return StreamingHttpResponse(page_image, content_type=content_type)

@@ -1,5 +1,5 @@
 """Comic cover thumbnail view."""
-from django.http import HttpResponse
+from django.http import StreamingHttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework.renderers import BaseRenderer
@@ -54,4 +54,4 @@ class CoverView(APIView, GroupACLMixin):
             with cover_path.open("rb") as f:
                 thumb_image_data = f.read()
 
-        return HttpResponse(thumb_image_data, content_type=self.content_type)
+        return StreamingHttpResponse(thumb_image_data, content_type=self.content_type)
