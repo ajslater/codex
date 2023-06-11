@@ -18,7 +18,7 @@ border-radius: 128px;
     File View
   - Downloads now use the original filename from disk.
 - Fix
-  - Folder view offered and crashed in OPDS even if disabled by admin.
+  - Folder was view displayed but crashed in OPDS even if disabled by admin.
 
 ## v1.3.14
 
