@@ -1,5 +1,12 @@
 <template>
-  <v-btn v-if="show" icon size="x-large" :title="title" :to="to">
+  <v-btn
+    v-if="show"
+    icon
+    size="x-large"
+    :title="title"
+    :to="to"
+    variant="plain"
+  >
     <v-icon>{{ icon }}</v-icon>
   </v-btn>
 </template>
