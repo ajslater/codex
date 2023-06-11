@@ -455,9 +455,7 @@ class BrowserView(BrowserAnnotationsView):
 
         top_group = self.params["top_group"]
         if top_group != self.FOLDER_GROUP:
-            reason = f"top_group {top_group} doesn't match route {self.FOLDER_GROUP}"
-            settings_mask = {"top_group": self.FOLDER_GROUP}
-            self._raise_redirect({"group": self.FOLDER_GROUP}, reason, settings_mask)
+            self.params["top_group"] = self.FOLDER_GROUP
 
         # set valid folder nav groups
         self.valid_nav_groups = (self.FOLDER_GROUP,)
@@ -497,7 +495,10 @@ class BrowserView(BrowserAnnotationsView):
             self._raise_redirect({"pk": 0}, reason)
 
     def _validate_story_arc_settings(self):
-        pass
+        """Validate story arc settings."""
+        top_group = self.params["top_group"]
+        if top_group != self.STORY_ARC_GROUP:
+            self.params["top_group"] = self.STORY_ARC_GROUP
 
     def _set_route_param(self):
         """Set the route param."""
