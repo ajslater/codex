@@ -199,8 +199,20 @@ class SeriesGroup(NamedModel):
     """A series group the series is part of."""
 
 
-class StoryArc(NamedModel):
+class StoryArc(NamedModel, BrowserGroupModel):
     """A story arc the comic is part of."""
+
+
+class StoryArcNumber(BaseModel):
+    """A story arc number the comic represents."""
+
+    story_arc = ForeignKey(StoryArc, db_index=True, on_delete=CASCADE)
+    number = PositiveIntegerField(null=True, default=None)
+
+    class Meta:
+        """Declare constraints and indexes."""
+
+        unique_together = ("story_arc", "number")
 
 
 class Location(NamedModel):
@@ -343,7 +355,6 @@ class Comic(WatchedPath):
     read_ltr = BooleanField(db_index=True, default=True)
     scan_info = CharField(max_length=MAX_NAME_LEN, default="")
     web = URLField(default="")
-    story_arc_number = PositiveSmallIntegerField(db_index=True, null=True)
     gtin = CharField(db_index=True, max_length=MAX_FIELD_LEN, default="")
 
     # ManyToMany
@@ -352,7 +363,7 @@ class Comic(WatchedPath):
     genres = ManyToManyField(Genre)
     locations = ManyToManyField(Location)
     series_groups = ManyToManyField(SeriesGroup)
-    story_arcs = ManyToManyField(StoryArc)
+    story_arc_numbers = ManyToManyField(StoryArcNumber)
     tags = ManyToManyField(Tag)
     teams = ManyToManyField(Team)
     # Ignore these, they seem useless:
@@ -468,18 +479,14 @@ class Comic(WatchedPath):
         return title
 
     @classmethod
-    def get_filename(cls, obj, issue_max=None):
+    def get_filename(cls, obj):
         """Get the fileaname from dict."""
-        fn = cls.get_title(obj, issue_max=issue_max)
-        ft = obj.file_type or "cbz"
-        fn += "." + ft.lower()
-        return fn
+        path = Path(obj.path)
+        return path.stem + path.suffix
 
-    def filename(self, issue_max=None):
+    def filename(self):
         """Create a filename for download."""
-        self.series_name = self.series.name
-        self.volume_name = self.volume.name
-        return self.get_filename(self, issue_max)
+        return self.get_filename(self)
 
     def __str__(self):
         """Most common text representation for logging."""

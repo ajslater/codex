@@ -1,5 +1,12 @@
 <template>
-  <v-btn v-if="show" icon size="x-large" :title="title" :to="to">
+  <v-btn
+    v-if="show"
+    icon
+    size="x-large"
+    :title="title"
+    :to="to"
+    variant="plain"
+  >
     <v-icon>{{ icon }}</v-icon>
   </v-btn>
 </template>
@@ -8,7 +15,7 @@ import { mdiArrowUp, mdiFormatVerticalAlignTop } from "@mdi/js";
 import { mapGetters, mapState } from "pinia";
 
 import { useBrowserStore } from "@/stores/browser";
-const TOP_ROUTE = { group: "r", pk: 0 };
+const SPECIAL_GROUPS = new Set(["a", "f"]);
 
 export default {
   name: "BrowserUpButton",
@@ -34,7 +41,17 @@ export default {
       return this.top ? mdiFormatVerticalAlignTop : mdiArrowUp;
     },
     to() {
-      return this.top ? { params: TOP_ROUTE } : { params: this.upRoute };
+      let params;
+      if (this.top) {
+        let group = this.upRoute.group;
+        if (!SPECIAL_GROUPS.has(group)) {
+          group = "r";
+        }
+        params = { group, pk: 0, page: 1 };
+      } else {
+        params = this.upRoute;
+      }
+      return { params };
     },
   },
 };

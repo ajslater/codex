@@ -9,12 +9,10 @@ class BookmarkFilterMixin:
 
     _BOOKMARK_FILTERS = frozenset(set(CHOICES["bookmarkFilter"].keys()) - {"ALL"})
 
-    def get_bm_rel(self, is_model_comic):
+    def get_bm_rel(self, model):
         """Create bookmark relation."""
-        bm_rel = "bookmark"
-        if not is_model_comic:
-            bm_rel = "comic__" + bm_rel
-        return bm_rel
+        rel_prefix = self.get_rel_prefix(model)  # type: ignore
+        return rel_prefix + "bookmark"
 
     def _get_my_bookmark_filter(self, bm_rel):
         """Get a filter for my session or user defined bookmarks."""
@@ -27,12 +25,11 @@ class BookmarkFilterMixin:
             }
         return Q(**my_bookmarks_kwargs)
 
-    def get_bookmark_filter(self, is_model_comic, choice):
+    def get_bookmark_filter(self, model):
         """Build bookmark query."""
-        if choice is None:
-            choice = self.params["filters"].get("bookmark", "ALL")  # type: ignore
+        choice = self.params["filters"].get("bookmark", "ALL")  # type: ignore
         if choice in self._BOOKMARK_FILTERS:
-            bm_rel = self.get_bm_rel(is_model_comic)
+            bm_rel = self.get_bm_rel(model)
             my_bookmark_filter = self._get_my_bookmark_filter(bm_rel)
             if choice in ("UNREAD", "IN_PROGRESS"):
                 my_not_finished_filter = my_bookmark_filter & Q(

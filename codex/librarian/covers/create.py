@@ -10,7 +10,6 @@ from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.covers.tasks import CoverSaveToCache
 from codex.models import Comic
-from codex.pdf import PDF
 from codex.status import Status
 from codex.version import COMICBOX_CONFIG
 
@@ -39,13 +38,12 @@ class CoverCreateMixin(CoverPathMixin):
             return cover_thumb_buffer.getvalue()
 
     @classmethod
-    def _get_comic_cover_image(cls, comic):
+    def _get_comic_cover_image(cls, comic_path):
         """Create comic cover if none exists.
 
         Return image thumb data or path to missing file thumb.
         """
-        car_class = PDF if comic.file_type == Comic.FileType.PDF.value else ComicArchive
-        with car_class(comic.path, config=COMICBOX_CONFIG) as car:
+        with ComicArchive(comic_path, config=COMICBOX_CONFIG) as car:
             image_data = car.get_cover_image()
         if not image_data:
             reason = "Read empty cover"
@@ -58,14 +56,14 @@ class CoverCreateMixin(CoverPathMixin):
 
         Called from views/cover.
         """
-        comic = None
+        comic_path = None
         try:
-            comic = Comic.objects.only("path", "file_type").get(pk=pk)
-            cover_image = cls._get_comic_cover_image(comic)
+            comic_path = Comic.objects.only("path").get(pk=pk).path
+            cover_image = cls._get_comic_cover_image(comic_path)
             data = cls._create_cover_thumbnail(cover_image)
         except Exception as exc:
             data = b""
-            comic_str = comic.path if comic else f"{pk=}"
+            comic_str = comic_path if comic_path else f"{pk=}"
             log.warning(f"Could not create cover thumbnail for {comic_str}: {exc}")
 
         task = CoverSaveToCache(cover_path, data)

@@ -25,8 +25,6 @@
 import { mdiBookArrowDown, mdiBookArrowUp } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
-import { getComicPageSource } from "@/api/v3/reader";
-import { linksInfo } from "@/components/reader/prefetch-links";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
@@ -38,28 +36,21 @@ export default {
     },
   },
   head() {
-    return linksInfo([this.prefetchSrc1, this.prefetchSrc2]);
+    if (this.isDrawerOpen) {
+      return this.prefetchLinks(this.params, this.computedDirection, true);
+    }
   },
   computed: {
     ...mapGetters(useReaderStore, ["prevBookChangeShow", "nextBookChangeShow"]),
     ...mapState(useReaderStore, {
-      prefetchSrc2(state) {
-        if (!this.params) {
-          return false;
-        }
-        const book = state.books.get(this.params.pk);
-        const otherBookSettings = this.getSettings(book);
-        if (!this.isDrawerOpen || !this.params || !otherBookSettings.twoPages) {
-          return false;
-        }
-        const params = { pk: this.params.pk, page: this.params.page + 1 };
-        return getComicPageSource(params);
-      },
-      isDrawerOpen(state) {
-        return state.bookChange === this.computedDirection;
+      computedDirection() {
+        return this.normalizeDirection(this.direction);
       },
       params(state) {
         return state.routes.books[this.computedDirection];
+      },
+      isDrawerOpen(state) {
+        return state.bookChange === this.computedDirection;
       },
       icon() {
         return this.computedDirection === "next"
@@ -70,25 +61,21 @@ export default {
     show() {
       return this[this.computedDirection + "BookChangeShow"];
     },
-    prefetchSrc1() {
-      if (!this.isDrawerOpen || !this.params) {
-        return false;
-      }
-      return getComicPageSource(this.params);
-    },
     route() {
-      return this.params ? { params: this.params } : {};
+      return this.toRoute(this.params);
     },
     label() {
-      const prefix = this.computedDirection === "prev" ? "Previous" : "Next";
-      return `${prefix} Book`;
-    },
-    computedDirection() {
-      return this.normalizeDirection(this.direction);
+      return this.linkLabel(this.computedDirection, "Book");
     },
   },
   methods: {
-    ...mapActions(useReaderStore, ["getSettings", "normalizeDirection"]),
+    ...mapActions(useReaderStore, [
+      "getSettings",
+      "linkLabel",
+      "normalizeDirection",
+      "prefetchLinks",
+      "toRoute",
+    ]),
   },
 };
 </script>

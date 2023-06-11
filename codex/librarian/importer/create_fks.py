@@ -2,9 +2,8 @@
 
 So we may safely create the comics next.
 """
+from itertools import chain
 from pathlib import Path
-
-from django.db.models.functions import Now
 
 from codex.librarian.importer.status import ImportStatusTypes, status_notify
 from codex.models import (
@@ -15,11 +14,14 @@ from codex.models import (
     Imprint,
     Publisher,
     Series,
+    StoryArc,
+    StoryArcNumber,
     Volume,
 )
+from codex.status import Status
 from codex.threads import QueuedThread
 
-_BULK_UPDATE_FOLDER_MODIFIED_FIELDS = ("stat", "updated_at")
+BULK_UPDATE_FOLDER_MODIFIED_FIELDS = ("stat", "updated_at")
 _COUNT_FIELDS = {Series: "volume_count", Volume: "issue_count"}
 _GROUP_UPDATE_FIELDS = {
     Publisher: ("name",),
@@ -28,7 +30,11 @@ _GROUP_UPDATE_FIELDS = {
     Volume: ("name", "publisher", "imprint", "series"),
 }
 _NAMED_MODEL_UPDATE_FIELDS = ("name",)
-_CREATOR_UPDATE_FIELDS = ("person", "role")
+
+_CREATE_DICT_UPDATE_FIELDS = {
+    Creator: ("person", "role"),
+    StoryArcNumber: ("story_arc", "number"),
+}
 
 
 class CreateForeignKeysMixin(QueuedThread):
@@ -63,8 +69,8 @@ class CreateForeignKeysMixin(QueuedThread):
     @staticmethod
     def _update_group_obj(group_class, group_param_tuple, count_dict, count_field):
         """Update group counts for a Series or Volume."""
-        if count_dict is None:
-            # TODO this is never none now.
+        count = count_dict.get(count_field)
+        if count is None:
             return None
         search_kwargs = {
             "publisher__name": group_param_tuple[0],
@@ -76,15 +82,14 @@ class CreateForeignKeysMixin(QueuedThread):
 
         obj = group_class.objects.get(**search_kwargs)
         obj_count = getattr(obj, count_field)
-        count = count_dict.get(count_field)
-        if obj_count is None or (count is not None and obj_count < count):
+        if obj_count is None or count > obj_count:
             setattr(obj, count_field, count)
         else:
             obj = None
         return obj
 
     @status_notify()
-    def bulk_group_creator(self, group_tree_counts, group_class, status=None):
+    def _bulk_group_creator(self, group_tree_counts, group_class, status=None):
         """Bulk creates groups."""
         count = 0
         if not group_tree_counts:
@@ -109,7 +114,7 @@ class CreateForeignKeysMixin(QueuedThread):
         return count
 
     @status_notify()
-    def bulk_group_updater(self, group_tree_counts, group_class, status=None):
+    def _bulk_group_updater(self, group_tree_counts, group_class, status=None):
         """Bulk update groups."""
         count = 0
         if not group_tree_counts:
@@ -129,29 +134,6 @@ class CreateForeignKeysMixin(QueuedThread):
             status.complete = status.complete or 0
             status.complete += count
             self.status_controller.update(status)
-        return count
-
-    @status_notify(status_type=ImportStatusTypes.DIRS_MODIFIED, updates=False)
-    def bulk_folders_modified(self, paths, library, **kwargs):
-        """Update folders stat and nothing else."""
-        count = 0
-        if not paths:
-            return count
-        folders = Folder.objects.filter(library=library, path__in=paths).only(
-            "stat", "updated_at"
-        )
-        update_folders = []
-        now = Now()
-        for folder in folders.iterator():
-            if Path(folder.path).exists():
-                folder.set_stat()
-                folder.updated_at = now
-                update_folders.append(folder)
-        Folder.objects.bulk_update(
-            update_folders, fields=_BULK_UPDATE_FOLDER_MODIFIED_FIELDS
-        )
-        count += len(update_folders)
-        self.log.info(f"Modified {count} folders")
         return count
 
     @status_notify()
@@ -194,7 +176,7 @@ class CreateForeignKeysMixin(QueuedThread):
             Folder.objects.bulk_create(
                 create_folders,
                 update_conflicts=True,
-                update_fields=_BULK_UPDATE_FOLDER_MODIFIED_FIELDS,
+                update_fields=BULK_UPDATE_FOLDER_MODIFIED_FIELDS,
                 unique_fields=Folder._meta.unique_together[0],  # type: ignore
             )
             count += len(create_folders)
@@ -207,7 +189,7 @@ class CreateForeignKeysMixin(QueuedThread):
         return count
 
     @status_notify()
-    def bulk_create_named_models(self, names, named_class, status=None):
+    def _bulk_create_named_models(self, names, named_class, status=None):
         """Bulk create named models."""
         count = len(names)
         if not count:
@@ -230,30 +212,141 @@ class CreateForeignKeysMixin(QueuedThread):
             self.status_controller.update(status)
         return count
 
-    @status_notify()
-    def bulk_create_creators(self, create_creator_tuples, status=None):
-        """Bulk create creators."""
-        if not create_creator_tuples:
+    @staticmethod
+    def _create_creator(role_name, person_name):
+        role = CreatorRole.objects.get(name=role_name) if role_name else None
+        person = CreatorPerson.objects.get(name=person_name)
+        return Creator(role=role, person=person)
+
+    @staticmethod
+    def _create_story_arc_number(name, number):
+        story_arc = StoryArc.objects.get(name=name)
+        return StoryArcNumber(story_arc=story_arc, number=number)
+
+    def _bulk_create_dict_models(
+        self, create_tuples, create_method, model, status=None
+    ):
+        """Bulk create a dict type m2m model."""
+        if not create_tuples:
             return 0
 
-        create_creators = []
-        for role_name, person_name in create_creator_tuples:
-            role = CreatorRole.objects.get(name=role_name) if role_name else None
-            person = CreatorPerson.objects.get(name=person_name)
-            creator = Creator(role=role, person=person)
+        create_objs = []
+        for key, value in create_tuples:
+            obj = create_method(key, value)
+            create_objs.append(obj)
 
-            create_creators.append(creator)
-
-        Creator.objects.bulk_create(
-            create_creators,
+        model.objects.bulk_create(
+            create_objs,
             update_conflicts=True,
-            update_fields=_CREATOR_UPDATE_FIELDS,
-            unique_fields=creator._meta.unique_together[0],  # type: ignore
+            update_fields=_CREATE_DICT_UPDATE_FIELDS[model],
+            unique_fields=model._meta.unique_together[0],  # type: ignore
         )
-        count = len(create_creators)
-        self.log.info(f"Created {count} creators.")
+        count = len(create_objs)
+        self.log.info(f"Created {count} {model.__class__.__name__}s.")
         if status:
             status.complete = status.complete or 0
             status.complete += count
             self.status_controller.update(status)
         return count
+
+    @status_notify()
+    def _bulk_create_creators(self, create_creator_tuples, status=None):
+        """Bulk create creators."""
+        return self._bulk_create_dict_models(
+            create_creator_tuples,
+            self._create_creator,
+            Creator,
+            status,
+        )
+
+    @status_notify()
+    def _bulk_create_story_arc_numbers(
+        self, create_story_arc_number_tuples, status=None
+    ):
+        """Bulk create story_arc_numbers."""
+        return self._bulk_create_dict_models(
+            create_story_arc_number_tuples,
+            self._create_story_arc_number,
+            StoryArcNumber,
+            status,
+        )
+
+    @staticmethod
+    def _get_create_fks_totals(create_data):
+        (
+            create_groups,
+            update_groups,
+            create_folder_paths,
+            create_fks,
+            create_creators,
+            create_story_arc_numbers,
+        ) = create_data
+        total_fks = 0
+        for data_group in chain(
+            create_groups.values(), update_groups.values(), create_fks.values()
+        ):
+            total_fks += len(data_group)
+        total_fks += (
+            len(create_folder_paths)
+            + len(create_creators)
+            + len(create_story_arc_numbers)
+        )
+        return total_fks
+
+    def create_all_fks(self, library, create_data):
+        """Bulk create all foreign keys."""
+        total_fks = self._get_create_fks_totals(create_data)
+        status = Status(ImportStatusTypes.CREATE_FKS, 0, total_fks)
+        try:
+            self.status_controller.start(status)
+            (
+                create_groups,
+                update_groups,
+                create_folder_paths,
+                create_fks,
+                create_creators,
+                create_story_arc_numbers,
+            ) = create_data
+
+            for group_class, group_tree_counts in create_groups.items():
+                status.complete += self._bulk_group_creator(  # type: ignore
+                    group_tree_counts,
+                    group_class,
+                    status=status,
+                )
+
+            for group_class, group_tree_counts in update_groups.items():
+                status.complete += self._bulk_group_updater(  # type: ignore
+                    group_tree_counts,
+                    group_class,
+                    status=status,
+                )
+
+            status.complete += self.bulk_folders_create(  # type: ignore
+                sorted(create_folder_paths),
+                library,
+                status=status,
+            )
+
+            for named_class, names in create_fks.items():
+                status.complete += self._bulk_create_named_models(
+                    names,
+                    named_class,
+                    status=status,
+                )
+
+            # This must happen after creator_fks created by create_named_models
+            status.complete += self._bulk_create_creators(
+                create_creators,
+                status=status,
+            )
+
+            # This must happen after story_arc_fks created by create_named_models
+            status.complete += self._bulk_create_story_arc_numbers(
+                create_story_arc_numbers,
+                status=status,
+            )
+
+        finally:
+            self.status_controller.finish(status)
+        return status.complete

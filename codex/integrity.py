@@ -31,17 +31,19 @@ MIGRATION_0010 = "0010_haystack"
 MIGRATION_0011 = "0010_library_groups_and_metadata_changes"
 MIGRATION_0018 = "0018_rename_userbookmark_bookmark"
 MIGRATION_0023 = "0023_rename_credit_creator_and_more"
+MIGRATION_0025 = "0025_add_story_arc_number"
 M2M_NAMES = {
     "Character": "characters",
     "Creator": "creators",
     "Genre": "genres",
     "Location": "locations",
     "SeriesGroup": "series_groups",
-    "StoryArc": "story_arcs",
+    "StoryArcNumber": "story_arc_numbers",
     "Tag": "tags",
     "Team": "teams",
     "Folder": "folders",
 }
+SKIP_M2M_CHECKS = {"Creator": MIGRATION_0023, "StoryArcNumber": MIGRATION_0025}
 NULL_SET = frozenset([None])
 HAVE_LIBRARY_FKS = ("FailedImport", "Folder", "Comic")
 GROUP_HOSTS = {
@@ -68,6 +70,7 @@ DELETE_BAD_COMIC_FOLDER_RELATIONS_SQL = (
     'IN (SELECT "codex_folder"."id" FROM "codex_folder")))'
 )
 MIGRATION_DIR = CODEX_PATH / "migrations"
+
 LOG = get_logger(__name__)
 
 
@@ -289,16 +292,24 @@ def _delete_errors():
     _delete_old_comic_folder_fks()
 
 
+def _check_field_for_migration(model_name):
+    """Skip some models before migrations."""
+    for check_model_name, migration in SKIP_M2M_CHECKS.items():
+        if model_name == check_model_name and not has_applied_migration(migration):
+            LOG.debug(
+                f"Skipping {check_model_name} integrity check until"
+                f"migration {migration} applied."
+            )
+            return True
+    return False
+
+
 def _repair_integrity():
     """REPAIR the objects that are left."""
     comic_model = apps.get_model("codex", "Comic")
     bad_comic_ids = comic_model.objects.none()
     for m2m_model_name, field_name in M2M_NAMES.items():
-        if m2m_model_name == "Creator" and not has_applied_migration(MIGRATION_0023):
-            LOG.debug(
-                "Skipping Creator integrity check until"
-                f"migration {MIGRATION_0023} applied."
-            )
+        if _check_field_for_migration(m2m_model_name):
             continue
         try:
             bad_comic_ids |= _fix_comic_m2m_integrity_errors(

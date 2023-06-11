@@ -6,6 +6,7 @@ from rest_framework.authentication import BasicAuthentication, SessionAuthentica
 from rest_framework.response import Response
 
 from codex.logger.logging import get_logger
+from codex.models import AdminFlag
 from codex.serializers.opds.v2 import OPDS2FeedSerializer
 from codex.views.browser.browser import BrowserView
 from codex.views.opds.const import BLANK_TITLE, FALSY
@@ -27,6 +28,8 @@ LOG = get_logger(__name__)
 class OPDS2FeedView(PublicationMixin, TopLinksMixin):
     """OPDS 2.0 Feed."""
 
+    DEFAULT_ROUTE_NAME = "opds:v2:feed"
+
     authentication_classes = (BasicAuthentication, SessionAuthentication)
     serializer_class = OPDS2FeedSerializer
 
@@ -45,10 +48,71 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
         return result
 
     def _detect_user_agent(self):
-        # Hacks for individual clients
+        """Hacks for individual clients."""
         user_agent = self.request.headers.get("User-Agent")
         if not user_agent:
             return
+
+    @staticmethod
+    def _is_allowed(link_spec):
+        """Return if the link allowed."""
+        if (
+            getattr(link_spec, "group", None) == "f"
+            or getattr(link_spec, "query_param_value", None) == "f"
+        ):
+            # Folder perms
+            efv_flag = (
+                AdminFlag.objects.only("on")
+                .get(key=AdminFlag.FlagChoices.FOLDER_VIEW.value)
+                .on
+            )
+            if not efv_flag:
+                return False
+        return True
+
+    @staticmethod
+    def _create_link_kwargs(data, link_spec):
+        """Create link kwargs."""
+        if data.group_kwarg:
+            # Nav Groups
+            pk = getattr(link_spec, "pk", 0)
+            kwargs = {"group": link_spec.group, "pk": pk, "page": 1}
+        elif link_spec.query_param_value in ("f", "a"):
+            # Special Facets
+            kwargs = {
+                "group": link_spec.query_param_value,
+                "pk": 0,
+                "page": 1,
+            }
+        else:
+            # Regular Facets
+            kwargs = None
+        return kwargs
+
+    @staticmethod
+    def _create_link_query_params(group_spec, link_spec, kwargs):
+        """Create link query params."""
+        if qp_key := getattr(group_spec, "query_param_key", None):
+            # Facet shorthand with group
+            qps = {qp_key: link_spec.query_param_value}
+        elif ls_qps := getattr(link_spec, "query_params", None):
+            # Nav Group
+            qps = ls_qps
+        else:
+            # Regular Group
+            qps = None
+
+        # Special order by for story_arcs
+        if (
+            kwargs
+            and kwargs.get("group") == "a"
+            and kwargs.get("pk")
+            and (not qps or not qps.get("orderBy"))
+        ):
+            if not qps:
+                qps = {}
+            qps["orderBy"] = "story_arc_number"
+        return qps
 
     def _create_links_section(self, group_specs, data):
         """Create links sections for groups and facets."""
@@ -56,30 +120,20 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
         for group_spec in group_specs:
             link_dict = {}
             for link_spec in group_spec.links:
-                if data.group_kwarg:
-                    # Nav Groups
-                    pk = getattr(link_spec, "pk", 0)
-                    kwargs = {"group": link_spec.group, "pk": pk, "page": 1}
-                else:
-                    # Facets & Regular Groups
-                    kwargs = None
-                rel = data.rel if data.rel else link_spec.rel
+                if not self._is_allowed(link_spec):
+                    continue
 
-                if qp_key := getattr(group_spec, "query_param_key", None):
-                    # Facet shorthand with group
-                    qps = {qp_key: link_spec.query_param_value}
-                elif ls_qps := getattr(link_spec, "query_params", None):
-                    # Nav Group
-                    qps = ls_qps
-                else:
-                    # Regular Group
-                    qps = None
+                kwargs = self._create_link_kwargs(data, link_spec)
+
+                qps = self._create_link_query_params(group_spec, link_spec, kwargs)
 
                 title = getattr(link_spec, "title", "")
                 if not title:
                     title = getattr(link_spec, "name", "")
 
                 href_data = HrefData(kwargs, qps)
+
+                rel = data.rel if data.rel else link_spec.rel
                 link_data = LinkData(rel, href_data, title=title)
                 link = self.link(link_data)
                 self.link_aggregate(link_dict, link)
@@ -117,8 +171,15 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
     def get_object(self):
         """Get the browser page and serialize it for this subclass."""
         group = self.kwargs.get("group")
-        self.acquisition_groups = frozenset(self.valid_nav_groups[-2:])
-        self.is_opds_2_acquisition = group in self.acquisition_groups
+        if group in ("f", "a"):
+            self.acquisition_groups = frozenset()
+        else:
+            self.acquisition_groups = frozenset(self.valid_nav_groups[-2:])
+        if group == "a":
+            pk = self.kwargs["pk"]
+            self.is_opds_2_acquisition = bool(pk)
+        else:
+            self.is_opds_2_acquisition = group in self.acquisition_groups
         self.is_opds_metadata = (
             self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
         )

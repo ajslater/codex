@@ -21,7 +21,7 @@ class ComicIndex(ModelSearchIndex, Indexable):
     locations = CharField(model_attr="locations__name", null=True)
     series_groups = CharField(model_attr="series_groups__name", null=True)
     story_arcs = CharField(
-        model_attr="story_arcs__name",
+        model_attr="story_arc_numbers__story_arc__name",
         null=True,
     )
     tags = CharField(model_attr="tags__name", null=True)

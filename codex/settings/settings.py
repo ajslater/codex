@@ -181,7 +181,7 @@ PORT = int(HYPERCORN_CONFIG.bind[0].split(":")[1])
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/dev/howto/static-files/
-# WHITENOISE_KEEP_ONLY_HASHED_FILES is not usable with vite chunking
+# WHITENOISE_KEEP_ONLY_HASHED_FILES is still not usable with vite chunking
 WHITENOISE_STATIC_PREFIX = "static/"
 WHITENOISE_IMMUTABLE_FILE_TEST = immutable_file_test
 STATIC_ROOT = CODEX_PATH / "static_root"

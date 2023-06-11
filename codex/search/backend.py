@@ -155,7 +155,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         "genres",
         "locations",
         "series_groups",
-        "story_arcs",
+        "story_arc_numbers__story_arc",
         "tags",
         "teams",
         "creators__person",

@@ -25,27 +25,66 @@ class ReaderSettingsSerializer(Serializer):
     vertical = BooleanField(allow_null=True, required=False)
 
 
+class ReaderArcSerializer(Serializer):
+    """A group of comics or a story arc."""
+
+    group = CharField(read_only=True)
+    pk = IntegerField(read_only=True)
+    name = CharField(read_only=True)
+
+
 class ReaderComicSerializer(Serializer):
-    """Components for constructing the title."""
+    """Prev, Next and Current Comic info."""
 
     pk = IntegerField(read_only=True)
-    file_type = CharField(read_only=True)
-    issue = DecimalField(
-        max_digits=None, decimal_places=3, read_only=True, coerce_to_string=False
-    )
-    issue_suffix = CharField(read_only=True)
-    issue_count = IntegerField(read_only=True)
-    max_page = IntegerField(read_only=True)
-    series_name = CharField(read_only=True)
-    volume_name = CharField(read_only=True)
-    series_index = IntegerField(read_only=True)
-    read_ltr = BooleanField(allow_null=True, read_only=True)
     settings = ReaderSettingsSerializer(read_only=True)
-    filename = CharField(read_only=True)
+    max_page = IntegerField(read_only=True)
+    read_ltr = BooleanField(allow_null=True, read_only=True)
 
 
-class ReaderInfoSerializer(Serializer):
-    """Information about the series this comic belongs to."""
+class ReaderCurrentArcSerializer(Serializer):
+    """Information about the current Arc."""
 
-    books = ReaderComicSerializer(many=True, read_only=True)
-    series_count = IntegerField(read_only=True)
+    group = CharField(read_only=True)
+    pk = IntegerField(read_only=True)
+    index = IntegerField(read_only=True)
+    count = IntegerField(read_only=True, required=False)
+
+
+class ReaderCurrentComicSerializer(ReaderComicSerializer):
+    """Current comic only Serializer."""
+
+    # For title
+    series_name = CharField(read_only=True, required=False)
+    volume_name = CharField(read_only=True, required=False)
+    issue = DecimalField(
+        max_digits=None,
+        decimal_places=3,
+        read_only=True,
+        coerce_to_string=False,
+        required=False,
+    )
+    issue_suffix = CharField(read_only=True, required=False)
+    issue_count = IntegerField(
+        read_only=True,
+        required=False,
+    )
+
+    file_type = CharField(read_only=True, required=False)
+    filename = CharField(read_only=True, required=False)
+
+
+class ReaderBooksSerializer(Serializer):
+    """All comics relevant to the reader."""
+
+    current = ReaderCurrentComicSerializer(read_only=True)
+    prev_book = ReaderComicSerializer(read_only=True, required=False)
+    next_book = ReaderComicSerializer(read_only=True, required=False)
+
+
+class ReaderComicsSerializer(Serializer):
+    """Books and arcs."""
+
+    books = ReaderBooksSerializer(read_only=True)
+    arcs = ReaderArcSerializer(many=True, read_only=True)
+    arc = ReaderCurrentArcSerializer(read_only=True)

@@ -1,4 +1,6 @@
 """OPDS 2 Serializers."""
+from typing import Optional
+
 from rest_framework.fields import (
     BooleanField,
     CharField,
@@ -59,7 +61,7 @@ class OPDS2LinkSerializer(Serializer):
     children = CharListField(read_only=True, required=False)
     properties = OPDS2LinkPropertiesSerializer(read_only=True, required=False)
 
-    def get_rel(self, obj):
+    def get_rel(self, obj) -> Optional[str]:
         """Allow for CharField or CharListField types."""
         rel = obj.get("rel")
         if not isinstance(rel, (list, str)):
@@ -118,7 +120,8 @@ class OPDS2PublicationMetadataSerializer(OPDS2MetadataSerializer):
     https://readium.org/webpub-manifest/schema/metadata.schema.json
     """
 
-    # type = CharField(read_only=True, required=False) # TODO @type
+    # possibly change to @ on output if this is really needed
+    # @type = CharField(read_only=True, required=False)
     publisher = CharField(read_only=True, required=False)
     imprint = CharField(read_only=True, required=False)
     language = CharField(read_only=True, required=False)

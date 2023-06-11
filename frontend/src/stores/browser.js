@@ -39,6 +39,8 @@ const DEFAULT_BOOKMARK_VALUES = new Set([
   CHOICES.browser.bookmarkFilter[0].value,
 ]);
 Object.freeze(DEFAULT_BOOKMARK_VALUES);
+const ALWAYS_ENABLED_TOP_GROUPS = new Set(["a", "c"]);
+Object.freeze(ALWAYS_ENABLED_TOP_GROUPS);
 
 const getZeroPad = function (issueMax) {
   return !issueMax || issueMax < 1 ? 1 : Math.floor(Math.log10(issueMax)) + 1;
@@ -183,7 +185,9 @@ export const useBrowserStore = defineStore("browser", {
     ////////////////////////////////////////////////////////////////////////
     // VALIDATORS
     _isRootGroupEnabled(topGroup) {
-      return topGroup === "c" || topGroup === "f"
+      return ALWAYS_ENABLED_TOP_GROUPS.has(topGroup)
+        ? true
+        : topGroup == "f"
         ? this.page.adminFlags.folderView
         : this.settings.show[topGroup];
     },
@@ -195,8 +199,10 @@ export const useBrowserStore = defineStore("browser", {
       }
       data.orderBy = "search_score";
       data.orderReverse = true;
-      const params = router.currentRoute.value.params;
-      if (["f", this.lowestShownGroup].includes(params.group)) {
+      const group = router.currentRoute.value.params?.group;
+      const noRedirectGroups = new Set(ALWAYS_ENABLED_TOP_GROUPS);
+      noRedirectGroups.add(this.lowestShownGroup);
+      if (noRedirectGroups.has(group)) {
         return;
       }
       return { params: { group: this.lowestShownGroup, pk: 0, page: 1 } };
@@ -327,15 +333,15 @@ export const useBrowserStore = defineStore("browser", {
       await API.loadBrowserPage(params, this.settings)
         .then((response) => {
           const data = response.data;
+          const page = { ...response.data };
+          delete page.upRoute;
+          delete page.issueMax;
+          page.routes = {
+            up: data.upRoute,
+            last: params,
+          };
+          page.zeroPad = getZeroPad(data.issueMax);
           this.$patch((state) => {
-            const page = { ...response.data };
-            delete page.upRoute;
-            delete page.issueMax;
-            page.routes = {
-              up: data.upRoute,
-              last: params,
-            };
-            page.zeroPad = getZeroPad(data.issueMax);
             state.page = Object.freeze(page);
             state.choices.dynamic = undefined;
           });

@@ -56,6 +56,13 @@ class OPDS1EntryLinksMixin:
         kwargs = {"group": self.obj.group, "pk": self.obj.pk, "page": 1}
         href = reverse("opds:v1:feed", kwargs=kwargs)
         qps = {}
+        if (
+            self.obj.group == "a"
+            and self.obj.pk
+            and not self.query_params.get("orderBy")
+        ):
+            # story arcs get ordered by story_arc_number by default
+            qps.update({"orderBy": "story_arc_number"})
         if metadata:
             qps.update({"opdsMetadata": 1})
         return update_href_query_params(href, self.query_params, qps)

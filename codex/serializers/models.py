@@ -24,6 +24,7 @@ from codex.models import (
     Series,
     SeriesGroup,
     StoryArc,
+    StoryArcNumber,
     Tag,
     Team,
     Volume,
@@ -233,6 +234,20 @@ class StoryArcSerializer(NamedModelSerializer):
         model = StoryArc
 
 
+class StoryArcNumberSerializer(Serializer):
+    """StoryArc model."""
+
+    story_arc = StoryArcSerializer()
+    number = IntegerField(read_only=True, allow_null=True)
+
+    class Meta(NamedModelMeta):
+        """Configure model."""
+
+        model = StoryArcNumber
+        fields = ("pk", "story_arc", "number")
+        depth = 1
+
+
 class TagSerializer(NamedModelSerializer):
     """Tag model."""
 
@@ -276,7 +291,7 @@ class ComicSerializer(ModelSerializer):
     genres = GenreSerializer(many=True, allow_null=True)
     locations = LocationSerializer(many=True, allow_null=True)
     series_groups = SeriesGroupSerializer(many=True, allow_null=True)
-    story_arcs = StoryArcSerializer(
+    story_arc_numbers = StoryArcNumberSerializer(
         many=True,
         allow_null=True,
     )

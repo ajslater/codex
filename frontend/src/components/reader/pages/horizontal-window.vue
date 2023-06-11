@@ -67,7 +67,7 @@ export default {
       prevBook: (state) => state.routes.books?.prev,
       nextBook: (state) => state.routes.books?.next,
       storePage: (state) => state.page,
-      storePk: (state) => state.pk,
+      storePk: (state) => state.books.current.pk,
     }),
     settings() {
       return this.getSettings(this.book);

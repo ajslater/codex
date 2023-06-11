@@ -63,6 +63,7 @@ class BrowserSessionViewBase(SessionViewBaseBase):
 
     SESSION_KEY = "browser"  # type: ignore
     CREATOR_PERSON_UI_FIELD = "creators"
+    STORY_ARC_UI_FIELD = "story_arcs"
     _DYNAMIC_FILTER_DEFAULTS = {
         "age_rating": [],
         "characters": [],
@@ -79,7 +80,7 @@ class BrowserSessionViewBase(SessionViewBaseBase):
         "q": "",
         "read_ltr": [],
         "series_groups": [],
-        "story_arcs": [],
+        STORY_ARC_UI_FIELD: [],
         "tags": [],
         "teams": [],
         "year": [],

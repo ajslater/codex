@@ -19,6 +19,7 @@ from codex.models import (
     Series,
     SeriesGroup,
     StoryArc,
+    StoryArcNumber,
     Tag,
     Team,
     Volume,
@@ -38,11 +39,22 @@ _COMIC_FK_CLASSES = (
     Character,
     Location,
     SeriesGroup,
-    StoryArc,
+    StoryArcNumber,
     Genre,
 )
 _CREATOR_FK_CLASSES = (CreatorRole, CreatorPerson)
-TOTAL_NUM_FK_CLASSES = len(_COMIC_FK_CLASSES) + len(_CREATOR_FK_CLASSES)
+_STORY_ARC_NUMBER_FK_CLASSES = (StoryArc,)
+TOTAL_NUM_FK_CLASSES = (
+    len(_COMIC_FK_CLASSES)
+    + len(_CREATOR_FK_CLASSES)
+    + len(_STORY_ARC_NUMBER_FK_CLASSES)
+)
+
+CLEANUP_MAP = [
+    (_COMIC_FK_CLASSES, "comic"),
+    (_CREATOR_FK_CLASSES, "creator"),
+    (_STORY_ARC_NUMBER_FK_CLASSES, "storyarcnumber"),
+]
 
 
 class CleanupMixin(WorkerBaseMixin):
@@ -66,8 +78,8 @@ class CleanupMixin(WorkerBaseMixin):
         try:
             self.status_controller.start(status)
             self.log.debug("Cleaning up unused foreign keys...")
-            self._bulk_cleanup_fks(_COMIC_FK_CLASSES, "comic", status)
-            self._bulk_cleanup_fks(_CREATOR_FK_CLASSES, "creator", status)
+            for classes, field_name in CLEANUP_MAP:
+                self._bulk_cleanup_fks(classes, field_name, status)
             level = logging.INFO if status.complete else logging.DEBUG
             self.log.log(level, f"Cleaned up {status.complete} unused foreign keys.")
         finally:

@@ -24,6 +24,7 @@ class TopRoutes:
     SERIES = {"group": "s", "pk": 0, "page": 1}
     FOLDER = {"group": "f", "pk": 0, "page": 1}
     ROOT = {"group": "r", "pk": 0, "page": 1}
+    STORY_ARC = {"group": "a", "pk": 0, "page": 1}
 
 
 @dataclass
@@ -102,6 +103,7 @@ class LinksMixin(FacetsMixin):
     """OPDS 1 Links methods."""
 
     # overwritten in get_object()
+    DEFAULT_ROUTE_NAME = "opds:v1:feed"
     is_aq_feed = False
 
     def is_top_link_displayed(self, top_link):

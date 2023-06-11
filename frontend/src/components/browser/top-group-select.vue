@@ -10,7 +10,7 @@
   >
     <template #item="{ item, props }">
       <!-- Divider in items not implemented yet in Vuetify 3 -->
-      <v-divider v-if="item.value === 'f'" />
+      <v-divider v-if="DIVIDED_VALUES.has(item.value)" />
       <v-list-item v-bind="props" :title="item.title" :value="item.value" />
     </template>
   </ToolbarSelect>
@@ -23,6 +23,7 @@ import ToolbarSelect from "@/components/browser/toolbar-select.vue";
 import { useBrowserStore } from "@/stores/browser";
 
 const FOLDER_ROUTE = { params: { group: "f", pk: 0, page: 1 } };
+const DIVIDED_VALUES = new Set(["a", "f"]);
 
 export default {
   name: "BrowserTopGroupSelect",
@@ -33,6 +34,7 @@ export default {
   data() {
     return {
       FOLDER_ROUTE,
+      DIVIDED_VALUES,
     };
   },
   computed: {
@@ -48,26 +50,17 @@ export default {
         return this.topGroupSetting;
       },
       set(value) {
+        const group = DIVIDED_VALUES.has(value) ? value : "r";
+        const topRoute = {
+          params: { group, pk: 0, page: 1 },
+        };
         const settings = { topGroup: value };
-        if (
-          (this.topGroupSetting === "f" && value !== "f") ||
-          (this.topGroupSetting !== "f" && value === "f")
-        ) {
-          // Change major views
-          const group = value === "f" ? "f" : "r";
-          const topRoute = {
-            params: { group, pk: 0, page: 1 },
-          };
-          this.$router
-            .push(topRoute)
-            .then(() => {
-              return this.setSettings(settings);
-            })
-            .catch(console.error);
-        } else {
-          // Change group style top group
-          this.setSettings(settings);
-        }
+        this.$router
+          .push(topRoute)
+          .then(() => {
+            return this.setSettings(settings);
+          })
+          .catch(console.error);
       },
     },
   },

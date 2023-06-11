@@ -47,11 +47,11 @@
 
 <script>
 import { mdiCloseCircleOutline } from "@mdi/js";
-import { numberFormat } from "humanize";
 import { mapActions, mapState } from "pinia";
 
 import { statusTitles } from "@/choices-admin.json";
 import CloseButton from "@/components/close-button.vue";
+import { NUMBER_FORMAT } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
 
 export default {
@@ -93,7 +93,7 @@ export default {
       return statusTitles[status.statusType];
     },
     nf(val) {
-      return Number.isInteger(val) ? numberFormat(val, 0) : "?";
+      return Number.isInteger(val) ? NUMBER_FORMAT.format(val) : "?";
     },
   },
 };

@@ -3,8 +3,9 @@ from pathlib import Path
 
 from django.db.models.functions import Now
 
-from codex.librarian.importer.status import status_notify
+from codex.librarian.importer.status import ImportStatusTypes, status_notify
 from codex.models import Comic, FailedImport
+from codex.status import Status
 from codex.threads import QueuedThread
 
 _BULK_UPDATE_FAILED_IMPORT_FIELDS = ("name", "stat", "updated_at")
@@ -38,7 +39,7 @@ class FailedImportsMixin(QueuedThread):
         return succeeded_failed_imports | missing_failed_imports
 
     @status_notify()
-    def query_failed_imports(
+    def _query_failed_imports(
         self,
         failed_imports,
         library,
@@ -73,7 +74,7 @@ class FailedImportsMixin(QueuedThread):
         return count
 
     @status_notify()
-    def bulk_update_failed_imports(
+    def _bulk_update_failed_imports(
         self, update_failed_imports, library, **kwargs
     ) -> int:
         """Bulk update failed imports."""
@@ -105,7 +106,7 @@ class FailedImportsMixin(QueuedThread):
         return count
 
     @status_notify()
-    def bulk_create_failed_imports(self, create_failed_imports, library, **kwargs):
+    def _bulk_create_failed_imports(self, create_failed_imports, library, **kwargs):
         """Bulk create failed imports."""
         if not create_failed_imports:
             return 0
@@ -130,7 +131,7 @@ class FailedImportsMixin(QueuedThread):
         return count
 
     @status_notify()
-    def bulk_cleanup_failed_imports(
+    def _bulk_cleanup_failed_imports(
         self, delete_failed_imports_paths, library, **kwargs
     ):
         """Remove FailedImport objects that have since succeeded."""
@@ -144,3 +145,38 @@ class FailedImportsMixin(QueuedThread):
         count = len(delete_failed_imports_paths)
         self.log.info(f"Cleaned up {count} failed imports from {library.path}")
         return count
+
+    def fail_imports(self, library, failed_imports, is_files_deleted):
+        """Handle failed imports."""
+        created_count = 0
+        try:
+            fis = {"update_fis": {}, "create_fis": {}, "delete_fi_paths": set()}
+            if is_files_deleted:
+                # if any files were deleted. Run the failed import check
+                failed_imports["files_deleted"] = True
+            status = Status(ImportStatusTypes.FAILED_IMPORTS, 0, len(failed_imports))
+            status.total = self._query_failed_imports(
+                failed_imports,
+                library,
+                fis,
+                status=status,
+            )
+
+            self._bulk_update_failed_imports(
+                fis["update_fis"],
+                library,
+                status=status,
+            )
+
+            created_count = self._bulk_create_failed_imports(
+                fis["create_fis"],
+                library,
+                status=status,
+            )
+
+            self._bulk_cleanup_failed_imports(
+                fis["delete_fi_paths"], library, status=status
+            )
+        except Exception:
+            self.log.exception("Processing failed imports")
+        return bool(created_count)

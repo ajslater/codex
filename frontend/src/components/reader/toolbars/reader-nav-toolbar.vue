@@ -38,16 +38,14 @@ export default {
     ReaderBookChangeNavButton,
   },
   computed: {
-    ...mapGetters(useReaderStore, ["activeSettings", "activeBook"]),
+    ...mapGetters(useReaderStore, ["activeSettings"]),
     ...mapState(useReaderStore, {
       storePage: (state) => state.page,
       key(state) {
-        return `${state.pk} - ${this.twoPages}`;
+        return `${state.books?.current?.pk}:${this.twoPages}`;
       },
+      maxPage: (state) => state.books?.current?.maxPage || 0,
     }),
-    maxPage() {
-      return this.activeBook ? this.activeBook.maxPage : 0;
-    },
     twoPages() {
       return this.activeSettings.twoPages;
     },

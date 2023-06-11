@@ -80,7 +80,7 @@
       id="clearSettingsButton"
       :disabled="isClearSettingsButtonDisabled"
       title="Use the default settings for all comics for this comic"
-      @click="clearSettingsLocal(params)"
+      @click="clearSettingsLocal"
     >
       Clear Comic Settings
     </v-btn>
@@ -111,17 +111,17 @@ export default {
         }
         return displayChoices;
       },
-      selectedSettings: function (state) {
-        return this.isGlobalScope || !state.activeBook
+      selectedSettings(state) {
+        return this.isGlobalScope || !state.books?.current
           ? state.readerSettings
-          : state.activeBook.settings;
+          : state.books?.current.settings;
       },
-      isClearSettingsButtonDisabled: function (state) {
-        if (this.isGlobalScope || !state.activeBook) {
+      isClearSettingsButtonDisabled(state) {
+        if (this.isGlobalScope || !state.books?.current) {
           return true;
         }
         for (const attr of ATTRS) {
-          const val = state.activeBook.settings[attr];
+          const val = state.books?.current.settings[attr];
           if (!state.choices.nullValues.has(val)) {
             return false;
           }
@@ -130,8 +130,8 @@ export default {
       },
       verticalLabel(state) {
         const vertical =
-          state.activeBook && state.activeBook.settings
-            ? state.activeBook.settings.vertical
+          state.books?.current && state.books?.current.settings
+            ? state.books?.current.settings.vertical
             : undefined;
         if (vertical === undefined || vertical === null) {
           return "Horizontal or Vertical";
@@ -140,9 +140,6 @@ export default {
         } else {
           return "Turn Pages Horizontally";
         }
-      },
-      params(state) {
-        return { pk: state.pk, page: state.page };
       },
     }),
     ...mapWritableState(useReaderStore, ["readRTLInReverse"]),
@@ -160,14 +157,14 @@ export default {
       "setSettingsGlobal",
       "setSettingsLocal",
     ]),
-    settingsDialogChanged: function (data) {
+    settingsDialogChanged(data) {
       if (this.isGlobalScope) {
-        this.setSettingsGlobal(this.params, data);
+        this.setSettingsGlobal(data);
       } else {
-        this.setSettingsLocal(this.params, data);
+        this.setSettingsLocal(data);
       }
     },
-    _keyListener: function (event) {
+    _keyListener(event) {
       event.stopPropagation();
       let updates;
       switch (event.key) {
@@ -203,7 +200,7 @@ export default {
           };
       }
       if (updates) {
-        this.setSettingsLocal(this.params, updates);
+        this.setSettingsLocal(updates);
       }
       // metadata and close are attached to to title-toolbar
       // No default

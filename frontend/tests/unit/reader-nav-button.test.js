@@ -27,7 +27,7 @@ test("reader-nav-button", async () => {
   router.push("/c/2/0");
   await router.isReady();
   const store = createTestingPinia({
-    initialState: { reader: { pk: 0, page: 0 } },
+    initialState: { reader: { books: { current: { pk: 0 } }, page: 0 } },
   });
   const wrapper = mount(ReaderNavButton, {
     props: {
