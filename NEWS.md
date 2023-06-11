@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.4.1
+
+- Fix
+  - A bug that prevented folder view from displaying under some circumstances.
+
 ## v1.4.0
 
 - Features
