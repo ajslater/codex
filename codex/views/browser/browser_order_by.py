@@ -25,7 +25,9 @@ class BrowserOrderByView(BrowserBaseView):
         "story_arc_number": Min,
     }
     _SEP_VALUE = Value(sep)
-    _ANNOTATED_ORDER_FIELDS = frozenset(("sort_name", "bookmark_updated_at"))
+    _ANNOTATED_ORDER_FIELDS = frozenset(
+        ("sort_name", "search_score", "bookmark_updated_at")
+    )
 
     def set_order_key(self):
         """Get the default order key for the view."""

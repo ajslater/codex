@@ -51,26 +51,19 @@ class BrowserBaseView(
             self._is_admin = user and isinstance(user, User) and user.is_staff
         return self._is_admin
 
-    def get_query_filters_without_group(self, model):
+    def get_query_filters_without_group(self, model, search_scores):
         """Return all the filters except the group filter."""
         object_filter = self.get_group_acl_filter(model)
-
-        search_filter, search_scores = self.get_search_filter()
-        object_filter &= search_filter
+        object_filter &= self.get_search_filter(model, search_scores)
         object_filter &= self.get_bookmark_filter(model)
         object_filter &= self.get_comic_field_filter()
-        return object_filter, search_scores
+        return object_filter
 
-    def get_query_filters(self, model, choices=False):
+    def get_query_filters(self, model, search_scores, choices=False):
         """Return the main object filter and the one for aggregates."""
-        (
-            object_filter,
-            search_scores,
-        ) = self.get_query_filters_without_group(model)
-
+        object_filter = self.get_query_filters_without_group(model, search_scores)
         object_filter &= self.get_group_filter(choices)
-
-        return object_filter, search_scores
+        return object_filter
 
     def _parse_query_params(self, query_params):
         """Parse GET query parameters: filter object & snake case."""

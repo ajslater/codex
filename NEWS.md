@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.4.2
+
+- Fix
+  - Groups were not aggregating children properly when search was used.
+  - Search could break Folder view.
+
 ## v1.4.1
 
 - Fix
