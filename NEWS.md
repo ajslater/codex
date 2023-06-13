@@ -9,8 +9,9 @@ border-radius: 128px;
 ## v1.4.2
 
 - Fix
-  - Groups were not aggregating children properly when search was used.
+  - Groups were not aggregating children properly when searched.
   - Search could break Folder view.
+  - Changing the order by would sometimes not apply.
 
 ## v1.4.1
 
