@@ -60,8 +60,6 @@ export default {
   },
   beforeMount() {
     this.setBookChangeFlag();
-  },
-  created() {
     this.loadBooks(this.$route.params);
   },
   methods: {

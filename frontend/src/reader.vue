@@ -70,6 +70,9 @@ export default {
   },
   created() {
     useCommonStore().isSettingsDrawerOpen = false;
+  },
+  beforeMount() {
+    useReaderStore().$reset;
     this.loadReaderSettings();
   },
   methods: {

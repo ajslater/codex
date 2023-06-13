@@ -11,7 +11,8 @@ border-radius: 128px;
 - Fix
   - Groups were not aggregating children properly when searched.
   - Search could break Folder view.
-  - Changing the order by would sometimes not apply.
+  - Changing the browser 'order by' would sometimes not apply.
+  - Clear reader data before starting to attempt to avoid stale books showing.
 
 ## v1.4.1
 
