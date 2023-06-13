@@ -3,7 +3,7 @@ from copy import deepcopy
 from typing import Optional, Union
 
 from django.core.paginator import EmptyPage, Paginator
-from django.db.models import F, Max, Q, Value
+from django.db.models import F, Max, Value
 from django.db.models.fields import (
     CharField,
 )
@@ -127,30 +127,23 @@ class BrowserView(BrowserAnnotationsView):
         model_group = self._get_model_group()
         self.model = self.GROUP_MODEL_MAP[model_group]
 
-    def _get_group_queryset(self, object_filter, search_scores):
+    def _get_group_queryset(self, search_scores):
         """Create group queryset."""
-        if self.model == Comic:
-            qs = self.model.objects.none()
-        else:
+        if self.model != Comic:
+            object_filter = self.get_query_filters(self.model, search_scores, False)
             qs = self.model.objects.filter(object_filter)
             qs = self._add_annotations(qs, self.model, search_scores)
             qs = self.add_order_by(qs, self.model)
+        else:
+            qs = self.model.objects.none()
         return qs
 
-    def _get_book_queryset(self, object_filter, search_scores):
+    def _get_book_queryset(self, search_scores):
         """Create book queryset."""
-        group = self.kwargs.get("group")
-        if self.model == Comic or group == self.FOLDER_GROUP:
-            if group == self.FOLDER_GROUP:
-                comic_object_filter, comic_search_scores = self.get_query_filters(
-                    self.model, False
-                )
-            else:
-                comic_object_filter = object_filter
-                comic_search_scores = search_scores
-
-            qs = Comic.objects.filter(comic_object_filter)
-            qs = self._add_annotations(qs, Comic, comic_search_scores)
+        if self.model in (Comic, Folder):
+            object_filter = self.get_query_filters(Comic, search_scores, False)
+            qs = Comic.objects.filter(object_filter)
+            qs = self._add_annotations(qs, Comic, search_scores)
             qs = self.add_order_by(qs, Comic)
             if limit := self.params.get("limit"):
                 qs = qs[:limit]
@@ -329,20 +322,11 @@ class BrowserView(BrowserAnnotationsView):
         self.set_rel_prefix(self.model)
         self._set_group_instance()  # Placed up here to invalidate earlier
         # Create the main query with the filters
-        try:
-            object_filter, search_scores = self.get_query_filters(self.model, False)
-        except Folder.DoesNotExist:
-            pk = self.kwargs.get("pk")
-            self._raise_redirect(
-                {"group": self.FOLDER_GROUP},
-                f"folder {pk} Does not exist! Redirect to root folder.",
-            )
-            object_filter = Q()
-            search_scores = {}
+        search_scores = self.get_search_scores()
         group = self.kwargs.get("group")
 
-        group_qs = self._get_group_queryset(object_filter, search_scores)
-        book_qs = self._get_book_queryset(object_filter, search_scores)
+        group_qs = self._get_group_queryset(search_scores)
+        book_qs = self._get_book_queryset(search_scores)
 
         # Paginate
         group_qs, book_qs, num_pages, total_count = self._paginate(group_qs, book_qs)

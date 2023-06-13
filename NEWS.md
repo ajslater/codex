@@ -6,6 +6,14 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.4.2
+
+- Fix
+  - Groups were not aggregating children properly when searched.
+  - Search could break Folder View.
+  - Changing the browser 'Order By' would sometimes not apply.
+  - Attempt to fix stale books appearing on reader load.
+
 ## v1.4.1
 
 - Fix
