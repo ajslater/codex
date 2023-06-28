@@ -36,6 +36,37 @@ class AggregateMetadataMixin(CleanMetadataMixin):
                 file_type = suffix
         return file_type
 
+    @classmethod
+    def _get_group_tree(cls, md):
+        """Create the group tree to counts map for a single comic."""
+        # Create group tree
+        group_tree = []
+        for group_cls in cls._BROWSER_GROUPS:
+            group_field = group_cls.__name__.lower()
+            # some volumes are read by ComicArchive as ints, cast
+            group_name = str(md.get(group_field, Publisher.DEFAULT_NAME))
+            # This fixes no imprint or whatever being in md
+            md[group_field] = group_name
+            group_tree.append(group_name)
+
+        # Add counts to group tree.
+        groups_md = {}
+        md_group_count_fields = cls._BROWSER_GROUP_TREE_COUNT_FIELDS & md.keys()
+        for key in md_group_count_fields:
+            groups_md[key] = md.pop(key)
+        group_tree_md = {tuple(group_tree): groups_md}
+        return group_tree_md
+
+    @staticmethod
+    def _get_m2m_metadata(md, path):
+        """Many_to_many fields get moved into a separate dict."""
+        m2m_md = {}
+        md_m2m_fields = COMIC_M2M_FIELD_NAMES & md.keys()
+        for field in md_m2m_fields:
+            m2m_md[field] = md.pop(field)
+        m2m_md["folders"] = Path(path).parents
+        return m2m_md
+
     def _get_path_metadata(self, path):
         """Get the metatada from comicbox and munge it a little."""
         md = {}
@@ -50,28 +81,8 @@ class AggregateMetadataMixin(CleanMetadataMixin):
             md["path"] = path
             md = self.clean_md(md)
 
-            # Create group tree
-            group_tree = []
-            for group_cls in self._BROWSER_GROUPS:
-                group_field = group_cls.__name__.lower()
-                # some volumes are read by ComicArchive as ints, cast
-                group_name = str(md.get(group_field, Publisher.DEFAULT_NAME))
-                # This fixes no imprint or whatever being in md
-                md[group_field] = group_name
-                group_tree.append(group_name)
-
-            # Add counts to group tree.
-            groups_md = {}
-            md_group_count_fields = self._BROWSER_GROUP_TREE_COUNT_FIELDS & md.keys()
-            for key in md_group_count_fields:
-                groups_md[key] = md.pop(key)
-            group_tree_md[tuple(group_tree)] = groups_md
-
-            # Many_to_many fields get moved into a separate dict
-            md_m2m_fields = COMIC_M2M_FIELD_NAMES & md.keys()
-            for field in md_m2m_fields:
-                m2m_md[field] = md.pop(field)
-            m2m_md["folders"] = Path(path).parents
+            group_tree_md = self._get_group_tree(md)
+            m2m_md = self._get_m2m_metadata(md, path)
 
         except (UnsupportedArchiveTypeError, BadRarFile, BadZipFile, OSError) as exc:
             self.log.warning(f"Failed to import {path}: {exc}")
