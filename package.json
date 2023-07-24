@@ -2,14 +2,48 @@
   "description": "linting for top level codex project & django backend",
   "type": "module",
   "scripts": {
-    "fix": "eslint_d --cache --fix --ignore-pattern frontend --ext .cjs,.mjs,.js,.json,.yaml,.md . && prettier --write .",
-    "lint": "eslint_d --cache --ignore-pattern frontend --ext .cjs,.mjs,.js,.json,.yaml,.md . && prettier --check .",
+    "fix": "eslint_d --cache --fix --ignore-pattern frontend --ext .cjs,.mjs,.js,.json,.yaml,.md . && prettier --write . && bin/prettier-nginx.sh --write",
+    "lint": "eslint_d --cache --ignore-pattern frontend --ext .cjs,.mjs,.js,.json,.yaml,.md . && prettier --check . && bin/prettier-nginx.sh --check",
     "remark-check": "remark .",
     "remark-fix": "remark . --output"
   },
+  "prettier": {
+    "plugins": [
+      "prettier-plugin-nginx",
+      "prettier-plugin-packagejson",
+      "prettier-plugin-sh",
+      "prettier-plugin-vue"
+    ],
+    "overrides": [
+      {
+        "files": [
+          "*.md"
+        ],
+        "options": {
+          "proseWrap": "always"
+        }
+      },
+      {
+        "files": [
+          "bin/nginx/http.d/codex/*.conf"
+        ],
+        "options": {
+          "parser": "nginx"
+        }
+      }
+    ]
+  },
+  "remarkConfig": {
+    "plugins": [
+      "preset-lint-consistent",
+      "preset-lint-recommended",
+      "preset-lint-markdown-style-guide",
+      "preset-prettier"
+    ]
+  },
   "devDependencies": {
-    "@fsouza/prettierd": "^0.23.0",
-    "@prettier/plugin-xml": "^2.0.1",
+    "@fsouza/prettierd": "^0.24.0",
+    "@prettier/plugin-xml": "^3.0.0",
     "eslint": "^8.34.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-array-func": "^3.1.7",
@@ -30,11 +64,14 @@
     "eslint-plugin-simple-import-sort": "^10.0.0",
     "eslint-plugin-sonarjs": "^0.19.0",
     "eslint-plugin-switch-case": "^1.1.2",
-    "eslint-plugin-unicorn": "^47.0.0",
+    "eslint-plugin-unicorn": "^48.0.0",
     "eslint-plugin-yaml": "^0.5.0",
     "eslint_d": "^12.0.0",
-    "prettier": "^2.7.1",
-    "prettier-plugin-package": "^1.3.0",
+    "prettier": "^3.0.0",
+    "prettier-plugin-nginx": "^1.0.3",
+    "prettier-plugin-packagejson": "^2.4.4",
+    "prettier-plugin-sh": "^0.13.0",
+    "prettier-plugin-vue": "^1.1.6",
     "remark-cli": "^11.0.0",
     "remark-preset-lint-consistent": "^5.1.1",
     "remark-preset-lint-markdown-style-guide": "^5.1.2",
@@ -42,25 +79,5 @@
     "remark-preset-prettier": "^2.0.1",
     "svgo": "^3.0.0",
     "toml": "^3.0.0"
-  },
-  "prettier": {
-    "overrides": [
-      {
-        "files": [
-          "*.md"
-        ],
-        "options": {
-          "proseWrap": "always"
-        }
-      }
-    ]
-  },
-  "remarkConfig": {
-    "plugins": [
-      "preset-lint-consistent",
-      "preset-lint-recommended",
-      "preset-lint-markdown-style-guide",
-      "preset-prettier"
-    ]
   }
 }

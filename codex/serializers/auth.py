@@ -1,4 +1,5 @@
 """Codex Auth Serializers."""
+from types import MappingProxyType
 
 from django.contrib.auth.models import User
 from rest_framework.fields import BooleanField, CharField
@@ -60,7 +61,7 @@ class UserCreateSerializer(ModelSerializer, TimezoneSerializer):
 
         model = User
         fields = ("username", "password", "timezone")
-        extra_kwargs = {"password": {"write_only": True}}
+        extra_kwargs = MappingProxyType({"password": {"write_only": True}})
 
 
 class UserLoginSerializer(UserCreateSerializer):

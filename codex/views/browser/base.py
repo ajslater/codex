@@ -1,6 +1,7 @@
 """Views for browsing comic library."""
 import json
 from copy import deepcopy
+from types import MappingProxyType
 from urllib.parse import unquote_plus
 
 from django.contrib.auth.models import User
@@ -8,7 +9,15 @@ from djangorestframework_camel_case.settings import api_settings
 from djangorestframework_camel_case.util import underscoreize
 
 from codex.logger.logging import get_logger
-from codex.models import Comic, Folder, Imprint, Publisher, Series, StoryArc, Volume
+from codex.models import (
+    Comic,
+    Folder,
+    Imprint,
+    Publisher,
+    Series,
+    StoryArc,
+    Volume,
+)
 from codex.serializers.browser import BrowserSettingsSerializer
 from codex.views.browser.filters.bookmark import BookmarkFilterMixin
 from codex.views.browser.filters.field import ComicFieldFilter
@@ -25,16 +34,18 @@ class BrowserBaseView(
 
     input_serializer_class = BrowserSettingsSerializer
 
-    GROUP_MODEL_MAP = {
-        GroupFilterMixin.ROOT_GROUP: None,
-        "p": Publisher,
-        "i": Imprint,
-        "s": Series,
-        "v": Volume,
-        GroupFilterMixin.COMIC_GROUP: Comic,
-        GroupFilterMixin.FOLDER_GROUP: Folder,
-        GroupFilterMixin.STORY_ARC_GROUP: StoryArc,
-    }
+    GROUP_MODEL_MAP = MappingProxyType(
+        {
+            GroupFilterMixin.ROOT_GROUP: None,
+            "p": Publisher,
+            "i": Imprint,
+            "s": Series,
+            "v": Volume,
+            GroupFilterMixin.COMIC_GROUP: Comic,
+            GroupFilterMixin.FOLDER_GROUP: Folder,
+            GroupFilterMixin.STORY_ARC_GROUP: StoryArc,
+        }
+    )
 
     _GET_JSON_KEYS = frozenset(("filters", "show"))
 
@@ -78,13 +89,11 @@ class BrowserBaseView(
                 parsed_val = val
 
             result[key] = parsed_val
-        result = underscoreize(result, **api_settings.JSON_UNDERSCOREIZE)
-
-        return result
+        return underscoreize(result, **api_settings.JSON_UNDERSCOREIZE)
 
     def parse_params(self):
         """Validate sbmitted settings and apply them over the session settings."""
-        self.params = deepcopy(self.SESSION_DEFAULTS)
+        self.params = deepcopy(dict(self.SESSION_DEFAULTS))
         if self.request.method == "GET":
             data = self._parse_query_params(self.request.GET)
         elif hasattr(self.request, "data"):

@@ -1,4 +1,5 @@
 """OPDS v1 Entry Data classes."""
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 
@@ -20,4 +21,4 @@ class OPDS1EntryData:
     acquisition_groups: frozenset
     issue_max: int
     metadata: bool
-    mime_type_map: dict
+    mime_type_map: Mapping[str, str]

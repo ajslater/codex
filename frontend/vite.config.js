@@ -16,7 +16,7 @@ let rootPath;
 try {
   // for dev & build
   const HYPERCORN_CONF = toml.parse(
-    fs.readFileSync("../config/hypercorn.toml")
+    fs.readFileSync("../config/hypercorn.toml"),
   );
   rootPath = HYPERCORN_CONF.root_path || "";
 } catch {

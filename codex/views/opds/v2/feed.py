@@ -189,7 +189,8 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
 
         self.is_aq_feed = browser_page.get("model_group") == "c"
 
-        datetime.fromtimestamp(browser_page["covers_timestamp"], tz=timezone.utc)
+        ts: int = browser_page["covers_timestamp"]  # type: ignore
+        datetime.fromtimestamp(ts, tz=timezone.utc)
         self.num_pages = browser_page["num_pages"]
         number_of_items = browser_page["total_count"]
         title = self._title(browser_page.get("browser_title"))

@@ -1,4 +1,6 @@
 """A filter for group ACLS."""
+from types import MappingProxyType
+
 from django.db.models import Q
 
 from codex.models import Comic, Folder, StoryArc
@@ -11,15 +13,17 @@ class GroupACLMixin:
     FOLDER_GROUP = "f"
     STORY_ARC_GROUP = "a"
     COMIC_GROUP = "c"
-    GROUP_RELATION = {
-        "p": "publisher",
-        "i": "imprint",
-        "s": "series",
-        "v": "volume",
-        COMIC_GROUP: "pk",
-        FOLDER_GROUP: "parent_folder",
-        STORY_ARC_GROUP: "story_arc_numbers__story_arc",
-    }
+    GROUP_RELATION = MappingProxyType(
+        {
+            "p": "publisher",
+            "i": "imprint",
+            "s": "series",
+            "v": "volume",
+            COMIC_GROUP: "pk",
+            FOLDER_GROUP: "parent_folder",
+            STORY_ARC_GROUP: "story_arc_numbers__story_arc",
+        }
+    )
 
     def get_rel_prefix(self, model):
         """Return the relation prfiex for most fields."""

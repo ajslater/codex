@@ -12,6 +12,6 @@ class OpenSearch1View(CodexXMLTemplateView):
     """OpenSearchView."""
 
     authentication_classes = (BasicAuthentication, SessionAuthentication)
-    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
+    permission_classes = (IsAuthenticatedOrEnabledNonUsers,)
     template_name = "opds_v1/opensearch_v1.xml"
     content_type = "application/xml"

@@ -352,7 +352,7 @@ export const useBrowserStore = defineStore("browser", {
     async loadAvailableFilterChoices() {
       return await API.getAvailableFilterChoices(
         router.currentRoute.value.params,
-        this.settings
+        this.settings,
       )
         .then((response) => {
           this.choices.dynamic = response.data;
@@ -364,7 +364,7 @@ export const useBrowserStore = defineStore("browser", {
       return await API.getFilterChoices(
         router.currentRoute.value.params,
         fieldName,
-        this.settings
+        this.settings,
       )
         .then((response) => {
           this.choices.dynamic[fieldName] = Object.freeze(response.data);

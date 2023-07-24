@@ -1,4 +1,5 @@
 """Publication Methods for OPDS v2.0 feed."""
+from types import MappingProxyType
 from urllib.parse import quote_plus
 
 from django.contrib.staticfiles.storage import staticfiles_storage
@@ -13,18 +14,20 @@ from codex.views.opds.v2.links import HrefData, LinkData, LinksMixin
 class PublicationMixin(LinksMixin):
     """Publication Methods for OPDS 2.0 feed."""
 
-    _MD_CONTRIBUTOR_MAP = {
-        "author": AUTHOR_ROLES,
-        # "translator": {},
-        "editor": {"Editor"},
-        "artist": {"CoverArtist"},
-        # "illustrator": {},
-        "letterer": {"Letterer"},
-        "penciller": {"Penciller"},
-        "colorist": {"Colorist"},
-        "inker": {"Inker"},
-    }
-    _CONTRIBUTOR_ROLES = {x for s in _MD_CONTRIBUTOR_MAP.values() for x in s}
+    _MD_CONTRIBUTOR_MAP = MappingProxyType(
+        {
+            "author": AUTHOR_ROLES,
+            # "translator": {},
+            "editor": {"Editor"},
+            "artist": {"CoverArtist"},
+            # "illustrator": {},
+            "letterer": {"Letterer"},
+            "penciller": {"Penciller"},
+            "colorist": {"Colorist"},
+            "inker": {"Inker"},
+        }
+    )
+    _CONTRIBUTOR_ROLES = frozenset({x for s in _MD_CONTRIBUTOR_MAP.values() for x in s})
     is_opds_metadata = False
 
     def _get_big_image_link(self, obj, cover_pk):

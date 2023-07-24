@@ -1,5 +1,6 @@
 """Aggregate metadata from comics to prepare for importing."""
 from pathlib import Path
+from types import MappingProxyType
 from zipfile import BadZipFile
 
 from comicbox.comic_archive import ComicArchive
@@ -20,9 +21,11 @@ class AggregateMetadataMixin(CleanMetadataMixin):
 
     _BROWSER_GROUPS = (Publisher, Imprint, Series, Volume)
     _BROWSER_GROUP_TREE_COUNT_FIELDS = frozenset(["volume_count", "issue_count"])
-    _GROUP_TREES_INIT = {
-        "group_trees": {Publisher: {}, Imprint: {}, Series: {}, Volume: {}},
-    }
+    _GROUP_TREES_INIT = MappingProxyType(
+        {
+            "group_trees": {Publisher: {}, Imprint: {}, Series: {}, Volume: {}},
+        }
+    )
     _AGGREGATE_COMICBOX_CONFIG = AttrDict({**COMICBOX_CONFIG, "close_fd": False})
 
     @staticmethod
@@ -54,8 +57,7 @@ class AggregateMetadataMixin(CleanMetadataMixin):
         md_group_count_fields = cls._BROWSER_GROUP_TREE_COUNT_FIELDS & md.keys()
         for key in md_group_count_fields:
             groups_md[key] = md.pop(key)
-        group_tree_md = {tuple(group_tree): groups_md}
-        return group_tree_md
+        return {tuple(group_tree): groups_md}
 
     @staticmethod
     def _get_m2m_metadata(md, path):

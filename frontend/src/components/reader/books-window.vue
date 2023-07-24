@@ -44,7 +44,7 @@ export default {
     ...mapState(useReaderStore, {
       books: (state) =>
         [state.books.prev, state.books.current, state.books.next].filter(
-          Boolean
+          Boolean,
         ),
       bookChange: (state) => state.bookChange,
       currentBookPk: (state) => state.books?.current?.pk || 0,

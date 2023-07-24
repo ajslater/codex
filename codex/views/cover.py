@@ -1,4 +1,6 @@
 """Comic cover thumbnail view."""
+from typing import ClassVar
+
 from django.http import HttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
@@ -31,7 +33,7 @@ class WEBPRenderer(BaseRenderer):
 class CoverView(APIView, GroupACLMixin):
     """ComicCover View."""
 
-    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
+    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]
     renderer_classes = (WEBPRenderer,)
     content_type = "image/webp"
 

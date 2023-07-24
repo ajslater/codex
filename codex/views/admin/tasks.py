@@ -1,4 +1,7 @@
 """Librarian Status View."""
+from types import MappingProxyType
+from typing import ClassVar
+
 from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
@@ -43,7 +46,7 @@ LOG = get_logger(__name__)
 class AdminLibrarianStatusViewSet(ReadOnlyModelViewSet):
     """Librarian Task Statuses."""
 
-    permission_classes = [IsAdminUser]
+    permission_classes: ClassVar[list] = [IsAdminUser]
     queryset = LibrarianStatus.objects.filter(active__isnull=False).order_by(
         "active", "pk"
     )
@@ -53,38 +56,40 @@ class AdminLibrarianStatusViewSet(ReadOnlyModelViewSet):
 class AdminLibrarianTaskView(APIView):
     """Queue Librarian Jobs."""
 
-    permission_classes = [IsAdminUser]
+    permission_classes: ClassVar[list] = [IsAdminUser]
     input_serializer_class = AdminLibrarianTaskSerializer
     serializer_class = OKSerializer
 
-    _TASK_MAP = {
-        "purge_comic_covers": CoverRemoveAllTask(),
-        "create_all_comic_covers": CoverCreateAllTask(),
-        "search_index_update": SearchIndexUpdateTask(False),
-        "search_index_rebuild": SearchIndexUpdateTask(True),
-        "search_index_remove_stale": SearchIndexRemoveStaleTask(),
-        "search_index_merge_small": SearchIndexMergeTask(
-            False,
-        ),
-        "search_index_abort": SearchIndexAbortTask(),
-        "search_index_optimize": SearchIndexMergeTask(True),
-        "db_vacuum": JanitorVacuumTask(),
-        "db_backup": JanitorBackupTask(),
-        "db_search_sync": SearchIndexRebuildIfDBChangedTask(),
-        "watchdog_sync": WatchdogSyncTask(),
-        "codex_update": JanitorUpdateTask(False),
-        "codex_shutdown": JanitorShutdownTask(),
-        "notify_library_changed": LIBRARY_CHANGED_TASK,
-        "notify_librarian_status": LIBRARIAN_STATUS_TASK,
-        "cleanup_fks": JanitorCleanFKsTask(),
-        "cleanup_sessions": JanitorCleanupSessionsTask(),
-        "cleanup_covers": CoverRemoveOrphansTask(),
-        "librarian_clear_status": JanitorClearStatusTask(),
-        "force_update_all_failed_imports": ForceUpdateAllFailedImportsTask(),
-        "poll": WatchdogPollLibrariesTask(frozenset(), False),
-        "poll_force": WatchdogPollLibrariesTask(frozenset(), True),
-        "janitor_nightly": JanitorNightlyTask(),
-    }
+    _TASK_MAP = MappingProxyType(
+        {
+            "purge_comic_covers": CoverRemoveAllTask(),
+            "create_all_comic_covers": CoverCreateAllTask(),
+            "search_index_update": SearchIndexUpdateTask(False),
+            "search_index_rebuild": SearchIndexUpdateTask(True),
+            "search_index_remove_stale": SearchIndexRemoveStaleTask(),
+            "search_index_merge_small": SearchIndexMergeTask(
+                False,
+            ),
+            "search_index_abort": SearchIndexAbortTask(),
+            "search_index_optimize": SearchIndexMergeTask(True),
+            "db_vacuum": JanitorVacuumTask(),
+            "db_backup": JanitorBackupTask(),
+            "db_search_sync": SearchIndexRebuildIfDBChangedTask(),
+            "watchdog_sync": WatchdogSyncTask(),
+            "codex_update": JanitorUpdateTask(False),
+            "codex_shutdown": JanitorShutdownTask(),
+            "notify_library_changed": LIBRARY_CHANGED_TASK,
+            "notify_librarian_status": LIBRARIAN_STATUS_TASK,
+            "cleanup_fks": JanitorCleanFKsTask(),
+            "cleanup_sessions": JanitorCleanupSessionsTask(),
+            "cleanup_covers": CoverRemoveOrphansTask(),
+            "librarian_clear_status": JanitorClearStatusTask(),
+            "force_update_all_failed_imports": ForceUpdateAllFailedImportsTask(),
+            "poll": WatchdogPollLibrariesTask(frozenset(), False),
+            "poll_force": WatchdogPollLibrariesTask(frozenset(), True),
+            "janitor_nightly": JanitorNightlyTask(),
+        }
+    )
 
     @extend_schema(request=input_serializer_class)
     def post(self, *args, **kwargs):

@@ -8,6 +8,7 @@ import json
 import mmap
 import re
 from pathlib import Path
+from types import MappingProxyType
 
 from codex.logger.logging import get_logger
 from codex.settings.settings import BUILD, DEBUG, STATIC_ROOT
@@ -92,13 +93,13 @@ def _parse_choices(module_name):
     return data_dict
 
 
-def _build_show_defaults(settings_group_list):
+def _build_show_defaults(settings_group_list) -> MappingProxyType:
     """Parse the show defaults from vuetify form into a dict."""
     show = {}
     for choice in settings_group_list:
         key = choice["value"]
         show[key] = choice.get("default", False)
-    return show
+    return MappingProxyType(show)
 
 
 def _parse_choices_to_dict(vuetify_key, vuetify_list):

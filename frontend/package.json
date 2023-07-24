@@ -46,9 +46,9 @@
     "vite-plugin-checker": "^0.6.0",
     "vite-plugin-dynamic-base": "^1.0.0",
     "vite-plugin-eslint": "^1.8.1",
-    "vite-plugin-static-copy": "^0.16",
+    "vite-plugin-static-copy": "^0.17",
     "vite-plugin-vuetify": "^1.0.0",
-    "vitest": "0.32.0",
+    "vitest": "0.33.0",
     "vue-eslint-parser": "^9.0.2"
   }
 }

@@ -41,7 +41,7 @@ class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
                     f"Force delete missing path with missing db stat: {path}"
                 )
                 # This will trigger a deleted event
-                stat = Comic.ZERO_STAT
+                stat = list(Comic.ZERO_STAT)
 
         if force:
             # Fake mtime will trigger modified event
