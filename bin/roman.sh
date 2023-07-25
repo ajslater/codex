@@ -14,7 +14,7 @@ fi
 if [ "$1" = "" ]; then
     echo "Usage: $0 [options] <path> [path...]"
     echo "Options:"
-    echo -e "\t-i <includefile>"
+    echo -e "\t-i <ignorefile>"
     exit 1
 fi
 
