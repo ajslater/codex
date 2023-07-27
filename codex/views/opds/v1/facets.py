@@ -1,5 +1,6 @@
 """OPDS v1 Facets methods."""
 from dataclasses import dataclass
+from types import MappingProxyType
 
 from django.urls import reverse
 
@@ -83,7 +84,7 @@ class FacetsMixin(BrowserView):
     skip_order_facets = False
     acquisition_groups = frozenset()
     mime_type_map = MimeType.FILE_TYPE_MAP
-    obj = {}
+    obj = MappingProxyType({})
 
     def _facet(self, kwargs, facet_group, facet_title, new_query_params):
         href = reverse("opds:v1:feed", kwargs=kwargs)

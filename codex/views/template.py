@@ -28,12 +28,12 @@ class SimpleAPIView(APIView):
 class CodexTemplateView(SimpleAPIView):
     """HTML Template View."""
 
-    renderer_classes = [TemplateHTMLRenderer]
+    renderer_classes = (TemplateHTMLRenderer,)
     content_type = "text/html"
 
 
 class CodexXMLTemplateView(SimpleAPIView):
     """XML Template View."""
 
-    renderer_classes = [TemplateXMLRenderer]
+    renderer_classes = (TemplateXMLRenderer,)
     content_type = "application/xml"

@@ -7,6 +7,7 @@ and then re-serialize everything in this batcher and the event Handler
 """
 from contextlib import suppress
 from copy import deepcopy
+from types import MappingProxyType
 
 from watchdog.events import EVENT_TYPE_MOVED
 
@@ -19,16 +20,18 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
     """Batch watchdog events into bulk database tasks."""
 
     CLS_SUFFIX = -len("Event")
-    DBDIFF_TASK_PARAMS = {
-        "library_id": None,
-        "dirs_moved": {},
-        "files_moved": {},
-        "files_modified": set(),
-        "files_created": set(),
-        "dirs_deleted": set(),
-        "dirs_modified": set(),
-        "files_deleted": set(),
-    }
+    DBDIFF_TASK_PARAMS = MappingProxyType(
+        {
+            "library_id": None,
+            "dirs_moved": {},
+            "files_moved": {},
+            "files_modified": set(),
+            "files_created": set(),
+            "dirs_deleted": set(),
+            "dirs_modified": set(),
+            "files_deleted": set(),
+        }
+    )
     MAX_DELAY = 60
     MAX_ITEMS_PER_GB = 50000
 
@@ -42,7 +45,7 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
     def _ensure_library_args(self, library_id):
         if library_id in self.cache:
             return
-        args = deepcopy(self.DBDIFF_TASK_PARAMS)
+        args = deepcopy(dict(self.DBDIFF_TASK_PARAMS))
         args["library_id"] = library_id
         self.cache[library_id] = args
 

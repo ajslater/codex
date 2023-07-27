@@ -19,7 +19,7 @@ from codex.logger_base import LoggerBaseMixin
 class CodexLibraryEventHandler(FileSystemEventHandler, LoggerBaseMixin):
     """Handle watchdog events for comics in a library."""
 
-    IGNORED_EVENTS = {EVENT_TYPE_CLOSED, EVENT_TYPE_OPENED}
+    IGNORED_EVENTS = frozenset((EVENT_TYPE_CLOSED, EVENT_TYPE_OPENED))
 
     def __init__(self, library, *args, **kwargs):
         """Let us send along he library id."""

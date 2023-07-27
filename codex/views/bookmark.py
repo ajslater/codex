@@ -1,4 +1,6 @@
 """Bookmark views."""
+from typing import ClassVar
+
 from drf_spectacular.utils import extend_schema
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
@@ -15,16 +17,16 @@ LOG = get_logger(__name__)
 class BookmarkBaseView(GenericAPIView, GroupACLMixin):
     """Bookmark Updater."""
 
-    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
-    _BOOKMARK_UPDATE_FIELDS = [
+    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]
+    _BOOKMARK_UPDATE_FIELDS = (
         "page",
         "finished",
         "fit_to",
         "two_pages",
         "vertical",
         "read_in_reverse",
-    ]
-    _BOOKMARK_ONLY_FIELDS = [*_BOOKMARK_UPDATE_FIELDS, "pk", "comic"]
+    )
+    _BOOKMARK_ONLY_FIELDS = (*_BOOKMARK_UPDATE_FIELDS, "pk", "comic")
     _COMIC_ONLY_FIELDS = ("pk", "max_page")
 
     def get_bookmark_filter(self):

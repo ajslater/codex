@@ -113,7 +113,7 @@ export default {
         this.choices,
         this.query,
         NUMERIC_FILTERS.includes(this.name),
-        CHARPK_FILTERS.includes(this.name)
+        CHARPK_FILTERS.includes(this.name),
       );
     },
     title: function () {

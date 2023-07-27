@@ -1,6 +1,8 @@
 """OPDS v1 Links methods."""
 from collections import defaultdict
+from collections.abc import Mapping
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Union
 
 from comicbox.metadata.comic_json import json
@@ -20,18 +22,18 @@ LOG = get_logger(__name__)
 class TopRoutes:
     """Routes for top groups."""
 
-    PUBLISHER = {"group": "p", "pk": 0, "page": 1}
-    SERIES = {"group": "s", "pk": 0, "page": 1}
-    FOLDER = {"group": "f", "pk": 0, "page": 1}
-    ROOT = {"group": "r", "pk": 0, "page": 1}
-    STORY_ARC = {"group": "a", "pk": 0, "page": 1}
+    PUBLISHER = MappingProxyType({"group": "p", "pk": 0, "page": 1})
+    SERIES = MappingProxyType({"group": "s", "pk": 0, "page": 1})
+    FOLDER = MappingProxyType({"group": "f", "pk": 0, "page": 1})
+    ROOT = MappingProxyType({"group": "r", "pk": 0, "page": 1})
+    STORY_ARC = MappingProxyType({"group": "a", "pk": 0, "page": 1})
 
 
 @dataclass
 class TopLink:
     """A non standard root link when facets are unsupported."""
 
-    kwargs: dict
+    kwargs: Mapping
     rel: str
     mime_type: str
     query_params: defaultdict[str, Union[str, bool, int]]

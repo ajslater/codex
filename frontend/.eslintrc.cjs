@@ -1,9 +1,12 @@
+require("@rushstack/eslint-patch/modern-module-resolution"); // for @vue/esl-c-prettier
+
 module.exports = {
   extends: [
     // VUE
     "plugin:vue/vue3-recommended",
-    "plugin:vue-scoped-css/vue3-recommended", // XXX breaks eslint_d
-    "prettier", // eslint-prettier-config AFTER vue/recommended
+    "plugin:vue-scoped-css/vue3-recommended",
+    //"prettier", // eslint-config-prettier AFTER vue/recommended
+    "@vue/eslint-config-prettier", // Must come at the end.
   ],
   parser: "vue-eslint-parser",
   parserOptions: {

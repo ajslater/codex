@@ -121,14 +121,13 @@ class BrowserAnnotationsView(BrowserOrderByView):
 
         if self.kwargs.get("group") == self.FOLDER_GROUP and model == Comic:
             # File View Filename
-            queryset = queryset.annotate(
+            return queryset.annotate(
                 sort_name=Right(
                     "path",
                     StrIndex(Reverse(F("path")), Value(sep)) - 1,  # type: ignore
                     output_field=CharField(),
                 )
             )
-            return queryset
 
         ##################################################
         # Otherwise Remove articles from the browse name #
@@ -173,7 +172,9 @@ class BrowserAnnotationsView(BrowserOrderByView):
         pk = self.kwargs["pk"]
         if group == self.STORY_ARC_GROUP and pk:
             story_arc_pk = pk
-        elif story_arc_pks := self.params.get("filters", {}).get("story_arcs", []):
+        elif story_arc_pks := self.params.get("filters", {}).get(  # type: ignore
+            "story_arcs", []
+        ):
             story_arc_pk = story_arc_pks[0]
         else:
             story_arc_pk = None
@@ -278,5 +279,4 @@ class BrowserAnnotationsView(BrowserOrderByView):
         # cover depends on the above annotations for order-by
         qs = self._annotate_cover_pk(qs, model)
         qs = self._annotate_bookmarks(qs, model, bm_rel, bm_filter)
-        qs = self._annotate_progress(qs)
-        return qs
+        return self._annotate_progress(qs)

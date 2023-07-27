@@ -1,4 +1,6 @@
 """API Key Endpoint."""
+from typing import ClassVar
+
 from drf_spectacular.utils import extend_schema
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAdminUser
@@ -11,7 +13,7 @@ from codex.serializers.admin import APIKeySerializer
 class AdminAPIKey(GenericAPIView):
     """Regenerate API Key."""
 
-    permission_classes = [IsAdminUser]
+    permission_classes: ClassVar[list] = [IsAdminUser]
     serializer_class = APIKeySerializer
     input_serializer_class = None
 
