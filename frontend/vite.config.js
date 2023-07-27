@@ -24,6 +24,7 @@ try {
 }
 const BASE_PATH = rootPath + "/static/";
 const VITE_HMR_URL_PREFIXES = ["node_modules", "src", "@id", "@vite/client"];
+Object.freeze(VITE_HMR_URL_PREFIXES);
 
 const ADMIN_COMPONENT_DIR = "./src/components/admin";
 const ADMIN_COMPONENT_FNS = fs
