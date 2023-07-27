@@ -36,7 +36,8 @@ export default {
 <style scoped lang="scss">
 .bookChangeColumn {
   position: fixed;
-  height: 100%;
+  top: 48px;
+  height: calc(100vh - 96px);
   width: 33vw;
 }
 .prev {

@@ -13,6 +13,7 @@ border-radius: 128px;
   - Search terms wern't applying to filter choices population.
   - Fix name ordering. Show series & volume in browser cards if it affects name
     ordering.
+  - Shrink reader page change boxes to let toolbar activate on corner clicks.
 - Dev
   - Big lint update.
 
