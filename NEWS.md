@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.4.3
+
+- Fix
+  - Crash on undecodable characters in metadata.
+- Dev
+  - Big lint update.
+
 ## v1.4.2
 
 - Fix
