@@ -87,7 +87,7 @@ class BrowserOrderByView(BrowserBaseView):
             prefix += "-"
 
         if self.order_key == "sort_name":
-            order_fields = ("order_value", *model.ORDERING[1:])
+            order_fields = model.ORDERING
         elif self.order_key == "bookmark_updated_at":
             order_fields = ("order_value", "updated_at", "created_at", "pk")
         elif self.order_key == "story_arc_number" and model == Comic:
