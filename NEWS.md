@@ -10,6 +10,7 @@ border-radius: 128px;
 
 - Fix
   - Crash on undecodable characters in metadata.
+  - Search terms wern't applying to filter choices population.
 - Dev
   - Big lint update.
 
