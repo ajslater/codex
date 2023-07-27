@@ -11,6 +11,8 @@ border-radius: 128px;
 - Fix
   - Crash on undecodable characters in metadata.
   - Search terms wern't applying to filter choices population.
+  - Fix name ordering. Show series & volume in browser cards if it affects name
+    ordering.
 - Dev
   - Big lint update.
 
