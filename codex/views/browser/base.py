@@ -62,7 +62,7 @@ class BrowserBaseView(
             self._is_admin = user and isinstance(user, User) and user.is_staff
         return self._is_admin
 
-    def get_query_filters_without_group(self, model, search_scores):
+    def get_query_filters_without_group(self, model, search_scores: dict):
         """Return all the filters except the group filter."""
         object_filter = self.get_group_acl_filter(model)
         object_filter &= self.get_search_filter(model, search_scores)
@@ -70,7 +70,7 @@ class BrowserBaseView(
         object_filter &= self.get_comic_field_filter()
         return object_filter
 
-    def get_query_filters(self, model, search_scores, choices=False):
+    def get_query_filters(self, model, search_scores: dict, choices=False):
         """Return the main object filter and the one for aggregates."""
         object_filter = self.get_query_filters_without_group(model, search_scores)
         object_filter &= self.get_group_filter(choices)

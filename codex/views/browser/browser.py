@@ -99,7 +99,7 @@ class BrowserView(BrowserAnnotationsView):
             group_names["publisher_name"] = F("publisher__name")
         return queryset.annotate(**group_names)
 
-    def _add_annotations(self, queryset, model, search_scores):
+    def _add_annotations(self, queryset, model, search_scores: dict):
         """Annotations for display and sorting."""
         queryset = self.annotate_common_aggregates(queryset, model, search_scores)
 
@@ -135,7 +135,7 @@ class BrowserView(BrowserAnnotationsView):
         model_group = self._get_model_group()
         self.model = self.GROUP_MODEL_MAP[model_group]
 
-    def _get_group_queryset(self, search_scores):
+    def _get_group_queryset(self, search_scores: dict):
         """Create group queryset."""
         if not self.model:
             reason = "Model not set in browser."
@@ -149,7 +149,7 @@ class BrowserView(BrowserAnnotationsView):
             qs = self.model.objects.none()
         return qs
 
-    def _get_book_queryset(self, search_scores):
+    def _get_book_queryset(self, search_scores: dict):
         """Create book queryset."""
         if self.model in (Comic, Folder):
             object_filter = self.get_query_filters(Comic, search_scores, False)
@@ -333,7 +333,7 @@ class BrowserView(BrowserAnnotationsView):
         self.set_rel_prefix(self.model)
         self._set_group_instance()  # Placed up here to invalidate earlier
         # Create the main query with the filters
-        search_scores = self.get_search_scores()
+        search_scores: dict = self.get_search_scores()
         group = self.kwargs.get("group")
 
         group_qs = self._get_group_queryset(search_scores)

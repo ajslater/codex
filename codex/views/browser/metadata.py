@@ -268,7 +268,7 @@ class MetadataView(BrowserAnnotationsView):
         if self.model is None:
             raise NotFound(detail=f"Cannot get metadata for {self.group=}")
 
-        search_scores = self.get_search_scores()
+        search_scores: dict = self.get_search_scores()
         object_filter = self.get_query_filters_without_group(self.model, search_scores)
         pk = self.kwargs["pk"]
         qs = self.model.objects.filter(object_filter, pk=pk)
