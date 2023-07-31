@@ -1,5 +1,6 @@
 """Download a comic archive."""
 from pathlib import Path
+from typing import ClassVar
 
 from django.http import FileResponse, Http404
 from drf_spectacular.types import OpenApiTypes
@@ -14,7 +15,7 @@ from codex.views.mixins import GroupACLMixin
 class DownloadView(APIView, GroupACLMixin):
     """Return the comic archive file as an attachment."""
 
-    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
+    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]
     content_type = "application/vnd.comicbook+zip"
 
     _DOWNLOAD_SELECT_RELATED = ("series", "volume")
@@ -36,7 +37,8 @@ class DownloadView(APIView, GroupACLMixin):
             reason = f"Comic {pk} not not found."
             raise Http404(reason) from err
 
-        comic_file = Path(comic.path).open("rb")
+        # FileResponse requires file handle not be closed in this method.
+        comic_file = Path(comic.path).open("rb")  # noqa: SIM115
         return FileResponse(
             comic_file,
             as_attachment=True,

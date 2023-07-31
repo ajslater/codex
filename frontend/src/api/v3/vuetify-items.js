@@ -44,7 +44,7 @@ export const toVuetifyItems = function (
   items,
   filter,
   numeric = false,
-  charPk = false
+  charPk = false,
 ) {
   // Takes a value (can be a list) and a list of items and
   // Returns a list of valid items with items arg having preference.

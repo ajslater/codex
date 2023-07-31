@@ -175,7 +175,7 @@ CODEX_RESET_ADMIN=1 codex
 or, if using Docker:
 
 ```sh
-docker run -e CODEX_RESET_ADMIN=1 -v <host path to config>/config:/config ajslater/codex
+docker run -e CODEX_RESET_ADMIN=1 -v host-parent-dir/config:/config ajslater/codex
 ```
 
 ### Private Libraries
@@ -248,29 +248,25 @@ index, a Django cache and comic book cover thumbnails.
 Here's an example nginx config with a subpath named '/codex'.
 
 ```nginx
-    # HTTP
-    proxy_set_header  Host              $http_host;
-    proxy_set_header  X-Forwarded-For   $proxy_add_x_forwarded_for;
-    proxy_set_header  X-Forwarded-Host  $server_name;
-    proxy_set_header  X-Forwarded-Port  $server_port;
-    proxy_set_header  X-Forwarded-Proto $scheme;
-    proxy_set_header  X-Real-IP         $remote_addr;
-    proxy_set_header  X-Scheme          $scheme;
+# HTTP
+proxy_set_header   Host $http_host;
+proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header   X-Forwarded-Host $server_name;
+proxy_set_header   X-Forwarded-Port $server_port;
+proxy_set_header   X-Forwarded-Proto $scheme;
+proxy_set_header   X-Real-IP $remote_addr;
+proxy_set_header   X-Scheme $scheme;
+# Websockets
+proxy_http_version 1.1;
+proxy_set_header   Upgrade $http_upgrade;
 
-    # Websockets
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection "Upgrade"
-
-    # This example uses a docker container named 'codex' at sub-path /codex
-    # Use a valid IP or resolvable host name for other configurations.
-    location /codex {
-        proxy_pass  http://codex:9810;
-        # Codex reads http basic authentication.
-        # If the nginx credentials are different than codex credentials use this line to
-        #   not forward the authorization.
-        proxy_set_header Authorization "";
-    }
+proxy_set_header Connection "Upgrade" location /codex {
+  proxy_pass       http://codex:9810;
+  # Codex reads http basic authentication.
+  # If the nginx credentials are different than codex credentials use this line to
+  #   not forward the authorization.
+  proxy_set_header Authorization "";
+}
 ```
 
 Specify a reverse proxy sub path (if you have one) in `config/hypercorn.toml`
@@ -386,7 +382,7 @@ database. Place a file named `rebuild_db` in your Codex config directory like
 so:
 
 ```sh
-  touch config/rebuild_db
+touch config/rebuild_db
 ```
 
 Shut down and restart Codex.

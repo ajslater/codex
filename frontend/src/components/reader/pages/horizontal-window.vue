@@ -134,7 +134,7 @@ export default {
       const backPages = Math.max(this.activePage - WINDOW_BACK_BOUND, 0);
       const forePages = Math.min(
         this.activePage + WINDOW_FORE_BOUND,
-        this.book.maxPage
+        this.book.maxPage,
       );
       const range = _.range(backPages, forePages + 1);
       this.pages = range;

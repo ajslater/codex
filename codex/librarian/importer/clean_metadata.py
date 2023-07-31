@@ -2,7 +2,7 @@
 import re
 from contextlib import suppress
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from comicbox.metadata.comic_base import ComicBaseMetadata
 from django.db.models.fields import CharField, DecimalField, PositiveSmallIntegerField
@@ -54,7 +54,6 @@ _MD_CHAR_KEYS = frozenset(
 _TWO_PLACES = Decimal("0.01")
 _PSI_MAX = 2147483647
 _GROUPS = frozenset(("publisher", "imprint", "series", "volume"))
-_URL_MAX_LENGTH = 200
 _M2M_NAMED_KEYS = frozenset(
     (
         "characters",
@@ -74,10 +73,21 @@ class CleanMetadataMixin(QueuedThread):
     """Clean metadata before importing."""
 
     @staticmethod
-    def _clean_decimal(value, field_name: str):
+    def _clean_string(value: Union[bytes, str]):
+        """Replace unstorable, unprintable characters from metadata."""
+        # https://stackoverflow.com/questions/27366479/python-3-os-walk-file-paths-unicodeencodeerror-utf-8-codec-cant-encode-s
+        if isinstance(value, str):
+            value = value.encode("utf8", "replace")
+
+        return value.decode("utf8", "replace")
+
+    @classmethod
+    def _clean_decimal(cls, value, field_name: str):
         field: DecimalField = Comic._meta.get_field(field_name)  # type: ignore
         try:
             # Comicbox now gives issues as strings, convert them to decimal here.
+            if isinstance(value, (str, bytes)):
+                value = cls._clean_string(value)
             value = ComicBaseMetadata.parse_decimal(value)
             value = value.quantize(_TWO_PLACES)
             value = value.max(_DECIMAL_ZERO)
@@ -89,7 +99,9 @@ class CleanMetadataMixin(QueuedThread):
 
     def _parse_comic_issue(self, md: dict[str, Any]):
         """Parse the issue field."""
-        issue_str = md.get("issue", "").strip()
+        issue_str = md.get("issue", "")
+        issue_str = self._clean_string(issue_str)
+        issue_str = issue_str.strip()
         try:
             match = _PARSE_ISSUE_MATCHER.match(issue_str)
             issue, issue_suffix = match.groups()  # type: ignore
@@ -151,13 +163,14 @@ class CleanMetadataMixin(QueuedThread):
         with suppress(KeyError):
             md["name"] = md.pop("title")
 
-    @staticmethod
-    def _clean_charfield(value: Optional[str], field: CharField) -> Optional[str]:
+    @classmethod
+    def _clean_charfield(cls, value: Optional[str], field: CharField) -> Optional[str]:
         try:
             if value is None:
                 raise ValueError  # noqa TRY301
             value = str(value)
             value = value[: field.max_length].strip()
+            value = cls._clean_string(value)
         except Exception:
             value = None if field.null else ""
         return value
@@ -202,14 +215,14 @@ class CleanMetadataMixin(QueuedThread):
                     good_story_arc_numbers[good_story_arc_name] = number
             md["story_arc_numbers"] = good_story_arc_numbers
 
-    @staticmethod
-    def _clean_comic_web(md):
+    @classmethod
+    def _clean_comic_web(cls, md):
         """URL field is a special charfield."""
-        if "web" not in md:
-            return
-        try:
-            md["web"] = md["web"][:_URL_MAX_LENGTH]
-        except Exception:
+        web = md.get("web")
+        if web:
+            field: CharField = Comic._meta.get_field("web")  # type:ignore
+            web = cls._clean_charfield(web, field)
+        if not web and web in md:
             del md["web"]
 
     @classmethod

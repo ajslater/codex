@@ -37,31 +37,36 @@ export default {
     }),
     orderValue() {
       let ov = this.item.orderValue;
-      if (
-        this.orderBy === undefined ||
-        this.orderBy === null ||
-        (this.orderBy === "sort_name" &&
-          (this.item.group !== "c" || this.topGroup !== "f")) ||
-        ov === null ||
-        ov === undefined
-      ) {
-        ov = "";
-      } else if (DATE_SORT_BY.has(this.orderBy)) {
-        const date = new Date(ov);
-        ov = DATE_FORMAT.format(date);
-      } else if (this.orderBy == "search_score") {
-        // Round Whoosh float into a two digit integer.
-        ov = NUMBER_FORMAT.format(Math.round(Number.parseFloat(ov) * 10));
-      } else if (TIME_SORT_BY.has(this.orderBy)) {
-        // this is what needs v-html to work with the embedded break.
-        ov = getDateTime(ov, this.twentyFourHourTime, true);
-      } else if (this.orderBy == "page_count") {
-        const human = NUMBER_FORMAT.format(ov);
-        ov = `${human} pages`;
-      } else if (this.orderBy == "size") {
-        ov = prettyBytes(Number.parseInt(ov, 10));
-      } else if (STAR_SORT_BY.has(this.orderBy)) {
-        ov = `★  ${ov}`;
+      try {
+        if (
+          this.orderBy === undefined ||
+          this.orderBy === null ||
+          (this.orderBy === "sort_name" &&
+            (this.item.group !== "c" || this.topGroup !== "f")) ||
+          ov === null ||
+          ov === undefined
+        ) {
+          ov = "";
+        } else if (DATE_SORT_BY.has(this.orderBy)) {
+          const date = new Date(ov);
+          ov = DATE_FORMAT.format(date);
+        } else if (this.orderBy == "search_score") {
+          // Round Whoosh float into a two digit integer.
+          ov = NUMBER_FORMAT.format(Math.round(Number.parseFloat(ov) * 10));
+        } else if (TIME_SORT_BY.has(this.orderBy)) {
+          // this is what needs v-html to work with the embedded break.
+          ov = getDateTime(ov, this.twentyFourHourTime, true);
+        } else if (this.orderBy == "page_count") {
+          const human = NUMBER_FORMAT.format(ov);
+          ov = `${human} pages`;
+        } else if (this.orderBy == "size") {
+          ov = prettyBytes(Number.parseInt(ov, 10));
+        } else if (STAR_SORT_BY.has(this.orderBy)) {
+          ov = `★  ${ov}`;
+        }
+      } catch (error) {
+        // Often orderBy gets updated before orderValue gets returned.
+        console.debug(error);
       }
       return ov;
     },

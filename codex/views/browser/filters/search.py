@@ -3,6 +3,7 @@ from django.db.models import Q
 from haystack.query import SearchQuerySet
 
 from codex.logger.logging import get_logger
+from codex.models import Comic
 
 LOG = get_logger(__name__)
 
@@ -10,8 +11,17 @@ LOG = get_logger(__name__)
 class SearchFilterMixin:
     """Search Filters Methods."""
 
-    def _get_search_scores(self, text, search_scores):
+    def get_search_scores(self) -> dict:
         """Perform the search and return the scores as a dict."""
+        search_scores = {}
+        text = self.params.get("q", "")  # type: ignore
+        if not text:
+            # for opds 2
+            text = self.params.get("query", "")  # type: ignore
+        text = text.strip()
+        if not text:
+            return search_scores
+
         sqs = SearchQuerySet().auto_query(text)
         comic_scores = sqs.values("pk", "score")
         try:
@@ -22,30 +32,23 @@ class SearchFilterMixin:
         except Exception as exc:
             LOG.warning("While searching:")
             LOG.exception(exc)
+        return search_scores
 
-    def _get_search_query_filter(self, text, search_scores):
+    def _get_search_query_filter(self, model, search_scores: dict):
         """Get the search filter and scores."""
-        rel = self.rel_prefix + "pk__in"  # type: ignore
-        self._get_search_scores(text, search_scores)
+        prefix = "" if model == Comic else self.rel_prefix  # type: ignore
+        rel = prefix + "pk__in"
         query_dict = {rel: search_scores.keys()}
         return Q(**query_dict)
 
-    def get_search_filter(self):
+    def get_search_filter(self, model, search_scores: dict):
         """Preparse search, search and return the filter and scores."""
         search_filter = Q()
-        search_scores = {}
         try:
-            query_string = self.params.get("q", "")  # type: ignore
-            if not query_string:
-                # for opds 2
-                query_string = self.params.get("query", "")  # type: ignore
-
-            if query_string:
+            if search_scores:
                 # Query haystack
-                search_filter = self._get_search_query_filter(
-                    query_string, search_scores
-                )
+                search_filter = self._get_search_query_filter(model, search_scores)
         except Exception as exc:
             LOG.warning(exc)
 
-        return search_filter, search_scores
+        return search_filter

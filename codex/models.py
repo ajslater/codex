@@ -266,14 +266,14 @@ class WatchedPath(BrowserGroupModel):
         on_delete=CASCADE,
         null=True,
     )
-    ZERO_STAT = [0, 0, 0, 0, 0, 0, 0, 0, 0.0, 0]
+    ZERO_STAT = (0, 0, 0, 0, 0, 0, 0, 0, 0.0, 0)
 
     def set_stat(self):
         """Set select stat params from the filesystem."""
         st_record = Path(self.path).stat()
         # Converting os.stat directly to a list or tuple saves
         # mtime as an int and causes problems.
-        st = self.ZERO_STAT.copy()
+        st = list(self.ZERO_STAT)
         st[0] = st_record.st_mode
         st[1] = st_record.st_ino
         # st[2] = st_record.st_dev is ignored by diff
@@ -475,8 +475,7 @@ class Comic(WatchedPath):
             names.append(obj.name)
 
         title = " ".join(filter(None, names)).strip(" .")
-        title = cls._RE_COMBINE_WHITESPACE.sub(" ", title).strip()
-        return title
+        return cls._RE_COMBINE_WHITESPACE.sub(" ", title).strip()
 
     @classmethod
     def get_filename(cls, obj):

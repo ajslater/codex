@@ -6,18 +6,43 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.4.3
+
+- Fix
+  - Crash on undecodable characters in metadata.
+  - Search terms wern't applying to filter choices population.
+  - Fix name ordering. Show series & volume in browser cards if it affects name
+    ordering.
+  - Shrink reader page change boxes to let toolbar activate on corner clicks.
+- Dev
+  - Big lint update.
+
+## v1.4.2
+
+- Fix
+  - Groups were not aggregating children properly when searched.
+  - Search could break Folder View.
+  - Changing the browser 'Order By' would sometimes not apply.
+  - Attempt to fix stale books appearing on reader load.
+
+## v1.4.1
+
+- Fix
+  - A bug that prevented folder view from displaying under some circumstances.
+
 ## v1.4.0
 
 - Features
   - Story Arc Top Group in Web & OPDS Browsers
   - Support multiple Story Arcs per comic.
     - Supports Mylar CSV StoryArc / StoryArcNumber extension to ComicInfo.xml
+  - Show only filter options that affect the current browse level.
   - Reader has a Series/Folder/Story Arc order selector.
   - Reader shows filename instead of metadata title if you've been browsing in
     File View
   - Downloads now use the original filename from disk.
 - Fix
-  - Folder view offered and crashed in OPDS even if disabled by admin.
+  - Folder was view displayed but crashed in OPDS even if disabled by admin.
 
 ## v1.3.14
 

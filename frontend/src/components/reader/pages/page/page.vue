@@ -27,8 +27,8 @@ import LoadingPage from "@/components/reader/pages/page/page-loading.vue";
 import { useReaderStore } from "@/stores/reader";
 const PDFPage = markRaw(
   defineAsyncComponent(() =>
-    import("@/components/reader/pages/page/page-pdf.vue")
-  )
+    import("@/components/reader/pages/page/page-pdf.vue"),
+  ),
 );
 import ErrorPage from "@/components/reader/pages/page/page-error.vue";
 import ImgPage from "@/components/reader/pages/page/page-img.vue";

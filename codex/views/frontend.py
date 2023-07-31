@@ -1,4 +1,6 @@
 """Frontend views."""
+from typing import ClassVar
+
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
 
@@ -8,9 +10,8 @@ from codex.views.session import BrowserSessionViewBase
 class IndexView(BrowserSessionViewBase):
     """The main app."""
 
-    renderer_classes = [TemplateHTMLRenderer]
+    renderer_classes: ClassVar[list] = [TemplateHTMLRenderer]
     template_name = "index.html"
-    main_urls = {}
 
     def get(self, *args, **kwargs):
         """Get the app index page."""

@@ -1,4 +1,6 @@
 """Admin User ViewSet."""
+from typing import ClassVar
+
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.cache import cache
@@ -21,7 +23,7 @@ LOG = get_logger(__name__)
 class AdminUserViewSet(ModelViewSet):
     """User ViewSet."""
 
-    permission_classes = [IsAdminUser]
+    permission_classes: ClassVar[list] = [IsAdminUser]
     queryset = User.objects.prefetch_related("groups").defer(
         "first_name", "last_name", "email"
     )
@@ -60,7 +62,7 @@ class AdminUserViewSet(ModelViewSet):
 class AdminUserChangePasswordView(GenericAPIView):
     """Special View to hash user password."""
 
-    permission_classes = [IsAdminUser]
+    permission_classes: ClassVar[list] = [IsAdminUser]
     serializer_class = UserChangePasswordSerializer
 
     def put(self, request, *args, **kwargs):

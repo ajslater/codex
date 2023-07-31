@@ -40,7 +40,7 @@
       <template #[`item.actions`]="{ item }">
         <ConfirmDialog
           :icon="mdiDatabaseClockOutline"
-          title-text="Poll for updated comics in"
+          title-text="Poll for updated comics"
           :object-name="item.raw.path"
           confirm-text="Poll Library"
           size="small"
@@ -49,7 +49,7 @@
         />
         <ConfirmDialog
           :icon="mdiDatabaseImportOutline"
-          title-text="Force update every comic in"
+          title-text="Force update every comic"
           :object-name="item.raw.path"
           confirm-text="Force Update"
           size="small"

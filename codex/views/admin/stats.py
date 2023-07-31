@@ -1,6 +1,8 @@
 """Admin Flag View."""
 from pathlib import Path
 from platform import machine, python_version, release, system
+from types import MappingProxyType
+from typing import ClassVar
 
 from caseconverter import snakecase
 from django.contrib.auth.models import Group, User
@@ -38,7 +40,7 @@ from codex.version import VERSION
 class AdminStatsView(GenericAPIView):
     """Admin Flag Viewset."""
 
-    permission_classes = [HasAPIKeyOrIsAdminUser]
+    permission_classes: ClassVar[list] = [HasAPIKeyOrIsAdminUser]
     serializer_class = AdminStatsSerializer
     input_serializer_class = AdminStatsRequestSerializer
 
@@ -68,11 +70,13 @@ class AdminStatsView(GenericAPIView):
         Group,
         Session,
     )
-    _KEY_MODELS_MAP = {
-        "config": _CONFIG_MODELS,
-        "groups": _GROUP_MODELS,
-        "metadata": _METADATA_MODELS,
-    }
+    _KEY_MODELS_MAP = MappingProxyType(
+        {
+            "config": _CONFIG_MODELS,
+            "groups": _GROUP_MODELS,
+            "metadata": _METADATA_MODELS,
+        }
+    )
     _DOCKERENV_PATH = Path("/.dockerenv")
     _CGROUP_PATH = Path("/proc/self/cgroup")
 

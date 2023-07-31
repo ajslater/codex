@@ -24,7 +24,7 @@ module.exports = {
     "plugin:switch-case/recommended",
     // PRETTIER
     "plugin:prettier-vue/recommended",
-    "prettier", // prettier-config
+    "prettier", // config-prettier
     // SECURITY
     "plugin:no-unsanitized/DOM",
     "plugin:security/recommended",
@@ -71,7 +71,12 @@ module.exports = {
     "no-constructor-bind/no-constructor-state": "error",
     "no-secrets/no-secrets": "error",
     "eslint-comments/no-unused-disable": 1,
-    "prettier-vue/prettier": "warn",
+    "prettier-vue/prettier": [
+      "warn",
+      {
+        trailingComma: "all",
+      },
+    ],
     "security/detect-object-injection": "off",
     "simple-import-sort/exports": "warn",
     "simple-import-sort/imports": "warn",

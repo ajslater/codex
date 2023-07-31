@@ -1,5 +1,6 @@
 """Base view for ordering the query."""
 from os import sep
+from types import MappingProxyType
 
 from django.db.models import Avg, F, Max, Min, Sum, Value
 from django.db.models.functions import Reverse, Right, StrIndex
@@ -11,21 +12,25 @@ from codex.views.browser.base import BrowserBaseView
 class BrowserOrderByView(BrowserBaseView):
     """Base class for views that need ordering."""
 
-    _ORDER_AGGREGATE_FUNCS = {
-        "age_rating": Avg,
-        "community_rating": Avg,
-        "created_at": Min,
-        "critical_rating": Avg,
-        "date": Min,
-        "page_count": Sum,
-        "path": Min,
-        "size": Sum,
-        "updated_at": Min,
-        "search_score": Min,
-        "story_arc_number": Min,
-    }
+    _ORDER_AGGREGATE_FUNCS = MappingProxyType(
+        {
+            "age_rating": Avg,
+            "community_rating": Avg,
+            "created_at": Min,
+            "critical_rating": Avg,
+            "date": Min,
+            "page_count": Sum,
+            "path": Min,
+            "size": Sum,
+            "updated_at": Min,
+            "search_score": Min,
+            "story_arc_number": Min,
+        }
+    )
     _SEP_VALUE = Value(sep)
-    _ANNOTATED_ORDER_FIELDS = frozenset(("sort_name", "bookmark_updated_at"))
+    _ANNOTATED_ORDER_FIELDS = frozenset(
+        ("sort_name", "search_score", "bookmark_updated_at")
+    )
 
     def set_order_key(self):
         """Get the default order key for the view."""
@@ -70,7 +75,7 @@ class BrowserOrderByView(BrowserBaseView):
             func = self._get_path_query_func(self.order_key)
         elif model == Comic or self.order_key in self._ANNOTATED_ORDER_FIELDS:
             # agg_none uses group fields not comic fields.
-            func = F(self.order_key)
+            func = F(self.order_key)  # type: ignore
         else:
             func = self.get_aggregate_func(model, self.order_key)
         return func
@@ -82,7 +87,7 @@ class BrowserOrderByView(BrowserBaseView):
             prefix += "-"
 
         if self.order_key == "sort_name":
-            order_fields = ("order_value", *model.ORDERING[1:])
+            order_fields = model.ORDERING
         elif self.order_key == "bookmark_updated_at":
             order_fields = ("order_value", "updated_at", "created_at", "pk")
         elif self.order_key == "story_arc_number" and model == Comic:

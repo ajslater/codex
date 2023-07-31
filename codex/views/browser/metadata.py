@@ -1,5 +1,7 @@
 """View for marking comics read and unread."""
 from copy import copy
+from types import MappingProxyType
+from typing import ClassVar
 
 from django.db.models import Count, F, IntegerField, Subquery, Value
 from drf_spectacular.utils import extend_schema
@@ -16,45 +18,53 @@ from codex.views.browser.browser_annotations import BrowserAnnotationsView
 class MetadataView(BrowserAnnotationsView):
     """Comic metadata."""
 
-    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
+    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]
     serializer_class = MetadataSerializer
 
     # DO NOT USE BY ITSELF. USE _get_comic_value_fields() instead.
-    _COMIC_VALUE_FIELDS = {
-        "age_rating",
-        "comments",
-        "community_rating",
-        "country",
-        "critical_rating",
-        "day",
-        "file_type",
-        "gtin",
-        "issue",
-        "issue_suffix",
-        "language",
-        "month",
-        "notes",
-        "original_format",
-        "read_ltr",
-        "scan_info",
-        "summary",
-        "web",
-        "year",
-    }
-    _ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS = {"path"}
-    _COMIC_VALUE_FIELDS_CONFLICTING = {
-        "name",
-        "updated_at",
-        "created_at",
-    }
+    _COMIC_VALUE_FIELDS = frozenset(
+        {
+            "age_rating",
+            "comments",
+            "community_rating",
+            "country",
+            "critical_rating",
+            "day",
+            "file_type",
+            "gtin",
+            "issue",
+            "issue_suffix",
+            "language",
+            "month",
+            "notes",
+            "original_format",
+            "read_ltr",
+            "scan_info",
+            "summary",
+            "web",
+            "year",
+        }
+    )
+    _ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS = frozenset({"path"})
+    _COMIC_VALUE_FIELDS_CONFLICTING = frozenset(
+        {
+            "name",
+            "updated_at",
+            "created_at",
+        }
+    )
     _COMIC_VALUE_FIELDS_CONFLICTING_PREFIX = "conflict_"
-    _COMIC_FK_FIELDS_MAP = {
-        "p": "publisher",
-        "i": "imprint",
-        "s": "series",
-        "v": "volume",
-    }
-    _COMIC_RELATED_VALUE_FIELDS = {"series__volume_count", "volume__issue_count"}
+    _COMIC_FK_FIELDS_MAP = MappingProxyType(
+        {
+            "p": "publisher",
+            "i": "imprint",
+            "s": "series",
+            "v": "volume",
+        }
+    )
+    _COMIC_RELATED_VALUE_FIELDS = frozenset(
+        {"series__volume_count", "volume__issue_count"}
+    )
     _PATH_GROUPS = ("c", "f")
     _CREATOR_RELATIONS = ("role", "person")
     _STORY_ARC_NUMBER_RELATIONS = ("story_arc",)
@@ -109,8 +119,7 @@ class MetadataView(BrowserAnnotationsView):
         if not self.is_model_comic:
             size_func = self.get_aggregate_func(self.model, "size")
             qs = qs.annotate(size=size_func)
-        qs = self.annotate_common_aggregates(qs, self.model, {})
-        return qs
+        return self.annotate_common_aggregates(qs, self.model, {})
 
     def _annotate_values_and_fks(self, qs, simple_qs):
         """Annotate comic values and comic foreign key values."""
@@ -211,7 +220,7 @@ class MetadataView(BrowserAnnotationsView):
     def _highlight_current_group(self, obj):
         """Values for highlighting the current group."""
         obj.group = self.group
-        if not self.is_model_comic:
+        if self.model and not self.is_model_comic:
             # move the name of the group to the correct field
             group_field = self.model.__name__.lower()
             group_obj = {"pk": obj.pk, "name": obj.name}
@@ -259,7 +268,8 @@ class MetadataView(BrowserAnnotationsView):
         if self.model is None:
             raise NotFound(detail=f"Cannot get metadata for {self.group=}")
 
-        object_filter, _ = self.get_query_filters_without_group(self.model)
+        search_scores: dict = self.get_search_scores()
+        object_filter = self.get_query_filters_without_group(self.model, search_scores)
         pk = self.kwargs["pk"]
         qs = self.model.objects.filter(object_filter, pk=pk)
 
@@ -279,8 +289,7 @@ class MetadataView(BrowserAnnotationsView):
             ) from exc
 
         m2m_intersections = self._query_m2m_intersections(simple_qs)
-        obj = self._copy_annotations_into_comic_fields(obj, m2m_intersections)
-        return obj
+        return self._copy_annotations_into_comic_fields(obj, m2m_intersections)
 
     def _is_enabled_folder_view(self):
         if self._efv_flag is None:

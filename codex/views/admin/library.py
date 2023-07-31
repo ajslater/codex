@@ -1,6 +1,7 @@
 """Admin Library Views."""
 from pathlib import Path
 from time import time
+from typing import ClassVar
 
 from django.core.cache import cache
 from rest_framework.exceptions import ValidationError
@@ -28,13 +29,13 @@ LOG = get_logger(__name__)
 class AdminLibraryViewSet(ModelViewSet):
     """Admin Library Viewset."""
 
-    permission_classes = [IsAdminUser]
+    permission_classes: ClassVar[list] = [IsAdminUser]
     queryset = Library.objects.prefetch_related("groups").defer(
         "update_in_progress", "created_at", "updated_at"
     )
     serializer_class = LibrarySerializer
 
-    WATCHDOG_SYNC_FIELDS = {"events", "poll", "pollEvery"}
+    WATCHDOG_SYNC_FIELDS = frozenset(("events", "poll", "pollEvery"))
 
     def _create_library_folder(self, library):
         folder = Folder(
@@ -89,7 +90,7 @@ class AdminLibraryViewSet(ModelViewSet):
 class AdminFailedImportViewSet(ModelViewSet):
     """Admin FailedImport Viewset."""
 
-    permission_classes = [IsAdminUser]
+    permission_classes: ClassVar[list] = [IsAdminUser]
     queryset = FailedImport.objects.defer("updated_at")
     serializer_class = FailedImportSerializer
 
@@ -97,7 +98,7 @@ class AdminFailedImportViewSet(ModelViewSet):
 class AdminFolderListView(GenericAPIView):
     """List server directories."""
 
-    permission_classes = [IsAdminUser]
+    permission_classes: ClassVar[list] = [IsAdminUser]
     serializer_class = AdminFolderListSerializer
     input_serializer_class = AdminFolderSerializer
 

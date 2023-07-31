@@ -9,6 +9,7 @@ from django.db.models import (
     DateTimeField,
     F,
     FilteredRelation,
+    Max,
     Min,
     OuterRef,
     Q,
@@ -49,15 +50,19 @@ class BrowserAnnotationsView(BrowserOrderByView):
 
     is_opds_1_acquisition = False
 
-    def _annotate_search_score(self, queryset, search_scores):
-        """Annotate the search score for ordering by search score."""
+    def _annotate_search_score(self, queryset, search_scores, model):
+        """Annotate the search score for ordering by search score.
+
+        Choose the maximum matching score for the group.
+        """
         if self.order_key != "search_score":
             return queryset
         whens = []
+        prefix = "" if model == Comic else self.rel_prefix
         for pk, score in search_scores.items():
-            when = {self.rel_prefix + "pk": pk, "then": score}
+            when = {prefix + "pk": pk, "then": score}
             whens.append(When(**when))
-        annotate = {self.rel_prefix + "search_score": Case(*whens, default=0.0)}
+        annotate = {"search_score": Max(Case(*whens, default=0.0))}
         return queryset.annotate(**annotate)
 
     def _annotate_cover_pk(self, queryset, model):
@@ -116,14 +121,13 @@ class BrowserAnnotationsView(BrowserOrderByView):
 
         if self.kwargs.get("group") == self.FOLDER_GROUP and model == Comic:
             # File View Filename
-            queryset = queryset.annotate(
+            return queryset.annotate(
                 sort_name=Right(
                     "path",
                     StrIndex(Reverse(F("path")), Value(sep)) - 1,  # type: ignore
                     output_field=CharField(),
                 )
             )
-            return queryset
 
         ##################################################
         # Otherwise Remove articles from the browse name #
@@ -168,7 +172,9 @@ class BrowserAnnotationsView(BrowserOrderByView):
         pk = self.kwargs["pk"]
         if group == self.STORY_ARC_GROUP and pk:
             story_arc_pk = pk
-        elif story_arc_pks := self.params.get("filters", {}).get("story_arcs", []):
+        elif story_arc_pks := self.params.get("filters", {}).get(  # type: ignore
+            "story_arcs", []
+        ):
             story_arc_pk = story_arc_pks[0]
         else:
             story_arc_pk = None
@@ -261,7 +267,7 @@ class BrowserAnnotationsView(BrowserOrderByView):
 
     def annotate_common_aggregates(self, qs, model, search_scores):
         """Annotate common aggregates between browser and metadata."""
-        qs = self._annotate_search_score(qs, search_scores)
+        qs = self._annotate_search_score(qs, search_scores, model)
         qs = self._annotate_child_count(qs, model)
         qs = self._annotate_page_count(qs, model)
         bm_rel = self.get_bm_rel(model)
@@ -273,5 +279,4 @@ class BrowserAnnotationsView(BrowserOrderByView):
         # cover depends on the above annotations for order-by
         qs = self._annotate_cover_pk(qs, model)
         qs = self._annotate_bookmarks(qs, model, bm_rel, bm_filter)
-        qs = self._annotate_progress(qs)
-        return qs
+        return self._annotate_progress(qs)

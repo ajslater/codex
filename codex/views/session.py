@@ -1,6 +1,7 @@
 """Manage user sessions with appropriate defaults."""
 from abc import ABC, abstractmethod
 from copy import deepcopy
+from types import MappingProxyType
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.generics import GenericAPIView
@@ -24,7 +25,7 @@ class SessionViewBaseBase(GenericAPIView, ABC):
         """Implement the session key string."""
         raise NotImplementedError
 
-    SESSION_DEFAULTS = {}
+    SESSION_DEFAULTS = MappingProxyType({})
 
     @classmethod
     def _get_source_values_or_set_defaults(cls, defaults_dict, source_dict, data):
@@ -64,60 +65,66 @@ class BrowserSessionViewBase(SessionViewBaseBase):
     SESSION_KEY = "browser"  # type: ignore
     CREATOR_PERSON_UI_FIELD = "creators"
     STORY_ARC_UI_FIELD = "story_arcs"
-    _DYNAMIC_FILTER_DEFAULTS = {
-        "age_rating": [],
-        "characters": [],
-        "country": [],
-        CREATOR_PERSON_UI_FIELD: [],
-        "community_rating": [],
-        "critical_rating": [],
-        "decade": [],
-        "file_type": [],
-        "genres": [],
-        "language": [],
-        "locations": [],
-        "original_format": [],
-        "q": "",
-        "read_ltr": [],
-        "series_groups": [],
-        STORY_ARC_UI_FIELD: [],
-        "tags": [],
-        "teams": [],
-        "year": [],
-    }
+    _DYNAMIC_FILTER_DEFAULTS = MappingProxyType(
+        {
+            "age_rating": [],
+            "characters": [],
+            "country": [],
+            CREATOR_PERSON_UI_FIELD: [],
+            "community_rating": [],
+            "critical_rating": [],
+            "decade": [],
+            "file_type": [],
+            "genres": [],
+            "language": [],
+            "locations": [],
+            "original_format": [],
+            "q": "",
+            "read_ltr": [],
+            "series_groups": [],
+            STORY_ARC_UI_FIELD: [],
+            "tags": [],
+            "teams": [],
+            "year": [],
+        }
+    )
     FILTER_ATTRIBUTES = frozenset(_DYNAMIC_FILTER_DEFAULTS.keys())
-    SESSION_DEFAULTS = {
-        "filters": {
-            "bookmark": DEFAULTS["bookmarkFilter"],
-            **_DYNAMIC_FILTER_DEFAULTS,
-        },
-        "order_by": DEFAULTS["orderBy"],
-        "order_reverse": False,
-        "q": DEFAULTS["q"],
-        "route": DEFAULTS["route"],
-        "show": DEFAULTS["show"],
-        "twenty_four_hour_time": False,
-        "top_group": DEFAULTS["topGroup"],
-    }
+    SESSION_DEFAULTS = MappingProxyType(
+        {
+            "filters": {
+                "bookmark": DEFAULTS["bookmarkFilter"],
+                **_DYNAMIC_FILTER_DEFAULTS,
+            },
+            "order_by": DEFAULTS["orderBy"],
+            "order_reverse": False,
+            "q": DEFAULTS["q"],
+            "route": DEFAULTS["route"],
+            "show": DEFAULTS["show"],
+            "twenty_four_hour_time": False,
+            "top_group": DEFAULTS["topGroup"],
+        }
+    )
 
 
 class ReaderSessionViewBase(SessionViewBaseBase):
     """Reader session base."""
 
     SESSION_KEY = "reader"  # type: ignore
-    SESSION_DEFAULTS = {
-        "fit_to": DEFAULTS["fitTo"],
-        "two_pages": False,
-        "read_in_reverse": False,
-        "read_rtl_in_reverse": False,
-        "vertical": False,
-    }
+    SESSION_DEFAULTS = MappingProxyType(
+        {
+            "fit_to": DEFAULTS["fitTo"],
+            "two_pages": False,
+            "read_in_reverse": False,
+            "read_rtl_in_reverse": False,
+            "vertical": False,
+        }
+    )
 
 
 class SessionViewBase(SessionViewBaseBase, ABC):
     """Session view for retrieving stored settings."""
 
-    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
+    permission_classes = (IsAuthenticatedOrEnabledNonUsers,)
 
     @property
     @classmethod

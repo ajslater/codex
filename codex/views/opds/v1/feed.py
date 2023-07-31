@@ -1,5 +1,6 @@
 """OPDS v1 feed."""
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING, Any
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication
@@ -23,6 +24,9 @@ from codex.views.opds.v1.links import (
     TopLinks,
 )
 from codex.views.template import CodexXMLTemplateView
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 LOG = get_logger(__name__)
 
@@ -77,7 +81,10 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
         """Create the feed title."""
         result = ""
         try:
-            if browser_title := self.obj.get("browser_title"):
+            browser_title: Mapping[str, Any] = self.obj.get(
+                "browser_title"
+            )  # type: ignore
+            if browser_title:
                 parent_name = browser_title.get("parent_name", "All")
                 if not parent_name and self.kwargs.get("pk") == 0:
                     parent_name = "All"
@@ -95,7 +102,7 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
         """Hack in feed update time from cover timestamp."""
         try:
             if ts := self.obj.get("covers_timestamp"):
-                return datetime.fromtimestamp(ts, tz=timezone.utc)
+                return datetime.fromtimestamp(ts, tz=timezone.utc)  # type: ignore
         except Exception as exc:
             LOG.exception(exc)
 
@@ -120,12 +127,12 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
     def _get_entries_section(self, key, metadata):
         """Get entries by key section."""
         entries = []
-        issue_max = self.obj.get("issue_max", 0)
+        issue_max: int = self.obj.get("issue_max", 0)  # type: ignore
         data = OPDS1EntryData(
             self.acquisition_groups, issue_max, metadata, self.mime_type_map
         )
         if objs := self.obj.get(key):
-            for obj in objs:
+            for obj in objs:  # type: ignore
                 entries += [OPDS1Entry(obj, self.request.query_params, data)]
         return entries
 
