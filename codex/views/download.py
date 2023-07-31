@@ -37,7 +37,8 @@ class DownloadView(APIView, GroupACLMixin):
             reason = f"Comic {pk} not not found."
             raise Http404(reason) from err
 
-        comic_file = Path(comic.path).open("rb")
+        # FileResponse requires file handle not be closed in this method.
+        comic_file = Path(comic.path).open("rb")  # noqa: SIM115
         return FileResponse(
             comic_file,
             as_attachment=True,
