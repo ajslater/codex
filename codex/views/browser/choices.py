@@ -1,4 +1,7 @@
 """View for marking comics read and unread."""
+from types import MappingProxyType
+from typing import ClassVar, Union
+
 import pycountry
 from caseconverter import snakecase
 from django.db.models import QuerySet
@@ -7,6 +10,7 @@ from rest_framework.response import Response
 
 from codex.logger.logging import get_logger
 from codex.models import (
+    BrowserGroupModel,
     Comic,
     CreatorPerson,
     Folder,
@@ -30,21 +34,25 @@ LOG = get_logger(__name__)
 class BrowserChoicesViewBase(BrowserBaseView):
     """Get choices for filter dialog."""
 
-    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
+    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]
 
     _CREATORS_PERSON_REL = "creators__person"
     _STORY_ARC_REL = "story_arc_numbers__story_arc"
-    _NULL_NAMED_ROW = {"pk": -1, "name": "_none_"}
-    _BACK_REL_MAP = {CreatorPerson: "creator__", StoryArc: "storyarcnumber__"}
-    _REL_MAP = {
-        Publisher: "publisher",
-        Imprint: "imprint",
-        Series: "series",
-        Volume: "volume",
-        Comic: "pk",
-        Folder: "parent_folder",
-        StoryArc: "story_arc_numbers__story_arc",
-    }
+    _NULL_NAMED_ROW = MappingProxyType({"pk": -1, "name": "_none_"})
+    _BACK_REL_MAP = MappingProxyType(
+        {CreatorPerson: "creator__", StoryArc: "storyarcnumber__"}
+    )
+    _REL_MAP = MappingProxyType(
+        {
+            Publisher: "publisher",
+            Imprint: "imprint",
+            Series: "series",
+            Volume: "volume",
+            Comic: "pk",
+            Folder: "parent_folder",
+            StoryArc: "story_arc_numbers__story_arc",
+        }
+    )
 
     @staticmethod
     def get_field_choices_query(comic_qs, field_name):
@@ -57,13 +65,17 @@ class BrowserChoicesViewBase(BrowserBaseView):
 
     def get_m2m_field_query(self, model, comic_qs: QuerySet):
         """Get distinct m2m value objects for the relation."""
-        back_rel = self._BACK_REL_MAP.get(model, "")
-        back_rel += "comic__"
-        back_rel += self._REL_MAP[self.model]
-        back_rel += "__in"
-        return (
-            model.objects.filter(**{back_rel: comic_qs}).values("pk", "name").distinct()
-        )
+        if self.model is None:
+            LOG.error("No model to make filter choices!")
+            m2m_filter = {}
+        else:
+            model_rel: str = self._REL_MAP[self.model]  # type: ignore
+            back_rel = self._BACK_REL_MAP.get(model, "")
+            back_rel += "comic__"
+            back_rel += model_rel
+            back_rel += "__in"
+            m2m_filter = {back_rel: comic_qs}
+        return model.objects.filter(**m2m_filter).values("pk", "name").distinct()
 
     @staticmethod
     def does_m2m_null_exist(comic_qs, rel):
@@ -91,15 +103,18 @@ class BrowserChoicesViewBase(BrowserBaseView):
 
     def get_object(self):
         """Get the comic subquery use for the choices."""
-        object_filter = self.get_query_filters(self.model, True)
-        return self.model.objects.filter(object_filter)
+        search_scores = self.get_search_scores()
+        object_filter = self.get_query_filters(self.model, search_scores, True)
+        return self.model.objects.filter(object_filter)  # type: ignore
 
     def _set_model(self):
         """Set the model to query."""
         group = self.kwargs["group"]
         if group == self.ROOT_GROUP:
             group = self.params.get("top_group", "p")
-        self.model = self.GROUP_MODEL_MAP[group]
+        self.model: Union[BrowserGroupModel, Comic, None] = self.GROUP_MODEL_MAP[
+            group
+        ]  # type: ignore
 
 
 class BrowserChoicesAvailableView(BrowserChoicesViewBase):

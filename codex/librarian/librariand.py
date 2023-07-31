@@ -2,6 +2,7 @@
 from collections import namedtuple
 from multiprocessing import Manager, Process
 from threading import active_count
+from types import MappingProxyType
 
 from caseconverter import snakecase
 from comicbox.comic_archive import ComicArchive
@@ -53,10 +54,12 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         LibraryPollingObserver,
         JanitorThread,
     )
-    _THREAD_CLASS_MAP = {
-        snakecase(thread_class.__name__): thread_class
-        for thread_class in _THREAD_CLASSES
-    }
+    _THREAD_CLASS_MAP = MappingProxyType(
+        {
+            snakecase(thread_class.__name__): thread_class
+            for thread_class in _THREAD_CLASSES
+        }
+    )
     LibrarianThreads = namedtuple("LibrarianThreads", _THREAD_CLASS_MAP.keys())
 
     proc = None

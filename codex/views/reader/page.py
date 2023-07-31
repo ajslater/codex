@@ -30,7 +30,7 @@ class IgnoreClientContentNegotiation(BaseContentNegotiation):
 class ReaderPageView(BookmarkBaseView):
     """Display a comic page from the archive itself."""
 
-    X_MOZ_PRE_HEADERS = {"prefetch", "preload", "prerender", "subresource"}
+    X_MOZ_PRE_HEADERS = frozenset({"prefetch", "preload", "prerender", "subresource"})
     content_type = "image/jpeg"
     content_negotiation_class = IgnoreClientContentNegotiation  # type: ignore
 

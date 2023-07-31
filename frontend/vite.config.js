@@ -16,14 +16,13 @@ let rootPath;
 try {
   // for dev & build
   const HYPERCORN_CONF = toml.parse(
-    fs.readFileSync("../config/hypercorn.toml")
+    fs.readFileSync("../config/hypercorn.toml"),
   );
   rootPath = HYPERCORN_CONF.root_path || "";
 } catch {
   rootPath = "";
 }
 const BASE_PATH = rootPath + "/static/";
-const VITE_HMR_URL_PREFIXES = ["node_modules", "src", "@id", "@vite/client"];
 
 const ADMIN_COMPONENT_DIR = "./src/components/admin";
 const ADMIN_COMPONENT_FNS = fs
@@ -64,20 +63,6 @@ const config = defineConfig(({ mode }) => {
     server: {
       host: true,
       strictPort: true,
-      proxy: {
-        "/": {
-          target: "http://127.0.0.1:9810/",
-          secure: false,
-          bypass: function (req) {
-            for (const prefix of VITE_HMR_URL_PREFIXES) {
-              if (req.url.startsWith(BASE_PATH + prefix)) {
-                return req.url;
-              }
-            }
-          },
-          ws: true,
-        },
-      },
     },
     build: {
       manifest: PROD,

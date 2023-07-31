@@ -1,5 +1,8 @@
 """OPDS Common consts."""
 
+from collections.abc import Mapping
+from types import MappingProxyType
+
 BLANK_TITLE = "Unknown"
 FALSY = {"", "false", "0"}
 AUTHOR_ROLES = {"Writer"}
@@ -51,17 +54,21 @@ class MimeType:
     HTML = "text/html"
     AUTH_BASIC = "http://opds-spec.org/auth/basic"
     COOKIE = "cookie"
-    FILE_TYPE_MAP = {
-        "CBZ": "application/vnd.comicbook+zip",
-        "CBR": "application/vnd.comicbook+rar",
-        "CBT": "application/vnd.comicbook+tar",
-        "PDF": "application/pdf",
-    }
-    SIMPLE_FILE_TYPE_MAP = {
-        # PocketBooks needs app/zip
-        "CBZ": "application/zip",
-        "CBR": "application/x-rar-compressed",
-        "CBT": "application/x-tar",
-        "PDF": "application/pdf",
-    }
+    FILE_TYPE_MAP: Mapping[str, str] = MappingProxyType(
+        {
+            "CBZ": "application/vnd.comicbook+zip",
+            "CBR": "application/vnd.comicbook+rar",
+            "CBT": "application/vnd.comicbook+tar",
+            "PDF": "application/pdf",
+        }
+    )
+    SIMPLE_FILE_TYPE_MAP: Mapping[str, str] = MappingProxyType(
+        {
+            # PocketBooks needs app/zip
+            "CBZ": "application/zip",
+            "CBR": "application/x-rar-compressed",
+            "CBT": "application/x-tar",
+            "PDF": "application/pdf",
+        }
+    )
     OCTET = "application/octet-stream"

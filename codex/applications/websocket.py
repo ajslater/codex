@@ -18,7 +18,7 @@ WEBSOCKET_APPLICATION = AllowedHostsOriginValidator(
             [
                 path(
                     f"{ROOT_PREFIX}api/v3/ws",
-                    NotifierConsumer.as_asgi(),  # type: ignore
+                    NotifierConsumer.as_asgi(),
                     name="websocket",
                 ),
             ]

@@ -98,6 +98,7 @@ def _build_show_defaults(settings_group_list):
     for choice in settings_group_list:
         key = choice["value"]
         show[key] = choice.get("default", False)
+    # Returning a mapping proxy makes deepcopy into dict harder
     return show
 
 

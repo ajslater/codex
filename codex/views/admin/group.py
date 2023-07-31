@@ -1,4 +1,6 @@
 """Group View."""
+from typing import ClassVar
+
 from django.contrib.auth.models import Group
 from django.core.cache import cache
 from rest_framework.permissions import IsAdminUser
@@ -15,7 +17,7 @@ LOG = get_logger(__name__)
 class AdminGroupViewSet(ModelViewSet):
     """Admin Group Viewset."""
 
-    permission_classes = [IsAdminUser]
+    permission_classes: ClassVar[list] = [IsAdminUser]
     queryset = Group.objects.prefetch_related("user_set", "library_set")
     serializer_class = GroupSerializer
 

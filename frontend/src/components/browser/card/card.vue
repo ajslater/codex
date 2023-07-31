@@ -117,7 +117,7 @@ export default {
           }, SCROLL_DELAY);
         },
         // A little hacky delay makes it work even more frequently.
-        SCROLL_DELAY
+        SCROLL_DELAY,
       );
     },
   },

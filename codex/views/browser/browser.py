@@ -1,6 +1,7 @@
 """Views for browsing comic library."""
 from copy import deepcopy
-from typing import Optional, Union
+from types import MappingProxyType
+from typing import ClassVar, Optional
 
 from django.core.paginator import EmptyPage, Paginator
 from django.db.models import F, Max, Value
@@ -14,6 +15,7 @@ from codex.exceptions import SeeOtherRedirectError
 from codex.logger.logging import get_logger
 from codex.models import (
     AdminFlag,
+    BrowserGroupModel,
     Comic,
     Folder,
     Imprint,
@@ -35,28 +37,34 @@ LOG = get_logger(__name__)
 class BrowserView(BrowserAnnotationsView):
     """Browse comics with a variety of filters and sorts."""
 
-    permission_classes = [IsAuthenticatedOrEnabledNonUsers]
+    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]
     serializer_class = BrowserPageSerializer
 
     MAX_OBJ_PER_PAGE = 100
-    _MODEL_GROUP_MAP = {v: k for k, v in BrowserAnnotationsView.GROUP_MODEL_MAP.items()}
+    _MODEL_GROUP_MAP = MappingProxyType(
+        {v: k for k, v in BrowserAnnotationsView.GROUP_MODEL_MAP.items()}
+    )
     _NAV_GROUPS = "rpisv"
     _ORPHANS = int(MAX_OBJ_PER_PAGE / 20)
 
-    _GROUP_INSTANCE_SELECT_RELATED = {
-        Comic: ("series", "volume"),
-        Volume: ("series",),
-        Series: (None,),
-        Imprint: ("publisher",),
-        Publisher: (None,),
-        Folder: ("parent_folder",),
-        StoryArc: (None,),
-    }
+    _GROUP_INSTANCE_SELECT_RELATED = MappingProxyType(
+        {
+            Comic: ("series", "volume"),
+            Volume: ("series",),
+            Series: (None,),
+            Imprint: ("publisher",),
+            Publisher: (None,),
+            Folder: ("parent_folder",),
+            StoryArc: (None,),
+        }
+    )
     DEFAULT_ROUTE_NAME = "browser"
-    _DEFAULT_ROUTE = {
-        "name": DEFAULT_ROUTE_NAME,
-        "params": deepcopy(DEFAULTS["route"]),
-    }
+    _DEFAULT_ROUTE = MappingProxyType(
+        {
+            "name": DEFAULT_ROUTE_NAME,
+            "params": deepcopy(DEFAULTS["route"]),
+        }
+    )
     _OPDS_M2M_RELS = (
         "characters",
         "genres",
@@ -91,7 +99,7 @@ class BrowserView(BrowserAnnotationsView):
             group_names["publisher_name"] = F("publisher__name")
         return queryset.annotate(**group_names)
 
-    def _add_annotations(self, queryset, model, search_scores):
+    def _add_annotations(self, queryset, model, search_scores: dict):
         """Annotations for display and sorting."""
         queryset = self.annotate_common_aggregates(queryset, model, search_scores)
 
@@ -127,8 +135,11 @@ class BrowserView(BrowserAnnotationsView):
         model_group = self._get_model_group()
         self.model = self.GROUP_MODEL_MAP[model_group]
 
-    def _get_group_queryset(self, search_scores):
+    def _get_group_queryset(self, search_scores: dict):
         """Create group queryset."""
+        if not self.model:
+            reason = "Model not set in browser."
+            raise ValueError(reason)
         if self.model != Comic:
             object_filter = self.get_query_filters(self.model, search_scores, False)
             qs = self.model.objects.filter(object_filter)
@@ -138,7 +149,7 @@ class BrowserView(BrowserAnnotationsView):
             qs = self.model.objects.none()
         return qs
 
-    def _get_book_queryset(self, search_scores):
+    def _get_book_queryset(self, search_scores: dict):
         """Create book queryset."""
         if self.model in (Comic, Folder):
             object_filter = self.get_query_filters(Comic, search_scores, False)
@@ -175,20 +186,20 @@ class BrowserView(BrowserAnnotationsView):
     def _set_group_instance(self):
         """Create group_class instance."""
         pk = self.kwargs.get("pk")
-        self.group_instance: Optional[
-            Union[Folder, Publisher, Imprint, Series, Volume, StoryArc]
-        ] = None
-        if not pk:
-            return
-        try:
-            select_related = self._GROUP_INSTANCE_SELECT_RELATED[self.group_class]
-            self.group_instance = self.group_class.objects.select_related(
-                *select_related
-            ).get(pk=pk)
-        except self.group_class.DoesNotExist:
-            group = self.kwargs.get("group")
-            reason = f"{group}={pk} does not exist!"
-            self._raise_redirect({"group": group, "pk": 0, "page": 1}, reason)
+        if pk and self.group_class:
+            try:
+                select_related: tuple[str, ...] = self._GROUP_INSTANCE_SELECT_RELATED[
+                    self.group_class
+                ]  # type: ignore
+                self.group_instance: Optional[
+                    BrowserGroupModel
+                ] = self.group_class.objects.select_related(*select_related).get(pk=pk)
+            except self.group_class.DoesNotExist:
+                group = self.kwargs.get("group")
+                reason = f"{group}={pk} does not exist!"
+                self._raise_redirect({"group": group, "pk": 0, "page": 1}, reason)
+        else:
+            self.group_instance: Optional[BrowserGroupModel] = None
 
     def _get_browse_up_route(self):
         """Get the up route from the first valid ancestor."""
@@ -240,8 +251,7 @@ class BrowserView(BrowserAnnotationsView):
             # remove library path for not admins
             parent_name = parent_name.removeprefix(prefix)
         suffix = "/" + group_instance.name
-        parent_name = parent_name.removesuffix(suffix)
-        return parent_name
+        return parent_name.removesuffix(suffix)
 
     def _get_browser_page_title(self):
         """Get the proper title for this browse level."""
@@ -291,7 +301,8 @@ class BrowserView(BrowserAnnotationsView):
         except EmptyPage:
             if page < 1 or page > paginator.num_pages:
                 self._page_out_out_bounds(page, paginator.num_pages)
-            LOG.warning(f"No {self.model.__class__.__name__}s on page {page}")
+            model_name = self.model.__name__ if self.model else "NO_MODEL"
+            LOG.warning(f"No {model_name}s on page {page}")
             model.objects.none()
 
         return qs, num_pages, total_count
@@ -322,7 +333,7 @@ class BrowserView(BrowserAnnotationsView):
         self.set_rel_prefix(self.model)
         self._set_group_instance()  # Placed up here to invalidate earlier
         # Create the main query with the filters
-        search_scores = self.get_search_scores()
+        search_scores: dict = self.get_search_scores()
         group = self.kwargs.get("group")
 
         group_qs = self._get_group_queryset(search_scores)
@@ -361,19 +372,21 @@ class BrowserView(BrowserAnnotationsView):
         )
 
         # construct final data structure
-        return {
-            "up_route": up_route,
-            "browser_title": browser_page_title,
-            "model_group": self.model_group,
-            "groups": group_qs,
-            "books": book_qs,
-            "issue_max": issue_max,
-            "num_pages": num_pages,
-            "total_count": total_count,
-            "admin_flags": {"folder_view": efv_flag.on},
-            "libraries_exist": libraries_exist,
-            "covers_timestamp": covers_timestamp,
-        }
+        return MappingProxyType(
+            {
+                "up_route": up_route,
+                "browser_title": browser_page_title,
+                "model_group": self.model_group,
+                "groups": group_qs,
+                "books": book_qs,
+                "issue_max": issue_max,
+                "num_pages": num_pages,
+                "total_count": total_count,
+                "admin_flags": {"folder_view": efv_flag.on},
+                "libraries_exist": libraries_exist,
+                "covers_timestamp": covers_timestamp,
+            }
+        )
 
     def _get_valid_top_groups(self):
         """Get valid top groups for the current settings.
@@ -382,8 +395,9 @@ class BrowserView(BrowserAnnotationsView):
         """
         valid_top_groups = []
 
+        show: MappingProxyType = self.params["show"]  # type:ignore
         for nav_group in self._NAV_GROUPS:
-            if self.params["show"].get(nav_group):
+            if show.get(nav_group):
                 valid_top_groups.append(nav_group)
         # Issues is always a valid top group
         valid_top_groups += [self.COMIC_GROUP]
@@ -420,8 +434,8 @@ class BrowserView(BrowserAnnotationsView):
 
     def _raise_redirect(self, route_mask, reason, settings_mask=None):
         """Redirect the client to a valid group url."""
-        route = deepcopy(self._DEFAULT_ROUTE)
-        route["params"].update(route_mask)
+        route = deepcopy(dict(self._DEFAULT_ROUTE))
+        route["params"].update(route_mask)  # type: ignore
         settings = deepcopy(self.params)
         if settings_mask:
             settings.update(settings_mask)

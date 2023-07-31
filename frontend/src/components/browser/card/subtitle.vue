@@ -1,5 +1,7 @@
 <template>
   <div class="browserLink cardSubtitle text-caption">
+    <div v-if="seriesName" class="seriesCaption">{{ seriesName }}</div>
+    <div v-if="volumeName" class="volumeCaption">{{ volumeName }}</div>
     <div v-if="headerName" class="headerName">
       {{ headerName }}
     </div>
@@ -27,12 +29,34 @@ export default {
       required: true,
     },
   },
-  orderByCache: "sort_name",
   computed: {
     ...mapState(useBrowserStore, {
-      orderBy: (state) => state.settings.orderBy,
+      orderByName: (state) => state.settings.orderBy == "sort_name",
+      topGroup: (state) => state.settings.topGroup,
+      showSeries: (state) => state.settings.show["s"],
+      showVolume: (state) => state.settings.show["v"],
       zeroPad: (state) => state.page.zeroPad,
     }),
+    seriesName() {
+      if (
+        (this.topGroup === "a" || (this.orderByName && !this.showSeries)) &&
+        ["c", "v"].includes(this.item.group) &&
+        this.item.seriesName
+      ) {
+        return this.item.seriesName;
+      }
+      return false;
+    },
+    volumeName() {
+      if (
+        (this.topGroup === "a" || (this.orderByname && !this.showVolume)) &&
+        this.item.group === "c" &&
+        this.item.volumeName
+      ) {
+        return formattedVolumeName(this.item.volumeName);
+      }
+      return false;
+    },
     headerName: function () {
       let hn;
       switch (this.item.group) {
@@ -73,6 +97,10 @@ export default {
 .cardSubtitle {
   width: 100%;
   margin-top: 10px;
+  text-align: center;
+}
+.seriesCaption, .volumeCaption {
+  color: rgb(var(--v-theme-textDisabled));
   text-align: center;
 }
 .headerName {

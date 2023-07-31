@@ -11,7 +11,7 @@ LOG = get_logger(__name__)
 class SearchFilterMixin:
     """Search Filters Methods."""
 
-    def get_search_scores(self):
+    def get_search_scores(self) -> dict:
         """Perform the search and return the scores as a dict."""
         search_scores = {}
         text = self.params.get("q", "")  # type: ignore
@@ -34,14 +34,14 @@ class SearchFilterMixin:
             LOG.exception(exc)
         return search_scores
 
-    def _get_search_query_filter(self, model, search_scores):
+    def _get_search_query_filter(self, model, search_scores: dict):
         """Get the search filter and scores."""
         prefix = "" if model == Comic else self.rel_prefix  # type: ignore
         rel = prefix + "pk__in"
         query_dict = {rel: search_scores.keys()}
         return Q(**query_dict)
 
-    def get_search_filter(self, model, search_scores):
+    def get_search_filter(self, model, search_scores: dict):
         """Preparse search, search and return the filter and scores."""
         search_filter = Q()
         try:

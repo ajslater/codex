@@ -6,6 +6,17 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.4.3
+
+- Fix
+  - Crash on undecodable characters in metadata.
+  - Search terms weren't applying to filter choices population.
+  - Fix name ordering. Show series & volume in browser cards if it affects name
+    ordering.
+  - Shrink reader page change boxes to let toolbar activate on corner clicks.
+- Dev
+  - Big lint update.
+
 ## v1.4.2
 
 - Fix

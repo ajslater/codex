@@ -2,6 +2,7 @@
 
 import datetime
 from decimal import Decimal
+from typing import ClassVar
 
 import django.db.models.deletion
 from django.conf import settings
@@ -15,12 +16,12 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
+    dependencies: ClassVar[list] = [
         ("sessions", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
-    operations = [
+    operations: ClassVar[list] = [
         migrations.CreateModel(
             name="Character",
             fields=[

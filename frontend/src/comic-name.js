@@ -43,7 +43,7 @@ export const formattedIssue = function ({ issue, issueSuffix }, zeroPad) {
 
 export const getIssueName = function (
   { issue, issueSuffix, issueCount },
-  zeroPad
+  zeroPad,
 ) {
   let issueName = "#" + formattedIssue({ issue, issueSuffix }, zeroPad);
   if (issueCount) {
@@ -54,7 +54,7 @@ export const getIssueName = function (
 
 export const getFullComicName = function (
   { seriesName, volumeName, issue, issueSuffix, issueCount },
-  zeroPad
+  zeroPad,
 ) {
   // Format a full comic name from the series on down.
   const fvn = formattedVolumeName(volumeName);

@@ -33,7 +33,7 @@ const getGlobalFitToDefault = () => {
   // Big screens default to fit by HEIGHT, small to WIDTH;
   const vw = Math.max(
     document.documentElement.clientWidth || 0,
-    window.innerWidth || 0
+    window.innerWidth || 0,
   );
   return vw > 600 ? "HEIGHT" : "WIDTH";
 };
@@ -240,7 +240,7 @@ export const useReaderStore = defineStore("reader", {
         return this.routeToPage(0);
       } else if (page > this.books.current.maxPage) {
         console.warn(
-          `Page out of bounds. Redirecting to ${this.books.current.maxPage}.`
+          `Page out of bounds. Redirecting to ${this.books.current.maxPage}.`,
         );
         return this.routeToPage(this.books.current.maxPage);
       }
@@ -283,7 +283,7 @@ export const useReaderStore = defineStore("reader", {
           // Generate routes.
           const routesBooks = this._getBookRoutes(
             data.books.prevBook,
-            data.books.nextBook
+            data.books.nextBook,
           );
 
           this.$patch((state) => {
@@ -295,12 +295,12 @@ export const useReaderStore = defineStore("reader", {
             state.routes.prev = this._getRouteParams(
               state.books.current,
               params.page,
-              "prev"
+              "prev",
             );
             state.routes.next = this._getRouteParams(
               state.books.current,
               params.page,
-              "next"
+              "next",
             );
             state.routes.books = routesBooks;
           });
@@ -328,7 +328,7 @@ export const useReaderStore = defineStore("reader", {
           group: "c",
           pk: +this.books.current.pk,
         },
-        this.books.current.settings
+        this.books.current.settings,
       );
     },
     async clearSettingsLocal() {

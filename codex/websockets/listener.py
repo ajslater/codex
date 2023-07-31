@@ -1,5 +1,6 @@
 """Listens to the Broadcast Queue and sends its messages to channels."""
 from queue import Empty
+from types import MappingProxyType
 
 from channels.exceptions import InvalidChannelLayerError
 from channels.layers import get_channel_layer
@@ -12,13 +13,15 @@ from codex.websockets.consumers import ChannelGroups
 class BroadcastListener(LoggerBaseMixin):
     """Listens to the Broadcast Queue and sends its messages to channels."""
 
-    _WS_DISCONNECT_EVENT = {
-        "group": ChannelGroups.ALL.name,
-        "message": {
-            "type": "websocket_disconnect",
-            "code": CloseReason.NORMAL_CLOSURE.value,
-        },
-    }
+    _WS_DISCONNECT_EVENT = MappingProxyType(
+        {
+            "group": ChannelGroups.ALL.name,
+            "message": {
+                "type": "websocket_disconnect",
+                "code": CloseReason.NORMAL_CLOSURE.value,
+            },
+        }
+    )
 
     def __init__(self, queue, log_queue):
         """Initialize."""

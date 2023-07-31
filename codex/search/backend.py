@@ -2,6 +2,7 @@
 from math import ceil
 from multiprocessing import cpu_count
 from pathlib import Path
+from types import MappingProxyType
 
 from django.utils.timezone import now
 from haystack.backends.whoosh_backend import (
@@ -97,34 +98,36 @@ TEXT_ANALYZER = (
 class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
     """Custom Whoosh Backend."""
 
-    FIELDMAP = {
-        "characters": ["category", "character"],
-        "created_at": ["created"],
-        "creators": [
-            "author",
-            "authors",
-            "contributor",
-            "contributors",
-            "creator",
-            "creator",
-            "creators",
-        ],
-        "community_rating": gen_multipart_field_aliases("community_rating"),
-        "critical_rating": gen_multipart_field_aliases("critical_rating"),
-        "genres": ["genre"],
-        "file_type": ["type"],
-        "locations": ["location"],
-        "name": ["title"],
-        "original_format": ["format"],
-        "page_count": ["pages"],
-        "read_ltr": ["ltr"],
-        "series_groups": gen_multipart_field_aliases("series_groups"),
-        "scan_info": ["scan"],
-        "story_arcs": gen_multipart_field_aliases("story_arcs"),
-        "tags": ["tag"],
-        "teams": ["team"],
-        "updated_at": ["updated"],
-    }
+    FIELDMAP = MappingProxyType(
+        {
+            "characters": ["category", "character"],
+            "created_at": ["created"],
+            "creators": [
+                "author",
+                "authors",
+                "contributor",
+                "contributors",
+                "creator",
+                "creator",
+                "creators",
+            ],
+            "community_rating": gen_multipart_field_aliases("community_rating"),
+            "critical_rating": gen_multipart_field_aliases("critical_rating"),
+            "genres": ["genre"],
+            "file_type": ["type"],
+            "locations": ["location"],
+            "name": ["title"],
+            "original_format": ["format"],
+            "page_count": ["pages"],
+            "read_ltr": ["ltr"],
+            "series_groups": gen_multipart_field_aliases("series_groups"),
+            "scan_info": ["scan"],
+            "story_arcs": gen_multipart_field_aliases("story_arcs"),
+            "tags": ["tag"],
+            "teams": ["team"],
+            "updated_at": ["updated"],
+        }
+    )
     RESERVED_CHARACTERS = ()
     RESERVED_WORDS = ()
     FIELD_ALIAS_PLUGIN = FieldAliasPlugin(FIELDMAP)
@@ -146,8 +149,8 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
     )
     WRITER_PERIOD = 0  # No period timer.
     WRITER_LIMIT = 1000
-    COMMITARGS_MERGE_SMALL = {"merge": True}
-    COMMITARGS_NO_MERGE = {"merge": False}
+    COMMITARGS_MERGE_SMALL = MappingProxyType({"merge": True})
+    COMMITARGS_NO_MERGE = MappingProxyType({"merge": False})
     _SELECT_RELATED_FIELDS = ("publisher", "imprint", "series", "volume")
     _PREFETCH_RELATED_FIELDS = (
         "characters",
@@ -480,5 +483,5 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         """Merge small segments of the index."""
         if not self.setup_complete:
             self.setup(False)
-        writer = self.get_writer({"merge": True})
+        writer = self.get_writer(MappingProxyType({"merge": True}))
         writer.close()
