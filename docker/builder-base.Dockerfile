@@ -22,7 +22,7 @@ RUN apt-get clean \
   #  rust \
   #  swig \
   #  zlib1g-dev \
-  apt-get clean \
+  && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
