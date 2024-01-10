@@ -28,6 +28,7 @@ config
 deploy-pypi.sh
 dev*
 docker*
+!docker/debian.sources
 docker-compose*
 kill-codex.sh
 mock_comics
