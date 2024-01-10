@@ -25,7 +25,7 @@ DEPS=(
   .prettierignore
   .remarkignore
   .shellcheckrc
-  bin/docker/dist-builder.Dockerfile
+  docker/dist-builder.Dockerfile
   bin/build-dist.sh
   bin/collectstatic.sh
   bin/lint-backend.sh
