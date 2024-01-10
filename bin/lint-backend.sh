@@ -28,7 +28,7 @@ npm run remark-check
 if [ "$(uname)" = "Darwin" ]; then
   # Hadolint & shfmt are difficult to install on linux
   # shellcheck disable=2035
-  hadolint ./bin/docker/*Dockerfile
+  hadolint ./docker/*Dockerfile
   shellharden --check ./**/*.sh .env.platforms
   # subdirs aren't copied into docker builder
   # .env files aren't copied into docker
