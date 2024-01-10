@@ -9,10 +9,10 @@ RUN apt-get clean \
   && apt-get update \
   && apt-get install --no-install-recommends -y \
     libimagequant0 \
-    libjpeg \
+    libjpeg62-turbo \
     libopenjp2-7 \
-    libssl \
-    libtiff \
+    libssl3 \
+    libtiff5 \
     libwebp7 \
     mupdf \
     unrar \
