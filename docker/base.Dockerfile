@@ -12,7 +12,7 @@ RUN apt-get clean \
     libjpeg62-turbo \
     libopenjp2-7 \
     libssl3 \
-    libtiff5 \
+    libtiff6 \
     libwebp7 \
     mupdf \
     unrar \
