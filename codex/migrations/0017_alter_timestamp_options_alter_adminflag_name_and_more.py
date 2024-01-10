@@ -2,7 +2,6 @@
 import os
 import shutil
 from pathlib import Path
-from typing import ClassVar
 
 from django.db import migrations, models
 
@@ -26,11 +25,11 @@ def remove_null_librarian_statuses(apps, _schema_editor):
 class Migration(migrations.Migration):
     """Choices and max_length changes, mostly."""
 
-    dependencies: ClassVar[list] = [
+    dependencies = [
         ("codex", "0016_remove_comic_cover_path_librarianstatus"),
     ]
 
-    operations: ClassVar[list] = [
+    operations = [
         migrations.RunPython(clear_covers),
         migrations.RunPython(remove_null_librarian_statuses),
         migrations.AlterModelOptions(

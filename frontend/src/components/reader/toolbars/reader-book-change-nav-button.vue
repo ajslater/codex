@@ -13,8 +13,7 @@
 </template>
 
 <script>
-import { mdiBookArrowDown, mdiBookArrowUp } from "@mdi/js";
-import { mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import PaginationNavButton from "@/components/pagination-nav-button.vue";
 import { useReaderStore } from "@/stores/reader";
@@ -30,6 +29,7 @@ export default {
     },
   },
   computed: {
+    ...mapGetters(useReaderStore, ["isBTT"]),
     ...mapState(useReaderStore, {
       toRoute(state) {
         const params = state?.routes?.books[this.direction];
@@ -41,11 +41,14 @@ export default {
       return prefix + " Book";
     },
     icon() {
-      return this.direction === "prev" ? mdiBookArrowUp : mdiBookArrowDown;
+      return this.bookChangeIcon(this.direction);
     },
     disabled() {
       return !this.toRoute;
     },
+  },
+  methods: {
+    ...mapActions(useReaderStore, ["bookChangeIcon"]),
   },
 };
 </script>

@@ -6,11 +6,36 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.5.0rc0
+
+- Warning
+  - This version forces a rebuild of the search index (not imported comics)
+  - The main database path changed from `db.sqlite3` to `codex.sqlite3`
+- Fix
+  - Some integrity checks weren't running on startup.
+  - Sometimes the metadata page would crash for Admins.
+  - Updating comics would sometimes not delete removed tags.
+  - Series & Volumes no longer updated on every import.
+  - Admin Actions was polling all libraries when one selected.
+  - Vertical scroller tracking and updating improved.
+  - OPDS was showing repeated titles.
+  - Page filenames are now sorted case insensitively which should improve order.
+  - Moving a comic to a subfolder would crash.
+- Features
+  - New tags: Monochrome, Tagger, GTIN, Review, Identifiers, Reading Direction.
+  - Reading Direction replaces Reader's vertical & horizontal views.
+  - Admin Exclude groups compliment the existing Include groups.
+  - Supports the MetronInfo metadata format (rare).
+  - Identifiers metadata attribute replaces "Web"
+  - New metadata available when comic is re-imported (Force Update recommended).
+- Dev
+  - Using comicbox v1.0.0 for metadata import. A big change.
+
 ## v1.4.3
 
 - Fix
   - Crash on undecodable characters in metadata.
-  - Search terms wern't applying to filter choices population.
+  - Search terms weren't applying to filter choices population.
   - Fix name ordering. Show series & volume in browser cards if it affects name
     ordering.
   - Shrink reader page change boxes to let toolbar activate on corner clicks.

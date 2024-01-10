@@ -4,7 +4,6 @@ from datetime import timedelta
 from importlib.metadata import PackageNotFoundError, version
 
 import requests
-from comicbox.config import get_config
 from django.utils import timezone
 
 from codex.logger.logging import get_logger
@@ -15,7 +14,6 @@ PYPI_URL_TEMPLATE = "https://pypi.python.org/pypi/%s/json"
 CACHE_EXPIRY = timedelta(days=1)
 REPO_TIMEOUT = 5
 LOG = get_logger(__name__)
-COMICBOX_CONFIG = get_config(modname=PACKAGE_NAME)
 
 
 def get_version():
@@ -55,8 +53,8 @@ def get_latest_version(
             latest_version = _fetch_latest_version(package_name, repo_url_template)
             ts.version = latest_version
             ts.save()
-        except Exception as exc:
-            LOG.error(f"Setting latest codex version in db {exc}")
+        except Exception:
+            LOG.exception("Setting latest codex version in db.")
     return latest_version
 
 

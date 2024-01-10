@@ -1,18 +1,17 @@
 """Codex Auth Serializers."""
-from types import MappingProxyType
 
 from django.contrib.auth.models import User
 from rest_framework.fields import BooleanField, CharField
 from rest_framework.serializers import (
-    ModelSerializer,
     Serializer,
     SerializerMethodField,
 )
 
 from codex.models import AdminFlag
+from codex.serializers.models.base import BaseModelSerializer
 
 
-class UserSerializer(ModelSerializer):
+class UserSerializer(BaseModelSerializer):
     """Serialize User model for UI."""
 
     _ADMIN_FLAG_KEYS = (
@@ -22,7 +21,7 @@ class UserSerializer(ModelSerializer):
 
     admin_flags = SerializerMethodField()
 
-    def get_admin_flags(self, *args):
+    def get_admin_flags(self, *_args):
         """Piggyback admin flags on the user object."""
         flags = AdminFlag.objects.filter(key__in=self._ADMIN_FLAG_KEYS).values(
             "name", "on"
@@ -34,7 +33,7 @@ class UserSerializer(ModelSerializer):
             admin_flags[key] = flag["on"]
         return admin_flags
 
-    class Meta:
+    class Meta(BaseModelSerializer.Meta):
         """Model spec."""
 
         model = User
@@ -53,15 +52,15 @@ class TimezoneSerializer(Serializer):
     timezone = CharField(min_length=2)
 
 
-class UserCreateSerializer(ModelSerializer, TimezoneSerializer):
+class UserCreateSerializer(BaseModelSerializer, TimezoneSerializer):
     """Serialize registration input for creating users."""
 
-    class Meta:
+    class Meta(BaseModelSerializer.Meta):
         """Model spec."""
 
         model = User
         fields = ("username", "password", "timezone")
-        extra_kwargs = MappingProxyType({"password": {"write_only": True}})
+        extra_kwargs = {"password": {"write_only": True}}  # noqa: RUF012
 
 
 class UserLoginSerializer(UserCreateSerializer):

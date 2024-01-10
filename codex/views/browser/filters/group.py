@@ -1,7 +1,7 @@
 """Group Filters."""
 from django.db.models import Q
 
-from codex.views.mixins import GroupACLMixin
+from codex.views.auth import GroupACLMixin
 
 
 class GroupFilterMixin(GroupACLMixin):

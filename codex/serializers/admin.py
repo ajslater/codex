@@ -2,6 +2,7 @@
 from pathlib import Path
 
 from django.contrib.auth.models import Group, User
+from rest_framework.fields import MultipleChoiceField
 from rest_framework.serializers import (
     BooleanField,
     CharField,
@@ -9,7 +10,6 @@ from rest_framework.serializers import (
     DateTimeField,
     IntegerField,
     ListField,
-    ModelSerializer,
     Serializer,
     ValidationError,
 )
@@ -17,16 +17,17 @@ from rest_framework.serializers import (
 from codex.logger.logging import get_logger
 from codex.models import AdminFlag, FailedImport, Library
 from codex.serializers.choices import CHOICES
+from codex.serializers.models.base import BaseModelSerializer
 
 LOG = get_logger(__name__)
 
 
-class UserSerializer(ModelSerializer):
+class UserSerializer(BaseModelSerializer):
     """User Serializer."""
 
     last_active = DateTimeField(read_only=True, allow_null=True)
 
-    class Meta:
+    class Meta(BaseModelSerializer.Meta):
         """Specify Model."""
 
         model = User
@@ -49,21 +50,23 @@ class UserChangePasswordSerializer(Serializer):
     password = CharField(write_only=True)
 
 
-class GroupSerializer(ModelSerializer):
+class GroupSerializer(BaseModelSerializer):
     """Group Serialier."""
 
-    class Meta:
+    exclude = BooleanField(default=False, source="groupauth.exclude", read_only=True)
+
+    class Meta(BaseModelSerializer.Meta):
         """Specify Model."""
 
         model = Group
-        fields = ("pk", "name", "library_set", "user_set")
+        fields = ("pk", "name", "library_set", "user_set", "exclude")
         read_only_fields = ("pk",)
 
 
-class AdminFlagSerializer(ModelSerializer):
+class AdminFlagSerializer(BaseModelSerializer):
     """Admin Flag Serializer."""
 
-    class Meta:
+    class Meta(BaseModelSerializer.Meta):
         """Specify Model."""
 
         model = AdminFlag
@@ -71,10 +74,10 @@ class AdminFlagSerializer(ModelSerializer):
         read_only_fields = ("key",)
 
 
-class LibrarySerializer(ModelSerializer):
+class LibrarySerializer(BaseModelSerializer):
     """Library Serializer."""
 
-    class Meta:
+    class Meta(BaseModelSerializer.Meta):
         """Specify Model."""
 
         model = Library
@@ -99,10 +102,10 @@ class LibrarySerializer(ModelSerializer):
         return path
 
 
-class FailedImportSerializer(ModelSerializer):
+class FailedImportSerializer(BaseModelSerializer):
     """Failed Import Serializer."""
 
-    class Meta:
+    class Meta(BaseModelSerializer.Meta):
         """Specify Model."""
 
         model = FailedImport
@@ -149,12 +152,12 @@ class AdminFolderSerializer(Serializer):
 class AdminGroupSerializer(Serializer):
     """Group Counts."""
 
-    publisher_count = IntegerField(required=False, read_only=True)
-    imprint_count = IntegerField(required=False)
+    publishers_count = IntegerField(required=False, read_only=True)
+    imprints_count = IntegerField(required=False)
     series_count = IntegerField(required=False)
-    volume_count = IntegerField(required=False)
-    comic_count = IntegerField(required=False)
-    folder_count = IntegerField(required=False)
+    volumes_count = IntegerField(required=False)
+    issues_count = IntegerField(required=False)
+    folders_count = IntegerField(required=False)
 
 
 class AdminFileTypeSerializer(Serializer):
@@ -170,27 +173,36 @@ class AdminFileTypeSerializer(Serializer):
 class AdminComicMetadataSerializer(Serializer):
     """Metadata Counts."""
 
-    character_count = IntegerField(required=False)
-    creator_count = IntegerField(required=False)
-    creator_person_count = IntegerField(required=False)
-    creator_role_count = IntegerField(required=False)
-    genre_count = IntegerField(required=False)
-    location_count = IntegerField(required=False)
-    series_group_count = IntegerField(required=False)
-    story_arc_count = IntegerField(required=False)
-    tag_count = IntegerField(required=False)
-    team_count = IntegerField(required=False)
+    age_ratings_count = IntegerField(required=False)
+    characters_count = IntegerField(required=False)
+    contributors_count = IntegerField(required=False)
+    contributor_persons_count = IntegerField(required=False)
+    contributor_roles_count = IntegerField(required=False)
+    countries_count = IntegerField(required=False)
+    genres_count = IntegerField(required=False)
+    identifiers_count = IntegerField(required=False)
+    identifier_types_count = IntegerField(required=False)
+    languages_count = IntegerField(required=False)
+    locations_count = IntegerField(required=False)
+    original_formats_count = IntegerField(required=False)
+    series_groups_count = IntegerField(required=False)
+    scan_infos_count = IntegerField(required=False)
+    story_arcs_count = IntegerField(required=False)
+    story_arc_numbers_count = IntegerField(required=False)
+    tags_count = IntegerField(required=False)
+    taggers_count = IntegerField(required=False)
+    teams_count = IntegerField(required=False)
 
 
 class AdminConfigSerializer(Serializer):
     """Config Information."""
 
-    library_count = IntegerField(required=False)
-    user_count = IntegerField(required=False)
-    group_count = IntegerField(required=False)
-    session_count = IntegerField(required=False)
-    session_anon_count = IntegerField(required=False)
     api_key = CharField(required=False)
+    groups_count = IntegerField(required=False)
+    libraries_count = IntegerField(required=False)
+    sessions_anon_count = IntegerField(required=False)
+    sessions_count = IntegerField(required=False)
+    users_count = IntegerField(required=False)
 
 
 class AdminPlatformSerializer(Serializer):
@@ -217,7 +229,8 @@ class AdminStatsSerializer(Serializer):
 class AdminStatsRequestSerializer(Serializer):
     """Admin Stats Tab Request."""
 
-    params = CharField(required=False)
+    PARAMS_CHOICES = ("groups", "fileTypes", "platform", "config", "groups", "metadata")
+    params = MultipleChoiceField(choices=PARAMS_CHOICES, required=False)
 
 
 class APIKeySerializer(Serializer):

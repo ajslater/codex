@@ -12,22 +12,32 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
+from codex.logger.logging import get_logger
 from codex.models import (
+    AgeRating,
     Character,
     Comic,
-    Creator,
-    CreatorPerson,
-    CreatorRole,
+    Contributor,
+    ContributorPerson,
+    ContributorRole,
+    Country,
     Folder,
     Genre,
+    Identifier,
+    IdentifierType,
     Imprint,
+    Language,
     Library,
     Location,
+    OriginalFormat,
     Publisher,
+    ScanInfo,
     Series,
     SeriesGroup,
     StoryArc,
+    StoryArcNumber,
     Tag,
+    Tagger,
     Team,
     Timestamp,
     Volume,
@@ -36,11 +46,13 @@ from codex.permissions import HasAPIKeyOrIsAdminUser
 from codex.serializers.admin import AdminStatsRequestSerializer, AdminStatsSerializer
 from codex.version import VERSION
 
+LOG = get_logger(__name__)
+
 
 class AdminStatsView(GenericAPIView):
     """Admin Flag Viewset."""
 
-    permission_classes: ClassVar[list] = [HasAPIKeyOrIsAdminUser]
+    permission_classes: ClassVar[list] = [HasAPIKeyOrIsAdminUser]  # type: ignore
     serializer_class = AdminStatsSerializer
     input_serializer_class = AdminStatsRequestSerializer
 
@@ -53,16 +65,25 @@ class AdminStatsView(GenericAPIView):
         Folder,
     )
     _METADATA_MODELS = (
-        SeriesGroup,
-        StoryArc,
-        Location,
+        AgeRating,
         Character,
+        Country,
+        Genre,
+        Identifier,
+        IdentifierType,
+        Language,
+        Location,
+        OriginalFormat,
+        SeriesGroup,
+        ScanInfo,
+        StoryArc,
+        StoryArcNumber,
         Team,
         Tag,
-        Genre,
-        Creator,
-        CreatorPerson,
-        CreatorRole,
+        Tagger,
+        Contributor,
+        ContributorPerson,
+        ContributorRole,
     )
     _CONFIG_MODELS = (
         Library,
@@ -119,9 +140,16 @@ class AdminStatsView(GenericAPIView):
         models = self._get_models(key)
         obj = {}
         for model in models:
-            model_name = snakecase(model.__name__)
-            model_name += "_count"
-            obj[model_name] = model.objects.count()
+            vnp = model._meta.verbose_name_plural
+            if vnp:
+                title = vnp.title()
+            else:
+                LOG.warning(f"No verbose plural name for {model.__name__}")
+                title = model.__name__
+
+            vnp_name = snakecase(title)
+            vnp_name += "_count"
+            obj[vnp_name] = model.objects.count()
         return obj
 
     @staticmethod
@@ -153,7 +181,7 @@ class AdminStatsView(GenericAPIView):
         config = self._get_model_counts("config")
         request_counts = self._get_request_counts("config")
         if not request_counts or "sessionanon" in request_counts:
-            config["session_anon_count"] = self._get_anon_sessions()
+            config["sessions_anon_count"] = self._get_anon_sessions()
         if not request_counts or "apikey" in request_counts:
             config["api_key"] = Timestamp.objects.get(
                 key=Timestamp.TimestampChoices.API_KEY.value
@@ -204,24 +232,14 @@ class AdminStatsView(GenericAPIView):
         return obj
 
     @extend_schema(
-        parameters=[
-            input_serializer_class,
-        ],
-        description="""
-        'params' is a comma separated list of stats group names or individual stat names
-        from the response schema to return. The default is to return all.
-    """,
+        parameters=[input_serializer_class],
         request=input_serializer_class,
     )
-    def get(self, *args, **kwargs):
+    def get(self, *_args, **_kwargs):
         """Get the stats object and serialize it."""
         input_serializer = self.input_serializer_class(data=self.request.GET)
         input_serializer.is_valid()
-        params = input_serializer.validated_data
-        if params:
-            self.params = frozenset(params.split(","))
-        else:
-            self.params = None
+        self.params = frozenset(input_serializer.validated_data.get("params", {}))
 
         obj = self.get_object()
         serializer = self.get_serializer(obj)

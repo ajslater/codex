@@ -20,7 +20,7 @@ class CoverPathMixin(QueuedThread):
     def _hex_path(cls, pk):
         """Translate an integer into an efficient filesystem path."""
         fnv = fnv1a_32(bytes(str(pk).zfill(cls._ZFILL), "utf-8"))
-        hex_str = "{0:0{1}x}".format(fnv, cls._HEX_FILL)
+        hex_str = format(fnv, f"0{cls._ZFILL}x")
         parts = []
         for i in range(0, len(hex_str), cls._PATH_STEP):
             parts.append(hex_str[i : i + cls._PATH_STEP])

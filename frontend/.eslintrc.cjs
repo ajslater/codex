@@ -15,6 +15,13 @@ module.exports = {
       impliedStrict: true,
     },
   },
+  overrides: [
+    {
+      files: ["tests/**"],
+      plugins: ["vitest"],
+      extends: ["plugin:vitest/recommended"],
+    },
+  ],
   plugins: ["vue"],
   ignorePatterns: [
     "coverage",

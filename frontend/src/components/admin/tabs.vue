@@ -31,9 +31,9 @@
 
 <script>
 import { mapActions, mapGetters } from "pinia";
+import titleize from "titleize";
 
 import { useAdminStore } from "@/stores/admin";
-
 export default {
   name: "AdminTabs",
   data() {
@@ -49,7 +49,7 @@ export default {
     $route(to) {
       const parts = to.path.split("/");
       const lastPart = parts.at(-1);
-      this.activeTab = lastPart[0].toUpperCase() + lastPart.slice(1);
+      this.activeTab = titleize(lastPart);
     },
   },
   mounted() {

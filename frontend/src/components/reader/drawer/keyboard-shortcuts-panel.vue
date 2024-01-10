@@ -79,7 +79,19 @@
             </tr>
             <tr>
               <td>r</td>
-              <td>Toggle Read in Reverse</td>
+              <td>Read Right to Left</td>
+            </tr>
+            <tr>
+              <td>l</td>
+              <td>Read Left to Right</td>
+            </tr>
+            <tr>
+              <td>t</td>
+              <td>Read Top to Bottom</td>
+            </tr>
+            <tr>
+              <td>b</td>
+              <td>Read in Bottom to Top</td>
             </tr>
           </tbody>
         </table>

@@ -2,7 +2,7 @@ module.exports = {
   root: true,
   env: {
     browser: true,
-    es2022: true,
+    es2024: true,
     node: true,
   },
   extends: [
@@ -27,7 +27,7 @@ module.exports = {
     "prettier", // config-prettier
     // SECURITY
     "plugin:no-unsanitized/DOM",
-    "plugin:security/recommended",
+    "plugin:security/recommended-legacy",
   ],
   overrides: [
     {
@@ -42,6 +42,7 @@ module.exports = {
     ecmaFeatures: {
       impliedStrict: true,
     },
+    sourceType: "module",
   },
   plugins: [
     "array-func",
@@ -97,15 +98,18 @@ module.exports = {
     "!.circleci",
     ".mypy_cache",
     ".pytest_cache",
+    ".ruff_cache",
     ".venv*",
     "cache/*",
     "!cache/packages",
     "cache/packages/*",
     "!cache/packages/README.md",
-    "codex/_vendor/haystack",
+    "codex/_vendor/",
     "codex/static_build",
     "codex/static_root",
+    "codex/templates/*.html", // Handled by djlint
     "codex/templates/**/*.html", // Handled by djlint
+    "codex/templates/pwa/serviceworker-register.js", // removes eslint-disable that it then complains about
     "comics",
     "config",
     "dist",

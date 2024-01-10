@@ -34,43 +34,48 @@
         </td>
       </template>
       <template #[`item.isStaff`]="{ item }">
-        <v-checkbox-btn :model-value="item.raw.isStaff" disabled />
+        <v-checkbox-btn :model-value="item.isStaff" disabled />
       </template>
       <template #[`item.isActive`]="{ item }">
-        <v-checkbox-btn :model-value="item.raw.isActive" disabled />
+        <v-checkbox-btn :model-value="item.isActive" disabled />
       </template>
       <template #[`item.groups`]="{ item }">
-        <RelationChips :pks="item.raw.groups" :map="groupMap" />
+        <RelationChips
+          :pks="item.groups"
+          :objs="groups"
+          title-key="name"
+          group-type
+        />
       </template>
       <template #[`item.lastActive`]="{ item }">
-        <DateTimeColumn :dttm="item.raw.lastActive" />
+        <DateTimeColumn :dttm="item.lastActive" />
       </template>
       <template #[`item.lastLogin`]="{ item }">
-        <DateTimeColumn :dttm="item.raw.lastLogin" />
+        <DateTimeColumn :dttm="item.lastLogin" />
       </template>
       <template #[`item.dateJoined`]="{ item }">
-        <DateTimeColumn :dttm="item.raw.dateJoined" />
+        <DateTimeColumn :dttm="item.dateJoined" />
       </template>
       <template #[`item.actions`]="{ item }">
         <AdminCreateUpdateDialog
           table="User"
           :inputs="AdminUserCreateUpdateInputs"
-          :old-row="item.raw"
+          :old-row="item"
           max-width="20em"
           size="small"
           density="compact"
         />
         <ChangePasswordDialog
-          :user="item.raw"
+          :user="item"
           :is-admin-mode="true"
           size="small"
           density="compact"
         />
         <AdminDeleteRowDialog
-          v-if="me.id !== item.raw.pk"
+          v-if="me.id !== item.pk"
           table="User"
-          :pk="item.raw.pk"
-          :name="item.raw.username"
+          :pk="item.pk"
+          :name="item.username"
           size="small"
           density="compact"
         />
@@ -80,9 +85,8 @@
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 import { markRaw } from "vue";
-import { VDataTableVirtual } from "vuetify/labs/components";
 
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
 import DateTimeColumn from "@/components/admin/datetime-column.vue";
@@ -101,7 +105,6 @@ export default {
     AdminCreateUpdateDialog,
     DateTimeColumn,
     RelationChips,
-    VDataTableVirtual,
   },
   data() {
     return {
@@ -119,9 +122,9 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useAdminStore, ["groupMap"]),
     ...mapState(useAdminStore, {
       users: (state) => state.users,
+      groups: (state) => state.groups,
     }),
     ...mapState(useAuthStore, {
       me: (state) => state.user,

@@ -84,8 +84,8 @@ def _parse_choices(module_name):
                 data_dict = json.loads(json_str)
                 LOG.debug(f"Loaded json choices from {js_root} {module_name}")
                 break
-        except Exception as exc:
-            LOG.exception(exc)
+        except Exception:
+            LOG.exception(f"Reading {js_root}")
     if not data_dict:
         LOG.error(f"Could not extract values from {module_name}")
 
@@ -126,6 +126,8 @@ def _build_choices_and_defaults(data_dict):
         if vuetify_key in ("q", "route"):
             DEFAULTS[vuetify_key] = vuetify_list
             continue
+        if vuetify_key in ("identifierTypes",):
+            continue
 
         CHOICES[vuetify_key] = _parse_choices_to_dict(vuetify_key, vuetify_list)
 
@@ -140,6 +142,8 @@ def _load_choices_json():
     for key, value in data_dict.items():
         if key == "websockets":
             WEBSOCKET_MESSAGES = value
+        elif key == "identifierTypes":
+            continue
         else:
             if key == "browser":
                 del value["groupNames"]

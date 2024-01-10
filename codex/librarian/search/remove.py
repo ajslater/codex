@@ -1,11 +1,10 @@
 """Search Index cleanup."""
 from time import time
-from typing import Optional
 
-from haystack.constants import DJANGO_ID
 from humanize import naturaldelta
 from whoosh.query import Every
 
+from codex._vendor.haystack.constants import DJANGO_ID
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.version import VersionMixin
 from codex.models import Comic
@@ -39,7 +38,8 @@ class RemoveMixin(VersionMixin):
         return delete_docnums
 
     def remove_stale_records(
-        self, backend: Optional[CodexSearchBackend] = None  # type: ignore
+        self,
+        backend: CodexSearchBackend | None = None,  # type: ignore
     ):
         """Remove records not in the database from the index."""
         self.abort_event.clear()

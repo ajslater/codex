@@ -12,7 +12,7 @@ mkdir -p "$VENDOR_TARGET"
 cd cache
 
 # vendorize the original in a tmp dir
-cat <<EOT >vendorize.toml
+cat << EOT > vendorize.toml
 target = "$VENDOR_TARGET"
 packages = [ "$PKG" ]
 EOT
@@ -20,14 +20,14 @@ poetry run python-vendorize
 
 # compare
 DIFF_FN="../codex/_vendor/$PKG.diff"
-echo "# Non automated/import patches to $PKG" >"$DIFF_FN"
+echo "# Non automated/import patches to $PKG" > "$DIFF_FN"
 diff --minimal --recursive --suppress-common-lines \
-    -x "*~" \
-    -x "*.pyc" \
-    -x "*__pycache__*" \
-    "$VENDOR_TARGET/$MODULE" \
-    "../codex/_vendor/$MODULE" |
-    rg -v "Binary|Only" >>"$DIFF_FN"
+  -x "*~" \
+  -x "*.pyc" \
+  -x "*__pycache__*" \
+  "$VENDOR_TARGET/$MODULE" \
+  "../codex/_vendor/$MODULE" \
+  | rg -v "Binary|Only" >> "$DIFF_FN"
 
 # cleanup
 rm -rf "$VENDOR_TARGET"

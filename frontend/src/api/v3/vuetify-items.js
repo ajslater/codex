@@ -1,31 +1,25 @@
 // Shared functions for most metadata components.
 import CHOICES from "@/choices";
 const VUETIFY_NULL_CODE = CHOICES.browser.vuetifyNullCode;
-const NULL_NAME = ".None.";
-const NULL_ITEM = { value: VUETIFY_NULL_CODE, title: NULL_NAME };
-const NULL_PKS = new Set([
+export const NULL_PKS = new Set([
   "",
   VUETIFY_NULL_CODE,
   VUETIFY_NULL_CODE.toString(),
   undefined,
 ]);
 
-const toVuetifyItem = function (item, charPk) {
+const toVuetifyItem = function (item) {
   // Translates an raw value or an item item into a vuetify item.
   let vuetifyItem;
   if (item === undefined) {
     vuetifyItem = item;
   } else if (item instanceof Object) {
     vuetifyItem = { value: item.pk, title: item.name };
-    if (NULL_PKS.has(vuetifyItem.value) || !vuetifyItem.title) {
-      vuetifyItem = NULL_ITEM;
-    } else if (!charPk) {
-      vuetifyItem.value = +item.pk;
-    }
-  } else if (item === null) {
-    vuetifyItem = NULL_ITEM;
   } else {
     vuetifyItem = { value: item, title: item.toString() };
+  }
+  if (item.url) {
+    vuetifyItem.url = item.url;
   }
   return vuetifyItem;
 };
@@ -40,12 +34,7 @@ const vuetifyItemCompareNumeric = function (itemA, itemB) {
   return Number.parseFloat(itemA.title) - Number.parseFloat(itemB.title);
 };
 
-export const toVuetifyItems = function (
-  items,
-  filter,
-  numeric = false,
-  charPk = false,
-) {
+export const toVuetifyItems = function (items, filter, numeric = false) {
   // Takes a value (can be a list) and a list of items and
   // Returns a list of valid items with items arg having preference.
   const sourceItems = items || [];
@@ -55,7 +44,10 @@ export const toVuetifyItems = function (
 
   let computedItems = [];
   for (const item of sourceItems) {
-    const vuetifyItem = toVuetifyItem(item, charPk);
+    if (!item || NULL_PKS.has(item.pk)) {
+      continue;
+    }
+    const vuetifyItem = toVuetifyItem(item);
     if (
       vuetifyItem &&
       (!lowerCaseFilter ||
@@ -71,4 +63,5 @@ export const toVuetifyItems = function (
 
 export default {
   toVuetifyItems,
+  NULL_PKS,
 };

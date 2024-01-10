@@ -42,7 +42,7 @@ class QueuedThread(NamedThread, ABC):
         """Process one item from the queue."""
         raise NotImplementedError
 
-    def get_timeout(self):
+    def get_timeout(self) -> float | None:
         """Set no timeout by default."""
         return
 
@@ -76,7 +76,7 @@ class QueuedThread(NamedThread, ABC):
         """Stop the thread."""
         self.queue.put(self.SHUTDOWN_MSG)
 
-    def join(self):
+    def join(self, timeout=None):  # noqa: ARG002
         """End the thread."""
         self.log.debug(f"Waiting for {self.__class__.__name__} to join.")
         super().join(self.SHUTDOWN_TIMEOUT)

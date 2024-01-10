@@ -1,7 +1,7 @@
 """Search Filters Methods."""
 from django.db.models import Q
-from haystack.query import SearchQuerySet
 
+from codex._vendor.haystack.query import SearchQuerySet
 from codex.logger.logging import get_logger
 from codex.models import Comic
 
@@ -29,9 +29,8 @@ class SearchFilterMixin:
                 search_scores[comic_score["pk"]] = comic_score["score"]
         except MemoryError:
             LOG.warning("Search engine needs more memory, results truncated.")
-        except Exception as exc:
-            LOG.warning("While searching:")
-            LOG.exception(exc)
+        except Exception:
+            LOG.exception("While Searching")
         return search_scores
 
     def _get_search_query_filter(self, model, search_scores: dict):

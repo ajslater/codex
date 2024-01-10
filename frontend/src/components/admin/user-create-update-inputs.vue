@@ -35,14 +35,16 @@
     <AdminRelationPicker
       v-model="row.groups"
       label="Groups"
-      :items="vuetifyGroups"
+      :objs="groups"
+      title-key="name"
+      group-type
     />
   </div>
 </template>
 
 <script>
 import _ from "lodash";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import AdminRelationPicker from "@/components/admin/relation-picker.vue";
 import { useAdminStore } from "@/stores/admin";
@@ -88,8 +90,10 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useAdminStore, ["vuetifyGroups"]),
-    ...mapState(useAdminStore, { users: (state) => state.users }),
+    ...mapState(useAdminStore, {
+      groups: (state) => state.groups,
+      users: (state) => state.users,
+    }),
     usernames() {
       return this.nameSet(this.users, "username", this.oldRow, true);
     },

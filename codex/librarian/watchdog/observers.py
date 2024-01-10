@@ -23,7 +23,6 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
         log_queue = kwargs.pop("log_queue")
         librarian_queue = kwargs.pop("librarian_queue")
         self.init_worker(log_queue, librarian_queue)
-        self._unrar = kwargs.pop("unrar", False)
         super().__init__(*args, **kwargs)
 
     def _get_watch(self, path):
@@ -54,7 +53,6 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
             library,
             librarian_queue=self.librarian_queue,
             log_queue=self.log_queue,
-            unrar=self._unrar,
         )
         self.schedule(handler, library.path, recursive=True)
         self.log.info(f"Started {watching_log}")

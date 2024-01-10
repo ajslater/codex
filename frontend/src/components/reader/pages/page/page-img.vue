@@ -24,36 +24,31 @@ export default {
   height: 100vh;
   object-fit: contain;
 }
-.fitToScreenTwoVertical {
-  height: 50vh;
-  object-fit: contain;
-}
 .fitToScreen {
   width: 100vw;
 }
+.fitToScreenTwo {
+  max-width: 50vw;
+}
+.fitToScreenVertical {
+  height: 50vh;
+  object-fit: contain;
+}
 .fitToHeight,
-.fitToHeightTwo {
+.fitToHeightTwo,
+.fitToHeightVertical {
   height: 100vh;
 }
-.fitToHeightTwoVertical {
-  height: 50vh;
-}
-.fitToWidth {
+.fitToWidth,
+.fitToWidthVertical {
   width: 100vw;
 }
 .fitToWidthTwo {
   width: 50vw;
 }
-.fitToWidthTwoVertical {
-  width: 100vw;
-}
-
-.fitToScreenTwo {
-  max-width: 50vw;
-}
 .fitToOrig,
 .fitToOrigTwo,
-.fitToOrigTwoVertical {
+.fitToOrigVertical {
   object-fit: none;
 }
 </style>

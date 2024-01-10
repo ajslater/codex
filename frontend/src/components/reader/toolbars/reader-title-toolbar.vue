@@ -70,7 +70,6 @@ export default {
   computed: {
     ...mapGetters(useReaderStore, ["activeTitle"]),
     ...mapState(useReaderStore, {
-      vertical: (state) => state.activeSettings.vertical,
       pk: (state) => state.books?.current?.pk || 0,
     }),
     ...mapState(useBrowserStore, {

@@ -19,15 +19,16 @@
 </template>
 
 <script>
-import { mapActions } from "pinia";
+import { mapActions, mapGetters } from "pinia";
+import titleize from "titleize";
 import { defineAsyncComponent, markRaw } from "vue";
 
 import { getComicPageSource } from "@/api/v3/reader";
 import LoadingPage from "@/components/reader/pages/page/page-loading.vue";
 import { useReaderStore } from "@/stores/reader";
 const PDFPage = markRaw(
-  defineAsyncComponent(() =>
-    import("@/components/reader/pages/page/page-pdf.vue"),
+  defineAsyncComponent(
+    () => import("@/components/reader/pages/page/page-pdf.vue"),
   ),
 );
 import ErrorPage from "@/components/reader/pages/page/page-error.vue";
@@ -58,21 +59,20 @@ export default {
     };
   },
   computed: {
+    ...mapGetters(useReaderStore, ["isVertical"]),
     pageClass() {
-      return this.settings.vertical ? "pageVertical" : "pageHorizontal";
+      return this.isVertical ? "pageVertical" : "pageHorizontal";
     },
     fitToClass() {
       let classes = {};
       const fitTo = FIT_TO_CHOICES[this.settings.fitTo];
       if (fitTo) {
         let fitToClass = "fitTo";
-        fitToClass +=
-          fitTo.charAt(0).toUpperCase() + fitTo.slice(1).toLowerCase();
-        if (this.settings.twoPages) {
+        fitToClass += titleize(fitTo);
+        if (this.isVertical) {
+          fitToClass += "Vertical";
+        } else if (this.settings.twoPages) {
           fitToClass += "Two";
-          if (this.settings.vertical) {
-            fitToClass += "Vertical";
-          }
         }
         classes[fitToClass] = true;
       }

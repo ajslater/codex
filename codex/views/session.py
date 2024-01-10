@@ -63,26 +63,31 @@ class BrowserSessionViewBase(SessionViewBaseBase):
     """Browser session base."""
 
     SESSION_KEY = "browser"  # type: ignore
-    CREATOR_PERSON_UI_FIELD = "creators"
+    CONTRIBUTOR_PERSON_UI_FIELD = "contributors"
     STORY_ARC_UI_FIELD = "story_arcs"
+    IDENTIFIER_TYPE_UI_FIELD = "identifier_type"
     _DYNAMIC_FILTER_DEFAULTS = MappingProxyType(
         {
             "age_rating": [],
             "characters": [],
             "country": [],
-            CREATOR_PERSON_UI_FIELD: [],
+            CONTRIBUTOR_PERSON_UI_FIELD: [],
             "community_rating": [],
             "critical_rating": [],
             "decade": [],
             "file_type": [],
             "genres": [],
+            IDENTIFIER_TYPE_UI_FIELD: [],
             "language": [],
             "locations": [],
+            "monochrome": [],
             "original_format": [],
             "q": "",
-            "read_ltr": [],
+            "reading_direction": [],
             "series_groups": [],
+            "stories": [],
             STORY_ARC_UI_FIELD: [],
+            "tagger": [],
             "tags": [],
             "teams": [],
             "year": [],
@@ -114,9 +119,7 @@ class ReaderSessionViewBase(SessionViewBaseBase):
         {
             "fit_to": DEFAULTS["fitTo"],
             "two_pages": False,
-            "read_in_reverse": False,
-            "read_rtl_in_reverse": False,
-            "vertical": False,
+            "reading_direction": DEFAULTS["readingDirection"],
         }
     )
 
@@ -125,13 +128,6 @@ class SessionViewBase(SessionViewBaseBase, ABC):
     """Session view for retrieving stored settings."""
 
     permission_classes = (IsAuthenticatedOrEnabledNonUsers,)
-
-    @property
-    @classmethod
-    @abstractmethod
-    def serializer_class(cls):
-        """Define the output serializer class."""
-        raise NotImplementedError
 
     def load_params_from_session(self):
         """Set the params from view session, creating missing values from defaults."""

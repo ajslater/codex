@@ -2,14 +2,14 @@ services:
   codex-base:
     build:
       context: .
-      dockerfile: bin/docker/base.Dockerfile
+      dockerfile: docker/base.Dockerfile
       args:
         CODEX_BASE_VERSION:
     image: docker.io/ajslater/codex-base
   codex-builder-base:
     build:
       context: .
-      dockerfile: bin/docker/builder-base.Dockerfile
+      dockerfile: docker/builder-base.Dockerfile
       args:
         CODEX_BASE_VERSION:
         CODEX_BUILDER_BASE_VERSION:
@@ -17,7 +17,7 @@ services:
   codex-dist-builder: &codex-dist-builder
     build:
       context: .
-      dockerfile: bin/docker/dist-builder.Dockerfile
+      dockerfile: docker/dist-builder.Dockerfile
       args:
         CODEX_BUILDER_BASE_VERSION:
         CODEX_DIST_BUILDER_VERSION:
@@ -62,7 +62,7 @@ services:
   codex-arch:
     build:
       context: .
-      dockerfile: bin/docker/Dockerfile
+      dockerfile: docker/Dockerfile
       args:
         CODEX_BUILDER_BASE_VERSION:
         CODEX_BASE_VERSION:
@@ -74,7 +74,7 @@ services:
   codex:
     build:
       context: .
-      dockerfile: bin/docker/Dockerfile
+      dockerfile: docker/Dockerfile
     image: docker.io/ajslater/codex
     container_name: codex
     ports:
@@ -85,7 +85,7 @@ services:
   codex-dev:
     build:
       context: .
-      dockerfile: bin/docker/dev.Dockerfile
+      dockerfile: docker/dev.Dockerfile
     image: codex-dev
     mem_limit: 1g
     container_name: codex-dev

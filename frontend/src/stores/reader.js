@@ -1,3 +1,4 @@
+import { mdiBookArrowDown, mdiBookArrowUp } from "@mdi/js";
 import { defineStore } from "pinia";
 
 // import { reactive } from "vue";
@@ -12,8 +13,8 @@ const NULL_READER_SETTINGS = {
   // Must be null so axios doesn't throw them out when sending.
   fitTo: "",
   twoPages: null, // eslint-disable-line unicorn/no-null
-  vertical: null, // eslint-disable-line unicorn/no-null
-  readInReverse: null, // eslint-disable-line unicorn/no-null
+  readingDirection: "",
+  readRtlInReverse: null, // eslint-disable-line unicorn/no-null
 };
 Object.freeze(NULL_READER_SETTINGS);
 
@@ -28,6 +29,17 @@ const DIRECTION_REVERSE_MAP = {
 Object.freeze(DIRECTION_REVERSE_MAP);
 const PREFETCH_LINK = { rel: "prefetch", as: "image" };
 Object.freeze(PREFETCH_LINK);
+const VERTICAL_READING_DIRECTIONS = new Set(["ttb", "btt"]);
+Object.freeze(VERTICAL_READING_DIRECTIONS);
+const REVERSE_READING_DIRECTIONS = new Set(["rtl", "btt"]);
+Object.freeze(REVERSE_READING_DIRECTIONS);
+const OPPOSITE_READING_DIRECTIONS = {
+  ltr: "rtl",
+  rtl: "ltr",
+  ttb: "btt",
+  btt: "ttb",
+};
+Object.freeze(OPPOSITE_READING_DIRECTIONS);
 
 const getGlobalFitToDefault = () => {
   // Big screens default to fit by HEIGHT, small to WIDTH;
@@ -43,6 +55,7 @@ export const useReaderStore = defineStore("reader", {
     // static
     choices: {
       fitTo: CHOICES.reader.fitTo,
+      readingDirection: CHOICES.reader.readingDirection,
       nullValues: SETTINGS_NULL_VALUES,
     },
 
@@ -50,9 +63,8 @@ export const useReaderStore = defineStore("reader", {
     readerSettings: {
       fitTo: getGlobalFitToDefault(),
       twoPages: false,
-      readInReverse: false,
+      readingDirection: "ltr",
       readRtlInReverse: false,
-      vertical: true,
     },
     books: {
       current: undefined,
@@ -88,7 +100,8 @@ export const useReaderStore = defineStore("reader", {
       return books;
     },
     activeSettings(state) {
-      return this.getSettings(state.books.current);
+      // the empty settings guarantee here is for vitest.
+      return state.getSettings(state.books.current) || {};
     },
     activeTitle(state) {
       const book = state.books.current;
@@ -103,47 +116,96 @@ export const useReaderStore = defineStore("reader", {
       }
       return title;
     },
-    prevBookChangeShow(state) {
-      return state.page === 0;
-    },
-    nextBookChangeShow(state) {
-      const maxPage = state.books.current ? state.books.current.maxPage : 0;
-      const adj =
-        state.activeSettings.twoPages && !state.activeSettings.vertical ? 1 : 0;
-      const limit = maxPage + adj;
-      return state.page >= limit;
-    },
     isOnCoverPage(state) {
       return this._isCoverPage(state.books.current, state.page);
     },
     routeParams(state) {
       return { pk: +state.books.current.pk, page: +state.page };
     },
+    isVertical(state) {
+      return VERTICAL_READING_DIRECTIONS.has(
+        state.activeSettings.readingDirection,
+      );
+    },
+    isReadInReverse(state) {
+      return REVERSE_READING_DIRECTIONS.has(
+        state.activeSettings.readingDirection,
+      );
+    },
+    isBTT(state) {
+      return state.activeSettings.readingDirection === "btt";
+    },
+    isFirstPage(state) {
+      return state.page === 0;
+    },
+    isLastPage(state) {
+      const maxPage = state.books.current ? state.books.current.maxPage : 0;
+      const adj = state.activeSettings.twoPages ? 1 : 0;
+      const limit = maxPage - adj;
+      return this.page >= limit;
+    },
   },
   actions: {
     ///////////////////////////////////////////////////////////////////////////
     // GETTER Algorithms
+    setReadRTLInReverse(bookSettings) {
+      // Special setting for RTL books
+      return this.readerSettings.readRtlInReverse &&
+        bookSettings.readingDirection === "rtl"
+        ? { ...bookSettings, readingDirection: "ltr" }
+        : bookSettings;
+    },
     getSettings(book) {
       // Mask the book settings over the global settings.
-      const bookSettings = book ? book.settings : {};
-      const resultSettings = {};
-      for (const [key, readerVal] of Object.entries(this.readerSettings)) {
-        const bookVal = bookSettings[key];
-        const val = SETTINGS_NULL_VALUES.has(bookVal) ? readerVal : bookVal;
-        resultSettings[key] = val;
+      const resultSettings = { ...SETTINGS_NULL_VALUES };
+      let bookSettings = book ? book.settings : {};
+      bookSettings = this.setReadRTLInReverse(bookSettings);
+      const allSettings = [this.readerSettings, bookSettings];
+
+      for (const settings of allSettings) {
+        for (const [key, val] of Object.entries(settings)) {
+          if (!SETTINGS_NULL_VALUES.has(val)) {
+            resultSettings[key] = val;
+          }
+        }
       }
-      const bookLtr = book ? book.readLtr : undefined;
-      if (
-        bookLtr === false &&
-        SETTINGS_NULL_VALUES.has(resultSettings.readInReverse)
-      ) {
-        // special setting for rtl books
-        resultSettings.readInReverse = this.readerSettings.readRtlInReverse;
-      }
+
       // No two pages with vertical
       resultSettings.twoPages =
-        resultSettings.twoPages && !resultSettings.vertical;
+        VERTICAL_READING_DIRECTIONS.has(resultSettings.readingDirection) &&
+        resultSettings.twoPages;
+
       return resultSettings;
+    },
+    bookChangeLocation(direction) {
+      let location;
+      if (this.isBTT) {
+        location = direction === "next" ? "left" : "right";
+      } else {
+        location = direction === "next" ? "right" : "left";
+      }
+      return location;
+    },
+    bookChangeCursorClass(direction) {
+      let cursor;
+      if (this.isReadInReverse) {
+        cursor = direction === "next" ? "up" : "down";
+      } else {
+        cursor = direction === "next" ? "down" : "up";
+      }
+      return cursor + "Cursor";
+    },
+    bookChangeShow(direction) {
+      return direction === "prev"
+        ? this.books.prev && this.isFirstPage
+        : this.books.next && this.isLastPage;
+    },
+    bookChangeIcon(direction) {
+      let isDown = direction === "next";
+      if (this.isBTT) {
+        isDown = !isDown;
+      }
+      return isDown ? mdiBookArrowDown : mdiBookArrowUp;
     },
     ///////////////////////////////////////////////////////////////////////////
     // UTIL
@@ -247,7 +309,7 @@ export const useReaderStore = defineStore("reader", {
       this.reactWithScroll = Boolean(reactWithScroll);
       this.page = +page;
       this.setRoutesAndBookmarkPage(page);
-      if (this.activeSettings.vertical) {
+      if (this.isVertical) {
         const route = { params: { pk: this.books.current.pk, page } };
         const { href } = router.resolve(route);
         window.history.pushState({}, undefined, href);
@@ -340,13 +402,13 @@ export const useReaderStore = defineStore("reader", {
       await this.clearSettingsLocal();
     },
     setBookChangeFlag(direction) {
-      // direction = this.normalizeDirection(direction);
+      direction = this.normalizeDirection(direction);
       this.bookChange = this.routes.books[direction] ? direction : undefined;
     },
     ///////////////////////////////////////////////////////////////////////////
     // ROUTE
     normalizeDirection(direction) {
-      return this.activeSettings.readInReverse
+      return this.isReadInReverse
         ? DIRECTION_REVERSE_MAP[direction]
         : direction;
     },
@@ -369,10 +431,7 @@ export const useReaderStore = defineStore("reader", {
     },
     _routeTo(params, book) {
       params = this._validateRoute(params, book);
-      if (
-        this.activeSettings.vertical &&
-        +params.pk === this.books.current.pk
-      ) {
+      if (this.isVertical && +params.pk === this.books.current.pk) {
         this.setActivePage(+params.page, true);
       } else {
         const route = { name: "reader", params };

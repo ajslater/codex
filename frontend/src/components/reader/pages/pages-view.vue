@@ -1,10 +1,14 @@
 <template>
-  <PagesVerticalScroller v-if="vertical" :book="book" @click="$emit['click']" />
+  <PagesVerticalScroller
+    v-if="isVertical"
+    :book="book"
+    @click="$emit['click']"
+  />
   <PagesHorizontalWindow v-else :book="book" @click="$emit['click']" />
 </template>
 
 <script>
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import PagesHorizontalWindow from "@/components/reader/pages/horizontal-window.vue";
 import PagesVerticalScroller from "@/components/reader/pages/vertical-scroller.vue";
@@ -21,15 +25,10 @@ export default {
   },
   emits: ["click"],
   computed: {
+    ...mapGetters(useReaderStore, ["isVertical"]),
     ...mapState(useReaderStore, {
       storePk: (state) => state.books?.current?.pk || 0,
     }),
-    settings() {
-      return this.getSettings(this.book);
-    },
-    vertical() {
-      return this.settings.vertical;
-    },
   },
   watch: {
     $route(to) {
@@ -45,7 +44,7 @@ export default {
     }
   },
   methods: {
-    ...mapActions(useReaderStore, ["getSettings", "setActivePage"]),
+    ...mapActions(useReaderStore, ["setActivePage"]),
   },
 };
 </script>

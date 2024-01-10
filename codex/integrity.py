@@ -1,6 +1,7 @@
 """Repair Database Integrity Errors."""
 import re
 import sqlite3
+from types import MappingProxyType
 
 from django.apps import apps
 from django.contrib.auth import get_user_model
@@ -30,36 +31,56 @@ MIGRATION_0007 = "0007_auto_20211210_1710"
 MIGRATION_0010 = "0010_haystack"
 MIGRATION_0011 = "0010_library_groups_and_metadata_changes"
 MIGRATION_0018 = "0018_rename_userbookmark_bookmark"
-MIGRATION_0023 = "0023_rename_credit_creator_and_more"
 MIGRATION_0025 = "0025_add_story_arc_number"
-M2M_NAMES = {
-    "Character": "characters",
-    "Creator": "creators",
-    "Genre": "genres",
-    "Location": "locations",
-    "SeriesGroup": "series_groups",
-    "StoryArcNumber": "story_arc_numbers",
-    "Tag": "tags",
-    "Team": "teams",
-    "Folder": "folders",
-}
-SKIP_M2M_CHECKS = {"Creator": MIGRATION_0023, "StoryArcNumber": MIGRATION_0025}
-NULL_SET = frozenset([None])
+MIGRATION_0026 = "0026_comicbox_1"
+M2M_NAMES = MappingProxyType(
+    {
+        "Character": "characters",
+        "Contributor": "contributors",
+        "Genre": "genres",
+        "Location": "locations",
+        "SeriesGroup": "series_groups",
+        "StoryArcNumber": "story_arc_numbers",
+        "Tag": "tags",
+        "Team": "teams",
+        "Folder": "folders",
+    }
+)
+SKIP_M2M_CHECKS = MappingProxyType(
+    {"Contributor": MIGRATION_0026, "StoryArcNumber": MIGRATION_0025}
+)
+NULL_SET = frozenset({None})
 HAVE_LIBRARY_FKS = ("FailedImport", "Folder", "Comic")
-GROUP_HOSTS = {
-    "Imprint": ("Publisher",),
-    "Series": ("Publisher", "Imprint"),
-    "Volume": ("Publisher", "Imprint", "Series"),
-    "Comic": ("Publisher", "Imprint", "Series", "Volume"),
-}
+GROUP_HOSTS = MappingProxyType(
+    {
+        "Imprint": ("Publisher",),
+        "Series": ("Publisher", "Imprint"),
+        "Volume": ("Publisher", "Imprint", "Series"),
+        "Comic": ("Publisher", "Imprint", "Series", "Volume"),
+    }
+)
+
+COMIC_FK_FIELDS = MappingProxyType(
+    {
+        "AgeRating": "age_rating",
+        "Country": "country",
+        "Language": "language",
+        "OriginalFormat": "original_format",
+        "ScanInfo": "scan_info",
+        "Tagger": "tagger",
+    }
+)
+
 WATCHED_PATHS = ("Comic", "Folder")
-CREATOR_FIELDS = {"CreatorRole": "role", "CreatorPerson": "person"}
+CONTRIBUTOR_FIELDS = MappingProxyType(
+    {"ContributorRole": "role", "ContributorPerson": "person"}
+)
 OPERATIONAL_ERRORS_BEFORE_MIGRATIONS = (
     "no such column: codex_comic.name",
     "no such column: codex_comic.stat",
     "no such column: codex_folder.stat",
     "no such table: codex_comic_folders",
-    # "no such table: codex_comic_creators",
+    # "no such table: codex_comic_contributors",
     "'QuerySet' object has no attribute 'stat'",
 )
 DELETE_BAD_COMIC_FOLDER_RELATIONS_SQL = (
@@ -92,7 +113,7 @@ def has_unapplied_migrations():
         ]
         plan = executor.migration_plan(targets)
     except Exception as exc:
-        LOG.warning("has_unapplied_migrations()", exc)
+        LOG.warning(f"has_unapplied_migrations(): {exc}")
         return False
     else:
         return bool(plan)
@@ -106,8 +127,8 @@ def _delete_old_comic_folder_fks():
         with connection.cursor() as cursor:
             cursor.execute(DELETE_BAD_COMIC_FOLDER_RELATIONS_SQL)
         LOG.info("Deleted old comic_folder relations with bad integrity.")
-    except Exception as exc:
-        LOG.exception(exc)
+    except Exception:
+        LOG.exception("Deleting old comic folders")
 
 
 def _fix_comic_m2m_integrity_errors(apps, comic_model, m2m_model_name, field_name):
@@ -125,22 +146,33 @@ def _fix_comic_m2m_integrity_errors(apps, comic_model, m2m_model_name, field_nam
     m2m_rels_with_bad_m2m_ids = through_model.objects.exclude(
         **{f"{link_col}__in": m2m_model.objects.all()}
     )
-    bad_comics = comic_model.objects.filter(
+    bad_comic_ids = comic_model.objects.filter(
         pk__in=m2m_rels_with_bad_m2m_ids.values_list("comic_id", flat=True)
-    )
+    ).values_list("pk", flat=True)
     count_m2m, _ = m2m_rels_with_bad_m2m_ids.delete()
     count = count_comic + count_m2m
     if count:
         LOG.info(f"Deleted {count} orphan relations to {field_name}")
-    return bad_comics
+    return frozenset(bad_comic_ids)
 
 
-def _mark_comics_with_bad_m2m_rels_for_update(comic_model, bad_comics):
+def _fix_comic_fk_integrity_errors(apps, comic_model, fk_model_name, field_name):
+    fk_model = apps.get_model("codex", fk_model_name)
+    bad_pks = _null_missing_fk(comic_model, fk_model, field_name)
+    getattr(comic_model, field_name)
+    count = len(bad_pks)
+    if count:
+        LOG.info(f"Deleted {count} {field_name} links to missing rows.")
+    return frozenset(bad_pks)
+
+
+def _mark_comics_with_bad_rels_for_update(comic_model, bad_comic_ids):
     """Mark affected comics for update."""
     try:
         update_comics = []
+        bad_comics = comic_model.objects.filter(pk__in=bad_comic_ids).only("stat")
 
-        for comic in bad_comics.values("pk", "stat"):
+        for comic in bad_comics:
             stat_list = comic.stat
             if not stat_list:
                 continue
@@ -152,7 +184,7 @@ def _mark_comics_with_bad_m2m_rels_for_update(comic_model, bad_comics):
             return
 
         count = comic_model.objects.bulk_update(update_comics, fields=["stat"])
-        LOG.info(f"Marked {count} comics with bad m2m relations for update by poller.")
+        LOG.info(f"Marked {count} comics with bad relations for update by poller.")
     except (OperationalError, AttributeError) as exc:
         ok = False
         for arg in exc.args:
@@ -164,7 +196,7 @@ def _mark_comics_with_bad_m2m_rels_for_update(comic_model, bad_comics):
                 )
                 ok = True
         if not ok:
-            LOG.exception(exc)
+            LOG.exception("Mark comics with bad relations for update.")
 
 
 def _find_fk_integrity_errors_with_models(
@@ -203,14 +235,14 @@ def _delete_query(query, host_model_name, fk_model_name):
 def _delete_fk_integrity_errors(apps, host_model_name, fk_model_name, fk_field_name):
     """Delete objects with bad integrity."""
     try:
-        if not has_applied_migration(MIGRATION_0023) and (
-            host_model_name == "Creator"
-            or fk_model_name == "Creator"
-            or fk_field_name == "creators"
+        if not has_applied_migration(MIGRATION_0026) and (
+            host_model_name == "Contributor"
+            or fk_model_name == "Contributor"
+            or fk_field_name == "contributors"
         ):
             LOG.debug(
-                "Skipping Creator integrity check until"
-                f"migration {MIGRATION_0023} applied."
+                "Skipping Contributor integrity check until"
+                f"migration {MIGRATION_0026} applied."
             )
             return
 
@@ -224,9 +256,9 @@ def _delete_fk_integrity_errors(apps, host_model_name, fk_model_name, fk_field_n
             if arg in OPERATIONAL_ERRORS_BEFORE_MIGRATIONS:
                 ok = True
         if not ok:
-            LOG.exception(exc)
-    except Exception as exc:
-        LOG.exception(exc)
+            LOG.exception("Operational error before migrations")
+    except Exception:
+        LOG.exception("Delete foreign key integrity errors.")
 
 
 def _null_missing_fk(host_model, fk_model, fk_field_name):
@@ -241,6 +273,7 @@ def _null_missing_fk(host_model, fk_model, fk_field_name):
         update_dict = {fk_field_name: None, "updated_at": Now()}
         query_missing_fks.update(**update_dict)
         LOG.info(f"Fixed {count} {host_model.__name__}s with missing {fk_field_name}")
+    return query_missing_fks.values_list("pk", flat=True)
 
 
 def _delete_bookmark_integrity_errors(apps):
@@ -284,8 +317,12 @@ def _delete_errors():
                 apps, host_model_name, group_model_name, group_field_name
             )
 
-    for fk_model_name, fk_field_name in CREATOR_FIELDS.items():
-        _delete_fk_integrity_errors(apps, "Creator", fk_model_name, fk_field_name)
+    if has_applied_migration(MIGRATION_0026):
+        for fk_model_name in COMIC_FK_FIELDS:
+            _delete_fk_integrity_errors(apps, fk_model_name, "Comic", "comic")
+
+    for fk_model_name, fk_field_name in CONTRIBUTOR_FIELDS.items():
+        _delete_fk_integrity_errors(apps, "Contributor", fk_model_name, fk_field_name)
 
     _delete_bookmark_integrity_errors(apps)
 
@@ -307,7 +344,7 @@ def _check_field_for_migration(model_name):
 def _repair_integrity():
     """REPAIR the objects that are left."""
     comic_model = apps.get_model("codex", "Comic")
-    bad_comic_ids = comic_model.objects.none()
+    bad_comic_ids = set()
     for m2m_model_name, field_name in M2M_NAMES.items():
         if _check_field_for_migration(m2m_model_name):
             continue
@@ -326,8 +363,18 @@ def _repair_integrity():
                     "migration 0007. We'll get them on the next restart."
                 )
             else:
-                LOG.exception(exc)
-    _mark_comics_with_bad_m2m_rels_for_update(comic_model, bad_comic_ids)
+                LOG.exception("Occurred after migration 0007")
+
+    if has_applied_migration(MIGRATION_0026):
+        for fk_model_name, field_name in COMIC_FK_FIELDS.items():
+            try:
+                bad_comic_ids |= _fix_comic_fk_integrity_errors(
+                    apps, comic_model, fk_model_name, field_name
+                )
+            except Exception:
+                LOG.exception(f"Fix fk integrity error {fk_model_name}")
+
+    _mark_comics_with_bad_rels_for_update(comic_model, bad_comic_ids)
 
     _repair_library_groups(apps)
 
@@ -355,8 +402,8 @@ def repair_db():
             LOG.debug("Database not constructed yet, skipping integrity check.")
         else:
             raise
-    except Exception as exc:
-        LOG.exception(exc)
+    except Exception:
+        LOG.exception("Repair DB")
 
 
 def rebuild_db():

@@ -20,7 +20,7 @@ class OPDS1EntryLinksMixin:
         self.fake = isinstance(self.obj, OPDS1EntryObject)
         self.query_params = query_params
         self.acquision_groups = data.acquisition_groups
-        self.issue_max = data.issue_max
+        self.issue_number_max = data.issue_number_max
         self.metadata = data.metadata
         self.mime_type_map = data.mime_type_map
 

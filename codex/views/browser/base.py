@@ -18,7 +18,7 @@ from codex.models import (
     StoryArc,
     Volume,
 )
-from codex.serializers.browser import BrowserSettingsSerializer
+from codex.serializers.browser.settings import BrowserSettingsSerializer
 from codex.views.browser.filters.bookmark import BookmarkFilterMixin
 from codex.views.browser.filters.field import ComicFieldFilter
 from codex.views.browser.filters.group import GroupFilterMixin
@@ -47,7 +47,7 @@ class BrowserBaseView(
         }
     )
 
-    _GET_JSON_KEYS = frozenset(("filters", "show"))
+    _GET_JSON_KEYS = frozenset({"filters", "show"})
 
     def __init__(self, *args, **kwargs):
         """Set params for the type checker."""
@@ -67,7 +67,7 @@ class BrowserBaseView(
         object_filter = self.get_group_acl_filter(model)
         object_filter &= self.get_search_filter(model, search_scores)
         object_filter &= self.get_bookmark_filter(model)
-        object_filter &= self.get_comic_field_filter()
+        object_filter &= self.get_comic_field_filter(self.rel_prefix)
         return object_filter
 
     def get_query_filters(self, model, search_scores: dict, choices=False):

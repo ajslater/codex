@@ -1,7 +1,6 @@
 """Links methods for OPDS v2.0 Feed."""
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Optional
 from urllib.parse import parse_qsl, urlparse
 
 from django.urls import reverse
@@ -15,12 +14,12 @@ from codex.views.opds.util import update_href_query_params
 class HrefData:
     """Data for creating hrefs."""
 
-    kwargs: Optional[dict] = None
-    query_params: Optional[dict] = None
+    kwargs: dict | None = None
+    query_params: dict | None = None
     absolute_query_params: bool = False
-    url_name: Optional[str] = None
-    min_page: Optional[int] = None
-    max_page: Optional[int] = None
+    url_name: str | None = None
+    min_page: int | None = None
+    max_page: int | None = None
 
 
 @dataclass
@@ -29,13 +28,13 @@ class LinkData:
 
     rel: str
     href_data: HrefData
-    title: Optional[str] = None
-    mime_type: Optional[str] = None
-    template: Optional[str] = None
-    height: Optional[int] = None
-    width: Optional[int] = None
-    href: Optional[str] = None
-    num_items: Optional[int] = None
+    title: str | None = None
+    mime_type: str | None = None
+    template: str | None = None
+    height: int | None = None
+    width: int | None = None
+    href: str | None = None
+    num_items: int | None = None
 
 
 class LinksMixin(BrowserView):

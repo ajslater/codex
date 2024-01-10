@@ -8,21 +8,27 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.views import APIView
 
 from codex.models import Comic
-from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
-from codex.views.mixins import GroupACLMixin
+from codex.views.auth import GroupACLMixin, IsAuthenticatedOrEnabledNonUsers
 
 
 class DownloadView(APIView, GroupACLMixin):
     """Return the comic archive file as an attachment."""
 
-    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]
+    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]  # type: ignore
     content_type = "application/vnd.comicbook+zip"
 
     _DOWNLOAD_SELECT_RELATED = ("series", "volume")
-    _DOWNLOAD_FIELDS = ("path", "series", "volume", "issue", "issue_suffix", "name")
+    _DOWNLOAD_FIELDS = (
+        "path",
+        "series",
+        "volume",
+        "issue_number",
+        "issue_suffix",
+        "name",
+    )
 
     @extend_schema(responses={(200, content_type): OpenApiTypes.BINARY})
-    def get(self, *args, **kwargs):
+    def get(self, *_args, **kwargs):
         """Download a comic archive."""
         pk = kwargs.get("pk")
         try:

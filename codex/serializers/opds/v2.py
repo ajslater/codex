@@ -1,5 +1,4 @@
 """OPDS 2 Serializers."""
-from typing import Optional
 
 from rest_framework.fields import (
     BooleanField,
@@ -61,10 +60,10 @@ class OPDS2LinkSerializer(Serializer):
     children = CharListField(read_only=True, required=False)
     properties = OPDS2LinkPropertiesSerializer(read_only=True, required=False)
 
-    def get_rel(self, obj) -> Optional[str]:
+    def get_rel(self, obj) -> str | None:
         """Allow for CharField or CharListField types."""
         rel = obj.get("rel")
-        if not isinstance(rel, (list, str)):
+        if not isinstance(rel, list | str):
             reason = "OPDS2LinkSerializer.rel is not a list or a string."
             raise TypeError(reason)
         return obj.get("rel")

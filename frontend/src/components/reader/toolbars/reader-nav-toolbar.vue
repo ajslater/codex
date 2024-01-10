@@ -9,7 +9,7 @@
       :max="maxPage"
       :step="step"
       :track-color="trackColor"
-      :reverse="readInReverse"
+      :reverse="isReadInReverse"
       @update:model-value="onSliderUpdate($event)"
     />
     <ReaderNavButton :value="max" :two-pages="twoPages" />
@@ -38,11 +38,15 @@ export default {
     ReaderBookChangeNavButton,
   },
   computed: {
-    ...mapGetters(useReaderStore, ["activeSettings"]),
+    ...mapGetters(useReaderStore, [
+      "activeSettings",
+      "isReadInReverse",
+      "isVertical",
+    ]),
     ...mapState(useReaderStore, {
       storePage: (state) => state.page,
       key(state) {
-        return `${state.books?.current?.pk}:${this.twoPages}`;
+        return `${state.books?.current?.pk}:${this.step}:${this.isReadInReverse}`;
       },
       maxPage: (state) => state.books?.current?.maxPage || 0,
     }),
@@ -58,20 +62,17 @@ export default {
         ? this.$vuetify.theme.current.colors.primary
         : "";
     },
-    readInReverse() {
-      return this.activeSettings.readInReverse;
-    },
     min() {
-      return this.readInReverse ? this.maxPage : 0;
+      return this.isReadInReverse ? this.maxPage : 0;
     },
     max() {
-      return this.readInReverse ? 0 : this.maxPage;
+      return this.isReadInReverse ? 0 : this.maxPage;
     },
     bookPrev() {
-      return this.readInReverse ? "next" : "prev";
+      return this.isReadInReverse ? "next" : "prev";
     },
     bookNext() {
-      return this.readInReverse ? "prev" : "next";
+      return this.isReadInReverse ? "prev" : "next";
     },
   },
   mounted() {
@@ -89,7 +90,7 @@ export default {
       "setActivePage",
     ]),
     onSliderUpdate(page) {
-      if (this.activeSettings.vertical) {
+      if (this.isVertical) {
         this.setActivePage(page, true);
       } else {
         this.routeToPage(page);

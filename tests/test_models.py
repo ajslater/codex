@@ -37,7 +37,7 @@ class ComicTestCase(TestCase):
         Comic.objects.create(
             library=library,
             path=self.COMIC_PATH,
-            issue=1,
+            issue_number=1,
             name=ComicTestCase.NAME,
             publisher=publisher,
             imprint=imprint,

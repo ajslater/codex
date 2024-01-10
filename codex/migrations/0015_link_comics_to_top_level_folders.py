@@ -1,6 +1,5 @@
 """Fix no parent folder comics."""
 from pathlib import Path
-from typing import ClassVar
 
 from django.db import migrations
 
@@ -33,10 +32,8 @@ def fix_no_parent_folder_comics(apps, _schema_editor):
 class Migration(migrations.Migration):
     """Fix top level comics."""
 
-    dependencies: ClassVar[list] = [
-        ("codex", "0014_pdf_issue_suffix_remove_cover_image_sort_name")
-    ]
+    dependencies = [("codex", "0014_pdf_issue_suffix_remove_cover_image_sort_name")]
 
-    operations: ClassVar[list] = [
+    operations = [
         migrations.RunPython(fix_no_parent_folder_comics),
     ]

@@ -3,9 +3,8 @@ from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Union
 
-from comicbox.metadata.comic_json import json
+import simplejson as json
 from django.urls import reverse
 
 from codex.logger.logging import get_logger
@@ -36,7 +35,7 @@ class TopLink:
     kwargs: Mapping
     rel: str
     mime_type: str
-    query_params: defaultdict[str, Union[str, bool, int]]
+    query_params: defaultdict[str, str | bool | int]
     glyph: str
     title: str
     desc: str
@@ -172,8 +171,8 @@ class LinksMixin(FacetsMixin):
                         links += [self._top_link(top_link)]
                 if facets := self.facets():
                     links += facets
-        except Exception as exc:
-            LOG.exception(exc)
+        except Exception:
+            LOG.exception("Getting OPDS v1 links")
         return links
 
     def _top_link_entry(self, top_link):
@@ -185,9 +184,9 @@ class LinksMixin(FacetsMixin):
             name=name,
             summary=top_link.desc,
         )
-        issue_max = self.obj.get("issue_max", 0)
+        issue_number_max = self.obj.get("issue_number_max", 0)
         data = OPDS1EntryData(
-            self.acquisition_groups, issue_max, False, self.mime_type_map
+            self.acquisition_groups, issue_number_max, False, self.mime_type_map
         )
         return OPDS1Entry(entry_obj, top_link.query_params, data)
 

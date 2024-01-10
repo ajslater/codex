@@ -1,7 +1,7 @@
 """Bulk update and create comic objects and bulk update m2m fields."""
+from codex.librarian.importer.const import BULK_UPDATE_COMIC_FIELDS
 from codex.librarian.importer.link_comics import LinkComicsMixin
 from codex.librarian.importer.status import ImportStatusTypes, status_notify
-from codex.librarian.importer.update_comics import BULK_UPDATE_COMIC_FIELDS
 from codex.models import (
     Comic,
 )
@@ -25,7 +25,7 @@ class CreateComicsMixin(LinkComicsMixin):
         for path in comic_paths:
             try:
                 md = mds.pop(path)
-                self._link_comic_fks(md, library, path)
+                self.get_comic_fk_links(md, library, path)
                 comic = Comic(**md)
                 comic.presave()
                 comic.set_stat()
@@ -45,7 +45,8 @@ class CreateComicsMixin(LinkComicsMixin):
                 unique_fields=Comic._meta.unique_together[0],  # type: ignore
             )
             count = len(create_comics)
-            self.log.info(f"Created {count} comics.")
+            if count:
+                self.log.info(f"Created {count} comics.")
         except Exception:
             self.log.exception(f"While creating {comic_paths}")
 

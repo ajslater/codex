@@ -1,18 +1,16 @@
 """Library process worker for background tasks."""
-from collections import namedtuple
 from multiprocessing import Manager, Process
 from threading import active_count
 from types import MappingProxyType
+from typing import NamedTuple
 
 from caseconverter import snakecase
-from comicbox.comic_archive import ComicArchive
-from comicbox.exceptions import UnsupportedArchiveTypeError
 
-from codex.librarian.covers.coverd import CoverCreatorThread
+from codex.librarian.covers.coverd import CoverContributorThread
 from codex.librarian.covers.tasks import CoverTask
 from codex.librarian.delayed_taskd import DelayedTasksThread
 from codex.librarian.importer.importerd import ComicImporterThread
-from codex.librarian.importer.tasks import AdoptOrphanFoldersTask, UpdaterTask
+from codex.librarian.importer.tasks import AdoptOrphanFoldersTask, ImportTask
 from codex.librarian.janitor.janitor import Janitor
 from codex.librarian.janitor.janitord import JanitorThread
 from codex.librarian.janitor.tasks import JanitorTask
@@ -37,7 +35,9 @@ from codex.librarian.watchdog.tasks import (
 )
 from codex.logger_base import LoggerBaseMixin
 
-LIBRARIAN_SHUTDOWN_TASK = "shutdown"
+
+class LibrarianShutdownTask:
+    """Empty task."""
 
 
 class LibrarianDaemon(Process, LoggerBaseMixin):
@@ -46,7 +46,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
     _THREAD_CLASSES = (
         NotifierThread,
         DelayedTasksThread,
-        CoverCreatorThread,
+        CoverContributorThread,
         SearchIndexerThread,
         ComicImporterThread,
         WatchdogEventBatcherThread,
@@ -60,7 +60,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
             for thread_class in _THREAD_CLASSES
         }
     )
-    LibrarianThreads = namedtuple("LibrarianThreads", _THREAD_CLASS_MAP.keys())
+    LibrarianThreads = NamedTuple("LibrarianThreads", _THREAD_CLASS_MAP.items())
 
     proc = None
 
@@ -80,37 +80,39 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
             self.queue.put(task)
         self.search_indexer_abort_event = Manager().Event()
 
-    def _process_task(self, task):  # noqa: C901, PLR0912
+    def _process_task(self, task):
         """Process an individual task popped off the queue."""
-        # XXX good candidate for match case in python 3.10
-        if isinstance(task, CoverTask):
-            self._threads.cover_creator_thread.queue.put(task)
-        elif isinstance(task, WatchdogEventTask):
-            self._threads.watchdog_event_batcher_thread.queue.put(task)
-        elif isinstance(task, UpdaterTask):
-            self._threads.comic_importer_thread.queue.put(task)
-        elif isinstance(task, NotifierTask):
-            self._threads.notifier_thread.queue.put(task)
-        elif isinstance(task, WatchdogSyncTask):
-            for observer in self._observers:
-                observer.sync_library_watches()
-        elif isinstance(task, WatchdogPollLibrariesTask):
-            self._threads.library_polling_observer.poll(task.library_ids, task.force)
-        elif isinstance(task, SearchIndexerTask):
-            if isinstance(task, SearchIndexAbortTask):
-                self.search_indexer_abort_event.set()
-                self.log.debug("Told search indexers to stop for db updates.")
-            else:
-                self._threads.search_indexer_thread.queue.put(task)
-        elif isinstance(task, JanitorTask):
-            self.janitor.run(task)
-        elif isinstance(task, DelayedTasks):
-            self._threads.delayed_tasks_thread.queue.put(task)
-        elif task == LIBRARIAN_SHUTDOWN_TASK:
-            self.log.info(f"Shutting down {self.__class__.__name__}...")
-            self.run_loop = False
-        else:
-            self.log.warning(f"Unhandled Librarian task: {task}")
+        match task:
+            case CoverTask():
+                self._threads.cover_contributor_thread.queue.put(task)
+            case WatchdogEventTask():
+                self._threads.watchdog_event_batcher_thread.queue.put(task)
+            case ImportTask():
+                self._threads.comic_importer_thread.queue.put(task)
+            case NotifierTask():
+                self._threads.notifier_thread.queue.put(task)
+            case WatchdogSyncTask():
+                for observer in self._observers:
+                    observer.sync_library_watches()
+            case WatchdogPollLibrariesTask():
+                self._threads.library_polling_observer.poll(
+                    task.library_ids, task.force
+                )
+            case SearchIndexerTask():
+                if isinstance(task, SearchIndexAbortTask):
+                    self.search_indexer_abort_event.set()
+                    self.log.debug("Told search indexers to stop for db updates.")
+                else:
+                    self._threads.search_indexer_thread.queue.put(task)
+            case JanitorTask():
+                self.janitor.run(task)
+            case DelayedTasks():
+                self._threads.delayed_tasks_thread.queue.put(task)
+            case LibrarianShutdownTask():
+                self.log.info(f"Shutting down {self.__class__.__name__}...")
+                self.run_loop = False
+            case _:
+                self.log.warning(f"Unhandled Librarian task: {task}")
 
     def _create_threads(self):
         """Create all the threads."""
@@ -118,19 +120,11 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
         self.log.debug(f"Active threads before thread creation: {active_count()}")
         threads = {}
         kwargs = {"librarian_queue": self.queue, "log_queue": self.log_queue}
-        try:
-            ComicArchive.check_unrar_executable()
-            unrar = True
-        except UnsupportedArchiveTypeError as exc:
-            self.log.warn(f"{exc}. Not detecting .cbr archives.")
-            unrar = False
         for name, thread_class in self._THREAD_CLASS_MAP.items():
             if thread_class == NotifierThread:
                 thread = thread_class(self.broadcast_queue, **kwargs)
             elif thread_class == SearchIndexerThread:
                 thread = thread_class(self.search_indexer_abort_event, **kwargs)
-            elif thread_class in (LibraryEventObserver, LibraryPollingObserver):
-                thread = thread_class(unrar=unrar, **kwargs)
             else:
                 thread = thread_class(**kwargs)
             threads[name] = thread
@@ -201,7 +195,7 @@ class LibrarianDaemon(Process, LoggerBaseMixin):
 
     def stop(self):
         """Close up the librarian process."""
-        self.queue.put(LIBRARIAN_SHUTDOWN_TASK)
+        self.queue.put(LibrarianShutdownTask())
         self.queue.close()
         self.queue.join_thread()
         self.join()

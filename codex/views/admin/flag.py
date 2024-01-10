@@ -17,7 +17,7 @@ LOG = get_logger(__name__)
 class AdminFlagViewSet(ModelViewSet):
     """Admin Flag Viewset."""
 
-    permission_classes: ClassVar[list] = [IsAdminUser]
+    permission_classes: ClassVar[list] = [IsAdminUser]  # type: ignore
     queryset = AdminFlag.objects.all()
     serializer_class = AdminFlagSerializer
     lookup_field = "key"

@@ -49,7 +49,7 @@ export default {
     },
     volumeName() {
       if (
-        (this.topGroup === "a" || (this.orderByname && !this.showVolume)) &&
+        (this.topGroup === "a" || (this.orderByName && !this.showVolume)) &&
         this.item.group === "c" &&
         this.item.volumeName
       ) {

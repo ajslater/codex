@@ -1,17 +1,17 @@
 <template>
   <v-navigation-drawer
     v-if="show"
-    :class="{ bookChangeDrawer: true, [direction]: true }"
+    class="bookChangeDrawer"
     disable-resize-watcher
     disable-route-watcher
-    :location="computedDirection === 'prev' ? 'left' : 'right'"
+    :location="drawerLocation"
     :model-value="isDrawerOpen"
     :scrim="false"
     temporary
     touchless
   >
     <router-link
-      class="navLink"
+      :class="{ navLink: true, [cursorClass]: true }"
       :to="route"
       :aria-label="label"
       :title="label"
@@ -22,7 +22,6 @@
   </v-navigation-drawer>
 </template>
 <script>
-import { mdiBookArrowDown, mdiBookArrowUp } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import { useReaderStore } from "@/stores/reader";
@@ -41,7 +40,7 @@ export default {
     }
   },
   computed: {
-    ...mapGetters(useReaderStore, ["prevBookChangeShow", "nextBookChangeShow"]),
+    ...mapGetters(useReaderStore, ["isBTT"]),
     ...mapState(useReaderStore, {
       computedDirection() {
         return this.normalizeDirection(this.direction);
@@ -53,13 +52,17 @@ export default {
         return state.bookChange === this.computedDirection;
       },
       icon() {
-        return this.computedDirection === "next"
-          ? mdiBookArrowDown
-          : mdiBookArrowUp;
+        return this.bookChangeIcon(this.computedDirection);
       },
     }),
+    drawerLocation() {
+      return this.bookChangeLocation(this.direction);
+    },
+    cursorClass() {
+      return this.bookChangeCursorClass(this.computedDirection);
+    },
     show() {
-      return this[this.computedDirection + "BookChangeShow"];
+      return this.bookChangeShow(this.computedDirection);
     },
     route() {
       return this.toRoute(this.params);
@@ -75,18 +78,26 @@ export default {
       "normalizeDirection",
       "prefetchLinks",
       "toRoute",
+      "bookChangeLocation",
+      "bookChangeCursorClass",
+      "bookChangeShow",
+      "bookChangeIcon",
     ]),
   },
 };
 </script>
 <style scoped lang="scss">
-.prev {
+.prevCursor {
   cursor: n-resize;
+  /*
   left: 0px;
+  */
 }
-.next {
+.nextCursor {
   cursor: s-resize;
+  /*
   right: 0px;
+  */
 }
 .navLink {
   display: block;

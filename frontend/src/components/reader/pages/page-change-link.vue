@@ -1,5 +1,6 @@
 <template>
   <router-link
+    v-if="show"
     :to="route"
     :aria-label="label"
     :class="{
@@ -10,7 +11,7 @@
   />
 </template>
 <script>
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import { useReaderStore } from "@/stores/reader";
 
@@ -23,26 +24,32 @@ export default {
     return this.prefetchLinks(this.params, this.computedDirection);
   },
   computed: {
+    ...mapGetters(useReaderStore, ["isVertical", "isFirstPage", "isLastPage"]),
     ...mapState(useReaderStore, {
-      computedDirection() {
-        return this.normalizeDirection(this.direction);
-      },
       params(state) {
         return state.routes[this.computedDirection];
       },
-      directionClass(state) {
-        let dc = this.direction;
-        if (state.activeSettings.vertical) {
-          dc += "Vertical";
-        }
-        return dc;
-      },
-      pageChangeClass(state) {
-        let pcc = "pageChange";
-        pcc += state.activeSettings.vertical ? "Row" : "Column";
-        return pcc;
-      },
     }),
+    computedDirection() {
+      return this.normalizeDirection(this.direction);
+    },
+    show() {
+      return this.computedDirection === "prev"
+        ? !this.isFirstPage
+        : !this.isLastPage;
+    },
+    pageChangeClass() {
+      let pcc = "pageChange";
+      pcc += this.isVertical ? "Row" : "Column";
+      return pcc;
+    },
+    directionClass() {
+      let dc = this.direction;
+      if (this.isVertical) {
+        dc += "Vertical";
+      }
+      return dc;
+    },
     route() {
       return this.toRoute(this.params);
     },

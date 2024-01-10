@@ -1,0 +1,4 @@
+target = "codex/_vendor"
+packages = [
+    "django-haystack",
+]

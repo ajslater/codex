@@ -1,0 +1,127 @@
+Primary Authors:
+
+    * Daniel Lindsley
+    * Matt Croydon (some documentation, sanity checks and the sweet name)
+    * Travis Cline (the original SQ implementation, improvements to ModelSearchIndex)
+    * David Sauve (notanumber) for the Xapian backend, the simple backend and various patches.
+    * Jannis Leidel (jezdez)
+    * Chris Adams (acdha)
+    * Justin Caratzas (bigjust)
+    * Andrew Schoen (andrewschoen)
+    * Dan Watson (dcwatson)
+    * Matt Woodward (mpwoodward)
+    * Alex Vidal (avidal)
+    * Zach Smith (zmsmith)
+    * Stefan Wehrmeyer (stefanw)
+    * George Hickman (ghickman)
+    * Ben Spaulding (benspaulding)
+
+
+Thanks to
+    * Jacob Kaplan-Moss & Joseph Kocherhans for the original implementation of
+      djangosearch, of which portions were used, as well as basic API feedback.
+    * Christian Metts for designing the logo and building a better site.
+    * Nathan Borror for testing and advanced form usage.
+    * Malcolm Tredinnick for API feedback.
+    * Mediaphormedia for funding the development on More Like This and faceting.
+    * Travis Cline for API feedback, Git help and improvements to the reindex command.
+    * Brian Rosner for various patches.
+    * Richard Boulton for feedback and suggestions.
+    * Cyberdelia for feedback and patches.
+    * Ask Solem for for patching the setup.py.
+    * Ben Spaulding for feedback and documentation patches.
+    * smulloni for various patches.
+    * JoeGermuska for various patches.
+    * SmileyChris for various patches.
+    * sk1p for various patches.
+    * Ryszard Szopa (ryszard) for various patches.
+    * Patryk Zawadzki (patrys) for various patches and feedback.
+    * Frank Wiles for documentation patches.
+    * Chris Adams (acdha) for various patches.
+    * Kyle MacFarlane for various patches.
+    * Alex Gaynor (alex) for help with handling deferred models with More Like This.
+    * RobertGawron for a patch to the Highlighter.
+    * Simon Willison (simonw) for various proposals and patches.
+    * Ben Firshman (bfirsh) for faceting improvements and suggestions.
+    * Peter Bengtsson for a patch regarding passing a customized site.
+    * Sam Bull (osirius) for a patch regarding initial data on SearchForms.
+    * slai for a patch regarding Whoosh and fetching all documents of a certain model type.
+    * alanwj for a patch regarding Whoosh and empty MultiValueFields.
+    * alanzoppa for a patch regarding highlighting.
+    * piquadrat for a patch regarding the more_like_this template tag.
+    * dedsm for a patch regarding the pickling of SearchResult objects.
+    * EmilStenstrom for a patch to the Highlighter.
+    * symroe for a patch regarding the more_like_this template tag.
+    * ghostrocket for a patch regarding the simple backend.
+    * Rob Hudson (robhudson) for improvements to the admin search.
+    * apollo13 for simplifying ``SearchForm.__init__``.
+    * Carl Meyer (carljm) for a patch regarding character primary keys.
+    * oyiptong for a patch regarding pickling.
+    * alfredo for a patch to generate epub docs.
+    * Luke Hatcher (lukeman) for documentation patches.
+    * Trey Hunner (treyhunner) for a Whoosh field boosting patch.
+    * Kent Gormat of Retail Catalyst for funding the development of multiple index support.
+    * Gidsy for funding the initial geospatial implementation
+    * CMGdigital for funding the development on:
+        * a multiprocessing-enabled version of ``update_index``.
+        * the addition of ``--start/--end`` options in ``update_index``.
+        * the ability to specify both apps & models to ``update_index``.
+        * A significant portion of the geospatial feature.
+        * A significant portion of the input types feature.
+    * Aram Dulyan (Aramgutang) for fixing the included admin class to be Django 1.4 compatible.
+    * Honza Kral (HonzaKral) for various Elasticsearch tweaks & testing.
+    * Alex Vidal (avidal) for a patch allowing developers to override the queryset used for update operations.
+    * Igor Támara (ikks) for a patch related to Unicode ``verbose_name_plural``.
+    * Dan Helfman (witten) for a patch related to highlighting.
+    * Matt DeBoard for refactor of ``SolrSearchBackend.search`` method to allow simpler extension of the class.
+    * Rodrigo Guzman (rz) for a fix to query handling in the ``simple`` backend.
+    * Martin J. Laubach (mjl) for fixing the logic used when combining querysets
+    * Eric Holscher (ericholscher) for a docs fix.
+    * Erik Rose (erikrose) for a quick pyelasticsearch-compatibility patch
+    * Stefan Wehrmeyer (stefanw) for a simple search filter fix
+    * Dan Watson (dcwatson) for various patches.
+    * Andrew Schoen (andrewschoen) for the addition of ``HAYSTACK_IDENTIFIER_METHOD``
+    * Pablo SEMINARIO (pabluk) for a docs fix, and a fix in the ElasticSearch backend.
+    * Eric Thurgood (ethurgood) for a import fix in the Elasticssearch backend.
+    * Revolution Systems & The Python Software Foundation for funding a significant portion of the port to Python 3!
+    * Artem Kostiuk (postatum) for patch allowing to search for slash character in ElasticSearch since Lucene 4.0.
+    * Luis Barrueco (luisbarrueco) for a simple fix regarding updating indexes using multiple backends.
+    * Szymon Teżewski (jasisz) for an update to the bounding-box calculation for spatial queries
+    * Chris Wilson (qris) and Orlando Fiol (overflow) for an update allowing the use of multiple order_by()
+      fields with Whoosh as long as they share a consistent sort direction
+    * Steven Skoczen (@skoczen) for an ElasticSearch bug fix
+    * @Xaroth for updating the app loader to be compatible with Django 1.7
+    * Jaroslav Gorjatsev (jarig) for a bugfix with index_fieldname
+    * Dirk Eschler (@deschler) for app loader Django 1.7 compatibility fixes
+    * Wictor (wicol) for a patch improving the error message given when model_attr references a non-existent
+      field
+    * Pierre Dulac (dulaccc) for a patch updating distance filters for ElasticSearch 1.x
+    * Andrei Fokau (andreif) for adding support for ``SQ`` in ``SearchQuerySet.narrow()``
+    * Phill Tornroth (phill-tornroth) for several patches improving UnifiedIndex and ElasticSearch support
+    * Philippe Luickx (philippeluickx) for documenting how to provide backend-specific facet options
+    * Felipe Prenholato (@chronossc) for a patch making it easy to exclude documents from indexing using custom logic
+    * Alfredo Armanini (@phingage) for a patch fixing compatibility with database API changes in Django 1.8
+    * Ben Spaulding (@benspaulding) for many updates for Django 1.8 support
+    * Troy Grosfield (@troygrosfield) for fixing the test runner for Django 1.8
+    * Ilan Steemers (@Koed00) for fixing Django 1.9 deprecation warnings
+    * Ana Carolina (@anacarolinats) and Steve Bussetti (@sbussetti) for adding the ``fuzzy`` operator to
+      SearchQuerySet
+    * Tadas Dailyda (@skirsdeda) for various patches
+    * Craig de Stigter (@craigds) for a patch fixing concurrency issues when building UnifiedIndex
+    * Claude Paroz (@claudep) for Django 1.9 support
+    * Chris Brooke (@chrisbrooke) for patching around a backwards-incompatible change in ElasticSearch 2
+    * Gilad Beeri (@giladbeeri) for adding retries when updating a backend
+    * Arjen Verstoep (@terr) for a patch that allows attribute lookups through Django ManyToManyField relationships
+    * Tim Babych (@tymofij) for enabling backend-specific parameters in ``.highlight()``
+    * Antony Raj (@antonyr) for adding endswith input type and fixing contains input type
+    * Morgan Aubert (@ellmetha) for Django 1.10 support
+    * João Junior (@joaojunior) and Bruno Marques (@ElSaico) for Elasticsearch 2.x support
+    * Alex Tomkins (@tomkins) for various patches
+    * Martin Pauly (@mpauly) for Django 2.0 support
+    * Ryan Jarvis (@cabalist) for some code cleanup
+    * Dulmandakh Sukhbaatar (@dulmandakh) for GitHub Actions support, and flake8, black, isort checks.
+    * Deniz Dogan (@denizdogan) for adding support for the ``analyzer`` parameter for the Whoosh backend
+    * parruc for basic Whoosh faceting support
+    * Jens Kadenbach (audax) for updating and testing Whoosh faceting support
+    * Alejandro Sedeño (asedeno) trying the Whoosh faceting thing again
+    * Fábio Piovam (fabiopiovam) for date_facet on Solr 6.6+

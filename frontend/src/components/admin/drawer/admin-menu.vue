@@ -2,7 +2,7 @@
   <div v-if="isUserAdmin">
     <v-list-item @click="librarianTask('poll')">
       <v-list-item-title
-        ><v-icon>{{ mdiDatabaseClockOutline }}</v-icon
+        ><v-icon>{{ mdiDatabaseEyeOutline }}</v-icon
         >Poll All Libraries</v-list-item-title
       >
     </v-list-item>
@@ -29,7 +29,7 @@
 import {
   mdiBookAlert,
   mdiCogOutline,
-  mdiDatabaseClockOutline,
+  mdiDatabaseEyeOutline,
   mdiOpenInNew,
 } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
@@ -50,7 +50,7 @@ export default {
     return {
       mdiBookAlert,
       mdiOpenInNew,
-      mdiDatabaseClockOutline,
+      mdiDatabaseEyeOutline,
       mdiCogOutline,
     };
   },

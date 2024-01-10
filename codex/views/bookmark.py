@@ -7,9 +7,11 @@ from rest_framework.response import Response
 
 from codex.logger.logging import get_logger
 from codex.models import Bookmark, Comic
-from codex.serializers.models import BookmarkFinishedSerializer, BookmarkSerializer
-from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
-from codex.views.mixins import GroupACLMixin
+from codex.serializers.models.bookmark import (
+    BookmarkFinishedSerializer,
+    BookmarkSerializer,
+)
+from codex.views.auth import GroupACLMixin, IsAuthenticatedOrEnabledNonUsers
 
 LOG = get_logger(__name__)
 
@@ -17,17 +19,16 @@ LOG = get_logger(__name__)
 class BookmarkBaseView(GenericAPIView, GroupACLMixin):
     """Bookmark Updater."""
 
-    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]
+    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]  # type:ignore
     _BOOKMARK_UPDATE_FIELDS = (
         "page",
         "finished",
         "fit_to",
         "two_pages",
-        "vertical",
-        "read_in_reverse",
+        "reading_direction",
     )
     _BOOKMARK_ONLY_FIELDS = (*_BOOKMARK_UPDATE_FIELDS, "pk", "comic")
-    _COMIC_ONLY_FIELDS = ("pk", "max_page")
+    _COMIC_ONLY_FIELDS = ("pk", "page_count")
 
     def get_bookmark_filter(self):
         """Get search kwargs for the reader."""
@@ -133,7 +134,7 @@ class BookmarkView(BookmarkBaseView):
         return serializer.validated_data
 
     @extend_schema(request=serializer_class, responses=None)
-    def patch(self, *args, **kwargs):
+    def patch(self, *_args, **_kwargs):
         """Update bookmarks recursively."""
         group = self.kwargs.get("group")
         # If the target is recursive, strip everything but finished state data.

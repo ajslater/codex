@@ -1,19 +1,17 @@
 <template>
   <PaginationNavButton
-    v-if="vertical"
+    :key="isVertical"
     :disabled="disabled"
     :title="title"
+    :to="toRoute"
     @click="onClick"
   >
-    {{ value }}
-  </PaginationNavButton>
-  <PaginationNavButton v-else :disabled="disabled" :title="title" :to="toRoute">
     {{ value }}
   </PaginationNavButton>
 </template>
 
 <script>
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import PaginationNavButton from "@/components/pagination-nav-button.vue";
 import { useReaderStore } from "@/stores/reader";
@@ -33,13 +31,15 @@ export default {
     },
   },
   computed: {
+    ...mapGetters(useReaderStore, ["isVertical"]),
     ...mapState(useReaderStore, {
       storePage: (state) => state.page,
-      vertical: (state) => state.activeSettings?.vertical,
       toRoute(state) {
-        return {
-          params: { pk: state.books.current.pk, page: this.value },
-        };
+        if (!this.isVertical) {
+          return {
+            params: { pk: state.books.current.pk, page: this.value },
+          };
+        }
       },
     }),
     title() {
@@ -57,7 +57,9 @@ export default {
   methods: {
     ...mapActions(useReaderStore, ["setActivePage"]),
     onClick() {
-      this.setActivePage(this.value, true);
+      if (this.isVertical) {
+        this.setActivePage(this.value, true);
+      }
     },
   },
 };

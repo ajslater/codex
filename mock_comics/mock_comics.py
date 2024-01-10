@@ -8,7 +8,7 @@ from pathlib import Path
 from random import choices, randint, random
 from xml.etree.ElementTree import Element, SubElement, tostringlist
 
-from comicbox.metadata.comicinfoxml import ComicInfoXml
+from comicbox.schemas.comicinfo import ComicInfoSchema
 from fnvhash import fnv1a_32
 from PIL import Image
 
@@ -19,7 +19,7 @@ PATH_STEP = 2
 CHANCE_OF_NULL = 0.1
 CHANCE_OF_BAD_TYPE = 0.2
 CHOICES_STR = string.ascii_uppercase + string.digits
-CREATOR_TAGS = (
+CONTRIBUTOR_TAGS = (
     "Colorist",
     "CoverArtist",
     "Editor",
@@ -56,12 +56,12 @@ FIELDS = {
         "StoryArc",
         "SeriesGroup",
     ),
-    "creatorS": ("Colorist", "CoverArtist", "Editor", "Letterer", "Inker"),
+    "contributorS": ("Colorist", "CoverArtist", "Editor", "Letterer", "Inker"),
 }
 BOOL_VALUES = ("yes", "no")
 MANGA_VALUES = (*BOOL_VALUES, "yesandrighttoleft", "yesrtl")
 NUM_M2M_NAMES = 20
-NUM_creatorS = 15
+NUM_contributorS = 15
 STATUS_DELAY = 5
 
 
@@ -141,13 +141,13 @@ def create_manga(md):
     md["Manga"] = value
 
 
-def create_creators(md):
-    """Add creators to the metadata."""
+def create_contributors(md):
+    """Add contributors to the metadata."""
     v = is_valid()
     if v is None:
         return
-    for _ in range(0, randint(0, NUM_creatorS)):
-        role = choices(CREATOR_TAGS, k=1)[0]
+    for _ in range(randint(0, NUM_contributorS)):
+        role = choices(CONTRIBUTOR_TAGS, k=1)[0]
         person = rand_string(round(64 * 1.1))
         md[role] = person
 
@@ -173,9 +173,9 @@ def create_metadata():
 
     create_bool(md, "BlackAndWhite")
     create_manga(md)
-    create_creators(md)
+    create_contributors(md)
 
-    root = Element(ComicInfoXml.ROOT_TAG)
+    root = Element(ComicInfoSchema.ROOT_TAGS[0])
     root.attrib["xmlns:xsi"] = "http://www.w3.org/2001/XMLSchema-instance"
     root.attrib["xmlns:xsd"] = "http://www.w3.org/2001/XMLSchema"
 
@@ -210,7 +210,7 @@ def _hex_path(num):
     """Translate an integer into an efficient filesystem path."""
     num_str = f"{num:07}"
     fnv = fnv1a_32(bytes(num_str, "utf-8"))
-    hex_str = "{0:0{1}x}".format(fnv, HEX_FILL)
+    hex_str = format(fnv, f"0{HEX_FILL}x")
     parts = []
     for i in range(0, len(hex_str), PATH_STEP):
         parts.append(hex_str[i : i + PATH_STEP])

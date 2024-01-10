@@ -3,6 +3,7 @@ from pathlib import Path
 
 from django.db.models.functions import Now
 
+from codex.librarian.importer.const import FOLDERS_FIELD, PARENT_FOLDER
 from codex.librarian.importer.create_comics import CreateComicsMixin
 from codex.librarian.importer.create_fks import (
     BULK_UPDATE_FOLDER_MODIFIED_FIELDS,
@@ -27,7 +28,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
             return count
 
         # Prepare FKs
-        create_folder_paths = {}
+        create_folder_paths = set()
         self.query_missing_folder_paths(
             moved_paths.values(), library.path, create_folder_paths, status=status
         )
@@ -36,7 +37,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
         # Update Comics
         comics = Comic.objects.filter(
             library=library, path__in=moved_paths.keys()
-        ).only("pk", "path", "parent_folder", "folders")
+        ).only("pk", "path", PARENT_FOLDER, FOLDERS_FIELD)
 
         folder_m2m_links = {}
         now = Now()
@@ -63,10 +64,11 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
         Comic.objects.bulk_update(comics, _MOVED_BULK_COMIC_UPDATE_FIELDS)
 
         # Update m2m field
-        count = len(comics)
         if folder_m2m_links:
-            self.bulk_fix_comic_m2m_field("folders", folder_m2m_links, None)
-        self.log.info(f"Moved {count} comics.")
+            self.bulk_fix_comic_m2m_field(FOLDERS_FIELD, folder_m2m_links, None)
+        count = len(comics)
+        if count:
+            self.log.info(f"Moved {count} comics.")
 
         return count
 
@@ -127,7 +129,8 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
 
         Folder.objects.bulk_update(update_folders, _MOVED_BULK_FOLDER_UPDATE_FIELDS)
         count = len(update_folders)
-        self.log.info(f"Moved {count} folders.")
+        if count:
+            self.log.info(f"Moved {count} folders.")
         return count
 
     @status_notify(status_type=ImportStatusTypes.DIRS_MODIFIED, updates=False)
@@ -150,7 +153,8 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
             update_folders, fields=BULK_UPDATE_FOLDER_MODIFIED_FIELDS
         )
         count += len(update_folders)
-        self.log.info(f"Modified {count} folders")
+        if count:
+            self.log.info(f"Modified {count} folders")
         return count
 
     def adopt_orphan_folders(self):
@@ -171,7 +175,6 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
 
     def move_and_modify_dirs(self, library, task):
         """Move files and dirs and modify dirs."""
-        # TODO add status?
         changed = 0
         changed += self._bulk_folders_moved(task.dirs_moved, library)
         task.dirs_moved = None

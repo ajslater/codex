@@ -25,7 +25,7 @@
       />
     </v-radio-group>
     <v-checkbox
-      :disabled="selectedSettings.vertical"
+      :disabled="isVertical"
       class="displayTwoPages"
       density="compact"
       label="Two pages"
@@ -38,39 +38,27 @@
       "
       @update:model-value="settingsDialogChanged({ twoPages: $event })"
     />
-    <v-label>Reading Direction</v-label>
-    <v-switch
-      class="vertical"
+    <v-radio-group
+      class="displayRadioGroup"
       density="compact"
-      :label="verticalLabel"
+      label="Reading Direction"
       hide-details="auto"
-      :model-value="selectedSettings.vertical"
-      :true-value="true"
-      :indeterminate="
-        selectedSettings.vertical === null ||
-        selectedSettings.vertical === undefined
-      "
-      @update:model-value="settingsDialogChanged({ vertical: $event })"
-    />
-    <v-checkbox
-      class="readInReverse"
-      density="compact"
-      label="Read in Reverse"
-      hide-details="auto"
-      :model-value="selectedSettings.readInReverse"
-      :true-value="true"
-      :indeterminate="
-        selectedSettings.readInReverse === null ||
-        selectedSettings.readInReverse === undefined
-      "
-      @update:model-value="settingsDialogChanged({ readInReverse: $event })"
-    />
+      :model-value="selectedSettings.readingDirection"
+      @update:model-value="settingsDialogChanged({ readingDirection: $event })"
+    >
+      <v-radio
+        v-for="item in readingDirectionChoices"
+        :key="item.value"
+        :label="item.title"
+        :value="item.value"
+      />
+    </v-radio-group>
     <v-checkbox
       v-if="isGlobalScope"
       :model-value="selectedSettings.readRtlInReverse"
       class="readRtlInReverse"
       density="compact"
-      label="Read RTL comics in Reverse"
+      label="Read RTL Comics as LTR"
       hide-details="auto"
       :true-value="true"
       @update:model-value="settingsDialogChanged({ readRtlInReverse: $event })"
@@ -87,11 +75,12 @@
   </div>
 </template>
 <script>
-import { mapActions, mapState, mapWritableState } from "pinia";
+import { mapActions, mapGetters, mapState, mapWritableState } from "pinia";
 
 import { useReaderStore } from "@/stores/reader";
 
-const ATTRS = ["fitTo", "twoPages", "vertical", "readInReverse"];
+const ATTRS = ["fitTo", "readingDirection", "twoPages"];
+Object.freeze(ATTRS);
 
 export default {
   name: "ReaderSettingsPanel",
@@ -101,16 +90,9 @@ export default {
     };
   },
   computed: {
+    ...mapGetters(useReaderStore, ["isVertical"]),
     ...mapState(useReaderStore, {
-      fitToChoices(state) {
-        const displayChoices = [];
-        for (const choice of state.choices.fitTo) {
-          if (choice.value) {
-            displayChoices.push(choice);
-          }
-        }
-        return displayChoices;
-      },
+      choices: (state) => state.choices,
       selectedSettings(state) {
         return this.isGlobalScope || !state.books?.current
           ? state.readerSettings
@@ -128,21 +110,14 @@ export default {
         }
         return true;
       },
-      verticalLabel(state) {
-        const vertical =
-          state.books?.current && state.books?.current.settings
-            ? state.books?.current.settings.vertical
-            : undefined;
-        if (vertical === undefined || vertical === null) {
-          return "Horizontal or Vertical";
-        } else if (vertical) {
-          return "Scroll Pages Vertically";
-        } else {
-          return "Turn Pages Horizontally";
-        }
-      },
     }),
-    ...mapWritableState(useReaderStore, ["readRTLInReverse"]),
+    ...mapWritableState(useReaderStore, ["readRtlInReverse"]),
+    fitToChoices() {
+      return this.choicesWithoutNull("fitTo");
+    },
+    readingDirectionChoices() {
+      return this.choicesWithoutNull("readingDirection");
+    },
   },
   mounted() {
     document.addEventListener("keyup", this._keyListener);
@@ -163,6 +138,16 @@ export default {
       } else {
         this.setSettingsLocal(data);
       }
+    },
+    choicesWithoutNull(attr) {
+      const choices = [];
+      for (const choice of this.choices[attr]) {
+        if (choice.value) {
+          choices.push(choice);
+        }
+      }
+      Object.freeze(choices);
+      return choices;
     },
     _keyListener(event) {
       event.stopPropagation();
@@ -189,15 +174,26 @@ export default {
             twoPages: !this.selectedSettings.twoPages,
           };
           break;
-        case "r":
+        case "l":
           updates = {
-            readInReverse: !this.selectedSettings.readInReverse,
+            readingDirection: "ltr",
           };
           break;
-        case "v":
+        case "r":
           updates = {
-            vertical: !this.selectedSettings.vertical,
+            readingDirection: "rtl",
           };
+          break;
+        case "t":
+          updates = {
+            readingDirection: "ttb",
+          };
+          break;
+        case "b":
+          updates = {
+            readingDirection: "bbt",
+          };
+          break;
       }
       if (updates) {
         this.setSettingsLocal(updates);
@@ -227,6 +223,7 @@ export default {
   transition: visibility 0.25s, opacity 0.25s;
 }
 #clearSettingsButton {
+  margin-top: 4px;
   margin-bottom: 4px;
   transition: visibility 0.25s, opacity 0.25s;
 }

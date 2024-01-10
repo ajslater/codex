@@ -1,30 +1,37 @@
 """Views for reading comic books."""
-from comicbox.comic_archive import ComicArchive
+
+from comicbox.box import Comicbox
 from django.http import HttpResponse
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import NotFound
 from rest_framework.negotiation import BaseContentNegotiation
 
 from codex.logger.logging import get_logger
 from codex.models import Comic
-from codex.version import COMICBOX_CONFIG
 from codex.views.bookmark import BookmarkBaseView
 
 LOG = get_logger(__name__)
 PDF_MIME_TYPE = "application/pdf"
+FALSY = {"", "false", "0", False}
 
 
 class IgnoreClientContentNegotiation(BaseContentNegotiation):
     """Hack for clients with wild accept headers."""
 
-    def select_parser(self, _request, parsers):
+    def select_parser(self, request, parsers):  # noqa: ARG002
         """Select the first parser in the `.parser_classes` list."""
-        return parsers[0]
+        return next(iter(parsers))
 
-    def select_renderer(self, _request, renderers, _format_suffix):
+    def select_renderer(  # type: ignore
+        self,
+        request,  # noqa: ARG002
+        renderers,
+        _format_suffix="",
+    ):
         """Select the first renderer in the `.renderer_classes` list."""
-        return (renderers[0], renderers[0].media_type)
+        renderer = next(iter(renderers))
+        return (renderer, renderer.media_type)
 
 
 class ReaderPageView(BookmarkBaseView):
@@ -54,21 +61,26 @@ class ReaderPageView(BookmarkBaseView):
         pk = self.kwargs.get("pk")
         comic = Comic.objects.filter(group_acl_filter).only("path").get(pk=pk)
         page = self.kwargs.get("page")
-        if comic.file_type == Comic.FileType.PDF.value:
+        to_pixmap = self.request.GET.get("pixmap") not in FALSY
+        if comic.file_type == Comic.FileType.PDF.value and not to_pixmap:
             content_type = PDF_MIME_TYPE
         else:
             content_type = self.content_type
-        with ComicArchive(comic.path, config=COMICBOX_CONFIG) as car:
-            page_image = car.get_page_by_index(page)
+        with Comicbox(comic.path) as cb:
+            page_image = cb.get_page_by_index(page, to_pixmap=to_pixmap)
         return page_image, content_type
 
     @extend_schema(
+        parameters=[
+            OpenApiParameter("bookmark", OpenApiTypes.BOOL, default=True),
+            OpenApiParameter("pixmap", OpenApiTypes.BOOL, default=False),
+        ],
         responses={
             (200, content_type): OpenApiTypes.BINARY,
             (200, PDF_MIME_TYPE): OpenApiTypes.BINARY,
-        }
+        },
     )
-    def get(self, *args, **kwargs):
+    def get(self, *_args, **_kwargs):
         """Get the comic page from the archive."""
         pk = self.kwargs.get("pk")
         comic = None

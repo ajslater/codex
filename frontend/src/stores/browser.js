@@ -7,21 +7,6 @@ import router from "@/plugins/router";
 import { useAuthStore } from "@/stores/auth";
 import { useCommonStore } from "@/stores/common";
 
-export const NUMERIC_FILTERS = [
-  "communityRating",
-  "criticalRating",
-  "decade",
-  "year",
-];
-Object.freeze(NUMERIC_FILTERS);
-export const CHARPK_FILTERS = [
-  "ageRating",
-  "country",
-  "fileType",
-  "language",
-  "originalFormat",
-];
-Object.freeze(CHARPK_FILTERS);
 const GROUPS = "rpisvc";
 Object.freeze(GROUPS);
 const GROUPS_REVERSED = [...GROUPS].reverse().join("");
@@ -42,13 +27,24 @@ Object.freeze(DEFAULT_BOOKMARK_VALUES);
 const ALWAYS_ENABLED_TOP_GROUPS = new Set(["a", "c"]);
 Object.freeze(ALWAYS_ENABLED_TOP_GROUPS);
 
-const getZeroPad = function (issueMax) {
-  return !issueMax || issueMax < 1 ? 1 : Math.floor(Math.log10(issueMax)) + 1;
+const getZeroPad = function (issueNumberMax) {
+  return !issueNumberMax || issueNumberMax < 1
+    ? 1
+    : Math.floor(Math.log10(issueNumberMax)) + 1;
 };
 const redirectRoute = function (route) {
   if (route && route.params) {
     router.push(route).catch(console.warn);
   }
+};
+const createReadingDirection = function () {
+  const rd = {};
+  for (const obj of CHOICES.reader.readingDirection) {
+    if (obj.value) {
+      rd[obj.value] = obj.title;
+    }
+  }
+  return rd;
 };
 
 export const useBrowserStore = defineStore("browser", {
@@ -58,6 +54,8 @@ export const useBrowserStore = defineStore("browser", {
         bookmark: CHOICES.browser.bookmarkFilter,
         groupNames: CHOICES.browser.groupNames,
         settingsGroup: CHOICES.browser.settingsGroup,
+        readingDirection: createReadingDirection(),
+        identifierType: CHOICES.browser.identifierTypes,
       }),
       dynamic: undefined,
     },
@@ -182,14 +180,22 @@ export const useBrowserStore = defineStore("browser", {
       }
       return maxLen;
     },
+    identifierTypeTitle(idType) {
+      if (!idType) {
+        return idType;
+      }
+      const lowerIdType = idType.toLowerCase();
+      const longName = this.choices.static.identifierType[lowerIdType];
+      return longName || idType;
+    },
     ////////////////////////////////////////////////////////////////////////
     // VALIDATORS
     _isRootGroupEnabled(topGroup) {
       return ALWAYS_ENABLED_TOP_GROUPS.has(topGroup)
         ? true
         : topGroup == "f"
-        ? this.page.adminFlags.folderView
-        : this.settings.show[topGroup];
+          ? this.page.adminFlags.folderView
+          : this.settings.show[topGroup];
     },
     _validateFirstSearch(data) {
       // If first search redirect to lowest group and change order
@@ -335,12 +341,12 @@ export const useBrowserStore = defineStore("browser", {
           const data = response.data;
           const page = { ...response.data };
           delete page.upRoute;
-          delete page.issueMax;
+          delete page.issueNumberMax;
           page.routes = {
             up: data.upRoute,
             last: params,
           };
-          page.zeroPad = getZeroPad(data.issueMax);
+          page.zeroPad = getZeroPad(data.issueNumberMax);
           this.$patch((state) => {
             state.page = Object.freeze(page);
             state.choices.dynamic = undefined;

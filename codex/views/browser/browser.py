@@ -1,7 +1,7 @@
 """Views for browsing comic library."""
 from copy import deepcopy
 from types import MappingProxyType
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 from django.core.paginator import EmptyPage, Paginator
 from django.db.models import F, Max, Value
@@ -26,7 +26,7 @@ from codex.models import (
     Timestamp,
     Volume,
 )
-from codex.serializers.browser import BrowserPageSerializer
+from codex.serializers.browser.page import BrowserPageSerializer
 from codex.serializers.choices import CHOICES, DEFAULTS
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_annotations import BrowserAnnotationsView
@@ -37,7 +37,7 @@ LOG = get_logger(__name__)
 class BrowserView(BrowserAnnotationsView):
     """Browse comics with a variety of filters and sorts."""
 
-    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]
+    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]  # type: ignore
     serializer_class = BrowserPageSerializer
 
     MAX_OBJ_PER_PAGE = 100
@@ -74,9 +74,9 @@ class BrowserView(BrowserAnnotationsView):
         "story_arc_numbers__story_arc",
         "tags",
         "teams",
-        "creators",
-        "creators__role",
-        "creators__person",
+        "contributors",
+        "contributors__role",
+        "contributors__person",
     )
 
     is_opds_2_acquisition = False
@@ -191,15 +191,15 @@ class BrowserView(BrowserAnnotationsView):
                 select_related: tuple[str, ...] = self._GROUP_INSTANCE_SELECT_RELATED[
                     self.group_class
                 ]  # type: ignore
-                self.group_instance: Optional[
-                    BrowserGroupModel
-                ] = self.group_class.objects.select_related(*select_related).get(pk=pk)
+                self.group_instance: BrowserGroupModel | None = (
+                    self.group_class.objects.select_related(*select_related).get(pk=pk)
+                )
             except self.group_class.DoesNotExist:
                 group = self.kwargs.get("group")
                 reason = f"{group}={pk} does not exist!"
                 self._raise_redirect({"group": group, "pk": 0, "page": 1}, reason)
         else:
-            self.group_instance: Optional[BrowserGroupModel] = None
+            self.group_instance: BrowserGroupModel | None = None
 
     def _get_browse_up_route(self):
         """Get the up route from the first valid ancestor."""
@@ -363,7 +363,9 @@ class BrowserView(BrowserAnnotationsView):
         libraries_exist = Library.objects.exists()
 
         # runs obj list query twice :/
-        issue_max = book_qs.only("issue").aggregate(Max("issue"))["issue__max"]
+        issue_number_max = book_qs.only("issue_number").aggregate(Max("issue_number"))[
+            "issue_number__max"
+        ]
 
         covers_timestamp = int(
             Timestamp.objects.get(
@@ -379,7 +381,7 @@ class BrowserView(BrowserAnnotationsView):
                 "model_group": self.model_group,
                 "groups": group_qs,
                 "books": book_qs,
-                "issue_max": issue_max,
+                "issue_number_max": issue_number_max,
                 "num_pages": num_pages,
                 "total_count": total_count,
                 "admin_flags": {"folder_view": efv_flag.on},
@@ -535,7 +537,7 @@ class BrowserView(BrowserAnnotationsView):
             self._raise_redirect(route_changes, reason, settings_mask)
 
     @extend_schema(request=BrowserAnnotationsView.input_serializer_class)
-    def get(self, *args, **kwargs):
+    def get(self, *_args, **_kwargs):
         """Get browser settings."""
         self.parse_params()
         self.validate_settings()

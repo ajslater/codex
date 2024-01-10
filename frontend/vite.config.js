@@ -1,3 +1,4 @@
+import UnheadVite from "@unhead/addons/vite";
 import vue from "@vitejs/plugin-vue";
 import fs from "fs";
 import path from "path";
@@ -39,21 +40,11 @@ const defineObj = {
   CODEX_PACKAGE_VERSION: JSON.stringify(package_json.version),
 };
 if (IS_TEST_ENV) {
-  defineObj["window.CODEX"] = {
+  defineObj.CODEX = {
     API_V3_PATH: JSON.stringify("dummy"),
   };
 }
-
-const Vuetify3LabsResolver = function () {
-  // For VDataTables
-  return {
-    type: "component",
-    resolve: (name) => {
-      if (/^V[A-Z]/.test(name))
-        return { name, from: "vuetify/labs/components" };
-    },
-  };
-};
+console.log(defineObj);
 
 const config = defineConfig(({ mode }) => {
   const PROD = mode === "production";
@@ -97,11 +88,7 @@ const config = defineConfig(({ mode }) => {
         failOnError: false,
       }),
       Components({
-        resolvers: [
-          // Vuetify
-          Vuetify3LabsResolver(),
-          Vuetify3Resolver(),
-        ],
+        resolvers: [Vuetify3Resolver()],
       }),
       viteStaticCopy({
         targets: [
@@ -117,6 +104,7 @@ const config = defineConfig(({ mode }) => {
           },
         ],
       }),
+      UnheadVite(),
     ],
     publicDir: false,
     css: {
@@ -125,8 +113,9 @@ const config = defineConfig(({ mode }) => {
     define: defineObj,
     test: {
       environment: "jsdom",
-      deps: { inline: ["vuetify"] },
+      // deps: { inline: ["vuetify"] },
       globals: true,
+      server: { deps: { inline: ["vuetify"] } },
     },
   };
 });

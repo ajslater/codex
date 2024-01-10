@@ -8,9 +8,9 @@
     </header>
     <v-data-table-virtual
       class="adminTable"
-      fixed-headers
+      fixed-header
       item-value="pk"
-      item-title="path"
+      hover
       :headers="headers"
       :items="libraries"
       :sort-by="[{ key: 'path', order: 'asc' }]"
@@ -21,44 +21,49 @@
         </td>
       </template>
       <template #[`item.events`]="{ item }">
-        <v-checkbox-btn :model-value="item.raw.events" disabled />
+        <v-checkbox-btn :model-value="item.events" disabled />
       </template>
       <template #[`item.poll`]="{ item }">
-        <v-checkbox-btn :model-value="item.raw.poll" disabled />
+        <v-checkbox-btn :model-value="item.poll" disabled />
       </template>
       <template #[`item.pollEvery`]="{ item }">
-        <span :class="{ disabled: !item.raw.poll }">
-          {{ item.raw.pollEvery }}
+        <span :class="{ disabled: !item.poll }">
+          {{ item.pollEvery }}
         </span>
       </template>
       <template #[`item.lastPoll`]="{ item }">
-        <DateTimeColumn :dttm="item.raw.lastPoll" />
+        <DateTimeColumn :dttm="item.lastPoll" />
       </template>
       <template #[`item.groups`]="{ item }">
-        <RelationChips :pks="item.raw.groups" :map="groupMap" />
+        <RelationChips
+          :pks="item.groups"
+          :objs="groups"
+          group-type
+          title-key="name"
+        />
       </template>
       <template #[`item.actions`]="{ item }">
         <ConfirmDialog
-          :icon="mdiDatabaseClockOutline"
+          :icon="mdiDatabaseEyeOutline"
           title-text="Poll for updated comics"
-          :object-name="item.raw.path"
+          :object-name="item.path"
           confirm-text="Poll Library"
           size="small"
           density="compact"
-          @confirm="poll(item.raw.pk)"
+          @confirm="poll(item.pk)"
         />
         <ConfirmDialog
-          :icon="mdiDatabaseImportOutline"
+          :icon="mdiDatabaseSyncOutline"
           title-text="Force update every comic"
-          :object-name="item.raw.path"
+          :object-name="item.path"
           confirm-text="Force Update"
           size="small"
           density="compact"
-          @confirm="forcePoll(item.raw.pk)"
+          @confirm="forcePoll(item.pk)"
         />
         <AdminCreateUpdateDialog
           table="Library"
-          :old-row="item.raw"
+          :old-row="item"
           :inputs="AdminLibraryCreateUpdateInputs"
           max-width="22em"
           size="small"
@@ -66,8 +71,8 @@
         />
         <AdminDeleteRowDialog
           table="Library"
-          :pk="item.raw.pk"
-          :name="item.raw.path"
+          :pk="item.pk"
+          :name="item.path"
           size="small"
           density="compact"
         />
@@ -81,13 +86,12 @@
 
 <script>
 import {
-  mdiDatabaseClockOutline,
-  mdiDatabaseImportOutline,
+  mdiDatabaseEyeOutline,
+  mdiDatabaseSyncOutline,
   mdiOpenInNew,
 } from "@mdi/js";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 import { markRaw } from "vue";
-import { VDataTableVirtual } from "vuetify/labs/components";
 
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
 import DateTimeColumn from "@/components/admin/datetime-column.vue";
@@ -103,7 +107,6 @@ import { useBrowserStore } from "@/stores/browser";
 export default {
   name: "AdminLibrariesTab",
   components: {
-    VDataTableVirtual,
     AdminDeleteRowDialog,
     AdminFailedImportsPanel,
     AdminCreateUpdateDialog,
@@ -117,8 +120,8 @@ export default {
         pk: 0,
         field: undefined,
       },
-      mdiDatabaseClockOutline,
-      mdiDatabaseImportOutline,
+      mdiDatabaseEyeOutline,
+      mdiDatabaseSyncOutline,
       mdiOpenInNew,
       AdminLibraryCreateUpdateInputs: markRaw(AdminLibraryCreateUpdateInputs),
       headers: [
@@ -139,8 +142,8 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useAdminStore, ["groupMap"]),
     ...mapState(useAdminStore, {
+      groups: (state) => state.groups,
       libraries: (state) => state.libraries,
       formErrors: (state) => state.form.errors,
     }),

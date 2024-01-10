@@ -29,10 +29,11 @@ class DeletedMixin(QueuedThread):
         self._remove_covers(delete_comic_pks)
 
         count = len(delete_folder_paths)
-        self.log.info(
-            f"Deleted {count} folders and {len(delete_comic_pks)} comics"
-            f"from {library.path}"
-        )
+        if count:
+            self.log.info(
+                f"Deleted {count} folders and {len(delete_comic_pks)} comics"
+                f"from {library.path}"
+            )
         return count
 
     @status_notify(status_type=ImportStatusTypes.FILES_DELETED, updates=False)
@@ -47,7 +48,8 @@ class DeletedMixin(QueuedThread):
         self._remove_covers(delete_comic_pks)
 
         count = len(delete_comic_paths)
-        self.log.info(f"Deleted {count} comics from {library.path}")
+        if count:
+            self.log.info(f"Deleted {count} comics from {library.path}")
 
         return count
 

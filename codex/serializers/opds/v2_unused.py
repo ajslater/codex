@@ -12,9 +12,9 @@ class RecursiveField(Serializer):
     https://pypi.org/project/djangorestframework-recursive/
     """
 
-    def to_representation(self, value):
+    def to_representation(self, instance):
         """Represent with own class."""
-        serializer = self.parent.parent.__class__(value, context=self.context)
+        serializer = self.parent.parent.__class__(instance, context=self.context)
         return serializer.data
 
 

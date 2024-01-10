@@ -6,8 +6,8 @@ from django.utils.http import urlencode
 
 from codex.models import (
     Character,
-    Creator,
-    CreatorPerson,
+    Contributor,
+    ContributorPerson,
     Genre,
     Location,
     SeriesGroup,
@@ -24,7 +24,7 @@ def update_href_query_params(href, old_query_params, new_query_params=None):
     """Update an href by masking query params on top of the ones it has."""
     query_params = {}
     for key, value in old_query_params.items():
-        # qps are sometimes encapsulated in a list for when there's mutiples.
+        # qps are sometimes encapsulated in a list for when there's multiples.
         if isinstance(value, list):
             if len(value):
                 query_params[key] = value[0]
@@ -37,26 +37,26 @@ def update_href_query_params(href, old_query_params, new_query_params=None):
     return href
 
 
-def get_creator_people(comic_pk, roles, exclude=False):
-    """Get creators that are not authors."""
-    people = CreatorPerson.objects.filter(
-        creator__comic=comic_pk,
+def get_contributor_people(comic_pk, roles, exclude=False):
+    """Get contributors that are not authors."""
+    people = ContributorPerson.objects.filter(
+        contributor__comic=comic_pk,
     )
     if exclude:
-        people = people.exclude(creator__role__name__in=roles)
+        people = people.exclude(contributor__role__name__in=roles)
     else:
-        people = people.filter(creator__role__name__in=roles)
+        people = people.filter(contributor__role__name__in=roles)
     return people.distinct().only("name")
 
 
-def get_creators(comic_pk, roles, exclude=False):
+def get_contributors(comic_pk, roles, exclude=False):
     """Get credits that are not part of other roles."""
-    creators = Creator.objects.filter(comic=comic_pk)
+    contributors = Contributor.objects.filter(comic=comic_pk)
     if exclude:
-        creators = creators.exclude(role__name__in=roles)
+        contributors = contributors.exclude(role__name__in=roles)
     else:
-        creators = creators.filter(role__name__in=roles)
-    return creators.annotate(name=F("person__name"), role_name=F("role__name"))
+        contributors = contributors.filter(role__name__in=roles)
+    return contributors.annotate(name=F("person__name"), role_name=F("role__name"))
 
 
 def get_m2m_objects(pk) -> dict:

@@ -11,8 +11,7 @@ from codex.librarian.covers.create import CoverCreateMixin
 from codex.librarian.covers.path import CoverPathMixin
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
-from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
-from codex.views.mixins import GroupACLMixin
+from codex.views.auth import GroupACLMixin, IsAuthenticatedOrEnabledNonUsers
 
 LOG = get_logger(__name__)
 
@@ -25,7 +24,7 @@ class WEBPRenderer(BaseRenderer):
     charset = None
     render_style = "binary"
 
-    def render(self, data, *args, **kwargs):
+    def render(self, data, *_args, **_kwargs):
         """Return raw data."""
         return data
 
@@ -33,12 +32,12 @@ class WEBPRenderer(BaseRenderer):
 class CoverView(APIView, GroupACLMixin):
     """ComicCover View."""
 
-    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]
+    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]  # type: ignore
     renderer_classes = (WEBPRenderer,)
     content_type = "image/webp"
 
     @extend_schema(responses={(200, content_type): OpenApiTypes.BINARY})
-    def get(self, *args, **kwargs):
+    def get(self, *_args, **_kwargs):
         """Get comic cover."""
         # thumb_image_data = None
         pk = self.kwargs.get("pk")

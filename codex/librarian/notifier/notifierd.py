@@ -12,9 +12,9 @@ class NotifierThread(AggregateMessageQueuedThread):
         super().__init__(*args, **kwargs)
         self.broadcast_queue = broadcast_queue
 
-    def aggregate_items(self, task):
+    def aggregate_items(self, item):
         """Aggregate messages into cache."""
-        self.cache[task.text] = task
+        self.cache[item.text] = item
 
     def _send_task(self, task):
         """Send a group_send message to the mulitprocess broadcast channel.

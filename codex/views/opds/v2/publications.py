@@ -7,7 +7,7 @@ from django.contrib.staticfiles.storage import staticfiles_storage
 from codex.librarian.covers.create import CoverCreateMixin
 from codex.models import Comic
 from codex.views.opds.const import AUTHOR_ROLES, MimeType, Rel
-from codex.views.opds.util import get_creators, get_m2m_objects
+from codex.views.opds.util import get_contributors, get_m2m_objects
 from codex.views.opds.v2.links import HrefData, LinkData, LinksMixin
 
 
@@ -81,10 +81,10 @@ class PublicationMixin(LinksMixin):
         ]
 
     @staticmethod
-    def _add_creators(md, pk, key, roles):
-        """Add creators to metadata."""
-        if creators := get_creators(pk, roles):
-            md[key] = creators
+    def _add_contributors(md, pk, key, roles):
+        """Add contributors to metadata."""
+        if contributors := get_contributors(pk, roles):
+            md[key] = contributors
 
     def _publication_optional_metadata(self, md, obj):
         """Add optional Publication Metadtata."""
@@ -106,8 +106,8 @@ class PublicationMixin(LinksMixin):
     def _publication_extended_metadata(self, md, obj):
         """Publication m2m metadata only on the metadata alternate link."""
         for key, roles in self._MD_CONTRIBUTOR_MAP.items():
-            self._add_creators(md, obj.pk, key, roles)
-        if contributors := get_creators(obj.pk, self._CONTRIBUTOR_ROLES, True):
+            self._add_contributors(md, obj.pk, key, roles)
+        if contributors := get_contributors(obj.pk, self._CONTRIBUTOR_ROLES, True):
             md["contributor"] = contributors
 
         if m2m_objs := get_m2m_objects(obj.pk):
@@ -119,8 +119,10 @@ class PublicationMixin(LinksMixin):
                     subjects.append(subj.name)
             md["subject"] = subjects
 
-    def _publication_metadata(self, obj, issue_max):
-        title = Comic.get_title(obj, volume=False, name=False, issue_max=issue_max)
+    def _publication_metadata(self, obj, issue_number_max):
+        title = Comic.get_title(
+            obj, volume=False, name=False, issue_number_max=issue_number_max
+        )
         md = {
             "type": MimeType.BOOK,
             "modified": obj.updated_at,
@@ -132,9 +134,9 @@ class PublicationMixin(LinksMixin):
             self._publication_extended_metadata(md, obj)
         return md
 
-    def _publication(self, obj, issue_max):
+    def _publication(self, obj, issue_number_max):
         pub = {}
-        pub["metadata"] = self._publication_metadata(obj, issue_max)
+        pub["metadata"] = self._publication_metadata(obj, issue_number_max)
 
         fn = Comic.get_filename(obj)
         fn = quote_plus(fn)
@@ -176,12 +178,12 @@ class PublicationMixin(LinksMixin):
 
         return pub
 
-    def get_publications(self, book_qs, issue_max, title):
+    def get_publications(self, book_qs, issue_number_max, title):
         """Get publications section."""
         groups = []
         publications = []
         for obj in book_qs:
-            pub = self._publication(obj, issue_max)
+            pub = self._publication(obj, issue_number_max)
             publications.append(pub)
 
         if publications:

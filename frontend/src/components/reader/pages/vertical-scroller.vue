@@ -1,6 +1,7 @@
 <template>
   <v-virtual-scroll
     id="verticalScroll"
+    :key="readInReverse"
     ref="verticalScroll"
     v-scroll:#verticalScroll="onScroll"
     :items="items"
@@ -17,7 +18,7 @@
       <div
         v-intersect.quiet="{
           handler: onIntersect,
-          options: intersectOptions,
+          options: { threshold: [0.75] },
         }"
         class="pageTracker"
         :data-page="item"
@@ -35,11 +36,6 @@ import { useReaderStore } from "@/stores/reader";
 
 const MAX_VISIBLE_PAGES = 12;
 const TIMEOUT = 250;
-const INTERECT_OPTIONS_FIT_TO_HEIGHT = { threshold: [0.75] };
-const INTERSECT_OPTIONS = {
-  S: INTERECT_OPTIONS_FIT_TO_HEIGHT,
-  H: INTERECT_OPTIONS_FIT_TO_HEIGHT,
-};
 
 export default {
   name: "PagesVerticalScroller",
@@ -80,9 +76,6 @@ export default {
     },
     visibleItems() {
       return Math.min(this.book?.maxPage ?? 0, MAX_VISIBLE_PAGES);
-    },
-    intersectOptions() {
-      return INTERSECT_OPTIONS[this.settings.fitTo];
     },
   },
   watch: {
@@ -138,7 +131,7 @@ export default {
       if (vs) {
         vs.scrollToIndex(page);
       } else {
-        console.debug("Can't find vertcalScroll component.");
+        console.debug("Can't find verticalScroll component.");
       }
       setTimeout(() => {
         this.programmaticScroll = false;
@@ -158,13 +151,15 @@ export default {
 .pageTracker {
   position: absolute;
   top: 0;
-  left: 0;
+  left: 2.5%;
   z-index: 15;
   width: 95vw;
-  height: 100%;
-  // TODO, somehow get it horizontally fixed.
-  /*
+  height: 85vh;
+  z-index: 10;
+  // TODO, somehow get it horizontally fixed
+  //       for wide images.
   // For debugging
+  /*
   background-color: green;
   opacity: 0.25;
   border: dashed 10px red;

@@ -3,6 +3,7 @@
     id="booksWindow"
     direction="vertical"
     :model-value="currentBookPk"
+    :reverse="isBTT"
     show-arrows
     @click="click"
   >
@@ -27,7 +28,7 @@
 </template>
 
 <script>
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 
 import BookChangeActivator from "@/components/reader/book-change-activator.vue";
 import PagesView from "@/components/reader/pages/pages-view.vue";
@@ -41,6 +42,7 @@ export default {
   },
   emits: ["click"],
   computed: {
+    ...mapGetters(useReaderStore, ["isBTT"]),
     ...mapState(useReaderStore, {
       books: (state) =>
         [state.books.prev, state.books.current, state.books.next].filter(

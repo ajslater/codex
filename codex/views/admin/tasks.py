@@ -28,6 +28,7 @@ from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARIAN_STATUS_TASK, LIBRARY_CHANGED_TASK
 from codex.librarian.search.tasks import (
     SearchIndexAbortTask,
+    SearchIndexClearTask,
     SearchIndexMergeTask,
     SearchIndexRebuildIfDBChangedTask,
     SearchIndexRemoveStaleTask,
@@ -38,7 +39,7 @@ from codex.logger.logging import get_logger
 from codex.models import LibrarianStatus
 from codex.serializers.admin import AdminLibrarianTaskSerializer
 from codex.serializers.mixins import OKSerializer
-from codex.serializers.models import LibrarianStatusSerializer
+from codex.serializers.models.admin import LibrarianStatusSerializer
 
 LOG = get_logger(__name__)
 
@@ -46,7 +47,7 @@ LOG = get_logger(__name__)
 class AdminLibrarianStatusViewSet(ReadOnlyModelViewSet):
     """Librarian Task Statuses."""
 
-    permission_classes: ClassVar[list] = [IsAdminUser]
+    permission_classes: ClassVar[list] = [IsAdminUser]  # type: ignore
     queryset = LibrarianStatus.objects.filter(active__isnull=False).order_by(
         "active", "pk"
     )
@@ -56,7 +57,7 @@ class AdminLibrarianStatusViewSet(ReadOnlyModelViewSet):
 class AdminLibrarianTaskView(APIView):
     """Queue Librarian Jobs."""
 
-    permission_classes: ClassVar[list] = [IsAdminUser]
+    permission_classes: ClassVar[list] = [IsAdminUser]  # type: ignore
     input_serializer_class = AdminLibrarianTaskSerializer
     serializer_class = OKSerializer
 
@@ -72,6 +73,7 @@ class AdminLibrarianTaskView(APIView):
             ),
             "search_index_abort": SearchIndexAbortTask(),
             "search_index_optimize": SearchIndexMergeTask(True),
+            "search_index_clear": SearchIndexClearTask(),
             "db_vacuum": JanitorVacuumTask(),
             "db_backup": JanitorBackupTask(),
             "db_search_sync": SearchIndexRebuildIfDBChangedTask(),
@@ -91,13 +93,24 @@ class AdminLibrarianTaskView(APIView):
         }
     )
 
+    @classmethod
+    def _get_task(cls, name, pk):
+        """Stuff library ids into tasks."""
+        task = cls._TASK_MAP.get(name)
+        if pk and isinstance(
+            task, WatchdogPollLibrariesTask | WatchdogPollLibrariesTask
+        ):
+            task.library_ids = frozenset({pk})
+        return task
+
     @extend_schema(request=input_serializer_class)
-    def post(self, *args, **kwargs):
+    def post(self, *_args, **_kwargs):
         """Download a comic archive."""
         serializer = self.input_serializer_class(data=self.request.data)
         serializer.is_valid(raise_exception=True)
         task_name = serializer.validated_data.get("task")
-        task = self._TASK_MAP.get(task_name)
+        pk = serializer.validated_data.get("library_id")
+        task = self._get_task(task_name, pk)
         if task:
             LIBRARIAN_QUEUE.put(task)
         else:

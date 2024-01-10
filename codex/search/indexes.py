@@ -1,25 +1,37 @@
 """Haystack search indexes."""
-from haystack.fields import CharField
-from haystack.indexes import Indexable, ModelSearchIndex
-
+from codex._vendor.haystack.fields import CharField, IntegerField
+from codex._vendor.haystack.indexes import Indexable, ModelSearchIndex
 from codex.models import Comic
 
 
 class ComicIndex(ModelSearchIndex, Indexable):
     """Search index for the Comic model."""
 
-    # Related Fields
+    # Groups
     publisher = CharField(model_attr="publisher__name")
     imprint = CharField(model_attr="imprint__name")
     series = CharField(model_attr="series__name", boost=1.125)
-    volume = CharField(model_attr="volume__name")
+    volume = IntegerField(model_attr="volume__name", null=True)
+
+    # Related Fields
+    age_rating = CharField(model_attr="age_rating__name", null=True)
+    country = CharField(model_attr="country__name", null=True)
+    language = CharField(model_attr="language__name", null=True)
+    original_format = CharField(model_attr="original_format__name", null=True)
+    scan_info = CharField(model_attr="scan_info__name", null=True)
+    tagger = CharField(model_attr="tagger__name", null=True)
 
     # Many to Many Fields
     characters = CharField(model_attr="characters__name", null=True)
-    creators = CharField(model_attr="creators__person__name", null=True)
+    contributors = CharField(model_attr="contributors__person__name", null=True)
     genres = CharField(model_attr="genres__name", null=True)
     locations = CharField(model_attr="locations__name", null=True)
+    identifier = CharField(model_attr="identifiers__nss", null=True)
+    identifier_type = CharField(
+        model_attr="identifiers__identifier_type__name", null=True
+    )
     series_groups = CharField(model_attr="series_groups__name", null=True)
+    stories = CharField(model_attr="stories__name", null=True)
     story_arcs = CharField(
         model_attr="story_arc_numbers__story_arc__name",
         null=True,
@@ -31,35 +43,29 @@ class ComicIndex(ModelSearchIndex, Indexable):
         """Model & field include list."""
 
         model = Comic
-        # Numeric, Bookean & Date fields.
         fields = (
-            "age_rating",
-            "comments",
             "community_rating",
-            "country",
             "created_at",
             "critical_rating",
             "day",
             "date",
             "decade",
-            "issue",
+            "issue_number",
             "issue_suffix",
-            "language",
             "month",
+            "monochrome",
             "name",
             "notes",
-            "original_format",
-            "read_ltr",
-            "scan_info",
+            "page_count",
+            "reading_direction",
+            "review",
             "size",
             "summary",
-            "page_count",
             "updated_at",
             "user_rating",
-            "web",
             "year",
         )
 
-    def get_updated_field(self):
+    def get_updated_field(self):  # type: ignore
         """To only update models that have changed."""
         return "updated_at"

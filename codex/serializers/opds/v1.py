@@ -11,7 +11,7 @@ from rest_framework.serializers import (
     Serializer,
 )
 
-from codex.serializers.models import LanguageSerializer
+from codex.serializers.models.pycountry import LanguageSerializer
 
 UTC_TZ = ZoneInfo("UTC")
 

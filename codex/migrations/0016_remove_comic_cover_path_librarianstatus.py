@@ -2,7 +2,6 @@
 import os
 import shutil
 from pathlib import Path
-from typing import ClassVar
 
 from django.db import migrations, models
 
@@ -42,11 +41,11 @@ def remove_old_caches(_apps, _schema_editor):
 class Migration(migrations.Migration):
     """v0.11.0 migrations."""
 
-    dependencies: ClassVar[list] = [
+    dependencies = [
         ("codex", "0015_link_comics_to_top_level_folders"),
     ]
 
-    operations: ClassVar[list] = [
+    operations = [
         migrations.RemoveField(
             model_name="library",
             name="schema_version",

@@ -1,14 +1,14 @@
-"""DB Updater Tasks."""
+"""DB Import Tasks."""
 from dataclasses import dataclass
 
 
 @dataclass
-class UpdaterTask:
+class ImportTask:
     """Tasks for the updater."""
 
 
 @dataclass
-class UpdaterDBDiffTask(UpdaterTask):
+class ImportDBDiffTask(ImportTask):
     """For sending to the updater."""
 
     library_id: int
@@ -23,5 +23,5 @@ class UpdaterDBDiffTask(UpdaterTask):
 
 
 @dataclass
-class AdoptOrphanFoldersTask(UpdaterTask):
+class AdoptOrphanFoldersTask(ImportTask):
     """Move orphaned folders into a correct tree position."""

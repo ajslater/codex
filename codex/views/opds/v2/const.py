@@ -1,6 +1,5 @@
 """OPDS v2 consts."""
 from dataclasses import dataclass
-from typing import Optional, Union
 
 from codex.views.opds.const import Rel
 
@@ -9,7 +8,7 @@ from codex.views.opds.const import Rel
 class Facet:
     """OPDS Facet."""
 
-    query_param_value: Union[str, bool]
+    query_param_value: str | bool
     title: str
 
 
@@ -43,7 +42,7 @@ FACETS = (
             Facet("f", "Folder View"),
             Facet("a", "Story Arc View"),
         ),
-    )
+    ),
     # Could add Filters as well.
 )
 
@@ -55,7 +54,7 @@ class NavigationLink:
     rel: str
     title: str
     group: str
-    query_params: Optional[dict]
+    query_params: dict | None
 
 
 @dataclass
@@ -107,8 +106,8 @@ GROUPS = (
 class LinksSectionData:
     """Data for the create_links_section method."""
 
-    subtitle: Optional[str] = None
-    rel: Optional[str] = None
+    subtitle: str | None = None
+    rel: str | None = None
     group_kwarg: bool = False
     links_key: str = "navigation"
 

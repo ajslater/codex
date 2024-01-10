@@ -2,6 +2,7 @@
 import re
 from os import fsdecode
 
+from comicbox.box import Comicbox
 from watchdog.events import (
     EVENT_TYPE_CLOSED,
     EVENT_TYPE_CREATED,
@@ -13,13 +14,35 @@ from watchdog.events import (
 )
 
 from codex.librarian.watchdog.tasks import WatchdogEventTask
+from codex.logger.logging import get_logger
 from codex.logger_base import LoggerBaseMixin
+
+LOG = get_logger(__name__)
 
 
 class CodexLibraryEventHandler(FileSystemEventHandler, LoggerBaseMixin):
     """Handle watchdog events for comics in a library."""
 
-    IGNORED_EVENTS = frozenset((EVENT_TYPE_CLOSED, EVENT_TYPE_OPENED))
+    IGNORED_EVENTS = frozenset({EVENT_TYPE_CLOSED, EVENT_TYPE_OPENED})
+
+    def _set_comic_matcher(self):
+        comic_regex = r"\.(cb[zt"
+        unsupported = []
+        if Comicbox.is_unrar_supported():
+            comic_regex += r"r"
+        else:
+            unsupported.append("CBR")
+        comic_regex += r"]"
+
+        if Comicbox.is_pdf_supported():
+            comic_regex += r"|pdf"
+        else:
+            unsupported.append("PDF")
+        comic_regex += ")$"
+        self._comic_matcher = re.compile(comic_regex, re.IGNORECASE)
+        if unsupported:
+            un_str = ", ".join(unsupported)
+            LOG.warning(f"Cannot detect or read from {un_str} archives")
 
     def __init__(self, library, *args, **kwargs):
         """Let us send along he library id."""
@@ -27,9 +50,7 @@ class CodexLibraryEventHandler(FileSystemEventHandler, LoggerBaseMixin):
         self.librarian_queue = kwargs.pop("librarian_queue")
         log_queue = kwargs.pop("log_queue")
         self.init_logger(log_queue)
-        unrar = kwargs.pop("unrar", False)
-        comic_regex = r"\.(cb[zrt]|pdf)$" if unrar else r"\.(cb[zt]|pdf)$"
-        self._comic_matcher = re.compile(comic_regex, re.IGNORECASE)
+        self._set_comic_matcher()
         super().__init__(*args, **kwargs)
 
     def _match_comic_suffix(self, path):

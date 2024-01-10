@@ -1,5 +1,6 @@
 """OPDS v2.0 Feed."""
 from datetime import datetime, timezone
+from types import MappingProxyType
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication
@@ -149,7 +150,7 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
                 groups.append(group)
         return groups
 
-    def _get_groups(self, group_qs, book_qs, title, issue_max):
+    def _get_groups(self, group_qs, book_qs, title, issue_number_max):
         groups = []
 
         # Top Nav Groups
@@ -161,7 +162,7 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
         groups += self._create_links_section(tup, GROUPS_SECTION_DATA)
 
         # Publications
-        groups += self.get_publications(book_qs, issue_max, title)
+        groups += self.get_publications(book_qs, issue_number_max, title)
 
         return groups
 
@@ -194,20 +195,27 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
         self.num_pages = browser_page["num_pages"]
         number_of_items = browser_page["total_count"]
         title = self._title(browser_page.get("browser_title"))
-        return {
-            "metadata": {
-                "title": title,
-                "number_of_items": number_of_items,
-                "items_per_page": self.MAX_OBJ_PER_PAGE,
-                "current_page": self.kwargs.get("page"),
-            },
-            "links": self.get_links(browser_page["up_route"]),
-            "facets": self._get_facets(),
-            "groups": self._get_groups(groups, books, title, browser_page["issue_max"]),
-        }
+        return MappingProxyType(
+            {
+                "metadata": {
+                    "title": title,
+                    "number_of_items": number_of_items,
+                    "items_per_page": self.MAX_OBJ_PER_PAGE,
+                    "current_page": self.kwargs.get("page"),
+                },
+                "links": self.get_links(browser_page["up_route"]),
+                "facets": self._get_facets(),
+                "groups": self._get_groups(
+                    groups, books, title, browser_page["issue_number_max"]
+                ),
+            }
+        )
 
-    @extend_schema(request=BrowserView.input_serializer_class)
-    def get(self, *args, **kwargs):
+    @extend_schema(
+        request=BrowserView.input_serializer_class,
+        parameters=[BrowserView.input_serializer_class],
+    )
+    def get(self, *_args, **_kwargs):
         """Get the feed."""
         self.parse_params()
         self.validate_settings()

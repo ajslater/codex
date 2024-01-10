@@ -156,7 +156,8 @@ class BrowserAnnotationsView(BrowserOrderByView):
                 When(
                     lowercase_first_word__in=self._ARTICLES,
                     then=Substr(
-                        first_field, F("first_space_index") + 1  # type: ignore
+                        first_field,
+                        F("first_space_index") + 1,  # type: ignore
                     ),
                 ),
                 default=first_field,
@@ -198,7 +199,7 @@ class BrowserAnnotationsView(BrowserOrderByView):
         return qs.annotate(order_value=order_func)
 
     def _annotate_bookmarks(self, qs, model, bm_rel, bm_filter):
-        """Hoist up bookmark annoations."""
+        """Hoist up bookmark annotations."""
         page_rel = f"{bm_rel}__page"
         finished_rel = f"{bm_rel}__finished"
 

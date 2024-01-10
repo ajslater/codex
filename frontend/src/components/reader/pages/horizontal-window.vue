@@ -3,7 +3,7 @@
     show-arrows
     continuous
     :model-value="windowIndex"
-    :reverse="readInReverse"
+    :reverse="isReadInReverse"
   >
     <template #prev>
       <PageChangeLink direction="prev" />
@@ -21,14 +21,14 @@
       :transition="true"
     >
       <BookPage
-        v-if="!readInReverse || (secondPage && page < book.maxPage)"
+        v-if="!isReadInReverse || (secondPage && page < book.maxPage)"
         :book="book"
-        :page="readInReverse ? page + 1 : page"
+        :page="isReadInReverse ? page + 1 : page"
       />
       <BookPage
-        v-if="readInReverse || (secondPage && page < book.maxPage)"
+        v-if="isReadInReverse || (secondPage && page < book.maxPage)"
         :book="book"
-        :page="readInReverse ? page : page + 1"
+        :page="isReadInReverse ? page : page + 1"
       />
     </v-window-item>
   </v-window>
@@ -62,7 +62,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useReaderStore, ["isOnCoverPage"]),
+    ...mapGetters(useReaderStore, ["isOnCoverPage", "isReadInReverse"]),
     ...mapState(useReaderStore, {
       prevBook: (state) => state.routes.books?.prev,
       nextBook: (state) => state.routes.books?.next,
@@ -74,9 +74,6 @@ export default {
     },
     twoPages() {
       return this.settings.twoPages;
-    },
-    readInReverse() {
-      return this.settings.readInReverse;
     },
     secondPage() {
       return this.settings.twoPages && !this.isOnCoverPage;

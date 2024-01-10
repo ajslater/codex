@@ -13,8 +13,8 @@ import { defineAsyncComponent, markRaw } from "vue";
 import { useAuthStore } from "@/stores/auth";
 
 const AdminMenu = markRaw(
-  defineAsyncComponent(() =>
-    import("@/components/admin/drawer/admin-menu.vue"),
+  defineAsyncComponent(
+    () => import("@/components/admin/drawer/admin-menu.vue"),
   ),
 );
 import AuthMenu from "@/components/auth/auth-menu.vue";

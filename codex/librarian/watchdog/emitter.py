@@ -14,7 +14,7 @@ from watchdog.events import (
     FileModifiedEvent,
     FileMovedEvent,
 )
-from watchdog.observers.api import EventEmitter
+from watchdog.observers.api import DEFAULT_EMITTER_TIMEOUT, EventEmitter
 from watchdog.utils.dirsnapshot import DirectorySnapshot
 
 from codex.librarian.watchdog.db_snapshot import CodexDatabaseSnapshot
@@ -36,7 +36,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
         self,
         event_queue,
         watch,
-        timeout=None,  # noqa ARG002
+        timeout=DEFAULT_EMITTER_TIMEOUT,
         log_queue=None,
         librarian_queue=None,
     ):
@@ -46,7 +46,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
         self._force = False
         self._watch_path = Path(watch.path)
         self._watch_path_unmounted = self._watch_path / _DOCKER_UNMOUNTED_FN
-        super().__init__(event_queue, watch)
+        super().__init__(event_queue, watch, timeout=timeout)
 
         self._take_dir_snapshot = lambda: DirectorySnapshot(
             self._watch.path,
@@ -98,7 +98,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
         return True
 
     @property
-    def timeout(self):
+    def timeout(self) -> int:
         """Get the timeout for this emitter from its library."""
         # The timeout from the constructor, self._timeout, is thrown away in favor
         # of a dynamic timeout from the database.
@@ -108,7 +108,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
             ok = self._is_watch_path_ok(library)
             if ok is None:
                 self.log.info(f"Library {self._watch_path} waiting for manual poll.")
-                return None
+                return 0
             if ok is False:
                 return self._DIR_NOT_FOUND_TIMEOUT
 
@@ -120,9 +120,9 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
                     - since_last_poll.total_seconds(),
                 )
         except Exception:
-            timeout = None
+            timeout = 0
             self.log.exception(f"Getting timeout for {self.watch.path}")
-        return timeout
+        return int(timeout)
 
     def _is_take_snapshot(self, timeout):
         """Determine if we should take a snapshot."""

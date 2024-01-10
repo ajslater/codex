@@ -15,7 +15,7 @@
 </template>
 
 <script>
-import { mapActions } from "pinia";
+import { mapActions, mapGetters } from "pinia";
 import VuePdfEmbed from "vue-pdf-embed";
 
 import { useReaderStore } from "@/stores/reader";
@@ -42,6 +42,7 @@ export default {
     };
   },
   computed: {
+    ...mapGetters(useReaderStore, ["isVertical"]),
     settings() {
       return this.getSettings(this.book);
     },
@@ -50,7 +51,7 @@ export default {
       // vue-pdf-embed internal canvas sizing algorithm makes this difficult.
       // Maybe not impossible but I'm lazy right now.
       let width = ["W"].includes(this.settings.fitTo) ? this.innerWidth : 0;
-      if (!this.settings.vertical && this.settings.twoPages) {
+      if (!this.isVertical && this.settings.twoPages) {
         width = width / 2;
       }
       return width;
@@ -59,8 +60,9 @@ export default {
       let height = ["H", "S"].includes(this.settings.fitTo)
         ? this.innerHeight
         : 0;
-      if (this.settings.vertical) {
-        height = height / 2;
+      if (this.isVertical) {
+        // Hack for janky PDF display with vertical scroller.
+        height = height * 0.8;
       }
       return height;
     },
@@ -92,7 +94,8 @@ export default {
   width: inherit !important;
 }
 :deep(.vue-pdf-embed.fitToScreen > div > canvas),
-:deep(.vue-pdf-embed.fitToScreenTwo > div > canvas) {
+:deep(.vue-pdf-embed.fitToScreenTwo > div > canvas),
+:deep(.vue-pdf-embed.fitToScreenVertical > div > canvas) {
   object-fit: contain;
 }
 :deep(.vue-pdf-embed.fitToWidthTwo > div > canvas) {

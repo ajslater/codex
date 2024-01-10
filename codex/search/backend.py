@@ -5,12 +5,6 @@ from pathlib import Path
 from types import MappingProxyType
 
 from django.utils.timezone import now
-from haystack.backends.whoosh_backend import (
-    WHOOSH_ID,
-    WhooshSearchBackend,
-)
-from haystack.constants import DJANGO_CT, DJANGO_ID, ID
-from haystack.exceptions import SearchBackendError, SkipDocument
 from humanfriendly import InvalidSize, parse_size
 from whoosh.analysis import CharsetFilter, StandardAnalyzer, StemFilter
 from whoosh.fields import BOOLEAN, DATETIME, NUMERIC, TEXT, FieldType, Schema
@@ -26,6 +20,12 @@ from whoosh.qparser.dateparse import DateParserPlugin
 from whoosh.query import Or, Term
 from whoosh.support.charset import accent_map
 
+from codex._vendor.haystack.backends.whoosh_backend import (
+    WHOOSH_ID,
+    WhooshSearchBackend,
+)
+from codex._vendor.haystack.constants import DJANGO_CT, DJANGO_ID, ID
+from codex._vendor.haystack.exceptions import SearchBackendError, SkipDocument
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.logger.logging import get_logger
 from codex.memory import get_mem_limit
@@ -55,7 +55,8 @@ def gen_multipart_field_aliases(field):
     for connector in ("", "-"):
         joined = connector.join(bits)
         aliases += [joined, joined[:-1]]
-    return aliases
+
+    return tuple(sorted(frozenset(aliases)))
 
 
 class FILESIZE(NUMERIC):
@@ -100,32 +101,37 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
 
     FIELDMAP = MappingProxyType(
         {
-            "characters": ["category", "character"],
-            "created_at": ["created"],
-            "creators": [
-                "author",
-                "authors",
-                "contributor",
-                "contributors",
-                "creator",
-                "creator",
-                "creators",
-            ],
+            "characters": ("category", "character"),
             "community_rating": gen_multipart_field_aliases("community_rating"),
+            "contributors": (
+                *gen_multipart_field_aliases("authors"),
+                "contributor",
+                *gen_multipart_field_aliases("creators"),
+                *gen_multipart_field_aliases("credits"),
+                *gen_multipart_field_aliases("people"),
+                *gen_multipart_field_aliases("persons"),
+            ),
+            "created_at": ("created",),
             "critical_rating": gen_multipart_field_aliases("critical_rating"),
-            "genres": ["genre"],
-            "file_type": ["type"],
-            "locations": ["location"],
-            "name": ["title"],
-            "original_format": ["format"],
-            "page_count": ["pages"],
-            "read_ltr": ["ltr"],
+            "genres": ("genre",),
+            "file_type": ("type",),
+            "identifier": ("id", "nss"),
+            "identifier_type": ("idtype", "id_type", "nid"),
+            "issue_number": ("issue", "number"),
+            "locations": ("location",),
+            "monochrome": gen_multipart_field_aliases("black_and_white"),
+            "name": ("title",),
+            "original_format": ("format",),
+            "page_count": ("pages",),
+            "reading_direction": ("direction",),
             "series_groups": gen_multipart_field_aliases("series_groups"),
-            "scan_info": ["scan"],
+            "scan_info": ("scan",),
+            "stories": ("story",),
             "story_arcs": gen_multipart_field_aliases("story_arcs"),
-            "tags": ["tag"],
-            "teams": ["team"],
-            "updated_at": ["updated"],
+            "summary": ("comments", "description"),
+            "tags": ("tag",),
+            "teams": ("team",),
+            "updated_at": ("updated",),
         }
     )
     RESERVED_CHARACTERS = ()
@@ -154,14 +160,14 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
     _SELECT_RELATED_FIELDS = ("publisher", "imprint", "series", "volume")
     _PREFETCH_RELATED_FIELDS = (
         "characters",
-        "creators",
+        "contributors",
         "genres",
         "locations",
         "series_groups",
         "story_arc_numbers__story_arc",
         "tags",
         "teams",
-        "creators__person",
+        "contributors__person",
     )
     _DEFERRED_FIELDS = (
         "parent_folder",
@@ -169,7 +175,6 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         "path",
         "stat",
         # "folders", # don't explicitly defer m2m
-        "max_page",
     )
     _ONEMB = 1024**2
     ###################
@@ -278,7 +283,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         return (content_field_name, Schema(**schema_fields))
 
     def _setup_storage_patch(self):
-        """Adapt FileStorage to not use mmap in low memory environements."""
+        """Adapt FileStorage to not use mmap in low memory environments."""
         if not self.use_file_storage:
             return
 
@@ -421,8 +426,16 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             raise
         return count
 
-    def update(self, index, batch_pks, batch_num=0, abort_event=None, **kwargs):
+    def update(  # noqa: PLR0913, # type: ignore
+        self,
+        index,
+        iterable,
+        commit=True,  # noqa: ARG002
+        batch_num=0,
+        abort_event=None,
+    ):
         """Update index, but with writer options."""
+        batch_pks = iterable
         count = 0
         if abort_event and abort_event.is_set():
             self.log.debug(
