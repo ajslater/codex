@@ -335,7 +335,7 @@ def _check_field_for_migration(model_name):
         if model_name == check_model_name and not has_applied_migration(migration):
             LOG.debug(
                 f"Skipping {check_model_name} integrity check until"
-                f"migration {migration} applied."
+                f" migration {migration} applied."
             )
             return True
     return False
