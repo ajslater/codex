@@ -15,21 +15,23 @@ border-radius: 128px;
   - Some integrity checks weren't running on startup.
   - Sometimes the metadata page would crash for Admins.
   - Updating comics would sometimes not delete removed tags.
-  - Series & Volumes no longer updated on every import.
+  - Series & Volumes no longer updated too often on import.
   - Admin Actions was polling all libraries when one selected.
   - Vertical scroller tracking and updating improved.
   - OPDS was showing repeated titles.
   - Page filenames are now sorted case insensitively which should improve order.
   - Moving a comic to a subfolder would crash.
 - Features
-  - New tags: Monochrome, Tagger, GTIN, Review, Identifiers, Reading Direction.
+  - New metadata tags: Monochrome, Tagger, GTIN, Review, Identifiers, Reading
+    Direction.
   - Reading Direction replaces Reader's vertical & horizontal views.
   - Admin Exclude groups compliment the existing Include groups.
   - Supports the MetronInfo metadata format (rare).
   - Identifiers metadata attribute replaces "Web"
-  - New metadata available when comic is re-imported (Force Update recommended).
+  - New metadata available when comics are re-imported (Force Update
+    recommended).
 - Dev
-  - Using comicbox v1.0.0 for metadata import. A big change.
+  - Using comicbox v1.0.0 for metadata import.
 
 ## v1.4.3
 
