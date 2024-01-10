@@ -13,7 +13,6 @@ RUN apt-get clean \
     bash \
     git \
     npm \
-  &&
   #  build-essential \
   #  cargo \
   #  libjpeg-dev \
