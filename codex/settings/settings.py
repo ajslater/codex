@@ -308,10 +308,5 @@ if DEBUG:
         "default": {
             "dev_mode": DEBUG,
             "dev_server_host": environ.get("VITE_HOST", socket.gethostname()),
-            # "dev_server_port": 5173,
-            # "static_url_prefix": str(STATIC_BUILD),  # type: ignore
         }
     }
-else:
-    # TODO test if this works
-    DJANGO_VITE = {"default": {"static_url_prefix": str(STATIC_ROOT)}}

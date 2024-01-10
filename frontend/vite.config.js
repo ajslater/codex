@@ -56,7 +56,7 @@ const config = defineConfig(({ mode }) => {
       strictPort: true,
     },
     build: {
-      manifest: PROD,
+      manifest: "manifest.json",
       minify: PROD,
       outDir: path.resolve("../codex/static_build"),
       emptyOutDir: true,
