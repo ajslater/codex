@@ -3,6 +3,7 @@
 set -euxo pipefail
 cd "$(dirname "$0")"
 
+export BUILD=1
 make collectstatic
 ./bin/pm check
 echo "*** build and package application ***"
