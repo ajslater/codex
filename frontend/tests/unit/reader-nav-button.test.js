@@ -20,7 +20,7 @@ const setupRouter = function () {
 };
 
 test("reader-nav-button", async () => {
-  console.log("started test");
+  console.info("started test");
   expect(ReaderNavButton).toBeTruthy();
 
   const router = setupRouter();

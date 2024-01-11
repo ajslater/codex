@@ -44,7 +44,7 @@ if (IS_TEST_ENV) {
     API_V3_PATH: JSON.stringify("dummy"),
   };
 }
-console.log(defineObj);
+console.info(defineObj);
 
 const config = defineConfig(({ mode }) => {
   const PROD = mode === "production";

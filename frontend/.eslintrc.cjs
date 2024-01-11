@@ -37,4 +37,10 @@ module.exports = {
       },
     },
   },
+  rules: {
+    "no-console": [
+      "warn",
+      { allow: ["clear", "debug", "info", "warn", "error"] },
+    ],
+  },
 };
