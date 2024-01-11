@@ -13,17 +13,18 @@ RUN apt-get clean \
     bash \
     git \
     npm \
-  #  build-essential \
-  #  cargo \
-  #  libjpeg-dev \
-  #  libwebp-dev \
-  #  openssl-dev \
-  #  python3-dev \
-  #  rust \
-  #  swig \
-  #  zlib1g-dev \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
+# TODO remove cruft for debian
+#  build-essential \
+#  cargo \
+#  libjpeg-dev \
+#  libwebp-dev \
+#  openssl-dev \
+#  python3-dev \
+#  rust \
+#  swig \
+#  zlib1g-dev \
 
 WORKDIR /app
 
