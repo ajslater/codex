@@ -123,14 +123,7 @@ def _migrate_bookmark(apps, _schema_editor):
         print(f"\tMigrated {len(update_bookmarks)} Bookmarks to use reading_direction")
 
 
-def _migrate_gtin_to_identifiers(apps, _schema_editor):
-    """Migrate gtin to identifiers table."""
-    if not MIGRATE_GTIN:
-        return
-
-    # SCAN
-    comic_model = apps.get_model("codex", "comic")
-    comics = comic_model.objects.exclude(gtin="")
+def _migrate_gtin_to_ids_scan(comics):
     identifiers = {}
     comic_identifiers = {}
     for comic in comics:
@@ -145,10 +138,11 @@ def _migrate_gtin_to_identifiers(apps, _schema_editor):
             identifiers[identifier_type] = set()
         identifiers[identifier_type].add(code)
         comic_identifiers[comic] = (identifier_type, code)
+    return identifiers, comic_identifiers
 
-    # CREATE IDENTIFIER TYPES
+
+def _migrate_gtin_to_ids_create_id_types(identifier_type_model, identifiers):
     create_identifier_types = []
-    identifier_type_model = apps.get_model("codex", "identifiertype")
     for name in identifiers:
         obj = identifier_type_model(name=name)
         create_identifier_types.append(obj)
@@ -157,9 +151,11 @@ def _migrate_gtin_to_identifiers(apps, _schema_editor):
         identifier_type_model.objects.bulk_create(create_identifier_types)
         print(f"\tCreated {len(create_identifier_types)} IdentifierTypes")
 
-    # CREATE IDENTIFIERS
+
+def _migrate_gtin_to_ids_create_ids(
+    identifier_model, identifier_type_model, identifiers
+):
     create_identifiers = []
-    identifier_model = apps.get_model("codex", "identifier")
     for name, codes in identifiers.items():
         identifier_type = identifier_type_model.objects.get(name=name)
         for code in codes:
@@ -170,7 +166,10 @@ def _migrate_gtin_to_identifiers(apps, _schema_editor):
         identifier_model.objects.bulk_create(create_identifiers)
         print(f"\tCreated {len(create_identifiers)} Identifiers")
 
-    # LINK
+
+def _migrate_gtin_to_ids_link_comics(
+    comic_model, identifier_model, comics, comic_identifiers
+):
     through_model = comic_model.identifiers.through
     tms = []
     for comic in comics:
@@ -182,6 +181,26 @@ def _migrate_gtin_to_identifiers(apps, _schema_editor):
     if tms:
         through_model.objects.bulk_create(tms)
         print(f"\tLinked {len(comics)} Comics to Identifiers")
+
+
+def _migrate_gtin_to_identifiers(apps, _schema_editor):
+    """Migrate gtin to identifiers table."""
+    if not MIGRATE_GTIN:
+        return
+
+    comic_model = apps.get_model("codex", "comic")
+    comics = comic_model.objects.exclude(gtin="")
+
+    identifiers, comic_identifiers = _migrate_gtin_to_ids_scan(comics)
+    identifier_type_model = apps.get_model("codex", "identifiertype")
+    _migrate_gtin_to_ids_create_id_types(identifier_type_model, identifiers)
+    identifier_model = apps.get_model("codex", "identifier")
+    _migrate_gtin_to_ids_create_ids(
+        identifier_model, identifier_type_model, identifiers
+    )
+    _migrate_gtin_to_ids_link_comics(
+        comic_model, identifier_model, comics, comic_identifiers
+    )
 
 
 def _migrate_volume_name(apps, _schema_editor):
