@@ -161,10 +161,7 @@ export default {
       "loadTables",
     ]),
     formatDateTime: (dttm) => {
-      if (!dttm) {
-        return "";
-      }
-      return getDateTime(dttm, this.twentyFourHourTime);
+      return dttm ? getDateTime(dttm, this.twentyFourHourTime) : "";
     },
     changeCol(pk, field, val) {
       this.lastUpdate.pk = pk;
