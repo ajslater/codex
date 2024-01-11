@@ -9,7 +9,7 @@
     </header>
     <v-data-table-virtual
       class="adminTable"
-      fixed-headers
+      fixed-header
       item-value="pk"
       item-title="name"
       :headers="headers"

@@ -354,10 +354,7 @@ export default {
       return pages;
     },
     size() {
-      if (this.md.size > 0) {
-        return prettyBytes(this.md.size);
-      }
-      return 0;
+      return this.md.size > 0 ? prettyBytes(this.md.size) : 0;
     },
     fileType() {
       return this.md.fileType || "Unknown";

@@ -8,7 +8,7 @@
       />
     </header>
     <v-data-table-virtual
-      fixed-headers
+      fixed-header
       item-value="pk"
       item-title="username"
       :headers="headers"

@@ -10,7 +10,6 @@
       class="adminTable"
       fixed-header
       item-value="pk"
-      hover
       :headers="headers"
       :items="libraries"
       :sort-by="[{ key: 'path', order: 'asc' }]"
