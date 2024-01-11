@@ -20,7 +20,7 @@ class WEBPRenderer(BaseRenderer):
     """Render WEBP images."""
 
     media_type = "image/webp"
-    format = "webp"  # noqa A003
+    format = "webp"
     charset = None
     render_style = "binary"
 

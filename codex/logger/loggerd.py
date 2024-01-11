@@ -32,7 +32,7 @@ class ColorFormatter(logging.Formatter):
             formatter = logging.Formatter(fmt=template, **kwargs)
             self.formatters[levelno] = formatter
 
-    def format(self, record):  # noqa A003
+    def format(self, record):
         """Format each log message."""
         formatter = self.formatters[record.levelno]
         return formatter.format(record)

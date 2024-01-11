@@ -55,7 +55,7 @@ class OPDS2AcquisitionObjectSerializer(Serializer):
     https://drafts.opds.io/schema/acquisition-object.schema.json
     """
 
-    type = CharField(read_only=True)  # noqa A003
+    type = CharField(read_only=True)
     child = RecursiveField(many=True, required=False)
 
 

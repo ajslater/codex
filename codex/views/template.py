@@ -9,7 +9,7 @@ class TemplateXMLRenderer(TemplateHTMLRenderer):
     """Template rendeerer for xml."""
 
     media_type = "text/xml"
-    format = "xml"  # noqa: A003
+    format = "xml"
 
 
 class SimpleAPIView(APIView):

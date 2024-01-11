@@ -10,7 +10,7 @@ class OPDSAuth1LinksSerializer(Serializer):
 
     rel = CharField(read_only=True)
     href = CharField(read_only=True)
-    type = CharField(read_only=True)  # noqa: A003
+    type = CharField(read_only=True)
     width = IntegerField(read_only=True, required=False)
     height = IntegerField(read_only=True, required=False)
 
@@ -25,7 +25,7 @@ class OPDSAuthetication1LabelsSerializer(Serializer):
 class OPDSAuthentication1FlowSerializer(Serializer):
     """Authentication Flow."""
 
-    type = CharField(read_only=True)  # noqa A003
+    type = CharField(read_only=True)
     links = OPDSAuth1LinksSerializer(many=True, read_only=True, required=False)
     labels = OPDSAuthetication1LabelsSerializer(read_only=True)
 
@@ -34,7 +34,7 @@ class OPDSAuthentication1Serializer(Serializer):
     """Authentication."""
 
     title = CharField(read_only=True)
-    id = CharField(read_only=True)  # noqa A003
+    id = CharField(read_only=True)
     description = CharField(required=False, read_only=True)
     links = OPDSAuth1LinksSerializer(many=True, read_only=True, required=False)
     authentication = OPDSAuthentication1FlowSerializer(many=True, read_only=True)

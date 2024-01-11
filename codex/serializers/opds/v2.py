@@ -48,7 +48,7 @@ class OPDS2LinkSerializer(Serializer):
     )
     templated = BooleanField(read_only=True, required=False)
     title = CharField(read_only=True, required=False)
-    type = CharField(read_only=True, required=False)  # noqa A003
+    type = CharField(read_only=True, required=False)
 
     # Uncommon
     height = IntegerField(read_only=True, required=False)
