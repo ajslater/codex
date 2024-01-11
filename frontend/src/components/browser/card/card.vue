@@ -81,7 +81,7 @@ export default {
         ? getReaderRoute(this.item)
         : {
             name: "browser",
-            params: { group: this.item.group, pk: this.item.pk, page: 0 },
+            params: { group: this.item.group, pk: this.item.pk, page: 1 },
           };
     },
     progressBackgroundColor: function () {
