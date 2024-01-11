@@ -10,10 +10,10 @@ from rest_framework.negotiation import BaseContentNegotiation
 from codex.logger.logging import get_logger
 from codex.models import Comic
 from codex.views.bookmark import BookmarkBaseView
+from codex.views.const import FALSY
 
 LOG = get_logger(__name__)
 PDF_MIME_TYPE = "application/pdf"
-FALSY = {"", "false", "0", False}
 
 
 class IgnoreClientContentNegotiation(BaseContentNegotiation):
@@ -61,7 +61,7 @@ class ReaderPageView(BookmarkBaseView):
         pk = self.kwargs.get("pk")
         comic = Comic.objects.filter(group_acl_filter).only("path").get(pk=pk)
         page = self.kwargs.get("page")
-        to_pixmap = self.request.GET.get("pixmap") not in FALSY
+        to_pixmap = self.request.GET.get("pixmap", "").lower() not in FALSY
         if comic.file_type == Comic.FileType.PDF.value and not to_pixmap:
             content_type = PDF_MIME_TYPE
         else:

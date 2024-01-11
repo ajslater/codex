@@ -98,7 +98,7 @@ class LinksMixin(BrowserView):
     def _normalize_query_params(qps_dict):
         if qps_dict.get("orderBy") == "sort_name":
             qps_dict.pop("orderBy")
-        if qps_dict.get("orderReverse") == FALSY:
+        if qps_dict.get("orderReverse", "").lower() in FALSY:
             qps_dict.pop("orderReverse")
         return frozenset(qps_dict.items())
 
