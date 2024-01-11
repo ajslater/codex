@@ -732,13 +732,13 @@ types-psycopg2 = ">=2.9.21.13"
 
 [[package]]
 name = "django-vite"
-version = "3.0.1"
+version = "3.0.2"
 description = "Integration of Vite in a Django project."
 optional = false
 python-versions = "*"
 files = [
-    {file = "django-vite-3.0.1.tar.gz", hash = "sha256:698977de63124305b0e3cf4afae5f0ffaa5ef041a336b1586b19579787dacb63"},
-    {file = "django_vite-3.0.1-py3-none-any.whl", hash = "sha256:60fbc743ce8187c545053afec0b8fe7f8e1633619c4e0433ebc4dd4f65d0d038"},
+    {file = "django-vite-3.0.2.tar.gz", hash = "sha256:368f9e65f95abef05c5b95dde78a6597dfeefdb4be9c43167227b8ed1fd2c586"},
+    {file = "django_vite-3.0.2-py3-none-any.whl", hash = "sha256:635a3d6b68fccd5c2ff9bdea195dd002bce509c90e18b3a9e71ece5e9514cc39"},
 ]
 
 [package.dependencies]
