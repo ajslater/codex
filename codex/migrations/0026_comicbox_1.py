@@ -153,8 +153,9 @@ def _migrate_gtin_to_identifiers(apps, _schema_editor):
         obj = identifier_type_model(name=name)
         create_identifier_types.append(obj)
 
-    identifier_type_model.objects.bulk_create(create_identifier_types)
-    print(f"\tCreated {len(create_identifier_types)} IdentifierTypes")
+    if create_identifier_types:
+        identifier_type_model.objects.bulk_create(create_identifier_types)
+        print(f"\tCreated {len(create_identifier_types)} IdentifierTypes")
 
     # CREATE IDENTIFIERS
     create_identifiers = []
@@ -165,8 +166,9 @@ def _migrate_gtin_to_identifiers(apps, _schema_editor):
             identifier = identifier_model(identifier_type=identifier_type, code=code)
             create_identifiers.append(identifier)
 
-    identifier_model.objects.bulk_create(create_identifiers)
-    print(f"\tCreated {len(create_identifiers)} Identifiers")
+    if create_identifiers:
+        identifier_model.objects.bulk_create(create_identifiers)
+        print(f"\tCreated {len(create_identifiers)} Identifiers")
 
     # LINK
     through_model = comic_model.identifiers.through
@@ -177,8 +179,9 @@ def _migrate_gtin_to_identifiers(apps, _schema_editor):
         tm = through_model(comic_id=comic.pk, identifier_id=identifier.pk)
         tms.append(tm)
 
-    through_model.objects.bulk_create(tms)
-    print(f"\tLinked {len(comics)} Comics to Identifiers")
+    if tms:
+        through_model.objects.bulk_create(tms)
+        print(f"\tLinked {len(comics)} Comics to Identifiers")
 
 
 def _migrate_volume_name(apps, _schema_editor):
