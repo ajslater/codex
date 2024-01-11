@@ -1,7 +1,7 @@
 #!/bin/bash
 # Fix common linting errors
 set -euxo pipefail
-bin/sortignore.sh
+# bin/sortignore.sh borks order for !ignores it think
 ####################
 ###### Python ######
 ###################
