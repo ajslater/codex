@@ -43,7 +43,7 @@
       </template>
       <template #[`item.actions`]="{ item }">
         <ConfirmDialog
-          :icon="mdiDatabaseEyeOutline"
+          :icon="mdiDatabaseClockOutline"
           title-text="Poll for updated comics"
           :object-name="item.path"
           confirm-text="Poll Library"
@@ -85,7 +85,7 @@
 
 <script>
 import {
-  mdiDatabaseEyeOutline,
+  mdiDatabaseClockOutline,
   mdiDatabaseSyncOutline,
   mdiOpenInNew,
 } from "@mdi/js";
@@ -119,7 +119,7 @@ export default {
         pk: 0,
         field: undefined,
       },
-      mdiDatabaseEyeOutline,
+      mdiDatabaseClockOutline,
       mdiDatabaseSyncOutline,
       mdiOpenInNew,
       AdminLibraryCreateUpdateInputs: markRaw(AdminLibraryCreateUpdateInputs),

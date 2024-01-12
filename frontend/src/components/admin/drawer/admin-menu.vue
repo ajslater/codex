@@ -1,8 +1,8 @@
 <template>
   <div v-if="isUserAdmin">
     <v-list-item @click="librarianTask('poll')">
-      <v-list-item-title
-        ><v-icon>{{ mdiDatabaseEyeOutline }}</v-icon
+      <v-list-item-title id="poll" title="for updated comics"
+        ><v-icon>{{ mdiDatabaseClockOutline }}</v-icon
         >Poll All Libraries</v-list-item-title
       >
     </v-list-item>
@@ -29,7 +29,7 @@
 import {
   mdiBookAlert,
   mdiCogOutline,
-  mdiDatabaseEyeOutline,
+  mdiDatabaseClockOutline,
   mdiOpenInNew,
 } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
@@ -50,7 +50,7 @@ export default {
     return {
       mdiBookAlert,
       mdiOpenInNew,
-      mdiDatabaseEyeOutline,
+      mdiDatabaseClockOutline,
       mdiCogOutline,
     };
   },
@@ -68,5 +68,13 @@ export default {
 #failedImportsIcon {
   padding-left: 0.25em;
   color: rgb(var(--v-theme-error)) !important;
+}
+// Delaying title appearance works sometimes.
+[title]:after{
+  opacity: 0;
+  transition: opacity 2s ease-in-out;
+}
+[title]:hover {
+  opacity: 1;
 }
 </style>
