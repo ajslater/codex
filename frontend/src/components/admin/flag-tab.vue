@@ -31,7 +31,7 @@
 <script>
 import { mapActions, mapState } from "pinia";
 
-import { adminFlags } from "@/choices-admin";
+import { adminFlags } from "@/choices-admin.json";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
