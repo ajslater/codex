@@ -25,16 +25,6 @@ try {
 }
 const BASE_PATH = rootPath + "/static/";
 
-const ADMIN_COMPONENT_DIR = "./src/components/admin";
-const ADMIN_COMPONENT_FNS = fs
-  .readdirSync(ADMIN_COMPONENT_DIR)
-  .filter((fn) => fn !== "drawer" && fn.at(-1) !== "~")
-  .map((fn) => ADMIN_COMPONENT_DIR + "/" + fn);
-const ADMIN_DRAWER_COMPONENT_DIR = ADMIN_COMPONENT_DIR + "/drawer";
-const ADMIN_DRAWER_COMPONENT_FNS = fs
-  .readdirSync(ADMIN_DRAWER_COMPONENT_DIR)
-  .filter((fn) => fn.at(-1) !== "~")
-  .map((fn) => ADMIN_DRAWER_COMPONENT_DIR + "/" + fn);
 const IS_TEST_ENV = process.env.NODE_ENV === "test";
 const defineObj = {
   CODEX_PACKAGE_VERSION: JSON.stringify(package_json.version),
@@ -65,8 +55,11 @@ const config = defineConfig(({ mode }) => {
         input: path.resolve("./src/main.js"),
         output: {
           manualChunks: {
-            admin: ["./src/admin.vue", ...ADMIN_COMPONENT_FNS],
-            "admin-drawer-panel": ADMIN_DRAWER_COMPONENT_FNS,
+            // Specifying too much here can break vue's own analysis of dynamic imports.
+            "admin-drawer-panel": [
+              "./src/components/admin/drawer/admin-menu.vue",
+              "./src/components/admin/drawer/admin-settings-button-progress.vue",
+            ],
           },
         },
       },
