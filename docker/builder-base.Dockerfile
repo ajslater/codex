@@ -11,12 +11,12 @@ RUN apt-get clean \
   && apt-get update \
   && apt-get install --no-install-recommends -y \
     bash \
+    build-essential \
     git \
     npm \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 # TODO remove cruft for debian
-#  build-essential \
 #  cargo \
 #  libjpeg-dev \
 #  libwebp-dev \
