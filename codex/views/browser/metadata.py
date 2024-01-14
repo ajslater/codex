@@ -7,11 +7,13 @@ from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
 from codex.librarian.importer.const import COMIC_M2M_FIELD_NAMES
+from codex.logger.logging import get_logger
 from codex.models import AdminFlag, Comic
 from codex.serializers.metadata import MetadataSerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_annotations import BrowserAnnotationsView
 
+LOG = get_logger(__name__)
 _ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS = frozenset({"path"})
 _COMIC_VALUE_FIELDS_CONFLICTING = frozenset(
     {
@@ -157,7 +159,7 @@ class MetadataView(BrowserAnnotationsView):
             if self.is_admin():
                 return
             if self._is_enabled_folder_view():
-                library_path = obj.get("library_path", "")
+                library_path = obj.library_path
                 obj.path = obj.path.removeprefix(library_path)
         else:
             obj.path = ""
@@ -275,14 +277,17 @@ class MetadataView(BrowserAnnotationsView):
     def get(self, *_args, **_kwargs):
         """Get metadata for a filtered browse group."""
         # Init
-        self._efv_flag = None
-        self.parse_params()
-        self.group = self.kwargs["group"]
-        self._validate()
-        self.set_rel_prefix(self.model)
-        self.set_order_key()
+        try:
+            self._efv_flag = None
+            self.parse_params()
+            self.group = self.kwargs["group"]
+            self._validate()
+            self.set_rel_prefix(self.model)
+            self.set_order_key()
 
-        obj = self.get_object()
+            obj = self.get_object()
 
-        serializer = self.get_serializer(obj)
-        return Response(serializer.data)
+            serializer = self.get_serializer(obj)
+            return Response(serializer.data)
+        except Exception:
+            LOG.exception(f"Getting metadata {self.kwargs}")
