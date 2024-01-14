@@ -99,7 +99,7 @@ Codex can _probably_ run on the Windows Linux Subsystem but I haven't personally
 tested it yet. Try following the instructions for [Debian](#debian) above. There
 may be outstanding platform related bugs.
 
-Contributions to the Windows documentation will be greatfully accepted on
+Contributions to the Windows documentation will be gratefully accepted on
 [the outstanding issue](https://github.com/ajslater/codex/issues/76) or Discord.
 
 #### Install Codex with pip

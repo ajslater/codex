@@ -470,13 +470,13 @@ files = [
 
 [[package]]
 name = "comicbox"
-version = "1.0.0rc8"
+version = "1.0.0rc9"
 description = "An API for reading comic archives"
 optional = false
 python-versions = ">=3.9,<4.0"
 files = [
-    {file = "comicbox-1.0.0rc8-py3-none-any.whl", hash = "sha256:d81dee5ff2c1bb8130e9e8b9bb114cf4f862d69b464e4bba391fd85ace8b4d4e"},
-    {file = "comicbox-1.0.0rc8.tar.gz", hash = "sha256:b20647c49a1200bc2b134ad37cea4a9ae2a15fa2292a0ce62df04c2b758cf8c6"},
+    {file = "comicbox-1.0.0rc9-py3-none-any.whl", hash = "sha256:46a370a3f409e24e8f6229d8edd220086f7c79b336c039e12e3ff6ce15ee5152"},
+    {file = "comicbox-1.0.0rc9.tar.gz", hash = "sha256:de03a2a2104f77e049ec30138de9dda2c71a1280d157bd6abf69ac233bdf7280"},
 ]
 
 [package.dependencies]
@@ -2235,13 +2235,13 @@ files = [
 
 [[package]]
 name = "service-identity"
-version = "23.1.0"
+version = "24.1.0"
 description = "Service identity verification for pyOpenSSL & cryptography."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "service_identity-23.1.0-py3-none-any.whl", hash = "sha256:87415a691d52fcad954a500cb81f424d0273f8e7e3ee7d766128f4575080f383"},
-    {file = "service_identity-23.1.0.tar.gz", hash = "sha256:ecb33cd96307755041e978ab14f8b14e13b40f1fbd525a4dc78f46d2b986431d"},
+    {file = "service_identity-24.1.0-py3-none-any.whl", hash = "sha256:a28caf8130c8a5c1c7a6f5293faaf239bbfb7751e4862436920ee6f2616f568a"},
+    {file = "service_identity-24.1.0.tar.gz", hash = "sha256:6829c9d62fb832c2e1c435629b0a8c476e1929881f28bee4d20bc24161009221"},
 ]
 
 [package.dependencies]
@@ -2251,7 +2251,7 @@ pyasn1 = "*"
 pyasn1-modules = "*"
 
 [package.extras]
-dev = ["pyopenssl", "service-identity[docs,idna,mypy,tests]"]
+dev = ["pyopenssl", "service-identity[idna,mypy,tests]"]
 docs = ["furo", "myst-parser", "pyopenssl", "sphinx", "sphinx-notfound-page"]
 idna = ["idna"]
 mypy = ["idna", "mypy", "types-pyopenssl"]
@@ -2712,4 +2712,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "9a786116f80731775ccb27684d5ecb3c8ab2665c4600e9e441dd1ae74de611c6"
+content-hash = "4c7866d59574be9c0270baaa9407815673602fe1ecd8ac0b8a73419abe39026e"
