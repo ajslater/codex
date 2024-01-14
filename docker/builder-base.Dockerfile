@@ -14,6 +14,7 @@ RUN apt-get clean \
     build-essential \
     git \
     npm \
+    python3-dev \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
