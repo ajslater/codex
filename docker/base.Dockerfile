@@ -16,6 +16,7 @@ RUN apt-get clean \
     libtiff6 \
     libwebp7 \
     mupdf \
+    ruamel.yaml.clib \
     unrar \
     zlib1g \
   && apt-get clean \
