@@ -7,7 +7,7 @@ import { Vuetify3Resolver } from "unplugin-vue-components/resolvers";
 import Components from "unplugin-vue-components/vite";
 import { defineConfig } from "vite";
 import { dynamicBase } from "vite-plugin-dynamic-base";
-import eslint from "vite-plugin-eslint";
+// import eslint from "vite-plugin-eslint";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 import vuetify from "vite-plugin-vuetify";
 
@@ -76,10 +76,12 @@ const config = defineConfig(({ mode }) => {
       dynamicBase({
         publicPath: 'window.CODEX.APP_PATH + "static"',
       }),
+      /* Waiting for flat config support
       eslint({
         lintOnStart: true,
         failOnError: false,
       }),
+      */
       Components({
         resolvers: [Vuetify3Resolver()],
       }),
