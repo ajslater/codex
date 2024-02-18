@@ -1,7 +1,11 @@
 <template>
   <div class="browserLink cardSubtitle text-caption">
-    <div v-if="seriesName" class="seriesCaption">{{ seriesName }}</div>
-    <div v-if="volumeName" class="volumeCaption">{{ volumeName }}</div>
+    <div v-if="seriesName" class="seriesCaption">
+      {{ seriesName }}
+    </div>
+    <div v-if="volumeName" class="volumeCaption">
+      {{ volumeName }}
+    </div>
     <div v-if="headerName" class="headerName">
       {{ headerName }}
     </div>

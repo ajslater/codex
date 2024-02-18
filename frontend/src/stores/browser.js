@@ -9,7 +9,7 @@ import { useCommonStore } from "@/stores/common";
 
 const GROUPS = "rpisvc";
 Object.freeze(GROUPS);
-const GROUPS_REVERSED = [...GROUPS].reverse().join("");
+const GROUPS_REVERSED = Array.from(GROUPS).reverse().join("");
 Object.freeze(GROUPS_REVERSED);
 const SETTINGS_SHOW_DEFAULTS = {};
 for (let choice of CHOICES.browser.settingsGroup) {
@@ -20,7 +20,7 @@ const HTTP_REDIRECT_CODES = new Set([301, 302, 303, 307, 308]);
 Object.freeze(HTTP_REDIRECT_CODES);
 const DEFAULT_BOOKMARK_VALUES = new Set([
   undefined,
-  null, // eslint-disable-line unicorn/no-null
+  null,
   CHOICES.browser.bookmarkFilter[0].value,
 ]);
 Object.freeze(DEFAULT_BOOKMARK_VALUES);
@@ -140,7 +140,7 @@ export const useBrowserStore = defineStore("browser", {
     lowestShownGroup(state) {
       let lowestGroup = "r";
       const topGroupIndex = GROUPS_REVERSED.indexOf(state.settings.topGroup);
-      for (const [index, group] of [...GROUPS_REVERSED].entries()) {
+      for (const [index, group] of Array.from(GROUPS_REVERSED).entries()) {
         const show = state.settings.show[group];
         if (show) {
           if (index <= topGroupIndex) {

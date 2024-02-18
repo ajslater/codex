@@ -2,8 +2,8 @@
   <v-expansion-panels v-if="!isMobile">
     <v-expansion-panel id="readerKeyboardShortcuts">
       <v-expansion-panel-title id="shortcutsTitle">
-        <v-icon id="keyboardIcon">{{ mdiKeyboardOutline }}</v-icon
-        >Keyboard Shortcuts
+        <v-icon id="keyboardIcon"> {{ mdiKeyboardOutline }} </v-icon>Keyboard
+        Shortcuts
       </v-expansion-panel-title>
       <v-expansion-panel-text>
         <h4>Navigation</h4>

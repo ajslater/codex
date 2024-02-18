@@ -6,7 +6,9 @@
     label="Library Folder"
     @change="row.path = $event"
   />
-  <div v-else>{{ oldRow.path }}</div>
+  <div v-else>
+    {{ oldRow.path }}
+  </div>
   <v-checkbox
     v-model="row.events"
     hide-details="auto"

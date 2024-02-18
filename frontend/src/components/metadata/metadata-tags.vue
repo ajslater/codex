@@ -12,8 +12,8 @@
       >
         <a v-if="item.url" :href="item.url" target="_blank"
           >{{ item.title }}<v-icon>{{ mdiOpenInNew }}</v-icon></a
-        ><span v-else>{{ item.title }}</span></v-chip
-      >
+        ><span v-else>{{ item.title }}</span>
+      </v-chip>
     </v-chip-group>
   </div>
 </template>

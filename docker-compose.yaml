@@ -48,7 +48,7 @@ services:
     container_name: codex-backend-test
     volumes:
       - ./codex/static_build:/app/codex/static_build:ro
-      #- ./codex/static_root:/app/codex/static_root
+      # - ./codex/static_root:/app/codex/static_root
       - ./test-results/:/app/test-results/
     command: make test-backend
   codex-build-dist:
@@ -96,9 +96,9 @@ services:
     volumes:
       - .:/app
       - /Users/aj/Comics:/comics
-    #init: true
+    # init: true
     command: tail -f /dev/null
-    #entrypoint: ["/sbin/tini", "--"]
+    # entrypoint: ["/sbin/tini", "--"]
   codex-dev-old:
     image: ajslater/codex:1.2.9
     container_name: codex-dev-old

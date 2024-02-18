@@ -1,4 +1,2 @@
 target = "codex/_vendor"
-packages = [
-    "django-haystack==3.2.1",
-]
+packages = ["django-haystack==3.2.1"]

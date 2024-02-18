@@ -89,7 +89,13 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
         except Exception:
             self.log.exception(f"{self.__class__.__name__} sync library watches")
 
-    def schedule(self, event_handler, path, recursive=False):
+    def schedule(  # type: ignore
+        self,
+        event_handler,
+        path,
+        recursive=False,
+        _event_filter=None,
+    ):
         """Override BaseObserver for Codex emitter class.
 
         https://pythonhosted.org/watchdog/_modules/watchdog/observers/api.html#BaseObserver

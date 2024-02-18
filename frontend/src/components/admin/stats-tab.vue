@@ -149,7 +149,9 @@
                 </v-fade-transition>
               </span>
             </td>
-            <td id="apiKey">{{ stats.config.apiKey }}</td>
+            <td id="apiKey">
+              {{ stats.config.apiKey }}
+            </td>
           </tr>
           <tr>
             <td colspan="2">

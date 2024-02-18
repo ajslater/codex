@@ -17,7 +17,9 @@
       :title="label"
       @click="$event.stopImmediatePropagation()"
     >
-      <v-icon class="bookChangeIcon"> {{ icon }} </v-icon>
+      <v-icon class="bookChangeIcon">
+        {{ icon }}
+      </v-icon>
     </router-link>
   </v-navigation-drawer>
 </template>

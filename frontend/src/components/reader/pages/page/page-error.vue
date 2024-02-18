@@ -1,8 +1,12 @@
 <template>
   <div class="pageError" :class="{ twoPages }">
     <div class="pageErrorContainer">
-      <div class="pageErrorText">{{ text }}</div>
-      <v-icon class="pageErrorIcon">{{ icon }}</v-icon>
+      <div class="pageErrorText">
+        {{ text }}
+      </div>
+      <v-icon class="pageErrorIcon">
+        {{ icon }}
+      </v-icon>
     </div>
   </div>
 </template>

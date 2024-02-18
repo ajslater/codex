@@ -62,6 +62,8 @@ You'll need to install these system dependencies before installing Codex.
 
 ##### macOS
 
+<!-- eslint-skip -->
+
 ```sh
 brew install jpeg libffi libyaml libzip openssl python unrar webp
 ```
@@ -72,11 +74,15 @@ brew install jpeg libffi libyaml libzip openssl python unrar webp
 
 ...and Ubuntu, Mint, MX and others.
 
+<!-- eslint-skip -->
+
 ```sh
 apt install build-essential libimagequant0 libjpeg62-turbo libopenjp2-7 libssl3 libyaml-0-2 libtiff6 libwebp7 python3-dev python3-pip mupdf unrar zlib1g
 ```
 
 ###### Alpine
+
+<!-- eslint-skip -->
 
 ```sh
 apk add bsd-compat-headers build-base jpeg-dev libffi-dev libwebp openssl-dev yaml-dev zlib-dev
@@ -106,6 +112,8 @@ Contributions to the Windows documentation will be gratefully accepted on
 
 You may now install Codex with pip
 
+<!-- eslint-skip -->
+
 ```sh
 pip3 install codex
 ```
@@ -113,6 +121,8 @@ pip3 install codex
 #### Run Codex Natively
 
 pip should install the codex binary on your path. Run
+
+<!-- eslint-skip -->
 
 ```sh
 codex
@@ -157,11 +167,15 @@ If you forget all your superuser passwords, you may restore the original default
 admin account by running codex with the `CODEX_RESET_ADMIN` environment variable
 set.
 
+<!-- eslint-skip -->
+
 ```sh
 CODEX_RESET_ADMIN=1 codex
 ```
 
 or, if using Docker:
+
+<!-- eslint-skip -->
 
 ```sh
 docker run -e CODEX_RESET_ADMIN=1 -v host-parent-dir/config:/config ajslater/codex
@@ -208,6 +222,8 @@ a default one to that directory on startup.
 
 The default values for the config options are:
 
+<!-- eslint-skip -->
+
 ```toml
 bind = ["0.0.0.0:9810"]
 quick_bind = ["0.0.0.0:9810"]
@@ -249,6 +265,8 @@ index, a Django cache and comic book cover thumbnails.
 
 Here's an example nginx config with a subpath named '/codex'.
 
+<!-- eslint-skip -->
+
 ```nginx
 # HTTP
 proxy_set_header   Host $http_host;
@@ -273,9 +291,10 @@ proxy_set_header Connection "Upgrade" location /codex {
 
 Specify a reverse proxy sub path (if you have one) in `config/hypercorn.toml`
 
+<!-- eslint-skip -->
+
 ```toml
 root_path = "/codex"
-
 ```
 
 #### Nginx Reverse Proxy 502 when container refreshes
@@ -363,6 +382,8 @@ You can change how much codex logs by setting the `LOGLEVEL` environment
 variable. By default this level is `INFO`. To see more verbose messages, run
 codex like:
 
+<!-- eslint-skip -->
+
 ```bash
 LOGLEVEL=DEBUG codex
 ```
@@ -382,6 +403,8 @@ you.
 If the database becomes corrupt, Codex includes a facitlity to rebuild the
 database. Place a file named `rebuild_db` in your Codex config directory like
 so:
+
+<!-- eslint-skip -->
 
 ```sh
 touch config/rebuild_db

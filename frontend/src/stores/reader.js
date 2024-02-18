@@ -12,13 +12,12 @@ import { useBrowserStore } from "@/stores/browser";
 const NULL_READER_SETTINGS = {
   // Must be null so axios doesn't throw them out when sending.
   fitTo: "",
-  twoPages: null, // eslint-disable-line unicorn/no-null
+  twoPages: null,
   readingDirection: "",
-  readRtlInReverse: null, // eslint-disable-line unicorn/no-null
+  readRtlInReverse: null,
 };
 Object.freeze(NULL_READER_SETTINGS);
 
-// eslint-disable-next-line unicorn/no-null
 const SETTINGS_NULL_VALUES = new Set(["", null, undefined]);
 Object.freeze(SETTINGS_NULL_VALUES);
 

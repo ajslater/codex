@@ -9,8 +9,9 @@
         id="folderPath"
         :to="groupTo"
         title="Browse Folder"
-        >{{ folderPath }}/</router-link
       >
+        {{ folderPath }}/
+      </router-link>
       <router-link
         v-else-if="groupTo"
         class="textContent"

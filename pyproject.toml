@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "codex"
-version = "1.5.0rc2"
+version = "1.5.0rc3"
 description = "A comic archive web server."
 license = "GPL-3.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
@@ -31,7 +31,7 @@ exclude = [
   "*/**/*~",
   "codex/img/*.svg",
   "codex/static_src/*",
-  "codex/static_build/*"
+  "codex/static_build/*",
 ]
 include = ["codex/static_root/**/*"]
 
@@ -57,7 +57,7 @@ psutil = "^5.9.4"
 python-dateutil = "^2.8.2"
 requests = "^2.24"
 tzlocal = "^5.0"
-watchdog = "^3.0"
+watchdog = "^4.0"
 websocket_client = "^1.2"
 whitenoise = { extras = ["brotli"], version = "^6.0" }
 whoosh = "^2.7.4"
@@ -82,8 +82,8 @@ djangorestframework-types = "^0.8.0"
 django-types = "^0.19.1"
 djlint = "^1.2.1"
 pyright = "^1.1.232"
-radon = { extras = ["toml"], version =  "^6.0.1" }
-ruff = "^0.1.9"
+radon = { extras = ["toml"], version = "^6.0.1" }
+ruff = "^0.2.1"
 types-python-dateutil = "^2.8.19"
 vulture = "^2.3"
 
@@ -125,7 +125,7 @@ omit = [
   "frontend/*",
   "node_modules/*",
   "test-results/*",
-  "typings/*"
+  "typings/*",
 ]
 
 [tool.djlint]
@@ -160,10 +160,7 @@ pythonVersion = "3.10"
 pythonPlatform = "All"
 
 [tool.pytest.ini_options]
-junit_family = "xunit2"
-DJANGO_SETTINGS_MODULE = "codex.settings.settings"
 asyncio_mode = "strict"
-# --black
 addopts = """
     --junit-xml=test-results/pytest/results.xml
     -ra
@@ -173,12 +170,10 @@ addopts = """
     --cov-append
     --cov-report=html
     --cov-report=term
-    --ignore=.git
-    --ignore=cache
-    --ignore=codex/_vendor/haystack
-    --ignore=frontend
-    --ignore=typings
 """
+junit_family = "xunit2"
+testpaths = "tests"
+DJANGO_SETTINGS_MODULE = "codex.settings.settings"
 
 [tool.radon]
 exclude = """\
@@ -189,37 +184,90 @@ exclude = """\
 
 [tool.ruff]
 extend-exclude = ["cache", "codex/_vendor", "frontend", "typings"]
-extend-ignore = ["S101", "D203", "D213",
- "W191", "E501", "E111", "E114", "E117", "D206", "D300", "Q000", "Q001",
-   "Q002", "Q003", "COM812", "COM819", "ISC001", "ISC002"
+show-fixes = true
+target-version = "py310"
+
+[tool.ruff.lint]
+extend-ignore = [
+  "S101",
+  "D203",
+  "D213",
+  "W191",
+  "E501",
+  "E111",
+  "E114",
+  "E117",
+  "D206",
+  "D300",
+  "Q000",
+  "Q001",
+  "Q002",
+  "Q003",
+  "COM812",
+  "COM819",
+  "ISC001",
+  "ISC002",
 ]
-extend-select = ["A", "ARG", "B", "B9", "C", "C4", "C90", "D", "DJ",
-  "DTZ", "E", "EM", "EXE", "F", "I", "ICN", "INP", "ISC", "PIE", "PL",
-  "PT", "PTH", "PYI", "Q", "N", "RET", "RSE", "RUF", "S", "SIM", "SLF",
-  "T10", "T20", "TCH", "TID", "TRY", "UP", "W", "YTT"
+extend-select = [
+  "A",
+  "ARG",
+  "B",
+  "B9",
+  "C",
+  "C4",
+  "C90",
+  "D",
+  "DJ",
+  "DTZ",
+  "E",
+  "EM",
+  "EXE",
+  "F",
+  "I",
+  "ICN",
+  "INP",
+  "ISC",
+  "PIE",
+  "PL",
+  "PT",
+  "PTH",
+  "PYI",
+  "Q",
+  "N",
+  "RET",
+  "RSE",
+  "RUF",
+  "S",
+  "SIM",
+  "SLF",
+  "T10",
+  "T20",
+  "TCH",
+  "TID",
+  "TRY",
+  "UP",
+  "W",
+  "YTT",
   # "ANN", "ERA", "COM"
 ]
 external = ["V101"]
-# format = "grouped"
-show-fixes = true
-target-version = "py310"
 task-tags = ["TODO", "FIXME", "XXX", "http", "HACK"]
 
-[tool.ruff.flake8-self]
+[tool.ruff.lint.flake8-self]
 ignore-names = ["_meta"]
 
-[tool.ruff.flake8-unused-arguments]
+[tool.ruff.lint.flake8-unused-arguments]
 ignore-variadic-names = true
 
-[tool.ruff.pycodestyle]
+[tool.ruff.lint.pycodestyle]
 ignore-overlong-task-comments = true
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "codex/logger/*" = ["T201"]
 "codex/migrations/*" = ["RUF012", "T201"]
 "codex/models/__init__.py" = ["F403"]
 "codex/settings/*" = ["T201"]
-"mock_comics/*" = ["S311","T201"]
+"mock_comics/*" = ["S311", "T201"]
 
 [tool.vulture]
 exclude = [

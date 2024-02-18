@@ -1,7 +1,7 @@
 executors:
   amd64-large-executor:
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2204:current
       resource_class: large
   amd64-medium-executor:
     machine:
