@@ -75,7 +75,7 @@ class CoverCreateMixin(CoverPathMixin):
         if data:
             with cover_path.open("wb") as cover_file:
                 cover_file.write(data)
-        else:
+        elif not cover_path.exists():
             cover_path.symlink_to(self.MISSING_COVER_PATH)
 
     def _bulk_create_comic_covers(self, comic_pks):
