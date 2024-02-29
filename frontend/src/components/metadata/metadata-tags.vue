@@ -1,7 +1,7 @@
 <template>
   <div v-if="model && model.length > 0" class="tags">
-    <v-chip-group :value="model" multiple class="chipGroup">
-      <div class="label">
+    <v-chip-group :value="model" multiple>
+      <div class="chipGroupLabel">
         {{ label }}
       </div>
       <v-chip
@@ -76,10 +76,8 @@ export default {
   padding: 10px;
   background-color: rgb(var(--v-theme-surface));
 }
-.label {
+.chipGroupLabel {
+  font-size: 12px;
   color: rgb(var(--v-theme-textSecondary));
-}
-.chipGroup {
-  display: inline;
 }
 </style>
