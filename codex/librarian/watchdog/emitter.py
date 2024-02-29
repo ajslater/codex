@@ -25,6 +25,20 @@ from codex.models import Library
 from codex.status import Status
 from codex.worker_base import WorkerBaseMixin
 
+_CODEX_EVENT_FILTER = frozenset(
+    {
+        FileMovedEvent,
+        FileModifiedEvent,
+        FileCreatedEvent,
+        FileDeletedEvent,
+        # FileClosedEvent,
+        # FileOpenedEvent,
+        DirMovedEvent,
+        DirModifiedEvent,
+        DirDeletedEvent,
+        # DirCreatedEvent,
+    }
+)
 _DOCKER_UNMOUNTED_FN = "DOCKER_UNMOUNTED_VOLUME"
 
 
@@ -47,7 +61,9 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
         self._force = False
         self._watch_path = Path(watch.path)
         self._watch_path_unmounted = self._watch_path / _DOCKER_UNMOUNTED_FN
-        super().__init__(event_queue, watch, timeout=timeout)
+        super().__init__(
+            event_queue, watch, timeout=timeout, event_filter=_CODEX_EVENT_FILTER
+        )
 
         self._take_dir_snapshot = lambda: DirectorySnapshot(
             self._watch.path,

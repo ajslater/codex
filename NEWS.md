@@ -32,6 +32,7 @@ border-radius: 128px;
   - Identifiers metadata attribute replaces "Web"
   - New metadata available when comics are re-imported (Force Update
     recommended).
+  - Filesystem events filtered to only the ones Codex handles.
 - Dev
   - Using comicbox v1.0.0 for metadata import.
 
