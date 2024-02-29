@@ -6,7 +6,7 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.5.0rc0
+## v1.5.0
 
 - **Warning**
   - This version forces a rebuild of the search index (not imported comics)
@@ -1017,7 +1017,7 @@ Yanked. Crash loading admin page.
 
 ## v0.5.12
 
-- Featues
+- Features
   - Admin page for failed imports
   - Snackbar tells admins when scans are happening
   - Report the latest version available in the browser footer tooltip
