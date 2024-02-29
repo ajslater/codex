@@ -13,8 +13,11 @@ from ...haystack.exceptions import NotHandled, SearchFieldError
 from ...haystack.utils import importlib
 from ...haystack.utils.app_loading import haystack_get_app_modules
 
+VENDOR_PREFIX = "codex._vendor."
 
 def import_class(path):
+    if path.startswith("haystack"):
+        path = VENDOR_PREFIX + path
     path_bits = path.split(".")
     # Cut off the class name at the end.
     class_name = path_bits.pop()

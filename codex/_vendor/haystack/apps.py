@@ -6,9 +6,8 @@ from django.conf import settings
 from ..haystack import connection_router, connections
 from ..haystack.utils import loading
 
-
 class HaystackConfig(AppConfig):
-    name = "codex._vendor.haystack"
+    name = loading.VENDOR_PREFIX + "haystack"
     signal_processor = None
     stream = None
 
@@ -24,7 +23,7 @@ class HaystackConfig(AppConfig):
             signal_processor_path = getattr(
                 settings,
                 "HAYSTACK_SIGNAL_PROCESSOR",
-                "codex._vendor.haystack.signals.BaseSignalProcessor",
+                loading.VENDOR_PREFIX + "haystack.signals.BaseSignalProcessor",
             )
             signal_processor_class = loading.import_class(signal_processor_path)
             self.signal_processor = signal_processor_class(
