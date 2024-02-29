@@ -215,9 +215,7 @@ class LinkComicsMixin(QueuedThread):
             unique_fields=update_fields,
         )
         if created_count := len(tms):
-            self.log.info(
-                f"Linked {created_count} new {field_name}s to altered comics."
-            )
+            self.log.info(f"Linked {created_count} new {field_name} to altered comics.")
         if status:
             status.complete = status.complete or 0
             status.complete += created_count
