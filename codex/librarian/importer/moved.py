@@ -42,27 +42,25 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
 
         folder_m2m_links = {}
         now = Now()
-        comic_pks = []
+        updated_comics = []
         for comic in comics.iterator():
             try:
-                comic.path = moved_paths[comic.path]
-                new_path = Path(comic.path)
-                if new_path.parent == Path(library.path):
-                    comic.parent_folder = None
-                else:
-                    comic.parent_folder = Folder.objects.get(  # type: ignore
-                        path=new_path.parent
-                    )
+                new_path = moved_paths[comic.path]
+                comic.path = new_path
+                new_path = Path(new_path)
+                comic.parent_folder = Folder.objects.get(  # type: ignore
+                    path=new_path.parent
+                )
                 comic.updated_at = now
                 comic.set_stat()
                 folder_m2m_links[comic.pk] = Folder.objects.filter(
                     path__in=new_path.parents
                 ).values_list("pk", flat=True)
-                comic_pks.append(comic.pk)
+                updated_comics.append(comic)
             except Exception:
                 self.log.exception(f"moving {comic.path}")
 
-        Comic.objects.bulk_update(comics, _MOVED_BULK_COMIC_UPDATE_FIELDS)
+        Comic.objects.bulk_update(updated_comics, _MOVED_BULK_COMIC_UPDATE_FIELDS)
 
         # Update m2m field
         if folder_m2m_links:
@@ -113,7 +111,9 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
         )
 
         src_folder_paths = frozenset(folders_moved.keys())
-        folders_to_move = Folder.objects.filter(library=library, path__in=src_folder_paths).order_by("path")
+        folders_to_move = Folder.objects.filter(
+            library=library, path__in=src_folder_paths
+        ).order_by("path")
 
         update_folders = []
         now = Now()

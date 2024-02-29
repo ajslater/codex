@@ -22,6 +22,7 @@ border-radius: 128px;
   - Page filenames are now sorted case insensitively which should improve order.
   - Moving a comic to a subfolder would crash.
   - Moving a deep subfolders would crash.
+  - Moving a comic to the root folder would send the comic to the phantom zone.
 - Features
   - New metadata tags: Monochrome, Tagger, GTIN, Review, Identifiers, Reading
     Direction.
