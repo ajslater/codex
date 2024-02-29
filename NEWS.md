@@ -8,10 +8,10 @@ border-radius: 128px;
 
 ## v1.5.0rc0
 
-- Warning
+- **Warning**
   - This version forces a rebuild of the search index (not imported comics)
   - The main database path changed from `db.sqlite3` to `codex.sqlite3`
-- Fix
+- Fixes
   - Some integrity checks weren't running on startup.
   - Sometimes the metadata page would crash for Admins.
   - Updating comics would sometimes not delete removed tags.
@@ -35,7 +35,7 @@ border-radius: 128px;
 
 ## v1.4.3
 
-- Fix
+- Fixes
   - Crash on undecodable characters in metadata.
   - Search terms weren't applying to filter choices population.
   - Fix name ordering. Show series & volume in browser cards if it affects name
@@ -46,7 +46,7 @@ border-radius: 128px;
 
 ## v1.4.2
 
-- Fix
+- Fixes
   - Groups were not aggregating children properly when searched.
   - Search could break Folder View.
   - Changing the browser 'Order By' would sometimes not apply.
@@ -54,7 +54,7 @@ border-radius: 128px;
 
 ## v1.4.1
 
-- Fix
+- Fixes
   - A bug that prevented folder view from displaying under some circumstances.
 
 ## v1.4.0
@@ -79,7 +79,7 @@ border-radius: 128px;
   - Order by Story Arc Number
   - Do not detect .cbr files if unrar is not on the path.
   - Display filename for comics in browser file view.
-- Fix
+- Fixes
   - Import of ComicInfo Tags metadata.
   - Never removed old missing metadata when updated.
   - Error on moving folders.
@@ -90,7 +90,7 @@ border-radius: 128px;
 
 ## v1.3.13
 
-- Fix
+- Fixes
   - Group cover sometimes showing wrong cover for order.
   - Rare import crash.
 
@@ -98,7 +98,7 @@ border-radius: 128px;
 
 - Features
   - OPDS 2 Last Read link.
-- Fix
+- Fixes
   - Books without bookmarks could break parts of the reader.
   - Remove clipboard UI hints when clipboard isn't available.
 
@@ -114,7 +114,7 @@ border-radius: 128px;
 
 ## v1.3.10
 
-- Fix
+- Fixes
   - Crash when reading from folder view.
 
 ## v1.3.9
@@ -123,14 +123,14 @@ border-radius: 128px;
   - Experimental OPDS 2.0 Support.
   - Create all comic covers admin task.
   - Faster Metadata pages for web and OPDS.
-- Fix
+- Fixes
   - Two pages mode broken.
   - Credits not imported bug.
   - Failed imports not removed when file removed bug.
 
 ## v1.3.8
 
-- Fix
+- Fixes
   - Fix Basic Authentication not enabled for OPDS Cover, Page, and Download
     views.
   - Tune low memory algorithm slightly lower for memory constrained systems.
@@ -141,7 +141,7 @@ border-radius: 128px;
 
 - Feature
   - Metadata page links to groups to browse to.
-- Fix
+- Fixes
   - Crash when moving comics.
   - Container memory limits weren't detected for Linux kernels before 4.5
   - Reader
@@ -153,20 +153,20 @@ border-radius: 128px;
 
 ## v1.3.6
 
-- Fix
+- Fixes
   - Much lower memory tuning. Environment variables control tuning.
   - Possible fix for vertical scroller page tracking for tall images.
 
 ## v1.3.5
 
-- Fix
+- Fixes
   - OPDS sorting and filtering broke.
   - Fixed Download URLs for clients that ignore headers like Chunky.
   - Update Search Index now checks for more missing entries.
 
 ## v1.3.4
 
-- Fix
+- Fixes
   - Number out of range errors for issue when search indexing.
   - Total child pages of folders and groups sometimes overcounted, displaying
     half unread folders.
@@ -177,7 +177,7 @@ border-radius: 128px;
 
 ## v1.3.3
 
-- Fix
+- Fixes
   - Number out of range errors when search indexing.
   - Possible Search Index Remove Stale and Abort jobs not scheduled properly.
   - OPDS missing entry ids rejected by Panels reader.
@@ -185,13 +185,13 @@ border-radius: 128px;
 
 ## v1.3.2
 
-- Fix
+- Fixes
   - Reader Fit To settings broken
   - Possible files marked modified too often.
 
 ## v1.3.1
 
-- Fix
+- Fixes
   - An import crash in create foreign keys.
   - Admin table dates were always in UTC so sometime off by a day.
 
@@ -213,7 +213,7 @@ border-radius: 128px;
     - Comic import speedups.
     - Fancier sortable admin tables.
     - Removed `max_db_ops` config variable.
-- Fix
+- Fixes
   - Reader vertical scroll lost its place in Fit To Width or Orig mode.
   - OPDS downloaded files all had the same name.
   - Search Index
@@ -232,7 +232,7 @@ border-radius: 128px;
   - Faster search index removes.
   - Admin Users tab shows last user activity date.
   - OPDSE PSE 1.2 extension for Panels `pse:lastReadDate`
-- Fix
+- Fixes
   - Fixed next and previous book keyboard shortcuts.
   - Improved OPDS acquisition page performance by removing more "categories"
     metadata.
@@ -245,7 +245,7 @@ border-radius: 128px;
     - Admin Flag to adjust nightly full optimization.
   - OPDS
     - "Newest Issues" Link replaced by "Recently Added" after user feedback.
-- Fix
+- Fixes
   - Volume tags were often not scanned. Recommend using Force Reimport on all
     libraries.
   - OPDS
@@ -257,14 +257,14 @@ border-radius: 128px;
 
 ## v1.2.7
 
-- Fix
+- Fixes
   - Trap final search index commit errors and try again without merging
     segments.
   - Fix moving folders assigned no parent folder, displaying them in root.
 
 ## v1.2.6
 
-- Fix
+- Fixes
   - Impose memory limits on search index writers.
   - Impose items before write limits search index writer.
   - Sort comics by path for the reader navigation when in Folder View.
@@ -272,21 +272,21 @@ border-radius: 128px;
 
 ## v1.2.5
 
-- Features:
+- Features
   - In Folder View the reader navigates by folder instead of series.
-- Fix:
+- Fixes
   - OPDS crash on missing 24 hour time setting input required.
 
 ## v1.2.4
 
-- Features:
+- Features
   - User configurable 24 hour time format.
   - Reader
     - Displays covers as one page even in two page mode.
     - Read in Reverse mode.
     - Keymaps for adjusting page by one page in two page mode.
     - Previous and Next book navigation buttons and keymaps.
-- Fix
+- Fixes
   - OPDS:
     - Fix acquisition feed timeouts on large libraries by removing most m2m
       fields that populated OPDS categories
@@ -301,7 +301,7 @@ border-radius: 128px;
 
 ## v1.2.3
 
-- Fix
+- Fixes
   - Prevent search indexing starting over if it encounters errors.
   - Fix download buttons.
   - Fix admin settings drawer obscuring small screens.
@@ -310,13 +310,13 @@ border-radius: 128px;
 
 ## v1.2.2
 
-- Fix
+- Fixes
   - Fix all items removed from search index after update.
   - Speedups to cleaning up search engine ghosts.
 
 ## v1.2.1
 
-- Fix
+- Fixes
   - Crash on building a fresh database.
   - Fixed an importer crash when it tried to wait for changing files.
   - Disabling Library Poll prevented manual polling.
@@ -332,7 +332,7 @@ border-radius: 128px;
     library.
   - LOGLEVEL=VERBOSE deprecated in favor of DEBUG
   - Stats page API accessible via API key as well as admin login.
-- Fix
+- Fixes
   - Some Librarian Status messages would appear never to finish.
 - Development
   - The multiprocessing method is now S P A W N 💀 on all platforms.
@@ -341,7 +341,7 @@ border-radius: 128px;
 
 ## v1.1.6
 
-- Fix
+- Fixes
   - Fix rare deletion and recreation of all comics when inodes changed.
 
 ## v1.1.5
@@ -349,7 +349,7 @@ border-radius: 128px;
 - Features
   - Admin Stats tab
   - Libraries can have a poll delay longer than 1 day.
-- Fix
+- Fixes
   - Crash when removing comics.
   - Admin Create & Update dialogs would get stuck open on submit.
   - Delete expired and corrupt sessions every night.
@@ -357,22 +357,19 @@ border-radius: 128px;
 
 ## v1.1.4
 
-- Fix
-
+- Fixes
   - Multiprocessing speedup for large search engine indexing jobs
     - Writes search engine data in segments.
   - Search engine segment combiner optimizer runs nightly (and manually).
 
 ## v1.1.3
 
-- Fix
-
+- Fixes
   - Fix some OPDS browsers unable to read comics.
 
 ## v1.1.2
 
-- Fix
-
+- Fixes
   - Fix unable to initialize database on first run
 
 ## v1.1.0
@@ -387,7 +384,7 @@ border-radius: 128px;
   - Backup database before migrations.
 - Removed
   - Do not store search history for combobox across sessions.
-- Fix
+- Fixes
   - Fix Admin Library folder picker.
   - Uatu does a better job of ignoring device changes.
   - Don't pop out of folder mode on searches.
@@ -437,26 +434,22 @@ border-radius: 128px;
 ## v0.14.5
 
 - Fixes
-
   - Fix crash on decoding some comics metadata charset encoding.
 
 ## v0.14.4
 
 - Fixes
-
   - Fix login not available when AdminFlag Enable Non Users was unset.
   - Fix server PicklingError logging bug.
 
 ## v0.14.3
 
 - Fixes
-
   - Fix root_path configuration
 
 ## v0.14.2
 
 - Fixes
-
   - Fix Librarian process hanging due to logging deadlock.
   - Fix reader keyboard shortcut help.
   - Fix book change drawer appearing in the middle of books.
@@ -464,7 +457,6 @@ border-radius: 128px;
 ## v0.14.1
 
 - Fixes
-
   - Resolve ties in browser ordering with default comic ordering.
   - Always close book change drawer before reader opens.
 
@@ -712,7 +704,7 @@ border-radius: 128px;
 
 ## v0.9.11
 
-- Fixed
+- Fixes
 
   - Fixed covers not creating on import.
   - Covers update in browser when updated on disk.
@@ -734,7 +726,7 @@ Yanked. Crash loading admin page.
 
 ## v0.9.9
 
-- Fixed
+- Fixes
 
   - Fixed combining CBI credits with other format credits
   - Failed imports notification appears only for new failed imports.
@@ -745,7 +737,7 @@ Yanked. Crash loading admin page.
 
 ## v0.9.8
 
-- Fixed
+- Fixes
 
   - Fixed search index update crash while database is still updating.
   - Fixed issues larger than 99 bug.
@@ -763,7 +755,7 @@ Yanked. Crash loading admin page.
 
 ## v0.9.7
 
-- Fixed
+- Fixes
 
   - Coerce decimal values into valid ranges and precision before importing.
 
@@ -773,7 +765,7 @@ Yanked. Crash loading admin page.
 
 ## v0.9.6
 
-- Fixed
+- Fixes
 
   - Don't open browser when a library changes when reading a comic.
   - Fixed crash creating illegal dates on import.
@@ -790,18 +782,18 @@ Yanked. Crash loading admin page.
 
 ## v0.9.4
 
-- Fixed
+- Fixes
   - Fixed crash when importing comments metadata.
 
 ## v0.9.3
 
-- Fixed
+- Fixes
   - Import credits data for CBI and CIX tagged comics.
   - More liberal metadata decimal parsing.
 
 ## v0.9.2
 
-- Fixed
+- Fixes
   - Fix rare migration bug for Cover Artist role.
 
 ## v0.9.1
@@ -848,29 +840,36 @@ Yanked. Crash loading admin page.
 
 ## v0.7.5
 
-- Fix integrity cleanup check for old comic_folder relations that prevented
-  migrations.
+- Fixes
+  - Fix integrity cleanup check for old comic_folder relations that prevented
+    migrations.
 
 ## v0.7.4
 
-- Fix integrity cleanup check for more types of integrity errors that may have
-  prevented clean db migrations.
-- Fix last filter, group, sort not loading properly for some new views.
+- Fixes
+  - Fix integrity cleanup check for more types of integrity errors that may have
+    prevented clean db migrations.
+  - Fix last filter, group, sort not loading properly for some new views.
 
 ## v0.7.3
 
-- Fix crash updating latest version.
-- Fix a folder not found crash in folder view.
-- Database indexing speedups.
+- Fixes
+  - Fix crash updating latest version.
+  - Fix a folder not found crash in folder view.
+- Features
+  - Database indexing speedups.
 
 ## v0.7.2
 
-- Fix another integrity check bug
+- Fixes
+  - Fix another integrity check bug
 
 ## v0.7.1
 
-- Fix and integrity check crash that happened with an older databases.
-- Added `CODEX_SKIP_INTEGRITY_CHECK` env var.
+- Fixes
+  - Fix and integrity check crash that happened with an older databases.
+- Features
+  - Added `CODEX_SKIP_INTEGRITY_CHECK` env var.
 
 ## v0.7.0
 
@@ -941,97 +940,118 @@ Yanked. Crash loading admin page.
 
 ## v0.6.2
 
-- Fixed intermittent Librarian startup crash in docker.
-- Fixed DEBUG environment variable to be able to run in production.
-- Added DEV environment variable for dev environment.
+- Fixes
+  - Fixed intermittent Librarian startup crash in docker.
+  - Fixed DEBUG environment variable to be able to run in production.
+- Dev
+  - Added DEV environment variable for dev environment.
 
 ## v0.6.1
 
-- Fix librarian startup crash. Prevented admin actions from happening.
+- Fixes
+  - Fix librarian startup crash. Prevented admin actions from happening.
 
 ## v0.6.0
 
 ### Better Filtering and Sorting
 
-- New Filters
-- New sort options: Updated Time and Maturity Rating
-- New frontend URL scheme
-- New API
-- Added time to the browse card when sorting by time fields
-- Fixed a bug importing Story Arc Series Groups and Genres. Requires re-import
-  to correct.
-- Fixed a bug with sorting that grouped improperly and showed the wrong covers
-  for reverse sorts.
-- Browser pagination footer now remains fixed on the page
-- Browser pagination footer is now a slider to handle larger collections
-- Notifications now appear in reader as well as browser
-- Scanning notifications on login not disappearing bug squashed
-- On comic import failure, log the path as well as the reason
-- Fixed a bug where the browser settings menu wouldn't close when opening a
-  dialog
-- Codex version information moved to Browser > Settings
+- Features
+  - New Filters
+  - New sort options: Updated Time and Maturity Rating
+  - New frontend URL scheme
+  - New API
+  - Added time to the browse card when sorting by time fields
+  - Browser pagination footer now remains fixed on the page
+  - Browser pagination footer is now a slider to handle larger collections
+  - Notifications now appear in reader as well as browser
+  - On comic import failure, log the path as well as the reason
+  - Codex version information moved to Browser > Settings
+- Fixes
+  - Fixed a bug importing Story Arc Series Groups and Genres. Requires re-import
+    to correct.
+  - Fixed a bug with sorting that grouped improperly and showed the wrong covers
+    for reverse sorts.
+  - Scanning notifications on login not disappearing bug squashed
+  - Fixed a bug where the browser settings menu wouldn't close when opening a
+    dialog
 
 ## v0.5.18
 
-- Fix filters not changing display bug
+- Fixes
+  - Fix filters not changing display bug
 
 ## v0.5.17
 
-- Fix root_path not parsing bug
+- Fixes
+  - Fix root_path not parsing bug
 
 ## v0.5.16
 
-- Fix broken startup when parsing json shared between front and back end
+- Fixes
+  - Fix broken startup when parsing json shared between front and back end
 
 ## v0.5.15
 
-- Metadata popup is now faster.
-- Metadata popup now shows created_at, updated_at and path (if admin).
-- Removed numeric and common password validators. Made the minimum length 4.
+- Features
+  - Metadata popup is now faster.
+  - Metadata popup now shows created_at, updated_at and path (if admin).
+  - Removed numeric and common password validators. Made the minimum length 4.
 
 ## v0.5.14
 
-- Metadata view for browse containers. Also observes filters.
-- Fix scanning notification
-- Fix unable to delete libraries bug
-- Covers now regenerate on re-import.
+- Features
+
+  - Metadata view for browse containers. Also observes filters.
+  - Covers now regenerate on re-import.
+
+- Fixes
+  - Fix scanning notification
+  - Fix unable to delete libraries bug
 
 ## v0.5.13
 
-- Admin Flag for automatically updating codex
-- Force updates from the admin panel with an Admin Flag action
-- Snackbar for notifying about failed imports
+- Features
+  - Admin Flag for automatically updating codex
+  - Force updates from the admin panel with an Admin Flag action
+  - Snackbar for notifying about failed imports
 
 ## v0.5.12
 
-- admin page for failed imports
-- snackbar tells admins when scans are happening
-- report the latest version available in the browser footer tooltip
-- admin flag for disabling codex for non-users
+- Featues
+  - Admin page for failed imports
+  - Snackbar tells admins when scans are happening
+  - Report the latest version available in the browser footer tooltip
+  - Admin flag for disabling codex for non-users
 
 ## v0.5.11
 
-- browser rows now adapt to browse tile size
-- browser covers for containers now match data we're sorting by
-- reader fix settings for all comics were not setting properly
-- fix bookmarks for sessions that aren't logged in
-- serve static files faster
+- Features
+  - Browser rows now adapt to browse tile size
+  - Browser covers for containers now match data we're sorting by
+  - Serve static files faster
+- Fixes
+  - Reader fix settings for all comics were not setting properly
+  - Fix bookmarks for sessions that aren't logged in
 
 ## v0.5.10
 
-- fix filtering bugs
-- fix mark read/unread bugs
-- fix reader settings not setting properly
-- fix reader images positioning
-- fix minor crash closing books with uninitialized browser app
+- Fixes
+
+  - Fix filtering bugs
+  - Fix mark read/unread bugs
+  - Fix reader settings not setting properly
+  - Fix reader images positioning
+  - Fix minor crash closing books with uninitialized browser app
 
 ## v0.5.9
 
-- fix sorting for folder view
-- display sort key value in browse tile
-- display standard image for missing covers
-- slightly more helpful 404 page
-- fix import bugs
+- Fixes
+  - Fix sorting for folder view
+  - Fix import bugs
+- Features
+  - Display sort key value in browse tile
+  - Display standard image for missing covers
+  - Slightly more helpful 404 page
 
 ## v0.5.8
 
@@ -1039,44 +1059,55 @@ Yanked. Crash loading admin page.
 
 ## v0.5.7
 
-- fix import crashes
-- allow credits with an empty role
-- pagination of large browse results
-- center comic pages better
-- add download link to browser menu
-- log to files as well as console
-- remove scan locks on startup
+- Fixes
+
+  - Fix import crashes
+  - Remove scan locks on startup
+
+- Features
+  - Allow credits with an empty role
+  - Pagination of large browse results
+  - Center comic pages better
+  - Add download link to browser menu
+  - Log to files as well as console
 
 ## v0.5.6
 
-- websocket path security wasn't handling leading slashes well. Skip it.
+- Fixes
+  - Websocket path security wasn't handling leading slashes well. Skip it.
 
 ## v0.5.5
 
-- Revert to whitenoise 5.1.0 which works with subpaths
+- Fixes
+  - Revert to whitenoise 5.1.0 which works with subpaths
 
 ## v0.5.4
 
-- Fix crash on start if all static dirs do not exist.
+- Fixes
+  - Fix crash on start if all static dirs do not exist.
 
 ## v0.5.3
 
-- Fixed login bug introduces in v0.5.3 (thanks hubcaps)
-- Fixed filtering bug introduced in v0.5.2
-- Versioned API
-- Toast popup for admins indicating libraries are scanning.
-- Periodic frontend refresh during long scans.
-- Codex version displayed in browser footer
+- Fixes
+  - Fixed login bug introduces in v0.5.3 (thanks hubcaps)
+  - Fixed filtering bug introduced in v0.5.2
+- Features
+  - Versioned API
+  - Toast popup for admins indicating libraries are scanning.
+  - Periodic frontend refresh during long scans.
+  - Codex version displayed in browser footer
 
 ## v0.5.2
 
-- Lazy load filter choices when the menu opens
-- Fix multiprocessing for Windows
-- Documentation moved into admin panel
+- Features
+  - Lazy load filter choices when the menu opens
+  - Documentation moved into admin panel
+- Fixes
+  - Fix multiprocessing for Windows
 
 ## v0.5.1
 
-- Minor bugfixes. Rebuild for pypi
+- Minor bugfixes.
 
 ## v0.5.0
 
@@ -1092,7 +1123,7 @@ Yanked. Crash loading admin page.
 
 ## v0.3.0
 
-### I'm a frontend developer
+### I'm a frontend developer!
 
 - Single Page VueJS frontend PoC without much styling
 
