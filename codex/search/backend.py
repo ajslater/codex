@@ -493,7 +493,9 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         try:
             self.index.refresh().optimize(**self.writerargs)
         except Exception as exc:
-            self.log.warn(f"Search Index unable to optimize '{exc}', it may work next time.")
+            self.log.warn(
+                f"Search Index unable to optimize '{exc}', it may work next time."
+            )
 
     def merge_small(self):
         """Merge small segments of the index."""
