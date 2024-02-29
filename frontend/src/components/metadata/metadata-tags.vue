@@ -1,9 +1,9 @@
 <template>
   <div v-if="model && model.length > 0" class="tags">
-    <v-chip-group :value="model" multiple>
-      <div class="chipGroupLabel">
-        {{ label }}
-      </div>
+    <div class="chipGroupLabel">
+      {{ label }}
+    </div>
+    <v-chip-group :column="true" multiple :value="model">
       <v-chip
         v-for="item in model"
         :key="`${label}/${item.value}`"
