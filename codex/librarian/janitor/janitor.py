@@ -1,4 +1,5 @@
 """Janitor task runner."""
+
 from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.covers.tasks import CoverRemoveOrphansTask
 from codex.librarian.janitor.cleanup import TOTAL_NUM_FK_CLASSES, CleanupMixin

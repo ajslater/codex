@@ -1,4 +1,5 @@
 """Admin Flag View."""
+
 from typing import ClassVar
 
 from rest_framework.permissions import IsAdminUser

@@ -1,4 +1,5 @@
 """Library process worker for background tasks."""
+
 from multiprocessing import Manager, Process
 from threading import active_count
 from types import MappingProxyType

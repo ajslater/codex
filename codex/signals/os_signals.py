@@ -1,4 +1,5 @@
 """OS Signal actions."""
+
 import asyncio
 import signal
 from asyncio import Event

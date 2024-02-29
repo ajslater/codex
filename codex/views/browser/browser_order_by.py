@@ -1,4 +1,5 @@
 """Base view for ordering the query."""
+
 from os import sep
 from types import MappingProxyType
 

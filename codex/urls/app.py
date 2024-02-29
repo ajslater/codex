@@ -1,4 +1,5 @@
 """codex:app URL Configuration."""
+
 from django.urls import path, re_path
 
 from codex.views.frontend import IndexView

@@ -1,4 +1,5 @@
 """Force update events for failed imports."""
+
 from watchdog.events import FileModifiedEvent
 
 from codex.librarian.watchdog.tasks import WatchdogEventTask

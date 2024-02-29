@@ -1,4 +1,5 @@
 """Custom Haystack Search Engine."""
+
 from codex._vendor.haystack.backends import UnifiedIndex
 from codex._vendor.haystack.backends.whoosh_backend import (
     WhooshEngine,

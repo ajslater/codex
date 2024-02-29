@@ -1,4 +1,5 @@
 """View for marking comics read and unread."""
+
 from types import MappingProxyType
 from typing import ClassVar
 

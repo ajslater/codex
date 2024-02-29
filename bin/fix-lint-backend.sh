@@ -5,7 +5,7 @@ set -euxo pipefail
 ####################
 ###### Python ######
 ###################
-poetry run ruff --fix .
+poetry run ruff check --fix .
 poetry run ruff format .
 poetry run djlint codex/templates --profile=django --reformat
 

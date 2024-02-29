@@ -1,4 +1,5 @@
 """Serializers for homepage endpoint."""
+
 from rest_framework.serializers import IntegerField, Serializer
 
 

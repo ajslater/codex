@@ -1,4 +1,5 @@
 """Bookmark views."""
+
 from typing import ClassVar
 
 from drf_spectacular.utils import extend_schema

@@ -1,4 +1,5 @@
 """Create comic cover paths."""
+
 from io import BytesIO
 from time import time
 

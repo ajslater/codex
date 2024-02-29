@@ -2,6 +2,7 @@
 
 https://drafts.opds.io/schema/authentication.schema.json
 """
+
 from rest_framework.serializers import CharField, IntegerField, Serializer
 
 

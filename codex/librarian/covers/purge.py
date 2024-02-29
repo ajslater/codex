@@ -1,4 +1,5 @@
 """Purge comic covers."""
+
 import os
 import shutil
 from pathlib import Path

@@ -1,4 +1,5 @@
 """Pycountry Model Serializers."""
+
 import pycountry
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field

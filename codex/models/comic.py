@@ -1,4 +1,5 @@
 """Comic model."""
+
 import calendar
 import math
 import re

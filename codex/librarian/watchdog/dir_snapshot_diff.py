@@ -1,4 +1,5 @@
 """Custom directory snapshots."""
+
 from dataclasses import dataclass
 
 from watchdog.utils.dirsnapshot import DirectorySnapshot, DirectorySnapshotDiff

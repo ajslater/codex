@@ -1,4 +1,5 @@
 """OPDS Utility classes."""
+
 from django.db.models import F
 from django.http.response import HttpResponseRedirect
 from django.urls import reverse

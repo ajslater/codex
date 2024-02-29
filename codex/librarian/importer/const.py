@@ -1,4 +1,5 @@
 """Consts and maps for import."""
+
 from types import MappingProxyType
 
 from codex.models import (

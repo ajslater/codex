@@ -1,4 +1,5 @@
 """Group Filters."""
+
 from django.db.models import Q
 
 from codex.views.auth import GroupACLMixin

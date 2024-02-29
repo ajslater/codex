@@ -1,4 +1,5 @@
 """OPDS v1 Entry."""
+
 import json
 from datetime import datetime, timezone
 from urllib.parse import urlencode

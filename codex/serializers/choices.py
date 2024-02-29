@@ -4,6 +4,7 @@ Extract the same json the frontend uses for the values so they're always
 in sync.
 Which is a little bit of overengineering.
 """
+
 import json
 import mmap
 import re
@@ -77,9 +78,12 @@ def _parse_choices(module_name):
             path = _find_filename_regex(js_root, module_name)
             if not path:
                 continue
-            with path.open("r") as choices_file, mmap.mmap(
-                choices_file.fileno(), 0, access=mmap.ACCESS_READ
-            ) as choices_mmap_file:
+            with (
+                path.open("r") as choices_file,
+                mmap.mmap(
+                    choices_file.fileno(), 0, access=mmap.ACCESS_READ
+                ) as choices_mmap_file,
+            ):
                 json_str = choices_mmap_file.read()
                 data_dict = json.loads(json_str)
                 LOG.debug(f"Loaded json choices from {js_root} {module_name}")

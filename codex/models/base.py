@@ -1,4 +1,5 @@
 """Base model."""
+
 from django.db.models import DateTimeField, Model
 from django.db.models.base import ModelBase
 

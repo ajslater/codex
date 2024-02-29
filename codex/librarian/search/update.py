@@ -1,4 +1,5 @@
 """Search Index update."""
+
 from datetime import datetime
 from math import ceil
 from multiprocessing import Pool, cpu_count

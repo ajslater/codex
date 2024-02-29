@@ -1,4 +1,5 @@
 """Cover Path functions."""
+
 from pathlib import Path
 
 from fnvhash import fnv1a_32

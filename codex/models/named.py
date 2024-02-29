@@ -1,4 +1,5 @@
 """Named models."""
+
 from django.db.models import (
     CASCADE,
     CharField,

@@ -1,4 +1,5 @@
 """Serializer Base class for inheritable metaclass."""
+
 from rest_framework.serializers import ModelSerializer, SerializerMetaclass
 
 

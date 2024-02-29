@@ -1,4 +1,5 @@
 """Serializers for the browser view."""
+
 from rest_framework.serializers import (
     BooleanField,
     CharField,

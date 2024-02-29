@@ -1,4 +1,5 @@
 """Manage user sessions with appropriate defaults."""
+
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from types import MappingProxyType

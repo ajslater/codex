@@ -2,6 +2,7 @@
 
 https://docs.djangoproject.com/en/dev/topics/http/urls/
 """
+
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.urls import include, path, register_converter
 from django.views.generic.base import RedirectView

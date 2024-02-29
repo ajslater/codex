@@ -1,4 +1,5 @@
 """Bookmark Model Serializers."""
+
 from codex.models.bookmark import Bookmark
 from codex.serializers.models.base import BaseModelSerializer
 

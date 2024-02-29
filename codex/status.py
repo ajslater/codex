@@ -1,4 +1,5 @@
 """Librarian Status dataclass."""
+
 from dataclasses import dataclass
 from enum import Enum
 

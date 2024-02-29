@@ -1,4 +1,5 @@
 """Fix no parent folder comics."""
+
 from pathlib import Path
 
 from django.db import migrations

@@ -1,4 +1,5 @@
 """Abstract Thread worker for doing queued tasks."""
+
 import time
 from abc import ABC, abstractmethod
 from queue import Empty, SimpleQueue

@@ -1,4 +1,5 @@
 """Aggregate metadata from comcs to prepare for importing."""
+
 from collections.abc import Mapping
 from pathlib import Path
 from zipfile import BadZipFile

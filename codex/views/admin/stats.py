@@ -1,4 +1,5 @@
 """Admin Flag View."""
+
 from pathlib import Path
 from platform import machine, python_version, release, system
 from types import MappingProxyType

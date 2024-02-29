@@ -1,4 +1,5 @@
 """API Key Endpoint."""
+
 from typing import ClassVar
 
 from drf_spectacular.utils import extend_schema

@@ -1,4 +1,5 @@
 """View for marking comics read and unread."""
+
 from typing import ClassVar
 
 from django.db.models import Count, F, IntegerField, Subquery, Value

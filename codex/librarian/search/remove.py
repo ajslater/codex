@@ -1,4 +1,5 @@
 """Search Index cleanup."""
+
 from time import time
 
 from humanize import naturaldelta

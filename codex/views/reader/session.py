@@ -1,4 +1,5 @@
 """Reader session view."""
+
 from codex.serializers.reader import ReaderSettingsSerializer
 from codex.views.session import ReaderSessionViewBase, SessionViewBase
 

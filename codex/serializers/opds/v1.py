@@ -1,4 +1,5 @@
 """Serializers for the browser view."""
+
 from zoneinfo import ZoneInfo
 
 from rest_framework.serializers import (

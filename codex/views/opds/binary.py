@@ -1,4 +1,5 @@
 """Binary views with Basic Authentication added."""
+
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication
 
 from codex.views.cover import CoverView

@@ -1,4 +1,5 @@
 """Librarian Status for imports."""
+
 from collections.abc import Callable
 from enum import Enum
 from time import time

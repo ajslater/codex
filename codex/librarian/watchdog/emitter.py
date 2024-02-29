@@ -1,4 +1,5 @@
 """A Codex database event emitter for use by the observer."""
+
 from pathlib import Path
 from threading import Condition
 

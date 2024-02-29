@@ -1,4 +1,5 @@
 """OPDS v1 Entry Data classes."""
+
 from collections.abc import Mapping
 from dataclasses import dataclass
 

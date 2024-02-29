@@ -1,4 +1,5 @@
 """Libarian Tasks for searchd."""
+
 from dataclasses import dataclass
 
 

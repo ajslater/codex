@@ -1,4 +1,5 @@
 """Parse the hypercorn config for settings."""
+
 import shutil
 
 from hypercorn.config import Config

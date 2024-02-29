@@ -1,4 +1,5 @@
 """Logging Color Formatter."""
+
 import logging
 from types import MappingProxyType
 

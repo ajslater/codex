@@ -1,4 +1,5 @@
 """Notifier ChannelGroups Consumer."""
+
 from enum import Enum
 
 from channels.generic.websocket import AsyncWebsocketConsumer

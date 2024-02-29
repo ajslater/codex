@@ -1,4 +1,5 @@
 """Comic cover thumbnail view."""
+
 from typing import ClassVar
 
 from django.http import HttpResponse

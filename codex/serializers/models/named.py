@@ -1,4 +1,5 @@
 """Named model Serializers."""
+
 from rest_framework.serializers import CharField
 
 from codex.models import (

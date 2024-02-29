@@ -1,4 +1,5 @@
 """Browser Choices Serializer Map."""
+
 from types import MappingProxyType
 
 from rest_framework.serializers import (

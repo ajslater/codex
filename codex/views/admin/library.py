@@ -1,4 +1,5 @@
 """Admin Library Views."""
+
 from pathlib import Path
 from time import time
 from typing import ClassVar

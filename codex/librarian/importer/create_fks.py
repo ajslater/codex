@@ -2,6 +2,7 @@
 
 So we may safely create the comics next.
 """
+
 from itertools import chain
 from pathlib import Path
 

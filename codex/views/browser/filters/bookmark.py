@@ -1,4 +1,5 @@
 """Bookmark filter view methods."""
+
 from django.db.models import Q
 
 from codex.serializers.choices import CHOICES

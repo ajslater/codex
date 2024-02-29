@@ -1,4 +1,5 @@
 """Browser Group Model Serializers."""
+
 from codex.models import (
     Imprint,
     Publisher,

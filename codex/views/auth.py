@@ -1,4 +1,5 @@
 """Views authorization."""
+
 from types import MappingProxyType
 
 from django.conf import settings

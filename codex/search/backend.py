@@ -1,4 +1,5 @@
 """Custom Haystack Search Backend."""
+
 from math import ceil
 from multiprocessing import cpu_count
 from pathlib import Path

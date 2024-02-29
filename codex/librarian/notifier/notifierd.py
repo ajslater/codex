@@ -1,6 +1,5 @@
 """Sends notifications to connections, reading from a queue."""
 
-
 from codex.threads import AggregateMessageQueuedThread
 
 

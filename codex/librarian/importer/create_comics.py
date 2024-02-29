@@ -1,4 +1,5 @@
 """Bulk update and create comic objects and bulk update m2m fields."""
+
 from codex.librarian.importer.const import BULK_UPDATE_COMIC_FIELDS
 from codex.librarian.importer.link_comics import LinkComicsMixin
 from codex.librarian.importer.status import ImportStatusTypes, status_notify

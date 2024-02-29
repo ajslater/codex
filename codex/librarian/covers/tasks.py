@@ -1,4 +1,5 @@
 """Covers Tasks."""
+
 from dataclasses import dataclass
 
 

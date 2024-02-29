@@ -1,4 +1,5 @@
 """Admin view serializers."""
+
 from pathlib import Path
 
 from django.contrib.auth.models import Group, User

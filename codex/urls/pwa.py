@@ -1,4 +1,5 @@
 """codex:pwa URL Configuration."""
+
 from django.urls import path
 from django.views.decorators.cache import cache_page
 

@@ -1,4 +1,5 @@
 """Bulk update m2m fields."""
+
 from pathlib import Path
 
 from django.db.models import Q

@@ -1,4 +1,5 @@
 """Update and create failed imports."""
+
 from pathlib import Path
 
 from django.db.models.functions import Now

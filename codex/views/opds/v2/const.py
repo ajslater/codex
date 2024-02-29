@@ -1,4 +1,5 @@
 """OPDS v2 consts."""
+
 from dataclasses import dataclass
 
 from codex.views.opds.const import Rel

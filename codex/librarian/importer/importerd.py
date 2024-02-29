@@ -1,4 +1,5 @@
 """Bulk import and move comics and folders."""
+
 import logging
 from pathlib import Path
 from time import sleep, time

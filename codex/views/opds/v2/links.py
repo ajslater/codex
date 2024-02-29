@@ -1,4 +1,5 @@
 """Links methods for OPDS v2.0 Feed."""
+
 from copy import deepcopy
 from dataclasses import dataclass
 from urllib.parse import parse_qsl, urlparse

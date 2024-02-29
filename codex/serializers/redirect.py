@@ -1,4 +1,5 @@
 """Notification serializers."""
+
 from rest_framework.serializers import CharField, JSONField, Serializer
 
 from codex.serializers.browser.settings import BrowserSettingsSerializer

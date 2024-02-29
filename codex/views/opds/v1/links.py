@@ -1,4 +1,5 @@
 """OPDS v1 Links methods."""
+
 from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass

@@ -1,4 +1,5 @@
 """Browser Page Serializer."""
+
 from rest_framework.serializers import (
     BooleanField,
     CharField,

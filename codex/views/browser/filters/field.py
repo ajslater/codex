@@ -1,4 +1,5 @@
 """Comic field filters."""
+
 from types import MappingProxyType
 
 from django.db.models import Q

@@ -1,4 +1,5 @@
 """Admin models."""
+
 import base64
 import uuid
 

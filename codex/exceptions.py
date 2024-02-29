@@ -1,4 +1,5 @@
 """Special Redirect Error."""
+
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.http import urlencode

@@ -1,4 +1,5 @@
 """Publication Methods for OPDS v2.0 feed."""
+
 from types import MappingProxyType
 from urllib.parse import quote_plus
 

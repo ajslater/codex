@@ -1,4 +1,5 @@
 """Bookmeark model."""
+
 from django.conf import settings
 from django.contrib.sessions.models import Session
 from django.db.models import (

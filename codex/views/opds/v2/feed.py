@@ -1,4 +1,5 @@
 """OPDS v2.0 Feed."""
+
 from datetime import datetime, timezone
 from types import MappingProxyType
 

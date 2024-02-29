@@ -5,6 +5,7 @@ but the built-in filesystem event emitters serialize them, so the most
 consistent thing is for the DBEmitter to serialize them in the same way
 and then re-serialize everything in this batcher and the event Handler
 """
+
 from contextlib import suppress
 from copy import deepcopy
 from types import MappingProxyType

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Create large numbers of mocks comics."""
+
 import string
 import time
 import zipfile

@@ -1,4 +1,5 @@
 """Search Engine to database matching."""
+
 from uuid import uuid4
 
 from codex.librarian.search.tasks import SearchIndexUpdateTask

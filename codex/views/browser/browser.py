@@ -1,4 +1,5 @@
 """Views for browsing comic library."""
+
 from copy import deepcopy
 from types import MappingProxyType
 from typing import ClassVar

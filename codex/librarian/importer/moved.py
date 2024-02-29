@@ -1,4 +1,5 @@
 """Bulk import and move comics and folders."""
+
 from pathlib import Path
 
 from django.db.models.functions import Now

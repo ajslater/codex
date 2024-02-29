@@ -1,4 +1,5 @@
 """Views for reading comic books."""
+
 from django.db.models import F, IntegerField, Value
 from django.urls import reverse
 from drf_spectacular.types import OpenApiTypes

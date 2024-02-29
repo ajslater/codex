@@ -1,4 +1,5 @@
 """Hold the current codex version."""
+
 import json
 from datetime import timedelta
 from importlib.metadata import PackageNotFoundError, version

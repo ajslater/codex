@@ -1,4 +1,5 @@
 """Base view for metadata annotations."""
+
 from os.path import sep
 
 from django.db.models import (

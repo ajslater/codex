@@ -1,4 +1,5 @@
 """codex:api:v3:auth URL Configuration."""
+
 from django.urls import include, path
 
 from codex.views.auth import AdminFlagsView, TimezoneView

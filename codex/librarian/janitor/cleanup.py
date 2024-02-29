@@ -1,4 +1,5 @@
 """Clean up the database after moves or imports."""
+
 import logging
 from time import time
 

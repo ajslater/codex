@@ -1,4 +1,5 @@
 """Search Filters Methods."""
+
 from django.db.models import Q
 
 from codex._vendor.haystack.query import SearchQuerySet

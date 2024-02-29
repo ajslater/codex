@@ -1,4 +1,5 @@
 """Haystack Search index updater."""
+
 from codex.librarian.search.merge import MergeMixin
 from codex.librarian.search.tasks import (
     SearchIndexClearTask,

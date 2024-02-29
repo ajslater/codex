@@ -1,4 +1,5 @@
 """Frontend views."""
+
 from typing import ClassVar
 
 from rest_framework.renderers import TemplateHTMLRenderer

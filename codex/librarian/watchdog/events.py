@@ -1,4 +1,5 @@
 """Watchdog Event Handlers."""
+
 import re
 from os import fsdecode
 

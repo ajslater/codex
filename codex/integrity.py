@@ -1,4 +1,5 @@
 """Repair Database Integrity Errors."""
+
 import re
 import sqlite3
 from types import MappingProxyType

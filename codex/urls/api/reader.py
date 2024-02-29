@@ -1,4 +1,5 @@
 """codex:api:v3:reader URL Configuration."""
+
 from django.urls import path
 from django.views.decorators.cache import cache_control, cache_page
 

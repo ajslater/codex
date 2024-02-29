@@ -1,4 +1,5 @@
 """Watchdog Status Types."""
+
 from django.db.models import Choices
 
 

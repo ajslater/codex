@@ -1,4 +1,5 @@
 """Serializers for codex models."""
+
 from rest_framework.serializers import IntegerField
 
 from codex.models import (

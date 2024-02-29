@@ -1,4 +1,5 @@
 """Custom Codex Writer."""
+
 from threading import RLock
 from time import sleep
 

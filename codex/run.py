@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """The main runnable for codex. Sets up codex and runs hypercorn."""
+
 import asyncio
 from os import execv
 

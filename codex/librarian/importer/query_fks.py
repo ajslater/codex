@@ -1,4 +1,5 @@
 """Query the missing foreign keys for comics and contributors."""
+
 from logging import DEBUG, INFO
 from pathlib import Path
 from types import MappingProxyType

@@ -1,4 +1,5 @@
 """Unused OPDS v2 Serializers."""
+
 from rest_framework.fields import CharField, DateTimeField, DecimalField, IntegerField
 from rest_framework.serializers import ChoiceField, Serializer
 

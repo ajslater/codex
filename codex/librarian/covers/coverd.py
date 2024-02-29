@@ -1,4 +1,5 @@
 """Functions for dealing with comic cover thumbnails."""
+
 from codex.librarian.covers.create import CoverCreateMixin
 from codex.librarian.covers.purge import CoverPurgeMixin
 from codex.librarian.covers.tasks import (

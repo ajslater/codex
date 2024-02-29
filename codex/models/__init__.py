@@ -1,4 +1,5 @@
 """Codex Django models."""
+
 from codex.models.admin import *
 from codex.models.bookmark import *
 from codex.models.comic import *

@@ -1,4 +1,5 @@
 """The Codex Library Watchdog Observer threads."""
+
 from watchdog.observers import Observer
 from watchdog.observers.api import (
     DEFAULT_OBSERVER_TIMEOUT,

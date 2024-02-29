@@ -1,4 +1,5 @@
 """Browser session view."""
+
 from codex.serializers.browser.settings import BrowserSettingsSerializer
 from codex.views.session import BrowserSessionViewBase, SessionViewBase
 

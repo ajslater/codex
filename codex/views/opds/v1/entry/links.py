@@ -1,4 +1,5 @@
 """OPDS v1 Entry Links Methods."""
+
 from urllib.parse import quote_plus
 
 from django.contrib.staticfiles.storage import staticfiles_storage
