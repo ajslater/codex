@@ -79,9 +79,10 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
         dest_parent_folder_paths = set()
         for dest_folder_path in dest_folder_paths:
             dest_parent_path = str(Path(dest_folder_path).parent)
-            dest_parent_folder_paths.add(dest_parent_path)
+            if dest_parent_path not in dest_folder_paths:
+                dest_parent_folder_paths.add(dest_parent_path)
 
-        # Create intermediate subfolders.
+        # Create only intermediate subfolders.
         existing_folder_paths = Folder.objects.filter(
             library=library, path__in=dest_parent_folder_paths
         ).values_list("path", flat=True)
@@ -112,11 +113,11 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
         )
 
         src_folder_paths = frozenset(folders_moved.keys())
-        folders = Folder.objects.filter(library=library, path__in=src_folder_paths)
+        folders_to_move = Folder.objects.filter(library=library, path__in=src_folder_paths).order_by("path")
 
         update_folders = []
         now = Now()
-        for folder in folders.iterator():
+        for folder in folders_to_move.iterator():
             new_path = folders_moved[folder.path]
             folder.name = Path(new_path).name
             folder.path = new_path

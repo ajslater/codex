@@ -21,6 +21,7 @@ border-radius: 128px;
   - OPDS was showing repeated titles.
   - Page filenames are now sorted case insensitively which should improve order.
   - Moving a comic to a subfolder would crash.
+  - Moving a deep subfolders would crash.
 - Features
   - New metadata tags: Monochrome, Tagger, GTIN, Review, Identifiers, Reading
     Direction.
