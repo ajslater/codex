@@ -33,6 +33,7 @@ border-radius: 128px;
   - New metadata available when comics are re-imported (Force Update
     recommended).
   - Filesystem events filtered to only the ones Codex handles.
+  - Read PDF in browser link in reader drawer.
 - Dev
   - Using comicbox v1.0.0 for metadata import.
 

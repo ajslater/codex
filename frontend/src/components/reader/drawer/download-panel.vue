@@ -13,12 +13,19 @@
         >Download Book
       </v-list-item-title>
     </v-list-item>
+    <v-list-item v-if="isPDF" @click="openBookInBrowser">
+      <v-list-item-title>
+        <v-icon>{{ mdiOpenInNew }}</v-icon
+        >Read PDF with Browser
+      </v-list-item-title>
+    </v-list-item>
   </div>
 </template>
 <script>
-import { mdiDownload, mdiFileImage } from "@mdi/js";
+import { mdiDownload, mdiFileImage, mdiOpenInNew } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
 
+import { getBookInBrowserURL } from "@/api/v3/common";
 import { getDownloadPageURL, getDownloadURL } from "@/api/v3/reader";
 import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
@@ -29,6 +36,7 @@ export default {
     return {
       mdiDownload,
       mdiFileImage,
+      mdiOpenInNew,
     };
   },
   computed: {
@@ -37,7 +45,13 @@ export default {
       storePage: (state) => state.page,
       filename: (state) => state.books?.current?.filename,
       downloadURL(state) {
-        return getDownloadURL(state.books.current.pk);
+        return getDownloadURL(state.books?.current?.pk);
+      },
+      bookInBrowserURL(state) {
+        return getBookInBrowserURL(state.books?.current?.pk);
+      },
+      isPDF(state) {
+        return state.books?.current?.fileType == "PDF";
       },
     }),
     pageSrc() {
@@ -54,6 +68,9 @@ export default {
     },
     downloadBook() {
       this.downloadIOSPWAFix(this.downloadURL, this.filename);
+    },
+    openBookInBrowser() {
+      window.open(this.bookInBrowserURL, "_blank");
     },
   },
 };

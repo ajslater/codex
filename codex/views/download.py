@@ -27,6 +27,7 @@ class DownloadView(APIView, GroupACLMixin):
         "issue_suffix",
         "name",
     )
+    AS_ATTACHMENT = True
 
     @extend_schema(responses={(200, content_type): OpenApiTypes.BINARY})
     def get(self, *_args, **kwargs):
@@ -46,9 +47,23 @@ class DownloadView(APIView, GroupACLMixin):
 
         # FileResponse requires file handle not be closed in this method.
         comic_file = Path(comic.path).open("rb")  # noqa: SIM115
+        content_type = "application/"
+        if comic.file_type == "PDF":
+            content_type += "pdf"
+        elif comic.file_type:
+            content_type += "vnd.comicbook+" + comic.file_type.lower()
+        else:
+            content_type += "octet-stream"
+
         return FileResponse(
             comic_file,
-            as_attachment=True,
-            content_type=self.content_type,
+            as_attachment=self.AS_ATTACHMENT,
+            content_type=content_type,
             filename=comic.filename(),
         )
+
+
+class FileView(DownloadView):
+    """View a comic in the browser."""
+
+    AS_ATTACHMENT = False
