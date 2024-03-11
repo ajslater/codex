@@ -130,6 +130,13 @@ codex
 
 and then navigate to <http://localhost:9810/>
 
+### Install & Run on your prexisting HomeAssistant server
+
+If you have a [HomeAssistant](https://www.home-assistant.io/) server, Codex can be installed with the following steps :
+- Add the `https://github.com/alexbelgium/hassio-addons` repository by [clicking here](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Falexbelgium%2Fhassio-addons)
+- Install the addon : [click here to automatically open the addon store, then install the addon](https://my.home-assistant.io/redirect/supervisor)
+- Customize addon options, then then start the add-on.
+
 ## <a name="administration">👑 Administration</a>
 
 ### Navigate to the Admin Panel

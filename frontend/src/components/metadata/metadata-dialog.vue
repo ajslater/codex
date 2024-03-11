@@ -229,6 +229,7 @@
     </div>
   </v-dialog>
 </template>
+
 <script>
 import { mdiDownload, mdiEye, mdiEyeOff, mdiTagOutline } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
@@ -269,8 +270,8 @@ export default {
       type: String,
       required: true,
     },
-    pk: {
-      type: Number,
+    book: {
+      type: Object,
       required: true,
     },
     children: {
@@ -313,7 +314,7 @@ export default {
       q: (state) => state.settings.q,
     }),
     downloadURL() {
-      return getDownloadURL(this.pk);
+      return getDownloadURL(this.book);
     },
     isReadButtonShown() {
       return this.group === "c" && this.$route.name != "reader";
@@ -396,7 +397,7 @@ export default {
     dialogOpened() {
       this.loadMetadata({
         group: this.group,
-        pk: this.pk,
+        pk: this.book.pk,
       });
       this.startProgress();
     },
@@ -428,97 +429,117 @@ export default {
 
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
+
 #metadataContainer {
   display: flex;
   flex-direction: column;
   max-width: 100vw;
 }
+
 #search {
   margin-bottom: 10px;
 }
+
 #metadataHeader {
   height: fit-content;
   max-width: 100vw;
 }
-#metadataBody {
-}
+
 #placeholderContainer {
   min-height: 100%;
   min-width: 100%;
   text-align: center;
 }
+
 #placeholderTitle {
   font-size: xx-large;
   color: rgb(var(--v-theme-textDisabled));
 }
+
 .closeButton {
   float: right;
   margin-left: 5px;
 }
+
 #metadataBookCoverWrapper {
   float: left;
   position: relative;
   padding-top: 0px !important;
   margin-right: 15px;
 }
+
 #bookCover {
   position: relative;
 }
+
 .bookCoverProgress {
   margin-top: 1px;
 }
+
 #bookCover {
   padding-top: 0px !important;
 }
-.inlineRow > * {
+
+.inlineRow>* {
   display: inline-flex;
 }
+
 .mdSection {
   margin-top: 25px;
 }
+
 #footerLinks {
   margin-top: 20px;
 }
+
 #downloadButton {
   margin-right: 10px;
 }
+
 #bottomRightButtons {
   float: right;
 }
+
 #metadataContainer,
 #placeholderContainer {
   padding-top: calc(20px + env(safe-area-inset-top));
   padding-left: calc(20px + env(safe-area-inset-left));
   padding-right: calc(20px + env(safe-area-inset-right));
 }
+
 .placeholder {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
 }
-.headerHalfRow > * {
+
+.headerHalfRow>* {
   width: calc((100vw - 175px) / 2);
   display: inline-flex;
 }
-.headerQuarterRow > * {
+
+.headerQuarterRow>* {
   width: calc((100vw - 175px) / 4);
   display: inline-flex;
 }
 
-.halfRow > * {
+.halfRow>* {
   width: 50%;
   display: inline-flex;
 }
-.thirdRow > * {
+
+.thirdRow>* {
   width: 33.333%;
   display: inline-flex;
 }
-.quarterRow > * {
+
+.quarterRow>* {
   width: 25%;
   display: inline-flex;
 }
-.quintRow > * {
+
+.quintRow>* {
   width: 20%;
   display: inline-flex;
 }

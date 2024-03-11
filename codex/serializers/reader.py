@@ -4,6 +4,7 @@ from rest_framework.serializers import (
     BooleanField,
     CharField,
     ChoiceField,
+    DateTimeField,
     DecimalField,
     IntegerField,
     Serializer,
@@ -40,6 +41,7 @@ class ReaderComicSerializer(Serializer):
     settings = ReaderSettingsSerializer(read_only=True)
     max_page = IntegerField(read_only=True)
     reading_direction = CharField(read_only=True)
+    mtime = DateTimeField(format="%s", read_only=True)
 
 
 class ReaderCurrentArcSerializer(Serializer):

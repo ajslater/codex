@@ -1,6 +1,7 @@
 import { FlatCompat } from "@eslint/eslintrc";
 import js from "@eslint/js";
 import arrayFunc from "eslint-plugin-array-func";
+import markdown from "eslint-plugin-markdown";
 // import plugin broken for flag config
 // https://github.com/import-js/eslint-plugin-import/issues/2556
 // import importPlugin from "eslint-plugin-import";
@@ -25,6 +26,7 @@ export default [
       // import: importPlugin,
       security: pluginSecurity,
       unicorn: eslintPluginUnicorn,
+      markdown: markdown,
     },
     rules: {
       "array-func/prefer-array-from": "off", // for modern browsers the spread operator, as preferred by unicorn, works fine.
@@ -66,9 +68,29 @@ export default [
     },
      */
   },
+  ...markdown.configs.recommended,
   js.configs.recommended,
   arrayFunc.configs.all,
-  pluginSecurity.configs.recommended,
+  {
+    files: ["**/*.md"],
+    processor: "markdown/markdown",
+    rules: {
+      "prettier-vue/prettier": ["warn", { parser: "markdown" }],
+    },
+  },
+  {
+    files: ["**/*.md/*.js"], // Will match js code inside *.md files
+    rules: {
+      "no-unused-vars": "off",
+      "no-undef": "off",
+    },
+  },
+  {
+    files: ["**/*.md/*.sh"],
+    rules: {
+      "prettier-vue/prettier": ["error", { parser: "sh" }],
+    },
+  },
   ...compat.config({
     root: true,
     env: {
@@ -80,7 +102,6 @@ export default [
       // LANGS
       "plugin:jsonc/recommended-with-json",
       "plugin:jsonc/prettier",
-      "plugin:markdown/recommended",
       "plugin:toml/recommended",
       "plugin:yml/standard",
       "plugin:yml/prettier",
@@ -99,26 +120,6 @@ export default [
       "plugin:no-unsanitized/DOM",
     ],
     overrides: [
-      {
-        files: ["**/*.md"],
-        processor: "markdown/markdown",
-        rules: {
-          "prettier-vue/prettier": ["warn", { parser: "markdown" }],
-        },
-      },
-      {
-        files: ["**/*.md/*.js"], // Will match js code inside *.md files
-        rules: {
-          "no-unused-vars": "off",
-          "no-undef": "off",
-        },
-      },
-      {
-        files: ["**/*.md/*.sh"],
-        rules: {
-          "prettier-vue/prettier": ["error", { parser: "sh" }],
-        },
-      },
       {
         files: ["*.yaml", "*.yml"],
         //parser: "yaml-eslint-parser",

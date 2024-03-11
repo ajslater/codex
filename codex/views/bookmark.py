@@ -58,6 +58,18 @@ class BookmarkBaseView(GenericAPIView, GroupACLMixin):
             search_kwargs["session_id"] = self.request.session.session_key
         return search_kwargs
 
+    @staticmethod
+    def _update_bookmarks_validate_page(bm, updates):
+        """Force bookmark page into valid range."""
+        page = updates.get("page")
+        if page is None:
+            return
+        page = max(min(page, bm.comic.max_page), 0)
+        if page == bm.comic.max_page:
+            # Auto finish on bookmark last page
+            bm.finished = True
+        updates["page"] = page
+
     def _update_bookmarks(self, search_kwargs, updates):
         """Update existing bookmarks."""
         group_acl_filter = self.get_group_acl_filter(Bookmark)
@@ -70,10 +82,7 @@ class BookmarkBaseView(GenericAPIView, GroupACLMixin):
         update_bookmarks = []
         existing_comic_pks = set()
         for bm in existing_bookmarks:
-            if updates.get("page") == bm.comic.max_page:
-                # Auto finish on bookmark last page
-                bm.finished = True
-
+            self._update_bookmarks_validate_page(bm, updates)
             for key, value in updates.items():
                 setattr(bm, key, value)
             update_bookmarks.append(bm)

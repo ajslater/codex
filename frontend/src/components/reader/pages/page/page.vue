@@ -8,9 +8,10 @@
     <component
       :is="component"
       v-else
-      :src="src"
-      :fit-to-class="fitToClass"
       :book="book"
+      :fit-to-class="fitToClass"
+      :page="1"
+      :src="src"
       @error="onError"
       @load="onLoad"
       @unauthorized="onUnauthorized"
@@ -27,9 +28,7 @@ import { getComicPageSource } from "@/api/v3/reader";
 import LoadingPage from "@/components/reader/pages/page/page-loading.vue";
 import { useReaderStore } from "@/stores/reader";
 const PDFPage = markRaw(
-  defineAsyncComponent(
-    () => import("@/components/reader/pages/page/page-pdf.vue"),
-  ),
+  defineAsyncComponent(() => import("@/components/reader/pages/page/pdf.vue")),
 );
 import ErrorPage from "@/components/reader/pages/page/page-error.vue";
 import ImgPage from "@/components/reader/pages/page/page-img.vue";
@@ -79,12 +78,15 @@ export default {
       return classes;
     },
     src() {
-      const params = { pk: this.book.pk, page: this.page };
+      const params = {
+        pk: this.book.pk,
+        page: this.page,
+        mtime: this.book.mtime,
+      };
       return getComicPageSource(params);
     },
     component() {
-      const isPDF = this.book.fileType === "PDF";
-      return isPDF ? PDFPage : ImgPage;
+      return this.book.fileType === "PDF" ? PDFPage : ImgPage;
     },
     settings() {
       return this.getSettings(this.book);
@@ -121,6 +123,7 @@ export default {
   display: inline;
   font-size: 0;
 }
+
 .pageVertical {
   display: block;
   font-size: 0;

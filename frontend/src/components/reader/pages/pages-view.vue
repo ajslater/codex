@@ -1,6 +1,12 @@
 <template>
+  <PagesPdf
+    v-if="readFullPdf"
+    :book="book"
+    :fit-to-class="{ fitToVertical: true }"
+    @click="$emit['click']"
+  />
   <PagesVerticalScroller
-    v-if="isVertical"
+    v-else-if="isVertical"
     :book="book"
     @click="$emit['click']"
   />
@@ -10,6 +16,7 @@
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
 
+import PagesPdf from "@/components/reader/pages/full-pdf.vue";
 import PagesHorizontalWindow from "@/components/reader/pages/horizontal-window.vue";
 import PagesVerticalScroller from "@/components/reader/pages/vertical-scroller.vue";
 import { useReaderStore } from "@/stores/reader";
@@ -18,17 +25,24 @@ export default {
   name: "PagesView",
   components: {
     PagesHorizontalWindow,
+    PagesPdf,
     PagesVerticalScroller,
   },
   props: {
     book: { type: Object, required: true },
   },
   emits: ["click"],
+  head() {
+    return this.prefetchBook(this.book);
+  },
   computed: {
-    ...mapGetters(useReaderStore, ["isVertical"]),
+    ...mapGetters(useReaderStore, ["isVertical", "cacheBook"]),
     ...mapState(useReaderStore, {
       storePk: (state) => state.books?.current?.pk || 0,
     }),
+    readFullPdf() {
+      return this.book.fileType == "PDF" && this.cacheBook;
+    },
   },
   watch: {
     $route(to) {
@@ -44,7 +58,11 @@ export default {
     }
   },
   methods: {
-    ...mapActions(useReaderStore, ["setActivePage"]),
+    ...mapActions(useReaderStore, [
+      "getSettings",
+      "setActivePage",
+      "prefetchBook",
+    ]),
   },
 };
 </script>

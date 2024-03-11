@@ -25,7 +25,7 @@
       />
     </v-radio-group>
     <v-checkbox
-      :disabled="isVertical"
+      :disabled="disableTwoPages"
       class="displayTwoPages"
       density="compact"
       label="Two pages"
@@ -54,6 +54,25 @@
       />
     </v-radio-group>
     <v-checkbox
+      :model-value="cacheBook"
+      class="cacheBook"
+      density="compact"
+      :disabled="disableCacheBook"
+      label="Cache Entire Book"
+      hide-details="auto"
+      :true-value="true"
+      @update:model-value="setSettingsClient({ cacheBook: $event })"
+    />
+    <a
+      v-if="isPDF"
+      id="readPDFInBrowser"
+      :href="bookInBrowserURL"
+      target="_blank"
+    >
+      <v-icon>{{ mdiOpenInNew }}</v-icon
+      >Read PDF in Browser
+    </a>
+    <v-checkbox
       v-if="isGlobalScope"
       :model-value="selectedSettings.readRtlInReverse"
       class="readRtlInReverse"
@@ -74,9 +93,12 @@
     </v-btn>
   </div>
 </template>
+
 <script>
+import { mdiOpenInNew } from "@mdi/js";
 import { mapActions, mapGetters, mapState, mapWritableState } from "pinia";
 
+import { getBookInBrowserURL } from "@/api/v3/common";
 import { useReaderStore } from "@/stores/reader";
 
 const ATTRS = ["fitTo", "readingDirection", "twoPages"];
@@ -87,10 +109,11 @@ export default {
   data() {
     return {
       isGlobalScope: false,
+      mdiOpenInNew,
     };
   },
   computed: {
-    ...mapGetters(useReaderStore, ["isVertical"]),
+    ...mapGetters(useReaderStore, ["isVertical", "isPDF", "cacheBook"]),
     ...mapState(useReaderStore, {
       choices: (state) => state.choices,
       selectedSettings(state) {
@@ -110,6 +133,9 @@ export default {
         }
         return true;
       },
+      bookInBrowserURL(state) {
+        return getBookInBrowserURL(state.books?.current);
+      },
     }),
     ...mapWritableState(useReaderStore, ["readRtlInReverse"]),
     fitToChoices() {
@@ -117,6 +143,12 @@ export default {
     },
     readingDirectionChoices() {
       return this.choicesWithoutNull("readingDirection");
+    },
+    disableTwoPages() {
+      return this.isVertical || (this.isPDF && this.cacheBook);
+    },
+    disableCacheBook() {
+      return this.isVertical && this.isPDF;
     },
   },
   mounted() {
@@ -131,6 +163,7 @@ export default {
       "clearSettingsLocal",
       "setSettingsGlobal",
       "setSettingsLocal",
+      "setSettingsClient",
     ]),
     settingsDialogChanged(data) {
       if (this.isGlobalScope) {
@@ -204,6 +237,7 @@ export default {
   },
 };
 </script>
+
 <style scoped lang="scss">
 #readerSettings {
   padding-top: 10px;
@@ -212,19 +246,29 @@ export default {
   padding-bottom: 10px;
   background-color: inherit;
 }
+
 .displayRadioGroup {
   margin-top: 15px;
 }
+
 .displayTwoPages {
   margin-top: 5px;
   margin-bottom: 10px;
 }
+
 .readRtlInReverse {
   transition: visibility 0.25s, opacity 0.25s;
 }
+
 #clearSettingsButton {
   margin-top: 4px;
   margin-bottom: 4px;
   transition: visibility 0.25s, opacity 0.25s;
+}
+
+#readPDFInBrowser {
+  display: block;
+  padding-left: 2px;
+  color: rgba(var(--v-theme-textSecondary));
 }
 </style>

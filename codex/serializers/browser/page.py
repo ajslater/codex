@@ -3,6 +3,7 @@
 from rest_framework.serializers import (
     BooleanField,
     CharField,
+    DateTimeField,
     DecimalField,
     IntegerField,
     Serializer,
@@ -31,6 +32,7 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin):
     order_value = CharField(read_only=True)
     page_count = IntegerField(read_only=True)
     reading_direction = CharField(read_only=True)
+    mtime = DateTimeField(format="%s", read_only=True)
 
 
 class BrowserRouteSerializer(Serializer):

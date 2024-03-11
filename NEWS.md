@@ -33,7 +33,8 @@ border-radius: 128px;
   - New metadata available when comics are re-imported (Force Update
     recommended).
   - Filesystem events filtered to only the ones Codex handles.
-  - Read PDF in browser link in reader drawer.
+  - Read PDF in browser link.
+  - Experimental checkbox for caching entire comic or PDF in the browser.
 - Dev
   - Using comicbox v1.0.0 for metadata import.
 

@@ -30,10 +30,9 @@ export const getReaderBasePath = (pk) => {
   return window.CODEX.API_V3_PATH + getReaderPath(pk);
 };
 
-export const getBookInBrowserURL = (pk) => {
+export const getBookInBrowserURL = ({ pk, mtime }) => {
   const BASE_URL = window.CODEX.APP_PATH + getReaderPath(pk);
-  const timestamp = getTSParams().ts;
-  return `${BASE_URL}/book.pdf?ts=${timestamp}`;
+  return `${BASE_URL}/book.pdf?mtime=${mtime}`;
 };
 
 export const getTSParams = () => {

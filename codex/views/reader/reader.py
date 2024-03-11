@@ -31,6 +31,7 @@ class ReaderView(BookmarkBaseView):
         "series",
         "volume",
         "reading_direction",
+        "updated_at",
     )
     _VALID_ARC_GROUPS = frozenset({"f", "s", "a"})
 
@@ -85,6 +86,7 @@ class ReaderView(BookmarkBaseView):
                 arc_name=F(arc_name_rel),
                 arc_index=arc_index,
             )
+            .annotate(mtime=F("updated_at"))
         )
 
         return qs.order_by(*ordering)

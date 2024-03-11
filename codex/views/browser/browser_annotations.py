@@ -267,6 +267,10 @@ class BrowserAnnotationsView(BrowserOrderByView):
         progress = Case(When(page_count__gt=0, then=then), default=0.0)
         return queryset.annotate(progress=progress)
 
+    @staticmethod
+    def _annotate_mtime(queryset):
+        return queryset.annotate(mtime=Max("updated_at"))
+
     def annotate_common_aggregates(self, qs, model, search_scores):
         """Annotate common aggregates between browser and metadata."""
         qs = self._annotate_search_score(qs, search_scores, model)
@@ -281,4 +285,5 @@ class BrowserAnnotationsView(BrowserOrderByView):
         # cover depends on the above annotations for order-by
         qs = self._annotate_cover_pk(qs, model)
         qs = self._annotate_bookmarks(qs, model, bm_rel, bm_filter)
+        qs = self._annotate_mtime(qs)
         return self._annotate_progress(qs)

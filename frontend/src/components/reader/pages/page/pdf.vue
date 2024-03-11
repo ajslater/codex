@@ -1,8 +1,9 @@
 <template>
   <vue-pdf-embed
-    class="pdfPage"
+    class="pdfDoc"
+    image-resources-path="https://unpkg.com/pdfjs-dist/web/images/"
     :class="fitToClass"
-    :page="1"
+    :page="page"
     :source="src"
     :width="width"
     :height="height"
@@ -15,24 +16,22 @@
 </template>
 
 <script>
-import { mapActions, mapGetters } from "pinia";
+import { mapActions, mapState } from "pinia";
 import VuePdfEmbed from "vue-pdf-embed";
 
 import { useReaderStore } from "@/stores/reader";
 
 export default {
-  name: "PDFPage",
+  name: "PDFDoc",
   components: { VuePdfEmbed },
   props: {
     book: { type: Object, required: true },
-    src: {
-      type: String,
-      required: true,
-    },
     fitToClass: {
       type: Object,
       required: true,
     },
+    page: { type: Number, required: true },
+    src: { type: String, required: true },
   },
   emits: ["load", "error", "unauthorized"],
   data() {
@@ -42,7 +41,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useReaderStore, ["isVertical"]),
+    ...mapState(useReaderStore, ["isVertical"]),
     settings() {
       return this.getSettings(this.book);
     },
@@ -84,7 +83,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.pdfPage {
+.pdfDoc {
   display: inline-block;
 }
 

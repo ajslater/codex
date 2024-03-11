@@ -17,6 +17,10 @@ const NULL_READER_SETTINGS = {
   readRtlInReverse: null,
 };
 Object.freeze(NULL_READER_SETTINGS);
+const NULL_CLIENT_SETTINGS = {
+  cacheBook: false,
+};
+Object.freeze(NULL_CLIENT_SETTINGS);
 
 const SETTINGS_NULL_VALUES = new Set(["", null, undefined]);
 Object.freeze(SETTINGS_NULL_VALUES);
@@ -85,6 +89,9 @@ export const useReaderStore = defineStore("reader", {
     },
     bookChange: undefined,
     reactWithScroll: false,
+    clientSettings: {
+      cacheBook: false,
+    },
   }),
   getters: {
     groupBooks(state) {
@@ -125,6 +132,15 @@ export const useReaderStore = defineStore("reader", {
       return VERTICAL_READING_DIRECTIONS.has(
         state.activeSettings.readingDirection,
       );
+    },
+    isPDF(state) {
+      return state.books?.current?.fileType == "PDF";
+    },
+    cacheBook(state) {
+      return state.clientSettings.cacheBook && !(this.isPDF && this.isVertical);
+    },
+    isPagesNotRoutes(state) {
+      return state.isVertical || this.cacheBook;
     },
     isReadInReverse(state) {
       return REVERSE_READING_DIRECTIONS.has(
@@ -308,7 +324,7 @@ export const useReaderStore = defineStore("reader", {
       this.reactWithScroll = Boolean(reactWithScroll);
       this.page = +page;
       this.setRoutesAndBookmarkPage(page);
-      if (this.isVertical) {
+      if (this.isPagesNotRoutes) {
         const route = { params: { pk: this.books.current.pk, page } };
         const { href } = router.resolve(route);
         window.history.pushState({}, undefined, href);
@@ -392,8 +408,15 @@ export const useReaderStore = defineStore("reader", {
         this.books.current.settings,
       );
     },
+    setSettingsClient(updates) {
+      this.clientSettings = {
+        ...this.clientSettings,
+        ...updates,
+      };
+    },
     async clearSettingsLocal() {
       await this.setSettingsLocal(NULL_READER_SETTINGS);
+      this.setSettingsClient(NULL_CLIENT_SETTINGS);
     },
     async setSettingsGlobal(data) {
       this._updateSettings(data, false);
@@ -430,7 +453,7 @@ export const useReaderStore = defineStore("reader", {
     },
     _routeTo(params, book) {
       params = this._validateRoute(params, book);
-      if (this.isVertical && +params.pk === this.books.current.pk) {
+      if (this.isPagesNotRoutes && +params.pk === this.books.current.pk) {
         this.setActivePage(+params.page, true);
       } else {
         const route = { name: "reader", params };
@@ -493,16 +516,34 @@ export const useReaderStore = defineStore("reader", {
       if (page > book.maxPage) {
         return false;
       }
-      const paramsPlus = { pk: params.pk, page };
+      const paramsPlus = { pk: params.pk, page, mtime: book.mtime };
       return getComicPageSource(paramsPlus);
     },
     prefetchLinks(params, direction, bookChange = false) {
+      if (!bookChange && this.cacheBook) {
+        return {};
+      }
       const sources = [
         this._prefetchSrc(params, direction, bookChange, false),
         this._prefetchSrc(params, direction, bookChange, true),
       ];
       const link = [];
       for (const href of sources) {
+        if (href) {
+          link.push({ ...PREFETCH_LINK, href });
+        }
+      }
+      return { link };
+    },
+    prefetchBook(book) {
+      if (!this.cacheBook || book.fileType == "PDF") {
+        return {};
+      }
+      const pk = book.pk;
+      const link = [];
+      for (let page = 0; page <= book.maxPage; page++) {
+        const params = { pk, page, mtime: book.mtime };
+        const href = getComicPageSource(params);
         if (href) {
           link.push({ ...PREFETCH_LINK, href });
         }
