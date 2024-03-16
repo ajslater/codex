@@ -19,5 +19,6 @@ codex/templates/pwa/manifest.webmanifest
 comics
 dist
 frontend
+package-lock.json
 poetry.lock
 webpack-stats.json

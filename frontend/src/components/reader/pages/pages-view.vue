@@ -3,14 +3,9 @@
     v-if="readFullPdf"
     :book="book"
     :fit-to-class="{ fitToVertical: true }"
-    @click="$emit['click']"
   />
-  <PagesVerticalScroller
-    v-else-if="isVertical"
-    :book="book"
-    @click="$emit['click']"
-  />
-  <PagesHorizontalWindow v-else :book="book" @click="$emit['click']" />
+  <PagesVerticalScroller v-else-if="isVertical" :book="book" />
+  <PagesHorizontalWindow v-else :book="book" />
 </template>
 
 <script>

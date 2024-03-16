@@ -1,5 +1,5 @@
 <template>
-  <div :id="`page${page}`" :data-page="page" :class="pageClass">
+  <div :id="`page${page}`" :data-page="page" class="page" :style="style">
     <ErrorPage v-if="error" :two-pages="settings.twoPages" :type="error" />
     <LoadingPage
       v-else-if="showProgress && !loaded"
@@ -8,6 +8,7 @@
     <component
       :is="component"
       v-else
+      ref="pageComponent"
       :book="book"
       :fit-to-class="fitToClass"
       :page="1"
@@ -20,7 +21,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 import titleize from "titleize";
 import { defineAsyncComponent, markRaw } from "vue";
 
@@ -59,11 +60,28 @@ export default {
   },
   computed: {
     ...mapGetters(useReaderStore, ["isVertical"]),
-    pageClass() {
-      return this.isVertical ? "pageVertical" : "pageHorizontal";
+    ...mapState(useReaderStore, {
+      scale: (state) => state.clientSettings.scale,
+    }),
+    style() {
+      // Magic for transform: scale() not sizing elements right.
+      const s = {};
+      if (this.book.fileType === "PDF" || this.scale == 1) {
+        return s;
+      }
+      const img = this.$refs.pageComponent?.$el;
+      if (!img?.naturalHeight) {
+        return s;
+      }
+      s.height = img.naturalHeight * this.scale + "px";
+      s.width = img.naturalWidth * this.scale + "px";
+      return s;
     },
     fitToClass() {
-      let classes = {};
+      const classes = {};
+      if (this.scale > 1) {
+        return classes;
+      }
       const fitTo = FIT_TO_CHOICES[this.settings.fitTo];
       if (fitTo) {
         let fitToClass = "fitTo";
@@ -119,13 +137,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.pageHorizontal {
-  display: inline;
-  font-size: 0;
-}
-
-.pageVertical {
-  display: block;
+.page {
   font-size: 0;
 }
 </style>

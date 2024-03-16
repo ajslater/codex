@@ -52,6 +52,10 @@
               <td>n</td>
               <td>Next Book</td>
             </tr>
+            <tr>
+              <td>esc</td>
+              <td>Close book</td>
+            </tr>
           </tbody>
         </table>
         <h4>Fit Page To</h4>
@@ -103,8 +107,8 @@
               <td>Show comic's metadata</td>
             </tr>
             <tr>
-              <td>esc</td>
-              <td>Close book</td>
+              <td>double click</td>
+              <td>Zoom page</td>
             </tr>
           </tbody>
         </table>

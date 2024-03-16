@@ -1,30 +1,32 @@
 <template>
-  <v-virtual-scroll
-    id="verticalScroll"
-    :key="readInReverse"
-    ref="verticalScroll"
-    v-scroll:#verticalScroll="onScroll"
-    :items="items"
-    :height="innerHeight"
-    :width="innerWidth"
-  >
-    <!--
+  <ScaleForScroll>
+    <v-virtual-scroll
+      id="verticalScroll"
+      :key="readInReverse"
+      ref="verticalScroll"
+      v-scroll:#verticalScroll="onScroll"
+      :items="items"
+      :height="innerHeight"
+      :width="innerWidth"
+    >
+      <!--
     :item-height="itemHeight"
     dynamic itemHeight solves the jumpy scroll issue,
     but throws a recursive warning.
     -->
-    <template #default="{ item }">
-      <BookPage :book="book" :page="item" />
-      <div
-        v-intersect.quiet="{
-          handler: onIntersect,
-          options: { threshold: [0.75] },
-        }"
-        class="pageTracker"
-        :data-page="item"
-      />
-    </template>
-  </v-virtual-scroll>
+      <template #default="{ item }">
+        <BookPage :book="book" :page="item" class="verticalPage" />
+        <div
+          v-intersect.quiet="{
+            handler: onIntersect,
+            options: { threshold: [0.75] },
+          }"
+          class="pageTracker"
+          :data-page="item"
+        />
+      </template>
+    </v-virtual-scroll>
+  </ScaleForScroll>
 </template>
 
 <script>
@@ -32,6 +34,7 @@ import _ from "lodash";
 import { mapActions, mapState, mapWritableState } from "pinia";
 
 import BookPage from "@/components/reader/pages/page/page.vue";
+import ScaleForScroll from "@/components/reader/pages/scale-for-scroll.vue";
 import { useReaderStore } from "@/stores/reader";
 
 const MAX_VISIBLE_PAGES = 12;
@@ -41,6 +44,7 @@ export default {
   name: "PagesVerticalScroller",
   components: {
     BookPage,
+    ScaleForScroll,
   },
   props: {
     book: { type: Object, required: true },
@@ -145,9 +149,14 @@ export default {
 };
 </script>
 <style scoped lang="scss">
+.verticalPage {
+  display: block;
+}
+
 :deep(.v-virtual-scroll__item) {
   position: relative;
 }
+
 .pageTracker {
   position: absolute;
   top: 0;

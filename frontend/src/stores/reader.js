@@ -43,6 +43,7 @@ const OPPOSITE_READING_DIRECTIONS = {
   btt: "ttb",
 };
 Object.freeze(OPPOSITE_READING_DIRECTIONS);
+export const SCALE_DEFAULT = 1.0;
 
 const getGlobalFitToDefault = () => {
   // Big screens default to fit by HEIGHT, small to WIDTH;
@@ -91,6 +92,7 @@ export const useReaderStore = defineStore("reader", {
     reactWithScroll: false,
     clientSettings: {
       cacheBook: false,
+      scale: SCALE_DEFAULT,
     },
   }),
   getters: {
@@ -187,7 +189,7 @@ export const useReaderStore = defineStore("reader", {
 
       // No two pages with vertical
       resultSettings.twoPages =
-        VERTICAL_READING_DIRECTIONS.has(resultSettings.readingDirection) &&
+        !VERTICAL_READING_DIRECTIONS.has(resultSettings.readingDirection) &&
         resultSettings.twoPages;
 
       return resultSettings;

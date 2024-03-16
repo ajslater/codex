@@ -16,7 +16,7 @@
 </template>
 
 <script>
-import { mapActions, mapState } from "pinia";
+import { mapActions, mapGetters, mapState } from "pinia";
 import VuePdfEmbed from "vue-pdf-embed";
 
 import { useReaderStore } from "@/stores/reader";
@@ -41,7 +41,10 @@ export default {
     };
   },
   computed: {
-    ...mapState(useReaderStore, ["isVertical"]),
+    ...mapGetters(useReaderStore, ["isVertical"]),
+    ...mapState(useReaderStore, {
+      scale: (state) => state.clientSettings.scale,
+    }),
     settings() {
       return this.getSettings(this.book);
     },
@@ -53,7 +56,7 @@ export default {
       if (!this.isVertical && this.settings.twoPages) {
         width = width / 2;
       }
-      return width;
+      return width * this.scale;
     },
     height() {
       let height = ["H", "S"].includes(this.settings.fitTo)
@@ -63,7 +66,7 @@ export default {
         // Hack for janky PDF display with vertical scroller.
         height = height * 0.8;
       }
-      return height;
+      return height * this.scale;
     },
   },
   mounted() {

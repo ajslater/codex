@@ -20,16 +20,7 @@
       :model-value="page"
       :transition="true"
     >
-      <BookPage
-        v-if="!isReadInReverse || (secondPage && page < book.maxPage)"
-        :book="book"
-        :page="isReadInReverse ? page + 1 : page"
-      />
-      <BookPage
-        v-if="isReadInReverse || (secondPage && page < book.maxPage)"
-        :book="book"
-        :page="isReadInReverse ? page : page + 1"
-      />
+      <HorizontalPages :book="book" :page="page" />
     </v-window-item>
   </v-window>
 </template>
@@ -39,7 +30,7 @@
 import _ from "lodash";
 import { mapActions, mapGetters, mapState } from "pinia";
 
-import BookPage from "@/components/reader/pages/page/page.vue";
+import HorizontalPages from "@/components/reader/pages/horizontal-pages.vue";
 import PageChangeLink from "@/components/reader/pages/page-change-link.vue";
 import { useReaderStore } from "@/stores/reader";
 
@@ -49,7 +40,7 @@ const WINDOW_FORE_BOUND = 48;
 export default {
   name: "PagesHorizontalWindow",
   components: {
-    BookPage,
+    HorizontalPages,
     PageChangeLink,
   },
   props: {
@@ -62,21 +53,16 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useReaderStore, ["isOnCoverPage", "isReadInReverse"]),
+    ...mapGetters(useReaderStore, ["isReadInReverse"]),
     ...mapState(useReaderStore, {
       prevBook: (state) => state.routes.books?.prev,
       nextBook: (state) => state.routes.books?.next,
       storePage: (state) => state.page,
       storePk: (state) => state.books.current.pk,
     }),
-    settings() {
-      return this.getSettings(this.book);
-    },
     twoPages() {
-      return this.settings.twoPages;
-    },
-    secondPage() {
-      return this.settings.twoPages && !this.isOnCoverPage;
+      const settings = this.getSettings(this.book);
+      return settings.twoPages;
     },
     windowIndex() {
       const val = this.activePage - this.pages[0];

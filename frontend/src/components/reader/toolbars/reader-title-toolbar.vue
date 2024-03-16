@@ -98,10 +98,10 @@ export default {
     },
   },
   mounted() {
-    document.addEventListener("keyup", this._keyListener);
+    document.addEventListener("keyup", this._keyUpListener);
   },
   beforeUnmount() {
-    document.removeEventListener("keyup", this._keyListener);
+    document.removeEventListener("keyup", this._keyUpListener);
   },
   methods: {
     ...mapActions(useCommonStore, ["setTimestamp"]),
@@ -119,7 +119,7 @@ export default {
         this.setTimestamp();
       }
     },
-    _keyListener(event) {
+    _keyUpListener(event) {
       event.stopPropagation();
       switch (event.key) {
         case "Escape":

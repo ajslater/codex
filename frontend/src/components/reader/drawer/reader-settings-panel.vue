@@ -152,10 +152,10 @@ export default {
     },
   },
   mounted() {
-    document.addEventListener("keyup", this._keyListener);
+    document.addEventListener("keyup", this._keyUpListener);
   },
   beforeUnmount() {
-    document.removeEventListener("keyup", this._keyListener);
+    document.removeEventListener("keyup", this._keyUpListener);
   },
 
   methods: {
@@ -182,7 +182,7 @@ export default {
       Object.freeze(choices);
       return choices;
     },
-    _keyListener(event) {
+    _keyUpListener(event) {
       event.stopPropagation();
       let updates;
       switch (event.key) {
