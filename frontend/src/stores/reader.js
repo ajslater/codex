@@ -54,6 +54,16 @@ const getGlobalFitToDefault = () => {
   return vw > 600 ? "HEIGHT" : "WIDTH";
 };
 
+const ensureNoTwoPageVertical = (settings) => {
+  // No two pages with vertical
+  if (
+    VERTICAL_READING_DIRECTIONS.has(settings.readingDirection) &&
+    settings.twoPages
+  ) {
+    settings.twoPages = false;
+  }
+};
+
 export const useReaderStore = defineStore("reader", {
   state: () => ({
     // static
@@ -186,11 +196,7 @@ export const useReaderStore = defineStore("reader", {
           }
         }
       }
-
-      // No two pages with vertical
-      resultSettings.twoPages =
-        !VERTICAL_READING_DIRECTIONS.has(resultSettings.readingDirection) &&
-        resultSettings.twoPages;
+      ensureNoTwoPageVertical(resultSettings);
 
       return resultSettings;
     },
@@ -264,6 +270,7 @@ export const useReaderStore = defineStore("reader", {
           ...this.books.current.settings,
           ...updates,
         };
+        ensureNoTwoPageVertical(this.books.current.settings);
       } else {
         this.readerSettings = {
           ...this.readerSettings,

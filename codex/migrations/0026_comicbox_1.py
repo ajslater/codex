@@ -109,18 +109,21 @@ def _migrate_bookmark(apps, _schema_editor):
     update_bookmarks = []
     for bm in bookmarks:
         if bm.read_in_reverse and not bm.vertical:
-            rd = "rt"
+            bm.reading_direction = "rtl"
         elif not bm.read_in_reverse and bm.vertical:
-            rd = "ttb"
+            bm.reading_direction = "ttb"
+            bm.two_pages = None
         elif bm.read_in_reverse and bm.vertical:
-            rd = "btt"
+            bm.reading_direction = "btt"
+            bm.two_pages = None
         else:
-            rd = "ltr"
-        bm.reading_direction = rd
+            bm.reading_direction = "ltr"
         update_bookmarks.append(bm)
 
     if update_bookmarks:
-        bm_model.objects.bulk_update(update_bookmarks, ["reading_direction"])
+        bm_model.objects.bulk_update(
+            update_bookmarks, ["reading_direction", "two_pages"]
+        )
         print(f"\tMigrated {len(update_bookmarks)} Bookmarks to use reading_direction")
 
 

@@ -15,6 +15,7 @@ from codex.serializers.models.bookmark import (
 from codex.views.auth import GroupACLMixin, IsAuthenticatedOrEnabledNonUsers
 
 LOG = get_logger(__name__)
+VERTICAL_READING_DIRECTIONS = frozenset({"ttb", "btt"})
 
 
 class BookmarkBaseView(GenericAPIView, GroupACLMixin):
@@ -70,6 +71,17 @@ class BookmarkBaseView(GenericAPIView, GroupACLMixin):
             bm.finished = True
         updates["page"] = page
 
+    @staticmethod
+    def _update_bookmarks_validate_two_pages(bm, updates):
+        """Force vertical view to not use two pages."""
+        rd = updates.get("reading_direction")
+        if (
+            rd in VERTICAL_READING_DIRECTIONS
+            or bm.reading_direction in VERTICAL_READING_DIRECTIONS
+            and bm.two_pages
+        ):
+            updates["two_pages"] = None
+
     def _update_bookmarks(self, search_kwargs, updates):
         """Update existing bookmarks."""
         group_acl_filter = self.get_group_acl_filter(Bookmark)
@@ -83,17 +95,32 @@ class BookmarkBaseView(GenericAPIView, GroupACLMixin):
         existing_comic_pks = set()
         for bm in existing_bookmarks:
             self._update_bookmarks_validate_page(bm, updates)
+            self._update_bookmarks_validate_two_pages(bm, updates)
             for key, value in updates.items():
                 setattr(bm, key, value)
             update_bookmarks.append(bm)
             existing_comic_pks.add(bm.comic.pk)
-        Bookmark.objects.bulk_update(update_bookmarks, self._BOOKMARK_UPDATE_FIELDS)
+        if update_bookmarks:
+            update_fields = list(self._BOOKMARK_UPDATE_FIELDS | updates.keys())
+            Bookmark.objects.bulk_update(update_bookmarks, update_fields)
         return existing_comic_pks
+
+    @staticmethod
+    def _create_bookmarks_validate_two_pages(updates):
+        """Force vertical view to not use two pages."""
+        if (
+            updates.get("two_pages")
+            and updates.get("reading_direction") in VERTICAL_READING_DIRECTIONS
+        ):
+            updates.pop("two_pages", None)
 
     def _create_bookmarks(
         self, existing_comic_pks, comic_filter, search_kwargs, updates
     ):
         """Create new bookmarks for comics that don't exist yet."""
+        self._create_bookmarks_validate_two_pages(updates)
+        if not updates:
+            return
         create_bookmarks = []
         group_acl_filter = self.get_group_acl_filter(Comic)
         create_bookmark_comics = (
