@@ -35,6 +35,7 @@ border-radius: 128px;
   - Filesystem events filtered to only the ones Codex handles.
   - Read PDF in browser link.
   - Experimental checkbox for caching entire comic or PDF in the browser.
+  - Double-click to zoom on pages.
 - Dev
   - Using comicbox v1.0.0 for metadata import.
 
