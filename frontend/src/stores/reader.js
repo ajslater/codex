@@ -264,10 +264,12 @@ export const useReaderStore = defineStore("reader", {
     fitToClass(book) {
       const settings = this.getSettings(book);
       const classes = {};
-      if (this.scale > SCALE_DEFAULT) {
-        return classes;
+      let fitTo;
+      if (this.clientSettings.scale > SCALE_DEFAULT) {
+        fitTo = "Orig";
+      } else {
+        fitTo = FIT_TO_CHOICES[settings.fitTo];
       }
-      const fitTo = FIT_TO_CHOICES[settings.fitTo];
       if (fitTo) {
         let fitToClass = "fitTo";
         fitToClass += titleize(fitTo);
