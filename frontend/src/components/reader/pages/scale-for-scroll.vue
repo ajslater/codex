@@ -66,9 +66,10 @@ export default {
 
 .resetIcon {
   position: fixed;
-  bottom: calc(env(safe-area-inset-bottom) + 50px);
-  right: 10px;
-  z-index: 20;
+  bottom: calc(env(safe-area-inset-bottom) + 45px);
+  right: 50%;
+  transform: translate(50%, 0);
+  z-index: 200;
   font-size: 50px;
   color: white;
   filter: drop-shadow(1px 1px 1px black);
