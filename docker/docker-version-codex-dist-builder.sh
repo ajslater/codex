@@ -21,11 +21,11 @@ readarray -d '' SOURCE_DEPS < <(find codex frontend -type f \( \
 DEPS=(
   "$0"
   .dockerignore
-  .eslintrc.cjs
   .prettierignore
   .remarkignore
   .shellcheckrc
   docker/dist-builder.Dockerfile
+  eslint.config.js
   bin/build-dist.sh
   bin/collectstatic.sh
   bin/lint-backend.sh
