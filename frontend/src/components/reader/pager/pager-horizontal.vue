@@ -30,15 +30,15 @@
 import _ from "lodash";
 import { mapActions, mapGetters, mapState } from "pinia";
 
-import HorizontalPages from "@/components/reader/pages/horizontal-pages.vue";
-import PageChangeLink from "@/components/reader/pages/page-change-link.vue";
+import HorizontalPages from "@/components/reader/pager/horizontal-pages.vue";
+import PageChangeLink from "@/components/reader/pager/page-change-link.vue";
 import { useReaderStore } from "@/stores/reader";
 
 const WINDOW_BACK_BOUND = 48;
 const WINDOW_FORE_BOUND = 48;
 
 export default {
-  name: "PagesHorizontalWindow",
+  name: "PagerHorizontal",
   components: {
     HorizontalPages,
     PageChangeLink,

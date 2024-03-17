@@ -33,15 +33,15 @@
 import _ from "lodash";
 import { mapActions, mapState, mapWritableState } from "pinia";
 
-import BookPage from "@/components/reader/pages/page/page.vue";
-import ScaleForScroll from "@/components/reader/pages/scale-for-scroll.vue";
+import BookPage from "@/components/reader/pager/page/page.vue";
+import ScaleForScroll from "@/components/reader/pager/scale-for-scroll.vue";
 import { useReaderStore } from "@/stores/reader";
 
 const MAX_VISIBLE_PAGES = 12;
 const TIMEOUT = 250;
 
 export default {
-  name: "PagesVerticalScroller",
+  name: "PagerVertical",
   components: {
     BookPage,
     ScaleForScroll,

@@ -22,7 +22,7 @@
       :value="book.pk"
       :transition="true"
     >
-      <PagesView :book="book" @click="click" />
+      <Pager :book="book" @click="click" />
     </v-window-item>
   </v-window>
 </template>
@@ -31,14 +31,14 @@
 import { mapActions, mapGetters, mapState } from "pinia";
 
 import BookChangeActivator from "@/components/reader/book-change-activator.vue";
-import PagesView from "@/components/reader/pages/pages-view.vue";
+import Pager from "@/components/reader/pager/pager.vue";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
   name: "BooksWindow",
   components: {
     BookChangeActivator,
-    PagesView,
+    Pager,
   },
   emits: ["click"],
   computed: {

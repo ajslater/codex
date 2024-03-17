@@ -1,23 +1,25 @@
 <template>
-  <PagesPdf v-if="readFullPdf" :book="book" />
-  <PagesVerticalScroller v-else-if="isVertical" :book="book" />
-  <PagesHorizontalWindow v-else :book="book" />
+  <PagerPDF v-if="readFullPdf" :book="book" />
+  <PagerVerticalScroller v-else-if="isVertical" :book="book" />
+  <PagerHorizontalWindow v-else :book="book" />
 </template>
 
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";
-
-import PagesPdf from "@/components/reader/pages/full-pdf.vue";
-import PagesHorizontalWindow from "@/components/reader/pages/horizontal-window.vue";
-import PagesVerticalScroller from "@/components/reader/pages/vertical-scroller.vue";
+import { defineAsyncComponent, markRaw } from "vue";
+const PagerPDF = markRaw(
+  defineAsyncComponent(() => "@/components/reader/pager/pager-full-pdf.vue"),
+);
+import PagerHorizontalWindow from "@/components/reader/pager/pager-horizontal.vue";
+import PagerVerticalScroller from "@/components/reader/pager/pager-vertical.vue";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
-  name: "PagesView",
+  name: "PagerSelector",
   components: {
-    PagesHorizontalWindow,
-    PagesPdf,
-    PagesVerticalScroller,
+    PagerHorizontalWindow,
+    PagerPDF,
+    PagerVerticalScroller,
   },
   props: {
     book: { type: Object, required: true },

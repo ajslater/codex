@@ -19,8 +19,8 @@
 <script>
 import { mapActions, mapGetters } from "pinia";
 
-import BookPage from "@/components/reader/pages/page/page.vue";
-import ScaleForScroll from "@/components/reader/pages/scale-for-scroll.vue";
+import BookPage from "@/components/reader/pager/page/page.vue";
+import ScaleForScroll from "@/components/reader/pager/scale-for-scroll.vue";
 import { useReaderStore } from "@/stores/reader";
 
 export default {

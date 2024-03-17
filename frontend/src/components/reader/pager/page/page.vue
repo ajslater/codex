@@ -24,19 +24,19 @@ import { mapActions, mapGetters, mapState } from "pinia";
 import { defineAsyncComponent, markRaw } from "vue";
 
 import { getComicPageSource } from "@/api/v3/reader";
-import LoadingPage from "@/components/reader/pages/page/page-loading.vue";
+import LoadingPage from "@/components/reader/pager/page/page-loading.vue";
 import { useReaderStore } from "@/stores/reader";
-const PDFPage = markRaw(
-  defineAsyncComponent(() => import("@/components/reader/pages/page/pdf.vue")),
+const PDFDoc = markRaw(
+  defineAsyncComponent(() => import("@/components/reader/pager/pdf-doc.vue")),
 );
-import ErrorPage from "@/components/reader/pages/page/page-error.vue";
-import ImgPage from "@/components/reader/pages/page/page-img.vue";
+import ErrorPage from "@/components/reader/pager/page/page-error.vue";
+import ImgPage from "@/components/reader/pager/page/page-img.vue";
 
 const PROGRESSS_DELAY_MS = 333;
 
 export default {
   name: "BookPage",
-  components: { ErrorPage, LoadingPage, PDFPage, ImgPage },
+  components: { ErrorPage, LoadingPage, PDFDoc, ImgPage },
   props: {
     book: {
       type: Object,
@@ -82,7 +82,7 @@ export default {
       return getComicPageSource(params);
     },
     component() {
-      return this.book.fileType === "PDF" ? PDFPage : ImgPage;
+      return this.book.fileType === "PDF" ? PDFDoc : ImgPage;
     },
     settings() {
       return this.getSettings(this.book);

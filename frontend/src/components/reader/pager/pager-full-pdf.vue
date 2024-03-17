@@ -12,13 +12,13 @@
 import { mapState } from "pinia";
 
 import { getPdfBookSource } from "@/api/v3/reader";
-import PdfDoc from "@/components/reader/pages/page/pdf.vue";
-import PageChangeLink from "@/components/reader/pages/page-change-link.vue";
-import ScaleForScroll from "@/components/reader/pages/scale-for-scroll.vue";
+import PageChangeLink from "@/components/reader/pager/page-change-link.vue";
+import PdfDoc from "@/components/reader/pager/pdf-doc.vue";
+import ScaleForScroll from "@/components/reader/pager/scale-for-scroll.vue";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
-  name: "PDFPages",
+  name: "PagerFullPDF",
   components: { PageChangeLink, PdfDoc, ScaleForScroll },
   props: {
     book: { type: Object, required: true },
