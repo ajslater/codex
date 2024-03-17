@@ -32,14 +32,13 @@ export default {
   },
   emits: ["click"],
   computed: {
-    ...mapGetters(useReaderStore, ["isOnCoverPage", "isReadInReverse"]),
+    ...mapGetters(useReaderStore, ["isCoverPage", "isReadInReverse"]),
     showSecondPage() {
-      // TODO isOnCoverPage should be book specific not from store.
       const settings = this.getSettings(this.book);
       return (
         settings.twoPages &&
-        !this.isOnCoverPage &&
-        this.page < this.book.maxPage
+        this.page < this.book.maxPage &&
+        !this.isCoverPage(this.book, this.page)
       );
     },
     showPageOne() {

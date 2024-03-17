@@ -134,9 +134,6 @@ export const useReaderStore = defineStore("reader", {
       }
       return title;
     },
-    isOnCoverPage(state) {
-      return this._isCoverPage(state.books.current, state.page);
-    },
     routeParams(state) {
       return { pk: +state.books.current.pk, page: +state.page };
     },
@@ -232,7 +229,7 @@ export const useReaderStore = defineStore("reader", {
     },
     ///////////////////////////////////////////////////////////////////////////
     // UTIL
-    _isCoverPage(book, page) {
+    isCoverPage(book, page) {
       return (
         (book.readLtr !== false && page === 0) ||
         (book.readLtr && page === book.maxPage)
@@ -244,7 +241,7 @@ export const useReaderStore = defineStore("reader", {
       const settings = this.getSettings(book);
       if (
         settings.twoPages &&
-        !this._isCoverPage(book, +activePage + deltaModifier)
+        !this.isCoverPage(book, +activePage + deltaModifier)
       ) {
         delta = 2;
       }
