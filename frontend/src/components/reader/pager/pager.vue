@@ -1,7 +1,5 @@
 <template>
-  <PagerPDF v-if="readFullPdf" :book="book" />
-  <PagerVerticalScroller v-else-if="isVertical" :book="book" />
-  <PagerHorizontalWindow v-else :book="book" />
+  <component :is="component" :book="book" />
 </template>
 
 <script>
@@ -10,16 +8,16 @@ import { defineAsyncComponent, markRaw } from "vue";
 const PagerPDF = markRaw(
   defineAsyncComponent(() => "@/components/reader/pager/pager-full-pdf.vue"),
 );
-import PagerHorizontalWindow from "@/components/reader/pager/pager-horizontal.vue";
-import PagerVerticalScroller from "@/components/reader/pager/pager-vertical.vue";
+import PagerHorizontal from "@/components/reader/pager/pager-horizontal.vue";
+import PagerVertical from "@/components/reader/pager/pager-vertical.vue";
 import { useReaderStore } from "@/stores/reader";
 
 export default {
   name: "PagerSelector",
   components: {
-    PagerHorizontalWindow,
+    PagerHorizontal,
     PagerPDF,
-    PagerVerticalScroller,
+    PagerVertical,
   },
   props: {
     book: { type: Object, required: true },
@@ -35,6 +33,13 @@ export default {
     }),
     readFullPdf() {
       return this.book.fileType == "PDF" && this.cacheBook;
+    },
+    component() {
+      return this.readFullPdf
+        ? PagerPDF
+        : this.isVertical
+          ? PagerVertical
+          : PagerHorizontal;
     },
   },
   watch: {
