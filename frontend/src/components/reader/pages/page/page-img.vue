@@ -1,6 +1,6 @@
 <template>
   <img
-    :class="fitToClass"
+    :class="classes"
     class="img"
     :src="src"
     :style="style"
@@ -10,14 +10,14 @@
   />
 </template>
 <script>
-import { mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import { useReaderStore } from "@/stores/reader";
 export default {
   name: "ImgPage",
   props: {
+    book: { type: Object, required: true },
     src: { type: String, required: true },
-    fitToClass: { type: Object, required: true },
   },
   emits: ["load", "error"],
   computed: {
@@ -40,6 +40,12 @@ export default {
       s.transform = `scale(${this.scale})`;
       return s;
     },
+    classes() {
+      return this.fitToClass(this.book);
+    },
+  },
+  methods: {
+    ...mapActions(useReaderStore, ["fitToClass"]),
   },
 };
 </script>

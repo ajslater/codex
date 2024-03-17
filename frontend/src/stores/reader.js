@@ -1,5 +1,6 @@
 import { mdiBookArrowDown, mdiBookArrowUp } from "@mdi/js";
 import { defineStore } from "pinia";
+import titleize from "titleize";
 
 // import { reactive } from "vue";
 import BROWSER_API from "@/api/v3/browser";
@@ -44,6 +45,8 @@ const OPPOSITE_READING_DIRECTIONS = {
 };
 Object.freeze(OPPOSITE_READING_DIRECTIONS);
 export const SCALE_DEFAULT = 1.0;
+const FIT_TO_CHOICES = { S: "Screen", W: "Width", H: "Height", O: "Original" };
+Object.freeze(FIT_TO_CHOICES);
 
 const getGlobalFitToDefault = () => {
   // Big screens default to fit by HEIGHT, small to WIDTH;
@@ -257,6 +260,25 @@ export const useReaderStore = defineStore("reader", {
         };
       }
       return routeParams;
+    },
+    fitToClass(book) {
+      const settings = this.getSettings(book);
+      const classes = {};
+      if (this.scale > SCALE_DEFAULT) {
+        return classes;
+      }
+      const fitTo = FIT_TO_CHOICES[settings.fitTo];
+      if (fitTo) {
+        let fitToClass = "fitTo";
+        fitToClass += titleize(fitTo);
+        if (this.isVertical) {
+          fitToClass += "Vertical";
+        } else if (settings.twoPages) {
+          fitToClass += "Two";
+        }
+        classes[fitToClass] = true;
+      }
+      return classes;
     },
     ///////////////////////////////////////////////////////////////////////////
     // MUTATIONS

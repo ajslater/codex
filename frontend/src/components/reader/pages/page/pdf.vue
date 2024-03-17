@@ -2,7 +2,7 @@
   <vue-pdf-embed
     class="pdfDoc"
     image-resources-path="https://unpkg.com/pdfjs-dist/web/images/"
-    :class="fitToClass"
+    :class="classes"
     :page="page"
     :source="src"
     :width="width"
@@ -26,10 +26,6 @@ export default {
   components: { VuePdfEmbed },
   props: {
     book: { type: Object, required: true },
-    fitToClass: {
-      type: Object,
-      required: true,
-    },
     page: { type: Number, required: true },
     src: { type: String, required: true },
   },
@@ -52,7 +48,9 @@ export default {
       // Wide PDFs will not fit to SCREEN well.
       // vue-pdf-embed internal canvas sizing algorithm makes this difficult.
       // Maybe not impossible but I'm lazy right now.
-      let width = ["W"].includes(this.settings.fitTo) ? this.innerWidth : 0;
+      let width = ["W", "O"].includes(this.settings.fitTo)
+        ? this.innerWidth
+        : 0;
       if (!this.isVertical && this.settings.twoPages) {
         width = width / 2;
       }
@@ -68,6 +66,9 @@ export default {
       }
       return height * this.scale;
     },
+    classes() {
+      return this.fitToClass(this.book);
+    },
   },
   mounted() {
     window.addEventListener("resize", this.onResize);
@@ -76,7 +77,7 @@ export default {
     window.removeEventListener("resize", this.onResize);
   },
   methods: {
-    ...mapActions(useReaderStore, ["getSettings", "routeToPage"]),
+    ...mapActions(useReaderStore, ["getSettings", "routeToPage", "fitToClass"]),
     onResize() {
       this.innerHeight = window.innerHeight;
       this.innerWidth = window.innerWidth;
@@ -95,14 +96,17 @@ export default {
 :deep(.vue-pdf-embed.fitToScreenTwo > div > canvas) {
   width: inherit !important;
 }
+
 :deep(.vue-pdf-embed.fitToScreen > div > canvas),
 :deep(.vue-pdf-embed.fitToScreenTwo > div > canvas),
 :deep(.vue-pdf-embed.fitToScreenVertical > div > canvas) {
   object-fit: contain;
 }
+
 :deep(.vue-pdf-embed.fitToWidthTwo > div > canvas) {
   height: inherit !important;
 }
+
 :deep(.vue-pdf-embed.fitToOrigTwo > div > canvas) {
   height: inherit !important;
   width: inherit !important;

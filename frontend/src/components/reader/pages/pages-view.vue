@@ -1,9 +1,5 @@
 <template>
-  <PagesPdf
-    v-if="readFullPdf"
-    :book="book"
-    :fit-to-class="{ fitToVertical: true }"
-  />
+  <PagesPdf v-if="readFullPdf" :book="book" />
   <PagesVerticalScroller v-else-if="isVertical" :book="book" />
   <PagesHorizontalWindow v-else :book="book" />
 </template>

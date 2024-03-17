@@ -3,13 +3,7 @@
     <PageChangeLink direction="prev" />
     <PageChangeLink direction="next" />
     <ScaleForScroll>
-      <PdfDoc
-        :book="book"
-        :fit-to-class="fitToClass"
-        :page="page"
-        :src="src"
-        class="fullPdfPage"
-      />
+      <PdfDoc :book="book" :page="page" :src="src" class="fullPdfPage" />
     </ScaleForScroll>
   </span>
 </template>
@@ -28,10 +22,6 @@ export default {
   components: { PageChangeLink, PdfDoc, ScaleForScroll },
   props: {
     book: { type: Object, required: true },
-    fitToClass: {
-      type: Object,
-      required: true,
-    },
   },
   emits: ["load", "error", "unauthorized"],
   computed: {
