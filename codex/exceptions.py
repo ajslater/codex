@@ -1,4 +1,5 @@
 """Special Redirect Error."""
+
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.http import urlencode
@@ -23,7 +24,7 @@ class SeeOtherRedirectError(APIException):
         """Create a response to pass to the exception handler."""
         LOG.debug(f"redirect {detail.get('reason')}")
         serializer = BrowserRedirectSerializer(detail)
-        self.detail: dict = serializer.data
+        self.detail: dict = serializer.data  # type: ignore
         # super().__init__ converts every type into strings!
         # do not use it.
 

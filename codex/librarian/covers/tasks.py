@@ -1,10 +1,11 @@
 """Covers Tasks."""
+
 from dataclasses import dataclass
 
 
 @dataclass
 class CoverTask:
-    """Handle with the CoverCreator."""
+    """Handle with the CoverContributor."""
 
 
 @dataclass

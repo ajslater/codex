@@ -34,7 +34,7 @@ export default {
     },
     versionTitle: function () {
       return this.outdated
-        ? `v${this.versions.latest} is availble`
+        ? `v${this.versions.latest} is available`
         : "up to date";
     },
   },

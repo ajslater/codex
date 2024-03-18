@@ -14,7 +14,9 @@
     <div v-if="subtitle" class="subtitle">
       {{ subtitle }}
     </div>
-    <div class="opdsUrl">{{ url }}</div>
+    <div class="opdsUrl">
+      {{ url }}
+    </div>
   </div>
 </template>
 <script>

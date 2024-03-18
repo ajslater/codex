@@ -20,7 +20,7 @@
     <v-toolbar-items>
       <ReaderArcSelect />
       <v-btn id="tagButton" @click.stop="openMetadata">
-        <MetadataDialog ref="metadataDialog" group="c" :pk="pk" />
+        <MetadataDialog ref="metadataDialog" group="c" :book="currentBook" />
       </v-btn>
       <SettingsDrawerButton
         id="settingsButton"
@@ -70,8 +70,7 @@ export default {
   computed: {
     ...mapGetters(useReaderStore, ["activeTitle"]),
     ...mapState(useReaderStore, {
-      vertical: (state) => state.activeSettings.vertical,
-      pk: (state) => state.books?.current?.pk || 0,
+      currentBook: (state) => state.books?.current || {},
     }),
     ...mapState(useBrowserStore, {
       lastRoute: (state) => state.page.routes.last,
@@ -84,7 +83,7 @@ export default {
         params: this.lastRoute,
       };
       if (route.params) {
-        route.hash = `#card-${this.pk}`;
+        route.hash = `#card-${this.currentBook?.pk}`;
       } else {
         route.params = window.CODEX.LAST_ROUTE || CHOICES.browser.route;
       }
@@ -99,10 +98,10 @@ export default {
     },
   },
   mounted() {
-    document.addEventListener("keyup", this._keyListener);
+    document.addEventListener("keyup", this._keyUpListener);
   },
   beforeUnmount() {
-    document.removeEventListener("keyup", this._keyListener);
+    document.removeEventListener("keyup", this._keyUpListener);
   },
   methods: {
     ...mapActions(useCommonStore, ["setTimestamp"]),
@@ -120,7 +119,7 @@ export default {
         this.setTimestamp();
       }
     },
-    _keyListener(event) {
+    _keyUpListener(event) {
       event.stopPropagation();
       switch (event.key) {
         case "Escape":
@@ -138,6 +137,7 @@ export default {
 
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
+
 #readerTopToolbar {
   width: 100%;
   top: 0px;
@@ -146,32 +146,39 @@ export default {
   padding-right: calc(env(safe-area-inset-right) / 2);
   z-index: 20;
 }
+
 :deep(.v-toolbar__content) {
   padding: 0px;
 }
+
 #toolbarTitle {
   font-size: clamp(8pt, 2.5vw, 18pt);
   line-height: normal;
 }
+
 :deep(.v-toolbar-title__placeholder) {
   text-overflow: clip;
   white-space: normal;
 }
+
 #tagButton {
   min-width: 24px;
   height: 24px;
   width: 24px;
   margin: 0px;
 }
+
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   #closeBook {
     min-width: 32px;
   }
+
   #tagButton {
     padding-left: 2px;
     padding-right: 2px;
     min-width: 16px;
   }
+
   #settingsButton {
     padding-left: 2px;
     padding-right: 2px;

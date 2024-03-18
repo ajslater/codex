@@ -1,6 +1,9 @@
 """Views for reading comic books."""
+
 from django.db.models import F, IntegerField, Value
 from django.urls import reverse
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
@@ -19,17 +22,18 @@ class ReaderView(BookmarkBaseView):
 
     serializer_class = ReaderComicsSerializer
 
-    SETTINGS_ATTRS = ("fit_to", "two_pages", "read_in_reverse", "vertical")
+    SETTINGS_ATTRS = ("fit_to", "two_pages", "reading_direction")
     _COMIC_FIELDS = (
         "file_type",
-        "issue",
+        "issue_number",
         "issue_suffix",
-        "max_page",
+        "page_count",
         "series",
         "volume",
-        "read_ltr",
+        "reading_direction",
+        "updated_at",
     )
-    _VALID_ARC_GROUPS = frozenset(("f", "s", "a"))
+    _VALID_ARC_GROUPS = frozenset({"f", "s", "a"})
 
     def _get_comics_list(self):
         """Get the reader naviation group filter."""
@@ -82,6 +86,7 @@ class ReaderView(BookmarkBaseView):
                 arc_name=F(arc_name_rel),
                 arc_index=arc_index,
             )
+            .annotate(mtime=F("updated_at"))
         )
 
         return qs.order_by(*ordering)
@@ -254,6 +259,14 @@ class ReaderView(BookmarkBaseView):
         }
         self.params = params
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "arcGroup", OpenApiTypes.STR, enum=sorted(_VALID_ARC_GROUPS)
+            ),
+            OpenApiParameter("arcPk", OpenApiTypes.INT),
+        ]
+    )
     def get(self, *args, **kwargs):
         """Get the book info."""
         self._parse_params()

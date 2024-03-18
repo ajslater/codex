@@ -1,4 +1,5 @@
 """Generic Codex Template View."""
+
 from rest_framework import status
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
@@ -9,7 +10,7 @@ class TemplateXMLRenderer(TemplateHTMLRenderer):
     """Template rendeerer for xml."""
 
     media_type = "text/xml"
-    format = "xml"  # noqa: A003
+    format = "xml"
 
 
 class SimpleAPIView(APIView):

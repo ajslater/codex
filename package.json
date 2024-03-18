@@ -2,8 +2,8 @@
   "description": "linting for top level codex project & django backend",
   "type": "module",
   "scripts": {
-    "fix": "eslint_d --cache --fix --ignore-pattern frontend --ext .cjs,.mjs,.js,.json,.yaml,.md . && prettier --write . && bin/prettier-nginx.sh --write",
-    "lint": "eslint_d --cache --ignore-pattern frontend --ext .cjs,.mjs,.js,.json,.yaml,.md . && prettier --check . && bin/prettier-nginx.sh --check",
+    "fix": "eslint --fix --ignore-pattern frontend . && prettier --write . && bin/prettier-nginx.sh --write",
+    "lint": "eslint --ignore-pattern frontend . && prettier --check . && bin/prettier-nginx.sh --check",
     "remark-check": "remark .",
     "remark-fix": "remark . --output"
   },
@@ -12,12 +12,13 @@
       "prettier-plugin-nginx",
       "prettier-plugin-packagejson",
       "prettier-plugin-sh",
+      "prettier-plugin-toml",
       "prettier-plugin-vue"
     ],
     "overrides": [
       {
         "files": [
-          "*.md"
+          "**/*.md"
         ],
         "options": {
           "proseWrap": "always"
@@ -35,44 +36,51 @@
   },
   "remarkConfig": {
     "plugins": [
+      "gfm",
       "preset-lint-consistent",
       "preset-lint-recommended",
       "preset-lint-markdown-style-guide",
       "preset-prettier"
-    ]
+    ],
+    "settings": {
+      "ignorePath": ".gitignore"
+    }
   },
   "devDependencies": {
-    "@fsouza/prettierd": "^0.24.0",
+    "@fsouza/prettierd": "^0.25.0",
     "@prettier/plugin-xml": "^3.0.0",
     "eslint": "^8.34.0",
-    "eslint-config-prettier": "^8.3.0",
-    "eslint-plugin-array-func": "^3.1.7",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-array-func": "^5.0.1",
     "eslint-plugin-eslint-comments": "^3.2.0",
     "eslint-plugin-import": "^2.25.4",
-    "eslint-plugin-json": "^3.1.0",
-    "eslint-plugin-mdx": "^2.0.5",
+    "eslint-plugin-jsonc": "^2.13.0",
+    "eslint-plugin-markdown": "^4.0.1",
     "eslint-plugin-no-constructor-bind": "^2.0.4",
     "eslint-plugin-no-secrets": "^0.8.9",
     "eslint-plugin-no-unsanitized": "^4.0.0",
     "eslint-plugin-no-use-extend-native": "^0.5.0",
     "eslint-plugin-only-warn": "^1.0.2",
     "eslint-plugin-optimize-regex": "^1.2.0",
-    "eslint-plugin-prettier-vue": "^4.2.0",
+    "eslint-plugin-prettier-vue": "^5.0.0",
     "eslint-plugin-promise": "^6.0.0",
     "eslint-plugin-scanjs-rules": "^0.2.1",
-    "eslint-plugin-security": "^1.4.0",
-    "eslint-plugin-simple-import-sort": "^10.0.0",
-    "eslint-plugin-sonarjs": "^0.19.0",
+    "eslint-plugin-security": "^2.1.0",
+    "eslint-plugin-simple-import-sort": "^12.0.0",
+    "eslint-plugin-sonarjs": "^0.24.0",
     "eslint-plugin-switch-case": "^1.1.2",
-    "eslint-plugin-unicorn": "^48.0.0",
-    "eslint-plugin-yaml": "^0.5.0",
-    "eslint_d": "^12.0.0",
+    "eslint-plugin-toml": "^0.9.2",
+    "eslint-plugin-unicorn": "^51.0.1",
+    "eslint-plugin-yml": "^1.12.2",
+    "eslint_d": "^13.1.1",
     "prettier": "^3.0.0",
     "prettier-plugin-nginx": "^1.0.3",
     "prettier-plugin-packagejson": "^2.4.4",
-    "prettier-plugin-sh": "^0.13.0",
+    "prettier-plugin-sh": "^0.14.0",
+    "prettier-plugin-toml": "^2.0.1",
     "prettier-plugin-vue": "^1.1.6",
-    "remark-cli": "^11.0.0",
+    "remark-cli": "^12.0.0",
+    "remark-gfm": "^4.0.0",
     "remark-preset-lint-consistent": "^5.1.1",
     "remark-preset-lint-markdown-style-guide": "^5.1.2",
     "remark-preset-lint-recommended": "^6.1.2",

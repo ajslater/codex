@@ -25,7 +25,7 @@
       />
     </v-radio-group>
     <v-checkbox
-      :disabled="selectedSettings.vertical"
+      :disabled="disableTwoPages"
       class="displayTwoPages"
       density="compact"
       label="Two pages"
@@ -38,39 +38,46 @@
       "
       @update:model-value="settingsDialogChanged({ twoPages: $event })"
     />
-    <v-label>Reading Direction</v-label>
-    <v-switch
-      class="vertical"
+    <v-radio-group
+      class="displayRadioGroup"
       density="compact"
-      :label="verticalLabel"
+      label="Reading Direction"
       hide-details="auto"
-      :model-value="selectedSettings.vertical"
-      :true-value="true"
-      :indeterminate="
-        selectedSettings.vertical === null ||
-        selectedSettings.vertical === undefined
-      "
-      @update:model-value="settingsDialogChanged({ vertical: $event })"
-    />
+      :model-value="selectedSettings.readingDirection"
+      @update:model-value="settingsDialogChanged({ readingDirection: $event })"
+    >
+      <v-radio
+        v-for="item in readingDirectionChoices"
+        :key="item.value"
+        :label="item.title"
+        :value="item.value"
+      />
+    </v-radio-group>
     <v-checkbox
-      class="readInReverse"
+      :model-value="cacheBook"
+      class="cacheBook"
       density="compact"
-      label="Read in Reverse"
+      :disabled="disableCacheBook"
+      label="Cache Entire Book"
       hide-details="auto"
-      :model-value="selectedSettings.readInReverse"
       :true-value="true"
-      :indeterminate="
-        selectedSettings.readInReverse === null ||
-        selectedSettings.readInReverse === undefined
-      "
-      @update:model-value="settingsDialogChanged({ readInReverse: $event })"
+      @update:model-value="setSettingsClient({ cacheBook: $event })"
     />
+    <a
+      v-if="isPDF"
+      id="readPDFInBrowser"
+      :href="bookInBrowserURL"
+      target="_blank"
+    >
+      <v-icon>{{ mdiOpenInNew }}</v-icon
+      >Read PDF in Browser
+    </a>
     <v-checkbox
       v-if="isGlobalScope"
       :model-value="selectedSettings.readRtlInReverse"
       class="readRtlInReverse"
       density="compact"
-      label="Read RTL comics in Reverse"
+      label="Read RTL Comics as LTR"
       hide-details="auto"
       :true-value="true"
       @update:model-value="settingsDialogChanged({ readRtlInReverse: $event })"
@@ -86,31 +93,29 @@
     </v-btn>
   </div>
 </template>
-<script>
-import { mapActions, mapState, mapWritableState } from "pinia";
 
+<script>
+import { mdiOpenInNew } from "@mdi/js";
+import { mapActions, mapGetters, mapState, mapWritableState } from "pinia";
+
+import { getBookInBrowserURL } from "@/api/v3/common";
 import { useReaderStore } from "@/stores/reader";
 
-const ATTRS = ["fitTo", "twoPages", "vertical", "readInReverse"];
+const ATTRS = ["fitTo", "readingDirection", "twoPages"];
+Object.freeze(ATTRS);
 
 export default {
   name: "ReaderSettingsPanel",
   data() {
     return {
       isGlobalScope: false,
+      mdiOpenInNew,
     };
   },
   computed: {
+    ...mapGetters(useReaderStore, ["isVertical", "isPDF", "cacheBook"]),
     ...mapState(useReaderStore, {
-      fitToChoices(state) {
-        const displayChoices = [];
-        for (const choice of state.choices.fitTo) {
-          if (choice.value) {
-            displayChoices.push(choice);
-          }
-        }
-        return displayChoices;
-      },
+      choices: (state) => state.choices,
       selectedSettings(state) {
         return this.isGlobalScope || !state.books?.current
           ? state.readerSettings
@@ -128,27 +133,29 @@ export default {
         }
         return true;
       },
-      verticalLabel(state) {
-        const vertical =
-          state.books?.current && state.books?.current.settings
-            ? state.books?.current.settings.vertical
-            : undefined;
-        if (vertical === undefined || vertical === null) {
-          return "Horizontal or Vertical";
-        } else if (vertical) {
-          return "Scroll Pages Vertically";
-        } else {
-          return "Turn Pages Horizontally";
-        }
+      bookInBrowserURL(state) {
+        return getBookInBrowserURL(state.books?.current);
       },
     }),
-    ...mapWritableState(useReaderStore, ["readRTLInReverse"]),
+    ...mapWritableState(useReaderStore, ["readRtlInReverse"]),
+    fitToChoices() {
+      return this.choicesWithoutNull("fitTo");
+    },
+    readingDirectionChoices() {
+      return this.choicesWithoutNull("readingDirection");
+    },
+    disableTwoPages() {
+      return this.isVertical || (this.isPDF && this.cacheBook);
+    },
+    disableCacheBook() {
+      return this.isVertical && this.isPDF;
+    },
   },
   mounted() {
-    document.addEventListener("keyup", this._keyListener);
+    document.addEventListener("keyup", this._keyUpListener);
   },
   beforeUnmount() {
-    document.removeEventListener("keyup", this._keyListener);
+    document.removeEventListener("keyup", this._keyUpListener);
   },
 
   methods: {
@@ -156,6 +163,7 @@ export default {
       "clearSettingsLocal",
       "setSettingsGlobal",
       "setSettingsLocal",
+      "setSettingsClient",
     ]),
     settingsDialogChanged(data) {
       if (this.isGlobalScope) {
@@ -164,7 +172,17 @@ export default {
         this.setSettingsLocal(data);
       }
     },
-    _keyListener(event) {
+    choicesWithoutNull(attr) {
+      const choices = [];
+      for (const choice of this.choices[attr]) {
+        if (choice.value) {
+          choices.push(choice);
+        }
+      }
+      Object.freeze(choices);
+      return choices;
+    },
+    _keyUpListener(event) {
       event.stopPropagation();
       let updates;
       switch (event.key) {
@@ -189,15 +207,26 @@ export default {
             twoPages: !this.selectedSettings.twoPages,
           };
           break;
-        case "r":
+        case "l":
           updates = {
-            readInReverse: !this.selectedSettings.readInReverse,
+            readingDirection: "ltr",
           };
           break;
-        case "v":
+        case "r":
           updates = {
-            vertical: !this.selectedSettings.vertical,
+            readingDirection: "rtl",
           };
+          break;
+        case "t":
+          updates = {
+            readingDirection: "ttb",
+          };
+          break;
+        case "b":
+          updates = {
+            readingDirection: "bbt",
+          };
+          break;
       }
       if (updates) {
         this.setSettingsLocal(updates);
@@ -208,6 +237,7 @@ export default {
   },
 };
 </script>
+
 <style scoped lang="scss">
 #readerSettings {
   padding-top: 10px;
@@ -216,18 +246,29 @@ export default {
   padding-bottom: 10px;
   background-color: inherit;
 }
+
 .displayRadioGroup {
   margin-top: 15px;
 }
+
 .displayTwoPages {
   margin-top: 5px;
   margin-bottom: 10px;
 }
+
 .readRtlInReverse {
   transition: visibility 0.25s, opacity 0.25s;
 }
+
 #clearSettingsButton {
+  margin-top: 4px;
   margin-bottom: 4px;
   transition: visibility 0.25s, opacity 0.25s;
+}
+
+#readPDFInBrowser {
+  display: block;
+  padding-left: 2px;
+  color: rgba(var(--v-theme-textSecondary));
 }
 </style>

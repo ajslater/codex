@@ -1,4 +1,5 @@
 """Initialize Codex Dataabse before running."""
+
 from django.core.cache import cache
 from django.core.management import call_command
 from django.db import connection

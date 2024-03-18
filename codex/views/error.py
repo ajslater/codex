@@ -1,4 +1,5 @@
 """Custom Http Error Views."""
+
 from django.shortcuts import redirect
 from django.urls import reverse
 from rest_framework import status

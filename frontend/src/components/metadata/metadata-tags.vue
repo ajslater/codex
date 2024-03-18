@@ -1,22 +1,25 @@
 <template>
   <div v-if="model && model.length > 0" class="tags">
-    <v-chip-group :value="model" multiple class="chipGroup">
-      <div class="label">
-        {{ label }}
-      </div>
+    <div class="chipGroupLabel">
+      {{ label }}
+    </div>
+    <v-chip-group :column="true" multiple :value="model">
       <v-chip
         v-for="item in model"
         :key="`${label}/${item.value}`"
         :color="chipColor(item.value)"
         :value="item.value"
-        :text="item.title"
-      />
+      >
+        <a v-if="item.url" :href="item.url" target="_blank"
+          >{{ item.title }}<v-icon>{{ mdiOpenInNew }}</v-icon></a
+        ><span v-else>{{ item.title }}</span>
+      </v-chip>
     </v-chip-group>
   </div>
 </template>
 
 <script>
-import { mdiFilter } from "@mdi/js";
+import { mdiFilter, mdiOpenInNew } from "@mdi/js";
 import { mapState } from "pinia";
 
 import { toVuetifyItems } from "@/api/v3/vuetify-items";
@@ -29,28 +32,29 @@ export default {
       type: String,
       required: true,
     },
-    items: {
-      type: Array,
-      default() {
-        return [];
-      },
-    },
     values: {
       type: Array,
       default() {
         return [];
       },
     },
+    filter: {
+      type: String,
+      required: false,
+      default: undefined,
+    },
   },
   data() {
     return {
       mdiFilter,
+      mdiOpenInNew,
     };
   },
   computed: {
     ...mapState(useBrowserStore, {
       filterValues: function (state) {
-        return state.settings.filters[this.label.toLowerCase()];
+        const filterName = this.filter || this.label.toLowerCase();
+        return state.settings.filters[filterName];
       },
     }),
     model() {
@@ -72,11 +76,8 @@ export default {
   padding: 10px;
   background-color: rgb(var(--v-theme-surface));
 }
-.label {
-  color: rgb(var(--v-theme-textSecondary));
+.chipGroupLabel {
   font-size: 12px;
-}
-.chipGroup {
-  display: inline;
+  color: rgb(var(--v-theme-textSecondary));
 }
 </style>

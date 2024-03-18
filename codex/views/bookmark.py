@@ -1,4 +1,5 @@
 """Bookmark views."""
+
 from typing import ClassVar
 
 from drf_spectacular.utils import extend_schema
@@ -7,27 +8,29 @@ from rest_framework.response import Response
 
 from codex.logger.logging import get_logger
 from codex.models import Bookmark, Comic
-from codex.serializers.models import BookmarkFinishedSerializer, BookmarkSerializer
-from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
-from codex.views.mixins import GroupACLMixin
+from codex.serializers.models.bookmark import (
+    BookmarkFinishedSerializer,
+    BookmarkSerializer,
+)
+from codex.views.auth import GroupACLMixin, IsAuthenticatedOrEnabledNonUsers
 
 LOG = get_logger(__name__)
+VERTICAL_READING_DIRECTIONS = frozenset({"ttb", "btt"})
 
 
 class BookmarkBaseView(GenericAPIView, GroupACLMixin):
     """Bookmark Updater."""
 
-    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]
+    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]  # type:ignore
     _BOOKMARK_UPDATE_FIELDS = (
         "page",
         "finished",
         "fit_to",
         "two_pages",
-        "vertical",
-        "read_in_reverse",
+        "reading_direction",
     )
     _BOOKMARK_ONLY_FIELDS = (*_BOOKMARK_UPDATE_FIELDS, "pk", "comic")
-    _COMIC_ONLY_FIELDS = ("pk", "max_page")
+    _COMIC_ONLY_FIELDS = ("pk", "page_count")
 
     def get_bookmark_filter(self):
         """Get search kwargs for the reader."""
@@ -56,6 +59,29 @@ class BookmarkBaseView(GenericAPIView, GroupACLMixin):
             search_kwargs["session_id"] = self.request.session.session_key
         return search_kwargs
 
+    @staticmethod
+    def _update_bookmarks_validate_page(bm, updates):
+        """Force bookmark page into valid range."""
+        page = updates.get("page")
+        if page is None:
+            return
+        page = max(min(page, bm.comic.max_page), 0)
+        if page == bm.comic.max_page:
+            # Auto finish on bookmark last page
+            bm.finished = True
+        updates["page"] = page
+
+    @staticmethod
+    def _update_bookmarks_validate_two_pages(bm, updates):
+        """Force vertical view to not use two pages."""
+        rd = updates.get("reading_direction")
+        if (
+            rd in VERTICAL_READING_DIRECTIONS
+            or bm.reading_direction in VERTICAL_READING_DIRECTIONS
+            and bm.two_pages
+        ):
+            updates["two_pages"] = None
+
     def _update_bookmarks(self, search_kwargs, updates):
         """Update existing bookmarks."""
         group_acl_filter = self.get_group_acl_filter(Bookmark)
@@ -68,21 +94,33 @@ class BookmarkBaseView(GenericAPIView, GroupACLMixin):
         update_bookmarks = []
         existing_comic_pks = set()
         for bm in existing_bookmarks:
-            if updates.get("page") == bm.comic.max_page:
-                # Auto finish on bookmark last page
-                bm.finished = True
-
+            self._update_bookmarks_validate_page(bm, updates)
+            self._update_bookmarks_validate_two_pages(bm, updates)
             for key, value in updates.items():
                 setattr(bm, key, value)
             update_bookmarks.append(bm)
             existing_comic_pks.add(bm.comic.pk)
-        Bookmark.objects.bulk_update(update_bookmarks, self._BOOKMARK_UPDATE_FIELDS)
+        if update_bookmarks:
+            update_fields = list(self._BOOKMARK_UPDATE_FIELDS | updates.keys())
+            Bookmark.objects.bulk_update(update_bookmarks, update_fields)
         return existing_comic_pks
+
+    @staticmethod
+    def _create_bookmarks_validate_two_pages(updates):
+        """Force vertical view to not use two pages."""
+        if (
+            updates.get("two_pages")
+            and updates.get("reading_direction") in VERTICAL_READING_DIRECTIONS
+        ):
+            updates.pop("two_pages", None)
 
     def _create_bookmarks(
         self, existing_comic_pks, comic_filter, search_kwargs, updates
     ):
         """Create new bookmarks for comics that don't exist yet."""
+        self._create_bookmarks_validate_two_pages(updates)
+        if not updates:
+            return
         create_bookmarks = []
         group_acl_filter = self.get_group_acl_filter(Comic)
         create_bookmark_comics = (
@@ -133,7 +171,7 @@ class BookmarkView(BookmarkBaseView):
         return serializer.validated_data
 
     @extend_schema(request=serializer_class, responses=None)
-    def patch(self, *args, **kwargs):
+    def patch(self, *_args, **_kwargs):
         """Update bookmarks recursively."""
         group = self.kwargs.get("group")
         # If the target is recursive, strip everything but finished state data.

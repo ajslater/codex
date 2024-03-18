@@ -1,4 +1,5 @@
 """Channels Websocket Application."""
+
 from channels.auth import AuthMiddlewareStack
 from channels.routing import URLRouter
 from channels.security.websocket import AllowedHostsOriginValidator

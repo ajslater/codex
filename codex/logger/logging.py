@@ -1,4 +1,5 @@
 """Logging classes."""
+
 import logging
 from contextlib import suppress
 from logging.handlers import QueueHandler

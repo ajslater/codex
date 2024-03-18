@@ -17,7 +17,7 @@ const codexTheme = {
     // info: "#2196F3", // lightblue (similar to primary)
     success: "#14dc3c", // crimsongreen
     // warning: "#FB8C00", // soft orange
-    "on-surface-variant": "#2A2A2A",
+    "surface-light": "#2A2A2A",
     // --- custom ---
     linkHover: WHITE,
     textPrimary: WHITE,
@@ -25,6 +25,8 @@ const codexTheme = {
     textSecondary: "#A9A9A9",
     textDisabled: DISABLED,
     iconsInactive: DISABLED,
+    includeGroup: "#151",
+    excludeGroup: "#511",
   },
 };
 

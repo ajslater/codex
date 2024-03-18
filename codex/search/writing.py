@@ -1,4 +1,5 @@
 """Custom Codex Writer."""
+
 from threading import RLock
 from time import sleep
 
@@ -82,7 +83,7 @@ class CodexWriter(BufferedWriter):
             reuse=ramreader,
         )
 
-    def reader(self, **kwargs):
+    def reader(self, **_kwargs):
         """Get the reader without locking the writer."""
         reader = self._get_non_locking_writer_reader()
 
@@ -98,7 +99,7 @@ class CodexWriter(BufferedWriter):
 
         return reader
 
-    def commit(self, reader=None, **kwargs):
+    def commit(self, restart=True, reader=None):  # noqa: ARG002
         """Commit with a writer we get now."""
         with self.lock:
             writer = self.get_writer("commit")

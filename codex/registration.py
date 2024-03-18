@@ -1,4 +1,5 @@
 """Patch settings at runtime."""
+
 from rest_registration.settings import registration_settings
 
 from codex.models import AdminFlag

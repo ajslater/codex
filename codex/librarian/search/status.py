@@ -1,4 +1,5 @@
 """Search Index Status Types."""
+
 from django.db.models import Choices
 
 

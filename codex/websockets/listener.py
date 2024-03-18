@@ -1,4 +1,5 @@
 """Listens to the Broadcast Queue and sends its messages to channels."""
+
 from queue import Empty
 from types import MappingProxyType
 

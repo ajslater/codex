@@ -1,4 +1,5 @@
 """Update and create failed imports."""
+
 from pathlib import Path
 
 from django.db.models.functions import Now
@@ -8,6 +9,9 @@ from codex.models import Comic, FailedImport
 from codex.status import Status
 from codex.threads import QueuedThread
 
+_UPDATE_FIS = "update_fis"
+_CREATE_FIS = "create_fis"
+_DELETE_FI_PATHS = "delete_fi_paths"
 _BULK_UPDATE_FAILED_IMPORT_FIELDS = ("name", "stat", "updated_at")
 
 
@@ -60,11 +64,11 @@ class FailedImportsMixin(QueuedThread):
         # Calculate creates and updates
         for path, exc in failed_imports.items():
             if path in existing_failed_import_paths:
-                fis["update_fis"][path] = exc
+                fis[_UPDATE_FIS][path] = exc
             else:
-                fis["create_fis"][path] = exc
+                fis[_CREATE_FIS][path] = exc
 
-        fis["delete_fi_paths"] |= self._query_failed_import_deletes(
+        fis[_DELETE_FI_PATHS] |= self._query_failed_import_deletes(
             library, failed_imports, existing_failed_import_paths
         )
 
@@ -143,14 +147,15 @@ class FailedImportsMixin(QueuedThread):
         )
         qs.delete()
         count = len(delete_failed_imports_paths)
-        self.log.info(f"Cleaned up {count} failed imports from {library.path}")
+        if count:
+            self.log.info(f"Cleaned up {count} failed imports from {library.path}")
         return count
 
     def fail_imports(self, library, failed_imports, is_files_deleted):
         """Handle failed imports."""
         created_count = 0
         try:
-            fis = {"update_fis": {}, "create_fis": {}, "delete_fi_paths": set()}
+            fis = {_UPDATE_FIS: {}, _CREATE_FIS: {}, _DELETE_FI_PATHS: set()}
             if is_files_deleted:
                 # if any files were deleted. Run the failed import check
                 failed_imports["files_deleted"] = True
@@ -163,19 +168,19 @@ class FailedImportsMixin(QueuedThread):
             )
 
             self._bulk_update_failed_imports(
-                fis["update_fis"],
+                fis[_UPDATE_FIS],
                 library,
                 status=status,
             )
 
             created_count = self._bulk_create_failed_imports(
-                fis["create_fis"],
+                fis[_CREATE_FIS],
                 library,
                 status=status,
             )
 
             self._bulk_cleanup_failed_imports(
-                fis["delete_fi_paths"], library, status=status
+                fis[_DELETE_FI_PATHS], library, status=status
             )
         except Exception:
             self.log.exception("Processing failed imports")

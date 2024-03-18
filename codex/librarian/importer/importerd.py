@@ -1,4 +1,5 @@
 """Bulk import and move comics and folders."""
+
 import logging
 from pathlib import Path
 from time import sleep, time
@@ -7,11 +8,12 @@ from django.core.cache import cache
 from humanize import naturaldelta
 
 from codex.librarian.importer.aggregate_metadata import AggregateMetadataMixin
+from codex.librarian.importer.const import FIS, FKS, M2M_MDS, MDS
 from codex.librarian.importer.deleted import DeletedMixin
 from codex.librarian.importer.failed_imports import FailedImportsMixin
 from codex.librarian.importer.moved import MovedMixin
 from codex.librarian.importer.status import ImportStatusTypes
-from codex.librarian.importer.tasks import AdoptOrphanFoldersTask, UpdaterDBDiffTask
+from codex.librarian.importer.tasks import AdoptOrphanFoldersTask, ImportDBDiffTask
 from codex.librarian.importer.update_comics import UpdateComicsMixin
 from codex.librarian.notifier.tasks import FAILED_IMPORTS_TASK, LIBRARY_CHANGED_TASK
 from codex.librarian.search.status import SearchIndexStatusTypes
@@ -32,7 +34,7 @@ class ComicImporterThread(
 ):
     """A worker to handle all bulk database updates."""
 
-    def _wait_for_filesystem_ops_to_finish(self, task: UpdaterDBDiffTask) -> bool:
+    def _wait_for_filesystem_ops_to_finish(self, task: ImportDBDiffTask) -> bool:
         """Watchdog sends events before filesystem events finish, so wait for them."""
         started_checking = time()
 
@@ -245,10 +247,10 @@ class ComicImporterThread(
             fks = {}
             fis = {}
             all_metadata = {
-                "mds": mds,
-                "m2m_mds": m2m_mds,
-                "fks": fks,
-                "fis": fis,
+                MDS: mds,
+                M2M_MDS: m2m_mds,
+                FKS: fks,
+                FIS: fis,
             }
             self.get_aggregate_metadata(
                 modified_paths | created_paths, library.path, all_metadata
@@ -285,9 +287,10 @@ class ComicImporterThread(
         changed_args = (library, start_time, imported_count)
         self._finish_apply(changed, new_failed_imports, changed_args)
 
-    def process_item(self, task):
+    def process_item(self, item):
         """Run the updater."""
-        if isinstance(task, UpdaterDBDiffTask):
+        task = item
+        if isinstance(task, ImportDBDiffTask):
             self._apply(task)
         elif isinstance(task, AdoptOrphanFoldersTask):
             self.adopt_orphan_folders()

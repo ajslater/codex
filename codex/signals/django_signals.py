@@ -1,4 +1,5 @@
 """Django signal actions."""
+
 from time import time
 
 from django.core.cache import cache

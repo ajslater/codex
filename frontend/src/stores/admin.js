@@ -6,14 +6,6 @@ import { useCommonStore } from "@/stores/common";
 
 const warnError = (error) => console.warn(error);
 
-const vuetifyItems = (items, textAttr) => {
-  const result = [];
-  for (const item of items) {
-    result.push({ value: item.pk, title: item[textAttr] });
-  }
-  return result;
-};
-
 const IRREGULAR_PLURALS = {
   LibrarianStatus: "LibrarianStatuses",
   Library: "Libraries",
@@ -24,14 +16,6 @@ const getTablePlural = (table) => {
     return IRREGULAR_PLURALS[table];
   }
   return table + "s";
-};
-
-const itemMap = (items, key) => {
-  const map = {};
-  for (const item of items) {
-    map[item.pk] = item[key];
-  }
-  return map;
 };
 
 export const useAdminStore = defineStore("admin", {
@@ -53,24 +37,6 @@ export const useAdminStore = defineStore("admin", {
     isUserAdmin() {
       const authStore = useAuthStore();
       return authStore.isUserAdmin;
-    },
-    userMap() {
-      return itemMap(this.users, "username");
-    },
-    groupMap() {
-      return itemMap(this.groups, "name");
-    },
-    libraryMap() {
-      return itemMap(this.libraries, "path");
-    },
-    vuetifyUsers() {
-      return vuetifyItems(this.users, "username");
-    },
-    vuetifyGroups() {
-      return vuetifyItems(this.groups, "name");
-    },
-    vuetifyLibraries() {
-      return vuetifyItems(this.libraries, "path");
     },
     librariesExist() {
       return this.libraries && this.libraries.length > 0;

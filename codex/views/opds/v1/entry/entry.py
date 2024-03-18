@@ -1,4 +1,5 @@
 """OPDS v1 Entry."""
+
 import json
 from datetime import datetime, timezone
 from urllib.parse import urlencode
@@ -12,7 +13,7 @@ from codex.views.opds.const import (
     BLANK_TITLE,
 )
 from codex.views.opds.util import (
-    get_creator_people,
+    get_contributor_people,
     get_m2m_objects,
 )
 from codex.views.opds.v1.entry.links import OPDS1EntryLinksMixin
@@ -40,22 +41,24 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         result = ""
         try:
             parts = []
+            group = self.obj.group
             if not self.fake:
-                group = self.obj.group
                 if group == "i":
                     parts.append(self.obj.publisher_name)
                 elif group == "v":
                     parts.append(self.obj.series_name)
                 elif group == "c":
-                    title = Comic.get_title(self.obj, issue_max=self.issue_max)
+                    title = Comic.get_title(
+                        self.obj, issue_number_max=self.issue_number_max
+                    )
                     parts.append(title)
 
-            if name := self.obj.name:
+            if group != "c" and (name := self.obj.name):
                 parts.append(name)
 
             result = " ".join(filter(None, parts))
-        except Exception as exc:
-            LOG.exception(exc)
+        except Exception:
+            LOG.exception("Getting OPDS1 title")
 
         if not result:
             result = BLANK_TITLE
@@ -132,16 +135,16 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         """Get Author names."""
         if not self.metadata:
             return []
-        people = get_creator_people(self.obj.pk, AUTHOR_ROLES)
-        return self._add_url_to_obj(people, "creators")
+        people = get_contributor_people(self.obj.pk, AUTHOR_ROLES)
+        return self._add_url_to_obj(people, "contributors")
 
     @property
     def contributors(self):
         """Get Contributor names."""
         if not self.metadata:
             return []
-        people = get_creator_people(self.obj.pk, AUTHOR_ROLES, exclude=True)
-        return self._add_url_to_obj(people, "creators")
+        people = get_contributor_people(self.obj.pk, AUTHOR_ROLES, exclude=True)
+        return self._add_url_to_obj(people, "contributors")
 
     @property
     def category_groups(self):

@@ -1,7 +1,7 @@
 executors:
   amd64-large-executor:
     machine:
-      image: ubuntu-2004:current
+      image: ubuntu-2204:current
       resource_class: large
   amd64-medium-executor:
     machine:
@@ -17,16 +17,16 @@ jobs:
     steps:
       - checkout
       - run:
-          command: ./bin/docker/docker-init.sh
+          command: ./docker/docker-init.sh
           name: Login to Docker Hub, Install binfmt Platform, Create the buildx Builder
       - run:
-          command: ./bin/docker/docker-env.sh
+          command: ./docker/docker-env.sh
           name: Generate image versions
       - run:
-          command: ./bin/docker/docker-build-image.sh codex-base
+          command: ./docker/docker-build-image.sh codex-base
           name: Build Base Image
       - run:
-          command: ./bin/docker/docker-build-image.sh codex-builder-base
+          command: ./docker/docker-build-image.sh codex-builder-base
           name: Build Builder Base Image
       - persist_to_workspace:
           paths:
@@ -42,27 +42,27 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          command: ./bin/docker/docker-init.sh
+          command: ./docker/docker-init.sh
           name: Login to Docker Hub, Install binfmt platform & Create the buildx Builder
       - run:
-          command: ./bin/docker/docker-build-image.sh codex-dist-builder
+          command: ./docker/docker-build-image.sh codex-dist-builder
           name: Build Distribution Builder Image
       - run:
-          command: ./bin/docker/docker-compose-exit.sh codex-backend-lint
+          command: ./docker/docker-compose-exit.sh codex-backend-lint
           name: "Backend: Lint"
       - run:
-          command: ./bin/docker/docker-compose-exit.sh codex-frontend-lint
+          command: ./docker/docker-compose-exit.sh codex-frontend-lint
           name: "Frontend: Lint"
       - run:
-          command: ./bin/docker/docker-compose-exit.sh codex-frontend-test
+          command: ./docker/docker-compose-exit.sh codex-frontend-test
           name: "Frontend: Test"
       - store_test_results:
           path: test-results/jest
       - run:
-          command: ./bin/docker/docker-compose-exit.sh codex-frontend-build
+          command: ./docker/docker-compose-exit.sh codex-frontend-build
           name: "Frontend: Build"
       - run:
-          command: ./bin/docker/docker-compose-exit.sh codex-backend-test
+          command: ./docker/docker-compose-exit.sh codex-backend-test
           name: "Backend: Test"
       - store_test_results:
           path: test-results/pytest
@@ -71,7 +71,7 @@ jobs:
       - store_artifacts:
           path: frontend/coverage
       - run:
-          command: ./bin/docker/docker-compose-exit.sh codex-build-dist
+          command: ./docker/docker-compose-exit.sh codex-build-dist
           name: Build Distribution
       - persist_to_workspace:
           paths:
@@ -84,10 +84,10 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          command: ./bin/docker/docker-init.sh
+          command: ./docker/docker-init.sh
           name: Login to Docker Hub, Install binfmt platform & Create the buildx Builder
       - run:
-          command: ./bin/docker/docker-build-image.sh codex -arch
+          command: ./docker/docker-build-image.sh codex -arch
           name: Build Codex Runnable Image
   build-arm64:
     <<: *build
@@ -99,13 +99,13 @@ jobs:
       - attach_workspace:
           at: .
       - run:
-          command: ./bin/docker/docker-install-api-deps.sh
+          command: ./docker/docker-install-api-deps.sh
           name: Install docker API dependencies
       - run:
-          command: ./bin/docker/docker-login.sh
+          command: ./docker/docker-login.sh
           name: Login to Docker Hub
       - run:
-          command: ./bin/docker/docker-create-multiarch-codex.sh
+          command: ./docker/docker-create-multiarch-codex.sh
           name: Create multi-arch images
       - run:
           command: make publish

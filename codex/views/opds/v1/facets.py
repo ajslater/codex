@@ -1,4 +1,5 @@
 """OPDS v1 Facets methods."""
+
 from dataclasses import dataclass
 from types import MappingProxyType
 
@@ -118,9 +119,9 @@ class FacetsMixin(BrowserView):
         )
         qps = {**self.request.query_params}
         qps.update(query_params)
-        issue_max = self.obj.get("issue_max", 0)
+        issue_number_max = self.obj.get("issue_number_max", 0)
         data = OPDS1EntryData(
-            self.acquisition_groups, issue_max, False, self.mime_type_map
+            self.acquisition_groups, issue_number_max, False, self.mime_type_map
         )
         return OPDS1Entry(entry_obj, qps, data)
 

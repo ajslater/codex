@@ -1,8 +1,9 @@
 """Create comic cover paths."""
+
 from io import BytesIO
 from time import time
 
-from comicbox.comic_archive import ComicArchive
+from comicbox.box import Comicbox
 from humanize import naturaldelta
 from PIL import Image
 
@@ -11,7 +12,6 @@ from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.covers.tasks import CoverSaveToCache
 from codex.models import Comic
 from codex.status import Status
-from codex.version import COMICBOX_CONFIG
 
 
 class CoverCreateMixin(CoverPathMixin):
@@ -43,8 +43,8 @@ class CoverCreateMixin(CoverPathMixin):
 
         Return image thumb data or path to missing file thumb.
         """
-        with ComicArchive(comic_path, config=COMICBOX_CONFIG) as car:
-            image_data = car.get_cover_image()
+        with Comicbox(comic_path) as cb:
+            image_data = cb.get_cover_image()
         if not image_data:
             reason = "Read empty cover"
             raise ValueError(reason)
@@ -76,7 +76,7 @@ class CoverCreateMixin(CoverPathMixin):
         if data:
             with cover_path.open("wb") as cover_file:
                 cover_file.write(data)
-        else:
+        elif not cover_path.exists():
             cover_path.symlink_to(self.MISSING_COVER_PATH)
 
     def _bulk_create_comic_covers(self, comic_pks):
@@ -97,7 +97,7 @@ class CoverCreateMixin(CoverPathMixin):
                 if cover_path.exists():
                     status.decrement_total()
                 else:
-                    # bulk creator creates covers inline
+                    # bulk contributor creates covers inline
                     self.create_cover_from_path(
                         pk, cover_path, self.log, self.librarian_queue
                     )

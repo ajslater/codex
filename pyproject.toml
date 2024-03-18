@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "codex"
-version = "1.4.3"
+version = "1.5.0rc4"
 description = "A comic archive web server."
 license = "GPL-3.0-only"
 authors = ["AJ Slater <aj@slater.net>"]
@@ -16,7 +16,7 @@ keywords = ["comic", "cbz", "cbr", "cbt", "pdf"]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Environment :: Web Environment",
-  "Framework :: Django :: 4.0",
+  "Framework :: Django :: 5.0",
   "Intended Audience :: End Users/Desktop",
   "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
   "Natural Language :: English",
@@ -31,35 +31,33 @@ exclude = [
   "*/**/*~",
   "codex/img/*.svg",
   "codex/static_src/*",
-  "codex/static_build/*"
+  "codex/static_build/*",
 ]
 include = ["codex/static_root/**/*"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.10"
 aioprocessing = "^2.0.1"
 ansicolors = "^1.1"
 case-converter = "^1.1.0"
 channels = "^4.0.0"
-comicbox = { extras = ["pdf"], version = "^0.10.1" }
-django = "^4.2"
+comicbox = { extras = ["pdf"], version = "^1.1.3" }
+django = "^5.0.1"
 djangorestframework = "^3.11"
 djangorestframework-camel-case = "^1.3.0"
 django-cors-headers = "^4.0"
-django-haystack = "^3.2.1"
 django-rest-registration = "^0.8.0"
-django-vite = "^2.1.3"
-drf-spectacular = "^0.26.0"
+django-vite = "^3.0.1"
+drf-spectacular = "^0.27.0"
 fnvhash = "^0.1"
 humanfriendly = "^10.0"
 humanize = "^4.0.0"
-hypercorn = { extras = ["h3"], version = "^0.14.1" }
+hypercorn = { extras = ["h3"], version = "^0.16.0" }
 psutil = "^5.9.4"
-pycountry = "^22.1"
 python-dateutil = "^2.8.2"
 requests = "^2.24"
 tzlocal = "^5.0"
-watchdog = "^3.0"
+watchdog = "^4.0"
 websocket_client = "^1.2"
 whitenoise = { extras = ["brotli"], version = "^6.0" }
 whoosh = "^2.7.4"
@@ -68,23 +66,23 @@ Pillow = "^10.0.0"
 [tool.poetry.group.dev.dependencies]
 neovim = "^0.3.1"
 nplusone = "^1.0.0"
+vendorize = "^0.3.0"
 
 [tool.poetry.group.test.dependencies]
 coverage = { extras = ["toml"], version = "^7.0" }
-pytest-asyncio = "^0.21.0"
+pytest-asyncio = "^0.23.2"
 pytest-cov = "^4.0"
 pytest-django = "^4.1"
 pytest-gitignore = "^1.3"
 
 [tool.poetry.group.lint.dependencies]
 codespell = "^2.1.0"
-black = "^23.1.0"
 djangorestframework-types = "^0.8.0"
-django-types = "^0.17.0"
+django-types = "^0.19.1"
 djlint = "^1.2.1"
-pyright = "^1.1.232"
-radon = { extras = ["toml"], version =  "^6.0.1" }
-ruff = ">=0.0.256,<0.1.0"
+pyright = "^1.1.354"
+radon = { extras = ["toml"], version = "^6.0.1" }
+ruff = "^0.3.0"
 types-python-dateutil = "^2.8.19"
 vulture = "^2.3"
 
@@ -96,11 +94,8 @@ codex = "codex.run:main"
 "Docker Image" = "https://hub.docker.com/r/ajslater/codex"
 "Report Issues" = "https://github.com/ajslater/codex/issues"
 
-[tool.black]
-extend_exclude = "/(_vendor/haystack)/"
-
 [tool.codespell]
-skip = './cache,./codex/static_build,./codex/static_root,./comics,./config,./dist,./frontend/coverage,./test-results,.git,.mypy_cache,.pytest_cache,.venv*,*~,_vendor/haystack,node_modules,package-lock.json,poetry.lock,run.spec'
+skip = './cache,./codex/_vendor,./codex/static_build,./codex/static_root,./comics,./config,./dist,./frontend/coverage,./test-results,.git,.mypy_cache,.pytest_cache,.venv*,*~,_vendor/haystack,node_modules,package-lock.json,poetry.lock,run.spec'
 builtin = 'clear,rare,code'
 check-hidden = true
 # Remove 'coverd' when this issue is resolved
@@ -121,7 +116,7 @@ omit = [
   ".venv*/*",
   "*__pycache__*",
   "cache/*",
-  "codex/_vendor/haystack/*",
+  "codex/_vendor/*",
   "codex/static_build/*",
   "codex/static_root/*",
   "comics/*",
@@ -129,7 +124,7 @@ omit = [
   "frontend/*",
   "node_modules/*",
   "test-results/*",
-  "typings/*"
+  "typings/*",
 ]
 
 [tool.djlint]
@@ -145,7 +140,7 @@ exclude = [
   ".pytest_cache",
   ".venv*",
   "cache",
-  "codex/_vendor/haystack",
+  "codex/_vendor",
   "codex/static_build",
   "codex/static_root",
   "comics",
@@ -160,14 +155,11 @@ exclude = [
 useLibraryCodeForTypes = true
 reportMissingImports = true
 reportImportCycles = true
-pythonVersion = "3.9"
+pythonVersion = "3.10"
 pythonPlatform = "All"
 
 [tool.pytest.ini_options]
-junit_family = "xunit2"
-DJANGO_SETTINGS_MODULE = "codex.settings.settings"
 asyncio_mode = "strict"
-# --black
 addopts = """
     --junit-xml=test-results/pytest/results.xml
     -ra
@@ -177,50 +169,104 @@ addopts = """
     --cov-append
     --cov-report=html
     --cov-report=term
-    --ignore=.git
-    --ignore=cache
-    --ignore=codex/_vendor/haystack
-    --ignore=frontend
-    --ignore=typings
 """
+junit_family = "xunit2"
+testpaths = "tests"
+DJANGO_SETTINGS_MODULE = "codex.settings.settings"
 
 [tool.radon]
 exclude = """\
   *~,.git/*,.mypy_cache/*,.pytest_cache/*,.venv*,__pycache__/*\
-  ,cache/*,codex/_vendor/haystack/*,codex/static_build/*,codex/static_root/*\
+  ,cache/*,codex/_vendor/*,codex/static_build/*,codex/static_root/*\
   ,config/*,dist/*,frontend/*,node_modules/*,test-results/*,typings/*\
   """
 
 [tool.ruff]
-extend-exclude = ["cache", "codex/_vendor_haystack", "frontend", "typings"]
-extend-ignore = ["S101", "D203", "D213"]
-extend-select = ["A", "ARG", "B", "B9", "C", "C4", "C90", "D", "DJ",
-  "DTZ", "E", "EM", "EXE", "F", "I", "ICN", "INP", "ISC", "PIE", "PL",
-  "PT", "PTH", "PYI", "Q", "N", "RET", "RSE", "RUF", "S", "SIM", "SLF",
-  "T10", "T20", "TCH", "TID", "TRY", "UP", "W", "YTT"
+extend-exclude = ["cache", "codex/_vendor", "frontend", "typings"]
+show-fixes = true
+target-version = "py310"
+
+[tool.ruff.lint]
+extend-ignore = [
+  "S101",
+  "D203",
+  "D213",
+  "W191",
+  "E501",
+  "E111",
+  "E114",
+  "E117",
+  "D206",
+  "D300",
+  "Q000",
+  "Q001",
+  "Q002",
+  "Q003",
+  "COM812",
+  "COM819",
+  "ISC001",
+  "ISC002",
+]
+extend-select = [
+  "A",
+  "ARG",
+  "B",
+  "B9",
+  "C",
+  "C4",
+  "C90",
+  "D",
+  "DJ",
+  "DTZ",
+  "E",
+  "EM",
+  "EXE",
+  "F",
+  "I",
+  "ICN",
+  "INP",
+  "ISC",
+  "PIE",
+  "PL",
+  "PT",
+  "PTH",
+  "PYI",
+  "Q",
+  "N",
+  "RET",
+  "RSE",
+  "RUF",
+  "S",
+  "SIM",
+  "SLF",
+  "T10",
+  "T20",
+  "TCH",
+  "TID",
+  "TRY",
+  "UP",
+  "W",
+  "YTT",
   # "ANN", "ERA", "COM"
 ]
 external = ["V101"]
-format = "grouped"
-show-fixes = true
-target-version = "py39"
 task-tags = ["TODO", "FIXME", "XXX", "http", "HACK"]
 
-[tool.ruff.flake8-self]
+[tool.ruff.lint.flake8-self]
 ignore-names = ["_meta"]
 
-[tool.ruff.flake8-unused-arguments]
+[tool.ruff.lint.flake8-unused-arguments]
 ignore-variadic-names = true
 
-[tool.ruff.pycodestyle]
+[tool.ruff.lint.pycodestyle]
 ignore-overlong-task-comments = true
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "codex/logger/*" = ["T201"]
-"codex/migrations/*" = ["T201"]
+"codex/migrations/*" = ["RUF012", "T201"]
+"codex/models/__init__.py" = ["F403"]
 "codex/settings/*" = ["T201"]
-"mock_comics/*" = ["S311","T201"]
-
+"mock_comics/*" = ["S311", "T201"]
 
 [tool.vulture]
 exclude = [
@@ -230,7 +276,7 @@ exclude = [
   "*.venv*",
   "*/__pycache__",
   "cache/",
-  "codex/_vendor/haystack/",
+  "codex/_vendor",
   "codex/static_build/",
   "codex/static_root/",
   "frontend/",

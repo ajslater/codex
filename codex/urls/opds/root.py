@@ -1,4 +1,5 @@
 """codex:opds URL Configuration."""
+
 from django.urls import include, path, re_path
 
 from codex.views.opds.util import full_redirect_view

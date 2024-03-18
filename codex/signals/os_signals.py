@@ -1,4 +1,5 @@
 """OS Signal actions."""
+
 import asyncio
 import signal
 from asyncio import Event
@@ -22,7 +23,7 @@ RESTART_EVENT = Event()
 SHUTDOWN_EVENT = Event()
 
 
-def _shutdown_signal_handler(*args):
+def _shutdown_signal_handler(*_args):
     """Initiate Codex Shutdown."""
     if SHUTDOWN_EVENT.is_set():
         return
@@ -30,8 +31,8 @@ def _shutdown_signal_handler(*args):
     SHUTDOWN_EVENT.set()
 
 
-def _restart_signal_handler(*args):
-    """Initaite Codex Restart."""
+def _restart_signal_handler(*_args):
+    """Initiate Codex Restart."""
     if RESTART_EVENT.is_set():
         return
     LOG.info("Restart signal received.")

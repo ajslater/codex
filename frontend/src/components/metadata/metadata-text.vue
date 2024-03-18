@@ -9,8 +9,9 @@
         id="folderPath"
         :to="groupTo"
         title="Browse Folder"
-        >{{ folderPath }}/</router-link
       >
+        {{ folderPath }}/
+      </router-link>
       <router-link
         v-else-if="groupTo"
         class="textContent"
@@ -19,7 +20,7 @@
       >
         {{ computedValue }}
       </router-link>
-      <a v-else-if="link" :href="computedValue" target="_blank">
+      <a v-else-if="link" :href="linkValue" target="_blank">
         {{ computedValue }}
         <v-icon size="small">
           {{ mdiOpenInNew }}
@@ -50,7 +51,7 @@ export default {
       default: undefined,
     },
     link: {
-      type: Boolean,
+      type: [Boolean, String],
       default: false,
     },
     group: {
@@ -72,6 +73,14 @@ export default {
       return this.value != undefined && this.value instanceof Object
         ? this.value.name
         : this.value;
+    },
+    linkValue() {
+      if (this.link === true) {
+        return this.computedValue;
+      } else if (this.link) {
+        return this.link;
+      }
+      return false;
     },
     highlight() {
       return this.obj?.group === this.group;
@@ -132,11 +141,13 @@ export default {
   font-size: 12px;
   color: rgb(var(--v-theme-textSecondary));
 }
+.textContent {
+  border: solid thin transparent;
+}
 .highlight .textContent {
   background-color: rgb(var(--v-theme-primary-darken-1));
   padding: 0px 8px 0px 8px;
   border-radius: 12px;
-  border: solid transparent;
 }
 // eslint-disable-next-line vue-scoped-css/no-unused-selector
 .highlight a.textContent {
@@ -145,6 +156,6 @@ export default {
 }
 // eslint-disable-next-line vue-scoped-css/no-unused-selector
 .highlight a.textContent:hover {
-  border: solid rgb(var(--v-theme-textPrimary));
+  border: solid thin rgb(var(--v-theme-textPrimary));
 }
 </style>

@@ -2,8 +2,8 @@
   <v-expansion-panels v-if="!isMobile">
     <v-expansion-panel id="readerKeyboardShortcuts">
       <v-expansion-panel-title id="shortcutsTitle">
-        <v-icon id="keyboardIcon">{{ mdiKeyboardOutline }}</v-icon
-        >Keyboard Shortcuts
+        <v-icon id="keyboardIcon"> {{ mdiKeyboardOutline }} </v-icon>Keyboard
+        Shortcuts
       </v-expansion-panel-title>
       <v-expansion-panel-text>
         <h4>Navigation</h4>
@@ -52,6 +52,10 @@
               <td>n</td>
               <td>Next Book</td>
             </tr>
+            <tr>
+              <td>esc</td>
+              <td>Close book</td>
+            </tr>
           </tbody>
         </table>
         <h4>Fit Page To</h4>
@@ -79,7 +83,19 @@
             </tr>
             <tr>
               <td>r</td>
-              <td>Toggle Read in Reverse</td>
+              <td>Read Right to Left</td>
+            </tr>
+            <tr>
+              <td>l</td>
+              <td>Read Left to Right</td>
+            </tr>
+            <tr>
+              <td>t</td>
+              <td>Read Top to Bottom</td>
+            </tr>
+            <tr>
+              <td>b</td>
+              <td>Read in Bottom to Top</td>
             </tr>
           </tbody>
         </table>
@@ -91,8 +107,8 @@
               <td>Show comic's metadata</td>
             </tr>
             <tr>
-              <td>esc</td>
-              <td>Close book</td>
+              <td>double click</td>
+              <td>Zoom page</td>
             </tr>
           </tbody>
         </table>

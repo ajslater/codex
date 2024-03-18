@@ -43,11 +43,11 @@
         "value": "c"
       },
       {
-        "title": "Folder View",
+        "title": "Folders",
         "value": "f"
       },
       {
-        "title": "Story Arc View",
+        "title": "Story Arcs",
         "value": "a"
       }
     ],
@@ -141,12 +141,21 @@
       "s": "Series",
       "v": "Volumes",
       "c": "Issues",
-      "f": "Folders"
+      "f": "Folders",
+      "a": "Story Arcs"
     },
     "route": {
       "group": "r",
       "pk": 0,
       "page": 1
+    },
+    "identifierTypes": {
+      "comicvine": "Comic Vine",
+      "comixology": "Comixology",
+      "asin": "Amazon",
+      "gtin": "GTIN",
+      "isbn": "ISBN",
+      "upc": "UPC"
     }
   },
   "reader": {
@@ -167,6 +176,29 @@
       {
         "title": "Original Size",
         "value": "O"
+      },
+      {
+        "title": "",
+        "value": ""
+      }
+    ],
+    "readingDirection": [
+      {
+        "title": "Left to Right",
+        "value": "ltr",
+        "default": true
+      },
+      {
+        "title": "Right to Left",
+        "value": "rtl"
+      },
+      {
+        "title": "Top to Bottom",
+        "value": "ttb"
+      },
+      {
+        "title": "Bottom to Top",
+        "value": "btt"
       },
       {
         "title": "",

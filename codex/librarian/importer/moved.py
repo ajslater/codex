@@ -1,8 +1,10 @@
 """Bulk import and move comics and folders."""
+
 from pathlib import Path
 
 from django.db.models.functions import Now
 
+from codex.librarian.importer.const import FOLDERS_FIELD, PARENT_FOLDER
 from codex.librarian.importer.create_comics import CreateComicsMixin
 from codex.librarian.importer.create_fks import (
     BULK_UPDATE_FOLDER_MODIFIED_FIELDS,
@@ -27,7 +29,7 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
             return count
 
         # Prepare FKs
-        create_folder_paths = {}
+        create_folder_paths = set()
         self.query_missing_folder_paths(
             moved_paths.values(), library.path, create_folder_paths, status=status
         )
@@ -36,37 +38,36 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
         # Update Comics
         comics = Comic.objects.filter(
             library=library, path__in=moved_paths.keys()
-        ).only("pk", "path", "parent_folder", "folders")
+        ).only("pk", "path", PARENT_FOLDER, FOLDERS_FIELD)
 
         folder_m2m_links = {}
         now = Now()
-        comic_pks = []
+        updated_comics = []
         for comic in comics.iterator():
             try:
-                comic.path = moved_paths[comic.path]
-                new_path = Path(comic.path)
-                if new_path.parent == Path(library.path):
-                    comic.parent_folder = None
-                else:
-                    comic.parent_folder = Folder.objects.get(  # type: ignore
-                        path=new_path.parent
-                    )
+                new_path = moved_paths[comic.path]
+                comic.path = new_path
+                new_path = Path(new_path)
+                comic.parent_folder = Folder.objects.get(  # type: ignore
+                    path=new_path.parent
+                )
                 comic.updated_at = now
                 comic.set_stat()
                 folder_m2m_links[comic.pk] = Folder.objects.filter(
                     path__in=new_path.parents
                 ).values_list("pk", flat=True)
-                comic_pks.append(comic.pk)
+                updated_comics.append(comic)
             except Exception:
                 self.log.exception(f"moving {comic.path}")
 
-        Comic.objects.bulk_update(comics, _MOVED_BULK_COMIC_UPDATE_FIELDS)
+        Comic.objects.bulk_update(updated_comics, _MOVED_BULK_COMIC_UPDATE_FIELDS)
 
         # Update m2m field
-        count = len(comics)
         if folder_m2m_links:
-            self.bulk_fix_comic_m2m_field("folders", folder_m2m_links, None)
-        self.log.info(f"Moved {count} comics.")
+            self.bulk_fix_comic_m2m_field(FOLDERS_FIELD, folder_m2m_links, None)
+        count = len(comics)
+        if count:
+            self.log.info(f"Moved {count} comics.")
 
         return count
 
@@ -76,9 +77,10 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
         dest_parent_folder_paths = set()
         for dest_folder_path in dest_folder_paths:
             dest_parent_path = str(Path(dest_folder_path).parent)
-            dest_parent_folder_paths.add(dest_parent_path)
+            if dest_parent_path not in dest_folder_paths:
+                dest_parent_folder_paths.add(dest_parent_path)
 
-        # Create intermediate subfolders.
+        # Create only intermediate subfolders.
         existing_folder_paths = Folder.objects.filter(
             library=library, path__in=dest_parent_folder_paths
         ).values_list("path", flat=True)
@@ -109,11 +111,13 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
         )
 
         src_folder_paths = frozenset(folders_moved.keys())
-        folders = Folder.objects.filter(library=library, path__in=src_folder_paths)
+        folders_to_move = Folder.objects.filter(
+            library=library, path__in=src_folder_paths
+        ).order_by("path")
 
         update_folders = []
         now = Now()
-        for folder in folders.iterator():
+        for folder in folders_to_move.iterator():
             new_path = folders_moved[folder.path]
             folder.name = Path(new_path).name
             folder.path = new_path
@@ -127,7 +131,8 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
 
         Folder.objects.bulk_update(update_folders, _MOVED_BULK_FOLDER_UPDATE_FIELDS)
         count = len(update_folders)
-        self.log.info(f"Moved {count} folders.")
+        if count:
+            self.log.info(f"Moved {count} folders.")
         return count
 
     @status_notify(status_type=ImportStatusTypes.DIRS_MODIFIED, updates=False)
@@ -150,7 +155,8 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
             update_folders, fields=BULK_UPDATE_FOLDER_MODIFIED_FIELDS
         )
         count += len(update_folders)
-        self.log.info(f"Modified {count} folders")
+        if count:
+            self.log.info(f"Modified {count} folders")
         return count
 
     def adopt_orphan_folders(self):
@@ -171,7 +177,6 @@ class MovedMixin(CreateComicsMixin, CreateForeignKeysMixin, QueryForeignKeysMixi
 
     def move_and_modify_dirs(self, library, task):
         """Move files and dirs and modify dirs."""
-        # TODO add status?
         changed = 0
         changed += self._bulk_folders_moved(task.dirs_moved, library)
         task.dirs_moved = None

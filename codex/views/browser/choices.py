@@ -1,6 +1,7 @@
 """View for marking comics read and unread."""
+
 from types import MappingProxyType
-from typing import ClassVar, Union
+from typing import ClassVar
 
 import pycountry
 from caseconverter import snakecase
@@ -12,7 +13,7 @@ from codex.logger.logging import get_logger
 from codex.models import (
     BrowserGroupModel,
     Comic,
-    CreatorPerson,
+    ContributorPerson,
     Folder,
     Imprint,
     Publisher,
@@ -20,27 +21,48 @@ from codex.models import (
     StoryArc,
     Volume,
 )
-from codex.serializers.browser import (
-    BrowserChoicesSerializer,
+from codex.models.named import IdentifierType
+from codex.serializers.browser.choices import CHOICES_SERIALIZER_CLASS_MAP
+from codex.serializers.browser.filters import (
     BrowserFilterChoicesSerializer,
+    CharListField,
 )
-from codex.serializers.models import PyCountrySerializer
+from codex.serializers.models.pycountry import PyCountrySerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.base import BrowserBaseView
 
 LOG = get_logger(__name__)
 
+_FIELD_TO_REL_MODEL_MAP = MappingProxyType(
+    {
+        BrowserBaseView.CONTRIBUTOR_PERSON_UI_FIELD: (
+            "contributors__person",
+            ContributorPerson,
+        ),
+        BrowserBaseView.STORY_ARC_UI_FIELD: ("story_arc_numbers__story_arc", StoryArc),
+        BrowserBaseView.IDENTIFIER_TYPE_UI_FIELD: (
+            "identifiers__identifier_type",
+            IdentifierType,
+        ),
+    }
+)
+
 
 class BrowserChoicesViewBase(BrowserBaseView):
     """Get choices for filter dialog."""
 
-    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]
+    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]  # type: ignore
 
-    _CREATORS_PERSON_REL = "creators__person"
+    _CONTRIBUTORS_PERSON_REL = "contributors__person"
     _STORY_ARC_REL = "story_arc_numbers__story_arc"
+    _IDENTIFIERS_REL = "identifiers__identifier_type"
     _NULL_NAMED_ROW = MappingProxyType({"pk": -1, "name": "_none_"})
     _BACK_REL_MAP = MappingProxyType(
-        {CreatorPerson: "creator__", StoryArc: "storyarcnumber__"}
+        {
+            ContributorPerson: "contributor__",
+            StoryArc: "storyarcnumber__",
+            IdentifierType: "identifier__",
+        }
     )
     _REL_MAP = MappingProxyType(
         {
@@ -51,6 +73,7 @@ class BrowserChoicesViewBase(BrowserBaseView):
             Comic: "pk",
             Folder: "parent_folder",
             StoryArc: "story_arc_numbers__story_arc",
+            IdentifierType: "identifiers__identifier_type",
         }
     )
 
@@ -82,14 +105,11 @@ class BrowserChoicesViewBase(BrowserBaseView):
         """Get if null values exists for an m2m field."""
         return comic_qs.filter(**{f"{rel}__isnull": True}).exists()
 
-    def _get_rel_and_model(self, field_name):
+    def get_rel_and_model(self, field_name):
         """Return the relation and model for the field name."""
-        if field_name == self.CREATOR_PERSON_UI_FIELD:
-            rel = self._CREATORS_PERSON_REL
-            model = CreatorPerson
-        elif field_name == self.STORY_ARC_UI_FIELD:
-            rel = self._STORY_ARC_REL
-            model = StoryArc
+        rel_and_model = _FIELD_TO_REL_MODEL_MAP.get(field_name)
+        if rel_and_model:
+            rel, model = rel_and_model
         else:
             remote_field = getattr(
                 Comic._meta.get_field(field_name), "remote_field", None
@@ -112,9 +132,7 @@ class BrowserChoicesViewBase(BrowserBaseView):
         group = self.kwargs["group"]
         if group == self.ROOT_GROUP:
             group = self.params.get("top_group", "p")
-        self.model: Union[BrowserGroupModel, Comic, None] = self.GROUP_MODEL_MAP[
-            group
-        ]  # type: ignore
+        self.model: BrowserGroupModel | Comic | None = self.GROUP_MODEL_MAP[group]  # type: ignore
 
 
 class BrowserChoicesAvailableView(BrowserChoicesViewBase):
@@ -141,7 +159,7 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
         return count
 
     @extend_schema(request=BrowserBaseView.input_serializer_class)
-    def get(self, *args, **kwargs):
+    def get(self, *_args, **_kwargs):
         """Return all choices with more than one choice."""
         self.parse_params()
         self._set_model()
@@ -153,7 +171,7 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
             if field_name == "story_arcs" and self.model == StoryArc:
                 # don't allow filtering on story arc in story arc view.
                 continue
-            rel, m2m_model = self._get_rel_and_model(field_name)
+            rel, m2m_model = self.get_rel_and_model(field_name)
 
             if m2m_model:
                 count = self._get_m2m_field_choices_count(m2m_model, comic_qs, rel)
@@ -161,7 +179,11 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
                 count = self._get_field_choices_count(comic_qs, rel)
 
             filters = self.params.get("filters", {})
-            data[field_name] = count > 1 or field_name in filters
+            try:
+                flag = count > 1 or field_name in filters  # type: ignore
+            except TypeError:
+                flag = False
+            data[field_name] = flag
 
         serializer = self.get_serializer(data)
         return Response(serializer.data)
@@ -170,7 +192,7 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
 class BrowserChoicesView(BrowserChoicesViewBase):
     """Get choices for filter dialog."""
 
-    serializer_class = BrowserChoicesSerializer
+    # serializer_class = Dynamic class determined in get()
 
     def _get_field_choices(self, comic_qs, field_name):
         """Create a pk:name object for fields without tables."""
@@ -205,16 +227,24 @@ class BrowserChoicesView(BrowserChoicesViewBase):
             choices = qs
         return choices
 
+    def _get_field_name(self):
+        field_name = self.kwargs.get("field_name", "")
+        return snakecase(field_name)
+
+    def get_serializer_class(self):  # type: ignore
+        """Dynamic serializer class."""
+        field_name = self._get_field_name()
+        return CHOICES_SERIALIZER_CLASS_MAP.get(field_name, CharListField)
+
     @extend_schema(request=BrowserBaseView.input_serializer_class)
-    def get(self, *args, **kwargs):
+    def get(self, *_args, **_kwargs):
         """Return all choices with more than one choice."""
         self.parse_params()
         self._set_model()
         self.set_rel_prefix(self.model)
 
-        field_name = snakecase(self.kwargs["field_name"])
-
-        rel, m2m_model = self._get_rel_and_model(field_name)
+        field_name = self._get_field_name()
+        rel, m2m_model = self.get_rel_and_model(field_name)
 
         comic_qs = self.get_object()
         if m2m_model:

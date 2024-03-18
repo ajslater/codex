@@ -1,4 +1,5 @@
 """Serializer mixins."""
+
 from rest_framework.serializers import (
     BooleanField,
     CharField,

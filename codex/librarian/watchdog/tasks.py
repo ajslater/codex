@@ -1,4 +1,5 @@
 """Watchdog Tasks."""
+
 from dataclasses import dataclass
 
 from watchdog.events import FileSystemEvent

@@ -1,4 +1,5 @@
 """Janitor task runner."""
+
 from codex.librarian.covers.status import CoverStatusTypes
 from codex.librarian.covers.tasks import CoverRemoveOrphansTask
 from codex.librarian.janitor.cleanup import TOTAL_NUM_FK_CLASSES, CleanupMixin
@@ -72,31 +73,31 @@ class Janitor(CleanupMixin, UpdateMixin, VacuumMixin, UpdateFailedImportsMixin):
         except Exception:
             self.log.exception(f"In {self.__class__.__name__}")
 
-    def run(self, task):  # noqa: C901, PLR0912
+    def run(self, task):
         """Run Janitor tasks as the librarian process directly."""
-        # XXX good candidate for match case in python3.10
         try:
-            if isinstance(task, JanitorVacuumTask):
-                self.vacuum_db()
-            elif isinstance(task, JanitorBackupTask):
-                self.backup_db()
-            elif isinstance(task, JanitorUpdateTask):
-                self.update_codex()
-            elif isinstance(task, JanitorRestartTask):
-                self.restart_codex()
-            elif isinstance(task, JanitorShutdownTask):
-                self.shutdown_codex()
-            elif isinstance(task, JanitorCleanFKsTask):
-                self.cleanup_fks()
-            elif isinstance(task, JanitorCleanupSessionsTask):
-                self.cleanup_sessions()
-            elif isinstance(task, JanitorClearStatusTask):
-                self.status_controller.finish_many([])
-            elif isinstance(task, ForceUpdateAllFailedImportsTask):
-                self.force_update_all_failed_imports()
-            elif isinstance(task, JanitorNightlyTask):
-                self.queue_tasks()
-            else:
-                self.log.warning(f"Janitor received unknown task {task}")
+            match task:
+                case JanitorVacuumTask():
+                    self.vacuum_db()
+                case JanitorBackupTask():
+                    self.backup_db()
+                case JanitorUpdateTask():
+                    self.update_codex()
+                case JanitorRestartTask():
+                    self.restart_codex()
+                case JanitorShutdownTask():
+                    self.shutdown_codex()
+                case JanitorCleanFKsTask():
+                    self.cleanup_fks()
+                case JanitorCleanupSessionsTask():
+                    self.cleanup_sessions()
+                case JanitorClearStatusTask():
+                    self.status_controller.finish_many([])
+                case ForceUpdateAllFailedImportsTask():
+                    self.force_update_all_failed_imports()
+                case JanitorNightlyTask():
+                    self.queue_tasks()
+                case _:
+                    self.log.warning(f"Janitor received unknown task {task}")
         except Exception:
             self.log.exception("Janitor task crashed.")

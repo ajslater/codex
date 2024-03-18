@@ -1,4 +1,5 @@
 """Clean up the database after moves or imports."""
+
 import logging
 from time import time
 
@@ -8,9 +9,9 @@ from django.utils.timezone import now
 from codex.librarian.janitor.status import JanitorStatusTypes
 from codex.models import (
     Character,
-    Creator,
-    CreatorPerson,
-    CreatorRole,
+    Contributor,
+    ContributorPerson,
+    ContributorRole,
     Folder,
     Genre,
     Imprint,
@@ -33,7 +34,7 @@ _COMIC_FK_CLASSES = (
     Imprint,
     Publisher,
     Folder,
-    Creator,
+    Contributor,
     Tag,
     Team,
     Character,
@@ -42,17 +43,17 @@ _COMIC_FK_CLASSES = (
     StoryArcNumber,
     Genre,
 )
-_CREATOR_FK_CLASSES = (CreatorRole, CreatorPerson)
+_CONTRIBUTOR_FK_CLASSES = (ContributorRole, ContributorPerson)
 _STORY_ARC_NUMBER_FK_CLASSES = (StoryArc,)
 TOTAL_NUM_FK_CLASSES = (
     len(_COMIC_FK_CLASSES)
-    + len(_CREATOR_FK_CLASSES)
+    + len(_CONTRIBUTOR_FK_CLASSES)
     + len(_STORY_ARC_NUMBER_FK_CLASSES)
 )
 
 CLEANUP_MAP = [
     (_COMIC_FK_CLASSES, "comic"),
-    (_CREATOR_FK_CLASSES, "creator"),
+    (_CONTRIBUTOR_FK_CLASSES, "contributor"),
     (_STORY_ARC_NUMBER_FK_CLASSES, "storyarcnumber"),
 ]
 

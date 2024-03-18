@@ -1,7 +1,11 @@
 <template>
   <div class="browserLink cardSubtitle text-caption">
-    <div v-if="seriesName" class="seriesCaption">{{ seriesName }}</div>
-    <div v-if="volumeName" class="volumeCaption">{{ volumeName }}</div>
+    <div v-if="seriesName" class="seriesCaption">
+      {{ seriesName }}
+    </div>
+    <div v-if="volumeName" class="volumeCaption">
+      {{ volumeName }}
+    </div>
     <div v-if="headerName" class="headerName">
       {{ headerName }}
     </div>
@@ -49,7 +53,7 @@ export default {
     },
     volumeName() {
       if (
-        (this.topGroup === "a" || (this.orderByname && !this.showVolume)) &&
+        (this.topGroup === "a" || (this.orderByName && !this.showVolume)) &&
         this.item.group === "c" &&
         this.item.volumeName
       ) {

@@ -15,8 +15,9 @@ import { defineAsyncComponent, markRaw } from "vue";
 import { useAuthStore } from "@/stores/auth";
 
 const AdminSettingsButtonProgress = markRaw(
-  defineAsyncComponent(() =>
-    import("@/components/admin/drawer/admin-settings-button-progress.vue"),
+  defineAsyncComponent(
+    () =>
+      import("@/components/admin/drawer/admin-settings-button-progress.vue"),
   ),
 );
 

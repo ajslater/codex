@@ -1,4 +1,5 @@
 """Test the asgi server."""
+
 from django.test import TestCase
 
 from codex.asgi import application

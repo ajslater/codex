@@ -15,6 +15,7 @@
     </v-list-item>
   </div>
 </template>
+
 <script>
 import { mdiDownload, mdiFileImage } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
@@ -34,14 +35,18 @@ export default {
   computed: {
     ...mapGetters(useReaderStore, ["activeTitle", "routeParams"]),
     ...mapState(useReaderStore, {
+      currentBook: (state) => state.books?.current,
       storePage: (state) => state.page,
-      filename: (state) => state.books?.current?.filename,
-      downloadURL(state) {
-        return getDownloadURL(state.books.current.pk);
-      },
     }),
+    downloadURL() {
+      return getDownloadURL(this.currentBook);
+    },
+    filename() {
+      return this.currentBook?.filename;
+    },
     pageSrc() {
-      return getDownloadPageURL(this.routeParams);
+      const { pk, mtime } = this.currentBook;
+      return getDownloadPageURL({ pk, page: this.storePage, mtime });
     },
     pageName() {
       return `${this.activeTitle} - page ${this.storePage}.jpg`;
@@ -58,6 +63,7 @@ export default {
   },
 };
 </script>
+
 <style scoped lang="scss">
 #downloadPanel {
   background-color: rgb(var(--v-theme-background));

@@ -1,4 +1,5 @@
 """The Codex Library Watchdog Observer threads."""
+
 from watchdog.observers import Observer
 from watchdog.observers.api import (
     DEFAULT_OBSERVER_TIMEOUT,
@@ -23,7 +24,6 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
         log_queue = kwargs.pop("log_queue")
         librarian_queue = kwargs.pop("librarian_queue")
         self.init_worker(log_queue, librarian_queue)
-        self._unrar = kwargs.pop("unrar", False)
         super().__init__(*args, **kwargs)
 
     def _get_watch(self, path):
@@ -54,7 +54,6 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
             library,
             librarian_queue=self.librarian_queue,
             log_queue=self.log_queue,
-            unrar=self._unrar,
         )
         self.schedule(handler, library.path, recursive=True)
         self.log.info(f"Started {watching_log}")
@@ -91,7 +90,13 @@ class UatuMixin(BaseObserver, WorkerBaseMixin):
         except Exception:
             self.log.exception(f"{self.__class__.__name__} sync library watches")
 
-    def schedule(self, event_handler, path, recursive=False):
+    def schedule(  # type: ignore
+        self,
+        event_handler,
+        path,
+        recursive=False,
+        _event_filter=None,
+    ):
         """Override BaseObserver for Codex emitter class.
 
         https://pythonhosted.org/watchdog/_modules/watchdog/observers/api.html#BaseObserver

@@ -8,8 +8,8 @@
   >
     <template #activator="{ props }">
       <v-list-item v-bind="props">
-        <v-list-item-title
-          ><v-icon>{{ mdiArchiveSearchOutline }}</v-icon
+        <v-list-item-title>
+          <v-icon>{{ mdiArchiveSearchOutline }}</v-icon
           >Search Syntax Help
         </v-list-item-title>
       </v-list-item>
@@ -162,35 +162,41 @@ import CloseButton from "@/components/close-button.vue";
 const FIELD_ROWS = [
   ["characters", "CSV", "category"],
   ["community_rating", "Decimal", "communityrating"],
+  ["contributor", "CSV", "author, creator, credit, person, people"],
   ["country", "String", ""],
   ["created_at", "DateTime", "created"],
-  ["creators", "CSV", "authors, contributors"],
   ["critical_rating", "Decimal", "criticalrating"],
   ["day", "Integer", ""],
   ["date", "Date", ""],
   ["decade", "Integer", ""],
-  ["description", "String", ""],
-  ["file_type", "String", "format"],
+  ["file_type", "String", "type"],
   ["genres", "CSV", "genre"],
+  ["identifier", "CSV", "id, nss"],
+  ["identifier_type", "CSV", "id_type, nid"],
   ["imprint", "String", ""],
-  ["issue", "Decimal", ""],
+  ["issue_number", "Decimal", "issue, number"],
   ["language", "String", ""],
-  ["location[s]", "CSV", "location"],
+  ["location", "CSV", "location"],
   ["maturity_rating", "String", ""],
+  ["monochrome", "String", "blackandwhite"],
   ["month", "Integer", ""],
-  ["read_ltr", "Boolean", "ltr"],
+  ["reading_direction", "String", "direction"],
   ["name", "String", "title"],
   ["notes", "String", ""],
-  ["original_format", "String", "format"],
-  ["page_count", "Integer", "pages"],
+  ["original_format", "String", "format, orginalformat"],
+  ["page_count", "Integer", "pages, pagecount"],
   ["publisher", "String", ""],
-  ["scan_info", "String", "scan"],
+  ["reading_direction", "String", "direction"],
+  ["review", "String", ""],
+  ["scan_info", "String", "scan, scaninfo"],
   ["series", "String", ""],
-  ["series_group[s]", "CSV", "seriesgroups"],
+  ["series_groups", "CSV", "seriesgroups"],
   ["size", "Integer", ""],
+  ["stories", "CSV", "story"],
   ["story_arcs", "CSV", "storyarcs"],
-  ["summary", "String", ""],
+  ["summary", "String", "comments, description"],
   ["tags", "CSV", "tag"],
+  ["tagger", "String", ""],
   ["teams", "CSV", "team"],
   ["updated_at", "Date", "updated"],
   ["volume", "String", ""],

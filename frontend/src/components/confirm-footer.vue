@@ -1,13 +1,10 @@
 <template>
   <footer class="confirmFooter">
-    <v-btn
-      class="confirmButton"
-      :disabled="disabled"
-      @click="$emit('confirm')"
-      >{{ confirmText }}</v-btn
-    >
+    <v-btn class="confirmButton" :disabled="disabled" @click="$emit('confirm')">
+      {{ confirmText }}
+    </v-btn>
 
-    <v-btn class="cancelButton" @click="$emit('cancel')">Cancel</v-btn>
+    <v-btn class="cancelButton" @click="$emit('cancel')"> Cancel </v-btn>
   </footer>
 </template>
 <script>

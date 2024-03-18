@@ -103,6 +103,11 @@
           "value": "search_index_abort",
           "title": "Abort Search Indexing",
           "desc": "Aborts search index update and remove tasks."
+        },
+        {
+          "value": "search_index_clear",
+          "title": "Clear Search Index",
+          "desc": "of all entries"
         }
       ]
     },
@@ -180,7 +185,7 @@
         {
           "value": "cleanup_sessions",
           "title": "Cleanup Sessions",
-          "desc": "Remove corrupt and expired sessoions. Runs nightly."
+          "desc": "Remove corrupt and expired sessions. Runs nightly."
         },
         {
           "value": "cleanup_covers",
@@ -206,6 +211,7 @@
     "RG": "Registration",
     "NU": "Non Users",
     "AU": "Auto Update",
-    "SO": "Search Index Full Optimization"
+    "SO": "Search Index Full Optimization",
+    "IM": "Import Metadata"
   }
 }

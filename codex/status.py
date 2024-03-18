@@ -1,16 +1,16 @@
 """Librarian Status dataclass."""
+
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Union
 
 
 @dataclass
 class Status:
     """Args for passing into import functions."""
 
-    status_type: Union[str, Enum]
-    complete: Optional[int] = None
-    total: Optional[int] = None
+    status_type: str | Enum
+    complete: int | None = None
+    total: int | None = None
     since: float = 0.0
     subtitle: str = ""
 

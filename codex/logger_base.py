@@ -1,4 +1,5 @@
 """Class to run librarian tasks inline without a thread."""
+
 from codex.logger.logging import get_logger
 
 

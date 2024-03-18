@@ -1,6 +1,5 @@
 """View for marking comics read and unread."""
-from copy import copy
-from types import MappingProxyType
+
 from typing import ClassVar
 
 from django.db.models import Count, F, IntegerField, Subquery, Value
@@ -8,73 +7,52 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
-from codex.comic_field_names import COMIC_M2M_FIELD_NAMES
-from codex.models import AdminFlag, Comic, StoryArc
+from codex.librarian.importer.const import COMIC_M2M_FIELD_NAMES
+from codex.logger.logging import get_logger
+from codex.models import AdminFlag, Comic
 from codex.serializers.metadata import MetadataSerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_annotations import BrowserAnnotationsView
+
+LOG = get_logger(__name__)
+_ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS = frozenset({"path"})
+_COMIC_VALUE_FIELDS_CONFLICTING = frozenset(
+    {
+        "created_at",
+        "name",
+        "path",
+        "updated_at",
+    }
+)
+_DISABLED_VALUE_FIELD_NAMES = frozenset(
+    {"id", "pk", "stat"} | _COMIC_VALUE_FIELDS_CONFLICTING
+)
+_COMIC_VALUE_FIELD_NAMES = frozenset(
+    # contains path
+    field.name
+    for field in Comic._meta.get_fields()
+    if not field.is_relation and field.name not in _DISABLED_VALUE_FIELD_NAMES
+)
+_COMIC_VALUE_FIELDS_CONFLICTING_PREFIX = "conflict_"
+_COMIC_RELATED_VALUE_FIELDS = frozenset({"series__volume_count", "volume__issue_count"})
+_PATH_GROUPS = ("c", "f")
+_CONTRIBUTOR_RELATIONS = ("role", "person")
 
 
 class MetadataView(BrowserAnnotationsView):
     """Comic metadata."""
 
-    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]
+    permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]  # type: ignore
     serializer_class = MetadataSerializer
-
-    # DO NOT USE BY ITSELF. USE _get_comic_value_fields() instead.
-    _COMIC_VALUE_FIELDS = frozenset(
-        {
-            "age_rating",
-            "comments",
-            "community_rating",
-            "country",
-            "critical_rating",
-            "day",
-            "file_type",
-            "gtin",
-            "issue",
-            "issue_suffix",
-            "language",
-            "month",
-            "notes",
-            "original_format",
-            "read_ltr",
-            "scan_info",
-            "summary",
-            "web",
-            "year",
-        }
-    )
-    _ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS = frozenset({"path"})
-    _COMIC_VALUE_FIELDS_CONFLICTING = frozenset(
-        {
-            "name",
-            "updated_at",
-            "created_at",
-        }
-    )
-    _COMIC_VALUE_FIELDS_CONFLICTING_PREFIX = "conflict_"
-    _COMIC_FK_FIELDS_MAP = MappingProxyType(
-        {
-            "p": "publisher",
-            "i": "imprint",
-            "s": "series",
-            "v": "volume",
-        }
-    )
-    _COMIC_RELATED_VALUE_FIELDS = frozenset(
-        {"series__volume_count", "volume__issue_count"}
-    )
-    _PATH_GROUPS = ("c", "f")
-    _CREATOR_RELATIONS = ("role", "person")
-    _STORY_ARC_NUMBER_RELATIONS = ("story_arc",)
 
     def _get_comic_value_fields(self):
         """Include the path field for staff."""
-        fields = copy(self._COMIC_VALUE_FIELDS)
-        is_not_path_group = self.group not in self._PATH_GROUPS
-        if (self._is_enabled_folder_view() or self.is_admin()) and is_not_path_group:
-            fields |= self._ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS
+        fields = set(_COMIC_VALUE_FIELD_NAMES)
+        if (
+            not (self._is_enabled_folder_view() and self.is_admin())
+            or self.group not in _PATH_GROUPS
+        ):
+            fields -= _ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS
         return fields
 
     def _intersection_annotate(
@@ -132,8 +110,8 @@ class MetadataView(BrowserAnnotationsView):
             # Conflicting Simple Values
             querysets = self._intersection_annotate(
                 querysets,
-                self._COMIC_VALUE_FIELDS_CONFLICTING,
-                annotation_prefix=self._COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
+                _COMIC_VALUE_FIELDS_CONFLICTING,
+                annotation_prefix=_COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
             )
         elif self.is_admin() or self._is_enabled_folder_view():
             qs = qs.annotate(library_path=F("library__path"))
@@ -142,29 +120,17 @@ class MetadataView(BrowserAnnotationsView):
         # Foreign Keys with special count values
         _, qs = self._intersection_annotate(
             querysets,
-            self._COMIC_RELATED_VALUE_FIELDS,
+            _COMIC_RELATED_VALUE_FIELDS,
         )
         return qs
 
     @staticmethod
-    def _get_intersection_queryset(qs, values, count_rel, comic_pks):
+    def _get_intersection_queryset(qs, count_rel, comic_pks):
         """Create an intersection queryset."""
         return (
-            qs.only(*values)
-            .annotate(count=Count(count_rel))
+            qs.annotate(count=Count(count_rel))
             .order_by()
             .filter(count=comic_pks.count())
-        )
-
-    @classmethod
-    def _get_story_arc_intersection_queryset(cls, comic_pks):
-        """Hoist Story Arc intersections up from StoryArcNumber."""
-        qs = StoryArc.objects.filter(storyarcnumber__comic__pk__in=comic_pks)
-        return cls._get_intersection_queryset(
-            qs,
-            ("name",),
-            "storyarcnumber__comic",
-            comic_pks,
         )
 
     def _query_m2m_intersections(self, simple_qs):
@@ -180,40 +146,22 @@ class MetadataView(BrowserAnnotationsView):
                 raise ValueError(reason)
 
             intersection_qs = model.objects.filter(comic__pk__in=comic_pks)
-            if field_name == "creators":
-                # XXX This doesn't prevent an n+1 warning
-                intersection_qs = intersection_qs.select_related(
-                    *self._CREATOR_RELATIONS
-                )
-                values = self._CREATOR_RELATIONS
-            elif field_name == "story_arc_numbers":
-                # XXX This doesn't prevent an n+1 warning
-                intersection_qs = intersection_qs.select_related(
-                    *self._STORY_ARC_NUMBER_RELATIONS
-                )
-                values = self._STORY_ARC_NUMBER_RELATIONS
-
-                # Extra add on m2m
-                m2m_intersections[
-                    "story_arcs"
-                ] = self._get_story_arc_intersection_queryset(comic_pks)
-            else:
-                values = ("name",)
-
             # order_by() is very important for grouping
             intersection_qs = self._get_intersection_queryset(
-                intersection_qs, values, "comic", comic_pks
+                intersection_qs, "comic", comic_pks
             )
             m2m_intersections[field_name] = intersection_qs
         return m2m_intersections
 
     def _path_security(self, obj):
         """Secure filesystem information for acl situation."""
-        if self.is_admin():
-            return
-        if self._is_enabled_folder_view():
-            library_path = obj.get("library_path", "")
-            obj.path = obj.path.removeprefix(library_path)
+        is_path_group = self.group in _PATH_GROUPS
+        if is_path_group:
+            if self.is_admin():
+                return
+            if self._is_enabled_folder_view():
+                library_path = obj.library_path
+                obj.path = obj.path.removeprefix(library_path)
         else:
             obj.path = ""
 
@@ -228,20 +176,40 @@ class MetadataView(BrowserAnnotationsView):
             obj.name = None
 
     @staticmethod
-    def _copy_m2m_intersections(obj, m2m_intersections):
-        """Copy the m2m intersections into the object."""
-        for key, value in m2m_intersections.items():
-            if hasattr(obj, key):
-                # db set objects use their special method
-                getattr(obj, key).set(value)
-            else:
-                setattr(obj, key, value)
+    def _get_optimized_m2m_query(key, qs):
+        # XXX The prefetch gets removed by field.set() :(
+        if key == "contributors":
+            optimized_qs = qs.prefetch_related(*_CONTRIBUTOR_RELATIONS).only(
+                *_CONTRIBUTOR_RELATIONS
+            )
+        elif key == "story_arc_numbers":
+            optimized_qs = qs.prefetch_related("story_arc").only("story_arc", "number")
+        elif key == "identifiers":
+            optimized_qs = qs.prefetch_related("identifier_type").only(
+                "identifier_type", "nss", "url"
+            )
+        else:
+            optimized_qs = qs.only("name")
+        return optimized_qs
 
     @classmethod
-    def _copy_conflicting_simple_fields(cls, obj):
-        for field in cls._COMIC_VALUE_FIELDS_CONFLICTING:
+    def _copy_m2m_intersections(cls, obj, m2m_intersections):
+        """Copy the m2m intersections into the object."""
+        for key, value in m2m_intersections.items():
+            optimized_qs = cls._get_optimized_m2m_query(key, value)
+            if hasattr(obj, key):
+                # real db fields need to use their special set method.
+                field = getattr(obj, key)
+                field.set(optimized_qs)
+            else:
+                # fake db field is just a queryset attached.
+                setattr(obj, key, optimized_qs)
+
+    @staticmethod
+    def _copy_conflicting_simple_fields(obj):
+        for field in _COMIC_VALUE_FIELDS_CONFLICTING:
             """Copy conflicting fields over naturral fields."""
-            conflict_field = cls._COMIC_VALUE_FIELDS_CONFLICTING_PREFIX + field
+            conflict_field = _COMIC_VALUE_FIELDS_CONFLICTING_PREFIX + field
             val = getattr(obj, conflict_field)
             setattr(obj, field, val)
 
@@ -307,17 +275,20 @@ class MetadataView(BrowserAnnotationsView):
         self.is_model_comic = self.group == self.COMIC_GROUP
 
     @extend_schema(request=BrowserAnnotationsView.input_serializer_class)
-    def get(self, *args, **kwargs):
+    def get(self, *_args, **_kwargs):
         """Get metadata for a filtered browse group."""
         # Init
-        self._efv_flag = None
-        self.parse_params()
-        self.group = self.kwargs["group"]
-        self._validate()
-        self.rel_prefix = self.get_rel_prefix(self.model)
-        self.set_order_key()
+        try:
+            self._efv_flag = None
+            self.parse_params()
+            self.group = self.kwargs["group"]
+            self._validate()
+            self.set_rel_prefix(self.model)
+            self.set_order_key()
 
-        obj = self.get_object()
+            obj = self.get_object()
 
-        serializer = self.get_serializer(obj)
-        return Response(serializer.data)
+            serializer = self.get_serializer(obj)
+            return Response(serializer.data)
+        except Exception:
+            LOG.exception(f"Getting metadata {self.kwargs}")

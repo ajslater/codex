@@ -7,16 +7,44 @@
       clearable
       autofocus
     />
+    <v-radio-group
+      inline
+      label="Type"
+      :model-value="row.exclude"
+      hide-details="auto"
+      @update:model-value="row.exclude = $event"
+    >
+      <v-radio :value="false">
+        <template #label>
+          <GroupChip
+            :item="{ name: 'Include', exclude: false }"
+            title-key="name"
+            group-type
+          />
+        </template>
+      </v-radio>
+      <v-radio :value="true">
+        <template #label>
+          <GroupChip
+            :item="{ name: 'Exclude', exclude: true }"
+            title-key="name"
+            group-type
+          />
+        </template>
+      </v-radio>
+    </v-radio-group>
     <AdminRelationPicker
       :model-value="row.userSet"
       label="Users"
-      :items="vuetifyUsers"
+      :objs="users"
+      title-key="username"
       @update:model-value="row.userSet = $event"
     />
     <AdminRelationPicker
       :model-value="row.librarySet"
       label="Libraries"
-      :items="vuetifyLibraries"
+      :objs="libraries"
+      title-key="path"
       @update:model-value="row.librarySet = $event"
     />
   </div>
@@ -24,7 +52,7 @@
 
 <script>
 import _ from "lodash";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import AdminRelationPicker from "@/components/admin/relation-picker.vue";
 import { useAdminStore } from "@/stores/admin";
@@ -62,9 +90,10 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useAdminStore, ["vuetifyLibraries", "vuetifyUsers"]),
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,
+      libraries: (state) => state.libraries,
+      users: (state) => state.users,
     }),
     names() {
       return this.nameSet(this.groups, "name", this.oldRow, true);

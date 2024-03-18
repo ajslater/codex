@@ -1,4 +1,5 @@
 """Unused OPDS v2 Serializers."""
+
 from rest_framework.fields import CharField, DateTimeField, DecimalField, IntegerField
 from rest_framework.serializers import ChoiceField, Serializer
 
@@ -12,9 +13,9 @@ class RecursiveField(Serializer):
     https://pypi.org/project/djangorestframework-recursive/
     """
 
-    def to_representation(self, value):
+    def to_representation(self, instance):
         """Represent with own class."""
-        serializer = self.parent.parent.__class__(value, context=self.context)
+        serializer = self.parent.parent.__class__(instance, context=self.context)
         return serializer.data
 
 
@@ -55,7 +56,7 @@ class OPDS2AcquisitionObjectSerializer(Serializer):
     https://drafts.opds.io/schema/acquisition-object.schema.json
     """
 
-    type = CharField(read_only=True)  # noqa A003
+    type = CharField(read_only=True)
     child = RecursiveField(many=True, required=False)
 
 

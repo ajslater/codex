@@ -1,4 +1,5 @@
 """Cover status types."""
+
 from django.db.models import Choices
 
 

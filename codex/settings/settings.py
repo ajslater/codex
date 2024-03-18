@@ -8,6 +8,7 @@ https://docs.djangoproject.com/en/dev/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/dev/ref/settings/
 """
+
 from os import environ
 from pathlib import Path
 from sys import maxsize
@@ -64,7 +65,7 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
-    "haystack",
+    "codex._vendor.haystack",
 ]
 
 if DEBUG:
@@ -125,9 +126,15 @@ WSGI_APPLICATION = "codex.wsgi.application"
 
 
 # Database
-# https://docs.djangoproject.com/en/3.0/ref/settings/#databases
+# https://docs.djangoproject.com/en/dev/ref/settings/#databases
 
-DB_PATH = CONFIG_PATH / "db.sqlite3"
+DB_PATH = CONFIG_PATH / "codex.sqlite3"
+
+# Move old DB_PATH
+OLD_DB_PATH = CONFIG_PATH / "db.sqlite3"
+if not DB_PATH.exists() and OLD_DB_PATH.exists():
+    OLD_DB_PATH.rename(DB_PATH)
+
 BACKUP_DB_DIR = CONFIG_PATH / "backups"
 BACKUP_DB_PATH = (BACKUP_DB_DIR / DB_PATH.stem).with_suffix(DB_PATH.suffix + ".bak")
 
@@ -166,7 +173,6 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/dev/topics/i18n/
 LANGUAGE_CODE = "en-us"
 USE_I18N = True
-USE_TZ = True
 TZ = environ.get("TIMEZONE", environ.get("TZ"))
 TIME_ZONE = get_time_zone(TZ)
 
@@ -296,12 +302,12 @@ CHANNEL_LAYERS = {
     "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"},
 }
 
-DJANGO_VITE_DEV_MODE = DEBUG
 if DEBUG:
     import socket
 
-    DJANGO_VITE_ASSETS_PATH = STATIC_BUILD  # type: ignore
-    DJANGO_VITE_DEV_SERVER_HOST = environ.get("VITE_HOST", socket.gethostname())
-    DJANGO_VITE_DEV_SERVER_PORT = 5173
-else:
-    DJANGO_VITE_ASSETS_PATH = STATIC_ROOT
+    DJANGO_VITE = {
+        "default": {
+            "dev_mode": DEBUG,
+            "dev_server_host": environ.get("VITE_HOST", socket.gethostname()),
+        }
+    }

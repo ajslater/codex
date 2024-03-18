@@ -6,7 +6,7 @@ A=$(git rev-list -n 1 HEAD^1)
 B=$(git rev-list -n 1 HEAD) # $CIRCLE_SHA1
 # shellcheck disable=SC2086
 if git log --decorate --graph --oneline --cherry-mark --boundary "$A...$B" | grep "^+"; then
-    echo "$A" >"$FN"
+  echo "$A" > "$FN"
 else
-    echo "$B" >"$FN"
+  echo "$B" > "$FN"
 fi

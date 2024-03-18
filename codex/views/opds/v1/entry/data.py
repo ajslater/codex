@@ -1,4 +1,5 @@
 """OPDS v1 Entry Data classes."""
+
 from collections.abc import Mapping
 from dataclasses import dataclass
 
@@ -19,6 +20,6 @@ class OPDS1EntryData:
     """Entry Data class to avoid to many args."""
 
     acquisition_groups: frozenset
-    issue_max: int
+    issue_number_max: int
     metadata: bool
     mime_type_map: Mapping[str, str]
