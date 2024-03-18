@@ -35,6 +35,7 @@ border-radius: 128px;
   - Double-click to zoom on pages in reader.
   - Read PDF with browser in a new tab link.
   - Experimental checkbox for caching entire comic or PDF in the browser.
+  - Admin Flag for disabling most metadata import.
 - Dev
   - Using comicbox v1 for metadata import.
 

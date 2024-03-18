@@ -38,6 +38,7 @@ class AdminFlag(BaseModel):
         NON_USERS = "NU"
         AUTO_UPDATE = "AU"
         SEARCH_INDEX_OPTIMIZE = "SO"
+        IMPORT_METADATA = "IM"
 
     FALSE_DEFAULTS = frozenset({FlagChoices.AUTO_UPDATE})
 

@@ -25,7 +25,7 @@ class CreateComicsMixin(LinkComicsMixin):
         create_comics = []
         for path in comic_paths:
             try:
-                md = mds.pop(path)
+                md = mds.pop(path, {})
                 self.get_comic_fk_links(md, library, path)
                 comic = Comic(**md)
                 comic.presave()
@@ -36,19 +36,21 @@ class CreateComicsMixin(LinkComicsMixin):
             except Exception:
                 self.log.exception(f"Error preparing {path} for create.")
 
-        self.log.debug(f"Bulk creating {num_comics} comics...")
+        num_comics = len(create_comics)
         count = 0
-        try:
-            Comic.objects.bulk_create(
-                create_comics,
-                update_conflicts=True,
-                update_fields=BULK_UPDATE_COMIC_FIELDS,
-                unique_fields=Comic._meta.unique_together[0],  # type: ignore
-            )
-            count = len(create_comics)
-            if count:
-                self.log.info(f"Created {count} comics.")
-        except Exception:
-            self.log.exception(f"While creating {comic_paths}")
+        if num_comics:
+            self.log.debug(f"Bulk creating {num_comics} comics...")
+            try:
+                Comic.objects.bulk_create(
+                    create_comics,
+                    update_conflicts=True,
+                    update_fields=BULK_UPDATE_COMIC_FIELDS,
+                    unique_fields=Comic._meta.unique_together[0],  # type: ignore
+                )
+                count = len(create_comics)
+                if count:
+                    self.log.info(f"Created {count} comics.")
+            except Exception:
+                self.log.exception(f"While creating {comic_paths}")
 
         return count

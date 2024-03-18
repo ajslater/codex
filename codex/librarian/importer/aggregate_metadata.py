@@ -26,6 +26,7 @@ from codex.librarian.importer.const import (
 )
 from codex.librarian.importer.status import ImportStatusTypes, status_notify
 from codex.models import Imprint, Publisher, Series, Volume
+from codex.models.admin import AdminFlag
 from codex.status import Status
 
 
@@ -85,7 +86,7 @@ class AggregateMetadataMixin(CleanMetadataMixin):
         m2m_md[FOLDERS_FIELD] = Path(path).parents
         return m2m_md
 
-    def _get_path_metadata(self, path):
+    def _get_path_metadata(self, path, import_metadata):
         """Get the metatada from comicbox and munge it a little."""
         md = {}
         fk_md = {}
@@ -94,8 +95,9 @@ class AggregateMetadataMixin(CleanMetadataMixin):
         failed_import = {}
         try:
             with Comicbox(path) as cb:
-                md = cb.to_dict()
-                md = md.get("comicbox", {})
+                if import_metadata:
+                    md = cb.to_dict()
+                    md = md.get("comicbox", {})
                 md["file_type"] = cb.get_file_type()
                 if "page_count" not in md:
                     md["page_count"] = cb.get_page_count()
@@ -212,11 +214,11 @@ class AggregateMetadataMixin(CleanMetadataMixin):
             cls._set_max_group_count(common_args, Series, 3, VOLUME_COUNT)
             cls._set_max_group_count(common_args, Volume, 4, ISSUE_COUNT)
 
-    def _aggregate_path(self, data, path):
+    def _aggregate_path(self, data, path, import_metadata):
         """Aggregate metadata for one path."""
         path_str = str(path)
         md, m2m_md, fk_md, group_tree_md, failed_import = self._get_path_metadata(
-            path_str
+            path_str, import_metadata
         )
 
         all_failed_imports, all_mds, all_m2m_mds, all_fks, status = data
@@ -260,9 +262,13 @@ class AggregateMetadataMixin(CleanMetadataMixin):
 
         if status and status.complete is None:
             status.complete = 0
+        key = AdminFlag.FlagChoices.IMPORT_METADATA.value  # type: ignore
+        import_metadata = AdminFlag.objects.get(key=key).on
+        if not import_metadata:
+            self.log.warn("Admin flag set to NOT import metadata.")
         data = (all_failed_imports, all_mds, all_m2m_mds, all_fks, status)
         for path in all_paths:
-            self._aggregate_path(data, path)
+            self._aggregate_path(data, path, import_metadata)
 
         all_fks[COMIC_PATHS] = frozenset(all_mds.keys())
         fi_status = Status(ImportStatusTypes.FAILED_IMPORTS, 0, len(all_failed_imports))
