@@ -160,10 +160,10 @@ def _migrate_gtin_to_ids_create_ids(
     identifier_model, identifier_type_model, identifiers
 ):
     create_identifiers = []
-    for name, codes in identifiers.items():
+    for name, nsses in identifiers.items():
         identifier_type = identifier_type_model.objects.get(name=name)
-        for code in codes:
-            identifier = identifier_model(identifier_type=identifier_type, code=code)
+        for nss in nsses:
+            identifier = identifier_model(identifier_type=identifier_type, nss=nss)
             create_identifiers.append(identifier)
 
     if create_identifiers:
@@ -177,8 +177,8 @@ def _migrate_gtin_to_ids_link_comics(
     through_model = comic_model.identifiers.through
     tms = []
     for comic in comics:
-        name, code = comic_identifiers[comic]
-        identifier = identifier_model.objects.get(identifier_type__name=name, code=code)
+        name, nss = comic_identifiers[comic]
+        identifier = identifier_model.objects.get(identifier_type__name=name, nss=nss)
         tm = through_model(comic_id=comic.pk, identifier_id=identifier.pk)
         tms.append(tm)
 
@@ -261,7 +261,7 @@ class Migration(migrations.Migration):
             new_name="issue_number",
         ),
         migrations.RunPython(
-            code=_migrate_comments,
+            _migrate_comments,
         ),
         migrations.RemoveField(
             model_name="comic",
@@ -302,7 +302,7 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.RunPython(
-            code=_migrate_reading_direction,
+            _migrate_reading_direction,
         ),
         migrations.RemoveField(
             model_name="comic",
@@ -489,7 +489,7 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.RunPython(
-            code=_migrate_fields_to_tables,
+            _migrate_fields_to_tables,
         ),
         migrations.RemoveField(
             model_name="comic",
