@@ -115,7 +115,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
         return True
 
     @property
-    def timeout(self) -> int:
+    def timeout(self) -> int | None:
         """Get the timeout for this emitter from its library."""
         # The timeout from the constructor, self._timeout, is thrown away in favor
         # of a dynamic timeout from the database.
@@ -125,7 +125,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
             ok = self._is_watch_path_ok(library)
             if ok is None:
                 self.log.info(f"Library {self._watch_path} waiting for manual poll.")
-                return 0
+                return None
             if ok is False:
                 return self._DIR_NOT_FOUND_TIMEOUT
 
@@ -139,7 +139,7 @@ class DatabasePollingEmitter(EventEmitter, WorkerBaseMixin):
         except Exception:
             timeout = 0
             self.log.exception(f"Getting timeout for {self.watch.path}")
-        return int(timeout)
+        return timeout
 
     def _is_take_snapshot(self, timeout):
         """Determine if we should take a snapshot."""
