@@ -1,4 +1,5 @@
 """Custom Django DB functions."""
+
 from django.db.models import Aggregate
 from django.db.models.fields import CharField
 

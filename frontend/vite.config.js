@@ -1,3 +1,5 @@
+import eslintPlugin from "@nabla/vite-plugin-eslint";
+import UnheadVite from "@unhead/addons/vite";
 import vue from "@vitejs/plugin-vue";
 import fs from "fs";
 import path from "path";
@@ -6,7 +8,6 @@ import { Vuetify3Resolver } from "unplugin-vue-components/resolvers";
 import Components from "unplugin-vue-components/vite";
 import { defineConfig } from "vite";
 import { dynamicBase } from "vite-plugin-dynamic-base";
-import eslint from "vite-plugin-eslint";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 import vuetify from "vite-plugin-vuetify";
 
@@ -24,36 +25,16 @@ try {
 }
 const BASE_PATH = rootPath + "/static/";
 
-const ADMIN_COMPONENT_DIR = "./src/components/admin";
-const ADMIN_COMPONENT_FNS = fs
-  .readdirSync(ADMIN_COMPONENT_DIR)
-  .filter((fn) => fn !== "drawer" && fn.at(-1) !== "~")
-  .map((fn) => ADMIN_COMPONENT_DIR + "/" + fn);
-const ADMIN_DRAWER_COMPONENT_DIR = ADMIN_COMPONENT_DIR + "/drawer";
-const ADMIN_DRAWER_COMPONENT_FNS = fs
-  .readdirSync(ADMIN_DRAWER_COMPONENT_DIR)
-  .filter((fn) => fn.at(-1) !== "~")
-  .map((fn) => ADMIN_DRAWER_COMPONENT_DIR + "/" + fn);
 const IS_TEST_ENV = process.env.NODE_ENV === "test";
 const defineObj = {
   CODEX_PACKAGE_VERSION: JSON.stringify(package_json.version),
 };
 if (IS_TEST_ENV) {
-  defineObj["window.CODEX"] = {
+  defineObj.CODEX = {
     API_V3_PATH: JSON.stringify("dummy"),
   };
 }
-
-const Vuetify3LabsResolver = function () {
-  // For VDataTables
-  return {
-    type: "component",
-    resolve: (name) => {
-      if (/^V[A-Z]/.test(name))
-        return { name, from: "vuetify/labs/components" };
-    },
-  };
-};
+console.info(defineObj);
 
 const config = defineConfig(({ mode }) => {
   const PROD = mode === "production";
@@ -65,7 +46,7 @@ const config = defineConfig(({ mode }) => {
       strictPort: true,
     },
     build: {
-      manifest: PROD,
+      manifest: "manifest.json",
       minify: PROD,
       outDir: path.resolve("../codex/static_build"),
       emptyOutDir: true,
@@ -74,8 +55,11 @@ const config = defineConfig(({ mode }) => {
         input: path.resolve("./src/main.js"),
         output: {
           manualChunks: {
-            admin: ["./src/admin.vue", ...ADMIN_COMPONENT_FNS],
-            "admin-drawer-panel": ADMIN_DRAWER_COMPONENT_FNS,
+            // Specifying too much here can break vue's own analysis of dynamic imports.
+            "admin-drawer-panel": [
+              "./src/components/admin/drawer/admin-menu.vue",
+              "./src/components/admin/drawer/admin-settings-button-progress.vue",
+            ],
           },
         },
       },
@@ -92,16 +76,9 @@ const config = defineConfig(({ mode }) => {
       dynamicBase({
         publicPath: 'window.CODEX.APP_PATH + "static"',
       }),
-      eslint({
-        lintOnStart: true,
-        failOnError: false,
-      }),
+      eslintPlugin,
       Components({
-        resolvers: [
-          // Vuetify
-          Vuetify3LabsResolver(),
-          Vuetify3Resolver(),
-        ],
+        resolvers: [Vuetify3Resolver()],
       }),
       viteStaticCopy({
         targets: [
@@ -117,6 +94,7 @@ const config = defineConfig(({ mode }) => {
           },
         ],
       }),
+      UnheadVite(),
     ],
     publicDir: false,
     css: {
@@ -125,8 +103,9 @@ const config = defineConfig(({ mode }) => {
     define: defineObj,
     test: {
       environment: "jsdom",
-      deps: { inline: ["vuetify"] },
+      // deps: { inline: ["vuetify"] },
       globals: true,
+      server: { deps: { inline: ["vuetify"] } },
     },
   };
 });

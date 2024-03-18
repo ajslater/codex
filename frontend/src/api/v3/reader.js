@@ -19,25 +19,27 @@ const setReaderSettings = (data) => {
   return HTTP.put(`c/settings`, data);
 };
 
-export const getDownloadURL = (pk) => {
+export const getDownloadURL = ({ pk, mtime }) => {
   const READER_PATH = getReaderPath(pk);
-  const timestamp = getTSParams().ts;
-  return `${READER_PATH}/download/comic-${pk}.cbz?ts=${timestamp}`;
+  return `${READER_PATH}/download/comic-${pk}.cbz?mtime=${mtime}`;
 };
 
-export const getDownloadPageURL = ({ pk, page }) => {
+export const getDownloadPageURL = ({ pk, page, mtime }) => {
   const READER_PATH = getReaderPath(pk);
-  const timestamp = getTSParams().ts;
-  return `${READER_PATH}/${page}/page.jpg?ts=${timestamp}`;
+  return `${READER_PATH}/${page}/page.jpg?mtime=${mtime}`;
 };
 
-export const getComicPageSource = ({ pk, page }) => {
+export const getComicPageSource = ({ pk, page, mtime }) => {
   const BASE_URL = getReaderBasePath(pk);
-  const timestamp = getTSParams().ts;
-  return `${BASE_URL}/${page}/page.jpg?ts=${timestamp}`;
+  return `${BASE_URL}/${page}/page.jpg?mtime=${mtime}`;
+};
+
+export const getPdfBookSource = ({ pk, mtime }) => {
+  return `/c/${pk}/book.pdf?mtime=${mtime}`;
 };
 
 export default {
+  getPdfBookSource,
   getReaderBasePath,
   getReaderInfo,
   getReaderSettings,

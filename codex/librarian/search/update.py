@@ -1,4 +1,5 @@
 """Search Index update."""
+
 from datetime import datetime
 from math import ceil
 from multiprocessing import Pool, cpu_count
@@ -9,11 +10,11 @@ from zoneinfo import ZoneInfo
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import DatabaseError
 from django.db.models import Q
-from haystack.exceptions import SearchFieldError
-from haystack.indexes import DJANGO_ID
 from humanize import naturaldelta
 from whoosh.query import Every
 
+from codex._vendor.haystack.exceptions import SearchFieldError
+from codex._vendor.haystack.indexes import DJANGO_ID
 from codex.librarian.search.remove import RemoveMixin
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexRemoveStaleTask
@@ -71,7 +72,7 @@ class UpdateMixin(RemoveMixin):
         for result in results:
             all_index_pks.append(result.get(DJANGO_ID))
             result_updated_at = result.get("updated_at")
-            if result_updated_at > index_latest_updated_at:
+            if result_updated_at and result_updated_at > index_latest_updated_at:
                 index_latest_updated_at = result_updated_at
         if index_latest_updated_at > self._MIN_UTC_DATE:
             qs = qs.filter(
@@ -322,6 +323,15 @@ class UpdateMixin(RemoveMixin):
             until = start_time + 1
             self.status_controller.finish(status, until=until)
 
+    def clear_search_index(self):
+        """Clear the search index."""
+        clear_status = Status(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
+        self.status_controller.start(clear_status)
+        backend: CodexSearchBackend = self.engine.get_backend()  # type: ignore
+        backend.clear(commit=True)
+        self.status_controller.finish(clear_status)
+        self.log.info("Old search index cleared.")
+
     def update_search_index(self, rebuild=False):
         """Update or Rebuild the search index."""
         start_time = time()
@@ -341,17 +351,13 @@ class UpdateMixin(RemoveMixin):
 
             self._init_statuses(rebuild)
 
-            backend: CodexSearchBackend = self.engine.get_backend()  # type: ignore
             # Clear
             if rebuild:
                 self.log.info("Rebuilding search index...")
-                clear_status = Status(SearchIndexStatusTypes.SEARCH_INDEX_CLEAR)
-                self.status_controller.start(clear_status)
-                backend.clear(commit=True)
-                self.status_controller.finish(clear_status)
-                self.log.info("Old search index cleared.")
+                self.clear_search_index()
 
             # Update
+            backend: CodexSearchBackend = self.engine.get_backend()  # type: ignore
             backend.setup(False)
             if self.abort_event.is_set():
                 return

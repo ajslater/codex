@@ -1,7 +1,8 @@
 """Librarian Status for imports."""
+
+from collections.abc import Callable
 from enum import Enum
 from time import time
-from typing import Callable, Union
 
 from django.db.models import Choices
 
@@ -26,7 +27,7 @@ class ImportStatusTypes(Choices):
     FAILED_IMPORTS = "IFI"
 
 
-def status_notify(status_type: Union[str, Enum] = "", updates=True):
+def status_notify(status_type: str | Enum = "", updates=True):
     """Wrap a function with status changes."""
     # https://stackoverflow.com/questions/5929107/decorators-with-parameters
 

@@ -1,0 +1,98 @@
+Metadata-Version: 2.1
+Name: django-haystack
+Version: 3.2.1
+Summary: Pluggable search for Django.
+Home-page: http://haystacksearch.org/
+Author: Daniel Lindsley
+Author-email: daniel@toastdriven.com
+Project-URL: Documentation, https://django-haystack.readthedocs.io
+Project-URL: Source, https://github.com/django-haystack/django-haystack
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Web Environment
+Classifier: Framework :: Django
+Classifier: Framework :: Django :: 2.2
+Classifier: Framework :: Django :: 3.1
+Classifier: Framework :: Django :: 3.2
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Topic :: Utilities
+License-File: LICENSE
+License-File: AUTHORS
+Requires-Dist: Django >=2.2
+Provides-Extra: elasticsearch
+Requires-Dist: elasticsearch <8,>=5 ; extra == 'elasticsearch'
+
+.. image:: https://github.com/django-haystack/django-haystack/actions/workflows/test.yml/badge.svg
+      :target: https://github.com/django-haystack/django-haystack/actions/workflows/test.yml
+.. image:: https://img.shields.io/pypi/v/django-haystack.svg
+      :target: https://pypi.python.org/pypi/django-haystack/
+.. image:: https://img.shields.io/pypi/pyversions/django-haystack.svg
+      :target: https://pypi.python.org/pypi/django-haystack/
+.. image:: https://img.shields.io/pypi/dm/django-haystack.svg
+      :target: https://pypi.python.org/pypi/django-haystack/
+.. image:: https://readthedocs.org/projects/django-haystack/badge/
+      :target: https://django-haystack.readthedocs.io/
+.. image:: https://img.shields.io/badge/code%20style-black-000.svg
+      :target: https://github.com/psf/black
+.. image:: https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336
+      :target: https://pycqa.github.io/isort/
+
+========
+Haystack
+========
+
+:author: Daniel Lindsley
+:date: 2013/07/28
+
+Haystack provides modular search for Django. It features a unified, familiar
+API that allows you to plug in different search backends (such as Solr_,
+Elasticsearch_, Whoosh_, Xapian_, etc.) without having to modify your code.
+
+.. _Solr: http://lucene.apache.org/solr/
+.. _Elasticsearch: https://www.elastic.co/products/elasticsearch
+.. _Whoosh: https://github.com/mchaput/whoosh/
+.. _Xapian: http://xapian.org/
+
+Haystack is BSD licensed, plays nicely with third-party app without needing to
+modify the source and supports advanced features like faceting, More Like This,
+highlighting, spatial search and spelling suggestions.
+
+You can find more information at http://haystacksearch.org/.
+
+
+Getting Help
+============
+
+There is a mailing list (http://groups.google.com/group/django-haystack/)
+available for general discussion and an IRC channel (#haystack on
+irc.freenode.net).
+
+
+Documentation
+=============
+
+* Development version: http://docs.haystacksearch.org/
+* v2.8.X: https://django-haystack.readthedocs.io/en/v2.8.1/
+* v2.7.X: https://django-haystack.readthedocs.io/en/v2.7.0/
+* v2.6.X: https://django-haystack.readthedocs.io/en/v2.6.0/
+
+See the `changelog <docs/changelog.rst>`_
+
+Requirements
+============
+
+Haystack has a relatively easily-met set of requirements.
+
+* Python 3.6+
+* A supported version of Django: https://www.djangoproject.com/download/#supported-versions
+
+Additionally, each backend has its own requirements. You should refer to
+https://django-haystack.readthedocs.io/en/latest/installing_search_engines.html for more
+details.

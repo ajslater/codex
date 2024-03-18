@@ -1,4 +1,5 @@
 """Codex drf permissions."""
+
 from rest_framework.permissions import BasePermission, IsAdminUser
 
 from codex.models import Timestamp

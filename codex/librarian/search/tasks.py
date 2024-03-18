@@ -1,4 +1,5 @@
 """Libarian Tasks for searchd."""
+
 from dataclasses import dataclass
 
 
@@ -33,4 +34,9 @@ class SearchIndexRemoveStaleTask(SearchIndexerTask):
 
 @dataclass
 class SearchIndexAbortTask(SearchIndexerTask):
-    """Abort current search index task."""
+    """Abort current search index."""
+
+
+@dataclass
+class SearchIndexClearTask(SearchIndexerTask):
+    """Clear current search index."""

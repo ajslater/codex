@@ -1,4 +1,5 @@
 """Whitenoise setup functions."""
+
 import re
 
 IMF_RE = re.compile(r"^.+\.[0-9a-f]{8,12}\..+$")

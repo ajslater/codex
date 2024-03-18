@@ -1,5 +1,5 @@
 // {% load static %}
-var CACHE_PREFIX = "codex-pwa-v"
+var CACHE_PREFIX = "codex-pwa-v";
 var STATIC_CACHE_NAME = CACHE_PREFIX + new Date().getSeconds();
 var OFFLINE_PATH = "{% static 'pwa/offline.html' %}";
 var FILES_TO_CACHE = [
@@ -15,7 +15,7 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(STATIC_CACHE_NAME).then((cache) => {
       return cache.addAll(FILES_TO_CACHE);
-    })
+    }),
   );
 });
 // Clear old caches on activate
@@ -26,9 +26,9 @@ self.addEventListener("activate", (event) => {
         cacheNames
           .filter((cacheName) => cacheName.startsWith(CACHE_PREFIX))
           .filter((cacheName) => cacheName !== STATIC_CACHE_NAME)
-          .map((cacheName) => caches.delete(cacheName))
+          .map((cacheName) => caches.delete(cacheName)),
       );
-    })
+    }),
   );
 });
 // Serve from Cache
@@ -41,6 +41,6 @@ self.addEventListener("fetch", (event) => {
       })
       .catch(() => {
         return caches.match(OFFLINE_PATH);
-      })
+      }),
   );
 });

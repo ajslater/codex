@@ -9,7 +9,7 @@
     </header>
     <v-data-table-virtual
       class="adminTable"
-      fixed-headers
+      fixed-header
       item-value="pk"
       item-title="name"
       :headers="headers"
@@ -18,16 +18,23 @@
       <template #no-data>
         <td class="adminNoData" colspan="100%">No groups</td>
       </template>
+      <template #[`item.exclude`]="{ item }">
+        <GroupChip group-type :item="typeObj(item)" title-key="name" />
+      </template>
       <template #[`item.userSet`]="{ item }">
-        <RelationChips :pks="item.raw.userSet" :map="userMap" />
+        <RelationChips :pks="item.userSet" :objs="users" title-key="username" />
       </template>
       <template #[`item.librarySet`]="{ item }">
-        <RelationChips :pks="item.raw.librarySet" :map="libraryMap" />
+        <RelationChips
+          :pks="item.librarySet"
+          :objs="libraries"
+          title-key="path"
+        />
       </template>
       <template #[`item.actions`]="{ item }">
         <AdminCreateUpdateDialog
           table="Group"
-          :old-row="item.raw"
+          :old-row="item"
           max-width="20em"
           :inputs="AdminGroupCreateUpdateInputs"
           size="small"
@@ -35,8 +42,8 @@
         />
         <AdminDeleteRowDialog
           table="Group"
-          :pk="item.raw.pk"
-          :name="item.raw.name"
+          :pk="item.pk"
+          :name="item.name"
           size="small"
           density="compact"
         />
@@ -45,28 +52,75 @@
     <div id="groupHelp">
       <h3>Group Logic</h3>
       <p>
-        A library with no groups is accessible to every user and non-users if
+        A library in no groups is accessible to every user and non-users if
         those are enabled.
       </p>
       <p>
-        A library with <em>any</em> groups is accessible <em>only</em> to users
-        who are in those groups.
+        A library with <em>any</em> Include groups is accessible
+        <em>only</em> to users who are in those groups.
+      </p>
+      <p>
+        A library with <em>any</em> Exclude groups is not accessible to Guest
+        users but is acccessable to any logged in users that are not in the
+        Exclude groups.
       </p>
       <p>
         If you have libraries added and you do not see them in your browser,
         check to see if the library and your user are in the same group.
       </p>
+      <table id="groupTable">
+        <thead>
+          <tr>
+            <th>Library in Group Type</th>
+            <th>Guest</th>
+            <th>User Out of Group</th>
+            <th>User In Group</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Not in a Group</td>
+            <td class="see">Can See</td>
+            <td class="see">Can See</td>
+            <td class="see">Can See</td>
+          </tr>
+          <tr>
+            <td>
+              <GroupChip
+                :item="{ name: 'Include', exclude: false }"
+                title-key="name"
+                group-type
+              />
+            </td>
+            <td class="hidden">Hidden</td>
+            <td class="hidden">Hidden</td>
+            <td class="see">Can See</td>
+          </tr>
+          <tr>
+            <td>
+              <GroupChip
+                :item="{ name: 'Exclude', exclude: true }"
+                title-key="name"
+                group-type
+              />
+            </td>
+            <td class="hidden">Hidden</td>
+            <td class="see">Can See</td>
+            <td class="hidden">Hidden</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </template>
 
 <script>
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 import { markRaw } from "vue";
-import { VDataTableVirtual } from "vuetify/labs/components";
 
 import AdminCreateUpdateDialog from "@/components/admin/create-update-dialog.vue";
 import AdminDeleteRowDialog from "@/components/admin/delete-row-dialog.vue";
+import GroupChip from "@/components/admin/group-chip.vue";
 import AdminGroupCreateUpdateInputs from "@/components/admin/group-create-update-inputs.vue";
 import RelationChips from "@/components/admin/relation-chips.vue";
 import { useAdminStore } from "@/stores/admin";
@@ -79,7 +133,7 @@ export default {
     AdminDeleteRowDialog,
     AdminCreateUpdateDialog,
     RelationChips,
-    VDataTableVirtual,
+    GroupChip,
   },
   data() {
     return {
@@ -91,6 +145,7 @@ export default {
       GROUP_HELP_HEIGHT,
       headers: [
         { title: "Name", key: "name", align: "start" },
+        { title: "Type", key: "exclude", align: "start" },
         { title: "Users", key: "userSet" },
         { title: "Libraries", key: "librarySet" },
         { title: "Actions", key: "actions", sortable: false },
@@ -100,14 +155,19 @@ export default {
   computed: {
     ...mapState(useAdminStore, {
       groups: (state) => state.groups,
+      libraries: (state) => state.libraries,
+      users: (state) => state.users,
     }),
-    ...mapGetters(useAdminStore, ["libraryMap", "userMap"]),
   },
   mounted() {
     this.loadTables(["User", "Library", "Group"]);
   },
   methods: {
     ...mapActions(useAdminStore, ["loadTables"]),
+    typeObj(item) {
+      const name = item.exclude ? "Exclude " : "Include";
+      return { name, exclude: item.exclude };
+    },
   },
 };
 </script>
@@ -115,6 +175,11 @@ export default {
 <style scoped lang="scss">
 #groupHelp {
   margin-top: 2em;
+  margin-bottom: 2em;
   color: rgb(var(--v-theme-textSecondary));
 }
+#groupTable { border: solid thin; margin-top: 1em;}
+#groupTable th, #groupTable td { padding: 0.25em;}
+.see { background-color: rgb(var(--v-theme-includeGroup))}
+.hidden { background-color: rgb(var(--v-theme-excludeGroup));}
 </style>

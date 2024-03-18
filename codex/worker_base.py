@@ -1,4 +1,5 @@
 """General worker class inherits queues."""
+
 from codex.logger_base import LoggerBaseMixin
 from codex.status_controller import StatusController
 

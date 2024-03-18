@@ -1,4 +1,5 @@
 """Vacuum the database."""
+
 from django.db import connection
 from humanize import naturalsize
 

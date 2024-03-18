@@ -12,14 +12,14 @@ export const formattedVolumeName = function (volume) {
   return volumeName;
 };
 
-export const formattedIssue = function ({ issue, issueSuffix }, zeroPad) {
+export const formattedIssue = function ({ issueNumber, issueSuffix }, zeroPad) {
   let issueStr;
   try {
-    if (issue == undefined && !issueSuffix) {
+    if (issueNumber == undefined && !issueSuffix) {
       // Null issue defaults to display #0
-      issue = 0;
+      issueNumber = 0;
     }
-    const floatIssue = Number.parseFloat(issue);
+    const floatIssue = Number.parseFloat(issueNumber);
     const intIssue = Math.floor(floatIssue);
     if (zeroPad === undefined) {
       zeroPad = 0;
@@ -42,10 +42,10 @@ export const formattedIssue = function ({ issue, issueSuffix }, zeroPad) {
 };
 
 export const getIssueName = function (
-  { issue, issueSuffix, issueCount },
+  { issueNumber, issueSuffix, issueCount },
   zeroPad,
 ) {
-  let issueName = "#" + formattedIssue({ issue, issueSuffix }, zeroPad);
+  let issueName = "#" + formattedIssue({ issueNumber, issueSuffix }, zeroPad);
   if (issueCount) {
     issueName += ` of ${issueCount}`;
   }
@@ -53,12 +53,15 @@ export const getIssueName = function (
 };
 
 export const getFullComicName = function (
-  { seriesName, volumeName, issue, issueSuffix, issueCount },
+  { seriesName, volumeName, issueNumber, issueSuffix, issueCount },
   zeroPad,
 ) {
   // Format a full comic name from the series on down.
   const fvn = formattedVolumeName(volumeName);
-  const issueName = getIssueName({ issue, issueSuffix, issueCount }, zeroPad);
+  const issueName = getIssueName(
+    { issueNumber, issueSuffix, issueCount },
+    zeroPad,
+  );
   return [seriesName, fvn, issueName].filter(Boolean).join(" ");
 };
 

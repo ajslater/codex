@@ -1,19 +1,32 @@
 """Bulk update m2m fields."""
+
 from pathlib import Path
 
 from django.db.models import Q
 
+from codex.librarian.importer.const import (
+    COMIC_FK_FIELD_NAMES,
+    DICT_MODEL_FIELD_NAME_CLASS_MAP,
+    DICT_MODEL_REL_LINK_MAP,
+    FOLDERS_FIELD,
+    IMPRINT,
+    PARENT_FOLDER,
+    PUBLISHER,
+    SERIES,
+    STORY_ARC_NUMBERS_FK_NAME,
+    STORY_ARCS_METADATA_KEY,
+    VOLUME,
+)
 from codex.librarian.importer.status import ImportStatusTypes, status_notify
 from codex.models import (
     Comic,
-    Creator,
     Folder,
     Imprint,
     Publisher,
     Series,
-    StoryArcNumber,
     Volume,
 )
+from codex.models.named import Identifier
 from codex.threads import QueuedThread
 
 
@@ -27,55 +40,57 @@ class LinkComicsMixin(QueuedThread):
         return md.get(field_name, group_class.DEFAULT_NAME)
 
     @classmethod
-    def _link_comic_fks(cls, md, library, path):
-        """Link all foreign keys."""
+    def get_comic_fk_links(cls, md, library, path):
+        """Get links for all foreign keys for creating and updating."""
         publisher_name = cls._get_group_name(Publisher, md)
         imprint_name = cls._get_group_name(Imprint, md)
         series_name = cls._get_group_name(Series, md)
         volume_name = cls._get_group_name(Volume, md)
         md["library"] = library
-        md["publisher"] = Publisher.objects.get(name=publisher_name)
-        md["imprint"] = Imprint.objects.get(
+        md[PUBLISHER] = Publisher.objects.get(name=publisher_name)
+        md[IMPRINT] = Imprint.objects.get(
             publisher__name=publisher_name, name=imprint_name
         )
-        md["series"] = Series.objects.get(
+        md[SERIES] = Series.objects.get(
             publisher__name=publisher_name, imprint__name=imprint_name, name=series_name
         )
-        md["volume"] = Volume.objects.get(
+        md[VOLUME] = Volume.objects.get(
             publisher__name=publisher_name,
             imprint__name=imprint_name,
             series__name=series_name,
             name=volume_name,
         )
         parent_path = Path(path).parent
-        md["parent_folder"] = Folder.objects.get(path=parent_path)
+        md[PARENT_FOLDER] = Folder.objects.get(path=parent_path)
+        for field_name in COMIC_FK_FIELD_NAMES:
+            name = md.pop(field_name, None)
+            if name and (fk_class := Comic._meta.get_field(field_name).related_model):
+                md[field_name] = fk_class.objects.get(name=name)
 
     @staticmethod
-    def _get_link_folders_filter(folder_paths):
+    def _get_link_folders_filter(_field_name, folder_paths):
         """Get the ids of all folders to link."""
         return Q(path__in=folder_paths)
 
     @staticmethod
-    def _get_link_creators_filter(creators_md):
-        """Get the ids of all creators to link."""
-        creators_filter = Q()
-        for creator in creators_md:
-            creators_filter |= Q(
-                role__name=creator.get("role"),
-                person__name=creator["person"],
-            )
-        return creators_filter
+    def _get_link_identifier_filter(field_name, dict_md):
+        """Get the ids of all dict style objects to link."""
+        dict_filter = Q()
+        key_rel, value_rel = DICT_MODEL_REL_LINK_MAP[field_name]
+        for key, values_dict in dict_md.items():
+            nss = values_dict.get("nss")
+            dict_filter |= Q(**{key_rel: key, value_rel: nss})
+        return dict_filter
 
     @staticmethod
-    def _get_link_story_arc_numbers_filter(story_arc_numbers_md):
-        """Get the ids of all story_arc_numbers to link."""
-        story_arc_numbers_filter = Q()
-        for name, number in story_arc_numbers_md.items():
-            story_arc_numbers_filter |= Q(
-                story_arc__name=name,
-                number=number,
-            )
-        return story_arc_numbers_filter
+    def _get_link_dict_filter(field_name, dict_md):
+        """Get the ids of all dict style objects to link."""
+        dict_filter = Q()
+        key_rel, value_rel = DICT_MODEL_REL_LINK_MAP[field_name]
+        for key, value in dict_md.items():
+            rel_dict = {key_rel: key, value_rel: value}
+            dict_filter |= Q(**rel_dict)
+        return dict_filter
 
     def _link_named_m2ms(self, all_m2m_links, comic_pk, md):
         """Set the ids of all named m2m fields into the comic dict."""
@@ -97,11 +112,13 @@ class LinkComicsMixin(QueuedThread):
         values = md.pop(key, [])
         if not values:
             return
+        if key == STORY_ARCS_METADATA_KEY:
+            key = STORY_ARC_NUMBERS_FK_NAME
         if key not in all_m2m_links:
             all_m2m_links[key] = {}
 
-        m2m_filter = get_link_filter_method(values)
-        pks = model.objects.filter(m2m_filter).values_list("pk", flat=True)
+        m2m_filter = get_link_filter_method(key, values)
+        pks = model.objects.filter(m2m_filter).values_list("pk", flat=True).distinct()
         result = frozenset(pks)
         all_m2m_links[key][comic_pk] = result
 
@@ -114,22 +131,24 @@ class LinkComicsMixin(QueuedThread):
             md = m2m_mds[comic_path]
             link_data = (all_m2m_links, md, comic_pk)
             self._link_prepare_special_m2ms(
-                link_data, "folders", Folder, self._get_link_folders_filter
+                link_data, FOLDERS_FIELD, Folder, self._get_link_folders_filter
             )
-            self._link_prepare_special_m2ms(
-                link_data, "creators", Creator, self._get_link_creators_filter
-            )
-            self._link_prepare_special_m2ms(
-                link_data,
-                "story_arc_numbers",
-                StoryArcNumber,
-                self._get_link_story_arc_numbers_filter,
-            )
+            for field_name, model in DICT_MODEL_FIELD_NAME_CLASS_MAP:
+                if model == Identifier:
+                    method = self._get_link_identifier_filter
+                else:
+                    method = self._get_link_dict_filter
+                self._link_prepare_special_m2ms(link_data, field_name, model, method)
+
             self._link_named_m2ms(all_m2m_links, comic_pk, md)
         return all_m2m_links
 
     def _query_relation_adjustments(
-        self, m2m_links, ThroughModel, through_field_id_name, status  # noqa: N803
+        self,
+        m2m_links,
+        ThroughModel,  # noqa:N803
+        through_field_id_name,
+        status,
     ):
         all_del_pks = set()
         tms = []
@@ -196,10 +215,7 @@ class LinkComicsMixin(QueuedThread):
             unique_fields=update_fields,
         )
         if created_count := len(tms):
-            self.log.info(
-                f"Created {created_count} new {field_name}"
-                " relations for altered comics."
-            )
+            self.log.info(f"Linked {created_count} new {field_name} to altered comics.")
         if status:
             status.complete = status.complete or 0
             status.complete += created_count
@@ -215,6 +231,7 @@ class LinkComicsMixin(QueuedThread):
             status.complete = status.complete or 0
             status.complete += del_count
             self.status_controller.update(status)
+        return created_count, del_count
 
     @status_notify(status_type=ImportStatusTypes.LINK_M2M_FIELDS, updates=False)
     def bulk_query_and_link_comic_m2m_fields(self, all_m2m_mds, status=None):
@@ -223,12 +240,20 @@ class LinkComicsMixin(QueuedThread):
             status.complete = 0
             status.total = 0
         all_m2m_links = self._link_comic_m2m_fields(all_m2m_mds)
+        created_total = 0
+        del_total = 0
         for field_name, m2m_links in all_m2m_links.items():
             try:
-                self.bulk_fix_comic_m2m_field(field_name, m2m_links, status)
+                created_count, del_count = self.bulk_fix_comic_m2m_field(
+                    field_name, m2m_links, status
+                )
+                created_total += created_count
+                del_total += del_count
             except Exception:
                 self.log.exception(f"Error recreating m2m field: {field_name}")
 
-        count = len(all_m2m_links)
-        self.log.info(f"Linked {count} comics to tags.")
-        return count
+        if created_total:
+            self.log.info(f"Linked {created_total} comics to tags.")
+        if del_total:
+            self.log.info(f"Deleted {del_total} stale relations for altered comics.")
+        return created_total + del_total

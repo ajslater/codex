@@ -1,4 +1,5 @@
 """Timezone settings functions."""
+
 from tzlocal import get_localzone_name
 
 

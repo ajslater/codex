@@ -1,4 +1,5 @@
 """PWA views."""
+
 from codex.views.template import CodexTemplateView
 
 

@@ -1,4 +1,5 @@
 """OPDS Authentication 1.0."""
+
 from types import MappingProxyType
 
 from django.contrib.staticfiles.storage import staticfiles_storage

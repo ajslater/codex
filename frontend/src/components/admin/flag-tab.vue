@@ -31,7 +31,7 @@
 <script>
 import { mapActions, mapState } from "pinia";
 
-import { adminFlags } from "@/choices-admin";
+import { adminFlags } from "@/choices-admin.json";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 
@@ -41,6 +41,7 @@ const DESC = {
   RG: "By default users' bookmarks and preferences are saved in an anonymous browser session. Users can create a username and password to save their bookmarks between browsers. You may disable this feature. Admins may still create users.",
   FV: 'By default, codex provides a "Folder View" which mimics the directory hierarchy of the libraries that you\'ve added to Codex. You may disable this feature. The database style browser view is always available. This flag also enables and disables the "Filename" sort option.',
   SO: "Fully optimize the search index each night. Disabling this flag will instead run a partial optimization which only merges small files. You should only disable this if the nightly optimization stresses your system too much.",
+  IM: "If disabled, Codex will not import metadata from comics and only import folder, filenames and page count. This makes importing comics very fast, but but disables nearly all of Codex's most powerful features, making it just a folder browser & reader.",
 };
 Object.freeze(DESC);
 

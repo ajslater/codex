@@ -1,8 +1,13 @@
 """Bulk update comic objects."""
 
+from django.db.models import NOT_PROVIDED
 from django.db.models.functions import Now
 
 from codex.librarian.covers.tasks import CoverRemoveTask
+from codex.librarian.importer.const import (
+    BULK_UPDATE_COMIC_FIELDS,
+    BULK_UPDATE_COMIC_FIELDS_WITH_VALUES,
+)
 from codex.librarian.importer.link_comics import LinkComicsMixin
 from codex.librarian.importer.status import ImportStatusTypes, status_notify
 from codex.models import (
@@ -10,22 +15,32 @@ from codex.models import (
     Timestamp,
 )
 
-_EXCLUDEBULK_UPDATE_COMIC_FIELDS = {
-    "created_at",
-    "searchresult",
-    "id",
-    "bookmark",
-}
-BULK_UPDATE_COMIC_FIELDS = []
-for field in Comic._meta.get_fields():
-    if (not field.many_to_many) and (
-        field.name not in _EXCLUDEBULK_UPDATE_COMIC_FIELDS
-    ):
-        BULK_UPDATE_COMIC_FIELDS.append(field.name)
-
 
 class UpdateComicsMixin(LinkComicsMixin):
     """Create comics methods."""
+
+    def _bulk_update_comics_add_comic(self, static_data, comic, results):
+        """Add one comic and stats to the bulk update list."""
+        try:
+            library, mds, now = static_data
+            md = mds.pop(comic.path)
+            self.get_comic_fk_links(md, library, comic.path)
+            for field_name in BULK_UPDATE_COMIC_FIELDS_WITH_VALUES:
+                value = md.get(field_name)
+                if value is None:
+                    default_value = Comic._meta.get_field(field_name).default
+                    if default_value != NOT_PROVIDED:
+                        value = default_value
+                setattr(comic, field_name, value)
+            comic.presave()
+            comic.set_stat()
+            comic.updated_at = now
+            update_comics, comic_pks, comic_update_paths = results
+            update_comics.append(comic)
+            comic_pks.append(comic.pk)
+            comic_update_paths.add(comic.path)
+        except Exception:
+            self.log.exception(f"Error preparing {comic} for update.")
 
     @status_notify(status_type=ImportStatusTypes.FILES_MODIFIED, updates=False)
     def bulk_update_comics(self, comic_paths, library, create_paths, mds, **kwargs):
@@ -47,26 +62,16 @@ class UpdateComicsMixin(LinkComicsMixin):
         now = Now()
         comic_pks = []
         comic_update_paths = set()
+        static_data = library, mds, now
+        results = update_comics, comic_pks, comic_update_paths
         for comic in comics.iterator():
-            try:
-                md = mds.pop(comic.path)
-                self._link_comic_fks(md, library, comic.path)
-                for field_name, value in md.items():
-                    setattr(comic, field_name, value)
-                comic.presave()
-                comic.set_stat()
-                comic.updated_at = now
-                update_comics.append(comic)
-                comic_pks.append(comic.pk)
-                comic_update_paths.add(comic.path)
-            except Exception:
-                self.log.exception(f"Error preparing {comic} for update.")
+            self._bulk_update_comics_add_comic(static_data, comic, results)
 
         converted_create_paths = frozenset(set(comic_paths) - comic_update_paths)
         create_paths.update(converted_create_paths)
-        self.log.info(
-            f"Converted {len(converted_create_paths)} update paths to create paths."
-        )
+        count = len(converted_create_paths)
+        if count:
+            self.log.info(f"Converted {count} update paths to create paths.")
 
         self.log.debug(f"Bulk updating {len(update_comics)} comics.")
         try:
@@ -77,7 +82,8 @@ class UpdateComicsMixin(LinkComicsMixin):
             task = CoverRemoveTask(frozenset(comic_pks))
             self.log.debug(f"Purging covers for {len(comic_pks)} updated comics.")
             self.librarian_queue.put(task)
-            self.log.info(f"Updated {count} comics.")
+            if count:
+                self.log.info(f"Updated {count} comics.")
         except Exception:
             self.log.exception(f"While updating {comic_update_paths}")
 

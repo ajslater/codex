@@ -5,13 +5,14 @@ but the built-in filesystem event emitters serialize them, so the most
 consistent thing is for the DBEmitter to serialize them in the same way
 and then re-serialize everything in this batcher and the event Handler
 """
+
 from contextlib import suppress
 from copy import deepcopy
 from types import MappingProxyType
 
 from watchdog.events import EVENT_TYPE_MOVED
 
-from codex.librarian.importer.tasks import UpdaterDBDiffTask
+from codex.librarian.importer.tasks import ImportDBDiffTask
 from codex.memory import get_mem_limit
 from codex.threads import AggregateMessageQueuedThread
 
@@ -58,10 +59,10 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
 
         return self.cache[library_id].get(field)
 
-    def aggregate_items(self, task):
+    def aggregate_items(self, item):
         """Aggregate events into cache by library."""
-        event = task.event
-        args_field = self._args_field_by_event(task.library_id, event)
+        event = item.event
+        args_field = self._args_field_by_event(item.library_id, event)
         if args_field is None:
             self.log.debug(f"Unhandled event, not batching: {event}")
             return
@@ -104,7 +105,7 @@ class WatchdogEventBatcherThread(AggregateMessageQueuedThread):
         """Create a task from cached aggregated message data."""
         self._deduplicate_events(library_id)
         args = self.cache[library_id]
-        return UpdaterDBDiffTask(**args)
+        return ImportDBDiffTask(**args)
 
     def send_all_items(self):
         """Send all tasks to library queue and reset events cache."""

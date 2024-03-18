@@ -1,7 +1,10 @@
 """Custom Haystack Search Engine."""
-from haystack.backends import UnifiedIndex
-from haystack.backends.whoosh_backend import WhooshEngine, WhooshSearchQuery
 
+from codex._vendor.haystack.backends import UnifiedIndex
+from codex._vendor.haystack.backends.whoosh_backend import (
+    WhooshEngine,
+    WhooshSearchQuery,
+)
 from codex.search.backend import CodexSearchBackend
 from codex.search.indexes import ComicIndex
 

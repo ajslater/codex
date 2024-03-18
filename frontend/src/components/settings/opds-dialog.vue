@@ -8,7 +8,9 @@
     </template>
     <div id="opds">
       <h2>
-        <v-icon size="x=small" class="inline">{{ mdiRss }}</v-icon>
+        <v-icon size="x=small" class="inline">
+          {{ mdiRss }}
+        </v-icon>
         OPDS
       </h2>
       <OPDSUrl title="v1.2" :url="opdsV1URL" />

@@ -5,7 +5,7 @@
     </v-icon>
     <MetadataButton
       :group="item.group"
-      :pk="item.pk"
+      :book="item"
       :children="item.childCount"
     />
     <BrowserCardMenu :item="item" />

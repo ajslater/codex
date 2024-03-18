@@ -36,19 +36,19 @@
         <tbody>
           <tr>
             <td>Libraries</td>
-            <td>{{ nf(stats.config.libraryCount) }}</td>
+            <td>{{ nf(stats.config.librariesCount) }}</td>
           </tr>
           <tr>
             <td>Anonymous Users</td>
-            <td>{{ nf(stats.config.sessionAnonCount) }}</td>
+            <td>{{ nf(stats.config.sessionsAnonCount) }}</td>
           </tr>
           <tr>
             <td>Registered Users</td>
-            <td>{{ nf(stats.config.userCount) }}</td>
+            <td>{{ nf(stats.config.usersCount) }}</td>
           </tr>
           <tr>
             <td>Groups</td>
-            <td>{{ nf(stats.config.groupCount) }}</td>
+            <td>{{ nf(stats.config.groupsCount) }}</td>
           </tr>
         </tbody>
       </v-table>
@@ -59,15 +59,15 @@
         <tbody>
           <tr>
             <td>Folders</td>
-            <td>{{ nf(stats.groups.folderCount) }}</td>
+            <td>{{ nf(stats.groups.foldersCount) }}</td>
           </tr>
           <tr>
             <td>Publishers</td>
-            <td>{{ nf(stats.groups.publisherCount) }}</td>
+            <td>{{ nf(stats.groups.publishersCount) }}</td>
           </tr>
           <tr>
             <td>Imprints</td>
-            <td>{{ nf(stats.groups.imprintCount) }}</td>
+            <td>{{ nf(stats.groups.imprintsCount) }}</td>
           </tr>
           <tr>
             <td>Series</td>
@@ -75,12 +75,12 @@
           </tr>
           <tr>
             <td>Volumes</td>
-            <td>{{ nf(stats.groups.volumeCount) }}</td>
+            <td>{{ nf(stats.groups.volumesCount) }}</td>
           </tr>
           <tr>
             <td>Issues</td>
             <td>
-              {{ nf(stats.groups.comicCount) }}
+              {{ nf(stats.groups.issuesCount) }}
             </td>
           </tr>
           <tr v-if="stats.fileTypes.cbzCount">
@@ -114,45 +114,10 @@
       <h3>Metadata</h3>
       <v-table class="highlight-table">
         <tbody>
-          <tr>
-            <td>Characters</td>
-            <td>{{ nf(stats.metadata.characterCount) }}</td>
-          </tr>
-          <tr>
-            <td>Genres</td>
-            <td>{{ nf(stats.metadata.genreCount) }}</td>
-          </tr>
-          <tr>
-            <td>Locations</td>
-            <td>{{ nf(stats.metadata.locationCount) }}</td>
-          </tr>
-          <tr>
-            <td>Series Groups</td>
-            <td>{{ nf(stats.metadata.seriesGroupCount) }}</td>
-          </tr>
-          <tr>
-            <td>Story Arcs</td>
-            <td>{{ nf(stats.metadata.storyArcCount) }}</td>
-          </tr>
-          <tr>
-            <td>Tags</td>
-            <td>{{ nf(stats.metadata.tagCount) }}</td>
-          </tr>
-          <tr>
-            <td>Teams</td>
-            <td>{{ nf(stats.metadata.teamCount) }}</td>
-          </tr>
-          <tr>
-            <td>Credits</td>
-            <td>{{ nf(stats.metadata.creatorCount) }}</td>
-          </tr>
-          <tr>
-            <td class="indent">Roles</td>
-            <td>{{ nf(stats.metadata.creatorRoleCount) }}</td>
-          </tr>
-          <tr>
-            <td class="indent">Creators</td>
-            <td>{{ nf(stats.metadata.creatorPersonCount) }}</td>
+          <tr v-for="[key, count] of Object.entries(stats.metadata)" :key="key">
+            <!-- eslint-disable vue/no-v-html -->
+            <td v-html="metadataTitle(key)" />
+            <td>{{ nf(count) }}</td>
           </tr>
         </tbody>
       </v-table>
@@ -184,7 +149,9 @@
                 </v-fade-transition>
               </span>
             </td>
-            <td id="apiKey">{{ stats.config.apiKey }}</td>
+            <td id="apiKey">
+              {{ stats.config.apiKey }}
+            </td>
           </tr>
           <tr>
             <td colspan="2">
@@ -212,8 +179,10 @@ import { copyToClipboard } from "@/copy-to-clipboard";
 import { NUMBER_FORMAT } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
+import { camelToTitleCase } from "@/to-case";
 
 const API_TOOLTIP = "Copy API Key to clipboard";
+const NB_INDENT = "&nbsp;&nbsp;&nbsp;&nbsp;";
 
 export default {
   name: "AdminTasksTab",
@@ -257,6 +226,14 @@ export default {
         return;
       }
       copyToClipboard(this.stats.config.apiKey, this.showTooltip);
+    },
+    metadataTitle(name) {
+      let title = name.replace(/Count$/, "");
+      title = camelToTitleCase(title);
+      title = title.replace(/^Contributor\s/, NB_INDENT);
+      title = title.replace(/^Identifier\s/, NB_INDENT);
+      title = title.replace(/^Story\sArc\s/, NB_INDENT);
+      return title;
     },
   },
 };

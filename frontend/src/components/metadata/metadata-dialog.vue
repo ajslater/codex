@@ -47,7 +47,7 @@
             aria-label="% read"
           />
         </div>
-        <div class="headerHalfRow">
+        <div class="inlineRow">
           <MetadataText
             id="publisher"
             :value="md.publisher"
@@ -63,14 +63,16 @@
             :obj="{ pk: md.id, group: md.group }"
           />
         </div>
-        <MetadataText
-          id="series"
-          :value="md.series"
-          label="Series"
-          group="s"
-          :obj="{ pk: md.id, group: md.group }"
-        />
-        <div class="headerQuarterRow">
+        <div class="inlineRow">
+          <MetadataText
+            id="series"
+            :value="md.series"
+            label="Series"
+            group="s"
+            :obj="{ pk: md.id, group: md.group }"
+          />
+        </div>
+        <div class="inlineRow">
           <MetadataText
             id="volume"
             :value="md.volume"
@@ -87,29 +89,36 @@
             :obj="{ pk: md.id, group: md.group }"
           />
           <MetadataText :value="md.volumeIssueCount" label="Issue Count" />
-        </div>
-        <section class="mdSection">
           <MetadataText :value="md.name" label="Title" />
-          <div v-if="md.year || md.month || md.day" class="inlineRow">
-            <MetadataText
-              :value="md.year"
-              label="Year"
-              class="datePicker"
-              type="number"
-            />
-            <MetadataText :value="md.month" label="Month" class="datePicker" />
-            <MetadataText :value="md.day" label="Day" class="datePicker" />
-          </div>
-          <MetadataText :value="md.gtin" label="GTIN" />
-          <MetadataText :value="md.original_format" label="Original Format" />
-        </section>
+        </div>
+        <div v-if="md.year || md.month || md.day" class="inlineRow">
+          <MetadataText
+            :value="md.year"
+            label="Year"
+            class="datePicker"
+            type="number"
+          />
+          <MetadataText :value="md.month" label="Month" class="datePicker" />
+          <MetadataText :value="md.day" label="Day" class="datePicker" />
+        </div>
       </header>
       <div id="metadataBody">
         <section class="mdSection">
-          <div class="thirdRow">
+          <div class="quintRow">
             <MetadataText :value="pages" label="Pages" />
-            <MetadataText :value="md.finished" label="Finished" />
-            <MetadataText :value="ltrText" label="Reading Direction" />
+            <MetadataText
+              label="Finished"
+              :value="Boolean(md.finished).toString()"
+            />
+            <MetadataText
+              label="Reading Direction"
+              :value="readingDirectionText"
+            />
+            <MetadataText
+              :value="Boolean(md.monochrome).toString()"
+              label="Monochrome"
+            />
+            <MetadataText :value="md.original_format" label="Original Format" />
           </div>
         </section>
         <section class="mdSection">
@@ -142,6 +151,13 @@
           <MetadataText :value="md.language" label="Language" />
         </section>
         <section class="mdSection">
+          <MetadataTags :values="titledIdentifiers" label="Identifiers" />
+        </section>
+        <section class="mdSection">
+          <MetadataText :value="md.summary" label="Summary" />
+          <MetadataText :value="md.review" label="Review" />
+        </section>
+        <section class="mdSection">
           <MetadataText :value="md.communityRating" label="Community Rating" />
           <MetadataText :value="md.criticalRating" label="Critical Rating" />
           <MetadataText :value="md.ageRating" label="Age Rating" />
@@ -152,18 +168,19 @@
           <MetadataTags :values="md.teams" label="Teams" />
           <MetadataTags :values="md.locations" label="Locations" />
           <MetadataTags :values="md.seriesGroups" label="Series Groups" />
-          <MetadataTags :values="storyArcs" label="Story Arcs" />
+          <MetadataTags :values="md.stories" label="Stories" />
+          <MetadataTags :values="md.storyArcNumbers" label="Story Arcs" />
           <MetadataTags :values="md.tags" label="Tags" />
         </section>
         <section class="mdSection">
-          <MetadataText :value="md.web" label="Web Link" :link="true" />
-          <MetadataText :value="md.summary" label="Summary" />
-          <MetadataText :value="md.comments" label="Comments" />
-          <MetadataText :value="md.notes" label="Notes" />
-          <MetadataText :value="md.scanInfo" label="Scan" />
+          <MetadataContributorsTable :value="md.contributors" />
         </section>
-        <section class="mdSection">
-          <MetadatacreatorsTable :value="md.creators" />
+        <section class="mdSection inlineRow">
+          <MetadataText :value="md.notes" label="Notes" />
+        </section>
+        <section class="inlineRow">
+          <MetadataText :value="md.tagger" label="Tagger" />
+          <MetadataText :value="md.scanInfo" label="Scan" />
         </section>
       </div>
       <footer id="footerLinks">
@@ -212,6 +229,7 @@
     </div>
   </v-dialog>
 </template>
+
 <script>
 import { mdiDownload, mdiEye, mdiEyeOff, mdiTagOutline } from "@mdi/js";
 import { mapActions, mapGetters, mapState } from "pinia";
@@ -221,7 +239,7 @@ import { getDownloadURL } from "@/api/v3/reader";
 import { formattedIssue, getFullComicName } from "@/comic-name";
 import BookCover from "@/components/book-cover.vue";
 import CloseButton from "@/components/close-button.vue";
-import MetadatacreatorsTable from "@/components/metadata/creators-table.vue";
+import MetadataContributorsTable from "@/components/metadata/contributors-table.vue";
 import MetadataTags from "@/components/metadata/metadata-tags.vue";
 import MetadataText from "@/components/metadata/metadata-text.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
@@ -242,7 +260,7 @@ export default {
   components: {
     BookCover,
     CloseButton,
-    MetadatacreatorsTable,
+    MetadataContributorsTable,
     MetadataTags,
     MetadataText,
     PlaceholderLoading,
@@ -252,8 +270,8 @@ export default {
       type: String,
       required: true,
     },
-    pk: {
-      type: Number,
+    book: {
+      type: Object,
       required: true,
     },
     children: {
@@ -273,6 +291,8 @@ export default {
     ...mapGetters(useAuthStore, ["isUserAdmin"]),
     ...mapState(useBrowserStore, {
       twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
+      readingDirectionTitles: (state) => state.choices.static.readingDirection,
+      identifierTypes: (state) => state.choices.static.identifierType,
     }),
     ...mapState(useMetadataStore, {
       md: (state) => state.md,
@@ -283,7 +303,7 @@ export default {
           : getFullComicName({
               seriesName: md.series.name,
               volumeName: md.volume.name,
-              issue: md.issue,
+              issueNumber: md.issueNumber,
               issueSuffix: md.issueSuffix,
             }) +
               "." +
@@ -293,38 +313,35 @@ export default {
     ...mapState(useBrowserStore, {
       q: (state) => state.settings.q,
     }),
-    downloadURL: function () {
-      return getDownloadURL(this.pk);
+    downloadURL() {
+      return getDownloadURL(this.book);
     },
-    isReadButtonShown: function () {
+    isReadButtonShown() {
       return this.group === "c" && this.$route.name != "reader";
     },
-    isReadButtonEnabled: function () {
+    isReadButtonEnabled() {
       return this.$route.name === "browser" && Boolean(this.readerRoute);
     },
-    readButtonIcon: function () {
+    readButtonIcon() {
       return this.isReadButtonEnabled ? mdiEye : mdiEyeOff;
     },
-    readerRoute: function () {
+    readerRoute() {
       return getReaderRoute(this.md);
     },
-    formattedIssue: function () {
+    formattedIssue() {
       if (
-        (this.md.issue === null || this.md.issue === undefined) &&
+        (this.md.issueNumber === null || this.md.issueNumber === undefined) &&
         !this.md.issueSuffix
       ) {
         // comic-name.formattedIssue() shows 0 for null issue.
         return;
       }
-      return formattedIssue({
-        issue: this.md.issue,
-        issueSuffix: this.md.issueSuffix,
-      });
+      return formattedIssue(this.md);
     },
-    ltrText: function () {
-      return this.md.readLtr ? "Left to Right" : "Right to Left";
+    readingDirectionText() {
+      return this.readingDirectionTitles[this.md.readingDirection];
     },
-    pages: function () {
+    pages() {
       let pages = "";
       if (this.md.page) {
         const humanBookmark = NUMBER_FORMAT.format(this.md.page);
@@ -337,35 +354,35 @@ export default {
       }
       return pages;
     },
-    size: function () {
-      return prettyBytes(this.md.size);
+    size() {
+      return this.md.size > 0 ? prettyBytes(this.md.size) : 0;
     },
-    fileType: function () {
+    fileType() {
       return this.md.fileType || "Unknown";
     },
-    storyArcs() {
-      // Append the storyArcNumber number to story arcs if it exists.
-      const sans = [];
-      for (const storyArc of this.md.storyArcs) {
-        const displayStoryArc = { ...storyArc };
-        for (const storyArcNumber of this.md.storyArcNumbers) {
-          const number = storyArcNumber.number;
-          if (
-            number !== null &&
-            number !== undefined &&
-            storyArcNumber.storyArc.pk === displayStoryArc.pk
-          ) {
-            displayStoryArc.name = displayStoryArc.name + `: ${number}`;
-            break;
-          }
-        }
-        sans.push(displayStoryArc);
+    titledIdentifiers() {
+      if (!this.md.identifiers) {
+        return this.md.identifiers;
       }
-      return sans;
+      const titledIdentifiers = [];
+      for (const identifier of this.md.identifiers) {
+        const parts = identifier.name.split(":");
+        const idType = parts[0];
+        const code = parts[1];
+        const finalTitle = this.identifierTypeTitle(idType);
+        let name = "";
+        if (finalTitle && finalTitle !== "None") {
+          name += finalTitle + ":";
+        }
+        name += code;
+
+        titledIdentifiers.push({ ...identifier, name });
+      }
+      return titledIdentifiers;
     },
   },
   watch: {
-    dialog: function (to) {
+    dialog(to) {
       if (to) {
         this.dialogOpened();
       } else {
@@ -376,20 +393,21 @@ export default {
   methods: {
     ...mapActions(useMetadataStore, ["clearMetadata", "loadMetadata"]),
     ...mapActions(useCommonStore, ["downloadIOSPWAFix"]),
-    dialogOpened: function () {
+    ...mapActions(useBrowserStore, ["identifierTypeTitle"]),
+    dialogOpened() {
       this.loadMetadata({
         group: this.group,
-        pk: this.pk,
+        pk: this.book.pk,
       });
       this.startProgress();
     },
-    startProgress: function () {
+    startProgress() {
       this.startTime = Date.now();
       this.estimatedMS =
         Math.max(MIN_SECS, this.children / CHILDREN_PER_SECOND) * 1000;
       this.updateProgress();
     },
-    updateProgress: function () {
+    updateProgress() {
       const elapsed = Date.now() - this.startTime;
       this.progress = (elapsed / this.estimatedMS) * 100;
       if (this.progress >= 100 || this.md) {
@@ -399,7 +417,7 @@ export default {
         this.updateProgress();
       }, UPDATE_INTERVAL);
     },
-    formatDateTime: function (ds) {
+    formatDateTime(ds) {
       return getDateTime(ds, this.twentyFourHourTime);
     },
     download() {
@@ -411,96 +429,121 @@ export default {
 
 <style scoped lang="scss">
 @use "vuetify/styles/settings/variables" as vuetify;
+
 #metadataContainer {
   display: flex;
   flex-direction: column;
   max-width: 100vw;
 }
+
 #search {
   margin-bottom: 10px;
 }
+
 #metadataHeader {
   height: fit-content;
   max-width: 100vw;
 }
-#metadataBody {
-}
+
 #placeholderContainer {
   min-height: 100%;
   min-width: 100%;
   text-align: center;
 }
+
 #placeholderTitle {
   font-size: xx-large;
   color: rgb(var(--v-theme-textDisabled));
 }
+
 .closeButton {
   float: right;
   margin-left: 5px;
 }
+
 #metadataBookCoverWrapper {
   float: left;
   position: relative;
   padding-top: 0px !important;
   margin-right: 15px;
 }
+
 #bookCover {
   position: relative;
 }
+
 .bookCoverProgress {
   margin-top: 1px;
 }
+
 #bookCover {
   padding-top: 0px !important;
 }
-.inlineRow > * {
+
+.inlineRow>* {
   display: inline-flex;
 }
+
 .mdSection {
   margin-top: 25px;
 }
+
 #footerLinks {
   margin-top: 20px;
 }
+
 #downloadButton {
   margin-right: 10px;
 }
+
 #bottomRightButtons {
   float: right;
 }
+
 #metadataContainer,
 #placeholderContainer {
   padding-top: calc(20px + env(safe-area-inset-top));
   padding-left: calc(20px + env(safe-area-inset-left));
   padding-right: calc(20px + env(safe-area-inset-right));
 }
+
 .placeholder {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
 }
-.headerHalfRow > * {
+
+.headerHalfRow>* {
   width: calc((100vw - 175px) / 2);
   display: inline-flex;
 }
-.headerQuarterRow > * {
+
+.headerQuarterRow>* {
   width: calc((100vw - 175px) / 4);
   display: inline-flex;
 }
 
-.halfRow > * {
+.halfRow>* {
   width: 50%;
   display: inline-flex;
 }
-.thirdRow > * {
+
+.thirdRow>* {
   width: 33.333%;
   display: inline-flex;
 }
-.quarterRow > * {
+
+.quarterRow>* {
   width: 25%;
   display: inline-flex;
 }
+
+.quintRow>* {
+  width: 20%;
+  display: inline-flex;
+}
+
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   #metadataContainer {
     font-size: 12px;

@@ -1,4 +1,5 @@
 """Versions Serializer."""
+
 from rest_framework.serializers import CharField, Serializer
 
 

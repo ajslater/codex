@@ -1,4 +1,5 @@
 """Initialize Django."""
+
 from os import environ
 
 from django import setup

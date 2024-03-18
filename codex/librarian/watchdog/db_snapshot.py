@@ -1,4 +1,5 @@
 """Custom directory snapshots."""
+
 import os
 from itertools import chain
 from pathlib import Path
@@ -19,8 +20,10 @@ class CodexDatabaseSnapshot(DirectorySnapshot, LoggerBaseMixin):
     def _walk(cls, root):
         """Populate the DirectorySnapshot structures from the database."""
         for model in cls.MODELS:
-            yield model.objects.filter(library__path=root).order_by("path").values(
-                "path", "stat"
+            yield (
+                model.objects.filter(library__path=root)
+                .order_by("path")
+                .values("path", "stat")
             )
 
     def _create_stat_from_db_stat(self, wp, stat_func, force):

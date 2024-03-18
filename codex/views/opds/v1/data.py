@@ -1,7 +1,7 @@
 """OPDS v1 Data classes."""
+
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 
 
 @dataclass
@@ -18,4 +18,4 @@ class OPDS1Link:
     thr_count: int = 0
     pse_count: int = 0
     pse_last_read: int = 0
-    pse_last_read_date: Optional[datetime] = None
+    pse_last_read_date: datetime | None = None

@@ -1,6 +1,9 @@
 """codex:opds:v1 URL Configuration."""
-from django.urls import path
 
+from django.urls import path
+from django.views.decorators.cache import cache_page
+
+from codex.urls.const import BROWSER_TIMEOUT
 from codex.views.opds.util import full_redirect_view
 from codex.views.opds.v2.feed import OPDS2FeedView
 
@@ -11,7 +14,7 @@ urlpatterns = [
     # Browser
     path(
         "<group:group>/<int:pk>/<int:page>",
-        OPDS2FeedView.as_view(),
+        cache_page(BROWSER_TIMEOUT)(OPDS2FeedView.as_view()),
         name="feed",
     ),
     #

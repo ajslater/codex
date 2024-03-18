@@ -1,4 +1,5 @@
 """Detect how much memory we're working with."""
+
 import resource
 from contextlib import suppress
 from pathlib import Path

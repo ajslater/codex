@@ -88,7 +88,7 @@ export default {
 .settingsHeader {
   padding: 10px;
   padding-left: 15px;
-  background-color: rgb(var(--v-theme-on-surface-variant));
+  background-color: rgb(var(--v-theme-surface-light));
 }
 :deep(.v-list-item .v-icon) {
   color: rgb(var(--v-theme-iconsInactive)) !important;

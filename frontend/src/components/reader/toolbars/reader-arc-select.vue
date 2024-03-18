@@ -27,7 +27,9 @@
       </v-list-item>
     </template>
   </v-select>
-  <v-icon v-else id="onlyArc" :title="arcName">{{ arcIcon(arcGroup) }}</v-icon>
+  <v-icon v-else id="onlyArc" :title="arcName">
+    {{ arcIcon(arcGroup) }}
+  </v-icon>
   <span v-if="arcPosition" id="arcPosition">{{ arcPosition }}</span>
 </template>
 <script>

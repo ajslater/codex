@@ -1,11 +1,10 @@
 """codex:opds:v1 URL Configuration."""
+
 from django.urls import path
 from django.views.decorators.cache import cache_control
 
+from codex.urls.const import COVER_MAX_AGE, PAGE_MAX_AGE
 from codex.views.opds.binary import OPDSCoverView, OPDSDownloadView, OPDSPageView
-
-PAGE_MAX_AGE = 60 * 60 * 24 * 7
-COVER_MAX_AGE = PAGE_MAX_AGE
 
 app_name = "bin"
 

@@ -1,5 +1,7 @@
 """OPDS v1 feed."""
+
 from datetime import datetime, timezone
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 from drf_spectacular.utils import extend_schema
@@ -11,11 +13,8 @@ from codex.serializers.opds.v1 import (
     OPDS1TemplateSerializer,
 )
 from codex.views.browser.browser import BrowserView
-from codex.views.opds.const import (
-    BLANK_TITLE,
-    FALSY,
-    MimeType,
-)
+from codex.views.const import FALSY
+from codex.views.opds.const import BLANK_TITLE, MimeType
 from codex.views.opds.v1.entry.data import OPDS1EntryData
 from codex.views.opds.v1.entry.entry import OPDS1Entry
 from codex.views.opds.v1.links import (
@@ -60,8 +59,8 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
         """Dynamic opds namespace."""
         try:
             return OpdsNs.ACQUISITION if self.is_aq_feed else OpdsNs.CATALOG
-        except Exception as exc:
-            LOG.exception(exc)
+        except Exception:
+            LOG.exception("Getting OPDS v1 namespace")
 
     @property
     def is_acquisition(self):
@@ -73,17 +72,15 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
         """Feed id is the url."""
         try:
             return self.request.build_absolute_uri()
-        except Exception as exc:
-            LOG.exception(exc)
+        except Exception:
+            LOG.exception("Getting OPDS v1 ID Tag")
 
     @property
     def title(self):
         """Create the feed title."""
         result = ""
         try:
-            browser_title: Mapping[str, Any] = self.obj.get(
-                "browser_title"
-            )  # type: ignore
+            browser_title: Mapping[str, Any] = self.obj.get("browser_title")  # type: ignore
             if browser_title:
                 parent_name = browser_title.get("parent_name", "All")
                 if not parent_name and self.kwargs.get("pk") == 0:
@@ -93,8 +90,8 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
 
             if not result:
                 result = BLANK_TITLE
-        except Exception as exc:
-            LOG.exception(exc)
+        except Exception:
+            LOG.exception("Getting OPDS v1 feed title")
         return result
 
     @property
@@ -103,8 +100,8 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
         try:
             if ts := self.obj.get("covers_timestamp"):
                 return datetime.fromtimestamp(ts, tz=timezone.utc)  # type: ignore
-        except Exception as exc:
-            LOG.exception(exc)
+        except Exception:
+            LOG.exception("Getting OPDS v1 updated")
 
     @property
     def items_per_page(self):
@@ -112,8 +109,8 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
         try:
             if self.params.get("q"):
                 return self.MAX_OBJ_PER_PAGE
-        except Exception as exc:
-            LOG.exception(exc)
+        except Exception:
+            LOG.exception("Getting OPDS v1 items per page")
 
     @property
     def total_results(self):
@@ -121,15 +118,15 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
         try:
             if self.params.get("q"):
                 return self.obj.get("total_count", 0)
-        except Exception as exc:
-            LOG.exception(exc)
+        except Exception:
+            LOG.exception("Getting OPDS v1 total results")
 
     def _get_entries_section(self, key, metadata):
         """Get entries by key section."""
         entries = []
-        issue_max: int = self.obj.get("issue_max", 0)  # type: ignore
+        issue_number_max: int = self.obj.get("issue_number_max", 0)  # type: ignore
         data = OPDS1EntryData(
-            self.acquisition_groups, issue_max, metadata, self.mime_type_map
+            self.acquisition_groups, issue_number_max, metadata, self.mime_type_map
         )
         if objs := self.obj.get(key):
             for obj in objs:  # type: ignore
@@ -153,15 +150,15 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
                 self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
             )
             entries += self._get_entries_section("books", metadata)
-        except Exception as exc:
-            LOG.exception(exc)
+        except Exception:
+            LOG.exception("Getting OPDS v1 entries")
         return entries
 
     def get_object(self):
         """Get the browser page and serialize it for this subclass."""
         group = self.kwargs.get("group")
         if group == "a":
-            self.acquisition_groups = frozenset(["a"])
+            self.acquisition_groups = frozenset({"a"})
             pk = self.kwargs.get("pk")
             self.is_opds_1_acquisition = group in self.acquisition_groups and pk
         else:
@@ -172,7 +169,7 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
         )
         self.obj = super().get_object()
         self.is_aq_feed = self.obj.get("model_group") == "c"
-        return self
+        return MappingProxyType(self.__dict__)
 
     def _set_user_agent_variables(self):
         """Set User Agent variables."""
@@ -193,8 +190,11 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
                 self.mime_type_map = MimeType.SIMPLE_FILE_TYPE_MAP
                 break
 
-    @extend_schema(request=BrowserView.input_serializer_class)
-    def get(self, *args, **kwargs):
+    @extend_schema(
+        request=BrowserView.input_serializer_class,
+        parameters=[BrowserView.input_serializer_class],
+    )
+    def get(self, *_args, **_kwargs):
         """Get the feed."""
         self.parse_params()
         self.validate_settings()

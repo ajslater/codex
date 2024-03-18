@@ -6,7 +6,9 @@
     label="Library Folder"
     @change="row.path = $event"
   />
-  <div v-else>{{ oldRow.path }}</div>
+  <div v-else>
+    {{ oldRow.path }}
+  </div>
   <v-checkbox
     v-model="row.events"
     hide-details="auto"
@@ -29,13 +31,15 @@
   <AdminRelationPicker
     v-model="row.groups"
     label="Groups"
-    :items="vuetifyGroups"
+    :objs="groups"
+    group-type
+    title-key="name"
   />
 </template>
 
 <script>
 import _ from "lodash";
-import { mapActions, mapGetters, mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import AdminRelationPicker from "@/components/admin/relation-picker.vue";
 import AdminServerFolderPicker from "@/components/admin/server-folder-picker.vue";
@@ -110,8 +114,8 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(useAdminStore, ["vuetifyGroups"]),
     ...mapState(useAdminStore, {
+      groups: (state) => state.groups,
       libraries: (state) => state.libraries,
     }),
     paths() {

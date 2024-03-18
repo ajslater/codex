@@ -1,4 +1,5 @@
 """codex:api URL Configuration."""
+
 from django.urls import include, path
 
 app_name = "api"

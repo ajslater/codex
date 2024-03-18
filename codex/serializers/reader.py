@@ -1,8 +1,10 @@
 """Codex Reader Serializers."""
+
 from rest_framework.serializers import (
     BooleanField,
     CharField,
     ChoiceField,
+    DateTimeField,
     DecimalField,
     IntegerField,
     Serializer,
@@ -20,9 +22,8 @@ class ReaderSettingsSerializer(Serializer):
         required=False,
     )
     two_pages = BooleanField(allow_null=True, required=False)
-    read_in_reverse = BooleanField(allow_null=True, required=False)
+    reading_direction = CharField(allow_null=True, required=False)
     read_rtl_in_reverse = BooleanField(allow_null=True, required=False)
-    vertical = BooleanField(allow_null=True, required=False)
 
 
 class ReaderArcSerializer(Serializer):
@@ -39,7 +40,8 @@ class ReaderComicSerializer(Serializer):
     pk = IntegerField(read_only=True)
     settings = ReaderSettingsSerializer(read_only=True)
     max_page = IntegerField(read_only=True)
-    read_ltr = BooleanField(allow_null=True, read_only=True)
+    reading_direction = CharField(read_only=True)
+    mtime = DateTimeField(format="%s", read_only=True)
 
 
 class ReaderCurrentArcSerializer(Serializer):
@@ -57,7 +59,7 @@ class ReaderCurrentComicSerializer(ReaderComicSerializer):
     # For title
     series_name = CharField(read_only=True, required=False)
     volume_name = CharField(read_only=True, required=False)
-    issue = DecimalField(
+    issue_number = DecimalField(
         max_digits=None,
         decimal_places=3,
         read_only=True,

@@ -2,12 +2,12 @@
   <div
     v-if="show"
     class="bookChangeColumn"
-    :class="{ [direction]: true }"
+    :class="{ [positionClass]: true, [cursorClass]: true }"
     @click.stop="setBookChangeFlag(direction)"
   />
 </template>
 <script>
-import { mapActions, mapGetters } from "pinia";
+import { mapActions } from "pinia";
 
 import { useReaderStore } from "@/stores/reader";
 
@@ -20,16 +20,28 @@ export default {
     },
   },
   computed: {
-    ...mapGetters(useReaderStore, ["prevBookChangeShow", "nextBookChangeShow"]),
-    show() {
-      return this[this.computedDirection + "BookChangeShow"];
-    },
     computedDirection() {
       return this.normalizeDirection(this.direction);
     },
+    positionClass() {
+      const pos = this.bookChangeLocation(this.direction);
+      return pos + "Pos";
+    },
+    cursorClass() {
+      return this.bookChangeCursorClass(this.direction);
+    },
+    show() {
+      return this.bookChangeShow(this.computedDirection);
+    },
   },
   methods: {
-    ...mapActions(useReaderStore, ["setBookChangeFlag", "normalizeDirection"]),
+    ...mapActions(useReaderStore, [
+      "setBookChangeFlag",
+      "normalizeDirection",
+      "bookChangeLocation",
+      "bookChangeCursorClass",
+      "bookChangeShow",
+    ]),
   },
 };
 </script>
@@ -40,12 +52,16 @@ export default {
   height: calc(100vh - 96px);
   width: 33vw;
 }
-.prev {
-  cursor: n-resize;
+.leftPos {
   left: 0px;
 }
-.next {
-  cursor: s-resize;
+.rightPos {
   right: 0px;
+}
+.upCursor {
+  cursor: n-resize;
+}
+.downCursor {
+  cursor: s-resize;
 }
 </style>

@@ -4,7 +4,6 @@ from collections.abc import Mapping
 from types import MappingProxyType
 
 BLANK_TITLE = "Unknown"
-FALSY = {"", "false", "0"}
 AUTHOR_ROLES = {"Writer"}
 
 

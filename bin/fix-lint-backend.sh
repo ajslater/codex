@@ -1,12 +1,12 @@
 #!/bin/bash
 # Fix common linting errors
 set -euxo pipefail
-bin/sortignore.sh
+# bin/sortignore.sh borks order for !ignores it think
 ####################
 ###### Python ######
 ###################
-poetry run ruff --fix .
-poetry run black .
+poetry run ruff check --fix .
+poetry run ruff format .
 poetry run djlint codex/templates --profile=django --reformat
 
 ############################################

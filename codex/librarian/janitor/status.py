@@ -1,4 +1,5 @@
 """Janitor Status Types."""
+
 from django.db.models import Choices
 
 

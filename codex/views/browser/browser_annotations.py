@@ -1,4 +1,5 @@
 """Base view for metadata annotations."""
+
 from os.path import sep
 
 from django.db.models import (
@@ -156,7 +157,8 @@ class BrowserAnnotationsView(BrowserOrderByView):
                 When(
                     lowercase_first_word__in=self._ARTICLES,
                     then=Substr(
-                        first_field, F("first_space_index") + 1  # type: ignore
+                        first_field,
+                        F("first_space_index") + 1,  # type: ignore
                     ),
                 ),
                 default=first_field,
@@ -198,7 +200,7 @@ class BrowserAnnotationsView(BrowserOrderByView):
         return qs.annotate(order_value=order_func)
 
     def _annotate_bookmarks(self, qs, model, bm_rel, bm_filter):
-        """Hoist up bookmark annoations."""
+        """Hoist up bookmark annotations."""
         page_rel = f"{bm_rel}__page"
         finished_rel = f"{bm_rel}__finished"
 
@@ -265,6 +267,10 @@ class BrowserAnnotationsView(BrowserOrderByView):
         progress = Case(When(page_count__gt=0, then=then), default=0.0)
         return queryset.annotate(progress=progress)
 
+    @staticmethod
+    def _annotate_mtime(queryset):
+        return queryset.annotate(mtime=Max("updated_at"))
+
     def annotate_common_aggregates(self, qs, model, search_scores):
         """Annotate common aggregates between browser and metadata."""
         qs = self._annotate_search_score(qs, search_scores, model)
@@ -279,4 +285,5 @@ class BrowserAnnotationsView(BrowserOrderByView):
         # cover depends on the above annotations for order-by
         qs = self._annotate_cover_pk(qs, model)
         qs = self._annotate_bookmarks(qs, model, bm_rel, bm_filter)
+        qs = self._annotate_mtime(qs)
         return self._annotate_progress(qs)

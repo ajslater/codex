@@ -15,7 +15,7 @@ border-radius: 128px;
 - Filter and sort on all comic metadata and unread status per user.
 - Browse a tree of publishers, imprints, series, volumes, or your own folder
   hierarchy.
-- Read comics in a variety of aspect ratios that fit your screen.
+- Read comics in a variety of aspect ratios and directions that fit your screen.
 - Per user bookmarking. Per browser bookmarks even before you make an account.
 - Watches the filesystem and automatically imports new or changed comics.
 - Private Libraries accessible only to certain groups of users.
@@ -62,6 +62,8 @@ You'll need to install these system dependencies before installing Codex.
 
 ##### macOS
 
+<!-- eslint-skip -->
+
 ```sh
 brew install jpeg libffi libyaml libzip openssl python unrar webp
 ```
@@ -70,52 +72,47 @@ brew install jpeg libffi libyaml libzip openssl python unrar webp
 
 ###### <a href="#debian">Debian</a>
 
-Like Ubuntu, Mint, MX and others.
+...and Ubuntu, Mint, MX and others.
+
+<!-- eslint-skip -->
 
 ```sh
-apt install build-essential libffi-dev libjpeg-dev libssl-dev libwebp7 python3-pip zlib1g-dev
-```
-
-older releases may use the `libweb6` package instead.
-
-###### Debian on ARM
-
-The python cryptography wheel needs compiling on rare architectures. Install the
-Rust compiler.
-
-```sh
-apt install cargo
+apt install build-essential libimagequant0 libjpeg62-turbo libopenjp2-7 libssl3 libyaml-0-2 libtiff6 libwebp7 python3-dev python3-pip mupdf unrar zlib1g
 ```
 
 ###### Alpine
+
+<!-- eslint-skip -->
 
 ```sh
 apk add bsd-compat-headers build-base jpeg-dev libffi-dev libwebp openssl-dev yaml-dev zlib-dev
 ```
 
-##### Install unrar Runtime Dependency on Linux
+##### Install unrar Runtime Dependency on non-debian Linux
 
-Codex requires unrar to read cbr formatted comic archives. Unrar is often not
+Codex requires unrar to read CBR formatted comic archives. Unrar is often not
 packaged for Linux, but here are some instructions:
 [How to install unrar in Linux](https://www.unixtutorial.org/how-to-install-unrar-in-linux/)
 
-Unrar as packaged for Alpine Linux v3.14 seems to work on Alpine v3.15
+Unrar as packaged for Alpine Linux v3.14 seems to work on Alpine v3.15+
 
 #### Windows
 
 Windows users should use Docker to run Codex until this documentation section is
 complete.
 
-Codex can _probably_ Windows Linux Subsystem but I haven't done personally
+Codex can _probably_ run on the Windows Linux Subsystem but I haven't personally
 tested it yet. Try following the instructions for [Debian](#debian) above. There
 may be outstanding platform related bugs.
 
-Contributions to this documentation accepted on
-[the outstanding issue](https://github.com/ajslater/codex/issues/76) or discord.
+Contributions to the Windows documentation will be gratefully accepted on
+[the outstanding issue](https://github.com/ajslater/codex/issues/76) or Discord.
 
 #### Install Codex with pip
 
 You may now install Codex with pip
+
+<!-- eslint-skip -->
 
 ```sh
 pip3 install codex
@@ -125,11 +122,24 @@ pip3 install codex
 
 pip should install the codex binary on your path. Run
 
+<!-- eslint-skip -->
+
 ```sh
 codex
 ```
 
 and then navigate to <http://localhost:9810/>
+
+### Install & Run on your preexisting HomeAssistant server
+
+If you have a [HomeAssistant](https://www.home-assistant.io/) server, Codex can
+be installed with the following steps :
+
+- Add the `https://github.com/alexbelgium/hassio-addons` repository by
+  [clicking here](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Falexbelgium%2Fhassio-addons)
+- Install the addon :
+  [click here to automatically open the addon store, then install the addon](https://my.home-assistant.io/redirect/supervisor)
+- Customize addon options, then then start the add-on.
 
 ## <a name="administration">👑 Administration</a>
 
@@ -168,11 +178,15 @@ If you forget all your superuser passwords, you may restore the original default
 admin account by running codex with the `CODEX_RESET_ADMIN` environment variable
 set.
 
+<!-- eslint-skip -->
+
 ```sh
 CODEX_RESET_ADMIN=1 codex
 ```
 
 or, if using Docker:
+
+<!-- eslint-skip -->
 
 ```sh
 docker run -e CODEX_RESET_ADMIN=1 -v host-parent-dir/config:/config ajslater/codex
@@ -190,6 +204,11 @@ A library with _any_ groups is accessible only to users who are in those groups.
 
 Use the Groups admin panel to create groups and the Users admin panel to add and
 remove users to groups.
+
+#### Include and Exclude Groups
+
+Codex can make groups for libraries that exclude groups of users or exclude
+everyone and include only certain groups of users.
 
 ### PDFs
 
@@ -214,6 +233,8 @@ a default one to that directory on startup.
 
 The default values for the config options are:
 
+<!-- eslint-skip -->
+
 ```toml
 bind = ["0.0.0.0:9810"]
 quick_bind = ["0.0.0.0:9810"]
@@ -225,9 +246,11 @@ index, a Django cache and comic book cover thumbnails.
 
 ### Environment Variables
 
+### Codex
+
 - `LOGLEVEL` will change how verbose codex's logging is. Valid values are
   `ERROR`, `WARNING`, `INFO`, `DEBUG`. The default is `INFO`.
-- `TIMEZONE` or `TZ` will explicitly the timezone in long format (e.g.
+- `TIMEZONE` or `TZ` will explicitly set the timezone in long format (e.g.
   `"America/Los Angeles"`). This is useful inside Docker because codex cannot
   automatically detect the host machine's timezone.
 - `CODEX_CONFIG_DIR` will set the path to codex config directory. Defaults to
@@ -241,11 +264,19 @@ index, a Django cache and comic book cover thumbnails.
 - `CODEX_LOG_TO_FILE=0` will not log to files.
 - `CODEX_LOG_TO_CONSOLE=0` will not log to the console.
 
+#### Comicbox
+
+- `DEBUG_TRANSFORM` will show verbose information about how the comicbox library
+  reads all archive metadata sources and transforms it into a the comicbox
+  schema.
+
 ### Reverse Proxy
 
 [nginx](https://nginx.org/) is often used as a TLS terminator and subpath proxy.
 
 Here's an example nginx config with a subpath named '/codex'.
+
+<!-- eslint-skip -->
 
 ```nginx
 # HTTP
@@ -271,9 +302,10 @@ proxy_set_header Connection "Upgrade" location /codex {
 
 Specify a reverse proxy sub path (if you have one) in `config/hypercorn.toml`
 
+<!-- eslint-skip -->
+
 ```toml
 root_path = "/codex"
-
 ```
 
 #### Nginx Reverse Proxy 502 when container refreshes
@@ -289,11 +321,11 @@ Codex can run with as little as 1GB available RAM. Large batch jobs –like
 importing and indexing tens of thousands of comics at once– will run faster the
 more memory is available to Codex. The biggest gains in speed happen when you
 increase memory up to about 6GB. Codex batch jobs do get faster the more memory
-you give it above 6GB, but there are diminishing returns.
+it has above 6GB, but with diminishing returns.
 
-If you run Codex in an admin restricted memory environment you might want to
-temporarily give codex a lot of memory to run a very large batch job and then
-restrict it for normal operation.
+If you must run Codex in an admin restricted memory environment you might want
+to temporarily give Codex a lot of memory to run a very large import job and
+then restrict it for normal operation.
 
 ## <a name="usage">📖 Usage</a>
 
@@ -361,6 +393,8 @@ You can change how much codex logs by setting the `LOGLEVEL` environment
 variable. By default this level is `INFO`. To see more verbose messages, run
 codex like:
 
+<!-- eslint-skip -->
+
 ```bash
 LOGLEVEL=DEBUG codex
 ```
@@ -380,6 +414,8 @@ you.
 If the database becomes corrupt, Codex includes a facitlity to rebuild the
 database. Place a file named `rebuild_db` in your Codex config directory like
 so:
+
+<!-- eslint-skip -->
 
 ```sh
 touch config/rebuild_db
