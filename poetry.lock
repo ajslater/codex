@@ -465,20 +465,20 @@ files = [
 
 [[package]]
 name = "comicbox"
-version = "1.1.2"
+version = "1.1.3"
 description = "An API for reading comic archive contents and metadata: CBZ, CBR, CBT and PDF"
 optional = false
 python-versions = ">=3.10,<4.0"
 files = [
-    {file = "comicbox-1.1.2-py3-none-any.whl", hash = "sha256:4d0cb2d16e1bf986cde00ae49e53afa2f1aad4155bba83bdb41280b441dfdb6f"},
-    {file = "comicbox-1.1.2.tar.gz", hash = "sha256:91afad2943d36233a48188f8f7b9c5b6cf0249c217754f3a1f1cfa7eb412a20f"},
+    {file = "comicbox-1.1.3-py3-none-any.whl", hash = "sha256:7f0c6a0acc1399be60e3b22903924cdca084c7d41788be23504e9d8001093a9c"},
+    {file = "comicbox-1.1.3.tar.gz", hash = "sha256:421313352cfbfc1cfac4b4fe02e97ab323c7453674dabde1e0fc13fda2709435"},
 ]
 
 [package.dependencies]
 ansicolors = ">=1.1.8,<2.0.0"
 bidict = ">=0.23.0,<0.24.0"
 comicbox-pdffile = {version = ">=0.1.5,<0.2.0", optional = true, markers = "extra == \"pdf\""}
-comicfn2dict = ">=0.2.1,<0.3.0"
+comicfn2dict = ">=0.2.2,<0.3.0"
 confuse = ">=2.0.0,<3.0.0"
 marshmallow = ">=3.19.0,<4.0.0"
 marshmallow-union = ">=0.1.15.post1,<0.2.0"
@@ -511,13 +511,13 @@ pymupdf = ">=1.23.9,<2.0.0"
 
 [[package]]
 name = "comicfn2dict"
-version = "0.2.1"
+version = "0.2.2"
 description = "Parse common comic filenames and return a dict of metadata attributes. Includes a cli."
 optional = false
 python-versions = ">=3.9,<4.0"
 files = [
-    {file = "comicfn2dict-0.2.1-py3-none-any.whl", hash = "sha256:738eb7b9c61f3be8fb875662195e1d7231fbd21a27d2c71f95da96a9198abdc6"},
-    {file = "comicfn2dict-0.2.1.tar.gz", hash = "sha256:0e0933d7decc043cad61f8724417c8e28e0e086892a7fb730886f6cfcb7f2b4d"},
+    {file = "comicfn2dict-0.2.2-py3-none-any.whl", hash = "sha256:d75858d0a29f69fb995063a04fb4e3deb3ccafe3ffb0b444478431f4dff96ae7"},
+    {file = "comicfn2dict-0.2.2.tar.gz", hash = "sha256:78a485d1003010eef9905715165f4ab9e76c8459981d4e4d541c3f0ee17b3b50"},
 ]
 
 [[package]]
@@ -2698,4 +2698,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "8262e6fbaa851b553eca8a6fc2c8fe5ec62f3be098845f24770bcaa12846411c"
+content-hash = "f994f94ba2e5b2ca493fdcc385bef86770cdb62c678a0fb1197ce2d1eb56e489"
