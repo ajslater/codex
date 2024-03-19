@@ -153,7 +153,7 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
             LOG.exception("Getting OPDS v1 entries")
         return entries
 
-    def get_object(self):
+    def get_object(self):  # type: ignore
         """Get the browser page and serialize it for this subclass."""
         group = self.kwargs.get("group")
         if group == "a":
@@ -168,6 +168,7 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
         )
         self.obj = super().get_object()
         self.is_aq_feed = self.obj.get("model_group") == "c"
+        # Do not return a Mapping despite the type. Return self for the serializer.
         return self
 
     def _set_user_agent_variables(self):

@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.5.1
+
+- Fixes
+  - OPDS v1 was not rendering any data.
+
 ## v1.5.0
 
 - **Warning**
