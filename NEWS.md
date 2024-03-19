@@ -12,6 +12,7 @@ border-radius: 128px;
   - OPDS titles were showing as "Unknown" for comics with tagged volumes.
   - OPDS v2 was crashing.
   - Cover displayed for group browser with Name ordering was inconsistent.
+  - Enable mouse drag horizontal scrolling in reader zoom mode.
 
 ## v1.5.1
 
@@ -694,8 +695,8 @@ border-radius: 128px;
 - Fixes
 
   - Fix comicbox config crash.
-  - Use codex config namespace (~/.config/codex) so codex doesn't interfere with
-    standalone comicbox configs.
+  - Use codex config namespace (\~/.config/codex) so codex doesn't interfere
+    with standalone comicbox configs.
   - Comic issue numbers display to two decimal points instead of using ½ glyphs.
 
 - Features
