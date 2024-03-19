@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.5.1
+
+- Fixes
+  - OPDS v1 was not rendering any data.
+
 ## v1.5.0
 
 - **Warning**
@@ -28,6 +33,8 @@ border-radius: 128px;
   - New metadata tags: Monochrome, Tagger, GTIN, Review, Identifiers, & Reading
     Direction. Available when comics are re-imported (Force Update recommended).
   - Identifiers metadata tag replaces the "Web" tag.
+  - Reads ComicInfo.xml and other formats from the PDF keywords field. You can
+    write ComicInfo.xml to PDFs with comictagger.
   - Reading Direction reader setting replaces Reader's vertical & horizontal
     views.
   - Supports the MetronInfo metadata format (rare).
