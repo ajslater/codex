@@ -2,6 +2,7 @@
   <img
     :class="classes"
     class="img"
+    draggable="false"
     :src="src"
     :style="style"
     v-bind="$attrs"
