@@ -82,6 +82,9 @@ services:
     volumes:
       - ./config:/config
       - ./comics:/comics:ro
+    environment:
+      - PUID=1024
+      - PGID=100
   codex-dev:
     build:
       context: .
@@ -99,12 +102,4 @@ services:
     # init: true
     command: tail -f /dev/null
     # entrypoint: ["/sbin/tini", "--"]
-  codex-dev-old:
-    image: ajslater/codex:1.2.9
-    container_name: codex-dev-old
-    ports:
-      - "9810:9810"
-    volumes:
-      - ./config/old/:/config
-      - ./comics:/comics
 version: "3.8"

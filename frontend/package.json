@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "private": true,
   "description": "ui for codex api",
   "type": "module",
@@ -23,7 +23,7 @@
     "pretty-bytes": "^6.1.1",
     "titleize": "^4.0.0",
     "vue": "^3.4.11",
-    "vue-dragscroll": "^4.0.5",
+    "vue-drag-scroller": "^1.7.0",
     "vue-native-websocket-vue3": "^3.1.7",
     "vue-pdf-embed": "^2.0.2",
     "vue-router": "^4.2.4",
