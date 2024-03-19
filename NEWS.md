@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.5.2
+
+- Fixes
+  - OPDS titles were showing as "Unkown" for comics with tagged volumes.
+  - OPDS v2 was crashing.
+
 ## v1.5.1
 
 - Fixes
