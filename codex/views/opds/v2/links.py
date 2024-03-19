@@ -98,9 +98,9 @@ class LinksMixin(BrowserView):
     @staticmethod
     def _normalize_query_params(qps_dict):
         if qps_dict.get("orderBy") == "sort_name":
-            qps_dict.pop("orderBy")
+            qps_dict.pop("orderBy", None)
         if qps_dict.get("orderReverse", "").lower() in FALSY:
-            qps_dict.pop("orderReverse")
+            qps_dict.pop("orderReverse", None)
         return frozenset(qps_dict.items())
 
     def _is_self_link(self, href):
