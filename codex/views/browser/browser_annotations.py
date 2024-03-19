@@ -76,7 +76,7 @@ class BrowserAnnotationsView(BrowserOrderByView):
             # This creates two subqueries. It would be better condensed into one.
             # but there's no way to annotate an object or multiple values.
             cover_qs = queryset.filter(pk=OuterRef("pk"))
-            cover_qs = self.add_order_by(cover_qs, model)
+            cover_qs = self.add_order_by(cover_qs, model, True)
             cover_pk = Subquery(cover_qs.values(self.rel_prefix + "pk")[:1])
         return queryset.annotate(cover_pk=cover_pk)
 

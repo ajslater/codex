@@ -11,6 +11,7 @@ border-radius: 128px;
 - Fixes
   - OPDS titles were showing as "Unknown" for comics with tagged volumes.
   - OPDS v2 was crashing.
+  - Cover displayed for group browser with Name ordering was inconsistent.
 
 ## v1.5.1
 
