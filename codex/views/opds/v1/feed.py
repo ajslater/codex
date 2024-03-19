@@ -1,7 +1,6 @@
 """OPDS v1 feed."""
 
 from datetime import datetime, timezone
-from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 from drf_spectacular.utils import extend_schema
@@ -169,7 +168,7 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
         )
         self.obj = super().get_object()
         self.is_aq_feed = self.obj.get("model_group") == "c"
-        return MappingProxyType(self.__dict__)
+        return self
 
     def _set_user_agent_variables(self):
         """Set User Agent variables."""
