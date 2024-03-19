@@ -84,13 +84,11 @@ class Volume(BrowserGroupModel):
     @classmethod
     def to_str(cls, name):
         """Represent volume as a string."""
-        if not name:
-            vol = ""
-        elif len(name) == cls.YEAR_LEN:
-            vol = f"({name})"
-        else:
-            vol = "v" + name
-        return vol
+        if name in (None, ""):
+            return ""
+
+        name = str(name)
+        return f"({name})" if len(name) == cls.YEAR_LEN else "v" + name
 
     def __str__(self):
         """Represent volume as a string."""

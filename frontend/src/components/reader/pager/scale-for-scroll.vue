@@ -1,5 +1,10 @@
 <template>
-  <div class="scaleForScroll" :style="style" @dblclick="onDoubleClick">
+  <div
+    v-dragscroll
+    class="scaleForScroll"
+    :style="style"
+    @dblclick="onDoubleClick"
+  >
     <slot />
     <v-icon v-if="showReset" class="resetIcon" @click.stop="scaleReset">{{
       mdiMagnifyMinusOutline
@@ -10,6 +15,7 @@
 <script>
 import { mdiMagnifyMinusOutline } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
+import { dragscroll } from "vue-dragscroll";
 
 import { SCALE_DEFAULT, useReaderStore } from "@/stores/reader";
 
@@ -17,6 +23,9 @@ const SCALE_INCREMENT = 0.5;
 
 export default {
   name: "ScaleForScroll",
+  directives: {
+    dragscroll,
+  },
   emits: ["click"],
   data() {
     return {
