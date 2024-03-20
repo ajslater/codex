@@ -12,10 +12,6 @@
 .pytest_cache
 .ropeproject
 .venv*
-/codex/static_build
-/codex/static_root
-/config
-/nginx
 MANIFEST
 NEWS
 TODO.md
@@ -23,6 +19,8 @@ __pycache__
 alpha*
 cache
 circleci*
+codex/static_build
+codex/static_root
 comics
 config
 deploy-pypi.sh
