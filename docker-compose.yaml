@@ -82,9 +82,6 @@ services:
     volumes:
       - ./config:/config
       - ./comics:/comics:ro
-    environment:
-      - PUID=1024
-      - PGID=100
   codex-dev:
     build:
       context: .
@@ -98,8 +95,16 @@ services:
       - "9810:9810"
     volumes:
       - .:/app
-      - /Users/aj/Comics:/comics
+      - ./comics:/comics
     # init: true
     command: tail -f /dev/null
     # entrypoint: ["/sbin/tini", "--"]
+  nginx:
+    image: lscr.io/linuxserver/nginx
+    container_name: nginx
+    restart: unless-stopped
+    ports:
+      - "80:9811"
+    volumes:
+      - ./docker/nginx/http.d/codex:/etc/nginx/http.d/codex:ro
 version: "3.8"
