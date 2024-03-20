@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.5.4
+
+- Fixes
+  - Django 5 broke root_path prefixing from the asgi server. Work around it.
+
 ## v1.5.3
 
 - Fixes

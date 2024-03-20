@@ -10,7 +10,6 @@
 .ruff_cache
 .venv
 .venv*
-bin/docker/registry.yaml // breaks prettier plugin idk why
 cache/*
 cache/packages/*
 codex/_vendor/

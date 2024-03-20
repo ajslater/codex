@@ -26,7 +26,7 @@
       },
       {
         "files": [
-          "bin/nginx/http.d/codex/*.conf"
+          "**/nginx/http.d/**/*.conf"
         ],
         "options": {
           "parser": "nginx"
