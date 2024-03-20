@@ -5,12 +5,12 @@ from channels.routing import URLRouter
 from channels.security.websocket import AllowedHostsOriginValidator
 from django.urls import path
 
-from codex.settings.settings import HYPERCORN_CONFIG
+from codex.settings.settings import ROOT_PATH
 from codex.websockets.consumers import NotifierConsumer
 
 # channels is ignorant of root_path
 # https://github.com/django/channels/issues/1973
-ROOT_PREFIX = HYPERCORN_CONFIG.root_path[1:] + "/" if HYPERCORN_CONFIG.root_path else ""
+ROOT_PREFIX = ROOT_PATH[1:] + "/" if ROOT_PATH else ""
 
 
 WEBSOCKET_APPLICATION = AllowedHostsOriginValidator(
