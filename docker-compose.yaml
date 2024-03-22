@@ -87,7 +87,7 @@ services:
       context: .
       dockerfile: docker/dev.Dockerfile
     image: codex-dev
-    mem_limit: 1g
+    # mem_limit: 1g
     container_name: codex-dev
     environment:
       - VITE_HOST=localhost

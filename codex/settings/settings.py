@@ -293,11 +293,11 @@ HAYSTACK_CONNECTIONS = {
 }
 HAYSTACK_LOGGING = False
 # Search indexing memory controls
-MMAP_RATIO = int(environ.get("MMAP_RATIO", 240))
-WRITER_MEMORY_PERCENT = float(environ.get("WRITER_MEMORY_PERCENT", 0.6))
-CPU_MULTIPLIER = float(environ.get("CPU_MULTIPLIER", 1.25))
-CHUNK_PER_GB = int(environ.get("CHUNK_PER_GB", 250))
-MAX_CHUNK_SIZE = int(environ.get("MAX_CHUNK_SIZE", 1000))
+MMAP_RATIO = int(environ.get("CODEX_MMAP_RATIO", 240))
+WRITER_MEMORY_PERCENT = float(environ.get("CODEX_WRITER_MEMORY_PERCENT", 0.6))
+CPU_MULTIPLIER = float(environ.get("CODEX_CPU_MULTIPLIER", 1.25))
+CHUNK_PER_GB = int(environ.get("CODEX_CHUNK_PER_GB", 250))
+MAX_CHUNK_SIZE = int(environ.get("CODEX_MAX_CHUNK_SIZE", 1000))
 
 CHANNEL_LAYERS = {
     "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"},
@@ -312,3 +312,8 @@ if DEBUG:
             "dev_server_host": environ.get("VITE_HOST", socket.gethostname()),
         }
     }
+
+# sqlite parser breaks with more than 1000 variables in a query and django only
+# fixes this in the bulk_create & bulk_update functions. So for complicated
+# queries I gotta batch them myself. Filter arg count is a proxy, but it works.
+FILTER_BATCH_SIZE = int(environ.get("CODEX_FILTER_BATCH_SIZE", 900))
