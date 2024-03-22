@@ -60,7 +60,7 @@ tzlocal = "^5.0"
 watchdog = "^4.0"
 websocket_client = "^1.2"
 whitenoise = { extras = ["brotli"], version = "^6.0" }
-whoosh = "^2.7.4"
+whoosh-reloaded = "^2.7.5"
 Pillow = "^10.0.0"
 
 [tool.poetry.group.dev.dependencies]
