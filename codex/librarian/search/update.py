@@ -9,12 +9,9 @@ from zoneinfo import ZoneInfo
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import DatabaseError
-from django.db.models import Q
 from humanize import naturaldelta
-from whoosh.query import Every
 
 from codex._vendor.haystack.exceptions import SearchFieldError
-from codex._vendor.haystack.indexes import DJANGO_ID
 from codex.librarian.search.remove import RemoveMixin
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexRemoveStaleTask
@@ -54,6 +51,7 @@ class UpdateMixin(RemoveMixin):
     )
     _MAX_RETRIES = 8
     _CPU_MULTIPLIER = CPU_MULTIPLIER
+    _UPDATE_SORT_BY = ("-updated_at",)
 
     def _init_statuses(self, rebuild):
         """Initialize all statuses order before starting."""
@@ -65,32 +63,15 @@ class UpdateMixin(RemoveMixin):
             statii += [Status(SearchIndexStatusTypes.SEARCH_INDEX_REMOVE)]
         self.status_controller.start_many(statii)
 
-    def _get_queryset_from_search_results(self, results, qs, suffix):
-        """Use python to find the lowest date and any missing rows."""
-        all_index_pks = []
-        index_latest_updated_at = self._MIN_UTC_DATE
-        for result in results:
-            all_index_pks.append(result.get(DJANGO_ID))
-            result_updated_at = result.get("updated_at")
-            if result_updated_at and result_updated_at > index_latest_updated_at:
-                index_latest_updated_at = result_updated_at
-        if index_latest_updated_at > self._MIN_UTC_DATE:
-            qs = qs.filter(
-                Q(updated_at__gt=index_latest_updated_at) | ~Q(pk__in=all_index_pks)
-            )
-            suffix = f"since {index_latest_updated_at}"
-
-        return qs, suffix
-
     def _get_queryset_from_search_index(self, backend, qs, suffix):
         """Get the date of the last updated item in the search index."""
-        with backend.index.refresh().searcher() as searcher:
-            # XXX IDK why but sorting by 'updated_at' removes the latest and most valuable result
-            #     So I have to do it in my own method.
-            #     Because of this I've turned of sortable in the schema.
-            results = searcher.search(Every(), reverse=True, scored=False)
-            if results.scored_length():
-                qs, suffix = self._get_queryset_from_search_results(results, qs, suffix)
+        search_results = backend.search("*", sort_by=self._UPDATE_SORT_BY)
+        results = search_results.get("results")
+        if results:
+            most_recent_result = results[0]
+            most_recent_updated_at = most_recent_result.updated_at
+            qs = qs.filter(updated_at__gt=most_recent_updated_at)
+            suffix = f"since {most_recent_updated_at}"
 
         return qs, suffix
 

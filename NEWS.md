@@ -9,9 +9,10 @@ border-radius: 128px;
 ## v1.5.5
 
 - Fixes
-  - Lower default filter batch size in attempt to fix an import crash. Allow
+  - Attempt to fix import crash processing too much metadata at once. Allow
     undocumented env variable to manipulate this: CODEX_FILTER_BATCH_SIZE
     (default: 900)
+  - Fix search engine update crash for large collections.
 
 ## v1.5.4
 
