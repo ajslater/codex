@@ -35,6 +35,7 @@ from codex.models import (
     Volume,
 )
 from codex.models.named import Identifier
+from codex.settings.settings import FILTER_BATCH_SIZE
 from codex.status import Status
 from codex.threads import QueuedThread
 
@@ -53,7 +54,6 @@ _DEFAULT_QUERY_FIELDS = ("name",)
 # sqlite parser breaks with more than 1000 variables in a query and django only
 # fixes this in the bulk_create & bulk_update functions. So for complicated
 # queries I gotta batch them myself. Filter arg count is a proxy, but it works.
-_SQLITE_FILTER_ARG_MAX = 990
 
 LOG = get_logger(__name__)
 
@@ -102,7 +102,7 @@ class QueryForeignKeysMixin(QueuedThread):
         num_qs = len(q_obj.children)
         while offset < num_qs:
             # Do this in batches so as not to exceed the 1k line sqlite limit
-            children_chunk = q_obj.children[offset : offset + _SQLITE_FILTER_ARG_MAX]
+            children_chunk = q_obj.children[offset : offset + FILTER_BATCH_SIZE]
             filter_chunk = Q(*children_chunk, _connector=Q.OR)
 
             existing_mds = self._query_existing_mds(fk_cls, filter_chunk)
@@ -111,7 +111,7 @@ class QueryForeignKeysMixin(QueuedThread):
             status.complete += len(filter_chunk)
             self.status_controller.update(status)
 
-            offset += _SQLITE_FILTER_ARG_MAX
+            offset += FILTER_BATCH_SIZE
 
         if status:
             status.subtitle = ""
@@ -223,9 +223,7 @@ class QueryForeignKeysMixin(QueuedThread):
         num_qs = len(group_filter.children)
         while offset < num_qs:
             # Do this in batches so as not to exceed the 1k line sqlite limit
-            children_chunk = group_filter.children[
-                offset : offset + _SQLITE_FILTER_ARG_MAX
-            ]
+            children_chunk = group_filter.children[offset : offset + FILTER_BATCH_SIZE]
             filter_chunk = Q(*children_chunk, _connector=Q.OR)
 
             existing = group_cls.objects.filter(filter_chunk).values_list(
@@ -235,7 +233,7 @@ class QueryForeignKeysMixin(QueuedThread):
                 exist_tree = tuple(exist_tuple[:-1])
                 exist_dict[exist_tree] = exist_tuple[-1]
 
-            offset += _SQLITE_FILTER_ARG_MAX
+            offset += FILTER_BATCH_SIZE
         return exist_dict
 
     @staticmethod
@@ -438,7 +436,7 @@ class QueryForeignKeysMixin(QueuedThread):
             status.subtitle = vnp
         while start < num_proposed_names:
             # Do this in batches so as not to exceed the 1k line sqlite limit
-            end = start + _SQLITE_FILTER_ARG_MAX
+            end = start + FILTER_BATCH_SIZE
             batch_proposed_names = proposed_names[start:end]
             filter_args = {f"{fk_field}__in": batch_proposed_names}
             fk_filter = Q(**filter_args)
@@ -449,7 +447,7 @@ class QueryForeignKeysMixin(QueuedThread):
                 status.complete = status.complete or 0
                 status.complete += num_in_batch
                 self.status_controller.update(status)
-            start += _SQLITE_FILTER_ARG_MAX
+            start += FILTER_BATCH_SIZE
 
         if status:
             status.subtitle = ""

@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.5.5
+
+- Fixes
+  - Lower default filter batch size in attempt to fix an import crash. Allow
+    undocumented env variable to manipulate this: CODEX_FILTER_BATCH_SIZE
+    (default: 900)
+
 ## v1.5.4
 
 - Fixes
