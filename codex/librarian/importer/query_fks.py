@@ -51,9 +51,6 @@ _CLASS_QUERY_FIELDS_MAP = {
     Identifier: ("identifier_type__name", "nss", "url"),
 }
 _DEFAULT_QUERY_FIELDS = ("name",)
-# sqlite parser breaks with more than 1000 variables in a query and django only
-# fixes this in the bulk_create & bulk_update functions. So for complicated
-# queries I gotta batch them myself. Filter arg count is a proxy, but it works.
 
 LOG = get_logger(__name__)
 
