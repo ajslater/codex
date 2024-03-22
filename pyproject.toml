@@ -55,6 +55,8 @@ humanize = "^4.0.0"
 hypercorn = { extras = ["h3"], version = "^0.16.0" }
 psutil = "^5.9.4"
 python-dateutil = "^2.8.2"
+# linux-aarch64 has no pymudf wheels for 1.24 yet
+pymupdf = "1.23.26"
 requests = "^2.24"
 tzlocal = "^5.0"
 watchdog = "^4.0"
