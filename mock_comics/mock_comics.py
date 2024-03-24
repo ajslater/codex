@@ -9,6 +9,17 @@ from io import BytesIO
 from pathlib import Path
 from xml.etree.ElementTree import Element, SubElement, tostringlist
 
+from comicbox.identifiers import (
+    ASIN_NID,
+    COMICVINE_NID,
+    COMIXOLOGY_NID,
+    GCD_NID,
+    IDENTIFIER_URL_MAP,
+    ISBN_NID,
+    LCG_NID,
+    METRON_NID,
+    UPC_NID,
+)
 from comicbox.schemas.comicinfo import ComicInfoSchema
 from fnvhash import fnv1a_32
 from PIL import Image
@@ -46,7 +57,6 @@ FIELDS = {
     },
     "VARCHARS": {
         "AlternateSeries": 64,
-        "Web": 200,
         "LanguageISO": 2,
         "Format": 16,
         "Publisher": 24,
@@ -58,6 +68,7 @@ FIELDS = {
         "Notes": 128,
         "ScanInformation": 32,
         "MainCharacterOrTeam": 24,
+        "Web": 64,
     },
     "DECIMALS": {"CommunityRating": 100.0},
     "NAME_LISTS": (
@@ -79,12 +90,13 @@ STATUS_DELAY = 5
 LANG_LIST = []
 for lang in languages:
     try:
-       LANG_LIST.append(lang.alpha_2)
+        LANG_LIST.append(lang.alpha_2)  # type: ignore
     except AttributeError:
-       LANG_LIST.append(lang.alpha_3)
+        LANG_LIST.append(lang.alpha_3)  # type: ignore
 COVER_RATIO = 1.5372233400402415
 COVER_WIDTH = 250
 COVER_HEIGHT = int(COVER_RATIO * COVER_WIDTH)
+
 
 def is_valid():
     """Determine if to make the tag null or the wrong type."""
@@ -96,9 +108,14 @@ def is_valid():
     return True
 
 
-def rand_string(length):
+def rand_string(length, choices=CHOICES_STR):
     """Return a random string of arbitrary length."""
-    return "".join(random.choices(CHOICES_STR, k=length))
+    return "".join(random.choices(choices, k=length))
+
+
+def rand_digits(length):
+    """Return a random string of digits of arbitrary length."""
+    return rand_string(length, string.digits)
 
 
 def create_int(md, key, limit):
@@ -130,6 +147,31 @@ def create_str(md, key, limit):
     prefix = key + "_"
     length = random.randint(0, round(limit * 1.2)) - len(prefix)
     md[key] = prefix + rand_string(length)
+
+
+def create_web(md, key, _limit):
+    """Create a valid parsable web key."""
+    if is_valid() is None:
+        return
+    nid = random.choice(tuple(IDENTIFIER_URL_MAP.keys()))
+    if nid == COMICVINE_NID:
+        suffix = "4000-" + rand_digits(6)
+    elif nid in (METRON_NID, GCD_NID, LCG_NID):
+        suffix = rand_string(5) + "/" + rand_string(5)
+    elif nid == ASIN_NID:
+        suffix = rand_string(10)
+    elif nid == COMIXOLOGY_NID:
+        suffix = "x/x/" + rand_string(10)
+    elif nid == ISBN_NID:
+        suffix = rand_digits(10)
+    elif nid == UPC_NID:
+        suffix = rand_digits(12)
+    else:
+        return
+
+    url = IDENTIFIER_URL_MAP[nid] + suffix
+
+    md[key] = url
 
 
 def create_lang(md, key, _limit):
@@ -192,6 +234,8 @@ def create_metadata():
     for key, limit in FIELDS["VARCHARS"].items():
         if key == "LanguageISO":
             create_lang(md, key, limit)
+        elif key == "Web":
+            create_web(md, key, limit)
         else:
             create_str(md, key, limit)
 
