@@ -1,17 +1,29 @@
 #!/usr/bin/env python3
 """Create large numbers of mocks comics."""
 
+import random
 import string
 import time
 import zipfile
 from io import BytesIO
 from pathlib import Path
-from random import choices, randint, random
 from xml.etree.ElementTree import Element, SubElement, tostringlist
 
+from comicbox.identifiers import (
+    ASIN_NID,
+    COMICVINE_NID,
+    COMIXOLOGY_NID,
+    GCD_NID,
+    IDENTIFIER_URL_MAP,
+    ISBN_NID,
+    LCG_NID,
+    METRON_NID,
+    UPC_NID,
+)
 from comicbox.schemas.comicinfo import ComicInfoSchema
 from fnvhash import fnv1a_32
 from PIL import Image
+from pycountry import languages
 
 GROUPS = ("publisher", "imprint", "series")
 M2MS = ("characters", "genres", "locations", "tags", "teams")
@@ -32,26 +44,37 @@ CONTRIBUTOR_TAGS = (
 FIELDS = {
     "TEXT": ("Summary", "Notes", "ScanInformation"),
     "INTS": {
-        "Number": 1000,
-        "Count": 1000,
+        "Number": 1024,
+        "AlternateNumber": 1024,
+        "Count": 1024,
+        "AlternateCount": 1024,
         "Year": 2030,
         "Month": 12,
         "Day": 31,
         "Volume": 2030,
+        "PageCount": 1024,
+        "StoryArcNumber": 1024,
     },
     "VARCHARS": {
-        "Web": 200,
+        "AlternateSeries": 64,
         "LanguageISO": 2,
-        "Format": 10,
-        "Publisher": 64,
-        "Imprint": 64,
+        "Format": 16,
+        "Publisher": 24,
+        "Imprint": 24,
         "Series": 64,
         "AgeRating": 18,
+        "Title": 24,
+        "Summary": 1024,
+        "Notes": 128,
+        "ScanInformation": 32,
+        "MainCharacterOrTeam": 24,
+        "Web": 64,
     },
     "DECIMALS": {"CommunityRating": 100.0},
     "NAME_LISTS": (
-        "Genres",
+        "Genre",
         "Characters",
+        "Tags",
         "Teams",
         "Locations",
         "StoryArc",
@@ -62,13 +85,22 @@ FIELDS = {
 BOOL_VALUES = ("yes", "no")
 MANGA_VALUES = (*BOOL_VALUES, "yesandrighttoleft", "yesrtl")
 NUM_M2M_NAMES = 20
-NUM_contributorS = 15
+NUM_CONTRIBUTORS = 15
 STATUS_DELAY = 5
+LANG_LIST = []
+for lang in languages:
+    try:
+        LANG_LIST.append(lang.alpha_2)  # type: ignore
+    except AttributeError:
+        LANG_LIST.append(lang.alpha_3)  # type: ignore
+COVER_RATIO = 1.5372233400402415
+COVER_WIDTH = 250
+COVER_HEIGHT = int(COVER_RATIO * COVER_WIDTH)
 
 
 def is_valid():
     """Determine if to make the tag null or the wrong type."""
-    n = random()
+    n = random.random()
     if n < CHANCE_OF_NULL:
         return None
     if n < CHANCE_OF_BAD_TYPE:
@@ -76,9 +108,14 @@ def is_valid():
     return True
 
 
-def rand_string(length):
+def rand_string(length, choices=CHOICES_STR):
     """Return a random string of arbitrary length."""
-    return "".join(choices(CHOICES_STR, k=length))
+    return "".join(random.choices(choices, k=length))
+
+
+def rand_digits(length):
+    """Return a random string of digits of arbitrary length."""
+    return rand_string(length, string.digits)
 
 
 def create_int(md, key, limit):
@@ -90,7 +127,7 @@ def create_int(md, key, limit):
         value = rand_string(5)
     else:
         limit = round(limit * 1.2)
-        value = randint(0, limit)
+        value = random.randint(0, limit)
     md[key] = value
 
 
@@ -99,7 +136,7 @@ def create_float(md, key, limit):
     v = is_valid()
     if v is None:
         return
-    value = rand_string(5) if not v else random() * limit * 1.1
+    value = rand_string(5) if not v else random.random() * limit * 1.1
     md[key] = value
 
 
@@ -108,8 +145,39 @@ def create_str(md, key, limit):
     if is_valid() is None:
         return
     prefix = key + "_"
-    length = randint(0, round(limit * 1.2)) - len(prefix)
+    length = random.randint(0, round(limit * 1.2)) - len(prefix)
     md[key] = prefix + rand_string(length)
+
+
+def create_web(md, key, _limit):
+    """Create a valid parsable web key."""
+    if is_valid() is None:
+        return
+    nid = random.choice(tuple(IDENTIFIER_URL_MAP.keys()))
+    if nid == COMICVINE_NID:
+        suffix = "4000-" + rand_digits(6)
+    elif nid in (METRON_NID, GCD_NID, LCG_NID):
+        suffix = rand_string(5) + "/" + rand_string(5)
+    elif nid == ASIN_NID:
+        suffix = rand_string(10)
+    elif nid == COMIXOLOGY_NID:
+        suffix = "x/x/" + rand_string(10)
+    elif nid == ISBN_NID:
+        suffix = rand_digits(10)
+    elif nid == UPC_NID:
+        suffix = rand_digits(12)
+    else:
+        return
+
+    url = IDENTIFIER_URL_MAP[nid] + suffix
+
+    md[key] = url
+
+
+def create_lang(md, key, _limit):
+    """Add an iso language code."""
+    lang_code = random.choice(LANG_LIST)
+    md[key] = lang_code
 
 
 def create_name_list(md, key):
@@ -118,7 +186,7 @@ def create_name_list(md, key):
         return
     m2m = []
     prefix = key + "_"
-    for _ in range(randint(0, NUM_M2M_NAMES)):
+    for _ in range(random.randint(0, NUM_M2M_NAMES)):
         name = prefix + rand_string(64 - len(prefix))
         m2m.append(name)
     md[key] = ",".join(m2m)
@@ -129,7 +197,7 @@ def create_bool(md, key):
     v = is_valid()
     if v is None:
         return
-    value = rand_string(5) if not v else BOOL_VALUES[randint(0, 1)]
+    value = rand_string(5) if not v else BOOL_VALUES[random.randint(0, 1)]
     md[key] = value
 
 
@@ -138,7 +206,7 @@ def create_manga(md):
     v = is_valid()
     if v is None:
         return
-    value = rand_string(5) if not v else MANGA_VALUES[randint(0, 3)]
+    value = rand_string(5) if not v else MANGA_VALUES[random.randint(0, 3)]
     md["Manga"] = value
 
 
@@ -147,8 +215,8 @@ def create_contributors(md):
     v = is_valid()
     if v is None:
         return
-    for _ in range(randint(0, NUM_contributorS)):
-        role = choices(CONTRIBUTOR_TAGS, k=1)[0]
+    for _ in range(random.randint(0, NUM_CONTRIBUTORS)):
+        role = random.choices(CONTRIBUTOR_TAGS, k=1)[0]
         person = rand_string(round(64 * 1.1))
         md[role] = person
 
@@ -164,7 +232,12 @@ def create_metadata():
         create_str(md, key, 100)
 
     for key, limit in FIELDS["VARCHARS"].items():
-        create_str(md, key, limit)
+        if key == "LanguageISO":
+            create_lang(md, key, limit)
+        elif key == "Web":
+            create_web(md, key, limit)
+        else:
+            create_str(md, key, limit)
 
     for key, limit in FIELDS["DECIMALS"].items():
         create_float(md, key, limit)
@@ -187,10 +260,10 @@ def create_metadata():
 
 def create_cover_page():
     """Create a small randomly colored square image."""
-    r = randint(0, 255)
-    g = randint(0, 255)
-    b = randint(0, 255)
-    img = Image.new("RGB", (250, 250), (r, g, b))
+    r = random.randint(0, 255)
+    g = random.randint(0, 255)
+    b = random.randint(0, 255)
+    img = Image.new("RGB", (COVER_WIDTH, COVER_HEIGHT), (r, g, b))
     buf = BytesIO()
     img.save(buf, format="PNG")
     return buf.getvalue()

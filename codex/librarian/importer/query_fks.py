@@ -74,21 +74,21 @@ class QueryForeignKeysMixin(QueuedThread):
     def _query_existing_mds(fk_cls, fk_filter):
         """Query existing metatata tables."""
         fields = _CLASS_QUERY_FIELDS_MAP.get(fk_cls, _DEFAULT_QUERY_FIELDS)
-        if not fields:
-            fields = ("name",)
         flat = len(fields) == 1 and fk_cls != Publisher
-
-        return frozenset(
+        # print(fk_filter)
+        qs = (
             fk_cls.objects.filter(fk_filter)
             .order_by("pk")
             .values_list(*fields, flat=flat)
         )
+        return frozenset(qs)
 
-    def _query_create_metadata(
+    def _query_create_metadata(  # noqa: PLR0913
         self,
         fk_cls,
         create_mds,
         q_obj: Q,
+        q_and_chunk_prefix,
         status,
     ):
         """Get create metadata by comparing proposed meatada to existing rows."""
@@ -98,9 +98,12 @@ class QueryForeignKeysMixin(QueuedThread):
         offset = 0
         num_qs = len(q_obj.children)
         while offset < num_qs:
-            # Do this in batches so as not to exceed the 1k line sqlite limit
+            # Do this in batches so as not to exceed the sqlite 1k expression tree depth limit
+            # django.db.utils.OperationalError: Expression tree is too large (maximum depth 1000)
             children_chunk = q_obj.children[offset : offset + FILTER_BATCH_SIZE]
             filter_chunk = Q(*children_chunk, _connector=Q.OR)
+            if q_and_chunk_prefix:
+                filter_chunk = q_and_chunk_prefix & filter_chunk
 
             existing_mds = self._query_existing_mds(fk_cls, filter_chunk)
             create_mds.difference_update(existing_mds)
@@ -151,7 +154,7 @@ class QueryForeignKeysMixin(QueuedThread):
 
         candidate_groups = set(groups.keys())
         count = self._query_create_metadata(
-            group_cls, candidate_groups, all_filters, status
+            group_cls, candidate_groups, all_filters, None, status
         )
         create_group_set.update(candidate_groups)
         return count
@@ -314,11 +317,10 @@ class QueryForeignKeysMixin(QueuedThread):
     #########
     @staticmethod
     def _query_missing_identifiers_model_obj(
-        rels, item, all_filters, possible_create_objs
+        key_rel, value_rel_map, item, possible_create_objs
     ):
         """Update all_filters and possible_create_objs for identifiers."""
         # identifiers is unique at this time for having more than one value as a dict.
-        key_rel, value_rel_map = rels
         key, values = item
         values_list = []
         for val in values:
@@ -334,38 +336,45 @@ class QueryForeignKeysMixin(QueuedThread):
                 value_filter |= value_sub_filter
 
         if not value_filter:
-            return all_filters
+            return value_filter, None
 
-        obj_filter = Q(**{key_rel: key}) & value_filter
-        all_filters = all_filters | obj_filter
+        obj_filter = Q(**{key_rel: key})
 
         for value in values:
             possible_create_objs.add((key, value))
-        return all_filters
+        return value_filter, obj_filter
 
     @staticmethod
-    def _query_missing_dict_model_obj(rels, item, all_filters, possible_create_objs):
+    def _query_missing_dict_model_obj(key_rel, value_rel, item, possible_create_objs):
         """Update all_filters and possible_create_objs for this obj."""
-        key_rel, value_rel = rels
         key, values = item
 
         filter_isnull = None in values
         filter_values = values - {None}
+
+        if not filter_values and not filter_isnull:
+            return Q(), None
 
         value_filter = (
             Q(**{f"{value_rel}__in": filter_values}) if filter_values else Q()
         )
         if filter_isnull:
             value_filter = value_filter | Q(**{f"{value_rel}__isnull": True})
-        if not value_filter:
-            return all_filters
 
-        obj_filter = Q(**{key_rel: key}) & value_filter
-        all_filters = all_filters | obj_filter
+        obj_filter = Q(**{key_rel: key})
 
         for value in values:
             possible_create_objs.add((key, value))
-        return all_filters
+        return value_filter, obj_filter
+
+    @staticmethod
+    def _add_value_filter_map(value_filter, filter_and_prefix, query_filter_map):
+        """Add a filter_and_prefix and the value filter to the map."""
+        if not value_filter:
+            return
+        if filter_and_prefix not in query_filter_map:
+            query_filter_map[filter_and_prefix] = Q()
+        query_filter_map[filter_and_prefix] |= value_filter
 
     def _query_missing_dict_model(self, field_name, fks, create_objs, status):
         """Find missing dict type m2m models with a supplied filter method."""
@@ -375,28 +384,31 @@ class QueryForeignKeysMixin(QueuedThread):
             return count
 
         possible_create_objs = set()
-        all_filters = Q()
+        query_filter_map = {}
         # create the filter
-        if field_name == "identifiers":
-            model, key_rel, value_rel = IDENTIFIERS_MODEL_REL_MAP[field_name]
-            rels = (key_rel, value_rel)
 
-            for item in possible_objs.items():
-                all_filters = self._query_missing_identifiers_model_obj(
-                    rels, item, all_filters, possible_create_objs
-                )
+        if field_name == "identifiers":
+            rel_map = IDENTIFIERS_MODEL_REL_MAP
+            query_missing_method = self._query_missing_identifiers_model_obj
         else:
-            model, key_rel, value_rel = DICT_MODEL_REL_MAP[field_name]
-            rels = (key_rel, value_rel)
-            for item in possible_objs.items():
-                all_filters = self._query_missing_dict_model_obj(
-                    rels, item, all_filters, possible_create_objs
-                )
+            rel_map = DICT_MODEL_REL_MAP
+            query_missing_method = self._query_missing_dict_model_obj
+
+        model, key_rel, value_rel = rel_map[field_name]
+
+        for item in possible_objs.items():
+            value_filter, filter_and_prefix = query_missing_method(
+                key_rel, value_rel, item, possible_create_objs
+            )
+            self._add_value_filter_map(
+                value_filter, filter_and_prefix, query_filter_map
+            )
 
         # get the obj metadata
-        count = self._query_create_metadata(
-            model, possible_create_objs, all_filters, status
-        )
+        for filter_and_prefix, value_filter in query_filter_map.items():
+            count += self._query_create_metadata(
+                model, possible_create_objs, value_filter, filter_and_prefix, status
+            )
 
         create_objs.update(possible_create_objs)
         count = len(create_objs)

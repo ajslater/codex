@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.5.6
+
+- Fixes
+  - Fix sqlite limit crash when importing > ~1000 web urls.
+
 ## v1.5.5
 
 - Fixes
