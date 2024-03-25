@@ -32,6 +32,7 @@ class BrowserOrderByView(BrowserBaseView):
     _ANNOTATED_ORDER_FIELDS = frozenset(
         ("sort_name", "search_score", "bookmark_updated_at")
     )
+    _COMIC_COVER_ORDERING = ("comic__" + field for field in Comic.ORDERING)
 
     def set_order_key(self):
         """Get the default order key for the view."""
@@ -82,14 +83,17 @@ class BrowserOrderByView(BrowserBaseView):
             func = self.get_aggregate_func(model, self.order_key)
         return func
 
-    def add_order_by(self, queryset, model):
+    def add_order_by(self, queryset, model, cover=False):
         """Create the order_by list."""
         prefix = ""
         if self.params.get("order_reverse"):
             prefix += "-"
 
         if self.order_key == "sort_name":
-            order_fields = model.ORDERING
+            if cover and model != Comic:
+                order_fields = self._COMIC_COVER_ORDERING
+            else:
+                order_fields = model.ORDERING
         elif self.order_key == "bookmark_updated_at":
             order_fields = ("order_value", "updated_at", "created_at", "pk")
         elif self.order_key == "story_arc_number" and model == Comic:

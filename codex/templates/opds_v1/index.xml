@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no" ?>
 {% load static %}
 {% load tz %}
-<feed 
+<feed
   xmlns:atom="http://www.w3.org/2005/Atom"
   xmlns:opds="{{opds_ns}}"
   xmlns:dc="http://purl.org/dc/terms/"

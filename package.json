@@ -26,7 +26,7 @@
       },
       {
         "files": [
-          "bin/nginx/http.d/codex/*.conf"
+          "**/nginx/http.d/**/*.conf"
         ],
         "options": {
           "parser": "nginx"
@@ -69,7 +69,7 @@
     "eslint-plugin-simple-import-sort": "^12.0.0",
     "eslint-plugin-sonarjs": "^0.24.0",
     "eslint-plugin-switch-case": "^1.1.2",
-    "eslint-plugin-toml": "^0.9.2",
+    "eslint-plugin-toml": "^0.10.0",
     "eslint-plugin-unicorn": "^51.0.1",
     "eslint-plugin-yml": "^1.12.2",
     "eslint_d": "^13.1.1",

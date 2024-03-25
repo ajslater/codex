@@ -6,6 +6,7 @@ import markdown from "eslint-plugin-markdown";
 // https://github.com/import-js/eslint-plugin-import/issues/2556
 // import importPlugin from "eslint-plugin-import";
 import pluginSecurity from "eslint-plugin-security";
+import eslintPluginToml from "eslint-plugin-toml";
 import eslintPluginUnicorn from "eslint-plugin-unicorn";
 import globals from "globals";
 
@@ -69,6 +70,7 @@ export default [
      */
   },
   ...markdown.configs.recommended,
+  ...eslintPluginToml.configs["flat/recommended"],
   js.configs.recommended,
   arrayFunc.configs.all,
   {
@@ -102,7 +104,6 @@ export default [
       // LANGS
       "plugin:jsonc/recommended-with-json",
       "plugin:jsonc/prettier",
-      "plugin:toml/recommended",
       "plugin:yml/standard",
       "plugin:yml/prettier",
       // CODE QUALITY
@@ -129,7 +130,7 @@ export default [
       },
       {
         files: ["*.toml"],
-        //parser: "toml-eslint-parser",
+        // parser: "toml-eslint-parser",
         rules: {
           "prettier-vue/prettier": ["error", { parser: "toml" }],
         },

@@ -9,7 +9,11 @@
     :step="1"
     thumb-label="always"
     v-bind="$attrs"
-  />
+  >
+    <template #tick-label="{ index }">
+      {{ index }}
+    </template>
+  </v-slider>
 </template>
 
 <script>
@@ -34,5 +38,13 @@ export default {
 }
 :deep(.v-slider-thumb__label:before) {
   display: none;
+}
+:deep(.v-slider-track__tick-label) {
+  display: none;
+  bottom: 1px;
+  opacity: 0.5;
+}
+:deep(.v-slider-track__tick:hover .v-slider-track__tick-label) {
+  display: block;
 }
 </style>

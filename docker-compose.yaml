@@ -87,7 +87,7 @@ services:
       context: .
       dockerfile: docker/dev.Dockerfile
     image: codex-dev
-    mem_limit: 1g
+    # mem_limit: 1g
     container_name: codex-dev
     environment:
       - VITE_HOST=localhost
@@ -95,16 +95,16 @@ services:
       - "9810:9810"
     volumes:
       - .:/app
-      - /Users/aj/Comics:/comics
+      - ./comics:/comics
     # init: true
     command: tail -f /dev/null
     # entrypoint: ["/sbin/tini", "--"]
-  codex-dev-old:
-    image: ajslater/codex:1.2.9
-    container_name: codex-dev-old
+  nginx:
+    image: lscr.io/linuxserver/nginx
+    container_name: nginx
+    restart: unless-stopped
     ports:
-      - "9810:9810"
+      - "80:9811"
     volumes:
-      - ./config/old/:/config
-      - ./comics:/comics
+      - ./docker/nginx/http.d/codex:/etc/nginx/http.d/codex:ro
 version: "3.8"

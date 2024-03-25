@@ -6,6 +6,48 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.5.7
+
+- Fixes
+  - Pagination crash with more than 100 folders.
+  - Experimental fix for Synology Docker CHOWN_PYTHON_SITE_PACKAGES=1
+
+## v1.5.6
+
+- Fixes
+  - Fix sqlite limit crash when importing > ~1000 web urls.
+
+## v1.5.5
+
+- Fixes
+  - Attempt to fix import crash processing too much metadata at once. Allow
+    undocumented env variable to manipulate this: CODEX_FILTER_BATCH_SIZE
+    (default: 900)
+  - Fix search engine update crash for large collections.
+
+## v1.5.4
+
+- Fixes
+  - Django 5 broke root_path prefixing from the asgi server. Work around it.
+
+## v1.5.3
+
+- Fixes
+  - Mouse horizontal scroll broken on Firefox.
+
+## v1.5.2
+
+- Fixes
+  - OPDS titles were showing as "Unknown" for comics with tagged volumes.
+  - OPDS v2 was crashing.
+  - Cover displayed for group browser with Name ordering was inconsistent.
+  - Enable mouse drag horizontal scrolling in reader zoom mode.
+
+## v1.5.1
+
+- Fixes
+  - OPDS v1 was not rendering any data.
+
 ## v1.5.0
 
 - **Warning**
@@ -28,6 +70,8 @@ border-radius: 128px;
   - New metadata tags: Monochrome, Tagger, GTIN, Review, Identifiers, & Reading
     Direction. Available when comics are re-imported (Force Update recommended).
   - Identifiers metadata tag replaces the "Web" tag.
+  - Reads ComicInfo.xml and other formats from the PDF keywords field. You can
+    write ComicInfo.xml to PDFs with comictagger.
   - Reading Direction reader setting replaces Reader's vertical & horizontal
     views.
   - Supports the MetronInfo metadata format (rare).
@@ -680,8 +724,8 @@ border-radius: 128px;
 - Fixes
 
   - Fix comicbox config crash.
-  - Use codex config namespace (~/.config/codex) so codex doesn't interfere with
-    standalone comicbox configs.
+  - Use codex config namespace (\~/.config/codex) so codex doesn't interfere
+    with standalone comicbox configs.
   - Comic issue numbers display to two decimal points instead of using ½ glyphs.
 
 - Features

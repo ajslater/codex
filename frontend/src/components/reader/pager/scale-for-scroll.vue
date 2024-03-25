@@ -1,5 +1,10 @@
 <template>
-  <div class="scaleForScroll" :style="style" @dblclick="onDoubleClick">
+  <div
+    v-drag-scroller.onlyX=""
+    class="scaleForScroll"
+    :style="style"
+    @dblclick="onDoubleClick"
+  >
     <slot />
     <v-icon v-if="showReset" class="resetIcon" @click.stop="scaleReset">{{
       mdiMagnifyMinusOutline

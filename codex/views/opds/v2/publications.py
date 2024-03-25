@@ -96,7 +96,7 @@ class PublicationMixin(LinksMixin):
         if desc := obj.summary:
             md["description"] = desc
         if lang := obj.language:
-            md["language"] = lang.lower()
+            md["language"] = str(lang)
         if publisher := obj.publisher_name:
             md["publisher"] = publisher
         if imprint := obj.imprint_name:
