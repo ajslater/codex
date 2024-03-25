@@ -4,6 +4,7 @@
     class="paginationSlider"
     density="compact"
     hide-details="auto"
+    :min="min"
     :rounded="true"
     show-ticks="always"
     :step="1"
@@ -11,7 +12,7 @@
     v-bind="$attrs"
   >
     <template #tick-label="{ index }">
-      {{ index }}
+      {{ index + min }}
     </template>
   </v-slider>
 </template>
@@ -19,6 +20,9 @@
 <script>
 export default {
   name: "PaginationSlider",
+  props: {
+    min: { type: Number, default: 0 },
+  },
 };
 </script>
 
