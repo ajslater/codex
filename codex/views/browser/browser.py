@@ -311,7 +311,7 @@ class BrowserView(BrowserAnnotationsView):
             page = self.kwargs.get("page", 1)
             page_group_qs = self._paginate_section(self.model, group_qs, page)
         else:
-            page_group_qs = self.model.objects.none()
+            page_group_qs = self.model.objects.none() # type: ignore
         return page_group_qs
 
     def _paginate_books(self, book_qs, total_group_count, page_obj_count):
