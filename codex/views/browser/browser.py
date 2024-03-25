@@ -1,6 +1,7 @@
 """Views for browsing comic library."""
 
 from copy import deepcopy
+from math import ceil
 from types import MappingProxyType
 from typing import ClassVar
 
@@ -46,7 +47,6 @@ class BrowserView(BrowserAnnotationsView):
         {v: k for k, v in BrowserAnnotationsView.GROUP_MODEL_MAP.items()}
     )
     _NAV_GROUPS = "rpisv"
-    _ORPHANS = int(MAX_OBJ_PER_PAGE / 20)
 
     _GROUP_INSTANCE_SELECT_RELATED = MappingProxyType(
         {
@@ -290,43 +290,66 @@ class BrowserView(BrowserAnnotationsView):
         LOG.debug(f"{reason} redirect to page {new_page}.")
         self._raise_redirect(route_changes, reason)
 
-    def _paginate_section(self, qs, max_obj_per_page, page_counts):
+    def _paginate_section(self, model, qs, page):
         """Paginate a group or Comic section."""
-        num_pages, total_count, model = page_counts
-        paginator = Paginator(qs, max_obj_per_page, orphans=self._ORPHANS)
-        page = self.kwargs.get("page", 1)
+        orphans = 5 if self.model_group != "f" else 0
+        paginator = Paginator(qs, self.MAX_OBJ_PER_PAGE, orphans=orphans)
         try:
             qs = paginator.page(page).object_list
-            num_pages = max(num_pages, paginator.num_pages)
-            total_count += paginator.count
         except EmptyPage:
             if page < 1 or page > paginator.num_pages:
                 self._page_out_out_bounds(page, paginator.num_pages)
             model_name = self.model.__name__ if self.model else "NO_MODEL"
             LOG.warning(f"No {model_name}s on page {page}")
-            model.objects.none()
+            qs = model.objects.none()
 
-        return qs, num_pages, total_count
+        return qs
+
+    def _paginate_groups(self, group_qs, total_group_count):
+        """Paginate the group object list before books."""
+        if total_group_count:
+            page = self.kwargs.get("page", 1)
+            page_group_qs = self._paginate_section(self.model, group_qs, page)
+        else:
+            page_group_qs = self.model.objects.none()
+        return page_group_qs
+
+    def _paginate_books(self, book_qs, total_group_count, page_obj_count):
+        """Paginate the book object list based on how many group/folders are showing."""
+        if page_obj_count >= self.MAX_OBJ_PER_PAGE:
+            # No books for this page
+            page_book_qs = Comic.objects.none()
+        else:
+            # There are books after the groups, paginate them
+            page_remainder = total_group_count % self.MAX_OBJ_PER_PAGE
+            if page_obj_count:
+                # There are books after the groups on the same page
+                # Manually add books to the end without the paginator
+                page_book_qs = book_qs[:page_remainder]
+            else:
+                # There are books after the groups on a new page
+                page_book_qs = book_qs[page_remainder:]
+                num_group_and_mixed_pages = ceil(
+                    total_group_count / self.MAX_OBJ_PER_PAGE
+                )
+                page = self.kwargs.get("page", 1) - num_group_and_mixed_pages
+                page_book_qs = self._paginate_section(Comic, page_book_qs, page)
+        return page_book_qs
 
     def _paginate(self, group_qs, book_qs):
-        """Paginate the queryset into a final object list."""
-        num_pages = 0
-        total_count = 0
+        """Paginate the queryset into a group and book object lists."""
+        page_obj_count = 0
 
-        if group_qs.count():
-            page_counts = (num_pages, total_count, self.model)
-            group_qs, num_pages, total_count = self._paginate_section(
-                group_qs, self.MAX_OBJ_PER_PAGE, page_counts
-            )
+        total_group_count = group_qs.count()
+        total_book_count = book_qs.count()
 
-        if book_qs.count():
-            book_max_obj_per_page = max(0, self.MAX_OBJ_PER_PAGE - group_qs.count())
-            page_counts = (num_pages, total_count, Comic)
-            group_qs, num_pages, total_count = self._paginate_section(
-                group_qs, book_max_obj_per_page, page_counts
-            )
+        page_group_qs = self._paginate_groups(group_qs, total_group_count)
+        page_obj_count += page_group_qs.count()
+        page_book_qs = self._paginate_books(book_qs, total_group_count, page_obj_count)
+        page_obj_count += page_book_qs.count()
 
-        return group_qs, book_qs, num_pages, total_count
+        num_pages = ceil((total_group_count + total_book_count) / self.MAX_OBJ_PER_PAGE)
+        return page_group_qs, page_book_qs, num_pages, page_obj_count
 
     def get_object(self):
         """Validate settings and get the querysets."""

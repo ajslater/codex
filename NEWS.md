@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.5.7
+
+- Fixes
+  - Pagination crash with more than 100 folders.
+
 ## v1.5.6
 
 - Fixes
