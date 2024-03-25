@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.5.7
+
+- Fixes
+  - Pagination crash with more than 100 folders.
+  - Experimental fix for Synology Docker CHOWN_PYTHON_SITE_PACKAGES=1
+
 ## v1.5.6
 
 - Fixes

@@ -39,7 +39,7 @@ export default {
       return +this.$route.params.page + this.increment;
     },
     title() {
-      return "to page" + this.toPage;
+      return "Page " + this.toPage;
     },
     toRoute() {
       return { params: { ...this.$route.params, page: this.toPage } };

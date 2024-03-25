@@ -43,7 +43,7 @@ export default {
       },
     }),
     title() {
-      return "to page " + this.value;
+      return "Page " + this.value;
     },
     disabled() {
       return (
