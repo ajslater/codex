@@ -1,7 +1,6 @@
 """OPDS v1 feed."""
 
 from datetime import datetime, timezone
-from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 from drf_spectacular.utils import extend_schema

@@ -74,8 +74,6 @@ class QueryForeignKeysMixin(QueuedThread):
     def _query_existing_mds(fk_cls, fk_filter):
         """Query existing metatata tables."""
         fields = _CLASS_QUERY_FIELDS_MAP.get(fk_cls, _DEFAULT_QUERY_FIELDS)
-        if not fields:
-            fields = ("name",)
         flat = len(fields) == 1 and fk_cls != Publisher
         # print(fk_filter)
         qs = (
