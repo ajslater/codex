@@ -66,11 +66,6 @@
           on individual comic metadata fields. using a search token like
           <code>field:value</code>.
         </p>
-        <h3>Decimals</h3>
-        <p>
-          Decimals fields require two decimal places like
-          <code>issue_number:1.00</code>
-        </p>
         <h3>Dates and DateTimes</h3>
         <p>
           Whoosh parses Dates and DateTime values liberally. Read

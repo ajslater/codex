@@ -1,6 +1,6 @@
 """Haystack search indexes."""
 
-from codex._vendor.haystack.fields import CharField, DecimalField, IntegerField
+from codex._vendor.haystack.fields import CharField, FloatField, IntegerField
 from codex._vendor.haystack.indexes import Indexable, ModelSearchIndex
 from codex.models import Comic
 
@@ -42,20 +42,21 @@ class ComicIndex(ModelSearchIndex, Indexable):
 
     # This makes issue field searching exact rather than fuzzy
     issue = CharField(model_attr="issue", null=True)
-    issue_number = DecimalField(model_attr="issue_number", null=True)
+
+    # Floats are a better search experience than fixed decimals
+    issue_number = FloatField(model_attr="issue_number", null=True)
+    community_rating = FloatField(model_attr="community_rating", null=True)
+    critical_rating = FloatField(model_attr="critical_rating", null=True)
 
     class Meta:
         """Model & field include list."""
 
         model = Comic
         fields = (
-            "community_rating",
             "created_at",
-            "critical_rating",
             "day",
             "date",
             "decade",
-            # "issue_number",
             "issue_suffix",
             "month",
             "monochrome",

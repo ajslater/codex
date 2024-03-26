@@ -248,19 +248,14 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                     stored=field_class.stored,
                 )
             elif field_class.field_type in self._DECIMAL_FIELD_NAMES:
-                # my only floats are small decimals.
                 schema_fields[index_fieldname] = NUMERIC(
-                    numtype=int,  # Decimal is converted to int in NUMERIC
-                    bits=64,
+                    numtype=float,  # Decimal is converted to int in NUMERIC
                     field_boost=field_class.boost,
-                    signed=False,
-                    decimal_places=2,
                     stored=field_class.stored,
                 )
             elif field_class.field_type in self._DATETIME_FIELD_NAMES:
                 schema_fields[index_fieldname] = DATETIME(
                     stored=field_class.stored,
-                    # sortable=True  # index_fieldname == "updated_at"
                 )
             elif field_class.field_type == "boolean":
                 # Field boost isn't supported on BOOLEAN as of 1.8.2.
@@ -269,9 +264,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                 schema_fields[index_fieldname] = TEXT(
                     stored=True,
                     analyzer=TEXT_ANALYZER,
-                    # analyzer=field_class.analyzer  or StemmingAnalyzer(),
                     field_boost=field_class.boost,
-                    # sortable=True,
                     spelling=field_class.document is True,
                 )
                 if field_class.document:
