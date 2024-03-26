@@ -84,9 +84,10 @@ class ReaderView(BookmarkBaseView):
             arc_pk_qs = Comic.objects.filter(pk=pk)
             arc_pk_qs = arc_pk_qs.select_related(*arc_pk_select_related)
             arc_pk_qs = arc_pk_qs.prefetch_related(*prefetch_related)
-            arc_pk = (
-                arc_pk_qs.annotate(arc_pk=F(arc_pk_rel)).only(*arc_pk_only)[0].arc_pk
+            arc_pk_comic = (
+                arc_pk_qs.annotate(arc_pk=F(arc_pk_rel)).only(*arc_pk_only).first()
             )
+            arc_pk = arc_pk_comic.arc_pk  # type: ignore
 
         group_acl_filter = self.get_group_acl_filter(Comic)
         nav_filter = {rel: arc_pk}
