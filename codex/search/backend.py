@@ -12,6 +12,7 @@ from whoosh.fields import BOOLEAN, DATETIME, NUMERIC, TEXT, FieldType, Schema
 from whoosh.filedb.filestore import FileStorage
 from whoosh.index import EmptyIndexError
 from whoosh.qparser import (
+    CopyFieldPlugin,
     FieldAliasPlugin,
     GtLtPlugin,
     OperatorsPlugin,
@@ -138,6 +139,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
     RESERVED_CHARACTERS = ()
     RESERVED_WORDS = ()
     FIELD_ALIAS_PLUGIN = FieldAliasPlugin(FIELDMAP)
+    COPY_FIELD_PLUGIN = CopyFieldPlugin({"issue_number": "issue_suffix"})
     OPERATORS_PLUGIN = OperatorsPlugin(
         ops=None,
         clean=False,
@@ -318,7 +320,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         # https://github.com/mchaput/whoosh/pull/11
         self.parser.remove_plugin_class(WhitespacePlugin)
         self.parser.replace_plugin(self.OPERATORS_PLUGIN)
-        plugins = [WhitespacePlugin, self.FIELD_ALIAS_PLUGIN, GtLtPlugin]
+        plugins = [WhitespacePlugin, self.COPY_FIELD_PLUGIN, self.FIELD_ALIAS_PLUGIN, GtLtPlugin]
         plugins += [DateParserPlugin(basedate=now())]
         self.parser.add_plugins(plugins)
 
