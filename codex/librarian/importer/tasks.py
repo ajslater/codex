@@ -21,6 +21,14 @@ class ImportDBDiffTask(ImportTask):
     files_created: frozenset[str]
     dirs_deleted: frozenset[str]
     files_deleted: frozenset[str]
+    force_import_metadata: bool = False
+
+
+@dataclass
+class LazyImportComicsTask(ImportTask):
+    """Lazy import of metadaa for existing comics."""
+
+    pks: frozenset[int]
 
 
 @dataclass

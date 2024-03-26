@@ -2,7 +2,7 @@
 {{ object.imprint.name }}
 {{ object.series.name }}
 {{ object.volume.name }}
-{{ object.issue_suffix }}
+{{ object.issue }}
 {{ object.name }}
 {{ object.age_rating.name }}
 {{ object.country.name }}

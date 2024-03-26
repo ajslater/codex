@@ -94,13 +94,14 @@ class AggregateMetadataMixin(CleanMetadataMixin):
         m2m_md = {}
         failed_import = {}
         try:
-            with Comicbox(path) as cb:
-                if import_metadata:
+            if import_metadata:
+                with Comicbox(path) as cb:
                     md = cb.to_dict()
                     md = md.get("comicbox", {})
-                md["file_type"] = cb.get_file_type()
-                if "page_count" not in md:
-                    md["page_count"] = cb.get_page_count()
+                    if "file_type" not in md:
+                        md["file_type"] = cb.get_file_type()
+                    if "page_count" not in md:
+                        md["page_count"] = cb.get_page_count()
 
             md["path"] = path
             md = self.clean_md(md)
@@ -242,11 +243,12 @@ class AggregateMetadataMixin(CleanMetadataMixin):
             self.status_controller.update(status)
 
     @status_notify(status_type=ImportStatusTypes.AGGREGATE_TAGS)
-    def get_aggregate_metadata(
+    def get_aggregate_metadata(  # noqa: PLR0913
         self,
         all_paths,
         library_path,
         metadata,
+        force_import_metadata,
         status=None,
     ):
         """Get aggregated metatada for the paths given."""
@@ -263,7 +265,10 @@ class AggregateMetadataMixin(CleanMetadataMixin):
         if status and status.complete is None:
             status.complete = 0
         key = AdminFlag.FlagChoices.IMPORT_METADATA.value  # type: ignore
-        import_metadata = AdminFlag.objects.get(key=key).on
+        if force_import_metadata:
+            import_metadata = True
+        else:
+            import_metadata = AdminFlag.objects.get(key=key).on
         if not import_metadata:
             self.log.warn("Admin flag set to NOT import metadata.")
         data = (all_failed_imports, all_mds, all_m2m_mds, all_fks, status)

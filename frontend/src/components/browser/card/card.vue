@@ -36,12 +36,15 @@
 </template>
 
 <script>
+import { mapState } from "pinia";
+
 import BookCover from "@/components/book-cover.vue";
 import BrowserCardControls from "@/components/browser/card/controls.vue";
 import OrderByCaption from "@/components/browser/card/order-by-caption.vue";
 import BrowserCardSubtitle from "@/components/browser/card/subtitle.vue";
 import { IS_IOS, IS_TOUCH } from "@/platform";
 import { getReaderRoute } from "@/route";
+import { useBrowserStore } from "@/stores/browser";
 
 const SCROLL_DELAY = 100;
 const HEADER_OFFSET = -170;
@@ -67,6 +70,9 @@ export default {
   },
   // Stored here instead of data to be non-reactive
   computed: {
+    ...mapState(useBrowserStore, {
+      importMetadata: (state) => state.page.adminFlags.importMetadata,
+    }),
     linkLabel: function () {
       let label = "";
       label += this.item.group === "c" ? "Read" : "Browse to";
@@ -78,7 +84,7 @@ export default {
         return {};
       }
       return this.item.group === "c"
-        ? getReaderRoute(this.item)
+        ? getReaderRoute(this.item, this.importMetadata)
         : {
             name: "browser",
             params: { group: this.item.group, pk: this.item.pk, page: 1 },

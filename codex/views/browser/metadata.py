@@ -227,6 +227,12 @@ class MetadataView(BrowserAnnotationsView):
 
         return obj
 
+    def _raise_not_found(self, exc=None):
+        """Raise an exception if the object is not found."""
+        pk = self.kwargs["pk"]
+        detail = f"Filtered metadata for {self.group}/{pk} not found"
+        raise NotFound(detail=detail) from exc
+
     def get_object(self):
         """Create a comic-like object from the current browser group."""
         # Comic model goes through the same code path as groups because
@@ -236,8 +242,10 @@ class MetadataView(BrowserAnnotationsView):
         if self.model is None:
             raise NotFound(detail=f"Cannot get metadata for {self.group=}")
 
-        search_scores: dict = self.get_search_scores()
-        object_filter = self.get_query_filters_without_group(self.model, search_scores)
+        search_scores: dict | None = self.get_search_scores()
+        if search_scores is None:
+            self._raise_not_found()
+        object_filter = self.get_query_filters_without_group(self.model, search_scores)  # type: ignore
         pk = self.kwargs["pk"]
         qs = self.model.objects.filter(object_filter, pk=pk)
 
@@ -252,12 +260,10 @@ class MetadataView(BrowserAnnotationsView):
                 reason = "Empty obj"
                 raise ValueError(reason)  # noqa TRY301
         except (IndexError, ValueError) as exc:
-            raise NotFound(
-                detail=f"Filtered metadata for {self.group}/{pk} not found"
-            ) from exc
+            self._raise_not_found(exc)
 
         m2m_intersections = self._query_m2m_intersections(simple_qs)
-        return self._copy_annotations_into_comic_fields(obj, m2m_intersections)
+        return self._copy_annotations_into_comic_fields(obj, m2m_intersections)  # type: ignore
 
     def _is_enabled_folder_view(self):
         if self._efv_flag is None:

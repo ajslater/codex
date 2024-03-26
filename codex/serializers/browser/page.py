@@ -47,6 +47,7 @@ class BrowserAdminFlagsSerializer(Serializer):
     """These choices change with browse context."""
 
     folder_view = BooleanField(read_only=True)
+    import_metadata = BooleanField(read_only=True)
 
 
 class BrowserTitleSerializer(Serializer):

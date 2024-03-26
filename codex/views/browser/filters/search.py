@@ -12,7 +12,7 @@ LOG = get_logger(__name__)
 class SearchFilterMixin:
     """Search Filters Methods."""
 
-    def get_search_scores(self) -> dict:
+    def get_search_scores(self) -> dict | None:
         """Perform the search and return the scores as a dict."""
         search_scores = {}
         text = self.params.get("q", "")  # type: ignore
@@ -32,6 +32,8 @@ class SearchFilterMixin:
             LOG.warning("Search engine needs more memory, results truncated.")
         except Exception:
             LOG.exception("While Searching")
+        if not search_scores:
+            return None
         return search_scores
 
     def _get_search_query_filter(self, model, search_scores: dict):

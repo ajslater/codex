@@ -6,6 +6,7 @@ from types import MappingProxyType
 from urllib.parse import unquote_plus
 
 from django.contrib.auth.models import User
+from django.db.models import Q
 from djangorestframework_camel_case.settings import api_settings
 from djangorestframework_camel_case.util import underscoreize
 
@@ -71,8 +72,10 @@ class BrowserBaseView(
         object_filter &= self.get_comic_field_filter(self.rel_prefix)
         return object_filter
 
-    def get_query_filters(self, model, search_scores: dict, choices=False):
+    def get_query_filters(self, model, search_scores: dict | None, choices=False):
         """Return the main object filter and the one for aggregates."""
+        if search_scores is None:
+            return Q(False)
         object_filter = self.get_query_filters_without_group(model, search_scores)
         object_filter &= self.get_group_filter(choices)
         return object_filter

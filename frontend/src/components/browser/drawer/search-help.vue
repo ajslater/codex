@@ -36,7 +36,7 @@
             <tr v-for="row in FIELD_ROWS" :key="row[0]">
               <td>{{ row[0] }}</td>
               <td>{{ row[1] }}</td>
-              <td>{{ row[2] }}</td>
+              <td class="aliasCol">{{ row[2] || "" }}</td>
             </tr>
           </tbody>
         </v-table>
@@ -163,45 +163,47 @@ const FIELD_ROWS = [
   ["characters", "CSV", "category"],
   ["community_rating", "Decimal", "communityrating"],
   ["contributor", "CSV", "author, creator, credit, person, people"],
-  ["country", "String", ""],
+  ["country", "String"],
   ["created_at", "DateTime", "created"],
   ["critical_rating", "Decimal", "criticalrating"],
-  ["day", "Integer", ""],
-  ["date", "Date", ""],
-  ["decade", "Integer", ""],
+  ["day", "Integer"],
+  ["date", "Date"],
+  ["decade", "Integer"],
   ["file_type", "String", "type"],
   ["genres", "CSV", "genre"],
   ["identifier", "CSV", "id, nss"],
   ["identifier_type", "CSV", "id_type, nid"],
-  ["imprint", "String", ""],
-  ["issue_number", "Decimal", "issue, number"],
-  ["language", "String", ""],
+  ["imprint", "String"],
+  ["issue", "String", "(Combined issue_number and issue_suffix)"],
+  ["issue_number", "Decimal", "number"],
+  ["issue_suffix", "String"],
+  ["language", "String"],
   ["location", "CSV", "location"],
-  ["maturity_rating", "String", ""],
+  ["maturity_rating", "String"],
   ["monochrome", "String", "blackandwhite"],
-  ["month", "Integer", ""],
+  ["month", "Integer"],
   ["reading_direction", "String", "direction"],
   ["name", "String", "title"],
-  ["notes", "String", ""],
+  ["notes", "String"],
   ["original_format", "String", "format, orginalformat"],
   ["page_count", "Integer", "pages, pagecount"],
-  ["publisher", "String", ""],
+  ["publisher", "String"],
   ["reading_direction", "String", "direction"],
-  ["review", "String", ""],
+  ["review", "String"],
   ["scan_info", "String", "scan, scaninfo"],
-  ["series", "String", ""],
+  ["series", "String"],
   ["series_groups", "CSV", "seriesgroups"],
-  ["size", "Integer", ""],
+  ["size", "Integer"],
   ["stories", "CSV", "story"],
   ["story_arcs", "CSV", "storyarcs"],
   ["summary", "String", "comments, description"],
   ["tags", "CSV", "tag"],
-  ["tagger", "String", ""],
+  ["tagger", "String"],
   ["teams", "CSV", "team"],
   ["updated_at", "Date", "updated"],
-  ["volume", "String", ""],
-  ["web", "String", ""],
-  ["year", "Integer", ""],
+  ["volume", "String"],
+  ["web", "String"],
+  ["year", "Integer"],
 ];
 
 export default {
@@ -261,6 +263,9 @@ h1 {
 #fieldTable th,
 #fieldTable td {
   padding: 5px;
+}
+#fieldTable .aliasCol {
+  max-width: 10em;
 }
 code {
   width: fit-content;

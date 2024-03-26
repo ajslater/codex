@@ -6,6 +6,18 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.5.8
+
+- Fixes
+  - No search results was returning every comic instead of no comics.
+  - issue: field searching returned no results.
+  - issue_number, community_rating, & critical rating no longer require two
+    digits of precision.
+  - Excess books included in reader arc/folder/series.
+- Features
+  - Even Lazier import when Import Metadata Admin flag turned off.
+  - issue: field search now combines numeric and suffix parts.
+
 ## v1.5.7
 
 - Fixes
