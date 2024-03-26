@@ -293,6 +293,7 @@ export default {
       twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
       readingDirectionTitles: (state) => state.choices.static.readingDirection,
       identifierTypes: (state) => state.choices.static.identifierType,
+      importMetadata: (state) => state.page.adminFlags.importMetadata,
     }),
     ...mapState(useMetadataStore, {
       md: (state) => state.md,
@@ -326,7 +327,7 @@ export default {
       return this.isReadButtonEnabled ? mdiEye : mdiEyeOff;
     },
     readerRoute() {
-      return getReaderRoute(this.md);
+      return getReaderRoute(this.md, this.importMetadata);
     },
     formattedIssue() {
       if (

@@ -380,9 +380,18 @@ class BrowserView(BrowserAnnotationsView):
         else:
             up_route = {}
 
-        efv_flag = AdminFlag.objects.only("on").get(
-            key=AdminFlag.FlagChoices.FOLDER_VIEW.value
+        admin_flag_objs = AdminFlag.objects.only("on").filter(
+            key__in=(
+                AdminFlag.FlagChoices.FOLDER_VIEW.value,
+                AdminFlag.FlagChoices.IMPORT_METADATA.value,
+            )
         )
+        admin_flags = {}
+        for flag in admin_flag_objs:
+            if flag.key == AdminFlag.FlagChoices.FOLDER_VIEW.value:
+                admin_flags["folder_view"] = flag.on
+            if flag.key == AdminFlag.FlagChoices.IMPORT_METADATA.value:
+                admin_flags["import_metadata"] = flag.on
 
         libraries_exist = Library.objects.exists()
 
@@ -408,7 +417,7 @@ class BrowserView(BrowserAnnotationsView):
                 "issue_number_max": issue_number_max,
                 "num_pages": num_pages,
                 "total_count": total_count,
-                "admin_flags": {"folder_view": efv_flag.on},
+                "admin_flags": admin_flags,
                 "libraries_exist": libraries_exist,
                 "covers_timestamp": covers_timestamp,
             }

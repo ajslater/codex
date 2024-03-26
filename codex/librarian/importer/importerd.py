@@ -13,13 +13,17 @@ from codex.librarian.importer.deleted import DeletedMixin
 from codex.librarian.importer.failed_imports import FailedImportsMixin
 from codex.librarian.importer.moved import MovedMixin
 from codex.librarian.importer.status import ImportStatusTypes
-from codex.librarian.importer.tasks import AdoptOrphanFoldersTask, ImportDBDiffTask
+from codex.librarian.importer.tasks import (
+    AdoptOrphanFoldersTask,
+    ImportDBDiffTask,
+    LazyImportComicsTask,
+)
 from codex.librarian.importer.update_comics import UpdateComicsMixin
 from codex.librarian.notifier.tasks import FAILED_IMPORTS_TASK, LIBRARY_CHANGED_TASK
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.librarian.search.tasks import SearchIndexAbortTask, SearchIndexUpdateTask
 from codex.librarian.tasks import DelayedTasks
-from codex.models import Library
+from codex.models import Comic, Library
 from codex.status import Status
 
 _WRITE_WAIT_EXPIRY = 60
@@ -253,7 +257,10 @@ class ComicImporterThread(
                 FIS: fis,
             }
             self.get_aggregate_metadata(
-                modified_paths | created_paths, library.path, all_metadata
+                modified_paths | created_paths,
+                library.path,
+                all_metadata,
+                task.force_import_metadata,
             )
             all_metadata = None
             modified_paths -= fis.keys()
@@ -287,11 +294,37 @@ class ComicImporterThread(
         changed_args = (library, start_time, imported_count)
         self._finish_apply(changed, new_failed_imports, changed_args)
 
+    def _lazy_import_metadata(self, task):
+        """Kick off an import task for just these books."""
+        import_comics = Comic.objects.filter(pk__in=task.pks).only("path", "library_id")
+        library_path_map = {}
+        for import_comic in import_comics:
+            library_id = import_comic.library_id  # type: ignore
+            if library_id not in library_path_map:
+                library_path_map[library_id] = set()
+            library_path_map[library_id].add(import_comic.path)
+
+        for library_id, paths in library_path_map.items():
+            task = ImportDBDiffTask(
+                library_id=library_id,
+                dirs_moved={},
+                files_moved={},
+                dirs_modified=frozenset(),
+                files_modified=frozenset(paths),
+                files_created=frozenset(),
+                dirs_deleted=frozenset(),
+                files_deleted=frozenset(),
+                force_import_metadata=True,
+            )
+        self._apply(task)
+
     def process_item(self, item):
         """Run the updater."""
         task = item
         if isinstance(task, ImportDBDiffTask):
             self._apply(task)
+        elif isinstance(task, LazyImportComicsTask):
+            self._lazy_import_metadata(task)
         elif isinstance(task, AdoptOrphanFoldersTask):
             self.adopt_orphan_folders()
         else:

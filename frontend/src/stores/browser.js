@@ -72,6 +72,7 @@ export const useBrowserStore = defineStore("browser", {
       adminFlags: {
         // determined by api
         folderView: undefined,
+        importMetadata: undefined,
       },
       browserTitle: {
         parentName: undefined,
