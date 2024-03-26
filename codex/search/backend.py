@@ -249,7 +249,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                 )
             elif field_class.field_type in self._DECIMAL_FIELD_NAMES:
                 schema_fields[index_fieldname] = NUMERIC(
-                    numtype=float,  # Decimal is converted to int in NUMERIC
+                    numtype=float,  # type: ignore
                     field_boost=field_class.boost,
                     stored=field_class.stored,
                 )
