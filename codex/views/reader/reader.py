@@ -40,24 +40,32 @@ class ReaderView(BookmarkBaseView):
 
     def _get_comics_list(self):
         """Get the reader naviation group filter."""
-        arc_group = self.params.get("arc_group")
+        select_related = ("series", "volume")
+        prefetch_related = ()
 
+        arc_group = self.params.get("arc_group")
         if arc_group == "a":
             # for story arcs
             rel = "story_arc_numbers__story_arc"
             fields = self._COMIC_FIELDS
             arc_name_rel = "story_arc_numbers__story_arc__name"
             arc_pk_rel = "story_arc_numbers__story_arc__pk"
+            prefetch_related = (*prefetch_related, "story_arc_numbers__story_arc")
             arc_index = F("story_arc_numbers__number")
             ordering = ("arc_index", "date", *Comic.ORDERING)
+            arc_pk_select_related = ()
+            arc_pk_only = ("pk",)
         elif arc_group == self.FOLDER_GROUP:
             # folder mode
             rel = "parent_folder"
             fields = (*self._COMIC_FIELDS, "parent_folder")
             arc_pk_rel = "parent_folder__pk"
             arc_name_rel = "parent_folder__name"
+            select_related = (*select_related, "parent_folder")
             arc_index = Value(None, IntegerField())
             ordering = ("path", "pk")
+            arc_pk_select_related = ("parent_folder",)
+            arc_pk_only = arc_pk_select_related
         else:
             # browser mode.
             rel = "series"
@@ -66,18 +74,28 @@ class ReaderView(BookmarkBaseView):
             arc_name_rel = "series__name"
             arc_index = Value(None, IntegerField())
             ordering = Comic.ORDERING
+            arc_pk_select_related = ("series",)
+            arc_pk_only = arc_pk_select_related
 
-        group_acl_filter = self.get_group_acl_filter(Comic)
         arc_pk = self.params.get("arc_pk")
         if not arc_pk:
-            rel += "__comic"
-            arc_pk = self.kwargs.get("pk")
+            # Get the correct arc/folder/series if not submitted with a post.
+            pk = self.kwargs.get("pk")
+            arc_pk_qs = Comic.objects.filter(pk=pk)
+            arc_pk_qs = arc_pk_qs.select_related(*arc_pk_select_related)
+            arc_pk_qs = arc_pk_qs.prefetch_related(*prefetch_related)
+            arc_pk = (
+                arc_pk_qs.annotate(arc_pk=F(arc_pk_rel)).only(*arc_pk_only)[0].arc_pk
+            )
+
+        group_acl_filter = self.get_group_acl_filter(Comic)
         nav_filter = {rel: arc_pk}
 
         qs = (
             Comic.objects.filter(group_acl_filter)
             .filter(**nav_filter)
-            .prefetch_related("story_arc_numbers__story_arc")
+            .select_related(*select_related)
+            .prefetch_related(*prefetch_related)
             .only(*fields)
             .annotate(
                 series_name=F("series__name"),
