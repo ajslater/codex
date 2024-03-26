@@ -1,6 +1,6 @@
 """Haystack search indexes."""
 
-from codex._vendor.haystack.fields import CharField, IntegerField
+from codex._vendor.haystack.fields import CharField, DecimalField, IntegerField
 from codex._vendor.haystack.indexes import Indexable, ModelSearchIndex
 from codex.models import Comic
 
@@ -40,6 +40,10 @@ class ComicIndex(ModelSearchIndex, Indexable):
     tags = CharField(model_attr="tags__name", null=True)
     teams = CharField(model_attr="teams__name", null=True)
 
+    # This makes issue field searching exact rather than fuzzy
+    issue = CharField(model_attr="issue", null=True)
+    issue_number = DecimalField(model_attr="issue_number", null=True)
+
     class Meta:
         """Model & field include list."""
 
@@ -51,7 +55,7 @@ class ComicIndex(ModelSearchIndex, Indexable):
             "day",
             "date",
             "decade",
-            "issue_number",
+            # "issue_number",
             "issue_suffix",
             "month",
             "monochrome",

@@ -270,3 +270,12 @@ class Comic(WatchedPath):
     def __str__(self):
         """Most common text representation for logging."""
         return self.get_title(self)
+
+    def issue(self) -> str:
+        """Combine issue parts for search."""
+        res = ""
+        if self.issue_number is not None:
+            res += str(self.issue_number.normalize())
+        if self.issue_suffix:
+            res += self.issue_suffix
+        return res

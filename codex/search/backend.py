@@ -7,7 +7,11 @@ from types import MappingProxyType
 
 from django.utils.timezone import now
 from humanfriendly import InvalidSize, parse_size
-from whoosh.analysis import CharsetFilter, StandardAnalyzer, StemFilter
+from whoosh.analysis import (
+    CharsetFilter,
+    StemFilter,
+    StemmingAnalyzer,
+)
 from whoosh.fields import BOOLEAN, DATETIME, NUMERIC, TEXT, FieldType, Schema
 from whoosh.filedb.filestore import FileStorage
 from whoosh.index import EmptyIndexError
@@ -94,7 +98,8 @@ class FILESIZE(NUMERIC):
 
 
 TEXT_ANALYZER = (
-    StandardAnalyzer() | CharsetFilter(accent_map) | StemFilter(cachesize=-1)
+    # StandardAnalyzer() | CharsetFilter(accent_map) | StemFilter(cachesize=-1)
+    StemmingAnalyzer(minsize=1) | CharsetFilter(accent_map) | StemFilter(cachesize=-1)
 )
 
 
@@ -119,7 +124,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             "file_type": ("type",),
             "identifier": ("id", "nss"),
             "identifier_type": ("idtype", "id_type", "nid"),
-            "issue_number": ("issue", "number"),
+            "issue_number": ("number",),
             "locations": ("location",),
             "monochrome": gen_multipart_field_aliases("black_and_white"),
             "name": ("title",),
@@ -190,6 +195,8 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
     _CPU_MULTIPLIER = CPU_MULTIPLIER
     _CHUNK_PER_GB = CHUNK_PER_GB
     _MAX_CHUNK_SIZE = MAX_CHUNK_SIZE
+    _DECIMAL_FIELD_NAMES = frozenset({"decimal", "float"})
+    _DATETIME_FIELD_NAMES = frozenset({"date", "datetime"})
 
     def __init__(self, connection_alias, **connection_options):
         """Init worker queues."""
@@ -211,10 +218,6 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         self.chunk_size = min(
             int(mem_limit_gb * self._CHUNK_PER_GB), self._MAX_CHUNK_SIZE
         )
-
-    @staticmethod
-    def _get_text_analyzer():
-        return StandardAnalyzer() | CharsetFilter(accent_map) | StemFilter(cachesize=-1)
 
     def build_schema(self, fields):
         """Customize Codex Schema.
@@ -244,7 +247,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                     signed=False,
                     stored=field_class.stored,
                 )
-            elif field_class.field_type == "float":
+            elif field_class.field_type in self._DECIMAL_FIELD_NAMES:
                 # my only floats are small decimals.
                 schema_fields[index_fieldname] = NUMERIC(
                     numtype=int,  # Decimal is converted to int in NUMERIC
@@ -254,7 +257,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
                     decimal_places=2,
                     stored=field_class.stored,
                 )
-            elif field_class.field_type in ["date", "datetime"]:
+            elif field_class.field_type in self._DATETIME_FIELD_NAMES:
                 schema_fields[index_fieldname] = DATETIME(
                     stored=field_class.stored,
                     # sortable=True  # index_fieldname == "updated_at"
@@ -320,7 +323,12 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
         # https://github.com/mchaput/whoosh/pull/11
         self.parser.remove_plugin_class(WhitespacePlugin)
         self.parser.replace_plugin(self.OPERATORS_PLUGIN)
-        plugins = [WhitespacePlugin, self.COPY_FIELD_PLUGIN, self.FIELD_ALIAS_PLUGIN, GtLtPlugin]
+        plugins = [
+            WhitespacePlugin,
+            self.COPY_FIELD_PLUGIN,
+            self.FIELD_ALIAS_PLUGIN,
+            GtLtPlugin,
+        ]
         plugins += [DateParserPlugin(basedate=now())]
         self.parser.add_plugins(plugins)
 

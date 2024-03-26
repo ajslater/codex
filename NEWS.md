@@ -10,10 +10,11 @@ border-radius: 128px;
 
 - Fixes
   - No search results was returning every comic.
+  - issue: field searching returned no results.
   - Too many books included in reader arc after coming from browser.
-  - Search issue suffixes when searching issues.
 - Features
   - Even Lazier import when Import Metadata Admin flag turned off.
+  - issue: field search now combines numeric and suffix parts.
 
 ## v1.5.7
 
