@@ -8,10 +8,11 @@ border-radius: 128px;
 
 ## v1.5.8
 
+- Fixes
+  - No search results was returning every comic.
+  - Too many books included in reader arc after coming from browser.
 - Features
   - Even Lazier import when Import Metadata Admin flag turned off.
-- Fixes
-  - Too many books included in reader arc after coming from browser.
 
 ## v1.5.7
 

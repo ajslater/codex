@@ -43,9 +43,6 @@ class BrowserView(BrowserAnnotationsView):
     serializer_class = BrowserPageSerializer
 
     MAX_OBJ_PER_PAGE = 100
-    _MODEL_GROUP_MAP = MappingProxyType(
-        {v: k for k, v in BrowserAnnotationsView.GROUP_MODEL_MAP.items()}
-    )
     _NAV_GROUPS = "rpisv"
 
     _GROUP_INSTANCE_SELECT_RELATED = MappingProxyType(
@@ -105,7 +102,6 @@ class BrowserView(BrowserAnnotationsView):
         queryset = self.annotate_common_aggregates(queryset, model, search_scores)
 
         # Annotate Group
-        self.model_group = self._MODEL_GROUP_MAP[model]
         queryset = queryset.annotate(
             group=Value(self.model_group, CharField(max_length=1))
         )
@@ -133,15 +129,15 @@ class BrowserView(BrowserAnnotationsView):
         group = self.kwargs["group"]
         self.group_class = self.GROUP_MODEL_MAP[group]
 
-        model_group = self._get_model_group()
-        self.model = self.GROUP_MODEL_MAP[model_group]
+        self.model_group = self._get_model_group()
+        self.model = self.GROUP_MODEL_MAP[self.model_group]
 
-    def _get_group_queryset(self, search_scores: dict):
+    def _get_group_queryset(self, search_scores: dict | None):
         """Create group queryset."""
         if not self.model:
             reason = "Model not set in browser."
             raise ValueError(reason)
-        if self.model != Comic:
+        if self.model != Comic and search_scores is not None:
             object_filter = self.get_query_filters(self.model, search_scores, False)
             qs = self.model.objects.filter(object_filter)
             qs = self._add_annotations(qs, self.model, search_scores)
@@ -150,9 +146,9 @@ class BrowserView(BrowserAnnotationsView):
             qs = self.model.objects.none()
         return qs
 
-    def _get_book_queryset(self, search_scores: dict):
+    def _get_book_queryset(self, search_scores: dict | None):
         """Create book queryset."""
-        if self.model in (Comic, Folder):
+        if self.model in (Comic, Folder) and search_scores is not None:
             object_filter = self.get_query_filters(Comic, search_scores, False)
             qs = Comic.objects.filter(object_filter)
             qs = self._add_annotations(qs, Comic, search_scores)
@@ -357,7 +353,7 @@ class BrowserView(BrowserAnnotationsView):
         self.set_rel_prefix(self.model)
         self._set_group_instance()  # Placed up here to invalidate earlier
         # Create the main query with the filters
-        search_scores: dict = self.get_search_scores()
+        search_scores: dict | None = self.get_search_scores()
         group = self.kwargs.get("group")
 
         group_qs = self._get_group_queryset(search_scores)
