@@ -80,7 +80,7 @@ class BrowserView(BrowserAnnotationsView):
     is_opds_2_acquisition = False
 
     def _annotate_group_names(self, queryset, model):
-        """Annotate name fields."""
+        """Annotate name fields by hoisting them up."""
         # Optimized to only lookup what is used on the frontend
         group_names = {}
         if model == Comic:
@@ -97,15 +97,15 @@ class BrowserView(BrowserAnnotationsView):
             group_names["publisher_name"] = F("publisher__name")
         return queryset.annotate(**group_names)
 
+    def _annotate_group(self, queryset, model):
+        """Annotate Group."""
+        value = "c" if model == Comic else self.model_group
+        return queryset.annotate(group=Value(value, CharField(max_length=1)))
+
     def _add_annotations(self, queryset, model, search_scores: dict):
         """Annotations for display and sorting."""
         queryset = self.annotate_common_aggregates(queryset, model, search_scores)
-
-        # Annotate Group
-        queryset = queryset.annotate(
-            group=Value(self.model_group, CharField(max_length=1))
-        )
-        # Hoist Group Names
+        queryset = self._annotate_group(queryset, model)
         return self._annotate_group_names(queryset, model)
 
     def _get_model_group(self):

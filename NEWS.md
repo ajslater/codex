@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.5.9
+
+- Fixes
+  - Crash when reading comics in folder view introduced in v1.5.8
+
 ## v1.5.8
 
 - Fixes
