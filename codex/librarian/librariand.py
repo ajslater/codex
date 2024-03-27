@@ -23,7 +23,7 @@ from codex.librarian.search.tasks import (
     SearchIndexerTask,
     SearchIndexRebuildIfDBChangedTask,
 )
-from codex.librarian.tasks import DelayedTasks
+from codex.librarian.tasks import DelayedTasks, LibrarianShutdownTask
 from codex.librarian.watchdog.event_batcherd import WatchdogEventBatcherThread
 from codex.librarian.watchdog.observers import (
     LibraryEventObserver,
@@ -35,10 +35,6 @@ from codex.librarian.watchdog.tasks import (
     WatchdogSyncTask,
 )
 from codex.logger_base import LoggerBaseMixin
-
-
-class LibrarianShutdownTask:
-    """Empty task."""
 
 
 class LibrarianDaemon(Process, LoggerBaseMixin):

@@ -9,3 +9,7 @@ class DelayedTasks:
 
     until: float
     tasks: tuple = field(compare=False)
+
+
+class LibrarianShutdownTask:
+    """Empty task."""

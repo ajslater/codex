@@ -317,14 +317,16 @@ class BrowserView(BrowserAnnotationsView):
             page_book_qs = Comic.objects.none()
         else:
             # There are books after the groups, paginate them
-            page_remainder = total_group_count % self.MAX_OBJ_PER_PAGE
+            max_books_on_mixed_page = self.MAX_OBJ_PER_PAGE - (
+                total_group_count % self.MAX_OBJ_PER_PAGE
+            )
             if page_obj_count:
                 # There are books after the groups on the same page
                 # Manually add books to the end without the paginator
-                page_book_qs = book_qs[:page_remainder]
+                page_book_qs = book_qs[:max_books_on_mixed_page]
             else:
                 # There are books after the groups on a new page
-                page_book_qs = book_qs[page_remainder:]
+                page_book_qs = book_qs[max_books_on_mixed_page:]
                 num_group_and_mixed_pages = ceil(
                     total_group_count / self.MAX_OBJ_PER_PAGE
                 )

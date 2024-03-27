@@ -6,6 +6,7 @@ import subprocess
 import sys
 
 from codex.librarian.janitor.status import JanitorStatusTypes
+from codex.librarian.tasks import LibrarianShutdownTask
 from codex.models import AdminFlag
 from codex.status import Status
 from codex.version import PACKAGE_NAME, VERSION, get_version, is_outdated
@@ -14,17 +15,6 @@ from codex.worker_base import WorkerBaseMixin
 
 class UpdateMixin(WorkerBaseMixin):
     """Update codex methods for janitor."""
-
-    def restart_codex(self):
-        """Send a system SIGUSR1 signal as handled in run.py."""
-        status = Status(JanitorStatusTypes.CODEX_RESTART)
-        try:
-            self.status_controller.start(status)
-            self.log.info("Sending restart signal.")
-            main_pid = os.getppid()
-            os.kill(main_pid, signal.SIGUSR1)
-        finally:
-            self.status_controller.finish(status)
 
     def update_codex(self, force=False):
         """Update the package and restart everything if the version changed."""
@@ -72,13 +62,25 @@ class UpdateMixin(WorkerBaseMixin):
                 f" installed: {VERSION}."
             )
 
-    def shutdown_codex(self):
-        """Send a system SIGTERM signal as handled in run.py."""
-        status = Status(JanitorStatusTypes.CODEX_STOP)
+    def _shutdown_codex(self, status, name, sig):
+        """Send a system signal as handled in run.py."""
+        status = Status(status)
         try:
             self.status_controller.start(status)
-            self.log.info("Sending shutdown signal.")
+            self.log.info(f"Sending {name} signal.")
             main_pid = os.getppid()
-            os.kill(main_pid, signal.SIGTERM)
+            os.kill(main_pid, sig)
         finally:
             self.status_controller.finish(status)
+            # Librarian shutdown must come after the kill signal.
+            self.librarian_queue.put(LibrarianShutdownTask())
+
+    def shutdown_codex(self):
+        """Shutdown codex."""
+        self._shutdown_codex(JanitorStatusTypes.CODEX_STOP, "stop", signal.SIGTERM)
+
+    def restart_codex(self):
+        """Restart codex."""
+        self._shutdown_codex(
+            JanitorStatusTypes.CODEX_RESTART, "restart", signal.SIGUSR1
+        )
