@@ -91,7 +91,6 @@ class BrowserAnnotationsView(BrowserOrderByView):
 
     def _annotate_child_count(self, qs, model):
         """Annotate Child Count."""
-        self.kwargs.get("group")
         if model == Comic:
             child_count_sum = self._ONE_INTEGERFIELD
         else:
