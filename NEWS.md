@@ -9,6 +9,7 @@ border-radius: 128px;
 ## v1.5.10
 
 - Fixes
+  - Folder view was not showing all the books on mixed folder & book pages.
   - Shutdown and Restart admin tasks were not working.
 
 ## v1.5.9
