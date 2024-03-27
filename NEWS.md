@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.5.10
+
+- Fixes
+  - Shutdown and Restart admin tasks were not working.
+
 ## v1.5.9
 
 - Fixes
