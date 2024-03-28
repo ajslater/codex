@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.5.13
+
+- Fixes
+  - Fix redirect loop in browser when all members of a group deleted.
+
 ## v1.5.12
 
 - Fixes

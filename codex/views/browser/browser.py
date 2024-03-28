@@ -278,9 +278,14 @@ class BrowserView(BrowserAnnotationsView):
 
     def _page_out_of_bounds(self, page, num_pages):
         """Redirect page out of bounds."""
-        group = self.kwargs.get("group")
-        pk = self.kwargs.get("pk", 1)
-        new_page = num_pages if page > num_pages else 1
+        if num_pages:
+            group = self.kwargs.get("group")
+            pk = self.kwargs.get("pk", 1)
+            new_page = num_pages if page > num_pages else 1
+        else:
+            group = "r"
+            pk = 0
+            new_page = 1
         route_changes = {"group": group, "pk": pk, "page": new_page}
         reason = f"{page=} does not exist!"
         LOG.debug(f"{reason} redirect to page {new_page}.")
