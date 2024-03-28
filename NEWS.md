@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.5.12
+
+- Fixes
+  - Fix Folder browser offset pagination bug for folder with books and no
+    folders.
+
 ## v1.5.11
 
 - Fixes
