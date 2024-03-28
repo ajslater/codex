@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.5.11
+
+- Fixes
+  - Fix erroneous Folder View page out of bounds redirect.
+
 ## v1.5.10
 
 - Fixes

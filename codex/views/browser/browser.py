@@ -276,7 +276,7 @@ class BrowserView(BrowserAnnotationsView):
             "group_count": group_count,
         }
 
-    def _page_out_out_bounds(self, page, num_pages):
+    def _page_out_of_bounds(self, page, num_pages):
         """Redirect page out of bounds."""
         group = self.kwargs.get("group")
         pk = self.kwargs.get("pk", 1)
@@ -293,10 +293,9 @@ class BrowserView(BrowserAnnotationsView):
         try:
             qs = paginator.page(page).object_list
         except EmptyPage:
-            if page < 1 or page > paginator.num_pages:
-                self._page_out_out_bounds(page, paginator.num_pages)
-            model_name = self.model.__name__ if self.model else "NO_MODEL"
-            LOG.warning(f"No {model_name}s on page {page}")
+            if model != Folder:
+                model_name = self.model.__name__ if self.model else "NO_MODEL"
+                LOG.warning(f"No {model_name}s on page {page}")
             qs = model.objects.none()
 
         return qs
@@ -336,17 +335,24 @@ class BrowserView(BrowserAnnotationsView):
 
     def _paginate(self, group_qs, book_qs):
         """Paginate the queryset into a group and book object lists."""
+        page = self.kwargs.get("page", 1)
+        if page < 1:
+            self._page_out_of_bounds(page, 1)
+
         page_obj_count = 0
 
         total_group_count = group_qs.count()
         total_book_count = book_qs.count()
+
+        num_pages = ceil((total_group_count + total_book_count) / self.MAX_OBJ_PER_PAGE)
+        if page > num_pages:
+            self._page_out_of_bounds(page, num_pages)
 
         page_group_qs = self._paginate_groups(group_qs, total_group_count)
         page_obj_count += page_group_qs.count()
         page_book_qs = self._paginate_books(book_qs, total_group_count, page_obj_count)
         page_obj_count += page_book_qs.count()
 
-        num_pages = ceil((total_group_count + total_book_count) / self.MAX_OBJ_PER_PAGE)
         return page_group_qs, page_book_qs, num_pages, page_obj_count
 
     def get_object(self):
