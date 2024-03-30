@@ -99,6 +99,7 @@ if DEBUG:
     from logging import WARN, getLogger
 
     MIDDLEWARE += ["nplusone.ext.django.NPlusOneMiddleware"]
+    MIDDLEWARE += ["codex.slow_query.SlowQueryMiddleware"]
     NPLUSONE_LOGGER = getLogger("nplusone")
     NPLUSONE_LOG_LEVEL = WARN
 

@@ -25,6 +25,10 @@ from django.db.models.functions import Least, Lower, Reverse, Right, StrIndex, S
 from codex.models import Comic
 from codex.views.browser.browser_order_by import BrowserOrderByView
 
+SEARCH_SCORE_MAX = 200.0
+SEARCH_SCORE_MIN = 0.1
+SEARCH_SCORE_EMPTY = 0.0
+
 
 class BrowserAnnotationsView(BrowserOrderByView):
     """Base class for views that need special metadata annotations."""
@@ -51,7 +55,9 @@ class BrowserAnnotationsView(BrowserOrderByView):
 
     is_opds_1_acquisition = False
 
-    def _annotate_search_score(self, queryset, search_scores, model):
+    def _annotate_search_score(  # noqa: PLR0913
+        self, queryset, search_scores, search_prev_page_pks, search_next_page_pks, model
+    ):
         """Annotate the search score for ordering by search score.
 
         Choose the maximum matching score for the group.
@@ -63,7 +69,12 @@ class BrowserAnnotationsView(BrowserOrderByView):
         for pk, score in search_scores.items():
             when = {prefix + "pk": pk, "then": score}
             whens.append(When(**when))
-        annotate = {"search_score": Max(Case(*whens, default=0.0))}
+        if search_prev_page_pks:
+            whens.append(When(pk__in=search_prev_page_pks, then=SEARCH_SCORE_MAX))
+        if search_next_page_pks:
+            whens.append(When(pk__in=search_next_page_pks, then=SEARCH_SCORE_MIN))
+        annotate = {"search_score": Max(Case(*whens, default=SEARCH_SCORE_EMPTY))}
+        # print(f"annotate: {len(search_scores)=} {len(search_prev_page_pks)=} {len(search_next_page_pks)=}")
         return queryset.annotate(**annotate)
 
     def _annotate_cover_pk(self, queryset, model):
@@ -270,9 +281,13 @@ class BrowserAnnotationsView(BrowserOrderByView):
     def _annotate_mtime(queryset):
         return queryset.annotate(mtime=Max("updated_at"))
 
-    def annotate_common_aggregates(self, qs, model, search_scores):
+    def annotate_common_aggregates(  # noqa: PLR0913
+        self, qs, model, search_scores, search_prev_page_pks, search_next_page_pks
+    ):
         """Annotate common aggregates between browser and metadata."""
-        qs = self._annotate_search_score(qs, search_scores, model)
+        qs = self._annotate_search_score(
+            qs, search_scores, search_prev_page_pks, search_next_page_pks, model
+        )
         qs = self._annotate_child_count(qs, model)
         qs = self._annotate_page_count(qs, model)
         bm_rel = self.get_bm_rel(model)

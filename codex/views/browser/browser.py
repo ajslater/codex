@@ -102,9 +102,18 @@ class BrowserView(BrowserAnnotationsView):
         value = "c" if model == Comic else self.model_group
         return queryset.annotate(group=Value(value, CharField(max_length=1)))
 
-    def _add_annotations(self, queryset, model, search_scores: dict):
+    def _add_annotations(  # noqa: PLR0913
+        self,
+        queryset,
+        model,
+        search_scores: MappingProxyType,
+        search_prev_page_pks: tuple[int, ...],
+        search_next_page_pks: tuple[int, ...],
+    ):
         """Annotations for display and sorting."""
-        queryset = self.annotate_common_aggregates(queryset, model, search_scores)
+        queryset = self.annotate_common_aggregates(
+            queryset, model, search_scores, search_prev_page_pks, search_next_page_pks
+        )
         queryset = self._annotate_group(queryset, model)
         return self._annotate_group_names(queryset, model)
 
@@ -132,26 +141,50 @@ class BrowserView(BrowserAnnotationsView):
         self.model_group = self._get_model_group()
         self.model = self.GROUP_MODEL_MAP[self.model_group]
 
-    def _get_group_queryset(self, search_scores: dict | None):
+    def _get_group_queryset(
+        self,
+        search_scores: MappingProxyType | None,
+        search_prev_page_pks,
+        search_next_page_pks,
+    ):
         """Create group queryset."""
         if not self.model:
             reason = "Model not set in browser."
             raise ValueError(reason)
         if self.model != Comic and search_scores is not None:
-            object_filter = self.get_query_filters(self.model, search_scores, False)
+            search_out_of_page_pks = search_prev_page_pks + search_next_page_pks
+            object_filter = self.get_query_filters(
+                self.model, search_scores, search_out_of_page_pks, False
+            )
             qs = self.model.objects.filter(object_filter)
-            qs = self._add_annotations(qs, self.model, search_scores)
+            qs = self._add_annotations(
+                qs,
+                self.model,
+                search_scores,
+                search_prev_page_pks,
+                search_next_page_pks,
+            )
             qs = self.add_order_by(qs, self.model)
         else:
             qs = self.model.objects.none()
         return qs
 
-    def _get_book_queryset(self, search_scores: dict | None):
+    def _get_book_queryset(
+        self,
+        search_scores: MappingProxyType | None,
+        search_prev_page_pks,
+        search_next_page_pks,
+    ):
         """Create book queryset."""
         if self.model in (Comic, Folder) and search_scores is not None:
-            object_filter = self.get_query_filters(Comic, search_scores, False)
+            search_out_of_page_pks = search_prev_page_pks + search_next_page_pks
+            object_filter = self.get_query_filters(
+                Comic, search_scores, search_out_of_page_pks, False
+            )
             qs = Comic.objects.filter(object_filter)
-            qs = self._add_annotations(qs, Comic, search_scores)
+            qs = self._add_annotations(
+                qs, Comic, search_scores, search_prev_page_pks, search_next_page_pks
+            )
             qs = self.add_order_by(qs, Comic)
             if limit := self.params.get("limit"):
                 qs = qs[:limit]
@@ -371,11 +404,17 @@ class BrowserView(BrowserAnnotationsView):
         self.set_rel_prefix(self.model)
         self._set_group_instance()  # Placed up here to invalidate earlier
         # Create the main query with the filters
-        search_scores: dict | None = self.get_search_scores()
+        search_scores, search_prev_page_pks, search_next_page_pks = (
+            self.get_search_scores()
+        )
         group = self.kwargs.get("group")
 
-        group_qs = self._get_group_queryset(search_scores)
-        book_qs = self._get_book_queryset(search_scores)
+        group_qs = self._get_group_queryset(
+            search_scores, search_prev_page_pks, search_next_page_pks
+        )
+        book_qs = self._get_book_queryset(
+            search_scores, search_prev_page_pks, search_next_page_pks
+        )
 
         # Paginate
         group_qs, book_qs, num_pages, total_count = self._paginate(group_qs, book_qs)
