@@ -69,10 +69,13 @@ class BrowserAnnotationsView(BrowserOrderByView):
         for pk, score in search_scores.items():
             when = {prefix + "pk": pk, "then": score}
             whens.append(When(**when))
+        order_reverse = self.params.get("order_reverse")
         if search_prev_page_pks:
-            whens.append(When(pk__in=search_prev_page_pks, then=SEARCH_SCORE_MAX))
+            prev_score = SEARCH_SCORE_MIN if order_reverse else SEARCH_SCORE_MAX
+            whens.append(When(pk__in=search_prev_page_pks, then=prev_score))
         if search_next_page_pks:
-            whens.append(When(pk__in=search_next_page_pks, then=SEARCH_SCORE_MIN))
+            next_score = SEARCH_SCORE_MAX if order_reverse else SEARCH_SCORE_MIN
+            whens.append(When(pk__in=search_next_page_pks, then=next_score))
         annotate = {"search_score": Max(Case(*whens, default=SEARCH_SCORE_EMPTY))}
         # print(f"annotate: {len(search_scores)=} {len(search_prev_page_pks)=} {len(search_next_page_pks)=}")
         return queryset.annotate(**annotate)
