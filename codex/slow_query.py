@@ -1,5 +1,6 @@
 """Slow query Middleware."""
 
+import os
 from time import time
 
 from django.db import connection
@@ -7,7 +8,8 @@ from django.db import connection
 from codex.logger.logging import get_logger
 
 LOG = get_logger(__name__)
-SLOW_QUERY_LIMIT = 0.5  # Adjust threshold in seconds
+# limit in seconds
+SLOW_QUERY_LIMIT = float(os.environ.get("CODEX_SLOW_QUERY_LIMIT", 0.5))
 
 
 class SlowQueryMiddleware:
