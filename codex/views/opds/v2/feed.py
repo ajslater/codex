@@ -11,6 +11,7 @@ from codex.logger.logging import get_logger
 from codex.models import AdminFlag
 from codex.serializers.opds.v2 import OPDS2FeedSerializer
 from codex.views.browser.browser import BrowserView
+from codex.views.browser.const import MAX_OBJ_PER_PAGE
 from codex.views.const import FALSY
 from codex.views.opds.const import BLANK_TITLE
 from codex.views.opds.v2.const import (
@@ -202,7 +203,7 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
                 "metadata": {
                     "title": title,
                     "number_of_items": number_of_items,
-                    "items_per_page": self.MAX_OBJ_PER_PAGE,
+                    "items_per_page": MAX_OBJ_PER_PAGE,
                     "current_page": self.kwargs.get("page"),
                 },
                 "links": self.get_links(browser_page["up_route"]),

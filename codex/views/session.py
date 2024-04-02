@@ -105,6 +105,7 @@ class BrowserSessionViewBase(SessionViewBaseBase):
             "order_reverse": False,
             "q": DEFAULTS["q"],
             "route": DEFAULTS["route"],
+            "search_results_limit": DEFAULTS["search_results_limit"],
             "show": DEFAULTS["show"],
             "twenty_four_hour_time": False,
             "top_group": DEFAULTS["topGroup"],

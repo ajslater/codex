@@ -51,6 +51,7 @@
         "value": "a"
       }
     ],
+    "searchResultsLimit": 50,
     "settingsGroup": [
       {
         "title": "Publishers",

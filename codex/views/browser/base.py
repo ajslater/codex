@@ -6,7 +6,6 @@ from types import MappingProxyType
 from urllib.parse import unquote_plus
 
 from django.contrib.auth.models import User
-from django.db.models import Q
 from djangorestframework_camel_case.settings import api_settings
 from djangorestframework_camel_case.util import underscoreize
 
@@ -64,19 +63,23 @@ class BrowserBaseView(
             self._is_admin = user and isinstance(user, User) and user.is_staff
         return self._is_admin
 
-    def get_query_filters_without_group(self, model, search_scores: dict):
+    def get_query_filters_without_group(
+        self,
+        model,
+    ):
         """Return all the filters except the group filter."""
         object_filter = self.get_group_acl_filter(model)
-        object_filter &= self.get_search_filter(model, search_scores)
         object_filter &= self.get_bookmark_filter(model)
         object_filter &= self.get_comic_field_filter(self.rel_prefix)
         return object_filter
 
-    def get_query_filters(self, model, search_scores: dict | None, choices=False):
+    def get_query_filters(
+        self,
+        model,
+        choices=False,
+    ):
         """Return the main object filter and the one for aggregates."""
-        if search_scores is None:
-            return Q(False)
-        object_filter = self.get_query_filters_without_group(model, search_scores)
+        object_filter = self.get_query_filters_without_group(model)
         object_filter &= self.get_group_filter(choices)
         return object_filter
 
@@ -89,10 +92,20 @@ class BrowserBaseView(
                 parsed_val = json.loads(unquoted_val)
                 if not parsed_val:
                     continue
+                parsed_key = key
+            elif key in ("q", "query"):
+                # "query" is used by opds v2
+                if "q" in result:
+                    continue
+                parsed_val = val.strip()
+                if not parsed_val:
+                    continue
+                parsed_key = "q"
             else:
+                parsed_key = key
                 parsed_val = val
 
-            result[key] = parsed_val
+            result[parsed_key] = parsed_val
         return underscoreize(result, **api_settings.JSON_UNDERSCOREIZE)
 
     def parse_params(self):

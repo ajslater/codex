@@ -66,6 +66,7 @@ export const useBrowserStore = defineStore("browser", {
       orderBy: undefined,
       orderReverse: undefined,
       show: { ...SETTINGS_SHOW_DEFAULTS },
+      searchResultsLimit: 10,
       twentyFourHourTime: undefined,
     },
     page: {
@@ -335,6 +336,8 @@ export const useBrowserStore = defineStore("browser", {
       }
       if (!this.browserPageLoaded) {
         return this.loadSettings();
+      } else {
+        this.browserPageLoaded = false;
       }
       const params = router.currentRoute.value.params;
       await API.loadBrowserPage(params, this.settings)
@@ -351,6 +354,7 @@ export const useBrowserStore = defineStore("browser", {
           this.$patch((state) => {
             state.page = Object.freeze(page);
             state.choices.dynamic = undefined;
+            state.browserPageLoaded = true;
           });
           return true;
         })

@@ -10,6 +10,8 @@ import mmap
 import re
 from pathlib import Path
 
+from caseconverter import snakecase
+
 from codex.logger.logging import get_logger
 from codex.settings.settings import BUILD, DEBUG, STATIC_ROOT
 
@@ -48,6 +50,7 @@ _CHOICES_FN_RE = {
     _CHOICES_MODULE_NAME: create_choices_fn_regexes(_CHOICES_MODULE_NAME),
     _ADMIN_CHOICES_MODULE_NAME: create_choices_fn_regexes(_ADMIN_CHOICES_MODULE_NAME),
 }
+_SINGLE_VALUE_KEYS = frozenset({"q", "route", "searchResultsLimit"})
 
 
 # Exports
@@ -127,8 +130,9 @@ def _build_choices_and_defaults(data_dict):
         if vuetify_key == "vuetifyNullCode":
             VUETIFY_NULL_CODE = vuetify_list
             continue
-        if vuetify_key in ("q", "route"):
-            DEFAULTS[vuetify_key] = vuetify_list
+        if vuetify_key in _SINGLE_VALUE_KEYS:
+            snake_vuetify_key = snakecase(vuetify_key)
+            DEFAULTS[snake_vuetify_key] = vuetify_list
             continue
         if vuetify_key in ("identifierTypes",):
             continue
