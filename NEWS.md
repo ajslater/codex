@@ -14,7 +14,7 @@ border-radius: 128px;
 - Fixes
   - Fix root folder for library sometimes not created on import.
   - Fix redirect loop in browser when all members of a group deleted.
-  - Fix pagination buttons not advancing.
+  - Fix browser pagination buttons not advancing.
 
 ## v1.5.12
 
