@@ -12,6 +12,7 @@ border-radius: 128px;
   - General Search query optimizations.
   - Opt-out search truncating optimizations in browser settings drawer.
 - Fixes
+  - Fix root folder for library sometimes not created on import.
   - Fix redirect loop in browser when all members of a group deleted.
   - Fix pagination buttons not advancing.
 
@@ -58,7 +59,7 @@ border-radius: 128px;
 ## v1.5.6
 
 - Fixes
-  - Fix sqlite limit crash when importing > ~1000 web urls.
+  - Fix sqlite limit crash when importing > \~1000 web urls.
 
 ## v1.5.5
 
