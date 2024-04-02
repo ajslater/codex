@@ -92,10 +92,20 @@ class BrowserBaseView(
                 parsed_val = json.loads(unquoted_val)
                 if not parsed_val:
                     continue
+                parsed_key = key
+            elif key in ("q", "query"):
+                # "query" is used by opds v2
+                if "q" in result:
+                    continue
+                parsed_val = val.strip()
+                if not parsed_val:
+                    continue
+                parsed_key = "q"
             else:
+                parsed_key = key
                 parsed_val = val
 
-            result[key] = parsed_val
+            result[parsed_key] = parsed_val
         return underscoreize(result, **api_settings.JSON_UNDERSCOREIZE)
 
     def parse_params(self):

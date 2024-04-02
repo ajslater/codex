@@ -27,14 +27,6 @@ class SearchScores:
 class SearchFilterMixin:
     """Search Filters Methods."""
 
-    def _get_query_text(self):
-        # TODO move to get params in base
-        text = self.params.get("q", "")  # type: ignore
-        if not text:
-            # for opds 2
-            text = self.params.get("query", "")  # type: ignore
-        return text.strip()
-
     def _get_binary_search_scores(self, sqs):
         """Get search scores for choices and metadata."""
         sqs = sqs.values_list("pk", flat=True)
@@ -92,7 +84,7 @@ class SearchFilterMixin:
 
     def get_search_scores(self, binary=False) -> SearchScores | None:
         """Perform the search and return the scores as a dict."""
-        text = self._get_query_text()
+        text = self.params.get("q", "")  # type: ignore
         if not text:
             return None
 
