@@ -6,14 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.5.14
+## v1.5.13
 
 - Features
   - General Search query optimizations.
   - Opt-out search truncating optimizations in browser settings drawer.
-
-## v1.5.13
-
 - Fixes
   - Fix redirect loop in browser when all members of a group deleted.
 
