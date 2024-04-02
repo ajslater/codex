@@ -296,6 +296,8 @@ export const useBrowserStore = defineStore("browser", {
         const data = error.response.data;
         if (data.settings) {
           this.setSettings(data.settings);
+          // Prevent settings reload in loadBrowserPage() erasing the set.
+          this.browserPageLoaded = true;
         }
         if (data.route) {
           redirectRoute(data.route);
