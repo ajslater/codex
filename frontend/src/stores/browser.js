@@ -66,6 +66,7 @@ export const useBrowserStore = defineStore("browser", {
       orderBy: undefined,
       orderReverse: undefined,
       show: { ...SETTINGS_SHOW_DEFAULTS },
+      searchResultsLimit: 10,
       twentyFourHourTime: undefined,
     },
     page: {

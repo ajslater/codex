@@ -123,11 +123,10 @@ class BrowserChoicesViewBase(BrowserBaseView):
 
     def get_object(self):
         """Get the comic subquery use for the choices."""
-        search_scores, _, _ = self.get_search_scores(binary=True)
-        if search_scores is None:
-            return self.model.objects.none()  # type: ignore
-        object_filter = self.get_query_filters(self.model, search_scores, ())
-        return self.model.objects.filter(object_filter)  # type: ignore
+        object_filter = self.get_query_filters(self.model)
+        qs = self.model.objects.filter(object_filter)  # type: ignore
+        search_scores = self.get_search_scores(binary=True)
+        return self.apply_search_filter(qs, self.model, search_scores)
 
     def _set_model(self):
         """Set the model to query."""

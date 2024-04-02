@@ -44,6 +44,13 @@
       >
       for detailed instructions.
     </div>
+    <div
+      v-if="searchLimitMessage"
+      id="searchLimitMessage"
+      title="You may change this in the settings drawer"
+    >
+      {{ searchLimitMessage }}
+    </div>
   </v-main>
 </template>
 
@@ -75,13 +82,15 @@ export default {
     ...mapGetters(useAuthStore, ["isUserAdmin", "isCodexViewable"]),
     ...mapState(useBrowserStore, {
       librariesExist: (state) => state.page.librariesExist,
-      showPlaceHolder: function (state) {
+      showPlaceHolder(state) {
         return (
           this.adminFlags.nonUsers === undefined ||
           (this.isCodexViewable &&
             (this.librariesExist == undefined || !state.browserPageLoaded))
         );
       },
+      searchQueryText: (state) => state.settings.q,
+      searchResultsLimit: (state) => state.settings.searchResultsLimit,
       cards: (state) => [
         ...(state.page.groups ?? []),
         ...(state.page.books ?? []),
@@ -95,6 +104,20 @@ export default {
         this.isCodexViewable &&
         !this.showPlaceHolder
       );
+    },
+    searchLimitMessage() {
+      let res = "";
+      if (this.searchQueryText) {
+        if (this.searchResultsLimit) {
+          res =
+            "Search query results limited to " +
+            `${this.searchResultsLimit}` +
+            " entries";
+        } else {
+          res = "Search results may be limited in the side bar to load faster";
+        }
+      }
+      return res;
     },
   },
 };
@@ -136,6 +159,11 @@ $card-margin: 32px;
   top: calc(50% + 75px);
   left: 50%;
   transform: translate(-50%, -50%);
+}
+#searchLimitMessage {
+  padding-top: 10px;
+  text-align: center;
+  color: rgb(var(--v-theme-textDisabled));
 }
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   $small-card-margin: 16px;
