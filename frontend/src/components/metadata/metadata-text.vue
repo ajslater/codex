@@ -111,8 +111,7 @@ export default {
       ) {
         return;
       }
-      let pk;
-      pk =
+      const pk =
         this.obj && this.obj.group == this.group ? this.obj.pk : this.value.pk;
       if (!pk) {
         return;
