@@ -11,6 +11,7 @@ border-radius: 128px;
 - Features
   - General Search query optimizations.
   - Opt-out search truncating optimizations in browser settings drawer.
+  - Metadata tags can click to browse filtered on that tag.
 - Fixes
   - Fix root folder for library sometimes not created on import.
   - Fix redirect loop in browser when all members of a group deleted.

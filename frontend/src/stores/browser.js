@@ -196,7 +196,7 @@ export const useBrowserStore = defineStore("browser", {
       return ALWAYS_ENABLED_TOP_GROUPS.has(topGroup)
         ? true
         : topGroup == "f"
-          ? this.page.adminFlags.folderView
+          ? this.page.adminFlags?.folderView
           : this.settings.show[topGroup];
     },
     _validateFirstSearch(data) {
@@ -263,15 +263,16 @@ export const useBrowserStore = defineStore("browser", {
       this.filterMode = "base";
       return redirect;
     },
-    async clearFilters() {
-      this.settings.filters = {};
-      await this.setSettings({});
-    },
     async setSettings(data) {
       // Save settings to state and re-get the objects.
       const redirect = this._validateAndSaveSettings(data);
       useCommonStore().setTimestamp();
+      this.browserPageLoaded = true;
       await (redirect ? redirectRoute(redirect) : this.loadBrowserPage());
+    },
+    async clearFilters() {
+      this.settings.filters = { bookmark: "ALL" };
+      await this.setSettings({});
     },
     async setBookmarkFinished(params, finished) {
       if (!this.isCodexViewable) {

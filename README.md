@@ -225,7 +225,7 @@ naming schemes. This one has good results:
 Complex comic metadata, such as ComicInfo.xml, can be also be embedded in the
 keywords field by using the [comicbox](https://github.com/ajslater/comicbox)
 command line tool. Codex will read this data because it relies on comicbox
-internally. Not many people use comicbox or embeded metadata in PDFs in this
+internally. Not many people use comicbox or embedded metadata in PDFs in this
 fashion, so you likely won't find it unless you've added it yourself.
 
 ### 🗝️ API with Key Access
