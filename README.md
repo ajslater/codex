@@ -210,14 +210,28 @@ remove users to groups.
 Codex can make groups for libraries that exclude groups of users or exclude
 everyone and include only certain groups of users.
 
-### PDFs
+### PDF Metadata
 
-Codex only reads PDF metadata from the filename. If you decide to include PDFs
-in your comic library, I recommend taking time to rename your files so Codex can
-find some metadata. Codex recognizes several file naming schemes. This one has
-good results:
+Codex reads PDF metadata from the filename, PDF metadata fields and also many
+formats of common complex comic metadata if they are embedded in the PDF
+`keywords` field.
+
+If you decide to include PDFs in your comic library, I recommend taking time to
+rename your files so Codex can find some metadata. Codex recognizes several file
+naming schemes. This one has good results:
 
 `{series} v{volume} #{issue} {title} ({year}) {ignored}.pdf`
+
+Complex comic metadata, such as ComicInfo.xml, can be also be embedded in the
+keywords field by using the [comicbox](https://github.com/ajslater/comicbox)
+command line tool. Codex will read this data because it relies on comicbox
+internally. Not many people use comicbox or embeded metadata in PDFs in this
+fashion, so you likely won't find it unless you've added it yourself.
+
+### 🗝️ API with Key Access
+
+Codex has a limited number of API endpoints available with API Key Access. The
+API Key is available on the admin/stats tab.
 
 ## <a name="configuration">🎛️ Configuration</a>
 
@@ -327,7 +341,7 @@ If you must run Codex in an admin restricted memory environment you might want
 to temporarily give Codex a lot of memory to run a very large import job and
 then restrict it for normal operation.
 
-## <a name="usage">📖 Usage</a>
+## <a name="use">📖 Use</a>
 
 ### 👤 Sessions & Accounts
 
@@ -337,11 +351,6 @@ browser session. Codex destroys anonymous sessions and bookmarks after 60 days.
 To preserve these settings across browsers and after sessions expire, you may
 register an account with a username and password. You will have to contact your
 administrator to reset your password if you forget it.
-
-### 🗝️ API with Key Access
-
-Codex has a limited number of API endpoints available with API Key Access. The
-API Key is available on the admin/stats tab.
 
 ### ᯤ OPDS
 
@@ -381,6 +390,7 @@ authentication. In that case the OPDS url will look like:
 - [OPDS-PSE 1.2](https://github.com/anansi-project/opds-pse/blob/master/v1.2.md)
 - [OPDS Authentication 1.0](https://drafts.opds.io/authentication-for-opds-1.0.html)
 - [OpenSearch 1.1](https://github.com/dewitt/opensearch)
+- [OPDS 2.0 (draft)](https://drafts.opds.io/opds-2.0.html)
 
 ## <a name="troubleshooting">🩺 Troubleshooting</a>
 
