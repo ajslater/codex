@@ -144,3 +144,9 @@ class SearchFilterMixin:
             LOG.exception("Creating the search filter")
 
         return qs
+
+    def apply_binary_search_filter(self, qs):
+        """Apply scoreless search filter for choices & metadata."""
+        search_scores = self.get_search_scores(binary=True)
+        model = self.model  # type: ignore
+        return self.apply_search_filter(qs, model, search_scores)

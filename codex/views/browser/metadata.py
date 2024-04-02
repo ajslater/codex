@@ -246,8 +246,7 @@ class MetadataView(BrowserAnnotationsView):
         pk = self.kwargs["pk"]
         qs = self.model.objects.filter(object_filter, pk=pk)
         if self.model != Comic:
-            search_scores = self.get_search_scores(binary=True)
-            qs = self.apply_search_filter(qs, self.model, search_scores)
+            qs = self.apply_binary_search_filter(qs)
         qs = self._annotate_aggregates(qs)
         simple_qs = qs
 
