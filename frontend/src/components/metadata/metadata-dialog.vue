@@ -141,7 +141,7 @@
           <div class="lastSmallRow">
             <MetadataText
               group="f"
-              :value="{ pk: md.parentFolderPk, name: md.path }"
+              :value="{ pk: md.parentFolderId, name: md.path }"
               label="Path"
             />
           </div>
