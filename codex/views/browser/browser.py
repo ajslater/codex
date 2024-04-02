@@ -138,43 +138,35 @@ class BrowserView(BrowserAnnotationsView):
         self.model_group = self._get_model_group()
         self.model = self.GROUP_MODEL_MAP[self.model_group]
 
-    def _get_group_queryset(
-        self,
-    ):
-        """Create group queryset."""
-        if not self.model:
-            reason = "Model not set in browser."
+    def _get_common_queryset(self, model):
+        """Create queryset common to group & books."""
+        if not model:
+            reason = "Model not set for browser queryset."
             raise ValueError(reason)
-        if self.model != Comic:
-            object_filter = self.get_query_filters(self.model, False)
-            qs = self.model.objects.filter(object_filter)
-            binary = self.params.get("order_by") != "search_score"
-            search_scores = self.get_search_scores(binary=binary)
-            qs = self._add_annotations(
-                qs,
-                self.model,
-                search_scores,
-            )
-            qs = self.apply_search_filter(qs, self.model, search_scores)
-            qs = self.add_order_by(qs, self.model)
-        else:
-            qs = self.model.objects.none()
+        object_filter = self.get_query_filters(model, False)
+        qs = model.objects.filter(object_filter)
+        binary = self.params.get("order_by") != "search_score"
+        search_scores = self.get_search_scores(binary=binary)
+        qs = self._add_annotations(qs, model, search_scores)
+        qs = self.apply_search_filter(qs, model, search_scores)
+        qs = self.add_order_by(qs, model)
+        if limit := self.params.get("limit"):
+            # limit only is set by some opds views
+            qs = qs[:limit]
         return qs
 
-    def _get_book_queryset(
-        self,
-    ):
+    def _get_group_queryset(self):
+        """Create group queryset."""
+        if self.model == Comic:
+            qs = self.model.objects.none()
+        else:
+            qs = self._get_common_queryset(self.model)
+        return qs
+
+    def _get_book_queryset(self):
         """Create book queryset."""
         if self.model in (Comic, Folder):
-            object_filter = self.get_query_filters(Comic, False)
-            qs = Comic.objects.filter(object_filter)
-            binary = self.params.get("order_by") != "search_score"
-            search_scores = self.get_search_scores(binary=binary)
-            qs = self._add_annotations(qs, Comic, search_scores)
-            qs = self.apply_search_filter(qs, self.model, search_scores)
-            qs = self.add_order_by(qs, Comic)
-            if limit := self.params.get("limit"):
-                qs = qs[:limit]
+            qs = self._get_common_queryset(Comic)
         else:
             qs = Comic.objects.none()
         return qs
