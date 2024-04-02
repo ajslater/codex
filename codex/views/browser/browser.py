@@ -140,9 +140,6 @@ class BrowserView(BrowserAnnotationsView):
 
     def _get_common_queryset(self, model):
         """Create queryset common to group & books."""
-        if not model:
-            reason = "Model not set for browser queryset."
-            raise ValueError(reason)
         object_filter = self.get_query_filters(model, False)
         qs = model.objects.filter(object_filter)
         binary = self.params.get("order_by") != "search_score"
@@ -157,7 +154,10 @@ class BrowserView(BrowserAnnotationsView):
 
     def _get_group_queryset(self):
         """Create group queryset."""
-        if self.model == Comic:
+        if not self.model:
+            reason = "Model not set for browser queryset."
+            raise ValueError(reason)
+        elif self.model == Comic:  # noqa: RET506
             qs = self.model.objects.none()
         else:
             qs = self._get_common_queryset(self.model)
