@@ -123,7 +123,7 @@ class BrowserChoicesViewBase(BrowserBaseView):
 
     def get_object(self):
         """Get the comic subquery use for the choices."""
-        object_filter = self.get_query_filters(self.model)
+        object_filter = self.get_query_filters(self.model, choices=True)
         qs = self.model.objects.filter(object_filter)  # type: ignore
         return self.apply_binary_search_filter(qs)
 
