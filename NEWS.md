@@ -13,6 +13,7 @@ border-radius: 128px;
   - Opt-out search truncating optimizations in browser settings drawer.
 - Fixes
   - Fix redirect loop in browser when all members of a group deleted.
+  - Fix pagination buttons not advancing.
 
 ## v1.5.12
 

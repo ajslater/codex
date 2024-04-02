@@ -1,6 +1,6 @@
 <template>
   <PaginationNavButton
-    :key="isVertical"
+    :key="isVertical || toRoute"
     :disabled="disabled"
     :title="title"
     :to="toRoute"
