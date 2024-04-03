@@ -97,7 +97,7 @@ class MetadataView(BrowserAnnotationsView):
         if not self.is_model_comic:
             size_func = self.get_aggregate_func(self.model, "size")
             qs = qs.annotate(size=size_func)
-        return self.annotate_common_aggregates(qs, self.model, None, order=False)
+        return self.annotate_common_aggregates(qs, self.model, None)
 
     def _annotate_values_and_fks(self, qs, simple_qs):
         """Annotate comic values and comic foreign key values."""

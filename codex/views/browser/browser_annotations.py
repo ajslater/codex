@@ -282,9 +282,7 @@ class BrowserAnnotationsView(BrowserOrderByView):
     def _annotate_mtime(queryset):
         return queryset.annotate(mtime=Max("updated_at"))
 
-    def annotate_common_aggregates(
-        self, qs, model, search_scores: SearchScores | None, order=True
-    ):
+    def annotate_common_aggregates(self, qs, model, search_scores: SearchScores | None):
         """Annotate common aggregates between browser and metadata."""
         qs = self._annotate_search_score(qs, search_scores, model)
         qs = self._annotate_child_count(qs, model)
@@ -294,9 +292,8 @@ class BrowserAnnotationsView(BrowserOrderByView):
         qs = self._annotate_bookmark_updated_at(qs, bm_rel, bm_filter)
         qs = self._annotate_sort_name(qs, model)
         qs = self._annotate_story_arc_number(qs)
-        if order:
-            qs = self._annotate_order_value(qs, model)
-        # cover depends on the above annotations for order-by
+        # cover depends annotations for order-by, in metadata too
+        qs = self._annotate_order_value(qs, model)
         qs = self._annotate_cover_pk(qs, model)
         qs = self._annotate_bookmarks(qs, model, bm_rel, bm_filter)
         qs = self._annotate_mtime(qs)
