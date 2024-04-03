@@ -14,22 +14,14 @@
     @update:model-value="setShow(choice.value, $event)"
   />
   <v-divider />
-  <v-radio-group
-    class="searchResultsRadioGroup"
+  <v-checkbox
+    class="searchResultsCheckbox"
     density="compact"
-    label="Search Results Limit"
+    label="Limit Search Results"
     hide-details="auto"
-    :model-value="searchResultsLimit"
+    :model-value="Boolean(searchResultsLimit)"
     @update:model-value="setSearchResultsLimit($event)"
-  >
-    <v-radio
-      v-for="item in SEARCH_LIMIT_CHOICES"
-      :key="item.value"
-      class="searchResultsRadio"
-      :label="item.title"
-      :value="item.value"
-    />
-  </v-radio-group>
+  />
   <SearchHelp />
   <v-divider />
   <v-checkbox
@@ -50,21 +42,10 @@ import SearchHelp from "@/components/browser/drawer/search-help.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 
-const SEARCH_LIMIT_CHOICES = [
-  { value: 10, title: "10" },
-  { value: 100, title: "100 (one page)" },
-  { value: 0, title: "Unlimited" },
-];
-
 export default {
   name: "BrowserSettingsPanel",
   components: {
     SearchHelp,
-  },
-  data() {
-    return {
-      SEARCH_LIMIT_CHOICES,
-    };
   },
   computed: {
     ...mapGetters(useAuthStore, ["isCodexViewable"]),
@@ -88,7 +69,8 @@ export default {
       this.setSettings(data);
     },
     setSearchResultsLimit(value) {
-      const data = { searchResultsLimit: value || 0 };
+      const searchResultsLimit = value ? 100 : 0;
+      const data = { searchResultsLimit };
       this.setSettings(data);
     },
   },
@@ -96,18 +78,14 @@ export default {
 </script>
 <style scoped lang="scss">
 #groupCaption,
-.browserGroupCheckbox {
+.browserGroupCheckbox,
+.searchResultsCheckbox
+{
   padding-right: 10px;
   padding-left: 15px;
 }
 #groupCaption {
   padding-top: 10px;
   color: rgb(var(--v-theme-textDisabled));
-}
-.searchResultsRadioGroup {
-  margin-top: 10px;
-}
-.searchResultsRadio {
-  padding-left: 8px
 }
 </style>
