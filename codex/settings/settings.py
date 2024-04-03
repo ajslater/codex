@@ -82,6 +82,7 @@ INSTALLED_APPS += [
     "corsheaders",
     "django_vite",
     "codex",
+    "cachalot",
     "drf_spectacular",
 ]
 
@@ -323,3 +324,7 @@ FILTER_BATCH_SIZE = int(environ.get("CODEX_FILTER_BATCH_SIZE", 990))
 # limit in seconds
 SLOW_QUERY_LIMIT = float(environ.get("CODEX_SLOW_QUERY_LIMIT", 0.5))
 LOG_RESPONSE_TIME = bool(environ.get("CODEX_LOG_RESPONSE_TIME", False))
+
+CACHALOT_UNCACHABLE_TABLES = frozenset(
+    {"django_migrations", "django_session", "codex_useractive"}
+)
