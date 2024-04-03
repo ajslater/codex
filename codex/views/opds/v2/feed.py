@@ -176,14 +176,11 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
         """Get the browser page and serialize it for this subclass."""
         group = self.kwargs.get("group")
         if group in ("f", "a"):
-            self.acquisition_groups = frozenset()
-        else:
-            self.acquisition_groups = frozenset(self.valid_nav_groups[-2:])
-        if group == "a":
             pk = self.kwargs["pk"]
             self.is_opds_2_acquisition = bool(pk)
         else:
-            self.is_opds_2_acquisition = group in self.acquisition_groups
+            acquisition_groups = frozenset(self.valid_nav_groups[-2:])
+            self.is_opds_2_acquisition = group in acquisition_groups
         self.is_opds_metadata = (
             self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
         )
