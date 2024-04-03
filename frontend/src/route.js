@@ -1,8 +1,11 @@
 const REVERSE_READING_DIRECTIONS = new Set("rtl", "btt");
 Object.freeze(REVERSE_READING_DIRECTIONS);
-export const getReaderRoute = ({ pk, page, readingDirection, pageCount }) => {
+export const getReaderRoute = (
+  { pk, page, readingDirection, pageCount },
+  importMetadata,
+) => {
   // Get the route to a comic with the correct entry page.
-  if (!pageCount) {
+  if (importMetadata && !pageCount) {
     return;
   }
   if (page) {

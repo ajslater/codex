@@ -66,12 +66,14 @@ export const useBrowserStore = defineStore("browser", {
       orderBy: undefined,
       orderReverse: undefined,
       show: { ...SETTINGS_SHOW_DEFAULTS },
+      searchResultsLimit: 10,
       twentyFourHourTime: undefined,
     },
     page: {
       adminFlags: {
         // determined by api
         folderView: undefined,
+        importMetadata: undefined,
       },
       browserTitle: {
         parentName: undefined,
@@ -194,7 +196,7 @@ export const useBrowserStore = defineStore("browser", {
       return ALWAYS_ENABLED_TOP_GROUPS.has(topGroup)
         ? true
         : topGroup == "f"
-          ? this.page.adminFlags.folderView
+          ? this.page.adminFlags?.folderView
           : this.settings.show[topGroup];
     },
     _validateFirstSearch(data) {
@@ -261,15 +263,16 @@ export const useBrowserStore = defineStore("browser", {
       this.filterMode = "base";
       return redirect;
     },
-    async clearFilters() {
-      this.settings.filters = {};
-      await this.setSettings({});
-    },
     async setSettings(data) {
       // Save settings to state and re-get the objects.
       const redirect = this._validateAndSaveSettings(data);
       useCommonStore().setTimestamp();
+      this.browserPageLoaded = true;
       await (redirect ? redirectRoute(redirect) : this.loadBrowserPage());
+    },
+    async clearFilters() {
+      this.settings.filters = { bookmark: "ALL" };
+      await this.setSettings({});
     },
     async setBookmarkFinished(params, finished) {
       if (!this.isCodexViewable) {
@@ -294,6 +297,8 @@ export const useBrowserStore = defineStore("browser", {
         const data = error.response.data;
         if (data.settings) {
           this.setSettings(data.settings);
+          // Prevent settings reload in loadBrowserPage() erasing the set.
+          this.browserPageLoaded = true;
         }
         if (data.route) {
           redirectRoute(data.route);
@@ -334,6 +339,8 @@ export const useBrowserStore = defineStore("browser", {
       }
       if (!this.browserPageLoaded) {
         return this.loadSettings();
+      } else {
+        this.browserPageLoaded = false;
       }
       const params = router.currentRoute.value.params;
       await API.loadBrowserPage(params, this.settings)
@@ -350,6 +357,7 @@ export const useBrowserStore = defineStore("browser", {
           this.$patch((state) => {
             state.page = Object.freeze(page);
             state.choices.dynamic = undefined;
+            state.browserPageLoaded = true;
           });
           return true;
         })

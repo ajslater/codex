@@ -6,6 +6,53 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.5.13
+
+- Features
+  - General Search query optimizations.
+  - Opt-out search truncating optimizations in browser settings drawer.
+  - Metadata tags can click to browse filtered on that tag.
+  - More query caching.
+- Fixes
+  - Fix root folder for library sometimes not created on import.
+  - Fix redirect loop in browser when all members of a group deleted.
+  - Fix browser pagination buttons not advancing.
+  - Fix OPDS v2 crash
+
+## v1.5.12
+
+- Fixes
+  - Fix Folder browser offset pagination bug for folder with books and no
+    folders.
+
+## v1.5.11
+
+- Fixes
+  - Fix erroneous Folder View page out of bounds redirect.
+
+## v1.5.10
+
+- Fixes
+  - Folder view was not showing all the books on mixed folder & book pages.
+  - Shutdown and Restart admin tasks were not working.
+
+## v1.5.9
+
+- Fixes
+  - Crash when reading comics in folder view introduced in v1.5.8
+
+## v1.5.8
+
+- Fixes
+  - No search results was returning every comic instead of no comics.
+  - issue: field searching returned no results.
+  - issue_number, community_rating, & critical rating no longer require two
+    digits of precision.
+  - Excess books included in reader arc/folder/series.
+- Features
+  - Even Lazier import when Import Metadata Admin flag turned off.
+  - issue: field search now combines numeric and suffix parts.
+
 ## v1.5.7
 
 - Fixes
@@ -15,7 +62,7 @@ border-radius: 128px;
 ## v1.5.6
 
 - Fixes
-  - Fix sqlite limit crash when importing > ~1000 web urls.
+  - Fix sqlite limit crash when importing > \~1000 web urls.
 
 ## v1.5.5
 

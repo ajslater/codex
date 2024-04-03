@@ -141,7 +141,7 @@
           <div class="lastSmallRow">
             <MetadataText
               group="f"
-              :value="{ pk: md.parentFolderPk, name: md.path }"
+              :value="{ pk: md.parentFolderId, name: md.path }"
               label="Path"
             />
           </div>
@@ -163,14 +163,30 @@
           <MetadataText :value="md.ageRating" label="Age Rating" />
         </section>
         <section class="mdSection">
-          <MetadataTags :values="md.genres" label="Genres" />
-          <MetadataTags :values="md.characters" label="Characters" />
-          <MetadataTags :values="md.teams" label="Teams" />
-          <MetadataTags :values="md.locations" label="Locations" />
-          <MetadataTags :values="md.seriesGroups" label="Series Groups" />
-          <MetadataTags :values="md.stories" label="Stories" />
-          <MetadataTags :values="md.storyArcNumbers" label="Story Arcs" />
-          <MetadataTags :values="md.tags" label="Tags" />
+          <MetadataTags :values="md.genres" label="Genres" filter="genres" />
+          <MetadataTags
+            :values="md.characters"
+            label="Characters"
+            filter="characters"
+          />
+          <MetadataTags :values="md.teams" label="Teams" filter="teams" />
+          <MetadataTags
+            :values="md.locations"
+            label="Locations"
+            filter="locations"
+          />
+          <MetadataTags
+            :values="md.seriesGroups"
+            label="Series Groups"
+            filter="seriesGroups"
+          />
+          <MetadataTags :values="md.stories" label="Stories" filter="stories" />
+          <MetadataTags
+            :values="md.storyArcNumbers"
+            label="Story Arcs"
+            filter="storyArcs"
+          />
+          <MetadataTags :values="md.tags" label="Tags" filter="tags" />
         </section>
         <section class="mdSection">
           <MetadataContributorsTable :value="md.contributors" />
@@ -293,12 +309,13 @@ export default {
       twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
       readingDirectionTitles: (state) => state.choices.static.readingDirection,
       identifierTypes: (state) => state.choices.static.identifierType,
+      importMetadata: (state) => state.page.adminFlags.importMetadata,
     }),
     ...mapState(useMetadataStore, {
       md: (state) => state.md,
       downloadFileName: (state) => {
         const md = state.md;
-        return state.md.path
+        return state.md?.path
           ? md.path.split("/").at(-1)
           : getFullComicName({
               seriesName: md.series.name,
@@ -326,7 +343,7 @@ export default {
       return this.isReadButtonEnabled ? mdiEye : mdiEyeOff;
     },
     readerRoute() {
-      return getReaderRoute(this.md);
+      return getReaderRoute(this.md, this.importMetadata);
     },
     formattedIssue() {
       if (

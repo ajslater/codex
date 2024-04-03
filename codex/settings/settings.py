@@ -9,6 +9,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/dev/ref/settings/
 """
 
+import socket
+from logging import WARN, getLogger
 from os import environ
 from pathlib import Path
 from sys import maxsize
@@ -80,6 +82,7 @@ INSTALLED_APPS += [
     "corsheaders",
     "django_vite",
     "codex",
+    "cachalot",
     "drf_spectacular",
 ]
 
@@ -96,9 +99,10 @@ MIDDLEWARE = [
     "codex.middleware.TimezoneMiddleware",
 ]
 if DEBUG:
-    from logging import WARN, getLogger
-
-    MIDDLEWARE += ["nplusone.ext.django.NPlusOneMiddleware"]
+    MIDDLEWARE += [
+        "nplusone.ext.django.NPlusOneMiddleware",
+        "codex.middleware.LogResponseTimeMiddleware",
+    ]
     NPLUSONE_LOGGER = getLogger("nplusone")
     NPLUSONE_LOG_LEVEL = WARN
 
@@ -304,8 +308,6 @@ CHANNEL_LAYERS = {
 }
 
 if DEBUG:
-    import socket
-
     DJANGO_VITE = {
         "default": {
             "dev_mode": DEBUG,
@@ -317,3 +319,12 @@ if DEBUG:
 # fixes this in the bulk_create & bulk_update functions. So for complicated
 # queries I gotta batch them myself. Filter arg count is a proxy, but it works.
 FILTER_BATCH_SIZE = int(environ.get("CODEX_FILTER_BATCH_SIZE", 990))
+
+# Slow query middleware
+# limit in seconds
+SLOW_QUERY_LIMIT = float(environ.get("CODEX_SLOW_QUERY_LIMIT", 0.5))
+LOG_RESPONSE_TIME = bool(environ.get("CODEX_LOG_RESPONSE_TIME", False))
+
+CACHALOT_UNCACHABLE_TABLES = frozenset(
+    {"django_migrations", "django_session", "codex_useractive"}
+)

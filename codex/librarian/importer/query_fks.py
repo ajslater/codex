@@ -75,7 +75,6 @@ class QueryForeignKeysMixin(QueuedThread):
         """Query existing metatata tables."""
         fields = _CLASS_QUERY_FIELDS_MAP.get(fk_cls, _DEFAULT_QUERY_FIELDS)
         flat = len(fields) == 1 and fk_cls != Publisher
-        # print(fk_filter)
         qs = (
             fk_cls.objects.filter(fk_filter)
             .order_by("pk")
@@ -502,7 +501,7 @@ class QueryForeignKeysMixin(QueuedThread):
         proposed_folder_paths = set()
         for comic_path in comic_paths:
             for path in Path(comic_path).parents:
-                if path.is_relative_to(library_path) and path != library_path:
+                if path.is_relative_to(library_path):
                     proposed_folder_paths.add(str(path))
 
         # get the create metadata

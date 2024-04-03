@@ -9,10 +9,11 @@
         :key="`${label}/${item.value}`"
         :color="chipColor(item.value)"
         :value="item.value"
+        @click="onClick(item.value)"
       >
         <a v-if="item.url" :href="item.url" target="_blank"
           >{{ item.title }}<v-icon>{{ mdiOpenInNew }}</v-icon></a
-        ><span v-else>{{ item.title }}</span>
+        ><span v-else :class="chipClass">{{ item.title }}</span>
       </v-chip>
     </v-chip-group>
   </div>
@@ -20,7 +21,7 @@
 
 <script>
 import { mdiFilter, mdiOpenInNew } from "@mdi/js";
-import { mapState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import { toVuetifyItems } from "@/api/v3/vuetify-items";
 import { useBrowserStore } from "@/stores/browser";
@@ -52,20 +53,40 @@ export default {
   },
   computed: {
     ...mapState(useBrowserStore, {
-      filterValues: function (state) {
+      filterValues(state) {
         const filterName = this.filter || this.label.toLowerCase();
         return state.settings.filters[filterName];
       },
+      topGroup: (state) => state.settings.topGroup,
     }),
     model() {
       return toVuetifyItems(this.values);
     },
+    chipClass(pk) {
+      return { browseChip: this.filter && pk };
+    },
   },
   methods: {
-    chipColor: function (pk) {
+    ...mapActions(useBrowserStore, ["setSettings"]),
+    chipColor(pk) {
       return this.filterValues && this.filterValues.includes(pk)
         ? this.$vuetify.theme.current.colors["primary-darken-1"]
         : "";
+    },
+    onClick(itemPk) {
+      if (!this.filter || !itemPk) {
+        return;
+      }
+      const group = ["f", "s"].includes(this.topGroup) ? this.topGroup : "r";
+      const storyArcMode = group === "s" && this.filter === "storyArcs";
+      if (!storyArcMode) {
+        const settings = { filters: { [this.filter]: [itemPk] } };
+        this.setSettings(settings);
+      }
+      const pk = storyArcMode ? itemPk : 0;
+      const params = { group, pk, page: 1 };
+      const route = { name: "browser", params };
+      this.$router.push(route);
     },
   },
 };
@@ -79,5 +100,11 @@ export default {
 .chipGroupLabel {
   font-size: 12px;
   color: rgb(var(--v-theme-textSecondary));
+}
+.browseChip {
+  color: rgb(var(--v-theme-primary));
+}
+.browseChip:hover {
+  color: rgb(var(--v-theme-linkHover));
 }
 </style>
