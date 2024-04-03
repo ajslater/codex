@@ -10,8 +10,6 @@ import mmap
 import re
 from pathlib import Path
 
-from caseconverter import snakecase
-
 from codex.logger.logging import get_logger
 from codex.settings.settings import BUILD, DEBUG, STATIC_ROOT
 
@@ -80,6 +78,7 @@ def _parse_choices(module_name):
         try:
             path = _find_filename_regex(js_root, module_name)
             if not path:
+                LOG.warning(f"Could not find json choices at {path}")
                 continue
             with (
                 path.open("r") as choices_file,
@@ -123,21 +122,20 @@ def _parse_choices_to_dict(vuetify_key, vuetify_list):
 def _build_choices_and_defaults(data_dict):
     """Transform the vuetify choice formatted data to key:value dicts."""
     global VUETIFY_NULL_CODE  # noqa PLW0603
-    for vuetify_key, vuetify_list in data_dict.items():
-        if vuetify_key == "settingsGroup":
-            DEFAULTS["show"] = _build_show_defaults(vuetify_list)
-            continue
-        if vuetify_key == "vuetifyNullCode":
-            VUETIFY_NULL_CODE = vuetify_list
+    for vuetify_key, value in data_dict.items():
+        if vuetify_key in ("identifierTypes", "groupNames"):
             continue
         if vuetify_key in _SINGLE_VALUE_KEYS:
-            snake_vuetify_key = snakecase(vuetify_key)
-            DEFAULTS[snake_vuetify_key] = vuetify_list
+            DEFAULTS[vuetify_key] = value
             continue
-        if vuetify_key in ("identifierTypes",):
+        if vuetify_key == "settingsGroup":
+            DEFAULTS["show"] = _build_show_defaults(value)
+            continue
+        if vuetify_key == "vuetifyNullCode":
+            VUETIFY_NULL_CODE = value
             continue
 
-        CHOICES[vuetify_key] = _parse_choices_to_dict(vuetify_key, vuetify_list)
+        CHOICES[vuetify_key] = _parse_choices_to_dict(vuetify_key, value)
 
 
 def _load_choices_json():
@@ -150,11 +148,7 @@ def _load_choices_json():
     for key, value in data_dict.items():
         if key == "websockets":
             WEBSOCKET_MESSAGES = value
-        elif key == "identifierTypes":
-            continue
         else:
-            if key == "browser":
-                del value["groupNames"]
             _build_choices_and_defaults(value)
         LOG.debug(f"Parsed {key} choices")
 
