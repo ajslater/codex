@@ -29,13 +29,19 @@ from codex.models import (
     Volume,
 )
 from codex.serializers.browser.page import BrowserPageSerializer
-from codex.serializers.choices import CHOICES, DEFAULTS
+from codex.serializers.choices import DEFAULTS
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_annotations import BrowserAnnotationsView
 from codex.views.browser.const import MAX_OBJ_PER_PAGE
 from codex.views.browser.filters.search import SearchScores
 
 LOG = get_logger(__name__)
+_ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType(
+    {
+        AdminFlag.FlagChoices.FOLDER_VIEW.value: "folder_view",
+        AdminFlag.FlagChoices.IMPORT_METADATA.value: "import_metadata",
+    }
+)
 
 
 class BrowserView(BrowserAnnotationsView):
@@ -370,16 +376,16 @@ class BrowserView(BrowserAnnotationsView):
         if page < 1:
             self._page_out_of_bounds(1)
 
-        total_group_count = group_qs.count()
-        total_book_count = book_qs.count()
+        group_count = group_qs.count()
+        book_count = book_qs.count()
 
-        num_pages = ceil((total_group_count + total_book_count) / MAX_OBJ_PER_PAGE)
+        num_pages = ceil((group_count + book_count) / MAX_OBJ_PER_PAGE)
         if page > num_pages:
             self._page_out_of_bounds(num_pages)
 
-        page_group_qs = self._paginate_groups(group_qs, total_group_count)
+        page_group_qs = self._paginate_groups(group_qs, group_count)
         page_obj_count = page_group_qs.count()
-        page_book_qs = self._paginate_books(book_qs, total_group_count, page_obj_count)
+        page_book_qs = self._paginate_books(book_qs, group_count, page_obj_count)
         page_obj_count += page_book_qs.count()
 
         return page_group_qs, page_book_qs, num_pages, page_obj_count
@@ -412,19 +418,6 @@ class BrowserView(BrowserAnnotationsView):
         else:
             up_route = {}
 
-        admin_flag_objs = AdminFlag.objects.only("on").filter(
-            key__in=(
-                AdminFlag.FlagChoices.FOLDER_VIEW.value,
-                AdminFlag.FlagChoices.IMPORT_METADATA.value,
-            )
-        )
-        admin_flags = {}
-        for flag in admin_flag_objs:
-            if flag.key == AdminFlag.FlagChoices.FOLDER_VIEW.value:
-                admin_flags["folder_view"] = flag.on
-            if flag.key == AdminFlag.FlagChoices.IMPORT_METADATA.value:
-                admin_flags["import_metadata"] = flag.on
-
         libraries_exist = Library.objects.exists()
 
         # runs obj list query twice :/
@@ -449,7 +442,7 @@ class BrowserView(BrowserAnnotationsView):
                 "issue_number_max": issue_number_max,
                 "num_pages": num_pages,
                 "total_count": total_count,
-                "admin_flags": admin_flags,
+                "admin_flags": self.admin_flags,
                 "libraries_exist": libraries_exist,
                 "covers_timestamp": covers_timestamp,
             }
@@ -572,19 +565,23 @@ class BrowserView(BrowserAnnotationsView):
         page = self.kwargs.get("page", 1)
         self.params["route"] = {"group": group, "pk": pk, "page": page}
 
+    def _set_admin_flags(self):
+        """Set browser relevant admin flags."""
+        admin_pairs = AdminFlag.objects.filter(
+            key__in=_ADMIN_FLAG_VALUE_KEY_MAP.keys()
+        ).values_list("key", "on")
+        admin_flags = {}
+        for key, on in admin_pairs:
+            export_key = _ADMIN_FLAG_VALUE_KEY_MAP[key]
+            admin_flags[export_key] = on
+        self.admin_flags = MappingProxyType(admin_flags)
+
     def validate_settings(self):
         """Validate group and top group settings."""
         group = self.kwargs.get("group")
         self.set_order_key()
-        enable_folder_view = False
-        if group == self.FOLDER_GROUP or self.order_key == "path":
-            key = AdminFlag.FlagChoices.FOLDER_VIEW.value
-            try:
-                enable_folder_view = AdminFlag.objects.only("on").get(key=key).on
-            except Exception as err:
-                title = CHOICES["admin"]["adminFlags"].get(key)
-                LOG.warning(f"Getting {title} AdminFlag: {err}")
-
+        self._set_admin_flags()
+        enable_folder_view = self.admin_flags["folder_view"]
         if group == self.FOLDER_GROUP:
             self._validate_folder_settings(enable_folder_view)
         elif group == self.STORY_ARC_GROUP:
