@@ -17,6 +17,7 @@ border-radius: 128px;
   - Fix root folder for library sometimes not created on import.
   - Fix redirect loop in browser when all members of a group deleted.
   - Fix browser pagination buttons not advancing.
+  - Fix OPDS v2 crash
 
 ## v1.5.12
 

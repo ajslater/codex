@@ -9,11 +9,12 @@ from codex.exceptions import SeeOtherRedirectError
 
 _OPDS_PREFIX = "opds/v"
 
+
 def codex_exception_handler(exc, context):
     """Assume OPDS clients want redirects instead of errors."""
     response = None
     request = context.get("request")
-    if _OPDS_PREFIX in  request.path:
+    if _OPDS_PREFIX in request.path:
         name = "opds:v2:feed" if _OPDS_PREFIX + "2" in request.path else "opds:v1:feed"
         opds_start = reverse(name)
 
