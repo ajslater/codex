@@ -35,7 +35,9 @@ class SearchFilterMixin:
             MAX_OBJ_PER_PAGE,  # type: ignore
         )
         if search_results_limit:
-            sqs = sqs[:search_results_limit]  # type: ignore
+            page = self.kwargs.get("page", 1)  # type: ignore
+            limit = page * MAX_OBJ_PER_PAGE + 1
+            sqs = sqs[:limit]
         return tuple(sqs)
 
     def _get_browser_search_scores(self, sqs):
@@ -47,8 +49,9 @@ class SearchFilterMixin:
         )
         if search_results_limit:
             offset = 0
-            limit = search_results_limit
+            limit = page * MAX_OBJ_PER_PAGE + 1
         else:
+            # For unlimited search actually take a slice
             offset = max(0, (page - 1) * MAX_OBJ_PER_PAGE)  # type: ignore
             limit = offset + MAX_OBJ_PER_PAGE  # type: ignore
 

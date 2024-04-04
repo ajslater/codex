@@ -14,14 +14,24 @@
     @update:model-value="setShow(choice.value, $event)"
   />
   <v-divider />
-  <v-checkbox
-    class="searchResultsCheckbox"
-    density="compact"
-    label="Limit Search Results"
-    hide-details="auto"
-    :model-value="Boolean(searchResultsLimit)"
-    @update:model-value="setSearchResultsLimit($event)"
-  />
+  <v-tooltip
+    class="incrementalSearchTooltip"
+    :open-delay="1000"
+    :close-delay="40000"
+    text="Speed up search results by searching one page at a time."
+  >
+    <template #activator="{ props }">
+      <v-checkbox
+        class="searchResultsCheckbox"
+        density="compact"
+        label="Incremental Search"
+        hide-details="auto"
+        :model-value="Boolean(searchResultsLimit)"
+        v-bind="props"
+        @update:model-value="setSearchResultsLimit($event)"
+      />
+    </template>
+  </v-tooltip>
   <SearchHelp />
   <v-divider />
   <v-checkbox

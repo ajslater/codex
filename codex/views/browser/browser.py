@@ -322,7 +322,7 @@ class BrowserView(BrowserAnnotationsView):
 
     def _paginate_section(self, model, qs, page):
         """Paginate a group or Comic section."""
-        orphans = 5 if self.model_group != "f" else 0
+        orphans = 0 if self.model_group == "f" or self.params.get("q") else 5
         paginator = Paginator(qs, MAX_OBJ_PER_PAGE, orphans=orphans)
         try:
             qs = paginator.page(page).object_list

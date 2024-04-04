@@ -66,7 +66,7 @@ export const useBrowserStore = defineStore("browser", {
       orderBy: undefined,
       orderReverse: undefined,
       show: { ...SETTINGS_SHOW_DEFAULTS },
-      searchResultsLimit: 10,
+      searchResultsLimit: CHOICES.browser.searchResultsLimit,
       twentyFourHourTime: undefined,
     },
     page: {
@@ -168,6 +168,14 @@ export const useBrowserStore = defineStore("browser", {
         }
       }
       return group;
+    },
+    isSearchMode(state) {
+      return Boolean(state.settings.q);
+    },
+    isSearchLimitedMode(state) {
+      return (
+        Boolean(state.settings.q) && Boolean(state.settings.searchResultsLimit)
+      );
     },
   },
   actions: {
