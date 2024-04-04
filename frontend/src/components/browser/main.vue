@@ -112,13 +112,16 @@ export default {
       let res = "";
       if (this.isSearchLimitedMode) {
         const page = +this.$route.params.page;
-        const limit = this.searchResultsLimit * page;
-        res = `Search results truncated to ${limit} entries.`;
-        if (this.numPages > page) {
+        if (this.showPlaceholder) {
+          const limit = this.searchResultsLimit * page;
+          res += `Searching for ${limit} entries...`;
+        } else if (this.numPages > page) {
+          const limit = this.searchResultsLimit * page;
+          res += `Search results truncated to ${limit} entries.`;
           res += " Advance the page to look for more.";
         }
       } else if (this.isSearchMode) {
-        res = "Search results may be limited in the side bar to load faster";
+        res = "Select incremental search in the side bar to search faster";
       }
       return res;
     },
