@@ -316,18 +316,18 @@ pycparser = "*"
 
 [[package]]
 name = "channels"
-version = "4.0.0"
+version = "4.1.0"
 description = "Brings async, event-driven capabilities to Django 3.2 and up."
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "channels-4.0.0-py3-none-any.whl", hash = "sha256:2253334ac76f67cba68c2072273f7e0e67dbdac77eeb7e318f511d2f9a53c5e4"},
-    {file = "channels-4.0.0.tar.gz", hash = "sha256:0ce53507a7da7b148eaa454526e0e05f7da5e5d1c23440e4886cf146981d8420"},
+    {file = "channels-4.1.0-py3-none-any.whl", hash = "sha256:a3c4419307f582c3f71d67bfb6eff748ae819c2f360b9b141694d84f242baa48"},
+    {file = "channels-4.1.0.tar.gz", hash = "sha256:e0ed375719f5c1851861f05ed4ce78b0166f9245ca0ecd836cb77d4bb531489d"},
 ]
 
 [package.dependencies]
-asgiref = ">=3.5.0,<4"
-Django = ">=3.2"
+asgiref = ">=3.6.0,<4"
+Django = ">=4.2"
 
 [package.extras]
 daphne = ["daphne (>=4.0.0)"]
@@ -683,13 +683,13 @@ six = ">=1.13.0"
 
 [[package]]
 name = "django"
-version = "5.0.3"
+version = "5.0.4"
 description = "A high-level Python web framework that encourages rapid development and clean, pragmatic design."
 optional = false
 python-versions = ">=3.10"
 files = [
-    {file = "Django-5.0.3-py3-none-any.whl", hash = "sha256:5c7d748ad113a81b2d44750ccc41edc14e933f56581683db548c9257e078cc83"},
-    {file = "Django-5.0.3.tar.gz", hash = "sha256:5fb37580dcf4a262f9258c1f4373819aacca906431f505e4688e37f3a99195df"},
+    {file = "Django-5.0.4-py3-none-any.whl", hash = "sha256:916423499d75d62da7aa038d19aef23d23498d8df229775eb0a6309ee1013775"},
+    {file = "Django-5.0.4.tar.gz", hash = "sha256:4bd01a8c830bb77a8a3b0e7d8b25b887e536ad17a81ba2dce5476135c73312bd"},
 ]
 
 [package.dependencies]
@@ -1687,13 +1687,13 @@ files = [
 
 [[package]]
 name = "pyright"
-version = "1.1.356"
+version = "1.1.357"
 description = "Command line wrapper for pyright"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "pyright-1.1.356-py3-none-any.whl", hash = "sha256:a101b0f375f93d7082f9046cfaa7ba15b7cf8e1939ace45e984c351f6e8feb99"},
-    {file = "pyright-1.1.356.tar.gz", hash = "sha256:f05b8b29d06b96ed4a0885dad5a31d9dff691ca12b2f658249f583d5f2754021"},
+    {file = "pyright-1.1.357-py3-none-any.whl", hash = "sha256:1cf29ee38e4928131895cd8e90eef37b5b77e2ed72a14e6e8e2405266f5f0aca"},
+    {file = "pyright-1.1.357.tar.gz", hash = "sha256:7c66261116c78c5fa9629134fe85c54cc5302ab73e376be4b0a99d89c80a9403"},
 ]
 
 [package.dependencies]
@@ -1888,13 +1888,13 @@ toml = ["tomli (>=2.0.1)"]
 
 [[package]]
 name = "rarfile"
-version = "4.1"
+version = "4.2"
 description = "RAR archive reader for Python"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "rarfile-4.1-py3-none-any.whl", hash = "sha256:17d7554c93c776ceae677e9d927051267d4c5eba38bf64b9cc89a415d9a5f901"},
-    {file = "rarfile-4.1.tar.gz", hash = "sha256:db60b3b5bc1c4bdeb941427d50b606d51df677353385255583847639473eda48"},
+    {file = "rarfile-4.2-py3-none-any.whl", hash = "sha256:8757e1e3757e32962e229cab2432efc1f15f210823cc96ccba0f6a39d17370c9"},
+    {file = "rarfile-4.2.tar.gz", hash = "sha256:8e1c8e72d0845ad2b32a47ab11a719bc2e41165ec101fd4d3fe9e92aa3f469ef"},
 ]
 
 [[package]]
@@ -2719,4 +2719,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "e501c8e5597f5dcb94beb8e0b879f211a1d5a29e2d38a69c485f35eb5e16d23d"
+content-hash = "80790702338c2dd004e6c0f653fea85d49413a031f60c4e607c7bf6dfb6c0832"
