@@ -27,14 +27,24 @@ class SearchScores:
 class SearchFilterMixin:
     """Search Filters Methods."""
 
+    def _is_search_results_limited(self) -> bool:
+        """Get search result limit from params."""
+        user = self.request.user  # type: ignore
+        if user and user.is_authenticated:
+            limited = bool(
+                self.params.get(  # type: ignore
+                    "search_results_limit",
+                    MAX_OBJ_PER_PAGE,
+                )
+            )
+        else:
+            limited = True
+        return limited
+
     def _get_binary_search_scores(self, sqs):
         """Get search scores for choices and metadata."""
         sqs = sqs.values_list("pk", flat=True)
-        search_results_limit = self.params.get(  # type: ignore
-            "search_results_limit",
-            MAX_OBJ_PER_PAGE,  # type: ignore
-        )
-        if search_results_limit:
+        if self._is_search_results_limited():
             page = self.kwargs.get("page", 1)  # type: ignore
             limit = page * MAX_OBJ_PER_PAGE + 1
             sqs = sqs[:limit]
@@ -43,11 +53,8 @@ class SearchFilterMixin:
     def _get_browser_search_scores(self, sqs):
         """Get search scores for the browser cards."""
         page = self.kwargs.get("page", 1)  # type: ignore
-        search_results_limit = self.params.get(  # type: ignore
-            "search_results_limit",
-            MAX_OBJ_PER_PAGE,  # type: ignore
-        )
-        if search_results_limit:
+        is_search_results_limited = self._is_search_results_limited()
+        if is_search_results_limited:
             offset = 0
             limit = page * MAX_OBJ_PER_PAGE + 1
         else:
@@ -57,7 +64,7 @@ class SearchFilterMixin:
 
         if DEBUG:
             LOG.debug(
-                f"searching... {page=} page_{offset=} page_{limit=} {search_results_limit=}"
+                f"Searching... {page=} {offset=} {limit=} {is_search_results_limited=}"
             )
 
         scores_pairs = []
@@ -67,7 +74,7 @@ class SearchFilterMixin:
         if DEBUG:
             start_time = time()
         scores_values = sqs.values_list("pk", "score")
-        if search_results_limit:
+        if is_search_results_limited:
             scores_values = scores_values[:limit]
         for index, pair in enumerate(scores_values):
             if index < offset:

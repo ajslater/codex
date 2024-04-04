@@ -15,9 +15,9 @@
   />
   <v-divider />
   <v-tooltip
+    v-if="isUserAuthorized"
     class="incrementalSearchTooltip"
     :open-delay="1000"
-    :close-delay="40000"
     text="Speed up search results by searching one page at a time."
   >
     <template #activator="{ props }">
@@ -59,6 +59,9 @@ export default {
   },
   computed: {
     ...mapGetters(useAuthStore, ["isCodexViewable"]),
+    ...mapState(useAuthStore, {
+      isUserAuthorized: (state) => Boolean(state.user),
+    }),
     ...mapState(useBrowserStore, {
       groupChoices: (state) => state.choices.static.settingsGroup,
       searchResultsLimit: (state) => state.settings.searchResultsLimit,
