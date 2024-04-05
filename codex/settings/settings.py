@@ -100,11 +100,18 @@ MIDDLEWARE = [
 if DEBUG:
     MIDDLEWARE += [
         "nplusone.ext.django.NPlusOneMiddleware",
-        "codex.middleware.LogResponseTimeMiddleware",
     ]
     NPLUSONE_LOGGER = getLogger("nplusone")
     NPLUSONE_LOG_LEVEL = WARN
 
+# Slow query middleware
+# limit in seconds
+SLOW_QUERY_LIMIT = float(environ.get("CODEX_SLOW_QUERY_LIMIT", 0.5))
+LOG_RESPONSE_TIME = bool(environ.get("CODEX_LOG_RESPONSE_TIME", False))
+if LOG_RESPONSE_TIME:
+    MIDDLEWARE += [
+        "codex.middleware.LogResponseTimeMiddleware",
+    ]
 
 ROOT_URLCONF = "codex.urls.root"
 
@@ -318,8 +325,3 @@ if DEBUG:
 # fixes this in the bulk_create & bulk_update functions. So for complicated
 # queries I gotta batch them myself. Filter arg count is a proxy, but it works.
 FILTER_BATCH_SIZE = int(environ.get("CODEX_FILTER_BATCH_SIZE", 990))
-
-# Slow query middleware
-# limit in seconds
-SLOW_QUERY_LIMIT = float(environ.get("CODEX_SLOW_QUERY_LIMIT", 0.5))
-LOG_RESPONSE_TIME = bool(environ.get("CODEX_LOG_RESPONSE_TIME", False))
