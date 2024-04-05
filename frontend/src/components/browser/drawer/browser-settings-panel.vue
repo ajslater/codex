@@ -14,6 +14,8 @@
     @update:model-value="setShow(choice.value, $event)"
   />
   <v-divider />
+  <SearchHelp />
+  <v-divider />
   <v-checkbox
     class="browserGroupCheckbox"
     density="compact"
@@ -24,8 +26,6 @@
     label="Force 24 Hour Time"
     @update:model-value="set24HourTime($event)"
   />
-  <v-divider />
-  <SearchHelp />
 </template>
 <script>
 import { mapActions, mapGetters, mapState } from "pinia";

@@ -1,5 +1,10 @@
 <template>
-  <PaginationNavButton :disabled="disabled" :title="title" :to="toRoute">
+  <PaginationNavButton
+    :key="toRoute"
+    :disabled="disabled"
+    :title="title"
+    :to="toRoute"
+  >
     <v-icon :class="{ flipHoriz: !back }">
       {{ mdiChevronLeft }}
     </v-icon>
@@ -26,6 +31,8 @@ export default {
   data() {
     return {
       mdiChevronLeft,
+      routeParams: this.$route.params,
+      page: +this.$route.params.page,
     };
   },
   computed: {
@@ -36,19 +43,27 @@ export default {
       return this.back ? -1 : 1;
     },
     toPage() {
-      return +this.$route.params.page + this.increment;
+      return this.page + this.increment;
     },
     title() {
       return "Page " + this.toPage;
     },
     toRoute() {
-      return { params: { ...this.$route.params, page: this.toPage } };
+      const page = this.toPage;
+      const params = { ...this.routeParams, page };
+      return { params };
     },
     disabled() {
       return (
-        (this.back && +this.$route.params.page <= 1) ||
-        (!this.back && +this.$route.params.page >= this.numPages)
+        (this.back && +this.page <= 1) ||
+        (!this.back && +this.page >= this.numPages)
       );
+    },
+  },
+  watch: {
+    $route(to) {
+      this.params = to.params;
+      this.page = +to.params.page;
     },
   },
 };

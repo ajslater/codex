@@ -12,6 +12,7 @@ from codex.serializers.opds.v1 import (
     OPDS1TemplateSerializer,
 )
 from codex.views.browser.browser import BrowserView
+from codex.views.browser.const import MAX_OBJ_PER_PAGE
 from codex.views.const import FALSY
 from codex.views.opds.const import BLANK_TITLE, MimeType
 from codex.views.opds.v1.entry.data import OPDS1EntryData
@@ -107,7 +108,7 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
         """Return opensearch:itemsPerPage."""
         try:
             if self.params.get("q"):
-                return self.MAX_OBJ_PER_PAGE
+                return MAX_OBJ_PER_PAGE
         except Exception:
             LOG.exception("Getting OPDS v1 items per page")
 

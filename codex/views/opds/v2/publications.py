@@ -144,8 +144,10 @@ class PublicationMixin(LinksMixin):
 
         download_mime_type = MimeType.FILE_TYPE_MAP.get(obj.file_type, MimeType.OCTET)
         self_kwargs = {"group": "c", "pk": obj.pk, "page": 1}
-        self_href_data = HrefData(self_kwargs, absolute_query_params=True)
-        self_link_data = LinkData(Rel.SELF, self_href_data, mime_type=MimeType.OPDS_PUB)
+
+        # This would be for comic streaming which is not supported by OPDS 2 yet?
+        # self_href_data = HrefData(self_kwargs, absolute_query_params=True)
+        # self_link_data = LinkData(Rel.SELF, self_href_data, mime_type=MimeType.OPDS_PUB)
 
         alt_kwargs = self_kwargs
         alt_href_data = HrefData(
@@ -168,7 +170,8 @@ class PublicationMixin(LinksMixin):
             mime_type=download_mime_type,
         )
         links = [
-            self.link(self_link_data),
+            # Comic streaming link (unsupported)
+            # self.link(self_link_data),
             self.link(alt_link_data),
             self.link(acq_link_data),
         ]

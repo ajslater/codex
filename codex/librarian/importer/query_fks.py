@@ -502,7 +502,7 @@ class QueryForeignKeysMixin(QueuedThread):
         proposed_folder_paths = set()
         for comic_path in comic_paths:
             for path in Path(comic_path).parents:
-                if path.is_relative_to(library_path) and path != library_path:
+                if path.is_relative_to(library_path):
                     proposed_folder_paths.add(str(path))
 
         # get the create metadata
