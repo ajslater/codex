@@ -287,7 +287,8 @@ class ComicImporterThread(
             )
 
             changed += self.delete(library, task)
-            cache.clear()
+            if changed:
+                cache.clear()
         finally:
             self._finish_apply_status(library)
 

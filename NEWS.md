@@ -6,6 +6,15 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.5.13
+
+- Fixes
+  - Fix root folder for library sometimes not created on import.
+  - Fix redirect loop in browser when all members of a group deleted.
+  - Fix browser pagination buttons not advancing.
+  - Fix OPDS v2 crash
+  - Fix browser throbber not appearing when making query.
+
 ## v1.5.12
 
 - Fixes
@@ -49,7 +58,7 @@ border-radius: 128px;
 ## v1.5.6
 
 - Fixes
-  - Fix sqlite limit crash when importing > ~1000 web urls.
+  - Fix sqlite limit crash when importing > \~1000 web urls.
 
 ## v1.5.5
 

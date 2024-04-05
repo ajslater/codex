@@ -17,10 +17,6 @@ class SearchFilterMixin:
         search_scores = {}
         text = self.params.get("q", "")  # type: ignore
         if not text:
-            # for opds 2
-            text = self.params.get("query", "")  # type: ignore
-        text = text.strip()
-        if not text:
             return search_scores
 
         sqs = SearchQuerySet().auto_query(text)

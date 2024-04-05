@@ -86,8 +86,11 @@ export default {
         ...(state.page.groups ?? []),
         ...(state.page.books ?? []),
       ],
-      padFooter: (state) => state.page.numPages > 1,
+      numPages: (state) => state.page.numPages,
     }),
+    padFooter() {
+      return this.numPages > 1;
+    },
     showBrowseItems() {
       return (
         this.cards &&
