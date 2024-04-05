@@ -6,18 +6,22 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.5.13
+## v1.5.14
 
 - Features
   - General Search query optimizations.
   - Opt-out search truncating optimizations in browser settings drawer.
   - Metadata tags can click to browse filtered on that tag.
   - More query caching.
+
+## v1.5.13
+
 - Fixes
   - Fix root folder for library sometimes not created on import.
   - Fix redirect loop in browser when all members of a group deleted.
   - Fix browser pagination buttons not advancing.
   - Fix OPDS v2 crash
+  - Fix browser throbber not appearing when making query.
 
 ## v1.5.12
 

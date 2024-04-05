@@ -17,7 +17,6 @@ def codex_exception_handler(exc, context):
     if _OPDS_PREFIX in request.path:
         name = "opds:v2:feed" if _OPDS_PREFIX + "2" in request.path else "opds:v1:feed"
         opds_start = reverse(name)
-
         if isinstance(exc, SeeOtherRedirectError):
             response = exc.get_response(opds_start)
         elif hasattr(exc, "status_code") and exc.status_code in (

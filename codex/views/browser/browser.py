@@ -211,7 +211,6 @@ class BrowserView(BrowserAnnotationsView):
                 )
             except self.group_class.DoesNotExist:
                 group = self.kwargs.get("group")
-                pk = self.kwargs.get("pk")
                 page = self.kwargs.get("page")
                 if group == "r" and pk == 0 and page == 1:
                     self.group_instance: BrowserGroupModel | None = None

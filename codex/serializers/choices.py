@@ -50,7 +50,6 @@ _CHOICES_FN_RE = {
 }
 _SINGLE_VALUE_KEYS = frozenset({"q", "route", "searchResultsLimit"})
 
-
 # Exports
 CHOICES = {}
 DEFAULTS = {}

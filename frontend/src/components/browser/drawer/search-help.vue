@@ -21,7 +21,7 @@
         size="x-large"
         @click="dialog = false"
       />
-      <h1>Search Syntax Help</h1>
+      <h1>Search Help</h1>
       <div id="fieldTableContainer">
         <h2>Search Fields</h2>
         <v-table id="fieldTable" class="highlight-table">

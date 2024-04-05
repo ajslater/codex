@@ -94,6 +94,7 @@ class BrowserBaseView(
                     continue
                 parsed_key = key
             elif key in ("q", "query"):
+                # parse and strip query param
                 # "query" is used by opds v2
                 if "q" in result:
                     continue
