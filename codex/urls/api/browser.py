@@ -18,22 +18,22 @@ urlpatterns = [
     #
     # Browser
     path(
-        "<int:pk>/<int:page>",
+        "<str:pks>/<int:page>",
         cache_page(BROWSER_TIMEOUT)(BrowserView.as_view()),
         name="page",
     ),
     path(
-        "<int:pk>/choices/<str:field_name>",
+        "<str:pks>/choices/<str:field_name>",
         cache_page(BROWSER_TIMEOUT)(BrowserChoicesView.as_view()),
         name="choices_field",
     ),
     path(
-        "<int:pk>/choices_available",
+        "<str:pks>/choices_available",
         cache_page(BROWSER_TIMEOUT)(BrowserChoicesAvailableView.as_view()),
         name="choices_available",
     ),
     path(
-        "<int:pk>/metadata",
+        "<str:pks>/metadata",
         cache_page(METADATA_TIMEOUT)(MetadataView.as_view()),
         name="metadata",
     ),
@@ -41,7 +41,7 @@ urlpatterns = [
     #
     # Bookmark
     path(
-        "<int:pk>/bookmark",
+        "<str:pks>/bookmark",
         BookmarkView.as_view(),
         name="bookmark",
     ),

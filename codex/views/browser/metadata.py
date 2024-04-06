@@ -1,6 +1,6 @@
 """View for marking comics read and unread."""
 
-from typing import TYPE_CHECKING, ClassVar
+from typing import ClassVar
 
 from django.db.models import Count, F, IntegerField, Subquery, Value
 from drf_spectacular.utils import extend_schema
@@ -13,9 +13,6 @@ from codex.models import AdminFlag, Comic
 from codex.serializers.metadata import MetadataSerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_annotations import BrowserAnnotationsView
-
-if TYPE_CHECKING:
-    from codex.views.browser.filters.search import SearchScores
 
 LOG = get_logger(__name__)
 _ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS = frozenset({"path"})
@@ -231,8 +228,7 @@ class MetadataView(BrowserAnnotationsView):
 
     def _raise_not_found(self, exc=None):
         """Raise an exception if the object is not found."""
-        pk = self.kwargs["pk"]
-        detail = f"Filtered metadata for {self.group}/{pk} not found"
+        detail = f"Filtered metadata for {self.group}/{self.pks} not found"
         raise NotFound(detail=detail) from exc
 
     def get_object(self):
@@ -244,13 +240,8 @@ class MetadataView(BrowserAnnotationsView):
         if self.model is None:
             raise NotFound(detail=f"Cannot get metadata for {self.group=}")
 
-        if self.model == Comic:
-            search_scores = None
-        else:
-            search_scores: SearchScores | None = self.get_search_scores()
-        object_filter = self.get_query_filters_without_group(self.model, search_scores)  # type: ignore
-        pk = self.kwargs["pk"]
-        qs = self.model.objects.filter(object_filter, pk=pk)
+        object_filter = self.get_query_filters_without_group(self.model)  # type: ignore
+        qs = self.model.objects.filter(object_filter, pk__in=self.pks)
         if self.model != Comic:
             qs = self.apply_binary_search_filter(qs)
         qs = self._annotate_aggregates(qs)
@@ -290,6 +281,7 @@ class MetadataView(BrowserAnnotationsView):
         # Init
         try:
             self._efv_flag = None
+            self.parse_pks()
             self.parse_params()
             self.group = self.kwargs["group"]
             self._validate()

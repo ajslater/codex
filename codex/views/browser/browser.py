@@ -17,7 +17,6 @@ from codex.exceptions import SeeOtherRedirectError
 from codex.logger.logging import get_logger
 from codex.models import (
     AdminFlag,
-    BrowserGroupModel,
     Comic,
     Folder,
     Imprint,
@@ -129,8 +128,7 @@ class BrowserView(BrowserAnnotationsView):
         if group == self.FOLDER_GROUP:
             return group
         if group == self.STORY_ARC_GROUP:
-            pk = self.kwargs["pk"]
-            return self.COMIC_GROUP if pk else group
+            return self.COMIC_GROUP if self.pks else group
         if group == self.valid_nav_groups[-1]:
             # special case for lowest valid group
             return self.COMIC_GROUP
@@ -184,11 +182,13 @@ class BrowserView(BrowserAnnotationsView):
 
         # Recall root id & relative path from way back in
         # object creation
-        if self.group_instance and isinstance(self.group_instance, Folder):
-            if self.group_instance.parent_folder:
-                up_pk = self.group_instance.parent_folder.pk
-            else:
-                up_pk = 0
+        if self.group_class == Folder:
+            group_instance: Folder | None = self.group_instance  # type: ignore
+            if group_instance:
+                if group_instance.parent_folder:
+                    up_pk = group_instance.parent_folder.pk
+                else:
+                    up_pk = 0
 
         return up_group, up_pk
 
@@ -198,27 +198,31 @@ class BrowserView(BrowserAnnotationsView):
         up_group = 0 if self.group_instance else None
         return self.STORY_ARC_GROUP, up_group
 
-    def _set_group_instance(self):
+    def _set_group_query_and_instance(self):
         """Create group_class instance."""
-        pk = self.kwargs.get("pk")
-        if pk and self.group_class:
+        if self.pks and self.group_class:
             try:
-                select_related: tuple[str, ...] = self._GROUP_INSTANCE_SELECT_RELATED[
-                    self.group_class
-                ]  # type: ignore
-                self.group_instance: BrowserGroupModel | None = (
-                    self.group_class.objects.select_related(*select_related).get(pk=pk)
+                select_related: tuple[str | None, ...] = (
+                    self._GROUP_INSTANCE_SELECT_RELATED[self.group_class]
                 )
+                self.group_query = self.group_class.objects.select_related(
+                    *select_related
+                ).filter(pk__in=self.pks)
             except self.group_class.DoesNotExist:
                 group = self.kwargs.get("group")
                 page = self.kwargs.get("page")
-                if group == "r" and pk == 0 and page == 1:
-                    self.group_instance: BrowserGroupModel | None = None
+                if group == "r" and not self.pks and page == 1:
+                    self.group_query = self.group_class.objects.none()
                 else:
-                    reason = f"{group}={pk} does not exist!"
-                    self._raise_redirect({"group": group, "pk": 0, "page": 1}, reason)
+                    reason = f"{group}__in={self.pks} does not exist!"
+                    self._raise_redirect(
+                        {"group": group, "pks": "0", "page": 1}, reason
+                    )
+        elif self.group_class:
+            self.group_query = self.group_class.objects.none()
         else:
-            self.group_instance: BrowserGroupModel | None = None
+            self.group_query = Comic.objects.none()
+        self.group_instance = self.group_query.first()
 
     def _get_browse_up_route(self):
         """Get the up route from the first valid ancestor."""
@@ -235,8 +239,7 @@ class BrowserView(BrowserAnnotationsView):
         up_pk = None
 
         # Ancestor pk
-        pk = self.kwargs.get("pk")
-        if up_group == self.ROOT_GROUP or pk == 0:
+        if up_group == self.ROOT_GROUP or not self.pks:
             up_pk = 0
         elif up_group:
             # get the ancestor pk from the current group
@@ -274,23 +277,24 @@ class BrowserView(BrowserAnnotationsView):
 
     def _get_browser_page_title(self):
         """Get the proper title for this browse level."""
-        pk = self.kwargs.get("pk")
         parent_name = ""
         group_count = 0
         group_name = ""
-        if pk == 0:
+        if not self.pks:
             group_name = self._get_root_group_name()
-        elif self.group_instance:
-            if isinstance(self.group_instance, Imprint):
-                parent_name = self.group_instance.publisher.name
-            elif isinstance(self.group_instance, Volume):
-                parent_name = self.group_instance.series.name
-                group_count = self.group_instance.series.volume_count
-            elif isinstance(self.group_instance, Comic):
-                group_count = self.group_instance.volume.issue_count
-            elif isinstance(self.group_instance, Folder):
-                parent_name = self._get_folder_parent_name()
-            group_name = self.group_instance.name
+        else:
+            group_instance = self.group_instance
+            if group_instance:
+                if isinstance(group_instance, Imprint):
+                    parent_name = group_instance.publisher.name
+                elif isinstance(group_instance, Volume):
+                    parent_name = group_instance.series.name
+                    group_count = group_instance.series.volume_count
+                elif isinstance(group_instance, Comic):
+                    group_count = group_instance.volume.issue_count
+                elif isinstance(group_instance, Folder):
+                    parent_name = self._get_folder_parent_name()
+                group_name = group_instance.name
 
         return {
             "parent_name": parent_name,
@@ -301,20 +305,20 @@ class BrowserView(BrowserAnnotationsView):
     def _page_out_of_bounds(self, num_pages):
         """Redirect page out of bounds."""
         group = self.kwargs.get("group")
-        pk = self.kwargs.get("pk", 0)
         page = self.kwargs.get("page", 1)
-        if group == "r" and pk == 0 and page == 1:
+        if group == "r" and not self.pks and page == 1:
             # Don't redirect if on the root page.
             return
 
         if num_pages:
             new_page = num_pages if page > num_pages else 1
+            pks = self.pks if self.pks else "0"
         else:
             # Redirect to root.
             group = "r"
-            pk = 0
+            pks = "0"
             new_page = 1
-        route_changes = {"group": group, "pk": pk, "page": new_page}
+        route_changes = {"group": group, "pks": pks, "page": new_page}
         reason = f"{page=} does not exist!"
         LOG.debug(f"{reason} redirect to page {new_page}.")
         self._raise_redirect(route_changes, reason)
@@ -393,7 +397,7 @@ class BrowserView(BrowserAnnotationsView):
         """Validate settings and get the querysets."""
         self._set_browse_model()
         self.set_rel_prefix(self.model)
-        self._set_group_instance()  # Placed up here to invalidate earlier
+        self._set_group_query_and_instance()  # Placed up here to invalidate earlier
         # Create the main query with the filters
         group = self.kwargs.get("group")
 
@@ -521,7 +525,6 @@ class BrowserView(BrowserAnnotationsView):
         """Check that all the view variables for browser mode are set right."""
         nav_group = self.kwargs["group"]
         top_group = self.params.get("top_group")
-        pk = self.kwargs["pk"]
 
         # Validate Browser top_group
         # Change top_group if its not in the valid top groups
@@ -537,7 +540,8 @@ class BrowserView(BrowserAnnotationsView):
             reason += valid_top_group
             LOG.debug(reason)
             page = self.kwargs["page"]
-            route = {"group": nav_group, "pk": pk, "page": page}
+            pks = self.pks if self.pks else "0"
+            route = {"group": nav_group, "pks": pks, "page": page}
             settings_mask = {"top_group": valid_top_group}
             self._raise_redirect(route, reason, settings_mask)
 
@@ -546,10 +550,10 @@ class BrowserView(BrowserAnnotationsView):
         self._set_valid_browse_nav_groups(valid_top_groups)
 
         # Validate pk
-        if nav_group == self.ROOT_GROUP and pk:
+        if nav_group == self.ROOT_GROUP and self.pks:
             # r never has a pk
-            reason = f"Redirect r with {pk=} to pk 0"
-            self._raise_redirect({"pk": 0}, reason)
+            reason = f"Redirect r with {self.pks=} to pks 0"
+            self._raise_redirect({"pks": "0"}, reason)
 
     def _validate_story_arc_settings(self):
         """Validate story arc settings."""
@@ -560,9 +564,9 @@ class BrowserView(BrowserAnnotationsView):
     def _set_route_param(self):
         """Set the route param."""
         group = self.kwargs.get("group", "r")
-        pk = self.kwargs.get("pk", 0)
+        pks = self.pks if self.pks else "0"
         page = self.kwargs.get("page", 1)
-        self.params["route"] = {"group": group, "pk": pk, "page": page}
+        self.params["route"] = {"group": group, "pks": pks, "page": page}
 
     def _set_admin_flags(self):
         """Set browser relevant admin flags."""
@@ -591,9 +595,9 @@ class BrowserView(BrowserAnnotationsView):
 
         # Validate path sort
         if self.order_key == "path" and not enable_folder_view:
-            pk = self.kwargs("pk")
+            pks = self.pks if self.pks else "0"
             page = self.kwargs("page")
-            route_changes = {"group": group, "pk": pk, "page": page}
+            route_changes = {"group": group, "pks": pks, "page": page}
             reason = "order by path not allowed by admin flag."
             settings_mask = {"order_by": "sort_name"}
             self._raise_redirect(route_changes, reason, settings_mask)
@@ -601,6 +605,7 @@ class BrowserView(BrowserAnnotationsView):
     @extend_schema(request=BrowserAnnotationsView.input_serializer_class)
     def get(self, *_args, **_kwargs):
         """Get browser settings."""
+        self.parse_pks()
         self.parse_params()
         self.validate_settings()
         self._set_route_param()

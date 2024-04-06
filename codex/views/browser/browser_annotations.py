@@ -182,21 +182,18 @@ class BrowserAnnotationsView(BrowserOrderByView):
 
         # Get story_arc__pk
         group = self.kwargs["group"]
-        pk = self.kwargs["pk"]
-        if group == self.STORY_ARC_GROUP and pk:
-            story_arc_pk = pk
-        elif story_arc_pks := self.params.get("filters", {}).get(  # type: ignore
-            "story_arcs", []
-        ):
-            story_arc_pk = story_arc_pks[0]
+        if group == self.STORY_ARC_GROUP and self.pks:
+            story_arc_pks = self.pks
         else:
-            story_arc_pk = None
+            story_arc_pks = self.params.get("filters", {}).get(  # type: ignore
+                "story_arcs", ()
+            )
 
         # If we have one annotate it.
-        if story_arc_pk:
+        if story_arc_pks:
             san_rel = self.rel_prefix + "story_arc_numbers"
             rel = f"{san_rel}"
-            condition = Q(**{f"{san_rel}__story_arc": story_arc_pk})
+            condition = Q(**{f"{san_rel}__story_arc__in": story_arc_pks})
             qs = qs.annotate(
                 selected_story_arc_number=FilteredRelation(rel, condition=condition),
                 story_arc_number=F("selected_story_arc_number__number"),
