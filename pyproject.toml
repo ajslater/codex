@@ -295,6 +295,7 @@ exclude = [
   "*/__pycache__",
   "cache/",
   "codex/_vendor",
+  "codex/search/backend_search.py",
   "codex/static_build/",
   "codex/static_root/",
   "frontend/",
