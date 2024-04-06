@@ -147,9 +147,20 @@ class BrowserView(BrowserAnnotationsView):
         object_filter = self.get_query_filters(model, False)
         qs = model.objects.filter(object_filter)
         binary = self.params.get("order_by") != "search_score"
-        search_scores = self.get_search_scores(binary=binary)
+        if binary:
+            qs = self.apply_binary_search_filter(qs)
+            search_scores = None
+        else:
+            search_scores = self.get_search_scores()
+
+        if model != Comic:
+            # APPLY COLLAPSER HERE
+            # collapse and apply pks (pass pks map to annotations?)
+            pass
+
         qs = self._add_annotations(qs, model, search_scores)
-        qs = self.apply_search_filter(qs, model, search_scores)
+        if not binary:
+            qs = self.apply_search_filter(qs, model, search_scores)
         qs = self.add_order_by(qs, model)
         if limit := self.params.get("limit"):
             # limit only is set by some opds views
