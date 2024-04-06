@@ -5,9 +5,9 @@ from time import time
 
 from django.db.models import Q
 
-from codex._vendor.haystack.query import SearchQuerySet
 from codex.logger.logging import get_logger
 from codex.models import Comic
+from codex.search.query import CodexSearchQuerySet
 from codex.settings.settings import DEBUG
 from codex.views.browser.const import MAX_OBJ_PER_PAGE
 
@@ -50,10 +50,8 @@ class SearchFilterMixin:
             sqs = sqs[:limit]
         return tuple(sqs)
 
-    def _get_browser_search_scores(self, sqs):
-        """Get search scores for the browser cards."""
+    def _get_browser_search_scores_params(self, is_search_results_limited):
         page = self.kwargs.get("page", 1)  # type: ignore
-        is_search_results_limited = self._is_search_results_limited()
         if is_search_results_limited:
             offset = 0
             limit = page * MAX_OBJ_PER_PAGE + 1
@@ -66,6 +64,14 @@ class SearchFilterMixin:
             LOG.debug(
                 f"Searching... {page=} {offset=} {limit=} {is_search_results_limited=}"
             )
+        return offset, limit
+
+    def _get_browser_search_scores(self, sqs):
+        """Get search scores for the browser cards."""
+        is_search_results_limited = self._is_search_results_limited()
+        offset, limit = self._get_browser_search_scores_params(
+            is_search_results_limited
+        )
 
         scores_pairs = []
         prev_pks = []
@@ -73,6 +79,11 @@ class SearchFilterMixin:
 
         if DEBUG:
             start_time = time()
+
+        order_reverse = self.params.get("order_reverse", False)  # type: ignore
+        if not order_reverse:
+            sqs = sqs.order_reverse()
+
         scores_values = sqs.values_list("pk", "score")
         if is_search_results_limited:
             scores_values = scores_values[:limit]
@@ -83,6 +94,11 @@ class SearchFilterMixin:
                 next_pks.append(pair[0])
             else:
                 scores_pairs.append(pair)
+
+        if not order_reverse:
+            tmp = prev_pks
+            prev_pks = next_pks
+            next_pks = tmp
 
         if DEBUG:
             LOG.debug(
@@ -103,7 +119,7 @@ class SearchFilterMixin:
         prev_pks = ()
         next_pks = ()
         try:
-            sqs = SearchQuerySet()
+            sqs = CodexSearchQuerySet()
             sqs = sqs.auto_query(text)  # .filter(score__gt=0.0)
             if binary:
                 scored_pks = self._get_binary_search_scores(sqs)

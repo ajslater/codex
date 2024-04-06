@@ -1,6 +1,6 @@
 """View for marking comics read and unread."""
 
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from django.db.models import Count, F, IntegerField, Subquery, Value
 from drf_spectacular.utils import extend_schema
@@ -13,6 +13,9 @@ from codex.models import AdminFlag, Comic
 from codex.serializers.metadata import MetadataSerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_annotations import BrowserAnnotationsView
+
+if TYPE_CHECKING:
+    from codex.views.browser.filters.search import SearchScores
 
 LOG = get_logger(__name__)
 _ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS = frozenset({"path"})
@@ -244,7 +247,7 @@ class MetadataView(BrowserAnnotationsView):
         if self.model == Comic:
             search_scores = None
         else:
-            search_scores: dict | None = self.get_search_scores()
+            search_scores: SearchScores | None = self.get_search_scores()
         object_filter = self.get_query_filters_without_group(self.model, search_scores)  # type: ignore
         pk = self.kwargs["pk"]
         qs = self.model.objects.filter(object_filter, pk=pk)

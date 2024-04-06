@@ -142,6 +142,7 @@ exclude = [
   ".venv*",
   "cache",
   "codex/_vendor",
+  "codex/search/backend_search.py",
   "codex/static_build",
   "codex/static_root",
   "comics",
@@ -268,6 +269,22 @@ ignore-overlong-task-comments = true
 "codex/models/__init__.py" = ["F403"]
 "codex/settings/*" = ["T201"]
 "mock_comics/*" = ["S311", "T201"]
+"codex/search/backend_search.py" = [
+  "ARG002",
+  "C901",
+  "D101",
+  "D102",
+  "DTZ001",
+  "EM101",
+  "N812",
+  "PLR0913",
+  "PLR0911",
+  "PLR0912",
+  "PLR0915",
+  "RET505",
+  "TRY003",
+  "UP031",
+]
 
 [tool.vulture]
 exclude = [

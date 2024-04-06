@@ -36,6 +36,7 @@ from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.logger.logging import get_logger
 from codex.memory import get_mem_limit
 from codex.models import AdminFlag, Comic
+from codex.search.backend_search import CodexBackendSearchMixin
 from codex.search.indexes import ComicIndex
 from codex.search.writing import CodexWriter
 from codex.settings.settings import (
@@ -103,7 +104,7 @@ TEXT_ANALYZER = (
 )
 
 
-class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
+class CodexSearchBackend(CodexBackendSearchMixin, WhooshSearchBackend, WorkerBaseMixin):
     """Custom Whoosh Backend."""
 
     FIELDMAP = MappingProxyType(
