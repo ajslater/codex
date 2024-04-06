@@ -97,7 +97,8 @@ INSTALLED_APPS += [
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_registration",
-    "corsheaders"]
+    "corsheaders",
+]
 if not BUILD:
     INSTALLED_APPS += [
         "django_vite",

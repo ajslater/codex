@@ -160,8 +160,7 @@ class MetadataView(BrowserAnnotationsView):
             if self.is_admin():
                 return
             if self._is_enabled_folder_view():
-                library_path = obj.library_path
-                obj.path = obj.path.removeprefix(library_path)
+                obj.path = obj.search_path()
         else:
             obj.path = ""
 

@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.5.14
+
+- Features
+  - Relative folder path is now searchable if Folder View enabled.
+
 ## v1.5.13
 
 - Fixes
