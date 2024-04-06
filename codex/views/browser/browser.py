@@ -581,6 +581,7 @@ class BrowserView(BrowserAnnotationsView):
         self.set_order_key()
         self._set_admin_flags()
         enable_folder_view = self.admin_flags["folder_view"]
+
         if group == self.FOLDER_GROUP:
             self._validate_folder_settings(enable_folder_view)
         elif group == self.STORY_ARC_GROUP:

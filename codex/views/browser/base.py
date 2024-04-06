@@ -63,21 +63,14 @@ class BrowserBaseView(
             self._is_admin = user and isinstance(user, User) and user.is_staff
         return self._is_admin
 
-    def get_query_filters_without_group(
-        self,
-        model,
-    ):
+    def get_query_filters_without_group(self, model):
         """Return all the filters except the group filter."""
         object_filter = self.get_group_acl_filter(model)
         object_filter &= self.get_bookmark_filter(model)
         object_filter &= self.get_comic_field_filter(self.rel_prefix)
         return object_filter
 
-    def get_query_filters(
-        self,
-        model,
-        choices=False,
-    ):
+    def get_query_filters(self, model, choices=False):
         """Return the main object filter and the one for aggregates."""
         object_filter = self.get_query_filters_without_group(model)
         object_filter &= self.get_group_filter(choices)
