@@ -35,7 +35,7 @@ from codex._vendor.haystack.exceptions import SearchBackendError, SkipDocument
 from codex.librarian.search.status import SearchIndexStatusTypes
 from codex.logger.logging import get_logger
 from codex.memory import get_mem_limit
-from codex.models import Comic
+from codex.models import AdminFlag, Comic
 from codex.search.indexes import ComicIndex
 from codex.search.writing import CodexWriter
 from codex.settings.settings import (
@@ -131,6 +131,7 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             "original_format": ("format",),
             "page_count": ("pages",),
             "reading_direction": ("direction",),
+            "search_path": ("path", *gen_multipart_field_aliases("folders")),
             "series_groups": gen_multipart_field_aliases("series_groups"),
             "scan_info": ("scan",),
             "stories": ("story",),
@@ -460,12 +461,19 @@ class CodexSearchBackend(WhooshSearchBackend, WorkerBaseMixin):
             )
             return count
 
+        folder_view_enabled = AdminFlag.objects.get(
+            key=AdminFlag.FlagChoices.FOLDER_VIEW.value
+        ).on
         for obj in iterable:
             if abort_event and abort_event.is_set():
                 self.log.debug(
                     f"Stopped search index update batch {batch_num} at {count} updates."
                 )
                 break
+            if not folder_view_enabled:
+                # Hide path if folder view is disabled.
+                # This also affects field search.
+                obj.search_path = ""  # type: ignore
             count += self._update_obj(index, writer, batch_num, obj)
         return self._update_finish(count, batch_num, writer)
 

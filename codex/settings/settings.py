@@ -41,6 +41,24 @@ LOGLEVEL = get_loglevel(DEBUG)
 LOG_DIR = Path(environ.get("CODEX_LOG_DIR", CONFIG_PATH / "logs"))
 LOG_TO_CONSOLE = environ.get("CODEX_LOG_TO_CONSOLE") != "0"
 LOG_TO_FILE = environ.get("CODEX_LOG_TO_FILE") != "0"
+BUILD = environ.get("BUILD", False)
+# Slow query middleware
+# limit in seconds
+SLOW_QUERY_LIMIT = float(environ.get("CODEX_SLOW_QUERY_LIMIT", 0.5))
+LOG_RESPONSE_TIME = bool(environ.get("CODEX_LOG_RESPONSE_TIME", False))
+TZ = environ.get("TIMEZONE", environ.get("TZ"))
+# Search indexing memory controls
+MMAP_RATIO = int(environ.get("CODEX_MMAP_RATIO", 240))
+WRITER_MEMORY_PERCENT = float(environ.get("CODEX_WRITER_MEMORY_PERCENT", 0.6))
+CPU_MULTIPLIER = float(environ.get("CODEX_CPU_MULTIPLIER", 1.25))
+CHUNK_PER_GB = int(environ.get("CODEX_CHUNK_PER_GB", 250))
+MAX_CHUNK_SIZE = int(environ.get("CODEX_MAX_CHUNK_SIZE", 1000))
+# sqlite parser breaks with more than 1000 variables in a query and django only
+# fixes this in the bulk_create & bulk_update functions. So for complicated
+# queries I gotta batch them myself. Filter arg count is a proxy, but it works.
+FILTER_BATCH_SIZE = int(environ.get("CODEX_FILTER_BATCH_SIZE", 990))
+VITE_HOST = environ.get("VITE_HOST", socket.gethostname())
+
 if not DEBUG:
     LOGGING = {
         "version": 1,
@@ -80,7 +98,12 @@ INSTALLED_APPS += [
     "rest_framework",
     "rest_registration",
     "corsheaders",
-    "django_vite",
+]
+if not BUILD:
+    INSTALLED_APPS += [
+        "django_vite",
+    ]
+INSTALLED_APPS += [
     "codex",
     "cachalot",
     "drf_spectacular",
@@ -101,11 +124,14 @@ MIDDLEWARE = [
 if DEBUG:
     MIDDLEWARE += [
         "nplusone.ext.django.NPlusOneMiddleware",
-        "codex.middleware.LogResponseTimeMiddleware",
     ]
     NPLUSONE_LOGGER = getLogger("nplusone")
     NPLUSONE_LOG_LEVEL = WARN
 
+if LOG_RESPONSE_TIME:
+    MIDDLEWARE += [
+        "codex.middleware.LogResponseTimeMiddleware",
+    ]
 
 ROOT_URLCONF = "codex.urls.root"
 
@@ -177,7 +203,6 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/dev/topics/i18n/
 LANGUAGE_CODE = "en-us"
 USE_I18N = True
-TZ = environ.get("TIMEZONE", environ.get("TZ"))
 TIME_ZONE = get_time_zone(TZ)
 
 # Hypercorn
@@ -206,7 +231,6 @@ STORAGES = {
     }
 }
 STATICFILES_DIRS = []
-BUILD = environ.get("BUILD", False)
 if DEBUG or BUILD:
     STATIC_SRC = CODEX_PATH / "static_src"
     STATIC_SRC.mkdir(exist_ok=True, parents=True)
@@ -296,34 +320,17 @@ HAYSTACK_CONNECTIONS = {
     },
 }
 HAYSTACK_LOGGING = False
-# Search indexing memory controls
-MMAP_RATIO = int(environ.get("CODEX_MMAP_RATIO", 240))
-WRITER_MEMORY_PERCENT = float(environ.get("CODEX_WRITER_MEMORY_PERCENT", 0.6))
-CPU_MULTIPLIER = float(environ.get("CODEX_CPU_MULTIPLIER", 1.25))
-CHUNK_PER_GB = int(environ.get("CODEX_CHUNK_PER_GB", 250))
-MAX_CHUNK_SIZE = int(environ.get("CODEX_MAX_CHUNK_SIZE", 1000))
-
 CHANNEL_LAYERS = {
     "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"},
 }
 
-if DEBUG:
+if DEBUG and not BUILD:
     DJANGO_VITE = {
         "default": {
             "dev_mode": DEBUG,
-            "dev_server_host": environ.get("VITE_HOST", socket.gethostname()),
+            "dev_server_host": VITE_HOST,
         }
     }
-
-# sqlite parser breaks with more than 1000 variables in a query and django only
-# fixes this in the bulk_create & bulk_update functions. So for complicated
-# queries I gotta batch them myself. Filter arg count is a proxy, but it works.
-FILTER_BATCH_SIZE = int(environ.get("CODEX_FILTER_BATCH_SIZE", 990))
-
-# Slow query middleware
-# limit in seconds
-SLOW_QUERY_LIMIT = float(environ.get("CODEX_SLOW_QUERY_LIMIT", 0.5))
-LOG_RESPONSE_TIME = bool(environ.get("CODEX_LOG_RESPONSE_TIME", False))
 
 CACHALOT_UNCACHABLE_TABLES = frozenset(
     {"django_migrations", "django_session", "codex_useractive"}

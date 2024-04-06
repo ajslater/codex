@@ -194,6 +194,7 @@ const FIELD_ROWS = [
   ["name", "String", "title"],
   ["notes", "String"],
   ["original_format", "String", "format, orginalformat"],
+  ["path", "String", "folder, folders"],
   ["page_count", "Integer", "pages, pagecount"],
   ["publisher", "String"],
   ["reading_direction", "String", "direction"],

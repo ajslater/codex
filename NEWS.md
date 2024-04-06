@@ -9,6 +9,7 @@ border-radius: 128px;
 ## v1.5.14
 
 - Features
+  - Relative folder path is now searchable if Folder View enabled.
   - General Search query optimizations.
   - Opt-out search truncating optimizations in browser settings drawer.
   - Metadata tags can click to browse filtered on that tag.
