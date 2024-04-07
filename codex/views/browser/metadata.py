@@ -97,7 +97,7 @@ class MetadataView(BrowserAnnotationsView):
         if not self.is_model_comic:
             size_func = self.get_aggregate_func(self.model, "size")
             qs = qs.annotate(size=size_func)
-        return self.annotate_common_aggregates(qs, self.model, None)
+        return self.annotate_common_aggregates(qs, self.model)
 
     def _annotate_values_and_fks(self, qs, simple_qs):
         """Annotate comic values and comic foreign key values."""
@@ -243,7 +243,7 @@ class MetadataView(BrowserAnnotationsView):
         object_filter = self.get_query_filters_without_group(self.model)  # type: ignore
         qs = self.model.objects.filter(object_filter, pk__in=self.pks)
         if self.model != Comic:
-            qs = self.apply_binary_search_filter(qs)
+            qs = self.apply_search_filter(qs, self.model, binary=True)
         qs = self._annotate_aggregates(qs)
         simple_qs = qs
 

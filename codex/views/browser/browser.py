@@ -32,7 +32,6 @@ from codex.serializers.choices import DEFAULTS
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_annotations import BrowserAnnotationsView
 from codex.views.browser.const import MAX_OBJ_PER_PAGE
-from codex.views.browser.filters.search import SearchScores
 
 LOG = get_logger(__name__)
 _ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType(
@@ -112,10 +111,9 @@ class BrowserView(BrowserAnnotationsView):
         self,
         queryset,
         model,
-        search_scores: SearchScores | None,
     ):
         """Annotations for display and sorting."""
-        queryset = self.annotate_common_aggregates(queryset, model, search_scores)
+        queryset = self.annotate_common_aggregates(queryset, model)
         queryset = self._annotate_group(queryset, model)
         return self._annotate_group_names(queryset, model)
 
@@ -146,20 +144,8 @@ class BrowserView(BrowserAnnotationsView):
         """Create queryset common to group & books."""
         object_filter = self.get_query_filters(model, False)
         qs = model.objects.filter(object_filter)
-        binary = self.params.get("order_by") != "search_score"
-        if binary:
-            qs = self.apply_binary_search_filter(qs)
-            search_scores = None
-        else:
-            search_scores = self.get_search_scores()
-
-        if model != Comic:
-            # APPLY COLLAPSER HERE
-            # collapse and apply pks (pass pks map to annotations?)
-            pass
-
-        qs = self._add_annotations(qs, model, search_scores)
-        qs = self.apply_search_filter(qs, model, search_scores)
+        qs = self.apply_search_filter(qs, model)
+        qs = self._add_annotations(qs, model)
         qs = self.add_order_by(qs, model)
         if limit := self.params.get("limit"):
             # limit only is set by some opds views
