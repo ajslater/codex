@@ -159,8 +159,7 @@ class BrowserView(BrowserAnnotationsView):
             pass
 
         qs = self._add_annotations(qs, model, search_scores)
-        if not binary:
-            qs = self.apply_search_filter(qs, model, search_scores)
+        qs = self.apply_search_filter(qs, model, search_scores)
         qs = self.add_order_by(qs, model)
         if limit := self.params.get("limit"):
             # limit only is set by some opds views
