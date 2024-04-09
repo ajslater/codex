@@ -105,6 +105,7 @@ if not BUILD:
     ]
 INSTALLED_APPS += [
     "codex",
+    "cahalot",
     "drf_spectacular",
 ]
 
@@ -330,3 +331,7 @@ if DEBUG and not BUILD:
             "dev_server_host": VITE_HOST,
         }
     }
+
+CACHALOT_UNCACHABLE_TABLES = frozenset(
+    {"django_migrations", "django_session", "codex_useractive"}
+)
