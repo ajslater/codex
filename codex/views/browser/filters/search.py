@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from time import time
 
-from django.db.models import Q
+from django.db.models import Case, Max, Q, When
 
 from codex.logger.logging import get_logger
 from codex.models import Comic
@@ -12,6 +12,9 @@ from codex.settings.settings import DEBUG
 from codex.views.browser.const import MAX_OBJ_PER_PAGE
 
 LOG = get_logger(__name__)
+SEARCH_SCORE_MAX = 100.0
+SEARCH_SCORE_MIN = 0.001
+SEARCH_SCORE_EMPTY = 0.0
 
 
 @dataclass
@@ -121,6 +124,7 @@ class SearchFilterMixin:
         try:
             sqs = CodexSearchQuerySet()
             sqs = sqs.auto_query(text)  # .filter(score__gt=0.0)
+            binary = binary or self.params.get("order_by") != "search_score"  # type: ignore
             if binary:
                 scored_pks = self._get_binary_search_scores(sqs)
             else:
@@ -131,6 +135,24 @@ class SearchFilterMixin:
         except Exception:
             LOG.exception("Getting Search Scores")
         return SearchScores(scores_pairs, scored_pks, prev_pks, next_pks)
+
+    def _annotate_search_score(self, qs, model, search_scores: SearchScores | None):
+        """Annotate the search score for ordering by search score.
+
+        Choose the maximum matching score for the group.
+        """
+        whens = []
+        prefix = "" if model == Comic else self.rel_prefix  # type: ignore
+        if search_scores:
+            for pk, score in search_scores.scores:
+                when = {prefix + "pk": pk, "then": score}
+                whens.append(When(**when))
+            if search_scores.prev_pks:
+                whens.append(When(pk__in=search_scores.prev_pks, then=SEARCH_SCORE_MAX))
+            if search_scores.next_pks:
+                whens.append(When(pk__in=search_scores.next_pks, then=SEARCH_SCORE_MIN))
+        annotate = {"search_score": Max(Case(*whens, default=SEARCH_SCORE_EMPTY))}
+        return qs.annotate(**annotate)
 
     def _get_search_query_filter(
         self,
@@ -147,14 +169,11 @@ class SearchFilterMixin:
             query = Q(**query_dict)
         return query
 
-    def apply_search_filter(
-        self,
-        qs,
-        model,
-        search_scores: SearchScores | None,
-    ):
+    def apply_search_filter(self, qs, model, binary=False):
         """Preparse search, search and return the filter and scores."""
         try:
+            search_scores = self.get_search_scores(binary)
+            qs = self._annotate_search_score(qs, model, search_scores)
             if search_scores:
                 search_filter = self._get_search_query_filter(model, search_scores)
                 qs = qs.filter(search_filter)
@@ -162,9 +181,3 @@ class SearchFilterMixin:
             LOG.exception("Creating the search filter")
 
         return qs
-
-    def apply_binary_search_filter(self, qs):
-        """Apply scoreless search filter for choices & metadata."""
-        search_scores = self.get_search_scores(binary=True)
-        model = self.model  # type: ignore
-        return self.apply_search_filter(qs, model, search_scores)

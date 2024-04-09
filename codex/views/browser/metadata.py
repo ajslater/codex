@@ -1,6 +1,6 @@
 """View for marking comics read and unread."""
 
-from typing import TYPE_CHECKING, ClassVar
+from typing import ClassVar
 
 from django.db.models import Count, F, IntegerField, Subquery, Value
 from drf_spectacular.utils import extend_schema
@@ -13,9 +13,6 @@ from codex.models import AdminFlag, Comic
 from codex.serializers.metadata import MetadataSerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_annotations import BrowserAnnotationsView
-
-if TYPE_CHECKING:
-    from codex.views.browser.filters.search import SearchScores
 
 LOG = get_logger(__name__)
 _ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS = frozenset({"path"})
@@ -100,7 +97,7 @@ class MetadataView(BrowserAnnotationsView):
         if not self.is_model_comic:
             size_func = self.get_aggregate_func(self.model, "size")
             qs = qs.annotate(size=size_func)
-        return self.annotate_common_aggregates(qs, self.model, None)
+        return self.annotate_common_aggregates(qs, self.model)
 
     def _annotate_values_and_fks(self, qs, simple_qs):
         """Annotate comic values and comic foreign key values."""
@@ -244,15 +241,12 @@ class MetadataView(BrowserAnnotationsView):
         if self.model is None:
             raise NotFound(detail=f"Cannot get metadata for {self.group=}")
 
-        if self.model == Comic:
-            search_scores = None
-        else:
-            search_scores: SearchScores | None = self.get_search_scores()
-        object_filter = self.get_query_filters_without_group(self.model, search_scores)  # type: ignore
+        object_filter = self.get_query_filters_without_group(self.model)  # type: ignore
         pk = self.kwargs["pk"]
         qs = self.model.objects.filter(object_filter, pk=pk)
+
         if self.model != Comic:
-            qs = self.apply_binary_search_filter(qs)
+            qs = self.apply_search_filter(qs, self.model, binary=True)
         qs = self._annotate_aggregates(qs)
         simple_qs = qs
 

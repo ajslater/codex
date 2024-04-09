@@ -33,7 +33,6 @@ from codex.serializers.choices import DEFAULTS
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_annotations import BrowserAnnotationsView
 from codex.views.browser.const import MAX_OBJ_PER_PAGE
-from codex.views.browser.filters.search import SearchScores
 
 LOG = get_logger(__name__)
 _ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType(
@@ -109,14 +108,9 @@ class BrowserView(BrowserAnnotationsView):
         value = "c" if model == Comic else self.model_group
         return queryset.annotate(group=Value(value, CharField(max_length=1)))
 
-    def _add_annotations(
-        self,
-        queryset,
-        model,
-        search_scores: SearchScores | None,
-    ):
+    def _add_annotations(self, queryset, model):
         """Annotations for display and sorting."""
-        queryset = self.annotate_common_aggregates(queryset, model, search_scores)
+        queryset = self.annotate_common_aggregates(queryset, model)
         queryset = self._annotate_group(queryset, model)
         return self._annotate_group_names(queryset, model)
 
@@ -148,14 +142,8 @@ class BrowserView(BrowserAnnotationsView):
         """Create queryset common to group & books."""
         object_filter = self.get_query_filters(model, False)
         qs = model.objects.filter(object_filter)
-        binary = self.params.get("order_by") != "search_score"
-        if binary:
-            qs = self.apply_binary_search_filter(qs)
-            search_scores = None
-        else:
-            search_scores = self.get_search_scores()
-        qs = self._add_annotations(qs, model, search_scores)
-        qs = self.apply_search_filter(qs, model, search_scores)
+        qs = self.apply_search_filter(qs, model)
+        qs = self._add_annotations(qs, model)
         qs = self.add_order_by(qs, model)
         if limit := self.params.get("limit"):
             # limit only is set by some opds views
@@ -188,11 +176,13 @@ class BrowserView(BrowserAnnotationsView):
 
         # Recall root id & relative path from way back in
         # object creation
-        if self.group_instance and isinstance(self.group_instance, Folder):
-            if self.group_instance.parent_folder:
-                up_pk = self.group_instance.parent_folder.pk
-            else:
-                up_pk = 0
+        if self.group_class == Folder:
+            group_instance: Folder | None = self.group_instance  # type: ignore
+            if group_instance:
+                if group_instance.parent_folder:
+                    up_pk = group_instance.parent_folder.pk
+                else:
+                    up_pk = 0
 
         return up_group, up_pk
 

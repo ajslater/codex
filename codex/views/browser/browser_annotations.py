@@ -24,11 +24,6 @@ from django.db.models.functions import Least, Lower, Reverse, Right, StrIndex, S
 
 from codex.models import Comic
 from codex.views.browser.browser_order_by import BrowserOrderByView
-from codex.views.browser.filters.search import SearchScores
-
-SEARCH_SCORE_MAX = 100.0
-SEARCH_SCORE_MIN = 0.001
-SEARCH_SCORE_EMPTY = 0.0
 
 
 class BrowserAnnotationsView(BrowserOrderByView):
@@ -55,28 +50,6 @@ class BrowserAnnotationsView(BrowserOrderByView):
     )
 
     is_opds_1_acquisition = False
-
-    def _annotate_search_score(
-        self, queryset, search_scores: SearchScores | None, model
-    ):
-        """Annotate the search score for ordering by search score.
-
-        Choose the maximum matching score for the group.
-        """
-        if self.order_key != "search_score":
-            return queryset
-        whens = []
-        prefix = "" if model == Comic else self.rel_prefix
-        if search_scores:
-            for pk, score in search_scores.scores:
-                when = {prefix + "pk": pk, "then": score}
-                whens.append(When(**when))
-            if search_scores.prev_pks:
-                whens.append(When(pk__in=search_scores.prev_pks, then=SEARCH_SCORE_MAX))
-            if search_scores.next_pks:
-                whens.append(When(pk__in=search_scores.next_pks, then=SEARCH_SCORE_MIN))
-        annotate = {"search_score": Max(Case(*whens, default=SEARCH_SCORE_EMPTY))}
-        return queryset.annotate(**annotate)
 
     def _annotate_cover_pk(self, queryset, model):
         """Annotate the query set for the coverpath for the sort."""
@@ -282,9 +255,8 @@ class BrowserAnnotationsView(BrowserOrderByView):
     def _annotate_mtime(queryset):
         return queryset.annotate(mtime=Max("updated_at"))
 
-    def annotate_common_aggregates(self, qs, model, search_scores: SearchScores | None):
+    def annotate_common_aggregates(self, qs, model):
         """Annotate common aggregates between browser and metadata."""
-        qs = self._annotate_search_score(qs, search_scores, model)
         qs = self._annotate_child_count(qs, model)
         qs = self._annotate_page_count(qs, model)
         bm_rel = self.get_bm_rel(model)
