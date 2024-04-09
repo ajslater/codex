@@ -124,7 +124,6 @@ class SearchFilterMixin:
         try:
             sqs = CodexSearchQuerySet()
             sqs = sqs.auto_query(text)  # .filter(score__gt=0.0)
-
             binary = binary or self.params.get("order_by") != "search_score"  # type: ignore
             if binary:
                 scored_pks = self._get_binary_search_scores(sqs)

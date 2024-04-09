@@ -107,11 +107,7 @@ class BrowserView(BrowserAnnotationsView):
         value = "c" if model == Comic else self.model_group
         return queryset.annotate(group=Value(value, CharField(max_length=1)))
 
-    def _add_annotations(
-        self,
-        queryset,
-        model,
-    ):
+    def _add_annotations(self, queryset, model):
         """Annotations for display and sorting."""
         queryset = self.annotate_common_aggregates(queryset, model)
         queryset = self._annotate_group(queryset, model)
