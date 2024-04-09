@@ -6,13 +6,13 @@ from types import MappingProxyType
 from typing import ClassVar
 
 from django.core.paginator import EmptyPage, Paginator
-from django.db.models import F, Max, Value
+from django.db.models import Count, F, Max, OuterRef, Subquery, Value
 from django.db.models.fields import (
     CharField,
 )
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
-
+from codex.db_functions import GroupConcat
 from codex.exceptions import SeeOtherRedirectError
 from codex.logger.logging import get_logger
 from codex.models import (
@@ -144,12 +144,33 @@ class BrowserView(BrowserAnnotationsView):
         """Create queryset common to group & books."""
         object_filter = self.get_query_filters(model, False)
         qs = model.objects.filter(object_filter)
+        print("FILTER")
+        print(qs.query)
         qs = self.apply_search_filter(qs, model)
+        print("AFTER SEARCH FILTER")
+        print(qs.query)
+
+        filtered_qs = qs
+        #qs = qs.order_by("name")
+        qs = qs.values("name")
+        #qs.group_by = "name"
+        qs = qs.annotate(
+            #group_ids=Subquery(filtered_qs.filter(name=OuterRef("name")).values("id"))
+            group_ids=GroupConcat("id", distinct=True)
+        )
+        print(qs.query)
+        #qs = qs.order_by("name")
+
+        #qs = qs.filter(name__in=Subquery(filtered_qs.values("name").annotate(count=Count("id")).filter(count__gt=1).values_list("name", flat=True)))
+        for row in qs.values("id", "name", "group_ids"):
+            print(row)
+
         qs = self._add_annotations(qs, model)
         qs = self.add_order_by(qs, model)
         if limit := self.params.get("limit"):
             # limit only is set by some opds views
             qs = qs[:limit]
+        print(qs.query)
         return qs
 
     def _get_group_queryset(self):
