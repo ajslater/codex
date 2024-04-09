@@ -105,7 +105,7 @@ if not BUILD:
     ]
 INSTALLED_APPS += [
     "codex",
-    "cahalot",
+    "cachalot",
     "drf_spectacular",
 ]
 
