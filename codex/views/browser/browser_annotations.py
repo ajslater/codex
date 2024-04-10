@@ -58,13 +58,17 @@ class BrowserAnnotationsView(BrowserOrderByView):
         """
         if self.order_key != "search_score":
             return queryset
-        whens = []
-        prefix = "" if model == Comic else self.rel_prefix
-        for pk, score in search_scores.items():
-            when = {prefix + "pk": pk, "then": score}
-            whens.append(When(**when))
-        annotate = {"search_score": Max(Case(*whens, default=0.0))}
-        return queryset.annotate(**annotate)
+        if search_scores:
+            whens = []
+            prefix = "" if model == Comic else self.rel_prefix
+            for pk, score in search_scores.items():
+                when = {prefix + "pk": pk, "then": score}
+                whens.append(When(**when))
+            search_score = Max(Case(*whens, default=0.0))
+        else:
+            search_score = Value(0.0)
+
+        return queryset.annotate(search_score=search_score)
 
     def _annotate_cover_pk(self, queryset, model):
         """Annotate the query set for the coverpath for the sort."""
@@ -280,8 +284,8 @@ class BrowserAnnotationsView(BrowserOrderByView):
         qs = self._annotate_bookmark_updated_at(qs, bm_rel, bm_filter)
         qs = self._annotate_sort_name(qs, model)
         qs = self._annotate_story_arc_number(qs)
-        qs = self._annotate_order_value(qs, model)
         # cover depends on the above annotations for order-by
+        qs = self._annotate_order_value(qs, model)
         qs = self._annotate_cover_pk(qs, model)
         qs = self._annotate_bookmarks(qs, model, bm_rel, bm_filter)
         qs = self._annotate_mtime(qs)
