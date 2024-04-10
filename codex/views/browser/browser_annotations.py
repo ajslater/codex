@@ -266,7 +266,7 @@ class BrowserAnnotationsView(BrowserOrderByView):
         qs, bm_annotation_data = self._annotate_bookmark_updated_at(qs, model)
         qs = self._annotate_sort_name(qs, model)
         qs = self._annotate_story_arc_number(qs)
-        # cover annotations depend on order_value, in metadata too.
+        # cover annotation depends on order_value, in metadata too.
         qs = self._annotate_order_value(qs, model)
         qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
         qs = self._annotate_cover_pk(qs, model)
