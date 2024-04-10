@@ -4,6 +4,7 @@ import re
 
 IMF_RE = re.compile(r"^.+[.-][0-9a-zA-Z_-]{8,12}\..+$")
 
+
 def immutable_file_test(_path, url):
     """For django-vite."""
     # Match filename with 12 hex digits before the extension

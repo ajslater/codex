@@ -187,7 +187,6 @@ class BrowserAnnotationsView(BrowserOrderByView):
         bm_annotation_data = bm_rel, bm_filter
         return qs, bm_annotation_data
 
-
     def _annotate_bookmarks(self, qs, model, bm_annotation_data):
         """Hoist up bookmark annotations."""
         bm_rel, bm_filter = bm_annotation_data

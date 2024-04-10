@@ -1,4 +1,5 @@
 """Views for browsing comic library."""
+
 from copy import deepcopy
 from math import ceil
 from types import MappingProxyType
