@@ -284,8 +284,8 @@ class BrowserAnnotationsView(BrowserOrderByView):
         qs = self._annotate_bookmark_updated_at(qs, bm_rel, bm_filter)
         qs = self._annotate_sort_name(qs, model)
         qs = self._annotate_story_arc_number(qs)
-        # cover depends on the above annotations for order-by
         qs = self._annotate_order_value(qs, model)
+        # cover depends on the order_value annotation for order-by
         qs = self._annotate_cover_pk(qs, model)
         qs = self._annotate_bookmarks(qs, model, bm_rel, bm_filter)
         qs = self._annotate_mtime(qs)
