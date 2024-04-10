@@ -1,25 +1,20 @@
 """Custom Django DB functions."""
 
-from django.db.models import Aggregate
-from django.db.models.fields import CharField
+from django.db.models import JSONField
+from django.db.models.aggregates import Aggregate
+from django.db.models.sql.query import Query
 
 
-class GroupConcat(Aggregate):
-    """Sqlite3 group_concat() function.
+class JsonGroupArray(Aggregate):
+    """Sqlite3 json_group_array() function."""
 
-    Unused.
-    """
-
-    function = "GROUP_CONCAT"
-    template = "%(function)s(%(distinct)s %(expressions)s)"
     allow_distinct = True
+    function = 'JSON_GROUP_ARRAY'
+    output_field = JSONField()
+    template = '%(function)s(%(distinct)s%(expressions)s)'
 
-    def __init__(self, expressions, distinct=False, separator=",", **extra):
-        """Pass along the params."""
-        super().__init__(
-            expressions,
-            distinct=distinct,
-            separator=separator,
-            output_field=CharField(),
-            **extra,
-        )
+class GroupByQuery(Query):
+
+    def set_group_by(self, group_by=None):
+        if group_by:
+            self.group_by = group_by
