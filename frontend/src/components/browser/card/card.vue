@@ -1,5 +1,5 @@
 <template>
-  <v-lazy :id="`card-${item.pk}`" transition="scale-transition">
+  <v-lazy :id="`card-${ids}`" transition="scale-transition">
     <div class="browserCardCoverWrapper" @click="doubleTapHovered = true">
       <div class="browserCardTop">
         <BookCover
@@ -73,13 +73,18 @@ export default {
     ...mapState(useBrowserStore, {
       importMetadata: (state) => state.page.adminFlags.importMetadata,
     }),
-    linkLabel: function () {
+    linkLabel() {
       let label = "";
       label += this.item.group === "c" ? "Read" : "Browse to";
       label += " " + this.item.headerName;
       return label;
     },
-    toRoute: function () {
+    ids() {
+      const res = this.item.ids.join(",");
+      console.log(res);
+      return res;
+    },
+    toRoute() {
       if (!this.doubleTapHovered) {
         return {};
       }
@@ -87,10 +92,10 @@ export default {
         ? getReaderRoute(this.item, this.importMetadata)
         : {
             name: "browser",
-            params: { group: this.item.group, pk: this.item.pk, page: 1 },
+            params: { group: this.item.group, pks: this.ids, page: 1 },
           };
     },
-    progressBackgroundColor: function () {
+    progressBackgroundColor() {
       return this.item.progress
         ? this.$vuetify.theme.current.colors.row
         : "inherit";
@@ -103,7 +108,7 @@ export default {
     scrollToMe: function () {
       if (
         !this.$route.hash ||
-        this.$route.hash.split("-")[1] !== String(this.item.pk)
+        this.$route.hash.split("-")[1] !== String(this.ids)
       ) {
         return;
       }

@@ -9,6 +9,7 @@ from rest_framework.serializers import (
     Serializer,
 )
 
+from codex.serializers.browser.filters import IntListField
 from codex.serializers.mixins import (
     BrowserAggregateSerializerMixin,
 )
@@ -18,6 +19,7 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin):
     """Browse card displayed in the browser."""
 
     pk = IntegerField(read_only=True)
+    ids = IntListField(read_only=True)
     publisher_name = CharField(read_only=True)
     series_name = CharField(read_only=True)
     volume_name = CharField(read_only=True)
