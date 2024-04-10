@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from time import time
 
-from django.db.models import Case, Max, Q, When
+from django.db.models import Case, Max, Q, Value, When
 
 from codex.logger.logging import get_logger
 from codex.models import Comic
@@ -141,9 +141,9 @@ class SearchFilterMixin:
 
         Choose the maximum matching score for the group.
         """
-        whens = []
-        prefix = "" if model == Comic else self.rel_prefix  # type: ignore
         if search_scores:
+            prefix = "" if model == Comic else self.rel_prefix  # type: ignore
+            whens = []
             for pk, score in search_scores.scores:
                 when = {prefix + "pk": pk, "then": score}
                 whens.append(When(**when))
@@ -151,8 +151,10 @@ class SearchFilterMixin:
                 whens.append(When(pk__in=search_scores.prev_pks, then=SEARCH_SCORE_MAX))
             if search_scores.next_pks:
                 whens.append(When(pk__in=search_scores.next_pks, then=SEARCH_SCORE_MIN))
-        annotate = {"search_score": Max(Case(*whens, default=SEARCH_SCORE_EMPTY))}
-        return qs.annotate(**annotate)
+            search_score = Max(Case(*whens, default=SEARCH_SCORE_EMPTY))
+        else:
+            search_score = Value(0.0)
+        return qs.annotate(search_score=search_score)
 
     def _get_search_query_filter(
         self,
