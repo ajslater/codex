@@ -8,10 +8,5 @@ class JsonGroupArray(Aggregate):
 
     allow_distinct = True
     function = "JSON_GROUP_ARRAY"
+    output_field = JSONField() # type: ignore
     template = "%(function)s(%(distinct)s%(expressions)s)"
-
-    def __init__(self, output_field=None, **kwargs):
-        """Set output_field to JSONField."""
-        if output_field is None:
-            output_field = JSONField()
-        super().__init__(output_field=output_field, **kwargs)
