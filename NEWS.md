@@ -6,14 +6,24 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.5.14
+## v1.5.15
 
 - Features
-  - Relative folder path is now searchable if Folder View enabled.
   - General Search query optimizations.
   - Opt-out search truncating optimizations in browser settings drawer.
   - Metadata tags can click to browse filtered on that tag.
   - More query caching.
+
+## v1.5.14
+
+- Features
+  - Relative folder path is now searchable if Folder View enabled.
+  - More granular caching hopefully for better performance.
+- Fixes
+  - OPDS redirects were crashing.
+  - Null search was crashing metadata for single comics
+  - Fix a breakage with fast file static file serving.
+  - Change browser order by to something sensible when search cleared.
 
 ## v1.5.13
 

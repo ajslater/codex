@@ -86,7 +86,7 @@ class CreateForeignKeysMixin(QueuedThread):
         return obj
 
     @status_notify()
-    def _bulk_group_create(self, group_tree_counts, group_class, status=None):
+    def _bulk_group_create(self, group_tree_counts, group_class, status=None) -> int:
         """Bulk creates groups."""
         count = 0
         if not group_tree_counts:
@@ -292,11 +292,10 @@ class CreateForeignKeysMixin(QueuedThread):
         )
         return total_fks
 
-    def create_all_fks(self, library, create_data):
+    def create_all_fks(self, library, create_data) -> int:
         """Bulk create all foreign keys."""
         total_fks = self._get_create_fks_totals(create_data)
         status = Status(ImportStatusTypes.CREATE_FKS, 0, total_fks)
-        status.complete = 0  # Helps the type checker.
         try:
             self.status_controller.start(status)
             (
@@ -310,31 +309,35 @@ class CreateForeignKeysMixin(QueuedThread):
             ) = create_data
 
             for group_class, group_tree_counts in create_groups.items():
-                status.complete += self._bulk_group_create(
+                count = self._bulk_group_create(
                     group_tree_counts,
                     group_class,
                     status=status,
                 )
+                status.add_complete(count)
 
             for group_class, group_tree_counts in update_groups.items():
-                status.complete += self._bulk_group_updater(
+                count = self._bulk_group_updater(
                     group_tree_counts,
                     group_class,
                     status=status,
                 )
+                status.add_complete(count)
 
-            status.complete += self.bulk_folders_create(
+            count = self.bulk_folders_create(
                 sorted(create_folder_paths),
                 library,
                 status=status,
             )
+            status.add_complete(count)
 
             for named_class, names in create_fks.items():
-                status.complete += self._bulk_create_named_models(
+                count = self._bulk_create_named_models(
                     names,
                     named_class,
                     status=status,
                 )
+                status.add_complete(count)
 
             # These all depend on bulk_create_named_models running first
             create_dict_data = (
@@ -347,13 +350,14 @@ class CreateForeignKeysMixin(QueuedThread):
                 (Identifier, create_identifiers, self._create_identifier),
             )
             for model, create_objs, func in create_dict_data:
-                status.complete += self._bulk_create_dict_models(
+                count = self._bulk_create_dict_models(
                     create_objs,
                     func,
                     model,
                     status=status,
                 )
+                status.add_complete(count)
 
         finally:
             self.status_controller.finish(status)
-        return status.complete
+        return status.complete if status.complete else 0

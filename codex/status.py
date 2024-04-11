@@ -19,11 +19,15 @@ class Status:
         if isinstance(self.status_type, Enum):
             self.status_type = self.status_type.value
 
-    def increment_complete(self):
-        """Increment complete handling None."""
+    def add_complete(self, count: int):
+        """Add count to complete."""
         if self.complete is None:
             self.complete = 0
-        self.complete += 1
+        self.complete += count
+
+    def increment_complete(self):
+        """Increment complete handling None."""
+        self.add_complete(1)
 
     def decrement_total(self):
         """Decreent total if not not."""
