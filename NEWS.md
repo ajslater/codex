@@ -15,6 +15,7 @@ border-radius: 128px;
   - OPDS redirects were crashing.
   - Null search was crashing metadata for single comics
   - Fix a breakage with fast file static file serving.
+  - Change browser order by to something sensible when search cleared.
 
 ## v1.5.13
 
