@@ -58,27 +58,34 @@ class BrowserAnnotationsView(BrowserOrderByView):
         """
         if self.order_key != "search_score":
             return queryset
-        whens = []
-        prefix = "" if model == Comic else self.rel_prefix
-        for pk, score in search_scores.items():
-            when = {prefix + "pk": pk, "then": score}
-            whens.append(When(**when))
-        annotate = {"search_score": Max(Case(*whens, default=0.0))}
-        return queryset.annotate(**annotate)
+        if search_scores:
+            whens = []
+            prefix = "" if model == Comic else self.rel_prefix
+            for pk, score in search_scores.items():
+                when = {prefix + "pk": pk, "then": score}
+                whens.append(When(**when))
+            search_score = Max(Case(*whens, default=0.0))
+        else:
+            search_score = Value(0.0)
 
-    def _annotate_cover_pk(self, queryset, model):
+        return queryset.annotate(search_score=search_score)
+
+    def _annotate_cover_pk(self, qs, model):
         """Annotate the query set for the coverpath for the sort."""
         # Select comics for the children by an outer ref for annotation
         # Order the descendant comics by the sort argumentst
         if model == Comic:
             cover_pk = F("pk")
         else:
-            # This creates two subqueries. It would be better condensed into one.
-            # but there's no way to annotate an object or multiple values.
-            cover_qs = queryset.filter(pk=OuterRef("pk"))
+            # I wish I could figure out how to get a cover for each group
+            # without a subquery.
+            cover_qs = qs.filter(pk=OuterRef("pk"))
             cover_qs = self.add_order_by(cover_qs, model, True)
-            cover_pk = Subquery(cover_qs.values(self.rel_prefix + "pk")[:1])
-        return queryset.annotate(cover_pk=cover_pk)
+            cover_qs = cover_qs.values(self.rel_prefix + "pk")
+            cover_qs = cover_qs[:1]
+            cover_pk = Subquery(cover_qs)
+
+        return qs.annotate(cover_pk=cover_pk)
 
     def _annotate_page_count(self, qs, model):
         """Hoist up total page_count of children."""
@@ -101,21 +108,26 @@ class BrowserAnnotationsView(BrowserOrderByView):
             qs = qs.filter(child_count__gt=0)
         return qs
 
-    def _annotate_bookmark_updated_at(self, qs, bm_rel, bm_filter):
+    def _annotate_bookmark_updated_at(self, qs, model):
         """Annotate bookmark_updated_at."""
-        if not self.is_opds_1_acquisition and self.order_key != "bookmark_updated_at":
-            return qs
+        bm_rel = self.get_bm_rel(model)
+        bm_filter = self._get_my_bookmark_filter(bm_rel)
 
-        updated_at_rel = f"{bm_rel}__updated_at"
-        bookmark_updated_at_aggregate = Min(
-            updated_at_rel,
-            default=self._NONE_DATETIMEFIELD,
-            filter=bm_filter,
-        )
-        return qs.annotate(bookmark_updated_at=bookmark_updated_at_aggregate)
+        if self.is_opds_1_acquisition or self.order_key == "bookmark_updated_at":
+            updated_at_rel = f"{bm_rel}__updated_at"
+            bookmark_updated_at_aggregate = Min(
+                updated_at_rel,
+                default=self._NONE_DATETIMEFIELD,
+                filter=bm_filter,
+            )
+            qs = qs.annotate(bookmark_updated_at=bookmark_updated_at_aggregate)
+
+        bm_annotation_data = bm_rel, bm_filter
+        return qs, bm_annotation_data
 
     def _annotate_sort_name(self, queryset, model):
         """Sort groups by name ignoring articles."""
+        # TODO move this into the database on import.
         if self.order_key != "sort_name":
             return queryset
 
@@ -198,8 +210,10 @@ class BrowserAnnotationsView(BrowserOrderByView):
         order_func = self.get_order_value(model)
         return qs.annotate(order_value=order_func)
 
-    def _annotate_bookmarks(self, qs, model, bm_rel, bm_filter):
+    def _annotate_bookmarks(self, qs, model, bm_annotation_data):
         """Hoist up bookmark annotations."""
+        bm_rel, bm_filter = bm_annotation_data
+
         page_rel = f"{bm_rel}__page"
         finished_rel = f"{bm_rel}__finished"
 
@@ -250,10 +264,8 @@ class BrowserAnnotationsView(BrowserOrderByView):
                 output_field=BooleanField(),
             )
 
-        return qs.annotate(
-            page=bookmark_page,
-            finished=finished_aggregate,
-        )
+        qs = qs.annotate(page=bookmark_page)
+        return qs.annotate(finished=finished_aggregate)
 
     @staticmethod
     def _annotate_progress(queryset):
@@ -275,14 +287,12 @@ class BrowserAnnotationsView(BrowserOrderByView):
         qs = self._annotate_search_score(qs, search_scores, model)
         qs = self._annotate_child_count(qs, model)
         qs = self._annotate_page_count(qs, model)
-        bm_rel = self.get_bm_rel(model)
-        bm_filter = self._get_my_bookmark_filter(bm_rel)
-        qs = self._annotate_bookmark_updated_at(qs, bm_rel, bm_filter)
+        qs, bm_annotation_data = self._annotate_bookmark_updated_at(qs, model)
         qs = self._annotate_sort_name(qs, model)
         qs = self._annotate_story_arc_number(qs)
+        # cover annotation depends on order_value, in metadata too.
         qs = self._annotate_order_value(qs, model)
-        # cover depends on the above annotations for order-by
         qs = self._annotate_cover_pk(qs, model)
-        qs = self._annotate_bookmarks(qs, model, bm_rel, bm_filter)
+        qs = self._annotate_bookmarks(qs, model, bm_annotation_data)
         qs = self._annotate_mtime(qs)
         return self._annotate_progress(qs)

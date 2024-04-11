@@ -12,11 +12,12 @@
     </div>
     <div v-else-if="!isCodexViewable" id="announce">
       <h1>
-        You may log in <span v-if="adminFlags.register">or register</span> with
-        the top right&emsp;<v-icon>{{ mdiMenu }}</v-icon
+        You may log in
+        <span v-if="adminFlags.registration">or register</span> with the top
+        right&emsp;<v-icon>{{ mdiMenu }}</v-icon
         >&emsp;menu
       </h1>
-      <h1 v-if="!adminFlags.register">Registration is disabled</h1>
+      <h1 v-if="!adminFlags.registration">Registration is disabled</h1>
     </div>
     <div v-else-if="librariesExist" id="announce">
       <div id="noComicsFound">No comics found for these filters</div>

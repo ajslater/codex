@@ -48,6 +48,8 @@ class ComicIndex(ModelSearchIndex, Indexable):
     community_rating = FloatField(model_attr="community_rating", null=True)
     critical_rating = FloatField(model_attr="critical_rating", null=True)
 
+    search_path = CharField(model_attr="search_path", null=True)
+
     class Meta:
         """Model & field include list."""
 
