@@ -193,7 +193,7 @@ class ComicImporterThread(
         self._log_task(library.path, task)
         self._init_librarian_status(task, library.path)
 
-    def _create_comic_relations(self, library, fks):
+    def _create_comic_relations(self, library, fks) -> int:
         """Query all foreign keys to determine what needs creating, then create them."""
         if not fks:
             return 0
@@ -240,7 +240,7 @@ class ComicImporterThread(
         try:
             self._init_apply(library, task)
 
-            changed = 0
+            changed: int = 0
             changed += self.move_and_modify_dirs(library, task)
 
             modified_paths = task.files_modified

@@ -117,8 +117,11 @@ export const useBrowserStore = defineStore("browser", {
     orderByChoices(state) {
       const choices = [];
       for (const item of CHOICES.browser.orderBy) {
-        if (item.value === "path") {
-          if (state.page.adminFlags.folderView) {
+        if (state.page.adminFlags.folderView && item.value === "path") {
+          choices.push(item);
+        }
+        if (item.value == "search_score") {
+          if (state.settings.q) {
             choices.push(item);
           }
         } else {
@@ -207,12 +210,21 @@ export const useBrowserStore = defineStore("browser", {
           ? this.page.adminFlags?.folderView
           : this.settings.show[topGroup];
     },
-    _validateFirstSearch(data) {
-      // If first search redirect to lowest group and change order
-      if (this.q || !data.q) {
-        // Not first search, validated.
+    _validateSearch(data) {
+      if (!data.q) {
+        // if cleared search check for bad order_by
+        if (this.settings.orderBy === "search_score") {
+          if (this.settings.topGroup === "f") {
+            data.orderBy = "filename";
+          } else {
+            data.orderBy = "sort_name";
+          }
+        }
+        return;
+      } else if (this.q) {
         return;
       }
+      // If first search redirect to lowest group and change order
       data.orderBy = "search_score";
       data.orderReverse = true;
       const group = router.currentRoute.value.params?.group;
@@ -260,7 +272,7 @@ export const useBrowserStore = defineStore("browser", {
       });
     },
     _validateAndSaveSettings(data) {
-      let redirect = this._validateFirstSearch(data);
+      let redirect = this._validateSearch(data);
       redirect = this._validateNewTopGroupIsParent(data, redirect);
 
       // Add settings
