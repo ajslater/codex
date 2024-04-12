@@ -15,16 +15,14 @@ def codex_exception_handler(exc, context):
     response = None
     request = context.get("request")
     if _OPDS_PREFIX in request.path:
-        name = (
-            "opds:v2_start" if _OPDS_PREFIX + "2" in request.path else "opds:v1_start"
-        )
-        opds_start = reverse(name)
+        name = "opds:v2:feed" if _OPDS_PREFIX + "2" in request.path else "opds:v1:feed"
         if isinstance(exc, SeeOtherRedirectError):
-            response = exc.get_response(opds_start)
+            response = exc.get_response(name)
         elif hasattr(exc, "status_code") and exc.status_code in (
             status.HTTP_400_BAD_REQUEST,
             status.HTTP_404_NOT_FOUND,
         ):
+            opds_start = reverse(name)
             response = redirect(opds_start, permanent=False)
 
     if not response:

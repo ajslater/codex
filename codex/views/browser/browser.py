@@ -61,10 +61,9 @@ class BrowserView(BrowserAnnotationsView):
             StoryArc: (None,),
         }
     )
-    DEFAULT_ROUTE_NAME = "browser"
-    _DEFAULT_ROUTE = MappingProxyType(
+    DEFAULT_ROUTE = MappingProxyType(
         {
-            "name": DEFAULT_ROUTE_NAME,
+            "name": "browser",
             "params": deepcopy(DEFAULTS["route"]),
         }
     )
@@ -489,7 +488,7 @@ class BrowserView(BrowserAnnotationsView):
 
     def _raise_redirect(self, route_mask, reason, settings_mask=None):
         """Redirect the client to a valid group url."""
-        route = deepcopy(dict(self._DEFAULT_ROUTE))
+        route = deepcopy(dict(self.DEFAULT_ROUTE))
         route["params"].update(route_mask)  # type: ignore
         settings = deepcopy(self.params)
         if settings_mask:

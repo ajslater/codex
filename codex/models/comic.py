@@ -4,7 +4,6 @@ import calendar
 import math
 import re
 from datetime import MAXYEAR, MINYEAR, date
-from decimal import Decimal
 from pathlib import Path
 
 from comicbox.fields.enum import ReadingDirectionEnum
@@ -224,7 +223,9 @@ class Comic(WatchedPath):
         return math.floor(math.log10(issue_number_max)) + 1
 
     @classmethod
-    def get_title(cls, obj, volume=True, issue_number_max=None, name=True):
+    def get_title(  # noqa: PLR0913
+        cls, obj, volume=True, issue_number_max=None, name=True, filename_fallback=False
+    ):
         """Create the comic title for display."""
         names = []
 
@@ -238,24 +239,30 @@ class Comic(WatchedPath):
             names.append(vn)
 
         # Issue
-        issue_number = obj.issue_number.normalize() if obj.issue_number else Decimal(0)
-        zero_pad = cls._compute_zero_pad(issue_number_max)
-        if issue_number % 1 == 0:
-            precision = 0
-        else:
-            precision = 1
-            zero_pad += 2
-        issue_str = f"#{issue_number:0{zero_pad}.{precision}f}"
+        issue_str = ""
+        if obj.issue_number is not None:
+            issue_number = obj.issue_number.normalize()
+            zero_pad = cls._compute_zero_pad(issue_number_max)
+            if issue_number % 1 == 0:
+                precision = 0
+            else:
+                precision = 1
+                zero_pad += 2
+            issue_str = f"#{issue_number:0{zero_pad}.{precision}f}"
         if issue_suffix := obj.issue_suffix:
             issue_str += issue_suffix
-        names.append(issue_str)
+        if issue_str:
+            names.append(issue_str)
 
         # Title
         if name and obj.name:
             names.append(obj.name)
 
         title = " ".join(filter(None, names)).strip(" .")
-        return cls._RE_COMBINE_WHITESPACE.sub(" ", title).strip()
+        title = cls._RE_COMBINE_WHITESPACE.sub(" ", title).strip()
+        if filename_fallback and not title:
+            title = cls.get_filename(obj)
+        return title
 
     @classmethod
     def get_filename(cls, obj):
@@ -269,7 +276,7 @@ class Comic(WatchedPath):
 
     def __str__(self):
         """Most common text representation for logging."""
-        return self.get_title(self)
+        return self.get_title(self, filename_fallback=True)
 
     def issue(self) -> str:
         """Combine issue parts for search."""
