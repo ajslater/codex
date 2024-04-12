@@ -32,7 +32,9 @@ LOG = get_logger(__name__)
 class OPDS2FeedView(PublicationMixin, TopLinksMixin):
     """OPDS 2.0 Feed."""
 
-    DEFAULT_ROUTE_NAME = "opds:v2:feed"
+    DEFAULT_ROUTE = MappingProxyType(
+        {**TopLinksMixin.DEFAULT_ROUTE, "name": "opds:v2:feed"}
+    )
 
     authentication_classes = (BasicAuthentication, SessionAuthentication)
     serializer_class = OPDS2FeedSerializer

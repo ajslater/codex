@@ -122,7 +122,11 @@ class PublicationMixin(LinksMixin):
 
     def _publication_metadata(self, obj, issue_number_max):
         title = Comic.get_title(
-            obj, volume=False, name=False, issue_number_max=issue_number_max
+            obj,
+            volume=False,
+            name=False,
+            issue_number_max=issue_number_max,
+            filename_fallback=self.title_filename_fallback,
         )
         md = {
             "type": MimeType.BOOK,
@@ -186,6 +190,7 @@ class PublicationMixin(LinksMixin):
         """Get publications section."""
         groups = []
         publications = []
+        self.title_filename_fallback = bool(self.admin_flags.get("folder_view"))
         for obj in book_qs:
             pub = self._publication(obj, issue_number_max)
             publications.append(pub)
