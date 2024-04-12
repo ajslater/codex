@@ -8,7 +8,7 @@ border-radius: 128px;
 
 ## v1.5.15
 
-- Fix 
+- Fixes
   - OPDS streaming broken for some clients (Chunky) without metadata.
   - OPDS uses filename fallback for title if missing metadata.
 
