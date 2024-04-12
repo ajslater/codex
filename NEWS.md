@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.5.15
+
+- Fixes
+  - OPDS streaming broken for some clients (Chunky) without metadata.
+  - OPDS redirects for empty pages or 404's were crashing.
+  - OPDS uses filename fallback for title if missing metadata.
+
 ## v1.5.14
 
 - Features

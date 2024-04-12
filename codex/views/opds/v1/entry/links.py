@@ -15,7 +15,9 @@ from codex.views.opds.v1.entry.data import OPDS1EntryData, OPDS1EntryObject
 class OPDS1EntryLinksMixin:
     """OPDS v1 Entry Links Methods."""
 
-    def __init__(self, obj, query_params, data: OPDS1EntryData):
+    def __init__(
+        self, obj, query_params, data: OPDS1EntryData, title_filename_fallback=False
+    ):
         """Initialize params."""
         self.obj = obj
         self.fake = isinstance(self.obj, OPDS1EntryObject)
@@ -24,6 +26,7 @@ class OPDS1EntryLinksMixin:
         self.issue_number_max = data.issue_number_max
         self.metadata = data.metadata
         self.mime_type_map = data.mime_type_map
+        self.title_filename_fallback = title_filename_fallback
 
     def _thumb_link(self):
         if self.fake:
@@ -103,7 +106,8 @@ class OPDS1EntryLinksMixin:
         href = update_href_query_params(href, {}, qps)
         href = href.replace("0/page.jpg", "{pageNumber}/page.jpg")
         page = self.obj.page
-        count = self.obj.page_count
+        # extra stupid pse chunky fix for no metadata
+        count = max(self.obj.page_count, 1)
         bookmark_updated_at = self.obj.bookmark_updated_at
         return OPDS1Link(
             Rel.STREAM,
