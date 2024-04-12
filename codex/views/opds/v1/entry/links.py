@@ -106,7 +106,7 @@ class OPDS1EntryLinksMixin:
         href = update_href_query_params(href, {}, qps)
         href = href.replace("0/page.jpg", "{pageNumber}/page.jpg")
         page = self.obj.page
-        # stupid pse fix for no metadata
+        # extra stupid pse chunky fix for no metadata
         count = max(self.obj.page_count, 1)
         bookmark_updated_at = self.obj.bookmark_updated_at
         return OPDS1Link(

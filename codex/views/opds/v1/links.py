@@ -105,7 +105,12 @@ class LinksMixin(FacetsMixin):
     """OPDS 1 Links methods."""
 
     # overwritten in get_object()
-    DEFAULT_ROUTE_NAME = "opds:v1:feed"
+    DEFAULT_ROUTE = MappingProxyType(
+        {
+            **FacetsMixin.DEFAULT_ROUTE,
+            "name": "opds:v1:feed",
+        }
+    )
     is_aq_feed = False
 
     def is_top_link_displayed(self, top_link):

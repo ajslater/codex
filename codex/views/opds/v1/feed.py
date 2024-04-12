@@ -1,12 +1,16 @@
 """OPDS v1 feed."""
 
 from datetime import datetime, timezone
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
+from comicbox.box import Comicbox
 from drf_spectacular.utils import extend_schema
 from rest_framework.authentication import BasicAuthentication, SessionAuthentication
 from rest_framework.response import Response
 
+from codex.librarian.importer.tasks import LazyImportComicsTask
+from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.logger.logging import get_logger
 from codex.serializers.opds.v1 import (
     OPDS1TemplateSerializer,
@@ -26,6 +30,8 @@ from codex.views.template import CodexXMLTemplateView
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
+
+    from django.db.models import QuerySet
 
 LOG = get_logger(__name__)
 
@@ -162,6 +168,25 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
             LOG.exception("Getting OPDS v1 entries")
         return entries
 
+    def _ensure_page_counts(self):
+        """Ensure page counts on books with just in time comicbox."""
+        books_qs: QuerySet = self.obj["books"]  # type: ignore
+        import_pks = set()
+        new_books = []
+        for book in books_qs:
+            if not book.page_count:
+                with Comicbox(book.path) as cb:
+                    book.file_type = cb.get_file_type()
+                    book.page_count = cb.get_page_count()
+            new_books.append(book)
+            import_pks.add(book.pk)
+        if new_books:
+            writable_obj = dict(self.obj)
+            writable_obj["books"] = new_books  # type: ignore
+            self.obj = MappingProxyType(writable_obj)
+            task = LazyImportComicsTask(frozenset(import_pks))
+            LIBRARIAN_QUEUE.put(task)
+
     def get_object(self):  # type: ignore
         """Get the browser page and serialize it for this subclass."""
         group = self.kwargs.get("group")
@@ -176,7 +201,10 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
             self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
         )
         self.obj = super().get_object()
-        self.is_aq_feed = self.obj.get("model_group") in ("c", "f")
+        self.is_aq_feed = self.model_group in ("c", "f")
+
+        self._ensure_page_counts()
+
         # Do not return a Mapping despite the type. Return self for the serializer.
         return self
 
