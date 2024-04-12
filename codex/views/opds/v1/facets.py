@@ -80,6 +80,7 @@ DEFAULT_FACETS = {
 class FacetsMixin(BrowserView):
     """OPDS 1 Facets methods."""
 
+    OPDS = 1
     # Overwritten by get_object()
     use_facets = False
     skip_order_facets = False
