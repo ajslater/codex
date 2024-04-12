@@ -49,7 +49,9 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
                     parts.append(self.obj.series_name)
                 elif group == "c":
                     title = Comic.get_title(
-                        self.obj, issue_number_max=self.issue_number_max
+                        self.obj,
+                        issue_number_max=self.issue_number_max,
+                        filename_fallback=self.title_filename_fallback,
                     )
                     parts.append(title)
 

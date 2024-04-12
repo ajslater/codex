@@ -124,13 +124,21 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
     def _get_entries_section(self, key, metadata):
         """Get entries by key section."""
         entries = []
-        issue_number_max: int = self.obj.get("issue_number_max", 0)  # type: ignore
-        data = OPDS1EntryData(
-            self.acquisition_groups, issue_number_max, metadata, self.mime_type_map
-        )
         if objs := self.obj.get(key):
+            issue_number_max: int = self.obj.get("issue_number_max", 0)  # type: ignore
+            data = OPDS1EntryData(
+                self.acquisition_groups, issue_number_max, metadata, self.mime_type_map
+            )
+            fallback = bool(self.admin_flags.get("folder_view"))
             for obj in objs:  # type: ignore
-                entries += [OPDS1Entry(obj, self.request.query_params, data)]
+                entries += [
+                    OPDS1Entry(
+                        obj,
+                        self.request.query_params,
+                        data,
+                        title_filename_fallback=fallback,
+                    )
+                ]
         return entries
 
     @property
@@ -158,17 +166,17 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
         """Get the browser page and serialize it for this subclass."""
         group = self.kwargs.get("group")
         if group == "a":
-            self.acquisition_groups = frozenset({"a"})
+            self.acquisition_groups = frozenset({"a", "c"})
             pk = self.kwargs.get("pk")
             self.is_opds_1_acquisition = group in self.acquisition_groups and pk
         else:
-            self.acquisition_groups = frozenset(self.valid_nav_groups[-2:])
+            self.acquisition_groups = frozenset({*self.valid_nav_groups[-2:]} | {"c"})
             self.is_opds_1_acquisition = group in self.acquisition_groups
         self.is_opds_metadata = (
             self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
         )
         self.obj = super().get_object()
-        self.is_aq_feed = self.obj.get("model_group") == "c"
+        self.is_aq_feed = self.obj.get("model_group") in ("c", "f")
         # Do not return a Mapping despite the type. Return self for the serializer.
         return self
 
