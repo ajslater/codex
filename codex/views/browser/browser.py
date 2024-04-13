@@ -157,6 +157,7 @@ class BrowserView(BrowserAnnotationsView):
             qs = self.model.objects.none()
         else:
             qs = self._get_common_queryset(self.model)
+            qs = qs.group_by("name")
         return qs
 
     def _get_book_queryset(self):
