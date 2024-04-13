@@ -8,5 +8,5 @@ class JsonGroupArray(Aggregate):
 
     allow_distinct = True
     function = "JSON_GROUP_ARRAY"
-    output_field = JSONField() # type: ignore
+    output_field = JSONField()  # type: ignore
     template = "%(function)s(%(distinct)s%(expressions)s)"
