@@ -80,9 +80,7 @@ export default {
       return label;
     },
     ids() {
-      const res = this.item.ids.join(",");
-      console.log(res);
-      return res;
+      return this.item.ids.join(",");
     },
     toRoute() {
       if (!this.doubleTapHovered) {
