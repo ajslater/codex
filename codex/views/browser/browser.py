@@ -106,11 +106,12 @@ class BrowserView(BrowserAnnotationsView):
         value = "c" if model == Comic else self.model_group
         return queryset.annotate(group=Value(value, CharField(max_length=1)))
 
-    def _add_annotations(self, queryset, model):
+    def _add_annotations(self, qs, model):
         """Annotations for display and sorting."""
-        queryset = self.annotate_common_aggregates(queryset, model)
-        queryset = self._annotate_group(queryset, model)
-        return self._annotate_group_names(queryset, model)
+        qs, cover_qs = self.annotate_common_aggregates(qs, model)
+        qs = self._annotate_group(qs, model)
+        qs = self._annotate_group_names(qs, model)
+        return qs, cover_qs
 
     def _get_model_group(self):
         """Get the group of the models to browse."""
@@ -140,13 +141,13 @@ class BrowserView(BrowserAnnotationsView):
         object_filter = self.get_query_filters(model, False)
         qs = model.objects.filter(object_filter)
         qs = self.apply_search_filter(qs, model)
-        qs = self._add_annotations(qs, model)
+        qs, cover_qs = self._add_annotations(qs, model)
         qs = self.add_order_by(qs, model)
         if limit := self.params.get("limit"):
             # limit only is set by some opds views
             qs = qs[:limit]
 
-        return qs
+        return qs, cover_qs
 
     def _get_group_queryset(self):
         """Create group queryset."""
@@ -155,15 +156,16 @@ class BrowserView(BrowserAnnotationsView):
             raise ValueError(reason)
         elif self.model == Comic:  # noqa: RET506
             qs = self.model.objects.none()
+            cover_qs = qs
         else:
-            qs = self._get_common_queryset(self.model)
+            qs, cover_qs = self._get_common_queryset(self.model)
             qs = qs.group_by("name")
-        return qs
+        return qs, cover_qs
 
     def _get_book_queryset(self):
         """Create book queryset."""
         if self.model in (Comic, Folder):
-            qs = self._get_common_queryset(Comic)
+            qs, _ = self._get_common_queryset(Comic)
         else:
             qs = Comic.objects.none()
         return qs
@@ -386,6 +388,25 @@ class BrowserView(BrowserAnnotationsView):
 
         return page_group_qs, page_book_qs, num_pages, page_obj_count
 
+    def _recover_multi_groups(self, group_qs, cover_qs):
+        """Python hack to re-cover groups collapsed with group_by."""
+        # Because OuterRef can't access annotations.
+        recovered_group_list = []
+        for group in group_qs:
+            cover_pks = group.cover_pks
+            if len(cover_pks) > 1:
+                # TODO use cover_qs when stripped down
+                covers_filter = {self.rel_prefix + "pk__in": cover_pks}
+                cover_qs = cover_qs.filter(**covers_filter)
+                cover_qs = self.add_order_by(cover_qs, self.model)
+                cover_qs = cover_qs.values_list(
+                    self.rel_prefix + "pk", flat=True
+                ).first()
+                cover_pk = cover_qs
+                group.cover_pk = cover_pk
+            recovered_group_list.append(group)
+        return recovered_group_list
+
     def get_object(self):
         """Validate settings and get the querysets."""
         self._set_browse_model()
@@ -394,7 +415,7 @@ class BrowserView(BrowserAnnotationsView):
         # Create the main query with the filters
         group = self.kwargs.get("group")
 
-        group_qs = self._get_group_queryset()
+        group_qs, cover_qs = self._get_group_queryset()
         book_qs = self._get_book_queryset()
 
         # Paginate
@@ -410,7 +431,7 @@ class BrowserView(BrowserAnnotationsView):
         browser_page_title = self._get_browser_page_title()
 
         if up_group is not None and up_pk is not None:
-            up_route = {"group": up_group, "pk": up_pk, "page": 1}
+            up_route = {"group": up_group, "pks": str(up_pk), "page": 1}
         else:
             up_route = {}
 
@@ -427,13 +448,15 @@ class BrowserView(BrowserAnnotationsView):
             ).updated_at.timestamp()
         )
 
+        recovered_group_list = self._recover_multi_groups(group_qs, cover_qs)
+
         # construct final data structure
         return MappingProxyType(
             {
                 "up_route": up_route,
                 "browser_title": browser_page_title,
                 "model_group": self.model_group,
-                "groups": group_qs,
+                "groups": recovered_group_list,
                 "books": book_qs,
                 "issue_number_max": issue_number_max,
                 "num_pages": num_pages,
@@ -553,11 +576,12 @@ class BrowserView(BrowserAnnotationsView):
         top_group = self.params["top_group"]
         if top_group != self.STORY_ARC_GROUP:
             self.params["top_group"] = self.STORY_ARC_GROUP
+        self.valid_nav_groups = (self.STORY_ARC_GROUP,)
 
     def _set_route_param(self):
         """Set the route param."""
         group = self.kwargs.get("group", "r")
-        pks = self.pks if self.pks else "0"
+        pks = self.kwargs.get("pks", "0")
         page = self.kwargs.get("page", 1)
         self.params["route"] = {"group": group, "pks": pks, "page": page}
 

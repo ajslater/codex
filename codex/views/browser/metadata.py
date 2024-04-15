@@ -76,6 +76,7 @@ class MetadataView(BrowserAnnotationsView):
                 .order_by()  # just in case
                 .annotate(count=Count(full_field, distinct=True))
                 .filter(count=1)
+                # .group_by("name")
                 .values_list(full_field + related_suffix, flat=True)
             )
 
@@ -284,6 +285,7 @@ class MetadataView(BrowserAnnotationsView):
             self.parse_pks()
             self.parse_params()
             self.group = self.kwargs["group"]
+            self.valid_nav_groups = (self.group,)
             self._validate()
             self.set_rel_prefix(self.model)
             self.set_order_key()

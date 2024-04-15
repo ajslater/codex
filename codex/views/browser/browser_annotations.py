@@ -61,13 +61,18 @@ class BrowserAnnotationsView(BrowserOrderByView):
         else:
             # I wish I could figure out how to get a cover for each group
             # without a subquery.
-            cover_qs = qs.filter(pk=OuterRef("pk"))
-            cover_qs = self.add_order_by(cover_qs, model, True)
+            cover_qs = qs
+            cover_qs = cover_qs.filter(pk=OuterRef("pk"))
+            cover_qs = self.add_order_by(cover_qs, model)
             cover_qs = cover_qs.values(self.rel_prefix + "pk")
             cover_qs = cover_qs[:1]
             cover_pk = Subquery(cover_qs)
 
-        return qs.annotate(cover_pk=cover_pk)
+        # The covers_pk annotation is sorted again for the final cover later in
+        # browser.py after pagination.
+        return qs.annotate(
+            cover_pk=cover_pk, cover_pks=JsonGroupArray("cover_pk", distinct=True)
+        )
 
     def _annotate_page_count(self, qs, model):
         """Hoist up total page_count of children."""
@@ -111,7 +116,7 @@ class BrowserAnnotationsView(BrowserOrderByView):
         ##################################################
 
         # first_space_index
-        first_field = model.ORDERING[0]
+        first_field = "name"
         queryset = queryset.annotate(
             first_space_index=StrIndex(first_field, Value(" "))
         )
@@ -261,6 +266,7 @@ class BrowserAnnotationsView(BrowserOrderByView):
 
     def annotate_common_aggregates(self, qs, model):
         """Annotate common aggregates between browser and metadata."""
+        qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
         qs = self._annotate_child_count(qs, model)
         qs = self._annotate_page_count(qs, model)
         qs, bm_annotation_data = self._annotate_bookmark_updated_at(qs, model)
@@ -268,8 +274,9 @@ class BrowserAnnotationsView(BrowserOrderByView):
         qs = self._annotate_story_arc_number(qs)
         # cover annotation depends on order_value, in metadata too.
         qs = self._annotate_order_value(qs, model)
-        qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
+        cover_qs = qs
         qs = self._annotate_cover_pk(qs, model)
         qs = self._annotate_bookmarks(qs, model, bm_annotation_data)
         qs = self._annotate_mtime(qs)
-        return self._annotate_progress(qs)
+        qs = self._annotate_progress(qs)
+        return qs, cover_qs

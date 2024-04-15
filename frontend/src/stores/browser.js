@@ -233,7 +233,7 @@ export const useBrowserStore = defineStore("browser", {
       if (noRedirectGroups.has(group)) {
         return;
       }
-      return { params: { group: this.lowestShownGroup, pk: 0, page: 1 } };
+      return { params: { group: this.lowestShownGroup, pks: "0", page: 1 } };
     },
     _validateNewTopGroupIsParent(data, redirect) {
       // If the top group changed and we're at the root group and the new top group is above the proper nav group

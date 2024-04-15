@@ -123,11 +123,17 @@ class BrowserBaseView(
 
     def parse_pks(self):
         """Parse the pks list."""
-        pks_str_list = self.kwargs.get("pks", "0").split(",")
+        pks_str = self.kwargs.get("pks")
+        pks_str_list = pks_str.split(",")
         pks_set = set()
         if pks_str_list:
             for pk_str in pks_str_list:
-                pk = int(pk_str)
+                try:
+                    pk = int(pk_str)
+                except ValueError:
+                    reason = f"Bad pk list submitted to {self.__class__.__name__} {pk_str=} in {pks_str=}"
+                    LOG.warn(reason)
+                    continue
                 if pk <= 0:
                     pks_set = set()
                     break

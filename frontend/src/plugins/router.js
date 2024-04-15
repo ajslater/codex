@@ -30,7 +30,7 @@ const routes = [
   },
   {
     name: "browser",
-    path: "/:group/:pk/:page",
+    path: "/:group/:pks/:page",
     component: MainBrowser,
   },
   {

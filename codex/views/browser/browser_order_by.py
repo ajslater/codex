@@ -32,7 +32,6 @@ class BrowserOrderByView(BrowserBaseView):
     _ANNOTATED_ORDER_FIELDS = frozenset(
         ("sort_name", "search_score", "bookmark_updated_at")
     )
-    _COMIC_COVER_ORDERING = ("comic__" + field for field in Comic.ORDERING)
 
     def set_order_key(self):
         """Get the default order key for the view."""
@@ -83,23 +82,32 @@ class BrowserOrderByView(BrowserBaseView):
             func = self.get_aggregate_func(model, self.order_key)
         return func
 
-    def add_order_by(self, queryset, model, cover=False):
+    def add_order_by(self, queryset, model):
         """Create the order_by list."""
         prefix = ""
         if self.params.get("order_reverse"):
             prefix += "-"
 
+        group = self.kwargs.get("group")
+        valid_nav_groups = self.valid_nav_groups  # type: ignore
+
         if self.order_key == "sort_name":
-            if cover and model != Comic:
-                order_fields = self._COMIC_COVER_ORDERING
-            else:
-                order_fields = model.ORDERING
+            order_fields = model.get_order_by(
+                valid_nav_groups, browser_group=group, rel_prefix=self.rel_prefix
+            )
         elif self.order_key == "bookmark_updated_at":
             order_fields = ("order_value", "updated_at", "created_at", "pk")
         elif self.order_key == "story_arc_number" and model == Comic:
-            order_fields = ("order_value", "date", *model.ORDERING)
+            order_fields = (
+                "order_value",
+                "date",
+                *model.get_order_by(valid_nav_groups, browser_group=group),
+            )
         else:
-            order_fields = ("order_value", *model.ORDERING)
+            order_fields = (
+                "order_value",
+                *model.get_order_by(valid_nav_groups, browser_group=group),
+            )
 
         order_by = []
         for field in order_fields:

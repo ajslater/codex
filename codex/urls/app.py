@@ -11,7 +11,7 @@ app_name = "app"
 BOOK_AGE = 60 * 60 * 24 * 7
 
 urlpatterns = [
-    path("<group:group>/<int:pk>/<int:page>", IndexView.as_view(), name="route"),
+    path("<group:group>/<str:pks>/<int:page>", IndexView.as_view(), name="route"),
     path(
         "c/<int:pk>/book.pdf",
         cache_control(max_age=BOOK_AGE)(FileView.as_view()),

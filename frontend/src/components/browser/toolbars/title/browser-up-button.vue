@@ -1,6 +1,7 @@
 <template>
   <v-btn
     v-if="show"
+    :key="upRoute"
     icon
     size="x-large"
     :title="title"
@@ -47,7 +48,7 @@ export default {
         if (!SPECIAL_GROUPS.has(group)) {
           group = "r";
         }
-        params = { group, pk: 0, page: 1 };
+        params = { group, pks: "0", page: 1 };
       } else {
         params = this.upRoute;
       }

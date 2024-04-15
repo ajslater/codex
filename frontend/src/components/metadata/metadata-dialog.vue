@@ -414,7 +414,7 @@ export default {
     dialogOpened() {
       this.loadMetadata({
         group: this.group,
-        pk: this.book.pk,
+        pks: this.book.ids,
       });
       this.startProgress();
     },
