@@ -22,8 +22,8 @@ from django.db.models import (
 from django.db.models.fields import PositiveSmallIntegerField
 from django.db.models.functions import Least, Lower, Reverse, Right, StrIndex, Substr
 
-from codex.db_functions import JsonGroupArray
 from codex.models import Comic
+from codex.models.functions import JsonGroupArray
 from codex.views.browser.browser_order_by import BrowserOrderByView
 
 
