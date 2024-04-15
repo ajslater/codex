@@ -117,13 +117,12 @@ export const useBrowserStore = defineStore("browser", {
     orderByChoices(state) {
       const choices = [];
       for (const item of CHOICES.browser.orderBy) {
-        if (state.page.adminFlags.folderView && item.value === "path") {
-          choices.push(item);
-        }
-        if (item.value == "search_score") {
-          if (state.settings.q) {
-            choices.push(item);
-          }
+        if (
+          (item.value === "path" && !state.page.adminFlags.folderView) ||
+          (item.value === "search_score" && !state.settings.q)
+        ) {
+          // denied order_by condition
+          continue;
         } else {
           choices.push(item);
         }
