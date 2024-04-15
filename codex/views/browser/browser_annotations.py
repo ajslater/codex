@@ -303,6 +303,7 @@ class BrowserAnnotationsView(BrowserOrderByView):
             recovered_group_list.append(group)
         return recovered_group_list
 
+
 #    def recover_multi_group_in_query(self, group_qs, cover_qs):
 #        #
 #        # This does not work because OuterRef can't see annotations.

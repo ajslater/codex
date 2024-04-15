@@ -90,15 +90,17 @@ class BrowserOrderByView(BrowserBaseView):
         elif self.order_key == "bookmark_updated_at":
             order_fields_head = ("order_value", "updated_at", "created_at")
         elif self.order_key == "story_arc_number" and model == Comic:
-            order_fields_head = ( "order_value", "date")
+            order_fields_head = ("order_value", "date")
         else:
-            order_fields_head = ( "order_value",)
+            order_fields_head = ("order_value",)
 
         # order_fields_tail
         group = self.kwargs.get("group")
         valid_nav_groups = self.valid_nav_groups  # type: ignore
         rel_prefix = "" if model == Comic else self.rel_prefix
-        order_fields_tail = model.get_order_by(valid_nav_groups, browser_group=group, rel_prefix=rel_prefix)
+        order_fields_tail = model.get_order_by(
+            valid_nav_groups, browser_group=group, rel_prefix=rel_prefix
+        )
 
         order_fields = order_fields_head + order_fields_tail
 
