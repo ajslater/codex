@@ -56,7 +56,7 @@ class UserAgentPrefixes:
 class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
     """OPDS 1 Feed."""
 
-    authentication_classes = (BasicAuthentication, SessionAuthentication)
+    authentication_classes = (SessionAuthentication, BasicAuthentication)
     template_name = "opds_v1/index.xml"
     serializer_class = OPDS1TemplateSerializer
 
