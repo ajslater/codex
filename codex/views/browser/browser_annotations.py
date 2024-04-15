@@ -283,7 +283,10 @@ class BrowserAnnotationsView(BrowserOrderByView):
 
     def recover_multi_groups(self, group_qs, cover_qs):
         """Python hack to re-cover groups collapsed with group_by."""
-        # Because OuterRef can't access annotations.
+        # This would be better in the main query but OuterRef can't access annotations.
+        # Most of the time this spins through the page and as a noop.
+        # But only for groups more than one cover_pks it will run extra queries to
+        # resolve the proper cover pk.
         recovered_group_list = []
         for group in group_qs:
             cover_pks = group.cover_pks
