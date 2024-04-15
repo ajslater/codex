@@ -9,7 +9,7 @@ class OPDS1EntryObject:
     """Fake entry db object for top link & facet entries."""
 
     group: str = ""
-    pk: int = 0
+    pks: str = "0"
     name: str = ""
     summary: str = ""
     fake: bool = True

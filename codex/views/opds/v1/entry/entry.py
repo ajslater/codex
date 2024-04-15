@@ -122,7 +122,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
     @staticmethod
     def _add_url_to_obj(objs, filter_key):
         """Add filter urls to objects."""
-        kwargs = {"group": "s", "pk": 0, "page": 1}
+        kwargs = {"group": "s", "pks": "0", "page": 1}
         url_base = reverse("opds:v1:feed", kwargs=kwargs)
         result = []
         for obj in objs:

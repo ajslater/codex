@@ -35,7 +35,7 @@ class OPDS1EntryLinksMixin:
         if cover_pk:
             kwargs = {"pk": cover_pk}
             href = reverse("opds:bin:cover", kwargs=kwargs)
-        elif cover_pk == 0:
+        elif not cover_pk:
             href = staticfiles_storage.url("img/missing_cover.webp")
         else:
             return None
@@ -49,7 +49,7 @@ class OPDS1EntryLinksMixin:
             kwargs = {"pk": cover_pk, "page": 0}
             href = reverse("opds:bin:page", kwargs=kwargs)
             mime_type = "image/jpeg"
-        elif cover_pk == 0:
+        elif not cover_pk:
             href = staticfiles_storage.url("img/missing_cover.webp")
             mime_type = "image/webp"
         else:
@@ -57,12 +57,14 @@ class OPDS1EntryLinksMixin:
         return OPDS1Link(Rel.IMAGE, href, mime_type)
 
     def _nav_href(self, metadata=False):
-        kwargs = {"group": self.obj.group, "pk": self.obj.pk, "page": 1}
+        pks = ",".join(str(pk) for pk in sorted(self.obj.ids))
+        kwargs = {"group": self.obj.group, "pks": pks, "page": 1}
         href = reverse("opds:v1:feed", kwargs=kwargs)
         qps = {}
         if (
             self.obj.group == "a"
-            and self.obj.pk
+            and self.obj.ids
+            and 0 not in self.obj.ids
             and not self.query_params.get("orderBy")
         ):
             # story arcs get ordered by story_arc_number by default
