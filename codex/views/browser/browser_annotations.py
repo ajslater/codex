@@ -302,3 +302,15 @@ class BrowserAnnotationsView(BrowserOrderByView):
                 group.cover_pk = cover_pk
             recovered_group_list.append(group)
         return recovered_group_list
+
+#    def recover_multi_group_in_query(self, group_qs, cover_qs):
+#        #
+#        # This does not work because OuterRef can't see annotations.
+#        #
+#        group_qs = group_qs.annotate(cover_pks_len=Func(F('cover_pks'), function='json_array_length', output_field=IntegerField()))
+#        covers_filter = {self.rel_prefix + "pk__in": OuterRef("cover_pks")}
+#        subquery = cover_qs.filter(**covers_filter)
+#        subquery = self.add_order_by(subquery, self.model)  # type: ignore
+#        subquery = subquery.values(self.rel_prefix + "pk")
+#        test_group_qs = group_qs.annotate(final_cover_pk=Case(When(cover_pks_len__gt=1, then=Subquery(subquery[:1])), default=F("cover_pk")))
+#        # print(test_group_qs.values("cover_pk", "cover_pks", "cover_pks_len", "final_cover_pk"))
