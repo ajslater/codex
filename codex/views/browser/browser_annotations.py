@@ -290,12 +290,12 @@ class BrowserAnnotationsView(BrowserOrderByView):
             if len(cover_pks) > 1:
                 # TODO use cover_qs when stripped down
                 covers_filter = {self.rel_prefix + "pk__in": cover_pks}
-                cover_qs = cover_qs.filter(**covers_filter)
-                cover_qs = self.add_order_by(cover_qs, self.model)  # type: ignore
-                cover_qs = cover_qs.values_list(
+                group_cover_qs = cover_qs.filter(**covers_filter)
+                group_cover_qs = self.add_order_by(group_cover_qs, self.model)  # type: ignore
+                group_cover_qs = group_cover_qs.values_list(
                     self.rel_prefix + "pk", flat=True
                 ).first()
-                cover_pk = cover_qs
+                cover_pk = group_cover_qs
                 group.cover_pk = cover_pk
             recovered_group_list.append(group)
         return recovered_group_list
