@@ -35,7 +35,7 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
         {**TopLinksMixin.DEFAULT_ROUTE, "name": "opds:v2:feed"}
     )
 
-    authentication_classes = (BasicAuthentication, SessionAuthentication)
+    authentication_classes = (SessionAuthentication, BasicAuthentication)
     serializer_class = OPDS2FeedSerializer
 
     def _title(self, browser_title):
