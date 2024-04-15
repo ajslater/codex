@@ -21,7 +21,7 @@ class TopLinksMixin(LinksMixin):
         return self.link(link_data)
 
     def _link_search(self):
-        kwargs = {"group": "s", "pk": 0, "page": 1}
+        kwargs = {"group": "s", "pks": "0", "page": 1}
         href_data = HrefData(kwargs, absolute_query_params=True, max_page=1)
         link_data = LinkData(Rel.SEARCH, href_data, template="{?query}")
         return self.link(link_data)
@@ -55,7 +55,7 @@ class TopLinksMixin(LinksMixin):
 
     def _top_route(self):
         group = "f" if self.kwargs.get("group") == "f" else "r"
-        return {"group": group, "pk": 0, "page": 1}
+        return {"group": group, "pks": "0", "page": 1}
 
     def _link_page(self, rel, page):
         """Links to a page of results."""

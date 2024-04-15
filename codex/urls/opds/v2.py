@@ -17,6 +17,11 @@ urlpatterns = [
         cache_page(BROWSER_TIMEOUT)(OPDS2FeedView.as_view()),
         name="feed",
     ),
+    path(
+        "c/<str:pk>/<int:page>",
+        cache_page(BROWSER_TIMEOUT)(OPDS2FeedView.as_view()),
+        name="acq",
+    ),
     #
     # Catch All
     path("", full_redirect_view("opds:v2:feed"), name="start"),

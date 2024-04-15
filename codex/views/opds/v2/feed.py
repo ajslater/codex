@@ -1,6 +1,5 @@
 """OPDS v2.0 Feed."""
 
-from datetime import datetime, timezone
 from types import MappingProxyType
 
 from drf_spectacular.utils import extend_schema
@@ -44,7 +43,7 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
         result = ""
         if browser_title:
             parent_name = browser_title.get("parent_name", "All")
-            if not parent_name and self.kwargs.get("pk") == 0:
+            if not parent_name and not self.pks:
                 parent_name = "All"
             group_name = browser_title.get("group_name")
             result = " ".join(filter(None, (parent_name, group_name))).strip()
@@ -81,13 +80,14 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
         """Create link kwargs."""
         if data.group_kwarg:
             # Nav Groups
-            pk = getattr(link_spec, "pk", 0)
-            kwargs = {"group": link_spec.group, "pk": pk, "page": 1}
+            ids = getattr(link_spec, "ids", [0])
+            pks = ",".join(str(pk) for pk in ids)
+            kwargs = {"group": link_spec.group, "pks": pks, "page": 1}
         elif link_spec.query_param_value in ("f", "a"):
             # Special Facets
             kwargs = {
                 "group": link_spec.query_param_value,
-                "pk": 0,
+                "pks": "0",
                 "page": 1,
             }
         else:
@@ -112,7 +112,7 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
         if (
             kwargs
             and kwargs.get("group") == "a"
-            and kwargs.get("pk")
+            and kwargs.get("pks")
             and (not qps or not qps.get("orderBy"))
         ):
             if not qps:
@@ -178,38 +178,46 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
         """Get the browser page and serialize it for this subclass."""
         group = self.kwargs.get("group")
         if group in ("f", "a"):
-            pk = self.kwargs["pk"]
-            self.is_opds_2_acquisition = bool(pk)
+            self.is_opds_2_acquisition = self.pks
         else:
             acquisition_groups = frozenset(self.valid_nav_groups[-2:])
             self.is_opds_2_acquisition = group in acquisition_groups
         self.is_opds_metadata = (
             self.request.query_params.get("opdsMetadata", "").lower() not in FALSY
         )
+
         browser_page = super().get_object()
-        groups = browser_page.get("groups")
-        books = browser_page.get("books")
 
-        self.is_aq_feed = browser_page.get("model_group") == "c"
+        # convert browser_page into opds page
 
-        ts: int = browser_page["covers_timestamp"]  # type: ignore
-        datetime.fromtimestamp(ts, tz=timezone.utc)
+        # instance vars
+        self.is_aq_feed = browser_page.get("model_group") in ("c", "f")
         self.num_pages = browser_page["num_pages"]
-        number_of_items = browser_page["total_count"]
+
+        # opds page
         title = self._title(browser_page.get("browser_title"))
+        number_of_items = browser_page["total_count"]
+        current_page = self.kwargs.get("page")
+        links = self.get_links(browser_page["up_route"])
+        facets = self._get_facets()
+
+        # opds groups
+        page_groups = browser_page.get("groups")
+        page_books = browser_page.get("books")
+        issue_number_max = browser_page["issue_number_max"]
+        groups = self._get_groups(page_groups, page_books, title, issue_number_max)
+
         return MappingProxyType(
             {
                 "metadata": {
                     "title": title,
                     "number_of_items": number_of_items,
                     "items_per_page": MAX_OBJ_PER_PAGE,
-                    "current_page": self.kwargs.get("page"),
+                    "current_page": current_page,
                 },
-                "links": self.get_links(browser_page["up_route"]),
-                "facets": self._get_facets(),
-                "groups": self._get_groups(
-                    groups, books, title, browser_page["issue_number_max"]
-                ),
+                "links": links,
+                "facets": facets,
+                "groups": groups,
             }
         )
 
@@ -219,6 +227,7 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
     )
     def get(self, *_args, **_kwargs):
         """Get the feed."""
+        self.parse_pks()
         self.parse_params()
         self.validate_settings()
         # self._detect_user_agent()
