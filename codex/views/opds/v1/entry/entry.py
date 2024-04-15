@@ -137,7 +137,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         """Get Author names."""
         if not self.metadata:
             return []
-        people = get_contributor_people(self.obj.pk, AUTHOR_ROLES)
+        people = get_contributor_people(self.obj.ids, AUTHOR_ROLES)
         return self._add_url_to_obj(people, "contributors")
 
     @property
@@ -145,7 +145,7 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         """Get Contributor names."""
         if not self.metadata:
             return []
-        people = get_contributor_people(self.obj.pk, AUTHOR_ROLES, exclude=True)
+        people = get_contributor_people(self.obj.ids, AUTHOR_ROLES, exclude=True)
         return self._add_url_to_obj(people, "contributors")
 
     @property
@@ -153,4 +153,4 @@ class OPDS1Entry(OPDS1EntryLinksMixin):
         """Get Category labels."""
         if not self.metadata:
             return {}
-        return get_m2m_objects(self.obj.pk)
+        return get_m2m_objects(self.obj.ids)

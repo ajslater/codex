@@ -115,7 +115,7 @@ class FacetsMixin(BrowserView):
         ).strip()
         entry_obj = OPDS1EntryObject(
             group=item.get("group"),
-            pks=item.get("ids"),
+            ids=item.get("pks"),
             name=name,
         )
         qps = {**self.request.query_params}

@@ -186,7 +186,7 @@ class LinksMixin(FacetsMixin):
         name = " ".join(filter(None, (top_link.glyph, top_link.title)))
         entry_obj = OPDS1EntryObject(
             group=top_link.kwargs["group"],
-            pks=top_link.kwargs["pks"],
+            ids=top_link.kwargs["pks"],
             name=name,
             summary=top_link.desc,
         )
