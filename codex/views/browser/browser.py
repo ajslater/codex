@@ -388,25 +388,6 @@ class BrowserView(BrowserAnnotationsView):
 
         return page_group_qs, page_book_qs, num_pages, page_obj_count
 
-    def _recover_multi_groups(self, group_qs, cover_qs):
-        """Python hack to re-cover groups collapsed with group_by."""
-        # Because OuterRef can't access annotations.
-        recovered_group_list = []
-        for group in group_qs:
-            cover_pks = group.cover_pks
-            if len(cover_pks) > 1:
-                # TODO use cover_qs when stripped down
-                covers_filter = {self.rel_prefix + "pk__in": cover_pks}
-                cover_qs = cover_qs.filter(**covers_filter)
-                cover_qs = self.add_order_by(cover_qs, self.model)
-                cover_qs = cover_qs.values_list(
-                    self.rel_prefix + "pk", flat=True
-                ).first()
-                cover_pk = cover_qs
-                group.cover_pk = cover_pk
-            recovered_group_list.append(group)
-        return recovered_group_list
-
     def get_object(self):
         """Validate settings and get the querysets."""
         self._set_browse_model()
@@ -448,7 +429,7 @@ class BrowserView(BrowserAnnotationsView):
             ).updated_at.timestamp()
         )
 
-        recovered_group_list = self._recover_multi_groups(group_qs, cover_qs)
+        recovered_group_list = self.recover_multi_groups(group_qs, cover_qs)
 
         # construct final data structure
         return MappingProxyType(

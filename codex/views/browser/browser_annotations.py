@@ -280,3 +280,22 @@ class BrowserAnnotationsView(BrowserOrderByView):
         qs = self._annotate_mtime(qs)
         qs = self._annotate_progress(qs)
         return qs, cover_qs
+
+    def recover_multi_groups(self, group_qs, cover_qs):
+        """Python hack to re-cover groups collapsed with group_by."""
+        # Because OuterRef can't access annotations.
+        recovered_group_list = []
+        for group in group_qs:
+            cover_pks = group.cover_pks
+            if len(cover_pks) > 1:
+                # TODO use cover_qs when stripped down
+                covers_filter = {self.rel_prefix + "pk__in": cover_pks}
+                cover_qs = cover_qs.filter(**covers_filter)
+                cover_qs = self.add_order_by(cover_qs, self.model)  # type: ignore
+                cover_qs = cover_qs.values_list(
+                    self.rel_prefix + "pk", flat=True
+                ).first()
+                cover_pk = cover_qs
+                group.cover_pk = cover_pk
+            recovered_group_list.append(group)
+        return recovered_group_list
