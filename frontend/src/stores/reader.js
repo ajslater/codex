@@ -422,7 +422,7 @@ export const useReaderStore = defineStore("reader", {
         });
     },
     async _setBookmarkPage(page) {
-      const groupParams = { group: "c", pks: this.books.current.pk.toString() };
+      const groupParams = { group: "c", ids: [this.books.current.pk] };
       page = Math.max(Math.min(this.books.current.maxPage, page), 0);
       const updates = { page };
       await BROWSER_API.setGroupBookmarks(groupParams, updates);

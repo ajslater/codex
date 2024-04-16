@@ -28,6 +28,10 @@ export default {
   computed: {
     contributorsDict() {
       const contributors = {};
+      console.log(this.value);
+      if (!this.value) {
+        return contributors;
+      }
       for (const { role, person } of this.value) {
         const roleName = camelToTitleCase(role.name) + "s";
         if (!contributors[roleName]) {

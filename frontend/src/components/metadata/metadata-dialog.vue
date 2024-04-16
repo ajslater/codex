@@ -412,10 +412,13 @@ export default {
     ...mapActions(useCommonStore, ["downloadIOSPWAFix"]),
     ...mapActions(useBrowserStore, ["identifierTypeTitle"]),
     dialogOpened() {
-      this.loadMetadata({
+      const pks = this.book.ids ? this.book.ids : [this.book.pk];
+      const data = {
         group: this.group,
-        pks: this.book.ids,
-      });
+        pks,
+      };
+      console.log(data);
+      this.loadMetadata(data);
       this.startProgress();
     },
     startProgress() {

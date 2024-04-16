@@ -59,8 +59,10 @@ const loadBrowserPage = ({ group, pks, page }, data) => {
 };
 
 const getMetadata = ({ group, pks }, data) => {
+  console.log("getMetadata", pks);
+  const pkList = pks.join(",");
   const params = preSerialize(data);
-  return HTTP.get(`/${group}/${pks}/metadata`, { params });
+  return HTTP.get(`/${group}/${pkList}/metadata`, { params });
 };
 
 const getSettings = () => {
