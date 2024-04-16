@@ -156,7 +156,7 @@ class FacetsMixin(BrowserView):
         if facet_group.query_param == "topGroup" and self._did_special_group_change(
             group, facet.value
         ):
-            kwargs = {"group": facet.value, "pks": "0", "page": 1}
+            kwargs = {"group": facet.value, "pks": {}, "page": 1}
         else:
             kwargs = self.kwargs
 

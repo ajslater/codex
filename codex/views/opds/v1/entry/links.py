@@ -68,7 +68,7 @@ class OPDS1EntryLinksMixin:
             if (
                 self.obj.group == "a"
                 and self.obj.ids
-                and "0" not in self.obj.ids
+                and 0 not in self.obj.ids
                 and not self.query_params.get("orderBy")
             ):
                 # story arcs get ordered by story_arc_number by default

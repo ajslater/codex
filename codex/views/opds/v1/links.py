@@ -22,11 +22,11 @@ LOG = get_logger(__name__)
 class TopRoutes:
     """Routes for top groups."""
 
-    PUBLISHER = MappingProxyType({"group": "p", "pks": "0", "page": 1})
-    SERIES = MappingProxyType({"group": "s", "pks": "0", "page": 1})
-    FOLDER = MappingProxyType({"group": "f", "pks": "0", "page": 1})
-    ROOT = MappingProxyType({"group": "r", "pks": "0", "page": 1})
-    STORY_ARC = MappingProxyType({"group": "a", "pks": "0", "page": 1})
+    PUBLISHER = MappingProxyType({"group": "p", "pks": {}, "page": 1})
+    SERIES = MappingProxyType({"group": "s", "pks": {}, "page": 1})
+    FOLDER = MappingProxyType({"group": "f", "pks": {}, "page": 1})
+    ROOT = MappingProxyType({"group": "r", "pks": {}, "page": 1})
+    STORY_ARC = MappingProxyType({"group": "a", "pks": {}, "page": 1})
 
 
 @dataclass

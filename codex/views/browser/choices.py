@@ -161,7 +161,6 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
     @extend_schema(request=BrowserBaseView.input_serializer_class)
     def get(self, *_args, **_kwargs):
         """Return all choices with more than one choice."""
-        self.parse_pks()
         self.parse_params()
         self._set_model()
         self.set_rel_prefix(self.model)
@@ -240,7 +239,6 @@ class BrowserChoicesView(BrowserChoicesViewBase):
     @extend_schema(request=BrowserBaseView.input_serializer_class)
     def get(self, *_args, **_kwargs):
         """Return all choices with more than one choice."""
-        self.parse_pks()
         self.parse_params()
         self._set_model()
         self.set_rel_prefix(self.model)

@@ -120,23 +120,3 @@ class BrowserBaseView(
     def set_rel_prefix(self, model):
         """Set the relation prefix for most fields."""
         self.rel_prefix = self.get_rel_prefix(model)
-
-    def parse_pks(self):
-        """Parse the pks list."""
-        pks_str = self.kwargs.get("pks")
-        pks_str_list = pks_str.split(",")
-        pks_set = set()
-        if pks_str_list:
-            for pk_str in pks_str_list:
-                try:
-                    pk = int(pk_str)
-                except ValueError:
-                    reason = f"Bad pk list submitted to {self.__class__.__name__} {pk_str=} in {pks_str=}"
-                    LOG.warn(reason)
-                    continue
-                if pk <= 0:
-                    pks_set = set()
-                    break
-                pks_set.add(pk)
-
-        self.pks = tuple(sorted(pks_set))

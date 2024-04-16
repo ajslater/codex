@@ -152,8 +152,9 @@ class BrowserAnnotationsView(BrowserOrderByView):
 
         # Get story_arc__pk
         group = self.kwargs["group"]
-        if group == self.STORY_ARC_GROUP and self.pks:
-            story_arc_pks = self.pks
+        pks = self.kwargs["pks"]
+        if group == self.STORY_ARC_GROUP and pks:
+            story_arc_pks = pks
         else:
             story_arc_pks = self.params.get("filters", {}).get(  # type: ignore
                 "story_arcs", ()

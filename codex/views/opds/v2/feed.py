@@ -43,7 +43,8 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
         result = ""
         if browser_title:
             parent_name = browser_title.get("parent_name", "All")
-            if not parent_name and not self.pks:
+            pks = self.kwargs["pks"]
+            if not parent_name and not pks:
                 parent_name = "All"
             group_name = browser_title.get("group_name")
             result = " ".join(filter(None, (parent_name, group_name))).strip()
@@ -87,7 +88,7 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
             # Special Facets
             kwargs = {
                 "group": link_spec.query_param_value,
-                "pks": "0",
+                "pks": {0},
                 "page": 1,
             }
         else:
@@ -178,7 +179,8 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
         """Get the browser page and serialize it for this subclass."""
         group = self.kwargs.get("group")
         if group in ("f", "a"):
-            self.is_opds_2_acquisition = self.pks
+            pks = self.kwargs["pks"]
+            self.is_opds_2_acquisition = bool(pks)
         else:
             acquisition_groups = frozenset(self.valid_nav_groups[-2:])
             self.is_opds_2_acquisition = group in acquisition_groups
@@ -227,7 +229,6 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
     )
     def get(self, *_args, **_kwargs):
         """Get the feed."""
-        self.parse_pks()
         self.parse_params()
         self.validate_settings()
         # self._detect_user_agent()

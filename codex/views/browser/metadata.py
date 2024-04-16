@@ -229,7 +229,8 @@ class MetadataView(BrowserAnnotationsView):
 
     def _raise_not_found(self, exc=None):
         """Raise an exception if the object is not found."""
-        detail = f"Filtered metadata for {self.group}/{self.pks} not found"
+        pks = self.kwargs["pks"]
+        detail = f"Filtered metadata for {self.group}/{pks} not found"
         raise NotFound(detail=detail) from exc
 
     def get_object(self):
@@ -242,7 +243,8 @@ class MetadataView(BrowserAnnotationsView):
             raise NotFound(detail=f"Cannot get metadata for {self.group=}")
 
         object_filter = self.get_query_filters_without_group(self.model)  # type: ignore
-        qs = self.model.objects.filter(object_filter, pk__in=self.pks)
+        pks = self.kwargs["pks"]
+        qs = self.model.objects.filter(object_filter, pk__in=pks)
         if self.model != Comic:
             qs = self.apply_search_filter(qs, self.model, binary=True)
         qs, cover_qs = self._annotate_aggregates(qs)
@@ -285,7 +287,6 @@ class MetadataView(BrowserAnnotationsView):
         # Init
         try:
             self._efv_flag = None
-            self.parse_pks()
             self.parse_params()
             self.group = self.kwargs["group"]
             self.valid_nav_groups = (self.group,)

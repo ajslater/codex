@@ -182,12 +182,13 @@ class BookmarkView(BookmarkBaseView):
 
         updates = self._validate(serializer_class)
 
-        pk = self.kwargs.get("pk")
+        pks = self.kwargs.get("pks")
+
         if group == "f":
-            comic_filter = {"folders__in": [pk]}
+            relation = "folders__in"
         else:
-            relation = self.GROUP_RELATION.get(group)
-            comic_filter = {relation: pk}
+            relation = self.GROUP_RELATION[group] + "__in"
+        comic_filter = {relation: pks}
 
         self.update_bookmarks(updates, comic_filter=comic_filter)
         return Response()

@@ -89,7 +89,8 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
             browser_title: Mapping[str, Any] = self.obj.get("browser_title")  # type: ignore
             if browser_title:
                 parent_name = browser_title.get("parent_name", "All")
-                if not parent_name and not self.pks:
+                pks = self.kwargs["pks"]
+                if not parent_name and not pks:
                     parent_name = "All"
                 group_name = browser_title.get("group_name")
                 result = " ".join(filter(None, (parent_name, group_name))).strip()
@@ -152,9 +153,9 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
         """Create all the entries."""
         entries = []
         try:
-            at_root = not self.pks
             if not self.use_facets and self.kwargs.get("page") == 1:
                 entries += self.add_top_links(TopLinks.ALL)
+                at_root = not self.kwargs["pks"]
                 if at_root:
                     entries += self.add_top_links(RootTopLinks.ALL)
                 entries += self.facets(entries=True, root=at_root)
@@ -192,7 +193,8 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
         group = self.kwargs.get("group")
         if group == "a":
             self.acquisition_groups = frozenset({"a", "c"})
-            self.is_opds_1_acquisition = group in self.acquisition_groups and self.pks
+            pks = self.kwargs["pks"]
+            self.is_opds_1_acquisition = group in self.acquisition_groups and pks
         else:
             self.acquisition_groups = frozenset({*self.valid_nav_groups[-2:]} | {"c"})
             self.is_opds_1_acquisition = group in self.acquisition_groups
@@ -232,7 +234,6 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
     )
     def get(self, *_args, **_kwargs):
         """Get the feed."""
-        self.parse_pks()
         self.parse_params()
         self.validate_settings()
         self._set_user_agent_variables()
