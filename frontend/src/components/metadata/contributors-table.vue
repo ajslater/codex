@@ -28,7 +28,6 @@ export default {
   computed: {
     contributorsDict() {
       const contributors = {};
-      console.log(this.value);
       if (!this.value) {
         return contributors;
       }

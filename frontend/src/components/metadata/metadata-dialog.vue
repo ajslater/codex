@@ -417,7 +417,6 @@ export default {
         group: this.group,
         pks,
       };
-      console.log(data);
       this.loadMetadata(data);
       this.startProgress();
     },
