@@ -6,6 +6,11 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v1.5.16
+
+- Fixes
+  - Fix creating and updating exclude groups.
+
 ## v1.5.15
 
 - Fixes
