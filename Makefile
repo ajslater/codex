@@ -157,7 +157,7 @@ collectstatic:
 .PHONY: build
 ## Build python package
 ## @category Build
-build: collectstatic check
+build: build-frontend collectstatic check
 	poetry build
 
 .PHONY: kill
