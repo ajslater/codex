@@ -15,6 +15,7 @@ DEPS=(
   docker/docker-version-checksum.sh
   docker/docker-version-codex-arch.sh
   docker-compose.yaml
+  Makefile
 )
 
 source ./docker/docker-version-checksum.sh
