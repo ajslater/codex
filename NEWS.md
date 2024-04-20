@@ -10,6 +10,7 @@ border-radius: 128px;
 
 - Fixes
   - Fix creating and updating exclude groups.
+  - More Web & url tags parsed from metadata.
 
 ## v1.5.15
 

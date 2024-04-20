@@ -476,13 +476,13 @@ files = [
 
 [[package]]
 name = "comicbox"
-version = "1.1.4"
+version = "1.1.5"
 description = "An API for reading comic archive contents and metadata: CBZ, CBR, CBT and PDF"
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-    {file = "comicbox-1.1.4-py3-none-any.whl", hash = "sha256:a060fa6c9ab2b14ec8f2f0cdf598897b27c8ec4541b71a78cbee700f7a37e2aa"},
-    {file = "comicbox-1.1.4.tar.gz", hash = "sha256:ff3e33586ab0b4b36db0d62ea5370cd4a2f5f86e9b2327cd6cb5dcff9d81b675"},
+    {file = "comicbox-1.1.5-py3-none-any.whl", hash = "sha256:8a4900652913915940811cd13523be4edb8f6c3f2a8d43ca54595c9cd4d32de1"},
+    {file = "comicbox-1.1.5.tar.gz", hash = "sha256:d947b0d91198950641c88cd8a38d3b9f1aec3779a6066751a43dbf1ad3d3d70f"},
 ]
 
 [package.dependencies]
@@ -2723,4 +2723,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "f451038e423f79d948b5e42a84b4540385f83f84574daac6ee4917f5b5551310"
+content-hash = "52537eef214ac5dba110939bfe3675c20a849ce89b94c23cb9ab36b55118314f"
