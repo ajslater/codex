@@ -58,7 +58,7 @@ services:
       - ./codex/static_build:/app/codex/static_build:ro
       - ./codex/static_root:/app/codex/static_root
       - ./dist/:/app/dist/
-    command: make build
+    command: make build-backend
   codex-arch:
     build:
       context: .

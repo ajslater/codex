@@ -19,7 +19,7 @@
         <td class="adminNoData" colspan="100%">No groups</td>
       </template>
       <template #[`item.exclude`]="{ item }">
-        <GroupChip group-type :item="typeObj(item)" title-key="name" />
+        <GroupChip group-type :item="groupType(item)" title-key="name" />
       </template>
       <template #[`item.userSet`]="{ item }">
         <RelationChips :pks="item.userSet" :objs="users" title-key="username" />
@@ -164,9 +164,10 @@ export default {
   },
   methods: {
     ...mapActions(useAdminStore, ["loadTables"]),
-    typeObj(item) {
-      const name = item.exclude ? "Exclude " : "Include";
-      return { name, exclude: item.exclude };
+    groupType(item) {
+      const exclude = item.exclude;
+      const name = exclude ? "Exclude " : "Include";
+      return { name, exclude };
     },
   },
 };

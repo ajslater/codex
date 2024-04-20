@@ -7,7 +7,11 @@ set -euxo pipefail
 ####################
 poetry run ruff check .
 poetry run ruff format --check .
-poetry run pyright
+if [ -f .venv/bin/activate ]; then
+  bash -c "source .venv/bin/activate && poetry run pyright"
+else
+  poetry run pyright
+fi
 poetry run vulture .
 if [ "$(uname)" = "Darwin" ]; then
   # Radon is only of interest to development

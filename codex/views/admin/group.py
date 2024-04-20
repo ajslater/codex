@@ -10,7 +10,6 @@ from rest_framework.viewsets import ModelViewSet
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.logger.logging import get_logger
-from codex.models.admin import GroupAuth
 from codex.serializers.admin import GroupSerializer
 
 LOG = get_logger(__name__)
@@ -25,23 +24,10 @@ class AdminGroupViewSet(ModelViewSet):
     )
     serializer_class = GroupSerializer
 
-    _CHANGE_FIELDS = frozenset({"librarySet", "userSet", "exclude"})
+    _CHANGE_FIELDS = frozenset({"librarySet", "userSet", "groupauth"})
 
     def _on_change(self, validated_data=None):
         """On change hook."""
-        if validated_data:
-            pk = self.kwargs.get("pk")
-            if pk:
-                group = Group.objects.get(pk=pk)
-            else:
-                name = validated_data.get("name")
-                group = Group.objects.get(name=name)
-            exclude = bool(validated_data.get("exclude"))
-            defaults = {"group": group}
-            ga, _ = GroupAuth.objects.get_or_create(defaults=defaults, group=group)
-            ga.exclude = exclude
-            ga.save()
-
         if not validated_data or frozenset(validated_data.keys()).intersection(
             self._CHANGE_FIELDS
         ):

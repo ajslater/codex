@@ -154,11 +154,16 @@ icons:
 collectstatic:
 	bin/collectstatic.sh
 
+.PHONY: build-backend
+## Build python package
+## @category Build
+build-backend: collectstatic check
+	poetry build
+
 .PHONY: build
 ## Build python package
 ## @category Build
-build: collectstatic check
-	poetry build
+build: build-frontend build-backend
 
 .PHONY: kill
 ## Kill lingering codex processes

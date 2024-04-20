@@ -1,12 +1,5 @@
 <template>
-  <v-chip
-    :class="{
-      include: groupType && !item.exclude,
-      exclude: groupType && item.exclude,
-    }"
-    :text="item[titleKey]"
-    :value="item.value"
-  />
+  <v-chip :class="classes" :text="text" :value="value" />
 </template>
 <script>
 export default {
@@ -14,15 +7,41 @@ export default {
   props: {
     titleKey: {
       type: String,
-      required: true,
+      default: "",
     },
     groupType: {
       type: Boolean,
-      default: false,
+      default: undefined,
     },
     item: {
       type: Object,
-      required: true,
+      default: undefined,
+    },
+  },
+  computed: {
+    classes() {
+      let cls = {};
+      if (this.groupType && this.item) {
+        cls.include = !this.item.exclude;
+        cls.exclude = this.item.exclude;
+      }
+      return cls;
+    },
+    text() {
+      if (this.item && this.titleKey) {
+        return this.item[this.titleKey];
+      }
+      return "";
+    },
+    value() {
+      if (this.item) {
+        if (this.groupType) {
+          return this.item.exclude;
+        } else {
+          return this.item.value;
+        }
+      }
+      return undefined;
     },
   },
 };
