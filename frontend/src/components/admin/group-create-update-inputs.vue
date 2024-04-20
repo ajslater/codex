@@ -57,12 +57,13 @@ import { mapActions, mapState } from "pinia";
 import AdminRelationPicker from "@/components/admin/relation-picker.vue";
 import { useAdminStore } from "@/stores/admin";
 
-const UPDATE_KEYS = ["name", "userSet", "librarySet"];
+const UPDATE_KEYS = ["name", "userSet", "librarySet", "exclude"];
 Object.freeze(UPDATE_KEYS);
 const EMPTY_ROW = {
   name: "",
   userSet: [],
   librarySet: [],
+  exclude: false,
 };
 Object.freeze(EMPTY_ROW);
 
@@ -86,7 +87,7 @@ export default {
           (v) => (!!v && !this.names.has(v.trim())) || "Name already used",
         ],
       },
-      row: _.cloneDeep(this.oldRow || EMPTY_ROW),
+      row: { ...EMPTY_ROW, ..._.cloneDeep(this.oldRow) },
     };
   },
   computed: {
