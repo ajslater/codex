@@ -6,7 +6,7 @@ width: 128px;
 border-radius: 128px;
 " />
 
-## v1.5.16
+## v1.5.17
 
 - Fixes
   - Fix background color of browser card controls since vuetify update.
