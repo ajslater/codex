@@ -76,7 +76,7 @@ export default {
     ...mapGetters(useAuthStore, ["isUserAdmin", "isCodexViewable"]),
     ...mapState(useBrowserStore, {
       librariesExist: (state) => state.page.librariesExist,
-      showPlaceHolder: function (state) {
+      showPlaceHolder(state) {
         return (
           this.adminFlags.nonUsers === undefined ||
           (this.isCodexViewable &&

@@ -73,13 +73,13 @@ export default {
     ...mapState(useBrowserStore, {
       importMetadata: (state) => state.page.adminFlags.importMetadata,
     }),
-    linkLabel: function () {
+    linkLabel() {
       let label = "";
       label += this.item.group === "c" ? "Read" : "Browse to";
       label += " " + this.item.headerName;
       return label;
     },
-    toRoute: function () {
+    toRoute() {
       if (!this.doubleTapHovered) {
         return {};
       }
@@ -90,7 +90,7 @@ export default {
             params: { group: this.item.group, pk: this.item.pk, page: 1 },
           };
     },
-    progressBackgroundColor: function () {
+    progressBackgroundColor() {
       return this.item.progress
         ? this.$vuetify.theme.current.colors.row
         : "inherit";

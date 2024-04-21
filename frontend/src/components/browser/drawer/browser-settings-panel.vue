@@ -43,10 +43,10 @@ export default {
     ...mapGetters(useAuthStore, ["isCodexViewable"]),
     ...mapState(useBrowserStore, {
       groupChoices: (state) => state.choices.static.settingsGroup,
-      twentyFourHourTimeTitle: (state) =>
-        state.choices.static.twentyFourHourTime.title,
       showSettings: (state) => state.settings.show,
       twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
+      twentyFourHourTimeTitle: (state) =>
+        state.choices.static.twentyFourHourTime.title,
     }),
   },
   methods: {
