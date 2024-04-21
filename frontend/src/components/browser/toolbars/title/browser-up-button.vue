@@ -1,6 +1,7 @@
 <template>
   <v-btn
     v-if="show"
+    :key="to"
     icon
     size="x-large"
     :title="title"
@@ -25,15 +26,15 @@ export default {
   computed: {
     ...mapGetters(useBrowserStore, ["parentModelGroup"]),
     ...mapState(useBrowserStore, {
+      topGroup: (state) => state.settings.topGroup,
+      groupNames: (state) => state.choices.static.groupNames,
       upRoute: (state) => state.page.routes.up,
-      title(state) {
-        const group = this.top
-          ? state.settings.topGroup
-          : this.parentModelGroup;
-        const name = state.choices.static.groupNames[group] || "All";
-        return `Up to ${name}`;
-      },
     }),
+    title() {
+      const group = this.top ? this.topGroup : this.parentModelGroup;
+      const name = this.groupNames[group] || "All";
+      return `Up to ${name}`;
+    },
     show() {
       return this.upRoute && "group" in this.upRoute;
     },
