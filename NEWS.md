@@ -9,6 +9,11 @@ border-radius: 128px;
 ## v1.5.16
 
 - Fixes
+  - Fix background color of browser card controls since vuetify update.
+
+## v1.5.16
+
+- Fixes
   - Fix creating and updating exclude groups.
   - More Web & url tags parsed from metadata.
 
