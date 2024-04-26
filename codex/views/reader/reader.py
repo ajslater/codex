@@ -117,7 +117,7 @@ class ReaderView(BookmarkBaseView, SharedAnnotationsMixin):
         return qs.order_by(*ordering)
 
     def _append_with_settings(self, book, bookmark_filter):
-        """Get bookmarks and filename and append to book list."""
+        """Append bookmark to book list."""
         book.settings = (
             Bookmark.objects.filter(**bookmark_filter, comic=book)
             .only(*self.SETTINGS_ATTRS)

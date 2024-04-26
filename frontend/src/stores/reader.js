@@ -127,13 +127,15 @@ export const useReaderStore = defineStore("reader", {
     activeTitle(state) {
       const book = state.books.current;
       let title;
-      if (state.arcs[0]?.group === "f") {
-        // this 0 index will break if we start including series
-        //  with file group.
-        title = book?.filename;
-      }
-      if (!title) {
-        title = book ? getFullComicName(book) : "";
+      if (book) {
+        if (state.arcs[0]?.group != "f") {
+          title = getFullComicName(book);
+        }
+        if (!title) {
+          title = book.filename || "";
+        }
+      } else {
+        title = "";
       }
       return title;
     },
