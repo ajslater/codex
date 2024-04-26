@@ -3,7 +3,7 @@
 from types import MappingProxyType
 
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser, Group
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema
 from rest_framework.generics import GenericAPIView
@@ -124,14 +124,11 @@ class GroupACLMixin:
         user = self.request.user  # type: ignore
 
         if user and not isinstance(user, AnonymousUser):
-            groups = user.groups
             # Include groups are visible to users in the group
-            include_groups = groups.filter(groupauth__exclude=False)
-            # Exclude groups are visible to users not in the group
-            exclude_groups = Group.objects.filter(groupauth__exclude=True).exclude(
-                user=user
-            )
-            groups_query = include_groups | exclude_groups
-            query |= Q(**{f"{groups_rel}__in": groups_query})
+            user_query = Q(**{f"{groups_rel}__user": user})
+            exclude_rel = f"{groups_rel}__groupauth__exclude"
+            auth_groups_query = Q(**{exclude_rel: False}) | ~Q(**{exclude_rel: True})
+            auth_query = auth_groups_query & user_query
+            query |= auth_query
 
         return query

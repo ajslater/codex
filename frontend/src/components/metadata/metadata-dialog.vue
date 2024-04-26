@@ -37,6 +37,7 @@
             :group="group"
             :child-count="md.childCount"
             :finished="md.finished"
+            :multi-group="multiGroup"
           />
           <v-progress-linear
             class="bookCoverProgress"
@@ -53,14 +54,14 @@
             :value="md.publisher"
             group="p"
             label="Publisher"
-            :obj="{ pk: md.id, group: md.group }"
+            :obj="{ ids: md.ids, group: md.group }"
           />
           <MetadataText
             id="imprint"
             :value="md.imprint"
             group="i"
             label="Imprint"
-            :obj="{ pk: md.id, group: md.group }"
+            :obj="{ ids: md.ids, group: md.group }"
           />
         </div>
         <div class="inlineRow">
@@ -69,7 +70,7 @@
             :value="md.series"
             label="Series"
             group="s"
-            :obj="{ pk: md.id, group: md.group }"
+            :obj="{ ids: md.ids, group: md.group }"
           />
         </div>
         <div class="inlineRow">
@@ -78,7 +79,7 @@
             :value="md.volume"
             label="Volume"
             group="v"
-            :obj="{ pk: md.id, group: md.group }"
+            :obj="{ ids: md.ids, group: md.group }"
           />
           <MetadataText :value="md.seriesVolumeCount" label="Volume Count" />
           <MetadataText
@@ -86,7 +87,7 @@
             :value="formattedIssue"
             label="Issue"
             group="c"
-            :obj="{ pk: md.id, group: md.group }"
+            :obj="{ ids: md.ids, group: md.group }"
           />
           <MetadataText :value="md.volumeIssueCount" label="Issue Count" />
           <MetadataText :value="md.name" label="Title" />
@@ -396,6 +397,9 @@ export default {
         titledIdentifiers.push({ ...identifier, name });
       }
       return titledIdentifiers;
+    },
+    multiGroup() {
+      return this.md.ids.length > 1;
     },
   },
   watch: {

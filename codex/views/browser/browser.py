@@ -5,13 +5,10 @@ from math import ceil
 from os import sep
 from pathlib import Path
 from types import MappingProxyType
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from django.core.paginator import EmptyPage, Paginator
-from django.db.models import F, Max, Value
-from django.db.models.fields import (
-    CharField,
-)
+from django.db.models import Max
 from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
@@ -35,13 +32,11 @@ from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
 from codex.views.browser.browser_annotations import BrowserAnnotationsView
 from codex.views.browser.const import MAX_OBJ_PER_PAGE
 
+if TYPE_CHECKING:
+    from django.db.models.query import QuerySet
+
+
 LOG = get_logger(__name__)
-_ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType(
-    {
-        AdminFlag.FlagChoices.FOLDER_VIEW.value: "folder_view",
-        AdminFlag.FlagChoices.IMPORT_METADATA.value: "import_metadata",
-    }
-)
 
 
 class BrowserView(BrowserAnnotationsView):
@@ -50,9 +45,18 @@ class BrowserView(BrowserAnnotationsView):
     permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]  # type: ignore
     serializer_class = BrowserPageSerializer
 
+    ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType(
+        {
+            AdminFlag.FlagChoices.FOLDER_VIEW.value: "folder_view",
+            AdminFlag.FlagChoices.IMPORT_METADATA.value: "import_metadata",
+        }
+    )
+
     _NAV_GROUPS = "rpisv"
 
-    _GROUP_INSTANCE_SELECT_RELATED = MappingProxyType(
+    _GROUP_INSTANCE_SELECT_RELATED: MappingProxyType[
+        type[BrowserGroupModel], tuple[str | None, ...]
+    ] = MappingProxyType(
         {
             Comic: ("series", "volume"),
             Volume: ("series",),
@@ -82,40 +86,17 @@ class BrowserView(BrowserAnnotationsView):
         "contributors__role",
         "contributors__person",
     )
+    TARGET = "browser"
 
-    is_opds_2_acquisition = False
+    def __init__(self, *args, **kwargs):
+        """Set params for the type checker."""
+        super().__init__(*args, **kwargs)
+        self.is_opds_2_acquisition = False
+        self.group_query: QuerySet = Comic.objects.none()
+        self.group_instance: BrowserGroupModel | None = None
+        self.valid_nav_groups: tuple[str, ...] = ()
 
-    def _annotate_group_names(self, queryset, model):
-        """Annotate name fields by hoisting them up."""
-        # Optimized to only lookup what is used on the frontend
-        group_names = {}
-        if model == Comic:
-            group_names = {
-                "publisher_name": F("publisher__name"),
-                "series_name": F("series__name"),
-                "volume_name": F("volume__name"),
-            }
-            if self.is_opds_2_acquisition:
-                group_names["imprint_name"] = F("imprint__name")
-        elif model == Volume:
-            group_names["series_name"] = F("series__name")
-        elif model == Imprint:
-            group_names["publisher_name"] = F("publisher__name")
-        return queryset.annotate(**group_names)
-
-    def _annotate_group(self, queryset, model):
-        """Annotate Group."""
-        value = "c" if model == Comic else self.model_group
-        return queryset.annotate(group=Value(value, CharField(max_length=1)))
-
-    def _add_annotations(self, qs, model):
-        """Annotations for display and sorting."""
-        qs, cover_qs = self.annotate_common_aggregates(qs, model)
-        qs = self._annotate_group(qs, model)
-        qs = self._annotate_group_names(qs, model)
-        return qs, cover_qs
-
-    def _get_model_group(self):
+    def get_model_group(self):
         """Get the group of the models to browse."""
         # the model group shown must be:
         #   A valid nav group or 'c'
@@ -131,47 +112,44 @@ class BrowserView(BrowserAnnotationsView):
             return self.COMIC_GROUP
         return self.valid_nav_groups[self.valid_nav_groups.index(group) + 1]
 
-    def _set_browse_model(self):
-        """Set the model for the browse list."""
-        group = self.kwargs["group"]
-        self.group_class = self.GROUP_MODEL_MAP[group]
-
-        self.model_group = self._get_model_group()
-        self.model = self.GROUP_MODEL_MAP[self.model_group]
-
     def _get_common_queryset(self, model):
         """Create queryset common to group & books."""
         object_filter = self.get_query_filters(model, False)
         qs = model.objects.filter(object_filter)
-        qs = self.apply_search_filter(qs, model)
-        qs, cover_qs = self._add_annotations(qs, model)
-        qs = self.add_order_by(qs, model)
-        if limit := self.params.get("limit"):
-            # limit only is set by some opds views
-            qs = qs[:limit]
+        qs = self.filter_by_annotations(qs, model)
+        count_group_by = "id" if model == Comic else "name"
+        count = qs.group_by(count_group_by).count()
+        if count:
+            qs = self.annotate_order_aggregates(qs, model)
+            qs = self.add_order_by(qs, model)
+            if limit := self.params.get("limit"):
+                # limit only is set by some opds views
+                qs = qs[:limit]
+                count = min(count, limit)  # type: ignore
 
-        return qs, cover_qs
+        return qs, count
 
     def _get_group_queryset(self):
         """Create group queryset."""
         if not self.model:
             reason = "Model not set for browser queryset."
             raise ValueError(reason)
-        elif self.model == Comic:  # noqa: RET506
+        elif self.is_model_comic:  # noqa: RET506
             qs = self.model.objects.none()
-            cover_qs = qs
+            count = 0
         else:
-            qs, cover_qs = self._get_common_queryset(self.model)
+            qs, count = self._get_common_queryset(self.model)
             qs = qs.group_by("name")
-        return qs, cover_qs
+        return qs, count
 
     def _get_book_queryset(self):
         """Create book queryset."""
         if self.model in (Comic, Folder):
-            qs, _ = self._get_common_queryset(Comic)
+            qs, count = self._get_common_queryset(Comic)
         else:
             qs = Comic.objects.none()
-        return qs
+            count = 0
+        return qs, count
 
     def _get_folder_up_route(self):
         """Get out parent's pk."""
@@ -214,9 +192,7 @@ class BrowserView(BrowserAnnotationsView):
                     self.group_query = self.group_class.objects.none()
                 else:
                     reason = f"{group}__in={pks} does not exist!"
-                    self._raise_redirect(
-                        {"group": group, "pks": "0", "page": 1}, reason
-                    )
+                    self._raise_redirect({"group": group}, reason)
         elif self.group_class:
             self.group_query = self.group_class.objects.none()
         else:
@@ -312,28 +288,31 @@ class BrowserView(BrowserAnnotationsView):
             "group_count": group_count,
         }
 
-    def _page_out_of_bounds(self, num_pages):
+    def _check_page_in_bounds(self, total_count):
         """Redirect page out of bounds."""
-        group = self.kwargs.get("group")
         pks = self.kwargs.get("pks")
         page = self.kwargs.get("page", 1)
-        if not pks and page == 1:
+        num_pages = ceil(total_count / MAX_OBJ_PER_PAGE)
+        if (not pks and page == 1) or (page >= 1 and page <= num_pages):
             # Don't redirect if on the root page for the group.
-            return
+            # Or page within valid range.
+            return num_pages
 
+        # Adjust route mask for redirect
+        group = self.kwargs.get("group")
         if num_pages and page > 1:
             # Try page 1 first.
             new_page = num_pages if num_pages and page > num_pages else 1
             pks = pks if pks else "0"
         else:
             # Redirect to root for the group.
-            # group = "r"
             pks = "0"
             new_page = 1
+
         route_changes = {"group": group, "pks": pks, "page": new_page}
         reason = f"{page=} does not exist!"
         LOG.debug(f"{reason} redirect to page {new_page}.")
-        self._raise_redirect(route_changes, reason)
+        return self._raise_redirect(route_changes, reason)
 
     def _paginate_section(self, model, qs, page):
         """Paginate a group or Comic section."""
@@ -385,61 +364,68 @@ class BrowserView(BrowserAnnotationsView):
                 )
         return page_book_qs
 
-    def _paginate(self, group_qs, book_qs):
+    def _paginate(self, group_qs, book_qs, group_count, book_count):
         """Paginate the queryset into a group and book object lists."""
-        page = self.kwargs.get("page", 1)
-        if page < 1:
-            self._page_out_of_bounds(1)
-
-        group_count = group_qs.count()
-        book_count = book_qs.count()
-
-        num_pages = ceil((group_count + book_count) / MAX_OBJ_PER_PAGE)
-        if page > num_pages:
-            self._page_out_of_bounds(num_pages)
-
+        num_pages = self._check_page_in_bounds(group_count + book_count)
         page_group_qs = self._paginate_groups(group_qs, group_count)
-        page_obj_count = page_group_qs.count()
-        page_book_qs = self._paginate_books(book_qs, group_count, page_obj_count)
-        page_obj_count += page_book_qs.count()
+        page_group_count = page_group_qs.count()
+        page_book_qs = self._paginate_books(book_qs, group_count, page_group_count)
+        page_book_count = page_book_qs.count()
 
-        return page_group_qs, page_book_qs, num_pages, page_obj_count
+        return page_group_qs, page_book_qs, num_pages, page_group_count, page_book_count
 
-    def get_object(self):
-        """Validate settings and get the querysets."""
-        self._set_browse_model()
-        self.set_rel_prefix(self.model)
-        self._set_group_query_and_instance()  # Placed up here to invalidate earlier
-        # Create the main query with the filters
-        group = self.kwargs.get("group")
-
-        group_qs, cover_qs = self._get_group_queryset()
-        book_qs = self._get_book_queryset()
-
+    def _get_group_and_books(self):
+        """Create the main queries with filters, annotation and pagination."""
+        group_qs, group_count = self._get_group_queryset()
+        book_qs, book_count = self._get_book_queryset()
         # Paginate
-        group_qs, book_qs, num_pages, total_count = self._paginate(group_qs, book_qs)
+        group_qs, book_qs, num_pages, page_group_count, page_book_count = (
+            self._paginate(group_qs, book_qs, group_count, book_count)
+        )
+        if page_group_count:
+            group_qs = self.annotate_card_aggregates(group_qs, self.model)
+        if page_book_count:
+            book_qs = self.annotate_card_aggregates(book_qs, Comic)
 
-        # get additional context
+        # print(group_qs.explain())
+        # print(group_qs.query)
+
+        recovered_group_list = self.re_cover_multi_groups(group_qs)
+        total_count = page_group_count + page_book_count
+        return recovered_group_list, book_qs, num_pages, total_count
+
+    def _get_up_route(self):
+        group = self.kwargs.get("group")
         if group == self.FOLDER_GROUP:
             up_group, up_pk = self._get_folder_up_route()
         elif group == self.STORY_ARC_GROUP:
             up_group, up_pk = self._get_story_arc_up_route()
         else:
             up_group, up_pk = self._get_browse_up_route()
-        browser_page_title = self._get_browser_page_title()
 
         if up_group is not None and up_pk is not None:
             up_route = {"group": up_group, "pks": str(up_pk), "page": 1}
         else:
             up_route = {}
+        return up_route
 
-        libraries_exist = Library.objects.exists()
+    def get_object(self):
+        """Validate settings and get the querysets."""
+        self.set_browse_model()
+        self.set_rel_prefix(self.model)
+        self._set_group_query_and_instance()  # Placed up here to invalidate earlier
 
+        group_list, book_qs, num_pages, total_count = self._get_group_and_books()
+
+        # get additional context
+        up_route = self._get_up_route()
+        browser_page_title = self._get_browser_page_title()
+        # needs to happen after pagination
         # runs obj list query twice :/
         issue_number_max = book_qs.only("issue_number").aggregate(Max("issue_number"))[
             "issue_number__max"
         ]
-
+        libraries_exist = Library.objects.exists()
         covers_timestamp = int(
             Timestamp.objects.get(
                 key=Timestamp.TimestampChoices.COVERS.value
@@ -454,7 +440,7 @@ class BrowserView(BrowserAnnotationsView):
                 "up_route": up_route,
                 "browser_title": browser_page_title,
                 "model_group": self.model_group,
-                "groups": recovered_group_list,
+                "groups": group_list,
                 "books": book_qs,
                 "issue_number_max": issue_number_max,
                 "num_pages": num_pages,
@@ -501,12 +487,11 @@ class BrowserView(BrowserAnnotationsView):
 
                 self.valid_nav_groups = (*self.valid_nav_groups, *tail_top_groups)
                 if nav_group not in self.valid_nav_groups:
-                    route_changes = {"group": self.ROOT_GROUP}
                     reason = (
                         f"Nav group {nav_group} unavailable, "
                         f"redirect to {self.ROOT_GROUP}"
                     )
-                    self._raise_redirect(route_changes, reason)
+                    self._raise_redirect({}, reason)
                 break
 
     def _raise_redirect(self, route_mask, reason, settings_mask=None):
@@ -567,11 +552,11 @@ class BrowserView(BrowserAnnotationsView):
         # Redirect if nav group is wrong
         self._set_valid_browse_nav_groups(valid_top_groups)
 
-        # Validate pk
-        if nav_group == self.ROOT_GROUP and pks:
-            # r never has a pk
+        # Validate pks
+        if nav_group == self.ROOT_GROUP and (pks and 0 not in pks):
+            # r never has pks
             reason = f"Redirect r with {pks=} to pks 0"
-            self._raise_redirect({"pks": {}}, reason)
+            self._raise_redirect({}, reason)
 
     def _validate_story_arc_settings(self):
         """Validate story arc settings."""
@@ -587,24 +572,13 @@ class BrowserView(BrowserAnnotationsView):
         page = self.kwargs.get("page", 1)
         self.params["route"] = {"group": group, "pks": pks, "page": page}
 
-    def _set_admin_flags(self):
-        """Set browser relevant admin flags."""
-        admin_pairs = AdminFlag.objects.filter(
-            key__in=_ADMIN_FLAG_VALUE_KEY_MAP.keys()
-        ).values_list("key", "on")
-        admin_flags = {}
-        for key, on in admin_pairs:
-            export_key = _ADMIN_FLAG_VALUE_KEY_MAP[key]
-            admin_flags[export_key] = on
-        self.admin_flags = MappingProxyType(admin_flags)
-
     def validate_settings(self):
         """Validate group and top group settings."""
-        group = self.kwargs.get("group")
         self.set_order_key()
-        self._set_admin_flags()
+        self.set_admin_flags()
         enable_folder_view = self.admin_flags["folder_view"]
 
+        group = self.kwargs["group"]
         if group == self.FOLDER_GROUP:
             self._validate_folder_settings(enable_folder_view)
         elif group == self.STORY_ARC_GROUP:
@@ -613,11 +587,11 @@ class BrowserView(BrowserAnnotationsView):
             self._validate_browser_group_settings()
 
         # Validate path sort
-        if self.order_key == "path" and not enable_folder_view:
+        if self.order_key == "filename" and not enable_folder_view:
             pks = self.kwargs["pks"]
             page = self.kwargs["page"]
             route_changes = {"group": group, "pks": pks, "page": page}
-            reason = "order by path not allowed by admin flag."
+            reason = "order by filename not allowed by admin flag."
             settings_mask = {"order_by": "sort_name"}
             self._raise_redirect(route_changes, reason, settings_mask)
 

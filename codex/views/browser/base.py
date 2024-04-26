@@ -6,11 +6,15 @@ from types import MappingProxyType
 from urllib.parse import unquote_plus
 
 from django.contrib.auth.models import User
+from django.db.models import Q
+from django.db.models.aggregates import Max, Min
 from djangorestframework_camel_case.settings import api_settings
 from djangorestframework_camel_case.util import underscoreize
+from rest_framework.exceptions import NotFound
 
 from codex.logger.logging import get_logger
 from codex.models import (
+    AdminFlag,
     Comic,
     Folder,
     Imprint,
@@ -19,6 +23,7 @@ from codex.models import (
     StoryArc,
     Volume,
 )
+from codex.models.groups import BrowserGroupModel
 from codex.serializers.browser.settings import BrowserSettingsSerializer
 from codex.views.browser.filters.bookmark import BookmarkFilterMixin
 from codex.views.browser.filters.field import ComicFieldFilter
@@ -35,26 +40,38 @@ class BrowserBaseView(
 
     input_serializer_class = BrowserSettingsSerializer
 
-    GROUP_MODEL_MAP = MappingProxyType(
-        {
-            GroupFilterMixin.ROOT_GROUP: None,
-            "p": Publisher,
-            "i": Imprint,
-            "s": Series,
-            "v": Volume,
-            GroupFilterMixin.COMIC_GROUP: Comic,
-            GroupFilterMixin.FOLDER_GROUP: Folder,
-            GroupFilterMixin.STORY_ARC_GROUP: StoryArc,
-        }
+    GROUP_MODEL_MAP: MappingProxyType[str, type[BrowserGroupModel] | None] = (
+        MappingProxyType(
+            {
+                GroupFilterMixin.ROOT_GROUP: None,
+                "p": Publisher,
+                "i": Imprint,
+                "s": Series,
+                "v": Volume,
+                GroupFilterMixin.COMIC_GROUP: Comic,
+                GroupFilterMixin.FOLDER_GROUP: Folder,
+                GroupFilterMixin.STORY_ARC_GROUP: StoryArc,
+            }
+        )
     )
+    ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType({})
 
     _GET_JSON_KEYS = frozenset({"filters", "show"})
+    TARGET = ""
 
     def __init__(self, *args, **kwargs):
         """Set params for the type checker."""
         super().__init__(*args, **kwargs)
-        self._is_admin = None
+        self._is_admin: bool = False
         self.params = {}
+        self.bm_annotation_data = {}
+        self.rel_prefix: str = ""
+        self.model: type[BrowserGroupModel] | None = None
+        self.group_class: type[BrowserGroupModel] | None = None
+        self.model_group: str = ""
+        self.is_model_comic: bool = False
+        self.admin_flags: MappingProxyType[str, bool] = MappingProxyType({})
+        self.order_agg_func: type[Min | Max] = Min
 
     def is_admin(self):
         """Is the current user an admin."""
@@ -63,9 +80,36 @@ class BrowserBaseView(
             self._is_admin = user and isinstance(user, User) and user.is_staff
         return self._is_admin
 
-    def get_query_filters_without_group(self, model):
+    def set_admin_flags(self):
+        """Set browser relevant admin flags."""
+        admin_pairs = AdminFlag.objects.filter(
+            key__in=self.ADMIN_FLAG_VALUE_KEY_MAP.keys()
+        ).values_list("key", "on")
+        admin_flags = {}
+        for key, on in admin_pairs:
+            export_key = self.ADMIN_FLAG_VALUE_KEY_MAP[key]
+            admin_flags[export_key] = on
+        self.admin_flags = MappingProxyType(admin_flags)
+
+    def get_model_group(self):
+        """Determine model group for set_browse_model()."""
+        return self.kwargs["group"]
+
+    def set_browse_model(self):
+        """Set the model for the browse list."""
+        group = self.kwargs["group"]
+        self.group_class = self.GROUP_MODEL_MAP[group]
+
+        self.model_group = self.get_model_group()
+        self.model = self.GROUP_MODEL_MAP.get(self.model_group)
+        if self.model is None:
+            raise NotFound(detail=f"Cannot browse {group=}")
+        self.is_model_comic = self.model == Comic
+
+    def get_query_filters_without_group(self, model, cover=False):
         """Return all the filters except the group filter."""
-        object_filter = self.get_group_acl_filter(model)
+        add_acl = not (cover and self.model == Folder)  # type: ignore
+        object_filter = self.get_group_acl_filter(model) if add_acl else Q()
         object_filter &= self.get_bookmark_filter(model)
         object_filter &= self.get_comic_field_filter(self.rel_prefix)
         return object_filter

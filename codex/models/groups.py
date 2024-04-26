@@ -25,34 +25,6 @@ class BrowserGroupModel(BaseModel):
     name = CharField(db_index=True, max_length=MAX_NAME_LEN, default=DEFAULT_NAME)
     stored_sort_name = CharField(db_index=True, max_length=MAX_NAME_LEN, default="")
 
-    @classmethod
-    def get_order_by(
-        cls, valid_nav_groups, browser_group="", rel_prefix="", suffix=True
-    ):
-        """Get ordering by show settings."""
-        order_by = []
-        if cls.PARENT:
-            group = cls.PARENT[0]
-            if group in valid_nav_groups:
-                group_index = valid_nav_groups.index(group)
-                if browser_group in valid_nav_groups:
-                    browser_group_index = valid_nav_groups.index(browser_group)
-                    if group_index > browser_group_index:
-                        rel = rel_prefix + cls.PARENT + "__sort_name"
-                        order_by.append(rel)
-            base = cls.__bases__[0]
-            order_by += base.get_order_by(
-                valid_nav_groups,
-                browser_group=browser_group,
-                rel_prefix=rel_prefix,
-                suffix=suffix,
-            )
-        elif suffix:
-            for field in cls._ORDERING:
-                rel = field  # rel_prefix + field
-                order_by.append(rel)
-        return tuple(order_by)
-
     def set_stored_sort_name(self):
         """Create sort_name for model."""
         sort_name = ""
@@ -72,34 +44,6 @@ class BrowserGroupModel(BaseModel):
         """Save computed fields."""
         self.presave()
         super().save(*args, **kwargs)
-
-    @classmethod
-    def get_order_by(
-        cls, valid_nav_groups, browser_group="", rel_prefix="", suffix=True
-    ):
-        """Get ordering by show settings."""
-        order_by = []
-        if cls.PARENT:
-            group = cls.PARENT[0]
-            if group in valid_nav_groups:
-                group_index = valid_nav_groups.index(group)
-                if browser_group in valid_nav_groups:
-                    browser_group_index = valid_nav_groups.index(browser_group)
-                    if group_index > browser_group_index:
-                        rel = rel_prefix + cls.PARENT + "__name"
-                        order_by.append(rel)
-            base = cls.__bases__[0]
-            order_by += base.get_order_by(
-                valid_nav_groups,
-                browser_group=browser_group,
-                rel_prefix=rel_prefix,
-                suffix=suffix,
-            )
-        elif suffix:
-            for field in ("name", "pk"):
-                rel = rel_prefix + field
-                order_by.append(rel)
-        return tuple(order_by)
 
     class Meta(BaseModel.Meta):
         """Without this a real table is created and joined to."""

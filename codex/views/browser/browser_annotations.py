@@ -1,83 +1,102 @@
 """Base view for metadata annotations."""
 
+from os import sep
+from types import MappingProxyType
+
 from django.db.models import (
+    Avg,
     BooleanField,
     Case,
-    Count,
     DateTimeField,
     F,
     FilteredRelation,
     Max,
     Min,
-    OuterRef,
     Q,
-    Subquery,
     Sum,
     Value,
     When,
 )
-from django.db.models.fields import PositiveSmallIntegerField
-from django.db.models.functions import Least
+from django.db.models.fields import CharField, PositiveSmallIntegerField
+from django.db.models.functions import Least, Reverse, Right, StrIndex
 
-from codex.models import Comic
+from codex.models import BrowserGroupModel, Comic, Folder, StoryArc
 from codex.models.functions import JsonGroupArray
-from codex.views.browser.browser_order_by import BrowserOrderByView
-from codex.views.util import annotate_sort_name
+from codex.views.browser.browser_order_by import (
+    BrowserOrderByView,
+)
+from codex.views.mixins import SharedAnnotationsMixin
 
 
-class BrowserAnnotationsView(BrowserOrderByView):
+class BrowserAnnotationsView(BrowserOrderByView, SharedAnnotationsMixin):
     """Base class for views that need special metadata annotations."""
 
-    _ONE_INTEGERFIELD = Value(1, PositiveSmallIntegerField())
     _NONE_INTEGERFIELD = Value(None, PositiveSmallIntegerField())
     _NONE_DATETIMEFIELD = Value(None, DateTimeField())
+    _ORDER_AGGREGATE_FUNCS = MappingProxyType(
+        # These are annotated to order_value becauase they're simple relations
+        {
+            "age_rating": Avg,
+            "community_rating": Avg,
+            "created_at": Min,
+            "critical_rating": Avg,
+            "date": Min,
+            "page_count": Sum,
+            "size": Sum,
+            "updated_at": Min,
+        }
+    )
+    _ANNOTATED_ORDER_FIELDS = frozenset(
+        # These are annotated with their own functions
+        {
+            "filename",
+            "sort_name",
+            "search_score",
+            "bookmark_updated_at",
+            "story_arc_number",
+        }
+    )
 
-    is_opds_1_acquisition = False
+    def __init__(self, *args, **kwargs):
+        """Set params for the type checker."""
+        super().__init__(*args, **kwargs)
+        self.is_opds_1_acquisition = False
+        self.comic_sort_names = ()
+        self.bm_annotataion_data: dict[BrowserGroupModel, tuple[str, dict]] = {}
 
-    def _annotate_cover_pk(self, qs, model):
-        """Annotate the query set for the coverpath for the sort."""
-        # Select comics for the children by an outer ref for annotation
-        # Order the descendant comics by the sort argumentst
-        if model == Comic:
-            cover_pk = F("pk")
-        else:
-            # I wish I could figure out how to get a cover for each group
-            # without a subquery.
-            cover_qs = qs
-            cover_qs = cover_qs.filter(pk=OuterRef("pk"))
-            cover_qs = self.add_order_by(cover_qs, model)
-            cover_qs = cover_qs.values(self.rel_prefix + "pk")
-            cover_qs = cover_qs[:1]
-            cover_pk = Subquery(cover_qs)
-
-        # The covers_pk annotation is sorted again for the final cover later in
-        # browser.py after pagination.
-        return qs.annotate(
-            cover_pk=cover_pk, cover_pks=JsonGroupArray("cover_pk", distinct=True)
-        )
-
-    def _annotate_page_count(self, qs, model):
-        """Hoist up total page_count of children."""
-        # Used for sorting and progress
-        if model == Comic:
+    def _alias_sort_names(self, qs, model):
+        """Annotate sort_name."""
+        if self.order_key != "sort_name" and not (
+            model == StoryArc and self.order_key == "story_arc_number"
+        ):
             return qs
-
-        page_count_sum = Sum(self.rel_prefix + "page_count", distinct=True)
-        return qs.annotate(page_count=page_count_sum)
-
-    def _annotate_child_count(self, qs, model):
-        """Annotate Child Count."""
-        if model == Comic:
-            child_count_sum = self._ONE_INTEGERFIELD
-        else:
-            child_count_sum = Count(self.rel_prefix + "pk", distinct=True)
-        qs = qs.annotate(child_count=child_count_sum)
-        if model != Comic:
-            # XXX Extra filter for empty groups
-            qs = qs.filter(child_count__gt=0)
+        pks = self.kwargs.get("pks")
+        model_group = self.model_group  # type: ignore
+        show = MappingProxyType(self.params["show"])  # type: ignore
+        qs, self.comic_sort_names = self.alias_sort_names(
+            qs, model, pks, model_group, show
+        )
         return qs
 
-    def _annotate_story_arc_number(self, qs):
+    def _alias_filename(self, qs, model):
+        """Calculate filename from path in the db."""
+        if self.order_key != "filename":
+            return qs
+        if model == Folder:
+            filename = F("name")
+        else:
+            prefix = "" if model == Comic else self.rel_prefix
+            path_rel = prefix + "path"
+            filename = self.order_agg_func(
+                Right(
+                    path_rel,
+                    StrIndex(Reverse(F(path_rel)), Value(sep)) - 1,  # type: ignore
+                    output_field=CharField(),
+                )
+            )
+        return qs.alias(filename=filename)
+
+    def _alias_story_arc_number(self, qs):
         if self.order_key != "story_arc_number":
             return qs
 
@@ -96,37 +115,105 @@ class BrowserAnnotationsView(BrowserOrderByView):
             san_rel = self.rel_prefix + "story_arc_numbers"
             rel = f"{san_rel}"
             condition = Q(**{f"{san_rel}__story_arc__in": story_arc_pks})
-            qs = qs.annotate(
+            qs = qs.alias(
                 selected_story_arc_number=FilteredRelation(rel, condition=condition),
-                story_arc_number=F("selected_story_arc_number__number"),
             )
+            story_arc_number = self.order_agg_func("selected_story_arc_number__number")
         else:
-            qs = qs.annotate(story_arc_number=self._NONE_INTEGERFIELD)
+            story_arc_number = self._NONE_INTEGERFIELD
+
+        return qs.alias(story_arc_number=story_arc_number)
+
+    def _annotate_page_count(self, qs, model):
+        """Hoist up total page_count of children."""
+        # Used for sorting and progress
+        if model == Comic:
+            return qs
+
+        rel = self.rel_prefix + "page_count"
+        page_count_sum = Sum(rel, distinct=True)
+        if self.TARGET == "browser":
+            qs = qs.alias(page_count=page_count_sum)
+        else:
+            qs = qs.annotate(page_count=page_count_sum)
         return qs
 
-    def _annotate_order_value(self, qs, model):
-        """Annotate a main key for sorting."""
-        order_func = self.get_order_value(model)
-        return qs.annotate(order_value=order_func)
-
     def _annotate_bookmark_updated_at(self, qs, model):
-        bm_rel = self.get_bm_rel(model)
-        bm_filter = self._get_my_bookmark_filter(bm_rel)
-
         if self.is_opds_1_acquisition or self.order_key == "bookmark_updated_at":
+            bm_rel = self.get_bm_rel(model)
+            bm_filter = self._get_my_bookmark_filter(bm_rel)
+            self.bm_annotation_data[model] = bm_rel, bm_filter  # type: ignore
+
             updated_at_rel = f"{bm_rel}__updated_at"
-            bookmark_updated_at_aggregate = Min(
+            bookmark_updated_at_aggregate = self.order_agg_func(
                 updated_at_rel,
                 default=self._NONE_DATETIMEFIELD,
                 filter=bm_filter,
             )
-            qs = qs.annotate(bookmark_updated_at=bookmark_updated_at_aggregate)
-        bm_annotation_data = bm_rel, bm_filter
-        return qs, bm_annotation_data
+            if self.TARGET == "opds1":
+                qs = qs.annotate(bookmark_updated_at=bookmark_updated_at_aggregate)
+            else:
+                qs = qs.alias(bookmark_updated_at=bookmark_updated_at_aggregate)
+        return qs
 
-    def _annotate_bookmarks(self, qs, model, bm_annotation_data):
+    def _annotate_order_value(self, qs, model):
+        """Annotate a main key for sorting and browser card display."""
+        # Determine order func
+        if model == Folder and self.order_key == "filename":
+            order_value = F("name")
+        elif model == Comic or self.order_key in self._ANNOTATED_ORDER_FIELDS:
+            # These are annotated in browser_annotaions
+            order_value = F(self.order_key)
+        else:
+            agg_func = self._ORDER_AGGREGATE_FUNCS[self.order_key]
+            agg_func = self.order_agg_func if agg_func == Min else agg_func
+            field = self.rel_prefix + self.order_key
+            order_value = agg_func(field)
+
+        if self.TARGET == "browser":
+            qs = qs.annotate(order_value=order_value)
+        else:
+            qs = qs.alias(order_value=order_value)
+        return qs
+
+    def annotate_order_aggregates(self, qs, model):
+        """Annotate common aggregates between browser and metadata."""
+        # ids coming first or before cover_qs works.
+        qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
+        qs = self._alias_sort_names(qs, model)
+        qs = self._alias_filename(qs, model)
+        qs = self._alias_story_arc_number(qs)
+        qs = self._annotate_page_count(qs, model)
+        qs = self._annotate_bookmark_updated_at(qs, model)
+        if model != Comic:
+            # comic orders on indexed fields when it can
+            qs = self._annotate_order_value(qs, model)
+        return qs
+
+    def _annotate_cover_pk(self, qs, model):
+        """Annotate the query set for the coverpath for the sort."""
+        # Select comics for the children by an outer ref for annotation
+        # Order the descendant comics by the sort argumentst
+        if model == Comic:
+            qs = qs.annotate(cover_pk=F("pk"))
+        else:
+            qs = qs.annotate(
+                cover_pks=JsonGroupArray(self.rel_prefix + "pk", distinct=True)
+            )
+        return qs
+
+    def _annotate_group(self, qs, model):
+        """Annotate Group."""
+        value = "c" if model == Comic else self.model_group  # type: ignore
+        return qs.annotate(group=Value(value, CharField(max_length=1)))
+
+    def _annotate_bookmarks(self, qs, model):
         """Hoist up bookmark annotations."""
-        bm_rel, bm_filter = bm_annotation_data
+        if model in self.bm_annotation_data:  # type: ignore
+            bm_rel, bm_filter = self.bm_annotation_data[model]  # type: ignore
+        else:
+            bm_rel = self.get_bm_rel(model)
+            bm_filter = self._get_my_bookmark_filter(bm_rel)
 
         page_rel = f"{bm_rel}__page"
         finished_rel = f"{bm_rel}__finished"
@@ -167,83 +254,80 @@ class BrowserAnnotationsView(BrowserOrderByView):
                 output_field=PositiveSmallIntegerField(),
                 distinct=True,
             )
-            qs = qs.annotate(finished_count=finished_count)
+            qs = qs.alias(finished_count=finished_count)
             finished_aggregate = Case(
-                When(
-                    Q(finished_count=F("child_count")) | Q(page=F("page_count")),
-                    then=True,
-                ),
-                When(page=0, then=False),
+                When(finished_count=F("child_count"), then=True),
+                When(finished_count=0, then=False),
                 default=None,
                 output_field=BooleanField(),
             )
 
-        qs = qs.annotate(page=bookmark_page)
-        return qs.annotate(finished=finished_aggregate)
+        if self.is_opds_1_acquisition:
+            qs = qs.annotate(page=bookmark_page)
+        else:
+            qs = qs.alias(page=bookmark_page)
 
-    @staticmethod
-    def _annotate_progress(queryset):
-        """Compute progress for each member of a queryset."""
+        if self.TARGET in frozenset({"metadata", "browser"}):
+            qs.annotate(finished=finished_aggregate)
+        else:
+            # Only used for progress
+            qs.alias(finished=finished_aggregate)
+        return qs
+
+    def _annotate_progress(self, qs):
+        """Compute progress for each member of a qs."""
+        if self.TARGET not in frozenset({"metadata", "browser"}):
+            return qs
         # Requires bookmark and annotation hoisted from bookmarks.
         # Requires page_count native to comic or aggregated
         # Least guard is for rare instances when bookmarks are set to
         # invalid high values
         then = Least(F("page") * 100.0 / F("page_count"), Value(100.0))
         progress = Case(When(page_count__gt=0, then=then), default=0.0)
-        return queryset.annotate(progress=progress)
+        return qs.annotate(progress=progress)
 
-    @staticmethod
-    def _annotate_mtime(queryset):
-        return queryset.annotate(mtime=Max("updated_at"))
-
-    def annotate_common_aggregates(self, qs, model):
-        """Annotate common aggregates between browser and metadata."""
-        qs = qs.annotate(ids=JsonGroupArray("id", distinct=True))
-        qs = self._annotate_child_count(qs, model)
-        qs = self._annotate_page_count(qs, model)
-        qs, bm_annotation_data = self._annotate_bookmark_updated_at(qs, model)
-        qs = annotate_sort_name(qs)
-        qs = self._annotate_story_arc_number(qs)
-        # cover annotation depends on order_value, in metadata too.
-        qs = self._annotate_order_value(qs, model)
-        cover_qs = qs
+    def annotate_card_aggregates(self, qs, model):
+        """Annotate aggregates that appear the browser card."""
         qs = self._annotate_cover_pk(qs, model)
-        qs = self._annotate_bookmarks(qs, model, bm_annotation_data)
-        qs = self._annotate_mtime(qs)
-        qs = self._annotate_progress(qs)
-        return qs, cover_qs
+        if model == Comic:
+            # comic adds order_value for cards late
+            qs = self._annotate_order_value(qs, model)
+        qs = self._annotate_group(qs, model)
+        qs = self.annotate_group_names(qs, model)
+        qs = self._annotate_bookmarks(qs, model)
+        return self._annotate_progress(qs)
 
-    def recover_multi_groups(self, group_qs, cover_qs):
+    def annotate_for_metadata(self, qs, _model):
+        """Annotations only for metadata."""
+        return qs.annotate(mtime=Max("updated_at"))
+
+    def _get_cover_pk_query(self, cover_pks):
+        """Get Cover Pk queryset for comic queryset."""
+        comic_qs = Comic.objects.filter(pk__in=cover_pks)
+        object_filter = self.get_query_filters_without_group(Comic, True)
+        comic_qs = comic_qs.filter(object_filter)
+        comic_qs = self.filter_by_annotations(comic_qs, Comic)
+        comic_qs = self.annotate_order_aggregates(comic_qs, Comic)
+        comic_qs = comic_qs.group_by("id")
+        comic_qs = self.add_order_by(comic_qs, Comic)  # type: ignore
+        return comic_qs.values_list("pk", flat=True)
+
+    def re_cover_multi_groups(self, group_qs):
         """Python hack to re-cover groups collapsed with group_by."""
         # This would be better in the main query but OuterRef can't access annotations.
-        # Most of the time this spins through the page and as a noop.
-        # But only for groups more than one cover_pks it will run extra queries to
-        # resolve the proper cover pk.
+        # So cover_pks aggregates all covers from multi groups like ids does.
+        if self.is_model_comic:  # type: ignore
+            return group_qs
         recovered_group_list = []
         for group in group_qs:
             cover_pks = group.cover_pks
-            if len(cover_pks) > 1:
-                # TODO use cover_qs when stripped down
-                covers_filter = {self.rel_prefix + "pk__in": cover_pks}
-                group_cover_qs = cover_qs.filter(**covers_filter)
-                group_cover_qs = self.add_order_by(group_cover_qs, self.model)  # type: ignore
-                group_cover_qs = group_cover_qs.values_list(
-                    self.rel_prefix + "pk", flat=True
-                ).first()
-                cover_pk = group_cover_qs
-                group.cover_pk = cover_pk
+            if len(cover_pks) == 1:
+                cover_pk = cover_pks[0]
+            else:
+                comic_qs = self._get_cover_pk_query(cover_pks)
+                # print(comic_qs.explain())
+                # print(comic_qs.query)
+                cover_pk = comic_qs[0]
+            group.cover_pk = cover_pk
             recovered_group_list.append(group)
         return recovered_group_list
-
-
-#    def recover_multi_group_in_query(self, group_qs, cover_qs):
-#        #
-#        # This does not work because OuterRef can't see annotations.
-#        #
-#        group_qs = group_qs.annotate(cover_pks_len=Func(F('cover_pks'), function='json_array_length', output_field=IntegerField()))
-#        covers_filter = {self.rel_prefix + "pk__in": OuterRef("cover_pks")}
-#        subquery = cover_qs.filter(**covers_filter)
-#        subquery = self.add_order_by(subquery, self.model)  # type: ignore
-#        subquery = subquery.values(self.rel_prefix + "pk")
-#        test_group_qs = group_qs.annotate(final_cover_pk=Case(When(cover_pks_len__gt=1, then=Subquery(subquery[:1])), default=F("cover_pk")))
-#        # print(test_group_qs.values("cover_pk", "cover_pks", "cover_pks_len", "final_cover_pk"))

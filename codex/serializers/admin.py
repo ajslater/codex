@@ -27,7 +27,9 @@ LOG = get_logger(__name__)
 class UserSerializer(BaseModelSerializer):
     """User Serializer."""
 
-    last_active = DateTimeField(read_only=True, allow_null=True)
+    last_active = DateTimeField(
+        read_only=True, source="useractive.updated_at", allow_null=True
+    )
 
     class Meta(BaseModelSerializer.Meta):
         """Specify Model."""

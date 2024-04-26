@@ -17,9 +17,9 @@ class GroupBySQLCompiler(SQLCompiler):
         self.force_group_by_table = ""
         self.force_group_by_fields = ()
 
-    def set_force_group_by(self, model, fields):
+    def set_force_group_by(self, table, fields):
         """Set the force group_by variables."""
-        self.force_group_by_table = model._meta.db_table
+        self.force_group_by_table = table
         self.force_group_by_fields = fields
 
     def get_group_by(self, *args, **kwargs):
@@ -42,6 +42,7 @@ class GroupByQuery(Query):
     def __init__(self, *args, **kwargs):
         """Init force group_by fields."""
         super().__init__(*args, **kwargs)
+        self.force_group_by_table = ""
         self.force_group_by_fields = ()
 
     def get_compiler(self, using=None, connection=None, elide_empty=True):
@@ -53,15 +54,21 @@ class GroupByQuery(Query):
             if using:
                 connection = connections[using]
             compiler = GroupBySQLCompiler(self, connection, using, elide_empty)
-            compiler.set_force_group_by(self.model, self.force_group_by_fields)
+            compiler.set_force_group_by(
+                self.force_group_by_table, self.force_group_by_fields
+            )
         else:
             # Normal super() operation.
             compiler = super().get_compiler(using, connection, elide_empty)  # type: ignore
 
         return compiler
 
-    def set_force_group_by_fields(self, fields):
+    def set_force_group_by(self, fields, model=None):
         """Set the force group_by fields."""
+        if not model:
+            model = self.model
+        table = model._meta.db_table if model else ""
+        self.force_group_by_table = table
         self.force_group_by_fields = fields
 
 
@@ -73,10 +80,10 @@ class GroupByQuerySet(QuerySet):
         query = query or GroupByQuery(model)
         super().__init__(model=model, query=query, using=using, hints=hints)
 
-    def group_by(self, *fields):
+    def group_by(self, *fields, model=None):
         """Force group_by operator."""
         obj = self._chain()  # type: ignore
-        obj.query.set_force_group_by_fields(fields)
+        obj.query.set_force_group_by(fields, model=model)
         return obj
 
 

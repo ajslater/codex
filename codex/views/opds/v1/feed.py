@@ -59,6 +59,7 @@ class OPDS1FeedView(CodexXMLTemplateView, LinksMixin):
     authentication_classes = (SessionAuthentication, BasicAuthentication)
     template_name = "opds_v1/index.xml"
     serializer_class = OPDS1TemplateSerializer
+    TARGET = "opds1"
 
     @property
     def opds_ns(self):

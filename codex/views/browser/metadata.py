@@ -1,8 +1,9 @@
 """View for marking comics read and unread."""
 
+from types import MappingProxyType
 from typing import ClassVar
 
-from django.db.models import Count, F, IntegerField, Subquery, Value
+from django.db.models import Count, IntegerField, Sum, Value
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
@@ -37,6 +38,7 @@ _COMIC_VALUE_FIELDS_CONFLICTING_PREFIX = "conflict_"
 _COMIC_RELATED_VALUE_FIELDS = frozenset({"series__volume_count", "volume__issue_count"})
 _PATH_GROUPS = ("c", "f")
 _CONTRIBUTOR_RELATIONS = ("role", "person")
+_SUM_FIELDS = frozenset({"page_count", "size"})
 
 
 class MetadataView(BrowserAnnotationsView):
@@ -44,13 +46,20 @@ class MetadataView(BrowserAnnotationsView):
 
     permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]  # type: ignore
     serializer_class = MetadataSerializer
+    TARGET = "metadata"
+    ADMIN_FLAG_VALUE_KEY_MAP = MappingProxyType(
+        {
+            AdminFlag.FlagChoices.FOLDER_VIEW.value: "folder_view",
+        }
+    )
 
     def _get_comic_value_fields(self):
         """Include the path field for staff."""
         fields = set(_COMIC_VALUE_FIELD_NAMES)
+        group = self.kwargs["group"]
         if (
-            not (self._is_enabled_folder_view() and self.is_admin())
-            or self.group not in _PATH_GROUPS
+            not (self.admin_flags["folder_view"] and self.is_admin())
+            or group not in _PATH_GROUPS
         ):
             fields -= _ADMIN_OR_FILE_VIEW_ENABLED_COMIC_VALUE_FIELDS
         return fields
@@ -63,47 +72,44 @@ class MetadataView(BrowserAnnotationsView):
         annotation_prefix="",
     ):
         """Annotate the intersection of value and fk fields."""
-        (simple_qs, qs) = querysets
+        (filtered_qs, qs) = querysets
         for field in fields:
             # Annotate variant counts
-            # Have to use simple_qs because every annotation in the loop
-            # corrupts the the main qs
             # If 1 variant, annotate value, otherwise None
+            ann_field = annotation_prefix + field.replace("__", "_")
+
             full_field = self.rel_prefix + field
 
-            sq = (
-                simple_qs.values("id")
-                .order_by()  # just in case
-                .annotate(count=Count(full_field, distinct=True))
-                .filter(count=1)
-                # .group_by("name")
-                .values_list(full_field + related_suffix, flat=True)
-            )
+            if field in _SUM_FIELDS:
+                val = Sum(full_field)
+            else:
+                # group_by makes the filter work, but prevents its
+                # use as a subquery in the big query.
+                group_by_field = "id" if self.is_model_comic else "name"
+                sq = (
+                    filtered_qs.alias(filter_count=Count(full_field, distinct=True))
+                    .filter(filter_count=1)
+                    .group_by(group_by_field)
+                    .values_list(full_field + related_suffix, flat=True)
+                )
+                try:
+                    val = sq[0]
+                except IndexError:
+                    val = None
+                if field.endswith("count"):
+                    output_field = IntegerField()
+                else:
+                    output_field = Comic._meta.get_field(field).__class__()
+                val = Value(val, output_field)
 
-            # The subquery above would work without this python dual evaluation
-            # if we could group by only model.id. However, the SQL standard and
-            # therefore Django, states that anything selected must be grouped by,
-            # which leads to multiple query results instead of null or one result.
-            # The query only version of this from 0.9.14 worked in most cases, but
-            # fractured on the language tag for some reason.
-            val = Value(None, IntegerField()) if len(sq) != 1 else Subquery(sq)
-
-            ann_field = (annotation_prefix + field).replace("__", "_")
             qs = qs.annotate(**{ann_field: val})
 
-        return simple_qs, qs
+        return filtered_qs, qs
 
-    def _annotate_aggregates(self, qs):
-        """Annotate aggregate values."""
-        if not self.is_model_comic:
-            size_func = self.get_aggregate_func(self.model, "size")
-            qs = qs.annotate(size=size_func)
-        return self.annotate_common_aggregates(qs, self.model)
-
-    def _annotate_values_and_fks(self, qs, simple_qs):
+    def _annotate_values_and_fks(self, qs, filtered_qs):
         """Annotate comic values and comic foreign key values."""
         # Simple Values
-        querysets = (simple_qs, qs)
+        querysets = (filtered_qs, qs)
         if not self.is_model_comic:
             comic_value_fields = self._get_comic_value_fields()
             querysets = self._intersection_annotate(querysets, comic_value_fields)
@@ -114,9 +120,6 @@ class MetadataView(BrowserAnnotationsView):
                 _COMIC_VALUE_FIELDS_CONFLICTING,
                 annotation_prefix=_COMIC_VALUE_FIELDS_CONFLICTING_PREFIX,
             )
-        elif self.is_admin() or self._is_enabled_folder_view():
-            qs = qs.annotate(library_path=F("library__path"))
-            querysets = (simple_qs, qs)
 
         # Foreign Keys with special count values
         _, qs = self._intersection_annotate(
@@ -125,49 +128,42 @@ class MetadataView(BrowserAnnotationsView):
         )
         return qs
 
-    @staticmethod
-    def _get_intersection_queryset(qs, count_rel, comic_pks):
-        """Create an intersection queryset."""
-        return (
-            qs.annotate(count=Count(count_rel))
-            .order_by()
-            .filter(count=comic_pks.count())
-        )
-
-    def _query_m2m_intersections(self, simple_qs):
+    def _query_m2m_intersections(self, filtered_qs):
         """Query the through models to figure out m2m intersections."""
         # Speed ok, but still does a query per m2m model
         m2m_intersections = {}
         pk_field = self.rel_prefix + "pk"
-        comic_pks = simple_qs.values_list(pk_field, flat=True)
+        comic_pks = filtered_qs.values_list(pk_field, flat=True)
+        comic_pks_count = comic_pks.count()
         for field_name in COMIC_M2M_FIELD_NAMES:
             model = Comic._meta.get_field(field_name).related_model
             if not model:
                 reason = f"No model found for comic field: {field_name}"
                 raise ValueError(reason)
 
-            intersection_qs = model.objects.filter(comic__pk__in=comic_pks)
-            # order_by() is very important for grouping
-            intersection_qs = self._get_intersection_queryset(
-                intersection_qs, "comic", comic_pks
+            intersection_qs = (
+                model.objects.filter(comic__pk__in=comic_pks)
+                .alias(count=Count("comic"))
+                .filter(count=comic_pks_count)
             )
+
             m2m_intersections[field_name] = intersection_qs
         return m2m_intersections
 
     def _path_security(self, obj):
         """Secure filesystem information for acl situation."""
-        is_path_group = self.group in _PATH_GROUPS
+        group = self.kwargs["group"]
+        is_path_group = group in _PATH_GROUPS
         if is_path_group:
             if self.is_admin():
                 return
-            if self._is_enabled_folder_view():
+            if self.admin_flags["folder_view"]:
                 obj.path = obj.search_path()
         else:
             obj.path = ""
 
     def _highlight_current_group(self, obj):
         """Values for highlighting the current group."""
-        obj.group = self.group
         if self.model and not self.is_model_comic:
             # move the name of the group to the correct field
             group_field = self.model.__name__.lower()
@@ -226,7 +222,8 @@ class MetadataView(BrowserAnnotationsView):
     def _raise_not_found(self, exc=None):
         """Raise an exception if the object is not found."""
         pks = self.kwargs["pks"]
-        detail = f"Filtered metadata for {self.group}/{pks} not found"
+        group = self.kwargs["group"]
+        detail = f"Filtered metadata for {group}/{pks} not found"
         raise NotFound(detail=detail) from exc
 
     def get_object(self):
@@ -236,18 +233,21 @@ class MetadataView(BrowserAnnotationsView):
         # dict is necessary because of the folders view union in browser.py.
 
         if self.model is None:
-            raise NotFound(detail=f"Cannot get metadata for {self.group=}")
+            group = self.kwargs["group"]
+            raise NotFound(detail=f"Cannot get metadata for {group=}")
 
         object_filter = self.get_query_filters_without_group(self.model)  # type: ignore
         pks = self.kwargs["pks"]
         qs = self.model.objects.filter(object_filter, pk__in=pks)
-        if self.model != Comic:
-            qs = self.apply_search_filter(qs, self.model, binary=True)
-        qs, cover_qs = self._annotate_aggregates(qs)
-        # TODO fewer annations for simple qs, no covers.
-        simple_qs = qs
+        qs = self.filter_by_annotations(qs, self.model, binary=True)
+        filtered_qs = qs
+        qs = self.annotate_order_aggregates(qs, self.model)
+        qs = self.annotate_card_aggregates(qs, self.model)
+        qs = self.annotate_for_metadata(qs, self.model)
         qs = qs.group_by("name")
-        qs = self._annotate_values_and_fks(qs, simple_qs)
+        qs = self._annotate_values_and_fks(qs, filtered_qs)
+
+        qs_list = self.re_cover_multi_groups(qs)
 
         qs_list = self.recover_multi_groups(qs, cover_qs)  # type: ignore
 
@@ -259,23 +259,8 @@ class MetadataView(BrowserAnnotationsView):
         except (IndexError, ValueError) as exc:
             self._raise_not_found(exc)
 
-        m2m_intersections = self._query_m2m_intersections(simple_qs)
+        m2m_intersections = self._query_m2m_intersections(filtered_qs)
         return self._copy_annotations_into_comic_fields(obj, m2m_intersections)  # type: ignore
-
-    def _is_enabled_folder_view(self):
-        if self._efv_flag is None:
-            self._efv_flag = (
-                AdminFlag.objects.only("on")
-                .get(key=AdminFlag.FlagChoices.FOLDER_VIEW.value)
-                .on
-            )
-        return self._efv_flag
-
-    def _validate(self):
-        self.model = self.GROUP_MODEL_MAP[self.group]
-        if self.model is None:
-            raise NotFound(detail=f"Cannot get metadata for {self.group=}")
-        self.is_model_comic = self.group == self.COMIC_GROUP
 
     @extend_schema(request=BrowserAnnotationsView.input_serializer_class)
     def get(self, *_args, **_kwargs):
@@ -284,11 +269,12 @@ class MetadataView(BrowserAnnotationsView):
         try:
             self._efv_flag = None
             self.parse_params()
-            self.group = self.kwargs["group"]
-            self.valid_nav_groups = (self.group,)
-            self._validate()
+            group = self.kwargs["group"]
+            self.valid_nav_groups = (group,)
+            self.set_browse_model()
             self.set_rel_prefix(self.model)
             self.set_order_key()
+            self.set_admin_flags()
 
             obj = self.get_object()
 

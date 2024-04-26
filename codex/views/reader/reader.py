@@ -15,13 +15,14 @@ from codex.models import AdminFlag, Bookmark, Comic
 from codex.serializers.reader import ReaderComicsSerializer
 from codex.serializers.redirect import ReaderRedirectSerializer
 from codex.views.bookmark import BookmarkBaseView
+from codex.views.mixins import SharedAnnotationsMixin
 from codex.views.session import BrowserSessionViewBase
 from codex.views.util import annotate_sort_name
 
 LOG = get_logger(__name__)
 
 
-class ReaderView(BookmarkBaseView):
+class ReaderView(BookmarkBaseView, SharedAnnotationsMixin):
     """Get info for displaying comic pages."""
 
     serializer_class = ReaderComicsSerializer
@@ -38,6 +39,7 @@ class ReaderView(BookmarkBaseView):
         "updated_at",
     )
     _VALID_ARC_GROUPS = frozenset({"f", "s", "a"})
+    TARGET = "reader"
 
     def _get_comics_list(self):
         """Get the reader naviation group filter."""
@@ -49,35 +51,30 @@ class ReaderView(BookmarkBaseView):
             # for story arcs
             rel = "story_arc_numbers__story_arc"
             fields = self._COMIC_FIELDS
-            arc_name_rel = "story_arc_numbers__story_arc__name"
             arc_pk_rel = "story_arc_numbers__story_arc__pk"
             prefetch_related = (*prefetch_related, "story_arc_numbers__story_arc")
             arc_index = F("story_arc_numbers__number")
-            ordering = ("arc_index", "date", *Comic.get_order_by(("c"), "c"))
+            ordering = ("arc_index", "date")
             arc_pk_select_related = ()
-            arc_pk_only = ("pk",)
         elif arc_group == self.FOLDER_GROUP:
             # folder mode
             rel = "parent_folder"
             fields = (*self._COMIC_FIELDS, "parent_folder")
             arc_pk_rel = "parent_folder__pk"
-            arc_name_rel = "parent_folder__name"
             select_related = (*select_related, "parent_folder")
             arc_index = Value(None, IntegerField())
             ordering = ("path", "pk")
             arc_pk_select_related = ("parent_folder",)
-            arc_pk_only = arc_pk_select_related
         else:
             # browser mode.
             rel = "series"
             fields = self._COMIC_FIELDS
             arc_pk_rel = "series__pk"
-            arc_name_rel = "series__name"
             arc_index = Value(None, IntegerField())
-            ordering = Comic.get_order_by(("c"), browser_group="c")
+            ordering = ()
             arc_pk_select_related = ("series",)
-            arc_pk_only = arc_pk_select_related
 
+        # nav filter
         arc_pk = self.params.get("arc_pk")
         if not arc_pk:
             # Get the correct arc/folder/series if not submitted with a post.
@@ -85,13 +82,10 @@ class ReaderView(BookmarkBaseView):
             arc_pk_qs = Comic.objects.filter(pk=pk)
             arc_pk_qs = arc_pk_qs.select_related(*arc_pk_select_related)
             arc_pk_qs = arc_pk_qs.prefetch_related(*prefetch_related)
-            arc_pk_comic = (
-                arc_pk_qs.annotate(arc_pk=F(arc_pk_rel)).only(*arc_pk_only).first()
-            )
-            arc_pk = arc_pk_comic.arc_pk  # type: ignore
+            arc_pk = arc_pk_qs.values_list(arc_pk_rel, flat=True)[:1]
+        nav_filter = {rel: arc_pk}
 
         group_acl_filter = self.get_group_acl_filter(Comic)
-        nav_filter = {rel: arc_pk}
 
         qs = (
             Comic.objects.filter(group_acl_filter)
@@ -100,19 +94,27 @@ class ReaderView(BookmarkBaseView):
             .prefetch_related(*prefetch_related)
             .only(*fields)
             .annotate(
-                series_name=F("series__name"),
-                volume_name=F("volume__name"),
                 issue_count=F("volume__issue_count"),
             )
             .annotate(
                 arc_pk=F(arc_pk_rel),
-                arc_name=F(arc_name_rel),
                 arc_index=arc_index,
             )
             .annotate(mtime=F("updated_at"))
         )
-        qs = annotate_sort_name(qs)
-
+        qs = self.annotate_group_names(qs, Comic)
+        if arc_group != "f":
+            model_group = "a" if arc_group == "a" else "i"
+            qs, comic_sort_names = self.alias_sort_names(
+                qs, Comic, pks=[arc_pk], model_group=model_group
+            )
+            ordering = (
+                *ordering,
+                *comic_sort_names,
+                "issue_number",
+                "issue_suffix",
+                "sort_name",
+            )
         return qs.order_by(*ordering)
 
     def _append_with_settings(self, book, bookmark_filter):

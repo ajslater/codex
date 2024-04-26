@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from time import time
 
-from django.db.models import Case, Max, Q, Value, When
+from django.db.models import Case, Value, When
 
 from codex.logger.logging import get_logger
 from codex.models import Comic
@@ -79,6 +79,7 @@ class SearchFilterMixin:
         scores_pairs = []
         prev_pks = []
         next_pks = []
+        scored_pks = []
 
         if DEBUG:
             start_time = time()
@@ -91,12 +92,14 @@ class SearchFilterMixin:
         if is_search_results_limited:
             scores_values = scores_values[:limit]
         for index, pair in enumerate(scores_values):
+            pk = pair[0]
             if index < offset:
-                prev_pks.append(pair[0])
+                prev_pks.append(pk)
             elif index > limit:
-                next_pks.append(pair[0])
+                next_pks.append(pk)
             else:
                 scores_pairs.append(pair)
+            scored_pks.append(pk)
 
         if not order_reverse:
             tmp = prev_pks
@@ -109,7 +112,7 @@ class SearchFilterMixin:
                 f" {len(scores_pairs)=} {len(prev_pks)=} {len(next_pks)=}"
             )
 
-        return tuple(scores_pairs), tuple(prev_pks), tuple(next_pks)
+        return tuple(scores_pairs), tuple(prev_pks), tuple(next_pks), tuple(scored_pks)
 
     def get_search_scores(self, binary=False) -> SearchScores | None:
         """Perform the search and return the scores as a dict."""
@@ -128,7 +131,9 @@ class SearchFilterMixin:
             if binary:
                 scored_pks = self._get_binary_search_scores(sqs)
             else:
-                scores_pairs, prev_pks, next_pks = self._get_browser_search_scores(sqs)
+                scores_pairs, prev_pks, next_pks, scored_pks = (
+                    self._get_browser_search_scores(sqs)
+                )
 
         except MemoryError:
             LOG.warning("Search engine needs more memory, results truncated.")
@@ -151,7 +156,7 @@ class SearchFilterMixin:
                 whens.append(When(pk__in=search_scores.prev_pks, then=SEARCH_SCORE_MAX))
             if search_scores.next_pks:
                 whens.append(When(pk__in=search_scores.next_pks, then=SEARCH_SCORE_MIN))
-            search_score = Max(Case(*whens, default=SEARCH_SCORE_EMPTY))
+            search_score = self.order_agg_func(Case(*whens, default=SEARCH_SCORE_EMPTY))  # type: ignore
         else:
             search_score = Value(0.0)
         return qs.annotate(search_score=search_score)
@@ -162,14 +167,9 @@ class SearchFilterMixin:
         search_scores: SearchScores,
     ):
         """Get the search filter and scores."""
-        if search_scores.scores:
-            query = Q(search_score__gt=0.0)
-        else:
-            prefix = "" if model == Comic else self.rel_prefix  # type: ignore
-            rel = prefix + "pk__in"
-            query_dict = {rel: search_scores.scored_pks}
-            query = Q(**query_dict)
-        return query
+        prefix = "" if model == Comic else self.rel_prefix  # type: ignore
+        rel = prefix + "pk__in"
+        return {rel: search_scores.scored_pks}
 
     def apply_search_filter(self, qs, model, binary=False):
         """Preparse search, search and return the filter and scores."""
@@ -178,7 +178,7 @@ class SearchFilterMixin:
             qs = self._annotate_search_score(qs, model, search_scores)
             if search_scores:
                 search_filter = self._get_search_query_filter(model, search_scores)
-                qs = qs.filter(search_filter)
+                qs = qs.filter(**search_filter)
         except Exception:
             LOG.exception("Creating the search filter")
 

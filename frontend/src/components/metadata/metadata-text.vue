@@ -111,17 +111,18 @@ export default {
       ) {
         return;
       }
-      const pks =
+      const pksList =
         this.obj?.group == this.group ? this.obj.ids : [this.value.pk];
+      const pks = pksList.join(",");
+
       if (!pks) {
         return;
       }
       const params = this.$router.currentRoute.value.params;
-      if (params.group === this.group && +params.pks === pks) {
+      if (params.group === this.group && params.pks === pks) {
         return;
       }
-      const pkList = pks.join(",");
-      return { name: "browser", params: { group: this.group, pks: pkList } };
+      return { name: "browser", params: { group: this.group, pks } };
     },
   },
 };

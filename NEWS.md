@@ -9,7 +9,7 @@ border-radius: 128px;
 ## v1.6.0
 
 - Features
-  - General Search query optimizations.
+  - Browser, Search, and Cover query optimizations.
   - Opt-out search truncating optimizations in browser settings drawer.
   - Metadata tags can click to browse filtered on that tag.
 - Fixes

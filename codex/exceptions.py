@@ -20,8 +20,22 @@ class SeeOtherRedirectError(APIException):
     default_code = "redirect"
     default_detail = "redirect to a valid route"
 
+    def _coerce_pks_to_string(self, detail):
+        """Coerce pks to valid string."""
+        params = detail.get("route", {}).get("params", DEFAULTS["route"])
+        pks = params.get("pks")
+        if not pks:
+            params["pks"] = "0"
+            detail["route"]["params"] = params
+        elif not isinstance(pks, str):
+            pks = ",".join(str(pk) for pk in pks)
+            params["pks"] = pks
+            detail["route"]["params"] = params
+
     def __init__(self, detail):
         """Create a response to pass to the exception handler."""
+        self._coerce_pks_to_string(detail)
+
         LOG.debug(f"redirect {detail.get('reason')}")
         serializer = BrowserRedirectSerializer(detail)
         self.detail: dict = serializer.data  # type: ignore

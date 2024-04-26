@@ -29,18 +29,23 @@ from codex.serializers.browser.filters import (
 )
 from codex.serializers.models.pycountry import PyCountrySerializer
 from codex.views.auth import IsAuthenticatedOrEnabledNonUsers
-from codex.views.browser.base import BrowserBaseView
+from codex.views.browser.filters.annotations import (
+    BrowserAnnotationsFilterView,
+)
 
 LOG = get_logger(__name__)
 
 _FIELD_TO_REL_MODEL_MAP = MappingProxyType(
     {
-        BrowserBaseView.CONTRIBUTOR_PERSON_UI_FIELD: (
+        BrowserAnnotationsFilterView.CONTRIBUTOR_PERSON_UI_FIELD: (
             "contributors__person",
             ContributorPerson,
         ),
-        BrowserBaseView.STORY_ARC_UI_FIELD: ("story_arc_numbers__story_arc", StoryArc),
-        BrowserBaseView.IDENTIFIER_TYPE_UI_FIELD: (
+        BrowserAnnotationsFilterView.STORY_ARC_UI_FIELD: (
+            "story_arc_numbers__story_arc",
+            StoryArc,
+        ),
+        BrowserAnnotationsFilterView.IDENTIFIER_TYPE_UI_FIELD: (
             "identifiers__identifier_type",
             IdentifierType,
         ),
@@ -48,7 +53,7 @@ _FIELD_TO_REL_MODEL_MAP = MappingProxyType(
 )
 
 
-class BrowserChoicesViewBase(BrowserBaseView):
+class BrowserChoicesViewBase(BrowserAnnotationsFilterView):
     """Get choices for filter dialog."""
 
     permission_classes: ClassVar[list] = [IsAuthenticatedOrEnabledNonUsers]  # type: ignore
@@ -125,14 +130,14 @@ class BrowserChoicesViewBase(BrowserBaseView):
         """Get the comic subquery use for the choices."""
         object_filter = self.get_query_filters(self.model, choices=True)
         qs = self.model.objects.filter(object_filter)  # type: ignore
-        return self.apply_search_filter(qs, self.model, binary=True)
+        return self.filter_by_annotations(qs, self.model, binary=True)
 
     def _set_model(self):
         """Set the model to query."""
         group = self.kwargs["group"]
         if group == self.ROOT_GROUP:
             group = self.params.get("top_group", "p")
-        self.model: BrowserGroupModel | Comic | None = self.GROUP_MODEL_MAP[group]  # type: ignore
+        self.model: BrowserGroupModel | None = self.GROUP_MODEL_MAP[group]  # type: ignore
 
 
 class BrowserChoicesAvailableView(BrowserChoicesViewBase):
@@ -143,11 +148,14 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
     @classmethod
     def _get_field_choices_count(cls, comic_qs, field_name):
         """Create a pk:name object for fields without tables."""
-        return cls.get_field_choices_query(comic_qs, field_name).count()
+        qs = cls.get_field_choices_query(comic_qs, field_name)
+        return qs.count()
 
     def _get_m2m_field_choices_count(self, model, comic_qs, rel):
         """Get choices with nulls where there are nulls."""
-        count = self.get_m2m_field_query(model, comic_qs).count()
+        m2m_qs = self.get_m2m_field_query(model, comic_qs)
+        m2m_qs = m2m_qs.values("pk")
+        count = m2m_qs.count()
 
         # Detect if there are null choices.
         # Regretabbly with another query, but doing a forward query
@@ -158,7 +166,7 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
 
         return count
 
-    @extend_schema(request=BrowserBaseView.input_serializer_class)
+    @extend_schema(request=BrowserAnnotationsFilterView.input_serializer_class)
     def get(self, *_args, **_kwargs):
         """Return all choices with more than one choice."""
         self.parse_params()
@@ -236,7 +244,7 @@ class BrowserChoicesView(BrowserChoicesViewBase):
         field_name = self._get_field_name()
         return CHOICES_SERIALIZER_CLASS_MAP.get(field_name, CharListField)
 
-    @extend_schema(request=BrowserBaseView.input_serializer_class)
+    @extend_schema(request=BrowserAnnotationsFilterView.input_serializer_class)
     def get(self, *_args, **_kwargs):
         """Return all choices with more than one choice."""
         self.parse_params()

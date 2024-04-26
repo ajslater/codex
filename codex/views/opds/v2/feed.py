@@ -34,6 +34,7 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
     DEFAULT_ROUTE = MappingProxyType(
         {**TopLinksMixin.DEFAULT_ROUTE, "name": "opds:v2:feed"}
     )
+    TARGET = "opds2"
 
     authentication_classes = (SessionAuthentication, BasicAuthentication)
     serializer_class = OPDS2FeedSerializer
@@ -199,11 +200,8 @@ class OPDS2FeedView(PublicationMixin, TopLinksMixin):
         title = self._title(browser_page.get("browser_title"))
         number_of_items = browser_page["total_count"]
         current_page = self.kwargs.get("page")
-        up_route: dict[str, str | int | tuple[int, ...]] = browser_page["up_route"]  # type: ignore
-        up_pks = up_route.get("pks", "0")
-        if isinstance(up_pks, str):
-            up_route["pks"] = tuple(int(pk) for pk in up_pks.split(","))
-        links = self.get_links(browser_page["up_route"])
+        up_route = browser_page["up_route"]
+        links = self.get_links(up_route)
         facets = self._get_facets()
 
         # opds groups

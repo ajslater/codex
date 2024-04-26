@@ -6,7 +6,6 @@ from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.db.models import F
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
@@ -54,10 +53,6 @@ class AdminUserViewSet(ModelViewSet):
         """Add hook after update."""
         super().perform_update(serializer)
         self._on_change()
-
-    def get_queryset(self):
-        """Annotate last active."""
-        return self.queryset.annotate(last_active=F("useractive__updated_at"))
 
 
 class AdminUserChangePasswordView(GenericAPIView):

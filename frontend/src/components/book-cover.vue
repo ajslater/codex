@@ -5,7 +5,7 @@
       v-if="finished !== true"
       :class="{ unreadFlag: true, mixedreadFlag: finished === null }"
     />
-    <span v-if="group !== 'c'" class="childCount">
+    <span v-if="group !== 'c'" :class="childCountClasses">
       {{ childCount }}
     </span>
   </div>
@@ -35,6 +35,10 @@ export default {
       type: Number,
       required: true,
     },
+    multiGroup: {
+      type: Boolean,
+      required: true,
+    },
   },
   data() {
     return {
@@ -47,6 +51,12 @@ export default {
         return getCoverSource(this.coverPk, state.page.coversTimestamp);
       },
     }),
+    childCountClasses() {
+      return {
+        childCount: true,
+        multiGroup: this.multiGroup,
+      };
+    },
   },
   mounted: function () {
     this.delayPlaceholder();
@@ -86,6 +96,9 @@ export default {
   border-radius: 50%;
   background-color: rgb(var(--v-theme-background));
   color: rbg(var(--v-theme-textPrimary));
+}
+.multiGroup {
+  border: thin dahsed white;
 }
 /* Flags */
 $bookCoverShadow: rgba(0, 0, 0, 0.75);
