@@ -249,8 +249,6 @@ class MetadataView(BrowserAnnotationsView):
 
         qs_list = self.re_cover_multi_groups(qs)
 
-        qs_list = self.recover_multi_groups(qs, cover_qs)  # type: ignore
-
         try:
             obj = qs_list[0]
             if not obj:

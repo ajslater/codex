@@ -17,7 +17,6 @@ from codex.serializers.redirect import ReaderRedirectSerializer
 from codex.views.bookmark import BookmarkBaseView
 from codex.views.mixins import SharedAnnotationsMixin
 from codex.views.session import BrowserSessionViewBase
-from codex.views.util import annotate_sort_name
 
 LOG = get_logger(__name__)
 

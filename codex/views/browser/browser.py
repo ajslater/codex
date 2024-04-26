@@ -16,6 +16,7 @@ from codex.exceptions import SeeOtherRedirectError
 from codex.logger.logging import get_logger
 from codex.models import (
     AdminFlag,
+    BrowserGroupModel,
     Comic,
     Folder,
     Imprint,
@@ -432,8 +433,6 @@ class BrowserView(BrowserAnnotationsView):
             ).updated_at.timestamp()
         )
 
-        recovered_group_list = self.recover_multi_groups(group_qs, cover_qs)
-
         # construct final data structure
         return MappingProxyType(
             {
@@ -498,10 +497,6 @@ class BrowserView(BrowserAnnotationsView):
         """Redirect the client to a valid group url."""
         route = deepcopy(dict(self.DEFAULT_ROUTE))
         route["params"].update(route_mask)  # type: ignore
-        pks = route["params"]["pks"]  # type: ignore
-        if not isinstance(pks, str):
-            pks = ",".join(str(pk) for pk in pks)
-            route["params"]["pks"] = pks  # type: ignore
         settings = deepcopy(self.params)
         if settings_mask:
             settings.update(settings_mask)
