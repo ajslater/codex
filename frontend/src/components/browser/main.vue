@@ -45,6 +45,13 @@
       >
       for detailed instructions.
     </div>
+    <div
+      v-if="searchLimitMessage"
+      id="searchLimitMessage"
+      title="You may change this in the settings drawer"
+    >
+      {{ searchLimitMessage }}
+    </div>
   </v-main>
 </template>
 
@@ -73,7 +80,8 @@ export default {
     ...mapState(useAuthStore, {
       adminFlags: (state) => state.adminFlags,
     }),
-    ...mapGetters(useAuthStore, ["isUserAdmin", "isCodexViewable"]),
+    ...mapGetters(useAuthStore, ["isCodexViewable", "isUserAdmin"]),
+    ...mapGetters(useBrowserStore, ["isSearchMode", "isSearchLimitedMode"]),
     ...mapState(useBrowserStore, {
       librariesExist: (state) => state.page.librariesExist,
       showPlaceHolder(state) {
@@ -83,6 +91,7 @@ export default {
             (this.librariesExist == undefined || !state.browserPageLoaded))
         );
       },
+      searchResultsLimit: (state) => state.settings.searchResultsLimit,
       cards: (state) => [
         ...(state.page.groups ?? []),
         ...(state.page.books ?? []),
@@ -99,6 +108,23 @@ export default {
         this.isCodexViewable &&
         !this.showPlaceHolder
       );
+    },
+    searchLimitMessage() {
+      let res = "";
+      if (this.isSearchLimitedMode) {
+        const page = +this.$route.params.page;
+        if (this.showPlaceholder) {
+          const limit = this.searchResultsLimit * page;
+          res += `Searching for ${limit} entries...`;
+        } else if (this.numPages > page) {
+          const limit = this.searchResultsLimit * page;
+          res += `Search results truncated to ${limit} entries.`;
+          res += " Advance the page to look for more.";
+        }
+      } else if (this.isSearchMode) {
+        res = "Select incremental search in the side bar to search faster";
+      }
+      return res;
     },
   },
 };
@@ -140,6 +166,12 @@ $card-margin: 32px;
   top: calc(50% + 75px);
   left: 50%;
   transform: translate(-50%, -50%);
+}
+#searchLimitMessage {
+  padding-top: 20px;
+  text-align: center;
+  font-size: 14px;
+  color: rgb(var(--v-theme-textDisabled));
 }
 @media #{map-get(vuetify.$display-breakpoints, 'sm-and-down')} {
   $small-card-margin: 16px;

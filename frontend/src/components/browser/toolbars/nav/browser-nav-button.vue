@@ -5,6 +5,7 @@
     :title="title"
     :to="toRoute"
   >
+    <v-icon v-if="showMore"> {{ mdiMagnify }}</v-icon>
     <v-icon :class="{ flipHoriz: !back }">
       {{ mdiChevronLeft }}
     </v-icon>
@@ -12,8 +13,8 @@
 </template>
 
 <script>
-import { mdiChevronLeft } from "@mdi/js";
-import { mapState } from "pinia";
+import { mdiChevronLeft, mdiMagnify } from "@mdi/js";
+import { mapGetters, mapState } from "pinia";
 
 import PaginationNavButton from "@/components/pagination-nav-button.vue";
 import { useBrowserStore } from "@/stores/browser";
@@ -27,15 +28,21 @@ export default {
       type: Boolean,
       required: true,
     },
+    more: {
+      type: Boolean,
+      default: false,
+    },
   },
   data() {
     return {
       mdiChevronLeft,
+      mdiMagnify,
       routeParams: this.$route.params,
       page: +this.$route.params.page,
     };
   },
   computed: {
+    ...mapGetters(useBrowserStore, ["isSearchMode", "isSearchLimitedMode"]),
     ...mapState(useBrowserStore, {
       numPages: (state) => state.page.numPages,
     }),
@@ -46,7 +53,7 @@ export default {
       return this.page + this.increment;
     },
     title() {
-      return "Page " + this.toPage;
+      return this.showMore ? "Search for More" : "Page " + this.toPage;
     },
     toRoute() {
       const page = this.toPage;
@@ -55,8 +62,13 @@ export default {
     },
     disabled() {
       return (
-        (this.back && +this.page <= 1) ||
-        (!this.back && +this.page >= this.numPages)
+        (this.back && this.page <= 1) ||
+        (!this.back && this.page >= this.numPages)
+      );
+    },
+    showMore() {
+      return (
+        this.more && this.isSearchLimitedMode && this.toPage === this.numPages
       );
     },
   },

@@ -66,6 +66,7 @@ export const useBrowserStore = defineStore("browser", {
       orderBy: undefined,
       orderReverse: undefined,
       show: { ...SETTINGS_SHOW_DEFAULTS },
+      searchResultsLimit: CHOICES.browser.searchResultsLimit,
       twentyFourHourTime: undefined,
     },
     page: {
@@ -170,6 +171,14 @@ export const useBrowserStore = defineStore("browser", {
         }
       }
       return group;
+    },
+    isSearchMode(state) {
+      return Boolean(state.settings.q);
+    },
+    isSearchLimitedMode(state) {
+      return (
+        Boolean(state.settings.q) && Boolean(state.settings.searchResultsLimit)
+      );
     },
   },
   actions: {
@@ -282,7 +291,7 @@ export const useBrowserStore = defineStore("browser", {
       await (redirect ? redirectRoute(redirect) : this.loadBrowserPage());
     },
     async clearFilters() {
-      this.settings.filters = {};
+      this.settings.filters = { bookmark: "ALL" };
       await this.setSettings({});
     },
     async setBookmarkFinished(params, finished) {

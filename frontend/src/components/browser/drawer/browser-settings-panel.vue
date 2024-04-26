@@ -14,6 +14,24 @@
     @update:model-value="setShow(choice.value, $event)"
   />
   <v-divider />
+  <v-tooltip
+    v-if="isUserAuthorized"
+    class="incrementalSearchTooltip"
+    :open-delay="1000"
+    text="Speed up search results by searching one page at a time."
+  >
+    <template #activator="{ props }">
+      <v-checkbox
+        class="searchResultsCheckbox"
+        density="compact"
+        label="Incremental Search"
+        hide-details="auto"
+        :model-value="Boolean(searchResultsLimit)"
+        v-bind="props"
+        @update:model-value="setSearchResultsLimit($event)"
+      />
+    </template>
+  </v-tooltip>
   <SearchHelp />
   <v-divider />
   <v-checkbox
@@ -41,8 +59,12 @@ export default {
   },
   computed: {
     ...mapGetters(useAuthStore, ["isCodexViewable"]),
+    ...mapState(useAuthStore, {
+      isUserAuthorized: (state) => Boolean(state.user),
+    }),
     ...mapState(useBrowserStore, {
       groupChoices: (state) => state.choices.static.settingsGroup,
+      searchResultsLimit: (state) => state.settings.searchResultsLimit,
       showSettings: (state) => state.settings.show,
       twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
       twentyFourHourTimeTitle: (state) =>
@@ -59,12 +81,19 @@ export default {
       const data = { twentyFourHourTime: value === true };
       this.setSettings(data);
     },
+    setSearchResultsLimit(value) {
+      const searchResultsLimit = value ? 100 : 0;
+      const data = { searchResultsLimit };
+      this.setSettings(data);
+    },
   },
 };
 </script>
 <style scoped lang="scss">
 #groupCaption,
-.browserGroupCheckbox {
+.browserGroupCheckbox,
+.searchResultsCheckbox
+{
   padding-right: 10px;
   padding-left: 15px;
 }

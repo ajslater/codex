@@ -107,9 +107,9 @@ class BrowserView(BrowserAnnotationsView):
         value = "c" if model == Comic else self.model_group
         return queryset.annotate(group=Value(value, CharField(max_length=1)))
 
-    def _add_annotations(self, queryset, model, search_scores: dict):
+    def _add_annotations(self, queryset, model):
         """Annotations for display and sorting."""
-        queryset = self.annotate_common_aggregates(queryset, model, search_scores)
+        queryset = self.annotate_common_aggregates(queryset, model)
         queryset = self._annotate_group(queryset, model)
         return self._annotate_group_names(queryset, model)
 
@@ -137,32 +137,33 @@ class BrowserView(BrowserAnnotationsView):
         self.model_group = self._get_model_group()
         self.model = self.GROUP_MODEL_MAP[self.model_group]
 
-    def _get_common_queryset(self, model, search_scores):
+    def _get_common_queryset(self, model):
         """Create queryset common to group & books."""
-        object_filter = self.get_query_filters(model, search_scores, False)
+        object_filter = self.get_query_filters(model, False)
         qs = model.objects.filter(object_filter)
-        qs = self._add_annotations(qs, model, search_scores)
+        qs = self.apply_search_filter(qs, model)
+        qs = self._add_annotations(qs, model)
         qs = self.add_order_by(qs, model)
         if limit := self.params.get("limit"):
             # limit only is set by some opds views
             qs = qs[:limit]
         return qs
 
-    def _get_group_queryset(self, search_scores: dict | None):
+    def _get_group_queryset(self):
         """Create group queryset."""
         if not self.model:
             reason = "Model not set for browser queryset."
             raise ValueError(reason)
-        if self.model == Comic or search_scores is None:
+        elif self.model == Comic:  # noqa: RET506
             qs = self.model.objects.none()
         else:
-            qs = self._get_common_queryset(self.model, search_scores)
+            qs = self._get_common_queryset(self.model)
         return qs
 
-    def _get_book_queryset(self, search_scores: dict | None):
+    def _get_book_queryset(self):
         """Create book queryset."""
-        if self.model in (Comic, Folder) and search_scores is not None:
-            qs = self._get_common_queryset(Comic, search_scores)
+        if self.model in (Comic, Folder):
+            qs = self._get_common_queryset(Comic)
         else:
             qs = Comic.objects.none()
         return qs
@@ -174,11 +175,13 @@ class BrowserView(BrowserAnnotationsView):
 
         # Recall root id & relative path from way back in
         # object creation
-        if self.group_instance and isinstance(self.group_instance, Folder):
-            if self.group_instance.parent_folder:
-                up_pk = self.group_instance.parent_folder.pk
-            else:
-                up_pk = 0
+        if self.group_class == Folder:
+            group_instance: Folder | None = self.group_instance  # type: ignore
+            if group_instance:
+                if group_instance.parent_folder:
+                    up_pk = group_instance.parent_folder.pk
+                else:
+                    up_pk = 0
 
         return up_group, up_pk
 
@@ -365,8 +368,6 @@ class BrowserView(BrowserAnnotationsView):
         if page < 1:
             self._page_out_of_bounds(1)
 
-        page_obj_count = 0
-
         group_count = group_qs.count()
         book_count = book_qs.count()
 
@@ -375,7 +376,7 @@ class BrowserView(BrowserAnnotationsView):
             self._page_out_of_bounds(num_pages)
 
         page_group_qs = self._paginate_groups(group_qs, group_count)
-        page_obj_count += page_group_qs.count()
+        page_obj_count = page_group_qs.count()
         page_book_qs = self._paginate_books(book_qs, group_count, page_obj_count)
         page_obj_count += page_book_qs.count()
 
@@ -387,11 +388,10 @@ class BrowserView(BrowserAnnotationsView):
         self.set_rel_prefix(self.model)
         self._set_group_instance()  # Placed up here to invalidate earlier
         # Create the main query with the filters
-        search_scores: dict | None = self.get_search_scores()
         group = self.kwargs.get("group")
 
-        group_qs = self._get_group_queryset(search_scores)
-        book_qs = self._get_book_queryset(search_scores)
+        group_qs = self._get_group_queryset()
+        book_qs = self._get_book_queryset()
 
         # Paginate
         group_qs, book_qs, num_pages, total_count = self._paginate(group_qs, book_qs)

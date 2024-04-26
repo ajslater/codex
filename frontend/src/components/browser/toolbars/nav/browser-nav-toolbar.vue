@@ -8,7 +8,7 @@
       :step="1"
       @update:model-value="routeToPage($event)"
     />
-    <BrowserNavButton :back="false" />
+    <BrowserNavButton :back="false" :more="true" />
   </PaginationToolbar>
 </template>
 

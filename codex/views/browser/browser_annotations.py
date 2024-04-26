@@ -51,25 +51,6 @@ class BrowserAnnotationsView(BrowserOrderByView):
 
     is_opds_1_acquisition = False
 
-    def _annotate_search_score(self, queryset, search_scores, model):
-        """Annotate the search score for ordering by search score.
-
-        Choose the maximum matching score for the group.
-        """
-        if self.order_key != "search_score":
-            return queryset
-        if search_scores:
-            whens = []
-            prefix = "" if model == Comic else self.rel_prefix
-            for pk, score in search_scores.items():
-                when = {prefix + "pk": pk, "then": score}
-                whens.append(When(**when))
-            search_score = Max(Case(*whens, default=0.0))
-        else:
-            search_score = Value(0.0)
-
-        return queryset.annotate(search_score=search_score)
-
     def _annotate_cover_pk(self, qs, model):
         """Annotate the query set for the coverpath for the sort."""
         # Select comics for the children by an outer ref for annotation
@@ -282,9 +263,8 @@ class BrowserAnnotationsView(BrowserOrderByView):
     def _annotate_mtime(queryset):
         return queryset.annotate(mtime=Max("updated_at"))
 
-    def annotate_common_aggregates(self, qs, model, search_scores):
+    def annotate_common_aggregates(self, qs, model):
         """Annotate common aggregates between browser and metadata."""
-        qs = self._annotate_search_score(qs, search_scores, model)
         qs = self._annotate_child_count(qs, model)
         qs = self._annotate_page_count(qs, model)
         qs, bm_annotation_data = self._annotate_bookmark_updated_at(qs, model)
